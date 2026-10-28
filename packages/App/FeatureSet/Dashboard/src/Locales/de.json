@@ -36478,7 +36478,7 @@
   "Due": "Fällig",
   "Due in {{time}}": "Fällig: noch {{time}}",
   "Due {{time}}": "Fällig: {{time}}",
-  "Edit Targets": "Ziele bearbeiten",
+  "Edit Targets for {{priority}}": "Ziele für {{priority}} bearbeiten",
   "Edit Task": "Aufgabe bearbeiten",
   "Enter a whole number from 1 up, or leave it empty.": "Geben Sie eine ganze Zahl ab 1 ein oder lassen Sie das Feld leer.",
   "File ID": "Datei-ID",

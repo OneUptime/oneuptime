@@ -36478,7 +36478,7 @@
   "Due": "Срок",
   "Due in {{time}}": "До срока: {{time}}",
   "Due {{time}}": "Срок: {{time}}",
-  "Edit Targets": "Изменить цели",
+  "Edit Targets for {{priority}}": "Изменить цели: {{priority}}",
   "Edit Task": "Изменить задачу",
   "Enter a whole number from 1 up, or leave it empty.": "Введите целое число от 1 или оставьте поле пустым.",
   "File ID": "ID файла",

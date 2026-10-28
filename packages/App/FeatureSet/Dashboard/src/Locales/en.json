@@ -36478,7 +36478,7 @@
   "Due": "Due",
   "Due in {{time}}": "Due in {{time}}",
   "Due {{time}}": "Due {{time}}",
-  "Edit Targets": "Edit Targets",
+  "Edit Targets for {{priority}}": "Edit Targets for {{priority}}",
   "Edit Task": "Edit Task",
   "Enter a whole number from 1 up, or leave it empty.": "Enter a whole number from 1 up, or leave it empty.",
   "File ID": "File ID",

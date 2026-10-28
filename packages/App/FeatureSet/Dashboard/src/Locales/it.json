@@ -36478,7 +36478,7 @@
   "Due": "Scadenza",
   "Due in {{time}}": "Scadenza tra {{time}}",
   "Due {{time}}": "Scadenza: {{time}}",
-  "Edit Targets": "Modifica obiettivi",
+  "Edit Targets for {{priority}}": "Modifica obiettivi: {{priority}}",
   "Edit Task": "Modifica attività",
   "Enter a whole number from 1 up, or leave it empty.": "Inserisci un numero intero da 1 in su, oppure lascia vuoto.",
   "File ID": "ID file",

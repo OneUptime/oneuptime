@@ -36478,7 +36478,7 @@
   "Due": "नियत समय",
   "Due in {{time}}": "{{time}} में नियत",
   "Due {{time}}": "नियत: {{time}}",
-  "Edit Targets": "लक्ष्य संपादित करें",
+  "Edit Targets for {{priority}}": "{{priority}} के लक्ष्य संपादित करें",
   "Edit Task": "कार्य संपादित करें",
   "Enter a whole number from 1 up, or leave it empty.": "1 या उससे बड़ी पूर्ण संख्या दर्ज करें, या इसे खाली छोड़ दें।",
   "File ID": "फ़ाइल ID",

@@ -13,6 +13,7 @@ import {
   getSecurityCaseTargetToneColor,
 } from "./SecurityCaseTargetDisplay";
 import { formatCompactDurationInMinutes } from "../../../Utils/CompactDuration";
+import { keepSecurityCaseTimeWhole } from "../SecurityCaseQueueViews";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -26,6 +27,16 @@ import React, {
   useEffect,
   useState,
 } from "react";
+
+/*
+ * The due line's own shape: its words wrap inside the cell (the table's
+ * cells keep to one line otherwise), the clock level with the first line.
+ * The Priority column stays as narrow as its pills, as it was before due
+ * times: beside the side menu the list already scrolls under its row
+ * actions, and a wider column hid the Status there too.
+ */
+export const SECURITY_CASE_DUE_LINE_CLASS_NAME: string =
+  "mt-1 flex min-w-0 items-start gap-1 whitespace-normal text-xs font-medium";
 
 // How often a due time on screen is read again: often enough for minutes.
 export const SECURITY_CASE_TARGET_REFRESH_MS: number = 30 * 1000;
@@ -77,9 +88,9 @@ export const SecurityCaseTargetChip: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
-  const time: string = formatCompactDurationInMinutes(
-    due.minutes,
-    translator.language,
+  // Kept whole where the words wrap: never "7" at a line's end and "h" under it.
+  const time: string = keepSecurityCaseTimeWhole(
+    formatCompactDurationInMinutes(due.minutes, translator.language),
   );
 
   return (
@@ -122,9 +133,9 @@ export const SecurityCaseDueCell: FunctionComponent<ComponentProps> = (
     return <span className="text-sm text-gray-400">-</span>;
   }
 
-  const time: string = formatCompactDurationInMinutes(
-    due.minutes,
-    translator.language,
+  // Kept whole where the words wrap: never "7" at a line's end and "h" under it.
+  const time: string = keepSecurityCaseTimeWhole(
+    formatCompactDurationInMinutes(due.minutes, translator.language),
   );
 
   return (
@@ -161,6 +172,11 @@ export const SecurityCaseDueCell: FunctionComponent<ComponentProps> = (
  * when - "Acknowledge in 12 min", "Acknowledge overdue by 5 min" - small,
  * in its tone, so the queue says which cases are about to miss a target
  * beside how urgent each is. Nothing when no target is pending.
+ *
+ * It wraps (SECURITY_CASE_DUE_LINE_CLASS_NAME) where the column is narrow:
+ * kept to one line, German's "Bestätigung 1 Std. überfällig" widened the
+ * Priority column by 120px at 1280 and pushed the Assignee column under
+ * the row's View and ⋯.
  */
 export const SecurityCaseDueLine: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -177,14 +193,14 @@ export const SecurityCaseDueLine: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
-  const time: string = formatCompactDurationInMinutes(
-    due.minutes,
-    translator.language,
+  // Kept whole where the words wrap: never "7" at a line's end and "h" under it.
+  const time: string = keepSecurityCaseTimeWhole(
+    formatCompactDurationInMinutes(due.minutes, translator.language),
   );
 
   return (
     <span
-      className={`mt-1 flex min-w-0 items-center gap-1 text-xs font-medium ${getSecurityCaseTargetToneClassName(due.tone)}`}
+      className={`${SECURITY_CASE_DUE_LINE_CLASS_NAME} ${getSecurityCaseTargetToneClassName(due.tone)}`}
       data-testid={RESPONSE_TARGETS_TEST_IDS.dueLine}
       data-state={due.state}
       title={translator.translateTemplate(SECURITY_CASE_TARGET_DUE_AT, {
@@ -193,7 +209,7 @@ export const SecurityCaseDueLine: FunctionComponent<ComponentProps> = (
         ),
       })}
     >
-      <Icon icon={IconProp.Clock} className="h-3 w-3 shrink-0" />
+      <Icon icon={IconProp.Clock} className="mt-0.5 h-3 w-3 shrink-0" />
       <span className="min-w-0">
         {translator.translateTemplate(due.template, { time })}
       </span>

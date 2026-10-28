@@ -26,7 +26,11 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *   - It reads the case's tasks, the oldest first, and draws each as a line:
  *     a box to tick it off, what it is, who has it - or Unassigned - and,
  *     once done, who did it and when. How many are done sits beside the
- *     title.
+ *     title. Who has it is a small avatar and the name on one line, cut to
+ *     it with the whole name under the pointer: in a column of its own from
+ *     sm up, a line under the title on a phone.
+ *   - Its ⋯ is a button, as every list row's is; Assign Task and Delete
+ *     Task name the task in bold in their question.
  *   - A new task is typed into the line under the list and added with Enter
  *     or Add Task, trimmed; nothing is sent for an empty one.
  *   - A box ticks a task off and on; the ⋯ hands it to the reader, takes it
@@ -457,14 +461,21 @@ describe("a case's tasks", () => {
       );
     });
 
+    const dialog: HTMLElement = await screen.findByRole("dialog");
+
+    // The task in bold, so it reads as the task and not part of the question.
     expect(
-      await screen.findByText(
-        "Delete Pull the proxy logs? The case's timeline keeps a record that it was deleted.",
-      ),
-    ).toBeInTheDocument();
+      within(dialog).getByTestId("confirm-modal-description"),
+    ).toHaveTextContent(
+      "Delete Pull the proxy logs? The case's timeline keeps a record that it was deleted.",
+    );
+    const name: HTMLElement = within(dialog).getByTestId(
+      SECURITY_CASE_TASKS_TEST_IDS.dialogTask,
+    );
+    expect(name.tagName).toBe("STRONG");
+    expect(name).toHaveTextContent("Pull the proxy logs");
     expect(deleteItemMock).not.toHaveBeenCalled();
 
-    const dialog: HTMLElement = screen.getByRole("dialog");
     await act(async () => {
       fireEvent.click(
         within(dialog).getByRole("button", { name: /Delete Task/ }),
@@ -479,6 +490,112 @@ describe("a case's tasks", () => {
         }),
       );
     });
+  });
+
+  test("who has a task: a small avatar and the name on one line, the whole name under the pointer, and on a phone a line under the title", async () => {
+    const longName: string = "Diego Fernando Alvarez-Montenegro de la Vega";
+    tasks = [
+      task(TASK_A, "Pull the proxy logs", {
+        assignedToUser: user(ANA, longName),
+        assignedToUserId: new ObjectID(ANA),
+      }),
+      task(TASK_B, "Rotate keys"),
+    ];
+    await drawn();
+    await waitFor(() => {
+      expect(rows()).toHaveLength(2);
+    });
+
+    const mine: HTMLElement = rowOf("Pull the proxy logs");
+
+    // The column beside the task, from sm up: a fixed width, so avatars line up.
+    const column: HTMLElement = within(mine).getByTestId(
+      SECURITY_CASE_TASKS_TEST_IDS.assignee,
+    );
+    expect(column.className).toContain("max-sm:hidden");
+    expect(column.className).toContain("w-44");
+    expect(column).toHaveTextContent(longName);
+    expect(within(column).getByTitle(longName)).toBeInTheDocument();
+    // Initials on the avatar, from the name's words.
+    expect(column).toHaveTextContent("DV");
+    // The name keeps to one line and ends in an ellipsis.
+    const name: HTMLElement = within(column).getByText(longName);
+    expect(name.className).toContain("truncate");
+    expect(name.className).toContain("text-sm");
+
+    // On a phone: under the title, smaller.
+    const line: HTMLElement = within(mine).getByTestId(
+      SECURITY_CASE_TASKS_TEST_IDS.assigneeLine,
+    );
+    expect(line.className).toContain("sm:hidden");
+    expect(within(line).getByText(longName).className).toContain("text-xs");
+
+    // Nobody's: Unassigned in both places.
+    const nobodys: HTMLElement = rowOf("Rotate keys");
+    expect(
+      within(nobodys).getByTestId(SECURITY_CASE_TASKS_TEST_IDS.assignee),
+    ).toHaveTextContent("Unassigned");
+    expect(
+      within(nobodys).getByTestId(SECURITY_CASE_TASKS_TEST_IDS.assigneeLine),
+    ).toHaveTextContent("Unassigned");
+  });
+
+  test("a task's ⋯ is a button, as every list row's is, named for what it holds", async () => {
+    await drawn();
+    await waitFor(() => {
+      expect(rows()).toHaveLength(2);
+    });
+
+    const more: HTMLElement = within(rowOf("Pull the proxy logs")).getByTestId(
+      SECURITY_CASE_TASKS_TEST_IDS.more,
+    );
+    expect(more.tagName).toBe("BUTTON");
+    expect(more).toHaveAttribute("aria-label", "More task actions");
+    expect(more).toHaveAttribute("aria-haspopup", "menu");
+  });
+
+  test("the line that adds a task is the product's text box, and takes what a task keeps", async () => {
+    await drawn();
+
+    const input: HTMLElement = await screen.findByTestId(
+      SECURITY_CASE_TASKS_TEST_IDS.addInput,
+    );
+    expect(input.tagName).toBe("INPUT");
+    // The product's own box: its border and its background, which the dark theme remaps.
+    expect(input.className).toContain("border-gray-300");
+    expect(input.className).toContain("bg-white");
+    expect(input).toHaveAttribute("maxLength", "500");
+    expect(input).toHaveAttribute(
+      "placeholder",
+      "Add a task, like Reset the user's password",
+    );
+    // Labelled for a screen reader.
+    expect(screen.getByLabelText("New task")).toBe(input);
+  });
+
+  test("Assign Task asks who is doing the task, naming it in bold", async () => {
+    await drawn();
+    await waitFor(() => {
+      expect(rows()).toHaveLength(2);
+    });
+
+    const menu: HTMLElement = await openMore("Pull the proxy logs");
+
+    await act(async () => {
+      fireEvent.click(
+        within(menu).getByRole("menuitem", { name: /Assign to Someone Else/ }),
+      );
+    });
+
+    const dialog: HTMLElement = await screen.findByRole("dialog");
+    const name: HTMLElement = within(dialog).getByTestId(
+      SECURITY_CASE_TASKS_TEST_IDS.dialogTask,
+    );
+    expect(name.tagName).toBe("STRONG");
+    expect(name).toHaveTextContent("Pull the proxy logs");
+    expect(within(dialog).getByTestId("modal-description")).toHaveTextContent(
+      "Who is doing Pull the proxy logs? They are told it is theirs.",
+    );
   });
 
   test("a change that fails says why, and the list stays", async () => {

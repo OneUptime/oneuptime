@@ -36478,7 +36478,7 @@
   "Due": "موعد",
   "Due in {{time}}": "موعد تا {{time}} دیگر",
   "Due {{time}}": "موعد: {{time}}",
-  "Edit Targets": "ویرایش اهداف",
+  "Edit Targets for {{priority}}": "ویرایش اهداف {{priority}}",
   "Edit Task": "ویرایش وظیفه",
   "Enter a whole number from 1 up, or leave it empty.": "یک عدد صحیح از 1 به بالا وارد کنید، یا آن را خالی بگذارید.",
   "File ID": "شناسهٔ فایل",

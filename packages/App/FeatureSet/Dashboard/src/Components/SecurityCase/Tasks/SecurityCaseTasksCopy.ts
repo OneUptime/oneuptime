@@ -92,6 +92,7 @@ export const SECURITY_CASE_TASKS_TEST_IDS: {
   checkbox: string;
   title: string;
   assignee: string;
+  assigneeLine: string;
   doneLine: string;
   more: string;
   progress: string;
@@ -100,6 +101,7 @@ export const SECURITY_CASE_TASKS_TEST_IDS: {
   empty: string;
   error: string;
   closeHint: string;
+  dialogTask: string;
 } = {
   card: "security-case-tasks",
   list: "security-case-tasks-list",
@@ -107,6 +109,8 @@ export const SECURITY_CASE_TASKS_TEST_IDS: {
   checkbox: "security-case-task-done",
   title: "security-case-task-title",
   assignee: "security-case-task-assignee",
+  // On a phone, who has it: a line under the task's title.
+  assigneeLine: "security-case-task-assignee-line",
   doneLine: "security-case-task-done-line",
   more: "security-case-task-more",
   progress: "security-case-tasks-progress",
@@ -115,4 +119,6 @@ export const SECURITY_CASE_TASKS_TEST_IDS: {
   empty: "security-case-tasks-empty",
   error: "security-case-tasks-error",
   closeHint: "security-case-close-open-tasks",
+  // The task a dialog is about, in bold in its sentence.
+  dialogTask: "security-case-task-dialog-name",
 };

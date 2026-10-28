@@ -36478,7 +36478,7 @@
   "Due": "Förfaller",
   "Due in {{time}}": "Förfaller om {{time}}",
   "Due {{time}}": "Förfaller: {{time}}",
-  "Edit Targets": "Redigera mål",
+  "Edit Targets for {{priority}}": "Redigera mål för {{priority}}",
   "Edit Task": "Redigera uppgift",
   "Enter a whole number from 1 up, or leave it empty.": "Ange ett heltal från 1 och uppåt, eller lämna tomt.",
   "File ID": "Fil-ID",

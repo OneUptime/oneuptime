@@ -36478,7 +36478,7 @@
   "Due": "기한",
   "Due in {{time}}": "기한까지 {{time}} 남음",
   "Due {{time}}": "기한: {{time}}",
-  "Edit Targets": "목표 편집",
+  "Edit Targets for {{priority}}": "{{priority}} 목표 편집",
   "Edit Task": "작업 편집",
   "Enter a whole number from 1 up, or leave it empty.": "1 이상의 정수를 입력하거나 비워 두세요.",
   "File ID": "파일 ID",

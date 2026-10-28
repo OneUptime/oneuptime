@@ -1,4 +1,3 @@
-import UserElement from "../../User/User";
 import {
   SECURITY_CASE_TASKS_COPY,
   SECURITY_CASE_TASKS_TEST_IDS,
@@ -32,11 +31,14 @@ import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Input from "Common/UI/Components/Input/Input";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import NamedSentence from "Common/UI/Components/DeleteConfirmation/NamedSentence";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuDivider from "Common/UI/Components/MoreMenu/Divider";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
+import PeopleAvatar from "Common/UI/Components/PeoplePicker/PeopleAvatar";
 import {
   PeoplePickerKind,
   toPeoplePickerIds,
@@ -79,6 +81,77 @@ type TaskDialog =
   | null;
 
 const ASSIGN_USER_KEY: string = "assignedToUserId";
+
+/*
+ * The line that adds a task: the text box and Add Task under it on a phone,
+ * side by side from md up - where the button stops filling its row - with
+ * the button's own dialog-footer margin (md:ml-3) taken off, so the gap
+ * between them is the row's.
+ */
+export const SECURITY_CASE_TASK_ADD_FORM_CLASS_NAME: string =
+  "mt-1 flex flex-col gap-2 border-t border-gray-100 pt-4 md:flex-row md:items-center [&>button]:md:ml-0 [&>*>button]:md:ml-0";
+
+/*
+ * Who has a task: a small avatar and the name on one line, cut to it with
+ * the whole name under the pointer - or Unassigned. It is quieter than the
+ * task: in its own column beside the task from sm up, a smaller line under
+ * the task's title on a phone, where a column would leave the task a few
+ * words a line. A long name used to wrap into four lines of the task's
+ * height, louder than the task itself.
+ */
+export const SecurityCaseTaskAssignee: FunctionComponent<{
+  task: SecurityCaseTask;
+  isCompact?: boolean | undefined;
+}> = (props: {
+  task: SecurityCaseTask;
+  isCompact?: boolean | undefined;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+  const name: string =
+    props.task.assignedToUser?.name?.toString() ||
+    props.task.assignedToUser?.email?.toString() ||
+    "";
+
+  if (!props.task.assignedToUser || !name) {
+    return (
+      <span
+        className={`${props.isCompact ? "text-xs" : "text-sm"} text-gray-400`}
+      >
+        {translator.translateText(SECURITY_CASE_TASKS_COPY.unassigned)}
+      </span>
+    );
+  }
+
+  const userId: string =
+    props.task.assignedToUserId?.toString() ||
+    props.task.assignedToUser._id?.toString() ||
+    "";
+
+  return (
+    <span
+      className={`flex min-w-0 items-center ${props.isCompact ? "gap-1.5" : "gap-2"}`}
+      title={name}
+    >
+      <PeopleAvatar
+        size={props.isCompact ? "mini" : "chip"}
+        item={{
+          kind: PeoplePickerKind.User,
+          name,
+          userId: userId || undefined,
+          hasProfilePicture: Boolean(
+            props.task.assignedToUser.profilePictureId,
+          ),
+        }}
+      />
+      <IsolatedText
+        text={name}
+        className={`min-w-0 truncate ${
+          props.isCompact ? "text-xs text-gray-600" : "text-sm text-gray-700"
+        }`}
+      />
+    </span>
+  );
+};
 
 /*
  * A case's checklist: what has to be done on it, and who is doing it.
@@ -341,6 +414,16 @@ const SecurityCaseTasks: FunctionComponent<ComponentProps> = (
           >
             <IsolatedText text={task.title || ""} />
           </p>
+          {/*
+           * On a phone, who has it: under what it is, as the column beside
+           * it is drawn from sm up.
+           */}
+          <div
+            className="mt-0.5 flex min-w-0 sm:hidden"
+            data-testid={SECURITY_CASE_TASKS_TEST_IDS.assigneeLine}
+          >
+            <SecurityCaseTaskAssignee task={task} isCompact={true} />
+          </div>
           {isDone && doneTime ? (
             <p
               className="text-xs text-gray-500"
@@ -372,27 +455,27 @@ const SecurityCaseTasks: FunctionComponent<ComponentProps> = (
             <></>
           )}
         </div>
+        {/*
+         * Who has it, a column of its own: every row's the same width, so
+         * the avatars line up under each other as a table's would.
+         */}
         <div
-          className="flex shrink-0 items-center gap-2"
+          className="max-sm:hidden flex h-6 w-44 min-w-0 shrink-0 items-center"
           data-testid={SECURITY_CASE_TASKS_TEST_IDS.assignee}
         >
-          <span className="max-sm:hidden max-w-[12rem] min-w-0 sm:block">
-            {task.assignedToUser ? (
-              <UserElement user={task.assignedToUser} hideEmail={true} />
-            ) : (
-              <span className="text-sm text-gray-400">
-                {translator.translateText(SECURITY_CASE_TASKS_COPY.unassigned)}
-              </span>
-            )}
-          </span>
+          <SecurityCaseTaskAssignee task={task} />
+        </div>
+        {/*
+         * The row's ⋯, as every list row's is (MoreMenu's own bare trigger),
+         * level with the task's first line.
+         */}
+        <div className="-mt-1 flex shrink-0 items-center md:-mt-0.5">
           <MoreMenu
             ariaLabel={translator.translateText(
               SECURITY_CASE_TASKS_COPY.moreActions,
             )}
             dataTestId={SECURITY_CASE_TASKS_TEST_IDS.more}
-            elementToBeShownInsteadOfButton={
-              <Icon icon={IconProp.EllipsisHorizontal} className="h-4 w-4" />
-            }
+            menuIcon={IconProp.EllipsisHorizontal}
             isMenuPortaled={true}
           >
             {[
@@ -516,7 +599,7 @@ const SecurityCaseTasks: FunctionComponent<ComponentProps> = (
 
         {createGate.isAllowed ? (
           <form
-            className="mt-1 flex flex-col gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:items-center"
+            className={SECURITY_CASE_TASK_ADD_FORM_CLASS_NAME}
             onSubmit={(event: React.FormEvent<HTMLFormElement>) => {
               event.preventDefault();
               void add();
@@ -525,26 +608,27 @@ const SecurityCaseTasks: FunctionComponent<ComponentProps> = (
             <label htmlFor={addInputId} className="sr-only">
               {translator.translateText(SECURITY_CASE_TASKS_COPY.addLabel)}
             </label>
-            <input
+            {/*
+             * The product's own text box: its border, focus ring and dark
+             * colours, and what is typed read the way it is written.
+             */}
+            <Input
               id={addInputId}
-              type="text"
               value={newTitle}
               maxLength={SECURITY_CASE_TASK_TITLE_LIMIT}
-              placeholder={translator.translateText(
-                SECURITY_CASE_TASKS_COPY.addPlaceholder,
-              )}
+              placeholder={SECURITY_CASE_TASKS_COPY.addPlaceholder}
               disabled={isAdding}
-              data-testid={SECURITY_CASE_TASKS_TEST_IDS.addInput}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                setNewTitle(event.target.value);
+              dataTestId={SECURITY_CASE_TASKS_TEST_IDS.addInput}
+              outerDivClassName="relative w-full min-w-0 flex-1 rounded-md shadow-sm"
+              onChange={(value: string) => {
+                setNewTitle(value);
               }}
-              className="block w-full min-w-0 flex-1 rounded-md border-0 px-3 py-1.5 text-sm text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600"
             />
             <Button
               title={SECURITY_CASE_TASKS_COPY.addButton}
               icon={IconProp.Add}
               buttonStyle={ButtonStyleType.NORMAL}
-              buttonSize={ButtonSize.Small}
+              buttonSize={ButtonSize.Normal}
               type={ButtonType.Submit}
               isLoading={isAdding}
               disabled={!readNewTaskTitle(newTitle) || isAdding}
@@ -592,10 +676,15 @@ const SecurityCaseTasks: FunctionComponent<ComponentProps> = (
       {dialog?.kind === "assign" ? (
         <BasicFormModal<JSONObject>
           title={SECURITY_CASE_TASKS_COPY.assignTitle}
-          description={translator.translateTemplate(
-            SECURITY_CASE_TASKS_COPY.assignDescription,
-            { title: dialog.task.title || "" },
-          )}
+          // The task in bold, so it reads as the task and not the question.
+          description={
+            <NamedSentence
+              template={SECURITY_CASE_TASKS_COPY.assignDescription}
+              slot="title"
+              name={dialog.task.title || ""}
+              dataTestId={SECURITY_CASE_TASKS_TEST_IDS.dialogTask}
+            />
+          }
           submitButtonText={SECURITY_CASE_TASKS_COPY.assignSubmit}
           isLoading={isDialogWorking}
           error={dialogError || undefined}
@@ -687,10 +776,14 @@ const SecurityCaseTasks: FunctionComponent<ComponentProps> = (
       {dialog?.kind === "delete" ? (
         <ConfirmModal
           title={SECURITY_CASE_TASKS_COPY.deleteTitle}
-          description={translator.translateTemplate(
-            SECURITY_CASE_TASKS_COPY.deleteDescription,
-            { title: dialog.task.title || "" },
-          )}
+          description={
+            <NamedSentence
+              template={SECURITY_CASE_TASKS_COPY.deleteDescription}
+              slot="title"
+              name={dialog.task.title || ""}
+              dataTestId={SECURITY_CASE_TASKS_TEST_IDS.dialogTask}
+            />
+          }
           submitButtonText={SECURITY_CASE_TASKS_COPY.deleteSubmit}
           submitButtonType={ButtonStyleType.DANGER}
           isLoading={isDialogWorking}

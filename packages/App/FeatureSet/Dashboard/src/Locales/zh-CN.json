@@ -36478,7 +36478,7 @@
   "Due": "截止",
   "Due in {{time}}": "距截止还剩 {{time}}",
   "Due {{time}}": "截止时间：{{time}}",
-  "Edit Targets": "编辑目标",
+  "Edit Targets for {{priority}}": "编辑{{priority}}的目标",
   "Edit Task": "编辑任务",
   "Enter a whole number from 1 up, or leave it empty.": "请输入不小于 1 的整数，或留空。",
   "File ID": "文件 ID",

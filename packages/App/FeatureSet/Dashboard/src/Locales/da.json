@@ -36478,7 +36478,7 @@
   "Due": "Frist",
   "Due in {{time}}": "Frist om {{time}}",
   "Due {{time}}": "Frist: {{time}}",
-  "Edit Targets": "Rediger mål",
+  "Edit Targets for {{priority}}": "Rediger mål for {{priority}}",
   "Edit Task": "Rediger opgave",
   "Enter a whole number from 1 up, or leave it empty.": "Angiv et helt tal fra 1 og op, eller lad feltet stå tomt.",
   "File ID": "Fil-ID",

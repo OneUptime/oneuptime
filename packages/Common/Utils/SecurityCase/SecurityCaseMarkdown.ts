@@ -662,7 +662,7 @@ export function taskDoneMarkdown(data: { title: string }): MarkdownText {
 }
 
 export function taskReopenedMarkdown(data: { title: string }): MarkdownText {
-  return mdText`↩️ Opened the task **${data.title}** again.`;
+  return mdText`↩️ Reopened the task **${data.title}**.`;
 }
 
 export function taskAssignedMarkdown(data: {
@@ -670,8 +670,8 @@ export function taskAssignedMarkdown(data: {
   assigneeName?: string | undefined;
 }): MarkdownText {
   return data.assigneeName
-    ? mdText`👤 Gave the task **${data.title}** to **${data.assigneeName}**.`
-    : mdText`👤 Took the task **${data.title}** off whoever had it.`;
+    ? mdText`👤 Assigned the task **${data.title}** to **${data.assigneeName}**.`
+    : mdText`👤 Unassigned the task **${data.title}**.`;
 }
 
 export function taskDeletedMarkdown(data: { title: string }): MarkdownText {

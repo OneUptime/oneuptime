@@ -446,7 +446,7 @@ describe("changing a task", () => {
       },
     ]);
     expect(feedTexts()).toEqual([
-      "↩️ Opened the task **Reset the admin password** again.",
+      "↩️ Reopened the task **Reset the admin password**.",
     ]);
     expect(feedItems[0]!["displayColor"]).toEqual(Gray500);
   });
@@ -464,7 +464,7 @@ describe("changing a task", () => {
     await change({ assignedToUserId: DIEGO_ID });
 
     expect(feedTexts()).toEqual([
-      "👤 Gave the task **Reset the admin password** to **Diego**.",
+      "👤 Assigned the task **Reset the admin password** to **Diego**.",
     ]);
     expect(tasksHandedOver).toEqual([
       {
@@ -481,7 +481,7 @@ describe("changing a task", () => {
     await change({ assignedToUserId: DIEGO_ID, title: "Rotate the keys" });
 
     expect(feedTexts()).toEqual([
-      "👤 Gave the task **Rotate the keys** to **Diego**.",
+      "👤 Assigned the task **Rotate the keys** to **Diego**.",
     ]);
   });
 
@@ -489,7 +489,7 @@ describe("changing a task", () => {
     await change({ assignedToUser: null });
 
     expect(feedTexts()).toEqual([
-      "👤 Took the task **Reset the admin password** off whoever had it.",
+      "👤 Unassigned the task **Reset the admin password**.",
     ]);
     expect(tasksHandedOver).toEqual([]);
   });

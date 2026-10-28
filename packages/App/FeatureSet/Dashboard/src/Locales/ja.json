@@ -36478,7 +36478,7 @@
   "Due": "期限",
   "Due in {{time}}": "期限まで残り {{time}}",
   "Due {{time}}": "期限: {{time}}",
-  "Edit Targets": "目標を編集",
+  "Edit Targets for {{priority}}": "{{priority}}の目標を編集",
   "Edit Task": "タスクを編集",
   "Enter a whole number from 1 up, or leave it empty.": "1 以上の整数を入力するか、空欄のままにしてください。",
   "File ID": "ファイル ID",

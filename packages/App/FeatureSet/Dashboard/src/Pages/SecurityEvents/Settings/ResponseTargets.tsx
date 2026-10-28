@@ -11,7 +11,8 @@ import {
   RESPONSE_TARGETS_TEST_IDS,
 } from "../../../Components/SecurityCase/ResponseTargets/ResponseTargetsCopy";
 import { invalidateSecurityCaseValues } from "../../../Components/SecurityCase/SecurityCaseValues";
-import { formatCompactDurationInMinutes } from "../../../Utils/CompactDuration";
+import { getCompactDurationParts } from "../../../Utils/CompactDuration";
+import { formatEventDurationParts } from "../../../Utils/EventDuration";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { readTargetMinutes } from "Common/Utils/SecurityCase/SecurityCaseTargets";
@@ -37,17 +38,20 @@ import React, { FunctionComponent, ReactElement } from "react";
  * priority (Common/Utils/SecurityCase/SecurityCaseTargets); a case about to
  * miss one, or missing it, tells the people on it. A new project's built-in
  * priorities start with targets; one made before them shows "No target"
- * until somebody sets them. Priorities themselves - their names and
- * colours - are under Case Priorities; an archived one is left out, as
- * nothing new is put at it. Like every list of priorities, its rows drag
- * into another order.
+ * until somebody sets them. Priorities themselves - their names, colours
+ * and order - are under Case Priorities; an archived one is left out, as
+ * nothing new is put at it. Edit names the priority it opens for.
  */
 const SecurityResponseTargetsPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
 
-  // A target in the reader's words: "15 min", "4 h", "1 d" - or "No target".
+  /*
+   * A target in the reader's words, whole: "15 minutes", "4 hours", "1 day"
+   * - "No target" for none. A settings table has the room; "1 d" and "7 d"
+   * were the product's compact figures, made for a stat tile.
+   */
   const TargetCell: (props: { minutes: unknown }) => ReactElement = (props: {
     minutes: unknown;
   }): ReactElement => {
@@ -62,8 +66,11 @@ const SecurityResponseTargetsPage: FunctionComponent<
     }
 
     return (
-      <span className="text-sm font-medium text-gray-700">
-        {formatCompactDurationInMinutes(minutes, translator.language)}
+      <span className="whitespace-nowrap text-sm font-medium text-gray-700">
+        {formatEventDurationParts(
+          getCompactDurationParts(minutes),
+          translator.language,
+        )}
       </span>
     );
   };
@@ -84,10 +91,21 @@ const SecurityResponseTargetsPage: FunctionComponent<
       isEditable={true}
       isCreateable={false}
       disablePagination={true}
-      enableDragAndDrop={true}
-      dragDropIndexField="order"
+      /*
+       * In the priorities' order, most urgent first - which Case Priorities
+       * sets: a row dragged here would have ranked the priorities from a
+       * page about how fast to answer them.
+       */
       sortBy="order"
       sortOrder={SortOrder.Ascending}
+      // Which priority's targets the dialog edits.
+      editFormTitle={(item: SecurityCasePriority): string => {
+        const name: string = item.name?.toString() || "";
+
+        return translator.translateTemplate(RESPONSE_TARGETS_COPY.editTitle, {
+          priority: translator.translateText(name) || name,
+        });
+      }}
       cardProps={{
         title: RESPONSE_TARGETS_COPY.title,
         description: RESPONSE_TARGETS_COPY.description,
@@ -108,6 +126,8 @@ const SecurityResponseTargetsPage: FunctionComponent<
           title: RESPONSE_TARGETS_COPY.priorityColumn,
           type: FieldType.Element,
           isNotCustomizable: true,
+          // The rows keep the priorities' own order, most urgent first.
+          disableSort: true,
           getElement: (item: SecurityCasePriority): ReactElement => {
             return <SecurityCasePriorityPill value={item} />;
           },
@@ -117,6 +137,7 @@ const SecurityResponseTargetsPage: FunctionComponent<
           title: RESPONSE_TARGETS_COPY.acknowledgeColumn,
           headerTooltip: RESPONSE_TARGETS_COPY.acknowledgeTooltip,
           type: FieldType.Element,
+          disableSort: true,
           getElement: (item: SecurityCasePriority): ReactElement => {
             return <TargetCell minutes={item.acknowledgeWithinInMinutes} />;
           },
@@ -126,6 +147,7 @@ const SecurityResponseTargetsPage: FunctionComponent<
           title: RESPONSE_TARGETS_COPY.containColumn,
           headerTooltip: RESPONSE_TARGETS_COPY.containTooltip,
           type: FieldType.Element,
+          disableSort: true,
           getElement: (item: SecurityCasePriority): ReactElement => {
             return <TargetCell minutes={item.containWithinInMinutes} />;
           },

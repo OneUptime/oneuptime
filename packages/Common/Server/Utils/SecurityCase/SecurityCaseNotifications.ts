@@ -497,14 +497,18 @@ export function buildTargetAlertMessage(data: {
 
   let leadSentence: string;
 
+  /*
+   * What happened, then what is left: "is due in", as the case's header and
+   * Overview say it.
+   */
   if (data.target === SecurityCaseTarget.Acknowledge) {
     leadSentence = isMissed
       ? `Nobody has taken this ${facts.priority} security case on, and it missed its acknowledge target${targetDuration ? ` of ${targetDuration}` : ""}.`
-      : `Nobody has taken this ${facts.priority} security case on yet, and its acknowledge target ends in ${timeLeft}.`;
+      : `Nobody has taken this ${facts.priority} security case on yet, and its acknowledge target is due in ${timeLeft}.`;
   } else {
     leadSentence = isMissed
-      ? `This ${facts.priority} security case was not contained within its contain target${targetDuration ? ` of ${targetDuration}` : ""}.`
-      : `This ${facts.priority} security case is not contained yet, and its contain target ends in ${timeLeft}.`;
+      ? `This ${facts.priority} security case is not contained yet, and it missed its contain target${targetDuration ? ` of ${targetDuration}` : ""}.`
+      : `This ${facts.priority} security case is not contained yet, and its contain target is due in ${timeLeft}.`;
   }
 
   const settingsSentence: string =
@@ -530,7 +534,12 @@ export function buildTargetAlertMessage(data: {
     templateType: EmailTemplateType.SecurityCaseTargetDue,
     emailVars: {
       ...getCaseEmailVars(facts),
-      emailTitle: `Security Case ${facts.number}: ${facts.title}`,
+      /*
+       * The heading says what happened, as the push does: the case's title
+       * is the first row under it. "Security Case CASE-12: <title>" said
+       * nothing a reader could not have read in any other case email.
+       */
+      emailTitle: `${facts.number} ${what}`,
       leadSentence,
       reasonSentence,
       targetText: targetDuration
@@ -548,7 +557,7 @@ export function buildTargetAlertMessage(data: {
     ),
     callText: isMissed
       ? `This is a message from OneUptime. Security case ${facts.number}, priority ${facts.priority}, missed its ${verb} target: ${facts.title}. Open OneUptime to work it. To change these calls go to User Settings in the OneUptime Dashboard. Good bye.`
-      : `This is a message from OneUptime. Security case ${facts.number}, priority ${facts.priority}, is about to miss its ${verb} target, in ${timeLeft}: ${facts.title}. Open OneUptime to work it. To change these calls go to User Settings in the OneUptime Dashboard. Good bye.`,
+      : `This is a message from OneUptime. Security case ${facts.number}, priority ${facts.priority}, is about to miss its ${verb} target, with ${timeLeft} left: ${facts.title}. Open OneUptime to work it. To change these calls go to User Settings in the OneUptime Dashboard. Good bye.`,
     pushTitle: `${facts.number} ${what}`,
     pushBody: isMissed
       ? `${facts.priority}: ${facts.title}`
@@ -580,9 +589,9 @@ export function buildTaskAssignedMessage(data: {
     emailVars: {
       ...getCaseEmailVars(facts),
       caseViewLink: data.tasksUrl,
-      emailTitle: `Task on security case ${facts.number}`,
+      emailTitle: `Task for you on security case ${facts.number}`,
       leadSentence: data.assignedBy
-        ? `${data.assignedBy} gave you a task on this ${facts.priority} security case.`
+        ? `${data.assignedBy} assigned you a task on this ${facts.priority} security case.`
         : `You have a task on this ${facts.priority} security case.`,
       reasonSentence:
         "A task on this case was assigned to you. Change these emails in User Settings > Notification Settings.",
@@ -1529,8 +1538,8 @@ export default class SecurityCaseNotifications {
       facts,
       markdown: buildChannelMarkdown({
         headline: isMissed
-          ? mdText`🚨 **Missed its ${verb} target**`
-          : mdText`⏰ **About to miss its ${verb} target**: ${timeLeft} left.`,
+          ? mdText`🚨 **Security case missed its ${verb} target**`
+          : mdText`⏰ **Security case is about to miss its ${verb} target**: ${timeLeft} left.`,
         facts,
       }),
       notificationText: isMissed

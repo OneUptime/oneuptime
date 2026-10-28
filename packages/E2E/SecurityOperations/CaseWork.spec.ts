@@ -345,6 +345,72 @@ test.describe("a case's tasks", () => {
     ).toContainText("Maya Chen");
 
     await expect(progress(page)).toHaveText("1 of 3 done");
+
+    /*
+     * Who has each task is a column of one width, so the avatars line up
+     * under each other; the name keeps to one line, quieter than the task.
+     */
+    const columns: Locator = page.getByTestId("security-case-task-assignee");
+    await expect(columns).toHaveCount(3);
+    const columnBoxes: Array<{ x: number; width: number }> = [];
+    for (const column of await columns.all()) {
+      const box: { x: number; width: number } | null =
+        await column.boundingBox();
+      columnBoxes.push(box!);
+    }
+    for (const box of columnBoxes) {
+      expect(Math.abs(box.x - columnBoxes[0]!.x)).toBeLessThanOrEqual(1);
+      expect(Math.abs(box.width - columnBoxes[0]!.width)).toBeLessThanOrEqual(
+        1,
+      );
+    }
+    const maya: Locator = taskRow(
+      page,
+      "Reset the sprayed accounts' passwords",
+    );
+    const mayaName: Locator = maya
+      .getByTestId("security-case-task-assignee")
+      .getByText("Maya Chen", { exact: true });
+    const titleBox: { y: number; height: number } | null = await maya
+      .getByTestId("security-case-task-title")
+      .boundingBox();
+    const nameBox: { y: number; height: number } | null =
+      await mayaName.boundingBox();
+    // One line, level with the task's first line.
+    expect(nameBox!.height).toBeLessThanOrEqual(21);
+    expect(
+      Math.abs(nameBox!.y + nameBox!.height / 2 - (titleBox!.y + 12)),
+    ).toBeLessThanOrEqual(3);
+    // On a phone it is a line under the title; here, the column only.
+    await expect(
+      maya.getByTestId("security-case-task-assignee-line"),
+    ).toBeHidden();
+
+    // The row's ⋯ is a button, level with the task's first line.
+    const more: Locator = maya.getByTestId("security-case-task-more");
+    expect(
+      await more.evaluate((element: Element): string => {
+        return element.tagName;
+      }),
+    ).toBe("BUTTON");
+    const moreBox: { y: number; height: number } | null =
+      await more.boundingBox();
+    expect(
+      Math.abs(moreBox!.y + moreBox!.height / 2 - (titleBox!.y + 12)),
+    ).toBeLessThanOrEqual(3);
+
+    // The add line: the text box and Add Task level, the same height.
+    const addBox: { y: number; height: number } | null = await page
+      .getByTestId("security-case-task-add-input")
+      .boundingBox();
+    const addButtonBox: { y: number; height: number } | null = await page
+      .getByTestId("security-case-task-add")
+      .boundingBox();
+    expect(Math.abs(addBox!.y - addButtonBox!.y)).toBeLessThanOrEqual(1);
+    expect(Math.abs(addBox!.height - addButtonBox!.height)).toBeLessThanOrEqual(
+      1,
+    );
+
     expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
     await screenshot(page, "case-tasks-1280-light");
   });
@@ -426,6 +492,10 @@ test.describe("a case's tasks", () => {
     await expect(dialog).toContainText(
       "Delete Rotate the Okta API token? The case's timeline keeps a record that it was deleted.",
     );
+    // The task in bold, so it reads as the task and not part of the question.
+    await expect(
+      dialog.getByTestId("security-case-task-dialog-name"),
+    ).toHaveText("Rotate the Okta API token");
     await dialog.getByRole("button", { name: "Delete Task" }).click();
     await expect(taskRows(page)).toHaveCount(3);
 
@@ -507,6 +577,36 @@ test.describe("a case's tasks", () => {
         await pageOverflow(page),
         `tasks at ${width} ${theme || "light"}`,
       ).toBeLessThanOrEqual(1);
+
+      // Who has each task: its own column from sm up, a line under the title on a phone.
+      const maya: Locator = taskRow(
+        page,
+        "Reset the sprayed accounts' passwords",
+      );
+      if (width < 640) {
+        await expect(
+          maya.getByTestId("security-case-task-assignee"),
+        ).toBeHidden();
+        await expect(
+          maya.getByTestId("security-case-task-assignee-line"),
+        ).toBeVisible();
+        await expect(
+          maya.getByTestId("security-case-task-assignee-line"),
+        ).toContainText("Maya Chen");
+        await expect(
+          taskRow(page, "Ask the help desk who called in").getByTestId(
+            "security-case-task-assignee-line",
+          ),
+        ).toHaveText("Unassigned");
+      } else {
+        await expect(
+          maya.getByTestId("security-case-task-assignee"),
+        ).toBeVisible();
+        await expect(
+          maya.getByTestId("security-case-task-assignee-line"),
+        ).toBeHidden();
+      }
+
       await screenshot(page, `case-tasks-${width}-${theme || "light"}`);
     }
   });
@@ -886,16 +986,21 @@ test.describe("response targets", () => {
       ),
     ).toEqual(["Case Priorities", "Response Targets", "Case Statuses"]);
 
+    // Each target in whole words: a settings table has the room.
     const rows: Array<string> = await rowTexts(page);
     expect(rows[0]).toContain("Critical");
-    expect(rows[0]).toContain("15 min");
-    expect(rows[0]).toContain("4 h");
-    expect(rows[1]).toContain("1 h");
-    expect(rows[1]).toContain("1 d");
-    expect(rows[2]).toContain("12 h");
-    expect(rows[2]).toContain("3 d");
-    expect(rows[3]).toContain("7 d");
+    expect(rows[0]).toContain("15 minutes");
+    expect(rows[0]).toContain("4 hours");
+    expect(rows[1]).toContain("1 hour");
+    expect(rows[1]).toContain("1 day");
+    expect(rows[2]).toContain("12 hours");
+    expect(rows[2]).toContain("3 days");
+    expect(rows[3]).toContain("1 day");
+    expect(rows[3]).toContain("7 days");
     expect(rows[4]).toContain("No target");
+
+    // The priorities' order is Case Priorities' to set: nothing to drag here.
+    await expect(targetRows(page).getByTestId("drag-handle")).toHaveCount(0);
 
     expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
     await screenshot(page, "response-targets-1280-light");
@@ -928,6 +1033,10 @@ test.describe("response targets", () => {
       .click();
     const dialog: Locator = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
+    // Which priority's targets it edits.
+    await expect(dialog.getByTestId("modal-title")).toHaveText(
+      "Edit Targets for Critical",
+    );
     const amounts: Locator = dialog.getByTestId(
       "response-target-duration-amount",
     );
@@ -985,7 +1094,7 @@ test.describe("response targets", () => {
       .getByRole("button", { name: "Save Changes", exact: true })
       .click();
     await expect(dialog).toHaveCount(0);
-    await expect(targetRows(page).first()).toContainText("30 min");
+    await expect(targetRows(page).first()).toContainText("30 minutes");
     expect(
       (await fixture(page)).updates.filter(
         (update: { modelName: string }): boolean => {
@@ -1117,9 +1226,10 @@ test.describe("response targets", () => {
     await open(page, `${PRODUCT}/cases/${caseIdOf(140)}`, { targets: "on" });
     const notes: Locator = page.getByTestId("security-case-target-note");
     await expect(notes).toHaveCount(2, { timeout: 30000 });
+    // Each time is written with spaces no line breaks at: read as words.
     expect(
       (await notes.allInnerTexts()).map((note: string): string => {
-        return note.trim();
+        return note.replace(/\s+/g, " ").trim();
       }),
     ).toEqual(["5 min over its 15 min target", "Within its 4 h target"]);
 
@@ -1127,7 +1237,7 @@ test.describe("response targets", () => {
     await expect(notes).toHaveCount(2, { timeout: 30000 });
     expect(
       (await notes.allInnerTexts()).map((note: string): string => {
-        return note.trim();
+        return note.replace(/\s+/g, " ").trim();
       }),
     ).toEqual(["Within its 15 min target", "Due in 48 min"]);
     await screenshot(page, "case-overview-targets-1280-light");
@@ -1144,7 +1254,7 @@ test.describe("response targets", () => {
 
     const texts: Array<string> = (await lines.allInnerTexts()).map(
       (line: string): string => {
-        return line.trim();
+        return line.replace(/\s+/g, " ").trim();
       },
     );
     expect(texts).toEqual(
@@ -1154,6 +1264,16 @@ test.describe("response targets", () => {
         "Acknowledge overdue by 1 h",
       ]),
     );
+
+    // A time is never split across two lines: "48" here, "min" under it.
+    for (const time of await lines.all()) {
+      const text: string = (await time.textContent()) || "";
+      const noBreak: string = String.fromCharCode(0xa0);
+      expect(text).not.toContain("48 min");
+      expect(text.includes(`48${noBreak}min`) || !text.includes("48")).toBe(
+        true,
+      );
+    }
     expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
     await screenshot(page, "cases-due-lines-1280-light");
 

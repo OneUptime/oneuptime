@@ -454,4 +454,19 @@ describe("Input", () => {
 
     expect(input).toHaveAttribute("spellcheck", "true");
   });
+
+  /*
+   * A box that fills a column of limited length takes no more than it keeps
+   * (a security case's new task: 500 characters), so the browser stops the
+   * typing rather than the save refusing it.
+   */
+  test("takes at most maxLength characters when given one, and has no limit otherwise", () => {
+    const { getByRole, rerender } = render(<Input maxLength={500} />);
+
+    expect(getByRole("textbox")).toHaveAttribute("maxLength", "500");
+
+    rerender(<Input />);
+
+    expect(getByRole("textbox")).not.toHaveAttribute("maxLength");
+  });
 });

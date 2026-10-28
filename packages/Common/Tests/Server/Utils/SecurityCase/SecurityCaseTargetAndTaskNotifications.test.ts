@@ -421,8 +421,13 @@ describe("what a target alert says", () => {
     expect(sentMessage.subject).toBe(
       "[CASE-12] About to miss its acknowledge target: Brute force against admin",
     );
+    // The heading says what happened, as the push does; the case's title is the first row.
+    expect(sentMessage.emailVars["emailTitle"]).toBe(
+      "CASE-12 is about to miss its acknowledge target",
+    );
+    expect(sentMessage.emailVars["emailTitle"]).toBe(sentMessage.pushTitle);
     expect(sentMessage.emailVars["leadSentence"]).toBe(
-      "Nobody has taken this Critical security case on yet, and its acknowledge target ends in 3 minutes.",
+      "Nobody has taken this Critical security case on yet, and its acknowledge target is due in 3 minutes.",
     );
     expect(sentMessage.emailVars["targetText"]).toBe(
       "Acknowledge within 15 minutes",
@@ -433,7 +438,7 @@ describe("what a target alert says", () => {
       "Security case CASE-12 (Critical) is about to miss its acknowledge target, 3 minutes left: Brute force against admin.",
     );
     expect(sentMessage.callText).toContain(
-      "is about to miss its acknowledge target, in 3 minutes",
+      "is about to miss its acknowledge target, with 3 minutes left: Brute force against admin.",
     );
     expect(sentMessage.pushTitle).toBe(
       "CASE-12 is about to miss its acknowledge target",
@@ -456,6 +461,9 @@ describe("what a target alert says", () => {
     expect(sentMessage.subject).toBe(
       "[CASE-12] Missed its acknowledge target: Brute force against admin",
     );
+    expect(sentMessage.emailVars["emailTitle"]).toBe(
+      "CASE-12 missed its acknowledge target",
+    );
     expect(sentMessage.emailVars["leadSentence"]).toBe(
       "Nobody has taken this Critical security case on, and it missed its acknowledge target of 15 minutes.",
     );
@@ -472,7 +480,7 @@ describe("what a target alert says", () => {
       message(SecurityCaseTarget.Contain, SecurityCaseTargetAlertKind.AtRisk)
         .emailVars["leadSentence"],
     ).toBe(
-      "This Critical security case is not contained yet, and its contain target ends in 48 minutes.",
+      "This Critical security case is not contained yet, and its contain target is due in 48 minutes.",
     );
     expect(
       message(SecurityCaseTarget.Contain, SecurityCaseTargetAlertKind.AtRisk)
@@ -483,8 +491,13 @@ describe("what a target alert says", () => {
         now: at(240),
       }).emailVars["leadSentence"],
     ).toBe(
-      "This Critical security case was not contained within its contain target of 4 hours.",
+      "This Critical security case is not contained yet, and it missed its contain target of 4 hours.",
     );
+    expect(
+      message(SecurityCaseTarget.Contain, SecurityCaseTargetAlertKind.Missed, {
+        now: at(240),
+      }).emailVars["emailTitle"],
+    ).toBe("CASE-12 missed its contain target");
   });
 
   test("a priority without a target any more: the target is named without a length", () => {
@@ -509,7 +522,7 @@ describe("what a target alert says", () => {
           now: new Date(at(15).getTime() - 5 * 1000),
         },
       ).emailVars["leadSentence"],
-    ).toContain("ends in 1 minute.");
+    ).toContain("is due in 1 minute.");
   });
 
   test("the due time is written in the reader's own time zone", () => {
@@ -585,8 +598,11 @@ describe("what a task's assignee is told", () => {
     expect(sentMessage.subject).toBe(
       "[CASE-12] Task for you: Reset the admin password",
     );
+    expect(sentMessage.emailVars["emailTitle"]).toBe(
+      "Task for you on security case CASE-12",
+    );
     expect(sentMessage.emailVars["leadSentence"]).toBe(
-      "Maya Chen gave you a task on this Critical security case.",
+      "Maya Chen assigned you a task on this Critical security case.",
     );
     expect(sentMessage.emailVars["taskTitle"]).toBe("Reset the admin password");
     expect(sentMessage.emailVars["caseViewLink"]).toBe(`${CASE_URL}/tasks`);
@@ -731,8 +747,9 @@ describe("who is told that a case is about to miss a target", () => {
     expect(feedItems[0]!["displayColor"]).toEqual(Yellow500);
 
     expect(channelPosts).toHaveLength(1);
+    // Named as every other channel post names it: the security case.
     expect(String(channelPosts[0]!["feedInfoInMarkdown"])).toContain(
-      "⏰ **About to miss its acknowledge target**: 2 minutes left.",
+      "⏰ **Security case is about to miss its acknowledge target**: 2 minutes left.",
     );
     expect(channelPosts[0]!["notificationText"]).toBe(
       "Security case CASE-12 is about to miss its acknowledge target: Brute force against admin",
@@ -848,7 +865,7 @@ describe("who is told that a case is about to miss a target", () => {
     );
     expect(feedItems[0]!["displayColor"]).toEqual(Red500);
     expect(String(channelPosts[0]!["feedInfoInMarkdown"])).toContain(
-      "🚨 **Missed its acknowledge target**",
+      "🚨 **Security case missed its acknowledge target**",
     );
   });
 
@@ -973,7 +990,7 @@ describe("who is told about a task", () => {
     ).vars;
     expect(vars["taskTitle"]).toBe("Reset the admin password");
     expect(vars["leadSentence"]).toBe(
-      "Maya gave you a task on this Critical security case.",
+      "Maya assigned you a task on this Critical security case.",
     );
     expect(vars["caseViewLink"]).toBe(`${CASE_URL}/tasks`);
     // The push opens the Tasks page too.

@@ -49,6 +49,7 @@ import ResponseTargetDurationField from "../../../../App/FeatureSet/Dashboard/sr
 import { ResponseTargetUnit } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/ResponseTargets/ResponseTargetDuration";
 import { RESPONSE_TARGETS_TEST_IDS } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/ResponseTargets/ResponseTargetsCopy";
 import SecurityCaseTargetChip, {
+  SECURITY_CASE_DUE_LINE_CLASS_NAME,
   SECURITY_CASE_TARGET_REFRESH_MS,
   SecurityCaseDueCell,
   SecurityCaseDueLine,
@@ -332,5 +333,58 @@ describe("the case lists", () => {
       />,
     );
     expect(screen.queryByTestId(RESPONSE_TARGETS_TEST_IDS.dueLine)).toBeNull();
+  });
+
+  /*
+   * Kept to one line, German's "Bestätigung 1 Std. überfällig" widened the
+   * Priority column by 120px at 1280 and pushed the Assignee column under
+   * the row's View and ⋯. It wraps in its cell now, never inside its time:
+   * "7 / h" or "48 / Min." on two lines read as two things.
+   */
+  test("the line wraps inside its cell, but never inside its time", () => {
+    now = at(100);
+    render(
+      <SecurityCaseDueLine
+        securityCase={criticalCase({ acknowledgedAt: at(1) })}
+        priorities={PRIORITIES}
+      />,
+    );
+
+    const line: HTMLElement = screen.getByTestId(
+      RESPONSE_TARGETS_TEST_IDS.dueLine,
+    );
+    expect(line.className).toContain("whitespace-normal");
+    expect(line.className).toContain("min-w-0");
+    expect(line.className).toContain(SECURITY_CASE_DUE_LINE_CLASS_NAME);
+
+    const noBreak: string = String.fromCharCode(0xa0);
+    expect(line.textContent).toBe(
+      `Contain in 2${noBreak}h${noBreak}20${noBreak}min`,
+    );
+  });
+
+  test("the chip and the Due cell keep their time whole too", () => {
+    now = at(100);
+    const noBreak: string = String.fromCharCode(0xa0);
+
+    render(
+      <>
+        <SecurityCaseTargetChip
+          securityCase={criticalCase({ acknowledgedAt: at(1) })}
+          priorities={PRIORITIES}
+        />
+        <SecurityCaseDueCell
+          securityCase={criticalCase({ acknowledgedAt: at(1) })}
+          priorities={PRIORITIES}
+        />
+      </>,
+    );
+
+    expect(
+      screen.getByTestId(RESPONSE_TARGETS_TEST_IDS.chip).textContent,
+    ).toContain(`2${noBreak}h${noBreak}20${noBreak}min`);
+    expect(
+      screen.getByTestId(RESPONSE_TARGETS_TEST_IDS.dueCell).textContent,
+    ).toContain(`in 2${noBreak}h${noBreak}20${noBreak}min`);
   });
 });

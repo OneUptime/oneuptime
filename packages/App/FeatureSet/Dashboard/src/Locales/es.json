@@ -36478,7 +36478,7 @@
   "Due": "Vencimiento",
   "Due in {{time}}": "Vence en {{time}}",
   "Due {{time}}": "Vence: {{time}}",
-  "Edit Targets": "Editar objetivos",
+  "Edit Targets for {{priority}}": "Editar objetivos de {{priority}}",
   "Edit Task": "Editar tarea",
   "Enter a whole number from 1 up, or leave it empty.": "Introduce un número entero a partir de 1, o déjalo vacío.",
   "File ID": "ID del archivo",

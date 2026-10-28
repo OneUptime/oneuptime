@@ -22,7 +22,7 @@ export const RESPONSE_TARGETS_COPY: {
   noTarget: string;
   acknowledgeFieldDescription: string;
   containFieldDescription: string;
-  editButton: string;
+  editTitle: string;
   dueColumn: string;
 } = {
   title: translationKey("Response Targets"),
@@ -47,7 +47,8 @@ export const RESPONSE_TARGETS_COPY: {
   containFieldDescription: translationKey(
     "How long a case at this priority may take to be contained or closed, from when it opens. Leave empty for no target.",
   ),
-  editButton: translationKey("Edit Targets"),
+  // Edit's dialog: which priority's targets it changes.
+  editTitle: translationKey("Edit Targets for {{priority}}"),
   dueColumn: translationKey("Due"),
 };
 

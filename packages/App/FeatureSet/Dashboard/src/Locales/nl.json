@@ -36478,7 +36478,7 @@
   "Due": "Termijn",
   "Due in {{time}}": "Termijn over {{time}}",
   "Due {{time}}": "Termijn: {{time}}",
-  "Edit Targets": "Doelen bewerken",
+  "Edit Targets for {{priority}}": "Doelen voor {{priority}} bewerken",
   "Edit Task": "Taak bewerken",
   "Enter a whole number from 1 up, or leave it empty.": "Vul een geheel getal vanaf 1 in, of laat het leeg.",
   "File ID": "Bestands-ID",

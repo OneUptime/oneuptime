@@ -17,6 +17,7 @@ import {
   readCaseTargets,
 } from "../../../Components/SecurityCase/ResponseTargets/SecurityCaseTargetDisplay";
 import { formatCompactDurationInMinutes } from "../../../Utils/CompactDuration";
+import { keepSecurityCaseTimeWhole } from "../../../Components/SecurityCase/SecurityCaseQueueViews";
 import SecurityCaseViewContext, {
   useSecurityCaseView,
 } from "./SecurityCaseViewContext";
@@ -103,13 +104,15 @@ const SecurityCaseOverviewPage: FunctionComponent<
         data-target={target}
       >
         {translator.translateTemplate(note.template, {
-          time: formatCompactDurationInMinutes(
-            note.minutes,
-            translator.language,
+          // Each kept whole where the note wraps in a narrow tile.
+          time: keepSecurityCaseTimeWhole(
+            formatCompactDurationInMinutes(note.minutes, translator.language),
           ),
-          target: formatCompactDurationInMinutes(
-            note.targetInMinutes,
-            translator.language,
+          target: keepSecurityCaseTimeWhole(
+            formatCompactDurationInMinutes(
+              note.targetInMinutes,
+              translator.language,
+            ),
           ),
         })}
       </span>

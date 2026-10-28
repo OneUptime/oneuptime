@@ -18,9 +18,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * stubbed and their props recorded: what a page hands them is its contract.
  *
  *   - Response Targets: one row a priority not archived, in the priorities'
- *     order and draggable like every list of them, edited and never created
- *     or deleted here; each target drawn in the reader's units, or No
- *     target; each edited with the duration field, which refuses what it
+ *     order - set on Case Priorities, never dragged or sorted here - edited
+ *     and never created or deleted here; each target drawn in whole words
+ *     in the reader's language, or No target; Edit's dialog names the
+ *     priority; each edited with the duration field, which refuses what it
  *     cannot keep; every case page reads the targets again once they load.
  *   - Evidence: the case's files and links, the latest first; a file
  *     downloads from its route, a link opens in a new tab only when it is
@@ -155,6 +156,7 @@ const SHA256: string =
 interface Column {
   field: Record<string, unknown>;
   title: string;
+  disableSort?: boolean;
   getElement?: (item: unknown) => ReactElement;
   headerTooltip?: string;
   hideTitleOnMobile?: boolean;
@@ -227,7 +229,7 @@ describe("Security Events > Settings > Response Targets", () => {
     return lastTable();
   }
 
-  test("one row a priority not archived, in their order, draggable, edited here and never created or deleted", () => {
+  test("one row a priority not archived, in their order, never dragged or sorted here, edited here and never created or deleted", () => {
     const table: Record<string, unknown> = drawPage();
 
     expect(table["modelType"]).toBe(SecurityCasePriority);
@@ -239,8 +241,16 @@ describe("Security Events > Settings > Response Targets", () => {
     expect(table["isEditable"]).toBe(true);
     expect(table["isCreateable"]).toBe(false);
     expect(table["isDeleteable"]).toBe(false);
-    expect(table["enableDragAndDrop"]).toBe(true);
-    expect(table["dragDropIndexField"]).toBe("order");
+    /*
+     * The priorities' order is Case Priorities' to set: a row dragged here
+     * would rank the priorities from a page about how fast to answer them,
+     * and a column sorted by its target would put High above Critical.
+     */
+    expect(table["enableDragAndDrop"]).toBeUndefined();
+    expect(table["dragDropIndexField"]).toBeUndefined();
+    for (const column of columnsOf(table)) {
+      expect(column.disableSort).toBe(true);
+    }
     expect(table["sortBy"]).toBe("order");
     expect(table["sortOrder"]).toBe(SortOrder.Ascending);
     expect(table["cardProps"]).toEqual(
@@ -253,7 +263,7 @@ describe("Security Events > Settings > Response Targets", () => {
     ).toEqual(["Priority", "Acknowledge Within", "Contain Within"]);
   });
 
-  test("each target in the reader's units, or No target", () => {
+  test("each target in whole words, or No target", () => {
     const table: Record<string, unknown> = drawPage();
     const [, acknowledge, contain] = columnsOf(table);
 
@@ -261,12 +271,25 @@ describe("Security Events > Settings > Response Targets", () => {
     priority.acknowledgeWithinInMinutes = 15;
     priority.containWithinInMinutes = 240;
 
-    expect(drawElement(acknowledge!.getElement!(priority))).toHaveTextContent(
-      "15 min",
+    // A settings table has the room: "15 minutes", never the tile's "15 min".
+    expect(drawElement(acknowledge!.getElement!(priority)).textContent).toBe(
+      "15 minutes",
     );
     cleanup();
-    expect(drawElement(contain!.getElement!(priority))).toHaveTextContent(
-      "4 h",
+    expect(drawElement(contain!.getElement!(priority)).textContent).toBe(
+      "4 hours",
+    );
+    cleanup();
+
+    const longer: SecurityCasePriority = new SecurityCasePriority();
+    longer.acknowledgeWithinInMinutes = 60;
+    longer.containWithinInMinutes = 36 * 60;
+    expect(drawElement(acknowledge!.getElement!(longer)).textContent).toBe(
+      "1 hour",
+    );
+    cleanup();
+    expect(drawElement(contain!.getElement!(longer)).textContent).toBe(
+      "1 day, 12 hours",
     );
     cleanup();
 
@@ -317,6 +340,24 @@ describe("Security Events > Settings > Response Targets", () => {
       fields[1]!.getCustomElement!({ containWithinInMinutes: null }, {}),
     );
     expect(containField).toHaveTextContent(ResponseTargetUnit.Hours);
+  });
+
+  test("Edit's dialog names the priority it edits", () => {
+    const table: Record<string, unknown> = drawPage();
+    const titleOf: (item: SecurityCasePriority) => string = table[
+      "editFormTitle"
+    ] as (item: SecurityCasePriority) => string;
+
+    const critical: SecurityCasePriority = new SecurityCasePriority();
+    critical.name = "Critical";
+
+    expect(titleOf(critical)).toBe("Edit Targets for Critical");
+
+    // A project's own priority, by its own name.
+    const emergency: SecurityCasePriority = new SecurityCasePriority();
+    emergency.name = "Emergency (after hours)";
+
+    expect(titleOf(emergency)).toBe("Edit Targets for Emergency (after hours)");
   });
 
   test("once the targets load, every case page reads them again", () => {
