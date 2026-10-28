@@ -92,10 +92,22 @@ const translatorFor: (locale: Locale, language: string) => Translator = (
   }, language);
 };
 
-const ENGLISH: Translator = translatorFor(englishLocale as Locale, "en");
-const GERMAN: Translator = translatorFor(germanLocale as Locale, "de");
-const PERSIAN: Translator = translatorFor(persianLocale as Locale, "fa");
-const RUSSIAN: Translator = translatorFor(russianLocale as Locale, "ru");
+const ENGLISH: Translator = translatorFor(
+  englishLocale as unknown as Locale,
+  "en",
+);
+const GERMAN: Translator = translatorFor(
+  germanLocale as unknown as Locale,
+  "de",
+);
+const PERSIAN: Translator = translatorFor(
+  persianLocale as unknown as Locale,
+  "fa",
+);
+const RUSSIAN: Translator = translatorFor(
+  russianLocale as unknown as Locale,
+  "ru",
+);
 
 const DEGRADED: ObjectID = new ObjectID("22222222-2222-4222-8222-222222222222");
 const OFFLINE: ObjectID = new ObjectID("33333333-3333-4333-8333-333333333333");
@@ -121,7 +133,7 @@ type CountRule = Pick<
 const countRule: (
   filterType: FilterType,
   threshold: number | undefined,
-  windowInSeconds: number = 300,
+  windowInSeconds?: number,
 ) => CountRule = (
   filterType: FilterType,
   threshold: number | undefined,

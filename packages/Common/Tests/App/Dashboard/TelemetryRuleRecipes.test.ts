@@ -564,9 +564,11 @@ describe("a recipe applied to a step", () => {
   });
 
   test.each(
-    ALL_RECIPES.map((recipe: TelemetryRuleRecipe) => {
-      return [recipe.key, recipe];
-    }),
+    ALL_RECIPES.map(
+      (recipe: TelemetryRuleRecipe): [string, TelemetryRuleRecipe] => {
+        return [recipe.key, recipe];
+      },
+    ),
   )(
     "%s reads back as the rule it wrote, and as itself",
     (_key: string, recipe: TelemetryRuleRecipe) => {
@@ -700,9 +702,11 @@ describe("which recipe a step is", () => {
 
 describe("criteria nobody has worked on yet", () => {
   test.each(
-    ALL_RECIPES.map((recipe: TelemetryRuleRecipe) => {
-      return [recipe.key, recipe];
-    }),
+    ALL_RECIPES.map(
+      (recipe: TelemetryRuleRecipe): [string, TelemetryRuleRecipe] => {
+        return [recipe.key, recipe];
+      },
+    ),
   )(
     "%s, untouched, is nobody's work, on a step of any type",
     (_key: string, recipe: TelemetryRuleRecipe) => {

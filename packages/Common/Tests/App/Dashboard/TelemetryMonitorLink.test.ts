@@ -283,7 +283,10 @@ describe("what the traces explorer's view becomes", () => {
 
   test("unknown statuses are left out", () => {
     expect(
-      getTracesFilterLinkQuery({ statusCode: new Includes([9, "x"]) }),
+      getTracesFilterLinkQuery({ statusCode: new Includes([9, 42]) }),
+    ).toEqual({});
+    expect(
+      getTracesFilterLinkQuery({ statusCode: new Includes(["x"]) }),
     ).toEqual({});
   });
 });
