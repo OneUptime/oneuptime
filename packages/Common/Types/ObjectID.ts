@@ -4,7 +4,6 @@ import DatabaseProperty from "./Database/DatabaseProperty";
 import BadDataException from "./Exception/BadDataException";
 import { JSONObject, ObjectType } from "./JSON";
 import { FindOperator } from "typeorm";
-import Zod from "../Utils/Schema/Zod";
 import { refusedValue } from "../Utils/RefusedValue";
 
 // UUID validation regex - matches standard UUID format
@@ -146,14 +145,5 @@ export default class ObjectID extends DatabaseProperty {
         `Invalid ID format: "${refusedValue(id)}". Expected a valid UUID (e.g., "550e8400-e29b-41d4-a716-446655440000").`,
       );
     }
-  }
-
-  public static override getSchema(): any {
-    return Zod.string().openapi({
-      type: "string",
-      example: "123e4567-e89b-12d3-a456-426614174000",
-      format: "uuid",
-      description: "A unique identifier for an object, represented as a UUID.",
-    });
   }
 }

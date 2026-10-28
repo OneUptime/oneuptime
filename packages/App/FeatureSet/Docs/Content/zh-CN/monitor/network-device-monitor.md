@@ -68,7 +68,7 @@ flowchart TB
 | --- | --- |
 | **拓扑** | **Device Topology**、**端点**、**Latency Matrix**、**Site Links**、**Device Links** |
 | **规则** | **Auto Import Rules**、**Site Assignment Rules**、**所有者规则**、**标签规则**、**Link Rules** |
-| **设置** | **Alert Policies**、**SNMP 凭据**、**Device Roles**、**Site Types**、**OID Collection Templates** |
+| **设置** | **Alert Policies**、**SNMP 凭据**、**Device Roles**、**Site Types**、**地址名称**、**OID Collection Templates** |
 | **高级** | **Archived Devices** |
 
 ## 添加网络设备

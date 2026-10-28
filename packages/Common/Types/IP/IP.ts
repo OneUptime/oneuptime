@@ -4,7 +4,6 @@ import { JSONObject, ObjectType } from "../JSON";
 import Typeof from "../Typeof";
 import IPType from "./IPType";
 import { FindOperator } from "typeorm";
-import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
 
 export default class IP extends DatabaseProperty {
   private _ip: string = "";
@@ -245,19 +244,5 @@ export default class IP extends DatabaseProperty {
       return new IP(value);
     }
     return null;
-  }
-
-  public static override getSchema(): ZodSchema {
-    return Zod.object({
-      _type: Zod.literal(ObjectType.IP),
-      value: Zod.string().openapi({
-        type: "string",
-        example: "192.168.1.1",
-      }),
-    }).openapi({
-      type: "object",
-      description: "IP object",
-      example: { _type: ObjectType.IP, value: "192.168.1.1" },
-    });
   }
 }

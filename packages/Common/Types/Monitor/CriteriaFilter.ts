@@ -1,4 +1,3 @@
-import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
 import MetricCriteriaContext from "./MetricMonitor/MetricCriteriaContext";
 import MonitorMetricType from "./MonitorMetricType";
 import MonitorType from "./MonitorType";
@@ -914,44 +913,3 @@ export class CriteriaFilterUtil {
     );
   }
 }
-
-export const CriteriaFilterSchema: ZodSchema = Zod.object({
-  checkOn: Zod.string(),
-  serverMonitorOptions: Zod.object({
-    diskPath: Zod.string().optional(),
-  }).optional(),
-  metricMonitorOptions: Zod.object({
-    metricAlias: Zod.string().optional(),
-    metricAggregationType: Zod.string().optional(),
-    onNoDataPolicy: Zod.string().optional(),
-    thresholdUnit: Zod.string().optional(),
-    anomalyDetection: Zod.object({
-      sensitivity: Zod.string().optional(),
-      method: Zod.string().optional(),
-      windowDays: Zod.number().optional(),
-      minSamples: Zod.number().optional(),
-    }).optional(),
-  }).optional(),
-  snmpMonitorOptions: Zod.object({
-    oid: Zod.string().optional(),
-    interfaceName: Zod.string().optional(),
-    tableKey: Zod.string().optional(),
-    tableColumnOid: Zod.string().optional(),
-    tableRow: Zod.string().optional(),
-    transceiverReading: Zod.string().optional(),
-  }).optional(),
-  databaseMonitorOptions: Zod.object({
-    metricType: Zod.string().optional(),
-  }).optional(),
-  customCodeMonitorOptions: Zod.object({
-    resultValuePath: Zod.string().optional(),
-  }).optional(),
-  filterType: Zod.string().optional(),
-  value: Zod.union([Zod.string(), Zod.number()]).optional(),
-  evaluateOverTime: Zod.boolean().optional(),
-  evaluateOverTimeOptions: Zod.object({
-    timeValueInMinutes: Zod.number().optional(),
-    evaluateOverTimeType: Zod.string().optional(),
-    onNoDataPolicy: Zod.string().optional(),
-  }).optional(),
-});

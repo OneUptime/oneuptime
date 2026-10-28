@@ -66,13 +66,25 @@ router.post(
         );
       }
 
+      /*
+       * The DNS names the probe looked up for the records' addresses (issue
+       * #5340); a probe older than the lookups sends none, and a name that
+       * is not one is dropped, never the batch.
+       */
+      const addressNames: Map<string, string> =
+        NetworkFlowIngest.readAddressNames(req.body["addressNames"]);
+
       // Return response immediately - matching and inserts happen after.
       Response.sendJsonObjectResponse(req, res, {
         result: "processing",
       });
 
       try {
-        await processFlowRecords(probeId, rawRecords as Array<unknown>);
+        await processFlowRecords(
+          probeId,
+          rawRecords as Array<unknown>,
+          addressNames,
+        );
       } catch (err) {
         // The response is already sent - log instead of next(err).
         logger.error("Probe network flow ingest: error processing batch:");
@@ -97,6 +109,7 @@ router.post(
 async function processFlowRecords(
   probeId: ObjectID,
   rawRecords: Array<unknown>,
+  addressNames: Map<string, string>,
 ): Promise<void> {
   const probe: FlowProbe | null =
     await NetworkFlowDeviceMatcher.getProbe(probeId);
@@ -112,6 +125,7 @@ async function processFlowRecords(
     probe: probe,
     rawRecords: rawRecords,
     ingestedAt: OneUptimeDate.getCurrentDate(),
+    addressNames: addressNames,
   });
 
   if (result.rows.length > 0) {

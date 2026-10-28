@@ -4,8 +4,11 @@ import NetworkSiteService from "../../Services/NetworkSiteService";
 import NetworkTrafficAggregationService, {
   NETWORK_TRAFFIC_QUERY_TIMEOUT_SECONDS,
   NetworkTrafficAggregates,
+  NetworkTrafficDnsName,
   NetworkTrafficQuery,
 } from "../../Services/NetworkTrafficAggregationService";
+import NetworkAddressNamesUtil from "./NetworkAddressNames";
+import logger from "../Logger";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import TelemetryReadAccess from "../Telemetry/TelemetryReadAccess";
 import TelemetryReadScopeUtil, {
@@ -24,16 +27,29 @@ import NotFoundException from "../../../Types/Exception/NotFoundException";
 import QueryTimeoutException from "../../../Types/Exception/QueryTimeoutException";
 import { JSONObject } from "../../../Types/JSON";
 import {
+  MAX_NETWORK_TRAFFIC_FIND_QUERY_LENGTH,
   MAX_NETWORK_TRAFFIC_RANGE_DAYS,
+  NETWORK_TRAFFIC_FIND_LIMIT,
+  NetworkTrafficAddressRow,
+  NetworkTrafficConversationRow,
   NetworkTrafficDeviceRow,
   NetworkTrafficFilters,
   NetworkTrafficFiltersUtil,
+  NetworkTrafficFindMatch,
+  NetworkTrafficFindResult,
   NetworkTrafficInterfaceRow,
   NetworkTrafficSource,
   NetworkTrafficSummary,
   getNetworkTrafficBucketSeconds,
 } from "../../../Types/NetFlow/NetworkTraffic";
+import {
+  NetworkAddressNameSource,
+  NetworkAddressNameUtil,
+  NetworkTrafficAddressName,
+  NetworkTrafficAddressNames,
+} from "../../../Types/NetFlow/NetworkAddressName";
 import ObjectID from "../../../Types/ObjectID";
+import NetworkAddressBlockUtil from "../../../Utils/NetworkTraffic/NetworkAddressBlock";
 
 /*
  * One Traffic page, answered: POST /network-traffic/summary.
@@ -62,6 +78,23 @@ export interface ParsedNetworkTrafficRequest {
   endTime: Date;
   filters: NetworkTrafficFilters;
 }
+
+// "Find an address": the page's scope and window, and the text typed.
+export interface ParsedNetworkTrafficFindRequest
+  extends ParsedNetworkTrafficRequest {
+  query: string;
+}
+
+// Whose flows a page reads: decided once, for its summary and its search.
+interface NetworkTrafficPageScope {
+  projectId: ObjectID;
+  // A device's page: the device.
+  device: NetworkDevice | null;
+  devices: TelemetryServiceFilter;
+}
+
+export const FIND_QUERY_REQUIRED_MESSAGE: string =
+  "Type a name or an IP address to find.";
 
 // Default window: the past hour.
 const DEFAULT_WINDOW_MINUTES: number = 60;
@@ -119,11 +152,61 @@ export default class NetworkTrafficSummaryUtil {
     };
   }
 
-  public static async build(data: {
+  /*
+   * "Find an address" (POST /network-traffic/find-address): the page's
+   * request, without filters, and what was typed - one line of text, at
+   * most MAX_NETWORK_TRAFFIC_FIND_QUERY_LENGTH characters.
+   */
+  public static parseFindRequest(
+    body: unknown,
+    now: Date,
+  ): ParsedNetworkTrafficFindRequest {
+    const value: JSONObject =
+      body && typeof body === "object" && !Array.isArray(body)
+        ? (body as JSONObject)
+        : {};
+
+    const raw: unknown = value["query"];
+
+    if (raw !== undefined && raw !== null && typeof raw !== "string") {
+      throw new BadDataException("query must be text");
+    }
+
+    const query: string | null = NetworkAddressNameUtil.cleanName(raw);
+
+    if (!query) {
+      throw new BadDataException(FIND_QUERY_REQUIRED_MESSAGE);
+    }
+
+    if (Array.from(query).length > MAX_NETWORK_TRAFFIC_FIND_QUERY_LENGTH) {
+      throw new BadDataException(
+        `Type at most ${MAX_NETWORK_TRAFFIC_FIND_QUERY_LENGTH} characters to find an address by its name.`,
+      );
+    }
+
+    const page: ParsedNetworkTrafficRequest =
+      NetworkTrafficSummaryUtil.parseRequest(
+        {
+          networkDeviceId: value["networkDeviceId"],
+          networkSiteId: value["networkSiteId"],
+          startTime: value["startTime"],
+          endTime: value["endTime"],
+        },
+        now,
+      );
+
+    return { ...page, query: query };
+  }
+
+  /*
+   * Whose flows the page reads (see the top of this file): the device's,
+   * the site's devices', or every device the caller may read - with the
+   * caller's read scope on top.
+   */
+  private static async getPageScope(data: {
     props: DatabaseCommonInteractionProps;
     request: ParsedNetworkTrafficRequest;
-    now: Date;
-  }): Promise<NetworkTrafficSummary> {
+  }): Promise<NetworkTrafficPageScope> {
     const props: DatabaseCommonInteractionProps = data.props;
     const request: ParsedNetworkTrafficRequest = data.request;
 
@@ -198,6 +281,26 @@ export default class NetworkTrafficSummaryUtil {
 
     const devices: TelemetryServiceFilter =
       NetworkTrafficSummaryUtil.getDeviceFilter(readScope, pageDeviceIds);
+
+    return { projectId: projectId, device: device, devices: devices };
+  }
+
+  public static async build(data: {
+    props: DatabaseCommonInteractionProps;
+    request: ParsedNetworkTrafficRequest;
+    now: Date;
+  }): Promise<NetworkTrafficSummary> {
+    const props: DatabaseCommonInteractionProps = data.props;
+    const request: ParsedNetworkTrafficRequest = data.request;
+
+    const scope: NetworkTrafficPageScope =
+      await NetworkTrafficSummaryUtil.getPageScope({
+        props: props,
+        request: request,
+      });
+    const projectId: ObjectID = scope.projectId;
+    const device: NetworkDevice | null = scope.device;
+    const devices: TelemetryServiceFilter = scope.devices;
 
     const query: NetworkTrafficQuery = {
       projectId: projectId,
@@ -275,6 +378,36 @@ export default class NetworkTrafficSummaryUtil {
         props: props,
       });
 
+    const topDevices: Array<NetworkTrafficDeviceRow> =
+      aggregates.topDevices.map(
+        (row: NetworkTrafficDeviceRow): NetworkTrafficDeviceRow => {
+          return NetworkTrafficSummaryUtil.withDeviceName(
+            row,
+            projectId,
+            names,
+          );
+        },
+      );
+    const namedSources: Array<NetworkTrafficSource> = sources.map(
+      (source: NetworkTrafficSource): NetworkTrafficSource => {
+        return NetworkTrafficSummaryUtil.withDeviceName(
+          source,
+          projectId,
+          names,
+        );
+      },
+    );
+
+    const addressNames: NetworkTrafficAddressNames =
+      await NetworkTrafficSummaryUtil.nameAddresses({
+        projectId: projectId,
+        request: request,
+        aggregates: aggregates,
+        topDevices: topDevices,
+        sources: namedSources,
+        props: props,
+      });
+
     return {
       windowStartAt: OneUptimeDate.toString(request.startTime),
       windowEndAt: OneUptimeDate.toString(request.endTime),
@@ -287,26 +420,239 @@ export default class NetworkTrafficSummaryUtil {
       topConversations: aggregates.topConversations,
       topApplications: aggregates.topApplications,
       topInterfaces: topInterfaces,
-      topDevices: aggregates.topDevices.map(
-        (row: NetworkTrafficDeviceRow): NetworkTrafficDeviceRow => {
-          return NetworkTrafficSummaryUtil.withDeviceName(
-            row,
-            projectId,
-            names,
-          );
-        },
-      ),
-      sources: sources.map(
-        (source: NetworkTrafficSource): NetworkTrafficSource => {
-          return NetworkTrafficSummaryUtil.withDeviceName(
-            source,
-            projectId,
-            names,
-          );
-        },
-      ),
+      topDevices: topDevices,
+      sources: namedSources,
       lastFlowAt: lastFlowAt,
+      addressNames: addressNames,
     };
+  }
+
+  /*
+   * Every address the page shows, each once, in the order the page shows
+   * them: its sources, destinations and both ends of its conversations,
+   * the addresses its filters name, and the exporters that are no device
+   * yet (Top devices and who is sending).
+   */
+  public static getPageAddresses(data: {
+    request: ParsedNetworkTrafficRequest;
+    aggregates: NetworkTrafficAggregates;
+    topDevices: Array<NetworkTrafficDeviceRow>;
+    sources: Array<NetworkTrafficSource>;
+  }): Array<string> {
+    const addresses: Array<string> = [];
+    const add: (address: string | undefined) => void = (
+      address: string | undefined,
+    ): void => {
+      if (address && !addresses.includes(address)) {
+        addresses.push(address);
+      }
+    };
+
+    const filters: NetworkTrafficFilters = data.request.filters;
+
+    add(filters.sourceIp);
+    add(filters.destinationIp);
+    add(filters.hostIp);
+    add(filters.exporterIp);
+
+    for (const row of data.aggregates.topSources) {
+      add((row as NetworkTrafficAddressRow).ip);
+    }
+
+    for (const row of data.aggregates.topDestinations) {
+      add((row as NetworkTrafficAddressRow).ip);
+    }
+
+    for (const row of data.aggregates.topConversations) {
+      add((row as NetworkTrafficConversationRow).sourceIp);
+      add((row as NetworkTrafficConversationRow).destinationIp);
+    }
+
+    for (const row of data.topDevices) {
+      if (!row.networkDeviceId) {
+        add(row.exporterIp);
+      }
+    }
+
+    for (const source of data.sources) {
+      if (!source.networkDeviceId) {
+        add(source.exporterIp);
+      }
+    }
+
+    return addresses;
+  }
+
+  /*
+   * What the page's addresses are called (NetworkAddressNamesUtil), with
+   * the DNS names its flows carried. Names are a nicety on top of the
+   * page's numbers: when they cannot be read the page answers without them.
+   */
+  private static async nameAddresses(data: {
+    projectId: ObjectID;
+    request: ParsedNetworkTrafficRequest;
+    aggregates: NetworkTrafficAggregates;
+    topDevices: Array<NetworkTrafficDeviceRow>;
+    sources: Array<NetworkTrafficSource>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<NetworkTrafficAddressNames> {
+    const addresses: Array<string> = NetworkTrafficSummaryUtil.getPageAddresses(
+      {
+        request: data.request,
+        aggregates: data.aggregates,
+        topDevices: data.topDevices,
+        sources: data.sources,
+      },
+    );
+
+    if (addresses.length === 0) {
+      return {};
+    }
+
+    const dnsNames: Map<string, string> = new Map();
+
+    for (const [address, dnsName] of Array.from(
+      (
+        data.aggregates.dnsNames || new Map<string, NetworkTrafficDnsName>()
+      ).entries(),
+    )) {
+      dnsNames.set(address, dnsName.name);
+    }
+
+    try {
+      return await NetworkAddressNamesUtil.resolve({
+        projectId: data.projectId,
+        addresses: addresses,
+        startTime: data.request.startTime,
+        endTime: data.request.endTime,
+        dnsNames: dnsNames,
+        props: data.props,
+      });
+    } catch (error) {
+      logger.warn(
+        `Traffic page names: could not name the page's addresses; they are shown as addresses. ${String(error)}`,
+      );
+      return {};
+    }
+  }
+
+  /*
+   * "Find an address" by its name: the addresses of the page's window
+   * whose name holds the text - a name someone gave it, a record of the
+   * inventory holding it, or the DNS name its flows carried - busiest
+   * first, at most NETWORK_TRAFFIC_FIND_LIMIT, each with the name the page
+   * calls it. An address typed is its own answer, when the window has its
+   * traffic. Only addresses with traffic in the window are answered: a
+   * match the page cannot show is no answer.
+   */
+  public static async find(data: {
+    props: DatabaseCommonInteractionProps;
+    request: ParsedNetworkTrafficFindRequest;
+  }): Promise<NetworkTrafficFindResult> {
+    const props: DatabaseCommonInteractionProps = data.props;
+    const request: ParsedNetworkTrafficFindRequest = data.request;
+
+    const scope: NetworkTrafficPageScope =
+      await NetworkTrafficSummaryUtil.getPageScope({
+        props: props,
+        request: request,
+      });
+
+    const query: NetworkTrafficQuery = {
+      projectId: scope.projectId,
+      startTime: request.startTime,
+      endTime: request.endTime,
+      devices: scope.devices,
+      filters: {},
+    };
+
+    const typedAddress: string | null =
+      NetworkAddressBlockUtil.canonicalAddress(request.query);
+
+    let dnsMatches: Map<string, string> = new Map();
+    let candidates: Array<string> = [];
+
+    try {
+      if (typedAddress) {
+        candidates = [typedAddress];
+      } else {
+        const [byDns, byName]: [Map<string, string>, Array<string>] =
+          await Promise.all([
+            NetworkTrafficAggregationService.findAddressesByDnsName({
+              query: query,
+              text: request.query,
+            }),
+            NetworkAddressNamesUtil.findAddressesByName({
+              projectId: scope.projectId,
+              text: request.query,
+              startTime: request.startTime,
+              endTime: request.endTime,
+              props: props,
+            }),
+          ]);
+
+        dnsMatches = byDns;
+
+        for (const address of [...Array.from(byDns.keys()), ...byName]) {
+          if (!candidates.includes(address)) {
+            candidates.push(address);
+          }
+        }
+      }
+
+      const traffic: Map<string, number> =
+        await NetworkTrafficAggregationService.getAddressTraffic({
+          query: query,
+          addresses: candidates.slice(0, 200),
+        });
+
+      const found: Array<string> = Array.from(traffic.keys()).slice(
+        0,
+        NETWORK_TRAFFIC_FIND_LIMIT,
+      );
+
+      if (found.length === 0) {
+        return { matches: [] };
+      }
+
+      const names: NetworkTrafficAddressNames =
+        await NetworkAddressNamesUtil.resolve({
+          projectId: scope.projectId,
+          addresses: found,
+          startTime: request.startTime,
+          endTime: request.endTime,
+          dnsNames: dnsMatches,
+          props: props,
+        });
+
+      const matches: Array<NetworkTrafficFindMatch> = [];
+
+      for (const address of found) {
+        const named: NetworkTrafficAddressName | undefined = names[address];
+
+        matches.push({
+          address: address,
+          name: named?.name || "",
+          source: named?.source || NetworkAddressNameSource.Dns,
+          octets: traffic.get(address) || 0,
+        });
+      }
+
+      return {
+        matches: matches.filter((match: NetworkTrafficFindMatch): boolean => {
+          // An address typed needs no name; a name typed found a named one.
+          return Boolean(typedAddress) || Boolean(match.name);
+        }),
+      };
+    } catch (error) {
+      if (NetworkTrafficAggregationService.isTimeout(error)) {
+        throw new QueryTimeoutException(
+          `Searching this much traffic took longer than ${NETWORK_TRAFFIC_QUERY_TIMEOUT_SECONDS} seconds. Pick a shorter time range.`,
+        );
+      }
+
+      throw error;
+    }
   }
 
   /*

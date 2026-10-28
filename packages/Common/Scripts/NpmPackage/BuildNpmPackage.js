@@ -39,13 +39,15 @@
  * A module is left out when its JavaScript loads code from Server/ or UI/
  * (which needs OneUptime's own environment, or a browser), a module left out,
  * or a package Common does not depend on - or when LEFT_OUT names it. The
- * build prints each one with the reason.
+ * build prints each one with the reason, and every one is named below, in
+ * LEFT_OUT or PINNED_LEFT_OUT: a module leaves the package by decision.
  *
  * The build fails, rather than publishing something broken, when the
- * TypeScript does not compile, a root export cannot be published, a published
- * module throws when it is loaded (or loading them leaves Node.js running, or
- * never ends), or the package it wrote refers to a file or package it does
- * not have (verifyPackage).
+ * TypeScript does not compile, a root export cannot be published, it would
+ * leave out other modules than LEFT_OUT and PINNED_LEFT_OUT name, a
+ * published module throws when it is loaded (or loading them leaves Node.js
+ * running, or never ends), or the package it wrote refers to a file or
+ * package it does not have (verifyPackage).
  */
 
 const childProcess = require("child_process");
@@ -71,12 +73,59 @@ const PUBLIC_FILES = Object.freeze(["ServiceRoute"]);
 const GLOBAL_DECLARATIONS = Object.freeze(["Typings", "UI/index.d.ts"]);
 
 /*
- * Modules left out on purpose, although they load in Node.js, with why. The
- * ones that load Server/ or UI/ code are found by the build and need no entry.
+ * Modules left out on purpose, although they load in Node.js, with why.
  */
 const LEFT_OUT = Object.freeze({
   "Utils/Analytics":
     "OneUptime's own product analytics for its web apps, through posthog-js, a browser library",
+});
+
+/*
+ * Every other module of Types/, Utils/ and Models/ that the package leaves
+ * out, with why. The build finds these itself - each loads Server/ or UI/
+ * code when it runs, and the build prints the chain of requires - and it
+ * fails when what it finds is not exactly this list (leftOutProblems). So a
+ * module that starts loading such code leaves the package only once someone
+ * names it here, knowing that `require("@oneuptime/common/<it>")` stops
+ * working for whoever uses it; and one that stops loading it is published
+ * again once its line goes. The seven that translate monitor wording dropped
+ * out unnoticed on 2026-10-25 (#5270), when they began to; they stay out on
+ * purpose: they word the Dashboard's monitor overview in the reader's
+ * language, which only a frontend sets up.
+ */
+const PINNED_LEFT_OUT = Object.freeze({
+  "Types/Workspace/NotificationRules/NotificationRuleCondition":
+    "the workspace notification rule forms' choices, as dropdown options (UI/Utils/Dropdown)",
+  "Types/Workspace/NotificationRules/NotificationRuleUtil":
+    "matches workspace notification rules, logging through the server's logger (Server/Utils/Logger)",
+  "Utils/CronScheduleText":
+    "a schedule in words, in the reader's language (UI/Utils/TranslateTemplate)",
+  "Utils/Dashboard/Components/DashboardClockComponent":
+    "the dashboard clock widget, in the viewer's time zone (UI/Utils/Timezone)",
+  "Utils/Dashboard/Components/Index":
+    "every dashboard widget, the clock among them (UI/Utils/Timezone)",
+  "Utils/Monitor/MonitorCheckScheduleUtil":
+    "a monitor's check schedule in words, in the reader's language (UI/Utils/TranslateTemplate)",
+  "Utils/Monitor/MonitorOverviewFamily":
+    "the monitor overview's wording, in the reader's language (UI/Utils/TranslateTemplate)",
+  "Utils/Monitor/MonitorOverviewPresentationUtil":
+    "the monitor overview's wording, in the reader's language (UI/Utils/TranslateTemplate)",
+  "Utils/Monitor/MonitorOverviewProbeUtil":
+    "the monitor overview's probe wording, in the reader's language (UI/Utils/TranslateTemplate)",
+  "Utils/Monitor/MonitorStatusHistoryUtil":
+    "a monitor's status history in words, in the reader's language (UI/Utils/TranslateTemplate)",
+  "Utils/Monitor/MonitorUptimeSummaryUtil":
+    "the uptime windows' wording, in the reader's language (UI/Utils/TranslateTemplate)",
+  "Utils/Schema/AnalyticsModelSchema":
+    "builds the API reference's schemas on the server, logging through its logger (Server/Utils/Logger)",
+  "Utils/Schema/BaseSchema":
+    "builds the API reference's schemas on the server, logging through its logger (Server/Utils/Logger)",
+  "Utils/Schema/ModelSchema":
+    "builds the API reference's schemas on the server, logging through its logger (Server/Utils/Logger)",
+  "Utils/Telemetry/LockedFilterSearch":
+    "a resource page's locked telemetry filters as search-bar text, with the UI's filter operators (UI/Components/Dictionary/DictionaryFilterOperator)",
+  "Utils/UserPreferences":
+    "a person's preferences in the browser's local storage (UI/Utils/LocalStorage)",
 });
 
 /*
@@ -1465,6 +1514,63 @@ function leftOutReason(id, input) {
 }
 
 /**
+ * Where the modules the build leaves out differ from the ones it was told
+ * to leave out: LEFT_OUT, which it leaves out by name, and PINNED_LEFT_OUT,
+ * which it must find loading what keeps them out. Each difference is one
+ * line saying what to do about it; none means they agree.
+ * @param {{ leftOut: Array<{ module: string, reason: string }>, candidates: Array<string>, onPurpose: Record<string, string>, pinned: Record<string, string> }} input - what the build left out, every module it considered, LEFT_OUT and PINNED_LEFT_OUT
+ * @returns {Array<string>} the differences, sorted by module
+ */
+function leftOutProblems(input) {
+  const has = (record, id) => {
+    return Object.prototype.hasOwnProperty.call(record, id);
+  };
+  const leftOutNow = new Map(
+    input.leftOut.map((entry) => {
+      return [entry.module, entry.reason];
+    }),
+  );
+  const candidates = new Set(input.candidates);
+  const problems = [];
+
+  for (const [id, reason] of leftOutNow) {
+    if (!has(input.onPurpose, id) && !has(input.pinned, id)) {
+      problems.push({
+        module: id,
+        text: `${id} is left out now, and PINNED_LEFT_OUT does not name it: ${reason}. Keep it from loading that, or, if its npm users may lose it, add it to PINNED_LEFT_OUT with why.`,
+      });
+    }
+  }
+
+  for (const id of Object.keys(input.pinned)) {
+    if (has(input.onPurpose, id)) {
+      problems.push({
+        module: id,
+        text: `${id} is in LEFT_OUT and in PINNED_LEFT_OUT: keep it in one of them.`,
+      });
+    } else if (!candidates.has(id)) {
+      problems.push({
+        module: id,
+        text: `${id} is in PINNED_LEFT_OUT, but there is no such module under ${PUBLIC_DIRECTORIES.join(", ")}: take its line out.`,
+      });
+    } else if (!leftOutNow.has(id)) {
+      problems.push({
+        module: id,
+        text: `${id} is in PINNED_LEFT_OUT, but nothing keeps it out of the package any more: take its line out, and the package publishes it again.`,
+      });
+    }
+  }
+
+  return problems
+    .sort((a, b) => {
+      return a.module < b.module ? -1 : a.module > b.module ? 1 : 0;
+    })
+    .map((problem) => {
+      return problem.text;
+    });
+}
+
+/**
  * The declarations the package ships: each published module's, and every
  * declaration those refer to, all the way down.
  * @param {{ published: Array<string>, declarations: Set<string>, referencesOf: (id: string) => { modules: Array<string>, packages: Array<string>, unresolved: Array<string> } }} input - the published modules, and the compiled declarations
@@ -2139,6 +2245,7 @@ function assertDeletable(buildDirectory, sourceRoot) {
  * @param {string} [options.buildDirectory] - where to build (default: <sourceRoot>/build/npm)
  * @param {object} [options.typescript] - the typescript module (default: Common's)
  * @param {Record<string, string>} [options.leftOut] - modules left out on purpose (default: LEFT_OUT)
+ * @param {Record<string, string>} [options.pinnedLeftOut] - the other modules the build must find left out (default: PINNED_LEFT_OUT)
  * @param {ReadonlyArray<object>} [options.rootExports] - the root's exports (default: ROOT_EXPORTS)
  * @param {string} [options.licenseFile] - the LICENSE to ship (default: the repository's)
  * @param {string} [options.readmeFile] - the README.md to ship (default: <sourceRoot>/README.md)
@@ -2156,6 +2263,7 @@ function buildNpmPackage(options) {
       require.resolve("typescript", { paths: [sourceRoot, COMMON_ROOT] }),
     );
   const leftOutOnPurpose = settings.leftOut || LEFT_OUT;
+  const pinnedLeftOut = settings.pinnedLeftOut || PINNED_LEFT_OUT;
   const rootExports = settings.rootExports || ROOT_EXPORTS;
   const licenseFile =
     settings.licenseFile || path.join(REPOSITORY_ROOT, "LICENSE");
@@ -2197,6 +2305,19 @@ function buildNpmPackage(options) {
         }`,
       );
     }
+  }
+
+  const leftOutDiffers = leftOutProblems({
+    leftOut: selection.leftOut,
+    candidates,
+    onPurpose: leftOutOnPurpose,
+    pinned: pinnedLeftOut,
+  });
+
+  if (leftOutDiffers.length > 0) {
+    throw new Error(
+      `The package would leave out other modules than Scripts/NpmPackage/BuildNpmPackage.js says it does:\n  ${leftOutDiffers.join("\n  ")}`,
+    );
   }
 
   const dependencies = selectDependencies({
@@ -2400,6 +2521,7 @@ module.exports = {
   PUBLIC_DIRECTORIES,
   PUBLIC_FILES,
   LEFT_OUT,
+  PINNED_LEFT_OUT,
   ROOT_EXPORTS,
   NODE_ENGINE,
   moduleIdOf,
@@ -2421,6 +2543,7 @@ module.exports = {
   packageManifest,
   compileRoots,
   selectModules,
+  leftOutProblems,
   selectDeclarations,
   selectDependencies,
   verifyPackage,

@@ -68,7 +68,7 @@ The Network menu keeps what you open every day in view: **Overview**, **Devices*
 | --- | --- |
 | **Topology** | **Device Topology**, **Endpoints**, **Latency Matrix**, **Site Links**, **Device Links** |
 | **Rules** | **Auto Import Rules**, **Site Assignment Rules**, **Owner Rules**, **Label Rules**, **Link Rules** |
-| **Settings** | **Alert Policies**, **SNMP Credentials**, **Device Roles**, **Site Types**, **OID Collection Templates** |
+| **Settings** | **Alert Policies**, **SNMP Credentials**, **Device Roles**, **Site Types**, **Address Names**, **OID Collection Templates** |
 | **Advanced** | **Archived Devices** |
 
 ## Adding a Network Device

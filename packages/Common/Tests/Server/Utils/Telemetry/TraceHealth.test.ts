@@ -32,29 +32,12 @@ import {
   TraceHealthReport,
   parseTraceHealthReport,
 } from "../../../../Types/Telemetry/TraceHealth";
-import { describe, expect, jest, test } from "@jest/globals";
+import { describe, expect, test } from "@jest/globals";
 
 /*
  * The trace health card's numbers (POST /telemetry/traces/health): the
  * statements that count them and how their rows become the report.
- *
- * Nothing here parses with a zod schema. The Types the statements are built
- * from build their schemas as they load (Statement's operators reach the
- * monitor criteria), so the schema module is a stand-in that answers every
- * call with itself: the suite then loads without depending on zod's version.
  */
-jest.mock("../../../../Utils/Schema/Zod", () => {
-  const schema: () => void = new Proxy((): void => {}, {
-    get: (_target: () => void, property: string | symbol): unknown => {
-      return property === "then" ? undefined : schema;
-    },
-    apply: (): unknown => {
-      return schema;
-    },
-  });
-
-  return { __esModule: true, default: schema };
-});
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",

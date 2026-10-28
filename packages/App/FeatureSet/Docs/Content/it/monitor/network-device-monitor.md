@@ -68,7 +68,7 @@ Il menu Rete tiene in vista ciò che apri ogni giorno: **Panoramica**, **Disposi
 | --- | --- |
 | **Topologia** | **Device Topology**, **Endpoint**, **Latency Matrix**, **Site Links**, **Device Links** |
 | **Regole** | **Auto Import Rules**, **Site Assignment Rules**, **Regole del proprietario**, **Regole etichette**, **Link Rules** |
-| **Impostazioni** | **Alert Policies**, **Credenziali SNMP**, **Device Roles**, **Site Types**, **OID Collection Templates** |
+| **Impostazioni** | **Alert Policies**, **Credenziali SNMP**, **Device Roles**, **Site Types**, **Nomi indirizzo**, **OID Collection Templates** |
 | **Avanzato** | **Archived Devices** |
 
 ## Aggiungere un dispositivo di rete

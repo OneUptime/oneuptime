@@ -19,7 +19,9 @@ Een Cisco Meraki-omgeving is ook te lezen zonder iets te exporteren: koppel het 
 - **Topinterfaces** op de pagina van een apparaat: wat er via elke interface binnenkwam en uitging, met de naam en snelheid uit de SNMP-walk van het apparaat. **Topapparaten** op de pagina van een locatie en op die van het netwerk.
 - **Topgesprekken**: de tien drukste adresparen, getekend als diagram van afzenders naar ontvangers, of als lijst.
 
-Klik op een rij - een adres, een applicatie, een interface, een apparaat, een band van het diagram - en de hele pagina beperkt zich tot dat verkeer. Een chip boven de pagina zegt waartoe ze beperkt is; klik op het kruisje om haar weer te verbreden. **Een IP-adres zoeken** beperkt de pagina tot het verkeer naar of van één adres. De periode en de filters staan in het adres van de pagina, dus een link opent precies dezelfde weergave.
+Klik op een rij - een adres, een applicatie, een interface, een apparaat, een band van het diagram - en de hele pagina beperkt zich tot dat verkeer. Een chip boven de pagina zegt waartoe ze beperkt is; klik op het kruisje om haar weer te verbreden. **Een naam of IP-adres zoeken** beperkt de pagina tot het verkeer naar of van één adres: typ het adres, of een deel van de naam, en kies het als er meerdere passen. De periode en de filters staan in het adres van de pagina, dus een link opent precies dezelfde weergave.
+
+Een adres dat OneUptime kent, wordt met zijn naam getoond, met het adres ernaast. Zie [Namen in plaats van adressen](#namen-in-plaats-van-adressen).
 
 ## Hoe de flows hier komen
 
@@ -211,6 +213,49 @@ Flows kunnen binnenkomen voordat het apparaat dat ze verstuurt aan OneUptime is 
 
 Meerdere apparaten achter één NAT-adres delen dat adres, dus hun flows gaan naar het ene apparaat dat het heeft.
 
+## Namen in plaats van adressen
+
+Overal waar een Verkeer-pagina een adres toont - de toplijsten, beide weergaven van **Topgesprekken**, de chips, **Zoeken** - laat ze eerst de naam van het adres zien als OneUptime er een kent, met het adres ernaast: `mumbai-fs01` boven `10.18.167.35`. Een adres dat niets benoemt, wordt als zichzelf getoond. Onder de aanwijzer staat een ingekorte naam in zijn geheel.
+
+Een naam komt uit de eerste van deze bronnen die het adres benoemt:
+
+| Volgorde | Waar de naam vandaan komt | Wat het adres benoemt |
+| -------- | ------------------------- | --------------------- |
+| 1 | **Adresnamen** | Een naam die iemand dit adres gaf onder **Netwerk** -> **Instellingen** -> **Adresnamen** |
+| 2 | Netwerkapparaten | Een apparaat dat op het adres wordt bevraagd, of dat het onder **Overige adressen** noemt |
+| 3 | Hosts | Een host waarvan de agent het adres meldt |
+| 4 | Cloud-resources | Een cloud-resource waarvoor je cloudaccount het adres noemt |
+| 5 | Kubernetes | Een node met het adres, daarna een pod (een pod op het eigen netwerk van zijn node heeft het adres van de node) |
+| 6 | DNS | De reverse DNS-naam van het adres, opgezocht door de probe die de flows ontving |
+
+Een record benoemt alleen het verkeer uit een tijd waarin het bestond: een host die pas na de periode verscheen, of een pod die ervoor verdween, benoemt het verkeer van die periode niet. Een naam die iemand een subnet gaf - `10.18.167.0/24` is “Kantoor Mumbai” - staat naast elk adres erin, nooit in plaats van de eigen naam van het adres; waar benoemde subnetten overlappen, wordt het smalste getoond.
+
+### Eén adres
+
+Klik op een adres, of zoek het, en de pagina beperkt zich ertoe, met een kaart boven de getallen die zegt wie het is: de naam, waar de naam vandaan komt, het adres met een knop om het te kopiëren en het benoemde subnet waarin het ligt. De kaart biedt de volgende stap:
+
+- **Host openen**, **Apparaat openen** of **Cloud-resource openen**, als de naam van dat record is. Wijzig de naam daar.
+- **Dit adres een naam geven**, als niets het benoemt of alleen DNS. Het adres is al ingevuld; verbreed het tot een subnet, zoals `10.18.167.0/24`, om in plaats daarvan het hele subnet een naam te geven.
+- **Bewerken in Instellingen**, als de naam een adresnaam is. Dit opent **Adresnamen**, waar je de naam wijzigt.
+
+**Dit adres een naam geven** is voor wie netwerkapparaten mag toevoegen, en **Bewerken in Instellingen** voor wie ze mag wijzigen. Iedereen die ze mag lezen, ziet de namen.
+
+### Adresnamen
+
+**Netwerk** -> **Instellingen** -> **Adresnamen** toont de namen die mensen gaven aan adressen en subnetten die verder niets benoemt: de VPN-gateway van een partner, een SaaS-endpoint, de gastenwifi. **Adresnaam aanmaken** vraagt om de naam en om één IP-adres (`10.0.0.5`, `2001:db8::5`) of een subnet (`10.18.167.0/24`). Een subnet wordt bewaard als zijn eerste adres en zijn lengte, dus `10.18.167.35/24` wordt opgeslagen als `10.18.167.0/24`. Elk adres of subnet heeft één naam.
+
+### DNS-namen van de probe
+
+DNS-namen worden opgezocht door de probe die de flows ontving, met de resolver die zijn host gebruikt: binnen je netwerk, waar privéadressen namen hebben. De probe houdt een naam alleen als de eigen A- of AAAA-records van de naam naar het adres terugwijzen, dus een verouderd of vervalst reverse record benoemt niets, en een naam uit het hosts-bestand van de host van de probe wordt gebruikt zoals hij is. Ze stuurt de namen mee met de flows, en ze worden ermee bewaard: een periode toont de namen die de adressen toen hadden.
+
+Het opzoeken houdt de flows nooit op. De drukste adressen worden eerst opgezocht, hooguit 300 per minuut en acht tegelijk; een naam blijft een uur bewaard, een adres zonder naam 30 minuten, en een opzoeking die mislukte wordt na 5 minuten opnieuw gedaan. Loopback-, link-local-, multicast- en broadcastadressen worden nooit opgezocht. De globale probes van een gehoste OneUptime, die alle accounts delen, zoeken alleen openbare adressen op; je eigen probes, en die van je eigen OneUptime-installatie, zoeken ook privéadressen op.
+
+| Variabele                           | Wat ze doet                                                         | Standaard |
+| ----------------------------------- | ------------------------------------------------------------------- | --------- |
+| PROBE_FLOW_NAME_LOOKUP_ENABLED      | Zet op `false` om de adressen van de flows niet meer in DNS op te zoeken | true |
+| PROBE_FLOW_NAME_LOOKUPS_PER_MINUTE  | Opgezochte adressen per minuut; `0` stopt het opzoeken              | 300       |
+| PROBE_FLOW_NAME_DNS_SERVERS         | DNS-servers om te vragen in plaats van de resolver van de host, zoals `10.0.0.53, 10.0.0.54:5353` | geen |
+
 ## De getallen lezen
 
 - **Sampling.** Een apparaat dat samplet - sFlow doet dat altijd, NetFlow of IPFIX kunnen het - meldt één pakket op de N. De probe vermenigvuldigt de aantallen met N, dus de pagina toont schattingen en zegt dat onder de vier getallen. Ze zijn nauwkeurig bij veel verkeer en grof bij een paar pakketten.
@@ -236,6 +281,12 @@ Als de Verkeer-pagina nog steeds de installatiestappen toont:
 - **Het logboek van de probe.** Eén keer per minuut logt de probe wat hij niet kon lezen: datagrammen in een niet-ondersteund formaat (NetFlow v1, v6, v7 of v8, of sFlow van vóór versie 5), misvormde datagrammen, data die op een template wacht, en datagrammen die boven `PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE` zijn weggegooid.
 - **Templates.** NetFlow v9 en IPFIX sturen de opbouw van hun records als templates. De probe houdt data die vóór het template binnenkomt tot 10 minuten vast; laat het apparaat zijn templates elke 60 seconden sturen, zodat de pagina binnen een minuut gevuld is.
 - **Een globale probe.** Een apparaat dat door een globale probe wordt bevraagd, kan er vanuit een privénetwerk geen flows naartoe sturen. Draai een aangepaste probe in het netwerk van het apparaat en kies die in de instellingen van het apparaat.
+
+Als een adres geen naam toont:
+
+- **Geef het er een.** Klik op het adres en daarna op **Dit adres een naam geven** op de kaart boven de getallen.
+- **Zijn DNS-namen.** Het eigen A- of AAAA-record van de naam moet naar het adres terugwijzen; een reverse record alleen is niet genoeg. Een naam die aan DNS wordt toegevoegd, benoemt de flows die daarna binnenkomen.
+- **De resolver van de probe.** Als de host van de probe je interne DNS niet ziet, stel `PROBE_FLOW_NAME_DNS_SERVERS` dan in op een DNS-server met je reverse zones.
 
 Als een Meraki-koppeling zegt dat ze niet kan lezen:
 
