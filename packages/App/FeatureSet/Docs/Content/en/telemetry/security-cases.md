@@ -6,7 +6,8 @@ Security Events turns what your detection rules, threat intelligence and connect
 - [Where cases come from](#where-cases-come-from): Detection rules, threat intelligence, connected products, entity risk and people.
 - [Work a case](#work-a-case): Assign it, investigate its entities, close it with a verdict.
 - [Case priorities and statuses](#case-priorities-and-statuses): Rename, recolor and reorder them, and add your own.
-- [Notifications](#notifications): Who is told about a new case, an assignment and a step waiting for approval.
+- [Response targets](#response-targets): How fast a case at each priority must be taken on and contained.
+- [Notifications](#notifications): Who is told about a new case, an assignment, a response target, a task and a step waiting for approval.
 - [Playbooks](#playbooks): Steps that run on a case, with approval where it matters.
 - [The overview](#the-overview): What needs someone now, and how fast cases are handled.
 :::
@@ -36,9 +37,9 @@ Cases and playbooks follow the three Security roles. Project Owner and Project A
 
 | Role | What it can do |
 | --- | --- |
-| Security Admin | Everything, including deleting cases and setting up playbooks |
-| Security Member | Open, assign, change and close cases, write notes, run playbooks and approve or reject their steps |
-| Security Viewer | Read cases, detections, notes, playbooks and their runs |
+| Security Admin | Everything, including deleting cases, removing evidence and setting up playbooks |
+| Security Member | Open, assign, change and close cases, write notes, work tasks, add evidence, run playbooks and approve or reject their steps |
+| Security Viewer | Read cases, detections, notes, tasks, evidence, playbooks and their runs |
 
 Each of these can also be granted on its own, from creating a case to approving a playbook's steps; see [Permission Reference](/docs/permissions/reference).
 
@@ -88,13 +89,13 @@ A case has a side menu of its own, as an incident has, and each part of the case
 | Side menu section | Pages |
 | --- | --- |
 | **Overview** | **Overview**, **Timeline** |
-| **Investigation** | **Story**, **Detections**, **Entities**, **Connected Signals**, **Playbooks** |
+| **Investigation** | **Story**, **Detections**, **Entities**, **Connected Signals**, **Evidence**, **Tasks**, **Playbooks** |
 | **Notes** | **Private Notes** |
 | **Advanced** | **Audit Logs**, **Delete Case**, folded until you click **Advanced** |
 
-Every page keeps the case's header on top: its number, priority, status and title, **Assign to Me**, **Run Playbook**, **Declare Incident** and **Close Case**, and in the ⋯ menu beside them **Set priority**, **Assign to Someone Else**, **Change Status**, **Edit Case** and **Delete Case**. So the case can be worked from any of its pages, and a link to the case still opens its **Overview**.
+Every page keeps the case's header on top: its number, priority, status and title, **Assign to Me**, **Run Playbook**, **Declare Incident** and **Close Case**, and in the ⋯ menu beside them **Set priority**, **Assign to Someone Else**, **Change Status**, **Edit Case** and **Delete Case**. So the case can be worked from any of its pages, and a link to the case still opens its **Overview**. When the case's priority has response targets, the header also says when the next one is due ([Response targets](#response-targets)).
 
-- **Overview**: the case's description, labels and status steps, who has it and what opened it, and its figures: how many detections it has, how long it has been open, and how long it took to acknowledge and to contain.
+- **Overview**: the case's description, labels and status steps, who has it and what opened it, and its figures: how many detections it has, how long it has been open, and how long it took to acknowledge and to contain. Under **Time to Acknowledge** and **Time to Contain**, it says where the case stands against its response targets.
 - **OneUptime AI**, on the **Overview**: what OneUptime AI made of the case, the priority and playbook it suggests, and the evidence behind them. See [OneUptime AI in Security](/docs/telemetry/security-ai).
 - **Impact**, on the **Overview**: what the case puts at risk: whether OneUptime has seen its records reached from the internet, who owns them and what last changed on them. Open it to see what each record calls and is called by, the monitors and status pages watching it, and the machines the case's addresses talked to.
 - **MITRE ATT&CK**, on the **Overview**: the tactics and techniques its detections map to, each linked to its page on attack.mitre.org.
@@ -103,6 +104,8 @@ Every page keeps the case's header on top: its number, priority, status and titl
 - **Detections**: what fired to open the case or join it, how often, and the latest matching event.
 - **Entities**: the users, hosts and addresses the case is about, with their activity across all your security events in the last 7 days. Each opens in **Correlate**.
 - **Connected Signals**: the hosts, clusters, services and members the case names, as OneUptime knows them, and what was happening on each around its detections: their logs, traces and metrics, what is open on them and what changed. See [Connected Signals](/docs/telemetry/security-connected-signals).
+- **Evidence**: the files and links kept on the case, each with who added it and when. **Add File** uploads a file of up to 10 MB and records the SHA-256 of what was uploaded, so whoever downloads it later can check it is what was kept; **Add Link** points to evidence kept somewhere else. Only a Security Admin can remove a piece of evidence, and the case's **Timeline** says what was added and removed.
+- **Tasks**: what has to be done on the case, who is doing it, and whether it is done. Add a task as a line, hand it to someone, and tick it off when it is done. The person it is handed to is told, unless they took it themselves, and the menu shows how many tasks are open beside **Tasks**.
 - **Playbooks**: what each playbook did on the case, step by step, and the steps waiting for approval. While runs wait, the menu shows how many beside **Playbooks**.
 - **Private Notes**: what the team wrote about the case.
 - **Audit Logs**: every change made to the case, and who made it. See [Audit Logs](/docs/configuration/audit-logs).
@@ -129,6 +132,8 @@ You do not have to open a case to work it. In the queue's lists, the ⋯ menu on
 
 The verdicts are counted on the overview. A rule whose cases keep closing as False Positive is a rule to tune.
 
+While tasks on the case are still open, **Close Case** says how many.
+
 A case opened from Google SecOps alerts closes them in Google SecOps too, with the verdict and the closing note, when its connection has **Close alerts when their case closes** on: see [Google SecOps](/docs/integrations/google-secops#close-alerts-when-their-case-closes).
 
 ### Declare an incident
@@ -154,21 +159,49 @@ Some are built in, because OneUptime reads what they mean. They can be renamed a
 
 To stop using a status or priority of your own, use **Archive** on its row. Nobody can pick it again, and the API, Terraform and MCP refuse it, but the cases that have it keep it, and you can still filter by it. Archived values are listed in the folded **Archived Case Statuses** or **Archived Case Priorities** section under the table, where **Unarchive** puts one back. **Delete** is refused while cases have the value or a playbook runs from the priority.
 
+## Response targets
+
+A response target is how fast a case must be worked: **Acknowledge Within**, how long a new case may wait for someone to take it on, and **Contain Within**, how long it may take to be contained or closed. Each case priority has its own, under **Products → Security Events → Settings → Response Targets**: **Edit** on a priority's row sets its two, in minutes, hours or days, up to a year, and an empty one is no target. A new project's priorities start with these:
+
+| Priority | Acknowledge Within | Contain Within |
+| --- | --- | --- |
+| Critical | 15 minutes | 4 hours |
+| High | 1 hour | 1 day |
+| Medium | 12 hours | 3 days |
+| Low | 1 day | 7 days |
+| Informational | No target | No target |
+
+A project created before response targets has none until someone sets them.
+
+- A case's due times are set as it opens, from its priority's targets. A target changed later applies to the cases opened after it.
+- A case is acknowledged once someone takes it on: a person is assigned, or it moves to a status that counts as acknowledged. It is contained once it reaches a status that counts as contained, or closes.
+- When a case's priority changes, a target it has met or missed stays as it was. A higher priority brings a due time closer: the new target counts from the change, unless the old due time comes first. A lower priority moves it later, never earlier: the new target counts from when the case opened. A priority with no target keeps a raised case's due time, and clears a lowered one's.
+- A closed case reopened before it was ever contained gets a new contain due time, counted from the reopening.
+- In the last fifth of a target, the case is about to miss it: the people on it are told, and told again when it is missed. See [Notifications](#notifications).
+
+Where the targets show:
+
+- The case's header names the next target and how long is left, or how long it is overdue: grey while there is time, amber in its last fifth, red once missed.
+- On the case's **Overview**, under **Time to Acknowledge** and **Time to Contain**: where the case stands against each target, or how far over it the case went.
+- In the queue's lists: the line under each case's priority, and a **Due** column you can turn on and sort by. The lists draw them only when one of the project's priorities has a target.
+
 ## Notifications
 
-OneUptime tells people about three things on a case. Nobody has to set anything up: a project that only clicked **Turn on recommended** hears about its High and Critical cases by email and push.
+OneUptime tells people about five things on a case. Nobody has to set anything up: a project that only clicked **Turn on recommended** hears about its High and Critical cases by email and push.
 
 | Notification | Who is told | By default |
 | --- | --- | --- |
 | New security case | Everyone who can see the project's cases, when a case opens, or rises, at the priority they chose or above | Email and push, for High and Critical cases |
 | Security case assigned to me | The person the case is assigned to, and the members of the team it is assigned to | Email and push |
 | Playbook step waiting for my approval | The people on the case who can approve the step: the person it is assigned to and the members of its team. When none of them can approve, everyone in the project who can | Email and push |
+| Security case response target | The people on the case: the person it is assigned to and the members of its team. When nobody is on it, the people told about new cases at its priority | Email and push |
+| Security case task assigned to me | The person a task on the case is handed to, unless they took it themselves | Email and push |
 
 - Only people who can see the case are told about it: Project Owners, Project Admins, and the Security Admin, Security Member and Security Viewer roles. A role limited to some labels is told only about the cases with those labels.
 - Nobody is told about what they did: the person who opens a case by hand, assigns it or starts a run is not notified of it.
 - Each person hears about a case once. A case that opens at Medium and later rises to Critical reaches the people who chose High or Critical when it rises, and not again the people who chose Medium, who heard about it when it opened.
 - The test attack from **Send a test attack** opens a case that notifies nobody.
-- A Critical case and a step waiting for approval are sent at once, never held back in an [email rollup](/docs/emails/notification-rollup).
+- A Critical case and a step waiting for approval are sent at once, never held back in an [email rollup](/docs/emails/notification-rollup). So is a response target about to be missed, or missed.
 - The case's **Timeline** says who was told, and when.
 
 ### Choose what you are told
@@ -199,7 +232,7 @@ To post to a channel, add a rule under **Products → Security Events → Worksp
 | Security Case Source | Detection Rule, Threat Intel, Connected Product, Entity Risk or Manual |
 | Security Case Labels | The case's labels |
 
-The three notifications are each posted to the channels of every rule the case matches at that moment. A rule with **Security Case Priority** contains any of **Critical** and **High** posts High and Critical cases as they open, and a Medium case when it rises to High. A security case never gets a channel of its own.
+Each notification but a task's is posted to the channels of every rule the case matches at that moment. A rule with **Security Case Priority** contains any of **Critical** and **High** posts High and Critical cases as they open, and a Medium case when it rises to High. A security case never gets a channel of its own.
 
 ## Playbooks
 
@@ -350,8 +383,8 @@ Above them, a strip shows how Security is set up: its sources, detections, cases
 ## Automate
 
 - **Workflows**: a case or a note can start a workflow when it is created, updated or deleted. A **Run a workflow** step starts a workflow whose trigger is a webhook.
-- **API**: cases, notes, detections, playbooks, runs, protected entities, and case priorities and statuses have the same REST API as the rest of OneUptime, under `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` and `/security-case-status`. See [API Reference](/docs/api-reference/api-reference).
-- AI agents: the MCP server has tools for cases, notes, detections, playbooks, and case priorities and statuses. See [MCP Server](/docs/ai/mcp-server).
+- **API**: cases, notes, tasks, evidence, detections, playbooks, runs, protected entities, and case priorities and statuses have the same REST API as the rest of OneUptime, under `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` and `/security-case-status`. See [API Reference](/docs/api-reference/api-reference).
+- AI agents: the MCP server has tools for cases, notes, tasks, evidence, detections, playbooks, and case priorities and statuses. See [MCP Server](/docs/ai/mcp-server).
 - Terraform: the `oneuptime_security_case_priority` and `oneuptime_security_case_status` resources keep a project's priorities and statuses as code.
 
 ## Troubleshooting
@@ -362,6 +395,10 @@ Check **Open a Case on Match** on the rule's **On Match** step. A detection abou
 
 :::details Nobody was told about a case
 Look at the case's **Timeline**, which says who was notified. A **New security case** notification goes to the people whose chosen priority the case reaches, so a Medium case notifies nobody who kept the default, **High and above**. Check that the people who should hear can see security cases (a Security role, or Project Owner or Admin), and that the notification is on for them under **User Settings → Notification Settings → Security**.
+:::
+
+:::details A case shows no due time
+Its priority has no response target, or got one only after the case opened: a case's due times are set as it opens. The test attack's case has none. See [Response targets](#response-targets).
 :::
 
 :::details A playbook did not run

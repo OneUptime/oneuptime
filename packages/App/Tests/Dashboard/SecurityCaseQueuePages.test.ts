@@ -16,8 +16,10 @@ import SecurityPlaybookRunStatus from "Common/Types/SecurityPlaybook/SecurityPla
 import {
   SECURITY_CASE_QUEUE_VIEWS,
   SECURITY_CASE_QUEUE_VIEW_KEYS,
+  SECURITY_CASE_TARGET_COLUMNS,
   SecurityCaseQueueView,
   getSecurityCaseAssigneeForMe,
+  getSecurityCaseQueueColumns,
   getSecurityCaseQueueFilters,
   getSecurityCaseQueueQuery,
   getSecurityCaseQueueStatusOptions,
@@ -135,13 +137,17 @@ describe("the case queue's pages", () => {
         columns: [
           "case",
           "priority",
+          "due",
           "status",
           "assignee",
           "labels",
           "lastDetection",
         ],
-        // The last detection's time is in each case's line.
-        hiddenColumns: ["labels", "lastDetection"],
+        /*
+         * The last detection's time is in each case's line, and when its
+         * next target is due under its priority.
+         */
+        hiddenColumns: ["due", "labels", "lastDetection"],
         filters: [
           "title",
           "priority",
@@ -164,8 +170,15 @@ describe("the case queue's pages", () => {
         key: "mine",
         page: "SECURITY_CASES_ASSIGNED_TO_ME",
         title: "Assigned to Me",
-        columns: ["case", "priority", "status", "labels", "lastDetection"],
-        hiddenColumns: ["labels", "lastDetection"],
+        columns: [
+          "case",
+          "priority",
+          "due",
+          "status",
+          "labels",
+          "lastDetection",
+        ],
+        hiddenColumns: ["due", "labels", "lastDetection"],
         filters: [
           "title",
           "priority",
@@ -192,12 +205,13 @@ describe("the case queue's pages", () => {
         columns: [
           "case",
           "priority",
+          "due",
           "status",
           "team",
           "labels",
           "lastDetection",
         ],
-        hiddenColumns: ["labels", "lastDetection"],
+        hiddenColumns: ["due", "labels", "lastDetection"],
         filters: [
           "title",
           "priority",
@@ -252,13 +266,14 @@ describe("the case queue's pages", () => {
         columns: [
           "case",
           "priority",
+          "due",
           "status",
           "verdict",
           "assignee",
           "labels",
           "lastDetection",
         ],
-        hiddenColumns: ["verdict", "labels", "lastDetection"],
+        hiddenColumns: ["due", "verdict", "labels", "lastDetection"],
         filters: [
           "title",
           "priority",
@@ -275,6 +290,31 @@ describe("the case queue's pages", () => {
         canAssignToSomeoneElse: true,
       },
     ]);
+  });
+
+  test("draws the Due column only for a project with response targets, and never on the closed list", () => {
+    for (const view of SECURITY_CASE_QUEUE_VIEWS) {
+      expect([view.key, getSecurityCaseQueueColumns(view, true)]).toEqual([
+        view.key,
+        [...view.columns],
+      ]);
+      expect(getSecurityCaseQueueColumns(view, false)).toEqual(
+        view.columns.filter((column: string): boolean => {
+          return column !== "due";
+        }),
+      );
+    }
+
+    expect(SECURITY_CASE_TARGET_COLUMNS).toEqual(["due"]);
+    expect(
+      SECURITY_CASE_QUEUE_VIEWS.filter(
+        (view: SecurityCaseQueueView): boolean => {
+          return view.columns.includes("due");
+        },
+      ).map((view: SecurityCaseQueueView): string => {
+        return view.key;
+      }),
+    ).toEqual(["open", "mine", "unassigned", "all"]);
   });
 
   test("every list filters by what OneUptime AI read a case as, and none does with the project's AI off", () => {

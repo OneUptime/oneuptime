@@ -20,14 +20,16 @@ import * as React from "react";
  * an icon for every entry, Advanced folded on the case's Overview and open
  * on its own pages, exactly the entry of the page you are on lit, the count
  * of the case's runs waiting for an approval beside Playbooks (asking
- * for this case's runs only, and asked again when the case changes), Delete
- * Case drawn as a deletion, and the phone's "Section / Page" summary.
+ * for this case's runs only, and asked again when the case changes), the
+ * count of its open tasks beside Tasks, Delete Case drawn as a deletion,
+ * and the phone's "Section / Page" summary.
  *
  * ModelAPI.count backs the count; it is stubbed inline because jest.mock is
  * hoisted above the imports.
  */
 const countQueries: Array<{ model: string; query: unknown }> = [];
 let waitingRuns: number = 2;
+let openTasks: number = 3;
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -35,7 +37,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
     default: {
       count: (data: { modelType: { name: string }; query: unknown }) => {
         countQueries.push({ model: data.modelType.name, query: data.query });
-        return Promise.resolve(waitingRuns);
+        return Promise.resolve(
+          data.modelType.name === "SecurityCaseTask" ? openTasks : waitingRuns,
+        );
       },
     },
   };
@@ -99,6 +103,8 @@ const EXPECTED: Array<[string, Array<[string, PageMap]>]> = [
       ["Detections", PageMap.SECURITY_CASE_VIEW_DETECTIONS],
       ["Entities", PageMap.SECURITY_CASE_VIEW_ENTITIES],
       ["Connected Signals", PageMap.SECURITY_CASE_VIEW_CONNECTED_SIGNALS],
+      ["Evidence", PageMap.SECURITY_CASE_VIEW_EVIDENCE],
+      ["Tasks", PageMap.SECURITY_CASE_VIEW_TASKS],
       ["Playbooks", PageMap.SECURITY_CASE_VIEW_PLAYBOOK_RUNS],
     ],
   ],
@@ -158,6 +164,7 @@ describe("a security case's side menu", () => {
     setViewportWidth(DESKTOP_WIDTH);
     countQueries.length = 0;
     waitingRuns = 2;
+    openTasks = 3;
     goTo(caseRoute(PageMap.SECURITY_CASE_VIEW));
   });
 
@@ -279,14 +286,33 @@ describe("a security case's side menu", () => {
     );
   });
 
-  test("counts the case's runs waiting for an approval beside Playbooks, and nothing else", async () => {
+  test("counts the case's runs waiting for an approval beside Playbooks, its open tasks beside Tasks, and nothing else", async () => {
     await renderCaseMenu();
 
     expect(badgeOf("Investigation", "Playbooks")).toBe("2");
+    expect(badgeOf("Investigation", "Tasks")).toBe("3");
+    expect(badgeOf("Investigation", "Evidence")).toBe("");
     expect(badgeOf("Investigation", "Detections")).toBe("");
     expect(badgeOf("Overview", "Timeline")).toBe("");
 
-    expect(countQueries).toEqual([
+    expect(
+      [...countQueries].sort(
+        (
+          left: { model: string; query: unknown },
+          right: { model: string; query: unknown },
+        ): number => {
+          return left.model.localeCompare(right.model);
+        },
+      ),
+    ).toEqual([
+      {
+        model: "SecurityCaseTask",
+        query: {
+          projectId: PROJECT_ID,
+          securityCaseId: CASE_ID,
+          isDone: false,
+        },
+      },
       {
         model: "SecurityPlaybookRun",
         query: {
@@ -296,6 +322,14 @@ describe("a security case's side menu", () => {
         },
       },
     ]);
+  });
+
+  test("with every task done, Tasks shows no count", async () => {
+    openTasks = 0;
+    await renderCaseMenu();
+
+    expect(badgeOf("Investigation", "Tasks")).toBe("");
+    expect(badgeOf("Investigation", "Playbooks")).toBe("2");
   });
 
   test("with no run waiting, Playbooks shows no count", async () => {
@@ -316,7 +350,8 @@ describe("a security case's side menu", () => {
       GlobalEvents.dispatchEvent(REFRESH_SIDEBAR_COUNT_EVENT);
     });
 
-    expect(countQueries).toHaveLength(2);
+    // Each count asked again: the runs' and the tasks'.
+    expect(countQueries).toHaveLength(4);
     expect(badgeOf("Investigation", "Playbooks")).toBe("1");
   });
 
@@ -349,6 +384,19 @@ describe("the count beside Playbooks", () => {
         status: SecurityPlaybookRunStatus.WaitingForApproval,
       },
       badgeType: BadgeType.WARNING,
+    });
+  });
+
+  test("beside Tasks, asks for this case's tasks not done yet, in the menu's plain colour", () => {
+    expect(
+      getSecurityCaseMenuBadgeCount("openTasks", new ObjectID(CASE_ID)),
+    ).toEqual({
+      modelType: expect.anything(),
+      countQuery: {
+        projectId: PROJECT_ID,
+        securityCaseId: CASE_ID,
+        isDone: false,
+      },
     });
   });
 

@@ -24,6 +24,7 @@ import PacketCapture from "../../../../Models/DatabaseModels/PacketCapture";
 import Probe from "../../../../Models/DatabaseModels/Probe";
 import ScheduledMaintenanceInternalNote from "../../../../Models/DatabaseModels/ScheduledMaintenanceInternalNote";
 import ScheduledMaintenancePublicNote from "../../../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
+import SecurityCaseEvidence from "../../../../Models/DatabaseModels/SecurityCaseEvidence";
 import StatusPage from "../../../../Models/DatabaseModels/StatusPage";
 import StatusPageAnnouncement from "../../../../Models/DatabaseModels/StatusPageAnnouncement";
 import User from "../../../../Models/DatabaseModels/User";
@@ -258,6 +259,19 @@ describe("FileOwnership.getFileReferenceColumns", () => {
           isList: false,
           notFoundMessage:
             "The capture file's file could not be found. Upload the capture file again.",
+        },
+      ],
+    },
+    // A file kept as evidence on a security case: read only by the case's download route.
+    {
+      model: new SecurityCaseEvidence(),
+      columns: [
+        {
+          relationColumn: "file",
+          idColumn: "fileId",
+          isList: false,
+          notFoundMessage:
+            "The evidence file's file could not be found. Upload the evidence file again.",
         },
       ],
     },

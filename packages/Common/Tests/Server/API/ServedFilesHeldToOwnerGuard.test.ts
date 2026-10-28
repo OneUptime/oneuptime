@@ -98,6 +98,18 @@ const BYTE_READERS: Record<string, string> = {
    */
   "packages/Common/Server/API/PacketCaptureAPI.ts":
     "FileOwnership.keepProjectFile",
+  /*
+   * A security case's evidence file, through its download route only: read
+   * as the person asking, held to the evidence's own project.
+   */
+  "packages/Common/Server/API/SecurityCaseEvidenceAPI.ts":
+    "FileOwnership.findProjectAttachment",
+  /*
+   * The bytes of a file added as evidence, read once to record their SHA-256
+   * - the file must be of the case's own project, and its bytes never leave.
+   */
+  "packages/Common/Server/Services/SecurityCaseEvidenceService.ts":
+    "FileOwnership.isFileOfProject",
 };
 
 // A select of a stored file's bytes: `file: true`.

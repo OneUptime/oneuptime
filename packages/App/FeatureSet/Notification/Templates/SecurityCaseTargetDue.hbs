@@ -1,0 +1,43 @@
+{{> Start this}}
+
+{{!--
+  A security case about to miss a response target its priority sets, or
+  missing it (SecurityCaseTargetCheck): sent to the people on the case - its
+  assignee and its team - or, when nobody is, to the people told about cases
+  at its priority. Case values are written with a double stash; the due time
+  is the HTML OneUptimeDate writes for the reader's own time zone, and the
+  description is the only other HTML, which Markdown.convertToHTML wrote.
+--}}
+{{> Logo this}}
+{{> EmailTitle title=emailTitle }}
+
+{{#if priorityBadgeText}}
+{{> SeverityBadge badgeText=priorityBadgeText badgeColor=priorityColor badgeTextColor=priorityTextColor }}
+{{/if}}
+
+{{> InfoBlock plainInfo=leadSentence }}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Case: " plainText=caseTitle }}
+{{> DetailBoxField title="Target: " plainText=targetText }}
+{{> DetailBoxField title="Due: " text=dueTime }}
+{{> DetailBoxField title="Priority: " plainText=casePriority color=priorityColor textColor=priorityTextColor }}
+{{> DetailBoxField title="Status: " plainText=caseStatus }}
+{{> DetailBoxField title="Assigned To: " plainText=caseAssignee }}
+{{> DetailBoxField title="Entities: " plainText=caseEntities }}
+{{> DetailBoxField title="Project: " plainText=projectName }}
+{{> DetailBoxField title="Description: " blockText=caseDescription }}
+{{> DetailBoxEnd this }}
+
+{{> ButtonBlock buttonUrl=caseViewLink buttonText="View Case"}}
+
+{{> LinkBlock linkUrl=caseViewLink linkLabel="You can also copy and paste this link:"}}
+
+{{> TitleBlock title="Why am I receiving this email?"}}
+{{> InfoBlock plainInfo=reasonSentence }}
+
+{{> UnsubscribeOwnerEmail this }}
+
+{{> Footer this }}
+
+{{> End this}}

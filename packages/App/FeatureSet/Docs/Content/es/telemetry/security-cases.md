@@ -6,7 +6,8 @@ Eventos de seguridad convierte en casos lo que encuentran tus reglas de detecci�
 - [De dónde vienen los casos](#de-dónde-vienen-los-casos): Reglas de detección, inteligencia de amenazas, productos conectados, riesgo de entidades y personas.
 - [Gestionar un caso](#gestionar-un-caso): Asígnalo, investiga sus entidades y ciérralo con un veredicto.
 - [Prioridades y estados de los casos](#prioridades-y-estados-de-los-casos): Cámbiales el nombre, el color y el orden, y añade los tuyos.
-- [Notificaciones](#notificaciones): A quién se avisa de un caso nuevo, de una asignación y de un paso que espera aprobación.
+- [Objetivos de respuesta](#objetivos-de-respuesta): Lo rápido que hay que hacerse cargo de un caso de cada prioridad y contenerlo.
+- [Notificaciones](#notificaciones): A quién se avisa de un caso nuevo, de una asignación, de un objetivo de respuesta, de una tarea y de un paso que espera aprobación.
 - [Playbooks](#playbooks): Pasos que se ejecutan sobre un caso, con aprobación donde importa.
 - [La vista general](#la-vista-general): Lo que necesita atención ahora y la rapidez con que se gestionan los casos.
 :::
@@ -36,9 +37,9 @@ Los permisos sobre casos y playbooks dependen de los tres roles de seguridad. Pr
 
 | Rol | Qué puede hacer |
 | --- | --- |
-| Security Admin | Todo, incluido eliminar casos y configurar playbooks |
-| Security Member | Abrir, asignar, cambiar y cerrar casos, escribir notas, ejecutar playbooks y aprobar o rechazar sus pasos |
-| Security Viewer | Leer casos, detecciones, notas, playbooks y sus ejecuciones |
+| Security Admin | Todo, incluido eliminar casos, quitar evidencias y configurar playbooks |
+| Security Member | Abrir, asignar, cambiar y cerrar casos, escribir notas, trabajar tareas, añadir evidencias, ejecutar playbooks y aprobar o rechazar sus pasos |
+| Security Viewer | Leer casos, detecciones, notas, tareas, evidencias, playbooks y sus ejecuciones |
 
 Cada uno de estos permisos también se puede conceder por separado, desde crear un caso hasta aprobar los pasos de un playbook; consulta [Referencia de permisos](/docs/permissions/reference).
 
@@ -88,13 +89,13 @@ Un caso tiene su propio menú lateral, como un incidente, y cada parte del caso 
 | Sección del menú lateral | Páginas |
 | --- | --- |
 | **Vista general** | **Vista general**, **Cronología** |
-| **Investigación** | **Desarrollo**, **Detecciones**, **Entidades**, **Señales conectadas**, **Playbooks** |
+| **Investigación** | **Desarrollo**, **Detecciones**, **Entidades**, **Señales conectadas**, **Evidencias**, **Tareas**, **Playbooks** |
 | **Notas** | **Notas privadas** |
 | **Avanzado** | **Registros de auditoría**, **Eliminar caso**, plegados hasta que haces clic en **Avanzado** |
 
-Cada página mantiene arriba la cabecera del caso: su número, prioridad, estado y título, **Asignarme**, **Ejecutar playbook**, **Declarar incidente** y **Cerrar caso**, y, en el menú ⋯ junto a ellos, **Establecer prioridad**, **Asignar a otra persona**, **Cambiar estado**, **Editar caso** y **Eliminar caso**. Así el caso se puede gestionar desde cualquiera de sus páginas, y un enlace al caso sigue abriendo su **Vista general**.
+Cada página mantiene arriba la cabecera del caso: su número, prioridad, estado y título, **Asignarme**, **Ejecutar playbook**, **Declarar incidente** y **Cerrar caso**, y, en el menú ⋯ junto a ellos, **Establecer prioridad**, **Asignar a otra persona**, **Cambiar estado**, **Editar caso** y **Eliminar caso**. Así el caso se puede gestionar desde cualquiera de sus páginas, y un enlace al caso sigue abriendo su **Vista general**. Cuando la prioridad del caso tiene objetivos de respuesta, la cabecera también dice cuándo vence el siguiente ([Objetivos de respuesta](#objetivos-de-respuesta)).
 
-- **Vista general**: la descripción, las etiquetas y los pasos de estado del caso, quién lo tiene y qué lo abrió, y sus cifras: cuántas detecciones tiene, cuánto tiempo lleva abierto y cuánto se tardó en reconocerlo y en contenerlo.
+- **Vista general**: la descripción, las etiquetas y los pasos de estado del caso, quién lo tiene y qué lo abrió, y sus cifras: cuántas detecciones tiene, cuánto tiempo lleva abierto y cuánto se tardó en reconocerlo y en contenerlo. Bajo **Tiempo hasta el reconocimiento** y **Tiempo hasta la contención** se ve cómo va el caso frente a sus objetivos de respuesta.
 - **OneUptime AI**, en la **Vista general**: lo que OneUptime AI ha sacado del caso, la prioridad y el playbook que sugiere, y la evidencia que hay detrás. Consulta [OneUptime AI en la seguridad](/docs/telemetry/security-ai).
 - **Impacto**, en la **Vista general**: lo que el caso pone en riesgo: si OneUptime ha visto que sus registros se alcanzaron desde internet, quién es su propietario y qué cambió por última vez en ellos. Despliéguelo para ver a qué llama cada registro y quién lo llama, los monitores y páginas de estado que lo vigilan y las máquinas con las que hablaron las direcciones del caso.
 - **MITRE ATT&CK**, en la **Vista general**: las tácticas y técnicas a las que corresponden sus detecciones, cada una enlazada a su página en attack.mitre.org.
@@ -103,6 +104,8 @@ Cada página mantiene arriba la cabecera del caso: su número, prioridad, estado
 - **Detecciones**: lo que se disparó para abrir el caso o sumarse a él, cuántas veces y el último evento coincidente.
 - **Entidades**: los usuarios, hosts y direcciones de los que trata el caso, con su actividad en todos tus eventos de seguridad de los últimos 7 días. Cada una se abre en **Correlacionar**.
 - **Señales conectadas**: los hosts, clústeres, servicios y miembros que nombra el caso, tal como OneUptime los conoce, y lo que ocurría en cada uno en torno a sus detecciones: sus registros, trazas y métricas, lo que está abierto en ellos y lo que cambió. Consulta [Señales conectadas](/docs/telemetry/security-connected-signals).
+- **Evidencias**: los archivos y enlaces guardados en el caso, cada uno con quién lo añadió y cuándo. El botón **Añadir archivo** sube un archivo de hasta 10 MB y guarda el SHA-256 de lo que se subió, para que quien lo descargue después pueda comprobar que es lo que se guardó; el botón **Añadir enlace** apunta a evidencias guardadas en otro lugar. Solo un Security Admin puede quitar una evidencia, y la **Cronología** del caso dice qué se añadió y qué se quitó.
+- **Tareas**: lo que hay que hacer en el caso, quién lo hace y si está hecho. Añade una tarea en una línea, entrégasela a alguien y márcala cuando esté hecha. Se avisa a la persona a la que se entrega, salvo que la tomara ella misma, y el menú muestra cuántas tareas quedan abiertas junto a **Tareas**.
 - **Playbooks**: lo que hizo cada playbook en el caso, paso a paso, y los pasos que esperan aprobación. Mientras haya ejecuciones esperando, el menú muestra cuántas junto a **Playbooks**.
 - **Notas privadas**: lo que el equipo escribió sobre el caso.
 - **Registros de auditoría**: cada cambio hecho en el caso y quién lo hizo. Consulta [Registros de auditoría](/docs/configuration/audit-logs).
@@ -129,6 +132,8 @@ No tienes que abrir un caso para gestionarlo. En las listas de la cola, el menú
 
 Los veredictos se cuentan en la vista general. Una regla cuyos casos se cierran una y otra vez como falso positivo es una regla que hay que ajustar.
 
+Mientras queden tareas abiertas en el caso, el diálogo **Cerrar caso** dice cuántas.
+
 Un caso abierto a partir de alertas de Google SecOps también las cierra en Google SecOps, con el veredicto y la nota de cierre, cuando su conexión tiene activado **Cerrar las alertas cuando se cierra su caso**: consulta [Google SecOps](/docs/integrations/google-secops#cerrar-las-alertas-cuando-se-cierra-su-caso).
 
 ### Declarar un incidente
@@ -154,21 +159,49 @@ Algunos son predefinidos, porque OneUptime lee lo que significan. Se les puede c
 
 Para dejar de usar un estado o una prioridad propios, usa **Archivar** en su fila. Nadie puede volver a elegirlo, y la API, Terraform y MCP lo rechazan, pero los casos que lo tienen lo conservan, y puedes seguir filtrando por él. Los valores archivados aparecen en la sección plegada **Estados de caso archivados** o **Prioridades de caso archivadas** bajo la tabla, donde **Desarchivar** devuelve uno. **Eliminar** se rechaza mientras haya casos con el valor o un playbook que parta de la prioridad.
 
+## Objetivos de respuesta
+
+Un objetivo de respuesta es lo rápido que hay que trabajar un caso: **Reconocer en un plazo de**, cuánto puede esperar un caso nuevo a que alguien se haga cargo, y **Contener en un plazo de**, cuánto puede tardar en contenerse o cerrarse. Cada prioridad de caso tiene los suyos, en **Productos → Eventos de seguridad → Ajustes → Objetivos de respuesta**: el botón **Editar** en la fila de una prioridad fija sus dos objetivos, en minutos, horas o días, hasta un año, y uno vacío significa sin objetivo. Las prioridades de un proyecto nuevo empiezan con estos:
+
+| Prioridad | Reconocer en un plazo de | Contener en un plazo de |
+| --- | --- | --- |
+| Critical | 15 minutos | 4 horas |
+| High | 1 hora | 1 día |
+| Medium | 12 horas | 3 días |
+| Low | 1 día | 7 días |
+| Informational | Sin objetivo | Sin objetivo |
+
+Un proyecto creado antes de los objetivos de respuesta no tiene ninguno hasta que alguien los fija.
+
+- Los vencimientos de un caso se fijan al abrirse, a partir de los objetivos de su prioridad. Un objetivo que se cambia después se aplica a los casos que se abren a partir de entonces.
+- Un caso está reconocido en cuanto alguien se hace cargo: se asigna a una persona o pasa a un estado que cuenta como reconocido. Está contenido en cuanto llega a un estado que cuenta como contenido, o se cierra.
+- Cuando cambia la prioridad de un caso, un objetivo que ya cumplió o incumplió se queda como estaba. Una prioridad más alta acerca un vencimiento: el nuevo objetivo cuenta desde el cambio, salvo que el vencimiento anterior llegue antes. Una prioridad más baja lo retrasa, nunca lo adelanta: el nuevo objetivo cuenta desde que se abrió el caso. Una prioridad sin objetivo mantiene el vencimiento de un caso que sube y quita el de uno que baja.
+- Un caso cerrado que se reabre sin haber estado contenido en ningún momento recibe un nuevo vencimiento de contención, contado desde la reapertura.
+- En el último quinto de un objetivo, el caso está a punto de incumplirlo: se avisa a quienes se ocupan de él, y se les vuelve a avisar cuando lo incumple. Consulta [Notificaciones](#notificaciones).
+
+Dónde se ven los objetivos:
+
+- La cabecera del caso nombra el siguiente objetivo y cuánto queda, o cuánto lleva vencido: en gris mientras hay tiempo, en ámbar en su último quinto y en rojo una vez incumplido.
+- En la **Vista general** del caso, bajo **Tiempo hasta el reconocimiento** y **Tiempo hasta la contención**: cómo va el caso frente a cada objetivo, o cuánto lo superó.
+- En las listas de la cola: la línea bajo la prioridad de cada caso, y una columna **Vencimiento** que puedes activar y por la que puedes ordenar. Las listas las muestran solo cuando alguna prioridad del proyecto tiene un objetivo.
+
 ## Notificaciones
 
-OneUptime avisa a las personas de tres cosas de un caso. Nadie tiene que configurar nada: un proyecto que solo hizo clic en **Activar lo recomendado** se entera de sus casos de prioridad Alta y Crítica por correo y por push.
+OneUptime avisa a las personas de cinco cosas de un caso. Nadie tiene que configurar nada: un proyecto que solo hizo clic en **Activar lo recomendado** se entera de sus casos de prioridad Alta y Crítica por correo y por push.
 
 | Notificación | A quién se avisa | Por defecto |
 | --- | --- | --- |
 | Nuevo caso de seguridad | Todas las personas que pueden ver los casos del proyecto, cuando un caso se abre o sube de prioridad, a partir de la prioridad que eligieron | Por correo y por push, para los casos de prioridad Alta y Crítica |
 | Caso de seguridad asignado a mí | La persona a la que está asignado el caso y los miembros del equipo al que está asignado | Por correo y por push |
 | Paso de playbook esperando mi aprobación | Las personas del caso que pueden aprobar el paso: la persona a la que está asignado y los miembros de su equipo. Si ninguna de ellas puede aprobarlo, todas las personas del proyecto que pueden hacerlo | Por correo y por push |
+| Objetivo de respuesta de un caso de seguridad | Las personas que se ocupan del caso: la persona a la que está asignado y los miembros de su equipo. Si nadie se ocupa de él, las personas a las que se avisa de los casos nuevos con su prioridad | Por correo y por push |
+| Tarea de un caso de seguridad asignada a mí | La persona a la que se entrega una tarea del caso, salvo que la tomara ella misma | Por correo y por push |
 
 - Solo se avisa a las personas que pueden ver el caso: Project Owner, Project Admin y los roles Security Admin, Security Member y Security Viewer. A un rol limitado a algunas etiquetas solo se le avisa de los casos con esas etiquetas.
 - A nadie se le avisa de lo que hizo: quien abre un caso a mano, lo asigna o inicia una ejecución no recibe una notificación de ello.
 - Cada persona se entera de un caso una sola vez. Un caso que se abre con prioridad Medium y después sube a Crítico llega, al subir, a las personas que eligieron Alta y Crítica o Solo Crítica, y no otra vez a las que eligieron Media y superior, que ya se enteraron cuando se abrió.
 - El ataque de prueba de **Enviar un ataque de prueba** abre un caso que no avisa a nadie.
-- Un caso Crítico y un paso que espera aprobación se envían al instante, nunca se retienen en un [resumen de correos](/docs/emails/notification-rollup).
+- Un caso Crítico y un paso que espera aprobación se envían al instante, nunca se retienen en un [resumen de correos](/docs/emails/notification-rollup). Lo mismo ocurre con un objetivo de respuesta a punto de incumplirse o incumplido.
 - La **Cronología** del caso indica a quién se avisó y cuándo.
 
 ### Elegir de qué se te avisa
@@ -199,7 +232,7 @@ Para publicar en un canal, añade una regla en **Productos → Eventos de seguri
 | Origen del caso de seguridad | Regla de detección, Inteligencia de amenazas, Connected Product, Riesgo de entidades o Manual |
 | Etiquetas del caso de seguridad | Las etiquetas del caso |
 
-Cada una de las tres notificaciones se publica en los canales de todas las reglas con las que coincide el caso en ese momento. Una regla en la que **Prioridad del caso de seguridad** contiene cualquiera de **Crítico** y **Alta** publica los casos de prioridad Alta y Crítico en cuanto se abren, y un caso Medium cuando sube a Alta. Un caso de seguridad nunca tiene un canal propio.
+Cada notificación, salvo la de una tarea, se publica en los canales de todas las reglas con las que coincide el caso en ese momento. Una regla en la que **Prioridad del caso de seguridad** contiene cualquiera de **Crítico** y **Alta** publica los casos de prioridad Alta y Crítico en cuanto se abren, y un caso Medium cuando sube a Alta. Un caso de seguridad nunca tiene un canal propio.
 
 ## Playbooks
 
@@ -350,8 +383,8 @@ Encima, una franja muestra cómo está configurada la seguridad: sus orígenes, 
 ## Automatizar
 
 - **Flujos de trabajo**: un caso o una nota puede iniciar un flujo de trabajo cuando se crea, se actualiza o se elimina. Un paso **Ejecutar un flujo de trabajo** inicia un flujo de trabajo cuyo desencadenante es un webhook.
-- **API**: los casos, las notas, las detecciones, los playbooks, las ejecuciones, las entidades protegidas y las prioridades y estados de caso tienen la misma API REST que el resto de OneUptime, en `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` y `/security-case-status`. Consulta [Referencia de la API](/docs/api-reference/api-reference).
-- Agentes de IA: el servidor MCP tiene herramientas para casos, notas, detecciones, playbooks y prioridades y estados de caso. Consulta [Servidor MCP](/docs/ai/mcp-server).
+- **API**: los casos, las notas, las tareas, las evidencias, las detecciones, los playbooks, las ejecuciones, las entidades protegidas y las prioridades y estados de caso tienen la misma API REST que el resto de OneUptime, en `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` y `/security-case-status`. Consulta [Referencia de la API](/docs/api-reference/api-reference).
+- Agentes de IA: el servidor MCP tiene herramientas para casos, notas, tareas, evidencias, detecciones, playbooks y prioridades y estados de caso. Consulta [Servidor MCP](/docs/ai/mcp-server).
 - Terraform: los recursos `oneuptime_security_case_priority` y `oneuptime_security_case_status` mantienen como código las prioridades y estados de un proyecto.
 
 ## Solución de problemas
@@ -362,6 +395,10 @@ Comprueba **Abrir un caso al coincidir** en el paso **Al coincidir** de la regla
 
 :::details No se avisó a nadie de un caso
 Mira la **Cronología** del caso, que indica a quién se notificó. Una notificación **Nuevo caso de seguridad** va a las personas cuya prioridad elegida alcanza el caso, así que un caso Medium no avisa a nadie que haya mantenido la opción predeterminada, **Alta y superior**. Comprueba que las personas que deberían enterarse pueden ver los casos de seguridad (con un rol de seguridad, o como Project Owner o Project Admin) y que tienen la notificación activada en **Ajustes de usuario → Ajustes de notificaciones → Seguridad**.
+:::
+
+:::details Un caso no muestra ningún vencimiento
+Su prioridad no tiene objetivo de respuesta, o lo recibió después de abrirse el caso: los vencimientos de un caso se fijan al abrirse. El caso del ataque de prueba no tiene ninguno. Consulta [Objetivos de respuesta](#objetivos-de-respuesta).
 :::
 
 :::details Un playbook no se ejecutó

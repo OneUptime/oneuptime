@@ -194,7 +194,7 @@ oneuptime <resource> count [--query <json>] [-o <format>]
 | 狀態頁面 | `status-page`, `status-page-announcement` |
 | 排定維護 | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |
 | 團隊與待命 | `team`, `on-call-policy` |
-| 安全性 | `security-case`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-detection`, `security-playbook` |
+| 安全性 | `security-case`, `security-case-evidence`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-case-task`, `security-detection`, `security-playbook` |
 | 標籤 | `label` |
 
 遙測資料支援 `list`、`create` 和 `count`：

@@ -219,11 +219,11 @@ const DESCRIPTIONS: Record<string, string> = {
   [Permission.TelemetryViewer]:
     "Reads logs, traces, metrics, profiles, exceptions and saved views, and changes nothing. Does not see session replays.",
   [Permission.SecurityAdmin]:
-    "Full control over security operations: security events, cases with their detections and notes, response playbooks and their runs, Sigma detection rules, threat intelligence feeds and their indicators, and security event connections (Google SecOps, Microsoft Sentinel, CrowdStrike Falcon and other sources). Outside the Security roles, only Project Owner and Project Admin read security data.",
+    "Full control over security operations: security events, cases with their detections, notes, tasks and evidence, response playbooks and their runs, Sigma detection rules, threat intelligence feeds and their indicators, and security event connections (Google SecOps, Microsoft Sentinel, CrowdStrike Falcon and other sources). Outside the Security roles, only Project Owner and Project Admin read security data.",
   [Permission.SecurityMember]:
-    "Reads security events and threat intelligence, sends security events, works security cases (opens, assigns, changes and closes them and writes their notes), runs playbooks and approves their steps, and creates, changes and deletes detection rules and threat intel feeds. Cannot configure playbooks or security event connections, or delete security data.",
+    "Reads security events and threat intelligence, sends security events, works security cases (opens, assigns, changes and closes them, writes their notes, works their tasks and adds evidence), runs playbooks and approves their steps, and creates, changes and deletes detection rules and threat intel feeds. Cannot configure playbooks or security event connections, or delete security data.",
   [Permission.SecurityViewer]:
-    "Read-only access to security events, cases with their detections and notes, playbooks and their runs, detection rules, threat intelligence feeds and indicators, and security event connections.",
+    "Read-only access to security events, cases with their detections, notes, tasks and evidence, playbooks and their runs, detection rules, threat intelligence feeds and indicators, and security event connections.",
   [Permission.SettingsAdmin]:
     "Does everything Settings Member does, and also connects video call providers and reads the audit log. API keys, teams and their permissions, labels, SSO, SMTP, call and SMS settings and domains take Project Admin.",
   [Permission.SettingsMember]:
@@ -613,6 +613,8 @@ const CLAIMS: Partial<Record<Permission, RoleClaims>> = {
         "SecurityEventConnection",
         "SecurityCase",
         "SecurityCaseNote",
+        "SecurityCaseTask",
+        "SecurityCaseEvidence",
         "SecurityPlaybook",
       ),
       ["create", "SecurityEventItemV1"],
@@ -634,7 +636,15 @@ const CLAIMS: Partial<Record<Permission, RoleClaims>> = {
         "SecurityPlaybook",
       ),
       ["create", "SecurityEventItemV1"],
-      ...manages("DetectionRule", "ThreatIntelFeed", "SecurityCaseNote"),
+      ...manages(
+        "DetectionRule",
+        "ThreatIntelFeed",
+        "SecurityCaseNote",
+        "SecurityCaseTask",
+      ),
+      // Adds evidence and corrects its name; removing it is the Admin's.
+      ["create", "SecurityCaseEvidence"],
+      ["update", "SecurityCaseEvidence"],
       ["create", "SecurityCase"],
       ["update", "SecurityCase"],
       ["create", "SecurityPlaybookRun"],
@@ -646,6 +656,7 @@ const CLAIMS: Partial<Record<Permission, RoleClaims>> = {
       ["delete", "ThreatIntelIndicatorItemV1"],
       ["delete", "SecurityCase"],
       ["delete", "SecurityDetection"],
+      ["delete", "SecurityCaseEvidence"],
     ],
   },
   [Permission.SecurityViewer]: {
@@ -654,6 +665,8 @@ const CLAIMS: Partial<Record<Permission, RoleClaims>> = {
       "SecurityCase",
       "SecurityDetection",
       "SecurityCaseNote",
+      "SecurityCaseTask",
+      "SecurityCaseEvidence",
       "SecurityPlaybook",
       "SecurityPlaybookRun",
       "DetectionRule",

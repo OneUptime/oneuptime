@@ -98,7 +98,7 @@ describe("a case's figures", () => {
 });
 
 describe("what a case's pages read of it", () => {
-  test("the header, the facts, the figures, the entities, the incident and OneUptime AI's triage", () => {
+  test("the header, the facts, the figures, the response targets, the entities, the incident and OneUptime AI's triage", () => {
     expect(Object.keys(SECURITY_CASE_VIEW_SELECT).sort()).toEqual(
       [
         "_id",
@@ -120,6 +120,11 @@ describe("what a case's pages read of it", () => {
         "containedAt",
         "closedAt",
         "createdAt",
+        // Where the case stands against its targets: the header and Overview.
+        "acknowledgeDueAt",
+        "acknowledgeMissedAt",
+        "containDueAt",
+        "containMissedAt",
         "incidentId",
         "incident",
         "assignedToUserId",

@@ -52,6 +52,7 @@ flowchart TB
 | **Anslutningar** | Connections | Dina loggar, säkerhetsprodukterna som OneUptime hämtar från och de SIEM som det skickar till |
 | **Installationsguide** | Connections | Kodsnuttar för att skicka händelser, ifyllda med din ingestion-nyckel |
 | **Ärendeprioriteter** | Inställningar | Hur brådskande ett ärende är: projektets egna prioriteter, den mest brådskande först |
+| **Svarsmål** | Inställningar | Hur snabbt ett ärende med varje prioritet måste tas om hand och begränsas |
 | **Ärendestatusar** | Inställningar | Stegen ett ärende går igenom, och vad ett ärende i varje steg räknas som |
 | **Riskbedömning** | Inställningar | Om en entitets risk öppnar ett ärende, vid vilken risk, och hur mycket varje entitet betyder |
 

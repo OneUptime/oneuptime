@@ -35,7 +35,12 @@ export interface ComponentProps<T extends GenericObject> {
   onSubmit?: undefined | ((data: T) => void);
   submitButtonStyleType?: undefined | ButtonStyleType;
   formProps: BasicFormComponentProps<T>;
-  description?: string | undefined;
+  /*
+   * A line under the title. An element for a sentence with a name in bold
+   * (NamedSentence): the record the dialog is about, read apart from the
+   * question.
+   */
+  description?: string | ReactElement | undefined;
   modalWidth?: ModalWidth | undefined;
   /*
    * Drawn under the description, above the fields: which records the form

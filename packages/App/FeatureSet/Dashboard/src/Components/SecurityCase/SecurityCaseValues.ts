@@ -42,6 +42,9 @@ export const SECURITY_CASE_PRIORITY_SELECT: Select<SecurityCasePriority> = {
   isMediumPriority: true,
   isLowPriority: true,
   isInformationalPriority: true,
+  // The response targets a case's due times are read against.
+  acknowledgeWithinInMinutes: true,
+  containWithinInMinutes: true,
 };
 
 export const SECURITY_CASE_STATUS_SELECT: Select<SecurityCaseStatus> = {

@@ -194,7 +194,7 @@ oneuptime <resource> count [--query <json>] [-o <format>]
 | स्थिति पृष्ठ | `status-page`, `status-page-announcement` |
 | अनुसूचित रखरखाव | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |
 | टीमें और ऑन-कॉल | `team`, `on-call-policy` |
-| सुरक्षा | `security-case`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-detection`, `security-playbook` |
+| सुरक्षा | `security-case`, `security-case-evidence`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-case-task`, `security-detection`, `security-playbook` |
 | लेबल | `label` |
 
 टेलीमेट्री `list`, `create` और `count` लेती है:

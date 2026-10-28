@@ -14,8 +14,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * The table is new and empty, so its indexes and foreign keys are built
  * here; no existing table changes.
  */
-export class AddNetworkAddressNames1808200000000 implements MigrationInterface {
-  public name: string = "AddNetworkAddressNames1808200000000";
+export class AddNetworkAddressNames1808260000000 implements MigrationInterface {
+  public name: string = "AddNetworkAddressNames1808260000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

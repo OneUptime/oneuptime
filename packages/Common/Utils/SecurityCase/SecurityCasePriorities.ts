@@ -53,12 +53,24 @@ export interface DefaultSecurityCasePriority {
   color: Color;
   order: number;
   level: SecurityCasePriorityLevel;
+  /*
+   * Its response targets, in minutes (SecurityCaseTargets): how fast a case
+   * at it must be taken on and contained. Null for none. A project created
+   * before targets existed got its priorities without them, by the
+   * migration, and keeps them that way until someone sets them.
+   */
+  acknowledgeWithinInMinutes: number | null;
+  containWithinInMinutes: number | null;
 }
 
 /*
  * A new project's case priorities: the scale every case has been on since
  * cases began - the same names, order and colours - each the built-in
- * priority of its level.
+ * priority of its level, with the response targets a security team usually
+ * starts from: a Critical case taken on in 15 minutes and contained in 4
+ * hours, a High one in an hour and a day, a Medium one in 12 hours and 3
+ * days, a Low one in a day and a week. Informational cases need nothing
+ * done, so they have no targets.
  */
 export const DEFAULT_SECURITY_CASE_PRIORITIES: ReadonlyArray<DefaultSecurityCasePriority> =
   [
@@ -69,6 +81,8 @@ export const DEFAULT_SECURITY_CASE_PRIORITIES: ReadonlyArray<DefaultSecurityCase
       color: Red,
       order: 1,
       level: SecurityCasePriorityLevel.Critical,
+      acknowledgeWithinInMinutes: 15,
+      containWithinInMinutes: 4 * 60,
     },
     {
       name: "High",
@@ -76,6 +90,8 @@ export const DEFAULT_SECURITY_CASE_PRIORITIES: ReadonlyArray<DefaultSecurityCase
       color: Orange,
       order: 2,
       level: SecurityCasePriorityLevel.High,
+      acknowledgeWithinInMinutes: 60,
+      containWithinInMinutes: 24 * 60,
     },
     {
       name: "Medium",
@@ -83,6 +99,8 @@ export const DEFAULT_SECURITY_CASE_PRIORITIES: ReadonlyArray<DefaultSecurityCase
       color: Yellow,
       order: 3,
       level: SecurityCasePriorityLevel.Medium,
+      acknowledgeWithinInMinutes: 12 * 60,
+      containWithinInMinutes: 3 * 24 * 60,
     },
     {
       name: "Low",
@@ -90,6 +108,8 @@ export const DEFAULT_SECURITY_CASE_PRIORITIES: ReadonlyArray<DefaultSecurityCase
       color: Blue,
       order: 4,
       level: SecurityCasePriorityLevel.Low,
+      acknowledgeWithinInMinutes: 24 * 60,
+      containWithinInMinutes: 7 * 24 * 60,
     },
     {
       name: "Informational",
@@ -97,6 +117,8 @@ export const DEFAULT_SECURITY_CASE_PRIORITIES: ReadonlyArray<DefaultSecurityCase
       color: Gray500,
       order: 5,
       level: SecurityCasePriorityLevel.Informational,
+      acknowledgeWithinInMinutes: null,
+      containWithinInMinutes: null,
     },
   ];
 

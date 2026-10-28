@@ -17,7 +17,46 @@ import {
   ARCHIVABLE_VALUES,
   ArchivableValueType,
 } from "../../Utils/ArchivableValues";
+import { JSONObject } from "../../Types/JSON";
+import {
+  MAX_SECURITY_CASE_TARGET_IN_MINUTES,
+  readTargetMinutes,
+} from "../../Utils/SecurityCase/SecurityCaseTargets";
 import { STATE_LISTS, StateListType } from "../../Utils/StateOrder";
+
+/*
+ * A priority's two response targets, by column, with what a refusal calls
+ * each: a whole number of minutes from 1 to a year, or empty for none
+ * (SecurityCaseTargets).
+ */
+const TARGET_COLUMNS: ReadonlyArray<[string, string]> = [
+  ["acknowledgeWithinInMinutes", "Acknowledge Within"],
+  ["containWithinInMinutes", "Contain Within"],
+];
+
+export function checkResponseTargets(data: JSONObject): void {
+  for (const [column, name] of TARGET_COLUMNS) {
+    const value: unknown = data[column];
+
+    if (value === undefined || value === null || value === "") {
+      if (value === "") {
+        data[column] = null;
+      }
+
+      continue;
+    }
+
+    const minutes: number | null = readTargetMinutes(value);
+
+    if (minutes === null) {
+      throw new BadDataException(
+        `${name} must be a whole number of minutes from 1 to ${MAX_SECURITY_CASE_TARGET_IN_MINUTES.toString()} (a year), or empty for no target.`,
+      );
+    }
+
+    data[column] = minutes;
+  }
+}
 
 /*
  * A project's security case priorities (SecurityCasePriority): how urgent a
@@ -46,6 +85,8 @@ export class Service extends DatabaseService<Model> {
       createBy: createBy,
     });
 
+    checkResponseTargets(createBy.data as unknown as JSONObject);
+
     // Never created archived if it is a built-in one. See ArchivableValueGuard.
     await ArchivableValueGuard.beforeCreate({
       service: this,
@@ -73,6 +114,8 @@ export class Service extends DatabaseService<Model> {
       definition: STATE_LISTS[StateListType.SecurityCasePriority],
       updateBy: updateBy,
     });
+
+    checkResponseTargets(updateBy.data as unknown as JSONObject);
 
     // A built-in priority is never archived. See ArchivableValueGuard.
     await ArchivableValueGuard.beforeUpdate({
@@ -182,6 +225,9 @@ export class Service extends DatabaseService<Model> {
         isLowPriority: true,
         isInformationalPriority: true,
         isArchived: true,
+        // A case's due times are set from these (SecurityCaseTargets).
+        acknowledgeWithinInMinutes: true,
+        containWithinInMinutes: true,
       },
       props: {
         isRoot: true,

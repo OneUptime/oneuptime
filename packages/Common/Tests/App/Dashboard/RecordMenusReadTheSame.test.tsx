@@ -200,6 +200,9 @@ const PAGE_SECTIONS: Readonly<Record<string, string>> = {
   Entities: "Investigation",
   // What those entities are in the rest of OneUptime.
   "Connected Signals": "Investigation",
+  // What is kept on a security case, and what is left to do on it.
+  Evidence: "Investigation",
+  Tasks: "Investigation",
   Playbooks: "Investigation",
   Roles: "Team",
   "On-Call Executions": "Team",
