@@ -32,23 +32,31 @@ Ogni minuto, OneUptime conta i log che corrispondono ai filtri del monitor e son
 :::steps
 ### Iniziare un nuovo monitor
 
-Andate in **Monitor** e fate clic su **Crea monitor**.
+Andate in **Monitor** e fate clic su **Crea monitor**. Oppure, nell'esploratore dei log, cercate i log di cui volete essere informati e fate clic su **Create monitor** nella sua barra degli strumenti: il nuovo monitor parte osservando la ricerca, le gravità, i servizi e gli attributi dell'esploratore.
 
 ### Scegliere Logs
 
 In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **Registri** sotto **Telemetria**, oppure digitate `logs` nella casella di ricerca. Inserite un **Nome**, poi fate clic su **Avanti**.
 
+### Scegliere di cosa vi informa il monitor
+
+In **Di cosa deve informarti questo monitor?**, scegliete **Troppi errori**, **Compare un messaggio** o **I log si fermano**. Ogni scelta compila i log da osservare e la regola, che potete modificare più in basso. Scegliete **Qualcos'altro** per impostarli voi.
+
 ### Scegliere i log da contare
 
-In **Configurazione monitor log**, impostate **Log del monitor che includono questo testo**, **Log del monitor per (time)** e **Gravità del log**. Un filtro lasciato vuoto corrisponde a tutti i log. **Anteprima log**, sotto i filtri, mostra i log a cui corrispondono in questo momento.
+In **Log da osservare**, impostate **Gravità del log** e **Il messaggio contiene**. Un filtro lasciato vuoto corrisponde a tutti i log. **Log corrispondenti**, sotto i filtri, mostra i log a cui corrispondono in questo momento.
 
 ### Restringere il campo (facoltativo)
 
 Aprite **Altri campi** per filtrare per servizio di telemetria, entità dell'infrastruttura o attributo. Per ricevere un avviso per tunnel, utente o interfaccia invece di uno per l'intero monitor, aggiungete l'attributo in **Group by Attributes** (vedete [Avvisi per gruppo](#avvisi-per-gruppo-group-by)).
 
-### Impostare i criteri
+### Dire quando avvisare
 
-La scheda **Criteri del monitor** parte con due criteri: offline, con un incidente, quando nessun log corrisponde; online quando ne corrisponde almeno uno. Modificateli in base a ciò su cui volete essere avvisati (vedete [Criteri](#criteri)).
+In **Quando avvisare**, scegliete una **Condizione**, il **Numero di log** e una **Finestra temporale**. La frase sotto di essi ripete la regola con parole semplici. Il grafico sotto la frase conta i log corrispondenti in ogni finestra nelle ultime ore, disegna il numero della regola come una linea e dice quante volte la regola avrebbe avvisato. Il suo pulsante propone un numero che la regola non avrebbe superato in quel periodo.
+
+### Scegliere cosa succede
+
+In **Cosa succede**, scegliete **Crea un avviso**, **Dichiara un incidente** o **Entrambi**, e dategli un titolo e una gravità. Finché la regola corrisponde, il monitor mostra lo stato indicato in **Altri campi**; quando smette di corrispondere, il monitor torna al suo stato predefinito e l'avviso o l'incidente si risolve da solo.
 
 ### Creare il monitor
 
@@ -59,9 +67,9 @@ Fate clic su **Crea monitor**. Il monitor si apre sulla sua pagina **Panoramica*
 
 | Campo | A cosa corrisponde | Predefinito |
 | --- | --- | --- |
-| **Log del monitor che includono questo testo** | Log il cui corpo contiene questo testo, senza distinzione tra maiuscole e minuscole. | Vuoto: tutti i log |
-| **Log del monitor per (time)** | Log degli ultimi 5 secondi fino alle ultime 24 ore. | **Ultimo minuto** |
 | **Gravità del log** | Log con una qualsiasi delle gravità scelte. | Vuoto: tutte le gravità |
+| **Il messaggio contiene** | Log il cui corpo contiene questo testo, senza distinzione tra maiuscole e minuscole. | Vuoto: tutti i log |
+| **Finestra temporale** (in **Quando avvisare**) | Log degli ultimi 5 secondi fino alle ultime 24 ore. | **Ultimi 5 minuti** |
 | **Group by Attributes** | Non è un filtro: conta separatamente ogni combinazione di valori di questi attributi. | Vuoto: un solo conteggio |
 | **Risolto per attributi** | Non è un filtro: il log che risolve un gruppo. Compare appena **Group by Attributes** ha un attributo; vedi [Risolto da un log](#risolto-da-un-log). | Vuoto: un gruppo si risolve quando i suoi log si fermano |
 | **Filtra per servizio di telemetria** (in **Altri campi**) | Log di uno qualsiasi dei servizi scelti. | Vuoto: tutti i servizi |
@@ -87,8 +95,8 @@ Ogni log viene salvato con una di sette gravità. Per i log OpenTelemetry deriva
 ## Come viene valutato
 
 - **Ogni minuto.** Un monitor log non viene controllato da sonde, quindi non ha un intervallo da impostare né una pagina **Sonde e intervallo**.
-- **Un numero per valutazione.** Il monitor conta i log che corrispondono a ogni filtro e sono arrivati entro **Log del monitor per (time)** prima della valutazione. Con **Ultimi 5 minuti**, ogni valutazione guarda indietro di cinque minuti, quindi le finestre di valutazioni consecutive si sovrappongono.
-- **Nessun log significa un conteggio di 0.** Un servizio che smette di scrivere log produce 0, che è ciò che cerca il criterio offline predefinito.
+- **Un numero per valutazione.** Il monitor conta i log che corrispondono a ogni filtro e sono arrivati entro la **Finestra temporale** prima della valutazione. Con **Ultimi 5 minuti**, ogni valutazione guarda indietro di cinque minuti, quindi le finestre di valutazioni consecutive si sovrappongono.
+- **Nessun log significa un conteggio di 0.** Un servizio che smette di scrivere log produce 0, che è ciò che cerca **I log si fermano**.
 - **L'interruzione di OneUptime stesso non è silenzio.** Finché la finestra di tempo contiene un periodo in cui OneUptime stesso non riceveva dati (si stava riavviando, veniva aggiornato o recuperava un arretrato), il controllo attende: lo stato non cambia e nessun incidente o avviso viene aperto o risolto. Vedete [Quando OneUptime non riceve dati](/docs/monitor/when-oneuptime-is-not-receiving).
 - **Criteri dall'alto verso il basso.** Decide il primo criterio che corrisponde, quindi mettete per primo il più grave. Un monitor raggruppato funziona diversamente: controlla ogni criterio per ogni gruppo (vedete [La valutazione dei criteri cambia](#la-valutazione-dei-criteri-cambia)).
 
@@ -96,7 +104,7 @@ Ogni cambio di stato, con il suo motivo, viene registrato nella **Cronologia di 
 
 ## Criteri
 
-I criteri di un monitor log hanno un solo **Tipo di filtro**: **Log Count**, il numero di log che hanno corrisposto nella finestra. Scegliete una **Condizione del filtro** e, per una condizione di soglia, un **Valore**.
+I criteri di un monitor log hanno un solo **Tipo di filtro**: **Log Count**, il numero di log che hanno corrisposto nella finestra. **Quando avvisare** imposta un criterio, la cui **Condizione** è **Più di**, **Almeno**, **Meno di**, **Al massimo**, **Esattamente**, **Insolitamente alto**, **Insolitamente basso** o **Insolitamente alto o basso**. Per più criteri, o per uno con più di un filtro, fate clic su **Modifica come criteri personalizzati** in **Altri campi** di **Cosa succede**: lì ogni criterio ha una **Condizione del filtro** e, per una condizione di soglia, un **Valore**.
 
 | Condizione del filtro | Corrisponde quando il conteggio dei log è… |
 | --- | --- |
@@ -109,36 +117,41 @@ I criteri di un monitor log hanno un solo **Tipo di filtro**: **Log Count**, il 
 | **Anomalously Low** | sotto quell'intervallo |
 | **Anomalous** | fuori da quell'intervallo, in un senso o nell'altro |
 
-Le condizioni di anomalia non hanno un **Valore**. Scegliete una **Sensibilità** (Low, Medium, quella predefinita, oppure High) e una **Finestra di riferimento** di 14 (quella predefinita), 28, 60 o 90 giorni. OneUptime trasforma il conteggio in un tasso al minuto e lo confronta con la stessa ora della settimana in quella finestra. Il riferimento copre solo i servizi e le gravità del monitor: i suoi filtri di testo e di attributi non ne fanno parte. Finché quell'ora della settimana non ha abbastanza storico, il criterio sta ancora imparando e non scatta.
+Le condizioni di anomalia non hanno un **Valore**. Scegliete una **Sensibilità** (Basso, Medio, quella predefinita, oppure Alto) e, nei criteri personalizzati, una **Finestra di riferimento** di 14 (quella predefinita), 28, 60 o 90 giorni. OneUptime trasforma il conteggio in un tasso al minuto e lo confronta con la stessa ora della settimana in quella finestra. Il riferimento copre solo i servizi e le gravità del monitor: i suoi filtri di testo e di attributi non ne fanno parte. Finché quell'ora della settimana non ha abbastanza storico, il criterio sta ancora imparando e non scatta.
 
-Un nuovo monitor log parte con questi criteri:
+Un monitor log creato in Crea monitor parte con la regola di ciò che avete scelto in **Di cosa deve informarti questo monitor?**:
+
+| Scelta | Regola | Cosa succede |
+| --- | --- | --- |
+| **Troppi errori** | **Gravità del log** **Errore** e **Fatal**, **Più di** `10` in **Ultimi 5 minuti** | Crea un avviso, che si risolve da solo |
+| **Compare un messaggio** | **Più di** `0` in **Ultimi 5 minuti** | Crea un avviso, che si risolve da solo |
+| **I log si fermano** | **Esattamente** `0` in **Ultimi 10 minuti** | Dichiara un incidente, che si risolve da solo |
+
+Un monitor log creato tramite l'API o Terraform senza criteri parte con questi criteri:
 
 | Criterio | Filtro | Effetto |
 | --- | --- | --- |
 | Check if … is offline | **Log Count** **Uguale a** `0` | Mette il monitor offline e dichiara un incidente, risolto automaticamente |
 | Check if … is online | **Log Count** **Maggiore di** `0` | Mette il monitor online |
 
-> [!TIP]
-> Per essere avvisati degli errori invece che del silenzio, impostate **Gravità del log** su **Errore** e cambiate il criterio offline in **Log Count** **Maggiore di** il numero di errori che tollerate nella finestra.
-
 ## Esempio pratico: un picco di errori
 
 Volete un incidente quando il servizio di checkout registra più di 50 errori in cinque minuti:
 
 - **Gravità del log**: **Errore**
-- **Log del monitor per (time)**: **Ultimi 5 minuti**
+- **Finestra temporale**: **Ultimi 5 minuti**
 - **Filtra per servizio di telemetria**: `checkout`
-- Criterio 1: **Log Count** **Maggiore di** `50`: mettere il monitor offline e dichiarare un incidente
-- Criterio 2: **Log Count** **Minore o uguale a** `50`: mettere il monitor online
+- **Quando avvisare**: **Più di** `50`
+- **Cosa succede**: **Dichiara un incidente**
 
 Quattro valutazioni consecutive:
 
-| Ora | Log di errore degli ultimi 5 minuti | Criterio che corrisponde | Cosa succede |
+| Ora | Log di errore degli ultimi 5 minuti | La regola corrisponde? | Cosa succede |
 | --- | --- | --- | --- |
-| 10:00 | 12 | 2 | Il monitor è online. |
-| 10:01 | 64 | 1 | Il monitor va offline e viene dichiarato un incidente. |
-| 10:02 | 81 | 1 | Ancora offline. L'incidente è già aperto, quindi non ne viene dichiarato un secondo. |
-| 10:06 | 9 | 2 | Il monitor torna online, e l'incidente si risolve da solo perché **Risoluzione automatica dell'incidente** è attiva. |
+| 10:00 | 12 | No | Il monitor è online. |
+| 10:01 | 64 | Sì | Il monitor va offline e viene dichiarato un incidente. |
+| 10:02 | 81 | Sì | Ancora offline. L'incidente è già aperto, quindi non ne viene dichiarato un secondo. |
+| 10:06 | 9 | No | Il monitor torna online, e l'incidente si risolve da solo perché **Risoluzione automatica dell'incidente** è attiva. |
 
 Poiché le finestre si sovrappongono, una sola raffica di errori tiene alto il conteggio fino a cinque minuti dopo la sua fine. Usate una finestra più breve per un monitor che deve riprendersi prima.
 
@@ -197,11 +210,11 @@ log_component="IPSec" con_name="HQ-Branch1" status="Terminated" message="IPSec C
 ```
 
 :::steps
-1. Create un monitor **Registri**.
-2. Impostate **Log del monitor che includono questo testo** su `terminated` e **Log del monitor per (time)** su **Ultimi 5 minuti**.
+1. Create un monitor **Registri** e scegliete **Compare un messaggio**.
+2. Impostate **Il messaggio contiene** su `terminated` e la **Finestra temporale** su **Ultimi 5 minuti**.
 3. In **Altri campi**, aggiungete il filtro di attributo `log_component` = `IPSec`.
 4. In **Group by Attributes**, aggiungete `con_name`.
-5. Aggiungete un criterio con il filtro **Log Count** **Maggiore di** `0` che crei un avviso o un incidente intitolato `IPsec tunnel {{con_name}} terminated`.
+5. Lasciate la regola su **Più di** `0`, e intitolate l'avviso o l'incidente `IPsec tunnel {{con_name}} terminated`.
 :::
 
 Ogni tunnel che registra una terminazione riceve ora il proprio avviso (`IPsec tunnel HQ-Branch1 terminated`, `IPsec tunnel Branch2 terminated`), e ciascuno si risolve per conto proprio.
@@ -227,7 +240,7 @@ Il valore di ogni attributo di Group By è una [variabile di modello](/docs/moni
 ## Risoluzione dei problemi
 
 :::details Il monitor è offline, ma il mio servizio scrive log
-Il conteggio era 0, quindi i filtri non corrispondono a nessuno dei log che il servizio invia. Aprite la pagina **Criteri** del monitor (sotto **Configurazione**) e fate clic su **Edit Monitoring Criteria**: **Anteprima log** mostra a cosa corrispondono i filtri in questo momento. Le cause più comuni sono una gravità scelta in base al testo stampato dal logger invece che al suo numero di gravità (vedete [Gravità dei log](#gravità-dei-log)), un filtro di servizio o di attributo che non corrisponde, e una finestra di tempo più breve dell'intervallo tra i log del servizio.
+Il conteggio era 0, quindi i filtri non corrispondono a nessuno dei log che il servizio invia. Aprite la pagina **Criteri** del monitor (sotto **Configurazione**) e fate clic su **Edit Monitoring Criteria**: **Log corrispondenti** mostra a cosa corrispondono i filtri in questo momento, e il grafico in **Quando avvisare** li conta in ogni finestra. Le cause più comuni sono una gravità scelta in base al testo stampato dal logger invece che al suo numero di gravità (vedete [Gravità dei log](#gravità-dei-log)), un filtro di servizio o di attributo che non corrisponde, e una finestra di tempo più breve dell'intervallo tra i log del servizio.
 :::
 
 :::details C'è stato un picco, ma nessun avviso

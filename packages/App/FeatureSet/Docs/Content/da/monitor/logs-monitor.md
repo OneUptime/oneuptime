@@ -32,23 +32,31 @@ Hvert minut tæller OneUptime de logs, der matcher monitorens filtre og er ankom
 :::steps
 ### Start en ny monitor
 
-Gå til **Monitorer**, og klik på **Opret monitor**.
+Gå til **Monitorer**, og klik på **Opret monitor**. Eller søg i log-explorer efter de logs, du vil have besked om, og klik på **Create monitor** i dens værktøjslinje: den nye monitor holder fra starten øje med explorerens søgning, alvorligheder, tjenester og attributter.
 
 ### Vælg Logs
 
 Under **Monitortype** klikker du på **Flere monitortyper** og vælger **Protokoller** under **Telemetri**, eller du skriver `logs` i søgefeltet. Angiv et **Navn**, og klik derefter på **Næste**.
 
+### Vælg, hvad monitoren skal fortælle dig om
+
+Under **Hvad skal denne overvågning fortælle dig om?** vælger du **For mange fejl**, **En besked dukker op** eller **Logs udebliver**. Hvert valg udfylder de logs, der skal holdes øje med, og reglen, som du kan ændre længere nede. Vælg **Noget andet** for selv at sætte dem op.
+
 ### Vælg de logs, der skal tælles
 
-I **Log-monitor-konfiguration** angiver du **Overvågningslogfiler, der indeholder denne tekst**, **Overvågningslogfiler i (time)** og **Logalvorlighed**. Et filter, du lader stå tomt, matcher alle logs. **Forhåndsvisning af protokoller** under filtrene viser de logs, de matcher lige nu.
+I **Logs at holde øje med** angiver du **Logalvorlighed** og **Beskeden indeholder**. Et filter, du lader stå tomt, matcher alle logs. **Matchende logs** under filtrene viser de logs, de matcher lige nu.
 
 ### Indsnævr dem (valgfrit)
 
 Åbn **Flere felter** for at filtrere efter telemetritjeneste, infrastrukturentitet eller attribut. Vil du have én advarsel pr. tunnel, bruger eller interface i stedet for én for hele monitoren, så tilføj attributten under **Group by Attributes** (se [Advarsler pr. gruppe](#advarsler-pr-gruppe-group-by)).
 
-### Angiv kriterierne
+### Sig, hvornår der skal advares
 
-Kortet **Monitorkriterier** starter med to kriterier: offline, med en hændelse, når ingen logs matcher; online, når mindst én gør. Ret dem til det, du vil have advarsler om (se [Kriterier](#kriterier)).
+I **Hvornår der advares** vælger du en **Betingelse**, **Antal logs** og et **Tidsvindue**. Sætningen under dem gentager reglen med almindelige ord. Diagrammet under den tæller de matchende logs i hvert vindue over de seneste timer, tegner reglens tal som en linje og fortæller, hvor ofte reglen ville have advaret. Dens knap foreslår et tal, som reglen ikke ville have overskredet i den periode.
+
+### Vælg, hvad der sker
+
+I **Hvad der sker** vælger du **Opret en advarsel**, **Erklær en hændelse** eller **Begge**, og giver den en titel og en alvorlighed. Mens reglen matcher, viser monitoren statussen under **Flere felter**; når den holder op med at matche, går monitoren tilbage til sin standardstatus, og advarslen eller hændelsen løser sig selv.
 
 ### Opret monitoren
 
@@ -59,9 +67,9 @@ Klik på **Opret monitor**. Monitoren åbner på sin side **Oversigt**, og dens 
 
 | Felt | Hvad det matcher | Standard |
 | --- | --- | --- |
-| **Overvågningslogfiler, der indeholder denne tekst** | Logs, hvis brødtekst indeholder denne tekst, uden forskel på store og små bogstaver. | Tom: alle logs |
-| **Overvågningslogfiler i (time)** | Logs fra de seneste 5 sekunder op til de seneste 24 timer. | **Seneste 1 minut** |
 | **Logalvorlighed** | Logs med en af de valgte alvorligheder. | Tom: alle alvorligheder |
+| **Beskeden indeholder** | Logs, hvis brødtekst indeholder denne tekst, uden forskel på store og små bogstaver. | Tom: alle logs |
+| **Tidsvindue** (i **Hvornår der advares**) | Logs fra de seneste 5 sekunder op til de seneste 24 timer. | **Seneste 5 minutter** |
 | **Group by Attributes** | Intet filter: tæller hver kombination af disse attributters værdier for sig. | Tom: én optælling |
 | **Løst af attributter** | Intet filter: den log, der løser en gruppe. Vises, så snart **Group by Attributes** har en attribut; se [Løst af en log](#løst-af-en-log). | Tom: en gruppe løses, når dens logs stopper |
 | **Filtrér efter telemetritjeneste** (under **Flere felter**) | Logs fra en af de valgte tjenester. | Tom: alle tjenester |
@@ -87,8 +95,8 @@ Hver log gemmes med en af syv alvorligheder. For logs fra OpenTelemetry kommer d
 ## Sådan evalueres den
 
 - **Hvert minut.** En log-monitor tjekkes ikke af sonder, så den har intet interval at angive og ingen side **Sonder og interval**.
-- **Ét tal pr. evaluering.** Monitoren tæller de logs, der matcher alle filtre og er ankommet inden for **Overvågningslogfiler i (time)** før evalueringen. Med **Seneste 5 minutter** kigger hver evaluering fem minutter tilbage, så vinduerne for på hinanden følgende evalueringer overlapper.
-- **Ingen logs er et antal på 0.** En tjeneste, der holder op med at logge, giver 0, og det er det, standardkriteriet for offline leder efter.
+- **Ét tal pr. evaluering.** Monitoren tæller de logs, der matcher alle filtre og er ankommet inden for **Tidsvindue** før evalueringen. Med **Seneste 5 minutter** kigger hver evaluering fem minutter tilbage, så vinduerne for på hinanden følgende evalueringer overlapper.
+- **Ingen logs er et antal på 0.** En tjeneste, der holder op med at logge, giver 0, og det er det, **Logs udebliver** leder efter.
 - **OneUptimes egen nedetid er ikke stilhed.** Så længe tidsvinduet rummer tid, hvor OneUptime selv ikke modtog data (det genstartede, blev opgraderet eller indhentede et efterslæb), venter tjekket: statussen ændres ikke, og ingen hændelse eller advarsel åbnes eller løses. Se [Når OneUptime ikke modtager data](/docs/monitor/when-oneuptime-is-not-receiving).
 - **Kriterier fra top til bund.** Det første kriterium, der matcher, afgør det, så sæt det alvorligste øverst. En grupperet monitor fungerer anderledes: den tjekker alle kriterier for hver gruppe (se [Evalueringen af kriterier er anderledes](#evalueringen-af-kriterier-er-anderledes)).
 
@@ -96,7 +104,7 @@ Hver statusændring registreres med sin årsag på monitorens **Statustidslinje*
 
 ## Kriterier
 
-En log-monitors kriterier har én **Filtertype**: **Log Count**, antallet af logs, der matchede i vinduet. Vælg en **Filterbetingelse** og, for en tærskelbetingelse, en **Værdi**.
+En log-monitors kriterier har én **Filtertype**: **Log Count**, antallet af logs, der matchede i vinduet. **Hvornår der advares** opretter ét kriterium, hvis **Betingelse** er **Mere end**, **Mindst**, **Færre end**, **Højst**, **Præcis**, **Usædvanligt høj**, **Usædvanligt lav** eller **Usædvanligt høj eller lav**. For flere kriterier, eller ét med mere end ét filter, klikker du på **Rediger som egne kriterier** under **Flere felter** i **Hvad der sker**: hvert kriterium der har en **Filterbetingelse** og, for en tærskelbetingelse, en **Værdi**.
 
 | Filterbetingelse | Matcher, når antallet af logs er… |
 | --- | --- |
@@ -109,36 +117,41 @@ En log-monitors kriterier har én **Filtertype**: **Log Count**, antallet af log
 | **Anomalously Low** | under det interval |
 | **Anomalous** | uden for det interval, i begge retninger |
 
-Anomalibetingelserne har ingen **Værdi**. Vælg en **Følsomhed** (Low, Medium, som er standard, eller High) og et **Baseline-vindue** på 14 (standard), 28, 60 eller 90 dage. OneUptime omregner antallet til en rate pr. minut og sammenligner den med samme time på ugen over det vindue. Baselinen dækker kun monitorens tjenester og alvorligheder: dens tekst- og attributfiltre indgår ikke. Indtil den time på ugen har nok historik, er kriteriet stadig ved at lære og udløses ikke.
+Anomalibetingelserne har ingen **Værdi**. Vælg en **Følsomhed** (Lav, Middel, som er standard, eller Høj) og, i de egne kriterier, et **Baseline-vindue** på 14 (standard), 28, 60 eller 90 dage. OneUptime omregner antallet til en rate pr. minut og sammenligner den med samme time på ugen over det vindue. Baselinen dækker kun monitorens tjenester og alvorligheder: dens tekst- og attributfiltre indgår ikke. Indtil den time på ugen har nok historik, er kriteriet stadig ved at lære og udløses ikke.
 
-En ny log-monitor starter med disse kriterier:
+En log-monitor, der er oprettet i Opret monitor, starter med reglen for det, du valgte under **Hvad skal denne overvågning fortælle dig om?**:
+
+| Valg | Regel | Hvad der sker |
+| --- | --- | --- |
+| **For mange fejl** | **Logalvorlighed** **Fejl** og **Fatal**, **Mere end** `10` i **Seneste 5 minutter** | Opretter en advarsel, som løser sig selv |
+| **En besked dukker op** | **Mere end** `0` i **Seneste 5 minutter** | Opretter en advarsel, som løser sig selv |
+| **Logs udebliver** | **Præcis** `0` i **Seneste 10 minutter** | Erklærer en hændelse, som løser sig selv |
+
+En log-monitor, der er oprettet via API'et eller Terraform uden kriterier, starter med disse kriterier:
 
 | Kriterium | Filter | Effekt |
 | --- | --- | --- |
 | Check if … is offline | **Log Count** **Lig med** `0` | Sætter monitoren offline og erklærer en hændelse, der løses automatisk |
 | Check if … is online | **Log Count** **Større end** `0` | Sætter monitoren online |
 
-> [!TIP]
-> For at få advarsler om fejl i stedet for om stilhed sætter du **Logalvorlighed** til **Fejl** og ændrer offline-kriteriet til **Log Count** **Større end** det antal fejl, du kan acceptere i vinduet.
-
 ## Gennemgået eksempel: en stigning i fejl
 
 Du vil have en hændelse, når checkout-tjenesten logger mere end 50 fejl på fem minutter:
 
 - **Logalvorlighed**: **Fejl**
-- **Overvågningslogfiler i (time)**: **Seneste 5 minutter**
+- **Tidsvindue**: **Seneste 5 minutter**
 - **Filtrér efter telemetritjeneste**: `checkout`
-- Kriterium 1: **Log Count** **Større end** `50`: sæt monitoren offline, og erklær en hændelse
-- Kriterium 2: **Log Count** **Mindre end eller lig med** `50`: sæt monitoren online
+- **Hvornår der advares**: **Mere end** `50`
+- **Hvad der sker**: **Erklær en hændelse**
 
 Fire evalueringer i træk:
 
-| Tid | Fejllogs de seneste 5 minutter | Kriterium, der matcher | Hvad der sker |
+| Tid | Fejllogs de seneste 5 minutter | Matcher reglen? | Hvad der sker |
 | --- | --- | --- | --- |
-| 10:00 | 12 | 2 | Monitoren er online. |
-| 10:01 | 64 | 1 | Monitoren går offline, og der erklæres en hændelse. |
-| 10:02 | 81 | 1 | Forbliver offline. Hændelsen er allerede åben, så der erklæres ikke en til. |
-| 10:06 | 9 | 2 | Monitoren er online igen, og hændelsen løser sig selv, fordi **Løs hændelse automatisk** er slået til. |
+| 10:00 | 12 | Nej | Monitoren er online. |
+| 10:01 | 64 | Ja | Monitoren går offline, og der erklæres en hændelse. |
+| 10:02 | 81 | Ja | Forbliver offline. Hændelsen er allerede åben, så der erklæres ikke en til. |
+| 10:06 | 9 | Nej | Monitoren er online igen, og hændelsen løser sig selv, fordi **Løs hændelse automatisk** er slået til. |
 
 Fordi vinduerne overlapper, holder én byge af fejl antallet højt i op til fem minutter, efter at den er slut. Brug et kortere vindue til en monitor, der skal komme sig hurtigere.
 
@@ -197,11 +210,11 @@ log_component="IPSec" con_name="HQ-Branch1" status="Terminated" message="IPSec C
 ```
 
 :::steps
-1. Opret en monitor af typen **Protokoller**.
-2. Sæt **Overvågningslogfiler, der indeholder denne tekst** til `terminated` og **Overvågningslogfiler i (time)** til **Seneste 5 minutter**.
+1. Opret en monitor af typen **Protokoller**, og vælg **En besked dukker op**.
+2. Sæt **Beskeden indeholder** til `terminated` og **Tidsvindue** til **Seneste 5 minutter**.
 3. Under **Flere felter** tilføjer du attributfilteret `log_component` = `IPSec`.
 4. Under **Group by Attributes** tilføjer du `con_name`.
-5. Tilføj et kriterium med filteret **Log Count** **Større end** `0`, der opretter en advarsel eller en hændelse med titlen `IPsec tunnel {{con_name}} terminated`.
+5. Behold reglen på **Mere end** `0`, og giv advarslen eller hændelsen titlen `IPsec tunnel {{con_name}} terminated`.
 :::
 
 Hver tunnel, der logger en afslutning, får nu sin egen advarsel (`IPsec tunnel HQ-Branch1 terminated`, `IPsec tunnel Branch2 terminated`), og hver af dem løses for sig.
@@ -227,7 +240,7 @@ Værdien af hver Group By-attribut er en [skabelonvariabel](/docs/monitor/incide
 ## Fejlfinding
 
 :::details Monitoren er offline, men min tjeneste logger
-Antallet var 0, så filtrene matcher ingen af de logs, tjenesten sender. Åbn monitorens side **Kriterier** (under **Konfiguration**), og klik på **Edit Monitoring Criteria**: **Forhåndsvisning af protokoller** viser, hvad filtrene udvælger lige nu. De almindeligste årsager er en alvorlighed valgt efter den tekst, loggeren skriver, i stedet for dens alvorlighedsnummer (se [Logalvorlighed](#logalvorlighed)), et tjeneste- eller attributfilter, der ikke matcher, og et tidsvindue, der er kortere end intervallet mellem tjenestens logs.
+Antallet var 0, så filtrene matcher ingen af de logs, tjenesten sender. Åbn monitorens side **Kriterier** (under **Konfiguration**), og klik på **Edit Monitoring Criteria**: **Matchende logs** viser, hvad filtrene udvælger lige nu, og diagrammet i **Hvornår der advares** tæller dem i hvert vindue. De almindeligste årsager er en alvorlighed valgt efter den tekst, loggeren skriver, i stedet for dens alvorlighedsnummer (se [Logalvorlighed](#logalvorlighed)), et tjeneste- eller attributfilter, der ikke matcher, og et tidsvindue, der er kortere end pausen mellem tjenestens logs.
 :::
 
 :::details Der var en stigning, men ingen advarsel

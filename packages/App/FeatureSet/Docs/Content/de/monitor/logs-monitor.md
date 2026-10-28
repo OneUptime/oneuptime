@@ -32,23 +32,31 @@ Jede Minute zählt OneUptime die Logs, die zu den Filtern des Monitors passen un
 :::steps
 ### Einen neuen Monitor beginnen
 
-Gehen Sie zu **Monitore** und klicken Sie auf **Monitor erstellen**.
+Gehen Sie zu **Monitore** und klicken Sie auf **Monitor erstellen**. Oder suchen Sie im Log-Explorer nach den Logs, über die Sie informiert werden wollen, und klicken Sie in seiner Werkzeugleiste auf **Monitor erstellen**: Der neue Monitor überwacht von Anfang an die Suche, die Schweregrade, die Dienste und die Attribute des Explorers.
 
 ### Logs wählen
 
 Klicken Sie unter **Monitortyp** auf **Weitere Monitortypen** und wählen Sie **Protokolle** unter **Telemetrie**, oder tippen Sie `logs` in das Suchfeld. Geben Sie einen **Name** ein und klicken Sie dann auf **Weiter**.
 
+### Wählen, worüber der Monitor informiert
+
+Wählen Sie unter **Worüber soll dieser Monitor Sie informieren?** **Zu viele Fehler**, **Eine Meldung erscheint** oder **Logs bleiben aus**. Jede Wahl füllt die zu überwachenden Logs und die Regel aus, die Sie darunter ändern können. Wählen Sie **Etwas anderes**, um beides selbst einzurichten.
+
 ### Die zu zählenden Logs wählen
 
-Legen Sie in **Log-Monitor-Konfiguration** die Felder **Überwachungsprotokolle, die diesen Text enthalten**, **Überwachungsprotokolle für (time)** und **Protokollschweregrad** fest. Ein leer gelassener Filter passt auf jedes Log. **Protokollvorschau** unter den Filtern zeigt die Logs, auf die sie gerade passen.
+Legen Sie in **Zu überwachende Logs** die Felder **Protokollschweregrad** und **Meldung enthält** fest. Ein leer gelassener Filter passt auf jedes Log. **Passende Logs** unter den Filtern zeigt die Logs, auf die sie gerade passen.
 
 ### Weiter eingrenzen (optional)
 
 Öffnen Sie **Weitere Felder**, um nach Telemetrie-Dienst, Infrastruktur-Entität oder Attribut zu filtern. Für eine Warnung pro Tunnel, Benutzer oder Schnittstelle statt einer für den ganzen Monitor fügen Sie das Attribut unter **Group by Attributes** hinzu – siehe [Warnungen pro Gruppe](#warnungen-pro-gruppe-group-by).
 
-### Die Kriterien festlegen
+### Festlegen, wann alarmiert wird
 
-Die Karte **Monitor-Kriterien** beginnt mit zwei Kriterien: offline, mit einem Vorfall, wenn kein Log passt; online, sobald mindestens eines passt. Ändern Sie sie so, dass sie das melden, was Sie wollen – siehe [Kriterien](#kriterien).
+Wählen Sie in **Wann alarmieren** eine **Bedingung**, die **Anzahl der Logs** und ein **Zeitfenster**. Der Satz darunter gibt die Regel in einfachen Worten wieder. Das Diagramm darunter zählt die passenden Logs in jedem Fenster der letzten Stunden, zeichnet die Zahl der Regel als Linie ein und sagt, wie oft die Regel alarmiert hätte. Seine Schaltfläche schlägt eine Zahl vor, die die Regel in dieser Zeit nicht überschritten hätte.
+
+### Wählen, was passiert
+
+Wählen Sie in **Was passiert** **Warnung erstellen**, **Vorfall melden** oder **Beide**, und geben Sie ihr einen Titel und einen Schweregrad. Solange die Regel zutrifft, zeigt der Monitor den Status unter **Weitere Felder**; trifft sie nicht mehr zu, kehrt der Monitor zu seinem Standardstatus zurück, und die Warnung oder der Vorfall behebt sich selbst.
 
 ### Den Monitor erstellen
 
@@ -59,9 +67,9 @@ Klicken Sie auf **Monitor erstellen**. Der Monitor öffnet sich auf seiner Seite
 
 | Feld | Worauf es passt | Standard |
 | --- | --- | --- |
-| **Überwachungsprotokolle, die diesen Text enthalten** | Logs, deren Text diesen Text enthält, ohne Beachtung der Groß-/Kleinschreibung. | Leer: jedes Log |
-| **Überwachungsprotokolle für (time)** | Logs der letzten 5 Sekunden bis zu den letzten 24 Stunden. | **Letzte 1 Minute** |
 | **Protokollschweregrad** | Logs mit einem der gewählten Schweregrade. | Leer: jeder Schweregrad |
+| **Meldung enthält** | Logs, deren Text diesen Text enthält, ohne Beachtung der Groß-/Kleinschreibung. | Leer: jedes Log |
+| **Zeitfenster** (in **Wann alarmieren**) | Logs der letzten 5 Sekunden bis zu den letzten 24 Stunden. | **Letzte 5 Minuten** |
 | **Group by Attributes** | Kein Filter: zählt jede Kombination der Werte dieser Attribute getrennt. | Leer: eine Anzahl |
 | **Behoben durch Attribute** | Kein Filter: das Log, das eine Gruppe behebt. Erscheint, sobald **Group by Attributes** ein Attribut hat; siehe [Durch ein Log behoben](#durch-ein-log-behoben). | Leer: eine Gruppe wird behoben, wenn ihre Logs aufhören |
 | **Nach Telemetrie-Dienst filtern** (unter **Weitere Felder**) | Logs von einem der gewählten Dienste. | Leer: jeder Dienst |
@@ -87,8 +95,8 @@ Jedes Log wird mit einem von sieben Schweregraden gespeichert. Bei OpenTelemetry
 ## Wie er ausgewertet wird
 
 - **Jede Minute.** Ein Logs-Monitor wird nicht von Sonden geprüft, deshalb hat er kein Intervall zum Einstellen und keine Seite **Sonden & Intervall**.
-- **Eine Zahl pro Auswertung.** Der Monitor zählt die Logs, die zu jedem Filter passen und innerhalb von **Überwachungsprotokolle für (time)** vor der Auswertung eingetroffen sind. Mit **Letzte 5 Minuten** blickt jede Auswertung fünf Minuten zurück, sodass sich die Fenster aufeinanderfolgender Auswertungen überlappen.
-- **Keine Logs ergeben die Anzahl 0.** Ein Dienst, der keine Logs mehr schreibt, liefert 0 – genau darauf achtet das Standardkriterium für offline.
+- **Eine Zahl pro Auswertung.** Der Monitor zählt die Logs, die zu jedem Filter passen und innerhalb des **Zeitfenster** vor der Auswertung eingetroffen sind. Mit **Letzte 5 Minuten** blickt jede Auswertung fünf Minuten zurück, sodass sich die Fenster aufeinanderfolgender Auswertungen überlappen.
+- **Keine Logs ergeben die Anzahl 0.** Ein Dienst, der keine Logs mehr schreibt, liefert 0 – genau darauf achtet **Logs bleiben aus**.
 - **Die eigene Ausfallzeit von OneUptime ist keine Stille.** Solange das Zeitfenster Zeit enthält, in der OneUptime selbst keine Daten empfangen hat – weil es neu startete, aktualisiert wurde oder einen Rückstand aufholte –, wartet die Prüfung: Der Status ändert sich nicht, und kein Vorfall und keine Warnung wird eröffnet oder behoben. Siehe [Wenn OneUptime keine Daten empfängt](/docs/monitor/when-oneuptime-is-not-receiving).
 - **Kriterien von oben nach unten.** Das erste passende Kriterium entscheidet; stellen Sie also das schwerwiegendste nach oben. Ein gruppierter Monitor arbeitet anders: Er prüft jedes Kriterium für jede Gruppe – siehe [Die Auswertung der Kriterien unterscheidet sich](#die-auswertung-der-kriterien-unterscheidet-sich).
 
@@ -96,7 +104,7 @@ Jede Statusänderung wird mit ihrem Grund in der **Status-Zeitachse** des Monito
 
 ## Kriterien
 
-Die Kriterien eines Logs-Monitors haben einen **Filtertyp**: **Log Count**, die Anzahl der Logs, die im Fenster gepasst haben. Wählen Sie eine **Filterbedingung** und, bei einer Schwellenwertbedingung, einen **Wert**.
+Die Kriterien eines Logs-Monitors haben einen **Filtertyp**: **Log Count**, die Anzahl der Logs, die im Fenster gepasst haben. **Wann alarmieren** richtet ein Kriterium ein, dessen **Bedingung** **Mehr als**, **Mindestens**, **Weniger als**, **Höchstens**, **Genau**, **Ungewöhnlich hoch**, **Ungewöhnlich niedrig** oder **Ungewöhnlich hoch oder niedrig** lautet. Für mehrere Kriterien oder eines mit mehr als einem Filter klicken Sie in **Was passiert** unter **Weitere Felder** auf **Als eigene Kriterien bearbeiten**: Jedes Kriterium dort hat eine **Filterbedingung** und, bei einer Schwellenwertbedingung, einen **Wert**.
 
 | Filterbedingung | Passt, wenn die Anzahl der Logs … |
 | --- | --- |
@@ -109,36 +117,41 @@ Die Kriterien eines Logs-Monitors haben einen **Filtertyp**: **Log Count**, die 
 | **Anomalously Low** | unter diesem Bereich liegt |
 | **Anomalous** | außerhalb dieses Bereichs liegt, in die eine oder andere Richtung |
 
-Die Anomaliebedingungen haben keinen **Wert**. Wählen Sie eine **Empfindlichkeit** – Low, Medium (der Standard) oder High – und ein **Baseline-Fenster** von 14 (der Standard), 28, 60 oder 90 Tagen. OneUptime rechnet die Anzahl in eine Rate pro Minute um und vergleicht sie mit derselben Stunde der Woche über dieses Fenster. Die Baseline umfasst nur die Dienste und Schweregrade des Monitors: Seine Text- und Attributfilter gehören nicht dazu. Solange diese Stunde der Woche nicht genug Verlauf hat, lernt das Kriterium noch und löst nicht aus.
+Die Anomaliebedingungen haben keinen **Wert**. Wählen Sie eine **Empfindlichkeit** – Niedrig, Mittel (der Standard) oder Hoch – und, in den eigenen Kriterien, ein **Baseline-Fenster** von 14 (der Standard), 28, 60 oder 90 Tagen. OneUptime rechnet die Anzahl in eine Rate pro Minute um und vergleicht sie mit derselben Stunde der Woche über dieses Fenster. Die Baseline umfasst nur die Dienste und Schweregrade des Monitors: Seine Text- und Attributfilter gehören nicht dazu. Solange diese Stunde der Woche nicht genug Verlauf hat, lernt das Kriterium noch und löst nicht aus.
 
-Ein neuer Logs-Monitor beginnt mit diesen Kriterien:
+Ein in „Monitor erstellen“ angelegter Logs-Monitor beginnt mit der Regel dessen, was Sie unter **Worüber soll dieser Monitor Sie informieren?** gewählt haben:
+
+| Auswahl | Regel | Was passiert |
+| --- | --- | --- |
+| **Zu viele Fehler** | **Protokollschweregrad** **Fehler** und **Fatal**, **Mehr als** `10` in **Letzte 5 Minuten** | Erstellt eine Warnung, die sich selbst behebt |
+| **Eine Meldung erscheint** | **Mehr als** `0` in **Letzte 5 Minuten** | Erstellt eine Warnung, die sich selbst behebt |
+| **Logs bleiben aus** | **Genau** `0` in **Letzte 10 Minuten** | Meldet einen Vorfall, der sich selbst behebt |
+
+Ein über die API oder Terraform ohne Kriterien angelegter Logs-Monitor beginnt mit diesen Kriterien:
 
 | Kriterium | Filter | Wirkung |
 | --- | --- | --- |
 | Check if … is offline | **Log Count** **Gleich** `0` | Setzt den Monitor auf offline und eröffnet einen Vorfall, der automatisch behoben wird |
 | Check if … is online | **Log Count** **Größer als** `0` | Setzt den Monitor auf online |
 
-> [!TIP]
-> Um bei Fehlern statt bei Stille zu warnen, setzen Sie **Protokollschweregrad** auf **Fehler** und ändern das Offline-Kriterium auf **Log Count** **Größer als** die Zahl der Fehler, die Sie im Fenster tolerieren.
-
 ## Ein Beispiel: eine Fehlerspitze
 
 Sie wollen einen Vorfall, wenn der Checkout-Dienst in fünf Minuten mehr als 50 Fehler protokolliert:
 
 - **Protokollschweregrad**: **Fehler**
-- **Überwachungsprotokolle für (time)**: **Letzte 5 Minuten**
+- **Zeitfenster**: **Letzte 5 Minuten**
 - **Nach Telemetrie-Dienst filtern**: `checkout`
-- Kriterium 1: **Log Count** **Größer als** `50` – den Monitor auf offline setzen und einen Vorfall eröffnen
-- Kriterium 2: **Log Count** **Kleiner als oder gleich** `50` – den Monitor auf online setzen
+- **Wann alarmieren**: **Mehr als** `50`
+- **Was passiert**: **Vorfall melden**
 
 Vier aufeinanderfolgende Auswertungen:
 
-| Zeit | Fehler-Logs der letzten 5 Minuten | Passendes Kriterium | Was geschieht |
+| Zeit | Fehler-Logs der letzten 5 Minuten | Regel trifft zu? | Was geschieht |
 | --- | --- | --- | --- |
-| 10:00 | 12 | 2 | Der Monitor ist online. |
-| 10:01 | 64 | 1 | Der Monitor geht offline, und ein Vorfall wird eröffnet. |
-| 10:02 | 81 | 1 | Weiterhin offline. Der Vorfall ist schon offen, also wird kein zweiter eröffnet. |
-| 10:06 | 9 | 2 | Der Monitor ist wieder online, und der Vorfall behebt sich selbst, weil **Vorfall automatisch beheben** eingeschaltet ist. |
+| 10:00 | 12 | Nein | Der Monitor ist online. |
+| 10:01 | 64 | Ja | Der Monitor geht offline, und ein Vorfall wird eröffnet. |
+| 10:02 | 81 | Ja | Weiterhin offline. Der Vorfall ist schon offen, also wird kein zweiter eröffnet. |
+| 10:06 | 9 | Nein | Der Monitor ist wieder online, und der Vorfall behebt sich selbst, weil **Vorfall automatisch beheben** eingeschaltet ist. |
 
 Weil sich die Fenster überlappen, hält ein einzelner Fehlerschub die Anzahl bis zu fünf Minuten nach seinem Ende hoch. Verwenden Sie ein kürzeres Fenster für einen Monitor, der sich schneller erholen soll.
 
@@ -197,11 +210,11 @@ log_component="IPSec" con_name="HQ-Branch1" status="Terminated" message="IPSec C
 ```
 
 :::steps
-1. Erstellen Sie einen **Protokolle**-Monitor.
-2. Setzen Sie **Überwachungsprotokolle, die diesen Text enthalten** auf `terminated` und **Überwachungsprotokolle für (time)** auf **Letzte 5 Minuten**.
+1. Erstellen Sie einen **Protokolle**-Monitor und wählen Sie **Eine Meldung erscheint**.
+2. Setzen Sie **Meldung enthält** auf `terminated` und das **Zeitfenster** auf **Letzte 5 Minuten**.
 3. Fügen Sie unter **Weitere Felder** den Attributfilter `log_component` = `IPSec` hinzu.
 4. Fügen Sie unter **Group by Attributes** das Attribut `con_name` hinzu.
-5. Fügen Sie ein Kriterium mit dem Filter **Log Count** **Größer als** `0` hinzu, das eine Warnung oder einen Vorfall mit dem Titel `IPsec tunnel {{con_name}} terminated` erstellt.
+5. Belassen Sie die Regel bei **Mehr als** `0`, und geben Sie der Warnung oder dem Vorfall den Titel `IPsec tunnel {{con_name}} terminated`.
 :::
 
 Jeder Tunnel, der eine Beendigung protokolliert, erhält nun seine eigene Warnung – `IPsec tunnel HQ-Branch1 terminated`, `IPsec tunnel Branch2 terminated` –, und jede wird für sich behoben.
@@ -227,7 +240,7 @@ Der Wert jedes Group-By-Attributs ist eine [Vorlagenvariable](/docs/monitor/inci
 ## Fehlerbehebung
 
 :::details Der Monitor ist offline, aber mein Dienst schreibt Logs
-Die Anzahl war 0, die Filter passen also auf keines der Logs, die der Dienst sendet. Öffnen Sie die Seite **Kriterien** des Monitors (unter **Konfiguration**) und klicken Sie auf **Überwachungskriterien bearbeiten**: **Protokollvorschau** zeigt, worauf die Filter gerade passen. Die üblichen Ursachen sind ein Schweregrad, der nach dem vom Logger ausgegebenen Text statt nach seiner Schweregradnummer gewählt wurde (siehe [Log-Schweregrad](#log-schweregrad)), ein Dienst- oder Attributfilter, der nicht passt, und ein Zeitfenster, das kürzer ist als die Pause zwischen den Logs des Dienstes.
+Die Anzahl war 0, die Filter passen also auf keines der Logs, die der Dienst sendet. Öffnen Sie die Seite **Kriterien** des Monitors (unter **Konfiguration**) und klicken Sie auf **Überwachungskriterien bearbeiten**: **Passende Logs** zeigt, worauf die Filter gerade passen, und das Diagramm in **Wann alarmieren** zählt sie in jedem Fenster. Die üblichen Ursachen sind ein Schweregrad, der nach dem vom Logger ausgegebenen Text statt nach seiner Schweregradnummer gewählt wurde (siehe [Log-Schweregrad](#log-schweregrad)), ein Dienst- oder Attributfilter, der nicht passt, und ein Zeitfenster, das kürzer ist als die Pause zwischen den Logs des Dienstes.
 :::
 
 :::details Es gab eine Spitze, aber nichts hat gewarnt

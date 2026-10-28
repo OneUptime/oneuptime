@@ -32,23 +32,31 @@ Cada minuto, OneUptime cuenta los registros que coinciden con los filtros del mo
 :::steps
 ### Empezar un monitor nuevo
 
-Ve a **Monitores** y haz clic en **Crear monitor**.
+Ve a **Monitores** y haz clic en **Crear monitor**. O, en el explorador de registros, busca los registros de los que quieres enterarte y haz clic en **Crear monitor** en su barra de herramientas: el nuevo monitor empieza vigilando la búsqueda, las gravedades, los servicios y los atributos del explorador.
 
 ### Elegir Logs
 
 En **Tipo de monitor**, haz clic en **Más tipos de monitor** y elige **Registros** en **Telemetría**, o escribe `logs` en el cuadro de búsqueda. Escribe un **Nombre** y haz clic en **Siguiente**.
 
+### Elegir de qué te avisa el monitor
+
+En **¿Sobre qué debe avisarte este monitor?**, elige **Demasiados errores**, **Aparece un mensaje** o **Los registros dejan de llegar**. Cada opción rellena los registros que vigilar y la regla, que puedes cambiar más abajo. Elige **Otra cosa** para configurarlos tú.
+
 ### Elegir los registros que se cuentan
 
-En **Configuración del monitor de registros**, rellena **Registros del monitor que incluyen este texto**, **Registros del monitor durante (tiempo)** y **Gravedad del registro**. Un filtro que dejas vacío coincide con todos los registros. **Vista previa de registros**, bajo los filtros, muestra los registros con los que coinciden ahora mismo.
+En **Registros que vigilar**, rellena **Gravedad del registro** y **El mensaje contiene**. Un filtro que dejas vacío coincide con todos los registros. **Registros coincidentes**, bajo los filtros, muestra los registros con los que coinciden ahora mismo.
 
 ### Acotarlos (opcional)
 
 Abre **Más campos** para filtrar por servicio de telemetría, entidad de infraestructura o atributo. Para recibir una alerta por túnel, usuario o interfaz en lugar de una para todo el monitor, añade el atributo en **Group by Attributes**; consulta [Alertas por grupo](#alertas-por-grupo-group-by).
 
-### Definir los criterios
+### Decir cuándo alertar
 
-La tarjeta **Criterios del monitor** empieza con dos criterios: fuera de línea, con un incidente, cuando no coincide ningún registro; en línea cuando coincide al menos uno. Cámbialos según lo que quieras alertar; consulta [Criterios](#criterios).
+En **Cuándo alertar**, elige una **Condición**, el **Número de registros** y una **Ventana de tiempo**. La frase de debajo repite la regla con palabras sencillas. El gráfico que hay debajo cuenta los registros coincidentes en cada ventana de las últimas horas, dibuja el número de la regla como una línea e indica cuántas veces habría alertado la regla. Su botón propone un número que la regla no habría superado en ese tiempo.
+
+### Elegir qué pasa
+
+En **Qué pasa**, elige **Crear una alerta**, **Declarar un incidente** o **Ambos**, y dale un título y una gravedad. Mientras la regla coincide, el monitor muestra el estado indicado en **Más campos**; cuando deja de coincidir, el monitor vuelve a su estado predeterminado y la alerta o el incidente se resuelve solo.
 
 ### Crear el monitor
 
@@ -59,9 +67,9 @@ Haz clic en **Crear monitor**. El monitor se abre en su página **Vista general*
 
 | Campo | Con qué coincide | Predeterminado |
 | --- | --- | --- |
-| **Registros del monitor que incluyen este texto** | Registros cuyo cuerpo contiene este texto, sin distinguir mayúsculas y minúsculas. | Vacío: todos los registros |
-| **Registros del monitor durante (tiempo)** | Registros de los últimos 5 segundos hasta las últimas 24 horas. | **Último minuto** |
 | **Gravedad del registro** | Registros con cualquiera de las gravedades elegidas. | Vacío: todas las gravedades |
+| **El mensaje contiene** | Registros cuyo cuerpo contiene este texto, sin distinguir mayúsculas y minúsculas. | Vacío: todos los registros |
+| **Ventana de tiempo** (en **Cuándo alertar**) | Registros de los últimos 5 segundos hasta las últimas 24 horas. | **Últimos 5 minutos** |
 | **Group by Attributes** | No es un filtro: cuenta por separado cada combinación de valores de estos atributos. | Vacío: un solo recuento |
 | **Resuelto por atributos** | No es un filtro: el registro que resuelve un grupo. Aparece en cuanto **Group by Attributes** tiene un atributo; consulta [Resuelto por un registro](#resuelto-por-un-registro). | Vacío: un grupo se resuelve cuando sus registros cesan |
 | **Filtrar por servicio de telemetría** (en **Más campos**) | Registros de cualquiera de los servicios elegidos. | Vacío: todos los servicios |
@@ -87,8 +95,8 @@ Cada registro se guarda con una de siete gravedades. En los registros de OpenTel
 ## Cómo se evalúa
 
 - **Cada minuto.** Un monitor de registros no lo comprueban sondas, así que no tiene intervalo que configurar ni página **Sondas e intervalo**.
-- **Un número por evaluación.** El monitor cuenta los registros que coinciden con todos los filtros y llegaron dentro de **Registros del monitor durante (tiempo)** antes de la evaluación. Con **Últimos 5 minutos**, cada evaluación mira cinco minutos atrás, así que las ventanas de evaluaciones consecutivas se solapan.
-- **Sin registros, el recuento es 0.** Un servicio que deja de escribir registros produce 0, que es lo que busca el criterio de fuera de línea predeterminado.
+- **Un número por evaluación.** El monitor cuenta los registros que coinciden con todos los filtros y llegaron dentro de la **Ventana de tiempo** antes de la evaluación. Con **Últimos 5 minutos**, cada evaluación mira cinco minutos atrás, así que las ventanas de evaluaciones consecutivas se solapan.
+- **Sin registros, el recuento es 0.** Un servicio que deja de escribir registros produce 0, que es lo que busca **Los registros dejan de llegar**.
 - **La caída del propio OneUptime no es silencio.** Mientras la ventana de tiempo contenga un periodo en el que OneUptime no recibía datos (se estaba reiniciando, actualizando o poniéndose al día), la comprobación espera: el estado no cambia y no se abre ni se resuelve ningún incidente ni alerta. Consulta [Cuando OneUptime no recibe datos](/docs/monitor/when-oneuptime-is-not-receiving).
 - **Criterios de arriba abajo.** Decide el primer criterio que coincide, así que pon primero el más grave. Un monitor agrupado funciona de otra forma: comprueba todos los criterios para cada grupo; consulta [La evaluación de los criterios es distinta](#la-evaluación-de-los-criterios-es-distinta).
 
@@ -96,7 +104,7 @@ Cada cambio de estado, con su motivo, queda registrado en la **Cronología de es
 
 ## Criterios
 
-Los criterios de un monitor de registros tienen un único **Tipo de filtro**: **Log Count**, el número de registros que coincidieron en la ventana. Elige una **Condición de filtro** y, para una condición de umbral, un **Valor**.
+Los criterios de un monitor de registros tienen un único **Tipo de filtro**: **Log Count**, el número de registros que coincidieron en la ventana. **Cuándo alertar** configura un criterio, cuya **Condición** es **Más de**, **Al menos**, **Menos de**, **Como mucho**, **Exactamente**, **Inusualmente alto**, **Inusualmente bajo** o **Inusualmente alto o bajo**. Para varios criterios, o uno con más de un filtro, haz clic en **Editar como criterios propios** en **Más campos** de **Qué pasa**: cada criterio tiene allí una **Condición de filtro** y, para una condición de umbral, un **Valor**.
 
 | Condición de filtro | Coincide cuando el recuento de registros está… |
 | --- | --- |
@@ -109,36 +117,41 @@ Los criterios de un monitor de registros tienen un único **Tipo de filtro**: **
 | **Anomalously Low** | por debajo de ese rango |
 | **Anomalous** | fuera de ese rango, en cualquier sentido |
 
-Las condiciones de anomalía no llevan **Valor**. Elige una **Sensibilidad** (Low, Medium, la predeterminada, o High) y una **Ventana de referencia** de 14 (la predeterminada), 28, 60 o 90 días. OneUptime convierte el recuento en una tasa por minuto y la compara con la misma hora de la semana a lo largo de esa ventana. La referencia solo abarca los servicios y las gravedades del monitor: sus filtros de texto y de atributos no forman parte de ella. Hasta que esa hora de la semana tenga suficiente historial, el criterio sigue aprendiendo y no se dispara.
+Las condiciones de anomalía no llevan **Valor**. Elige una **Sensibilidad** (Baja, Media, la predeterminada, o Alta) y, en los criterios propios, una **Ventana de referencia** de 14 (la predeterminada), 28, 60 o 90 días. OneUptime convierte el recuento en una tasa por minuto y la compara con la misma hora de la semana a lo largo de esa ventana. La referencia solo abarca los servicios y las gravedades del monitor: sus filtros de texto y de atributos no forman parte de ella. Hasta que esa hora de la semana tenga suficiente historial, el criterio sigue aprendiendo y no se dispara.
 
-Un monitor de registros nuevo empieza con estos criterios:
+Un monitor de registros creado en Crear monitor empieza con la regla de lo que elegiste en **¿Sobre qué debe avisarte este monitor?**:
+
+| Opción | Regla | Qué pasa |
+| --- | --- | --- |
+| **Demasiados errores** | **Gravedad del registro** **Error** y **Fatal**, **Más de** `10` en **Últimos 5 minutos** | Crea una alerta, que se resuelve sola |
+| **Aparece un mensaje** | **Más de** `0` en **Últimos 5 minutos** | Crea una alerta, que se resuelve sola |
+| **Los registros dejan de llegar** | **Exactamente** `0` en **Últimos 10 minutos** | Declara un incidente, que se resuelve solo |
+
+Un monitor de registros creado mediante la API o Terraform sin criterios empieza con estos criterios:
 
 | Criterio | Filtro | Efecto |
 | --- | --- | --- |
 | Check if … is offline | **Log Count** **Igual a** `0` | Pone el monitor fuera de línea y declara un incidente que se resuelve solo |
 | Check if … is online | **Log Count** **Mayor que** `0` | Pone el monitor en línea |
 
-> [!TIP]
-> Para alertar sobre errores en lugar de sobre el silencio, pon **Gravedad del registro** en **Error** y cambia el criterio de fuera de línea a **Log Count** **Mayor que** el número de errores que toleras en la ventana.
-
 ## Ejemplo práctico: un pico de errores
 
 Quieres un incidente cuando el servicio de checkout registra más de 50 errores en cinco minutos:
 
 - **Gravedad del registro**: **Error**
-- **Registros del monitor durante (tiempo)**: **Últimos 5 minutos**
+- **Ventana de tiempo**: **Últimos 5 minutos**
 - **Filtrar por servicio de telemetría**: `checkout`
-- Criterio 1: **Log Count** **Mayor que** `50`: poner el monitor fuera de línea y declarar un incidente
-- Criterio 2: **Log Count** **Menor o igual que** `50`: poner el monitor en línea
+- **Cuándo alertar**: **Más de** `50`
+- **Qué pasa**: **Declarar un incidente**
 
 Cuatro evaluaciones consecutivas:
 
-| Hora | Registros de error de los últimos 5 minutos | Criterio que coincide | Qué pasa |
+| Hora | Registros de error de los últimos 5 minutos | ¿Coincide la regla? | Qué pasa |
 | --- | --- | --- | --- |
-| 10:00 | 12 | 2 | El monitor está en línea. |
-| 10:01 | 64 | 1 | El monitor pasa a fuera de línea y se declara un incidente. |
-| 10:02 | 81 | 1 | Sigue fuera de línea. El incidente ya está abierto, así que no se declara un segundo. |
-| 10:06 | 9 | 2 | El monitor vuelve a estar en línea, y el incidente se resuelve solo porque **Resolver incidente automáticamente** está activado. |
+| 10:00 | 12 | No | El monitor está en línea. |
+| 10:01 | 64 | Sí | El monitor pasa a fuera de línea y se declara un incidente. |
+| 10:02 | 81 | Sí | Sigue fuera de línea. El incidente ya está abierto, así que no se declara un segundo. |
+| 10:06 | 9 | No | El monitor vuelve a estar en línea, y el incidente se resuelve solo porque **Resolver incidente automáticamente** está activado. |
 
 Como las ventanas se solapan, una sola ráfaga de errores mantiene alto el recuento hasta cinco minutos después de que termine. Usa una ventana más corta para un monitor que deba recuperarse antes.
 
@@ -197,11 +210,11 @@ log_component="IPSec" con_name="HQ-Branch1" status="Terminated" message="IPSec C
 ```
 
 :::steps
-1. Crea un monitor de **Registros**.
-2. Pon **Registros del monitor que incluyen este texto** en `terminated` y **Registros del monitor durante (tiempo)** en **Últimos 5 minutos**.
+1. Crea un monitor de **Registros** y elige **Aparece un mensaje**.
+2. Pon **El mensaje contiene** en `terminated` y la **Ventana de tiempo** en **Últimos 5 minutos**.
 3. En **Más campos**, añade el filtro de atributo `log_component` = `IPSec`.
 4. En **Group by Attributes**, añade `con_name`.
-5. Añade un criterio con el filtro **Log Count** **Mayor que** `0` que cree una alerta o un incidente con el título `IPsec tunnel {{con_name}} terminated`.
+5. Deja la regla en **Más de** `0`, y pon a la alerta o al incidente el título `IPsec tunnel {{con_name}} terminated`.
 :::
 
 Cada túnel que registra una terminación recibe ahora su propia alerta (`IPsec tunnel HQ-Branch1 terminated`, `IPsec tunnel Branch2 terminated`), y cada una se resuelve por su cuenta.
@@ -227,7 +240,7 @@ El valor de cada atributo de Group By es una [variable de plantilla](/docs/monit
 ## Solución de problemas
 
 :::details El monitor está fuera de línea, pero mi servicio escribe registros
-El recuento fue 0, así que los filtros no coinciden con ninguno de los registros que envía el servicio. Abre la página **Criterios** del monitor (en **Configuración**) y haz clic en **Editar criterios de monitoreo**: **Vista previa de registros** muestra con qué coinciden los filtros ahora mismo. Las causas habituales son una gravedad elegida por el texto que imprime el logger en lugar de por su número de gravedad (consulta [Gravedad de los registros](#gravedad-de-los-registros)), un filtro de servicio o de atributo que no coincide, y una ventana de tiempo más corta que el intervalo entre los registros del servicio.
+El recuento fue 0, así que los filtros no coinciden con ninguno de los registros que envía el servicio. Abre la página **Criterios** del monitor (en **Configuración**) y haz clic en **Editar criterios de monitoreo**: **Registros coincidentes** muestra con qué coinciden los filtros ahora mismo, y el gráfico de **Cuándo alertar** los cuenta en cada ventana. Las causas habituales son una gravedad elegida por el texto que imprime el logger en lugar de por su número de gravedad (consulta [Gravedad de los registros](#gravedad-de-los-registros)), un filtro de servicio o de atributo que no coincide, y una ventana de tiempo más corta que el intervalo entre los registros del servicio.
 :::
 
 :::details Hubo un pico, pero nada alertó

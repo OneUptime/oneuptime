@@ -32,23 +32,31 @@ Chaque minute, OneUptime compte les spans qui correspondent aux filtres du monit
 :::steps
 ### Commencer un nouveau moniteur
 
-Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**.
+Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Ou bien, dans l'explorateur de traces, filtrez les spans dont vous voulez être informé et cliquez sur **Créer un moniteur** dans sa barre d'outils : le nouveau moniteur surveille d'emblée les services, les statuts, le nom de span et les attributs de l'explorateur.
 
 ### Choisir Traces
 
 Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisissez **Traces** sous **Télémétrie**, ou tapez `traces` dans le champ de recherche. Saisissez un **Nom**, puis cliquez sur **Suivant**.
 
+### Choisir ce dont le moniteur vous informe
+
+Sous **De quoi ce moniteur doit-il vous informer ?**, choisissez **Trop de requêtes en échec** ou **Les requêtes s'arrêtent**. Chaque choix remplit les spans à surveiller et la règle, que vous pouvez modifier plus bas. Choisissez **Autre chose** pour les configurer vous-même.
+
 ### Choisir les spans à compter
 
-Dans **Configuration du moniteur de traces**, renseignez **Nom du span**, **Surveiller les traces pendant (durée)** et **Filtrer par statut de span**. Un filtre laissé vide correspond à tous les spans. **Aperçu des spans**, sous les filtres, montre les spans qu'ils sélectionnent en ce moment.
+Dans **Spans à surveiller**, renseignez **Statut du span** et **Le nom du span contient**. Un filtre laissé vide correspond à tous les spans. **Spans correspondants**, sous les filtres, montre les spans qu'ils sélectionnent en ce moment.
 
 ### Affiner (facultatif)
 
 Ouvrez **Plus de champs** pour filtrer par service de télémétrie, entité d'infrastructure ou attribut.
 
-### Définir les critères
+### Dire quand alerter
 
-La carte **Critères du moniteur** commence avec deux critères : hors ligne, avec un incident, quand aucun span ne correspond ; en ligne dès qu'au moins un correspond. Adaptez-les à ce sur quoi vous voulez alerter – voir [Critères](#critères).
+Dans **Quand alerter**, choisissez une **Condition**, le **Nombre de spans** et une **Fenêtre de temps**. La phrase en dessous redit la règle en termes simples. Le graphique sous cette phrase compte les spans correspondants dans chaque fenêtre au cours des dernières heures, trace le nombre de la règle sous forme de ligne et indique combien de fois la règle aurait alerté. Son bouton propose un nombre que la règle n'aurait pas dépassé sur cette période.
+
+### Choisir ce qui se passe
+
+Dans **Ce qui se passe**, choisissez **Créer une alerte**, **Déclarer un incident** ou **Les deux**, puis donnez-lui un titre et une gravité. Tant que la règle correspond, le moniteur affiche le statut indiqué sous **Plus de champs** ; quand elle ne correspond plus, le moniteur revient à son statut par défaut et l'alerte ou l'incident se résout de lui-même.
 
 ### Créer le moniteur
 
@@ -62,9 +70,9 @@ Cliquez sur **Créer un moniteur**. Le moniteur s'ouvre sur sa page **Vue d'ense
 
 | Champ | Ce qu'il sélectionne | Par défaut |
 | --- | --- | --- |
-| **Nom du span** | Les spans dont le nom contient ce texte, sans tenir compte de la casse. | Vide : tous les spans |
-| **Surveiller les traces pendant (durée)** | Les spans commencés dans les 5 dernières secondes jusqu'aux 24 dernières heures. | **Dernière minute** |
-| **Filtrer par statut de span** | Les spans ayant l'un des statuts choisis : **Non défini**, **Ok** ou **Erreur**. | Vide : tous les statuts |
+| **Statut du span** | Les spans ayant l'un des statuts choisis : **Non défini**, **Ok** ou **Erreur**. | Vide : tous les statuts |
+| **Le nom du span contient** | Les spans dont le nom contient ce texte, sans tenir compte de la casse. | Vide : tous les spans |
+| **Fenêtre de temps** (dans **Quand alerter**) | Les spans commencés dans les 5 dernières secondes jusqu'aux 24 dernières heures. | **Dernières 5 minutes** |
 | **Filtrer par service de télémétrie** (sous **Plus de champs**) | Les spans de l'un des services choisis. | Vide : tous les services |
 | **Filtrer par entité d'infrastructure** (sous **Plus de champs**) | Les spans de l'un des hôtes, pods, conteneurs et autres entités choisis. | Vide : toutes les entités |
 | **Filtrer par attributs** (sous **Plus de champs**) | Les spans dont les attributs remplissent chaque condition. Chaque condition a son propre opérateur, comme « égal à » ou « contient ». | Vide : aucune condition |
@@ -84,8 +92,8 @@ Si vous souhaitez que les requêtes réussies s'affichent comme OK, ajoutez un p
 ## Comment il est évalué
 
 - **Chaque minute.** Un moniteur de traces n'est pas vérifié par des sondes ; il n'a donc pas d'intervalle à régler ni de page **Sondes et intervalle**.
-- **Un seul nombre par évaluation.** Le moniteur compte les spans qui correspondent à chaque filtre et ont commencé dans la durée **Surveiller les traces pendant (durée)** précédant l'évaluation. Avec **Dernières 5 minutes**, chaque évaluation remonte cinq minutes en arrière, si bien que les fenêtres d'évaluations successives se chevauchent.
-- **Aucun span, c'est un décompte de 0.** Un service qui cesse d'envoyer des traces produit 0, ce que recherche le critère hors ligne par défaut.
+- **Un seul nombre par évaluation.** Le moniteur compte les spans qui correspondent à chaque filtre et ont commencé dans la **Fenêtre de temps** précédant l'évaluation. Avec **Dernières 5 minutes**, chaque évaluation remonte cinq minutes en arrière, si bien que les fenêtres d'évaluations successives se chevauchent.
+- **Aucun span, c'est un décompte de 0.** Un service qui cesse d'envoyer des traces produit 0, ce que recherche **Les requêtes s'arrêtent**.
 - **L'indisponibilité d'OneUptime lui-même n'est pas un silence.** Tant que la fenêtre de temps contient une période où OneUptime lui-même ne recevait pas de données – il redémarrait, était mis à jour ou rattrapait un retard –, la vérification attend : le statut ne change pas, et aucun incident ni aucune alerte n'est ouvert ni résolu. Voir [Quand OneUptime ne reçoit pas de données](/docs/monitor/when-oneuptime-is-not-receiving).
 - **Les critères de haut en bas.** Le premier critère qui correspond décide ; placez donc le plus grave en premier.
 
@@ -93,7 +101,7 @@ Chaque changement de statut est enregistré, avec sa raison, dans la **Chronolog
 
 ## Critères
 
-Les critères d'un moniteur de traces ont un seul **Type de filtre** : **Span Count**, le nombre de spans qui ont correspondu dans la fenêtre. Choisissez une **Condition de filtre** et, pour une condition de seuil, une **Valeur**.
+Les critères d'un moniteur de traces ont un seul **Type de filtre** : **Span Count**, le nombre de spans qui ont correspondu dans la fenêtre. **Quand alerter** configure un critère, dont la **Condition** est **Plus de**, **Au moins**, **Moins de**, **Au plus**, **Exactement**, **Anormalement haut**, **Anormalement bas** ou **Anormalement haut ou bas**. Pour plusieurs critères, ou un critère avec plus d'un filtre, cliquez sur **Modifier en critères personnalisés** sous **Plus de champs** dans **Ce qui se passe** : chaque critère y a une **Condition de filtre** et, pour une condition de seuil, une **Valeur**.
 
 | Condition de filtre | Correspond quand le nombre de spans est… |
 | --- | --- |
@@ -106,9 +114,16 @@ Les critères d'un moniteur de traces ont un seul **Type de filtre** : **Span Co
 | **Anomalously Low** | en dessous de cette plage |
 | **Anomalous** | hors de cette plage, dans un sens ou dans l'autre |
 
-Les conditions d'anomalie ne prennent pas de **Valeur**. Choisissez une **Sensibilité** – Low, Medium (la valeur par défaut) ou High – et une **Fenêtre de référence** de 14 (la valeur par défaut), 28, 60 ou 90 jours. OneUptime convertit le décompte en taux par minute et le compare à la même heure de la semaine sur cette fenêtre. La référence ne couvre que les services et les statuts de span du moniteur : ses filtres de nom de span et d'attributs n'en font pas partie. Tant que cette heure de la semaine n'a pas assez d'historique, le critère est encore en apprentissage et ne se déclenche pas.
+Les conditions d'anomalie ne prennent pas de **Valeur**. Choisissez une **Sensibilité** – Faible, Moyen (la valeur par défaut) ou Élevé – et, dans les critères personnalisés, une **Fenêtre de référence** de 14 (la valeur par défaut), 28, 60 ou 90 jours. OneUptime convertit le décompte en taux par minute et le compare à la même heure de la semaine sur cette fenêtre. La référence ne couvre que les services et les statuts de span du moniteur : ses filtres de nom de span et d'attributs n'en font pas partie. Tant que cette heure de la semaine n'a pas assez d'historique, le critère est encore en apprentissage et ne se déclenche pas.
 
-Un nouveau moniteur de traces commence avec ces critères :
+Un moniteur de traces créé dans « Créer un moniteur » commence avec la règle correspondant à ce que vous avez choisi sous **De quoi ce moniteur doit-il vous informer ?** :
+
+| Choix | Règle | Ce qui se passe |
+| --- | --- | --- |
+| **Trop de requêtes en échec** | **Statut du span** **Erreur**, **Plus de** `10` sur **Dernières 5 minutes** | Crée une alerte, qui se résout d'elle-même |
+| **Les requêtes s'arrêtent** | **Exactement** `0` sur **Dernières 10 minutes** | Déclare un incident, qui se résout de lui-même |
+
+Un moniteur de traces créé via l'API ou Terraform sans critères commence avec ces critères :
 
 | Critère | Filtre | Effet |
 | --- | --- | --- |
@@ -117,9 +132,9 @@ Un nouveau moniteur de traces commence avec ces critères :
 
 ## Exemple : des requêtes de checkout en échec
 
-En cinq minutes, le service checkout enregistre 1 200 spans nommés `POST /api/checkout` : 1 150 UNSET, 20 OK et 30 ERROR. Le même moniteur compte des nombres très différents selon **Filtrer par statut de span** :
+En cinq minutes, le service checkout enregistre 1 200 spans nommés `POST /api/checkout` : 1 150 UNSET, 20 OK et 30 ERROR. Le même moniteur compte des nombres très différents selon **Statut du span** :
 
-| Filtrer par statut de span | Span Count | Ce qu'il mesure |
+| Statut du span | Span Count | Ce qu'il mesure |
 | --- | --- | --- |
 | **Erreur** | 30 | Les requêtes qui ont échoué |
 | **Ok** | 20 | Seulement les requêtes que votre code a marquées comme réussies |
@@ -128,18 +143,18 @@ En cinq minutes, le service checkout enregistre 1 200 spans nommés `POST /api/c
 
 Pour être alerté quand plus de 10 requêtes de checkout échouent en cinq minutes :
 
-- **Nom du span** : `POST /api/checkout`
-- **Surveiller les traces pendant (durée)** : **Dernières 5 minutes**
-- **Filtrer par statut de span** : **Erreur**
-- Critère 1 : **Span Count** **Supérieur à** `10` – passer le moniteur hors ligne et déclarer un incident
-- Critère 2 : **Span Count** **Inférieur ou égal à** `10` – passer le moniteur en ligne
+- **Le nom du span contient** : `POST /api/checkout`
+- **Fenêtre de temps** : **Dernières 5 minutes**
+- **Statut du span** : **Erreur**
+- **Quand alerter** : **Plus de** `10`
+- **Ce qui se passe** : **Déclarer un incident**
 
-Avec 30 requêtes en échec, le critère 1 correspond et l'incident est déclaré. Une fois cinq minutes passées avec 10 échecs ou moins, le critère 2 correspond, le moniteur est de nouveau en ligne et l'incident se résout de lui-même.
+Avec 30 requêtes en échec, la règle correspond et l'incident est déclaré. Une fois cinq minutes passées avec 10 échecs ou moins, la règle ne correspond plus, le moniteur est de nouveau en ligne et l'incident se résout de lui-même.
 
 ## Dépannage
 
 :::details Le moniteur ne compte aucun span pour mon endpoint
-**Nom du span** est comparé au nom du span, et l'instrumentation nomme souvent les spans serveur d'après la route (`POST /api/checkout`) ou seulement la méthode (`GET`). Trouvez le nom exact dans l'explorateur de traces. Ouvrez ensuite la page **Critères** du moniteur (sous **Configuration**) et cliquez sur **Modifier les critères de surveillance** : **Aperçu des spans** montre ce que les filtres sélectionnent en ce moment.
+**Le nom du span contient** est comparé au nom du span, et l'instrumentation nomme souvent les spans serveur d'après la route (`POST /api/checkout`) ou seulement la méthode (`GET`). Trouvez le nom exact dans l'explorateur de traces. Ouvrez ensuite la page **Critères** du moniteur (sous **Configuration**) et cliquez sur **Modifier les critères de surveillance** : **Spans correspondants** montre ce que les filtres sélectionnent en ce moment.
 :::
 
 :::details Les requêtes réussies ne sont pas comptées quand je filtre sur Ok

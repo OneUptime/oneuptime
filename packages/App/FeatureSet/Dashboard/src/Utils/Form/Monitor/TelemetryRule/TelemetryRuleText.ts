@@ -84,9 +84,9 @@ export const METRIC_RULE_WINDOW_OPTIONS: Array<{
 ];
 
 /*
- * The windows a Logs, Traces or Exceptions monitor counts over - the same
- * eleven its form always offered, under the same words, so every language
- * already reads them.
+ * The windows a Logs, Traces or Exceptions monitor counts over - the
+ * eleven its form always offered, under the same words, and the ten
+ * minutes the "stop" recipes count over (Logs stop, Requests stop).
  */
 export const TELEMETRY_RULE_WINDOW_OPTIONS: Array<TelemetryRuleWindowOption> = [
   { value: 5, label: translationKey("Last 5 seconds") },
@@ -94,6 +94,7 @@ export const TELEMETRY_RULE_WINDOW_OPTIONS: Array<TelemetryRuleWindowOption> = [
   { value: 30, label: translationKey("Last 30 seconds") },
   { value: 60, label: translationKey("Last 1 minute") },
   { value: 300, label: translationKey("Last 5 minutes") },
+  { value: 600, label: translationKey("Last 10 minutes") },
   { value: 900, label: translationKey("Last 15 minutes") },
   { value: 1800, label: translationKey("Last 30 minutes") },
   { value: 3600, label: translationKey("Last 1 hour") },

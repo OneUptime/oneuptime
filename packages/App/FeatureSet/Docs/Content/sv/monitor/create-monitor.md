@@ -48,6 +48,8 @@ Nedanför avgör **Monitorkriterier** när monitorn byter status, deklarerar en 
 
 Klicka på ett kriterium för att öppna och ändra det. **Lägg till kriterier** lägger till ett, öppet och redo att fyllas i. För att ändra ordningen drar du ett kriterium i handtaget till vänster om det.
 
+En logg-, spårnings-, undantags- eller metrikmonitor frågar i stället vad den ska berätta om, och ställer in en enda regel med vanliga ord: vad som ska bevakas, **När det ska larmas** och **Vad som händer**, med ett diagram över vad regeln skulle ha fångat. Se [Loggövervakning](/docs/monitor/logs-monitor#skapa-en-loggmonitor).
+
 ### Gå till nästa steg
 
 Klicka på **Nästa**. Inget på det här steget markeras som saknat förrän du klickar på **Nästa**.

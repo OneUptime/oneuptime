@@ -32,23 +32,31 @@ Cada minuto, OneUptime cuenta los spans que coinciden con los filtros del monito
 :::steps
 ### Empezar un monitor nuevo
 
-Ve a **Monitores** y haz clic en **Crear monitor**.
+Ve a **Monitores** y haz clic en **Crear monitor**. O, en el explorador de trazas, filtra los spans de los que quieres enterarte y haz clic en **Crear monitor** en su barra de herramientas: el nuevo monitor empieza vigilando los servicios, los estados, el nombre de span y los atributos del explorador.
 
 ### Elegir Traces
 
 En **Tipo de monitor**, haz clic en **Más tipos de monitor** y elige **Trazas** en **Telemetría**, o escribe `traces` en el cuadro de búsqueda. Escribe un **Nombre** y haz clic en **Siguiente**.
 
+### Elegir de qué te avisa el monitor
+
+En **¿Sobre qué debe avisarte este monitor?**, elige **Demasiadas solicitudes fallidas** o **Las solicitudes dejan de llegar**. Cada opción rellena los spans que vigilar y la regla, que puedes cambiar más abajo. Elige **Otra cosa** para configurarlos tú.
+
 ### Elegir los spans que se cuentan
 
-En **Configuración del monitor de trazas**, rellena **Nombre del span**, **Trazas del monitor durante (tiempo)** y **Filtrar por estado de span**. Un filtro que dejas vacío coincide con todos los spans. **Vista previa de spans**, bajo los filtros, muestra los spans con los que coinciden ahora mismo.
+En **Spans que vigilar**, rellena **Estado del span** y **El nombre del span contiene**. Un filtro que dejas vacío coincide con todos los spans. **Spans coincidentes**, bajo los filtros, muestra los spans con los que coinciden ahora mismo.
 
 ### Acotarlos (opcional)
 
 Abre **Más campos** para filtrar por servicio de telemetría, entidad de infraestructura o atributo.
 
-### Definir los criterios
+### Decir cuándo alertar
 
-La tarjeta **Criterios del monitor** empieza con dos criterios: fuera de línea, con un incidente, cuando no coincide ningún span; en línea cuando coincide al menos uno. Cámbialos según lo que quieras alertar; consulta [Criterios](#criterios).
+En **Cuándo alertar**, elige una **Condición**, el **Número de spans** y una **Ventana de tiempo**. La frase de debajo repite la regla con palabras sencillas. El gráfico que hay debajo cuenta los spans coincidentes en cada ventana de las últimas horas, dibuja el número de la regla como una línea e indica cuántas veces habría alertado la regla. Su botón propone un número que la regla no habría superado en ese tiempo.
+
+### Elegir qué pasa
+
+En **Qué pasa**, elige **Crear una alerta**, **Declarar un incidente** o **Ambos**, y dale un título y una gravedad. Mientras la regla coincide, el monitor muestra el estado indicado en **Más campos**; cuando deja de coincidir, el monitor vuelve a su estado predeterminado y la alerta o el incidente se resuelve solo.
 
 ### Crear el monitor
 
@@ -62,9 +70,9 @@ Haz clic en **Crear monitor**. El monitor se abre en su página **Vista general*
 
 | Campo | Con qué coincide | Predeterminado |
 | --- | --- | --- |
-| **Nombre del span** | Spans cuyo nombre contiene este texto, sin distinguir mayúsculas y minúsculas. | Vacío: todos los spans |
-| **Trazas del monitor durante (tiempo)** | Spans que empezaron en los últimos 5 segundos hasta las últimas 24 horas. | **Último minuto** |
-| **Filtrar por estado de span** | Spans con cualquiera de los estados elegidos: **Sin establecer**, **Correcto** o **Error**. | Vacío: todos los estados |
+| **Estado del span** | Spans con cualquiera de los estados elegidos: **Sin establecer**, **Correcto** o **Error**. | Vacío: todos los estados |
+| **El nombre del span contiene** | Spans cuyo nombre contiene este texto, sin distinguir mayúsculas y minúsculas. | Vacío: todos los spans |
+| **Ventana de tiempo** (en **Cuándo alertar**) | Spans que empezaron en los últimos 5 segundos hasta las últimas 24 horas. | **Últimos 5 minutos** |
 | **Filtrar por servicio de telemetría** (en **Más campos**) | Spans de cualquiera de los servicios elegidos. | Vacío: todos los servicios |
 | **Filtrar por entidad de infraestructura** (en **Más campos**) | Spans de cualquiera de los hosts, pods, contenedores y otras entidades elegidos. | Vacío: todas las entidades |
 | **Filtrar por atributos** (en **Más campos**) | Spans cuyos atributos cumplen todas las condiciones. Cada condición tiene su propio operador, como «es igual a» o «contiene». | Vacío: ninguna condición |
@@ -84,8 +92,8 @@ Si quieres que las solicitudes exitosas se muestren como OK, añade un pipeline 
 ## Cómo se evalúa
 
 - **Cada minuto.** Un monitor de trazas no lo comprueban sondas, así que no tiene intervalo que configurar ni página **Sondas e intervalo**.
-- **Un número por evaluación.** El monitor cuenta los spans que coinciden con todos los filtros y empezaron dentro de **Trazas del monitor durante (tiempo)** antes de la evaluación. Con **Últimos 5 minutos**, cada evaluación mira cinco minutos atrás, así que las ventanas de evaluaciones consecutivas se solapan.
-- **Sin spans, el recuento es 0.** Un servicio que deja de enviar trazas produce 0, que es lo que busca el criterio de fuera de línea predeterminado.
+- **Un número por evaluación.** El monitor cuenta los spans que coinciden con todos los filtros y empezaron dentro de la **Ventana de tiempo** antes de la evaluación. Con **Últimos 5 minutos**, cada evaluación mira cinco minutos atrás, así que las ventanas de evaluaciones consecutivas se solapan.
+- **Sin spans, el recuento es 0.** Un servicio que deja de enviar trazas produce 0, que es lo que busca **Las solicitudes dejan de llegar**.
 - **La caída del propio OneUptime no es silencio.** Mientras la ventana de tiempo contenga un periodo en el que OneUptime no recibía datos (se estaba reiniciando, actualizando o poniéndose al día), la comprobación espera: el estado no cambia y no se abre ni se resuelve ningún incidente ni alerta. Consulta [Cuando OneUptime no recibe datos](/docs/monitor/when-oneuptime-is-not-receiving).
 - **Criterios de arriba abajo.** Decide el primer criterio que coincide, así que pon primero el más grave.
 
@@ -93,7 +101,7 @@ Cada cambio de estado, con su motivo, queda registrado en la **Cronología de es
 
 ## Criterios
 
-Los criterios de un monitor de trazas tienen un único **Tipo de filtro**: **Span Count**, el número de spans que coincidieron en la ventana. Elige una **Condición de filtro** y, para una condición de umbral, un **Valor**.
+Los criterios de un monitor de trazas tienen un único **Tipo de filtro**: **Span Count**, el número de spans que coincidieron en la ventana. **Cuándo alertar** configura un criterio, cuya **Condición** es **Más de**, **Al menos**, **Menos de**, **Como mucho**, **Exactamente**, **Inusualmente alto**, **Inusualmente bajo** o **Inusualmente alto o bajo**. Para varios criterios, o uno con más de un filtro, haz clic en **Editar como criterios propios** en **Más campos** de **Qué pasa**: cada criterio tiene allí una **Condición de filtro** y, para una condición de umbral, un **Valor**.
 
 | Condición de filtro | Coincide cuando el recuento de spans está… |
 | --- | --- |
@@ -106,9 +114,16 @@ Los criterios de un monitor de trazas tienen un único **Tipo de filtro**: **Spa
 | **Anomalously Low** | por debajo de ese rango |
 | **Anomalous** | fuera de ese rango, en cualquier sentido |
 
-Las condiciones de anomalía no llevan **Valor**. Elige una **Sensibilidad** (Low, Medium, la predeterminada, o High) y una **Ventana de referencia** de 14 (la predeterminada), 28, 60 o 90 días. OneUptime convierte el recuento en una tasa por minuto y la compara con la misma hora de la semana a lo largo de esa ventana. La referencia solo abarca los servicios y los estados de span del monitor: sus filtros de nombre de span y de atributos no forman parte de ella. Hasta que esa hora de la semana tenga suficiente historial, el criterio sigue aprendiendo y no se dispara.
+Las condiciones de anomalía no llevan **Valor**. Elige una **Sensibilidad** (Baja, Media, la predeterminada, o Alta) y, en los criterios propios, una **Ventana de referencia** de 14 (la predeterminada), 28, 60 o 90 días. OneUptime convierte el recuento en una tasa por minuto y la compara con la misma hora de la semana a lo largo de esa ventana. La referencia solo abarca los servicios y los estados de span del monitor: sus filtros de nombre de span y de atributos no forman parte de ella. Hasta que esa hora de la semana tenga suficiente historial, el criterio sigue aprendiendo y no se dispara.
 
-Un monitor de trazas nuevo empieza con estos criterios:
+Un monitor de trazas creado en Crear monitor empieza con la regla de lo que elegiste en **¿Sobre qué debe avisarte este monitor?**:
+
+| Opción | Regla | Qué pasa |
+| --- | --- | --- |
+| **Demasiadas solicitudes fallidas** | **Estado del span** **Error**, **Más de** `10` en **Últimos 5 minutos** | Crea una alerta, que se resuelve sola |
+| **Las solicitudes dejan de llegar** | **Exactamente** `0` en **Últimos 10 minutos** | Declara un incidente, que se resuelve solo |
+
+Un monitor de trazas creado mediante la API o Terraform sin criterios empieza con estos criterios:
 
 | Criterio | Filtro | Efecto |
 | --- | --- | --- |
@@ -117,9 +132,9 @@ Un monitor de trazas nuevo empieza con estos criterios:
 
 ## Ejemplo práctico: solicitudes de checkout fallidas
 
-En cinco minutos, el servicio de checkout registra 1200 spans llamados `POST /api/checkout`: 1150 UNSET, 20 OK y 30 ERROR. El mismo monitor cuenta números muy distintos según **Filtrar por estado de span**:
+En cinco minutos, el servicio de checkout registra 1200 spans llamados `POST /api/checkout`: 1150 UNSET, 20 OK y 30 ERROR. El mismo monitor cuenta números muy distintos según **Estado del span**:
 
-| Filtrar por estado de span | Span Count | Qué mide |
+| Estado del span | Span Count | Qué mide |
 | --- | --- | --- |
 | **Error** | 30 | Las solicitudes que fallaron |
 | **Correcto** | 20 | Solo las solicitudes que tu código marcó como exitosas |
@@ -128,18 +143,18 @@ En cinco minutos, el servicio de checkout registra 1200 spans llamados `POST /ap
 
 Para que te avisen cuando fallen más de 10 solicitudes de checkout en cinco minutos:
 
-- **Nombre del span**: `POST /api/checkout`
-- **Trazas del monitor durante (tiempo)**: **Últimos 5 minutos**
-- **Filtrar por estado de span**: **Error**
-- Criterio 1: **Span Count** **Mayor que** `10`: poner el monitor fuera de línea y declarar un incidente
-- Criterio 2: **Span Count** **Menor o igual que** `10`: poner el monitor en línea
+- **El nombre del span contiene**: `POST /api/checkout`
+- **Ventana de tiempo**: **Últimos 5 minutos**
+- **Estado del span**: **Error**
+- **Cuándo alertar**: **Más de** `10`
+- **Qué pasa**: **Declarar un incidente**
 
-Con 30 solicitudes fallidas, coincide el criterio 1 y se declara el incidente. Cuando pasan cinco minutos con 10 fallos o menos, coincide el criterio 2, el monitor vuelve a estar en línea y el incidente se resuelve solo.
+Con 30 solicitudes fallidas, la regla coincide y se declara el incidente. Cuando pasan cinco minutos con 10 fallos o menos, la regla deja de coincidir, el monitor vuelve a estar en línea y el incidente se resuelve solo.
 
 ## Solución de problemas
 
 :::details El monitor no cuenta ningún span para mi endpoint
-**Nombre del span** se compara con el nombre del span, y la instrumentación suele nombrar los spans de servidor por la ruta (`POST /api/checkout`) o solo por el método (`GET`). Busca el nombre exacto en el explorador de trazas. Después abre la página **Criterios** del monitor (en **Configuración**) y haz clic en **Editar criterios de monitoreo**: **Vista previa de spans** muestra con qué coinciden los filtros ahora mismo.
+**El nombre del span contiene** se compara con el nombre del span, y la instrumentación suele nombrar los spans de servidor por la ruta (`POST /api/checkout`) o solo por el método (`GET`). Busca el nombre exacto en el explorador de trazas. Después abre la página **Criterios** del monitor (en **Configuración**) y haz clic en **Editar criterios de monitoreo**: **Spans coincidentes** muestra con qué coinciden los filtros ahora mismo.
 :::
 
 :::details Las solicitudes exitosas no se cuentan cuando filtro por Correcto

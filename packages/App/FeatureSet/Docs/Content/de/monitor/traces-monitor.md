@@ -32,23 +32,31 @@ Jede Minute zählt OneUptime die Spans, die zu den Filtern des Monitors passen u
 :::steps
 ### Einen neuen Monitor beginnen
 
-Gehen Sie zu **Monitore** und klicken Sie auf **Monitor erstellen**.
+Gehen Sie zu **Monitore** und klicken Sie auf **Monitor erstellen**. Oder filtern Sie im Trace-Explorer die Spans, über die Sie informiert werden wollen, und klicken Sie in seiner Werkzeugleiste auf **Monitor erstellen**: Der neue Monitor überwacht von Anfang an die Dienste, die Status, den Span-Namen und die Attribute des Explorers.
 
 ### Traces wählen
 
 Klicken Sie unter **Monitortyp** auf **Weitere Monitortypen** und wählen Sie **Traces** unter **Telemetrie**, oder tippen Sie `traces` in das Suchfeld. Geben Sie einen **Name** ein und klicken Sie dann auf **Weiter**.
 
+### Wählen, worüber der Monitor informiert
+
+Wählen Sie unter **Worüber soll dieser Monitor Sie informieren?** **Zu viele fehlgeschlagene Anfragen** oder **Anfragen bleiben aus**. Jede Wahl füllt die zu überwachenden Spans und die Regel aus, die Sie darunter ändern können. Wählen Sie **Etwas anderes**, um beides selbst einzurichten.
+
 ### Die zu zählenden Spans wählen
 
-Legen Sie in **Trace-Monitor-Konfiguration** die Felder **Span-Name**, **Überwachungs-Traces für (time)** und **Nach Span-Status filtern** fest. Ein leer gelassener Filter passt auf jeden Span. **Span-Vorschau** unter den Filtern zeigt die Spans, auf die sie gerade passen.
+Legen Sie in **Zu überwachende Spans** die Felder **Span-Status** und **Span-Name enthält** fest. Ein leer gelassener Filter passt auf jeden Span. **Passende Spans** unter den Filtern zeigt die Spans, auf die sie gerade passen.
 
 ### Weiter eingrenzen (optional)
 
 Öffnen Sie **Weitere Felder**, um nach Telemetrie-Dienst, Infrastruktur-Entität oder Attribut zu filtern.
 
-### Die Kriterien festlegen
+### Festlegen, wann alarmiert wird
 
-Die Karte **Monitor-Kriterien** beginnt mit zwei Kriterien: offline, mit einem Vorfall, wenn kein Span passt; online, sobald mindestens einer passt. Ändern Sie sie so, dass sie das melden, was Sie wollen – siehe [Kriterien](#kriterien).
+Wählen Sie in **Wann alarmieren** eine **Bedingung**, die **Anzahl der Spans** und ein **Zeitfenster**. Der Satz darunter gibt die Regel in einfachen Worten wieder. Das Diagramm darunter zählt die passenden Spans in jedem Fenster der letzten Stunden, zeichnet die Zahl der Regel als Linie ein und sagt, wie oft die Regel alarmiert hätte. Seine Schaltfläche schlägt eine Zahl vor, die die Regel in dieser Zeit nicht überschritten hätte.
+
+### Wählen, was passiert
+
+Wählen Sie in **Was passiert** **Warnung erstellen**, **Vorfall melden** oder **Beide**, und geben Sie ihr einen Titel und einen Schweregrad. Solange die Regel zutrifft, zeigt der Monitor den Status unter **Weitere Felder**; trifft sie nicht mehr zu, kehrt der Monitor zu seinem Standardstatus zurück, und die Warnung oder der Vorfall behebt sich selbst.
 
 ### Den Monitor erstellen
 
@@ -62,9 +70,9 @@ Klicken Sie auf **Monitor erstellen**. Der Monitor öffnet sich auf seiner Seite
 
 | Feld | Worauf es passt | Standard |
 | --- | --- | --- |
-| **Span-Name** | Spans, deren Name diesen Text enthält, ohne Beachtung der Groß-/Kleinschreibung. | Leer: jeder Span |
-| **Überwachungs-Traces für (time)** | Spans, die in den letzten 5 Sekunden bis zu den letzten 24 Stunden begonnen haben. | **Letzte 1 Minute** |
-| **Nach Span-Status filtern** | Spans mit einem der gewählten Status: **Nicht festgelegt**, **OK** oder **Fehler**. | Leer: jeder Status |
+| **Span-Status** | Spans mit einem der gewählten Status: **Nicht festgelegt**, **OK** oder **Fehler**. | Leer: jeder Status |
+| **Span-Name enthält** | Spans, deren Name diesen Text enthält, ohne Beachtung der Groß-/Kleinschreibung. | Leer: jeder Span |
+| **Zeitfenster** (in **Wann alarmieren**) | Spans, die in den letzten 5 Sekunden bis zu den letzten 24 Stunden begonnen haben. | **Letzte 5 Minuten** |
 | **Nach Telemetrie-Dienst filtern** (unter **Weitere Felder**) | Spans von einem der gewählten Dienste. | Leer: jeder Dienst |
 | **Nach Infrastruktur-Entität filtern** (unter **Weitere Felder**) | Spans von einem der gewählten Hosts, Pods, Container und anderen Entitäten. | Leer: jede Entität |
 | **Nach Attributen filtern** (unter **Weitere Felder**) | Spans, deren Attribute jede Bedingung erfüllen. Jede Bedingung hat ihren eigenen Operator, etwa „gleich“ oder „enthält“. | Leer: keine Bedingung |
@@ -84,8 +92,8 @@ Wenn erfolgreiche Anfragen als OK angezeigt werden sollen, fügen Sie unter **Tr
 ## Wie er ausgewertet wird
 
 - **Jede Minute.** Ein Traces-Monitor wird nicht von Sonden geprüft, deshalb hat er kein Intervall zum Einstellen und keine Seite **Sonden & Intervall**.
-- **Eine Zahl pro Auswertung.** Der Monitor zählt die Spans, die zu jedem Filter passen und innerhalb von **Überwachungs-Traces für (time)** vor der Auswertung begonnen haben. Mit **Letzte 5 Minuten** blickt jede Auswertung fünf Minuten zurück, sodass sich die Fenster aufeinanderfolgender Auswertungen überlappen.
-- **Keine Spans ergeben die Anzahl 0.** Ein Dienst, der keine Traces mehr sendet, liefert 0 – genau darauf achtet das Standardkriterium für offline.
+- **Eine Zahl pro Auswertung.** Der Monitor zählt die Spans, die zu jedem Filter passen und innerhalb des **Zeitfenster** vor der Auswertung begonnen haben. Mit **Letzte 5 Minuten** blickt jede Auswertung fünf Minuten zurück, sodass sich die Fenster aufeinanderfolgender Auswertungen überlappen.
+- **Keine Spans ergeben die Anzahl 0.** Ein Dienst, der keine Traces mehr sendet, liefert 0 – genau darauf achtet **Anfragen bleiben aus**.
 - **Die eigene Ausfallzeit von OneUptime ist keine Stille.** Solange das Zeitfenster Zeit enthält, in der OneUptime selbst keine Daten empfangen hat – weil es neu startete, aktualisiert wurde oder einen Rückstand aufholte –, wartet die Prüfung: Der Status ändert sich nicht, und kein Vorfall und keine Warnung wird eröffnet oder behoben. Siehe [Wenn OneUptime keine Daten empfängt](/docs/monitor/when-oneuptime-is-not-receiving).
 - **Kriterien von oben nach unten.** Das erste passende Kriterium entscheidet; stellen Sie also das schwerwiegendste nach oben.
 
@@ -93,7 +101,7 @@ Jede Statusänderung wird mit ihrem Grund in der **Status-Zeitachse** des Monito
 
 ## Kriterien
 
-Die Kriterien eines Traces-Monitors haben einen **Filtertyp**: **Span Count**, die Anzahl der Spans, die im Fenster gepasst haben. Wählen Sie eine **Filterbedingung** und, bei einer Schwellenwertbedingung, einen **Wert**.
+Die Kriterien eines Traces-Monitors haben einen **Filtertyp**: **Span Count**, die Anzahl der Spans, die im Fenster gepasst haben. **Wann alarmieren** richtet ein Kriterium ein, dessen **Bedingung** **Mehr als**, **Mindestens**, **Weniger als**, **Höchstens**, **Genau**, **Ungewöhnlich hoch**, **Ungewöhnlich niedrig** oder **Ungewöhnlich hoch oder niedrig** lautet. Für mehrere Kriterien oder eines mit mehr als einem Filter klicken Sie in **Was passiert** unter **Weitere Felder** auf **Als eigene Kriterien bearbeiten**: Jedes Kriterium dort hat eine **Filterbedingung** und, bei einer Schwellenwertbedingung, einen **Wert**.
 
 | Filterbedingung | Passt, wenn die Anzahl der Spans … |
 | --- | --- |
@@ -106,9 +114,16 @@ Die Kriterien eines Traces-Monitors haben einen **Filtertyp**: **Span Count**, d
 | **Anomalously Low** | unter diesem Bereich liegt |
 | **Anomalous** | außerhalb dieses Bereichs liegt, in die eine oder andere Richtung |
 
-Die Anomaliebedingungen haben keinen **Wert**. Wählen Sie eine **Empfindlichkeit** – Low, Medium (der Standard) oder High – und ein **Baseline-Fenster** von 14 (der Standard), 28, 60 oder 90 Tagen. OneUptime rechnet die Anzahl in eine Rate pro Minute um und vergleicht sie mit derselben Stunde der Woche über dieses Fenster. Die Baseline umfasst nur die Dienste und Span-Status des Monitors: Seine Span-Namen- und Attributfilter gehören nicht dazu. Solange diese Stunde der Woche nicht genug Verlauf hat, lernt das Kriterium noch und löst nicht aus.
+Die Anomaliebedingungen haben keinen **Wert**. Wählen Sie eine **Empfindlichkeit** – Niedrig, Mittel (der Standard) oder Hoch – und, in den eigenen Kriterien, ein **Baseline-Fenster** von 14 (der Standard), 28, 60 oder 90 Tagen. OneUptime rechnet die Anzahl in eine Rate pro Minute um und vergleicht sie mit derselben Stunde der Woche über dieses Fenster. Die Baseline umfasst nur die Dienste und Span-Status des Monitors: Seine Span-Namen- und Attributfilter gehören nicht dazu. Solange diese Stunde der Woche nicht genug Verlauf hat, lernt das Kriterium noch und löst nicht aus.
 
-Ein neuer Traces-Monitor beginnt mit diesen Kriterien:
+Ein in „Monitor erstellen“ angelegter Traces-Monitor beginnt mit der Regel dessen, was Sie unter **Worüber soll dieser Monitor Sie informieren?** gewählt haben:
+
+| Auswahl | Regel | Was passiert |
+| --- | --- | --- |
+| **Zu viele fehlgeschlagene Anfragen** | **Span-Status** **Fehler**, **Mehr als** `10` in **Letzte 5 Minuten** | Erstellt eine Warnung, die sich selbst behebt |
+| **Anfragen bleiben aus** | **Genau** `0` in **Letzte 10 Minuten** | Meldet einen Vorfall, der sich selbst behebt |
+
+Ein über die API oder Terraform ohne Kriterien angelegter Traces-Monitor beginnt mit diesen Kriterien:
 
 | Kriterium | Filter | Wirkung |
 | --- | --- | --- |
@@ -117,9 +132,9 @@ Ein neuer Traces-Monitor beginnt mit diesen Kriterien:
 
 ## Ein Beispiel: fehlgeschlagene Checkout-Anfragen
 
-In fünf Minuten zeichnet der Checkout-Dienst 1.200 Spans namens `POST /api/checkout` auf: 1.150 UNSET, 20 OK und 30 ERROR. Derselbe Monitor zählt je nach **Nach Span-Status filtern** sehr unterschiedliche Zahlen:
+In fünf Minuten zeichnet der Checkout-Dienst 1.200 Spans namens `POST /api/checkout` auf: 1.150 UNSET, 20 OK und 30 ERROR. Derselbe Monitor zählt je nach **Span-Status** sehr unterschiedliche Zahlen:
 
-| Nach Span-Status filtern | Span Count | Was er misst |
+| Span-Status | Span Count | Was er misst |
 | --- | --- | --- |
 | **Fehler** | 30 | Anfragen, die fehlgeschlagen sind |
 | **OK** | 20 | Nur die Anfragen, die Ihr Code als erfolgreich markiert hat |
@@ -128,18 +143,18 @@ In fünf Minuten zeichnet der Checkout-Dienst 1.200 Spans namens `POST /api/chec
 
 Um alarmiert zu werden, wenn in fünf Minuten mehr als 10 Checkout-Anfragen fehlschlagen:
 
-- **Span-Name**: `POST /api/checkout`
-- **Überwachungs-Traces für (time)**: **Letzte 5 Minuten**
-- **Nach Span-Status filtern**: **Fehler**
-- Kriterium 1: **Span Count** **Größer als** `10` – den Monitor auf offline setzen und einen Vorfall eröffnen
-- Kriterium 2: **Span Count** **Kleiner als oder gleich** `10` – den Monitor auf online setzen
+- **Span-Name enthält**: `POST /api/checkout`
+- **Zeitfenster**: **Letzte 5 Minuten**
+- **Span-Status**: **Fehler**
+- **Wann alarmieren**: **Mehr als** `10`
+- **Was passiert**: **Vorfall melden**
 
-Bei 30 fehlgeschlagenen Anfragen passt Kriterium 1, und der Vorfall wird eröffnet. Sobald fünf Minuten mit 10 oder weniger Fehlschlägen vergangen sind, passt Kriterium 2, der Monitor ist wieder online und der Vorfall behebt sich selbst.
+Bei 30 fehlgeschlagenen Anfragen trifft die Regel zu, und der Vorfall wird eröffnet. Sobald fünf Minuten mit 10 oder weniger Fehlschlägen vergangen sind, trifft die Regel nicht mehr zu, der Monitor ist wieder online und der Vorfall behebt sich selbst.
 
 ## Fehlerbehebung
 
 :::details Der Monitor zählt keine Spans für meinen Endpunkt
-**Span-Name** wird mit dem Namen des Spans abgeglichen, und Instrumentierungen benennen Server-Spans oft nach der Route (`POST /api/checkout`) oder nur nach der Methode (`GET`). Suchen Sie den genauen Namen im Trace-Explorer. Öffnen Sie dann die Seite **Kriterien** des Monitors (unter **Konfiguration**) und klicken Sie auf **Überwachungskriterien bearbeiten**: **Span-Vorschau** zeigt, worauf die Filter gerade passen.
+**Span-Name enthält** wird mit dem Namen des Spans abgeglichen, und Instrumentierungen benennen Server-Spans oft nach der Route (`POST /api/checkout`) oder nur nach der Methode (`GET`). Suchen Sie den genauen Namen im Trace-Explorer. Öffnen Sie dann die Seite **Kriterien** des Monitors (unter **Konfiguration**) und klicken Sie auf **Überwachungskriterien bearbeiten**: **Passende Spans** zeigt, worauf die Filter gerade passen.
 :::
 
 :::details Erfolgreiche Anfragen werden beim Filtern auf OK nicht gezählt

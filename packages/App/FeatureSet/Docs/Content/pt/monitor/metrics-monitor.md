@@ -33,23 +33,23 @@ A cada minuto, o OneUptime executa cada consulta de métricas do monitor sobre o
 :::steps
 ### Começar um novo monitor
 
-Vá para **Monitores** e clique em **Criar monitor**.
+Vá para **Monitores** e clique em **Criar monitor**. Ou, no explorador de métricas, monte o gráfico que você quer observar e clique em **Criar monitor a partir desta visualização**: o novo monitor já começa com as consultas dele.
 
 ### Escolher Metrics
 
 Em **Tipo de monitor**, clique em **Mais tipos de monitor** e escolha **Métricas** em **Telemetria**, ou digite `metrics` na caixa de pesquisa. Digite um **Nome** e clique em **Próximo**.
 
-### Escolher o intervalo de tempo
-
-Em **Configuração do monitor de métricas**, escolha um **Intervalo de tempo**: até onde cada avaliação olha para trás. Ele começa em **Past 1 Minute**.
-
 ### Adicionar as consultas de métricas
 
-Em **Selecionar Métricas**, escolha uma **Métrica** e como agregá-la com **Aggregate by**. Abra **Filters & grouping** para filtrar por atributos ou para agrupar com **Agrupar por**. Clique em **Adicionar métrica** para outra consulta, ou em **Adicionar fórmula** para combiná-las. O gráfico abaixo das consultas mostra uma prévia do intervalo de tempo, para você ver os valores que os critérios vão verificar.
+Em **Métrica a observar**, escolha uma **Métrica** e como agregá-la com **Aggregate by**. Abra **Filters & grouping** para filtrar por atributos ou para agrupar com **Agrupar por**. Clique em **Adicionar métrica** para outra consulta, ou em **Adicionar fórmula** para combiná-las. O gráfico abaixo das consultas mostra as últimas horas, com o valor da regra como uma linha vermelha, para você ver os valores que a regra vai verificar.
 
-### Definir os critérios
+### Dizer quando alertar
 
-Em **Critérios do monitor**, cada critério escolhe a **Métrica** a verificar (uma consulta ou uma fórmula), sua **Agregação**, uma **Condição** e um **Limite**. Veja [Critérios](#critérios) para os critérios com que um novo monitor começa.
+Em **Quando alertar**, escolha em **Medido como** como a métrica é medida, uma **Janela de tempo**, uma **Condição** e um **Valor**. Quando a etapa tem mais de uma consulta ou fórmula, escolha também a **Métrica** que a regra lê. A frase abaixo deles repete a regra em palavras simples.
+
+### Escolher o que acontece
+
+Em **O que acontece**, escolha **Criar um alerta**, **Declarar um incidente** ou **Ambos**, e dê a ele um título e uma severidade. Enquanto a regra corresponde, o monitor mostra o status indicado em **Mais campos**; quando deixa de corresponder, o monitor volta ao seu status padrão e o alerta ou o incidente se resolve sozinho.
 
 ### Criar o monitor
 
@@ -79,44 +79,44 @@ Uma fórmula combina variáveis de consulta com `+`, `-`, `*`, `/`, `%`, `^` e p
 
 ### Janela de tempo móvel
 
-**Intervalo de tempo** define até onde cada avaliação olha para trás: **Past 1 Minute**, **Últimos 5 minutos**, **Past 10 Minutes**, **Últimos 15 minutos**, **Últimos 30 minutos**, **Última hora**, **Últimas 2 horas**, **Últimas 3 horas**, **Past 6 Hours**, **Past 12 Hours**, **Último dia**, **Últimos 2 dias**, **Past 3 Days**, **Past 7 Days**, **Past 14 Days**, **Past 30 Days**, **Past 60 Days**, **Past 90 Days**, **Past 180 Days** ou **Past 365 Days**.
+A **Janela de tempo** em **Quando alertar** define até onde cada avaliação olha para trás: **Último 1 minuto**, **Últimos 5 minutos**, **Últimos 10 minutos**, **Últimos 15 minutos**, **Últimos 30 minutos**, **Última 1 hora**, **Últimas 2 horas**, **Últimas 3 horas**, **Últimas 6 horas**, **Últimas 12 horas**, **Últimas 24 horas**, **Últimos 2 dias**, **Últimos 3 dias**, **Últimos 7 dias**, **Últimos 14 dias**, **Últimos 30 dias**, **Últimos 60 dias**, **Últimos 90 dias**, **Últimos 180 dias** ou **Últimos 365 dias**.
 
-Quanto maior o intervalo, mais largo é cada intervalo de agrupamento, então um ponto de dados representa mais tempo:
+Quanto maior a janela, mais largo é cada intervalo de agrupamento, então um ponto de dados representa mais tempo:
 
-| Intervalo de tempo | Um ponto de dados por |
+| Janela de tempo | Um ponto de dados por |
 | --- | --- |
-| De Past 1 Minute a Past 3 Hours | minuto |
-| Past 6 Hours, Past 12 Hours | 5 minutos |
-| Past 1 Day | 15 minutos |
-| Past 2 Days, Past 3 Days | 30 minutos |
-| Past 7 Days | hora |
-| Past 14 Days, Past 30 Days | dia |
-| De Past 60 Days a Past 180 Days | semana |
-| Past 365 Days | mês |
+| De Último 1 minuto a Últimas 3 horas | minuto |
+| Últimas 6 horas, Últimas 12 horas | 5 minutos |
+| Últimas 24 horas | 15 minutos |
+| Últimos 2 dias, Últimos 3 dias | 30 minutos |
+| Últimos 7 dias | hora |
+| Últimos 14 dias, Últimos 30 dias | dia |
+| De Últimos 60 dias a Últimos 180 dias | semana |
+| Últimos 365 dias | mês |
 
 ## Como ele é avaliado
 
 - **A cada minuto.** Um monitor de métricas não é verificado por sondas, por isso não tem intervalo para configurar nem página **Sondas e intervalo**.
 - **Primeiro as consultas, depois as fórmulas.** Cada consulta retorna um ponto de dados por intervalo de agrupamento do intervalo de tempo, de acordo com o seu **Aggregate by**. As fórmulas são calculadas para cada intervalo a partir dos pontos de dados das consultas.
-- **Depois, a agregação do critério.** Cada critério reduz os pontos de dados da sua **Métrica** ao que compara com o limite:
+- **Depois, a medida da regra.** A regra reduz os pontos de dados da sua métrica ao que compara com o seu valor, como diz **Medido como**:
 
-| Agregação | A condição é verificada contra… |
-| --- | --- |
-| Média | a média dos pontos de dados |
-| Soma | a soma dos pontos de dados |
-| Maximum Value | o ponto de dados mais alto |
-| Minimum Value | o ponto de dados mais baixo |
-| All Values | cada ponto de dados: todos precisam atender à condição e cobrir todo o intervalo de tempo |
-| Any Value | cada ponto de dados: basta que um atenda à condição |
+| Medido como | Nos critérios personalizados | A condição é verificada contra… |
+| --- | --- | --- |
+| A média | Média | a média dos pontos de dados |
+| A soma | Soma | a soma dos pontos de dados |
+| O maior valor | Maximum Value | o ponto de dados mais alto |
+| O menor valor | Minimum Value | o ponto de dados mais baixo |
+| Cada valor (a janela inteira) | All Values | cada ponto de dados: todos precisam atender à condição e cobrir todo o intervalo de tempo |
+| Algum valor (em qualquer momento) | Any Value | cada ponto de dados: basta que um atenda à condição |
 
 - **Critérios de cima para baixo.** Em um monitor sem Group By, o primeiro critério que corresponde decide, então coloque o mais grave primeiro. Um monitor agrupado verifica todos os critérios para cada série (veja [A avaliação dos critérios é diferente](#a-avaliação-dos-critérios-é-diferente)).
-- **Nenhum dado não é zero.** Quando a consulta não retorna pontos de dados no intervalo de tempo, um critério faz o que diz sua configuração **Se não houver dados**, em **Mais campos**: **Ignore** (o padrão: o critério não corresponde), **Treat As Zero** ou **Gatilho**.
-- **All Values precisa de todo o intervalo de tempo.** Uma série atende a um critério **All Values** só quando seus pontos de dados cobrem o intervalo de tempo, do início até agora, sem uma lacuna de mais de um ponto de dados ausente. Quando todos os dados do monitor chegam atrasados, como os do CloudWatch, o ponto de dados mais recente ocupa o lugar de agora. Um host, um contêiner ou um deployment que acabou de começar a enviar dados, ou que ficou em silêncio por um tempo, espera até ter dados de um intervalo de tempo inteiro, e o log de avaliação mostra até onde chegou: `Waiting for 15 minutes of data: 2 of 15 minutes so far`. Uma série cujo alerta ou incidente já está aberto é julgada apenas pelos seus pontos de dados, então uma lacuna curta nos dados não o resolve. Se a métrica envia dados com menos frequência do que dura o intervalo de tempo, um único ponto de dados vale pelo intervalo inteiro quando já tem alguns minutos; para julgar quanto tempo um valor dura, o intervalo de tempo precisa cobrir pelo menos dois intervalos de envio.
+- **Nenhum dado não é zero.** Quando a consulta não retorna pontos de dados no intervalo de tempo, a regra faz o que diz **Se não houver dados**, em **Mais campos** de **Quando alertar**: **Nada** (o padrão: a regra não corresponde), **Contar como zero** ou **Alertar, como se correspondesse**.
+- **Cada valor precisa de todo o intervalo de tempo.** Uma série atende a uma regra medida como **Cada valor (a janela inteira)** só quando seus pontos de dados cobrem o intervalo de tempo, do início até agora, sem uma lacuna de mais de um ponto de dados ausente. Quando todos os dados do monitor chegam atrasados, como os do CloudWatch, o ponto de dados mais recente ocupa o lugar de agora. Um host, um contêiner ou um deployment que acabou de começar a enviar dados, ou que ficou em silêncio por um tempo, espera até ter dados de um intervalo de tempo inteiro, e o log de avaliação mostra até onde chegou: `Waiting for 15 minutes of data: 2 of 15 minutes so far`. Uma série cujo alerta ou incidente já está aberto é julgada apenas pelos seus pontos de dados, então uma lacuna curta nos dados não o resolve. Quando a métrica envia dados com menos frequência do que dura o intervalo de tempo, um ponto de dados isolado vale pelo intervalo inteiro depois de alguns minutos; para julgar quanto tempo um valor dura, o intervalo de tempo deve cobrir pelo menos dois intervalos de envio.
 - **A indisponibilidade do próprio OneUptime não é silêncio.** Enquanto o intervalo de tempo contiver um período em que o próprio OneUptime não estava recebendo dados (estava reiniciando, sendo atualizado ou recuperando um atraso), a verificação espera: o status não muda, e nenhum incidente ou alerta é aberto ou resolvido, diga o que disser **Se não houver dados**. Veja [Quando o OneUptime não recebe dados](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Critérios
 
-Estes monitores sempre avaliam o **Metric Value**: o valor agregado da consulta de métricas ou da fórmula configurada. O formulário de critérios não tem seletor de tipo de filtro; ele mostra **Métrica**, **Agregação**, **Condição** e **Limite**. Quando a métrica tem uma unidade, escolha a unidade do limite ao lado dele.
+Estes monitores sempre avaliam o **Metric Value**: o valor agregado da consulta de métricas ou da fórmula configurada. **Quando alertar** configura um critério a partir de **Medido como**, **Janela de tempo**, **Condição** e **Valor**. Quando a métrica tem uma unidade, escolha a unidade do valor ao lado dele. A **Condição** dele é **Acima de**, **Igual ou acima de**, **Abaixo de**, **Igual ou abaixo de**, **Exatamente**, **Incomumente alto**, **Incomumente baixo** ou **Incomumente alto ou baixo**. Para vários critérios, como faixas de severidade, clique em **Editar como critérios personalizados** em **Mais campos** de **O que acontece**: cada critério ali tem uma **Métrica**, uma **Agregação**, uma **Condição** e um **Limite**.
 
 | Condição | Corresponde quando o valor está… |
 | --- | --- |
@@ -129,9 +129,11 @@ Estes monitores sempre avaliam o **Metric Value**: o valor agregado da consulta 
 | **Anomalously Low** | abaixo dessa faixa |
 | **Anomalous** | fora dessa faixa, em qualquer direção |
 
-As condições de anomalia não têm limite. Em vez dele, o formulário mostra **Sensibilidade** (Low, Medium, a padrão, ou High) e **Janela de linha de base** (14 dias, a padrão, 28, 60 ou 90), e compara cada ponto de dados com a linha de base da mesma hora da semana, construída a partir dessa janela. Até que essa hora da semana tenha histórico suficiente, o critério ainda está aprendendo e não gera alertas.
+As condições de anomalia não têm limite. Em vez dele, **Quando alertar** mostra **Sensibilidade** (Baixo, Médio, a padrão, ou Alto), e os critérios personalizados também uma **Janela de linha de base** (14 dias, a padrão, 28, 60 ou 90), e cada ponto de dados é comparado com a linha de base da mesma hora da semana, construída a partir dessa janela. Até que essa hora da semana tenha histórico suficiente, o critério ainda está aprendendo e não gera alertas.
 
-Um novo monitor de métricas começa com dois critérios na sua primeira consulta, ambos com a agregação **Any Value**:
+Um monitor de métricas criado em Criar monitor começa com uma regra na sua primeira consulta: **A média** em **Últimos 5 minutos**, **Acima de** o **Valor** que você informar, e **Criar um alerta**.
+
+Um novo monitor de métricas criado pela API ou pelo Terraform sem critérios começa com dois critérios na sua primeira consulta, ambos com a agregação **Any Value**:
 
 | Critério | Condição | Efeito |
 | --- | --- | --- |
@@ -143,24 +145,24 @@ Um novo monitor de métricas começa com dois critérios na sua primeira consult
 
 ## Exemplo prático: uma fila que cresce
 
-Você quer um incidente quando a fila de checkout continua longa. A consulta `a` é o gauge `checkout.queue.depth`, com **Aggregate by** Max, e o **Intervalo de tempo** é **Últimos 5 minutos**. Uma avaliação vê estes cinco pontos de dados de um minuto:
+Você quer um incidente quando a fila de checkout continua longa. A consulta `a` é o gauge `checkout.queue.depth`, com **Aggregate by** Max, e a **Janela de tempo** é **Últimos 5 minutos**. Uma avaliação vê estes cinco pontos de dados de um minuto:
 
 | Minuto | 10:01 | 10:02 | 10:03 | 10:04 | 10:05 |
 | --- | --- | --- | --- | --- | --- |
 | `a` | 640 | 980 | 1.500 | 1.620 | 1.100 |
 
-Um critério com **Métrica** `a`, **Condição** **Maior que** e **Limite** `1000` dá uma resposta diferente para cada **Agregação**:
+Uma regra **Acima de** `1000` dá uma resposta diferente para cada opção de **Medido como**:
 
-| Agregação | Comparado com 1.000 | Corresponde? |
+| Medido como | Comparado com 1.000 | Corresponde? |
 | --- | --- | --- |
-| Média | 1.168 | Sim |
-| Soma | 5.840 | Sim |
-| Maximum Value | 1.620 | Sim |
-| Minimum Value | 640 | Não |
-| All Values | 640, 980, 1.500, 1.620, 1.100 | Não: dois pontos não estão acima de 1.000 |
-| Any Value | 640, 980, 1.500, 1.620, 1.100 | Sim: 1.500 está |
+| A média | 1.168 | Sim |
+| A soma | 5.840 | Sim |
+| O maior valor | 1.620 | Sim |
+| O menor valor | 640 | Não |
+| Cada valor (a janela inteira) | 640, 980, 1.500, 1.620, 1.100 | Não: dois pontos não estão acima de 1.000 |
+| Algum valor (em qualquer momento) | 640, 980, 1.500, 1.620, 1.100 | Sim: 1.500 está |
 
-**Média** alerta sobre um acúmulo prolongado e ignora um único minuto de fila longa; **All Values** espera até que cada minuto do intervalo tenha fila longa; **Any Value** alerta no primeiro minuto de fila longa.
+**A média** alerta sobre um acúmulo prolongado e ignora um único minuto de fila longa; **Cada valor (a janela inteira)** espera até que cada minuto do intervalo tenha fila longa; **Algum valor (em qualquer momento)** alerta no primeiro minuto de fila longa.
 
 ## Alertas por série (Group By)
 
@@ -198,11 +200,11 @@ Os valores do atributo de agrupamento também estão disponíveis como [variáve
 ## Solução de problemas
 
 :::details O gráfico mostra uma violação, mas o monitor não alertou
-Verifique primeiro a **Agregação** do critério: **All Values** só corresponde quando cada ponto de dados do intervalo ultrapassa o limite, e **Média** suaviza um pico curto. **All Values** também espera até que uma série tenha dados de todo o intervalo de tempo, então um host ou um deployment que acabou de começar a enviar dados ainda não é julgado. Depois verifique se a **Métrica** do critério é a consulta ou a fórmula que você quer (`a` não é a fórmula `c`) e se o limite está na unidade que você imagina.
+Verifique primeiro **Medido como**: **Cada valor (a janela inteira)** só corresponde quando cada ponto de dados do intervalo ultrapassa o valor, e **A média** suaviza um pico curto. **Cada valor (a janela inteira)** também espera até que uma série tenha dados de todo o intervalo de tempo, então um host ou um deployment que acabou de começar a enviar dados ainda não é julgado. Depois verifique se a regra lê a consulta ou a fórmula que você quer (`a` não é a fórmula `c`) e se o **Valor** está na unidade que você imagina.
 :::
 
 :::details A métrica parou de chegar e nada aconteceu
-Um intervalo de tempo sem pontos de dados não é um valor de 0. Com **Se não houver dados** no padrão, **Ignore**, o critério não corresponde. Defina-o como **Gatilho** em **Mais campos** do critério para alertar sobre o silêncio.
+Um intervalo de tempo sem pontos de dados não é um valor de 0. Com **Se não houver dados** no padrão, **Nada**, a regra não corresponde. Defina-o como **Alertar, como se correspondesse** em **Mais campos** de **Quando alertar** para alertar sobre o silêncio.
 :::
 
 :::details Recebo um só alerta para a frota inteira

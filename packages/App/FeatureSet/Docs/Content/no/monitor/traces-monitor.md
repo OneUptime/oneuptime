@@ -32,23 +32,31 @@ Hvert minutt teller OneUptime spans som samsvarer med monitorens filtre og start
 :::steps
 ### Start en ny monitor
 
-Gå til **Monitorer**, og klikk på **Opprett monitor**.
+Gå til **Monitorer**, og klikk på **Opprett monitor**. Eller filtrer i trase-utforskeren spans du vil ha beskjed om, og klikk på **Create monitor** i verktøylinjen: den nye monitoren følger fra start med på utforskerens tjenester, statuser, span-navn og attributter.
 
 ### Velg Traces
 
 Under **Monitortype** klikker du på **Flere monitortyper** og velger **Spor** under **Telemetri**, eller du skriver `traces` i søkefeltet. Skriv inn et **Navn**, og klikk deretter på **Neste**.
 
+### Velg hva monitoren skal fortelle deg om
+
+Under **Hva skal denne overvåkingen fortelle deg om?** velger du **For mange mislykkede forespørsler** eller **Forespørsler uteblir**. Hvert valg fyller ut spans du skal følge med på og regelen, som du kan endre lenger ned. Velg **Noe annet** for å sette dem opp selv.
+
 ### Velg spans som skal telles
 
-I **Trace-monitorkonfigurasjon** angir du **Span-navn**, **Overvåk spor i (tid)** og **Filtrer etter span-status**. Et filter du lar stå tomt, samsvarer med alle spans. **Forhåndsvisning av spans** under filtrene viser spans de samsvarer med akkurat nå.
+I **Spans å følge med på** angir du **Span-status** og **Span-navnet inneholder**. Et filter du lar stå tomt, samsvarer med alle spans. **Samsvarende spans** under filtrene viser spans de samsvarer med akkurat nå.
 
 ### Snevre dem inn (valgfritt)
 
 Åpne **Flere felt** for å filtrere etter telemetritjeneste, infrastrukturentitet eller attributt.
 
-### Angi kriteriene
+### Si når det skal varsles
 
-Kortet **Monitorkriterier** starter med to kriterier: frakoblet, med en hendelse, når ingen spans samsvarer; tilkoblet når minst ett gjør det. Endre dem til det du vil varsles om (se [Kriterier](#kriterier)).
+I **Når det skal varsles** velger du en **Betingelse**, **Antall spans** og et **Tidsvindu**. Setningen under dem gjentar regelen med vanlige ord. Diagrammet under den teller de samsvarende spans i hvert vindu de siste timene, tegner regelens tall som en linje og forteller hvor ofte regelen ville ha varslet. Knappen der foreslår et tall som regelen ikke ville ha passert i den perioden.
+
+### Velg hva som skjer
+
+I **Hva som skjer** velger du **Opprett et varsel**, **Erklær en hendelse** eller **Begge**, og gir det en tittel og en alvorlighetsgrad. Mens regelen samsvarer, viser monitoren statusen under **Flere felt**; når den slutter å samsvare, går monitoren tilbake til standardstatusen sin, og varselet eller hendelsen løser seg selv.
 
 ### Opprett monitoren
 
@@ -62,9 +70,9 @@ Klikk på **Opprett monitor**. Monitoren åpnes på siden **Oversikt**, og den f
 
 | Felt | Hva det samsvarer med | Standard |
 | --- | --- | --- |
-| **Span-navn** | Spans der navnet inneholder denne teksten, uten forskjell på store og små bokstaver. | Tom: alle spans |
-| **Overvåk spor i (tid)** | Spans som startet de siste 5 sekundene opp til de siste 24 timene. | **Siste 1 minutt** |
-| **Filtrer etter span-status** | Spans med en av de valgte statusene: **Ikke angitt**, **OK** eller **Feil**. | Tom: alle statuser |
+| **Span-status** | Spans med en av de valgte statusene: **Ikke angitt**, **OK** eller **Feil**. | Tom: alle statuser |
+| **Span-navnet inneholder** | Spans der navnet inneholder denne teksten, uten forskjell på store og små bokstaver. | Tom: alle spans |
+| **Tidsvindu** (i **Når det skal varsles**) | Spans som startet de siste 5 sekundene opp til de siste 24 timene. | **Siste 5 minutter** |
 | **Filtrer etter telemetritjeneste** (under **Flere felt**) | Spans fra en av de valgte tjenestene. | Tom: alle tjenester |
 | **Filtrer etter infrastrukturenhet** (under **Flere felt**) | Spans fra en av de valgte vertene, podene, containerne og andre entitetene. | Tom: alle entiteter |
 | **Filtrer etter attributter** (under **Flere felt**) | Spans der attributtene oppfyller alle vilkår. Hvert vilkår har sin egen operator, som «er lik» eller «inneholder». | Tom: ingen vilkår |
@@ -84,8 +92,8 @@ Hvis du vil at vellykkede forespørsler skal vises som OK, legger du til en spor
 ## Slik evalueres den
 
 - **Hvert minutt.** En trasemonitor sjekkes ikke av sonder, så den har ikke noe intervall å angi og ingen side **Sonder og intervall**.
-- **Ett tall per evaluering.** Monitoren teller spans som samsvarer med alle filtre og startet innenfor **Overvåk spor i (tid)** før evalueringen. Med **Siste 5 minutter** ser hver evaluering fem minutter tilbake, så vinduene for evalueringer som følger etter hverandre, overlapper.
-- **Ingen spans er et antall på 0.** En tjeneste som slutter å sende traser, gir 0, og det er det standardkriteriet for frakoblet ser etter.
+- **Ett tall per evaluering.** Monitoren teller spans som samsvarer med alle filtre og startet innenfor **Tidsvindu** før evalueringen. Med **Siste 5 minutter** ser hver evaluering fem minutter tilbake, så vinduene for evalueringer som følger etter hverandre, overlapper.
+- **Ingen spans er et antall på 0.** En tjeneste som slutter å sende traser, gir 0, og det er det **Forespørsler uteblir** ser etter.
 - **OneUptimes eget nedetid er ikke stillhet.** Så lenge tidsvinduet inneholder tid da OneUptime selv ikke mottok data (det startet på nytt, ble oppgradert eller tok igjen et etterslep), venter sjekken: statusen endres ikke, og ingen hendelse eller varsel åpnes eller løses. Se [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving).
 - **Kriterier fra topp til bunn.** Det første kriteriet som samsvarer, avgjør, så legg det mest alvorlige øverst.
 
@@ -93,7 +101,7 @@ Hver statusendring registreres med årsaken på monitorens **Statustidslinje**.
 
 ## Kriterier
 
-Kriteriene til en trasemonitor har én **Filtertype**: **Span Count**, antallet spans som samsvarte i vinduet. Velg et **Filtervilkår** og, for et tersklevilkår, en **Verdi**.
+Kriteriene til en trasemonitor har én **Filtertype**: **Span Count**, antallet spans som samsvarte i vinduet. **Når det skal varsles** setter opp ett kriterium, der **Betingelse** er **Mer enn**, **Minst**, **Færre enn**, **Høyst**, **Nøyaktig**, **Uvanlig høy**, **Uvanlig lav** eller **Uvanlig høy eller lav**. For flere kriterier, eller ett med mer enn ett filter, klikker du på **Rediger som egne kriterier** under **Flere felt** i **Hva som skjer**: hvert kriterium der har et **Filtervilkår** og, for et tersklevilkår, en **Verdi**.
 
 | Filtervilkår | Samsvarer når antallet spans er… |
 | --- | --- |
@@ -106,9 +114,16 @@ Kriteriene til en trasemonitor har én **Filtertype**: **Span Count**, antallet 
 | **Anomalously Low** | under det området |
 | **Anomalous** | utenfor det området, i hvilken som helst retning |
 
-Avviksvilkårene har ingen **Verdi**. Velg en **Følsomhet** (Low, Medium, som er standard, eller High) og et **Grunnlinjevindu** på 14 (standard), 28, 60 eller 90 dager. OneUptime gjør antallet om til en rate per minutt og sammenligner den med samme time i uken over det vinduet. Grunnlinjen dekker bare monitorens tjenester og span-statuser: filtrene på span-navn og attributter inngår ikke. Inntil den timen i uken har nok historikk, lærer kriteriet fortsatt og utløses ikke.
+Avviksvilkårene har ingen **Verdi**. Velg en **Følsomhet** (Lav, Middels, som er standard, eller Høy) og, i de egne kriteriene, et **Grunnlinjevindu** på 14 (standard), 28, 60 eller 90 dager. OneUptime gjør antallet om til en rate per minutt og sammenligner den med samme time i uken over det vinduet. Grunnlinjen dekker bare monitorens tjenester og span-statuser: filtrene på span-navn og attributter inngår ikke. Inntil den timen i uken har nok historikk, lærer kriteriet fortsatt og utløses ikke.
 
-En ny trasemonitor starter med disse kriteriene:
+En trasemonitor som er opprettet i Opprett monitor, starter med regelen for det du valgte under **Hva skal denne overvåkingen fortelle deg om?**:
+
+| Valg | Regel | Hva som skjer |
+| --- | --- | --- |
+| **For mange mislykkede forespørsler** | **Span-status** **Feil**, **Mer enn** `10` i **Siste 5 minutter** | Oppretter et varsel, som løser seg selv |
+| **Forespørsler uteblir** | **Nøyaktig** `0` i **Siste 10 minutter** | Erklærer en hendelse, som løser seg selv |
+
+En trasemonitor som er opprettet via API-et eller Terraform uten kriterier, starter med disse kriteriene:
 
 | Kriterium | Filter | Virkning |
 | --- | --- | --- |
@@ -117,9 +132,9 @@ En ny trasemonitor starter med disse kriteriene:
 
 ## Gjennomgått eksempel: mislykkede checkout-forespørsler
 
-På fem minutter registrerer checkout-tjenesten 1 200 spans med navnet `POST /api/checkout`: 1 150 UNSET, 20 OK og 30 ERROR. Den samme monitoren teller svært ulike tall avhengig av **Filtrer etter span-status**:
+På fem minutter registrerer checkout-tjenesten 1 200 spans med navnet `POST /api/checkout`: 1 150 UNSET, 20 OK og 30 ERROR. Den samme monitoren teller svært ulike tall avhengig av **Span-status**:
 
-| Filtrer etter span-status | Span Count | Hva det måler |
+| Span-status | Span Count | Hva det måler |
 | --- | --- | --- |
 | **Feil** | 30 | Forespørsler som mislyktes |
 | **OK** | 20 | Bare forespørslene koden din merket som vellykkede |
@@ -128,18 +143,18 @@ På fem minutter registrerer checkout-tjenesten 1 200 spans med navnet `POST /ap
 
 For å bli tilkalt når mer enn 10 checkout-forespørsler mislykkes på fem minutter:
 
-- **Span-navn**: `POST /api/checkout`
-- **Overvåk spor i (tid)**: **Siste 5 minutter**
-- **Filtrer etter span-status**: **Feil**
-- Kriterium 1: **Span Count** **Større enn** `10`: sett monitoren som frakoblet og erklær en hendelse
-- Kriterium 2: **Span Count** **Mindre enn eller lik** `10`: sett monitoren som tilkoblet
+- **Span-navnet inneholder**: `POST /api/checkout`
+- **Tidsvindu**: **Siste 5 minutter**
+- **Span-status**: **Feil**
+- **Når det skal varsles**: **Mer enn** `10`
+- **Hva som skjer**: **Erklær en hendelse**
 
-Med 30 mislykkede forespørsler samsvarer kriterium 1, og hendelsen erklæres. Når det har gått fem minutter med 10 eller færre feil, samsvarer kriterium 2, monitoren er tilkoblet igjen, og hendelsen løser seg selv.
+Med 30 mislykkede forespørsler samsvarer regelen, og hendelsen erklæres. Når det har gått fem minutter med 10 eller færre feil, slutter regelen å samsvare, monitoren er tilkoblet igjen, og hendelsen løser seg selv.
 
 ## Feilsøking
 
 :::details Monitoren teller ingen spans for endepunktet mitt
-**Span-navn** sammenlignes med spannets navn, og instrumentering navngir ofte server-spans etter ruten (`POST /api/checkout`) eller bare etter metoden (`GET`). Finn det nøyaktige navnet i trase-utforskeren. Åpne deretter monitorens side **Kriterier** (under **Konfigurasjon**), og klikk på **Edit Monitoring Criteria**: **Forhåndsvisning av spans** viser hva filtrene samsvarer med akkurat nå.
+**Span-navnet inneholder** sammenlignes med spannets navn, og instrumentering navngir ofte server-spans etter ruten (`POST /api/checkout`) eller bare etter metoden (`GET`). Finn det nøyaktige navnet i trase-utforskeren. Åpne deretter monitorens side **Kriterier** (under **Konfigurasjon**), og klikk på **Edit Monitoring Criteria**: **Samsvarende spans** viser hva filtrene samsvarer med akkurat nå.
 :::
 
 :::details Vellykkede forespørsler telles ikke når jeg filtrerer på OK

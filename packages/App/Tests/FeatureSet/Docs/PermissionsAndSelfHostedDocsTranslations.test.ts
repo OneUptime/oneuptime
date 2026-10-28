@@ -122,8 +122,6 @@ const PAGE_NAMES: Array<string> = PAGES.map((entry: TranslatedPage): string => {
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   // The Admin Dashboard's switch that turns push off, which has no locale key.
   [PUSH_PAGE]: ["Send push notifications"],
-  // The monitor type picker's title, which has no locale key.
-  [PRIVATE_NETWORK_PAGE]: ["Custom JavaScript Code"],
   // The edition label's button, which has no locale key.
   [ENTERPRISE_PAGE]: ["Refresh license"],
 };
