@@ -137,10 +137,10 @@ function mapSectionElements(
  *
  * A section that is given `isActive` explicitly keeps it.
  *
- * The current path goes to every section as well: an entry an Enterprise
- * component draws is not in the JSX the route scan reads, so the section
- * works that one out from the rows once they are in the DOM
- * (SideMenuSection).
+ * The current path goes with the answer: an entry an Enterprise component
+ * draws is not in the JSX the route scan reads, so the section works that
+ * one out from its rows once they are in the DOM (SideMenuSection). A
+ * section given `isActive` explicitly gets neither.
  */
 function withActiveSections(
   children: ReactElement | Array<ReactElement>,
