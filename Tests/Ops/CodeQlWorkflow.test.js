@@ -85,7 +85,7 @@ const LEFT_OUT_LANGUAGES = {
   csharp:
     "Only the example app in Examples/, which GitHub's language detection counts as documentation, so default setup never tried C#.",
   "java-kotlin":
-    "The Android module of the React Native session replay SDK. Default setup's Java/Kotlin analysis failed on 14 September 2026.",
+    "The Android modules of the React Native session replay SDK and of the mobile app (its window posture module). Default setup's Java/Kotlin analysis failed on 14 September 2026.",
   swift:
     "The iOS module of the same SDK. Default setup's Swift analysis failed on 14 September 2026.",
 };

@@ -598,7 +598,10 @@ function AdaptiveStackNavigator({
     <NavigationContent>
       <SafeAreaProviderCompat>
         <PaneStateScope scope={rootRoute.key}>
-          <View style={stacked ? styles.stacked : styles.row}>
+          <View
+            testID="adaptive-panes"
+            style={stacked ? styles.stacked : styles.row}
+          >
             {split ? (
               <ListPane
                 descriptor={rootDescriptor}

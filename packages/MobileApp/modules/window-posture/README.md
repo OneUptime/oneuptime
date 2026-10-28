@@ -4,12 +4,12 @@ A local Expo module that tells the app where its window folds, and how the
 phone is held. It is the "check" behind the posture layouts in
 `src/layout/windowLayout.ts`:
 
-| What the module reports                          | Layout                                                                 |
-| ------------------------------------------------ | ---------------------------------------------------------------------- |
-| Nothing (no module, or no report yet)            | Today's layout, by the window's size alone. The divider has no handle. |
-| No fold, or a fold lying flat                    | The reader can drag the divider between a list and its detail.         |
-| A fold running top to bottom that splits the window (half open like a book) | The list and the detail meet on the fold; the divider stays there.     |
-| A fold running side to side that splits the window (half open on a table)  | The detail above the fold, the list below it, the bar along the bottom. |
+| What the module reports                                                     | Layout                                                                  |
+| --------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Nothing (no module, or no report yet)                                       | Today's layout, by the window's size alone. The divider has no handle.  |
+| No fold, or a fold lying flat                                               | The reader can drag the divider between a list and its detail.          |
+| A fold running top to bottom that splits the window (half open like a book) | The list and the detail meet on the fold; the divider stays there.      |
+| A fold running side to side that splits the window (half open on a table)   | The detail above the fold, the list below it, the bar along the bottom. |
 
 ## Platforms
 
@@ -22,7 +22,7 @@ phone is held. It is the "check" behind the posture layouts in
 - **iOS:** not linked yet (`expo-module.config.json` names Android alone), so
   iOS keeps today's layout. Apple added what an iOS side needs in the iOS 27.1
   SDK - the fold as a division region (`UIView.reservedRegions(kind:
-  .division)`) and the hinge (`UIHingeInteraction`; Expo SDK 58 wraps it as
+.division)`) and the hinge (`UIHingeInteraction`; Expo SDK 58 wraps it as
   `expo-hinge`) - but it has to be built and checked on Xcode 27.1 and the
   iPhone Duo simulator before it is linked.
 - **Web:** the web build does not use this module; it reads the browser's
@@ -41,7 +41,7 @@ today's layout.
 ## Checks
 
 - JavaScript, with the module standing in: `npx jest src/layout src/navigation
-  src/__tests__/windowPostureModule.test.ts`. The last suite runs Expo's own
+src/__tests__/windowPostureModule.test.ts`. The last suite runs Expo's own
   autolinking to show the module is linked into Android builds and into no
   iOS build, and pins the names and the report's shape the Kotlin side uses.
 - Kotlin, with the app's Gradle build (Android SDK 36 and JDK 17):

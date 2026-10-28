@@ -291,6 +291,10 @@ describe("Half open on a table", () => {
     setWindowSize(ON_ITS_SIDE);
     await renderStack(fakeSource(TABLETOP));
 
+    // Laid out bottom up: the list (first in the tree) at the bottom, the detail on top.
+    expect(screen.getByTestId("adaptive-panes")).toHaveStyle({
+      flexDirection: "column-reverse",
+    });
     const listPane: ReturnType<typeof screen.getByTestId> =
       screen.getByTestId("list-pane");
     expect(listPane).toHaveStyle({
@@ -460,6 +464,9 @@ describe("Half open like a book", () => {
     );
 
     // The rail covers the 8-point inset: 88 points, then the list to the fold.
+    expect(screen.getByTestId("adaptive-panes")).toHaveStyle({
+      flexDirection: "row",
+    });
     expect(screen.getByTestId("list-pane")).toHaveStyle({
       width: 442 - (NAVIGATION_RAIL_WIDTH + INSETS.left),
     });

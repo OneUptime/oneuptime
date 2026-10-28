@@ -125,7 +125,8 @@ describe("Above and below a tabletop fold", () => {
    * at the fold, so its last card needs only the breathing room after it.
    */
   test("the pane above the fold has no bar to clear, and no bottom inset", async () => {
-    setWindowSize(TEST_WINDOWS.innerScreenOnItsSide);
+    // A Galaxy Z Flip held open: the bar runs along the bottom of the window.
+    setWindowSize({ width: 412, height: 914 });
     await render(
       <SafeAreaInsetsContext.Provider
         value={{ top: 24, bottom: 16, left: 0, right: 0 }}
@@ -134,8 +135,8 @@ describe("Above and below a tabletop fold", () => {
           pane={{
             kind: "detail",
             arrangement: "stacked",
-            width: 1104,
-            height: 430,
+            width: 412,
+            height: 445,
             insetLeft: 0,
             insetRight: 0,
             insetBottom: 0,
