@@ -236,7 +236,11 @@ describe("Settings > Custom Channels in the Enterprise Admin Dashboard", () => {
     expect(CustomChannelsPlugins.SettingsNotificationSideMenuItems).toBe(
       CustomChannelsSideMenuItem,
     );
-    expect(CustomChannelsPlugins.SettingsSideMenuItems).toBeUndefined();
+    /*
+     * Basic's key is not among its keys: read with `in`, since its type,
+     * picked to the two keys it owns, has no such property to read.
+     */
+    expect("SettingsSideMenuItems" in CustomChannelsPlugins).toBe(false);
   });
 
   test("is part of the plugin the Enterprise image builds, between Backups and White Label", () => {
