@@ -470,7 +470,8 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
               const offset: number = cumulativeOffsets[index] || 0;
               const isSkipped: boolean = isSkippedLevel(level);
               const timingLabel: string = isSkipped
-                ? translator.translateText(SKIPPED_LEVEL_TIMING)
+                ? translator.translateText(SKIPPED_LEVEL_TIMING) ||
+                  SKIPPED_LEVEL_TIMING
                 : offset <= 0
                   ? translator.translateText("Immediately") || "Immediately"
                   : translator.translateTemplate("After {{duration}}", {

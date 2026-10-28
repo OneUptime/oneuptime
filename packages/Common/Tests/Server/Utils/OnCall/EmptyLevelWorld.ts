@@ -347,7 +347,9 @@ export default class EmptyLevelWorld extends PassOnWorld {
       }) as never);
   }
 
-  private getPolicySettings(): OnCallDutyPolicyExecutionLog["onCallDutyPolicy"] {
+  private getPolicySettings(): NonNullable<
+    OnCallDutyPolicyExecutionLog["onCallDutyPolicy"]
+  > {
     return {
       name: "Payments",
       repeatPolicyIfNoOneAcknowledges: this.repeatsAllowed > 0,

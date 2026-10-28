@@ -992,7 +992,7 @@ describe("how a run that went through every rule ends", () => {
           ] === true
         );
       },
-    )![0] as Record<string, unknown>;
+    )![0] as unknown as Record<string, unknown>;
 
     expect(
       (read["query"] as Record<string, unknown>)[
