@@ -641,7 +641,7 @@ export const MicronautGuide: OpenTelemetryGuide = {
       validateKeyStep("server"),
       {
         title: "Find the service",
-        body: `Send a request, then open ${SCREENS.services}: \`checkout-api\` is listed within a minute.`,
+        body: `Request any route: ${SCREENS.services} lists \`checkout-api\` within a minute.`,
       },
       {
         title: "Open a request's trace",
@@ -704,7 +704,7 @@ export const MicronautGuide: OpenTelemetryGuide = {
     {
       question: "Do I need an OpenTelemetry Collector?",
       answer:
-        "No: the SDK sends straight to OneUptime. A Collector helps when you want one place to filter or batch what many services send: see [OpenTelemetry](/docs/telemetry/open-telemetry).",
+        "No: the SDK sends straight to OneUptime. A Collector earns its place when many services' telemetry should be filtered or batched in one place: see [OpenTelemetry](/docs/telemetry/open-telemetry).",
     },
   ],
 

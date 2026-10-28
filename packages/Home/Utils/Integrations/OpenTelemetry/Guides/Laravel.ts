@@ -345,7 +345,7 @@ export const LaravelGuide: OpenTelemetryGuide = {
     traces:
       "A server span per request, named after its route, such as `GET /api/orders/{order}`; beneath it, a span per Eloquent operation, one per SQL query with its statement, and one per Http client call, with `traceparent` sent along.",
     metrics:
-      "The instruments you create, such as a counter of orders by payment method. Laravel's instrumentation records spans and logs only.",
+      "Laravel's instrumentation records spans and logs only, so the metrics are the instruments you create: orders by payment method, here.",
     logs: "Every record written through the Log facade, at its severity, with the trace and span IDs of the request that wrote it and its context as attributes.",
     exceptions: `An exception an action raises is recorded on the request's span, which is marked failed, and Laravel's handler logs it with \`exception.type\` and \`exception.message\`: ${SCREENS.exceptions} lists it. A missing model, answered with a 404, is neither.`,
   },
@@ -397,7 +397,7 @@ export const LaravelGuide: OpenTelemetryGuide = {
     snippets: [installExtension, allowPlugin, install],
     notes: [
       "The plugin, `tbachert/spi`, writes the list of installed instrumentations into Composer's autoloader. Without it, the SDK starts before Laravel's instrumentation has registered: the app runs, your own spans arrive, and nothing of Laravel's is traced.",
-      "`opentelemetry-auto-laravel` traces through the extension's hooks: `php --ri opentelemetry` prints the extension's version once PHP loads it.",
+      "`opentelemetry-auto-laravel` traces through the extension's hooks, so check that PHP loads it: `php --ri opentelemetry` prints its version.",
     ],
   },
 

@@ -586,7 +586,7 @@ export const AngularGuide: OpenTelemetryGuide = {
       },
       {
         title: "See the navigations",
-        body: `In ${SCREENS.traces}, search \`@app.route:/products/:id\`: each visit to a product page is a \`navigation\` span.`,
+        body: `Search ${SCREENS.traces} for \`@app.route:/products/:id\`: each visit to a product page is a \`navigation\` span.`,
       },
       {
         title: "Throw on purpose",
@@ -642,7 +642,7 @@ export const AngularGuide: OpenTelemetryGuide = {
     {
       question: "Is the key safe in my bundle?",
       answer:
-        "A **Browser** key is made for it: OneUptime accepts it only from its Allowed Origins, and you can switch it off at once. A **Server** key never belongs in a bundle.",
+        "That is what a **Browser** key is for: it works only from its Allowed Origins, and it can be turned off at once. A **Server** key never belongs in a bundle.",
     },
   ],
 

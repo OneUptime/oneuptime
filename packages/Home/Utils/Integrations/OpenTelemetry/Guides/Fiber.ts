@@ -705,7 +705,7 @@ export const FiberGuide: OpenTelemetryGuide = {
       validateKeyStep("server"),
       {
         title: "Find the service",
-        body: `Call a route, then open ${SCREENS.services}: \`carts-api\` is listed within a minute.`,
+        body: `After a request to any route, ${SCREENS.services} lists \`carts-api\` within a minute.`,
       },
       {
         title: "Open a request's trace",

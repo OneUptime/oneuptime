@@ -124,6 +124,18 @@ const COMPILED_OR_RUN_LANGUAGES: ReadonlyArray<SnippetLanguage> = [
   "elixir",
 ];
 
+// A text's sentences, and the clauses a colon or a semicolon closes.
+function sentencesOf(text: InlineText): Array<string> {
+  return text
+    .split(/(?<=[.!?:;])\s+/)
+    .map((sentence: string): string => {
+      return sentence.trim();
+    })
+    .filter((sentence: string): boolean => {
+      return sentence.length > 0;
+    });
+}
+
 // Every inline text a guide writes itself, with where it is written.
 function guideTexts(guide: OpenTelemetryGuide): Array<[string, InlineText]> {
   const texts: Array<[string, InlineText]> = [];
@@ -1148,21 +1160,28 @@ describe("what the guides write", () => {
     }
   });
 
+  /*
+   * Sentence by sentence, not only text by text: two guides share a fact
+   * only through the texts kept in one place, so that no page reads as
+   * another's copy with its names changed.
+   */
   test("writes no sentence two guides share, beyond the facts kept in one place", () => {
     const writers: Map<string, Array<string>> = new Map();
 
     for (const guide of GUIDES) {
       for (const [where, text] of guideTexts(guide)) {
-        if (
-          text.length < SHARED_TEXT_LENGTH ||
-          SHARED_GUIDE_TEXTS.includes(text)
-        ) {
+        if (SHARED_GUIDE_TEXTS.includes(text)) {
           continue;
         }
-        writers.set(text, [
-          ...(writers.get(text) || []),
-          `${guide.slug}.${where}`,
-        ]);
+        for (const sentence of sentencesOf(text)) {
+          if (sentence.length < SHARED_TEXT_LENGTH) {
+            continue;
+          }
+          writers.set(sentence, [
+            ...(writers.get(sentence) || []),
+            `${guide.slug}.${where}`,
+          ]);
+        }
       }
     }
 

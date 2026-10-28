@@ -415,7 +415,7 @@ export const RustGuide: OpenTelemetryGuide = {
 
   deploy: {
     intro:
-      "Build the release binary in the Rust image and run it from a distroless one; schedule it as a Kubernetes CronJob, with the key in a Secret:",
+      "Build the release binary in the Rust image and run it from a distroless one; a Kubernetes CronJob starts it on its schedule, the key read from a Secret:",
     snippets: [
       rustDockerfileSnippet({ binary: "invoice-sync" }),
       kubernetesCronJobSnippet({

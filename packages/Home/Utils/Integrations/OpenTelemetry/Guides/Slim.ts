@@ -290,7 +290,7 @@ export const SlimGuide: OpenTelemetryGuide = {
     traces:
       "A server span per request, named after the route's pattern, such as `GET /orders/{id}`, a span for the handler that served it, named after the function, and beneath them a span for each PDO call and each Guzzle request.",
     metrics:
-      "The instruments you create, such as a counter of orders by payment method. Slim's instrumentation records spans only.",
+      "A counter of orders by payment method, and any other instrument you create: Slim's instrumentation records spans only.",
     logs: "Each Monolog record at INFO or above, carrying the trace and span IDs of the request that wrote it, with its context as attributes.",
     exceptions: `An exception a handler throws is recorded on the handler's span with its type, message and stack trace, and both spans are marked failed; ${SCREENS.exceptions} lists it.`,
   },
@@ -332,7 +332,7 @@ export const SlimGuide: OpenTelemetryGuide = {
 
   prerequisites: [
     PHP_PREREQUISITE,
-    "A Slim 4 app, with a PSR-7 implementation such as `slim/psr7`. Without a framework? The [PHP](/integrations/opentelemetry/php) guide covers an app of your own.",
+    "A Slim 4 app, with a PSR-7 implementation such as `slim/psr7`. Without a framework? The [PHP](/integrations/opentelemetry/php) guide covers plain PHP.",
     SERVER_KEY_PREREQUISITE,
   ],
 
@@ -491,7 +491,7 @@ export const SlimGuide: OpenTelemetryGuide = {
       validateKeyStep("server"),
       {
         title: "Open a request's trace",
-        body: `Request \`/orders/42\`, then open ${SCREENS.traces}: \`GET /orders/{id}\` holds \`showOrder\`, with the query's \`PDO::prepare\` and \`PDOStatement::execute\` beneath it.`,
+        body: `After a request to \`/orders/42\`, ${SCREENS.traces} shows \`GET /orders/{id}\` holding \`showOrder\`, with the query's \`PDO::prepare\` and \`PDOStatement::execute\` beneath it.`,
       },
       {
         title: "Follow an order",

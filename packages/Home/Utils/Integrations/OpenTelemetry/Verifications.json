@@ -1530,7 +1530,7 @@
     },
     "framework": "Axum 0.8.9",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:203e85fa0d4eb5373850cf2fc7b023f9f3810e38dcba5c004bfc328c8a0f0e13",
+    "snippetDigest": "sha256:27f9d433527699417972c910bbd300b9378ccb7974b57e873aef3a20852aeae9",
     "observed": {
       "spans": [
         "GET",
@@ -2571,14 +2571,14 @@
     },
     "framework": "Elixir",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:2a86d153ec06d2cd78ce9ede220c11a97f85342abba9f5263b628f05056a6eb7",
+    "snippetDigest": "sha256:9f66471c46abcc913fc56a8e0e93cf2aa4d28319758d8d2090846d8d004ae421",
     "observed": {
-      "spans": ["GET", "POST", "price.save", "prices.import"],
-      "metrics": ["prices.imported"],
+      "spans": ["GET", "POST", "payout.send", "payouts.run"],
+      "metrics": ["payouts.sent"],
       "logs": [
         "Exporter otel_exporter_logs_otlp successfully initialized",
-        "imported 1 of 2 prices",
-        "skipped a price: inv_2 is below the minimum price"
+        "held a payout: inv_2 is below the minimum payout",
+        "sent 1 of 2 payouts"
       ]
     },
     "packageExports": {}
@@ -6828,7 +6828,7 @@
       "spans": ["GET", "INSERT shop", "connect", "price.save", "prices.import"],
       "metrics": ["prices.imported"],
       "logs": [
-        "I, [2026-10-28T20:11:39.661146 #320]  INFO -- : Instrumentation: OpenTelemetry::Instrumentation::Logger was successfully",
+        "I, [2026-10-28T23:06:39.041378 #97]  INFO -- : Instrumentation: OpenTelemetry::Instrumentation::Logger was successfully ",
         "imported 1 of 2 prices\n",
         "skipped a price: inv_2 is below the minimum price\n"
       ]

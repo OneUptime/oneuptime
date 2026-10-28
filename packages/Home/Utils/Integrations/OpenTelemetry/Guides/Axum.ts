@@ -502,7 +502,7 @@ export const AxumGuide: OpenTelemetryGuide = {
 
   sampling: {
     intro:
-      "The health check stays untraced, outside the layers. To keep a share of the other requests' traces, set the standard sampler variables:",
+      "The health check stays untraced, outside the layers. For the rest, the SDK reads the standard sampler variables, which keep a share of the traces:",
     snippets: [sampling],
     notes: [
       "A request whose caller sent `traceparent` follows the caller's choice; of those that start a trace, `parentbased_traceidratio` keeps one in four.",
@@ -559,7 +559,8 @@ export const AxumGuide: OpenTelemetryGuide = {
     {
       question: "An error response arrives with no exception",
       answer:
-        "A 5xx marks the span failed, but only an `exception` event names the error. Record one where the error turns into a response, as `AppError`'s `into_response` does.",
+        "A 5xx marks the span failed, but only an `exception` event names the error. Record one where the error turns into a response, as `AppError`'s `into_response` does:",
+      snippets: [appError],
     },
     {
       question: "The payments API's spans are in traces of their own",

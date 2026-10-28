@@ -647,7 +647,7 @@ export const GoGuide: OpenTelemetryGuide = {
     {
       question: "The program logs “401 Unauthorized”",
       answer:
-        "OneUptime refused the key: `failed to send to https://oneuptime.com/otlp/v1/traces: 401 Unauthorized`. `OTEL_EXPORTER_OTLP_HEADERS` must be `x-oneuptime-token=` and a **Server** key's **Secret Key**, from the project you are looking at.",
+        "OneUptime refused the key: `failed to send to https://oneuptime.com/otlp/v1/traces: 401 Unauthorized`. Set `OTEL_EXPORTER_OTLP_HEADERS` to `x-oneuptime-token=` followed by the **Secret Key** of a **Server** key from the project you are looking at.",
     },
   ],
 

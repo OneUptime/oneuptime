@@ -647,7 +647,7 @@ export const PhoenixGuide: OpenTelemetryGuide = {
     steps: [
       {
         title: "Add the metric reader to the end of config/runtime.exs",
-        body: "A reader that exports through OTLP over HTTP. The experimental SDK takes its interval from the configuration alone, so the block reads the standard variable:",
+        body: "The experimental SDK's metric reader, exporting through OTLP over HTTP. Its interval comes from this configuration, not from `OTEL_METRIC_EXPORT_INTERVAL`, so the block reads the variable and passes it on:",
         snippets: [metricReader],
       },
       {

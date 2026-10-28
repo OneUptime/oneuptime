@@ -22,12 +22,13 @@ import {
 } from "../ElixirShared";
 
 /*
- * A supervised OTP application that imports a supplier's prices into a
- * catalog as it starts and then every minute: one trace per import, the
- * supplier's API called with Req, each price saved in a task of its own.
- * The SDK starts as an application before this one; the application adds
- * a :logger handler for logs, and config/runtime.exs a metric reader.
- * Checked as `mix run --no-halt` runs it, stopped with SIGTERM.
+ * A supervised OTP application that pays a marketplace's sellers what they
+ * are owed, as it starts and then every minute: one trace per run, the
+ * payments provider's API called with Req, each payout sent in a task of
+ * its own. The SDK starts as an application before this one; the
+ * application adds a :logger handler for logs, and config/runtime.exs a
+ * metric reader. Checked as `mix run --no-halt` runs it, stopped with
+ * SIGTERM.
  */
 
 const mixExs: GuideSnippet = {
@@ -35,24 +36,24 @@ const mixExs: GuideSnippet = {
   language: "elixir",
   title: "mix.exs",
   code: [
-    "defmodule PriceImport.MixProject do",
+    "defmodule Payouts.MixProject do",
     "  use Mix.Project",
     "",
     "  def project do",
     "    [",
-    "      app: :price_import,",
+    "      app: :payouts,",
     '      version: "0.1.0",',
     '      elixir: "~> 1.15",',
     "      start_permanent: Mix.env() == :prod,",
     "      deps: deps(),",
-    ...releaseLines("price_import"),
+    ...releaseLines("payouts"),
     "    ]",
     "  end",
     "",
     "  def application do",
     "    [",
     "      extra_applications: [:logger],",
-    "      mod: {PriceImport.Application, []}",
+    "      mod: {Payouts.Application, []}",
     "    ]",
     "  end",
     "",
@@ -95,9 +96,9 @@ const runtimeConfig: GuideSnippet = {
 const application: GuideSnippet = {
   id: "application",
   language: "elixir",
-  title: "lib/price_import/application.ex",
+  title: "lib/payouts/application.ex",
   code: [
-    "defmodule PriceImport.Application do",
+    "defmodule Payouts.Application do",
     "  @moduledoc false",
     "",
     "  use Application",
@@ -108,11 +109,11 @@ const application: GuideSnippet = {
       "Logger's events, as OpenTelemetry log records with the current span's IDs.",
     ),
     "",
-    "    PriceImport.create_instruments()",
+    "    Payouts.create_instruments()",
     "",
-    "    Supervisor.start_link([PriceImport.Importer],",
+    "    Supervisor.start_link([Payouts.Scheduler],",
     "      strategy: :one_for_one,",
-    "      name: PriceImport.Supervisor",
+    "      name: Payouts.Supervisor",
     "    )",
     "  end",
     "end",
@@ -120,13 +121,13 @@ const application: GuideSnippet = {
   check: "run",
 };
 
-const importer: GuideSnippet = {
-  id: "importer",
+const scheduler: GuideSnippet = {
+  id: "scheduler",
   language: "elixir",
-  title: "lib/price_import/importer.ex",
+  title: "lib/payouts/scheduler.ex",
   code: [
-    "defmodule PriceImport.Importer do",
-    '  @moduledoc "Imports the supplier\'s prices as it starts, then every minute."',
+    "defmodule Payouts.Scheduler do",
+    '  @moduledoc "Runs the payouts as the application starts, then every minute."',
     "",
     "  use GenServer",
     "",
@@ -136,14 +137,14 @@ const importer: GuideSnippet = {
     "",
     "  @impl true",
     "  def init(nil) do",
-    "    send(self(), :import)",
+    "    send(self(), :run)",
     "    {:ok, nil}",
     "  end",
     "",
     "  @impl true",
-    "  def handle_info(:import, state) do",
-    "    PriceImport.run()",
-    "    Process.send_after(self(), :import, @every)",
+    "  def handle_info(:run, state) do",
+    "    Payouts.run()",
+    "    Process.send_after(self(), :run, @every)",
     "    {:noreply, state}",
     "  end",
     "end",
@@ -151,55 +152,55 @@ const importer: GuideSnippet = {
   check: "run",
 };
 
-const priceImportFile: string = [
-  "defmodule PriceImport do",
-  '  @moduledoc "Imports a supplier\'s prices into the catalog: one trace per run."',
+const payoutsFile: string = [
+  "defmodule Payouts do",
+  '  @moduledoc "Pays the marketplace\'s sellers what they are owed: one trace per run."',
   "",
   "  require Logger",
   "  require OpenTelemetry.Tracer, as: Tracer",
   "  require OpenTelemetryAPIExperimental.Counter, as: Counter",
   "",
-  "  @minimum_price 100",
+  "  @minimum_payout 100",
   "",
   "  def create_instruments do",
-  '    Counter.create(:"prices.imported", %{',
-  '      description: "Prices imported from the supplier",',
-  '      unit: "{price}"',
+  '    Counter.create(:"payouts.sent", %{',
+  '      description: "Payouts sent to sellers",',
+  '      unit: "{payout}"',
   "    })",
   "  end",
   "",
   "  def run do",
-  '    Tracer.with_span "prices.import" do',
-  "      # Req's span for each call, and traceparent sent so the supplier's API joins in.",
+  '    Tracer.with_span "payouts.run" do',
+  "      # Req's span for each call, and traceparent sent so the provider joins in.",
   "      client =",
-  '        Req.new(base_url: System.get_env("SUPPLIER_API_URL", "http://localhost:9000"))',
+  '        Req.new(base_url: System.get_env("PAYMENTS_API_URL", "http://localhost:9000"))',
   "        |> OpentelemetryReq.attach(propagate_trace_headers: true)",
   "",
-  '      prices = Req.get!(client, url: "/api/prices").body["items"]',
-  '      Tracer.set_attribute(:"price.count", length(prices))',
+  '      payouts = Req.get!(client, url: "/api/payouts").body["items"]',
+  '      Tracer.set_attribute(:"payout.count", length(payouts))',
   "",
-  "      # Saved in parallel: the wrapper hands this span to each task it starts,",
+  "      # Sent in parallel: the wrapper hands this span to each task it starts,",
   "      # so their spans nest beneath it.",
-  "      imported =",
-  "        prices",
-  "        |> OpentelemetryProcessPropagator.Task.async_stream(&save_price(client, &1))",
-  "        |> Enum.count(fn {:ok, saved?} -> saved? end)",
+  "      sent =",
+  "        payouts",
+  "        |> OpentelemetryProcessPropagator.Task.async_stream(&send_payout(client, &1))",
+  "        |> Enum.count(fn {:ok, sent?} -> sent? end)",
   "",
-  '      Counter.add(:"prices.imported", imported, %{"supplier" => "acme"})',
-  '      Logger.info("imported #{imported} of #{length(prices)} prices")',
+  '      Counter.add(:"payouts.sent", sent, %{"currency" => "usd"})',
+  '      Logger.info("sent #{sent} of #{length(payouts)} payouts")',
   "    end",
   "  end",
   "",
-  '  defp save_price(client, %{"id" => id, "total" => total} = price) do',
-  '    Tracer.with_span "price.save", %{attributes: %{"price.sku": id}} do',
-  "      if total < @minimum_price do",
-  '        error = %ArgumentError{message: "#{id} is below the minimum price"}',
+  '  defp send_payout(client, %{"id" => id, "total" => total} = payout) do',
+  '    Tracer.with_span "payout.send", %{attributes: %{"payout.id": id}} do',
+  "      if total < @minimum_payout do",
+  '        error = %ArgumentError{message: "#{id} is below the minimum payout"}',
   "        Tracer.record_exception(error)",
   "        Tracer.set_status(:error, error.message)",
-  '        Logger.warning("skipped a price: #{error.message}", price_sku: id)',
+  '        Logger.warning("held a payout: #{error.message}", payout_id: id)',
   "        false",
   "      else",
-  '        Req.post!(client, url: "/api/catalog", json: price)',
+  '        Req.post!(client, url: "/api/transfers", json: payout)',
   "        true",
   "      end",
   "    end",
@@ -207,41 +208,41 @@ const priceImportFile: string = [
   "end",
 ].join("\n");
 
-const priceImport: GuideSnippet = {
-  id: "price-import",
+const payouts: GuideSnippet = {
+  id: "payouts",
   language: "elixir",
-  title: "lib/price_import.ex",
-  code: priceImportFile,
+  title: "lib/payouts.ex",
+  code: payoutsFile,
   check: "run",
 };
 
-const savePrice: GuideSnippet = {
-  id: "save-price",
+const sendPayout: GuideSnippet = {
+  id: "send-payout",
   language: "elixir",
-  title: "lib/price_import.ex",
-  code: blockOf(priceImportFile, "defp save_price(", "end"),
+  title: "lib/payouts.ex",
+  code: blockOf(payoutsFile, "defp send_payout(", "end"),
   check: "contained",
 };
 
 const counter: GuideSnippet = {
   id: "counter",
   language: "elixir",
-  title: "lib/price_import.ex",
-  code: blockOf(priceImportFile, "def create_instruments do", "end"),
+  title: "lib/payouts.ex",
+  code: blockOf(payoutsFile, "def create_instruments do", "end"),
   check: "contained",
 };
 
 const tasks: GuideSnippet = {
   id: "tasks",
   language: "elixir",
-  title: "lib/price_import.ex",
+  title: "lib/payouts.ex",
   code: [
-    "      # Saved in parallel: the wrapper hands this span to each task it starts,",
+    "      # Sent in parallel: the wrapper hands this span to each task it starts,",
     "      # so their spans nest beneath it.",
-    "      imported =",
-    "        prices",
-    "        |> OpentelemetryProcessPropagator.Task.async_stream(&save_price(client, &1))",
-    "        |> Enum.count(fn {:ok, saved?} -> saved? end)",
+    "      sent =",
+    "        payouts",
+    "        |> OpentelemetryProcessPropagator.Task.async_stream(&send_payout(client, &1))",
+    "        |> Enum.count(fn {:ok, sent?} -> sent? end)",
   ].join("\n"),
   check: "contained",
 };
@@ -316,20 +317,20 @@ export const ElixirGuide: OpenTelemetryGuide = {
   ],
 
   whatYouGet: {
-    intro: `An Elixir application reports as one service, named by \`OTEL_SERVICE_NAME\`, which ${SCREENS.services} lists once it first sends. The example is a supervised worker that imports a supplier's prices into a catalog every minute, one trace per import; a Phoenix app gets its request spans from the [Phoenix](/integrations/opentelemetry/phoenix) guide.`,
+    intro: `An Elixir application reports as one service, named by \`OTEL_SERVICE_NAME\`, which ${SCREENS.services} lists once it first sends. The example is a supervised worker that pays a marketplace's sellers what they are owed every minute, one trace per run; a Phoenix app gets its request spans from the [Phoenix](/integrations/opentelemetry/phoenix) guide.`,
     traces:
       "The spans your code opens with `Tracer.with_span`, nested as the calls nest, in a task too when the task is started through the wrapper, with their attributes; and a client span for each request Req makes, which sends `traceparent` along.",
     metrics:
-      "The instruments you create with the experimental metrics API, such as a count of prices imported: the libraries' instrumentation records spans only.",
+      "The instruments you create with the experimental metrics API, such as a count of payouts sent: the libraries' instrumentation records spans only.",
     logs: "Every event Logger lets through, as a log record with the IDs of the span it was written in, and Logger's metadata as its attributes.",
     exceptions: `An exception recorded on a span with \`Tracer.record_exception\` marks the span failed, with the exception's module and message, and ${SCREENS.exceptions} lists it.`,
   },
 
   exampleTrace: {
-    caption: "One import of the supplier's prices, as its trace shows it",
+    caption: "One run of the payouts, as its trace shows it",
     spans: [
       {
-        name: "prices.import",
+        name: "payouts.run",
         depth: 0,
         start: 0,
         duration: 100,
@@ -337,7 +338,7 @@ export const ElixirGuide: OpenTelemetryGuide = {
       },
       { name: "GET", depth: 1, start: 3, duration: 34, source: "Req" },
       {
-        name: "price.save",
+        name: "payout.send",
         depth: 1,
         start: 40,
         duration: 52,
@@ -345,7 +346,7 @@ export const ElixirGuide: OpenTelemetryGuide = {
       },
       { name: "POST", depth: 2, start: 43, duration: 46, source: "Req" },
       {
-        name: "price.save",
+        name: "payout.send",
         depth: 1,
         start: 40,
         duration: 4,
@@ -374,7 +375,7 @@ export const ElixirGuide: OpenTelemetryGuide = {
   configure: {
     intro:
       "The SDK, the exporters and the resource read the standard OpenTelemetry variables, so nothing of OneUptime's is in the code or in `config/`:",
-    tabs: otlpEnvironmentTabs({ serviceName: "price-import" }),
+    tabs: otlpEnvironmentTabs({ serviceName: "payouts" }),
     notes: [
       "A variable takes precedence over the same setting in `config/`, such as the exporter's `otlp_endpoint`, so one release runs wherever the variables are set.",
     ],
@@ -392,7 +393,7 @@ export const ElixirGuide: OpenTelemetryGuide = {
       {
         title:
           "Add the log handler, and create the instruments, as the application starts",
-        body: "A `:logger` handler turns each event into a log record; the counter is created once, before the supervisor starts the worker:",
+        body: "A `:logger` handler turns each event into a log record; the counter is created once, before the supervisor starts the scheduler:",
         snippets: [application],
         notes: [
           "The handler sends what it holds every second and sends nothing at shutdown: a second's records at most are lost as the node stops.",
@@ -400,8 +401,8 @@ export const ElixirGuide: OpenTelemetryGuide = {
       },
       {
         title: "Run the work under the supervisor",
-        body: "The worker imports as it starts, then once a minute. Nothing starts a trace in a worker, so each import opens one of its own:",
-        snippets: [importer, priceImport],
+        body: "The scheduler runs the payouts as it starts, then once a minute. Nothing starts a trace in a worker, so each run opens one of its own:",
+        snippets: [scheduler, payouts],
       },
       {
         title: "Run it",
@@ -436,23 +437,23 @@ export const ElixirGuide: OpenTelemetryGuide = {
       {
         library: "`otel_log_handler`",
         covers:
-          "A log record for each Logger event, with the trace and span IDs of the process it was written in and Logger's metadata, such as `price_sku`, as attributes.",
+          "A log record for each Logger event, with the trace and span IDs of the process it was written in and Logger's metadata, such as `payout_id`, as attributes.",
       },
     ],
     snippets: [tasks],
     notes: [
-      "A span is current only in the process that opened it. The wrapper passes it to each task, as here, where every price is saved in a task of its own:",
+      "A span is current only in the process that opened it. The wrapper passes it to each task, as here, where every payout is sent from a task of its own:",
     ],
   },
 
   manualSpans: {
     intro:
       "Open a span with `Tracer.with_span` around a block, with its attributes. An error you handle is recorded on the span with `record_exception` and `set_status`:",
-    snippets: [savePrice],
+    snippets: [sendPayout],
     notes: [
       "`with_span` ends its span when the block ends, an exception included, but records nothing about the exception: rescue it and record it as above.",
       "`record_exception` adds an `exception` event with the exception's module, `Elixir.ArgumentError`, and its message, which OneUptime files under **Exceptions**.",
-      "Search attributes in the **Traces** explorer, such as `@price.sku:inv_2`.",
+      "Search attributes in the **Traces** explorer, such as `@payout.id:inv_2`.",
     ],
   },
 
@@ -461,7 +462,7 @@ export const ElixirGuide: OpenTelemetryGuide = {
       "Log with Logger as you do. Each event becomes a log record that carries the IDs of the span current in its process, and its metadata go along as attributes:",
     snippets: [],
     notes: [
-      "`Logger.warning(..., price_sku: id)` makes `price_sku` an attribute of the record, beside its body.",
+      "`Logger.warning(..., payout_id: id)` makes `payout_id` an attribute of the record, beside its body.",
       "Logger's own metadata go along too: the module, function and line the event was written in, and the process.",
       "The console still prints every event: the handler is added beside Logger's default one, and the level Logger is set to applies to both.",
       "The SDK's own reports are events too, so they are sent as well, such as `Exporter otel_exporter_logs_otlp successfully initialized` as the node starts.",
@@ -474,29 +475,29 @@ export const ElixirGuide: OpenTelemetryGuide = {
     builtIn: [],
     snippets: [counter],
     notes: [
-      '`Counter.add(:"prices.imported", imported, %{"supplier" => "acme"})` adds to it, with an attribute that has a handful of values.',
+      '`Counter.add(:"payouts.sent", sent, %{"currency" => "usd"})` adds to it, with an attribute that has a handful of values.',
       "The reader exports every 60 seconds and sends nothing at shutdown: keep `OTEL_METRIC_EXPORT_INTERVAL` short where a node stops often.",
     ],
   },
 
   sampling: {
     intro:
-      "Every import is traced in full. For work that runs often, the SDK reads the standard sampler variables:",
+      "Every run is traced in full. For work that runs often, the SDK reads the standard sampler variables:",
     snippets: [sampling],
     notes: [
       "`parentbased_traceidratio` keeps one trace in four, picked by trace ID, and follows the caller's decision for a trace it continues.",
-      "The variables take the place of a `sampler` set in `config/`. Records and the counter are not sampled: `prices.imported` still counts every price.",
+      "The variables take the place of a `sampler` set in `config/`. Records and the counter are not sampled: `payouts.sent` still counts every payout.",
     ],
   },
 
   deploy: {
     intro:
-      "Build the release in the Elixir image and run it from Debian's slim one, which holds the libraries the runtime links; one pod runs the importer, with the key in a Secret:",
+      "Build the release in the Elixir image and run it from Debian's slim one, which holds the libraries the runtime links; one pod runs the payouts, with the key in a Secret:",
     snippets: [
-      elixirDockerfileSnippet("price_import"),
+      elixirDockerfileSnippet("payouts"),
       kubernetesManifestSnippet({
-        name: "price-import",
-        image: "registry.example.com/price-import:0.3.0",
+        name: "payouts",
+        image: "registry.example.com/payouts:0.3.0",
         replicas: 1,
       }),
     ],
@@ -512,15 +513,15 @@ export const ElixirGuide: OpenTelemetryGuide = {
       validateKeyStep("server"),
       {
         title: "Start the worker",
-        body: `Then open ${SCREENS.services}: \`price-import\` is listed within a minute. Nothing there? The console shows any export error.`,
+        body: `Then open ${SCREENS.services}: \`payouts\` is listed within a minute. Nothing there? The console shows any export error.`,
       },
       {
-        title: "Open an import's trace",
-        body: `In ${SCREENS.traces}, search for \`prices.import\`: the supplier's \`GET\` sits beneath it, then a \`price.save\` for each price, though each ran in a task, the first with its \`POST\`.`,
+        title: "Open a run's trace",
+        body: `Look up \`payouts.run\` in ${SCREENS.traces}: the provider's \`GET\` sits beneath it, then a \`payout.send\` for each payout, though each ran in a task, the first with its \`POST\`.`,
       },
       {
-        title: "Find the skipped price",
-        body: `${SCREENS.exceptions} lists the \`ArgumentError\`, \`inv_2 is below the minimum price\`; in ${SCREENS.logs}, the \`skipped a price\` record opens the same trace.`,
+        title: "Find the payout held back",
+        body: `${SCREENS.exceptions} lists the \`ArgumentError\` \`inv_2 is below the minimum payout\`; in ${SCREENS.logs}, the \`held a payout\` record opens the same trace.`,
       },
     ],
   },
@@ -599,9 +600,9 @@ export const ElixirGuide: OpenTelemetryGuide = {
         ].join("\n"),
       },
       { path: "config/runtime.exs", snippet: "runtime-config" },
-      { path: "lib/price_import.ex", snippet: "price-import" },
-      { path: "lib/price_import/application.ex", snippet: "application" },
-      { path: "lib/price_import/importer.ex", snippet: "importer" },
+      { path: "lib/payouts.ex", snippet: "payouts" },
+      { path: "lib/payouts/application.ex", snippet: "application" },
+      { path: "lib/payouts/scheduler.ex", snippet: "scheduler" },
     ],
     stubApiPort: 9000,
     commands: [
@@ -609,49 +610,49 @@ export const ElixirGuide: OpenTelemetryGuide = {
       // The code is as mix format writes it, and compiles without a warning.
       { command: "mix format --check-formatted" },
       { command: "mix compile --warnings-as-errors" },
-      { snippet: "run", isServer: true, readyText: "imported 1 of 2 prices" },
+      { snippet: "run", isServer: true, readyText: "sent 1 of 2 payouts" },
     ],
     requests: [],
     expect: {
       spans: [
-        { name: "prices.import", attributes: { "price.count": "2" } },
+        { name: "payouts.run", attributes: { "payout.count": "2" } },
         {
           name: "GET",
           attributes: {
-            "url.full": "http://localhost:9000/api/prices",
+            "url.full": "http://localhost:9000/api/payouts",
             "http.response.status_code": "200",
           },
-          parent: "prices.import",
+          parent: "payouts.run",
         },
         {
-          name: "price.save",
-          attributes: { "price.sku": "inv_1" },
+          name: "payout.send",
+          attributes: { "payout.id": "inv_1" },
           hasException: false,
-          parent: "prices.import",
+          parent: "payouts.run",
         },
         {
           name: "POST",
-          attributes: { "url.full": "http://localhost:9000/api/catalog" },
-          parent: "price.save",
+          attributes: { "url.full": "http://localhost:9000/api/transfers" },
+          parent: "payout.send",
         },
         {
-          name: "price.save",
-          attributes: { "price.sku": "inv_2" },
+          name: "payout.send",
+          attributes: { "payout.id": "inv_2" },
           hasException: true,
-          exceptionMessage: "inv_2 is below the minimum price",
-          parent: "prices.import",
+          exceptionMessage: "inv_2 is below the minimum payout",
+          parent: "payouts.run",
         },
       ],
-      metrics: ["prices.imported"],
+      metrics: ["payouts.sent"],
       logs: [
         {
-          body: "skipped a price: inv_2 is below the minimum price",
+          body: "held a payout: inv_2 is below the minimum payout",
           hasTraceContext: true,
-          attributes: { price_sku: "inv_2" },
+          attributes: { payout_id: "inv_2" },
         },
-        { body: "imported 1 of 2 prices", hasTraceContext: true },
+        { body: "sent 1 of 2 payouts", hasTraceContext: true },
       ],
-      resource: { "service.name": "price-import" },
+      resource: { "service.name": "payouts" },
     },
   },
 };

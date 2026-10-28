@@ -448,7 +448,7 @@ export const ActixWebGuide: OpenTelemetryGuide = {
 
   prerequisites: [
     RUST_PREREQUISITE,
-    "An Actix Web 4 app; Actix Web 4.18 needs Rust 1.89 or later. Not a web service? The [Rust](/integrations/opentelemetry/rust) guide covers any program.",
+    "An Actix Web 4 app; Actix Web 4.18 needs Rust 1.89 or later. Writing a job or a command-line tool? See the [Rust](/integrations/opentelemetry/rust) guide.",
     SERVER_KEY_PREREQUISITE,
   ],
 
@@ -560,7 +560,7 @@ export const ActixWebGuide: OpenTelemetryGuide = {
 
   sampling: {
     intro:
-      "The health check gets no span. To keep a share of the other requests' traces, set the standard sampler variables:",
+      "The health check gets no span. The other requests are all traced until the standard sampler variables say to keep a share:",
     snippets: [sampling],
     notes: [
       "A request that continues a caller's trace keeps the caller's decision; of the rest, `parentbased_traceidratio` keeps one in four.",
@@ -590,7 +590,7 @@ export const ActixWebGuide: OpenTelemetryGuide = {
       validateKeyStep("server"),
       {
         title: "Find the service",
-        body: `Request \`curl localhost:8080/orders/42\`, then open ${SCREENS.services}: \`orders-api\` is listed within a minute.`,
+        body: `Run \`curl localhost:8080/orders/42\`: within a minute, \`orders-api\` is listed in ${SCREENS.services}.`,
       },
       {
         title: "Open an order's trace",

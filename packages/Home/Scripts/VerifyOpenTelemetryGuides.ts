@@ -91,6 +91,21 @@ import {
 } from "../Utils/Integrations/OpenTelemetry/GuideVerifications";
 import { OPEN_TELEMETRY_GUIDE_PAGES } from "../Utils/Integrations/OpenTelemetry/OpenTelemetryGuides";
 import {
+  JsonObject,
+  Observed,
+  ObservedLog,
+  ObservedSpan,
+  checkObserved,
+  observedFrom,
+} from "../Utils/Integrations/OpenTelemetry/GuideObservations";
+import {
+  cargoLockVersions,
+  composerLockVersions,
+  gemfileLockVersions,
+  goModVersions,
+  mixLockVersions,
+} from "../Utils/Integrations/OpenTelemetry/GuideLockFiles";
+import {
   JAVA_AGENT_PACKAGE,
   buildFileDependencies,
   gradleReportVersions,
@@ -135,39 +150,6 @@ interface ReceivedRequest {
   hasToken: boolean;
   contentType: string;
 }
-
-interface Observed {
-  spans: Array<ObservedSpan>;
-  metrics: Array<string>;
-  logs: Array<ObservedLog>;
-  resources: Array<Record<string, unknown>>;
-}
-
-interface ObservedSpan {
-  name: string;
-  spanId: string;
-  parentSpanId: string;
-  attributes: Record<string, unknown>;
-  hasException: boolean;
-  // The exception.message of each of its exception events.
-  exceptionMessages: Array<string>;
-}
-
-interface ObservedLog {
-  body: string;
-  traceId: string;
-  // exception.* attributes: OneUptime files the record under Exceptions.
-  hasException: boolean;
-  attributes: Record<string, unknown>;
-}
-
-const EXCEPTION_ATTRIBUTES: Array<string> = [
-  "exception.type",
-  "exception.message",
-  "exception.stacktrace",
-];
-
-type JsonObject = Record<string, unknown>;
 
 function log(message: string): void {
   process.stdout.write(`${message}\n`);
@@ -527,299 +509,12 @@ function readSince(
     });
 }
 
-function attributeValue(value: JsonObject | undefined): unknown {
-  if (!value) {
-    return undefined;
-  }
-
-  for (const key of ["stringValue", "intValue", "doubleValue", "boolValue"]) {
-    if (key in value) {
-      return value[key];
-    }
-  }
-
-  return value;
-}
-
-function attributesOf(items: unknown): Record<string, unknown> {
-  const attributes: Record<string, unknown> = {};
-
-  for (const item of (items as Array<JsonObject>) || []) {
-    attributes[String(item["key"])] = attributeValue(
-      item["value"] as JsonObject,
-    );
-  }
-
-  return attributes;
-}
-
 function collect(outDir: string, from: Record<string, number>): Observed {
-  const observed: Observed = {
-    spans: [],
-    metrics: [],
-    logs: [],
-    resources: [],
-  };
-
-  for (const exportRequest of readSince(
-    outDir,
-    "traces.jsonl",
-    from["traces.jsonl"] || 0,
-  )) {
-    for (const resourceSpans of (exportRequest[
-      "resourceSpans"
-    ] as Array<JsonObject>) || []) {
-      observed.resources.push(
-        attributesOf(
-          (resourceSpans["resource"] as JsonObject | undefined)?.["attributes"],
-        ),
-      );
-      for (const scopeSpans of (resourceSpans[
-        "scopeSpans"
-      ] as Array<JsonObject>) || []) {
-        for (const span of (scopeSpans["spans"] as Array<JsonObject>) || []) {
-          const exceptionEvents: Array<JsonObject> = (
-            (span["events"] as Array<JsonObject>) || []
-          ).filter((event: JsonObject): boolean => {
-            return event["name"] === "exception";
-          });
-          observed.spans.push({
-            name: String(span["name"]),
-            spanId: String(span["spanId"] || ""),
-            parentSpanId: String(span["parentSpanId"] || ""),
-            attributes: attributesOf(span["attributes"]),
-            hasException: exceptionEvents.length > 0,
-            exceptionMessages: exceptionEvents.map(
-              (event: JsonObject): string => {
-                return String(
-                  attributesOf(event["attributes"])["exception.message"] ?? "",
-                );
-              },
-            ),
-          });
-        }
-      }
-    }
-  }
-
-  for (const exportRequest of readSince(
-    outDir,
-    "metrics.jsonl",
-    from["metrics.jsonl"] || 0,
-  )) {
-    for (const resourceMetrics of (exportRequest[
-      "resourceMetrics"
-    ] as Array<JsonObject>) || []) {
-      observed.resources.push(
-        attributesOf(
-          (resourceMetrics["resource"] as JsonObject | undefined)?.[
-            "attributes"
-          ],
-        ),
-      );
-      for (const scopeMetrics of (resourceMetrics[
-        "scopeMetrics"
-      ] as Array<JsonObject>) || []) {
-        for (const metric of (scopeMetrics["metrics"] as Array<JsonObject>) ||
-          []) {
-          observed.metrics.push(String(metric["name"]));
-        }
-      }
-    }
-  }
-
-  for (const exportRequest of readSince(
-    outDir,
-    "logs.jsonl",
-    from["logs.jsonl"] || 0,
-  )) {
-    for (const resourceLogs of (exportRequest[
-      "resourceLogs"
-    ] as Array<JsonObject>) || []) {
-      observed.resources.push(
-        attributesOf(
-          (resourceLogs["resource"] as JsonObject | undefined)?.["attributes"],
-        ),
-      );
-      for (const scopeLogs of (resourceLogs[
-        "scopeLogs"
-      ] as Array<JsonObject>) || []) {
-        for (const record of (scopeLogs["logRecords"] as Array<JsonObject>) ||
-          []) {
-          const body: unknown = attributeValue(record["body"] as JsonObject);
-          const attributes: Record<string, unknown> = attributesOf(
-            record["attributes"],
-          );
-          observed.logs.push({
-            body: typeof body === "string" ? body : JSON.stringify(body),
-            traceId: String(record["traceId"] || ""),
-            hasException: EXCEPTION_ATTRIBUTES.some((key: string): boolean => {
-              return attributes[key] !== undefined;
-            }),
-            attributes: attributes,
-          });
-        }
-      }
-    }
-  }
-
-  return observed;
-}
-
-function check(
-  verification: GuideVerificationRun,
-  observed: Observed,
-): Array<string> {
-  const failures: Array<string> = [];
-
-  for (const expected of verification.expect.spans) {
-    const found: boolean = observed.spans.some(
-      (span: ObservedSpan): boolean => {
-        if (span.name !== expected.name) {
-          return false;
-        }
-        if (
-          expected.hasException !== undefined &&
-          expected.hasException !== span.hasException
-        ) {
-          return false;
-        }
-        if (
-          expected.exceptionMessage !== undefined &&
-          !span.exceptionMessages.some((message: string): boolean => {
-            return message.includes(expected.exceptionMessage || "");
-          })
-        ) {
-          return false;
-        }
-        if (
-          expected.parent !== undefined &&
-          !observed.spans.some((candidate: ObservedSpan): boolean => {
-            return (
-              candidate.name === expected.parent &&
-              candidate.spanId.length > 0 &&
-              candidate.spanId === span.parentSpanId
-            );
-          })
-        ) {
-          return false;
-        }
-        if (
-          (expected.absentAttributes || []).some((key: string): boolean => {
-            return span.attributes[key] !== undefined;
-          })
-        ) {
-          return false;
-        }
-        if (
-          expected.parentSpanId !== undefined &&
-          span.parentSpanId !== expected.parentSpanId
-        ) {
-          return false;
-        }
-        return Object.entries(expected.attributes || {}).every(
-          ([key, value]: [string, string]): boolean => {
-            return String(span.attributes[key]) === value;
-          },
-        );
-      },
-    );
-
-    if (!found) {
-      failures.push(`no span ${JSON.stringify(expected)}`);
-    }
-  }
-
-  for (const metric of verification.expect.metrics) {
-    if (!observed.metrics.includes(metric)) {
-      failures.push(`no metric ${metric}`);
-    }
-  }
-
-  for (const expected of verification.expect.logs) {
-    const found: boolean = observed.logs.some(
-      (record: ObservedLog): boolean => {
-        return (
-          record.body.includes(expected.body) &&
-          (!expected.hasTraceContext || record.traceId.length > 0) &&
-          (expected.hasException === undefined ||
-            expected.hasException === record.hasException) &&
-          Object.entries(expected.attributes || {}).every(
-            ([key, value]: [string, string]): boolean => {
-              return String(record.attributes[key]) === value;
-            },
-          )
-        );
-      },
-    );
-
-    if (!found) {
-      failures.push(`no log ${JSON.stringify(expected)}`);
-    }
-  }
-
-  for (const [key, value] of Object.entries(
-    verification.expect.resource || {},
-  )) {
-    const found: boolean = observed.resources.some(
-      (resource: Record<string, unknown>): boolean => {
-        return String(resource[key]) === value;
-      },
-    );
-
-    if (!found) {
-      failures.push(`no resource with ${key}=${value}`);
-    }
-  }
-
-  for (const untraced of verification.expect.untracedPaths || []) {
-    const traced: ObservedSpan | undefined = observed.spans.find(
-      (span: ObservedSpan): boolean => {
-        return (
-          span.attributes["url.path"] === untraced ||
-          span.attributes["http.target"] === untraced
-        );
-      },
-    );
-
-    if (traced) {
-      failures.push(
-        `a span for ${untraced}, which the guide leaves out: ${traced.name}`,
-      );
-    }
-  }
-
-  for (const absent of verification.expect.absentSpans || []) {
-    if (
-      observed.spans.some((span: ObservedSpan): boolean => {
-        return span.name === absent;
-      })
-    ) {
-      failures.push(`a span named ${absent}, which the guide turns off`);
-    }
-  }
-
-  for (const absent of verification.expect.absentMetrics || []) {
-    if (observed.metrics.includes(absent)) {
-      failures.push(`a metric named ${absent}, which the guide leaves out`);
-    }
-  }
-
-  for (const absent of verification.expect.absentLogs || []) {
-    const found: ObservedLog | undefined = observed.logs.find(
-      (record: ObservedLog): boolean => {
-        return record.body.includes(absent);
-      },
-    );
-
-    if (found) {
-      failures.push(
-        `a log line with ${absent}, which the guide leaves out: ${found.body}`,
-      );
-    }
-  }
-
-  return failures;
+  return observedFrom({
+    traces: readSince(outDir, "traces.jsonl", from["traces.jsonl"] || 0),
+    metrics: readSince(outDir, "metrics.jsonl", from["metrics.jsonl"] || 0),
+    logs: readSince(outDir, "logs.jsonl", from["logs.jsonl"] || 0),
+  });
 }
 
 function sendRequest(
@@ -2147,19 +1842,31 @@ function recordedVersions(
       resolved = dotnetVersions(appDir, env);
       break;
     case "go":
-      resolved = { ...installedOutside, ...goModuleVersions(appDir) };
+      resolved = {
+        ...installedOutside,
+        ...goModVersions(readIfThere(path.join(appDir, "go.mod"))),
+      };
       break;
     case "ruby":
-      resolved = gemfileLockVersions(appDir);
+      resolved = gemfileLockVersions(
+        readIfThere(path.join(appDir, "Gemfile.lock")),
+      );
       break;
     case "php":
-      resolved = { ...installedOutside, ...composerLockVersions(appDir) };
+      resolved = {
+        ...installedOutside,
+        ...composerLockVersions(
+          readIfThere(path.join(appDir, "composer.lock")),
+        ),
+      };
       break;
     case "rust":
-      resolved = cargoLockVersions(appDir);
+      resolved = cargoLockVersions(
+        readIfThere(path.join(appDir, "Cargo.lock")),
+      );
       break;
     case "elixir":
-      resolved = mixLockVersions(appDir);
+      resolved = mixLockVersions(readIfThere(path.join(appDir, "mix.lock")));
       break;
     default:
       for (const name of names) {
@@ -2212,184 +1919,6 @@ function buildFileLanguage(
 
 function readIfThere(file: string): string {
   return fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "";
-}
-
-/*
- * The modules a Go build selected, from go.mod as the run left it: since
- * Go 1.17 it lists every module the build needs, each at the version the
- * build used.
- */
-function goModuleVersions(appDir: string): Record<string, string> {
-  const versions: Record<string, string> = {};
-  let inRequireBlock: boolean = false;
-
-  for (const rawLine of readIfThere(path.join(appDir, "go.mod")).split("\n")) {
-    const line: string = rawLine.trim();
-
-    if (line === "require (") {
-      inRequireBlock = true;
-      continue;
-    }
-    if (inRequireBlock && line === ")") {
-      inRequireBlock = false;
-      continue;
-    }
-
-    const words: Array<string> = (
-      line.startsWith("require ") ? line.slice("require ".length) : line
-    )
-      .split(" ")
-      .filter((word: string): boolean => {
-        return word.length > 0;
-      });
-
-    if (
-      (inRequireBlock || line.startsWith("require ")) &&
-      words.length >= 2 &&
-      words[0] &&
-      words[1]
-    ) {
-      versions[words[0]] = words[1];
-    }
-  }
-
-  return versions;
-}
-
-/*
- * The gems Bundler resolved, from Gemfile.lock's specs (four spaces in):
- * "    sqlite3 (2.10.2-x86_64-linux-gnu)" is sqlite3 2.10.2.
- */
-function gemfileLockVersions(appDir: string): Record<string, string> {
-  const versions: Record<string, string> = {};
-
-  for (const line of readIfThere(path.join(appDir, "Gemfile.lock")).split(
-    "\n",
-  )) {
-    if (!line.startsWith("    ") || line.startsWith("     ")) {
-      continue;
-    }
-
-    const open: number = line.indexOf(" (");
-    const close: number = line.indexOf(")", open);
-
-    if (open > 0 && close > open) {
-      const version: string = line.slice(open + 2, close);
-      versions[line.slice(0, open).trim()] = version.split("-")[0] || version;
-    }
-  }
-
-  return versions;
-}
-
-// The packages Composer installed, from composer.lock: "v13.39.0" is 13.39.0.
-function composerLockVersions(appDir: string): Record<string, string> {
-  const versions: Record<string, string> = {};
-  const text: string = readIfThere(path.join(appDir, "composer.lock"));
-
-  if (!text) {
-    return versions;
-  }
-
-  const lock: {
-    packages?: Array<{ name: string; version: string }>;
-    "packages-dev"?: Array<{ name: string; version: string }>;
-  } = JSON.parse(text) as {
-    packages?: Array<{ name: string; version: string }>;
-    "packages-dev"?: Array<{ name: string; version: string }>;
-  };
-
-  for (const item of [
-    ...(lock.packages || []),
-    ...(lock["packages-dev"] || []),
-  ]) {
-    versions[item.name] = item.version.replace(GO_VERSION_PREFIX, "");
-  }
-
-  return versions;
-}
-
-/*
- * The crates Cargo resolved, from Cargo.lock: [[package]] blocks with a
- * name and a version. A crate the build needs at two versions is recorded
- * at the higher.
- */
-function cargoLockVersions(appDir: string): Record<string, string> {
-  const versions: Record<string, string> = {};
-  let name: string = "";
-
-  for (const rawLine of readIfThere(path.join(appDir, "Cargo.lock")).split(
-    "\n",
-  )) {
-    const line: string = rawLine.trim();
-
-    if (line === "[[package]]") {
-      name = "";
-      continue;
-    }
-
-    const [key, value] = line.split(" = ");
-    const unquoted: string = (value || "").split('"').join("");
-
-    if (key === "name") {
-      name = unquoted;
-    } else if (key === "version" && name) {
-      const known: string | undefined = versions[name];
-
-      if (!known || compareVersions(unquoted, known) > 0) {
-        versions[name] = unquoted;
-      }
-    }
-  }
-
-  return versions;
-}
-
-function compareVersions(a: string, b: string): number {
-  const partsA: Array<number> = a.split(".").map(Number);
-  const partsB: Array<number> = b.split(".").map(Number);
-
-  for (
-    let index: number = 0;
-    index < Math.max(partsA.length, partsB.length);
-    index++
-  ) {
-    const difference: number = (partsA[index] || 0) - (partsB[index] || 0);
-
-    if (difference !== 0) {
-      return difference;
-    }
-  }
-
-  return 0;
-}
-
-/*
- * The Hex packages Mix resolved, from mix.lock:
- *   "opentelemetry": {:hex, :opentelemetry, "1.7.0", "...", [:rebar3], [...], "hexpm", "..."},
- */
-function mixLockVersions(appDir: string): Record<string, string> {
-  const versions: Record<string, string> = {};
-
-  for (const line of readIfThere(path.join(appDir, "mix.lock")).split("\n")) {
-    const marker: string = "{:hex, :";
-    const at: number = line.indexOf(marker);
-
-    if (at < 0) {
-      continue;
-    }
-
-    const rest: string = line.slice(at + marker.length);
-    const comma: number = rest.indexOf(",");
-    const quoteStart: number = rest.indexOf('"', comma);
-    const quoteEnd: number = rest.indexOf('"', quoteStart + 1);
-
-    if (comma > 0 && quoteStart > comma && quoteEnd > quoteStart) {
-      versions[rest.slice(0, comma)] = rest.slice(quoteStart + 1, quoteEnd);
-    }
-  }
-
-  return versions;
 }
 
 interface RunResult {
@@ -2625,7 +2154,7 @@ async function verifyRun(
   await sleep(3000);
 
   const observed: Observed = collect(receiver.outDir, before);
-  const failures: Array<string> = check(run, observed);
+  const failures: Array<string> = checkObserved(run, observed);
   const received: Array<ReceivedRequest> =
     receiver.requests.slice(requestCountBefore);
 

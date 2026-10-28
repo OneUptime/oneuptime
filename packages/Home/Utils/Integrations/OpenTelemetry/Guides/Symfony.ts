@@ -318,7 +318,7 @@ export const SymfonyGuide: OpenTelemetryGuide = {
 
   prerequisites: [
     PHP_PREREQUISITE,
-    "A Symfony app with `symfony/monolog-bundle`; Symfony 8.1 needs PHP 8.4 or later. Not on Symfony? The [PHP](/integrations/opentelemetry/php) guide covers an app of your own.",
+    "A Symfony app with `symfony/monolog-bundle`; Symfony 8.1 needs PHP 8.4 or later. Not on Symfony? Follow the [PHP](/integrations/opentelemetry/php) guide for any other app.",
     SERVER_KEY_PREREQUISITE,
   ],
 
@@ -327,7 +327,7 @@ export const SymfonyGuide: OpenTelemetryGuide = {
       "Build the extension from PECL and load it, then add the SDK, the OTLP exporter, the instrumentations for Symfony and PDO, and Monolog's handler, at the versions this guide was checked with:",
     snippets: [installExtension, install],
     notes: [
-      "`opentelemetry-auto-symfony` traces the kernel and HttpClient through the extension's hooks: `php --ri opentelemetry` prints the extension's version once PHP loads it.",
+      "`opentelemetry-auto-symfony` traces the kernel and HttpClient through the extension's hooks: once PHP loads the extension, `php --ri opentelemetry` shows its version.",
       "Doctrine DBAL sends its SQL through PDO, which `opentelemetry-auto-pdo` traces once per call. `opentelemetry-auto-doctrine` 0.5 traces DBAL's driver instead, once for each middleware DoctrineBundle wraps it in, so each query arrives as a stack of copies.",
     ],
   },
@@ -426,7 +426,7 @@ export const SymfonyGuide: OpenTelemetryGuide = {
     builtIn: [],
     snippets: [counter],
     notes: [
-      "Each PHP request counts on its own: `delta` temporality, set above, exports what each counted, and OneUptime adds the requests up.",
+      "Each PHP request counts on its own: with the `delta` temporality set above, each exports its own count, and OneUptime sums them.",
       "A payment method has few values, so the counter has few series; an attribute with an ID in it would make one series per order.",
     ],
   },
@@ -515,7 +515,7 @@ export const SymfonyGuide: OpenTelemetryGuide = {
     {
       question: "Nothing arrives at all",
       answer:
-        "The SDK never started: `OTEL_PHP_AUTOLOAD_ENABLED=true` is missing from PHP's environment. Set in `.env`, it is read too late; under PHP-FPM, list each variable in the pool's configuration too.",
+        "The SDK never started: PHP's environment has no `OTEL_PHP_AUTOLOAD_ENABLED=true`. Set in `.env`, it is read too late; under PHP-FPM, list each variable in the pool's configuration too.",
     },
   ],
 

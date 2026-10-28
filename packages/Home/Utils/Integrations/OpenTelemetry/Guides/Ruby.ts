@@ -523,7 +523,7 @@ export const RubyGuide: OpenTelemetryGuide = {
     },
   ],
 
-  related: ["rails", "sinatra", "python", "go"],
+  related: ["rails", "sinatra", "sidekiq", "python"],
   docs: [DOCS.openTelemetry, DOCS.traces, DOCS.logs, DOCS.exceptions],
 
   verification: {

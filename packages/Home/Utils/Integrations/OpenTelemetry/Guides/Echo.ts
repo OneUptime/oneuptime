@@ -849,7 +849,7 @@ export const EchoGuide: OpenTelemetryGuide = {
       validateKeyStep("server"),
       {
         title: "Find the service",
-        body: `Call a route, then open ${SCREENS.services}: \`catalog-api\` is listed within a minute.`,
+        body: `Request a route, and \`catalog-api\` shows up in ${SCREENS.services} within a minute.`,
       },
       {
         title: "Open a reservation's trace",

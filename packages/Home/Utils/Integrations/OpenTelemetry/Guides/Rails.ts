@@ -581,7 +581,7 @@ export const RailsGuide: OpenTelemetryGuide = {
       },
       {
         title: "Open a request's trace",
-        body: `In ${SCREENS.traces}, search for \`POST /orders\`: its trace holds \`checkout.charge\` with the payment call and \`Order.create!\` beneath it, then \`ReceiptJob publish\` and the job's \`ReceiptJob process\`.`,
+        body: `Look up \`POST /orders\` in ${SCREENS.traces}: its trace holds \`checkout.charge\` with the payment call and \`Order.create!\` beneath it, then \`ReceiptJob publish\` and the job's \`ReceiptJob process\`.`,
       },
       {
         title: "Find the exception and the logs",
@@ -651,7 +651,7 @@ export const RailsGuide: OpenTelemetryGuide = {
     },
   ],
 
-  related: ["ruby", "sinatra", "django", "spring-boot"],
+  related: ["ruby", "sidekiq", "phoenix", "django"],
   docs: [DOCS.openTelemetry, DOCS.traces, DOCS.logs, DOCS.exceptions],
 
   verification: {
