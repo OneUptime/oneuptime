@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import crypto from "crypto";
+import express from "express";
 import zlib from "zlib";
 import LocalCache from "../../../Server/Infrastructure/LocalCache";
 import OpenAPIUtil, {
@@ -61,6 +62,16 @@ describe("the OpenAPI spec the App keeps", () => {
 
     expect(response.etag).toMatch(WEAK_ETAG);
     expect(response.etag).toBe(`W/"${buffer.length.toString(16)}-${hash}"`);
+  });
+
+  test("has the ETag Express gave the document before, so a client's copy stays fresh across the upgrade", () => {
+    /*
+     * The route sent the document with res.send, which tagged its JSON with
+     * Express's default weak ETag. A client holding that tag gets a 304.
+     */
+    const expressEtag: string = express().get("etag fn")(json, "utf8");
+
+    expect(response.etag).toBe(expressEtag);
   });
 
   test("is still a well-formed OpenAPI 3 document", () => {

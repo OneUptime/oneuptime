@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
 import { SpawnSyncReturns, spawnSync } from "child_process";
 import fs from "fs";
+import os from "os";
 import path from "path";
 import ts from "typescript";
 import { seededRandom, shuffled } from "Common/Tests/Helpers/SeededRandom";
@@ -28,6 +29,11 @@ const COMMON_ROOT: string = path.resolve(APP_ROOT, "..", "Common");
 const FIXTURE_DIR: string = path.join(APP_ROOT, ".ts-node-transpiler-fixture");
 const FIXTURE: string = path.join(FIXTURE_DIR, "Thrower.ts");
 const PORT_MODULE: string = path.join(COMMON_ROOT, "Types", "Port.ts");
+/*
+ * The sample's file list and its compiled output (tens of megabytes) go
+ * outside the App: only the fixture needs the App's tsconfig.
+ */
+let workDirectory: string = "";
 
 const FIXTURE_SOURCE: string = [
   "/*!",
@@ -152,6 +158,7 @@ let production: RunReport;
 let development: RunReport;
 
 beforeAll(() => {
+  workDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "ts-node-transpiler-"));
   fs.mkdirSync(FIXTURE_DIR, { recursive: true });
   fs.writeFileSync(FIXTURE, FIXTURE_SOURCE);
   production = runApp("production");
@@ -160,6 +167,9 @@ beforeAll(() => {
 
 afterAll(() => {
   fs.rmSync(FIXTURE_DIR, { recursive: true, force: true });
+  if (workDirectory) {
+    fs.rmSync(workDirectory, { recursive: true, force: true });
+  }
 });
 
 describe("the App's ts-node in production", () => {
@@ -285,7 +295,8 @@ describe("the programs it compiles", () => {
         ...shuffled(files, seededRandom(5361)).slice(0, 220),
       ]),
     ];
-    const listFile: string = path.join(FIXTURE_DIR, "sample.json");
+    const listFile: string = path.join(workDirectory, "sample.json");
+    const compiledFile: string = path.join(workDirectory, "compiled.json");
     fs.writeFileSync(listFile, JSON.stringify(sample));
 
     const script: string = [
@@ -306,7 +317,7 @@ describe("the programs it compiles", () => {
       "  out.push([file, production.compile(text, file), development.compile(text, file)]);",
       "}",
       "fs.writeFileSync(" +
-        JSON.stringify(path.join(FIXTURE_DIR, "compiled.json")) +
+        JSON.stringify(compiledFile) +
         ", JSON.stringify(out));",
       "console.log(JSON.stringify({ compiled: out.length }));",
     ].join("\n");
@@ -323,7 +334,7 @@ describe("the programs it compiles", () => {
     }
 
     const compiled: Array<[string, string, string]> = JSON.parse(
-      fs.readFileSync(path.join(FIXTURE_DIR, "compiled.json"), "utf8"),
+      fs.readFileSync(compiledFile, "utf8"),
     ) as Array<[string, string, string]>;
     expect(compiled).toHaveLength(sample.length);
 

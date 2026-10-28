@@ -537,18 +537,21 @@ export default class Response {
       contentType: "application/json",
       bytes: body.bytes,
     };
-    oneUptimeResponse.setHeader(
-      "Content-Type",
-      "application/json; charset=utf-8",
-    );
-    oneUptimeResponse.setHeader("Vary", "Accept-Encoding");
+    // Added to what earlier middleware may have listed, never in its place.
+    oneUptimeResponse.vary("Accept-Encoding");
     oneUptimeResponse.setHeader("ETag", body.etag);
 
     // req.fresh compares If-None-Match with the ETag just set.
     if (req.fresh) {
+      // As res.send answers a 304: no body, so no Content-Type either.
       oneUptimeResponse.status(304).end();
       return;
     }
+
+    oneUptimeResponse.setHeader(
+      "Content-Type",
+      "application/json; charset=utf-8",
+    );
 
     if (req.acceptsEncodings("gzip") === "gzip") {
       oneUptimeResponse.setHeader("Content-Encoding", "gzip");
