@@ -38,9 +38,10 @@ import React, { FunctionComponent, ReactElement } from "react";
  * priority (Common/Utils/SecurityCase/SecurityCaseTargets); a case about to
  * miss one, or missing it, tells the people on it. A new project's built-in
  * priorities start with targets; one made before them shows "No target"
- * until somebody sets them. Priorities themselves - their names, colours
- * and order - are under Case Priorities; an archived one is left out, as
- * nothing new is put at it. Edit names the priority it opens for.
+ * until somebody sets them. Priorities themselves - their names and
+ * colours - are under Case Priorities; an archived one is left out, as
+ * nothing new is put at it. Like every list of priorities, its rows drag
+ * into another order. Edit names the priority it opens for.
  */
 const SecurityResponseTargetsPage: FunctionComponent<
   PageComponentProps
@@ -92,10 +93,12 @@ const SecurityResponseTargetsPage: FunctionComponent<
       isCreateable={false}
       disablePagination={true}
       /*
-       * In the priorities' order, most urgent first - which Case Priorities
-       * sets: a row dragged here would have ranked the priorities from a
-       * page about how fast to answer them.
+       * In the priorities' order, most urgent first, and dragged into
+       * another as every list of them is (DragOrderedListsGuard: the
+       * maintainer asked for every ordered list to drag).
        */
+      enableDragAndDrop={true}
+      dragDropIndexField="order"
       sortBy="order"
       sortOrder={SortOrder.Ascending}
       // Which priority's targets the dialog edits.
@@ -126,8 +129,6 @@ const SecurityResponseTargetsPage: FunctionComponent<
           title: RESPONSE_TARGETS_COPY.priorityColumn,
           type: FieldType.Element,
           isNotCustomizable: true,
-          // The rows keep the priorities' own order, most urgent first.
-          disableSort: true,
           getElement: (item: SecurityCasePriority): ReactElement => {
             return <SecurityCasePriorityPill value={item} />;
           },
@@ -137,7 +138,6 @@ const SecurityResponseTargetsPage: FunctionComponent<
           title: RESPONSE_TARGETS_COPY.acknowledgeColumn,
           headerTooltip: RESPONSE_TARGETS_COPY.acknowledgeTooltip,
           type: FieldType.Element,
-          disableSort: true,
           getElement: (item: SecurityCasePriority): ReactElement => {
             return <TargetCell minutes={item.acknowledgeWithinInMinutes} />;
           },
@@ -147,7 +147,6 @@ const SecurityResponseTargetsPage: FunctionComponent<
           title: RESPONSE_TARGETS_COPY.containColumn,
           headerTooltip: RESPONSE_TARGETS_COPY.containTooltip,
           type: FieldType.Element,
-          disableSort: true,
           getElement: (item: SecurityCasePriority): ReactElement => {
             return <TargetCell minutes={item.containWithinInMinutes} />;
           },

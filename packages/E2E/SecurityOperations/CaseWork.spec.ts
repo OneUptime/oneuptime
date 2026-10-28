@@ -999,9 +999,6 @@ test.describe("response targets", () => {
     expect(rows[3]).toContain("7 days");
     expect(rows[4]).toContain("No target");
 
-    // The priorities' order is Case Priorities' to set: nothing to drag here.
-    await expect(targetRows(page).getByTestId("drag-handle")).toHaveCount(0);
-
     expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
     await screenshot(page, "response-targets-1280-light");
   });

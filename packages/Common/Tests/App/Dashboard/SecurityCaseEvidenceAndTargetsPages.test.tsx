@@ -18,11 +18,11 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * stubbed and their props recorded: what a page hands them is its contract.
  *
  *   - Response Targets: one row a priority not archived, in the priorities'
- *     order - set on Case Priorities, never dragged or sorted here - edited
- *     and never created or deleted here; each target drawn in whole words
- *     in the reader's language, or No target; Edit's dialog names the
- *     priority; each edited with the duration field, which refuses what it
- *     cannot keep; every case page reads the targets again once they load.
+ *     order and draggable like every list of them, edited and never created
+ *     or deleted here; each target drawn in whole words in the reader's
+ *     language, or No target; Edit's dialog names the priority; each edited
+ *     with the duration field, which refuses what it cannot keep; every
+ *     case page reads the targets again once they load.
  *   - Evidence: the case's files and links, the latest first; a file
  *     downloads from its route, a link opens in a new tab only when it is
  *     an http or https address; a file's SHA-256 under its name and size,
@@ -156,7 +156,6 @@ const SHA256: string =
 interface Column {
   field: Record<string, unknown>;
   title: string;
-  disableSort?: boolean;
   getElement?: (item: unknown) => ReactElement;
   headerTooltip?: string;
   hideTitleOnMobile?: boolean;
@@ -229,7 +228,7 @@ describe("Security Events > Settings > Response Targets", () => {
     return lastTable();
   }
 
-  test("one row a priority not archived, in their order, never dragged or sorted here, edited here and never created or deleted", () => {
+  test("one row a priority not archived, in their order, draggable, edited here and never created or deleted", () => {
     const table: Record<string, unknown> = drawPage();
 
     expect(table["modelType"]).toBe(SecurityCasePriority);
@@ -241,16 +240,8 @@ describe("Security Events > Settings > Response Targets", () => {
     expect(table["isEditable"]).toBe(true);
     expect(table["isCreateable"]).toBe(false);
     expect(table["isDeleteable"]).toBe(false);
-    /*
-     * The priorities' order is Case Priorities' to set: a row dragged here
-     * would rank the priorities from a page about how fast to answer them,
-     * and a column sorted by its target would put High above Critical.
-     */
-    expect(table["enableDragAndDrop"]).toBeUndefined();
-    expect(table["dragDropIndexField"]).toBeUndefined();
-    for (const column of columnsOf(table)) {
-      expect(column.disableSort).toBe(true);
-    }
+    expect(table["enableDragAndDrop"]).toBe(true);
+    expect(table["dragDropIndexField"]).toBe("order");
     expect(table["sortBy"]).toBe("order");
     expect(table["sortOrder"]).toBe(SortOrder.Ascending);
     expect(table["cardProps"]).toEqual(
