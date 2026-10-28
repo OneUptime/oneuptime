@@ -135,7 +135,7 @@ const TrafficAddressCard: FunctionComponent<ComponentProps> = (
       textToBeCopied={label.address}
       iconOnly={true}
       size="xs"
-      title={translator.translateText("Copy the address") || ""}
+      title="Copy the address"
     />
   );
 
