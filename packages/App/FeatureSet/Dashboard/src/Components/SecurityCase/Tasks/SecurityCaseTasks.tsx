@@ -26,11 +26,9 @@ import Button, {
 import ButtonType from "Common/UI/Components/Button/ButtonTypes";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import Icon from "Common/UI/Components/Icon/Icon";
 import Input from "Common/UI/Components/Input/Input";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import NamedSentence from "Common/UI/Components/DeleteConfirmation/NamedSentence";
@@ -44,6 +42,10 @@ import {
   toPeoplePickerIds,
 } from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
 import { REFRESH_SIDEBAR_COUNT_EVENT } from "Common/UI/Components/SideMenu/CountModelSideMenuItem";
+import TableEmptyState, {
+  TableEmptyStateKind,
+} from "Common/UI/Components/Table/TableEmptyState";
+import { getLoadErrorStateProps } from "Common/UI/Components/Table/TableEmptyStateBuilders";
 import API from "Common/UI/Utils/API/API";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -55,6 +57,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import Realtime from "Common/UI/Utils/Realtime";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import User from "Common/UI/Utils/User";
+import useTranslateValue from "Common/UI/Utils/Translation";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -172,6 +175,7 @@ const SecurityCaseTasks: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const { translateString } = useTranslateValue();
   const addInputId: string = useId();
   const caseIdText: string = props.caseId.toString();
 
@@ -549,16 +553,28 @@ const SecurityCaseTasks: FunctionComponent<ComponentProps> = (
   };
 
   const getBody: () => ReactElement = (): ReactElement => {
+    /*
+     * A list that cannot be read says so as every list on the case's pages
+     * does (Evidence's table): what could not be read, the server's reason,
+     * and Try again - not an underlined "Refresh?" under the reason.
+     */
     if (loadError && !tasks) {
       return (
-        <div data-testid={SECURITY_CASE_TASKS_TEST_IDS.error}>
-          <ErrorMessage
-            message={loadError}
-            onRefreshClick={() => {
+        <TableEmptyState
+          {...getLoadErrorStateProps({
+            pluralLabel: SECURITY_CASE_TASKS_COPY.title,
+            error: loadError,
+            onRetry: () => {
               void load();
-            }}
-          />
-        </div>
+            },
+            translate: (value: string): string => {
+              return translateString(value) ?? value;
+            },
+            translator,
+          })}
+          isCompact={true}
+          dataTestId={SECURITY_CASE_TASKS_TEST_IDS.error}
+        />
       );
     }
 
@@ -569,25 +585,18 @@ const SecurityCaseTasks: FunctionComponent<ComponentProps> = (
     return (
       <>
         {tasks.length === 0 ? (
-          <div
-            className="flex flex-col items-center py-6 text-center"
-            data-testid={SECURITY_CASE_TASKS_TEST_IDS.empty}
-          >
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-500">
-              <Icon
-                icon={IconProp.ClipboardDocumentCheck}
-                className="h-5 w-5"
-              />
-            </span>
-            <p className="mt-3 text-sm font-medium text-gray-900">
-              {translator.translateText(SECURITY_CASE_TASKS_COPY.emptyTitle)}
-            </p>
-            <p className="mt-1 max-w-md text-sm text-gray-500">
-              {translator.translateText(
-                SECURITY_CASE_TASKS_COPY.emptyDescription,
-              )}
-            </p>
-          </div>
+          /*
+           * Nothing to do yet: drawn as every empty list on the case's pages
+           * is (Evidence's), the line to add the first task right under it.
+           */
+          <TableEmptyState
+            kind={TableEmptyStateKind.Empty}
+            icon={IconProp.ClipboardDocumentCheck}
+            title={SECURITY_CASE_TASKS_COPY.emptyTitle}
+            description={SECURITY_CASE_TASKS_COPY.emptyDescription}
+            isCompact={true}
+            dataTestId={SECURITY_CASE_TASKS_TEST_IDS.empty}
+          />
         ) : (
           <ul
             className="divide-y divide-gray-100"

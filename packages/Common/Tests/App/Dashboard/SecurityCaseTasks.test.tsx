@@ -287,6 +287,10 @@ describe("a case's tasks", () => {
     expect(
       await screen.findByTestId(SECURITY_CASE_TASKS_TEST_IDS.empty),
     ).toHaveTextContent("No tasks yet");
+    // Drawn as every empty list on the case's pages is.
+    expect(
+      screen.getByTestId(SECURITY_CASE_TASKS_TEST_IDS.empty),
+    ).toHaveAttribute("data-empty-state-kind", "empty");
     expect(
       screen.getByTestId(SECURITY_CASE_TASKS_TEST_IDS.empty),
     ).toHaveTextContent(
@@ -635,9 +639,31 @@ describe("a case's tasks", () => {
     );
     await drawn();
 
+    // As every list on the case's pages says it: what, why, and Try again.
+    const error: HTMLElement = await screen.findByTestId(
+      SECURITY_CASE_TASKS_TEST_IDS.error,
+    );
+    expect(error).toHaveAttribute("data-empty-state-kind", "error");
     expect(
-      await screen.findByTestId(SECURITY_CASE_TASKS_TEST_IDS.error),
-    ).toHaveTextContent("This case's tasks could not be read.");
+      within(error).getByTestId(`${SECURITY_CASE_TASKS_TEST_IDS.error}-title`),
+    ).toHaveTextContent("Couldn't load tasks");
+    expect(error).toHaveTextContent("This case's tasks could not be read.");
+
+    const readsBefore: number = getListMock.mock.calls.length;
+    getListMock.mockImplementation(async () => {
+      return { data: tasks, count: tasks.length };
+    });
+
+    await act(async () => {
+      fireEvent.click(within(error).getByRole("button", { name: "Try again" }));
+    });
+
+    await waitFor(() => {
+      expect(getListMock.mock.calls.length).toBeGreaterThan(readsBefore);
+    });
+    await waitFor(() => {
+      expect(rows()).toHaveLength(2);
+    });
   });
 
   test("a Security Viewer sees the list, locked, and no line to add one", async () => {
