@@ -745,7 +745,15 @@ describe("who may add, in the list", () => {
       within(locked[0]!).getByTestId("people-search-locked-reason")
         .textContent || "";
     expect(reason.startsWith(ADD_OWNER_KIND_REFUSED_SENTENCES.team)).toBe(true);
-    expect(reason).toContain("You need one of these permissions:");
+    /*
+     * The permission to ask for, not the five roles that hold it as well
+     * (#5262's follow-up: the locked kind's reason repeated PermissionGate's
+     * whole list - Project Owner, Project Admin, Project Member, Incident
+     * Admin, Incident Member, Create Incident Team Owner).
+     */
+    expect(reason).toBe(
+      "You do not have permission to add teams as owners. You need this permission: Create Incident Team Owner.",
+    );
     // Teams are not read at all.
     expect(
       getListMock.mock.calls.some((call: Array<any>): boolean => {
@@ -769,6 +777,11 @@ describe("who may add, in the list", () => {
 
     expect(locked).toHaveAttribute("data-kind", PeoplePickerKind.User);
     expect(locked).toHaveTextContent(ADD_OWNER_KIND_REFUSED_SENTENCES.user);
+    expect(
+      within(locked).getByTestId("people-search-locked-reason").textContent,
+    ).toBe(
+      "You do not have permission to add people as owners. You need this permission: Create Incident User Owner.",
+    );
   });
 
   test("a monitor's list asks the monitor's owner tables", async () => {
@@ -970,16 +983,14 @@ describe("the rules (AddOwners)", () => {
     expect(locked.disabledReason?.startsWith(ADD_OWNERS_REFUSED_SENTENCE)).toBe(
       true,
     );
-    expect(locked.disabledReason).toContain(
-      "You need one of these permissions:",
-    );
     /*
      * Either table's permission would open it, so the reason names both:
      * a reader who asks for Create Incident Team Owner may add owners too
-     * (it used to name the people table's alone - UI review).
+     * (it used to name the people table's alone - UI review), and no role.
      */
-    expect(locked.disabledReason).toContain("Create Incident User Owner");
-    expect(locked.disabledReason).toContain("Create Incident Team Owner");
+    expect(locked.disabledReason).toBe(
+      "You do not have permission to add owners. You need one of these permissions: Create Incident User Owner, Create Incident Team Owner.",
+    );
   });
 
   test("the two owner tables as one: either table's create permission, each named once", () => {

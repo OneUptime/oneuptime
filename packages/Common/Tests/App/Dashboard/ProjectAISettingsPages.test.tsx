@@ -403,7 +403,7 @@ describe("who may change Enable AI", () => {
     );
 
     expect(gate.disabledReason).toContain(
-      "You need one of these permissions: Project Owner, Manage Billing.",
+      "You need this permission: Manage Billing.",
     );
   });
 });
@@ -459,7 +459,7 @@ describe("the Project column edit gate", () => {
     expect(
       getProjectColumnsPermissionMessage(["enableAutomaticPostmortemDraft"]),
     ).toBe(
-      "Changing these needs one of these permissions: Project Owner, Project Admin.",
+      "You do not have permission to change these settings. You need one of these roles: Project Owner, Project Admin.",
     );
   });
 
@@ -486,7 +486,7 @@ describe("the Project column edit gate", () => {
       title: "Edit AI Features",
       disabled: true,
       tooltip:
-        "Changing these needs one of these permissions: Project Owner, Manage Billing.",
+        "You do not have permission to change these settings. You need this permission: Manage Billing.",
     });
     expect(() => {
       gate.lockedButtons[0]!.onClick();
@@ -684,11 +684,11 @@ describe("AI Features page", () => {
 
   /*
    * A Project Admin may update the project, but not this column: the reason
-   * names the column's own permissions. A member or a viewer may not update
-   * the project at all, and is told so.
+   * names the column's own permission (Project Owner holds it as well). A
+   * member or a viewer may not update the project at all, and is told so.
    */
   test.each([
-    [Permission.ProjectAdmin, "Project Owner, Manage Billing"],
+    [Permission.ProjectAdmin, "You need this permission: Manage Billing."],
     [Permission.ProjectMember, "You do not have permission to update this"],
     [Permission.Viewer, "You do not have permission to update this"],
   ])(

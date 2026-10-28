@@ -4,9 +4,19 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import type { SpyInstance } from "jest-mock";
 import * as React from "react";
 import Card, {
+  CARD_FILL_HEIGHT_BODY_CLASS_NAME,
   CARD_FILL_HEIGHT_CLASS_NAME,
+  CARD_FILL_HEIGHT_CONTENT_CLASS_NAME,
   CARD_FILL_HEIGHT_FRAME_CLASS_NAME,
   CARD_FRAME_CLASS_NAME,
+  CARD_HEADERLESS_PADDING_CLASS_NAME,
+  CARD_IN_ROW_BODY_CLASS_NAME,
+  CARD_IN_ROW_BODY_OFFSET_CLASS_NAME,
+  CARD_IN_ROW_CLASS_NAME,
+  CARD_IN_ROW_CONTENT_CLASS_NAME,
+  CARD_IN_ROW_FRAME_CLASS_NAME,
+  CARD_IN_ROW_HEADERLESS_BODY_CLASS_NAME,
+  CARD_PADDING_CLASS_NAME,
 } from "../../../UI/Components/Card/Card";
 import CardGrid, {
   CARD_GRID_CELL_TEST_ID,
@@ -23,6 +33,7 @@ import {
   CARD_GRID_STEP_CLASS_NAMES,
   CARD_GRID_STEP_WIDTHS_IN_REM,
   CARD_GRID_TRACK_COUNT,
+  CARD_ROW_COLUMN_CLASS_NAME,
   CardGridLayout,
   CardGridStep,
   getCardGridCellClassName,
@@ -199,6 +210,10 @@ describe("the class names the grid draws with", () => {
     );
     expect(CARD_GRID_CLASS_NAME).toBe("grid grid-cols-1 gap-5");
     expect(CARD_GRID_CELL_CLASS_NAME).toBe(
+      "grid min-w-0 row-span-2 grid-cols-1 grid-rows-subgrid [&>*]:row-span-2 [&>*]:grid-rows-subgrid",
+    );
+    // A hand-built row's column of boxes that are not Cards (Traces).
+    expect(CARD_ROW_COLUMN_CLASS_NAME).toBe(
       "flex min-w-0 flex-col [&>*:last-child]:flex-1",
     );
     expect(CARD_GRID_CENTERED_STATE_CLASS_NAME).toBe(
@@ -214,13 +229,13 @@ describe("the class names the grid draws with", () => {
     expect(
       getCardGridCellClassName({ columns: 3, cardWidth: "narrow" }, 4, 5),
     ).toBe(
-      "flex min-w-0 flex-col [&>*:last-child]:flex-1 [@container(min-width:34rem)]:col-span-6 [@container(min-width:51rem)]:col-span-3",
+      "grid min-w-0 row-span-2 grid-cols-1 grid-rows-subgrid [&>*]:row-span-2 [&>*]:grid-rows-subgrid [@container(min-width:34rem)]:col-span-6 [@container(min-width:51rem)]:col-span-3",
     );
     // The first of two wide cards: half the row from 51rem.
     expect(
       getCardGridCellClassName({ columns: 2, cardWidth: "wide" }, 0, 2),
     ).toBe(
-      "flex min-w-0 flex-col [&>*:last-child]:flex-1 [@container(min-width:51rem)]:col-span-3",
+      "grid min-w-0 row-span-2 grid-cols-1 grid-rows-subgrid [&>*]:row-span-2 [&>*]:grid-rows-subgrid [@container(min-width:51rem)]:col-span-3",
     );
   });
 
@@ -302,7 +317,7 @@ describe("the class names the grid draws with", () => {
 
 describe("CardGrid", () => {
   const GOLDEN: string =
-    '<div data-testid="card-grid" data-columns="2" data-card-width="wide" class="mb-5 w-full min-w-0 [container-type:inline-size]"><div class="grid grid-cols-1 gap-5 [@container(min-width:51rem)]:grid-cols-6"><div data-testid="card-grid-cell" class="flex min-w-0 flex-col [&amp;>*:last-child]:flex-1 [@container(min-width:51rem)]:col-span-3"><p>one</p></div><div data-testid="card-grid-cell" class="flex min-w-0 flex-col [&amp;>*:last-child]:flex-1 [@container(min-width:51rem)]:col-span-3"><p>two</p></div></div></div>';
+    '<div data-testid="card-grid" data-columns="2" data-card-width="wide" class="mb-5 w-full min-w-0 [container-type:inline-size]"><div class="grid grid-cols-1 gap-5 [@container(min-width:51rem)]:grid-cols-6"><div data-testid="card-grid-cell" class="grid min-w-0 row-span-2 grid-cols-1 grid-rows-subgrid [&amp;>*]:row-span-2 [&amp;>*]:grid-rows-subgrid [@container(min-width:51rem)]:col-span-3"><p>one</p></div><div data-testid="card-grid-cell" class="grid min-w-0 row-span-2 grid-cols-1 grid-rows-subgrid [&amp;>*]:row-span-2 [&amp;>*]:grid-rows-subgrid [@container(min-width:51rem)]:col-span-3"><p>two</p></div></div></div>';
 
   test("renders this exact markup: a size container, its grid, a cell for each card", () => {
     const { container } = render(
@@ -468,7 +483,7 @@ describe("the card of a cell runs to the bottom of its row", () => {
     return markup;
   }
 
-  test("a card in a cell fills it, as fillHeight does, and leaves no gap of its own under it", () => {
+  test("a card in a cell fills it, its frame on the cell's two rows, and leaves no gap of its own under it", () => {
     render(
       <CardGrid columns={2}>
         <Card title="Open Cases" description="The queue right now.">
@@ -482,9 +497,12 @@ describe("the card of a cell runs to the bottom of its row", () => {
 
     for (const card of screen.getAllByTestId("card")) {
       expect(card).toHaveAttribute("data-fill-height", "true");
-      expect(card.getAttribute("class")).toBe(CARD_FILL_HEIGHT_CLASS_NAME);
+      expect(card).toHaveAttribute("data-in-row", "true");
+      expect(card.getAttribute("class")).toBe(CARD_IN_ROW_CLASS_NAME);
+      // As tall as the cell, as fillHeight's box is.
+      expect(card).toHaveClass(CARD_FILL_HEIGHT_CLASS_NAME);
       expect(card.firstElementChild!.getAttribute("class")).toBe(
-        `${CARD_FRAME_CLASS_NAME} ${CARD_FILL_HEIGHT_FRAME_CLASS_NAME}`,
+        `${CARD_FRAME_CLASS_NAME} ${CARD_IN_ROW_FRAME_CLASS_NAME}`,
       );
       expect(
         resolveSpacing(card.getAttribute("class"), 1280, "margin"),
@@ -492,21 +510,21 @@ describe("the card of a cell runs to the bottom of its row", () => {
     }
   });
 
-  test("its markup is fillHeight's, exactly", () => {
-    const inCell: string = renderCard(
-      <CardGrid columns={2}>
-        <Card title="Title" description="Desc">
-          <div>body</div>
-        </Card>
-      </CardGrid>,
-    );
+  test("a card that fills a box of another kind (Home's columns) is drawn exactly as fillHeight always drew it", () => {
     const filled: string = renderCard(
       <Card title="Title" description="Desc" fillHeight={true}>
         <div>body</div>
       </Card>,
     );
 
-    expect(inCell).toContain(filled);
+    expect(filled).not.toContain("data-in-row");
+    expect(filled).toContain(
+      `data-fill-height="true" class="${CARD_FILL_HEIGHT_CLASS_NAME}"><div class="${CARD_FRAME_CLASS_NAME} ${CARD_FILL_HEIGHT_FRAME_CLASS_NAME}"><div class="${CARD_PADDING_CLASS_NAME} ${CARD_FILL_HEIGHT_CONTENT_CLASS_NAME}">`,
+    );
+    expect(filled).toContain(
+      `<div class="mt-4 ${CARD_FILL_HEIGHT_BODY_CLASS_NAME}"><div>body</div></div>`,
+    );
+    expect(filled).not.toContain("grid-rows-subgrid");
   });
 
   test.each(WIDTHS_IN_PX)(
@@ -652,4 +670,311 @@ describe("the card of a cell runs to the bottom of its row", () => {
       );
     }
   });
+});
+
+/*
+ * "Verdicts' description is a line longer than its neighbours', so its list
+ * starts a line lower." The cards of a row share two of the grid's rows, a
+ * header row and a body row: the cell is a subgrid of them and hands them to
+ * its card, whose box, frame and padding are subgrids of the same two rows,
+ * so the header and the body are items of the grid's own rows. The browser
+ * half - the bodies' tops measured at 390 to 1440px, in English and German -
+ * is in E2E/DetailCards and E2E/SecurityOperations.
+ */
+describe("the cards of a row start their bodies on one line", () => {
+  // The four boxes from the card to its body: box, frame, padding, body.
+  function boxesOf(card: HTMLElement): {
+    frame: HTMLElement;
+    content: HTMLElement;
+    header: HTMLElement | null;
+    body: HTMLElement;
+  } {
+    const frame: HTMLElement = card.firstElementChild as HTMLElement;
+    const content: HTMLElement = frame.firstElementChild as HTMLElement;
+    const children: Array<HTMLElement> = Array.from(
+      content.children,
+    ) as Array<HTMLElement>;
+    const header: HTMLElement | null =
+      children.find((child: HTMLElement): boolean => {
+        return child.getAttribute("data-testid") === "card-header";
+      }) || null;
+
+    return {
+      frame: frame,
+      content: content,
+      header: header,
+      body: children[children.length - 1]!,
+    };
+  }
+
+  function tokensOf(element: Element): Array<string> {
+    return (element.getAttribute("class") || "").split(" ").filter(Boolean);
+  }
+
+  test("a cell is a subgrid of two of the grid's rows, and hands both to its card", () => {
+    render(
+      <CardGrid columns={3} cardWidth="narrow">
+        <Card title="Top Detections" description="The rules and sources.">
+          <div>rules</div>
+        </Card>
+      </CardGrid>,
+    );
+
+    const cell: HTMLElement = screen.getByTestId(CARD_GRID_CELL_TEST_ID);
+
+    expect(tokensOf(cell)).toEqual(
+      expect.arrayContaining([
+        "grid",
+        "min-w-0",
+        "row-span-2",
+        "grid-rows-subgrid",
+        "[&>*]:row-span-2",
+        "[&>*]:grid-rows-subgrid",
+      ]),
+    );
+    // A column of flex boxes no more: that only filled, it did not align.
+    expect(tokensOf(cell)).not.toContain("flex-col");
+    expect(tokensOf(cell)).not.toContain("[&>*:last-child]:flex-1");
+  });
+
+  test("the card's box, frame and padding are subgrids of the same two rows, its header the first item and its body the second", () => {
+    render(
+      <CardGrid columns={3} cardWidth="narrow">
+        <Card
+          title="Verdicts"
+          description="What the cases closed in the last 30 days turned out to be."
+        >
+          <div>verdicts</div>
+        </Card>
+      </CardGrid>,
+    );
+
+    const card: HTMLElement = screen.getByTestId("card");
+    const { frame, content, header, body } = boxesOf(card);
+
+    // Its own rows, for a card that reaches the cell through a wrapper.
+    expect(tokensOf(card)).toEqual([
+      "grid",
+      "h-full",
+      "grid-cols-1",
+      "grid-rows-[auto_1fr]",
+      "gap-y-5",
+    ]);
+    expect(tokensOf(frame)).toEqual(
+      expect.arrayContaining(["grid", "row-span-2", "grid-rows-subgrid"]),
+    );
+    expect(frame.getAttribute("class")).toBe(
+      `${CARD_FRAME_CLASS_NAME} ${CARD_IN_ROW_FRAME_CLASS_NAME}`,
+    );
+    expect(content.getAttribute("class")).toBe(
+      `${CARD_PADDING_CLASS_NAME} ${CARD_IN_ROW_CONTENT_CLASS_NAME}`,
+    );
+    expect(Array.from(content.children)).toEqual([header, body]);
+    expect(header).not.toBeNull();
+    expect(body.getAttribute("class")).toBe(
+      `${CARD_IN_ROW_BODY_OFFSET_CLASS_NAME} ${CARD_IN_ROW_BODY_CLASS_NAME}`,
+    );
+    expect(body).toHaveTextContent("verdicts");
+  });
+
+  /*
+   * A grid's own column is as wide as the widest thing in it - a chart, a
+   * long word - unless it says it may be narrower. On a phone a card held
+   * the Traffic page's 439px chart in a cell of 358 and the page scrolled
+   * sideways. Every grid from the cell to the card's padding has one column
+   * that may shrink (grid-cols-1: minmax(0, 1fr)), as a block's width does.
+   */
+  test("every grid from the cell to the card's padding has one column that may be narrower than its content", () => {
+    render(
+      <CardGrid columns={2} cardWidth="wide">
+        <Card title="Traffic" description="Bytes in and out, over time.">
+          <div>chart</div>
+        </Card>
+      </CardGrid>,
+    );
+
+    const cell: HTMLElement = screen.getByTestId("card-grid-cell");
+    const card: HTMLElement = screen.getByTestId("card");
+    const { frame, content } = boxesOf(card);
+
+    for (const [name, element] of [
+      ["cell", cell],
+      ["card", card],
+      ["frame", frame],
+      ["padding", content],
+    ] as Array<[string, HTMLElement]>) {
+      expect({ name, tokens: tokensOf(element) }).toEqual({
+        name,
+        tokens: expect.arrayContaining(["grid", "grid-cols-1"]),
+      });
+    }
+
+    for (const className of [
+      CARD_GRID_CELL_CLASS_NAME,
+      CARD_IN_ROW_CLASS_NAME,
+      CARD_IN_ROW_FRAME_CLASS_NAME,
+      CARD_IN_ROW_CONTENT_CLASS_NAME,
+    ]) {
+      expect(className.split(" ")).toContain("grid-cols-1");
+    }
+  });
+
+  test("a body starts 16px under its header, as a card's does outside a grid: the rows' 20px less the body's 4px", () => {
+    // The card's own rows are as far apart as the grid's rows: 20px (gap-5).
+    expect(CARD_IN_ROW_CLASS_NAME.split(" ")).toContain("gap-y-5");
+    expect(
+      getCardGridClassName({ columns: 2, cardWidth: "wide" }).split(" "),
+    ).toContain("gap-5");
+    expect(CARD_GRID_GAP_IN_PX).toBe(20);
+    expect(
+      CARD_GRID_GAP_IN_PX +
+        resolveSpacing(CARD_IN_ROW_BODY_OFFSET_CLASS_NAME, 1280, "margin").top,
+    ).toBe(resolveSpacing("mt-4", 1280, "margin").top);
+  });
+
+  test("every card of a row draws its header and body on the row's two rows, whatever their titles and descriptions hold", () => {
+    render(
+      <CardGrid columns={3} cardWidth="narrow">
+        <Card
+          title="Top Detections"
+          description="The rules and sources that raised the most detections in the last 14 days."
+        >
+          <div>rules</div>
+        </Card>
+        <Card title="MITRE ATT&CK Tactics">
+          <div>tactics</div>
+        </Card>
+        <Card
+          title="Verdicts"
+          description="What the cases closed in the last 30 days turned out to be."
+        >
+          <div>verdicts</div>
+        </Card>
+      </CardGrid>,
+    );
+
+    const cards: Array<HTMLElement> = screen.getAllByTestId("card");
+
+    expect(cards).toHaveLength(3);
+    for (const card of cards) {
+      const { content, header, body } = boxesOf(card);
+
+      expect(card).toHaveAttribute("data-in-row", "true");
+      expect(content).toHaveClass("grid-rows-subgrid");
+      expect(Array.from(content.children)).toEqual([header, body]);
+      expect(body).toHaveClass(CARD_IN_ROW_BODY_OFFSET_CLASS_NAME);
+    }
+  });
+
+  test("a card with no header starts its body at the top, across both rows", () => {
+    render(
+      <CardGrid columns={2}>
+        <Card title="Shown">
+          <div>shown body</div>
+        </Card>
+        <Card isHeaderHidden={true}>
+          <div>headerless body</div>
+        </Card>
+      </CardGrid>,
+    );
+
+    const headerless: HTMLElement = screen.getAllByTestId("card")[1]!;
+    const { content, header, body } = boxesOf(headerless);
+
+    expect(header).toBeNull();
+    expect(content.getAttribute("class")).toBe(
+      `${CARD_HEADERLESS_PADDING_CLASS_NAME} ${CARD_IN_ROW_CONTENT_CLASS_NAME}`,
+    );
+    expect(body.getAttribute("class")).toBe(
+      CARD_IN_ROW_HEADERLESS_BODY_CLASS_NAME,
+    );
+    expect(body).not.toHaveClass(CARD_IN_ROW_BODY_OFFSET_CLASS_NAME);
+  });
+
+  test("a body class its page sets takes the place of the offset, as it takes mt-4's outside a grid", () => {
+    render(
+      <CardGrid columns={2}>
+        <Card title="Own place" bodyClassName="mt-2">
+          <div>own</div>
+        </Card>
+      </CardGrid>,
+    );
+
+    const { body } = boxesOf(screen.getByTestId("card"));
+
+    expect(body.getAttribute("class")).toBe(
+      `mt-2 ${CARD_IN_ROW_BODY_CLASS_NAME}`,
+    );
+  });
+
+  test("a card with nothing in its body draws its header alone, on the header row", () => {
+    render(
+      <CardGrid columns={2}>
+        <Card title="Lists">
+          <div>list</div>
+        </Card>
+        <Card title="Delete" description="Permanently delete it." />
+      </CardGrid>,
+    );
+
+    const { content, header } = boxesOf(screen.getAllByTestId("card")[1]!);
+
+    expect(Array.from(content.children)).toEqual([header]);
+  });
+
+  test("only the card of the cell: a card in its body, a section and a card that keeps to its height are drawn as they always were", () => {
+    render(
+      <CardGrid columns={2}>
+        <Card title="Outer">
+          <Card title="Inner">
+            <div>inner body</div>
+          </Card>
+          <CardSections>
+            <Card title="Section">
+              <div>section body</div>
+            </Card>
+          </CardSections>
+        </Card>
+        <Card title="Own height" fillHeight={false}>
+          <div>own body</div>
+        </Card>
+      </CardGrid>,
+    );
+
+    const cards: Array<HTMLElement> = screen.getAllByTestId("card");
+    const [outer, inner, section, ownHeight] = cards as [
+      HTMLElement,
+      HTMLElement,
+      HTMLElement,
+      HTMLElement,
+    ];
+
+    expect(outer).toHaveAttribute("data-in-row", "true");
+    for (const card of [inner, section, ownHeight]) {
+      expect(card).not.toHaveAttribute("data-in-row");
+      expect(card.innerHTML).not.toContain("grid-rows-subgrid");
+    }
+  });
+
+  test.each(WIDTHS_IN_PX)(
+    "at %ipx an empty sentence in a row still takes the room under its header and sits in its middle",
+    (width: number) => {
+      render(
+        <CardGrid columns={2}>
+          <Card title="A long list" description="With a description.">
+            <div>rows</div>
+          </Card>
+          <Card title="Nothing">
+            <p className={CARD_GRID_CENTERED_STATE_CLASS_NAME}>Nothing here.</p>
+          </Card>
+        </CardGrid>,
+      );
+
+      const sentence: HTMLElement = screen.getByText("Nothing here.");
+      const grid: HTMLElement = screen.getByTestId(CARD_GRID_TEST_ID)
+        .firstElementChild as HTMLElement;
+
+      expect(describeHeightFillChain(sentence, grid, width)).toEqual([]);
+    },
+  );
 });

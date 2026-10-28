@@ -72,7 +72,7 @@ const WORKFLOW_REFUSAL: string =
 
 // What PermissionGate says to a Viewer about the Enabled switch.
 const VIEWER_LOCKED: string =
-  "You do not have permission to update this Workflow. You need one of these permissions: Project Owner, Project Admin, Edit Workflow, Workflow Admin.";
+  "You do not have permission to update this Workflow. You need this permission: Edit Workflow.";
 
 interface RecordedUpdate {
   tableName: string;

@@ -4,6 +4,7 @@ import Permission from "Common/Types/Permission";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import PermissionGate from "Common/UI/Utils/PermissionGate";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import User from "Common/UI/Utils/User";
 
 /*
@@ -66,12 +67,25 @@ export function canUpdateProjectColumns(fields: Array<string>): boolean {
   );
 }
 
+// Why a settings card's Edit is locked, before what would open it.
+export const CHANGE_SETTINGS_REFUSED_SENTENCE: string = translationKey(
+  "You do not have permission to change these settings.",
+);
+
+/*
+ * The locked Edit's tooltip, worded as every lock in the product words its
+ * own (PermissionGate.getRefusalReason): why, then what would allow it -
+ * the settings' own permission ("You need this permission: Manage Billing."),
+ * or the roles when they take nothing else - or the team block that
+ * refuses it.
+ */
 export function getProjectColumnsPermissionMessage(
   fields: Array<string>,
 ): string {
-  return `Changing these needs one of these permissions: ${PermissionGate.getPermissionTitles(
-    getProjectColumnsUpdatePermissions(fields),
-  ).join(", ")}.`;
+  return PermissionGate.getRefusalReason({
+    sentence: CHANGE_SETTINGS_REFUSED_SENTENCE,
+    permissions: getProjectColumnsUpdatePermissions(fields),
+  });
 }
 
 export interface ProjectColumnsEditGate {

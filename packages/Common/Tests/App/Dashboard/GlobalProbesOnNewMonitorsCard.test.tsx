@@ -231,7 +231,7 @@ describe("Global Probes on New Monitors", () => {
     expect(
       screen.getByTestId(`${GLOBAL_PROBES_ON_NEW_MONITORS_SWITCH_TEST_ID}-row`),
     ).toHaveTextContent(
-      "You do not have permission to update this Project. You need one of these permissions: Project Owner, Project Admin, Edit Project.",
+      "You do not have permission to update this Project. You need this permission: Edit Project.",
     );
 
     fireEvent.click(control);

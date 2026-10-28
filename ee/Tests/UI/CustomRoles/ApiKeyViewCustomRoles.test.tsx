@@ -743,8 +743,9 @@ describe("an API key's custom roles", () => {
 
     const button: HTMLElement = addCustomRoleButton(card);
     fireEvent.mouseEnter(button.parentElement!);
+    // The permission to ask for, not the roles that hold it as well.
     expect(screen.getByRole("tooltip")).toHaveTextContent(
-      "You do not have permission to create this API Key Custom Role. You need one of these permissions: Project Owner, Project Admin, Edit API Key Permissions.",
+      "You do not have permission to create this API Key Custom Role. You need this permission: Edit API Key Permissions.",
     );
 
     fireEvent.click(button);
