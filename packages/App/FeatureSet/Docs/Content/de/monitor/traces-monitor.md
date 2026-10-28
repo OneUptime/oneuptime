@@ -32,7 +32,7 @@ Jede Minute zählt OneUptime die Spans, die zu den Filtern des Monitors passen u
 :::steps
 ### Einen neuen Monitor beginnen
 
-Gehen Sie zu **Monitore** und klicken Sie auf **Monitor erstellen**. Oder filtern Sie im Trace-Explorer die Spans, über die Sie informiert werden wollen, und klicken Sie in seiner Werkzeugleiste auf **Monitor erstellen**: Der neue Monitor überwacht von Anfang an die Dienste, die Status, den Span-Namen und die Attribute des Explorers.
+Gehen Sie zu **Monitore** und klicken Sie auf **Monitor erstellen**. Oder filtern Sie im Trace-Explorer die Spans, über die Sie informiert werden wollen, und klicken Sie in seiner Werkzeugleiste auf **Monitor erstellen** (die Glocke): Der neue Monitor überwacht von Anfang an die Dienste, die Status, den Span-Namen und die Attribute des Explorers.
 
 ### Traces wählen
 

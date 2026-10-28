@@ -32,7 +32,7 @@ Every minute, OneUptime counts the spans that match the monitor's filters and st
 :::steps
 ### Start a new monitor
 
-Go to **Monitors** and click **Create Monitor**. Or, in the trace explorer, filter the spans you want to hear about and click **Create monitor** in its toolbar: the new monitor starts out watching the explorer's services, statuses, span name and attributes.
+Go to **Monitors** and click **Create Monitor**. Or, in the trace explorer, filter the spans you want to hear about and click **Create monitor** (the bell) in its toolbar: the new monitor starts out watching the explorer's services, statuses, span name and attributes.
 
 ### Choose Traces
 

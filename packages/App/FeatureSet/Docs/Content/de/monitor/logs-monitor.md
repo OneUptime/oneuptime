@@ -32,7 +32,7 @@ Jede Minute zählt OneUptime die Logs, die zu den Filtern des Monitors passen un
 :::steps
 ### Einen neuen Monitor beginnen
 
-Gehen Sie zu **Monitore** und klicken Sie auf **Monitor erstellen**. Oder suchen Sie im Log-Explorer nach den Logs, über die Sie informiert werden wollen, und klicken Sie in seiner Werkzeugleiste auf **Monitor erstellen**: Der neue Monitor überwacht von Anfang an die Suche, die Schweregrade, die Dienste und die Attribute des Explorers.
+Gehen Sie zu **Monitore** und klicken Sie auf **Monitor erstellen**. Oder suchen Sie im Log-Explorer nach den Logs, über die Sie informiert werden wollen, und klicken Sie in seiner Werkzeugleiste auf **Monitor erstellen** (die Glocke): Der neue Monitor überwacht von Anfang an die Suche, die Schweregrade, die Dienste und die Attribute des Explorers.
 
 ### Logs wählen
 

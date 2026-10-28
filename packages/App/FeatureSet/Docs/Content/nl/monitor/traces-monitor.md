@@ -32,7 +32,7 @@ Elke minuut telt OneUptime de spans die aan de filters van de monitor voldoen en
 :::steps
 ### Een nieuwe monitor beginnen
 
-Ga naar **Monitoren** en klik op **Monitor maken**. Of filter in de traceverkenner de spans waarover u geïnformeerd wilt worden en klik in de werkbalk op **Monitor maken**: de nieuwe monitor bewaakt vanaf het begin de services, de statussen, de spannaam en de attributen van de verkenner.
+Ga naar **Monitoren** en klik op **Monitor maken**. Of filter in de traceverkenner de spans waarover u geïnformeerd wilt worden en klik in de werkbalk op **Monitor maken** (de bel): de nieuwe monitor bewaakt vanaf het begin de services, de statussen, de spannaam en de attributen van de verkenner.
 
 ### Traces kiezen
 

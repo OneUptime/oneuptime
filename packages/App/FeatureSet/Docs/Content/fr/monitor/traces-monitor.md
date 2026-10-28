@@ -32,7 +32,7 @@ Chaque minute, OneUptime compte les spans qui correspondent aux filtres du monit
 :::steps
 ### Commencer un nouveau moniteur
 
-Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Ou bien, dans l'explorateur de traces, filtrez les spans dont vous voulez être informé et cliquez sur **Créer un moniteur** dans sa barre d'outils : le nouveau moniteur surveille d'emblée les services, les statuts, le nom de span et les attributs de l'explorateur.
+Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Ou bien, dans l'explorateur de traces, filtrez les spans dont vous voulez être informé et cliquez sur **Créer un moniteur** (la cloche) dans sa barre d'outils : le nouveau moniteur surveille d'emblée les services, les statuts, le nom de span et les attributs de l'explorateur.
 
 ### Choisir Traces
 
