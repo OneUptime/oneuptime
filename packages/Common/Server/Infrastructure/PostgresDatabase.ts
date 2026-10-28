@@ -12,6 +12,11 @@ import { DataSource, DataSourceOptions, QueryRunner } from "typeorm";
 import { createDatabase, dropDatabase } from "typeorm-extension";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import PostgresQuerySpans from "../Utils/Telemetry/PostgresQuerySpans";
+import EntityMetadataLookup from "./Postgres/EntityMetadataLookup";
+import QueryPropertyNames from "./Postgres/QueryPropertyNames";
+import TypeOrmPatchVersion, {
+  PATCHED_TYPEORM_VERSION,
+} from "./Postgres/TypeOrmPatchVersion";
 import GracefulShutdown, { ShutdownPriority } from "../Utils/GracefulShutdown";
 
 export type DatabaseSourceOptions = DataSourceOptions;
@@ -57,6 +62,29 @@ export default class Database {
      * installed before the first data source below exists.
      */
     PostgresQuerySpans.install();
+
+    /*
+     * TypeORM finds an entity's metadata by name through an index, not by
+     * walking every entity on every query (EntityMetadataLookup).
+     */
+    EntityMetadataLookup.install();
+
+    /*
+     * And reads each entity's property names once, not on every query it
+     * builds (QueryPropertyNames).
+     */
+    QueryPropertyNames.install();
+
+    /*
+     * Both, and PagedFind's one-query pages, stand aside on a TypeORM they
+     * were not written for (TypeOrmPatchVersion): say so once, as that is
+     * slower.
+     */
+    if (!TypeOrmPatchVersion.isPatchedVersion()) {
+      logger.warn(
+        `TypeORM ${TypeOrmPatchVersion.getInstalledVersion() || "(version unknown)"} is not ${PATCHED_TYPEORM_VERSION}, the version OneUptime's query patches were written for: TypeORM's own query code runs instead.`,
+      );
+    }
 
     let retry: number = 0;
 

@@ -14,6 +14,7 @@ import jwt from "jsonwebtoken";
 import logger from "./Logger";
 import CaptureSpan from "./Telemetry/CaptureSpan";
 import TokenSigningKey from "./TokenSigningKey";
+import JsonWebTokenKeys from "./JsonWebTokenKeys";
 
 // The claim a token says what it is for in (JsonWebTokenPurpose).
 export const PURPOSE_CLAIM: string = "purpose";
@@ -127,9 +128,18 @@ class JSONWebToken {
     payload: JSONObject,
     expiresInSeconds: number,
   ): string {
-    return jwt.sign(payload, TokenSigningKey.get(), {
-      expiresIn: expiresInSeconds,
-    });
+    /*
+     * The key object jsonwebtoken would make of the key, made once
+     * (JsonWebTokenKeys). jsonwebtoken 9 takes a KeyObject; its type
+     * package (8.5) does not say so.
+     */
+    return jwt.sign(
+      payload,
+      JsonWebTokenKeys.forSigning(TokenSigningKey.get()) as jwt.Secret,
+      {
+        expiresIn: expiresInSeconds,
+      },
+    );
   }
 
   /**
@@ -156,8 +166,12 @@ class JSONWebToken {
    */
   @CaptureSpan()
   public static decodeJsonPayload(token: string): JSONObject {
+    // The key object jsonwebtoken would make of the key (see signJsonPayload).
     const decodedToken: string = JSON.stringify(
-      jwt.verify(token, TokenSigningKey.get()) as string,
+      jwt.verify(
+        token,
+        JsonWebTokenKeys.forVerifying(TokenSigningKey.get()) as jwt.Secret,
+      ) as string,
     );
     const decoded: JSONObject = JSONFunctions.parseJSONObject(decodedToken);
 

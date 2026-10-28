@@ -1,6 +1,7 @@
 import logger from "./Logger";
 import { resolveClientIp } from "./ClientIp";
 import GracefulShutdown, { ShutdownPriority } from "./GracefulShutdown";
+import ExpressRouterGate from "./ExpressRouterGate";
 import Dictionary from "../../Types/Dictionary";
 import GenericFunction from "../../Types/GenericFunction";
 import { JSONObject, JSONObjectOrArray } from "../../Types/JSON";
@@ -97,8 +98,13 @@ class Express {
   private static app: express.Application;
   private static httpServer: Server;
 
+  /*
+   * A router that hands a request none of its routes can match straight
+   * on, instead of trying it against each of its routes
+   * (ExpressRouterGate).
+   */
   public static getRouter(): express.Router {
-    return express.Router();
+    return ExpressRouterGate.gate(express.Router());
   }
 
   public static setupExpress(): void {
