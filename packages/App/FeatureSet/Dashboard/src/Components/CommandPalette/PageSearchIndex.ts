@@ -2830,6 +2830,17 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Layers,
           },
           {
+            page: PageMap.NETWORK_DEVICE_SETTINGS_ADDRESS_NAMES,
+            title: "Address Names",
+            icon: IconProp.Label,
+            keywords: [
+              "ip names",
+              "subnet names",
+              "hostnames",
+              "traffic names",
+            ],
+          },
+          {
             page: PageMap.NETWORK_DEVICE_SETTINGS_OID_TEMPLATES,
             title: "OID Collection Templates",
             icon: IconProp.List,

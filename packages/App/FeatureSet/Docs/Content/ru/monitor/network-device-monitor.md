@@ -68,7 +68,7 @@ flowchart TB
 | --- | --- |
 | **Топология** | **Device Topology**, **Конечные точки**, **Latency Matrix**, **Site Links**, **Device Links** |
 | **Правила** | **Auto Import Rules**, **Site Assignment Rules**, **Правила владельца**, **Правила меток**, **Link Rules** |
-| **Настройки** | **Alert Policies**, **Учётные данные SNMP**, **Device Roles**, **Site Types**, **OID Collection Templates** |
+| **Настройки** | **Alert Policies**, **Учётные данные SNMP**, **Device Roles**, **Site Types**, **Имена адресов**, **OID Collection Templates** |
 | **Расширенный** | **Archived Devices** |
 
 ## Добавление сетевого устройства

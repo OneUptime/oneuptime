@@ -1,5 +1,13 @@
 import { formatTrafficBytes } from "./NetworkTrafficFormat";
 import {
+  TrafficAddressLabel,
+  getTrafficAddressLabel,
+  getTrafficAddressText,
+} from "./NetworkTrafficAddressNames";
+import { TrafficAddressText } from "./TrafficAddress";
+import { NetworkTrafficAddressNames } from "Common/Types/NetFlow/NetworkAddressName";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import {
   NetworkQuickAction,
   getNetworkQuickActionRoute,
 } from "../Network/NetworkQuickActions";
@@ -48,6 +56,12 @@ import React, {
 
 export interface ComponentProps {
   sources: Array<NetworkTrafficSource>;
+  /*
+   * What the page's addresses are called (issue #5340): an address that is
+   * no device yet may still have a name - a host's, its DNS name - which
+   * says which box it is before anyone adds it.
+   */
+  addressNames?: NetworkTrafficAddressNames | undefined;
   // Called once an address was added to a device, to read the page again.
   onLinked: () => void;
 }
@@ -230,6 +244,10 @@ const TrafficSourcesCard: FunctionComponent<ComponentProps> = (
           <ul className="divide-y divide-gray-100">
             {props.sources.map((source: NetworkTrafficSource): ReactElement => {
               const isKnown: boolean = Boolean(source.networkDeviceId);
+              const exporterLabel: TrafficAddressLabel = getTrafficAddressLabel(
+                source.exporterIp,
+                props.addressNames,
+              );
               const details: Array<string> = [
                 source.flowFormat ||
                   translator.translateText("NetFlow v5 or v9") ||
@@ -272,15 +290,30 @@ const TrafficSourcesCard: FunctionComponent<ComponentProps> = (
                           >
                             {source.name || source.exporterIp}
                           </AppLink>
-                        ) : (
-                          <span className="font-mono text-sm font-medium text-gray-900">
-                            {source.exporterIp}
+                        ) : exporterLabel.name ? (
+                          <span
+                            className="truncate text-sm font-medium text-gray-900"
+                            title={getTrafficAddressText(exporterLabel)}
+                            data-testid="traffic-source-name"
+                          >
+                            <IsolatedText text={exporterLabel.name} />
                           </span>
+                        ) : (
+                          <TrafficAddressText
+                            address={source.exporterIp}
+                            className="text-sm font-medium text-gray-900"
+                          />
+                        )}
+                        {isKnown || exporterLabel.name ? (
+                          <TrafficAddressText
+                            address={source.exporterIp}
+                            className="text-xs text-gray-500"
+                          />
+                        ) : (
+                          <></>
                         )}
                         {isKnown ? (
-                          <span className="font-mono text-xs text-gray-500">
-                            {source.exporterIp}
-                          </span>
+                          <></>
                         ) : (
                           <span
                             className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-amber-200"

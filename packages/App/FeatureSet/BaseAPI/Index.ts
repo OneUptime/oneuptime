@@ -2043,6 +2043,12 @@ import NetworkSiteAssignmentRuleService, {
   Service as NetworkSiteAssignmentRuleServiceType,
 } from "Common/Server/Services/NetworkSiteAssignmentRuleService";
 
+// NetworkAddressName
+import NetworkAddressName from "Common/Models/DatabaseModels/NetworkAddressName";
+import NetworkAddressNameService, {
+  Service as NetworkAddressNameServiceType,
+} from "Common/Server/Services/NetworkAddressNameService";
+
 // Open API Spec
 import OpenAPI from "Common/Server/API/OpenAPI";
 
@@ -6507,6 +6513,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<NetworkSiteType, NetworkSiteTypeServiceType>(
         NetworkSiteType,
         NetworkSiteTypeService,
+      ).getRouter(),
+    );
+
+    // network address name (what the Traffic pages call an address or subnet)
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<NetworkAddressName, NetworkAddressNameServiceType>(
+        NetworkAddressName,
+        NetworkAddressNameService,
       ).getRouter(),
     );
 

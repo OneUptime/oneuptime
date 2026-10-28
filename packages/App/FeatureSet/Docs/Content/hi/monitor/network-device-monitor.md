@@ -68,7 +68,7 @@ flowchart TB
 | --- | --- |
 | **टोपोलॉजी** | **Device Topology**, **एंडपॉइंट**, **Latency Matrix**, **Site Links**, **Device Links** |
 | **नियम** | **Auto Import Rules**, **Site Assignment Rules**, **स्वामी नियम**, **लेबल नियम**, **Link Rules** |
-| **सेटिंग्स** | **Alert Policies**, **SNMP क्रेडेंशियल**, **Device Roles**, **Site Types**, **OID Collection Templates** |
+| **सेटिंग्स** | **Alert Policies**, **SNMP क्रेडेंशियल**, **Device Roles**, **Site Types**, **पतों के नाम**, **OID Collection Templates** |
 | **उन्नत** | **Archived Devices** |
 
 ## नेटवर्क डिवाइस जोड़ना

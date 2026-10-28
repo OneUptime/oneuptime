@@ -68,7 +68,7 @@ flowchart TB
 | --- | --- |
 | **توپولوژی** | **Device Topology**، **نقاط پایانی**، **Latency Matrix**، **Site Links**، **Device Links** |
 | **قواعد** | **Auto Import Rules**، **Site Assignment Rules**، **قواعد مالکیت**، **قواعد برچسب**، **Link Rules** |
-| **تنظیمات** | **Alert Policies**، **اعتبارنامه‌های SNMP**، **Device Roles**، **Site Types**، **OID Collection Templates** |
+| **تنظیمات** | **Alert Policies**، **اعتبارنامه‌های SNMP**، **Device Roles**، **Site Types**، **نام نشانی‌ها**، **OID Collection Templates** |
 | **پیشرفته** | **Archived Devices** |
 
 ## افزودن یک دستگاه شبکه

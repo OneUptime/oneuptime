@@ -6,6 +6,7 @@ import NetworkTrafficAggregationService, {
   NetworkTrafficQuery,
 } from "../../../../Server/Services/NetworkTrafficAggregationService";
 import NetworkDeviceService from "../../../../Server/Services/NetworkDeviceService";
+import NetworkAddressNamesUtil from "../../../../Server/Utils/NetworkFlow/NetworkAddressNames";
 import NetworkInterfaceService from "../../../../Server/Services/NetworkInterfaceService";
 import NetworkSiteService from "../../../../Server/Services/NetworkSiteService";
 import TelemetryReadAccess from "../../../../Server/Utils/Telemetry/TelemetryReadAccess";
@@ -66,6 +67,7 @@ function emptyAggregates(): NetworkTrafficAggregates {
     topApplications: [],
     topInterfaces: [],
     topDevices: [],
+    dnsNames: new Map(),
   };
 }
 
@@ -108,6 +110,8 @@ beforeEach(() => {
 
   jest.spyOn(NetworkDeviceService, "findBy").mockResolvedValue([] as never);
   jest.spyOn(NetworkInterfaceService, "findBy").mockResolvedValue([] as never);
+  // What the page's addresses are called is NetworkTrafficSummaryNames' to pin.
+  jest.spyOn(NetworkAddressNamesUtil, "resolve").mockResolvedValue({} as never);
 });
 
 afterEach(() => {

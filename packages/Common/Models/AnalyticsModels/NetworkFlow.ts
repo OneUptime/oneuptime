@@ -371,6 +371,46 @@ export default class NetworkFlow extends AnalyticsBaseModel {
       },
     });
 
+    /*
+     * The two addresses' DNS names, as the probe that received the flow
+     * looked them up on its own network when it forwarded the flow (issue
+     * #5340): a name only when it points back to the address. Empty when
+     * the address has none, when its lookup had not answered yet, and on
+     * rows from probes older than the lookups - the Traffic pages then name
+     * the address from the project's inventory, or show it as itself. Kept
+     * on the row, so a name read for a window is the name the address had
+     * then.
+     */
+    const srcNameColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "srcName",
+      codec: { codec: "ZSTD", level: 1 },
+      title: "Source Name",
+      description:
+        "DNS name of the source address when the probe forwarded the flow, if it points back to the address (empty when none)",
+      required: true,
+      type: TableColumnType.Text,
+      accessControl: {
+        read: readPermissions,
+        create: createPermissions,
+        update: [],
+      },
+    });
+
+    const dstNameColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "dstName",
+      codec: { codec: "ZSTD", level: 1 },
+      title: "Destination Name",
+      description:
+        "DNS name of the destination address when the probe forwarded the flow, if it points back to the address (empty when none)",
+      required: true,
+      type: TableColumnType.Text,
+      accessControl: {
+        read: readPermissions,
+        create: createPermissions,
+        update: [],
+      },
+    });
+
     super({
       tableName: AnalyticsTableName.NetworkFlow,
       tableEngine: AnalyticsTableEngine.MergeTree,
@@ -417,6 +457,8 @@ export default class NetworkFlow extends AnalyticsBaseModel {
         samplingRateColumn,
         flowCountColumn,
         probeIdColumn,
+        srcNameColumn,
+        dstNameColumn,
       ],
       projections: [],
       sortKeys: ["projectId", "networkDeviceId", "flowStartAt"],
@@ -596,6 +638,22 @@ export default class NetworkFlow extends AnalyticsBaseModel {
 
   public set flowCount(v: number | undefined) {
     this.setColumnValue("flowCount", v);
+  }
+
+  public get srcName(): string | undefined {
+    return this.getColumnValue("srcName") as string | undefined;
+  }
+
+  public set srcName(v: string | undefined) {
+    this.setColumnValue("srcName", v);
+  }
+
+  public get dstName(): string | undefined {
+    return this.getColumnValue("dstName") as string | undefined;
+  }
+
+  public set dstName(v: string | undefined) {
+    this.setColumnValue("dstName", v);
   }
 
   public get probeId(): ObjectID | undefined {
