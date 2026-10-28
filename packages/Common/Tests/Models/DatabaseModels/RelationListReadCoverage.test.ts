@@ -331,6 +331,8 @@ const REFERENCED_AS_A_WHOLE_TABLE: Record<string, string> = {
     "Every Security role reads the project's playbooks, and a run names the playbook it was started from; the reference check refuses another project's playbook.",
   DetectionRule:
     "Every Security role reads the project's detection rules, and a rule exception names the rule that skips it; the reference check refuses another project's rule.",
+  SecurityWatchlist:
+    "Every Security role reads the project's watchlists, and a value names the list it is on; the reference check refuses another project's list.",
   HostCollectorConfig:
     "Every member reads the project's Collector Configs, and a host names the one picked for it; the reference check refuses another project's config.",
   UserCall: NOTIFICATION_METHOD,
@@ -374,6 +376,8 @@ const CREDENTIAL_SETTINGS: Record<string, string> = {
     "An outside MCP server's sign-in (a bearer token, header values or an OAuth client secret): an investigation or auto remediation rule that names one lets OneUptime AI use that server's tools with it.",
   SecurityEventConnection:
     "A security tool's key (a Google SecOps service account, an API token): a threat-intel feed that names one reads that tool's indicators with it.",
+  ThreatIntelFeed:
+    "A TAXII server's bearer token or password: a watchlist that follows a feed matches its rules against the indicators read from that server with them.",
   LlmProvider:
     "An LLM provider's API key: an investigation, auto remediation or postmortem rule that names one has OneUptime AI do the work it starts with that provider, on that key.",
   CodeRepositoryConnection:
@@ -393,6 +397,7 @@ const CREDENTIAL_REFERENCES: Array<[string, string, string]> = [
   // A custom role given to a key: the key holds what the role gives.
   ["ApiKeyCustomRole", "apiKey", "ApiKey"],
   ["ThreatIntelFeed", "securityEventConnection", "SecurityEventConnection"],
+  ["SecurityWatchlist", "threatIntelFeed", "ThreatIntelFeed"],
   ["AutoRemediationRule", "llmProvider", "LlmProvider"],
   ["AIPostmortemRule", "llmProvider", "LlmProvider"],
 ];

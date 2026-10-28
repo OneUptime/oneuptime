@@ -213,11 +213,18 @@ function descriptionField(data: {
   };
 }
 
+/*
+ * The feed a list follows. Create folds it with the other rare fields - the
+ * section is handed in where the form is built, so it reads as one row
+ * there - and Edit asks it in the open.
+ */
 function feedField(data: {
   translator: Translator;
   saved?: { entityType: string; source: string } | undefined;
   showIf?: ((values: FormValues<SecurityWatchlist>) => boolean) | undefined;
-  isFolded: boolean;
+  collapsibleSection?:
+    | FormFieldCollapsibleSection<SecurityWatchlist>
+    | undefined;
 }): ModelField<SecurityWatchlist> {
   return {
     field: { threatIntelFeed: true },
@@ -234,7 +241,9 @@ function feedField(data: {
     ...(data.showIf ? { showIf: data.showIf } : {}),
     required: data.showIf || true,
     customValidation: problemWith({ ...data, field: "threatIntelFeedId" }),
-    ...(data.isFolded ? { collapsibleSection: advancedSection } : {}),
+    ...(data.collapsibleSection
+      ? { collapsibleSection: data.collapsibleSection }
+      : {}),
     dataTestId: "watchlist-feed",
   };
 }
@@ -281,7 +290,7 @@ export function getWatchlistCreateFields(options: {
     feedField({
       translator: options.translator,
       showIf: isNewWatchlistFollowingFeed,
-      isFolded: true,
+      collapsibleSection: advancedSection,
     }),
   ];
 }
@@ -305,9 +314,7 @@ export function getWatchlistEditFields(options: {
   ];
 
   if (isFeedWatchlist(options.source)) {
-    fields.push(
-      feedField({ translator: options.translator, saved, isFolded: false }),
-    );
+    fields.push(feedField({ translator: options.translator, saved }));
   }
 
   fields.push(descriptionField({ translator: options.translator, saved }));
