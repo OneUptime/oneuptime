@@ -68,7 +68,7 @@ Netværk-menuen holder det, du åbner hver dag, synligt: **Oversigt**, **Enheder
 | --- | --- |
 | **Topologi** | **Device Topology**, **Endepunkter**, **Latency Matrix**, **Site Links**, **Device Links** |
 | **Regler** | **Auto Import Rules**, **Site Assignment Rules**, **Ejerregler**, **Etiketregler**, **Link Rules** |
-| **Indstillinger** | **Alert Policies**, **SNMP-loginoplysninger**, **Device Roles**, **Site Types**, **OID Collection Templates** |
+| **Indstillinger** | **Alert Policies**, **SNMP-loginoplysninger**, **Device Roles**, **Site Types**, **Adressenavne**, **OID Collection Templates** |
 | **Avanceret** | **Archived Devices** |
 
 ## Tilføj en netværksenhed

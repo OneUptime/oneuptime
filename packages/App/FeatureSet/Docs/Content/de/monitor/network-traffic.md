@@ -19,7 +19,9 @@ Eine Cisco-Meraki-Umgebung lässt sich auch ohne jeden Export lesen: Verbinden S
 - **Top-Schnittstellen** auf der Seite eines Geräts: was über jede Schnittstelle herein- und hinausging, mit Name und Geschwindigkeit aus dem SNMP-Walk des Geräts. **Top-Geräte** auf der Seite eines Standorts und des Netzwerks.
 - **Top-Verbindungen**: die zehn aktivsten Adresspaare, als Diagramm von den Sendern zu den Empfängern gezeichnet oder als Liste.
 
-Klicken Sie auf eine Zeile - eine Adresse, eine Anwendung, eine Schnittstelle, ein Gerät, ein Band des Diagramms - und die ganze Seite beschränkt sich auf diesen Verkehr. Ein Chip über der Seite sagt, worauf sie beschränkt ist; ein Klick auf sein x hebt die Beschränkung wieder auf. **IP-Adresse suchen** beschränkt die Seite auf den Verkehr an oder von einer Adresse. Zeitraum und Filter stehen in der Adresse der Seite, ein Link öffnet also genau dieselbe Ansicht.
+Klicken Sie auf eine Zeile - eine Adresse, eine Anwendung, eine Schnittstelle, ein Gerät, ein Band des Diagramms - und die ganze Seite beschränkt sich auf diesen Verkehr. Ein Chip über der Seite sagt, worauf sie beschränkt ist; ein Klick auf sein x hebt die Beschränkung wieder auf. **Name oder IP-Adresse suchen** beschränkt die Seite auf den Verkehr an oder von einer Adresse: Geben Sie die Adresse oder einen Teil ihres Namens ein und wählen Sie sie aus, wenn mehrere passen. Zeitraum und Filter stehen in der Adresse der Seite, ein Link öffnet also genau dieselbe Ansicht.
+
+Eine Adresse, die OneUptime kennt, wird mit ihrem Namen angezeigt, die Adresse daneben. Siehe [Namen statt Adressen](#namen-statt-adressen).
 
 ## Wie die Flows hierher kommen
 
@@ -211,6 +213,49 @@ Flows können ankommen, bevor das Gerät, das sie sendet, in OneUptime hinzugef�
 
 Mehrere Geräte hinter einer NAT-Adresse teilen sich diese Adresse, ihre Flows gehen also an das eine Gerät, das sie hat.
 
+## Namen statt Adressen
+
+Überall, wo eine Datenverkehr-Seite eine Adresse auflistet - in den Top-Listen, in beiden Ansichten von **Top-Verbindungen**, in den Chips, bei **Suchen** -, zeigt sie zuerst den Namen der Adresse, wenn OneUptime einen kennt, und die Adresse daneben: `mumbai-fs01` über `10.18.167.35`. Eine Adresse, die nichts benennt, wird als sie selbst angezeigt. Unter dem Mauszeiger erscheint ein gekürzter Name vollständig.
+
+Ein Name kommt aus der ersten dieser Quellen, die die Adresse benennt:
+
+| Reihenfolge | Woher der Name kommt | Was die Adresse benennt |
+| ----------- | -------------------- | ----------------------- |
+| 1 | **Adressnamen** | Ein Name, den jemand dieser Adresse unter **Netzwerk** -> **Einstellungen** -> **Adressnamen** gegeben hat |
+| 2 | Netzwerkgeräte | Ein Gerät, das unter der Adresse abgefragt wird oder sie unter **Weitere Adressen** führt |
+| 3 | Hosts | Ein Host, dessen Agent die Adresse meldet |
+| 4 | Cloud-Ressourcen | Eine Cloud-Ressource, für die Ihr Cloud-Konto die Adresse auflistet |
+| 5 | Kubernetes | Ein Knoten mit der Adresse, danach ein Pod (ein Pod im eigenen Netzwerk seines Knotens hat die Adresse des Knotens) |
+| 6 | DNS | Der Reverse-DNS-Name der Adresse, nachgeschlagen von der Sonde, die die Flows empfangen hat |
+
+Ein Datensatz benennt nur den Verkehr aus einer Zeit, in der es ihn gab: Ein Host, der erst nach dem Zeitraum auftauchte, oder ein Pod, der davor verschwand, benennt den Verkehr dieses Zeitraums nicht. Ein Name, den jemand einem Subnetz gegeben hat - `10.18.167.0/24` ist „Büro Mumbai“ -, steht neben jeder Adresse darin, nie anstelle des eigenen Namens der Adresse; überschneiden sich benannte Subnetze, wird das engste angezeigt.
+
+### Eine Adresse
+
+Klicken Sie auf eine Adresse oder suchen Sie sie, und die Seite beschränkt sich auf sie, mit einer Karte über den Zahlen, die sagt, wer sie ist: der Name, woher der Name kommt, die Adresse mit einer Schaltfläche zum Kopieren und das benannte Subnetz, in dem sie liegt. Die Karte bietet den nächsten Schritt:
+
+- **Host öffnen**, **Gerät öffnen** oder **Cloud-Ressource öffnen**, wenn der Name von diesem Datensatz stammt. Ändern Sie den Namen dort.
+- **Adresse benennen**, wenn nichts die Adresse benennt oder nur DNS. Die Adresse ist schon eingetragen; erweitern Sie sie zu einem Subnetz wie `10.18.167.0/24`, um stattdessen das ganze Subnetz zu benennen.
+- **Umbenennen**, wenn der Name ein Adressname ist.
+
+Benennen und Umbenennen darf, wer Netzwerkgeräte hinzufügen und ändern darf. Wer sie lesen darf, sieht die Namen.
+
+### Adressnamen
+
+**Netzwerk** -> **Einstellungen** -> **Adressnamen** listet die Namen, die Personen Adressen und Subnetzen gegeben haben, die sonst nichts benennt: das VPN-Gateway eines Partners, ein SaaS-Endpunkt, das Gäste-WLAN. **Adressname erstellen** fragt nach dem Namen und nach einer IP-Adresse (`10.0.0.5`, `2001:db8::5`) oder einem Subnetz (`10.18.167.0/24`). Ein Subnetz wird als seine erste Adresse und seine Länge gespeichert, `10.18.167.35/24` also als `10.18.167.0/24`. Jede Adresse und jedes Subnetz hat einen Namen.
+
+### DNS-Namen von der Sonde
+
+DNS-Namen schlägt die Sonde nach, die die Flows empfangen hat, über den Resolver, den ihr Host verwendet: innerhalb Ihres Netzwerks, wo private Adressen Namen haben. Die Sonde behält einen Namen nur, wenn die eigenen A- oder AAAA-Einträge des Namens auf die Adresse zurückzeigen; ein veralteter oder gefälschter Reverse-Eintrag benennt also nichts, und ein Name aus der hosts-Datei des Sonden-Hosts wird so verwendet, wie er ist. Sie sendet die Namen mit den Flows, und sie werden mit ihnen aufbewahrt: Ein Zeitraum zeigt die Namen, die seine Adressen damals hatten.
+
+Das Nachschlagen hält die Flows nie auf. Die aktivsten Adressen werden zuerst nachgeschlagen, höchstens 300 pro Minute und acht gleichzeitig; ein Name wird eine Stunde lang behalten, eine Adresse ohne Namen 30 Minuten, und ein fehlgeschlagenes Nachschlagen wird nach 5 Minuten wiederholt. Loopback-, Link-Local-, Multicast- und Broadcast-Adressen werden nie nachgeschlagen. Die globalen Sonden eines gehosteten OneUptime, die sich alle Konten teilen, schlagen nur öffentliche Adressen nach; Ihre eigenen Sonden und die Sonden Ihrer eigenen OneUptime-Installation schlagen auch private Adressen nach.
+
+| Variable                            | Was sie bewirkt                                                     | Standard |
+| ----------------------------------- | ------------------------------------------------------------------- | -------- |
+| PROBE_FLOW_NAME_LOOKUP_ENABLED      | Auf `false` setzen, um die Adressen der Flows nicht mehr im DNS nachzuschlagen | true |
+| PROBE_FLOW_NAME_LOOKUPS_PER_MINUTE  | Nachgeschlagene Adressen pro Minute; `0` beendet das Nachschlagen   | 300      |
+| PROBE_FLOW_NAME_DNS_SERVERS         | DNS-Server, die statt des Resolvers des Hosts gefragt werden, etwa `10.0.0.53, 10.0.0.54:5353` | keiner |
+
 ## Die Zahlen lesen
 
 - **Abtastung.** Ein Gerät, das abtastet - sFlow tut es immer, NetFlow oder IPFIX können es -, meldet ein Paket von N. Die Sonde multipliziert die Zahlen mit N, die Seite zeigt also Schätzungen und sagt das unter den vier Zahlen. Sie sind genau bei viel Verkehr und grob bei wenigen Paketen.
@@ -236,6 +281,12 @@ Wenn die Datenverkehr-Seite noch ihre Einrichtungsschritte zeigt:
 - **Das Protokoll der Sonde.** Einmal pro Minute protokolliert die Sonde, was sie nicht lesen konnte: Datagramme in einem nicht unterstützten Format (NetFlow v1, v6, v7 oder v8 oder sFlow vor Version 5), fehlerhafte Datagramme, Daten, die auf ein Template warten, und Datagramme, die über `PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE` hinaus verworfen wurden.
 - **Templates.** NetFlow v9 und IPFIX senden den Aufbau ihrer Datensätze als Templates. Die Sonde hält Daten, die vor ihrem Template ankommen, bis zu 10 Minuten zurück; lassen Sie das Gerät seine Templates alle 60 Sekunden senden, damit sich die Seite innerhalb einer Minute füllt.
 - **Eine globale Sonde.** Ein Gerät, das von einer globalen Sonde abgefragt wird, kann ihr aus einem privaten Netzwerk keine Flows senden. Betreiben Sie eine benutzerdefinierte Sonde im Netzwerk des Geräts und wählen Sie sie in den Einstellungen des Geräts.
+
+Wenn eine Adresse keinen Namen zeigt:
+
+- **Geben Sie ihr einen.** Klicken Sie auf sie und dann auf der Karte über den Zahlen auf **Adresse benennen**.
+- **Ihre DNS-Namen.** Der eigene A- oder AAAA-Eintrag des Namens muss auf die Adresse zurückzeigen; ein Reverse-Eintrag allein genügt nicht. Ein Name, der im DNS hinzukommt, benennt die Flows, die danach eintreffen.
+- **Der Resolver der Sonde.** Wenn der Host der Sonde Ihr internes DNS nicht sieht, setzen Sie `PROBE_FLOW_NAME_DNS_SERVERS` auf einen DNS-Server, der Ihre Reverse-Zonen hält.
 
 Wenn eine Meraki-Verbindung meldet, dass sie nicht lesen kann:
 

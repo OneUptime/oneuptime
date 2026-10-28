@@ -19,7 +19,9 @@ Et Cisco Meraki-miljø kan også læses uden at eksportere noget: forbind Meraki
 - **Topgrænseflader** på en enheds side: hvad der kom ind og gik ud gennem hver grænseflade, med navn og hastighed fra enhedens SNMP-walk. **Topenheder** på en lokations side og på netværkets side.
 - **Topsamtaler**: de ti travleste adressepar, tegnet som et diagram fra afsendere til modtagere eller som en liste.
 
-Klik på en række - en adresse, en applikation, en grænseflade, en enhed, et bånd i diagrammet - og hele siden indsnævres til den trafik. En chip over siden fortæller, hvad den er indsnævret til; klik på dens x for at udvide siden igen. **Find en IP-adresse** indsnævrer siden til trafikken til eller fra én adresse. Tidsrummet og filtrene gemmes i sidens adresse, så et link åbner præcis den samme visning.
+Klik på en række - en adresse, en applikation, en grænseflade, en enhed, et bånd i diagrammet - og hele siden indsnævres til den trafik. En chip over siden fortæller, hvad den er indsnævret til; klik på dens x for at udvide siden igen. **Find et navn eller en IP-adresse** indsnævrer siden til trafikken til eller fra én adresse: skriv adressen eller en del af dens navn, og vælg den, hvis flere passer. Tidsrummet og filtrene gemmes i sidens adresse, så et link åbner præcis den samme visning.
+
+En adresse, som OneUptime kender, vises med sit navn og adressen ved siden af. Se [Navne i stedet for adresser](#navne-i-stedet-for-adresser).
 
 ## Sådan kommer flows hertil
 
@@ -211,6 +213,49 @@ Flows kan ankomme, før den enhed, der sender dem, er tilføjet i OneUptime. På
 
 Flere enheder bag én NAT-adresse deler den adresse, så deres flows går til den ene enhed, der har den.
 
+## Navne i stedet for adresser
+
+Overalt hvor en Trafik-side viser en adresse - toplisterne, begge visninger af **Topsamtaler**, chipsene, **Find** - viser den først adressens navn, når OneUptime kender et, med adressen ved siden af: `mumbai-fs01` over `10.18.167.35`. En adresse, som intet navngiver, vises som sig selv. Under markøren vises et forkortet navn i sin helhed.
+
+Et navn kommer fra den første af disse kilder, der navngiver adressen:
+
+| Rækkefølge | Hvor navnet kommer fra | Hvad der navngiver adressen |
+| ---------- | ---------------------- | --------------------------- |
+| 1 | **Adressenavne** | Et navn, som nogen gav denne adresse under **Netværk** -> **Indstillinger** -> **Adressenavne** |
+| 2 | Netværksenheder | En enhed, der polles på adressen, eller som har den under **Andre adresser** |
+| 3 | Værter | En vært, hvis agent rapporterer adressen |
+| 4 | Cloud-ressourcer | En cloud-ressource, som jeres cloud-konto angiver adressen for |
+| 5 | Kubernetes | En node med adressen, derefter en pod (en pod på sin nodes eget netværk har nodens adresse) |
+| 6 | DNS | Adressens reverse DNS-navn, slået op af den probe, der modtog flowene |
+
+En post navngiver kun trafikken fra en tid, hvor den fandtes: en vært, der først blev set efter tidsrummet, eller en pod, der forsvandt før det, navngiver ikke trafikken i det tidsrum. Et navn, som nogen gav et undernet - `10.18.167.0/24` er »Kontoret i Mumbai« - vises ved siden af hver adresse i det, aldrig i stedet for adressens eget navn; hvor navngivne undernet overlapper, vises det smalleste.
+
+### Én adresse
+
+Klik på en adresse, eller find den, så indsnævres siden til den med et kort over tallene, der fortæller, hvem den er: navnet, hvor navnet kommer fra, adressen med en knap til at kopiere den og det navngivne undernet, den ligger i. Kortet har det næste skridt:
+
+- **Åbn vært**, **Åbn enhed** eller **Åbn cloud-ressource**, når navnet er den posts. Ret navnet der.
+- **Giv adressen et navn**, når intet navngiver den, eller kun DNS gør. Adressen er udfyldt; udvid den til et undernet, f.eks. `10.18.167.0/24`, for at navngive hele undernettet i stedet.
+- **Omdøb**, når navnet er et adressenavn.
+
+At give og ændre navne er for dem, der må tilføje og ændre netværksenheder. Alle, der må læse dem, ser navnene.
+
+### Adressenavne
+
+**Netværk** -> **Indstillinger** -> **Adressenavne** viser de navne, folk har givet adresser og undernet, som intet andet navngiver: en partners VPN-gateway, et SaaS-endpoint, gæste-wi-fi'et. **Opret Adressenavn** beder om navnet og om én IP-adresse (`10.0.0.5`, `2001:db8::5`) eller et undernet (`10.18.167.0/24`). Et undernet gemmes som sin første adresse og sin længde, så `10.18.167.35/24` gemmes som `10.18.167.0/24`. Hver adresse eller hvert undernet har ét navn.
+
+### DNS-navne fra proben
+
+DNS-navne slås op af den probe, der modtog flowene, med den resolver, dens vært bruger: inde i jeres netværk, hvor private adresser har navne. Proben beholder kun et navn, når navnets egne A- eller AAAA-poster peger tilbage på adressen, så en forældet eller forfalsket reverse-post navngiver intet, og et navn i probeværtens hosts-fil bruges, som det er. Den sender navnene med flowene, og de gemmes sammen med dem: et tidsrum viser de navne, dets adresser havde dengang.
+
+Opslagene holder aldrig flowene tilbage. De travleste adresser slås op først, højst 300 i minuttet og otte ad gangen; et navn huskes i en time, en adresse uden navn i 30 minutter, og et opslag, der mislykkedes, prøves igen efter 5 minutter. Loopback-, link-local-, multicast- og broadcast-adresser slås aldrig op. De globale prober i en hostet OneUptime, som alle konti deler, slår kun offentlige adresser op; jeres egne prober, og proberne i jeres egen OneUptime-installation, slår også private adresser op.
+
+| Variabel                            | Hvad den gør                                                        | Standard |
+| ----------------------------------- | ------------------------------------------------------------------- | -------- |
+| PROBE_FLOW_NAME_LOOKUP_ENABLED      | Sæt til `false` for at holde op med at slå flowenes adresser op i DNS | true |
+| PROBE_FLOW_NAME_LOOKUPS_PER_MINUTE  | Adresser slået op pr. minut; `0` stopper opslagene                  | 300      |
+| PROBE_FLOW_NAME_DNS_SERVERS         | DNS-servere, der spørges i stedet for værtens resolver, f.eks. `10.0.0.53, 10.0.0.54:5353` | ingen |
+
 ## Sådan læser du tallene
 
 - **Sampling.** En enhed, der sampler - sFlow gør det altid, og NetFlow eller IPFIX kan - rapporterer én pakke ud af N. Sonden ganger tallene med N, så siden viser skøn og siger det under de fire tal. De er præcise for meget trafik og grove for få pakker.
@@ -236,6 +281,12 @@ Hvis Trafik-siden stadig viser sine opsætningstrin:
 - **Sondens log.** Én gang i minuttet logger sonden det, den ikke kunne læse: datagrammer i et format, der ikke understøttes (NetFlow v1, v6, v7 eller v8 eller sFlow før version 5), ugyldige datagrammer, data, der venter på en skabelon, og datagrammer, der blev kasseret over `PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE`.
 - **Skabeloner.** NetFlow v9 og IPFIX sender opbygningen af deres poster som skabeloner. Sonden holder data, der ankommer før skabelonen, i op til 10 minutter; indstil enheden til at sende sine skabeloner hvert 60. sekund, så siden fyldes inden for et minut.
 - **En global sonde.** En enhed, der polles af en global sonde, kan ikke sende flows til den fra et privat netværk. Kør en brugerdefineret sonde på enhedens netværk, og vælg den i enhedens indstillinger.
+
+Hvis en adresse ikke viser noget navn:
+
+- **Giv den et.** Klik på adressen og derefter på **Giv adressen et navn** på kortet over tallene.
+- **Dens DNS-navne.** Navnets egen A- eller AAAA-post skal pege tilbage på adressen; en reverse-post alene er ikke nok. Et navn, der tilføjes i DNS, navngiver de flows, der kommer efter det.
+- **Probens resolver.** Hvis probens vært ikke kan se jeres interne DNS, så sæt `PROBE_FLOW_NAME_DNS_SERVERS` til en DNS-server, der har jeres reverse-zoner.
 
 Hvis en Meraki-forbindelse siger, at den ikke kan læse:
 

@@ -19,7 +19,9 @@ Un parc Cisco Meraki peut aussi être lu sans rien exporter : connectez le table
 - **Principales interfaces** sur la page d'un appareil : ce qui est entré et sorti par chaque interface, avec son nom et son débit issus du parcours SNMP de l'appareil. **Principaux appareils** sur la page d'un site et sur celle du réseau.
 - **Principales conversations** : les dix paires d'adresses les plus actives, dessinées en diagramme des émetteurs vers les destinataires, ou en liste.
 
-Cliquez sur une ligne - une adresse, une application, une interface, un appareil, une bande du diagramme - et toute la page se restreint à ce trafic. Une puce au-dessus de la page indique à quoi elle est restreinte ; cliquez sur son x pour l'élargir à nouveau. **Rechercher une adresse IP** restreint la page au trafic vers ou depuis une adresse. La plage de temps et les filtres sont conservés dans l'adresse de la page, donc un lien ouvre exactement la même vue.
+Cliquez sur une ligne - une adresse, une application, une interface, un appareil, une bande du diagramme - et toute la page se restreint à ce trafic. Une puce au-dessus de la page indique à quoi elle est restreinte ; cliquez sur son x pour l'élargir à nouveau. **Rechercher un nom ou une adresse IP** restreint la page au trafic vers ou depuis une adresse : saisissez l'adresse, ou une partie de son nom, et choisissez-la si plusieurs correspondent. La plage de temps et les filtres sont conservés dans l'adresse de la page, donc un lien ouvre exactement la même vue.
+
+Une adresse que OneUptime connaît est affichée par son nom, l'adresse à côté. Voir [Des noms à la place des adresses](#des-noms-à-la-place-des-adresses).
 
 ## Comment les flux arrivent ici
 
@@ -211,6 +213,49 @@ Des flux peuvent arriver avant que l'appareil qui les envoie soit ajouté à One
 
 Plusieurs appareils derrière une même adresse NAT partagent cette adresse : leurs flux vont donc au seul appareil qui l'a.
 
+## Des noms à la place des adresses
+
+Partout où une page Trafic liste une adresse - les listes principales, les deux vues de **Principales conversations**, les puces, **Rechercher** -, elle affiche d'abord le nom de l'adresse quand OneUptime en connaît un, l'adresse à côté : `mumbai-fs01` au-dessus de `10.18.167.35`. Une adresse que rien ne nomme est affichée telle quelle. Sous le pointeur, un nom raccourci s'affiche en entier.
+
+Un nom vient de la première de ces sources qui nomme l'adresse :
+
+| Ordre | D'où vient le nom | Ce qui nomme l'adresse |
+| ----- | ----------------- | ---------------------- |
+| 1 | **Noms d'adresse** | Un nom que quelqu'un a donné à cette adresse sous **Réseau** -> **Paramètres** -> **Noms d'adresse** |
+| 2 | Équipements réseau | Un équipement interrogé à cette adresse, ou qui la liste dans **Autres adresses** |
+| 3 | Hôtes | Un hôte dont l'agent signale l'adresse |
+| 4 | Ressources cloud | Une ressource cloud pour laquelle votre compte cloud liste l'adresse |
+| 5 | Kubernetes | Un nœud qui détient l'adresse, puis un pod (un pod sur le réseau de son nœud a l'adresse du nœud) |
+| 6 | DNS | Le nom DNS inverse de l'adresse, résolu par la sonde qui a reçu les flux |
+
+Un enregistrement ne nomme que le trafic d'une période où il existait : un hôte apparu après la plage de temps, ou un pod disparu avant elle, ne nomme pas le trafic de cette plage. Un nom que quelqu'un a donné à un sous-réseau - `10.18.167.0/24` est « Bureau de Mumbai » - s'affiche à côté de chaque adresse qu'il contient, jamais à la place du nom de l'adresse ; quand des sous-réseaux nommés se chevauchent, le plus étroit est affiché.
+
+### Une adresse
+
+Cliquez sur une adresse, ou recherchez-la, et la page se restreint à elle, avec une carte au-dessus des chiffres qui dit de qui il s'agit : le nom, d'où vient le nom, l'adresse avec un bouton pour la copier, et le sous-réseau nommé où elle se trouve. La carte propose l'étape suivante :
+
+- **Ouvrir l'hôte**, **Ouvrir l'équipement** ou **Ouvrir la ressource cloud**, quand le nom est celui de cet enregistrement. Changez le nom là-bas.
+- **Nommer cette adresse**, quand rien ne la nomme ou seulement le DNS. L'adresse est déjà saisie ; élargissez-la à un sous-réseau, comme `10.18.167.0/24`, pour nommer tout le sous-réseau à la place.
+- **Renommer**, quand le nom est un nom d'adresse.
+
+Nommer et renommer sont réservés à qui peut ajouter et modifier des équipements réseau. Tous ceux qui peuvent les lire voient les noms.
+
+### Noms d'adresse
+
+**Réseau** -> **Paramètres** -> **Noms d'adresse** liste les noms que des personnes ont donnés à des adresses et à des sous-réseaux que rien d'autre ne nomme : la passerelle VPN d'un partenaire, un point d'accès SaaS, le Wi-Fi invités. **Créer : Nom d'adresse** demande le nom et une adresse IP (`10.0.0.5`, `2001:db8::5`) ou un sous-réseau (`10.18.167.0/24`). Un sous-réseau est conservé sous la forme de sa première adresse et de sa longueur : `10.18.167.35/24` est enregistré comme `10.18.167.0/24`. Chaque adresse ou sous-réseau a un seul nom.
+
+### Les noms DNS de la sonde
+
+Les noms DNS sont résolus par la sonde qui a reçu les flux, avec le résolveur qu'utilise son hôte : à l'intérieur de votre réseau, là où les adresses privées ont des noms. La sonde ne garde un nom que si les propres enregistrements A ou AAAA du nom pointent vers l'adresse ; un enregistrement inverse périmé ou falsifié ne nomme donc rien, et un nom du fichier hosts de l'hôte de la sonde est utilisé tel quel. Elle envoie les noms avec les flux, et ils sont conservés avec eux : une plage de temps montre les noms qu'avaient alors ses adresses.
+
+Les résolutions ne retardent jamais les flux. Les adresses les plus actives sont résolues en premier, au plus 300 par minute et huit à la fois ; un nom est gardé une heure, une adresse sans nom 30 minutes, et une résolution qui a échoué est retentée après 5 minutes. Les adresses de bouclage, lien-local, multicast et broadcast ne sont jamais résolues. Les sondes globales d'un OneUptime hébergé, partagées par tous les comptes, ne résolvent que les adresses publiques ; vos propres sondes, et celles de votre propre installation de OneUptime, résolvent aussi les adresses privées.
+
+| Variable                            | Ce qu'elle fait                                                     | Défaut  |
+| ----------------------------------- | ------------------------------------------------------------------- | ------- |
+| PROBE_FLOW_NAME_LOOKUP_ENABLED      | Mettre à `false` pour ne plus résoudre dans le DNS les adresses des flux | true |
+| PROBE_FLOW_NAME_LOOKUPS_PER_MINUTE  | Adresses résolues par minute ; `0` arrête les résolutions           | 300     |
+| PROBE_FLOW_NAME_DNS_SERVERS         | Serveurs DNS à interroger à la place du résolveur de l'hôte, comme `10.0.0.53, 10.0.0.54:5353` | aucun |
+
 ## Lire les chiffres
 
 - **Échantillonnage.** Un appareil qui échantillonne - sFlow le fait toujours, NetFlow ou IPFIX peuvent le faire - rapporte un paquet sur N. La sonde multiplie les comptes par N : la page affiche donc des estimations, et le dit sous les quatre chiffres. Elles sont précises pour un trafic important et approximatives pour quelques paquets.
@@ -236,6 +281,12 @@ Si la page Trafic affiche encore ses étapes de mise en place :
 - **Le journal de la sonde.** Une fois par minute, la sonde journalise ce qu'elle n'a pas pu lire : les datagrammes dans un format non pris en charge (NetFlow v1, v6, v7 ou v8, ou sFlow antérieur à la version 5), les datagrammes malformés, les données en attente d'un modèle, et les datagrammes rejetés au-delà de `PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE`.
 - **Modèles.** NetFlow v9 et IPFIX envoient la structure de leurs enregistrements sous forme de modèles. La sonde garde jusqu'à 10 minutes les données qui arrivent avant leur modèle ; réglez l'appareil pour qu'il envoie ses modèles toutes les 60 secondes afin que la page se remplisse en moins d'une minute.
 - **Une sonde globale.** Un appareil interrogé par une sonde globale ne peut pas lui envoyer de flux depuis un réseau privé. Exécutez une sonde personnalisée sur le réseau de l'appareil et choisissez-la dans les paramètres de l'appareil.
+
+Si une adresse n'affiche aucun nom :
+
+- **Donnez-lui-en un.** Cliquez dessus, puis sur **Nommer cette adresse** dans la carte au-dessus des chiffres.
+- **Ses noms DNS.** L'enregistrement A ou AAAA du nom doit pointer vers l'adresse ; un enregistrement inverse seul ne suffit pas. Un nom ajouté au DNS nomme les flux qui arrivent après lui.
+- **Le résolveur de la sonde.** Si l'hôte de la sonde ne voit pas votre DNS interne, définissez `PROBE_FLOW_NAME_DNS_SERVERS` sur un serveur DNS qui héberge vos zones inverses.
 
 Si une connexion Meraki indique qu'elle ne peut pas lire :
 

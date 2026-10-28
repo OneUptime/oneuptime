@@ -19,7 +19,9 @@ Um parque Cisco Meraki também pode ser lido sem exportar nada: conecte o painel
 - **Principais interfaces** na página de um dispositivo: o que entrou e saiu por cada interface, com o nome e a velocidade da varredura SNMP do dispositivo. **Principais dispositivos** na página de um site e na da rede.
 - **Principais conversas**: os dez pares de endereços mais ativos, desenhados como um diagrama dos emissores para os receptores, ou como uma lista.
 
-Clique em qualquer linha - um endereço, uma aplicação, uma interface, um dispositivo, uma faixa do diagrama - e a página inteira se restringe a esse tráfego. Uma etiqueta acima da página diz a que ela está restrita; clique no x para ampliá-la de novo. **Encontrar um endereço IP** restringe a página ao tráfego para ou de um endereço. O intervalo de tempo e os filtros ficam no endereço da página, então um link abre exatamente a mesma visualização.
+Clique em qualquer linha - um endereço, uma aplicação, uma interface, um dispositivo, uma faixa do diagrama - e a página inteira se restringe a esse tráfego. Uma etiqueta acima da página diz a que ela está restrita; clique no x para ampliá-la de novo. **Encontrar um nome ou um endereço IP** restringe a página ao tráfego para ou de um endereço: digite o endereço, ou parte do nome dele, e escolha-o se vários corresponderem. O intervalo de tempo e os filtros ficam no endereço da página, então um link abre exatamente a mesma visualização.
+
+Um endereço que o OneUptime conhece aparece pelo nome, com o endereço ao lado. Veja [Nomes no lugar de endereços](#nomes-no-lugar-de-endereços).
 
 ## Como os fluxos chegam aqui
 
@@ -211,6 +213,49 @@ Os fluxos podem chegar antes de o dispositivo que os envia ser adicionado ao One
 
 Vários dispositivos atrás de um mesmo endereço NAT compartilham esse endereço, então os fluxos deles vão para o único dispositivo que o tem.
 
+## Nomes no lugar de endereços
+
+Onde quer que uma página de Tráfego liste um endereço - as listas principais, as duas visualizações de **Principais conversas**, as etiquetas, **Encontrar** -, ela mostra primeiro o nome do endereço quando o OneUptime conhece um, com o endereço ao lado: `mumbai-fs01` acima de `10.18.167.35`. Um endereço que nada nomeia aparece como ele mesmo. Sob o ponteiro, um nome cortado aparece inteiro.
+
+Um nome vem da primeira destas fontes que nomeia o endereço:
+
+| Ordem | De onde vem o nome | O que nomeia o endereço |
+| ----- | ------------------ | ----------------------- |
+| 1 | **Nomes de endereço** | Um nome que alguém deu a este endereço em **Rede** -> **Configurações** -> **Nomes de endereço** |
+| 2 | Dispositivos de rede | Um dispositivo consultado no endereço, ou que o lista em **Outros endereços** |
+| 3 | Hosts | Um host cujo agente informa o endereço |
+| 4 | Recursos de nuvem | Um recurso de nuvem para o qual sua conta de nuvem lista o endereço |
+| 5 | Kubernetes | Um nó que tem o endereço, depois um pod (um pod na rede do próprio nó tem o endereço do nó) |
+| 6 | DNS | O nome DNS reverso do endereço, consultado pela sonda que recebeu os fluxos |
+
+Um registro só nomeia o tráfego de uma época em que existia: um host visto pela primeira vez depois do intervalo, ou um pod que sumiu antes dele, não nomeia o tráfego desse intervalo. Um nome que alguém deu a uma sub-rede - `10.18.167.0/24` é “Escritório de Mumbai” - aparece ao lado de cada endereço dela, nunca no lugar do nome do próprio endereço; onde sub-redes com nome se sobrepõem, aparece a mais estreita.
+
+### Um endereço
+
+Clique em um endereço, ou encontre-o, e a página se restringe a ele, com um cartão acima dos números que diz quem ele é: o nome, de onde vem o nome, o endereço com um botão para copiá-lo e a sub-rede com nome em que ele está. O cartão oferece o próximo passo:
+
+- **Abrir o host**, **Abrir o dispositivo** ou **Abrir o recurso de nuvem**, quando o nome é desse registro. Mude o nome lá.
+- **Dar nome a este endereço**, quando nada o nomeia ou só o DNS. O endereço já vem preenchido; amplie-o para uma sub-rede, como `10.18.167.0/24`, para nomear a sub-rede inteira.
+- **Renomear**, quando o nome é um nome de endereço.
+
+Dar e mudar nomes é para quem pode adicionar e alterar dispositivos de rede. Todos que podem lê-los veem os nomes.
+
+### Nomes de endereço
+
+**Rede** -> **Configurações** -> **Nomes de endereço** lista os nomes que as pessoas deram a endereços e sub-redes que nada mais nomeia: o gateway VPN de um parceiro, um endpoint SaaS, o Wi-Fi de visitantes. **Criar: Nome de endereço** pede o nome e um endereço IP (`10.0.0.5`, `2001:db8::5`) ou uma sub-rede (`10.18.167.0/24`). Uma sub-rede é guardada como o primeiro endereço e o comprimento, então `10.18.167.35/24` é salva como `10.18.167.0/24`. Cada endereço ou sub-rede tem um só nome.
+
+### Nomes DNS vindos da sonda
+
+Os nomes DNS são consultados pela sonda que recebeu os fluxos, no resolvedor que o host dela usa: dentro da sua rede, onde os endereços privados têm nomes. A sonda só guarda um nome quando os próprios registros A ou AAAA do nome apontam de volta para o endereço; assim, um registro reverso antigo ou forjado não nomeia nada, e um nome do arquivo hosts do host da sonda é usado como está. Ela envia os nomes com os fluxos, e eles são guardados com os fluxos: um intervalo mostra os nomes que os endereços dele tinham na época.
+
+As consultas nunca seguram os fluxos. Os endereços mais ativos são consultados primeiro, no máximo 300 por minuto e oito de cada vez; um nome é guardado por uma hora, um endereço sem nome por 30 minutos, e uma consulta que falhou é repetida após 5 minutos. Endereços de loopback, link-local, multicast e broadcast nunca são consultados. As sondas globais de um OneUptime hospedado, compartilhadas por todas as contas, consultam só endereços públicos; suas próprias sondas, e as da sua própria instalação do OneUptime, consultam também os privados.
+
+| Variável                            | O que faz                                                           | Padrão  |
+| ----------------------------------- | ------------------------------------------------------------------- | ------- |
+| PROBE_FLOW_NAME_LOOKUP_ENABLED      | Defina como `false` para parar de consultar no DNS os endereços dos fluxos | true |
+| PROBE_FLOW_NAME_LOOKUPS_PER_MINUTE  | Endereços consultados por minuto; `0` para as consultas             | 300     |
+| PROBE_FLOW_NAME_DNS_SERVERS         | Servidores DNS a consultar no lugar do resolvedor do host, como `10.0.0.53, 10.0.0.54:5353` | nenhum |
+
 ## Como ler os números
 
 - **Amostragem.** Um dispositivo que amostra - o sFlow sempre amostra, e NetFlow ou IPFIX podem amostrar - informa um pacote a cada N. A sonda multiplica as contagens por N, então a página mostra estimativas, e diz isso abaixo dos quatro números. Elas são precisas para muito tráfego e aproximadas para poucos pacotes.
@@ -236,6 +281,12 @@ Se a página de Tráfego ainda mostra os passos de configuração:
 - **O log da sonda.** Uma vez por minuto a sonda registra o que não conseguiu ler: datagramas em um formato não suportado (NetFlow v1, v6, v7 ou v8, ou sFlow anterior à versão 5), datagramas malformados, dados aguardando um modelo e datagramas descartados acima de `PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE`.
 - **Modelos.** NetFlow v9 e IPFIX enviam a estrutura dos seus registros como modelos. A sonda guarda por até 10 minutos os dados que chegam antes do seu modelo; configure o dispositivo para enviar os modelos a cada 60 segundos, para que a página se preencha em até um minuto.
 - **Uma sonda global.** Um dispositivo consultado por uma sonda global não consegue enviar fluxos para ela a partir de uma rede privada. Execute uma sonda personalizada na rede do dispositivo e escolha-a nas configurações do dispositivo.
+
+Se um endereço não mostra nenhum nome:
+
+- **Dê um nome a ele.** Clique no endereço e depois em **Dar nome a este endereço** no cartão acima dos números.
+- **Os nomes DNS dele.** O registro A ou AAAA do próprio nome precisa apontar de volta para o endereço; um registro reverso sozinho não basta. Um nome adicionado ao DNS nomeia os fluxos que chegam depois dele.
+- **O resolvedor da sonda.** Se o host da sonda não enxerga seu DNS interno, defina `PROBE_FLOW_NAME_DNS_SERVERS` com um servidor DNS que tenha suas zonas reversas.
 
 Se uma conexão do Meraki diz que não consegue ler:
 
