@@ -4694,7 +4694,9 @@ const readRulePreviewWindow: (value: unknown) => number = (
   const seconds: number = typeof value === "number" ? value : Number(value);
 
   if (!Number.isFinite(seconds) || seconds <= 0) {
-    throw new BadDataException("The monitor's window must be a number of seconds");
+    throw new BadDataException(
+      "The monitor's window must be a number of seconds",
+    );
   }
 
   return TelemetryRulePreviewUtil.clampWindow(seconds);
@@ -4764,9 +4766,7 @@ router.post(
               },
             )
           : [],
-        lastXSecondsOfSpans: readRulePreviewWindow(
-          body["lastXSecondsOfSpans"],
-        ),
+        lastXSecondsOfSpans: readRulePreviewWindow(body["lastXSecondsOfSpans"]),
       };
 
       const answer: TelemetryRulePreviewAnswer =

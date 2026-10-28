@@ -1234,7 +1234,7 @@ describe("/telemetry/{logs,traces,exceptions}/monitor-preview", () => {
     },
   ];
 
-  for (const previewCase of PREVIEW_CASES) {
+  describe.each(PREVIEW_CASES)("$uri", (previewCase: PreviewCase) => {
     test.each(PRINCIPALS)(
       `${previewCase.uri}: a %s reader's preview counts only the services they may read`,
       async (principalName: PrincipalName) => {
@@ -1309,9 +1309,7 @@ describe("/telemetry/{logs,traces,exceptions}/monitor-preview", () => {
       ).query;
 
       expect(
-        sortedIds(
-          ...(query["primaryEntityId"] as Includes).values.map(String),
-        ),
+        sortedIds(...(query["primaryEntityId"] as Includes).values.map(String)),
       ).toEqual(sortedIds(SERVICE_A));
     });
 
@@ -1335,7 +1333,7 @@ describe("/telemetry/{logs,traces,exceptions}/monitor-preview", () => {
       expect(result.thrownToNext).toBeInstanceOf(BadDataException);
       expect(count.mock.calls).toHaveLength(0);
     });
-  }
+  });
 });
 
 describe("a block with no labels", () => {

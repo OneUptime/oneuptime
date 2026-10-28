@@ -157,8 +157,10 @@ describe("the rule's line on a Metrics monitor's chart", () => {
       threshold: 80,
     });
 
-    // The person changes the chart (a new aggregation, say) and it hands
-    // back what it drew, the rule's line included.
+    /*
+     * The person changes the chart (a new aggregation, say) and it hands
+     * back what it drew, the rule's line included.
+     */
     const handedBack: Configs = withoutPreviewLine({
       changed: drawn,
       stored,

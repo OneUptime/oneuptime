@@ -203,9 +203,7 @@ describe("A Traces rule's preview", () => {
     expect(answer.endTime).toBe("2026-10-27T12:07:00.000Z");
 
     const sql: string = inline(captured[0]!);
-    expect(sql).toContain(
-      "toStartOfInterval(`startTime`, INTERVAL 60 SECOND)",
-    );
+    expect(sql).toContain("toStartOfInterval(`startTime`, INTERVAL 60 SECOND)");
     expect(sql).toContain("POST /api/checkout");
     expect(sql).toContain("timeout_overflow_mode = 'throw'");
   });
