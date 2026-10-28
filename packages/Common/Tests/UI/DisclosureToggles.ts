@@ -44,8 +44,12 @@ const EXPANDED_ATTRIBUTES: ReadonlySet<string> = new Set<string>([
 ]);
 
 // A word that folds what is shown away again, in an English label.
+/*
+ * "Show less", "Show fewer", "Hide details", or a label that is just "Less"
+ * or "Fewer" - not a sentence that merely holds the word ("Fewer than").
+ */
 const FOLD_WORDS_REGEX: RegExp =
-  /\b(show (less|fewer)|hide (details|empty filters|kernel threads)|fewer|less)\b/i;
+  /\b(show|see|view) (less|fewer)\b|\bhide (details|empty filters|kernel threads)\b|^\s*(less|fewer)\s*$/i;
 
 // A word that shows more, in an English label.
 const UNFOLD_WORDS_REGEX: RegExp =

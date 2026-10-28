@@ -250,6 +250,10 @@ describe("what the detectors find", () => {
       "an icon named Expand or Collapse: full screen, focus, all frames",
       `<button onClick={toggle}><Icon icon={isFullScreen ? IconProp.Collapse : IconProp.Expand} /></button>`,
     ],
+    [
+      "a condition that only holds the words: Fewer than / More than",
+      `<button onClick={flip}>{isBelow ? "Fewer than" : "More than"}</button>`,
+    ],
   ])("leaves alone: %s", (_name: string, element: string) => {
     const source: string = `const A = () => (${element});`;
 
