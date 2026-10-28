@@ -107,7 +107,9 @@ export function readEvidenceFileFacts(file: File): EvidenceFileFacts {
 
   return {
     fileName: (file.name || "").substring(0, ColumnLength.ShortText),
-    fileType: (file.fileType || "").toString().substring(0, ColumnLength.ShortText),
+    fileType: (file.fileType || "")
+      .toString()
+      .substring(0, ColumnLength.ShortText),
     fileSizeInBytes: bytes.length,
     sha256: crypto.createHash("sha256").update(bytes).digest("hex"),
   };
@@ -224,7 +226,11 @@ export class Service extends ProjectReferencesService<Model> {
     onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
-    if (createdItem.projectId && createdItem.securityCaseId) {
+    if (!createdItem.projectId || !createdItem.securityCaseId) {
+      return createdItem;
+    }
+
+    try {
       await SecurityCaseFeedService.createSecurityCaseFeedItem({
         projectId: createdItem.projectId,
         securityCaseId: createdItem.securityCaseId,
@@ -237,6 +243,12 @@ export class Service extends ProjectReferencesService<Model> {
         displayColor: Gray500,
         userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
       });
+    } catch (error) {
+      // The evidence is kept; what the timeline says about it must not undo that.
+      logger.error(
+        `SecurityCaseEvidenceService: could not record the new evidence ${createdItem.id?.toString() || ""} on its case:`,
+      );
+      logger.error(error);
     }
 
     return createdItem;
@@ -317,6 +329,9 @@ export class Service extends ProjectReferencesService<Model> {
           userId: actorUserId,
         });
       } catch (error) {
+        logger.error(
+          `SecurityCaseEvidenceService: could not record the removed evidence ${row.id?.toString() || ""} on its case:`,
+        );
         logger.error(error);
       }
     }

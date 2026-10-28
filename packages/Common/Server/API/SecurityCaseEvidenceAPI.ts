@@ -68,33 +68,34 @@ export default class SecurityCaseEvidenceAPI extends BaseAPI<
     const props: DatabaseCommonInteractionProps =
       await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-    const evidence: SecurityCaseEvidence | null =
-      await this.service.findOneBy({
-        query: {
-          _id: evidenceId,
+    const evidence: SecurityCaseEvidence | null = await this.service.findOneBy({
+      query: {
+        _id: evidenceId,
+      },
+      select: {
+        projectId: true,
+        fileId: true,
+        file: {
+          _id: true,
+          file: true,
+          fileType: true,
+          name: true,
         },
-        select: {
-          projectId: true,
-          fileId: true,
-          file: {
-            _id: true,
-            file: true,
-            fileType: true,
-            name: true,
-          },
-        },
-        props,
-      });
+      },
+      props,
+    });
+
+    // A link, or evidence the person cannot read: nothing to send.
+    if (!evidence?.fileId || !evidence.file) {
+      throw new NotFoundException(EVIDENCE_FILE_NOT_FOUND_MESSAGE);
+    }
 
     // Its own file, uploaded in its own project.
-    const file: File | undefined =
-      evidence?.fileId && evidence.file
-        ? await FileOwnership.findProjectAttachment({
-            files: [evidence.file],
-            fileId: evidence.fileId,
-            projectId: evidence.projectId,
-          })
-        : undefined;
+    const file: File | undefined = await FileOwnership.findProjectAttachment({
+      files: [evidence.file],
+      fileId: evidence.fileId,
+      projectId: evidence.projectId,
+    });
 
     if (!file) {
       throw new NotFoundException(EVIDENCE_FILE_NOT_FOUND_MESSAGE);

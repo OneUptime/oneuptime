@@ -37,9 +37,10 @@ import React, { FunctionComponent, ReactElement } from "react";
  * priority (Common/Utils/SecurityCase/SecurityCaseTargets); a case about to
  * miss one, or missing it, tells the people on it. A new project's built-in
  * priorities start with targets; one made before them shows "No target"
- * until somebody sets them. Priorities themselves - their names, colours and
- * order - are under Case Priorities; an archived one is left out, as nothing
- * new is put at it.
+ * until somebody sets them. Priorities themselves - their names and
+ * colours - are under Case Priorities; an archived one is left out, as
+ * nothing new is put at it. Like every list of priorities, its rows drag
+ * into another order.
  */
 const SecurityResponseTargetsPage: FunctionComponent<
   PageComponentProps
@@ -83,6 +84,8 @@ const SecurityResponseTargetsPage: FunctionComponent<
       isEditable={true}
       isCreateable={false}
       disablePagination={true}
+      enableDragAndDrop={true}
+      dragDropIndexField="order"
       sortBy="order"
       sortOrder={SortOrder.Ascending}
       cardProps={{
@@ -95,7 +98,6 @@ const SecurityResponseTargetsPage: FunctionComponent<
       }}
       selectMoreFields={{
         color: true,
-        order: true,
       }}
       filters={[]}
       viewPageRoute={Navigation.getCurrentRoute()}

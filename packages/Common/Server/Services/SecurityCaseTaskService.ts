@@ -116,7 +116,11 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<Model> {
     const actorUserId: ObjectID | undefined = onCreate.createBy.props.userId;
 
-    if (!createdItem.id || !createdItem.projectId || !createdItem.securityCaseId) {
+    if (
+      !createdItem.id ||
+      !createdItem.projectId ||
+      !createdItem.securityCaseId
+    ) {
       return createdItem;
     }
 
@@ -272,8 +276,7 @@ export class Service extends ProjectReferencesService<Model> {
     securityCaseId: ObjectID;
     actorUserId: ObjectID | undefined;
   }): Promise<void> {
-    const { old, data, taskId, projectId, securityCaseId, actorUserId } =
-      input;
+    const { old, data, taskId, projectId, securityCaseId, actorUserId } = input;
     const title: string =
       typeof data["title"] === "string" ? (data["title"] as string) : old.title;
 
@@ -375,16 +378,24 @@ export class Service extends ProjectReferencesService<Model> {
         continue;
       }
 
-      await SecurityCaseFeedService.createSecurityCaseFeedItem({
-        projectId: row.projectId,
-        securityCaseId: row.securityCaseId,
-        feedInfoInMarkdown: taskDeletedMarkdown({
-          title: row.title || "",
-        }).toString(),
-        eventType: SecurityCaseFeedEventType.Task,
-        displayColor: Gray500,
-        userId: actorUserId,
-      });
+      try {
+        await SecurityCaseFeedService.createSecurityCaseFeedItem({
+          projectId: row.projectId,
+          securityCaseId: row.securityCaseId,
+          feedInfoInMarkdown: taskDeletedMarkdown({
+            title: row.title || "",
+          }).toString(),
+          eventType: SecurityCaseFeedEventType.Task,
+          displayColor: Gray500,
+          userId: actorUserId,
+        });
+      } catch (error) {
+        // The task is gone; what the timeline says about it must not fail that.
+        logger.error(
+          `SecurityCaseTaskService: could not record the deleted task ${row.id?.toString() || ""} on its case:`,
+        );
+        logger.error(error);
+      }
     }
 
     return onDelete;
