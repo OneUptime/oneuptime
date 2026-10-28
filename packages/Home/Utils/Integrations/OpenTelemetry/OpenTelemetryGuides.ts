@@ -22,6 +22,10 @@ import { BrowserGuide } from "./Guides/Browser";
 import { ReactGuide } from "./Guides/React";
 import { AngularGuide } from "./Guides/Angular";
 import { PythonGuide } from "./Guides/Python";
+import { DjangoGuide } from "./Guides/Django";
+import { FlaskGuide } from "./Guides/Flask";
+import { FastApiGuide } from "./Guides/FastApi";
+import { CeleryGuide } from "./Guides/Celery";
 
 /*
  * Every OpenTelemetry guide the website publishes, in the catalog's order
@@ -43,6 +47,10 @@ export const OPEN_TELEMETRY_GUIDE_PAGES: ReadonlyArray<OpenTelemetryGuide> = [
   ReactGuide,
   AngularGuide,
   PythonGuide,
+  DjangoGuide,
+  FlaskGuide,
+  FastApiGuide,
+  CeleryGuide,
 ];
 
 export const INTEGRATIONS_INDEX_TITLE: string = "Integrations";

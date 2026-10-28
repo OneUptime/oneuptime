@@ -26,6 +26,11 @@ export const PYTHON_PACKAGE_VERSIONS: Record<string, string> = {
   "opentelemetry-instrumentation-psycopg": "0.66b1",
   "opentelemetry-instrumentation-sqlalchemy": "0.66b1",
   "opentelemetry-instrumentation-redis": "0.66b1",
+  /*
+   * A library a guide pins for its instrumentation's sake: the SQLAlchemy
+   * instrumentation supports SQLAlchemy up to 2.0.
+   */
+  sqlalchemy: "2.0.55",
 };
 
 // The oldest Python the SDK supports, and the newest it is released for.

@@ -790,6 +790,11 @@ function sendRequest(
         port: port,
         method: request.method,
         path: request.path,
+        /*
+         * A connection per request: a server that closes after each response
+         * (uWSGI's HTTP router) would otherwise hang up on the next request.
+         */
+        agent: false,
         headers: {
           ...(body ? { "content-type": "application/json" } : {}),
           ...(request.headers || {}),
@@ -1416,6 +1421,32 @@ async function startServices(
     if (!(await waitForPort(port, 60000))) {
       throw new Error(`${service.name} did not take connections on ${port}`);
     }
+
+    if (service.readyLog) {
+      const deadline: number = Date.now() + 120000;
+      let isReady: boolean = false;
+
+      while (!isReady && Date.now() < deadline) {
+        const logs: SpawnSyncReturns<string> = spawnSync(
+          "docker",
+          ["logs", container],
+          { encoding: "utf8" },
+        );
+        isReady =
+          `${logs.stdout || ""}${logs.stderr || ""}`.split(service.readyLog.text)
+            .length -
+            1 >=
+          service.readyLog.times;
+
+        if (!isReady) {
+          await sleep(500);
+        }
+      }
+
+      if (!isReady) {
+        throw new Error(`${service.name} never logged "${service.readyLog.text}"`);
+      }
+    }
     await sleep(1500);
 
     for (const [name, value] of Object.entries(service.appEnvironment)) {
@@ -1467,6 +1498,55 @@ function serveStubApi(port: number): Promise<http.Server> {
   return new Promise((resolve: (server: http.Server) => void) => {
     server.listen(port, "127.0.0.1", () => {
       resolve(server);
+    });
+  });
+}
+
+interface CommandResult {
+  status: number | null;
+  stdout: string;
+  stderr: string;
+}
+
+/*
+ * A command run to its end, without blocking: the receiver and the
+ * stand-in API answer from this same process, so a command that runs while
+ * a server calls them - a script queuing tasks for a worker - must not
+ * hold the event loop.
+ */
+function runCommand(
+  text: string,
+  cwd: string,
+  env: NodeJS.ProcessEnv,
+): Promise<CommandResult> {
+  return new Promise((resolve: (result: CommandResult) => void) => {
+    const child: ChildProcess = spawn("bash", ["-c", text], {
+      cwd: cwd,
+      env: env,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    const stdout: Array<Buffer> = [];
+    const stderr: Array<Buffer> = [];
+    const timer: NodeJS.Timeout = setTimeout(
+      () => {
+        child.kill("SIGKILL");
+      },
+      20 * 60 * 1000,
+    );
+
+    child.stdout?.on("data", (chunk: Buffer) => {
+      stdout.push(chunk);
+    });
+    child.stderr?.on("data", (chunk: Buffer) => {
+      stderr.push(chunk);
+    });
+    child.on("close", (status: number | null) => {
+      clearTimeout(timer);
+      resolve({
+        status: status,
+        stdout: Buffer.concat(stdout).toString("utf8"),
+        stderr: Buffer.concat(stderr).toString("utf8"),
+      });
     });
   });
 }
@@ -1759,13 +1839,7 @@ async function verifyRun(
       }
 
       log(`  $ ${text}`);
-      const result: SpawnSyncReturns<string> = spawnSync("bash", ["-c", text], {
-        cwd: appDir,
-        env: commandEnv,
-        encoding: "utf8",
-        timeout: 20 * 60 * 1000,
-        maxBuffer: 64 * 1024 * 1024,
-      });
+      const result: CommandResult = await runCommand(text, appDir, commandEnv);
 
       if (result.status !== 0) {
         throw new Error(

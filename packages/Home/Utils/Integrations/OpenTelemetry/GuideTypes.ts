@@ -178,6 +178,12 @@ export interface VerificationService {
    * check maps: { CELERY_BROKER_URL: "redis://127.0.0.1:{port}/0" }.
    */
   appEnvironment: Record<string, string>;
+  /*
+   * A line the container logs once it takes connections, and how many times:
+   * PostgreSQL logs "ready to accept connections" twice on its first start,
+   * once before and once after it creates its database.
+   */
+  readyLog?: { text: string; times: number } | undefined;
 }
 
 export interface VerificationRequest {

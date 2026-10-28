@@ -1936,6 +1936,57 @@
       ]
     }
   },
+  "celery": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Python 3.14.10",
+    "packages": {
+      "celery": "5.6.3",
+      "opentelemetry-distro": "0.66b1",
+      "opentelemetry-exporter-otlp-proto-http": "1.45.1",
+      "opentelemetry-instrumentation-celery": "0.66b1",
+      "opentelemetry-instrumentation-logging": "0.66b1",
+      "opentelemetry-instrumentation-requests": "0.66b1",
+      "redis": "6.4.0",
+      "requests": "2.34.2"
+    },
+    "framework": "Celery 5.6.3",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:644d67c1be363c93218b0f81cccf1ded86c833487c3997223fd86bbbab3d2150",
+    "observed": {
+      "spans": [
+        "POST",
+        "apply_async/tasks.charge_card",
+        "apply_async/tasks.refund",
+        "apply_async/tasks.send_receipt",
+        "checkout.place-order",
+        "payments.authorize",
+        "run/tasks.charge_card",
+        "run/tasks.refund",
+        "run/tasks.send_receipt"
+      ],
+      "metrics": [
+        "flower.task.runtime.seconds",
+        "http.client.request.duration",
+        "payments.charged"
+      ],
+      "logs": [
+        "Connected to redis://127.0.0.1:37489/0",
+        "Task tasks.charge_card[957d5152-e882-43ad-85b6-5ed614deb26d] received",
+        "Task tasks.charge_card[957d5152-e882-43ad-85b6-5ed614deb26d] succeeded in 0.024497229140251875s: None",
+        "Task tasks.refund[607b9215-b114-423c-b8d7-e400d6b097ce] raised unexpected: RuntimeError('Refund for ord_0999 was decline",
+        "Task tasks.refund[607b9215-b114-423c-b8d7-e400d6b097ce] received",
+        "Task tasks.send_receipt[09a89663-2538-4609-a26d-1bf1f302bc21] received",
+        "Task tasks.send_receipt[09a89663-2538-4609-a26d-1bf1f302bc21] retry: Retry in 0s: ConnectionError('Mail server busy')",
+        "Task tasks.send_receipt[09a89663-2538-4609-a26d-1bf1f302bc21] succeeded in 0.0012618806213140488s: None",
+        "celery@ubuntu-m-32vcpu-256gb-intel-nyc2 ready.",
+        "charged order ord_1001",
+        "mingle: all alone",
+        "mingle: searching for neighbors",
+        "sent receipt for ord_1001"
+      ]
+    },
+    "packageExports": {}
+  },
   "deno": {
     "checkedOn": "2026-10-27",
     "runtime": "Deno 2.9.8",
@@ -2012,6 +2063,87 @@
         "propagation",
         "trace"
       ]
+    }
+  },
+  "django": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Python 3.14.10",
+    "packages": {
+      "django": "6.1.2",
+      "gunicorn": "26.2.0",
+      "opentelemetry-distro": "0.66b1",
+      "opentelemetry-exporter-otlp-proto-http": "1.45.1",
+      "opentelemetry-instrumentation-django": "0.66b1",
+      "opentelemetry-instrumentation-logging": "0.66b1",
+      "opentelemetry-instrumentation-psycopg": "0.66b1",
+      "opentelemetry-instrumentation-requests": "0.66b1",
+      "psycopg": "3.3.6",
+      "requests": "2.34.2"
+    },
+    "framework": "Django 6.1.2",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:6fea70cca840fa416785a555021b6f571a3c85e2dc21450b537ef38344a62060",
+    "observed": {
+      "spans": [
+        "GET boom/",
+        "GET orders/<int:order_id>/",
+        "INSERT",
+        "POST",
+        "POST orders/",
+        "SELECT",
+        "checkout.charge"
+      ],
+      "metrics": [
+        "http.client.request.duration",
+        "http.server.active_requests",
+        "http.server.request.duration",
+        "orders.placed"
+      ],
+      "logs": [
+        "Internal Server Error: /boom/",
+        "loading order 42",
+        "placed order 1"
+      ]
+    },
+    "packageExports": {},
+    "variants": {
+      "uWSGI": {
+        "observed": {
+          "spans": [
+            "GET boom/",
+            "GET orders/<int:order_id>/",
+            "INSERT",
+            "POST",
+            "POST orders/",
+            "SELECT",
+            "checkout.charge"
+          ],
+          "metrics": [
+            "http.client.request.duration",
+            "http.server.active_requests",
+            "http.server.request.duration",
+            "orders.placed"
+          ],
+          "logs": [
+            "Internal Server Error: /boom/",
+            "loading order 42",
+            "placed order 1"
+          ]
+        },
+        "packages": {
+          "django": "6.1.2",
+          "gunicorn": "26.2.0",
+          "opentelemetry-distro": "0.66b1",
+          "opentelemetry-exporter-otlp-proto-http": "1.45.1",
+          "opentelemetry-instrumentation-django": "0.66b1",
+          "opentelemetry-instrumentation-logging": "0.66b1",
+          "opentelemetry-instrumentation-psycopg": "0.66b1",
+          "opentelemetry-instrumentation-requests": "0.66b1",
+          "psycopg": "3.3.6",
+          "pyuwsgi": "2.0.30.post1",
+          "requests": "2.34.2"
+        }
+      }
     }
   },
   "express": {
@@ -2216,6 +2348,80 @@
         "transport",
         "version"
       ]
+    }
+  },
+  "fastapi": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Python 3.14.10",
+    "packages": {
+      "fastapi": "0.162.0",
+      "httpx": "0.28.1",
+      "opentelemetry-distro": "0.66b1",
+      "opentelemetry-exporter-otlp-proto-http": "1.45.1",
+      "opentelemetry-instrumentation-fastapi": "0.66b1",
+      "opentelemetry-instrumentation-httpx": "0.66b1",
+      "opentelemetry-instrumentation-logging": "0.66b1",
+      "uvicorn": "0.54.0"
+    },
+    "framework": "FastAPI 0.162.0",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:e6dab78af681bf4efeb7e24748583bb0c6d4d0ce5fdedf36753cfce606b99fa6",
+    "observed": {
+      "spans": [
+        "GET /boom",
+        "GET /users/{user_id}",
+        "POST",
+        "POST /orders",
+        "checkout.charge"
+      ],
+      "metrics": [
+        "http.client.request.duration",
+        "http.server.active_requests",
+        "http.server.request.body.size",
+        "http.server.request.duration",
+        "http.server.response.body.size",
+        "orders.placed"
+      ],
+      "logs": [
+        "loading user 404",
+        "loading user 42"
+      ]
+    },
+    "packageExports": {},
+    "variants": {
+      "Flush on shutdown": {
+        "observed": {
+          "spans": [
+            "GET /boom",
+            "GET /users/{user_id}",
+            "POST",
+            "POST /orders",
+            "checkout.charge"
+          ],
+          "metrics": [
+            "http.client.request.duration",
+            "http.server.active_requests",
+            "http.server.request.body.size",
+            "http.server.request.duration",
+            "http.server.response.body.size",
+            "orders.placed"
+          ],
+          "logs": [
+            "loading user 404",
+            "loading user 42"
+          ]
+        },
+        "packages": {
+          "fastapi": "0.162.0",
+          "httpx": "0.28.1",
+          "opentelemetry-distro": "0.66b1",
+          "opentelemetry-exporter-otlp-proto-http": "1.45.1",
+          "opentelemetry-instrumentation-fastapi": "0.66b1",
+          "opentelemetry-instrumentation-httpx": "0.66b1",
+          "opentelemetry-instrumentation-logging": "0.66b1",
+          "uvicorn": "0.54.0"
+        }
+      }
     }
   },
   "fastify": {
@@ -2500,6 +2706,49 @@
         "preValidationHookHandler"
       ]
     }
+  },
+  "flask": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Python 3.14.10",
+    "packages": {
+      "flask": "3.1.3",
+      "gunicorn": "26.2.0",
+      "opentelemetry-distro": "0.66b1",
+      "opentelemetry-exporter-otlp-proto-http": "1.45.1",
+      "opentelemetry-instrumentation-flask": "0.66b1",
+      "opentelemetry-instrumentation-logging": "0.66b1",
+      "opentelemetry-instrumentation-requests": "0.66b1",
+      "opentelemetry-instrumentation-sqlalchemy": "0.66b1",
+      "requests": "2.34.2",
+      "sqlalchemy": "2.0.55"
+    },
+    "framework": "Flask 3.1.3",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:1e5fd22b6961d7a97966748e496fefaa7e61b26597347743bcc207302b8bd810",
+    "observed": {
+      "spans": [
+        "GET /boom",
+        "GET /users/<int:user_id>",
+        "INSERT shop.db",
+        "POST",
+        "POST /orders",
+        "SELECT shop.db",
+        "checkout.charge",
+        "connect"
+      ],
+      "metrics": [
+        "db.client.connections.usage",
+        "http.client.request.duration",
+        "http.server.active_requests",
+        "http.server.request.duration",
+        "orders.placed"
+      ],
+      "logs": [
+        "loading user 42",
+        "request failed"
+      ]
+    },
+    "packageExports": {}
   },
   "hapi": {
     "checkedOn": "2026-10-27",
