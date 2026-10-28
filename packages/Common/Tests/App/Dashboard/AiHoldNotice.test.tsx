@@ -24,7 +24,9 @@ import * as React from "react";
  *
  * Driven through the real notice; only the reads of the held runs
  * (ModelAPI.getList) and Page now's request (API.post) are stubbed, and what
- * each asks for is asserted.
+ * each asks for is asserted. The reader's permissions are stubbed where they
+ * matter ("who it reads for"); elsewhere the snapshot has not landed, and the
+ * notice asks, as it does then.
  */
 
 jest.mock("react-i18next", () => {
@@ -54,8 +56,11 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import OnCallDutyPolicyStatus from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import { OnCallPolicyAiHoldOutcome } from "../../../Types/OnCallDutyPolicy/OnCallPolicyAiHold";
+import Permission from "../../../Types/Permission";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import PermissionUtil from "../../../UI/Utils/Permission";
+import User from "../../../UI/Utils/User";
 
 const INCIDENT_ID: ObjectID = new ObjectID(
   "a1a00000-0000-4000-8000-000000000001",
@@ -208,6 +213,57 @@ describe("with nothing held", () => {
       jest.advanceTimersByTime(AI_HOLD_NOTICE_REFRESH_MS * 3);
     });
 
+    expect(reads).toHaveLength(1);
+  });
+});
+
+/*
+ * Only a reader who certainly may not read on-call runs is spared the read:
+ * the server would refuse it on every incident and alert they open.
+ */
+describe("who it reads for", () => {
+  function signInWith(permissions: Array<Permission>): void {
+    jest.spyOn(User, "isMasterAdmin").mockReturnValue(false);
+    jest
+      .spyOn(PermissionUtil, "getAllPermissions")
+      .mockReturnValue(permissions);
+    // The rows PermissionGate reads the blocks from: none.
+    jest.spyOn(PermissionUtil, "getProjectPermissions").mockReturnValue(null);
+  }
+
+  test("a reader who may not read on-call runs is spared the read, held page or not", async () => {
+    // May work alerts, but not read on-call runs.
+    signInWith([Permission.AlertMember]);
+    lastHold = heldUntil(new Date(Date.now() + 8 * 60 * 1000));
+
+    render(<AiHoldNotice subjectType="alert" subjectId={ALERT_ID} />);
+    await settle();
+
+    expect(reads).toHaveLength(0);
+    expect(screen.queryByTestId(AI_HOLD_NOTICE_TEST_ID)).toBeNull();
+  });
+
+  test("a reader who may read on-call runs is told", async () => {
+    signInWith([Permission.OnCallViewer]);
+    lastHold = heldUntil(new Date(Date.now() + 8 * 60 * 1000));
+
+    render(<AiHoldNotice subjectType="incident" subjectId={INCIDENT_ID} />);
+
+    expect(
+      await screen.findByTestId(AI_HOLD_NOTICE_TEST_ID),
+    ).toBeInTheDocument();
+    expect(reads).toHaveLength(1);
+  });
+
+  test("while the reader's permissions are still on their way, it asks: the server decides", async () => {
+    signInWith([]);
+    lastHold = heldUntil(new Date(Date.now() + 8 * 60 * 1000));
+
+    render(<AiHoldNotice subjectType="incident" subjectId={INCIDENT_ID} />);
+
+    expect(
+      await screen.findByTestId(AI_HOLD_NOTICE_TEST_ID),
+    ).toBeInTheDocument();
     expect(reads).toHaveLength(1);
   });
 });
