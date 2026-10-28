@@ -34,6 +34,11 @@ import { KtorGuide } from "./Guides/Ktor";
 import { DotNetGuide } from "./Guides/DotNet";
 import { AspNetCoreGuide } from "./Guides/AspNetCore";
 import { DotNetWorkerServiceGuide } from "./Guides/DotNetWorkerService";
+import { GoGuide } from "./Guides/Go";
+import { GinGuide } from "./Guides/Gin";
+import { EchoGuide } from "./Guides/Echo";
+import { FiberGuide } from "./Guides/Fiber";
+import { GrpcGuide } from "./Guides/Grpc";
 
 /*
  * Every OpenTelemetry guide the website publishes, in the catalog's order
@@ -67,6 +72,11 @@ export const OPEN_TELEMETRY_GUIDE_PAGES: ReadonlyArray<OpenTelemetryGuide> = [
   DotNetGuide,
   AspNetCoreGuide,
   DotNetWorkerServiceGuide,
+  GoGuide,
+  GinGuide,
+  EchoGuide,
+  FiberGuide,
+  GrpcGuide,
 ];
 
 export const INTEGRATIONS_INDEX_TITLE: string = "Integrations";

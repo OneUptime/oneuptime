@@ -46,6 +46,10 @@ import {
   propertiesProblems,
 } from "../Utils/Integrations/OpenTelemetry/GuideCodeChecks";
 import {
+  syntaxProblems,
+  tomlProblems,
+} from "../Utils/Integrations/OpenTelemetry/GuideSyntaxChecks";
+import {
   inlineTextLinks,
   inlineTextProblems,
 } from "../Utils/Integrations/OpenTelemetry/GuideText";
@@ -129,6 +133,11 @@ const COMPILED_OR_RUN_LANGUAGES: ReadonlyArray<SnippetLanguage> = [
   "java",
   "kotlin",
   "csharp",
+  "go",
+  "ruby",
+  "php",
+  "rust",
+  "elixir",
 ];
 
 // Every inline text a guide writes itself, with where it is written.
@@ -568,6 +577,17 @@ function parseProblems(snippet: GuideSnippet): Array<string> {
       return propertiesProblems(snippet.code);
     case "ini":
       return iniProblems(snippet.code);
+    case "go":
+    case "rust":
+    case "php":
+    case "ruby":
+    case "elixir":
+      return syntaxProblems(snippet.code, snippet.language);
+    // A .proto file's comments, strings and braces are Go's.
+    case "protobuf":
+      return syntaxProblems(snippet.code, "go");
+    case "toml":
+      return tomlProblems(snippet.code);
     default:
       return [];
   }
@@ -637,6 +657,12 @@ describe("the OpenTelemetry guide catalog", () => {
       "dotnet",
       "aspnet-core",
       "dotnet-worker-service",
+      // Go.
+      "go",
+      "gin",
+      "echo",
+      "fiber",
+      "grpc",
     ]);
   });
 

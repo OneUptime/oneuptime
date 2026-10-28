@@ -17,6 +17,24 @@ import {
 export const SECTION_CODE_COLUMNS: number = 94;
 export const INDENTED_CODE_COLUMNS: number = 87;
 
+/*
+ * The columns a tab takes in a code block (the guides' stylesheet sets
+ * tab-size: 2): Go's code is indented with tabs, as gofmt writes it.
+ */
+export const CODE_TAB_SIZE: number = 2;
+
+// How many columns a line takes on the page, its tabs as wide as they are drawn.
+export function lineColumns(line: string): number {
+  let columns: number = 0;
+
+  for (const character of line) {
+    columns +=
+      character === "\t" ? CODE_TAB_SIZE - (columns % CODE_TAB_SIZE) : 1;
+  }
+
+  return columns;
+}
+
 // A snippet, and how wide its page shows it.
 export interface PlacedSnippet {
   snippet: GuideSnippet;
@@ -96,11 +114,13 @@ export function guideSnippets(guide: OpenTelemetryGuide): Array<GuideSnippet> {
  */
 export function linesPastColumns(code: string, columns: number): Array<string> {
   return code.split("\n").filter((line: string): boolean => {
-    if (line.length <= columns) {
+    if (lineColumns(line) <= columns) {
       return false;
     }
 
-    const indentation: number = line.length - line.trimStart().length;
+    const indentation: number = lineColumns(
+      line.slice(0, line.length - line.trimStart().length),
+    );
 
     return !line
       .trim()

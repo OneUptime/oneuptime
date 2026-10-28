@@ -38,12 +38,17 @@
  *     OTEL_GUIDES_MAVEN_BIN and OTEL_GUIDES_GRADLE_BIN, the folders holding
  *     mvn and gradle.
  *   - For the .NET guides, OTEL_GUIDES_DOTNET_ROOT: a .NET SDK's folder.
+ *   - Nothing more for the Go, Ruby, PHP, Rust and Elixir guides: each run
+ *     works in a container of the language's official image (see
+ *     CONTAINER_RUNTIMES), and OTEL_GUIDES_GO_IMAGE, _RUBY_IMAGE,
+ *     _PHP_IMAGE, _RUST_IMAGE and _ELIXIR_IMAGE pick another.
  *
  * OTEL_GUIDES_CONTAINER_NAME names the collector's container (and starts
  * the names of the services'), OTEL_GUIDES_WORK_DIR the folder the apps are
  * written to (the system's temporary folder otherwise), and
- * OTEL_GUIDES_CACHE_DIR where pip, Maven, Gradle and NuGet keep what they
- * download between runs. The containers are removed when the run ends.
+ * OTEL_GUIDES_CACHE_DIR where pip, Maven, Gradle, NuGet, Go, Bundler,
+ * Composer, Cargo and Mix keep what they download between runs. The
+ * containers are removed when the run ends.
  */
 import {
   ChildProcess,
@@ -58,6 +63,7 @@ import os from "os";
 import path from "path";
 import ts from "typescript";
 import {
+  GuideRuntime,
   GuideSnippet,
   GuideVerification,
   GuideVerificationRun,
@@ -96,6 +102,8 @@ import {
 } from "../Utils/Integrations/OpenTelemetry/GuideCodeChecks";
 
 const COLLECTOR_IMAGE: string = "otel/opentelemetry-collector-contrib:0.161.0";
+// The v of a Go module's version: v1.12.0.
+const GO_VERSION_PREFIX: RegExp = /^v(?=[0-9])/;
 const TEST_KEY: string = "otel-guides-test-key";
 const COMMON: string = path.join(__dirname, "..", "..", "Common");
 
@@ -150,6 +158,7 @@ interface ObservedLog {
   traceId: string;
   // exception.* attributes: OneUptime files the record under Exceptions.
   hasException: boolean;
+  attributes: Record<string, unknown>;
 }
 
 const EXCEPTION_ATTRIBUTES: Array<string> = [
@@ -647,6 +656,7 @@ function collect(outDir: string, from: Record<string, number>): Observed {
             hasException: EXCEPTION_ATTRIBUTES.some((key: string): boolean => {
               return attributes[key] !== undefined;
             }),
+            attributes: attributes,
           });
         }
       }
@@ -720,7 +730,12 @@ function check(
           record.body.includes(expected.body) &&
           (!expected.hasTraceContext || record.traceId.length > 0) &&
           (expected.hasException === undefined ||
-            expected.hasException === record.hasException)
+            expected.hasException === record.hasException) &&
+          Object.entries(expected.attributes || {}).every(
+            ([key, value]: [string, string]): boolean => {
+              return String(record.attributes[key]) === value;
+            },
+          )
         );
       },
     );
@@ -1420,8 +1435,17 @@ function runEnvironment(
       env["DOTNET_NOLOGO"] = "1";
       env["DOTNET_SKIP_FIRST_TIME_EXPERIENCE"] = "1";
       break;
-    default:
+    default: {
+      // A toolbox's package manager keeps its downloads in the cache folder.
+      const container: ContainerRuntime | undefined = containerRuntimeOf(
+        guide.verification,
+      );
+
+      if (container) {
+        Object.assign(env, container.cacheEnvironment(cacheDir));
+      }
       break;
+    }
   }
 
   return env;
@@ -1559,6 +1583,376 @@ interface CommandResult {
 }
 
 /*
+ * The runtimes a run works in a container for, instead of on this
+ * machine: Go, Ruby, PHP, Rust and Elixir, each the language's official
+ * image at a pinned version. One container per run - its toolbox - mounts
+ * the work folder and the download caches at the same paths and shares
+ * this machine's network, so the app reaches the receiver, the stand-in
+ * API and the services at 127.0.0.1 as a local run's does, and the check
+ * reaches the app's port. What a reader's machine has before a guide's
+ * first step - Composer, Hex - is set up as the toolbox starts.
+ */
+interface ContainerRuntime {
+  image: string;
+  // Run once as the toolbox starts: what the page assumes is there.
+  setup?: string | undefined;
+  // Where its package manager keeps downloads: in the check's cache folder.
+  cacheEnvironment: (cacheDir: string) => Record<string, string>;
+  // The command that prints its version, and the page's name for what it prints.
+  version: { command: string; read: (output: string) => string };
+  /*
+   * A command that prints what the run installed outside any lock file, a
+   * name=version a line: PHP's extensions, which PECL builds into PHP, and
+   * the tools `go install` builds, such as protoc's Go plugins.
+   */
+  installed?: string | undefined;
+}
+
+const COMPOSER_VERSION: string = "2.10.3";
+
+const CONTAINER_RUNTIMES: Partial<Record<GuideRuntime, ContainerRuntime>> = {
+  go: {
+    image: "golang:1.27.3-trixie",
+    cacheEnvironment: (cacheDir: string): Record<string, string> => {
+      return {
+        GOMODCACHE: path.join(cacheDir, "go", "mod"),
+        GOCACHE: path.join(cacheDir, "go", "build"),
+      };
+    },
+    // "go1.27.3" is Go 1.27.3.
+    version: {
+      command: "go env GOVERSION",
+      read: (output: string): string => {
+        return `Go ${output.trim().replace("go", "")}`;
+      },
+    },
+    // Each binary `go install` built: its package's path, at its module's version.
+    installed: [
+      'for binary in "$(go env GOPATH)"/bin/*; do',
+      '[ -f "$binary" ] || continue;',
+      'info=$(go version -m "$binary");',
+      'package=$(printf "%s\\n" "$info" | grep -m1 "^\tpath\t" | cut -f3);',
+      'version=$(printf "%s\\n" "$info" | grep -m1 "^\tmod\t" | cut -f4);',
+      'echo "$package=$version";',
+      "done",
+    ].join(" "),
+  },
+  ruby: {
+    image: "ruby:4.0.9-trixie",
+    cacheEnvironment: (cacheDir: string): Record<string, string> => {
+      return {
+        BUNDLE_USER_CACHE: path.join(cacheDir, "bundler"),
+        BUNDLE_GLOBAL_GEM_CACHE: "true",
+      };
+    },
+    version: {
+      command: "ruby -e 'print RUBY_VERSION'",
+      read: (output: string): string => {
+        return `Ruby ${output.trim()}`;
+      },
+    },
+  },
+  php: {
+    image: "php:8.5.12-cli-trixie",
+    // Composer, and unzip for the packages it downloads.
+    setup: [
+      "apt-get update -qq",
+      "apt-get install -y -qq unzip > /dev/null",
+      `curl -sSfL -o /usr/local/bin/composer https://getcomposer.org/download/${COMPOSER_VERSION}/composer.phar`,
+      "chmod +x /usr/local/bin/composer",
+    ].join(" && "),
+    cacheEnvironment: (cacheDir: string): Record<string, string> => {
+      return {
+        COMPOSER_CACHE_DIR: path.join(cacheDir, "composer"),
+        COMPOSER_ALLOW_SUPERUSER: "1",
+        COMPOSER_NO_INTERACTION: "1",
+      };
+    },
+    version: {
+      command: "php -r 'echo PHP_VERSION;'",
+      read: (output: string): string => {
+        return `PHP ${output.trim()}`;
+      },
+    },
+    installed:
+      "php -r 'foreach (get_loaded_extensions() as $e) { $v = phpversion($e); if ($v) { echo $e, \"=\", $v, PHP_EOL; } }'",
+  },
+  rust: {
+    image: "rust:1.99.1-trixie",
+    cacheEnvironment: (cacheDir: string): Record<string, string> => {
+      return {
+        CARGO_HOME: path.join(cacheDir, "cargo"),
+        // One build folder for every Rust run: the crates they share build once.
+        CARGO_TARGET_DIR: path.join(cacheDir, "cargo-target"),
+      };
+    },
+    // "rustc 1.99.1 (5b0...e 2026-10-...)" is Rust 1.99.1.
+    version: {
+      command: "rustc --version",
+      read: (output: string): string => {
+        return `Rust ${output.trim().split(" ")[1] || "?"}`;
+      },
+    },
+  },
+  elixir: {
+    image: "elixir:1.20.4-otp-29",
+    setup: "mix local.hex --force && mix local.rebar --force",
+    cacheEnvironment: (cacheDir: string): Record<string, string> => {
+      return {
+        MIX_HOME: path.join(cacheDir, "mix"),
+        HEX_HOME: path.join(cacheDir, "hex"),
+      };
+    },
+    version: {
+      command: "elixir --short-version",
+      read: (output: string): string => {
+        return `Elixir ${output.trim()}`;
+      },
+    },
+  },
+};
+
+function containerRuntimeOf(
+  verification: GuideVerification,
+): ContainerRuntime | undefined {
+  const runtime: ContainerRuntime | undefined =
+    CONTAINER_RUNTIMES[verification.runtime];
+
+  if (!runtime) {
+    return undefined;
+  }
+
+  const image: string | undefined =
+    process.env[`OTEL_GUIDES_${verification.runtime.toUpperCase()}_IMAGE`];
+
+  return image ? { ...runtime, image: image } : runtime;
+}
+
+/*
+ * The script each server is started by in a toolbox: the page's command
+ * in a process group of its own, whose id it writes down, so the check can
+ * stop every process the command started with one signal, as it does on
+ * this machine.
+ */
+const TOOLBOX_SERVE_SCRIPT: string = [
+  "#!/bin/bash",
+  "set -m",
+  'bash -c "$2" &',
+  'echo $! > "$1"',
+  "wait $!",
+  "",
+].join("\n");
+
+interface Toolbox {
+  container: string;
+  // The variables every command gets, beside its own.
+  environment: Record<string, string>;
+  serveScript: string;
+  servers: number;
+}
+
+// The variables a run set beside this machine's own, for a toolbox's commands.
+function variablesForToolbox(env: NodeJS.ProcessEnv): Record<string, string> {
+  const variables: Record<string, string> = {};
+
+  for (const [name, value] of Object.entries(env)) {
+    if (value !== undefined && process.env[name] !== value && name !== "PATH") {
+      variables[name] = value;
+    }
+  }
+
+  return variables;
+}
+
+function toolboxEnvironmentFlags(
+  variables: Record<string, string>,
+): Array<string> {
+  return Object.entries(variables).flatMap(
+    ([name, value]: [string, string]): Array<string> => {
+      return ["-e", `${name}=${value}`];
+    },
+  );
+}
+
+async function startToolbox(
+  runtime: ContainerRuntime,
+  name: string,
+  workDir: string,
+  cacheDir: string,
+  appDir: string,
+  env: NodeJS.ProcessEnv,
+): Promise<Toolbox> {
+  spawnSync("docker", ["rm", "-f", "-v", name], { encoding: "utf8" });
+  const started: SpawnSyncReturns<string> = spawnSync(
+    "docker",
+    [
+      "run",
+      "-d",
+      "--rm",
+      "--init",
+      "--name",
+      name,
+      "--network",
+      "host",
+      "-v",
+      `${workDir}:${workDir}`,
+      "-v",
+      `${cacheDir}:${cacheDir}`,
+      "-w",
+      appDir,
+      runtime.image,
+      "sleep",
+      "infinity",
+    ],
+    { encoding: "utf8" },
+  );
+
+  if (started.status !== 0) {
+    throw new Error(`Could not start ${runtime.image}: ${started.stderr}`);
+  }
+
+  const serveScript: string = path.join(workDir, "otel-guides-serve.sh");
+  fs.writeFileSync(serveScript, TOOLBOX_SERVE_SCRIPT);
+
+  const toolbox: Toolbox = {
+    container: name,
+    environment: variablesForToolbox(env),
+    serveScript: serveScript,
+    servers: 0,
+  };
+
+  if (runtime.setup) {
+    log(`  (toolbox) $ ${runtime.setup}`);
+    const result: CommandResult = await runCommand(
+      runtime.setup,
+      appDir,
+      env,
+      toolbox,
+    );
+
+    if (result.status !== 0) {
+      stopToolbox(toolbox);
+      throw new Error(
+        `Could not set ${runtime.image} up:\n${result.stdout.slice(-2000)}\n${result.stderr.slice(-3000)}`,
+      );
+    }
+  }
+
+  return toolbox;
+}
+
+function stopToolbox(toolbox: Toolbox): void {
+  spawnSync("docker", ["rm", "-f", "-v", toolbox.container], {
+    encoding: "utf8",
+  });
+}
+
+// The command line that runs `text` in the toolbox, in `cwd`, with `env`'s variables.
+function toolboxExec(
+  toolbox: Toolbox,
+  cwd: string,
+  env: NodeJS.ProcessEnv,
+  command: Array<string>,
+): Array<string> {
+  return [
+    "exec",
+    "-w",
+    cwd,
+    ...toolboxEnvironmentFlags({
+      ...toolbox.environment,
+      ...variablesForToolbox(env),
+    }),
+    toolbox.container,
+    ...command,
+  ];
+}
+
+// What a command prints in the toolbox, its first line: a runtime's version.
+function toolboxOutput(toolbox: Toolbox, command: string): string {
+  const result: SpawnSyncReturns<string> = spawnSync(
+    "docker",
+    ["exec", toolbox.container, "bash", "-c", command],
+    { encoding: "utf8" },
+  );
+
+  return (result.stdout || "").trim();
+}
+
+/*
+ * A server the check started: on this machine, a process group it stops
+ * with a signal; in a toolbox, the group the serve script wrote down.
+ */
+interface RunningServer {
+  process: ChildProcess;
+  signal: (signal: "SIGTERM" | "SIGKILL") => void;
+}
+
+function startServer(
+  text: string,
+  cwd: string,
+  env: NodeJS.ProcessEnv,
+  output: Array<string>,
+  toolbox: Toolbox | null,
+): RunningServer {
+  let child: ChildProcess;
+  let signal: (name: "SIGTERM" | "SIGKILL") => void;
+
+  if (toolbox) {
+    toolbox.servers++;
+    const pidFile: string = `/tmp/otel-guides-server-${toolbox.servers}.pid`;
+    child = spawn(
+      "docker",
+      toolboxExec(toolbox, cwd, env, [
+        "bash",
+        toolbox.serveScript,
+        pidFile,
+        text,
+      ]),
+      { stdio: ["ignore", "pipe", "pipe"] },
+    );
+    signal = (name: "SIGTERM" | "SIGKILL"): void => {
+      spawnSync(
+        "docker",
+        [
+          "exec",
+          toolbox.container,
+          "bash",
+          "-c",
+          `kill -${name === "SIGTERM" ? "TERM" : "KILL"} -- -$(cat ${pidFile})`,
+        ],
+        { encoding: "utf8" },
+      );
+    };
+  } else {
+    // Its own process group, so stopping it reaches every process it starts.
+    child = spawn("bash", ["-c", text], {
+      cwd: cwd,
+      env: env,
+      detached: true,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    signal = (name: "SIGTERM" | "SIGKILL"): void => {
+      if (child.pid) {
+        try {
+          process.kill(-child.pid, name);
+        } catch {
+          // Already gone.
+        }
+      }
+    };
+  }
+
+  child.stdout?.on("data", (chunk: Buffer) => {
+    output.push(chunk.toString());
+  });
+  child.stderr?.on("data", (chunk: Buffer) => {
+    output.push(chunk.toString());
+  });
+
+  return { process: child, signal: signal };
+}
+
+/*
  * A command run to its end, without blocking: the receiver and the
  * stand-in API answer from this same process, so a command that runs while
  * a server calls them - a script queuing tasks for a worker - must not
@@ -1568,13 +1962,18 @@ function runCommand(
   text: string,
   cwd: string,
   env: NodeJS.ProcessEnv,
+  toolbox: Toolbox | null = null,
 ): Promise<CommandResult> {
   return new Promise((resolve: (result: CommandResult) => void) => {
-    const child: ChildProcess = spawn("bash", ["-c", text], {
-      cwd: cwd,
-      env: env,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    const child: ChildProcess = toolbox
+      ? spawn("docker", toolboxExec(toolbox, cwd, env, ["bash", "-c", text]), {
+          stdio: ["ignore", "pipe", "pipe"],
+        })
+      : spawn("bash", ["-c", text], {
+          cwd: cwd,
+          env: env,
+          stdio: ["ignore", "pipe", "pipe"],
+        });
     const stdout: Array<Buffer> = [];
     const stderr: Array<Buffer> = [];
     const timer: NodeJS.Timeout = setTimeout(
@@ -1619,42 +2018,37 @@ async function waitForText(
 }
 
 async function stopServer(
-  server: ChildProcess,
+  server: RunningServer,
   output: Array<string>,
 ): Promise<void> {
-  if (!server.pid) {
+  if (!server.process.pid) {
     return;
   }
 
-  try {
-    process.kill(-server.pid, "SIGTERM");
-  } catch {
-    // Already gone.
-  }
-
-  const exited: boolean = await new Promise(
+  const exited: Promise<boolean> = new Promise(
     (resolve: (exited: boolean) => void) => {
       const timer: NodeJS.Timeout = setTimeout(() => {
         resolve(false);
       }, 25000);
-      server.once("exit", () => {
+      server.process.once("exit", () => {
         clearTimeout(timer);
         resolve(true);
       });
-      if (server.exitCode !== null || server.signalCode !== null) {
+      if (
+        server.process.exitCode !== null ||
+        server.process.signalCode !== null
+      ) {
         clearTimeout(timer);
         resolve(true);
       }
     },
   );
 
-  if (!exited) {
+  server.signal("SIGTERM");
+
+  if (!(await exited)) {
     output.push("\n[the app did not stop within 25 seconds of SIGTERM]\n");
-    try {
-      process.kill(-server.pid, "SIGKILL");
-    } catch {
-      // Already gone.
-    }
+    server.signal("SIGKILL");
   }
 }
 
@@ -1681,6 +2075,7 @@ function recordedVersions(
   run: GuideVerificationRun,
   appDir: string,
   env: NodeJS.ProcessEnv,
+  installedOutside: Record<string, string>,
 ): Record<string, string> {
   const verification: GuideVerification = guide.verification;
   const commandsText: string = run.commands
@@ -1702,15 +2097,14 @@ function recordedVersions(
     }
   }
   for (const file of run.files) {
-    if (
-      file.content &&
-      (file.path.endsWith("pom.xml") ||
-        file.path.endsWith(".csproj") ||
-        file.path.endsWith(".gradle.kts"))
-    ) {
+    const language: GuideSnippet["language"] | undefined = buildFileLanguage(
+      file.path,
+    );
+
+    if (file.content && language) {
       for (const dependency of buildFileDependencies({
         id: file.path,
-        language: file.path.endsWith(".gradle.kts") ? "kotlin" : "xml",
+        language: language,
         title: file.path,
         code: file.content,
         check: "parse",
@@ -1735,6 +2129,21 @@ function recordedVersions(
     case "dotnet":
       resolved = dotnetVersions(appDir, env);
       break;
+    case "go":
+      resolved = { ...installedOutside, ...goModuleVersions(appDir) };
+      break;
+    case "ruby":
+      resolved = gemfileLockVersions(appDir);
+      break;
+    case "php":
+      resolved = { ...installedOutside, ...composerLockVersions(appDir) };
+      break;
+    case "rust":
+      resolved = cargoLockVersions(appDir);
+      break;
+    case "elixir":
+      resolved = mixLockVersions(appDir);
+      break;
     default:
       for (const name of names) {
         const version: string | undefined = installedVersion(appDir, name);
@@ -1756,11 +2165,223 @@ function recordedVersions(
   return packages;
 }
 
+// A build file's language by its name, for a file a run writes that the page does not show.
+function buildFileLanguage(
+  filePath: string,
+): GuideSnippet["language"] | undefined {
+  const name: string = path.basename(filePath);
+
+  if (name === "pom.xml" || name.endsWith(".csproj")) {
+    return "xml";
+  }
+  if (name.endsWith(".gradle.kts")) {
+    return "kotlin";
+  }
+  if (name === "Gemfile") {
+    return "ruby";
+  }
+  if (name === "composer.json") {
+    return "json";
+  }
+  if (name === "Cargo.toml") {
+    return "toml";
+  }
+  if (name === "mix.exs") {
+    return "elixir";
+  }
+
+  return undefined;
+}
+
+function readIfThere(file: string): string {
+  return fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "";
+}
+
+/*
+ * The modules a Go build selected, from go.mod as the run left it: since
+ * Go 1.17 it lists every module the build needs, each at the version the
+ * build used.
+ */
+function goModuleVersions(appDir: string): Record<string, string> {
+  const versions: Record<string, string> = {};
+  let inRequireBlock: boolean = false;
+
+  for (const rawLine of readIfThere(path.join(appDir, "go.mod")).split("\n")) {
+    const line: string = rawLine.trim();
+
+    if (line === "require (") {
+      inRequireBlock = true;
+      continue;
+    }
+    if (inRequireBlock && line === ")") {
+      inRequireBlock = false;
+      continue;
+    }
+
+    const words: Array<string> = (
+      line.startsWith("require ") ? line.slice("require ".length) : line
+    )
+      .split(" ")
+      .filter((word: string): boolean => {
+        return word.length > 0;
+      });
+
+    if (
+      (inRequireBlock || line.startsWith("require ")) &&
+      words.length >= 2 &&
+      words[0] &&
+      words[1]
+    ) {
+      versions[words[0]] = words[1];
+    }
+  }
+
+  return versions;
+}
+
+/*
+ * The gems Bundler resolved, from Gemfile.lock's specs (four spaces in):
+ * "    sqlite3 (2.10.2-x86_64-linux-gnu)" is sqlite3 2.10.2.
+ */
+function gemfileLockVersions(appDir: string): Record<string, string> {
+  const versions: Record<string, string> = {};
+
+  for (const line of readIfThere(path.join(appDir, "Gemfile.lock")).split(
+    "\n",
+  )) {
+    if (!line.startsWith("    ") || line.startsWith("     ")) {
+      continue;
+    }
+
+    const open: number = line.indexOf(" (");
+    const close: number = line.indexOf(")", open);
+
+    if (open > 0 && close > open) {
+      const version: string = line.slice(open + 2, close);
+      versions[line.slice(0, open).trim()] = version.split("-")[0] || version;
+    }
+  }
+
+  return versions;
+}
+
+// The packages Composer installed, from composer.lock: "v13.39.0" is 13.39.0.
+function composerLockVersions(appDir: string): Record<string, string> {
+  const versions: Record<string, string> = {};
+  const text: string = readIfThere(path.join(appDir, "composer.lock"));
+
+  if (!text) {
+    return versions;
+  }
+
+  const lock: {
+    packages?: Array<{ name: string; version: string }>;
+    "packages-dev"?: Array<{ name: string; version: string }>;
+  } = JSON.parse(text) as {
+    packages?: Array<{ name: string; version: string }>;
+    "packages-dev"?: Array<{ name: string; version: string }>;
+  };
+
+  for (const item of [
+    ...(lock.packages || []),
+    ...(lock["packages-dev"] || []),
+  ]) {
+    versions[item.name] = item.version.replace(GO_VERSION_PREFIX, "");
+  }
+
+  return versions;
+}
+
+/*
+ * The crates Cargo resolved, from Cargo.lock: [[package]] blocks with a
+ * name and a version. A crate the build needs at two versions is recorded
+ * at the higher.
+ */
+function cargoLockVersions(appDir: string): Record<string, string> {
+  const versions: Record<string, string> = {};
+  let name: string = "";
+
+  for (const rawLine of readIfThere(path.join(appDir, "Cargo.lock")).split(
+    "\n",
+  )) {
+    const line: string = rawLine.trim();
+
+    if (line === "[[package]]") {
+      name = "";
+      continue;
+    }
+
+    const [key, value] = line.split(" = ");
+    const unquoted: string = (value || "").split('"').join("");
+
+    if (key === "name") {
+      name = unquoted;
+    } else if (key === "version" && name) {
+      const known: string | undefined = versions[name];
+
+      if (!known || compareVersions(unquoted, known) > 0) {
+        versions[name] = unquoted;
+      }
+    }
+  }
+
+  return versions;
+}
+
+function compareVersions(a: string, b: string): number {
+  const partsA: Array<number> = a.split(".").map(Number);
+  const partsB: Array<number> = b.split(".").map(Number);
+
+  for (
+    let index: number = 0;
+    index < Math.max(partsA.length, partsB.length);
+    index++
+  ) {
+    const difference: number = (partsA[index] || 0) - (partsB[index] || 0);
+
+    if (difference !== 0) {
+      return difference;
+    }
+  }
+
+  return 0;
+}
+
+/*
+ * The Hex packages Mix resolved, from mix.lock:
+ *   "opentelemetry": {:hex, :opentelemetry, "1.7.0", "...", [:rebar3], [...], "hexpm", "..."},
+ */
+function mixLockVersions(appDir: string): Record<string, string> {
+  const versions: Record<string, string> = {};
+
+  for (const line of readIfThere(path.join(appDir, "mix.lock")).split("\n")) {
+    const marker: string = "{:hex, :";
+    const at: number = line.indexOf(marker);
+
+    if (at < 0) {
+      continue;
+    }
+
+    const rest: string = line.slice(at + marker.length);
+    const comma: number = rest.indexOf(",");
+    const quoteStart: number = rest.indexOf('"', comma);
+    const quoteEnd: number = rest.indexOf('"', quoteStart + 1);
+
+    if (comma > 0 && quoteStart > comma && quoteEnd > quoteStart) {
+      versions[rest.slice(0, comma)] = rest.slice(quoteStart + 1, quoteEnd);
+    }
+  }
+
+  return versions;
+}
+
 interface RunResult {
   observed: Observed;
   packages: Record<string, string>;
   env: NodeJS.ProcessEnv;
   appDir: string;
+  // A toolbox's runtime, as its image reported it: "Go 1.27.3".
+  runtime?: string | undefined;
 }
 
 /*
@@ -1830,16 +2451,43 @@ async function verifyRun(
 
   const before: Record<string, number> = fileSizes(receiver.outDir);
   const requestCountBefore: number = receiver.requests.length;
-  const servers: Array<ChildProcess> = [];
+  const servers: Array<RunningServer> = [];
   const containerBase: string =
     process.env["OTEL_GUIDES_CONTAINER_NAME"] ||
     `oneuptime-otel-guides-${process.pid}`;
+  const containerRuntime: ContainerRuntime | undefined =
+    containerRuntimeOf(verification);
+  let toolbox: Toolbox | null = null;
+  let runtime: string | undefined = undefined;
+  // What the toolbox reports installed outside the app's lock files.
+  const installedOutside: Record<string, string> = {};
   let containers: Array<string> = [];
   let staticServer: http.Server | null = null;
   let stubApi: http.Server | null = null;
   const output: Array<string> = [];
 
+  // Another program on the app's port would answer the check in its place.
+  if (run.port !== undefined && (await waitForPort(run.port, 500))) {
+    throw new Error(
+      `${runName}: something already listens on ${run.port}; stop it first`,
+    );
+  }
+
   try {
+    if (containerRuntime) {
+      toolbox = await startToolbox(
+        containerRuntime,
+        `${containerBase}-${runName}`,
+        workDir,
+        cacheDir,
+        appDir,
+        env,
+      );
+      runtime = containerRuntime.version.read(
+        toolboxOutput(toolbox, containerRuntime.version.command),
+      );
+    }
+
     if (run.services && run.services.length > 0) {
       const started: {
         containers: Array<string>;
@@ -1865,20 +2513,7 @@ async function verifyRun(
 
       if (command.isServer) {
         log(`  $ ${text} &`);
-        // Its own process group, so stopping it reaches every process it starts.
-        const server: ChildProcess = spawn("bash", ["-c", text], {
-          cwd: appDir,
-          env: commandEnv,
-          detached: true,
-          stdio: ["ignore", "pipe", "pipe"],
-        });
-        server.stdout?.on("data", (chunk: Buffer) => {
-          output.push(chunk.toString());
-        });
-        server.stderr?.on("data", (chunk: Buffer) => {
-          output.push(chunk.toString());
-        });
-        servers.push(server);
+        servers.push(startServer(text, appDir, commandEnv, output, toolbox));
 
         const isReady: boolean = command.readyText
           ? await waitForText(output, command.readyText, 300000)
@@ -1896,7 +2531,12 @@ async function verifyRun(
       }
 
       log(`  $ ${text}`);
-      const result: CommandResult = await runCommand(text, appDir, commandEnv);
+      const result: CommandResult = await runCommand(
+        text,
+        appDir,
+        commandEnv,
+        toolbox,
+      );
 
       if (result.status !== 0) {
         throw new Error(
@@ -1934,6 +2574,19 @@ async function verifyRun(
       }
     }
 
+    if (toolbox && containerRuntime?.installed) {
+      for (const line of toolboxOutput(
+        toolbox,
+        containerRuntime.installed,
+      ).split("\n")) {
+        const equals: number = line.indexOf("=");
+
+        if (equals > 0) {
+          installedOutside[line.slice(0, equals)] = line.slice(equals + 1);
+        }
+      }
+    }
+
     await sleep(4000);
   } finally {
     for (const server of [...servers].reverse()) {
@@ -1946,6 +2599,9 @@ async function verifyRun(
       stubApi.close();
     }
     stopServices(containers);
+    if (toolbox) {
+      stopToolbox(toolbox);
+    }
   }
 
   // The collector writes its files once a second.
@@ -1983,7 +2639,8 @@ async function verifyRun(
 
   return {
     observed: observed,
-    packages: recordedVersions(guide, run, appDir, env),
+    packages: recordedVersions(guide, run, appDir, env, installedOutside),
+    runtime: runtime,
     env: env,
     appDir: appDir,
   };
@@ -2072,14 +2729,21 @@ async function verifyGuide(
     ).sort();
   }
 
+  /*
+   * Go names a module's versions with a v, the page names the framework
+   * without: Gin 1.12.0.
+   */
   const frameworkVersion: string | undefined = verification.framework.package
-    ? main.packages[verification.framework.package] ||
-      installedVersion(main.appDir, verification.framework.package)
+    ? (
+        main.packages[verification.framework.package] ||
+        installedVersion(main.appDir, verification.framework.package)
+      )?.replace(GO_VERSION_PREFIX, "")
     : undefined;
 
   return {
     checkedOn: new Date().toISOString().slice(0, 10),
-    runtime: runtimeVersion(verification, main.env, main.appDir),
+    runtime:
+      main.runtime || runtimeVersion(verification, main.env, main.appDir),
     packages: main.packages,
     framework: frameworkVersion
       ? `${verification.framework.name} ${frameworkVersion}`

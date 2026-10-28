@@ -8,11 +8,13 @@ import { SnippetLanguage } from "./GuideTypes";
  * A snippet's code as highlighted HTML, made on the server.
  *
  * The guides' code is coloured where the page is made, with the grammars the
- * Dashboard's code blocks register (Common's LanguageRegistry) and the few
- * only the guides show - Java, Kotlin, .properties, INI - registered on the
- * same core by WebsiteLanguageRegistry, so a page ships no highlighter
- * script and its code never changes colour as the page loads. The template styles the classes highlight.js writes (hljs-keyword,
- * hljs-string, ...); the text inside is escaped by highlight.js itself.
+ * Dashboard's code blocks register (Common's LanguageRegistry: Go, Ruby,
+ * PHP, Rust and Elixir among them) and the few only the guides show -
+ * Java, Kotlin, .properties, INI, TOML and Protobuf - registered on the same core by
+ * WebsiteLanguageRegistry, so a page ships no highlighter script and its
+ * code never changes colour as the page loads. The template styles the
+ * classes highlight.js writes (hljs-keyword, hljs-string, ...); the text
+ * inside is escaped by highlight.js itself.
  *
  * Each snippet is highlighted once per process: the guides are fixed data.
  */
@@ -33,6 +35,14 @@ const GRAMMAR_FOR: Record<SnippetLanguage, string> = {
   xml: "xml",
   properties: "properties",
   ini: "ini",
+  go: "go",
+  ruby: "ruby",
+  php: "php",
+  rust: "rust",
+  elixir: "elixir",
+  // highlight.js reads TOML with its INI grammar, which names it as an alias.
+  toml: "toml",
+  protobuf: "protobuf",
 };
 
 const highlighted: Map<string, string> = new Map<string, string>();
@@ -118,4 +128,11 @@ export const SNIPPET_LANGUAGE_LABELS: Record<SnippetLanguage, string> = {
   xml: "XML",
   properties: "Properties",
   ini: "INI",
+  go: "Go",
+  ruby: "Ruby",
+  php: "PHP",
+  rust: "Rust",
+  elixir: "Elixir",
+  toml: "TOML",
+  protobuf: "Protobuf",
 };

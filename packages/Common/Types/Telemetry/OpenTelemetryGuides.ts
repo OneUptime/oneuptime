@@ -426,6 +426,47 @@ export const OPEN_TELEMETRY_GUIDES: ReadonlyArray<OpenTelemetryGuideEntry> = [
     logo: ProviderLogo.DotNet,
     telemetryGuideLanguage: "dotnet",
   },
+  {
+    // Any Go service on the standard library's net/http.
+    slug: "go",
+    name: "Go",
+    language: OpenTelemetryGuideLanguage.Go,
+    kind: "runtime",
+    logo: ProviderLogo.Go,
+    telemetryGuideLanguage: "go",
+    isLanguageGuide: true,
+  },
+  {
+    slug: "gin",
+    name: "Gin",
+    language: OpenTelemetryGuideLanguage.Go,
+    kind: "framework",
+    telemetryGuideLanguage: "go",
+  },
+  {
+    // No logo set the registry draws from has Echo's: its initials stand in.
+    slug: "echo",
+    name: "Echo",
+    language: OpenTelemetryGuideLanguage.Go,
+    kind: "framework",
+    telemetryGuideLanguage: "go",
+  },
+  {
+    // No logo set the registry draws from has Fiber's: its initials stand in.
+    slug: "fiber",
+    name: "Fiber",
+    language: OpenTelemetryGuideLanguage.Go,
+    kind: "framework",
+    telemetryGuideLanguage: "go",
+  },
+  {
+    // gRPC services and clients in Go.
+    slug: "grpc",
+    name: "gRPC",
+    language: OpenTelemetryGuideLanguage.Go,
+    kind: "framework",
+    telemetryGuideLanguage: "go",
+  },
 ];
 
 // Where the guides are listed: the website's index of integrations.
