@@ -155,27 +155,14 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     ...ANOMALY_CONDITIONS,
   ],
   [METRICS_MONITOR]: [
-    // The Time Range options without a locale key (the others have one).
-    "Past 1 Minute",
-    "Past 10 Minutes",
-    "Past 6 Hours",
-    "Past 12 Hours",
-    "Past 3 Days",
-    "Past 7 Days",
-    "Past 14 Days",
-    "Past 30 Days",
-    "Past 60 Days",
-    "Past 90 Days",
-    "Past 180 Days",
-    "Past 365 Days",
-    // If No Data's options, but Trigger, which has a key.
-    "Ignore",
-    "Treat As Zero",
+    /*
+     * When to alert words its windows, measures and no-data choices for
+     * the locales (TelemetryRuleText); the criteria filter and the
+     * aggregation a monitor made through the API starts with have no key.
+     */
     "Metric Value",
     ...ANOMALY_CONDITIONS,
-    // The criteria's aggregations without a key (Average has one).
     "Any Value",
-    "All Values",
   ],
   [TRACES_MONITOR]: [
     // OpenTelemetry's span status codes, as TracesMonitorSpanStatusDocs keeps them.
@@ -441,10 +428,10 @@ const PROSE_LEADS: Record<string, Array<string>> = {
   [METRICS_MONITOR]: [
     "Every minute.",
     "Queries, then formulas.",
-    "Then the criteria's aggregation.",
+    "Then the rule's measure.",
     "Criteria from top to bottom.",
     "No data is not zero.",
-    "All Values needs the whole time range.",
+    "Every value needs the whole time range.",
     "OneUptime's own downtime is not silence.",
     "one alert (or incident) per breaching host",
     "one alert for the whole monitor",

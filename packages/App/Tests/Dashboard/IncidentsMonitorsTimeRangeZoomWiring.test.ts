@@ -164,13 +164,16 @@ describe("monitor step forms zoom their preview only", () => {
       // A host handler would route the zoom somewhere; here it goes nowhere.
       expect(view).not.toContain("onTimeRangeSelect");
       expect(view).not.toContain("onTimeRangeReset");
-      // The preview charts the rolling window the form keeps in state.
+      /*
+       * The preview charts the window the form keeps (the Metrics form: the
+       * hours before its rule's window).
+       */
       expect(view).toContain("startAndEndDate: startAndEndTime");
       // And onChange still only ever writes the query configs back.
-      expect(view).toContain("metricViewConfig: {");
-      expect(view.slice(view.indexOf("onChange="))).not.toContain(
-        "startAndEndDate",
-      );
+      const onChange: string = view.slice(view.indexOf("onChange="));
+      expect(onChange).toContain("metricViewConfig:");
+      expect(onChange).not.toContain("startAndEndDate");
+      expect(onChange).not.toContain("rollingTime");
     },
   );
 

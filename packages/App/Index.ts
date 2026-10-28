@@ -278,8 +278,11 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     // Add default routes to the app
     await App.addDefaultRoutes();
 
-    // Generate OpenAPI spec (this automatically saves it to cache)
-    OpenAPIUtil.generateOpenAPISpec();
+    /*
+     * Build the OpenAPI spec GET /api/openapi/spec serves (about ten seconds
+     * of CPU), before requests come in. Only its gzipped JSON is kept.
+     */
+    OpenAPIUtil.getOpenAPISpecResponse();
 
     // Every route is mounted: serve requests, and say so to readiness.
     StartupGate.open();

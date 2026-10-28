@@ -32,23 +32,31 @@ Chaque minute, OneUptime compte les journaux qui correspondent aux filtres du mo
 :::steps
 ### Commencer un nouveau moniteur
 
-Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**.
+Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Ou bien, dans l'explorateur de journaux, recherchez les journaux dont vous voulez être informé et cliquez sur **Créer un moniteur** (la cloche) dans sa barre d'outils : le nouveau moniteur surveille d'emblée la recherche, les gravités, les services et les attributs de l'explorateur.
 
 ### Choisir Logs
 
 Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisissez **Journaux** sous **Télémétrie**, ou tapez `logs` dans le champ de recherche. Saisissez un **Nom**, puis cliquez sur **Suivant**.
 
+### Choisir ce dont le moniteur vous informe
+
+Sous **De quoi ce moniteur doit-il vous informer ?**, choisissez **Trop d'erreurs**, **Un message apparaît** ou **Les journaux s'arrêtent**. Chaque choix remplit les journaux à surveiller et la règle, que vous pouvez modifier plus bas. Choisissez **Autre chose** pour les configurer vous-même.
+
 ### Choisir les journaux à compter
 
-Dans **Configuration du moniteur de journaux**, renseignez **Surveiller les journaux qui incluent ce texte**, **Surveiller les journaux pendant (durée)** et **Gravité du journal**. Un filtre laissé vide correspond à tous les journaux. **Aperçu des journaux**, sous les filtres, montre les journaux qu'ils sélectionnent en ce moment.
+Dans **Journaux à surveiller**, renseignez **Gravité du journal** et **Le message contient**. Un filtre laissé vide correspond à tous les journaux. **Journaux correspondants**, sous les filtres, montre les journaux qu'ils sélectionnent en ce moment.
 
 ### Affiner (facultatif)
 
 Ouvrez **Plus de champs** pour filtrer par service de télémétrie, entité d'infrastructure ou attribut. Pour obtenir une alerte par tunnel, utilisateur ou interface plutôt qu'une seule pour tout le moniteur, ajoutez l'attribut dans **Group by Attributes** – voir [Alertes par groupe](#alertes-par-groupe-group-by).
 
-### Définir les critères
+### Dire quand alerter
 
-La carte **Critères du moniteur** commence avec deux critères : hors ligne, avec un incident, quand aucun journal ne correspond ; en ligne dès qu'au moins un correspond. Adaptez-les à ce sur quoi vous voulez alerter – voir [Critères](#critères).
+Dans **Quand alerter**, choisissez une **Condition**, le **Nombre de journaux** et une **Fenêtre de temps**. La phrase en dessous redit la règle en termes simples. Le graphique sous cette phrase compte les journaux correspondants dans chaque fenêtre au cours des dernières heures, trace le nombre de la règle sous forme de ligne et indique combien de fois la règle aurait alerté. Son bouton propose un nombre que la règle n'aurait pas dépassé sur cette période.
+
+### Choisir ce qui se passe
+
+Dans **Ce qui se passe**, choisissez **Créer une alerte**, **Déclarer un incident** ou **Les deux**, puis donnez-lui un titre et une gravité. Tant que la règle correspond, le moniteur affiche le statut indiqué sous **Plus de champs** ; quand elle ne correspond plus, le moniteur revient à son statut par défaut et l'alerte ou l'incident se résout de lui-même.
 
 ### Créer le moniteur
 
@@ -59,9 +67,9 @@ Cliquez sur **Créer un moniteur**. Le moniteur s'ouvre sur sa page **Vue d'ense
 
 | Champ | Ce qu'il sélectionne | Par défaut |
 | --- | --- | --- |
-| **Surveiller les journaux qui incluent ce texte** | Les journaux dont le corps contient ce texte, sans tenir compte de la casse. | Vide : tous les journaux |
-| **Surveiller les journaux pendant (durée)** | Les journaux des 5 dernières secondes jusqu'aux 24 dernières heures. | **Dernière minute** |
 | **Gravité du journal** | Les journaux ayant l'une des gravités choisies. | Vide : toutes les gravités |
+| **Le message contient** | Les journaux dont le corps contient ce texte, sans tenir compte de la casse. | Vide : tous les journaux |
+| **Fenêtre de temps** (dans **Quand alerter**) | Les journaux des 5 dernières secondes jusqu'aux 24 dernières heures. | **Dernières 5 minutes** |
 | **Group by Attributes** | Pas un filtre : compte séparément chaque combinaison de valeurs de ces attributs. | Vide : un seul décompte |
 | **Résolu par attributs** | Pas un filtre : le journal qui résout un groupe. Apparaît dès que **Group by Attributes** a un attribut ; voir [Résolu par un journal](#résolu-par-un-journal). | Vide : un groupe se résout quand ses journaux s'arrêtent |
 | **Filtrer par service de télémétrie** (sous **Plus de champs**) | Les journaux de l'un des services choisis. | Vide : tous les services |
@@ -87,8 +95,8 @@ Chaque journal est enregistré avec l'une de sept gravités. Pour les journaux O
 ## Comment il est évalué
 
 - **Chaque minute.** Un moniteur de journaux n'est pas vérifié par des sondes ; il n'a donc pas d'intervalle à régler ni de page **Sondes et intervalle**.
-- **Un seul nombre par évaluation.** Le moniteur compte les journaux qui correspondent à chaque filtre et sont arrivés dans la durée **Surveiller les journaux pendant (durée)** précédant l'évaluation. Avec **Dernières 5 minutes**, chaque évaluation remonte cinq minutes en arrière, si bien que les fenêtres d'évaluations successives se chevauchent.
-- **Aucun journal, c'est un décompte de 0.** Un service qui cesse d'écrire des journaux produit 0, ce que recherche le critère hors ligne par défaut.
+- **Un seul nombre par évaluation.** Le moniteur compte les journaux qui correspondent à chaque filtre et sont arrivés dans la **Fenêtre de temps** précédant l'évaluation. Avec **Dernières 5 minutes**, chaque évaluation remonte cinq minutes en arrière, si bien que les fenêtres d'évaluations successives se chevauchent.
+- **Aucun journal, c'est un décompte de 0.** Un service qui cesse d'écrire des journaux produit 0, ce que recherche **Les journaux s'arrêtent**.
 - **L'indisponibilité d'OneUptime lui-même n'est pas un silence.** Tant que la fenêtre de temps contient une période où OneUptime lui-même ne recevait pas de données – il redémarrait, était mis à jour ou rattrapait un retard –, la vérification attend : le statut ne change pas, et aucun incident ni aucune alerte n'est ouvert ni résolu. Voir [Quand OneUptime ne reçoit pas de données](/docs/monitor/when-oneuptime-is-not-receiving).
 - **Les critères de haut en bas.** Le premier critère qui correspond décide ; placez donc le plus grave en premier. Un moniteur regroupé fonctionne autrement : il vérifie chaque critère pour chaque groupe – voir [L'évaluation des critères diffère](#lévaluation-des-critères-diffère).
 
@@ -96,7 +104,7 @@ Chaque changement de statut est enregistré, avec sa raison, dans la **Chronolog
 
 ## Critères
 
-Les critères d'un moniteur de journaux ont un seul **Type de filtre** : **Log Count**, le nombre de journaux qui ont correspondu dans la fenêtre. Choisissez une **Condition de filtre** et, pour une condition de seuil, une **Valeur**.
+Les critères d'un moniteur de journaux ont un seul **Type de filtre** : **Log Count**, le nombre de journaux qui ont correspondu dans la fenêtre. **Quand alerter** configure un critère, dont la **Condition** est **Plus de**, **Au moins**, **Moins de**, **Au plus**, **Exactement**, **Anormalement haut**, **Anormalement bas** ou **Anormalement haut ou bas**. Pour plusieurs critères, ou un critère avec plus d'un filtre, cliquez sur **Modifier en critères personnalisés** sous **Plus de champs** dans **Ce qui se passe** : chaque critère y a une **Condition de filtre** et, pour une condition de seuil, une **Valeur**.
 
 | Condition de filtre | Correspond quand le nombre de journaux est… |
 | --- | --- |
@@ -109,36 +117,41 @@ Les critères d'un moniteur de journaux ont un seul **Type de filtre** : **Log C
 | **Anomalously Low** | en dessous de cette plage |
 | **Anomalous** | hors de cette plage, dans un sens ou dans l'autre |
 
-Les conditions d'anomalie ne prennent pas de **Valeur**. Choisissez une **Sensibilité** – Low, Medium (la valeur par défaut) ou High – et une **Fenêtre de référence** de 14 (la valeur par défaut), 28, 60 ou 90 jours. OneUptime convertit le décompte en taux par minute et le compare à la même heure de la semaine sur cette fenêtre. La référence ne couvre que les services et les gravités du moniteur : ses filtres de texte et d'attributs n'en font pas partie. Tant que cette heure de la semaine n'a pas assez d'historique, le critère est encore en apprentissage et ne se déclenche pas.
+Les conditions d'anomalie ne prennent pas de **Valeur**. Choisissez une **Sensibilité** – Faible, Moyen (la valeur par défaut) ou Élevé – et, dans les critères personnalisés, une **Fenêtre de référence** de 14 (la valeur par défaut), 28, 60 ou 90 jours. OneUptime convertit le décompte en taux par minute et le compare à la même heure de la semaine sur cette fenêtre. La référence ne couvre que les services et les gravités du moniteur : ses filtres de texte et d'attributs n'en font pas partie. Tant que cette heure de la semaine n'a pas assez d'historique, le critère est encore en apprentissage et ne se déclenche pas.
 
-Un nouveau moniteur de journaux commence avec ces critères :
+Un moniteur de journaux créé dans « Créer un moniteur » commence avec la règle correspondant à ce que vous avez choisi sous **De quoi ce moniteur doit-il vous informer ?** :
+
+| Choix | Règle | Ce qui se passe |
+| --- | --- | --- |
+| **Trop d'erreurs** | **Gravité du journal** **Erreur** et **Fatal**, **Plus de** `10` sur **Dernières 5 minutes** | Crée une alerte, qui se résout d'elle-même |
+| **Un message apparaît** | **Plus de** `0` sur **Dernières 5 minutes** | Crée une alerte, qui se résout d'elle-même |
+| **Les journaux s'arrêtent** | **Exactement** `0` sur **Dernières 10 minutes** | Déclare un incident, qui se résout de lui-même |
+
+Un moniteur de journaux créé via l'API ou Terraform sans critères commence avec ces critères :
 
 | Critère | Filtre | Effet |
 | --- | --- | --- |
 | Check if … is offline | **Log Count** **Égal à** `0` | Passe le moniteur hors ligne et déclare un incident, résolu automatiquement |
 | Check if … is online | **Log Count** **Supérieur à** `0` | Passe le moniteur en ligne |
 
-> [!TIP]
-> Pour alerter sur les erreurs plutôt que sur le silence, réglez **Gravité du journal** sur **Erreur** et changez le critère hors ligne en **Log Count** **Supérieur à** le nombre d'erreurs que vous tolérez dans la fenêtre.
-
 ## Exemple : un pic d'erreurs
 
 Vous voulez un incident quand le service checkout journalise plus de 50 erreurs en cinq minutes :
 
 - **Gravité du journal** : **Erreur**
-- **Surveiller les journaux pendant (durée)** : **Dernières 5 minutes**
+- **Fenêtre de temps** : **Dernières 5 minutes**
 - **Filtrer par service de télémétrie** : `checkout`
-- Critère 1 : **Log Count** **Supérieur à** `50` – passer le moniteur hors ligne et déclarer un incident
-- Critère 2 : **Log Count** **Inférieur ou égal à** `50` – passer le moniteur en ligne
+- **Quand alerter** : **Plus de** `50`
+- **Ce qui se passe** : **Déclarer un incident**
 
 Quatre évaluations successives :
 
-| Heure | Journaux d'erreur des 5 dernières minutes | Critère qui correspond | Ce qui se passe |
+| Heure | Journaux d'erreur des 5 dernières minutes | La règle correspond ? | Ce qui se passe |
 | --- | --- | --- | --- |
-| 10:00 | 12 | 2 | Le moniteur est en ligne. |
-| 10:01 | 64 | 1 | Le moniteur passe hors ligne et un incident est déclaré. |
-| 10:02 | 81 | 1 | Toujours hors ligne. L'incident est déjà ouvert, donc aucun second n'est déclaré. |
-| 10:06 | 9 | 2 | Le moniteur est de nouveau en ligne, et l'incident se résout de lui-même parce que **Résoudre automatiquement l'incident** est activé. |
+| 10:00 | 12 | Non | Le moniteur est en ligne. |
+| 10:01 | 64 | Oui | Le moniteur passe hors ligne et un incident est déclaré. |
+| 10:02 | 81 | Oui | Toujours hors ligne. L'incident est déjà ouvert, donc aucun second n'est déclaré. |
+| 10:06 | 9 | Non | Le moniteur est de nouveau en ligne, et l'incident se résout de lui-même parce que **Résoudre automatiquement l'incident** est activé. |
 
 Comme les fenêtres se chevauchent, une seule rafale d'erreurs maintient le décompte élevé jusqu'à cinq minutes après sa fin. Utilisez une fenêtre plus courte pour un moniteur qui doit se rétablir plus vite.
 
@@ -197,11 +210,11 @@ log_component="IPSec" con_name="HQ-Branch1" status="Terminated" message="IPSec C
 ```
 
 :::steps
-1. Créez un moniteur **Journaux**.
-2. Réglez **Surveiller les journaux qui incluent ce texte** sur `terminated` et **Surveiller les journaux pendant (durée)** sur **Dernières 5 minutes**.
+1. Créez un moniteur **Journaux** et choisissez **Un message apparaît**.
+2. Réglez **Le message contient** sur `terminated` et la **Fenêtre de temps** sur **Dernières 5 minutes**.
 3. Sous **Plus de champs**, ajoutez le filtre d'attribut `log_component` = `IPSec`.
 4. Dans **Group by Attributes**, ajoutez `con_name`.
-5. Ajoutez un critère avec le filtre **Log Count** **Supérieur à** `0` qui crée une alerte ou un incident intitulé `IPsec tunnel {{con_name}} terminated`.
+5. Gardez la règle sur **Plus de** `0`, et intitulez l'alerte ou l'incident `IPsec tunnel {{con_name}} terminated`.
 :::
 
 Chaque tunnel qui journalise une interruption reçoit désormais sa propre alerte – `IPsec tunnel HQ-Branch1 terminated`, `IPsec tunnel Branch2 terminated` – et chacune se résout de son côté.
@@ -227,7 +240,7 @@ La valeur de chaque attribut de Group By est une [variable de modèle](/docs/mon
 ## Dépannage
 
 :::details Le moniteur est hors ligne, mais mon service écrit des journaux
-Le décompte valait 0 : les filtres ne correspondent donc à aucun des journaux que le service envoie. Ouvrez la page **Critères** du moniteur (sous **Configuration**) et cliquez sur **Modifier les critères de surveillance** : **Aperçu des journaux** montre ce que les filtres sélectionnent en ce moment. Les causes habituelles sont une gravité choisie d'après le texte affiché par le logger plutôt que d'après son numéro de gravité (voir [Gravité des journaux](#gravité-des-journaux)), un filtre de service ou d'attribut qui ne correspond pas, et une fenêtre de temps plus courte que l'intervalle entre les journaux du service.
+Le décompte valait 0 : les filtres ne correspondent donc à aucun des journaux que le service envoie. Ouvrez la page **Critères** du moniteur (sous **Configuration**) et cliquez sur **Modifier les critères de surveillance** : **Journaux correspondants** montre ce que les filtres sélectionnent en ce moment, et le graphique de **Quand alerter** les compte dans chaque fenêtre. Les causes habituelles sont une gravité choisie d'après le texte affiché par le logger plutôt que d'après son numéro de gravité (voir [Gravité des journaux](#gravité-des-journaux)), un filtre de service ou d'attribut qui ne correspond pas, et une fenêtre de temps plus courte que l'intervalle entre les journaux du service.
 :::
 
 :::details Un pic s'est produit, mais rien n'a alerté

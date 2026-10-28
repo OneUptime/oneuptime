@@ -21,6 +21,19 @@ import { DenoGuide } from "./Guides/Deno";
 import { BrowserGuide } from "./Guides/Browser";
 import { ReactGuide } from "./Guides/React";
 import { AngularGuide } from "./Guides/Angular";
+import { PythonGuide } from "./Guides/Python";
+import { DjangoGuide } from "./Guides/Django";
+import { FlaskGuide } from "./Guides/Flask";
+import { FastApiGuide } from "./Guides/FastApi";
+import { CeleryGuide } from "./Guides/Celery";
+import { JavaGuide } from "./Guides/Java";
+import { SpringBootGuide } from "./Guides/SpringBoot";
+import { QuarkusGuide } from "./Guides/Quarkus";
+import { MicronautGuide } from "./Guides/Micronaut";
+import { KtorGuide } from "./Guides/Ktor";
+import { DotNetGuide } from "./Guides/DotNet";
+import { AspNetCoreGuide } from "./Guides/AspNetCore";
+import { DotNetWorkerServiceGuide } from "./Guides/DotNetWorkerService";
 
 /*
  * Every OpenTelemetry guide the website publishes, in the catalog's order
@@ -41,6 +54,19 @@ export const OPEN_TELEMETRY_GUIDE_PAGES: ReadonlyArray<OpenTelemetryGuide> = [
   BrowserGuide,
   ReactGuide,
   AngularGuide,
+  PythonGuide,
+  DjangoGuide,
+  FlaskGuide,
+  FastApiGuide,
+  CeleryGuide,
+  JavaGuide,
+  SpringBootGuide,
+  QuarkusGuide,
+  MicronautGuide,
+  KtorGuide,
+  DotNetGuide,
+  AspNetCoreGuide,
+  DotNetWorkerServiceGuide,
 ];
 
 export const INTEGRATIONS_INDEX_TITLE: string = "Integrations";
@@ -114,10 +140,15 @@ export function getGuideSEO(guide: OpenTelemetryGuide): PageSEOData {
   };
 }
 
+/*
+ * The index's search result names every language it has guides for (its
+ * test holds it to the catalog), with a few of the frameworks people search
+ * for most, in at most 160 characters.
+ */
 export const INTEGRATIONS_INDEX_SEO: PageSEOData = {
   title: "OpenTelemetry Integrations for Every Framework | OneUptime",
   description:
-    "Step-by-step OpenTelemetry guides for Node.js, Express, NestJS, Next.js, React and more: send traces, metrics and logs from your framework to OneUptime.",
+    "OpenTelemetry guides for Node.js, Python, Java, Kotlin and .NET: Express, Next.js, Django, FastAPI, Spring Boot, ASP.NET Core and more, each checked end to end.",
   canonicalPath: OPEN_TELEMETRY_GUIDES_INDEX_PATH,
   twitterCard: "summary_large_image",
   pageType: "integration",

@@ -113,8 +113,6 @@ const DEFAULT_CRITERIA_TYPES: Record<string, MonitorType> = {
  */
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   [DNS_MONITOR]: [
-    // The type picker's category.
-    "DNS Monitoring",
     // The criteria filters (CheckOn).
     "DNS Is Online",
     "DNS Response Time (in ms)",
@@ -130,7 +128,6 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "Treat As Zero",
   ],
   [DNSSEC_MONITOR]: [
-    "DNS Monitoring",
     "DNSSEC Chain Is Valid",
     "DNSSEC DNSKEY Record Exists",
     "DNSSEC DS Record Exists At Parent",
@@ -147,7 +144,6 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "Expires In Hours",
   ],
   [DOMAIN_MONITOR]: [
-    "Basic Monitoring",
     // The Lookup Method dropdown's options other than Auto.
     "RDAP",
     "WHOIS",

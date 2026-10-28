@@ -48,6 +48,8 @@ Debajo, los **Criterios del monitor** deciden cuándo el monitor cambia de estad
 
 Haga clic en un criterio para abrirlo y cambiarlo. **Añadir criterios** añade uno, abierto y listo para rellenar. Para cambiar el orden, arrastre un criterio por el asa de su izquierda.
 
+Un monitor de registros, trazas, excepciones o métricas pregunta en cambio de qué debe avisarte, y configura una sola regla con palabras sencillas: qué vigilar, **Cuándo alertar** y **Qué pasa**, con un gráfico de lo que la regla habría detectado. Consulta [Monitor de registros](/docs/monitor/logs-monitor#crear-un-monitor-de-registros).
+
 ### Ir al siguiente paso
 
 Haga clic en **Siguiente**. Nada en este paso se marca como pendiente hasta que hace clic en **Siguiente**.

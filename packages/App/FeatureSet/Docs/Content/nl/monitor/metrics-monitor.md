@@ -33,23 +33,23 @@ Elke minuut voert OneUptime elke metriekquery van de monitor uit over het tijdsb
 :::steps
 ### Een nieuwe monitor beginnen
 
-Ga naar **Monitoren** en klik op **Monitor maken**.
+Ga naar **Monitoren** en klik op **Monitor maken**. Of bouw in de metriekverkenner de grafiek op die u wilt bewaken en klik op **Monitor maken vanuit deze weergave**: de nieuwe monitor begint met de query's ervan.
 
 ### Metrics kiezen
 
 Klik onder **Monitortype** op **Meer monitortypen** en kies **Metrieken** onder **Telemetrie**, of typ `metrics` in het zoekvak. Vul een **Naam** in en klik dan op **Volgende**.
 
-### Het tijdsbereik kiezen
-
-Kies in **Metriekmonitorconfiguratie** een **Tijdsbereik**: hoe ver elke evaluatie terugkijkt. Het begint op **Past 1 Minute**.
-
 ### De metriekquery's toevoegen
 
-Kies onder **Selecteer metrieken** een **Metriek** en hoe u die aggregeert met **Aggregate by**. Open **Filters & grouping** om op attributen te filteren of om te groeperen met **Groeperen op**. Klik op **Metriek toevoegen** voor nog een query, of op **Formule toevoegen** om ze te combineren. De grafiek onder de query's toont een voorbeeld van het tijdsbereik, zodat u de waarden ziet die de criteria gaan controleren.
+Kies in **Te bewaken metriek** een **Metriek** en hoe u die aggregeert met **Aggregate by**. Open **Filters & grouping** om op attributen te filteren of om te groeperen met **Groeperen op**. Klik op **Metriek toevoegen** voor nog een query, of op **Formule toevoegen** om ze te combineren. De grafiek onder de query's toont de afgelopen uren, met de waarde van de regel als rode lijn, zodat u de waarden ziet die de regel gaat controleren.
 
-### De criteria instellen
+### Zeggen wanneer er gewaarschuwd wordt
 
-In **Monitorcriteria** kiest elk criterium de te controleren **Metriek** (een query of een formule), zijn **Aggregatie**, een **Voorwaarde** en een **Drempel**. Zie [Criteria](#criteria) voor de criteria waarmee een nieuwe monitor begint.
+Kies in **Wanneer waarschuwen** bij **Gemeten als** hoe de metriek wordt gemeten, en daarna een **Tijdvenster**, een **Voorwaarde** en een **Waarde**. Heeft de stap meer dan één query of formule, kies dan ook de **Metriek** die de regel leest. De zin eronder zegt de regel in gewone woorden terug.
+
+### Kiezen wat er gebeurt
+
+Kies in **Wat er gebeurt** voor **Een waarschuwing maken**, **Een incident melden** of **Beide**, en geef het een titel en een ernst. Zolang de regel overeenkomt, toont de monitor de status onder **Meer velden**; komt hij niet meer overeen, dan gaat de monitor terug naar zijn standaardstatus en lost de waarschuwing of het incident zichzelf op.
 
 ### De monitor maken
 
@@ -79,44 +79,44 @@ Een formule combineert queryvariabelen met `+`, `-`, `*`, `/`, `%`, `^` en haakj
 
 ### Voortschrijdend tijdvenster
 
-**Tijdsbereik** bepaalt hoe ver elke evaluatie terugkijkt: **Past 1 Minute**, **Afgelopen 5 minuten**, **Past 10 Minutes**, **Afgelopen 15 minuten**, **Afgelopen 30 minuten**, **Afgelopen uur**, **Afgelopen 2 uur**, **Afgelopen 3 uur**, **Past 6 Hours**, **Past 12 Hours**, **Afgelopen dag**, **Afgelopen 2 dagen**, **Past 3 Days**, **Past 7 Days**, **Past 14 Days**, **Past 30 Days**, **Past 60 Days**, **Past 90 Days**, **Past 180 Days** of **Past 365 Days**.
+Het **Tijdvenster** in **Wanneer waarschuwen** bepaalt hoe ver elke evaluatie terugkijkt: **Laatste 1 minuut**, **Laatste 5 minuten**, **Laatste 10 minuten**, **Laatste 15 minuten**, **Laatste 30 minuten**, **Laatste 1 uur**, **Laatste 2 uur**, **Laatste 3 uur**, **Laatste 6 uur**, **Laatste 12 uur**, **Laatste 24 uur**, **Laatste 2 dagen**, **Laatste 3 dagen**, **Laatste 7 dagen**, **Laatste 14 dagen**, **Laatste 30 dagen**, **Laatste 60 dagen**, **Laatste 90 dagen**, **Laatste 180 dagen** of **Laatste 365 dagen**.
 
-Hoe langer het bereik, hoe breder elk tijdsinterval, dus één datapunt staat voor meer tijd:
+Hoe langer het venster, hoe breder elk tijdsinterval, dus één datapunt staat voor meer tijd:
 
-| Tijdsbereik | Eén datapunt per |
+| Tijdvenster | Eén datapunt per |
 | --- | --- |
-| Past 1 Minute tot Past 3 Hours | minuut |
-| Past 6 Hours, Past 12 Hours | 5 minuten |
-| Past 1 Day | 15 minuten |
-| Past 2 Days, Past 3 Days | 30 minuten |
-| Past 7 Days | uur |
-| Past 14 Days, Past 30 Days | dag |
-| Past 60 Days tot Past 180 Days | week |
-| Past 365 Days | maand |
+| Laatste 1 minuut tot Laatste 3 uur | minuut |
+| Laatste 6 uur, Laatste 12 uur | 5 minuten |
+| Laatste 24 uur | 15 minuten |
+| Laatste 2 dagen, Laatste 3 dagen | 30 minuten |
+| Laatste 7 dagen | uur |
+| Laatste 14 dagen, Laatste 30 dagen | dag |
+| Laatste 60 dagen tot Laatste 180 dagen | week |
+| Laatste 365 dagen | maand |
 
 ## Hoe hij wordt geëvalueerd
 
 - **Elke minuut.** Een metrics-monitor wordt niet door sondes gecontroleerd, dus hij heeft geen interval om in te stellen en geen pagina **Sondes en interval**.
 - **Eerst de query's, dan de formules.** Elke query levert één datapunt per tijdsinterval van het tijdsbereik op, volgens zijn **Aggregate by**. Formules worden voor elk interval berekend uit de datapunten van de query's.
-- **Dan de aggregatie van het criterium.** Elk criterium brengt de datapunten van zijn **Metriek** terug tot wat het met de drempel vergelijkt:
+- **Dan de maat van de regel.** De regel brengt de datapunten van zijn metriek terug tot wat hij met zijn waarde vergelijkt, zoals **Gemeten als** zegt:
 
-| Aggregatie | De voorwaarde wordt getoetst aan… |
-| --- | --- |
-| Gemiddelde | het gemiddelde van de datapunten |
-| Som | de som van de datapunten |
-| Maximum Value | het hoogste datapunt |
-| Minimum Value | het laagste datapunt |
-| All Values | elk datapunt: ze moeten allemaal aan de voorwaarde voldoen en het hele tijdsbereik dekken |
-| Any Value | elk datapunt: het is genoeg als er één aan de voorwaarde voldoet |
+| Gemeten als | In de eigen criteria | De voorwaarde wordt getoetst aan… |
+| --- | --- | --- |
+| Het gemiddelde | Gemiddelde | het gemiddelde van de datapunten |
+| De som | Som | de som van de datapunten |
+| De hoogste waarde | Maximum Value | het hoogste datapunt |
+| De laagste waarde | Minimum Value | het laagste datapunt |
+| Elke waarde (het hele venster) | All Values | elk datapunt: ze moeten allemaal aan de voorwaarde voldoen en het hele tijdsbereik dekken |
+| Een willekeurige waarde (op enig moment) | Any Value | elk datapunt: het is genoeg als er één aan de voorwaarde voldoet |
 
 - **Criteria van boven naar beneden.** Bij een monitor zonder Group By beslist het eerste criterium dat overeenkomt, dus zet het ernstigste bovenaan. Een gegroepeerde monitor controleert elk criterium voor elke reeks (zie [De evaluatie van criteria verschilt](#de-evaluatie-van-criteria-verschilt)).
-- **Geen gegevens is niet nul.** Wanneer de query in het tijdsbereik geen datapunten oplevert, doet een criterium wat zijn instelling **Als geen gegevens** zegt, onder **Meer velden**: **Ignore** (de standaard: het criterium komt niet overeen), **Treat As Zero** of **Trigger**.
-- **All Values heeft het hele tijdsbereik nodig.** Een reeks voldoet pas aan een criterium met **All Values** als haar datapunten het tijdsbereik dekken, van het begin tot nu, zonder een gat van meer dan één ontbrekend datapunt. Komen alle gegevens van de monitor te laat binnen, zoals die van CloudWatch, dan neemt het nieuwste datapunt de plaats in van nu. Een host, container of deployment die net gegevens begint te sturen, of die een tijd stil was, wacht tot er gegevens voor een heel tijdsbereik zijn, en het evaluatielogboek laat zien hoe ver het is: `Waiting for 15 minutes of data: 2 of 15 minutes so far`. Een reeks waarvan de waarschuwing of het incident al open is, wordt alleen op haar datapunten beoordeeld, zodat een kort gat in haar gegevens die niet oplost. Stuurt de metriek minder vaak gegevens dan het tijdsbereik lang is, dan telt een los datapunt voor het hele bereik zodra het een paar minuten oud is; om te beoordelen hoe lang een waarde aanhoudt, moet het tijdsbereik minstens twee meldintervallen lang zijn.
-- **De onderbreking van OneUptime zelf is geen stilte.** Zolang het tijdsbereik tijd bevat waarin OneUptime zelf geen gegevens ontving (het startte opnieuw, werd geüpgraded of werkte een achterstand weg), wacht de controle: de status verandert niet, en er wordt geen incident of waarschuwing geopend of opgelost, wat **Als geen gegevens** ook zegt. Zie [Als OneUptime geen gegevens ontvangt](/docs/monitor/when-oneuptime-is-not-receiving).
+- **Geen gegevens is niet nul.** Wanneer de query in het tijdsbereik geen datapunten oplevert, doet de regel wat **Als er geen gegevens zijn** zegt, onder **Meer velden** in **Wanneer waarschuwen**: **Niets** (de standaard: de regel komt niet overeen), **Als nul tellen** of **Waarschuwen, alsof ze overeenkwam**.
+- **Elke waarde heeft het hele tijdsbereik nodig.** Een reeks voldoet pas aan een regel gemeten als **Elke waarde (het hele venster)** als haar datapunten het tijdsbereik dekken, van het begin tot nu, zonder een gat van meer dan één ontbrekend datapunt. Komen alle gegevens van de monitor te laat binnen, zoals die van CloudWatch, dan neemt het nieuwste datapunt de plaats in van nu. Een host, container of deployment die net gegevens begint te sturen, of die een tijd stil was, wacht tot er gegevens voor een heel tijdsbereik zijn, en het evaluatielogboek laat zien hoe ver het is: `Waiting for 15 minutes of data: 2 of 15 minutes so far`. Een reeks waarvan de waarschuwing of het incident al open is, wordt alleen op haar datapunten beoordeeld, zodat een kort gat in haar gegevens het niet oplost. Stuurt de metriek minder vaak gegevens dan het tijdsbereik lang is, dan telt één los datapunt voor het hele bereik zodra het een paar minuten oud is; wilt u beoordelen hoe lang een waarde aanhoudt, maak het tijdsbereik dan minstens twee meldintervallen lang.
+- **De onderbreking van OneUptime zelf is geen stilte.** Zolang het tijdsbereik tijd bevat waarin OneUptime zelf geen gegevens ontving (het startte opnieuw, werd geüpgraded of werkte een achterstand weg), wacht de controle: de status verandert niet, en er wordt geen incident of waarschuwing geopend of opgelost, wat **Als er geen gegevens zijn** ook zegt. Zie [Als OneUptime geen gegevens ontvangt](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Criteria
 
-Deze monitoren evalueren altijd de **Metric Value**: de geaggregeerde waarde van de ingestelde metriekquery of formule. Het criteriaformulier heeft geen keuzelijst voor het filtertype; het toont **Metriek**, **Aggregatie**, **Voorwaarde** en **Drempel**. Heeft de metriek een eenheid, kies dan de eenheid van de drempel ernaast.
+Deze monitoren evalueren altijd de **Metric Value**: de geaggregeerde waarde van de ingestelde metriekquery of formule. **Wanneer waarschuwen** stelt één criterium in uit **Gemeten als**, **Tijdvenster**, **Voorwaarde** en **Waarde**. Heeft de metriek een eenheid, kies dan de eenheid van de waarde ernaast. De **Voorwaarde** is **Boven**, **Op of boven**, **Onder**, **Op of onder**, **Precies**, **Ongewoon hoog**, **Ongewoon laag** of **Ongewoon hoog of laag**. Voor meerdere criteria, zoals ernstbanden, klikt u op **Bewerken als eigen criteria** onder **Meer velden** in **Wat er gebeurt**: elk criterium daar heeft een **Metriek**, een **Aggregatie**, een **Voorwaarde** en een **Drempel**.
 
 | Voorwaarde | Komt overeen wanneer de waarde… |
 | --- | --- |
@@ -129,9 +129,11 @@ Deze monitoren evalueren altijd de **Metric Value**: de geaggregeerde waarde van
 | **Anomalously Low** | onder dat bereik ligt |
 | **Anomalous** | buiten dat bereik ligt, in welke richting ook |
 
-De anomaliecondities hebben geen drempel. Het formulier toont in plaats daarvan **Gevoeligheid** (Low, Medium, de standaard, of High) en **Baseline-venster** (14 dagen, de standaard, 28, 60 of 90), en vergelijkt elk datapunt met de baseline voor hetzelfde uur van de week die uit dat venster is opgebouwd. Zolang dat uur van de week te weinig geschiedenis heeft, is het criterium nog aan het leren en levert het geen waarschuwingen op.
+De anomaliecondities hebben geen drempel. **Wanneer waarschuwen** toont in plaats daarvan **Gevoeligheid** (Laag, Gemiddeld, de standaard, of Hoog), en de eigen criteria ook een **Baseline-venster** (14 dagen, de standaard, 28, 60 of 90), en elk datapunt wordt vergeleken met de baseline voor hetzelfde uur van de week die uit dat venster is opgebouwd. Zolang dat uur van de week te weinig geschiedenis heeft, is het criterium nog aan het leren en levert het geen waarschuwingen op.
 
-Een nieuwe metrics-monitor begint met twee criteria op zijn eerste query, allebei met de aggregatie **Any Value**:
+Een metrics-monitor die in Monitor maken is aangemaakt, begint met één regel op zijn eerste query: **Het gemiddelde** over **Laatste 5 minuten**, **Boven** de **Waarde** die u invult, en **Een waarschuwing maken**.
+
+Een nieuwe metrics-monitor die via de API of Terraform zonder criteria is aangemaakt, begint met twee criteria op zijn eerste query, allebei met de aggregatie **Any Value**:
 
 | Criterium | Voorwaarde | Effect |
 | --- | --- | --- |
@@ -143,24 +145,24 @@ Een nieuwe metrics-monitor begint met twee criteria op zijn eerste query, allebe
 
 ## Uitgewerkt voorbeeld: een groeiende wachtrij
 
-U wilt een incident wanneer de checkout-wachtrij diep blijft. Query `a` is de gauge `checkout.queue.depth`, met **Aggregate by** Max, en het **Tijdsbereik** is **Afgelopen 5 minuten**. Eén evaluatie ziet deze vijf datapunten van één minuut:
+U wilt een incident wanneer de checkout-wachtrij diep blijft. Query `a` is de gauge `checkout.queue.depth`, met **Aggregate by** Max, en het **Tijdvenster** is **Laatste 5 minuten**. Eén evaluatie ziet deze vijf datapunten van één minuut:
 
 | Minuut | 10:01 | 10:02 | 10:03 | 10:04 | 10:05 |
 | --- | --- | --- | --- | --- | --- |
 | `a` | 640 | 980 | 1.500 | 1.620 | 1.100 |
 
-Een criterium met **Metriek** `a`, **Voorwaarde** **Groter dan** en **Drempel** `1000` geeft voor elke **Aggregatie** een ander antwoord:
+Een regel **Boven** `1000` geeft voor elke keuze bij **Gemeten als** een ander antwoord:
 
-| Aggregatie | Vergeleken met 1.000 | Overeenkomst? |
+| Gemeten als | Vergeleken met 1.000 | Overeenkomst? |
 | --- | --- | --- |
-| Gemiddelde | 1.168 | Ja |
-| Som | 5.840 | Ja |
-| Maximum Value | 1.620 | Ja |
-| Minimum Value | 640 | Nee |
-| All Values | 640, 980, 1.500, 1.620, 1.100 | Nee: twee punten liggen niet boven 1.000 |
-| Any Value | 640, 980, 1.500, 1.620, 1.100 | Ja: 1.500 wel |
+| Het gemiddelde | 1.168 | Ja |
+| De som | 5.840 | Ja |
+| De hoogste waarde | 1.620 | Ja |
+| De laagste waarde | 640 | Nee |
+| Elke waarde (het hele venster) | 640, 980, 1.500, 1.620, 1.100 | Nee: twee punten liggen niet boven 1.000 |
+| Een willekeurige waarde (op enig moment) | 640, 980, 1.500, 1.620, 1.100 | Ja: 1.500 wel |
 
-**Gemiddelde** waarschuwt bij een aanhoudende achterstand en negeert één diepe minuut; **All Values** wacht tot elke minuut in het bereik diep is; **Any Value** waarschuwt bij de eerste diepe minuut.
+**Het gemiddelde** waarschuwt bij een aanhoudende achterstand en negeert één diepe minuut; **Elke waarde (het hele venster)** wacht tot elke minuut in het bereik diep is; **Een willekeurige waarde (op enig moment)** waarschuwt bij de eerste diepe minuut.
 
 ## Waarschuwingen per reeks (Group By)
 
@@ -198,11 +200,11 @@ De waarden van het groeperingsattribuut zijn ook beschikbaar als [templatevariab
 ## Problemen oplossen
 
 :::details De grafiek toont een overschrijding, maar de monitor waarschuwde niet
-Controleer eerst de **Aggregatie** van het criterium: **All Values** komt alleen overeen wanneer elk datapunt in het tijdsbereik de drempel overschrijdt, en **Gemiddelde** vlakt een korte piek af. **All Values** wacht ook tot een reeks gegevens voor het hele tijdsbereik heeft, dus een host of deployment die net gegevens begint te sturen, wordt nog niet beoordeeld. Controleer daarna of de **Metriek** van het criterium de query of formule is die u bedoelt (`a` is niet de formule `c`), en of de drempel in de eenheid staat die u denkt.
+Controleer eerst **Gemeten als**: **Elke waarde (het hele venster)** komt alleen overeen wanneer elk datapunt in het tijdsbereik de waarde overschrijdt, en **Het gemiddelde** vlakt een korte piek af. **Elke waarde (het hele venster)** wacht ook tot een reeks gegevens voor het hele tijdsbereik heeft, dus een host of deployment die net gegevens begint te sturen, wordt nog niet beoordeeld. Controleer daarna of de regel de query of formule leest die u bedoelt (`a` is niet de formule `c`), en of de **Waarde** in de eenheid staat die u denkt.
 :::
 
 :::details De metriek kwam niet meer binnen en er gebeurde niets
-Een tijdsbereik zonder datapunten is geen waarde van 0. Met **Als geen gegevens** op de standaardwaarde, **Ignore**, komt het criterium niet overeen. Zet het op **Trigger** onder **Meer velden** van het criterium om gewaarschuwd te worden bij stilte.
+Een tijdsbereik zonder datapunten is geen waarde van 0. Met **Als er geen gegevens zijn** op de standaardwaarde, **Niets**, komt de regel niet overeen. Zet het op **Waarschuwen, alsof ze overeenkwam** onder **Meer velden** in **Wanneer waarschuwen** om gewaarschuwd te worden bij stilte.
 :::
 
 :::details Ik krijg één waarschuwing voor de hele vloot

@@ -46,26 +46,26 @@ El gasto es la señal más segura de un agente desbocado. Un presupuesto suma el
 :::steps
 1. Abre **Productos → IA / LLM → Presupuestos** y haz clic en **Crear Presupuesto de costo de LLM**. Fija un **Presupuesto diario (USD)** y elige el servicio del agente en **Servicio (opcional)** para que el presupuesto vigile solo a ese agente.
 2. En el menú de la fila del presupuesto nuevo, elige **Mostrar ID** y copia el ID.
-3. Crea un [monitor de métricas](/docs/monitor/metrics-monitor) sobre `oneuptime.llm.budget.percent.used`, filtrado por el atributo `oneuptime.llm.budget.id` con el ID que copiaste, y pon su **Intervalo de tiempo** en **Últimos 30 minutos**.
-4. Añade un criterio **Mayor o igual que** `100` que cree una alerta, y dale un **Título de la alerta** que nombre al agente, como `LLM budget exceeded: support-bot`. El flujo de trabajo y tu endpoint leen ese título.
+3. Crea un [monitor de métricas](/docs/monitor/metrics-monitor) sobre `oneuptime.llm.budget.percent.used`, filtrado por el atributo `oneuptime.llm.budget.id` con el ID que copiaste, y pon su **Ventana de tiempo** en **Últimos 30 minutos**.
+4. En **Cuándo alertar**, pon la **Condición** en **Igual o por encima de** y el **Valor** en `100`, deja **Crear una alerta**, y dale un **Título de la alerta** que nombre al agente, como `LLM budget exceeded: support-bot`. El flujo de trabajo y tu endpoint leen ese título.
 :::
 
 Filtra por el ID, no por el nombre: renombrar un presupuesto renombra su serie, y un monitor filtrado por el nombre antiguo dejaría de coincidir sin avisar. Deja el intervalo en 30 minutos: un presupuesto publica un punto cada 15 minutos, así que un intervalo más corto no encuentra nada entre dos puntos y la alerta se abre y se resuelve una y otra vez.
 
-Un segundo criterio en `80` con una gravedad menor avisa antes a una persona, mediante la política de guardia de la alerta, antes de que el disyuntor salte en `100`.
+Un segundo criterio en `80` con una gravedad menor, añadido con **Editar como criterios propios**, avisa antes a una persona, mediante la política de guardia de la alerta, antes de que el disyuntor salte en `100`.
 
 ### Una alerta de bucle
 
 Un agente atascado deja un rastro que se reconoce: el mismo span de herramienta, una y otra vez. Una ejecución sana no llama a una herramienta decenas de veces en pocos minutos, así que un recuento detecta el bucle mucho antes que el presupuesto.
 
 :::steps
-1. Abre **Monitores**, haz clic en **Crear monitor** y elige **Trazas** en **Más tipos de monitor**.
-2. En **Más campos**, pon **Filtrar por servicio de telemetría** en el servicio del agente y **Filtrar por atributos** en `gen_ai.tool.name` igual a la herramienta en la que esperas el bucle, como `search_web`. Si tu instrumentación nombra el span de cada herramienta, pon ese nombre en **Nombre del span** en su lugar.
-3. Pon **Trazas del monitor durante (tiempo)** en **Últimos 5 minutos**.
-4. Añade un criterio **Span Count** **Mayor que** un número que ninguna ejecución sana alcance en cinco minutos, como `50`, que cree una alerta con un título como `Agent loop: support-bot`.
+1. Abre **Monitores**, haz clic en **Crear monitor** y elige **Trazas** en **Más tipos de monitor**. En **¿Sobre qué debe avisarte este monitor?**, elige **Otra cosa** y vacía **Estado del span**.
+2. En **Más campos**, pon **Filtrar por servicio de telemetría** en el servicio del agente y **Filtrar por atributos** en `gen_ai.tool.name` igual a la herramienta en la que esperas el bucle, como `search_web`. Si tu instrumentación nombra el span de cada herramienta, pon ese nombre en **El nombre del span contiene** en su lugar.
+3. Pon la **Ventana de tiempo** en **Últimos 5 minutos**.
+4. En **Cuándo alertar**, pon **Más de** un número que ninguna ejecución sana alcance en cinco minutos, como `50`, y dale a la alerta un título como `Agent loop: support-bot`.
 :::
 
-Un segundo monitor de trazas con **Filtrar por estado de span** en **Error** y un recuento menor detecta las tormentas de reintentos: una herramienta que no deja de fallar y un agente que no deja de reintentarla.
+Un segundo monitor de trazas con **Estado del span** en **Error** y un recuento menor detecta las tormentas de reintentos: una herramienta que no deja de fallar y un agente que no deja de reintentarla.
 
 ## Crea el endpoint de parada
 

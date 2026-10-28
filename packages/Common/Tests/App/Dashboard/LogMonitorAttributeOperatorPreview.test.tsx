@@ -438,6 +438,9 @@ describe("Log monitor criteria — attribute filter operators reach the preview"
      */
     const recorder: Recorder = openFormWithAttributeRow();
 
+    // The logs the filters match, folded until opened.
+    fireEvent.click(screen.getByRole("button", { name: "Matching logs" }));
+
     selectOption(operatorSelect(), "is any of");
 
     expect(screen.getByText("Filter by Attributes")).toBeInTheDocument();

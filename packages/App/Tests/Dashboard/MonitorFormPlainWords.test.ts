@@ -145,14 +145,28 @@ describe("cards whose description said nothing", () => {
   test("the cards keep their titles, which the docs name", () => {
     for (const title of [
       "Monitor Target",
-      "Log Monitor Configuration",
-      "Metric Monitor Configuration",
-      "Trace Monitor Configuration",
-      "Exception Monitor Configuration",
+      /*
+       * A telemetry monitor's card says what it holds: what the rule
+       * counts or reads (the docs' Logs, Traces, Exceptions and Metrics
+       * monitor pages name them).
+       */
+      "Logs to watch",
+      "Metric to watch",
+      "Spans to watch",
+      "Exceptions to watch",
       "DNS Monitor Configuration",
       "Domain Monitor Configuration",
     ]) {
       expect(STEP_FORM).toContain(`title="${title}"`);
+    }
+
+    for (const retired of [
+      "Log Monitor Configuration",
+      "Metric Monitor Configuration",
+      "Trace Monitor Configuration",
+      "Exception Monitor Configuration",
+    ]) {
+      expect(STEP_FORM).not.toContain(`title="${retired}"`);
     }
   });
 });

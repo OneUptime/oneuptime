@@ -293,6 +293,8 @@ export interface TelemetryViewerProps<T> {
 
 const DEFAULT_PAGE_SIZE_OPTIONS: Array<number> = [25, 50, 100, 200];
 
+export const TELEMETRY_VIEWER_TOOLBAR_TEST_ID: string =
+  "telemetry-viewer-toolbar";
 export const TELEMETRY_VIEWER_SEARCH_TEST_ID: string =
   "telemetry-viewer-search";
 export const TELEMETRY_VIEWER_FILTERS_TOGGLE_TEST_ID: string =
@@ -408,16 +410,26 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
 
   const viewer: ReactElement = (
     <div className="flex min-h-0 w-full flex-1 flex-col gap-3">
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-2">
+      {/*
+       * Toolbar. Its own width is what a button in it may ask about
+       * (@container): the Traces page's Create monitor says its words only
+       * where the row has room for them.
+       */}
+      <div
+        className="flex flex-wrap items-center gap-2 [container-type:inline-size]"
+        data-testid={TELEMETRY_VIEWER_TOOLBAR_TEST_ID}
+      >
         {/*
          * Below md the search holds a 12rem basis, so the wrapping toolbar
          * gives it its own row (shared with the Filters toggle at most) and
-         * does not squeeze it between the buttons. From md up it is flex-1
-         * again and takes whatever the buttons leave.
+         * does not squeeze it between the buttons. From md up it takes
+         * whatever the buttons leave, but never less than 16rem: past that
+         * the buttons wrap onto a row of their own. With flex-1 alone, a
+         * toolbar with one more button (the Traces page's Create monitor)
+         * squeezed the search to a few pixels in a 1024px window.
          */}
         <div
-          className="min-w-0 flex-[1_1_12rem] md:flex-1"
+          className="min-w-0 flex-[1_1_12rem] md:flex-[1_1_16rem]"
           data-testid={TELEMETRY_VIEWER_SEARCH_TEST_ID}
         >
           <TelemetrySearchBar

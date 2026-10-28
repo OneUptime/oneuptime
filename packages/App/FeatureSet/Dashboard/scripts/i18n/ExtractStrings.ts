@@ -134,6 +134,11 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    * groups - each helper writes them with the reader's Translator.
    */
   { directory: "packages/Common/Utils/Monitor", kind: "ui" },
+  /*
+   * The monitor types' cards in Create Monitor's picker: each type's title
+   * and what it alerts on, and the categories More lists them under.
+   */
+  { directory: "packages/Common/Types/Monitor/MonitorType.ts", kind: "ui" },
   // A cron schedule in words: the monitor's interval, a workflow's schedule.
   { directory: "packages/Common/Utils/CronScheduleText.ts", kind: "ui" },
   // The common schedules a workflow's Schedule trigger offers.

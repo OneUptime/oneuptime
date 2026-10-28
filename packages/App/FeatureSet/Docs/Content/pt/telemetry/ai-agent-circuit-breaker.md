@@ -46,26 +46,26 @@ O gasto é o sinal mais seguro de um agente descontrolado. Um orçamento soma o 
 :::steps
 1. Abra **Produtos → AI / LLM → Orçamentos** e clique em **Criar: LLM Cost Budget**. Defina um **Orçamento diário (USD)** e escolha o serviço do agente em **Serviço (opcional)**, para que o orçamento vigie só esse agente.
 2. No menu da linha do novo orçamento, escolha **Mostrar ID** e copie o ID.
-3. Crie um [monitor de métricas](/docs/monitor/metrics-monitor) sobre `oneuptime.llm.budget.percent.used`, filtrado pelo atributo `oneuptime.llm.budget.id` com o ID que você copiou, e defina o seu **Intervalo de tempo** como **Últimos 30 minutos**.
-4. Adicione um critério **Maior ou igual a** `100` que crie um alerta, e dê a ele um **Título do alerta** que nomeie o agente, como `LLM budget exceeded: support-bot`. O fluxo de trabalho e o seu endpoint leem esse título.
+3. Crie um [monitor de métricas](/docs/monitor/metrics-monitor) sobre `oneuptime.llm.budget.percent.used`, filtrado pelo atributo `oneuptime.llm.budget.id` com o ID que você copiou, e defina a sua **Janela de tempo** como **Últimos 30 minutos**.
+4. Em **Quando alertar**, defina a **Condição** como **Igual ou acima de** e o **Valor** como `100`, mantenha **Criar um alerta**, e dê a ele um **Título do alerta** que nomeie o agente, como `LLM budget exceeded: support-bot`. O fluxo de trabalho e o seu endpoint leem esse título.
 :::
 
 Filtre pelo ID, não pelo nome: renomear um orçamento renomeia a sua série, e um monitor filtrado pelo nome antigo deixaria de corresponder sem avisar. Mantenha o intervalo em 30 minutos: um orçamento publica um ponto a cada 15 minutos, então um intervalo menor não encontra nada entre dois pontos e o alerta abre e se resolve sem parar.
 
-Um segundo critério em `80` com uma severidade menor avisa antes uma pessoa, pela política de plantão do alerta, antes que o disjuntor desarme em `100`.
+Um segundo critério em `80` com uma severidade menor, adicionado com **Editar como critérios personalizados**, avisa antes uma pessoa, pela política de plantão do alerta, antes que o disjuntor desarme em `100`.
 
 ### Um alerta de loop
 
 Um agente travado deixa um rastro reconhecível: o mesmo span de ferramenta, de novo e de novo. Uma execução saudável não chama uma ferramenta dezenas de vezes em poucos minutos, então uma contagem pega o loop muito antes do orçamento.
 
 :::steps
-1. Abra **Monitores**, clique em **Criar monitor** e escolha **Traços** em **Mais tipos de monitor**.
-2. Em **Mais campos**, defina **Filtrar por serviço de telemetria** como o serviço do agente e **Filtrar por atributos** como `gen_ai.tool.name` igual à ferramenta em que você espera o loop, como `search_web`. Se a sua instrumentação dá nome ao span de cada ferramenta, coloque esse nome em **Nome do span**.
-3. Defina **Monitorar Traços por (tempo)** como **Últimos 5 minutos**.
-4. Adicione um critério **Span Count** **Maior que** um número que nenhuma execução saudável atinge em cinco minutos, como `50`, que crie um alerta com um título como `Agent loop: support-bot`.
+1. Abra **Monitores**, clique em **Criar monitor** e escolha **Traços** em **Mais tipos de monitor**. Em **Sobre o que este monitor deve avisar você?**, escolha **Outra coisa** e limpe **Status do span**.
+2. Em **Mais campos**, defina **Filtrar por serviço de telemetria** como o serviço do agente e **Filtrar por atributos** como `gen_ai.tool.name` igual à ferramenta em que você espera o loop, como `search_web`. Se a sua instrumentação dá nome ao span de cada ferramenta, coloque esse nome em **O nome do span contém**.
+3. Defina a **Janela de tempo** como **Últimos 5 minutos**.
+4. Em **Quando alertar**, defina **Mais de** um número que nenhuma execução saudável atinge em cinco minutos, como `50`, e dê ao alerta um título como `Agent loop: support-bot`.
 :::
 
-Um segundo monitor de traces com **Filtrar por status do span** em **Erro** e uma contagem menor pega as tempestades de novas tentativas: uma ferramenta que não para de falhar e um agente que não para de tentar de novo.
+Um segundo monitor de traces com **Status do span** em **Erro** e uma contagem menor pega as tempestades de novas tentativas: uma ferramenta que não para de falhar e um agente que não para de tentar de novo.
 
 ## Crie o endpoint de parada
 

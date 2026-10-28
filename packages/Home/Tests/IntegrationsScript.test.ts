@@ -309,6 +309,90 @@ describe("the index's search", () => {
     ]);
   });
 
+  test("matches the start of a word, never its middle", async () => {
+    const page: Page = await openIndex();
+
+    // "rum" starts no word of the Python or .NET guides: "instrument" only holds it.
+    search(page, "rum");
+    expect(shownCards(page.document)).not.toContain(
+      "/integrations/opentelemetry/python",
+    );
+    expect(shownCards(page.document)).not.toContain(
+      "/integrations/opentelemetry/dotnet",
+    );
+
+    // Each part of a dotted or hyphenated name is a word of its own.
+    search(page, "fast");
+    expect(shownCards(page.document)).toEqual([
+      "/integrations/opentelemetry/fastify",
+      "/integrations/opentelemetry/fastapi",
+    ]);
+    search(page, "instrument");
+    expect(shownCards(page.document)).toContain(
+      "/integrations/opentelemetry/python",
+    );
+    search(page, ".NET");
+    expect(shownCards(page.document)).toEqual([
+      "/integrations/opentelemetry/dotnet",
+      "/integrations/opentelemetry/aspnet-core",
+      "/integrations/opentelemetry/dotnet-worker-service",
+    ]);
+    search(page, "spring boot");
+    expect(shownCards(page.document)).toEqual([
+      "/integrations/opentelemetry/spring-boot",
+    ]);
+  });
+
+  test("finds every guide of a language by the other names people type for it", async () => {
+    const page: Page = await openIndex();
+    const dotNet: Array<string> = [
+      "/integrations/opentelemetry/dotnet",
+      "/integrations/opentelemetry/aspnet-core",
+      "/integrations/opentelemetry/dotnet-worker-service",
+    ];
+    // Every card of a group, as the index lists it.
+    const groupCards: (language: string) => Array<string> = (
+      language: string,
+    ): Array<string> => {
+      return Array.from(
+        page.document.querySelectorAll(
+          `#${language}[data-integrations-group] [data-integration-card] a`,
+        ),
+      ).map((link: Element): string => {
+        return link.getAttribute("href") || "";
+      });
+    };
+
+    // The guides' own words named none of these for the worker before.
+    for (const name of ["dotnet", "c#", "csharp", "C#"]) {
+      search(page, name);
+      expect([name, shownCards(page.document)]).toEqual([name, dotNet]);
+    }
+
+    search(page, "jvm");
+    expect(shownCards(page.document)).toEqual([
+      ...groupCards("java"),
+      ...groupCards("kotlin"),
+    ]);
+    expect(shownCards(page.document)).toContain(
+      "/integrations/opentelemetry/ktor",
+    );
+
+    for (const name of ["js", "ts"]) {
+      search(page, name);
+      expect([name, shownCards(page.document)]).toEqual([
+        name,
+        groupCards("javascript"),
+      ]);
+    }
+
+    // A language's other name narrows with the guide's own words.
+    search(page, "dotnet worker");
+    expect(shownCards(page.document)).toEqual([
+      "/integrations/opentelemetry/dotnet-worker-service",
+    ]);
+  });
+
   test("says when nothing matches, and points at the docs", async () => {
     const page: Page = await openIndex();
 
