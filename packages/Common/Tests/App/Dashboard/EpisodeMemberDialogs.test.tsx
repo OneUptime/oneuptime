@@ -661,8 +661,15 @@ describe("an episode's Add Alerts", () => {
       "All the alerts you can see are in this episode already.",
     );
     expect(screen.queryByTestId(`${LIST}-search`)).not.toBeInTheDocument();
-    // Focus stays in the dialog: on the list that says why.
-    expect(screen.getByTestId(`${LIST}-list`)).toHaveFocus();
+    /*
+     * Focus stays in the dialog: on the list that says why. An effect moves
+     * it there once the empty list is drawn, and on a busy runner React runs
+     * that effect after findByTestId has already seen the list, so the test
+     * waits for it.
+     */
+    await waitFor(() => {
+      expect(screen.getByTestId(`${LIST}-list`)).toHaveFocus();
+    });
   });
 
   test("a search that finds nothing keeps the search box, to search again", async () => {
@@ -949,7 +956,10 @@ describe("the lists' Add to Existing Episode", () => {
     const createInstead: HTMLElement = within(empty).getByTestId(
       "add-to-existing-episode-create-instead",
     );
-    expect(createInstead).toHaveFocus();
+    // An effect moves focus there once the empty list is drawn (see above).
+    await waitFor(() => {
+      expect(createInstead).toHaveFocus();
+    });
 
     fireEvent.click(createInstead);
     expect(onCreateInstead).toHaveBeenCalledTimes(1);
