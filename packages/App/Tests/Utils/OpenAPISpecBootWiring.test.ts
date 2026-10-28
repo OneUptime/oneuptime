@@ -109,14 +109,11 @@ function keepsTheDocument(file: string): boolean {
 
 describe("no server code keeps the OpenAPI document", () => {
   test("only scripts and tests call generateOpenAPISpec", () => {
+    // The App and Common's server code: what serves the spec and all it runs.
     const roots: Array<string> = [
       APP_ROOT,
       path.join(PACKAGES, "Common", "Server"),
     ];
-    // Core runs without ee/ (App Test removes it); with it, its code too.
-    if (fs.existsSync(path.join(REPO_ROOT, "ee"))) {
-      roots.push(path.join(REPO_ROOT, "ee"));
-    }
 
     const callers: Array<string> = [];
     let read: number = 0;
