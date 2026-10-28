@@ -52,6 +52,7 @@ flowchart TB
 | **Tilkoblinger** | Connections | Loggene dine, sikkerhetsproduktene OneUptime henter fra, og SIEM-ene det sender til |
 | **Oppsettveiledning** | Connections | Kodesnutter for å sende hendelser, fylt ut med ingestion-nøkkelen din |
 | **Saksprioriteter** | Innstillinger | Hvor mye en sak haster: prosjektets egne prioriteter, den som haster mest først |
+| **Responsmål** | Innstillinger | Hvor raskt en sak med hver prioritet må tas og begrenses |
 | **Saksstatuser** | Innstillinger | Trinnene en sak går gjennom, og hva en sak i hvert trinn teller som |
 | **Risikovurdering** | Innstillinger | Om risikoen for en entitet åpner en sak, ved hvilken risiko, og hvor mye hver entitet betyr |
 

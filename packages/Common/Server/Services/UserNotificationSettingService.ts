@@ -84,6 +84,8 @@ export const SECURITY_CASE_NOTIFICATION_EVENT_TYPES: ReadonlyArray<NotificationS
     NotificationSettingEventType.SEND_SECURITY_CASE_OPENED_NOTIFICATION,
     NotificationSettingEventType.SEND_SECURITY_CASE_ASSIGNED_NOTIFICATION,
     NotificationSettingEventType.SEND_SECURITY_PLAYBOOK_APPROVAL_NOTIFICATION,
+    NotificationSettingEventType.SEND_SECURITY_CASE_TARGET_NOTIFICATION,
+    NotificationSettingEventType.SEND_SECURITY_CASE_TASK_ASSIGNED_NOTIFICATION,
   ];
 
 // The setting's priority choice, by either spelling: the ID column first.
@@ -1077,14 +1079,16 @@ export class Service extends DatabaseService<UserNotificationSetting> {
   }
 
   /*
-   * The three security case events (SecurityCaseNotifications), by email and
-   * push: a Critical case, a case handed to you and a containment step
-   * waiting for your approval each need somebody now, and a phone is where
-   * they are seen first. Every member gets them, as with every other event;
-   * only the people who can read a case are ever told about it. Idempotent -
-   * the AddSecurityCaseNotificationSettingsForUsers data migration calls
-   * this for every existing member, and the notifications seed it too before
-   * sending.
+   * The security case events (SecurityCaseNotifications), by email and push:
+   * a Critical case, a case handed to you, a containment step waiting for
+   * your approval, a case about to miss a response target and a task handed
+   * to you each need somebody now, and a phone is where they are seen
+   * first. Every member gets them, as with every other event; only the
+   * people who can read a case are ever told about it. Idempotent - the
+   * AddSecurityCaseNotificationSettingsForUsers and
+   * AddSecurityCaseTargetAndTaskNotificationSettingsForUsers data migrations
+   * call this for every existing member, and the notifications seed it too
+   * before sending.
    */
   @CaptureSpan()
   public async addSecurityCaseNotificationSettings(
@@ -1109,6 +1113,20 @@ export class Service extends DatabaseService<UserNotificationSetting> {
       userId,
       projectId,
       NotificationSettingEventType.SEND_SECURITY_PLAYBOOK_APPROVAL_NOTIFICATION,
+      { alertByPush: true },
+    );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_SECURITY_CASE_TARGET_NOTIFICATION,
+      { alertByPush: true },
+    );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_SECURITY_CASE_TASK_ASSIGNED_NOTIFICATION,
       { alertByPush: true },
     );
   }

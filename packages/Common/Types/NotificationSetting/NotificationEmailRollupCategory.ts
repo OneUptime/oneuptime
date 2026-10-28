@@ -201,6 +201,11 @@ export const ROLLUP_CATEGORY_BY_EVENT_TYPE: Record<
     RollupCategory.SecurityCases,
   [NotificationSettingEventType.SEND_SECURITY_PLAYBOOK_APPROVAL_NOTIFICATION]:
     RollupCategory.SecurityCases,
+  // Never held back (NEVER_ROLLED_UP_EVENT_TYPES): filed here all the same.
+  [NotificationSettingEventType.SEND_SECURITY_CASE_TARGET_NOTIFICATION]:
+    RollupCategory.SecurityCases,
+  [NotificationSettingEventType.SEND_SECURITY_CASE_TASK_ASSIGNED_NOTIFICATION]:
+    RollupCategory.SecurityCases,
 
   /*
    * On Call Notifications, including the two shift reminders. Five of these

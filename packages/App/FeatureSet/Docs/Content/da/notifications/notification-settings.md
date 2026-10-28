@@ -53,7 +53,7 @@ Når du bliver medlem af et projekt, er disse begivenheder slået til, via e-mai
 | **Statussider** | Ingen | **Statusside oprettet**, **Statusside-meddelelse offentliggjort**, **Tilføjet som statussideejer** |
 | **Planlagt vedligeholdelse** | **Maintenance reminder** | **Vedligeholdelseshændelse oprettet**, **Vedligeholdelsestilstand ændret**, **Vedligeholdelsesnote oprettet**, **Tilføjet som vedligeholdelsesejer** |
 | **Vagt** | **Du går på vagt**, **Du er den næste på vagt**, **Du går af vagt**, **Tilføjet til vagtordningspolitik**, **Fjernet fra vagtordningspolitik**, **Ubesvaret opkald**, og også via push: **Før min vagt starter**, **Min kommende vagt bliver tildelt en anden** | Ingen |
-| **Sikkerhed** | Også via push: **Ny sikkerhedssag** (sager med prioritet High og Kritisk), **Sikkerhedssag tildelt mig**, **Playbook-trin venter på min godkendelse** | Ingen |
+| **Sikkerhed** | Også via push: **Ny sikkerhedssag** (sager med prioritet High og Kritisk), **Sikkerhedssag tildelt mig**, **Playbook-trin venter på min godkendelse**, **Responsmål for sikkerhedssag**, **Opgave i sikkerhedssag tildelt mig** | Ingen |
 
 > [!IMPORTANT]
 > **Overvågningsstatus ændret** starter slået fra. Vil du vide, når en overvågning, du ejer, går ned eller kommer op igen, så slå den til på fanen **Overvågning**.

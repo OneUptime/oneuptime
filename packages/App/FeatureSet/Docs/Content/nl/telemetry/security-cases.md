@@ -6,7 +6,8 @@ Security Events maakt zaken van wat je detectieregels, je threat intelligence en
 - [Waar zaken vandaan komen](#waar-zaken-vandaan-komen): Detectieregels, threat intelligence, gekoppelde producten, entiteitrisico en mensen.
 - [Een zaak afhandelen](#een-zaak-afhandelen): Toewijzen, de entiteiten onderzoeken en sluiten met een oordeel.
 - [Zaakprioriteiten en zaakstatussen](#zaakprioriteiten-en-zaakstatussen): Hernoem ze, geef ze een andere kleur en volgorde, en voeg je eigen toe.
-- [Meldingen](#meldingen): Wie hoort over een nieuwe zaak, een toewijzing en een stap die op goedkeuring wacht.
+- [Reactiedoelen](#reactiedoelen): Hoe snel een zaak van elke prioriteit moet worden opgepakt en ingedamd.
+- [Meldingen](#meldingen): Wie hoort over een nieuwe zaak, een toewijzing, een reactiedoel, een taak en een stap die op goedkeuring wacht.
 - [Playbooks](#playbooks): Stappen die op een zaak draaien, met goedkeuring waar het ertoe doet.
 - [Het overzicht](#het-overzicht): Wat nu aandacht nodig heeft, en hoe snel zaken worden afgehandeld.
 :::
@@ -36,9 +37,9 @@ Zaken en playbooks volgen de drie Security-rollen. Project Owner en Project Admi
 
 | Rol | Wat hij kan doen |
 | --- | --- |
-| Security Admin | Alles, inclusief zaken verwijderen en playbooks instellen |
-| Security Member | Zaken openen, toewijzen, wijzigen en sluiten, notities schrijven, playbooks uitvoeren en hun stappen goedkeuren of afwijzen |
-| Security Viewer | Zaken, detecties, notities, playbooks en hun uitvoeringen lezen |
+| Security Admin | Alles, inclusief zaken verwijderen, bewijs verwijderen en playbooks instellen |
+| Security Member | Zaken openen, toewijzen, wijzigen en sluiten, notities schrijven, taken uitvoeren, bewijs toevoegen, playbooks uitvoeren en hun stappen goedkeuren of afwijzen |
+| Security Viewer | Zaken, detecties, notities, taken, bewijs, playbooks en hun uitvoeringen lezen |
 
 Elk van deze rechten kan ook afzonderlijk worden toegekend, van het aanmaken van een zaak tot het goedkeuren van de stappen van een playbook; zie [Machtigingsreferentie](/docs/permissions/reference).
 
@@ -88,13 +89,13 @@ Een zaak heeft een eigen zijmenu, zoals een incident, en elk deel van de zaak is
 | Sectie van het zijmenu | Pagina's |
 | --- | --- |
 | **Overzicht** | **Overzicht**, **Tijdlijn** |
-| **Onderzoek** | **Verloop**, **Detecties**, **Entiteiten**, **Verbonden signalen**, **Playbooks** |
+| **Onderzoek** | **Verloop**, **Detecties**, **Entiteiten**, **Verbonden signalen**, **Bewijs**, **Taken**, **Playbooks** |
 | **Notities** | **Privénotities** |
 | **Geavanceerd** | **Auditlogboeken**, **Zaak verwijderen**, ingeklapt tot je op **Geavanceerd** klikt |
 
-Elke pagina houdt bovenaan de kop van de zaak: nummer, prioriteit, status en titel, **Aan mij toewijzen**, **Playbook uitvoeren**, **Incident melden** en **Zaak sluiten**, en in het menu ⋯ ernaast **Prioriteit instellen**, **Aan iemand anders toewijzen**, **Status wijzigen**, **Zaak bewerken** en **Zaak verwijderen**. Zo handel je de zaak af vanaf elk van haar pagina's, en een link naar de zaak opent nog steeds haar **Overzicht**.
+Elke pagina houdt bovenaan de kop van de zaak: nummer, prioriteit, status en titel, **Aan mij toewijzen**, **Playbook uitvoeren**, **Incident melden** en **Zaak sluiten**, en in het menu ⋯ ernaast **Prioriteit instellen**, **Aan iemand anders toewijzen**, **Status wijzigen**, **Zaak bewerken** en **Zaak verwijderen**. Zo handel je de zaak af vanaf elk van haar pagina's, en een link naar de zaak opent nog steeds haar **Overzicht**. Heeft de prioriteit van de zaak reactiedoelen, dan toont de kop ook wanneer het volgende verloopt ([Reactiedoelen](#reactiedoelen)).
 
-- **Overzicht**: de beschrijving, labels en statusstappen van de zaak, wie haar heeft en wat haar opende, en haar cijfers: hoeveel detecties ze heeft, hoe lang ze al open is, en hoe lang het duurde tot ze bevestigd en ingedamd was.
+- **Overzicht**: de beschrijving, labels en statusstappen van de zaak, wie haar heeft en wat haar opende, en haar cijfers: hoeveel detecties ze heeft, hoe lang ze al open is, en hoe lang het duurde tot ze bevestigd en ingedamd was. Onder **Tijd tot bevestiging** en **Tijd tot indamming** staat hoe de zaak ervoor staat ten opzichte van haar reactiedoelen.
 - **OneUptime AI**, op het **Overzicht**: wat OneUptime AI van de zaak maakt, de prioriteit en het playbook die het voorstelt, en het bewijs erachter. Zie [OneUptime AI in beveiliging](/docs/telemetry/security-ai).
 - **Impact**, op het **Overzicht**: wat de zaak in gevaar brengt: of OneUptime heeft gezien dat haar records vanaf het internet werden bereikt, wie de eigenaar is en wat er het laatst aan veranderde. Klap het open om te zien wat elk record aanroept en waardoor het wordt aangeroepen, welke monitors en statuspagina's het in de gaten houden en met welke machines de adressen van de zaak praatten.
 - **MITRE ATT&CK**, op het **Overzicht**: de tactieken en technieken waarop haar detecties zijn gemapt, elk gelinkt aan de bijbehorende pagina op attack.mitre.org.
@@ -103,6 +104,8 @@ Elke pagina houdt bovenaan de kop van de zaak: nummer, prioriteit, status en tit
 - **Detecties**: wat afging en zo de zaak opende of eraan werd toegevoegd, hoe vaak, en de laatste overeenkomende gebeurtenis.
 - **Entiteiten**: de gebruikers, hosts en adressen waar de zaak over gaat, met hun activiteit in al je beveiligingsgebeurtenissen van de afgelopen 7 dagen. Elk ervan opent in **Correleren**.
 - **Verbonden signalen**: de hosts, clusters, services en leden die de zaak noemt, zoals OneUptime ze kent, en wat er op elk ervan gebeurde rond de detecties: hun logboeken, traces en metrieken, wat erop openstaat en wat er is veranderd. Zie [Verbonden signalen](/docs/telemetry/security-connected-signals).
+- **Bewijs**: de bestanden en koppelingen die bij de zaak worden bewaard, elk met wie het toevoegde en wanneer. Met **Bestand toevoegen** upload je een bestand van maximaal 10 MB en wordt de SHA-256 vastgelegd van wat is geüpload, zodat wie het later downloadt kan controleren dat het is wat werd bewaard; met **Koppeling toevoegen** verwijs je naar bewijs dat ergens anders staat. Alleen een Security Admin kan bewijs verwijderen, en de **Tijdlijn** van de zaak toont wat er is toegevoegd en verwijderd.
+- **Taken**: wat er in de zaak moet gebeuren, wie het doet en of het af is. Voeg een taak toe als één regel, geef hem aan iemand en vink hem af als hij af is. Wie de taak krijgt, krijgt bericht, tenzij die hem zelf nam, en het menu toont naast **Taken** hoeveel taken open staan.
 - **Playbooks**: wat elk playbook met de zaak deed, stap voor stap, en de stappen die op goedkeuring wachten. Zolang er uitvoeringen wachten, toont het menu hoeveel naast **Playbooks**.
 - **Privénotities**: wat het team over de zaak schreef.
 - **Auditlogboeken**: elke wijziging aan de zaak, en wie die maakte. Zie [Auditlogboeken](/docs/configuration/audit-logs).
@@ -129,6 +132,8 @@ Je hoeft een zaak niet te openen om ermee aan de slag te gaan. In de lijsten van
 
 De oordelen worden geteld in het overzicht. Een regel waarvan de zaken steeds als False Positive worden gesloten, is een regel om bij te stellen.
 
+Zolang er nog taken van de zaak open staan, zegt het venster **Zaak sluiten** hoeveel.
+
 Een zaak die uit Google SecOps-waarschuwingen is geopend, sluit die ook in Google SecOps, met het oordeel en de sluitnotitie, wanneer bij de verbinding **Waarschuwingen sluiten wanneer hun zaak sluit** aan staat: zie [Google SecOps](/docs/integrations/google-secops#waarschuwingen-sluiten-wanneer-hun-zaak-sluit).
 
 ### Een incident melden
@@ -154,21 +159,49 @@ Sommige zijn ingebouwd, omdat OneUptime leest wat ze betekenen. Je kunt ze herno
 
 Wil je een eigen status of prioriteit niet meer gebruiken, gebruik dan **Archiveren** in de rij ervan. Niemand kan hem dan nog kiezen, en de API, Terraform en MCP weigeren hem, maar de zaken die hem hebben, houden hem, en je kunt er nog steeds op filteren. Gearchiveerde waarden staan in de ingeklapte sectie **Gearchiveerde zaakstatussen** of **Gearchiveerde zaakprioriteiten** onder de tabel, waar **Uit archief halen** er een terugzet. **Verwijderen** wordt geweigerd zolang zaken de waarde hebben of een playbook vanaf de prioriteit draait.
 
+## Reactiedoelen
+
+Een reactiedoel bepaalt hoe snel een zaak moet worden afgehandeld: **Bevestigen binnen**, hoe lang een nieuwe zaak mag wachten tot iemand haar oppakt, en **Indammen binnen**, hoe lang het mag duren tot ze is ingedamd of gesloten. Elke zaakprioriteit heeft haar eigen doelen, onder **Producten → Security Events → Instellingen → Reactiedoelen**: met **Bewerken** op de rij van een prioriteit stel je haar twee doelen in, in minuten, uren of dagen, tot een jaar, en een leeg doel betekent geen doel. De prioriteiten van een nieuw project beginnen met deze:
+
+| Prioriteit | Bevestigen binnen | Indammen binnen |
+| --- | --- | --- |
+| Kritiek | 15 minuten | 4 uur |
+| High | 1 uur | 1 dag |
+| Medium | 12 uur | 3 dagen |
+| Low | 1 dag | 7 dagen |
+| Informatief | Geen doel | Geen doel |
+
+Een project van vóór de reactiedoelen heeft er geen tot iemand ze instelt.
+
+- De termijnen van een zaak worden bij het openen vastgesteld, uit de doelen van haar prioriteit. Een doel dat later verandert, geldt voor de zaken die daarna worden geopend.
+- Een zaak is bevestigd zodra iemand haar oppakt: een persoon wordt toegewezen, of ze gaat naar een status die als bevestigd telt. Ze is ingedamd zodra ze een status bereikt die als ingedamd telt, of wordt gesloten.
+- Als de prioriteit van een zaak verandert, blijft een doel dat ze heeft gehaald of gemist zoals het was. Een hogere prioriteit brengt een termijn dichterbij: het nieuwe doel telt vanaf de wijziging, tenzij de oude termijn eerder komt. Een lagere prioriteit schuift hem op, nooit naar voren: het nieuwe doel telt vanaf het openen van de zaak. Een prioriteit zonder doel houdt de termijn van een verhoogde zaak en wist die van een verlaagde.
+- Een gesloten zaak die opnieuw wordt geopend voordat ze ooit was ingedamd, krijgt een nieuwe termijn voor indamming, geteld vanaf het heropenen.
+- In het laatste vijfde van een doel staat de zaak op het punt het te missen: wie eraan werkt krijgt bericht, en nog eens als het doel is gemist. Zie [Meldingen](#meldingen).
+
+Waar de doelen te zien zijn:
+
+- De kop van de zaak noemt het volgende doel en hoeveel tijd er nog is, of hoe lang het al is verlopen: grijs zolang er tijd is, amber in het laatste vijfde, rood zodra het is gemist.
+- In het **Overzicht** van de zaak, onder **Tijd tot bevestiging** en **Tijd tot indamming**: hoe de zaak ervoor staat ten opzichte van elk doel, of hoe ver ze erover ging.
+- In de lijsten van de wachtrij: de regel onder de prioriteit van elke zaak, en een kolom **Termijn** die je kunt inschakelen en waarop je kunt sorteren. De lijsten tonen ze alleen als een prioriteit van het project een doel heeft.
+
 ## Meldingen
 
-OneUptime brengt mensen op de hoogte van drie dingen op een zaak. Niemand hoeft iets in te stellen: een project dat alleen op **Aanbevolen inschakelen** heeft geklikt, hoort per e-mail en push over zijn zaken met prioriteit High en Kritiek.
+OneUptime brengt mensen op de hoogte van vijf dingen op een zaak. Niemand hoeft iets in te stellen: een project dat alleen op **Aanbevolen inschakelen** heeft geklikt, hoort per e-mail en push over zijn zaken met prioriteit High en Kritiek.
 
 | Melding | Wie het hoort | Standaard |
 | --- | --- | --- |
 | Nieuwe beveiligingszaak | Iedereen die de zaken van het project kan zien, wanneer een zaak wordt geopend of in prioriteit stijgt, op de prioriteit die hij koos of hoger | E-mail en push, voor zaken met High en Kritiek |
 | Beveiligingszaak aan mij toegewezen | De persoon aan wie de zaak is toegewezen, en de leden van het team waaraan ze is toegewezen | E-mail en push |
 | Playbookstap wacht op mijn goedkeuring | De mensen van de zaak die de stap mogen goedkeuren: de persoon aan wie ze is toegewezen en de leden van haar team. Mag geen van hen goedkeuren, dan iedereen in het project die het mag | E-mail en push |
+| Reactiedoel van een beveiligingszaak | De mensen die aan de zaak werken: de persoon aan wie ze is toegewezen en de leden van haar team. Werkt niemand eraan, dan de mensen die over nieuwe zaken met haar prioriteit horen | E-mail en push |
+| Aan mij toegewezen taak van een beveiligingszaak | De persoon die een taak van de zaak krijgt, tenzij die hem zelf nam | E-mail en push |
 
 - Alleen mensen die de zaak kunnen zien, horen erover: Project Owners, Project Admins en de rollen Security Admin, Security Member en Security Viewer. Een rol die tot bepaalde labels is beperkt, hoort alleen over de zaken met die labels.
 - Niemand hoort over wat hij zelf deed: wie een zaak met de hand opent, haar toewijst of een uitvoering start, krijgt daar geen melding van.
 - Ieder hoort één keer over een zaak. Een zaak die op Medium wordt geopend en later naar Kritiek stijgt, bereikt bij die stijging de mensen die High of Kritiek kozen, en niet opnieuw de mensen die Medium kozen, want die hoorden erover toen ze werd geopend.
 - De testaanval van **Testaanval sturen** opent een zaak die niemand een melding geeft.
-- Een zaak met Kritiek en een stap die op goedkeuring wacht, worden meteen verstuurd en nooit vastgehouden in een [e-mailbundeling](/docs/emails/notification-rollup).
+- Een zaak met Kritiek en een stap die op goedkeuring wacht, worden meteen verstuurd en nooit vastgehouden in een [e-mailbundeling](/docs/emails/notification-rollup). Dat geldt ook voor een reactiedoel dat bijna wordt gemist, of is gemist.
 - De **Tijdlijn** van de zaak laat zien wie het hoorde, en wanneer.
 
 ### Kiezen wat je hoort
@@ -199,7 +232,7 @@ Om in een kanaal te plaatsen, voeg je een regel toe onder **Producten → Securi
 | Bron van beveiligingszaak | Detection Rule, Threat Intel, Connected Product, Entiteitrisico of Manual |
 | Labels van beveiligingszaak | De labels van de zaak |
 
-De drie meldingen worden elk geplaatst in de kanalen van elke regel waaraan de zaak op dat moment voldoet. Een regel waarin **Prioriteit van beveiligingszaak** een van **Kritiek** en **Hoog** bevat, plaatst zaken met High en Kritiek zodra ze worden geopend, en een zaak met Medium wanneer die naar High stijgt. Een beveiligingszaak krijgt nooit een eigen kanaal.
+Elke melding behalve die van een taak wordt geplaatst in de kanalen van elke regel waaraan de zaak op dat moment voldoet. Een regel waarin **Prioriteit van beveiligingszaak** een van **Kritiek** en **Hoog** bevat, plaatst zaken met High en Kritiek zodra ze worden geopend, en een zaak met Medium wanneer die naar High stijgt. Een beveiligingszaak krijgt nooit een eigen kanaal.
 
 ## Playbooks
 
@@ -350,8 +383,8 @@ Daarboven toont een strook hoe beveiliging is ingericht: de bronnen, detecties, 
 ## Automatiseren
 
 - **Workflows**: een zaak of een notitie kan een workflow starten wanneer ze wordt aangemaakt, bijgewerkt of verwijderd. Een stap **Een workflow uitvoeren** start een workflow waarvan de trigger een webhook is.
-- **API**: zaken, notities, detecties, playbooks, uitvoeringen, beschermde entiteiten en zaakprioriteiten en zaakstatussen hebben dezelfde REST API als de rest van OneUptime, onder `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` en `/security-case-status`. Zie [API-referentie](/docs/api-reference/api-reference).
-- AI-agents: de MCP-server heeft tools voor zaken, notities, detecties, playbooks en zaakprioriteiten en zaakstatussen. Zie [MCP-server](/docs/ai/mcp-server).
+- **API**: zaken, notities, taken, bewijs, detecties, playbooks, uitvoeringen, beschermde entiteiten en zaakprioriteiten en zaakstatussen hebben dezelfde REST API als de rest van OneUptime, onder `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` en `/security-case-status`. Zie [API-referentie](/docs/api-reference/api-reference).
+- AI-agents: de MCP-server heeft tools voor zaken, notities, taken, bewijs, detecties, playbooks en zaakprioriteiten en zaakstatussen. Zie [MCP-server](/docs/ai/mcp-server).
 - Terraform: de resources `oneuptime_security_case_priority` en `oneuptime_security_case_status` leggen de prioriteiten en statussen van een project vast als code.
 
 ## Probleemoplossing
@@ -362,6 +395,10 @@ Controleer **Zaak openen bij overeenkomst** in de stap **Bij overeenkomst** van 
 
 :::details Niemand hoorde over een zaak
 Kijk op de **Tijdlijn** van de zaak, die laat zien wie een melding kreeg. Een melding **Nieuwe beveiligingszaak** gaat naar de mensen van wie de zaak de gekozen prioriteit haalt, dus een zaak met Medium geeft geen melding aan wie de standaard, **Hoog en hoger**, heeft gehouden. Controleer of de mensen die het zouden moeten horen beveiligingszaken kunnen zien (een Security-rol, of Project Owner of Project Admin), en of de melding voor hen aanstaat onder **Gebruikersinstellingen → Meldingsinstellingen → Beveiliging**.
+:::
+
+:::details Een zaak toont geen termijn
+Haar prioriteit heeft geen reactiedoel, of kreeg er pas een nadat de zaak was geopend: de termijnen van een zaak worden bij het openen vastgesteld. De zaak van de testaanval heeft er geen. Zie [Reactiedoelen](#reactiedoelen).
 :::
 
 :::details Een playbook draaide niet

@@ -183,6 +183,7 @@ import AlertCustomFieldService, {
   Service as AlertCustomFieldServiceType,
 } from "Common/Server/Services/AlertCustomFieldService";
 import AlertInternalNoteAPI from "Common/Server/API/AlertInternalNoteAPI";
+import SecurityCaseEvidenceAPI from "Common/Server/API/SecurityCaseEvidenceAPI";
 import CustomFieldDefinitionAPI from "Common/Server/API/CustomFieldDefinitionAPI";
 import TelemetryExceptionAPI from "Common/Server/API/TelemetryExceptionAPI";
 import KubernetesResourceAPI from "Common/Server/API/KubernetesResourceAPI";
@@ -631,6 +632,9 @@ import SecurityCaseFeedService, {
 import SecurityCaseNoteService, {
   Service as SecurityCaseNoteServiceType,
 } from "Common/Server/Services/SecurityCaseNoteService";
+import SecurityCaseTaskService, {
+  Service as SecurityCaseTaskServiceType,
+} from "Common/Server/Services/SecurityCaseTaskService";
 import SecurityDetectionService, {
   Service as SecurityDetectionServiceType,
 } from "Common/Server/Services/SecurityDetectionService";
@@ -1668,6 +1672,7 @@ import BackupSetting from "Common/Models/DatabaseModels/BackupSetting";
 import BackupRun from "Common/Models/DatabaseModels/BackupRun";
 import SecurityCaseFeed from "Common/Models/DatabaseModels/SecurityCaseFeed";
 import SecurityCaseNote from "Common/Models/DatabaseModels/SecurityCaseNote";
+import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
 import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityProtectedEntity from "Common/Models/DatabaseModels/SecurityProtectedEntity";
@@ -4111,6 +4116,20 @@ const BaseAPIFeatureSet: FeatureSet = {
         SecurityCaseNote,
         SecurityCaseNoteService,
       ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityCaseTask, SecurityCaseTaskServiceType>(
+        SecurityCaseTask,
+        SecurityCaseTaskService,
+      ).getRouter(),
+    );
+
+    // A case's evidence, and the route its files download through.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new SecurityCaseEvidenceAPI().getRouter(),
     );
 
     app.use(

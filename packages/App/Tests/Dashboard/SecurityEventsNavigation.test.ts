@@ -195,8 +195,20 @@ describe("the Security Events menu", () => {
       // What OneUptime AI does on its own; the triage is on each case.
       ["AI", ["Settings"]],
       ["Connections", ["Connections", "Setup Guide"]],
-      // The project's own scales, as Incidents and Alerts keep theirs.
-      ["Settings", ["Case Priorities", "Case Statuses", "Risk Scoring"]],
+      /*
+       * The project's own scales, as Incidents and Alerts keep theirs; how
+       * fast a case at each priority must be worked right under the
+       * priorities themselves.
+       */
+      [
+        "Settings",
+        [
+          "Case Priorities",
+          "Response Targets",
+          "Case Statuses",
+          "Risk Scoring",
+        ],
+      ],
     ]);
   });
 
@@ -231,6 +243,7 @@ describe("the Security Events menu", () => {
       ["Connections", "SECURITY_EVENTS_CONNECTIONS"],
       ["Setup Guide", "SECURITY_EVENTS_DOCUMENTATION"],
       ["Case Priorities", "SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES"],
+      ["Response Targets", "SECURITY_EVENTS_SETTINGS_RESPONSE_TARGETS"],
       ["Case Statuses", "SECURITY_EVENTS_SETTINGS_CASE_STATUSES"],
       ["Risk Scoring", "SECURITY_EVENTS_SETTINGS_RISK_SCORING"],
     ]);
@@ -515,6 +528,9 @@ describe("the pages' addresses", () => {
       SecurityEventsRoutePath["SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES"],
     ).toBe("settings/case-priorities");
     expect(
+      SecurityEventsRoutePath["SECURITY_EVENTS_SETTINGS_RESPONSE_TARGETS"],
+    ).toBe("settings/response-targets");
+    expect(
       SecurityEventsRoutePath["SECURITY_EVENTS_SETTINGS_CASE_STATUSES"],
     ).toBe("settings/case-statuses");
     expect(routeFor("SECURITY_EVENTS_SETTINGS_CASE_STATUSES")).toBe(
@@ -652,6 +668,7 @@ describe("where each page says it is", () => {
       ["Security Events", "Connections"],
       ["Security Events", "Connections", "Setup Guide"],
       ["Security Events", "Settings", "Case Priorities"],
+      ["Security Events", "Settings", "Response Targets"],
       ["Security Events", "Settings", "Case Statuses"],
       ["Security Events", "Settings", "Risk Scoring"],
     ]);

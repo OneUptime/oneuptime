@@ -69,6 +69,10 @@
  *            rule that would not have fired, one that would have fired more
  *            than a person can look at, or YAML the run refuses.
  *            (RuleExceptionsFixture.js lays the rules' exceptions out.)
+ *   ?targets= on: the priorities carry a new project's response targets,
+ *            and every case the due times they gave it. Left out, a project
+ *            from before response targets. (CaseWorkFixture.js lays the
+ *            targets, and the spray case's tasks and evidence, out.)
  *
  * Every read is recorded on window.__securityOperationsFixture: getItem,
  * list, count and API requests, the writes, and `unhandled` - anything the
@@ -98,6 +102,8 @@ import SecurityCaseStoryPage from "../../../App/FeatureSet/Dashboard/src/Pages/S
 import SecurityCaseDetectionsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Detections";
 import SecurityCaseEntitiesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Entities";
 import SecurityCaseConnectedSignalsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/ConnectedSignals";
+import SecurityCaseEvidencePage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Evidence";
+import SecurityCaseTasksPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Tasks";
 import SecurityCasePlaybookRunsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/PlaybookRuns";
 import SecurityCaseNotesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Notes";
 import SecurityCaseAuditLogsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/AuditLogs";
@@ -114,6 +120,7 @@ import SecurityProtectedEntitiesPage from "../../../App/FeatureSet/Dashboard/src
 import SecurityEventsAISettingsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/AISettings";
 import SecurityCasePrioritiesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Settings/CasePriorities";
 import SecurityCaseStatusesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Settings/CaseStatuses";
+import SecurityResponseTargetsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Settings/ResponseTargets";
 import SecurityEntityRiskPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/EntityRisk";
 import SecurityEntityRiskViewPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/EntityRiskView";
 import SecurityRiskScoringPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Settings/RiskScoring";
@@ -131,6 +138,9 @@ import {
   createConnectionsFixture,
 } from "./ConnectionsFixture";
 import { createCaseContextFixture } from "./CaseContextFixture";
+import { TARGET_SCENARIOS, createCaseWorkFixture } from "./CaseWorkFixture";
+import SecurityCaseEvidence from "Common/Models/DatabaseModels/SecurityCaseEvidence";
+import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
 import {
   RETROHUNT_SCENARIOS,
   createRuleExceptionsFixture,
@@ -331,6 +341,10 @@ const setupScenario = SETUP_SCENARIOS.includes(params.get("setup"))
   ? params.get("setup")
   : "";
 // ?retrohunt=: RuleExceptionsFixture.js's answers to Run on Past Events.
+// ?targets=: CaseWorkFixture.js's response targets.
+const targetScenario = TARGET_SCENARIOS.includes(params.get("targets"))
+  ? params.get("targets")
+  : null;
 const retrohuntScenario = RETROHUNT_SCENARIOS.includes(params.get("retrohunt"))
   ? params.get("retrohunt")
   : "";
@@ -503,6 +517,8 @@ const ID = {
   intel: (n) => uuid("28000000", n),
   protectedEntity: (n) => uuid("2b000000", n),
   exception: (n) => uuid("2c000000", n),
+  task: (n) => uuid("2d000000", n),
+  evidence: (n) => uuid("2e000000", n),
 };
 
 let rowCounter = 9000;
@@ -2834,6 +2850,9 @@ function withRelations(modelName, record) {
   if (modelName === tableName(DetectionRuleException)) {
     return ruleExceptions.withRelations(record);
   }
+  if (caseWork.isCaseWorkTable(modelName)) {
+    return caseWork.withRelations(modelName, record);
+  }
   return record;
 }
 
@@ -2925,6 +2944,7 @@ ModelAPI.updateById = async (options) => {
   }
   if (record) {
     Object.assign(record, options.data);
+    caseWork.onUpdate(modelName, record, serialize(options.data));
   }
   return new HTTPResponse(200, {}, {});
 };
@@ -2967,6 +2987,7 @@ ModelAPI.createOrUpdate = async (options) => {
       record.detectionRuleId || record.detectionRule?._id?.toString();
     record.createdByUserId = people.maya._id;
   }
+  caseWork.onCreate(modelName, record);
   tables.get(modelName)?.records.push(record);
   return new HTTPResponse(
     200,
@@ -3008,7 +3029,10 @@ ModelAPI.create = async (options) => {
 ModelAPI.deleteItem = async (options) => {
   const modelName = tableName(options.modelType);
   fixture.deletes.push({ modelName, id: options.id?.toString() });
-  if (isEntityRiskTable(options.modelType)) {
+  if (
+    isEntityRiskTable(options.modelType) ||
+    caseWork.isCaseWorkTable(modelName)
+  ) {
     const records = table(options.modelType);
     const index = records.findIndex((item) => {
       return String(item._id) === options.id?.toString();
@@ -3474,6 +3498,31 @@ const connections = createConnectionsFixture({
 });
 
 /*
+ * ---------------------------------------------------------------------------
+ * A case's response targets, and the spray case's tasks and evidence
+ * (CaseWorkFixture.js lays them out). After every case is in: the targets
+ * give each one its due times.
+ * ---------------------------------------------------------------------------
+ */
+table(SecurityCaseTask);
+table(SecurityCaseEvidence);
+const caseWork = createCaseWorkFixture({
+  insert,
+  table,
+  ID,
+  ago,
+  now: NOW,
+  people,
+  isEmpty,
+  hasHistory,
+  scenario: targetScenario,
+});
+caseWork.seed();
+caseWork.seedTargets();
+fixture.ids.tasks = [ID.task(1), ID.task(2), ID.task(3)];
+fixture.ids.evidence = [ID.evidence(1), ID.evidence(2)];
+
+/*
  * A case's Story and Impact: what the rest of OneUptime says happened
  * around it and what it puts at risk, from the same rows and records
  * (CaseContextFixture.js lays out what it adds to them).
@@ -3696,6 +3745,10 @@ const PAGES = [
     SecurityCasePrioritiesPage,
   ],
   [PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES, SecurityCaseStatusesPage],
+  [
+    PageMap.SECURITY_EVENTS_SETTINGS_RESPONSE_TARGETS,
+    SecurityResponseTargetsPage,
+  ],
   [PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING, SecurityRiskScoringPage],
 ];
 const STUB_PAGES = [
@@ -3724,6 +3777,8 @@ const CASE_PAGES = [
     PageMap.SECURITY_CASE_VIEW_CONNECTED_SIGNALS,
     SecurityCaseConnectedSignalsPage,
   ],
+  [PageMap.SECURITY_CASE_VIEW_EVIDENCE, SecurityCaseEvidencePage],
+  [PageMap.SECURITY_CASE_VIEW_TASKS, SecurityCaseTasksPage],
   [PageMap.SECURITY_CASE_VIEW_PLAYBOOK_RUNS, SecurityCasePlaybookRunsPage],
   [PageMap.SECURITY_CASE_VIEW_NOTES, SecurityCaseNotesPage],
   [PageMap.SECURITY_CASE_VIEW_AUDIT_LOGS, SecurityCaseAuditLogsPage],
