@@ -68,6 +68,30 @@ async function fold(page, size) {
   await page.waitForTimeout(250);
 }
 
+/*
+ * The iPhone Duo is laid out as iOS lays it out today: nothing reports where
+ * its hinge is (the posture module is Android's), so the divider stays on the
+ * window's centre line, with no handle. In the browser that is a window
+ * without viewport segments - from the start, or from now on.
+ */
+async function asIPhone(page) {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "viewport", {
+      value: undefined,
+      configurable: true,
+    });
+  });
+}
+
+async function nowAnIPhone(page) {
+  await page.evaluate(() => {
+    Object.defineProperty(window, "viewport", {
+      value: undefined,
+      configurable: true,
+    });
+  });
+}
+
 async function expectLabelsFit(page) {
   for (const name of ["Home", "Monitors", "Inbox", "On-Call", "Settings"]) {
     const label = page
@@ -149,6 +173,8 @@ test("unfolded, the inbox sits beside the incident, split on the fold, with the 
   expect(
     Math.abs(pane.x + pane.width - WINDOWS.inner.width / 2),
   ).toBeLessThanOrEqual(1);
+  // Lying flat, an Android foldable says so, and the divider can be moved.
+  await expect(page.getByTestId("pane-divider")).toBeVisible();
   await capture(page, "inner-inbox", testInfo);
 
   await listPane.getByText(INCIDENT_TITLE, { exact: true }).click();
@@ -288,6 +314,7 @@ test("the project sheet stays open, mid-search, through an unfold", async ({
 test("the iPhone Duo held open: the on-call overview beside the team's roster", async ({
   page,
 }, testInfo) => {
+  await asIPhone(page);
   await openApp(page, WINDOWS.duoOpen);
   await page.getByRole("tab", { name: "On-Call", exact: true }).click();
   const detailPane = page.getByTestId("detail-pane");
@@ -308,6 +335,8 @@ test("the iPhone Duo held open: the on-call overview beside the team's roster", 
    */
   await expect(roster).toBeVisible();
   await expect(page.getByTestId("detail-pane-empty")).toHaveCount(0);
+  // Nothing says where the hinge is: the divider stays on it, with no handle.
+  await expect(page.getByTestId("pane-divider")).toHaveCount(0);
   await expect(page.getByTestId("quick-action-roster")).toHaveAttribute(
     "aria-selected",
     "true",
@@ -438,8 +467,10 @@ test.describe("in dark mode", () => {
     expect(canvas).not.toBe("rgb(243, 244, 247)");
     await capture(page, "inner-incident-dark", testInfo);
 
+    await nowAnIPhone(page);
     await fold(page, WINDOWS.duoOpen);
     await page.getByRole("tab", { name: "On-Call", exact: true }).click();
+    await expect(page.getByTestId("pane-divider")).toHaveCount(0);
     await expect(
       page
         .getByTestId("detail-pane")
