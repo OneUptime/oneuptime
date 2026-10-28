@@ -3,57 +3,112 @@ import {
   GuideSnippet,
   GuideStep,
   GuideTab,
+  GuideTabs,
   OpenTelemetryGuide,
 } from "./GuideTypes";
 
-function stepSnippets(steps: Array<GuideStep>): Array<GuideSnippet> {
-  return steps.flatMap((step: GuideStep): Array<GuideSnippet> => {
-    return [
-      ...(step.snippets || []),
-      ...(step.tabs
-        ? step.tabs.tabs.flatMap((tab: GuideTab): Array<GuideSnippet> => {
-            return tab.snippets;
-          })
-        : []),
-    ];
+/*
+ * How many characters of a code line a guide's page shows before the line
+ * scrolls, on a laptop and wider: the article is 48rem wide and its code
+ * 13px of a monospace font about 0.6em a character. A block in a section
+ * shows 94; one inside a numbered step or an answer, which sit further in,
+ * shows 87.
+ */
+export const SECTION_CODE_COLUMNS: number = 94;
+export const INDENTED_CODE_COLUMNS: number = 87;
+
+// A snippet, and how wide its page shows it.
+export interface PlacedSnippet {
+  snippet: GuideSnippet;
+  // The characters of a line the block shows before the line scrolls.
+  columns: number;
+}
+
+function placed(
+  snippets: Array<GuideSnippet>,
+  columns: number,
+): Array<PlacedSnippet> {
+  return snippets.map((snippet: GuideSnippet): PlacedSnippet => {
+    return { snippet: snippet, columns: columns };
+  });
+}
+
+function tabSnippets(tabs: GuideTabs | undefined): Array<GuideSnippet> {
+  return tabs
+    ? tabs.tabs.flatMap((tab: GuideTab): Array<GuideSnippet> => {
+        return tab.snippets;
+      })
+    : [];
+}
+
+function stepSnippets(steps: Array<GuideStep>): Array<PlacedSnippet> {
+  return steps.flatMap((step: GuideStep): Array<PlacedSnippet> => {
+    return placed(
+      [...(step.snippets || []), ...tabSnippets(step.tabs)],
+      INDENTED_CODE_COLUMNS,
+    );
   });
 }
 
 function questionSnippets(
   questions: Array<GuideQuestion>,
-): Array<GuideSnippet> {
-  return questions.flatMap((question: GuideQuestion): Array<GuideSnippet> => {
-    return question.snippets || [];
+): Array<PlacedSnippet> {
+  return questions.flatMap((question: GuideQuestion): Array<PlacedSnippet> => {
+    return placed(question.snippets || [], INDENTED_CODE_COLUMNS);
   });
 }
 
-// Every snippet a guide's page shows, in the page's order.
-export function guideSnippets(guide: OpenTelemetryGuide): Array<GuideSnippet> {
+// Every snippet a guide's page shows, in the page's order, with its width.
+export function placedGuideSnippets(
+  guide: OpenTelemetryGuide,
+): Array<PlacedSnippet> {
   return [
-    ...guide.install.snippets,
-    ...(guide.install.tabs
-      ? guide.install.tabs.tabs.flatMap(
-          (tab: GuideTab): Array<GuideSnippet> => {
-            return tab.snippets;
-          },
-        )
-      : []),
-    ...guide.configure.tabs.tabs.flatMap(
-      (tab: GuideTab): Array<GuideSnippet> => {
-        return tab.snippets;
-      },
-    ),
+    ...placed(guide.install.snippets, SECTION_CODE_COLUMNS),
+    ...placed(tabSnippets(guide.install.tabs), SECTION_CODE_COLUMNS),
+    ...placed(tabSnippets(guide.configure.tabs), SECTION_CODE_COLUMNS),
     ...stepSnippets(guide.setup.steps),
-    ...guide.autoInstrumentation.snippets,
-    ...guide.manualSpans.snippets,
-    ...guide.logs.snippets,
-    ...guide.metrics.snippets,
-    ...guide.sampling.snippets,
-    ...guide.deploy.snippets,
+    ...placed(guide.autoInstrumentation.snippets, SECTION_CODE_COLUMNS),
+    ...placed(guide.manualSpans.snippets, SECTION_CODE_COLUMNS),
+    ...placed(guide.logs.snippets, SECTION_CODE_COLUMNS),
+    ...placed(guide.metrics.snippets, SECTION_CODE_COLUMNS),
+    ...placed(guide.sampling.snippets, SECTION_CODE_COLUMNS),
+    ...placed(guide.deploy.snippets, SECTION_CODE_COLUMNS),
     ...stepSnippets(guide.verify.steps),
     ...questionSnippets(guide.troubleshooting),
     ...questionSnippets(guide.faq),
   ];
+}
+
+// Every snippet a guide's page shows, in the page's order.
+export function guideSnippets(guide: OpenTelemetryGuide): Array<GuideSnippet> {
+  return placedGuideSnippets(guide).map(
+    (placedSnippet: PlacedSnippet): GuideSnippet => {
+      return placedSnippet.snippet;
+    },
+  );
+}
+
+/*
+ * The lines of a snippet that run past the width its page shows, so a
+ * reader on a laptop has to scroll the block sideways to read them. A line
+ * one word makes too long is left alone: a web address or a package's
+ * coordinates that would not fit on a line of their own either.
+ */
+export function linesPastColumns(code: string, columns: number): Array<string> {
+  return code.split("\n").filter((line: string): boolean => {
+    if (line.length <= columns) {
+      return false;
+    }
+
+    const indentation: number = line.length - line.trimStart().length;
+
+    return !line
+      .trim()
+      .split(" ")
+      .some((word: string): boolean => {
+        return indentation + word.length > columns;
+      });
+  });
 }
 
 export function findGuideSnippet(

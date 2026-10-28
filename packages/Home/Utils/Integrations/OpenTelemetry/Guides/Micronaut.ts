@@ -74,7 +74,12 @@ const appenderLine: GuideSnippet = {
   id: "appender",
   language: "xml",
   title: "logback.xml",
-  code: '<appender name="OpenTelemetry" class="io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender"/>',
+  code: [
+    "<appender",
+    '  name="OpenTelemetry"',
+    '  class="io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender"',
+    "/>",
+  ].join("\n"),
   check: "contained",
 };
 
@@ -150,7 +155,8 @@ const paymentService: GuideSnippet = {
     "            .startSpan();",
     "    try (Scope scope = span.makeCurrent()) {",
     '      payments.charge(Map.of("items", itemCount));',
-    '      ordersPlaced.add(1, Attributes.of(AttributeKey.stringKey("payment.method"), paymentMethod));',
+    "      ordersPlaced.add(",
+    '          1, Attributes.of(AttributeKey.stringKey("payment.method"), paymentMethod));',
     "    } catch (RuntimeException error) {",
     "      span.recordException(error);",
     "      span.setStatus(StatusCode.ERROR);",
@@ -707,9 +713,13 @@ export const MicronautGuide: OpenTelemetryGuide = {
 
   verification: {
     runtime: "jvm",
+    /*
+     * Micronaut's version is its platform's, the one Micronaut Launch and the
+     * pom's parent name (5.2.4), not its core libraries' (5.2.20).
+     */
     framework: {
       name: "Micronaut",
-      package: "io.micronaut:micronaut-http-server",
+      package: "io.micronaut.platform:micronaut-parent",
     },
     files: [{ path: "pom.xml", content: pomFile }, ...appFiles],
     stubApiPort: 9000,

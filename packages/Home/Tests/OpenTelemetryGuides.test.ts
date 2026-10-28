@@ -18,7 +18,15 @@ import {
   VerificationFile,
 } from "../Utils/Integrations/OpenTelemetry/GuideTypes";
 import { OPEN_TELEMETRY_GUIDE_PAGES } from "../Utils/Integrations/OpenTelemetry/OpenTelemetryGuides";
-import { guideSnippets } from "../Utils/Integrations/OpenTelemetry/GuideSnippets";
+import {
+  INDENTED_CODE_COLUMNS,
+  PlacedSnippet,
+  SECTION_CODE_COLUMNS,
+  guideSnippets,
+  linesPastColumns,
+  placedGuideSnippets,
+} from "../Utils/Integrations/OpenTelemetry/GuideSnippets";
+import { dockerfileCommand } from "../Utils/Integrations/OpenTelemetry/PythonShared";
 import {
   GuideVerificationRecord,
   getVerificationRecord,
@@ -81,6 +89,28 @@ const SHARED_TEXT_LENGTH: number = 60;
 const GUIDE_LINK: RegExp =
   /^\/integrations\/opentelemetry\/([a-z0-9-]+)(?:#.*)?$/;
 const DOCS_LINK: RegExp = /^\/docs\//;
+/*
+ * The JavaScript and TypeScript guides were written before their code was
+ * held to the page's width: these are the lines each still has that run
+ * past it, so a laptop scrolls the block sideways. The counts only go down
+ * (a guide with fewer fails until its count is lowered), and every guide
+ * not named here has none.
+ */
+const LINES_PAST_THE_COLUMN_TO_FIX: Record<string, number> = {
+  nodejs: 1,
+  express: 1,
+  nestjs: 3,
+  nextjs: 1,
+  fastify: 1,
+  koa: 1,
+  hapi: 1,
+  bun: 8,
+  deno: 1,
+  browser: 14,
+  react: 15,
+  angular: 16,
+};
+
 const DOCKERFILE_INSTRUCTION: RegExp =
   /^(FROM|WORKDIR|COPY|ADD|RUN|ENV|EXPOSE|CMD|USER|ARG|ENTRYPOINT|LABEL) /;
 const YAML_LINE: RegExp =
@@ -450,6 +480,30 @@ function scriptProblems(snippet: GuideSnippet): Array<string> {
   return asFile;
 }
 
+/*
+ * A Dockerfile's instructions, one a line: a line that ends in a backslash
+ * goes on, as Docker reads it, into the next.
+ */
+function dockerfileInstructions(code: string): Array<string> {
+  const instructions: Array<string> = [];
+  let pending: string = "";
+
+  for (const line of code.split("\n")) {
+    if (line.endsWith("\\")) {
+      pending += `${line.slice(0, -1)} `;
+      continue;
+    }
+    instructions.push(`${pending}${line}`);
+    pending = "";
+  }
+  if (pending.length > 0) {
+    // Nothing follows the last backslash: no instruction Docker would read.
+    instructions.push(`\\ with nothing after it: ${pending}`);
+  }
+
+  return instructions;
+}
+
 // What keeps a snippet from parsing as its language, or nothing.
 function parseProblems(snippet: GuideSnippet): Array<string> {
   switch (snippet.language) {
@@ -472,8 +526,7 @@ function parseProblems(snippet: GuideSnippet): Array<string> {
       return result.status === 0 ? [] : [result.stderr];
     }
     case "dockerfile":
-      return snippet.code
-        .split("\n")
+      return dockerfileInstructions(snippet.code)
         .filter((line: string): boolean => {
           return line.trim().length > 0 && !DOCKERFILE_INSTRUCTION.test(line);
         })
@@ -481,8 +534,7 @@ function parseProblems(snippet: GuideSnippet): Array<string> {
           return `not a Dockerfile instruction: ${line}`;
         })
         .concat(
-          snippet.code
-            .split("\n")
+          dockerfileInstructions(snippet.code)
             .filter((line: string): boolean => {
               return line.startsWith("CMD [");
             })
@@ -782,6 +834,26 @@ describe.each(BY_SLUG)(
       expect(problems).toEqual([]);
     });
 
+    test("fits its code to the width its page shows, so no line scrolls on a laptop", () => {
+      const lines: Array<string> = placedGuideSnippets(guide).flatMap(
+        (placed: PlacedSnippet): Array<string> => {
+          return linesPastColumns(placed.snippet.code, placed.columns).map(
+            (line: string): string => {
+              return `${placed.snippet.id} (${line.length} of ${placed.columns}): ${line}`;
+            },
+          );
+        },
+      );
+
+      expect([guide.slug, lines.length]).toEqual([
+        guide.slug,
+        LINES_PAST_THE_COLUMN_TO_FIX[guide.slug] || 0,
+      ]);
+      if (!LINES_PAST_THE_COLUMN_TO_FIX[guide.slug]) {
+        expect(lines).toEqual([]);
+      }
+    });
+
     test("pins every OpenTelemetry package it installs, at the version that ran", () => {
       const record: GuideVerificationRecord | undefined = getVerificationRecord(
         guide.slug,
@@ -929,6 +1001,96 @@ describe.each(BY_SLUG)(
     });
   },
 );
+
+describe("the width a guide's code is shown at", () => {
+  test("is a section's for a block in a section, and narrower inside a step or an answer", () => {
+    const python: OpenTelemetryGuide = OPEN_TELEMETRY_GUIDE_PAGES.find(
+      (guide: OpenTelemetryGuide): boolean => {
+        return guide.slug === "python";
+      },
+    )!;
+    const columnsOf: Map<string, number> = new Map<string, number>(
+      placedGuideSnippets(python).map(
+        (placed: PlacedSnippet): [string, number] => {
+          return [placed.snippet.id, placed.columns];
+        },
+      ),
+    );
+
+    expect([SECTION_CODE_COLUMNS, INDENTED_CODE_COLUMNS]).toEqual([94, 87]);
+    // The install command, in its section.
+    expect(columnsOf.get("install")).toBe(SECTION_CODE_COLUMNS);
+    // The worker, in the first step, and the in-code setup, in a step's tab.
+    expect(columnsOf.get("worker")).toBe(INDENTED_CODE_COLUMNS);
+    expect(columnsOf.get("in-code")).toBe(INDENTED_CODE_COLUMNS);
+    // The same snippets, in the page's order, as guideSnippets lists them.
+    expect(
+      placedGuideSnippets(python).map((placed: PlacedSnippet): string => {
+        return placed.snippet.id;
+      }),
+    ).toEqual(
+      guideSnippets(python).map((snippet: GuideSnippet): string => {
+        return snippet.id;
+      }),
+    );
+  });
+
+  test("lets only a word too long for any line run past it: an address or a package's coordinates", () => {
+    const columns: number = 40;
+
+    expect(linesPastColumns("short\n" + "x".repeat(40), columns)).toEqual([]);
+    expect(
+      linesPastColumns(
+        "call(one, two, three, four, five, six, seven)",
+        columns,
+      ),
+    ).toEqual(["call(one, two, three, four, five, six, seven)"]);
+    // One word longer than the column, with the line's indentation: kept.
+    const address: string = `  curl https://example.com/${"a".repeat(30)}/file.jar`;
+    expect(linesPastColumns(address, columns)).toEqual([]);
+    const coordinates: string = `    implementation("io.example:${"b".repeat(30)}:1.0")`;
+    expect(linesPastColumns(coordinates, columns)).toEqual([]);
+    // A long word on a line that could break before it is not.
+    expect(
+      linesPastColumns(`x = f(${"c".repeat(20)}, ${"d".repeat(20)})`, columns),
+    ).toHaveLength(1);
+  });
+
+  test("breaks a Dockerfile's CMD before its options when it is too wide, and keeps it whole otherwise", () => {
+    expect(dockerfileCommand(["python", "app.py"])).toBe(
+      'CMD ["python", "app.py"]',
+    );
+    const wrapped: string = dockerfileCommand([
+      "opentelemetry-instrument",
+      "gunicorn",
+      "shop.wsgi",
+      "--bind",
+      "0.0.0.0:8000",
+      "--workers",
+      "4",
+    ]);
+
+    expect(wrapped.split("\n")).toEqual([
+      'CMD ["opentelemetry-instrument", "gunicorn", "shop.wsgi", \\',
+      '     "--bind", "0.0.0.0:8000", "--workers", "4"]',
+    ]);
+    // Docker reads the two lines as one exec form: a JSON array.
+    expect(
+      JSON.parse(wrapped.replace(" \\\n", " ").slice("CMD ".length)),
+    ).toEqual([
+      "opentelemetry-instrument",
+      "gunicorn",
+      "shop.wsgi",
+      "--bind",
+      "0.0.0.0:8000",
+      "--workers",
+      "4",
+    ]);
+    for (const line of wrapped.split("\n")) {
+      expect(line.length).toBeLessThanOrEqual(SECTION_CODE_COLUMNS);
+    }
+  });
+});
 
 describe("what the guides write", () => {
   test("gives every guide its own title, description, h1 and card", () => {

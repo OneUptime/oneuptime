@@ -1,4 +1,5 @@
 import { GuideSnippet, InlineText } from "./GuideTypes";
+import { SECTION_CODE_COLUMNS } from "./GuideSnippets";
 
 /*
  * The Python guides' shared facts: the packages they install, at the
@@ -94,6 +95,35 @@ export interface PythonDockerfileOptions {
 }
 
 /*
+ * The CMD that starts the container, in exec form. One too wide for the
+ * page's code column goes on two lines, the program on the first and its
+ * options (from the first "-") on the second:
+ *
+ *   CMD ["opentelemetry-instrument", "gunicorn", "shop.wsgi", \
+ *        "--bind", "0.0.0.0:8000", "--workers", "4"]
+ */
+export function dockerfileCommand(command: Array<string>): string {
+  const quoted: Array<string> = command.map((part: string): string => {
+    return `"${part}"`;
+  });
+  const oneLine: string = `CMD [${quoted.join(", ")}]`;
+  const firstOption: number = command.findIndex(
+    (part: string, index: number): boolean => {
+      return index > 0 && part.startsWith("-");
+    },
+  );
+
+  if (oneLine.length <= SECTION_CODE_COLUMNS || firstOption < 0) {
+    return oneLine;
+  }
+
+  return [
+    `CMD [${quoted.slice(0, firstOption).join(", ")}, \\`,
+    `     ${quoted.slice(firstOption).join(", ")}]`,
+  ].join("\n");
+}
+
+/*
  * A Python 3.14 image that installs requirements.txt and starts the app
  * under OpenTelemetry. PYTHONUNBUFFERED keeps print and logging output
  * moving as the app writes it.
@@ -114,11 +144,7 @@ export function pythonDockerfileSnippet(
       },
     ),
     ...(options.port === undefined ? [] : [`EXPOSE ${options.port}`]),
-    `CMD [${options.command
-      .map((part: string): string => {
-        return `"${part}"`;
-      })
-      .join(", ")}]`,
+    dockerfileCommand(options.command),
   ];
 
   return {

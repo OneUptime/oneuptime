@@ -523,7 +523,11 @@ describe("the integrations index", () => {
       const name: string =
         language === "JavaScript & TypeScript" ? "Node.js" : language;
 
-      expect([language, description.includes(name)]).toEqual([language, true]);
+      // A word of its own: ".NET" inside "ASP.NET Core" does not name .NET.
+      expect([language, description.includes(` ${name}`)]).toEqual([
+        language,
+        true,
+      ]);
     }
   });
 

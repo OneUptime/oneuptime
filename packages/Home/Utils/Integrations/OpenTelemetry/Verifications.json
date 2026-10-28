@@ -1413,7 +1413,7 @@
     },
     "framework": "ASP.NET Core 10.0.14",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:393df8bbe92dfd48fbafb9532e53387ae26331f341c907f435d9d269cf729b82",
+    "snippetDigest": "sha256:a8b1505a8063658cdd4eca7025272e147efa9926e7d46c38183408fc05e76510",
     "observed": {
       "spans": [
         "GET /boom",
@@ -1462,8 +1462,8 @@
       "logs": [
         "Application is shutting down...",
         "Application started. Press Ctrl+C to shut down.",
-        "Connection id \"0HNPKMFRCPTC9\", Request id \"0HNPKMFRCPTC9:00000001\": An unhandled exception was thrown by the application",
-        "Content root path: <work>/otel-guides-vHnVHH/aspnet-core",
+        "Connection id \"0HNPKOL5TBO36\", Request id \"0HNPKOL5TBO36:00000001\": An unhandled exception was thrown by the application",
+        "Content root path: <work>/otel-guides-F0Pmb1/aspnet-core",
         "Hosting environment: Production",
         "Loading order 42",
         "Now listening on: http://127.0.0.1:8080"
@@ -1999,7 +1999,7 @@
     },
     "framework": "Celery 5.6.3",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:644d67c1be363c93218b0f81cccf1ded86c833487c3997223fd86bbbab3d2150",
+    "snippetDigest": "sha256:19442fe2107c118744125426c5c0d22e5c12385c2d09a186a8153f5e49be17e0",
     "observed": {
       "spans": [
         "POST",
@@ -2018,15 +2018,15 @@
         "payments.charged"
       ],
       "logs": [
-        "Connected to redis://127.0.0.1:37489/0",
-        "Task tasks.charge_card[957d5152-e882-43ad-85b6-5ed614deb26d] received",
-        "Task tasks.charge_card[957d5152-e882-43ad-85b6-5ed614deb26d] succeeded in 0.024497229140251875s: None",
-        "Task tasks.refund[607b9215-b114-423c-b8d7-e400d6b097ce] raised unexpected: RuntimeError('Refund for ord_0999 was decline",
-        "Task tasks.refund[607b9215-b114-423c-b8d7-e400d6b097ce] received",
-        "Task tasks.send_receipt[09a89663-2538-4609-a26d-1bf1f302bc21] received",
-        "Task tasks.send_receipt[09a89663-2538-4609-a26d-1bf1f302bc21] retry: Retry in 0s: ConnectionError('Mail server busy')",
-        "Task tasks.send_receipt[09a89663-2538-4609-a26d-1bf1f302bc21] succeeded in 0.0012618806213140488s: None",
-        "celery@ubuntu-m-32vcpu-256gb-intel-nyc2 ready.",
+        "Connected to redis://127.0.0.1:39863/0",
+        "Task tasks.charge_card[a3929bbe-d89a-4fea-bd61-f962361badec] received",
+        "Task tasks.charge_card[a3929bbe-d89a-4fea-bd61-f962361badec] succeeded in 0.0077417390421032906s: None",
+        "Task tasks.refund[667c97e3-82a0-4e76-83f7-0f49f8ec8f91] raised unexpected: RuntimeError('Refund for ord_0999 was decline",
+        "Task tasks.refund[667c97e3-82a0-4e76-83f7-0f49f8ec8f91] received",
+        "Task tasks.send_receipt[30bd9c53-8c9b-48d3-a39f-e86cbc0c170b] received",
+        "Task tasks.send_receipt[30bd9c53-8c9b-48d3-a39f-e86cbc0c170b] retry: Retry in 0s: ConnectionError('Mail server busy')",
+        "Task tasks.send_receipt[30bd9c53-8c9b-48d3-a39f-e86cbc0c170b] succeeded in 0.0004536416381597519s: None",
+        "celery@<host> ready.",
         "charged order ord_1001",
         "mingle: all alone",
         "mingle: searching for neighbors",
@@ -2198,7 +2198,7 @@
     },
     "framework": ".NET",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:13e446c1cc0ac983c148a66a7205e8b7fee3dfd6f9f7b6e754cf4547f097cca3",
+    "snippetDigest": "sha256:986ae0038e0fca64641e8427e644ecdca129e7d9b24f56699a7eeb6f8546e61d",
     "observed": {
       "spans": ["GET", "POST", "invoice.post", "invoices.sync"],
       "metrics": [
@@ -2311,7 +2311,7 @@
     },
     "framework": "Microsoft.Extensions.Hosting 10.0.14",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:1752ddbf305918350563313cefc855116d825759775eef52de62076a08478d14",
+    "snippetDigest": "sha256:576ce9c4b286fa1beb497bbc164200bb822cc6629223e0c65dcc124cb3ed3ed6",
     "observed": {
       "spans": ["GET", "POST", "invoice.post", "invoices.sync"],
       "metrics": [
@@ -2344,7 +2344,7 @@
       "logs": [
         "Application is shutting down...",
         "Application started. Press Ctrl+C to shut down.",
-        "Content root path: <work>/otel-guides-q0IMG3/dotnet-worker-service",
+        "Content root path: <work>/otel-guides-F0Pmb1/dotnet-worker-service",
         "Hosting environment: Production",
         "Invoice worker started",
         "Posted invoice inv_1",
@@ -2573,7 +2573,7 @@
     },
     "framework": "FastAPI 0.162.0",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:e6dab78af681bf4efeb7e24748583bb0c6d4d0ce5fdedf36753cfce606b99fa6",
+    "snippetDigest": "sha256:f8001f950794dbfb2672676e4387ee242a57d017ee60a5d3726dca8166ba9146",
     "observed": {
       "spans": [
         "GET /boom",
@@ -3278,7 +3278,7 @@
     },
     "framework": "Java",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:1265990de3dc830a9aa5e60066347a313ee56a0050ea4158e9947225f7ff5492",
+    "snippetDigest": "sha256:6fffcb22e662c8b0ceb04f009f53c964e9e643f8ad9669fad6b81a1510ae186b",
     "observed": {
       "spans": [
         "CREATE TABLE shop.orders",
@@ -3598,7 +3598,7 @@
     },
     "framework": "Ktor 3.6.0",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:59f73c34c3fb58acf4fde4f5e37459212994e53167cfb15d8fe6d59e5ecb9542",
+    "snippetDigest": "sha256:4b94db7c79e7711f8eb8db8398fd8cdcb145d5949a2f56643ba9cdf049c1fb02",
     "observed": {
       "spans": [
         "CREATE TABLE shop.PLACED_ORDER",
@@ -3634,7 +3634,7 @@
         "queueSize"
       ],
       "logs": [
-        "Application started in 0.531 seconds.",
+        "Application started in 0.415 seconds.",
         "Autoreload is disabled because the development mode is off.",
         "Responding at http://0.0.0.0:8080",
         "Unhandled: GET - /boom",
@@ -3678,7 +3678,7 @@
             "queueSize"
           ],
           "logs": [
-            "Application started in 0.498 seconds.",
+            "Application started in 0.453 seconds.",
             "Autoreload is disabled because the development mode is off.",
             "Responding at http://0.0.0.0:8080",
             "Unhandled: GET - /boom",
@@ -3768,7 +3768,7 @@
             "-Dio.netty.noKeySetOptimization: false",
             "-Dio.netty.noPreferDirect: false",
             "-Dio.netty.noUnsafe: false",
-            "-Dio.netty.processId: 2197466 (auto-detected)",
+            "-Dio.netty.processId: 2842440 (auto-detected)",
             "-Dio.netty.recycler.batchFastThreadLocalOnly: true",
             "-Dio.netty.recycler.blocking: false",
             "-Dio.netty.recycler.chunkSize: 32",
@@ -3783,7 +3783,7 @@
             "-Djava.net.preferIPv4Stack: false",
             "-Djava.net.preferIPv6Addresses: false",
             "/proc/sys/net/core/somaxconn: 4096",
-            "Application started in 1.035 seconds.",
+            "Application started in 0.835 seconds.",
             "Autoreload is disabled because the development mode is off.",
             "CREATE TABLE IF NOT EXISTS PLACED_ORDER (ID INT AUTO_INCREMENT PRIMARY KEY, ITEM_COUNT INT NOT NULL)",
             "Epoll support is not available: could not load a native library: netty_transport_native_epoll_x86_64",
@@ -3791,7 +3791,7 @@
             "Java version: 25",
             "KQueue support is not available: null",
             "Loaded TransactionsHolder class ThreadLocalTransactionsStack to manage instances (priority 0)",
-            "Loaded default ResourceLeakDetector: io.netty.util.ResourceLeakDetector@609f339b",
+            "Loaded default ResourceLeakDetector: io.netty.util.ResourceLeakDetector@1e7de4ae",
             "Loopback interface: lo (lo, 0:0:0:0:0:0:0:1%lo)",
             "Responding at http://0.0.0.0:8080",
             "SELECT COUNT(*) FROM PLACED_ORDER WHERE PLACED_ORDER.ID = 42",
@@ -3840,15 +3840,14 @@
       "io.micronaut.tracing:micronaut-tracing-opentelemetry-http": "8.3.0",
       "io.micronaut.tracing:micronaut-tracing-opentelemetry-jdbc": "8.3.0",
       "io.micronaut:micronaut-http-client-jdk": "5.2.20",
-      "io.micronaut:micronaut-http-server": "5.2.20",
       "io.micronaut:micronaut-http-server-netty": "5.2.20",
       "io.micronaut:micronaut-management": "5.2.20",
       "io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0": "2.30.0-alpha",
       "io.opentelemetry:opentelemetry-exporter-otlp": "1.64.0"
     },
-    "framework": "Micronaut 5.2.20",
+    "framework": "Micronaut 5.2.4",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:d30c90666d75321ae5b4eb571e8334abc63bc82e3457cad315585b15e8d86a34",
+    "snippetDigest": "sha256:ea41036c162061b7289ac57531ae48c9fce46e58f9db5992e76fb8b235b04fbb",
     "observed": {
       "spans": [
         "CREATE TABLE shop.placed_order",
@@ -3877,7 +3876,7 @@
         "HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:shop user=SA",
         "HikariPool-1 - Start completed.",
         "HikariPool-1 - Starting...",
-        "Startup completed in 2293ms. Server Running: http://localhost:8080",
+        "Startup completed in 1277ms. Server Running: http://localhost:8080",
         "Unexpected error occurred: Payment provider timed out",
         "loading order 42"
       ]
@@ -4843,7 +4842,7 @@
     },
     "framework": "Python",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:d385f2b2b13ecfce3ad3fc1f15c161ceba902961e11dadc6fca9c6e8f386aecd",
+    "snippetDigest": "sha256:3a5631f2d55417298793e8ace7527300ce2c3c3a5dee8077be48c3d2d97c718b",
     "observed": {
       "spans": ["GET", "POST", "invoice.validate", "invoices.sync"],
       "metrics": [
@@ -4900,7 +4899,7 @@
     },
     "framework": "Quarkus 3.40.1.1",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:c8e00cc987119d430530a11a72e4d3542cdc9287fa8671d98af49c160ba8b5ec",
+    "snippetDigest": "sha256:86ad2af8337c15135e02cf29d2bdb3fea3c39030f7cd4c184546c7965cc0f9eb",
     "observed": {
       "spans": [
         "CREATE shop",
@@ -4948,11 +4947,11 @@
         "otel.sdk.span.started"
       ],
       "logs": [
-        "HTTP Request to /orders/boom failed, error id: 4c5ac71b-c829-4bf2-913e-1c937a5c14c0-1",
+        "HTTP Request to /orders/boom failed, error id: 480acc1e-036f-4928-af54-30b8a4383085-1",
         "Installed features: [agroal, cdi, hibernate-orm, hibernate-orm-panache, jdbc-h2, narayana-jta, opentelemetry, rest, rest",
         "OpenTelemetry API usage issue detected. To see more details, enable FINEST logging for io.opentelemetry.usage. Stacktrac",
         "Profile prod activated. ",
-        "checkout 1.0.0 on JVM (powered by Quarkus 3.40.1.1) started in 3.786s. Listening on: http://0.0.0.0:8080",
+        "checkout 1.0.0 on JVM (powered by Quarkus 3.40.1.1) started in 4.334s. Listening on: http://0.0.0.0:8080",
         "loading order 42"
       ]
     },
@@ -5959,7 +5958,7 @@
     },
     "framework": "Spring Boot 4.1.2",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:4b7fa1960454a50718d91e642063211d18716b760026541c1aa56309619e6293",
+    "snippetDigest": "sha256:968c4e8b8949b4da83f656244b88ecd47233f49f041e004130a07e5e14b5e7a7",
     "observed": {
       "spans": [
         "CREATE shop",
@@ -6014,10 +6013,10 @@
         "Bootstrapping Spring Data JPA repositories in DEFAULT mode.",
         "Closing JPA EntityManagerFactory for persistence unit 'default'",
         "Commencing graceful shutdown. Waiting for active requests to complete",
-        "Completed initialization in 2 ms",
+        "Completed initialization in 1 ms",
         "Destroying Spring FrameworkServlet 'dispatcherServlet'",
         "Exposing 1 endpoint beneath base path '/actuator'",
-        "Finished Spring Data repository scanning in 79 ms. Found 1 JPA repository interface.",
+        "Finished Spring Data repository scanning in 49 ms. Found 1 JPA repository interface.",
         "Graceful shutdown complete",
         "HHH000001: Hibernate ORM core version 7.4.13.Final",
         "HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)",
@@ -6035,10 +6034,10 @@
         "No LoadTimeWeaver setup: ignoring JPA class transformer",
         "No active profile set, falling back to 1 default profile: \"default\"",
         "Pausing ProtocolHandler [\"http-nio-8080\"]",
-        "Root WebApplicationContext: initialization completed in 3899 ms",
+        "Root WebApplicationContext: initialization completed in 2196 ms",
         "Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed: ja",
-        "Started CheckoutApplication in 11.732 seconds (process running for 20.414)",
-        "Starting CheckoutApplication v1.0.0 using Java 25.0.5 with PID 2066826 (<work>/otel-guides-62dcvq/spring-boot/target/che",
+        "Started CheckoutApplication in 6.699 seconds (process running for 11.025)",
+        "Starting CheckoutApplication v1.0.0 using Java 25.0.5 with PID 2782547 (<work>/otel-guides-F0Pmb1/spring-boot/target/che",
         "Starting Servlet engine: [Apache Tomcat/11.0.27]",
         "Starting service [Tomcat]",
         "Stopping ProtocolHandler [\"http-nio-8080\"]",
@@ -6092,9 +6091,9 @@
             "Bootstrapping Spring Data JPA repositories in DEFAULT mode.",
             "Closing JPA EntityManagerFactory for persistence unit 'default'",
             "Commencing graceful shutdown. Waiting for active requests to complete",
-            "Completed initialization in 3 ms",
+            "Completed initialization in 2 ms",
             "Exposing 1 endpoint beneath base path '/actuator'",
-            "Finished Spring Data repository scanning in 64 ms. Found 1 JPA repository interface.",
+            "Finished Spring Data repository scanning in 44 ms. Found 1 JPA repository interface.",
             "Graceful shutdown complete",
             "HHH000001: Hibernate ORM core version 7.4.13.Final",
             "HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)",
@@ -6112,10 +6111,10 @@
             "No LoadTimeWeaver setup: ignoring JPA class transformer",
             "No active profile set, falling back to 1 default profile: \"default\"",
             "OpenTelemetry Spring Boot starter (2.33.1) has been started",
-            "Root WebApplicationContext: initialization completed in 2869 ms",
+            "Root WebApplicationContext: initialization completed in 2101 ms",
             "Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed: ja",
-            "Started CheckoutApplication in 9.488 seconds (process running for 10.442)",
-            "Starting CheckoutApplication v1.0.0 using Java 25.0.5 with PID 2067620 (<work>/otel-guides-62dcvq/spring-boot--spring-bo",
+            "Started CheckoutApplication in 6.741 seconds (process running for 7.249)",
+            "Starting CheckoutApplication v1.0.0 using Java 25.0.5 with PID 2790159 (<work>/otel-guides-F0Pmb1/spring-boot--spring-bo",
             "Starting Servlet engine: [Apache Tomcat/11.0.27]",
             "Starting service [Tomcat]",
             "Tomcat initialized with port 8080 (http)",
@@ -6215,6 +6214,8 @@
             "jvm.cpu.count",
             "jvm.cpu.recent_utilization",
             "jvm.cpu.time",
+            "jvm.gc.concurrent.phase.time",
+            "jvm.gc.concurrent.phase.time.max",
             "jvm.gc.duration",
             "jvm.gc.live.data.size",
             "jvm.gc.max.data.size",
@@ -6262,10 +6263,11 @@
           ],
           "logs": [
             "Bootstrapping Spring Data JPA repositories in DEFAULT mode.",
+            "Closing JPA EntityManagerFactory for persistence unit 'default'",
             "Commencing graceful shutdown. Waiting for active requests to complete",
-            "Completed initialization in 2 ms",
+            "Completed initialization in 1 ms",
             "Exposing 1 endpoint beneath base path '/actuator'",
-            "Finished Spring Data repository scanning in 74 ms. Found 1 JPA repository interface.",
+            "Finished Spring Data repository scanning in 52 ms. Found 1 JPA repository interface.",
             "Graceful shutdown complete",
             "HHH000001: Hibernate ORM core version 7.4.13.Final",
             "HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)",
@@ -6273,6 +6275,7 @@
             "HHH10001005: Database info:\n\tDatabase JDBC URL [jdbc:h2:mem:shop]\n\tDatabase driver: H2 JDBC Driver\n\tDatabase dialect: H2",
             "Hibernate is in classpath; If applicable, HQL parser will be used.",
             "HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:shop user=SA",
+            "HikariPool-1 - Shutdown initiated...",
             "HikariPool-1 - Start completed.",
             "HikariPool-1 - Starting...",
             "Initialized JPA EntityManagerFactory for persistence unit 'default'",
@@ -6281,10 +6284,10 @@
             "No LoadTimeWeaver setup: ignoring JPA class transformer",
             "No active profile set, falling back to 1 default profile: \"default\"",
             "Pausing ProtocolHandler [\"http-nio-8080\"]",
-            "Root WebApplicationContext: initialization completed in 3460 ms",
+            "Root WebApplicationContext: initialization completed in 2253 ms",
             "Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed: ja",
-            "Started CheckoutApplication in 10.626 seconds (process running for 17.337)",
-            "Starting CheckoutApplication v1.0.0 using Java 25.0.5 with PID 2068938 (<work>/otel-guides-62dcvq/spring-boot--micromete",
+            "Started CheckoutApplication in 8.182 seconds (process running for 12.643)",
+            "Starting CheckoutApplication v1.0.0 using Java 25.0.5 with PID 2797062 (<work>/otel-guides-F0Pmb1/spring-boot--micromete",
             "Starting Servlet engine: [Apache Tomcat/11.0.27]",
             "Starting service [Tomcat]",
             "Stopping ProtocolHandler [\"http-nio-8080\"]",
