@@ -4,6 +4,7 @@ import {
   DocsLink,
   NAV_PAGES,
   ScannedPage,
+  TRANSLATED_LANGUAGES,
   anchorsOfScanned,
   readPage,
   scanMarkdown,
@@ -793,4 +794,146 @@ describe("the custom channels page without a license", () => {
       }),
     ).toBe("allowed");
   });
+});
+
+/*
+ * THE PAGE SAYS WHERE CUSTOM CHANNELS IS IN THE ADMIN DASHBOARD.
+ *
+ * Custom Channels is in Settings' Notifications section, with Emails, Call
+ * and SMS, WhatsApp, Telegram and Push Notifications (#5373), and that
+ * section starts folded - so "open Settings, then Custom Channels" sent a
+ * reader looking for an entry the menu does not show. The step names the
+ * section, and says it starts folded, in the Admin Dashboard's own words, as
+ * the SMTP page names Emails.
+ *
+ * Core draws the entries the Enterprise plugin adds to Notifications
+ * (SettingsNotificationSideMenuItems) at the end of that folded section;
+ * that Custom Channels is the one it draws is held where ee/ is checked out,
+ * by ee/Tests/UI/CustomChannels/CustomChannelsPlugins.test.tsx.
+ */
+describe("the custom channels page says where the page is", () => {
+  // The plugin's notification entries, drawn last in the section's body.
+  const DRAWN_LAST_IN_SECTION: RegExp =
+    /<EnterpriseNotificationSettingsItems \/>\s*\) : \(\s*<><\/>\s*\)\}$/;
+
+  const adminSource: string = path.join(
+    PACKAGES_DIR,
+    "App",
+    "FeatureSet",
+    "AdminDashboard",
+    "src",
+  );
+
+  // A dotted key of the Admin Dashboard's locale in one language, as its t() reads it.
+  const adminText: (language: string, key: string) => string = (
+    language: string,
+    key: string,
+  ): string => {
+    let node: unknown = JSON.parse(
+      fs.readFileSync(
+        path.join(adminSource, "Locales", `${language}.json`),
+        "utf8",
+      ),
+    );
+
+    for (const part of key.split(".")) {
+      node = (node as Record<string, unknown>)[part];
+    }
+
+    expect({ language, key, found: typeof node === "string" }).toEqual({
+      language,
+      key,
+      found: true,
+    });
+
+    return node as string;
+  };
+
+  const ENGLISH_STEP: string = `1. In the Admin Dashboard, open **${adminText("en", "navbar.settings")}**, then **${adminText("en", "sideMenu.settingsNotifications")} > Custom Channels** in the side menu (**${adminText("en", "sideMenu.settingsNotifications")}** starts folded), and select **Add**.`;
+
+  // The same line of a translation: each one is kept line for line with the English.
+  const stepIn: (language: string) => string = (language: string): string => {
+    const at: number = english.split("\n").indexOf(ENGLISH_STEP);
+
+    expect(at).toBeGreaterThan(-1);
+
+    return readPage(language, PAGE).split("\n")[at] || "";
+  };
+
+  it("walks the admin to Settings, then Notifications > Custom Channels, which starts folded", () => {
+    expect(adminText("en", "navbar.settings")).toBe("Settings");
+    expect(adminText("en", "sideMenu.settingsNotifications")).toBe(
+      "Notifications",
+    );
+    expect(section("Add a Channel")).toContain(ENGLISH_STEP);
+    expect(english).not.toContain(
+      "open **Settings**, then **Custom Channels**",
+    );
+  });
+
+  it("is where the Admin Dashboard draws the Enterprise notification entries: at the end of the folded Notifications section", () => {
+    const menu: string = fs.readFileSync(
+      path.join(adminSource, "Pages", "Settings", "SideMenu.tsx"),
+      "utf8",
+    );
+    const contract: string = fs.readFileSync(
+      path.join(adminSource, "Enterprise", "EnterprisePlugins.ts"),
+      "utf8",
+    );
+    const start: number = menu.indexOf(
+      'title={t("sideMenu.settingsNotifications")}',
+    );
+    const end: number = menu.indexOf("</SideMenuSection>", start);
+    const notifications: string = menu.slice(start, end);
+    const basic: string = menu.slice(
+      menu.indexOf('title={t("sideMenu.basic")}'),
+      start,
+    );
+
+    expect(start).toBeGreaterThan(-1);
+    expect(notifications).toContain("defaultCollapsed={true}");
+    expect(notifications.trim()).toMatch(DRAWN_LAST_IN_SECTION);
+    expect(basic).not.toContain("EnterpriseNotificationSettingsItems");
+    expect(menu).toContain(
+      "getAdminDashboardPlugins().SettingsNotificationSideMenuItems",
+    );
+    expect(contract).toContain(
+      "SettingsNotificationSideMenuItems?: EnterprisePluginComponent | undefined;",
+    );
+  });
+
+  it.each(TRANSLATED_LANGUAGES)(
+    "says the same in %s, in that language's Admin Dashboard words",
+    (language: string) => {
+      const step: string = stepIn(language);
+      const settings: string = adminText(language, "navbar.settings");
+      const notifications: string = adminText(
+        language,
+        "sideMenu.settingsNotifications",
+      );
+      // A right-to-left page bolds each step of a path on its own.
+      const menuPath: string =
+        language === "fa"
+          ? `**${notifications}** > **Custom Channels**`
+          : `**${notifications} > Custom Channels**`;
+
+      expect({
+        language,
+        step: step.startsWith("1. "),
+        settings: step.includes(`**${settings}**`),
+        path: step.includes(menuPath),
+        folded: step.split(`**${notifications}`).length - 1,
+        add: step.includes("**Add**"),
+        settingsFirst: step.indexOf(`**${settings}**`) < step.indexOf(menuPath),
+      }).toEqual({
+        language,
+        step: true,
+        settings: true,
+        path: true,
+        folded: 2,
+        add: true,
+        settingsFirst: true,
+      });
+    },
+  );
 });

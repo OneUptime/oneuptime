@@ -31,7 +31,7 @@ Når en vaktretningslinje tilkaller noen og vaktregelen deres bruker kanalen, se
 
 ## Legg til en kanal
 
-1. Åpne **Innstillinger** i Admin Dashboard, deretter **Custom Channels**, og velg **Add**.
+1. Åpne **Innstillinger** i Admin Dashboard, deretter **Varsler > Custom Channels** i sidemenyen (**Varsler** er slått sammen fra start), og velg **Add**.
 2. Fyll ut i trinnet **Channel**:
    - **Navn**: det folk ser i varselmetodene og vaktreglene sine, for eksempel `CorpoApp`.
    - **Webhook URL**: hvor OneUptime sender hver tilkalling. Den kan ligge på det private nettverket ditt.

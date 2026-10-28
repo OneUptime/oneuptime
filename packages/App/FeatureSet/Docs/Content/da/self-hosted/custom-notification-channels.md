@@ -31,7 +31,7 @@ Når en vagtpolitik tilkalder nogen, og vedkommendes vagtregel bruger kanalen, s
 
 ## Tilføj en kanal
 
-1. Åbn **Indstillinger** i Admin Dashboard, derefter **Custom Channels**, og vælg **Add**.
+1. Åbn **Indstillinger** i Admin Dashboard, derefter **Notifikationer > Custom Channels** i sidemenuen (**Notifikationer** er foldet sammen fra start), og vælg **Add**.
 2. Udfyld i trinnet **Channel**:
    - **Navn**: det, folk ser i deres notifikationsmetoder og vagtregler, for eksempel `CorpoApp`.
    - **Webhook URL**: hvor OneUptime sender hvert tilkald. Den kan ligge på dit private netværk.

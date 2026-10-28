@@ -4415,7 +4415,7 @@ describe("the custom channel", () => {
         "Custom channels are a OneUptime Enterprise feature, and this server has no Enterprise license that includes them, so nothing is sent to a custom channel and members are not checked for one.",
       );
       expect(NO_CUSTOM_CHANNEL_ON_WARNING).toBe(
-        "No custom channel is turned on, so nothing is sent to one and members are not checked for one. A server admin can turn one on in the Admin Dashboard, under Settings > Custom Channels.",
+        "No custom channel is turned on, so nothing is sent to one and members are not checked for one. A server admin can turn one on in the Admin Dashboard, under Settings > Notifications > Custom Channels.",
       );
     });
 

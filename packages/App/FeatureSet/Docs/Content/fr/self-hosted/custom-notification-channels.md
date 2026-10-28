@@ -31,7 +31,7 @@ Lorsqu'une politique d'astreinte alerte quelqu'un et que sa règle d'astreinte u
 
 ## Ajouter un canal
 
-1. Dans l'Admin Dashboard, ouvrez **Paramètres**, puis **Custom Channels**, et sélectionnez **Add**.
+1. Dans l'Admin Dashboard, ouvrez **Paramètres**, puis **Notifications > Custom Channels** dans le menu latéral (**Notifications** est replié au départ), et sélectionnez **Add**.
 2. À l'étape **Channel**, renseignez :
    - **Nom** : ce que les personnes voient dans leurs méthodes de notification et leurs règles d'astreinte, par exemple `CorpoApp`.
    - **Webhook URL** : l'adresse où OneUptime envoie chaque alerte. Elle peut se trouver sur votre réseau privé.
