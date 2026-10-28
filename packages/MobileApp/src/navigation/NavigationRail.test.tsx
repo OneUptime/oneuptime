@@ -10,11 +10,13 @@ import {
   type NavigationContainerRefWithCurrent,
 } from "@react-navigation/native";
 import type { BottomTabNavigationOptions } from "@react-navigation/bottom-tabs";
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import MainTabNavigator from "./MainTabNavigator";
 import type { MainTabParamList } from "./types";
 import { NAVIGATION_RAIL_WIDTH } from "../layout/windowLayout";
+import { WindowLayoutProvider } from "../layout/WindowLayout";
+import type { FoldReport, PostureSource } from "../layout/windowPosture";
 import {
   TEST_WINDOWS,
   resetWindowSize,
@@ -337,5 +339,92 @@ describe("Folding moves the navigation without touching the screens", () => {
 
     expect(navigationRef.getCurrentRoute()?.name).toBe("OnCall");
     expect(screen.getByTestId("screen-oncall")).toBeTruthy();
+  });
+});
+
+describe("Half open on a table, the destinations move under the reader's hand", () => {
+  /*
+   * The posture comes from the platform (the Android module); here a stand-in
+   * source reports it. The inner screen on its side gets the rail when it
+   * lies flat, and the bar along the bottom - on the half resting on the
+   * table - when it is half closed.
+   */
+  function tabletopSource(): PostureSource & {
+    emit: (report: FoldReport | null) => void;
+  } {
+    let current: FoldReport | null = null;
+    const listeners: Set<(report: FoldReport | null) => void> = new Set();
+    return {
+      getCurrent: (): FoldReport | null => {
+        return current;
+      },
+      subscribe: (listener: (report: FoldReport | null) => void) => {
+        listeners.add(listener);
+        return (): void => {
+          listeners.delete(listener);
+        };
+      },
+      emit: (report: FoldReport | null): void => {
+        current = report;
+        for (const listener of Array.from(listeners)) {
+          listener(report);
+        }
+      },
+    };
+  }
+
+  const SIZE: { width: number; height: number } =
+    TEST_WINDOWS.innerScreenOnItsSide;
+  const FLAT: FoldReport = {
+    windowWidth: SIZE.width,
+    windowHeight: SIZE.height,
+    folds: [],
+  };
+  const HALF_CLOSED: FoldReport = {
+    windowWidth: SIZE.width,
+    windowHeight: SIZE.height,
+    folds: [
+      {
+        x: 0,
+        y: SIZE.height / 2,
+        width: SIZE.width,
+        height: 0,
+        orientation: "horizontal",
+        separating: true,
+      },
+    ],
+  };
+
+  test("the rail becomes the bar while the phone is half closed, and Home keeps what was typed", async () => {
+    setWindowSize(SIZE);
+    const source: ReturnType<typeof tabletopSource> = tabletopSource();
+    source.emit(FLAT);
+    const navigationRef: NavigationContainerRefWithCurrent<MainTabParamList> =
+      createNavigationContainerRef<MainTabParamList>();
+    await render(
+      <SafeAreaInsetsContext.Provider value={INSETS}>
+        <WindowLayoutProvider postureSource={source}>
+          <NavigationContainer ref={navigationRef}>
+            <MainTabNavigator />
+          </NavigationContainer>
+        </WindowLayoutProvider>
+      </SafeAreaInsetsContext.Provider>,
+    );
+    expect(options(navigationRef).tabBarPosition).toBe("left");
+    await fireEvent.changeText(screen.getByTestId("home-draft"), "half typed");
+
+    await act(async () => {
+      source.emit(HALF_CLOSED);
+    });
+    expect(options(navigationRef).tabBarPosition).toBe("bottom");
+    expect(tabBarStyle(navigationRef).position).toBe("absolute");
+    expect(screen.getByTestId("home-draft")).toHaveProp("value", "half typed");
+
+    await act(async () => {
+      source.emit(FLAT);
+    });
+    expect(options(navigationRef).tabBarPosition).toBe("left");
+    expect(screen.getByTestId("home-draft")).toHaveProp("value", "half typed");
+    expect(mockHomeMounts.current).toBe(1);
   });
 });

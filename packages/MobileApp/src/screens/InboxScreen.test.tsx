@@ -16,6 +16,7 @@ import {
 } from "../__tests__/windowSize";
 import { ThemeProvider, darkColors, lightColors } from "../theme";
 import { withAlpha } from "../utils/color";
+import { PaneProvider } from "../layout/WindowLayout";
 
 /*
  * The Inbox holds incidents and alerts side by side. The category tabs are
@@ -380,6 +381,29 @@ describe("On a short window - a phone on its side", () => {
     await renderInbox();
 
     expect(screen.getByRole("header", { name: "Inbox" })).toBeTruthy();
+  });
+
+  test("below a tabletop fold - a short pane in a tall window - the title gives way too", async () => {
+    // The window is tall; the list's half of it is not.
+    setWindowSize(TEST_WINDOWS.innerScreenOnItsSide);
+    await render(
+      <PaneProvider
+        pane={{
+          kind: "list",
+          arrangement: "stacked",
+          width: 1104,
+          height: 430,
+          insetLeft: 0,
+          insetRight: 0,
+          insetTop: 0,
+        }}
+      >
+        <InboxScreen />
+      </PaneProvider>,
+    );
+
+    expect(screen.queryByRole("header", { name: "Inbox" })).toBeNull();
+    expect(screen.getByRole("tab", { name: "Incidents" })).toBeTruthy();
   });
 });
 
