@@ -500,6 +500,37 @@ export const OPEN_TELEMETRY_GUIDES: ReadonlyArray<OpenTelemetryGuideEntry> = [
     kind: "worker",
     telemetryGuideLanguage: "ruby",
   },
+  {
+    // Any PHP app, with the extension's automatic instrumentation.
+    slug: "php",
+    name: "PHP",
+    language: OpenTelemetryGuideLanguage.Php,
+    kind: "runtime",
+    logo: ProviderLogo.Php,
+    telemetryGuideLanguage: "php",
+    isLanguageGuide: true,
+  },
+  {
+    slug: "laravel",
+    name: "Laravel",
+    language: OpenTelemetryGuideLanguage.Php,
+    kind: "framework",
+    telemetryGuideLanguage: "php",
+  },
+  {
+    slug: "symfony",
+    name: "Symfony",
+    language: OpenTelemetryGuideLanguage.Php,
+    kind: "framework",
+    telemetryGuideLanguage: "php",
+  },
+  {
+    slug: "slim",
+    name: "Slim",
+    language: OpenTelemetryGuideLanguage.Php,
+    kind: "framework",
+    telemetryGuideLanguage: "php",
+  },
 ];
 
 // Where the guides are listed: the website's index of integrations.

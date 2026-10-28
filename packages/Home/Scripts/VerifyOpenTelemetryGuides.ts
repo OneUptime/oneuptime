@@ -1661,10 +1661,14 @@ const CONTAINER_RUNTIMES: Partial<Record<GuideRuntime, ContainerRuntime>> = {
   },
   php: {
     image: "php:8.5.12-cli-trixie",
-    // Composer, and unzip for the packages it downloads.
+    /*
+     * Composer, unzip for the packages it downloads, and the compiler and
+     * tools `pecl install` builds the OpenTelemetry extension with (the
+     * image names them in PHPIZE_DEPS).
+     */
     setup: [
       "apt-get update -qq",
-      "apt-get install -y -qq unzip > /dev/null",
+      "apt-get install -y -qq unzip $PHPIZE_DEPS > /dev/null",
       `curl -sSfL -o /usr/local/bin/composer https://getcomposer.org/download/${COMPOSER_VERSION}/composer.phar`,
       "chmod +x /usr/local/bin/composer",
     ].join(" && "),

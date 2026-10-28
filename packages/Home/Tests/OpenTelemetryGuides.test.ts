@@ -117,8 +117,13 @@ const LINES_PAST_THE_COLUMN_TO_FIX: Record<string, number> = {
 
 const DOCKERFILE_INSTRUCTION: RegExp =
   /^(FROM|WORKDIR|COPY|ADD|RUN|ENV|EXPOSE|CMD|USER|ARG|ENTRYPOINT|LABEL) /;
+/*
+ * A line of YAML: a key (a Symfony service's may hold a PHP class's
+ * backslashes, or an argument's $), a list item, a quoted or plain scalar,
+ * a comment, or nothing.
+ */
 const YAML_LINE: RegExp =
-  /^( {2})*(- )?([A-Za-z0-9_.-]+:( .+)?|"[^"]*"|[A-Za-z0-9_.:/@-]+)$/;
+  /^(( {2})*(- )?([A-Za-z0-9_.$\\-]+:( .+)?|"[^"]*"|[A-Za-z0-9_.:/@-]+)|( {2})*#.*|)$/;
 const DOCUMENT_SEPARATOR: string = "---";
 const IMPORT_NAMES: RegExp =
   /import\s+(type\s+)?\{([^}]*)\}\s+from\s+"([^"]+)"/g;
@@ -673,6 +678,11 @@ describe("the OpenTelemetry guide catalog", () => {
       "rails",
       "sinatra",
       "sidekiq",
+      // PHP.
+      "php",
+      "laravel",
+      "symfony",
+      "slim",
     ]);
   });
 

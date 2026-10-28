@@ -43,6 +43,10 @@ import { RubyGuide } from "./Guides/Ruby";
 import { RailsGuide } from "./Guides/Rails";
 import { SinatraGuide } from "./Guides/Sinatra";
 import { SidekiqGuide } from "./Guides/Sidekiq";
+import { PhpGuide } from "./Guides/Php";
+import { LaravelGuide } from "./Guides/Laravel";
+import { SymfonyGuide } from "./Guides/Symfony";
+import { SlimGuide } from "./Guides/Slim";
 
 /*
  * Every OpenTelemetry guide the website publishes, in the catalog's order
@@ -85,6 +89,10 @@ export const OPEN_TELEMETRY_GUIDE_PAGES: ReadonlyArray<OpenTelemetryGuide> = [
   RailsGuide,
   SinatraGuide,
   SidekiqGuide,
+  PhpGuide,
+  LaravelGuide,
+  SymfonyGuide,
+  SlimGuide,
 ];
 
 export const INTEGRATIONS_INDEX_TITLE: string = "Integrations";

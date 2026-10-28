@@ -13,6 +13,7 @@ import {
   PYTHON_PROTOCOL_NOTE,
   PYTHON_STABLE_HTTP_NOTE,
 } from "./PythonShared";
+import { PHP_PREREQUISITE } from "./PhpShared";
 import { RUBY_PREREQUISITE } from "./RubyShared";
 
 /*
@@ -34,6 +35,7 @@ export const SHARED_GUIDE_TEXTS: Array<InlineText> = [
   DOTNET_PROTOCOL_NOTE,
   GO_PREREQUISITE,
   RUBY_PREREQUISITE,
+  PHP_PREREQUISITE,
   VALIDATE_SERVER_KEY_BODY,
   VALIDATE_BROWSER_KEY_BODY,
 ];
