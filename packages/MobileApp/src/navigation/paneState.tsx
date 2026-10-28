@@ -201,10 +201,17 @@ export function usePaneScrollRestoration(
   const restored: React.MutableRefObject<boolean> = useRef<boolean>(
     savedOffset.current <= 0,
   );
-  // A list with no position of its own yet may open past its header, once.
-  const headerSkipArmed: React.MutableRefObject<boolean> = useRef<boolean>(
+  /*
+   * A list with no position of its own yet opens past its header, and stays
+   * at its first row while the header settles (its rows' count, a filter
+   * that wraps) - until the reader scrolls it themselves.
+   */
+  const followsHeader: React.MutableRefObject<boolean> = useRef<boolean>(
     !hadPosition,
   );
+  const headerEnd: React.MutableRefObject<number> = useRef<number>(0);
+  // Scroll events still to come from this hook's own scrolling, not the reader's.
+  const ownScrolls: React.MutableRefObject<number> = useRef<number>(0);
   const startPastHeader: React.MutableRefObject<boolean> = useRef<boolean>(
     opensAtFirstRow(pane),
   );
@@ -224,6 +231,7 @@ export function usePaneScrollRestoration(
       return;
     }
     restored.current = true;
+    ownScrolls.current += 1;
     scrollToRef.current(savedOffset.current);
   }, []);
 
@@ -232,8 +240,12 @@ export function usePaneScrollRestoration(
       (event: NativeSyntheticEvent<NativeScrollEvent>): void => {
         const offsetY: number = event.nativeEvent?.contentOffset?.y ?? 0;
         store?.values.set(storeKey, offsetY);
-        // Scrolled by hand before the header was measured: that is the position now.
-        headerSkipArmed.current = false;
+        if (ownScrolls.current > 0) {
+          ownScrolls.current -= 1;
+          return;
+        }
+        // The reader scrolled: where they leave the list is its position now.
+        followsHeader.current = false;
       },
       [store, storeKey],
     );
@@ -249,15 +261,15 @@ export function usePaneScrollRestoration(
 
   const onHeaderLayout: (event: LayoutChangeEvent) => void = useCallback(
     (event: LayoutChangeEvent): void => {
-      if (!headerSkipArmed.current || !startPastHeader.current) {
+      if (!followsHeader.current || !startPastHeader.current) {
         return;
       }
-      headerSkipArmed.current = false;
       const { y, height } = event.nativeEvent.layout;
       const firstRow: number = headerTop.current + y + height;
-      if (!(firstRow > 0)) {
+      if (!(firstRow > 0) || Math.abs(firstRow - headerEnd.current) < 0.5) {
         return;
       }
+      headerEnd.current = firstRow;
       savedOffset.current = firstRow;
       restored.current = false;
       restoreWhenTallEnough();

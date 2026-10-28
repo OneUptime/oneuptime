@@ -135,7 +135,7 @@ describe("The list below a tabletop fold opens at its first row", () => {
     expect(scrollTo).toHaveBeenCalledWith(254);
   });
 
-  test("the header measured again later - a filter that wraps - moves nothing", async () => {
+  test("while the header settles - its rows' count arriving, a filter wrapping - the first row stays at the top", async () => {
     const scrollTo: jest.Mock<(offsetY: number) => void> = jest.fn();
     const probe: { current: PaneScrollRestoration | null } = { current: null };
     await render(
@@ -144,10 +144,35 @@ describe("The list below a tabletop fold opens at its first row", () => {
 
     probe.current?.onContentSizeChange(400, 2000);
     probe.current?.onHeaderLayout(headerLayout(0, 250));
+    // The list reports the scroll this hook asked for.
+    await act(async () => {
+      probe.current?.onScroll(scrollEvent(250));
+    });
+    probe.current?.onHeaderLayout(headerLayout(0, 300));
+    // Measured again at the same size: nothing to do.
     probe.current?.onHeaderLayout(headerLayout(0, 300));
     probe.current?.onContentSizeChange(400, 2400);
 
-    expect(scrollTo).toHaveBeenCalledTimes(1);
+    expect(scrollTo.mock.calls).toEqual([[250], [300]]);
+  });
+
+  test("once the reader scrolls, the header can settle without moving the list", async () => {
+    const scrollTo: jest.Mock<(offsetY: number) => void> = jest.fn();
+    const probe: { current: PaneScrollRestoration | null } = { current: null };
+    await render(
+      inPane(STACKED_LIST, <Scroller scrollTo={scrollTo} probe={probe} />),
+    );
+
+    probe.current?.onContentSizeChange(400, 2000);
+    probe.current?.onHeaderLayout(headerLayout(0, 250));
+    await act(async () => {
+      probe.current?.onScroll(scrollEvent(250));
+      // The reader pulls the search back into view.
+      probe.current?.onScroll(scrollEvent(120));
+    });
+    probe.current?.onHeaderLayout(headerLayout(0, 320));
+
+    expect(scrollTo.mock.calls).toEqual([[250]]);
   });
 
   test("a reader who scrolled before the header was measured keeps their own position", async () => {
