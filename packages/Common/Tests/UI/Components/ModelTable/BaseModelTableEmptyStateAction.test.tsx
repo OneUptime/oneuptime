@@ -978,9 +978,14 @@ describe("a viewer who may read none of the columns", () => {
 
     expect(kindOf(block)).toBe(TableEmptyStateKind.NoAccess);
     expect(titleOf(block)).toBe("You don't have access to this list");
+    /*
+     * The permission to ask for, then who to ask - not the eight roles and
+     * permissions that may read monitors.
+     */
     expect(block).toHaveTextContent(
-      "Ask a project admin for one of these permissions:",
+      "You need this permission: Read Monitor. Ask a project admin for access.",
     );
+    expect(block).not.toHaveTextContent("Project Owner");
     expect(screen.queryByTestId(NO_ITEMS_TEST_ID)).toBeNull();
   });
 });

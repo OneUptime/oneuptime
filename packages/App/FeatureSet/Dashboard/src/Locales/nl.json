@@ -14026,7 +14026,6 @@
   "Clear Search and Filters": "Zoekopdracht en filters wissen",
   "You don't have permission to create these. Ask a project admin for access.": "U hebt geen toestemming om deze te maken. Vraag een projectbeheerder om toegang.",
   "You don't have access to this list": "U hebt geen toegang tot deze lijst",
-  "Ask a project admin for one of these permissions:": "Vraag een projectbeheerder om een van deze machtigingen:",
   "No active incidents": "Geen actieve incidenten",
   "Nice work! Every incident is resolved.": "Goed werk! Alle incidenten zijn opgelost.",
   "No active alerts": "Geen actieve waarschuwingen",
@@ -36335,5 +36334,12 @@
   "Resolved by OneUptime AI. Nobody was paged.": "Opgelost door OneUptime AI. Niemand is opgeroepen.",
   "Wait for OneUptime AI for up to (minutes)": "Maximaal zo lang op OneUptime AI wachten (minuten)",
   "Wait from 1 to 30 whole minutes.": "Wacht 1 tot 30 hele minuten.",
-  "This page will come back as soon as you're online again, just as you left it.": "Deze pagina komt terug zodra u weer online bent, precies zoals u haar achterliet."
+  "This page will come back as soon as you're online again, just as you left it.": "Deze pagina komt terug zodra u weer online bent, precies zoals u haar achterliet.",
+  "Ask a project admin for access.": "Vraag een projectbeheerder om toegang.",
+  "You do not have permission to change these settings.": "U hebt geen toestemming om deze instellingen te wijzigen.",
+  "You do not have permission to reset this email address.": "U hebt geen toestemming om dit e-mailadres opnieuw in te stellen.",
+  "You do not have permission to reset this webhook URL.": "U hebt geen toestemming om deze webhook-URL opnieuw in te stellen.",
+  "You need one of these roles: {{roles}}.": "U hebt een van deze rollen nodig: {{roles}}.",
+  "You need this permission: {{permission}}.": "U hebt dit recht nodig: {{permission}}.",
+  "You need this role: {{role}}.": "U hebt deze rol nodig: {{role}}."
 }

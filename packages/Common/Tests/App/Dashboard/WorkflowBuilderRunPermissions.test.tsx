@@ -140,9 +140,9 @@ const PAGE_PROPS: PageComponentProps = {
   hasPaymentMethod: false,
 };
 
-const RUN_REFUSED: string = `${WORKFLOW_RUN_REFUSED_MESSAGE} You need one of these permissions: Project Owner, Project Admin, Edit Workflow, Workflow Admin, Workflow Member.`;
+const RUN_REFUSED: string = `${WORKFLOW_RUN_REFUSED_MESSAGE} You need this permission: Edit Workflow.`;
 
-const STEP_RUN_REFUSED: string = `${WORKFLOW_STEP_RUN_REFUSED_MESSAGE} You need one of these permissions: Project Owner, Project Admin, Edit Workflow, Workflow Admin.`;
+const STEP_RUN_REFUSED: string = `${WORKFLOW_STEP_RUN_REFUSED_MESSAGE} You need this permission: Edit Workflow.`;
 
 // Roles that open a workflow and may not run it.
 const MAY_NOT_RUN: Array<Permission> = [

@@ -14026,7 +14026,6 @@
   "Clear Search and Filters": "खोज और फ़िल्टर साफ़ करें",
   "You don't have permission to create these. Ask a project admin for access.": "आपके पास इन्हें बनाने की अनुमति नहीं है। पहुंच के लिए किसी प्रोजेक्ट एडमिन से कहें।",
   "You don't have access to this list": "आपके पास इस सूची की पहुंच नहीं है",
-  "Ask a project admin for one of these permissions:": "किसी प्रोजेक्ट एडमिन से इनमें से कोई एक अनुमति मांगें:",
   "No active incidents": "कोई सक्रिय घटना नहीं",
   "Nice work! Every incident is resolved.": "बढ़िया काम! सभी घटनाएं सुलझा ली गई हैं।",
   "No active alerts": "कोई सक्रिय अलर्ट नहीं",
@@ -36335,5 +36334,12 @@
   "Resolved by OneUptime AI. Nobody was paged.": "OneUptime AI ने हल किया। किसी को नहीं बुलाया गया।",
   "Wait for OneUptime AI for up to (minutes)": "OneUptime AI के लिए अधिकतम प्रतीक्षा (मिनट)",
   "Wait from 1 to 30 whole minutes.": "1 से 30 पूरे मिनट तक प्रतीक्षा करें।",
-  "This page will come back as soon as you're online again, just as you left it.": "आपके फिर से ऑनलाइन होते ही यह पेज वैसा ही वापस आ जाएगा, जैसा आपने छोड़ा था।"
+  "This page will come back as soon as you're online again, just as you left it.": "आपके फिर से ऑनलाइन होते ही यह पेज वैसा ही वापस आ जाएगा, जैसा आपने छोड़ा था।",
+  "Ask a project admin for access.": "पहुंच के लिए किसी प्रोजेक्ट एडमिन से कहें।",
+  "You do not have permission to change these settings.": "आपको ये सेटिंग्स बदलने की अनुमति नहीं है।",
+  "You do not have permission to reset this email address.": "आपको यह ईमेल पता रीसेट करने की अनुमति नहीं है।",
+  "You do not have permission to reset this webhook URL.": "आपको यह वेबहुक URL रीसेट करने की अनुमति नहीं है।",
+  "You need one of these roles: {{roles}}.": "आपको इनमें से एक भूमिका चाहिए: {{roles}}।",
+  "You need this permission: {{permission}}.": "आपको यह अनुमति चाहिए: {{permission}}।",
+  "You need this role: {{role}}.": "आपको यह भूमिका चाहिए: {{role}}।"
 }

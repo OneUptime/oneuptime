@@ -14026,7 +14026,6 @@
   "Clear Search and Filters": "Очистить поиск и фильтры",
   "You don't have permission to create these. Ask a project admin for access.": "У вас нет прав на их создание. Попросите доступ у администратора проекта.",
   "You don't have access to this list": "У вас нет доступа к этому списку",
-  "Ask a project admin for one of these permissions:": "Попросите администратора проекта выдать одно из этих разрешений:",
   "No active incidents": "Нет активных инцидентов",
   "Nice work! Every incident is resolved.": "Отличная работа! Все инциденты устранены.",
   "No active alerts": "Нет активных оповещений",
@@ -36335,5 +36334,12 @@
   "Resolved by OneUptime AI. Nobody was paged.": "Устранено OneUptime AI. Никого не вызывали.",
   "Wait for OneUptime AI for up to (minutes)": "Ждать OneUptime AI не дольше (минуты)",
   "Wait from 1 to 30 whole minutes.": "Укажите от 1 до 30 целых минут.",
-  "This page will come back as soon as you're online again, just as you left it.": "Как только вы снова будете в сети, страница вернётся в том виде, в каком вы её оставили."
+  "This page will come back as soon as you're online again, just as you left it.": "Как только вы снова будете в сети, страница вернётся в том виде, в каком вы её оставили.",
+  "Ask a project admin for access.": "Попросите доступ у администратора проекта.",
+  "You do not have permission to change these settings.": "У вас нет прав на изменение этих настроек.",
+  "You do not have permission to reset this email address.": "У вас нет прав на сброс этого адреса электронной почты.",
+  "You do not have permission to reset this webhook URL.": "У вас нет прав на сброс URL этого webhook.",
+  "You need one of these roles: {{roles}}.": "Требуется одна из этих ролей: {{roles}}.",
+  "You need this permission: {{permission}}.": "Требуется это право: {{permission}}.",
+  "You need this role: {{role}}.": "Требуется эта роль: {{role}}."
 }

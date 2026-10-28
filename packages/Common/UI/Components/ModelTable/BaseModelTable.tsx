@@ -5503,9 +5503,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 <div data-testid={`${props.id}-no-access`}>
                   <TableEmptyState
                     {...buildNoAccessState({
-                      permissionTitles: PermissionGate.getPermissionTitles(
-                        model.getReadPermissions(),
-                      ),
+                      neededPermissions:
+                        PermissionGate.getNeededPermissionsSentence(
+                          model.getReadPermissions(),
+                          translator,
+                        ),
                       translate: tx,
                     })}
                   />

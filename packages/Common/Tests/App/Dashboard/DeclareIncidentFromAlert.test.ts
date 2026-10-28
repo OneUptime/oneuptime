@@ -49,10 +49,10 @@ const ALERT_ID: string = "22222222-2222-4222-8222-000000000001";
 const OTHER_ALERT_ID: string = "22222222-2222-4222-8222-000000000002";
 
 const INCIDENT_CREATE_REASON: string =
-  "You do not have permission to create this Incident. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Create Incident.";
+  "You do not have permission to create this Incident. You need this permission: Create Incident.";
 
 const INCIDENT_ALERT_CREATE_REASON: string =
-  "You do not have permission to create this Incident Alert. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Alert Admin, Alert Member, Create Incident Alert.";
+  "You do not have permission to create this Incident Alert. You need this permission: Create Incident Alert.";
 
 let permissionsForTest: Array<Permission> = [];
 let navigateSpy: ReturnType<typeof jest.spyOn>;

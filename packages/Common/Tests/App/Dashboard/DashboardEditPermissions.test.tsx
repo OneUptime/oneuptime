@@ -317,12 +317,14 @@ describe("DashboardView - a reader cannot edit the board (issue #3550)", () => {
 
       const tooltip: HTMLElement = screen.getByRole("tooltip");
 
+      /*
+       * The human title, not the raw `EditDashboard` enum value - and the
+       * permission to ask for, not the roles that hold it as well.
+       */
       expect(tooltip).toHaveTextContent(
-        "You do not have permission to update this Dashboard.",
+        "You do not have permission to update this Dashboard. You need this permission: Edit Dashboard.",
       );
-      /* The human title, not the raw `EditDashboard` enum value. */
-      expect(tooltip).toHaveTextContent("Edit Dashboard");
-      expect(tooltip).toHaveTextContent("Project Admin");
+      expect(tooltip).not.toHaveTextContent("Project Admin");
     });
 
     /*

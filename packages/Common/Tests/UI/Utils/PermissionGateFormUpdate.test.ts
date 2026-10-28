@@ -154,7 +154,7 @@ describe("PermissionGate.checkFormUpdate", () => {
 
     expect(result.isAllowed).toBe(false);
     expect(result.disabledReason).toBe(
-      "You do not have permission to update this Project. You need one of these permissions: Project Owner, Manage Billing, Edit Project.",
+      "You do not have permission to update this Project. You need one of these permissions: Manage Billing, Edit Project.",
     );
   });
 
@@ -176,7 +176,7 @@ describe("PermissionGate.checkFormUpdate", () => {
 
     expect(result.isAllowed).toBe(false);
     expect(result.disabledReason).toBe(
-      "You do not have permission to update this Project. You need one of these permissions: Project Owner, Billing Admin, Manage Billing.",
+      "You do not have permission to update this Project. You need this permission: Manage Billing.",
     );
   });
 
@@ -203,7 +203,7 @@ describe("PermissionGate.checkFormUpdate", () => {
     expect(result.isAllowed).toBe(false);
     // The finance email is a billing contact detail: Billing Member's too.
     expect(result.disabledReason).toBe(
-      "You do not have permission to update this Project. You need one of these permissions: Project Owner, Billing Admin, Manage Billing, Billing Member.",
+      "You do not have permission to update this Project. You need this permission: Manage Billing.",
     );
   });
 
@@ -219,7 +219,10 @@ describe("PermissionGate.checkFormUpdate", () => {
       PermissionGate.check(new Project(), ModelAction.Update),
     );
     expect(result.isAllowed).toBe(false);
-    expect(result.disabledReason).toContain("Billing Admin");
+    // The record's own permissions, Manage Billing among them.
+    expect(result.disabledReason).toBe(
+      "You do not have permission to update this Project. You need one of these permissions: Manage Billing, Edit Project.",
+    );
   });
 
   test("a refusal from the record's own list wins: the columns are not asked", () => {
@@ -296,7 +299,13 @@ describe("PermissionGate.checkFormUpdate", () => {
     );
 
     expect(result.isAllowed).toBe(false);
-    expect(result.disabledReason).toContain("Workflow Admin");
+    /*
+     * The columns' own permission - Workflow Admin opens them as well, and
+     * Workflow Member does not, but a lock names the permission to ask for.
+     */
+    expect(result.disabledReason).toBe(
+      "You do not have permission to update this Workflow. You need this permission: Edit Workflow.",
+    );
     expect(result.disabledReason).not.toContain("Workflow Member");
   });
 });
@@ -329,7 +338,7 @@ describe("PermissionGate.checkPermissions", () => {
     ).toEqual({
       isAllowed: false,
       disabledReason:
-        "You do not have permission to run this workflow. You need one of these permissions: Project Owner, Project Admin, Edit Workflow, Workflow Admin, Workflow Member.",
+        "You do not have permission to run this workflow. You need this permission: Edit Workflow.",
     });
   });
 

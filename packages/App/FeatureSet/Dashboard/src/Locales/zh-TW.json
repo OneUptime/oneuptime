@@ -14026,7 +14026,6 @@
   "Clear Search and Filters": "清除搜尋和篩選器",
   "You don't have permission to create these. Ask a project admin for access.": "您沒有建立這些項目的權限。請向專案管理員申請存取權限。",
   "You don't have access to this list": "您沒有存取此清單的權限",
-  "Ask a project admin for one of these permissions:": "請向專案管理員申請下列任一權限：",
   "No active incidents": "沒有作用中的事件",
   "Nice work! Every incident is resolved.": "做得好！所有事件皆已解決。",
   "No active alerts": "沒有作用中的警示",
@@ -36335,5 +36334,12 @@
   "Resolved by OneUptime AI. Nobody was paged.": "已由 OneUptime AI 解決。沒有呼叫任何人。",
   "Wait for OneUptime AI for up to (minutes)": "最多等待 OneUptime AI（分鐘）",
   "Wait from 1 to 30 whole minutes.": "請輸入 1 到 30 之間的整數分鐘。",
-  "This page will come back as soon as you're online again, just as you left it.": "恢復連線後，此頁面會立即恢復，保持你離開時的樣子。"
+  "This page will come back as soon as you're online again, just as you left it.": "恢復連線後，此頁面會立即恢復，保持你離開時的樣子。",
+  "Ask a project admin for access.": "請向專案管理員申請存取權限。",
+  "You do not have permission to change these settings.": "您沒有變更這些設定的權限。",
+  "You do not have permission to reset this email address.": "您沒有重設此電子郵件地址的權限。",
+  "You do not have permission to reset this webhook URL.": "您沒有重設此 Webhook URL 的權限。",
+  "You need one of these roles: {{roles}}.": "您需要下列其中一個角色：{{roles}}。",
+  "You need this permission: {{permission}}.": "您需要下列權限：{{permission}}。",
+  "You need this role: {{role}}.": "您需要下列角色：{{role}}。"
 }

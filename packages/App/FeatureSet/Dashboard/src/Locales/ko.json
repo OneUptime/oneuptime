@@ -14026,7 +14026,6 @@
   "Clear Search and Filters": "검색 및 필터 지우기",
   "You don't have permission to create these. Ask a project admin for access.": "이 항목을 만들 권한이 없습니다. 프로젝트 관리자에게 액세스 권한을 요청하세요.",
   "You don't have access to this list": "이 목록에 액세스할 권한이 없습니다",
-  "Ask a project admin for one of these permissions:": "프로젝트 관리자에게 다음 권한 중 하나를 요청하세요:",
   "No active incidents": "활성 인시던트가 없습니다",
   "Nice work! Every incident is resolved.": "잘하셨습니다! 모든 인시던트가 해결되었습니다.",
   "No active alerts": "활성 경고가 없습니다",
@@ -36335,5 +36334,12 @@
   "Resolved by OneUptime AI. Nobody was paged.": "OneUptime AI가 해결했습니다. 아무도 호출되지 않았습니다.",
   "Wait for OneUptime AI for up to (minutes)": "OneUptime AI 최대 대기 시간(분)",
   "Wait from 1 to 30 whole minutes.": "1~30분 사이의 정수로 입력하세요.",
-  "This page will come back as soon as you're online again, just as you left it.": "다시 온라인 상태가 되는 즉시 이 페이지가 보던 그대로 다시 표시됩니다."
+  "This page will come back as soon as you're online again, just as you left it.": "다시 온라인 상태가 되는 즉시 이 페이지가 보던 그대로 다시 표시됩니다.",
+  "Ask a project admin for access.": "프로젝트 관리자에게 액세스 권한을 요청하세요.",
+  "You do not have permission to change these settings.": "이 설정을 변경할 권한이 없습니다.",
+  "You do not have permission to reset this email address.": "이 이메일 주소를 재설정할 권한이 없습니다.",
+  "You do not have permission to reset this webhook URL.": "이 웹훅 URL을 재설정할 권한이 없습니다.",
+  "You need one of these roles: {{roles}}.": "다음 역할 중 하나가 필요합니다: {{roles}}.",
+  "You need this permission: {{permission}}.": "다음 권한이 필요합니다: {{permission}}.",
+  "You need this role: {{role}}.": "다음 역할이 필요합니다: {{role}}."
 }

@@ -14026,7 +14026,6 @@
   "Clear Search and Filters": "検索とフィルターをクリア",
   "You don't have permission to create these. Ask a project admin for access.": "これらを作成する権限がありません。プロジェクト管理者にアクセス権を依頼してください。",
   "You don't have access to this list": "このリストにアクセスする権限がありません",
-  "Ask a project admin for one of these permissions:": "プロジェクト管理者に次のいずれかの権限を依頼してください:",
   "No active incidents": "アクティブなインシデントはありません",
   "Nice work! Every incident is resolved.": "お疲れ様です。すべてのインシデントが解決済みです。",
   "No active alerts": "アクティブなアラートはありません",
@@ -36335,5 +36334,12 @@
   "Resolved by OneUptime AI. Nobody was paged.": "OneUptime AI が解決しました。誰も呼び出されていません。",
   "Wait for OneUptime AI for up to (minutes)": "OneUptime AI を待つ最大時間 (分)",
   "Wait from 1 to 30 whole minutes.": "1〜30 分の整数で指定してください。",
-  "This page will come back as soon as you're online again, just as you left it.": "オンラインに戻るとすぐに、このページが元の状態のまま表示されます。"
+  "This page will come back as soon as you're online again, just as you left it.": "オンラインに戻るとすぐに、このページが元の状態のまま表示されます。",
+  "Ask a project admin for access.": "プロジェクト管理者にアクセス権を依頼してください。",
+  "You do not have permission to change these settings.": "これらの設定を変更する権限がありません。",
+  "You do not have permission to reset this email address.": "このメールアドレスをリセットする権限がありません。",
+  "You do not have permission to reset this webhook URL.": "この Webhook URL をリセットする権限がありません。",
+  "You need one of these roles: {{roles}}.": "次のいずれかのロールが必要です: {{roles}}。",
+  "You need this permission: {{permission}}.": "次の権限が必要です: {{permission}}。",
+  "You need this role: {{role}}.": "次のロールが必要です: {{role}}。"
 }

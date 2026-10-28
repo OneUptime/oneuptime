@@ -201,7 +201,7 @@ describe("CardModelDetail weighs the card's own fields", () => {
 
     expect(findEditButton()).toBeDisabled();
     expect(hoverEdit()).toHaveTextContent(
-      "You do not have permission to update this Project. You need one of these permissions: Project Owner, Manage Billing, Edit Project.",
+      "You do not have permission to update this Project. You need one of these permissions: Manage Billing, Edit Project.",
     );
   });
 
@@ -216,7 +216,7 @@ describe("CardModelDetail weighs the card's own fields", () => {
 
     expect(findEditButton()).toBeDisabled();
     expect(hoverEdit()).toHaveTextContent(
-      "You need one of these permissions: Project Owner, Billing Admin, Manage Billing.",
+      "You need this permission: Manage Billing.",
     );
   });
 
@@ -235,7 +235,7 @@ describe("CardModelDetail weighs the card's own fields", () => {
 
     expect(findEditButton()).toBeDisabled();
     expect(hoverEdit()).toHaveTextContent(
-      "You need one of these permissions: Project Owner, Manage Billing, Edit Project.",
+      "You need one of these permissions: Manage Billing, Edit Project.",
     );
   });
 

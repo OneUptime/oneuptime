@@ -14026,7 +14026,6 @@
   "Clear Search and Filters": "Effacer la recherche et les filtres",
   "You don't have permission to create these. Ask a project admin for access.": "Vous n'avez pas l'autorisation d'en créer. Demandez l'accès à un administrateur du projet.",
   "You don't have access to this list": "Vous n'avez pas accès à cette liste",
-  "Ask a project admin for one of these permissions:": "Demandez à un administrateur du projet l'une de ces autorisations :",
   "No active incidents": "Aucun incident actif",
   "Nice work! Every incident is resolved.": "Bien joué ! Tous les incidents sont résolus.",
   "No active alerts": "Aucune alerte active",
@@ -36335,5 +36334,12 @@
   "Resolved by OneUptime AI. Nobody was paged.": "Résolu par OneUptime AI. Personne n'a été alerté.",
   "Wait for OneUptime AI for up to (minutes)": "Attendre OneUptime AI au plus (minutes)",
   "Wait from 1 to 30 whole minutes.": "Attendez de 1 à 30 minutes entières.",
-  "This page will come back as soon as you're online again, just as you left it.": "Cette page reviendra dès que vous serez de nouveau en ligne, telle que vous l'avez laissée."
+  "This page will come back as soon as you're online again, just as you left it.": "Cette page reviendra dès que vous serez de nouveau en ligne, telle que vous l'avez laissée.",
+  "Ask a project admin for access.": "Demandez l'accès à un administrateur du projet.",
+  "You do not have permission to change these settings.": "Vous n'avez pas l'autorisation de modifier ces paramètres.",
+  "You do not have permission to reset this email address.": "Vous n'avez pas l'autorisation de réinitialiser cette adresse e-mail.",
+  "You do not have permission to reset this webhook URL.": "Vous n'avez pas l'autorisation de réinitialiser l'URL de ce webhook.",
+  "You need one of these roles: {{roles}}.": "Vous avez besoin de l'un de ces rôles : {{roles}}.",
+  "You need this permission: {{permission}}.": "Vous avez besoin de cette autorisation : {{permission}}.",
+  "You need this role: {{role}}.": "Vous avez besoin de ce rôle : {{role}}."
 }

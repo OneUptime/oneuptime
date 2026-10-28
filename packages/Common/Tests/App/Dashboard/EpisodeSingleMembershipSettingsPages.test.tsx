@@ -465,7 +465,7 @@ describe.each(PAGES)(
           pageCase.column as keyof Project & string,
         ]),
       ).toBe(
-        "Changing these needs one of these permissions: Project Owner, Project Admin.",
+        "You do not have permission to change these settings. You need one of these roles: Project Owner, Project Admin.",
       );
     });
 

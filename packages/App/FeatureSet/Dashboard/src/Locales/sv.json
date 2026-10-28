@@ -14026,7 +14026,6 @@
   "Clear Search and Filters": "Rensa sökning och filter",
   "You don't have permission to create these. Ask a project admin for access.": "Du har inte behörighet att skapa dessa. Be en projektadministratör om åtkomst.",
   "You don't have access to this list": "Du har inte åtkomst till den här listan",
-  "Ask a project admin for one of these permissions:": "Be en projektadministratör om en av dessa behörigheter:",
   "No active incidents": "Inga aktiva incidenter",
   "Nice work! Every incident is resolved.": "Bra jobbat! Alla incidenter är lösta.",
   "No active alerts": "Inga aktiva larm",
@@ -36335,5 +36334,12 @@
   "Resolved by OneUptime AI. Nobody was paged.": "Löst av OneUptime AI. Ingen larmades.",
   "Wait for OneUptime AI for up to (minutes)": "Vänta på OneUptime AI i upp till (minuter)",
   "Wait from 1 to 30 whole minutes.": "Vänta från 1 till 30 hela minuter.",
-  "This page will come back as soon as you're online again, just as you left it.": "Den här sidan kommer tillbaka så snart du är online igen, precis som du lämnade den."
+  "This page will come back as soon as you're online again, just as you left it.": "Den här sidan kommer tillbaka så snart du är online igen, precis som du lämnade den.",
+  "Ask a project admin for access.": "Be en projektadministratör om åtkomst.",
+  "You do not have permission to change these settings.": "Du har inte behörighet att ändra de här inställningarna.",
+  "You do not have permission to reset this email address.": "Du har inte behörighet att återställa den här e-postadressen.",
+  "You do not have permission to reset this webhook URL.": "Du har inte behörighet att återställa den här webhook-URL:en.",
+  "You need one of these roles: {{roles}}.": "Du behöver en av dessa roller: {{roles}}.",
+  "You need this permission: {{permission}}.": "Du behöver den här behörigheten: {{permission}}.",
+  "You need this role: {{role}}.": "Du behöver den här rollen: {{role}}."
 }

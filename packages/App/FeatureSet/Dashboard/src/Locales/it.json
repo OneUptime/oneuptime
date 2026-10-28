@@ -14026,7 +14026,6 @@
   "Clear Search and Filters": "Cancella ricerca e filtri",
   "You don't have permission to create these. Ask a project admin for access.": "Non hai l'autorizzazione per crearli. Chiedi l'accesso a un amministratore del progetto.",
   "You don't have access to this list": "Non hai accesso a questo elenco",
-  "Ask a project admin for one of these permissions:": "Chiedi a un amministratore del progetto una di queste autorizzazioni:",
   "No active incidents": "Nessun incidente attivo",
   "Nice work! Every incident is resolved.": "Ottimo lavoro! Tutti gli incidenti sono risolti.",
   "No active alerts": "Nessun avviso attivo",
@@ -36335,5 +36334,12 @@
   "Resolved by OneUptime AI. Nobody was paged.": "Risolto da OneUptime AI. Nessuno è stato chiamato.",
   "Wait for OneUptime AI for up to (minutes)": "Attendi OneUptime AI fino a (minuti)",
   "Wait from 1 to 30 whole minutes.": "Attendi da 1 a 30 minuti interi.",
-  "This page will come back as soon as you're online again, just as you left it.": "Questa pagina tornerà appena sarai di nuovo online, così come l'hai lasciata."
+  "This page will come back as soon as you're online again, just as you left it.": "Questa pagina tornerà appena sarai di nuovo online, così come l'hai lasciata.",
+  "Ask a project admin for access.": "Chiedi l'accesso a un amministratore del progetto.",
+  "You do not have permission to change these settings.": "Non hai l'autorizzazione per modificare queste impostazioni.",
+  "You do not have permission to reset this email address.": "Non hai l'autorizzazione per reimpostare questo indirizzo email.",
+  "You do not have permission to reset this webhook URL.": "Non hai l'autorizzazione per reimpostare l'URL di questo webhook.",
+  "You need one of these roles: {{roles}}.": "Ti serve uno di questi ruoli: {{roles}}.",
+  "You need this permission: {{permission}}.": "Ti serve questa autorizzazione: {{permission}}.",
+  "You need this role: {{role}}.": "Ti serve questo ruolo: {{role}}."
 }

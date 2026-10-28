@@ -14026,7 +14026,6 @@
   "Clear Search and Filters": "Clear Search and Filters",
   "You don't have permission to create these. Ask a project admin for access.": "You don't have permission to create these. Ask a project admin for access.",
   "You don't have access to this list": "You don't have access to this list",
-  "Ask a project admin for one of these permissions:": "Ask a project admin for one of these permissions:",
   "No active incidents": "No active incidents",
   "Nice work! Every incident is resolved.": "Nice work! Every incident is resolved.",
   "No active alerts": "No active alerts",
@@ -36335,5 +36334,12 @@
   "Resolved by OneUptime AI. Nobody was paged.": "Resolved by OneUptime AI. Nobody was paged.",
   "Wait for OneUptime AI for up to (minutes)": "Wait for OneUptime AI for up to (minutes)",
   "Wait from 1 to 30 whole minutes.": "Wait from 1 to 30 whole minutes.",
-  "This page will come back as soon as you're online again, just as you left it.": "This page will come back as soon as you're online again, just as you left it."
+  "This page will come back as soon as you're online again, just as you left it.": "This page will come back as soon as you're online again, just as you left it.",
+  "Ask a project admin for access.": "Ask a project admin for access.",
+  "You do not have permission to change these settings.": "You do not have permission to change these settings.",
+  "You do not have permission to reset this email address.": "You do not have permission to reset this email address.",
+  "You do not have permission to reset this webhook URL.": "You do not have permission to reset this webhook URL.",
+  "You need one of these roles: {{roles}}.": "You need one of these roles: {{roles}}.",
+  "You need this permission: {{permission}}.": "You need this permission: {{permission}}.",
+  "You need this role: {{role}}.": "You need this role: {{role}}."
 }

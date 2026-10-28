@@ -99,7 +99,7 @@ const DECLARE_INCIDENT_BUTTON_ID: string = "alert-declare-incident-btn";
 const DECLARE_INCIDENT_FROM_ALERT_PATH: string = `${DASHBOARD}/incidents/create?alertIds=${ALERT_ID}`;
 // Its disabled reason for someone who may not create incidents (PermissionGate).
 const DECLARE_INCIDENT_DENIED: string =
-  "You do not have permission to create this Incident. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Create Incident.";
+  "You do not have permission to create this Incident. You need this permission: Create Incident.";
 
 interface RecordedApiRequest {
   method: string;
@@ -9522,7 +9522,7 @@ test.describe("the header, by its own width", () => {
 
     // What they pressed, in their words - not "create this Incident State Timeline".
     const reason: string =
-      "You do not have permission to change this incident's state. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Create Incident State Timeline.";
+      "You do not have permission to change this incident's state. You need this permission: Create Incident State Timeline.";
     await expect(heroActions(page).getByRole("button")).toHaveText([
       "Acknowledge",
       "Resolve",
