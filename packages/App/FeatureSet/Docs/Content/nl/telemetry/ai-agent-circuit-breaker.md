@@ -46,26 +46,26 @@ Uitgaven zijn het zekerste teken van een op hol geslagen agent. Een budget telt 
 :::steps
 1. Open **Producten → AI / LLM → Budgetten** en klik op **LLM Cost Budget aanmaken**. Stel een **Dagbudget (USD)** in, en kies de service van de agent bij **Service (optioneel)** zodat het budget alleen die agent volgt.
 2. Kies in het rijmenu van het nieuwe budget **ID weergeven** en kopieer de ID.
-3. Maak een [Metrics-monitor](/docs/monitor/metrics-monitor) op `oneuptime.llm.budget.percent.used`, gefilterd op het attribuut `oneuptime.llm.budget.id` met de gekopieerde ID, en zet het **Tijdsbereik** op **Afgelopen 30 minuten**.
-4. Voeg een criterium **Groter dan of gelijk aan** `100` toe dat een waarschuwing maakt, en geef het een **Waarschuwingstitel** die de agent noemt, zoals `LLM budget exceeded: support-bot`. De workflow en je endpoint lezen allebei die titel.
+3. Maak een [Metrics-monitor](/docs/monitor/metrics-monitor) op `oneuptime.llm.budget.percent.used`, gefilterd op het attribuut `oneuptime.llm.budget.id` met de gekopieerde ID, en zet het **Tijdvenster** op **Laatste 30 minuten**.
+4. Zet in **Wanneer waarschuwen** de **Voorwaarde** op **Op of boven** en de **Waarde** op `100`, laat **Een waarschuwing maken** staan, en geef het een **Waarschuwingstitel** die de agent noemt, zoals `LLM budget exceeded: support-bot`. De workflow en je endpoint lezen allebei die titel.
 :::
 
 Filter op de ID, niet op de naam: een budget hernoemen hernoemt zijn reeks, en een monitor die op de oude naam filtert, zou ongemerkt niets meer vinden. Houd het tijdsbereik op 30 minuten: een budget publiceert elke 15 minuten één punt, dus een korter bereik vindt niets tussen twee punten en de waarschuwing gaat steeds open en dicht.
 
-Een tweede criterium op `80` met een lagere ernst waarschuwt eerst een mens, via het dienstbeleid van de waarschuwing, voordat de circuit breaker bij `100` afgaat.
+Een tweede criterium op `80` met een lagere ernst, toegevoegd met **Bewerken als eigen criteria**, waarschuwt eerst een mens, via het dienstbeleid van de waarschuwing, voordat de circuit breaker bij `100` afgaat.
 
 ### Een luswaarschuwing
 
 Een vastgelopen agent laat een herkenbaar spoor na: dezelfde tool-span, steeds weer. Een gezonde run roept een tool niet tientallen keren in een paar minuten aan, dus een telling vangt de lus lang voor het budget.
 
 :::steps
-1. Open **Monitoren**, klik op **Monitor maken** en kies **Traces** onder **Meer monitortypen**.
-2. Zet onder **Meer velden** de optie **Filteren op telemetrieservice** op de service van de agent, en **Filteren op attributen** op `gen_ai.tool.name` gelijk aan de tool waarop je een lus verwacht, zoals `search_web`. Als je instrumentatie de span van elke tool een naam geeft, zet die naam dan in **Span-naam**.
-3. Zet **Bewaak traces gedurende (time)** op **Laatste 5 minuten**.
-4. Voeg een criterium **Span Count** **Groter dan** een getal toe dat geen gezonde run in vijf minuten haalt, zoals `50`, dat een waarschuwing maakt met een titel als `Agent loop: support-bot`.
+1. Open **Monitoren**, klik op **Monitor maken** en kies **Traces** onder **Meer monitortypen**. Kies onder **Waarover moet deze monitor je informeren?** voor **Iets anders**, en maak **Span-status** leeg.
+2. Zet onder **Meer velden** de optie **Filteren op telemetrieservice** op de service van de agent, en **Filteren op attributen** op `gen_ai.tool.name` gelijk aan de tool waarop je een lus verwacht, zoals `search_web`. Als je instrumentatie de span van elke tool een naam geeft, zet die naam dan in **Spannaam bevat**.
+3. Zet het **Tijdvenster** op **Laatste 5 minuten**.
+4. Zet in **Wanneer waarschuwen** **Meer dan** op een getal dat geen gezonde run in vijf minuten haalt, zoals `50`, en geef de waarschuwing een titel als `Agent loop: support-bot`.
 :::
 
-Een tweede tracemonitor met **Filteren op span-status** op **Fout** en een lagere telling vangt herhaalstormen: een tool die blijft falen en een agent die hem blijft proberen.
+Een tweede tracemonitor met **Span-status** op **Fout** en een lagere telling vangt herhaalstormen: een tool die blijft falen en een agent die hem blijft proberen.
 
 ## Bouw het stop-endpoint
 

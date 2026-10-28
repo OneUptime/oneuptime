@@ -27,7 +27,8 @@ export interface ComponentProps {
  * menus have, where a case has pages for them. Advanced folds by its title,
  * as theirs does, and opens by itself on its own pages.
  *
- * Beside Playbooks, how many of the case's runs wait for an approval
+ * Beside Playbooks, how many of the case's runs wait for an approval, and
+ * beside Tasks, how many of its tasks are not done yet
  * (SecurityCaseMenuBadgeCount.ts): seen from any page of the case.
  */
 const SecurityCaseSideMenu: FunctionComponent<ComponentProps> = (
@@ -56,7 +57,9 @@ const SecurityCaseSideMenu: FunctionComponent<ComponentProps> = (
                 ? {
                     modelType: count.modelType,
                     countQuery: count.countQuery,
-                    badgeType: count.badgeType,
+                    ...(count.badgeType !== undefined
+                      ? { badgeType: count.badgeType }
+                      : {}),
                   }
                 : {}),
             };

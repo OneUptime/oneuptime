@@ -31,7 +31,7 @@ När en jourpolicy larmar någon och personens jourregel använder kanalen skick
 
 ## Lägg till en kanal
 
-1. Öppna **Inställningar** i Admin Dashboard, sedan **Custom Channels**, och välj **Add**.
+1. Öppna **Inställningar** i Admin Dashboard, sedan **Notifieringar > Custom Channels** i sidomenyn (**Notifieringar** är hopfällt från början), och välj **Add**.
 2. Fyll i steget **Channel**:
    - **Namn**: det som personer ser i sina aviseringsmetoder och jourregler, till exempel `CorpoApp`.
    - **Webhook URL**: dit OneUptime skickar varje larm. Den kan ligga i ditt privata nätverk.

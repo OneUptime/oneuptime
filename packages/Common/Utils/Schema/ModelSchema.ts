@@ -6,24 +6,26 @@ import {
 } from "../../Types/Database/TableColumn";
 import Dictionary from "../../Types/Dictionary";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import Color from "../../Types/Color";
 import { z as ZodTypes } from "zod";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Permission, { PermissionHelper } from "../../Types/Permission";
 import { ColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
 import { BaseSchema, SchemaExample, ShapeRecord } from "./BaseSchema";
-import ObjectID from "../../Types/ObjectID";
-import Email from "../../Types/Email";
-import Phone from "../../Types/Phone";
-import Domain from "../../Types/Domain";
-import Version from "../../Types/Version";
-import Name from "../../Types/Name";
-import IP from "../../Types/IP/IP";
-import Port from "../../Types/Port";
-import MonitorSteps from "../../Types/Monitor/MonitorSteps";
+import {
+  getColorSchema,
+  getDateSchema,
+  getDomainSchema,
+  getEmailSchema,
+  getIPSchema,
+  getNameSchema,
+  getObjectIDSchema,
+  getPhoneSchema,
+  getPortSchema,
+  getVersionSchema,
+} from "./TypeSchemas";
+import { getMonitorStepsSchema } from "./MonitorSchemas";
 import MonitorType from "../../Types/Monitor/MonitorType";
 import WorkflowStatus from "../../Types/Workflow/WorkflowStatus";
-import OneUptimeDate from "../../Types/Date";
 
 export type ModelSchemaType = ZodSchema;
 
@@ -136,13 +138,13 @@ export class ModelSchema extends BaseSchema {
       let zodType: ZodTypes.ZodTypeAny;
 
       if (column.type === TableColumnType.ObjectID) {
-        zodType = ObjectID.getSchema();
+        zodType = getObjectIDSchema();
       } else if (column.type === TableColumnType.Color) {
-        zodType = Color.getSchema();
+        zodType = getColorSchema();
       } else if (column.type === TableColumnType.MonitorSteps) {
-        zodType = MonitorSteps.getSchema();
+        zodType = getMonitorStepsSchema();
       } else if (column.type === TableColumnType.Date) {
-        zodType = OneUptimeDate.getSchema();
+        zodType = getDateSchema();
       } else if (column.type === TableColumnType.VeryLongText) {
         zodType = z.string().openapi({
           type: "string",
@@ -159,7 +161,7 @@ export class ModelSchema extends BaseSchema {
         }
         zodType = z.number().openapi(openapiConfig);
       } else if (column.type === TableColumnType.Email) {
-        zodType = Email.getSchema();
+        zodType = getEmailSchema();
       } else if (column.type === TableColumnType.HashedString) {
         /*
          * format: password marks the field as a secret for spec consumers
@@ -194,9 +196,9 @@ export class ModelSchema extends BaseSchema {
         }
         zodType = z.string().openapi(openapiConfig);
       } else if (column.type === TableColumnType.Phone) {
-        zodType = Phone.getSchema();
+        zodType = getPhoneSchema();
       } else if (column.type === TableColumnType.Version) {
-        zodType = Version.getSchema();
+        zodType = getVersionSchema();
       } else if (column.type === TableColumnType.Password) {
         zodType = z.string().openapi({
           type: "string",
@@ -204,7 +206,7 @@ export class ModelSchema extends BaseSchema {
           example: "••••••••",
         });
       } else if (column.type === TableColumnType.Name) {
-        zodType = Name.getSchema();
+        zodType = getNameSchema();
       } else if (column.type === TableColumnType.Description) {
         zodType = z.string().openapi({
           type: "string",
@@ -231,11 +233,11 @@ export class ModelSchema extends BaseSchema {
           example: "# Heading\n\nThis is **markdown** content",
         });
       } else if (column.type === TableColumnType.Domain) {
-        zodType = Domain.getSchema();
+        zodType = getDomainSchema();
       } else if (column.type === TableColumnType.Port) {
-        zodType = Port.getSchema();
+        zodType = getPortSchema();
       } else if (column.type === TableColumnType.IP) {
-        zodType = IP.getSchema();
+        zodType = getIPSchema();
       } else if (column.type === TableColumnType.LongURL) {
         zodType = z.string().url().openapi({
           type: "string",
@@ -753,27 +755,27 @@ export class ModelSchema extends BaseSchema {
   ): ZodTypes.ZodTypeAny {
     switch (columnType) {
       case TableColumnType.ObjectID:
-        return ObjectID.getSchema();
+        return getObjectIDSchema();
 
       case TableColumnType.Email:
-        return Email.getSchema();
+        return getEmailSchema();
 
       case TableColumnType.Phone:
-        return Phone.getSchema();
+        return getPhoneSchema();
 
       case TableColumnType.Name:
-        return Name.getSchema();
+        return getNameSchema();
 
       case TableColumnType.Domain:
-        return Domain.getSchema();
+        return getDomainSchema();
 
       case TableColumnType.Version:
-        return Version.getSchema();
+        return getVersionSchema();
 
       case TableColumnType.IP:
-        return IP.getSchema();
+        return getIPSchema();
       case TableColumnType.Port:
-        return Port.getSchema();
+        return getPortSchema();
 
       case TableColumnType.HashedString:
       case TableColumnType.Slug:
@@ -812,7 +814,7 @@ export class ModelSchema extends BaseSchema {
         return z.any();
 
       case TableColumnType.Color:
-        return Color.getSchema();
+        return getColorSchema();
 
       case TableColumnType.Entity:
         return z.string(); // Entity IDs are typically strings
@@ -1400,17 +1402,17 @@ export class ModelSchema extends BaseSchema {
     };
 
     if (column.type === TableColumnType.ObjectID) {
-      zodType = ObjectID.getSchema();
+      zodType = getObjectIDSchema();
     } else if (column.type === TableColumnType.Port) {
-      zodType = Port.getSchema();
+      zodType = getPortSchema();
     } else if (column.type === TableColumnType.MonitorSteps) {
-      zodType = MonitorSteps.getSchema();
+      zodType = getMonitorStepsSchema();
     } else if (column.type === TableColumnType.IP) {
-      zodType = IP.getSchema();
+      zodType = getIPSchema();
     } else if (column.type === TableColumnType.Color) {
-      zodType = Color.getSchema();
+      zodType = getColorSchema();
     } else if (column.type === TableColumnType.Date) {
-      zodType = OneUptimeDate.getSchema();
+      zodType = getDateSchema();
     } else if (column.type === TableColumnType.VeryLongText) {
       zodType = applyOpenApi(z.string(), {
         type: "string",
@@ -1423,7 +1425,7 @@ export class ModelSchema extends BaseSchema {
     ) {
       zodType = applyOpenApi(z.number(), { type: "number", example: 42 });
     } else if (column.type === TableColumnType.Email) {
-      zodType = Email.getSchema();
+      zodType = getEmailSchema();
     } else if (column.type === TableColumnType.HashedString) {
       /*
        * format: password marks the field as a secret for spec consumers
@@ -1451,9 +1453,9 @@ export class ModelSchema extends BaseSchema {
           "This is an example of longer text content that might be stored in this field.",
       });
     } else if (column.type === TableColumnType.Phone) {
-      zodType = Phone.getSchema();
+      zodType = getPhoneSchema();
     } else if (column.type === TableColumnType.Version) {
-      zodType = Version.getSchema();
+      zodType = getVersionSchema();
     } else if (column.type === TableColumnType.Password) {
       zodType = applyOpenApi(z.string(), {
         type: "string",
@@ -1461,7 +1463,7 @@ export class ModelSchema extends BaseSchema {
         example: "••••••••",
       });
     } else if (column.type === TableColumnType.Name) {
-      zodType = Name.getSchema();
+      zodType = getNameSchema();
     } else if (column.type === TableColumnType.Description) {
       zodType = applyOpenApi(z.string(), {
         type: "string",
@@ -1488,7 +1490,7 @@ export class ModelSchema extends BaseSchema {
         example: "# Heading\n\nThis is **markdown** content",
       });
     } else if (column.type === TableColumnType.Domain) {
-      zodType = Domain.getSchema();
+      zodType = getDomainSchema();
     } else if (column.type === TableColumnType.LongURL) {
       zodType = applyOpenApi(z.string().url(), {
         type: "string",

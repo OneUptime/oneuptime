@@ -194,7 +194,7 @@ Poster tager `list`, `get`, `create`, `update`, `delete` og `count`:
 | Statussider | `status-page`, `status-page-announcement` |
 | Planlagt vedligeholdelse | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |
 | Teams og vagt | `team`, `on-call-policy` |
-| Sikkerhed | `security-case`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-detection`, `security-playbook` |
+| Sikkerhed | `security-case`, `security-case-evidence`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-case-task`, `security-detection`, `security-playbook` |
 | Etiketter | `label` |
 
 Telemetri tager `list`, `create` og `count`:

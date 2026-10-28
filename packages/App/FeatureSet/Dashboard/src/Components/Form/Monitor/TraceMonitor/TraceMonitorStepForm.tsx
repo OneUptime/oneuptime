@@ -8,8 +8,9 @@ import BasicForm from "Common/UI/Components/Forms/BasicForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
-import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
-import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
+import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
+import { FOLDED_SECTION_LINE } from "Common/UI/Components/FoldedSection/FoldedSectionVariant";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import TraceMonitorPreview from "../../../Monitor/TraceMonitor/TraceMonitorPreview";
 import SpanUtil from "../../../../Utils/SpanUtil";
 
@@ -31,6 +32,9 @@ import SpanUtil from "../../../../Utils/SpanUtil";
 const MORE_TRACE_FILTERS: FormFieldCollapsibleSection<MonitorStepTraceMonitor> =
   getAdvancedFormSection<MonitorStepTraceMonitor>();
 
+// The fold under the filters that lists the spans they match.
+export const MATCHING_SPANS_TITLE: string = translationKey("Matching spans");
+
 export interface ComponentProps {
   monitorStepTraceMonitor?: MonitorStepTraceMonitor | undefined;
   onMonitorStepTraceMonitorChanged: (
@@ -51,91 +55,49 @@ const TraceMonitorStepForm: FunctionComponent<ComponentProps> = (
   const monitorStepTraceMonitor: MonitorStepTraceMonitor =
     props.monitorStepTraceMonitor || MonitorStepTraceMonitorUtil.getDefault();
 
+  // Folded, and drawn only once opened: the rule's preview counts them.
+  const [isMatchingSpansCollapsed, setIsMatchingSpansCollapsed] =
+    React.useState<boolean>(true);
+
   return (
     <div>
+      {/*
+       * A part of the criteria step, not a form of its own: it never takes
+       * the cursor as the step opens (the first question is above it).
+       */}
       <BasicForm
         id="Traces-filter"
         hideSubmitButton={true}
+        disableAutofocus={true}
         initialValues={monitorStepTraceMonitor}
         onChange={(values: MonitorStepTraceMonitor) => {
           props.onMonitorStepTraceMonitorChanged(values);
         }}
         fields={[
-          {
-            field: {
-              spanName: true,
-            },
-            fieldType: FormFieldSchemaType.Text,
-            title: "Span Name",
-            description:
-              "This monitor will filter all the spans that include this name.",
-            hideOptionalLabel: true,
-          },
-          {
-            field: {
-              lastXSecondsOfSpans: true,
-            },
-            defaultValue: 60,
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: [
-              {
-                label: "Last 5 seconds",
-                value: 5,
-              },
-              {
-                label: "Last 10 seconds",
-                value: 10,
-              },
-              {
-                label: "Last 30 seconds",
-                value: 30,
-              },
-              {
-                label: "Last 1 minute",
-                value: 60,
-              },
-              {
-                label: "Last 5 minutes",
-                value: 300,
-              },
-              {
-                label: "Last 15 minutes",
-                value: 900,
-              },
-              {
-                label: "Last 30 minutes",
-                value: 1800,
-              },
-              {
-                label: "Last 1 hour",
-                value: 3600,
-              },
-              {
-                label: "Last 6 hours",
-                value: 21600,
-              },
-              {
-                label: "Last 12 hours",
-                value: 43200,
-              },
-              {
-                label: "Last 24 hours",
-                value: 86400,
-              },
-            ],
-            title: "Monitor Traces for (time)",
-            description:
-              "We will fetch all the Traces that were generated in the last X time.",
-            hideOptionalLabel: true,
-          },
+          /*
+           * The time window is the rule's ("When to alert"), set there
+           * beside the number it goes with.
+           */
           {
             field: {
               spanStatuses: true,
             },
             dropdownOptions: SpanUtil.getSpanStatusDropdownOptions(),
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            title: "Filter by Span Status",
-            description: "Select the status of the spans you want to monitor.",
+            title: "Span Status",
+            description:
+              "Only spans with these statuses, such as Error for failed requests. Empty: every status.",
+            hideOptionalLabel: true,
+          },
+          {
+            field: {
+              spanName: true,
+            },
+            fieldType: FormFieldSchemaType.Text,
+            title: "Span name contains",
+            description:
+              "Only spans whose name contains this text, such as an operation or a route. Empty: every span.",
+            placeholder: "POST /api/checkout",
             hideOptionalLabel: true,
           },
           {
@@ -152,7 +114,8 @@ const TraceMonitorStepForm: FunctionComponent<ComponentProps> = (
               },
             ),
             title: "Filter by Telemetry Service",
-            description: "Select the telemetry services you want to monitor.",
+            description:
+              "Only spans from these services. Empty: every service.",
             hideOptionalLabel: true,
             collapsibleSection: MORE_TRACE_FILTERS,
           },
@@ -174,7 +137,8 @@ const TraceMonitorStepForm: FunctionComponent<ComponentProps> = (
               },
             ),
             title: "Filter by Infrastructure Entity",
-            description: "Scope to specific infrastructure entities (optional)",
+            description:
+              "Only spans from these hosts, clusters or other infrastructure. Empty: all of it.",
             hideOptionalLabel: true,
             collapsibleSection: MORE_TRACE_FILTERS,
           },
@@ -191,28 +155,33 @@ const TraceMonitorStepForm: FunctionComponent<ComponentProps> = (
             onDictionaryKeySelected: props.onAttributeKeySelected,
             dictionaryEnableOperators: true,
             description:
-              "You can filter the Traces based on the attributes that are attached to the Traces.",
+              "Only spans whose attributes match all of these. Empty: any attributes.",
             hideOptionalLabel: true,
             collapsibleSection: MORE_TRACE_FILTERS,
           },
         ]}
       />
-      <div>
-        <HorizontalRule />
-        <FieldLabelElement
-          title={"Spans Preview"}
-          description={
-            "The spans these filters match, so you can check the filters before you save."
-          }
-          hideOptionalLabel={true}
-          isHeading={true}
-        />
-        <div className="mt-5 mb-5">
-          <TraceMonitorPreview
-            monitorStepTraceMonitor={monitorStepTraceMonitor!}
-          />
-        </div>
-      </div>
+      <FoldedSection
+        title={MATCHING_SPANS_TITLE}
+        description="The spans these filters match now, to check them before you save."
+        variant={FOLDED_SECTION_LINE}
+        className="mt-4"
+        isCollapsed={isMatchingSpansCollapsed}
+        onToggle={(isCollapsed: boolean) => {
+          setIsMatchingSpansCollapsed(isCollapsed);
+        }}
+        dataTestId="trace-monitor-matching-spans"
+      >
+        {isMatchingSpansCollapsed ? (
+          <></>
+        ) : (
+          <div className="mt-2">
+            <TraceMonitorPreview
+              monitorStepTraceMonitor={monitorStepTraceMonitor!}
+            />
+          </div>
+        )}
+      </FoldedSection>
     </div>
   );
 };

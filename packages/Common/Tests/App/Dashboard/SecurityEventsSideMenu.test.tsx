@@ -13,8 +13,9 @@ import * as React from "react";
 /*
  * The Security Events side menu, rendered against the real RouteMap: nine
  * sections - Overview, Security Cases, Events, Detections, Playbooks, AI,
- * Workspace, Connections and Settings (the project's own Case Priorities and
- * Case Statuses) - each holding its pages, every page an entry of its own. "Can we create side menu sections instead and have different
+ * Workspace, Connections and Settings (the project's own Case Priorities,
+ * the Response Targets each sets, and Case Statuses) - each holding its
+ * pages, every page an entry of its own. "Can we create side menu sections instead and have different
  * pages for these things?" (the maintainer, of the tabs each page carried
  * and the views along the top of the case queue).
  *
@@ -176,6 +177,7 @@ const EXPECTED: Array<[string, Array<[string, string]>]> = [
     "Settings",
     [
       ["Case Priorities", PageMap.SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES],
+      ["Response Targets", PageMap.SECURITY_EVENTS_SETTINGS_RESPONSE_TARGETS],
       ["Case Statuses", PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES],
       ["Risk Scoring", PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING],
     ],

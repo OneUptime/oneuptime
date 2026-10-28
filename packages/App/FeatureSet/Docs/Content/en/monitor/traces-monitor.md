@@ -32,23 +32,31 @@ Every minute, OneUptime counts the spans that match the monitor's filters and st
 :::steps
 ### Start a new monitor
 
-Go to **Monitors** and click **Create Monitor**.
+Go to **Monitors** and click **Create Monitor**. Or, in the trace explorer, filter the spans you want to hear about and click **Create monitor** (the bell) in its toolbar: the new monitor starts out watching the explorer's services, statuses, span name and attributes.
 
 ### Choose Traces
 
 Under **Monitor Type**, click **More monitor types** and pick **Traces** under **Telemetry**, or type `traces` in the search box. Enter a **Name**, then click **Next**.
 
+### Pick what the monitor tells you about
+
+Under **What should this monitor tell you about?**, pick **Too many failed requests** or **Requests stop**. Each fills in the spans to watch and the rule, which you can change below. Pick **Something else** to set them up yourself.
+
 ### Choose the spans to count
 
-In **Trace Monitor Configuration**, set **Span Name**, **Monitor Traces for (time)** and **Filter by Span Status**. A filter you leave empty matches every span. **Spans Preview**, under the filters, shows the spans they match right now.
+In **Spans to watch**, set **Span Status** and **Span name contains**. A filter you leave empty matches every span. **Matching spans**, under the filters, shows the spans they match right now.
 
 ### Narrow them down (optional)
 
 Open **More fields** to filter by telemetry service, infrastructure entity or attribute.
 
-### Set the criteria
+### Say when to alert
 
-The **Monitor Criteria** card starts with two criteria: offline, with an incident, when no spans match; online when at least one does. Change them to what you want to alert on — see [Criteria](#criteria).
+In **When to alert**, pick a **Condition**, the **Number of spans** and a **Time window**. The sentence under them says the rule back in plain words. The chart under it counts the matching spans in each window over the last hours, draws the rule's number as a line, and says how often the rule would have alerted. Its button offers a number the rule would not have passed in that time.
+
+### Choose what happens
+
+In **What happens**, pick **Create an alert**, **Declare an incident** or **Both**, and give it a title and a severity. While the rule matches, the monitor shows the status under **More fields**; when it stops matching, the monitor goes back to its default status and the alert or incident resolves itself.
 
 ### Create the monitor
 
@@ -62,9 +70,9 @@ Click **Create Monitor**. The monitor opens on its **Overview** page, and its fi
 
 | Field | What it matches | Default |
 | --- | --- | --- |
-| **Span Name** | Spans whose name contains this text, ignoring case. | Empty: every span |
-| **Monitor Traces for (time)** | Spans that started in the last 5 seconds up to the last 24 hours. | **Last 1 minute** |
-| **Filter by Span Status** | Spans with any of the chosen statuses: **Unset**, **Ok** or **Error**. | Empty: every status |
+| **Span Status** | Spans with any of the chosen statuses: **Unset**, **Ok** or **Error**. | Empty: every status |
+| **Span name contains** | Spans whose name contains this text, ignoring case. | Empty: every span |
+| **Time window** (in **When to alert**) | Spans that started in the last 5 seconds up to the last 24 hours. | **Last 5 minutes** |
 | **Filter by Telemetry Service** (under **More fields**) | Spans from any of the chosen services. | Empty: every service |
 | **Filter by Infrastructure Entity** (under **More fields**) | Spans from any of the chosen hosts, pods, containers and other entities. | Empty: every entity |
 | **Filter by Attributes** (under **More fields**) | Spans whose attributes meet every condition. Each condition has its own operator, such as equals or contains. | Empty: no condition |
@@ -84,8 +92,8 @@ If you want successful requests to show as OK, add a trace pipeline under **Trac
 ## How it is evaluated
 
 - **Every minute.** A Traces monitor is not checked by probes, so it has no interval to set and no **Probes & Interval** page.
-- **One number per evaluation.** The monitor counts the spans that match every filter and started within **Monitor Traces for (time)** before the evaluation. With **Last 5 minutes**, each evaluation looks back five minutes, so the windows of consecutive evaluations overlap.
-- **No spans is a count of 0.** A service that stops sending traces produces 0, which is what the default offline criteria looks for.
+- **One number per evaluation.** The monitor counts the spans that match every filter and started within the **Time window** before the evaluation. With **Last 5 minutes**, each evaluation looks back five minutes, so the windows of consecutive evaluations overlap.
+- **No spans is a count of 0.** A service that stops sending traces produces 0, which is what **Requests stop** looks for.
 - **OneUptime's own downtime is not silence.** While the time window holds time OneUptime itself was not receiving data — it was restarting, being upgraded or catching up — the check waits: the status does not change, and no incident or alert is opened or resolved. See [When OneUptime Is Not Receiving Data](/docs/monitor/when-oneuptime-is-not-receiving).
 - **Criteria from top to bottom.** The first criteria that matches decides, so put the most severe one first.
 
@@ -93,7 +101,7 @@ Each status change, with the reason for it, is recorded on the monitor's **Statu
 
 ## Criteria
 
-A Traces monitor's criteria have one **Filter Type**: **Span Count**, the number of spans that matched in the window. Pick a **Filter Condition** and, for a threshold condition, a **Value**.
+A Traces monitor's criteria have one **Filter Type**: **Span Count**, the number of spans that matched in the window. **When to alert** sets up one criteria, its **Condition** reading **More than**, **At least**, **Fewer than**, **At most**, **Exactly**, **Unusually high**, **Unusually low** or **Unusually high or low**. For several criteria, or one with more than one filter, click **Edit as custom criteria** under **More fields** in **What happens**: each criteria there has a **Filter Condition** and, for a threshold condition, a **Value**.
 
 | Filter Condition | Matches when the span count is… |
 | --- | --- |
@@ -106,9 +114,16 @@ A Traces monitor's criteria have one **Filter Type**: **Span Count**, the number
 | **Anomalously Low** | below that range |
 | **Anomalous** | outside that range, either way |
 
-The anomaly conditions take no **Value**. Pick a **Sensitivity** — Low, Medium (the default) or High — and a **Baseline Window** of 14 (the default), 28, 60 or 90 days. OneUptime turns the count into a per-minute rate and compares it with the same hour of the week over that window. The baseline covers the monitor's services and span statuses only: its span name and attribute filters are not part of it. Until that hour of the week has enough history, the criteria is still learning and does not fire.
+The anomaly conditions take no **Value**. Pick a **Sensitivity** — Low, Medium (the default) or High — and, in the custom criteria, a **Baseline Window** of 14 (the default), 28, 60 or 90 days. OneUptime turns the count into a per-minute rate and compares it with the same hour of the week over that window. The baseline covers the monitor's services and span statuses only: its span name and attribute filters are not part of it. Until that hour of the week has enough history, the criteria is still learning and does not fire.
 
-A new Traces monitor starts with these criteria:
+A Traces monitor made in Create Monitor starts on the rule of what you picked under **What should this monitor tell you about?**:
+
+| Pick | Rule | What happens |
+| --- | --- | --- |
+| **Too many failed requests** | **Span Status** **Error**, **More than** `10` in **Last 5 minutes** | Creates an alert, which resolves itself |
+| **Requests stop** | **Exactly** `0` in **Last 10 minutes** | Declares an incident, which resolves itself |
+
+A Traces monitor created through the API or Terraform without criteria starts with these criteria:
 
 | Criteria | Filter | Effect |
 | --- | --- | --- |
@@ -117,9 +132,9 @@ A new Traces monitor starts with these criteria:
 
 ## Worked example: failed checkout requests
 
-In five minutes, the checkout service records 1,200 spans named `POST /api/checkout`: 1,150 UNSET, 20 OK and 30 ERROR. The same monitor counts very different numbers depending on **Filter by Span Status**:
+In five minutes, the checkout service records 1,200 spans named `POST /api/checkout`: 1,150 UNSET, 20 OK and 30 ERROR. The same monitor counts very different numbers depending on **Span Status**:
 
-| Filter by Span Status | Span Count | What it measures |
+| Span Status | Span Count | What it measures |
 | --- | --- | --- |
 | **Error** | 30 | Requests that failed |
 | **Ok** | 20 | Only the requests your code marked successful |
@@ -128,18 +143,18 @@ In five minutes, the checkout service records 1,200 spans named `POST /api/check
 
 To be paged when more than 10 checkout requests fail in five minutes:
 
-- **Span Name**: `POST /api/checkout`
-- **Monitor Traces for (time)**: **Last 5 minutes**
-- **Filter by Span Status**: **Error**
-- Criteria 1: **Span Count** **Greater Than** `10` — mark the monitor offline and declare an incident
-- Criteria 2: **Span Count** **Less Than Or Equal To** `10` — mark the monitor online
+- **Span name contains**: `POST /api/checkout`
+- **Time window**: **Last 5 minutes**
+- **Span Status**: **Error**
+- **When to alert**: **More than** `10`
+- **What happens**: **Declare an incident**
 
-With 30 failed requests, criteria 1 matches and the incident is declared. Once five minutes pass with 10 or fewer failures, criteria 2 matches, the monitor is back online and the incident resolves itself.
+With 30 failed requests, the rule matches and the incident is declared. Once five minutes pass with 10 or fewer failures, the rule stops matching, the monitor is back online and the incident resolves itself.
 
 ## Troubleshooting
 
 :::details The monitor counts no spans for my endpoint
-**Span Name** is matched against the span's name, and instrumentation often names server spans after the route (`POST /api/checkout`) or only the method (`GET`). Find the exact name in the trace explorer. Then open the monitor's **Criteria** page (under **Configuration**) and click **Edit Monitoring Criteria**: **Spans Preview** shows what the filters match right now.
+**Span name contains** is matched against the span's name, and instrumentation often names server spans after the route (`POST /api/checkout`) or only the method (`GET`). Find the exact name in the trace explorer. Then open the monitor's **Criteria** page (under **Configuration**) and click **Edit Monitoring Criteria**: **Matching spans** shows what the filters match right now.
 :::
 
 :::details Successful requests are not counted when I filter on Ok

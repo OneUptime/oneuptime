@@ -52,6 +52,7 @@ flowchart TB
 | **Forbindelser** | Connections | Dine logs, de sikkerhedsprodukter, OneUptime henter fra, og de SIEM'er, det sender til |
 | **Opsætningsvejledning** | Connections | Kodestykker til at sende begivenheder, udfyldt med din ingestion-nøgle |
 | **Sagsprioriteter** | Indstillinger | Hvor presserende en sag er: projektets egne prioriteter, den mest presserende først |
+| **Responsmål** | Indstillinger | Hvor hurtigt en sag med hver prioritet skal tages og inddæmmes |
 | **Sagsstatusser** | Indstillinger | De trin, en sag går igennem, og hvad en sag i hvert trin tæller som |
 | **Risikoscoring** | Indstillinger | Om en entitets risiko åbner en sag, ved hvilken risiko, og hvor meget hver entitet betyder |
 

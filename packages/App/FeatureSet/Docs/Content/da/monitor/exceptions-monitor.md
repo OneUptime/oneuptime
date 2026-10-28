@@ -33,23 +33,31 @@ Hvert minut tæller OneUptime de undtagelser, der matcher monitorens filtre og o
 :::steps
 ### Start en ny monitor
 
-Gå til **Monitorer**, og klik på **Opret monitor**.
+Gå til **Monitorer**, og klik på **Opret monitor**. Eller klik på **Opret monitor** ved siden af **Løs** på en undtagelses side: den nye monitor holder fra starten øje med den undtagelses type i dens tjeneste og advarer, når den sker igen.
 
 ### Vælg Exceptions
 
 Under **Monitortype** klikker du på **Flere monitortyper** og vælger **Undtagelser** under **Telemetri**, eller du skriver `exceptions` i søgefeltet. Angiv et **Navn**, og klik derefter på **Næste**.
 
+### Vælg, hvad monitoren skal fortælle dig om
+
+Under **Hvad skal denne overvågning fortælle dig om?** vælger du **Enhver undtagelse** eller **For mange undtagelser**. Hvert valg udfylder reglen, som du kan ændre længere nede. Vælg **Noget andet** for selv at sætte den op.
+
 ### Vælg de undtagelser, der skal tælles
 
-I **Undtagelsesmonitor-konfiguration** angiver du **Filtrér undtagelsesbesked**, **Undtagelsestyper**, **Environments** og **Overvåg undtagelser i (time)**. Et filter, du lader stå tomt, matcher alle undtagelser. **Forhåndsvisning af undtagelser** under filtrene viser de undtagelser, de matcher lige nu.
+I **Undtagelser at holde øje med** angiver du **Beskeden indeholder**, **Undtagelsestyper** og **Environments**. Et filter, du lader stå tomt, matcher alle undtagelser. **Matchende undtagelser** under filtrene viser de undtagelser, de matcher lige nu.
 
 ### Indsnævr dem (valgfrit)
 
 Åbn **Flere felter** for at filtrere efter telemetritjeneste eller infrastrukturentitet eller for også at tælle løste og arkiverede undtagelser.
 
-### Angiv kriterierne
+### Sig, hvornår der skal advares
 
-Kortet **Monitorkriterier** starter med to kriterier: offline, med en hændelse, når en undtagelse matcher; online, når ingen gør. Ret dem til det, du vil have advarsler om (se [Kriterier](#kriterier)).
+I **Hvornår der advares** vælger du en **Betingelse**, **Antal undtagelser** og et **Tidsvindue**. Sætningen under dem gentager reglen med almindelige ord. Diagrammet under den tæller de matchende undtagelser i hvert vindue over de seneste timer, tegner reglens tal som en linje og fortæller, hvor ofte reglen ville have advaret. Dens knap foreslår et tal, som reglen ikke ville have overskredet i den periode.
+
+### Vælg, hvad der sker
+
+I **Hvad der sker** vælger du **Opret en advarsel**, **Erklær en hændelse** eller **Begge**, og giver den en titel og en alvorlighed. Mens reglen matcher, viser monitoren statussen under **Flere felter**; når den holder op med at matche, går monitoren tilbage til sin standardstatus, og advarslen eller hændelsen løser sig selv.
 
 ### Opret monitoren
 
@@ -60,10 +68,10 @@ Klik på **Opret monitor**. Monitoren åbner på sin side **Oversigt**, og dens 
 
 | Felt | Hvad det matcher | Standard |
 | --- | --- | --- |
-| **Filtrér undtagelsesbesked** | Undtagelser, hvis meddelelse indeholder denne tekst, uden forskel på store og små bogstaver. | Tom: alle undtagelser |
+| **Beskeden indeholder** | Undtagelser, hvis meddelelse indeholder denne tekst, uden forskel på store og små bogstaver. | Tom: alle undtagelser |
 | **Undtagelsestyper** | Undtagelser af en af disse typer, adskilt af kommaer, såsom `TypeError, NullReferenceException`. Typenavnet skal matche præcist. | Tom: alle typer |
 | **Environments** | Undtagelser fra et af disse miljøer, adskilt af kommaer (se [Miljøer](#miljøer)). | Tom: alle miljøer |
-| **Overvåg undtagelser i (time)** | Undtagelser fra de seneste 5 sekunder op til de seneste 24 timer. | **Seneste 1 minut** |
+| **Tidsvindue** (i **Hvornår der advares**) | Undtagelser fra de seneste 5 sekunder op til de seneste 24 timer. | **Seneste 5 minutter** |
 | **Filtrér efter telemetritjeneste** (under **Flere felter**) | Undtagelser fra en af de valgte tjenester. | Tom: alle tjenester |
 | **Filtrér efter infrastrukturenhed** (under **Flere felter**) | Undtagelser fra en af de valgte værter, pods, containere og andre entiteter. | Tom: alle entiteter |
 | **Inkluder løste undtagelser** (under **Flere felter**) | Tæl også undtagelser, der er markeret som løst. | Fra |
@@ -98,7 +106,7 @@ Når du opretter monitoren via API'et, sætter du `environments` på trinnets `e
 ## Sådan evalueres den
 
 - **Hvert minut.** En undtagelse-monitor tjekkes ikke af sonder, så den har intet interval at angive og ingen side **Sonder og interval**.
-- **Forekomster, ikke undtagelsestyper.** Monitoren tæller hver gang, en matchende undtagelse opstod inden for **Overvåg undtagelser i (time)**. Én undtagelse, der kastes 40 gange, tæller 40.
+- **Forekomster, ikke undtagelsestyper.** Monitoren tæller hver gang, en matchende undtagelse opstod inden for **Tidsvindue**. Én undtagelse, der kastes 40 gange, tæller 40.
 - **Løste og arkiverede undtagelser udelades.** Medmindre du slår **Inkluder løste undtagelser** eller **Inkluder arkiverede undtagelser** til, tæller forekomsterne af en undtagelse, du har markeret som løst eller arkiveret, ikke med. At markere en undtagelse som løst kan derfor lukke den hændelse, den åbnede. Når en løst undtagelse opstår igen, bliver den automatisk uløst og tælles igen.
 - **Ingen undtagelser er et antal på 0.**
 - **OneUptimes egen nedetid er ikke stilhed.** Så længe tidsvinduet rummer tid, hvor OneUptime selv ikke modtog data (det genstartede, blev opgraderet eller indhentede et efterslæb), venter tjekket: statussen ændres ikke, og ingen hændelse eller advarsel åbnes eller løses. Se [Når OneUptime ikke modtager data](/docs/monitor/when-oneuptime-is-not-receiving).
@@ -108,7 +116,7 @@ Hver statusændring registreres med sin årsag på monitorens **Statustidslinje*
 
 ## Kriterier
 
-En undtagelse-monitors kriterier har én **Filtertype**: **Exception Count**, antallet af undtagelser, der matchede i vinduet. Vælg en **Filterbetingelse** og en **Værdi**.
+En undtagelse-monitors kriterier har én **Filtertype**: **Exception Count**, antallet af undtagelser, der matchede i vinduet. **Hvornår der advares** opretter ét kriterium, hvis **Betingelse** er **Mere end**, **Mindst**, **Færre end**, **Højst** eller **Præcis**. For flere kriterier, eller ét med mere end ét filter, klikker du på **Rediger som egne kriterier** under **Flere felter** i **Hvad der sker**: hvert kriterium der har en **Filterbetingelse** og en **Værdi**.
 
 | Filterbetingelse | Matcher, når antallet af undtagelser er… |
 | --- | --- |
@@ -121,7 +129,14 @@ En undtagelse-monitors kriterier har én **Filtertype**: **Exception Count**, an
 
 Antal undtagelser har ingen anomalibetingelser: der er ingen baseline at sammenligne dem med.
 
-En ny undtagelse-monitor starter med disse kriterier:
+En undtagelse-monitor, der er oprettet i Opret monitor, starter med reglen for det, du valgte under **Hvad skal denne overvågning fortælle dig om?**:
+
+| Valg | Regel | Hvad der sker |
+| --- | --- | --- |
+| **Enhver undtagelse** | **Mere end** `0` i **Seneste 5 minutter** | Opretter en advarsel, som løser sig selv |
+| **For mange undtagelser** | **Mere end** `20` i **Seneste 5 minutter** | Opretter en advarsel, som løser sig selv |
+
+En undtagelse-monitor, der er oprettet via API'et eller Terraform uden kriterier, starter med disse kriterier:
 
 | Kriterium | Filter | Effekt |
 | --- | --- | --- |
@@ -130,7 +145,7 @@ En ny undtagelse-monitor starter med disse kriterier:
 
 ## Gennemgået eksempel: kun produktionsundtagelser
 
-Du vil have en hændelse, hver gang API'et kaster en undtagelse i produktion, og intet for staging. Du sætter **Environments** til `production` og **Overvåg undtagelser i (time)** til **Seneste 5 minutter** og beholder standardkriterierne. De seneste fem minutter:
+Du vil have en hændelse, hver gang API'et kaster en undtagelse i produktion, og intet for staging. Du vælger **Enhver undtagelse**, sætter **Environments** til `production`, beholder **Tidsvindue** på **Seneste 5 minutter** og vælger **Erklær en hændelse** under **Hvad der sker**. De seneste fem minutter:
 
 | Undtagelser | Miljø | Tilstand | Tælles? |
 | --- | --- | --- | --- |
@@ -139,12 +154,12 @@ Du vil have en hændelse, hver gang API'et kaster en undtagelse i produktion, og
 | `TimeoutError` × 2 | intet | Aktiv | Nej: intet miljø |
 | `NullReferenceException` × 4 | `production` | Løst, efter at de opstod | Nej: løst |
 
-**Exception Count** er 3, så **Større end** `0` matcher: monitoren går offline, og der erklæres en hændelse. Når der er gået fem minutter uden nogen aktiv produktionsundtagelse, matcher online-kriteriet, og hændelsen løser sig selv.
+**Exception Count** er 3, så **Mere end** `0` matcher: monitoren går offline, og der erklæres en hændelse. Når der er gået fem minutter uden nogen aktiv produktionsundtagelse, holder reglen op med at matche, monitoren går tilbage til sin standardstatus, og hændelsen løser sig selv.
 
 ## Fejlfinding
 
 :::details Undtagelser vises i explorer, men monitoren tæller 0
-Sammenlign værdien i **Environments** med explorerens filter `env:`: sammenligningen er præcis og skelner mellem store og små bogstaver, og undtagelser uden miljø udelades, når filteret er angivet. Tjek derefter, om de undtagelser er løst eller arkiveret. Åbn monitorens side **Kriterier** (under **Konfiguration**), og klik på **Edit Monitoring Criteria**: **Forhåndsvisning af undtagelser** viser, hvad filtrene matcher.
+Sammenlign værdien i **Environments** med explorerens filter `env:`: sammenligningen er præcis og skelner mellem store og små bogstaver, og undtagelser uden miljø udelades, når filteret er angivet. Tjek derefter, om de undtagelser er løst eller arkiveret. Åbn monitorens side **Kriterier** (under **Konfiguration**), og klik på **Edit Monitoring Criteria**: **Matchende undtagelser** viser, hvad filtrene matcher.
 :::
 
 :::details Hændelsen blev løst, da jeg løste undtagelsen

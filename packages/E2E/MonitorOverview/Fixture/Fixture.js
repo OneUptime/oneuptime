@@ -79,6 +79,21 @@
  *              chosen components of its Core group (issue #5156), the
  *              Checkout API and a Payments API the page does not list,
  *              while an incident elsewhere on the page is not counted.
+ *   ?lang=     de | fa: the page in German or Persian, from the Dashboard's
+ *              own locale files, its <html lang> and dir set by the
+ *              production helper. English without it.
+ *   ?criteria= logs | several: a Logs monitor, "Checkout logs", whose
+ *              Criteria page (/monitors/<TELEMETRY_MONITOR_ID>/criteria) is
+ *              the production one rather than the stub every other monitor
+ *              has: "logs" holds the rule Too many errors makes (Error and
+ *              Fatal logs, more than 10 in 5 minutes, an alert), "several"
+ *              two rules (more than 10 an alert, more than 100 an
+ *              incident), which the page shows in full.
+ *
+ * A telemetry monitor's rule preview (POST /telemetry/<signal>/monitor-
+ * preview) is answered with a steady count per window and one spike two
+ * hours ago, over the windows TelemetryRulePreviewUtil.getRange reads for
+ * the step's window: the rule editor's chart, verdict and suggestion.
  *
  * Every read is recorded on window.__monitorOverviewFixture: getItemRequests,
  * listRequests (analytics lists carry analytics: true), aggregateRequests,
@@ -104,10 +119,22 @@ import {
 } from "react-router-dom";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
+import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";
+import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
+import TelemetryRulePreviewUtil from "Common/Types/Monitor/TelemetryRulePreview";
+import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import FA from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 import MonitorViewLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/Layout";
 import MonitorView from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/Index";
 import MonitorLogs from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/Logs";
 import MonitorCreate from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Create";
+import MonitorCriteriaPage from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/Criteria";
+import {
+  applyRecipe,
+  getRecipe,
+  TelemetryRuleRecipeKey,
+} from "../../../App/FeatureSet/Dashboard/src/Utils/Form/Monitor/TelemetryRule/TelemetryRuleRecipes";
+import { createTranslator } from "Common/UI/Utils/TranslateTemplate";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import ChangeEvent from "Common/Models/AnalyticsModels/ChangeEvent";
@@ -121,6 +148,7 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Label from "Common/Models/DatabaseModels/Label";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
@@ -179,6 +207,7 @@ import { APP_API_URL } from "Common/UI/Config";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
@@ -246,6 +275,21 @@ const cloudMode = params.get("cloud") === "suggest" ? "suggest" : "none";
 const maintenanceMode = params.get("maintenance") === "1";
 const componentsMode =
   params.get("components") === "chosen" ? "chosen" : "page";
+const languageMode = ["de", "fa"].includes(params.get("lang"))
+  ? params.get("lang")
+  : "en";
+const criteriaMode = ["logs", "several"].includes(params.get("criteria"))
+  ? params.get("criteria")
+  : null;
+/*
+ * What a telemetry rule's preview answers: counts in every window (the
+ * default), nothing at all (?preview=empty: a service that has not sent
+ * yet), or a first read that fails at the time limit and a second that
+ * counts (?preview=fail).
+ */
+const previewMode = ["empty", "fail"].includes(params.get("preview"))
+  ? params.get("preview")
+  : "counts";
 
 /*
  * The components the External Status Page monitor watches with
@@ -873,7 +917,8 @@ for (const modelType of [MonitorCustomField]) {
 /*
  * Create Monitor reads the project (whether global probes join new monitors)
  * and, on its criteria step, the project's on-call policies, incident roles,
- * people and telemetry services: none in this workspace.
+ * people and telemetry services - and, for a telemetry monitor, the
+ * infrastructure it can be scoped to: none in this workspace.
  */
 table(Project).push({
   _id: PROJECT_ID,
@@ -881,7 +926,13 @@ table(Project).push({
   doNotAddGlobalProbesByDefaultOnNewMonitors: false,
 });
 
-for (const modelType of [OnCallDutyPolicy, IncidentRole, TeamMember, Service]) {
+for (const modelType of [
+  OnCallDutyPolicy,
+  IncidentRole,
+  TeamMember,
+  Service,
+  InventoryItem,
+]) {
   table(modelType);
 }
 
@@ -2159,6 +2210,96 @@ for (const typeKey of TYPE_KEYS) {
   defineMonitor(typeKey);
 }
 
+/*
+ * ?criteria=: the telemetry monitor whose Criteria page is the real one. Its
+ * criteria are what Create Monitor stores for the Too many errors recipe
+ * (the recipe's own code builds them), with "several" adding a second rule
+ * that declares an incident above 100.
+ */
+const TELEMETRY_MONITOR_ID = ID.monitor(200);
+const TELEMETRY_MONITOR_NAME = "Checkout logs";
+
+function telemetryRuleSteps(mode) {
+  const steps = MonitorSteps.getDefaultMonitorSteps({
+    monitorType: MonitorType.Logs,
+    monitorName: TELEMETRY_MONITOR_NAME,
+    defaultMonitorStatusId: statuses.operational.id,
+    onlineMonitorStatusId: statuses.operational.id,
+    offlineMonitorStatusId: statuses.offline.id,
+    defaultIncidentSeverityId: incidentSeverities.sev1.id,
+    defaultAlertSeverityId: alertSeverities.high.id,
+  });
+  const step = applyRecipe({
+    monitorStep: steps.data.monitorStepsInstanceArray[0],
+    recipe: getRecipe(TelemetryRuleRecipeKey.ErrorLogs),
+    seeds: {
+      monitorName: TELEMETRY_MONITOR_NAME,
+      operationalStatusId: statuses.operational.id,
+      degradedStatusId: statuses.degraded.id,
+      offlineStatusId: statuses.offline.id,
+      incidentSeverityId: incidentSeverities.sev1.id,
+      alertSeverityId: alertSeverities.high.id,
+    },
+    translator: createTranslator(undefined, "en"),
+  });
+
+  if (mode === "several") {
+    const instances =
+      step.data.monitorCriteria.data.monitorCriteriaInstanceArray;
+    const second = MonitorCriteriaInstance.clone(instances[0]);
+    second.data = {
+      ...second.data,
+      id: "criteria-incident",
+      name: "Log Count is above 100",
+      monitorStatusId: statuses.offline.id,
+      createIncidents: true,
+      createAlerts: false,
+      filters: second.data.filters.map((filter) => {
+        return { ...filter, value: 100 };
+      }),
+      incidents: [
+        {
+          id: "incident-1",
+          title: `${TELEMETRY_MONITOR_NAME}: errors are piling up`,
+          description: "",
+          incidentSeverityId: incidentSeverities.sev1.id,
+          autoResolveIncident: true,
+          onCallPolicyIds: [],
+        },
+      ],
+      alerts: [],
+    };
+    step.data.monitorCriteria.data.monitorCriteriaInstanceArray = [
+      second,
+      ...instances,
+    ];
+  }
+
+  steps.setMonitorStepsInstanceArray([step]);
+  return steps;
+}
+
+if (criteriaMode) {
+  insert(Monitor, {
+    _id: TELEMETRY_MONITOR_ID,
+    name: TELEMETRY_MONITOR_NAME,
+    description: "Error and fatal logs of the checkout service.",
+    monitorType: MonitorType.Logs,
+    labels: [],
+    createdAt: ago(9 * DAY),
+    currentMonitorStatusId: statuses.operational.id,
+    currentMonitorStatus: statuses.operational,
+    monitoringInterval: "* * * * *",
+    monitorSteps: telemetryRuleSteps(criteriaMode),
+    disableActiveMonitoring: false,
+    disableActiveMonitoringBecauseOfManualIncident: false,
+    disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: false,
+    customFields: {},
+  });
+}
+
+fixture.telemetryMonitorId = TELEMETRY_MONITOR_ID;
+
 fixture.monitors = Object.fromEntries(
   TYPE_KEYS.map((typeKey) => {
     return [
@@ -2652,6 +2793,25 @@ ModelAPI.createOrUpdate = async (options) => {
   ) {
     return createOwner(modelName, options.model);
   }
+  /*
+   * The Criteria page's Edit (?criteria=), an update: the monitor's row
+   * takes the steps it was saved with, as the API stores them, so the page
+   * reads the changed rule back. The update answers with no body, as the
+   * API's does.
+   */
+  const updatedMonitor =
+    modelName === tableName(Monitor) &&
+    options.formType === FormType.Update &&
+    table(Monitor).find((item) => {
+      return (
+        String(item._id) ===
+        String(options.model?.id?.toString() || options.model?._id)
+      );
+    });
+  if (updatedMonitor) {
+    updatedMonitor.monitorSteps = options.model.monitorSteps;
+    return new HTTPResponse(200, {}, {});
+  }
   if (modelName !== tableName(Monitor)) {
     fixture.unhandled.push({ kind: "createOrUpdate", modelName });
     throw fail(400, `Creating a ${modelName} is not modelled.`);
@@ -2890,6 +3050,7 @@ AnalyticsModelAPI.aggregate = async (options) => {
 };
 
 let hasFailedUptimeSummary = false;
+let hasFailedPreview = false;
 
 async function handleApi(method, options) {
   const url = options.url.toString();
@@ -2989,6 +3150,81 @@ async function handleApi(method, options) {
     });
   }
 
+  /*
+   * POST /telemetry/{logs,traces}/get-attributes: the attribute keys a Logs
+   * or Traces monitor's filters offer.
+   */
+  if (
+    method === "POST" &&
+    (parsed.pathname.endsWith("/telemetry/logs/get-attributes") ||
+      parsed.pathname.endsWith("/telemetry/traces/get-attributes"))
+  ) {
+    return ok({ attributes: ["http.route", "k8s.namespace.name"] });
+  }
+
+  /*
+   * POST /telemetry/<signal>/monitor-preview: what a telemetry rule would
+   * have caught, one count per window of the step's window, as the server
+   * answers it (TelemetryAPI): a steady few in each window, and a spike of
+   * 40 two hours before now.
+   */
+  const previewSignal = [
+    ["logs", "lastXSecondsOfLogs"],
+    ["traces", "lastXSecondsOfSpans"],
+    ["exceptions", "lastXSecondsOfExceptions"],
+  ].find(([signal]) => {
+    return parsed.pathname.endsWith(`/telemetry/${signal}/monitor-preview`);
+  });
+
+  if (method === "POST" && previewSignal) {
+    fixture.previewReads = (fixture.previewReads || 0) + 1;
+
+    if (previewMode === "fail" && !hasFailedPreview) {
+      hasFailedPreview = true;
+      // What the server says when ClickHouse stops at the time limit.
+      throw fail(
+        504,
+        "This query took longer than 45 seconds and was stopped before it finished. Try a shorter time range or more specific filters.",
+      );
+    }
+
+    const range = TelemetryRulePreviewUtil.getRange({
+      windowInSeconds: Number(body[previewSignal[1]] || 60),
+      now: NOW,
+    });
+
+    if (previewMode === "empty") {
+      return ok({
+        buckets: [],
+        windowInSeconds: range.windowInSeconds,
+        startTime: range.startTime.toISOString(),
+        endTime: range.endTime.toISOString(),
+      });
+    }
+    const windowMs = range.windowInSeconds * 1000;
+    const spikeAt = NOW.getTime() - 2 * 60 * MINUTE;
+    const buckets = [];
+
+    for (
+      let start = range.startTime.getTime();
+      start < range.endTime.getTime();
+      start += windowMs
+    ) {
+      const isSpike = spikeAt >= start && spikeAt < start + windowMs;
+      buckets.push({
+        time: new Date(start).toISOString(),
+        value: isSpike ? 40 : 3 + ((start / windowMs) % 4),
+      });
+    }
+
+    return ok({
+      buckets,
+      windowInSeconds: range.windowInSeconds,
+      startTime: range.startTime.toISOString(),
+      endTime: range.endTime.toISOString(),
+    });
+  }
+
   fixture.unhandled.push({ kind: "api", method, url });
   return ok({ data: [], count: 0 });
 }
@@ -3009,11 +3245,21 @@ API.fetch = async (options) => {
   return handleApi(options.method || "GET", options);
 };
 
+// The production helpers, handed the page's i18next instance before it starts.
+followLanguageForPage(i18next);
+followLanguageForDates(i18next);
+
 await i18next.use(initReactI18next).init({
-  lng: "en",
+  lng: languageMode,
   fallbackLng: "en",
-  resources: { en: { translation: {} } },
+  resources: {
+    en: { translation: {} },
+    de: { translation: DE },
+    fa: { translation: FA },
+  },
   interpolation: { escapeValue: false },
+  keySeparator: false,
+  nsSeparator: false,
 });
 
 /*
@@ -3055,13 +3301,17 @@ function StubPage(props) {
   );
 }
 
-// Every monitor sub-page but Monitoring Logs, and every page the overview links to.
+/*
+ * Every monitor sub-page but Monitoring Logs (and, with ?criteria=, the
+ * Criteria page), and every page the overview links to.
+ */
 const STUB_PAGES = [
   ...Object.values(PageMap)
     .filter((pageKey) => {
       return (
         String(pageKey).startsWith("MONITOR_VIEW_") &&
-        pageKey !== PageMap.MONITOR_VIEW_LOGS
+        pageKey !== PageMap.MONITOR_VIEW_LOGS &&
+        !(criteriaMode && pageKey === PageMap.MONITOR_VIEW_CRITERIA)
       );
     })
     .map((pageKey) => {
@@ -3168,6 +3418,16 @@ function FixtureApp() {
                 <MonitorLogs {...pageProps(PageMap.MONITOR_VIEW_LOGS)} />
               }
             />
+            {criteriaMode ? (
+              <Route
+                path="criteria"
+                element={
+                  <MonitorCriteriaPage
+                    {...pageProps(PageMap.MONITOR_VIEW_CRITERIA)}
+                  />
+                }
+              />
+            ) : null}
           </Route>
           {STUB_PAGES.map(([pageKey, title]) => {
             return (

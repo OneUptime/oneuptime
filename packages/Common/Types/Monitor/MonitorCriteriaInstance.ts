@@ -5,23 +5,19 @@ import { JSONObject, ObjectType } from "../JSON";
 import JSONFunctions from "../JSONFunctions";
 import ObjectID from "../ObjectID";
 import Typeof from "../Typeof";
-import { CriteriaAlert, CriteriaAlertSchema } from "./CriteriaAlert";
+import { CriteriaAlert } from "./CriteriaAlert";
 import {
   CheckOn,
   CriteriaFilter,
   FilterType,
   EvaluateOverTimeType,
   CriteriaFilterUtil,
-  CriteriaFilterSchema,
 } from "./CriteriaFilter";
-import { CriteriaIncident, CriteriaIncidentSchema } from "./CriteriaIncident";
-import IncidentGroupingConfig, {
-  IncidentGroupingConfigSchema,
-} from "./IncomingMonitor/IncidentGroupingConfig";
+import { CriteriaIncident } from "./CriteriaIncident";
+import IncidentGroupingConfig from "./IncomingMonitor/IncidentGroupingConfig";
 import MonitorType, { MonitorTypeHelper } from "./MonitorType";
 import { DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS } from "./NtpMonitor/NtpMonitorUtil";
 import { FindOperator } from "typeorm";
-import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
 
 export interface MonitorCriteriaInstanceType {
   monitorStatusId: ObjectID | undefined;
@@ -2485,57 +2481,6 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     }) as any;
 
     return monitorCriteriaInstance;
-  }
-
-  public static override getSchema(): ZodSchema {
-    return Zod.object({
-      _type: Zod.literal(ObjectType.MonitorCriteriaInstance),
-      value: Zod.object({
-        id: Zod.string(),
-        monitorStatusId: Zod.any(),
-        filterCondition: Zod.any(),
-        filters: Zod.array(CriteriaFilterSchema),
-        incidents: Zod.array(CriteriaIncidentSchema),
-        alerts: Zod.array(CriteriaAlertSchema),
-        name: Zod.string(),
-        // Optional: a criteria needs a name, not a description.
-        description: Zod.string().optional(),
-        changeMonitorStatus: Zod.boolean().optional(),
-        createIncidents: Zod.boolean().optional(),
-        createAlerts: Zod.boolean().optional(),
-        isEnabled: Zod.boolean().optional(),
-        incidentGrouping: IncidentGroupingConfigSchema.optional(),
-        openForEveryEmail: Zod.boolean().optional(),
-      }).openapi({
-        type: "object",
-        example: {
-          id: "id",
-          monitorStatusId: "statusId",
-          filterCondition: "All",
-          filters: [],
-          incidents: [],
-          alerts: [],
-          name: "Criteria Name",
-          description: "Description",
-        },
-      }),
-    }).openapi({
-      type: "object",
-      description: "MonitorCriteriaInstance object",
-      example: {
-        _type: ObjectType.MonitorCriteriaInstance,
-        value: {
-          id: "id",
-          monitorStatusId: "statusId",
-          filterCondition: "All",
-          filters: [],
-          incidents: [],
-          alerts: [],
-          name: "Criteria Name",
-          description: "Description",
-        },
-      },
-    });
   }
 
   public static isValid(_json: JSONObject): boolean {

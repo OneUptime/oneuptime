@@ -68,7 +68,7 @@ flowchart TB
 | --- | --- |
 | **토폴로지** | **Device Topology**, **엔드포인트**, **Latency Matrix**, **Site Links**, **Device Links** |
 | **규칙** | **Auto Import Rules**, **Site Assignment Rules**, **소유자 규칙**, **레이블 규칙**, **Link Rules** |
-| **설정** | **Alert Policies**, **SNMP 자격 증명**, **Device Roles**, **Site Types**, **OID Collection Templates** |
+| **설정** | **Alert Policies**, **SNMP 자격 증명**, **Device Roles**, **Site Types**, **주소 이름**, **OID Collection Templates** |
 | **고급** | **Archived Devices** |
 
 ## 네트워크 디바이스 추가하기

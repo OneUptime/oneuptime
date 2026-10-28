@@ -316,6 +316,8 @@ export interface BaseTableCallbacks<
      * for the new record is one none of them uses yet.
      */
     existingItems?: Array<TBaseModel> | undefined;
+    // The Edit dialog's own title for the row it edits (editFormTitle).
+    editFormTitle?: string | undefined;
   }) => ReactElement;
 }
 
@@ -490,6 +492,16 @@ export interface BaseTableProps<
    * dialog says "<verb> New <singular name>" as before.
    */
   createFormTitle?: string | undefined;
+  /*
+   * The Edit dialog's title for one row, where "Edit <singular name>" does
+   * not say which row is open: Response Targets' rows are a project's case
+   * priorities, and every one's dialog was "Edit Response Target" over a
+   * blurred table - with two empty fields on a project that had set none,
+   * nothing in it said which priority it was. English to look up, or words
+   * already in the reader's language. Left out, the dialog says "Edit
+   * <singular name>" as before.
+   */
+  editFormTitle?: ((item: TBaseModel) => string) | undefined;
   createFormSubmitButtonText?: string | undefined;
   showAs?: ShowAs | undefined;
   singularName?: string | undefined;
@@ -5605,6 +5617,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             setShowModal(false);
           },
           modalType: modalType,
+          editFormTitle:
+            modalType === ModalType.Edit &&
+            currentEditableItem &&
+            props.editFormTitle
+              ? props.editFormTitle(currentEditableItem) || undefined
+              : undefined,
           onBeforeCreate: async (
             item: TBaseModel,
             miscDataProps: JSONObject,

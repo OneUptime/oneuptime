@@ -68,7 +68,7 @@ Het menu Netwerk houdt in beeld wat je elke dag opent: **Overzicht**, **Apparate
 | --- | --- |
 | **Topologie** | **Device Topology**, **Endpoints**, **Latency Matrix**, **Site Links**, **Device Links** |
 | **Regels** | **Auto Import Rules**, **Site Assignment Rules**, **Eigenaarsregels**, **Labelregels**, **Link Rules** |
-| **Instellingen** | **Alert Policies**, **SNMP-inloggegevens**, **Device Roles**, **Site Types**, **OID Collection Templates** |
+| **Instellingen** | **Alert Policies**, **SNMP-inloggegevens**, **Device Roles**, **Site Types**, **Adresnamen**, **OID Collection Templates** |
 | **Geavanceerd** | **Archived Devices** |
 
 ## Een netwerkapparaat toevoegen

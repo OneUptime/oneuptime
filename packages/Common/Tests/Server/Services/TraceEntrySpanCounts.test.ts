@@ -1,22 +1,5 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
-/*
- * Nothing here reads a zod schema. The Types the span model imports build
- * theirs as they load, so they get a stand-in that takes any chain of calls,
- * and the suite loads whatever zod build is installed.
- */
-jest.mock("../../../Utils/Schema/Zod", () => {
-  const schema: unknown = new Proxy(() => {}, {
-    get: (_target: unknown, property: string | symbol): unknown => {
-      return property === "then" ? undefined : schema;
-    },
-    apply: (): unknown => {
-      return schema;
-    },
-  });
-  return { __esModule: true, default: schema };
-});
-
 import TraceAggregationService, {
   MultiFacetRequest,
 } from "../../../Server/Services/TraceAggregationService";

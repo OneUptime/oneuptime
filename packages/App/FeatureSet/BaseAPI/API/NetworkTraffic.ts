@@ -1,6 +1,7 @@
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import CommonAPI from "Common/Server/API/CommonAPI";
 import NetworkTrafficSummaryUtil, {
+  ParsedNetworkTrafficFindRequest,
   ParsedNetworkTrafficRequest,
 } from "Common/Server/Utils/NetworkFlow/NetworkTrafficSummary";
 import NetworkTrafficUsageSummaryUtil, {
@@ -9,7 +10,10 @@ import NetworkTrafficUsageSummaryUtil, {
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
-import { NetworkTrafficSummary } from "Common/Types/NetFlow/NetworkTraffic";
+import {
+  NetworkTrafficFindResult,
+  NetworkTrafficSummary,
+} from "Common/Types/NetFlow/NetworkTraffic";
 import { NetworkTrafficUsageSummary } from "Common/Types/NetFlow/NetworkTrafficUsage";
 import Express, {
   ExpressRequest,
@@ -30,6 +34,12 @@ import Response from "Common/Server/Utils/Response";
  * page's traffic as a Meraki connection read it (uplinks, applications,
  * destinations, clients), decided the same way whose it is
  * (NetworkTrafficUsageSummaryUtil).
+ *
+ * And "find an address" by its name (issue #5340): POST
+ * /network-traffic/find-address - the addresses of the same page's window
+ * whose name holds the text, busiest first, with the name the page calls
+ * each (NetworkTrafficSummaryUtil.find, the page's scope and the caller's
+ * read rights).
  */
 export default class NetworkTrafficAPI {
   public getRouter(): ExpressRouter {
@@ -63,6 +73,41 @@ export default class NetworkTrafficAPI {
             req,
             res,
             summary as unknown as JSONObject,
+          );
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    router.post(
+      "/network-traffic/find-address",
+      UserMiddleware.getUserMiddleware,
+      async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ): Promise<void> => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const request: ParsedNetworkTrafficFindRequest =
+            NetworkTrafficSummaryUtil.parseFindRequest(
+              req.body,
+              OneUptimeDate.getCurrentDate(),
+            );
+
+          const result: NetworkTrafficFindResult =
+            await NetworkTrafficSummaryUtil.find({
+              props: props,
+              request: request,
+            });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            result as unknown as JSONObject,
           );
         } catch (err) {
           return next(err);

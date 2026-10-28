@@ -165,13 +165,7 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "HEAD",
   ],
   [PING_MONITOR]: [...CRITERIA_NAMES_IN_ENGLISH, ...PING_CRITERIA_IN_ENGLISH],
-  [IP_MONITOR]: [
-    ...CRITERIA_NAMES_IN_ENGLISH,
-    ...PING_CRITERIA_IN_ENGLISH,
-    // The type picker's IP card and the category it sits in.
-    "IP",
-    "Basic Monitoring",
-  ],
+  [IP_MONITOR]: [...CRITERIA_NAMES_IN_ENGLISH, ...PING_CRITERIA_IN_ENGLISH],
   [PORT_MONITOR]: [
     ...CRITERIA_NAMES_IN_ENGLISH,
     "Port DNS Lookup Time (in ms)",

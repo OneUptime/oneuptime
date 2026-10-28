@@ -15,6 +15,7 @@ import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import {
+  NETWORK_TRAFFIC_FIND_LIMIT,
   NETWORK_TRAFFIC_SOURCES_LIMIT,
   NETWORK_TRAFFIC_SOURCES_LOOKBACK_MINUTES,
   NETWORK_TRAFFIC_TOP_LIMIT,
@@ -95,6 +96,20 @@ export interface NetworkTrafficQuery {
   filters: NetworkTrafficFilters;
 }
 
+/*
+ * The newest DNS name an address's flows carried in the window (issue
+ * #5340), and when that flow started: the probe that received the flows
+ * looked it up then (NetworkFlow srcName / dstName).
+ */
+export interface NetworkTrafficDnsName {
+  name: string;
+  // The flow's start, as the database writes it: later is newer.
+  at: string;
+}
+
+// The most names "find an address" reads from the flows themselves.
+export const NETWORK_TRAFFIC_FIND_NAMES_LIMIT: number = 50;
+
 export interface NetworkTrafficAggregates {
   totals: NetworkTrafficTotals;
   maxSamplingRate: number;
@@ -106,6 +121,37 @@ export interface NetworkTrafficAggregates {
   topApplications: Array<NetworkTrafficApplicationRow>;
   topInterfaces: Array<NetworkTrafficInterfaceRow>;
   topDevices: Array<NetworkTrafficDeviceRow>;
+  /*
+   * The DNS names the listed addresses' flows carried, by address (the
+   * newest of each). Not a part of any row: the summary hands them to
+   * NetworkAddressNamesUtil with the inventory's names, and the page gets
+   * one answer per address.
+   */
+  dnsNames: Map<string, NetworkTrafficDnsName>;
+}
+
+/*
+ * The newer of two names of one address: the later flow's. A name read
+ * twice (an address that sent and received) keeps the latest.
+ */
+export function keepNewestDnsName(
+  names: Map<string, NetworkTrafficDnsName>,
+  address: string,
+  name: unknown,
+  at: unknown,
+): void {
+  const text: string = typeof name === "string" ? name : "";
+  const time: string = at === undefined || at === null ? "" : String(at);
+
+  if (!address || !text) {
+    return;
+  }
+
+  const known: NetworkTrafficDnsName | undefined = names.get(address);
+
+  if (!known || time > known.at) {
+    names.set(address, { name: text, at: time });
+  }
 }
 
 export default class NetworkTrafficAggregationService {
@@ -176,7 +222,34 @@ export default class NetworkTrafficAggregationService {
     const hasInterfaceFilter: boolean =
       query.filters.interfaceIndex !== undefined;
 
+    const dnsNames: Map<string, NetworkTrafficDnsName> = new Map();
+
+    for (const row of [...(sourceRows || []), ...(destinationRows || [])]) {
+      keepNewestDnsName(
+        dnsNames,
+        String(row["ip"] ?? ""),
+        row["resolvedName"],
+        row["resolvedAt"],
+      );
+    }
+
+    for (const row of conversationRows || []) {
+      keepNewestDnsName(
+        dnsNames,
+        String(row["sourceIp"] ?? ""),
+        row["sourceName"],
+        row["sourceNameAt"],
+      );
+      keepNewestDnsName(
+        dnsNames,
+        String(row["destinationIp"] ?? ""),
+        row["destinationName"],
+        row["destinationNameAt"],
+      );
+    }
+
     return {
+      dnsNames: dnsNames,
       totals: {
         octets: toNumber(totals["totalOctets"]),
         packets: toNumber(totals["totalPackets"]),
@@ -452,17 +525,26 @@ export default class NetworkTrafficAggregationService {
       .append(QUERY_SETTINGS);
   }
 
+  /*
+   * The busiest sources (or destinations), each with the newest DNS name
+   * its flows carried in the window and when that flow started (issue
+   * #5340) - read in the same pass as the bytes, never one lookup a row.
+   */
   public static buildTopAddressStatement(
     query: NetworkTrafficQuery,
     column: "srcIp" | "dstIp",
   ): Statement {
     // The column is one of two of this file's own names, never a caller's.
     const columnSql: string = column === "srcIp" ? "srcIp" : "dstIp";
+    const nameSql: string = column === "srcIp" ? "srcName" : "dstName";
 
     return SQL`SELECT `
       .append(columnSql)
       .append(
-        SQL` AS ip, sum(octets) AS totalOctets, sum(packets) AS totalPackets FROM ${TABLE_NAME}`,
+        ` AS ip, argMaxIf(${nameSql}, flowStartAt, ${nameSql} != '') AS resolvedName, maxIf(flowStartAt, ${nameSql} != '') AS resolvedAt,`,
+      )
+      .append(
+        SQL` sum(octets) AS totalOctets, sum(packets) AS totalPackets FROM ${TABLE_NAME}`,
       )
       .append(NetworkTrafficAggregationService.buildWhere(query))
       .append(
@@ -478,6 +560,10 @@ export default class NetworkTrafficAggregationService {
       SELECT
         srcIp AS sourceIp,
         dstIp AS destinationIp,
+        argMaxIf(srcName, flowStartAt, srcName != '') AS sourceName,
+        maxIf(flowStartAt, srcName != '') AS sourceNameAt,
+        argMaxIf(dstName, flowStartAt, dstName != '') AS destinationName,
+        maxIf(flowStartAt, dstName != '') AS destinationNameAt,
         sum(octets) AS totalOctets,
         sum(packets) AS totalPackets
       FROM ${TABLE_NAME}`
@@ -603,6 +689,144 @@ export default class NetworkTrafficAggregationService {
         ` GROUP BY networkDeviceId, exporterIp ORDER BY lastFlowAt DESC LIMIT ${NETWORK_TRAFFIC_SOURCES_LIMIT}`,
       )
       .append(QUERY_SETTINGS);
+  }
+
+  /*
+   * "Find an address" by name (issue #5340): the addresses on either side
+   * of the page's flows whose DNS name holds the text, with the newest such
+   * name - at most NETWORK_TRAFFIC_FIND_NAMES_LIMIT. The text is a bound
+   * parameter, matched without case and literally (positionCaseInsensitive:
+   * no pattern characters).
+   */
+  public static buildNameSearchStatement(
+    query: NetworkTrafficQuery,
+    text: string,
+  ): Statement {
+    const side: (address: string, name: string) => Statement = (
+      address: string,
+      name: string,
+    ): Statement => {
+      return SQL`SELECT `
+        .append(
+          `${address} AS ip, argMax(${name}, flowStartAt) AS resolvedName, max(flowStartAt) AS resolvedAt FROM `,
+        )
+        .append(TABLE_NAME)
+        .append(NetworkTrafficAggregationService.buildWhere(query))
+        .append(SQL` AND positionCaseInsensitive(`)
+        .append(name)
+        .append(SQL`, ${{ type: TableColumnType.Text, value: text }}) > 0`)
+        .append(` GROUP BY ip`);
+    };
+
+    return SQL`SELECT ip, argMax(resolvedName, resolvedAt) AS foundName, max(resolvedAt) AS foundAt FROM (`
+      .append(side("srcIp", "srcName"))
+      .append(" UNION ALL ")
+      .append(side("dstIp", "dstName"))
+      .append(
+        `) GROUP BY ip ORDER BY foundAt DESC LIMIT ${NETWORK_TRAFFIC_FIND_NAMES_LIMIT}`,
+      )
+      .append(QUERY_SETTINGS);
+  }
+
+  /*
+   * Of these addresses, the ones the page's window has traffic of, busiest
+   * first (sent and received together): "find an address" answers only
+   * with what the page can show. Every address is a bound parameter.
+   */
+  public static buildAddressTrafficStatement(
+    query: NetworkTrafficQuery,
+    addresses: Array<string>,
+  ): Statement {
+    if (addresses.length === 0) {
+      throw new BadDataException("No addresses to read the traffic of");
+    }
+
+    const side: (column: "srcIp" | "dstIp") => Statement = (
+      column: "srcIp" | "dstIp",
+    ): Statement => {
+      return SQL`SELECT `
+        .append(column === "srcIp" ? "srcIp" : "dstIp")
+        .append(` AS ip, sum(octets) AS sideOctets FROM `)
+        .append(TABLE_NAME)
+        .append(NetworkTrafficAggregationService.buildWhere(query))
+        .append(` AND `)
+        .append(column === "srcIp" ? "srcIp" : "dstIp")
+        .append(
+          SQL` IN (${{
+            type: TableColumnType.ArrayText,
+            value: addresses,
+          }}) GROUP BY ip`,
+        );
+    };
+
+    return SQL`SELECT ip, sum(sideOctets) AS totalOctets FROM (`
+      .append(side("srcIp"))
+      .append(" UNION ALL ")
+      .append(side("dstIp"))
+      .append(
+        `) GROUP BY ip ORDER BY totalOctets DESC LIMIT ${NETWORK_TRAFFIC_FIND_LIMIT}`,
+      )
+      .append(QUERY_SETTINGS);
+  }
+
+  /*
+   * The DNS names of the page's flows that hold the text: { address: name },
+   * newest name of each address (buildNameSearchStatement).
+   */
+  @CaptureSpan()
+  public static async findAddressesByDnsName(data: {
+    query: NetworkTrafficQuery;
+    text: string;
+  }): Promise<Map<string, string>> {
+    const rows: Array<JSONObject> = await NetworkTrafficAggregationService.run(
+      NetworkTrafficAggregationService.buildNameSearchStatement(
+        data.query,
+        data.text,
+      ),
+    );
+
+    const found: Map<string, string> = new Map();
+
+    for (const row of rows) {
+      const ip: string = String(row["ip"] ?? "");
+      const name: string = String(row["foundName"] ?? "");
+
+      if (ip && name && !found.has(ip)) {
+        found.set(ip, name);
+      }
+    }
+
+    return found;
+  }
+
+  // Of these addresses, those with traffic in the page's window: { address: bytes }.
+  @CaptureSpan()
+  public static async getAddressTraffic(data: {
+    query: NetworkTrafficQuery;
+    addresses: Array<string>;
+  }): Promise<Map<string, number>> {
+    const traffic: Map<string, number> = new Map();
+
+    if (data.addresses.length === 0) {
+      return traffic;
+    }
+
+    const rows: Array<JSONObject> = await NetworkTrafficAggregationService.run(
+      NetworkTrafficAggregationService.buildAddressTrafficStatement(
+        data.query,
+        data.addresses,
+      ),
+    );
+
+    for (const row of rows) {
+      const ip: string = String(row["ip"] ?? "");
+
+      if (ip) {
+        traffic.set(ip, toNumber(row["totalOctets"]));
+      }
+    }
+
+    return traffic;
   }
 
   /*

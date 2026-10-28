@@ -102,6 +102,7 @@ Los monitores, incidentes, alertas, páginas de estado, SLO y muchos otros recur
 | Capturas de paquetes, y sus descargas | `Packet Capture` |
 | Casos de seguridad y sus prioridades y estados, playbooks y sus ejecuciones, entidades protegidas, criticidad de entidades, y el riesgo de una entidad cuando alguien lo restablece | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
 | Excepciones de regla | `Rule Exception` |
+| Tareas y evidencias de los casos de seguridad | `Security Case Task`, `Security Case Evidence` |
 | Exportaciones del registro de auditoría | `Audit Log Export` |
 
 También se registra que un administrador añada o quite un método de notificación o una regla de guardia personal en la cuenta de otra persona, sin la dirección ni el número en sí.

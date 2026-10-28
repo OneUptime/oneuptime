@@ -53,7 +53,7 @@ When you join a project, these events start on, by email. Everything else starts
 | **Status Pages** | None | **Status page created**, **Status page announcement posted**, **Added as status page owner** |
 | **Scheduled Maintenance** | **Maintenance reminder** | **Maintenance event created**, **Maintenance state changed**, **Maintenance note posted**, **Added as maintenance owner** |
 | **On-Call** | **You go on-call**, **You are up next on-call**, **You go off-call**, **Added to on-call policy**, **Removed from on-call policy**, **Missed call**, and by push too: **Before my on-call shift starts**, **My upcoming on-call shift is reassigned** | None |
-| **Security** | By push too: **New security case** (High and Critical cases), **Security case assigned to me**, **Playbook step waiting for my approval** | None |
+| **Security** | By push too: **New security case** (High and Critical cases), **Security case assigned to me**, **Playbook step waiting for my approval**, **Security case response target**, **Security case task assigned to me** | None |
 
 > [!IMPORTANT]
 > **Monitor status changed** starts off. To hear when a monitor you own goes down or comes back, switch it on, on the **Monitoring** tab.

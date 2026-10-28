@@ -31,7 +31,7 @@ flowchart TB
 
 ## 新增管道
 
-1. 在 Admin Dashboard 中，開啟 **設定**，再開啟 **Custom Channels**，然後選擇 **Add**。
+1. 在 Admin Dashboard 中，開啟 **設定**，再開啟側邊選單中的 **通知 > Custom Channels**（**通知** 預設為摺疊），然後選擇 **Add**。
 2. 在 **Channel** 步驟中填寫：
    - **名稱**：人們在通知方式和待命規則中看到的名稱，例如 `CorpoApp`。
    - **Webhook URL**：OneUptime 傳送每次呼叫的位址。它可以位於你的私人網路中。

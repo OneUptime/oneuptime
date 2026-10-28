@@ -1,21 +1,4 @@
-import { describe, expect, jest, test } from "@jest/globals";
-
-/*
- * Nothing here reads a zod schema. The Types the tab scope imports build
- * theirs as they load, so they get a stand-in that takes any chain of calls,
- * and the suite loads whatever zod build is installed.
- */
-jest.mock("Common/Utils/Schema/Zod", () => {
-  const schema: unknown = new Proxy(() => {}, {
-    get: (_target: unknown, property: string | symbol): unknown => {
-      return property === "then" ? undefined : schema;
-    },
-    apply: (): unknown => {
-      return schema;
-    },
-  });
-  return { __esModule: true, default: schema };
-});
+import { describe, expect, test } from "@jest/globals";
 
 import Dictionary from "Common/Types/Dictionary";
 import { TraceSpanType } from "Common/Types/Telemetry/TraceSpanType";

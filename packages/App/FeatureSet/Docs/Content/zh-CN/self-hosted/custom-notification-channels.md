@@ -31,7 +31,7 @@ flowchart TB
 
 ## 添加渠道
 
-1. 在 Admin Dashboard 中，打开 **设置**，然后打开 **Custom Channels**，并选择 **Add**。
+1. 在 Admin Dashboard 中，打开 **设置**，然后打开侧边菜单中的 **通知 > Custom Channels**（**通知** 默认折叠），并选择 **Add**。
 2. 在 **Channel** 步骤中填写：
    - **名称**：人们在通知方式和值班规则中看到的名称，例如 `CorpoApp`。
    - **Webhook URL**：OneUptime 发送每次呼叫的地址。它可以位于你的私有网络中。

@@ -26,9 +26,10 @@ export interface ComponentProps {
    * the time to acknowledge. Quieter than the value and above the
    * description, so the three read value, note, date. In a narrow cell it
    * wraps into even lines ("4 minutes / after paging"), never leaving one
-   * word on a line of its own.
+   * word on a line of its own. An element for a note drawn in a tone of its
+   * own - a security case's target, amber when it is about to be missed.
    */
-  note?: string | undefined;
+  note?: string | ReactElement | undefined;
   description?: string | undefined;
   icon?: IconProp | undefined;
   className?: string | undefined;

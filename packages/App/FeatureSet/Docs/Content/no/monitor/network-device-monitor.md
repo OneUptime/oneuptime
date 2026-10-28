@@ -68,7 +68,7 @@ Nettverk-menyen holder det du åpner hver dag synlig: **Oversikt**, **Enheter**,
 | --- | --- |
 | **Topologi** | **Device Topology**, **Endepunkter**, **Latency Matrix**, **Site Links**, **Device Links** |
 | **Regler** | **Auto Import Rules**, **Site Assignment Rules**, **Eierregler**, **Etikettregler**, **Link Rules** |
-| **Innstillinger** | **Alert Policies**, **SNMP-påloggingsinformasjon**, **Device Roles**, **Site Types**, **OID Collection Templates** |
+| **Innstillinger** | **Alert Policies**, **SNMP-påloggingsinformasjon**, **Device Roles**, **Site Types**, **Adressenavn**, **OID Collection Templates** |
 | **Avansert** | **Archived Devices** |
 
 ## Legg til en nettverksenhet

@@ -2109,6 +2109,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             ],
           },
           {
+            page: PageMap.SECURITY_EVENTS_SETTINGS_RESPONSE_TARGETS,
+            title: "Response Targets",
+            icon: IconProp.Clock,
+            keywords: [
+              "sla",
+              "case sla",
+              "time to acknowledge",
+              "time to contain",
+              "breach",
+            ],
+          },
+          {
             page: PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES,
             title: "Case Statuses",
             icon: IconProp.ArrowCircleRight,
@@ -2816,6 +2828,17 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.NETWORK_SITE_SETTINGS_SITE_TYPES,
             title: "Site Types",
             icon: IconProp.Layers,
+          },
+          {
+            page: PageMap.NETWORK_DEVICE_SETTINGS_ADDRESS_NAMES,
+            title: "Address Names",
+            icon: IconProp.Label,
+            keywords: [
+              "ip names",
+              "subnet names",
+              "hostnames",
+              "traffic names",
+            ],
           },
           {
             page: PageMap.NETWORK_DEVICE_SETTINGS_OID_TEMPLATES,

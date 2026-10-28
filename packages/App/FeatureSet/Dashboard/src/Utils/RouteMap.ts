@@ -179,6 +179,7 @@ export const NetworkDeviceRoutePath: Dictionary<string> = {
   [PageMap.NETWORK_DEVICE_SETTINGS_AUTO_IMPORT_RULES]: `settings/auto-import-rules`,
   [PageMap.NETWORK_DEVICE_SETTINGS_OID_TEMPLATES]: `settings/oid-collection-templates`,
   [PageMap.NETWORK_DEVICE_SETTINGS_DEVICE_ROLES]: `settings/device-roles`,
+  [PageMap.NETWORK_DEVICE_SETTINGS_ADDRESS_NAMES]: `settings/address-names`,
   [PageMap.NETWORK_DEVICE_SETTINGS_SNMP_CREDENTIAL_PROFILES]: `settings/snmp-credential-profiles`,
   [PageMap.NETWORK_DEVICE_SETTINGS_ALERT_POLICIES]: `settings/alert-policies`,
   [PageMap.NETWORK_DEVICE_DISCOVERY]: `discovery`,
@@ -814,6 +815,8 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
   [PageMap.SECURITY_CASE_VIEW_DETECTIONS]: `cases/${RouteParams.ModelID}/detections`,
   [PageMap.SECURITY_CASE_VIEW_ENTITIES]: `cases/${RouteParams.ModelID}/entities`,
   [PageMap.SECURITY_CASE_VIEW_CONNECTED_SIGNALS]: `cases/${RouteParams.ModelID}/connected-signals`,
+  [PageMap.SECURITY_CASE_VIEW_EVIDENCE]: `cases/${RouteParams.ModelID}/evidence`,
+  [PageMap.SECURITY_CASE_VIEW_TASKS]: `cases/${RouteParams.ModelID}/tasks`,
   [PageMap.SECURITY_CASE_VIEW_PLAYBOOK_RUNS]: `cases/${RouteParams.ModelID}/playbook-runs`,
   [PageMap.SECURITY_CASE_VIEW_NOTES]: `cases/${RouteParams.ModelID}/notes`,
   [PageMap.SECURITY_CASE_VIEW_AUDIT_LOGS]: `cases/${RouteParams.ModelID}/audit-logs`,
@@ -838,6 +841,8 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
   // Settings, at the addresses every product's settings pages have.
   [PageMap.SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES]:
     "settings/case-priorities",
+  [PageMap.SECURITY_EVENTS_SETTINGS_RESPONSE_TARGETS]:
+    "settings/response-targets",
   [PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES]: "settings/case-statuses",
   [PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING]: "settings/risk-scoring",
 };
@@ -3505,6 +3510,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.NETWORK_DEVICE_SETTINGS_DEVICE_ROLES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/network-devices/${
       NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_SETTINGS_DEVICE_ROLES]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_SETTINGS_ADDRESS_NAMES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_SETTINGS_ADDRESS_NAMES]
     }`,
   ),
 
@@ -7033,6 +7044,18 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SECURITY_CASE_VIEW_EVIDENCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_CASE_VIEW_EVIDENCE]
+    }`,
+  ),
+
+  [PageMap.SECURITY_CASE_VIEW_TASKS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_CASE_VIEW_TASKS]
+    }`,
+  ),
+
   [PageMap.SECURITY_CASE_VIEW_PLAYBOOK_RUNS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/${
       SecurityEventsRoutePath[PageMap.SECURITY_CASE_VIEW_PLAYBOOK_RUNS]
@@ -7120,6 +7143,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/${
       SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES]
+    }`,
+  ),
+
+  [PageMap.SECURITY_EVENTS_SETTINGS_RESPONSE_TARGETS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_SETTINGS_RESPONSE_TARGETS]
     }`,
   ),
 

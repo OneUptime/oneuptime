@@ -348,7 +348,16 @@ test.describe("the session list's header", () => {
     expect(Math.max(...heights) - Math.min(...heights)).toBeLessThanOrEqual(
       0.5,
     );
-    expect((await box(row)).height).toBe(emptyRow.height);
+    /*
+     * Not a pixel taller. Like the chips' heights above, the row's can come
+     * out a fraction of a pixel apart in the browser's sub-pixel layout: the
+     * 14.0.96 gate measured it at 25.96875 empty and 26 with the value, with
+     * the same markup and styles both times. The 27 pixels this guards
+     * against still fail.
+     */
+    expect(
+      Math.abs((await box(row)).height - emptyRow.height),
+    ).toBeLessThanOrEqual(0.5);
   });
 
   /*

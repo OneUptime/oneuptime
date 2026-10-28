@@ -33,6 +33,7 @@ import NetworkDeviceLinkRule from "./NetworkDeviceLinkRule";
 import NetworkTopologySuppression from "./NetworkTopologySuppression";
 import NetworkSiteAssignmentRule from "./NetworkSiteAssignmentRule";
 import NetworkControllerConnection from "./NetworkControllerConnection";
+import NetworkAddressName from "./NetworkAddressName";
 import DockerHostOwnerTeam from "./DockerHostOwnerTeam";
 import DockerHostOwnerUser from "./DockerHostOwnerUser";
 import DockerResource from "./DockerResource";
@@ -167,6 +168,8 @@ import ThreatIntelFeed from "./ThreatIntelFeed";
 import SecurityCase from "./SecurityCase";
 import SecurityCaseFeed from "./SecurityCaseFeed";
 import SecurityCaseNote from "./SecurityCaseNote";
+import SecurityCaseTask from "./SecurityCaseTask";
+import SecurityCaseEvidence from "./SecurityCaseEvidence";
 import SecurityCasePriority from "./SecurityCasePriority";
 import SecurityCaseStatus from "./SecurityCaseStatus";
 import SecurityDetection from "./SecurityDetection";
@@ -605,6 +608,8 @@ const AllModelTypes: Array<{
   SecurityCase,
   SecurityCaseFeed,
   SecurityCaseNote,
+  SecurityCaseTask,
+  SecurityCaseEvidence,
   SecurityCasePriority,
   SecurityCaseStatus,
   SecurityDetection,
@@ -1068,6 +1073,7 @@ const AllModelTypes: Array<{
   NetworkTopologySuppression,
   NetworkSiteAssignmentRule,
   NetworkControllerConnection,
+  NetworkAddressName,
   DockerHostOwnerTeam,
   DockerHostOwnerUser,
   DockerResource,

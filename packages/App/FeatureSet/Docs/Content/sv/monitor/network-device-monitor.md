@@ -68,7 +68,7 @@ Nätverk-menyn håller det du öppnar varje dag synligt: **Översikt**, **Enhete
 | --- | --- |
 | **Topologi** | **Device Topology**, **Slutpunkter**, **Latency Matrix**, **Site Links**, **Device Links** |
 | **Regler** | **Auto Import Rules**, **Site Assignment Rules**, **Ägarregler**, **Etikettregler**, **Link Rules** |
-| **Inställningar** | **Alert Policies**, **SNMP-autentiseringsuppgifter**, **Device Roles**, **Site Types**, **OID Collection Templates** |
+| **Inställningar** | **Alert Policies**, **SNMP-autentiseringsuppgifter**, **Device Roles**, **Site Types**, **Adressnamn**, **OID Collection Templates** |
 | **Avancerad** | **Archived Devices** |
 
 ## Lägg till en nätverksenhet

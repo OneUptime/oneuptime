@@ -102,6 +102,7 @@ flowchart TB
 | ضبط‌های بسته و دانلودهایشان | `Packet Capture` |
 | پرونده‌های امنیتی و اولویت‌ها و وضعیت‌هایشان، پلی‌بوک‌ها و اجراهای آن‌ها، موجودیت‌های محافظت‌شده، اهمیت موجودیت، و ریسک موجودیتی که کسی بازنشانی کند | `Security Case`، `Security Case Priority`، `Security Case Status`، `Security Playbook`، `Security Playbook Run`، `Protected Entity`، `Entity Criticality`، `Entity Risk` |
 | استثناهای قاعده | `Rule Exception` |
+| وظایف و شواهد پرونده‌های امنیتی | `Security Case Task`، `Security Case Evidence` |
 | خروجی‌های گزارش ممیزی | `Audit Log Export` |
 
 این هم ثبت می‌شود که مدیری روش اعلان یا قاعدهٔ آنکال شخصی را روی حساب کس دیگری اضافه یا حذف کند، بدون خود نشانی یا شماره.

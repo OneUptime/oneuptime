@@ -52,6 +52,7 @@ Apri **Prodotti → Security Events**, sotto **Osservabilità**. Il suo menu ha 
 | **Connessioni** | Connections | I tuoi log, i prodotti di sicurezza che OneUptime interroga e i SIEM a cui invia |
 | **Guida alla configurazione** | Connections | Frammenti per inviare eventi, compilati con la tua chiave di ingestione |
 | **Priorità dei casi** | Impostazioni | Quanto è urgente un caso: le priorità del progetto, la più urgente prima |
+| **Obiettivi di risposta** | Impostazioni | Quanto in fretta un caso di ogni priorità deve essere preso in carico e contenuto |
 | **Stati dei casi** | Impostazioni | I passaggi che un caso attraversa, e come conta un caso in ciascuno |
 | **Valutazione del rischio** | Impostazioni | Se il rischio di un'entità apre un caso, a quale rischio, e quanto conta ogni entità |
 
