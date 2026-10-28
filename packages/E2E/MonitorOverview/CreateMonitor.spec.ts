@@ -160,7 +160,10 @@ async function shownTypes(page: Page): Promise<Array<string>> {
 async function offeredTypeCount(page: Page): Promise<number> {
   await openCreate(page);
   await page.getByTestId("card-select-more").click();
-  await expect(page.getByTestId("card-select-more")).toHaveCount(0);
+  await expect(page.getByTestId("card-select-more")).toHaveAttribute(
+    "aria-expanded",
+    "true",
+  );
   return (await shownTypes(page)).length;
 }
 
@@ -294,7 +297,12 @@ test.describe("Create Monitor's first step", () => {
 
     await page.getByTestId("card-select-more").click();
 
-    await expect(page.getByTestId("card-select-more")).toHaveCount(0);
+    // It stays, open (issue #5364: it used to go once pressed).
+    await expect(page.getByTestId("card-select-more")).toBeVisible();
+    await expect(page.getByTestId("card-select-more")).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
     await expect(option(page, "IP")).toBeFocused();
 
     const moreOptions: Locator = page.getByTestId("card-select-more-options");
@@ -445,6 +453,488 @@ test.describe("Create Monitor's first step", () => {
     expect(summaryColors.title).not.toBe("rgb(17, 24, 39)");
 
     await screenshot(page, "create-monitor-dark");
+  });
+});
+
+/*
+ * MORE MONITOR TYPES FOLDS AGAIN (issue #5364).
+ *
+ * "More monitor types" went once pressed - its aria-expanded written as
+ * false - so the rest of the catalog stayed open until the page was
+ * reloaded, and Change on a type it holds opened the whole catalog with no
+ * More at all. It is a disclosure now: it stays where it is, its chevron
+ * turns up, aria-expanded follows it, a second press folds the rest away
+ * with focus kept on it, and Change opens the rest when the type is one of
+ * them. What jsdom cannot show is checked here: the chevron as drawn, the
+ * page settling back to the six rows, the keyboard's real tab order, a
+ * phone's width, the dark theme, German and Persian, and the monitor
+ * template form's dialog, which draws the same picker.
+ */
+
+function more(page: Page): Locator {
+  return page.getByTestId("card-select-more");
+}
+
+// The More chevron's turn as drawn, in degrees (0 down, 180 up), once at rest.
+async function chevronTurn(page: Page): Promise<number> {
+  return page
+    .getByTestId("card-select-more-chevron")
+    .evaluate((element: Element): number => {
+      const transform: string = getComputedStyle(element).transform;
+      const matrix: DOMMatrix = new DOMMatrix(
+        transform === "none" ? undefined : transform,
+      );
+      return Math.round(
+        Math.abs((Math.atan2(matrix.b, matrix.a) * 180) / Math.PI),
+      );
+    });
+}
+
+async function sidewaysOverflow(page: Page): Promise<number> {
+  return page.evaluate((): number => {
+    return (
+      document.documentElement.scrollWidth -
+      document.documentElement.clientWidth
+    );
+  });
+}
+
+// Waits until no finite animation or transition is running.
+async function atRest(page: Page): Promise<void> {
+  await page.waitForFunction((): boolean => {
+    return document.getAnimations().every((animation: Animation): boolean => {
+      return (
+        animation.playState !== "running" ||
+        animation.effect?.getTiming().iterations === Infinity
+      );
+    });
+  });
+}
+
+test.describe("More monitor types folds the rest away again", () => {
+  test("pressed again, it folds the rest away: aria-expanded, the chevron, focus, and the form back where it was", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    const form: Locator = await openCreate(page);
+
+    const nameBefore: number = (await boxOf(nameInput(form))).y;
+
+    await expect(more(page)).toHaveAttribute("aria-expanded", "false");
+    await expect
+      .poll(() => {
+        return chevronTurn(page);
+      })
+      .toBe(0);
+
+    await more(page).click();
+
+    await expect(more(page)).toHaveAttribute("aria-expanded", "true");
+    await expect(more(page)).toHaveText("More monitor types");
+    await expect
+      .poll(() => {
+        return chevronTurn(page);
+      })
+      .toBe(180);
+    await expect(option(page, "IP")).toBeFocused();
+    await expect(option(page, "Kubernetes")).toBeVisible();
+    expect((await boxOf(nameInput(form))).y).toBeGreaterThan(nameBefore + 400);
+
+    await atRest(page);
+    await screenshot(page, "create-monitor-more-open");
+
+    await more(page).click();
+
+    await expect(more(page)).toHaveAttribute("aria-expanded", "false");
+    await expect(more(page)).toBeFocused();
+    await expect
+      .poll(() => {
+        return chevronTurn(page);
+      })
+      .toBe(0);
+    expect(await shownTypes(page)).toEqual(COMMON_TYPES);
+    await expect(page.getByTestId("card-select-more-options")).toHaveCount(0);
+    await expect(form).not.toContainText("Infrastructure");
+    // Nothing else moved: the name is back where it was.
+    expect(
+      Math.abs((await boxOf(nameInput(form))).y - nameBefore),
+    ).toBeLessThan(2);
+
+    // And it opens again, as often as it is pressed.
+    await more(page).click();
+    await expect(option(page, "Kubernetes")).toBeVisible();
+
+    await atRest(page);
+    await screenshot(page, "create-monitor-more-folded-again");
+  });
+
+  test("by keyboard: Enter opens it, Shift+Tab is back on More, Space folds it and focus stays", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const form: Locator = await openCreate(page);
+
+    // The rows are one tab stop, then More.
+    await page.getByTestId("card-select-search").focus();
+    await page.keyboard.press("Tab");
+    await expect(option(page, "Website")).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(more(page)).toBeFocused();
+
+    await page.keyboard.press("Enter");
+    await expect(more(page)).toHaveAttribute("aria-expanded", "true");
+    await expect(option(page, "IP")).toBeFocused();
+
+    // Arrows walk on through what it brought.
+    await page.keyboard.press("ArrowRight");
+    await expect(option(page, "Domain")).toBeFocused();
+
+    await page.keyboard.press("Shift+Tab");
+    await expect(more(page)).toBeFocused();
+
+    await page.keyboard.press(" ");
+    await expect(more(page)).toHaveAttribute("aria-expanded", "false");
+    await expect(more(page)).toBeFocused();
+    expect(await shownTypes(page)).toEqual(COMMON_TYPES);
+
+    // On to the name, past the rows More folded away.
+    await page.keyboard.press("Tab");
+    await expect(nameInput(form)).toBeFocused();
+  });
+
+  test("a type among the rest picked, then Change: the rest open on it, More folds it, Escape keeps it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCreate(page, "?monitorType=Kubernetes");
+
+    await expect(summary(page)).toHaveAttribute(
+      "data-card-select-value",
+      "Kubernetes",
+    );
+
+    await page.getByTestId("card-select-change").click();
+
+    await expect(more(page)).toHaveAttribute("aria-expanded", "true");
+    await expect(option(page, "Kubernetes")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    await expect(page.getByTestId("card-select-search")).toBeFocused();
+
+    await more(page).click();
+
+    await expect(more(page)).toHaveAttribute("aria-expanded", "false");
+    expect(await shownTypes(page)).toEqual(COMMON_TYPES);
+    await expect(more(page)).toBeFocused();
+
+    await page.keyboard.press("Escape");
+
+    await expect(summary(page)).toHaveAttribute(
+      "data-card-select-value",
+      "Kubernetes",
+    );
+    await expect(page.getByTestId("card-select-change")).toBeFocused();
+  });
+
+  test("a search hides More, and clearing it brings More back as it was left", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCreate(page);
+
+    await more(page).click();
+    await page.getByTestId("card-select-search").fill("k8s");
+
+    await expect(more(page)).toHaveCount(0);
+    expect(await shownTypes(page)).toEqual(["Kubernetes"]);
+
+    await page.getByTestId("card-select-search-clear").click();
+
+    await expect(more(page)).toHaveAttribute("aria-expanded", "true");
+    await expect(option(page, "Kubernetes")).toBeVisible();
+
+    await more(page).click();
+    expect(await shownTypes(page)).toEqual(COMMON_TYPES);
+  });
+
+  test("on a phone: it opens and folds with nothing wider than the screen, and stays in sight", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openCreate(page);
+
+    await more(page).click();
+    await expect(more(page)).toHaveAttribute("aria-expanded", "true");
+    await expect
+      .poll(() => {
+        return sidewaysOverflow(page);
+      })
+      .toBeLessThanOrEqual(0);
+
+    // One type a line, as the common rows are.
+    const ip: { x: number; y: number } = await boxOf(option(page, "IP"));
+    const domain: { x: number; y: number } = await boxOf(
+      option(page, "Domain"),
+    );
+    expect(Math.abs(ip.x - domain.x)).toBeLessThan(2);
+    expect(domain.y).toBeGreaterThan(ip.y);
+
+    await atRest(page);
+    await screenshot(page, "create-monitor-more-open-phone");
+
+    await more(page).click();
+
+    await expect(more(page)).toHaveAttribute("aria-expanded", "false");
+    await expect(more(page)).toBeInViewport();
+    await expect
+      .poll(() => {
+        return sidewaysOverflow(page);
+      })
+      .toBeLessThanOrEqual(0);
+    expect(await shownTypes(page)).toEqual(COMMON_TYPES);
+  });
+
+  test("dark mode: More reads on the dark surface, open and folded", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCreate(page, "?theme=dark");
+
+    const colorOf: () => Promise<string> = (): Promise<string> => {
+      return more(page).evaluate((element: Element): string => {
+        return getComputedStyle(element).color;
+      });
+    };
+
+    // Not the light theme's indigo-600, which is too dark to read there.
+    expect(await colorOf()).not.toBe("rgb(79, 70, 229)");
+
+    await more(page).click();
+    await page.mouse.move(0, 0);
+    await expect(more(page)).toHaveAttribute("aria-expanded", "true");
+    expect(await colorOf()).not.toBe("rgb(79, 70, 229)");
+
+    const headingColor: string = await page
+      .getByTestId("card-select-more-options")
+      .getByText("Infrastructure", { exact: true })
+      .evaluate((element: Element): string => {
+        return getComputedStyle(element).color;
+      });
+    expect(headingColor).not.toBe("rgb(107, 114, 128)");
+
+    await atRest(page);
+    await screenshot(page, "create-monitor-more-open-dark");
+  });
+
+  test("in German: Weitere Monitortypen opens and folds the rest", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openCreate(page, "?lang=de");
+
+    await expect(more(page)).toHaveText("Weitere Monitortypen");
+
+    await more(page).click();
+    await expect(more(page)).toHaveAttribute("aria-expanded", "true");
+    await expect(option(page, "Kubernetes")).toBeVisible();
+
+    await atRest(page);
+    await screenshot(page, "create-monitor-more-open-de");
+
+    await more(page).click();
+    await expect(more(page)).toHaveAttribute("aria-expanded", "false");
+    expect(await shownTypes(page)).toEqual(COMMON_TYPES);
+  });
+
+  test("in Persian: More sits at the line's start, its chevron points down and up as in English, and fits a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openCreate(page, "?lang=fa");
+
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await expect(more(page)).toHaveText("انواع دیگر مانیتور");
+
+    // The start of a right-to-left line is its right edge.
+    const button: { x: number; width: number } = await boxOf(more(page));
+    const rows: { x: number; width: number } = await boxOf(
+      page.getByTestId("card-select-common"),
+    );
+    expect(
+      Math.abs(button.x + button.width - (rows.x + rows.width)),
+    ).toBeLessThan(2);
+
+    // A chevron that points down or up is not mirrored.
+    const scale: string = await page
+      .getByTestId("card-select-more-chevron")
+      .evaluate((element: Element): string => {
+        return getComputedStyle(element).scale;
+      });
+    expect(scale === "none" || scale === "1").toBe(true);
+
+    await more(page).click();
+    await expect(more(page)).toHaveAttribute("aria-expanded", "true");
+    await expect
+      .poll(() => {
+        return chevronTurn(page);
+      })
+      .toBe(180);
+    await expect
+      .poll(() => {
+        return sidewaysOverflow(page);
+      })
+      .toBeLessThanOrEqual(0);
+
+    await atRest(page);
+    await screenshot(page, "create-monitor-more-open-fa-phone");
+
+    await more(page).click();
+    await expect(more(page)).toHaveAttribute("aria-expanded", "false");
+    await expect
+      .poll(() => {
+        return chevronTurn(page);
+      })
+      .toBe(0);
+  });
+});
+
+/*
+ * The monitor template form (Settings > Monitor Templates, Create) draws the
+ * same picker on its Monitor Defaults step, in a dialog: More folds there
+ * too, and Escape after Change keeps the type picked without closing it.
+ */
+test.describe("A monitor template's More monitor types", () => {
+  const TEMPLATES_PATH: string = `/dashboard/${PROJECT_ID}/monitors/settings/templates`;
+
+  async function openTemplateDefaults(page: Page): Promise<Locator> {
+    await page.clock.setFixedTime(NOW);
+    await page.goto(TEMPLATES_PATH);
+    await expect(page.getByTestId("synthetic-banner")).toBeVisible({
+      timeout: 60000,
+    });
+
+    await page
+      .getByRole("button", { name: "Create Monitor Template" })
+      .first()
+      .click();
+
+    const dialog: Locator = page.getByTestId("modal");
+    await expect(dialog).toBeVisible({ timeout: 30000 });
+
+    await dialog
+      .getByPlaceholder("Production API Health")
+      .fill("Checkout API health");
+    await dialog.getByRole("button", { name: "Next", exact: true }).click();
+
+    await expect(dialog.getByTestId("card-select-common")).toBeVisible({
+      timeout: 30000,
+    });
+    await atRest(page);
+
+    return dialog;
+  }
+
+  test("More opens the rest in the dialog and folds it again, focus kept", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    const dialog: Locator = await openTemplateDefaults(page);
+
+    const toggle: Locator = dialog.getByTestId("card-select-more");
+
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await expect(dialog.getByTestId("card-select-option-IP")).toBeFocused();
+    await expect(
+      dialog.getByTestId("card-select-option-Kubernetes"),
+    ).toBeVisible();
+
+    await atRest(page);
+    await screenshot(page, "monitor-template-more-open");
+
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect(toggle).toBeFocused();
+    await expect(dialog.getByTestId("card-select-more-options")).toHaveCount(0);
+    await expect(dialog).toBeVisible();
+  });
+
+  test("a type among the rest, then Change: More open, folds it, and Escape keeps the type and the dialog", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const dialog: Locator = await openTemplateDefaults(page);
+
+    await dialog.getByTestId("card-select-more").click();
+    await dialog.getByTestId("card-select-option-Kubernetes").click();
+    await expect(dialog.getByTestId("card-select-summary")).toHaveAttribute(
+      "data-card-select-value",
+      "Kubernetes",
+    );
+
+    await dialog.getByTestId("card-select-change").click();
+    await expect(dialog.getByTestId("card-select-more")).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+
+    await dialog.getByTestId("card-select-more").click();
+    await expect(dialog.getByTestId("card-select-more")).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+
+    await page.keyboard.press("Escape");
+
+    await expect(dialog.getByTestId("card-select-summary")).toHaveAttribute(
+      "data-card-select-value",
+      "Kubernetes",
+    );
+    await expect(dialog).toBeVisible();
+  });
+
+  test("on a phone, in the dialog: it opens and folds with nothing wider than the screen", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const dialog: Locator = await openTemplateDefaults(page);
+
+    const toggle: Locator = dialog.getByTestId("card-select-more");
+
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await expect
+      .poll(() => {
+        return sidewaysOverflow(page);
+      })
+      .toBeLessThanOrEqual(0);
+
+    await atRest(page);
+    await screenshot(page, "monitor-template-more-open-phone");
+
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect(toggle).toBeInViewport();
   });
 });
 
