@@ -85,6 +85,7 @@ import NetworkDeviceLinkRuleService from "./NetworkDeviceLinkRuleService";
 import NetworkTopologySuppressionService from "./NetworkTopologySuppressionService";
 import NetworkSiteAssignmentRuleService from "./NetworkSiteAssignmentRuleService";
 import NetworkControllerConnectionService from "./NetworkControllerConnectionService";
+import NetworkAddressNameService from "./NetworkAddressNameService";
 import PodmanHostService from "./PodmanHostService";
 import PodmanHostOwnerRuleService from "./PodmanHostOwnerRuleService";
 import PodmanHostOwnerUserService from "./PodmanHostOwnerUserService";
@@ -635,6 +636,7 @@ const services: Array<BaseService> = [
   NetworkTopologySuppressionService,
   NetworkSiteAssignmentRuleService,
   NetworkControllerConnectionService,
+  NetworkAddressNameService,
   PodmanHostService,
   PodmanHostOwnerRuleService,
   PodmanHostOwnerUserService,

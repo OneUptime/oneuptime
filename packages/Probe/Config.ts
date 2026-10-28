@@ -30,6 +30,11 @@ import {
   DEFAULT_SYSLOG_RATE_LIMIT_PER_MINUTE,
   DEFAULT_SYSLOG_RECEIVER_PORT,
 } from "Common/Types/Syslog/SyslogReceiverDefaults";
+import {
+  DEFAULT_FLOW_NAME_LOOKUPS_PER_MINUTE,
+  ParsedFlowNameDnsServers,
+  parseFlowNameDnsServers,
+} from "./Utils/NetFlow/FlowAddressNamer";
 
 if (!process.env["PROBE_INGEST_URL"] && !process.env["ONEUPTIME_URL"]) {
   logger.error("PROBE_INGEST_URL or ONEUPTIME_URL is not set");
@@ -618,6 +623,45 @@ export const PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE: number =
     defaultValue: 6000,
     min: 1,
   });
+
+/*
+ * Names for the addresses in flow records (issue #5340): the collector looks
+ * up the busiest addresses of the flows it forwards in DNS, on this host's
+ * own resolver - inside the network, where private addresses have names -
+ * and sends each forward-confirmed name with the flows, so the Traffic pages
+ * show "fileserver-01" over 10.18.167.35. On by default;
+ * PROBE_FLOW_NAME_LOOKUP_ENABLED=false turns the lookups off (the pages then
+ * name addresses from the project's inventory and Address Names only).
+ *
+ * PROBE_FLOW_NAME_LOOKUPS_PER_MINUTE caps the addresses looked up a minute
+ * (each is one PTR query and a forward confirmation or two); 0 turns them
+ * off. PROBE_FLOW_NAME_DNS_SERVERS asks these servers instead of the host's
+ * (comma-separated: 10.0.0.53, 10.0.0.54:5353, [fd00::53]:53) - for a probe
+ * whose own resolver does not hold the network's reverse zones.
+ */
+export const PROBE_FLOW_NAME_LOOKUP_ENABLED: boolean =
+  process.env["PROBE_FLOW_NAME_LOOKUP_ENABLED"] !== "false";
+
+export const PROBE_FLOW_NAME_LOOKUPS_PER_MINUTE: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_FLOW_NAME_LOOKUPS_PER_MINUTE"],
+    defaultValue: DEFAULT_FLOW_NAME_LOOKUPS_PER_MINUTE,
+    min: 0,
+    max: 6000,
+  });
+
+const flowNameDnsServers: ParsedFlowNameDnsServers = parseFlowNameDnsServers(
+  process.env["PROBE_FLOW_NAME_DNS_SERVERS"],
+);
+
+if (flowNameDnsServers.invalid.length > 0) {
+  logger.warn(
+    `PROBE_FLOW_NAME_DNS_SERVERS: not a DNS server address, left out: ${flowNameDnsServers.invalid.join(", ")}. Write each as an IP address, with a port if it is not 53 (10.0.0.53:5353, [fd00::53]:53).`,
+  );
+}
+
+export const PROBE_FLOW_NAME_DNS_SERVERS: Array<string> =
+  flowNameDnsServers.servers;
 
 export const PROBE_INGRESS_FORWARD_TIMEOUT_MS: number =
   NumberUtil.parseNumberWithDefault({

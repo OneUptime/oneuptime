@@ -1,4 +1,7 @@
 import {
+  PROBE_FLOW_NAME_DNS_SERVERS,
+  PROBE_FLOW_NAME_LOOKUP_ENABLED,
+  PROBE_FLOW_NAME_LOOKUPS_PER_MINUTE,
   PROBE_INGEST_URL,
   PROBE_IPFIX_RECEIVER_PORT,
   PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE,
@@ -6,6 +9,7 @@ import {
   PROBE_NETFLOW_RECEIVER_PORT,
   PROBE_SFLOW_RECEIVER_PORT,
 } from "../Config";
+import FlowAddressNamer from "../Utils/NetFlow/FlowAddressNamer";
 import FlowAggregator from "../Utils/NetFlow/FlowAggregator";
 import FlowDatagramDecoder, {
   FlowDatagramOutcome,
@@ -30,6 +34,10 @@ import dgram from "dgram";
  * (FlowAggregator) and forwarded to the ingest endpoint in batches - every
  * FLUSH_INTERVAL_MS, or as soon as FLUSH_RECORD_BATCH_SIZE conversations
  * are waiting - where the server matches them to devices and stores them.
+ *
+ * Each batch carries the DNS names known for its addresses (issue #5340):
+ * the busiest addresses are looked up on this probe's resolver in the
+ * background, never holding a forward up (FlowAddressNamer).
  */
 const FLUSH_INTERVAL_MS: number = 5000;
 
@@ -91,6 +99,13 @@ export default class NetFlowReceiver {
     new Map();
   private static lastProblemReportAt: number = 0;
 
+  // DNS names for the forwarded addresses, looked up in the background.
+  private static namer: FlowAddressNamer = FlowAddressNamer.create({
+    isEnabled: PROBE_FLOW_NAME_LOOKUP_ENABLED,
+    maxLookupsPerMinute: PROBE_FLOW_NAME_LOOKUPS_PER_MINUTE,
+    servers: PROBE_FLOW_NAME_DNS_SERVERS,
+  });
+
   // The UDP ports to listen on, from the probe's settings.
   public static getListeningPorts(): Array<number> {
     return NetworkFlowCollectorPortsUtil.getListeningPorts({
@@ -125,6 +140,12 @@ export default class NetFlowReceiver {
        * bind, which is logged as a warning while IPv4 keeps receiving.
        */
       NetFlowReceiver.startSocket("udp6", port);
+    }
+
+    if (NetFlowReceiver.namer.isEnabled) {
+      logger.info(
+        `Flow collector looks up DNS names for the busiest addresses it forwards (at most ${PROBE_FLOW_NAME_LOOKUPS_PER_MINUTE} a minute, on ${PROBE_FLOW_NAME_DNS_SERVERS.length > 0 ? PROBE_FLOW_NAME_DNS_SERVERS.join(", ") : "this host's resolver"}); set PROBE_FLOW_NAME_LOOKUP_ENABLED=false to turn this off.`,
+      );
     }
 
     setInterval(() => {
@@ -396,6 +417,15 @@ export default class NetFlowReceiver {
         const batch: Array<NetworkFlowRecord> =
           NetFlowReceiver.aggregator.drain(FLUSH_RECORD_BATCH_SIZE);
 
+        /*
+         * The names already known go with the batch; the batch's other
+         * addresses wait for a lookup by the bytes they carried, and are
+         * named from a later batch on.
+         */
+        NetFlowReceiver.namer.note(batch);
+        const addressNames: Record<string, string> =
+          NetFlowReceiver.namer.namesFor(batch);
+
         try {
           /*
            * Build the URL from a fresh copy of PROBE_INGEST_URL - Route
@@ -413,6 +443,9 @@ export default class NetFlowReceiver {
             data: {
               ...ProbeAPIRequest.getDefaultRequestBody(),
               flowRecords: batch as unknown as Array<JSONObject>,
+              ...(Object.keys(addressNames).length > 0
+                ? { addressNames: addressNames }
+                : {}),
             },
             options: ProbeAPIRequest.getDefaultRequestOptions(ingestUrl, {
               timeout: FLUSH_REQUEST_TIMEOUT_MS,
@@ -432,6 +465,11 @@ export default class NetFlowReceiver {
     } finally {
       NetFlowReceiver.isFlushing = false;
     }
+
+    // The busiest addresses waiting are looked up now, without holding the collector up.
+    NetFlowReceiver.namer.pump().catch((err: Error) => {
+      logger.debug(`Flow collector name lookups failed: ${err}`);
+    });
   }
 
   private static consumeRateLimitSlot(): boolean {
