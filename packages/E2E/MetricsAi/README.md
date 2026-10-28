@@ -3,7 +3,9 @@
 An offline harness for Metrics' real AI tab: Metrics' layout with its tabs
 and breadcrumbs (`packages/App/FeatureSet/Dashboard/src/Pages/Metrics/Layout.tsx`)
 and its AI section (`Pages/Metrics/AI`: the side menu, Insights, a finding's
-page with Fix with AI, Logs and Settings). It bundles the production
+page with Fix with AI, Logs and Settings) - and Metrics' own Insights tab
+(`Pages/Metrics/List`, `Components/Metrics/MetricsDashboard`: the services
+reporting metrics, a card each). It bundles the production
 components with esbuild, replaces only the `API` / `ModelAPI` /
 `AnalyticsModelAPI` data boundary and the synthetic user, and serves them on
 `127.0.0.1:4463`. No Docker, no database, no sign-in.
@@ -42,6 +44,24 @@ The suite covers, on a laptop and on a phone, light and dark:
   wrap inside their card, a long service name in Details ends in an
   ellipsis instead of losing its start, a log entry's kind stays on one
   line, and nothing scrolls sideways.
+
+`MetricsInsights.spec.ts` draws the Insights tab's service cards at every
+width - 1440, 1280, 1024 and 768 on the laptop project, 390 on the phone -
+from the reads `Fixture/MetricsInsights.js` answers (`?insights=busy`, the
+default: seven services and the points no service sent; `long`: the names a
+large estate has; `one`; `empty`; and `?fail=metrics`):
+
+- a card each, the busiest first, each one link (to the service's metrics,
+  or for the unattributed points to the viewer) with no link inside it;
+- the cards of a row end on one line, and their three rows - the service,
+  its figures, its names - start on one line, three across from 1024, two
+  at 768 and one on a phone;
+- nothing in a card runs past it and nothing scrolls sideways: a service's
+  name takes two lines at most, its whole name under the pointer, and a
+  metric's name of sixty characters wraps inside its chip after its own
+  dots;
+- dark cards in the dark theme, no metrics in the range, and a read that
+  fails.
 
 ## Run it
 
