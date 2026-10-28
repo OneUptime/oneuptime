@@ -578,12 +578,16 @@ test.describe("a case's tasks", () => {
         `tasks at ${width} ${theme || "light"}`,
       ).toBeLessThanOrEqual(1);
 
-      // Who has each task: its own column from sm up, a line under the title on a phone.
+      /*
+       * Who has each task: a column of its own where the list has room, a
+       * line under the title where it has not - on a phone, and beside the
+       * side menu at 768, where the case's card is 480px wide.
+       */
       const maya: Locator = taskRow(
         page,
         "Reset the sprayed accounts' passwords",
       );
-      if (width < 640) {
+      if (width <= 768) {
         await expect(
           maya.getByTestId("security-case-task-assignee"),
         ).toBeHidden();

@@ -95,12 +95,25 @@ export const SECURITY_CASE_TASK_ADD_FORM_CLASS_NAME: string =
   "mt-1 flex flex-col gap-2 border-t border-gray-100 pt-4 md:flex-row md:items-center [&>button]:md:ml-0 [&>*>button]:md:ml-0";
 
 /*
+ * Where who has a task is drawn, by the list's own width - beside a side
+ * menu a case's card is 480px at a 768px window, as narrow as a big phone:
+ * a column of its own once the list has 34rem, a line under the task's
+ * title below that, where a 176px column left each task a few words a line.
+ * The list is the size container (SECURITY_CASE_TASKS_LIST_CLASS_NAME).
+ */
+export const SECURITY_CASE_TASKS_LIST_CLASS_NAME: string =
+  "divide-y divide-gray-100 [container-type:inline-size]";
+export const SECURITY_CASE_TASK_ASSIGNEE_COLUMN_CLASS_NAME: string =
+  "flex h-6 w-44 min-w-0 shrink-0 items-center [@container(max-width:33.99rem)]:hidden";
+export const SECURITY_CASE_TASK_ASSIGNEE_LINE_CLASS_NAME: string =
+  "mt-0.5 flex min-w-0 [@container(min-width:34rem)]:hidden";
+
+/*
  * Who has a task: a small avatar and the name on one line, cut to it with
  * the whole name under the pointer - or Unassigned. It is quieter than the
- * task: in its own column beside the task from sm up, a smaller line under
- * the task's title on a phone, where a column would leave the task a few
- * words a line. A long name used to wrap into four lines of the task's
- * height, louder than the task itself.
+ * task: in a column of its own beside the task where the list has room, a
+ * smaller line under the task's title where it has not. A long name used to
+ * wrap into four lines of the task's height, louder than the task itself.
  */
 export const SecurityCaseTaskAssignee: FunctionComponent<{
   task: SecurityCaseTask;
@@ -419,11 +432,11 @@ const SecurityCaseTasks: FunctionComponent<ComponentProps> = (
             <IsolatedText text={task.title || ""} />
           </p>
           {/*
-           * On a phone, who has it: under what it is, as the column beside
-           * it is drawn from sm up.
+           * In a narrow list, who has it: under what it is, where a wide list
+           * draws the column beside it.
            */}
           <div
-            className="mt-0.5 flex min-w-0 sm:hidden"
+            className={SECURITY_CASE_TASK_ASSIGNEE_LINE_CLASS_NAME}
             data-testid={SECURITY_CASE_TASKS_TEST_IDS.assigneeLine}
           >
             <SecurityCaseTaskAssignee task={task} isCompact={true} />
@@ -464,7 +477,7 @@ const SecurityCaseTasks: FunctionComponent<ComponentProps> = (
          * the avatars line up under each other as a table's would.
          */}
         <div
-          className="max-sm:hidden flex h-6 w-44 min-w-0 shrink-0 items-center"
+          className={SECURITY_CASE_TASK_ASSIGNEE_COLUMN_CLASS_NAME}
           data-testid={SECURITY_CASE_TASKS_TEST_IDS.assignee}
         >
           <SecurityCaseTaskAssignee task={task} />
@@ -599,7 +612,7 @@ const SecurityCaseTasks: FunctionComponent<ComponentProps> = (
           />
         ) : (
           <ul
-            className="divide-y divide-gray-100"
+            className={SECURITY_CASE_TASKS_LIST_CLASS_NAME}
             data-testid={SECURITY_CASE_TASKS_TEST_IDS.list}
           >
             {tasks.map(getRow)}

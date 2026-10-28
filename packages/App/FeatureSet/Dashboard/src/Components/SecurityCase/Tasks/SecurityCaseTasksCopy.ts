@@ -109,7 +109,7 @@ export const SECURITY_CASE_TASKS_TEST_IDS: {
   checkbox: "security-case-task-done",
   title: "security-case-task-title",
   assignee: "security-case-task-assignee",
-  // On a phone, who has it: a line under the task's title.
+  // In a narrow list, who has it: a line under the task's title.
   assigneeLine: "security-case-task-assignee-line",
   doneLine: "security-case-task-done-line",
   more: "security-case-task-more",

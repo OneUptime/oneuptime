@@ -27,8 +27,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     a box to tick it off, what it is, who has it - or Unassigned - and,
  *     once done, who did it and when. How many are done sits beside the
  *     title. Who has it is a small avatar and the name on one line, cut to
- *     it with the whole name under the pointer: in a column of its own from
- *     sm up, a line under the title on a phone.
+ *     it with the whole name under the pointer: in a column of its own where
+ *     the list is 34rem wide, a line under the title where it is narrower
+ *     (a phone, or a case's card beside its side menu at 768px).
  *   - Its ⋯ is a button, as every list row's is; Assign Task and Delete
  *     Task name the task in bold in their question.
  *   - A new task is typed into the line under the list and added with Enter
@@ -496,7 +497,7 @@ describe("a case's tasks", () => {
     });
   });
 
-  test("who has a task: a small avatar and the name on one line, the whole name under the pointer, and on a phone a line under the title", async () => {
+  test("who has a task: a small avatar and the name on one line, the whole name under the pointer, and in a narrow list a line under the title", async () => {
     const longName: string = "Diego Fernando Alvarez-Montenegro de la Vega";
     tasks = [
       task(TASK_A, "Pull the proxy logs", {
@@ -512,11 +513,20 @@ describe("a case's tasks", () => {
 
     const mine: HTMLElement = rowOf("Pull the proxy logs");
 
-    // The column beside the task, from sm up: a fixed width, so avatars line up.
+    /*
+     * The list is a size container: the column beside the task where it is
+     * 34rem wide, a fixed width so the avatars line up; the line under the
+     * title where it is narrower.
+     */
+    expect(
+      screen.getByTestId(SECURITY_CASE_TASKS_TEST_IDS.list).className,
+    ).toContain("[container-type:inline-size]");
     const column: HTMLElement = within(mine).getByTestId(
       SECURITY_CASE_TASKS_TEST_IDS.assignee,
     );
-    expect(column.className).toContain("max-sm:hidden");
+    expect(column.className).toContain(
+      "[@container(max-width:33.99rem)]:hidden",
+    );
     expect(column.className).toContain("w-44");
     expect(column).toHaveTextContent(longName);
     expect(within(column).getByTitle(longName)).toBeInTheDocument();
@@ -527,11 +537,11 @@ describe("a case's tasks", () => {
     expect(name.className).toContain("truncate");
     expect(name.className).toContain("text-sm");
 
-    // On a phone: under the title, smaller.
+    // In a narrow list: under the title, smaller.
     const line: HTMLElement = within(mine).getByTestId(
       SECURITY_CASE_TASKS_TEST_IDS.assigneeLine,
     );
-    expect(line.className).toContain("sm:hidden");
+    expect(line.className).toContain("[@container(min-width:34rem)]:hidden");
     expect(within(line).getByText(longName).className).toContain("text-xs");
 
     // Nobody's: Unassigned in both places.
