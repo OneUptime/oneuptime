@@ -7,6 +7,10 @@ import ExceptionAggregationService from "../../../Server/Services/ExceptionAggre
 import MetricAggregationService from "../../../Server/Services/MetricAggregationService";
 import ProfileAggregationService from "../../../Server/Services/ProfileAggregationService";
 import ProfileService from "../../../Server/Services/ProfileService";
+import LogService from "../../../Server/Services/LogService";
+import SpanService from "../../../Server/Services/SpanService";
+import ExceptionInstanceService from "../../../Server/Services/ExceptionInstanceService";
+import TelemetryExceptionService from "../../../Server/Services/TelemetryExceptionService";
 import ProfileSampleService from "../../../Server/Services/ProfileSampleService";
 import TelemetryAttributeService from "../../../Server/Services/TelemetryAttributeService";
 import LlmConversationService from "../../../Server/Services/LlmConversationService";
@@ -1182,6 +1186,158 @@ describe("/telemetry/profiles/monitor-preview", () => {
   );
 });
 
+/*
+ * A Logs, Traces or Exceptions monitor's rule preview counts the monitor's
+ * own query per window (TelemetryRulePreviewService): the read it hands
+ * ClickHouse must keep to the services the reader may read, whatever
+ * services the monitor names.
+ */
+describe("/telemetry/{logs,traces,exceptions}/monitor-preview", () => {
+  type PreviewCase = {
+    uri: string;
+    service: unknown;
+    body: JSONObject;
+  };
+
+  const PREVIEW_CASES: Array<PreviewCase> = [
+    {
+      uri: "/telemetry/logs/monitor-preview",
+      service: LogService,
+      body: {
+        body: "payment declined",
+        severityTexts: ["Error"],
+        telemetryServiceIds: [],
+        attributes: {},
+        lastXSecondsOfLogs: 300,
+      },
+    },
+    {
+      uri: "/telemetry/traces/monitor-preview",
+      service: SpanService,
+      body: {
+        spanName: "POST /api/checkout",
+        spanStatuses: [2],
+        telemetryServiceIds: [],
+        attributes: {},
+        lastXSecondsOfSpans: 300,
+      },
+    },
+    {
+      uri: "/telemetry/exceptions/monitor-preview",
+      service: ExceptionInstanceService,
+      body: {
+        message: "",
+        exceptionTypes: ["TypeError"],
+        telemetryServiceIds: [],
+        lastXSecondsOfExceptions: 300,
+      },
+    },
+  ];
+
+  for (const previewCase of PREVIEW_CASES) {
+    test.each(PRINCIPALS)(
+      `${previewCase.uri}: a %s reader's preview counts only the services they may read`,
+      async (principalName: PrincipalName) => {
+        currentPrincipal = principalFor(
+          principalName,
+          Permission.ProjectMember,
+        );
+        const count: Spy = spyOn(previewCase.service, "countPerWindow");
+        count.mockResolvedValue([]);
+        spyOn(
+          TelemetryExceptionService,
+          "getResolvedOrArchivedFingerprints",
+        ).mockResolvedValue([]);
+
+        const result: CallResult = await callRoute({
+          uri: previewCase.uri,
+          principal: currentPrincipal,
+          body: previewCase.body,
+        });
+
+        expect(result.thrownToNext).toBeUndefined();
+        expect(result.errorResponse).toBeUndefined();
+
+        const query: Record<string, unknown> = (
+          count.mock.calls[0]![0] as { query: Record<string, unknown> }
+        ).query;
+
+        expect(String(query["projectId"])).toBe(PROJECT_ID.toString());
+
+        const operator: unknown = query["primaryEntityId"];
+        const expected: ExpectedFilter = EXPECTED[principalName];
+
+        if (expected.serviceIds.length > 0) {
+          expect(operator).toBeInstanceOf(Includes);
+          expect(
+            sortedIds(...(operator as Includes).values.map(String)),
+          ).toEqual(expected.serviceIds);
+        } else if (expected.excludedServiceIds.length > 0) {
+          expect(operator).toBeInstanceOf(IncludesNone);
+          expect(
+            sortedIds(...(operator as IncludesNone).values.map(String)),
+          ).toEqual(expected.excludedServiceIds);
+        } else {
+          expect(operator).toBeUndefined();
+        }
+      },
+    );
+
+    test(`${previewCase.uri}: services the monitor names that the reader may not read are left out`, async () => {
+      currentPrincipal = principalFor("label A", Permission.ProjectMember);
+      const count: Spy = spyOn(previewCase.service, "countPerWindow");
+      count.mockResolvedValue([]);
+      spyOn(
+        TelemetryExceptionService,
+        "getResolvedOrArchivedFingerprints",
+      ).mockResolvedValue([]);
+
+      await callRoute({
+        uri: previewCase.uri,
+        principal: currentPrincipal,
+        body: {
+          ...previewCase.body,
+          telemetryServiceIds: [
+            { _type: "ObjectID", value: SERVICE_A.toString() },
+            { _type: "ObjectID", value: SERVICE_C.toString() },
+          ],
+        },
+      });
+
+      const query: Record<string, unknown> = (
+        count.mock.calls[0]![0] as { query: Record<string, unknown> }
+      ).query;
+
+      expect(
+        sortedIds(
+          ...(query["primaryEntityId"] as Includes).values.map(String),
+        ),
+      ).toEqual(sortedIds(SERVICE_A));
+    });
+
+    test(`${previewCase.uri}: a window that is not a number is refused before anything is read`, async () => {
+      currentPrincipal = principalFor("project-wide", Permission.ProjectMember);
+      const count: Spy = spyOn(previewCase.service, "countPerWindow");
+      count.mockResolvedValue([]);
+
+      const windowKey: string = Object.keys(previewCase.body).find(
+        (key: string) => {
+          return key.startsWith("lastXSeconds");
+        },
+      )!;
+
+      const result: CallResult = await callRoute({
+        uri: previewCase.uri,
+        principal: currentPrincipal,
+        body: { ...previewCase.body, [windowKey]: "soon" },
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+      expect(count.mock.calls).toHaveLength(0);
+    });
+  }
+});
+
 describe("a block with no labels", () => {
   test("refuses a telemetry read before anything is read", async () => {
     currentPrincipal = principalFor("project-wide", Permission.ProjectMember);
@@ -1712,6 +1868,12 @@ describe("every /telemetry/* route", () => {
     "/telemetry/profiles/:profileId/pprof": "this file: one profile's download",
     "/telemetry/profiles/monitor-preview":
       "this file: a Profiles monitor's preview reads its own profile query",
+    "/telemetry/logs/monitor-preview":
+      "this file: a Logs monitor's rule preview counts its own log query",
+    "/telemetry/traces/monitor-preview":
+      "this file: a Traces monitor's rule preview counts its own span query",
+    "/telemetry/exceptions/monitor-preview":
+      "this file: an Exceptions monitor's rule preview counts its own query",
     "/telemetry/profiles/get-attributes":
       "this file: profiles have no attributes to scope",
     "/telemetry/exceptions/resolve-stack-trace":
