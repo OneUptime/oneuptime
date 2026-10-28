@@ -24,6 +24,13 @@ const TRACES: Record<string, string> = {
 // The ebpf trace's pod (its k8sPodEntityKey).
 const APP_POD: string = "7a2872b83f046399";
 
+/*
+ * The table a span read is recorded under. The page also lists the trace's
+ * security events by its traceId (SecurityEventsInSignal, above the
+ * spans); those reads are not pages of spans.
+ */
+const SPAN_TABLE: string = "SpanItemV3";
+
 const SCREENSHOTS: string = path.resolve(
   __dirname,
   "../../../output/playwright/trace-detail-ui",
@@ -226,6 +233,7 @@ test.describe("header", () => {
     const spanRead: RecordedListRequest = state.analyticsListRequests.find(
       (request: RecordedListRequest) => {
         return (
+          request.modelName === SPAN_TABLE &&
           request.query["traceId"] === TRACES["checkout"] &&
           !request.query["spanId"] &&
           "startTimeUnixNano" in request.sort
@@ -820,6 +828,7 @@ test.describe("large and unusual traces", () => {
     const reads: Array<RecordedListRequest> =
       state.analyticsListRequests.filter((request: RecordedListRequest) => {
         return (
+          request.modelName === SPAN_TABLE &&
           request.query["traceId"] === TRACES["worker"] &&
           !request.query["spanId"]
         );
@@ -863,6 +872,7 @@ test.describe("large and unusual traces", () => {
     const reads: Array<RecordedListRequest> =
       state.analyticsListRequests.filter((request: RecordedListRequest) => {
         return (
+          request.modelName === SPAN_TABLE &&
           request.query["traceId"] === TRACES["large"] &&
           !request.query["spanId"]
         );
@@ -927,7 +937,10 @@ test.describe("large and unusual traces", () => {
     const state: FixtureState = await fixture(page);
     expect(
       state.analyticsListRequests.filter((request: RecordedListRequest) => {
-        return request.query["traceId"] === TRACES["checkout"];
+        return (
+          request.modelName === SPAN_TABLE &&
+          request.query["traceId"] === TRACES["checkout"]
+        );
       }).length,
     ).toBeGreaterThanOrEqual(2);
   });
