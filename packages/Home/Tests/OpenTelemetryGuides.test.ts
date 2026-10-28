@@ -537,7 +537,12 @@ function parseProblems(snippet: GuideSnippet): Array<string> {
     case "dockerfile":
       return dockerfileInstructions(snippet.code)
         .filter((line: string): boolean => {
-          return line.trim().length > 0 && !DOCKERFILE_INSTRUCTION.test(line);
+          // A comment is a line of its own that starts with #.
+          return (
+            line.trim().length > 0 &&
+            !line.startsWith("# ") &&
+            !DOCKERFILE_INSTRUCTION.test(line)
+          );
         })
         .map((line: string): string => {
           return `not a Dockerfile instruction: ${line}`;
@@ -663,6 +668,11 @@ describe("the OpenTelemetry guide catalog", () => {
       "echo",
       "fiber",
       "grpc",
+      // Ruby.
+      "ruby",
+      "rails",
+      "sinatra",
+      "sidekiq",
     ]);
   });
 
@@ -709,7 +719,13 @@ describe.each(BY_SLUG)(
       expect(
         guide.logs.snippets.length + guide.logs.notes.length,
       ).toBeGreaterThanOrEqual(2);
-      expect(guide.metrics.builtIn.length).toBeGreaterThanOrEqual(1);
+      /*
+       * The metrics the instrumentations send, or, where they send none
+       * (Ruby's record spans only), the code that makes one.
+       */
+      expect(
+        guide.metrics.builtIn.length > 0 || guide.metrics.snippets.length > 0,
+      ).toBe(true);
       expect(guide.sampling.snippets.length).toBeGreaterThanOrEqual(1);
       expect(guide.deploy.snippets.length).toBeGreaterThanOrEqual(1);
       expect(guide.verify.steps.length).toBeGreaterThanOrEqual(3);

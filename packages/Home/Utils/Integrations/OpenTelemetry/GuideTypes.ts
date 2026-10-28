@@ -233,6 +233,8 @@ export interface ExpectedSpan {
    * or a task's threads.
    */
   parent?: string | undefined;
+  // Attributes the span must not carry: what the guide's options leave out.
+  absentAttributes?: Array<string> | undefined;
 }
 
 export interface ExpectedLog {

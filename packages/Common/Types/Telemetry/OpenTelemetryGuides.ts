@@ -467,6 +467,39 @@ export const OPEN_TELEMETRY_GUIDES: ReadonlyArray<OpenTelemetryGuideEntry> = [
     kind: "framework",
     telemetryGuideLanguage: "go",
   },
+  {
+    // Any Ruby program: a script, a scheduled job, a worker.
+    slug: "ruby",
+    name: "Ruby",
+    language: OpenTelemetryGuideLanguage.Ruby,
+    kind: "runtime",
+    logo: ProviderLogo.Ruby,
+    telemetryGuideLanguage: "ruby",
+    isLanguageGuide: true,
+  },
+  {
+    slug: "rails",
+    name: "Ruby on Rails",
+    language: OpenTelemetryGuideLanguage.Ruby,
+    kind: "framework",
+    telemetryGuideLanguage: "ruby",
+  },
+  {
+    // No logo set the registry draws from has Sinatra's: its initials stand in.
+    slug: "sinatra",
+    name: "Sinatra",
+    language: OpenTelemetryGuideLanguage.Ruby,
+    kind: "framework",
+    telemetryGuideLanguage: "ruby",
+  },
+  {
+    // Ruby's most used background job processor: Celery's counterpart.
+    slug: "sidekiq",
+    name: "Sidekiq",
+    language: OpenTelemetryGuideLanguage.Ruby,
+    kind: "worker",
+    telemetryGuideLanguage: "ruby",
+  },
 ];
 
 // Where the guides are listed: the website's index of integrations.

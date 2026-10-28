@@ -704,6 +704,13 @@ function check(
         ) {
           return false;
         }
+        if (
+          (expected.absentAttributes || []).some((key: string): boolean => {
+            return span.attributes[key] !== undefined;
+          })
+        ) {
+          return false;
+        }
         return Object.entries(expected.attributes || {}).every(
           ([key, value]: [string, string]): boolean => {
             return String(span.attributes[key]) === value;

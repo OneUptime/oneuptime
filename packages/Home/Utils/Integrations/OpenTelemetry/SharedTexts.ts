@@ -13,6 +13,7 @@ import {
   PYTHON_PROTOCOL_NOTE,
   PYTHON_STABLE_HTTP_NOTE,
 } from "./PythonShared";
+import { RUBY_PREREQUISITE } from "./RubyShared";
 
 /*
  * The sentences guides share on purpose, because they state one fact the
@@ -32,6 +33,7 @@ export const SHARED_GUIDE_TEXTS: Array<InlineText> = [
   DOTNET_PREREQUISITE,
   DOTNET_PROTOCOL_NOTE,
   GO_PREREQUISITE,
+  RUBY_PREREQUISITE,
   VALIDATE_SERVER_KEY_BODY,
   VALIDATE_BROWSER_KEY_BODY,
 ];

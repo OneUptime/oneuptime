@@ -5392,6 +5392,187 @@
     },
     "packageExports": {}
   },
+  "rails": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Ruby 4.0.9",
+    "packages": {
+      "opentelemetry-exporter-otlp": "0.37.0",
+      "opentelemetry-exporter-otlp-logs": "0.7.0",
+      "opentelemetry-exporter-otlp-metrics": "0.15.0",
+      "opentelemetry-instrumentation-all": "0.99.0",
+      "opentelemetry-instrumentation-logger": "0.5.0",
+      "opentelemetry-logs-sdk": "0.8.1",
+      "opentelemetry-metrics-sdk": "0.22.0",
+      "opentelemetry-sdk": "1.13.1",
+      "pg": "1.7.0",
+      "puma": "8.0.2",
+      "rails": "8.1.4"
+    },
+    "framework": "Rails 8.1.4",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:cdac65ddb1b871002537308540fcda8119f1a29cfe81380ad01d26a73d67be47",
+    "observed": {
+      "spans": [
+        "BEGIN shop",
+        "COMMIT shop",
+        "CREATE shop",
+        "GET /orders/:id",
+        "GET /orders/:id/receipt",
+        "INSERT shop",
+        "Order query",
+        "Order#save!",
+        "Order.create!",
+        "POST",
+        "POST /orders",
+        "ReceiptJob process",
+        "ReceiptJob publish",
+        "SELECT shop",
+        "SET shop",
+        "SHOW shop",
+        "checkout.charge",
+        "connect",
+        "rake.execute",
+        "render_layout.action_view",
+        "render_partial.action_view",
+        "render_template.action_view"
+      ],
+      "metrics": ["http.server.request.duration", "orders.placed"],
+      "logs": [
+        "  \nIOError (the receipt printer is offline):\n  \napp/controllers/orders_controller.rb:33:in 'OrdersController#receipt'\n",
+        "  \u001b[1m\u001b[35m (0.2ms)\u001b[0m  \u001b[1m\u001b[34mSELECT pg_try_advisory_lock(5939944341529942170) /*application='Storefront'*/\u001b[0m\n",
+        "  \u001b[1m\u001b[35m (0.4ms)\u001b[0m  \u001b[1m\u001b[34mSELECT pg_advisory_unlock(5939944341529942170) /*application='Storefront'*/\u001b[0m\n",
+        "  \u001b[1m\u001b[35m (17.0ms)\u001b[0m  \u001b[1m\u001b[35mCREATE TABLE \"schema_migrations\" (\"version\" character varying NOT NULL PRIMARY KEY) /",
+        "  \u001b[1m\u001b[35m (5.1ms)\u001b[0m  \u001b[1m\u001b[35mCREATE TABLE \"ar_internal_metadata\" (\"key\" character varying NOT NULL PRIMARY KEY, \"va",
+        "  \u001b[1m\u001b[35m (6.7ms)\u001b[0m  \u001b[1m\u001b[35mCREATE TABLE \"orders\" (\"id\" bigserial primary key, \"items\" integer, \"payment_method\" c",
+        "  \u001b[1m\u001b[35mSQL (0.1ms)\u001b[0m  \u001b[1m\u001b[35mSET search_path TO \"$user\", public /*application='Storefront'*/\u001b[0m\n",
+        "  \u001b[1m\u001b[35mSQL (0.2ms)\u001b[0m  \u001b[1m\u001b[35mSET search_path TO \"$user\", public /*application='Storefront'*/\u001b[0m\n",
+        "  \u001b[1m\u001b[35mSQL (0.2ms)\u001b[0m  \u001b[1m\u001b[35mSET search_path TO public /*application='Storefront'*/\u001b[0m\n",
+        "  \u001b[1m\u001b[36mActiveRecord::InternalMetadata Create (0.8ms)\u001b[0m  \u001b[1m\u001b[32mINSERT INTO \"ar_internal_metadata\" (\"key\", \"value",
+        "  \u001b[1m\u001b[36mActiveRecord::InternalMetadata Load (0.7ms)\u001b[0m  \u001b[1m\u001b[34mSELECT * FROM \"ar_internal_metadata\" WHERE \"ar_inte",
+        "  \u001b[1m\u001b[36mActiveRecord::SchemaMigration Create (0.4ms)\u001b[0m  \u001b[1m\u001b[32mINSERT INTO \"schema_migrations\" (\"version\") VALUES",
+        "  \u001b[1m\u001b[36mActiveRecord::SchemaMigration Load (0.4ms)\u001b[0m  \u001b[1m\u001b[34mSELECT \"schema_migrations\".\"version\" FROM \"schema_mi",
+        "  \u001b[1m\u001b[36mActiveRecord::SchemaMigration Load (0.5ms)\u001b[0m  \u001b[1m\u001b[34mSELECT \"schema_migrations\".\"version\" FROM \"schema_mi",
+        "  \u001b[1m\u001b[36mActiveRecord::SchemaMigration Load (0.9ms)\u001b[0m  \u001b[1m\u001b[34mSELECT \"schema_migrations\".\"version\" FROM \"schema_mi",
+        "  \u001b[1m\u001b[36mOrder Create (2.1ms)\u001b[0m  \u001b[1m\u001b[32mINSERT INTO \"orders\" (\"id\", \"items\", \"payment_method\", \"created_at\", \"upda",
+        "  \u001b[1m\u001b[36mOrder Create (4.4ms)\u001b[0m  \u001b[1m\u001b[32mINSERT INTO \"orders\" (\"items\", \"payment_method\", \"created_at\", \"updated_at",
+        "  \u001b[1m\u001b[36mOrder Load (0.8ms)\u001b[0m  \u001b[1m\u001b[34mSELECT \"orders\".* FROM \"orders\" WHERE \"orders\".\"id\" = 7 LIMIT 1 /*action='sh",
+        "  \u001b[1m\u001b[36mOrder Load (1.0ms)\u001b[0m  \u001b[1m\u001b[34mSELECT \"orders\".* FROM \"orders\" WHERE \"orders\".\"id\" = 42 LIMIT 1 /*action='s",
+        "  \u001b[1m\u001b[36mTRANSACTION (0.2ms)\u001b[0m  \u001b[1m\u001b[35mBEGIN /*application='Storefront'*/\u001b[0m\n",
+        "  \u001b[1m\u001b[36mTRANSACTION (0.4ms)\u001b[0m  \u001b[1m\u001b[35mBEGIN /*application='Storefront'*/\u001b[0m\n",
+        "  \u001b[1m\u001b[36mTRANSACTION (0.8ms)\u001b[0m  \u001b[1m\u001b[35mCOMMIT /*application='Storefront'*/\u001b[0m\n",
+        "  \u001b[1m\u001b[36mTRANSACTION (0.9ms)\u001b[0m  \u001b[1m\u001b[35mBEGIN /*action='create',application='Storefront',controller='orders'*/\u001b[0m\n",
+        "  \u001b[1m\u001b[36mTRANSACTION (22.9ms)\u001b[0m  \u001b[1m\u001b[35mCOMMIT /*application='Storefront'*/\u001b[0m\n",
+        "  \u001b[1m\u001b[36mTRANSACTION (4.0ms)\u001b[0m  \u001b[1m\u001b[35mCOMMIT /*action='create',application='Storefront',controller='orders'*/\u001b[0m",
+        "  Parameters: {\"id\" => \"42\"}\n",
+        "  Parameters: {\"id\" => \"7\"}\n",
+        "  Parameters: {\"items\" => [\"kettle\", \"mug\"], \"payment_method\" => \"card\", \"order\" => {\"items\" => [\"kettle\", \"mug\"], \"paym",
+        "  Rendered html template (Duration: 0.1ms | GC: 0.0ms)\n",
+        "  Rendering html template\n",
+        "  ↳ app/controllers/orders_controller.rb:16:in 'OrdersController#show'\n",
+        "  ↳ app/controllers/orders_controller.rb:24:in 'block in OrdersController#create'\n",
+        "Completed 200 OK in 66ms (Views: 0.4ms | ActiveRecord: 45.5ms (1 query, 0 cached) | GC: 0.0ms)\n\n\n",
+        "Completed 200 OK in 6ms (Views: 4.6ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)\n\n\n",
+        "Completed 201 Created in 62ms (Views: 0.3ms | ActiveRecord: 9.3ms (1 query, 0 cached) | GC: 0.0ms)\n\n\n",
+        "Completed 404 Not Found in 3ms (Views: 0.1ms | ActiveRecord: 0.8ms (1 query, 0 cached) | GC: 0.0ms)\n\n\n",
+        "Completed 500 Internal Server Error in 1ms (ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)\n\n\n",
+        "I, [2026-10-28T20:36:25.649995 #220]  INFO -- : Instrumentation: OpenTelemetry::Instrumentation::Logger was successfully",
+        "I, [2026-10-28T20:36:27.142424 #231]  INFO -- : Instrumentation: OpenTelemetry::Instrumentation::Logger was successfully",
+        "I, [2026-10-28T20:36:28.580021 #248]  INFO -- : Instrumentation: OpenTelemetry::Instrumentation::Logger was successfully",
+        "Migrating to CreateOrders (20261028000000)\n",
+        "Processing by OrdersController#create as HTML\n",
+        "Processing by OrdersController#receipt as HTML\n",
+        "Processing by OrdersController#show as HTML\n",
+        "Processing by Rails::HealthController#show as HTML\n",
+        "Started GET \"/orders/42\" for 127.0.0.1 at 2026-10-28 20:36:31 +0000\n",
+        "Started GET \"/orders/42/receipt\" for 127.0.0.1 at 2026-10-28 20:36:31 +0000\n",
+        "Started GET \"/orders/7\" for 127.0.0.1 at 2026-10-28 20:36:31 +0000\n",
+        "Started GET \"/up\" for 127.0.0.1 at 2026-10-28 20:36:31 +0000\n",
+        "Started POST \"/orders\" for 127.0.0.1 at 2026-10-28 20:36:31 +0000\n",
+        "[ActiveJob] Enqueued ReceiptJob (Job ID: 0277452a-a967-46b2-a8f2-7af4040b668c) to Async(default) with arguments: 1\n",
+        "[ActiveJob] [ReceiptJob] [0277452a-a967-46b2-a8f2-7af4040b668c] Performed ReceiptJob (Job ID: 0277452a-a967-46b2-a8f2-7a",
+        "[ActiveJob] [ReceiptJob] [0277452a-a967-46b2-a8f2-7af4040b668c] Performing ReceiptJob (Job ID: 0277452a-a967-46b2-a8f2-7",
+        "[ActiveJob] [ReceiptJob] [0277452a-a967-46b2-a8f2-7af4040b668c] sending the receipt for order 1\n",
+        "[ActiveJob] ↳ app/controllers/orders_controller.rb:27:in 'OrdersController#create'\n",
+        "loading order 42\n",
+        "loading order 7\n",
+        "rescue_from handled ActiveRecord::RecordNotFound (Couldn't find Order with 'id'=\"7\") - /usr/local/bundle/gems/activereco"
+      ]
+    },
+    "packageExports": {},
+    "variants": {
+      "Production": {
+        "observed": {
+          "spans": [
+            "BEGIN shop",
+            "COMMIT shop",
+            "CREATE shop",
+            "EXECUTE shop",
+            "GET /orders/:id",
+            "GET /orders/:id/receipt",
+            "INSERT shop",
+            "Order query",
+            "Order#save!",
+            "Order.create!",
+            "POST",
+            "POST /orders",
+            "PREPARE shop",
+            "ReceiptJob process",
+            "ReceiptJob publish",
+            "SELECT shop",
+            "SET shop",
+            "SHOW shop",
+            "checkout.charge",
+            "connect",
+            "rake.execute"
+          ],
+          "metrics": ["http.server.request.duration", "orders.placed"],
+          "logs": [
+            "I, [2026-10-28T20:36:58.691341 #226]  INFO -- : Instrumentation: OpenTelemetry::Instrumentation::Logger was successfully",
+            "I, [2026-10-28T20:37:00.541266 #237]  INFO -- : Instrumentation: OpenTelemetry::Instrumentation::Logger was successfully",
+            "I, [2026-10-28T20:37:02.645312 #254]  INFO -- : Instrumentation: OpenTelemetry::Instrumentation::Logger was successfully",
+            "Migrating to CreateOrders (20261028000000)\n",
+            "[1e4020ee-e3a0-4abc-9341-bb9e90f084e8]   Parameters: {\"id\" => \"42\"}\n",
+            "[1e4020ee-e3a0-4abc-9341-bb9e90f084e8] Completed 200 OK in 137ms (Views: 0.7ms | ActiveRecord: 99.4ms (1 query, 0 cached",
+            "[1e4020ee-e3a0-4abc-9341-bb9e90f084e8] Processing by OrdersController#show as HTML\n",
+            "[1e4020ee-e3a0-4abc-9341-bb9e90f084e8] Started GET \"/orders/42\" for 127.0.0.1 at 2026-10-28 20:37:05 +0000\n",
+            "[1e4020ee-e3a0-4abc-9341-bb9e90f084e8] loading order 42\n",
+            "[ActiveJob] [ReceiptJob] [181060db-6d33-4e6f-b9c5-bf67049b9eb1] Performed ReceiptJob (Job ID: 181060db-6d33-4e6f-b9c5-bf",
+            "[ActiveJob] [ReceiptJob] [181060db-6d33-4e6f-b9c5-bf67049b9eb1] Performing ReceiptJob (Job ID: 181060db-6d33-4e6f-b9c5-b",
+            "[ActiveJob] [ReceiptJob] [181060db-6d33-4e6f-b9c5-bf67049b9eb1] sending the receipt for order 1\n",
+            "[aad476dc-d54f-4691-beeb-a34b98b1e759]   \n[aad476dc-d54f-4691-beeb-a34b98b1e759] IOError (the receipt printer is offline",
+            "[aad476dc-d54f-4691-beeb-a34b98b1e759]   Parameters: {\"id\" => \"42\"}\n",
+            "[aad476dc-d54f-4691-beeb-a34b98b1e759] Completed 500 Internal Server Error in 3ms (ActiveRecord: 0.0ms (0 queries, 0 cac",
+            "[aad476dc-d54f-4691-beeb-a34b98b1e759] Processing by OrdersController#receipt as HTML\n",
+            "[aad476dc-d54f-4691-beeb-a34b98b1e759] Started GET \"/orders/42/receipt\" for 127.0.0.1 at 2026-10-28 20:37:05 +0000\n",
+            "[e7becab9-8a48-44f9-b76f-21176ef3154a]   Parameters: {\"items\" => [\"kettle\", \"mug\"], \"payment_method\" => \"card\", \"order\" ",
+            "[e7becab9-8a48-44f9-b76f-21176ef3154a] Completed 201 Created in 45ms (Views: 3.0ms | ActiveRecord: 10.7ms (1 query, 0 ca",
+            "[e7becab9-8a48-44f9-b76f-21176ef3154a] Processing by OrdersController#create as HTML\n",
+            "[e7becab9-8a48-44f9-b76f-21176ef3154a] Started POST \"/orders\" for 127.0.0.1 at 2026-10-28 20:37:05 +0000\n",
+            "[e7becab9-8a48-44f9-b76f-21176ef3154a] [ActiveJob] Enqueued ReceiptJob (Job ID: 181060db-6d33-4e6f-b9c5-bf67049b9eb1) to",
+            "[f0f196fd-2bf0-49b8-bfb9-4ab209919997]   Parameters: {\"id\" => \"7\"}\n",
+            "[f0f196fd-2bf0-49b8-bfb9-4ab209919997] Completed 404 Not Found in 4ms (Views: 0.2ms | ActiveRecord: 1.0ms (1 query, 0 ca",
+            "[f0f196fd-2bf0-49b8-bfb9-4ab209919997] Processing by OrdersController#show as HTML\n",
+            "[f0f196fd-2bf0-49b8-bfb9-4ab209919997] Started GET \"/orders/7\" for 127.0.0.1 at 2026-10-28 20:37:05 +0000\n",
+            "[f0f196fd-2bf0-49b8-bfb9-4ab209919997] loading order 7\n",
+            "[f0f196fd-2bf0-49b8-bfb9-4ab209919997] rescue_from handled ActiveRecord::RecordNotFound (Couldn't find Order with 'id'=\""
+          ]
+        },
+        "packages": {
+          "opentelemetry-exporter-otlp": "0.37.0",
+          "opentelemetry-exporter-otlp-logs": "0.7.0",
+          "opentelemetry-exporter-otlp-metrics": "0.15.0",
+          "opentelemetry-instrumentation-all": "0.99.0",
+          "opentelemetry-instrumentation-logger": "0.5.0",
+          "opentelemetry-logs-sdk": "0.8.1",
+          "opentelemetry-metrics-sdk": "0.22.0",
+          "opentelemetry-sdk": "1.13.1",
+          "pg": "1.7.0",
+          "puma": "8.0.2",
+          "rails": "8.1.4"
+        }
+      }
+    }
+  },
   "react": {
     "checkedOn": "2026-10-27",
     "runtime": "Chrome 153.0.8010.12",
@@ -6375,6 +6556,227 @@
         "onLCP",
         "onTTFB"
       ]
+    }
+  },
+  "ruby": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Ruby 4.0.9",
+    "packages": {
+      "opentelemetry-exporter-otlp": "0.37.0",
+      "opentelemetry-exporter-otlp-logs": "0.7.0",
+      "opentelemetry-exporter-otlp-metrics": "0.15.0",
+      "opentelemetry-instrumentation-all": "0.99.0",
+      "opentelemetry-instrumentation-logger": "0.5.0",
+      "opentelemetry-logs-sdk": "0.8.1",
+      "opentelemetry-metrics-sdk": "0.22.0",
+      "opentelemetry-sdk": "1.13.1",
+      "pg": "1.7.0"
+    },
+    "framework": "Ruby",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:4809a3a0aa3b970b88924ace9db1fe716fbefeb87ad27cb3e09ed0a9a8ff8273",
+    "observed": {
+      "spans": ["GET", "INSERT shop", "connect", "price.save", "prices.import"],
+      "metrics": ["prices.imported"],
+      "logs": [
+        "I, [2026-10-28T20:11:39.661146 #320]  INFO -- : Instrumentation: OpenTelemetry::Instrumentation::Logger was successfully",
+        "imported 1 of 2 prices\n",
+        "skipped a price: inv_2 is below the minimum price\n"
+      ]
+    },
+    "packageExports": {},
+    "variants": {
+      "Instrumentations off": {
+        "observed": {
+          "spans": ["INSERT shop", "connect", "price.save", "prices.import"],
+          "metrics": ["prices.imported"],
+          "logs": [
+            "imported 1 of 2 prices\n",
+            "skipped a price: inv_2 is below the minimum price\n"
+          ]
+        },
+        "packages": {
+          "opentelemetry-exporter-otlp": "0.37.0",
+          "opentelemetry-exporter-otlp-logs": "0.7.0",
+          "opentelemetry-exporter-otlp-metrics": "0.15.0",
+          "opentelemetry-instrumentation-all": "0.99.0",
+          "opentelemetry-instrumentation-logger": "0.5.0",
+          "opentelemetry-logs-sdk": "0.8.1",
+          "opentelemetry-metrics-sdk": "0.22.0",
+          "opentelemetry-sdk": "1.13.1",
+          "pg": "1.7.0"
+        }
+      }
+    }
+  },
+  "sidekiq": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Ruby 4.0.9",
+    "packages": {
+      "opentelemetry-exporter-otlp": "0.37.0",
+      "opentelemetry-exporter-otlp-logs": "0.7.0",
+      "opentelemetry-exporter-otlp-metrics": "0.15.0",
+      "opentelemetry-instrumentation-all": "0.99.0",
+      "opentelemetry-instrumentation-logger": "0.5.0",
+      "opentelemetry-logs-sdk": "0.8.1",
+      "opentelemetry-metrics-sdk": "0.22.0",
+      "opentelemetry-sdk": "1.13.1",
+      "sidekiq": "8.1.7"
+    },
+    "framework": "Sidekiq 8.1.7",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:44cf032286dc7ebb6a3ff707b32edc9a4f2209541a9ea15606d57ac5a7e9c42c",
+    "observed": {
+      "spans": [
+        "PIPELINED",
+        "POST",
+        "ReceiptJob process",
+        "ReceiptJob publish",
+        "connect",
+        "receipt.render",
+        "receipts.enqueue"
+      ],
+      "metrics": ["messaging.process.duration", "receipts.sent"],
+      "logs": [
+        "I, [2026-10-28T20:37:20.869344 #113]  INFO -- : Instrumentation: OpenTelemetry::Instrumentation::Logger was successfully",
+        "I, [2026-10-28T20:37:22.745082 #125]  INFO -- : Instrumentation: OpenTelemetry::Instrumentation::Logger was successfully",
+        "INFO 2026-10-28T20:37:20.870Z pid=113 tid=161: Running in ruby 4.0.9 (2026-10-23 revision 3e93b23afc) +PRISM [x86_64-lin",
+        "INFO 2026-10-28T20:37:20.870Z pid=113 tid=161: See LICENSE and the LGPL-3.0 for licensing details.\n",
+        "INFO 2026-10-28T20:37:20.870Z pid=113 tid=161: Sidekiq 8.1.7 connecting to Redis with options {size: 10, pool_name: \"int",
+        "INFO 2026-10-28T20:37:20.870Z pid=113 tid=161: Upgrade to Sidekiq Pro for more features and support: https://sidekiq.org",
+        "INFO 2026-10-28T20:37:20.872Z pid=113 tid=161: Sidekiq 8.1.7 connecting to Redis with options {size: 5, pool_name: \"defa",
+        "INFO 2026-10-28T20:37:22.746Z pid=125 tid=wl: Sidekiq 8.1.7 connecting to Redis with options {size: 10, pool_name: \"inte",
+        "INFO 2026-10-28T20:37:22.749Z pid=113 tid=19t jid=0c1b491c40e5d5b4f6118025 class=ReceiptJob: sending the receipt for ord",
+        "INFO 2026-10-28T20:37:22.749Z pid=113 tid=19t jid=0c1b491c40e5d5b4f6118025 class=ReceiptJob: start\n",
+        "INFO 2026-10-28T20:37:22.750Z pid=113 tid=19d jid=4f9f034ad1e1d8359913f4ca class=ReceiptJob: start\n",
+        "INFO 2026-10-28T20:37:22.797Z pid=113 tid=19d jid=4f9f034ad1e1d8359913f4ca class=ReceiptJob elapsed=0.047: fail\n",
+        "INFO 2026-10-28T20:37:22.799Z pid=113 tid=19d context=Job raised exception job={\"retry\" => 3, \"queue\" => \"default\", \"arg",
+        "INFO 2026-10-28T20:37:22.800Z pid=113 tid=19t jid=0c1b491c40e5d5b4f6118025 class=ReceiptJob elapsed=0.051: done\n",
+        "INFO 2026-10-28T20:37:26.838Z pid=113 tid=161: Shutting down\n",
+        "INFO 2026-10-28T20:37:26.839Z pid=113 tid=161: Terminating quiet threads for default capsule\n",
+        "INFO 2026-10-28T20:37:26.840Z pid=113 tid=195: Scheduler exiting...\n",
+        "INFO 2026-10-28T20:37:27.342Z pid=113 tid=161: Bye!\n",
+        "W, [2026-10-28T20:37:27.343128 #113]  WARN -- : calling Tracer#shutdown multiple times.\n"
+      ]
+    },
+    "packageExports": {},
+    "variants": {
+      "Sent at exit": {
+        "observed": {
+          "spans": [
+            "PIPELINED",
+            "POST",
+            "ReceiptJob process",
+            "ReceiptJob publish",
+            "connect",
+            "receipt.render",
+            "receipts.enqueue"
+          ],
+          "metrics": ["messaging.process.duration", "receipts.sent"],
+          "logs": [
+            "I, [2026-10-28T20:37:37.724792 #95]  INFO -- : Instrumentation: OpenTelemetry::Instrumentation::Logger was successfully ",
+            "I, [2026-10-28T20:37:39.538902 #107]  INFO -- : Instrumentation: OpenTelemetry::Instrumentation::Logger was successfully",
+            "INFO 2026-10-28T20:37:37.725Z pid=95 tid=153: Running in ruby 4.0.9 (2026-10-23 revision 3e93b23afc) +PRISM [x86_64-linu",
+            "INFO 2026-10-28T20:37:37.725Z pid=95 tid=153: See LICENSE and the LGPL-3.0 for licensing details.\n",
+            "INFO 2026-10-28T20:37:37.725Z pid=95 tid=153: Upgrade to Sidekiq Pro for more features and support: https://sidekiq.org\n",
+            "INFO 2026-10-28T20:37:37.726Z pid=95 tid=153: Sidekiq 8.1.7 connecting to Redis with options {size: 10, pool_name: \"inte",
+            "INFO 2026-10-28T20:37:37.728Z pid=95 tid=153: Sidekiq 8.1.7 connecting to Redis with options {size: 5, pool_name: \"defau",
+            "INFO 2026-10-28T20:37:39.539Z pid=107 tid=w3: Sidekiq 8.1.7 connecting to Redis with options {size: 10, pool_name: \"inte",
+            "INFO 2026-10-28T20:37:39.541Z pid=95 tid=14f jid=124ec19487e7457a4269f5e8 class=ReceiptJob: start\n",
+            "INFO 2026-10-28T20:37:39.542Z pid=95 tid=14f jid=124ec19487e7457a4269f5e8 class=ReceiptJob: sending the receipt for orde",
+            "INFO 2026-10-28T20:37:39.542Z pid=95 tid=19b jid=4be86e51745130135e1399af class=ReceiptJob: start\n",
+            "INFO 2026-10-28T20:37:39.599Z pid=95 tid=19b jid=4be86e51745130135e1399af class=ReceiptJob elapsed=0.057: fail\n",
+            "INFO 2026-10-28T20:37:39.601Z pid=95 tid=14f jid=124ec19487e7457a4269f5e8 class=ReceiptJob elapsed=0.06: done\n",
+            "INFO 2026-10-28T20:37:39.601Z pid=95 tid=19b context=Job raised exception job={\"retry\" => 3, \"queue\" => \"default\", \"args",
+            "INFO 2026-10-28T20:37:43.637Z pid=95 tid=153: Shutting down\n",
+            "INFO 2026-10-28T20:37:43.637Z pid=95 tid=153: Terminating quiet threads for default capsule\n",
+            "INFO 2026-10-28T20:37:43.639Z pid=95 tid=18n: Scheduler exiting...\n",
+            "INFO 2026-10-28T20:37:44.141Z pid=95 tid=153: Bye!\n",
+            "W, [2026-10-28T20:37:44.142234 #95]  WARN -- : calling Tracer#shutdown multiple times.\n"
+          ]
+        },
+        "packages": {
+          "opentelemetry-exporter-otlp": "0.37.0",
+          "opentelemetry-exporter-otlp-logs": "0.7.0",
+          "opentelemetry-exporter-otlp-metrics": "0.15.0",
+          "opentelemetry-instrumentation-all": "0.99.0",
+          "opentelemetry-instrumentation-logger": "0.5.0",
+          "opentelemetry-logs-sdk": "0.8.1",
+          "opentelemetry-metrics-sdk": "0.22.0",
+          "opentelemetry-sdk": "1.13.1",
+          "sidekiq": "8.1.7"
+        }
+      }
+    }
+  },
+  "sinatra": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Ruby 4.0.9",
+    "packages": {
+      "opentelemetry-exporter-otlp": "0.37.0",
+      "opentelemetry-exporter-otlp-logs": "0.7.0",
+      "opentelemetry-exporter-otlp-metrics": "0.15.0",
+      "opentelemetry-instrumentation-all": "0.99.0",
+      "opentelemetry-instrumentation-logger": "0.5.0",
+      "opentelemetry-logs-sdk": "0.8.1",
+      "opentelemetry-metrics-sdk": "0.22.0",
+      "opentelemetry-sdk": "1.13.1",
+      "puma": "8.0.2",
+      "redis": "6.0.0",
+      "sinatra": "4.2.1"
+    },
+    "framework": "Sinatra 4.2.1",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:5a146e2d9285927b768444bdd4ba0cbda01be85cb9e7f75348e397a05d94b4ab",
+    "observed": {
+      "spans": [
+        "GET",
+        "GET /products/:sku",
+        "GET /products/:sku/stock",
+        "PIPELINED",
+        "SET",
+        "catalog.fetch",
+        "connect"
+      ],
+      "metrics": ["catalog.cache_misses", "http.server.request.duration"],
+      "logs": [
+        "I, [2026-10-28T20:20:28.279433 #294]  INFO -- : Instrumentation: OpenTelemetry::Instrumentation::Logger was successfully",
+        "loading product KETTLE-3\n"
+      ]
+    },
+    "packageExports": {},
+    "variants": {
+      "Puma workers": {
+        "observed": {
+          "spans": [
+            "GET",
+            "GET /products/:sku",
+            "GET /products/:sku/stock",
+            "PIPELINED",
+            "SET",
+            "catalog.fetch",
+            "connect"
+          ],
+          "metrics": ["catalog.cache_misses", "http.server.request.duration"],
+          "logs": [
+            "I, [2026-10-28T20:20:44.700061 #95]  INFO -- : Instrumentation: OpenTelemetry::Instrumentation::Logger was successfully ",
+            "loading product KETTLE-3\n"
+          ]
+        },
+        "packages": {
+          "opentelemetry-exporter-otlp": "0.37.0",
+          "opentelemetry-exporter-otlp-logs": "0.7.0",
+          "opentelemetry-exporter-otlp-metrics": "0.15.0",
+          "opentelemetry-instrumentation-all": "0.99.0",
+          "opentelemetry-instrumentation-logger": "0.5.0",
+          "opentelemetry-logs-sdk": "0.8.1",
+          "opentelemetry-metrics-sdk": "0.22.0",
+          "opentelemetry-sdk": "1.13.1",
+          "puma": "8.0.2",
+          "redis": "6.0.0",
+          "sinatra": "4.2.1"
+        }
+      }
     }
   },
   "spring-boot": {

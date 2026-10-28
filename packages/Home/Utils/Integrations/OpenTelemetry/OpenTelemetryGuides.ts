@@ -39,6 +39,10 @@ import { GinGuide } from "./Guides/Gin";
 import { EchoGuide } from "./Guides/Echo";
 import { FiberGuide } from "./Guides/Fiber";
 import { GrpcGuide } from "./Guides/Grpc";
+import { RubyGuide } from "./Guides/Ruby";
+import { RailsGuide } from "./Guides/Rails";
+import { SinatraGuide } from "./Guides/Sinatra";
+import { SidekiqGuide } from "./Guides/Sidekiq";
 
 /*
  * Every OpenTelemetry guide the website publishes, in the catalog's order
@@ -77,6 +81,10 @@ export const OPEN_TELEMETRY_GUIDE_PAGES: ReadonlyArray<OpenTelemetryGuide> = [
   EchoGuide,
   FiberGuide,
   GrpcGuide,
+  RubyGuide,
+  RailsGuide,
+  SinatraGuide,
+  SidekiqGuide,
 ];
 
 export const INTEGRATIONS_INDEX_TITLE: string = "Integrations";

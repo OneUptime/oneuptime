@@ -4,6 +4,7 @@ import {
   GuideStep,
   GuideTabs,
   InlineText,
+  VerificationService,
 } from "./GuideTypes";
 
 /*
@@ -484,3 +485,42 @@ export function kubernetesCronJobSnippet(
  */
 export const VERIFICATION_RECEIVER: string =
   "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header";
+
+/*
+ * The PostgreSQL an end-to-end run starts beside an app that keeps its rows
+ * there: a database, user and password all named shop. The app is given
+ * the port the check maps through appEnvironment, {port} standing for it.
+ */
+export function postgresService(
+  appEnvironment: Record<string, string>,
+): VerificationService {
+  return {
+    name: "postgres",
+    image: "postgres:15",
+    containerPort: 5432,
+    environment: {
+      POSTGRES_USER: "shop",
+      POSTGRES_PASSWORD: "shop",
+      POSTGRES_DB: "shop",
+    },
+    appEnvironment: appEnvironment,
+    // Once before it creates the database, and once after.
+    readyLog: {
+      text: "database system is ready to accept connections",
+      times: 2,
+    },
+  };
+}
+
+// The Redis an end-to-end run starts beside an app that caches or queues there.
+export function redisService(
+  appEnvironment: Record<string, string>,
+): VerificationService {
+  return {
+    name: "redis",
+    image: "redis:8.10.3-alpine",
+    containerPort: 6379,
+    appEnvironment: appEnvironment,
+    readyLog: { text: "Ready to accept connections", times: 1 },
+  };
+}
