@@ -36432,6 +36432,7 @@
   "Expires {{time}}": "{{time}}到期",
   "After this, the rule sees it again. Leave it empty to keep the exception until someone deletes it.": "在此之後規則會再次偵測到它。留空則保留該例外，直到有人將其刪除。",
   "Stop this rule from firing on something you expect, such as a scanner, a backup job or a planned test.": "不讓這條規則因預期內的情況而觸發，例如掃描器、備份工作或計畫內測試。",
+  "Step-by-step guides": "逐步指南",
   "What the cases closed in the last 30 days turned out to be.": "過去 30 天關閉的案例最終的結論。",
   "Ask a project admin for access.": "請向專案管理員申請存取權限。",
   "You do not have permission to change these settings.": "您沒有變更這些設定的權限。",

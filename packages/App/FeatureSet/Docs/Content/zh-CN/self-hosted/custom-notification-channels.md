@@ -17,7 +17,7 @@
 ## 工作原理
 
 ```mermaid title="通过自定义渠道的一次呼叫"
-flowchart LR
+flowchart TB
     OneUptime["OneUptime"]
     Service["你的服务"]
     App["你的应用"]

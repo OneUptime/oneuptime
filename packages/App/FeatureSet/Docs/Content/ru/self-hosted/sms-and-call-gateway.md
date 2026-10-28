@@ -12,12 +12,12 @@ OneUptime может отправлять свои SMS и звонки не че
 ## Как это работает
 
 ```mermaid title="SMS через ваш собственный шлюз"
-flowchart LR
+flowchart TB
     OneUptime["OneUptime"]
     Gateway["Ваш шлюз"]
-    Provider["Ваш провайдер SMS и голосовой связи"]
+    Provider["Ваш провайдер SMS<br/>и голосовой связи"]
     Phone["Телефон"]
-    OneUptime -->|"подписанный JSON-запрос"| Gateway
+    OneUptime -->|"подписанный<br/>JSON-запрос"| Gateway
     Gateway --> Provider
     Provider --> Phone
 ```

@@ -1,0 +1,25 @@
+<%#
+  What one request to the framework looks like in OneUptime's trace view:
+  each span's name, indented under its parent, and the library that made
+  it, over a bar placed where the span starts and as long as it runs - in
+  percent of the request, on one timeline for every span.
+-%>
+<figure class="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-200">
+  <div class="flex items-center justify-between gap-3 border-b border-gray-100 px-5 py-3">
+    <figcaption class="min-w-0 text-sm font-medium text-gray-900"><%= trace.caption %></figcaption>
+    <span class="flex-none rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/20">Example</span>
+  </div>
+  <ol class="space-y-3 px-5 py-4" role="list">
+    <% trace.spans.forEach(function (span) { %>
+    <li>
+      <div class="flex min-w-0 items-center justify-between gap-2" style="padding-left: <%= span.depth * 0.75 %>rem">
+        <span class="min-w-0 truncate font-mono text-xs <%= span.depth === 0 ? 'font-semibold text-gray-900' : 'text-gray-800' %>"><%= span.name %></span>
+        <span class="flex-none rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500"><%= span.source %></span>
+      </div>
+      <div class="relative mt-1.5 h-1.5 rounded-full bg-gray-100" aria-hidden="true">
+        <span class="absolute inset-y-0 rounded-full <%= span.isError ? 'bg-rose-500' : (span.depth === 0 ? 'bg-indigo-600' : 'bg-indigo-400') %>" style="left: <%= span.start %>%; width: <%= span.duration %>%"></span>
+      </div>
+    </li>
+    <% }) %>
+  </ol>
+</figure>

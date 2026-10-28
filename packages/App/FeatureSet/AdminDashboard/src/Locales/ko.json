@@ -1514,6 +1514,8 @@
   "Light": "라이트",
   "Dark": "다크",
   "System": "시스템",
+  "Enable": "활성화",
+  "Disable": "비활성화",
   "markdownCallouts": {
     "caution": "주의",
     "danger": "위험",

@@ -36432,6 +36432,7 @@
   "Expires {{time}}": "{{time}} منقضی می‌شود",
   "After this, the rule sees it again. Leave it empty to keep the exception until someone deletes it.": "پس از این زمان، قاعده دوباره آن را می‌بیند. برای نگه داشتن استثنا تا وقتی کسی آن را حذف کند، این را خالی بگذارید.",
   "Stop this rule from firing on something you expect, such as a scanner, a backup job or a planned test.": "نگذارید این قاعده روی چیزی مورد انتظار فعال شود، مثلاً یک اسکنر، یک کار پشتیبان‌گیری یا یک آزمون برنامه‌ریزی‌شده.",
+  "Step-by-step guides": "راهنماهای گام‌به‌گام",
   "What the cases closed in the last 30 days turned out to be.": "نتیجهٔ پرونده‌هایی که در ۳۰ روز گذشته بسته شدند.",
   "Ask a project admin for access.": "از یک مدیر پروژه دسترسی بخواهید.",
   "You do not have permission to change these settings.": "مجوز تغییر این تنظیمات را ندارید.",

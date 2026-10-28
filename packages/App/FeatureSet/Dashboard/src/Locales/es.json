@@ -36432,6 +36432,7 @@
   "Expires {{time}}": "Caduca {{time}}",
   "After this, the rule sees it again. Leave it empty to keep the exception until someone deletes it.": "Después, la regla lo vuelve a ver. Déjalo vacío para mantener la excepción hasta que alguien la elimine.",
   "Stop this rule from firing on something you expect, such as a scanner, a backup job or a planned test.": "Evita que esta regla se active con algo que esperas, como un escáner, una tarea de copia de seguridad o una prueba planificada.",
+  "Step-by-step guides": "Guías paso a paso",
   "What the cases closed in the last 30 days turned out to be.": "En qué quedaron los casos cerrados en los últimos 30 días.",
   "Ask a project admin for access.": "Pide acceso a un administrador del proyecto.",
   "You do not have permission to change these settings.": "No tienes permiso para cambiar esta configuración.",

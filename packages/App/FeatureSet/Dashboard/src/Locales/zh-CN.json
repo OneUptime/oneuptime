@@ -36432,6 +36432,7 @@
   "Expires {{time}}": "{{time}}到期",
   "After this, the rule sees it again. Leave it empty to keep the exception until someone deletes it.": "此后规则会再次检测到它。留空则保留该例外，直到有人将其删除。",
   "Stop this rule from firing on something you expect, such as a scanner, a backup job or a planned test.": "不让此规则因预期内的情况而触发，例如扫描器、备份任务或计划内测试。",
+  "Step-by-step guides": "分步指南",
   "What the cases closed in the last 30 days turned out to be.": "过去 30 天关闭的案例最终的结论。",
   "Ask a project admin for access.": "请向项目管理员申请访问权限。",
   "You do not have permission to change these settings.": "您没有更改这些设置的权限。",

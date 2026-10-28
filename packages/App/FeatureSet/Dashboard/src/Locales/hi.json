@@ -36432,6 +36432,7 @@
   "Expires {{time}}": "{{time}} समाप्त होगा",
   "After this, the rule sees it again. Leave it empty to keep the exception until someone deletes it.": "इसके बाद नियम इसे फिर से देखता है। अपवाद को तब तक रखने के लिए खाली छोड़ें, जब तक कोई उसे हटा न दे।",
   "Stop this rule from firing on something you expect, such as a scanner, a backup job or a planned test.": "इस नियम को किसी अपेक्षित चीज़ पर चलने से रोकें, जैसे स्कैनर, बैकअप जॉब या नियोजित टेस्ट।",
+  "Step-by-step guides": "चरण-दर-चरण गाइड",
   "What the cases closed in the last 30 days turned out to be.": "पिछले 30 दिनों में बंद हुए केस आख़िर में क्या निकले।",
   "Ask a project admin for access.": "पहुंच के लिए किसी प्रोजेक्ट एडमिन से कहें।",
   "You do not have permission to change these settings.": "आपको ये सेटिंग्स बदलने की अनुमति नहीं है।",

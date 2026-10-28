@@ -12,10 +12,10 @@ OneUptime puede enviar sus SMS y llamadas a través de una pasarela que gestiona
 ## Cómo funciona
 
 ```mermaid title="Un SMS a través de tu propia pasarela"
-flowchart LR
+flowchart TB
     OneUptime["OneUptime"]
     Gateway["Tu pasarela"]
-    Provider["Tu proveedor de SMS y voz"]
+    Provider["Tu proveedor<br/>de SMS y voz"]
     Phone["Teléfono"]
     OneUptime -->|"solicitud JSON firmada"| Gateway
     Gateway --> Provider

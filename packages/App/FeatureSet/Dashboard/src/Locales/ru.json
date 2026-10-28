@@ -36432,6 +36432,7 @@
   "Expires {{time}}": "Истекает {{time}}",
   "After this, the rule sees it again. Leave it empty to keep the exception until someone deletes it.": "После этого правило снова его видит. Оставьте пустым, чтобы исключение действовало, пока его не удалят.",
   "Stop this rule from firing on something you expect, such as a scanner, a backup job or a planned test.": "Не дайте этому правилу срабатывать на ожидаемое — сканер, задание резервного копирования или запланированный тест.",
+  "Step-by-step guides": "Пошаговые руководства",
   "What the cases closed in the last 30 days turned out to be.": "Чем оказались кейсы, закрытые за последние 30 дней.",
   "Ask a project admin for access.": "Попросите доступ у администратора проекта.",
   "You do not have permission to change these settings.": "У вас нет прав на изменение этих настроек.",

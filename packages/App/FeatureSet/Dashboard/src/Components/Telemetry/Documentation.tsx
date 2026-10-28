@@ -29,6 +29,8 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import AppLink from "../AppLink/AppLink";
 import IngestionKeySelector from "./IngestionKeySelector";
+import FrameworkGuideLinks from "./FrameworkGuideLinks";
+import { TelemetryGuideLanguageKey } from "Common/Types/Telemetry/OpenTelemetryGuides";
 import { SetupGuideStepVariants } from "../SetupGuide/SetupGuideSteps";
 import SetupGuideTopics from "../SetupGuide/SetupGuideTopics";
 import { getKubernetesAgentUpgradeCommand } from "../../Pages/Kubernetes/Utils/DocumentationMarkdown";
@@ -72,20 +74,12 @@ const NEW_KEY_NAME_FOR_TYPE: Record<TelemetryType, string> = {
   profiles: translationKey("Profiles key"),
 };
 
-type Language =
-  | "node"
-  | "python"
-  | "go"
-  | "java"
-  | "dotnet"
-  | "rust"
-  | "php"
-  | "ruby"
-  | "elixir"
-  | "cpp"
-  | "swift"
-  | "react"
-  | "angular";
+/*
+ * The languages a reader can pick. Common's catalog of the website's
+ * OpenTelemetry guides names them too, to open each language's guides
+ * (FrameworkGuideLinks), so the two lists are one type.
+ */
+type Language = TelemetryGuideLanguageKey;
 
 interface LanguageOption {
   key: Language;
@@ -1634,6 +1628,8 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
             );
           })}
         </div>
+        {/* The website's full guide for the language and its frameworks. */}
+        {!isProfiles && <FrameworkGuideLinks language={selectedLanguage} />}
       </div>
     );
   };

@@ -82,6 +82,8 @@ Auto-hospedado? Substitua `https://oneuptime.com` pela URL da sua instância do 
 
 Escolha sua linguagem. Cada configuração lê as variáveis de ambiente acima, então nenhum endpoint ou chave aparece no seu código.
 
+Usa um framework? Os [guias de integração](https://oneuptime.com/integrations) configuram o OpenTelemetry passo a passo para cada framework, com o que ele rastreia automaticamente e como corrigir o que dá errado.
+
 :::tabs
 @tab Node.js
 Instale o SDK, as instrumentações automáticas e os exportadores OTLP/HTTP:

@@ -36432,6 +36432,7 @@
   "Expires {{time}}": "Verloopt {{time}}",
   "After this, the rule sees it again. Leave it empty to keep the exception until someone deletes it.": "Daarna ziet de regel het weer. Laat het leeg om de uitzondering te houden tot iemand haar verwijdert.",
   "Stop this rule from firing on something you expect, such as a scanner, a backup job or a planned test.": "Voorkom dat deze regel afgaat op iets wat je verwacht, zoals een scanner, een back-uptaak of een geplande test.",
+  "Step-by-step guides": "Stapsgewijze handleidingen",
   "What the cases closed in the last 30 days turned out to be.": "Wat de zaken die de afgelopen 30 dagen zijn gesloten, bleken te zijn.",
   "Ask a project admin for access.": "Vraag een projectbeheerder om toegang.",
   "You do not have permission to change these settings.": "U hebt geen toestemming om deze instellingen te wijzigen.",

@@ -36432,6 +36432,7 @@
   "Expires {{time}}": "{{time}}に期限切れ",
   "After this, the rule sees it again. Leave it empty to keep the exception until someone deletes it.": "この日時を過ぎると、ルールは再びそれを検出します。誰かが削除するまで例外を残すには、空欄のままにしてください。",
   "Stop this rule from firing on something you expect, such as a scanner, a backup job or a planned test.": "スキャナー、バックアップ ジョブ、計画したテストなど、想定内のものでこのルールが発火しないようにします。",
+  "Step-by-step guides": "手順ガイド",
   "What the cases closed in the last 30 days turned out to be.": "過去 30 日間にクローズしたケースの結果。",
   "Ask a project admin for access.": "プロジェクト管理者にアクセス権を依頼してください。",
   "You do not have permission to change these settings.": "これらの設定を変更する権限がありません。",

@@ -12,10 +12,10 @@ OneUptime può inviare i suoi SMS e le sue chiamate tramite un gateway che gesti
 ## Come funziona
 
 ```mermaid title="Un SMS tramite il tuo gateway"
-flowchart LR
+flowchart TB
     OneUptime["OneUptime"]
     Gateway["Il tuo gateway"]
-    Provider["Il tuo provider di SMS e voce"]
+    Provider["Il tuo provider<br/>di SMS e voce"]
     Phone["Telefono"]
     OneUptime -->|"richiesta JSON firmata"| Gateway
     Gateway --> Provider
