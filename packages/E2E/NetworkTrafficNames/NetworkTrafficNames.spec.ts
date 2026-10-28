@@ -41,12 +41,13 @@ const TRAFFIC: string = `/dashboard/${PROJECT_ID}/network-devices/traffic`;
 const ADDRESS_NAMES: string = `/dashboard/${PROJECT_ID}/network-devices/settings/address-names`;
 const HOST_ID: string = "60000000-0000-4000-8000-000000000001";
 
-// The first conversation, by its names and by its addresses.
-const FIRST_CONVERSATION_NAMES: RegExp = /mumbai-fs01\s*→\s*Backup appliance/;
-const FIRST_CONVERSATION_ADDRESSES: RegExp =
-  /10\.18\.167\.35\s*→\s*10\.18\.167\.20/;
+// The first conversation's two ends: each name with its address beside it.
+const FIRST_SENDER: RegExp = /^mumbai-fs01\s*10\.18\.167\.35$/;
+const FIRST_RECEIVER: RegExp = /^Backup appliance\s*10\.18\.167\.20$/;
 const PAYROLL_IN_ADDRESS_BAR: RegExp = /dst=158\.115\.141\.143/;
 const ON_ADDRESS_NAMES: RegExp = /\/network-devices\/settings\/address-names$/;
+// Tailwind's gray-500, as the light theme draws it.
+const GREY_500: string = "rgb(107, 114, 128)";
 const DARK_THEME: RegExp = /dark/;
 
 const SCREENSHOTS: string = path.resolve(
@@ -102,7 +103,12 @@ test.beforeEach(async ({ page }: { page: Page }) => {
   });
 });
 
-test.afterEach(async ({ page }: { page: Page }) => {
+test.afterEach(async ({ page }: { page: Page }, testInfo: TestInfo) => {
+  // A test skipped for this project opened nothing to check.
+  if (testInfo.status === "skipped") {
+    return;
+  }
+
   expect(pageErrors.get(page) || [], "uncaught page errors").toEqual([]);
   expect(
     abortedRequests.get(page) || [],
@@ -212,6 +218,33 @@ async function isCutToItsLine(label: Locator): Promise<boolean> {
   });
 }
 
+interface Box {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+async function boxOf(target: Locator): Promise<Box> {
+  const box: Box | null = await target.boundingBox();
+
+  if (!box) {
+    throw new Error("Not on the page");
+  }
+
+  return box;
+}
+
+// Whether one box lies inside another, give or take a pixel.
+function isInside(inner: Box, outer: Box): boolean {
+  return (
+    inner.x >= outer.x - 1 &&
+    inner.y >= outer.y - 1 &&
+    inner.x + inner.width <= outer.x + outer.width + 1 &&
+    inner.y + inner.height <= outer.y + outer.height + 1
+  );
+}
+
 /*
  * ---------------------------------------------------------------------------
  * The lists, the conversations and the chips
@@ -289,16 +322,44 @@ test("names first and the address under them, in the top lists and both views of
     await page.getByTestId("traffic-conversations-list").click();
   }
 
-  // The list (the only view on a phone): names, the addresses under them.
-  const first: Locator = conversations
-    .getByTestId("traffic-conversation-row")
-    .first();
-  await expect(first.getByTestId("traffic-conversation-row-label")).toHaveText(
-    FIRST_CONVERSATION_NAMES,
+  // The list (the only view on a phone): each end once, its address beside its name.
+  const rows: Locator = conversations.getByTestId("traffic-conversation-row");
+  const first: Locator = rows.first();
+  await expect(first.getByTestId("traffic-conversation-from")).toHaveText(
+    FIRST_SENDER,
   );
-  await expect(
-    first.getByTestId("traffic-conversation-row-addresses"),
-  ).toHaveText(FIRST_CONVERSATION_ADDRESSES);
+  await expect(first.getByTestId("traffic-conversation-to")).toHaveText(
+    FIRST_RECEIVER,
+  );
+  await expect(first.getByTestId("traffic-conversation-bytes")).toHaveText(
+    "6.20 MB",
+  );
+
+  const from: Box = await boxOf(first.getByTestId("traffic-conversation-from"));
+  const to: Box = await boxOf(first.getByTestId("traffic-conversation-to"));
+  const bytes: Box = await boxOf(
+    first.getByTestId("traffic-conversation-bytes"),
+  );
+
+  if (testInfo.project.name === "desktop") {
+    // One line a conversation: sender, receiver and bytes side by side...
+    expect(Math.abs(to.y - from.y)).toBeLessThanOrEqual(4);
+    expect(Math.abs(bytes.y - from.y)).toBeLessThanOrEqual(4);
+    expect(to.x).toBeGreaterThan(from.x + from.width - 1);
+
+    // ...and every row's receivers start where the first row's do.
+    for (const row of await rows.all()) {
+      const receiver: Box = await boxOf(
+        row.getByTestId("traffic-conversation-to"),
+      );
+      expect(Math.abs(receiver.x - to.x)).toBeLessThanOrEqual(1);
+    }
+  } else {
+    // A phone: the receiver under the sender, across the whole row.
+    expect(to.y).toBeGreaterThanOrEqual(from.y + from.height - 1);
+    expect(Math.abs(to.x + to.width - (bytes.x + bytes.width))).toBeLessThan(2);
+  }
+
   await screenshot(page, testInfo, "conversations-list", conversations);
 
   await screenshot(page, testInfo, "names");
@@ -341,7 +402,8 @@ test("long names are cut to their line, whole under the pointer, and nothing scr
     "title",
     "mumbai-fileserver-primary-replica-01.storage.corp.acme-networks.example (10.18.167.35)",
   );
-  expect(await isCutToItsLine(label)).toBe(true);
+  // The name is the box that is cut, in its own direction.
+  expect(await isCutToItsLine(label.locator("bdi").first())).toBe(true);
   // The bytes and the share stay on the row, whatever the name's length.
   await expect(rowsOf(page, "traffic-top-sources").first()).toContainText(
     "12.5 MB",
@@ -349,6 +411,44 @@ test("long names are cut to their line, whole under the pointer, and nothing scr
 
   await page.getByTestId("traffic-top-conversations").scrollIntoViewIfNeeded();
   await screenshot(page, testInfo, "long-names");
+  expect(await scrollsSideways(page)).toBe(false);
+});
+
+test("a chip with a long name keeps its words and its address in view; the name gives way", async ({
+  page,
+}: {
+  page: Page;
+}, testInfo: TestInfo) => {
+  await openTraffic(page, "names=long&host=10.18.167.35");
+
+  const chip: Locator = page.getByTestId("traffic-filter-host");
+  const chipBox: Box = await boxOf(chip);
+  const words: Locator = chip.getByText("To or from");
+  const address: Locator = chip.getByTestId("traffic-address-text");
+
+  await expect(words).toBeVisible();
+  await expect(address).toHaveText("10.18.167.35");
+  expect(isInside(await boxOf(words), chipBox)).toBe(true);
+  expect(isInside(await boxOf(address), chipBox)).toBe(true);
+  expect(await isCutToItsLine(address)).toBe(false);
+
+  if (testInfo.project.name === "phone") {
+    // Too long for a phone's line: the name, and only the name, is cut.
+    expect(
+      await isCutToItsLine(
+        chip.getByText(
+          "mumbai-fileserver-primary-replica-01.storage.corp.acme-networks.example",
+        ),
+      ),
+    ).toBe(true);
+  }
+
+  await screenshot(
+    page,
+    testInfo,
+    "long-chip",
+    page.getByTestId("traffic-filters"),
+  );
   expect(await scrollsSideways(page)).toBe(false);
 });
 
@@ -406,6 +506,28 @@ test("narrowed to a host: its name, Host, the address to copy, its office, and O
   await expect(
     card.getByTestId("traffic-address-card-name-button"),
   ).toHaveCount(0);
+
+  // The name and the address line start at the same place, beside the icon's tile.
+  const name: Box = await boxOf(card.getByTestId("traffic-address-card-name"));
+  const address: Box = await boxOf(card.getByTestId("traffic-address-text"));
+  const tile: Box = await boxOf(card.getByTestId("traffic-address-card-icon"));
+  const source: Box = await boxOf(
+    card.getByTestId("traffic-address-card-source"),
+  );
+  expect(Math.abs(address.x - name.x)).toBeLessThanOrEqual(1);
+  expect(address.x).toBeGreaterThanOrEqual(tile.x + tile.width);
+
+  if (testInfo.project.name === "desktop") {
+    // Where the name is from follows the address on its line.
+    expect(
+      Math.abs(source.y + source.height / 2 - (address.y + address.height / 2)),
+    ).toBeLessThanOrEqual(3);
+  } else {
+    // A phone: on a line of its own, starting where the address does - no separator first.
+    expect(source.y).toBeGreaterThanOrEqual(address.y + address.height - 1);
+    expect(Math.abs(source.x - address.x)).toBeLessThanOrEqual(1);
+  }
+
   await screenshot(page, testInfo, "card-host", card);
 
   await card.getByTestId("traffic-address-card-open").click();
@@ -550,6 +672,45 @@ test("a viewer reads the names and is offered nothing to change", async ({
   ).toHaveCount(0);
 });
 
+test("devices that send flows and are no device yet go by their names, with their addresses", async ({
+  page,
+}: {
+  page: Page;
+}, testInfo: TestInfo) => {
+  await openTraffic(page, "exporters=unknown");
+
+  const named: Locator = rowWith(
+    page,
+    "traffic-top-devices",
+    "lds-edge-fw.corp.acme.example",
+  );
+  await expect(
+    named.getByTestId("traffic-top-devices-row-sublabel"),
+  ).toHaveText("10.114.167.1 · Not a device yet");
+  await expect(
+    rowWith(page, "traffic-top-devices", "203.0.113.50").getByTestId(
+      "traffic-top-devices-row-sublabel",
+    ),
+  ).toHaveText("Not a device yet");
+
+  const sender: Locator = page
+    .getByTestId("traffic-source")
+    .filter({ hasText: "lds-edge-fw.corp.acme.example" });
+  await expect(sender.getByTestId("traffic-source-name")).toHaveText(
+    "lds-edge-fw.corp.acme.example",
+  );
+  await expect(sender).toContainText("10.114.167.1");
+  await expect(sender.getByTestId("traffic-source-unknown")).toBeVisible();
+
+  await screenshot(
+    page,
+    testInfo,
+    "senders",
+    page.getByTestId("traffic-sources"),
+  );
+  expect(await scrollsSideways(page)).toBe(false);
+});
+
 /*
  * ---------------------------------------------------------------------------
  * Find
@@ -603,9 +764,11 @@ test("find by a name: several found are listed to pick from; one found narrows t
   await page.getByTestId("traffic-filters-clear").click();
   await box.fill("nothing-by-this-name");
   await box.press("Enter");
-  await expect(page.getByTestId("traffic-find-address-error")).toContainText(
-    "nothing-by-this-name",
-  );
+  // An answer, not a failure: grey, not red.
+  const none: Locator = page.getByTestId("traffic-find-address-none");
+  await expect(none).toContainText("nothing-by-this-name");
+  await expect(none).toHaveCSS("color", GREY_500);
+  await expect(page.getByTestId("traffic-find-address-error")).toHaveCount(0);
 
   const state: FixtureState = await fixture(page);
   expect(
@@ -782,4 +945,90 @@ test("in Persian: the page reads right to left, the addresses and the diagram's 
 
   await screenshot(page, testInfo, "persian");
   expect(await scrollsSideways(page)).toBe(false);
+});
+
+test("in Persian, a long English name is cut from its own end, and the conversation list reads right to left", async ({
+  page,
+}: {
+  page: Page;
+}, testInfo: TestInfo) => {
+  await openTraffic(page, "lang=fa&names=long");
+
+  /*
+   * The name is the box that is cut, left to right: it keeps its first
+   * letters ("mumbai-fileserver-…"), where cut by the right-to-left row it
+   * lost them ("…corp.acme-networks.example").
+   */
+  const name: Locator = rowsOf(page, "traffic-top-sources")
+    .first()
+    .getByTestId("traffic-top-sources-row-label")
+    .locator("bdi")
+    .first();
+  await expect(name).toHaveCSS("direction", "ltr");
+  await expect(name).toHaveCSS("text-overflow", "ellipsis");
+  expect(await isCutToItsLine(name)).toBe(true);
+
+  if (testInfo.project.name === "desktop") {
+    await page.getByTestId("traffic-conversations-list").click();
+  }
+
+  // The list follows the page: the sender on the right, the receiver to its left.
+  const first: Locator = page
+    .getByTestId("traffic-top-conversations")
+    .getByTestId("traffic-conversation-row")
+    .first();
+  const from: Box = await boxOf(first.getByTestId("traffic-conversation-from"));
+  const bytes: Box = await boxOf(
+    first.getByTestId("traffic-conversation-bytes"),
+  );
+  expect(from.x).toBeGreaterThan(bytes.x);
+
+  await screenshot(
+    page,
+    testInfo,
+    "persian-conversations",
+    page.getByTestId("traffic-top-conversations"),
+  );
+  expect(await scrollsSideways(page)).toBe(false);
+});
+
+/*
+ * Beside the side menu a laptop's page is narrow: at 1024 pixels a card's
+ * body is some 630 pixels, at 768 some 430. The find box keeps its room
+ * beside a long chip (the chip gives way), and the conversation list takes
+ * the two-line rows a phone has, by the list's own width.
+ */
+test("beside the side menu, at 1024 and 768 pixels: the find box stays in its card, and the conversations take two lines when the list is narrow", async ({
+  page,
+}: {
+  page: Page;
+}, testInfo: TestInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "laptop widths");
+
+  for (const width of [1024, 768]) {
+    await page.setViewportSize({ width: width, height: 900 });
+    await openTraffic(page, "names=long&host=10.18.167.35");
+
+    const body: Box = await boxOf(page.getByTestId("traffic-body"));
+    const find: Box = await boxOf(page.getByTestId("traffic-find-address"));
+    expect(find.x + find.width).toBeLessThanOrEqual(body.x + body.width + 1);
+    expect(await scrollsSideways(page)).toBe(false);
+
+    await page.getByTestId("traffic-filters-clear").click();
+    await page.getByTestId("traffic-conversations-list").click();
+    const first: Locator = page
+      .getByTestId("traffic-top-conversations")
+      .getByTestId("traffic-conversation-row")
+      .first();
+    const from: Box = await boxOf(
+      first.getByTestId("traffic-conversation-from"),
+    );
+    const to: Box = await boxOf(first.getByTestId("traffic-conversation-to"));
+
+    if (width === 768) {
+      expect(to.y).toBeGreaterThanOrEqual(from.y + from.height - 1);
+    }
+
+    await screenshot(page, testInfo, `beside-the-menu-${width}`);
+  }
 });

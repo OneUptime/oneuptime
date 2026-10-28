@@ -56,6 +56,7 @@ const usagePostMock: MockFunction = getJestMockFunction();
 
 interface CapturedModal {
   title: string;
+  description?: string | undefined;
   modelIdToEdit?: { toString: () => string } | undefined;
   initialValues?: Record<string, unknown> | undefined;
   formProps: {
@@ -178,6 +179,7 @@ import NetworkTrafficView, {
 import { resetStandInCharts } from "./ChartZoomStandIn";
 import NetworkAddressName from "../../../Models/DatabaseModels/NetworkAddressName";
 import { FormType } from "../../../UI/Components/Forms/ModelForm";
+import { ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME } from "../../../UI/Components/Icon/Icon";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import PermissionGate, {
@@ -200,6 +202,9 @@ const DEVICE_SCOPE: NetworkTrafficScope = {
 };
 
 const PERSIAN_NAME: string = "حقوق و دستمزد";
+// An end of a conversation that is its address and nothing else.
+const ONLY_198_51_100_7: RegExp = /^198\.51\.100\.7$/;
+const ONLY_203_0_113_9: RegExp = /^203\.0\.113\.9$/;
 const LONG_NAME: string =
   "mumbai-fileserver-primary-replica-01.storage.corp.acme-networks.example";
 
@@ -484,6 +489,35 @@ describe("the top lists write a named address by its name, the address under it"
     expect(label).toHaveAttribute("title", `${LONG_NAME} (10.0.0.78)`);
   });
 
+  /*
+   * The name is the box that is cut, in its own direction: on a Persian
+   * page an English DNS name loses its last letters, never its first, and
+   * still starts where the page's lines start (an inline box). Cut by the
+   * row instead, it lost its start ("…ams23prdstr05a.store.core.windows").
+   */
+  test("a long name is cut from its own end, in its own direction, whatever the page's", async () => {
+    await renderView();
+
+    const label: HTMLElement = within(
+      rowWith("traffic-top-sources", LONG_NAME),
+    ).getByTestId("traffic-top-sources-row-label");
+    const name: HTMLElement = within(label).getByText(LONG_NAME);
+
+    expect(name.tagName).toBe("BDI");
+    expect(name).toHaveAttribute("dir", "ltr");
+    expect(name).toHaveClass("inline-block", "max-w-full", "truncate");
+
+    // An address with no name is cut the same way: left to right.
+    const bare: HTMLElement = within(
+      within(rowWith("traffic-top-sources", "198.51.100.7")).getByTestId(
+        "traffic-top-sources-row-label",
+      ),
+    ).getByTestId("traffic-address-text");
+
+    expect(bare).toHaveAttribute("dir", "ltr");
+    expect(bare).toHaveClass("inline-block", "max-w-full", "truncate");
+  });
+
   test("a name someone gave, and a cloud resource's, on the destinations", async () => {
     await renderView();
 
@@ -527,48 +561,133 @@ describe("the top lists write a named address by its name, the address under it"
 });
 
 describe("the conversations, in both views", () => {
-  test("the list: the names from and to, the addresses under them", async () => {
+  async function listRows(): Promise<Array<HTMLElement>> {
     await renderView();
-
     fireEvent.click(screen.getByTestId("traffic-conversations-list"));
 
-    const rows: Array<HTMLElement> = screen.getAllByTestId(
-      "traffic-conversation-row",
-    );
-    const named: HTMLElement = rows[0]!;
+    return screen.getAllByTestId("traffic-conversation-row");
+  }
 
+  // How often a text is in an element's text.
+  function timesIn(element: HTMLElement, text: string): number {
+    return (element.textContent || "").split(text).length - 1;
+  }
+
+  test("the list: each end once - its name, its address beside it - then the bytes", async () => {
+    const named: HTMLElement = (await listRows())[0]!;
+    const from: HTMLElement = within(named).getByTestId(
+      "traffic-conversation-from",
+    );
+    const to: HTMLElement = within(named).getByTestId(
+      "traffic-conversation-to",
+    );
+
+    expect(from).toHaveTextContent("mumbai-fs0110.18.167.35");
+    expect(to).toHaveTextContent("Payroll SaaS158.115.141.143");
     expect(
-      within(named).getByTestId("traffic-conversation-row-label"),
-    ).toHaveTextContent("mumbai-fs01→Payroll SaaS");
+      within(named).getByTestId("traffic-conversation-bytes"),
+    ).toHaveTextContent("200 MB");
+    // Each address is said once: no second line repeats them.
+    expect(timesIn(named, "10.18.167.35")).toBe(1);
+    expect(timesIn(named, "158.115.141.143")).toBe(1);
+    // The address after a name is small and grey, left to right, in the mono face.
+    const address: HTMLElement = within(from).getByTestId(
+      "traffic-address-text",
+    );
+    expect(address).toHaveAttribute("dir", "ltr");
+    expect(address).toHaveClass("font-mono", "text-xs", "text-gray-500");
     expect(
       within(named).getByTestId("traffic-conversation-row-label"),
     ).toHaveAttribute(
       "title",
       "mumbai-fs01 (10.18.167.35) → Payroll SaaS (158.115.141.143)",
     );
-    expect(
-      within(named).getByTestId("traffic-conversation-row-addresses"),
-    ).toHaveTextContent("10.18.167.35→158.115.141.143");
     expect(named).toHaveAccessibleName(
       "Show only the traffic from mumbai-fs01 (10.18.167.35) to Payroll SaaS (158.115.141.143)",
     );
   });
 
-  test("the list: a pair nothing names is its two addresses, once", async () => {
-    await renderView();
-
-    fireEvent.click(screen.getByTestId("traffic-conversations-list"));
-
-    const unnamed: HTMLElement = screen.getAllByTestId(
-      "traffic-conversation-row",
-    )[1]!;
+  test("the list: a pair nothing names is its two addresses, each once", async () => {
+    const unnamed: HTMLElement = (await listRows())[1]!;
 
     expect(
-      within(unnamed).getByTestId("traffic-conversation-row-label"),
-    ).toHaveTextContent("198.51.100.7→203.0.113.9");
+      within(unnamed).getByTestId("traffic-conversation-from"),
+    ).toHaveTextContent(ONLY_198_51_100_7);
     expect(
-      within(unnamed).queryByTestId("traffic-conversation-row-addresses"),
-    ).not.toBeInTheDocument();
+      within(unnamed).getByTestId("traffic-conversation-to"),
+    ).toHaveTextContent(ONLY_203_0_113_9);
+    expect(timesIn(unnamed, "198.51.100.7")).toBe(1);
+    expect(timesIn(unnamed, "203.0.113.9")).toBe(1);
+  });
+
+  test("the arrow points from the sender to the receiver, and turns round on a page that reads right to left", async () => {
+    const row: HTMLElement = (await listRows())[0]!;
+    const arrow: Element | null = within(row)
+      .getByTestId("traffic-conversation-to")
+      .querySelector("svg");
+
+    expect(arrow).not.toBeNull();
+    expect(arrow).toHaveClass(ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME);
+    expect(arrow).toHaveAttribute("aria-hidden", "true");
+    // Nothing forces the row to read left to right: it follows the page, as the top lists do.
+    expect(row.querySelector('[dir="ltr"]:not(bdi)')).toBeNull();
+  });
+
+  /*
+   * One line in three columns when the LIST is wide enough, two lines when
+   * it is not: beside the side menu a laptop's list is as narrow as a
+   * phone's, so the switch reads the list's width (a container query), not
+   * the window's (sm:).
+   */
+  test("the list's rows lay out by the list's own width, not the window's", async () => {
+    const row: HTMLElement = (await listRows())[0]!;
+    const list: HTMLElement = row.closest("ol") as HTMLElement;
+    const line: HTMLElement = within(row).getByTestId(
+      "traffic-conversation-row-label",
+    ).firstElementChild as HTMLElement;
+
+    expect(list).toHaveClass("[container-type:inline-size]");
+    expect(line).toHaveClass(
+      "grid",
+      "grid-cols-[minmax(0,1fr)_auto]",
+      "[@container(min-width:40rem)]:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_4.5rem]",
+    );
+    expect(line.className).not.toContain("sm:");
+    // Narrow: the receiver's line runs under the sender and the bytes.
+    expect(within(row).getByTestId("traffic-conversation-to")).toHaveClass(
+      "col-span-2",
+      "[@container(min-width:40rem)]:col-span-1",
+    );
+  });
+
+  test("in the list a long name gives way and its address stays whole", async () => {
+    summaryAnswer = () => {
+      return summary({
+        topConversations: [
+          {
+            sourceIp: "10.0.0.78",
+            destinationIp: "10.0.0.77",
+            octets: 30_000_000,
+            packets: 1,
+          },
+        ],
+      });
+    };
+    const row: HTMLElement = (await listRows())[0]!;
+    const from: HTMLElement = within(row).getByTestId(
+      "traffic-conversation-from",
+    );
+
+    expect(within(from).getByText(LONG_NAME)).toHaveClass(
+      "min-w-0",
+      "truncate",
+    );
+    expect(within(from).getByTestId("traffic-address-text")).toHaveClass(
+      "flex-shrink-0",
+    );
+    // A name written in Persian reads right to left beside its address.
+    const to: HTMLElement = within(row).getByTestId("traffic-conversation-to");
+    expect(within(to).getByText(PERSIAN_NAME)).toHaveAttribute("dir", "rtl");
   });
 
   test("the diagram: a named end by its name, its address and bytes under it; an unnamed one by its address", async () => {
@@ -645,6 +764,50 @@ describe("the filter chips name the address", () => {
     ).toBeInTheDocument();
   });
 
+  /*
+   * The sentence's words and the address keep their room, and a long name
+   * gives way: on a phone the chip read "To or from …" - neither the name
+   * nor the address - when the whole sentence was cut as one line.
+   */
+  test("a chip with a long name: the name gives way, the words and the address stay whole", async () => {
+    window.history.replaceState(null, "", "/?host=10.0.0.78");
+
+    await renderView();
+
+    const chip: HTMLElement = screen.getByTestId("traffic-filter-host");
+    const words: HTMLElement = within(chip).getByText("To or from");
+
+    expect(words).toHaveClass("flex-shrink-0", "whitespace-pre");
+    // The space the language puts between the words and the name is kept.
+    expect(words.textContent).toBe("To or from ");
+    expect(within(chip).getByText(LONG_NAME)).toHaveClass(
+      "min-w-0",
+      "truncate",
+    );
+    expect(within(chip).getByTestId("traffic-address-text")).toHaveClass(
+      "flex-shrink-0",
+    );
+    expect(within(chip).getByTestId("traffic-filter-text")).toHaveClass(
+      "flex",
+      "min-w-0",
+    );
+    expect(chip).toHaveAttribute(
+      "title",
+      `To or from ${LONG_NAME} (10.0.0.78)`,
+    );
+  });
+
+  test("the chips give way to the find box beside them, which keeps its room", async () => {
+    window.history.replaceState(null, "", "/?host=10.0.0.78");
+
+    await renderView();
+
+    expect(screen.getByTestId("traffic-filters")).toHaveClass(
+      "min-w-0",
+      "lg:flex-1",
+    );
+  });
+
   test("a chip for an address nothing names is as it was", async () => {
     window.history.replaceState(null, "", "/?dst=203.0.113.9");
 
@@ -691,6 +854,50 @@ describe("narrowed to one address, the page says who it is and what to do next",
     expect(
       within(card).queryByTestId("traffic-address-card-name-button"),
     ).not.toBeInTheDocument();
+  });
+
+  test("the card's lines start under the name: what the name is, in a tile beside them both", async () => {
+    const card: HTMLElement = await narrowTo("host=10.18.167.35");
+    const tile: HTMLElement = within(card).getByTestId(
+      "traffic-address-card-icon",
+    );
+
+    expect(tile.querySelector("svg")).not.toBeNull();
+    // The name and the address line sit beside the tile, not under it.
+    expect(tile.nextElementSibling).toContainElement(
+      within(card).getByTestId("traffic-address-card-name"),
+    );
+    expect(tile.nextElementSibling).toContainElement(
+      within(card).getByTestId("traffic-address-card-details"),
+    );
+  });
+
+  test("no line of the card starts with a separator: where the name is from begins a group of its own", async () => {
+    const card: HTMLElement = await narrowTo("host=10.18.167.35");
+    const source: HTMLElement = within(card).getByTestId(
+      "traffic-address-card-source",
+    );
+    const facts: HTMLElement = source.parentElement as HTMLElement;
+
+    expect(facts.firstElementChild).toBe(source);
+    // On a phone the facts take a line of their own, under the address.
+    expect(facts).toHaveClass("max-sm:basis-full");
+    // Between the facts, one separator, hidden from screen readers.
+    expect(facts).toHaveTextContent("Host·In Mumbai office");
+    expect(facts.querySelectorAll('[aria-hidden="true"]')).toHaveLength(1);
+  });
+
+  test("a long name wraps on the card, after its own dots first, two lines at most", async () => {
+    const card: HTMLElement = await narrowTo("host=10.0.0.78");
+    const name: HTMLElement = within(card).getByTestId(
+      "traffic-address-card-name",
+    );
+
+    expect(name).toHaveClass("line-clamp-2", "[overflow-wrap:anywhere]");
+    expect(name).not.toHaveClass("truncate");
+    expect(name.querySelectorAll("wbr").length).toBeGreaterThan(0);
+    expect(name).toHaveTextContent(LONG_NAME);
+    expect(name).toHaveAttribute("title", `${LONG_NAME} (10.0.0.78)`);
   });
 
   test("a network device and a cloud resource open their own records", async () => {
@@ -747,6 +954,8 @@ describe("narrowed to one address, the page says who it is and what to do next",
     expect(capturedModal!.initialValues).toEqual({ address: "10.18.167.31" });
     expect(capturedModal!.modelIdToEdit).toBeUndefined();
     expect(capturedModal!.formProps.formType).toBe(FormType.Create);
+    // Two fields need no paragraph over them: the Name field says where it shows.
+    expect(capturedModal!.description).toBeUndefined();
   });
 
   test("an address with no name: the address in bold, No name yet, Name this address", async () => {
@@ -1001,10 +1210,34 @@ describe("find takes a name", () => {
     typeAndFind("printer-lobby");
     await flush();
 
-    expect(screen.getByTestId("traffic-find-address-error")).toHaveTextContent(
+    expect(screen.getByTestId("traffic-find-address-none")).toHaveTextContent(
       "No address with traffic in this time range matches “printer-lobby”.",
     );
     expect(lastSummaryRequest().filters).toEqual({});
+  });
+
+  test("nothing found is an answer, said in grey - not a failure, in red", async () => {
+    findPostMock.mockResolvedValue({ data: { matches: [] } });
+    await renderView();
+
+    typeAndFind("printer-lobby");
+    await flush();
+
+    const none: HTMLElement = screen.getByTestId("traffic-find-address-none");
+    expect(none).toHaveAttribute("role", "status");
+    expect(none).toHaveClass("text-gray-500");
+    expect(none).not.toHaveClass("text-red-600");
+    expect(
+      screen.queryByTestId("traffic-find-address-error"),
+    ).not.toBeInTheDocument();
+
+    // Typing again takes it away, as it does an error.
+    fireEvent.change(screen.getByLabelText("Find a name or an IP address"), {
+      target: { value: "printer" },
+    });
+    expect(
+      screen.queryByTestId("traffic-find-address-none"),
+    ).not.toBeInTheDocument();
   });
 
   test("a search that fails says why", async () => {
@@ -1016,9 +1249,15 @@ describe("find takes a name", () => {
     typeAndFind("printer");
     await flush();
 
-    expect(screen.getByTestId("traffic-find-address-error")).toHaveTextContent(
+    const error: HTMLElement = screen.getByTestId("traffic-find-address-error");
+    expect(error).toHaveTextContent(
       "Searching this much traffic took longer than 45 seconds.",
     );
+    expect(error).toHaveAttribute("role", "alert");
+    expect(error).toHaveClass("text-red-600");
+    expect(
+      screen.queryByTestId("traffic-find-address-none"),
+    ).not.toBeInTheDocument();
   });
 
   test("only the newest search lands: an older answer that comes late is dropped", async () => {

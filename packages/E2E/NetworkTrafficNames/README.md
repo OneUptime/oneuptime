@@ -5,10 +5,10 @@ Network > Settings > Address Names (issue #5340): an address the project knows i
 name first - a host's, a network device's, a cloud resource's, a Kubernetes node's or pod's, a name
 someone gave it, its DNS name - with the address beside it.
 
-| Page               | Route (from `RouteMap`)                                                                                  | Production components                                                                                                                                                                                   |
-| ------------------ | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Network > Traffic  | `NETWORK_TRAFFIC` `/dashboard/:projectId/network-devices/traffic`                                        | `Pages/Network/Layout` (the Network side menu) and `Pages/NetworkDevice/Traffic` (`NetworkTrafficView`, `TrafficAddress`, `TrafficAddressCard`, `NetworkAddressNameModal`), with every part they mount |
-| Address Names      | `NETWORK_DEVICE_SETTINGS_ADDRESS_NAMES` `/dashboard/:projectId/network-devices/settings/address-names`   | `Pages/NetworkDevice/Settings/AddressNames` (`ModelTable`, the Address Name form)                                                                                                                      |
+| Page              | Route (from `RouteMap`)                                                                                | Production components                                                                                                                                                                                  |
+| ----------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Network > Traffic | `NETWORK_TRAFFIC` `/dashboard/:projectId/network-devices/traffic`                                      | `Pages/Network/Layout` (the Network side menu) and `Pages/NetworkDevice/Traffic` (`NetworkTrafficView`, `TrafficAddress`, `TrafficAddressCard`, `NetworkAddressNameModal`), with every part they mount |
+| Address Names     | `NETWORK_DEVICE_SETTINGS_ADDRESS_NAMES` `/dashboard/:projectId/network-devices/settings/address-names` | `Pages/NetworkDevice/Settings/AddressNames` (`ModelTable`, the Address Name form)                                                                                                                      |
 
 Run from `packages/E2E`:
 
@@ -35,6 +35,8 @@ Picked with query parameters on the page's address:
 - `role=owner|viewer`: a project owner (the default), or a viewer, who reads the names but may not
   add or change them.
 - `fail=find`: "find an address" answers 500.
+- `exporters=unknown`: two more devices send flows and are no device in OneUptime yet, one with a
+  DNS name, which Top devices and Sending flows show.
 - `lang=de|fa`, `theme=dark`. A Persian workspace wrote two of its Address Names in Persian.
 - The page's own filters, as the Traffic page keeps them in its address (`host`, `src`, `dst`).
 

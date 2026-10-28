@@ -125,7 +125,13 @@ describe("a Traffic page hands its names to everything that lists an address", (
     expect(view).toContain(
       "sublabel: getTrafficAddressSecondary(label) || undefined,",
     );
-    expect(view).toContain("<TrafficAddressPair");
+    expect(view).toContain(
+      "<TrafficConversationLine source={source} destination={destination} trailing={formatTrafficBytes(row.octets)} />",
+    );
+    // The conversation list's rows lay out by its own width (a container query).
+    expect(view).toContain(
+      "className={`-mx-2 space-y-0.5 ${CONVERSATION_LIST_CLASS_NAME}`}",
+    );
   });
 
   test("the diagram, the senders card and the address card are given the page's names", () => {

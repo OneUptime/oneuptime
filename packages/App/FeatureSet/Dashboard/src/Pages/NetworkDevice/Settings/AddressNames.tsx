@@ -83,11 +83,14 @@ const NetworkAddressNamesPage: FunctionComponent<
             title: "Address or Subnet",
             type: FieldType.Text,
             getElement: (item: NetworkAddressName): ReactElement => {
+              /*
+               * In a span, which the table's cell gives its rows' line
+               * height: the address sits level with the name beside it.
+               */
               return (
-                <TrafficAddressText
-                  address={item.address || ""}
-                  className="text-sm text-gray-700"
-                />
+                <span className="text-sm text-gray-700">
+                  <TrafficAddressText address={item.address || ""} />
+                </span>
               );
             },
           },

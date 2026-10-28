@@ -148,4 +148,30 @@ describe("Network > Settings > Address Names", () => {
     expect(address).toHaveClass("font-mono");
     expect(address).toHaveTextContent("10.18.167.0/24");
   });
+
+  /*
+   * The table gives a cell's span, p, div or a its rows' line height; a
+   * bdi straight in the cell kept its own, and the address sat a few
+   * pixels above the name beside it.
+   */
+  test("the address sits level with the name: it is drawn in a span, which the cell gives its line height", () => {
+    const table: CapturedTable = renderPage();
+    const addressColumn: CapturedColumn = table.columns[1]!;
+    const row: NetworkAddressName = new NetworkAddressName();
+    row.name = "Backup appliance";
+    row.address = "10.18.167.20";
+
+    render(
+      <div data-testid="address-cell">{addressColumn.getElement!(row)}</div>,
+    );
+
+    const cell: HTMLElement = screen.getByTestId("address-cell");
+    const first: HTMLElement = cell.firstElementChild as HTMLElement;
+
+    expect(first.tagName).toBe("SPAN");
+    expect(first).toHaveClass("text-sm", "text-gray-700");
+    expect(first.firstElementChild).toBe(
+      screen.getByTestId("traffic-address-text"),
+    );
+  });
 });

@@ -10,9 +10,10 @@ import {
 } from "./NetworkTrafficAddressNames";
 import {
   TrafficAddressInline,
-  TrafficAddressPair,
   TrafficAddressPrimary,
   TrafficAddressText,
+  CONVERSATION_LIST_CLASS_NAME,
+  TrafficConversationLine,
   getTrafficAddressSecondary,
 } from "./TrafficAddress";
 import TrafficAddressCard from "./TrafficAddressCard";
@@ -327,6 +328,11 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
   );
   const [addressInput, setAddressInput] = useState<string>("");
   const [addressError, setAddressError] = useState<string>("");
+  /*
+   * A name that matched nothing: said plainly under the box, in grey - an
+   * answer, not a failure (a failure is addressError, in red).
+   */
+  const [findNothing, setFindNothing] = useState<string>("");
   // "Find" by a name: the addresses it found, to pick one of.
   const [findMatches, setFindMatches] = useState<
     Array<NetworkTrafficFindMatch>
@@ -614,6 +620,7 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
 
   const onPickAddress: (address: string) => void = (address: string) => {
     setAddressError("");
+    setFindNothing("");
     setAddressInput("");
     setFindMatches([]);
     setFilters({ ...view.filters, hostIp: address });
@@ -653,6 +660,7 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
     const findId: number = latestFindRef.current;
 
     setAddressError("");
+    setFindNothing("");
     setFindMatches([]);
     setIsFinding(true);
 
@@ -682,7 +690,7 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
         }
 
         if (result.matches.length === 0) {
-          setAddressError(
+          setFindNothing(
             translator.translateTemplate(
               "No address with traffic in this time range matches “{{query}}”.",
               { query: typed },
@@ -909,29 +917,22 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
       filters.destinationIp === row.destinationIp;
     const source: TrafficAddressLabel = labelOf(row.sourceIp);
     const destination: TrafficAddressLabel = labelOf(row.destinationIp);
-    const hasName: boolean = Boolean(source.name || destination.name);
 
     return {
       key: `${row.sourceIp}>${row.destinationIp}`,
       /*
-       * Names first when either end has one ("mumbai-fs01 → backup-01"),
-       * the addresses under them; the addresses alone otherwise. Left to
-       * right whatever the page's language: the arrow is the flow.
+       * Each end once: its name with its address beside it, or its address
+       * alone ("mumbai-fs01 10.18.167.35 → Backup appliance 10.18.167.20"),
+       * the senders, the receivers and the bytes in columns.
        */
       label: (
-        <TrafficAddressPair
-          source={<TrafficAddressPrimary label={source} />}
-          destination={<TrafficAddressPrimary label={destination} />}
+        <TrafficConversationLine
+          source={source}
+          destination={destination}
+          trailing={formatTrafficBytes(row.octets)}
         />
       ),
       title: `${getTrafficAddressText(source)} → ${getTrafficAddressText(destination)}`,
-      isMono: !hasName,
-      sublabel: hasName ? (
-        <TrafficAddressPair
-          source={<TrafficAddressText address={row.sourceIp} />}
-          destination={<TrafficAddressText address={row.destinationIp} />}
-        />
-      ) : undefined,
       octets: row.octets,
       isActive: isActive,
       ariaLabel: translator.translateTemplate(
@@ -1315,7 +1316,7 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
                       {hasTraffic || isFiltered ? (
                         <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                           <div
-                            className="flex min-h-[2rem] flex-wrap items-center gap-2"
+                            className="flex min-h-[2rem] min-w-0 flex-wrap items-center gap-2 lg:flex-1"
                             data-testid="traffic-filters"
                           >
                             {chips.length === 0 ? (
@@ -1356,7 +1357,19 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
                                         title={text}
                                       >
                                         {chipAddress ? (
-                                          <span className="min-w-0 truncate">
+                                          /*
+                                           * The sentence's words and the
+                                           * address keep their room and a
+                                           * long name gives way: "To or from
+                                           * mumbai-fileser… 10.18.167.35",
+                                           * never "To or from …". The words
+                                           * keep the spaces their language
+                                           * puts around the address.
+                                           */
+                                          <span
+                                            className="flex min-w-0 items-baseline overflow-hidden"
+                                            data-testid="traffic-filter-text"
+                                          >
                                             {getSentenceParts({
                                               translator: translator,
                                               template: chip.template,
@@ -1373,9 +1386,12 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
                                                     label={chipAddress}
                                                   />
                                                 ) : (
-                                                  <Fragment key={index}>
+                                                  <span
+                                                    key={index}
+                                                    className="flex-shrink-0 whitespace-pre"
+                                                  >
                                                     {part.text}
-                                                  </Fragment>
+                                                  </span>
                                                 );
                                               },
                                             )}
@@ -1438,6 +1454,7 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
                                 ) => {
                                   setAddressInput(event.target.value);
                                   setAddressError("");
+                                  setFindNothing("");
                                   setFindMatches([]);
                                 }}
                                 placeholder={translator.translateText(
@@ -1455,6 +1472,17 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
                                   data-testid="traffic-find-address-error"
                                 >
                                   {addressError}
+                                </p>
+                              ) : (
+                                <></>
+                              )}
+                              {findNothing ? (
+                                <p
+                                  className="mt-1 text-xs text-gray-500"
+                                  role="status"
+                                  data-testid="traffic-find-address-none"
+                                >
+                                  {findNothing}
                                 </p>
                               ) : (
                                 <></>
@@ -1821,7 +1849,9 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
                             : undefined
                         }
                       >
-                        <ol className="-mx-2 space-y-0.5">
+                        <ol
+                          className={`-mx-2 space-y-0.5 ${CONVERSATION_LIST_CLASS_NAME}`}
+                        >
                           {conversationRows.map(
                             (row: TrafficTopRow): ReactElement => {
                               return (
@@ -1838,30 +1868,13 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
                                     onClick={row.onClick}
                                     data-testid="traffic-conversation-row"
                                   >
-                                    <div className="flex items-baseline justify-between gap-3">
-                                      <span
-                                        className={`min-w-0 flex-1 text-sm text-gray-900${
-                                          row.isMono ? " font-mono" : ""
-                                        }`}
-                                        title={row.title}
-                                        data-testid="traffic-conversation-row-label"
-                                      >
-                                        {row.label}
-                                      </span>
-                                      <span className="flex-shrink-0 text-sm tabular-nums text-gray-900">
-                                        {formatTrafficBytes(row.octets)}
-                                      </span>
-                                    </div>
-                                    {row.sublabel ? (
-                                      <div
-                                        className="mt-0.5 text-xs text-gray-500"
-                                        data-testid="traffic-conversation-row-addresses"
-                                      >
-                                        {row.sublabel}
-                                      </div>
-                                    ) : (
-                                      <></>
-                                    )}
+                                    <span
+                                      className="block text-sm text-gray-900"
+                                      title={row.title}
+                                      data-testid="traffic-conversation-row-label"
+                                    >
+                                      {row.label}
+                                    </span>
                                   </button>
                                 </li>
                               );

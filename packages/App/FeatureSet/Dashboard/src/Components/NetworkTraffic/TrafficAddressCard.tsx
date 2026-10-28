@@ -114,6 +114,13 @@ export function getAddressNamesRoute(): Route {
 // Where the address is: a subnet someone named.
 export const ADDRESS_IN_SUBNET: string = translationKey("In {{subnet}}");
 
+/*
+ * The card's links: words with a tint under the pointer. On a phone, where
+ * they wrap under the address, their words start where the card's do.
+ */
+const CARD_LINK_CLASS_NAME: string =
+  "inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-medium text-indigo-700 hover:bg-indigo-50 hover:text-indigo-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 max-sm:-ml-2";
+
 const RECORD_LINK_TEXT: Partial<Record<NetworkAddressNameSource, string>> = {
   [NetworkAddressNameSource.NetworkDevice]: translationKey("Open device"),
   [NetworkAddressNameSource.Host]: translationKey("Open host"),
@@ -142,7 +149,7 @@ const TrafficAddressCard: FunctionComponent<ComponentProps> = (
     />
   );
 
-  // What the second line says after the address: where the name is from, and the subnet.
+  // What the card says after the address: where the name is from, and the subnet.
   const facts: Array<ReactElement> = [
     <span key="source" data-testid="traffic-address-card-source">
       {label.source
@@ -179,64 +186,79 @@ const TrafficAddressCard: FunctionComponent<ComponentProps> = (
       className="mb-5 flex flex-col gap-3 rounded-lg bg-gray-50 px-4 py-3 ring-1 ring-inset ring-gray-200 sm:flex-row sm:items-center sm:justify-between"
       data-testid="traffic-address-card"
     >
-      <div className="min-w-0">
-        <div className="flex min-w-0 items-center gap-2">
+      {/*
+       * What the name is, in a tile beside both lines, so the address
+       * line starts under the name, not under the icon.
+       */}
+      <div className="flex min-w-0 items-start gap-3">
+        <span
+          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-white text-gray-500 ring-1 ring-inset ring-gray-200"
+          data-testid="traffic-address-card-icon"
+        >
           <Icon
             icon={label.source ? SOURCE_ICONS[label.source] : IconProp.Hashtag}
-            className="h-4 w-4 flex-shrink-0 text-gray-400"
+            className="h-4 w-4"
           />
-          <span
-            className="min-w-0 truncate text-sm font-semibold text-gray-900"
-            title={getTrafficAddressText(label)}
-            data-testid="traffic-address-card-name"
+        </span>
+        <div className="min-w-0">
+          <div className="flex min-w-0 items-center gap-2">
+            {/*
+             * The page's subject: a long name wraps (after its own dots
+             * first) rather than being cut on a phone, two lines at most.
+             */}
+            <span
+              className="line-clamp-2 min-w-0 text-sm font-semibold text-gray-900 [overflow-wrap:anywhere]"
+              title={getTrafficAddressText(label)}
+              data-testid="traffic-address-card-name"
+            >
+              {label.name ? (
+                <IsolatedText text={label.name} breaksLikeAName={true} />
+              ) : (
+                <TrafficAddressText address={label.address} />
+              )}
+            </span>
+            {label.name ? <></> : copyButton}
+          </div>
+          <div
+            className="mt-1 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-gray-500"
+            data-testid="traffic-address-card-details"
           >
             {label.name ? (
-              <IsolatedText text={label.name} />
-            ) : (
-              <TrafficAddressText address={label.address} />
-            )}
-          </span>
-          {label.name ? <></> : copyButton}
-        </div>
-        <div
-          className="mt-1 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-gray-500"
-          data-testid="traffic-address-card-details"
-        >
-          {label.name ? (
-            <Fragment>
-              <TrafficAddressText
-                address={label.address}
-                className="text-gray-700"
-              />
-              {copyButton}
-            </Fragment>
-          ) : (
-            <></>
-          )}
-          {facts.map((fact: ReactElement, index: number): ReactElement => {
-            // A separator wraps with what follows it, never at a line's end.
-            return (
-              <span
-                key={index}
-                className="inline-flex min-w-0 items-center gap-x-1.5"
-              >
-                {index > 0 || label.name ? (
-                  <span aria-hidden="true">·</span>
-                ) : (
-                  <></>
-                )}
-                {fact}
+              <span className="inline-flex items-center gap-x-1.5">
+                <TrafficAddressText
+                  address={label.address}
+                  className="text-gray-700"
+                />
+                {copyButton}
               </span>
-            );
-          })}
+            ) : (
+              <></>
+            )}
+            {/*
+             * Where the name is from, and the subnet: after the address and
+             * its copy button where there is room, on a line of their own
+             * where there is not (always on a phone) - with no separator a
+             * wrap could leave at the start of a line.
+             */}
+            <span className="inline-flex min-w-0 flex-wrap items-center gap-x-1.5 max-sm:basis-full">
+              {facts.map((fact: ReactElement, index: number): ReactElement => {
+                return (
+                  <Fragment key={index}>
+                    {index > 0 ? <span aria-hidden="true">·</span> : <></>}
+                    {fact}
+                  </Fragment>
+                );
+              })}
+            </span>
+          </div>
         </div>
       </div>
       {recordRoute || showNameButton || showEditInSettings ? (
-        <div className="flex flex-shrink-0 flex-wrap items-center gap-2">
+        <div className="flex flex-shrink-0 flex-wrap items-center gap-2 max-sm:pl-12">
           {recordRoute && label.source ? (
             <AppLink
               to={recordRoute}
-              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-medium text-indigo-700 hover:bg-indigo-50 hover:text-indigo-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              className={CARD_LINK_CLASS_NAME}
               dataTestId="traffic-address-card-open"
             >
               <span>
@@ -252,7 +274,7 @@ const TrafficAddressCard: FunctionComponent<ComponentProps> = (
           {showEditInSettings ? (
             <AppLink
               to={getAddressNamesRoute()}
-              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-medium text-indigo-700 hover:bg-indigo-50 hover:text-indigo-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              className={CARD_LINK_CLASS_NAME}
               dataTestId="traffic-address-card-edit-in-settings"
             >
               <Icon icon={IconProp.Settings} className="h-3.5 w-3.5" />

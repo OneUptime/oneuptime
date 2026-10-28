@@ -28,7 +28,6 @@ const NetworkAddressNameModal: FunctionComponent<ComponentProps> = (
     <ModelFormModal<NetworkAddressName>
       title="Name this address"
       name="Name an address"
-      description="The Traffic pages show the address by this name, before any name from your inventory or DNS."
       modelType={NetworkAddressName}
       submitButtonText="Save"
       onClose={props.onClose}

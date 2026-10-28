@@ -25,6 +25,9 @@
  *              Persian workspace names two places in Persian)
  *   ?theme=    dark adds html.dark (handled by server.js)
  *   ?fail=     find: "find an address" answers 500
+ *   ?exporters= unknown: two more devices send flows that are no device
+ *              in OneUptime yet, one with a DNS name (Top devices and
+ *              Sending flows name it)
  *
  * Every read and write is recorded on window.__networkTrafficNamesFixture:
  * flowRequests, findRequests, creates, updates, deletes and unhandled -
@@ -82,6 +85,7 @@ const language = ["de", "fa"].includes(params.get("lang"))
   : "en";
 const role = params.get("role") === "viewer" ? "viewer" : "owner";
 const failFind = params.get("fail") === "find";
+const unknownExporters = params.get("exporters") === "unknown";
 
 const GLOBAL_PERMISSIONS = [
   Permission.Public,
@@ -210,8 +214,19 @@ function otherNames() {
       name: "blob.ams23prdstr05a.store.core.windows.net",
       source: "dns",
     },
+    // A firewall that sends flows and is no device in OneUptime yet.
+    "10.114.167.1": {
+      name: "lds-edge-fw.corp.acme.example",
+      source: "dns",
+    },
   };
 }
+
+// Devices that send flows and are no device yet (?exporters=unknown).
+const UNKNOWN_EXPORTERS = [
+  ["10.114.167.1", 18.4, "sFlow"],
+  ["203.0.113.50", 2.6, "IPFIX"],
+];
 
 // The order the server picks names in (NETWORK_ADDRESS_NAME_SOURCES).
 const SOURCE_ORDER = [
@@ -431,8 +446,13 @@ function flowsFor(body) {
           (receives(host || filters.destinationIp || "")?.[1] || 0)
       : 120) * MB,
   );
+  const exporters = unknownExporters ? UNKNOWN_EXPORTERS : [];
   const addresses = [
     ...[filters.sourceIp, filters.destinationIp, host].filter(Boolean),
+    // The server names the exporters that are no device yet too.
+    ...exporters.map(([ip]) => {
+      return ip;
+    }),
     ...topSources.map(([ip]) => {
       return ip;
     }),
@@ -503,6 +523,13 @@ function flowsFor(body) {
         octets,
         packets: Math.round(octets / 900),
       },
+      ...exporters.map(([exporterIp, mb]) => {
+        return {
+          exporterIp,
+          octets: Math.round(mb * MB),
+          packets: Math.round((mb * MB) / 900),
+        };
+      }),
     ],
     sources: [
       {
@@ -515,6 +542,16 @@ function flowsFor(body) {
         flows: Math.round(octets / 60_000),
         lastFlowAt: end,
       },
+      ...exporters.map(([exporterIp, mb, flowFormat]) => {
+        return {
+          exporterIp,
+          flowFormat,
+          samplingRate: 1,
+          octets: Math.round(mb * MB),
+          flows: Math.round((mb * MB) / 60_000),
+          lastFlowAt: end,
+        };
+      }),
     ],
     lastFlowAt: end,
     addressNames: namesFor(addresses),
