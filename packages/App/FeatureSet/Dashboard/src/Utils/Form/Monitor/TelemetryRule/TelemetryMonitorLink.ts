@@ -53,6 +53,16 @@ export interface TelemetryMonitorLinkQuery {
   exceptionTypes?: Array<string> | undefined;
 }
 
+/*
+ * A link's query with the monitor type it was made for: Create Monitor
+ * starts a monitor of that type watching it, and a monitor of another type
+ * (picked instead, after following the link) starts on its own defaults.
+ */
+export interface TelemetryMonitorLinkSeed {
+  monitorType: MonitorType;
+  query: TelemetryMonitorLinkQuery;
+}
+
 export const TELEMETRY_MONITOR_LINK_MAX_TEXT_LENGTH: number = 500;
 export const TELEMETRY_MONITOR_LINK_MAX_VALUES: number = 50;
 export const TELEMETRY_MONITOR_LINK_MAX_ATTRIBUTES: number = 20;

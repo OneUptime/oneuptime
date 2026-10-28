@@ -36,9 +36,10 @@ export interface ComponentProps {
 
 /*
  * The chart's view of the queries: the rule's value as the critical line of
- * the query or formula it compares, unless that one has a line of its own.
- * Only ever drawn: what the form hands back never carries it
- * (withoutPreviewLine).
+ * the query or formula it compares, unless that one has a critical line of
+ * its own, or already draws a warning line at that value (a metric chart's
+ * Create monitor brings its warning line along). Only ever drawn: what the
+ * form hands back never carries it (withoutPreviewLine).
  */
 export const withPreviewLine: (data: {
   queryConfigs: Array<MetricQueryConfigData>;
@@ -69,17 +70,31 @@ export const withPreviewLine: (data: {
     data.queryConfigs[0]?.metricAliasData?.metricVariable ||
     undefined;
 
+  const takesLine: (config: {
+    metricAliasData?: { metricVariable?: string | undefined } | undefined;
+    criticalThreshold?: number | undefined;
+    warningThreshold?: number | undefined;
+  }) => boolean = (config: {
+    metricAliasData?: { metricVariable?: string | undefined } | undefined;
+    criticalThreshold?: number | undefined;
+    warningThreshold?: number | undefined;
+  }): boolean => {
+    return (
+      config.metricAliasData?.metricVariable === alias &&
+      config.criticalThreshold === undefined &&
+      config.warningThreshold !== data.threshold
+    );
+  };
+
   return {
     queryConfigs: data.queryConfigs.map((query: MetricQueryConfigData) => {
-      return query.metricAliasData?.metricVariable === alias &&
-        query.criticalThreshold === undefined
+      return takesLine(query)
         ? { ...query, criticalThreshold: data.threshold }
         : query;
     }),
     formulaConfigs: data.formulaConfigs.map(
       (formula: MetricFormulaConfigData) => {
-        return formula.metricAliasData?.metricVariable === alias &&
-          formula.criticalThreshold === undefined
+        return takesLine(formula)
           ? { ...formula, criticalThreshold: data.threshold }
           : formula;
       },

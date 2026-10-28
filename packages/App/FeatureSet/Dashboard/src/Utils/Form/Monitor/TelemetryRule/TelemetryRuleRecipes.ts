@@ -10,6 +10,7 @@ import {
   FilterType,
 } from "Common/Types/Monitor/CriteriaFilter";
 import { CriteriaIncident } from "Common/Types/Monitor/CriteriaIncident";
+import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorStepLogMonitor, {
   MonitorStepLogMonitorUtil,
@@ -28,6 +29,7 @@ import ObjectID from "Common/Types/ObjectID";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import CriteriaNameUtil from "../CriteriaName";
+import MonitorCriteriaAlignmentUtil from "../MonitorCriteriaAlignment";
 
 /*
  * What a new telemetry monitor can be set up to tell you, in your words:
@@ -267,18 +269,21 @@ export const getDefaultRecipe: (
   return getRecipes(monitorType)[0] || null;
 };
 
+// Every recipe of every type: the ones offered, and a Metrics monitor's rule.
+export const ALL_RECIPES: ReadonlyArray<TelemetryRuleRecipe> = [
+  ...LOG_RECIPES,
+  ...TRACE_RECIPES,
+  ...EXCEPTION_RECIPES,
+  METRIC_ABOVE_RECIPE,
+];
+
 export const getRecipe: (
   key: TelemetryRuleRecipeKey,
 ) => TelemetryRuleRecipe | null = (
   key: TelemetryRuleRecipeKey,
 ): TelemetryRuleRecipe | null => {
   return (
-    [
-      ...LOG_RECIPES,
-      ...TRACE_RECIPES,
-      ...EXCEPTION_RECIPES,
-      METRIC_ABOVE_RECIPE,
-    ].find((recipe: TelemetryRuleRecipe) => {
+    ALL_RECIPES.find((recipe: TelemetryRuleRecipe) => {
       return recipe.key === key;
     }) || null
   );
@@ -538,4 +543,97 @@ export const findRecipe: (data: {
   });
 
   return match?.key || TelemetryRuleRecipeKey.Custom;
+};
+
+/*
+ * Whether a step's criteria are still exactly a recipe's rule - any type's
+ * recipe, as applying it with these seeds writes it - apart from the
+ * titles of what it opens, which name the monitor (renamed since,
+ * perhaps). Create Monitor treats such criteria as nobody's work, and sets
+ * a new monitor type up afresh over them.
+ */
+export const isUntouchedRecipeRule: (data: {
+  monitorStep: MonitorStep;
+  seeds: TelemetryRuleSeeds;
+  translator: Translator;
+}) => boolean = (data: {
+  monitorStep: MonitorStep;
+  seeds: TelemetryRuleSeeds;
+  translator: Translator;
+}): boolean => {
+  const criteria: MonitorCriteria | undefined =
+    data.monitorStep.data?.monitorCriteria;
+
+  if (!criteria) {
+    return false;
+  }
+
+  const fingerprint: string =
+    MonitorCriteriaAlignmentUtil.fingerprintIgnoringWords(criteria);
+
+  return ALL_RECIPES.some((recipe: TelemetryRuleRecipe): boolean => {
+    const recipeCriteria: MonitorCriteria | undefined = applyRecipe({
+      monitorStep: data.monitorStep,
+      recipe,
+      seeds: data.seeds,
+      translator: data.translator,
+    }).data?.monitorCriteria;
+
+    return Boolean(
+      recipeCriteria &&
+        MonitorCriteriaAlignmentUtil.fingerprintIgnoringWords(
+          recipeCriteria,
+        ) === fingerprint,
+    );
+  });
+};
+
+/*
+ * What a step of this type watches - its query, filters and window - put
+ * onto another step, when the first one has it: a Metrics monitor handed
+ * in with only its queries (a metric chart's Create monitor) keeps them
+ * when its criteria are set up afresh.
+ */
+export const keepTelemetryQuery: (data: {
+  monitorType: MonitorType;
+  from: MonitorStep;
+  to: MonitorStep;
+}) => MonitorStep = (data: {
+  monitorType: MonitorType;
+  from: MonitorStep;
+  to: MonitorStep;
+}): MonitorStep => {
+  const step: MonitorStep = MonitorStep.clone(data.to);
+  const from: MonitorStep["data"] = data.from.data;
+
+  if (!from || !step.data) {
+    return step;
+  }
+
+  switch (data.monitorType) {
+    case MonitorType.Logs:
+      if (from.logMonitor) {
+        step.setLogMonitor({ ...from.logMonitor });
+      }
+      break;
+    case MonitorType.Traces:
+      if (from.traceMonitor) {
+        step.setTraceMonitor({ ...from.traceMonitor });
+      }
+      break;
+    case MonitorType.Exceptions:
+      if (from.exceptionMonitor) {
+        step.setExceptionMonitor({ ...from.exceptionMonitor });
+      }
+      break;
+    case MonitorType.Metrics:
+      if (from.metricMonitor) {
+        step.setMetricMonitor({ ...from.metricMonitor });
+      }
+      break;
+    default:
+      break;
+  }
+
+  return step;
 };

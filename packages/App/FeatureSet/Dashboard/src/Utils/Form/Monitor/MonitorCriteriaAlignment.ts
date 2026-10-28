@@ -1,4 +1,6 @@
+import { CriteriaAlert } from "Common/Types/Monitor/CriteriaAlert";
 import { CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
+import { CriteriaIncident } from "Common/Types/Monitor/CriteriaIncident";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
@@ -480,6 +482,80 @@ export default class MonitorCriteriaAlignmentUtil {
     return MonitorCriteriaAlignmentUtil.stableStringify(
       MonitorCriteria.fromJSON(monitorCriteria.toJSON()).toJSON() as JSONValue,
     );
+  }
+
+  /*
+   * The fingerprint of criteria apart from the words seeded into them: the
+   * criteria's names and descriptions, and the titles and descriptions of
+   * the incidents and alerts they open. Seeded words name the monitor,
+   * which can be renamed after its criteria were seeded; everything else -
+   * filters, statuses, severities, what is opened and how it resolves -
+   * still says whether anyone has worked on them.
+   */
+  public static fingerprintIgnoringWords(
+    monitorCriteria: MonitorCriteria,
+  ): string {
+    const copy: MonitorCriteria = MonitorCriteria.fromJSON(
+      monitorCriteria.toJSON(),
+    );
+
+    for (const instance of copy.data?.monitorCriteriaInstanceArray || []) {
+      if (!instance.data) {
+        continue;
+      }
+
+      instance.data.name = "";
+      instance.data.description = "";
+      instance.data.incidents = (instance.data.incidents || []).map(
+        (incident: CriteriaIncident): CriteriaIncident => {
+          return { ...incident, title: "", description: "" };
+        },
+      );
+      instance.data.alerts = (instance.data.alerts || []).map(
+        (alert: CriteriaAlert): CriteriaAlert => {
+          return { ...alert, title: "", description: "" };
+        },
+      );
+    }
+
+    return MonitorCriteriaAlignmentUtil.fingerprint(copy);
+  }
+
+  /*
+   * Whether criteria are nobody's work yet, whatever monitor type they were
+   * made for: the empty criteria a new step starts with (what a link that
+   * hands in only a query carries), or a type's out-of-the-box criteria -
+   * untouched apart from the words that name the monitor.
+   */
+  public static isBlankOrUntouchedDefault(data: {
+    monitorCriteria: MonitorCriteria;
+    seedOptions: CriteriaSeedOptions;
+  }): boolean {
+    const fingerprint: string =
+      MonitorCriteriaAlignmentUtil.fingerprintIgnoringWords(
+        data.monitorCriteria,
+      );
+
+    if (
+      fingerprint ===
+      MonitorCriteriaAlignmentUtil.fingerprintIgnoringWords(
+        new MonitorCriteria(),
+      )
+    ) {
+      return true;
+    }
+
+    return ALL_MONITOR_TYPES.some((monitorType: MonitorType): boolean => {
+      return (
+        fingerprint ===
+        MonitorCriteriaAlignmentUtil.fingerprintIgnoringWords(
+          MonitorCriteria.getDefaultMonitorCriteria({
+            monitorType: monitorType,
+            ...data.seedOptions,
+          }),
+        )
+      );
+    });
   }
 
   private static stableStringify(value: JSONValue): string {

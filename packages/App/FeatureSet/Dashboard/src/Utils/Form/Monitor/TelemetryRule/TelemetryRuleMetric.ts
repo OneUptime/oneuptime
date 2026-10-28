@@ -140,9 +140,14 @@ export const getRuleUnits: (data: {
   };
 };
 
+// The symbol a unit picker's label ends with: "Percent (%)" says "%".
+const UNIT_SYMBOL_IN_LABEL: RegExp = /\(([^()]+)\)$/;
+
 /*
- * The unit a metric rule's sentence says after its value: none for an
- * annotation ("{message}"), which names what is counted, not a unit.
+ * The unit a metric rule's sentence says after its value, as short as the
+ * value is written with: "80 %", "250 ms", "2 hours". None for a fraction
+ * from 0 to 1, which has no unit to say, nor for an annotation
+ * ("{message}"), which names what is counted, not a unit.
  */
 export const getRuleSentenceUnit: (data: {
   monitorStep: MonitorStep;
@@ -154,15 +159,22 @@ export const getRuleSentenceUnit: (data: {
   const units: { options: Array<UnitOption>; value: string | undefined } =
     getRuleUnits(data);
 
-  const label: string | undefined = units.options.find((option: UnitOption) => {
-    return option.value === units.value;
-  })?.label;
+  const value: string | undefined = units.value;
 
-  if (!label || (label.startsWith("{") && label.endsWith("}"))) {
+  if (!value || value === "1") {
     return undefined;
   }
 
-  return label;
+  const label: string =
+    units.options.find((option: UnitOption) => {
+      return option.value === value;
+    })?.label || value;
+
+  if (label.startsWith("{") && label.endsWith("}")) {
+    return undefined;
+  }
+
+  return UNIT_SYMBOL_IN_LABEL.exec(label)?.[1] || value;
 };
 
 // The whole rule in one sentence, with the metric and unit of its step.

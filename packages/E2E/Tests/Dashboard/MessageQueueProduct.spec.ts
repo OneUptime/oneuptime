@@ -1155,7 +1155,7 @@ test.describe.skip("Queues Product", () => {
      */
     await form.getByRole("button", { name: "Next", exact: true }).click();
     await expect(
-      form.getByText("Metric Monitor Configuration", { exact: true }).first(),
+      form.getByText("Metric to watch", { exact: true }).first(),
     ).toBeVisible({ timeout: 30000 });
     await expect(
       form.getByText(KAFKA_LAG_METRIC, { exact: true }).first(),

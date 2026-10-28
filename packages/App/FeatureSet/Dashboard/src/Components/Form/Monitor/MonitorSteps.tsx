@@ -2,6 +2,7 @@ import MonitorStepElement from "./MonitorStep";
 import { IncidentRoleOption } from "./MonitorCriteriaIncidentForm";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
@@ -54,6 +55,8 @@ import {
   applyRecipe,
   getDefaultRecipe,
   getRecipe,
+  isUntouchedRecipeRule,
+  keepTelemetryQuery,
   TelemetryRuleRecipe,
   TelemetryRuleRecipeKey,
   TelemetryRuleSeeds,
@@ -61,7 +64,7 @@ import {
 import {
   applyTelemetryMonitorLinkQuery,
   getTelemetryMonitorLinkRecipeKey,
-  TelemetryMonitorLinkQuery,
+  TelemetryMonitorLinkSeed,
 } from "../../../Utils/Form/Monitor/TelemetryRule/TelemetryMonitorLink";
 
 export interface ComponentProps extends CustomElementProps {
@@ -82,7 +85,15 @@ export interface ComponentProps extends CustomElementProps {
    * exception's page, shows (TelemetryMonitorLink): a new monitor of the
    * link's type starts watching just that, on the recipe that suits it.
    */
-  seedQuery?: TelemetryMonitorLinkQuery | undefined;
+  seedQuery?: TelemetryMonitorLinkSeed | undefined;
+  /*
+   * The form creates a monitor (Create Monitor, not from a template): its
+   * steps may have been handed in - the form's own, after a walk back to
+   * Monitor Info, or a link's - but criteria nobody has worked on yet are
+   * set up afresh for the monitor type, a telemetry monitor's on its
+   * recipe, and a telemetry monitor's recipes are offered.
+   */
+  isCreating?: boolean | undefined;
 }
 
 const MonitorStepsElement: FunctionComponent<ComponentProps> = (
@@ -141,10 +152,14 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
   >({});
 
   /*
-   * Whether this form started a new monitor from nothing (no steps handed
-   * in): only then does it offer a telemetry monitor's recipes.
+   * Whether this form makes a new monitor: Create Monitor says so (its
+   * steps come back to it after a walk to another step), and a form that
+   * starts from no steps at all does. Only then does it offer a telemetry
+   * monitor's recipes, and set criteria nobody has worked on up afresh.
    */
-  const [isNewMonitor] = React.useState<boolean>(!props.initialValue);
+  const [isNewMonitor] = React.useState<boolean>(
+    props.isCreating ?? !props.initialValue,
+  );
 
   /*
    * The criteria a recipe seeded, as MonitorCriteriaAlignmentUtil
@@ -195,6 +210,8 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
    * A new monitor's steps: the type's out-of-the-box criteria, or - for a
    * Logs, Traces, Exceptions or Metrics monitor - the rule its first recipe
    * makes ("Too many errors"), with the part of the query it goes with.
+   * `fromStep`, when the steps were handed in, gives the type's query to
+   * keep (a metric chart's queries).
    */
   const seedNewMonitorSteps: (data: {
     monitorType: MonitorType;
@@ -207,6 +224,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
       defaultAlertSeverityId: ObjectID;
       warningAlertSeverityId?: ObjectID | undefined;
     };
+    fromStep?: MonitorStep | undefined;
   }) => MonitorSteps = (data: {
     monitorType: MonitorType;
     seeds: Omit<TelemetryRuleSeeds, "monitorName">;
@@ -218,6 +236,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
       defaultAlertSeverityId: ObjectID;
       warningAlertSeverityId?: ObjectID | undefined;
     };
+    fromStep?: MonitorStep | undefined;
   }): MonitorSteps => {
     const steps: MonitorSteps = MonitorSteps.getDefaultMonitorSteps({
       monitorType: data.monitorType,
@@ -225,23 +244,37 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
       ...data.criteriaSeedOptions,
     });
 
-    const linkRecipeKey: TelemetryRuleRecipeKey | undefined = props.seedQuery
+    // A link's query, only for the type it was made for.
+    const linkSeed: TelemetryMonitorLinkSeed | undefined =
+      props.seedQuery && props.seedQuery.monitorType === data.monitorType
+        ? props.seedQuery
+        : undefined;
+
+    const linkRecipeKey: TelemetryRuleRecipeKey | undefined = linkSeed
       ? getTelemetryMonitorLinkRecipeKey({
           monitorType: data.monitorType,
-          query: props.seedQuery,
+          query: linkSeed.query,
         })
       : undefined;
 
     const recipe: TelemetryRuleRecipe | null = linkRecipeKey
       ? getRecipe(linkRecipeKey)
       : getDefaultRecipe(data.monitorType);
-    const firstStep: MonitorStep | undefined =
+    const defaultFirstStep: MonitorStep | undefined =
       steps.data?.monitorStepsInstanceArray[0];
 
-    if (!recipe || !firstStep) {
+    if (!recipe || !defaultFirstStep) {
       recipeSeedFingerprintRef.current = null;
       return steps;
     }
+
+    const firstStep: MonitorStep = data.fromStep
+      ? keepTelemetryQuery({
+          monitorType: data.monitorType,
+          from: data.fromStep,
+          to: defaultFirstStep,
+        })
+      : defaultFirstStep;
 
     const recipeStep: MonitorStep = applyRecipe({
       monitorStep: firstStep,
@@ -251,11 +284,11 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
     });
 
     // What the link shows, over the recipe's part of the query.
-    const seededStep: MonitorStep = props.seedQuery
+    const seededStep: MonitorStep = linkSeed
       ? applyTelemetryMonitorLinkQuery({
           monitorType: data.monitorType,
           monitorStep: recipeStep,
-          query: props.seedQuery,
+          query: linkSeed.query,
         })
       : recipeStep;
 
@@ -692,22 +725,54 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
     alignedMonitorTypeRef.current = props.monitorType;
 
     /*
-     * Still the rule a recipe seeded, untouched: nobody's work, so the new
-     * type starts afresh, on its own recipe when it has one.
+     * A new monitor's criteria nobody has worked on yet start afresh for
+     * the type on screen: a recipe's rule, untouched (seeded here, or
+     * before a walk back to Monitor Info remounted this form), whatever the
+     * type now is; and, for a telemetry monitor, the empty criteria a link
+     * hands in with only a query, or another type's out-of-the-box
+     * criteria. The repair below would keep such a rule's filters, half
+     * fitting the new type; this gives exactly what picking the type first
+     * would have.
      */
     const firstStep: MonitorStep | undefined =
       monitorSteps.data?.monitorStepsInstanceArray[0];
+    const firstCriteria: MonitorCriteria | undefined =
+      firstStep?.data?.monitorCriteria;
+    const monitorNameForSeeds: string = props.monitorName || "";
+
+    const isUnworkedRule: boolean = Boolean(
+      firstStep &&
+        firstCriteria &&
+        ((recipeSeedFingerprintRef.current &&
+          MonitorCriteriaAlignmentUtil.fingerprint(firstCriteria) ===
+            recipeSeedFingerprintRef.current) ||
+          isUntouchedRecipeRule({
+            monitorStep: firstStep,
+            seeds: { ...ruleSeeds, monitorName: monitorNameForSeeds },
+            translator,
+          })),
+    );
+
+    const isUnworkedForRule: boolean = Boolean(
+      firstCriteria &&
+        TelemetryAlertRuleUtil.isRuleMonitorType(props.monitorType) &&
+        MonitorCriteriaAlignmentUtil.isBlankOrUntouchedDefault({
+          monitorCriteria: firstCriteria,
+          seedOptions: {
+            ...criteriaSeedIds,
+            monitorName: monitorNameForSeeds,
+          },
+        }),
+    );
 
     if (
       isNewMonitor &&
-      recipeSeedFingerprintRef.current &&
-      firstStep?.data?.monitorCriteria &&
+      firstStep &&
       monitorSteps.data?.monitorStepsInstanceArray.length === 1 &&
-      MonitorCriteriaAlignmentUtil.fingerprint(
-        firstStep.data.monitorCriteria,
-      ) === recipeSeedFingerprintRef.current
+      (isUnworkedRule || isUnworkedForRule)
     ) {
       const reSeeded: MonitorSteps = seedNewMonitorSteps({
+        fromStep: firstStep,
         monitorType: props.monitorType,
         seeds: ruleSeeds,
         criteriaSeedOptions: {

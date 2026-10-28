@@ -47,6 +47,7 @@ import {
   readTelemetryMonitorLinkQuery,
   TELEMETRY_MONITOR_QUERY_PARAM,
   TelemetryMonitorLinkQuery,
+  TelemetryMonitorLinkSeed,
 } from "../../Utils/Form/Monitor/TelemetryRule/TelemetryMonitorLink";
 import MonitorStepsType from "Common/Types/Monitor/MonitorSteps";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
@@ -322,7 +323,7 @@ const MonitorCreate: FunctionComponent<
 
   // What a "Create monitor" link from an explorer shows, for the criteria.
   const [seedQuery, setSeedQuery] = useState<
-    TelemetryMonitorLinkQuery | undefined
+    TelemetryMonitorLinkSeed | undefined
   >(undefined);
 
   /*
@@ -1461,10 +1462,18 @@ const MonitorCreate: FunctionComponent<
        * (TelemetryMonitorLink, read by MonitorSteps when it seeds).
        */
       if (isTelemetryMonitorLinkType(monitorTypeParam)) {
-        setSeedQuery(
+        const linkQuery: TelemetryMonitorLinkQuery | null =
           readTelemetryMonitorLinkQuery(
             Navigation.getQueryStringByName(TELEMETRY_MONITOR_QUERY_PARAM),
-          ) || undefined,
+          );
+
+        setSeedQuery(
+          linkQuery
+            ? {
+                monitorType: monitorTypeParam as MonitorType,
+                query: linkQuery,
+              }
+            : undefined,
         );
       }
 
@@ -1744,6 +1753,14 @@ const MonitorCreate: FunctionComponent<
                          */
                         foldDefaultCriteria={true}
                         seedQuery={seedQuery}
+                        /*
+                         * Not a template's monitor: criteria nobody has
+                         * worked on follow the monitor type picked, and a
+                         * telemetry monitor offers its recipes - also
+                         * after a walk back to Monitor Info, and for a
+                         * metric chart's Create monitor.
+                         */
+                        isCreating={!monitorTemplateId}
                       />
                     );
                   },

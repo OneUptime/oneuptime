@@ -58,6 +58,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import LogMonitorStepForm from "./LogMonitor/LogMonitorStepFrom";
@@ -344,6 +345,43 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
    * (Error and Fatal logs) draws them again.
    */
   const [queryFormKey, setQueryFormKey] = useState<number>(0);
+
+  /*
+   * Criteria set up afresh from outside - a new monitor type picked after
+   * the step was drawn, which the steps form answers with that type's
+   * recipe (MonitorSteps) - come with new criteria ids: the picker then
+   * says which recipe they are, and the query forms draw their values
+   * again. An edit of the rule keeps its id, so a recipe edited stays the
+   * one picked, and "Something else" stays picked once picked.
+   */
+  const ruleCriteriaId: string | undefined =
+    props.value?.data?.monitorCriteria?.data?.monitorCriteriaInstanceArray[0]
+      ?.data?.id;
+  const shownRuleCriteriaIdRef: React.MutableRefObject<string | undefined> =
+    useRef<string | undefined>(ruleCriteriaId);
+
+  useEffect(() => {
+    if (ruleCriteriaId === shownRuleCriteriaIdRef.current) {
+      return;
+    }
+
+    shownRuleCriteriaIdRef.current = ruleCriteriaId;
+
+    if (!props.value || recipes.length === 0) {
+      return;
+    }
+
+    setSelectedRecipe(
+      findRecipe({
+        monitorType: props.monitorType,
+        monitorStep: props.value,
+        defaultMonitorStatusId: props.defaultMonitorStatusId,
+      }),
+    );
+    setQueryFormKey((key: number) => {
+      return key + 1;
+    });
+  }, [ruleCriteriaId]);
   const [telemetryEntities, setTelemetryEntities] = useState<
     Array<InventoryItem>
   >([]);
