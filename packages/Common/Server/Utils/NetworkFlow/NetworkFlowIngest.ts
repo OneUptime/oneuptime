@@ -2,6 +2,7 @@ import NetworkFlowDeviceMatcher, {
   FlowExporterAttribution,
   FlowProbe,
 } from "./NetworkFlowDeviceMatcher";
+import { IsBillingEnabled } from "../../EnvironmentConfig";
 import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
 import NetworkFlowFormat, {
@@ -11,6 +12,10 @@ import NetworkFlowRecord from "../../../Types/NetFlow/NetworkFlowRecord";
 import ObjectID from "../../../Types/ObjectID";
 import { normalizeReverseDnsName } from "../../../Utils/NetworkDiscovery/ReverseDnsNameUtil";
 import NetworkAddressBlockUtil from "../../../Utils/NetworkTraffic/NetworkAddressBlock";
+import {
+  SecurityAddressScope,
+  getSecurityAddressScope,
+} from "../../../Utils/SecurityCase/SecurityConnectionMatch";
 
 /*
  * Turning what a probe's flow collector forwards into NetworkFlow rows.
@@ -87,6 +92,35 @@ export default class NetworkFlowIngest {
     return names;
   }
 
+  /*
+   * The names a probe may give (issue #5340). A global probe of a hosted
+   * instance (BILLING_ENABLED: every sign-up shares it) names public
+   * addresses only - it never looks a private one up, and a private
+   * address's name from it would be a name from OneUptime's own network,
+   * not the customer's - so any other name it sends is dropped. Every
+   * other probe's names are kept: a project's probe, and a self-hosted
+   * instance's own global probe, run in the network their names are of.
+   */
+  public static namesTheProbeMayGive(data: {
+    names: Map<string, string>;
+    probe: FlowProbe;
+    isBillingEnabled: boolean;
+  }): Map<string, string> {
+    if (data.probe.projectId || !data.isBillingEnabled) {
+      return data.names;
+    }
+
+    const kept: Map<string, string> = new Map();
+
+    for (const [address, name] of Array.from(data.names.entries())) {
+      if (getSecurityAddressScope(address) === SecurityAddressScope.Public) {
+        kept.set(address, name);
+      }
+    }
+
+    return kept;
+  }
+
   // The name a probe sent for a record's address ('' when none).
   public static nameOf(
     names: Map<string, string> | undefined,
@@ -109,12 +143,25 @@ export default class NetworkFlowIngest {
     attribute?: AttributeExporterFunction | undefined;
     // The DNS names the probe sent with the records (readAddressNames).
     addressNames?: Map<string, string> | undefined;
+    // This instance's BILLING_ENABLED (namesTheProbeMayGive); tests pass it.
+    isBillingEnabled?: boolean | undefined;
   }): Promise<FlowIngestResult> {
     const attribute: AttributeExporterFunction =
       data.attribute ||
       ((probe: FlowProbe, exporterAddress: string) => {
         return NetworkFlowDeviceMatcher.attribute(probe, exporterAddress);
       });
+
+    const addressNames: Map<string, string> | undefined = data.addressNames
+      ? NetworkFlowIngest.namesTheProbeMayGive({
+          names: data.addressNames,
+          probe: data.probe,
+          isBillingEnabled:
+            data.isBillingEnabled === undefined
+              ? IsBillingEnabled
+              : data.isBillingEnabled,
+        })
+      : undefined;
 
     const attributions: Map<string, FlowExporterAttribution> = new Map();
     const result: FlowIngestResult = {
@@ -151,7 +198,7 @@ export default class NetworkFlowIngest {
               networkDeviceId: device.networkDeviceId,
               probeId: data.probe.id,
               ingestedAt: data.ingestedAt,
-              addressNames: data.addressNames,
+              addressNames: addressNames,
             }),
           );
         }
@@ -171,7 +218,7 @@ export default class NetworkFlowIngest {
             networkDeviceId: attribution.unmatchedProjectId,
             probeId: data.probe.id,
             ingestedAt: data.ingestedAt,
-            addressNames: data.addressNames,
+            addressNames: addressNames,
           }),
         );
         result.unmatchedKept++;

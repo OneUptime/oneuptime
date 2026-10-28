@@ -52,8 +52,10 @@ import React, {
 
 export interface ComponentProps {
   label: TrafficAddressLabel;
-  // The reader may add and change Address Names.
+  // The reader may add Address Names.
   canName: boolean;
+  // The reader may change them.
+  canRename: boolean;
   // A name was saved: the page reads its names again.
   onNamed: () => void;
 }
@@ -125,7 +127,8 @@ const TrafficAddressCard: FunctionComponent<ComponentProps> = (
   const recordRoute: Route | null = getRecordRoute(label);
   const isAddressName: boolean =
     label.source === NetworkAddressNameSource.AddressName;
-  const showNameButton: boolean = props.canName && canNameAddress(label);
+  const showNameButton: boolean =
+    canNameAddress(label) && (isAddressName ? props.canRename : props.canName);
 
   const copyButton: ReactElement = (
     <CopyTextButton

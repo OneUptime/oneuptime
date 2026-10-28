@@ -1,6 +1,7 @@
 import {
   PROBE_FLOW_NAME_DNS_SERVERS,
   PROBE_FLOW_NAME_LOOKUP_ENABLED,
+  PROBE_FLOW_NAME_LOOKUP_PRIVATE_ADDRESSES,
   PROBE_FLOW_NAME_LOOKUPS_PER_MINUTE,
   PROBE_INGEST_URL,
   PROBE_IPFIX_RECEIVER_PORT,
@@ -102,6 +103,7 @@ export default class NetFlowReceiver {
   // DNS names for the forwarded addresses, looked up in the background.
   private static namer: FlowAddressNamer = FlowAddressNamer.create({
     isEnabled: PROBE_FLOW_NAME_LOOKUP_ENABLED,
+    isPrivateLookupAllowed: PROBE_FLOW_NAME_LOOKUP_PRIVATE_ADDRESSES,
     maxLookupsPerMinute: PROBE_FLOW_NAME_LOOKUPS_PER_MINUTE,
     servers: PROBE_FLOW_NAME_DNS_SERVERS,
   });
@@ -144,7 +146,7 @@ export default class NetFlowReceiver {
 
     if (NetFlowReceiver.namer.isEnabled) {
       logger.info(
-        `Flow collector looks up DNS names for the busiest addresses it forwards (at most ${PROBE_FLOW_NAME_LOOKUPS_PER_MINUTE} a minute, on ${PROBE_FLOW_NAME_DNS_SERVERS.length > 0 ? PROBE_FLOW_NAME_DNS_SERVERS.join(", ") : "this host's resolver"}); set PROBE_FLOW_NAME_LOOKUP_ENABLED=false to turn this off.`,
+        `Flow collector looks up DNS names for the busiest ${NetFlowReceiver.namer.isPrivateLookupAllowed ? "" : "public "}addresses it forwards (at most ${PROBE_FLOW_NAME_LOOKUPS_PER_MINUTE} a minute, on ${PROBE_FLOW_NAME_DNS_SERVERS.length > 0 ? PROBE_FLOW_NAME_DNS_SERVERS.join(", ") : "this host's resolver"}); set PROBE_FLOW_NAME_LOOKUP_ENABLED=false to turn this off.`,
       );
     }
 

@@ -39,6 +39,11 @@ import net from "net";
  *     `concurrency` at a time. Nothing a flow carries can make it ask more.
  *   - Never an address that names no machine (loopback, link-local,
  *     multicast, broadcast, unspecified): nobody's PTR record is theirs.
+ *   - On the global probes of a hosted instance (BILLING_ENABLED, shared
+ *     by every sign-up), never a private address either: there the
+ *     resolver is the one OneUptime's own network uses, and a flow anyone
+ *     sends could ask it what OneUptime's own private addresses are called.
+ *     Public addresses' names are public, and are looked up there too.
  *   - A PTR answer is kept only when it is forward-confirmed - the name's
  *     own A or AAAA records include the address - so a stale record (an
  *     address since given to another machine) or a forged one (anyone can
@@ -64,6 +69,11 @@ export type ForwardLookupFunction = (
 
 export interface FlowAddressNamerOptions {
   isEnabled: boolean;
+  /*
+   * Whether private addresses (RFC 1918, CGNAT, IPv6 unique local) are
+   * looked up: everywhere but on a hosted instance's global probes.
+   */
+  isPrivateLookupAllowed: boolean;
   // A PTR lookup (ReverseDnsResolver's default lookup, on the probe's resolver).
   lookup: ReverseDnsLookupFunction;
   // The name's A (4) or AAAA (6) records, for the forward confirmation.
@@ -182,11 +192,34 @@ export function parseFlowNameDnsServers(
   return { servers: servers, invalid: invalid };
 }
 
-// Whether an address may be looked up at all.
-export function isNameableAddress(address: string): boolean {
+/*
+ * Whether an address may be looked up at all: never one that names no
+ * machine, and a private one only where private lookups are allowed.
+ */
+export function isNameableAddress(
+  address: string,
+  isPrivateLookupAllowed: boolean = true,
+): boolean {
   const scope: SecurityAddressScope | null = getSecurityAddressScope(address);
 
-  return scope !== null && scope !== SecurityAddressScope.Local;
+  if (scope === null || scope === SecurityAddressScope.Local) {
+    return false;
+  }
+
+  return scope === SecurityAddressScope.Public || isPrivateLookupAllowed;
+}
+
+/*
+ * Whether this probe looks private addresses up (see the top of this file):
+ * not on a global probe of a hosted instance, which every sign-up shares.
+ * A self-hosted instance's bundled global probe runs in its operator's own
+ * network, and looks them up like a project's probe.
+ */
+export function isPrivateFlowNameLookupAllowed(data: {
+  isAutoRegisteredGlobalProbe: boolean;
+  isBillingEnabled: boolean;
+}): boolean {
+  return !(data.isAutoRegisteredGlobalProbe && data.isBillingEnabled);
 }
 
 /*
@@ -283,11 +316,13 @@ export default class FlowAddressNamer {
    */
   public static create(data: {
     isEnabled: boolean;
+    isPrivateLookupAllowed: boolean;
     maxLookupsPerMinute: number;
     servers: ReadonlyArray<string>;
   }): FlowAddressNamer {
     return new FlowAddressNamer({
       isEnabled: data.isEnabled && data.maxLookupsPerMinute > 0,
+      isPrivateLookupAllowed: data.isPrivateLookupAllowed,
       lookup: buildDefaultLookup(
         DEFAULT_REVERSE_DNS_TIMEOUT_IN_MS,
         buildResolverFactory(data.servers),
@@ -309,6 +344,10 @@ export default class FlowAddressNamer {
 
   public get isEnabled(): boolean {
     return this.options.isEnabled;
+  }
+
+  public get isPrivateLookupAllowed(): boolean {
+    return this.options.isPrivateLookupAllowed;
   }
 
   public get cacheSize(): number {
@@ -373,7 +412,7 @@ export default class FlowAddressNamer {
       return;
     }
 
-    if (!isNameableAddress(canonical)) {
+    if (!isNameableAddress(canonical, this.options.isPrivateLookupAllowed)) {
       return;
     }
 
@@ -552,7 +591,10 @@ export default class FlowAddressNamer {
     const canonical: string | null =
       NetworkAddressBlockUtil.canonicalAddress(address);
 
-    if (!canonical || !isNameableAddress(canonical)) {
+    if (
+      !canonical ||
+      !isNameableAddress(canonical, this.options.isPrivateLookupAllowed)
+    ) {
       return { name: null, hasFailed: false };
     }
 

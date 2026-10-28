@@ -33,6 +33,7 @@ import {
 import {
   DEFAULT_FLOW_NAME_LOOKUPS_PER_MINUTE,
   ParsedFlowNameDnsServers,
+  isPrivateFlowNameLookupAllowed,
   parseFlowNameDnsServers,
 } from "./Utils/NetFlow/FlowAddressNamer";
 
@@ -638,9 +639,19 @@ export const PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE: number =
  * off. PROBE_FLOW_NAME_DNS_SERVERS asks these servers instead of the host's
  * (comma-separated: 10.0.0.53, 10.0.0.54:5353, [fd00::53]:53) - for a probe
  * whose own resolver does not hold the network's reverse zones.
+ *
+ * A global probe of a hosted instance (BILLING_ENABLED, shared by every
+ * sign-up) looks up public addresses only: its resolver is the one
+ * OneUptime's own network uses (FlowAddressNamer says why).
  */
 export const PROBE_FLOW_NAME_LOOKUP_ENABLED: boolean =
   process.env["PROBE_FLOW_NAME_LOOKUP_ENABLED"] !== "false";
+
+export const PROBE_FLOW_NAME_LOOKUP_PRIVATE_ADDRESSES: boolean =
+  isPrivateFlowNameLookupAllowed({
+    isAutoRegisteredGlobalProbe: HasRegisterProbeKey,
+    isBillingEnabled: IsBillingEnabled,
+  });
 
 export const PROBE_FLOW_NAME_LOOKUPS_PER_MINUTE: number =
   NumberUtil.parseNumberWithDefault({

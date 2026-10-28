@@ -36,6 +36,11 @@ import React, {
  * An address the project has a name for (issue #5340) is labelled by its
  * name, with the address under it in small grey mono; what a label cuts
  * short, its title (under the pointer) says whole.
+ *
+ * The flow reads left to right in every language, as the list's arrow
+ * does: senders on the left, receivers on the right, with "Sent by" and
+ * "Received by" over them - on a Persian page too, where the page itself
+ * reads right to left.
  */
 
 export interface ComponentProps {
@@ -98,6 +103,7 @@ const TrafficConversationDiagram: FunctionComponent<ComponentProps> = (
 
   return (
     <figure
+      dir="ltr"
       className="text-gray-700"
       aria-label={translator.translateText(
         "The busiest conversations, from the address that sent to the address that received, each band as thick as its bytes",

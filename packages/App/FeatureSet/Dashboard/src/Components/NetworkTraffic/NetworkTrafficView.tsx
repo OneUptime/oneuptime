@@ -1010,10 +1010,18 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
    */
   const filteredAddress: string | null = getFilteredAddress(filters);
 
-  // Naming addresses is for whoever may add Address Names.
+  /*
+   * Naming an address is for whoever may add Address Names, and renaming
+   * one for whoever may change them.
+   */
   const nameAddressGate: PermissionGateResult = PermissionGate.check(
     new NetworkAddressName(),
     ModelAction.Create,
+    { singularName: "Address Name" },
+  );
+  const renameAddressGate: PermissionGateResult = PermissionGate.check(
+    new NetworkAddressName(),
+    ModelAction.Update,
     { singularName: "Address Name" },
   );
 
@@ -1556,6 +1564,7 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
                         <TrafficAddressCard
                           label={labelOf(filteredAddress)}
                           canName={nameAddressGate.isAllowed}
+                          canRename={renameAddressGate.isAllowed}
                           onNamed={() => {
                             setRefreshKey((key: number) => {
                               return key + 1;
