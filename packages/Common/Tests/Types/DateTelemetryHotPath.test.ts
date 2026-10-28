@@ -442,12 +442,10 @@ describe("Date.ts makes no BigInt as it loads", () => {
    * dashboards) loads Date.ts, and only fromUnixNano reading an integer
    * string needs BigInt, so Date.ts makes its BigInt on first use.
    *
-   * Since zod 4 (#5261) the bundles need BigInt all the same: zod's core
-   * makes its int64 ranges with BigInt as it loads, and every Type that
-   * builds a schema loads it. Every browser the frontends support has it
-   * (their browserslist, >0.2%, not dead, not op_mini all: 33 browsers on
-   * 2026-10-25, none without BigInt). So the module is loaded here with
-   * Utils/Schema/Zod stubbed, and what this holds is Date.ts's own code.
+   * zod 4's core makes its int64 ranges with BigInt as it loads, and
+   * Date.ts built its API schema with zod until the schemas moved to the
+   * server (Utils/Schema/TypeSchemas). It loads no zod now, so this loads
+   * the real module, with nothing stubbed.
    */
   test("a fresh copy of the module loads, formats and reads numbers without BigInt", () => {
     const globals: { BigInt?: unknown } = globalThis as unknown as {
@@ -464,11 +462,6 @@ describe("Date.ts makes no BigInt as it loads", () => {
       expect(globals.BigInt).toBeUndefined();
 
       jest.isolateModules(() => {
-        // zod's own BigInt constants are not Date.ts's (see above).
-        jest.doMock("../../Utils/Schema/Zod", () => {
-          return { __esModule: true, default: {} };
-        });
-
         const fresh: typeof OneUptimeDate = (
           jest.requireActual("../../Types/Date") as {
             default: typeof OneUptimeDate;

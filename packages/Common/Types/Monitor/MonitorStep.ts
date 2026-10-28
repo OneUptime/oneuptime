@@ -118,7 +118,6 @@ import MonitorStepIoTMonitor, {
 } from "./MonitorStepIoTMonitor";
 import MetricsViewConfig from "../Metrics/MetricsViewConfig";
 import MetricQueryConfigData from "../Metrics/MetricQueryConfigData";
-import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
 import MonitorTemplateSyncFieldUtil from "./MonitorTemplateSyncField";
 
 /*
@@ -1618,87 +1617,6 @@ export default class MonitorStep extends DatabaseProperty {
     }) as any;
 
     return monitorStep;
-  }
-
-  public static override getSchema(): ZodSchema {
-    return Zod.object({
-      _type: Zod.literal(ObjectType.MonitorStep),
-      value: Zod.object({
-        id: Zod.string(),
-        doNotSyncFields: Zod.array(
-          Zod.string().refine((value: string): boolean => {
-            try {
-              MonitorTemplateSyncFieldUtil.parse([value]);
-              return true;
-            } catch {
-              return false;
-            }
-          }, "Unsupported do not sync field"),
-        ).optional(),
-        monitorDestination: Zod.any().optional(),
-        monitorCriteria: Zod.any(),
-        requestType: Zod.any(),
-        requestHeaders: Zod.any().optional(),
-        requestBody: Zod.string().optional(),
-        doNotFollowRedirects: Zod.boolean().optional(),
-        allowSelfSignedCertificates: Zod.boolean().optional(),
-        tlsClientCertificate: Zod.string().optional(),
-        tlsClientKey: Zod.string().optional(),
-        tlsClientKeyPassphrase: Zod.string().optional(),
-        monitorDestinationPort: Zod.any().optional(),
-        customCode: Zod.string().optional(),
-        screenSizeTypes: Zod.any().optional(),
-        browserTypes: Zod.any().optional(),
-        retryCountOnError: Zod.number().optional(),
-        requestTimeoutInMs: Zod.number().optional(),
-        retryCount: Zod.number().optional(),
-        logMonitor: Zod.any().optional(),
-        securityEventsMonitor: Zod.any().optional(),
-        llmMonitor: Zod.any().optional(),
-        traceMonitor: Zod.any().optional(),
-        metricMonitor: Zod.any().optional(),
-        profileMonitor: Zod.any().optional(),
-        snmpMonitor: Zod.any().optional(),
-        networkDeviceMonitor: Zod.any().optional(),
-        dnsMonitor: Zod.any().optional(),
-        domainMonitor: Zod.any().optional(),
-        dnssecMonitor: Zod.any().optional(),
-        sqlMonitor: Zod.any().optional(),
-        databaseMonitor: Zod.any().optional(),
-        externalStatusPageMonitor: Zod.any().optional(),
-        kubernetesMonitor: Zod.any().optional(),
-        dockerMonitor: Zod.any().optional(),
-        hostMonitor: Zod.any().optional(),
-        podmanMonitor: Zod.any().optional(),
-        proxmoxMonitor: Zod.any().optional(),
-        vmwareMonitor: Zod.any().optional(),
-        dockerSwarmMonitor: Zod.any().optional(),
-        cephMonitor: Zod.any().optional(),
-        storageArrayMonitor: Zod.any().optional(),
-        iotMonitor: Zod.any().optional(),
-        probeStatusMonitor: Zod.any().optional(),
-      }).openapi({
-        type: "object",
-        example: {
-          id: "stepId",
-          monitorDestination: undefined,
-          monitorCriteria: {},
-          requestType: "GET",
-        },
-      }),
-    }).openapi({
-      type: "object",
-      description: "MonitorStep object",
-      example: {
-        _type: ObjectType.MonitorStep,
-        value: {
-          id: "stepId",
-          monitorDestination: undefined,
-          monitorCriteria: {},
-          requestType: "GET",
-        },
-      },
-    });
   }
 
   public isValid(): boolean {

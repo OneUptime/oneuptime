@@ -1,7 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
-import { CriteriaFilterSchema } from "../../../Types/Monitor/CriteriaFilter";
+import { CriteriaFilterSchema } from "../../../Utils/Schema/MonitorSchemas";
 import {
   FILTER_JSON_OPTIONS,
   MonitorStepsHclContext,

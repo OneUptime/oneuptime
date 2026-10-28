@@ -8,6 +8,7 @@ import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import { describe, expect, test } from "@jest/globals";
+import { getMonitorCriteriaInstanceSchema } from "../../../Utils/Schema/MonitorSchemas";
 
 /*
  * MonitorCriteriaInstance.openForEveryEmail: an Incoming Email criteria that
@@ -149,7 +150,7 @@ describe("openForEveryEmail on a criteria", () => {
   test("the API schema takes it as an optional boolean", () => {
     const schema: {
       safeParse: (value: unknown) => { success: boolean };
-    } = MonitorCriteriaInstance.getSchema() as unknown as {
+    } = getMonitorCriteriaInstanceSchema() as unknown as {
       safeParse: (value: unknown) => { success: boolean };
     };
 

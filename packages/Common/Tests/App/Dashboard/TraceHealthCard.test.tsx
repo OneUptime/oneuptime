@@ -51,23 +51,7 @@ import {
  * saying what usually causes it and where the docs fix it, and what the
  * numbers were measured on in the (i). It is drawn only once it has numbers
  * to show.
- *
- * The schema module is a stand-in that answers every call with itself:
- * nothing here parses with zod, and the Types the card's imports reach
- * build their schemas as they load.
  */
-jest.mock("../../../Utils/Schema/Zod", () => {
-  const schema: () => void = new Proxy((): void => {}, {
-    get: (_target: () => void, property: string | symbol): unknown => {
-      return property === "then" ? undefined : schema;
-    },
-    apply: (): unknown => {
-      return schema;
-    },
-  });
-
-  return { __esModule: true, default: schema };
-});
 
 type PostArgs = {
   url: { toString: () => string };

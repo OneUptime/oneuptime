@@ -21,6 +21,7 @@ import IconProp from "../../../Types/Icon/IconProp";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { describe, expect, test } from "@jest/globals";
+import { getMonitorStepSchema } from "../../../Utils/Schema/MonitorSchemas";
 
 /*
  * The Probe Status monitor type (issue #2733): a monitor that watches the
@@ -281,7 +282,7 @@ describe("MonitorStep for a Probe Status monitor", () => {
     const step: MonitorStep = defaultStep();
     step.setProbeStatusMonitor({ probeIds: [FRANKFURT] });
 
-    expect(MonitorStep.getSchema().safeParse(step.toJSON()).success).toBe(true);
+    expect(getMonitorStepSchema().safeParse(step.toJSON()).success).toBe(true);
   });
 });
 
