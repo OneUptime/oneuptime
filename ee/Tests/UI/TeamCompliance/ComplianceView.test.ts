@@ -18,6 +18,7 @@ import {
   getActiveRules,
   getAllSeveritiesLabel,
   getChannelLabel,
+  getChannelsNotChecked,
   getComplianceVerdict,
   getEvaluatedAt,
   getInvitedNote,
@@ -38,6 +39,7 @@ import {
   getSelfFix,
   getSelfFixKey,
   getSelfFixes,
+  hasNoChannelToCheck,
   hasNoSeveritiesLeft,
   hasServerId,
   isFixedInProjectNotificationSettings,
@@ -54,6 +56,7 @@ import {
   CALL_AND_PUSH_RULE_ID,
   CALL_REASON,
   CALL_RULE_ID,
+  CUSTOM_CHANNELS_NOT_ACTIVE_WARNING,
   EMAIL_REASON,
   EMAIL_RULE_ID,
   EVALUATED_AT,
@@ -68,12 +71,16 @@ import {
   callAndPushForIncidentsRule,
   callForEveryIncidentRule,
   callForIncidentsRule,
+  customChannelNotCheckedRule,
   emailRule,
   issue,
   noSeveritiesLeftRule,
   standardStatus,
 } from "./ComplianceFixtures";
-import { PROJECT_CHANNEL_SWITCHES } from "../../../Server/TeamCompliance/TeamComplianceEvaluator";
+import {
+  CUSTOM_CHANNELS_NOT_ACTIVE_WARNING as SERVER_CUSTOM_CHANNELS_NOT_ACTIVE_WARNING,
+  PROJECT_CHANNEL_SWITCHES,
+} from "../../../Server/TeamCompliance/TeamComplianceEvaluator";
 import PageMap from "@oneuptime/dashboard/Utils/PageMap";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
@@ -116,6 +123,7 @@ const summary: (overrides: Partial<ComplianceSummary>) => ComplianceSummary = (
     resumableRuleCount: 0,
     noSeveritiesLeftRuleCount: 0,
     unrecognisedRuleCount: 0,
+    noChannelToCheckRuleCount: 0,
     ...overrides,
   };
 };
@@ -869,6 +877,7 @@ describe("the verdict", () => {
       noSeveritiesLeftRuleCount: 1,
       // On or off, a rule of an unknown type is never checked.
       unrecognisedRuleCount: 2,
+      noChannelToCheckRuleCount: 0,
     });
   });
 
@@ -2028,6 +2037,8 @@ describe("parsing the payload", () => {
       ruleType: "HasNotificationEmailMethod",
       enabled: true,
       notificationChannels: [],
+      // An API from before custom channels: every channel is checked.
+      channelsNotChecked: [],
       severityKind: null,
       appliesToAllSeverities: false,
       severities: [],
@@ -2135,6 +2146,8 @@ describe("parsing the payload", () => {
           ruleType: "HasIncidentOnCallRules",
           enabled: "yes",
           notificationChannel: "",
+          // Not a list: nothing is set aside.
+          channelsNotChecked: "CustomChannel",
           severityKind: "Sideways",
           compliantCount: "7",
           nonCompliantCount: Number.NaN,
@@ -2155,6 +2168,7 @@ describe("parsing the payload", () => {
         ruleType: "HasIncidentOnCallRules",
         enabled: false,
         notificationChannels: [],
+        channelsNotChecked: [],
         severityKind: null,
         appliesToAllSeverities: false,
         severities: [{ id: "a", name: "A" }],
@@ -2476,5 +2490,225 @@ describe("parsing the payload", () => {
       [OMAR_ID, false],
       [JANE_ID, false],
     ]);
+  });
+});
+
+/*
+ * The custom channel (#5332). While no custom channel can carry a page on the
+ * server, a rule on one is on but checks nobody - the server says which of
+ * its channels it does not check (channelsNotChecked) and why. The page must
+ * neither count it as a rule members meet nor tell the admin to turn it on.
+ */
+describe("a rule with no channel to check", () => {
+  test("the custom channel wears an icon of its own, and reads as 'Custom channel'", () => {
+    expect(CHANNEL_ICONS[ComplianceNotificationChannel.CustomChannel]).toBe(
+      IconProp.PuzzlePiece,
+    );
+    // Not the webhook's: a custom channel is not a member's own webhook.
+    expect(
+      Object.values(ComplianceNotificationChannel)
+        .filter((channel: ComplianceNotificationChannel): boolean => {
+          return channel !== ComplianceNotificationChannel.CustomChannel;
+        })
+        .map((channel: ComplianceNotificationChannel): IconProp => {
+          return CHANNEL_ICONS[channel];
+        }),
+    ).not.toContain(IconProp.PuzzlePiece);
+    expect(getChannelLabel(ComplianceNotificationChannel.CustomChannel)).toBe(
+      "Custom channel",
+    );
+    expect(getRuleIcon(customChannelNotCheckedRule())).toBe(
+      IconProp.PuzzlePiece,
+    );
+    expect(getRuleTitle(customChannelNotCheckedRule())).toBe(
+      "Custom channel for incidents",
+    );
+  });
+
+  test("the fixture's warning is the server's, word for word", () => {
+    expect(CUSTOM_CHANNELS_NOT_ACTIVE_WARNING).toBe(
+      SERVER_CUSTOM_CHANNELS_NOT_ACTIVE_WARNING,
+    );
+  });
+
+  test("a rule whose every channel is not checked has no channel to check, and is not active", () => {
+    const rule: TeamComplianceRuleJSON = customChannelNotCheckedRule();
+
+    expect(getChannelsNotChecked(rule)).toEqual([
+      ComplianceNotificationChannel.CustomChannel,
+    ]);
+    expect(hasNoChannelToCheck(rule)).toBe(true);
+    expect(isRuleActive(rule)).toBe(false);
+    expect(
+      getActiveRules([rule, emailRule()]).map(
+        (active: TeamComplianceRuleJSON): string => {
+          return active.settingId;
+        },
+      ),
+    ).toEqual([EMAIL_RULE_ID]);
+  });
+
+  test.each<[string, TeamComplianceRuleJSON, boolean]>([
+    [
+      "a rule on the custom channel that the server checks",
+      customChannelNotCheckedRule({ channelsNotChecked: [], warnings: [] }),
+      true,
+    ],
+    [
+      "a rule from an API that sends no channelsNotChecked",
+      customChannelNotCheckedRule({ channelsNotChecked: undefined }),
+      true,
+    ],
+    [
+      "a rule on Call and the custom channel, the custom one set aside",
+      customChannelNotCheckedRule({
+        notificationChannels: [
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.CustomChannel,
+        ],
+      }),
+      true,
+    ],
+    [
+      "a set-aside channel the rule does not ask for",
+      callForIncidentsRule({
+        channelsNotChecked: [ComplianceNotificationChannel.CustomChannel],
+      }),
+      true,
+    ],
+    ["an any-channel rule", alertRule(), true],
+    [
+      "a method rule, whatever it is sent",
+      emailRule({
+        channelsNotChecked: [ComplianceNotificationChannel.CustomChannel],
+      }),
+      true,
+    ],
+    [
+      "a paused rule on the custom channel",
+      customChannelNotCheckedRule({ enabled: false, channelsNotChecked: [] }),
+      false,
+    ],
+  ])(
+    "%s has a channel to check (active: %s)",
+    (_label: string, rule: TeamComplianceRuleJSON, isActive: boolean) => {
+      expect(hasNoChannelToCheck(rule)).toBe(false);
+      expect(isRuleActive(rule)).toBe(isActive);
+    },
+  );
+
+  test("it is counted apart: on, so neither paused nor resumable, and not unrecognised", () => {
+    expect(
+      summarizeCompliance(
+        buildStatus({
+          complianceSettings: [customChannelNotCheckedRule(), emailRule()],
+          userComplianceStatuses: [buildMember()],
+        }),
+      ),
+    ).toEqual({
+      memberCount: 1,
+      invitedCount: 0,
+      compliantCount: 1,
+      attentionCount: 0,
+      ruleCount: 2,
+      activeRuleCount: 1,
+      pausedRuleCount: 0,
+      resumableRuleCount: 0,
+      noSeveritiesLeftRuleCount: 0,
+      unrecognisedRuleCount: 0,
+      noChannelToCheckRuleCount: 1,
+    });
+  });
+
+  test("alone, it is no clean bill of health: nothing is checked, and the page says why", () => {
+    const verdict: ComplianceVerdict = getComplianceVerdict(
+      summarizeCompliance(
+        buildStatus({
+          complianceSettings: [customChannelNotCheckedRule()],
+          // The server fails nobody on it.
+          userComplianceStatuses: [buildMember()],
+        }),
+      ),
+    );
+
+    expect(verdict.kind).toBe(ComplianceVerdictKind.NoActiveRules);
+    expect(verdict.headline).toBe("No rule is being checked");
+    expect(verdict.detail).toBe(
+      "Nobody is being checked right now. This team's rule asks only for channels that cannot carry a page on this server right now, so it is not checked. Its warning says why.",
+    );
+    expect(verdict.detail).not.toContain("Turn a rule on");
+  });
+
+  test("two of them, alone", () => {
+    expect(
+      getNoActiveRulesAdvice(
+        summary({
+          ruleCount: 2,
+          activeRuleCount: 0,
+          noChannelToCheckRuleCount: 2,
+        }),
+      ),
+    ).toBe(
+      "All 2 of this team's rules ask only for channels that cannot carry a page on this server right now, so they are not checked. Their warnings say why.",
+    );
+  });
+
+  test("beside a paused rule: turn that one on, or give this one another channel", () => {
+    expect(
+      getNoActiveRulesAdvice(
+        summary({
+          ruleCount: 2,
+          activeRuleCount: 0,
+          pausedRuleCount: 1,
+          resumableRuleCount: 1,
+          noChannelToCheckRuleCount: 1,
+        }),
+      ),
+    ).toBe(
+      "1 rule is paused and 1 rule asks only for channels that cannot carry a page right now. Turn a paused rule on, or add another channel to the one that cannot be checked.",
+    );
+  });
+
+  test("its warning interrupts the page, and is not fixed in project settings", () => {
+    const groups: Array<RuleWarningGroup> = getRuleWarningGroups([
+      customChannelNotCheckedRule(),
+    ]);
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0]!.title).toBe(
+      "Custom channel for incidents (Critical Incident)",
+    );
+    expect(groups[0]!.warnings).toEqual([CUSTOM_CHANNELS_NOT_ACTIVE_WARNING]);
+    expect(groups[0]!.channels).toEqual([
+      ComplianceNotificationChannel.CustomChannel,
+    ]);
+    expect(isFixedInProjectNotificationSettings(groups[0]!)).toBe(false);
+  });
+
+  test("parsing: what the server sets aside is carried - known channels only, once each, in catalog order", () => {
+    const status: TeamComplianceStatusJSON = buildStatus({
+      complianceSettings: [customChannelNotCheckedRule()],
+      userComplianceStatuses: [buildMember()],
+    });
+
+    expect(
+      parseComplianceStatus(
+        JSON.parse(JSON.stringify(status)) as unknown as JSONObject,
+      ),
+    ).toEqual(status);
+
+    expect(
+      parseComplianceStatus({
+        complianceSettings: [
+          {
+            settingId: "s1",
+            ruleType: "HasIncidentOnCallRules",
+            enabled: true,
+            notificationChannels: ["CustomChannel", "Call"],
+            channelsNotChecked: ["Pager", "CustomChannel", "CustomChannel"],
+          },
+        ],
+      } as unknown as JSONObject).complianceSettings[0]!.channelsNotChecked,
+    ).toEqual([ComplianceNotificationChannel.CustomChannel]);
   });
 });

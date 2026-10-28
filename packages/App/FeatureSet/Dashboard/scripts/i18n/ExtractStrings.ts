@@ -146,6 +146,15 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Utils/SecurityCase/SecurityCaseMarkdown.ts",
     kind: "ui",
   },
+  /*
+   * What is wrong with a detection rule exception, field by field: the
+   * Add Exception form shows each problem under its field, in the
+   * reader's language, and the API answers a save with the same words.
+   */
+  {
+    directory: "packages/Common/Types/SecurityEvent/DetectionRuleException.ts",
+    kind: "ui",
+  },
 ];
 
 /*

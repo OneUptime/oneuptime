@@ -174,9 +174,19 @@ describe("the Security Events menu", () => {
        * how many findings named a value, folded into Entity Risk.
        */
       ["Events", ["Events", "Campaigns", "Entity Risk", "Correlate"]],
+      /*
+       * What the rules skip on purpose sits right under the rules, before
+       * the library more rules come from.
+       */
       [
         "Detections",
-        ["Detection Rules", "Rule Library", "Threat Intel", "ATT&CK Coverage"],
+        [
+          "Detection Rules",
+          "Rule Exceptions",
+          "Rule Library",
+          "Threat Intel",
+          "ATT&CK Coverage",
+        ],
       ],
       [
         "Playbooks",
@@ -209,6 +219,7 @@ describe("the Security Events menu", () => {
       ["Entity Risk", "SECURITY_EVENTS_ENTITY_RISK"],
       ["Correlate", "SECURITY_EVENTS_CORRELATE"],
       ["Detection Rules", "SECURITY_EVENTS_DETECTION_RULES"],
+      ["Rule Exceptions", "SECURITY_EVENTS_RULE_EXCEPTIONS"],
       ["Rule Library", "SECURITY_EVENTS_RULE_LIBRARY"],
       ["Threat Intel", "SECURITY_EVENTS_THREAT_INTEL"],
       ["ATT&CK Coverage", "SECURITY_EVENTS_ATTACK_COVERAGE"],
@@ -629,6 +640,7 @@ describe("where each page says it is", () => {
       ["Security Events", "Events", "Entity Risk"],
       ["Security Events", "Events", "Correlate"],
       ["Security Events", "Detections", "Detection Rules"],
+      ["Security Events", "Detections", "Rule Exceptions"],
       ["Security Events", "Detections", "Rule Library"],
       ["Security Events", "Detections", "Threat Intel"],
       ["Security Events", "Detections", "ATT&CK Coverage"],
@@ -683,6 +695,9 @@ describe("getSecurityEventsPathSegment", () => {
     expect(
       getSecurityEventsPathSegment(routeFor("SECURITY_EVENTS_DETECTION_RULES")),
     ).toBe("detection-rules");
+    expect(
+      getSecurityEventsPathSegment(routeFor("SECURITY_EVENTS_RULE_EXCEPTIONS")),
+    ).toBe("rule-exceptions");
     expect(getSecurityEventsPathSegment(routeFor("SECURITY_CASES"))).toBe(
       "cases",
     );

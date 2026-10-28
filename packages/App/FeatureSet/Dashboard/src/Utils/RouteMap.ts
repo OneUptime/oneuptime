@@ -778,6 +778,7 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
   [PageMap.SECURITY_EVENTS_CORRELATE]: "correlate",
   [PageMap.SECURITY_EVENTS_CAMPAIGNS]: "campaigns",
   [PageMap.SECURITY_EVENTS_DETECTION_RULES]: "detection-rules",
+  [PageMap.SECURITY_EVENTS_RULE_EXCEPTIONS]: "rule-exceptions",
   [PageMap.SECURITY_EVENTS_MONITORS]: "monitors",
   [PageMap.SECURITY_EVENTS_CONNECTIONS]: "connections",
   [PageMap.SECURITY_EVENTS_THREAT_INTEL]: "threat-intel",
@@ -6909,6 +6910,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SECURITY_EVENTS_DETECTION_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/${
       SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_DETECTION_RULES]
+    }`,
+  ),
+
+  [PageMap.SECURITY_EVENTS_RULE_EXCEPTIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_RULE_EXCEPTIONS]
     }`,
   ),
 
