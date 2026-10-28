@@ -1204,9 +1204,29 @@ function jvmVersions(
   return versions;
 }
 
-// What a .NET restore resolved: obj/project.assets.json's packages.
-function dotnetVersions(appDir: string): Record<string, string> {
+/*
+ * What a .NET restore resolved: obj/project.assets.json's packages, and the
+ * shared frameworks the app runs on, as `dotnet --list-runtimes` names
+ * them - "Microsoft.AspNetCore.App 10.0.14", the newest of each.
+ */
+function dotnetVersions(
+  appDir: string,
+  env: NodeJS.ProcessEnv,
+): Record<string, string> {
   const versions: Record<string, string> = {};
+  const runtimes: SpawnSyncReturns<string> = spawnSync(
+    "dotnet",
+    ["--list-runtimes"],
+    { encoding: "utf8", env: env },
+  );
+
+  for (const line of (runtimes.stdout || "").split("\n")) {
+    const [name, version] = line.split(" ");
+
+    if (name && version) {
+      versions[name] = version;
+    }
+  }
   const assets: Array<string> = [];
   const look: (directory: string, depth: number) => void = (
     directory: string,
@@ -1730,7 +1750,7 @@ function recordedVersions(
       resolved = jvmVersions(appDir, env);
       break;
     case "dotnet":
-      resolved = dotnetVersions(appDir);
+      resolved = dotnetVersions(appDir, env);
       break;
     default:
       for (const name of names) {

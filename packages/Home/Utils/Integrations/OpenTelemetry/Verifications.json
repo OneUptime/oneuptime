@@ -1398,6 +1398,79 @@
       ]
     }
   },
+  "aspnet-core": {
+    "checkedOn": "2026-10-28",
+    "runtime": ".NET 10.0.14",
+    "packages": {
+      "Microsoft.AspNetCore.App": "10.0.14",
+      "Microsoft.EntityFrameworkCore.Sqlite": "10.0.14",
+      "OpenTelemetry.Exporter.OpenTelemetryProtocol": "1.20.1",
+      "OpenTelemetry.Extensions.Hosting": "1.20.1",
+      "OpenTelemetry.Instrumentation.AspNetCore": "1.20.1",
+      "OpenTelemetry.Instrumentation.EntityFrameworkCore": "1.20.1-beta.1",
+      "OpenTelemetry.Instrumentation.Http": "1.20.1",
+      "OpenTelemetry.Instrumentation.Runtime": "1.20.1"
+    },
+    "framework": "ASP.NET Core 10.0.14",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:393df8bbe92dfd48fbafb9532e53387ae26331f341c907f435d9d269cf729b82",
+    "observed": {
+      "spans": [
+        "GET /boom",
+        "GET /orders/{id:int}",
+        "POST",
+        "POST /orders",
+        "checkout.charge",
+        "main"
+      ],
+      "metrics": [
+        "aspnetcore.memory_pool.allocated",
+        "aspnetcore.memory_pool.pooled",
+        "aspnetcore.memory_pool.rented",
+        "aspnetcore.routing.match_attempts",
+        "dns.lookup.duration",
+        "dotnet.assembly.count",
+        "dotnet.exceptions",
+        "dotnet.gc.collections",
+        "dotnet.gc.heap.total_allocated",
+        "dotnet.gc.last_collection.heap.fragmentation.size",
+        "dotnet.gc.last_collection.heap.size",
+        "dotnet.gc.last_collection.memory.committed_size",
+        "dotnet.gc.pause.time",
+        "dotnet.jit.compilation.time",
+        "dotnet.jit.compiled_il.size",
+        "dotnet.jit.compiled_methods",
+        "dotnet.monitor.lock_contentions",
+        "dotnet.process.cpu.count",
+        "dotnet.process.cpu.time",
+        "dotnet.process.memory.working_set",
+        "dotnet.thread_pool.queue.length",
+        "dotnet.thread_pool.thread.count",
+        "dotnet.thread_pool.work_item.count",
+        "dotnet.timer.count",
+        "http.client.active_requests",
+        "http.client.open_connections",
+        "http.client.request.duration",
+        "http.client.request.time_in_queue",
+        "http.server.active_requests",
+        "http.server.request.duration",
+        "kestrel.active_connections",
+        "kestrel.connection.duration",
+        "kestrel.queued_connections",
+        "orders.placed"
+      ],
+      "logs": [
+        "Application is shutting down...",
+        "Application started. Press Ctrl+C to shut down.",
+        "Connection id \"0HNPKMFRCPTC9\", Request id \"0HNPKMFRCPTC9:00000001\": An unhandled exception was thrown by the application",
+        "Content root path: <work>/otel-guides-vHnVHH/aspnet-core",
+        "Hosting environment: Production",
+        "Loading order 42",
+        "Now listening on: http://127.0.0.1:8080"
+      ]
+    },
+    "packageExports": {}
+  },
   "browser": {
     "checkedOn": "2026-10-27",
     "runtime": "Chrome 153.0.8010.12",
@@ -2115,6 +2188,171 @@
         }
       }
     }
+  },
+  "dotnet": {
+    "checkedOn": "2026-10-28",
+    "runtime": ".NET 10.0.14",
+    "packages": {
+      "Microsoft.Extensions.Logging.Console": "10.0.14",
+      "OpenTelemetry.AutoInstrumentation": "1.18.0"
+    },
+    "framework": ".NET",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:13e446c1cc0ac983c148a66a7205e8b7fee3dfd6f9f7b6e754cf4547f097cca3",
+    "observed": {
+      "spans": ["GET", "POST", "invoice.post", "invoices.sync"],
+      "metrics": [
+        "dns.lookup.duration",
+        "dotnet.assembly.count",
+        "dotnet.gc.collections",
+        "dotnet.gc.heap.total_allocated",
+        "dotnet.gc.last_collection.heap.fragmentation.size",
+        "dotnet.gc.last_collection.heap.size",
+        "dotnet.gc.last_collection.memory.committed_size",
+        "dotnet.gc.pause.time",
+        "dotnet.jit.compilation.time",
+        "dotnet.jit.compiled_il.size",
+        "dotnet.jit.compiled_methods",
+        "dotnet.monitor.lock_contentions",
+        "dotnet.process.cpu.count",
+        "dotnet.process.cpu.time",
+        "dotnet.process.memory.working_set",
+        "dotnet.thread_pool.queue.length",
+        "dotnet.thread_pool.thread.count",
+        "dotnet.thread_pool.work_item.count",
+        "dotnet.timer.count",
+        "http.client.active_requests",
+        "http.client.connection.duration",
+        "http.client.open_connections",
+        "http.client.request.duration",
+        "http.client.request.time_in_queue",
+        "invoices.synced",
+        "process.cpu.time",
+        "process.memory.usage",
+        "process.memory.virtual",
+        "process.thread.count",
+        "process.unix.file_descriptor.count",
+        "process.uptime"
+      ],
+      "logs": ["Synced 2 invoices"]
+    },
+    "packageExports": {},
+    "variants": {
+      "Instrumentations off": {
+        "observed": {
+          "spans": ["invoice.post", "invoices.sync"],
+          "metrics": [
+            "dns.lookup.duration",
+            "dotnet.assembly.count",
+            "dotnet.gc.collections",
+            "dotnet.gc.heap.total_allocated",
+            "dotnet.gc.last_collection.heap.fragmentation.size",
+            "dotnet.gc.last_collection.heap.size",
+            "dotnet.gc.last_collection.memory.committed_size",
+            "dotnet.gc.pause.time",
+            "dotnet.jit.compilation.time",
+            "dotnet.jit.compiled_il.size",
+            "dotnet.jit.compiled_methods",
+            "dotnet.monitor.lock_contentions",
+            "dotnet.process.cpu.count",
+            "dotnet.process.cpu.time",
+            "dotnet.process.memory.working_set",
+            "dotnet.thread_pool.queue.length",
+            "dotnet.thread_pool.thread.count",
+            "dotnet.thread_pool.work_item.count",
+            "dotnet.timer.count",
+            "http.client.active_requests",
+            "http.client.connection.duration",
+            "http.client.open_connections",
+            "http.client.request.duration",
+            "http.client.request.time_in_queue",
+            "invoices.synced"
+          ],
+          "logs": ["Synced 2 invoices"]
+        },
+        "packages": {
+          "Microsoft.Extensions.Logging.Console": "10.0.14",
+          "OpenTelemetry.AutoInstrumentation": "1.18.0"
+        }
+      },
+      "In code": {
+        "observed": {
+          "spans": ["GET", "POST", "invoice.post", "invoices.sync"],
+          "metrics": [
+            "dns.lookup.duration",
+            "http.client.active_requests",
+            "http.client.connection.duration",
+            "http.client.open_connections",
+            "http.client.request.duration",
+            "http.client.request.time_in_queue",
+            "invoices.synced"
+          ],
+          "logs": ["Synced 2 invoices"]
+        },
+        "packages": {
+          "Microsoft.Extensions.Logging.Console": "10.0.14",
+          "OpenTelemetry": "1.20.1",
+          "OpenTelemetry.Exporter.OpenTelemetryProtocol": "1.20.1",
+          "OpenTelemetry.Instrumentation.Http": "1.20.1"
+        }
+      }
+    }
+  },
+  "dotnet-worker-service": {
+    "checkedOn": "2026-10-28",
+    "runtime": ".NET 10.0.14",
+    "packages": {
+      "Microsoft.Extensions.Hosting": "10.0.14",
+      "Microsoft.Extensions.Http": "10.0.14",
+      "OpenTelemetry.Exporter.OpenTelemetryProtocol": "1.20.1",
+      "OpenTelemetry.Extensions.Hosting": "1.20.1",
+      "OpenTelemetry.Instrumentation.Http": "1.20.1",
+      "OpenTelemetry.Instrumentation.Runtime": "1.20.1"
+    },
+    "framework": "Microsoft.Extensions.Hosting 10.0.14",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:1752ddbf305918350563313cefc855116d825759775eef52de62076a08478d14",
+    "observed": {
+      "spans": ["GET", "POST", "invoice.post", "invoices.sync"],
+      "metrics": [
+        "dns.lookup.duration",
+        "dotnet.assembly.count",
+        "dotnet.exceptions",
+        "dotnet.gc.collections",
+        "dotnet.gc.heap.total_allocated",
+        "dotnet.gc.last_collection.heap.fragmentation.size",
+        "dotnet.gc.last_collection.heap.size",
+        "dotnet.gc.last_collection.memory.committed_size",
+        "dotnet.gc.pause.time",
+        "dotnet.jit.compilation.time",
+        "dotnet.jit.compiled_il.size",
+        "dotnet.jit.compiled_methods",
+        "dotnet.monitor.lock_contentions",
+        "dotnet.process.cpu.count",
+        "dotnet.process.cpu.time",
+        "dotnet.process.memory.working_set",
+        "dotnet.thread_pool.queue.length",
+        "dotnet.thread_pool.thread.count",
+        "dotnet.thread_pool.work_item.count",
+        "dotnet.timer.count",
+        "http.client.active_requests",
+        "http.client.open_connections",
+        "http.client.request.duration",
+        "http.client.request.time_in_queue",
+        "invoices.synced"
+      ],
+      "logs": [
+        "Application is shutting down...",
+        "Application started. Press Ctrl+C to shut down.",
+        "Content root path: <work>/otel-guides-q0IMG3/dotnet-worker-service",
+        "Hosting environment: Production",
+        "Invoice worker started",
+        "Posted invoice inv_1",
+        "Posted invoice inv_2",
+        "Queued 2 invoices"
+      ]
+    },
+    "packageExports": {}
   },
   "express": {
     "checkedOn": "2026-10-27",

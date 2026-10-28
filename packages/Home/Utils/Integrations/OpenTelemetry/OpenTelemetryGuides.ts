@@ -31,6 +31,9 @@ import { SpringBootGuide } from "./Guides/SpringBoot";
 import { QuarkusGuide } from "./Guides/Quarkus";
 import { MicronautGuide } from "./Guides/Micronaut";
 import { KtorGuide } from "./Guides/Ktor";
+import { DotNetGuide } from "./Guides/DotNet";
+import { AspNetCoreGuide } from "./Guides/AspNetCore";
+import { DotNetWorkerServiceGuide } from "./Guides/DotNetWorkerService";
 
 /*
  * Every OpenTelemetry guide the website publishes, in the catalog's order
@@ -61,6 +64,9 @@ export const OPEN_TELEMETRY_GUIDE_PAGES: ReadonlyArray<OpenTelemetryGuide> = [
   QuarkusGuide,
   MicronautGuide,
   KtorGuide,
+  DotNetGuide,
+  AspNetCoreGuide,
+  DotNetWorkerServiceGuide,
 ];
 
 export const INTEGRATIONS_INDEX_TITLE: string = "Integrations";

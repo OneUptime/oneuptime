@@ -72,6 +72,24 @@ describe("the guides' addresses", () => {
     ]);
   });
 
+  test("keep the Python, Java, Kotlin and .NET guides where they were published", () => {
+    expect(
+      [
+        OpenTelemetryGuideLanguage.Python,
+        OpenTelemetryGuideLanguage.Java,
+        OpenTelemetryGuideLanguage.Kotlin,
+        OpenTelemetryGuideLanguage.DotNet,
+      ].map((language: OpenTelemetryGuideLanguage): Array<string> => {
+        return slugsOf(getOpenTelemetryGuidesOfLanguage(language));
+      }),
+    ).toEqual([
+      ["python", "django", "flask", "fastapi", "celery"],
+      ["java", "spring-boot", "quarkus", "micronaut"],
+      ["ktor"],
+      ["dotnet", "aspnet-core", "dotnet-worker-service"],
+    ]);
+  });
+
   test("are paths under /integrations/opentelemetry/ on the website", () => {
     expect(OPEN_TELEMETRY_GUIDES_INDEX_PATH).toBe("/integrations");
     expect(OPEN_TELEMETRY_GUIDE_PATH_PREFIX).toBe(
@@ -118,6 +136,10 @@ describe("a guide's entry", () => {
         "hapi",
         "Bun",
         "Deno",
+        "FastAPI",
+        "Spring Boot",
+        "Ktor",
+        "ASP.NET Core",
       ]),
     );
     for (const guide of OPEN_TELEMETRY_GUIDES) {
@@ -255,6 +277,38 @@ describe("the guides the Dashboard's telemetry guide opens", () => {
     ]);
   });
 
+  test("are each language's own guide and then its frameworks, for Python, Java and .NET", () => {
+    for (const [key, own, frameworks] of [
+      ["python", "python", ["django", "flask", "fastapi", "celery"]],
+      // Kotlin runs on the JVM: Ktor is listed with Java's frameworks.
+      ["java", "java", ["spring-boot", "quarkus", "micronaut", "ktor"]],
+      ["dotnet", "dotnet", ["aspnet-core", "dotnet-worker-service"]],
+    ] as Array<[TelemetryGuideLanguageKey, string, Array<string>]>) {
+      const guides: TelemetryGuideLanguageGuides | undefined =
+        getGuidesForTelemetryGuideLanguage(key);
+
+      expect([key, guides?.languageGuide.slug]).toEqual([key, own]);
+      expect([key, slugsOf(guides?.frameworkGuides || [])]).toEqual([
+        key,
+        frameworks,
+      ]);
+    }
+  });
+
+  test("name a worker's guide by its phrase where a sentence needs one", () => {
+    expect(getOpenTelemetryGuide("dotnet-worker-service")).toMatchObject({
+      name: "Worker Service",
+      inSentence: "a Worker Service",
+      kind: "worker",
+    });
+    expect(getOpenTelemetryGuide("celery")?.kind).toBe("worker");
+    for (const guide of OPEN_TELEMETRY_GUIDES) {
+      if (guide.inSentence !== undefined) {
+        expect(guide.inSentence).toContain(guide.name);
+      }
+    }
+  });
+
   test("are React's and Angular's own guides, with no frameworks under them", () => {
     for (const [key, slug] of [
       ["react", "react"],
@@ -298,13 +352,15 @@ describe("the guides the product pages feature", () => {
         },
       ),
     );
+    // One row per language at most, room left for the languages to come.
     expect(slugsOf(featured)).toEqual([
       "nodejs",
-      "express",
-      "nestjs",
       "nextjs",
       "react",
-      "angular",
+      "fastapi",
+      "spring-boot",
+      "ktor",
+      "aspnet-core",
     ]);
   });
 

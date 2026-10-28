@@ -313,6 +313,53 @@ export interface KubernetesManifestOptions {
   command?: Array<string> | undefined;
 }
 
+// The Secret every manifest reads the key from: never in an image or in git.
+function ingestionKeySecretLines(variables: OtlpVariableNames): Array<string> {
+  return [
+    "apiVersion: v1",
+    "kind: Secret",
+    "metadata:",
+    "  name: oneuptime-otlp",
+    "stringData:",
+    `  ${variables.headers}: "${INGESTION_KEY_HEADER}=${INGESTION_KEY_PLACEHOLDER}"`,
+    "---",
+  ];
+}
+
+/*
+ * A container's envFrom (the Secret) and env (the rest of the exporter's
+ * settings), indented to sit under its `- name:` line.
+ */
+function containerEnvironmentLines(
+  name: string,
+  variables: OtlpVariableNames,
+  extraEnv: Array<{ name: string; value: string }>,
+  indent: string,
+): Array<string> {
+  const env: Array<{ name: string; value: string }> = [
+    { name: variables.serviceName, value: name },
+    { name: variables.endpoint, value: CLOUD_OTLP_ENDPOINT },
+    {
+      name: variables.resourceAttributes,
+      value: "deployment.environment.name=production",
+    },
+    ...extraEnv,
+  ];
+
+  return [
+    `${indent}envFrom:`,
+    `${indent}  - secretRef:`,
+    `${indent}      name: oneuptime-otlp`,
+    `${indent}env:`,
+    ...env.flatMap((variable: { name: string; value: string }) => {
+      return [
+        `${indent}  - name: ${variable.name}`,
+        `${indent}    value: "${variable.value}"`,
+      ];
+    }),
+  ];
+}
+
 /*
  * The ingestion key in a Secret and the rest of the exporter's settings on
  * the Deployment: the key never sits in an image or a manifest in git.
@@ -322,24 +369,9 @@ export function kubernetesManifestSnippet(
 ): GuideSnippet {
   const variables: OtlpVariableNames =
     options.variables || STANDARD_OTLP_VARIABLES;
-  const env: Array<{ name: string; value: string }> = [
-    { name: variables.serviceName, value: options.name },
-    { name: variables.endpoint, value: CLOUD_OTLP_ENDPOINT },
-    {
-      name: variables.resourceAttributes,
-      value: "deployment.environment.name=production",
-    },
-    ...(options.extraEnv || []),
-  ];
 
   const lines: Array<string> = [
-    "apiVersion: v1",
-    "kind: Secret",
-    "metadata:",
-    "  name: oneuptime-otlp",
-    "stringData:",
-    `  ${variables.headers}: "${INGESTION_KEY_HEADER}=${INGESTION_KEY_PLACEHOLDER}"`,
-    "---",
+    ...ingestionKeySecretLines(variables),
     "apiVersion: apps/v1",
     "kind: Deployment",
     "metadata:",
@@ -377,16 +409,64 @@ export function kubernetesManifestSnippet(
   }
 
   lines.push(
-    "          envFrom:",
-    "            - secretRef:",
-    "                name: oneuptime-otlp",
-    "          env:",
+    ...containerEnvironmentLines(
+      options.name,
+      variables,
+      options.extraEnv || [],
+      "          ",
+    ),
   );
 
-  for (const variable of env) {
-    lines.push(`            - name: ${variable.name}`);
-    lines.push(`              value: "${variable.value}"`);
-  }
+  return {
+    id: "kubernetes",
+    language: "yaml",
+    title: "kubernetes.yaml",
+    code: lines.join("\n"),
+    check: "parse",
+  };
+}
+
+export interface KubernetesCronJobOptions {
+  // The CronJob's name and its container's.
+  name: string;
+  image: string;
+  // When it runs, in cron's five fields: "*/15 * * * *".
+  schedule: string;
+  // Variables the container gets besides the three standard ones.
+  extraEnv?: Array<{ name: string; value: string }> | undefined;
+}
+
+/*
+ * A job that runs on a schedule, with the key in the same Secret: each run
+ * is a pod that starts, sends its telemetry as it ends, and is gone.
+ */
+export function kubernetesCronJobSnippet(
+  options: KubernetesCronJobOptions,
+): GuideSnippet {
+  const lines: Array<string> = [
+    ...ingestionKeySecretLines(STANDARD_OTLP_VARIABLES),
+    "apiVersion: batch/v1",
+    "kind: CronJob",
+    "metadata:",
+    `  name: ${options.name}`,
+    "spec:",
+    `  schedule: "${options.schedule}"`,
+    "  concurrencyPolicy: Forbid",
+    "  jobTemplate:",
+    "    spec:",
+    "      template:",
+    "        spec:",
+    "          restartPolicy: OnFailure",
+    "          containers:",
+    `            - name: ${options.name}`,
+    `              image: ${options.image}`,
+    ...containerEnvironmentLines(
+      options.name,
+      STANDARD_OTLP_VARIABLES,
+      options.extraEnv || [],
+      "              ",
+    ),
+  ];
 
   return {
     id: "kubernetes",

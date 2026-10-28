@@ -553,8 +553,9 @@ describe("the OpenTelemetry guide catalog", () => {
     );
   });
 
-  test("covers the JavaScript and TypeScript frameworks this batch publishes", () => {
+  test("covers the frameworks the site publishes, language by language", () => {
     expect(SLUGS).toEqual([
+      // JavaScript and TypeScript.
       "nodejs",
       "express",
       "nestjs",
@@ -567,6 +568,23 @@ describe("the OpenTelemetry guide catalog", () => {
       "browser",
       "react",
       "angular",
+      // Python.
+      "python",
+      "django",
+      "flask",
+      "fastapi",
+      "celery",
+      // Java.
+      "java",
+      "spring-boot",
+      "quarkus",
+      "micronaut",
+      // Kotlin.
+      "ktor",
+      // .NET.
+      "dotnet",
+      "aspnet-core",
+      "dotnet-worker-service",
     ]);
   });
 

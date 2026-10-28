@@ -152,6 +152,7 @@ describe.each(
     const sections: Array<GuideSection> = guideSections(
       getGuideEntry(slug).name,
       getGuideEntry(slug).kind,
+      getGuideEntry(slug).inSentence,
     );
 
     expect(
@@ -322,6 +323,7 @@ describe.each(
     for (const section of guideSections(
       getGuideEntry(slug).name,
       getGuideEntry(slug).kind,
+      getGuideEntry(slug).inSentence,
     )) {
       expect(markdown).toContain(`\n## ${section.title}\n`);
     }
@@ -422,7 +424,7 @@ describe("the integrations index", () => {
       groups.map((group: Element): string => {
         return group.id;
       }),
-    ).toEqual(["javascript"]);
+    ).toEqual(["javascript", "python", "java", "kotlin", "dotnet"]);
     expect(
       Array.from(document.querySelectorAll("[data-integration-card] a")).map(
         (link: Element): string | null => {
@@ -445,8 +447,15 @@ describe("the integrations index", () => {
         card.querySelector("a > span.min-w-0 > span")?.textContent || ""
       ).trim();
 
+      const language: string = (
+        card.closest("[data-integrations-group]")?.querySelector("h2")
+          ?.textContent || ""
+      ).trim();
+
       expect(words).toContain(name.toLowerCase());
-      expect(words).toContain("javascript");
+      // The group it is listed under: "python", ".net", "javascript & typescript".
+      expect([name, language.length > 0]).toEqual([name, true]);
+      expect(words).toContain(language.toLowerCase());
     }
   });
 
