@@ -175,7 +175,10 @@ above: never assume a fold the platform did not report.
   switch, search, filters) a short scroll up. Wrap the list's header in a view
   with `onLayout={scroll.onHeaderLayout}` and pass the list's top padding as
   `headerTop` to `usePaneScrollRestoration()`; the list stays at its first row
-  while the header settles, until the reader scrolls it.
+  while the header settles, until the reader scrolls it. Draw what stands in
+  for the rows - the skeleton while they load, the error with Retry - through
+  `ListStatusScroll` (`src/components`), which opens past the header the same
+  way, so the reader sees it at once.
 - **The divider's handle** (`src/navigation/PaneDivider.tsx`) sits in the
   middle of the divider, so it never takes a swipe meant for a card. Dragging
   moves only the pane around the list; the layout takes the new width when the

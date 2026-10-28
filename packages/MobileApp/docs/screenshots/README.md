@@ -78,7 +78,9 @@ iPhone Duo held open (951 × 669) and a phone on its side (852 × 393).
 The posture images come from `tests/ui/posture-foldables.spec.js`, where
 Chromium's DevTools half close the phone - on a table and like a book - and
 open it flat. On Android the app learns this from its posture module; the
-iPhone Duo keeps the layout above until iOS has one.
+iPhone Duo keeps the layout above until iOS has one. Below a tabletop fold a
+list opens at its first row, and one that could not load shows why at once
+(`foldables-tabletop-list-error.png`).
 
 | Half open on a table                                  | A Galaxy Z Flip on a table                               | Half open like a book                        |
 | ----------------------------------------------------- | -------------------------------------------------------- | -------------------------------------------- |
