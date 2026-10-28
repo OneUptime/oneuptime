@@ -36719,7 +36719,6 @@
   "Open device": "디바이스 열기",
   "Open host": "호스트 열기",
   "Pick the address:": "주소를 고르세요:",
-  "Rename this address": "이 주소 이름 바꾸기",
   "Show only the traffic to or from {{address}}": "{{address}}와(과) 주고받은 트래픽만 보기",
   "Shown on the Traffic pages. For a subnet, say where it is, like Mumbai office.": "트래픽 페이지에 표시됩니다. 서브넷이면 뭄바이 사무소처럼 위치를 적으세요.",
   "Source Name": "소스 이름",

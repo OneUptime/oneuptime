@@ -236,9 +236,9 @@ Klicka på en adress, eller sök fram den, så smalnar sidan av till den, med et
 
 - **Öppna värden**, **Öppna enheten** eller **Öppna molnresursen**, när namnet är den postens. Ändra namnet där.
 - **Ge adressen ett namn**, när inget namnger den eller bara DNS. Adressen är redan ifylld; vidga den till ett delnät, till exempel `10.18.167.0/24`, för att namnge hela delnätet i stället.
-- **Byt namn**, när namnet är ett adressnamn.
+- **Redigera i Inställningar**, när namnet är ett adressnamn. Det öppnar **Adressnamn**, där namnet ändras.
 
-Att ge och byta namn är för den som får lägga till och ändra nätverksenheter. Alla som får läsa dem ser namnen.
+**Ge adressen ett namn** är för den som får lägga till nätverksenheter, och **Redigera i Inställningar** för den som får ändra dem. Alla som får läsa dem ser namnen.
 
 ### Adressnamn
 

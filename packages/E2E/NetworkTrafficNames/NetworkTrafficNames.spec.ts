@@ -21,9 +21,10 @@ import path from "path";
  * someone gave it, its DNS name - with the address beside it, in the top
  * lists and both views of the conversations; a long name is cut to its
  * line and whole under the pointer. A page narrowed to one address says
- * who it is and offers the next step: Open host, Name this address,
- * Rename. Find takes a name. Network > Settings > Address Names lists the
- * names people give addresses and subnets. At a laptop's and a phone's
+ * who it is and offers the next step: Open host, Name this address, or Edit
+ * in Settings for a name someone gave, which is changed in its one place,
+ * Network > Settings > Address Names. Find takes a name. Address Names
+ * lists the names people give addresses and subnets. At a laptop's and a phone's
  * width, in the dark theme, in German and in Persian (where the addresses
  * still read left to right).
  *
@@ -45,6 +46,7 @@ const FIRST_CONVERSATION_NAMES: RegExp = /mumbai-fs01\s*→\s*Backup appliance/;
 const FIRST_CONVERSATION_ADDRESSES: RegExp =
   /10\.18\.167\.35\s*→\s*10\.18\.167\.20/;
 const PAYROLL_IN_ADDRESS_BAR: RegExp = /dst=158\.115\.141\.143/;
+const ON_ADDRESS_NAMES: RegExp = /\/network-devices\/settings\/address-names$/;
 const DARK_THEME: RegExp = /dark/;
 
 const SCREENSHOTS: string = path.resolve(
@@ -266,9 +268,9 @@ test("names first and the address under them, in the top lists and both views of
 
   // An address nothing names at all: as it always was.
   const bare: Locator = rowWith(page, "traffic-top-sources", "10.242.167.221");
-  await expect(bare.getByTestId("traffic-top-sources-row-sublabel")).toHaveCount(
-    0,
-  );
+  await expect(
+    bare.getByTestId("traffic-top-sources-row-sublabel"),
+  ).toHaveCount(0);
 
   const conversations: Locator = page.getByTestId("traffic-top-conversations");
 
@@ -401,9 +403,9 @@ test("narrowed to a host: its name, Host, the address to copy, its office, and O
   await expect(
     card.getByRole("button", { name: "Copy the address" }),
   ).toBeVisible();
-  await expect(card.getByTestId("traffic-address-card-name-button")).toHaveCount(
-    0,
-  );
+  await expect(
+    card.getByTestId("traffic-address-card-name-button"),
+  ).toHaveCount(0);
   await screenshot(page, testInfo, "card-host", card);
 
   await card.getByTestId("traffic-address-card-open").click();
@@ -471,34 +473,59 @@ test("an address that already has a name is not named twice: the server's answer
   );
 });
 
-test("Rename: a name someone gave is changed in place", async ({
+test("Edit in Settings: a name someone gave is changed in its one place, Address Names", async ({
   page,
 }: {
   page: Page;
-}) => {
+}, testInfo: TestInfo) => {
   await openTraffic(page, "dst=158.115.141.143");
 
   const card: Locator = page.getByTestId("traffic-address-card");
   await expect(card.getByTestId("traffic-address-card-source")).toHaveText(
     "Address name",
   );
+  // No second form for the name here.
+  await expect(
+    card.getByTestId("traffic-address-card-name-button"),
+  ).toHaveCount(0);
+  const edit: Locator = card.getByTestId(
+    "traffic-address-card-edit-in-settings",
+  );
+  await expect(edit).toHaveText("Edit in Settings");
+  await screenshot(page, testInfo, "card-address-name", card);
 
-  await card.getByTestId("traffic-address-card-name-button").click();
+  await edit.click();
+  await expect(page).toHaveURL(ON_ADDRESS_NAMES);
+
+  // The row of the name, as a table row at a laptop's width or a card at a phone's.
+  const payroll: Locator = page
+    .getByText("Payroll SaaS", { exact: true })
+    .first()
+    .locator("xpath=ancestor::*[.//button[normalize-space()='Edit']][1]");
+  await payroll.getByRole("button", { name: "Edit", exact: true }).click();
   await settledDialog(page);
-  await expect(dialog(page)).toContainText("Rename this address");
   const name: Locator = dialog(page).getByPlaceholder("Payroll SaaS");
   await expect(name).toHaveValue("Payroll SaaS");
   await name.fill("Payroll (Northwind)");
   await page.getByTestId("modal-footer-submit-button").click();
   await expect(dialog(page)).toHaveCount(0);
+  await expect(page.getByText("Payroll (Northwind)").first()).toBeVisible();
 
-  await expect(card.getByTestId("traffic-address-card-name")).toHaveText(
-    "Payroll (Northwind)",
-  );
   const state: FixtureState = await fixture(page);
   expect(state.updates).toHaveLength(1);
   expect(state.updates[0]!.id).toBe("90000000-0000-4000-8000-000000000002");
   expect(state.creates).toEqual([]);
+
+  // Back on Traffic in the same page: the address goes by its new name.
+  await page.evaluate((address: string): void => {
+    window.history.pushState({}, "", address);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  }, `${TRAFFIC}?dst=158.115.141.143`);
+  await expect(
+    page
+      .getByTestId("traffic-address-card")
+      .getByTestId("traffic-address-card-name"),
+  ).toHaveText("Payroll (Northwind)", { timeout: 60000 });
 });
 
 test("a viewer reads the names and is offered nothing to change", async ({
@@ -508,9 +535,9 @@ test("a viewer reads the names and is offered nothing to change", async ({
 }) => {
   await openTraffic(page, "role=viewer");
 
-  await expect(
-    rowWith(page, "traffic-top-sources", "mumbai-fs01"),
-  ).toHaveCount(1);
+  await expect(rowWith(page, "traffic-top-sources", "mumbai-fs01")).toHaveCount(
+    1,
+  );
 
   // Narrowed to an address with no name: who it is, and no button.
   await rowWith(page, "traffic-top-sources", "10.242.167.221").click();
@@ -518,9 +545,9 @@ test("a viewer reads the names and is offered nothing to change", async ({
   await expect(card.getByTestId("traffic-address-card-source")).toHaveText(
     "No name yet",
   );
-  await expect(card.getByTestId("traffic-address-card-name-button")).toHaveCount(
-    0,
-  );
+  await expect(
+    card.getByTestId("traffic-address-card-name-button"),
+  ).toHaveCount(0);
 });
 
 /*
@@ -715,7 +742,9 @@ test("in German", async ({ page }: { page: Page }, testInfo: TestInfo) => {
   await expect(card.getByTestId("traffic-address-card-name-button")).toHaveText(
     GERMAN["Name this address"]!,
   );
-  await expect(page.getByLabel(GERMAN["Find a name or an IP address"]!)).toBeVisible();
+  await expect(
+    page.getByLabel(GERMAN["Find a name or an IP address"]!),
+  ).toBeVisible();
   expect(GERMAN["Name this address"]).not.toBe("Name this address");
   await screenshot(page, testInfo, "german");
   expect(await scrollsSideways(page)).toBe(false);

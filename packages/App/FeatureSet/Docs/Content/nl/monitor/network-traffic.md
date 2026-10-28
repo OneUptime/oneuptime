@@ -236,9 +236,9 @@ Klik op een adres, of zoek het, en de pagina beperkt zich ertoe, met een kaart b
 
 - **Host openen**, **Apparaat openen** of **Cloud-resource openen**, als de naam van dat record is. Wijzig de naam daar.
 - **Dit adres een naam geven**, als niets het benoemt of alleen DNS. Het adres is al ingevuld; verbreed het tot een subnet, zoals `10.18.167.0/24`, om in plaats daarvan het hele subnet een naam te geven.
-- **Hernoemen**, als de naam een adresnaam is.
+- **Bewerken in Instellingen**, als de naam een adresnaam is. Dit opent **Adresnamen**, waar je de naam wijzigt.
 
-Namen geven en wijzigen mag wie netwerkapparaten mag toevoegen en wijzigen. Iedereen die ze mag lezen, ziet de namen.
+**Dit adres een naam geven** is voor wie netwerkapparaten mag toevoegen, en **Bewerken in Instellingen** voor wie ze mag wijzigen. Iedereen die ze mag lezen, ziet de namen.
 
 ### Adresnamen
 

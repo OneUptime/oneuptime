@@ -59,7 +59,7 @@ describe("Network > Settings > Address Names", () => {
       "[PageMap.NETWORK_DEVICE_SETTINGS_ADDRESS_NAMES]: new Route( `/dashboard/${RouteParams.ProjectID}/network-devices/${ NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_SETTINGS_ADDRESS_NAMES] }`, ),",
     );
     expect(readRoutes("Routes/NetworkDeviceRoutes.tsx")).toContain(
-      '<NetworkDeviceSettingsAddressNames {...props} pageRoute={ RouteMap[PageMap.NETWORK_DEVICE_SETTINGS_ADDRESS_NAMES] as Route } />',
+      "<NetworkDeviceSettingsAddressNames {...props} pageRoute={ RouteMap[PageMap.NETWORK_DEVICE_SETTINGS_ADDRESS_NAMES] as Route } />",
     );
   });
 
@@ -67,7 +67,9 @@ describe("Network > Settings > Address Names", () => {
     const menu: string = readCode("Components/Network/NetworkSideMenu.tsx");
     const siteTypes: number = menu.indexOf('title: "Site Types",');
     const addressNames: number = menu.indexOf('title: "Address Names",');
-    const oidTemplates: number = menu.indexOf('title: "OID Collection Templates",');
+    const oidTemplates: number = menu.indexOf(
+      'title: "OID Collection Templates",',
+    );
 
     expect(siteTypes).toBeGreaterThan(-1);
     expect(addressNames).toBeGreaterThan(siteTypes);
@@ -131,7 +133,9 @@ describe("a Traffic page hands its names to everything that lists an address", (
     expect(
       view.split("addressNames={summary.addressNames}").length - 1,
     ).toBeGreaterThanOrEqual(2);
-    expect(view).toContain("<TrafficAddressCard label={labelOf(filteredAddress)}");
+    expect(view).toContain(
+      "<TrafficAddressCard label={labelOf(filteredAddress)}",
+    );
   });
 
   test("find takes a name or an address, and asks the server only for a name", () => {
@@ -140,12 +144,36 @@ describe("a Traffic page hands its names to everything that lists an address", (
     expect(view).not.toContain('"Find an IP address"');
   });
 
-  test("naming is for who may add Address Names, renaming for who may change them", () => {
+  test("naming is for who may add Address Names, Edit in Settings for who may change them", () => {
     expect(view).toContain(
       "PermissionGate.check( new NetworkAddressName(), ModelAction.Create,",
     );
     expect(view).toContain(
       "PermissionGate.check( new NetworkAddressName(), ModelAction.Update,",
     );
+    expect(view).toContain("canName={nameAddressGate.isAllowed}");
+    expect(view).toContain("canEditNames={editAddressNamesGate.isAllowed}");
+  });
+
+  /*
+   * A detail is edited from one form (ResourceDetailsOnePlaceGuard): an
+   * Address Name's on Network > Settings > Address Names. The Traffic page
+   * adds a name, and sends a name someone gave to that page to be changed.
+   */
+  test("the Traffic page only adds a name; a name someone gave is changed on Address Names", () => {
+    const modal: string = readCode(
+      "Components/NetworkTraffic/NetworkAddressNameModal.tsx",
+    );
+    const card: string = readCode(
+      "Components/NetworkTraffic/TrafficAddressCard.tsx",
+    );
+
+    expect(modal).toContain("formType: FormType.Create,");
+    expect(modal).not.toContain("FormType.Update");
+    expect(modal).not.toContain("modelIdToEdit");
+    expect(card).toContain(
+      "RouteMap[PageMap.NETWORK_DEVICE_SETTINGS_ADDRESS_NAMES] as Route",
+    );
+    expect(card).toContain('translator.translateText("Edit in Settings")');
   });
 });

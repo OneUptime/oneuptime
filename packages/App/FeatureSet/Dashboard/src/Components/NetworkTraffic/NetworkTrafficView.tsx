@@ -328,9 +328,9 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
   const [addressInput, setAddressInput] = useState<string>("");
   const [addressError, setAddressError] = useState<string>("");
   // "Find" by a name: the addresses it found, to pick one of.
-  const [findMatches, setFindMatches] = useState<Array<NetworkTrafficFindMatch>>(
-    [],
-  );
+  const [findMatches, setFindMatches] = useState<
+    Array<NetworkTrafficFindMatch>
+  >([]);
   const [isFinding, setIsFinding] = useState<boolean>(false);
   const latestFindRef: React.MutableRefObject<number> = useRef<number>(0);
   const findFormRef: React.RefObject<HTMLFormElement> =
@@ -1011,15 +1011,15 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
   const filteredAddress: string | null = getFilteredAddress(filters);
 
   /*
-   * Naming an address is for whoever may add Address Names, and renaming
-   * one for whoever may change them.
+   * Naming an address is for whoever may add Address Names, and the way to
+   * change one (Edit in Settings) for whoever may change them.
    */
   const nameAddressGate: PermissionGateResult = PermissionGate.check(
     new NetworkAddressName(),
     ModelAction.Create,
     { singularName: "Address Name" },
   );
-  const renameAddressGate: PermissionGateResult = PermissionGate.check(
+  const editAddressNamesGate: PermissionGateResult = PermissionGate.check(
     new NetworkAddressName(),
     ModelAction.Update,
     { singularName: "Address Name" },
@@ -1564,7 +1564,7 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
                         <TrafficAddressCard
                           label={labelOf(filteredAddress)}
                           canName={nameAddressGate.isAllowed}
-                          canRename={renameAddressGate.isAllowed}
+                          canEditNames={editAddressNamesGate.isAllowed}
                           onNamed={() => {
                             setRefreshKey((key: number) => {
                               return key + 1;

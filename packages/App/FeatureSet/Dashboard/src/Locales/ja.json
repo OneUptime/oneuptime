@@ -36719,7 +36719,6 @@
   "Open device": "デバイスを開く",
   "Open host": "ホストを開く",
   "Pick the address:": "アドレスを選択:",
-  "Rename this address": "このアドレスの名前を変更",
   "Show only the traffic to or from {{address}}": "{{address}} との送受信トラフィックだけを表示",
   "Shown on the Traffic pages. For a subnet, say where it is, like Mumbai office.": "トラフィックのページに表示されます。サブネットなら、ムンバイ オフィスのように場所を書きます。",
   "Source Name": "送信元名",

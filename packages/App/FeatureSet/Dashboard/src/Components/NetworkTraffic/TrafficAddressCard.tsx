@@ -44,7 +44,8 @@ import React, {
  *     resource) lives on that record: Open host, Open device...;
  *   - an address with no name, or only a DNS name, can be given one: Name
  *     this address;
- *   - a name someone gave it can be changed: Rename.
+ *   - a name someone gave it is changed where Address Names are kept,
+ *     Network > Settings > Address Names: Edit in Settings goes there.
  *
  * Shown for one address at a time - "to or from", "from" or "to" alone - so
  * it never crowds a page that is not about one address.
@@ -55,7 +56,7 @@ export interface ComponentProps {
   // The reader may add Address Names.
   canName: boolean;
   // The reader may change them.
-  canRename: boolean;
+  canEditNames: boolean;
   // A name was saved: the page reads its names again.
   onNamed: () => void;
 }
@@ -95,15 +96,18 @@ export function getRecordRoute(label: TrafficAddressLabel): Route | null {
 }
 
 /*
- * Whether the page offers to name the address: when nothing names it, when
- * only DNS does (a friendlier name helps), or to rename the name someone
- * gave it. A name the inventory gives is changed on its record.
+ * Whether the page offers to name the address: when nothing names it, or
+ * only DNS does (a friendlier name helps). A name the inventory gives is
+ * changed on its record, and one someone gave on Address Names.
  */
 export function canNameAddress(label: TrafficAddressLabel): boolean {
-  return (
-    !label.source ||
-    label.source === NetworkAddressNameSource.Dns ||
-    label.source === NetworkAddressNameSource.AddressName
+  return !label.source || label.source === NetworkAddressNameSource.Dns;
+}
+
+// Where a name someone gave is changed: Network > Settings > Address Names.
+export function getAddressNamesRoute(): Route {
+  return RouteUtil.populateRouteParams(
+    RouteMap[PageMap.NETWORK_DEVICE_SETTINGS_ADDRESS_NAMES] as Route,
   );
 }
 
@@ -125,10 +129,9 @@ const TrafficAddressCard: FunctionComponent<ComponentProps> = (
   const [isNaming, setIsNaming] = useState<boolean>(false);
   const label: TrafficAddressLabel = props.label;
   const recordRoute: Route | null = getRecordRoute(label);
-  const isAddressName: boolean =
-    label.source === NetworkAddressNameSource.AddressName;
-  const showNameButton: boolean =
-    canNameAddress(label) && (isAddressName ? props.canRename : props.canName);
+  const showNameButton: boolean = canNameAddress(label) && props.canName;
+  const showEditInSettings: boolean =
+    label.source === NetworkAddressNameSource.AddressName && props.canEditNames;
 
   const copyButton: ReactElement = (
     <CopyTextButton
@@ -179,9 +182,7 @@ const TrafficAddressCard: FunctionComponent<ComponentProps> = (
       <div className="min-w-0">
         <div className="flex min-w-0 items-center gap-2">
           <Icon
-            icon={
-              label.source ? SOURCE_ICONS[label.source] : IconProp.Hashtag
-            }
+            icon={label.source ? SOURCE_ICONS[label.source] : IconProp.Hashtag}
             className="h-4 w-4 flex-shrink-0 text-gray-400"
           />
           <span
@@ -230,7 +231,7 @@ const TrafficAddressCard: FunctionComponent<ComponentProps> = (
           })}
         </div>
       </div>
-      {recordRoute || showNameButton ? (
+      {recordRoute || showNameButton || showEditInSettings ? (
         <div className="flex flex-shrink-0 flex-wrap items-center gap-2">
           {recordRoute && label.source ? (
             <AppLink
@@ -248,10 +249,22 @@ const TrafficAddressCard: FunctionComponent<ComponentProps> = (
           ) : (
             <></>
           )}
+          {showEditInSettings ? (
+            <AppLink
+              to={getAddressNamesRoute()}
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-medium text-indigo-700 hover:bg-indigo-50 hover:text-indigo-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              dataTestId="traffic-address-card-edit-in-settings"
+            >
+              <Icon icon={IconProp.Settings} className="h-3.5 w-3.5" />
+              <span>{translator.translateText("Edit in Settings")}</span>
+            </AppLink>
+          ) : (
+            <></>
+          )}
           {showNameButton ? (
             <Button
-              title={isAddressName ? "Rename" : "Name this address"}
-              icon={isAddressName ? IconProp.Pencil : IconProp.Label}
+              title="Name this address"
+              icon={IconProp.Label}
               buttonStyle={ButtonStyleType.OUTLINE}
               buttonSize={ButtonSize.Small}
               onClick={() => {
@@ -269,9 +282,6 @@ const TrafficAddressCard: FunctionComponent<ComponentProps> = (
       {isNaming ? (
         <NetworkAddressNameModal
           address={label.address}
-          addressNameId={
-            isAddressName ? label.resourceId || undefined : undefined
-          }
           onClose={() => {
             setIsNaming(false);
           }}

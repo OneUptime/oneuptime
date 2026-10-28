@@ -236,9 +236,9 @@ Click an address, or find it, and the page narrows to it with a card over the nu
 
 - **Open host**, **Open device** or **Open cloud resource**, when the name is that record's. Change the name there.
 - **Name this address**, when nothing names it or only DNS does. The address is filled in; widen it to a subnet, such as `10.18.167.0/24`, to name the whole subnet instead.
-- **Rename**, when the name is an Address Name.
+- **Edit in Settings**, when the name is an Address Name. It opens **Address Names**, where the name is changed.
 
-Naming and renaming are for who may add and change network devices. Everyone who may read them sees the names.
+**Name this address** is for who may add network devices, and **Edit in Settings** for who may change them. Everyone who may read them sees the names.
 
 ### Address Names
 

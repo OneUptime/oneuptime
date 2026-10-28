@@ -9,15 +9,16 @@ import path from "path";
  * browser can show is checked here: names over addresses in the top lists
  * and both views of the conversations, long names cut short with the whole
  * name under the pointer, the address card a page narrowed to one address
- * opens with, "find" by a name, naming an address and renaming it, and
- * Network > Settings > Address Names - at a laptop's and a phone's width,
+ * opens with, "find" by a name, naming an address and changing a name in
+ * its one place, Network > Settings > Address Names - at a laptop's and a phone's width,
  * in the dark theme, in German and in Persian (addresses left to right).
  *
  * The fixture server's port. Another checkout's run on the default port is
  * reused outside CI, so a second run picks a port of its own:
  * NETWORK_TRAFFIC_NAMES_FIXTURE_PORT=4647 CI=1 npm run test-network-traffic-names-ui.
  */
-const port: string = process.env["NETWORK_TRAFFIC_NAMES_FIXTURE_PORT"] || "4547";
+const port: string =
+  process.env["NETWORK_TRAFFIC_NAMES_FIXTURE_PORT"] || "4547";
 
 export default defineConfig({
   testDir: "./NetworkTrafficNames",

@@ -236,9 +236,9 @@ Klikk på en adresse, eller finn den, så snevres siden inn til den, med et kort
 
 - **Åpne verten**, **Åpne enheten** eller **Åpne skyressursen**, når navnet er den postens. Endre navnet der.
 - **Gi adressen et navn**, når ingenting navngir den, eller bare DNS gjør det. Adressen er fylt ut; utvid den til et delnett, for eksempel `10.18.167.0/24`, for å navngi hele delnettet i stedet.
-- **Gi nytt navn**, når navnet er et adressenavn.
+- **Rediger i Innstillinger**, når navnet er et adressenavn. Det åpner **Adressenavn**, der navnet endres.
 
-Å gi og endre navn er for dem som kan legge til og endre nettverksenheter. Alle som kan lese dem, ser navnene.
+**Gi adressen et navn** er for dem som kan legge til nettverksenheter, og **Rediger i Innstillinger** for dem som kan endre dem. Alle som kan lese dem, ser navnene.
 
 ### Adressenavn
 

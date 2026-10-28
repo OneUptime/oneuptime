@@ -236,9 +236,9 @@ Klik på en adresse, eller find den, så indsnævres siden til den med et kort o
 
 - **Åbn vært**, **Åbn enhed** eller **Åbn cloud-ressource**, når navnet er den posts. Ret navnet der.
 - **Giv adressen et navn**, når intet navngiver den, eller kun DNS gør. Adressen er udfyldt; udvid den til et undernet, f.eks. `10.18.167.0/24`, for at navngive hele undernettet i stedet.
-- **Omdøb**, når navnet er et adressenavn.
+- **Rediger i Indstillinger**, når navnet er et adressenavn. Det åbner **Adressenavne**, hvor navnet ændres.
 
-At give og ændre navne er for dem, der må tilføje og ændre netværksenheder. Alle, der må læse dem, ser navnene.
+**Giv adressen et navn** er for dem, der må tilføje netværksenheder, og **Rediger i Indstillinger** for dem, der må ændre dem. Alle, der må læse dem, ser navnene.
 
 ### Adressenavne
 

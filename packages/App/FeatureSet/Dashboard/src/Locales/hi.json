@@ -36719,7 +36719,6 @@
   "Open device": "डिवाइस खोलें",
   "Open host": "होस्ट खोलें",
   "Pick the address:": "पता चुनें:",
-  "Rename this address": "इस पते का नाम बदलें",
   "Show only the traffic to or from {{address}}": "सिर्फ़ {{address}} से या तक का ट्रैफ़िक दिखाएँ",
   "Shown on the Traffic pages. For a subnet, say where it is, like Mumbai office.": "ट्रैफ़िक पेजों पर दिखता है। सबनेट हो तो लिखें कि वह कहाँ है, जैसे मुंबई ऑफ़िस।",
   "Source Name": "स्रोत का नाम",

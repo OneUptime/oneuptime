@@ -236,9 +236,9 @@ Klicken Sie auf eine Adresse oder suchen Sie sie, und die Seite beschränkt sich
 
 - **Host öffnen**, **Gerät öffnen** oder **Cloud-Ressource öffnen**, wenn der Name von diesem Datensatz stammt. Ändern Sie den Namen dort.
 - **Adresse benennen**, wenn nichts die Adresse benennt oder nur DNS. Die Adresse ist schon eingetragen; erweitern Sie sie zu einem Subnetz wie `10.18.167.0/24`, um stattdessen das ganze Subnetz zu benennen.
-- **Umbenennen**, wenn der Name ein Adressname ist.
+- **In den Einstellungen bearbeiten**, wenn der Name ein Adressname ist. Es öffnet **Adressnamen**, wo der Name geändert wird.
 
-Benennen und Umbenennen darf, wer Netzwerkgeräte hinzufügen und ändern darf. Wer sie lesen darf, sieht die Namen.
+**Adresse benennen** steht allen offen, die Netzwerkgeräte hinzufügen dürfen, und **In den Einstellungen bearbeiten** allen, die sie ändern dürfen. Wer sie lesen darf, sieht die Namen.
 
 ### Adressnamen
 

@@ -236,9 +236,9 @@ Fai clic su un indirizzo, o trovalo, e la pagina si restringe a esso, con una sc
 
 - **Apri l'host**, **Apri il dispositivo** o **Apri la risorsa cloud**, quando il nome è di quel record. Cambia il nome lì.
 - **Dai un nome a questo indirizzo**, quando niente lo nomina o solo il DNS. L'indirizzo è già inserito; allargalo a una sottorete, come `10.18.167.0/24`, per dare un nome all'intera sottorete.
-- **Rinomina**, quando il nome è un nome indirizzo.
+- **Modifica nelle impostazioni**, quando il nome è un nome indirizzo. Apre **Nomi indirizzo**, dove si cambia il nome.
 
-Dare e cambiare nomi spetta a chi può aggiungere e modificare dispositivi di rete. Chiunque può leggerli vede i nomi.
+**Dai un nome a questo indirizzo** è per chi può aggiungere dispositivi di rete, e **Modifica nelle impostazioni** per chi può modificarli. Chiunque può leggerli vede i nomi.
 
 ### Nomi indirizzo
 

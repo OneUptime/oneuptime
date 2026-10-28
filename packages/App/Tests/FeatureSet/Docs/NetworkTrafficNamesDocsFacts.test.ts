@@ -5,10 +5,7 @@ import {
   NETWORK_ADDRESS_NAME_SOURCES,
   NetworkAddressNameSource,
 } from "Common/Types/NetFlow/NetworkAddressName";
-import {
-  TRANSLATED_LANGUAGES,
-  readPage,
-} from "./DocsContentSupport";
+import { TRANSLATED_LANGUAGES, readPage } from "./DocsContentSupport";
 
 /*
  * NAMES INSTEAD OF ADDRESSES (issue #5340), as the Network Traffic page
@@ -29,10 +26,12 @@ const PACKAGES_DIR: string = path.resolve(__dirname, "../../../..");
 const PAGE: string = "monitor/network-traffic";
 const NAMER: string = "Probe/Utils/NetFlow/FlowAddressNamer.ts";
 const PROBE_CONFIG: string = "Probe/Config.ts";
-const DASHBOARD_EN: string =
-  "App/FeatureSet/Dashboard/src/Locales/en.json";
+const DASHBOARD_EN: string = "App/FeatureSet/Dashboard/src/Locales/en.json";
 
 const SECTION_HEADING: string = "## Names instead of addresses";
+
+// A row of the order table: its first cell is the order, a whole number.
+const ORDER_CELL: RegExp = /^\d+$/;
 
 function readSource(relativePath: string): string {
   return fs.readFileSync(path.join(PACKAGES_DIR, relativePath), "utf8");
@@ -121,7 +120,7 @@ describe("Network Traffic docs: where a name comes from", () => {
   test("the table names the sources in the order a name is picked", () => {
     const sources: Array<string> = tableRows(section)
       .filter((row: Array<string>): boolean => {
-        return /^\d+$/.test(row[0] || "");
+        return ORDER_CELL.test(row[0] || "");
       })
       .map((row: Array<string>): string => {
         return row[1] || "";
@@ -258,7 +257,7 @@ describe("Network Traffic docs: the labels it quotes", () => {
   test.each([
     "Find a name or an IP address",
     "Name this address",
-    "Rename",
+    "Edit in Settings",
     "Open host",
     "Open device",
     "Open cloud resource",
@@ -272,16 +271,24 @@ describe("Network Traffic docs: the labels it quotes", () => {
   test("Find is no longer only for an address", () => {
     expect(english).not.toContain("**Find an IP address**");
   });
+
+  // An Address Name is changed in one place, Address Names, never renamed on the card.
+  test("a name someone gave is changed on Address Names, by Edit in Settings", () => {
+    expect(section).toContain(
+      "- **Edit in Settings**, when the name is an Address Name. It opens **Address Names**, where the name is changed.",
+    );
+    expect(english).not.toContain("**Rename**");
+  });
 });
 
 describe("Network Traffic docs: every translation has the section", () => {
   test.each(TRANSLATED_LANGUAGES)("%s", (lang: string) => {
     const page: string = readPage(lang, PAGE);
-    const headings: Array<string> = page.split("\n").filter(
-      (line: string): boolean => {
+    const headings: Array<string> = page
+      .split("\n")
+      .filter((line: string): boolean => {
         return line.startsWith("## ") || line.startsWith("### ");
-      },
-    );
+      });
     const englishHeadings: Array<string> = english
       .split("\n")
       .filter((line: string): boolean => {
@@ -306,7 +313,11 @@ describe("Network Traffic docs: every translation has the section", () => {
     }
 
     // The section's examples, written as the English writes them.
-    for (const example of ["10.18.167.0/24", "10.18.167.35/24", "mumbai-fs01"]) {
+    for (const example of [
+      "10.18.167.0/24",
+      "10.18.167.35/24",
+      "mumbai-fs01",
+    ]) {
       expect(page).toContain(example);
     }
   });

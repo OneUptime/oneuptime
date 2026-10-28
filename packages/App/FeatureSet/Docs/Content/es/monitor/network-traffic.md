@@ -236,9 +236,9 @@ Haz clic en una dirección, o búscala, y la página se limita a ella, con una t
 
 - **Abrir el host**, **Abrir el dispositivo** o **Abrir el recurso en la nube**, cuando el nombre es de ese registro. Cambia el nombre allí.
 - **Poner nombre a esta dirección**, cuando nada la nombra o solo el DNS. La dirección ya está escrita; amplíala a una subred, como `10.18.167.0/24`, para nombrar toda la subred en su lugar.
-- **Cambiar nombre**, cuando el nombre es un nombre de dirección.
+- **Editar en Ajustes**, cuando el nombre es un nombre de dirección. Abre **Nombres de dirección**, donde se cambia el nombre.
 
-Poner y cambiar nombres es para quien puede añadir y cambiar dispositivos de red. Todos los que pueden leerlos ven los nombres.
+**Poner nombre a esta dirección** es para quien puede añadir dispositivos de red, y **Editar en Ajustes**, para quien puede cambiarlos. Todos los que pueden leerlos ven los nombres.
 
 ### Nombres de dirección
 

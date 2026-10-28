@@ -36719,7 +36719,6 @@
   "Open device": "打开设备",
   "Open host": "打开主机",
   "Pick the address:": "选择地址：",
-  "Rename this address": "重命名此地址",
   "Show only the traffic to or from {{address}}": "只看往返 {{address}} 的流量",
   "Shown on the Traffic pages. For a subnet, say where it is, like Mumbai office.": "显示在流量页面上。如果是子网，请写明它在哪里，例如孟买办公室。",
   "Source Name": "源名称",

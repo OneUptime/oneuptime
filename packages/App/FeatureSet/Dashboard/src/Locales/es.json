@@ -36719,7 +36719,6 @@
   "Open device": "Abrir el dispositivo",
   "Open host": "Abrir el host",
   "Pick the address:": "Elige la dirección:",
-  "Rename this address": "Cambiar el nombre de esta dirección",
   "Show only the traffic to or from {{address}}": "Mostrar solo el tráfico hacia o desde {{address}}",
   "Shown on the Traffic pages. For a subnet, say where it is, like Mumbai office.": "Se muestra en las páginas de tráfico. Para una subred, di dónde está, como Oficina de Bombay.",
   "Source Name": "Nombre del origen",

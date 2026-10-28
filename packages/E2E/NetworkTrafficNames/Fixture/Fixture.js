@@ -766,8 +766,8 @@ ModelAPI.updateById = async (options) => {
 
 /*
  * What the Address Name form saves through (ModelForm): a new name, or a
- * name changed in place - with the server's own checks, so a refused one
- * says what the server would.
+ * name changed on Address Names - with the server's own checks, so a
+ * refused one says what the server would.
  */
 ModelAPI.createOrUpdate = async (options) => {
   if (options.modelType !== NetworkAddressName) {

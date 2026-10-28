@@ -33,7 +33,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     reader hears.
  *   - An address nothing names is shown as it always was.
  *   - Narrowed to one address, the page says who it is and offers the next
- *     step: open its record, name it, rename it - each for who may.
+ *     step: open its record, name it, or change the name someone gave on
+ *     Network > Settings > Address Names (its one place) - each for who
+ *     may.
  *   - Find takes a name: one address found narrows the page, several are
  *     listed to pick from, none is said.
  *
@@ -56,7 +58,10 @@ interface CapturedModal {
   title: string;
   modelIdToEdit?: { toString: () => string } | undefined;
   initialValues?: Record<string, unknown> | undefined;
-  formProps: { formType: FormType; fields: Array<{ field: object }> };
+  formProps: {
+    formType: FormType;
+    fields: Array<{ field: Record<string, unknown> }>;
+  };
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -462,9 +467,10 @@ describe("the top lists write a named address by its name, the address under it"
 
     expect(name.tagName).toBe("BDI");
     expect(name).toHaveAttribute("dir", "rtl");
-    expect(
-      within(row).getByTestId("traffic-address-text"),
-    ).toHaveAttribute("dir", "ltr");
+    expect(within(row).getByTestId("traffic-address-text")).toHaveAttribute(
+      "dir",
+      "ltr",
+    );
   });
 
   test("a long name is cut to its line, and is whole under the pointer", async () => {
@@ -694,7 +700,9 @@ describe("narrowed to one address, the page says who it is and what to do next",
       within(card).getByTestId("traffic-address-card-open"),
     ).toHaveTextContent("Open device");
     expect(
-      within(card).getByTestId("traffic-address-card-open").getAttribute("href"),
+      within(card)
+        .getByTestId("traffic-address-card-open")
+        .getAttribute("href"),
     ).toContain(DEVICE_ID);
 
     cleanup();
@@ -704,7 +712,9 @@ describe("narrowed to one address, the page says who it is and what to do next",
       within(card).getByTestId("traffic-address-card-open"),
     ).toHaveTextContent("Open cloud resource");
     expect(
-      within(card).getByTestId("traffic-address-card-open").getAttribute("href"),
+      within(card)
+        .getByTestId("traffic-address-card-open")
+        .getAttribute("href"),
     ).toContain(CLOUD_ID);
   });
 
@@ -726,7 +736,9 @@ describe("narrowed to one address, the page says who it is and what to do next",
       within(card).getByTestId("traffic-address-card-source"),
     ).toHaveTextContent("DNS name");
 
-    fireEvent.click(within(card).getByTestId("traffic-address-card-name-button"));
+    fireEvent.click(
+      within(card).getByTestId("traffic-address-card-name-button"),
+    );
     await flush();
 
     expect(screen.getByTestId("address-name-dialog")).toHaveTextContent(
@@ -751,32 +763,34 @@ describe("narrowed to one address, the page says who it is and what to do next",
     ).toHaveTextContent("Name this address");
   });
 
-  test("a name someone gave can be renamed, in place", async () => {
+  test("a name someone gave is changed in its one place: Edit in Settings opens Address Names, no second form here", async () => {
     const card: HTMLElement = await narrowTo("dst=158.115.141.143");
 
     expect(
       within(card).getByTestId("traffic-address-card-source"),
     ).toHaveTextContent("Address name");
 
-    const rename: HTMLElement = within(card).getByTestId(
-      "traffic-address-card-name-button",
+    const edit: HTMLElement = within(card).getByTestId(
+      "traffic-address-card-edit-in-settings",
     );
-    expect(rename).toHaveTextContent("Rename");
-
-    fireEvent.click(rename);
-    await flush();
-
-    expect(capturedModal!.title).toBe("Rename this address");
-    expect(capturedModal!.modelIdToEdit?.toString()).toBe(NAME_ROW_ID);
-    expect(capturedModal!.initialValues).toBeUndefined();
-    expect(capturedModal!.formProps.formType).toBe(FormType.Update);
+    expect(edit).toHaveTextContent("Edit in Settings");
+    expect(edit.getAttribute("href")).toContain(
+      "/dashboard/10000000-0000-4000-8000-000000000001/network-devices/settings/address-names",
+    );
+    // No Name this address, no dialog: the name is not edited from two forms.
+    expect(
+      within(card).queryByTestId("traffic-address-card-name-button"),
+    ).not.toBeInTheDocument();
+    expect(capturedModal).toBeNull();
   });
 
   test("a saved name: the dialog closes and the page reads its names again", async () => {
     const card: HTMLElement = await narrowTo("host=203.0.113.9");
     const reads: number = summaryPostMock.mock.calls.length;
 
-    fireEvent.click(within(card).getByTestId("traffic-address-card-name-button"));
+    fireEvent.click(
+      within(card).getByTestId("traffic-address-card-name-button"),
+    );
     await flush();
     fireEvent.click(screen.getByRole("button", { name: "Saved" }));
     await flush();
@@ -789,7 +803,9 @@ describe("narrowed to one address, the page says who it is and what to do next",
     const card: HTMLElement = await narrowTo("host=203.0.113.9");
     const reads: number = summaryPostMock.mock.calls.length;
 
-    fireEvent.click(within(card).getByTestId("traffic-address-card-name-button"));
+    fireEvent.click(
+      within(card).getByTestId("traffic-address-card-name-button"),
+    );
     await flush();
     fireEvent.click(screen.getByRole("button", { name: "Closed" }));
     await flush();
@@ -798,7 +814,7 @@ describe("narrowed to one address, the page says who it is and what to do next",
     expect(summaryPostMock.mock.calls.length).toBe(reads);
   });
 
-  test("who may not add Address Names is offered no Name this address; who may not change them, no Rename", async () => {
+  test("who may not add Address Names is offered no Name this address; who may not change them, no Edit in Settings", async () => {
     mayCreateNames = false;
     let card: HTMLElement = await narrowTo("host=203.0.113.9");
 
@@ -812,6 +828,9 @@ describe("narrowed to one address, the page says who it is and what to do next",
     card = await narrowTo("dst=158.115.141.143");
 
     expect(
+      within(card).queryByTestId("traffic-address-card-edit-in-settings"),
+    ).not.toBeInTheDocument();
+    expect(
       within(card).queryByTestId("traffic-address-card-name-button"),
     ).not.toBeInTheDocument();
   });
@@ -824,13 +843,17 @@ describe("narrowed to one address, the page says who it is and what to do next",
     );
     await renderView();
 
-    expect(screen.queryByTestId("traffic-address-card")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("traffic-address-card"),
+    ).not.toBeInTheDocument();
   });
 
   test("a page not narrowed to an address has no card", async () => {
     await renderView();
 
-    expect(screen.queryByTestId("traffic-address-card")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("traffic-address-card"),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -843,9 +866,11 @@ describe("find takes a name", () => {
   }
 
   function findRequests(): Array<PostedRequest> {
-    return findPostMock.mock.calls.map((call: Array<unknown>): PostedRequest => {
-      return (call[0] as { data: PostedRequest }).data;
-    });
+    return findPostMock.mock.calls.map(
+      (call: Array<unknown>): PostedRequest => {
+        return (call[0] as { data: PostedRequest }).data;
+      },
+    );
   }
 
   test("a name is searched in the page's window and scope; one address found narrows the page", async () => {
@@ -1100,7 +1125,10 @@ describe("the network's page: devices and senders that are no device yet", () =>
       within(row).getByTestId("traffic-top-devices-row-sublabel"),
     ).toHaveTextContent(`${UNKNOWN} · Not a device yet`);
 
-    const nameless: HTMLElement = rowWith("traffic-top-devices", "203.0.113.50");
+    const nameless: HTMLElement = rowWith(
+      "traffic-top-devices",
+      "203.0.113.50",
+    );
     expect(
       within(nameless).getByTestId("traffic-top-devices-row-sublabel"),
     ).toHaveTextContent("Not a device yet");

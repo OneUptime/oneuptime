@@ -236,9 +236,9 @@ Cliquez sur une adresse, ou recherchez-la, et la page se restreint à elle, avec
 
 - **Ouvrir l'hôte**, **Ouvrir l'équipement** ou **Ouvrir la ressource cloud**, quand le nom est celui de cet enregistrement. Changez le nom là-bas.
 - **Nommer cette adresse**, quand rien ne la nomme ou seulement le DNS. L'adresse est déjà saisie ; élargissez-la à un sous-réseau, comme `10.18.167.0/24`, pour nommer tout le sous-réseau à la place.
-- **Renommer**, quand le nom est un nom d'adresse.
+- **Modifier dans les paramètres**, quand le nom est un nom d'adresse. Cela ouvre **Noms d'adresse**, où l'on modifie le nom.
 
-Nommer et renommer sont réservés à qui peut ajouter et modifier des équipements réseau. Tous ceux qui peuvent les lire voient les noms.
+**Nommer cette adresse** est réservé à qui peut ajouter des équipements réseau, et **Modifier dans les paramètres** à qui peut les modifier. Tous ceux qui peuvent les lire voient les noms.
 
 ### Noms d'adresse
 

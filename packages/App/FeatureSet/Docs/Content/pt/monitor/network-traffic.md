@@ -236,9 +236,9 @@ Clique em um endereço, ou encontre-o, e a página se restringe a ele, com um ca
 
 - **Abrir o host**, **Abrir o dispositivo** ou **Abrir o recurso de nuvem**, quando o nome é desse registro. Mude o nome lá.
 - **Dar nome a este endereço**, quando nada o nomeia ou só o DNS. O endereço já vem preenchido; amplie-o para uma sub-rede, como `10.18.167.0/24`, para nomear a sub-rede inteira.
-- **Renomear**, quando o nome é um nome de endereço.
+- **Editar nas configurações**, quando o nome é um nome de endereço. Abre **Nomes de endereço**, onde o nome é alterado.
 
-Dar e mudar nomes é para quem pode adicionar e alterar dispositivos de rede. Todos que podem lê-los veem os nomes.
+**Dar nome a este endereço** é para quem pode adicionar dispositivos de rede, e **Editar nas configurações**, para quem pode alterá-los. Todos que podem lê-los veem os nomes.
 
 ### Nomes de endereço
 
