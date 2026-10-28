@@ -396,8 +396,9 @@ happened.
 | `?retrohunt=` | `quiet`: it would not have fired, 12 matching events none of whose runs reached the threshold; `noisy`: 1,680 firings for 64 addresses, the 50 that fired most listed; `fail`: the YAML is refused (a 400) |
 
 `RuleExceptions.spec.ts` covers: the list under Detections, its entry lit and its trail, four
-columns that fit beside the menu at 1280 (what it skips and its kind, values in the mono type, the
-rule, why with who added it and when, the status and how far off - "Expires in a month", "2 days
+columns that fit beside the menu at 1280 (what it skips and its kind, values in the mono type, a
+long host pattern breaking after its dots or a hyphen and never mid-word, the rule, why with who
+added it and when, the status and how far off - "Expires in a month", "2 days
 ago" - with the date under the pointer), in German, Russian and French too; one card each on a
 phone; Persian, right to left, with every status in Persian and the status line wrapping rather
 than running under the row's actions; an exception that expired keeping its expiry while its
