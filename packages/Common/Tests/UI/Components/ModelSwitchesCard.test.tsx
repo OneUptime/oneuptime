@@ -716,8 +716,8 @@ describe("ModelSwitchesCard locks each switch by its own column", () => {
     expect(row).toHaveTextContent(
       "You do not have permission to update this Project.",
     );
-    expect(row).toHaveTextContent("Project Owner");
-    expect(row).toHaveTextContent("Manage Billing");
+    // The column's own permission; Project Owner holds it as well.
+    expect(row).toHaveTextContent("You need this permission: Manage Billing.");
 
     await press("switch-ai");
     expect(updateByIdMock).not.toHaveBeenCalled();

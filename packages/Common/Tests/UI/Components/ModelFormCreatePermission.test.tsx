@@ -219,13 +219,13 @@ describe("ModelForm model-level create permission", () => {
       />,
     );
 
-    await waitFor(() => {
-      expect(
-        screen.getByText(/You need one of these permissions/),
-      ).toBeInTheDocument();
-    });
-
-    expect(screen.getByText(/Create Monitor/)).toBeInTheDocument();
+    // The permission to ask for, not the roles that hold it as well.
+    expect(
+      await screen.findByText(
+        "You do not have permission to create this Monitor. You need this permission: Create Monitor.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Project Admin/)).toBeNull();
   });
 
   /*

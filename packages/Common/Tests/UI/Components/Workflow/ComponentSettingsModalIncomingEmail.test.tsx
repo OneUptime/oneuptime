@@ -422,7 +422,7 @@ describe("Incoming Email trigger: its address is managed here", () => {
     );
 
     expect(screen.getByRole("tooltip")).toHaveTextContent(
-      "You do not have permission to reset this email address. You need one of these permissions: Project Owner, Project Admin, Edit Workflow, Workflow Admin.",
+      "You do not have permission to reset this email address. You need this permission: Edit Workflow.",
     );
   });
 

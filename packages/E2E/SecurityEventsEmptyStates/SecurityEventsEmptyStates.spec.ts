@@ -154,7 +154,7 @@ const CONNECTIONS_DESCRIPTION: string =
   "Connect a SIEM, EDR / XDR, cloud security or identity product and OneUptime polls it on a schedule, importing each new alert, finding or log event as an OCSF security event.";
 // PermissionGate's sentence for a member who holds Security Viewer only.
 const CREATE_DISABLED_REASON: string =
-  "You do not have permission to create this Security Event Connection. You need one of these permissions: Project Owner, Project Admin, Security Admin.";
+  "You do not have permission to create this Security Event Connection. You need one of these roles: Project Owner, Project Admin, Security Admin.";
 
 const REQUIREMENTS: ReadonlyArray<{ id: string; title: string }> = [
   { id: "credential", title: "A read-only credential" },

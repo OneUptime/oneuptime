@@ -208,13 +208,33 @@ function grant(permissions: Array<Permission>): void {
   );
 }
 
+/*
+ * A lock's reason: its sentence, then the list's own permissions - never the
+ * built-in roles in the list beside them (PermissionGate's
+ * getPermissionsToName): every billing list has a permission of its own.
+ */
 function lockedReason(
   sentence: string,
   permissions: ReadonlyArray<Permission>,
 ): string {
-  return `${sentence} You need one of these permissions: ${PermissionHelper.getPermissionTitles(
-    [...permissions],
-  ).join(", ")}.`;
+  const props: ReturnType<
+    typeof PermissionHelper.getAllPermissionPropsAsDictionary
+  > = PermissionHelper.getAllPermissionPropsAsDictionary();
+  const titles: Array<string> = PermissionHelper.getPermissionTitles(
+    permissions.filter((permission: Permission): boolean => {
+      return Boolean(
+        props[permission] &&
+          !props[permission]!.isRolePermission &&
+          props[permission]!.isAssignableToTenant,
+      );
+    }),
+  );
+
+  expect(titles.length).toBeGreaterThan(0);
+
+  return titles.length === 1
+    ? `${sentence} You need the ${titles[0]} permission.`
+    : `${sentence} You need one of these permissions: ${titles.join(", ")}.`;
 }
 
 interface CardButton {
@@ -332,6 +352,18 @@ describe("the gates read the server's lists", () => {
       );
     },
   );
+
+  it("names the permissions to ask for, not the roles beside them", () => {
+    expect(
+      getBillingActionLockedReason(
+        getAddPaymentMethodGate({
+          permissions: [...BASE_PERMISSIONS, Permission.BillingViewer],
+        }),
+      ),
+    ).toBe(
+      "You do not have permission to add a payment method. You need one of these permissions: Manage Billing, Create Payment Method.",
+    );
+  });
 
   it.each([Permission.ProjectOwner, Permission.ManageProjectBilling])(
     "%s: none is locked",

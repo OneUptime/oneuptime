@@ -129,6 +129,10 @@ const ROWS: Array<JSONObject> = [
   { _id: "monitor-1", name: "Checkout API", description: "Payments" },
 ];
 
+// What a page puts over its rows: its filter chips.
+const FILTER_CHIPS_TEST_ID: string = "page-filter-chips";
+const SEARCH_SLOT_TEST_ID: string = "model-table-search-slot";
+
 interface TableOptions {
   rows?: Array<JSONObject> | undefined;
   isCreateable?: boolean | undefined;
@@ -143,6 +147,9 @@ interface TableOptions {
   helpContent?: BaseModelTableProps<Monitor>["helpContent"] | undefined;
   documentationLink?: Route | undefined;
   showAs?: ShowAs | undefined;
+  isEditable?: boolean | undefined;
+  isDeleteable?: boolean | undefined;
+  topContent?: React.ReactElement | undefined;
 }
 
 let showCreateEditModalCalls: number = 0;
@@ -224,8 +231,8 @@ const makeProps: MakePropsFunction = (
           },
         }),
     isCreateable: options.isCreateable ?? true,
-    isEditable: false,
-    isDeleteable: false,
+    isEditable: options.isEditable ?? false,
+    isDeleteable: options.isDeleteable ?? false,
     isViewable: false,
     noItemsMessage: options.noItemsMessage,
     emptyState: options.emptyState,
@@ -235,6 +242,7 @@ const makeProps: MakePropsFunction = (
     helpContent: options.helpContent,
     documentationLink: options.documentationLink,
     showAs: options.showAs,
+    topContent: options.topContent,
     callbacks: callbacks,
   } as unknown as BaseModelTableProps<Monitor>;
 };
@@ -978,10 +986,96 @@ describe("a viewer who may read none of the columns", () => {
 
     expect(kindOf(block)).toBe(TableEmptyStateKind.NoAccess);
     expect(titleOf(block)).toBe("You don't have access to this list");
+    /*
+     * The permission to ask for, then who to ask - not the eight roles and
+     * permissions that may read monitors.
+     */
     expect(block).toHaveTextContent(
-      "Ask a project admin for one of these permissions:",
+      "You need this permission: Read Monitor. Ask a project admin for access.",
     );
+    expect(block).not.toHaveTextContent("Project Owner");
     expect(screen.queryByTestId(NO_ITEMS_TEST_ID)).toBeNull();
+  });
+
+  /*
+   * A list with row actions keeps an Actions column for a locked Edit or
+   * Delete, whatever the viewer may read. That column alone used to count as
+   * something to show: the viewer got the table's frame with rows of nothing
+   * but a checkbox and a ⋯ (or, as the server refuses the read, "Couldn't
+   * load monitors" over every role and permission that may read them), and
+   * never this state.
+   */
+  test("on a list with row actions too, instead of rows of nothing but a ⋯", async () => {
+    isMasterAdminForTest = false;
+    permissionsForTest = [Permission.ReadProjectIncident];
+
+    renderTable({
+      rows: ROWS,
+      isEditable: true,
+      isDeleteable: true,
+      topContent: <div data-testid={FILTER_CHIPS_TEST_ID}>Filter</div>,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId(`${TABLE_ID}-no-access`)).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId(`${TABLE_ID}-no-access`)).toHaveTextContent(
+      "You need this permission: Read Monitor. Ask a project admin for access.",
+    );
+    // Give the rows' read its chance to land: still no table under the state.
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 50);
+    });
+    expect(screen.queryByRole("table")).toBeNull();
+    expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
+    expect(screen.queryByText("Actions")).toBeNull();
+    expect(screen.queryByTestId(NO_ITEMS_TEST_ID)).toBeNull();
+    // The card keeps its description: no empty state says it for it.
+    expect(screen.getByText(CARD_DESCRIPTION)).toBeInTheDocument();
+    /*
+     * Nothing to narrow or search in a list they cannot read: no filter
+     * chips under the state, no search box over it.
+     */
+    expect(screen.queryByTestId(FILTER_CHIPS_TEST_ID)).toBeNull();
+    expect(screen.queryByTestId(SEARCH_SLOT_TEST_ID)).toBeNull();
+  });
+
+  test("and in a table without a card, which used to draw its rows regardless", async () => {
+    isMasterAdminForTest = false;
+    permissionsForTest = [Permission.ReadProjectIncident];
+
+    renderTable({ rows: ROWS, isDeleteable: true, withCard: false });
+
+    await waitFor(() => {
+      expect(screen.getByTestId(`${TABLE_ID}-no-access`)).toBeInTheDocument();
+    });
+
+    expect(kindOf(screen.getByTestId(`${TABLE_ID}-no-access`))).toBe(
+      TableEmptyStateKind.NoAccess,
+    );
+    expect(screen.queryByRole("table")).toBeNull();
+  });
+
+  test("while one who may read the rows, but not delete them, still gets the table", async () => {
+    isMasterAdminForTest = false;
+    permissionsForTest = [Permission.ReadProjectMonitor];
+
+    renderTable({
+      rows: ROWS,
+      isEditable: true,
+      isDeleteable: true,
+      topContent: <div data-testid={FILTER_CHIPS_TEST_ID}>Filter</div>,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Checkout API")).toBeInTheDocument();
+    });
+
+    expect(screen.getByRole("table")).toBeInTheDocument();
+    expect(screen.queryByTestId(`${TABLE_ID}-no-access`)).toBeNull();
+    expect(screen.getByTestId(FILTER_CHIPS_TEST_ID)).toBeInTheDocument();
+    expect(screen.getByTestId(SEARCH_SLOT_TEST_ID)).toBeInTheDocument();
   });
 });
 
