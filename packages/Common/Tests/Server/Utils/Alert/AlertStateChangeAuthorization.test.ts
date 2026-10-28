@@ -71,6 +71,8 @@ type PermissionInput = {
   isBlockPermission?: boolean;
   labelIds?: Array<ObjectID>;
   scope?: PermissionScope;
+  // The team whose permission the row is: an Owned row reaches what it owns.
+  teamId?: ObjectID;
 };
 
 type ParentLookup = {
@@ -129,6 +131,7 @@ function createDatabaseProps(
           (hasLabels && !permissionInput.isBlockPermission
             ? PermissionScope.Labels
             : PermissionScope.All),
+        ...(permissionInput.teamId ? { teamId: permissionInput.teamId } : {}),
       };
     },
   );
@@ -374,17 +377,43 @@ describe("AlertStateChangeAuthorization.assertCanChangeStateOfAlerts", (): void 
           return owner;
         });
       }) as never);
+    /*
+     * Only the rows of the teams the read asks for (QueryHelper.any on
+     * teamId), as the database answers: the owned scope asks for the teams
+     * that grant the permission (#5337), not every team of the caller's.
+     */
     jest
       .spyOn(AlertOwnerTeamService, "findBy")
-      .mockImplementation((async (): Promise<Array<AlertOwnerTeam>> => {
-        return ownedByTeam.map(
-          (owned: { alertId: ObjectID; teamId: ObjectID }): AlertOwnerTeam => {
-            const owner: AlertOwnerTeam = new AlertOwnerTeam();
-            owner.alertId = owned.alertId;
-            owner.teamId = owned.teamId;
-            return owner;
-          },
-        );
+      .mockImplementation((async (data: {
+        query: Record<string, unknown>;
+      }): Promise<Array<AlertOwnerTeam>> => {
+        const teamFilter: unknown = data.query["teamId"];
+        const askedTeamIds: Array<string> | null =
+          teamFilter instanceof FindOperator
+            ? Object.values(teamFilter.objectLiteralParameters || {})
+                .flat()
+                .map((value: unknown): string => {
+                  return String(value);
+                })
+            : null;
+
+        return ownedByTeam
+          .filter((owned: { alertId: ObjectID; teamId: ObjectID }): boolean => {
+            return (
+              !askedTeamIds || askedTeamIds.includes(owned.teamId.toString())
+            );
+          })
+          .map(
+            (owned: {
+              alertId: ObjectID;
+              teamId: ObjectID;
+            }): AlertOwnerTeam => {
+              const owner: AlertOwnerTeam = new AlertOwnerTeam();
+              owner.alertId = owned.alertId;
+              owner.teamId = owned.teamId;
+              return owner;
+            },
+          );
       }) as never);
   });
 
@@ -1084,26 +1113,42 @@ describe("AlertStateChangeAuthorization.assertCanChangeStateOfAlerts", (): void 
 
     test("Create Alert State Timeline limited to owned records: an alert the caller's team owns goes through, one they do not own is refused", async (): Promise<void> => {
       const teamId: ObjectID = ObjectID.generate();
+      const otherTeamId: ObjectID = ObjectID.generate();
       const ownedByTheirTeam: ObjectID = ObjectID.generate();
       const ownedByThem: ObjectID = ObjectID.generate();
+      const ownedByTheirOtherTeam: ObjectID = ObjectID.generate();
       const notTheirs: ObjectID = ObjectID.generate();
-      ownedByTeam = [{ alertId: ownedByTheirTeam, teamId: teamId }];
+      ownedByTeam = [
+        { alertId: ownedByTheirTeam, teamId: teamId },
+        { alertId: ownedByTheirOtherTeam, teamId: otherTeamId },
+      ];
       ownedByUser = [ownedByThem];
 
+      /*
+       * The team's own Owned grant (#5337): it reaches what that team owns
+       * and what the caller owns, never what only their other team owns.
+       */
       const props: DatabaseCommonInteractionProps = createDatabaseProps(
         [
           { permission: Permission.Viewer },
           {
             permission: Permission.CreateAlertStateTimeline,
             scope: PermissionScope.Owned,
+            teamId: teamId,
           },
         ],
-        { userTeamIds: [teamId] },
+        { userTeamIds: [teamId, otherTeamId] },
       );
 
       await expect(
         check({ alertIds: [ownedByTheirTeam, ownedByThem], props: props }),
       ).resolves.toBeUndefined();
+
+      expect(
+        await rejectionOf(
+          check({ alertIds: [ownedByTheirOtherTeam], props: props }),
+        ),
+      ).toBeInstanceOf(CreateScopeException);
 
       const error: unknown = await rejectionOf(
         check({ alertIds: [notTheirs], props: props }),

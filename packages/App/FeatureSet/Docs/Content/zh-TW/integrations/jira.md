@@ -187,7 +187,7 @@ project = OPS AND issuetype = Alert AND (labels is EMPTY OR labels != oneuptime)
 - `❌` — 某個呼叫失敗了。對於 Jira 呼叫，這一行包含 Jira 的回應。
 - `⚠️` — 根據 Jira 問題建立記錄的範本已經建立了記錄，但 Jira 沒有接受關聯標籤，因此其他範本暫時還找不到它。請手動新增這些標籤。
 
-被跳過的執行仍以 **Executed** 結束。跳過是正常的：大多數 Jira 事件都不是某個特定範本要處理的。請參閱 [工作流程執行記錄](/docs/workflows/runs-and-logs)。
+被跳過的執行仍以 **已執行** 結束。跳過是正常的：大多數 Jira 事件都不是某個特定範本要處理的。請參閱 [工作流程執行記錄](/docs/workflows/runs-and-logs)。
 
 ## 範本的運作方式
 

@@ -20,6 +20,7 @@ import {
 } from "../../../Types/AI/TelemetryAiActivity";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -116,7 +117,14 @@ function signedInProps(
     userId: USER_ID,
     userType: UserType.User,
     isMultiTenantRequest: true,
-    userTenantAccessPermission: {},
+    // A member of the project: the middleware read their permissions in it.
+    userTenantAccessPermission: {
+      [PROJECT_ID.toString()]: {
+        _type: "UserTenantAccessPermission",
+        projectId: PROJECT_ID,
+        permissions: [],
+      },
+    },
     ...overrides,
   } as DatabaseCommonInteractionProps;
 }
@@ -402,6 +410,28 @@ describe("the telemetry AI routes", () => {
     expect(readinessSpy).not.toHaveBeenCalled();
     expect(logsSpy).not.toHaveBeenCalled();
   });
+
+  /*
+   * The tenant header is the caller's word: the readiness of any project -
+   * its AI settings, repositories and Runners - was read, as OneUptime, for
+   * anyone signed in who named it.
+   */
+  test.each([TELEMETRY_AI_READINESS_PATH, TELEMETRY_AI_LOGS_PATH])(
+    "%s refuses a signed-in user who is not a member of the project named",
+    async (path: string) => {
+      propsSpy.mockResolvedValue(
+        signedInProps({ userTenantAccessPermission: {} }),
+      );
+
+      const result: CallResult = await call(path, {
+        lane: TelemetryAiLane.Profile,
+      });
+
+      expect(result.error).toBeInstanceOf(NotAuthorizedException);
+      expect(readinessSpy).not.toHaveBeenCalled();
+      expect(logsSpy).not.toHaveBeenCalled();
+    },
+  );
 
   test.each([TELEMETRY_AI_READINESS_PATH, TELEMETRY_AI_LOGS_PATH])(
     "%s refuses a request that is not one signed-in user's in one project",

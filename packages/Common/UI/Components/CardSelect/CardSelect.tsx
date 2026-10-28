@@ -1,5 +1,10 @@
 import IconProp from "../../../Types/Icon/IconProp";
+import ProviderLogo from "../../../Types/ProviderLogo/ProviderLogo";
 import Icon, { SizeProp } from "../Icon/Icon";
+import ProviderLogoImage, {
+  ProviderLogoSize,
+} from "../ProviderLogo/ProviderLogoImage";
+import ProviderLogoOrIcon from "../ProviderLogo/ProviderLogoOrIcon";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -18,6 +23,11 @@ export interface CardSelectOption {
   title: string;
   description: string;
   icon: IconProp;
+  /*
+   * The official logo of the product the choice is (Amazon S3, OpenAI), drawn
+   * in the icon's place. A generic choice (a webhook, syslog) keeps its icon.
+   */
+  logo?: ProviderLogo | undefined;
   /*
    * Words that should match this card in search but are not on it - product
    * names, protocols, synonyms. Optional: a catalog small enough to read in
@@ -441,6 +451,71 @@ const CardSelect: FunctionComponent<ComponentProps> = (
     });
   }, [props.options, props.catalog]);
 
+  /*
+   * Whether any choice is a product drawn with its logo. Then every choice's
+   * icon sits on the same neutral tile a logo does, so a generic choice
+   * (a webhook beside Amazon S3) reads as one of the set, not as a grey
+   * square among white ones.
+   */
+  const hasLogos: boolean = useMemo(() => {
+    return groups.some((group: RenderGroup) => {
+      return group.options.some((option: CardSelectOption) => {
+        return Boolean(option.logo);
+      });
+    });
+  }, [groups]);
+
+  type RenderOptionMarkFunction = (data: {
+    option: CardSelectOption;
+    isSelected: boolean;
+    // The tile's size in pixels, and the icon's classes inside it.
+    size: ProviderLogoSize;
+    tileClassName: string;
+    iconClassName: string;
+    iconSize?: SizeProp | undefined;
+  }) => ReactElement;
+
+  /*
+   * The tile at the start of a choice: its product's logo, or its icon - on
+   * a grey tile that turns indigo when picked, or, among logos, on a logo's
+   * neutral tile.
+   */
+  const renderOptionMark: RenderOptionMarkFunction = (data: {
+    option: CardSelectOption;
+    isSelected: boolean;
+    size: ProviderLogoSize;
+    tileClassName: string;
+    iconClassName: string;
+    iconSize?: SizeProp | undefined;
+  }): ReactElement => {
+    if (hasLogos) {
+      return (
+        <ProviderLogoOrIcon
+          logo={data.option.logo}
+          icon={data.option.icon}
+          size={data.size}
+          isDecorative={true}
+        />
+      );
+    }
+
+    return (
+      <div
+        className={`flex flex-shrink-0 items-center justify-center ${data.tileClassName} ${
+          data.isSelected ? "bg-indigo-100" : "bg-gray-100"
+        }`}
+      >
+        <Icon
+          icon={data.option.icon}
+          size={data.iconSize}
+          className={`${data.iconClassName} ${
+            data.isSelected ? "text-indigo-600" : "text-gray-600"
+          }`}
+        />
+      </div>
+    );
+  };
+
   const selectedOption: CardSelectOption | undefined = useMemo(() => {
     if (!props.value) {
       return undefined;
@@ -804,19 +879,14 @@ const CardSelect: FunctionComponent<ComponentProps> = (
         data-testid={`card-select-option-${option.value}`}
       >
         <div className="flex w-full items-start">
-          <div
-            className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${
-              isSelected ? "bg-indigo-100" : "bg-gray-100"
-            }`}
-          >
-            <Icon
-              icon={option.icon}
-              size={SizeProp.Large}
-              className={`h-5 w-5 ${
-                isSelected ? "text-indigo-600" : "text-gray-600"
-              }`}
-            />
-          </div>
+          {renderOptionMark({
+            option,
+            isSelected,
+            size: 40,
+            tileClassName: "h-10 w-10 rounded-lg",
+            iconClassName: "h-5 w-5",
+            iconSize: SizeProp.Large,
+          })}
           <div className="ml-4 flex-1">
             <span
               className={`block text-sm font-semibold ${
@@ -877,18 +947,13 @@ const CardSelect: FunctionComponent<ComponentProps> = (
         aria-checked={isSelected}
         data-testid={`card-select-option-${option.value}`}
       >
-        <div
-          className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md ${
-            isSelected ? "bg-indigo-100" : "bg-gray-100"
-          }`}
-        >
-          <Icon
-            icon={option.icon}
-            className={`h-4 w-4 ${
-              isSelected ? "text-indigo-600" : "text-gray-600"
-            }`}
-          />
-        </div>
+        {renderOptionMark({
+          option,
+          isSelected,
+          size: 32,
+          tileClassName: "h-8 w-8 rounded-md",
+          iconClassName: "h-4 w-4",
+        })}
         <div className="min-w-0 flex-1">
           <span className="block text-sm font-medium text-gray-900">
             {getOptionText(option, option.title)}
@@ -937,18 +1002,13 @@ const CardSelect: FunctionComponent<ComponentProps> = (
         aria-checked={isSelected}
         data-testid={`card-select-option-${option.value}`}
       >
-        <div
-          className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg ${
-            isSelected ? "bg-indigo-100" : "bg-gray-100"
-          }`}
-        >
-          <Icon
-            icon={option.icon}
-            className={`h-5 w-5 ${
-              isSelected ? "text-indigo-600" : "text-gray-600"
-            }`}
-          />
-        </div>
+        {renderOptionMark({
+          option,
+          isSelected,
+          size: 36,
+          tileClassName: "h-9 w-9 rounded-lg",
+          iconClassName: "h-5 w-5",
+        })}
         <div className="min-w-0 flex-1">
           <span className="block text-sm font-semibold text-gray-900">
             {getOptionText(option, option.title)}
@@ -1006,12 +1066,20 @@ const CardSelect: FunctionComponent<ComponentProps> = (
           data-card-select-value={selectedOption.value}
           className="flex items-center gap-3 rounded-lg border border-indigo-200 bg-indigo-50/50 px-3 py-2.5"
         >
-          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-indigo-100">
-            <Icon
-              icon={selectedOption.icon}
-              className="h-4 w-4 text-indigo-600"
+          {selectedOption.logo ? (
+            <ProviderLogoImage
+              logo={selectedOption.logo}
+              size={32}
+              isDecorative={true}
             />
-          </div>
+          ) : (
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-indigo-100">
+              <Icon
+                icon={selectedOption.icon}
+                className="h-4 w-4 text-indigo-600"
+              />
+            </div>
+          )}
           <div className="min-w-0 flex-1">
             <span
               id={summaryTitleId}

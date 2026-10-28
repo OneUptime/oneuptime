@@ -1,11 +1,14 @@
 import {
   APIRequestContext,
-  APIResponse,
   expect,
   Locator,
   Page,
   test,
 } from "@playwright/test";
+import {
+  readFixtureEdition,
+  skipUnlessEnterprise,
+} from "../SuiteHelpers/Edition";
 import fs from "fs/promises";
 import path from "path";
 
@@ -117,15 +120,14 @@ interface Box {
 let edition: string = "";
 
 test.beforeAll(async ({ request }: { request: APIRequestContext }) => {
-  const response: APIResponse = await request.get("/edition.json");
-  edition = ((await response.json()) as { edition: string }).edition;
+  edition = await readFixtureEdition(request);
 });
 
 const pageErrors: Map<Page, Array<string>> = new Map();
 
 test.beforeEach(async ({ page }: { page: Page }) => {
-  test.skip(
-    edition !== "enterprise",
+  skipUnlessEnterprise(
+    edition,
     "Custom roles are an Enterprise feature: ee/ is not checked out.",
   );
   const errors: Array<string> = [];
@@ -211,6 +213,31 @@ function customRolesCard(page: Page): Locator {
   return page.getByTestId("api-key-custom-roles");
 }
 
+/*
+ * The key's More settings, at the foot of its page. Custom roles are an
+ * advanced feature - the maintainer: "Move custom roles to More settings
+ * because it is an advanced feature." - so their card waits folded there,
+ * before Block Permissions, and the folded header names it with how many
+ * roles the key has.
+ */
+function keyMoreSettings(page: Page): Locator {
+  return page.getByTestId("api-key-advanced-section");
+}
+
+// What the folded header names, in order: "Custom Roles: 2", then the rest.
+function foldedNames(page: Page): Locator {
+  return keyMoreSettings(page).getByTestId("folded-section-item");
+}
+
+// Opens More settings by its header, as a person does.
+async function openKeyMoreSettings(page: Page): Promise<void> {
+  const header: Locator = keyMoreSettings(page).getByTestId(
+    "folded-section-header",
+  );
+  await header.click();
+  await expect(header).toHaveAttribute("aria-expanded", "true");
+}
+
 function row(scope: Locator, name: string): Locator {
   return scope
     .locator("tbody tr")
@@ -290,14 +317,23 @@ async function offeredRoleIds(page: Page): Promise<Array<string>> {
 }
 
 test.describe("an API key's page", () => {
-  test("lists the key's custom roles above its own permissions, each saying how much of it the key holds", async ({
+  test("folds the key's custom roles under More settings, below its own permissions, each saying how much of it the key holds", async ({
     page,
   }: {
     page: Page;
   }) => {
     await openKey(page, KEY_IDS["deploy"]!);
 
+    /*
+     * The page opens on what the key can do itself. Its custom roles wait
+     * folded, and the folded header says they are there, and how many.
+     */
     const roles: Locator = customRolesCard(page);
+    await expect(foldedNames(page).first()).toHaveText("Custom Roles: 2");
+    await expect(roles).toBeHidden();
+    await screenshot(page, "api-key-custom-roles-folded");
+
+    await openKeyMoreSettings(page);
     await expect(
       roles.getByRole("heading", { name: "Custom Roles", exact: true }),
     ).toBeVisible();
@@ -316,9 +352,11 @@ test.describe("an API key's page", () => {
     await expect(row(roles, "Incident Helper")).toContainText("2 permissions");
     await expect(roles.locator("tbody tr")).toHaveCount(2);
 
-    // Above what the key was given directly.
+    // Below what the key was given directly.
     const permissions: Locator = card(page, "Permissions");
-    expect((await boxOf(roles)).y).toBeLessThan((await boxOf(permissions)).y);
+    expect((await boxOf(roles)).y).toBeGreaterThan(
+      (await boxOf(permissions)).y,
+    );
 
     // The key's own permission only: never the copies its roles keep.
     await expect(permissions.locator("tbody tr")).toHaveCount(1);
@@ -357,6 +395,10 @@ test.describe("an API key's page", () => {
     page: Page;
   }) => {
     await openKey(page, KEY_IDS["terraform"]!);
+
+    // Named while folded, with no count: the key has no role yet.
+    await expect(foldedNames(page).first()).toHaveText("Custom Roles");
+    await openKeyMoreSettings(page);
 
     const roles: Locator = customRolesCard(page);
     await expect(roles).toContainText("This key has no custom role yet");
@@ -436,6 +478,7 @@ test.describe("an API key's page", () => {
     page: Page;
   }) => {
     await openKey(page, KEY_IDS["deploy"]!);
+    await openKeyMoreSettings(page);
 
     const roles: Locator = customRolesCard(page);
     const reason: Locator = roles.getByTestId("api-key-role-owned-reason");
@@ -467,6 +510,7 @@ test.describe("an API key's page", () => {
   }) => {
     // Deploy bot has Team Lead: Incident Responder and Auditor are offered.
     await openKey(page, KEY_IDS["deploy"]!);
+    await openKeyMoreSettings(page);
 
     await customRolesCard(page)
       .getByRole("button", { name: "Add Custom Role" })
@@ -486,6 +530,7 @@ test.describe("an API key's page", () => {
     page: Page;
   }) => {
     await openKey(page, KEY_IDS["deploy"]!);
+    await openKeyMoreSettings(page);
 
     const roles: Locator = customRolesCard(page);
     await row(roles, "Team Lead")
@@ -502,6 +547,9 @@ test.describe("an API key's page", () => {
 
     await expect(row(roles, "Team Lead")).toHaveCount(0);
     await expect(row(roles, "Incident Helper")).toBeVisible();
+    // Folded again, the header counts the one role left.
+    await keyMoreSettings(page).getByTestId("folded-section-header").click();
+    await expect(foldedNames(page).first()).toHaveText("Custom Roles: 1");
     const deletes: Array<RecordedDelete> = (await fixtureLog(page)).deletes;
     expect(deletes).toHaveLength(1);
     expect(deletes[0]!.tableName).toBe("ApiKeyCustomRole");
@@ -525,6 +573,9 @@ test.describe("an API key's page", () => {
       page.getByRole("heading", { name: "Custom Roles", exact: true }),
     ).toHaveCount(0);
     await expect(customRolesCard(page)).toHaveCount(0);
+    // More settings holds Block Permissions alone, as it always did.
+    await expect(foldedNames(page)).toHaveCount(1);
+    await expect(foldedNames(page).first()).toContainText("Block Permissions");
   });
 });
 
@@ -548,9 +599,13 @@ test.describe("a role's page", () => {
     await expect(keys).toContainText(LEAD_KEYS_GET);
     await expect(keys).not.toContainText(KEYS_GET_EVERYTHING);
     await expect(keys.locator("tbody tr")).toHaveCount(1);
+    // At the key's Custom Roles card, which waits under its More settings.
     await expect(
       keys.getByRole("link", { name: "Deploy bot", exact: true }),
-    ).toHaveAttribute("href", `${API_KEYS_ROUTE}/${KEY_IDS["deploy"]}`);
+    ).toHaveAttribute(
+      "href",
+      `${API_KEYS_ROUTE}/${KEY_IDS["deploy"]}#custom-roles`,
+    );
 
     // Below the teams given it.
     expect((await boxOf(page.getByTestId("custom-role-teams"))).y).toBeLessThan(
@@ -558,6 +613,15 @@ test.describe("a role's page", () => {
     );
 
     await screenshot(page, "role-page-api-keys");
+
+    // Followed, the link opens the key's More settings there.
+    await keys.getByRole("link", { name: "Deploy bot", exact: true }).click();
+    await expectPath(page, `${API_KEYS_ROUTE}/${KEY_IDS["deploy"]}`);
+    await expect(
+      keyMoreSettings(page).getByTestId("folded-section-header"),
+    ).toHaveAttribute("aria-expanded", "true");
+    await expect(row(customRolesCard(page), "Team Lead")).toBeVisible();
+    await expect(customRolesCard(page)).toBeInViewport();
   });
 
   test("gives the role to an API key, offering only the keys without it", async ({
@@ -797,6 +861,8 @@ test.describe("Create API Key", () => {
     // Nothing of its own: the role is all it holds.
     expect(await createsOf(page, "ApiKeyPermission")).toEqual([]);
 
+    await expect(foldedNames(page).first()).toHaveText("Custom Roles: 1");
+    await openKeyMoreSettings(page);
     await expect(row(customRolesCard(page), "Team Lead")).toContainText(
       "2 of its 3 permissions apply to this key",
     );
@@ -811,6 +877,7 @@ test.describe("on a phone and in dark mode", () => {
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await openKey(page, KEY_IDS["deploy"]!, "?long=1");
+    await openKeyMoreSettings(page);
 
     const roles: Locator = customRolesCard(page);
     const name: Locator = roles.getByText(LONG_WORD_NAME, { exact: true });
@@ -852,6 +919,7 @@ test.describe("on a phone and in dark mode", () => {
     page: Page;
   }) => {
     await openKey(page, KEY_IDS["deploy"]!, "?theme=dark");
+    await openKeyMoreSettings(page);
 
     const roles: Locator = customRolesCard(page);
     await expect(row(roles, "Team Lead")).toBeVisible();

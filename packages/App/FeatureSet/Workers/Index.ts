@@ -101,6 +101,7 @@ import "./Jobs/NetworkAlertPolicy/ReconcilePolicies";
 
 // On-Call Duty Policy Executions.
 import "./Jobs/OnCallDutyPolicyExecutionLog/ExecutePendingExecutions";
+import "./Jobs/OnCallDutyPolicyExecutionLog/ReviewAiFirstResponderHolds";
 import "./Jobs/OnCallDutyPolicyExecutionLog/TimeoutStuckExecutions";
 import "./Jobs/OnCallDutyPolicyExecutionLog/PageAgainAfterAcknowledgementTimeout";
 
@@ -287,6 +288,7 @@ import "./Jobs/DetectionRules/EvaluateDetectionRules";
 import "./Jobs/SecurityEvents/PollSecurityEventConnections";
 import "./Jobs/SecurityEvents/RunSecurityEventConnection";
 import "./Jobs/SecurityEvents/ScanLogsForSecurityEvents";
+import "./Jobs/SecurityEvents/ScanTelemetryForSecurityEvents";
 import "./Jobs/SecurityEvents/ForwardSecurityEvents";
 import "./Jobs/SecurityEvents/EntityRisk";
 import "./Jobs/ThreatIntel/PollThreatIntelFeeds";

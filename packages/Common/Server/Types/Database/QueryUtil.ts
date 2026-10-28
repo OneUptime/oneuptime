@@ -35,7 +35,6 @@ import Typeof from "../../../Types/Typeof";
 import { And, DataSource } from "typeorm";
 import { FindOperator } from "typeorm/find-options/FindOperator";
 import { CompareType } from "../../../Types/Database/CompareBase";
-import CaptureSpan from "../../Utils/Telemetry/CaptureSpan";
 import LessThanOrNull from "../../../Types/BaseDatabase/LessThanOrNull";
 import GreaterThanOrNull from "../../../Types/BaseDatabase/GreaterThanOrNull";
 import EqualTo from "../../../Types/BaseDatabase/EqualTo";
@@ -43,6 +42,11 @@ import PostgresAppInstance from "../../Infrastructure/PostgresDatabase";
 import { RelationMetadata } from "typeorm/metadata/RelationMetadata";
 import { EntityMetadata } from "typeorm/metadata/EntityMetadata";
 
+/*
+ * serializeQuery has no @CaptureSpan: an in-memory rewrite run before every
+ * read, in microseconds. The statement that runs is traced instead
+ * (PostgresQuerySpans).
+ */
 export default class QueryUtil {
   /*
    * A relation filtered by ids - a plain id (`incident: "<id>"`) or several
@@ -99,7 +103,6 @@ export default class QueryUtil {
     );
   }
 
-  @CaptureSpan()
   public static serializeQuery<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     query: Query<TBaseModel>,

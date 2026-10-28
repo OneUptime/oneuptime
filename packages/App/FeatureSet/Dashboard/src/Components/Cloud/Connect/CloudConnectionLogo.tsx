@@ -1,18 +1,25 @@
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
+import {
+  CloudConnectionDefinition,
+  getCloudConnectionDefinition,
+} from "Common/Types/CloudConnection/CloudConnectionCatalog";
 import IconProp from "Common/Types/Icon/IconProp";
-import Icon from "Common/UI/Components/Icon/Icon";
+import { ProviderLogoSize } from "Common/UI/Components/ProviderLogo/ProviderLogoImage";
+import ProviderLogoOrIcon from "Common/UI/Components/ProviderLogo/ProviderLogoOrIcon";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
- * A cloud's mark on Cloud > Connect: a cloud on the provider's colour, so a
- * tile and a row of the list read as the same cloud at a glance. A plain
- * mark, not the provider's logo.
+ * A cloud's official logo on Cloud > Connect (the catalog's logo, drawn by
+ * ProviderLogoImage): its tile, its form and its row of the list show the
+ * same one, so they read as the same cloud at a glance. A cloud this build
+ * does not know is drawn as a cloud. The cloud's name is always written
+ * beside it, so the logo is not read out again.
  */
 
-const MARK_COLOURS: Record<CloudProvider, string> = {
-  [CloudProvider.AWS]: "bg-orange-600 text-white",
-  [CloudProvider.Azure]: "bg-sky-600 text-white",
-  [CloudProvider.GCP]: "bg-emerald-600 text-white",
+const TILE_SIZES: Readonly<Record<"sm" | "md" | "lg", ProviderLogoSize>> = {
+  sm: 24,
+  md: 32,
+  lg: 40,
 };
 
 export interface ComponentProps {
@@ -23,22 +30,20 @@ export interface ComponentProps {
 const CloudConnectionLogo: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const size: "sm" | "md" | "lg" = props.size || "md";
-  const box: string =
-    size === "lg" ? "h-10 w-10" : size === "sm" ? "h-6 w-6" : "h-8 w-8";
-  const glyph: string =
-    size === "lg" ? "h-5 w-5" : size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4";
-  const colours: string =
-    MARK_COLOURS[props.provider as CloudProvider] ||
-    "bg-gray-200 text-gray-600";
+  const definition: CloudConnectionDefinition | undefined =
+    getCloudConnectionDefinition(props.provider);
 
   return (
     <span
-      aria-hidden="true"
       data-testid={`cloud-connection-logo-${props.provider || "unknown"}`}
-      className={`inline-flex flex-shrink-0 items-center justify-center rounded-lg ${box} ${colours}`}
+      className="inline-flex flex-shrink-0"
     >
-      <Icon icon={IconProp.Cloud} className={glyph} />
+      <ProviderLogoOrIcon
+        logo={definition?.logo}
+        icon={IconProp.Cloud}
+        size={TILE_SIZES[props.size || "md"]}
+        isDecorative={true}
+      />
     </span>
   );
 };

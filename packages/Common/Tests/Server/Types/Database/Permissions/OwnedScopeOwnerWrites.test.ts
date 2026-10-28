@@ -214,6 +214,7 @@ function unique(permissions: Array<Permission>): Array<Permission> {
   return Array.from(new Set<Permission>(permissions));
 }
 
+// A row of the member's team: an Owned one reaches what that team owns.
 function row(permission: Permission, scope: PermissionScope): UserPermission {
   return {
     _type: "UserPermission",
@@ -221,6 +222,7 @@ function row(permission: Permission, scope: PermissionScope): UserPermission {
     labelIds: [],
     isBlockPermission: false,
     scope: scope,
+    teamId: TEAM_ID,
   };
 }
 
@@ -636,6 +638,7 @@ describe("an owner row is owned through its resource", () => {
         await OwnedScopePermission.getOwnedIds(
           table.modelType,
           readsEveryManagesOwn(table),
+          [TEAM_ID],
         )
       )
         .map((id: ObjectID): string => {
@@ -1048,7 +1051,7 @@ describe("everyone else", () => {
     }
   });
 
-  test("a permission limited to labels beside the owned ones is the one that decides, as for any create", async () => {
+  test("a permission limited to labels beside the owned ones reaches what both reach, as for any create", async () => {
     ownsOnly(OWNED_ID);
 
     const monitorOwners: OwnerTable = ownerTableNamed("MonitorOwnerUser");
@@ -1063,15 +1066,19 @@ describe("everyone else", () => {
       row(Permission.MonitorViewer, PermissionScope.All),
     ]);
 
-    const checkOn: (labelIds: Array<string>) => Promise<void> = async (
+    const checkOn: (
+      monitorId: string,
+      labelIds: Array<string>,
+    ) => Promise<void> = async (
+      monitorId: string,
       labelIds: Array<string>,
     ): Promise<void> => {
       await CreateScopePermission.checkCreateScope({
         modelType: monitorOwners.modelType,
-        data: ownerRowOn(monitorOwners, OTHER_ID),
+        data: ownerRowOn(monitorOwners, monitorId),
         props: props,
         findRecordLabels: async (): Promise<Dictionary<Array<string>>> => {
-          return { [OTHER_ID]: labelIds };
+          return { [monitorId]: labelIds };
         },
         findLabelNames: async (): Promise<Array<string>> => {
           return ["Production"];
@@ -1080,11 +1087,14 @@ describe("everyone else", () => {
     };
 
     // A monitor carrying the label, owned or not.
-    await expect(checkOn([PRODUCTION])).resolves.toBeUndefined();
+    await expect(checkOn(OTHER_ID, [PRODUCTION])).resolves.toBeUndefined();
 
-    // One without it is refused by the labels, not by the owners.
-    await expect(checkOn([])).rejects.toThrow(
-      "Your access lets you create Monitor User Owners only for records with one of these labels: Production.",
+    // One they own, without it.
+    await expect(checkOn(OWNED_ID, [])).resolves.toBeUndefined();
+
+    // One neither the label nor the owners reach.
+    await expect(checkOn(OTHER_ID, [])).rejects.toThrow(
+      "Your access lets you create Monitor User Owners only for records with one of these labels: Production, or for the Monitors you or your teams own.",
     );
   });
 });

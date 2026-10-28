@@ -2,14 +2,20 @@ import { describe, expect, test } from "@jest/globals";
 import { SpanEvent, SpanKind } from "Common/Models/AnalyticsModels/Span";
 import Service from "Common/Models/DatabaseModels/Service";
 import Color from "Common/Types/Color";
+import {
+  Translator,
+  createTranslator,
+} from "Common/UI/Utils/TranslateTemplate";
 import { SpanSelfTime } from "Common/Utils/Traces/CriticalPath";
 import {
   AttributeEntry,
   HighlightSegment,
   OperationSummary,
+  OrphanSpanNote,
   ServiceSummary,
   SpanEventRow,
   SpanLoadState,
+  SpanPage,
   SpanTiming,
   TraceServiceInfo,
   TraceSummary,
@@ -25,12 +31,14 @@ import {
   formatDurationNano,
   formatOffsetNano,
   formatPercent,
+  getOrphanSpanNote,
   getRootSpan,
   getServiceColor,
   getServiceInfo,
   getSpanLoadState,
   getSpanTiming,
   pluralize,
+  readSpanPage,
   sortOperations,
   splitHighlightSegments,
   summarizeOperations,
@@ -213,6 +221,31 @@ describe("summarizeTrace", () => {
     expect(summary.isError).toBe(false);
   });
 
+  test("a total not counted yet stays unknown rather than becoming the loaded count", () => {
+    const summary: TraceSummary = summarizeTrace(
+      buildSpanTree([span("a", "", 0, 1), span("b", "a", 0, 1)]),
+      null,
+    );
+
+    expect(summary.loadedSpanCount).toBe(2);
+    expect(summary.totalSpanCount).toBeNull();
+  });
+
+  test("only a span whose parent is not loaded is missing one: breaking a cycle or naming itself is not", () => {
+    const summary: TraceSummary = summarizeTrace(
+      buildSpanTree([
+        // a and b name each other: the earlier one is drawn as a root.
+        span("a", "b", 0, 10),
+        span("b", "a", 5, 10),
+        span("self", "self", 20, 1),
+        span("lost", "gone", 30, 1),
+      ]),
+      4,
+    );
+
+    expect(summary.orphanCount).toBe(1);
+  });
+
   test("an empty trace", () => {
     const summary: TraceSummary = summarizeTrace(buildSpanTree([]), 0);
 
@@ -239,6 +272,157 @@ describe("summarizeTrace", () => {
         ]),
       )?.spanId,
     ).toBe("early");
+  });
+});
+
+/*
+ * "N spans missing a parent" read like a fault in the page. On native traces
+ * those parents really are missing from storage: the sending SDK dropped
+ * them under load, or they were still being ingested. With paging, a parent
+ * can also be on a page not loaded yet.
+ */
+describe("getOrphanSpanNote", () => {
+  const english: Translator = createTranslator(undefined);
+
+  test("no span missing a parent, no badge", () => {
+    expect(
+      getOrphanSpanNote({
+        orphanCount: 0,
+        hasMoreSpans: false,
+        translator: english,
+      }),
+    ).toBe(null);
+    expect(
+      getOrphanSpanNote({
+        orphanCount: 0,
+        hasMoreSpans: true,
+        translator: english,
+      }),
+    ).toBe(null);
+  });
+
+  test("a whole trace: the parent was not received, and why that happens", () => {
+    const note: OrphanSpanNote = getOrphanSpanNote({
+      orphanCount: 1,
+      hasMoreSpans: false,
+      translator: english,
+    })!;
+
+    expect(note.label).toBe("1 span missing a parent");
+    expect(note.hint).toBe(
+      "This span names a parent span that was not received, so it is shown at the top level. The sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.",
+    );
+    expect(
+      getOrphanSpanNote({
+        orphanCount: 3,
+        hasMoreSpans: false,
+        translator: english,
+      })!,
+    ).toEqual({
+      label: "3 spans missing a parent",
+      hint: "Each of these spans names a parent span that was not received, so it is shown at the top level. The sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.",
+    });
+  });
+
+  test("while more spans remain to load, the count is only so far: a parent may be on a later page", () => {
+    const note: OrphanSpanNote = getOrphanSpanNote({
+      orphanCount: 3,
+      hasMoreSpans: true,
+      translator: english,
+    })!;
+
+    expect(note.label).toBe("3 spans missing a parent so far");
+    expect(note.hint).toBe(
+      "Each of these spans names a parent span that is not among the spans loaded so far, so it is shown at the top level. The parent may be in a batch not loaded yet, so this may change as more spans load. Otherwise the sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.",
+    );
+    expect(
+      getOrphanSpanNote({
+        orphanCount: 1,
+        hasMoreSpans: true,
+        translator: english,
+      })!,
+    ).toEqual({
+      label: "1 span missing a parent so far",
+      hint: "This span names a parent span that is not among the spans loaded so far, so it is shown at the top level. The parent may be in a batch not loaded yet, so this may change as more spans load. Otherwise the sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.",
+    });
+  });
+
+  /*
+   * Each sentence is looked up whole, so it reads wholly in the reader's
+   * language or wholly in English. The hint is chosen by the count: a
+   * language whose "one" form also covers 21 (Russian) must still say
+   * "each of these spans" for 21 of them.
+   */
+  test("each sentence is looked up whole, in the reader's language", () => {
+    const wording: Record<string, string> = {
+      "{{count}} spans missing a parent": "{{count}} Spans ohne Elternspan",
+      "{{count}} spans missing a parent_one": "{{count}} Span ohne Elternspan",
+      "This span names a parent span that was not received, so it is shown at the top level. The sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.":
+        "Dieser Span nennt einen Elternspan, der nicht empfangen wurde.",
+      "Each of these spans names a parent span that was not received, so it is shown at the top level. The sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.":
+        "Jeder dieser Spans nennt einen Elternspan, der nicht empfangen wurde.",
+    };
+    const german: Translator = createTranslator((text: string) => {
+      return wording[text];
+    }, "de");
+
+    expect(
+      getOrphanSpanNote({
+        orphanCount: 1,
+        hasMoreSpans: false,
+        translator: german,
+      }),
+    ).toEqual({
+      label: "1 Span ohne Elternspan",
+      hint: "Dieser Span nennt einen Elternspan, der nicht empfangen wurde.",
+    });
+    expect(
+      getOrphanSpanNote({
+        orphanCount: 1234,
+        hasMoreSpans: false,
+        translator: german,
+      }),
+    ).toEqual({
+      label: "1.234 Spans ohne Elternspan",
+      hint: "Jeder dieser Spans nennt einen Elternspan, der nicht empfangen wurde.",
+    });
+
+    // A sentence the locale has not worded yet stays wholly English.
+    expect(
+      getOrphanSpanNote({
+        orphanCount: 2,
+        hasMoreSpans: true,
+        translator: german,
+      }),
+    ).toEqual({
+      label: "2 spans missing a parent so far",
+      hint: "Each of these spans names a parent span that is not among the spans loaded so far, so it is shown at the top level. The parent may be in a batch not loaded yet, so this may change as more spans load. Otherwise the sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.",
+    });
+
+    // Russian puts 21 in its "one" form; the hint still speaks of several.
+    const russian: Translator = createTranslator((text: string) => {
+      return (
+        {
+          "{{count}} spans missing a parent_one": "{{count}} спан без родителя",
+          "{{count}} spans missing a parent": "Спанов без родителя: {{count}}",
+          "This span names a parent span that was not received, so it is shown at the top level. The sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.":
+            "Этот спан ссылается на родительский спан, который не был получен.",
+          "Each of these spans names a parent span that was not received, so it is shown at the top level. The sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.":
+            "Каждый из этих спанов ссылается на родительский спан, который не был получен.",
+        } as Record<string, string>
+      )[text];
+    }, "ru");
+
+    expect(
+      getOrphanSpanNote({
+        orphanCount: 21,
+        hasMoreSpans: false,
+        translator: russian,
+      }),
+    ).toEqual({
+      label: "21 спан без родителя",
+      hint: "Каждый из этих спанов ссылается на родительский спан, который не был получен.",
+    });
   });
 });
 
@@ -475,12 +659,124 @@ describe("operations", () => {
   });
 });
 
+/*
+ * The analytics list endpoint does not count (BaseAnalyticsAPI.getList): it
+ * reads one row past the page to answer `hasMore`, and its `count` is a lower
+ * bound, one past the page when more rows follow. The first page of a
+ * 3,102-span trace says 501. The trace page used to print that as the total
+ * ("Spans 500 of 501") and fetch the "1 more span" it left.
+ */
+describe("readSpanPage", () => {
+  test("the list's lower bound is never the total: more follow, and only a count can say how many", () => {
+    expect(
+      readSpanPage({
+        loadedSpanCount: 500,
+        rowCount: 500,
+        limit: 500,
+        count: 501,
+        hasMore: true,
+      }),
+    ).toEqual({ hasMore: true, totalSpanCount: null });
+
+    // A later batch's bound (skip + rows + 1) is no total either.
+    expect(
+      readSpanPage({
+        loadedSpanCount: 1000,
+        rowCount: 500,
+        limit: 500,
+        count: 1001,
+        hasMore: true,
+      }),
+    ).toEqual({ hasMore: true, totalSpanCount: null });
+  });
+
+  test("the page nothing follows settles the total: every span is loaded", () => {
+    expect(
+      readSpanPage({
+        loadedSpanCount: 3102,
+        rowCount: 102,
+        limit: 102,
+        count: 3102,
+        hasMore: false,
+      }),
+    ).toEqual({ hasMore: false, totalSpanCount: 3102 });
+
+    // A trace that fits on the first page needs no count at all.
+    expect(
+      readSpanPage({
+        loadedSpanCount: 17,
+        rowCount: 17,
+        limit: 500,
+        count: 17,
+        hasMore: false,
+      }),
+    ).toEqual({ hasMore: false, totalSpanCount: 17 });
+  });
+
+  test("a page shorter than it asked for is the last, whatever the list says", () => {
+    expect(
+      readSpanPage({
+        loadedSpanCount: 700,
+        rowCount: 200,
+        limit: 400,
+        count: 900,
+      }),
+    ).toEqual({ hasMore: false, totalSpanCount: 700 });
+    expect(
+      readSpanPage({
+        loadedSpanCount: 500,
+        rowCount: 0,
+        limit: 500,
+        count: 501,
+        hasMore: true,
+      }),
+    ).toEqual({ hasMore: false, totalSpanCount: 500 });
+  });
+
+  test("a list that does not answer hasMore counted its rows: its count is the total", () => {
+    const page: SpanPage = readSpanPage({
+      loadedSpanCount: 500,
+      rowCount: 500,
+      limit: 500,
+      count: 1250,
+    });
+
+    expect(page).toEqual({ hasMore: true, totalSpanCount: 1250 });
+    expect(
+      readSpanPage({
+        loadedSpanCount: 500,
+        rowCount: 500,
+        limit: 500,
+        count: 0,
+      }),
+    ).toEqual({ hasMore: false, totalSpanCount: 500 });
+  });
+});
+
 describe("getSpanLoadState", () => {
-  test("one span beyond the first page", () => {
+  test("a counted trace loads a page at a time and offers the rest", () => {
+    const state: SpanLoadState = getSpanLoadState({
+      loadedSpanCount: 500,
+      totalSpanCount: 3102,
+      hasMore: true,
+      pageSize: 500,
+    });
+
+    expect(state).toEqual({
+      loadedSpanCount: 500,
+      totalSpanCount: 3102,
+      hasMore: true,
+      remainingSpanCount: 2602,
+      nextBatchSize: 500,
+    });
+  });
+
+  test("one span beyond the first page, when the count says so", () => {
     expect(
       getSpanLoadState({
         loadedSpanCount: 500,
         totalSpanCount: 501,
+        hasMore: true,
         pageSize: 500,
       }),
     ).toEqual({
@@ -492,15 +788,54 @@ describe("getSpanLoadState", () => {
     });
   });
 
-  test("a large trace loads a page at a time", () => {
-    const state: SpanLoadState = getSpanLoadState({
+  test("before the count lands, the total is unknown and the next batch is a full page", () => {
+    expect(
+      getSpanLoadState({
+        loadedSpanCount: 500,
+        totalSpanCount: null,
+        hasMore: true,
+        pageSize: 500,
+      }),
+    ).toEqual({
       loadedSpanCount: 500,
-      totalSpanCount: 1250,
-      pageSize: 500,
+      totalSpanCount: null,
+      hasMore: true,
+      remainingSpanCount: null,
+      nextBatchSize: 500,
     });
+  });
 
-    expect(state.remainingSpanCount).toBe(750);
-    expect(state.nextBatchSize).toBe(500);
+  test("a count the pages have outgrown is no longer a total", () => {
+    expect(
+      getSpanLoadState({
+        loadedSpanCount: 3102,
+        totalSpanCount: 3102,
+        hasMore: true,
+        pageSize: 500,
+      }),
+    ).toMatchObject({
+      totalSpanCount: null,
+      hasMore: true,
+      remainingSpanCount: null,
+      nextBatchSize: 500,
+    });
+  });
+
+  test("the page that ends the trace settles the total, whatever the count said", () => {
+    expect(
+      getSpanLoadState({
+        loadedSpanCount: 700,
+        totalSpanCount: 900,
+        hasMore: false,
+        pageSize: 500,
+      }),
+    ).toEqual({
+      loadedSpanCount: 700,
+      totalSpanCount: 700,
+      hasMore: false,
+      remainingSpanCount: 0,
+      nextBatchSize: 0,
+    });
   });
 
   test("everything loaded, or no total reported, means nothing more", () => {
@@ -508,6 +843,7 @@ describe("getSpanLoadState", () => {
       getSpanLoadState({
         loadedSpanCount: 36,
         totalSpanCount: 36,
+        hasMore: false,
         pageSize: 500,
       }).hasMore,
     ).toBe(false);
@@ -515,6 +851,7 @@ describe("getSpanLoadState", () => {
       getSpanLoadState({
         loadedSpanCount: 500,
         totalSpanCount: 0,
+        hasMore: false,
         pageSize: 500,
       }),
     ).toMatchObject({
@@ -523,15 +860,31 @@ describe("getSpanLoadState", () => {
       nextBatchSize: 0,
     });
     expect(
-      getSpanLoadState({ loadedSpanCount: 0, totalSpanCount: 0, pageSize: 500 })
-        .hasMore,
-    ).toBe(false);
+      getSpanLoadState({
+        loadedSpanCount: 0,
+        totalSpanCount: null,
+        hasMore: false,
+        pageSize: 500,
+      }),
+    ).toMatchObject({ hasMore: false, totalSpanCount: 0 });
   });
 
   test("a nonsensical page size still loads at least one span", () => {
     expect(
-      getSpanLoadState({ loadedSpanCount: 0, totalSpanCount: 10, pageSize: 0 })
-        .nextBatchSize,
+      getSpanLoadState({
+        loadedSpanCount: 0,
+        totalSpanCount: 10,
+        hasMore: true,
+        pageSize: 0,
+      }).nextBatchSize,
+    ).toBe(1);
+    expect(
+      getSpanLoadState({
+        loadedSpanCount: 0,
+        totalSpanCount: null,
+        hasMore: true,
+        pageSize: 0,
+      }).nextBatchSize,
     ).toBe(1);
   });
 });

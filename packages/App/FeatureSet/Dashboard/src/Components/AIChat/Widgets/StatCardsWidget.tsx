@@ -14,8 +14,16 @@ const StatCardsWidget: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
+  /*
+   * As many tiles to a row as the card has room for, all the same width:
+   * four in a row on a laptop and two by two on a phone. Three to a row
+   * left a fourth tile alone on a row of its own.
+   */
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+    <div
+      data-testid="ai-chat-stat-cards"
+      className="grid grid-cols-[repeat(auto-fit,minmax(8.5rem,1fr))] gap-2"
+    >
       {stats.map((stat: AIChatWidgetStat, index: number) => {
         return (
           <div

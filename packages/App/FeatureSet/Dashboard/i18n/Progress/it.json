@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 35892,
-    "untranslated": 13458
+    "keys": 36296,
+    "untranslated": 13408
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -97,6 +97,7 @@
     "Peer",
     "Perf",
     "Playbook",
+    "Playlist",
     "Pod",
     "Pod · data",
     "Pod · production",
@@ -197,6 +198,7 @@
     "{{count}} VM",
     "{{count}} appliance",
     "{{count}} cluster",
+    "{{count}} dashboard",
     "{{count}} datacenter",
     "{{count}} datastore",
     "{{count}} host",

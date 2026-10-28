@@ -204,9 +204,16 @@ jobs:
   #
   # The e2e jobs used to need this job. push-release-tags needs them, so that
   # would now be a cycle; they need helm-chart-check instead.
+  #
+  # It runs only for `release`, as every job that publishes does: a
+  # workflow_dispatch from another branch (for the store jobs, say) used to
+  # publish that branch's charts once its e2e passed. It is gated by itself
+  # and by push-release-tags, which is gated too
+  # (Tests/Ops/ReleaseCriticalPath).
   helm-chart-deploy:
     runs-on: ubuntu-latest
     needs: [generate-build-number, read-version, push-release-tags]
+    if: github.ref == 'refs/heads/release'
     env:
         CI_COMMIT_AUTHOR: Continuous Integration
     steps:
@@ -866,6 +873,9 @@ jobs:
 
   docker-agent-docker-image-build:
     needs: [generate-build-number, read-version]
+    # It moves the agent's own `release` tags, so it runs only for `release`,
+    # as every job that publishes does (Tests/Ops/ReleaseCriticalPath).
+    if: github.ref == 'refs/heads/release'
     strategy:
       matrix:
         include:
@@ -950,6 +960,9 @@ jobs:
 
   podman-agent-docker-image-build:
     needs: [generate-build-number, read-version]
+    # It moves the agent's own `release` tags, so it runs only for `release`,
+    # as every job that publishes does (Tests/Ops/ReleaseCriticalPath).
+    if: github.ref == 'refs/heads/release'
     strategy:
       matrix:
         include:
@@ -1034,6 +1047,9 @@ jobs:
 
   kubernetes-log-tailer-docker-image-build:
     needs: [generate-build-number, read-version]
+    # It moves the agent's own `release` tags, so it runs only for `release`,
+    # as every job that publishes does (Tests/Ops/ReleaseCriticalPath).
+    if: github.ref == 'refs/heads/release'
     strategy:
       matrix:
         include:
@@ -1118,6 +1134,9 @@ jobs:
 
   kubernetes-cost-agent-docker-image-build:
     needs: [generate-build-number, read-version]
+    # It moves the agent's own `release` tags, so it runs only for `release`,
+    # as every job that publishes does (Tests/Ops/ReleaseCriticalPath).
+    if: github.ref == 'refs/heads/release'
     strategy:
       matrix:
         include:
@@ -1465,6 +1484,9 @@ jobs:
   publish-npm-packages:
     runs-on: ubuntu-latest
     needs: [generate-build-number, read-version]
+    # Publishes to npm, so it runs only for `release`, as every job that
+    # publishes does (Tests/Ops/ReleaseCriticalPath).
+    if: github.ref == 'refs/heads/release'
     permissions:
       contents: read
       id-token: write  # Required for npm OIDC trusted publishing
@@ -1513,6 +1535,9 @@ jobs:
   publish-terraform-provider:
     runs-on: ubuntu-latest
     needs: [generate-build-number, read-version, terraform-provider-e2e]
+    # Publishes the provider, so it runs only for `release`, as every job that
+    # publishes does (Tests/Ops/ReleaseCriticalPath).
+    if: github.ref == 'refs/heads/release'
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
       GITHUB_TOKEN: ${{ secrets.SIMLARSEN_GITHUB_PAT }}
@@ -1661,6 +1686,11 @@ jobs:
       - test-e2e-release-self-hosted
       - test-e2e-release-enterprise
     runs-on: ubuntu-latest
+    # Moves the `release` tags, so it runs only for `release`, as every job
+    # that publishes does: a workflow_dispatch from another branch used to
+    # move them to that branch's images once its e2e passed
+    # (Tests/Ops/ReleaseCriticalPath).
+    if: github.ref == 'refs/heads/release'
     env:
       # The images whose release and enterprise-release tags move here.
       RELEASE_TAG_IMAGES: >-
@@ -3292,7 +3322,9 @@ jobs:
   #   - ANDROID_KEY_PASSWORD: Signing key password
   publish-android-to-play-store:
     needs: [generate-build-number, read-version]
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.publish_android_to_store == 'true'
+    # Asked for by a workflow_dispatch of `release` only: a dispatch from
+    # another branch would put that branch's app in the store.
+    if: github.ref == 'refs/heads/release' && github.event_name == 'workflow_dispatch' && github.event.inputs.publish_android_to_store == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -3360,7 +3392,9 @@ jobs:
   #   - APP_STORE_CONNECT_API_KEY_BASE64: Base64-encoded App Store Connect API private key (.p8)
   publish-ios-to-app-store:
     needs: [generate-build-number, read-version]
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.publish_ios_to_store == 'true'
+    # Asked for by a workflow_dispatch of `release` only: a dispatch from
+    # another branch would put that branch's app in the store.
+    if: github.ref == 'refs/heads/release' && github.event_name == 'workflow_dispatch' && github.event.inputs.publish_ios_to_store == 'true'
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4

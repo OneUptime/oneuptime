@@ -3,7 +3,7 @@
 Pergunte à IA é o chat do OneUptime sobre os dados do seu projeto. Pergunte sobre logs, traces, métricas, exceções, incidentes, alertas, monitores, plantão, páginas de status, SLOs, runbooks ou fluxos de trabalho: ele consulta o seu projeto ao vivo, apoia cada afirmação com uma citação e, quando você permite, age por você.
 
 :::cards
-- [Abrir o Pergunte à IA](#abrir-o-pergunte-à-ia): Pelo cabeçalho, pelo teclado, por um gráfico ou pela própria página.
+- [Abrir o Pergunte à IA](#abrir-o-pergunte-à-ia): Pelo cabeçalho, pelo teclado, por um gráfico ou pelo menu de produtos.
 - [O que ele vê](#o-que-ele-vê): Os dados que ele lê para responder a você.
 - [Ações e modos de permissão](#ações-e-modos-de-permissão): Escolha se ele pode agir e quando pergunta antes.
 - [As ações são feitas como você](#as-ações-são-feitas-como-você): As suas permissões, o seu nome em cada mudança.
@@ -30,10 +30,12 @@ No modo **Somente leitura** as ações nunca são oferecidas ao modelo, então a
 
 | Onde | Como |
 | --- | --- |
-| Qualquer página | Clique em **Ask AI** no cabeçalho, ou pressione `Ctrl` + `I` (`Cmd` + `I` em um Mac). Enquanto você digita em uma caixa de texto ou em um editor, essas teclas continuam sendo o atalho de itálico do editor. |
-| A paleta de comandos | Pressione `Ctrl` + `K` (`Cmd` + `K` em um Mac) e escolha **Ask AI**. |
+| Qualquer página | Clique em **Pergunte à IA** no cabeçalho, ou pressione `Ctrl` + `I` (`Cmd` + `I` em um Mac). Enquanto você digita em uma caixa de texto ou em um editor, essas teclas continuam sendo o atalho de itálico do editor. |
+| A paleta de comandos | Pressione `Ctrl` + `K` (`Cmd` + `K` em um Mac) e escolha **Pergunte à IA**. |
 | Um padrão de erro dos logs, ou as conclusões de um gráfico | Clique em **Explain with AI**: o Pergunte à IA abre com as evidências como uma pergunta que você pode editar antes de enviar. |
-| A própria página | Abra **Produtos → AI → Chat** para um espaço de trabalho em página inteira. Cada conversa ali tem o próprio endereço, então você pode salvar um fio nos favoritos ou colá-lo no canal de um incidente. |
+| O menu de produtos | Abra **Produtos → AI → Chat**. O Pergunte à IA abre sobre a página em que você estava. Cada conversa tem o próprio endereço, então você pode salvá-la nos favoritos e voltar a ela. |
+
+O Pergunte à IA abre no meio da tela, sobre a página em que você estava, e em um celular ocupa a tela inteira. Pressione `Esc`, ou clique ao lado, para voltar à página. A conversa fica onde você parou: abra o Pergunte à IA de novo para continuar. Se você o fechar enquanto ele ainda responde, um lembrete no canto avisa quando a resposta está pronta, e a abre.
 
 Em um incidente ou alerta, o cartão **AI Investigation** tem uma conversa própria, **Ask OneUptime AI**, compartilhada com todos que podem ver aquele incidente ou alerta: veja [Conversar com o OneUptime AI sobre o incidente](/docs/ai/ai-sre#converse-com-a-oneuptime-ai-sobre-o-incidente).
 
@@ -52,7 +54,7 @@ O Pergunte à IA lê o seu projeto com as suas próprias permissões, então vê
 
 ## Contexto da página
 
-O Pergunte à IA sabe de qual página você o abriu. Na página de um incidente, "por que isso aconteceu?" significa aquele incidente, e a área de escrita mostra um chip com o assunto da página; remova-o para perguntar sobre o projeto todo. Se você for para outra página com o painel aberto, o contexto vai junto. A conversa também lembra o primeiro assunto no servidor, então uma pergunta de acompanhamento dias depois ainda entende "este incidente".
+O Pergunte à IA sabe de qual página você o abriu. Na página de um incidente, "por que isso aconteceu?" significa aquele incidente: a área de escrita mostra um chip com o assunto da página, e as perguntas que ele sugere são as daquela página. Remova o chip para perguntar sobre o projeto todo, e adicione-o de volta do mesmo jeito. Abra o Pergunte à IA em outra página e o contexto vai junto. A conversa também lembra o primeiro assunto no servidor, então uma pergunta de acompanhamento dias depois ainda entende "este incidente".
 
 Listas de infraestrutura e páginas de recursos sugerem perguntas para o tipo de recurso que você está vendo. Abra um cluster do Kubernetes e pergunte "Quais métricas mudaram nas últimas 24 horas?", ou abra um host do Docker e pergunte "Resuma a gravidade dos logs e os erros de traces das últimas seis horas." Os links das evidências levam de volta à página do recurso. As leituras respeitam as suas permissões de projeto, recursos e telemetria, incluindo as restrições por responsável e por rótulos.
 
@@ -72,8 +74,8 @@ Cada conversa tem um modo de permissão, que você escolhe na área de escrita, 
 
 | Modo | O que acontece |
 | --- | --- |
-| **Ask to act** | O padrão. O Pergunte à IA propõe cada ação em um cartão de aprovação, e nada é executado até você escolher **Allow** ou **Pular** para ela, ou **Deny all**. |
-| **Auto-run** | As ações são executadas assim que o modelo as pede, ainda limitadas ao que a sua função pode fazer. Use com cuidado. |
+| **Perguntar antes de agir** | O padrão. O Pergunte à IA propõe cada ação em um cartão de aprovação, e nada é executado até você escolher **Permitir** ou **Pular** para ela, ou **Negar tudo**. |
+| **Execução automática** | As ações são executadas assim que o modelo as pede, ainda limitadas ao que a sua função pode fazer. Use com cuidado. |
 | **Somente leitura** | As ações não são oferecidas ao modelo: o Pergunte à IA só pode ler. |
 
 O que o Pergunte à IA pode fazer quando um modo permite:
@@ -99,10 +101,12 @@ Toda ação do Pergunte à IA é feita como você: ele faz a mesma mudança que 
 ## Conduzir uma conversa
 
 - **Pare-o.** Enquanto o Pergunte à IA trabalha, o botão de enviar vira um botão de parar. Pare uma execução a qualquer momento e pergunte outra coisa na hora.
-- **Escolha o modelo.** O seletor de provedor da área de escrita lista os provedores de LLM do seu projeto e os globais, com o padrão marcado. Uma conversa nova usa o padrão.
-- **Avalie uma resposta.** **Good answer** e **Poor answer** são salvos com a mensagem, para que a qualidade das respostas possa ser medida ao longo do tempo.
-- **Veja o custo.** O rodapé da resposta mais recente mostra o custo, os tokens e quantas consultas ela executou, e cada consulta é um chip de citação que abre os dados por trás dela.
-- **Guarde uma cópia.** **Download conversation** salva o fio com **Download as Markdown**, para ler ou colar em um ticket, ou com **Download as PDF**, para entregar a alguém.
+- **Acompanhe o trabalho.** Enquanto ele responde, uma linha diz o que está fazendo agora, como pesquisar logs. Clique no número de etapas ao lado para ver cada etapa.
+- **Escolha o modelo.** Quando o seu projeto pode usar mais de um provedor de LLM, o seletor de provedor da área de escrita lista os provedores de LLM do seu projeto e os globais, com o padrão marcado. Uma conversa nova usa o padrão.
+- **Avalie uma resposta.** **Boa resposta** e **Resposta ruim** são salvos com a mensagem, para que a qualidade das respostas possa ser medida ao longo do tempo.
+- **Veja o custo.** Abaixo de cada resposta, as fontes se abrem nas consultas que ela executou, e as da resposta mais recente também dizem quantas consultas ela executou, os tokens e o custo. Cada chip de citação em uma resposta abre os dados por trás dela.
+- **Guarde uma cópia.** **Baixar conversa** salva o fio com **Baixar como Markdown**, para ler ou colar em um ticket, ou com **Baixar como PDF**, para entregar a alguém.
+- **Continue de onde parou.** **Todas as conversas**, no cabeçalho do Pergunte à IA, lista as suas conversas, das mais recentes às mais antigas, para abrir de novo ou excluir. O início de uma conversa nova mostra as três últimas.
 
 ## Requisitos
 
@@ -115,7 +119,7 @@ O Pergunte à IA conta para os limites diários de IA do próprio projeto quando
 ## Solução de problemas
 
 :::details O Pergunte à IA diz que a IA não está disponível
-O painel diz o motivo antes de você digitar: o plano do projeto não inclui IA, **Habilitar IA** está desligado ou o projeto não tem provedor de LLM. Cada aviso leva à página em que isso se muda.
+O Pergunte à IA diz o motivo antes de você digitar: o plano do projeto não inclui IA, **Habilitar IA** está desligado ou o projeto não tem provedor de LLM. Cada aviso leva à página em que isso se muda.
 :::
 
 :::details Uma ação foi recusada

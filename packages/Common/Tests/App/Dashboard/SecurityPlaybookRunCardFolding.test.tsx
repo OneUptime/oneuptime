@@ -134,6 +134,7 @@ function stepsShown(): boolean {
 async function renderCard(
   item: SecurityPlaybookRun,
   isCollapsible?: boolean,
+  isExpandedAtFirst?: boolean,
 ): Promise<ReturnType<typeof render>> {
   let view: ReturnType<typeof render> | null = null;
 
@@ -145,6 +146,7 @@ async function renderCard(
           // Nothing to read again here.
         }}
         {...(isCollapsible === undefined ? {} : { isCollapsible })}
+        {...(isExpandedAtFirst === undefined ? {} : { isExpandedAtFirst })}
       />,
     );
   });
@@ -311,7 +313,79 @@ describe("a run in a list of runs", () => {
   });
 });
 
-describe("a case's own runs", () => {
+/*
+ * A case's newest run (SecurityCasePlaybookRuns): folded like every run in a
+ * list, but open at first - it is the run the case's page is read for.
+ */
+describe("a run in a list that opens at first", () => {
+  test("shows its steps, with the line of how far it got and Hide steps", async () => {
+    await renderCard(
+      run({
+        status: SecurityPlaybookRunStatus.Succeeded,
+        stepStatuses: SUCCEEDED,
+      }),
+      true,
+      true,
+    );
+
+    expect(stepsShown()).toBe(true);
+    expect(toggle()).toHaveAttribute("aria-expanded", "true");
+    expect(toggle()).toHaveTextContent("Hide steps");
+    expect(screen.getByTestId(RUN_CARD_SUMMARY_TEST_ID)).toHaveTextContent(
+      "3 of 3 steps done",
+    );
+  });
+
+  test("folds on Hide steps like any other", async () => {
+    await renderCard(
+      run({
+        status: SecurityPlaybookRunStatus.Succeeded,
+        stepStatuses: SUCCEEDED,
+      }),
+      true,
+      true,
+    );
+
+    await act(async () => {
+      fireEvent.click(toggle()!);
+    });
+
+    expect(stepsShown()).toBe(false);
+    expect(toggle()).toHaveAttribute("aria-expanded", "false");
+    expect(toggle()).toHaveTextContent("Show steps");
+  });
+
+  test("opening at first means nothing for a run drawn whole", async () => {
+    await renderCard(
+      run({
+        status: SecurityPlaybookRunStatus.Succeeded,
+        stepStatuses: SUCCEEDED,
+      }),
+      false,
+      false,
+    );
+
+    expect(stepsShown()).toBe(true);
+    expect(toggle()).toBeNull();
+  });
+
+  test("a run that does not open at first stays folded", async () => {
+    await renderCard(
+      run({
+        status: SecurityPlaybookRunStatus.Succeeded,
+        stepStatuses: SUCCEEDED,
+      }),
+      true,
+      false,
+    );
+
+    expect(stepsShown()).toBe(false);
+    expect(toggle()).toHaveAttribute("aria-expanded", "false");
+  });
+});
+
+// A run drawn on its own, not in a list: the card's default.
+describe("a run drawn whole", () => {
   test("draw their steps whole, with no line and no toggle", async () => {
     await renderCard(
       run({

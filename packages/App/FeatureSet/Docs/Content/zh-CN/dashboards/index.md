@@ -45,7 +45,8 @@ flowchart TB
 
 | 页面 | 在那里做什么 |
 | --- | --- |
-| **仪表板** | 项目中的仪表板。新建一个，或通过 **Import JSON** 导入仪表板。 |
+| **仪表板** | 项目中的仪表板。新建一个，或通过 **导入 JSON** 导入仪表板。 |
+| **仪表板 → 播放列表** | 在 NOC 大屏等屏幕上 [依次显示仪表板](/docs/dashboards/playlists) 。 |
 | **设置 → 所有者规则** | 自动为新仪表板添加所有者。 |
 | **设置 → 标签规则** | 自动为新仪表板添加标签。 |
 | **设置 → 数据源** | 连接 Prometheus、SQL 数据库、ClickHouse、Loki、Elasticsearch 或 REST API。 |

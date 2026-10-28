@@ -28,10 +28,10 @@ Volledig uitgeschreven leest OneUptime deze instellingen in deze volgorde, en de
 
 | Volgorde | Instelling | Waar ze wordt ingesteld |
 | --- | --- | --- |
-| 1 | Dagen voor één logboekernst of spanstatus, voor één service of resource | **Bewaring per telemetrietype**, op de pagina **Instellingen** ervan |
+| 1 | Dagen voor één logboekernst of spanstatus, voor één service of resource | **Bewaring per telemetrietype**, onder **Meer instellingen** op de pagina **Instellingen** ervan |
 | 2 | Dagen voor één soort telemetrie, voor één service of resource | Dezelfde kaart |
-| 3 | Dagen voor alles van één service of resource | **Bewaartermijn telemetriegegevens**, op dezelfde pagina |
-| 4 | Dagen voor één logboekernst of spanstatus, voor het project | **Bewaring per telemetrietype**, op **Gegevensbewaring** |
+| 3 | Dagen voor alles van één service of resource | **Bewaartermijn telemetriegegevens**, onder **Meer instellingen** op dezelfde pagina |
+| 4 | Dagen voor één logboekernst of spanstatus, voor het project | **Bewaring per telemetrietype**, onder **Meer instellingen** op **Gegevensbewaring** |
 | 5 | Dagen voor één soort telemetrie, voor het project | Dezelfde kaart |
 | 6 | Dagen voor al het andere | **Standaardbewaring (dagen)**, op **Gegevensbewaring** |
 
@@ -64,7 +64,7 @@ Overschrijvingen bewaren wat u nodig hebt langer en de rest korter: foutlogboeke
 
 ### Voor het hele project
 
-Onder de standaard stelt de kaart **Bewaring per telemetrietype** dagen in voor elk soort telemetrie. Klik op **Edit Overrides**, vul de velden in die u nodig hebt, en laat de rest leeg:
+Onder de standaard, ingeklapt onder **Meer instellingen**, stelt de kaart **Bewaring per telemetrietype** dagen in voor elk soort telemetrie. Klik op **Edit Overrides**, vul de velden in die u nodig hebt, en laat de rest leeg:
 
 | Type | Velden |
 | --- | --- |
@@ -77,7 +77,7 @@ Een leeg veld valt terug op de volgende instelling in de volgorde hierboven, dus
 
 ### Voor één service of resource
 
-Open de pagina **Instellingen** van de service of resource. De kaart **Bewaartermijn telemetriegegevens** bevat **Telemetriegegevens bewaren gedurende (dagen)**, één getal voor alles wat hij stuurt, en de kaart **Bewaring per telemetrietype** heeft dezelfde velden als die van het project. Laat een veld leeg om de instellingen van het project te gebruiken.
+Open de pagina **Instellingen** van de service of resource, en dan **Meer instellingen**. De kaart **Bewaartermijn telemetriegegevens** bevat **Telemetriegegevens bewaren gedurende (dagen)**, één getal voor alles wat hij stuurt, en de kaart **Bewaring per telemetrietype** heeft dezelfde velden als die van het project. Laat een veld leeg om de instellingen van het project te gebruiken.
 
 Services, hosts, Kubernetes-clusters, Docker- en Podman-hosts, Docker Swarm-, Proxmox- en Ceph-clusters, opslagarrays, vCenters, databases, serverless functies, cloudresources, RUM-applicaties en IoT-vloten hebben allemaal deze kaarten. Zie de [Servicecatalogus](/docs/telemetry/services#een-service-wijzigen) voor de pagina **Instellingen** van een service.
 

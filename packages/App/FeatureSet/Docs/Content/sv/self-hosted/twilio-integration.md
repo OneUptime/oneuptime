@@ -34,7 +34,7 @@ Spara autentiseringsuppgifterna för ett projekt, eller en gång för hela insta
 
 | | Projektkonfiguration | Konfiguration för hela installationen |
 | --- | --- | --- |
-| Var | Kortet **Twilio-konfiguration** under **Projektinställningar > Aviseringar > Aviseringsinställningar** | **Admin Dashboard > Inställningar > Samtal och SMS** |
+| Var | Kortet **Twilio-konfiguration** under **Fler inställningar** på **Projektinställningar > Aviseringar > Aviseringsinställningar** | **Admin Dashboard > Inställningar > Samtal och SMS** |
 | Vem kan ange den | **Projektägare**, **Projektadministratör** eller **Create Call and SMS** i en anpassad roll | En master admin |
 | Vem kan läsa dess Auth Token | **Projektägare**, **Projektadministratör** eller **Read Call and SMS** i en anpassad roll. Andra som ser konfigurationen ser resten av den; token lagras krypterad | En master admin |
 | Används för | SMS och samtal till projektets medlemmar så länge den är projektstandard, de statussidor den är tilldelad och de policyer för inkommande samtal som använder den | SMS och samtal till medlemmarna i alla projekt som saknar standardkonfiguration |
@@ -42,7 +42,7 @@ Spara autentiseringsuppgifterna för ett projekt, eller en gång för hela insta
 Så lägger du till en projektkonfiguration:
 
 :::steps
-1. Gå till **Projektinställningar > Aviseringar > Aviseringsinställningar**.
+1. Gå till **Projektinställningar > Aviseringar > Aviseringsinställningar** och öppna **Fler inställningar**.
 2. Välj **Skapa Twilio-konfiguration** i **Twilio-konfiguration**.
 3. Ange ett namn och välj under **Använd det här kontot för** vad kontot skickar: **Samtal och SMS**, **Endast SMS** eller **Endast samtal**. Ange sedan **Twilio-konto-SID**, **Twilio-autentiseringstoken** och det nummer som valet ber om: **Twilio primärt telefonnummer** för samtal, eller **Twilio SMS-telefonnummer** för **Endast SMS**. Under **Fler fält** kan du också ange kommaseparerade **Twilio sekundära telefonnummer** för andra länder, och **Twilio SMS-telefonnummer** om dina nummer inte kan skicka SMS.
 4. **Ange som projektstandard** är påslaget för projektets första konfiguration, så SMS och samtal till projektets medlemmar, även jouraviseringar, går genom den så fort du sparar. Stäng av det om kontot bara är till för statussidor eller inkommande samtal. En senare konfiguration börjar med reglaget avstängt: slå på det, eller välj **Ange som projektstandard** i konfigurationens radmeny, för att flytta de meddelandena dit. En API-begäran som utelämnar `isProjectDefault` behandlas på samma sätt.
@@ -177,6 +177,7 @@ Ett nummer som är verifierat för SMS är också verifierat för samtal, utan e
 :::cards
 - [Policy för inkommande samtal](/docs/on-call/incoming-call-policy): Låt den som ringer nå dina jourhavande ingenjörer via ett Twilio-nummer.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Bestäm vem som larmas på varje nivå, via SMS, samtal eller någon annan metod.
+- [SMS- och samtalsgateway](/docs/self-hosted/sms-and-call-gateway): Skicka SMS och samtal via din egen leverantör i stället för Twilio.
 - [SMTP](/docs/emails/smtp): Skicka även e-post via din egen e-postserver.
 - [Åtkomst till privata nätverk](/docs/self-hosted/private-network-access): Låt arbetsflöden och webhooks nå interna verktyg.
 :::

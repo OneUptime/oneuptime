@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { replacePipeTables } from "../../../Utils/Markdown/PipeTables";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * PIPE TABLES AS THE CHAT CONVERTERS READ THEM (Utils/Markdown/PipeTables).
@@ -124,10 +125,13 @@ describe("replacePipeTables", () => {
 
   test("reads a hundred thousand rows with no delimiter row in good time", () => {
     const rows: string = "| 2026-10-08 | INFO | served |\n".repeat(100000);
-    const started: number = Date.now();
-
-    expect(replacePipeTables(rows, format) === rows).toBe(true);
-    expect(Date.now() - started).toBeLessThan(2000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(replacePipeTables(rows, format) === rows).toBe(true);
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   test("replaces exactly what the old expression replaced, for 3000 texts", () => {

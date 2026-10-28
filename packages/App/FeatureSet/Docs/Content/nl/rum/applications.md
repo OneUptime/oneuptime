@@ -108,7 +108,7 @@ De telemetrie van een applicatie en haar opnamen worden verschillend lang bewaar
 
 ### Bewaring van telemetrie
 
-Standaard wordt de telemetrie van een applicatie bewaard volgens de bewaring van het project, ingesteld onder **Projectinstellingen → Telemetrie & APM → Gegevensbewaring**. Twee kaarten op de pagina **Instellingen** van de applicatie overschrijven die:
+Standaard wordt de telemetrie van een applicatie bewaard volgens de bewaring van het project, ingesteld onder **Projectinstellingen → Telemetrie & APM → Gegevensbewaring**. Twee kaarten op de pagina **Instellingen** van de applicatie, ingeklapt onder **Meer instellingen**, overschrijven die:
 
 - **Bewaartermijn telemetriegegevens** bevat **Telemetriegegevens bewaren gedurende (dagen)**, één waarde voor alle telemetrie van de applicatie. Laat het leeg om de bewaring van het project te gebruiken.
 - **Bewaring per telemetrietype** bevat een standaardwaarde voor logs, traces, metrieken en profielen, en voor logs per ernst en traces per status. Een lege waarde valt terug op de waarde van de applicatie en daarna op die van het project.
@@ -119,7 +119,7 @@ Op een lager Cloud-abonnement blijft een overschrijving die van een proefperiode
 
 ### Bewaring van sessieherhalingen
 
-Opnamen hebben hun eigen bewaring, ingesteld op de pagina **Replay Policy** van de applicatie met **Beleid bewerken → Limieten**: standaard 7 dagen, of 1, 14, 30 of 90 dagen. Die is bewust kort, want een opname is veel gevoeliger, en veel groter, dan een span. De kaart **Bewaartermijn van sessieherhaling** op de pagina **Instellingen** toont haar (_Session replays are kept for 7 days._), en de knop **Bewerken in Replay Policy** opent het beleid.
+Opnamen hebben hun eigen bewaring, ingesteld op de pagina **Replay Policy** van de applicatie met **Beleid bewerken → Limieten**: standaard 7 dagen, of 1, 14, 30 of 90 dagen. Die is bewust kort, want een opname is veel gevoeliger, en veel groter, dan een span. De kaart **Bewaartermijn van sessieherhaling**, onder **Meer instellingen** op de pagina **Instellingen**, toont haar (_Session replays are kept for 7 days._), en de knop **Bewerken in Replay Policy** opent het beleid.
 
 Een langere bewaring van telemetrie bewaart opnamen niet langer. De tellingen, signalen en het apparaat van een sessie verlopen samen met de beelden; alleen de logs, spans en uitzonderingen van de sessie volgen de bewaring van telemetrie. Zie [Bewaring en verwijdering](/docs/telemetry/session-replay#bewaring-en-verwijdering).
 

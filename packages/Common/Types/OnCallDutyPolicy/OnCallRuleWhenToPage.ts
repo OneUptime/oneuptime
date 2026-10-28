@@ -11,13 +11,22 @@
  * The hours are the rule's workingHours - a schedule layer's restriction
  * times - read on the clock of its workingHoursTimezone (WorkingHours).
  *
+ * An alert or incident rule can also let OneUptime AI respond first
+ * (OnCallPolicyAiHold): when AI may fix what the record is about, the run
+ * waits while AI investigates and fixes, for at most the rule's
+ * aiHoldTimeInMinutes, and pages only if AI hands it off or its time runs
+ * out. When AI may not fix anything there, the rule pages right away. An
+ * episode rule that names it pages right away: AI investigates alerts and
+ * incidents, not episodes.
+ *
  * A record that two rules page the same policy for pages it as soon as
  * either lets it: right away wins, and of two rules that wait, the one whose
- * hours begin first (OnCallRulePagingHold).
+ * wait ends first (OnCallRulePagingHold).
  */
 enum OnCallRuleWhenToPage {
   RightAway = "Right Away",
   WorkingHours = "Working Hours",
+  AfterOneUptimeAI = "After OneUptime AI",
 }
 
 export default OnCallRuleWhenToPage;

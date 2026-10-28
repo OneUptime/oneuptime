@@ -59,8 +59,12 @@ describe("dashboard-wide time range zoom wiring", () => {
        * and open the board on the link's, the viewer's or the dashboard's
        * own range instead of always the past hour.
        */
+      /*
+       * Inside OneUptime the call also says whether the board is a
+       * playlist's turn (savedDefaultsOnly, issue #5235).
+       */
       expect(shell).toContain(
-        "const viewerSettings: DashboardViewerSettings = useDashboardViewerSettings({ dashboardId: props.dashboardId.toString(), });",
+        "const viewerSettings: DashboardViewerSettings = useDashboardViewerSettings({ dashboardId: props.dashboardId.toString(),",
       );
       expect(shell).toContain(
         "const timeRangeZoom: DashboardTimeRangeZoom = viewerSettings.timeRangeZoom;",

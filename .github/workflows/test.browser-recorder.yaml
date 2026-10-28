@@ -17,14 +17,30 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    # Holds the Chromium install's own limit, the suite's, and about 7 minutes
-    # for checkout and the npm install (Tests/Ops/BrowserInstallLimits). With
-    # no limit, a hung install holds the runner for GitHub's six-hour default.
-    timeout-minutes: 42
+    # In the Playwright image, as App Test's Dashboard Offline UI groups are:
+    # Chromium and its system packages and fonts are in it, so nothing is
+    # fetched from the runner's Ubuntu mirror. Tests/RealBrowser finds the
+    # image's Chromium through PLAYWRIGHT_BROWSERS_PATH, which the image
+    # sets. The limit holds the suite's own, about 7 minutes for checkout and
+    # the npm install, and 5 for the image's pull (Tests/Ops/PlaywrightImage).
+    timeout-minutes: 25
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --user 1001 --ipc=host
+    # In a container a run step with no shell of its own gets sh, not the
+    # bash -e {0} a runner gives it; the steps here are written for the
+    # runner's (Tests/Ops/PlaywrightImage).
+    defaults:
+      run:
+        shell: bash -e {0}
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - uses: actions/checkout@v4
+      # The fonts an ubuntu runner has and the image lacks (DejaVu, the
+      # runner's sans-serif, serif and monospace), so pages that load no web
+      # font of their own draw their words as on the runner.
+      - uses: ./.github/actions/runner-fonts
       - uses: actions/setup-node@v4
         with:
           node-version: 26
@@ -43,16 +59,8 @@ jobs:
           working-directory: packages/App/FeatureSet/BrowserRecorder
       # Tests/RealBrowserVitals.test.ts drives a real Chromium over CDP: a
       # prerendered page, a background tab and the back/forward cache are
-      # things jsdom cannot be (issue #5181). Playwright's Chromium build,
-      # pinned to the version packages/E2E uses; on CI the suite fails
-      # rather than skips when no browser is there. `--with-deps` fetches
-      # Chromium's system packages and fonts from the runner's Ubuntu mirror:
-      # about 25 seconds, but some runners are served at a few dozen kB/s, so
-      # the install has the 25 minutes the other browser installs have.
-      - name: Install Chromium for the real-browser vitals test
-        working-directory: packages/App/FeatureSet/BrowserRecorder
-        timeout-minutes: 25
-        run: npx --yes playwright@1.63.0 install --with-deps chromium
-      # About a minute.
+      # things jsdom cannot be (issue #5181). The image's Chromium, the build
+      # of the Playwright packages/E2E locks; on CI the suite fails rather
+      # than skips when no browser is there. About a minute.
       - timeout-minutes: 10
         run: cd packages/App/FeatureSet/BrowserRecorder && npm run test

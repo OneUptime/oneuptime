@@ -7,8 +7,10 @@ import {
 } from "@playwright/test";
 import {
   DETECTION_RULE_LIBRARY,
+  DetectionRuleLibraryCategory,
   DetectionRuleLibraryEntry,
   getRecommendedDetectionRules,
+  isRecommendedDetectionRule,
 } from "Common/Types/SecurityEvent/DetectionRuleLibrary";
 import { RECOMMENDED_THREAT_INTEL_LISTS } from "Common/Types/SecurityEvent/ThreatIntelFeedType";
 import { MITRE_TACTIC_TECHNIQUES } from "Common/Types/SecurityEvent/MitreAttack";
@@ -54,7 +56,9 @@ const UNASSIGNED_CASES_PATH: string = `${PRODUCT}/cases/unassigned`;
 const CLOSED_CASES_PATH: string = `${PRODUCT}/cases/closed`;
 const ALL_CASES_PATH: string = `${PRODUCT}/cases/all`;
 const SPRAY_CASE_PATH: string = `${PRODUCT}/cases/20000000-0000-4000-8000-000000000142`;
+// Entities' old address: it opens Entity Risk, the one ranking of who is riskiest.
 const ENTITIES_PATH: string = `${PRODUCT}/entities`;
+const ENTITY_RISK_PATH: string = `${PRODUCT}/entity-risk`;
 const RULE_LIBRARY_PATH: string = `${PRODUCT}/rule-library`;
 const ATTACK_COVERAGE_PATH: string = `${PRODUCT}/attack-coverage`;
 const PLAYBOOKS_PATH: string = `${PRODUCT}/playbooks`;
@@ -165,7 +169,8 @@ interface OpenOptions {
   // Light unless "dark"; undefined reads as light, for loops over both.
   theme?: "dark" | undefined;
   empty?: boolean;
-  quiet?: boolean;
+  // A month nothing happened in; "risk": one whose rules' alerts still scored entities.
+  quiet?: boolean | "risk";
   role?: "viewer";
   // "all": the project reads every free list already.
   lists?: "all";
@@ -188,8 +193,8 @@ interface OpenOptions {
   fail?: "status" | "overview";
   // What the project's events say it sends: nothing this week, or a read that fails.
   data?: "none" | "fail";
-  // The Dashboard's German, Spanish, French, Italian, Portuguese, Dutch, Japanese or Persian locale.
-  lang?: "de" | "es" | "fr" | "it" | "pt" | "nl" | "ja" | "fa";
+  // The Dashboard's German, Spanish, French, Italian, Portuguese, Dutch, Russian, Japanese or Persian locale.
+  lang?: "de" | "es" | "fr" | "it" | "pt" | "nl" | "ru" | "ja" | "fa";
   // "custom": the project's own case statuses and priorities.
   values?: "custom";
   // Case numbers, comma separated, whose every change the server refuses.
@@ -199,6 +204,12 @@ interface OpenOptions {
   tactic?: string;
   // The Overview's ranked lists cut short (two rules, tactics, entities) or empty.
   ranked?: "short" | "none" | undefined;
+  // "long": the SOC team goes by a long name.
+  team?: "long";
+  // The project's entity risk threshold (100 when left out).
+  threshold?: number;
+  // "fail": the overview could not read the riskiest entities.
+  riskiest?: "fail";
 }
 
 test.use({ deviceScaleFactor: 2, actionTimeout: 15000 });
@@ -277,7 +288,7 @@ async function open(
     params.set("empty", "1");
   }
   if (options.quiet) {
-    params.set("quiet", "1");
+    params.set("quiet", options.quiet === "risk" ? "risk" : "1");
   }
   if (options.role) {
     params.set("role", options.role);
@@ -320,6 +331,15 @@ async function open(
   }
   if (options.ranked) {
     params.set("ranked", options.ranked);
+  }
+  if (options.team) {
+    params.set("team", options.team);
+  }
+  if (options.threshold !== undefined) {
+    params.set("threshold", String(options.threshold));
+  }
+  if (options.riskiest) {
+    params.set("riskiest", options.riskiest);
   }
   const query: string = params.toString();
   await page.goto(query ? `${pathname}?${query}` : pathname);
@@ -675,6 +695,10 @@ test.describe("the overview", () => {
   }) => {
     await open(page, OVERVIEW_PATH);
     await expect(page.getByText("Riskiest Entities")).toBeVisible();
+    // The riskiest come with the overview's answer: no read of their own.
+    await expect(
+      page.getByTestId("security-overview-riskiest-entities"),
+    ).toContainText("k.morgan@acme-commerce.example");
 
     const state: FixtureState = await fixture(page);
     const routes: Array<string> = state.apiRequests.map(
@@ -685,8 +709,12 @@ test.describe("the overview", () => {
     expect(routes.sort()).toEqual([
       "/security-case/overview",
       "/security-case/setup/status",
-      "/security-case/top-entities",
     ]);
+    expect(
+      state.listRequests.filter((request: { modelName: string }): boolean => {
+        return request.modelName === "SecurityEntityRisk";
+      }),
+    ).toEqual([]);
   });
 
   test("draws how Security works here across the top: each stage's figure, linked to its page", async ({
@@ -1270,8 +1298,8 @@ test.describe("the overview's rows of cards", () => {
     await expect(
       cardTitled(page, "Riskiest Entities").getByText(
         options.ranked === "none"
-          ? "No findings named an entity in the last 7 days."
-          : "203.0.113.47",
+          ? "No user, host or address has any risk yet."
+          : "k.morgan@acme-commerce.example",
       ),
     ).toBeVisible();
     await pageAtRest(page);
@@ -1394,7 +1422,9 @@ test.describe("the overview's rows of cards", () => {
     expect(Math.round(entitiesBox.height)).toBe(Math.round(queueBox.height));
     expect(Math.round(entitiesBox.y)).toBe(Math.round(queueBox.y));
     // Its rows start under its header, as the queue's do: the room is under them.
-    const firstEntity: Box = await boxOf(entities.getByText("203.0.113.47"));
+    const firstEntity: Box = await boxOf(
+      entities.getByText("k.morgan@acme-commerce.example"),
+    );
     const firstPriority: Box = await boxOf(queue.getByText("Critical").first());
     expect(Math.abs(firstEntity.y - firstPriority.y)).toBeLessThanOrEqual(30);
     await screenshot(page, "overview-rows-short-1280");
@@ -1402,7 +1432,7 @@ test.describe("the overview's rows of cards", () => {
     await openRows(page, { width: 1280, ranked: "none" });
 
     for (const [title, sentence] of [
-      ["Riskiest Entities", "No findings named an entity in the last 7 days."],
+      ["Riskiest Entities", "No user, host or address has any risk yet."],
       ["Top Detections", "Nothing was detected in the last 14 days."],
       [
         "MITRE ATT&CK Tactics",
@@ -2070,11 +2100,263 @@ test.describe("the case queue", () => {
       await overflowOf(scroller),
       "table scrolls sideways",
     ).toBeLessThanOrEqual(1);
+    /*
+     * When the last detection fired is in each case's line, not a column of
+     * its own: the column waits in Customize Columns.
+     */
     await expect(
       page.getByRole("columnheader", { name: "Last Detection" }),
-    ).toBeInViewport();
+    ).toHaveCount(0);
+    await expect(
+      page
+        .locator("table tbody tr")
+        .filter({ hasText: "CASE-142" })
+        .getByTestId("security-case-row-detections"),
+    ).toHaveText("3 detections, the last 9 minutes ago");
 
     await screenshot(page, "cases-desktop");
+  });
+
+  /*
+   * The case lists ran past their card at a 1280 laptop in the longest
+   * languages - German by 95px, Russian by 173 - the last values under the
+   * sticky View and ⋯. The time each list is sorted by is in each case's
+   * line now, and every list fits. The fixture is 64px narrower than
+   * production: 1344 here is a 1280 laptop.
+   */
+  test("every case list fits its card at a 1280 laptop in German, French, Dutch and Russian", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const lists: Array<[string, string]> = [
+      ["open", CASES_PATH],
+      ["closed", CLOSED_CASES_PATH],
+      ["all", ALL_CASES_PATH],
+    ];
+
+    for (const lang of ["de", "fr", "nl", "ru"] as Array<
+      NonNullable<OpenOptions["lang"]>
+    >) {
+      for (const [name, pathname] of lists) {
+        await open(page, pathname, { width: 1344, lang });
+        await expect(page.locator("table tbody tr").first()).toBeVisible({
+          timeout: 30000,
+        });
+        const scroller: Locator = page
+          .locator("table")
+          .locator("xpath=ancestor::div[@data-testid='table-scroll'][1]");
+
+        expect(
+          await overflowOf(scroller),
+          `${lang} ${name}: the table scrolls sideways`,
+        ).toBeLessThanOrEqual(1);
+        expect(await pageOverflow(page), `${lang} ${name}`).toBeLessThanOrEqual(
+          1,
+        );
+      }
+    }
+
+    // German opens a case as a case is opened, the whole phrase.
+    await open(page, CASES_PATH, { width: 1344, lang: "de" });
+    await expect(
+      page.getByRole("button", { name: "Sicherheitsfall eröffnen" }),
+    ).toBeVisible({ timeout: 30000 });
+    await expect(
+      page.getByRole("button", { name: "Öffnen Sicherheitsfall" }),
+    ).toHaveCount(0);
+    await screenshot(page, "cases-1280-de", { fullPage: false });
+  });
+
+  /*
+   * Beside the side menu a case's line broke inside its time - "vor 5 /
+   * Stunden" - and OneUptime AI's read stood wherever the sentence above
+   * it happened to end. The time's words are joined by no-break spaces,
+   * and the read has a line of its own, at the cell's edge, on every row.
+   */
+  test("in German at a 1280 laptop, a case's line keeps its time whole and the AI's read starts its own line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const NBSP: string = String.fromCharCode(0xa0);
+
+    await open(page, CASES_PATH, { width: 1344, lang: "de" });
+    const apiKey: Locator = page
+      .locator("table tbody tr")
+      .filter({ hasText: "CASE-137" });
+
+    await expect(
+      apiKey.getByTestId("security-case-row-detections"),
+    ).toBeVisible({ timeout: 30000 });
+    expect(
+      await apiKey
+        .getByTestId("security-case-row-detections")
+        .evaluate((element: Element): string => {
+          return element.textContent || "";
+        }),
+    ).toBe(`1 Erkennung, vor${NBSP}5${NBSP}Stunden`);
+
+    for (const caseNumber of ["CASE-142", "CASE-137"]) {
+      const row: Locator = page
+        .locator("table tbody tr")
+        .filter({ hasText: caseNumber });
+      const line: Box = await boxOf(
+        row.getByTestId("security-case-row-source-line"),
+      );
+      const read: Box = await boxOf(
+        row.getByTestId("security-case-row-ai-verdict"),
+      );
+      const title: Box = await boxOf(
+        row.getByTestId("security-case-row-number"),
+      );
+
+      // Under the whole line, starting where the case's title does.
+      expect(read.y, caseNumber).toBeGreaterThanOrEqual(
+        line.y + line.height - 1,
+      );
+      expect(Math.abs(read.x - title.x), caseNumber).toBeLessThanOrEqual(1);
+    }
+  });
+
+  /*
+   * A team named "Security Operations Center - Tier 2 Escalations (EMEA)"
+   * was drawn whole in the Assignee and Team columns, and ran every list
+   * past its card at 1280, under the sticky View and ⋯ - in English as in
+   * German. Its name ends in "..." where its column does.
+   */
+  test("a team with a long name never runs a case list past its card at a 1280 laptop", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const LONG_TEAM_NAME: string =
+      "Security Operations Center - Tier 2 Escalations (EMEA)";
+    // The Assignee column in English, the Team column in German.
+    const lists: Array<[string, string, "en" | "de"]> = [
+      ["open", CASES_PATH, "en"],
+      ["unassigned", UNASSIGNED_CASES_PATH, "de"],
+    ];
+
+    for (const [name, pathname, lang] of lists) {
+      await open(page, pathname, {
+        width: 1344,
+        team: "long",
+        ...(lang === "de" ? { lang: lang } : {}),
+      });
+      const team: Locator = page.getByTestId("security-case-row-team").first();
+
+      await expect(team).toBeVisible({ timeout: 30000 });
+
+      const scroller: Locator = page
+        .locator("table")
+        .locator("xpath=ancestor::div[@data-testid='table-scroll'][1]");
+
+      expect(
+        await overflowOf(scroller),
+        `${lang} ${name}: the table scrolls sideways`,
+      ).toBeLessThanOrEqual(1);
+      expect(await pageOverflow(page), `${lang} ${name}`).toBeLessThanOrEqual(
+        1,
+      );
+
+      // Cut at its own end, an ellipsis where its column ends.
+      expect(
+        await team
+          .locator("bdi")
+          .evaluate(
+            (
+              element: Element,
+            ): { isCut: boolean; overflow: string; text: string } => {
+              return {
+                isCut: element.scrollWidth > element.clientWidth,
+                overflow: window.getComputedStyle(element).textOverflow,
+                text: element.textContent || "",
+              };
+            },
+          ),
+        `${lang} ${name}`,
+      ).toEqual({ isCut: true, overflow: "ellipsis", text: LONG_TEAM_NAME });
+    }
+
+    await screenshot(page, "cases-long-team-1280-de", { fullPage: false });
+  });
+
+  test("Closed Cases says in each case's line when it closed", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CLOSED_CASES_PATH);
+    await expect(
+      page.getByTestId("security-case-row-detections").first(),
+    ).toContainText(", closed ", { timeout: 30000 });
+    await expect(
+      page.getByRole("columnheader", { name: "Closed", exact: true }),
+    ).toHaveCount(0);
+  });
+
+  /*
+   * A case's title is what a rule or a person wrote, set apart from the
+   * page (IsolatedText): on a Persian page an English title ran into its
+   * number, "CASE-142Password spray". The number starts its line on the
+   * right, where a Persian reader begins, and the title follows it to the
+   * left, a gap between them.
+   */
+  test("in Persian, each case's number starts its line on the right, its title after it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CASES_PATH, { width: 1344, lang: "fa" });
+    await expect(page.locator("table tbody tr").first()).toBeVisible({
+      timeout: 30000,
+    });
+    expect(
+      await page.evaluate((): string => {
+        return document.documentElement.dir;
+      }),
+    ).toBe("rtl");
+
+    const numbers: Locator = page.getByTestId("security-case-row-number");
+    expect(await numbers.count()).toBeGreaterThan(1);
+
+    for (const number of await numbers.all()) {
+      const layout: {
+        name: string;
+        titleTag: string;
+        numberLeft: number;
+        titleLeft: number;
+        titleRight: number;
+      } = await number.evaluate((element: Element) => {
+        const title: Element | null = element.nextElementSibling;
+        // The title's first line: where it meets the number.
+        const firstLine: DOMRect | undefined = title
+          ? title.getClientRects()[0]
+          : undefined;
+
+        return {
+          name: element.textContent || "",
+          titleTag: title ? title.tagName : "",
+          numberLeft: element.getBoundingClientRect().left,
+          titleLeft: firstLine ? firstLine.left : 0,
+          titleRight: firstLine ? firstLine.right : 0,
+        };
+      });
+
+      expect(layout.titleTag, layout.name).toBe("BDI");
+      expect(
+        layout.numberLeft - layout.titleRight,
+        `${layout.name}: a gap between the number and its title`,
+      ).toBeGreaterThanOrEqual(4);
+      expect(
+        layout.numberLeft - layout.titleRight,
+        `${layout.name}: the title right after the number`,
+      ).toBeLessThanOrEqual(10);
+      expect(layout.titleLeft, layout.name).toBeLessThan(layout.numberLeft);
+    }
+
+    await screenshot(page, "cases-fa-1280", { fullPage: false });
   });
 
   for (const layout of [
@@ -2151,6 +2433,13 @@ const CASE_PAGES: ReadonlyArray<CasePage> = [
     segment: "/timeline",
     text: "took the case.",
     slug: "timeline",
+  },
+  {
+    section: "Investigation",
+    title: "Story",
+    segment: "/story",
+    text: "events like this",
+    slug: "story",
   },
   {
     section: "Investigation",
@@ -2880,6 +3169,42 @@ test.describe("working cases from the queue", () => {
     expect(await updatesOf(page)).toEqual([]);
   });
 
+  /*
+   * Edit Case asks what Open Security Case asks, in the same words, in the
+   * reader's language. Its fields drew their columns' descriptions, written
+   * for the API and in English on every page: "ID of the person working
+   * the case." under Assign To.
+   */
+  test("Edit Case asks in the reader's words, as Open Security Case does", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, SPRAY_CASE_PATH, { width: 1344, lang: "de" });
+    await expect(caseHeader(page)).toBeVisible({ timeout: 30000 });
+
+    await caseHeader(page).getByTestId("security-case-more").click();
+    await page.getByTestId("security-case-edit").click();
+    const dialog: Locator = page.getByRole("dialog").first();
+
+    await expect(dialog).toContainText(
+      "Worum es im Fall geht, in einer Zeile.",
+      { timeout: 30000 },
+    );
+    await expect(dialog).toContainText(
+      "Was diesen Fall ausgelöst hat und worauf Sie zuerst schauen sollten.",
+    );
+    await expect(dialog).not.toContainText("What the case is about");
+
+    await dialog.getByRole("button", { name: "Weiter", exact: true }).click();
+    await expect(dialog).toContainText("Die Person, die den Fall bearbeitet.");
+    await expect(dialog).toContainText("Das Team, zu dem der Fall gehört.");
+    await expect(dialog).toContainText(
+      "Beschriftungen, nach denen Sie Fälle filtern und auswerten.",
+    );
+    await expect(dialog).not.toContainText("ID of");
+  });
+
   test("a case's own header hands it on and moves its status from any of its pages", async ({
     page,
   }: {
@@ -3167,7 +3492,7 @@ test.describe("a case", () => {
     page: Page;
   }) => {
     await open(page, `${SPRAY_CASE_PATH}/entities`);
-    await waitForCasePage(page, CASE_PAGES[3]!);
+    await waitForCasePage(page, CASE_PAGES[4]!);
 
     await page
       .getByRole("navigation", { name: "Breadcrumb" })
@@ -3378,6 +3703,51 @@ test.describe("a case", () => {
     ).toHaveCount(1);
   });
 
+  /*
+   * A case's runs fold to a line each, as on Playbook Runs - a playbook run
+   * at every new detection gives a busy case a run a detection - but its
+   * newest opens, with any run waiting for approval.
+   */
+  test("the case's Playbooks folds its older runs to a line, the newest open", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${SPRAY_CASE_PATH}/playbook-runs`);
+    const cards: Locator = page.getByTestId("security-playbook-run-card");
+    await expect(cards).toHaveCount(2, { timeout: 30000 });
+
+    const held: Locator = cards.filter({
+      hasText: "Contain Compromised Okta Users",
+    });
+    const enrich: Locator = cards.filter({ hasText: "Enrich New Cases" });
+
+    // The newest, and waiting for approval: open on its steps.
+    await expect(
+      held.getByTestId("security-playbook-run-steps-toggle"),
+    ).toHaveAttribute("aria-expanded", "true");
+    await expect(held).toContainText("Suspend the user in Okta");
+
+    // The older one: a line of how far it got, its steps a click away.
+    await expect(
+      enrich.getByTestId("security-playbook-run-summary"),
+    ).toHaveText("3 of 3 steps done");
+    const toggle: Locator = enrich.getByTestId(
+      "security-playbook-run-steps-toggle",
+    );
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect(enrich).not.toContainText("Added the triage checklist");
+
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await expect(enrich).toContainText(
+      "Added the triage checklist to the case.",
+    );
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+
+    await screenshot(page, "case-playbooks-folded", { fullPage: false });
+  });
+
   test("approving the held step runs the rest of the playbook, and the count beside the entry goes", async ({
     page,
   }: {
@@ -3400,7 +3770,7 @@ test.describe("a case", () => {
     const dialog: Locator = page.getByRole("dialog");
     await expect(dialog).toContainText("Approve Step");
     await dialog
-      .getByPlaceholder("Optional. Why you decided this way.")
+      .getByPlaceholder("Why you decided this way.")
       .fill("Confirmed with her manager.");
     await dialog.getByRole("button", { name: "Approve" }).click();
 
@@ -3445,6 +3815,213 @@ test.describe("a case", () => {
         .getByTestId("feed-entry")
         .filter({ hasText: "Okta success after failures joined the case" }),
     ).toBeVisible();
+  });
+
+  /*
+   * A case's Impact, on its Overview, as the server answers it from the
+   * records Connected Signals lists (Fixture/CaseContextFixture.js): the
+   * known-bad domain case names build-runner-07, which is on the service map,
+   * reports a public address and is shown on a status page.
+   */
+  test("its Overview says what the case puts at risk: what it names and how far that reaches, reachable from the internet on evidence only, who owns it and what last changed there", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, DOMAIN_CASE_PATH);
+    const impact: Locator = cardTitled(page, "Impact");
+    const summary: Locator = impact.getByTestId("security-case-impact-summary");
+    await expect(summary).toBeVisible({ timeout: 30000 });
+
+    // The figures first: whether it is exposed, what it names, calls and is called by, what watches it.
+    await expect(summary.getByRole("listitem")).toHaveText([
+      "Reachable from the internet",
+      "Names 1 record",
+      "Calls 2 others",
+      "Called by 1",
+      "1 monitor",
+      "1 status page",
+    ]);
+    // Reachable on evidence: the public address the runner reports.
+    await expect(impact).toContainText(
+      "build-runner-07 has a public address, 198.51.100.23.",
+    );
+    await expect(
+      impact.getByTestId("security-case-impact-owners"),
+    ).toContainText("Platform Engineering");
+    // The release before the attack, not the fix after it.
+    const lastChange: Locator = impact.getByTestId(
+      "security-case-impact-last-change",
+    );
+    await expect(lastChange).toContainText(
+      "Deployed runner image 2026.10.2 on build-runner-07, 2 days ago: before the first detection",
+    );
+    await expect(lastChange).toContainText("Version 2026.10.2");
+
+    // Record by record, behind a button.
+    await expect(
+      impact.getByTestId("security-case-impact-details"),
+    ).toHaveCount(0);
+    await impact
+      .getByRole("button", { name: "Show what is at risk", exact: true })
+      .click();
+    const runner: Locator = impact.getByTestId("security-case-impact-record");
+    await expect(runner).toHaveCount(1);
+    await expect(
+      runner.getByRole("link", { name: "build-runner-07", exact: true }),
+    ).toBeVisible();
+    const fact: (label: string) => Locator = (label: string): Locator => {
+      return runner
+        .locator("dt")
+        .filter({ hasText: new RegExp(`^${escapeRegExp(label)}$`) })
+        .locator("xpath=following-sibling::dd[1]");
+    };
+    await expect(fact("Calls")).toHaveText("artifact-registry, github.com");
+    await expect(fact("Called by")).toHaveText("ci-scheduler");
+    await expect(fact("Watched by")).toContainText("build-runner-07 heartbeat");
+    await expect(fact("Status pages")).toHaveText("Engineering Tools");
+    expect(
+      (await fixture(page)).apiRequests
+        .filter((request: { url: string }): boolean => {
+          return request.url.endsWith("/security-case-context/impact");
+        })
+        .map((request: { body: unknown }): unknown => {
+          return request.body;
+        }),
+    ).toContainEqual({ caseId: CASE_ID(141) });
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await screenshot(page, "case-impact-desktop");
+
+    // On a phone in the dark, the records read inside the card.
+    await open(page, DOMAIN_CASE_PATH, {
+      width: 390,
+      height: 844,
+      theme: "dark",
+    });
+    await impact
+      .getByRole("button", { name: "Show what is at risk", exact: true })
+      .click({ timeout: 30000 });
+    await expect(runner).toBeVisible();
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await screenshot(page, "case-impact-390-dark");
+
+    /*
+     * The spray names only Kai Morgan, and nothing OneUptime holds shows the
+     * case's address reached the app: not known, never a guess.
+     */
+    await open(page, SPRAY_CASE_PATH);
+    await expect(summary.getByRole("listitem")).toHaveText(
+      ["Not known to be reachable from the internet", "Names 1 record"],
+      { timeout: 30000 },
+    );
+    await expect(impact).toContainText(
+      "Nothing OneUptime holds shows it is: no request from a public address reached the app, and no record reports a public address.",
+    );
+  });
+
+  /*
+   * A case's Story, as the server tells it (Fixture/CaseContextFixture.js):
+   * the spray's detections, its 412 failed sign-ins and the success among
+   * them told as one run, the device enrolled after it, its playbook runs,
+   * notes and milestones - on one time axis, oldest first.
+   */
+  test("the Story page tells what happened, in order: the detections, the events behind them as runs, what was done and what the team wrote", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${SPRAY_CASE_PATH}/story`);
+    const story: Locator = page.getByTestId("security-case-story");
+    const items: Locator = story.getByTestId("security-case-story-item");
+    await expect(items.first()).toBeVisible({ timeout: 30000 });
+    const kinds: () => Promise<Array<string | null>> = (): Promise<
+      Array<string | null>
+    > => {
+      return items.evaluateAll(
+        (elements: Array<Element>): Array<string | null> => {
+          return elements.map((element: Element): string | null => {
+            return element.getAttribute("data-kind");
+          });
+        },
+      );
+    };
+
+    expect(await kinds()).toEqual([
+      "Events",
+      "Detection",
+      "CaseOpened",
+      "PlaybookRun",
+      "Detection",
+      "Milestone",
+      "Detection",
+      "PlaybookRun",
+      "Note",
+      "Events",
+      "Note",
+    ]);
+    await expect(items).toContainText([
+      "user.session.start FAILURE: INVALID_CREDENTIALS for j.wilson@acme-commerce.example from 203.0.113.47",
+      "Okta password spray",
+      "Case opened",
+      "Enrich New Cases",
+      "Known-bad address 203.0.113.47 (Tor exit node)",
+      "Case acknowledged",
+      "Okta sign-in success after a spray",
+      "Contain Compromised Okta Users",
+      "Spray started 09:02 UTC.",
+      "user.mfa.factor.activate: Okta Verify enrolled for k.morgan@acme-commerce.example from 203.0.113.47",
+      "Approving the suspend.",
+    ]);
+    // A run of alike events is one line, with how many; a detection, how often it fired.
+    await expect(items.nth(0)).toContainText("413 events like this");
+    await expect(items.nth(1)).toContainText("Fired 31 times");
+    await expect(items.nth(7)).toContainText("Waiting for Approval");
+    await expect(items.nth(8)).toContainText("Written by Maya Chen");
+    // Nothing was cut, refused or failed, so nothing is said above it.
+    await expect(story.getByTestId("security-case-story-notes")).toHaveCount(0);
+    await screenshot(page, "case-story-desktop");
+    expect(
+      (await fixture(page)).apiRequests
+        .filter((request: { url: string }): boolean => {
+          return request.url.endsWith("/security-case-context/story");
+        })
+        .map((request: { body: unknown }): unknown => {
+          return request.body;
+        }),
+    ).toContainEqual({ caseId: SPRAY_CASE_ID });
+
+    // Narrowed to the attack, or to the response; a part with nothing in it is not offered.
+    await story.getByTestId("security-case-story-filter-Attack").click();
+    await expect
+      .poll(kinds)
+      .toEqual(["Events", "Detection", "Detection", "Detection", "Events"]);
+    await story.getByTestId("security-case-story-filter-Response").click();
+    await expect
+      .poll(kinds)
+      .toEqual([
+        "CaseOpened",
+        "PlaybookRun",
+        "Milestone",
+        "PlaybookRun",
+        "Note",
+        "Note",
+      ]);
+    await expect(
+      story.getByTestId("security-case-story-filter-Changes"),
+    ).toHaveCount(0);
+
+    // A detection opens the case's Detections page.
+    await story.getByTestId("security-case-story-filter-All").click();
+    await items
+      .nth(1)
+      .getByTestId("security-case-story-link-detections")
+      .click();
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(`${SPRAY_CASE_PATH}/detections`);
+    await expect(page.getByText("31 times")).toBeVisible({ timeout: 30000 });
   });
 
   test("the Private Notes page: what the team wrote, and the composer for more", async ({
@@ -4193,6 +4770,36 @@ test.describe("playbooks", () => {
     await screenshot(page, "playbook-desktop");
   });
 
+  /*
+   * A step's dialog was titled "Edit Step 4", joined from English pieces,
+   * over "Add a note: Write a note on the case: ..." - on every page. It is
+   * named by the step's place and what it does, as a run lists its steps,
+   * in the reader's language.
+   */
+  test("a step's dialog is named by its place and what it does, in the reader's language", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CONTAIN_PLAYBOOK_PATH, { width: 1344, lang: "de" });
+    const step: Locator = page.getByTestId("security-playbook-step-3");
+
+    await expect(step).toBeVisible({ timeout: 30000 });
+    await step.getByRole("button").last().click();
+    await page.getByRole("menuitem", { name: "Schritt bearbeiten" }).click();
+
+    await expect(page.getByTestId("modal-title")).toHaveText(
+      "Schritt 4 bearbeiten: Notiz hinzufügen",
+    );
+    const dialog: Locator = page.getByRole("dialog").first();
+
+    await expect(dialog).toContainText(
+      "Eine Notiz zum Fall schreiben: eine Checkliste",
+    );
+    await expect(dialog).not.toContainText("Edit Step");
+    await expect(dialog).not.toContainText("Write a note on the case");
+  });
+
   test("Approvals, at the runs page's old address, lists the run held for a decision", async ({
     page,
   }: {
@@ -4574,6 +5181,82 @@ test.describe("detections", () => {
         .getByTestId("attack-tactic-techniques"),
     ).toBeVisible({ timeout: 30000 });
     await screenshot(page, "attack-coverage-dark");
+  });
+
+  /*
+   * The library shows every rule on one page: its table has no footer to
+   * page with (disablePagination). The empty footer used to pull itself into
+   * the card's bottom padding, so the last rule ended on the card's bottom
+   * edge - its square white corners over the card's rounded ones, and over
+   * its bottom border (#5246). The card keeps its padding now, with its
+   * border and its corners, in both themes.
+   */
+  test("the rule library's last rule ends inside its card: the card keeps its padding, bottom border and rounded corners", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const theme of [undefined, "dark"] as Array<OpenOptions["theme"]>) {
+      await open(page, RULE_LIBRARY_PATH, { width: 1344, theme });
+      const last: Locator = libraryRows(page).last();
+      await expect(last).toBeVisible({ timeout: 30000 });
+
+      // The card is the page's last: its foot is in the window at the page's end.
+      await page.evaluate((): void => {
+        window.scrollTo(0, document.documentElement.scrollHeight);
+      });
+
+      const card: Locator = page
+        .getByTestId("card")
+        .filter({ has: libraryRows(page).first() });
+      const cardBox: Box = await boxOf(card);
+      const lastBox: Box = await boxOf(last);
+      const gap: number =
+        cardBox.y + cardBox.height - (lastBox.y + lastBox.height);
+
+      // The card's 24px of padding, and its 1px border.
+      expect(gap, `${theme || "light"}: under the last rule`).toBeGreaterThan(
+        23,
+      );
+      expect(gap).toBeLessThan(27);
+
+      // Nothing of the footer is drawn: no band, no pull into the padding.
+      const footer: Locator = card.getByTestId("table-footer");
+      expect(
+        await footer.evaluate((element: Element): number => {
+          return element.getBoundingClientRect().height;
+        }),
+      ).toBe(0);
+      await expect(footer).toHaveCSS("margin-bottom", "0px");
+
+      /*
+       * What is drawn just inside the card's bottom corner, and in the
+       * middle of its bottom padding, is the card - not a row's cell.
+       */
+      for (const [x, y] of [
+        [cardBox.x + 8, cardBox.y + cardBox.height - 8],
+        [cardBox.x + cardBox.width - 8, cardBox.y + cardBox.height - 8],
+        [cardBox.x + cardBox.width / 2, cardBox.y + cardBox.height - 6],
+      ] as Array<[number, number]>) {
+        const drawn: string = await page.evaluate(
+          ({ pointX, pointY }: { pointX: number; pointY: number }): string => {
+            // A bounding box is where it is in the window, as this reads.
+            const element: Element | null = document.elementFromPoint(
+              pointX,
+              pointY,
+            );
+
+            if (!element) {
+              return "nothing";
+            }
+
+            return element.closest("tr") ? "row" : "card";
+          },
+          { pointX: x, pointY: y },
+        );
+        expect(drawn, `${theme || "light"} at ${x},${y}`).toBe("card");
+      }
+    }
   });
 
   test("the rule library is a list to scan: what each rule finds, its ATT&CK tags, the events it reads and whether they arrive, its severity, and Add or Added", async ({
@@ -5056,22 +5739,43 @@ test.describe("detections", () => {
         .getByRole("button", { name: /Recommended Rules?$/ }),
     ).toHaveCount(0);
 
-    // A narrowed list: the main add says it adds the matching rules, just those.
+    /*
+     * A narrowed list: the main add says it adds the matching rules, just
+     * those - the library's Network rules the project does not have yet:
+     * neither the one added from its row nor a recommended one.
+     */
+    const matching: Array<DetectionRuleLibraryEntry> =
+      DETECTION_RULE_LIBRARY.filter(
+        (entry: DetectionRuleLibraryEntry): boolean => {
+          return (
+            entry.category === DetectionRuleLibraryCategory.Network &&
+            entry.id !== PORT_SCAN_RULE.id &&
+            !isRecommendedDetectionRule(entry)
+          );
+        },
+      );
+    expect(matching).toContain(NETWORK_SWEEP_RULE);
+    const isOne: boolean = matching.length === 1;
     await pickChip(page, CATEGORY_CHIP, "Network");
     await page
       .getByTestId("rule-library-toolbar")
-      .getByRole("button", { name: "Add 1 Matching Rule" })
+      .getByRole("button", {
+        name: `Add ${matching.length} Matching Rule${isOne ? "" : "s"}`,
+      })
       .click();
     await expect(
       page.getByTestId("modal").getByTestId("modal-title"),
-    ).toHaveText("Add 1 rule?");
+    ).toHaveText(`Add ${matching.length} rule${isOne ? "" : "s"}?`);
     await page
       .getByTestId("modal")
-      .getByRole("button", { name: "Add Rule" })
+      .getByRole("button", { name: isOne ? "Add Rule" : "Add Rules" })
       .click();
-    await expect(
-      page.getByTestId(`rule-library-added-${NETWORK_SWEEP_RULE.id}`),
-    ).toBeVisible();
+    for (const entry of matching) {
+      await expect(
+        page.getByTestId(`rule-library-added-${entry.id}`),
+        entry.title,
+      ).toBeVisible();
+    }
     // Every rule the library added is the record Turn on recommended adds: on, opening cases.
     const created: Array<{ modelName: string; data: Record<string, unknown> }> =
       (await fixture(page)).creates.filter(
@@ -5079,7 +5783,7 @@ test.describe("detections", () => {
           return item.modelName === "DetectionRule";
         },
       );
-    expect(created).toHaveLength(RECOMMENDED_RULES + 2);
+    expect(created).toHaveLength(RECOMMENDED_RULES + 1 + matching.length);
     for (const item of created) {
       expect(item.data["isEnabled"]).toBe(true);
       expect(item.data["shouldCreateCase"]).toBe(true);
@@ -5329,47 +6033,21 @@ test.describe("detections", () => {
   }: {
     page: Page;
   }) => {
+    // The recommended rules the project does not have yet, in each language's words.
+    const toAdd: number = RECOMMENDED_RULES - RECOMMENDED_RULES_ON;
+    const addGerman: string = `${toAdd} empfohlene Regeln hinzufügen`;
+    const addJapanese: string = `おすすめのルールを ${toAdd} 件追加`;
     /*
      * The fixture's frame is 64px narrower than production's (its page's
      * padding): 1088 here is production's 1024 beside the side menu.
      */
     for (const [lang, width, recommended, receiving, category] of [
-      [
-        "de",
-        1280,
-        "17 empfohlene Regeln hinzufügen",
-        "Empfangen",
-        "Regelkategorie",
-      ],
-      [
-        "de",
-        1088,
-        "17 empfohlene Regeln hinzufügen",
-        "Empfangen",
-        "Regelkategorie",
-      ],
-      [
-        "de",
-        1024,
-        "17 empfohlene Regeln hinzufügen",
-        "Empfangen",
-        "Regelkategorie",
-      ],
-      [
-        "de",
-        390,
-        "17 empfohlene Regeln hinzufügen",
-        "Empfangen",
-        "Regelkategorie",
-      ],
-      [
-        "ja",
-        1280,
-        "おすすめのルールを 17 件追加",
-        "受信中",
-        "ルールのカテゴリ",
-      ],
-      ["ja", 390, "おすすめのルールを 17 件追加", "受信中", "ルールのカテゴリ"],
+      ["de", 1280, addGerman, "Empfangen", "Regelkategorie"],
+      ["de", 1088, addGerman, "Empfangen", "Regelkategorie"],
+      ["de", 1024, addGerman, "Empfangen", "Regelkategorie"],
+      ["de", 390, addGerman, "Empfangen", "Regelkategorie"],
+      ["ja", 1280, addJapanese, "受信中", "ルールのカテゴリ"],
+      ["ja", 390, addJapanese, "受信中", "ルールのカテゴリ"],
     ] as Array<["de" | "ja", number, string, string, string]>) {
       await open(page, RULE_LIBRARY_PATH, { width, height: 900, lang });
       await expect(libraryRow(page, BRUTE_FORCE_RULE)).toBeVisible({
@@ -5530,7 +6208,7 @@ test.describe("detections", () => {
       "Closed Cases",
       "All Cases",
       "Events",
-      "Entities",
+      "Entity Risk",
       "Correlate",
       "Playbooks",
       "Approvals",
@@ -5717,26 +6395,35 @@ test.describe("detections", () => {
     await expect(toggle).toContainText("Security Cases / Open Cases");
   });
 
-  test("entities ranks what the findings name most, each one click from Correlate, over the window picked", async ({
+  /*
+   * Entities ranked values by how many findings named them, beside Entity
+   * Risk's scores: two lists that said "riskiest". It folded into Entity
+   * Risk, which ranks by risk score, and its Look Up an Entity moved under
+   * Entity Risk's list. A bookmark of the old page lands there.
+   */
+  test("the old Entities address opens Entity Risk, whose lookup sits under its list and opens any value in Correlate", async ({
     page,
   }: {
     page: Page;
   }) => {
     await open(page, ENTITIES_PATH, { width: 1344 });
-    const first: Locator = page.getByTestId("security-entity-row-203.0.113.47");
-    await expect(first).toBeVisible({ timeout: 30000 });
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(ENTITY_RISK_PATH);
     await expect(
-      page.getByTestId("security-entity-row-k.morgan@acme-commerce.example"),
-    ).toBeVisible();
-    // Riskiest Entities leads the page, the lookup under it.
-    const ranking: Box = await boxOf(cardTitled(page, "Riskiest Entities"));
+      cardTitled(page, "Entity Risk").locator("table tbody tr").first(),
+    ).toContainText("k.morgan@acme-commerce.example", { timeout: 30000 });
+    // Entity Risk lit, and no Entities entry left in the menu.
+    expect(await litEntries(page)).toEqual(["Entity Risk"]);
+    await expect(menuEntry(page, "Entities")).toHaveCount(0);
+
+    // The riskiest lead the page, the lookup under them.
+    const ranking: Box = await boxOf(cardTitled(page, "Entity Risk"));
     const lookup: Box = await boxOf(cardTitled(page, "Look Up an Entity"));
     expect(ranking.y).toBeLessThan(lookup.y);
     expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
-    // The ranking has the foot every list has: how many, and the pages.
-    await expect(
-      cardTitled(page, "Riskiest Entities").getByTestId("pagination-summary"),
-    ).toHaveText(/^Showing 1.10 of 10 entities$/);
     // Look Up sits beside its box, at the box's own height.
     const box: Box = await boxOf(
       page.getByRole("textbox", { name: "Look Up an Entity" }),
@@ -5746,48 +6433,105 @@ test.describe("detections", () => {
     );
     expect(Math.abs(box.height - lookUp.height)).toBeLessThanOrEqual(1);
     expect(Math.abs(box.y - lookUp.y)).toBeLessThanOrEqual(1);
-    await screenshot(page, "entities-desktop");
 
-    // The window switch reads the ranking again over a month.
+    // Any value, a domain too, over 30 days of events.
     await page
-      .getByTestId("security-entities-window")
-      .getByRole("radio", { name: "30 days" })
-      .click();
-    await expect
-      .poll(async () => {
-        return (await fixture(page)).apiRequests.filter(
-          (request: { url: string; body: unknown }): boolean => {
-            return (
-              new URL(request.url).pathname.endsWith(
-                "/security-case/top-entities",
-              ) && JSON.stringify(request.body).includes('"days":30')
-            );
-          },
-        ).length;
-      })
-      .toBe(1);
+      .getByRole("textbox", { name: "Look Up an Entity" })
+      .fill("update-sync.bad-cdn.example");
+    await page.getByRole("button", { name: "Look Up", exact: true }).click();
+    const result: Locator = page.getByTestId("security-entity-lookup-result");
+    await expect(result).toContainText("update-sync.bad-cdn.example");
+    await expect(result).toContainText("4 findings");
+    /*
+     * Open in Correlate at the result's end, centred on what it sits beside:
+     * it wrapped under the counts, a dialog footer's margin setting it 12px
+     * in from the value it is about.
+     */
+    const resultBox: Box = await boxOf(result);
+    const factsBox: Box = await boxOf(
+      result.getByTestId("security-entity-lookup-facts"),
+    );
+    const correlateBox: Box = await boxOf(
+      result.getByRole("button", { name: "Open in Correlate" }),
+    );
+    expect(
+      Math.abs(
+        resultBox.x + resultBox.width - (correlateBox.x + correlateBox.width),
+      ),
+    ).toBeLessThanOrEqual(17);
+    expect(correlateBox.x).toBeGreaterThan(factsBox.x + factsBox.width);
+    expect(
+      Math.abs(
+        correlateBox.y +
+          correlateBox.height / 2 -
+          (resultBox.y + resultBox.height / 2),
+      ),
+    ).toBeLessThanOrEqual(2);
+    expect(
+      (await fixture(page)).apiRequests.filter(
+        (request: { url: string; body: unknown }): boolean => {
+          return (
+            new URL(request.url).pathname.endsWith(
+              "/security-case/entity-activity",
+            ) && JSON.stringify(request.body).includes('"hours":720')
+          );
+        },
+      ),
+    ).toHaveLength(1);
+    await screenshot(page, "entity-risk-lookup-desktop");
 
-    // Open in Correlate takes the entity there.
-    await page
-      .getByTestId("security-entity-row-fin-ws-112")
-      .getByRole("button", { name: "Open in Correlate" })
-      .click();
+    // Open in Correlate takes the value there, over the same 30 days.
+    await result.getByRole("button", { name: "Open in Correlate" }).click();
     await expect
       .poll(() => {
         return pathnameOf(page);
       })
       .toBe(`${PRODUCT}/correlate`);
     expect(new URL(page.url()).searchParams.get("observable")).toBe(
-      "fin-ws-112",
+      "update-sync.bad-cdn.example",
     );
+    expect(new URL(page.url()).searchParams.get("hours")).toBe("720");
 
-    // A phone's card: the entity, its facts in a line, nothing sideways.
-    await open(page, ENTITIES_PATH, { width: 390, height: 844 });
+    // A value no event names: said not seen, no counts of nothing, nothing to correlate.
+    await open(page, ENTITY_RISK_PATH, { width: 1344 });
+    await page
+      .getByRole("textbox", { name: "Look Up an Entity" })
+      .fill("never-seen-01.example", { timeout: 30000 });
+    await page.getByRole("button", { name: "Look Up", exact: true }).click();
+    const unseen: Locator = page.getByTestId("security-entity-lookup-result");
+    await expect(unseen.getByTestId("security-entity-lookup-facts")).toHaveText(
+      "Not seen in the last 30 days.",
+    );
+    await expect(unseen).not.toContainText("0 events");
     await expect(
-      page.getByTestId("security-entity-card-facts").first(),
+      unseen.getByRole("button", { name: "Open in Correlate" }),
+    ).toHaveCount(0);
+    await screenshot(page, "entity-risk-lookup-not-seen");
+
+    // On a phone: the lookup under the list's cards, nothing sideways.
+    await open(page, ENTITY_RISK_PATH, { width: 390, height: 844 });
+    await expect(
+      page.getByRole("textbox", { name: "Look Up an Entity" }),
     ).toBeVisible({ timeout: 30000 });
     expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
-    await screenshot(page, "entities-phone");
+    // Under the value and its counts, as wide as the result's room.
+    await page
+      .getByRole("textbox", { name: "Look Up an Entity" })
+      .fill("fin-ws-112");
+    await page.getByRole("button", { name: "Look Up", exact: true }).click();
+    const phoneResult: Locator = page.getByTestId(
+      "security-entity-lookup-result",
+    );
+    const phoneFacts: Box = await boxOf(
+      phoneResult.getByTestId("security-entity-lookup-facts"),
+    );
+    const phoneCorrelate: Box = await boxOf(
+      phoneResult.getByRole("button", { name: "Open in Correlate" }),
+    );
+    expect(phoneCorrelate.y).toBeGreaterThan(phoneFacts.y + phoneFacts.height);
+    expect(Math.abs(phoneCorrelate.x - phoneFacts.x)).toBeLessThanOrEqual(1);
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await screenshot(page, "entity-risk-lookup-phone");
   });
 });
 
@@ -6163,9 +6907,10 @@ test.describe("detection rules and threat intel", () => {
    * Ten columns stood every feed's row five lines tall. The interval, Last
    * Evaluated and the two messages wait in Customize Columns (the Status
    * and View Error say when there is something to read); what a poll did
-   * is one line, whole on hover.
+   * is one line, whole on hover; where a feed's indicators come from sits
+   * under its name, not in a column of its own (#5246).
    */
-  test("the feeds table shows what most people read, each healthy row one line", async ({
+  test("the feeds table shows what most people read: each row its name over its source, and one line beside them", async ({
     page,
   }: {
     page: Page;
@@ -6185,7 +6930,6 @@ test.describe("detection rules and threat intel", () => {
       .filter(Boolean);
     for (const shown of [
       "Name",
-      "Source",
       "Status",
       "Last Polled",
       "Last Match",
@@ -6194,24 +6938,52 @@ test.describe("detection rules and threat intel", () => {
       expect(headers.join(" | ")).toContain(shown);
     }
     for (const hidden of [
+      "Source",
       "Interval (Minutes)",
       "Last Error",
       "Last Evaluated",
       "Last Match Error",
     ]) {
-      expect(headers.join(" | ")).not.toContain(hidden);
+      expect(headers).not.toContain(hidden);
     }
 
-    // A healthy feed's row is one line: what its poll did, cut short, whole on hover.
-    for (const row of await feeds.locator("tbody tr").all()) {
-      const box: Box = await boxOf(row);
-      expect(box.height).toBeLessThanOrEqual(64);
-    }
-
-    // Every feed's button is Edit; a TAXII feed's Update Credentials and Create Monitor wait in its menu.
+    // The source under the name, smaller and quieter: one cell.
     const misp: Locator = feeds
       .locator("tbody tr")
       .filter({ hasText: "Corporate MISP" });
+    const source: Locator = misp.getByTestId("threat-intel-feed-source-cell");
+    await expect(source).toHaveText("TAXII collection");
+    const nameBox: Box = await boxOf(misp.getByTestId("security-list-name"));
+    const sourceBox: Box = await boxOf(source);
+    expect(sourceBox.y).toBeGreaterThanOrEqual(nameBox.y + nameBox.height - 1);
+    expect(Math.abs(sourceBox.x - nameBox.x)).toBeLessThanOrEqual(1);
+    expect(
+      await source.evaluate((element: Element): string => {
+        return window.getComputedStyle(element).fontSize;
+      }),
+    ).toBe("12px");
+
+    // When it last polled and last matched, as how long ago.
+    await expect(misp.getByTestId("relative-time-cell").first()).toHaveText(
+      /ago$/,
+    );
+
+    /*
+     * A row is its name over its source: every other value is one line
+     * beside them, what a poll did cut short and whole on hover.
+     */
+    for (const row of await feeds.locator("tbody tr").all()) {
+      const box: Box = await boxOf(row);
+      expect(box.height).toBeLessThanOrEqual(100);
+    }
+    const summary: Locator = misp
+      .locator("td")
+      .nth(5)
+      .locator("[data-table-value]");
+    await expect(summary).toContainText("Fetched");
+    expect((await boxOf(summary)).height).toBeLessThanOrEqual(26);
+
+    // Every feed's button is Edit; a TAXII feed's Update Credentials and Create Monitor wait in its menu.
     await expect(
       misp.getByTestId("row-actions").getByRole("button", { name: "Edit" }),
     ).toBeVisible();
@@ -6223,6 +6995,70 @@ test.describe("detection rules and threat intel", () => {
       page.getByRole("menuitem", { name: "Create Monitor" }),
     ).toBeVisible();
     await page.keyboard.press("Escape");
+  });
+
+  /*
+   * Threat Intel's two tables ran past their cards at a 1280 laptop
+   * (#5246): the feeds' Last Match and Last Poll Summary under the row's
+   * buttons, the indicators' Confidence and Valid Until out of sight. The
+   * times read as how long ago, a feed's source sits under its name, and
+   * both fit - in English and in every language whose words are not the
+   * longest (Dutch's feeds and Russian's still give way only so far). The
+   * fixture is 64px narrower than production: 1344 here is a 1280 laptop.
+   */
+  test("Threat Intel's feeds and indicators fit their cards at a 1280 laptop, nothing sideways", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const lang of [
+      undefined,
+      "de",
+      "fr",
+      "es",
+      "it",
+      "pt",
+      "ja",
+      "fa",
+    ] as Array<OpenOptions["lang"]>) {
+      await open(page, THREAT_INTEL_PATH, {
+        width: 1344,
+        ...(lang ? { lang } : {}),
+      });
+      const scrollers: Locator = page.getByTestId("table-scroll");
+      await expect(scrollers).toHaveCount(2, { timeout: 30000 });
+      await expect(rowNamed(page, "Corporate MISP").first()).toBeVisible({
+        timeout: 30000,
+      });
+      await expect(rowNamed(page, "update-check.example").first()).toBeVisible({
+        timeout: 30000,
+      });
+
+      for (const scroller of await scrollers.all()) {
+        await expect(scroller, `${lang || "en"}`).toHaveAttribute(
+          "data-overflowing",
+          "false",
+        );
+        expect(
+          await overflowOf(scroller),
+          `${lang || "en"}: a table scrolls sideways`,
+        ).toBeLessThanOrEqual(1);
+      }
+      expect(await pageOverflow(page), `${lang || "en"}`).toBeLessThanOrEqual(
+        1,
+      );
+    }
+
+    // English, as a laptop shows it: Valid Until says how far off.
+    await open(page, THREAT_INTEL_PATH, { width: 1344 });
+    const indicators: Locator = cardTitled(page, "Indicators");
+    await expect(
+      rowNamed(page, "update-check.example")
+        .first()
+        .getByTestId("relative-time-cell"),
+    ).toHaveText(/^in /, { timeout: 30000 });
+    await screenshot(page, "threat-intel-fits-1280", { fullPage: true });
+    expect(await overflowOf(indicators.getByTestId("table-scroll"))).toBe(0);
   });
 
   test("a Security Viewer reads the lists but cannot add one", async ({
@@ -7776,7 +8612,7 @@ test.describe("every page fits the screen", () => {
     ["closed cases", CLOSED_CASES_PATH, "Benign Positive"],
     ["all cases", ALL_CASES_PATH, "CASE-142"],
     ["case", SPRAY_CASE_PATH, "Time to Contain"],
-    ["entities", ENTITIES_PATH, "203.0.113.47"],
+    ["entity risk", ENTITY_RISK_PATH, "k.morgan@acme-commerce.example"],
     ["detection rules", DETECTION_RULES_PATH, SEQUENCE_RULE],
     ["rule library", RULE_LIBRARY_PATH, "Brute force from one IP address"],
     ["threat intel", THREAT_INTEL_PATH, "Corporate MISP"],
@@ -7838,6 +8674,470 @@ test.describe("every page fits the screen", () => {
           `${name} at ${width}`,
         ).toBeLessThanOrEqual(1);
       }
+    });
+  }
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Riskiest Entities: the top of Entity Risk
+ * ---------------------------------------------------------------------------
+ *
+ * The Overview's Riskiest Entities ranked values by how many findings named
+ * them, beside Entity Risk's scores - two lists that said "riskiest" and
+ * disagreed: the address a password spray came from led the Overview, while
+ * the CFO's account three different rules flagged led Entity Risk. The card
+ * is the top of Entity Risk's list now, in its order, by its scores, read
+ * with the overview: each entity opens its own page, and the rest of the
+ * list is a click away.
+ */
+test.describe("the Overview's Riskiest Entities", () => {
+  /*
+   * The fixture's risk rows, riskiest first: Entity Risk's own order. Each
+   * is its value, its score, its kind (under the value, as Entity Risk's
+   * list has it) and its level (the pill beside the score, as Entity
+   * Risk's Risk column has it).
+   */
+  const RISKIEST: ReadonlyArray<[string, string, string, string]> = [
+    ["k.morgan@acme-commerce.example", "200", "User", "Critical"],
+    ["203.0.113.47", "125", "IP Address", "High"],
+    ["fin-ws-112", "113", "Host", "High"],
+    ["r.alvarez@acme-commerce.example", "75", "User", "Medium"],
+    ["198.51.100.23", "75", "IP Address", "Medium"],
+    ["web-03", "50", "Host", "Medium"],
+    ["a.ng@acme-commerce.example", "50", "User", "Medium"],
+    ["192.0.2.15", "50", "IP Address", "Medium"],
+  ];
+
+  // A value with a letter written left to right (an account, a host).
+  const LATIN_LETTER: RegExp = /[a-z]/i;
+
+  function riskiestCard(page: Page): Locator {
+    return cardTitled(page, "Riskiest Entities");
+  }
+
+  async function rowsOf(
+    page: Page,
+  ): Promise<Array<[string, string, string, string]>> {
+    return riskiestCard(page)
+      .getByRole("listitem")
+      .evaluateAll(
+        (items: Array<Element>): Array<[string, string, string, string]> => {
+          return items.map(
+            (item: Element): [string, string, string, string] => {
+              return [
+                (item.querySelector("a")?.textContent || "").trim(),
+                (item.querySelector(".tabular-nums")?.textContent || "").trim(),
+                (
+                  item.querySelector('[class*="text-[11px]"]')?.textContent ||
+                  ""
+                ).trim(),
+                (
+                  item.querySelector('[data-testid="entity-risk-level"]')
+                    ?.textContent || ""
+                ).trim(),
+              ];
+            },
+          );
+        },
+      );
+  }
+
+  test("ranks as Entity Risk does: the same entities, the same order, the same scores and levels", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, OVERVIEW_PATH, { width: 1280 });
+    await expect(riskiestCard(page)).toContainText(
+      "as Entity Risk ranks them",
+      { timeout: 30000 },
+    );
+
+    expect(await rowsOf(page)).toEqual(RISKIEST);
+    // Eight of the nine with risk: the ninth is a click away.
+    const all: Locator = riskiestCard(page).getByTestId(
+      "security-overview-riskiest-entities-all",
+    );
+    await expect(all).toHaveText("View all 9 entities");
+    // No count of findings is left on the card.
+    await expect(riskiestCard(page)).not.toContainText("worst");
+    // Each bar has the threshold marked halfway, as Entity Risk's meter has.
+    await expect(
+      riskiestCard(page).getByTestId("ranked-bar-threshold"),
+    ).toHaveCount(RISKIEST.length);
+    await screenshot(page, "overview-riskiest-entities");
+
+    // The rest of the list: Entity Risk, its first rows the card's.
+    await all.click();
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(ENTITY_RISK_PATH);
+    const rows: Locator = cardTitled(page, "Entity Risk").locator(
+      "table tbody tr",
+    );
+    await expect(rows.first()).toContainText(RISKIEST[0]![0], {
+      timeout: 30000,
+    });
+    for (const [index, [value]] of RISKIEST.entries()) {
+      await expect(rows.nth(index)).toContainText(value);
+    }
+  });
+
+  test("an entity opens its own page, with its kind", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, OVERVIEW_PATH, { width: 1280 });
+    await riskiestCard(page)
+      .getByRole("link", { name: "203.0.113.47" })
+      .click({ timeout: 30000 });
+
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(`${ENTITY_RISK_PATH}/entity`);
+    expect(new URL(page.url()).searchParams.get("value")).toBe("203.0.113.47");
+    expect(new URL(page.url()).searchParams.get("type")).toBe("IP Address");
+    await expect(page.getByTestId("entity-risk-header")).toContainText(
+      "203.0.113.47",
+      { timeout: 30000 },
+    );
+    expect(await litEntries(page)).toEqual(["Entity Risk"]);
+  });
+
+  test("levels follow the project's own threshold", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, OVERVIEW_PATH, { width: 1280, threshold: 250 });
+    await expect(riskiestCard(page)).toContainText(
+      "k.morgan@acme-commerce.example",
+      { timeout: 30000 },
+    );
+
+    expect(
+      (await rowsOf(page))
+        .slice(0, 3)
+        .map((row: [string, string, string, string]): string => {
+          return row[3];
+        }),
+    ).toEqual(["Medium", "Medium", "Low"]);
+  });
+
+  /*
+   * A row opens its entity from anywhere on it - its kind, its score, its
+   * bar - not from its value's few letters alone; and every row's score
+   * ends its line, whatever its level's word, as every list's count does.
+   */
+  test("the whole row opens the entity, and every score ends its line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, OVERVIEW_PATH, { width: 1280 });
+    const rows: Locator = riskiestCard(page).getByRole("listitem");
+    await expect(rows.first()).toContainText(RISKIEST[0]![0], {
+      timeout: 30000,
+    });
+
+    const scoreEnds: Array<number> = [];
+    for (const row of await rows.all()) {
+      const score: Box = await boxOf(row.locator(".tabular-nums"));
+      scoreEnds.push(Math.round(score.x + score.width));
+    }
+    expect(new Set(scoreEnds).size).toBe(1);
+    // The level's pill before the score, on its line.
+    const first: Locator = rows.first();
+    const pill: Box = await boxOf(first.getByTestId("entity-risk-level"));
+    const score: Box = await boxOf(first.locator(".tabular-nums"));
+    expect(pill.x + pill.width).toBeLessThanOrEqual(score.x);
+
+    /*
+     * Its kind, its score and its bar are the row's link, as its value is:
+     * what is under the pointer there is the link.
+     */
+    const hostRow: Locator = rows.nth(2);
+    await hostRow.scrollIntoViewIfNeeded();
+    expect(
+      await hostRow.evaluate((row: Element): Array<string> => {
+        const link: Element = row.querySelector("a") as Element;
+        const parts: Array<Element> = [
+          row.querySelector('[class*="text-[11px]"]') as Element,
+          row.querySelector(".tabular-nums") as Element,
+          row.querySelector('[data-testid="ranked-bar-fill"]') as Element,
+        ];
+
+        return parts.map((part: Element): string => {
+          const box: DOMRect = part.getBoundingClientRect();
+          const under: Element | null = document.elementFromPoint(
+            box.x + box.width / 2,
+            box.y + box.height / 2,
+          );
+
+          return under === link || link.contains(under) ? "link" : "not";
+        });
+      }),
+    ).toEqual(["link", "link", "link"]);
+
+    // A click on the bar of fin-ws-112's row - not its value - opens its page.
+    const bar: Box = await boxOf(
+      hostRow.getByTestId("ranked-bar-fill").locator(".."),
+    );
+    await page.mouse.click(bar.x + bar.width * 0.8, bar.y + bar.height / 2);
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(`${ENTITY_RISK_PATH}/entity`);
+    expect(new URL(page.url()).searchParams.get("value")).toBe("fin-ws-112");
+  });
+
+  /*
+   * Rules that raise alerts rather than cases still add risk: a month with
+   * no case and no detection can have entities on Entity Risk's list. The
+   * Overview shows them, alone - the figures, the charts and the other
+   * lists would each say they had nothing - as wide as its row.
+   */
+  test("a month whose only news is risk shows Riskiest Entities alone, under All quiet", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, OVERVIEW_PATH, { width: 1280, quiet: "risk" });
+    await expect(riskiestCard(page)).toContainText(RISKIEST[0]![0], {
+      timeout: 30000,
+    });
+    await expect(
+      band(page).getByRole("heading", { name: "All quiet" }),
+    ).toBeVisible();
+
+    for (const title of [
+      "Open Cases",
+      "Cases Opened",
+      "Detections",
+      "Top Detections",
+      "MITRE ATT&CK Tactics",
+      "Verdicts",
+    ]) {
+      await expect(cardTitled(page, title)).toHaveCount(0);
+    }
+    await expect(
+      page.getByRole("group", { name: "Security operations figures" }),
+    ).toHaveCount(0);
+    // Alone in its row, so as wide as it: as wide as the card above.
+    const card: Box = await boxOf(riskiestCard(page));
+    const status: Box = await boxOf(
+      page.getByTestId("security-overview-status"),
+    );
+    expect(Math.abs(card.width - status.width)).toBeLessThanOrEqual(1);
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await screenshot(page, "overview-riskiest-entities-risk-only");
+  });
+
+  test("when the card shows every entity Entity Risk lists, its way on is Entity Risk itself", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, OVERVIEW_PATH, { width: 1280, ranked: "short" });
+    const way: Locator = riskiestCard(page).getByTestId(
+      "security-overview-riskiest-entities-all",
+    );
+    await expect(way).toHaveText("Open Entity Risk", { timeout: 30000 });
+    await expect(riskiestCard(page).getByRole("listitem")).toHaveCount(2);
+
+    await way.click();
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(ENTITY_RISK_PATH);
+  });
+
+  test("risk that could not be read says so, with Try again, and the rest of the Overview is drawn", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, OVERVIEW_PATH, { width: 1280, riskiest: "fail" });
+    const failed: Locator = riskiestCard(page).getByTestId(
+      "security-overview-riskiest-entities-error",
+    );
+
+    await expect(failed).toContainText(
+      "We could not load the riskiest entities.",
+      { timeout: 30000 },
+    );
+    await expect(riskiestCard(page)).not.toContainText(
+      "No user, host or address has any risk yet.",
+    );
+    await expect(cardTitled(page, "Open Cases")).toContainText("Critical");
+    await expect(
+      failed.getByTestId("security-overview-riskiest-entities-try-again"),
+    ).toBeEnabled();
+    await screenshot(page, "overview-riskiest-entities-failed");
+  });
+
+  test("dark, and on a phone", async ({ page }: { page: Page }) => {
+    await open(page, OVERVIEW_PATH, { width: 1280, theme: "dark" });
+    await expect(riskiestCard(page)).toContainText(
+      "k.morgan@acme-commerce.example",
+      { timeout: 30000 },
+    );
+    await screenshot(page, "overview-riskiest-entities-dark");
+
+    await open(page, OVERVIEW_PATH, { width: 390, height: 844 });
+    await expect(riskiestCard(page)).toContainText(
+      "k.morgan@acme-commerce.example",
+      { timeout: 30000 },
+    );
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    // A long value is cut short to its line, never wider than the card.
+    const card: Box = await boxOf(riskiestCard(page));
+    for (const link of await riskiestCard(page).getByRole("link").all()) {
+      const linkBox: Box = await boxOf(link);
+      expect(linkBox.x + linkBox.width).toBeLessThanOrEqual(
+        card.x + card.width,
+      );
+    }
+    await screenshot(page, "overview-riskiest-entities-phone");
+  });
+
+  /*
+   * An entity's value is something someone's systems wrote: on a Persian
+   * page (#5312) it reads the way it is written, in an isolate. The isolate
+   * is as wide as the value, so a short one ("web-03") starts where its
+   * line does, as a long one does - a block as wide as the kind and level
+   * under it set it off the line's start - and a long one is cut short at
+   * its own end, where it stops reading, never at its start.
+   */
+  for (const width of [1280, 390]) {
+    test(`in Persian at ${width}, each value reads as written from where its line starts, a long one cut at its own end`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, OVERVIEW_PATH, {
+        width,
+        height: width === 390 ? 844 : 1000,
+        lang: "fa",
+      });
+      const list: Locator = page.getByTestId(
+        "security-overview-riskiest-entities",
+      );
+      await expect(list).toContainText("k.morgan@acme-commerce.example", {
+        timeout: 30000,
+      });
+      expect(
+        await page.evaluate((): string => {
+          return document.documentElement.dir;
+        }),
+      ).toBe("rtl");
+
+      const values: Array<{
+        text: string;
+        tag: string;
+        dir: string;
+        direction: string;
+        startGap: number;
+        isCut: boolean;
+        textOverflow: string;
+        scrollLeft: number;
+      }> = await list.getByRole("listitem").evaluateAll(
+        (
+          items: Array<Element>,
+        ): Array<{
+          text: string;
+          tag: string;
+          dir: string;
+          direction: string;
+          startGap: number;
+          isCut: boolean;
+          textOverflow: string;
+          scrollLeft: number;
+        }> => {
+          return items.map((item: Element) => {
+            const value: HTMLElement = item.querySelector(
+              "a bdi",
+            ) as HTMLElement;
+            const line: HTMLElement = value.parentElement as HTMLElement;
+            const style: CSSStyleDeclaration = getComputedStyle(value);
+
+            return {
+              text: value.textContent || "",
+              tag: value.tagName,
+              dir: value.getAttribute("dir") || "",
+              direction: style.direction,
+              // A right-to-left line starts at its right edge.
+              startGap: Math.abs(
+                line.getBoundingClientRect().right -
+                  value.getBoundingClientRect().right,
+              ),
+              isCut: value.scrollWidth > value.clientWidth + 1,
+              textOverflow: style.textOverflow,
+              scrollLeft: value.scrollLeft,
+            };
+          });
+        },
+      );
+
+      expect(
+        values.map((value: { text: string }): string => {
+          return value.text;
+        }),
+      ).toEqual(
+        RISKIEST.map((row: [string, string, string, string]): string => {
+          return row[0];
+        }),
+      );
+
+      for (const value of values) {
+        expect([value.text, value.tag]).toEqual([value.text, "BDI"]);
+        /*
+         * Letters written left to right: the value reads so, on any page.
+         * An address has no letters: it is left to the isolate's own
+         * reading (IsolatedText), never forced either way.
+         */
+        if (LATIN_LETTER.test(value.text)) {
+          expect([value.text, value.dir, value.direction]).toEqual([
+            value.text,
+            "ltr",
+            "ltr",
+          ]);
+        } else {
+          expect([value.text, value.dir]).toEqual([value.text, ""]);
+        }
+        expect([value.text, value.startGap <= 1]).toEqual([value.text, true]);
+        // Cut with an ellipsis, from its first character on: at its own end.
+        expect([value.text, value.textOverflow, value.scrollLeft]).toEqual([
+          value.text,
+          "ellipsis",
+          0,
+        ]);
+      }
+
+      // On a phone, the longest are cut short; at 1280, every value is whole.
+      const cut: Array<string> = values
+        .filter((value: { isCut: boolean }): boolean => {
+          return value.isCut;
+        })
+        .map((value: { text: string }): string => {
+          return value.text;
+        });
+      if (width === 390) {
+        expect(cut).toContain("k.morgan@acme-commerce.example");
+        expect(cut).not.toContain("web-03");
+      } else {
+        expect(cut).toEqual([]);
+      }
+      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      await screenshot(page, `overview-riskiest-entities-fa-${width}`);
     });
   }
 });

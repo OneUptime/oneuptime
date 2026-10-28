@@ -87,6 +87,9 @@ jobs:
       # statements SetFileVisibilityFromPublishedRecords runs. A schema of its
       # own, rolled back after each test and dropped after.
       RUN_POSTGRES_PUBLISHED_IMAGES_TESTS: "true"
+      # The CLIENT span of each statement TypeORM sends (PostgresQuerySpans),
+      # on a bare Postgres. A schema of its own, dropped after.
+      RUN_POSTGRES_QUERY_SPAN_TESTS: "true"
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass

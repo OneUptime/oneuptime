@@ -13,6 +13,12 @@
 export enum TurnOnRecommendedPart {
   // Find security events in your logs.
   Logs = "logs",
+  /*
+   * Find security events in the rest of your OneUptime data: traces,
+   * network flows, the audit log, session replays. The problem's name is
+   * the kind (SecurityTelemetrySourceKind); empty when none could be read.
+   */
+  TelemetrySources = "telemetry-sources",
   // A recommended detection rule; with no name, the recommended rules as a whole.
   Rule = "rule",
   // The Enrich New Cases playbook.
@@ -53,6 +59,8 @@ export interface TurnOnRecommendedResult {
   rulesAdded: number;
   rulesTurnedOn: number;
   logsTurnedOn: boolean;
+  // The kinds of your OneUptime data beside logs added or turned back on.
+  telemetrySourcesTurnedOn: number;
   playbookAdded: boolean;
   // Enrich New Cases was there but switched off, and is on again.
   playbookTurnedOn: boolean;
@@ -62,6 +70,7 @@ export interface TurnOnRecommendedResult {
 
 export const TURN_ON_RECOMMENDED_PARTS: ReadonlyArray<TurnOnRecommendedPart> = [
   TurnOnRecommendedPart.Logs,
+  TurnOnRecommendedPart.TelemetrySources,
   TurnOnRecommendedPart.Rule,
   TurnOnRecommendedPart.Playbook,
 ];

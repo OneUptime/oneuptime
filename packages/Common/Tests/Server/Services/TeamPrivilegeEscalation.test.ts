@@ -238,6 +238,42 @@ describe("team delegation CRUD ACLs", () => {
     }
   });
 
+  /*
+   * Changing a permission row grants or takes away what it grants, as
+   * creating or deleting one does: Edit Team (a team's name) and Invite New
+   * Members used to rewrite rows they could neither create nor delete.
+   */
+  test("a permission row is changed by those who may create and delete one, and nobody else", () => {
+    const model: TeamPermission = new TeamPermission();
+    const managers: Array<Permission> = [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectTeamPermissions,
+    ];
+
+    expect(model.updateRecordPermissions).toEqual(managers);
+
+    for (const column of [
+      "permission",
+      "labels",
+      "isBlockPermission",
+      "scope",
+    ]) {
+      expect([column, model.getColumnAccessControlFor(column)?.update]).toEqual(
+        [column, managers],
+      );
+    }
+
+    for (const accessControl of allColumnAccessControls(model)) {
+      for (const outsider of [
+        Permission.EditProjectTeam,
+        Permission.InviteProjectTeamMembers,
+      ]) {
+        expect(accessControl.update || []).not.toContain(outsider);
+      }
+    }
+  });
+
   test("the invitee can still accept a legitimate pending invitation", () => {
     const model: TeamMember = new TeamMember();
 
@@ -286,6 +322,14 @@ describe("TeamMember acceptance transition safety", () => {
       true,
       propsWith([grant(Permission.CurrentUser)]),
     );
+
+    // The membership the update writes is the invitee's own.
+    const own: TeamMember = new TeamMember();
+    own.userId = USER_ID;
+    getJestSpyOn(
+      TeamMemberService as unknown as Record<string, unknown>,
+      "findRowsAndHoldUpdateToThem",
+    ).mockResolvedValue([own] as never);
 
     await expect(
       callHook(TeamMemberService, "onBeforeUpdate", updateBy),
@@ -561,6 +605,123 @@ describe("TeamPermissionService grant ceiling", () => {
     await expect(
       callHook(TeamPermissionService, "onBeforeUpdate", updateBy),
     ).rejects.toBeInstanceOf(NotAuthorizedException);
+  });
+
+  describe("Edit Team and Invite New Members change no permission row", () => {
+    // A row of another team's: Monitor Viewer, or Incident Member.
+    const otherTeamRow: (data: {
+      isBlock?: boolean;
+      permission?: Permission;
+      scope?: PermissionScope;
+    }) => TeamPermission = (data: {
+      isBlock?: boolean;
+      permission?: Permission;
+      scope?: PermissionScope;
+    }): TeamPermission => {
+      const existing: TeamPermission = makePermission({
+        permission: data.permission || Permission.MonitorViewer,
+        scope: data.scope,
+      });
+      existing.isBlockPermission = Boolean(data.isBlock);
+      existing.team = editableTeam();
+      return existing;
+    };
+
+    const change: (data: {
+      existing: TeamPermission;
+      write: Record<string, unknown>;
+      callerPermission: Permission;
+    }) => Promise<unknown> = (data: {
+      existing: TeamPermission;
+      write: Record<string, unknown>;
+      callerPermission: Permission;
+    }): Promise<unknown> => {
+      answerRowsLikeFindBy(
+        jest
+          .spyOn(TeamPermissionService, "findBy")
+          .mockResolvedValue([data.existing]),
+      );
+
+      /*
+       * The caller reads teams, and holds Incident Member themselves: only
+       * who may change a row is asked, not the grant ceiling.
+       */
+      return callHook(TeamPermissionService, "onBeforeUpdate", {
+        query: { _id: data.existing.id!.toString() },
+        data: data.write,
+        props: propsWith([
+          grant(data.callerPermission),
+          grant(Permission.ReadProjectTeam),
+          grant(Permission.IncidentMember),
+        ]),
+        skip: 0,
+        limit: 1,
+      } as unknown as UpdateBy<TeamPermission>);
+    };
+
+    test.each([
+      [Permission.EditProjectTeam, "turns Monitor Viewer into Incident Member"],
+      [
+        Permission.InviteProjectTeamMembers,
+        "turns Monitor Viewer into Incident Member",
+      ],
+    ])("%s %s: refused", async (callerPermission: Permission) => {
+      await expect(
+        change({
+          existing: otherTeamRow({}),
+          write: { permission: Permission.IncidentMember },
+          callerPermission: callerPermission,
+        }),
+      ).rejects.toThrow(
+        "You do not have permissions to update Team Permission. You need one of these permissions: Project Owner, Project Admin, Edit Team Permissions",
+      );
+    });
+
+    test.each([
+      [
+        "lifts a block of Incident Member",
+        otherTeamRow({ isBlock: true, permission: Permission.IncidentMember }),
+        { isBlockPermission: false },
+      ],
+      [
+        "narrows a block of Incident Member to a label",
+        otherTeamRow({ isBlock: true, permission: Permission.IncidentMember }),
+        { labels: [new Label(ObjectID.generate())] },
+      ],
+      [
+        "widens Incident Member scoped to Owned to the whole project",
+        otherTeamRow({
+          permission: Permission.IncidentMember,
+          scope: PermissionScope.Owned,
+        }),
+        { scope: PermissionScope.All },
+      ],
+    ] as Array<[string, TeamPermission, Record<string, unknown>]>)(
+      "Edit Team %s: refused",
+      async (
+        _name: string,
+        existing: TeamPermission,
+        write: Record<string, unknown>,
+      ) => {
+        await expect(
+          change({
+            existing: existing,
+            write: write,
+            callerPermission: Permission.EditProjectTeam,
+          }),
+        ).rejects.toBeInstanceOf(NotAuthorizedException);
+      },
+    );
+
+    test("Edit Team Permissions, holding Incident Member, makes the same change", async () => {
+      await expect(
+        change({
+          existing: otherTeamRow({}),
+          write: { permission: Permission.IncidentMember },
+          callerPermission: Permission.EditProjectTeamPermissions,
+        }),
+      ).resolves.toBeDefined();
+    });
   });
 
   test.each([Permission.DeleteProject, Permission.ManageProjectBilling])(

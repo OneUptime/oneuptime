@@ -278,6 +278,14 @@ data:
             routes:
               - output: parse-ebpf-trace-json
                 expr: 'body matches "\"trace_id\""'
+              {{- if eq (include "kubernetes-agent.logEnricherPlainText" .) "true" }}
+              # A plain-text line OBI annotated (ebpf.logEnricher.plainText):
+              # " trace_id=<32 hex> span_id=<16 hex>" at its end. A line with
+              # a trace id alone (no span) is left as written: trace_parser
+              # would fail on the empty span id on every such line.
+              - output: parse-ebpf-trace-text
+                expr: 'body matches " trace_id=[0-9a-f]{32} span_id=[0-9a-f]{16}\\s*$"'
+              {{- end }}
             default: recombine-multiline
           - type: json_parser
             id: parse-ebpf-trace-json
@@ -296,6 +304,33 @@ data:
             id: cleanup-obi-attrs
             field: attributes._obi
             output: recombine-multiline
+          {{- if eq (include "kubernetes-agent.logEnricherPlainText" .) "true" }}
+          # The plain-text form: split the annotation off the line, lift its
+          # ids onto the LogRecord, and put the line back as the app wrote it.
+          - type: regex_parser
+            id: parse-ebpf-trace-text
+            parse_from: body
+            parse_to: attributes._obi_text
+            regex: '^(?P<message>[\s\S]*?) trace_id=(?P<trace_id>[0-9a-f]{32}) span_id=(?P<span_id>[0-9a-f]{16})\s*$'
+            on_error: send
+            output: lift-obi-text-trace-context
+          - type: trace_parser
+            id: lift-obi-text-trace-context
+            trace_id:
+              parse_from: attributes._obi_text.trace_id
+            span_id:
+              parse_from: attributes._obi_text.span_id
+            output: restore-obi-text-body
+          - type: move
+            id: restore-obi-text-body
+            from: attributes._obi_text.message
+            to: body
+            output: cleanup-obi-text-attrs
+          - type: remove
+            id: cleanup-obi-text-attrs
+            field: attributes._obi_text
+            output: recombine-multiline
+          {{- end }}
           {{- end }}
           # Container runtimes write one log entry per newline, so a multi-line
           # event (a Java/Python/Node/.NET stack trace, a pretty-printed JSON

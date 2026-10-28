@@ -237,7 +237,7 @@ OBI는 호출을 넘어 트레이스를 이어 가기도 합니다. 파드 A가 
 **기본적으로 꺼져 있습니다.** 켜면 OBI가 계측하는 모든 프로세스의 `write()` 시스템 호출에 프로브를 붙이고 다음과 같이 동작합니다.
 
 - **JSON 로그 줄** 에는 `trace_id` 와 `span_id` 필드가 추가됩니다(줄에 이미 있는 필드는 유지됩니다). 노드 컬렉터가 이를 로그 레코드의 트레이스 필드로 옮기므로, OneUptime에서 스팬의 로그는 클릭 한 번 거리에 있고 로그 줄의 트레이스도 마찬가지입니다.
-- **그 밖의 로그 줄** 은 연결 없이 그대로 수집됩니다.
+- **그 밖의 로그 줄** 은 연결 없이 그대로 수집됩니다. 다만 `ebpf.logEnricher.plainText=true`도 설정하면 OBI가 그 줄 끝에 ` trace_id=… span_id=…`를 덧붙이고, 노드 컬렉터가 ID를 로그 레코드로 옮기고 줄에서 제거하므로 OneUptime에는 앱이 쓴 그대로 표시됩니다. `kubectl logs`가 출력하는 컨테이너 로그 파일의 줄에는 덧붙인 내용이 그대로 남습니다.
 
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
@@ -249,6 +249,7 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 | --- | --- | --- |
 | `ebpf.logToTraceCorrelation` | `false` | OBI의 로그 보강기와 노드 컬렉터의 `trace_id` 옮기기를 켭니다. |
 | `ebpf.logEnricher.services` | `[{service: [{exe_path: "*"}]}]` | 보강기가 건드리는 프로세스. 각 항목은 OBI [GlobAttributes](https://opentelemetry.io/docs/zero-code/obi/configure/options/#service-discovery) 선택기이며, `exe_path`, `languages`, `k8s_pod_labels`, `k8s_pod_annotations`, `open_ports`, `cmd_args` 같은 필드를 씁니다. |
+| `ebpf.logEnricher.plainText` | `false` | 일반 텍스트(JSON이 아닌) 로그 줄도 연결합니다. 컨테이너 로그 파일에 남는 줄이 바뀝니다. |
 
 #### 함께 쓰면 충돌하는 APM 에이전트
 

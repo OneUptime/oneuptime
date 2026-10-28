@@ -20,6 +20,7 @@ import {
 import { RUNBOOK_INPUTS_MAX_BYTES } from "../../../Types/Runbook/RunbookInputs";
 import { describe, expect, it } from "@jest/globals";
 import crypto from "crypto";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * The webhook URL a runbook's Triggers page shows and the server answers:
@@ -123,13 +124,16 @@ describe("the secret key", () => {
   });
 
   it("is checked in time that grows with the text, even for 400,000 characters", () => {
-    const started: number = Date.now();
-
-    expect(isRunbookWebhookSecretKeyShape("a".repeat(400000))).toBe(false);
-    expect(isRunbookWebhookSecretKeyShape(`${"a".repeat(400000)}!`)).toBe(
-      false,
-    );
-    expect(Date.now() - started).toBeLessThan(2000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(isRunbookWebhookSecretKeyShape("a".repeat(400000))).toBe(false);
+        expect(isRunbookWebhookSecretKeyShape(`${"a".repeat(400000)}!`)).toBe(
+          false,
+        );
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

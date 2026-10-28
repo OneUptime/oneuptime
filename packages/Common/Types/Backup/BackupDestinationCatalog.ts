@@ -1,5 +1,6 @@
 import IconProp from "../Icon/IconProp";
 import { JSONObject, JSONValue } from "../JSON";
+import ProviderLogo from "../ProviderLogo/ProviderLogo";
 import {
   AuditLogExportAzureAuthentication,
   AuditLogExportAzureCloud,
@@ -73,6 +74,11 @@ export interface BackupProviderDefinition {
   // One line under the title on the card: what tells it from the others.
   description: string;
   icon: IconProp;
+  /*
+   * The storage's official logo, drawn in the icon's place wherever it is
+   * named. None for "Other S3-compatible storage", which keeps its icon.
+   */
+  logo?: ProviderLogo | undefined;
   // The setup guide's heading for it.
   docsPath: string;
   // An S3-compatible provider's endpoint, as its console shows it.
@@ -301,6 +307,7 @@ export const BackupProviderCatalog: Array<BackupProviderDefinition> = [
     title: "Amazon S3",
     description: "A bucket in your AWS account.",
     icon: IconProp.Archive,
+    logo: ProviderLogo.AmazonS3,
     docsPath: `${BACKUP_DOCS_PATH}#amazon-s3`,
   },
   {
@@ -309,6 +316,7 @@ export const BackupProviderCatalog: Array<BackupProviderDefinition> = [
     title: "Cloudflare R2",
     description: "S3-compatible, with no fees for reading backups back.",
     icon: IconProp.Cloud,
+    logo: ProviderLogo.Cloudflare,
     docsPath: `${BACKUP_DOCS_PATH}#cloudflare-r2`,
     endpointPlaceholder: "https://<account-id>.r2.cloudflarestorage.com",
     endpointDescription:
@@ -320,6 +328,7 @@ export const BackupProviderCatalog: Array<BackupProviderDefinition> = [
     title: "Backblaze B2",
     description: "Low-cost S3-compatible storage.",
     icon: IconProp.ServerStack,
+    logo: ProviderLogo.Backblaze,
     docsPath: `${BACKUP_DOCS_PATH}#backblaze-b2`,
     endpointPlaceholder: "https://s3.us-west-004.backblazeb2.com",
     endpointDescription: "The bucket's S3 endpoint, shown on its Buckets page.",
@@ -330,6 +339,7 @@ export const BackupProviderCatalog: Array<BackupProviderDefinition> = [
     title: "Wasabi",
     description: "S3-compatible storage with no egress fees.",
     icon: IconProp.InboxStack,
+    logo: ProviderLogo.Wasabi,
     docsPath: `${BACKUP_DOCS_PATH}#wasabi`,
     endpointPlaceholder: "https://s3.us-east-1.wasabisys.com",
     endpointDescription: "The service URL of the bucket's region.",
@@ -340,6 +350,7 @@ export const BackupProviderCatalog: Array<BackupProviderDefinition> = [
     title: "MinIO",
     description: "S3-compatible storage you run yourself.",
     icon: IconProp.Server,
+    logo: ProviderLogo.MinIO,
     docsPath: `${BACKUP_DOCS_PATH}#minio`,
     endpointPlaceholder: "https://minio.example.com:9000",
     endpointDescription:
@@ -351,6 +362,7 @@ export const BackupProviderCatalog: Array<BackupProviderDefinition> = [
     title: "Google Cloud Storage",
     description: "A bucket in your Google Cloud project.",
     icon: IconProp.CloudArrowUp,
+    logo: ProviderLogo.GoogleCloudStorage,
     docsPath: `${BACKUP_DOCS_PATH}#google-cloud-storage`,
   },
   {
@@ -359,6 +371,7 @@ export const BackupProviderCatalog: Array<BackupProviderDefinition> = [
     title: "Azure Blob Storage",
     description: "A container in your Azure storage account.",
     icon: IconProp.CloudArrowDown,
+    logo: ProviderLogo.AzureBlobStorage,
     docsPath: `${BACKUP_DOCS_PATH}#azure-blob-storage`,
   },
   {

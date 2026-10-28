@@ -81,7 +81,7 @@ O menu lateral da página agrupa o que você faz com uma exceção:
 
 ## Resolver, reabrir e arquivar
 
-Os botões no topo da página da exceção, e a página **Configurações** dela, mudam o status:
+Os botões no topo da página da exceção, a página **Configurações** dela e o menu ⋯ da linha dela na lista mudam o status:
 
 | Ação | Quando usar | O que acontece depois |
 | --- | --- | --- |
@@ -91,6 +91,8 @@ Os botões no topo da página da exceção, e a página **Configurações** dela
 | **Desarquivar** | Você quer voltar a ouvir falar dela. | Ela volta para a lista a que pertence. |
 
 **Configurações** mostra quem resolveu ou arquivou a exceção por último, e quando. Os botões dela dizem **Marcar como resolvido** ou **Marcar como não resolvido**, e **Arquivar** ou **Desarquivar**.
+
+Para mudar várias de uma vez, marque as linhas delas na lista, ou a caixa acima das linhas para todas as exceções da página, e use as mesmas ações em **Ações em massa**. O resultado diz quais exceções mudaram, quais ficaram como estavam e por quê.
 
 ## Classes de erro
 

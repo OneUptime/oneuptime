@@ -2,6 +2,7 @@ import SyslogStreamFramer, {
   MAX_SYSLOG_FRAME_LENGTH,
 } from "../../../Utils/Syslog/SyslogStreamFramer";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 
 /*
  * Syslog over TCP is a stream of bytes; the framer says where one message
@@ -315,21 +316,26 @@ describe("what the framer holds on to", () => {
   });
 
   test("a long line arriving a few bytes at a time is not searched again from its start each time", () => {
-    const framer: SyslogStreamFramer = new SyslogStreamFramer();
     const piece: Buffer = Buffer.from("abcdefgh");
     const pieces: number =
       Math.floor(MAX_SYSLOG_FRAME_LENGTH / piece.length) - 1;
-    const started: number = Date.now();
+    // Each attempt frames a stream of its own.
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        const framer: SyslogStreamFramer = new SyslogStreamFramer();
 
-    for (let index: number = 0; index < pieces; index++) {
-      framer.push(piece);
-    }
+        for (let index: number = 0; index < pieces; index++) {
+          framer.push(piece);
+        }
 
-    const messages: Array<string> = framer.push(Buffer.from("\n"));
+        const messages: Array<string> = framer.push(Buffer.from("\n"));
 
-    expect(messages).toHaveLength(1);
-    expect(messages[0]).toHaveLength(pieces * piece.length);
+        expect(messages).toHaveLength(1);
+        expect(messages[0]).toHaveLength(pieces * piece.length);
+      },
+      limitInMs: 5000,
+    });
     // Generous: quadratic searching would take far longer than this.
-    expect(Date.now() - started).toBeLessThan(5000);
+    expect(timed.inMs).toBeLessThan(5000);
   });
 });

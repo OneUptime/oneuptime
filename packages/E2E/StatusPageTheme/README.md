@@ -34,10 +34,10 @@ red of a long outage's bar with an edge; the logo on a light backdrop whenever a
 page or one that follows the device is dark, and the logo made for the dark theme
 drawn instead, on nothing, where the page has one; no switch on a Light or Dark page
 on its own domain, and on the Dashboard's preview a switch on every page, whose pick
-lasts for the visit and is kept nowhere; the overall status banner's words at 4.5:1
-on the status colour; and the footer's language and theme controls centred on a
-phone, around a switch a thumb can hit. Screenshots of every surface are under
-`output/playwright/status-page-theme-ui`.
+lasts for the visit and is kept nowhere; the overall status banner's words in white
+on the status colour, in both themes; and the footer's language and theme controls
+centred on a phone, around a switch a thumb can hit. Screenshots of every surface are
+under `output/playwright/status-page-theme-ui`.
 
 This checks real browser rendering and the app's theme handling; the API, the
 database and the deployed app's routing are outside this fixture.

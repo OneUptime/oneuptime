@@ -13,8 +13,12 @@ import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/Datab
 import DatabaseCommonInteractionPropsUtil, {
   PermissionType,
 } from "../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
+import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import NotFoundException from "../../../../Types/Exception/NotFoundException";
+import PermissionScope from "../../../../Types/Database/AccessControl/PermissionScope";
+import { FindWhereProperty } from "../../../../Types/BaseDatabase/Query";
+import OwnedScopePermission from "./OwnedScopePermission";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission, {
   PermissionHelper,
@@ -37,9 +41,32 @@ import Dictionary from "../../../../Types/Dictionary";
 type AccessControlPermissionContext = {
   nonAccessControlPermissions: Array<Permission>;
   accessControlPermissions: Array<UserPermission>;
+  // The allow rows scoped to Owned, of roles that can be scoped.
+  ownedPermissions: Array<UserPermission>;
   // What the caller holds, for the wildcards the grants count.
   held: HeldPermissions;
 };
+
+/*
+ * WHAT GRANTS LIMITED TO LABELS REACH - BESIDE GRANTS SCOPED TO OWNED. A
+ * caller's access is the union of their grants: a team's grant limited to
+ * some labels reaches the records carrying one of them, and another team's
+ * grant of the same permission scoped to Owned reaches the records the
+ * caller or that team owns. So when both grant an operation, its records
+ * are the records carrying one of `labelIds` and the records the caller or
+ * one of `ownedTeamIds` owns, in one condition (addGrantToQuery) - read as
+ * the labels alone, an incident another team owns and that carries none of
+ * them could not be changed, though a grant reaches it.
+ *
+ * `labelIds` empty: the grants are not limited to labels - they reach the
+ * whole project, or only owned records (OwnedScopePermission), and
+ * `ownedTeamIds` is null. `ownedTeamIds` null: no grant scoped to Owned
+ * stands beside the labels.
+ */
+export interface LabelGrant {
+  labelIds: Array<ObjectID>;
+  ownedTeamIds: Array<ObjectID> | null;
+}
 
 export default class AccessControlPermission {
   @CaptureSpan()
@@ -226,8 +253,13 @@ export default class AccessControlPermission {
       model.getAccessControlColumn();
 
     if (modelAccessControlColumnName) {
+      /*
+       * The labels alone: a record the caller's grants scoped to Owned
+       * reach is weighed by the query the operation runs with
+       * (getLabelsNarrowingAlone).
+       */
       const accessControlIdsWhichUserHasAccessTo: Array<ObjectID> =
-        this.getAccessControlIdsForModel(modelType, props, type);
+        this.getLabelsNarrowingAlone(modelType, props, type);
 
       if (accessControlIdsWhichUserHasAccessTo.length === 0) {
         return; // The user has access to all resources, if no labels are specified.
@@ -295,16 +327,15 @@ export default class AccessControlPermission {
     /*
      * A record with no labels of its own, under grants limited to labels:
      * only one whose named records carry them may be written (ReadPermission
-     * .addLabelGrantToQuery), as only a labelled record carrying one may.
+     * .addGrantedLabelsToQuery), as only a labelled record carrying one may.
      */
-    if (
-      !data.isRecordFound ||
-      ReadPermission.getGrantedLabelIds(
-        modelType,
-        props,
-        type as RecordOperation,
-      ).length === 0
-    ) {
+    const grantedLabelIds: Array<ObjectID> = this.getLabelsNarrowingAlone(
+      modelType,
+      props,
+      type,
+    );
+
+    if (!data.isRecordFound || grantedLabelIds.length === 0) {
       return;
     }
 
@@ -320,11 +351,10 @@ export default class AccessControlPermission {
         record: fetchedRecord,
         isRecordFound: data.isRecordFound,
         narrow: (query: Query<TBaseModel>): Query<TBaseModel> => {
-          return ReadPermission.addLabelGrantToQuery(
+          return ReadPermission.addGrantedLabelsToQuery(
             modelType,
             query,
-            props,
-            type as RecordOperation,
+            grantedLabelIds,
           );
         },
       }))
@@ -434,9 +464,12 @@ export default class AccessControlPermission {
     const blockedLabelIds: Dictionary<Array<ObjectID>> = {};
 
     for (const each of operations) {
-      grantedLabelIds[each] = model.getAccessControlColumn()
-        ? this.getAccessControlIdsForModel(modelType, props, each)
-        : ReadPermission.getGrantedLabelIds(modelType, props, each);
+      // The labels alone: what grants scoped to Owned reach, the query weighs.
+      grantedLabelIds[each] = this.getLabelsNarrowingAlone(
+        modelType,
+        props,
+        each,
+      );
       blockedLabelIds[each] = ReadPermission.getBlockedLabelIds(
         modelType,
         props,
@@ -710,8 +743,8 @@ export default class AccessControlPermission {
    * A labelled model's records narrowed by one operation's own grants
    * limited to labels. The record rule narrows a write by its read's grants
    * as well, and so asks the two halves itself
-   * (BasePermission.addRecordScopeToQuery: getAccessControlIdsForQuery per
-   * operation, then addLabelIdsToQuery).
+   * (BasePermission.addRecordScopeToQuery: getLabelGrantsForQuery per
+   * operation, then addGrantToQuery).
    */
   @CaptureSpan()
   public static async addAccessControlIdsToQuery<TBaseModel extends BaseModel>(
@@ -725,11 +758,17 @@ export default class AccessControlPermission {
       return query;
     }
 
-    return this.addLabelIdsToQuery(
+    for (const grant of this.getLabelGrantsForQuery(
       modelType,
       query,
-      this.getAccessControlIdsForQuery(modelType, query, select, props, type),
-    );
+      select,
+      props,
+      type,
+    )) {
+      query = await this.addGrantToQuery(modelType, query, grant, props);
+    }
+
+    return query;
   }
 
   /*
@@ -832,15 +871,46 @@ export default class AccessControlPermission {
   }
 
   /*
-   * The labels the caller's grants for an operation on a model are limited
-   * to: none when one of them reaches the whole project, or when none is
-   * limited to labels. The grants are the rows the table check counts
+   * What the caller's grants for an operation on a model reach of its
+   * records (LabelGrant): nothing to narrow when one of them reaches the
+   * whole project, or when none is limited to labels; otherwise the labels
+   * those are limited to, and the teams of the grants scoped to Owned beside
+   * them. The grants are the rows the table check counts
    * (TablePermission.getGrantingPermissions): the model's own permissions
    * for the operation and, on an operational resource, its
    * *AllOperationalResources wildcard - so a wildcard limited to labels
    * narrows the records to those labels, as one of the model's own
    * permissions limited to them does, and a wildcard over the whole
    * project reaches every record.
+   */
+  public static getLabelGrantForModel(
+    modelType: DatabaseBaseModelType,
+    props: DatabaseCommonInteractionProps,
+    type: DatabaseRequestType,
+    context?: AccessControlPermissionContext,
+  ): LabelGrant {
+    context = context ?? this.buildPermissionContext(props);
+
+    return this.getGrantByPermissions(
+      modelType,
+      type,
+      TablePermission.getGrantingPermissions(
+        modelType,
+        type,
+        props,
+        context.held,
+      ),
+      context,
+    );
+  }
+
+  /*
+   * The labels the caller's grants for an operation on a model are limited
+   * to (getLabelGrantForModel): none when they reach the whole project, or
+   * when none is limited to labels. Grants scoped to Owned beside them reach
+   * the records the caller or those grants' teams own as well: a check of
+   * one record by its labels alone (checkRecordByModel) leaves those to the
+   * query the operation runs with (getLabelsNarrowingAlone).
    */
   @CaptureSpan()
   public static getAccessControlIdsForModel(
@@ -849,19 +919,33 @@ export default class AccessControlPermission {
     type: DatabaseRequestType,
     context?: AccessControlPermissionContext,
   ): Array<ObjectID> {
-    context = context ?? this.buildPermissionContext(props);
+    return this.getLabelGrantForModel(modelType, props, type, context).labelIds;
+  }
 
-    return ArrayUtil.removeDuplicatesFromObjectIDArray(
-      this.getAccessControlIdsByPermissions(
-        TablePermission.getGrantingPermissions(
-          modelType,
-          type,
-          props,
-          context.held,
-        ),
-        context,
-      ),
+  /*
+   * The labels a record must carry for the caller's grants of an operation
+   * to reach it, decided by its labels alone: those of getLabelGrantForModel
+   * when no grant scoped to Owned stands beside them, and none when one does
+   * - the record may be reached as one the caller owns, which the query the
+   * operation runs with weighs (BasePermission.addRecordScopeToQuery), as it
+   * weighs a grant scoped to Owned on its own.
+   */
+  public static getLabelsNarrowingAlone(
+    modelType: DatabaseBaseModelType,
+    props: DatabaseCommonInteractionProps,
+    type: DatabaseRequestType,
+  ): Array<ObjectID> {
+    if (props.isRoot || props.isMasterAdmin) {
+      return [];
+    }
+
+    const grant: LabelGrant = this.getLabelGrantForModel(
+      modelType,
+      props,
+      type,
     );
+
+    return grant.ownedTeamIds ? [] : grant.labelIds;
   }
 
   /*
@@ -887,42 +971,32 @@ export default class AccessControlPermission {
     });
   }
 
-  @CaptureSpan()
-  public static getAccessControlIdsForQuery<TBaseModel extends BaseModel>(
+  /*
+   * The permissions of each column the query names or selects that has a
+   * list of its own for the operation, as the column check counts them
+   * (getColumnGrantingPermissions).
+   */
+  private static getColumnGrantingPermissionLists<TBaseModel extends BaseModel>(
     modelType: DatabaseBaseModelType,
     query: Query<TBaseModel>,
     select: Select<TBaseModel> | null,
-    props: DatabaseCommonInteractionProps,
     type: DatabaseRequestType,
-  ): Array<ObjectID> {
+    held: HeldPermissions,
+  ): Array<Array<Permission>> {
     const model: BaseModel = new modelType();
 
-    let labelIds: Array<ObjectID> = [];
-
-    let columnsToCheckPermissionFor: Array<string> = Object.keys(query);
+    let columns: Array<string> = Object.keys(query);
 
     if (select) {
-      columnsToCheckPermissionFor = [
-        ...columnsToCheckPermissionFor,
-        ...Object.keys(select),
-      ];
+      columns = [...columns, ...Object.keys(select)];
     }
-
-    // Build the permission context once — not per column.
-    const context: AccessControlPermissionContext =
-      this.buildPermissionContext(props);
-
-    labelIds = this.getAccessControlIdsForModel(
-      modelType,
-      props,
-      type,
-      context,
-    );
 
     const columnAccessControlDictionary: Dictionary<ColumnAccessControl> =
       model.getColumnAccessControlForAllColumns();
 
-    for (const column of columnsToCheckPermissionFor) {
+    const lists: Array<Array<Permission>> = [];
+
+    for (const column of new Set<string>(columns)) {
       const accessControl: ColumnAccessControl | null =
         columnAccessControlDictionary[column] || null;
 
@@ -943,24 +1017,94 @@ export default class AccessControlPermission {
         continue;
       }
 
-      labelIds = [
-        ...labelIds,
-        ...this.getAccessControlIdsByPermissions(
-          this.getColumnGrantingPermissions(
-            modelType,
-            type,
-            columnPermissions,
-            context.held,
-          ),
-          context,
+      lists.push(
+        this.getColumnGrantingPermissions(
+          modelType,
+          type,
+          columnPermissions,
+          held,
         ),
-      ];
+      );
     }
 
+    return lists;
+  }
+
+  /*
+   * THE GRANTS A LABELLED MODEL'S RECORDS ARE NARROWED BY, ONE CONDITION
+   * EACH (LabelGrant): the operation's own grants, and, for each column the
+   * query names or selects whose permissions are granted limited to labels,
+   * those. A record must meet each condition (addGrantToQuery, asked once
+   * per grant): a column the caller may read only on some records reaches no
+   * other record. Read as one list - every label of every list
+   * (getAccessControlIdsForQuery) - a column's grant widened the read
+   * instead: a member who reads the monitors carrying one label, and may
+   * change the ones carrying another, read the second label's monitors
+   * whole by selecting a column only editors read. A grant that narrows
+   * nothing is left out.
+   */
+  public static getLabelGrantsForQuery<TBaseModel extends BaseModel>(
+    modelType: DatabaseBaseModelType,
+    query: Query<TBaseModel>,
+    select: Select<TBaseModel> | null,
+    props: DatabaseCommonInteractionProps,
+    type: DatabaseRequestType,
+  ): Array<LabelGrant> {
+    const context: AccessControlPermissionContext =
+      this.buildPermissionContext(props);
+
+    return AccessControlPermission.getGrantsToNarrowBy([
+      this.getLabelGrantForModel(modelType, props, type, context),
+      ...this.getColumnGrantingPermissionLists(
+        modelType,
+        query,
+        select,
+        type,
+        context.held,
+      ).map((permissions: Array<Permission>): LabelGrant => {
+        return this.getGrantByPermissions(
+          modelType,
+          type,
+          permissions,
+          context,
+        );
+      }),
+    ]);
+  }
+
+  /*
+   * Every label the grants of getLabelGrantsForQuery are limited to, as one
+   * list: whether the caller's grants are limited to labels at all, not the
+   * records they reach.
+   */
+  @CaptureSpan()
+  public static getAccessControlIdsForQuery<TBaseModel extends BaseModel>(
+    modelType: DatabaseBaseModelType,
+    query: Query<TBaseModel>,
+    select: Select<TBaseModel> | null,
+    props: DatabaseCommonInteractionProps,
+    type: DatabaseRequestType,
+  ): Array<ObjectID> {
+    // Build the permission context once — not per column.
+    const context: AccessControlPermissionContext =
+      this.buildPermissionContext(props);
+
+    const labelIds: Array<ObjectID> = [
+      ...this.getLabelGrantForModel(modelType, props, type, context).labelIds,
+      ...this.getColumnGrantingPermissionLists(
+        modelType,
+        query,
+        select,
+        type,
+        context.held,
+      ).flatMap((permissions: Array<Permission>): Array<ObjectID> => {
+        return this.getGrantByPermissions(modelType, type, permissions, context)
+          .labelIds;
+      }),
+    ];
+
     // get distinct labelIds
-    const distinctLabelIds: Array<ObjectID> =
-      ArrayUtil.removeDuplicatesFromObjectIDArray(labelIds);
-    return distinctLabelIds;
+    return ArrayUtil.removeDuplicatesFromObjectIDArray(labelIds);
   }
 
   private static buildPermissionContext(
@@ -977,16 +1121,36 @@ export default class AccessControlPermission {
         PermissionHelper.getNonAccessControlPermissions(userPermissions),
       accessControlPermissions:
         PermissionHelper.getAccessControlPermissions(userPermissions),
+      ownedPermissions: userPermissions.filter(
+        (row: UserPermission): boolean => {
+          return (
+            row.scope === PermissionScope.Owned &&
+            PermissionHelper.isScopeApplicable(row.permission)
+          );
+        },
+      ),
       // What the table check holds the caller to, read the same way.
       held: TablePermission.getHeldPermissions(props),
     };
   }
 
-  private static getAccessControlIdsByPermissions(
+  /*
+   * What the allow rows of `permissions` reach of a model's records, for
+   * `type` (see LabelGrant): nothing to narrow when one of them reaches the
+   * whole project, or when none is limited to labels; otherwise the labels
+   * of the rows limited to them and, when rows scoped to Owned stand beside
+   * them, those rows' teams (OwnedScopePermission.getTeamIdsOfRows) - or
+   * nothing to narrow, when the Owned scope narrows nothing here
+   * (OwnedScopePermission.narrowsRecords): such a row reaches every record,
+   * as it does on its own.
+   */
+  private static getGrantByPermissions(
+    modelType: DatabaseBaseModelType,
+    type: DatabaseRequestType,
     permissions: Array<Permission>,
     context: AccessControlPermissionContext,
-  ): Array<ObjectID> {
-    let labelIds: Array<ObjectID> = [];
+  ): LabelGrant {
+    const reachesEverything: LabelGrant = { labelIds: [], ownedTeamIds: null };
 
     if (
       PermissionHelper.doesPermissionsIntersect(
@@ -994,8 +1158,10 @@ export default class AccessControlPermission {
         context.nonAccessControlPermissions,
       )
     ) {
-      return []; // if this is intersecting, then return empty array. We dont need to check for access control.
+      return reachesEverything; // if this is intersecting, then return empty array. We dont need to check for access control.
     }
+
+    let labelIds: Array<ObjectID> = [];
 
     for (const permission of permissions) {
       for (const accessControlPermission of context.accessControlPermissions) {
@@ -1011,6 +1177,187 @@ export default class AccessControlPermission {
     // remove duplicates
     labelIds = ArrayUtil.removeDuplicatesFromObjectIDArray(labelIds);
 
-    return labelIds;
+    if (labelIds.length === 0) {
+      return reachesEverything;
+    }
+
+    const ownedRows: Array<UserPermission> = context.ownedPermissions.filter(
+      (row: UserPermission): boolean => {
+        return permissions.includes(row.permission);
+      },
+    );
+
+    if (ownedRows.length === 0) {
+      return { labelIds: labelIds, ownedTeamIds: null };
+    }
+
+    if (!OwnedScopePermission.narrowsRecords(modelType, type)) {
+      return reachesEverything;
+    }
+
+    return {
+      labelIds: labelIds,
+      ownedTeamIds: OwnedScopePermission.getTeamIdsOfRows(ownedRows),
+    };
+  }
+
+  /*
+   * Of grants to narrow a model's records by, each a condition of its own
+   * (LabelGrant), the ones that add something: a grant whose records are
+   * all among another's adds nothing to that other's condition - its labels
+   * are all the other's, and what it owns (if anything) the other reaches
+   * too - so only the narrower is kept; of two that reach the same records,
+   * the first. Grants that narrow nothing are left out.
+   */
+  public static getGrantsToNarrowBy(
+    grants: Array<LabelGrant>,
+  ): Array<LabelGrant> {
+    const narrowing: Array<LabelGrant> = grants.filter(
+      (grant: LabelGrant): boolean => {
+        return grant.labelIds.length > 0;
+      },
+    );
+
+    return narrowing.filter((grant: LabelGrant, index: number): boolean => {
+      return !narrowing.some(
+        (other: LabelGrant, otherIndex: number): boolean => {
+          if (
+            otherIndex === index ||
+            !AccessControlPermission.isGrantWithin(other, grant)
+          ) {
+            return false;
+          }
+
+          return (
+            !AccessControlPermission.isGrantWithin(grant, other) ||
+            otherIndex < index
+          );
+        },
+      );
+    });
+  }
+
+  // Whether every record `grant` reaches is one `within` reaches.
+  public static isGrantWithin(grant: LabelGrant, within: LabelGrant): boolean {
+    const withinLabels: Set<string> = new Set<string>(
+      within.labelIds.map((labelId: ObjectID): string => {
+        return labelId.toString().toLowerCase();
+      }),
+    );
+
+    const labelsWithin: boolean = grant.labelIds.every(
+      (labelId: ObjectID): boolean => {
+        return withinLabels.has(labelId.toString().toLowerCase());
+      },
+    );
+
+    if (!labelsWithin || grant.ownedTeamIds === null) {
+      return labelsWithin;
+    }
+
+    return (
+      within.ownedTeamIds !== null &&
+      OwnedScopePermission.isTeamListWithin(
+        grant.ownedTeamIds,
+        within.ownedTeamIds,
+      )
+    );
+  }
+
+  /*
+   * Narrows `query` to the records `grant` reaches (LabelGrant): the labels
+   * alone as addLabelIdsToQuery (a model that carries labels) and
+   * ReadPermission.addGrantedLabelsToQuery (one that does not) keep them,
+   * or - beside grants scoped to Owned - the records carrying one of the
+   * labels and the records the caller or the grant's teams own, in one
+   * condition on the record's id (OwnedScopePermission
+   * .getOwnedRecordsCondition). A label-less model whose rows name no
+   * labelled record is about none of them: the labels reach every row, and
+   * nothing is narrowed. The caller's own filters stay as sent.
+   */
+  public static async addGrantToQuery<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    query: Query<TBaseModel>,
+    grant: LabelGrant,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<Query<TBaseModel>> {
+    if (grant.labelIds.length === 0) {
+      return query;
+    }
+
+    const accessControlColumn: string | null =
+      new modelType().getAccessControlColumn();
+
+    if (!grant.ownedTeamIds) {
+      return accessControlColumn
+        ? AccessControlPermission.addLabelIdsToQuery(
+            modelType,
+            query,
+            grant.labelIds,
+          )
+        : ReadPermission.addGrantedLabelsToQuery(
+            modelType,
+            query,
+            grant.labelIds,
+          );
+    }
+
+    let labelCondition: FindWhereProperty<any> | null = null;
+
+    if (accessControlColumn) {
+      const labelsMeta: ReturnType<
+        typeof QueryUtil.getManyToManyRelationMetadata
+      > = QueryUtil.getManyToManyRelationMetadata(
+        modelType,
+        accessControlColumn,
+      );
+
+      // A model whose labels cannot be followed is misconfigured: refused.
+      if (!labelsMeta) {
+        throw new BadDataException(
+          "Cannot apply read label restrictions without access-control relation metadata.",
+        );
+      }
+
+      labelCondition = QueryHelper.anyOfEntitiesInManyToMany({
+        values: grant.labelIds,
+        ...labelsMeta,
+      });
+    } else {
+      labelCondition = ReadPermission.getGrantedLabelsCondition(
+        modelType,
+        grant.labelIds,
+      );
+
+      if (!labelCondition) {
+        return query;
+      }
+    }
+
+    const owned: {
+      columnName: string | null;
+      condition: FindWhereProperty<any>;
+    } = await OwnedScopePermission.getOwnedRecordsCondition(
+      modelType,
+      props,
+      grant.ownedTeamIds,
+    );
+
+    const idQuery: Query<TBaseModel> = QueryUtil.serializeQuery(modelType, {
+      _id: query._id,
+    } as Query<TBaseModel>);
+
+    (query as any)._id = combineWithPrivacyClause(
+      ReadPermission.getSupportedFilter(idQuery._id),
+      QueryHelper.anyOfConditions([
+        { condition: labelCondition },
+        {
+          columnName: owned.columnName || undefined,
+          condition: owned.condition,
+        },
+      ]),
+    );
+
+    return query;
   }
 }

@@ -152,16 +152,16 @@ describe("network topology detail panel layering", () => {
 
   test("the panel stays under the overlays that are mounted ahead of the page", () => {
     /*
-     * The AI chat panel is rendered in App.tsx BEFORE the routed page, so an
-     * equal z-index would be broken in the panel's favour by document order
-     * and the drawer would vanish behind it. It has to be strictly higher,
-     * not merely equal.
+     * Ask AI is mounted in App.tsx BEFORE the routed page, so an equal
+     * z-index would be broken in the dialog's favour by document order and
+     * the drawer would vanish behind it. It has to be strictly higher, not
+     * merely equal.
      */
-    const aiChatPanel: number = highestZIndexIn(
-      readAppCode("Components", "AIChat", "AIChatPanel.tsx"),
+    const askAi: number = highestZIndexIn(
+      readAppCode("Components", "AIChat", "AskAiDialog.tsx"),
     );
 
-    expect(aiChatPanel).toBeGreaterThan(sideOverZIndex());
+    expect(askAi).toBeGreaterThan(sideOverZIndex());
   });
 
   test("a modal opened from or beside a panel still wins", () => {

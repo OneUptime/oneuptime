@@ -128,6 +128,8 @@ const MATRIX_ROW_FOR_FEATURE: Record<EnterpriseFeature, string> = {
   [EnterpriseFeature.StatusPageAccessControls]: "Status page access controls",
   [EnterpriseFeature.StatusPageBranding]: 'Hiding "Powered by OneUptime"',
   [EnterpriseFeature.Backups]: "[Backups](/docs/installation/backups)",
+  [EnterpriseFeature.CustomNotificationChannels]:
+    "[Custom notification channels](/docs/self-hosted/custom-notification-channels)",
 };
 
 /*

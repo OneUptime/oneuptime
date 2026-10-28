@@ -25,7 +25,8 @@ import getJestMockFunction, { MockFunction } from "Common/Tests/MockType";
  * the network stubbed - under the teams given it:
  *
  *   - API Keys with this Role lists the keys given it, each a link to the
- *     key's page;
+ *     key's page, opened at its Custom Roles card (#custom-roles) - the
+ *     card is folded under the key's More settings, which the link opens;
  *   - the Permissions card says a change reaches the keys too, and the
  *     Delete dialog says whom deleting it reaches, keys counted;
  *   - Give to an API Key offers only the keys without the role and gives
@@ -448,8 +449,12 @@ describe("a custom role's API keys", () => {
     const link: HTMLElement = await within(card).findByRole("link", {
       name: "Deploy bot",
     });
+    /*
+     * At the key's Custom Roles card, which lists this role: the card is
+     * folded under the key's More settings, and the link opens it there.
+     */
     expect(link.getAttribute("href")).toBe(
-      `/dashboard/${PROJECT_ID}/settings/api-keys/${DEPLOY_KEY_ID}`,
+      `/dashboard/${PROJECT_ID}/settings/api-keys/${DEPLOY_KEY_ID}#custom-roles`,
     );
 
     // Read by the role and the project.

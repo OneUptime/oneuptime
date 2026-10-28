@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 35892,
-    "untranslated": 13436
+    "keys": 36296,
+    "untranslated": 13387
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -87,6 +87,8 @@
     "PVC",
     "Playbook",
     "Playbooks",
+    "Playlist",
+    "Playlists",
     "Pod",
     "Pod · data",
     "Pod · production",

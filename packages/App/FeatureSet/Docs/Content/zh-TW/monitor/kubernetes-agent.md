@@ -237,7 +237,7 @@ OBI 也會讓追蹤跨越一次呼叫延續下去：當 Pod A 透過 HTTP 或 gR
 **預設關閉。** 開啟後，OBI 會在它檢測的每個處理程序的 `write()` 系統呼叫上掛載一個探針，並且：
 
 - **JSON 日誌行** 會獲得 `trace_id` 和 `span_id` 欄位(行中已有的欄位會保留)。節點收集器會把它們移到日誌記錄自身的追蹤欄位上，因此在 OneUptime 中，一個 Span 的日誌只需一次點選就能看到，日誌行的追蹤也是如此。
-- **其他任何日誌行** 都會原樣收集，不帶連結。
+- **其他任何日誌行** 都會原樣收集，不帶連結，除非你同時設定 `ebpf.logEnricher.plainText=true`。此時 OBI 會在該行末尾附加 ` trace_id=… span_id=…`，節點收集器會把這些 ID 移到日誌記錄上並從該行中移除，因此 OneUptime 顯示的就是你的應用程式寫下的原樣。容器日誌檔案中的該行(即 `kubectl logs` 輸出的內容)仍保留附加內容。
 
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
@@ -249,6 +249,7 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 | --- | --- | --- |
 | `ebpf.logToTraceCorrelation` | `false` | 開啟 OBI 的日誌擴充器以及節點收集器對 `trace_id` 的提取。 |
 | `ebpf.logEnricher.services` | `[{service: [{exe_path: "*"}]}]` | 擴充器會處理哪些處理程序。每個項目都是一個 OBI [GlobAttributes](https://opentelemetry.io/docs/zero-code/obi/configure/options/#service-discovery) 選取器，帶有 `exe_path`、`languages`、`k8s_pod_labels`、`k8s_pod_annotations`、`open_ports` 和 `cmd_args` 等欄位。 |
+| `ebpf.logEnricher.plainText` | `false` | 同時關聯純文字(非 JSON)日誌行。會改變容器日誌檔案所保留的那一行。 |
 
 #### 與它一起使用會當機的 APM 代理程式
 

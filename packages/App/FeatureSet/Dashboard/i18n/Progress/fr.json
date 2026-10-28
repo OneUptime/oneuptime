@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 35892,
-    "untranslated": 7648
+    "keys": 36296,
+    "untranslated": 7705
   },
   "sameAsEnglish": [
     " incidents",
@@ -350,6 +350,8 @@
     "Pipelines",
     "Playbook",
     "Playbooks",
+    "Playlist",
+    "Playlists",
     "Pod",
     "Pod · data",
     "Pod · production",

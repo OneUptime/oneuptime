@@ -88,7 +88,7 @@ En sag har sin egen sidemenu, ligesom en hændelse, og hver del af sagen er en s
 | Afsnit i sidemenuen | Sider |
 | --- | --- |
 | **Oversigt** | **Oversigt**, **Tidslinje** |
-| **Undersøgelse** | **Detektioner**, **Entiteter**, **Forbundne signaler**, **Playbooks** |
+| **Undersøgelse** | **Forløb**, **Detektioner**, **Entiteter**, **Forbundne signaler**, **Playbooks** |
 | **Noter** | **Private noter** |
 | **Avanceret** | **Auditlogs**, **Slet sag**, foldet sammen, indtil du klikker på **Avanceret** |
 
@@ -96,8 +96,10 @@ Hver side beholder sagens sidehoved øverst: nummer, prioritet, status og titel,
 
 - **Oversigt**: sagens beskrivelse, etiketter og statustrin, hvem der har den, og hvad der åbnede den, og dens tal: hvor mange detektioner den har, hvor længe den har været åben, og hvor lang tid det tog at kvittere for den og inddæmme den.
 - **OneUptime AI**, på **Oversigt**: hvad OneUptime AI fik ud af sagen, den prioritet og playbook, den foreslår, og beviserne bag. Se [OneUptime AI i sikkerhed](/docs/telemetry/security-ai).
+- **Påvirkning**, på **Oversigt**: hvad sagen sætter på spil: om OneUptime har set dens poster blive nået fra internettet, hvem der ejer dem, og hvad der sidst blev ændret på dem. Fold den ud for at se, hvad hver post kalder, og hvad der kalder den, de monitorer og statussider, der holder øje med den, og de maskiner, sagens adresser talte med.
 - **MITRE ATT&CK**, på **Oversigt**: de taktikker og teknikker, som sagens detektioner knyttes til, hver med et link til sin side på attack.mitre.org.
 - **Tidslinje**: alt, hvad der skete med sagen, med hvem der gjorde det.
+- **Forløb**: hvad der skete, i rækkefølge, på tværs af OneUptime: hver detektion og sikkerhedshændelserne bag den, hvor langt deres forespørgsler nåede, de undtagelser, de udløste, ændringerne på de poster, sagen nævner, de hændelser og alarmer, der opstod på dem, og hvad teamet gjorde. En scanners mange forsøg er én linje, og hver linje åbner det, den nævner, for eksempel forespørgslens trace eller undtagelsen.
 - **Detektioner**: det, der blev udløst og åbnede sagen eller blev føjet til den, hvor ofte, og den seneste matchende begivenhed.
 - **Entiteter**: de brugere, værter og adresser, sagen handler om, med deres aktivitet på tværs af alle dine sikkerhedsbegivenheder de seneste 7 dage. Hver af dem åbnes i **Korrelér**.
 - **Forbundne signaler**: de værter, klynger, tjenester og medlemmer, sagen nævner, som OneUptime kender dem, og hvad der skete på hver af dem omkring sagens detektioner: deres protokoller, spor og metrikker, hvad der er åbent på dem, og hvad der ændrede sig. Se [Forbundne signaler](/docs/telemetry/security-connected-signals).
@@ -231,9 +233,11 @@ En deaktiveret playbook kører hverken af sig selv eller manuelt.
 | Case | Add labels | Mærker sagen med etiketter |
 | Investigate | Check entities against threat intel | Slår hver entitet op i din trusselsintelligens og kan hæve prioriteten ved et match |
 | Investigate | Look up entity activity | Tæller hver entitets sikkerhedsbegivenheder over et nyligt tidsvindue og noterer det på sagen |
+| Investigate | Preserve the evidence | Gemmer sessionsoptagelserne af anmodningerne bag sagen og noterer deres traces og undtagelser på sagen |
 | Notify | Email people | Sender brugere og teams en opsummering af sagen på e-mail med et link til den |
 | Notify | Post to Slack | Slår en opsummering af sagen op i en Slack-kanal |
 | Notify | Post to Microsoft Teams | Slår en opsummering af sagen op i en Microsoft Teams-kanal |
+| Notify | Post a status page announcement | Slår en meddelelse, du har skrevet, op på de statussider, du vælger |
 | Escalate | Page on-call | Kører en vagtpolitik |
 | Escalate | Declare an incident | Åbner en OneUptime-hændelse, der er knyttet til sagen |
 | Contain | Suspend the user in Okta | Suspenderer den bruger, sagen handler om, i Okta |
@@ -245,12 +249,23 @@ En deaktiveret playbook kører hverken af sig selv eller manuelt.
 | Contain | Release the device in Microsoft Defender | Frigiver den vært, sagen handler om, fra isoleringen i Microsoft Defender for Endpoint |
 | Automate | Send a webhook | Sender sagen som JSON til en URL |
 | Automate | Run a workflow | Starter et OneUptime-workflow med sagen som input |
+| Automate | Run a runbook | Starter en af dine OneUptime-runbooks med sagen som input |
+| Automate | Fix the code with AI | Beder OneUptime AI om en pull request, der retter de undtagelser, sagens anmodninger udløste |
 
 En playbook har højst 25 trin. De kører i rækkefølge, hvert trin, når det foregående er færdigt. Hvert trin kan også:
 
-- **Kræver godkendelse**: stoppe kørslen før trinnet, indtil nogen godkender det på sagen. De fire trin, der lukker nogen ude, stopper altid kørslen, medmindre en Security Admin slår det fra.
+- **Kræver godkendelse**: stoppe kørslen før trinnet, indtil nogen godkender det på sagen. De fire trin, der lukker nogen ude, stopper altid kørslen, medmindre en Security Admin slår det fra. **Run a runbook** og **Post a status page announcement** starter med godkendelse slået til, fordi det ene kører kommandoer på jeres systemer og det andet taler til jeres kunder; den, der tilføjer trinnet, kan slå det fra.
 - **Kun ved træf i trusselsinformation**: springe trinnet over, medmindre et tidligere trin **Tjek entiteter mod trusselsinformation** i kørslen fandt en kendt indikator.
 - **Fortsæt, hvis det mislykkes**: køre det næste trin, selv om dette mislykkes. Er den slået fra, stopper et mislykket trin kørslen.
+
+### Reaktion gennem OneUptime
+
+Fire trin handler gennem resten af OneUptime i stedet for gennem et forbundet produkt:
+
+- **Run a runbook** starter en af dine [runbooks](/docs/runbooks/index) med sagen som input, som et Bash-trin læser som miljøvariabler (se [Kald webhooken](/docs/runbooks/triggers#kald-webhooken)). `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` og `ONEUPTIME_INPUT_HOST` er den adresse, bruger og vært, sagen handler om, valgt efter samme regel som for et Contain-trin, og tomme, når den ikke handler om nogen. `ONEUPTIME_INPUT_IPS`, `ONEUPTIME_INPUT_USERS` og `ONEUPTIME_INPUT_HOSTS` oplister som JSON alle dem, sagen nævner, og `ONEUPTIME_INPUT_CASE_NUMBER`, `ONEUPTIME_INPUT_CASE_TITLE` og `ONEUPTIME_INPUT_CASE_URL` fortæller, hvilken sag det er. En beskyttet bruger eller vært er aldrig blandt dem. Runbookens kørsel viser, at den blev startet af **Security playbook** for sagen.
+- **Preserve the evidence** gemmer sessionsoptagelserne af anmodningerne bag sagen ud over deres opbevaringstid og skriver en note på sagen, der linker til hver anmodnings trace, hver optagelse og hver undtagelse. Logs og traces kan ikke gemmes længere, end projektet gemmer telemetri, så eksportér det, du har brug for, inden da.
+- **Post a status page announcement** slår det, du skrev, op, som du skrev det, på de statussider, du vælger. Intet fra sagen tilføjes. Deres abonnenter får kun besked, når **Underret abonnenter** er slået til.
+- **Fix the code with AI** beder OneUptime AI om en pull request, der retter hver undtagelse, sagens anmodninger udløste, op til tre. Trinnet kræver, at OneUptime AI er slået til, et repository med koden forbundet via GitHub-appen og en runner. Uden dem springes trinnet over og siger, hvad der mangler.
 
 ### Inddæmning
 
@@ -311,7 +326,7 @@ Hver kørsel vises på sin sag og under **Produkter → Security Events → Play
 | Mislykkedes | Et trin mislykkedes, og kørslen stoppede |
 | Annulleret | Nogen annullerede den eller afviste et trin |
 
-Et trin, der venter på godkendelse, viser **Godkend** og **Afvis** på kørslen med en valgfri kommentar. En godkendelse fører kørslen videre fra det trin; en afvisning afslutter den. Beslutningen, hvem der traf den, og deres kommentar gemmes på trinnet, på sagens tidslinje og i projektets auditlog. Siden **Godkendelser**, under **Playbooks** i menuen, viser de kørsler, der venter på en beslutning, og tæller dem; **Playbook-kørsler** viser hver kørsel. På **Playbook-kørsler** og på en playbooks side er hver kørsel én linje, der siger, hvor langt den nåede, eller hvilket trin den stoppede ved; **Vis trin** åbner dens trin. En kørsel, der venter på godkendelse, åbner af sig selv.
+Et trin, der venter på godkendelse, viser **Godkend** og **Afvis** på kørslen med en valgfri kommentar. En godkendelse fører kørslen videre fra det trin; en afvisning afslutter den. Beslutningen, hvem der traf den, og deres kommentar gemmes på trinnet, på sagens tidslinje og i projektets auditlog. Siden **Godkendelser**, under **Playbooks** i menuen, viser de kørsler, der venter på en beslutning, og tæller dem; **Playbook-kørsler** viser hver kørsel. På **Playbook-kørsler**, på en playbooks side og under en sags **Playbooks** er hver kørsel én linje, der siger, hvor langt den nåede, eller hvilket trin den stoppede ved; **Vis trin** åbner dens trin. En kørsel, der venter på godkendelse, åbner af sig selv, og det samme gør den nyeste kørsel på en sag.
 
 En kørsel, der holder op med at høre fra sin worker, f.eks. efter en genstart, bliver samlet op igen: en kørsel i kø sættes i kø igen efter 2 minutter, og en kørsel, der ikke har meldt noget i 30 minutter, markeres som mislykket.
 
@@ -322,13 +337,13 @@ En kørsel, der holder op med at høre fra sin worker, f.eks. efter en genstart,
 - De åbne sager, der er tildelt dig, de åbne sager, som ingen har taget, og de playbook-trin, der venter på godkendelse; hvert tal åbner siden, der viser dem.
 - **Gennemsnitlig tid til kvittering**, **Gennemsnitlig tid til inddæmning** og **Gennemsnitlig tid til lukning** over de sager, der er åbnet inden for de seneste 30 dage: fra en sag åbnes, til nogen tager den (tildeler en person eller flytter den til en status, der tæller som kvitteret), til en status, der tæller som inddæmmet, og til en, der tæller som lukket. En sag, der stadig venter, tælles ikke med i et gennemsnit.
 - De sager, der er åbnet hver dag i 30 dage, efter prioritet, og de detektioner, der er rejst hver dag i 14 dage, efter kilde.
-- De åbne sager efter prioritet og efter status, de entiteter, som flest fund nævner, de detektioner, der blev udløst oftest, ATT&CK-taktikkerne bag sagerne og konklusionerne fra de seneste 30 dage.
+- De åbne sager efter prioritet og efter status, de mest risikable entiteter efter deres risikoscore, de detektioner, der blev udløst oftest, ATT&CK-taktikkerne bag sagerne og konklusionerne fra de seneste 30 dage.
 
 Over dem viser et bånd, hvordan sikkerhed er sat op: dens kilder, detektioner, sager og playbooks, hver med sine tal. Et projekt, der endnu ikke har sat det op, ser **Slå anbefalet til** og **Send et testangreb** der; se [Kom godt i gang med sikkerhed](/docs/telemetry/security-getting-started). Når intet kræver nogen, siger siden **Alt er roligt**, og diagrammerne vises, så snart der er noget at vise.
 
 ## Find trusler
 
-- **Entiteter** rangerer de brugere, værter, adresser og hashes, som dine fund nævner oftest, over det seneste døgn, den seneste uge eller måned, og slår enhver værdi op på tværs af 30 dages begivenheder. Vælg en entitet for at åbne den i **Korrelér**.
+- **Entitetsrisiko** rangerer brugere, værter og adresser efter deres risikoscore, de mest risikable først, og **Mest risikable entiteter** på oversigten viser toppen af den samme liste. Vælg en entitet for at se, hvorfor den er risikabel. Under listen slår **Slå en entitet op** enhver værdi op på tværs af 30 dages begivenheder, også et domæne eller en fil-hash, og åbner den i **Korrelér**.
 - **Regelbibliotek** har færdige detektionsregler til trusler mod identitet, endpoints, cloud, netværk, web og Kubernetes. Hver er en Sigma-regel, skrevet til de felter, som alle forbundne kilder normaliseres til. Dens række viser, hvad den finder, de MITRE ATT&CK-taktikker og -teknikker, den er mærket med, de hændelser, den læser, og om der er kommet nogen inden for de seneste 7 dage (**Modtages** eller **Modtages ikke**), samt dens alvorlighed. Afgræns listen efter kategori, efter de data, reglerne læser, og efter om du har tilføjet dem, eller søg i den efter navn, ATT&CK-teknik eller alvorlighed; sidens adresse husker filtrene. Vælg en regel for at se detaljerne: hvordan du begynder at sende de hændelser, den læser, hvordan den kører, og dens Sigma-regel. **Tilføj** opretter den som din egen detektionsregel, slået til, og den åbner sager i stedet for advarsler; du ændrer den under **Detektionsregler** som enhver anden. Reglerne markeret **Anbefalet** finder trusler i data, OneUptime allerede har, og én knap tilføjer dem, du ikke har endnu.
 - **ATT&CK-dækning** viser taktikkerne i MITRE ATT&CK, hver med hvor mange af dens teknikker dine aktiverede regler dækker, og hvor mange flere **Regelbibliotek** har regler til. Åbn en taktik for dens teknikker, eller skift til **Matrix** for hele matricen. Vælg en teknik for at se de regler fra biblioteket, der dækker den, og åbne **Regelbibliotek** på dem.
 

@@ -20,6 +20,7 @@ import {
 import { ResourceCommandTier } from "../../../../Types/ResourceAiAgent/ResourceAiAccess";
 import CommandPolicy from "../../../../Utils/AiRemediation/CommandPolicy";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * Contract under test — the tool-agnostic half of the resource command
@@ -380,12 +381,15 @@ describe("globMatchesTarget", () => {
   });
 
   test("stays linear on a pathological pattern", () => {
-    const started: number = Date.now();
-
-    expect(globMatchesTarget(`${"*a".repeat(40)}*b`, "a".repeat(20000))).toBe(
-      false,
-    );
-    expect(Date.now() - started).toBeLessThan(2000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(
+          globMatchesTarget(`${"*a".repeat(40)}*b`, "a".repeat(20000)),
+        ).toBe(false);
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

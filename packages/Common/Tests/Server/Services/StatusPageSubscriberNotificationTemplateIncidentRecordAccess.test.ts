@@ -217,6 +217,28 @@ describe("creating a template that places incident records", () => {
     },
   );
 
+  /*
+   * A row with labels reads only the incidents carrying them, whatever scope
+   * it is stored with: the scope column arrived with the default All, so an
+   * older install's label-limited rows were stored as All (#5337, the
+   * upgrade guide's note). Placing incident records in a template needs a
+   * read of every incident in the project.
+   */
+  test("is refused for an Incident Viewer whose row carries labels, even stored as All", async () => {
+    await expect(
+      create(
+        { templateBody: `${LEAKING_SLACK_TEMPLATE} {{incidentLabels}}` },
+        propsWith([
+          row(Permission.StatusPageMember),
+          row(Permission.IncidentViewer, {
+            scope: PermissionScope.All,
+            labelIds: [LABEL_ID],
+          }),
+        ]),
+      ),
+    ).rejects.toThrow(NotAuthorizedException);
+  });
+
   test("the refusal names the placeholders and the permissions that would allow them", async () => {
     await expect(
       create(
@@ -295,16 +317,6 @@ describe("creating a template that places incident records", () => {
         row(Permission.StatusPageMember),
         row(Permission.ReadProjectIncident),
         row(Permission.ReadIncidentCustomField),
-      ],
-    ],
-    [
-      "Incident Viewer scoped to All, labels and all",
-      [
-        row(Permission.StatusPageMember),
-        row(Permission.IncidentViewer, {
-          scope: PermissionScope.All,
-          labelIds: [LABEL_ID],
-        }),
       ],
     ],
     [

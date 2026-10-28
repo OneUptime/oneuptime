@@ -13,6 +13,7 @@ import {
   fireEvent,
   render,
   screen,
+  within,
 } from "@testing-library/react";
 import React, { FunctionComponent, ReactElement } from "react";
 import { MemoryRouter, Route as PageRoute, Routes } from "react-router-dom";
@@ -208,12 +209,32 @@ import ProxmoxSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Prox
 import RumSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/Settings";
 import ServerlessSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Serverless/View/Settings";
 import ServiceSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Service/View/Settings";
-import TelemetrySettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/TelemetrySettings";
+import TelemetrySettings, {
+  PROJECT_TELEMETRY_MORE_SETTINGS_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/TelemetrySettings";
+import { TELEMETRY_RESOURCE_MORE_SETTINGS_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/TelemetryResourceMoreSettings";
+import {
+  RETENTION_BY_TELEMETRY_TYPE_PLACE,
+  RETENTION_BY_TELEMETRY_TYPE_TITLE,
+  RETENTION_OVERRIDES_PLACE,
+  RETENTION_OVERRIDES_TITLE,
+  SESSION_REPLAY_RETENTION_TITLE,
+  TELEMETRY_DATA_RETENTION_PLACE,
+  TELEMETRY_DATA_RETENTION_TITLE,
+  TelemetryRetentionFoldState,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/TelemetryRetentionFold";
+import {
+  listedNames,
+  setChips,
+} from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 import VMwareSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/View/Settings";
 import { getTelemetryRetentionUpsell } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/TelemetryResourceRetentionSettings";
 import { RETENTION_OVERRIDE_LEFTOVER_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/RetentionOverrideLeftoverCopy";
 import { TELEMETRY_RETENTION_REQUIRED_PLAN } from "../../../../App/FeatureSet/Dashboard/src/Enterprise/EnterpriseEligibility";
-import { TelemetryResourceRetentionSettingsProps } from "../../../../App/FeatureSet/Dashboard/src/Enterprise/EnterprisePlugins";
+import {
+  ProjectTelemetryRetentionByTypeProps,
+  TelemetryResourceRetentionSettingsProps,
+} from "../../../../App/FeatureSet/Dashboard/src/Enterprise/EnterprisePlugins";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
@@ -385,7 +406,8 @@ const OVERRIDE_COLUMNS: Array<string> = [
 ];
 
 let capturedResourceProps: Array<TelemetryResourceRetentionSettingsProps> = [];
-let capturedTelemetryPageProps: Array<PageComponentProps> = [];
+let capturedTelemetryPageProps: Array<ProjectTelemetryRetentionByTypeProps> =
+  [];
 
 const ResourcePluginStub: FunctionComponent<
   TelemetryResourceRetentionSettingsProps
@@ -394,9 +416,9 @@ const ResourcePluginStub: FunctionComponent<
   return <div data-testid="resource-retention-plugin" />;
 };
 
-const TelemetryPagePluginStub: FunctionComponent<PageComponentProps> = (
-  props: PageComponentProps,
-): ReactElement => {
+const TelemetryPagePluginStub: FunctionComponent<
+  ProjectTelemetryRetentionByTypeProps
+> = (props: ProjectTelemetryRetentionByTypeProps): ReactElement => {
   capturedTelemetryPageProps.push(props);
   return <div data-testid="telemetry-retention-by-type-plugin" />;
 };
@@ -845,7 +867,15 @@ describe("Settings > Telemetry", () => {
     expect(
       screen.getByTestId("telemetry-retention-by-type-plugin"),
     ).toBeInTheDocument();
-    expect(capturedTelemetryPageProps[0]).toEqual(TELEMETRY_PAGE_PROPS);
+    expect(capturedTelemetryPageProps[0]).toMatchObject({
+      pageRoute: TELEMETRY_PAGE_PROPS.pageRoute,
+      currentProject: TELEMETRY_PAGE_PROPS.currentProject,
+      hasPaymentMethod: TELEMETRY_PAGE_PROPS.hasPaymentMethod,
+    });
+    // And how to tell the page how many types it overrides.
+    expect(typeof capturedTelemetryPageProps[0]!.onRetentionChange).toBe(
+      "function",
+    );
   });
 
   test("on OneUptime Cloud below Scale: the default retention stays, retention by type is upsold", async () => {
@@ -906,4 +936,364 @@ describe("Settings > Telemetry", () => {
       ),
     ).toBeInTheDocument();
   });
+});
+
+/*
+ * "Move custom roles to More settings because it is an advanced feature.
+ * Please audit the entire project for advanced features just like these and
+ * move them to More as well, so it is hidden by default" - the maintainer.
+ * Retention overrides are such a feature (an Enterprise one most projects
+ * never use): on every service's and telemetry resource's Settings page
+ * they wait folded under More settings, between the page's details and
+ * Archive, the folded header naming the cards in it - each with what it
+ * overrides while it does - and a link to a card's place opening it there.
+ */
+const resourceMoreSettings: () => HTMLElement = (): HTMLElement => {
+  return screen.getByTestId(TELEMETRY_RESOURCE_MORE_SETTINGS_TEST_ID);
+};
+
+const foldHeaderIn: (fold: HTMLElement) => HTMLElement = (
+  fold: HTMLElement,
+): HTMLElement => {
+  return within(fold).getByRole("button", { name: "More settings" });
+};
+
+// What the RUM application folds beside the retention cards.
+const extraNamesOf: (pageCase: ResourcePageCase) => Array<string> = (
+  pageCase: ResourcePageCase,
+): Array<string> => {
+  return pageCase.Page === RumSettings ? [SESSION_REPLAY_RETENTION_TITLE] : [];
+};
+
+// What the Enterprise card stub was handed to tell the page what it holds.
+const resourceRetentionReport: () => (
+  state: TelemetryRetentionFoldState,
+) => void = (): ((state: TelemetryRetentionFoldState) => void) => {
+  const props: TelemetryResourceRetentionSettingsProps =
+    capturedResourceProps[capturedResourceProps.length - 1]!;
+
+  expect(typeof props.onRetentionChange).toBe("function");
+
+  return props.onRetentionChange!;
+};
+
+const renderResourcePageAt: (
+  pageCase: ResourcePageCase,
+  place: string,
+) => Promise<void> = async (
+  pageCase: ResourcePageCase,
+  place: string,
+): Promise<void> => {
+  const routePath: string = String(RouteMap[pageCase.settingsKey]);
+  const path: string = RouteUtil.populateRouteParams(
+    RouteMap[pageCase.settingsKey] as Route,
+    { modelId: MODEL_ID },
+  ).toString();
+
+  window.history.pushState({}, "", `${path}#${place}`);
+  Navigation.setLocation(window.location as unknown as never);
+
+  render(
+    <MemoryRouter initialEntries={[`${path}#${place}`]}>
+      <Routes>
+        <PageRoute
+          path={routePath}
+          element={
+            <pageCase.Page
+              pageRoute={RouteMap[pageCase.settingsKey] as Route}
+              currentProject={null}
+              hasPaymentMethod={true}
+            />
+          }
+        />
+      </Routes>
+    </MemoryRouter>,
+  );
+
+  await settle();
+};
+
+describe.each(RESOURCE_PAGES)(
+  "$name Settings: retention overrides under More settings",
+  (pageCase: ResourcePageCase) => {
+    afterEach(() => {
+      window.history.replaceState(null, "", "#");
+    });
+
+    test("on the Community Edition: folded, named by the card that sells them, between the details and Archive", async () => {
+      await renderResourcePage(pageCase);
+
+      const fold: HTMLElement = resourceMoreSettings();
+
+      expect(foldHeaderIn(fold)).toHaveAttribute("aria-expanded", "false");
+      expect(listedNames(foldHeaderIn(fold))).toEqual([
+        RETENTION_OVERRIDES_TITLE,
+        ...extraNamesOf(pageCase),
+      ]);
+      expect(setChips(fold)).toEqual([]);
+
+      // The card that sells them is in the fold; Archive comes after it.
+      expect(
+        within(fold).getByRole("heading", {
+          name: "Retention Overrides",
+          level: 2,
+        }),
+      ).toBeInTheDocument();
+
+      const archive: HTMLElement = screen.getByTestId("archive-resource-card");
+
+      expect(fold).not.toContainElement(archive);
+      expect(
+        fold.compareDocumentPosition(archive) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+
+    test("on the Enterprise Edition: folded, both retention cards named, each with what it overrides once it says", async () => {
+      enterpriseEditionForTest = true;
+      pluginsForTest = STUB_PLUGINS;
+
+      await renderResourcePage(pageCase);
+
+      const fold: HTMLElement = resourceMoreSettings();
+
+      expect(fold).toContainElement(
+        screen.getByTestId("resource-retention-plugin"),
+      );
+      expect(foldHeaderIn(fold)).toHaveAttribute("aria-expanded", "false");
+      expect(listedNames(foldHeaderIn(fold))).toEqual([
+        TELEMETRY_DATA_RETENTION_TITLE,
+        RETENTION_BY_TELEMETRY_TYPE_TITLE,
+        ...extraNamesOf(pageCase),
+      ]);
+      expect(setChips(fold)).toEqual([]);
+
+      const report: (state: TelemetryRetentionFoldState) => void =
+        resourceRetentionReport();
+
+      // Its own retention, read: "Telemetry Data Retention: 30 days".
+      await act(async () => {
+        report({ retainTelemetryDataForDays: 30 });
+      });
+
+      expect(setChips(fold)).toEqual([
+        `${TELEMETRY_DATA_RETENTION_TITLE}: 30 days`,
+      ]);
+
+      // Its retention by type, read: how many types it overrides.
+      await act(async () => {
+        report({ typeOverrideCount: 3 });
+      });
+
+      expect(setChips(fold)).toEqual([
+        `${TELEMETRY_DATA_RETENTION_TITLE}: 30 days`,
+        `${RETENTION_BY_TELEMETRY_TYPE_TITLE}: 3`,
+      ]);
+
+      // One day reads as one.
+      await act(async () => {
+        report({ retainTelemetryDataForDays: 1 });
+      });
+
+      expect(setChips(fold)[0]).toBe(
+        `${TELEMETRY_DATA_RETENTION_TITLE}: 1 day`,
+      );
+
+      // Cleared: back to the project's retention, named but not set.
+      await act(async () => {
+        report({ retainTelemetryDataForDays: null, typeOverrideCount: 0 });
+      });
+
+      expect(setChips(fold)).toEqual([]);
+      // Saying so never opens it.
+      expect(foldHeaderIn(fold)).toHaveAttribute("aria-expanded", "false");
+    });
+
+    test("on OneUptime Cloud below Scale: an override a trial left marks the card that sells them as set", async () => {
+      pinCloud(PlanType.Free);
+      pluginsForTest = STUB_PLUGINS;
+      storedOverrides = { retainTelemetryDataForDays: 90 };
+
+      await renderResourcePage(pageCase);
+
+      const fold: HTMLElement = resourceMoreSettings();
+
+      expect(
+        within(fold).getByTestId(RETENTION_OVERRIDE_LEFTOVER_TEST_ID),
+      ).toBeInTheDocument();
+      expect(setChips(fold)).toEqual([RETENTION_OVERRIDES_TITLE]);
+
+      // Removed: nothing is applied any more, nothing is marked.
+      await act(async () => {
+        fireEvent.click(
+          screen.getByRole("button", { name: "Remove Override" }),
+        );
+      });
+      await settle();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+      });
+      await settle();
+
+      expect(setChips(fold)).toEqual([]);
+    });
+
+    test("on OneUptime Cloud below Scale with nothing left: nothing is marked", async () => {
+      pinCloud(PlanType.Growth);
+      pluginsForTest = STUB_PLUGINS;
+
+      await renderResourcePage(pageCase);
+
+      expect(setChips(resourceMoreSettings())).toEqual([]);
+    });
+
+    test("opened at the card that sells them, it opens there", async () => {
+      await renderResourcePageAt(pageCase, RETENTION_OVERRIDES_PLACE);
+
+      expect(foldHeaderIn(resourceMoreSettings())).toHaveAttribute(
+        "aria-expanded",
+        "true",
+      );
+    });
+
+    test.each([
+      TELEMETRY_DATA_RETENTION_PLACE,
+      RETENTION_BY_TELEMETRY_TYPE_PLACE,
+    ])(
+      "on the Enterprise Edition, opened at #%s, it opens there",
+      async (place: string) => {
+        enterpriseEditionForTest = true;
+        pluginsForTest = STUB_PLUGINS;
+
+        await renderResourcePageAt(pageCase, place);
+
+        expect(foldHeaderIn(resourceMoreSettings())).toHaveAttribute(
+          "aria-expanded",
+          "true",
+        );
+      },
+    );
+
+    test("opened at a place it does not hold, it stays folded", async () => {
+      await renderResourcePageAt(pageCase, "host-details");
+
+      expect(foldHeaderIn(resourceMoreSettings())).toHaveAttribute(
+        "aria-expanded",
+        "false",
+      );
+    });
+  },
+);
+
+describe("the retention cards' places", () => {
+  test("are their titles' places, as every card in More settings takes", () => {
+    expect([
+      TELEMETRY_DATA_RETENTION_PLACE,
+      RETENTION_BY_TELEMETRY_TYPE_PLACE,
+      RETENTION_OVERRIDES_PLACE,
+    ]).toEqual([
+      "telemetry-data-retention",
+      "retention-by-telemetry-type",
+      "retention-overrides",
+    ]);
+    // The card that sells them is titled as its place says.
+    expect(getTelemetryRetentionUpsell("from here").title).toBe(
+      RETENTION_OVERRIDES_TITLE,
+    );
+  });
+});
+
+/*
+ * Settings > Telemetry: the project's default retention - which every
+ * project sets - then, folded under More settings, its retention by type.
+ */
+describe("Settings > Telemetry: retention by type under More settings", () => {
+  const projectFold: () => HTMLElement = (): HTMLElement => {
+    return screen.getByTestId(PROJECT_TELEMETRY_MORE_SETTINGS_TEST_ID);
+  };
+
+  afterEach(() => {
+    window.history.replaceState(null, "", "#");
+  });
+
+  test("the default retention stays above the fold", async () => {
+    await renderTelemetrySettings();
+
+    const defaultCard: HTMLElement | null = document.getElementById(
+      "model-detail-project-telemetry-retention",
+    );
+
+    expect(defaultCard).toBeInTheDocument();
+    expect(projectFold()).not.toContainElement(defaultCard);
+  });
+
+  test("on the Community Edition: folded, named by the card that sells it", async () => {
+    await renderTelemetrySettings();
+
+    expect(foldHeaderIn(projectFold())).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    expect(listedNames(foldHeaderIn(projectFold()))).toEqual([
+      RETENTION_OVERRIDES_TITLE,
+    ]);
+    expect(setChips(projectFold())).toEqual([]);
+  });
+
+  test("on the Enterprise Edition: folded, named, and says how many types it overrides once it reads them", async () => {
+    enterpriseEditionForTest = true;
+    pluginsForTest = STUB_PLUGINS;
+
+    await renderTelemetrySettings();
+
+    expect(projectFold()).toContainElement(
+      screen.getByTestId("telemetry-retention-by-type-plugin"),
+    );
+    expect(listedNames(foldHeaderIn(projectFold()))).toEqual([
+      RETENTION_BY_TELEMETRY_TYPE_TITLE,
+    ]);
+
+    await act(async () => {
+      capturedTelemetryPageProps[capturedTelemetryPageProps.length - 1]!
+        .onRetentionChange!({ typeOverrideCount: 2 });
+    });
+
+    expect(setChips(projectFold())).toEqual([
+      `${RETENTION_BY_TELEMETRY_TYPE_TITLE}: 2`,
+    ]);
+    expect(foldHeaderIn(projectFold())).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+  });
+
+  test("on OneUptime Cloud below Scale: retention by type a trial left marks the card that sells it as set", async () => {
+    pinCloud(PlanType.Growth);
+    pluginsForTest = STUB_PLUGINS;
+    storedOverrides = { telemetryRetentionConfig: { logs: { default: 90 } } };
+
+    await renderTelemetrySettings();
+
+    expect(setChips(projectFold())).toEqual([RETENTION_OVERRIDES_TITLE]);
+  });
+
+  test.each([
+    [false, RETENTION_OVERRIDES_PLACE],
+    [true, RETENTION_BY_TELEMETRY_TYPE_PLACE],
+  ])(
+    "on the Enterprise Edition %s, opened at #%s, it opens there",
+    async (isEnterprise: boolean, place: string) => {
+      enterpriseEditionForTest = isEnterprise;
+      pluginsForTest = isEnterprise ? STUB_PLUGINS : null;
+      window.history.replaceState(null, "", `#${place}`);
+
+      await renderTelemetrySettings();
+
+      expect(foldHeaderIn(projectFold())).toHaveAttribute(
+        "aria-expanded",
+        "true",
+      );
+    },
+  );
 });

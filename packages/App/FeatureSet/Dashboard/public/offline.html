@@ -8,16 +8,35 @@
     />
     <meta name="theme-color" content="#f9fafb" />
     <script>
+      /*
+       * The person's theme, as every page of theirs draws it before its
+       * first paint (Common/Server/Views/Partials/Theme.ejs, which this
+       * static page cannot include): Light or Dark as they picked it, and
+       * the device's setting when they picked System or nothing.
+       */
       (function () {
-        var isDark = false;
+        var preference = "system";
         try {
-          isDark =
-            window.localStorage.getItem("oneuptime-dashboard-theme") ===
-            "dark";
-        } catch (_error) {
-          // Light remains the default when storage is unavailable.
+          var kept = window.localStorage.getItem("oneuptime-dashboard-theme");
+          if (kept === "light" || kept === "dark" || kept === "system") {
+            preference = kept;
+          }
+        } catch (_storageError) {
+          // Storage can be blocked: nothing was picked, so the device decides.
         }
-        var theme = isDark ? "dark" : "light";
+        var theme = preference === "dark" ? "dark" : "light";
+        if (preference === "system") {
+          try {
+            theme =
+              window.matchMedia &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light";
+          } catch (_mediaError) {
+            theme = "light";
+          }
+        }
+        var isDark = theme === "dark";
         document.documentElement.classList.toggle("dark", isDark);
         document.documentElement.dataset.theme = theme;
         document.documentElement.style.colorScheme = theme;

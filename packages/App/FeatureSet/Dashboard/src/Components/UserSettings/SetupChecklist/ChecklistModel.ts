@@ -16,6 +16,7 @@ import {
 import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
+import ProviderLogo from "Common/Types/ProviderLogo/ProviderLogo";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -108,6 +109,11 @@ export interface SetupStep {
   importance: SetupStepImportance;
   icon: IconProp;
   iconBackgroundClassName: string;
+  /*
+   * The official logo of the product a step connects (Slack, Microsoft
+   * Teams), drawn in place of the coloured icon while the step is to do.
+   */
+  logo?: ProviderLogo | undefined;
   /**
    * Where this is fixed. Undefined only for Blocked steps, whose fix is not on
    * any page this reader can reach - a link to a page that will refuse them is
@@ -761,6 +767,7 @@ const buildOptionalSteps: BuildStepsFunction = (
       importance: SetupStepImportance.Optional,
       icon: IconProp.Slack,
       iconBackgroundClassName: "bg-fuchsia-500",
+      logo: ProviderLogo.Slack,
       pageMap: PageMap.USER_SETTINGS_SLACK_INTEGRATION,
       actionTitle: "Connect Slack",
     });
@@ -784,6 +791,7 @@ const buildOptionalSteps: BuildStepsFunction = (
       importance: SetupStepImportance.Optional,
       icon: IconProp.MicrosoftTeams,
       iconBackgroundClassName: "bg-blue-500",
+      logo: ProviderLogo.MicrosoftTeams,
       pageMap: PageMap.USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION,
       actionTitle: "Connect Microsoft Teams",
     });

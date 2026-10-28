@@ -1,4 +1,5 @@
 import IconProp from "../../Icon/IconProp";
+import ProviderLogo from "../../ProviderLogo/ProviderLogo";
 import { GOOGLE_SECOPS_SUPPORTED_REGIONS } from "../GoogleSecOpsRegion";
 import SecurityEventConnectorProvider from "./SecurityEventConnectorProvider";
 
@@ -104,10 +105,16 @@ export interface SecurityEventConnectorDefinition {
   description: string;
   category: SecurityEventConnectorCategory;
   /*
-   * The product's only mark beside its name in the Add connection picker
-   * and the Connections empty state, so no two providers share one.
+   * A mark of its own for the product, where a generic icon is all there
+   * is room for. No two providers share one.
    */
   icon: IconProp;
+  /*
+   * The product's official logo, drawn beside its name wherever the
+   * product is named: the Add connection picker, the Connections empty
+   * state, the connections list.
+   */
+  logo: ProviderLogo;
   // Docs path under /docs, e.g. "/docs/integrations/microsoft-sentinel".
   docsPath: string;
   defaultPollIntervalInMinutes: number;
@@ -155,6 +162,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
         "Import Sentinel incidents from a Log Analytics workspace as Incident Finding events.",
       category: "SIEM",
       icon: IconProp.ShieldCheck,
+      logo: ProviderLogo.MicrosoftSentinel,
       docsPath: "/docs/integrations/microsoft-sentinel",
       defaultPollIntervalInMinutes: 5,
       supportsAlertingOnlyToggle: false,
@@ -231,6 +239,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
         "Import Defender XDR alerts through the Microsoft Graph security API as Detection Finding events.",
       category: "EDR / XDR",
       icon: IconProp.ShieldExclamation,
+      logo: ProviderLogo.MicrosoftDefender,
       docsPath: "/docs/integrations/microsoft-defender-xdr",
       defaultPollIntervalInMinutes: 5,
       supportsAlertingOnlyToggle: false,
@@ -285,6 +294,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
         "Import Falcon alerts (endpoint, identity and cloud detections) as Detection Finding events.",
       category: "EDR / XDR",
       icon: IconProp.Bolt,
+      logo: ProviderLogo.CrowdStrike,
       docsPath: "/docs/integrations/crowdstrike-falcon",
       defaultPollIntervalInMinutes: 5,
       supportsAlertingOnlyToggle: false,
@@ -338,6 +348,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
         "Import notable events from Splunk Enterprise Security (or any saved search) as Detection Finding events.",
       category: "SIEM",
       icon: IconProp.Search,
+      logo: ProviderLogo.Splunk,
       docsPath: "/docs/integrations/splunk",
       defaultPollIntervalInMinutes: 5,
       supportsAlertingOnlyToggle: false,
@@ -400,6 +411,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
         "Import detection alerts from Elastic Security through the Kibana detections API as Detection Finding events.",
       category: "SIEM",
       icon: IconProp.Database,
+      logo: ProviderLogo.Elastic,
       docsPath: "/docs/integrations/elastic-security",
       defaultPollIntervalInMinutes: 5,
       supportsAlertingOnlyToggle: false,
@@ -443,6 +455,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
         "Import Security Hub findings (GuardDuty, Inspector, Macie, IAM Access Analyzer and partner products) as Detection and Compliance Finding events.",
       category: "Cloud security",
       icon: IconProp.Cloud,
+      logo: ProviderLogo.AwsSecurityHub,
       docsPath: "/docs/integrations/aws-security-hub",
       defaultPollIntervalInMinutes: 5,
       supportsAlertingOnlyToggle: false,
@@ -496,6 +509,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
         "Import authentication, MFA, account and policy events from the Okta System Log as OCSF identity events.",
       category: "Identity",
       icon: IconProp.Key,
+      logo: ProviderLogo.Okta,
       docsPath: "/docs/integrations/okta",
       defaultPollIntervalInMinutes: 5,
       supportsAlertingOnlyToggle: false,
@@ -546,6 +560,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
         "Import Google SecOps (Chronicle) alerts and rule detections as Detection Finding events.",
       category: "SIEM",
       icon: IconProp.ViewfinderCircle,
+      logo: ProviderLogo.GoogleSecurityOperations,
       docsPath: "/docs/integrations/google-secops",
       defaultPollIntervalInMinutes: 5,
       supportsAlertingOnlyToggle: true,

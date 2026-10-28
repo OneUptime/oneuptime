@@ -46,12 +46,12 @@ stateDiagram-v2
 | **Agendado**                        | O gatilho disparou e a execução está na fila esperando um executor. Normalmente uma fração de segundo. Uma execução ainda agendada depois de 5 minutos falha: ninguém a pegou.                                                                                       |
 | **Em execução**                     | O workflow está em andamento.                                                                                                                                                                                                                                         |
 | **Aguardando**                      | A execução está parada em um bloco **Sleep** e vai continuar sozinha. Ela não ocupa nenhum worker enquanto espera.                                                                                                                                                   |
-| **Executed**                        | A execução chegou ao fim sem falhar. Esse é o status de sucesso: o selo diz **Executed**, não «Sucesso».                                                                                                                                                              |
+| **Executado**                        | A execução chegou ao fim sem falhar. Esse é o status de sucesso: o selo diz **Executado**, não «Sucesso».                                                                                                                                                              |
 | **Erro**                            | Um bloco parou a execução. Também é usado quando uma execução na fila nunca é pega, quando a retomada de uma execução adormecida se perde, quando uma expressão de agendamento não pode ser resolvida e quando o workflow foi desligado ou arquivado enquanto a execução esperava em um bloco **Sleep**. |
 | **Timeout**                         | A execução demorou mais do que o permitido: 2 minutos por padrão. Veja [Quanto tempo uma execução pode durar](/docs/workflows/configuration#quanto-tempo-uma-execução-pode-durar).                                                                                                 |
 | **Execution Exceeded Current Plan** | O projeto esgotou as execuções de workflow dos últimos 30 dias, ou a assinatura está em atraso. A execução é registrada mas não roda. Só no OneUptime Cloud.                                                                                                       |
 
-Um bloco que toma a saída **Error** — um bloco API que recebeu um 4xx, por exemplo — não faz a execução falhar. Os blocos ligados a **Error** rodam, e a execução ainda termina como **Executed**. O próprio passo é desenhado em vermelho, para você encontrá-lo.
+Um bloco que toma a saída **Error** — um bloco API que recebeu um 4xx, por exemplo — não faz a execução falhar. Os blocos ligados a **Error** rodam, e a execução ainda termina como **Executado**. O próprio passo é desenhado em vermelho, para você encontrá-lo.
 
 ## Ler uma execução
 
@@ -125,7 +125,7 @@ Um bloco que não roda costuma ser um problema de ligação. Abra o **Construtor
 :::details Um valor chegou vazio, ou como texto {{…}}
 Abra a execução e olhe o passo. Uma referência que não resolveu aparece no próprio passo como aviso, e a configuração dela no bloco **Recebido** fica marcada como **Did not resolve**.
 
-- Se você vê o texto literal `{{local.components.…}}`, a referência não resolveu. Normalmente é um erro de digitação no ID do componente ou no ID do valor de retorno — lembre-se de que é o **Identifier** do bloco, não o nome exibido nele. Confira também a grafia do próprio `local.components`: `{{local.componets.api-get-1.returnValues.response-body}}` é enviado como texto literal e a execução ainda informa **Executed**. Se a execução foi um teste com **Run just this step**, o bloco anterior nem rodou — rode o workflow inteiro.
+- Se você vê o texto literal `{{local.components.…}}`, a referência não resolveu. Normalmente é um erro de digitação no ID do componente ou no ID do valor de retorno — lembre-se de que é o **Identifier** do bloco, não o nome exibido nele. Confira também a grafia do próprio `local.components`: `{{local.componets.api-get-1.returnValues.response-body}}` é enviado como texto literal e a execução ainda informa **Executado**. Se a execução foi um teste com **Run just this step**, o bloco anterior nem rodou — rode o workflow inteiro.
 - Se você vê **Empty text**, o bloco anterior rodou mas não produziu esse campo.
 
 O mesmo aviso aparece na aba **Full Log**, em uma linha que começa com `Warning:`.

@@ -453,7 +453,19 @@ if (expected.logCorrelation) {
     !isEmpty(compact(enricher.services)) && same(enricher.services, get(rendered, "ebpf.log_enricher.services")),
     enricher.services,
   );
-  check("ebpf.log_enricher.plain_text.enabled = false", get(enricher, "plain_text.enabled") === false, enricher.plain_text);
+  if (expected.logPlainText) {
+    // ebpf.logEnricher.plainText: every line of a non-JSON write, annotated
+    // at its end — the form the node collector parses.
+    check(
+      "ebpf.log_enricher.plain_text = enabled, suffix, each_line",
+      get(enricher, "plain_text.enabled") === true &&
+        get(enricher, "plain_text.placement") === "suffix" &&
+        get(enricher, "plain_text.multiline") === "each_line",
+      enricher.plain_text,
+    );
+  } else {
+    check("ebpf.log_enricher.plain_text.enabled = false", get(enricher, "plain_text.enabled") === false, enricher.plain_text);
+  }
 } else {
   check("ebpf.log_enricher.services is empty (enricher off)", isEmpty(compact(enricher.services)), enricher.services);
   check("ebpf.log_enricher.plain_text.enabled = true (untouched)", get(enricher, "plain_text.enabled") === true, enricher.plain_text);
@@ -557,6 +569,21 @@ for (const protocol of ["postgres", "mysql", "mssql"]) {
 }
 check(`trace_printer = ${expected.tracePrinter}`, effective.trace_printer === expected.tracePrinter, effective.trace_printer);
 const kube = get(effective, "attributes.kubernetes") || {};
+// ebpf.serviceNameLabels replaces the service.name label list of OBI and
+// nothing else: OBI decodes resource_labels onto its defaults key by key.
+// (No apostrophes in here: this script is inside single quotes.)
+const OBI_SERVICE_NAME_LABELS = ["app.kubernetes.io/instance", "app.kubernetes.io/name"];
+const resourceLabels = kube.resource_labels || {};
+check(
+  `attributes.kubernetes.resource_labels service.name = ${JSON.stringify(expected.serviceNameLabels || OBI_SERVICE_NAME_LABELS)}`,
+  same(resourceLabels["service.name"], expected.serviceNameLabels || OBI_SERVICE_NAME_LABELS),
+  resourceLabels["service.name"],
+);
+check(
+  "attributes.kubernetes.resource_labels service.namespace is still the OBI default, app.kubernetes.io/part-of",
+  same(resourceLabels["service.namespace"], ["app.kubernetes.io/part-of"]),
+  resourceLabels["service.namespace"],
+);
 check(
   "attributes.kubernetes: enabled, for cluster obi-config-load",
   String(kube.enable) === "true" && kube.cluster_name === "obi-config-load",
@@ -621,6 +648,11 @@ variant defaults '{}'
 # must not pass `application_host`, which OBI v0.14 refuses to start on.
 variant old-host-metrics '{}' --set ebpf.features.hostMetrics=true
 variant log-correlation '{"logCorrelation":true}' --set ebpf.logToTraceCorrelation=true
+variant log-correlation-plain-text '{"logCorrelation":true,"logPlainText":true}' \
+  --set ebpf.logToTraceCorrelation=true --set ebpf.logEnricher.plainText=true
+# Component names before the Helm release name.
+variant service-name-labels '{"serviceNameLabels":["app.kubernetes.io/name","app.kubernetes.io/instance"]}' \
+  --set 'ebpf.serviceNameLabels={app.kubernetes.io/name,app.kubernetes.io/instance}'
 variant routes \
   '{"routes":{"unmatched":"low-cardinality","patterns":["/api/items/{id}","/otlp/v1/{signal}","/users/:id"]}}' \
   -f "${WORK_DIR}/routes.yaml"

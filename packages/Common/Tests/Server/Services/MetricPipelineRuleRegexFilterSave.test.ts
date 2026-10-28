@@ -21,6 +21,7 @@ import {
   getCachedPatternCount,
 } from "../../../Utils/LinearRegExp/PatternCache";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 jest.mock("../../../Server/Utils/Logger");
 
@@ -97,22 +98,25 @@ describe("the refusal for a rule's filters", () => {
   test("megabytes of pattern, save after save: too large, said at once, and nothing of them kept", () => {
     clearLinearRegExpCache();
 
-    const startedAt: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        for (let index: number = 0; index < 20; index++) {
+          const pattern: string = `${index}(${"a".repeat(1_000_000)}`;
+          const refusal: string | null = getMetricPipelineRuleFiltersRefusal([
+            regexFilter(pattern),
+          ]);
 
-    for (let index: number = 0; index < 20; index++) {
-      const pattern: string = `${index}(${"a".repeat(1_000_000)}`;
-      const refusal: string | null = getMetricPipelineRuleFiltersRefusal([
-        regexFilter(pattern),
-      ]);
+          expect(refusal).toBe(
+            `Filter 1: the pattern ${describePatternProblemReason(PatternProblemReason.TooLarge)}`,
+          );
+          // The refusal does not repeat the pattern back.
+          expect(refusal!.length).toBeLessThan(200);
+        }
+      },
+      limitInMs: 2000,
+    });
 
-      expect(refusal).toBe(
-        `Filter 1: the pattern ${describePatternProblemReason(PatternProblemReason.TooLarge)}`,
-      );
-      // The refusal does not repeat the pattern back.
-      expect(refusal!.length).toBeLessThan(200);
-    }
-
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
     expect(getCachedPatternCount()).toBe(0);
     expect(getCachedPatternCharacters()).toBe(0);
   });

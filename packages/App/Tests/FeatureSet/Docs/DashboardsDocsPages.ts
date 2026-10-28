@@ -21,6 +21,7 @@ export const WIDGETS: string = "dashboards/widgets";
 export const VARIABLES: string = "dashboards/variables";
 export const DATA_SOURCES: string = "dashboards/data-sources";
 export const SHARING: string = "dashboards/sharing";
+export const PLAYLISTS: string = "dashboards/playlists";
 export const CONFIGURATION: string = "dashboards/configuration";
 
 // The Dashboards nav group, in nav order.
@@ -31,6 +32,7 @@ export const DASHBOARDS_PAGES: ReadonlyArray<DashboardsDocsPageEntry> = [
   { page: VARIABLES, navTitle: "Dashboard Variables & Filters" },
   { page: DATA_SOURCES, navTitle: "External Data Sources" },
   { page: SHARING, navTitle: "Sharing & Public Dashboards" },
+  { page: PLAYLISTS, navTitle: "Dashboard Playlists" },
   { page: CONFIGURATION, navTitle: "Dashboard Configuration & Permissions" },
 ];
 
@@ -45,6 +47,7 @@ export const CREATE_BUTTONS: Readonly<Record<string, ReadonlyArray<string>>> = {
   [AUTHORING]: ["Create Dashboard"],
   [DATA_SOURCES]: ["Create Data Source"],
   [SHARING]: ["Create Dashboard Domain"],
+  [PLAYLISTS]: ["Create Playlist"],
 };
 
 /*

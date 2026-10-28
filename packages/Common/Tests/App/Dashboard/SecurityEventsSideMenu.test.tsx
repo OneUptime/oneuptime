@@ -125,7 +125,8 @@ const EXPECTED: Array<[string, Array<[string, string]>]> = [
     "Events",
     [
       ["Events", PageMap.SECURITY_EVENTS],
-      ["Entities", PageMap.SECURITY_EVENTS_ENTITIES],
+      ["Campaigns", PageMap.SECURITY_EVENTS_CAMPAIGNS],
+      // The one riskiest list: Entities folded into it.
       ["Entity Risk", PageMap.SECURITY_EVENTS_ENTITY_RISK],
       ["Correlate", PageMap.SECURITY_EVENTS_CORRELATE],
     ],

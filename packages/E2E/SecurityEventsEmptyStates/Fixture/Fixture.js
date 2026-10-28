@@ -30,6 +30,15 @@
  *            names in the rest of OneUptime (POST /security-case/connections),
  *            answered from Security Operations' records with the server's own
  *            matching rules (../../SecurityOperations/Fixture/ConnectionsFixture.js).
+ *   ?logs=   off (default) | on | check-failed | fail. on: the project's
+ *            Your logs is on, last checked two minutes before the pinned
+ *            clock, nothing found yet (LOGS_ON_SOURCE). check-failed: on,
+ *            and that last check failed (LOGS_CHECK_FAILED_ERROR). fail:
+ *            reading it fails (a 500), on the Events page and on
+ *            Connections alike.
+ *   ?tools=  rows: three security tools in Your security tools (TOOLS):
+ *            one polling well, one whose last poll failed, one turned off -
+ *            the table at its widest, for how it fits its card.
  *
  * The side menu counts the open cases and the playbook runs waiting for
  * approval beside Cases and Playbook Runs; both answer 0.
@@ -71,6 +80,7 @@ import { DEFAULT_SECURITY_CASE_STATUSES } from "Common/Utils/SecurityCase/Securi
 import SecurityEventConnection from "Common/Models/DatabaseModels/SecurityEventConnection";
 import SecurityEventDestination from "Common/Models/DatabaseModels/SecurityEventDestination";
 import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
+import SecurityTelemetrySource from "Common/Models/DatabaseModels/SecurityTelemetrySource";
 import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
 import Service from "Common/Models/DatabaseModels/Service";
 import WorkspaceProjectAuthToken from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
@@ -101,8 +111,17 @@ const latest = ["pending", "old"].includes(params.get("latest"))
 const OLD_EVENT_TIME = "2026-09-01T09:30:00.000Z";
 // ?siem=rows: three SIEMs in the Send to your SIEM table.
 const siem = params.get("siem") === "rows" ? "rows" : "none";
+// ?tools=rows: three security tools in the Your security tools table.
+const tools = params.get("tools") === "rows" ? "rows" : "none";
 // ?events=one: one event in the window, and its drawer's Connected tab.
 const events = params.get("events") === "one" ? "one" : "none";
+/*
+ * ?logs=on: Your logs is on already; ?logs=check-failed: on, its last check
+ * failed; ?logs=fail: it cannot be read.
+ */
+const logs = ["on", "check-failed", "fail"].includes(params.get("logs"))
+  ? params.get("logs")
+  : "off";
 
 /*
  * ?events=one's event, twenty minutes before the spec's pinned clock: a
@@ -192,6 +211,93 @@ const DESTINATIONS = [
   },
 ];
 
+/*
+ * ?tools=rows: a tool polling well, one whose last poll failed (so its row
+ * offers View Error) and one turned off, with every column filled - times
+ * before the spec's pinned clock (2026-09-22T12:00:00Z).
+ */
+const pollResult = (data) => {
+  return {
+    type: "poll",
+    provider: data.provider,
+    status: data.status,
+    startedAt: data.at,
+    completedAt: data.at,
+    durationMs: 1800,
+    windowStart: new Date(
+      new Date(data.at).getTime() - 5 * MINUTE,
+    ).toISOString(),
+    windowEnd: data.at,
+    fetchedCount: data.fetched,
+    ingestedCount: data.fetched,
+    duplicateCount: 0,
+    rejectedCount: 0,
+    failedCount: 0,
+    complete: true,
+    requestCount: 1,
+    warnings: [],
+    samples: [],
+    checks: [],
+  };
+};
+
+const TOOLS = [
+  {
+    _id: "a1000000-0000-4000-8000-000000000001",
+    name: "Okta production",
+    provider: "okta",
+    isEnabled: true,
+    pollIntervalInMinutes: 5,
+    createdAt: "2026-08-14T09:00:00.000Z",
+    lastPolledAt: "2026-09-22T11:58:00.000Z",
+    lastSuccessfulPollAt: "2026-09-22T11:58:00.000Z",
+    lastEventIngestedAt: "2026-09-22T11:57:00.000Z",
+    lastPollResult: pollResult({
+      provider: "okta",
+      status: "success",
+      at: "2026-09-22T11:58:00.000Z",
+      fetched: 214,
+    }),
+  },
+  {
+    _id: "a1000000-0000-4000-8000-000000000002",
+    name: "Defender XDR - EU tenant",
+    provider: "microsoft-defender-xdr",
+    alertingOnly: true,
+    isEnabled: true,
+    pollIntervalInMinutes: 5,
+    createdAt: "2026-08-20T09:00:00.000Z",
+    lastPolledAt: "2026-09-22T11:56:00.000Z",
+    lastSuccessfulPollAt: "2026-09-20T16:05:00.000Z",
+    lastEventIngestedAt: "2026-09-20T16:04:00.000Z",
+    lastError:
+      "The app registration cannot read alerts in this tenant (HTTP 403): grant it SecurityAlert.Read.All.",
+    lastPollResult: pollResult({
+      provider: "microsoft-defender-xdr",
+      status: "failed",
+      at: "2026-09-22T11:56:00.000Z",
+      fetched: 0,
+    }),
+  },
+  {
+    _id: "a1000000-0000-4000-8000-000000000003",
+    name: "Google SecOps detections",
+    provider: "google-secops",
+    isEnabled: false,
+    pollIntervalInMinutes: 15,
+    createdAt: "2026-07-02T09:00:00.000Z",
+    lastPolledAt: "2026-09-12T08:15:00.000Z",
+    lastSuccessfulPollAt: "2026-09-12T08:15:00.000Z",
+    lastEventIngestedAt: "2026-09-11T22:40:00.000Z",
+    lastPollResult: pollResult({
+      provider: "google-secops",
+      status: "success",
+      at: "2026-09-12T08:15:00.000Z",
+      fetched: 3,
+    }),
+  },
+];
+
 let releaseLatestEvent = () => {};
 const latestEventReleased = new Promise((resolve) => {
   releaseLatestEvent = resolve;
@@ -201,7 +307,9 @@ const fixture = {
   role,
   latest,
   siem,
+  tools,
   events,
+  logs,
   listRequests: [],
   countRequests: [],
   aggregateRequests: [],
@@ -237,6 +345,8 @@ const project = Object.assign(new Project(), {
 const MODEL_TABLES = [
   tableName(SecurityEventConnection),
   tableName(SecurityLogSource),
+  // The other signals Security watches: a new project's watches none yet.
+  tableName(SecurityTelemetrySource),
   tableName(SecurityEventDestination),
   tableName(Service),
   tableName(WorkspaceProjectAuthToken),
@@ -323,8 +433,28 @@ ModelAPI.getItem = async (options) => {
 /*
  * Your logs' record: none until the switch is first turned on, which
  * creates it (ModelAPI.create below); after that the card reads it back.
+ * ?logs=on starts with it on: checked two minutes before the pinned clock,
+ * nothing found in the logs yet.
  */
-const logSources = [];
+const LOGS_ON_SOURCE = {
+  _id: "90000000-0000-4000-8000-000000000001",
+  projectId: new ObjectID(PROJECT_ID),
+  isEnabled: true,
+  lastScannedAt: new Date(NOW.getTime() - 2 * MINUTE),
+};
+// What the last check said when it failed, as the scanner words it.
+const LOGS_CHECK_FAILED_ERROR =
+  "Could not read this project's logs: the query took longer than 30 seconds.";
+const logSources =
+  logs === "on"
+    ? [LOGS_ON_SOURCE]
+    : logs === "check-failed"
+      ? [
+          Object.assign({}, LOGS_ON_SOURCE, {
+            lastError: LOGS_CHECK_FAILED_ERROR,
+          }),
+        ]
+      : [];
 
 ModelAPI.getList = async (options) => {
   const modelName = tableName(options.modelType);
@@ -348,6 +478,13 @@ ModelAPI.getList = async (options) => {
     };
   }
   if (modelName === tableName(SecurityLogSource)) {
+    if (logs === "fail") {
+      throw new HTTPErrorResponse(
+        500,
+        { message: "Your logs could not be read. Please try again." },
+        {},
+      );
+    }
     return {
       data: logSources.map((record) => {
         return Object.assign(new SecurityLogSource(), record);
@@ -367,6 +504,16 @@ ModelAPI.getList = async (options) => {
       limit,
     };
   }
+  if (modelName === tableName(SecurityEventConnection) && tools === "rows") {
+    return {
+      data: TOOLS.slice(skip, skip + limit).map((record) => {
+        return Object.assign(new SecurityEventConnection(), record);
+      }),
+      count: TOOLS.length,
+      skip,
+      limit,
+    };
+  }
   return { data: [], count: 0, skip, limit };
 };
 
@@ -378,6 +525,9 @@ ModelAPI.getCount = async (options) => {
   }
   if (modelName === tableName(SecurityEventDestination) && siem === "rows") {
     return DESTINATIONS.length;
+  }
+  if (modelName === tableName(SecurityEventConnection) && tools === "rows") {
+    return TOOLS.length;
   }
   return 0;
 };
@@ -577,7 +727,7 @@ const STUB_TABS = [
   [PageMap.SECURITY_CASES_CLOSED, "Closed Cases"],
   [PageMap.SECURITY_CASES_ALL, "All Cases"],
   [PageMap.SECURITY_EVENTS_CORRELATE, "Correlate"],
-  [PageMap.SECURITY_EVENTS_ENTITIES, "Entities"],
+  [PageMap.SECURITY_EVENTS_ENTITY_RISK, "Entity Risk"],
   [PageMap.SECURITY_EVENTS_DETECTION_RULES, "Detection Rules"],
   [PageMap.SECURITY_EVENTS_RULE_LIBRARY, "Rule Library"],
   [PageMap.SECURITY_EVENTS_ATTACK_COVERAGE, "ATT&CK Coverage"],

@@ -1,5 +1,7 @@
 import Icon from "../Icon/Icon";
+import ProviderLogoImage from "../ProviderLogo/ProviderLogoImage";
 import IconProp from "../../../Types/Icon/IconProp";
+import ProviderLogo from "../../../Types/ProviderLogo/ProviderLogo";
 import useTranslateValue from "../../Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -7,6 +9,11 @@ export interface ComponentProps {
   title: string | ReactElement;
   description: string | ReactElement;
   icon: IconProp | undefined;
+  /*
+   * The official logo of the product the state is about ("Slack is not
+   * connected yet!"), drawn in the icon's place.
+   */
+  logo?: ProviderLogo | undefined;
   footer?: ReactElement | undefined;
   id: string;
   iconClassName?: string;
@@ -38,13 +45,23 @@ const EmptyState: FunctionComponent<ComponentProps> = (
          * is centred on its own.
          */}
         <div className="m-auto w-full text-center">
-          {props.icon && (
-            <Icon
-              icon={props.icon}
-              className={
-                props.iconClassName || `mx-auto h-12 w-12 text-gray-400`
-              }
+          {props.logo ? (
+            <ProviderLogoImage
+              logo={props.logo}
+              size={48}
+              isBare={true}
+              isDecorative={true}
+              className="mx-auto"
             />
+          ) : (
+            props.icon && (
+              <Icon
+                icon={props.icon}
+                className={
+                  props.iconClassName || `mx-auto h-12 w-12 text-gray-400`
+                }
+              />
+            )
           )}
 
           <h3 className="mt-2 text-sm font-medium text-gray-900">

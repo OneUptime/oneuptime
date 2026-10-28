@@ -25,14 +25,14 @@ On a self-hosted installation, OneUptime's own mail server is the one set in the
 
 ## Adding an SMTP Server
 
-Add a project's mail server on **Project Settings > Notifications > Notification Settings**, in the **Custom SMTP Configs** card. On a self-hosted installation, the server OneUptime itself sends from is set on **Admin Dashboard > Settings > Notifications > Emails**, in the **Custom Email and SMTP Settings** card. Both forms ask for the same things, in two steps.
+Add a project's mail server on **Project Settings > Notifications > Notification Settings**, in the **Custom SMTP Configs** card under **More settings**. On a self-hosted installation, the server OneUptime itself sends from is set on **Admin Dashboard > Settings > Notifications > Emails**, in the **Custom Email and SMTP Settings** card. Both forms ask for the same things, in two steps.
 
 :::steps
 ### Open the form
 
 :::tabs
 @tab Project
-On **Project Settings > Notifications > Notification Settings**, click **Create SMTP Config** in the **Custom SMTP Configs** card.
+On **Project Settings > Notifications > Notification Settings**, open **More settings** and click **Create SMTP Config** in the **Custom SMTP Configs** card.
 @tab Self-hosted instance
 In the Admin Dashboard, open **Settings**, then **Notifications > Emails** in the side menu (**Notifications** starts folded). In the **Email Server Settings** card, click **Edit Server** and set **Email Server Type** to `Custom SMTP`. Then click **Edit SMTP Config** in the **Custom Email and SMTP Settings** card, which appears below it.
 :::

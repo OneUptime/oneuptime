@@ -36,7 +36,7 @@ flowchart TB
 | **Stängda ärenden** | Säkerhetsärenden | Ärendena som stängts med ett utfall, de senaste först |
 | **Alla ärenden** | Säkerhetsärenden | Varje ärende, öppet eller stängt |
 | **Händelser** | Händelser | Sök och filtrera alla händelser, och öppna en för att se alla dess fält |
-| **Entiteter** | Händelser | Användarna, värdarna och adresserna som dina fynd nämner oftast |
+| **Campaigns** | Händelser | Varje adress som skickade attackförfrågningar, och om någon av dess förfrågningar kom igenom |
 | **Entitetsrisk** | Händelser | Varje användare, värd och adress, poängsatt efter vad som hittats om den den här veckan, de mest riskfyllda först |
 | **Korrelera** | Händelser | En graf över händelserna som delar en värd, en användare eller en IP-adress |
 | **Detektionsregler** | Detections | Sigma-regler som körs enligt ett schema och öppnar ärenden |
@@ -232,11 +232,19 @@ Sökfältet talar samma språk som de andra telemetriutforskarna (se [Söksyntax
 | `@<attribute>:*` | Attributet finns | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | Attributet innehåller texten | `@finding_info.title:~ransom` |
 
-Ett fält är antingen ett kort namn (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`) eller fältets eget namn, till exempel `severityName` eller `principalHost`. Alla andra namn läses som ett källattribut. `observable:<value>` hittar varje händelse som nämner ett värde, oavsett på vilken sida av aktiviteten det fanns.
+Ett fält är antingen ett kort namn (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`, `requestoutcome`, `trace`, `session`) eller fältets eget namn, till exempel `severityName` eller `principalHost`. Alla andra namn läses som ett källattribut. `observable:<value>` hittar varje händelse som nämner ett värde, oavsett på vilken sida av aktiviteten det fanns.
 
 ### Facetter
 
-Sidopanelen räknar fönstrets händelser efter **Källa**, **Allvarlighetsgrad**, **Händelseklass**, **Kategori**, **Aktivitet**, **Status**, **Leverantör**, **Produkt**, **Detektionsregel**, **Källanvändare**, **Källvärd**, **Process** och **Överordnad process**. Klicka på ett värde för att bara behålla dess händelser, eller på minustecknet bredvid för att utesluta dem. Klicka igen för att ångra. Diagrammet och varje räkning beskriver exakt händelserna i listan.
+Sidopanelen räknar fönstrets händelser efter **Källa**, **Allvarlighetsgrad**, **Request Outcome**, **Händelseklass**, **Kategori**, **Aktivitet**, **Status**, **Leverantör**, **Produkt**, **Detektionsregel**, **Källanvändare**, **Källvärd**, **Process** och **Överordnad process**. Klicka på ett värde för att bara behålla dess händelser, eller på minustecknet bredvid för att utesluta dem. Klicka igen för att ångra. Diagrammet och varje räkning beskriver exakt händelserna i listan.
+
+### Vad som hände sedan
+
+En händelse läst från en loggrad som skrevs inuti en spårad förfrågan följs in i den förfrågan. Dess panel visar hur långt förfrågan kom (**Avvisad**, **Reached App**, **Errored** eller **Reached Database**), vem som skickade den, och länkar till dess spårning, dess undantag, dess sessionsuppspelning och själva loggraden. En loggrad, en spårning och ett undantag som är del av en attack säger det också på sina egna sidor.
+
+### Campaigns
+
+**Campaigns** listar varje adress som skickade attackförfrågningar som en rad, med attacktyperna, verktygen och förfrågningarna den skickade, och hur många som kom igenom. Adresserna vars förfrågningar nådde din app kommer först.
 
 ### Korrelera
 

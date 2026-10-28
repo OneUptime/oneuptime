@@ -16,6 +16,8 @@ import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import Response from "../Utils/Response";
 import McpDelegationAuthorization from "./McpDelegationAuthorization";
 import ProjectMiddleware from "./ProjectAuthorization";
+import MultiTenantQuery from "../Utils/MultiTenantQuery";
+import BadDataException from "../../Types/Exception/BadDataException";
 import SpanUtil from "../Utils/Telemetry/SpanUtil";
 import Dictionary from "../../Types/Dictionary";
 import Exception from "../../Types/Exception/Exception";
@@ -832,6 +834,19 @@ export default class UserMiddleware {
     const tenantId: ObjectID | null = ProjectMiddleware.getProjectId(req);
     const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
 
+    /*
+     * In the project the request names, or across the caller's projects -
+     * never both (MultiTenantQuery). Refused before anything is read for
+     * the project, whoever is asking.
+     */
+    if (tenantId && MultiTenantQuery.isRequested(req)) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException(MultiTenantQuery.WITH_PROJECT_MESSAGE),
+      );
+    }
+
     if (tenantId) {
       oneuptimeRequest.tenantId = tenantId;
 
@@ -978,10 +993,11 @@ export default class UserMiddleware {
         }
 
         /*
-         * Load the user's team membership for this tenant so that the
-         * `Owned` permission scope can evaluate team-based ownership without
-         * an extra DB roundtrip on every permission check. Absent for non-user
-         * callers (API keys, Probes); `Owned` then evaluates as `All`.
+         * The user's team membership for this tenant. Absent for non-user
+         * callers (API keys, Probes). The `Owned` permission scope reads the
+         * team each permission row is granted on instead
+         * (UserPermission.teamId): a team's grant reaches what that team
+         * owns, not what the user's other teams own.
          */
         oneuptimeRequest.userTeamIds = userTeamIds;
       } catch (error) {
@@ -996,7 +1012,7 @@ export default class UserMiddleware {
       }
     }
 
-    if (req.headers["is-multi-tenant-query"]) {
+    if (MultiTenantQuery.isRequested(req)) {
       if (
         userGlobalAccessPermission &&
         userGlobalAccessPermission.projectIds &&

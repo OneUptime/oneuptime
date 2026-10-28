@@ -18,7 +18,10 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import PermissionScope from "../../Types/Database/AccessControl/PermissionScope";
 import ObjectID from "../../Types/ObjectID";
-import Permission, { UserPermission } from "../../Types/Permission";
+import Permission, {
+  PermissionHelper,
+  UserPermission,
+} from "../../Types/Permission";
 import {
   getPermissionTitleForSentence,
   getRoleCopyChangeRefusedMessage,
@@ -64,20 +67,24 @@ export class Service extends ProjectReferencesService<Model> {
     targetLabelIds: Array<ObjectID>,
   ): boolean {
     const callerLabelIds: Array<ObjectID> = callerPermission.labelIds || [];
+    /*
+     * Labels narrow a row whatever scope it is stored with, All included
+     * (PermissionHelper.isLimitedToLabels): only a row they do not narrow,
+     * and that owners do not narrow either, reaches the whole project.
+     */
     const callerHasAllScope: boolean =
-      callerPermission.scope === PermissionScope.All ||
-      (!callerPermission.scope && callerLabelIds.length === 0) ||
-      (callerPermission.scope === PermissionScope.Labels &&
-        callerLabelIds.length === 0);
+      callerPermission.scope !== PermissionScope.Owned &&
+      !PermissionHelper.isLimitedToLabels(callerPermission);
 
     if (callerHasAllScope) {
       return true;
     }
 
-    const targetHasLabelScope: boolean =
-      targetLabelIds.length > 0 &&
-      targetScope !== PermissionScope.All &&
-      targetScope !== PermissionScope.Owned;
+    const targetHasLabelScope: boolean = PermissionHelper.isLimitedToLabels({
+      permission: callerPermission.permission,
+      labelIds: targetLabelIds,
+      scope: targetScope,
+    });
 
     if (
       !targetHasLabelScope ||
@@ -228,10 +235,12 @@ export class Service extends ProjectReferencesService<Model> {
         return permission.permission === data.permission;
       },
     );
-    const targetHasLabelScope: boolean =
-      targetLabelIds.length > 0 &&
-      data.scope !== PermissionScope.All &&
-      data.scope !== PermissionScope.Owned;
+    // The row reaches only the records its labels name, as the server reads it.
+    const targetHasLabelScope: boolean = PermissionHelper.isLimitedToLabels({
+      permission: data.permission,
+      labelIds: targetLabelIds,
+      scope: data.scope,
+    });
     const isBlocked: boolean = matchingBlocks.some(
       (permission: UserPermission) => {
         /*
@@ -303,7 +312,8 @@ export class Service extends ProjectReferencesService<Model> {
     teamIds: Array<ObjectID>;
     projectId: ObjectID;
   }): Promise<Array<Model>> {
-    return await this.findBy({
+    // Every row, page by page: a block past one read's LIMIT_MAX still counts.
+    return await this.findAllBy({
       query: {
         teamId:
           data.teamIds.length === 1
@@ -319,12 +329,92 @@ export class Service extends ProjectReferencesService<Model> {
         },
         scope: true,
       },
-      skip: 0,
-      limit: LIMIT_MAX,
       props: {
         isRoot: true,
       },
     });
+  }
+
+  /**
+   * Taking someone out of a team lifts the team's blocks from them: a block
+   * on one team wins over an allow on another (HeldPermissions), so what
+   * their other teams allow reaches, once they are out, what the blocks took
+   * away. Lifting a block is granting what it blocks, as deleting the block
+   * row is (onBeforeDelete): the caller takes someone out of these teams
+   * only if they could grant every block row of them, the rows of a team's
+   * custom roles among them. `leaves` says the person goes of their own
+   * accord, for the refusal's words. Nothing is refused to root, a master
+   * admin, or someone who may hand on every permission.
+   */
+  @CaptureSpan()
+  public async assertCanLiftTeamBlocks(data: {
+    teamIds: Array<ObjectID>;
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    leaves?: boolean | undefined;
+  }): Promise<void> {
+    if (
+      data.props.isRoot ||
+      data.props.isMasterAdmin ||
+      data.teamIds.length === 0
+    ) {
+      return;
+    }
+
+    this.assertProjectMatchesTenant(data.projectId, data.props);
+
+    if (this.canGrantEveryPermission(data.props)) {
+      return;
+    }
+
+    // Every block row, page by page: one past a read's LIMIT_MAX still counts.
+    const blocks: Array<Model> = await this.findAllBy({
+      query: {
+        teamId:
+          data.teamIds.length === 1
+            ? data.teamIds[0]!
+            : QueryHelper.any(data.teamIds),
+        projectId: data.projectId,
+        isBlockPermission: true,
+      },
+      select: {
+        teamId: true,
+        permission: true,
+        labels: {
+          _id: true,
+        },
+        scope: true,
+        team: {
+          name: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const block of blocks) {
+      try {
+        this.assertCanGrantTeamRow(block, data.props);
+      } catch (err) {
+        if (!(err instanceof NotAuthorizedException)) {
+          throw err;
+        }
+
+        const team: string = block.team?.name
+          ? `the ${block.team.name} team`
+          : "this team";
+        const permission: string = getPermissionTitleForSentence(
+          block.permission!,
+        );
+
+        throw new NotAuthorizedException(
+          data.leaves
+            ? `You cannot leave ${team}: it blocks ${permission} for its members, and lifting that block needs ${permission} at an equal or broader scope in your own access. Ask a project owner to remove you from the team.`
+            : `You cannot remove this member from ${team}: it blocks ${permission} for them, and your own access does not include that permission at an equal or broader scope, so you cannot lift that block.`,
+        );
+      }
+    }
   }
 
   // One team row against the ceiling, as assertCanGrantPermission weighs it.

@@ -24,7 +24,14 @@ import {
   TACTIC_LIBRARY_COUNT,
   readAttackCoverageView,
 } from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/AttackCoverageCopy";
-import { OPEN_IN_CORRELATE } from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEntitiesCopy";
+import {
+  ENTITY_LOOKUP_HOURS,
+  ENTITY_LOOKUP_TITLE,
+  ENTITY_RISK_TABLE_TITLE,
+  OPEN_IN_CORRELATE,
+  RISKIEST_ENTITIES_TITLE,
+} from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/EntityRisk/EntityRiskCopy";
+import { SECURITY_OVERVIEW_RISKIEST_ENTITY_LIMIT } from "Common/Types/SecurityCase/SecurityEntityRisk";
 import { ARCHIVABLE_VALUE_COPY } from "../../../FeatureSet/Dashboard/src/Components/ArchivableValue/ArchivableValueCopy";
 import {
   STATE_SETTINGS_COPY,
@@ -496,8 +503,13 @@ describe("Security Cases and Playbooks docs", () => {
       .map((item: string): string => {
         return item.slice(0, item.indexOf("**"));
       })
+      // The Overview's own cards, described beside it: not pages of the menu.
       .filter((title: string): boolean => {
-        return title !== "OneUptime AI" && title !== "MITRE ATT&CK";
+        return (
+          title !== "OneUptime AI" &&
+          title !== "Impact" &&
+          title !== "MITRE ATT&CK"
+        );
       });
 
     expect(described).toEqual(
@@ -815,12 +827,17 @@ describe("Security Cases and Playbooks docs", () => {
     expect(page).toContain(
       "with their activity across all your security events in the last 7 days",
     );
+    // A lookup reads 30 days, and the page says so.
     expect(
-      flat(source(`${DASHBOARD}/Pages/SecurityEvents/Entities.tsx`)),
-    ).toContain(
-      "export const ENTITY_WINDOWS_IN_DAYS: Array<number> = [1, 7, 30];",
-    );
-    expect(page).toContain("over the last day, week or month");
+      flat(
+        source(
+          `${DASHBOARD}/Components/SecurityEvents/EntityRisk/EntityRiskCopy.ts`,
+        ),
+      ),
+    ).toContain("export const ENTITY_LOOKUP_HOURS: number = 30 * 24;");
+    expect(page).toContain("looks any value up across 30 days of events");
+    // No ranking over a day, a week or a month is left to describe.
+    expect(page).not.toContain("over the last day, week or month");
   });
 
   it("lists the triggers a playbook runs on, under the name the form gives them", () => {
@@ -1039,7 +1056,8 @@ describe("Security Cases and Playbooks docs", () => {
     const phrases: Array<[string, string]> = [
       // The card's title on the page, the docs' words for it.
       ["Open Cases", "The open cases by priority and by status"],
-      ["Riskiest Entities", "the entities named by the most findings"],
+      // Entity Risk's scores, the top of its list: never a count of findings.
+      ["Riskiest Entities", "the riskiest entities by their risk score"],
       ["Top Detections", "the detections that fired most"],
       ["MITRE ATT&CK Tactics", "the ATT&CK tactics behind the cases"],
       ["Verdicts", "the verdicts of the last 30 days"],
@@ -1083,7 +1101,7 @@ describe("Security Cases and Playbooks docs", () => {
       words: true,
     });
     expect(section(page, "The overview")).toContain(
-      "- The open cases by priority and by status, the entities named by the most findings, the detections that fired most, the ATT&CK tactics behind the cases, and the verdicts of the last 30 days.",
+      "- The open cases by priority and by status, the riskiest entities by their risk score, the detections that fired most, the ATT&CK tactics behind the cases, and the verdicts of the last 30 days.",
     );
   });
 
@@ -1282,9 +1300,9 @@ describe("Security Cases and Playbooks docs", () => {
     ).toContain('translator.translateText("Added")');
   });
 
-  it("says a list of runs draws each run as a line, Show steps opening it, and a run waiting for approval open", () => {
+  it("says every list of runs draws each run as a line, Show steps opening it, and a run waiting for approval or a case's newest open", () => {
     expect(page).toContain(
-      "On **Playbook Runs** and on a playbook's page, each run is a line that says how far it got, or the step where it stopped; **Show steps** opens its steps. A run waiting for approval opens by itself.",
+      "On **Playbook Runs**, on a playbook's page and on a case's **Playbooks**, each run is a line that says how far it got, or the step where it stopped; **Show steps** opens its steps. A run waiting for approval opens by itself, and so does the newest run on a case.",
     );
 
     for (const file of ["PlaybookRuns.tsx", "PlaybookView.tsx"]) {
@@ -1296,12 +1314,23 @@ describe("Security Cases and Playbooks docs", () => {
       }).toEqual({ file, folds: true });
     }
 
-    // A case's own runs are drawn whole, step by step, as the page says.
-    expect(
+    // A case's own runs fold too, its newest open: the page's Playbooks.
+    const caseRuns: string = flat(
       source(
         `${DASHBOARD}/Components/SecurityPlaybook/SecurityCasePlaybookRuns.tsx`,
       ),
-    ).not.toContain("isCollapsible");
+    );
+    expect(caseRuns).toContain("isCollapsible={true}");
+    expect(caseRuns).toContain("isExpandedAtFirst={index === 0}");
+    expect(
+      SECURITY_CASE_MENU.flatMap(
+        (menu: SecurityCaseMenuSection): Array<SecurityCaseMenuItem> => {
+          return menu.items;
+        },
+      ).find((item: SecurityCaseMenuItem): boolean => {
+        return item.page === PageMap.SECURITY_CASE_VIEW_PLAYBOOK_RUNS;
+      })?.title,
+    ).toBe("Playbooks");
 
     const card: string = flat(
       source(
@@ -1309,26 +1338,71 @@ describe("Security Cases and Playbooks docs", () => {
       ),
     );
     expect(card).toContain('isExpanded ? "Hide steps" : "Show steps"');
-    expect(card).toContain("!props.isCollapsible || isWaiting");
+    expect(card).toContain(
+      "!props.isCollapsible || isWaiting || Boolean(props.isExpandedAtFirst)",
+    );
   });
 
-  it("says an entity opens in Correlate, where the menu has it", () => {
-    expect(section(page, "Find threats")).toContain(
-      "Select an entity to open it in **Correlate**.",
+  /*
+   * One riskiest list: Entity Risk ranks by risk score, and the Overview's
+   * Riskiest Entities is its top. The Entities page, which ranked values by
+   * how many findings named them, folded into Entity Risk with its lookup.
+   */
+  it("says Entity Risk ranks the riskiest by risk score, the Overview shows its top, and the lookup under it opens a value in Correlate", () => {
+    const findThreats: string = section(page, "Find threats");
+
+    expect(findThreats).toContain(
+      "- **Entity Risk** ranks the users, hosts and addresses by their risk score, the riskiest first, and the Overview's **Riskiest Entities** shows the top of the same list. Select an entity to see why it is risky. Under the list, **Look Up an Entity** looks any value up across 30 days of events, a domain or a file hash too, and opens it in **Correlate**.",
     );
+    expect(findThreats).not.toContain("**Entities**");
+    expect(page).not.toContain("findings name most");
+    expect(page).not.toContain("named by the most findings");
+
+    // The words are the product's.
+    expect(ENTITY_RISK_TABLE_TITLE).toBe("Entity Risk");
+    expect(RISKIEST_ENTITIES_TITLE).toBe("Riskiest Entities");
+    expect(ENTITY_LOOKUP_TITLE).toBe("Look Up an Entity");
     expect(OPEN_IN_CORRELATE).toBe("Open in Correlate");
+    expect(ENTITY_LOOKUP_HOURS).toBe(30 * 24);
+    expect(SECURITY_OVERVIEW_RISKIEST_ENTITY_LIMIT).toBe(8);
+
+    // Entity Risk and Correlate are in the menu; Entities is not.
+    const titles: Array<string> = SECURITY_EVENTS_MENU.flatMap(
+      (menu: SecurityEventsMenuSection): Array<string> => {
+        return menu.items.map((item: SecurityEventsMenuItem): string => {
+          return item.title;
+        });
+      },
+    );
+    expect(titles).toContain("Entity Risk");
+    expect(titles).toContain("Correlate");
+    expect(titles).not.toContain("Entities");
+
+    /*
+     * The lookup is under Entity Risk's list, and opens a value in Correlate
+     * - over the 30 days it read, so Correlate shows what it counted.
+     */
+    const entityRisk: string = flat(
+      source(`${DASHBOARD}/Pages/SecurityEvents/EntityRisk.tsx`),
+    );
+    expect(entityRisk.indexOf("<EntityLookupCard />")).toBeGreaterThan(
+      entityRisk.indexOf("<ModelTable<SecurityEntityRisk>"),
+    );
     expect(
-      SECURITY_EVENTS_MENU.flatMap(
-        (menu: SecurityEventsMenuSection): Array<string> => {
-          return menu.items.map((item: SecurityEventsMenuItem): string => {
-            return item.title;
-          });
-        },
+      flat(
+        source(
+          `${DASHBOARD}/Components/SecurityEvents/EntityRisk/EntityLookupCard.tsx`,
+        ),
       ),
-    ).toContain("Correlate");
-    expect(
-      flat(source(`${DASHBOARD}/Pages/SecurityEvents/Entities.tsx`)),
-    ).toContain("Navigation.navigate(getCorrelateRouteForEntity(value));");
+    ).toContain(
+      "Navigation.navigate( getCorrelateRouteForEntity( lookup.value, ENTITY_LOOKUP_HOURS, ), );",
+    );
+
+    // The Overview's card is the overview's own answer: Entity Risk's rows.
+    const overviewPage: string = flat(
+      source(`${DASHBOARD}/Pages/SecurityEvents/Overview.tsx`),
+    );
+    expect(overviewPage).toContain("riskiest={overview.riskiestEntities}");
   });
 
   it("says ATT&CK Coverage opens on the tactics, the Rule Library's count beside each, and the matrix a switch away", () => {

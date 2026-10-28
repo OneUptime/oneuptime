@@ -88,7 +88,7 @@ Un caso ha un proprio menu laterale, come un incidente, e ogni parte del caso è
 | Sezione del menu laterale | Pagine |
 | --- | --- |
 | **Panoramica** | **Panoramica**, **Cronologia** |
-| **Indagine** | **Rilevamenti**, **Entità**, **Segnali collegati**, **Playbook** |
+| **Indagine** | **Svolgimento**, **Rilevamenti**, **Entità**, **Segnali collegati**, **Playbook** |
 | **Note** | **Note private** |
 | **Avanzato** | **Registri di audit**, **Elimina caso**, chiuse finché non clicchi su **Avanzato** |
 
@@ -96,8 +96,10 @@ Ogni pagina tiene in alto l'intestazione del caso: numero, priorità, stato e ti
 
 - **Panoramica**: la descrizione, le etichette e i passaggi di stato del caso, chi lo ha in carico e cosa lo ha aperto, e i suoi numeri: quanti rilevamenti ha, da quanto tempo è aperto e quanto ci è voluto per prenderlo in carico e per contenerlo.
 - **OneUptime AI**, nella **Panoramica**: che cosa OneUptime AI ha ricavato dal caso, la priorità e il playbook che suggerisce, e le prove dietro. Vedi [OneUptime AI nella sicurezza](/docs/telemetry/security-ai).
+- **Impatto**, nella **Panoramica**: ciò che il caso mette a rischio: se OneUptime ha visto i suoi record raggiunti da internet, chi ne è proprietario e cosa è cambiato per ultimo su di essi. Aprilo per vedere cosa chiama ogni record e da cosa è chiamato, i monitor e le pagine di stato che lo osservano e le macchine con cui hanno comunicato gli indirizzi del caso.
 - **MITRE ATT&CK**, nella **Panoramica**: le tattiche e le tecniche a cui corrispondono i suoi rilevamenti, ciascuna con un link alla propria pagina su attack.mitre.org.
 - **Cronologia**: tutto ciò che è successo al caso, con chi l'ha fatto.
+- **Svolgimento**: cosa è successo, in ordine, in tutto OneUptime: ogni rilevamento e gli eventi di sicurezza alla sua origine, fin dove sono arrivate le loro richieste, le eccezioni che hanno sollevato, le modifiche ai record che il caso nomina, gli incidenti e gli avvisi aperti su di essi e cosa ha fatto il team. Le tante sonde di uno scanner sono una sola riga, e ogni riga apre ciò che nomina, come la traccia della richiesta o l'eccezione.
 - **Rilevamenti**: cosa è scattato per aprire il caso o aggiungersi a esso, quante volte, e l'ultimo evento corrispondente.
 - **Entità**: gli utenti, gli host e gli indirizzi di cui tratta il caso, con la loro attività in tutti i tuoi eventi di sicurezza degli ultimi 7 giorni. Ognuno si apre in **Correla**.
 - **Segnali collegati**: gli host, i cluster, i servizi e i membri che il caso nomina, come OneUptime li conosce, e cosa succedeva su ciascuno attorno ai suoi rilevamenti: i loro registri, tracce e metriche, ciò che è aperto su di essi e cosa è cambiato. Vedi [Segnali collegati](/docs/telemetry/security-connected-signals).
@@ -231,9 +233,11 @@ Un playbook disabilitato non viene eseguito né da solo né a mano.
 | Caso | Add labels | Aggiunge etichette al caso |
 | Indagine | Check entities against threat intel | Cerca ogni entità nella tua threat intelligence, e in caso di corrispondenza può alzare la priorità |
 | Indagine | Look up entity activity | Conta gli eventi di sicurezza di ogni entità in una finestra recente, e lo annota sul caso |
+| Indagine | Preserve the evidence | Conserva le registrazioni delle sessioni delle richieste dietro il caso, e annota sul caso le loro tracce ed eccezioni |
 | Notifica | Email people | Invia per email a utenti e team un riepilogo del caso, con un link al caso |
 | Notifica | Post to Slack | Pubblica un riepilogo del caso in un canale Slack |
 | Notifica | Post to Microsoft Teams | Pubblica un riepilogo del caso in un canale Microsoft Teams |
+| Notifica | Post a status page announcement | Pubblica un annuncio scritto da te sulle pagine di stato che scegli |
 | Escalation | Page on-call | Esegue una politica di reperibilità |
 | Escalation | Declare an incident | Apre un incidente di OneUptime collegato al caso |
 | Contenimento | Suspend the user in Okta | Sospende in Okta l'utente di cui tratta il caso |
@@ -245,12 +249,23 @@ Un playbook disabilitato non viene eseguito né da solo né a mano.
 | Contenimento | Release the device in Microsoft Defender | Rilascia dall'isolamento in Microsoft Defender for Endpoint l'host di cui tratta il caso |
 | Automazione | Send a webhook | Invia il caso come JSON a un URL |
 | Automazione | Run a workflow | Avvia un flusso di lavoro di OneUptime con il caso come input |
+| Automazione | Run a runbook | Avvia uno dei tuoi runbook di OneUptime con il caso come input |
+| Automazione | Fix the code with AI | Chiede a OneUptime AI una pull request che corregga le eccezioni sollevate dalle richieste del caso |
 
 Un playbook ha al massimo 25 passi. Vengono eseguiti in ordine, ciascuno quando il precedente è terminato. Ogni passo può anche:
 
-- **Richiede approvazione**: fermare l'esecuzione prima del passo finché qualcuno non lo approva sul caso. I quattro passi che tagliano fuori qualcuno si fermano sempre, a meno che un Security Admin non lo disattivi.
+- **Richiede approvazione**: fermare l'esecuzione prima del passo finché qualcuno non lo approva sul caso. I quattro passi che tagliano fuori qualcuno si fermano sempre, a meno che un Security Admin non lo disattivi. **Run a runbook** e **Post a status page announcement** partono con l'approvazione attiva, perché uno esegue comandi sui tuoi sistemi e l'altro parla ai tuoi clienti; chi aggiunge il passo può disattivarla.
 - **Solo se la threat intel ha trovato corrispondenze**: saltare il passo a meno che un precedente passo **Controlla le entità nella threat intel** della stessa esecuzione non abbia trovato un indicatore noto.
 - **Continua se fallisce**: eseguire il passo successivo anche se questo non riesce. Se è disattivato, un passo non riuscito ferma l'esecuzione.
+
+### Rispondere con OneUptime
+
+Quattro passi agiscono attraverso il resto di OneUptime anziché tramite un prodotto collegato:
+
+- **Run a runbook** avvia uno dei tuoi [runbook](/docs/runbooks/index) con il caso come input, che un passo Bash legge come variabili d'ambiente (vedi [Chiamare il webhook](/docs/runbooks/triggers#chiamare-il-webhook)). `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` e `ONEUPTIME_INPUT_HOST` sono l'indirizzo, l'utente e l'host di cui tratta il caso, scelti con la stessa regola di un passo di contenimento, e vuoti quando non ne riguarda nessuno. `ONEUPTIME_INPUT_IPS`, `ONEUPTIME_INPUT_USERS` e `ONEUPTIME_INPUT_HOSTS` elencano in JSON tutti quelli che il caso nomina, e `ONEUPTIME_INPUT_CASE_NUMBER`, `ONEUPTIME_INPUT_CASE_TITLE` e `ONEUPTIME_INPUT_CASE_URL` dicono di quale caso si tratta. Un utente o un host protetto non è mai tra questi. L'esecuzione del runbook indica che è stata avviata da **Security playbook**, per il caso.
+- **Preserve the evidence** conserva le registrazioni delle sessioni delle richieste dietro il caso oltre la loro conservazione, e scrive sul caso una nota che collega la traccia di ogni richiesta, ogni registrazione e ogni eccezione. Log e tracce non possono essere conservati più a lungo di quanto il progetto conservi la telemetria, quindi esporta prima ciò che ti serve.
+- **Post a status page announcement** pubblica ciò che hai scritto, così come l'hai scritto, sulle pagine di stato che scegli. Non viene aggiunto nulla del caso. I loro iscritti vengono avvisati solo se **Notifica agli iscritti** è attivo.
+- **Fix the code with AI** chiede a OneUptime AI, per ogni eccezione sollevata dalle richieste del caso, fino a tre, una pull request che la corregga. Richiede OneUptime AI attivo, un repository con il codice collegato tramite la GitHub App e un runner. Senza, il passo viene saltato e dice cosa manca.
 
 ### Contenimento
 
@@ -311,7 +326,7 @@ Ogni esecuzione è elencata sul suo caso e in **Prodotti → Security Events →
 | Non riuscito | Un passo non è riuscito e l'esecuzione si è fermata |
 | Annullato | Qualcuno l'ha annullata, o ha rifiutato un passo |
 
-Un passo in attesa di approvazione mostra **Approva** e **Rifiuta** sull'esecuzione, con un commento facoltativo. Approvare fa proseguire l'esecuzione da quel passo; rifiutare la termina. La decisione, chi l'ha presa e il suo commento restano sul passo, nella cronologia del caso e nel registro di audit del progetto. La pagina **Approvazioni**, sotto **Playbook** nel menu, elenca le esecuzioni in attesa di una decisione e le conta; **Esecuzioni** elenca ogni esecuzione. In **Esecuzioni** e nella pagina di un playbook, ogni esecuzione è una riga che dice fin dove è arrivata, o il passo in cui si è fermata; **Mostra passaggi** ne apre i passi. Un'esecuzione in attesa di approvazione si apre da sola.
+Un passo in attesa di approvazione mostra **Approva** e **Rifiuta** sull'esecuzione, con un commento facoltativo. Approvare fa proseguire l'esecuzione da quel passo; rifiutare la termina. La decisione, chi l'ha presa e il suo commento restano sul passo, nella cronologia del caso e nel registro di audit del progetto. La pagina **Approvazioni**, sotto **Playbook** nel menu, elenca le esecuzioni in attesa di una decisione e le conta; **Esecuzioni** elenca ogni esecuzione. In **Esecuzioni**, nella pagina di un playbook e in **Playbook** di un caso, ogni esecuzione è una riga che dice fin dove è arrivata, o il passo in cui si è fermata; **Mostra passaggi** ne apre i passi. Un'esecuzione in attesa di approvazione si apre da sola, e così l'esecuzione più recente di un caso.
 
 Un'esecuzione che smette di ricevere segnali dal suo worker, per esempio dopo un riavvio, viene ripresa: un'esecuzione in coda viene rimessa in coda dopo 2 minuti, e un'esecuzione che tace da 30 minuti viene segnata come non riuscita.
 
@@ -322,13 +337,13 @@ Un'esecuzione che smette di ricevere segnali dal suo worker, per esempio dopo un
 - I casi aperti assegnati a te, i casi aperti che nessuno ha preso in carico, e i passi dei playbook in attesa di approvazione, ognuno con un collegamento alla pagina che li elenca.
 - **Tempo medio di presa in carico**, **Tempo medio di contenimento** e **Tempo medio di chiusura**, sui casi aperti negli ultimi 30 giorni: dall'apertura di un caso fino a quando qualcuno lo prende in carico (assegnandolo a una persona, o spostandolo in uno stato che conta come preso in carico), fino a uno stato che conta come contenuto e fino a uno che conta come chiuso. Un caso ancora in attesa non entra nel calcolo della media.
 - I casi aperti ogni giorno negli ultimi 30 giorni, per priorità, e i rilevamenti generati ogni giorno negli ultimi 14 giorni, per origine.
-- I casi aperti per priorità e per stato, le entità nominate dal maggior numero di risultanze, i rilevamenti scattati più spesso, le tattiche ATT&CK alla base dei casi e i verdetti degli ultimi 30 giorni.
+- I casi aperti per priorità e per stato, le entità più a rischio per punteggio di rischio, i rilevamenti scattati più spesso, le tattiche ATT&CK alla base dei casi e i verdetti degli ultimi 30 giorni.
 
 Sopra, una striscia mostra come è configurata la sicurezza: le sue origini, i rilevamenti, i casi e i playbook, ciascuno con i suoi numeri. Un progetto che non l'ha ancora configurata vede lì **Attiva quanto consigliato** e **Invia un attacco di prova**; vedi [Primi passi con la sicurezza](/docs/telemetry/security-getting-started). Quando nulla richiede qualcuno, la pagina dice **Tutto tranquillo**, e i grafici compaiono non appena c'è qualcosa da mostrare.
 
 ## Trovare le minacce
 
-- **Entità** classifica gli utenti, gli host, gli indirizzi e gli hash che le tue risultanze nominano più spesso, nell'ultimo giorno, nell'ultima settimana o nell'ultimo mese, e cerca qualsiasi valore in 30 giorni di eventi. Seleziona un'entità per aprirla in **Correla**.
+- **Rischio delle entità** classifica gli utenti, gli host e gli indirizzi per punteggio di rischio, i più a rischio per primi, e **Entità più a rischio** nella panoramica mostra la parte alta della stessa lista. Seleziona un'entità per vedere perché è a rischio. Sotto l'elenco, **Cerca un'entità** cerca qualsiasi valore in 30 giorni di eventi, anche un dominio o un hash di file, e lo apre in **Correla**.
 - **Libreria di regole** contiene regole di rilevamento pronte all'uso, per le minacce a identità, endpoint, cloud, rete, web e Kubernetes. Ognuna è una regola Sigma scritta per i campi in cui viene normalizzata ogni origine collegata. La sua riga dice che cosa trova, le tattiche e le tecniche MITRE ATT&CK a cui è associata, gli eventi che legge e se ne sono arrivati negli ultimi 7 giorni (**Ricevuti** o **Non ricevuti**), e la sua gravità. Restringi l'elenco per categoria, per i dati che le regole leggono e in base al fatto che tu le abbia aggiunte, oppure cercalo per nome, tecnica ATT&CK o gravità; l'indirizzo della pagina conserva i filtri. Seleziona una regola per i suoi dettagli: come iniziare a inviare gli eventi che legge, come viene eseguita e la sua regola Sigma. **Aggiungi** la crea come una tua regola di rilevamento, attiva, che apre casi anziché avvisi; modificala in **Regole di rilevamento** come qualsiasi altra. Le regole segnate come **Consigliati** trovano minacce nei dati che OneUptime ha già, e un pulsante aggiunge quelle che non hai ancora.
 - **Copertura ATT&CK** elenca le tattiche di MITRE ATT&CK, ciascuna con quante delle sue tecniche coprono le tue regole abilitate e per quante altre la **Libreria di regole** ha delle regole. Apri una tattica per vederne le tecniche, o passa a **Matrice** per la matrice intera. Seleziona una tecnica per vedere le regole della libreria che la coprono e aprire la **Libreria di regole** su di esse.
 

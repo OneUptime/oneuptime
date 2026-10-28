@@ -163,7 +163,7 @@ const REQUIREMENTS: ReadonlyArray<{ id: string; title: string }> = [
 
 const EVENTS_HEADING: string = "No security events yet";
 const EVENTS_DESCRIPTION: string =
-  "Events show up here as soon as a source starts sending. Every event is normalized to OCSF, whatever format it arrives in.";
+  "Events show up here as soon as a source starts sending.";
 const INGEST_METHOD: string = "POST";
 const INGEST_PATH: string = "/security-events/v1/ingest";
 const CATEGORIES_LINE: string = "SIEM · EDR / XDR · Cloud security · Identity";
@@ -175,13 +175,18 @@ interface WayIn {
   action: string;
 }
 
+/*
+ * The three ways in, in the order the page draws them - the order
+ * Connections and the docs give: your logs (nothing to install, the width
+ * of the list), your security tools, anything you send.
+ */
 const WAYS_IN: ReadonlyArray<WayIn> = [
   {
-    id: "send",
-    title: "Send events to OneUptime",
+    id: "logs",
+    title: "Find security events in your logs",
     description:
-      "POST JSON from a SIEM, a SOAR webhook, a log forwarder or any other source.",
-    action: "Read the setup guide",
+      "Attacks often show up in the logs you already send OneUptime. Nothing to install.",
+    action: "Turn on Your logs",
   },
   {
     id: "connect",
@@ -190,7 +195,20 @@ const WAYS_IN: ReadonlyArray<WayIn> = [
       "OneUptime polls Microsoft Sentinel, CrowdStrike, Splunk and more on a schedule.",
     action: "Connect a security product",
   },
+  {
+    id: "send",
+    title: "Send events to OneUptime",
+    description:
+      "POST JSON from a SIEM, a SOAR webhook, a log forwarder or any other source.",
+    action: "Read the setup guide",
+  },
 ];
+
+// Your logs' action once it is on, or when it could not be read.
+const LOGS_OPEN_ACTION: string = "Open Your logs";
+// What Your logs reads, as its card on Connections lists it.
+const LOG_FORMATS_LINE: string =
+  "SSH sign-ins · sudo · Kubernetes audit logs · AWS CloudTrail · Web attacks";
 
 // Computed colours the assertions compare against.
 const WHITE_RGB: string = "rgb(255, 255, 255)";
@@ -265,8 +283,12 @@ interface OpenOptions {
   latest?: "none" | "pending" | "old" | undefined;
   // Three SIEMs in the Send to your SIEM table.
   siem?: "none" | "rows" | undefined;
+  // Three security tools in the Your security tools table.
+  tools?: "none" | "rows" | undefined;
   // One event in the window, so its drawer can be opened.
   events?: "none" | "one" | undefined;
+  // Your logs on already (checked two minutes ago), or a read that fails.
+  logs?: "off" | "on" | "check-failed" | "fail" | undefined;
   width?: number | undefined;
   height?: number | undefined;
 }
@@ -434,8 +456,14 @@ async function open(
   if (options.siem && options.siem !== "none") {
     params.set("siem", options.siem);
   }
+  if (options.tools && options.tools !== "none") {
+    params.set("tools", options.tools);
+  }
   if (options.events && options.events !== "none") {
     params.set("events", options.events);
+  }
+  if (options.logs && options.logs !== "off") {
+    params.set("logs", options.logs);
   }
   const query: string = params.toString();
   await page.goto(query ? `${pathname}?${query}` : pathname);
@@ -866,17 +894,29 @@ function tileCategory(page: Page, item: Provider): Locator {
   return page.locator(`#${CONNECTIONS_ID}-provider-${item.value}-category`);
 }
 
-// The badge's icon (the tile's first <svg>) and the plus at its end.
-function tileIcon(page: Page, item: Provider): Locator {
-  return tile(page, item).locator("svg").first();
+/*
+ * The badge: the product's official logo (Common's ProviderLogoImage, a tile
+ * holding the logo's image), the tile's first child. Then the name block
+ * and, where the member can connect, the plus at the end.
+ */
+function tileBadge(page: Page, item: Provider): Locator {
+  return tile(page, item).locator(":scope > [data-provider-logo]");
 }
 
-function tileBadge(page: Page, item: Provider): Locator {
-  return tile(page, item).locator(":scope > div").first();
+function tileLogoImage(page: Page, item: Provider): Locator {
+  return tileBadge(page, item).locator("img");
 }
 
 function tilePlus(page: Page, item: Provider): Locator {
-  return tile(page, item).locator(":scope > div").nth(2).locator("svg");
+  return tile(page, item).locator(":scope > div").nth(1).locator("svg");
+}
+
+// Whether an image has loaded and has a picture: a logo that did not arrive draws nothing.
+async function isDrawn(image: Locator): Promise<boolean> {
+  return image.evaluate((element: Element): boolean => {
+    const picture: HTMLImageElement = element as HTMLImageElement;
+    return picture.complete && picture.naturalWidth > 0;
+  });
 }
 
 function addConnectionDialog(page: Page): Locator {
@@ -1158,6 +1198,10 @@ function setupGuideButton(page: Page): Locator {
   return page.getByTestId(`${EVENTS_ID}-setup-guide`);
 }
 
+function yourLogsButton(page: Page): Locator {
+  return page.getByTestId(`${EVENTS_ID}-your-logs`);
+}
+
 function connectButton(page: Page): Locator {
   return page.getByTestId(`${EVENTS_ID}-connections`);
 }
@@ -1428,34 +1472,43 @@ test.describe("connections empty state", () => {
     }
   });
 
-  test("every tile is built the same way, and no two share an icon", async ({
+  test("every tile is built the same way, and each shows its own product's logo", async ({
     page,
   }: {
     page: Page;
   }) => {
     await openConnections(page);
 
-    // Same classes and children on every tile: badge, name block, plus.
+    // Same children on every tile: the logo, the name block, the plus.
     const shapes: Array<string> = await tileShapes(page);
     expect(shapes).toHaveLength(PROVIDERS.length);
     expect(new Set(shapes).size, shapes.join("\n")).toBe(1);
     expect(shapes[0]).toContain("[1svg] + DIV");
-    expect(await tile(page, SENTINEL).locator(":scope > div").count()).toBe(3);
+    expect(await tile(page, SENTINEL).locator(":scope > div").count()).toBe(2);
+    await expect(tileBadge(page, SENTINEL)).toHaveCount(1);
 
     /*
-     * Three providers used to share a shield. Each badge draws its own
-     * icon now; compared by the SVG's markup, so a same-named icon with a
-     * different size still counts as the same picture.
+     * Three providers used to share a shield, then a generic icon each
+     * (official logos audit): each badge is its product's own logo now, a
+     * local file of the installation that arrives and is drawn.
      */
-    const icons: Array<string> = [];
+    const logos: Array<string> = [];
     for (const item of PROVIDERS) {
-      icons.push(
-        await tileIcon(page, item).evaluate((svg: Element): string => {
-          return svg.innerHTML;
-        }),
+      logos.push(
+        (await tileBadge(page, item).getAttribute("data-provider-logo")) || "",
       );
+      await expect(tileLogoImage(page, item)).toHaveCount(1);
+      await expect
+        .poll(
+          async (): Promise<boolean> => {
+            return isDrawn(tileLogoImage(page, item));
+          },
+          { message: `${item.title} logo is drawn` },
+        )
+        .toBe(true);
     }
-    expect(new Set(icons).size, "distinct tile icons").toBe(PROVIDERS.length);
+    expect(new Set(logos).size, "distinct tile logos").toBe(PROVIDERS.length);
+    expect(logos).not.toContain("");
   });
 
   test("the old grey requirements box and the Setup guides list are gone", async ({
@@ -1538,7 +1591,7 @@ test.describe("connections: your logs and your SIEM", () => {
     });
   }
 
-  test("reads top to bottom: your logs, your security tools, your SIEM", async ({
+  test("reads top to bottom: your logs, your OneUptime data, your security tools, your SIEM", async ({
     page,
   }: {
     page: Page;
@@ -1549,8 +1602,10 @@ test.describe("connections: your logs and your SIEM", () => {
       .getByTestId("card")
       .getByRole("heading", { level: 2 })
       .allInnerTexts();
+    // Your OneUptime data (#5336): the traces, flows, audit log and replays Security watches.
     expect(headings).toEqual([
       "Your logs",
+      "Your OneUptime data",
       "Your security tools",
       "Send to your SIEM",
     ]);
@@ -1824,6 +1879,122 @@ test.describe("connections: your logs and your SIEM", () => {
     });
   });
 
+  function toolsCard(page: Page): Locator {
+    return page.getByTestId("card").filter({
+      has: page.getByRole("heading", {
+        level: 2,
+        name: "Your security tools",
+        exact: true,
+      }),
+    });
+  }
+
+  /*
+   * Your security tools was twice its card's width at 1280 with all eight
+   * columns, its times out of sight under the row's buttons (#5246). Each
+   * tool's provider, and what it imports, sits under its name, as each
+   * SIEM's does; when it last polled and last brought an event in read as
+   * how long ago; Status (Health says Paused), the poll interval and the
+   * last successful poll wait in Customize Columns. The table fits.
+   */
+  test("each tool's row says what it is under its name, its times as how long ago, and the table fits its card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const width of [1280, 1440]) {
+      await open(page, CONNECTIONS_PATH, { tools: "rows", width });
+      const card: Locator = toolsCard(page);
+      const rows: Locator = card.locator("tbody tr");
+      await expect(rows).toHaveCount(3, { timeout: 30000 });
+
+      const headers: Array<string> = (
+        await card.locator("thead th").allInnerTexts()
+      ).map((text: string): string => {
+        return text.replace(/\s+/g, " ").trim();
+      });
+      expect(headers).toEqual([
+        "Select all items",
+        "Name",
+        "Health",
+        "Last Polled",
+        "Last Event Imported",
+        "Actions",
+      ]);
+
+      // What each is, under its name, in the fixture's order.
+      await expect(
+        card.getByTestId("security-event-connection-provider"),
+      ).toHaveText([
+        "Okta System Log",
+        "Microsoft Defender XDR",
+        "Google SecOps · Alerts only",
+      ]);
+      const okta: Locator = rows.filter({ hasText: "Okta production" });
+      const name: Box = await documentBox(
+        okta.getByTestId("security-list-name"),
+      );
+      const provider: Box = await documentBox(
+        okta.getByTestId("security-event-connection-provider"),
+      );
+      expect(provider.y).toBeGreaterThanOrEqual(name.y + name.height - 1);
+      expect(Math.abs(provider.x - name.x)).toBeLessThanOrEqual(1);
+
+      // Health, then how long ago it polled and an event came in.
+      await expect(okta).toContainText("2 minutes ago");
+      await expect(okta).toContainText("3 minutes ago");
+      await expect(
+        rows.filter({ hasText: "Google SecOps detections" }),
+      ).toContainText("Schedule paused");
+      await expect(
+        rows
+          .filter({ hasText: "Defender XDR - EU tenant" })
+          .getByRole("button", { name: "View Error" }),
+      ).toBeVisible();
+
+      // Nothing scrolls sideways under the sticky actions.
+      const overflow: number = await card
+        .getByTestId("table-scroll")
+        .evaluate((element: Element): number => {
+          return element.scrollWidth - element.clientWidth;
+        });
+      expect(
+        overflow,
+        `${width}: the table scrolls sideways`,
+      ).toBeLessThanOrEqual(1);
+      await expect(card.getByTestId("table-scroll")).toHaveAttribute(
+        "data-overflowing",
+        "false",
+      );
+      await expectNoHorizontalOverflow(page);
+    }
+
+    await toolsCard(page).scrollIntoViewIfNeeded();
+    await screenshot(page, "connections-tools-rows-desktop", {
+      clip: toolsCard(page),
+    });
+  });
+
+  test("a phone reads each tool as a card: its name over what it is, then its health and times", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CONNECTIONS_PATH, { tools: "rows", width: 390 });
+    const card: Locator = toolsCard(page);
+    await expect(
+      card.getByTestId("security-event-connection-provider"),
+    ).toHaveCount(3, { timeout: 30000 });
+    await expect(
+      card.getByTestId("security-event-connection-provider").nth(2),
+    ).toHaveText("Google SecOps · Alerts only");
+    await expectNoHorizontalOverflow(page);
+    await toolsCard(page).scrollIntoViewIfNeeded();
+    await screenshot(page, "connections-tools-rows-phone", {
+      clip: toolsCard(page),
+    });
+  });
+
   test("dark theme and a phone", async ({ page }: { page: Page }) => {
     await openConnections(page, { theme: "dark" });
     await expect(logsSwitch(page)).toBeVisible();
@@ -1884,7 +2055,7 @@ test.describe("connections empty state accessibility", () => {
         "true",
       );
       await expect(
-        tile(page, item).locator(":scope > div").nth(2),
+        tile(page, item).locator(":scope > div").nth(1),
       ).toHaveAttribute("aria-hidden", "true");
 
       // The two controls are siblings, never one inside the other.
@@ -2057,7 +2228,7 @@ test.describe("connections empty state actions", () => {
     expect((await fixture(page)).creates).toEqual([]);
   });
 
-  test("the picker shows the same eight products, each with its tile's icon", async ({
+  test("the picker shows the same eight products, each with its tile's logo", async ({
     page,
   }: {
     page: Page;
@@ -2068,25 +2239,21 @@ test.describe("connections empty state actions", () => {
     });
     await expectProviderStep(page, CROWDSTRIKE);
 
-    const pickerIcons: Array<string> = [];
+    const pickerLogos: Array<string> = [];
     for (const item of PROVIDERS) {
       const option: Locator = providerOption(page, item);
       await expect(option).toContainText(item.title);
-      const pickerIcon: string = await option
-        .locator("svg")
-        .first()
-        .evaluate((svg: Element): string => {
-          return svg.innerHTML;
-        });
-      const tileIconMarkup: string = await tileIcon(page, item).evaluate(
-        (svg: Element): string => {
-          return svg.innerHTML;
-        },
-      );
-      expect(pickerIcon, `${item.title} icon`).toBe(tileIconMarkup);
-      pickerIcons.push(pickerIcon);
+      const pickerLogo: string =
+        (await option
+          .locator("[data-provider-logo]")
+          .first()
+          .getAttribute("data-provider-logo")) || "";
+      const tileLogo: string =
+        (await tileBadge(page, item).getAttribute("data-provider-logo")) || "";
+      expect(pickerLogo, `${item.title} logo`).toBe(tileLogo);
+      pickerLogos.push(pickerLogo);
     }
-    expect(new Set(pickerIcons).size, "distinct picker icons").toBe(
+    expect(new Set(pickerLogos).size, "distinct picker logos").toBe(
       PROVIDERS.length,
     );
 
@@ -2173,15 +2340,16 @@ test.describe("connections empty state actions", () => {
     expect((await fixture(page)).creates).toEqual([]);
   });
 
-  test("hovering a tile turns its border, badge and plus indigo", async ({
+  test("hovering a tile turns its border and plus indigo; the logo keeps its own colours", async ({
     page,
   }: {
     page: Page;
   }) => {
     await openConnections(page);
     expect(await borderColor(tile(page, CROWDSTRIKE))).toBe(GRAY_200_RGB);
-    const restingIcon: string = await textColor(tileIcon(page, CROWDSTRIKE));
-    expect(restingIcon).not.toBe(INDIGO_600_RGB);
+    const restingBadge: string = await backgroundColor(
+      tileBadge(page, CROWDSTRIKE),
+    );
 
     await tile(page, CROWDSTRIKE).hover({
       position: await tileSpot(page, CROWDSTRIKE, "blank"),
@@ -2193,19 +2361,13 @@ test.describe("connections empty state actions", () => {
       .toBe(INDIGO_300_RGB);
     await expect
       .poll(async (): Promise<string> => {
-        return textColor(tileIcon(page, CROWDSTRIKE));
-      })
-      .toBe(INDIGO_600_RGB);
-    await expect
-      .poll(async (): Promise<string> => {
         return textColor(tilePlus(page, CROWDSTRIKE));
       })
       .toBe(INDIGO_600_RGB);
-    await expect
-      .poll(async (): Promise<string> => {
-        return backgroundColor(tileBadge(page, CROWDSTRIKE));
-      })
-      .toBe(INDIGO_50_RGB);
+    // A brand's logo is never re-coloured: its tile stays as it was.
+    expect(await backgroundColor(tileBadge(page, CROWDSTRIKE))).toBe(
+      restingBadge,
+    );
     // The name keeps its colour, and the cursor says it is clickable.
     expect(await textColor(tileButton(page, CROWDSTRIKE))).toBe(GRAY_900_RGB);
     expect(
@@ -2232,9 +2394,9 @@ test.describe("connections empty state actions", () => {
       .toBe(GRAY_200_RGB);
     await expect
       .poll(async (): Promise<string> => {
-        return textColor(tileIcon(page, CROWDSTRIKE));
+        return textColor(tilePlus(page, CROWDSTRIKE));
       })
-      .toBe(restingIcon);
+      .not.toBe(INDIGO_600_RGB);
   });
 });
 
@@ -2515,9 +2677,11 @@ test.describe("connections empty state for a viewer", () => {
     const shapes: Array<string> = await tileShapes(page);
     expect(new Set(shapes).size, shapes.join("\n")).toBe(1);
     for (const item of PROVIDERS) {
-      await expect(tile(page, item).locator(":scope > div")).toHaveCount(2);
-      // The badge's icon and the guide's external-link icon: no plus.
-      await expect(tile(page, item).locator("svg")).toHaveCount(2);
+      // The logo and the name block: no plus.
+      await expect(tile(page, item).locator(":scope > div")).toHaveCount(1);
+      await expect(tileBadge(page, item)).toHaveCount(1);
+      // The guide's external-link icon is the tile's only icon.
+      await expect(tile(page, item).locator("svg")).toHaveCount(1);
       await expect(tile(page, item).locator("p").first()).toHaveText(
         item.title,
       );
@@ -2634,7 +2798,19 @@ test.describe("connections empty state in the dark theme", () => {
       "heading is light",
     ).toBeGreaterThan(0.5);
 
-    // Hover: indigo border, badge tint and icon, still on the dark surface.
+    /*
+     * Hover: indigo border and plus, still on the dark surface. The logo
+     * keeps its tile - the dark theme's surface - and its own colours, in
+     * the mark CrowdStrike draws on dark backgrounds.
+     */
+    const restingBadge: string = await backgroundColor(
+      tileBadge(page, CROWDSTRIKE),
+    );
+    expect(restingBadge).not.toMatch(DARK_INDIGO_TINT);
+    await expect(tileLogoImage(page, CROWDSTRIKE)).toHaveAttribute(
+      "data-provider-logo-file",
+      "crowdstrike-dark.svg",
+    );
     await tile(page, CROWDSTRIKE).hover({
       position: await tileSpot(page, CROWDSTRIKE, "blank"),
     });
@@ -2643,16 +2819,9 @@ test.describe("connections empty state in the dark theme", () => {
         return borderColor(tile(page, CROWDSTRIKE));
       })
       .toBe(INDIGO_400_RGB);
-    await expect
-      .poll(async (): Promise<string> => {
-        return backgroundColor(tileBadge(page, CROWDSTRIKE));
-      })
-      .toMatch(DARK_INDIGO_TINT);
-    await expect
-      .poll(async (): Promise<string> => {
-        return textColor(tileIcon(page, CROWDSTRIKE));
-      })
-      .toBe(INDIGO_300_RGB);
+    expect(await backgroundColor(tileBadge(page, CROWDSTRIKE))).toBe(
+      restingBadge,
+    );
     await expect
       .poll(async (): Promise<string> => {
         return textColor(tilePlus(page, CROWDSTRIKE));
@@ -2760,7 +2929,7 @@ test.describe("security events empty state: when it shows", () => {
  * the endpoint chip is raised above it so it can be selected and copied.
  */
 test.describe("security events empty state", () => {
-  test("sits in the list card: header, then the two ways in", async ({
+  test("sits in the list card: header, then the three ways in", async ({
     page,
   }: {
     page: Page;
@@ -2817,7 +2986,7 @@ test.describe("security events empty state", () => {
     const ways: Locator = root.getByRole("list", {
       name: "Ways to start sending security events",
     });
-    await expect(ways.getByRole("listitem")).toHaveCount(2);
+    await expect(ways.getByRole("listitem")).toHaveCount(3);
     expect(
       await ways
         .getByRole("listitem")
@@ -2863,18 +3032,25 @@ test.describe("security events empty state", () => {
     await expect(page.getByTestId(`${EVENTS_ID}-categories`)).toHaveText(
       CATEGORIES_LINE,
     );
+    await expect(page.getByTestId(`${EVENTS_ID}-log-formats`)).toHaveText(
+      LOG_FORMATS_LINE,
+    );
     await expect(root.getByRole("link")).toHaveCount(0);
+    // Nothing of the schema events are stored in: a word nobody needs here.
+    await expect(root).not.toContainText("OCSF");
 
-    // Equal weight: same classes on both actions, and the cards line up.
+    // Equal weight: same classes on every action, and the cards line up.
     const actionClasses: Array<string> = [
-      (await setupGuideButton(page).getAttribute("class")) || "",
+      (await yourLogsButton(page).getAttribute("class")) || "",
       (await connectButton(page).getAttribute("class")) || "",
+      (await setupGuideButton(page).getAttribute("class")) || "",
     ];
-    expect(actionClasses[0]).toBe(actionClasses[1]);
+    expect(new Set(actionClasses).size).toBe(1);
+    const logs: Box = await documentBox(wayInCard(page, "logs"));
     const send: Box = await documentBox(wayInCard(page, "send"));
     const connect: Box = await documentBox(wayInCard(page, "connect"));
     expect(Math.abs(send.y - connect.y), "side by side").toBeLessThanOrEqual(1);
-    expect(send.x + send.width).toBeLessThanOrEqual(connect.x);
+    expect(connect.x + connect.width).toBeLessThanOrEqual(send.x);
     expect(Math.abs(send.height - connect.height)).toBeLessThanOrEqual(1);
     expect(Math.abs(send.width - connect.width)).toBeLessThanOrEqual(1);
     expect(
@@ -2883,6 +3059,18 @@ test.describe("security events empty state", () => {
           (await documentBox(connectButton(page))).y,
       ),
       "actions level",
+    ).toBeLessThanOrEqual(1);
+    // Your logs leads: the whole first row, above the two and as wide as both.
+    expect(logs.y + logs.height, "Your logs above the two").toBeLessThanOrEqual(
+      connect.y,
+    );
+    expect(
+      Math.abs(logs.x - connect.x),
+      "starts with them",
+    ).toBeLessThanOrEqual(1);
+    expect(
+      Math.abs(logs.x + logs.width - (send.x + send.width)),
+      "ends with them",
     ).toBeLessThanOrEqual(1);
 
     await expectNoHorizontalOverflow(page);
@@ -2897,6 +3085,12 @@ test.describe("security events empty state", () => {
   }) => {
     await openEvents(page);
 
+    await expect(yourLogsButton(page)).toHaveAccessibleName(
+      "Turn on Your logs",
+    );
+    await expect(yourLogsButton(page)).toHaveAccessibleDescription(
+      "Find security events in your logs",
+    );
     await expect(setupGuideButton(page)).toHaveAccessibleName(
       "Read the setup guide",
     );
@@ -2918,7 +3112,9 @@ test.describe("security events empty state", () => {
       const expected: string = `button:${
         way.id === "send"
           ? `${EVENTS_ID}-setup-guide`
-          : `${EVENTS_ID}-connections`
+          : way.id === "logs"
+            ? `${EVENTS_ID}-your-logs`
+            : `${EVENTS_ID}-connections`
       }`;
       expect(await eventsHitAt(wayInDescription(page, way.id))).toBe(expected);
       expect(
@@ -2931,16 +3127,23 @@ test.describe("security events empty state", () => {
     // The endpoint is raised above it.
     expect(await eventsHitAt(ingestEndpoint(page))).toBe("code");
 
-    // Keyboard: two stops, each ringing its whole card.
-    expect(await overlayRing(setupGuideButton(page))).toBe("none");
-    await setupGuideButton(page).focus();
+    expect(
+      await eventsHitAt(page.getByTestId(`${EVENTS_ID}-log-formats`)),
+    ).toBe(`button:${EVENTS_ID}-your-logs`);
+
+    // Keyboard: three stops in the order drawn, each ringing its whole card.
+    expect(await overlayRing(yourLogsButton(page))).toBe("none");
+    await yourLogsButton(page).focus();
+    expect(await overlayRing(yourLogsButton(page))).toContain(INDIGO_500_RGB);
     await page.keyboard.press("Tab");
     await expect(connectButton(page)).toBeFocused();
     expect(await overlayRing(connectButton(page))).toContain(INDIGO_500_RGB);
-    await page.keyboard.press("Shift+Tab");
+    await page.keyboard.press("Tab");
     await expect(setupGuideButton(page)).toBeFocused();
     expect(await overlayRing(setupGuideButton(page))).toContain(INDIGO_500_RGB);
     expect(await overlayRing(connectButton(page))).toBe("none");
+    await page.keyboard.press("Shift+Tab");
+    await expect(connectButton(page)).toBeFocused();
 
     // Hover: the card's border turns indigo.
     await wayInCard(page, "connect").hover({
@@ -3036,6 +3239,146 @@ test.describe("security events empty state", () => {
     await page.goBack();
     await expectPath(page, EVENTS_PATH);
     await expect(eventsEmptyState(page)).toBeVisible({ timeout: 30000 });
+  });
+
+  test("anywhere on Your logs opens Connections, its switch first, and back returns", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openEvents(page);
+    await expect(yourLogsButton(page)).toHaveText("Turn on Your logs");
+    await expect(wayInCard(page, "logs")).toHaveAttribute("data-state", "off");
+
+    await clickWayInAt(page, "logs", wayInDescription(page, "logs"));
+    await expectPath(page, CONNECTIONS_PATH);
+    // The first thing there is the switch the card offered.
+    const toggle: Locator = page.getByRole("switch", {
+      name: "Find security events in your logs",
+    });
+    await expect(toggle).toBeVisible({ timeout: 30000 });
+    await expect(toggle).toHaveAttribute("aria-checked", "false");
+    await expectAbove(
+      page.getByTestId("security-logs-source"),
+      page.getByRole("heading", {
+        level: 2,
+        name: "Your security tools",
+        exact: true,
+      }),
+      "Your logs leads Connections",
+    );
+    await expect(eventsEmptyState(page)).toHaveCount(0);
+
+    await page.goBack();
+    await expectPath(page, EVENTS_PATH);
+    await expect(eventsEmptyState(page)).toBeVisible({ timeout: 30000 });
+
+    // And Enter on the focused action.
+    await yourLogsButton(page).focus();
+    await page.keyboard.press("Enter");
+    await expectPath(page, CONNECTIONS_PATH);
+  });
+
+  test("Your logs already on: says so, when it last checked, and opens it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openEvents(page, { logs: "on" });
+    const logs: Locator = wayInCard(page, "logs");
+
+    await expect(logs).toHaveAttribute("data-state", "on", { timeout: 30000 });
+    await expect(page.getByTestId(`${EVENTS_ID}-logs-on`)).toHaveText("On");
+    await expect(page.getByTestId(`${EVENTS_ID}-logs-status`)).toHaveText(
+      "Checked 2 minutes ago. No security event found yet.",
+    );
+    // Not asked to turn on what is on.
+    await expect(yourLogsButton(page)).toHaveText(LOGS_OPEN_ACTION);
+    await expect(logs.getByRole("button")).toHaveCount(1);
+    // The On pill sits beside the title, on its line.
+    const title: Box = await documentBox(logs.getByRole("heading"));
+    const pill: Box = await documentBox(
+      page.getByTestId(`${EVENTS_ID}-logs-on`),
+    );
+    expect(
+      Math.abs(title.y + title.height / 2 - (pill.y + pill.height / 2)),
+      "pill on the title's line",
+    ).toBeLessThanOrEqual(3);
+    expect(pill.x).toBeGreaterThanOrEqual(title.x + title.width);
+
+    // Its checks work: nothing failed to say.
+    await expect(page.getByTestId(`${EVENTS_ID}-logs-last-error`)).toHaveCount(
+      0,
+    );
+
+    await screenshot(page, "events-logs-on");
+
+    await yourLogsButton(page).click();
+    await expectPath(page, CONNECTIONS_PATH);
+    await expect(
+      page.getByRole("switch", { name: "Find security events in your logs" }),
+    ).toHaveAttribute("aria-checked", "true", { timeout: 30000 });
+  });
+
+  /*
+   * A check that fails is stamped with when it ran and why
+   * (SecurityLogScanner): "Checked 2 minutes ago. No security event found
+   * yet." was all the card said while every check failed. It says what
+   * Your logs' own card says, Open Your logs under it.
+   */
+  test("Your logs on, its last check failed: says why, above the way to it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openEvents(page, { logs: "check-failed" });
+    const logs: Locator = wayInCard(page, "logs");
+
+    await expect(logs).toHaveAttribute("data-state", "on", { timeout: 30000 });
+    await expect(page.getByTestId(`${EVENTS_ID}-logs-status`)).toHaveText(
+      "Checked 2 minutes ago. No security event found yet.",
+    );
+    const failure: Locator = page.getByTestId(`${EVENTS_ID}-logs-last-error`);
+
+    await expect(failure).toHaveText(
+      "The last check failed: Could not read this project's logs: the query took longer than 30 seconds.",
+    );
+    await expect(yourLogsButton(page)).toHaveText(LOGS_OPEN_ACTION);
+
+    // Under the status, inside the card, above its one action.
+    const status: Box = await documentBox(
+      page.getByTestId(`${EVENTS_ID}-logs-status`),
+    );
+    const said: Box = await documentBox(failure);
+    const action: Box = await documentBox(yourLogsButton(page));
+    const card: Box = await documentBox(logs);
+
+    expect(said.y).toBeGreaterThanOrEqual(status.y + status.height);
+    expect(action.y).toBeGreaterThanOrEqual(said.y + said.height);
+    expect(said.x).toBeGreaterThanOrEqual(card.x);
+    expect(said.x + said.width).toBeLessThanOrEqual(card.x + card.width);
+
+    await screenshot(page, "events-logs-check-failed");
+  });
+
+  test("Your logs that cannot be read: the way to it, and nothing claimed", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openEvents(page, { logs: "fail" });
+    const logs: Locator = wayInCard(page, "logs");
+
+    await expect(logs).toHaveAttribute("data-state", "unknown", {
+      timeout: 30000,
+    });
+    await expect(yourLogsButton(page)).toHaveText(LOGS_OPEN_ACTION);
+    await expect(page.getByTestId(`${EVENTS_ID}-logs-on`)).toHaveCount(0);
+    await expect(page.getByTestId(`${EVENTS_ID}-logs-status`)).toHaveCount(0);
+    // The page itself carries on: the other two ways in, no error banner.
+    await expect(connectButton(page)).toBeVisible();
+    await expect(setupGuideButton(page)).toBeVisible();
+    await expect(eventsEmptyState(page)).not.toContainText("could not be read");
   });
 
   test("the endpoint can be clicked and selected without leaving the page", async ({
@@ -3157,11 +3500,16 @@ test.describe("security events empty state", () => {
     const connect: Box = await documentBox(wayInCard(page, "connect"));
     const sideBySide: boolean = Math.abs(send.y - connect.y) <= 1;
     if (sideBySide) {
-      expect(send.x + send.width).toBeLessThanOrEqual(connect.x);
+      expect(connect.x + connect.width).toBeLessThanOrEqual(send.x);
     } else {
-      expect(send.y + send.height).toBeLessThanOrEqual(connect.y);
+      expect(connect.y + connect.height).toBeLessThanOrEqual(send.y);
     }
     expect(Math.abs(send.width - connect.width)).toBeLessThanOrEqual(1);
+    // Your logs leads above them, never beside one with a hole by the other.
+    const logs: Box = await documentBox(wayInCard(page, "logs"));
+    expect(logs.y + logs.height).toBeLessThanOrEqual(
+      Math.min(connect.y, send.y),
+    );
   });
 
   /*
@@ -3228,14 +3576,20 @@ test.describe("security events empty state", () => {
       "heading centred on the list card",
     ).toBeLessThanOrEqual(2);
 
-    // The two cards stack, each the list's width less its gutters.
+    // The three cards stack, in order, each the list's width less its gutters.
+    const logs: Box = await documentBox(wayInCard(page, "logs"));
     const send: Box = await documentBox(wayInCard(page, "send"));
     const connect: Box = await documentBox(wayInCard(page, "connect"));
-    expect(send.y + send.height, "cards stacked").toBeLessThanOrEqual(
+    expect(logs.y + logs.height, "Your logs first").toBeLessThanOrEqual(
       connect.y,
     );
+    expect(connect.y + connect.height, "cards stacked").toBeLessThanOrEqual(
+      send.y,
+    );
     expect(Math.abs(send.x - connect.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(logs.x - connect.x)).toBeLessThanOrEqual(1);
     expect(Math.abs(send.width - connect.width)).toBeLessThanOrEqual(1);
+    expect(Math.abs(logs.width - connect.width)).toBeLessThanOrEqual(1);
     expect(send.width, "cards use the list's width").toBeGreaterThan(
       list.width - 64,
     );

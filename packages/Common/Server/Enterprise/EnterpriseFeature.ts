@@ -48,6 +48,14 @@ enum EnterpriseFeature {
    * needs it; restoring and deleting backups already made never does.
    */
   Backups = "backups",
+  /*
+   * Custom notification channels: ways to reach people that the server's
+   * admin adds (Admin Dashboard > Settings > Custom Channels), each a URL
+   * on-call pages and notifications are posted to. Adding or changing a
+   * channel, and pointing a rule or a notification setting at one, needs
+   * it. Its runtime: while it is not active, nothing is sent to a channel.
+   */
+  CustomNotificationChannels = "custom-notification-channels",
 }
 
 export const ALL_ENTERPRISE_FEATURES: ReadonlyArray<EnterpriseFeature> =

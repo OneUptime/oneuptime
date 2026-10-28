@@ -187,7 +187,7 @@ Hver mal slutter med et **Log**-trinn som sier hva som skjedde, så det siste tr
 - `❌` — et kall mislyktes. Ved et Jira-kall inneholder linjen svaret fra Jira.
 - `⚠️` — en mal som oppretter en post fra en Jira-sak, opprettet den, men Jira godtok ikke koblingsetikettene, så de andre malene kan ikke finne den ennå. Legg til etikettene for hånd.
 
-En kjøring som hoppes over, slutter likevel som **Executed**. Det er normalt å hoppe over: de fleste Jira-hendelser er ikke noen en gitt mal handler på. Se [Arbeidsflyt-kjøringer](/docs/workflows/runs-and-logs).
+En kjøring som hoppes over, slutter likevel som **Utført**. Det er normalt å hoppe over: de fleste Jira-hendelser er ikke noen en gitt mal handler på. Se [Arbeidsflyt-kjøringer](/docs/workflows/runs-and-logs).
 
 ## Slik fungerer malene
 

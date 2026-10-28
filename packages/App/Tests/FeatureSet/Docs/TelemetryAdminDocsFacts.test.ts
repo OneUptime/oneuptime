@@ -1317,17 +1317,25 @@ describe("Data Retention (telemetry/data-retention)", () => {
       "Rum",
       "IoT",
     ];
+    /*
+     * Each page draws the cards folded under its More settings: through the
+     * shared fold (TelemetryResourceMoreSettings), or - a RUM application -
+     * the shell inside a fold of its own.
+     */
     const names: Array<string> = pages.map((folder: string): string => {
       const settingsPage: string = readDashboardSource(
         `Pages/${folder}/View/Settings.tsx`,
       );
+      const drawnBy: string = settingsPage.includes(
+        "<TelemetryResourceMoreSettings",
+      )
+        ? "<TelemetryResourceMoreSettings"
+        : "<TelemetryResourceRetentionSettings";
 
-      expect(settingsPage).toContain("<TelemetryResourceRetentionSettings");
+      expect(settingsPage).toContain(drawnBy);
 
       return (
-        RESOURCE_NAME_PROP.exec(
-          between(settingsPage, "<TelemetryResourceRetentionSettings", "/>"),
-        )?.[1] || ""
+        RESOURCE_NAME_PROP.exec(between(settingsPage, drawnBy, "/>"))?.[1] || ""
       );
     });
 
@@ -1350,6 +1358,10 @@ describe("Data Retention (telemetry/data-retention)", () => {
     ]);
     expect(page).toContain(
       "Services, hosts, Kubernetes clusters, Docker and Podman hosts, Docker Swarm, Proxmox and Ceph clusters, storage arrays, vCenters, databases, serverless functions, cloud resources, RUM applications and IoT fleets all have these cards.",
+    );
+    // And says where they wait: folded under the page's More settings.
+    expect(page).toContain(
+      "Open the service's or resource's **Settings** page, then **More settings**.",
     );
   });
 

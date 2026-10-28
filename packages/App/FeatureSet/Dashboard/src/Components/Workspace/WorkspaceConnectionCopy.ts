@@ -1,5 +1,6 @@
 import PageMap from "../../Utils/PageMap";
 import IconProp from "Common/Types/Icon/IconProp";
+import ProviderLogo from "Common/Types/ProviderLogo/ProviderLogo";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 
 /*
@@ -10,9 +11,10 @@ import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
  */
 export interface WorkspaceConnectionCopy {
   name: string;
+  // The workspace's mark where an icon goes: a button, a menu.
   icon: IconProp;
-  // The tile behind the icon: the colours the User Settings checklist uses.
-  iconBackgroundClassName: string;
+  // Its official logo: on its tile on the Workspace page, and when it is not connected.
+  logo: ProviderLogo;
   // What connecting it gives you, in a sentence.
   description: string;
   // Where a project connects it: its Project Settings page.
@@ -28,7 +30,7 @@ export const WORKSPACE_CONNECTION_COPY: Readonly<
   [WorkspaceType.Slack]: {
     name: "Slack",
     icon: IconProp.Slack,
-    iconBackgroundClassName: "bg-fuchsia-500",
+    logo: ProviderLogo.Slack,
     description:
       "Post notifications to your Slack channels and act on them from Slack.",
     settingsPage: PageMap.SETTINGS_SLACK_INTEGRATION,
@@ -40,7 +42,7 @@ export const WORKSPACE_CONNECTION_COPY: Readonly<
   [WorkspaceType.MicrosoftTeams]: {
     name: "Microsoft Teams",
     icon: IconProp.MicrosoftTeams,
-    iconBackgroundClassName: "bg-blue-500",
+    logo: ProviderLogo.MicrosoftTeams,
     description:
       "Post notifications to your Microsoft Teams channels and chats and act on them from Teams.",
     settingsPage: PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION,

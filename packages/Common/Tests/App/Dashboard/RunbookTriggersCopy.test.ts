@@ -32,6 +32,7 @@ import {
   getTriggerFilterOptions,
   getUnattendedTriggerText,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Runbook/Triggers/RunbookExecutionTrigger";
+import { getRunInputsDescription } from "../../../../App/FeatureSet/Dashboard/src/Components/Runbook/Triggers/RunbookRunInputs";
 import RunbookExecution from "../../../Models/DatabaseModels/RunbookExecution";
 import {
   RUNBOOK_SCHEDULE_HOUR_INTERVALS,
@@ -474,6 +475,47 @@ describe("what started a run", () => {
         execution({ triggerType: RunbookTriggerType.Webhook }),
       ),
     ).toEqual({ label: "Webhook", details: [] });
+  });
+
+  test("a run a security playbook started says the case and the playbook", () => {
+    expect(
+      getUnattendedTriggerText(
+        english,
+        execution({
+          triggerType: RunbookTriggerType.SecurityPlaybook,
+          triggerDetails: {
+            securityCaseId: "6b6b6b6b-6b6b-46b6-86b6-6b6b6b6b6b6b",
+            caseNumber: "SEC-12",
+            playbookName: "Contain web attacks",
+          },
+        }),
+      ),
+    ).toEqual({
+      label: "Security playbook",
+      details: ["For security case SEC-12", "Playbook Contain web attacks"],
+    });
+
+    expect(
+      getUnattendedTriggerText(
+        english,
+        execution({ triggerType: RunbookTriggerType.SecurityPlaybook }),
+      ),
+    ).toEqual({ label: "Security playbook", details: [] });
+  });
+
+  test("a run's inputs say where they came from: a webhook's caller, or the case a playbook ran it for", () => {
+    expect(getRunInputsDescription(RunbookTriggerType.Webhook)).toBe(
+      TriggerDetailCopy.inputsCardDescription,
+    );
+    expect(getRunInputsDescription(undefined)).toBe(
+      TriggerDetailCopy.inputsCardDescription,
+    );
+    expect(getRunInputsDescription(RunbookTriggerType.SecurityPlaybook)).toBe(
+      TriggerDetailCopy.playbookInputsCardDescription,
+    );
+    expect(
+      getTemplatePlaceholders(TriggerDetailCopy.playbookInputsCardDescription),
+    ).toEqual(getTemplatePlaceholders(TriggerDetailCopy.inputsCardDescription));
   });
 
   test("every other run says what started it through what it carries", () => {

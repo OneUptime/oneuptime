@@ -88,7 +88,7 @@ Ein Fall hat ein eigenes Seitenmenü, wie ein Vorfall, und jeder Teil des Falls 
 | Abschnitt im Seitenmenü | Seiten |
 | --- | --- |
 | **Übersicht** | **Übersicht**, **Zeitachse** |
-| **Untersuchung** | **Erkennungen**, **Entitäten**, **Verbundene Signale**, **Playbooks** |
+| **Untersuchung** | **Hergang**, **Erkennungen**, **Entitäten**, **Verbundene Signale**, **Playbooks** |
 | **Notizen** | **Private Notizen** |
 | **Erweitert** | **Audit-Protokolle**, **Fall löschen**, eingeklappt, bis Sie auf **Erweitert** klicken |
 
@@ -96,8 +96,10 @@ Jede Seite behält oben den Kopf des Falls: Nummer, Priorität, Status und Titel
 
 - **Übersicht**: die Beschreibung, Labels und Statusschritte des Falls, wer ihn hat und was ihn eröffnet hat, und seine Kennzahlen: wie viele Erkennungen er hat, wie lange er schon offen ist und wie lange es bis zur Bestätigung und bis zur Eindämmung gedauert hat.
 - **OneUptime AI**, auf der **Übersicht**: was OneUptime AI aus dem Fall gelesen hat, die Priorität und das Playbook, die es vorschlägt, und die Beweise dahinter. Siehe [OneUptime AI in der Sicherheit](/docs/telemetry/security-ai).
+- **Auswirkungen**, auf der **Übersicht**: was der Fall gefährdet: ob OneUptime gesehen hat, dass seine Einträge aus dem Internet erreicht wurden, wem sie gehören und was sich zuletzt an ihnen geändert hat. Klappen Sie sie auf, um zu sehen, was jeder Eintrag aufruft und wovon er aufgerufen wird, welche Monitore und Statusseiten ihn beobachten und mit welchen Rechnern die Adressen des Falls kommuniziert haben.
 - **MITRE ATT&CK**, auf der **Übersicht**: die Taktiken und Techniken, denen seine Erkennungen zugeordnet sind, jeweils verlinkt mit ihrer Seite auf attack.mitre.org.
 - **Zeitachse**: alles, was mit dem Fall geschehen ist, jeweils mit der Person, die es getan hat.
+- **Hergang**: was geschehen ist, der Reihe nach und über ganz OneUptime hinweg: jede Erkennung und die Sicherheitsereignisse dahinter, wie weit ihre Anfragen kamen, die Ausnahmen, die sie auslösten, die Änderungen an den Einträgen, die der Fall nennt, die dort ausgelösten Vorfälle und Alarme, und was das Team getan hat. Die vielen Proben eines Scanners sind eine Zeile, und jede Zeile öffnet, was sie nennt, etwa den Trace der Anfrage oder die Ausnahme.
 - **Erkennungen**: was ausgelöst hat, um den Fall zu eröffnen oder ihn zu ergänzen, wie oft, und das neueste passende Ereignis.
 - **Entitäten**: die Benutzer, Hosts und Adressen, um die es im Fall geht, mit ihrer Aktivität in allen Ihren Sicherheitsereignissen der letzten 7 Tage. Jede öffnet sich in **Korrelieren**.
 - **Verbundene Signale**: die Hosts, Cluster, Dienste und Mitglieder, die der Fall nennt, wie OneUptime sie kennt, und was auf jedem davon rund um seine Erkennungen geschah: ihre Protokolle, Traces und Metriken, was darauf offen ist und was sich geändert hat. Siehe [Verbundene Signale](/docs/telemetry/security-connected-signals).
@@ -231,9 +233,11 @@ Ein deaktiviertes Playbook läuft weder von selbst noch per Hand.
 | Fall | Add labels | Versieht den Fall mit Labels |
 | Untersuchen | Check entities against threat intel | Schlägt jede Entität in Ihrer Threat Intelligence nach und kann bei einem Treffer die Priorität anheben |
 | Untersuchen | Look up entity activity | Zählt die Sicherheitsereignisse jeder Entität in einem kürzlich zurückliegenden Zeitfenster und vermerkt das am Fall |
+| Untersuchen | Preserve the evidence | Behält die Session Replays der Anfragen hinter dem Fall und vermerkt deren Traces und Ausnahmen am Fall |
 | Benachrichtigen | Email people | Schickt Benutzern und Teams eine Zusammenfassung des Falls per E-Mail, mit einem Link darauf |
 | Benachrichtigen | Post to Slack | Postet eine Zusammenfassung des Falls in einen Slack-Kanal |
 | Benachrichtigen | Post to Microsoft Teams | Postet eine Zusammenfassung des Falls in einen Kanal von Microsoft Teams |
+| Benachrichtigen | Post a status page announcement | Veröffentlicht eine von Ihnen geschriebene Ankündigung auf den gewählten Statusseiten |
 | Eskalieren | Page on-call | Führt eine Bereitschaftsrichtlinie aus |
 | Eskalieren | Vorfall melden | Öffnet einen OneUptime-Vorfall, der mit dem Fall verknüpft ist |
 | Eindämmen | Suspend the user in Okta | Sperrt den Benutzer, um den es im Fall geht, in Okta |
@@ -245,12 +249,23 @@ Ein deaktiviertes Playbook läuft weder von selbst noch per Hand.
 | Eindämmen | Release the device in Microsoft Defender | Hebt die Isolierung des Hosts, um den es im Fall geht, in Microsoft Defender for Endpoint auf |
 | Automatisieren | Send a webhook | Sendet den Fall als JSON per POST an eine URL |
 | Automatisieren | Run a workflow | Startet einen OneUptime-Workflow mit dem Fall als Eingabe |
+| Automatisieren | Run a runbook | Startet eines Ihrer OneUptime-Runbooks mit dem Fall als Eingaben |
+| Automatisieren | Fix the code with AI | Bittet OneUptime AI um einen Pull Request, der die Ausnahmen behebt, die die Anfragen des Falls ausgelöst haben |
 
 Ein Playbook hat höchstens 25 Schritte. Sie laufen der Reihe nach, jeder, sobald der vorige fertig ist. Jeder Schritt kann außerdem:
 
-- **Genehmigung erforderlich**: die Ausführung vor dem Schritt anhalten, bis jemand ihn am Fall genehmigt. Die vier Schritte, die jemanden aussperren, halten immer an, es sei denn, ein Security Admin schaltet das ab.
+- **Genehmigung erforderlich**: die Ausführung vor dem Schritt anhalten, bis jemand ihn am Fall genehmigt. Die vier Schritte, die jemanden aussperren, halten immer an, es sei denn, ein Security Admin schaltet das ab. **Run a runbook** und **Post a status page announcement** beginnen mit eingeschalteter Genehmigung, denn das eine führt Befehle auf Ihren Systemen aus und das andere spricht zu Ihren Kunden; wer den Schritt hinzufügt, kann sie abschalten.
 - **Nur bei Threat-Intel-Treffer**: den Schritt überspringen, sofern nicht ein früherer Schritt **Entitäten mit Threat Intel abgleichen** derselben Ausführung einen bekannten Indikator gefunden hat.
 - **Bei Fehler weitermachen**: den nächsten Schritt ausführen, auch wenn dieser fehlschlägt. Ist die Option aus, beendet ein fehlgeschlagener Schritt die Ausführung.
+
+### Reagieren mit OneUptime
+
+Vier Schritte handeln über den Rest von OneUptime statt über ein verbundenes Produkt:
+
+- **Run a runbook** startet eines Ihrer [Runbooks](/docs/runbooks/index) mit dem Fall als Eingaben, die ein Bash-Schritt als Umgebungsvariablen liest (siehe [Den Webhook aufrufen](/docs/runbooks/triggers#den-webhook-aufrufen)). `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` und `ONEUPTIME_INPUT_HOST` sind Adresse, Benutzer und Host, um die es im Fall geht, gewählt nach derselben Regel wie bei einem Eindämmungsschritt, und leer, wenn es um keinen geht. `ONEUPTIME_INPUT_IPS`, `ONEUPTIME_INPUT_USERS` und `ONEUPTIME_INPUT_HOSTS` führen als JSON alle auf, die der Fall nennt, und `ONEUPTIME_INPUT_CASE_NUMBER`, `ONEUPTIME_INPUT_CASE_TITLE` und `ONEUPTIME_INPUT_CASE_URL` sagen, um welchen Fall es geht. Ein geschützter Benutzer oder Host ist nie darunter. Beim Lauf des Runbooks steht, dass ihn **Security playbook** für den Fall gestartet hat.
+- **Preserve the evidence** behält die Session Replays der Anfragen hinter dem Fall über ihre Aufbewahrung hinaus und schreibt eine Notiz an den Fall, die den Trace jeder Anfrage, jedes Replay und jede Ausnahme verlinkt. Logs und Traces lassen sich nicht länger halten, als das Projekt Telemetrie aufbewahrt; exportieren Sie also vorher, was Sie brauchen.
+- **Post a status page announcement** veröffentlicht, was Sie geschrieben haben, so wie Sie es geschrieben haben, auf den Statusseiten, die Sie wählen. Nichts aus dem Fall wird hinzugefügt. Deren Abonnenten werden nur benachrichtigt, wenn **Abonnenten benachrichtigen** an ist.
+- **Fix the code with AI** bittet OneUptime AI für jede Ausnahme, die die Anfragen des Falls ausgelöst haben, bis zu drei, um einen Pull Request, der sie behebt. Dafür braucht es eingeschaltete OneUptime AI, ein über die GitHub App verbundenes Repository mit dem Code und einen Runner. Fehlt etwas davon, wird der Schritt übersprungen und nennt, was fehlt.
 
 ### Eindämmung
 
@@ -311,7 +326,7 @@ Jede Ausführung wird an ihrem Fall und unter **Produkte → Sicherheitsereignis
 | Fehlgeschlagen | Ein Schritt ist fehlgeschlagen, und die Ausführung wurde beendet |
 | Abgebrochen | Jemand hat sie abgebrochen oder einen Schritt abgelehnt |
 
-Ein Schritt, der auf Genehmigung wartet, zeigt an der Ausführung **Genehmigen** und **Ablehnen**, mit einem optionalen Kommentar. Eine Genehmigung setzt die Ausführung ab diesem Schritt fort; eine Ablehnung beendet sie. Die Entscheidung, wer sie getroffen hat, und der Kommentar werden am Schritt, in der Zeitachse des Falls und im Audit-Protokoll des Projekts festgehalten. Die Seite **Genehmigungen**, im Menü unter **Playbooks**, listet die Ausführungen, die auf eine Entscheidung warten, und zählt sie; **Ausführungen** listet jede Ausführung. Auf **Ausführungen** und auf der Seite eines Playbooks ist jede Ausführung eine Zeile, die sagt, wie weit sie gekommen ist oder bei welchem Schritt sie angehalten hat; **Schritte anzeigen** öffnet ihre Schritte. Eine Ausführung, die auf Genehmigung wartet, öffnet sich von selbst.
+Ein Schritt, der auf Genehmigung wartet, zeigt an der Ausführung **Genehmigen** und **Ablehnen**, mit einem optionalen Kommentar. Eine Genehmigung setzt die Ausführung ab diesem Schritt fort; eine Ablehnung beendet sie. Die Entscheidung, wer sie getroffen hat, und der Kommentar werden am Schritt, in der Zeitachse des Falls und im Audit-Protokoll des Projekts festgehalten. Die Seite **Genehmigungen**, im Menü unter **Playbooks**, listet die Ausführungen, die auf eine Entscheidung warten, und zählt sie; **Ausführungen** listet jede Ausführung. Auf **Ausführungen**, auf der Seite eines Playbooks und unter **Playbooks** eines Falls ist jede Ausführung eine Zeile, die sagt, wie weit sie gekommen ist oder bei welchem Schritt sie angehalten hat; **Schritte anzeigen** öffnet ihre Schritte. Eine Ausführung, die auf Genehmigung wartet, öffnet sich von selbst, ebenso die neueste Ausführung eines Falls.
 
 Eine Ausführung, von deren Worker nichts mehr kommt, etwa nach einem Neustart, wird wieder aufgegriffen: Eine Ausführung in der Warteschlange wird nach 2 Minuten erneut eingereiht, und eine Ausführung, die sich 30 Minuten lang nicht gemeldet hat, gilt als fehlgeschlagen.
 
@@ -322,13 +337,13 @@ Eine Ausführung, von deren Worker nichts mehr kommt, etwa nach einem Neustart, 
 - Die offenen Fälle, die Ihnen zugewiesen sind, die offenen Fälle, die noch niemand übernommen hat, und die Playbook-Schritte, die auf Genehmigung warten; jede Zahl öffnet die Seite, die sie auflistet.
 - **Mittlere Zeit bis zur Bestätigung**, **Mittlere Zeit bis zur Eindämmung** und **Mittlere Zeit bis zum Schließen**, über die in den letzten 30 Tagen eröffneten Fälle: von der Eröffnung eines Falls, bis jemand ihn übernimmt (eine Person zuweist oder ihn in einen Status setzt, der als bestätigt zählt), bis zu einem Status, der als eingedämmt zählt, und bis zu einem, der als geschlossen zählt. Ein Fall, der noch wartet, geht in keinen Mittelwert ein.
 - Die pro Tag eröffneten Fälle über 30 Tage, nach Priorität, und die pro Tag ausgelösten Erkennungen über 14 Tage, nach Quelle.
-- Die offenen Fälle nach Priorität und nach Status, die Entitäten, die in den meisten Befunden vorkommen, die am häufigsten ausgelösten Erkennungen, die ATT&CK-Taktiken hinter den Fällen und die Bewertungen der letzten 30 Tage.
+- Die offenen Fälle nach Priorität und nach Status, die riskantesten Entitäten nach ihrem Risikowert, die am häufigsten ausgelösten Erkennungen, die ATT&CK-Taktiken hinter den Fällen und die Bewertungen der letzten 30 Tage.
 
 Darüber zeigt ein Streifen, wie Sicherheit eingerichtet ist: ihre Quellen, Erkennungen, Fälle und Playbooks, jeweils mit ihren Zahlen. Ein Projekt, das sie noch nicht eingerichtet hat, sieht dort **Empfohlenes aktivieren** und **Testangriff senden**; siehe [Erste Schritte mit Sicherheit](/docs/telemetry/security-getting-started). Braucht nichts jemanden, sagt die Seite **Alles ruhig**, und die Diagramme erscheinen, sobald es etwas darzustellen gibt.
 
 ## Bedrohungen finden
 
-- **Entitäten** ordnet die Benutzer, Hosts, Adressen und Hashes, die Ihre Befunde am häufigsten nennen, über den letzten Tag, die letzte Woche oder den letzten Monat, und schlägt jeden Wert in den Ereignissen von 30 Tagen nach. Wählen Sie eine Entität, um sie in **Korrelieren** zu öffnen.
+- **Entitätsrisiko** ordnet die Benutzer, Hosts und Adressen nach ihrem Risikowert, die riskantesten zuerst, und **Riskanteste Entitäten** auf der Übersicht zeigt den Anfang derselben Liste. Wählen Sie eine Entität, um zu sehen, warum sie riskant ist. Unter der Liste schlägt **Eine Entität nachschlagen** jeden Wert in den Ereignissen von 30 Tagen nach, auch eine Domain oder einen Datei-Hash, und öffnet ihn in **Korrelieren**.
 - **Regelbibliothek** enthält fertige Erkennungsregeln für Bedrohungen rund um Identität, Endpunkte, Cloud, Netzwerk, Web und Kubernetes. Jede ist eine Sigma-Regel, geschrieben für die Felder, auf die jede verbundene Quelle normalisiert wird. Ihre Zeile nennt, was sie findet, die MITRE-ATT&CK-Taktiken und -Techniken, denen sie zugeordnet ist, die Ereignisse, die sie liest, und ob in den letzten 7 Tagen welche eingegangen sind (**Empfangen** oder **Nicht empfangen**), sowie ihren Schweregrad. Grenzen Sie die Liste nach Kategorie, nach den Daten, die die Regeln lesen, und danach ein, ob Sie sie hinzugefügt haben, oder durchsuchen Sie sie nach Name, ATT&CK-Technik oder Schweregrad; die Adresse der Seite behält die Filter. Wählen Sie eine Regel für ihre Details: wie Sie anfangen, die Ereignisse zu senden, die sie liest, wie sie läuft, und ihre Sigma-Regel. **Hinzufügen** legt sie als Ihre eigene Erkennungsregel an, eingeschaltet und so eingestellt, dass sie Fälle statt Warnungen eröffnet; ändern Sie sie unter **Erkennungsregeln** wie jede andere. Die mit **Empfohlen** markierten Regeln finden Bedrohungen in Daten, die OneUptime bereits hat, und eine Schaltfläche fügt die hinzu, die Ihnen noch fehlen.
 - **ATT&CK-Abdeckung** listet die Taktiken von MITRE ATT&CK, jede damit, wie viele ihrer Techniken Ihre aktivierten Regeln abdecken und für wie viele weitere die **Regelbibliothek** Regeln hat. Öffnen Sie eine Taktik für ihre Techniken, oder wechseln Sie zu **Matrix** für die ganze Matrix. Wählen Sie eine Technik, um die Regeln aus der Bibliothek zu sehen, die sie abdecken, und die **Regelbibliothek** mit ihnen zu öffnen.
 

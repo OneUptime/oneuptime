@@ -179,6 +179,7 @@ import AuditLogExport from "./AuditLogExport";
 import BackupSetting from "./BackupSetting";
 import BackupRun from "./BackupRun";
 import SecurityLogSource from "./SecurityLogSource";
+import SecurityTelemetrySource from "./SecurityTelemetrySource";
 import LogScrubRule from "./LogScrubRule";
 import MetricPipelineRule from "./MetricPipelineRule";
 import LlmCostBudget from "./LlmCostBudget";
@@ -365,6 +366,7 @@ import UserTelegram from "./UserTelegram";
 import UserSlack from "./UserSlack";
 import UserMicrosoftTeams from "./UserMicrosoftTeams";
 import UserWebhook from "./UserWebhook";
+import CustomNotificationChannel from "./CustomNotificationChannel";
 // User Notification Rules
 import UserNotificationRule from "./UserNotificationRule";
 import UserNotificationSetting from "./UserNotificationSetting";
@@ -518,6 +520,7 @@ import DashboardLabelRule from "./DashboardLabelRule";
 import TableView from "./TableView";
 import Dashboard from "./Dashboard";
 import DashboardDomain from "./DashboardDomain";
+import DashboardPlaylist from "./DashboardPlaylist";
 import DashboardOwnerTeam from "./DashboardOwnerTeam";
 import DashboardOwnerUser from "./DashboardOwnerUser";
 
@@ -613,6 +616,7 @@ const AllModelTypes: Array<{
   BackupSetting,
   BackupRun,
   SecurityLogSource,
+  SecurityTelemetrySource,
   LogScrubRule,
   MetricPipelineRule,
   LlmCostBudget,
@@ -873,6 +877,7 @@ const AllModelTypes: Array<{
   UserSlack,
   UserMicrosoftTeams,
   UserWebhook,
+  CustomNotificationChannel,
   UserIncomingCallNumber,
 
   UserNotificationRule,
@@ -994,6 +999,7 @@ const AllModelTypes: Array<{
   DashboardDomain,
   DashboardOwnerTeam,
   DashboardOwnerUser,
+  DashboardPlaylist,
 
   MonitorTest,
 

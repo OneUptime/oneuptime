@@ -108,7 +108,7 @@ La **telemetria** è ciò che i tuoi sistemi inviano a OneUptime: log, metriche,
 
 - I **Flussi di lavoro** eseguono azioni quando succede qualcosa, per esempio pubblicando un messaggio su Slack quando viene dichiarato un incidente.
 - I **Runbook** trasformano una procedura di intervento in passaggi che il tuo team può eseguire, a mano o automaticamente.
-- **OneUptime AI** indaga sui nuovi incidenti e avvisi e pubblica ciò che ha trovato nella loro cronologia, e **Ask AI** risponde alle domande sul tuo progetto. Un nuovo progetto parte con l'IA attiva; l'interruttore **Abilita IA** in **Impostazioni del progetto → IA → AI Features** la disattiva del tutto.
+- **OneUptime AI** indaga sui nuovi incidenti e avvisi e pubblica ciò che ha trovato nella loro cronologia, e **Chiedi all'IA** risponde alle domande sul tuo progetto. Un nuovo progetto parte con l'IA attiva; l'interruttore **Abilita IA** in **Impostazioni del progetto → IA → AI Features** la disattiva del tutto.
 
 :::cards
 - [Panoramica dei workflow](/docs/workflows/index): Automatizzare azioni con trigger e componenti.

@@ -1136,11 +1136,22 @@ describe("Traces Explorer (telemetry/traces-explorer)", () => {
     expect(facets.indexOf("...buildResourceFacetConfigs(")).toBeLessThan(
       facets.indexOf('title: "Status",'),
     );
-    expect(facets).toContain(
-      'valueDisplayMap: { [SPAN_TYPE_ROOT_VALUE]: "Root spans" },',
+    /*
+     * Span Type is a choice of one whose values are named by
+     * Types/Telemetry/TraceSpanType: Root spans among them.
+     */
+    expect(facets).toContain("chosenValue: spanType,");
+    expect(facets).toContain("TRACE_SPAN_TYPE_OPTIONS.map(");
+    for (const label of ["Entry spans", "Root spans", "All spans"]) {
+      expect(readCommonSource("Types/Telemetry/TraceSpanType.ts")).toContain(
+        `label: "${label}",`,
+      );
+    }
+    expect(page).toContain(
+      "By default the list shows **Entry spans**, the spans where a request or message enters a service",
     );
     expect(page).toContain(
-      "To list one row per request, pick **Root spans** under **Span Type** in the sidebar.",
+      "Under **Span Type** in the sidebar, pick **Root spans** to list one row per request, or **All spans** to list every operation.",
     );
   });
 
@@ -1922,6 +1933,47 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     );
   });
 
+  /*
+   * The list does what the page does: each row's ⋯ menu has the row's two
+   * moves (#5248), and ticked rows take the same four from Bulk Actions,
+   * which says what it left alone and why.
+   */
+  it("changes one exception from its row's ⋯ menu, and several from Bulk Actions", () => {
+    const triage: string = section(page, "## Resolve, reopen and archive");
+    const viewer: string = readDashboardSource(
+      "Components/Exceptions/ExceptionsViewer.tsx",
+    );
+    const row: string = readDashboardSource(
+      "Components/Exceptions/ExceptionRow.tsx",
+    );
+    const actions: string = readDashboardSource(
+      "Components/Exceptions/ExceptionRowActions.ts",
+    );
+    const telemetryViewer: string = readCommonSource(
+      "UI/Components/TelemetryViewer/TelemetryViewer.tsx",
+    );
+
+    expect(triage).toContain(
+      "The buttons at the top of the exception's page, its **Settings** page and the ⋯ menu on its row in the list change its status:",
+    );
+    expect(row).toContain("<RowActions<TelemetryException>");
+    expect(viewer).toContain("actionButtons={exceptionRowActions}");
+
+    expect(triage).toContain(
+      "To change several at once, tick their rows in the list, or the box above the rows for every exception on the page, and use the same actions under **Bulk Actions**. It says which exceptions it changed, which it left as they were, and why.",
+    );
+    // The rows' boxes and the page's box are the shared list's.
+    expect(viewer).toContain("buttons: exceptionBulkActions,");
+    expect(telemetryViewer).toContain(
+      'translateTemplate("Select all {{itemsName}} on this page"',
+    );
+    // The same four, in the row's order, each saying why it left one alone.
+    expect(actions).toContain("return EXCEPTION_ROW_TRIAGE_ORDER.map(");
+    expect(actions).toContain(
+      "return bulkItemUnchanged(\n                  getGlobalTranslator().translateText(\n                    EXCEPTION_ALREADY_THERE[id],",
+    );
+  });
+
   it("names the five error classes, which ones Issues keeps, and the class an untriaged exception has", () => {
     const rows: Array<Array<string>> = tableRows(
       section(page, "## Error classes"),
@@ -2104,11 +2156,25 @@ describe("the explorers together", () => {
   });
 
   it("keep in English only the words no Dashboard locale has, where the Dashboard draws them so", () => {
+    /*
+     * Where each is written: a Dashboard source, or (common:) a Common one
+     * the Dashboard draws it from - the Span Type choices are named in
+     * Types/Telemetry/TraceSpanType.
+     */
     const drawnIn: Record<string, string> = {
-      "Root spans": "Components/Traces/TracesViewer.tsx",
+      "Entry spans": "common:Types/Telemetry/TraceSpanType.ts",
+      "Root spans": "common:Types/Telemetry/TraceSpanType.ts",
+      "All spans": "common:Types/Telemetry/TraceSpanType.ts",
       "See full trace": "Components/Traces/SpanDetailsPanel.tsx",
       "Critical path": "Components/Traces/TraceExplorer.tsx",
       "Errors only": "Components/Traces/TraceExplorer.tsx",
+    };
+    const readDrawnIn: (source: string) => string = (
+      source: string,
+    ): string => {
+      return source.startsWith("common:")
+        ? readCommonSource(source.substring("common:".length))
+        : readDashboardSource(source);
     };
 
     /*
@@ -2127,7 +2193,7 @@ describe("the explorers together", () => {
       });
       expect({
         word,
-        drawn: readDashboardSource(drawnIn[word] as string).includes(word),
+        drawn: readDrawnIn(drawnIn[word] as string).includes(word),
       }).toEqual({ word, drawn: true });
     }
   });

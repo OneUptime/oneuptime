@@ -187,7 +187,7 @@ Hver skabelon slutter med et **Log**-trin, der siger, hvad der skete, så det si
 - `❌` — et kald mislykkedes. Ved et Jira-kald indeholder linjen Jiras svar.
 - `⚠️` — en skabelon, der opretter en post ud fra en Jira-sag, oprettede den, men Jira tog ikke imod forbindelsesetiketterne, så de andre skabeloner kan ikke finde den endnu. Tilføj etiketterne i hånden.
 
-En kørsel, der springes over, slutter stadig som **Executed**. Det er normalt at springe over: de fleste Jira-begivenheder er ikke nogen, en given skabelon handler på. Se [Workflow-kørsler](/docs/workflows/runs-and-logs).
+En kørsel, der springes over, slutter stadig som **Udført**. Det er normalt at springe over: de fleste Jira-begivenheder er ikke nogen, en given skabelon handler på. Se [Workflow-kørsler](/docs/workflows/runs-and-logs).
 
 ## Sådan fungerer skabelonerne
 

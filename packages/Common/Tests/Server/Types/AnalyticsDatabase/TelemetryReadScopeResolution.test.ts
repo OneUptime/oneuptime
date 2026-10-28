@@ -118,6 +118,8 @@ function row(
     scope: data.scope,
     labelIds: data.labelIds || [],
     isBlockPermission: data.isBlockPermission || false,
+    // The member's team holds it: an Owned row reaches what that team owns.
+    teamId: TEAM_ID,
   };
 }
 

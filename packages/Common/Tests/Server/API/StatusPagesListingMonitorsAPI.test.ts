@@ -841,7 +841,8 @@ describe("POST /status-page/listing-monitors", () => {
       expect(JSON.stringify(result.body)).not.toContain("Project B Status");
     });
 
-    it("the multi-tenant header changes nothing: the answer is for the project in the tenant header", async () => {
+    // One project or across projects, never both (MultiTenantQuery).
+    it("the multi-tenant header beside the tenant header is refused, and no page is named", async () => {
       const result: HttpResult = await send({
         userId: MEMBER_IN_A_AND_B,
         tenantId: PROJECT_A,
@@ -849,11 +850,8 @@ describe("POST /status-page/listing-monitors", () => {
         headers: { "is-multi-tenant-query": "true" },
       });
 
-      expect(namesIn(result)).toEqual([
-        "Acme Public",
-        "EU Status",
-        "Incidents Only",
-      ]);
+      expect(result.status).toBe(400);
+      expect(JSON.stringify(result.body)).not.toContain("Acme Public");
       expect(JSON.stringify(result.body)).not.toContain(B_PAGE);
     });
 

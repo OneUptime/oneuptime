@@ -143,10 +143,12 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 import useEventStateActions, {
   CHANGE_STATE_ICON,
   EventStateActionsResult,
+  getEventStateActionLock,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/useEventStateActions";
 import { ActionMenuGroup } from "../../../UI/Components/ActionButton/ActionMenuGroup";
 import {
   ALREADY_ACKNOWLEDGED,
+  EVENT_STATE_KINDS,
   EventStateKind,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventStateKinds";
 import RowActions from "../../../UI/Components/ActionButton/RowActions";
@@ -702,5 +704,199 @@ describe("permissions", () => {
     fireEvent.click(acknowledge);
 
     expect(screen.queryByTestId("modal")).toBeNull();
+  });
+
+  /*
+   * A move writes a row of the kind's state timeline, so that is the
+   * permission checked - but a locked Acknowledge used to say "You do not
+   * have permission to create this Incident State Timeline.", the table's
+   * words, not what was pressed (#5251). A row says what its record page's
+   * header says; a selection says it about the records selected.
+   */
+  const LOCK_SENTENCES: Array<{
+    kind: EventStateKind;
+    row: string;
+    bulk: string;
+    timeline: string;
+  }> = [
+    {
+      kind: EventStateKind.Incident,
+      row: "You do not have permission to change this incident's state.",
+      bulk: "You do not have permission to change the state of these incidents.",
+      timeline: "Incident State Timeline",
+    },
+    {
+      kind: EventStateKind.Alert,
+      row: "You do not have permission to change this alert's state.",
+      bulk: "You do not have permission to change the state of these alerts.",
+      timeline: "Alert State Timeline",
+    },
+    {
+      kind: EventStateKind.IncidentEpisode,
+      row: "You do not have permission to change this episode's state.",
+      bulk: "You do not have permission to change the state of these episodes.",
+      timeline: "Incident Episode State Timeline",
+    },
+    {
+      kind: EventStateKind.AlertEpisode,
+      row: "You do not have permission to change this episode's state.",
+      bulk: "You do not have permission to change the state of these episodes.",
+      timeline: "Alert Episode State Timeline",
+    },
+    {
+      kind: EventStateKind.ScheduledMaintenance,
+      row: "You do not have permission to change this event's state.",
+      bulk: "You do not have permission to change the state of these events.",
+      timeline: "Scheduled Maintenance State Timeline",
+    },
+  ];
+
+  test.each(LOCK_SENTENCES)(
+    "$kind: a locked move says why for the row, and for a selection, in the words of what was pressed",
+    (sentences: {
+      kind: EventStateKind;
+      row: string;
+      bulk: string;
+      timeline: string;
+    }) => {
+      permissionsForTest = [Permission.Viewer];
+
+      const states: Array<BaseModel> =
+        sentences.kind === EventStateKind.ScheduledMaintenance
+          ? MAINTENANCE_STATES
+          : INCIDENT_STATES;
+
+      const { result } = renderHook(() => {
+        return useEventStateActions<BaseModel>({
+          kind: sentences.kind,
+          states: states,
+        });
+      });
+
+      const rowActions: Array<{
+        title: string;
+        disabled?: boolean | undefined;
+        tooltip?: string | undefined;
+      }> = result.current.rowActions;
+      const bulkActions: Array<{
+        title: string;
+        disabled?: boolean | undefined;
+        tooltip?: string | undefined;
+      }> = result.current.bulkActions;
+
+      // The named moves and Change State, in each place.
+      expect(rowActions.length).toBe(3);
+      expect(bulkActions.length).toBe(3);
+
+      for (const action of rowActions) {
+        expect([action.title, action.disabled]).toEqual([action.title, true]);
+        expect(action.tooltip?.startsWith(sentences.row)).toBe(true);
+      }
+
+      for (const action of bulkActions) {
+        expect([action.title, action.disabled]).toEqual([action.title, true]);
+        expect(action.tooltip?.startsWith(sentences.bulk)).toBe(true);
+      }
+
+      for (const action of [...rowActions, ...bulkActions]) {
+        /*
+         * Never the table's own words ("create this Incident State
+         * Timeline"), still the permissions that would allow it - one of
+         * which is the timeline's own create permission.
+         */
+        expect(action.tooltip).not.toContain(`this ${sentences.timeline}`);
+        expect(action.tooltip).toContain(`Create ${sentences.timeline}`);
+        expect(action.tooltip).not.toContain("permission to create");
+        expect(action.tooltip).toContain("You need one of these permissions:");
+      }
+    },
+  );
+
+  test("an incident row's locked Acknowledge reads its sentence where the menu explains it", () => {
+    permissionsForTest = [Permission.Viewer];
+
+    renderIncident(incident({ stateId: IDENTIFIED }));
+
+    fireEvent.click(screen.getByTestId("row-actions-more-button"));
+
+    const acknowledge: HTMLElement = within(screen.getByRole("menu")).getByRole(
+      "menuitem",
+      { name: "Acknowledge" },
+    );
+    const reason: string =
+      document.getElementById(acknowledge.getAttribute("aria-describedby")!)
+        ?.textContent || "";
+
+    expect(reason).toContain(
+      "You do not have permission to change this incident's state.",
+    );
+    expect(reason).not.toContain("this Incident State Timeline");
+  });
+
+  test("someone who may move the kind finds nothing locked, in the row or in bulk", () => {
+    permissionsForTest = [Permission.ProjectOwner];
+
+    const { result } = renderHook(() => {
+      return useEventStateActions<Incident>({
+        kind: EventStateKind.Incident,
+        states: INCIDENT_STATES,
+      });
+    });
+
+    for (const action of [
+      ...result.current.rowActions,
+      ...result.current.bulkActions,
+    ] as Array<{ title: string; disabled?: boolean; tooltip?: string }>) {
+      expect([action.title, Boolean(action.disabled)]).toEqual([
+        action.title,
+        false,
+      ]);
+      expect(action.tooltip).toBeUndefined();
+    }
+  });
+
+  test("before the permissions are read nothing is locked: there is nothing honest to say yet", () => {
+    permissionsForTest = [];
+
+    const { result } = renderHook(() => {
+      return useEventStateActions<Incident>({
+        kind: EventStateKind.Incident,
+        states: INCIDENT_STATES,
+      });
+    });
+
+    for (const action of [
+      ...result.current.rowActions,
+      ...result.current.bulkActions,
+    ] as Array<{ disabled?: boolean; tooltip?: string }>) {
+      expect(action.disabled).toBeUndefined();
+      expect(action.tooltip).toBeUndefined();
+    }
+  });
+});
+
+describe("the lock of a move (getEventStateActionLock)", () => {
+  test("locked only when refused with a reason to show", () => {
+    expect(getEventStateActionLock({ isAllowed: true })).toEqual({});
+    expect(getEventStateActionLock({ isAllowed: false })).toEqual({});
+    expect(
+      getEventStateActionLock({ isAllowed: false, disabledReason: "Why." }),
+    ).toEqual({ disabled: true, tooltip: "Why." });
+  });
+
+  // One record's state, and a selection's.
+  const ROW_LOCK_SENTENCE: RegExp =
+    /^You do not have permission to change this [a-z]+'s state\.$/;
+  const BULK_LOCK_SENTENCE: RegExp =
+    /^You do not have permission to change the state of these [a-z]+s\.$/;
+
+  test("every kind has its own words for a row and for a selection", () => {
+    for (const kind of Object.values(EventStateKind)) {
+      const words: { rowLockSentence: string; bulkLockSentence: string } =
+        EVENT_STATE_KINDS[kind].words;
+
+      expect(words.rowLockSentence).toMatch(ROW_LOCK_SENTENCE);
+      expect(words.bulkLockSentence).toMatch(BULK_LOCK_SENTENCE);
+    }
   });
 });

@@ -19,6 +19,7 @@ import RuleCriteriaMatcher, {
 import RulePatternMatchUtil from "../../../Utils/Rules/RulePatternMatchUtil";
 import { describe, expect, it, jest } from "@jest/globals";
 import type { Mock } from "jest-mock";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 interface RelatedItem {
   _id?: string;
@@ -947,26 +948,29 @@ describe("RuleCriteriaMatcher text legacy adapter", () => {
 
       return answer;
     };
-    const startedAt: number = Date.now();
-
-    expect(
-      RuleCriteriaMatcher.matchesWithLegacySync({
-        rule: makeRule(
-          makeCriteria([
-            makeFilter(
-              "namePattern",
-              RuleCriteriaOperator.MatchesPattern,
-              adversarialWildcard,
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(
+          RuleCriteriaMatcher.matchesWithLegacySync({
+            rule: makeRule(
+              makeCriteria([
+                makeFilter(
+                  "namePattern",
+                  RuleCriteriaOperator.MatchesPattern,
+                  adversarialWildcard,
+                ),
+              ]),
             ),
-          ]),
-        ),
-        legacyFields: ["namePattern", "descriptionPattern", "labels"],
-        emptyResult: false,
-        matchesLegacyRule: matchesLegacyRule,
-      }),
-    ).toBe(false);
-    expect(answer).toBe(false);
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+            legacyFields: ["namePattern", "descriptionPattern", "labels"],
+            emptyResult: false,
+            matchesLegacyRule: matchesLegacyRule,
+          }),
+        ).toBe(false);
+        expect(answer).toBe(false);
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   it.each([

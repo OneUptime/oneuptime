@@ -74,7 +74,7 @@ describe.each([
 
   test("keeps its time range and auto-refresh in the shared viewer settings, for this dashboard", () => {
     expect(code).toContain(
-      "useDashboardViewerSettings({ dashboardId: props.dashboardId.toString(), })",
+      "useDashboardViewerSettings({ dashboardId: props.dashboardId.toString(),",
     );
     expect(code).toContain(
       "const autoRefreshInterval: AutoRefreshInterval = viewerSettings.autoRefreshInterval;",
@@ -105,6 +105,21 @@ describe.each([
 describe("the dashboard inside OneUptime", () => {
   const code: string = readCode(AUTHENTICATED_SHELL);
   const toolbar: string = readCode(TOOLBAR);
+
+  test("only a playlist's turn opens on the saved defaults alone, and the public dashboard never does", () => {
+    /*
+     * A playlist plays dashboards one after another on one address
+     * (issue #5235): the link's ?range= and the viewer's remembered picks
+     * are not the board's to follow there, nor to write to.
+     */
+    expect(code).toContain(
+      "useDashboardViewerSettings({ dashboardId: props.dashboardId.toString(), savedDefaultsOnly: isPlayback, })",
+    );
+    expect(code).toContain(
+      "const isPlayback: boolean = Boolean(props.isPlayback);",
+    );
+    expect(readCode(PUBLIC_SHELL)).not.toContain("savedDefaultsOnly");
+  });
 
   test("Save Changes saves the board as edited, and stamps no view-mode interval onto it", () => {
     expect(code).not.toContain("refreshInterval: autoRefreshInterval");

@@ -16,7 +16,7 @@ Ett formulär är öppet för alla som har dess länk, och varje inlämning kan 
 | **Status** | **Tar emot inlämningar** — om formulärets länk fungerar. |
 | **Delningslänk** | Länken, med **Kopiera länk**, **Öppna formulär** och **Återställ länk**. |
 | **Efter inlämning** | Det **Tackmeddelande** som personer ser när de har lämnat in, under numret på det som formuläret skapade. |
-| **Åtkomst** | **IP-tillåtelselista**. |
+| **Fler inställningar** | **IP-tillåtelselista**, hopfälld tills du öppnar den. |
 
 ## Dela länken
 
@@ -80,7 +80,7 @@ För att begränsa ett formulär till dina egna nätverk:
 
 :::steps
 1. Öppna formulärets sida **Dela**.
-2. På kortet **Åtkomst** klickar du på **Redigera IP-tillåtelselista**.
+2. Öppna **Fler inställningar** och klicka på **Redigera IP-tillåtelselista**.
 3. Ange ett nätverk per rad och spara. Kortet visar dem sedan under **IP-tillåtelselista**.
 :::
 

@@ -39,6 +39,7 @@ import AdminEnterprisePlugins from "../../../AdminDashboard/Index";
 import AdminAuditLogExportPlugins from "../../../AdminDashboard/AuditLogExport/Plugins";
 import { AUDIT_LOG_EXPORT_SETTINGS_PAGE_PATH } from "../../../AdminDashboard/AuditLogExport/AuditLogExportPaths";
 import { BACKUPS_SETTINGS_PAGE_PATH } from "../../../AdminDashboard/Backups/BackupsPaths";
+import { CUSTOM_CHANNELS_SETTINGS_PAGE_PATH } from "../../../AdminDashboard/CustomChannels/CustomChannelsPaths";
 import {
   ENTERPRISE_SETTINGS_PAGES,
   EnterpriseSettingsSideMenuItems,
@@ -109,7 +110,7 @@ describe("the Admin Dashboard plugin", () => {
     expect(typeof pages[0]!.component).toBe("object");
   });
 
-  test("merges its page with Backups' and White Label's: the plugin keeps them all", () => {
+  test("merges its page with Backups', Custom Channels' and White Label's: the plugin keeps them all", () => {
     expect(
       ENTERPRISE_SETTINGS_PAGES.map((page: EnterpriseSettingsPage) => {
         return page.path;
@@ -117,6 +118,7 @@ describe("the Admin Dashboard plugin", () => {
     ).toEqual([
       AUDIT_LOG_EXPORT_SETTINGS_PAGE_PATH,
       BACKUPS_SETTINGS_PAGE_PATH,
+      CUSTOM_CHANNELS_SETTINGS_PAGE_PATH,
       WHITE_LABEL_SETTINGS_PAGE_PATH,
     ]);
     expect(AdminEnterprisePlugins.SettingsPages).toBe(

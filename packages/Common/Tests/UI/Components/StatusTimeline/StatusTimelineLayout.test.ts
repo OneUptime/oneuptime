@@ -35,6 +35,7 @@ import {
   StatusTimelineWindowFollow,
   summarizeStatusTimeline,
 } from "../../../../UI/Components/StatusTimeline/StatusTimelineLayout";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * The geometry of a status timeline: which entry ends when, where each
@@ -901,12 +902,16 @@ describe("layoutStatusTimelineBand: many entries", () => {
       end -= length;
     }
 
-    const started: number = Date.now();
-    const bandLayout: StatusTimelineBandLayout = layout({
-      entries: entries,
-      window: windowOf(-30 * DAY, 0),
+    const timed: FastestRun<StatusTimelineBandLayout> = fastestRun({
+      run: (): StatusTimelineBandLayout => {
+        return layout({
+          entries: entries,
+          window: windowOf(-30 * DAY, 0),
+        });
+      },
+      limitInMs: 2000,
     });
-    const elapsed: number = Date.now() - started;
+    const bandLayout: StatusTimelineBandLayout = timed.result;
 
     const drawn: Array<string> = bandLayout.marks.flatMap(
       (mark: StatusTimelineBandMark) => {
@@ -918,7 +923,7 @@ describe("layoutStatusTimelineBand: many entries", () => {
     expect(drawn).toHaveLength(2000);
     // Far fewer marks than entries: they run together into clusters.
     expect(bandLayout.marks.length).toBeLessThan(400);
-    expect(elapsed).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

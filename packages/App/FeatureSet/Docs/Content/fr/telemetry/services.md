@@ -85,7 +85,7 @@ Dans **Détails du service**, cliquez sur **Modifier les détails** pour changer
 Dans **Paramètres du service**, cliquez sur **Modifier les paramètres**. La **Couleur du service** repère le service dans les graphiques et les listes ; un nouveau service reçoit la sienne. **Pile technologique** est facultative : laissez-la vide pour afficher le langage détecté dans sa télémétrie.
 :::
 
-La même page contient la conservation du service. Les cartes **Conservation des données de télémétrie** et **Rétention par type de télémétrie** conservent sa télémétrie plus ou moins longtemps que la conservation par défaut du projet. Elles font partie de l'[Enterprise Edition](/docs/self-hosted/enterprise), et du forfait Scale sur OneUptime Cloud ; sans elles, la page montre ce qu'elles apportent, et le service garde la conservation du projet.
+La même page contient la conservation du service, repliée sous **Plus de paramètres**. Les cartes **Conservation des données de télémétrie** et **Rétention par type de télémétrie** conservent sa télémétrie plus ou moins longtemps que la conservation par défaut du projet. Elles font partie de l'[Enterprise Edition](/docs/self-hosted/enterprise), et du forfait Scale sur OneUptime Cloud ; sans elles, la page montre ce qu'elles apportent, et le service garde la conservation du projet.
 
 ## Définir les étiquettes et les propriétaires automatiquement
 

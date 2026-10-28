@@ -187,7 +187,7 @@ project = OPS AND issuetype = Alert AND (labels is EMPTY OR labels != oneuptime)
 - `❌` — 某个调用失败了。对于 Jira 调用，这一行包含 Jira 的回应。
 - `⚠️` — 根据 Jira 问题创建记录的模板已经创建了记录，但 Jira 没有接受关联标签，因此其他模板暂时还找不到它。请手动添加这些标签。
 
-被跳过的运行仍以 **Executed** 结束。跳过是正常的：大多数 Jira 事件都不是某个特定模板要处理的。参见 [工作流运行记录](/docs/workflows/runs-and-logs)。
+被跳过的运行仍以 **已执行** 结束。跳过是正常的：大多数 Jira 事件都不是某个特定模板要处理的。参见 [工作流运行记录](/docs/workflows/runs-and-logs)。
 
 ## 模板的工作方式
 

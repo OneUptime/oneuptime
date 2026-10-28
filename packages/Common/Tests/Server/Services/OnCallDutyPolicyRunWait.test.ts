@@ -23,8 +23,10 @@ import {
   ON_CALL_POLICY_RUN_STARTED_EARLY_REASON_MAX_LENGTH,
   ON_CALL_POLICY_RUN_WAITING_MESSAGE_START,
   getOnCallPolicyRunEndedWhileWaitingMessage,
+  getOnCallPolicyRunWaitingMessage,
 } from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunWait";
 import OnCallDutyPolicyStatus from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
+import { OnCallPolicyAiHoldOutcome } from "../../../Types/OnCallDutyPolicy/OnCallPolicyAiHold";
 import UserNotificationEventType from "../../../Types/UserNotification/UserNotificationEventType";
 import {
   afterEach,
@@ -884,5 +886,285 @@ describe("a run that waited, and its record's first page", () => {
     ]);
     // Not when the alert was raised.
     expect(firstPages[0]!.data["firstPagedAt"]).not.toEqual(NIGHT);
+  });
+});
+
+/*
+ * A RUN ONEUPTIME AI HOLDS (OnCallPolicyAiHold): created waiting, as a
+ * working-hours run is, and marked Holding; the claim that moves it on from
+ * Waiting says how its hold ended, so its outcome and its status never
+ * disagree. A run with no hold writes no outcome.
+ */
+describe("a run OneUptime AI holds", () => {
+  const AI_HOLD_MESSAGE: string = getOnCallPolicyRunWaitingMessage({
+    pagingStartsAt: new Date("2026-10-27T10:40:00.000Z"),
+    now: new Date("2026-10-27T10:30:00.000Z"),
+    isWaitingForWorkingHours: false,
+    isWaitingForOneUptimeAI: true,
+  });
+
+  function stubCreate(): jest.SpyInstance {
+    jest
+      .spyOn(OnCallDutyPolicyService, "findOneById")
+      .mockResolvedValue(livePolicy());
+
+    return jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "create")
+      .mockImplementation(async (args: unknown) => {
+        return (args as CreateArgs).data;
+      }) as unknown as jest.SpyInstance;
+  }
+
+  function claimed(stubs: Stubs): Record<string, unknown> {
+    expect(stubs.repositoryUpdate).toHaveBeenCalledTimes(1);
+    return stubs.repositoryUpdate.mock.calls[0]![1] as Record<string, unknown>;
+  }
+
+  test("is created waiting, marked Holding, saying it waits for OneUptime AI", async () => {
+    const create: jest.SpyInstance = stubCreate();
+    const pagingStartsAt: Date = new Date(Date.now() + 10 * 60 * 1000);
+
+    await OnCallDutyPolicyService.executePolicy(POLICY_ID, {
+      triggeredByIncidentId: ALERT_ID,
+      userNotificationEventType: UserNotificationEventType.IncidentCreated,
+      pagingStartsAt: pagingStartsAt,
+      waitingStatusMessage: AI_HOLD_MESSAGE,
+      isAiHold: true,
+    });
+
+    const args: CreateArgs = create.mock.calls[0]![0] as CreateArgs;
+
+    expect(args.data.status).toBe(OnCallDutyPolicyStatus.Waiting);
+    expect(args.data.pagingStartsAt).toEqual(pagingStartsAt);
+    expect(args.data.statusMessage).toBe(AI_HOLD_MESSAGE);
+    expect(args.data.aiHoldOutcome).toBe(OnCallPolicyAiHoldOutcome.Holding);
+  });
+
+  test("a working-hours wait is no AI hold", async () => {
+    const create: jest.SpyInstance = stubCreate();
+
+    await OnCallDutyPolicyService.executePolicy(POLICY_ID, {
+      triggeredByAlertId: ALERT_ID,
+      userNotificationEventType: UserNotificationEventType.AlertCreated,
+      pagingStartsAt: new Date(Date.now() + 7 * HOUR),
+      waitingStatusMessage: WORKING_HOURS_MESSAGE,
+    });
+
+    const args: CreateArgs = create.mock.calls[0]![0] as CreateArgs;
+
+    expect(args.data.status).toBe(OnCallDutyPolicyStatus.Waiting);
+    expect(args.data.aiHoldOutcome).toBeUndefined();
+  });
+
+  test("whose moment is already past pages at once, holding nothing", async () => {
+    const create: jest.SpyInstance = stubCreate();
+
+    await OnCallDutyPolicyService.executePolicy(POLICY_ID, {
+      triggeredByIncidentId: ALERT_ID,
+      userNotificationEventType: UserNotificationEventType.IncidentCreated,
+      pagingStartsAt: new Date(Date.now() - 1000),
+      waitingStatusMessage: AI_HOLD_MESSAGE,
+      isAiHold: true,
+    });
+
+    const args: CreateArgs = create.mock.calls[0]![0] as CreateArgs;
+
+    expect(args.data.status).toBe(OnCallDutyPolicyStatus.Scheduled);
+    expect(args.data.aiHoldOutcome).toBeUndefined();
+  });
+
+  test("created to page now keeps no hold, whatever it was handed", async () => {
+    jest
+      .spyOn(OnCallDutyPolicyService, "findOneById")
+      .mockResolvedValue(livePolicy());
+
+    const log: OnCallDutyPolicyExecutionLog = run({
+      status: OnCallDutyPolicyStatus.Waiting,
+      statusMessage: AI_HOLD_MESSAGE,
+    });
+    log.aiHoldOutcome = OnCallPolicyAiHoldOutcome.Holding;
+
+    const onCreate: BeforeCreateResult = await hooks.onBeforeCreate({
+      data: log,
+      props: { isRoot: true },
+    });
+
+    expect(onCreate.createBy.data.status).toBe(
+      OnCallDutyPolicyStatus.Scheduled,
+    );
+    expect(onCreate.createBy.data.aiHoldOutcome).toBeUndefined();
+  });
+
+  test("started when its hold time ran out, says so in the same claim", async () => {
+    const stubs: Stubs = stub();
+    const now: Date = new Date();
+
+    await expect(
+      OnCallDutyPolicyExecutionLogService.startWaitingRun({
+        run: run({
+          status: OnCallDutyPolicyStatus.Waiting,
+          statusMessage: AI_HOLD_MESSAGE,
+          pagingStartsAt: new Date(now.getTime() - 1000),
+        }),
+        now: now,
+        aiHoldOutcome: OnCallPolicyAiHoldOutcome.HoldTimeRanOut,
+      }),
+    ).resolves.toBe(true);
+
+    expect(stubs.repositoryUpdate).toHaveBeenCalledWith(
+      { _id: RUN_ID.toString(), status: OnCallDutyPolicyStatus.Waiting },
+      {
+        status: OnCallDutyPolicyStatus.Started,
+        statusMessage: "Execution started...",
+        pagingStartsAt: now,
+        aiHoldOutcome: OnCallPolicyAiHoldOutcome.HoldTimeRanOut,
+      },
+    );
+    expect(stubs.startRuleExecution).toHaveBeenCalledTimes(1);
+  });
+
+  test("handed off early, keeps why and that it was handed off, in the same claim", async () => {
+    const stubs: Stubs = stub();
+    const now: Date = new Date();
+    const why: string = "OneUptime AI found no fix it may run on its own.";
+
+    await OnCallDutyPolicyExecutionLogService.startWaitingRun({
+      run: run({
+        status: OnCallDutyPolicyStatus.Waiting,
+        statusMessage: AI_HOLD_MESSAGE,
+        pagingStartsAt: new Date(now.getTime() + 8 * 60 * 1000),
+      }),
+      now: now,
+      startedEarlyReason: why,
+      aiHoldOutcome: OnCallPolicyAiHoldOutcome.HandedOff,
+    });
+
+    expect(claimed(stubs)).toEqual({
+      status: OnCallDutyPolicyStatus.Started,
+      statusMessage: "Execution started...",
+      pagingStartsAt: now,
+      pagingStartedEarlyReason: why,
+      aiHoldOutcome: OnCallPolicyAiHoldOutcome.HandedOff,
+    });
+  });
+
+  test.each([
+    OnCallPolicyAiHoldOutcome.ResolvedByAI,
+    OnCallPolicyAiHoldOutcome.RecoveredOnItsOwn,
+    OnCallPolicyAiHoldOutcome.HandledByPerson,
+  ])(
+    "ended unpaged, says how (%s) in the same claim",
+    async (outcome: OnCallPolicyAiHoldOutcome) => {
+      const stubs: Stubs = stub();
+      const message: string =
+        getOnCallPolicyRunEndedWhileWaitingMessage("incident");
+
+      jest
+        .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")
+        .mockResolvedValue(
+          run({
+            status: OnCallDutyPolicyStatus.Completed,
+            statusMessage: message,
+            recordKind: "incident",
+          }),
+        );
+
+      await expect(
+        OnCallDutyPolicyExecutionLogService.endWaitingRun({
+          executionLogId: RUN_ID,
+          status: OnCallDutyPolicyStatus.Completed,
+          statusMessage: message,
+          aiHoldOutcome: outcome,
+        }),
+      ).resolves.toBe(true);
+
+      expect(stubs.repositoryUpdate).toHaveBeenCalledWith(
+        { _id: RUN_ID.toString(), status: OnCallDutyPolicyStatus.Waiting },
+        {
+          status: OnCallDutyPolicyStatus.Completed,
+          statusMessage: message,
+          aiHoldOutcome: outcome,
+        },
+      );
+      expect(stubs.startRuleExecution).not.toHaveBeenCalled();
+    },
+  );
+
+  test("ended by its archived policy, is no hold any more", async () => {
+    const stubs: Stubs = stub();
+
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")
+      .mockResolvedValue(
+        run({
+          status: OnCallDutyPolicyStatus.Error,
+          statusMessage: ON_CALL_POLICY_ARCHIVED_NOT_EXECUTED_MESSAGE,
+        }),
+      );
+
+    await OnCallDutyPolicyExecutionLogService.endWaitingRun({
+      executionLogId: RUN_ID,
+      status: OnCallDutyPolicyStatus.Error,
+      statusMessage: ON_CALL_POLICY_ARCHIVED_NOT_EXECUTED_MESSAGE,
+      aiHoldOutcome: null,
+    });
+
+    // Null, written: neither paged nor resolved, it is left Holding nowhere.
+    expect(claimed(stubs)).toEqual({
+      status: OnCallDutyPolicyStatus.Error,
+      statusMessage: ON_CALL_POLICY_ARCHIVED_NOT_EXECUTED_MESSAGE,
+      aiHoldOutcome: null,
+    });
+  });
+
+  test("a run with no hold writes no outcome as it ends or starts", async () => {
+    const stubs: Stubs = stub();
+    const now: Date = new Date();
+
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")
+      .mockResolvedValue(
+        run({
+          status: OnCallDutyPolicyStatus.Completed,
+          statusMessage: getOnCallPolicyRunEndedWhileWaitingMessage("alert"),
+        }),
+      );
+
+    await OnCallDutyPolicyExecutionLogService.endWaitingRun({
+      executionLogId: RUN_ID,
+      status: OnCallDutyPolicyStatus.Completed,
+      statusMessage: getOnCallPolicyRunEndedWhileWaitingMessage("alert"),
+    });
+    await OnCallDutyPolicyExecutionLogService.startWaitingRun({
+      run: run({
+        status: OnCallDutyPolicyStatus.Waiting,
+        statusMessage: WORKING_HOURS_MESSAGE,
+        pagingStartsAt: new Date(now.getTime() - 1000),
+      }),
+      now: now,
+    });
+
+    for (const call of stubs.repositoryUpdate.mock.calls) {
+      expect(Object.keys(call[1] as Record<string, unknown>)).not.toContain(
+        "aiHoldOutcome",
+      );
+    }
+  });
+
+  test("lost to another tick, writes no outcome and pages nobody", async () => {
+    const stubs: Stubs = stub({ claimWins: false });
+
+    await expect(
+      OnCallDutyPolicyExecutionLogService.endWaitingRun({
+        executionLogId: RUN_ID,
+        status: OnCallDutyPolicyStatus.Completed,
+        statusMessage: getOnCallPolicyRunEndedWhileWaitingMessage("incident"),
+        aiHoldOutcome: OnCallPolicyAiHoldOutcome.ResolvedByAI,
+      }),
+    ).resolves.toBe(false);
+
+    expect(stubs.incidentFeed).not.toHaveBeenCalled();
+    expect(stubs.refresh).not.toHaveBeenCalled();
+    expect(stubs.startRuleExecution).not.toHaveBeenCalled();
   });
 });

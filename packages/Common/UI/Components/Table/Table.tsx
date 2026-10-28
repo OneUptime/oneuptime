@@ -31,8 +31,8 @@ import TableHeader from "./TableHeader";
 import TableSkeletonRows from "./TableSkeletonRows";
 import {
   TABLE_CLASS_NAME,
-  TABLE_FOOTER_BLEED_CLASS_NAME,
   TABLE_SCROLL_BOX_CLASS_NAME,
+  getTableFooterClassName,
 } from "./TableLayout";
 import useTableScrollState, { TableScrollState } from "./useTableScrollState";
 import {
@@ -352,6 +352,21 @@ const Table: TableFunction = <T extends GenericObject>(
     ((isEmptyResult || isLoadError) &&
       props.currentPageNumber <= 1 &&
       !props.hasMore);
+
+  /*
+   * What ends the card: the footer's pagination bar, or - a table that
+   * shows every row on one page (disablePagination: the Rule Library, a
+   * dictionary, the sign-in keys) - its last row. A footer with nothing in
+   * it stays out of the card's bottom padding under rows
+   * (getTableFooterClassName), so the card keeps its padding, its bottom
+   * border and its rounded corners under the last row, which ran over all
+   * three.
+   */
+  const footerClassName: string = getTableFooterClassName({
+    hasPagination: !isPaginationHidden,
+    endsWithRows: !isEmptyResult && !isLoadError,
+    isCardSection: isCardSection,
+  });
 
   const translate: (value: string) => string = (value: string): string => {
     return translateString(value) ?? value;
@@ -752,18 +767,14 @@ const Table: TableFunction = <T extends GenericObject>(
         {isEmptyResult && getNoItemsElement()}
         {isLoadError && getLoadErrorElement()}
         {/*
-         * The footer sits flush on the card's rounded bottom edge. Clipped to
-         * the same curve, so the pagination bar's square white corners do not
-         * paint over the card's corners and border. A section of a card
-         * (CardSections) has square corners, and the divider under it runs
-         * straight: its footer is square too.
+         * The footer sits flush on the card's rounded bottom edge
+         * (TableLayout's getTableFooterClassName). Clipped to the same curve,
+         * so the pagination bar's square white corners do not paint over the
+         * card's corners and border. A section of a card (CardSections) has
+         * square corners, and the divider under it runs straight: its footer
+         * is square too.
          */}
-        <div
-          className={`bg-gray-50 text-right ${TABLE_FOOTER_BLEED_CLASS_NAME} overflow-hidden${
-            isCardSection ? "" : " rounded-b-xl"
-          }`}
-          data-testid="table-footer"
-        >
+        <div className={footerClassName} data-testid="table-footer">
           {!isPaginationHidden && (
             <Pagination
               singularLabel={translatedSingularLabel}

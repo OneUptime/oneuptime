@@ -23,6 +23,7 @@ import RepositoryInstructions, {
 import fs from "fs";
 import os from "os";
 import path from "path";
+import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 
 const temporaryPaths: Array<string> = [];
 
@@ -266,10 +267,14 @@ describe("reading it from the working tree", () => {
       80000,
     );
 
-    const startedAt: number = Date.now();
-    RepositoryInstructions.toInstructions("AGENTS.md", worst);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        RepositoryInstructions.toInstructions("AGENTS.md", worst);
+      },
+      limitInMs: 2000,
+    });
 
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

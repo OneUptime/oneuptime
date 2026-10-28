@@ -4,7 +4,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
 import ResourceDetailsCard from "../../../Components/TelemetryResource/ResourceDetailsCard";
-import TelemetryResourceRetentionSettings from "../../../Components/TelemetryResource/TelemetryResourceRetentionSettings";
+import TelemetryResourceMoreSettings from "../../../Components/TelemetryResource/TelemetryResourceMoreSettings";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -42,7 +42,7 @@ const DockerHostSettings: FunctionComponent<
           },
         ]}
       />
-      <TelemetryResourceRetentionSettings<DockerHost>
+      <TelemetryResourceMoreSettings<DockerHost>
         modelType={DockerHost}
         modelId={modelId}
         resourceName="Docker host"

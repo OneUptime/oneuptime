@@ -1,3 +1,11 @@
+<meta charset="utf-8" />
+<%#
+    The person's theme - Light, Dark, or as their device is set - before
+    anything paints, as the Dashboard and the sign-in pages draw it (Common/
+    Types/Theme/ThemePreference.ts). This page has no app to keep it in step,
+    so the partial follows the device and other tabs itself.
+-%>
+<%- include('./Theme', { followChanges: true }) -%>
 <link rel="preload" href="/oneuptime-assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <style>
     /*
@@ -49,6 +57,10 @@
 </style>
 <link rel="preload" href="/oneuptime-assets/tailwind/tailwind-3.4.5.js" as="script">
 <script src="/oneuptime-assets/tailwind/tailwind-3.4.5.js"></script>
+<%# The page's dark: classes follow the dark class the theme script draws, not the device alone. -%>
+<script>
+    tailwind.config = { darkMode: "class" };
+</script>
 <%#
     No Google tag. These pages are reached from product email - acknowledging
     an on-call page, a one-off message - and nothing on them is OneUptime's to
@@ -64,7 +76,6 @@
     }
 </style>
 
-<meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <%
   var headBrandName = (typeof productName !== 'undefined' && productName) ? productName : 'OneUptime';
@@ -95,7 +106,6 @@
 <meta property="og:image" content="https://oneuptime.com/img/hou-wb.svg">
 
 <meta name="twitter:card" content="summary">
-<meta name="theme-color" content="#000000">
 <meta name="twitter:image" content="/oneuptime-assets/brand/ou-wb.svg">
 <meta name="twitter:site" content="@OneUptimeHQ">
 <meta name="twitter:title" content="OneUptime - One Complete Observability platform.">

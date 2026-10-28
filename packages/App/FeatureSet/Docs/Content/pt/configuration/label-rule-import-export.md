@@ -1,11 +1,11 @@
 # Importar e exportar regras de rótulos
 
-Copie regras de rótulos entre projetos, ou crie muitas de uma vez, como um arquivo JSON. Toda página **Regras de Rótulos** tem as ações **Export JSON** e **Import JSON** no menu **Mais opções** (**⋯**), inclusive em incidentes, alertas, monitores e dispositivos de rede. A única exceção é o VMware: as regras de rótulos de vCenter não têm nenhuma das duas.
+Copie regras de rótulos entre projetos, ou crie muitas de uma vez, como um arquivo JSON. Toda página **Regras de Rótulos** tem as ações **Exportar JSON** e **Importar JSON** no menu **Mais opções** (**⋯**), inclusive em incidentes, alertas, monitores e dispositivos de rede. A única exceção é o VMware: as regras de rótulos de vCenter não têm nenhuma das duas.
 
 ```mermaid title="Mover regras de rótulos entre projetos"
 flowchart TB
-    E["Export JSON<br/>no projeto de origem"] --> F["Arquivo JSON"]
-    F --> I["Import JSON<br/>no projeto de destino"]
+    E["Exportar JSON<br/>no projeto de origem"] --> F["Arquivo JSON"]
+    F --> I["Importar JSON<br/>no projeto de destino"]
     I --> V{"Validar e pré-visualizar"}
     V -->|"Problemas encontrados"| J["Editar o JSON"]
     J --> V
@@ -15,7 +15,7 @@ flowchart TB
 
 ## Exportar regras
 
-Abra **Mais opções** e selecione **Export JSON** para baixar todas as regras desse tipo no projeto atual. A exportação inclui as regras de outras páginas da tabela e ignora os filtros da tabela.
+Abra **Mais opções** e selecione **Exportar JSON** para baixar todas as regras desse tipo no projeto atual. A exportação inclui as regras de outras páginas da tabela e ignora os filtros da tabela.
 
 O arquivo mantém de cada regra o estado de habilitação, as condições, os rótulos a adicionar e as opções de herança de rótulos. Os IDs de projeto, os IDs de regra e os campos de auditoria ficam de fora.
 
@@ -24,9 +24,9 @@ Os rótulos, monitores e severidades vinculados são escritos com o nome exato. 
 ## Importar regras
 
 :::steps
-### Abrir Import JSON
+### Abrir Importar JSON
 
-Abra a página **Regras de Rótulos** do projeto de destino e selecione **Mais opções → Import JSON**.
+Abra a página **Regras de Rótulos** do projeto de destino e selecione **Mais opções → Importar JSON**.
 
 ### Adicionar o arquivo
 
@@ -93,7 +93,7 @@ Estes casos interrompem o lote inteiro antes da etapa de importação: padrões 
 
 ## Copiar entre tipos de recurso
 
-Mantenha o `resourceType` original no arquivo e abra **Import JSON** na página de destino. Os padrões compatíveis de nome ou título principal, os padrões de descrição e os rótulos pré-requisito são mapeados para os campos do destino, e a pré-visualização lista esses mapeamentos para você revisar. As referências a severidades de incidentes e alertas são comparadas com os nomes de severidade do destino.
+Mantenha o `resourceType` original no arquivo e abra **Importar JSON** na página de destino. Os padrões compatíveis de nome ou título principal, os padrões de descrição e os rótulos pré-requisito são mapeados para os campos do destino, e a pré-visualização lista esses mapeamentos para você revisar. As referências a severidades de incidentes e alertas são comparadas com os nomes de severidade do destino.
 
 Condições ou ações que o destino não suporta bloqueiam a importação. Por exemplo, uma regra de incidente restrita a monitores específicos não pode ser copiada para as regras de dispositivos de rede sem editar essas condições.
 

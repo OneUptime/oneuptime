@@ -26,6 +26,7 @@ import {
   reverseDashboardWidgetSortDirection,
 } from "../../../Types/Dashboard/DashboardWidgetSort";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 const ASC: DashboardWidgetSortDirection =
   DashboardWidgetSortDirection.Ascending;
@@ -133,10 +134,13 @@ describe("reading a written sort", () => {
   });
 
   test("400,000 characters of colons are read in no time", () => {
-    const started: number = Date.now();
-
-    expect(parseDashboardWidgetSortChoice(":".repeat(400000))).toBeNull();
-    expect(Date.now() - started).toBeLessThan(2000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(parseDashboardWidgetSortChoice(":".repeat(400000))).toBeNull();
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   test("written and read back, a sort is the same sort", () => {

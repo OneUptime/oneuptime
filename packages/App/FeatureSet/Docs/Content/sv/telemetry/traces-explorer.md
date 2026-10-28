@@ -22,7 +22,7 @@ flowchart TB
     pay --> call["Span: anropa<br/>betalningsleverantören"]
 ```
 
-Varje rad i utforskaren är ett span, så en upptagen tjänst fyller listan med sina databasfrågor och interna anrop. För att visa en rad per förfrågan väljer du **Root spans** under **Span-kategori** i sidopanelen.
+Varje rad i utforskaren är ett span. Som standard visar listan **Entry spans**, de span där en förfrågan eller ett meddelande kommer in i en tjänst, så att en förfrågan visas en gång för varje tjänst den når, medan databasfrågor och interna anrop hålls utanför listan. För att visa en rad per förfrågan väljer du **Root spans** under **Span-kategori** i sidopanelen; för att visa varje operation väljer du **All spans**.
 
 Utforskaren har fem flikar:
 
@@ -175,7 +175,7 @@ De pekar på ett föräldraspan som OneUptime inte har tagit emot, ofta för att
 :::
 
 :::details Listan visar betydligt fler rader än förfrågningar
-Varje rad är ett span, inte en förfrågan. Välj **Root spans** under **Span-kategori** i sidopanelen för att visa en rad per förfrågan.
+Varje rad är ett span, inte en förfrågan: med **Entry spans**, som är standard, visas en förfrågan en gång för varje tjänst den når, och med **All spans** en gång för varje operation. Välj **Root spans** under **Span-kategori** i sidopanelen för att visa en rad per förfrågan.
 :::
 
 ## Nästa steg

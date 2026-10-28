@@ -3,7 +3,7 @@
 KI fragen ist der Chat von OneUptime über die Daten Ihres Projekts. Fragen Sie nach Logs, Traces, Metriken, Ausnahmen, Vorfällen, Warnungen, Monitoren, Bereitschaft, Statusseiten, SLOs, Runbooks oder Workflows: Der Chat fragt Ihr Projekt live ab, belegt jede Aussage mit einer Quelle und handelt für Sie, wenn Sie es erlauben.
 
 :::cards
-- [KI fragen öffnen](#ki-fragen-öffnen): Aus der Kopfzeile, per Tastatur, aus einem Diagramm oder auf einer eigenen Seite.
+- [KI fragen öffnen](#ki-fragen-öffnen): Aus der Kopfzeile, per Tastatur, aus einem Diagramm oder über das Produktmenü.
 - [Was KI fragen sehen kann](#was-ki-fragen-sehen-kann): Die Daten, die der Chat für seine Antworten liest.
 - [Aktionen und Berechtigungsmodi](#aktionen-und-berechtigungsmodi): Legen Sie fest, ob er handeln darf und wann er vorher fragt.
 - [Aktionen erfolgen in Ihrem Namen](#aktionen-erfolgen-in-ihrem-namen): Ihre Berechtigungen, Ihr Name an jeder Änderung.
@@ -33,7 +33,9 @@ Im Modus **Nur Lesezugriff** werden dem Modell keine Aktionen angeboten, die Unt
 | Auf jeder Seite | Klicken Sie in der Kopfzeile auf **KI fragen** oder drücken Sie `Ctrl` + `I` (`Cmd` + `I` auf einem Mac). Während Sie in ein Textfeld oder einen Editor tippen, bleibt die Tastenkombination die Kursiv-Taste des Editors. |
 | Die Befehlspalette | Drücken Sie `Ctrl` + `K` (`Cmd` + `K` auf einem Mac) und wählen Sie **KI fragen**. |
 | Ein Fehlermuster in den Logs oder die Befunde eines Diagramms | Klicken Sie auf **Explain with AI**: KI fragen öffnet sich mit den Belegen als Frage, die Sie vor dem Senden bearbeiten können. |
-| Eine eigene Seite | Öffnen Sie **Produkte → AI → Chat** für einen Arbeitsbereich über die ganze Seite. Jede Unterhaltung dort hat eine eigene Adresse, sodass Sie einen Verlauf als Lesezeichen speichern oder in einen Vorfallkanal einfügen können. |
+| Das Produktmenü | Öffnen Sie **Produkte → AI → Chat**. KI fragen öffnet sich über der Seite, auf der Sie waren. Jede Unterhaltung hat eine eigene Adresse, sodass Sie sie als Lesezeichen speichern und später wieder aufrufen können. |
+
+KI fragen öffnet sich in der Mitte des Bildschirms über der Seite, auf der Sie waren, und füllt auf einem Telefon den ganzen Bildschirm. Drücken Sie `Esc` oder klicken Sie daneben, um zur Seite zurückzukehren. Die Unterhaltung bleibt, wo Sie sie verlassen haben: Öffnen Sie KI fragen erneut, um weiterzumachen. Schließen Sie den Chat, während er noch antwortet, sagt ein Hinweis in der Ecke, wann die Antwort fertig ist, und öffnet sie.
 
 Bei einem Vorfall oder einer Warnung hat die Karte **KI-Untersuchung** eine eigene Unterhaltung, **Ask OneUptime AI**, die alle teilen, die diesen Vorfall oder diese Warnung sehen können: siehe [Mit OneUptime AI über den Vorfall sprechen](/docs/ai/ai-sre#mit-oneuptime-ai-über-den-vorfall-sprechen).
 
@@ -52,7 +54,7 @@ KI fragen liest Ihr Projekt mit Ihren eigenen Berechtigungen und sieht daher gen
 
 ## Seitenkontext
 
-KI fragen weiß, von welcher Seite aus Sie den Chat geöffnet haben. Auf einer Vorfallseite meint „warum ist das passiert?“ genau diesen Vorfall, und der Eingabebereich zeigt einen Chip mit dem Gegenstand der Seite; entfernen Sie ihn, um nach dem ganzen Projekt zu fragen. Wechseln Sie bei geöffnetem Bereich zu einer anderen Seite, folgt Ihnen der Kontext. Die Unterhaltung merkt sich ihren ersten Gegenstand auch auf dem Server, sodass eine Nachfrage Tage später „diesen Vorfall“ noch richtig zuordnet.
+KI fragen weiß, von welcher Seite aus Sie den Chat geöffnet haben. Auf einer Vorfallseite meint „warum ist das passiert?“ genau diesen Vorfall: Der Eingabebereich zeigt einen Chip mit dem Gegenstand der Seite, und die vorgeschlagenen Fragen sind die dieser Seite. Entfernen Sie den Chip, um nach dem ganzen Projekt zu fragen, und fügen Sie ihn auf dieselbe Weise wieder hinzu. Öffnen Sie KI fragen auf einer anderen Seite, folgt Ihnen der Kontext. Die Unterhaltung merkt sich ihren ersten Gegenstand auch auf dem Server, sodass eine Nachfrage Tage später „diesen Vorfall“ noch richtig zuordnet.
 
 Infrastrukturlisten und Ressourcenseiten bieten Fragen zu der Art Ressource an, die Sie gerade ansehen. Öffnen Sie einen Kubernetes-Cluster und fragen Sie „Welche Metriken haben sich in den letzten 24 Stunden verändert?“, oder öffnen Sie einen Docker-Host und fragen Sie „Fasse die Log-Schweregrade und Trace-Fehler der letzten sechs Stunden zusammen.“ Belegverweise führen zurück zur Seite der Ressource. Lesezugriffe beachten Ihre Berechtigungen für Projekt, Ressourcen und Telemetrie, einschließlich der Einschränkungen nach Verantwortlichen und Labels.
 
@@ -72,8 +74,8 @@ Jede Unterhaltung hat einen Berechtigungsmodus, den Sie im Eingabebereich neben 
 
 | Modus | Was passiert |
 | --- | --- |
-| **Ask to act** | Die Voreinstellung. KI fragen schlägt jede Aktion auf einer Genehmigungskarte vor, und nichts läuft, bis Sie für sie **Zulassen** oder **Überspringen** wählen, oder **Alle ablehnen**. |
-| **Auto-run** | Aktionen laufen, sobald das Modell sie anfordert, weiterhin begrenzt auf das, was Ihre Rolle darf. Setzen Sie diesen Modus mit Bedacht ein. |
+| **Vor Aktionen fragen** | Die Voreinstellung. KI fragen schlägt jede Aktion auf einer Genehmigungskarte vor, und nichts läuft, bis Sie für sie **Zulassen** oder **Überspringen** wählen, oder **Alle ablehnen**. |
+| **Automatisch ausführen** | Aktionen laufen, sobald das Modell sie anfordert, weiterhin begrenzt auf das, was Ihre Rolle darf. Setzen Sie diesen Modus mit Bedacht ein. |
 | **Nur Lesezugriff** | Dem Modell werden überhaupt keine Aktionen angeboten: KI fragen kann nur lesen. |
 
 Was KI fragen tun kann, wenn ein Modus es erlaubt:
@@ -99,10 +101,12 @@ Jede Aktion, die KI fragen ausführt, erfolgt in Ihrem Namen: Sie bewirkt diesel
 ## Eine Unterhaltung steuern
 
 - **Anhalten.** Während KI fragen arbeitet, wird die Senden-Schaltfläche zu einer Stopp-Schaltfläche. Halten Sie einen Lauf jederzeit an und fragen Sie sofort etwas anderes.
-- **Das Modell wählen.** Die Anbieterauswahl im Eingabebereich listet die LLM-Anbieter Ihres Projekts und die globalen auf, der Standardanbieter ist markiert. Eine neue Unterhaltung nutzt den Standardanbieter.
+- **Die Arbeit verfolgen.** Während der Chat antwortet, sagt eine Zeile, was er gerade tut, etwa Protokolle durchsuchen. Klicken Sie auf die Zahl der Schritte daneben, um jeden Schritt zu sehen.
+- **Das Modell wählen.** Wenn Ihr Projekt mehr als einen LLM-Anbieter nutzen kann, listet die Anbieterauswahl im Eingabebereich die LLM-Anbieter Ihres Projekts und die globalen auf, der Standardanbieter ist markiert. Eine neue Unterhaltung nutzt den Standardanbieter.
 - **Eine Antwort bewerten.** **Gute Antwort** und **Schlechte Antwort** werden mit der Nachricht gespeichert, sodass sich die Qualität der Antworten über die Zeit messen lässt.
-- **Die Kosten sehen.** Die Fußzeile der neuesten Antwort zeigt ihre Kosten, ihre Tokens und wie viele Abfragen sie ausgeführt hat, und jede Abfrage ist ein Quellenchip, der die zugrunde liegenden Daten öffnet.
+- **Die Kosten sehen.** Unter jeder Antwort öffnen sich ihre Quellen zu den Abfragen, die sie ausgeführt hat, und die der neuesten Antwort nennen auch, wie viele Abfragen sie ausgeführt hat, ihre Tokens und ihre Kosten. Jeder Quellenchip in einer Antwort öffnet die zugrunde liegenden Daten.
 - **Eine Kopie behalten.** **Unterhaltung herunterladen** speichert den Verlauf mit **Als Markdown herunterladen**, zum Lesen oder Einfügen in ein Ticket, oder mit **Als PDF herunterladen**, zum Weitergeben.
+- **Dort weitermachen, wo Sie aufgehört haben.** **Alle Unterhaltungen** in der Kopfzeile von KI fragen listet Ihre Unterhaltungen auf, die neueste zuerst, um sie wieder zu öffnen oder zu löschen. Der Start einer neuen Unterhaltung zeigt die letzten drei.
 
 ## Voraussetzungen
 
@@ -115,7 +119,7 @@ KI fragen zählt zu den eigenen täglichen KI-Limits des Projekts, wenn das Proj
 ## Fehlerbehebung
 
 :::details KI fragen sagt, dass KI nicht verfügbar ist
-Der Bereich sagt den Grund, bevor Sie tippen: Der Tarif des Projekts umfasst keine KI, **KI aktivieren** ist ausgeschaltet oder das Projekt hat keinen LLM-Anbieter. Jeder Hinweis verlinkt auf die Seite, auf der sich das ändern lässt.
+KI fragen sagt den Grund, bevor Sie tippen: Der Tarif des Projekts umfasst keine KI, **KI aktivieren** ist ausgeschaltet oder das Projekt hat keinen LLM-Anbieter. Jeder Hinweis verlinkt auf die Seite, auf der sich das ändern lässt.
 :::
 
 :::details Eine Aktion wurde abgelehnt

@@ -122,10 +122,10 @@ Due barre attraversano la parte alta di ogni pagina.
 | Dove | Cosa c'è |
 | --- | --- |
 | In alto a sinistra | Il selettore di progetti: passare a un altro dei tuoi progetti, o crearne uno nuovo. |
-| In alto a destra | **Cerca** e **Ask AI**, la campanella delle notifiche con ciò che ti aspetta ora (incidenti e avvisi attivi, le policy di reperibilità in cui sei di turno, gli inviti in sospeso), **Aiuto**, e la tua foto, che apre il menu del tuo [account](/docs/introduction/your-account). |
+| In alto a destra | **Cerca** e **Chiedi all'IA**, la campanella delle notifiche con ciò che ti aspetta ora (incidenti e avvisi attivi, le policy di reperibilità in cui sei di turno, gli inviti in sospeso), **Aiuto**, e la tua foto, che apre il menu del tuo [account](/docs/introduction/your-account). |
 | Sotto | **Home** e **Prodotti** a sinistra, **Impostazioni utente** a destra: come OneUptime ti raggiunge in questo progetto. |
 
-**Aiuto** apre questa documentazione (**Documentazione**) e l'elenco **Keyboard shortcuts**, e offre supporto via e-mail e su Slack. Su uno schermo stretto, come quello di un telefono, **Cerca**, **Ask AI** e **Aiuto** vengono tolti per fare spazio; la campanella e la tua foto restano.
+**Aiuto** apre questa documentazione (**Documentazione**) e l'elenco **Keyboard shortcuts**, e offre supporto via e-mail e su Slack. Su uno schermo stretto, come quello di un telefono, **Cerca**, **Chiedi all'IA** e **Aiuto** vengono tolti per fare spazio; la campanella e la tua foto restano.
 
 ## Cercare una pagina, un'impostazione o un'azione
 

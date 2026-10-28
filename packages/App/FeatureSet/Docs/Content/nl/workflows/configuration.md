@@ -75,7 +75,7 @@ Je kunt een workflow als JSON-bestand verplaatsen tussen projecten, of tussen ee
 @tab Exporteren
 Open de workflow, ga naar **Instellingen** en klik op **Workflow exporteren**. Om meerdere workflows in één bestand te zetten, selecteer je ze in de lijst **Workflows** en kies je **JSON exporteren**.
 @tab Importeren
-Klik in de lijst **Workflows** op **Import JSON** en kies een bestand dat is geëxporteerd uit een willekeurig OneUptime-project. Een workflow waarvan het project de naam al heeft, wordt geïmporteerd met "(Imported)" achter de naam.
+Klik in de lijst **Workflows** op **JSON importeren** en kies een bestand dat is geëxporteerd uit een willekeurig OneUptime-project. Een workflow waarvan het project de naam al heeft, wordt geïmporteerd met "(Imported)" achter de naam.
 :::
 
 Het bestand bevat de naam, de beschrijving, de inschakelstatus en de graaf van de workflow. Het bevat bewust niet:

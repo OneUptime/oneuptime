@@ -16,6 +16,7 @@ import {
   MENU_ITEM_LABELS,
   NAME_TABS,
   PERMISSION_NAMES,
+  PLAYLISTS,
   PRODUCT_NAMES,
   PROSE,
   SHARING,
@@ -74,8 +75,9 @@ import { describe, expect, it } from "@jest/globals";
 /*
  * Docs overhaul task 26a: the Dashboards group - Dashboards Overview,
  * Authoring a Dashboard, Dashboard Widgets, Dashboard Variables & Filters,
- * External Data Sources, Sharing & Public Dashboards and Dashboard
- * Configuration & Permissions - in every docs language. DashboardsDocsFacts
+ * External Data Sources, Sharing & Public Dashboards, Dashboard Playlists
+ * (#5235) and Dashboard Configuration & Permissions - in every docs
+ * language. DashboardsDocsFacts
  * holds the English pages to the product; this suite holds each translation
  * to its English page:
  *
@@ -141,6 +143,7 @@ const WIDEST_DIAGRAM_LINE: Record<string, number> = {
   [VARIABLES]: 26,
   [DATA_SOURCES]: 26,
   [SHARING]: 25,
+  [PLAYLISTS]: 25,
   [CONFIGURATION]: 24,
 };
 
@@ -1099,9 +1102,13 @@ describe("the helpers, on these pages' shapes", () => {
   });
 
   it("draw a menu item as the locale holds its whole text, and a Settings card's action from its template", () => {
-    // The Italian locale words "Edit Dashboard" whole, and holds "Export JSON" as English.
+    /*
+     * The Italian locale words "Edit Dashboard" and "Export JSON" whole
+     * (the menu's export words left English in 12 languages until #5248's
+     * follow-up translated them).
+     */
     expect(drawnLabel("it", "Edit Dashboard")).toBe("Modifica dashboard");
-    expect(drawnLabel("it", "Export JSON")).toBe("Export JSON");
+    expect(drawnLabel("it", "Export JSON")).toBe("Esporta JSON");
     expect(drawnLabel("de", "Edit Dashboard")).toBe(
       drawnDashboardLabel("de", "Edit Dashboard"),
     );

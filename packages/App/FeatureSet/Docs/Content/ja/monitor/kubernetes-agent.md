@@ -237,7 +237,7 @@ OBI は呼び出しをまたいでトレースも運びます。Pod A が HTTP �
 **デフォルトではオフです。** オンにすると、OBI は計装するすべてのプロセスの `write()` システムコールにプローブを取り付け、次のようにします。
 
 - **JSON のログ行** には `trace_id` と `span_id` のフィールドが加わります (行にすでにあるフィールドは残ります)。ノードコレクターはこれらをログレコード自身のトレースフィールドに移すため、OneUptime ではスパンのログにワンクリックでたどり着け、ログ行のトレースにも同様にたどり着けます。
-- **その他のログ行** は、リンクなしでそのまま収集されます。
+- **その他のログ行** は、リンクなしでそのまま収集されます。ただし `ebpf.logEnricher.plainText=true` も設定した場合は、OBI がその行に ` trace_id=… span_id=…` を追記し、ノードコレクターが ID をログレコードに移して行から取り除くため、OneUptime にはアプリが書いたとおりの行が表示されます。コンテナーのログファイルにある行 (`kubectl logs` が出力するもの) には、追記された内容がそのまま残ります。
 
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
@@ -249,6 +249,7 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 | --- | --- | --- |
 | `ebpf.logToTraceCorrelation` | `false` | OBI のログエンリッチャーと、ノードコレクターによる `trace_id` の引き上げをオンにします。 |
 | `ebpf.logEnricher.services` | `[{service: [{exe_path: "*"}]}]` | エンリッチャーが対象にするプロセス。各エントリは OBI の [GlobAttributes](https://opentelemetry.io/docs/zero-code/obi/configure/options/#service-discovery) セレクターで、`exe_path`、`languages`、`k8s_pod_labels`、`k8s_pod_annotations`、`open_ports`、`cmd_args` などのフィールドを使います。 |
+| `ebpf.logEnricher.plainText` | `false` | プレーンテキスト (JSON 以外) のログ行にもリンクを付けます。コンテナーのログファイルに残る行が変わります。 |
 
 #### これと一緒にクラッシュする APM エージェント
 

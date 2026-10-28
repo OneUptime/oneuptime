@@ -725,6 +725,8 @@ service:
 
 BullMQ hält seine Jobs in Redis und hat keinen Broker, den man scrapen könnte; melden Sie die Warteschlangentiefe aus der Anwendung als Metrik mit `messaging.system` und `messaging.destination.name`, so wie es die eigenen Worker von OneUptime mit `queue.size` tun.
 
+Mit dem [eBPF-Tracing des Kubernetes-Agents](/docs/telemetry/kubernetes-agent#wie-ebpf-traces-aussehen) liest OneUptime auch BullMQ-Warteschlangen (ab BullMQ 5) aus den Redis-Befehlen, die BullMQ sendet, ohne Änderung an Ihrer Anwendung: Das Hinzufügen eines Jobs zeigt den Service als Producer seiner Warteschlange, das Abschließen eines Jobs als Consumer. Der Agent verwirft standardmäßig Datenbankaufrufe, die außerhalb eines Requests erfolgen (`ebpf.dropUnlinkedDatabaseCalls`), und ein Worker, der einen Job bearbeitet, arbeitet außerhalb eines Requests; deshalb zeigt eine so gefundene Warteschlange von Haus aus überwiegend ihre Producer. Setzen Sie `ebpf.dropUnlinkedDatabaseCalls=false`, um auch ihre Consumer zu sehen.
+
 Die eigene Telemetrie von BullMQ – seine Option `telemetry`, die das Paket `bullmq-otel` implementiert – nennt die Warteschlange in `bullmq.queue.name` und setzt kein `messaging.system`, deshalb legt sie allein keine Warteschlange an. Ein `transform`-Prozessor im Collector, an den Ihre Anwendungen senden, fügt die beiden Schlüssel hinzu, die OneUptime liest, an den Spans, die Jobs hinzufügen und verarbeiten, und an den eigenen Metriken von BullMQ:
 
 ```yaml

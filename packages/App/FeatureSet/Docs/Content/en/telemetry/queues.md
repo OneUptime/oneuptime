@@ -725,6 +725,8 @@ service:
 
 BullMQ keeps its jobs in Redis and has no broker to scrape; report queue depth from the application as a metric carrying `messaging.system` and `messaging.destination.name`, as OneUptime's own workers do with `queue.size`.
 
+With the [Kubernetes agent's eBPF tracing](/docs/telemetry/kubernetes-agent#what-ebpf-traces-look-like), OneUptime also reads BullMQ queues (BullMQ 5 and later) from the Redis commands BullMQ sends, with no change to your application: adding a job shows the service as a producer of its queue, and finishing a job as a consumer. The agent drops database calls made outside a request by default (`ebpf.dropUnlinkedDatabaseCalls`), and a worker handling a job is outside a request, so out of the box a queue found this way shows mostly its producers; set `ebpf.dropUnlinkedDatabaseCalls=false` to see its consumers too.
+
 BullMQ's own telemetry — its `telemetry` option, which the `bullmq-otel` package implements — names the queue in `bullmq.queue.name` and sets no `messaging.system`, so on its own it creates no queue. A `transform` processor in the collector your applications send to adds the two keys OneUptime reads, on the spans that add and process jobs and on BullMQ's own metrics:
 
 ```yaml

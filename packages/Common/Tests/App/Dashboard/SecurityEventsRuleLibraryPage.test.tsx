@@ -1352,9 +1352,9 @@ describe("adding from the library", () => {
       DetectionRuleLibraryCategory.Network,
     );
 
-    await click(headerButton("Add 2 Matching Rules"));
+    await click(headerButton("Add 6 Matching Rules"));
     expect(within(dialog()).getByTestId("modal-title")).toHaveTextContent(
-      "Add 2 rules?",
+      "Add 6 rules?",
     );
     await click(within(dialog()).getByRole("button", { name: "Add Rules" }));
 
@@ -1362,7 +1362,14 @@ describe("adding from the library", () => {
       created.map((rule: DetectionRule): string => {
         return rule.name!;
       }),
-    ).toEqual(["Port scan", "Network sweep"]);
+    ).toEqual([
+      "Port scan",
+      "Network sweep",
+      "Port scan seen in network flows",
+      "Network sweep seen in network flows",
+      "Large transfer out of your network",
+      "Packet capture downloaded from OneUptime",
+    ]);
   });
 
   test("an add of several that cannot add some names them above the rules, says the others were added, and adding again adds only them", async () => {

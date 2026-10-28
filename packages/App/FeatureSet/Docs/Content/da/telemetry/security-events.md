@@ -36,7 +36,7 @@ flowchart TB
 | **Lukkede sager** | Sikkerhedssager | De sager, der er lukket med en vurdering, de nyeste først |
 | **Alle sager** | Sikkerhedssager | Hver sag, åben eller lukket |
 | **Begivenheder** | Begivenheder | Søg i og filtrér alle begivenheder, og åbn en for at se alle dens felter |
-| **Entiteter** | Begivenheder | De brugere, værter og adresser, dine fund nævner oftest |
+| **Campaigns** | Begivenheder | Hver adresse, der sendte angrebsforespørgsler, og om nogen af dens forespørgsler kom igennem |
 | **Entitetsrisiko** | Begivenheder | Hver bruger, vært og adresse, scoret efter hvad der er fundet om den i denne uge, de mest risikable først |
 | **Korrelér** | Begivenheder | En graf over de begivenheder, der deler en vært, en bruger eller en IP-adresse |
 | **Detektionsregler** | Detections | Sigma-regler, der kører efter en tidsplan og åbner sager |
@@ -232,11 +232,19 @@ Søgefeltet taler det samme sprog som de andre telemetrioversigter (se [Søgesyn
 | `@<attribute>:*` | Attributten findes | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | Attributten indeholder teksten | `@finding_info.title:~ransom` |
 
-Et felt er enten et kort navn (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`) eller feltets eget navn, f.eks. `severityName` eller `principalHost`. Alle andre navne læses som en kildeattribut. `observable:<value>` finder hver begivenhed, der nævner en værdi, uanset hvilken side af aktiviteten den var på.
+Et felt er enten et kort navn (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`, `requestoutcome`, `trace`, `session`) eller feltets eget navn, f.eks. `severityName` eller `principalHost`. Alle andre navne læses som en kildeattribut. `observable:<value>` finder hver begivenhed, der nævner en værdi, uanset hvilken side af aktiviteten den var på.
 
 ### Facetter
 
-Sidebjælken tæller vinduets begivenheder efter **Kilde**, **Alvorlighed**, **Begivenhedsklasse**, **Kategori**, **Aktivitet**, **Status**, **Leverandør**, **Produkt**, **Detektionsregel**, **Kildebruger**, **Kildevært**, **Proces** og **Overordnet proces**. Klik på en værdi for kun at beholde dens begivenheder, eller på minusset ved siden af for at udelade dem. Klik igen for at fortryde. Diagrammet og hver optælling beskriver præcis begivenhederne på listen.
+Sidebjælken tæller vinduets begivenheder efter **Kilde**, **Alvorlighed**, **Request Outcome**, **Begivenhedsklasse**, **Kategori**, **Aktivitet**, **Status**, **Leverandør**, **Produkt**, **Detektionsregel**, **Kildebruger**, **Kildevært**, **Proces** og **Overordnet proces**. Klik på en værdi for kun at beholde dens begivenheder, eller på minusset ved siden af for at udelade dem. Klik igen for at fortryde. Diagrammet og hver optælling beskriver præcis begivenhederne på listen.
+
+### Hvad der skete bagefter
+
+En begivenhed læst fra en loglinje, der blev skrevet i en sporet forespørgsel, følges ind i den forespørgsel. Dens panel viser, hvor langt forespørgslen kom (**Afvist**, **Reached App**, **Errored** eller **Reached Database**), hvem der sendte den, og linker til dens trace, dens undtagelse, dens sessionsafspilning og selve loglinjen. En loglinje, en trace og en undtagelse, der er en del af et angreb, siger det også på deres egne sider.
+
+### Campaigns
+
+**Campaigns** viser hver adresse, der sendte angrebsforespørgsler, som én række med angrebstyperne, værktøjerne og de forespørgsler, den sendte, og hvor mange der kom igennem. De adresser, hvis forespørgsler nåede din app, kommer først.
 
 ### Korrelér
 

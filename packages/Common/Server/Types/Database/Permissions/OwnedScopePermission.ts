@@ -17,6 +17,7 @@ import BaseModel, {
 } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 import MultiSearch from "../../../../Types/BaseDatabase/MultiSearch";
+import { FindWhereProperty } from "../../../../Types/BaseDatabase/Query";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil, {
   PermissionType,
@@ -27,6 +28,7 @@ import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
+import HeldPermissionsUtil from "../../../../Types/HeldPermissions";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission, {
   PermissionHelper,
@@ -37,20 +39,40 @@ import logger from "../../../Utils/Logger";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 /*
+ * A column kept to the owners (OwnedScopePermission.getColumnsKeptToOwners),
+ * and the teams whose records it is read on beside the caller's own.
+ */
+export interface ColumnKeptToOwners {
+  column: string;
+  teamIds: Array<ObjectID>;
+}
+
+/*
  * Implements the `Owned` permission scope (see
  * Internal/Docs/PermissionsSimplification.md). When the requesting user's
  * applicable permission rows are exclusively `Owned`-scoped, this restricts
- * the query to resources where the user is in *OwnerUser or any of the
- * user's teams is in *OwnerTeam.
+ * the query to resources where the user is in *OwnerUser or the team of one
+ * of those rows is in *OwnerTeam.
  *
- * `All` and `Labels` scoped rows are evaluated elsewhere; if any non-Owned
- * row also grants the operation, that broader grant wins and this filter
- * is skipped.
+ * EACH TEAM'S GRANT REACHES WHAT THAT TEAM OWNS. A row scoped to Owned is a
+ * team's permission on the resources that team owns (UserPermission.teamId),
+ * and on the ones the member owns themselves - never on the resources the
+ * member's other teams own. A member of a team that may change what it owns
+ * and of a team that may only view what it owns changes the first team's
+ * incidents, and only views the second's (getOwningTeamIds).
+ *
+ * `All` and `Labels` scoped rows are evaluated elsewhere. A row over the
+ * whole project beside the Owned ones reaches every record, and this filter
+ * is skipped. Rows limited to labels beside them reach the records carrying
+ * their labels, and the Owned rows still reach what they own: the two are
+ * one condition (AccessControlPermission.addGrantToQuery, with
+ * getOwnedRecordsCondition), and this filter is skipped too.
  *
  * addOwnedScopeToQuery is the rule for one operation. The record rule
  * narrows a write by its read's scope as well, and so asks the two halves
  * itself (BasePermission.addRecordScopeToQuery: isLimitedToOwnedRecords
- * per operation, then addOwnedRecordsToQuery once).
+ * and getOwningTeamIds per operation, then addOwnedRecordsToQuery once for
+ * each set of teams).
  *
  * The owners of a resource are owned through it (getOwnedThrough): a grant
  * scoped to Owned adds and removes owners only on the resources the caller
@@ -79,23 +101,151 @@ export default class OwnedScopePermission {
       modelType,
       query,
       props,
+      OwnedScopePermission.getOwningTeamIds(modelType, props, type),
     );
   }
 
   /*
    * Whether the caller's grants for `type` on this model reach only the
    * records they or their teams own: every row that grants it is
-   * Owned-scoped. Decided without a lookup. The records are the same for
-   * every operation (addOwnedRecordsToQuery), so a write limited to owned
-   * records for itself or for its read is narrowed to them once.
+   * Owned-scoped. Decided without a lookup. Which teams' records it reaches
+   * is getOwningTeamIds: the records differ from one operation to another
+   * when different teams grant them, so a write limited to owned records
+   * for itself and for its read is narrowed by each.
    */
   public static isLimitedToOwnedRecords<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     props: DatabaseCommonInteractionProps,
     type: DatabaseRequestType,
   ): boolean {
+    return (
+      OwnedScopePermission.getOwnedOnlyGrantRows(modelType, props, type) !==
+      null
+    );
+  }
+
+  /*
+   * THE TEAMS WHOSE RECORDS AN OWNED GRANT REACHES: the teams of the rows
+   * that grant `type` on this model, for a caller whose every such row is
+   * Owned-scoped (isLimitedToOwnedRecords) - each row reaches what its own
+   * team owns (UserPermission.teamId), beside what the caller owns
+   * themselves. Each team once, in the order the rows name them. Empty for
+   * a caller whose grants are not limited to owned records, and for rows no
+   * team grants: those reach only what the caller owns.
+   */
+  public static getOwningTeamIds<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    props: DatabaseCommonInteractionProps,
+    type: DatabaseRequestType,
+  ): Array<ObjectID> {
+    return OwnedScopePermission.getTeamIdsOfRows(
+      OwnedScopePermission.getOwnedOnlyGrantRows(modelType, props, type) || [],
+    );
+  }
+
+  // The teams `rows` are granted on, each once (HeldPermissionsUtil).
+  public static getTeamIdsOfRows(
+    rows: ReadonlyArray<UserPermission>,
+  ): Array<ObjectID> {
+    return HeldPermissionsUtil.getTeamIdsOfRows(rows);
+  }
+
+  /*
+   * Of the lists of teams a query is to be narrowed by - one per operation
+   * limited to owned records - the ones to narrow by, each a condition of
+   * its own: the records one list reaches are the caller's own and its
+   * teams', so a list that holds every team of another reaches every
+   * record that other one does, and adds nothing to its condition. Only the
+   * smaller is kept; of two lists of the same teams, the first.
+   */
+  public static getTeamListsToNarrowBy(
+    teamLists: ReadonlyArray<ReadonlyArray<ObjectID>>,
+  ): Array<Array<ObjectID>> {
+    const keyed: Array<{ teamIds: Array<ObjectID>; keys: Set<string> }> =
+      teamLists.map((teamIds: ReadonlyArray<ObjectID>) => {
+        return {
+          teamIds: [...teamIds],
+          keys: new Set<string>(
+            teamIds.map((teamId: ObjectID): string => {
+              return teamId.toString().toLowerCase();
+            }),
+          ),
+        };
+      });
+
+    const isWithin: (keys: Set<string>, within: Set<string>) => boolean = (
+      keys: Set<string>,
+      within: Set<string>,
+    ): boolean => {
+      for (const key of keys) {
+        if (!within.has(key)) {
+          return false;
+        }
+      }
+
+      return true;
+    };
+
+    return keyed
+      .filter(
+        (
+          list: { teamIds: Array<ObjectID>; keys: Set<string> },
+          index: number,
+        ): boolean => {
+          return !keyed.some(
+            (
+              other: { teamIds: Array<ObjectID>; keys: Set<string> },
+              otherIndex: number,
+            ): boolean => {
+              if (otherIndex === index || !isWithin(other.keys, list.keys)) {
+                return false;
+              }
+
+              // Two lists of the same teams: the first one is kept.
+              return !isWithin(list.keys, other.keys) || otherIndex < index;
+            },
+          );
+        },
+      )
+      .map((list: { teamIds: Array<ObjectID>; keys: Set<string> }) => {
+        return list.teamIds;
+      });
+  }
+
+  /*
+   * Whether the records `teamIds` reach (the caller's own and those
+   * teams') are all among the ones `withinTeamIds` reach: every team of the
+   * one is a team of the other.
+   */
+  public static isTeamListWithin(
+    teamIds: ReadonlyArray<ObjectID>,
+    withinTeamIds: ReadonlyArray<ObjectID>,
+  ): boolean {
+    const within: Set<string> = new Set<string>(
+      withinTeamIds.map((teamId: ObjectID): string => {
+        return teamId.toString().toLowerCase();
+      }),
+    );
+
+    return teamIds.every((teamId: ObjectID): boolean => {
+      return within.has(teamId.toString().toLowerCase());
+    });
+  }
+
+  /*
+   * The rows that grant `type` on this model, when every one of them is
+   * Owned-scoped - the caller's grants reach only the records they or the
+   * rows' teams own - or null when they are not limited to owned records:
+   * a root caller, a create, a model with nothing to own, no row at all, a
+   * row of another scope among them, or a read the scope leaves alone.
+   */
+  private static getOwnedOnlyGrantRows<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    props: DatabaseCommonInteractionProps,
+    type: DatabaseRequestType,
+  ): Array<UserPermission> | null {
     if (props.isRoot || props.isMasterAdmin) {
-      return false;
+      return null;
     }
 
     /*
@@ -103,29 +253,12 @@ export default class OwnedScopePermission {
      * create path itself, not here.
      */
     if (type === DatabaseRequestType.Create) {
-      return false;
+      return null;
     }
 
-    const model: BaseModel = new modelType();
-
-    /*
-     * Owned scope only restricts resources that can carry ownership:
-     * operational resources, explicitly registered ownership roots, or
-     * nested resources that inherit ownership via @OwnedThrough - or, on a
-     * change or a delete, an owner table of a registered root (getOwnedThrough).
-     * For everything else (settings / config tables like IncidentState,
-     * Label, Team, etc.) the table-level permission check is the only
-     * gate — Owned has no resources to scope to, so it's a no-op.
-     * Registry membership only enables ownership filtering; operational
-     * wildcard grants still require the existing decorator.
-     */
-    if (
-      !model.isOperationalResource &&
-      !model.ownedThrough &&
-      !this.getOwnerTableRegistry().has(model.constructor.name) &&
-      !OwnedScopePermission.isOwnerTableWrite(modelType, type)
-    ) {
-      return false;
+    // A model, or a read, the scope narrows nothing of. See narrowsRecords.
+    if (!OwnedScopePermission.narrowsRecords(modelType, type)) {
+      return null;
     }
 
     /*
@@ -157,15 +290,18 @@ export default class OwnedScopePermission {
        * No grant applies — the existing table-level check will reject this
        * request. Leave the query untouched.
        */
-      return false;
+      return null;
     }
 
     /*
-     * If any applicable row is non-Owned (All / Labels / undefined), it
-     * grants broader access than Owned and the Owned constraint is moot.
-     * Rows for scope-exempt permissions (e.g. ProjectOwner) are also
-     * treated as broader grants regardless of their stored scope, since
-     * scoping doesn't apply to them.
+     * If any applicable row is non-Owned (All / Labels / undefined), the
+     * Owned rows are not all there is: a row over the whole project grants
+     * broader access than Owned and the Owned constraint is moot, and rows
+     * limited to labels reach their records beside what the Owned rows own
+     * (AccessControlPermission.getLabelGrantForModel). Rows for
+     * scope-exempt permissions (e.g. ProjectOwner) are treated as broader
+     * grants regardless of their stored scope, since scoping doesn't apply
+     * to them.
      */
     const hasNonOwnedGrant: boolean = applicableRows.some(
       (p: UserPermission) => {
@@ -177,44 +313,191 @@ export default class OwnedScopePermission {
     );
 
     if (hasNonOwnedGrant) {
-      return false;
+      return null;
     }
 
-    /*
-     * Every applicable row is Owned-scoped. A kind other records are set
-     * up with - the probe a monitor runs on, the template an incident is
-     * declared from, the on-call schedule an escalation rule pages - is
-     * read by every reader of it all the same, and so are the records that
-     * take their owners from it: picking one is reading it. Its changes and
-     * deletes keep to the scope. See leavesReadsAlone.
-     */
+    return applicableRows;
+  }
+
+  /*
+   * WHETHER THE OWNED SCOPE NARROWS `type` ON THIS MODEL'S RECORDS - or
+   * whether a grant scoped to Owned reaches every one of them, as a grant
+   * over the whole project does:
+   *
+   *   - a read, a change or a delete of a model whose records have owners:
+   *     an operational resource, an explicitly registered ownership root, or
+   *     a nested resource that inherits its owners via @OwnedThrough
+   *     (hasOwners) - or, on a change or a delete, an owner table of a
+   *     registered root (getOwnedThrough). For everything else (settings /
+   *     config tables like IncidentState, Label, Team, etc.) the table-level
+   *     permission check is the only gate: Owned has no resources to scope
+   *     to. Registry membership only enables ownership filtering;
+   *     operational wildcard grants still require the existing decorator.
+   *     A kind other records are set up with - the probe a monitor runs on,
+   *     the template an incident is declared from, the on-call schedule an
+   *     escalation rule pages - is read by every reader of it all the same,
+   *     and so are the records that take their owners from it: picking one
+   *     is reading it. Its changes and deletes keep to the scope
+   *     (leavesReadsAlone);
+   *   - a create of a record whose creator becomes one of its owners
+   *     (hasOwnerTables), or that names the parent it takes its owners from
+   *     (getOwnedThrough, an owner row's resource among them): what it may
+   *     create keeps to what its creator, or their teams, own
+   *     (CreateScopePermission).
+   */
+  public static narrowsRecords(
+    modelType: { new (): BaseModel },
+    type: DatabaseRequestType,
+  ): boolean {
+    if (type === DatabaseRequestType.Create) {
+      return (
+        OwnedScopePermission.hasOwnerTables(modelType) ||
+        OwnedScopePermission.getOwnedThrough(modelType) !== null
+      );
+    }
+
     if (
-      type === DatabaseRequestType.Read &&
-      OwnedScopePermission.leavesReadsAlone(modelType)
+      !OwnedScopePermission.hasOwners(modelType) &&
+      !OwnedScopePermission.isOwnerTableWrite(modelType, type)
     ) {
       return false;
     }
 
-    return true;
+    return !(
+      type === DatabaseRequestType.Read &&
+      OwnedScopePermission.leavesReadsAlone(modelType)
+    );
   }
 
   /*
-   * Narrows `query` to the records the caller or one of their teams owns,
-   * or whose parent they own (@OwnedThrough, or the resource an owner row
+   * THE RECORDS THE CALLER OR ONE OF `teamIds` OWNS, as a condition rather
+   * than a narrowed query: one on the record's id, or - for a model that
+   * takes its owners from a parent (getOwnedThrough) - on the key naming
+   * the parent (`columnName`), with the rows of no parent where they belong
+   * to the project (includeUnattributed). The records addOwnedRecordsToQuery
+   * keeps, for a grant scoped to Owned that stands beside grants limited to
+   * labels: the two reach their records together
+   * (AccessControlPermission.addGrantToQuery). Matches nothing for a caller
+   * who owns nothing.
+   */
+  public static async getOwnedRecordsCondition<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    props: DatabaseCommonInteractionProps,
+    teamIds: ReadonlyArray<ObjectID>,
+  ): Promise<{
+    columnName: string | null;
+    condition: FindWhereProperty<any>;
+  }> {
+    const ownedThrough: OwnedThroughMetadata | null =
+      OwnedScopePermission.getOwnedThrough(modelType);
+
+    const allowedIds: Array<ObjectID> =
+      await OwnedScopePermission.getAllowedResourceIds(
+        modelType,
+        props,
+        teamIds,
+      );
+
+    if (!ownedThrough) {
+      return { columnName: null, condition: QueryHelper.any(allowedIds) };
+    }
+
+    return {
+      columnName: ownedThrough.fkColumn,
+      condition: ownedThrough.includeUnattributed
+        ? QueryHelper.inOrNull(allowedIds)
+        : QueryHelper.any(allowedIds),
+    };
+  }
+
+  /*
+   * The records of a model read through another one (@CanAccessIfCanReadOn)
+   * whose parent the caller or one of `teamIds` owns, as a condition rather
+   * than a narrowed query: on the key naming the parent (`columnName`), or,
+   * for parents through a join table, on the record's id. The records
+   * addOwnedParentsToQuery keeps, for a read of the parent scoped to Owned
+   * that stands beside one limited to labels (BasePermission
+   * .addParentAccessToQuery). Null for a parent the rule cannot follow:
+   * it reaches no record.
+   */
+  public static async getOwnedParentsCondition<
+    TBaseModel extends BaseModel,
+  >(data: {
+    modelType: { new (): TBaseModel };
+    props: DatabaseCommonInteractionProps;
+    parentModelType: { new (): BaseModel };
+    relation: string;
+    relationColumn: TableColumnMetadata;
+    teamIds: ReadonlyArray<ObjectID>;
+  }): Promise<{
+    columnName: string | null;
+    condition: FindWhereProperty<any>;
+  } | null> {
+    // As addOwnedParentsToQuery: a parent owned through another has none here.
+    const ownedParentIds: Array<ObjectID> =
+      OwnedScopePermission.getOwnedThrough(data.parentModelType)
+        ? []
+        : await OwnedScopePermission.getAllowedResourceIds(
+            data.parentModelType,
+            data.props,
+            data.teamIds,
+          );
+
+    if (
+      data.relationColumn.type === TableColumnType.Entity &&
+      data.relationColumn.manyToOneRelationColumn
+    ) {
+      return {
+        columnName: data.relationColumn.manyToOneRelationColumn,
+        condition: QueryHelper.any(ownedParentIds),
+      };
+    }
+
+    const parentLinks: ReturnType<
+      typeof QueryUtil.getManyToManyRelationMetadata
+    > =
+      data.relationColumn.type === TableColumnType.EntityArray
+        ? QueryUtil.getManyToManyRelationMetadata(data.modelType, data.relation)
+        : null;
+
+    if (!parentLinks) {
+      return null;
+    }
+
+    return {
+      columnName: null,
+      condition: QueryHelper.anyOfEntitiesInManyToMany({
+        values: ownedParentIds,
+        joinTableName: parentLinks.joinTableName,
+        ownerColumnName: parentLinks.ownerColumnName,
+        relationColumnName: parentLinks.relationColumnName,
+      }),
+    };
+  }
+
+  /*
+   * Narrows `query` to the records the caller or one of `teamIds` owns, or
+   * whose parent they own (@OwnedThrough, or the resource an owner row
    * names: getOwnedThrough) - for a caller whose grants are limited to owned
-   * records (isLimitedToOwnedRecords).
+   * records (isLimitedToOwnedRecords), `teamIds` being the teams of those
+   * grants (getOwningTeamIds).
    */
   public static async addOwnedRecordsToQuery<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     query: Query<TBaseModel>,
     props: DatabaseCommonInteractionProps,
+    teamIds: ReadonlyArray<ObjectID>,
   ): Promise<Query<TBaseModel>> {
     const ownedThrough: OwnedThroughMetadata | null =
       OwnedScopePermission.getOwnedThrough(modelType);
 
     // Resolve allowed resource IDs.
     const allowedIds: Array<ObjectID> =
-      await OwnedScopePermission.getAllowedResourceIds(modelType, props);
+      await OwnedScopePermission.getAllowedResourceIds(
+        modelType,
+        props,
+        teamIds,
+      );
 
     if (ownedThrough && ownedThrough.includeUnattributed) {
       /*
@@ -281,10 +564,11 @@ export default class OwnedScopePermission {
   /*
    * Narrows the records of a model read through another one
    * (@CanAccessIfCanReadOn - an incident's notes, a status page's
-   * announcements) to those of the parents the caller or one of their teams
+   * announcements) to those of the parents the caller or one of `teamIds`
    * owns: for a caller whose grants on the parent reach only the records
-   * they own (isLimitedToOwnedRecords on the parent). A parent named by a
-   * key column keeps the rows whose key names an owned parent; parents
+   * they own (isLimitedToOwnedRecords on the parent), `teamIds` being the
+   * teams of those grants (getOwningTeamIds on the parent). A parent named
+   * by a key column keeps the rows whose key names an owned parent; parents
    * through a join table keep the rows linked to at least one owned parent.
    * A row with no parent, or with none the caller owns, is left out - as it
    * is when the parent's read is limited to labels. The caller's own
@@ -300,6 +584,8 @@ export default class OwnedScopePermission {
     // The @CanAccessIfCanReadOn relation, and its column.
     relation: string;
     relationColumn: TableColumnMetadata;
+    // The teams whose parents the rows keep to, beside the caller's own.
+    teamIds: ReadonlyArray<ObjectID>;
   }): Promise<Query<TBaseModel>> {
     /*
      * A parent that takes its owners from a record of its own
@@ -314,6 +600,7 @@ export default class OwnedScopePermission {
         : await OwnedScopePermission.getAllowedResourceIds(
             data.parentModelType,
             data.props,
+            data.teamIds,
           );
 
     if (ownedParentIds.length === 0) {
@@ -420,32 +707,54 @@ export default class OwnedScopePermission {
   }
 
   /*
-   * THE COLUMNS OF A KIND READ IN FULL THAT FOLLOW ITS OWNERS ALL THE SAME:
-   * the ones only those who may change the kind may read (every permission
-   * that reads the column is one that changes the kind) - a Runner's key,
-   * which lets whoever presents it claim the work meant for that Runner,
-   * and the secrets and credentials that come with it. Reading such a
-   * column is as good as managing the record, so the Owned scope, which
-   * leaves the reads of the kind alone that it may be picked
-   * (leavesReadsAlone), does not leave the column alone: for a caller whose
-   * every grant that lets them read it is scoped to Owned, it is read only
-   * on the records they or their teams own. It is left out of every other
-   * record they read (withholdColumnsKeptToOwners), a filter on it reaches
-   * only the records they own (BasePermission.addRecordScopeToQuery), and
-   * they may neither order the records by it (DatabaseService) nor filter
-   * another record by it (QueryPermission): an order or a match is read one
-   * guess at a time. None for a kind whose reads the scope narrows already,
-   * and none for a caller with a grant over the whole project, or limited to
-   * labels, that lets them read the column.
+   * THE COLUMNS OF A KIND WITH OWNERS THAT FOLLOW ITS OWNERS, HOWEVER FAR
+   * THE READ OF THE KIND REACHES: the ones only those who may change the
+   * kind may read (every permission that reads the column is one that
+   * changes the kind) - a Runner's key, which lets whoever presents it claim
+   * the work meant for that Runner, a monitor's secret keys, with which a
+   * host agent's heartbeats are forged, and the secrets and credentials that
+   * come with them. Reading such a column is as good as managing the
+   * record, so for a caller whose every grant that lets them read it is
+   * scoped to Owned, it is read only on the records they or the teams of
+   * those grants own - whatever else lets them read the record: the Owned
+   * scope leaves the reads of some kinds alone that they may be picked
+   * (leavesReadsAlone), and a Viewer over the whole project beside a
+   * Monitor Admin scoped to Owned reads every monitor. It is left out of
+   * every other record they read (withholdColumnsKeptToOwners), a filter on
+   * it reaches only the records they own (BasePermission
+   * .addRecordScopeToQuery), and they may neither order the records by it
+   * (DatabaseService) nor filter another record by it (QueryPermission): an
+   * order or a match is read one guess at a time. None for a kind without
+   * owners, which the scope has nothing to narrow on; none where the read of
+   * the kind keeps to the records of those teams already; and none for a
+   * caller with a grant over the whole project, or limited to labels, that
+   * lets them read the column.
    */
   public static getColumnsKeptToOwners(
     modelType: { new (): BaseModel },
     props: DatabaseCommonInteractionProps,
   ): Array<string> {
+    return OwnedScopePermission.getColumnsKeptToOwnersWithTeams(
+      modelType,
+      props,
+    ).map((kept: ColumnKeptToOwners): string => {
+      return kept.column;
+    });
+  }
+
+  /*
+   * The columns kept to the owners (getColumnsKeptToOwners), each with the
+   * teams whose records it is read on beside the caller's own: the teams of
+   * the Owned rows that let the caller read it (getTeamIdsOfRows).
+   */
+  public static getColumnsKeptToOwnersWithTeams(
+    modelType: { new (): BaseModel },
+    props: DatabaseCommonInteractionProps,
+  ): Array<ColumnKeptToOwners> {
     if (
       props.isRoot ||
       props.isMasterAdmin ||
-      !OwnedScopePermission.leavesReadsAlone(modelType)
+      !OwnedScopePermission.hasOwners(modelType)
     ) {
       return [];
     }
@@ -453,13 +762,33 @@ export default class OwnedScopePermission {
     const model: BaseModel = new modelType();
     const changePermissions: Array<Permission> = model.getUpdatePermissions();
 
+    /*
+     * The teams whose records a read of the kind keeps to already, when it
+     * is limited to owned records: a column read on those teams' records
+     * at least is left out of none of them.
+     */
+    const readTeamIds: Array<ObjectID> | null =
+      OwnedScopePermission.isLimitedToOwnedRecords(
+        modelType,
+        props,
+        DatabaseRequestType.Read,
+      )
+        ? OwnedScopePermission.getOwningTeamIds(
+            modelType,
+            props,
+            DatabaseRequestType.Read,
+          )
+        : null;
+
     const userPermissions: Array<UserPermission> =
       DatabaseCommonInteractionPropsUtil.getUserPermissions(
         props,
         PermissionType.Allow,
       );
 
-    return model.getTableColumns().columns.filter((column: string): boolean => {
+    const kept: Array<ColumnKeptToOwners> = [];
+
+    for (const column of model.getTableColumns().columns) {
       const readPermissions: Array<Permission> =
         model.getColumnAccessControlFor(column)?.read || [];
 
@@ -470,7 +799,7 @@ export default class OwnedScopePermission {
           return changePermissions.includes(permission);
         })
       ) {
-        return false;
+        continue;
       }
 
       const grantingRows: Array<UserPermission> = userPermissions.filter(
@@ -480,16 +809,49 @@ export default class OwnedScopePermission {
       );
 
       // No grant reads it at all: the select check refuses it already.
-      return (
-        grantingRows.length > 0 &&
-        grantingRows.every((row: UserPermission): boolean => {
+      if (
+        grantingRows.length === 0 ||
+        !grantingRows.every((row: UserPermission): boolean => {
           return (
             PermissionHelper.isScopeApplicable(row.permission) &&
             row.scope === PermissionScope.Owned
           );
         })
-      );
-    });
+      ) {
+        continue;
+      }
+
+      const teamIds: Array<ObjectID> =
+        OwnedScopePermission.getTeamIdsOfRows(grantingRows);
+
+      // The read reaches no record but the ones the column is read on.
+      if (
+        readTeamIds &&
+        OwnedScopePermission.isTeamListWithin(readTeamIds, teamIds)
+      ) {
+        continue;
+      }
+
+      kept.push({ column: column, teamIds: teamIds });
+    }
+
+    return kept;
+  }
+
+  /*
+   * Whether a model's records have owners for the Owned scope to narrow by:
+   * an operational resource, a kind of the owner table registry, or a model
+   * that takes its owners from one (@OwnedThrough). Every other model has
+   * nothing for the scope to narrow (getOwnedOnlyGrantRows).
+   */
+  public static hasOwners(modelType: { new (): BaseModel }): boolean {
+    const model: BaseModel = new modelType();
+
+    return Boolean(
+      model.isOperationalResource ||
+        model.ownedThrough ||
+        this.getOwnerTableRegistry().has(model.constructor.name),
+    );
   }
 
   /*
@@ -502,26 +864,58 @@ export default class OwnedScopePermission {
     query: Query<TBaseModel>,
     props: DatabaseCommonInteractionProps,
   ): boolean {
-    const kept: Array<string> = OwnedScopePermission.getColumnsKeptToOwners(
-      modelType,
-      props,
+    return (
+      OwnedScopePermission.getTeamListsOfColumnsKeptToOwnersNamed(
+        modelType,
+        query,
+        props,
+      ).length > 0
     );
+  }
+
+  /*
+   * For each column kept to the owners that `query` filters on (see
+   * namesColumnsKeptToOwners), the teams whose records the filter reaches
+   * beside the caller's own: a match on such a column says what it holds,
+   * so the read reaches only the records the column is read on.
+   */
+  public static getTeamListsOfColumnsKeptToOwnersNamed<
+    TBaseModel extends BaseModel,
+  >(
+    modelType: { new (): TBaseModel },
+    query: Query<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
+  ): Array<Array<ObjectID>> {
+    const kept: Array<ColumnKeptToOwners> =
+      OwnedScopePermission.getColumnsKeptToOwnersWithTeams(modelType, props);
 
     if (kept.length === 0) {
-      return false;
+      return [];
     }
 
-    return Object.keys(query || {}).some((key: string): boolean => {
+    const named: Set<string> = new Set<string>();
+
+    for (const key of Object.keys(query || {})) {
       const value: unknown = (query as Record<string, unknown>)[key];
 
       if (value instanceof MultiSearch) {
-        return (value.fields || []).some((field: string): boolean => {
-          return kept.includes(field);
-        });
+        for (const field of value.fields || []) {
+          named.add(field);
+        }
+
+        continue;
       }
 
-      return kept.includes(key);
-    });
+      named.add(key);
+    }
+
+    return kept
+      .filter((column: ColumnKeptToOwners): boolean => {
+        return named.has(column.column);
+      })
+      .map((column: ColumnKeptToOwners): Array<ObjectID> => {
+        return column.teamIds;
+      });
   }
 
   /*
@@ -607,27 +1001,52 @@ export default class OwnedScopePermission {
       return data.rows;
     }
 
-    const selected: Array<string> = OwnedScopePermission.getColumnsKeptToOwners(
-      data.modelType,
-      data.props,
-    ).filter((column: string): boolean => {
-      return Boolean((data.select as Record<string, unknown>)[column]);
-    });
+    const selected: Array<ColumnKeptToOwners> =
+      OwnedScopePermission.getColumnsKeptToOwnersWithTeams(
+        data.modelType,
+        data.props,
+      ).filter((kept: ColumnKeptToOwners): boolean => {
+        return Boolean((data.select as Record<string, unknown>)[kept.column]);
+      });
 
     if (selected.length === 0) {
       return data.rows;
     }
 
-    const ownedIds: Set<string> = new Set<string>(
-      (await OwnedScopePermission.getOwnedIds(data.modelType, data.props)).map(
-        (id: ObjectID): string => {
-          return id.toString().toLowerCase();
-        },
-      ),
-    );
-
     const ownedThrough: OwnedThroughMetadata | null =
       OwnedScopePermission.getOwnedThrough(data.modelType);
+
+    /*
+     * Each column is read on the records its own grants' teams own (and the
+     * caller's own): the records are looked up once for each set of teams.
+     */
+    const ownedIdsByTeams: Map<string, Set<string>> = new Map<
+      string,
+      Set<string>
+    >();
+
+    for (const kept of selected) {
+      const key: string = OwnedScopePermission.getTeamListKey(kept.teamIds);
+
+      if (ownedIdsByTeams.has(key)) {
+        continue;
+      }
+
+      ownedIdsByTeams.set(
+        key,
+        new Set<string>(
+          (
+            await OwnedScopePermission.getOwnedIds(
+              data.modelType,
+              data.props,
+              kept.teamIds,
+            )
+          ).map((id: ObjectID): string => {
+            return id.toString().toLowerCase();
+          }),
+        ),
+      );
+    }
 
     for (const row of data.rows) {
       const values: Record<string, unknown> = row as unknown as Record<
@@ -638,20 +1057,34 @@ export default class OwnedScopePermission {
         ? values[ownedThrough.fkColumn]
         : row._id;
 
-      if (
-        ownerKey !== null &&
-        ownerKey !== undefined &&
-        ownedIds.has(ownerKey.toString().toLowerCase())
-      ) {
-        continue;
-      }
+      for (const kept of selected) {
+        const ownedIds: Set<string> | undefined = ownedIdsByTeams.get(
+          OwnedScopePermission.getTeamListKey(kept.teamIds),
+        );
 
-      for (const column of selected) {
-        (row as unknown as Record<string, unknown>)[column] = undefined;
+        if (
+          ownerKey !== null &&
+          ownerKey !== undefined &&
+          ownedIds?.has(ownerKey.toString().toLowerCase())
+        ) {
+          continue;
+        }
+
+        values[kept.column] = undefined;
       }
     }
 
     return data.rows;
+  }
+
+  // One key for a set of teams, whatever their order or case.
+  private static getTeamListKey(teamIds: ReadonlyArray<ObjectID>): string {
+    return teamIds
+      .map((teamId: ObjectID): string => {
+        return teamId.toString().toLowerCase();
+      })
+      .sort()
+      .join(",");
   }
 
   /*
@@ -666,16 +1099,22 @@ export default class OwnedScopePermission {
   }
 
   /*
-   * The records the caller or one of their teams owns, by id: of the model
+   * The records the caller or one of `teamIds` owns, by id: of the model
    * itself, or - for a model that takes its owners from a parent
    * (@OwnedThrough, or an owner table: getOwnedThrough) - of that parent. In
-   * the request's project.
+   * the request's project. `teamIds` are the teams of the Owned grants
+   * being weighed (getOwningTeamIds), never every team the caller is on.
    */
   public static async getOwnedIds(
     modelType: { new (): BaseModel },
     props: DatabaseCommonInteractionProps,
+    teamIds: ReadonlyArray<ObjectID>,
   ): Promise<Array<ObjectID>> {
-    return await OwnedScopePermission.getAllowedResourceIds(modelType, props);
+    return await OwnedScopePermission.getAllowedResourceIds(
+      modelType,
+      props,
+      teamIds,
+    );
   }
 
   /*
@@ -865,8 +1304,10 @@ export default class OwnedScopePermission {
 
   /*
    * Computes the set of resource IDs the requesting user can access via
-   * ownership: those where they personally sit in *OwnerUser OR where any of
-   * their teams sits in *OwnerTeam.
+   * ownership: those where they personally sit in *OwnerUser OR where one of
+   * `teamIds` - the teams of the Owned grants being weighed - sits in
+   * *OwnerTeam. Not every team the user is on (props.userTeamIds): a team's
+   * grant reaches what that team owns.
    *
    * For nested models the lookup uses the parent's owner tables and returns
    * parent IDs (the caller filters the nested query by the parent FK).
@@ -874,6 +1315,7 @@ export default class OwnedScopePermission {
   private static async getAllowedResourceIds<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     props: DatabaseCommonInteractionProps,
+    teamIds: ReadonlyArray<ObjectID>,
   ): Promise<Array<ObjectID>> {
     const ownedThrough: OwnedThroughMetadata | null =
       OwnedScopePermission.getOwnedThrough(modelType);
@@ -939,12 +1381,12 @@ export default class OwnedScopePermission {
         }
       }
 
-      // Team-ownership lookup.
-      if (props.userTeamIds && props.userTeamIds.length > 0) {
+      // Team-ownership lookup: the granting teams only.
+      if (teamIds.length > 0) {
         const teamOwnedRows: Array<BaseModel> =
           await registryEntry.ownerTeamService.findBy({
             query: {
-              teamId: QueryHelper.any(props.userTeamIds),
+              teamId: QueryHelper.any([...teamIds]),
               ...(props.tenantId ? { projectId: props.tenantId } : {}),
             },
             select: { [fkColumn]: true },

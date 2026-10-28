@@ -85,7 +85,7 @@ In **Dettagli del servizio**, fate clic su **Modifica dettagli** per cambiarne *
 In **Impostazioni del servizio**, fate clic su **Modifica impostazioni**. Il **Colore del servizio** contrassegna il servizio nei grafici e negli elenchi; un nuovo servizio ne riceve uno suo. **Stack tecnologico** è facoltativo: lasciatelo vuoto per mostrare il linguaggio rilevato dalla sua telemetria.
 :::
 
-La stessa pagina contiene la conservazione del servizio. Le schede **Conservazione dei dati di telemetria** e **Conservazione per tipo di telemetria** conservano la sua telemetria più o meno a lungo della conservazione predefinita del progetto. Fanno parte dell'[Enterprise Edition](/docs/self-hosted/enterprise), e del piano Scale su OneUptime Cloud; senza di esse la pagina mostra ciò che aggiungono, e il servizio mantiene la conservazione del progetto.
+La stessa pagina contiene la conservazione del servizio, chiusa in **Altre impostazioni**. Le schede **Conservazione dei dati di telemetria** e **Conservazione per tipo di telemetria** conservano la sua telemetria più o meno a lungo della conservazione predefinita del progetto. Fanno parte dell'[Enterprise Edition](/docs/self-hosted/enterprise), e del piano Scale su OneUptime Cloud; senza di esse la pagina mostra ciò che aggiungono, e il servizio mantiene la conservazione del progetto.
 
 ## Impostare etichette e proprietari automaticamente
 

@@ -3,7 +3,7 @@
 Chiedi all'IA è la chat di OneUptime sui dati del tuo progetto. Chiedile di log, tracce, metriche, eccezioni, incidenti, avvisi, monitor, reperibilità, pagine di stato, SLO, runbook o flussi di lavoro: interroga il progetto in tempo reale, accompagna ogni affermazione con una citazione e, quando glielo permetti, agisce per te.
 
 :::cards
-- [Aprire Chiedi all'IA](#aprire-chiedi-allia): Dall'intestazione, dalla tastiera, da un grafico o dalla sua pagina.
+- [Aprire Chiedi all'IA](#aprire-chiedi-allia): Dall'intestazione, dalla tastiera, da un grafico o dal menu dei prodotti.
 - [Cosa può vedere](#cosa-può-vedere): I dati che legge per risponderti.
 - [Azioni e modalità di autorizzazione](#azioni-e-modalità-di-autorizzazione): Scegli se può agire e quando chiede prima.
 - [Le azioni sono fatte a tuo nome](#le-azioni-sono-fatte-a-tuo-nome): I tuoi permessi, il tuo nome su ogni modifica.
@@ -30,10 +30,12 @@ In modalità **Sola lettura** le azioni non vengono mai offerte al modello, quin
 
 | Dove | Come |
 | --- | --- |
-| Qualsiasi pagina | Fai clic su **Ask AI** nell'intestazione, oppure premi `Ctrl` + `I` (`Cmd` + `I` su un Mac). Mentre scrivi in una casella di testo o in un editor, quei tasti restano la scorciatoia del corsivo dell'editor. |
-| La palette dei comandi | Premi `Ctrl` + `K` (`Cmd` + `K` su un Mac) e scegli **Ask AI**. |
+| Qualsiasi pagina | Fai clic su **Chiedi all'IA** nell'intestazione, oppure premi `Ctrl` + `I` (`Cmd` + `I` su un Mac). Mentre scrivi in una casella di testo o in un editor, quei tasti restano la scorciatoia del corsivo dell'editor. |
+| La palette dei comandi | Premi `Ctrl` + `K` (`Cmd` + `K` su un Mac) e scegli **Chiedi all'IA**. |
 | Un pattern di errore dei log, o i risultati di un grafico | Fai clic su **Explain with AI**: Chiedi all'IA si apre con le prove sotto forma di domanda che puoi modificare prima di inviarla. |
-| La sua pagina | Apri **Prodotti → AI → Chat** per uno spazio di lavoro a pagina intera. Lì ogni conversazione ha un proprio indirizzo, così puoi salvare un thread nei preferiti o incollarlo nel canale di un incidente. |
+| Il menu dei prodotti | Apri **Prodotti → AI → Chat**. Chiedi all'IA si apre sopra la pagina in cui eri. Ogni conversazione ha un proprio indirizzo, così puoi salvarla nei preferiti e tornarci. |
+
+Chiedi all'IA si apre al centro dello schermo, sopra la pagina in cui eri, e su un telefono occupa tutto lo schermo. Premi `Esc`, o fai clic accanto, per tornare alla pagina. La conversazione resta dove l'hai lasciata: riapri Chiedi all'IA per continuare. Se la chiudi mentre sta ancora rispondendo, un promemoria nell'angolo ti dice quando la risposta è pronta, e la apre.
 
 Su un incidente o un avviso, la scheda **AI Investigation** ha una conversazione tutta sua, **Ask OneUptime AI**, condivisa con chiunque possa vedere quell'incidente o quell'avviso: vedi [Parlare dell'incidente con OneUptime AI](/docs/ai/ai-sre#parla-con-oneuptime-ai-dellincidente).
 
@@ -52,7 +54,7 @@ Chiedi all'IA legge il progetto con i tuoi permessi, quindi vede ciò che puoi v
 
 ## Contesto della pagina
 
-Chiedi all'IA sa da quale pagina l'hai aperta. Sulla pagina di un incidente, "perché è successo?" significa quell'incidente, e l'area di scrittura mostra un chip con l'oggetto della pagina; rimuovilo per chiedere di tutto il progetto. Se passi a un'altra pagina con il pannello aperto, il contesto ti segue. La conversazione ricorda anche il suo primo oggetto sul server, così una domanda di giorni dopo capisce ancora "questo incidente".
+Chiedi all'IA sa da quale pagina l'hai aperta. Sulla pagina di un incidente, "perché è successo?" significa quell'incidente: l'area di scrittura mostra un chip con l'oggetto della pagina, e le domande che suggerisce sono quelle di quella pagina. Rimuovi il chip per chiedere di tutto il progetto, e rimettilo allo stesso modo. Apri Chiedi all'IA su un'altra pagina e il contesto ti segue. La conversazione ricorda anche il suo primo oggetto sul server, così una domanda di giorni dopo capisce ancora "questo incidente".
 
 Gli elenchi dell'infrastruttura e le pagine delle risorse propongono domande per il tipo di risorsa che stai guardando. Apri un cluster Kubernetes e chiedi "Quali metriche sono cambiate nelle ultime 24 ore?", oppure apri un host Docker e chiedi "Riassumi la gravità dei log e gli errori delle tracce delle ultime sei ore." I link alle prove riportano alla pagina della risorsa. Le letture rispettano i tuoi permessi su progetto, risorse e telemetria, comprese le restrizioni per proprietario ed etichette.
 
@@ -72,8 +74,8 @@ Ogni conversazione ha una modalità di autorizzazione, che scegli nell'area di s
 
 | Modalità | Cosa succede |
 | --- | --- |
-| **Ask to act** | La predefinita. Chiedi all'IA propone ogni azione su una scheda di approvazione, e nulla viene eseguito finché non scegli **Allow** o **Salta** per quell'azione, oppure **Deny all**. |
-| **Auto-run** | Le azioni vengono eseguite appena il modello le chiede, sempre entro i limiti del tuo ruolo. Usala con cautela. |
+| **Chiedi prima di agire** | La predefinita. Chiedi all'IA propone ogni azione su una scheda di approvazione, e nulla viene eseguito finché non scegli **Consenti** o **Salta** per quell'azione, oppure **Nega tutto**. |
+| **Esecuzione automatica** | Le azioni vengono eseguite appena il modello le chiede, sempre entro i limiti del tuo ruolo. Usala con cautela. |
 | **Sola lettura** | Le azioni non vengono offerte al modello: Chiedi all'IA può solo leggere. |
 
 Cosa può fare Chiedi all'IA quando una modalità lo consente:
@@ -99,10 +101,12 @@ Ogni azione di Chiedi all'IA è fatta a tuo nome: fa la stessa modifica che fa l
 ## Guidare una conversazione
 
 - **Fermala.** Mentre Chiedi all'IA lavora, il pulsante di invio diventa un pulsante di arresto. Ferma un'esecuzione in qualsiasi momento e chiedi subito altro.
-- **Scegli il modello.** Il selettore del provider nell'area di scrittura elenca i provider LLM del progetto e quelli globali, con il predefinito contrassegnato. Una nuova conversazione usa il predefinito.
-- **Valuta una risposta.** **Good answer** e **Poor answer** vengono salvati con il messaggio, così la qualità delle risposte si può misurare nel tempo.
-- **Guarda il costo.** Il piè di pagina della risposta più recente mostra il costo, i token e quante query ha eseguito, e ogni query è un chip di citazione che apre i dati alla base.
-- **Tieni una copia.** **Download conversation** salva il thread con **Download as Markdown**, da leggere o incollare in un ticket, oppure con **Download as PDF**, da consegnare a qualcuno.
+- **Segui il suo lavoro.** Mentre risponde, una riga dice cosa sta facendo ora, per esempio cercare nei log. Fai clic sul numero di passaggi accanto per vedere ogni passaggio.
+- **Scegli il modello.** Quando il progetto può usare più di un provider LLM, il selettore del provider nell'area di scrittura elenca i provider LLM del progetto e quelli globali, con il predefinito contrassegnato. Una nuova conversazione usa il predefinito.
+- **Valuta una risposta.** **Buona risposta** e **Risposta scarsa** vengono salvati con il messaggio, così la qualità delle risposte si può misurare nel tempo.
+- **Guarda il costo.** Sotto ogni risposta, le sue fonti si aprono sulle query che ha eseguito, e quelle della risposta più recente dicono anche quante query ha eseguito, i token e il costo. Ogni chip di citazione in una risposta apre i dati alla base.
+- **Tieni una copia.** **Scarica conversazione** salva il thread con **Scarica come Markdown**, da leggere o incollare in un ticket, oppure con **Scarica come PDF**, da consegnare a qualcuno.
+- **Riprendi da dove avevi lasciato.** **Tutte le conversazioni**, nell'intestazione di Chiedi all'IA, elenca le tue conversazioni, dalla più recente, per riaprirle o eliminarle. L'inizio di una nuova conversazione mostra le ultime tre.
 
 ## Requisiti
 
@@ -115,7 +119,7 @@ Chiedi all'IA conta nei limiti giornalieri di IA del progetto quando il progetto
 ## Risoluzione dei problemi
 
 :::details Chiedi all'IA dice che l'IA non è disponibile
-Il pannello dice il motivo prima che tu scriva: il piano del progetto non include l'IA, **Abilita IA** è spenta, oppure il progetto non ha un provider LLM. Ogni avviso rimanda alla pagina in cui si cambia.
+Chiedi all'IA dice il motivo prima che tu scriva: il piano del progetto non include l'IA, **Abilita IA** è spenta, oppure il progetto non ha un provider LLM. Ogni avviso rimanda alla pagina in cui si cambia.
 :::
 
 :::details Un'azione è stata rifiutata

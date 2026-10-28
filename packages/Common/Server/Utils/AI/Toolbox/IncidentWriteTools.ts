@@ -714,10 +714,8 @@ async function changeIncidentStateTool(data: {
       resourceType: "Incident",
       heading: `#${incident.incidentNumber} · ${incident.title}`,
       subheading: `Now ${newStateName}`,
-      fields: [
-        { label: "Number", value: `#${incident.incidentNumber ?? ""}` },
-        { label: "State", value: newStateName },
-      ],
+      // The heading and the line under it say the number and the state.
+      fields: [],
       link: {
         type: AIChatCitationTargetType.IncidentView,
         params: { incidentId: incidentIdString },

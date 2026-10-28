@@ -24,7 +24,7 @@ På OneUptime Cloud kommer SMS-er og telefonanrop for vakter fra numrene nedenfo
 
 Varslene dine kommer fra andre numre enn dem ovenfor når:
 
-- **Prosjektet ditt bruker sin egen Twilio-konto.** Når et prosjekt har en Twilio-konfigurasjon som er angitt som prosjektstandard (**Prosjektinnstillinger** > **Varsler** > **Varselinnstillinger** > **Twilio-konfigurasjon**), går SMS-er og anrop til prosjektets medlemmer gjennom den kontoen, fra telefonnumrene dens. Legg de numrene på hvitelisten i stedet.
+- **Prosjektet ditt bruker sin egen Twilio-konto.** Når et prosjekt har en Twilio-konfigurasjon som er angitt som prosjektstandard (**Prosjektinnstillinger** > **Varsler** > **Varselinnstillinger** > **Flere innstillinger** > **Twilio-konfigurasjon**), går SMS-er og anrop til prosjektets medlemmer gjennom den kontoen, fra telefonnumrene dens. Legg de numrene på hvitelisten i stedet.
 - **Du bruker en selvdriftet installasjon.** SMS-er og anrop kommer fra Twilio-numrene administratoren din har konfigurert: prosjektets standard-Twilio-konfigurasjon eller den for hele installasjonen under **Admin Dashboard** > **Innstillinger** > **Call and SMS**. Spør administratoren hvilke numre du skal legge på hvitelisten.
 
 ## Neste steg

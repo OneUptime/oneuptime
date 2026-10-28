@@ -117,7 +117,9 @@ async function openList(page: Page, route: string): Promise<void> {
 
 /*
  * Rows and phone cards alike are selected by their checkbox's name: "Select
- * Workflow: Nightly cleanup", whose kind is in the reader's language.
+ * Workflow: Nightly cleanup", whose kind - and, since the box's sentence is
+ * the shared "Select {{name}}", whose wording - is in the reader's language
+ * ("Arbeitsablauf: Nightly cleanup auswählen").
  */
 async function select(
   page: Page,
@@ -125,13 +127,21 @@ async function select(
   names: Array<string>,
   language: string = "en",
 ): Promise<void> {
+  const [before, after] = (
+    language === "en"
+      ? "Select {{name}}"
+      : readLocale(language)["Select {{name}}"] || "Select {{name}}"
+  ).split("{{name}}");
+
   for (const name of names) {
     await page
       .getByRole("checkbox", {
         name:
           language === "en"
             ? `Select ${kind}: ${name}`
-            : new RegExp(`^Select [^:]+: ${escapeRegExp(name)}$`),
+            : new RegExp(
+                `^${escapeRegExp(before || "")}[^:]+: ${escapeRegExp(name)}${escapeRegExp(after || "")}$`,
+              ),
         exact: true,
       })
       .check();

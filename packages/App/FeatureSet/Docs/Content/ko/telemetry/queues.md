@@ -725,6 +725,8 @@ service:
 
 BullMQ는 작업을 Redis에 저장하며 스크레이프할 브로커가 없습니다. OneUptime의 자체 워커가 `queue.size`로 하는 것처럼, `messaging.system`과 `messaging.destination.name`을 가진 메트릭으로 애플리케이션에서 큐 깊이를 보고하세요.
 
+[Kubernetes 에이전트의 eBPF 트레이서](/docs/telemetry/kubernetes-agent#ebpf-트레이스의-모습)를 사용하면 OneUptime은 BullMQ가 보내는 Redis 명령에서 BullMQ 큐(BullMQ 5 이상)도 읽으며, 애플리케이션을 바꿀 필요가 없습니다. 작업을 추가하면 서비스가 해당 큐의 프로듀서로, 작업을 완료하면 컨슈머로 표시됩니다. 에이전트는 기본적으로 요청 밖에서 이루어진 데이터베이스 호출을 버리는데(`ebpf.dropUnlinkedDatabaseCalls`), 작업을 처리하는 워커는 요청 밖에 있으므로 이 방식으로 찾은 큐에는 처음에는 대부분 프로듀서만 표시됩니다. 컨슈머도 보려면 `ebpf.dropUnlinkedDatabaseCalls=false`를 설정하세요.
+
 BullMQ 자체 텔레메트리(`bullmq-otel` 패키지가 구현하는 `telemetry` 옵션)는 큐를 `bullmq.queue.name`으로 지정하고 `messaging.system`을 설정하지 않으므로, 그것만으로는 큐를 생성하지 않습니다. 애플리케이션이 데이터를 보내는 Collector의 `transform` 프로세서가 작업을 추가하고 처리하는 스팬과 BullMQ 자체 메트릭에 OneUptime이 읽는 두 키를 추가합니다:
 
 ```yaml

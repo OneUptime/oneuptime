@@ -24,12 +24,18 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *
  * Block permissions used to have a page of their own beside Permissions in
  * the team's menu, as prominent as what the team can do though few teams
- * need one. Now, as on an API key's page:
+ * need one; custom roles, an Enterprise feature most projects never use,
+ * opened the page. Now, as on an API key's page:
  *
  *   - the page reads in the order it is used: Permissions, then a folded
- *     Advanced section holding Block Permissions;
- *   - Advanced starts folded, says what is in it, and says "Configured"
- *     while the team has any block permission;
+ *     More settings holding Custom Roles (while that card is drawn) and
+ *     Block Permissions;
+ *   - More settings starts folded, says what is in it, and says how many
+ *     custom roles and block permissions the team has;
+ *   - a team whose access comes from its custom roles alone is not told
+ *     it can do nothing: its empty Permissions card says where the roles
+ *     are;
+ *   - a link to #custom-roles opens More settings at the card;
  *   - Permissions offers Add Role - the role picker: the whole project or
  *     one area, then a level (Components/Permission/RolePicker) - as its
  *     one button, and Add Permission in the card's More menu;
@@ -42,6 +48,21 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *   - someone who may not change a team's permissions sees the buttons
  *     locked, with the reason.
  */
+
+/*
+ * A self-hosted Community Edition install: billing off and not the
+ * Enterprise Edition, whatever the environment says. CI's config.env turns
+ * billing on for every suite, and with billing on the page asks the
+ * project's plan instead of the edition - a plan this suite does not have,
+ * so the custom roles leftover would never be drawn.
+ */
+jest.mock("../../../UI/Config", () => {
+  return {
+    ...(jest.requireActual("../../../UI/Config") as Record<string, unknown>),
+    BILLING_ENABLED: false,
+    IS_ENTERPRISE_EDITION: false,
+  };
+});
 
 let allPermissionsForTest: Array<string> = [];
 let projectPermissionsForTest: unknown = null;
@@ -97,6 +118,15 @@ const getListMock: MockFunction = getJestMockFunction();
 const getItemMock: MockFunction = getJestMockFunction();
 const createOrUpdateMock: MockFunction = getJestMockFunction();
 
+// How many custom roles the team has: what the custom roles card counts.
+let customRoleCountForTest: number = 0;
+
+(
+  globalThis as unknown as { __customRoleCountForTest: () => number }
+).__customRoleCountForTest = (): number => {
+  return customRoleCountForTest;
+};
+
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
     __esModule: true,
@@ -111,7 +141,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
         return getItemMock(...args);
       },
       count: async (): Promise<number> => {
-        return 0;
+        return (
+          globalThis as unknown as { __customRoleCountForTest: () => number }
+        ).__customRoleCountForTest();
       },
       deleteItem: async (): Promise<void> => {
         return undefined;
@@ -148,8 +180,18 @@ jest.mock("../../../UI/Utils/Project", () => {
 });
 
 import TeamViewPermissions, {
+  TEAM_BLOCK_PERMISSIONS_PLACE,
   TEAM_PERMISSIONS_ADVANCED_SECTION_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Teams/View/Permissions";
+import {
+  CUSTOM_ROLES_CARD_PLACE,
+  TEAM_MORE_SETTINGS_BLOCK_DESCRIPTION,
+  TEAM_MORE_SETTINGS_ROLES_DESCRIPTION,
+  TEAM_PERMISSIONS_EMPTY_WITH_CUSTOM_ROLES,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/CustomRole/CustomRolesFold";
+import { TEAM_CUSTOM_ROLES_LEFTOVER_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomRole/CustomRoleLeftoverCopy";
+import CustomRole from "../../../Models/DatabaseModels/CustomRole";
+import TeamCustomRole from "../../../Models/DatabaseModels/TeamCustomRole";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
@@ -191,6 +233,36 @@ const BLOCK_SECTION_DESCRIPTION: string =
 
 let allowRows: Array<TeamPermission> = [];
 let blockRows: Array<TeamPermission> = [];
+// The team's custom roles, as the custom roles card lists them.
+let customRoleRows: Array<TeamCustomRole> = [];
+
+// What scrollIntoView was asked of, in order (jsdom has none of its own).
+const scrolled: Array<Element> = [];
+const originalScrollIntoView: unknown = (
+  Element.prototype as unknown as Record<string, unknown>
+)["scrollIntoView"];
+
+function customRoleRow(name: string): TeamCustomRole {
+  const role: CustomRole = new CustomRole();
+  role._id = ObjectID.generate().toString();
+  role.name = name;
+  role.permissionCount = 3;
+
+  const row: TeamCustomRole = new TeamCustomRole();
+  row._id = ObjectID.generate().toString();
+  row.teamId = new ObjectID(TEAM_ID);
+  row.customRoleId = new ObjectID(role._id);
+  row.customRole = role;
+  return row;
+}
+
+// The team has these custom roles: counted, then listed.
+function givenCustomRoles(names: Array<string>): void {
+  customRoleRows = names.map((name: string): TeamCustomRole => {
+    return customRoleRow(name);
+  });
+  customRoleCountForTest = customRoleRows.length;
+}
 
 function holding(permissions: Array<Permission>): void {
   allPermissionsForTest = permissions;
@@ -227,6 +299,13 @@ beforeEach(() => {
   holding([Permission.ProjectOwner]);
   allowRows = [];
   blockRows = [];
+  customRoleRows = [];
+  customRoleCountForTest = 0;
+  scrolled.length = 0;
+  (Element.prototype as unknown as Record<string, unknown>)["scrollIntoView"] =
+    function (this: Element): void {
+      scrolled.push(this);
+    };
   PermissionGate.clearPermissionPropsCache();
   TableFilterUrlState.resetClaimedKeys();
   window.localStorage.clear();
@@ -248,6 +327,15 @@ beforeEach(() => {
         : allowRows;
 
       return { data: rows, count: rows.length, skip: 0, limit: 10 };
+    }
+
+    if (params.modelType === TeamCustomRole) {
+      return {
+        data: customRoleRows,
+        count: customRoleRows.length,
+        skip: 0,
+        limit: 10,
+      };
     }
 
     return { data: [], count: 0, skip: 0, limit: 10 };
@@ -278,6 +366,16 @@ afterEach(() => {
   getItemMock.mockReset();
   createOrUpdateMock.mockReset();
   jest.restoreAllMocks();
+
+  if (originalScrollIntoView === undefined) {
+    delete (Element.prototype as unknown as Record<string, unknown>)[
+      "scrollIntoView"
+    ];
+  } else {
+    (Element.prototype as unknown as Record<string, unknown>)[
+      "scrollIntoView"
+    ] = originalScrollIntoView;
+  }
 });
 
 async function renderPage(): Promise<void> {
@@ -431,7 +529,7 @@ function isBefore(first: HTMLElement, second: HTMLElement): boolean {
 }
 
 describe("the page", () => {
-  test("reads Permissions, then Advanced holding Block Permissions", async () => {
+  test("reads Permissions, then More settings holding Block Permissions", async () => {
     await renderPage();
 
     const permissions: HTMLElement = card("Permissions");
@@ -453,7 +551,7 @@ describe("the page", () => {
     ).not.toContain("Allow Permissions");
   });
 
-  test("Advanced starts folded and says what is in it", async () => {
+  test("More settings starts folded and says what is in it", async () => {
     await renderPage();
 
     expect(advancedHeader()).toHaveAttribute("aria-expanded", "false");
@@ -475,7 +573,7 @@ describe("the page", () => {
     expect(advancedBody()).not.toHaveClass("invisible");
   });
 
-  test("Advanced says Configured while the team has block permissions", async () => {
+  test("More settings says how many block permissions the team has", async () => {
     blockRows = [permissionRow(Permission.AuthorizeMcpClient, true)];
 
     await renderPage();
@@ -487,7 +585,7 @@ describe("the page", () => {
     expect(advancedHeader()).toHaveAttribute("aria-expanded", "false");
   });
 
-  test("an allow row alone does not make Advanced say Configured", async () => {
+  test("an allow row alone sets nothing in More settings", async () => {
     allowRows = [permissionRow(Permission.ProjectMember)];
 
     await renderPage();
@@ -902,7 +1000,7 @@ describe("what the team's members can do", () => {
     ).not.toBeChecked();
     expect(
       within(modal).getByText(
-        "Resources the person, or one of their teams, owns.",
+        "Resources the person, or the team given this permission, owns.",
       ),
     ).toBeInTheDocument();
     // No labels asked for until the third answer is picked.
@@ -950,7 +1048,7 @@ describe("what the team's members can do", () => {
 });
 
 describe("what the team's members can never do", () => {
-  test("is added from Advanced, as a block row", async () => {
+  test("is added from More settings, as a block row", async () => {
     await renderPage();
 
     fireEvent.click(advancedHeader());
@@ -1043,6 +1141,187 @@ describe("what the team's members can never do", () => {
     for (const query of queries) {
       expect(String(query["teamId"])).toBe(TEAM_ID);
     }
+  });
+});
+
+/*
+ * "Move custom roles to More settings because it is an advanced feature."
+ * - the maintainer. The Community Edition draws the roles a team still has
+ * (where roles can no longer be given) in the same place the Enterprise
+ * card takes, and tells the page the same things, so the page is held to
+ * it here; the Enterprise card's own suite holds it to the same in ee.
+ */
+describe("custom roles, folded under More settings", () => {
+  // The custom roles card, once it has counted the team's roles.
+  async function customRolesCard(): Promise<HTMLElement> {
+    return await screen.findByTestId(TEAM_CUSTOM_ROLES_LEFTOVER_TEST_ID);
+  }
+
+  test("a team with none: More settings names Block Permissions alone, as before", async () => {
+    await renderPage();
+    await act(async (): Promise<void> => {});
+
+    expect(listedNames(advancedHeader())).toEqual(["Block Permissions"]);
+    expect(screen.queryByTestId(TEAM_CUSTOM_ROLES_LEFTOVER_TEST_ID)).toBeNull();
+
+    fireEvent.click(advancedHeader());
+    expect(
+      within(advancedHeader()).getByText(TEAM_MORE_SETTINGS_BLOCK_DESCRIPTION),
+    ).toBeInTheDocument();
+  });
+
+  test("a team with custom roles: the page opens on Permissions, the roles folded under More settings, before Block Permissions", async () => {
+    givenCustomRoles(["Incident Responder", "Team Lead"]);
+
+    await renderPage();
+
+    const roles: HTMLElement = await customRolesCard();
+
+    // Permissions first, on the page; the roles inside the fold.
+    expect(isBefore(card("Permissions"), advancedSection())).toBe(true);
+    expect(advancedSection()).toContainElement(roles);
+    expect(advancedSection()).not.toContainElement(card("Permissions"));
+    expect(isBefore(roles, card("Block Permissions"))).toBe(true);
+
+    // Folded, out of sight and reach, but mounted: it counted what it holds.
+    expect(advancedHeader()).toHaveAttribute("aria-expanded", "false");
+    expect(advancedBody()).toHaveClass("invisible");
+    expect(advancedBody()).toContainElement(roles);
+
+    await waitFor(() => {
+      expect(listedNames(advancedHeader())).toEqual([
+        "Custom Roles: 2",
+        "Block Permissions",
+      ]);
+    });
+    expect(setChips(advancedHeader())).toEqual(["Custom Roles: 2"]);
+  });
+
+  test("its card is titled as its folded name, and takes the place a link to it names", async () => {
+    givenCustomRoles(["Incident Responder"]);
+
+    await renderPage();
+
+    const roles: HTMLElement = await customRolesCard();
+
+    // Folded, each name the header lists is the place of a card in it.
+    await waitFor(() => {
+      expect(
+        Array.from(
+          advancedHeader().querySelectorAll(
+            "[data-testid='folded-section-item']",
+          ),
+        ).map((item: Element): string => {
+          return item.getAttribute("data-item-key") || "";
+        }),
+      ).toEqual([CUSTOM_ROLES_CARD_PLACE, TEAM_BLOCK_PERMISSIONS_PLACE]);
+    });
+    expect(roles).toContainElement(
+      document.getElementById(CUSTOM_ROLES_CARD_PLACE),
+    );
+    expect(advancedSection()).toContainElement(
+      document.getElementById(TEAM_BLOCK_PERMISSIONS_PLACE),
+    );
+
+    fireEvent.click(advancedHeader());
+
+    // Open, the card reads as its folded name.
+    expect(within(roles).getByTestId("card-details-heading")).toHaveTextContent(
+      "Custom Roles",
+    );
+  });
+
+  test("open, More settings says it holds the team's custom roles too", async () => {
+    givenCustomRoles(["Incident Responder"]);
+
+    await renderPage();
+    await customRolesCard();
+    await waitFor(() => {
+      expect(listedNames(advancedHeader())[0]).toBe("Custom Roles: 1");
+    });
+
+    fireEvent.click(advancedHeader());
+
+    expect(
+      within(advancedHeader()).getByText(TEAM_MORE_SETTINGS_ROLES_DESCRIPTION),
+    ).toBeInTheDocument();
+    expect(
+      within(advancedHeader()).queryByText(
+        TEAM_MORE_SETTINGS_BLOCK_DESCRIPTION,
+      ),
+    ).toBeNull();
+  });
+
+  test("a team whose access comes from its custom roles alone is not told it can do nothing", async () => {
+    givenCustomRoles(["Incident Responder"]);
+
+    await renderPage();
+    await customRolesCard();
+
+    const permissions: HTMLElement = card("Permissions");
+
+    await waitFor(() => {
+      expect(
+        within(permissions).getByText(
+          TEAM_PERMISSIONS_EMPTY_WITH_CUSTOM_ROLES.split(". ")[0] as string,
+        ),
+      ).toBeInTheDocument();
+    });
+    expect(
+      within(permissions).queryByText("This team can do nothing yet"),
+    ).toBeNull();
+  });
+
+  test("a team with no custom role and no permission is still told it can do nothing yet", async () => {
+    await renderPage();
+    await act(async (): Promise<void> => {});
+
+    expect(
+      within(card("Permissions")).getByText("This team can do nothing yet"),
+    ).toBeInTheDocument();
+  });
+
+  test("opened at #custom-roles: More settings opens by itself at the card, and brings it into view", async () => {
+    givenCustomRoles(["Incident Responder"]);
+    window.history.replaceState(null, "", `#${CUSTOM_ROLES_CARD_PLACE}`);
+
+    await renderPage();
+    await customRolesCard();
+
+    await waitFor(() => {
+      expect(advancedHeader()).toHaveAttribute("aria-expanded", "true");
+    });
+    await waitFor(() => {
+      expect(scrolled).toContain(
+        document.getElementById(CUSTOM_ROLES_CARD_PLACE),
+      );
+    });
+    expect(advancedBody()).not.toHaveClass("invisible");
+  });
+
+  test("opened at #custom-roles in a project with none: the fold stays folded, as nothing in it is called that", async () => {
+    window.history.replaceState(null, "", `#${CUSTOM_ROLES_CARD_PLACE}`);
+
+    await renderPage();
+    await act(async (): Promise<void> => {});
+
+    expect(advancedHeader()).toHaveAttribute("aria-expanded", "false");
+  });
+
+  test("opened at #block-permissions: More settings opens at Block Permissions", async () => {
+    window.history.replaceState(null, "", `#${TEAM_BLOCK_PERMISSIONS_PLACE}`);
+
+    await renderPage();
+
+    expect(advancedHeader()).toHaveAttribute("aria-expanded", "true");
+    await waitFor(() => {
+      expect(scrolled).toContain(
+        document.getElementById(TEAM_BLOCK_PERMISSIONS_PLACE),
+      );
+    });
+    expect(
+      document.getElementById(TEAM_BLOCK_PERMISSIONS_PLACE),
+    ).toContainElement(card("Block Permissions"));
   });
 });
 

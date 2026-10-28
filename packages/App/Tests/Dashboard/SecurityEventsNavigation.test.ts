@@ -1,4 +1,6 @@
 import { beforeAll, describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 import {
   SECURITY_EVENTS_DETAIL_PAGES,
   SECURITY_EVENTS_LANDING_PAGE,
@@ -166,8 +168,12 @@ describe("the Security Events menu", () => {
           "All Cases",
         ],
       ],
-      // Who is riskiest, from everything found about each, beside who is named.
-      ["Events", ["Events", "Entities", "Entity Risk", "Correlate"]],
+      /*
+       * Who is attacking, and who is riskiest from everything found about
+       * each: the one list that says so. Entities, a second "riskiest" by
+       * how many findings named a value, folded into Entity Risk.
+       */
+      ["Events", ["Events", "Campaigns", "Entity Risk", "Correlate"]],
       [
         "Detections",
         ["Detection Rules", "Rule Library", "Threat Intel", "ATT&CK Coverage"],
@@ -199,7 +205,7 @@ describe("the Security Events menu", () => {
       ["Closed Cases", "SECURITY_CASES_CLOSED"],
       ["All Cases", "SECURITY_CASES_ALL"],
       ["Events", "SECURITY_EVENTS"],
-      ["Entities", "SECURITY_EVENTS_ENTITIES"],
+      ["Campaigns", "SECURITY_EVENTS_CAMPAIGNS"],
       ["Entity Risk", "SECURITY_EVENTS_ENTITY_RISK"],
       ["Correlate", "SECURITY_EVENTS_CORRELATE"],
       ["Detection Rules", "SECURITY_EVENTS_DETECTION_RULES"],
@@ -546,13 +552,60 @@ describe("the pages' addresses", () => {
     }
   });
 
-  test("keep the Monitors address, which opens Monitors, out of the menu", () => {
+  test("keep the Monitors address, which opens Monitors, and the Entities address, which opens Entity Risk, out of the menu", () => {
     expect(SECURITY_EVENTS_REDIRECTED_PAGES).toEqual([
       "SECURITY_EVENTS_MONITORS",
+      "SECURITY_EVENTS_ENTITIES",
     ]);
     expect(
       getSecurityEventsMenuItemFor("SECURITY_EVENTS_MONITORS" as never),
     ).toBeUndefined();
+    expect(
+      getSecurityEventsMenuItemFor("SECURITY_EVENTS_ENTITIES" as never),
+    ).toBeUndefined();
+  });
+
+  /*
+   * Entities is opened from bookmarks and old links only: its route sends
+   * them to Entity Risk (Routes/SecurityEventsRoutes.tsx), whose list ranks
+   * who is riskiest and whose Look Up an Entity Entities used to hold.
+   */
+  // Where a route of the table closes: its own line, under its props.
+  const ROUTE_CLOSE: string = "\n        />";
+
+  test("send the Entities address to Entity Risk", () => {
+    const routes: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../FeatureSet/Dashboard/src/Routes/SecurityEventsRoutes.tsx",
+      ),
+      "utf8",
+    );
+    const start: number = routes.indexOf(
+      "path={SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_ENTITIES]",
+    );
+    // The route, to the line that closes it: what the address draws.
+    const element: string = routes.slice(
+      start,
+      routes.indexOf(ROUTE_CLOSE, start),
+    );
+
+    expect(start).toBeGreaterThan(-1);
+    expect(element.length).toBeGreaterThan(0);
+    expect(element).not.toContain("<PageRoute");
+    expect(element).toContain("<Navigate");
+    expect(element).toContain(
+      "RouteMap[PageMap.SECURITY_EVENTS_ENTITY_RISK] as Route",
+    );
+    expect(routes).not.toContain('from "../Pages/SecurityEvents/Entities"');
+    expect(
+      fs.existsSync(
+        path.resolve(
+          __dirname,
+          "../../FeatureSet/Dashboard/src/Pages/SecurityEvents/Entities.tsx",
+        ),
+      ),
+    ).toBe(false);
   });
 });
 
@@ -572,7 +625,7 @@ describe("where each page says it is", () => {
       ["Security Events", "Security Cases", "Closed Cases"],
       ["Security Events", "Security Cases", "All Cases"],
       ["Security Events", "Events"],
-      ["Security Events", "Events", "Entities"],
+      ["Security Events", "Events", "Campaigns"],
       ["Security Events", "Events", "Entity Risk"],
       ["Security Events", "Events", "Correlate"],
       ["Security Events", "Detections", "Detection Rules"],
@@ -599,6 +652,9 @@ describe("where each page says it is", () => {
     expect(
       getSecurityEventsPageTrail("SECURITY_EVENTS_MONITORS" as never),
     ).toBeUndefined();
+    expect(
+      getSecurityEventsPageTrail("SECURITY_EVENTS_ENTITIES" as never),
+    ).toBeUndefined();
   });
 
   test("finds a page's section and entry, and nothing for a page the menu does not list", () => {
@@ -611,8 +667,9 @@ describe("where each page says it is", () => {
       )?.title,
     ).toBe("Playbooks");
     expect(
-      getSecurityEventsMenuItemFor("SECURITY_EVENTS_ENTITIES" as never)?.title,
-    ).toBe("Entities");
+      getSecurityEventsMenuItemFor("SECURITY_EVENTS_ENTITY_RISK" as never)
+        ?.title,
+    ).toBe("Entity Risk");
     expect(getSecurityEventsMenuSectionFor(undefined)).toBeUndefined();
     expect(getSecurityEventsMenuItemFor(undefined)).toBeUndefined();
     expect(

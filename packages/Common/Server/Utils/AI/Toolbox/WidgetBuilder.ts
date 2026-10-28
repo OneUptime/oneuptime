@@ -8,6 +8,7 @@ import {
   AIChatWidgetStat,
   AIChatWidgetType,
 } from "../../../../Types/AI/AIChatTypes";
+import { getFactsNotInHeading } from "../../../../Types/AI/ResourceCardFacts";
 
 /*
  * Builds the inline widgets a tool attaches to its result. Widgets are built
@@ -151,6 +152,12 @@ export default class WidgetBuilder {
     };
   }
 
+  /*
+   * The card a write leaves under the answer. A fact its heading or its
+   * subheading already says ("#42" in "#42 · Payment API down", "High" in
+   * "Severity: High") is left out of its fields: each fact once, for every
+   * write tool at once (Types/AI/ResourceCardFacts).
+   */
   public static resourceCard(params: {
     title: string;
     resourceType: string;
@@ -167,7 +174,11 @@ export default class WidgetBuilder {
         resourceType: params.resourceType,
         heading: params.heading,
         subheading: params.subheading,
-        fields: params.fields,
+        fields: getFactsNotInHeading({
+          heading: params.heading,
+          subheading: params.subheading,
+          fields: params.fields,
+        }),
         link: params.link,
       },
     };

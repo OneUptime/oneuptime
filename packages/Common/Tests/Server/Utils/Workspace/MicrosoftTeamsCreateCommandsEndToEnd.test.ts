@@ -847,6 +847,8 @@ function useRealMembershipCheck(permissions: Array<Permission> | null): void {
   jest.spyOn(TeamMemberService, "findBy").mockResolvedValue(memberships);
   // Not a blocked project: that refusal is BlockedProjectBackgroundWork.test.ts.
   jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
+  // Nor a blocked person (WorkspaceActionAuthorization asks that too).
+  jest.spyOn(UserService, "isUserBlocked").mockResolvedValue(false);
   /*
    * The project's plan, which the member's props carry on OneUptime Cloud
    * (billing on, as CI runs): WorkspaceActionPlan.test.ts.

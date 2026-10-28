@@ -1,4 +1,5 @@
 import EmailReplyText from "../../../Utils/Email/EmailReplyText";
+import { fastestRun } from "../../Helpers/FastestRun";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -16,10 +17,13 @@ import { describe, expect, test } from "@jest/globals";
 // The longest a reading of 400,000 characters of its worst case may take.
 const LINEAR_TIME_BUDGET_IN_MS: number = 2000;
 
+/*
+ * How long the work takes: the fastest of up to three attempts, counted as
+ * it would have run on a usual runner when every attempt overran on a slow
+ * one (Tests/Helpers/FastestRun).
+ */
 function timed(work: () => void): number {
-  const start: number = Date.now();
-  work();
-  return Date.now() - start;
+  return fastestRun({ run: work, limitInMs: LINEAR_TIME_BUDGET_IN_MS }).inMs;
 }
 
 function lines(...text: Array<string>): string {

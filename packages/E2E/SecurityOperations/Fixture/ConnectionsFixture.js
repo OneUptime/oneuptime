@@ -470,7 +470,7 @@ export function createConnectionsFixture(options) {
     };
   }
 
-  function resolve(entities, logResources) {
+  function resolve(entities, logResources, isPartial) {
     const lookups = getSecurityConnectionLookups(entities);
     const records = new Map();
     const add = (kind, record, match) => {
@@ -544,7 +544,6 @@ export function createConnectionsFixture(options) {
     }
 
     // Members: by their email, and only when the role may read them.
-    const isPartial = scenario === "partial" && reads === 1;
     const unreadableKinds = isPartial ? [SecurityConnectionKind.User] : [];
     const failedKinds = isPartial
       ? [SecurityConnectionKind.KubernetesCluster]
@@ -626,8 +625,8 @@ export function createConnectionsFixture(options) {
     };
   }
 
-  function build(entities, logResources, window) {
-    const resolved = resolve(entities, logResources);
+  function build(entities, logResources, window, isPartial) {
+    const resolved = resolve(entities, logResources, isPartial);
     const shown = resolved.records.slice(0, SECURITY_CONNECTION_MAX_RESOURCES);
 
     return {
@@ -663,6 +662,28 @@ export function createConnectionsFixture(options) {
   }
 
   /*
+   * A case's connections around its detections, as the route answers them
+   * (`isPartial`: the role and a failed read keep kinds of record back).
+   */
+  function caseAnswer(securityCase, isPartial) {
+    const window = getCaseConnectionWindow({
+      firstDetectedAt: securityCase.firstDetectedAt,
+      lastDetectedAt: securityCase.lastDetectedAt,
+      createdAt: securityCase.createdAt,
+      now,
+    });
+    if (scenario === "busy") {
+      return busyAnswer(window);
+    }
+    return build(
+      securityCase.entities || [],
+      CASE_LOG_RESOURCES[securityCase.caseNumber] || [],
+      window,
+      isPartial,
+    );
+  }
+
+  /*
    * The route: a case's connections around its detections, or an event's or
    * an entity's values around a time (the hour around it, ending by now).
    */
@@ -672,6 +693,7 @@ export function createConnectionsFixture(options) {
     if (scenario === "fail" && reads === 1) {
       return { status: 500, body: { message: "Server Error" } };
     }
+    const isPartial = scenario === "partial" && reads === 1;
 
     if (body && typeof body.caseId === "string") {
       const securityCase = findCase(body.caseId);
@@ -681,23 +703,7 @@ export function createConnectionsFixture(options) {
           body: { message: "This case could not be found." },
         };
       }
-      const window = getCaseConnectionWindow({
-        firstDetectedAt: securityCase.firstDetectedAt,
-        lastDetectedAt: securityCase.lastDetectedAt,
-        createdAt: securityCase.createdAt,
-        now,
-      });
-      if (scenario === "busy") {
-        return { status: 200, body: busyAnswer(window) };
-      }
-      return {
-        status: 200,
-        body: build(
-          securityCase.entities || [],
-          CASE_LOG_RESOURCES[securityCase.caseNumber] || [],
-          window,
-        ),
-      };
+      return { status: 200, body: caseAnswer(securityCase, isPartial) };
     }
 
     const entities = Array.isArray(body?.entities) ? body.entities : [];
@@ -710,9 +716,20 @@ export function createConnectionsFixture(options) {
         entities,
         Array.isArray(body?.logResources) ? body.logResources : [],
         getEventConnectionWindow(at, now),
+        isPartial,
       ),
     };
   }
 
-  return { answer, hosts: HOSTS, members: MEMBERS };
+  /*
+   * A case's records, as the route lists them, for what the server reads
+   * from them in reads of their own (a case's Story and Impact,
+   * CaseContextFixture.js): not counted as the route's read, so ?connections=
+   * fail and partial stay about Connected Signals.
+   */
+  function forCase(securityCase) {
+    return caseAnswer(securityCase, false);
+  }
+
+  return { answer, forCase, hosts: HOSTS, members: MEMBERS };
 }

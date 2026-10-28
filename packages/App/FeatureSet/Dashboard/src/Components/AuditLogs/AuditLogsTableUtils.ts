@@ -2,6 +2,7 @@ import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
 import Query from "Common/Types/BaseDatabase/Query";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
+import { getNameInitials } from "Common/Utils/NameInitials";
 import PageMap from "../../Utils/PageMap";
 
 /*
@@ -235,18 +236,17 @@ export const getResourceMeta: (type: string | undefined) => ResourceMeta = (
   return RESOURCE_META[type] || DEFAULT_RESOURCE_META;
 };
 
+/*
+ * The person's initials, as their avatar draws them everywhere else
+ * (Utils/NameInitials): read from the words of their name, or of their
+ * address when they have no name - never a bracket ("(bot) Release
+ * Manager" was "(R"; it is RM), and an address by its local part's words
+ * (jane.doe@acme-commerce.example is JD, not J).
+ */
 export const getActorInitials: (name: string | undefined) => string = (
   name: string | undefined,
 ): string => {
-  if (!name) {
-    return "?";
-  }
-  const parts: Array<string> = name.trim().split(/\s+/).slice(0, 2);
-  return parts
-    .map((p: string) => {
-      return p.charAt(0).toUpperCase();
-    })
-    .join("");
+  return getNameInitials(name);
 };
 
 export interface ActorCredentialInput {

@@ -24,7 +24,7 @@ No OneUptime Cloud, os SMS e as chamadas de plantão vêm dos números abaixo. A
 
 Seus acionamentos vêm de números diferentes dos acima quando:
 
-- **Seu projeto usa a própria conta do Twilio.** Quando um projeto tem uma configuração do Twilio definida como padrão do projeto (**Configurações do projeto** > **Notificações** > **Configurações de notificação** > **Configuração do Twilio**), os SMS e as chamadas para os membros do projeto passam por essa conta, a partir dos números de telefone dela. Coloque esses números na lista branca em vez dos acima.
+- **Seu projeto usa a própria conta do Twilio.** Quando um projeto tem uma configuração do Twilio definida como padrão do projeto (**Configurações do projeto** > **Notificações** > **Configurações de notificação** > **Mais configurações** > **Configuração do Twilio**), os SMS e as chamadas para os membros do projeto passam por essa conta, a partir dos números de telefone dela. Coloque esses números na lista branca em vez dos acima.
 - **Você usa uma instalação auto-hospedada.** Os SMS e as chamadas vêm dos números do Twilio que o seu administrador configurou: a configuração do Twilio padrão do projeto, ou a da instalação inteira em **Admin Dashboard** > **Configurações** > **Chamadas e SMS**. Pergunte ao seu administrador quais números colocar na lista branca.
 
 ## Próximos passos

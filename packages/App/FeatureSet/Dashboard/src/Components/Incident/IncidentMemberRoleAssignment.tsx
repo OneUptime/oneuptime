@@ -28,6 +28,18 @@ import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import { CardHeaderLayout } from "Common/UI/Components/Card/Card";
 import { EventRolesSnapshot, toEventRoleMember } from "../../Utils/EventPeople";
 import { assignIncidentRole } from "../../Utils/EventRoleAssignment";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+
+/*
+ * Why a reader who may not give or take off the incident's roles finds
+ * Assign, Add More, Reassign and Remove locked: in the words of what they
+ * pressed, not the member table's ("create this Incident Member"). The
+ * permissions that would allow it follow.
+ */
+export const INCIDENT_ROLES_LOCKED_SENTENCE: string = translationKey(
+  "You do not have permission to change this incident's roles.",
+);
 
 export interface ComponentProps {
   incidentId: ObjectID;
@@ -294,6 +306,22 @@ const IncidentMemberRoleAssignment: FunctionComponent<ComponentProps> = (
       emptyStateMessage="Configure incident roles in Incidents → Settings → Incident Roles to start assigning team members."
       className={props.className || ""}
       headerLayout={props.headerLayout}
+      /*
+       * A role given is a new row of the incident's members, a role taken
+       * off one removed: the header's Assign asks the same.
+       */
+      assignGate={PermissionGate.check(
+        new IncidentMember(),
+        ModelAction.Create,
+        {
+          sentence: INCIDENT_ROLES_LOCKED_SENTENCE,
+        },
+      )}
+      unassignGate={PermissionGate.check(
+        new IncidentMember(),
+        ModelAction.Delete,
+        { sentence: INCIDENT_ROLES_LOCKED_SENTENCE },
+      )}
     />
   );
 

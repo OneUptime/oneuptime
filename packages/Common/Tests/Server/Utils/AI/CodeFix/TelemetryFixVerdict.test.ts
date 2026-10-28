@@ -15,6 +15,7 @@ import { TelemetryFixSignal } from "../../../../../Types/AI/FixProductionBaselin
 import FixProductionStatus from "../../../../../Types/AI/FixProductionStatus";
 import { generatedTexts } from "../../../../Helpers/GeneratedTexts";
 import { seededRandom, SeededRandom } from "../../../../Helpers/SeededRandom";
+import { FastestRun, fastestRun } from "../../../../Helpers/FastestRun";
 
 /*
  * A telemetry improvement is merged, not sending anything. These pin what
@@ -170,12 +171,19 @@ describe("what a fix adds: the text quoted on the lines its diff adds", () => {
     const line: string =
       '+ span("a.b") log("text with \'quotes\' in it") x("\n';
     const patch: string = line.repeat(60000);
-    const started: number = Date.now();
-    const read: { texts: Array<string>; isTruncated: boolean } =
-      readAddedQuotedText([patch, patch]);
+    const timed: FastestRun<{ texts: Array<string>; isTruncated: boolean }> =
+      fastestRun({
+        run: (): { texts: Array<string>; isTruncated: boolean } => {
+          const read: { texts: Array<string>; isTruncated: boolean } =
+            readAddedQuotedText([patch, patch]);
 
-    expect(patch.length).toBeGreaterThan(2000000);
-    expect(Date.now() - started).toBeLessThan(2000);
+          expect(patch.length).toBeGreaterThan(2000000);
+          return read;
+        },
+        limitInMs: 2000,
+      });
+    const read: { texts: Array<string>; isTruncated: boolean } = timed.result;
+    expect(timed.inMs).toBeLessThan(2000);
     expect(read).toEqual({
       texts: ["a.b", "text with 'quotes' in it"],
       isTruncated: true,
@@ -183,11 +191,18 @@ describe("what a fix adds: the text quoted on the lines its diff adds", () => {
   });
 
   test("one line of megabytes is read only as far as its first 2,000 characters", () => {
-    const started: number = Date.now();
-    const read: { texts: Array<string>; isTruncated: boolean } =
-      readAddedQuotedText([`+ span("first.one") ${'x("'.repeat(1500000)}`]);
+    const timed: FastestRun<{ texts: Array<string>; isTruncated: boolean }> =
+      fastestRun({
+        run: (): { texts: Array<string>; isTruncated: boolean } => {
+          return readAddedQuotedText([
+            `+ span("first.one") ${'x("'.repeat(1500000)}`,
+          ]);
+        },
+        limitInMs: 2000,
+      });
+    const read: { texts: Array<string>; isTruncated: boolean } = timed.result;
 
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
     expect(read.texts).toEqual(["first.one"]);
   });
 

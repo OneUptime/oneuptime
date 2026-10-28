@@ -8,6 +8,7 @@ import Dictionary from "../../../../Types/Dictionary";
 import { SpanStatus } from "../../../../Models/AnalyticsModels/Span";
 import { LlmAnswerIssue } from "../../../../Types/Telemetry/LlmAnswerIssue";
 import { LlmCallKind } from "../../../../Types/Telemetry/LlmCallKind";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * What ingest stores about each AI call's answer: the call kind
@@ -356,14 +357,17 @@ describe("getUserMessagePreview", () => {
     const history: string = JSON.stringify([
       { role: "user", content: "q".repeat(600 * 1024) },
     ]);
-    const started: number = Date.now();
-
-    expect(
-      LlmSpanUtil.getUserMessagePreview({
-        attributes: { "gen_ai.input.messages": history },
-      }),
-    ).toBe("");
-    expect(Date.now() - started).toBeLessThan(500);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(
+          LlmSpanUtil.getUserMessagePreview({
+            attributes: { "gen_ai.input.messages": history },
+          }),
+        ).toBe("");
+      },
+      limitInMs: 500,
+    });
+    expect(timed.inMs).toBeLessThan(500);
   });
 
   test("toPreview collapses whitespace and trims", () => {

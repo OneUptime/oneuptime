@@ -5,6 +5,10 @@ import {
   AIChatWidgetStat,
   AIChatWidgetType,
 } from "Common/Types/AI/AIChatTypes";
+import {
+  getFactsNotInHeading,
+  ResourceCardFact,
+} from "Common/Types/AI/ResourceCardFacts";
 import { JSONObject } from "Common/Types/JSON";
 import {
   EntityListEntry,
@@ -202,8 +206,12 @@ export default class PdfWidgets {
   }
 
   private drawResourceCard(widget: AIChatWidget): void {
-    const fields: Array<{ label: string; value: string }> =
-      widget.data.fields || [];
+    // Each fact once, as the card draws it (Types/AI/ResourceCardFacts).
+    const fields: Array<ResourceCardFact> = getFactsNotInHeading({
+      heading: widget.data.heading,
+      subheading: widget.data.subheading,
+      fields: widget.data.fields,
+    });
 
     const padding: number = 10;
 

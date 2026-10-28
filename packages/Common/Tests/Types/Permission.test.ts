@@ -240,14 +240,35 @@ describe("PermissionHelper label/scope filtering", () => {
     expect(PermissionHelper.getAccessControlPermissions([row])).toEqual([row]);
   });
 
-  test("getAccessControlPermissions: scope=All with labels is NOT collected (All wins over labels)", () => {
+  /*
+   * Labels narrow a row whatever scope it is stored with: the scope column
+   * was added with the default All, so a label-limited row of an older
+   * install, and one an API caller wrote with labels and no scope, is stored
+   * as All. Read as All, it reached the whole project while the dashboard
+   * showed it limited (PermissionHelper.isLimitedToLabels).
+   */
+  test("getAccessControlPermissions: scope=All with labels IS collected (its labels narrow it)", () => {
     const labelId: ObjectID = ObjectID.generate();
     const row: UserPermission = makeRow(
       Permission.IncidentViewer,
       PermissionScope.All,
       [labelId],
     );
+    expect(PermissionHelper.getAccessControlPermissions([row])).toEqual([row]);
+    expect(PermissionHelper.getNonAccessControlPermissions([row])).toEqual([]);
+  });
+
+  test("getAccessControlPermissions: an All row of a role that cannot be scoped is not narrowed by labels", () => {
+    const labelId: ObjectID = ObjectID.generate();
+    const row: UserPermission = makeRow(
+      Permission.ProjectAdmin,
+      PermissionScope.All,
+      [labelId],
+    );
     expect(PermissionHelper.getAccessControlPermissions([row])).toEqual([]);
+    expect(PermissionHelper.getNonAccessControlPermissions([row])).toEqual([
+      Permission.ProjectAdmin,
+    ]);
   });
 
   test("getAccessControlPermissions: scope=Owned never contributes a label filter", () => {

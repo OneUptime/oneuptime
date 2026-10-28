@@ -12,6 +12,9 @@ import TeamService from "./TeamService";
 import UserCallService from "./UserCallService";
 import UserEmailService from "./UserEmailService";
 import UserNotificationRuleService from "./UserNotificationRuleService";
+import CustomNotificationChannelService from "./CustomNotificationChannelService";
+import GlobalConfigService from "./GlobalConfigService";
+import { PUSH_TURNED_OFF_READINESS_CLAUSE } from "../../Types/PushNotification/PushNotificationsTurnedOff";
 import UserPushService from "./UserPushService";
 import UserService from "./UserService";
 import UserSmsService from "./UserSmsService";
@@ -54,6 +57,7 @@ import User from "../../Models/DatabaseModels/User";
 import UserCall from "../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../Models/DatabaseModels/UserEmail";
 import UserNotificationRule from "../../Models/DatabaseModels/UserNotificationRule";
+import CustomNotificationChannel from "../../Models/DatabaseModels/CustomNotificationChannel";
 import UserPush from "../../Models/DatabaseModels/UserPush";
 import UserSMS from "../../Models/DatabaseModels/UserSMS";
 import UserTelegram from "../../Models/DatabaseModels/UserTelegram";
@@ -140,6 +144,8 @@ export enum ReadinessMethodType {
   Slack = "Slack",
   MicrosoftTeams = "Microsoft Teams",
   Webhook = "Webhook",
+  // A custom channel (CustomNotificationChannel): CUSTOM_CHANNEL_METHOD_LABEL.
+  CustomChannel = "Custom Channel",
 }
 
 export interface ReadinessMethod {
@@ -468,6 +474,7 @@ const METHOD_DISPLAY_ORDER: Array<ReadinessMethodType> = [
   ReadinessMethodType.Email,
   ReadinessMethodType.Slack,
   ReadinessMethodType.MicrosoftTeams,
+  ReadinessMethodType.CustomChannel,
   ReadinessMethodType.SMS,
   ReadinessMethodType.Call,
   ReadinessMethodType.WhatsApp,
@@ -565,6 +572,18 @@ interface ResponderAttachment {
 }
 
 /*
+ * A custom channel that is on, as readiness needs it: a channel that pages
+ * everyone reaches every responder - through the rules it was added to, and
+ * through the fallback (UserNotificationRuleService.chooseFallbackChannels) -
+ * while one that does not reaches only the people whose rules name it.
+ */
+interface ReadinessCustomChannel {
+  id: ObjectID;
+  name: string;
+  pagesEveryone: boolean;
+}
+
+/*
  * The project-level switches that decide what a page with no matching rule actually
  * does, AND which channels can carry a page at all. Read once per summary, never per
  * user.
@@ -575,6 +594,20 @@ interface ProjectNotificationSettings {
   enableCallNotifications: boolean;
   enableWhatsAppNotifications: boolean;
   enableTelegramNotifications: boolean;
+  /*
+   * The custom channels that are on (CustomNotificationChannel). They are the
+   * installation's rather than the project's, and read with the project's
+   * switches because they answer the same question: which channels a page can
+   * go out on here.
+   */
+  customChannels: Array<ReadinessCustomChannel>;
+  /*
+   * Push notifications turned off for the whole server (GlobalConfig.
+   * disablePushNotifications): then no push device reaches anybody, in any
+   * project. Read with the project's switches for the same reason the custom
+   * channels are.
+   */
+  isPushTurnedOffOnServer: boolean;
 }
 
 /** Everything the per-user pass needs, loaded once for the whole responder set. */
@@ -1957,7 +1990,53 @@ export default class OnCallReadinessService {
       enableTelegramNotifications: Boolean(
         project?.enableTelegramNotifications,
       ),
+      customChannels: await this.loadCustomChannels(),
+      isPushTurnedOffOnServer: await this.loadIsPushTurnedOffOnServer(),
     };
+  }
+
+  /*
+   * Whether the server has push turned off. A switch that could not be read
+   * is reported as off, which errs towards a responder looking LESS
+   * reachable than they are - and is what the push sender does with it too
+   * (PushNotificationService.isRefusedWhilePushIsTurnedOff).
+   */
+  private static async loadIsPushTurnedOffOnServer(): Promise<boolean> {
+    try {
+      return await GlobalConfigService.getPushNotificationsTurnedOff();
+    } catch (err) {
+      logger.error(err);
+      return true;
+    }
+  }
+
+  /*
+   * The custom channels that are on. A channel that could not be read is
+   * reported as missing, which errs towards a responder looking LESS
+   * reachable than they are - the direction this service always errs in.
+   */
+  private static async loadCustomChannels(): Promise<
+    Array<ReadinessCustomChannel>
+  > {
+    try {
+      const channels: Array<CustomNotificationChannel> =
+        await CustomNotificationChannelService.getChannelsThatAreOn();
+
+      return channels
+        .filter((channel: CustomNotificationChannel): boolean => {
+          return Boolean(channel.id);
+        })
+        .map((channel: CustomNotificationChannel): ReadinessCustomChannel => {
+          return {
+            id: channel.id!,
+            name: channel.name || "",
+            pagesEveryone: channel.pageEveryoneByDefault !== false,
+          };
+        });
+    } catch (err) {
+      logger.error(err);
+      return [];
+    }
   }
 
   private static async loadInputs(data: {
@@ -1990,7 +2069,12 @@ export default class OnCallReadinessService {
     const methodsByUserId: Map<
       string,
       Array<ReadinessMethod>
-    > = await this.loadMethods(data.projectId, data.userIds, data.completeness);
+    > = await this.loadMethods(
+      data.projectId,
+      data.userIds,
+      data.completeness,
+      data.projectSettings.customChannels,
+    );
 
     const coverageByKey: Map<string, CoverageState> =
       await this.loadCoverageIndex(
@@ -2065,6 +2149,7 @@ export default class OnCallReadinessService {
     projectId: ObjectID,
     userIds: Array<ObjectID>,
     completeness: ReadCompleteness,
+    customChannels: Array<ReadinessCustomChannel> = [],
   ): Promise<Map<string, Array<ReadinessMethod>>> {
     const methodsByUserId: Map<string, Array<ReadinessMethod>> = new Map<
       string,
@@ -2413,6 +2498,108 @@ export default class OnCallReadinessService {
       },
     });
 
+    /*
+     * Custom channels. They are nobody's to add or verify, so a channel is one
+     * of a responder's methods when it can reach them: every responder for a
+     * channel that pages everyone, and the responders whose rules name it for
+     * one that does not. Verified by construction, as a webhook is: being on
+     * is the whole test, and the runtime asks no more of it.
+     */
+    const channelsPagingEveryone: Array<ReadinessCustomChannel> =
+      customChannels.filter((channel: ReadinessCustomChannel): boolean => {
+        return channel.pagesEveryone;
+      });
+
+    const channelsByChoice: Array<ReadinessCustomChannel> =
+      customChannels.filter((channel: ReadinessCustomChannel): boolean => {
+        return !channel.pagesEveryone;
+      });
+
+    const addCustomChannel: (
+      userId: ObjectID,
+      channel: ReadinessCustomChannel,
+    ) => void = (userId: ObjectID, channel: ReadinessCustomChannel): void => {
+      const existing: Array<ReadinessMethod> =
+        methodsByUserId.get(userId.toString()) || [];
+
+      if (
+        existing.some((method: ReadinessMethod): boolean => {
+          return (
+            method.methodType === ReadinessMethodType.CustomChannel &&
+            method.methodId.toString() === channel.id.toString()
+          );
+        })
+      ) {
+        return;
+      }
+
+      addMethod(
+        { id: channel.id, userId: userId },
+        {
+          methodType: ReadinessMethodType.CustomChannel,
+          // A channel's name is the admin's label for everyone, not a secret.
+          maskedIdentifier: channel.name,
+          isVerified: true,
+        },
+      );
+    };
+
+    for (const userId of userIds) {
+      for (const channel of channelsPagingEveryone) {
+        addCustomChannel(userId, channel);
+      }
+    }
+
+    if (channelsByChoice.length > 0) {
+      const channelsById: Map<string, ReadinessCustomChannel> = new Map<
+        string,
+        ReadinessCustomChannel
+      >(
+        channelsByChoice.map(
+          (
+            channel: ReadinessCustomChannel,
+          ): [string, ReadinessCustomChannel] => {
+            return [channel.id.toString(), channel];
+          },
+        ),
+      );
+
+      await this.readEveryPage<UserNotificationRule>({
+        description: "on-call rules that page through a custom channel",
+        projectId: projectId,
+        completeness: completeness,
+        service: UserNotificationRuleService,
+        query: {
+          projectId: projectId,
+          userId: new Includes(userIds),
+          customNotificationChannelId: new Includes(
+            channelsByChoice.map(
+              (channel: ReadinessCustomChannel): ObjectID => {
+                return channel.id;
+              },
+            ),
+          ),
+        },
+        select: {
+          _id: true,
+          userId: true,
+          customNotificationChannelId: true,
+        },
+        consumePage: (rows: Array<UserNotificationRule>): void => {
+          for (const row of rows) {
+            const channel: ReadinessCustomChannel | undefined =
+              channelsById.get(
+                row.customNotificationChannelId?.toString() || "",
+              );
+
+            if (channel && row.userId) {
+              addCustomChannel(row.userId, channel);
+            }
+          }
+        },
+      });
+    }
+
     for (const methods of methodsByUserId.values()) {
       methods.sort((a: ReadinessMethod, b: ReadinessMethod): number => {
         return (
@@ -2706,8 +2893,9 @@ export default class OnCallReadinessService {
    * Whether this project can send on this channel at all.
    *
    * Push, Email and Webhook have no project switch: the first two are zero-cost and the
-   * third is somebody else's endpoint, so nothing gates them and they are always
-   * available. The four paid channels do, and the runtime honours them — SmsService and
+   * third is somebody else's endpoint, so no project gates them. Only the server can
+   * turn push off, for every project at once (PushNotificationsTurnedOff); otherwise
+   * they are always available. The four paid channels do, and the runtime honours them — SmsService and
    * CallService refuse at send time, and the fallback checks all four before it picks a
    * channel to spend money on. Treating all four alike here is the conservative reading:
    * a responder marked unreachable because their project switched their only channel off
@@ -2731,6 +2919,15 @@ export default class OnCallReadinessService {
 
     if (methodType === ReadinessMethodType.Telegram) {
       return settings.enableTelegramNotifications;
+    }
+
+    /*
+     * Push has no project switch, but the server can have it turned off for
+     * every project (PushNotificationsTurnedOff). Read as on unless that is
+     * known, as it was before there was a switch.
+     */
+    if (methodType === ReadinessMethodType.Push) {
+      return settings.isPushTurnedOffOnServer !== true;
     }
 
     return true;
@@ -2765,12 +2962,38 @@ export default class OnCallReadinessService {
        * wrong place, so the third names exactly who can, and where.
        */
       if (data.verifiedMethods.length > 0) {
-        const isOneChannel: boolean = data.disabledChannels.length === 1;
-
         reasons.push("No usable notification method - cannot be paged");
-        reasons.push(
-          `Every method they have verified is on ${data.disabledChannels.join(", ")}, and this project has ${isOneChannel ? "that channel" : "those channels"} switched off - ${getWhoCanTurnOnClause(isOneChannel ? "it" : "them")}`,
+
+        /*
+         * Push is turned off by the server rather than the project, and a
+         * server admin turns it back on, so it has a clause of its own; a
+         * sentence about the project's switches alone reads as it always did.
+         */
+        const isPushTurnedOff: boolean = data.disabledChannels.includes(
+          ReadinessMethodType.Push,
         );
+
+        const projectChannels: Array<string> = data.disabledChannels.filter(
+          (channel: string): boolean => {
+            return channel !== ReadinessMethodType.Push;
+          },
+        );
+
+        const isOneChannel: boolean = projectChannels.length === 1;
+
+        if (!isPushTurnedOff) {
+          reasons.push(
+            `Every method they have verified is on ${data.disabledChannels.join(", ")}, and this project has ${isOneChannel ? "that channel" : "those channels"} switched off - ${getWhoCanTurnOnClause(isOneChannel ? "it" : "them")}`,
+          );
+        } else if (projectChannels.length === 0) {
+          reasons.push(
+            `Every method they have verified is on ${ReadinessMethodType.Push}, and ${PUSH_TURNED_OFF_READINESS_CLAUSE}`,
+          );
+        } else {
+          reasons.push(
+            `Every method they have verified is on ${data.disabledChannels.join(", ")}. This project has ${projectChannels.join(", ")} switched off - ${getWhoCanTurnOnClause(isOneChannel ? "it" : "them")} - and ${PUSH_TURNED_OFF_READINESS_CLAUSE}`,
+          );
+        }
 
         return reasons;
       }
@@ -2943,6 +3166,28 @@ export default class OnCallReadinessService {
 
     if (has(ReadinessMethodType.MicrosoftTeams)) {
       zeroCost.push(ReadinessMethodType.MicrosoftTeams);
+    }
+
+    // Only a channel that pages everyone, as the fallback itself uses only those.
+    const pagesEveryone: Set<string> = new Set<string>(
+      settings.customChannels
+        .filter((channel: ReadinessCustomChannel): boolean => {
+          return channel.pagesEveryone;
+        })
+        .map((channel: ReadinessCustomChannel): string => {
+          return channel.id.toString();
+        }),
+    );
+
+    if (
+      usableMethods.some((method: ReadinessMethod): boolean => {
+        return (
+          method.methodType === ReadinessMethodType.CustomChannel &&
+          pagesEveryone.has(method.methodId.toString())
+        );
+      })
+    ) {
+      zeroCost.push(ReadinessMethodType.CustomChannel);
     }
 
     if (zeroCost.length > 0) {

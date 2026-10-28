@@ -3,7 +3,7 @@
 Fråga AI är OneUptimes chatt över ditt projekts data. Fråga om loggar, spår, mätvärden, undantag, incidenter, larm, monitorer, jour, statussidor, SLO:er, runbooks eller arbetsflöden: chatten frågar ditt projekt live, stöder varje påstående med en källa och agerar åt dig när du tillåter det.
 
 :::cards
-- [Öppna Fråga AI](#öppna-fråga-ai): Från sidhuvudet, tangentbordet, ett diagram eller en egen sida.
+- [Öppna Fråga AI](#öppna-fråga-ai): Från sidhuvudet, tangentbordet, ett diagram eller produktmenyn.
 - [Vad den kan se](#vad-den-kan-se): De data den läser för att svara dig.
 - [Åtgärder och behörighetslägen](#åtgärder-och-behörighetslägen): Välj om den får agera och när den frågar först.
 - [Åtgärder görs som du](#åtgärder-görs-som-du): Dina behörigheter, ditt namn på varje ändring.
@@ -15,7 +15,7 @@ Fråga AI svarar bara med det som verktygen returnerar: den kör frågor mot dit
 
 ```mermaid title="Från en fråga till ett svar med källor"
 flowchart TB
-    Q["Din fråga, med<br/>sidan du är på"] --> A["Ask AI"]
+    Q["Din fråga, med<br/>sidan du är på"] --> A["Fråga AI"]
     A -->|"läsverktyg"| D["Projektets data,<br/>frågade live"]
     D --> R["Ett svar med en<br/>källa per påstående"]
     A -->|"en åtgärd"| M{"Behörighets-<br/>läget"}
@@ -30,10 +30,12 @@ I läget **Skrivskyddad** erbjuds modellen aldrig åtgärderna, så samtalet bar
 
 | Var | Hur |
 | --- | --- |
-| Vilken sida som helst | Klicka på **Ask AI** i sidhuvudet, eller tryck `Ctrl` + `I` (`Cmd` + `I` på en Mac). Medan du skriver i en textruta eller en redigerare förblir tangenterna redigerarens kortkommando för kursiv. |
-| Kommandopaletten | Tryck `Ctrl` + `K` (`Cmd` + `K` på en Mac) och välj **Ask AI**. |
+| Vilken sida som helst | Klicka på **Fråga AI** i sidhuvudet, eller tryck `Ctrl` + `I` (`Cmd` + `I` på en Mac). Medan du skriver i en textruta eller en redigerare förblir tangenterna redigerarens kortkommando för kursiv. |
+| Kommandopaletten | Tryck `Ctrl` + `K` (`Cmd` + `K` på en Mac) och välj **Fråga AI**. |
 | Ett felmönster i loggarna, eller ett diagrams fynd | Klicka på **Explain with AI**: Fråga AI öppnas med bevisen som en fråga du kan redigera innan du skickar den. |
-| En egen sida | Öppna **Produkter → AI → Chat** för en arbetsyta över hela sidan. Varje samtal där har en egen adress, så du kan bokmärka en tråd eller klistra in den i en incidentkanal. |
+| Produktmenyn | Öppna **Produkter → AI → Chat**. Fråga AI öppnas över sidan du var på. Varje samtal har en egen adress, så du kan bokmärka det och komma tillbaka till det. |
+
+Fråga AI öppnas mitt på skärmen, över sidan du var på, och på en telefon fyller den hela skärmen. Tryck på `Esc`, eller klicka bredvid, för att gå tillbaka till sidan. Samtalet stannar där du lämnade det: öppna Fråga AI igen för att fortsätta. Stänger du den medan den fortfarande svarar säger en påminnelse i hörnet när svaret är klart, och öppnar det.
 
 På en incident eller ett larm har kortet **AI Investigation** ett eget samtal, **Ask OneUptime AI**, som delas av alla som kan se incidenten eller larmet: se [Prata med OneUptime AI om incidenten](/docs/ai/ai-sre#prata-med-oneuptime-ai-om-incidenten).
 
@@ -52,7 +54,7 @@ Fråga AI läser ditt projekt med dina egna behörigheter, så den ser det du f�
 
 ## Sidkontext
 
-Fråga AI vet vilken sida du öppnade den från. På en incidentsida betyder "varför hände det här?" just den incidenten, och inmatningsfältet visar en bricka med sidans ämne; ta bort den för att fråga om hela projektet. Går du till en annan sida medan panelen är öppen följer kontexten med. Samtalet minns också sitt första ämne på servern, så en följdfråga dagar senare förstår fortfarande "den här incidenten".
+Fråga AI vet vilken sida du öppnade den från. På en incidentsida betyder "varför hände det här?" just den incidenten: inmatningsfältet visar en bricka med sidans ämne, och frågorna den föreslår är sidans egna. Ta bort brickan för att fråga om hela projektet, och lägg till den igen på samma sätt. Öppna Fråga AI på en annan sida så följer kontexten med. Samtalet minns också sitt första ämne på servern, så en följdfråga dagar senare förstår fortfarande "den här incidenten".
 
 Infrastrukturlistor och resurssidor föreslår frågor för den sortens resurs du tittar på. Öppna ett Kubernetes-kluster och fråga "Vilka mätvärden har ändrats de senaste 24 timmarna?", eller öppna en Docker-värd och fråga "Sammanfatta loggarnas allvarlighet och spårfelen de senaste sex timmarna." Bevislänkar leder tillbaka till resursens sida. Läsningar respekterar dina behörigheter för projekt, resurser och telemetri, inklusive begränsningar på ägarskap och etiketter.
 
@@ -72,8 +74,8 @@ Varje samtal har ett behörighetsläge, som du väljer i inmatningsfältet bredv
 
 | Läge | Vad som händer |
 | --- | --- |
-| **Ask to act** | Standard. Fråga AI föreslår varje åtgärd på ett godkännandekort, och inget körs förrän du väljer **Allow** eller **Hoppa över** för den, eller **Deny all**. |
-| **Auto-run** | Åtgärder körs så snart modellen ber om dem, fortfarande begränsade till det din roll får göra. Använd det med omsorg. |
+| **Fråga före åtgärd** | Standard. Fråga AI föreslår varje åtgärd på ett godkännandekort, och inget körs förrän du väljer **Tillåt** eller **Hoppa över** för den, eller **Neka alla**. |
+| **Kör automatiskt** | Åtgärder körs så snart modellen ber om dem, fortfarande begränsade till det din roll får göra. Använd det med omsorg. |
 | **Skrivskyddad** | Åtgärderna erbjuds inte modellen alls: Fråga AI kan bara läsa. |
 
 Vad Fråga AI kan göra när ett läge tillåter det:
@@ -99,10 +101,12 @@ Varje åtgärd Fråga AI utför görs som du: den gör samma ändring som instru
 ## Styr ett samtal
 
 - **Stoppa den.** Medan Fråga AI arbetar blir skicka-knappen en stoppknapp. Stoppa en körning när som helst och fråga om något annat direkt.
-- **Välj modellen.** Leverantörsväljaren i inmatningsfältet listar projektets LLM-leverantörer och de globala, med standarden markerad. Ett nytt samtal använder standarden.
-- **Betygsätt ett svar.** **Good answer** och **Poor answer** sparas med meddelandet, så att svarens kvalitet kan mätas över tid.
-- **Se kostnaden.** Sidfoten under det senaste svaret visar dess kostnad, dess token och hur många frågor det körde, och varje fråga är en källbricka som öppnar data bakom den.
-- **Behåll en kopia.** **Download conversation** sparar tråden med **Download as Markdown**, för att läsa eller klistra in i ett ärende, eller **Download as PDF**, för att lämna till någon.
+- **Följ arbetet.** Medan den svarar säger en rad vad den gör just nu, till exempel söker i loggar. Klicka på antalet steg bredvid för att se varje steg.
+- **Välj modellen.** När ditt projekt kan använda mer än en LLM-leverantör listar leverantörsväljaren i inmatningsfältet projektets LLM-leverantörer och de globala, med standarden markerad. Ett nytt samtal använder standarden.
+- **Betygsätt ett svar.** **Bra svar** och **Dåligt svar** sparas med meddelandet, så att svarens kvalitet kan mätas över tid.
+- **Se kostnaden.** Under varje svar öppnas källorna till de frågor det körde, och det senaste svarets källor säger också hur många frågor det körde, dess token och dess kostnad. Varje källbricka i ett svar öppnar data bakom den.
+- **Behåll en kopia.** **Ladda ned konversation** sparar tråden med **Ladda ned som Markdown**, för att läsa eller klistra in i ett ärende, eller **Ladda ned som PDF**, för att lämna till någon.
+- **Fortsätt där du slutade.** **Alla konversationer**, i sidhuvudet i Fråga AI, listar dina samtal, det senaste först, så att du kan öppna dem igen eller ta bort dem. Början av ett nytt samtal visar de tre senaste.
 
 ## Krav
 
@@ -115,7 +119,7 @@ Fråga AI räknas in i projektets egna dagliga AI-gränser när projektet sätte
 ## Felsökning
 
 :::details Fråga AI säger att AI inte är tillgängligt
-Panelen säger varför innan du skriver: projektets plan omfattar inte AI, **Aktivera AI** är avstängt, eller projektet har ingen LLM-leverantör. Varje meddelande länkar till sidan där det ändras.
+Fråga AI säger varför innan du skriver: projektets plan omfattar inte AI, **Aktivera AI** är avstängt, eller projektet har ingen LLM-leverantör. Varje meddelande länkar till sidan där det ändras.
 :::
 
 :::details En åtgärd avvisades

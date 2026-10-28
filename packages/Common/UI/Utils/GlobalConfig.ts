@@ -7,6 +7,8 @@ import { APP_API_URL } from "../Config";
 
 export interface GlobalConfigVars {
   disableUserProjectCreation: boolean;
+  // Push notifications turned off for the whole server (PushNotificationsTurnedOff).
+  disablePushNotifications: boolean;
 }
 
 export default class GlobalConfigUtil {
@@ -37,6 +39,7 @@ export default class GlobalConfigUtil {
 
       GlobalConfigUtil.cache = {
         disableUserProjectCreation: Boolean(data["disableUserProjectCreation"]),
+        disablePushNotifications: Boolean(data["disablePushNotifications"]),
       };
 
       return GlobalConfigUtil.cache;

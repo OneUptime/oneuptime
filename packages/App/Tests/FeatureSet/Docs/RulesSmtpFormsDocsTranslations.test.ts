@@ -1544,9 +1544,12 @@ describe("the helpers, on these pages' shapes", () => {
     );
     // A whole phrase the locale words is taken as it is.
     expect(drawnLabel("de", FORMS, "Create Form")).toBe("Formular erstellen");
-    // A plain button the locale leaves in English is drawn in English.
-    expect(dashboardLocale("it")["Export JSON"]).toBe("Export JSON");
-    expect(drawnLabel("it", IMPORT, "Export JSON")).toBe("Export JSON");
+    /*
+     * A plain button is drawn as its locale words it, whole - Italian's
+     * Export JSON was English until the export words were translated.
+     */
+    expect(dashboardLocale("it")["Export JSON"]).toBe("Esporta JSON");
+    expect(drawnLabel("it", IMPORT, "Export JSON")).toBe("Esporta JSON");
     expect(drawnLabel("de", IMPORT, "Export JSON")).toBe("JSON exportieren");
   });
 

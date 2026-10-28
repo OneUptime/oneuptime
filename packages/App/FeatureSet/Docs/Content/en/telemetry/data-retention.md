@@ -28,10 +28,10 @@ In full, OneUptime reads these settings in this order, and the first one set dec
 
 | Order | Setting | Where it is set |
 | --- | --- | --- |
-| 1 | Days for one log severity or span status, for one service or resource | **Retention by Telemetry Type**, on its **Settings** page |
+| 1 | Days for one log severity or span status, for one service or resource | **Retention by Telemetry Type**, under **More settings** on its **Settings** page |
 | 2 | Days for one type of telemetry, for one service or resource | The same card |
-| 3 | Days for everything from one service or resource | **Telemetry Data Retention**, on the same page |
-| 4 | Days for one log severity or span status, for the project | **Retention by Telemetry Type**, on **Data Retention** |
+| 3 | Days for everything from one service or resource | **Telemetry Data Retention**, under **More settings** on the same page |
+| 4 | Days for one log severity or span status, for the project | **Retention by Telemetry Type**, under **More settings** on **Data Retention** |
 | 5 | Days for one type of telemetry, for the project | The same card |
 | 6 | Days for everything else | **Default Retention (Days)**, on **Data Retention** |
 
@@ -64,7 +64,7 @@ Overrides keep what you need longer and the rest shorter: error logs for a quart
 
 ### For the whole project
 
-Under the default, the **Retention by Telemetry Type** card sets days for each type of telemetry. Click **Edit Overrides**, fill in the fields you need, and leave the rest blank:
+Under the default, folded under **More settings**, the **Retention by Telemetry Type** card sets days for each type of telemetry. Click **Edit Overrides**, fill in the fields you need, and leave the rest blank:
 
 | Type | Fields |
 | --- | --- |
@@ -77,7 +77,7 @@ A field left blank falls back to the next setting in the order above, so a sever
 
 ### For one service or resource
 
-Open the service's or resource's **Settings** page. Its **Telemetry Data Retention** card holds **Retain Telemetry Data For (Days)**, one number for everything it sends, and its **Retention by Telemetry Type** card has the same fields as the project's. Leave a field blank to use the project's settings.
+Open the service's or resource's **Settings** page, then **More settings**. Its **Telemetry Data Retention** card holds **Retain Telemetry Data For (Days)**, one number for everything it sends, and its **Retention by Telemetry Type** card has the same fields as the project's. Leave a field blank to use the project's settings.
 
 Services, hosts, Kubernetes clusters, Docker and Podman hosts, Docker Swarm, Proxmox and Ceph clusters, storage arrays, vCenters, databases, serverless functions, cloud resources, RUM applications and IoT fleets all have these cards. See the [Service Catalog](/docs/telemetry/services#change-a-service) for a service's **Settings** page.
 

@@ -131,7 +131,18 @@ describe("toWaterfallSpans", () => {
       durationUnixNano: 20,
       isError: true,
       kind: SpanKind.Server,
+      k8sPodEntityKey: "",
     });
+  });
+
+  test("a span keeps the pod it ran in, trimmed, so its pod's logs can be read", () => {
+    const [inPod, outsidePod] = toWaterfallSpans([
+      model({ spanId: "a", k8sPodEntityKey: " 7a2872b83f046399 " }),
+      model({ spanId: "b", k8sPodEntityKey: "" }),
+    ]);
+
+    expect(inPod!.k8sPodEntityKey).toBe("7a2872b83f046399");
+    expect(outsidePod!.k8sPodEntityKey).toBe("");
   });
 
   test("a span without an id still renders under a synthetic id", () => {

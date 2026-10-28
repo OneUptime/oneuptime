@@ -81,7 +81,7 @@ To retire a label, archive it from its row's **⋯** menu instead of deleting it
 
 **Project Settings → Notifications** holds how the project sends notifications:
 
-- **Notification Settings**: the **Notification Channels** card turns SMS, phone calls, WhatsApp and Telegram on or off for the project. All four start off. A Project Owner, a **Billing Admin** or someone with **Manage Billing** switches them. The page also holds the project's own mail servers, under **Custom SMTP Configs** (see [SMTP](/docs/emails/smtp)), and its own Twilio account (see [Twilio Integration](/docs/self-hosted/twilio-integration)). On OneUptime Cloud, it holds the balance these messages are paid from: see [Prepaid balances](/docs/configuration/billing#prepaid-balances).
+- **Notification Settings**: the **Notification Channels** card turns SMS, phone calls, WhatsApp and Telegram on or off for the project. All four start off. A Project Owner, a **Billing Admin** or someone with **Manage Billing** switches them. The page also holds, folded under **More settings**, the project's own mail servers, under **Custom SMTP Configs** (see [SMTP](/docs/emails/smtp)), and its own Twilio account (see [Twilio Integration](/docs/self-hosted/twilio-integration)). On OneUptime Cloud, it holds the balance these messages are paid from: see [Prepaid balances](/docs/configuration/billing#prepaid-balances).
 - **Notification Logs**: every notification the project sent, with one tab for each channel: **Email**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Call**, **Push** and **Workspace**.
 - **Mobile Apps**: where to get the iOS and Android apps. See [Apps Overview](/docs/mobile-desktop-apps/index).
 

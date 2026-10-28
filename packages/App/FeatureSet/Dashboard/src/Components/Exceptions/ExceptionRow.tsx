@@ -24,19 +24,31 @@ function formatRelativeTime(time: Date, translator: Translator): string {
   const now: Date = new Date();
   const diffMs: number = Math.max(0, now.getTime() - time.getTime());
   const sec: number = Math.floor(diffMs / 1000);
+  /*
+   * The number in the reader's digits, as the row's count of events is
+   * ("۴۱۲ رویداد", "۹ روز پیش" on a Persian page).
+   */
   if (sec < 60) {
-    return translator.translateTemplate("{{count}}s ago", { count: sec });
+    return translator.translateTemplate("{{count}}s ago", {
+      count: translator.formatNumber(sec),
+    });
   }
   const min: number = Math.floor(sec / 60);
   if (min < 60) {
-    return translator.translateTemplate("{{count}}m ago", { count: min });
+    return translator.translateTemplate("{{count}}m ago", {
+      count: translator.formatNumber(min),
+    });
   }
   const hr: number = Math.floor(min / 60);
   if (hr < 24) {
-    return translator.translateTemplate("{{count}}h ago", { count: hr });
+    return translator.translateTemplate("{{count}}h ago", {
+      count: translator.formatNumber(hr),
+    });
   }
   const day: number = Math.floor(hr / 24);
-  return translator.translateTemplate("{{count}}d ago", { count: day });
+  return translator.translateTemplate("{{count}}d ago", {
+    count: translator.formatNumber(day),
+  });
 }
 
 const ExceptionRow: FunctionComponent<ExceptionRowProps> = (

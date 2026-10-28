@@ -73,8 +73,8 @@ Det är rätt drag när du vill förgrena en mall (som "vår jourpanel") till en
 
 En instrumentpanel reser som JSON:
 
-- **Exportera Instrumentpanel**, på instrumentpanelens sida **Inställningar**, laddar ned den som en JSON-fil. För att exportera flera markerar du dem i listan **Instrumentpaneler** och väljer **Export JSON**.
-- **Import JSON**, ovanför listan **Instrumentpaneler**, skapar instrumentpaneler från en sådan fil, i det här projektet eller ett annat.
+- **Exportera Instrumentpanel**, på instrumentpanelens sida **Inställningar**, laddar ned den som en JSON-fil. För att exportera flera markerar du dem i listan **Instrumentpaneler** och väljer **Exportera JSON**.
+- **Importera JSON**, ovanför listan **Instrumentpaneler**, skapar instrumentpaneler från en sådan fil, i det här projektet eller ett annat.
 
 En export innehåller instrumentpanelens egna inställningar, bland annat dess widgetar och variabler. Dess ägare och etiketter utelämnas, och widgetar som pekar på det här projektets resurser, till exempel ett SLO eller en datakälla, kan behöva att de väljs om i ett annat projekt.
 

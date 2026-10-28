@@ -149,6 +149,29 @@ export default class AnalyticsTableColumn {
     return Boolean(this.defaultValue !== undefined);
   }
 
+  /*
+   * A ClickHouse DEFAULT expression, written into the column's DDL (CREATE
+   * TABLE and ADD COLUMN alike) as `<key> <type> DEFAULT <expression>`: what a
+   * row that does not carry the column reads. That is an INSERT that leaves
+   * the column out and - what makes it worth declaring - every row stored
+   * before the column was added. ADD COLUMN rewrites no part; ClickHouse
+   * computes the expression from the row's other columns when it reads a part
+   * that has no file for the column, and writes it out when such a part
+   * merges. So a column derived from others is right for old rows with no
+   * backfill. Without one, those rows read the type's zero (false, 0, '').
+   *
+   * Not `defaultValue`, which the app fills into a model it creates. SQL
+   * written by a model, never by input. A later MODIFY COLUMN of the column
+   * must state the DEFAULT again, or it can drop it.
+   */
+  private _defaultExpression: string | undefined;
+  public get defaultExpression(): string | undefined {
+    return this._defaultExpression;
+  }
+  public set defaultExpression(v: string | undefined) {
+    this._defaultExpression = v;
+  }
+
   private _billingAccessControl?: ColumnBillingAccessControl | undefined;
   public get billingAccessControl(): ColumnBillingAccessControl | undefined {
     return this._billingAccessControl;
@@ -262,6 +285,7 @@ export default class AnalyticsTableColumn {
     description: string;
     required: boolean;
     defaultValue?: JSONValue | undefined;
+    defaultExpression?: string | undefined;
     type: TableColumnType;
     billingAccessControl?: ColumnBillingAccessControl | undefined;
     isTenantId?: boolean | undefined;
@@ -286,6 +310,7 @@ export default class AnalyticsTableColumn {
     this.isTenantId = data.isTenantId || false;
     this.forceGetDefaultValueOnCreate = data.forceGetDefaultValueOnCreate;
     this.defaultValue = data.defaultValue;
+    this.defaultExpression = data.defaultExpression;
     this.billingAccessControl = data.billingAccessControl;
     this.allowAccessIfSubscriptionIsUnpaid =
       data.allowAccessIfSubscriptionIsUnpaid || false;

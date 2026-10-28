@@ -173,6 +173,7 @@ import DetectionRulesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/S
 import {
   getIndicatorTypeLabel,
   isIndicatorUnscored,
+  toIndicatorDate,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/ThreatIntelIndicatorCells";
 import { INDICATOR_TYPE_DOCS } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/ThreatIntelGuide";
 import { describeDetectionOverflow } from "../../../Utils/SecurityEvent/DetectionOverflow";
@@ -497,9 +498,9 @@ describe("the threat intel feeds table says whether each feed works", () => {
   test("the row shows what most people look at; the setting and the two messages wait in Customize Columns", () => {
     renderPage("threat-intel");
 
+    // The source sits under the name (ThreatIntelSourcesUi).
     expect(columnTitles("ThreatIntelFeed", "shown")).toEqual([
       "Name",
-      "Source",
       "Status",
       "Last Polled",
       "Last Match",
@@ -530,6 +531,67 @@ describe("the threat intel feeds table says whether each feed works", () => {
       );
       expect(column?.type).toBe(FieldType.LongText);
       expect(column?.wrapContent).toBe(true);
+    }
+  });
+
+  /*
+   * Two columns of full dates ("Oct 27 2026, 11:52 AM GMT", some 210px each)
+   * ran the feeds table past its card at 1280, Last Match and Last Poll
+   * Summary under the row's buttons (#5246): when a feed last polled and
+   * last matched read as how long ago, the date and time under the pointer.
+   */
+  test("Last Polled and Last Match say how long ago, or Never in grey, and stay dates to the table", () => {
+    const polledAt: Date = new Date(Date.now() - 25 * 60 * 1000);
+    const matchedAt: Date = new Date(Date.now() - 6 * 60 * 60 * 1000);
+    mockRows.set("ThreatIntelFeed", [
+      feed({ name: "Corporate MISP", lastPolledAt: polledAt }),
+      feed({
+        name: "Feodo Tracker botnet C2 servers",
+        lastPolledAt: polledAt,
+        lastMatchAt: matchedAt,
+      }),
+      feed({ name: "Botnet C2 list" }),
+    ]);
+
+    renderPage("threat-intel");
+
+    const cells: (name: string) => Array<HTMLElement> = (
+      name: string,
+    ): Array<HTMLElement> => {
+      return within(screen.getByTestId(name)).getAllByTestId(
+        "relative-time-cell",
+      );
+    };
+
+    const [mispPolled, mispMatched] = cells("Corporate MISP");
+    expect(mispPolled).toHaveTextContent("25 minutes ago");
+    expect(mispPolled!.getAttribute("title")).toBeTruthy();
+    expect(mispPolled!.getAttribute("title")).not.toBe("25 minutes ago");
+    expect(mispMatched).toHaveTextContent("Never");
+    expect(mispMatched!.className).toContain("text-gray-400");
+
+    expect(cells("Feodo Tracker botnet C2 servers")[1]).toHaveTextContent(
+      "6 hours ago",
+    );
+
+    // A feed that never polled says so in both.
+    for (const cell of cells("Botnet C2 list")) {
+      expect(cell).toHaveTextContent("Never");
+    }
+
+    for (const [title, field] of [
+      ["Last Polled", { lastPolledAt: true }],
+      ["Last Match", { lastMatchAt: true }],
+    ] as Array<[string, Record<string, boolean>]>) {
+      const column: CapturedColumn | undefined = table(
+        "ThreatIntelFeed",
+      ).columns.find((candidate: CapturedColumn): boolean => {
+        return candidate.title === title;
+      });
+
+      // Kept whole when the table gives way, and sorted by the date.
+      expect(column?.type).toBe(FieldType.DateTime);
+      expect(column?.field).toEqual(field);
     }
   });
 
@@ -806,6 +868,59 @@ describe("the Indicators table names types and confidence as the guide does", ()
       "Valid From",
     ]);
   });
+
+  /*
+   * A column of full dates ran the Indicators table past its card at 1280:
+   * when an indicator stops matching reads as how far off, the date and
+   * time under the pointer; one that never expires, the quiet dash.
+   */
+  test("Valid Until says how far off, how long ago once expired, or the quiet dash", () => {
+    const inTenDays: Date = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000);
+    const threeDaysAgo: Date = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+    mockRows.set("ThreatIntelIndicator", [
+      indicator({
+        indicatorValue: "198.51.100.23",
+        indicatorType: ThreatIntelIndicatorType.Ipv4Address,
+        validUntil: inTenDays.toISOString(),
+      }),
+      indicator({
+        indicatorValue: "203.0.113.66",
+        indicatorType: ThreatIntelIndicatorType.Ipv4Address,
+        validUntil: threeDaysAgo.toISOString(),
+      }),
+      indicator({
+        indicatorValue: "update-check.example",
+        indicatorType: ThreatIntelIndicatorType.DomainName,
+        validUntil: null,
+      }),
+    ]);
+
+    renderPage("threat-intel");
+
+    const future: HTMLElement = within(
+      screen.getByTestId("198.51.100.23"),
+    ).getByTestId("relative-time-cell");
+    expect(future).toHaveTextContent("in 10 days");
+    expect(future.getAttribute("title")).toBeTruthy();
+
+    expect(
+      within(screen.getByTestId("203.0.113.66")).getByTestId(
+        "relative-time-cell",
+      ),
+    ).toHaveTextContent("3 days ago");
+
+    const forever: HTMLElement = screen.getByTestId("update-check.example");
+    expect(within(forever).queryByTestId("relative-time-cell")).toBeNull();
+    expect(within(forever).getByTestId("table-empty-value")).toBeVisible();
+
+    const validUntil: CapturedColumn | undefined = table(
+      "ThreatIntelIndicator",
+    ).columns.find((column: CapturedColumn): boolean => {
+      return column.title === "Valid Until";
+    });
+    expect(validUntil?.type).toBe(FieldType.DateTime);
+    expect(validUntil?.field).toEqual({ validUntil: true });
+  });
 });
 
 describe("the Indicators table's helpers", () => {
@@ -817,6 +932,19 @@ describe("the Indicators table's helpers", () => {
 
     expect(getIndicatorTypeLabel(undefined)).toBe("");
     expect(getIndicatorTypeLabel("")).toBe("");
+  });
+
+  test("a date the analytics wire hands back reads as a date, and nothing or nonsense as none", () => {
+    expect(toIndicatorDate("2027-01-12T12:00:00.000Z")?.toISOString()).toBe(
+      "2027-01-12T12:00:00.000Z",
+    );
+    expect(
+      toIndicatorDate(new Date("2027-01-12T12:00:00.000Z"))?.toISOString(),
+    ).toBe("2027-01-12T12:00:00.000Z");
+
+    for (const value of [undefined, null, "", "not a date"]) {
+      expect(toIndicatorDate(value)).toBeNull();
+    }
   });
 
   test("0, nothing and nonsense are unscored; any score above 0 is a score", () => {

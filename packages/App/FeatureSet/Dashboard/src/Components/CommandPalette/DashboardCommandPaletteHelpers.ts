@@ -352,7 +352,13 @@ export function buildPageSearchCommandDescriptors(
             breadcrumbKeywords: [...breadcrumbKeywords, page.title],
             icon: action.icon || page.icon || area.icon,
             iconColor: area.iconColor,
-            routePath,
+            /*
+             * At its place on the page, when it has one: a card folded under
+             * More settings opens there.
+             */
+            routePath: action.anchor
+              ? `${routePath}#${action.anchor}`
+              : routePath,
             areaId: area.id,
             isAction: true,
           });
@@ -396,6 +402,7 @@ export type PaletteActionId =
   | "action-create-scheduled-maintenance"
   | "action-create-announcement"
   | "action-toggle-theme"
+  | "action-system-theme"
   | "action-ask-ai"
   | "action-keyboard-shortcuts"
   | "action-log-out"
@@ -506,12 +513,20 @@ export function canDeleteProject(data: {
 export interface PaletteActionAvailability extends PaletteCreateActionGates {
   hasProjectSelected: boolean;
   isMasterAdmin: boolean;
+  /*
+   * Whether the person's theme follows their device - System, or nothing
+   * picked (Common/Types/Theme/ThemePreference.ts). False once they picked
+   * Light or Dark: the palette then also offers the way back to System.
+   * Left out, the palette offers only the switch to the other theme.
+   */
+  isThemeFollowingDevice?: boolean | undefined;
 }
 
 /*
  * The full visible-action decision for one render: create actions need a
  * project AND create permission; the admin dashboard needs master admin;
- * theme, Ask AI, logout and the global pages are always available.
+ * theme, Ask AI, logout and the global pages are always available, and the
+ * way back to the system theme while Light or Dark is picked.
  */
 export function getVisibleActionIds(
   availability: PaletteActionAvailability,
@@ -537,6 +552,11 @@ export function getVisibleActionIds(
   }
 
   actionIds.push("action-toggle-theme");
+
+  if (availability.isThemeFollowingDevice === false) {
+    actionIds.push("action-system-theme");
+  }
+
   actionIds.push("action-ask-ai");
   /*
    * Never gated: the shortcuts dialog is a reference, not a capability, and

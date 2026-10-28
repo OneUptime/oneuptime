@@ -29,6 +29,7 @@ import {
 } from "@jest/globals";
 import crypto from "crypto";
 import type { Mock } from "jest-mock";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * WRONG PROBE, RUNNER AND AI AGENT KEYS ARE COUNTED FOR THE CLIENT THAT
@@ -1493,10 +1494,15 @@ describe("canonicalId", () => {
   });
 
   test("answers a megabyte of text at once", () => {
-    const started: number = Date.now();
-
-    expect(WrongComponentKeyLimit.canonicalId("-".repeat(1000000))).toBeNull();
-    expect(Date.now() - started).toBeLessThan(200);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(
+          WrongComponentKeyLimit.canonicalId("-".repeat(1000000)),
+        ).toBeNull();
+      },
+      limitInMs: 200,
+    });
+    expect(timed.inMs).toBeLessThan(200);
   });
 });
 

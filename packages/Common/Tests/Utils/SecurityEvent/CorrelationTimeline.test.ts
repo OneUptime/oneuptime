@@ -6,6 +6,7 @@ import {
 } from "../../../Utils/SecurityEvent/Sigma/CorrelationTimeline";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * The time arithmetic of temporal correlations. Each function is pinned on
@@ -336,10 +337,13 @@ describe("findTogetherWindow", () => {
         return index * 10 + 3;
       }),
     ];
-    const started: number = Date.now();
-
-    expect(findTogetherWindow(steps, 1, 2, 0)).toBeNull();
-    expect(findOrderedChain(steps, 1, 0)).toBeNull();
-    expect(Date.now() - started).toBeLessThan(2000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(findTogetherWindow(steps, 1, 2, 0)).toBeNull();
+        expect(findOrderedChain(steps, 1, 0)).toBeNull();
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });

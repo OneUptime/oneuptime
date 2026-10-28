@@ -154,7 +154,9 @@ import AddSecurityCaseNotificationSettingsForUsers from "./AddSecurityCaseNotifi
 import AddIncidentSlaBreachedNotificationSettingsForUsers from "./AddIncidentSlaBreachedNotificationSettingsForUsers";
 import RewriteFeedAttachmentLinks from "./RewriteFeedAttachmentLinks";
 import AddProcessColumnsToSecurityEvent from "./AddProcessColumnsToSecurityEvent";
+import AddRequestColumnsToSecurityEvent from "./AddRequestColumnsToSecurityEvent";
 import AddDefaultPostmortemStatusesToExistingProjects from "./AddDefaultPostmortemStatusesToExistingProjects";
+import AddIsEntrySpanToSpanTable from "./AddIsEntrySpanToSpanTable";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -872,6 +874,26 @@ const DataMigrations: Array<DataMigrationBase> = [
    * requirement of its own, so above the runbook moves.
    */
   new RewriteFeedAttachmentLinks(),
+  /*
+   * Security events gain the request they happened in - the trace, span and
+   * session ids of the log line they were read from - and how far that
+   * request got, as its trace shows (SecurityEvent.traceId, spanId,
+   * sessionId, requestOutcome). Additive and idempotent; rows written before
+   * it read as "not part of a request OneUptime followed". No ordering
+   * requirement of its own, so above the runbook moves, which keep their
+   * places right before the last slot.
+   */
+  new AddRequestColumnsToSecurityEvent(),
+  /*
+   * Spans gained isEntrySpan - a root span, or a SERVER or CONSUMER span -
+   * which the traces explorer lists by default (SpanItemV3.isEntrySpan). Its
+   * DEFAULT expression reads the rows stored before it from their own
+   * isRootSpan and kind, so nothing is backfilled. Boot schema-sync adds it;
+   * this checks the local table and the Distributed wrapper both have it
+   * with that DEFAULT. Metadata-only and idempotent; no ordering
+   * requirement, so above the runbook moves.
+   */
+  new AddIsEntrySpanToSpanTable(),
   /*
    * A runbook step's approval moved to the step it guards ("Require approval
    * before running this step"): every stored runbook's approval after step

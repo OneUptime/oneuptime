@@ -50,6 +50,7 @@ import {
 import {
   IndicatorConfidenceCell,
   IndicatorTypeCell,
+  IndicatorValidUntilCell,
   getIndicatorTypeFilterOptions,
 } from "../../Components/SecurityEvents/ThreatIntelIndicatorCells";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
@@ -80,6 +81,10 @@ import {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import ThreatIntelGuide from "../../Components/SecurityEvents/HowItWorks/ThreatIntelGuide";
+import RelativeTimeCell from "../../Components/SecurityEvents/RelativeTimeCell";
+import SecurityListNameCell, {
+  SECURITY_LIST_NAME_COLUMN_MAX_WIDTH_CLASS_NAME,
+} from "../../Components/SecurityEvents/SecurityListNameCell";
 import { guideToMarkdown } from "../../Components/SecurityEvents/HowItWorks/SecurityEventsGuide";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
@@ -189,6 +194,8 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
         id="threat-intel-feeds-table"
         name="Security Events > Threat Intel Feeds"
         userPreferencesKey="threat-intel-feeds-table"
+        // Each row's source, under its name.
+        selectMoreFields={{ feedType: true }}
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}
@@ -750,27 +757,33 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
           },
         ]}
         columns={[
+          /*
+           * The feed's name, with where its indicators come from under it
+           * ("TAXII collection"): one column, where the source had one of
+           * its own and the table ran past its card at 1280 (#5246).
+           */
           {
             field: {
               name: true,
             },
             title: "Name",
             type: FieldType.Text,
-          },
-          {
-            field: {
-              feedType: true,
-            },
-            title: "Source",
-            type: FieldType.Text,
+            wrapContent: true,
+            wrapMaxWidthClassName:
+              SECURITY_LIST_NAME_COLUMN_MAX_WIDTH_CLASS_NAME,
             getElement: (item: ThreatIntelFeed): ReactElement => {
               return (
-                <span data-testid="threat-intel-feed-source-cell">
-                  {translator.translateText(
-                    THREAT_INTEL_FEED_TYPE_TEXTS[getThreatIntelFeedSource(item)]
-                      .title,
-                  )}
-                </span>
+                <SecurityListNameCell
+                  name={item.name || ""}
+                  detailParts={[
+                    translator.translateText(
+                      THREAT_INTEL_FEED_TYPE_TEXTS[
+                        getThreatIntelFeedSource(item)
+                      ].title,
+                    ),
+                  ]}
+                  detailTestId="threat-intel-feed-source-cell"
+                />
               );
             },
           },
@@ -799,6 +812,14 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
               );
             },
           },
+          /*
+           * When it last polled and last matched, as how long ago ("5
+           * minutes ago", the date and time under the pointer): two columns
+           * of full dates ("Oct 27 2026, 11:52 AM GMT", some 210px each) ran
+           * the table past its card at 1280, Last Match and Last Poll
+           * Summary under the row's buttons (#5246). Still dates to the
+           * table: kept whole when it gives way, sorted by the date.
+           */
           {
             field: {
               lastPolledAt: true,
@@ -806,6 +827,9 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             title: "Last Polled",
             type: FieldType.DateTime,
             noValueMessage: "Never",
+            getElement: (item: ThreatIntelFeed): ReactElement => {
+              return <RelativeTimeCell date={item.lastPolledAt} />;
+            },
           },
           {
             field: {
@@ -814,6 +838,9 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             title: "Last Match",
             type: FieldType.DateTime,
             noValueMessage: "Never",
+            getElement: (item: ThreatIntelFeed): ReactElement => {
+              return <RelativeTimeCell date={item.lastMatchAt} />;
+            },
           },
           /*
            * One line, cut short with the whole summary under the pointer:
@@ -1003,11 +1030,19 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             noValueMessage: "-",
             isHiddenByDefault: true,
           },
+          /*
+           * When it stops matching, as how far off ("in 29 days", the date
+           * and time under the pointer), or how long ago for one that has
+           * expired; none, the quiet dash.
+           */
           {
             field: { validUntil: true },
             title: "Valid Until",
             type: FieldType.DateTime,
             noValueMessage: "-",
+            getElement: (item: ThreatIntelIndicator): ReactElement => {
+              return <IndicatorValidUntilCell validUntil={item.validUntil} />;
+            },
           },
         ]}
       />

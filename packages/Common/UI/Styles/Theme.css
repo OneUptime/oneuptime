@@ -1,8 +1,10 @@
 /*
- * Shared dashboard theme tokens (Dashboard + Admin Dashboard), and the
- * public status page's dark theme. Light is intentionally the default; the
- * dark values are activated only by the explicit class applied to <html>:
- * by the reader's own pick in the dashboards, and by the page's Theme
+ * Shared theme tokens: the Dashboard, the Admin Dashboard and the sign-in
+ * pages (Accounts), and the public status page's and public dashboard's
+ * dark theme. The light values are the defaults; the dark values are
+ * activated only by the dark class on <html>: by the person's own theme in
+ * the dashboards and on the sign-in pages - Light, Dark, or as their device
+ * is set (Common/Types/Theme/ThemePreference.ts) - and by the page's Theme
  * setting on a status page (Common/Types/StatusPage/StatusPageTheme.ts).
  */
 :root {
@@ -217,6 +219,14 @@ html.dark [class~="bg-gray-500/25"] {
   background-color: rgb(2 6 23 / 55%);
 }
 
+/*
+ * Ask AI's backdrop (AskAiDialog): a dark veil over a dark page has to be
+ * deeper than over a light one to still set the dialog apart.
+ */
+html.dark [class~="bg-gray-950/40"] {
+  background-color: rgb(2 6 23 / 62%);
+}
+
 /* State variants that otherwise flash back to literal light Tailwind colors. */
 html.dark :is(
     [class~="hover:bg-gray-50"],
@@ -331,6 +341,11 @@ html.dark .group:hover [class*="group-[:not(:hover)"][class*="text-gray-"] {
 }
 
 html.dark :is(.placeholder-gray-400, .placeholder-gray-500)::placeholder {
+  color: var(--ou-text-subtle);
+}
+
+/* A field's placeholder while it has the focus (Input), the same shade. */
+html.dark [class~="focus:placeholder-gray-400"]:focus::placeholder {
   color: var(--ou-text-subtle);
 }
 
@@ -886,6 +901,7 @@ html.dark :is(
     .text-indigo-700,
     .text-indigo-800,
     .text-indigo-900,
+    .text-indigo-950,
     [class~="text-indigo-500/80"]
   ) {
   color: #a5b4fc;
@@ -1137,18 +1153,46 @@ html.dark [class*="focus:border-indigo-"]:focus {
   border-color: #818cf8 !important;
 }
 
-html.dark :is(
-    .ring-indigo-50,
-    .ring-red-50,
-    .ring-blue-50,
-    .ring-green-50,
-    .ring-emerald-50,
-    .ring-amber-50,
-    .ring-yellow-50,
-    .ring-sky-50,
-    .ring-rose-50
-  ) {
-  --tw-ring-color: rgb(129 140 248 / 35%);
+/*
+ * The soft halo around an icon's circle - ring-8 ring-green-50 round a
+ * bg-green-100 circle on the sign-in pages' email verified, link expired
+ * and link refused screens, an empty notes list, the exceptions banner -
+ * and a status timeline's chosen dot. Each in its own hue, as faint on the
+ * dark card as the light one is on white: one indigo ring round a green,
+ * an amber and a red circle read as a border of another colour, heavier
+ * than the circle it framed.
+ */
+html.dark .ring-indigo-50 {
+  --tw-ring-color: rgb(129 140 248 / 12%);
+}
+
+html.dark .ring-red-50,
+html.dark .ring-rose-50,
+html.dark [class~="ring-rose-50/50"] {
+  --tw-ring-color: rgb(248 113 113 / 10%);
+}
+
+html.dark .ring-amber-50,
+html.dark .ring-yellow-50,
+html.dark [class~="ring-amber-50/50"] {
+  --tw-ring-color: rgb(251 191 36 / 10%);
+}
+
+html.dark .ring-green-50,
+html.dark .ring-emerald-50,
+html.dark [class~="ring-emerald-50/40"] {
+  --tw-ring-color: rgb(52 211 153 / 10%);
+}
+
+html.dark .ring-blue-50,
+html.dark .ring-sky-50,
+html.dark [class~="ring-sky-50/50"] {
+  --tw-ring-color: rgb(96 165 250 / 10%);
+}
+
+/* The edition's evaluation notice: its beaker's violet circle. */
+html.dark .ring-violet-50 {
+  --tw-ring-color: rgb(167 139 250 / 10%);
 }
 
 /* Native controls and browser-managed states. */
@@ -1467,6 +1511,17 @@ html.dark .ou-select__control--is-focused {
   box-shadow: 0 0 0 1px #818cf8 !important;
 }
 
+/*
+ * A select a form marks invalid (Dropdown's error: !border-red-400 inside a
+ * !ring-red-100 ring) is framed red in the dark theme too. The light ring is
+ * near white, so the field had a white frame round it, and the rule above
+ * kept its border the theme's grey.
+ */
+html.dark .ou-select__control[class~="!ring-red-100"] {
+  border-color: rgb(248 113 113 / 70%) !important;
+  --tw-ring-color: rgb(248 113 113 / 30%) !important;
+}
+
 html.dark .ou-select__control--is-disabled {
   background-color: var(--ou-surface-secondary) !important;
   color: var(--ou-text-subtle) !important;
@@ -1731,7 +1786,9 @@ html.dark .uptime-bar-no-data {
  * not - and on the dark page it sits on a small light backdrop, where it
  * reads as it does on the light page. A public dashboard's logo does the
  * same (PublicDashboard/src/Components/LogoPlate): any visitor can turn a
- * public dashboard dark from its toolbar.
+ * public dashboard dark from its toolbar. So does an installation's own
+ * logo at the top of a sign-in page, when it has none made for dark
+ * backgrounds (Components/ProductLogo, isLightLogoOnDarkPage).
  */
 html.dark [data-ou-logo-plate] {
   background-color: #f8fafc;
@@ -1864,6 +1921,121 @@ html.dark [data-page-anchor-landed] {
 
 html.dark [data-page-anchor-focused]:focus-visible {
   outline-color: #818cf8;
+}
+
+/*
+ * A dashboard playlist's turn (Dashboard: Components/Dashboard/Playlist):
+ * the line under the player's bar fills from the start side while a
+ * dashboard is on screen, and is full when the next one comes. The player
+ * sets how long it takes (animation-duration, the playlist's interval), how
+ * much of the turn had passed when the line was drawn (a negative
+ * animation-delay) and whether it moves (animation-play-state: paused while
+ * the playlist is). An animation, so it moves without the page drawing
+ * anything every second; it grows in width, so a page read right to left
+ * fills it from the right.
+ */
+@keyframes ou-playlist-turn {
+  from {
+    width: 0%;
+  }
+
+  to {
+    width: 100%;
+  }
+}
+
+.ou-playlist-turn-progress {
+  animation-name: ou-playlist-turn;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+  animation-iteration-count: 1;
+}
+
+/*
+ * Ask AI (Dashboard: Components/AIChat). An answer, the start of a
+ * conversation and the way back into one rise into place once
+ * (ou-ai-rise); the line an answer being written shows breathes
+ * (ou-ai-pulse) and its words shimmer (ou-ai-shimmer), a light passing over
+ * them. Animations, so nothing lingers once they end: no transform is left
+ * to become a containing block. A reader who asks for less motion gets
+ * them still - the words in the muted text colour, the dot without its
+ * breath - and the shimmer's colours follow the theme through its tokens.
+ */
+@keyframes ou-ai-rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes ou-ai-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.45;
+    transform: scale(0.8);
+  }
+}
+
+@keyframes ou-ai-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+
+  to {
+    background-position: -100% 0;
+  }
+}
+
+.ou-ai-shimmer {
+  color: var(--ou-text-muted);
+}
+
+/*
+ * Ask AI's conversation fades out under its composer instead of being cut
+ * off by it, in the dialog's own colour in either theme.
+ */
+.ou-ai-fade-out {
+  background-image: linear-gradient(
+    to top,
+    var(--ou-surface-primary),
+    transparent
+  );
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ou-ai-rise {
+    animation: ou-ai-rise 200ms ease-out;
+  }
+
+  .ou-ai-pulse {
+    animation: ou-ai-pulse 1.6s ease-in-out infinite;
+  }
+
+  .ou-ai-shimmer {
+    background-image: linear-gradient(
+      90deg,
+      var(--ou-text-muted) 0%,
+      var(--ou-text-muted) 40%,
+      var(--ou-text-primary) 50%,
+      var(--ou-text-muted) 60%,
+      var(--ou-text-muted) 100%
+    );
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: ou-ai-shimmer 2.4s linear infinite;
+  }
 }
 
 /*

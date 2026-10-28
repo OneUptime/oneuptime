@@ -39,20 +39,26 @@ const SOURCE_FILES: Array<Array<string>> = [
 /*
  * Every string the three components translate: literals passed to
  * translateString, the Add connection title (Button translates its own
- * title), and the ways-in and requirement copy the components pass through
- * translateString from their exported arrays.
+ * title), Your logs' On pill (Pill translates its own text), and the
+ * ways-in and requirement copy the components pass through translateString
+ * from their exported arrays.
  */
 const COMPONENT_STRINGS: Array<string> = [
   // SecurityEventsEmptyState
   "No security events yet",
-  "Events show up here as soon as a source starts sending. Every event is normalized to OCSF, whatever format it arrives in.",
+  "Events show up here as soon as a source starts sending.",
   "Ways to start sending security events",
-  "Send events to OneUptime",
-  "POST JSON from a SIEM, a SOAR webhook, a log forwarder or any other source.",
-  "Read the setup guide",
+  "Find security events in your logs",
+  "Attacks often show up in the logs you already send OneUptime. Nothing to install.",
+  "Turn on Your logs",
+  "Open Your logs",
+  "On",
   "Pull from a security product",
   "OneUptime polls Microsoft Sentinel, CrowdStrike, Splunk and more on a schedule.",
   "Connect a security product",
+  "Send events to OneUptime",
+  "POST JSON from a SIEM, a SOAR webhook, a log forwarder or any other source.",
+  "Read the setup guide",
   // SecurityEventConnectionsEmptyState
   "No security event connections yet",
   "Connect a SIEM, EDR / XDR, cloud security or identity product and OneUptime polls it on a schedule, importing each new alert, finding or log event as an OCSF security event.",
@@ -124,8 +130,17 @@ const BRAND_NAMES: Array<string> = [
 const RETIRED_EVENTS_DESCRIPTION: string =
   "Send events from any source that can POST JSON — a SIEM, a SOAR webhook, a log forwarder — or connect a security product and OneUptime polls it for you. Every event is normalized to OCSF, whatever dialect it arrives in.";
 
+/*
+ * Its successor told every reader that events are "normalized to OCSF", a
+ * schema's name nobody starting out needs, and offered no way in through
+ * the logs the project already sends.
+ */
+const RETIRED_OCSF_DESCRIPTION: string =
+  "Events show up here as soon as a source starts sending. Every event is normalized to OCSF, whatever format it arrives in.";
+
 const RETIRED_STRINGS: Array<string> = [
   RETIRED_EVENTS_DESCRIPTION,
+  RETIRED_OCSF_DESCRIPTION,
   // The grey requirements box that sat above the docs cards.
   "Before you connect",
   // The heading of the eight heavy EmptyStateGuideLinks docs cards.
@@ -266,14 +281,15 @@ function jsxTitleLiterals(): Array<string> {
 }
 
 /*
- * title / description / actionTitle literals in the exported arrays
- * (SECURITY_EVENTS_WAYS_IN and SECURITY_EVENT_CONNECTION_REQUIREMENTS),
- * whose fields the components translate when they render them.
+ * title / description / actionTitle / openActionTitle literals in the
+ * exported data (SECURITY_EVENTS_LOGS_WAY_IN, SECURITY_EVENTS_WAYS_IN and
+ * SECURITY_EVENT_CONNECTION_REQUIREMENTS), whose fields the components
+ * translate when they render them - written as is, or as a translationKey.
  */
 function dataFieldLiterals(): Array<string> {
   const values: Array<string> = [];
   const pattern: RegExp =
-    /\b(?:title|description|actionTitle):\s*"((?:[^"\\]|\\.)*)"/g;
+    /\b(?:title|description|actionTitle|openActionTitle):\s*(?:translationKey\(\s*)?"((?:[^"\\]|\\.)*)"/g;
   const code: string = readSourceCode();
   let match: RegExpExecArray | null = pattern.exec(code);
   while (match !== null) {
@@ -281,6 +297,19 @@ function dataFieldLiterals(): Array<string> {
     match = pattern.exec(code);
   }
   return values;
+}
+
+// Literal text="…" props of a Pill: Pill translates its own text.
+function pillTextLiterals(): Array<string> {
+  const texts: Array<string> = [];
+  const pattern: RegExp = /<Pill\s+text="((?:[^"\\]|\\.)*)"/g;
+  const code: string = readSourceCode();
+  let match: RegExpExecArray | null = pattern.exec(code);
+  while (match !== null) {
+    texts.push(match[1] as string);
+    match = pattern.exec(code);
+  }
+  return texts;
 }
 
 function unique(values: Array<string>): Array<string> {
@@ -409,6 +438,20 @@ describe("Security Events empty states translations", () => {
     }
   });
 
+  test("Pill translates the text it is given, and every literal Pill text is in the list", () => {
+    const pill: string = fs.readFileSync(
+      path.join(COMMON_ROOT, "UI", "Components", "Pill", "Pill.tsx"),
+      "utf8",
+    );
+    expect(pill).toMatch(/translateString\(props\.text\)/);
+
+    // Your logs' state, beside its title once it is on.
+    expect(pillTextLiterals()).toEqual(["On"]);
+    for (const text of pillTextLiterals()) {
+      expect(STRINGS).toContain(text);
+    }
+  });
+
   /*
    * The ways in and the requirements are data, not JSX, so a literal
    * walker over translateString alone would miss them. They are listed,
@@ -416,8 +459,11 @@ describe("Security Events empty states translations", () => {
    */
   test("every ways-in and requirement field is listed and translated", () => {
     const fields: Array<string> = dataFieldLiterals();
-    // Two ways in with three fields each, two requirements with two.
-    expect(fields).toHaveLength(10);
+    /*
+     * Your logs with four fields (its action while on), the other two ways
+     * in with three each, two requirements with two.
+     */
+    expect(fields).toHaveLength(14);
     for (const field of fields) {
       expect(STRINGS).toContain(field);
     }
@@ -426,7 +472,8 @@ describe("Security Events empty states translations", () => {
     for (const expression of [
       "wayIn.title",
       "wayIn.description",
-      "wayIn.actionTitle",
+      // The way in's action, or Your logs' while it is on.
+      "actionTitle",
       "requirement.title",
       "requirement.description",
     ]) {
@@ -444,6 +491,7 @@ describe("Security Events empty states translations", () => {
       unique([
         ...translateStringLiterals(),
         ...jsxTitleLiterals(),
+        ...pillTextLiterals(),
         ...dataFieldLiterals(),
       ]),
     ).toEqual(unique(COMPONENT_STRINGS));
@@ -491,14 +539,20 @@ describe("Security Events empty states translations", () => {
   });
 
   test.each(localeFiles)(
-    "%s no longer carries the retired Events description",
+    "%s no longer carries the retired Events descriptions",
     (file: string) => {
-      expect(
-        Object.prototype.hasOwnProperty.call(
-          readLocale(file),
-          RETIRED_EVENTS_DESCRIPTION,
-        ),
-      ).toBe(false);
+      for (const retired of [
+        RETIRED_EVENTS_DESCRIPTION,
+        RETIRED_OCSF_DESCRIPTION,
+      ]) {
+        expect({
+          retired,
+          carried: Object.prototype.hasOwnProperty.call(
+            readLocale(file),
+            retired,
+          ),
+        }).toEqual({ retired, carried: false });
+      }
     },
   );
 
