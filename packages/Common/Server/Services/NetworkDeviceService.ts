@@ -3319,6 +3319,140 @@ export class Service extends ProjectReferencesService<Model> {
 
     return rows.length;
   }
+
+  /*
+   * The devices of a project a network controller's device list may describe
+   * (NetworkControllerInventory): every live device whose serial number,
+   * MAC (typed, or learned from an ARP table) or polled address is one the
+   * list holds - and every device the connection described before, so a
+   * device it no longer describes can lose that reading. The columns the
+   * matching rules read, nothing else.
+   *
+   * One statement, scoped to the project, never a deleted or archived
+   * device. Serial numbers are compared without case or padding, as a person
+   * may have typed one; MACs are stored normalised.
+   */
+  @CaptureSpan()
+  public async findControllerMatchCandidates(data: {
+    projectId: ObjectID;
+    connectionId: ObjectID;
+    lookup: { serials: Array<string>; macs: Array<string>; addresses: Array<string> };
+    limit: number;
+  }): Promise<
+    Array<{
+      id: string;
+      name: string | null;
+      hostname: string | null;
+      serialNumber: string | null;
+      macAddress: string | null;
+      sysName: string | null;
+      isArchived: boolean | null;
+      discoveredDetails: unknown;
+      refreshRequestedAt: Date | null;
+    }>
+  > {
+    const rows: Array<{
+      _id: string;
+      name: string | null;
+      hostname: string | null;
+      serialNumber: string | null;
+      macAddress: string | null;
+      sysName: string | null;
+      isArchived: boolean | null;
+      discoveredDetails: unknown;
+      refreshRequestedAt: Date | null;
+    }> = await this.getRepository().manager.query(
+      `
+      SELECT nd."_id", nd."name", nd."hostname", nd."serialNumber",
+        nd."macAddress", nd."sysName", nd."isArchived",
+        nd."discoveredDetails", nd."refreshRequestedAt"
+      FROM "NetworkDevice" AS nd
+      WHERE nd."projectId" = $1
+        AND nd."deletedAt" IS NULL
+        AND nd."isArchived" = false
+        AND (
+          upper(btrim(nd."serialNumber")) = ANY($2::text[])
+          OR lower(nd."macAddress") = ANY($3::text[])
+          OR nd."hostname" = ANY($4::text[])
+          OR (nd."discoveredDetails" -> 'macAddress' ->> 'value') = ANY($3::text[])
+          OR (nd."discoveredDetails" -> 'controller' -> 'readBy' ->> 'id') = $5
+        )
+      LIMIT $6
+    `,
+      [
+        data.projectId.toString(),
+        data.lookup.serials,
+        data.lookup.macs,
+        data.lookup.addresses,
+        data.connectionId.toString(),
+        Math.max(1, Math.floor(data.limit)),
+      ],
+    );
+
+    return rows.map(
+      (row: {
+        _id: string;
+        name: string | null;
+        hostname: string | null;
+        serialNumber: string | null;
+        macAddress: string | null;
+        sysName: string | null;
+        isArchived: boolean | null;
+        discoveredDetails: unknown;
+        refreshRequestedAt: Date | null;
+      }): {
+        id: string;
+        name: string | null;
+        hostname: string | null;
+        serialNumber: string | null;
+        macAddress: string | null;
+        sysName: string | null;
+        isArchived: boolean | null;
+        discoveredDetails: unknown;
+        refreshRequestedAt: Date | null;
+      } => {
+        return {
+          id: String(row._id),
+          name: row.name,
+          hostname: row.hostname,
+          serialNumber: row.serialNumber,
+          macAddress: row.macAddress,
+          sysName: row.sysName,
+          isArchived: row.isArchived,
+          discoveredDetails: row.discoveredDetails,
+          refreshRequestedAt: row.refreshRequestedAt,
+        };
+      },
+    );
+  }
+
+  /*
+   * A network controller connection was deleted: what it said about the
+   * project's devices goes with it (their discovered details' `controller`
+   * reading, when that connection read it). Hook-free and leaves updatedAt
+   * alone, like every other write of that column after a device is made.
+   * Returns how many devices it touched.
+   */
+  @CaptureSpan()
+  public async forgetControllerReadings(data: {
+    projectId: ObjectID;
+    connectionId: ObjectID;
+  }): Promise<number> {
+    const result: unknown = await this.getRepository().manager.query(
+      `
+      UPDATE "NetworkDevice" AS nd
+      SET "discoveredDetails" = nd."discoveredDetails" - 'controller'
+      WHERE nd."projectId" = $1
+        AND (nd."discoveredDetails" -> 'controller' -> 'readBy' ->> 'id') = $2
+    `,
+      [data.projectId.toString(), data.connectionId.toString()],
+    );
+
+    // node-postgres through TypeORM answers an UPDATE with [rows, count].
+    return Array.isArray(result) && typeof result[1] === "number"
+      ? result[1]
+      : 0;
+  }
 }
 
 export default new Service();

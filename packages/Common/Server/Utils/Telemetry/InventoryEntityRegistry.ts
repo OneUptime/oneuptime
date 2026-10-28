@@ -118,6 +118,11 @@ export interface ErasedInventorySource {
     skip: number;
     limit: number;
   }): Promise<Array<InventoryRowProjection>>;
+  /**
+   * The projection of one row, by its id - or null when the row is not
+   * mirrored: gone, or archived.
+   */
+  fetchOne(id: ObjectID): Promise<InventoryRowProjection | null>;
   /** Which of these ids still exist in the owning table. */
   findLiveIds(ids: Array<ObjectID>): Promise<Set<string>>;
 }
@@ -494,6 +499,55 @@ function defineInventorySource<
   TModel extends BaseModel,
   TPageContext = undefined,
 >(spec: InventorySourceSpec<TModel, TPageContext>): ErasedInventorySource {
+  const select: Select<TModel> = {
+    _id: true,
+    projectId: true,
+    name: true,
+    ...spec.select,
+  } as Select<TModel>;
+
+  const project: (
+    rows: Array<TModel>,
+  ) => Promise<Array<InventoryRowProjection>> = async (
+    rows: Array<TModel>,
+  ): Promise<Array<InventoryRowProjection>> => {
+    const projections: Array<InventoryRowProjection> = [];
+
+    const context: TPageContext | undefined =
+      spec.loadPageContext && rows.length > 0
+        ? await spec.loadPageContext(rows)
+        : undefined;
+
+    for (const row of rows) {
+      const rowRecord: Record<string, unknown> = row as unknown as Record<
+        string,
+        unknown
+      >;
+      const projectId: unknown = rowRecord["projectId"];
+
+      /*
+       * A row with no project cannot be mirrored — the entity key folds
+       * projectId in, and the registry is tenant-scoped. Should not occur;
+       * skipped rather than throwing so one bad row cannot stall the sweep.
+       */
+      if (!row._id || !projectId) {
+        continue;
+      }
+
+      const name: unknown = rowRecord["name"];
+      const displayName: string = String(name || "").trim();
+
+      projections.push({
+        id: new ObjectID(row._id.toString()),
+        projectId: new ObjectID(String(projectId)),
+        displayName: displayName.length > 0 ? displayName : row._id.toString(),
+        descriptiveAttributes: spec.describe(row, context),
+      });
+    }
+
+    return projections;
+  };
+
   return {
     entityType: spec.entityType,
     resourceType: spec.resourceType,
@@ -504,53 +558,29 @@ function defineInventorySource<
     }): Promise<Array<InventoryRowProjection>> => {
       const rows: Array<TModel> = await spec.service.findBy({
         query: spec.query,
-        select: {
-          _id: true,
-          projectId: true,
-          name: true,
-          ...spec.select,
-        } as Select<TModel>,
+        select: select,
         skip: data.skip,
         limit: data.limit,
         props: { isRoot: true },
       });
 
-      const projections: Array<InventoryRowProjection> = [];
+      return await project(rows);
+    },
 
-      const context: TPageContext | undefined =
-        spec.loadPageContext && rows.length > 0
-          ? await spec.loadPageContext(rows)
-          : undefined;
+    fetchOne: async (id: ObjectID): Promise<InventoryRowProjection | null> => {
+      /*
+       * The mirror's own query with the id beside it: a row the sweep would
+       * not copy (archived) is not copied here either.
+       */
+      const rows: Array<TModel> = await spec.service.findBy({
+        query: { ...spec.query, _id: id.toString() } as Query<TModel>,
+        select: select,
+        skip: 0,
+        limit: 1,
+        props: { isRoot: true },
+      });
 
-      for (const row of rows) {
-        const rowRecord: Record<string, unknown> = row as unknown as Record<
-          string,
-          unknown
-        >;
-        const projectId: unknown = rowRecord["projectId"];
-
-        /*
-         * A row with no project cannot be mirrored — the entity key folds
-         * projectId in, and the registry is tenant-scoped. Should not occur;
-         * skipped rather than throwing so one bad row cannot stall the sweep.
-         */
-        if (!row._id || !projectId) {
-          continue;
-        }
-
-        const name: unknown = rowRecord["name"];
-        const displayName: string = String(name || "").trim();
-
-        projections.push({
-          id: new ObjectID(row._id.toString()),
-          projectId: new ObjectID(String(projectId)),
-          displayName:
-            displayName.length > 0 ? displayName : row._id.toString(),
-          descriptiveAttributes: spec.describe(row, context),
-        });
-      }
-
-      return projections;
+      return (await project(rows))[0] || null;
     },
 
     findLiveIds: async (ids: Array<ObjectID>): Promise<Set<string>> => {
@@ -761,6 +791,100 @@ export interface InventorySyncResult {
   archived: number;
 }
 
+/*
+ * One page of projections into the registry: a row with no registry row gets
+ * one, and one that has drifted (renamed, re-tagged) is rewritten. A row
+ * that cannot be written is logged and left to the next pass.
+ */
+async function writeProjections(
+  source: ErasedInventorySource,
+  rows: Array<InventoryRowProjection>,
+): Promise<{ created: number; updated: number }> {
+  let created: number = 0;
+  let updated: number = 0;
+
+  if (rows.length === 0) {
+    return { created, updated };
+  }
+
+  const now: Date = OneUptimeDate.getCurrentDate();
+
+  const desiredByKey: Map<string, InventoryItem> = new Map<
+    string,
+    InventoryItem
+  >();
+
+  for (const row of rows) {
+    const model: InventoryItem = buildInventoryEntityModel({
+      source,
+      row,
+      now,
+    });
+    desiredByKey.set(model.entityKey!, model);
+  }
+
+  const existingRows: Array<InventoryItem> = await InventoryItemService.findBy({
+    query: {
+      entityType: source.entityType,
+      entityKey: QueryHelper.any(Array.from(desiredByKey.keys())),
+    },
+    select: {
+      _id: true,
+      entityKey: true,
+      displayName: true,
+      descriptiveAttributes: true,
+      resourceType: true,
+      resourceId: true,
+    },
+    skip: 0,
+    limit: desiredByKey.size,
+    props: { isRoot: true },
+  });
+
+  const existingByKey: Map<string, InventoryItem> = new Map<
+    string,
+    InventoryItem
+  >();
+  for (const existing of existingRows) {
+    existingByKey.set(existing.entityKey!, existing);
+  }
+
+  for (const [key, desired] of desiredByKey.entries()) {
+    const existing: InventoryItem | undefined = existingByKey.get(key);
+
+    try {
+      if (!existing) {
+        await InventoryItemService.create({
+          data: desired,
+          props: { isRoot: true },
+        });
+        created++;
+        continue;
+      }
+
+      if (inventoryEntityNeedsUpdate({ existing, desired })) {
+        await InventoryItemService.updateOneById({
+          id: existing.id!,
+          data: buildMirrorUpdate(desired),
+          props: { isRoot: true },
+        });
+        updated++;
+      }
+    } catch (err) {
+      /*
+       * One unmirrorable row must not stall the rest of the estate. The
+       * next run retries it, so a transient failure self-heals.
+       */
+      logger.error(
+        `InventoryEntityRegistry: failed to mirror ${source.resourceType} row for entity key ${key}:`,
+      );
+      logger.error(err as Error);
+    }
+  }
+
+  return { created, updated };
+}
+
 /**
  * Forward pass: every live inventory row gets a registry row, and one that
  * has drifted (renamed, re-tagged) is rewritten.
@@ -782,81 +906,10 @@ async function mirrorRows(
       break;
     }
 
-    const now: Date = OneUptimeDate.getCurrentDate();
-
-    const desiredByKey: Map<string, InventoryItem> = new Map<
-      string,
-      InventoryItem
-    >();
-
-    for (const row of rows) {
-      const model: InventoryItem = buildInventoryEntityModel({
-        source,
-        row,
-        now,
-      });
-      desiredByKey.set(model.entityKey!, model);
-    }
-
-    const existingRows: Array<InventoryItem> =
-      await InventoryItemService.findBy({
-        query: {
-          entityType: source.entityType,
-          entityKey: QueryHelper.any(Array.from(desiredByKey.keys())),
-        },
-        select: {
-          _id: true,
-          entityKey: true,
-          displayName: true,
-          descriptiveAttributes: true,
-          resourceType: true,
-          resourceId: true,
-        },
-        skip: 0,
-        limit: desiredByKey.size,
-        props: { isRoot: true },
-      });
-
-    const existingByKey: Map<string, InventoryItem> = new Map<
-      string,
-      InventoryItem
-    >();
-    for (const existing of existingRows) {
-      existingByKey.set(existing.entityKey!, existing);
-    }
-
-    for (const [key, desired] of desiredByKey.entries()) {
-      const existing: InventoryItem | undefined = existingByKey.get(key);
-
-      try {
-        if (!existing) {
-          await InventoryItemService.create({
-            data: desired,
-            props: { isRoot: true },
-          });
-          created++;
-          continue;
-        }
-
-        if (inventoryEntityNeedsUpdate({ existing, desired })) {
-          await InventoryItemService.updateOneById({
-            id: existing.id!,
-            data: buildMirrorUpdate(desired),
-            props: { isRoot: true },
-          });
-          updated++;
-        }
-      } catch (err) {
-        /*
-         * One unmirrorable row must not stall the rest of the estate. The
-         * next run retries it, so a transient failure self-heals.
-         */
-        logger.error(
-          `InventoryEntityRegistry: failed to mirror ${source.resourceType} row for entity key ${key}:`,
-        );
-        logger.error(err as Error);
-      }
-    }
+    const written: { created: number; updated: number } =
+      await writeProjections(source, rows);
+    created += written.created;
+    updated += written.updated;
 
     skip += rows.length;
 
@@ -866,6 +919,53 @@ async function mirrorRows(
   }
 
   return { created, updated };
+}
+
+export type MirrorInventoryRowOutcome =
+  | "created"
+  | "updated"
+  | "unchanged"
+  | "notMirrored";
+
+/**
+ * Copies ONE inventory row into the registry now, rather than at the next
+ * fifteen-minute pass: a network device someone asked to read again
+ * (Refresh) is copied as soon as that reading lands, so its Inventory item
+ * - its list columns, its CSV row, what a CMDB sync reads - says what the
+ * device's own page says. Writes only when the item drifted, exactly as the
+ * pass would. "notMirrored" for a row the pass would not copy (unknown
+ * kind, gone, archived).
+ */
+export async function mirrorInventoryRow(data: {
+  resourceType: string;
+  resourceId: ObjectID;
+}): Promise<MirrorInventoryRowOutcome> {
+  const source: ErasedInventorySource | undefined = INVENTORY_SOURCES.find(
+    (candidate: ErasedInventorySource): boolean => {
+      return candidate.resourceType === data.resourceType;
+    },
+  );
+
+  if (!source) {
+    return "notMirrored";
+  }
+
+  const row: InventoryRowProjection | null = await source.fetchOne(
+    data.resourceId,
+  );
+
+  if (!row) {
+    return "notMirrored";
+  }
+
+  const written: { created: number; updated: number } =
+    await writeProjections(source, [row]);
+
+  if (written.created > 0) {
+    return "created";
+  }
+
+  return written.updated > 0 ? "updated" : "unchanged";
 }
 
 /**
