@@ -3,6 +3,7 @@ import { Text } from "react-native";
 import { render, screen } from "@testing-library/react-native";
 import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { useScreenPadding } from "./useScreenPadding";
+import { PaneProvider } from "../layout/WindowLayout";
 import { getScreenBottomPadding } from "../theme/layout";
 import { afterEach, describe, expect, test } from "@jest/globals";
 import {
@@ -110,5 +111,67 @@ describe("Beside a navigation rail", () => {
     setWindowSize(TEST_WINDOWS.tabletUpright);
     await render(<Content />);
     expect(screen.getByTestId("padding")).toHaveTextContent("124");
+  });
+});
+
+describe("Above and below a tabletop fold", () => {
+  afterEach(() => {
+    resetWindowSize();
+  });
+
+  /*
+   * Half open on a table, the bar runs along the bottom of the window - under
+   * the list below the fold, not under the detail above it. The detail stops
+   * at the fold, so its last card needs only the breathing room after it.
+   */
+  test("the pane above the fold has no bar to clear, and no bottom inset", async () => {
+    setWindowSize(TEST_WINDOWS.innerScreenOnItsSide);
+    await render(
+      <SafeAreaInsetsContext.Provider
+        value={{ top: 24, bottom: 16, left: 0, right: 0 }}
+      >
+        <PaneProvider
+          pane={{
+            kind: "detail",
+            arrangement: "stacked",
+            width: 1104,
+            height: 430,
+            insetLeft: 0,
+            insetRight: 0,
+            insetBottom: 0,
+            reachesBottom: false,
+          }}
+        >
+          <Content />
+        </PaneProvider>
+      </SafeAreaInsetsContext.Provider>,
+    );
+    expect(screen.getByTestId("padding")).toHaveTextContent("40");
+  });
+
+  test("the pane below the fold clears the bar floating over it", async () => {
+    setWindowSize(TEST_WINDOWS.coverScreen);
+    await render(
+      <SafeAreaInsetsContext.Provider
+        value={{ top: 24, bottom: 16, left: 0, right: 0 }}
+      >
+        <PaneProvider
+          pane={{
+            kind: "list",
+            arrangement: "stacked",
+            width: 344,
+            height: 420,
+            insetLeft: 0,
+            insetRight: 0,
+            insetTop: 0,
+          }}
+        >
+          <Content />
+        </PaneProvider>
+      </SafeAreaInsetsContext.Provider>,
+    );
+    expect(screen.getByTestId("padding")).toHaveTextContent(
+      String(72 + 16 + 40),
+    );
   });
 });
