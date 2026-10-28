@@ -23,10 +23,15 @@ import { JSONObject } from "../../../Types/JSON";
  *   - each filter a monitor uses drawn on that header as a chip with what it
  *     is set to ("Filter by Telemetry Service: 1"), so nothing in force is
  *     hidden;
- *   - the filters most monitors use (text, time window, severity, span
- *     status, exception types, environments) left on screen;
+ *   - the filters most monitors use (severity, span status, text,
+ *     exception types, environments) left on screen; the time window is the
+ *     rule's now, set beside its number in When to alert
+ *     (TelemetryRuleEditor);
  *   - folded fields still mounted, so what is picked in them reaches the
- *     saved step and the preview with every other filter.
+ *     saved step and the preview with every other filter;
+ *   - the list of what the filters match folded too (Matching logs, spans,
+ *     exceptions), and drawn - and read - only once opened: the rule's chart
+ *     counts them already.
  *
  * The security event monitor's form has the same section and its own suite
  * (SecurityEventsMonitorStepForm.test.tsx).
@@ -139,6 +144,15 @@ function entities(): Array<InventoryItem> {
 
 function moreFields(): HTMLElement {
   return screen.getByRole("button", { name: "More fields" });
+}
+
+// The fold under the filters that lists what they match.
+function openMatching(title: string): void {
+  const header: HTMLElement = screen.getByRole("button", { name: title });
+
+  expect(header).toHaveAttribute("aria-expanded", "false");
+  fireEvent.click(header);
+  expect(header).toHaveAttribute("aria-expanded", "true");
 }
 
 // A field's own label, not the name the folded header lists it by.
@@ -255,13 +269,19 @@ describe("Log monitor filters", () => {
     return recorder;
   }
 
-  test("a new monitor shows the text, the time window and the severity, and folds the rest under More fields", () => {
+  test("a new monitor shows the severity and the text, and folds the rest under More fields", () => {
     renderForm();
 
-    expect(fieldLabel("Monitor Logs that include this text")).toBeVisible();
-    expect(fieldLabel("Monitor Logs for (time)")).toBeVisible();
     // The filter most log monitors use is never folded away.
     expect(fieldLabel("Log Severity")).toBeVisible();
+    expect(fieldLabel("Message contains")).toBeVisible();
+    // The window is the rule's, set in When to alert.
+    expect(
+      screen.queryByText("Monitor Logs for (time)"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Monitor Logs that include this text"),
+    ).not.toBeInTheDocument();
 
     expect(moreFields()).toHaveAttribute("aria-expanded", "false");
     expect(listedNames(moreFields())).toEqual([
@@ -276,6 +296,23 @@ describe("Log monitor filters", () => {
     expect(fieldLabel("Filter by Attributes")).not.toBeVisible();
 
     expectNoOldAdvancedLink();
+  });
+
+  test("the logs the filters match are folded, and read only once opened", () => {
+    renderForm({ body: "timeout" });
+
+    expect(
+      screen.getByRole("button", { name: "Matching logs" }),
+    ).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByTestId("logs-preview")).not.toBeInTheDocument();
+    expect(mockPreviews.logs).toEqual([]);
+
+    openMatching("Matching logs");
+
+    expect(screen.getByTestId("logs-preview")).toBeInTheDocument();
+    expect(mockPreviews.logs[mockPreviews.logs.length - 1]).toMatchObject({
+      body: "timeout",
+    });
   });
 
   test("opening More fields shows its filters, and nothing else changes", () => {
@@ -307,6 +344,8 @@ describe("Log monitor filters", () => {
     ]);
 
     // And the folded filters still scope what the preview shows.
+    openMatching("Matching logs");
+
     expect(mockPreviews.logs[mockPreviews.logs.length - 1]).toMatchObject({
       body: "timeout",
       severityTexts: [LogSeverity.Error],
@@ -319,6 +358,7 @@ describe("Log monitor filters", () => {
   test("a filter picked under More fields reaches the step and the preview with the others", () => {
     const recorder: Recorder = renderForm({ body: "timeout" });
 
+    openMatching("Matching logs");
     fireEvent.click(moreFields());
     pick(comboboxOf("Filter by Telemetry Service"), "checkout");
 
@@ -358,7 +398,7 @@ describe("Log monitor filters", () => {
     fireEvent.click(moreFields());
     fireEvent.change(
       screen.getByRole("textbox", {
-        name: "Monitor Logs that include this text",
+        name: "Message contains",
       }),
       { target: { value: "database" } },
     );
@@ -411,13 +451,17 @@ describe("Trace monitor filters", () => {
     return recorder;
   }
 
-  test("a new monitor shows the span name, the time window and the span status, and folds the rest under More fields", () => {
+  test("a new monitor shows the span status and the span name, and folds the rest under More fields", () => {
     renderForm();
 
-    expect(fieldLabel("Span Name")).toBeVisible();
-    expect(fieldLabel("Monitor Traces for (time)")).toBeVisible();
     // Filtering on ERROR is how a trace monitor alerts on failures.
-    expect(fieldLabel("Filter by Span Status")).toBeVisible();
+    expect(fieldLabel("Span Status")).toBeVisible();
+    expect(fieldLabel("Span name contains")).toBeVisible();
+    // The window is the rule's, set in When to alert.
+    expect(
+      screen.queryByText("Monitor Traces for (time)"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Filter by Span Status")).not.toBeInTheDocument();
 
     expect(moreFields()).toHaveAttribute("aria-expanded", "false");
     expect(listedNames(moreFields())).toEqual([
@@ -443,6 +487,11 @@ describe("Trace monitor filters", () => {
       "Filter by Telemetry Service: 1",
       "Filter by Attributes: 1",
     ]);
+
+    // Folded, the spans are not read; opened, the folded filters scope them.
+    expect(mockPreviews.traces).toEqual([]);
+    openMatching("Matching spans");
+
     expect(mockPreviews.traces[mockPreviews.traces.length - 1]).toMatchObject({
       spanStatuses: [SpanStatus.Error],
       telemetryServiceIds: [SERVICE_ID],
@@ -521,13 +570,19 @@ describe("Exception monitor filters", () => {
     return recorder;
   }
 
-  test("a new monitor shows the message, types, environments and time window, and folds the rest under More fields", () => {
+  test("a new monitor shows the message, types and environments, and folds the rest under More fields", () => {
     renderForm();
 
-    expect(fieldLabel("Filter Exception Message")).toBeVisible();
+    expect(fieldLabel("Message contains")).toBeVisible();
     expect(fieldLabel("Exception Types")).toBeVisible();
     expect(fieldLabel("Environments")).toBeVisible();
-    expect(fieldLabel("Monitor exceptions for (time)")).toBeVisible();
+    // The window is the rule's, set in When to alert.
+    expect(
+      screen.queryByText("Monitor exceptions for (time)"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Filter Exception Message"),
+    ).not.toBeInTheDocument();
 
     expect(moreFields()).toHaveAttribute("aria-expanded", "false");
     expect(listedNames(moreFields())).toEqual([
@@ -558,7 +613,10 @@ describe("Exception monitor filters", () => {
       "Include Resolved Exceptions: On",
     ]);
 
-    // The folded service filter still scopes the preview.
+    // The folded service filter still scopes the preview, once opened.
+    expect(mockPreviews.exceptions).toEqual([]);
+    openMatching("Matching exceptions");
+
     expect(
       JSON.stringify(
         mockPreviews.exceptions[mockPreviews.exceptions.length - 1]?.[
