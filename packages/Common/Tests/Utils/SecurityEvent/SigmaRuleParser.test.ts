@@ -469,3 +469,104 @@ detection:
     });
   });
 });
+
+/*
+ * `field|expand` reads watchlists: each value names one between % signs,
+ * and expand takes no other modifier - how a list's values match is the
+ * list's. Whether the project holds the lists is the server's to check.
+ */
+describe("SigmaRuleParser.parse: watchlists (expand)", () => {
+  function watchlistRule(selectionLines: string): string {
+    return `title: Reads a watchlist
+detection:
+  selection:
+${selectionLines}
+  condition: selection
+`;
+  }
+
+  test("a field read against one list", () => {
+    const rule: SigmaRule = SigmaRuleParser.parse(
+      watchlistRule("    principalUser|expand: '%vip_users%'"),
+    );
+
+    expect(rule.selections[0]!.fieldMaps[0]).toEqual([
+      {
+        field: "principalUser",
+        modifiers: ["expand"],
+        values: ["%vip_users%"],
+      },
+    ]);
+    // A rule never carries a project's lists from its YAML.
+    expect(rule.watchlists).toBeUndefined();
+  });
+
+  test("a field read against several lists, any of them", () => {
+    const rule: SigmaRule = SigmaRuleParser.parse(
+      watchlistRule(
+        "    targetUser|expand:\n      - '%vip_users%'\n      - '%admins%'",
+      ),
+    );
+
+    expect(rule.selections[0]!.fieldMaps[0]![0]!.values).toEqual([
+      "%vip_users%",
+      "%admins%",
+    ]);
+  });
+
+  test("the modifier is read whatever its case", () => {
+    const rule: SigmaRule = SigmaRuleParser.parse(
+      watchlistRule("    principalUser|EXPAND: '%vip_users%'"),
+    );
+
+    expect(rule.selections[0]!.fieldMaps[0]![0]!.modifiers).toEqual([
+      "expand",
+    ]);
+  });
+
+  test("expand with another modifier is refused, saying how to write it", () => {
+    for (const modifiers of ["contains|expand", "expand|cased", "expand|all"]) {
+      expect(() => {
+        return SigmaRuleParser.parse(
+          watchlistRule(`    principalUser|${modifiers}: '%vip_users%'`),
+        );
+      }).toThrow(
+        "expand takes no other modifier. Write the field and |expand alone, such as principalUser|expand: '%vip_users%'",
+      );
+    }
+  });
+
+  test("a value that is not a list's name between % signs is refused", () => {
+    for (const value of [
+      "vip_users",
+      "'%vip-users%'",
+      "'%1st%'",
+      "'a %vip_users%'",
+      "null",
+      "42",
+      "'%%'",
+    ]) {
+      expect(() => {
+        return SigmaRuleParser.parse(
+          watchlistRule(`    principalUser|expand: ${value}`),
+        );
+      }).toThrow(BadDataException);
+
+      expect(() => {
+        return SigmaRuleParser.parse(
+          watchlistRule(`    principalUser|expand: ${value}`),
+        );
+      }).toThrow("names a watchlist between % signs, such as '%vip_users%'");
+    }
+  });
+
+  test("one bad value among good ones is refused too", () => {
+    expect(() => {
+      return SigmaRuleParser.parse(
+        watchlistRule(
+          "    principalUser|expand:\n      - '%vip_users%'\n      - admins",
+        ),
+      );
+    }).toThrow('not "admins"');
+  });
+});

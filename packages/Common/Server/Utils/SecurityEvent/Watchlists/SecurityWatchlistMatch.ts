@@ -86,17 +86,66 @@ export function formatClickhouseParameterString(value: string): string {
   return result;
 }
 
-// What a formatted parameter takes in the URL: `param_<key>=<value>&`, URL-encoded.
-export function getUrlEncodedLength(text: string): number {
-  return new URLSearchParams({ p: text }).toString().length - 2;
+/*
+ * What a parameter's text takes in the request URL once the client has
+ * escaped it (formatClickhouseParameterString) and URLSearchParams has
+ * encoded it: letters, digits and * - . _ as they are, a space as +, a
+ * character the client escapes as two (\t, \', \\), and every other
+ * byte of its UTF-8 as %XX. Counted in one pass, with nothing built: a run
+ * counts thousands of values every minute. SecurityWatchlistMatch.test.ts
+ * holds it to what the client and URLSearchParams really send.
+ */
+export function getParameterTextUrlBytes(text: string): number {
+  let total: number = 0;
+
+  for (let index: number = 0; index < text.length; index++) {
+    const code: number = text.charCodeAt(index);
+
+    if (
+      (code >= 48 && code <= 57) ||
+      (code >= 65 && code <= 90) ||
+      (code >= 97 && code <= 122) ||
+      code === 42 ||
+      code === 45 ||
+      code === 46 ||
+      code === 95 ||
+      code === 32
+    ) {
+      total += 1;
+    } else if (code === 9 || code === 10 || code === 13) {
+      // A backslash (%5C) and a letter.
+      total += 4;
+    } else if (code === 39 || code === 92) {
+      // A backslash and the character, each %XX.
+      total += 6;
+    } else if (code < 128) {
+      total += 3;
+    } else if (code < 2048) {
+      total += 6;
+    } else if (
+      code >= 0xd800 &&
+      code <= 0xdbff &&
+      index + 1 < text.length &&
+      text.charCodeAt(index + 1) >= 0xdc00 &&
+      text.charCodeAt(index + 1) <= 0xdfff
+    ) {
+      // A character outside the Basic Multilingual Plane: four bytes.
+      total += 12;
+      index++;
+    } else {
+      total += 9;
+    }
+  }
+
+  return total;
 }
 
 /*
  * What one value takes inside an Array(String) parameter, in the URL: the
- * value quoted, and the comma after it.
+ * value between quotes (%27 each), and the comma after it (%2C).
  */
 export function getWatchlistValueUrlBytes(value: string): number {
-  return getUrlEncodedLength(`'${formatClickhouseParameterString(value)}',`);
+  return getParameterTextUrlBytes(value) + 9;
 }
 
 /*
@@ -131,26 +180,27 @@ export function splitWatchlistValueParameters(
   return groups;
 }
 
-// What one bound value takes in the URL, written as the client writes it.
+/*
+ * What one bound value takes in the URL, written as the client writes it:
+ * an array between brackets (%5B %5D), each element quoted when it is
+ * text, with a comma after it (one more than the client writes - an upper
+ * bound by three bytes).
+ */
 function getParameterUrlBytes(value: unknown): number {
   if (Array.isArray(value)) {
-    let total: number = getUrlEncodedLength("[]");
+    let total: number = 6;
 
     for (const item of value) {
       total +=
         typeof item === "string"
           ? getWatchlistValueUrlBytes(item)
-          : getUrlEncodedLength(`${String(item)},`);
+          : getParameterTextUrlBytes(String(item)) + 3;
     }
 
     return total;
   }
 
-  if (typeof value === "string") {
-    return getUrlEncodedLength(formatClickhouseParameterString(value));
-  }
-
-  return getUrlEncodedLength(String(value));
+  return getParameterTextUrlBytes(String(value));
 }
 
 // What a statement's parameters take in the request URL, with their names.
