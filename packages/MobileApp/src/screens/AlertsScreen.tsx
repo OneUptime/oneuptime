@@ -8,7 +8,6 @@ import React, {
 import {
   View,
   SectionList,
-  ScrollView,
   RefreshControl,
   Text,
   Alert,
@@ -39,6 +38,7 @@ import {
 } from "../navigation/paneState";
 import ScreenIntro from "../components/ScreenIntro";
 import SearchField from "../components/SearchField";
+import ListStatusScroll from "../components/ListStatusScroll";
 import { matchesSearch } from "../utils/search";
 import { getResolvedStateIds } from "../utils/resolvedState";
 import {
@@ -587,13 +587,14 @@ export default function AlertsScreen({
         testID="response-screen"
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
       >
-        <ScrollView
+        <ListStatusScroll
+          scrollKey="alerts.scroll.status"
+          header={listHeader}
+          headerTop={spacing.xl}
           testID="response-list-status"
-          contentInsetAdjustmentBehavior="automatic"
           refreshControl={refreshControl}
           contentContainerStyle={contentContainerStyle}
         >
-          {listHeader}
           <View
             testID="response-list-loading"
             style={{ marginTop: spacing.xs }}
@@ -602,7 +603,7 @@ export default function AlertsScreen({
             <SkeletonCard />
             <SkeletonCard />
           </View>
-        </ScrollView>
+        </ListStatusScroll>
       </View>
     );
   }
@@ -613,13 +614,14 @@ export default function AlertsScreen({
         testID="response-screen"
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
       >
-        <ScrollView
+        <ListStatusScroll
+          scrollKey="alerts.scroll.status"
+          header={listHeader}
+          headerTop={spacing.xl}
           testID="response-list-status"
-          contentInsetAdjustmentBehavior="automatic"
           refreshControl={refreshControl}
           contentContainerStyle={contentContainerStyle}
         >
-          {listHeader}
           <EmptyState
             title="Something went wrong"
             subtitle={
@@ -633,7 +635,7 @@ export default function AlertsScreen({
             actionLabel="Retry"
             onAction={onRefresh}
           />
-        </ScrollView>
+        </ListStatusScroll>
       </View>
     );
   }

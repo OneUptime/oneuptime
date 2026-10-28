@@ -254,6 +254,45 @@ test.describe("half open on a table", () => {
     ).toBeVisible();
   });
 
+  test("below the fold, a list that cannot load says so where the reader can see it", async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize(WINDOWS.innerLandscape);
+    await installFixtures(page);
+    // Registered after the fixtures, so it answers first.
+    await page.route("**/api/incident/get-list*", (route) => {
+      return route.fulfill({
+        status: 500,
+        contentType: "application/json",
+        body: JSON.stringify({ message: "Something broke" }),
+      });
+    });
+    await page.goto("/");
+    await expect(page.getByText("Overview", { exact: true })).toBeVisible();
+    await emulate(page, WINDOWS.innerLandscape, {
+      orientation: "horizontal",
+      offset: 442,
+    });
+    await page.getByRole("tab", { name: "Inbox", exact: true }).click();
+
+    const listPane = page.getByTestId("list-pane");
+    const retry = listPane.getByRole("button", { name: "Retry" });
+    await expect(retry).toBeVisible();
+    // Above the bar floating over the bottom of the pane, without a scroll.
+    const bar = await box(destinations(page));
+    await expect
+      .poll(async () => {
+        const button = await retry.boundingBox();
+        return Boolean(button && button.y + button.height <= bar.y);
+      })
+      .toBe(true);
+    await expect(
+      listPane.getByText("Something went wrong", { exact: true }),
+    ).toBeVisible();
+    await expectPanesClearOfFold(page, 442);
+    await capture(page, "tabletop-list-error", testInfo);
+  });
+
   test("closing flat and half again keeps the open incident and a half-written note", async ({
     page,
   }) => {
