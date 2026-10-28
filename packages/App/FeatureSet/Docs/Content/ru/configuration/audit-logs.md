@@ -101,6 +101,7 @@ flowchart TB
 | Серверы vCenter | `vCenter` |
 | Захваты пакетов и их скачивания | `Packet Capture` |
 | Кейсы безопасности с их приоритетами и статусами, плейбуки и их запуски, защищённые сущности, критичность сущностей, а также риск сущности, когда его сбрасывают | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
+| Исключения правил | `Rule Exception` |
 | Экспорты журнала аудита | `Audit Log Export` |
 
 Также записывается, когда администратор добавляет или удаляет метод уведомления или личное правило дежурства в чужой учётной записи, без самого адреса или номера.
