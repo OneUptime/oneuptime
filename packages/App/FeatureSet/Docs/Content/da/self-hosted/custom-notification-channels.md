@@ -17,11 +17,11 @@ En brugerdefineret kanal sender vagttilkald til en tjeneste, du selv driver: din
 ## Sådan fungerer det
 
 ```mermaid title="Et tilkald gennem en brugerdefineret kanal"
-flowchart LR
+flowchart TB
     OneUptime["OneUptime"]
     Service["Din tjeneste"]
     App["Din app"]
-    OneUptime -->|"signeret JSON-anmodning"| Service
+    OneUptime -->|"signeret<br/>JSON-anmodning"| Service
     Service -->|"notifikation"| App
     App -->|"Bekræft, Eskalér, Løs"| Service
     Service -->|"POST til handlingslinket"| OneUptime

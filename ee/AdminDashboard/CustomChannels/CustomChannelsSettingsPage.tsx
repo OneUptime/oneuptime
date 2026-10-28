@@ -50,6 +50,10 @@ import { useTranslation } from "react-i18next";
  * default: an admin adding the company's own app wants everybody paged
  * through it, and one adding a channel only some people use can say so.
  *
+ * Each row's ⋯ menu turns its channel off or on again - Disable or Enable,
+ * the shared row switch (ModelTable's rowSwitch) on the form's On switch -
+ * saved at once, with no form to open.
+ *
  * Without a license that includes it, the page says so
  * (EnterpriseSettingLicenseNotice) and is read-only: nothing is sent to the
  * channels then, and a channel can only be deleted - as the server enforces
@@ -191,6 +195,12 @@ const CustomChannelsSettingsPage: FunctionComponent = (): ReactElement => {
           isDeleteable={true}
           isEditable={!isReadOnly}
           isCreateable={!isReadOnly}
+          /*
+           * Disable on a channel that is on, Enable on one that is off: the
+           * form's On switch, offered where the form is - not while the page
+           * is read-only, when the server refuses the change.
+           */
+          rowSwitch={isReadOnly ? undefined : { column: "isEnabled" }}
           createVerb={"Add"}
           refreshToggle={refreshToggle}
           showRefreshButton={true}

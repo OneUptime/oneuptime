@@ -17,7 +17,7 @@ En anpassad kanal skickar jourlarm till en tjänst som du driver: ditt företags
 ## Så fungerar det
 
 ```mermaid title="Ett larm via en anpassad kanal"
-flowchart LR
+flowchart TB
     OneUptime["OneUptime"]
     Service["Din tjänst"]
     App["Din app"]

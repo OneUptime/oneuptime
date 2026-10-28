@@ -1514,6 +1514,8 @@
   "Light": "Claro",
   "Dark": "Escuro",
   "System": "Sistema",
+  "Enable": "Ativar",
+  "Disable": "Desativar",
   "markdownCallouts": {
     "caution": "Cuidado",
     "danger": "Perigo",

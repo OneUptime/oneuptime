@@ -12,7 +12,7 @@ OneUptime은 SMS와 통화를 Twilio 대신 직접 운영하는 게이트웨이�
 ## 작동 방식
 
 ```mermaid title="자체 게이트웨이를 통한 SMS"
-flowchart LR
+flowchart TB
     OneUptime["OneUptime"]
     Gateway["자체 게이트웨이"]
     Provider["자체 SMS 및 음성 공급자"]

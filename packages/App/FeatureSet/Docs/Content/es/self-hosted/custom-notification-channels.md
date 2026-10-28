@@ -17,14 +17,14 @@ Un canal personalizado envía los avisos de guardia a un servicio que gestionas 
 ## Cómo funciona
 
 ```mermaid title="Un aviso a través de un canal personalizado"
-flowchart LR
+flowchart TB
     OneUptime["OneUptime"]
     Service["Tu servicio"]
     App["Tu aplicación"]
     OneUptime -->|"solicitud JSON firmada"| Service
     Service -->|"notificación"| App
-    App -->|"Reconocer, Escalar, Resolver"| Service
-    Service -->|"POST al enlace de la acción"| OneUptime
+    App -->|"Reconocer,<br/>Escalar, Resolver"| Service
+    Service -->|"POST al enlace<br/>de la acción"| OneUptime
 ```
 
 Cuando una política de guardia avisa a alguien y su regla de guardia usa el canal, OneUptime envía una solicitud a la URL del canal. Indica para quién es el aviso (su nombre y su correo) y de qué trata, y lleva los enlaces que tu servicio llama cuando la persona lo reconoce, lo escala o lo resuelve en tu aplicación.
