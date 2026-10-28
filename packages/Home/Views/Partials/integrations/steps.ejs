@@ -1,0 +1,18 @@
+<%# Numbered steps, each with its words, code, tabs and notes. -%>
+<ol class="mt-6 space-y-0" role="list">
+  <% steps.forEach(function (step, index) { %>
+  <li class="relative flex gap-4 sm:gap-5">
+    <div class="flex flex-none flex-col items-center">
+      <span class="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-600 text-sm font-semibold text-white"><%= index + 1 %></span>
+      <% if (index < steps.length - 1) { %><span class="mt-2 w-px flex-1 bg-gray-200" aria-hidden="true"></span><% } %>
+    </div>
+    <div class="min-w-0 flex-1 <%= index < steps.length - 1 ? 'pb-10' : 'pb-2' %>">
+      <h3 class="text-base font-semibold leading-8 text-gray-900"><%= step.title %></h3>
+      <p class="mt-1 text-[15px] leading-7 text-gray-600"><%- step.bodyHtml %></p>
+      <% step.snippets.forEach(function (snippet) { %><%- include('./code-block', { snippet: snippet }) -%><% }) %>
+      <% if (step.tabs) { %><%- include('./tabs', { tabs: step.tabs }) -%><% } %>
+      <%- include('./notes', { notes: step.notesHtml }) -%>
+    </div>
+  </li>
+  <% }) %>
+</ol>

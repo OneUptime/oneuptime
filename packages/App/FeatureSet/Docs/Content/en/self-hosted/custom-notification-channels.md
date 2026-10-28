@@ -17,13 +17,13 @@ A custom channel sends on-call pages to a service you run: your company's own ap
 ## How It Works
 
 ```mermaid title="A page through a custom channel"
-flowchart LR
+flowchart TB
     OneUptime["OneUptime"]
     Service["Your service"]
     App["Your app"]
     OneUptime -->|"signed JSON request"| Service
     Service -->|"notification"| App
-    App -->|"Acknowledge, Escalate, Resolve"| Service
+    App -->|"Acknowledge,<br/>Escalate, Resolve"| Service
     Service -->|"POST to the action link"| OneUptime
 ```
 

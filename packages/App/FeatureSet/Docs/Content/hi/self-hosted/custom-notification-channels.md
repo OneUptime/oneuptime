@@ -17,7 +17,7 @@
 ## यह कैसे काम करता है
 
 ```mermaid title="कस्टम चैनल के ज़रिए एक पेज"
-flowchart LR
+flowchart TB
     OneUptime["OneUptime"]
     Service["आपकी सेवा"]
     App["आपका ऐप"]

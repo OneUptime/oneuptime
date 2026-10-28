@@ -270,15 +270,34 @@ test.describe("header", () => {
 
     // Only what the header needs is read up front.
     const state: FixtureState = await fixture(page);
-    const exceptionRead: { select: Record<string, unknown> } | undefined =
-      state.getItemRequests.find((request: { modelName: string }) => {
+    const exceptionReads: Array<{ select: Record<string, unknown> }> =
+      state.getItemRequests.filter((request: { modelName: string }) => {
         return request.modelName === "TelemetryException";
       });
-    expect(exceptionRead?.select).toMatchObject({
+    const headerRead: { select: Record<string, unknown> } | undefined =
+      exceptionReads.find((request: { select: Record<string, unknown> }) => {
+        return "message" in request.select;
+      });
+    expect(headerRead?.select).toMatchObject({
       unhandled: true,
       errorClass: true,
     });
-    expect(exceptionRead?.select).not.toHaveProperty("stackTrace");
+    for (const read of exceptionReads) {
+      expect(read.select).not.toHaveProperty("stackTrace");
+    }
+    /*
+     * Besides it, only the security events above the overview read the
+     * exception, for its fingerprint alone.
+     */
+    expect(
+      exceptionReads
+        .filter((request: { select: Record<string, unknown> }) => {
+          return request !== headerRead;
+        })
+        .map((request: { select: Record<string, unknown> }) => {
+          return request.select;
+        }),
+    ).toEqual([{ fingerprint: true }]);
   });
 
   test("a long message is clamped until expanded", async ({

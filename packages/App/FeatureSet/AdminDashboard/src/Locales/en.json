@@ -1514,6 +1514,8 @@
   "Light": "Light",
   "Dark": "Dark",
   "System": "System",
+  "Enable": "Enable",
+  "Disable": "Disable",
   "markdownCallouts": {
     "caution": "Caution",
     "danger": "Danger",

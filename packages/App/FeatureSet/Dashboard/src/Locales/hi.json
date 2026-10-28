@@ -36433,5 +36433,6 @@
   "Added through the API {{time}}": "API से जोड़ा गया, {{time}}",
   "Expires {{time}}": "{{time}} समाप्त होगा",
   "After this, the rule sees it again. Leave it empty to keep the exception until someone deletes it.": "इसके बाद नियम इसे फिर से देखता है। अपवाद को तब तक रखने के लिए खाली छोड़ें, जब तक कोई उसे हटा न दे।",
-  "Stop this rule from firing on something you expect, such as a scanner, a backup job or a planned test.": "इस नियम को किसी अपेक्षित चीज़ पर चलने से रोकें, जैसे स्कैनर, बैकअप जॉब या नियोजित टेस्ट।"
+  "Stop this rule from firing on something you expect, such as a scanner, a backup job or a planned test.": "इस नियम को किसी अपेक्षित चीज़ पर चलने से रोकें, जैसे स्कैनर, बैकअप जॉब या नियोजित टेस्ट।",
+  "Step-by-step guides": "चरण-दर-चरण गाइड"
 }

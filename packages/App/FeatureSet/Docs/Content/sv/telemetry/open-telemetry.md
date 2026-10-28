@@ -82,6 +82,8 @@ Egen drift? Ersätt `https://oneuptime.com` med URL:en till din OneUptime-instan
 
 Välj ditt språk. Varje uppsättning läser miljövariablerna ovan, så varken endpoint eller nyckel står i din kod.
 
+Använder du ett ramverk? [Integrationsguiderna](https://oneuptime.com/integrations) sätter upp OpenTelemetry steg för steg för varje ramverk, med vad det spårar automatiskt och hur du rättar till det som går fel.
+
 :::tabs
 @tab Node.js
 Installera SDK:t, de automatiska instrumenteringarna och OTLP/HTTP-exportörerna:

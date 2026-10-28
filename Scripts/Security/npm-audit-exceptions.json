@@ -1,4 +1,11 @@
 {
+  ".": [
+    {
+      "advisory": "GHSA-gcqx-w48m-w2h4",
+      "expires": "2026-12-04",
+      "reason": "deepmerge has no fixed release: >=4.2.0 <=4.3.1 is affected and 4.3.1 is the latest (published 2023-03-16; checked on 2026-10-28). It comes in through jest's config loader (jest-config, through jest, jest-cli and @jest/core), and only there. The root package is private repository tooling (lint, install and docs scripts) that no image installs. jest-config merges this repository's own jest configuration, never an object somebody else writes, which is what the advisory's prototype poisoning through mergeObject needs."
+    }
+  ],
   "Scripts/TerraformProvider": [
     {
       "advisory": "GHSA-gcqx-w48m-w2h4",

@@ -66,13 +66,15 @@ jobs:
       # details card shows the record's own ID on its ID line, every Show ID
       # dialog is the shared one that never hands React an object, no list
       # asks for the bulk Delete while keeping Delete off its rows, and every
-      # field, switch, card, dialog and empty-state description is short, and
-      # the bulk actions audit (Enterprise Licenses' Delete and Change Expiry
-      # Date). The App Test job deletes ee/ first, so only this run holds the
-      # Enterprise screens to them. They only read files.
+      # field, switch, card, dialog and empty-state description is short, the
+      # bulk actions audit (Enterprise Licenses' Delete and Change Expiry
+      # Date), and the row actions audit (each row of a list of records
+      # switched on and off - Custom Channels, Audit Log Export - turns its
+      # record on and off). The App Test job deletes ee/ first, so only this
+      # run holds the Enterprise screens to them. They only read files.
       - name: Run App's UI source guards with ee/ present
         working-directory: packages/App
-        run: node node_modules/.bin/jest Tests/MoreMenuItemIconsGuard.test.ts Tests/RecordIdLineGuard.test.ts Tests/ShowIdDialogGuard.test.ts Tests/Dashboard/ListDeletePolicy.test.ts Tests/Dashboard/BulkActionsAudit.test.ts Tests/Dashboard/ShortDescriptionsGuard.test.ts --forceExit
+        run: node node_modules/.bin/jest Tests/MoreMenuItemIconsGuard.test.ts Tests/RecordIdLineGuard.test.ts Tests/ShowIdDialogGuard.test.ts Tests/Dashboard/ListDeletePolicy.test.ts Tests/Dashboard/BulkActionsAudit.test.ts Tests/Dashboard/RowActionsAudit.test.ts Tests/Dashboard/ShortDescriptionsGuard.test.ts --forceExit
       # App's guards that every menu path a text writes ("User Settings >
       # Notification Settings", "Project Settings > Billing and Invoices >
       # Billing", "On-Call Duty > Advanced > User Overrides") is one a reader

@@ -12,7 +12,7 @@ OneUptime 可以通过你自己运行的网关发送短信和拨打电话，而�
 ## 工作原理
 
 ```mermaid title="通过你自己的网关发送的短信"
-flowchart LR
+flowchart TB
     OneUptime["OneUptime"]
     Gateway["你的网关"]
     Provider["你的短信和语音提供商"]

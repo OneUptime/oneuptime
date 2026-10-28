@@ -1514,6 +1514,8 @@
   "Light": "ライト",
   "Dark": "ダーク",
   "System": "システム",
+  "Enable": "有効にする",
+  "Disable": "無効にする",
   "markdownCallouts": {
     "caution": "注意",
     "danger": "危険",

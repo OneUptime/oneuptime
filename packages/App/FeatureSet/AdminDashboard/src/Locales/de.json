@@ -1514,6 +1514,8 @@
   "Light": "Hell",
   "Dark": "Dunkel",
   "System": "System",
+  "Enable": "Aktivieren",
+  "Disable": "Deaktivieren",
   "markdownCallouts": {
     "caution": "Vorsicht",
     "danger": "Gefahr",

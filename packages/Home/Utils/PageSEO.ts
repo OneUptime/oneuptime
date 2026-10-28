@@ -12,6 +12,7 @@
  */
 
 import ProductCompare, { Product } from "./ProductCompare";
+import { getOpenTelemetryGuideSEOEntries } from "./Integrations/OpenTelemetry/OpenTelemetryGuides";
 
 export interface BreadcrumbItem {
   name: string;
@@ -53,6 +54,8 @@ export interface PageSEOData {
     | "compare"
     | "solutions"
     | "industry"
+    // An OpenTelemetry guide, or the integrations index that lists them.
+    | "integration"
     | "other";
 }
 
@@ -1941,6 +1944,13 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
       { name: "Government", url: "/industries/government" },
     ],
   },
+
+  /*
+   * The integrations index and one OpenTelemetry guide per framework: each
+   * guide's title and description are its own data
+   * (Utils/Integrations/OpenTelemetry/Guides).
+   */
+  ...getOpenTelemetryGuideSEOEntries(),
 };
 
 /*
