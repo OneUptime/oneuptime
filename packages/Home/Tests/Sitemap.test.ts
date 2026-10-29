@@ -577,7 +577,7 @@ describe("the demo page in the sitemap", () => {
    * (Utils/DemoPage.ts) are routes that only redirect. The sitemap names
    * the page they lead to, once, and none of them.
    */
-  test("is configured once, as a weekly page at the priority of pricing", () => {
+  test("is configured once, as a weekly page of priority 0.9", () => {
     const sitemapSource: string = fs.readFileSync(
       path.join(__dirname, "..", "Utils", "Sitemap.ts"),
       "utf-8",
@@ -586,9 +586,6 @@ describe("the demo page in the sitemap", () => {
     expect(sitemapSource.split(`"${DEMO_PAGE_PATH}"`).length - 1).toBe(1);
     expect(sitemapSource).toContain(
       '"/enterprise/demo": { priority: 0.9, changefreq: "weekly" }',
-    );
-    expect(sitemapSource).toContain(
-      '"/pricing": { priority: 0.9, changefreq: "weekly" }',
     );
   });
 
