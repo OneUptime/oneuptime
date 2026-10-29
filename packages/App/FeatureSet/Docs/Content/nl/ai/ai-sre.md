@@ -46,6 +46,15 @@ Terwijl het onderzoek loopt, toont de pagina van het incident of de waarschuwing
 
 Een onderzoek loopt tot het klaar is: het heeft **geen tijdslimiet** en geen klein querybudget, dus het kan elke query en elke kubectl- of infrastructuuropdracht uitvoeren die het nodig heeft. Een lange opdrachtuitvoer (een `kubectl describe node` van een drukke node, de logs van een pod) wordt nooit afgekapt: OneUptime AI leest die pagina voor pagina. Wil je een harde stop, stel dan per signaaltype een **tijdslimiet voor onderzoeken** in (zie **Kostenbeheersing** hieronder).
 
+### Als de logboeken niets te zeggen hadden
+
+Een onderzoek dat geen oorzaak kon vaststellen, en in geen van zijn zoekopdrachten een logregel vond, zegt waarom op de kaart **AI Investigation**, onder zijn rapport, met de weg vooruit:
+
+- **Geen logboeken om te lezen**: er bereikte geen logboek OneUptime vanaf het uur voor het begin van het incident of de waarschuwing. **Logboeken instellen** opent de installatiegids van de logboeken: stuur de logboeken van uw diensten naar OneUptime, dan kan het volgende onderzoek ze gebruiken.
+- **Geen logboeken over dit incident** (bij een waarschuwing **Geen logboeken over deze waarschuwing**): er bereikten logboeken OneUptime, en geen zoekopdracht van het onderzoek vond er iets over. **Logboeken instellen** helpt als een betrokken dienst zijn logboeken nog niet stuurt, en **Niet-gelogde storingen vinden** opent **Logboeken → AI**, dat de storingen vindt die uw code niet logt en de logging toevoegt met een pull request.
+
+OneUptime beslist dit op grond van wat het weet, nooit op grond van wat de analyse zegt: hetzelfde door de server gecontroleerde oordeel als de [stille modus](#stille-modus), de eigen logzoekopdrachten van het onderzoek, en één controle of er in die periode een logboek het project bereikte. Een onderzoek dat de oorzaak vond, of een logregel, zegt niets van dien aard.
+
 ## Wat een onderzoek leest
 
 Een onderzoek begint bij het incident of de waarschuwing en bij de infrastructuur waaraan het is gekoppeld: de hosts, Docker- en Podman-hosts, Kubernetes-clusters, databases en services die de monitors ervan bewaken. Een website-, API- of synthetische monitor bewaakt waaraan je hem koppelt onder **Monitor → Overzicht → Gekoppelde resources**, dus koppel hem aan de hosts die leveren wat hij controleert, en elk onderzoek van zijn incidenten begint daar. Vóór dat alles leest het de [AI-context](/docs/ai/ai-context) van het project: wat je team voor OneUptime AI over je eigen systemen heeft opgeschreven, met de notities van de AI-regels die van toepassing zijn.
@@ -65,7 +74,7 @@ Dat gebeurt hoogstens één keer per incident, met dezelfde schakelaars en limie
 
 ## Praat met OneUptime AI over het incident
 
-De kaart **AI Investigation** eindigt met een gesprek, **Ask OneUptime AI**, dat iedereen deelt die het incident of de waarschuwing kan zien. Het is één kaart, wat er ook boven gebeurde: onder een rapport stel je vervolgvragen, en als er geen automatisch onderzoek liep (of het stopte voor het rapport) is de eerste suggestie **What is the root cause?**, waarmee OneUptime AI op verzoek onderzoekt.
+De kaart **AI Investigation** eindigt met een gesprek, **Ask OneUptime AI**, dat iedereen deelt die het incident of de waarschuwing kan zien. Het is één kaart, wat er ook boven gebeurde: onder een rapport stel je vervolgvragen, en als er geen automatisch onderzoek liep (of het stopte voor het rapport) is de eerste suggestie **Wat is de hoofdoorzaak?**, waarmee OneUptime AI op verzoek onderzoekt. De suggesties volgen waar het incident of de waarschuwing staat: na de bevestiging stelt geen enkele meer voor om te bevestigen, en na het oplossen vragen ze hoe de reactie verliep en wat herhaling zou voorkomen.
 
 - **Vervolgvragen stellen**: "welke pods gebruiken het meeste geheugen?", "wat veranderde er vlak voordat dit begon?", "is er nog iets anders getroffen?". OneUptime AI bouwt voort op zijn rapport, vraagt verse gegevens op (en voert alleen-lezen kubectl- of infrastructuuropdrachten uit waar het toegang heeft, op de clusters en resources die je mag zien) en voorziet elke bewering van een bron.
 - **Het laten handelen**: "bevestig dit incident", "plaats een statusupdate dat we het onderzoeken", "roep de database-on-call op", "verhoog de ernst". Het gebruikt dezelfde acties als AI vragen en handelt altijd **met je eigen rechten**, dus het kan nooit meer doen dan jij.
@@ -448,7 +457,7 @@ AI-werk buiten incidenten en waarschuwingen (de triage van inzichten, en fix-tak
 
 ### Hoe tokens worden geteld
 
-Elke tokenlimiet op deze pagina telt de tokens van een aanroep naar wat ze kosten, en dat doen de AI-logboeken en, op OneUptime Cloud, het AI-tegoed ook. Een token dat het model vers leest, en elk token dat het schrijft, telt als één. Een onderzoek of een antwoord van AI vragen bestaat uit veel aanroepen, en elke aanroep stuurt het hele gesprek opnieuw: het deel dat de provider al kent, levert hij uit zijn promptcache, voor een fractie van de prijs. Een token dat uit die cache wordt gelezen telt als een tiende token, en een token dat erin wordt geschreven als één en een kwart.
+Elke tokenlimiet op deze pagina telt de tokens van een aanroep naar wat ze kosten, en dat doen de AI-logboeken en, op OneUptime Cloud, het AI-tegoed ook. Een token dat het model vers leest, en elk token dat het schrijft, telt als één. Een onderzoek of een antwoord van AI vragen bestaat uit veel aanroepen, en elke aanroep stuurt het hele gesprek opnieuw: het deel dat de provider al kent, levert hij uit zijn promptcache, voor een fractie van de prijs. Een token dat uit die cache wordt gelezen, of erin wordt geschreven, telt voor wat het model van de aanroep ervoor rekent ten opzichte van een nieuw token: bij Claude en de huidige modellen van OpenAI telt een gelezen token als een tiende token (een twintigste bij Claude Opus 5.5 en Sonnet 5.5, de helft bij gpt-4o), en een token dat in de cache van Anthropic, of vanaf GPT-5.6 in die van OpenAI, wordt geschreven als één en een kwart. Een model waarvan OneUptime geen cacheprijs kent, telt een gelezen token als een tiende token en een geschreven token als één en een kwart.
 
 De AI-logboeken (**Projectinstellingen → AI → AI-logboeken**) tonen elke aanroep met de tokens die tellen en, daaronder, hoeveel tokens hij in totaal gebruikte en hoeveel daarvan uit de cache kwamen of erin gingen. Bij Anthropic, Claude in Microsoft Foundry inbegrepen, markeert OneUptime de systeemprompt, de tools en het gesprek voor de cache, zodat elke aanroep van een onderzoek alles vóór zijn nieuwste toolresultaten uit de cache leest. OpenAI en Azure OpenAI cachen een herhaalde prompt uit zichzelf.
 

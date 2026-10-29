@@ -665,6 +665,59 @@ const HomeFeatureSet: FeatureSet = {
     );
 
     /*
+     * oneuptime.com/demo and the other addresses people type for the demo
+     * page (Utils/DemoPage.ts, DEMO_SHORT_PATHS), kept alive the way the
+     * self-hosted ones are: each moves permanently to the page, keeping the
+     * query string a campaign carries.
+     */
+    app.get("/demo", (req: ExpressRequest, res: ExpressResponse) => {
+      redirectPreservingQuery(req, res, "/enterprise/demo", 301);
+    });
+
+    app.get("/request-demo", (req: ExpressRequest, res: ExpressResponse) => {
+      redirectPreservingQuery(req, res, "/enterprise/demo", 301);
+    });
+
+    app.get("/request-a-demo", (req: ExpressRequest, res: ExpressResponse) => {
+      redirectPreservingQuery(req, res, "/enterprise/demo", 301);
+    });
+
+    app.get("/book-demo", (req: ExpressRequest, res: ExpressResponse) => {
+      redirectPreservingQuery(req, res, "/enterprise/demo", 301);
+    });
+
+    app.get("/book-a-demo", (req: ExpressRequest, res: ExpressResponse) => {
+      redirectPreservingQuery(req, res, "/enterprise/demo", 301);
+    });
+
+    app.get("/schedule-demo", (req: ExpressRequest, res: ExpressResponse) => {
+      redirectPreservingQuery(req, res, "/enterprise/demo", 301);
+    });
+
+    app.get("/schedule-a-demo", (req: ExpressRequest, res: ExpressResponse) => {
+      redirectPreservingQuery(req, res, "/enterprise/demo", 301);
+    });
+
+    app.get("/get-demo", (req: ExpressRequest, res: ExpressResponse) => {
+      redirectPreservingQuery(req, res, "/enterprise/demo", 301);
+    });
+
+    app.get("/get-a-demo", (req: ExpressRequest, res: ExpressResponse) => {
+      redirectPreservingQuery(req, res, "/enterprise/demo", 301);
+    });
+
+    app.get("/contact-sales", (req: ExpressRequest, res: ExpressResponse) => {
+      redirectPreservingQuery(req, res, "/enterprise/demo", 301);
+    });
+
+    app.get(
+      "/enterprise/request-demo",
+      (req: ExpressRequest, res: ExpressResponse) => {
+        redirectPreservingQuery(req, res, "/enterprise/demo", 301);
+      },
+    );
+
+    /*
      * Resellers: the companies that sell OneUptime by region, and the form
      * other companies send to become one (Utils/Resellers.ts). The form
      * posts to RESELLER_INQUIRY_PATH, which emails the one inbox inquiries

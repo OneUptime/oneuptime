@@ -106,6 +106,27 @@ const MAX_EVENTS: number = 500;
  * was in flight, so accept either spelling without ever allowing two
  * different ids in one request. Both names identify the exact displayed run.
  */
+/*
+ * The repository a person picked for a fix, when the body names one
+ * (create-performance-fix-task: TracePerformanceFixSuggestion.repositories).
+ */
+export function readPickedRepositoryId(body: unknown): ObjectID | undefined {
+  const repositoryId: unknown =
+    body && typeof body === "object" && !Array.isArray(body)
+      ? (body as JSONObject)["repositoryId"]
+      : undefined;
+
+  if (repositoryId === undefined || repositoryId === null) {
+    return undefined;
+  }
+
+  if (typeof repositoryId !== "string" || !ObjectID.isValidUUID(repositoryId)) {
+    throw new BadDataException("repositoryId must be a repository's ID.");
+  }
+
+  return new ObjectID(repositoryId);
+}
+
 function getDisplayedInvestigationRunId(req: ExpressRequest): ObjectID {
   const aiRunId: string =
     typeof req.body["aiRunId"] === "string"
@@ -1505,9 +1526,10 @@ router.post(
  * ACL the trace explorer enforces — a user who cannot read the trace gets
  * "not found"), and the trigger's gates (AI on, a finding worth fixing, a
  * GitHub-App repository, per-trace dedupe, a fix that already did its
- * work, Code's gate) fail early with a clear message. Body: { traceId }.
- * Response: { aiRunId } — the Queued CodeFix run the agent worker will
- * claim.
+ * work, Code's gate, a repository to work in) fail early with a clear
+ * message. Body: { traceId, repositoryId? } - the repository the person
+ * picked when the suggestion listed repositories to pick from. Response:
+ * { aiRunId } — the Queued CodeFix run the agent worker will claim.
  */
 router.post(
   "/ai-investigation/create-performance-fix-task",
@@ -1533,6 +1555,11 @@ router.post(
       if (!projectId) {
         throw new BadDataException("A project scope is required.");
       }
+
+      // The repository the person picked, when the page asked for one.
+      const repositoryId: ObjectID | undefined = readPickedRepositoryId(
+        req.body,
+      );
 
       /*
        * Access check + data load in one: no spans back means the trace
@@ -1561,6 +1588,7 @@ router.post(
           spans: trace.spans,
           serviceName,
           userId: props.userId!,
+          repositoryId,
         });
 
       Response.sendJsonObjectResponse(req, res, {

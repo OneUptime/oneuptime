@@ -81,11 +81,13 @@ const LlmLogsTable: FunctionComponent<LlmLogsTableProps> = (
        * project's daily AI limits add up and the AI credits charge. A call
        * that used the provider's prompt cache says, under its count, how
        * many tokens it sent in all and how many of them the cache served or
-       * took, so the count can be checked against the provider's own.
+       * took, so the count can be checked against the provider's own. Its
+       * cached tokens count at its model's prices (getCacheWeights), so the
+       * row's model is read with it.
        */
       // The (i) beside the title translates its text as it shows it.
       headerTooltip: translationKey(
-        "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.",
+        "As counted toward the project's daily AI limits: a token the provider read from its prompt cache, or wrote to it, counts for what the model charges for it next to a fresh token. On most current models a read counts as a tenth of a token.",
       ),
       // The line under the count wraps rather than widen the table.
       wrapContent: true,
@@ -236,6 +238,8 @@ const LlmLogsTable: FunctionComponent<LlmLogsTableProps> = (
           statusMessage: true,
           cachedInputTokens: true,
           cacheCreationTokens: true,
+          // Whose prices its cached tokens count at (AiTokenCount).
+          modelName: true,
         }}
         cardProps={{
           title: "AI Logs",

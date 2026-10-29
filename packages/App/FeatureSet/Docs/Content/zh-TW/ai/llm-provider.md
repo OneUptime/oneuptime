@@ -134,6 +134,8 @@ API Key: sk-xxxxxxxxxxxxxxxxxxxx
 Model Name: gpt-5.1
 ```
 
+OpenAI 會自行快取它看過的提示，並對讀回的部分收取較低的費用。OneUptime 會告訴 OpenAI 哪些呼叫屬於一組：每個專案和每種 AI 工作一個提示快取，以 `prompt_cache_key` 傳送，因此兩個專案的提示永遠不會共用快取，而一次調查的每次呼叫都會讀回先前呼叫傳送的內容。如果提供者 **基底 URL** 上的伺服器拒絕該欄位，OneUptime 會不帶它重新傳送請求，並為該提供者記住這一點。[如何計算 token](/docs/ai/ai-sre#如何計算-token)說明了快取的 token 如何計入您的限制。
+
 ### Anthropic
 
 1. 從 [Anthropic Console](https://console.anthropic.com/) 取得 API 金鑰

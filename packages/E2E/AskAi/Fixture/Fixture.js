@@ -69,6 +69,7 @@ import AIConversationMessage from "Common/Models/DatabaseModels/AIConversationMe
 import AIRun from "Common/Models/DatabaseModels/AIRun";
 import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import AIChatMessageRole from "Common/Types/AI/AIChatMessageRole";
@@ -97,6 +98,9 @@ const USER_ID = "30000000-0000-4000-8000-0000000000c1";
 const INCIDENT_ID = "20000000-0000-4000-8000-000000000042";
 const PROVIDER_ID = "9d9d9d9d-0000-4000-8000-000000000001";
 const SECOND_PROVIDER_ID = "9d9d9d9d-0000-4000-8000-000000000002";
+// The project's incident states, top first: Identified, then Resolved.
+const OPEN_STATE_ID = "50000000-0000-4000-8000-000000000001";
+const RESOLVED_STATE_ID = "50000000-0000-4000-8000-000000000002";
 
 const params = new URLSearchParams(window.location.search);
 const language = ["de", "fa"].includes(params.get("lang"))
@@ -118,6 +122,8 @@ const aiKind = ["off", "noProvider"].includes(params.get("ai"))
 const failKind = ["send", "conversations"].includes(params.get("fail"))
   ? params.get("fail")
   : "";
+// Where the incident under the dialog stands: open (the default) or resolved.
+const isIncidentResolved = params.get("incident") === "resolved";
 
 // ---- who is signed in -------------------------------------------------------
 
@@ -689,6 +695,25 @@ ModelAPI.getList = async (options) => {
     return { data: events, count: events.length, skip: 0, limit: 100 };
   }
 
+  // The project's incident states, which tell whether the incident is resolved.
+  if (table === "IncidentState") {
+    const states = [
+      Object.assign(new IncidentState(), {
+        _id: OPEN_STATE_ID,
+        id: new ObjectID(OPEN_STATE_ID),
+        order: 1,
+        isCreatedState: true,
+      }),
+      Object.assign(new IncidentState(), {
+        _id: RESOLVED_STATE_ID,
+        id: new ObjectID(RESOLVED_STATE_ID),
+        order: 2,
+        isResolvedState: true,
+      }),
+    ];
+    return { data: states, count: states.length, skip: 0, limit: 100 };
+  }
+
   state.unhandled.push(`getList ${table}`);
   return { data: [], count: 0, skip: 0, limit: 10 };
 };
@@ -702,6 +727,14 @@ ModelAPI.getItem = async (options) => {
       id: new ObjectID(INCIDENT_ID),
       title: "Checkout latency above 2s",
       incidentNumber: 42,
+      // Its state, when the read asks for it, as the API answers.
+      ...(options.select?.currentIncidentStateId
+        ? {
+            currentIncidentStateId: new ObjectID(
+              isIncidentResolved ? RESOLVED_STATE_ID : OPEN_STATE_ID,
+            ),
+          }
+        : {}),
     });
   }
 

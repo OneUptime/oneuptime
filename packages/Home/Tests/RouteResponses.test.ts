@@ -7,6 +7,7 @@ import { AddressInfo } from "net";
 import path from "path";
 import HomeFeatureSet from "../Routes";
 import { LegacyRedirect, LegacyRedirects } from "../Utils/LegacyRedirects";
+import { DEMO_PAGE_PATH, DEMO_SHORT_PATHS } from "../Utils/DemoPage";
 import {
   ResellerCard,
   ResellerRegionGroup,
@@ -362,7 +363,29 @@ const ALIASES: Array<[string, string]> = [
   ["/security", "/trust"],
   ["/security-center", "/trust"],
   ["/trust-center", "/trust"],
+  // The demo page's (Utils/DemoPage.ts), oneuptime.com/demo first.
+  ...DEMO_SHORT_PATHS.map((shortPath: string): [string, string] => {
+    return [shortPath, DEMO_PAGE_PATH];
+  }),
 ];
+
+// Each <loc> of a sitemap.
+const SITEMAP_LOC: RegExp = /<loc>([^<]*)<\/loc>/g;
+
+// "/request-a-demo" as someone might type it: "/Request-A-Demo".
+function capitalized(sitePath: string): string {
+  return sitePath
+    .split("/")
+    .map((segment: string): string => {
+      return segment
+        .split("-")
+        .map((word: string): string => {
+          return word.charAt(0).toUpperCase() + word.slice(1);
+        })
+        .join("-");
+    })
+    .join("/");
+}
 
 const LEGACY: Array<[string, string]> = [
   ...LegacyRedirects.map((redirect: LegacyRedirect): [string, string] => {
@@ -455,6 +478,184 @@ describe("the route table over HTTP", () => {
             return r.view;
           }),
         ).toEqual(["not-found.ejs"]);
+      }
+    });
+  });
+
+  describe("the demo page, and the addresses people type for it", () => {
+    /*
+     * oneuptime.com/demo answered 404. It and the other addresses for the
+     * demo page (Utils/DemoPage.ts) move permanently to /enterprise/demo,
+     * matched the way every route is, carrying the campaign along.
+     */
+    function lastRender(): RenderedView {
+      return home.renders[home.renders.length - 1]!;
+    }
+
+    test("oneuptime.com/demo answers a permanent 301 to the demo page", async () => {
+      const answer: Answer = await home.request("GET", "/demo");
+
+      expect([answer.status, answer.location]).toEqual([
+        301,
+        "/enterprise/demo",
+      ]);
+    });
+
+    test.each(
+      DEMO_SHORT_PATHS.map((shortPath: string): [string] => {
+        return [shortPath];
+      }),
+    )(
+      "%s moves to the page with or without a trailing slash, in any letter case",
+      async (shortPath: string) => {
+        for (const requested of [
+          shortPath,
+          `${shortPath}/`,
+          shortPath.toUpperCase(),
+          capitalized(shortPath),
+        ]) {
+          const answer: Answer = await home.request("GET", requested);
+
+          expect([requested, answer.status, answer.location]).toEqual([
+            requested,
+            301,
+            DEMO_PAGE_PATH,
+          ]);
+        }
+      },
+    );
+
+    test("a campaign's query string arrives on the page byte for byte", async () => {
+      /*
+       * Percent-encoding, the order of the keys and a repeated key all kept:
+       * the attribution capture on the page stores whatever bytes arrive.
+       */
+      const query: string =
+        "utm_source=linkedin&utm_medium=social&utm_campaign=q4%20launch%20%2B%20demo&gclid=EAIaIQobChMI&utm_source=repeated";
+
+      for (const requested of [
+        `/demo?${query}`,
+        `/demo/?${query}`,
+        `/Book-A-Demo?${query}`,
+        `/enterprise/request-demo?${query}`,
+      ]) {
+        const answer: Answer = await home.request("GET", requested);
+
+        expect([requested, answer.status, answer.location]).toEqual([
+          requested,
+          301,
+          `${DEMO_PAGE_PATH}?${query}`,
+        ]);
+      }
+    });
+
+    test("a bare question mark leaves no question mark behind", async () => {
+      const answer: Answer = await home.request("GET", "/demo?");
+
+      expect([answer.status, answer.location]).toEqual([301, DEMO_PAGE_PATH]);
+    });
+
+    test("HEAD is answered as GET is", async () => {
+      const answer: Answer = await home.request("HEAD", "/demo?gclid=abc");
+
+      expect([answer.status, answer.location]).toEqual([
+        301,
+        `${DEMO_PAGE_PATH}?gclid=abc`,
+      ]);
+    });
+
+    test("one hop: the redirect points at the demo page itself, which names itself as canonical", async () => {
+      const moved: Answer = await home.request("GET", "/demo?gclid=abc");
+      const answer: Answer = await home.request("GET", moved.location!);
+
+      expect([answer.status, answer.location]).toEqual([200, undefined]);
+      expect(lastRender().view).toBe("demo.ejs");
+      expect(lastRender().locals["seo"]).toMatchObject({
+        canonicalPath: DEMO_PAGE_PATH,
+        fullCanonicalUrl: "https://oneuptime.com/enterprise/demo",
+      });
+    });
+
+    test.each([
+      ["/enterprise/demo/"],
+      ["/Enterprise/Demo"],
+      ["/enterprise/demo?utm_source=x&gclid=abc"],
+    ])(
+      "%s is the page itself, naming the same canonical address",
+      async (url: string) => {
+        const answer: Answer = await home.request("GET", url);
+
+        expect([url, answer.status, answer.location]).toEqual([
+          url,
+          200,
+          undefined,
+        ]);
+        expect(lastRender().view).toBe("demo.ejs");
+        expect(lastRender().locals["seo"]).toMatchObject({
+          canonicalPath: DEMO_PAGE_PATH,
+          fullCanonicalUrl: "https://oneuptime.com/enterprise/demo",
+        });
+      },
+    );
+
+    test("only the addresses themselves move: what is under or beside them is the not-found page", async () => {
+      for (const url of [
+        "/demo/extra",
+        "/demos",
+        "/demo-video",
+        "/requestdemo",
+        "/book-a-demo.html",
+        "/enterprise/request-demo/now",
+        "/enterprise/demo/extra",
+        "/enterprise/demos",
+      ]) {
+        const before: number = home.renders.length;
+        const answer: Answer = await home.request("GET", url);
+
+        expect([url, answer.status, answer.location]).toEqual([
+          url,
+          404,
+          undefined,
+        ]);
+        expect(
+          home.renders.slice(before).map((r: RenderedView) => {
+            return r.view;
+          }),
+        ).toEqual(["not-found.ejs"]);
+      }
+    });
+
+    test("other methods are left alone", async () => {
+      for (const method of ["POST", "PUT", "DELETE"]) {
+        const answer: Answer = await home.request(method, "/demo");
+
+        expect([method, answer.status, answer.location]).toEqual([
+          method,
+          404,
+          undefined,
+        ]);
+      }
+    });
+
+    test("the pages sitemap lists the page once, and none of the addresses that lead to it", async () => {
+      const answer: Answer = await home.request("GET", "/sitemap-pages.xml");
+      const locs: Array<string> = Array.from(
+        answer.body.matchAll(SITEMAP_LOC),
+        (match: RegExpMatchArray): string => {
+          return match[1]!;
+        },
+      );
+
+      expect(answer.status).toBe(200);
+      expect(locs.length).toBeGreaterThan(50);
+      expect(
+        locs.filter((loc: string): boolean => {
+          return loc === "https://oneuptime.com/enterprise/demo";
+        }),
+      ).toHaveLength(1);
+
+      for (const shortPath of DEMO_SHORT_PATHS) {
+        expect(locs).not.toContain(`https://oneuptime.com${shortPath}`);
       }
     });
   });

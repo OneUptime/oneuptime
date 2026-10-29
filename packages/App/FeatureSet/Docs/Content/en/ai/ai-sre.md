@@ -46,6 +46,15 @@ While the investigation runs, the incident or alert page shows a live **AI Inves
 
 An investigation runs until it is done: it has **no time limit** and no small query budget, so it can run every query and kubectl or infrastructure command it needs. A long command output (a `kubectl describe node` of a busy node, a pod's logs) is never cut off — OneUptime AI reads it a page at a time. If you want a hard stop, set an **investigation time limit** per signal type (see **Cost controls** below).
 
+### When the logs had nothing to say
+
+An investigation that could not determine a cause, and found no log line in any of its searches, says why on the **AI Investigation** card, under its report, with the way forward:
+
+- **No logs to read**: no log reached OneUptime from the hour before the incident or alert started. **Set up logs** opens the Logs setup guide: send your services' logs to OneUptime, and the next investigation can use them.
+- **No logs about this incident** (for an alert, **No logs about this alert**): logs reached OneUptime, and none of the investigation's searches found anything about it. **Set up logs** helps when a service involved does not send its logs yet, and **Find unlogged failures** opens **Logs → AI**, which finds the failures your code does not log and adds the logging with a pull request.
+
+OneUptime decides this from what it knows, never from what the analysis says: the same server-verified verdict as [quiet mode](#quiet-mode), the investigation's own log searches, and one read of whether any log reached the project in that window. An investigation that found the cause, or found a log line, says nothing of the kind.
+
 ## What an investigation reads
 
 An investigation starts from the incident or alert and from the infrastructure it is linked to: the hosts, Docker and Podman hosts, Kubernetes clusters, databases and services its monitors watch. A website, API or synthetic monitor watches what you link it to under **Monitor → Overview → Linked Resources**, so link it to the hosts that serve what it checks, and every investigation of its incidents starts there. Before all of it, an investigation reads the project's [AI context](/docs/ai/ai-context): what your team wrote down for OneUptime AI about your own systems, with the notes of the AI rules that match.
@@ -65,7 +74,7 @@ This happens at most once per incident, under the same switches and limits as a 
 
 ## Talk to OneUptime AI about the incident
 
-The **AI Investigation** card ends with a conversation — **Ask OneUptime AI** — shared by everyone who can see the incident or alert. It is one card whatever happened above it: under a report you ask follow-ups, and when no automatic investigation ran (or it stopped before reporting) the first suggestion is **What is the root cause?**, which has OneUptime AI investigate on demand.
+The **AI Investigation** card ends with a conversation — **Ask OneUptime AI** — shared by everyone who can see the incident or alert. It is one card whatever happened above it: under a report you ask follow-ups, and when no automatic investigation ran (or it stopped before reporting) the first suggestion is **What is the root cause?**, which has OneUptime AI investigate on demand. Its suggestions follow where the incident or alert stands: once it is acknowledged, none offers to acknowledge it, and once it is resolved, they ask how the response went and what would stop it happening again.
 
 - **Ask follow-up questions** — "which pods use the most memory?", "what changed right before this started?", "is anything else affected?". OneUptime AI builds on its report, queries fresh data (and runs read-only kubectl or infrastructure commands where it has access, on the clusters and resources you may view), and cites every claim.
 - **Ask it to act** — "acknowledge this incident", "post a status update saying we're investigating", "page the database on-call", "raise the severity". It uses the same actions as Ask AI and always acts **with your own permissions**, so it can never do more than you could.
@@ -448,7 +457,7 @@ AI work outside incidents and alerts — insight triage, and fix tasks for excep
 
 ### How tokens are counted
 
-Every token limit on this page counts a call's tokens by what they cost, and so do the AI Logs and, on OneUptime Cloud, the AI credits. A token the model reads fresh, and every token it writes, counts as one. An investigation or an Ask AI answer is many calls, and each call sends the whole conversation again: the provider serves the part it has already seen from its prompt cache, at a fraction of the price. A token read from that cache counts as a tenth of a token, and a token written to it as one and a quarter.
+Every token limit on this page counts a call's tokens by what they cost, and so do the AI Logs and, on OneUptime Cloud, the AI credits. A token the model reads fresh, and every token it writes, counts as one. An investigation or an Ask AI answer is many calls, and each call sends the whole conversation again: the provider serves the part it has already seen from its prompt cache, at a fraction of the price. A token read from that cache, or written to it, counts for what the call's model charges for it next to a fresh token: on Claude and on OpenAI's current models a read counts as a tenth of a token (a twentieth on Claude Opus 5.5 and Sonnet 5.5, half on gpt-4o), and a write to Anthropic's cache, or to OpenAI's from GPT-5.6, as one and a quarter. A model OneUptime has no cache price for counts a read as a tenth of a token and a write as one and a quarter.
 
 The AI Logs (**Project Settings → AI → AI Logs**) list each call with the tokens that count and, under them, how many tokens it used in all and how many of them came from the cache or went into it. With Anthropic, Claude in Microsoft Foundry included, OneUptime marks the system prompt, the tools and the conversation for the cache, so each call of an investigation reads everything before its newest tool results from it. OpenAI and Azure OpenAI cache a repeated prompt on their own.
 

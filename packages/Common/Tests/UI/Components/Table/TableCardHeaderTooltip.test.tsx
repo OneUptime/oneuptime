@@ -51,7 +51,7 @@ interface Row {
 }
 
 const TOKENS_TIP: string =
-  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.";
+  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache, or wrote to it, counts for what the model charges for it next to a fresh token. On most current models a read counts as a tenth of a token.";
 
 const COLUMNS: Columns<Row> = [
   { key: "name", title: "Name", type: FieldType.Text },

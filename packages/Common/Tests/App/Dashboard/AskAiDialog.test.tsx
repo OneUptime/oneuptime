@@ -29,6 +29,8 @@ import AIConversation from "../../../Models/DatabaseModels/AIConversation";
 import AIConversationMessage from "../../../Models/DatabaseModels/AIConversationMessage";
 import AIRun from "../../../Models/DatabaseModels/AIRun";
 import AIRunEvent from "../../../Models/DatabaseModels/AIRunEvent";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
 import AIChatMessageRole from "../../../Types/AI/AIChatMessageRole";
@@ -43,6 +45,7 @@ import AIRunEventType from "../../../Types/AI/AIRunEventType";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import GlobalEvents from "../../../UI/Utils/GlobalEvents";
+import ModelListCache from "../../../UI/Utils/ModelListCache";
 import Navigation from "../../../UI/Utils/Navigation";
 import AskAiDialog from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/AskAiDialog";
 import { openAskAi } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/AskAiEvents";
@@ -1573,5 +1576,282 @@ describe("closing Ask AI loses nothing", () => {
     // And it opens again on the same conversation.
     await toggle();
     expect(screen.getByText(QUESTION)).toBeInTheDocument();
+  });
+});
+
+// ---- the questions follow the record ---------------------------------------------
+
+/*
+ * Ask AI's questions follow the record on screen (the follow-up #5273
+ * listed): the read that fetches the incident's title for the pill also
+ * reads where it stands, each time Ask AI opens - its state, placed among
+ * the project's incident states by the one rule (ResolvedStateUtil) - and
+ * a resolved incident is asked how the response went and what would stop
+ * it coming back.
+ */
+describe("the questions follow the incident on screen", () => {
+  const OWN_QUESTIONS: Array<string> = [
+    "Summarize",
+    "Find root cause",
+    "What changed?",
+    "Draft status update",
+  ];
+  const RESOLVED_QUESTIONS: Array<string> = [
+    "Summarize",
+    "Find root cause",
+    "Response timeline",
+    "Prevent a repeat",
+  ];
+
+  const OPEN_STATE_ID: string = "88888888-8888-4888-8888-000000000001";
+  const RESOLVED_STATE_ID: string = "88888888-8888-4888-8888-000000000002";
+  // A state of the project's own, placed after Resolved.
+  const CLOSED_STATE_ID: string = "88888888-8888-4888-8888-000000000003";
+
+  // The project's incident states, as GET IncidentState lists them.
+  const STATES: Array<JSONObject> = [
+    { _id: OPEN_STATE_ID, order: 1, isCreatedState: true },
+    { _id: RESOLVED_STATE_ID, order: 2, isResolvedState: true },
+    { _id: CLOSED_STATE_ID, order: 3 },
+  ];
+
+  let statesAnswer: () => Promise<unknown> = async () => {
+    return STATES;
+  };
+
+  function incidentRead(stateId?: string): JSONObject {
+    return {
+      title: "Checkout latency above 2s",
+      incidentNumber: 42,
+      ...(stateId ? { currentIncidentStateId: new ObjectID(stateId) } : {}),
+    };
+  }
+
+  function answerIncidentWith(read: () => Promise<unknown>): void {
+    getItemMock.mockImplementation(async (request: { modelType: unknown }) => {
+      const table: string = tableNameOf(request.modelType);
+
+      if (table === "Incident") {
+        return read();
+      }
+
+      if (table === "AIRun") {
+        return server.run;
+      }
+
+      return null;
+    });
+  }
+
+  function incidentReads(): Array<JSONObject> {
+    return getItemMock.mock.calls
+      .map(
+        (call: Array<unknown>): { modelType: unknown; select: JSONObject } => {
+          return call[0] as { modelType: unknown; select: JSONObject };
+        },
+      )
+      .filter((request: { modelType: unknown }): boolean => {
+        return tableNameOf(request.modelType) === "Incident";
+      })
+      .map((request: { select: JSONObject }): JSONObject => {
+        return request.select;
+      });
+  }
+
+  function suggestionTitles(): Array<string> {
+    return within(screen.getByTestId("ai-chat-suggestions"))
+      .getAllByRole("button")
+      .map((button: HTMLElement): string => {
+        return button.textContent || "";
+      });
+  }
+
+  async function settleRead(): Promise<void> {
+    for (let tick: number = 0; tick < 6; tick++) {
+      await settle();
+    }
+  }
+
+  beforeEach(() => {
+    // The states are a cached list: each test reads its project's afresh.
+    ModelListCache.invalidateAll();
+    statesAnswer = async () => {
+      return STATES;
+    };
+
+    const listed: (request: {
+      modelType: unknown;
+      query: JSONObject;
+    }) => Promise<unknown> = getListMock.getMockImplementation() as (request: {
+      modelType: unknown;
+      query: JSONObject;
+    }) => Promise<unknown>;
+
+    getListMock.mockImplementation(
+      async (request: { modelType: unknown; query: JSONObject }) => {
+        if (tableNameOf(request.modelType) === "IncidentState") {
+          const rows: Array<JSONObject> =
+            (await statesAnswer()) as Array<JSONObject>;
+
+          return {
+            data: rows.map((row: JSONObject): IncidentState => {
+              return BaseModel.fromJSONObject(row, IncidentState);
+            }),
+            count: rows.length,
+            skip: 0,
+            limit: 100,
+          };
+        }
+
+        return listed(request);
+      },
+    );
+  });
+
+  test("a resolved incident is asked how the response went and what would stop it coming back", async () => {
+    answerIncidentWith(async () => {
+      return incidentRead(RESOLVED_STATE_ID);
+    });
+    await renderAt();
+    await toggle();
+    await settleRead();
+
+    expect(suggestionTitles()).toEqual(RESOLVED_QUESTIONS);
+    expect(screen.getByRole("button", { name: "Summarize" })).toHaveAttribute(
+      "title",
+      "Summarize this incident: what happened, how long it lasted, and how it was resolved.",
+    );
+    // One read of the incident, its state with its title.
+    expect(incidentReads()).toEqual([
+      { title: true, incidentNumber: true, currentIncidentStateId: true },
+    ]);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Prevent a repeat" }));
+    });
+    await settle();
+
+    expect(sentRequests("/ai-chat/send-message")[0]!.data).toEqual(
+      expect.objectContaining({
+        content:
+          "What would stop this incident from happening again? Base it on its root cause and on similar past incidents.",
+        // Where it stands stays in the browser: the server reads the incident.
+        pageContext: {
+          type: AIChatPageContextType.Incident,
+          entityId: INCIDENT_ID,
+          entityTitle: "#42 Checkout latency above 2s",
+        },
+      }),
+    );
+  });
+
+  test("a state of the project's own placed after Resolved is resolved too", async () => {
+    answerIncidentWith(async () => {
+      return incidentRead(CLOSED_STATE_ID);
+    });
+    await renderAt();
+    await toggle();
+    await settleRead();
+
+    expect(suggestionTitles()).toEqual(RESOLVED_QUESTIONS);
+  });
+
+  test("an open incident keeps the incident's own questions", async () => {
+    answerIncidentWith(async () => {
+      return incidentRead(OPEN_STATE_ID);
+    });
+    await renderAt();
+    await toggle();
+    await settleRead();
+
+    expect(suggestionTitles()).toEqual(OWN_QUESTIONS);
+    expect(screen.getByTestId("ai-chat-context")).toHaveTextContent(
+      "This incident · #42 Checkout latency above 2s",
+    );
+  });
+
+  test("read again each time Ask AI opens: what it knew stays while it reads, then the questions follow the incident", async () => {
+    answerIncidentWith(async () => {
+      return incidentRead(RESOLVED_STATE_ID);
+    });
+    await renderAt();
+    await toggle();
+    await settleRead();
+    expect(suggestionTitles()).toEqual(RESOLVED_QUESTIONS);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    });
+    expect(dialog()).toBeNull();
+
+    // Reopened meanwhile, and read slowly this time.
+    let answer: (value: unknown) => void = (): void => {
+      return undefined;
+    };
+    answerIncidentWith((): Promise<unknown> => {
+      return new Promise((resolve: (value: unknown) => void): void => {
+        answer = resolve;
+      });
+    });
+
+    await toggle();
+    await settleRead();
+
+    // Read again, and until it answers, what the last read said stays.
+    expect(incidentReads()).toHaveLength(2);
+    expect(suggestionTitles()).toEqual(RESOLVED_QUESTIONS);
+    expect(screen.getByTestId("ai-chat-context")).toHaveTextContent(
+      "This incident · #42 Checkout latency above 2s",
+    );
+
+    await act(async () => {
+      answer(incidentRead(OPEN_STATE_ID));
+    });
+    await settleRead();
+
+    expect(suggestionTitles()).toEqual(OWN_QUESTIONS);
+    expect(screen.getByTestId("ai-chat-context")).toHaveTextContent(
+      "This incident · #42 Checkout latency above 2s",
+    );
+  });
+
+  test("the project's states that cannot be read leave the title, and the incident's own questions", async () => {
+    statesAnswer = async () => {
+      throw new Error("You do not have permission to read Incident State");
+    };
+    answerIncidentWith(async () => {
+      return incidentRead(RESOLVED_STATE_ID);
+    });
+    await renderAt();
+    await toggle();
+    await settleRead();
+
+    expect(screen.getByTestId("ai-chat-context")).toHaveTextContent(
+      "This incident · #42 Checkout latency above 2s",
+    );
+    expect(suggestionTitles()).toEqual(OWN_QUESTIONS);
+  });
+
+  test("on another page, nothing read about the incident is carried over", async () => {
+    answerIncidentWith(async () => {
+      return incidentRead(RESOLVED_STATE_ID);
+    });
+    await renderAt();
+    await toggle();
+    await settleRead();
+    expect(suggestionTitles()).toEqual(RESOLVED_QUESTIONS);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    });
+    await act(async () => {
+      navigate(homePath());
+    });
+    await settle();
+    await toggle();
+    await settleRead();
+
+    expect(screen.queryByTestId("ai-chat-context")).not.toBeInTheDocument();
+    expect(suggestionTitles()).not.toContain("Prevent a repeat");
   });
 });

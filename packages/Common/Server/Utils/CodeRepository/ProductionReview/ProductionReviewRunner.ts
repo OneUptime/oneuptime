@@ -1,6 +1,9 @@
 import { DashboardClientUrl } from "../../../EnvironmentConfig";
 import GlobalCache from "../../../Infrastructure/GlobalCache";
 import AIService from "../../../Services/AIService";
+import LlmProviderChoice, {
+  RuleLlmProviderChoice,
+} from "../../AI/LlmProviderChoice";
 import CodeRepositoryService from "../../../Services/CodeRepositoryService";
 import logger from "../../Logger";
 import ProductBrandingText from "../../ProductBrandingText";
@@ -190,6 +193,7 @@ export default class ProductionReviewRunner {
             gitHubAppInstallationId: true,
             isProductionReviewEnabled: true,
             productionReviewPullRequestContent: true,
+            productionReviewLlmProviderId: true,
           },
           props: { isRoot: true },
         })
@@ -354,6 +358,7 @@ export default class ProductionReviewRunner {
       files,
       changed,
       repositoryId: repository.id!,
+      pickedLlmProviderId: repository.productionReviewLlmProviderId,
       now,
       update: contextUpdate,
     });
@@ -388,6 +393,8 @@ export default class ProductionReviewRunner {
    * and AI may run: the project's AI switch is on, the pull request and
    * the repository have reads left today, and the facts and the diff are
    * not the ones the last read answered (whose points are kept instead).
+   * It reads with the LLM provider the repository picks for its production
+   * reviews, else the project's default provider, else the global one.
    */
   public static async addAiRead(data: {
     run: AIRun;
@@ -396,6 +403,8 @@ export default class ProductionReviewRunner {
     files: Array<GitHubPullRequestFile>;
     changed: ChangedCode;
     repositoryId: ObjectID;
+    // The repository's pick (CodeRepository.productionReviewLlmProviderId).
+    pickedLlmProviderId?: ObjectID | undefined;
     now: Date;
     update: ProductionReviewContextUpdate;
   }): Promise<void> {
@@ -445,11 +454,25 @@ export default class ProductionReviewRunner {
       return;
     }
 
+    /*
+     * The provider the read uses: the repository's pick when the project
+     * may use it and nothing stops it, else what it falls back to - the
+     * project's default provider, else the global one (LlmProviderChoice).
+     * With no pick nothing more is read: the call resolves the project's
+     * provider, as every review did before a repository could pick one.
+     */
+    const llmProviderChoice: RuleLlmProviderChoice =
+      await LlmProviderChoice.decideIfPicked({
+        projectId,
+        pickedProviderId: data.pickedLlmProviderId,
+      });
+
     const result: ProductionReviewAiResult = await ProductionReviewAI.read({
       projectId,
       aiRunId: data.run.id!,
       report: data.report,
       diffText,
+      llmProviderId: llmProviderChoice.llmProviderId,
     });
 
     data.report.points = result.points;
