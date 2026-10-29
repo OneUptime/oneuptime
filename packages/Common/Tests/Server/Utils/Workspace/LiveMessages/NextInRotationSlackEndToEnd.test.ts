@@ -302,10 +302,10 @@ describe("nobody is next in the Primary cover rotation", () => {
      */
     expect(alarms).toHaveLength(1);
     expect(alarms[0]!.notification).toBe(
-      "PolicyX paged nobody at Level 2 of 3 for Incident INC-8, so it moved on to Platform (Level 3 of 3) at once",
+      "PolicyX paged nobody at Level 2 of 3 for Incident INC-8, so Platform (Level 3 of 3) was paged at once",
     );
     expect(alarms[0]!.text).toContain(
-      "(nobody was next in the Primary cover rotation), so it moved on to Platform (Level 3 of 3) at once. Fix the policy so this level pages someone.",
+      "(nobody was next in the Primary cover rotation), so Platform (Level 3 of 3) was paged at once. Fix the policy so this level pages someone.",
     );
   });
 

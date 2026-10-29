@@ -17,13 +17,17 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * "Escalate after" (Types/OnCallDutyPolicy/OnCallEmptyLevel). The page says
  * what a run will do, so it says that too:
  *
- *   - the level's card says it is skipped without waiting, and asks for
- *     responders, where it used to say only that nobody is notified;
+ *   - the level's card says "Skipped at once" where the others say
+ *     "Escalates after 30 min", as the summary does, and its notice asks
+ *     for responders;
  *   - the step from it to the next level says the next level is paged at
  *     once, not "If unacknowledged after 10 min" - a wait that never comes;
  *   - the escalation summary marks it "Skipped at once", and its wait is
  *     not counted towards when the levels after it are paged, nor towards
- *     "To final level".
+ *     "To final level";
+ *   - with no level able to page anybody, the summary's ladder ends saying
+ *     the policy pages nobody - not that it repeats, since a pass that
+ *     paged nobody is never repeated.
  *
  * A level whose only schedule has nobody on call right now is not one of
  * them: somebody may be on call by the time it is reached, so it keeps its
@@ -86,9 +90,11 @@ import EscalationRules, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/EscalationRule/EscalationRules";
 import EscalationSummary, {
   EscalationLevelSummary,
+  PAGES_NOBODY_ENDING,
   SKIPPED_LEVEL_TIMING,
   isSkippedLevel,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/EscalationRule/EscalationSummary";
+import { ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME } from "../../../UI/Components/Icon/Icon";
 import OnCallDutyPolicyEscalationRuleSchedule from "../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
 import OnCallDutyPolicyEscalationRuleTeam from "../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleTeam";
 import OnCallDutyPolicyEscalationRuleUser from "../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleUser";
@@ -262,18 +268,72 @@ const THE_MAINTAINERS_POLICY: Array<Level> = [
 ];
 
 describe("the maintainer's policy: Level 1 has no responders", () => {
-  test("Level 1's card says it is skipped without waiting, and asks for responders", async () => {
+  test("Level 1's card says it has no responders, and asks for them", async () => {
     const cards: Array<HTMLElement> = await renderPage(THE_MAINTAINERS_POLICY);
 
     expect(
       within(cards[0]!).getByTestId("escalation-rule-no-responders"),
     ).toHaveTextContent(NO_RESPONDERS_NOTICE);
     expect(NO_RESPONDERS_NOTICE).toBe(
-      "No responders assigned. This level is skipped without waiting — edit this rule to add responders.",
+      "No responders assigned. Edit this rule to add responders.",
     );
     expect(
       within(cards[1]!).queryByTestId("escalation-rule-no-responders"),
     ).not.toBeInTheDocument();
+  });
+
+  /*
+   * REGRESSION (UI review): Level 1's header said "Escalates after 4 min"
+   * right above "skipped without waiting" and the step saying Level 2 is
+   * paged at once. Its header says what the summary says of it.
+   */
+  test("Level 1's header says it is skipped at once - not that it escalates after 4 minutes", async () => {
+    const cards: Array<HTMLElement> = await renderPage(THE_MAINTAINERS_POLICY);
+    const header: HTMLElement = within(cards[0]!).getByTestId(
+      "escalation-rule-card-header",
+    );
+
+    expect(
+      within(header).getByTestId("escalation-rule-skipped-at-once"),
+    ).toHaveTextContent(SKIPPED_LEVEL_TIMING);
+    expect(
+      within(header).queryByTestId("escalation-rule-escalates-after"),
+    ).not.toBeInTheDocument();
+    expect(header).not.toHaveTextContent("Escalates after");
+    // Said once, in the header: the notice under it keeps to the fix.
+    expect(cards[0]!.textContent?.split(SKIPPED_LEVEL_TIMING)).toHaveLength(2);
+  });
+
+  test("Level 2 pages somebody: its header keeps its wait", async () => {
+    const cards: Array<HTMLElement> = await renderPage(THE_MAINTAINERS_POLICY);
+
+    expect(
+      within(cards[1]!).getByTestId("escalation-rule-escalates-after"),
+    ).toHaveTextContent("Escalates after 30 min");
+    expect(
+      within(cards[1]!).queryByTestId("escalation-rule-skipped-at-once"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("on a page read right to left, its arrows point the way the words run", async () => {
+    const cards: Array<HTMLElement> = await renderPage(THE_MAINTAINERS_POLICY);
+
+    for (const arrowHolder of [
+      within(cards[0]!).getByTestId("escalation-rule-skipped-at-once"),
+      screen.getByTestId("escalation-rule-connector-at-once"),
+      screen.getByTestId("escalation-summary-level-skipped"),
+    ]) {
+      expect(arrowHolder.querySelector("svg")).toHaveClass(
+        ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME,
+      );
+    }
+
+    // A wait's clock has no way to point.
+    expect(
+      within(cards[1]!)
+        .getByTestId("escalation-rule-escalates-after")
+        .querySelector("svg"),
+    ).not.toHaveClass(ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME);
   });
 
   test("the step to Level 2 says Level 2 is paged at once - not after 4 minutes", async () => {
@@ -344,6 +404,13 @@ describe("a level whose schedule has nobody on call right now", () => {
 
   test("keeps its wait: somebody may be on call when it is reached", async () => {
     const cards: Array<HTMLElement> = await renderPage(levels);
+
+    expect(
+      within(cards[0]!).getByTestId("escalation-rule-escalates-after"),
+    ).toHaveTextContent("Escalates after 5 min");
+    expect(
+      within(cards[0]!).queryByTestId("escalation-rule-skipped-at-once"),
+    ).not.toBeInTheDocument();
 
     expect(screen.getByTestId("escalation-rule-connector")).toHaveTextContent(
       "If unacknowledged after 5 min, escalate to the next level",
@@ -428,6 +495,66 @@ describe("the escalation summary on its own", () => {
       screen.getAllByTestId("escalation-summary-level-skipped"),
     ).toHaveLength(2);
     expect(toFinalLevel()).toBe("Instant");
+  });
+
+  /*
+   * REGRESSION (UI review): with every level empty the ladder ended "If
+   * still unacknowledged, the entire policy repeats up to 2 more times" -
+   * but a pass that paged nobody is never repeated, and a run of such a
+   * policy stops at once. Nor is anybody paged again after acknowledging,
+   * as nobody is paged at all.
+   */
+  test("every level empty: the ladder ends saying the policy pages nobody - no repeats, no page again", () => {
+    render(
+      <EscalationSummary
+        levels={[
+          { name: "Level 1", escalateAfterInMinutes: 30, responders: [] },
+          { name: "Level 2", escalateAfterInMinutes: 30, responders: [] },
+        ]}
+        repeatEnabled={true}
+        repeatCount={2}
+        acknowledgementTimeoutInMinutes={30}
+      />,
+    );
+
+    expect(
+      screen.getByTestId("escalation-summary-pages-nobody"),
+    ).toHaveTextContent(PAGES_NOBODY_ENDING);
+    expect(PAGES_NOBODY_ENDING).toBe(
+      "This policy will not page anyone when it is triggered.",
+    );
+    expect(document.body).not.toHaveTextContent("repeats");
+    expect(
+      screen.queryByTestId("escalation-summary-page-again"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("one level that pages somebody: the ladder ends as it always has", () => {
+    render(
+      <EscalationSummary
+        levels={[
+          { name: "Level 1", escalateAfterInMinutes: 30, responders: [] },
+          {
+            name: "Level 2",
+            escalateAfterInMinutes: 30,
+            responders: [{ label: "Alex", type: "user" }],
+          },
+        ]}
+        repeatEnabled={true}
+        repeatCount={2}
+        acknowledgementTimeoutInMinutes={30}
+      />,
+    );
+
+    expect(
+      screen.queryByTestId("escalation-summary-pages-nobody"),
+    ).not.toBeInTheDocument();
+    expect(document.body).toHaveTextContent(
+      "If still unacknowledged, the entire policy repeats up to 2 more times, then stops.",
+    );
+    expect(
+      screen.getByTestId("escalation-summary-page-again"),
+    ).toBeInTheDocument();
   });
 
   test("a skipped level still says it has no responders, beside its pill", () => {

@@ -351,10 +351,10 @@ describe("Level 2 found nobody next in the rotation", () => {
 
     expect(alarms).toHaveLength(1);
     expect(alarms[0]!.markdown).toBe(
-      "⚠️ **[Payments](https://oneuptime.test/policy)** paged nobody at Level 2 of 3 for **[Incident INC-8](https://oneuptime.test/incident)** (nobody was next in the Payments primary rotation), so it moved on to Platform (Level 3 of 3) at once. Fix the policy so this level pages someone.",
+      "⚠️ **[Payments](https://oneuptime.test/policy)** paged nobody at Level 2 of 3 for **[Incident INC-8](https://oneuptime.test/incident)** (nobody was next in the Payments primary rotation), so Platform (Level 3 of 3) was paged at once. Fix the policy so this level pages someone.",
     );
     expect(alarms[0]!.text).toBe(
-      "Payments paged nobody at Level 2 of 3 for Incident INC-8, so it moved on to Platform (Level 3 of 3) at once",
+      "Payments paged nobody at Level 2 of 3 for Incident INC-8, so Platform (Level 3 of 3) was paged at once",
     );
   });
 

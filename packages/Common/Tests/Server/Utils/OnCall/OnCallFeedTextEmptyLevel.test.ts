@@ -34,8 +34,8 @@ import FeedMarkdown, {
  * again - and the next level's entries follow in the same minute:
  *
  *   16:20  On-call policy sg - irm paged nobody at Level 1 of 2: this
- *          escalation rule has no responders, so it moved on to the next
- *          level at once.
+ *          escalation rule has no responders, so the next level was
+ *          paged at once.
  *   16:20  On-call policy sg - irm paged Nitin Main at Level 2 of 2.
  */
 
@@ -64,9 +64,9 @@ function levelLine(
 }
 
 describe("a level that names nobody at all", () => {
-  test("the maintainer's Level 1 of 2: no responders, so it moved on to the next level at once", () => {
+  test("the maintainer's Level 1 of 2: no responders, so the next level was paged at once", () => {
     expect(levelLine(ON_CALL_LEVEL_HAS_NO_RESPONDERS_TIMELINE_MESSAGE)).toBe(
-      `On-call policy ${POLICY_MD} paged nobody at **Level 1 of 2**: this escalation rule has no responders, so it moved on to the next level at once.`,
+      `On-call policy ${POLICY_MD} paged nobody at **Level 1 of 2**: this escalation rule has no responders, so the next level was paged at once.`,
     );
   });
 
@@ -76,8 +76,12 @@ describe("a level that names nobody at all", () => {
     );
 
     expect(entry).not.toContain("\n\n");
-    expect(entry).not.toContain("so the policy moved on at once");
-    expect(entry.split("moved on").length - 1).toBe(1);
+    // The step's own message ("..., so the policy moved on at once.").
+    expect(entry).not.toContain(
+      ON_CALL_LEVEL_HAS_NO_RESPONDERS_TIMELINE_MESSAGE,
+    );
+    expect(entry).not.toContain("moved on");
+    expect(entry.split("at once").length - 1).toBe(1);
   });
 
   test("a named level is named, then its place", () => {
@@ -88,7 +92,7 @@ describe("a level that names nobody at all", () => {
         ruleCount: 3,
       }),
     ).toBe(
-      `On-call policy ${POLICY_MD} paged nobody at **First line** (Level 1 of 3): this escalation rule has no responders, so it moved on to the next level at once.`,
+      `On-call policy ${POLICY_MD} paged nobody at **First line** (Level 1 of 3): this escalation rule has no responders, so the next level was paged at once.`,
     );
   });
 
@@ -109,7 +113,7 @@ describe("a level that names nobody at all", () => {
         ruleCount: undefined,
       }),
     ).toBe(
-      `On-call policy ${POLICY_MD} paged nobody at **Level 1**: this escalation rule has no responders, so it moved on at once.`,
+      `On-call policy ${POLICY_MD} paged nobody at **Level 1**: this escalation rule has no responders, so the policy moved on at once.`,
     );
   });
 
@@ -121,7 +125,7 @@ describe("a level that names nobody at all", () => {
         ruleCount: undefined,
       }),
     ).toBe(
-      `On-call policy ${POLICY_MD} paged nobody at escalation rule **Managers**: this escalation rule has no responders, so it moved on at once.`,
+      `On-call policy ${POLICY_MD} paged nobody at escalation rule **Managers**: this escalation rule has no responders, so the policy moved on at once.`,
     );
   });
 });
@@ -134,7 +138,7 @@ describe("a level that named people, teams or schedules and paged nobody", () =>
         ruleCount: 3,
       }),
     ).toBe(
-      `On-call policy ${POLICY_MD} paged nobody at **Level 1 of 3**, so it moved on to the next level at once.`,
+      `On-call policy ${POLICY_MD} paged nobody at **Level 1 of 3**, so the next level was paged at once.`,
     );
   });
 

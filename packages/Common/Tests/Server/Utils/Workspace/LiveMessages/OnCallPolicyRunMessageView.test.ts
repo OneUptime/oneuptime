@@ -820,8 +820,8 @@ describe("OnCallPolicyRunMessageView - a level passed at once because it had nob
     ).toEqual([
       {
         key: ON_CALL_RUN_ALARM_NOBODY_PAGED_AT_A_RULE,
-        markdown: `⚠️ ${POLICY} paged nobody at fhirst (Level 1 of 3) for ${RECORD} (the rule has nobody to page), so it moved on to second (Level 2 of 3) at once. Fix the policy so this level pages someone.`,
-        text: "PolicyX paged nobody at fhirst (Level 1 of 3) for Incident INC-8, so it moved on to second (Level 2 of 3) at once",
+        markdown: `⚠️ ${POLICY} paged nobody at fhirst (Level 1 of 3) for ${RECORD} (the rule has nobody to page), so second (Level 2 of 3) was paged at once. Fix the policy so this level pages someone.`,
+        text: "PolicyX paged nobody at fhirst (Level 1 of 3) for Incident INC-8, so second (Level 2 of 3) was paged at once",
       },
     ]);
   });
@@ -838,7 +838,7 @@ describe("OnCallPolicyRunMessageView - a level passed at once because it had nob
     )[0]!;
 
     expect(alarm.markdown).toBe(
-      `⚠️ ${POLICY} paged nobody at Level 1 of 3 for ${RECORD}, so it moved on to Level 2 of 3 at once. Fix the policy so this level pages someone.`,
+      `⚠️ ${POLICY} paged nobody at Level 1 of 3 for ${RECORD}, so Level 2 of 3 was paged at once. Fix the policy so this level pages someone.`,
     );
     expect(alarm.markdown).not.toContain("page someone or");
   });

@@ -382,6 +382,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                         <Icon
                           icon={IconProp.Forward}
                           className="h-3 w-3 flex-shrink-0 text-gray-400"
+                          isMirroredRightToLeft={true}
                         />
                         {translator.translateText(MOVED_ON_AT_ONCE_LABEL)}
                       </span>

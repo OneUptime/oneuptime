@@ -171,6 +171,16 @@ export const isSkippedLevel: (level: EscalationLevelSummary) => boolean = (
 // What a skipped level shows where the others show when they are paged.
 export const SKIPPED_LEVEL_TIMING: string = translationKey("Skipped at once");
 
+/*
+ * How the ladder ends when no level has anybody to page: the run passes
+ * every level at once and stops, and a pass that paged nobody is never
+ * repeated (OnCallEscalationAdvance) - so the summary does not promise
+ * repeats that cannot happen. The words of Policy at a glance.
+ */
+export const PAGES_NOBODY_ENDING: string = translationKey(
+  "This policy will not page anyone when it is triggered.",
+);
+
 const EscalationSummary: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -195,6 +205,17 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
   // Time from trigger until the final level is engaged.
   const timeToFinalLevel: number =
     cumulativeOffsets[cumulativeOffsets.length - 1] || 0;
+
+  /*
+   * No level has anybody to page: a run passes every one of them at once,
+   * pages nobody, and stops without repeating (OnCallEmptyLevel). Nobody is
+   * paged, so nobody acknowledges, and nothing is paged again either.
+   */
+  const isEveryLevelSkipped: boolean =
+    levels.length > 0 && levels.every(isSkippedLevel);
+
+  const isPageAgainShown: boolean =
+    Boolean(props.acknowledgementTimeoutInMinutes) && !isEveryLevelSkipped;
 
   const distinctResponders: number = ((): number => {
     const seen: Set<string> = new Set<string>();
@@ -503,6 +524,8 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
                           <Icon
                             icon={isSkipped ? IconProp.Forward : IconProp.Clock}
                             className="h-2.5 w-2.5 text-gray-400"
+                            // On to the next level: the way the words run.
+                            isMirroredRightToLeft={isSkipped}
                           />
                           {timingLabel}
                         </span>
@@ -521,44 +544,66 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
 
             {/* Terminator node */}
             <div className="ml-3 h-4 w-px bg-gray-200" />
-            <li className="flex items-start gap-3">
-              <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-gray-100 ring-1 ring-inset ring-gray-200">
-                <Icon
-                  icon={
-                    props.repeatEnabled && props.repeatCount > 0
-                      ? IconProp.Reload
-                      : IconProp.CheckCircle
-                  }
-                  className="h-3.5 w-3.5 text-gray-500"
-                />
-              </span>
-              <div className="min-w-0 flex-1 pt-0.5 text-sm text-gray-600">
-                {props.repeatEnabled && props.repeatCount > 0 ? (
-                  <TranslatedSentence
-                    template="If still unacknowledged, the entire policy repeats {{times}}, then stops."
-                    slots={{
-                      times: (
-                        <span className="font-semibold text-gray-900">
-                          {translator.translatePlural(
-                            {
-                              one: "up to {{count}} more time",
-                              other: "up to {{count}} more times",
-                            },
-                            props.repeatCount,
-                          )}
-                        </span>
-                      ),
-                    }}
+            {isEveryLevelSkipped ? (
+              /*
+               * No level has anybody to page: the run passes them all at
+               * once and stops, without repeating (OnCallEmptyLevel). Said
+               * as the warning it is, where the ladder ends.
+               */
+              <li
+                className="flex items-start gap-3"
+                data-testid="escalation-summary-pages-nobody"
+              >
+                <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-amber-50 ring-1 ring-inset ring-amber-200">
+                  <Icon
+                    icon={IconProp.Alert}
+                    className="h-3.5 w-3.5 text-amber-500"
                   />
-                ) : (
-                  <>
-                    {translator.translateText(
-                      "If no one acknowledges after the final level, escalation stops here.",
-                    )}
-                  </>
-                )}
-              </div>
-            </li>
+                </span>
+                <div className="min-w-0 flex-1 pt-0.5 text-sm font-medium text-amber-700">
+                  {translator.translateText(PAGES_NOBODY_ENDING)}
+                </div>
+              </li>
+            ) : (
+              <li className="flex items-start gap-3">
+                <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-gray-100 ring-1 ring-inset ring-gray-200">
+                  <Icon
+                    icon={
+                      props.repeatEnabled && props.repeatCount > 0
+                        ? IconProp.Reload
+                        : IconProp.CheckCircle
+                    }
+                    className="h-3.5 w-3.5 text-gray-500"
+                  />
+                </span>
+                <div className="min-w-0 flex-1 pt-0.5 text-sm text-gray-600">
+                  {props.repeatEnabled && props.repeatCount > 0 ? (
+                    <TranslatedSentence
+                      template="If still unacknowledged, the entire policy repeats {{times}}, then stops."
+                      slots={{
+                        times: (
+                          <span className="font-semibold text-gray-900">
+                            {translator.translatePlural(
+                              {
+                                one: "up to {{count}} more time",
+                                other: "up to {{count}} more times",
+                              },
+                              props.repeatCount,
+                            )}
+                          </span>
+                        ),
+                      }}
+                    />
+                  ) : (
+                    <>
+                      {translator.translateText(
+                        "If no one acknowledges after the final level, escalation stops here.",
+                      )}
+                    </>
+                  )}
+                </div>
+              </li>
+            )}
 
             {/*
              * After an acknowledgement: a branch of its own rather than a
@@ -566,12 +611,12 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
              * and a rule set it apart instead. (The gap is an element of its
              * own: the list's space-y-0 zeroes a margin on its rows.)
              */}
-            {props.acknowledgementTimeoutInMinutes ? (
+            {isPageAgainShown ? (
               <div className="h-3" aria-hidden="true" />
             ) : (
               <></>
             )}
-            {props.acknowledgementTimeoutInMinutes ? (
+            {isPageAgainShown && props.acknowledgementTimeoutInMinutes ? (
               <li
                 className="flex items-start gap-3 border-t border-gray-100 pt-3"
                 data-testid="escalation-summary-page-again"

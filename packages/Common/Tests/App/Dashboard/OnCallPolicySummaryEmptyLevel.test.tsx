@@ -13,7 +13,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * when reached", and its time to the final level leaves their waits out -
  * the policy never waits them. A level whose only responder is a schedule
  * with nobody on call right now keeps its wait: somebody may be on call
- * when it is reached.
+ * when it is reached. A policy with no responders at all is told in one
+ * sentence: a run of it passes every level at once and stops without
+ * repeating, so there is no ladder to tell.
  */
 
 jest.mock("../../../UI/Utils/Translation", () => {
@@ -295,5 +297,98 @@ describe("a policy whose every level pages somebody", () => {
     expect(
       screen.queryByTestId("policy-summary-levels-skipped"),
     ).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * REGRESSION (UI review): a policy with no responders at all read "When
+ * this policy is triggered, it works through 2 escalation levels, but no
+ * responders are assigned yet. The first level is notified immediately; if
+ * no one acknowledges, every remaining level is engaged right away. If it
+ * is still unacknowledged, the whole policy repeats up to 2 more times
+ * before stopping." - a run that never happens: with nobody to page, a run
+ * passes every level at once and stops, and a pass that paged nobody is
+ * never repeated (OnCallEmptyLevel).
+ */
+describe("a policy with no responders at all", () => {
+  async function renderEmptyPolicy(): Promise<HTMLElement> {
+    getListMock.mockImplementation(async (params: any): Promise<any> => {
+      if (params.modelType === OnCallDutyPolicyEscalationRule) {
+        return list(
+          [4, 30].map((wait: number, index: number) => {
+            const rule: OnCallDutyPolicyEscalationRule =
+              new OnCallDutyPolicyEscalationRule();
+            rule._id = ObjectID.generate().toString();
+            rule.escalateAfterInMinutes = wait;
+            rule.order = index + 1;
+            return rule;
+          }),
+        );
+      }
+
+      return list([]);
+    });
+
+    getItemMock.mockResolvedValue({
+      repeatPolicyIfNoOneAcknowledges: true,
+      repeatPolicyIfNoOneAcknowledgesNoOfTimes: 2,
+      acknowledgementTimeoutInMinutes: 30,
+    } as never);
+
+    render(
+      <OnCallPolicySummary
+        onCallDutyPolicyId={POLICY_ID}
+        projectId={PROJECT_ID}
+      />,
+    );
+
+    return await screen.findByTestId("policy-summary-no-responders");
+  }
+
+  test("its narrative is the one sentence that is true: no timing, no repeats, no paging again", async () => {
+    await renderEmptyPolicy();
+
+    const narrative: HTMLElement = screen.getByTestId(
+      "policy-summary-narrative",
+    );
+
+    expect(narrative.textContent?.trim()).toBe(
+      "When this policy is triggered, it works through 2 escalation levels, but no responders are assigned yet.",
+    );
+    expect(narrative).not.toHaveTextContent("notified immediately");
+    expect(narrative).not.toHaveTextContent("repeats");
+    expect(narrative).not.toHaveTextContent("acknowledged");
+  });
+
+  test("the notice under it says the policy pages nobody, and where to fix it", async () => {
+    const notice: HTMLElement = await renderEmptyPolicy();
+
+    expect(notice).toHaveTextContent(
+      "This policy will not page anyone when it is triggered.",
+    );
+    expect(
+      screen.getByTestId("policy-summary-escalation-rules-button"),
+    ).toBeInTheDocument();
+  });
+
+  test("a policy with somebody to page still tells its whole ladder", async () => {
+    await renderSummary([
+      { wait: 4, notifies: "nobody" },
+      { wait: 30, notifies: "team" },
+    ]);
+
+    const narrative: HTMLElement = screen.getByTestId(
+      "policy-summary-narrative",
+    );
+
+    expect(narrative).toHaveTextContent(
+      "When this policy is triggered, it works through 2 escalation levels and can page up to 1 responder.",
+    );
+    expect(narrative).toHaveTextContent(
+      "The first level is notified immediately",
+    );
+    expect(narrative).toHaveTextContent(
+      "If it is still unacknowledged after the final level, escalation stops.",
+    );
   });
 });

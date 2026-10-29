@@ -1,6 +1,7 @@
 import EscalationSummary, {
   EscalationLevelSummary,
   EscalationResponder,
+  SKIPPED_LEVEL_TIMING,
 } from "./EscalationSummary";
 import {
   EMPTY_RULE_READINESS_REPORT,
@@ -163,9 +164,14 @@ export const countRuleResponders: (members: RuleMembers) => number = (
   );
 };
 
-// What a level with no responders says on its card, and between it and the next.
+/*
+ * What a level with no responders says on its card, and between it and the
+ * next. Its header says it is skipped at once (SKIPPED_LEVEL_TIMING), as the
+ * summary does, so the notice keeps to what is wrong and how to put it
+ * right.
+ */
 export const NO_RESPONDERS_NOTICE: string = translationKey(
-  "No responders assigned. This level is skipped without waiting — edit this rule to add responders.",
+  "No responders assigned. Edit this rule to add responders.",
 );
 export const PAGED_AT_ONCE_CONNECTOR: string = translationKey(
   "Nobody to page here, so the next level is paged at once",
@@ -1572,6 +1578,8 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
     const ruleId: string = rule.id?.toString() || "";
     const members: RuleMembers = membersByRuleId[ruleId] || emptyRuleMembers();
     const isReordering: boolean = reorderingRuleId === ruleId;
+    // Nobody to page: a run passes the level at once (OnCallEmptyLevel).
+    const isEmpty: boolean = countRuleResponders(members) === 0;
 
     return (
       <div
@@ -1608,18 +1616,44 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
                         index + 1,
                       )}
                     </h3>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200">
-                      <Icon
-                        icon={IconProp.Clock}
-                        className="h-3 w-3 text-gray-400"
-                      />
-                      {translator.translateTemplate(
-                        "Escalates after {{duration}}",
-                        {
-                          duration: formatMinutes(rule.escalateAfterInMinutes),
-                        },
-                      )}
-                    </span>
+                    {/*
+                     * When the level hands on to the next. A level with
+                     * nobody to page holds no wait (OnCallEmptyLevel): it
+                     * says it is skipped, as the summary above does, rather
+                     * than a wait that never happens. Its wait comes back
+                     * once it has responders.
+                     */}
+                    {isEmpty ? (
+                      <span
+                        data-testid="escalation-rule-skipped-at-once"
+                        className="inline-flex items-center gap-1 rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200"
+                      >
+                        <Icon
+                          icon={IconProp.Forward}
+                          className="h-3 w-3 text-gray-400"
+                          isMirroredRightToLeft={true}
+                        />
+                        {translator.translateText(SKIPPED_LEVEL_TIMING)}
+                      </span>
+                    ) : (
+                      <span
+                        data-testid="escalation-rule-escalates-after"
+                        className="inline-flex items-center gap-1 rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200"
+                      >
+                        <Icon
+                          icon={IconProp.Clock}
+                          className="h-3 w-3 text-gray-400"
+                        />
+                        {translator.translateTemplate(
+                          "Escalates after {{duration}}",
+                          {
+                            duration: formatMinutes(
+                              rule.escalateAfterInMinutes,
+                            ),
+                          },
+                        )}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -1699,6 +1733,7 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
             <Icon
               icon={IconProp.Forward}
               className="h-3.5 w-3.5 text-gray-400"
+              isMirroredRightToLeft={true}
             />
             <span>{translator.translateText(PAGED_AT_ONCE_CONNECTOR)}</span>
           </div>

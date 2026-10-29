@@ -930,3 +930,137 @@ test.describe("On-call logs: a run that paged the next person in a rotation", ()
     expect(widths.page).toBeLessThanOrEqual(widths.window);
   });
 });
+
+async function openEmptyLevelsTimeline(
+  page: Page,
+  theme?: string,
+): Promise<void> {
+  await page.goto(
+    `/?page=on-call-timeline&run=empty-levels${theme ? `&theme=${theme}` : ""}`,
+  );
+  await expect(page.getByText("Execution Timeline")).toBeVisible();
+  await expect(
+    page.getByTestId("on-call-timeline-level-paged-nobody"),
+  ).toHaveCount(2);
+}
+
+/*
+ * A level with nobody to page is passed at once (Common's OnCallEmptyLevel),
+ * and its own line on the run's timeline says so where a person would be
+ * named: why it paged nobody, and "Moved on at once" under it - the policy
+ * did not wait it out. What each line says is unit tested in
+ * packages/Common (OnCallTimelineEmptyLevel); here, that the lines are
+ * drawn whole and readable in a real table, in both themes, on a laptop
+ * and a phone.
+ */
+test.describe("On-call logs: a run that passed levels with nobody to page", () => {
+  let pageErrors: Array<string> = [];
+
+  test.beforeEach(async ({ page }: { page: Page }) => {
+    pageErrors = [];
+    page.on("pageerror", (error: Error) => {
+      pageErrors.push(error.message);
+    });
+  });
+
+  test.afterEach(() => {
+    expect(pageErrors).toEqual([]);
+  });
+
+  test("each level that paged nobody says why where a person would be named, with Moved on at once under it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openEmptyLevelsTimeline(page);
+
+    const levels: Locator = page.getByTestId(
+      "on-call-timeline-level-paged-nobody",
+    );
+
+    await expect(levels.nth(0)).toHaveText(
+      "This level has no respondersMoved on at once",
+    );
+    await expect(levels.nth(1)).toHaveText(
+      "Nobody at this level could be pagedMoved on at once",
+    );
+
+    const movedOn: Locator = page.getByTestId(
+      "on-call-timeline-moved-on-at-once",
+    );
+
+    await expect(movedOn).toHaveCount(2);
+
+    for (const index of [0, 1]) {
+      // Its fast-forward mark, beside the words, and under the level's chip.
+      await expect(movedOn.nth(index).locator("svg")).toHaveCount(1);
+
+      const chip: Box = await boxOf(levels.nth(index).locator("span").first());
+      const line: Box = await boxOf(movedOn.nth(index));
+
+      expect(line.y).toBeGreaterThanOrEqual(chip.y + chip.height - 1);
+    }
+
+    // Why Level 2 paged nobody is its schedule's own line, above its own.
+    await expect(page.getByText("No one was on call")).toHaveCount(1);
+    // Level 3 paged somebody, the same minute.
+    await expect(page.getByText("Alex Kim").first()).toBeVisible();
+  });
+
+  test("the lines read in the light theme and the dark one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const theme of ["light", "dark"]) {
+      await openEmptyLevelsTimeline(page, theme);
+
+      const chip: Locator = page
+        .getByTestId("on-call-timeline-level-paged-nobody")
+        .first()
+        .locator("span")
+        .first();
+      const chipColors: { text: string; background: string } =
+        await colorsOf(chip);
+
+      expect({
+        theme,
+        readable: contrastOf(chipColors.text, chipColors.background) >= 4.5,
+      }).toEqual({ theme, readable: true });
+
+      const movedOn: Locator = page
+        .getByTestId("on-call-timeline-moved-on-at-once")
+        .first();
+      const movedOnText: string = (await colorsOf(movedOn)).text;
+      const behind: string = await backgroundBehind(movedOn);
+
+      expect({
+        theme,
+        readable: contrastOf(movedOnText, behind) >= 4.5,
+      }).toEqual({ theme, readable: true });
+    }
+  });
+
+  test("on a phone nothing scrolls sideways", async ({
+    page,
+    isMobile,
+  }: {
+    page: Page;
+    isMobile: boolean;
+  }) => {
+    test.skip(!isMobile, "A laptop draws the lines as table rows.");
+
+    await openEmptyLevelsTimeline(page);
+
+    const widths: { page: number; window: number } = await page.evaluate(
+      (): { page: number; window: number } => {
+        return {
+          page: document.documentElement.scrollWidth,
+          window: document.documentElement.clientWidth,
+        };
+      },
+    );
+
+    expect(widths.page).toBeLessThanOrEqual(widths.window);
+  });
+});

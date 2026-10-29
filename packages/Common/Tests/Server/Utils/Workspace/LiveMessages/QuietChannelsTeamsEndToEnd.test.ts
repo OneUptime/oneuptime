@@ -681,7 +681,7 @@ describe("a policy whose first level has nobody to page, in its Microsoft Teams 
     expect(
       entries.some((markdown: string): boolean => {
         return markdown.includes(
-          "paged nobody at **Level 1 of 2**: this escalation rule has no responders, so it moved on to the next level at once.",
+          "paged nobody at **Level 1 of 2**: this escalation rule has no responders, so the next level was paged at once.",
         );
       }),
     ).toBe(true);

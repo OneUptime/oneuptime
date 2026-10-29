@@ -154,7 +154,7 @@ describe("a level with no responders", () => {
     expect(written).toEqual([
       {
         feed: "incident",
-        markdown: `On-call policy ${POLICY_MD} paged nobody at **Level 1 of 2**: this escalation rule has no responders, so it moved on to the next level at once.`,
+        markdown: `On-call policy ${POLICY_MD} paged nobody at **Level 1 of 2**: this escalation rule has no responders, so the next level was paged at once.`,
         color: Red500,
       },
     ]);
@@ -187,7 +187,7 @@ describe("a level with no responders", () => {
     );
   });
 
-  test("levels that cannot be counted: it moved on at once, and the entry is still written", async () => {
+  test("levels that cannot be counted: the policy moved on at once, and the entry is still written", async () => {
     jest
       .spyOn(OnCallDutyPolicyEscalationRuleService, "countBy")
       .mockImplementation((async () => {
@@ -199,7 +199,7 @@ describe("a level with no responders", () => {
     );
 
     expect(written[0]!.markdown).toBe(
-      `On-call policy ${POLICY_MD} paged nobody at **Level 1**: this escalation rule has no responders, so it moved on at once.`,
+      `On-call policy ${POLICY_MD} paged nobody at **Level 1**: this escalation rule has no responders, so the policy moved on at once.`,
     );
   });
 
@@ -236,7 +236,7 @@ describe("a level with no responders", () => {
       expect(written).toEqual([
         {
           feed: feed,
-          markdown: `On-call policy ${POLICY_MD} paged nobody at **Level 1 of 2**: this escalation rule has no responders, so it moved on to the next level at once.`,
+          markdown: `On-call policy ${POLICY_MD} paged nobody at **Level 1 of 2**: this escalation rule has no responders, so the next level was paged at once.`,
           color: Red500,
         },
       ]);
@@ -245,13 +245,13 @@ describe("a level with no responders", () => {
 });
 
 describe("a level that named somebody and paged nobody", () => {
-  test("its own entry: paged nobody, so it moved on to the next level at once", async () => {
+  test("its own entry: paged nobody, so the next level was paged at once", async () => {
     await feedOf(
       line({ statusMessage: ON_CALL_LEVEL_PAGED_NOBODY_TIMELINE_MESSAGE }),
     );
 
     expect(written[0]!.markdown).toBe(
-      `On-call policy ${POLICY_MD} paged nobody at **Level 1 of 2**, so it moved on to the next level at once.`,
+      `On-call policy ${POLICY_MD} paged nobody at **Level 1 of 2**, so the next level was paged at once.`,
     );
   });
 

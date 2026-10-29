@@ -64,8 +64,13 @@ import { getOnCallPassOnLevelLabel } from "../../../../Types/OnCallDutyPolicy/On
  *   • Level 1 of 2: nobody to page, so Level 2 of 2 was paged at once
  *
  *   ⚠️ PolicyX paged nobody at Level 1 of 2 for Alert #12 (the rule has
- *   nobody to page), so it moved on to Level 2 of 2 at once. Fix the policy
- *   so this level pages someone.
+ *   nobody to page), so Level 2 of 2 was paged at once. Fix the policy so
+ *   this level pages someone.
+ *
+ * The alarm is raised only where the level is passed after the run's
+ * message was first posted - a later level, after an earlier one waited:
+ * a message posted after the level says it in its list already, and its
+ * first post raises no alarm on top of itself (OnCallPolicyRunMessage).
  *
  * This file only turns a run into words - Markdown that Slack and Microsoft
  * Teams render the same way, and the plain text a notification shows of it
@@ -634,8 +639,8 @@ export default class OnCallPolicyRunMessageView {
         alarms.push({
           key: ON_CALL_RUN_ALARM_NOBODY_PAGED_AT_A_RULE,
           markdown:
-            mdText`⚠️ ${policy} paged nobody at ${rule} for ${record}${why}, so it moved on to ${next} at once. Fix the policy so this level pages someone.`.toString(),
-          text: `${run.policyName} paged nobody at ${rule} for ${run.recordLabel}, so it moved on to ${next} at once`,
+            mdText`⚠️ ${policy} paged nobody at ${rule} for ${record}${why}, so ${next} was paged at once. Fix the policy so this level pages someone.`.toString(),
+          text: `${run.policyName} paged nobody at ${rule} for ${run.recordLabel}, so ${next} was paged at once`,
         });
       } else {
         alarms.push({

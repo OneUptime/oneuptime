@@ -1614,10 +1614,44 @@ export default class OnCallPolicyRunMessage {
       ? getMovedOnTo(firstRule)
       : undefined;
 
-    const escalateAfterInMinutes: number =
-      executionLog.executeNextEscalationRuleInMinutes ??
-      currentRuleModel?.escalateAfterInMinutes ??
-      0;
+    /*
+     * The rule the run's log is on reached nobody, and its own line says
+     * the run moves on from it at once (OnCallEmptyLevel): the run is on
+     * its way to the next level that same moment, and its log names that
+     * level as soon as the level is paged. A message read in between - the
+     * run's first post often is - says where the run is going, with that
+     * level's own wait ("Level 2 of 2: if nobody acknowledges within 30
+     * minutes, paging stops."), not a wait the empty level never holds
+     * ("Level 1 of 2: if nobody acknowledges by 5:19 PM, Level 2 of 2 is
+     * next.").
+     */
+    const levelMovingOnTo: OnCallDutyPolicyEscalationRule | undefined =
+      !isRunOver &&
+      currentRuleModel &&
+      typeof currentRuleModel.order === "number" &&
+      stepsByRuleId.get(currentRuleModel.id?.toString() || "")?.movedOnAtOnce
+        ? data.rules.find((rule: OnCallDutyPolicyEscalationRule): boolean => {
+            return rule.order === currentRuleModel.order! + 1;
+          })
+        : undefined;
+
+    const shownRule: OnCallPolicyRunRule | undefined = levelMovingOnTo
+      ? toRule(levelMovingOnTo)
+      : currentRule;
+
+    const shownNextRule: OnCallPolicyRunRule | undefined = levelMovingOnTo
+      ? toRule(
+          data.rules.find((rule: OnCallDutyPolicyEscalationRule): boolean => {
+            return (rule.order || 0) > (levelMovingOnTo.order || 0);
+          }),
+        )
+      : nextRule;
+
+    const escalateAfterInMinutes: number = levelMovingOnTo
+      ? levelMovingOnTo.escalateAfterInMinutes || 0
+      : executionLog.executeNextEscalationRuleInMinutes ??
+        currentRuleModel?.escalateAfterInMinutes ??
+        0;
 
     /*
      * When the current rule's wait is over: the next step names that moment
@@ -1629,7 +1663,9 @@ export default class OnCallPolicyRunMessage {
         ? new Date(executionLog.lastEscalationRuleExecutedAt)
         : undefined;
 
+    // A level the run is moving on to has not started its wait yet.
     const nextStepAt: Date | undefined =
+      !levelMovingOnTo &&
       ruleStartedAt &&
       !isNaN(ruleStartedAt.getTime()) &&
       escalateAfterInMinutes > 0
@@ -1686,8 +1722,8 @@ export default class OnCallPolicyRunMessage {
         ? this.getPersonName(executionLog.acknowledgedByUser)
         : undefined,
       ruleCount: data.rules.length,
-      currentRule: currentRule,
-      nextRule: nextRule,
+      currentRule: shownRule,
+      nextRule: shownNextRule,
       escalateAfterInMinutes: escalateAfterInMinutes,
       nextStepAt: nextStepAt,
       repeatNumber: Math.max(

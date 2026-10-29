@@ -55,18 +55,23 @@ import ProductBrandingText from "../ProductBrandingText";
  *     acknowledged or resolved.
  *
  * A level that pages nobody holds no wait (OnCallEmptyLevel): its own line
- * says the policy moved on at once, after a line for each schedule or team
- * it found nobody in, and the next level's entries follow in the same
+ * says the next level was paged at once, after a line for each schedule or
+ * team it found nobody in, and the next level's entries follow in the same
  * minute:
  *
  *   On-call policy PolicyX paged nobody at Level 1 of 2: this escalation
- *     rule has no responders, so it moved on to the next level at once.
+ *     rule has no responders, so the next level was paged at once.
  *   On-call policy PolicyX paged Nitin Kumar at Level 2 of 2.
  *
  *   On-call policy PolicyX paged nobody at Level 1 of 3: nobody was on call
  *     in schedule Primary.
- *   On-call policy PolicyX paged nobody at Level 1 of 3, so it moved on to
- *     the next level at once.
+ *   On-call policy PolicyX paged nobody at Level 1 of 3, so the next level
+ *     was paged at once.
+ *
+ * "The next level was paged at once", as the run's Slack and Microsoft
+ * Teams message says it ("Level 1 of 2: nobody to page, so Level 2 of 2 was
+ * paged at once") and the docs' troubleshooting does: not "it moved on",
+ * where "it" could be the escalation rule just named.
  *
  * A level's own line, and a team's with nobody in it, say why in their own
  * words: the step's status message ("Nobody at this level could be paged,
@@ -349,10 +354,10 @@ const getStepMessageSentence: (
 };
 
 /*
- * Where a level that paged nobody moved the run on to, at once: ", so it
- * moved on to the next level at once" - or nothing after the last level,
- * where the run starts again from Level 1 or ends, and its next entry says
- * which. With the levels not counted, ", so it moved on at once".
+ * Where a level that paged nobody moved the run on to, at once: ", so the
+ * next level was paged at once" - or nothing after the last level, where
+ * the run starts again from Level 1 or ends, and its next entry says which.
+ * With the levels not counted, ", so the policy moved on at once".
  */
 const getMovedOnClause: (input: OnCallStepFeedTextInput) => MarkdownText = (
   input: OnCallStepFeedTextInput,
@@ -366,11 +371,11 @@ const getMovedOnClause: (input: OnCallStepFeedTextInput) => MarkdownText = (
     !Number.isInteger(count) ||
     count < 1
   ) {
-    return mdText`, so it moved on at once`;
+    return mdText`, so the policy moved on at once`;
   }
 
   return order < count
-    ? mdText`, so it moved on to the next level at once`
+    ? mdText`, so the next level was paged at once`
     : FeedMarkdown.empty();
 };
 

@@ -63,6 +63,7 @@ import OnCallDutyPolicySchedule from "../../../Models/DatabaseModels/OnCallDutyP
 import Team from "../../../Models/DatabaseModels/Team";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME } from "../../../UI/Components/Icon/Icon";
 import {
   LEGACY_ON_CALL_LEVEL_NO_USERS_TIMELINE_MESSAGE,
   ON_CALL_LEVEL_HAS_NO_RESPONDERS_TIMELINE_MESSAGE,
@@ -188,6 +189,21 @@ describe("the Execution Timeline's row for a level that paged nobody", () => {
     drawSentTo(levelLine(ON_CALL_LEVEL_HAS_NO_RESPONDERS_TIMELINE_MESSAGE));
 
     expect(screen.queryByText("-")).not.toBeInTheDocument();
+  });
+
+  /*
+   * UI review: on a page read right to left (Persian) the arrow of "Moved
+   * on at once" points the way the words run, as a breadcrumb's does - on
+   * to the next level, not back.
+   */
+  test("its arrow turns round on a page read right to left", () => {
+    drawSentTo(levelLine(ON_CALL_LEVEL_HAS_NO_RESPONDERS_TIMELINE_MESSAGE));
+
+    expect(
+      screen
+        .getByTestId("on-call-timeline-moved-on-at-once")
+        .querySelector("svg"),
+    ).toHaveClass(ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME);
   });
 });
 

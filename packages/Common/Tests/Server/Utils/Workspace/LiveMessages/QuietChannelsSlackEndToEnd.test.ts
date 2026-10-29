@@ -1005,7 +1005,7 @@ describe("a policy whose first level has nobody to page, in its Slack channel", 
     );
     const levelOne: number = entries.findIndex((markdown: string): boolean => {
       return markdown.includes(
-        "paged nobody at **Level 1 of 2**: this escalation rule has no responders, so it moved on to the next level at once.",
+        "paged nobody at **Level 1 of 2**: this escalation rule has no responders, so the next level was paged at once.",
       );
     });
     const nitin: number = entries.findIndex((markdown: string): boolean => {

@@ -471,39 +471,15 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
       overview.levels,
     );
 
-    return (
-      <div>
-        {/* Hero narrative — the confident, read-it-in-five-seconds summary. */}
-        <p className="mb-6 text-base leading-relaxed text-gray-600">
-          {hasResponders ? (
-            <TranslatedSentence
-              template="When this policy is triggered, it works through {{levels}} and can page up to {{responders}}."
-              slots={{
-                levels: boldText(levelsText),
-                responders: boldText(
-                  translator.translatePlural(
-                    {
-                      one: "{{count}} responder",
-                      other: "{{count}} responders",
-                    },
-                    totalResponders,
-                  ),
-                ),
-              }}
-            />
-          ) : (
-            <TranslatedSentence
-              template="When this policy is triggered, it works through {{levels}}, but {{noResponders}}."
-              slots={{
-                levels: boldText(levelsText),
-                noResponders: (
-                  <span className="font-semibold text-amber-700">
-                    {translator.translateText("no responders are assigned yet")}
-                  </span>
-                ),
-              }}
-            />
-          )}{" "}
+    /*
+     * The rest of the narrative: how the alert climbs the levels, whether
+     * the policy repeats, and whether it pages again after an
+     * acknowledgement - each sentence after a space.
+     */
+    const getEscalationNarrative: () => ReactElement = (): ReactElement => {
+      return (
+        <>
+          {" "}
           {overview.levels > 1 ? (
             overview.timeToFinalLevelMinutes > 0 ? (
               <TranslatedSentence
@@ -565,6 +541,54 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
           ) : (
             <></>
           )}
+        </>
+      );
+    };
+
+    return (
+      <div>
+        {/* Hero narrative — the confident, read-it-in-five-seconds summary. */}
+        <p
+          className="mb-6 text-base leading-relaxed text-gray-600"
+          data-testid="policy-summary-narrative"
+        >
+          {hasResponders ? (
+            <TranslatedSentence
+              template="When this policy is triggered, it works through {{levels}} and can page up to {{responders}}."
+              slots={{
+                levels: boldText(levelsText),
+                responders: boldText(
+                  translator.translatePlural(
+                    {
+                      one: "{{count}} responder",
+                      other: "{{count}} responders",
+                    },
+                    totalResponders,
+                  ),
+                ),
+              }}
+            />
+          ) : (
+            <TranslatedSentence
+              template="When this policy is triggered, it works through {{levels}}, but {{noResponders}}."
+              slots={{
+                levels: boldText(levelsText),
+                noResponders: (
+                  <span className="font-semibold text-amber-700">
+                    {translator.translateText("no responders are assigned yet")}
+                  </span>
+                ),
+              }}
+            />
+          )}
+          {/*
+           * How the levels climb, repeat and page again - only while there
+           * is somebody to page. With no responders a run passes every
+           * level at once, pages nobody and stops without repeating
+           * (OnCallEmptyLevel): the notice below says so, and the timing
+           * would describe a run that never happens.
+           */}
+          {hasResponders ? getEscalationNarrative() : <></>}
         </p>
 
         {/* Supporting metrics — a quiet, segmented stat strip. */}

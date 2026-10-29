@@ -9,13 +9,15 @@ import path from "path";
  * OnCallEmptyLevel), and three on-call surfaces say so: the run's Execution
  * Timeline ("This level has no responders" / "Nobody at this level could be
  * paged", "Moved on at once"), the policy's Escalation Rules page (the
- * empty level's notice, the step after it, and the summary's "Skipped at
- * once") and "Policy at a glance" (its warning about such levels). Every
- * word is looked up by its English text, so a string no locale carries
- * stays English for everyone. This pins the strings in all seventeen
- * locales, translated, the placeholders kept, and that the two sentences
- * they replace - "will notify no one when reached" - left the source and
- * the locales together.
+ * empty level's notice, the step after it, and the "Skipped at once" its
+ * card and the summary show), "Policy at a glance" (its warning about such
+ * levels) and the execution logs (what a run that reached nobody says on
+ * hover). Every word is looked up by its English text, so a string no
+ * locale carries stays English for everyone. This pins the strings in all
+ * seventeen locales, translated, the placeholders kept, and that the
+ * sentences they replace - "will notify no one when reached", and the
+ * notice and the hover the UI review reworded - left the source and the
+ * locales together.
  */
 
 const DASHBOARD_SRC: string = path.join(
@@ -50,7 +52,7 @@ const NEW_STRINGS: Array<{ key: string; drawnIn: string }> = [
     drawnIn: "ExecutionLogs/ExecutionLogsTimelineTable.tsx",
   },
   {
-    key: "No responders assigned. This level is skipped without waiting — edit this rule to add responders.",
+    key: "No responders assigned. Edit this rule to add responders.",
     drawnIn: "EscalationRule/EscalationRules.tsx",
   },
   {
@@ -65,6 +67,10 @@ const NEW_STRINGS: Array<{ key: string; drawnIn: string }> = [
     key: "{{levels}} along the way have no responders, so they are skipped without waiting.",
     drawnIn: "OnCallPolicySummary.tsx",
   },
+  {
+    key: "This execution reached nobody. Usually its escalation rules had no responders, their schedules had nobody on call, or the people they named were away.",
+    drawnIn: "ExecutionLogs/ExecutionLogsTable.tsx",
+  },
 ];
 
 const PLURAL_ONE: { key: string; english: string } = {
@@ -78,6 +84,10 @@ const RETIRED_STRINGS: Array<string> = [
   "No responders assigned. No one will be notified at this level — edit this rule to add responders.",
   "{{levels}} along the way have no responders and will notify no one when reached.",
   "{{levels}} along the way have no responders and will notify no one when reached._one",
+  // The card's header says the level is skipped at once: the notice need not.
+  "No responders assigned. This level is skipped without waiting — edit this rule to add responders.",
+  // A run reaches nobody for more reasons than a schedule with nobody on call.
+  "This execution ran to completion without notifying anyone. Usually every escalation rule targeted an on-call schedule that had nobody on call.",
 ];
 
 // Languages with no "one" form: their _one sentence is never shown.
@@ -180,6 +190,7 @@ describe("the empty-level strings in the Dashboard's locales", () => {
     const sources: Array<string> = [
       "EscalationRule/EscalationRules.tsx",
       "OnCallPolicySummary.tsx",
+      "ExecutionLogs/ExecutionLogsTable.tsx",
     ].map((file: string): string => {
       return fs.readFileSync(path.join(ON_CALL_COMPONENTS, file), "utf8");
     });
@@ -187,6 +198,8 @@ describe("the empty-level strings in the Dashboard's locales", () => {
     for (const source of sources) {
       expect(source).not.toContain("will notify no one when reached");
       expect(source).not.toContain("No one will be notified at this level");
+      expect(source).not.toContain("This level is skipped without waiting");
+      expect(source).not.toContain("ran to completion without notifying");
     }
   });
 
@@ -198,8 +211,9 @@ describe("the empty-level strings in the Dashboard's locales", () => {
 
     for (const key of [
       "This level has no responders",
-      "No responders assigned. This level is skipped without waiting — edit this rule to add responders.",
+      "No responders assigned. Edit this rule to add responders.",
       "{{levels}} along the way have no responders, so they are skipped without waiting.",
+      "This execution reached nobody. Usually its escalation rules had no responders, their schedules had nobody on call, or the people they named were away.",
     ]) {
       expect(persian[key]).toContain(responder);
     }
