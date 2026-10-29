@@ -346,11 +346,15 @@ export default class AIAlertInvestigationRunner {
     const promptOmissions: AIPromptOmissions = PromptText.noOmissions();
     // What the starting context read, for the run's activity.
     const contextNotes: Array<AIRunEventResultSummary> = [];
+    // When the alert started: where a check for its logs begins.
+    let subjectStartedAt: Date | undefined = undefined;
     try {
       const contextData: AlertContextData =
         await AlertAIContextBuilder.buildAlertContext({
           alertId,
         });
+
+      subjectStartedAt = contextData.alert.createdAt;
 
       contextSummary = this.buildAlertSummary(contextData, promptOmissions);
 
@@ -626,6 +630,7 @@ export default class AIAlertInvestigationRunner {
         contextSummary,
         promptOmissions,
         contextNotes,
+        subjectStartedAt,
         runLimits,
         additionalInstructions,
         extraTools,
@@ -649,6 +654,8 @@ export default class AIAlertInvestigationRunner {
     contextSummary: string;
     promptOmissions: AIPromptOmissions;
     contextNotes: Array<AIRunEventResultSummary>;
+    // When the alert started: where a check for its logs begins.
+    subjectStartedAt: Date | undefined;
     runLimits: AIAgentRunLimits;
     additionalInstructions: Array<string>;
     extraTools: Array<ObservabilityAssistantExtraTool>;
@@ -694,6 +701,11 @@ export default class AIAlertInvestigationRunner {
         ...(aiContextRules.length > 0 ? { aiContextRules } : {}),
         persistCodeFixRecommendation: true,
         persistAnalysisTldr: true,
+        // Says when the logs stood in the way, with a way forward.
+        logStallSubject: {
+          subjectType: "alert",
+          startedAt: data.subjectStartedAt,
+        },
         postAnalysis: async (postData: {
           analysisMarkdown: string;
           confidence: ConfidenceSignal;

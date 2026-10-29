@@ -10,7 +10,9 @@ import {
 } from "@testing-library/react";
 import * as React from "react";
 import { BrowserRouter } from "react-router-dom";
-import TracePerformanceSuggestion from "../../../../App/FeatureSet/Dashboard/src/Components/Traces/TraceDetail/TracePerformanceSuggestion";
+import TracePerformanceSuggestion, {
+  TRACE_FIX_PERFORMANCE_REPOSITORY_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Traces/TraceDetail/TracePerformanceSuggestion";
 import {
   FINISHED_FIX_MARKS,
   FINISHED_FIX_LINKS,
@@ -95,6 +97,7 @@ function suggestion(
     fixOutcome: null,
     blocker: null,
     aiRunId: offer === SuggestionOffer.InProgress ? "run-1" : null,
+    repositories: [],
   };
 }
 
@@ -138,7 +141,7 @@ const TASK_ROUTE: Route = new Route("/dashboard/p/code/tasks/run-1");
 const CODE_ROUTE: Route = new Route("/dashboard/p/code");
 
 interface Rendered {
-  onFix: Mock<() => void>;
+  onFix: Mock<(repositoryId?: string | undefined) => void>;
   onShowSpans: Mock<() => void>;
 }
 
@@ -149,7 +152,8 @@ function renderStrip(props: {
   error?: string | null;
   withShowSpans?: boolean;
 }): Rendered {
-  const onFix: Mock<() => void> = jest.fn<() => void>();
+  const onFix: Mock<(repositoryId?: string | undefined) => void> =
+    jest.fn<(repositoryId?: string | undefined) => void>();
   const onShowSpans: Mock<() => void> = jest.fn<() => void>();
 
   render(
@@ -160,7 +164,7 @@ function renderStrip(props: {
         connectRepositoryRoute={CODE_ROUTE}
         isCreating={props.isCreating ?? false}
         error={props.error ?? null}
-        onFix={onFix as unknown as () => void}
+        onFix={onFix as unknown as (repositoryId?: string) => void}
         onShowSpans={
           props.withShowSpans === false
             ? undefined
@@ -362,6 +366,7 @@ describe("what each offer draws", () => {
             fixOutcome: null,
             blocker: null,
             aiRunId: null,
+            repositories: [],
           }}
           taskRoute={null}
           connectRepositoryRoute={CODE_ROUTE}
@@ -751,5 +756,127 @@ describe("what each offer draws", () => {
     expect(screen.getByTestId("trace-performance-detail")).toHaveTextContent(
       "It takes 2.1 s of this 2.4 s request on its own.",
     );
+  });
+});
+
+/*
+ * A repository picker for Fix performance with AI (the follow-up #5273
+ * listed): with several repositories connected and none found to hold the
+ * trace's code for certain, the strip asks which repository holds it - as a
+ * telemetry finding's Fix with AI asks - and the fix starts in the pick.
+ */
+describe("a repository to pick before the fix starts", () => {
+  const REPOSITORIES: Array<{ id: string; name: string }> = [
+    { id: "51000000-0000-4000-8000-000000000002", name: "billing" },
+    { id: "51000000-0000-4000-8000-000000000001", name: "checkout-api" },
+  ];
+
+  function withRepositories(): TracePerformanceFixSuggestion {
+    return { ...suggestion(SuggestionOffer.Act), repositories: REPOSITORIES };
+  }
+
+  function picker(): HTMLElement {
+    return screen.getByTestId(TRACE_FIX_PERFORMANCE_REPOSITORY_TEST_ID);
+  }
+
+  function pick(name: string): void {
+    fireEvent.keyDown(within(picker()).getByRole("combobox"), {
+      key: "ArrowDown",
+      code: "ArrowDown",
+    });
+    fireEvent.click(screen.getByText(name));
+  }
+
+  test("it asks which repository holds the code, in the telemetry finding's own words", () => {
+    renderStrip({ suggestion: withRepositories() });
+
+    expect(picker()).toHaveTextContent(TELEMETRY_AI_FIX_COPY.pickRepository);
+    expect(picker()).toHaveTextContent(
+      TELEMETRY_AI_FIX_COPY.pickRepositoryPlaceholder,
+    );
+    // The question names the box for a screen reader.
+    expect(within(picker()).getByRole("combobox")).toHaveAccessibleName(
+      TELEMETRY_AI_FIX_COPY.pickRepository,
+    );
+  });
+
+  test("the fix waits for the pick, and looks it", () => {
+    const { onFix } = renderStrip({ suggestion: withRepositories() });
+    const button: HTMLElement = screen.getByTestId("trace-fix-performance");
+
+    expect(button).toBeDisabled();
+    expect(button).toHaveClass("opacity-50", "cursor-not-allowed");
+
+    fireEvent.click(button);
+    expect(onFix).not.toHaveBeenCalled();
+  });
+
+  test("picked, the fix starts in the pick", () => {
+    const { onFix } = renderStrip({ suggestion: withRepositories() });
+
+    pick("checkout-api");
+
+    const button: HTMLElement = screen.getByTestId("trace-fix-performance");
+    expect(button).not.toBeDisabled();
+
+    fireEvent.click(button);
+    expect(onFix).toHaveBeenCalledTimes(1);
+    expect(onFix).toHaveBeenCalledWith("51000000-0000-4000-8000-000000000001");
+  });
+
+  test("the repositories are listed in the server's order, by name", () => {
+    renderStrip({ suggestion: withRepositories() });
+
+    fireEvent.keyDown(within(picker()).getByRole("combobox"), {
+      key: "ArrowDown",
+      code: "ArrowDown",
+    });
+
+    expect(
+      screen.getAllByRole("option").map((option: HTMLElement): string => {
+        return option.textContent || "";
+      }),
+    ).toEqual(["billing", "checkout-api"]);
+  });
+
+  test("no repositories to pick from: no picker, and the fix starts at once, in the repository the trace's facts resolve", () => {
+    const { onFix } = renderStrip({
+      suggestion: suggestion(SuggestionOffer.Act),
+    });
+
+    expect(
+      screen.queryByTestId(TRACE_FIX_PERFORMANCE_REPOSITORY_TEST_ID),
+    ).toBeNull();
+
+    fireEvent.click(screen.getByTestId("trace-fix-performance"));
+    expect(onFix).toHaveBeenCalledWith();
+  });
+
+  test.each([
+    ["working on a fix", SuggestionOffer.InProgress],
+    ["a step to set up", SuggestionOffer.SetUp],
+  ])(
+    "%s: no picker, whatever the answer lists",
+    (_name: string, offer: SuggestionOffer) => {
+      renderStrip({
+        suggestion: { ...suggestion(offer), repositories: REPOSITORIES },
+        taskRoute: offer === SuggestionOffer.InProgress ? TASK_ROUTE : null,
+      });
+
+      expect(
+        screen.queryByTestId(TRACE_FIX_PERFORMANCE_REPOSITORY_TEST_ID),
+      ).toBeNull();
+    },
+  );
+
+  test("the fix started: the picker gives way to a link to it", () => {
+    renderStrip({ suggestion: withRepositories(), taskRoute: TASK_ROUTE });
+
+    expect(
+      screen.queryByTestId(TRACE_FIX_PERFORMANCE_REPOSITORY_TEST_ID),
+    ).toBeNull();
+    expect(
+      screen.getByTestId("trace-fix-performance-progress"),
+    ).toBeInTheDocument();
   });
 });

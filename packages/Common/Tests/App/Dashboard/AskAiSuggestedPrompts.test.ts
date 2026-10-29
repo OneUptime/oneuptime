@@ -3,6 +3,7 @@ import PageContextUtil, {
   DashboardPageContext,
   SuggestedQuestion,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/PageContext";
+import { PageEntityState } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/PageEntityState";
 import { buildPageContextSection } from "../../../Server/Utils/AI/Chat/ObservabilityChatPrompt";
 import { QueryAlertsTool } from "../../../Server/Utils/AI/Toolbox/AlertTools";
 import AIChatPageContextType, {
@@ -282,5 +283,157 @@ describe("Ask AI suggested prompts are backed by capabilities the model is told 
 
     expect(properties["monitor"]).toBeUndefined();
     expect(properties["monitorId"]).toBeUndefined();
+  });
+});
+
+/*
+ * The same guard for the questions that follow the record on screen (the
+ * follow-up #5273 listed): each state's cards are answerable only when the
+ * page's guidance names the tool that answers them. A resolved incident's
+ * "Prevent a repeat" asks for similar past incidents; a resolved alert's
+ * "Fired before?" counts alerts like it; a maintenance event that has not
+ * started asks for its monitors' status now and for other maintenance that
+ * overlaps it. None of those tools was named on the page's guidance before.
+ */
+describe("the questions that follow the record are backed too", () => {
+  const STATE_ROWS: Array<[AIChatPageContextType, PageEntityState]> = [
+    [AIChatPageContextType.Incident, PageEntityState.Resolved],
+    [AIChatPageContextType.Alert, PageEntityState.Resolved],
+    [AIChatPageContextType.Monitor, PageEntityState.NotOperational],
+    [AIChatPageContextType.ScheduledMaintenanceEvent, PageEntityState.Upcoming],
+    [AIChatPageContextType.ScheduledMaintenanceEvent, PageEntityState.Ended],
+  ];
+
+  function stateDeck(
+    type: AIChatPageContextType,
+    state: PageEntityState,
+  ): Array<SuggestedQuestion> {
+    return PageContextUtil.getSuggestions({
+      ...buildContext(type),
+      entityState: state,
+    });
+  }
+
+  function card(
+    type: AIChatPageContextType,
+    state: PageEntityState,
+    title: string,
+  ): SuggestedQuestion {
+    const found: SuggestedQuestion | undefined = stateDeck(type, state).find(
+      (suggestion: SuggestedQuestion): boolean => {
+        return suggestion.title === title;
+      },
+    );
+
+    expect(found).toBeDefined();
+    return found!;
+  }
+
+  test.each(STATE_ROWS)(
+    "%s, %s: cards are well formed and uniquely titled",
+    (type: AIChatPageContextType, state: PageEntityState): void => {
+      const deck: Array<SuggestedQuestion> = stateDeck(type, state);
+
+      expect(deck.length).toBeGreaterThan(0);
+
+      for (const suggestion of deck) {
+        expect(suggestion.title.trim().length).toBeGreaterThan(0);
+        expect(suggestion.title.length).toBeLessThanOrEqual(MAX_TITLE_LENGTH);
+        expect(suggestion.question.trim()).toMatch(COMPLETE_SENTENCE_REGEX);
+      }
+
+      const titles: Array<string> = deck.map(
+        (suggestion: SuggestedQuestion): string => {
+          return suggestion.title;
+        },
+      );
+
+      expect(new Set(titles).size).toBe(titles.length);
+      // The guidance it leans on is the page type's, which names a tool.
+      expect(getGuidance(type)).toMatch(TOOL_NAME_REGEX);
+    },
+  );
+
+  test("a resolved incident: its response from the timeline, a repeat from past incidents", () => {
+    const guidance: string = getGuidance(AIChatPageContextType.Incident);
+
+    expect(
+      card(
+        AIChatPageContextType.Incident,
+        PageEntityState.Resolved,
+        "Response timeline",
+      ).question,
+    ).toMatch(/acknowledge/);
+    expect(guidance).toContain("get_incident_timeline");
+
+    expect(
+      card(
+        AIChatPageContextType.Incident,
+        PageEntityState.Resolved,
+        "Prevent a repeat",
+      ).question,
+    ).toMatch(/similar past incidents/);
+    // Fails on the guidance before this follow-up, which never named it.
+    expect(guidance).toContain(
+      "search_incidents finds past incidents like it, with their root cause and how they were resolved.",
+    );
+  });
+
+  test("a resolved alert: alerts like it are counted from query_alerts' rows", () => {
+    expect(
+      card(
+        AIChatPageContextType.Alert,
+        PageEntityState.Resolved,
+        "Fired before?",
+      ).question,
+    ).toMatch(/alerts like this one/);
+    expect(getGuidance(AIChatPageContextType.Alert)).toContain(
+      "Without alertId, query_alerts lists recent alerts, each with the monitor it was raised for",
+    );
+    // The rows carry the monitor, which is what the count goes by.
+    expect(QueryAlertsTool.description).toMatch(/\bmonitor\b/i);
+  });
+
+  test("a monitor that is not operational: why, from its own status timeline", () => {
+    expect(
+      card(
+        AIChatPageContextType.Monitor,
+        PageEntityState.NotOperational,
+        "Why not operational?",
+      ).question,
+    ).toMatch(/not operational right now/);
+    expect(getGuidance(AIChatPageContextType.Monitor)).toContain(
+      `query_monitors using monitorId="${ENTITY_ID}"`,
+    );
+  });
+
+  test("a maintenance event: its monitors' status now, and the maintenance around it", () => {
+    const guidance: string = getGuidance(
+      AIChatPageContextType.ScheduledMaintenanceEvent,
+    );
+
+    for (const [state, title] of [
+      [PageEntityState.Upcoming, "Healthy before it starts?"],
+      [PageEntityState.Ended, "Back to normal?"],
+    ] as Array<[PageEntityState, string]>) {
+      expect(
+        card(AIChatPageContextType.ScheduledMaintenanceEvent, state, title)
+          .question,
+      ).toMatch(/operational/);
+    }
+    expect(guidance).toContain(
+      "query_monitors with each affected monitor's monitorId reads its status now.",
+    );
+
+    expect(
+      card(
+        AIChatPageContextType.ScheduledMaintenanceEvent,
+        PageEntityState.Upcoming,
+        "Overlapping maintenance?",
+      ).question,
+    ).toMatch(/overlap/);
+    expect(guidance).toContain(
+      "Without an id, query_scheduled_maintenance lists the events around this one, for others that overlap its window or cover its monitors.",
+    );
   });
 });

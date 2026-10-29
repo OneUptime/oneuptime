@@ -486,8 +486,7 @@ ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString()
             stateAfterThis: onCreate.carryForward.statusTimelineAfterThisStatus,
           },
         ),
-        notifyUserId:
-          createdItem.createdByUserId || onCreate.createBy.props.userId,
+        leadWithAuthor: true,
       },
     });
 

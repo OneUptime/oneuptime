@@ -134,6 +134,8 @@ API Key: sk-xxxxxxxxxxxxxxxxxxxx
 Model Name: gpt-5.1
 ```
 
+OpenAI guarda en caché por sí mismo un prompt que ya ha visto y cobra menos por la parte que vuelve a leer. OneUptime le dice qué llamadas van juntas: una caché de prompts para cada proyecto y cada tipo de trabajo de IA, enviada como `prompt_cache_key`, de modo que los prompts de dos proyectos nunca comparten caché y cada llamada de una investigación vuelve a leer lo que enviaron las anteriores. Si el servidor de la **URL base** del proveedor rechaza el campo, OneUptime vuelve a enviar la solicitud sin él y lo recuerda para ese proveedor. [Cómo se cuentan los tokens](/docs/ai/ai-sre#cómo-se-cuentan-los-tokens) explica cómo cuentan los tokens en caché para tus límites.
+
 ### Anthropic
 
 1. Obtén tu clave de API en [Anthropic Console](https://console.anthropic.com/)

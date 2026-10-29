@@ -1,6 +1,7 @@
 import CodeFixRunRepository, {
   getFirstMonitorName,
   getPerformanceStackTrace,
+  getRunRepositoryAllowance,
 } from "../../../../../Server/Utils/AI/CodeFix/CodeFixRunRepository";
 import FixRunBudget from "../../../../../Server/Utils/AI/CodeFix/FixRunBudget";
 import SubjectCodeFixRun from "../../../../../Server/Utils/AI/SRE/SubjectCodeFixRun";
@@ -367,5 +368,80 @@ describe("SubjectCodeFixRun queues a run on its repository", () => {
 
     expect(run.codeRepositoryId).toBeUndefined();
     expect(resolver).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * A person picked the repository of a fix no repository was found to hold
+ * for certain (Fix performance with AI on a trace): the run works in it,
+ * when it is queued and again when it starts - the pick is its only
+ * candidate, and the resolver's only-repository rule takes it.
+ */
+describe("getRunRepositoryAllowance: the repositories a run may be made in", () => {
+  const PICKED_ID: string = "6b1c2d3e-3333-4222-8333-944455556666";
+
+  test("a pick is the only repository allowed, in lower case", () => {
+    expect(
+      getRunRepositoryAllowance({
+        pickedCodeRepositoryId: PICKED_ID.toUpperCase(),
+      } as unknown as CodeFixTaskContext),
+    ).toEqual({ isEveryRepository: false, repositoryIds: [PICKED_ID] });
+  });
+
+  test("a pick narrows a run the rules opened to the pick alone", () => {
+    expect(
+      getRunRepositoryAllowance({
+        pickedCodeRepositoryId: PICKED_ID,
+        allowedCodeRepositoryIds: [REPOSITORY_ID],
+      } as unknown as CodeFixTaskContext),
+    ).toEqual({ isEveryRepository: false, repositoryIds: [PICKED_ID] });
+  });
+
+  test("no pick: the rules' repositories, or every connected one", () => {
+    expect(
+      getRunRepositoryAllowance({
+        allowedCodeRepositoryIds: [REPOSITORY_ID],
+      } as unknown as CodeFixTaskContext),
+    ).toEqual({ isEveryRepository: false, repositoryIds: [REPOSITORY_ID] });
+    expect(getRunRepositoryAllowance({} as CodeFixTaskContext)).toEqual(
+      EVERY_CODE_REPOSITORY,
+    );
+    expect(getRunRepositoryAllowance(undefined)).toEqual(EVERY_CODE_REPOSITORY);
+    expect(getRunRepositoryAllowance(null)).toEqual(EVERY_CODE_REPOSITORY);
+  });
+
+  test.each([
+    ["a name", "checkout-api"],
+    ["an empty id", ""],
+    ["a number", 42],
+  ])("a pick that is %s is no pick", (_name: string, picked: unknown) => {
+    expect(
+      getRunRepositoryAllowance({
+        pickedCodeRepositoryId: picked,
+      } as unknown as CodeFixTaskContext),
+    ).toEqual(EVERY_CODE_REPOSITORY);
+  });
+
+  test("a new run of a pick is resolved among the pick alone", async () => {
+    const resolve: jest.SpyInstance = resolvesTo(PICKED_ID);
+
+    const resolved: ObjectID | null =
+      await CodeFixRunRepository.resolveForNewRun({
+        projectId: PROJECT_ID,
+        taskType: CodeFixTaskType.FixPerformance,
+        taskContext: {
+          traceId: "abc123trace",
+          serviceName: "checkout-api",
+          pickedCodeRepositoryId: PICKED_ID,
+        } as unknown as CodeFixTaskContext,
+      });
+
+    expect(resolved?.toString()).toBe(PICKED_ID);
+    expect(resolve.mock.calls[0]![0].allowance).toEqual({
+      isEveryRepository: false,
+      repositoryIds: [PICKED_ID],
+    });
+
+    resolve.mockRestore();
   });
 });

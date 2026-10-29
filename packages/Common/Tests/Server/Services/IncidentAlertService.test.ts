@@ -757,7 +757,7 @@ describe("feed entries", () => {
       expect(entry["userId"]).toBe(USER_ID);
       expect(entry["workspaceNotification"]).toEqual({
         sendWorkspaceNotification: true,
-        notifyUserId: USER_ID,
+        leadWithAuthor: true,
       });
       expect(entry["feedInfoInMarkdown"]).toBe(
         `🔗 Linked **[Alert #3](${ALERT_URL})** to **[Incident INC-7](${INCIDENT_URL})**: Checkout p95 latency is high`,
@@ -960,7 +960,7 @@ describe("feed entries", () => {
       expect(incidentEntry["userId"]).toBe(USER_ID);
       expect(incidentEntry["workspaceNotification"]).toEqual({
         sendWorkspaceNotification: true,
-        notifyUserId: USER_ID,
+        leadWithAuthor: true,
       });
       expect(incidentEntry["feedInfoInMarkdown"]).toBe(
         `Unlinked **[Alert #3](${ALERT_URL})** from **[Incident INC-7](${INCIDENT_URL})**: Checkout p95 latency is high`,
@@ -1148,7 +1148,7 @@ describe("feed entries", () => {
         // The post is this same markdown, so it is title-free too.
         expect(entry["workspaceNotification"]).toEqual({
           sendWorkspaceNotification: true,
-          notifyUserId: USER_ID,
+          leadWithAuthor: true,
         });
 
         // The incident is not private: the alert's entry may name it.
@@ -2049,7 +2049,7 @@ describe("the one incident entry for an incident declared from alerts", () => {
       expect(entry["userId"]).toBe(USER_ID);
       expect(entry["workspaceNotification"]).toEqual({
         sendWorkspaceNotification: true,
-        notifyUserId: USER_ID,
+        leadWithAuthor: true,
       });
       expect(entry["feedInfoInMarkdown"]).toContain(
         "🔗 Declared from 3 alerts:",
@@ -2069,10 +2069,11 @@ describe("the one incident entry for an incident declared from alerts", () => {
 
       const entry: Record<string, unknown> = incidentFeed.mock.calls[0]![0];
 
+      // Led by its author, and it has none: the message opens with no name.
       expect(entry["userId"]).toBeUndefined();
       expect(entry["workspaceNotification"]).toEqual({
         sendWorkspaceNotification: true,
-        notifyUserId: undefined,
+        leadWithAuthor: true,
       });
     });
 

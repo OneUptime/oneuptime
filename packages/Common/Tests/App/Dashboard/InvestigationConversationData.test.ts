@@ -45,7 +45,10 @@ import {
 import AIRunEventType from "../../../Types/AI/AIRunEventType";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import { JSONObject } from "../../../Types/JSON";
+import { EventStanding } from "../../../../App/FeatureSet/Dashboard/src/Utils/EventDuration";
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 
 /*
  * The decisions the investigation box's conversation makes about its
@@ -669,6 +672,163 @@ describe("what the conversation suggests for each stage of the investigation", (
       ).toEqual(["Acknowledge this alert"]);
     },
   );
+});
+
+/*
+ * The suggestions follow where the incident or alert stands, as its page
+ * reads it (getEventStanding), the way Ask AI's questions follow the record
+ * on screen: nothing offers to acknowledge what is acknowledged, and a
+ * resolved one is asked how the response went and what would stop it
+ * coming back - in the places of what to do now and what else it affects,
+ * so the chips that stay do not move.
+ */
+describe("what the conversation suggests for where the record stands", () => {
+  function labelsOf(prompts: Array<SuggestedPrompt>): Array<string> {
+    return prompts.map((prompt: SuggestedPrompt): string => {
+      return prompt.label;
+    });
+  }
+
+  test("an open one: the usual five, the request to acknowledge it last - as when its standing is not known", () => {
+    for (const subjectType of ["incident", "alert"] as Array<
+      "incident" | "alert"
+    >) {
+      expect(
+        getSuggestedPrompts(subjectType, "reported", EventStanding.Open),
+      ).toEqual(getSuggestedPrompts(subjectType, "reported"));
+    }
+    expect(
+      labelsOf(getSuggestedPrompts("incident", "reported", EventStanding.Open)),
+    ).toEqual([
+      "What should I do right now?",
+      "What changed just before this?",
+      "Is anything else affected?",
+      "Draft a status update",
+      "Acknowledge this incident",
+    ]);
+  });
+
+  test("an acknowledged one: the same questions, and no request to acknowledge it again", () => {
+    expect(
+      labelsOf(
+        getSuggestedPrompts("incident", "reported", EventStanding.Acknowledged),
+      ),
+    ).toEqual([
+      "What should I do right now?",
+      "What changed just before this?",
+      "Is anything else affected?",
+      "Draft a status update",
+    ]);
+    expect(
+      getSuggestedPrompts("alert", "reported", EventStanding.Acknowledged).some(
+        (prompt: SuggestedPrompt): boolean => {
+          return prompt.isAction === true;
+        },
+      ),
+    ).toBe(false);
+  });
+
+  test("a resolved incident: how the response went and what would stop it coming back, in the places of what to do now and what else it affects", () => {
+    const prompts: Array<SuggestedPrompt> = getSuggestedPrompts(
+      "incident",
+      "reported",
+      EventStanding.Resolved,
+    );
+
+    expect(prompts).toEqual([
+      {
+        label: "Prevent a repeat",
+        prompt:
+          "What would stop this incident from happening again? Base it on its root cause and on similar past incidents.",
+      },
+      {
+        label: "What changed just before this?",
+        prompt:
+          "What changed right before this incident started — deploys, config, traffic, errors?",
+      },
+      {
+        label: "Response timeline",
+        prompt:
+          "How long did this incident take to acknowledge and to resolve, and where did the response slow down?",
+      },
+      {
+        label: "Draft a status update",
+        prompt:
+          "Draft a short, customer-facing status update saying this incident is resolved. Don't post it yet.",
+      },
+    ]);
+    // Nothing to act on: it is resolved.
+    expect(
+      prompts.some((prompt: SuggestedPrompt): boolean => {
+        return prompt.isAction === true;
+      }),
+    ).toBe(false);
+  });
+
+  test("a resolved alert is asked of the alert", () => {
+    const prompts: Array<SuggestedPrompt> = getSuggestedPrompts(
+      "alert",
+      "reported",
+      EventStanding.Resolved,
+    );
+
+    expect(labelsOf(prompts)).toEqual([
+      "Prevent a repeat",
+      "What changed just before this?",
+      "Response timeline",
+      "Draft a status update",
+    ]);
+    expect(prompts[0]!.prompt).toBe(
+      "What would stop this alert from firing again? Base it on its root cause and on similar past alerts.",
+    );
+    for (const prompt of prompts) {
+      expect(prompt.prompt).toMatch(/alert/);
+      expect(prompt.prompt).not.toMatch(/incident/);
+    }
+  });
+
+  test("with no report to read, the root-cause question still leads, whatever it stands", () => {
+    for (const standing of Object.values(EventStanding)) {
+      const prompts: Array<SuggestedPrompt> = getSuggestedPrompts(
+        "incident",
+        "none",
+        standing,
+      );
+
+      expect(prompts[0]!.label).toBe("What is the root cause?");
+      expect(prompts.slice(1)).toEqual(
+        getSuggestedPrompts("incident", "reported", standing),
+      );
+    }
+  });
+
+  test("every label it can show is one the Dashboard translates", () => {
+    const english: Record<string, string> = JSON.parse(
+      fs.readFileSync(
+        path.join(
+          __dirname,
+          "../../../../App/FeatureSet/Dashboard/src/Locales/en.json",
+        ),
+        "utf8",
+      ),
+    );
+
+    for (const subjectType of ["incident", "alert"] as Array<
+      "incident" | "alert"
+    >) {
+      for (const stage of [...STAGES, undefined]) {
+        for (const standing of [...Object.values(EventStanding), undefined]) {
+          for (const prompt of getSuggestedPrompts(
+            subjectType,
+            stage,
+            standing,
+          )) {
+            expect(english[prompt.label]).toBe(prompt.label);
+          }
+        }
+      }
+    }
+  });
 });
 
 describe("describeConversation", () => {

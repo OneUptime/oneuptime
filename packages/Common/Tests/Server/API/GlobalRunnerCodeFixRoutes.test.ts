@@ -33,6 +33,8 @@ import AIAgentTaskStatus from "../../../Types/AI/AIAgentTaskStatus";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../Types/AI/AIRunType";
 import CodeFixTaskType from "../../../Types/AI/CodeFixTaskType";
+import { PerformanceFindingType } from "../../../Types/AI/CodeFixTaskContext";
+import { EVERY_CODE_REPOSITORY } from "../../../Types/CodeRepository/CodeRepositoryAllowance";
 import CodeRepositoryType from "../../../Types/CodeRepository/CodeRepositoryType";
 import GitHubCommandType from "../../../Types/CodeRepository/GitHubCommand";
 import OneUptimeDate from "../../../Types/Date";
@@ -704,6 +706,68 @@ describe("POST /ai-agent-data/get-instrumentation-task-details (work)", () => {
       ).not.toHaveBeenCalled();
     },
   );
+
+  /*
+   * A performance fix a person picked the repository of (no repository was
+   * found to hold the trace's code for certain): the route resolves among
+   * the pick alone, as the run was queued, so it works in the pick.
+   */
+  function performanceRun(pickedCodeRepositoryId?: string): AIRun {
+    return makeRun({
+      hold: HELD_BY_IT,
+      taskType: CodeFixTaskType.FixPerformance,
+      extra: (run: AIRun): void => {
+        run.taskContext = {
+          traceId: "4bf92f3577b34da6a3ce929d0e0e4736",
+          serviceName: "users-api",
+          performanceFindings: [
+            {
+              findingType: PerformanceFindingType.NPlusOneQuery,
+              headline: 'N+1: 12x "SELECT users"',
+              evidence: "12 sibling spans",
+              spanCount: 12,
+              combinedDurationMs: 840,
+              traceDurationMs: 1600,
+              percentOfTrace: 52.5,
+              normalizedSpanName: "SELECT users WHERE id = {n}",
+              implicatedSpans: [
+                { spanId: "q0", name: "SELECT users", durationMs: 70 },
+              ],
+            },
+          ],
+          ...(pickedCodeRepositoryId ? { pickedCodeRepositoryId } : {}),
+        };
+      },
+    });
+  }
+
+  test("a performance fix with a picked repository is resolved among the pick alone", async () => {
+    storedRun = performanceRun(REPOSITORY_ID.toString());
+
+    const answer: Answer = await call(ROUTE, { taskId: RUN_ID.toString() });
+
+    expect(answer.error).toBeUndefined();
+    expect(
+      (
+        CodeRepositoryService.resolveRepositoryForException as unknown as jest.SpyInstance
+      ).mock.calls[0]![0].allowance,
+    ).toEqual({
+      isEveryRepository: false,
+      repositoryIds: [REPOSITORY_ID.toString().toLowerCase()],
+    });
+  });
+
+  test("a performance fix with no pick is resolved among every connected repository, as before", async () => {
+    storedRun = performanceRun();
+
+    await call(ROUTE, { taskId: RUN_ID.toString() });
+
+    expect(
+      (
+        CodeRepositoryService.resolveRepositoryForException as unknown as jest.SpyInstance
+      ).mock.calls[0]![0].allowance,
+    ).toEqual(EVERY_CODE_REPOSITORY);
+  });
 });
 
 describe("POST /ai-agent-data/get-repository-token (work)", () => {

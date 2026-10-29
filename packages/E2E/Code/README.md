@@ -90,9 +90,12 @@ The suite drives the pages the way a person does, on a laptop and on a phone:
   Reviews (on, or off with the GitHub command that asks for one), each pull
   request's review with every part of production linked into OneUptime,
   Review again keeping the last review until the new one is in, a read-only
-  member, and the setting - one switch, and Production Review Comment under
-  More settings (`?review=off|unset`, `?reviews=none`,
-  `?reviewcomment=Link|ReviewEvenIfPublic`);
+  member, and the setting - one switch, and Production Review Comment and
+  Production Review LLM Provider under More settings (`?review=off|unset`,
+  `?reviews=none`, `?reviewcomment=Link|ReviewEvenIfPublic`,
+  `?reviewllm=opus|gone`: a pick of Claude Opus, or of a provider no longer
+  there; the project's providers come from POST /ai-chat/providers, Azure
+  GPT-4o its default);
 - the old addresses forwarding with their ids, query strings and hashes, and
   GitHub's way back still saying GitHub connected;
 - repositories beyond GitHub (`?hosts=1`): Connect repositories asking where

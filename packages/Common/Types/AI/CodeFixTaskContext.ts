@@ -273,6 +273,15 @@ export interface CodeFixTaskContext {
    * these only, when it is queued and again when it starts.
    */
   allowedCodeRepositoryIds?: Array<string> | undefined;
+  /*
+   * A FixPerformance run a person asked for from a trace whose code no
+   * connected repository was found to hold for certain: the repository
+   * they picked (TracePerformanceFixSuggestion.repositories). The run works
+   * in it, when it is queued and again when it starts
+   * (getRunRepositoryAllowance). Absent: the repository is resolved from
+   * the run's facts, as for every other run.
+   */
+  pickedCodeRepositoryId?: string | undefined;
 }
 
 /*

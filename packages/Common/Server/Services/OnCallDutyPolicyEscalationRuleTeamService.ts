@@ -201,7 +201,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         userId: createdByUserId || undefined,
         workspaceNotification: {
           sendWorkspaceNotification: true,
-          notifyUserId: createdByUserId || undefined,
+          leadWithAuthor: true,
         },
       });
     }
@@ -261,7 +261,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           userId: deleteByUserId || undefined,
           workspaceNotification: {
             sendWorkspaceNotification: true,
-            notifyUserId: deleteByUserId || undefined,
+            leadWithAuthor: true,
           },
         });
       }

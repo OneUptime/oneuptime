@@ -17,7 +17,9 @@ import {
 } from "../../../Types/AI/CodeTask";
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
 import { FinishedFixOutcome } from "../../../Utils/Suggestions/CodeFixSuggestion";
-import { AnalyzableSpan } from "../../../Utils/Traces/SpanTreeAnalyzer";
+import SpanTreeAnalyzer, {
+  AnalyzableSpan,
+} from "../../../Utils/Traces/SpanTreeAnalyzer";
 import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
 import AIRunService from "../../../Server/Services/AIRunService";
 import AIService, {
@@ -41,6 +43,8 @@ import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import SuggestionOffer from "../../../Utils/Suggestions/SuggestionOffer";
 import {
+  PICK_A_REPOSITORY_FOR_THE_FIX_MESSAGE,
+  PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE,
   TRACE_NOT_WORTH_FIXING_MESSAGE,
   TracePerformanceFixSuggestion,
 } from "../../../Utils/Suggestions/TracePerformanceFixSuggestion";
@@ -1425,5 +1429,307 @@ describe("loading a trace for the analysis", () => {
       await FixPerformanceTaskTrigger.getServiceName(null),
     ).toBeUndefined();
     expect(findOneById).toHaveBeenCalledTimes(2);
+  });
+});
+
+/*
+ * A REPOSITORY PICKER FOR FIX PERFORMANCE WITH AI (the follow-up #5273
+ * listed). With several repositories connected and none found to hold the
+ * trace's code for certain, the run used to be queued anyway and to find no
+ * repository when it started. Now the page asks the person which repository
+ * holds the code (as a telemetry finding's Fix with AI does), the create
+ * route takes the pick - held to the project's connected repositories -
+ * and the run works in it, when it is queued and when it starts. Without a
+ * pick where one is needed, the click is refused in the words of the step
+ * that is missing.
+ */
+describe("a repository to pick for a fix no repository was found for", () => {
+  const REPOSITORIES: Array<{ id: string; name: string }> = [
+    { id: "51000000-0000-4000-8000-000000000003", name: "web-storefront" },
+    { id: "51000000-0000-4000-8000-000000000001", name: "Checkout-API" },
+    { id: "51000000-0000-4000-8000-000000000002", name: "billing" },
+  ];
+
+  function connectedRepositories(
+    repositories: Array<{ id: string; name: string }> = REPOSITORIES,
+  ): jest.SpyInstance {
+    return jest
+      .spyOn(CodeRepositoryService, "getResolvableRepositories")
+      .mockResolvedValue(
+        repositories.map((repository: { id: string; name: string }) => {
+          return {
+            id: repository.id,
+            name: repository.name,
+            organizationName: "acme",
+            repositoryName: repository.name.toLowerCase(),
+            mainBranchName: "main",
+            gitHubAppInstallationId: "1234",
+          };
+        }),
+      );
+  }
+
+  function noFixYet(): void {
+    jest
+      .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
+      .mockResolvedValue(true);
+    jest
+      .spyOn(SubjectCodeFixRun, "findNonTerminalPerformanceFixRunForTrace")
+      .mockResolvedValue(null);
+  }
+
+  function loadOf(spans: Array<AnalyzableSpan>): jest.Mock {
+    return jest.fn(async (): Promise<PerformanceTraceSpans> => {
+      return { spans, dominantEntityId: null };
+    });
+  }
+
+  beforeEach(() => {
+    jest.spyOn(FixRunBudget, "assertWithinBudget").mockResolvedValue();
+    aiSwitch(true);
+    noFinishedFix();
+    noFixYet();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  describe("what the trace page offers", () => {
+    async function suggest(): Promise<TracePerformanceFixSuggestion> {
+      return FixPerformanceTaskTrigger.getSuggestionForTrace({
+        projectId,
+        traceId,
+        loadTrace: loadOf(SLOW_CHECKOUT_WITH_N_PLUS_ONE.spans),
+      });
+    }
+
+    test("none resolves, several connected: the fix, with the repositories to pick from, by name", async () => {
+      gateSays(null, null);
+      connectedRepositories();
+
+      const suggestion: TracePerformanceFixSuggestion = await suggest();
+
+      expect(suggestion.offer).toBe(SuggestionOffer.Act);
+      expect(suggestion.repositories).toEqual([
+        { id: "51000000-0000-4000-8000-000000000002", name: "billing" },
+        { id: "51000000-0000-4000-8000-000000000001", name: "Checkout-API" },
+        { id: "51000000-0000-4000-8000-000000000003", name: "web-storefront" },
+      ]);
+    });
+
+    test("the trace's facts resolve a repository: no pick, the fix works in it", async () => {
+      gateSays(null, GATE_REPOSITORY_ID);
+      const list: jest.SpyInstance = connectedRepositories();
+
+      const suggestion: TracePerformanceFixSuggestion = await suggest();
+
+      expect(suggestion.offer).toBe(SuggestionOffer.Act);
+      expect(suggestion.repositories).toEqual([]);
+      expect(list).not.toHaveBeenCalled();
+    });
+
+    test("one repository is no choice: no pick", async () => {
+      gateSays(null, null);
+      connectedRepositories(REPOSITORIES.slice(0, 1));
+
+      expect((await suggest()).repositories).toEqual([]);
+    });
+
+    test("Code's gate says a step is missing: that step, and no pick", async () => {
+      gateSays(NO_CREDITS, null);
+      const list: jest.SpyInstance = connectedRepositories();
+
+      const suggestion: TracePerformanceFixSuggestion = await suggest();
+
+      expect(suggestion.offer).toBe(SuggestionOffer.SetUp);
+      expect(suggestion.repositories).toEqual([]);
+      expect(list).not.toHaveBeenCalled();
+    });
+
+    test("a list that cannot be read: the fix, with no pick, never an error", async () => {
+      gateSays(null, null);
+      jest
+        .spyOn(CodeRepositoryService, "getResolvableRepositories")
+        .mockRejectedValue(new Error("connection refused"));
+
+      const suggestion: TracePerformanceFixSuggestion = await suggest();
+
+      expect(suggestion.offer).toBe(SuggestionOffer.Act);
+      expect(suggestion.repositories).toEqual([]);
+    });
+
+    test("a repository with no name of its own is named by its organization and repository", async () => {
+      gateSays(null, null);
+      jest
+        .spyOn(CodeRepositoryService, "getResolvableRepositories")
+        .mockResolvedValue([
+          {
+            id: "51000000-0000-4000-8000-000000000009",
+            name: "  ",
+            organizationName: "acme",
+            repositoryName: "ledger",
+            mainBranchName: "main",
+            gitHubAppInstallationId: "1234",
+          },
+          {
+            id: "51000000-0000-4000-8000-000000000001",
+            name: "checkout",
+            organizationName: "acme",
+            repositoryName: "checkout",
+            mainBranchName: "main",
+            gitHubAppInstallationId: "1234",
+          },
+        ]);
+
+      expect((await suggest()).repositories).toEqual([
+        { id: "51000000-0000-4000-8000-000000000009", name: "acme/ledger" },
+        { id: "51000000-0000-4000-8000-000000000001", name: "checkout" },
+      ]);
+    });
+  });
+
+  describe("what a click does", () => {
+    async function click(repositoryId?: ObjectID | undefined): Promise<AIRun> {
+      return FixPerformanceTaskTrigger.createPerformanceFixTaskFromTrace({
+        projectId,
+        traceId,
+        spans: spansWithNPlusOne(),
+        serviceName: "orders-service",
+        userId,
+        ...(repositoryId ? { repositoryId } : {}),
+      });
+    }
+
+    test("a pick: recorded on the run, Code's gate asked with it, and the run queued on it", async () => {
+      connectedRepositories();
+      const picked: ObjectID = new ObjectID(REPOSITORIES[2]!.id);
+      const gate: jest.SpyInstance = gateSays(null, picked);
+      const enqueue: jest.SpyInstance = jest
+        .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
+        .mockResolvedValue(fakeRun());
+
+      await click(new ObjectID(REPOSITORIES[2]!.id.toUpperCase()));
+
+      const gateContext: CodeFixTaskContext = (
+        gate.mock.calls[0]![0] as { taskContext: CodeFixTaskContext }
+      ).taskContext;
+      expect(gateContext.pickedCodeRepositoryId).toBe(REPOSITORIES[2]!.id);
+
+      const queued: {
+        codeRepositoryId?: ObjectID | null;
+        taskContext: CodeFixTaskContext;
+      } = enqueue.mock.calls[0]![0] as {
+        codeRepositoryId?: ObjectID | null;
+        taskContext: CodeFixTaskContext;
+      };
+      expect(queued.codeRepositoryId?.toString()).toBe(REPOSITORIES[2]!.id);
+      expect(queued.taskContext.pickedCodeRepositoryId).toBe(
+        REPOSITORIES[2]!.id,
+      );
+      // The trace's evidence still travels with it.
+      expect(queued.taskContext.traceId).toBe(traceId);
+    });
+
+    test("a pick that is not one of the project's connected repositories is refused, nothing queued", async () => {
+      connectedRepositories();
+      gateSays(null, null);
+      const enqueue: jest.SpyInstance = jest.spyOn(
+        SubjectCodeFixRun,
+        "enqueueSubjectCodeFixRun",
+      );
+
+      await expect(click(ObjectID.generate())).rejects.toThrow(
+        PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE,
+      );
+      expect(enqueue).not.toHaveBeenCalled();
+    });
+
+    test("none resolves, several connected, no pick: refused in the words of the missing step, nothing queued", async () => {
+      connectedRepositories();
+      gateSays(null, null);
+      const enqueue: jest.SpyInstance = jest.spyOn(
+        SubjectCodeFixRun,
+        "enqueueSubjectCodeFixRun",
+      );
+
+      await expect(click()).rejects.toThrow(
+        PICK_A_REPOSITORY_FOR_THE_FIX_MESSAGE,
+      );
+      expect(enqueue).not.toHaveBeenCalled();
+    });
+
+    test("none resolves and there is no choice to make: queued as before, to find its repository when it starts", async () => {
+      connectedRepositories(REPOSITORIES.slice(0, 1));
+      gateSays(null, null);
+      const enqueue: jest.SpyInstance = jest
+        .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
+        .mockResolvedValue(fakeRun());
+
+      await click();
+
+      expect(enqueue).toHaveBeenCalledTimes(1);
+      expect(
+        (enqueue.mock.calls[0]![0] as { taskContext: CodeFixTaskContext })
+          .taskContext.pickedCodeRepositoryId,
+      ).toBeUndefined();
+    });
+
+    test("the trace's facts resolve a repository: no pick needed, queued on it", async () => {
+      const list: jest.SpyInstance = connectedRepositories();
+      gateSays(null, GATE_REPOSITORY_ID);
+      const enqueue: jest.SpyInstance = jest
+        .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
+        .mockResolvedValue(fakeRun());
+
+      await click();
+
+      expect(
+        (
+          enqueue.mock.calls[0]![0] as { codeRepositoryId?: ObjectID }
+        ).codeRepositoryId?.toString(),
+      ).toBe(GATE_REPOSITORY_ID.toString());
+      expect(list).not.toHaveBeenCalled();
+    });
+
+    test("Code's gate refuses the picked repository (its Runner is offline): refused in its words", async () => {
+      connectedRepositories();
+      const offline: CodeTaskBlocker = {
+        type: CodeTaskBlockerType.RunnerNotOnline,
+        message: "The Runner this repository picks, build-box, is not online.",
+        runnerName: "build-box",
+      };
+      gateSays(offline, new ObjectID(REPOSITORIES[0]!.id));
+      const enqueue: jest.SpyInstance = jest.spyOn(
+        SubjectCodeFixRun,
+        "enqueueSubjectCodeFixRun",
+      );
+
+      await expect(click(new ObjectID(REPOSITORIES[0]!.id))).rejects.toThrow(
+        offline.message,
+      );
+      expect(enqueue).not.toHaveBeenCalled();
+    });
+
+    test("the automatic routing never asks for a pick: queued as before", async () => {
+      connectedRepositories();
+      jest
+        .spyOn(SubjectCodeFixRun, "findFinishedPerformanceFixRunForTrace")
+        .mockResolvedValue(null);
+      const gate: jest.SpyInstance = gateSays(null, null);
+      const enqueue: jest.SpyInstance = jest
+        .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
+        .mockResolvedValue(fakeRun());
+
+      await FixPerformanceTaskTrigger.createPerformanceFixTaskFromFindings({
+        projectId,
+        traceId,
+        findings: SpanTreeAnalyzer.analyzeTrace(spansWithNPlusOne()),
+        codeLocations: [],
+      });
+
+      expect(gate).not.toHaveBeenCalled();
+      expect(enqueue).toHaveBeenCalledTimes(1);
+    });
   });
 });

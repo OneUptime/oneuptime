@@ -5,6 +5,7 @@ import {
   Route as PlaywrightRoute,
   test,
 } from "@playwright/test";
+import { sideMenuAtRest } from "../SuiteHelpers/SideMenuAtRest";
 
 /*
  * Where a side menu's titles and section headings break, in Chromium and
@@ -64,6 +65,13 @@ test.afterEach(async ({ page }: { page: Page }) => {
  * A page of the fixture, once the layout has drawn the record's name, with
  * the page saying lang="en" as the Dashboard's always does: the menu's
  * translated words carry their own language.
+ *
+ * Its words are read once the menu is at rest (SuiteHelpers/SideMenuAtRest).
+ * While the fixture's Tailwind folds the sections that start folded, on
+ * first paint, their rows say visibility: visible, and the hyphens check
+ * below counted the folded "Benutzerdefinierte Domains" and
+ * "Benutzerdefinierte Felder" - an 18-letter word, hyphenated as it should
+ * be - as titles in sight.
  */
 async function open(page: Page, address: string): Promise<void> {
   await page.goto(address);
@@ -75,6 +83,7 @@ async function open(page: Page, address: string): Promise<void> {
     document.documentElement.lang = "en";
     await document.fonts.ready;
   });
+  await sideMenuAtRest(page);
 }
 
 function desktopMenu(page: Page): Locator {

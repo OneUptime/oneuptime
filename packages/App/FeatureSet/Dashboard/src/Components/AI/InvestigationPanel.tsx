@@ -44,6 +44,8 @@ import ClusterAccessNotice, {
   parseClusterAccess,
 } from "./ClusterAccessNotice";
 import { EvidenceFocusRequest } from "./InvestigationReport/InvestigationEvidenceList";
+import InvestigationLogStallNotice from "./InvestigationLogStallNotice";
+import { getInvestigationLogStall } from "./InvestigationLogStallCopy";
 import InvestigationRunDetails, {
   InvestigationRunUsage,
   InvestigationUsageLine,
@@ -1422,6 +1424,14 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     ? parsedReport?.footer?.modelName
     : undefined;
 
+  /*
+   * What stood in the way when the investigation could not tell the cause
+   * for lack of logs, as the run recorded it (InvestigationStalled): said
+   * under the report, with the way forward.
+   */
+  const logStall: ReturnType<typeof getInvestigationLogStall> =
+    analysisMarkdown && parsedReport ? getInvestigationLogStall(events) : null;
+
   const investigationStage: AIInvestigationStage = getAIInvestigationStage({
     isChecking: isCheckingStatus,
     runStatus,
@@ -1582,6 +1592,20 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                       "The run finished without a final analysis.",
                     )}
               </InvestigationNotice>
+            )}
+
+            {/*
+              The investigation could not tell the cause for lack of logs:
+              what stood in its way, right under the report it explains, and
+              the way forward.
+            */}
+            {logStall ? (
+              <InvestigationLogStallNotice
+                stall={logStall}
+                subjectType={subjectType}
+              />
+            ) : (
+              <></>
             )}
 
             {/*

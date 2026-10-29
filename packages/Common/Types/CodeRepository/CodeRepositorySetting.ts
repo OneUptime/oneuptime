@@ -24,6 +24,8 @@ export enum CodeRepositorySetting {
   PullRequests = "pull-requests",
   TriggerLabel = "trigger-label",
   ProductionReviewComment = "production-review-comment",
+  // The LLM provider OneUptime AI reads pull requests with in its reviews.
+  ProductionReviewLlmProvider = "production-review-llm-provider",
   // Only on a repository whose operator set build and test commands.
   Commands = "commands",
   /*

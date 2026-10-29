@@ -1,9 +1,11 @@
 import fs from "fs";
 import path from "path";
 import {
+  EventStanding,
   EventTimelineDate,
   getEventEndDateForCurrentState,
   getEventDurationText,
+  getEventStanding,
   getLatestTimelineDateByEventId,
   getResolvedAtByEventId,
 } from "../../FeatureSet/Dashboard/src/Utils/EventDuration";
@@ -309,6 +311,118 @@ describe("getEventEndDateForCurrentState", () => {
         RESOLVED_STATE_IDS,
       ),
     ).toBe(resolvedAgainDate);
+  });
+});
+
+/*
+ * Where an incident or an alert stands now, by its latest dated state - what
+ * the AI card's conversation suggests follows it. Acknowledged means a state
+ * that counts as acknowledged short of resolved (the page hands
+ * AcknowledgedStateUtil.getAcknowledgedUnresolvedStateIds).
+ */
+describe("getEventStanding", () => {
+  const ACKNOWLEDGED_STATE_IDS: Array<string> = ["acknowledged", "mitigated"];
+  const createdDate: Date = new Date("2026-08-01T01:00:00.000Z");
+  const acknowledgedDate: Date = new Date("2026-08-01T02:00:00.000Z");
+  const resolvedDate: Date = new Date("2026-08-01T03:00:00.000Z");
+  const reopenedDate: Date = new Date("2026-08-01T04:00:00.000Z");
+
+  function standingOf(
+    timelines: Array<{ stateId?: string; startsAt?: Date }>,
+  ): EventStanding | undefined {
+    return getEventStanding({
+      timelines,
+      acknowledgedStateIds: ACKNOWLEDGED_STATE_IDS,
+      resolvedStateIds: RESOLVED_STATE_IDS,
+    });
+  }
+
+  it("is open in its first state, acknowledged once it counts as acknowledged, resolved once it counts as resolved", () => {
+    expect(standingOf([{ stateId: "created", startsAt: createdDate }])).toBe(
+      EventStanding.Open,
+    );
+    expect(
+      standingOf([
+        { stateId: "created", startsAt: createdDate },
+        { stateId: "acknowledged", startsAt: acknowledgedDate },
+      ]),
+    ).toBe(EventStanding.Acknowledged);
+    // A state of the project's own between acknowledged and resolved.
+    expect(
+      standingOf([
+        { stateId: "created", startsAt: createdDate },
+        { stateId: "mitigated", startsAt: acknowledgedDate },
+      ]),
+    ).toBe(EventStanding.Acknowledged);
+    expect(
+      standingOf([
+        { stateId: "created", startsAt: createdDate },
+        { stateId: "acknowledged", startsAt: acknowledgedDate },
+        { stateId: "resolved", startsAt: resolvedDate },
+      ]),
+    ).toBe(EventStanding.Resolved);
+    // A state after Resolved counts as resolved too.
+    expect(
+      standingOf([
+        { stateId: "resolved", startsAt: resolvedDate },
+        { stateId: "closed", startsAt: reopenedDate },
+      ]),
+    ).toBe(EventStanding.Resolved);
+  });
+
+  it("a reopened event is open again, whatever it went through", () => {
+    expect(
+      standingOf([
+        { stateId: "created", startsAt: createdDate },
+        { stateId: "acknowledged", startsAt: acknowledgedDate },
+        { stateId: "resolved", startsAt: resolvedDate },
+        { stateId: "created", startsAt: reopenedDate },
+      ]),
+    ).toBe(EventStanding.Open);
+  });
+
+  it("reads the latest state by date, not by list order; a later entry wins a tie", () => {
+    expect(
+      standingOf([
+        { stateId: "resolved", startsAt: resolvedDate },
+        { stateId: "created", startsAt: createdDate },
+      ]),
+    ).toBe(EventStanding.Resolved);
+    expect(
+      standingOf([
+        { stateId: "acknowledged", startsAt: resolvedDate },
+        { stateId: "resolved", startsAt: resolvedDate },
+      ]),
+    ).toBe(EventStanding.Resolved);
+    expect(
+      standingOf([
+        { stateId: "resolved", startsAt: resolvedDate },
+        { stateId: "acknowledged", startsAt: resolvedDate },
+      ]),
+    ).toBe(EventStanding.Acknowledged);
+  });
+
+  it("nothing to tell by - no dated state, or a latest one with no state - is no standing", () => {
+    expect(standingOf([])).toBeUndefined();
+    expect(standingOf([{ stateId: "resolved" }])).toBeUndefined();
+    expect(standingOf([{ startsAt: resolvedDate }])).toBeUndefined();
+    // Undated entries are left out; the dated one decides.
+    expect(
+      standingOf([
+        { stateId: "created", startsAt: createdDate },
+        { stateId: "resolved" },
+      ]),
+    ).toBe(EventStanding.Open);
+  });
+
+  it("a project whose states could not be told apart: everything is open", () => {
+    expect(
+      getEventStanding({
+        timelines: [{ stateId: "resolved", startsAt: resolvedDate }],
+        acknowledgedStateIds: [],
+        resolvedStateIds: [],
+      }),
+    ).toBe(EventStanding.Open);
   });
 });
 

@@ -43,7 +43,8 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const USER_ID: ObjectID = new ObjectID("0194d4ba-0000-4000-8000-00000000c102");
 
 const DASHBOARD_URL: string = "https://oneuptime.example/dashboard";
-const PROFILE_URL: string = `${DASHBOARD_URL}/${PROJECT_ID.toString()}/settings/users/${USER_ID.toString()}`;
+// The person's page in the project: Users, then them.
+const PROFILE_URL: string = `${DASHBOARD_URL}/${PROJECT_ID.toString()}/users/${USER_ID.toString()}`;
 
 const HOSTILE_NAME: string =
   "Jane](https://evil.example/login) ![](https://tracker.example/p.png) <!channel> <b>Doe</b>";

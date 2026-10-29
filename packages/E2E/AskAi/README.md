@@ -49,11 +49,14 @@ An in-page server answers what the dialog asks and records what it sends on
 
 `?providers=two` gives two LLM providers to choose between, `?ai=off` switches AI off for the
 project, `?fail=send` refuses a question, `?lang=de|fa` draws the Dashboard's German or Persian
-words (Persian right to left), and `?theme=dark` the dark theme.
+words (Persian right to left), and `?theme=dark` the dark theme. `?incident=resolved` puts
+incident #42 in the project's Resolved state (`?incident=open`, and the default, in its first,
+open one): the incident read answers its state with its title, and the project's incident
+states are listed, as the API answers them.
 
 ## What the spec holds
 
-`AskAi.spec.ts` (50 tests, Chromium) pins the browser clock, fences the network to the fixture
+`AskAi.spec.ts` (54 tests, Chromium) pins the browser clock, fences the network to the fixture
 server, and fails on any uncaught page error:
 
 - every way in: the header's Ask AI, `Ctrl` / `Cmd` + `I` (and the keys left to another text
@@ -65,6 +68,10 @@ server, and fails on any uncaught page error:
   it closing it and a drag that ends there not; Esc in a menu closing only the menu;
 - the start: one question, the page in the composer's pill, the page's own four suggestions,
   the pill cleared and brought back, and its words, lines and elements counted;
+- questions that follow the record: a resolved incident's four (how the response went and what
+  would stop it coming back, not a status update), one asked about the incident with nothing of
+  its state on the wire, an open incident's own, in German, and fitting a phone in German and
+  Persian;
 - an answer written quietly: one live line that opens into its steps, the question held still
   while the answer is written below it, the answer's citation chips, its sources, time, Copy and
   thumbs on one row, its sources and run stats, Stop, Try again, a question that cannot be sent,

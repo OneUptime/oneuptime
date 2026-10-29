@@ -85,7 +85,7 @@ export class Service extends ProjectReferencesService<Model> {
             userId: deleteByUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
-              notifyUserId: deleteByUserId || undefined,
+              leadWithAuthor: true,
             },
           });
         }
@@ -137,7 +137,7 @@ export class Service extends ProjectReferencesService<Model> {
           userId: createdByUserId || undefined,
           workspaceNotification: {
             sendWorkspaceNotification: true,
-            notifyUserId: createdByUserId || undefined,
+            leadWithAuthor: true,
           },
         });
       }

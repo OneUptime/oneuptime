@@ -9,6 +9,7 @@ import WidgetRenderer from "../../AIChat/Widgets/WidgetRenderer";
 import AnswerCitationChip from "./AnswerCitationChip";
 import AnswerSources from "./AnswerSources";
 import ConversationComposer from "./ConversationComposer";
+import { EventStanding } from "../../../Utils/EventDuration";
 import AIChatMessageRole from "Common/Types/AI/AIChatMessageRole";
 import AIChatMessageStatus from "Common/Types/AI/AIChatMessageStatus";
 import {
@@ -83,6 +84,14 @@ export interface ComponentProps {
    * question someone else asks shows up. Left out, it always shows.
    */
   fold?: InvestigationConversationFold | undefined;
+  /*
+   * Where the incident or alert stands now, as its page reads it from its
+   * state timeline (getEventStanding): its suggestions follow it - none
+   * offers to acknowledge what is acknowledged, and a resolved one is asked
+   * how the response went and what would stop it coming back. Left out,
+   * the usual suggestions.
+   */
+  standing?: EventStanding | undefined;
 }
 
 /*
@@ -196,9 +205,10 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
   const activeMessage: ThreadMessage | undefined =
     findActiveAssistantMessage(view);
   const activityLine: string | null = describeThreadActivity(view, translator);
+  const standing: EventStanding | undefined = props.standing;
   const suggestions: Array<SuggestedPrompt> = useMemo(() => {
-    return getSuggestedPrompts(subjectType, stage);
-  }, [subjectType, stage]);
+    return getSuggestedPrompts(subjectType, stage, standing);
+  }, [subjectType, stage, standing]);
 
   const sendBlocker: string | null = getSendBlocker({
     view,

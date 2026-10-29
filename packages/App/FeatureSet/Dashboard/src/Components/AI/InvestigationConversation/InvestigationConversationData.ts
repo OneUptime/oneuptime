@@ -19,6 +19,7 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import { AIInvestigationStage } from "../AIInvestigationStatus";
+import { EventStanding } from "../../../Utils/EventDuration";
 
 /*
  * The AI Investigation card's conversation, as data: parsing the thread the
@@ -432,37 +433,63 @@ export function getSendBlocker(data: {
  * or it finished without one) the first thing to ask is the question the
  * report would have answered, so it leads. It is not offered while an
  * investigation is still underway, or before the card knows.
+ *
+ * They follow where the record stands (`standing`, from its page), as Ask
+ * AI's questions do: nothing offers to acknowledge what is acknowledged,
+ * and a resolved one is asked how the response went and what would stop
+ * it coming back, in the places of what to do right now and what else it
+ * affects. Not known - the usual ones, as before.
  */
 export function getSuggestedPrompts(
   subjectType: InvestigationConversationSubjectType,
   stage?: AIInvestigationStage | undefined,
+  standing?: EventStanding | undefined,
 ): Array<SuggestedPrompt> {
+  const isResolved: boolean = standing === EventStanding.Resolved;
   const prompts: Array<SuggestedPrompt> = [
-    {
-      label: "What should I do right now?",
-      prompt: `What should I do right now to mitigate this ${subjectType}? Give me the next steps in order.`,
-    },
+    isResolved
+      ? {
+          label: "Prevent a repeat",
+          prompt:
+            subjectType === "incident"
+              ? "What would stop this incident from happening again? Base it on its root cause and on similar past incidents."
+              : "What would stop this alert from firing again? Base it on its root cause and on similar past alerts.",
+        }
+      : {
+          label: "What should I do right now?",
+          prompt: `What should I do right now to mitigate this ${subjectType}? Give me the next steps in order.`,
+        },
     {
       label: "What changed just before this?",
       prompt: `What changed right before this ${subjectType} started — deploys, config, traffic, errors?`,
     },
-    {
-      label: "Is anything else affected?",
-      prompt: `Is anything else affected by this ${subjectType}? Check related services, monitors and open ${subjectType}s.`,
-    },
+    isResolved
+      ? {
+          label: "Response timeline",
+          prompt: `How long did this ${subjectType} take to acknowledge and to resolve, and where did the response slow down?`,
+        }
+      : {
+          label: "Is anything else affected?",
+          prompt: `Is anything else affected by this ${subjectType}? Check related services, monitors and open ${subjectType}s.`,
+        },
     {
       label: "Draft a status update",
-      prompt: `Draft a short, customer-facing status update for this ${subjectType}. Don't post it yet.`,
+      prompt: isResolved
+        ? `Draft a short, customer-facing status update saying this ${subjectType} is resolved. Don't post it yet.`
+        : `Draft a short, customer-facing status update for this ${subjectType}. Don't post it yet.`,
     },
-    {
+  ];
+
+  if (!isResolved && standing !== EventStanding.Acknowledged) {
+    prompts.push({
       label:
         subjectType === "incident"
           ? "Acknowledge this incident"
           : "Acknowledge this alert",
       prompt: `Acknowledge this ${subjectType}.`,
       isAction: true,
-    },
-  ];
+    });
+  }
 
   if (stage === "none") {
     prompts.unshift({
