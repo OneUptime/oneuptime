@@ -939,12 +939,18 @@ describe("Bulk Actions > Delete of values says what it would do first", () => {
     const before: unknown = table("incident-severity-table")["refreshToggle"];
     const countsBefore: number = countMock.mock.calls.length;
 
+    /*
+     * Date.now() makes the toggle: let a few milliseconds pass after the
+     * page drew, before the bulk Delete ends, so the two never share one.
+     */
+    await act(async () => {
+      await new Promise((resolve: (value: unknown) => void) => {
+        setTimeout(resolve, 5);
+      });
+    });
+
     await act(async () => {
       bulkActionsOf("incident-severity-table").onDeleteEnd!();
-      // Date.now() makes the toggle: let a millisecond pass first.
-      await new Promise((resolve: (value: unknown) => void) => {
-        setTimeout(resolve, 2);
-      });
     });
 
     await waitFor(() => {
