@@ -761,6 +761,12 @@ For å opprette en fra **Monitorer** i stedet:
 
 En nettverksenhetsmonitor har ikke noe eget intervall: den vurderes hver gang enhetens pollingresultater kommer inn, og hver gang en trap fra enheten kommer inn.
 
+### En enhets hendelser og varsler
+
+En hendelse eller et varsel kan handle om en nettverksenhet. Velg enheten under **Andre berørte ressurser** når du erklærer en hendelse eller oppretter et varsel, eller la en monitor knytte den til: det en monitor utløser, knyttes til enheten den rapporterer om — enheten en nettverksenhetsmonitor overvåker, enheten monitoren er bundet til, og enheten en discovery-import opprettet monitoren for.
+
+Enhetens sider **Hendelser** og **Varsler**, under **Aktivitet** i menyen, viser det som er knyttet til den, og menyen og enhetens oversikt teller de åpne. **Erklær hendelse** og **Opprett varsel** på de sidene starter med enheten valgt.
+
 ### Standardverdier for egendefinerte felt
 
 Hvis prosjektet ditt definerer egendefinerte monitorfelt — produsent, konfigurasjonselement, ansvarlig tjeneste, hva enn CMDB-en din trenger — kan en monitormal fylle dem ut. Åpne malen fra **Monitorer → Innstillinger → Maler** og angi **Custom Field Defaults**.

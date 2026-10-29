@@ -74,7 +74,7 @@ Ga naar het tabblad **Instellingen** van de monitor. De kaart **Incoming Email A
 | Actie | Wat het doet | Wanneer u het gebruikt |
 | --- | --- | --- |
 | **Reset Address** | Geeft de monitor een nieuw, willekeurig gegenereerd adres `monitor-{secret-key}@{inbound-domain}`. Heeft de monitor een aangepast adres, dan verwijdert het opnieuw instellen dat. U wordt eerst om bevestiging gevraagd. | Het adres is uitgelekt, of u wilt afsluiten wat er ook maar naartoe stuurt. |
-| **Customize Address** | Laat u het deel vóór de @ kiezen, bijvoorbeeld `nightly-backups@{inbound-domain}`. Voer het in bij **Address name** — u kunt de naam typen of het hele adres plakken — en klik op **Save Address**. | U wilt een adres dat mensen herkennen. |
+| **Customize Address** | Laat u het deel vóór de @ kiezen, bijvoorbeeld `nightly-backups@{inbound-domain}`. Voer het in bij **Adresnaam** — u kunt de naam typen of het hele adres plakken — en klik op **Save Address**. | U wilt een adres dat mensen herkennen. |
 
 Beide acties eindigen met het nieuwe adres en een kopieerknop.
 

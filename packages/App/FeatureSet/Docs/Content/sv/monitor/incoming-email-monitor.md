@@ -74,7 +74,7 @@ Gå till monitorns flik **Inställningar**. Kortet **Incoming Email Address** vi
 | Åtgärd | Vad den gör | Använd den när |
 | --- | --- | --- |
 | **Reset Address** | Ger monitorn en ny, slumpmässigt genererad adress `monitor-{secret-key}@{inbound-domain}`. Har monitorn en anpassad adress tas den bort vid återställningen. Du blir ombedd att bekräfta först. | Adressen har läckt, eller du vill stänga ute det som skickar till den. |
-| **Customize Address** | Låter dig välja delen före @, till exempel `nightly-backups@{inbound-domain}`. Ange den i **Address name** — du kan skriva namnet eller klistra in hela adressen — och klicka på **Save Address**. | Du vill ha en adress som folk känner igen. |
+| **Customize Address** | Låter dig välja delen före @, till exempel `nightly-backups@{inbound-domain}`. Ange den i **Adressnamn** — du kan skriva namnet eller klistra in hela adressen — och klicka på **Save Address**. | Du vill ha en adress som folk känner igen. |
 
 Båda åtgärderna avslutas med att den nya adressen visas med en kopieringsknapp.
 

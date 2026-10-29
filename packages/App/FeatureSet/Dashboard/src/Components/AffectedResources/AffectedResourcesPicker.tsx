@@ -1938,7 +1938,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                       onClick={() => {
                         removeItem(item);
                       }}
-                      className="ml-1 rounded-full text-gray-400 hover:bg-gray-200 hover:text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className="ms-1 rounded-full text-gray-400 hover:bg-gray-200 hover:text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     >
                       <svg
                         className="h-3.5 w-3.5"
@@ -2119,7 +2119,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
             }
           }}
           placeholder={placeholder}
-          className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-gray-100 disabled:text-gray-500"
+          className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-gray-100 disabled:text-gray-500"
         />
       )}
 
@@ -2285,9 +2285,9 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
           {activeTab === "resources" && (
             <div className="flex-1 overflow-auto pb-1">
               {isLoading && (
-                <div className="flex w-full items-center px-3 py-2 text-left text-gray-500">
+                <div className="flex w-full items-center px-3 py-2 text-start text-gray-500">
                   <svg
-                    className="animate-spin -ml-0.5 mr-2 h-4 w-4 text-indigo-500"
+                    className="animate-spin -ms-0.5 me-2 h-4 w-4 text-indigo-500"
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"
@@ -2562,9 +2562,9 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
           {activeTab === "labels" && (
             <div className="flex-1 overflow-auto py-1">
               {isLoadingLabels && (
-                <div className="flex w-full items-center px-3 py-2 text-left text-gray-500">
+                <div className="flex w-full items-center px-3 py-2 text-start text-gray-500">
                   <svg
-                    className="animate-spin -ml-0.5 mr-2 h-4 w-4 text-indigo-500"
+                    className="animate-spin -ms-0.5 me-2 h-4 w-4 text-indigo-500"
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"
@@ -2706,7 +2706,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                             onClick={(): void => {
                               toggleLabelId(labelId);
                             }}
-                            className={`flex flex-1 items-center gap-2 rounded px-1 py-1 text-left ${
+                            className={`flex flex-1 items-center gap-2 rounded px-1 py-1 text-start ${
                               isHighlighted
                                 ? "text-gray-900"
                                 : "text-gray-700 hover:bg-indigo-100/50"

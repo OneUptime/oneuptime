@@ -761,6 +761,12 @@ To create one from **Monitors** instead:
 
 A Network Device monitor has no interval of its own: it is evaluated every time the device's poll results arrive, and every time a trap from the device arrives.
 
+### A device's incidents and alerts
+
+An incident or an alert can be about a network device. Pick the device under **Other Affected Resources** when you declare an incident or create an alert, or let a monitor link it: what a monitor raises is linked to the device it reports on — the device a Network Device monitor watches, the device bound to the monitor, and the device a discovery import made the monitor for.
+
+The device's **Incidents** and **Alerts** pages, under **Activity** in its menu, list what is linked to it, and the menu and the device's overview count the open ones. **Declare Incident** and **Create Alert** on those pages start with the device picked.
+
 ### Custom Field Defaults
 
 If your project defines monitor custom fields — vendor, configuration item, owning service, whatever your CMDB needs — a monitor template can fill them in. Open the template from **Monitors → Settings → Templates** and set its **Custom Field Defaults**.

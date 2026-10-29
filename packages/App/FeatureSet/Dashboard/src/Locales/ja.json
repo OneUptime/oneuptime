@@ -23327,7 +23327,7 @@
   "{{reporting}} of {{count}} services": "{{count}} 件中 {{reporting}} 件のサービス",
   "{{reporting}} of {{count}} services_one": "{{reporting}} of {{count}} service",
   "{{resources}} across {{count}} categories": "{{count}} カテゴリにわたる {{resources}}",
-  "{{resources}} across {{count}} categories_one": "{{resources}} across {{count}} category",
+  "{{resources}} across {{count}} categories_one": "{{count}} カテゴリにわたる {{resources}}",
   "{{samples}} samples · {{count}} profiles · {{share}}": "{{samples}} サンプル · {{count}} プロファイル · {{share}}",
   "{{samples}} samples · {{count}} profiles · {{share}}_one": "{{samples}} samples · {{count}} profile · {{share}}",
   "{{scan}} address sweep progress": "{{scan}} のアドレススイープの進行状況",
