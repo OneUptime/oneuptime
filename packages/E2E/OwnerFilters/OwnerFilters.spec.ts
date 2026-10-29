@@ -168,6 +168,19 @@ async function openPage(
   await expect(page.getByTestId("table-skeleton-loader")).toHaveCount(0);
   await expect(rows(page).first()).toBeVisible();
   await finishFirstPaintTransitions(page);
+
+  /*
+   * Below md the chips are folded behind Filter (FacetFilterBar). These
+   * tests are about the chips themselves, so on a phone they open them
+   * first; ModelTables.spec.ts holds the fold.
+   */
+  if ((options.width || 1280) < 768) {
+    const filter: Locator = page.getByTestId("facet-filter-bar-toggle");
+
+    await filter.click();
+    await expect(filter).toHaveAttribute("aria-expanded", "true");
+    await finishFirstPaintTransitions(page);
+  }
 }
 
 // The list's rows: table rows on a laptop, cards on a phone.

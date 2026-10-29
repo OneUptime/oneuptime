@@ -701,6 +701,87 @@ describe("filterPaletteCommands", () => {
     );
   });
 
+  /*
+   * A setting found by the name its card shows (the Dashboard's page index)
+   * names the page it is on. "saml" is a word for the SSO page and the name
+   * of its SAML card, which matches better on its own: the page still comes
+   * first, the card right after it.
+   */
+  describe("a command on a page never comes before that page", () => {
+    const sso: PaletteCommand = makePage(
+      "page-sso",
+      "SSO",
+      ["Project Settings", "Security"],
+      ["saml", "single sign-on"],
+    );
+    const saml: PaletteCommand = {
+      ...makePage("setting-saml", "SAML", ["Project Settings", "Security"]),
+      onPageCommandId: "page-sso",
+    };
+    const testCard: PaletteCommand = {
+      ...makePage("setting-test", "Test Single Sign On (SSO)", [
+        "Project Settings",
+        "Security",
+      ]),
+      onPageCommandId: "page-sso",
+    };
+    const auditLogs: PaletteCommand = makePage(
+      "page-audit",
+      "Audit Logs",
+      ["Project Settings"],
+      ["saml assertions"],
+    );
+
+    test("it comes right after its page when both match", () => {
+      expect(
+        ids(filterPaletteCommands([saml, testCard, auditLogs, sso], "saml")),
+      ).toEqual(["page-sso", "setting-saml", "page-audit"]);
+      expect(
+        ids(
+          filterPaletteCommands(
+            [testCard, saml, auditLogs, sso],
+            "single sign-on",
+          ),
+        ),
+      ).toEqual(["page-sso", "setting-test"]);
+    });
+
+    test("two of one page keep the order they ranked in, after it", () => {
+      expect(ids(filterPaletteCommands([testCard, saml, sso], "sso"))).toEqual([
+        "page-sso",
+        "setting-test",
+      ]);
+
+      const ranked: Array<string> = ids(
+        filterPaletteCommands(
+          [
+            { ...testCard, title: "SAML test" },
+            saml,
+            { ...sso, keywords: ["identity"] },
+          ],
+          "saml",
+        ),
+      );
+
+      // The page does not match: each stands where it ranked.
+      expect(ranked).toEqual(["setting-saml", "setting-test"]);
+    });
+
+    test("where its page is not listed, it stands where it ranked", () => {
+      expect(ids(filterPaletteCommands([auditLogs, saml], "saml"))).toEqual([
+        "setting-saml",
+        "page-audit",
+      ]);
+    });
+
+    test("a page that ranks first already leaves the order as it is", () => {
+      expect(ids(filterPaletteCommands([sso, saml, testCard], "sso"))).toEqual([
+        "page-sso",
+        "setting-test",
+      ]);
+    });
+  });
+
   test("the score is exposed so callers can see how good a match is", () => {
     const matches: Array<PaletteCommandMatch> = filterPaletteCommands(
       [makeCommand("a", "API Keys", "Pages")],
@@ -821,5 +902,31 @@ describe("getPaletteSectionId", () => {
     );
     expect(getPaletteSectionId("Essentials")).toBe("essentials");
     expect(getPaletteSectionId("  Odd  Spacing  ")).toBe("odd-spacing");
+  });
+
+  /*
+   * A section's id is its React key too. Read with Latin letters only, the
+   * Persian sections were all "" - one key for every section, so React
+   * warned on every open and could draw a section twice or drop one.
+   */
+  test("keeps the letters of every script, so each section has a key of its own", () => {
+    const persian: Array<string> = [
+      "حساب",
+      "اقدام\u200cها",
+      "صفحه\u200cها",
+      "پیوندهای سریع",
+    ].map(getPaletteSectionId);
+
+    expect(persian).toEqual(["حساب", "اقدام-ها", "صفحه-ها", "پیوندهای-سریع"]);
+    expect(new Set(persian).size).toBe(persian.length);
+
+    expect(getPaletteSectionId("アクション")).toBe("アクション");
+    expect(getPaletteSectionId("Быстрые ссылки")).toBe("быстрые-ссылки");
+    expect(getPaletteSectionId("सेटिंग्स")).toBe("सेटिंग्स");
+    expect(getPaletteSectionId("Paramètres")).toBe("paramètres");
+
+    for (const title of ["حساب", "アクション", "Быстрые ссылки", "सेटिंग्स"]) {
+      expect(getPaletteSectionId(title)).not.toBe("");
+    }
   });
 });

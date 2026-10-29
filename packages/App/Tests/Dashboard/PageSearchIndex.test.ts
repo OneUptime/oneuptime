@@ -2,6 +2,7 @@ import {
   buildPageSearchCommandDescriptors,
   BuildPageSearchCommandsInput,
   canDeleteProject,
+  getPageSearchCommandRanking,
   getPageSearchIndexEntries,
   PageSearchAvailability,
   PageSearchCommandDescriptor,
@@ -694,6 +695,8 @@ describe("what the maintainer asked for, through the real search", () => {
         breadcrumbKeywords: descriptor.breadcrumbKeywords,
         category: descriptor.isAction ? "Actions" : "Pages",
         isSearchOnly: true,
+        // As the palette ranks them.
+        ...getPageSearchCommandRanking(descriptor),
         onSelect: (): void => {},
       };
     },

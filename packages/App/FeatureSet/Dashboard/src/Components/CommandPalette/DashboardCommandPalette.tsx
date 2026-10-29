@@ -13,6 +13,7 @@ import {
   canDeleteProject,
   computeCreateActionGates,
   getEntitySearchSpecs,
+  getPageSearchCommandRanking,
   getVisibleActionIds,
   isRoutePathNavigable,
   PageSearchAvailability,
@@ -696,9 +697,19 @@ const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
         breadcrumbKeywords: descriptor.breadcrumbKeywords,
         icon: descriptor.icon,
         iconColor: descriptor.iconColor,
+        /*
+         * A setting is listed among the pages, by how well it matches: in
+         * a group of its own, a page that only held the words somewhere in
+         * a keyword ("processors" for "sso") was drawn above "Require SSO
+         * for Login".
+         */
         category: descriptor.isAction ? actionsCategory : pagesCategory,
         isSearchOnly: true,
-        searchPriority: PALETTE_SEARCH_PRIORITY.page,
+        /*
+         * Between equally good matches a page before a setting, and a
+         * setting never before its page.
+         */
+        ...getPageSearchCommandRanking(descriptor),
         onSelect: () => {
           closePalette();
           Navigation.navigate(new Route(descriptor.routePath));

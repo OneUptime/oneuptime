@@ -15,6 +15,9 @@ import {
   PaletteCommandMatch,
 } from "Common/UI/Components/CommandPalette/PaletteFilter";
 import { PaletteCommand } from "Common/UI/Components/CommandPalette/Types";
+import { SUPPORTED_DOCS_LANGUAGE_CODES } from "Common/Types/Docs/DocsLanguage";
+import PageMap from "../../../FeatureSet/Dashboard/src/Utils/PageMap";
+import { readPage } from "./DocsContentSupport";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -191,4 +194,154 @@ describe("Home Page & Shortcuts explains Search", () => {
       expect(first(query)).toMatch(/^On-Call /);
     }
   });
+});
+
+/*
+ * The settings on a page are found by the names their cards show
+ * (PageSearchPage.settings), in English and in the reader's language. The
+ * page names two, in every docs language: each, typed as that language's
+ * dashboard draws it, finds the page the setting is on first.
+ */
+const SETTING_EXAMPLES: Array<{
+  setting: string;
+  page: string;
+  pageKey: string;
+}> = [
+  {
+    setting: "Require SSO for Login",
+    page: "SSO",
+    pageKey: PageMap.SETTINGS_SSO,
+  },
+  {
+    setting: "Notification Channels",
+    page: "Notification Settings",
+    pageKey: PageMap.SETTINGS_NOTIFICATION_SETTINGS,
+  },
+];
+
+const DASHBOARD_LOCALES: string = path.join(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "FeatureSet",
+  "Dashboard",
+  "src",
+  "Locales",
+);
+
+// What the dashboard draws for an English text in a language.
+function dashboardTranslator(language: string): (text: string) => string {
+  const locale: Record<string, unknown> = JSON.parse(
+    fs.readFileSync(path.join(DASHBOARD_LOCALES, `${language}.json`), "utf8"),
+  ) as Record<string, unknown>;
+
+  return (text: string): string => {
+    const value: unknown = locale[text];
+    return typeof value === "string" && value.trim() ? value : text;
+  };
+}
+
+// The page key the first result of a search opens, in a language.
+function firstPageKey(
+  query: string,
+  translate: (text: string) => string,
+): string {
+  const descriptors: Array<PageSearchCommandDescriptor> =
+    buildPageSearchCommandDescriptors({
+      areas: AREAS,
+      availability: {
+        isBillingEnabled: true,
+        isMonitorGroupsEnabled: true,
+        canDeleteProject: true,
+      },
+      getRouteTemplate: (key: string): string => {
+        return `/dashboard/:projectId/${key}`;
+      },
+      getRoutePath: (key: string): string => {
+        return `/dashboard/project/${key}`;
+      },
+      getProductTitle: (): undefined => {
+        return undefined;
+      },
+      translate: translate,
+      catalog: [],
+    });
+  const match: PaletteCommandMatch | undefined = filterPaletteCommands(
+    descriptors.map((descriptor: PageSearchCommandDescriptor) => {
+      return {
+        id: descriptor.id,
+        title: descriptor.title,
+        titleAliases: descriptor.titleAliases,
+        keywords: descriptor.keywords,
+        breadcrumb: descriptor.breadcrumb,
+        breadcrumbKeywords: descriptor.breadcrumbKeywords,
+        category: "Pages",
+        onSelect: (): void => {},
+      };
+    }),
+    query,
+  )[0];
+  const opened: PageSearchCommandDescriptor | undefined = descriptors.find(
+    (descriptor: PageSearchCommandDescriptor): boolean => {
+      return descriptor.id === match?.command.id;
+    },
+  );
+
+  return (opened?.routePath || "").replace("/dashboard/project/", "");
+}
+
+describe("Home Page & Shortcuts finds a setting by its name", () => {
+  test("it names the settings, and the pages they are on", () => {
+    expect(SECTION).toContain("**The settings on a page**");
+    expect(SECTION).toContain(
+      "*Require SSO for Login* finds SSO, and *Notification Channels* finds Notification Settings",
+    );
+    expect(SECTION).toContain("Type the name in English or in your language.");
+
+    for (const example of SETTING_EXAMPLES) {
+      expect(
+        findEntry(example.page, "project-settings").page.settings || [],
+      ).toContain(example.setting);
+    }
+  });
+
+  test.each(
+    SUPPORTED_DOCS_LANGUAGE_CODES.map((code: string) => {
+      return [code];
+    }),
+  )(
+    "in %s, each setting, as the dashboard names it, finds its page first, and so does its English name",
+    (language: string) => {
+      const translate: (text: string) => string = dashboardTranslator(language);
+      const page: string = readPage(language, "introduction/home");
+
+      for (const example of SETTING_EXAMPLES) {
+        const shown: string = translate(example.setting);
+
+        // The page writes the name as the dashboard draws it.
+        expect({
+          language,
+          shown,
+          written: page.includes(`*${shown}*`),
+        }).toEqual({ language, shown, written: true });
+        expect({
+          language,
+          page: example.page,
+          written: page.includes(translate(example.page)),
+        }).toEqual({ language, page: example.page, written: true });
+
+        expect([language, shown, firstPageKey(shown, translate)]).toEqual([
+          language,
+          shown,
+          example.pageKey,
+        ]);
+        expect([
+          language,
+          example.setting,
+          firstPageKey(example.setting, translate),
+        ]).toEqual([language, example.setting, example.pageKey]);
+      }
+    },
+  );
 });

@@ -260,8 +260,13 @@ describe("command palette wiring", () => {
     expect(PALETTE_HOST).toMatch(
       /searchPriority:\s*PALETTE_SEARCH_PRIORITY\.product/,
     );
+    /*
+     * A page's rows rank as the page index says: a page before a setting
+     * on a page, and a setting never before its page
+     * (getPageSearchCommandRanking, held in CommandPaletteHelpers).
+     */
     expect(PALETTE_HOST).toMatch(
-      /searchPriority:\s*PALETTE_SEARCH_PRIORITY\.page/,
+      /\.\.\.getPageSearchCommandRanking\(\s*descriptor\s*\)/,
     );
   });
 
