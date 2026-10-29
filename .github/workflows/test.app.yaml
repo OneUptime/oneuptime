@@ -327,6 +327,12 @@ jobs:
           # (0.8) moved to group 13 on 2026-10-27, when that run took this group
           # 20.9 minutes: about 18. Every group has Firefox since the groups run
           # in the Playwright image.
+          # Data Security (1.4 minutes locally with its bundle, 23 tests,
+          # Chromium only: the Overview's riskiest issues, a store's Timeline,
+          # an issue's Fix it from here - asked, run and on both timelines,
+          # with the connection's response off and for a Security Viewer - the
+          # Open status in German, and ten pages on a phone, dark, German and
+          # Persian) joined them on 2026-10-29, the lightest group: about 19.5.
           - group: 2
             suites: >-
               test-chart-time-zoom-ui
@@ -337,6 +343,7 @@ jobs:
               test-color-picker-ui
               test-diagrams-ui
               test-runbook-steps-ui
+              test-data-security-ui
           # Value Picker also runs in Firefox (the chip editor's caret handling
           # differs in each). Discovery (about 5 minutes) moved to group 6
           # when this group took 23.5 minutes. Global Runners (about a
@@ -1017,6 +1024,8 @@ jobs:
             output/playwright/security-events-empty-states-ui/test-results
             output/playwright/security-operations-ui/*.png
             output/playwright/security-operations-ui/test-results
+            output/playwright/data-security-ui/*.png
+            output/playwright/data-security-ui/test-results
             output/playwright/status-page-search/test-results
             output/playwright/navigation-search/test-results
             output/playwright/pencil-button/test-results
