@@ -21,6 +21,12 @@ import NetworkControllerDeviceMatcher, {
   FindDevicesFunction,
   NetworkControllerDeviceMatches,
 } from "./NetworkControllerDeviceMatcher";
+import NetworkControllerInventory, {
+  ControllerInventoryOutcome,
+  FindControllerCandidatesFunction,
+  MergeControllerReadingsFunction,
+  MirrorRefreshedDeviceFunction,
+} from "./NetworkControllerInventory";
 import NetworkControllerScheduler from "./NetworkControllerScheduler";
 import {
   NetworkControllerPullState,
@@ -54,7 +60,12 @@ import { BACKFILL_MS } from "./Meraki/MerakiTrafficReader";
  *   4. writes only the windows that are not stored yet - a window a read
  *      wrote before it failed to record its cursor is never written twice -
  *      in batches that never split a window;
- *   5. records the outcome on the connection: when it read, what it found,
+ *   5. records what the organization's device list says about the project's
+ *      devices that are Meraki devices - their model, serial number,
+ *      firmware and the rest - so Inventory fills in what they do not
+ *      report themselves (NetworkControllerInventory). A failure there is a
+ *      warning on the read, never its failure;
+ *   6. records the outcome on the connection: when it read, what it found,
  *      the error with the key removed, where it got to and when it reads
  *      next. The cursor moves only once the rows are stored.
  *
@@ -76,6 +87,9 @@ const CONTINUE_AFTER_MS: number = 60 * 1000;
 const CONTINUE_AFTER_RATE_LIMIT_MS: number = 5 * 60 * 1000;
 // A plan or installation without telemetry is asked again a day later.
 const RETRY_AFTER_PLAN_MS: number = 24 * 60 * 60 * 1000;
+
+export const INVENTORY_NOT_RECORDED_WARNING: string =
+  "The devices' details could not be filled in from Meraki this time: the next read tries again.";
 
 export type NetworkTrafficUsageInserter = (
   rows: Array<JSONObject>,
@@ -165,6 +179,10 @@ export interface NetworkControllerReadDependencies {
   findStoredWindows?: StoredWindowFinder | undefined;
   findStoredWindowEnds?: StoredWindowEndFinder | undefined;
   findDevices?: FindDevicesFunction | undefined;
+  // Test seams for the devices' details the device list fills in.
+  findControllerCandidates?: FindControllerCandidatesFunction | undefined;
+  mergeControllerReadings?: MergeControllerReadingsFunction | undefined;
+  mirrorRefreshedDevice?: MirrorRefreshedDeviceFunction | undefined;
   transport?: NetworkControllerTransport | undefined;
   now?: (() => Date) | undefined;
   sleep?: ((milliseconds: number) => Promise<void>) | undefined;
@@ -361,6 +379,41 @@ export default class NetworkControllerReadRunner {
         rowsWritten += batch.length;
       }
 
+      /*
+       * The device list fills in the details of the project's devices that
+       * are Meraki devices (NetworkControllerInventory). Never at the cost of
+       * the traffic: a failure here is a warning, tried again next read.
+       */
+      const warnings: Array<string> = [...read.warnings];
+      let inventory: ControllerInventoryOutcome | undefined = undefined;
+
+      try {
+        inventory = await NetworkControllerInventory.record({
+          projectId: connection.projectId,
+          connection: {
+            id: connection.id!.toString(),
+            name:
+              connection.name ||
+              read.organizationName ||
+              readNetworkControllerConfig(connection.config).organizationName,
+            provider: settings.provider,
+          },
+          readAt: now,
+          devices: read.devices,
+          isDeviceListComplete: read.isDeviceListComplete,
+          findCandidates: dependencies.findControllerCandidates,
+          merge: dependencies.mergeControllerReadings,
+          mirror: dependencies.mirrorRefreshedDevice,
+        });
+      } catch (error) {
+        logger.error(
+          `Network controller connection ${connection.id!.toString()}: the devices' details could not be recorded: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+        warnings.push(INVENTORY_NOT_RECORDED_WARNING);
+      }
+
       const status: NetworkControllerReadStatus = read.complete
         ? "success"
         : "partial";
@@ -371,6 +424,17 @@ export default class NetworkControllerReadRunner {
         networkCount: read.networkCount,
         applianceCount: read.appliances.length,
         matchedDeviceCount: matches.bySerial.size,
+        ...(inventory
+          ? {
+              deviceCount: inventory.deviceCount,
+              describedDeviceCount: inventory.describedDeviceCount,
+            }
+          : previous?.deviceCount !== undefined
+            ? {
+                deviceCount: previous.deviceCount,
+                describedDeviceCount: previous.describedDeviceCount || 0,
+              }
+            : {}),
         uplinkWindows: read.uplinkWindows,
         ...(read.newestUplinkAt
           ? { newestUplinkAt: read.newestUplinkAt.toISOString() }
@@ -383,7 +447,7 @@ export default class NetworkControllerReadRunner {
         rowsWritten,
         requestCount: read.requestCount,
         wasRateLimited: read.wasRateLimited,
-        warnings: read.warnings.slice(0, MAX_READ_SUMMARY_WARNINGS),
+        warnings: warnings.slice(0, MAX_READ_SUMMARY_WARNINGS),
         durationMs: Date.now() - startedAt,
         finishedAt: clock().toISOString(),
       };
@@ -429,6 +493,12 @@ export default class NetworkControllerReadRunner {
         networkCount: previous?.networkCount || 0,
         applianceCount: previous?.applianceCount || 0,
         matchedDeviceCount: previous?.matchedDeviceCount || 0,
+        ...(previous?.deviceCount !== undefined
+          ? {
+              deviceCount: previous.deviceCount,
+              describedDeviceCount: previous.describedDeviceCount || 0,
+            }
+          : {}),
         uplinkWindows: 0,
         ...(previous?.newestUplinkAt
           ? { newestUplinkAt: previous.newestUplinkAt }
