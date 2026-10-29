@@ -88,6 +88,7 @@ La modalità in diretta si spegne da sola quando cambiate la ricerca, un filtro 
 
 - **Colonne** sceglie che cosa mostra l'elenco. **Ora**, **Servizio**, **Gravità** e **Messaggio** vengono per primi; aggiungete **ID traccia**, **Span ID** o qualsiasi attributo, spostate le colonne su e giù, oppure tornate ai valori predefiniti con **Reimposta**.
 - **Esporta** scarica i log della pagina che state guardando. **Esporta come CSV** scrive le colonne mostrate; **Esporta come JSON** scrive ogni campo di ogni log, con tutti i suoi attributi.
+- Puntate la riga delle intestazioni e trascinate il tratto alla fine del nome di una colonna per allargarla o restringerla, oppure fate doppio clic sul tratto per adattare la colonna al suo contenuto. L'elenco conserva le vostre larghezze in questo browser; **Reimposta la larghezza delle colonne**, alla fine della riga delle intestazioni, riporta ogni colonna alla sua larghezza.
 
 ## Salvare una vista
 

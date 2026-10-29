@@ -88,6 +88,7 @@ O modo ao vivo se desliga sozinho quando você muda a pesquisa, um filtro ou o i
 
 - **Colunas** escolhe o que a lista mostra. **Hora**, **Serviço**, **Gravidade** e **Mensagem** vêm primeiro; adicione **ID do Traço**, **ID do span** ou qualquer atributo, mova as colunas para cima e para baixo, ou volte ao padrão com **Redefinir**.
 - **Exportar** baixa os registros da página que você está vendo. **Exportar como CSV** grava as colunas exibidas; **Exportar como JSON** grava cada campo de cada registro, com todos os atributos dele.
+- Aponte para a linha de cabeçalho e arraste o traço no fim do nome de uma coluna para alargá-la ou estreitá-la, ou clique duas vezes no traço para ajustar a coluna ao conteúdo. A lista guarda suas larguras neste navegador; **Redefinir a largura das colunas**, no fim da linha de cabeçalho, devolve a cada coluna a própria largura.
 
 ## Salvar uma visualização
 

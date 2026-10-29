@@ -88,6 +88,7 @@ Der Live-Modus schaltet sich aus, wenn Sie die Suche, einen Filter oder den Zeit
 
 - **Spalten** legt fest, was die Liste zeigt. **Zeit**, **Dienst**, **Schweregrad** und **Nachricht** stehen vorn; fügen Sie **Trace-ID**, **Span-ID** oder ein beliebiges Attribut hinzu, verschieben Sie Spalten nach oben und unten, oder kehren Sie mit **Zurücksetzen** zu den Standards zurück.
 - **Export** lädt die Protokolle der Seite herunter, die Sie gerade sehen. **Als CSV exportieren** schreibt die angezeigten Spalten; **Als JSON exportieren** schreibt jedes Feld jedes Protokolls mit allen seinen Attributen.
+- Zeigen Sie auf die Kopfzeile und ziehen Sie die Linie am Ende eines Spaltennamens, um die Spalte breiter oder schmaler zu machen, oder doppelklicken Sie auf die Linie, um die Spalte an ihren Inhalt anzupassen. Die Liste merkt sich Ihre Breiten in diesem Browser; **Spaltenbreiten zurücksetzen** am Ende der Kopfzeile setzt jede Spalte auf ihre eigene Breite zurück.
 
 ## Eine Ansicht speichern
 
