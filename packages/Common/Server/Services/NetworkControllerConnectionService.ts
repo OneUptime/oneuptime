@@ -16,7 +16,6 @@ import NetworkControllerProvider, {
   isNetworkControllerProvider,
 } from "../../Types/NetworkController/NetworkControllerProvider";
 import ObjectID from "../../Types/ObjectID";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
@@ -328,18 +327,18 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * The connections a delete removes, with their projects: what each said
-   * about the project's devices is forgotten once it is gone.
+   * about the project's devices is forgotten once it is gone. Read as the
+   * delete reads them - the ones its caller may delete, in its own window -
+   * and the delete held to them (findRowsAndHoldDeleteToThem), so it never
+   * removes a connection whose readings stay behind.
    */
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const connections: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      select: { _id: true, projectId: true },
-      skip: 0,
-      limit: LIMIT_MAX,
-      props: { isRoot: true },
-    });
+    const connections: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      { _id: true, projectId: true },
+    );
 
     const carryForward: ConnectionDeleteCarryForward = {
       connections: connections

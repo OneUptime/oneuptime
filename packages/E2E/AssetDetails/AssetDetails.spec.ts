@@ -1006,9 +1006,9 @@ test.describe("Refresh, every way it can go", () => {
 
     await expect(status).toHaveText("Read again just now.");
     await expect(button).toBeEnabled();
-    // What its walk read is still said once, below the details.
+    // Its walk, said once below the details, is the one that just landed.
     await expect(saidOnce(page)).toHaveText(
-      "Read over SNMP by its probe, 3 minutes ago.",
+      "Read over SNMP by its probe, just now.",
     );
   });
 

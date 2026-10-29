@@ -476,6 +476,11 @@ function readDevice() {
       if (deviceFields.probeId) {
         item.lastPolledAt = readAt;
         item.isReachable = refreshOutcome !== "unreachable";
+
+        // A switch its probe walks is walked again when it is reached.
+        if (deviceFields.lastSnmpSeenAt && item.isReachable) {
+          item.lastSnmpSeenAt = readAt.toISOString();
+        }
       }
 
       if (deviceFields.discoveredDetails?.controller) {

@@ -264,20 +264,39 @@ describe("a deleted connection's readings are forgotten", () => {
     kept.id = new ObjectID("55555555-5555-4555-8555-555555555555");
     kept.projectId = PROJECT_ID;
 
-    jest
-      .spyOn(connectionService, "findBy")
+    /*
+     * The connections are read as the delete reads them, and the delete
+     * held to them (DeleteChecksReadHeldRows): never with a query of the
+     * hook's own.
+     */
+    const held: SpyInstance<
+      typeof connectionService.findRowsAndHoldDeleteToThem
+    > = jest
+      .spyOn(connectionService, "findRowsAndHoldDeleteToThem")
       .mockResolvedValue([deleted, kept] as never);
+    const findBy: SpyInstance<typeof connectionService.findBy> = jest.spyOn(
+      connectionService,
+      "findBy",
+    );
     const forget: SpyInstance<
       typeof NetworkDeviceService.forgetControllerReadings
     > = jest
       .spyOn(NetworkDeviceService, "forgetControllerReadings")
       .mockResolvedValue(2);
 
+    const deleteBy: DeleteBy<NetworkControllerConnection> = {
+      query: { projectId: PROJECT_ID },
+      props: { isRoot: true },
+    } as unknown as DeleteBy<NetworkControllerConnection>;
     const onDelete: OnDelete<NetworkControllerConnection> =
-      await hooks.onBeforeDelete({
-        query: { projectId: PROJECT_ID },
-        props: { isRoot: true },
-      } as unknown as DeleteBy<NetworkControllerConnection>);
+      await hooks.onBeforeDelete(deleteBy);
+
+    expect(held).toHaveBeenCalledTimes(1);
+    expect(held).toHaveBeenCalledWith(deleteBy, {
+      _id: true,
+      projectId: true,
+    });
+    expect(findBy).not.toHaveBeenCalled();
 
     await hooks.onDeleteSuccess(onDelete, [CONNECTION_ID]);
 
