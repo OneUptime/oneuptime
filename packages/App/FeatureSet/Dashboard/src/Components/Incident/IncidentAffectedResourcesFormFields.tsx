@@ -8,6 +8,7 @@ import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster"
 import Host from "Common/Models/DatabaseModels/Host";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
@@ -120,7 +121,7 @@ export const getIncidentAffectedResourcesFormFields: () => Fields<Incident> =
         },
         title: "Other Affected Resources",
         description:
-          "Search and attach hosts, Kubernetes clusters, Docker hosts, databases, cloud resources, or services affected by this incident.",
+          "Search and attach the hosts, network devices, clusters, databases, cloud resources or services this incident affects.",
         fieldType: FormFieldSchemaType.CustomComponent,
         required: false,
         getCustomElement: (
@@ -130,6 +131,7 @@ export const getIncidentAffectedResourcesFormFields: () => Fields<Incident> =
           return (
             <AffectedResourcesPicker
               hosts={values.hosts as Array<Host>}
+              networkDevices={values.networkDevices as Array<NetworkDevice>}
               kubernetesClusters={
                 values.kubernetesClusters as Array<KubernetesCluster>
               }
@@ -148,6 +150,7 @@ export const getIncidentAffectedResourcesFormFields: () => Fields<Incident> =
               services={values.services as Array<Service>}
               resourceTypes={[
                 "Host",
+                "NetworkDevice",
                 "KubernetesCluster",
                 "DockerHost",
                 "PodmanHost",
@@ -161,6 +164,7 @@ export const getIncidentAffectedResourcesFormFields: () => Fields<Incident> =
                 "CloudResource",
                 "Service",
               ]}
+              monitorsFieldTitle="Monitors"
               ariaLabelledby={elementProps.ariaLabelledby}
               onChange={(payload: unknown) => {
                 elementProps.onChange?.(payload);
@@ -180,6 +184,7 @@ export const getIncidentAffectedResourcesFormFields: () => Fields<Incident> =
               setNewFormValues({
                 ...currentValues,
                 hosts: payload.hosts,
+                networkDevices: payload.networkDevices,
                 kubernetesClusters: payload.kubernetesClusters,
                 dockerHosts: payload.dockerHosts,
                 podmanHosts: payload.podmanHosts,
@@ -202,6 +207,15 @@ export const getIncidentAffectedResourcesFormFields: () => Fields<Incident> =
        * kubernetesClusters/dockerHosts/services and the rest on load
        * and submit (hosts is the picker's anchor above).
        */
+      {
+        field: { networkDevices: true },
+        title: "",
+        fieldType: FormFieldSchemaType.Text,
+        required: false,
+        showIf: () => {
+          return false;
+        },
+      },
       {
         field: { kubernetesClusters: true },
         title: "",

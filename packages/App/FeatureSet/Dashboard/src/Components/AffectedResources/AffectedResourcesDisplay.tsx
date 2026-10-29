@@ -11,6 +11,7 @@ import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import Service from "Common/Models/DatabaseModels/Service";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
@@ -33,6 +34,7 @@ import PodmanHostElement from "../PodmanHost/PodmanHost";
 import HostElement from "../Host/Host";
 import KubernetesClusterElement from "../KubernetesCluster/KubernetesCluster";
 import MonitorElement from "../Monitor/Monitor";
+import NetworkDeviceElement from "../NetworkDevice/NetworkDeviceElement";
 import NetworkSiteElement from "../NetworkSite/NetworkSiteElement";
 import ServiceElement from "../Service/ServiceElement";
 import SloElement from "../Slo/SloElement";
@@ -40,6 +42,7 @@ import SloElement from "../Slo/SloElement";
 export interface ComponentProps {
   monitors?: Array<Monitor> | undefined;
   hosts?: Array<Host> | undefined;
+  networkDevices?: Array<NetworkDevice> | undefined;
   kubernetesClusters?: Array<KubernetesCluster> | undefined;
   dockerHosts?: Array<DockerHost> | undefined;
   podmanHosts?: Array<PodmanHost> | undefined;
@@ -68,6 +71,7 @@ export interface ComponentProps {
    */
   hideMonitors?: boolean | undefined;
   hideHosts?: boolean | undefined;
+  hideNetworkDevices?: boolean | undefined;
   hideKubernetesClusters?: boolean | undefined;
   hideDockerHosts?: boolean | undefined;
   hidePodmanHosts?: boolean | undefined;
@@ -314,6 +318,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const monitors: Array<Monitor> = props.monitors || [];
   const hosts: Array<Host> = props.hosts || [];
+  const networkDevices: Array<NetworkDevice> = props.networkDevices || [];
   const kubernetesClusters: Array<KubernetesCluster> =
     props.kubernetesClusters || [];
   const dockerHosts: Array<DockerHost> = props.dockerHosts || [];
@@ -334,6 +339,8 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
 
   const showMonitors: boolean = !props.hideMonitors && monitors.length > 0;
   const showHosts: boolean = !props.hideHosts && hosts.length > 0;
+  const showNetworkDevices: boolean =
+    !props.hideNetworkDevices && networkDevices.length > 0;
   const showClusters: boolean =
     !props.hideKubernetesClusters && kubernetesClusters.length > 0;
   const showDocker: boolean = !props.hideDockerHosts && dockerHosts.length > 0;
@@ -361,6 +368,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
   if (
     !showMonitors &&
     !showHosts &&
+    !showNetworkDevices &&
     !showClusters &&
     !showDocker &&
     !showPodman &&
@@ -421,6 +429,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
   const totalCount: number =
     (showMonitors ? monitors.length : 0) +
     (showHosts ? hosts.length : 0) +
+    (showNetworkDevices ? networkDevices.length : 0) +
     (showClusters ? kubernetesClusters.length : 0) +
     (showDocker ? dockerHosts.length : 0) +
     (showPodman ? podmanHosts.length : 0) +
@@ -438,6 +447,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
   const categoryCount: number =
     (showMonitors ? 1 : 0) +
     (showHosts ? 1 : 0) +
+    (showNetworkDevices ? 1 : 0) +
     (showClusters ? 1 : 0) +
     (showDocker ? 1 : 0) +
     (showPodman ? 1 : 0) +
@@ -514,6 +524,25 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
             items={hosts}
             renderItem={(host: Host) => {
               return <HostElement host={host} />;
+            }}
+          />
+        )}
+        {/*
+         * Routers, switches, firewalls and access points (issue #5341):
+         * beside hosts, the other machines people link by hand. Slate is a
+         * hue no other category uses, and Theme.css remaps its 50 and 600
+         * shades for dark mode.
+         */}
+        {showNetworkDevices && (
+          <CategorySection<NetworkDevice>
+            className={sectionClassName}
+            icon={IconProp.Signal}
+            label="Network Devices"
+            iconBgClass="bg-slate-50"
+            iconColorClass="text-slate-600"
+            items={networkDevices}
+            renderItem={(networkDevice: NetworkDevice) => {
+              return <NetworkDeviceElement networkDevice={networkDevice} />;
             }}
           />
         )}

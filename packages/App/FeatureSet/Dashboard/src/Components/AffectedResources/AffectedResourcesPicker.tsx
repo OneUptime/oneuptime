@@ -12,13 +12,13 @@ import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import Service from "Common/Models/DatabaseModels/Service";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import Search from "Common/Types/BaseDatabase/Search";
 import IconProp from "Common/Types/Icon/IconProp";
 import DROPDOWN_MENU_Z_INDEX from "Common/UI/Components/Dropdown/DropdownMenuZIndex";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -44,28 +44,33 @@ import React, {
   useState,
 } from "react";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import {
+  AFFECTED_RESOURCE_SEARCH_DEFAULT_LIMIT,
+  AFFECTED_RESOURCE_SEARCH_MAX_LIMIT,
+  AffectedResourceKind,
+  AffectedResourceSearchCount,
+  AffectedResourceSearchKindResult,
+  AffectedResourceSearchMatch,
+  AffectedResourceSearchResult,
+} from "Common/Types/AffectedResources/AffectedResourceSearch";
+import { searchAffectedResources } from "./AffectedResourceSearchApi";
 
-export type AffectedResourceType =
-  | "Monitor"
-  | "Host"
-  | "KubernetesCluster"
-  | "DockerHost"
-  | "PodmanHost"
-  | "ProxmoxCluster"
-  | "VMwareVCenter"
-  | "CephCluster"
-  | "StorageArray"
-  | "DockerSwarmCluster"
-  | "IoTFleet"
-  | "DatabaseServer"
-  | "CloudResource"
-  | "NetworkSite"
-  | "Service";
+/*
+ * Every kind the picker can offer: the kinds the server's one search reads
+ * (Common/Types/AffectedResources/AffectedResourceSearch), so a kind the
+ * picker shows is always one the search answers for.
+ */
+export type AffectedResourceType = `${AffectedResourceKind}`;
 
 export interface AffectedResourceItem {
   _id: string;
   name: string;
   type: AffectedResourceType;
+  /*
+   * What tells two of one name apart in the results - a network device's
+   * address. Results only; a chip names the resource alone.
+   */
+  detail?: string | undefined;
   /*
    * True while the picker is still looking up the name of a resource that
    * reached it as a bare ID. `name` is a placeholder until the lookup lands.
@@ -87,6 +92,7 @@ export interface AffectedResourcesPayload {
   __affectedResourcesPayload: true;
   monitors: Array<string> | undefined;
   hosts: Array<string> | undefined;
+  networkDevices: Array<string> | undefined;
   kubernetesClusters: Array<string> | undefined;
   dockerHosts: Array<string> | undefined;
   podmanHosts: Array<string> | undefined;
@@ -110,6 +116,7 @@ type AffectedResourceArrayKey = Exclude<
 export interface ComponentProps {
   monitors?: Array<Monitor> | undefined;
   hosts?: Array<Host> | undefined;
+  networkDevices?: Array<NetworkDevice> | undefined;
   kubernetesClusters?: Array<KubernetesCluster> | undefined;
   dockerHosts?: Array<DockerHost> | undefined;
   podmanHosts?: Array<PodmanHost> | undefined;
@@ -140,6 +147,13 @@ export interface ComponentProps {
    * reader tells them apart by their labels.
    */
   ariaLabelledby?: string | undefined;
+  /*
+   * The title of the form's own monitor field, when monitors are picked
+   * there rather than here - Declare Incident's Monitors, Create Alert's
+   * Monitor. A search here that also matches monitors then says so, and
+   * where they are picked, instead of finding nothing (issue #5341).
+   */
+  monitorsFieldTitle?: string | undefined;
 }
 
 interface ResourceConfig {
@@ -175,6 +189,14 @@ const RESOURCE_CONFIG: Record<AffectedResourceType, ResourceConfig> = {
     icon: IconProp.Server,
     modelType: Host,
     key: "hosts",
+    supportsLabels: true,
+  },
+  NetworkDevice: {
+    label: "Network Device",
+    pluralLabel: "Network Devices",
+    icon: IconProp.Signal,
+    modelType: NetworkDevice,
+    key: "networkDevices",
     supportsLabels: true,
   },
   KubernetesCluster: {
@@ -304,7 +326,12 @@ const ALL_TYPES: Array<AffectedResourceType> = [
 ];
 
 const SEARCH_DEBOUNCE_MS: number = 250;
-const SEARCH_LIMIT_PER_TYPE: number = 15;
+/*
+ * How many of each kind the results list: a page per kind while every kind
+ * is shown, more once the person narrows to one kind.
+ */
+const SEARCH_LIMIT_PER_TYPE: number = AFFECTED_RESOURCE_SEARCH_DEFAULT_LIMIT;
+const SEARCH_LIMIT_FOR_ONE_TYPE: number = AFFECTED_RESOURCE_SEARCH_MAX_LIMIT;
 /*
  * Cap on rendered selected-chip nodes. Bulk label selection can attach
  * thousands of resources to one incident/alert; rendering every chip in a
@@ -640,6 +667,13 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
       ? props.resourceTypes
       : ALL_TYPES;
 
+  /*
+   * Pages hand the kinds in as an inline array, a new one each render. Keyed
+   * on the kinds themselves, so a parent's re-render never re-runs the
+   * search.
+   */
+  const requestedTypesKey: string = requestedTypes.join("|");
+
   const {
     allowed: resourceTypes,
     denied: deniedTypes,
@@ -648,7 +682,23 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     denied: Array<AffectedResourceType>;
   } = useMemo(() => {
     return filterTypesByReadPermission(requestedTypes);
-  }, [requestedTypes]);
+  }, [requestedTypesKey]);
+
+  const resourceTypesKey: string = resourceTypes.join("|");
+
+  /*
+   * Whether a search here also counts the monitors it matches, to say they
+   * are picked in the form's monitor field: only on a picker that does not
+   * offer monitors itself, beside such a field, for someone who may read
+   * monitors.
+   */
+  const countsMonitorsForHint: boolean = useMemo((): boolean => {
+    if (!props.monitorsFieldTitle || resourceTypes.includes("Monitor")) {
+      return false;
+    }
+
+    return filterTypesByReadPermission(["Monitor"]).allowed.length > 0;
+  }, [props.monitorsFieldTitle, resourceTypesKey]);
 
   /*
    * The subset the Labels tab can query. A model with no `labels` relation
@@ -700,6 +750,11 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     }
     if (resourceTypes.includes("Host")) {
       items.push(...toItems(props.hosts, "Host", cache, failed));
+    }
+    if (resourceTypes.includes("NetworkDevice")) {
+      items.push(
+        ...toItems(props.networkDevices, "NetworkDevice", cache, failed),
+      );
     }
     if (resourceTypes.includes("KubernetesCluster")) {
       items.push(
@@ -768,6 +823,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
   }, [
     props.monitors,
     props.hosts,
+    props.networkDevices,
     props.kubernetesClusters,
     props.dockerHosts,
     props.podmanHosts,
@@ -789,6 +845,29 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
   const [searchResults, setSearchResults] = useState<
     Array<AffectedResourceItem>
   >([]);
+  /*
+   * How many of each kind match the search - all of them, not only those
+   * listed - from the server's answer. Read by the kind filter and by each
+   * group's Show all.
+   */
+  const [kindCounts, setKindCounts] = useState<
+    Partial<Record<AffectedResourceType, number>>
+  >({});
+  // The monitors the search also matches (countsMonitorsForHint).
+  const [monitorMatchCount, setMonitorMatchCount] = useState<number>(0);
+  // The kinds the server would not read for this person.
+  const [unreadableTypes, setUnreadableTypes] = useState<
+    Array<AffectedResourceType>
+  >([]);
+  const [hasSearchFailed, setHasSearchFailed] = useState<boolean>(false);
+  /*
+   * The one kind the results are narrowed to, or null for every kind: the
+   * customer's "All, Hosts, Network Devices" (issue #5341). Narrowed, the
+   * search lists more of that kind and still counts the others.
+   */
+  const [activeKind, setActiveKind] = useState<AffectedResourceType | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isOpen, setIsOpen] = useState<boolean>(false);
   /*
@@ -1088,65 +1167,116 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     const delay: number = trimmed === "" ? 0 : SEARCH_DEBOUNCE_MS;
 
     debounceRef.current = window.setTimeout(async () => {
+      /*
+       * One request for every kind (issue #5341), where the picker used to
+       * ask twice per kind - name, then description - per keystroke. The
+       * server reads each kind with the person's rights. Narrowed to one
+       * kind, it lists more of that kind and only counts the others, so the
+       * kind filter keeps its numbers.
+       */
+      const narrowedTo: AffectedResourceType | null =
+        activeKind && resourceTypes.includes(activeKind) ? activeKind : null;
+      const listedTypes: Array<AffectedResourceType> = narrowedTo
+        ? [narrowedTo]
+        : resourceTypes;
+      const countedTypes: Array<AffectedResourceType> = [
+        ...resourceTypes.filter((type: AffectedResourceType): boolean => {
+          return !listedTypes.includes(type);
+        }),
+        ...(countsMonitorsForHint && trimmed !== ""
+          ? (["Monitor"] as Array<AffectedResourceType>)
+          : []),
+      ];
+
       try {
-        const requests: Array<Promise<Array<AffectedResourceItem>>> = [];
-        if (trimmed === "") {
-          // Default suggestions: top-N alphabetical per enabled type.
-          for (const type of resourceTypes) {
-            requests.push(fetchByQuery(type, {}, SEARCH_LIMIT_PER_TYPE));
-          }
-        } else {
-          /*
-           * Search mode: fire two parallel queries per type (name + description)
-           * since the backend doesn't expose a cross-column OR. Results are
-           * unioned and deduped by `${type}:${_id}` below.
-           */
-          for (const type of resourceTypes) {
-            requests.push(
-              fetchByQuery(
-                type,
-                { name: new Search(trimmed) },
-                SEARCH_LIMIT_PER_TYPE,
-              ),
-            );
-            requests.push(
-              fetchByQuery(
-                type,
-                { description: new Search(trimmed) },
-                SEARCH_LIMIT_PER_TYPE,
-              ),
-            );
-          }
+        if (listedTypes.length === 0) {
+          setSearchResults([]);
+          setKindCounts({});
+          setMonitorMatchCount(0);
+          setUnreadableTypes([]);
+          setHasSearchFailed(false);
+          return;
         }
 
-        const buckets: Array<Array<AffectedResourceItem>> =
-          await Promise.all(requests);
+        const result: AffectedResourceSearchResult =
+          await searchAffectedResources({
+            search: trimmed,
+            kinds: listedTypes as Array<AffectedResourceKind>,
+            limitPerKind: narrowedTo
+              ? SEARCH_LIMIT_FOR_ONE_TYPE
+              : SEARCH_LIMIT_PER_TYPE,
+            countKinds: countedTypes as Array<AffectedResourceKind>,
+          });
+
         if (mySeq !== searchSeqRef.current) {
           return; // stale
         }
-        const seen: Set<string> = new Set();
-        const merged: Array<AffectedResourceItem> = [];
-        for (const bucket of buckets) {
-          for (const item of bucket) {
-            const key: string = `${item.type}:${item._id}`;
-            if (seen.has(key)) {
-              continue;
+
+        const items: Array<AffectedResourceItem> = [];
+        const counts: Partial<Record<AffectedResourceType, number>> = {};
+
+        for (const kindResult of result.kinds) {
+          const type: AffectedResourceType = (
+            kindResult as AffectedResourceSearchKindResult
+          ).kind;
+          counts[type] = kindResult.count;
+
+          for (const match of kindResult.matches) {
+            const item: AffectedResourceItem = {
+              _id: (match as AffectedResourceSearchMatch)._id,
+              name:
+                match.name.length > 0
+                  ? match.name
+                  : getUnnamedResourceLabel(type),
+              type: type,
+            };
+
+            if (match.detail) {
+              item.detail = match.detail;
             }
-            seen.add(key);
-            merged.push(item);
+
+            items.push(item);
           }
         }
+
+        let monitorCount: number = 0;
+
+        for (const counted of result.counts) {
+          const type: AffectedResourceType = (
+            counted as AffectedResourceSearchCount
+          ).kind;
+
+          if (type === "Monitor" && !resourceTypes.includes("Monitor")) {
+            monitorCount = counted.count;
+            continue;
+          }
+
+          counts[type] = counted.count;
+        }
+
         /*
          * Cache names so the selected chips still render readably after the
          * form turns our payload into bare ID arrays.
          */
-        for (const item of merged) {
+        for (const item of items) {
           nameCacheRef.current.set(`${item.type}:${item._id}`, item.name);
         }
-        setSearchResults(merged);
+
+        setSearchResults(items);
+        setKindCounts(counts);
+        setMonitorMatchCount(monitorCount);
+        setUnreadableTypes(
+          result.unreadableKinds.filter((kind: AffectedResourceKind) => {
+            return resourceTypes.includes(kind);
+          }) as Array<AffectedResourceType>,
+        );
+        setHasSearchFailed(false);
       } catch {
         if (mySeq === searchSeqRef.current) {
           setSearchResults([]);
+          setKindCounts({});
+          setMonitorMatchCount(0);
+          setHasSearchFailed(true);
         }
       } finally {
         if (mySeq === searchSeqRef.current) {
@@ -1154,7 +1284,21 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
         }
       }
     }, delay);
-  }, [searchQuery, resourceTypes, isOpen, activeTab]);
+  }, [
+    searchQuery,
+    resourceTypesKey,
+    isOpen,
+    activeTab,
+    activeKind,
+    countsMonitorsForHint,
+  ]);
+
+  // A closed list opens on every kind again.
+  useEffect(() => {
+    if (!isOpen) {
+      setActiveKind(null);
+    }
+  }, [isOpen]);
 
   const availableResults: Array<AffectedResourceItem> = useMemo(() => {
     return searchResults.filter((result: AffectedResourceItem) => {
@@ -1173,6 +1317,9 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
       items: Array<AffectedResourceItem>;
     }> = [];
     for (const type of resourceTypes) {
+      if (activeKind && activeKind !== type) {
+        continue;
+      }
       const items: Array<AffectedResourceItem> = availableResults.filter(
         (r: AffectedResourceItem): boolean => {
           return r.type === type;
@@ -1183,7 +1330,47 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
       }
     }
     return groups;
-  }, [availableResults, resourceTypes]);
+  }, [availableResults, resourceTypesKey, activeKind]);
+
+  /*
+   * The kinds the filter offers: every kind with a match, in the picker's
+   * order, and the one narrowed to even when nothing of it matches now, so
+   * it can be left again.
+   */
+  const filterTypes: Array<AffectedResourceType> = resourceTypes.filter(
+    (type: AffectedResourceType): boolean => {
+      return (kindCounts[type] || 0) > 0 || activeKind === type;
+    },
+  );
+
+  const totalMatchCount: number = resourceTypes.reduce(
+    (total: number, type: AffectedResourceType): number => {
+      return total + (kindCounts[type] || 0);
+    },
+    0,
+  );
+
+  // The filter shows once the results hold two kinds, or one is picked.
+  const showsKindFilter: boolean =
+    activeKind !== null || filterTypes.length > 1;
+
+  // Narrowing to a kind starts its list from the top.
+  const narrowToKind: (type: AffectedResourceType | null) => void = (
+    type: AffectedResourceType | null,
+  ): void => {
+    setActiveKind(type);
+    setHighlightedIndex(-1);
+  };
+
+  // How many of each kind the answer listed, before the picked are left out.
+  const listedCounts: Partial<Record<AffectedResourceType, number>> =
+    useMemo(() => {
+      const counts: Partial<Record<AffectedResourceType, number>> = {};
+      for (const result of searchResults) {
+        counts[result.type] = (counts[result.type] || 0) + 1;
+      }
+      return counts;
+    }, [searchResults]);
 
   /*
    * Flatten groupedAvailable into the same order it renders so the keyboard
@@ -1227,6 +1414,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
       __affectedResourcesPayload: true,
       monitors: idsFor("Monitor"),
       hosts: idsFor("Host"),
+      networkDevices: idsFor("NetworkDevice"),
       kubernetesClusters: idsFor("KubernetesCluster"),
       dockerHosts: idsFor("DockerHost"),
       podmanHosts: idsFor("PodmanHost"),
@@ -1523,19 +1711,34 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     setShowAllChips(false);
   };
 
+  /*
+   * Four kinds or more are named by the first three and "and more": the
+   * Other Affected Resources picker offers fourteen, and a placeholder that
+   * lists them all is cut off long before its end.
+   */
+  const placeholderTypes: string = resourceTypes
+    .slice(0, resourceTypes.length > 3 ? 3 : resourceTypes.length)
+    .map((t: AffectedResourceType): string => {
+      return translator.translateTerm(RESOURCE_CONFIG[t].pluralLabel, {
+        inSentence: true,
+      });
+    })
+    .join(", ");
+
   const resourcesPlaceholder: string =
     props.placeholder ||
-    (resourceTypes.length === ALL_TYPES.length
+    (resourceTypes.length === ALL_TYPES.length &&
+    ALL_TYPES.every((type: AffectedResourceType): boolean => {
+      return resourceTypes.includes(type);
+    })
       ? "Search monitors, hosts, Kubernetes clusters, Docker hosts, Podman hosts, or services..."
-      : translator.translateTemplate("Search {{types}}...", {
-          types: resourceTypes
-            .map((t: AffectedResourceType): string => {
-              return translator.translateTerm(RESOURCE_CONFIG[t].label, {
-                inSentence: true,
-              });
-            })
-            .join(", "),
-        }));
+      : resourceTypes.length > 3
+        ? translator.translateTemplate("Search {{types}} and more...", {
+            types: placeholderTypes,
+          })
+        : translator.translateTemplate("Search {{types}}...", {
+            types: placeholderTypes,
+          }));
   const placeholder: string = translator.translateText(
     activeTab === "labels" ? "Search labels..." : resourcesPlaceholder,
   ) as string;
@@ -1554,6 +1757,18 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
       hiddenLabels.push(RESOURCE_CONFIG[type].label);
     }
   }
+
+  /*
+   * The kinds the panel says the person may not read: the ones their
+   * permissions rule out before asking, and the ones the server would not
+   * read for them (labels can leave a kind unreadable as a whole).
+   */
+  const unreadableNoteTypes: Array<AffectedResourceType> = [
+    ...deniedTypes,
+    ...unreadableTypes.filter((type: AffectedResourceType): boolean => {
+      return !deniedTypes.includes(type);
+    }),
+  ];
 
   const chipOverflow: number = Math.max(0, selected.length - MAX_VISIBLE_CHIPS);
   const visibleChips: Array<AffectedResourceItem> =
@@ -1993,9 +2208,69 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
             </span>
           </div>
 
+          {/*
+           * The kind filter (issue #5341): every kind, or one of them, each
+           * with how many match. Shown once the results hold two kinds, so a
+           * picker with one kind, or a search that found one, has no chrome
+           * it does not need.
+           */}
+          {activeTab === "resources" && showsKindFilter && (
+            <div
+              data-testid="affected-resources-kind-filter"
+              role="group"
+              aria-label={translator.translateText("Show resources of")}
+              className="flex flex-shrink-0 flex-wrap items-center gap-1 border-b border-gray-100 px-2 py-1.5"
+            >
+              {[null, ...filterTypes].map(
+                (type: AffectedResourceType | null): ReactElement => {
+                  const isActive: boolean = activeKind === type;
+                  const count: number =
+                    type === null ? totalMatchCount : kindCounts[type] || 0;
+
+                  return (
+                    <button
+                      key={type || "all"}
+                      type="button"
+                      aria-pressed={isActive}
+                      data-testid={`affected-resources-kind-${type || "all"}`}
+                      onMouseDown={(
+                        event: React.MouseEvent<HTMLButtonElement>,
+                      ): void => {
+                        event.preventDefault();
+                      }}
+                      onClick={(): void => {
+                        narrowToKind(type);
+                      }}
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
+                        isActive
+                          ? "bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200"
+                          : "text-gray-600 hover:bg-gray-100"
+                      }`}
+                    >
+                      <span>
+                        {type === null
+                          ? translator.translateText("All")
+                          : translator.translateText(
+                              RESOURCE_CONFIG[type].pluralLabel,
+                            )}
+                      </span>
+                      <span
+                        className={
+                          isActive ? "text-indigo-500" : "text-gray-400"
+                        }
+                      >
+                        {translator.formatNumber(count)}
+                      </span>
+                    </button>
+                  );
+                },
+              )}
+            </div>
+          )}
+
           {/* Resources tab body. */}
           {activeTab === "resources" && (
-            <div className="flex-1 overflow-auto py-1">
+            <div className="flex-1 overflow-auto pb-1">
               {isLoading && (
                 <div className="flex w-full items-center px-3 py-2 text-left text-gray-500">
                   <svg
@@ -2023,7 +2298,23 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                 </div>
               )}
 
+              {/*
+               * A search that failed says so in red; finding nothing is an
+               * answer, in grey.
+               */}
+              {!isLoading && hasSearchFailed && (
+                <div
+                  data-testid="affected-resources-search-failed"
+                  className="px-3 py-2 text-red-600"
+                >
+                  {translator.translateText(
+                    "Could not search resources. Try again in a moment.",
+                  )}
+                </div>
+              )}
+
               {!isLoading &&
+                !hasSearchFailed &&
                 searchQuery.trim() === "" &&
                 groupedAvailable.length === 0 && (
                   <div className="px-3 py-2 text-gray-500">
@@ -2034,6 +2325,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                 )}
 
               {!isLoading &&
+                !hasSearchFailed &&
                 searchQuery.trim() !== "" &&
                 groupedAvailable.length === 0 && (
                   <div className="px-3 py-2 text-gray-500">
@@ -2055,10 +2347,51 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                       items: Array<AffectedResourceItem>;
                     }) => {
                       const cfg: ResourceConfig = RESOURCE_CONFIG[group.type];
+                      const matchCount: number =
+                        kindCounts[group.type] || group.items.length;
+                      /*
+                       * More of this kind match than the answer listed:
+                       * Show all narrows the results to it.
+                       */
+                      const hasMore: boolean =
+                        activeKind === null &&
+                        matchCount > (listedCounts[group.type] || 0);
                       return (
-                        <div key={group.type}>
-                          <div className="bg-gray-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                            {translator.translateText(cfg.pluralLabel)}
+                        <div
+                          key={group.type}
+                          data-testid={`affected-resources-group-${group.type}`}
+                        >
+                          {/*
+                           * Each result's kind, kept in view while its rows
+                           * scroll under it.
+                           */}
+                          <div className="sticky top-0 z-10 flex items-center justify-between gap-2 bg-gray-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                            <span className="min-w-0 truncate">
+                              {translator.translateText(cfg.pluralLabel)}
+                            </span>
+                            {hasMore && (
+                              <button
+                                type="button"
+                                data-testid={`affected-resources-show-all-${group.type}`}
+                                onMouseDown={(
+                                  event: React.MouseEvent<HTMLButtonElement>,
+                                ): void => {
+                                  event.preventDefault();
+                                }}
+                                onClick={(): void => {
+                                  narrowToKind(group.type);
+                                }}
+                                className="flex-shrink-0 rounded font-medium normal-case tracking-normal text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                              >
+                                {translator.translatePlural(
+                                  {
+                                    one: "Show all {{count}}",
+                                    other: "Show all {{count}}",
+                                  },
+                                  matchCount,
+                                )}
+                              </button>
+                            )}
                           </div>
                           {group.items.map((item: AffectedResourceItem) => {
                             flatIdx += 1;
@@ -2098,13 +2431,31 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                               >
                                 <Icon
                                   icon={cfg.icon}
-                                  className={`h-4 w-4 ${
+                                  className={`h-4 w-4 flex-shrink-0 ${
                                     isHighlighted
                                       ? "text-white"
                                       : "text-gray-400"
                                   }`}
                                 />
-                                <span>{item.name}</span>
+                                <span className="min-w-0 flex-1 truncate">
+                                  {item.name}
+                                </span>
+                                {/*
+                                 * An address reads left to right in every
+                                 * language, beside the name it tells apart.
+                                 */}
+                                {item.detail && (
+                                  <span
+                                    dir="ltr"
+                                    className={`max-w-[45%] flex-shrink-0 truncate text-xs ${
+                                      isHighlighted
+                                        ? "text-indigo-100"
+                                        : "text-gray-400"
+                                    }`}
+                                  >
+                                    {item.detail}
+                                  </span>
+                                )}
                               </button>
                             );
                           })}
@@ -2114,12 +2465,73 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                   );
                 })()}
 
-              {deniedTypes.length > 0 && (
+              {/*
+               * Narrowed to one kind and more of it match than are listed:
+               * how many, and how to find the rest.
+               */}
+              {!isLoading &&
+                activeKind !== null &&
+                (kindCounts[activeKind] || 0) >
+                  (listedCounts[activeKind] || 0) && (
+                  <div
+                    data-testid="affected-resources-narrowed-more"
+                    className="px-3 py-2 text-xs text-gray-500"
+                  >
+                    {translator.translateTemplate(
+                      "Showing {{shown}} of {{total}}. Type to narrow the list.",
+                      {
+                        shown: translator.formatNumber(
+                          listedCounts[activeKind] || 0,
+                        ),
+                        total: translator.formatNumber(
+                          kindCounts[activeKind] || 0,
+                        ),
+                      },
+                    )}
+                  </div>
+                )}
+
+              {/*
+               * Monitors are picked in the form's own field. A search here
+               * that matches some says so, rather than leaving the person to
+               * think they cannot be found (issue #5341).
+               */}
+              {!isLoading &&
+                props.monitorsFieldTitle &&
+                monitorMatchCount > 0 &&
+                searchQuery.trim() !== "" && (
+                  <div
+                    data-testid="affected-resources-monitors-hint"
+                    className="flex items-start gap-1.5 border-t border-gray-100 px-3 py-2 text-xs text-gray-500"
+                  >
+                    <Icon
+                      icon={IconProp.AltGlobe}
+                      className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-gray-400"
+                    />
+                    <span>
+                      {translator.translatePlural(
+                        {
+                          one: "{{count}} monitor matches too. Monitors are picked under {{field}}.",
+                          other:
+                            "{{count}} monitors match too. Monitors are picked under {{field}}.",
+                        },
+                        monitorMatchCount,
+                        {
+                          field: translator.translateText(
+                            props.monitorsFieldTitle,
+                          ) as string,
+                        },
+                      )}
+                    </span>
+                  </div>
+                )}
+
+              {unreadableNoteTypes.length > 0 && (
                 <div className="border-t border-gray-100 px-3 py-2 text-xs text-gray-500">
                   {translator.translateTemplate(
                     "You don't have permission to read: {{types}}.",
                     {
-                      types: deniedTypes
+                      types: unreadableNoteTypes
                         .map((t: AffectedResourceType): string => {
                           return translator.translateText(
                             RESOURCE_CONFIG[t].label,
