@@ -1,6 +1,7 @@
 import EscalationSummary, {
   EscalationLevelSummary,
   EscalationResponder,
+  SKIPPED_LEVEL_TIMING,
 } from "./EscalationSummary";
 import {
   EMPTY_RULE_READINESS_REPORT,
@@ -97,6 +98,7 @@ import useAsyncEffect from "use-async-effect";
 import {
   translatePlural,
   translateTemplate,
+  translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import { joinSentences } from "Common/UI/Components/DeleteConfirmation/DeleteConsequences";
@@ -134,6 +136,46 @@ export type MembersByRuleId = Record<string, RuleMembers>;
 export const emptyRuleMembers: () => RuleMembers = (): RuleMembers => {
   return { userJoins: [], teamJoins: [], scheduleJoins: [] };
 };
+
+/*
+ * How many people, teams and schedules a rule notifies, counting only the
+ * ones that are still there. None is a level that pages nobody: a run moves
+ * on from it at once, without waiting out its wait (OnCallEmptyLevel).
+ */
+export const countRuleResponders: (members: RuleMembers) => number = (
+  members: RuleMembers,
+): number => {
+  return (
+    members.userJoins.filter(
+      (join: OnCallDutyPolicyEscalationRuleUser): boolean => {
+        return Boolean(join.user);
+      },
+    ).length +
+    members.teamJoins.filter(
+      (join: OnCallDutyPolicyEscalationRuleTeam): boolean => {
+        return Boolean(join.team);
+      },
+    ).length +
+    members.scheduleJoins.filter(
+      (join: OnCallDutyPolicyEscalationRuleSchedule): boolean => {
+        return Boolean(join.onCallDutyPolicySchedule);
+      },
+    ).length
+  );
+};
+
+/*
+ * What a level with no responders says on its card, and between it and the
+ * next. Its header says it is skipped at once (SKIPPED_LEVEL_TIMING), as the
+ * summary does, so the notice keeps to what is wrong and how to put it
+ * right.
+ */
+export const NO_RESPONDERS_NOTICE: string = translationKey(
+  "No responders assigned. Edit this rule to add responders.",
+);
+export const PAGED_AT_ONCE_CONNECTOR: string = translationKey(
+  "Nobody to page here, so the next level is paged at once",
+);
 
 // Whether a rule's schedule row pages the next person in its rotation.
 export const isNextInRotationJoin: (
@@ -1348,16 +1390,15 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
 
     if (totalCount === 0) {
       return (
-        <div className="inline-flex items-start gap-2 rounded-lg bg-amber-50 ring-1 ring-inset ring-amber-200 px-3 py-2 text-sm text-amber-800">
+        <div
+          data-testid="escalation-rule-no-responders"
+          className="inline-flex items-start gap-2 rounded-lg bg-amber-50 ring-1 ring-inset ring-amber-200 px-3 py-2 text-sm text-amber-800"
+        >
           <Icon
             icon={IconProp.Alert}
             className="h-4 w-4 text-amber-500 mt-0.5 shrink-0"
           />
-          <span>
-            {translator.translateText(
-              "No responders assigned. No one will be notified at this level — edit this rule to add responders.",
-            )}
-          </span>
+          <span>{translator.translateText(NO_RESPONDERS_NOTICE)}</span>
         </div>
       );
     }
@@ -1537,6 +1578,8 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
     const ruleId: string = rule.id?.toString() || "";
     const members: RuleMembers = membersByRuleId[ruleId] || emptyRuleMembers();
     const isReordering: boolean = reorderingRuleId === ruleId;
+    // Nobody to page: a run passes the level at once (OnCallEmptyLevel).
+    const isEmpty: boolean = countRuleResponders(members) === 0;
 
     return (
       <div
@@ -1573,18 +1616,44 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
                         index + 1,
                       )}
                     </h3>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200">
-                      <Icon
-                        icon={IconProp.Clock}
-                        className="h-3 w-3 text-gray-400"
-                      />
-                      {translator.translateTemplate(
-                        "Escalates after {{duration}}",
-                        {
-                          duration: formatMinutes(rule.escalateAfterInMinutes),
-                        },
-                      )}
-                    </span>
+                    {/*
+                     * When the level hands on to the next. A level with
+                     * nobody to page holds no wait (OnCallEmptyLevel): it
+                     * says it is skipped, as the summary above does, rather
+                     * than a wait that never happens. Its wait comes back
+                     * once it has responders.
+                     */}
+                    {isEmpty ? (
+                      <span
+                        data-testid="escalation-rule-skipped-at-once"
+                        className="inline-flex items-center gap-1 rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200"
+                      >
+                        <Icon
+                          icon={IconProp.Forward}
+                          className="h-3 w-3 text-gray-400"
+                          isMirroredRightToLeft={true}
+                        />
+                        {translator.translateText(SKIPPED_LEVEL_TIMING)}
+                      </span>
+                    ) : (
+                      <span
+                        data-testid="escalation-rule-escalates-after"
+                        className="inline-flex items-center gap-1 rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200"
+                      >
+                        <Icon
+                          icon={IconProp.Clock}
+                          className="h-3 w-3 text-gray-400"
+                        />
+                        {translator.translateTemplate(
+                          "Escalates after {{duration}}",
+                          {
+                            duration: formatMinutes(
+                              rule.escalateAfterInMinutes,
+                            ),
+                          },
+                        )}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -1644,8 +1713,40 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
   const getConnector: (rule: OnCallDutyEscalationRule) => ReactElement = (
     rule: OnCallDutyEscalationRule,
   ): ReactElement => {
+    /*
+     * A level with nobody to page holds no wait: a run moves on from it at
+     * once (OnCallEmptyLevel), so the step to the next level says that -
+     * not a wait that never happens.
+     */
+    if (
+      countRuleResponders(
+        membersByRuleId[rule.id?.toString() || ""] || emptyRuleMembers(),
+      ) === 0
+    ) {
+      return (
+        <div
+          data-testid="escalation-rule-connector-at-once"
+          className="flex flex-col items-center py-1"
+        >
+          <div className="h-3 w-px bg-gray-200" />
+          <div className="my-1 inline-flex items-center gap-1.5 rounded-full bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200">
+            <Icon
+              icon={IconProp.Forward}
+              className="h-3.5 w-3.5 text-gray-400"
+              isMirroredRightToLeft={true}
+            />
+            <span>{translator.translateText(PAGED_AT_ONCE_CONNECTOR)}</span>
+          </div>
+          <Icon icon={IconProp.ChevronDown} className="h-4 w-4 text-gray-300" />
+        </div>
+      );
+    }
+
     return (
-      <div className="flex flex-col items-center py-1">
+      <div
+        data-testid="escalation-rule-connector"
+        className="flex flex-col items-center py-1"
+      >
         <div className="h-3 w-px bg-gray-200" />
         <div className="my-1 inline-flex items-center gap-1.5 rounded-full bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200">
           <Icon icon={IconProp.Clock} className="h-3.5 w-3.5 text-gray-400" />

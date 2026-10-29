@@ -590,6 +590,11 @@ import LogDropFilterService, {
   Service as LogDropFilterServiceType,
 } from "Common/Server/Services/LogDropFilterService";
 import DetectionRuleAPI from "Common/Server/API/DetectionRuleAPI";
+import SecurityWatchlistAPI from "Common/Server/API/SecurityWatchlistAPI";
+import SecurityWatchlistItem from "Common/Models/DatabaseModels/SecurityWatchlistItem";
+import SecurityWatchlistItemService, {
+  Service as SecurityWatchlistItemServiceType,
+} from "Common/Server/Services/SecurityWatchlistItemService";
 import DetectionRuleException from "Common/Models/DatabaseModels/DetectionRuleException";
 import DetectionRuleExceptionService, {
   Service as DetectionRuleExceptionServiceType,
@@ -1790,6 +1795,7 @@ import OnCallDutyPolicyAPI from "Common/Server/API/OnCallDutyPolicyAPI";
 import OnCallReadinessAPI from "Common/Server/API/OnCallReadinessAPI";
 import ToolImportAPI from "Common/Server/API/ToolImportAPI";
 import NetworkDeviceDiscoveryImportAPI from "Common/Server/API/NetworkDeviceDiscoveryImportAPI";
+import NetworkDeviceRefreshAPI from "Common/Server/API/NetworkDeviceRefreshAPI";
 import OnCallCalendarAPI from "Common/Server/API/OnCallCalendarAPI";
 import ScheduledMaintenanceCalendarAPI from "Common/Server/API/ScheduledMaintenanceCalendarAPI";
 import ScheduledMaintenanceExternalCalendarAPI from "Common/Server/API/ScheduledMaintenanceExternalCalendarAPI";
@@ -4019,6 +4025,21 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    // Lists the rules match against, and importing values into one (Security Events > Watchlists).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new SecurityWatchlistAPI().getRouter(),
+    );
+
+    // The values of the watchlists a team keeps.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityWatchlistItem, SecurityWatchlistItemServiceType>(
+        SecurityWatchlistItem,
+        SecurityWatchlistItemService,
+      ).getRouter(),
+    );
+
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<ThreatIntelFeed, ThreatIntelFeedServiceType>(
@@ -5566,6 +5587,12 @@ const BaseAPIFeatureSet: FeatureSet = {
       `/${APP_NAME.toLocaleLowerCase()}`,
       NetworkDeviceDiscoveryImportAPI,
     );
+
+    /*
+     * Refresh: a network device read again now - by its probe, and by the
+     * Meraki connection that describes it (NetworkDeviceRefreshAPI).
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, NetworkDeviceRefreshAPI);
 
     /*
      * On-call calendar feeds. The custom router carries the public

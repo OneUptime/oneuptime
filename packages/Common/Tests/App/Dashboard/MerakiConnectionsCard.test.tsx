@@ -338,6 +338,84 @@ describe("the list", () => {
     ).toBeNull();
   });
 
+  test("a read that listed its devices counts them, and says how many network devices here it fills in the details of", async () => {
+    connections = [
+      connection(FIRST_ID, {
+        lastPullResult: {
+          status: "success",
+          organizationName: "Acme Retail",
+          networkCount: 312,
+          applianceCount: 287,
+          deviceCount: 1204,
+          describedDeviceCount: 212,
+          requestCount: 245,
+          warnings: [],
+        },
+      }),
+    ];
+
+    await renderCard();
+
+    const row: HTMLElement = rows()[0]!;
+    expect(
+      within(row).getByTestId("meraki-connection-covered"),
+    ).toHaveTextContent(
+      /^Every 5 minutes · 312 networks · 1,204 devices · 287 appliances · 245 API calls a read$/,
+    );
+
+    const notes: Array<HTMLElement> = within(row).getAllByTestId(
+      "meraki-connection-note",
+    );
+    expect(
+      notes.map((note: HTMLElement) => {
+        return note.textContent;
+      }),
+    ).toContain(
+      "Fills in the model, serial number and firmware of 212 network devices.",
+    );
+  });
+
+  test("one such device is said in the singular; none is not said at all", async () => {
+    connections = [
+      connection(FIRST_ID, {
+        lastPullResult: {
+          status: "success",
+          organizationName: "Acme Retail",
+          networkCount: 1,
+          applianceCount: 1,
+          deviceCount: 3,
+          describedDeviceCount: 1,
+          requestCount: 4,
+          warnings: [],
+        },
+      }),
+      connection(SECOND_ID, {
+        name: "Acme Campus",
+        lastPullResult: {
+          status: "success",
+          organizationName: "Acme Campus",
+          networkCount: 1,
+          applianceCount: 1,
+          deviceCount: 3,
+          describedDeviceCount: 0,
+          requestCount: 4,
+          warnings: [],
+        },
+      }),
+    ];
+
+    await renderCard();
+
+    expect(
+      within(rows()[0]!).getByTestId("meraki-connection-note"),
+    ).toHaveTextContent(
+      "Fills in the model, serial number and firmware of 1 network device.",
+    );
+    expect(
+      within(rows()[1]!).queryByTestId("meraki-connection-note"),
+    ).toBeNull();
+  });
+
   test("a connection of its own name, or on another region's dashboard, says which", async () => {
     connections = [
       connection(FIRST_ID, {

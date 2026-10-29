@@ -18,15 +18,13 @@ import {
 } from "../../../Types/SecurityEvent/DetectionRuleException";
 import DetectionRuleExceptionService from "../../Services/DetectionRuleExceptionService";
 import Select from "../../Types/Database/Select";
+import { SQL, Statement } from "../AnalyticsDatabase/Statement";
+import { resolveSigmaField } from "./Sigma/SigmaClickhouseCompiler";
 import {
-  SQL,
-  Statement,
-  escapeIlikePattern,
-} from "../AnalyticsDatabase/Statement";
-import {
-  buildIpInRangeExpression,
-  resolveSigmaField,
-} from "./Sigma/SigmaClickhouseCompiler";
+  buildAnyElementMatches,
+  buildTextMatchesValue,
+  orAllStatements,
+} from "./SecurityValueMatch";
 
 /*
  * A detection rule's exceptions as SQL: the condition an event meets when
@@ -69,38 +67,15 @@ function textParam(value: string): Statement {
 
 /*
  * Whether a text expression is the value: whatever the case, * for any run
- * of characters; an address range for an IP address entity.
+ * of characters; an address range for an IP address entity. The same
+ * comparison a watchlist's values make (SecurityValueMatch).
  */
 function textMatches(
   expression: Statement,
   value: string,
   options: { isAddressRange: boolean },
 ): Statement {
-  if (options.isAddressRange) {
-    return buildIpInRangeExpression(expression, value);
-  }
-
-  const lowered: string = value.toLowerCase();
-  const statement: Statement = SQL`lowerUTF8(`;
-  statement.append(expression);
-
-  if (lowered.includes(DETECTION_RULE_EXCEPTION_WILDCARD)) {
-    // Each piece literal (LIKE's own % _ and \ escaped), the stars between them any run.
-    const pattern: string = lowered
-      .split(DETECTION_RULE_EXCEPTION_WILDCARD)
-      .map((piece: string): string => {
-        return escapeIlikePattern(piece);
-      })
-      .join("%");
-
-    statement.append(") LIKE ");
-    statement.append(textParam(pattern));
-    return statement;
-  }
-
-  statement.append(") = ");
-  statement.append(textParam(lowered));
-  return statement;
+  return buildTextMatchesValue(expression, value, options);
 }
 
 // Whether any element of an array column is the value.
@@ -109,27 +84,17 @@ function anyElementMatches(
   value: string,
   options: { isAddressRange: boolean },
 ): Statement {
-  const statement: Statement = new Statement([`arrayExists(${ELEMENT} -> `]);
-  statement.append(textMatches(new Statement([ELEMENT], []), value, options));
-  statement.append(`, ${column})`);
-  return statement;
+  return buildAnyElementMatches({
+    column,
+    elementName: ELEMENT,
+    matchElement: (element: Statement): Statement => {
+      return textMatches(element, value, options);
+    },
+  });
 }
 
 function orAll(parts: Array<Statement>): Statement {
-  const statement: Statement = SQL`(`;
-
-  parts.forEach((part: Statement, index: number): void => {
-    if (index > 0) {
-      statement.append(" OR ");
-    }
-
-    statement.append(SQL`(`);
-    statement.append(part);
-    statement.append(")");
-  });
-
-  statement.append(")");
-  return statement;
+  return orAllStatements(parts);
 }
 
 /*

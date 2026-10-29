@@ -9,6 +9,7 @@ import OnCallDutyPolicyUserOverride from "../../../Models/DatabaseModels/OnCallD
 import Semaphore from "../../../Server/Infrastructure/Semaphore";
 import OnCallDutyPolicyEscalationRuleService, {
   AwayOverride,
+  OnCallRuleExecutionOutcome,
 } from "../../../Server/Services/OnCallDutyPolicyEscalationRuleService";
 import OnCallDutyPolicyEscalationRuleTeamService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleTeamService";
 import OnCallDutyPolicyEscalationRuleUserService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleUserService";
@@ -46,6 +47,7 @@ import {
 } from "../../../Types/OnCallDutyPolicy/AwayTimelineMessage";
 import { MaterializedShift } from "../../../Types/OnCallDutyPolicy/MaterializedShift";
 import OnCallDutyExecutionLogTimelineStatus from "../../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
+import { ON_CALL_LEVEL_PAGED_NOBODY_TIMELINE_MESSAGE } from "../../../Types/OnCallDutyPolicy/OnCallEmptyLevel";
 import OnCallCalendarFeedUtil, {
   OnCallCalendarFeedKind,
 } from "../../../Types/OnCallDutyPolicy/OnCallCalendarFeedUtil";
@@ -810,7 +812,7 @@ describe("An escalation rule that names somebody away does not page them", () =>
       users?: Array<string> | undefined;
       teams?: Array<{ id: string; members: Array<string> }> | undefined;
       withSchedule?: boolean | undefined;
-    }): Promise<void> {
+    }): Promise<OnCallRuleExecutionOutcome> {
       jest
         .spyOn(OnCallDutyPolicyEscalationRuleUserService, "findBy")
         .mockResolvedValue(
@@ -855,7 +857,7 @@ describe("An escalation rule that names somebody away does not page them", () =>
         );
       }
 
-      await OnCallDutyPolicyEscalationRuleService.startRuleExecution(
+      return await OnCallDutyPolicyEscalationRuleService.startRuleExecution(
         oid(RULE),
         {
           projectId: oid(PROJECT),
@@ -882,9 +884,24 @@ describe("An escalation rule that names somebody away does not page them", () =>
       jest
         .spyOn(OnCallDutyPolicyExecutionLogService, "updateOneById")
         .mockResolvedValue(undefined as never);
+      // Whether a level's pages went out, read back from the timeline.
       jest
-        .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")
-        .mockResolvedValue({ scheduleGapRetryCount: 0 } as never);
+        .spyOn(OnCallDutyPolicyExecutionLogTimelineService, "findBy")
+        .mockImplementation((async (query: {
+          query: { _id?: { value?: Array<ObjectID> } };
+        }) => {
+          const ids: Array<string> = (query.query._id?.value || []).map(
+            (id: ObjectID): string => {
+              return id.toString();
+            },
+          );
+
+          return timeline.filter(
+            (row: OnCallDutyPolicyExecutionLogTimeline): boolean => {
+              return ids.includes(row.id?.toString() || "");
+            },
+          );
+        }) as never);
       jest
         .spyOn(OnCallDutyPolicyExecutionLogTimelineService, "create")
         .mockImplementation(
@@ -982,10 +999,12 @@ describe("An escalation rule that names somebody away does not page them", () =>
       expect(awayLines()).toHaveLength(0);
     });
 
-    test("only Alex named, and away: the rule reaches nobody, and says so", async () => {
+    test("only Alex named, and away: the rule reaches nobody, says so, and the run moves on from it at once", async () => {
       await bookTimeAway({ signedInAs: ALEX, ends: BACK_ON_FRIDAY });
 
-      await runRule({ users: [ALEX] });
+      const outcome: OnCallRuleExecutionOutcome = await runRule({
+        users: [ALEX],
+      });
 
       expect(paged).toEqual([]);
       expect(
@@ -994,8 +1013,21 @@ describe("An escalation rule that names somebody away does not page them", () =>
         }),
       ).toEqual([
         getAwayTimelineMessage(BACK_ON_FRIDAY),
-        "Skipped because no users in this rule.",
+        ON_CALL_LEVEL_PAGED_NOBODY_TIMELINE_MESSAGE,
       ]);
+      // Nobody to wait for: the next level is paged now, not 10 minutes on.
+      expect(outcome.movesOnAtOnce).toBe(true);
+    });
+
+    test("Alex away and Kim paged: the level holds the run for its wait, as before", async () => {
+      await bookTimeAway({ signedInAs: ALEX, ends: BACK_ON_FRIDAY });
+
+      const outcome: OnCallRuleExecutionOutcome = await runRule({
+        users: [ALEX, KIM],
+      });
+
+      expect(paged).toEqual([{ userId: KIM, overridedByUserId: null }]);
+      expect(outcome.movesOnAtOnce).toBe(false);
     });
 
     test("everybody in the schedule away: the schedule has nobody on call", async () => {

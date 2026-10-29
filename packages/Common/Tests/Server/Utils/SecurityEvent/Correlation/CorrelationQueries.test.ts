@@ -18,7 +18,12 @@ import {
   SigmaCorrelationStep,
 } from "../../../../../Types/SecurityEvent/SigmaCorrelation";
 import SigmaRuleSetParser from "../../../../../Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
-import { describe, expect, test } from "@jest/globals";
+import { bindSigmaWatchlists } from "../../../../../Utils/SecurityEvent/Sigma/SigmaWatchlists";
+import SecurityEventService from "../../../../../Server/Services/SecurityEventService";
+import { SecurityEntityType } from "../../../../../Types/SecurityCase/SecurityEntity";
+import { SigmaWatchlist } from "../../../../../Types/SecurityEvent/SecurityWatchlist";
+import { getJestSpyOn } from "../../../../Spy";
+import { describe, expect, jest, test } from "@jest/globals";
 
 /*
  * The statements behind correlation rules, pinned as text and bound
@@ -476,5 +481,100 @@ ${SUCCEEDED}`);
 
     const values: Array<unknown> = boundValues(statement);
     expect(values).toContain("2026-09-21 10:00:00.000000000");
+  });
+});
+
+/*
+ * A correlation's steps that read watchlists carry them bound
+ * (bindSigmaWatchlists): each step's condition matches the list's values,
+ * in every place a statement names the step - and a read that would carry
+ * more than one request can is refused before it is sent.
+ */
+describe("correlation steps that read watchlists", () => {
+  const VIP_COUNT: string = `title: Five VIP failures
+correlation:
+  type: event_count
+  rules:
+    - vip_failure
+  group-by:
+    - principalUser
+  timespan: 10m
+  condition:
+    gte: 5
+---
+title: VIP failure
+name: vip_failure
+detection:
+  selection:
+    principalUser|expand: '%vip_users%'
+    statusName: Failure
+  condition: selection`;
+
+  function vipList(values: Array<string>): SigmaWatchlist {
+    return {
+      name: "vip_users",
+      entityType: SecurityEntityType.User,
+      exactValues: values,
+      patterns: [],
+      ranges: [],
+    };
+  }
+
+  function boundSteps(values: Array<string>): Array<SigmaCorrelationStep> {
+    const definition: DetectionRuleDefinition = bindSigmaWatchlists(
+      correlation(VIP_COUNT),
+      { vip_users: vipList(values) },
+    );
+
+    return (definition as { steps: Array<SigmaCorrelationStep> }).steps;
+  }
+
+  test("a bound step's condition matches the list's values", () => {
+    const condition: Statement = compileStepCondition(
+      boundSteps(["alice", "bob"])[0]!,
+    );
+
+    expect(condition.query).toContain(
+      "lowerUTF8(principalUser) IN {p0:Array(String)}",
+    );
+    expect(boundValues(condition)).toContainEqual(["alice", "bob"]);
+  });
+
+  test("a step that is not bound is refused by name", () => {
+    expect(() => {
+      return compileStepCondition(correlation(VIP_COUNT).steps[0]!);
+    }).toThrow("There is no watchlist named vip_users in this project.");
+  });
+
+  test("a read too large for one request is refused before it is sent", async () => {
+    const values: Array<string> = [];
+
+    for (let index: number = 0; index < 5000; index++) {
+      values.push(`${"u".repeat(240)}${index}`);
+    }
+
+    getJestSpyOn(
+      SecurityEventService.database,
+      "getDatasourceOptions",
+    ).mockReturnValue({ database: "oneuptime" } as never);
+    const execute: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+      SecurityEventService,
+      "executeQuery",
+    );
+
+    await expect(
+      CorrelationQueries.findCountGroups({
+        window: WINDOW,
+        correlation: correlation(VIP_COUNT).correlation,
+        steps: boundSteps(values),
+        countDistinct: false,
+        limit: 10,
+      }),
+    ).rejects.toThrow(
+      "This rule reads more watchlist values than one read can send to the database",
+    );
+    expect(execute).not.toHaveBeenCalled();
+
+    jest.restoreAllMocks();
   });
 });

@@ -66,7 +66,7 @@ Quando l'attesa dell'ultimo livello scade senza che nessuno riconosca, una polic
 | **Interrompi gli avvisi** | Nessuno viene avvisato di nuovo, quindi la policy viene eseguita una sola volta. Una nuova policy parte con questa risposta. |
 | **Ricomincia da Level 1** | Ogni livello viene avvisato di nuovo, in ordine. **Quante volte ancora?** dice quante volte: 1 o più. |
 
-Una policy che ricomincia altre tre volte percorre i suoi livelli quattro volte in tutto. La riga **Dopo l'ultimo livello** della scheda dice che cosa fa la policy, e **La policy in breve** nella **Panoramica** dice la stessa cosa a parole.
+Una policy che ricomincia altre tre volte percorre i suoi livelli quattro volte in tutto. Un giro in cui nessun livello aveva qualcuno da avvisare non viene ripetuto: un altro non avviserebbe nessuno, quindi la policy si ferma. La riga **Dopo l'ultimo livello** della scheda dice che cosa fa la policy, e **La policy in breve** nella **Panoramica** dice la stessa cosa a parole.
 
 ## Avvisare di nuovo se non è risolto
 
@@ -103,7 +103,7 @@ flowchart TB
 | **Programmato**, **Iniziata** | L'esecuzione è in preparazione. Una che è ancora qui dopo 5 minuti viene fermata come **Errore**. |
 | **Executing** | L'esecuzione sta avvisando. OneUptime la fa avanzare ogni minuto. |
 | **Execution Completed** | Qualcuno ha riconosciuto, l'incidente o l'avviso è stato risolto, sono state usate tutte le regole e le ripetizioni, oppure la policy è stata archiviata. |
-| **Execution Completed - No One Notified** | L'esecuzione ha percorso ogni regola senza avvisare nessuno: di solito una pianificazione in cui nessuno è reperibile. |
+| **Execution Completed - No One Notified** | L'esecuzione ha percorso ogni regola senza avvisare nessuno: di solito una pianificazione in cui nessuno è reperibile, o un livello senza destinatari. |
 | **Errore** | L'esecuzione non è riuscita. **Visualizza messaggio di stato** dice perché. |
 
 Trovate i registri di esecuzione in tre posti:
@@ -112,7 +112,7 @@ Trovate i registri di esecuzione in tre posti:
 - in **Reperibilità → Avanzato → Registri di esecuzione**, per tutte le policy, dove le chiamate dirette da workflow e chat compaiono come **Chiamata diretta**;
 - nella pagina **Esecuzioni di reperibilità** di un incidente o di un avviso.
 
-Ogni riga mostra che cosa ha avviato l'esecuzione, quando, il suo **Stato** e chi l'ha riconosciuta. **Visualizza cronologia** apre la sua **Cronologia di esecuzione**: ogni regola di escalation, chi ha avvisato, tramite quale pianificazione e come è finito ogni avviso. Una pianificazione in cui nessuno è reperibile mostra **Nessuno era di turno** al posto di una persona. Su OneUptime Cloud, i registri di esecuzione richiedono il piano **Growth**.
+Ogni riga mostra che cosa ha avviato l'esecuzione, quando, il suo **Stato** e chi l'ha riconosciuta. **Visualizza cronologia** apre la sua **Cronologia di esecuzione**: ogni regola di escalation, chi ha avvisato, tramite quale pianificazione e come è finito ogni avviso. Una pianificazione in cui nessuno è reperibile mostra **Nessuno era di turno** al posto di una persona. Un livello che non ha avvisato nessuno dice perché, con **Proseguito senza attendere** sotto: la policy non lo ha atteso. Su OneUptime Cloud, i registri di esecuzione richiedono il piano **Growth**.
 
 ## Archiviare o eliminare una policy
 
@@ -154,6 +154,10 @@ La sua esecuzione indica **Execution Completed - No One Notified**. Aprite **Vis
 
 :::details Il livello successivo è stato avvisato un minuto dopo la sua attesa
 OneUptime fa avanzare le policy in corso una volta al minuto, quindi un livello viene avvisato al primo controllo dopo la fine della sua attesa.
+:::
+
+:::details Il livello successivo è stato avvisato subito, senza attendere
+Il livello precedente non aveva nessuno da avvisare: nessun destinatario, nessuno reperibile nelle sue pianificazioni o nessuno raggiungibile. Un livello che non avvisa nessuno non ha attesa, quindi il livello successivo viene avvisato appena la policy lo raggiunge. **Visualizza cronologia** mostra perché quel livello non ha avvisato nessuno.
 :::
 
 :::details Un incidente mostra una policy che non ha avvisato nessuno

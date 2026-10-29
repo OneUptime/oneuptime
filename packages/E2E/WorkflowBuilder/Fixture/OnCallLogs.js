@@ -21,6 +21,10 @@
  *                         Level 1 pages whoever is on call in Primary, Level
  *                         2 the next person in its rotation, and nobody is
  *                         next in the Secondary rotation
+ *                         &run=empty-levels is a policy's run that passed
+ *                         two levels at once: Level 1 has no responders,
+ *                         nobody was on call in Level 2's schedule, and
+ *                         Level 3 paged Alex, all in the same minute
  *
  * Nothing of the tables is faked: the columns, the cells' wrapping, the
  * phone layout and the card are the Dashboard's own. Only the API is stood
@@ -44,6 +48,10 @@ import Email from "Common/Types/Email";
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
 import OnCallDutyExecutionLogTimelineStatus from "Common/Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
+import {
+  ON_CALL_LEVEL_HAS_NO_RESPONDERS_TIMELINE_MESSAGE,
+  ON_CALL_LEVEL_PAGED_NOBODY_TIMELINE_MESSAGE,
+} from "Common/Types/OnCallDutyPolicy/OnCallEmptyLevel";
 import OnCallDutyPolicyStatus from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import Permission from "Common/Types/Permission";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -334,11 +342,59 @@ const NEXT_IN_ROTATION_TIMELINE = [
   }),
 ];
 
-// The run the timeline is of: a direct page, or &run=next-in-rotation.
+/*
+ * A policy's run that passed two levels at once, as a level with nobody to
+ * page is (Common/Types/OnCallDutyPolicy/OnCallEmptyLevel): Level 1 has no
+ * responders; nobody was on call in Level 2's schedule, so Level 2 could
+ * page nobody either; Level 3 paged Alex - all in the same minute. Each
+ * empty level writes a line of its own, in the engine's own words.
+ */
+const EMPTY_LEVELS_TIMELINE = [
+  step({
+    id: 8,
+    ruleName: "Level 1",
+    status: OnCallDutyExecutionLogTimelineStatus.Skipped,
+    statusMessage: ON_CALL_LEVEL_HAS_NO_RESPONDERS_TIMELINE_MESSAGE,
+  }),
+  step({
+    id: 9,
+    ruleName: "Level 2",
+    scheduleName: "Secondary",
+    status: OnCallDutyExecutionLogTimelineStatus.Skipped,
+    statusMessage:
+      "Skipped because no active users are found in this schedule.",
+  }),
+  step({
+    id: "a",
+    ruleName: "Level 2",
+    status: OnCallDutyExecutionLogTimelineStatus.Skipped,
+    statusMessage: ON_CALL_LEVEL_PAGED_NOBODY_TIMELINE_MESSAGE,
+  }),
+  step({
+    id: "b",
+    ruleName: "Level 3",
+    user: ALEX,
+    status: OnCallDutyExecutionLogTimelineStatus.NotificationSent,
+    statusMessage: "Notification sent by SMS and email.",
+  }),
+];
+
+/*
+ * The run the timeline is of: a direct page, &run=next-in-rotation or
+ * &run=empty-levels.
+ */
 function shownTimeline() {
   const shown = new URLSearchParams(window.location.search).get("run");
 
-  return shown === "next-in-rotation" ? NEXT_IN_ROTATION_TIMELINE : TIMELINE;
+  if (shown === "next-in-rotation") {
+    return NEXT_IN_ROTATION_TIMELINE;
+  }
+
+  if (shown === "empty-levels") {
+    return EMPTY_LEVELS_TIMELINE;
+  }
+
+  return TIMELINE;
 }
 
 function result(rows, data) {

@@ -41,6 +41,7 @@ Abre **Productos → Eventos de seguridad**, en **Observabilidad**. Su menú tie
 | **Correlacionar** | Eventos | Un grafo de los eventos que comparten un host, un usuario o una dirección IP |
 | **Reglas de detección** | Detecciones | Reglas Sigma que se ejecutan según una programación y abren casos |
 | **Excepciones de regla** | Detecciones | Lo que tus reglas omiten a propósito, como un escáner o una prueba planificada, cada cosa con quién la añadió y por qué |
+| **Listas de seguimiento** | Detecciones | Las listas con las que comparan tus reglas, como usuarios VIP, hosts críticos, hashes de archivos maliciosos conocidos y las direcciones desde las que los administradores pueden iniciar sesión |
 | **Biblioteca de reglas** | Detecciones | Reglas de detección listas para añadir, cada una con los eventos que lee y si llegan, con las recomendadas marcadas |
 | **Inteligencia de amenazas** | Detecciones | Feeds STIX/TAXII de indicadores maliciosos conocidos |
 | **Cobertura de ATT&CK** | Detecciones | Las técnicas de MITRE ATT&CK que cubren tus reglas |
@@ -300,7 +301,7 @@ OneUptime ejecuta el núcleo booleano de Sigma:
 
 - Las selecciones son mapas de campos (cada campo debe coincidir; una lista de valores coincide con cualquiera de ellos) o listas de palabras clave, que coinciden en cualquier parte del mensaje.
 - Las condiciones combinan selecciones con `and`, `or`, `not` y paréntesis, o con `1 of selection_*`, `all of selection_*`, `any of them` y `all of them`.
-- Modificadores de campo: `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists` y `windash`. El texto se compara sin distinguir mayúsculas, salvo que añadas `cased`.
+- Modificadores de campo: `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists`, `windash` y `expand`, que lee una [lista de seguimiento](#listas-de-seguimiento). El texto se compara sin distinguir mayúsculas, salvo que añadas `cased`.
 - Un campo es un campo tipado (`principalUser`), una grafía Sigma habitual de uno (`CommandLine`, `src_ip`, `Hostname`) o cualquier clave de atributo, escrita como en el evento (`threat.matched`).
 - `Image` y `CommandLine` leen el proceso del que trata el evento, el que se inició en el inicio de un proceso (`processPath`, `processCommandLine`), y `ParentImage` y `ParentCommandLine` el proceso que lo inició (`parentProcessPath`, `parentProcessCommandLine`). `principalProcess` es el proceso que actuó, que en un inicio es el proceso padre.
 - `level` fija la gravedad: `informational`, `low`, `medium`, `high` o `critical`, y `medium` si falta. Los IDs de ATT&CK en `tags` (`attack.t1110`, `attack.ta0006`) rellenan los campos MITRE del hallazgo.
@@ -436,6 +437,32 @@ Una excepción es algo que una regla omite porque lo esperas, como un escáner d
 - Los eventos omitidos se descartan antes de que la regla cuente nada, así que nunca cuentan para su **Umbral de número de coincidencias** y no abren ningún caso, alerta, incidente ni hallazgo. Las excepciones se aplican a cada ejecución de la regla, correlaciones incluidas, y a **Ejecutar sobre eventos pasados**, pero nunca a un ataque de prueba, que comprueba que los eventos llegan.
 - Una regla tiene como máximo 100 excepciones. Quien puede editar reglas de detección las añade, las cambia y las elimina, cualquier rol de Security puede leerlas, y cada cambio queda en el registro de auditoría del proyecto.
 
+### Listas de seguimiento
+
+Una lista de seguimiento es una lista que tu equipo mantiene una sola vez y que cualquier regla puede leer, como usuarios VIP, hosts críticos, hashes de archivos maliciosos conocidos o las direcciones desde las que los administradores pueden iniciar sesión. Todas las listas están en **Productos → Eventos de seguridad → Detecciones → Listas de seguimiento**: crea una allí con **Crear Lista de seguimiento**, que pide su nombre y lo que contiene, o añade una habitual desde **Empieza con una lista habitual**. La página de una lista muestra sus valores, y **Úsala en una regla** da una selección que lee la lista, para copiarla en una regla.
+
+Una regla lee una lista con `expand` y el nombre de la lista entre signos `%`. Esta regla se dispara cuando un administrador inicia sesión desde una dirección que no está en la lista permitida:
+
+```yaml title="admin-sign-in-from-outside.yml"
+title: Admin sign-in from outside the allowed addresses
+detection:
+  admin_sign_in:
+    className: Authentication
+    principalUser|expand: '%admins%'
+  allowed:
+    principalIp|expand: '%admin_addresses%'
+  condition: admin_sign_in and not allowed
+level: high
+```
+
+- Una lista contiene usuarios, hosts, direcciones IP, hashes de archivos, dominios, URLs, procesos u otros valores, elegidos al crearla. Un valor coincide sin importar mayúsculas y minúsculas, y `*` representa cualquier serie de caracteres: `svc-*` coincide con cada cuenta de servicio. Una lista de direcciones IP también admite rangos, como `10.20.0.0/16`, y una lista de hashes de archivos admite hashes MD5, SHA-1, SHA-256 y SHA-512.
+- Añade valores de uno en uno con **Añadir Valor**, o muchos a la vez con **Importar valores**: pégalos, o elige un archivo `.txt` o `.csv`, un valor por línea, con una nota opcional tras una coma. **Añadir a la lista** conserva los valores que ya tiene, y **Reemplazar la lista** quita los que la importación no trae.
+- En lugar de mantener valores, una lista de direcciones IP, hashes de archivos, dominios o URLs puede seguir un feed de inteligencia de amenazas: sus valores son entonces los indicadores activos del feed del tipo de la lista, que se mantienen al día a medida que se lee el feed.
+- `expand` se usa solo, porque los valores de la lista dicen cómo coinciden. Un campo que contiene varios valores, como `observables`, coincide cuando alguno de ellos está en la lista. **Leída por** nombra las reglas que leen cada lista, y bajo el YAML de una regla su formulario nombra las listas que la regla lee.
+- Una regla nombra una lista sin importar mayúsculas y minúsculas. Una regla que nombra una lista que el proyecto no tiene se rechaza al guardarla, y una lista que leen reglas no puede renombrarse ni eliminarse hasta que ninguna regla la lea.
+- Un cambio en una lista llega a cada regla que la lee en la siguiente ejecución de la regla. Las reglas de correlación y **Ejecutar sobre eventos pasados** también leen listas.
+- Una lista tiene como máximo 5.000 valores, de ellos como máximo 100 con `*` y 100 rangos, y un proyecto tiene como máximo 200 listas: para una lista más larga, sigue un feed de inteligencia de amenazas. Quien puede crear, editar o eliminar reglas de detección puede hacer lo mismo con las listas, y quien puede editar reglas de detección añade, cambia y quita sus valores. Cualquier rol de Security puede leerlas, y cada cambio queda en el registro de auditoría del proyecto.
+
 ### Ejecutar sobre eventos pasados
 
 **Ejecutar sobre eventos pasados** muestra lo que una regla habría encontrado si hubiera estado en marcha, sin abrir, enviar ni escribir nada. Está en la fila de una regla, para la regla tal como está guardada, y bajo **Regla Sigma (YAML)** en el formulario de la regla, para la regla tal como está ahí, antes de que la guardes. Elige **Últimas 24 horas**, **Últimos 7 días** o **Últimos 30 días**.
@@ -504,6 +531,14 @@ Añade una excepción para ello en lugar de desactivar la regla: **Añadir excep
 
 :::details Una excepción no omite lo que debería
 Comprueba su **Estado** en **Excepciones de regla**: una excepción en estado **Caducado** no omite nada, y una ventana de tiempo solo omite los eventos entre sus dos horas. Una entidad se busca como quien actuó, como quien recibió la acción y entre los `observables` del evento; para omitir un valor de otro campo, añade una excepción **Un valor** que nombre ese campo. Sin `*`, un valor debe ser igual al campo entero: `svc-*` omite `svc-backup`, y `svc-` no.
+:::
+
+:::details Una regla que lee una lista de seguimiento no coincide
+Abre la lista y revisa sus valores: un valor sin `*` debe ser igual al campo entero, sin importar mayúsculas y minúsculas, y una lista que sigue un feed de inteligencia de amenazas solo contiene los indicadores activos del feed de su tipo. Comprueba que la regla lee el campo que llenan tus eventos: **Úsala en una regla** empieza con el campo en el que suele estar una lista de su tipo. Un cambio en una lista llega a una regla en su siguiente ejecución.
+:::
+
+:::details Una lista de seguimiento no se puede renombrar ni eliminar
+Hay reglas que aún la leen por su nombre, y el mensaje las nombra. Cambia el nombre en esas reglas, o quita la lista de ellas, y luego renómbrala o elimínala.
 :::
 
 :::details Ejecutar una regla sobre eventos pasados no encuentra nada

@@ -3092,6 +3092,43 @@ export default class NetworkDevice extends BaseModel {
   })
   public lastSnmpSeenAt?: Date = undefined;
 
+  /*
+   * When someone last asked for the device to be read again now - Refresh on
+   * its Inventory card, or on its Inventory item's Asset Details. Written by
+   * the refresh route alone (NetworkDeviceRefreshAPI), as root: no API write
+   * may set it. The device's probe reads it within a minute, and its
+   * Inventory item is copied again as soon as that poll lands; a network
+   * controller connection that describes the device writes its reading again
+   * on its next read (NetworkControllerInventory). Kept, not cleared: each
+   * reader compares it with its own last reading.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Refresh Requested At",
+    description:
+      "When someone last asked for this device to be read again now (Refresh). Its probe reads it within a minute. Managed by the server.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public refreshRequestedAt?: Date = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [

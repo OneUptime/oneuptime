@@ -18,8 +18,9 @@ import IconProp from "Common/Types/Icon/IconProp";
  *                    user, host and address scored by everything found
  *                    about it, and a lookup for any value) and Correlate
  *   Detections       what finds threats in them: Detection Rules, the
- *                    Rule Exceptions they skip, the Rule Library, Threat
- *                    Intel and ATT&CK Coverage
+ *                    Rule Exceptions they skip, the Watchlists they match
+ *                    against, the Rule Library, Threat Intel and ATT&CK
+ *                    Coverage
  *   Playbooks        what responds when a case opens: Playbooks, the
  *                    Approvals - the runs a step holds for one - every
  *                    Playbook Run, and the Protected Entities no playbook
@@ -69,7 +70,8 @@ export interface SecurityEventsMenuItem {
   badge?: SecurityEventsMenuBadge | undefined;
   /*
    * The pages opened from this entry's page, inside the menu's layout, that
-   * light it: an entity's page lights Entity Risk.
+   * light it: an entity's page lights Entity Risk, a watchlist's page
+   * Watchlists.
    */
   detailPages?: Array<PageMap> | undefined;
 }
@@ -186,6 +188,18 @@ export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
         page: PageMap.SECURITY_EVENTS_RULE_EXCEPTIONS,
         title: "Rule Exceptions",
         icon: IconProp.EyeSlash,
+      },
+      {
+        /*
+         * The lists the rules match against - VIP users, critical hosts,
+         * known-bad file hashes, allowed admin addresses - each kept by hand,
+         * imported, or following a threat intel feed. A list's own page holds
+         * its values, and lights this entry.
+         */
+        page: PageMap.SECURITY_EVENTS_WATCHLISTS,
+        title: "Watchlists",
+        icon: IconProp.QueueList,
+        detailPages: [PageMap.SECURITY_EVENTS_WATCHLIST_VIEW],
       },
       {
         page: PageMap.SECURITY_EVENTS_RULE_LIBRARY,

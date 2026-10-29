@@ -778,6 +778,68 @@ test("a large organization read in part: what is still to come, and why", async 
 });
 
 /*
+ * Each read also lists the organization's devices: the connection's row
+ * counts them, and says how many network devices here it fills in the
+ * model, serial number and firmware of. A read from before reads counted
+ * them says nothing of devices (the first test of the page).
+ */
+test("the organization's devices: counted on the connection's row, and the network devices here it fills in", async ({
+  page,
+}: {
+  page: Page;
+}, testInfo: TestInfo) => {
+  await open(page, "state=meraki&devices=counted");
+
+  const row: Locator = page.getByTestId("meraki-connection");
+  await expect(row.getByTestId("meraki-connection-covered")).toHaveText(
+    "Every 5 minutes · 4 networks · 6 devices · 4 appliances · 4 API calls a read",
+  );
+  const notes: Locator = row.getByTestId("meraki-connection-note");
+  await expect(notes).toHaveCount(1);
+  await expect(notes).toHaveText(
+    "Fills in the model, serial number and firmware of 5 network devices.",
+  );
+  // Grey: OneUptime did it by itself, nothing to act on.
+  await expect(notes).toHaveAttribute("data-tone", "info");
+  await screenshot(
+    page,
+    testInfo,
+    "devices",
+    page.getByTestId("meraki-connections"),
+  );
+
+  // One of them, said as one.
+  await open(page, "state=meraki&devices=one");
+  await expect(
+    page.getByTestId("meraki-connection").getByTestId("meraki-connection-note"),
+  ).toHaveText(
+    "Fills in the model, serial number and firmware of 1 network device.",
+  );
+
+  // In German.
+  await open(page, "state=meraki&devices=counted&lang=de");
+  await expect(
+    page.getByTestId("meraki-connection").getByTestId("meraki-connection-note"),
+  ).toHaveText(
+    "Ergänzt Modell, Seriennummer und Firmware von 5 Netzwerkgeräten.",
+  );
+  // The card says what the connections read: traffic, and device details.
+  await expect(
+    page
+      .getByTestId("meraki-connections")
+      .locator("xpath=ancestor::div[@data-testid='card'][1]"),
+  ).toContainText(
+    "Die Meraki-Organisationen, deren Datenverkehr und Geräteangaben OneUptime über die Meraki-Dashboard-API liest.",
+  );
+  await screenshot(
+    page,
+    testInfo,
+    "devices-de",
+    page.getByTestId("meraki-connections"),
+  );
+});
+
+/*
  * ---------------------------------------------------------------------------
  * In another language
  * ---------------------------------------------------------------------------

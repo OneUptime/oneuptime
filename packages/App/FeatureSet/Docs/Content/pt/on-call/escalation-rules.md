@@ -79,11 +79,13 @@ Quando um incidente ou alerta chega à política, **Level 1** aciona os destinat
 
 Um incidente, alerta ou episódio criado já confirmado ou resolvido — registrado depois do fato — não executa nenhuma de suas políticas: ninguém é acionado, e o feed dele informa isso, citando-as. Veja [Declarado já confirmado ou resolvido](/docs/incidents/declaring-incidents#declarado-já-confirmado-ou-resolvido).
 
+Um nível que não tem ninguém para acionar quando é alcançado é pulado na hora: o próximo nível é acionado imediatamente, sem esperar. É um nível sem destinatários, e um cujos destinatários não deixam ninguém para acionar naquele momento: uma equipe sem membros, um agendamento sem ninguém de plantão, ou pessoas ausentes sem ninguém para cobrir, que saíram do projeto ou que não podem ser contatadas de forma alguma. Quando nenhum nível tem alguém para acionar, a política para na hora e não se repete.
+
 Para repetir uma política, clique em **Editar** no cartão **Política de Repetição**, escolha **Recomeçar a partir do Level 1** e defina **Quantas vezes mais?**.
 
 ### O resumo do escalonamento
 
-O resumo no topo da página **Regras de escalonamento** mostra a escada inteira: quando cada nível é acionado, quem ele aciona e o que acontece depois do último. Um nível cujos destinatários não podem ser todos acionados avisa isso no cartão; clique no rótulo para ver quem e por quê.
+O resumo no topo da página **Regras de escalonamento** mostra a escada inteira: quando cada nível é acionado, quem ele aciona e o que acontece depois do último. Um nível cujos destinatários não podem ser todos acionados avisa isso no cartão; clique no rótulo para ver quem e por quê. Um nível sem destinatários mostra **Ignorado imediatamente**, e a espera dele não conta para quando o próximo nível é acionado.
 
 ### Como cada pessoa é contatada
 
@@ -184,7 +186,7 @@ A próxima pessoa é definida quando o nível é executado, com base no agendame
 - É a pessoa depois de quem está de plantão, na ordem em que as pessoas da rotação se revezam. Depois da última pessoa vem a primeira de novo.
 - Pessoas ausentes são puladas, havendo ou não alguém que as cubra, assim como quem está de plantão no lugar de outra pessoa.
 - É sempre alguém da mesma rotação: com várias camadas, a camada de onde vem quem está de plantão. Uma rotação sem mais ninguém, ou com todos os outros ausentes, não tem próxima pessoa, e o nível não aciona ninguém ali e informa isso.
-- Quando ninguém está de plantão no agendamento, também não há próxima pessoa, e o nível é tentado de novo por alguns minutos, como acontece com o próprio agendamento.
+- Quando ninguém está de plantão no agendamento, também não há próxima pessoa, e o nível não aciona ninguém ali.
 
 A mensagem da execução no Slack e no Microsoft Teams, o feed do incidente e a **Linha do tempo de execução** dizem quem foi acionado como o próximo da rotação, e de qual agendamento: "Sam Lee (next in the Payments primary rotation)".
 

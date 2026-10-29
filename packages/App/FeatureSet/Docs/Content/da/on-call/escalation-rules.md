@@ -79,11 +79,13 @@ Når en hændelse eller advarsel når politikken, tilkalder **Level 1** straks s
 
 En hændelse, en advarsel eller en episode, der oprettes allerede bekræftet eller løst — registreret bagefter — udfører ingen af sine politikker: ingen tilkaldes, og dens feed siger det og nævner dem ved navn. Se [Erklæret allerede bekræftet eller løst](/docs/incidents/declaring-incidents#erklæret-allerede-bekræftet-eller-løst).
 
+Et niveau, der ikke har nogen at tilkalde, når det nås, springes straks over: næste niveau tilkaldes med det samme uden at vente. Det er et niveau uden modtagere, og et niveau, hvis modtagere ikke giver nogen at tilkalde i det øjeblik: et team uden medlemmer, en vagtplan, hvor ingen har vagt, eller folk, der er fraværende uden nogen til at dække, har forladt projektet eller slet ikke kan nås. Har intet niveau nogen at tilkalde, stopper politikken straks og gentages ikke.
+
 For at gentage en politik skal du klikke på **Rediger** på kortet **Gentagelsespolitik**, vælge **Start forfra fra Level 1** og angive **Hvor mange gange mere?**.
 
 ### Eskaleringsoversigten
 
-Oversigten øverst på siden **Eskaleringsregler** viser hele stigen: hvornår hvert niveau tilkaldes, hvem det tilkalder, og hvad der sker efter det sidste. Et niveau, hvis modtagere ikke alle kan tilkaldes, siger det på sit kort; klik på etiketten for at se hvem og hvorfor.
+Oversigten øverst på siden **Eskaleringsregler** viser hele stigen: hvornår hvert niveau tilkaldes, hvem det tilkalder, og hvad der sker efter det sidste. Et niveau, hvis modtagere ikke alle kan tilkaldes, siger det på sit kort; klik på etiketten for at se hvem og hvorfor. Et niveau uden modtagere viser **Sprunget over med det samme**, og dets ventetid tæller ikke med i, hvornår næste niveau tilkaldes.
 
 ### Sådan nås hver person
 
@@ -184,7 +186,7 @@ Den næste person findes, når niveauet kører, ud fra vagtplanen, som den ser u
 - Det er personen efter den, der har vagt, i den rækkefølge, rotationens personer skiftes i. Efter den sidste person kommer den første igen.
 - Fraværende personer springes over, uanset om nogen dækker for dem, og det samme gælder enhver, der har vagt i stedet for en anden.
 - Det er altid en person fra samme rotation: med flere lag det lag, som den, der har vagt, kommer fra. En rotation uden andre i, eller hvor alle andre er fraværende, har ingen næste person, og niveauet tilkalder ingen der og siger det.
-- Når ingen overhovedet har vagt i vagtplanen, er der heller ingen næste person, og niveauet forsøges igen i et par minutter, ligesom for selve vagtplanen.
+- Når ingen overhovedet har vagt i vagtplanen, er der heller ingen næste person, og niveauet tilkalder ingen der.
 
 Kørslens besked i Slack og Microsoft Teams, hændelsens feed og **Tidslinje for udførelsen** viser, hvem der blev tilkaldt som den næste i rotationen, og fra hvilken vagtplan: "Sam Lee (next in the Payments primary rotation)".
 

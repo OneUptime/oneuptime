@@ -66,7 +66,7 @@ När den sista nivåns väntetid går ut utan att någon har bekräftat slutar e
 | **Sluta larma** | Ingen larmas igen, så policyn körs en gång. En ny policy börjar med det här svaret. |
 | **Börja om från Level 1** | Varje nivå larmas igen, i tur och ordning. **Hur många gånger till?** anger hur många: 1 eller fler. |
 
-En policy som börjar om tre gånger till går igenom sina nivåer fyra gånger totalt. Kortets rad **Efter den sista nivån** säger vad policyn gör, och **Policyn i korthet** på **Översikt** säger samma sak i ord.
+En policy som börjar om tre gånger till går igenom sina nivåer fyra gånger totalt. En omgång där ingen nivå hade någon att larma upprepas inte: en till skulle inte heller larma någon, så policyn slutar. Kortets rad **Efter den sista nivån** säger vad policyn gör, och **Policyn i korthet** på **Översikt** säger samma sak i ord.
 
 ## Larma igen om den inte blir löst
 
@@ -103,7 +103,7 @@ flowchart TB
 | **Schemalagd**, **Startade** | Körningen förbereds. En som fortfarande står här efter 5 minuter stoppas som **Fel**. |
 | **Executing** | Körningen larmar. OneUptime för den ett steg vidare varje minut. |
 | **Execution Completed** | Någon bekräftade, incidenten eller larmet löstes, varje regel och upprepning användes, eller policyn arkiverades. |
-| **Execution Completed - No One Notified** | Körningen gick igenom varje regel och larmade ingen: oftast ett schema där ingen har jour. |
+| **Execution Completed - No One Notified** | Körningen gick igenom varje regel och larmade ingen: oftast ett schema där ingen har jour, eller en nivå utan mottagare. |
 | **Fel** | Körningen misslyckades. **Visa statusmeddelande** säger varför. |
 
 Du hittar exekveringsloggar på tre ställen:
@@ -112,7 +112,7 @@ Du hittar exekveringsloggar på tre ställen:
 - under **Jourtjänst → Avancerad → Exekveringsloggar**, för varje policy, där direkta utlarmningar från arbetsflöden och chatt visas som **Direkt utlarmning**;
 - på en incidents eller ett larms sida **Jourexekveringar**.
 
-Varje rad visar vad som startade körningen, när, dess **Status** och vem som bekräftade den. **Visa tidslinje** öppnar dess **Tidslinje för körningen**: varje eskaleringsregel, vem den larmade, via vilket schema och hur varje utlarmning slutade. Ett schema där ingen har jour visar **Ingen hade jour** i stället för en person. I OneUptime Cloud kräver exekveringsloggar abonnemanget **Growth**.
+Varje rad visar vad som startade körningen, när, dess **Status** och vem som bekräftade den. **Visa tidslinje** öppnar dess **Tidslinje för körningen**: varje eskaleringsregel, vem den larmade, via vilket schema och hur varje utlarmning slutade. Ett schema där ingen har jour visar **Ingen hade jour** i stället för en person. En nivå som inte larmade någon säger varför, med **Gick vidare direkt** under: policyn väntade inte på den. I OneUptime Cloud kräver exekveringsloggar abonnemanget **Growth**.
 
 ## Arkivera eller ta bort en policy
 
@@ -154,6 +154,10 @@ Dess körning visar **Execution Completed - No One Notified**. Öppna **Visa tid
 
 :::details Nästa nivå larmades en minut efter sin väntetid
 OneUptime för körande policyer ett steg vidare en gång i minuten, så en nivå larmas vid den första kontrollen efter att väntetiden har gått ut.
+:::
+
+:::details Nästa nivå larmades direkt, utan väntetid
+Nivån före hade ingen att larma: inga mottagare, ingen med jour i dess scheman eller ingen som kunde nås. En nivå som inte larmar någon har ingen väntetid, så nästa nivå larmas så snart policyn når den. **Visa tidslinje** visar varför den nivån inte larmade någon.
 :::
 
 :::details En incident visar en policy som inte larmade någon

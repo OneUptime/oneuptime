@@ -780,6 +780,9 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
   [PageMap.SECURITY_EVENTS_CAMPAIGNS]: "campaigns",
   [PageMap.SECURITY_EVENTS_DETECTION_RULES]: "detection-rules",
   [PageMap.SECURITY_EVENTS_RULE_EXCEPTIONS]: "rule-exceptions",
+  // A watchlist's page is one level under the list, by its id.
+  [PageMap.SECURITY_EVENTS_WATCHLISTS]: "watchlists",
+  [PageMap.SECURITY_EVENTS_WATCHLIST_VIEW]: `watchlists/${RouteParams.ModelID}`,
   [PageMap.SECURITY_EVENTS_MONITORS]: "monitors",
   [PageMap.SECURITY_EVENTS_CONNECTIONS]: "connections",
   [PageMap.SECURITY_EVENTS_THREAT_INTEL]: "threat-intel",
@@ -6927,6 +6930,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SECURITY_EVENTS_RULE_EXCEPTIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/${
       SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_RULE_EXCEPTIONS]
+    }`,
+  ),
+
+  [PageMap.SECURITY_EVENTS_WATCHLISTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_WATCHLISTS]
+    }`,
+  ),
+
+  [PageMap.SECURITY_EVENTS_WATCHLIST_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_WATCHLIST_VIEW]
     }`,
   ),
 

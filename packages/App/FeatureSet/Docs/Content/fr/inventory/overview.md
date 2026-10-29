@@ -73,8 +73,11 @@ Un hôte ou un équipement réseau a une carte **Détails de l’actif** qui dé
 
 - Les faits d'un hôte viennent des attributs de ressource de sa télémétrie : ses adresses IP et MAC, son architecture et son système d'exploitation d'emblée, et son numéro de série, sa marque, son modèle et son firmware une fois que vous les y apposez.
 - Les faits d'un équipement réseau viennent de son interrogation SNMP, de son rôle et de son site. Ce que son interrogation n'a pas lu vient de la découverte : la dernière analyse de son adresse, la table ARP d'un routeur ou la résolution DNS de sa sonde. Un équipement sans ENTITY-MIB, comme un Meraki MX, obtient tout de même sa marque et son modèle à partir de sa description système. Son adresse IP n'est jamais affichée comme son nom d'hôte.
+- Un équipement Meraki prend aussi dans le tableau de bord Meraki ce que son interrogation laisse vide, dont son numéro de série, son modèle et son firmware, quand une [connexion Meraki](/docs/monitor/network-traffic#cisco-meraki-sans-netflow) lit son organisation.
 
 La carte indique d'où vient chaque fait et quand. La source que partagent la plupart des faits, comme le collecteur d'un hôte, la propre interrogation SNMP d'un équipement réseau ou l'analyse de découverte qui l'a lu, est nommée une seule fois, sous les faits. Toute autre source, comme la table ARP d'un routeur ou une valeur enregistrée sur l'équipement, est nommée sous son fait. Une valeur enregistrée sur un équipement réseau n'est jamais remplacée par ce que lit la découverte, et quand les deux diffèrent, la carte montre les deux.
+
+La carte d'un équipement réseau a un bouton **Actualiser** pour qui peut modifier les équipements réseau. Il relit l'équipement maintenant : sa sonde l'interroge dans la minute, et sa connexion Meraki relit l'organisation. La carte indique quand la nouvelle lecture est arrivée, ou que la sonde n'a pas pu joindre l'équipement, et l'élément est copié depuis l'équipement dès que la lecture arrive.
 
 Les mêmes faits sont des colonnes de la liste **Tous les éléments**, masquées jusqu'à ce que vous les activiez, et ils entrent dans son export CSV. [Exporter vers une CMDB](/docs/inventory/cmdb-sync#détails-de-lactif) liste leurs clés.
 
