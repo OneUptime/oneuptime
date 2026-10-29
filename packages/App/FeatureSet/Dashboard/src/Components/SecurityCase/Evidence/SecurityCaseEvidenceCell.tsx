@@ -8,8 +8,18 @@ import {
   shortenSha256,
 } from "./SecurityCaseEvidenceCopy";
 import RelativeTime from "../../EpisodeView/RelativeTime";
+import { getEventEvidenceMeta, readEventEvidence } from "./EventEvidence";
+import {
+  FOUND_BY_HUNT,
+  HUNTS_TEST_IDS,
+} from "../../SecurityEvents/Hunts/HuntsCopy";
+import { getHuntViewRoute } from "../../SecurityEvents/Hunts/HuntsModel";
 import SecurityCaseEvidence from "Common/Models/DatabaseModels/SecurityCaseEvidence";
+import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
+import ObjectID from "Common/Types/ObjectID";
+import { SecurityCaseEventSnapshot } from "Common/Types/SecurityCase/SecurityCaseEventEvidence";
+import Link from "Common/UI/Components/Link/Link";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
@@ -74,6 +84,11 @@ export const SecurityCaseEvidenceAddedLine: FunctionComponent<
  * menu a case's card is 620 to 760px wide from 1024 to 1100px, and with
  * Added By and Added beside it the table scrolled sideways there, and cut
  * a name such as "Diego Alvarez" short at 1280.
+ *
+ * A security event kept on the case reads the same way, with a bookmark:
+ * what it said, then when it happened, how severe it was, its kind and
+ * where it came from, and the hunt that found it - a link to the hunt -
+ * as it was named when the event was kept.
  */
 const SecurityCaseEvidenceCell: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -81,23 +96,36 @@ const SecurityCaseEvidenceCell: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const item: SecurityCaseEvidence = props.item;
   const isFile: boolean = isFileEvidence(item);
+  const event: SecurityCaseEventSnapshot | null = readEventEvidence(item);
   const link: string | null = getEvidenceLink(item);
-  const meta: string = getEvidenceMeta({
-    name: item.name,
-    isFile,
-    fileName: item.fileName,
-    size: formatEvidenceSize(item.fileSizeInBytes),
-    link,
-  });
+  const meta: string = event
+    ? getEventEvidenceMeta({
+        snapshot: event,
+        formatTime: (time: Date): string => {
+          return OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(time);
+        },
+      })
+    : getEvidenceMeta({
+        name: item.name,
+        isFile,
+        fileName: item.fileName,
+        size: formatEvidenceSize(item.fileSizeInBytes),
+        link,
+      });
   const sha256: string = isFile ? (item.sha256 || "").trim() : "";
+
+  let icon: IconProp = IconProp.Link;
+
+  if (isFile) {
+    icon = IconProp.PaperClip;
+  } else if (event) {
+    icon = IconProp.Bookmark;
+  }
 
   return (
     <div className="grid grid-cols-1">
       <span className="flex min-w-0 items-start gap-2">
-        <Icon
-          icon={isFile ? IconProp.PaperClip : IconProp.Link}
-          className="mt-0.5 h-4 w-4 shrink-0 text-gray-400"
-        />
+        <Icon icon={icon} className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
         <span
           className="min-w-0 break-words font-medium text-gray-900"
           data-testid={SECURITY_CASE_EVIDENCE_TEST_IDS.name}
@@ -109,9 +137,37 @@ const SecurityCaseEvidenceCell: FunctionComponent<ComponentProps> = (
         <span
           className="mt-0.5 truncate ps-6 text-xs text-gray-500"
           title={meta}
-          data-testid={SECURITY_CASE_EVIDENCE_TEST_IDS.meta}
+          data-testid={
+            event
+              ? HUNTS_TEST_IDS.eventEvidenceMeta
+              : SECURITY_CASE_EVIDENCE_TEST_IDS.meta
+          }
         >
           <IsolatedText text={meta} />
+        </span>
+      ) : (
+        <></>
+      )}
+      {event?.hunt ? (
+        <span
+          className="mt-0.5 ps-6 text-xs text-gray-500"
+          data-testid={HUNTS_TEST_IDS.eventEvidenceHunt}
+        >
+          <TranslatedSentence
+            template={FOUND_BY_HUNT}
+            slots={{
+              hunt: ObjectID.isValidUUID(event.hunt.id) ? (
+                <Link
+                  to={getHuntViewRoute(event.hunt.id)}
+                  className="font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+                >
+                  <IsolatedText text={event.hunt.name} />
+                </Link>
+              ) : (
+                <IsolatedText text={event.hunt.name} />
+              ),
+            }}
+          />
         </span>
       ) : (
         <></>

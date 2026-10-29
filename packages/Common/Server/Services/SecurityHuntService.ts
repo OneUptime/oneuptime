@@ -212,7 +212,10 @@ export class Service extends ProjectReferencesService<Model> {
 
     Service.normalize(data);
 
-    if (createBy.data.schedule === undefined || createBy.data.schedule === null) {
+    if (
+      createBy.data.schedule === undefined ||
+      createBy.data.schedule === null
+    ) {
       createBy.data.schedule = SecurityHuntSchedule.NotScheduled;
     }
 

@@ -344,14 +344,12 @@ export default class SecurityHuntScheduler {
     });
 
     if (outcome.isRecorded && eventCount > 0) {
-      outcome.isNotificationQueued = await SecurityHuntNotifications.huntFound(
-        {
-          projectId: hunt.projectId,
-          securityHuntId: hunt.id,
-          eventCount,
-          window,
-        },
-      );
+      outcome.isNotificationQueued = await SecurityHuntNotifications.huntFound({
+        projectId: hunt.projectId,
+        securityHuntId: hunt.id,
+        eventCount,
+        window,
+      });
     }
 
     return outcome;

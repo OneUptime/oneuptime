@@ -285,7 +285,9 @@ export function readSecurityHuntFilters(value: unknown): SecurityHuntFilters {
     return filters;
   }
 
-  for (const [key, values] of Object.entries(value as object)) {
+  for (const [key, values] of Object.entries(
+    value as Record<string, unknown>,
+  )) {
     if (!key || !Array.isArray(values)) {
       continue;
     }
@@ -407,7 +409,10 @@ export interface SecurityHuntRunWindow {
 
 // Where a schedule set (or a search changed) now starts reading: from now on.
 export function getSecurityHuntSearchStart(now: Date): Date {
-  return OneUptimeDate.addRemoveSeconds(now, -SECURITY_HUNT_RUN_DELAY_IN_SECONDS);
+  return OneUptimeDate.addRemoveSeconds(
+    now,
+    -SECURITY_HUNT_RUN_DELAY_IN_SECONDS,
+  );
 }
 
 /*

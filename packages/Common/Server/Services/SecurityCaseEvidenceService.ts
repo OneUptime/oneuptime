@@ -364,11 +364,9 @@ export class Service extends ProjectReferencesService<Model> {
     const from: Date = new Date(Math.min(...times) - EVENT_TIME_SLACK_IN_MS);
     const to: Date = new Date(Math.max(...times) + EVENT_TIME_SLACK_IN_MS);
     const timeByUid: Map<string, number> = new Map<string, number>(
-      data.events.map(
-        (event: SecurityCaseEventReference): [string, number] => {
-          return [event.eventUid, event.time.getTime()];
-        },
-      ),
+      data.events.map((event: SecurityCaseEventReference): [string, number] => {
+        return [event.eventUid, event.time.getTime()];
+      }),
     );
 
     const select: Select<SecurityEvent> = {};
@@ -447,7 +445,6 @@ export class Service extends ProjectReferencesService<Model> {
         `A description can be at most ${MAX_EVIDENCE_DESCRIPTION_LENGTH.toString()} characters.`,
       );
     }
-
 
     /*
      * An event is kept from what OneUptime reads of it (addEvents), never

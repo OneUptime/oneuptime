@@ -1,4 +1,13 @@
 import SecurityCaseEvidenceCell from "./SecurityCaseEvidenceCell";
+import { readEventEvidence, toSecurityEvent } from "./EventEvidence";
+import {
+  KEPT_EVENT_NOTE,
+  VIEW_EVENT,
+} from "../../SecurityEvents/Hunts/HuntsCopy";
+import SecurityEventDetailPanel from "../../SecurityEvents/SecurityEventDetailPanel";
+import RelativeTime from "../../EpisodeView/RelativeTime";
+import { SecurityCaseEventSnapshot } from "Common/Types/SecurityCase/SecurityCaseEventEvidence";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import {
   SECURITY_CASE_EVIDENCE_COPY,
   SECURITY_CASE_EVIDENCE_FILE_TYPES,
@@ -56,6 +65,11 @@ const MORE_FIELDS: FormFieldCollapsibleSection<SecurityCaseEvidence> =
  * corrected; what it holds cannot.
  * Removing evidence takes the Security Admin role, and the case's timeline
  * says what was removed and by whom (SecurityCaseEvidenceService).
+ *
+ * Security events are kept here from Security Events (Add to Case on Events
+ * or a hunt's page, Open Case on an event): View Event opens one as the
+ * Events explorer's panel does, from what the case kept - not read again
+ * from the events table, where it may be past its retention.
  */
 const SecurityCaseEvidenceTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -63,6 +77,11 @@ const SecurityCaseEvidenceTable: FunctionComponent<ComponentProps> = (
   const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
   const [adding, setAdding] = useState<SecurityCaseEvidenceKind | null>(null);
   const [refreshCount, setRefreshCount] = useState<number>(0);
+  // The kept event open in the panel, and when it was kept.
+  const [viewing, setViewing] = useState<{
+    snapshot: SecurityCaseEventSnapshot;
+    keptAt: Date | undefined;
+  } | null>(null);
 
   const createGate: PermissionGateResult = PermissionGate.check(
     new SecurityCaseEvidence(),
@@ -186,6 +205,9 @@ const SecurityCaseEvidenceTable: FunctionComponent<ComponentProps> = (
           fileType: true,
           fileSizeInBytes: true,
           sha256: true,
+          eventUid: true,
+          eventTime: true,
+          eventSnapshot: true,
           description: true,
           createdAt: true,
           // Who added it: a line under it (SecurityCaseEvidenceCell).
@@ -195,6 +217,30 @@ const SecurityCaseEvidenceTable: FunctionComponent<ComponentProps> = (
           },
         }}
         actionButtons={[
+          {
+            title: VIEW_EVENT,
+            icon: IconProp.Bookmark,
+            buttonStyleType: ButtonStyleType.NORMAL,
+            isVisible: (item: SecurityCaseEvidence): boolean => {
+              return Boolean(readEventEvidence(item));
+            },
+            onClick: (
+              item: SecurityCaseEvidence,
+              onCompleteAction: () => void,
+            ): void => {
+              const snapshot: SecurityCaseEventSnapshot | null =
+                readEventEvidence(item);
+
+              if (snapshot) {
+                setViewing({
+                  snapshot,
+                  keptAt: item.createdAt ? new Date(item.createdAt) : undefined,
+                });
+              }
+
+              onCompleteAction();
+            },
+          },
           {
             title: SECURITY_CASE_EVIDENCE_COPY.download,
             icon: IconProp.Download,
@@ -273,6 +319,35 @@ const SecurityCaseEvidenceTable: FunctionComponent<ComponentProps> = (
           },
         ]}
       />
+
+      {viewing ? (
+        <SecurityEventDetailPanel
+          securityEvent={toSecurityEvent(viewing.snapshot)}
+          showCaseActions={false}
+          note={
+            viewing.keptAt ? (
+              <p className="text-xs text-gray-500">
+                <TranslatedSentence
+                  template={KEPT_EVENT_NOTE}
+                  slots={{
+                    time: (
+                      <RelativeTime
+                        date={viewing.keptAt}
+                        className="whitespace-nowrap"
+                      />
+                    ),
+                  }}
+                />
+              </p>
+            ) : undefined
+          }
+          onClose={() => {
+            setViewing(null);
+          }}
+        />
+      ) : (
+        <></>
+      )}
 
       {adding ? (
         <ModelFormModal<SecurityCaseEvidence>

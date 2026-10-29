@@ -95,10 +95,21 @@ import {
   getSecurityEventVolumeSeries,
 } from "./SecurityEventVolume";
 import {
+  SECURITY_EVENTS_RANGE_PARAM,
   getSecurityEventsTimeRangeParams,
   parseLegacyTableAttributeFilters,
   readSecurityEventsTimeRange,
 } from "./SecurityEventsTimeRange";
+import {
+  SecurityHuntFilters,
+  securityHuntFiltersToMap,
+} from "Common/Types/SecurityEvent/SecurityHunt";
+import { HuntSearchState } from "./Hunts/HuntsModel";
+import { EVENT_PLURAL, EVENT_SINGULAR } from "./Hunts/HuntsCopy";
+import SaveAsHuntButton from "./Hunts/SaveAsHuntButton";
+import useAddEventsToCase, {
+  AddEventsToCaseActions,
+} from "./Hunts/useAddEventsToCase";
 
 export const SECURITY_EVENTS_VIEWER_TEST_ID: string = "security-events-viewer";
 
@@ -187,8 +198,43 @@ function parsePositiveInt(raw: string | null, fallback: number): number {
   return parsed > 0 ? parsed : fallback;
 }
 
-function readInitialUrlState(search: string): InitialUrlState {
+/*
+ * A hunt opened on its page (Pages/SecurityEvents/HuntView): what it keeps -
+ * its search, its chips and the window it opens on - which the page starts
+ * from when its address says nothing else.
+ */
+export interface SecurityEventsViewerHunt {
+  id: ObjectID;
+  searchQuery: string;
+  filters: SecurityHuntFilters;
+  timeRange: RangeStartAndEndDateTime;
+}
+
+export interface ComponentProps {
+  hunt?: SecurityEventsViewerHunt | undefined;
+  /*
+   * Told what the page searches - its submitted search, its chips and its
+   * window - each time one changes: a hunt's page compares it with what the
+   * hunt keeps.
+   */
+  onSearchStateChange?: ((state: HuntSearchState) => void) | undefined;
+}
+
+/*
+ * Where the page starts: its address (a shared link, a refresh, Back), and,
+ * on a hunt's page, the hunt where the address says nothing - its search
+ * and chips when the address names neither, its window when it names none
+ * (a notification's link names the window its run read, and the hunt's
+ * search with it).
+ */
+function readInitialUrlState(
+  search: string,
+  hunt?: SecurityEventsViewerHunt | undefined,
+): InitialUrlState {
   const params: URLSearchParams = new URLSearchParams(search);
+  const startsFromHunt: boolean = Boolean(
+    hunt && !params.has("search") && !params.has("filters"),
+  );
 
   const facetFilters: Map<string, Set<string>> = new Map();
 
@@ -218,9 +264,16 @@ function readInitialUrlState(search: string): InitialUrlState {
   }
 
   return {
-    timeRange: readSecurityEventsTimeRange(search),
-    facetFilters: facetFilters,
-    search: params.get("search") || "",
+    timeRange:
+      hunt && !params.has(SECURITY_EVENTS_RANGE_PARAM)
+        ? hunt.timeRange
+        : readSecurityEventsTimeRange(search),
+    facetFilters:
+      startsFromHunt && hunt
+        ? securityHuntFiltersToMap(hunt.filters)
+        : facetFilters,
+    search:
+      startsFromHunt && hunt ? hunt.searchQuery : params.get("search") || "",
     page: parsePositiveInt(params.get("page"), 1),
     pageSize: parsePositiveInt(params.get("pageSize"), DEFAULT_PAGE_SIZE),
   };
@@ -247,12 +300,21 @@ function toFilterTuples(
  * The list, the histogram and the facet counts are all built from ONE query,
  * so the chart never counts events the list would not show and a facet count
  * never promises rows a click cannot reach.
+ *
+ * What is on screen can be kept: Save as Hunt on the toolbar saves the
+ * search as a hunt (Hunts/SaveAsHuntButton), and the events ticked are
+ * kept on a case with Add to Case (Hunts/useAddEventsToCase), as one is from
+ * its panel. On a hunt's page (`hunt`) the search starts as the hunt keeps
+ * it, the page says what it searches as it changes, and what is kept on a
+ * case names the hunt that found it.
  */
-const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
+const SecurityEventsViewer: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
   const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
 
   const [initialUrlState] = useState<InitialUrlState>((): InitialUrlState => {
-    return readInitialUrlState(Navigation.getQueryString());
+    return readInitialUrlState(Navigation.getQueryString(), props.hunt);
   });
 
   const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>(
@@ -392,6 +454,22 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
       filters: facetFilters,
     });
   }, [projectId?.toString(), timeWindow, searchFilters, facetFilters]);
+
+  // --- What the page searches, for a hunt's page ---
+
+  useEffect(() => {
+    props.onSearchStateChange?.({
+      search: submittedSearch,
+      filters: facetFilters,
+      timeRange: timeRange,
+    });
+  }, [submittedSearch, facetFilters, timeRange]);
+
+  // --- Keeping events on a case ---
+
+  const addToCase: AddEventsToCaseActions = useAddEventsToCase({
+    huntId: props.hunt?.id,
+  });
 
   // --- URL state ---
 
@@ -1044,6 +1122,22 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
         onRefresh={refresh}
         emptyContent={emptyContent}
         itemLabel="security events"
+        bulk={{
+          buttons: addToCase.bulkActions,
+          singularLabel: EVENT_SINGULAR,
+          pluralLabel: EVENT_PLURAL,
+          getItemId: (item: SecurityEvent): string => {
+            return item.eventUid?.toString() || "";
+          },
+          itemToString: (item: SecurityEvent): string => {
+            return (
+              item.message ||
+              item.className ||
+              item.eventUid?.toString() ||
+              "Security event"
+            );
+          },
+        }}
         getRowKey={(item: SecurityEvent, index: number): string => {
           return `${item.eventUid?.toString() || "event"}-${index}`;
         }}
@@ -1101,12 +1195,26 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
           onToggle: setIsLive,
         }}
         toolbarTrailingActions={
-          <SecurityEventAttributeColumnPicker
-            attributeKeys={pickerAttributeKeys}
-            isLoading={attributesLoading}
-            selectedKeys={attributeColumnKeys}
-            onChange={updateAttributeColumnKeys}
-          />
+          <>
+            {/* A hunt's page saves its changes in its own header. */}
+            {props.hunt ? (
+              <></>
+            ) : (
+              <SaveAsHuntButton
+                state={{
+                  search: submittedSearch,
+                  filters: facetFilters,
+                  timeRange: timeRange,
+                }}
+              />
+            )}
+            <SecurityEventAttributeColumnPicker
+              attributeKeys={pickerAttributeKeys}
+              isLoading={attributesLoading}
+              selectedKeys={attributeColumnKeys}
+              onChange={updateAttributeColumnKeys}
+            />
+          </>
         }
         // Facets
         showFacetSidebar={true}
@@ -1187,10 +1295,12 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
               }}
               attributeColumnKeys={attributeColumnKeys}
               onToggleAttributeColumn={toggleAttributeColumn}
+              huntId={props.hunt?.id}
             />
           ) : null
         }
       />
+      {addToCase.modals}
     </div>
   );
 };

@@ -165,7 +165,8 @@ export function buildHuntFoundMessage(data: {
   const to: string = formatHuntTime(facts.endTime, data.timezone);
 
   return {
-    eventType: NotificationSettingEventType.SEND_SECURITY_HUNT_FOUND_NOTIFICATION,
+    eventType:
+      NotificationSettingEventType.SEND_SECURITY_HUNT_FOUND_NOTIFICATION,
     subject: `Hunt found ${found}: ${facts.huntName}`,
     templateType: EmailTemplateType.SecurityHuntFound,
     emailVars: {
@@ -180,9 +181,7 @@ export function buildHuntFoundMessage(data: {
       reasonSentence:
         "This scheduled hunt names you, or a team you are on, to tell when it finds security events. Change these emails in User Settings > Notification Settings.",
     },
-    smsText: buildNotificationSms(
-      `Hunt ${facts.huntName} found ${found}.`,
-    ),
+    smsText: buildNotificationSms(`Hunt ${facts.huntName} found ${found}.`),
     callText: `This is a message from OneUptime. The scheduled hunt ${facts.huntName} found ${found}. Open OneUptime to see them. To change these calls go to User Settings in the OneUptime Dashboard. Good bye.`,
     pushTitle: `Hunt found ${found}`,
     pushBody: facts.huntName,

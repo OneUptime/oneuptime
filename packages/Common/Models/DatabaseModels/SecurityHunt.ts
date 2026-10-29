@@ -499,8 +499,7 @@ export default class SecurityHunt extends BaseModel {
     type: TableColumnType.Number,
     canReadOnRelationQuery: true,
     title: "Last Found Event Count",
-    description:
-      "How many events the last run that found something found.",
+    description: "How many events the last run that found something found.",
   })
   @Column({
     type: ColumnType.Number,

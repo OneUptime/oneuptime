@@ -45,7 +45,7 @@ export const SECURITY_CASE_EVIDENCE_COPY: {
 } = {
   title: translationKey("Evidence"),
   description: translationKey(
-    "Files and links kept on this case, each with who added it and when. A file keeps the SHA-256 of what was uploaded, to check a download against.",
+    "Files, links and security events kept on this case, each with who added it and when. A file keeps the SHA-256 of what was uploaded; an event is kept as it was when it was added.",
   ),
   singularName: translationKey("Evidence"),
   pluralName: translationKey("Evidence"),
@@ -92,7 +92,7 @@ export const SECURITY_CASE_EVIDENCE_COPY: {
   copySha256: translationKey("Copy SHA-256"),
   emptyTitle: translationKey("No evidence yet"),
   emptyDescription: translationKey(
-    "Keep what shows what happened on the case: logs, screenshots, captures, or links to where they are.",
+    "Keep what shows what happened on the case: logs, screenshots, captures, links to where they are, or events from Security Events.",
   ),
   deleteWarning: translationKey(
     "The case's timeline keeps a record of what was removed, and by whom.",

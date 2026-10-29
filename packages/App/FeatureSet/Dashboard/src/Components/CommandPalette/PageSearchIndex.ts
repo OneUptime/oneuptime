@@ -1929,6 +1929,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             keywords: ["siem", "security logs"],
           },
           {
+            page: PageMap.SECURITY_EVENTS_HUNTS,
+            title: "Hunts",
+            icon: IconProp.ViewfinderCircle,
+            keywords: [
+              "threat hunting",
+              "saved searches",
+              "scheduled searches",
+              "hunting queries",
+              "bookmarks",
+            ],
+          },
+          {
             page: PageMap.SECURITY_EVENTS_CAMPAIGNS,
             title: "Campaigns",
             icon: IconProp.Flag,

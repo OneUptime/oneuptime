@@ -113,6 +113,31 @@ export interface SecurityCaseEventsAddResult {
   notFound: Array<string>;
 }
 
+// The answer as the Dashboard reads it: each list of event ids, or none.
+export function readSecurityCaseEventsAddResult(
+  value: unknown,
+): SecurityCaseEventsAddResult {
+  const record: { [key: string]: unknown } =
+    value && typeof value === "object" && !Array.isArray(value)
+      ? (value as { [key: string]: unknown })
+      : {};
+  const ids: (key: string) => Array<string> = (key: string): Array<string> => {
+    const list: unknown = record[key];
+
+    return Array.isArray(list)
+      ? list.filter((item: unknown): item is string => {
+          return typeof item === "string" && item.length > 0;
+        })
+      : [];
+  };
+
+  return {
+    added: ids("added"),
+    alreadyOnCase: ids("alreadyOnCase"),
+    notFound: ids("notFound"),
+  };
+}
+
 /*
  * The reasons the answer gives per event, in words the Dashboard's result
  * shows (and translates).
@@ -184,7 +209,9 @@ function readAttributes(value: unknown): { [key: string]: string } {
     return attributes;
   }
 
-  const keys: Array<string> = Object.keys(value as object).sort();
+  const keys: Array<string> = Object.keys(
+    value as Record<string, unknown>,
+  ).sort();
 
   for (const key of keys) {
     if (
