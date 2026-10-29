@@ -38,10 +38,12 @@ import React, {
  *
  * `cloudResources` is on Incident and Alert only - a maintenance window
  * does not hold cloud resources - so a cloud resource's page passes no
- * scheduledMaintenanceRoute, and draws no maintenance card.
+ * scheduledMaintenanceRoute, and draws no maintenance card. So is
+ * `networkDevices` (issue #5341), for the same reason.
  */
 export type ResourceQueryKey =
   | "hosts"
+  | "networkDevices"
   | "kubernetesClusters"
   | "dockerHosts"
   | "podmanHosts"

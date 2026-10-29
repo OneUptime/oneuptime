@@ -356,6 +356,14 @@ export interface SeriesResourceRefs {
    * see DatabaseServerAddressLabelKeys.
    */
   databaseServerEndpoints: Array<string>;
+  /*
+   * Network devices, by id: the device a Network Device monitor's step
+   * watches (step.data.networkDeviceMonitor.networkDeviceId, the device
+   * picker's primary key). Always empty from series labels - a device's
+   * own series are keyed to the device rather than to a monitor
+   * (NetworkDeviceMetricUtil), so no monitor series names one.
+   */
+  networkDeviceIds: Array<string>;
 }
 
 export default class SeriesResourceLabels {
@@ -449,6 +457,8 @@ export default class SeriesResourceLabels {
       databaseServerIds: this.extractDatabaseServerIds(seriesLabels),
       // Never from series labels — see DatabaseServerAddressLabelKeys.
       databaseServerEndpoints: [],
+      // Never from series labels — see SeriesResourceRefs.networkDeviceIds.
+      networkDeviceIds: [],
     };
   }
 

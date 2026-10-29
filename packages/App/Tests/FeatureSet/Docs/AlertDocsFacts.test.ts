@@ -1136,8 +1136,14 @@ describe("where alerts come from", () => {
     expect(readDashboardSource("Pages/Monitor/View/Alerts.tsx")).toContain(
       "createFrom={{ kind: CreateFromRecordKind.Monitor, id: modelId }}",
     );
+    // Issue #5341: a network device's Alerts tab picks the device.
+    expect(
+      readDashboardSource("Pages/NetworkDevice/View/Alerts.tsx"),
+    ).toContain(
+      "createFrom={{ kind: CreateFromRecordKind.NetworkDevice, id: modelId }}",
+    );
     expect(sources).toContain(
-      "or on the **Alerts** tab of a monitor, a host or another resource, which picks that resource for you.",
+      "or on the **Alerts** tab of a monitor, a host, a network device or another resource, which picks that resource for you.",
     );
   });
 });

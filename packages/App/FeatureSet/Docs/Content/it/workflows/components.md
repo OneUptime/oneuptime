@@ -388,6 +388,12 @@ Questi componenti agiscono come Project Admin del progetto del workflow: ciò ch
 
 L'incidente registra il modello da cui è stato dichiarato in `createdIncidentTemplateId`. Quella colonna la imposta OneUptime: un passaggio che la invia in **JSON Object** viene rifiutato, e il suo registro dell'esecuzione ti rimanda a **Incident Template**. Un modello di un altro progetto, o uno eliminato, fa prendere al passaggio la sua uscita **Error**, e su un piano che non include i modelli di incidente il passaggio viene rifiutato indicando il piano necessario. Vedi [Come viene applicato un modello](/docs/incidents/settings#come-viene-applicato-un-modello).
 
+### Collegare le risorse di cui si tratta
+
+**Create One Incident** e **Create One Alert** hanno un'impostazione **Risorse interessate**: gli host, i dispositivi di rete, i cluster, i database o i servizi di cui tratta il record, per nome, indirizzo o ID, separati da virgole — digitati oppure presi da un passaggio precedente, come l'host che nomina un avviso arrivato da un altro strumento. Ogni voce viene cercata in tutti i tipi di risorsa che il record può contenere, come valore intero e senza distinguere maiuscole e minuscole: per nome, un dispositivo di rete anche per l'indirizzo a cui viene interrogato o per il suo nome DNS, un host per il nome che il suo agente riporta o per uno dei suoi indirizzi IP, e una risorsa cloud per l'ID del suo provider. Ogni risorsa a cui corrisponde una voce viene collegata, accanto a ciò che **JSON Object** e il modello collegano già, fino a 50 dalle prime 25 voci.
+
+Una voce che non corrisponde a nulla non ferma il passaggio: il record viene creato comunque, e il registro dell'esecuzione dice che cosa ha collegato ogni voce e quali non corrispondevano a nulla. Le risorse archiviate non vengono collegate. I monitor non vengono cercati: indicali in **JSON Object** (`monitors` su un incidente, `monitorId` su un avviso), perché collegare un monitor a un incidente ne mette in pausa il monitoraggio.
+
 ## Lavorare con i record
 
 Ogni campo di un componente dati si basa sui nomi delle **colonne** del record: gli stessi nomi usati dall'API, non le etichette del modulo della dashboard. La colonna dell'ID è `_id`. La grafia `id` è accettata come alias ovunque tu possa scrivere un nome di colonna, ma `_id` è ciò che un record restituisce, quindi è ciò che devi leggere in uscita:

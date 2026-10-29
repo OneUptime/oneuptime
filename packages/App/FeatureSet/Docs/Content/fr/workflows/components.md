@@ -388,6 +388,12 @@ Ces composants agissent en tant que Project Admin du projet du workflow : ce qu'
 
 L'incident enregistre le modèle dont il a été déclaré dans `createdIncidentTemplateId`. Cette colonne est réservée à OneUptime : une étape qui l'envoie dans **JSON Object** est refusée, et son journal d'exécution vous renvoie vers **Incident Template**. Un modèle d'un autre projet, ou un modèle supprimé, fait prendre à l'étape sa sortie **Error**, et sur un forfait qui n'inclut pas les modèles d'incident, l'étape est refusée avec le forfait nécessaire. Voir [Comment un modèle s'applique](/docs/incidents/settings#comment-un-modèle-est-appliqué).
 
+### Lier les ressources concernées
+
+**Create One Incident** et **Create One Alert** ont un paramètre **Ressources affectées** : les hôtes, équipements réseau, clusters, bases de données ou services que concerne l'enregistrement, par nom, adresse ou ID, séparés par des virgules — saisis, ou repris d'une étape précédente, comme l'hôte que nomme une alerte venue d'un autre outil. Chaque entrée est recherchée dans tous les types de ressources que l'enregistrement peut contenir, comme valeur entière et sans tenir compte de la casse : par nom, un équipement réseau aussi par l'adresse à laquelle il est interrogé ou par son nom DNS, un hôte par le nom que son agent signale ou par l'une de ses adresses IP, et une ressource cloud par l'ID de son fournisseur. Chaque ressource à laquelle correspond une entrée est liée, en plus de ce que **JSON Object** et le modèle lient déjà, jusqu'à 50 à partir des 25 premières entrées.
+
+Une entrée qui ne correspond à rien n'arrête pas l'étape : l'enregistrement est tout de même créé, et le journal d'exécution indique ce que chaque entrée a lié et lesquelles ne correspondaient à rien. Les ressources archivées ne sont pas liées. Les moniteurs ne sont pas recherchés : nommez-les dans **JSON Object** (`monitors` pour un incident, `monitorId` pour une alerte), car lier un moniteur à un incident met sa surveillance en pause.
+
 ## Travailler avec les enregistrements
 
 Chaque champ d'un composant de données se réfère aux noms de **colonnes** de l'enregistrement — les mêmes noms que ceux de l'API, et non les libellés du formulaire du tableau de bord. La colonne d'ID est `_id`. L'orthographe `id` est acceptée comme alias partout où vous pouvez taper un nom de colonne, mais c'est `_id` qu'un enregistrement renvoie : c'est donc lui qu'il faut lire en sortie :

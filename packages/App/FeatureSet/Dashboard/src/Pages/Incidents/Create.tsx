@@ -34,6 +34,7 @@ import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Service from "Common/Models/DatabaseModels/Service";
 import MonitorLinkedResourcesPrefill, {
@@ -399,6 +400,7 @@ const MONITOR_RESOURCE_TYPES: Array<AffectedResourceType> = ["Monitor"];
 
 const OTHER_AFFECTED_RESOURCE_TYPES: Array<AffectedResourceType> = [
   "Host",
+  "NetworkDevice",
   "KubernetesCluster",
   "DockerHost",
   "PodmanHost",
@@ -1855,7 +1857,7 @@ const IncidentCreate: FunctionComponent<
                   title: "Other Affected Resources",
                   stepId: "resources-affected",
                   description:
-                    "Search and attach hosts, Kubernetes clusters, Docker hosts, databases, or services affected by this incident.",
+                    "Search and attach the hosts, network devices, clusters, databases, cloud resources or services this incident affects.",
                   fieldType: FormFieldSchemaType.CustomComponent,
                   required: false,
                   getCustomElement: (
@@ -1865,6 +1867,9 @@ const IncidentCreate: FunctionComponent<
                     return (
                       <AffectedResourcesPicker
                         hosts={values.hosts as Array<Host>}
+                        networkDevices={
+                          values.networkDevices as Array<NetworkDevice>
+                        }
                         kubernetesClusters={
                           values.kubernetesClusters as Array<KubernetesCluster>
                         }
@@ -1892,6 +1897,7 @@ const IncidentCreate: FunctionComponent<
                         }
                         services={values.services as Array<Service>}
                         resourceTypes={OTHER_AFFECTED_RESOURCE_TYPES}
+                        monitorFieldTitle="Monitors"
                         ariaLabelledby={elementProps.ariaLabelledby}
                         onChange={(payload: unknown) => {
                           elementProps.onChange?.(payload);
@@ -1915,6 +1921,7 @@ const IncidentCreate: FunctionComponent<
                         setNewFormValues({
                           ...currentValues,
                           hosts: payload.hosts,
+                          networkDevices: payload.networkDevices,
                           kubernetesClusters: payload.kubernetesClusters,
                           dockerHosts: payload.dockerHosts,
                           podmanHosts: payload.podmanHosts,
@@ -1961,6 +1968,7 @@ const IncidentCreate: FunctionComponent<
                   getSummaryElement: (item: FormValues<Incident>) => {
                     const hasResources: boolean = [
                       item.hosts,
+                      item.networkDevices,
                       item.kubernetesClusters,
                       item.dockerHosts,
                       item.podmanHosts,
@@ -1989,6 +1997,9 @@ const IncidentCreate: FunctionComponent<
                       <AffectedResourcesPicker
                         readOnly={true}
                         hosts={item.hosts as Array<Host>}
+                        networkDevices={
+                          item.networkDevices as Array<NetworkDevice>
+                        }
                         kubernetesClusters={
                           item.kubernetesClusters as Array<KubernetesCluster>
                         }
@@ -2172,6 +2183,16 @@ const IncidentCreate: FunctionComponent<
                  * Other Affected Resources picker's anchor, so it needs no
                  * registration of its own.)
                  */
+                {
+                  field: { networkDevices: true },
+                  stepId: "resources-affected",
+                  title: "",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  showIf: () => {
+                    return false;
+                  },
+                },
                 {
                   field: { kubernetesClusters: true },
                   stepId: "resources-affected",

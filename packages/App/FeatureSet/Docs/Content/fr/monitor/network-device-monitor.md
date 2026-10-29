@@ -761,6 +761,12 @@ Pour en créer un depuis **Moniteurs** à la place :
 
 Un moniteur Équipement réseau n'a pas d'intervalle propre : il est évalué chaque fois que les résultats d'interrogation de l'équipement arrivent, et chaque fois qu'un trap de l'équipement arrive.
 
+### Les incidents et les alertes d'un équipement
+
+Un incident ou une alerte peut concerner un équipement réseau. Choisissez l'équipement sous **Autres ressources affectées** quand vous déclarez un incident ou créez une alerte, ou laissez un moniteur le lier : ce qu'un moniteur déclenche est lié à l'équipement dont il rend compte — l'équipement que surveille un moniteur Équipement réseau, l'équipement lié au moniteur et l'équipement pour lequel un import de découverte a créé le moniteur.
+
+Les pages **Incidents** et **Alertes** de l'équipement, sous **Activité** dans son menu, listent ce qui lui est lié, et le menu et la vue d'ensemble de l'équipement comptent ceux qui sont ouverts. **Déclarer un incident** et **Créer une alerte** sur ces pages commencent avec l'équipement déjà choisi.
+
 ### Valeurs par défaut des champs personnalisés
 
 Si votre projet définit des champs personnalisés de moniteur — constructeur, élément de configuration, service propriétaire, tout ce dont votre CMDB a besoin —, un modèle de moniteur peut les remplir. Ouvrez le modèle depuis **Moniteurs → Paramètres → Modèles** et définissez ses **Valeurs par défaut des champs personnalisés**.

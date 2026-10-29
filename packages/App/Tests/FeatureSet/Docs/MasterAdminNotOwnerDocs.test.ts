@@ -49,6 +49,27 @@ function lineOf(language: string, page: string, index: number): string {
   return read(language, page).split("\n")[index] || "";
 }
 
+/*
+ * Where that line is: found in the English page by its words, and at the
+ * same place in every language, since each page is translated line for line.
+ */
+function englishLineIndex(page: string, words: string): number {
+  return read("en", page)
+    .split("\n")
+    .findIndex((line: string): boolean => {
+      return line.includes(words);
+    });
+}
+
+const DECLARING_OWNER_LINE: number = englishLineIndex(
+  "incidents/declaring-incidents.md",
+  "A master admin, who runs the whole installation, is not made an owner",
+);
+const ALERTS_OWNER_LINE: number = englishLineIndex(
+  "alerts/index.md",
+  "you become an owner of the alert you create",
+);
+
 describe("the code", () => {
   test("never makes a master admin the owner of what they create", () => {
     const source: string = fs.readFileSync(
@@ -67,12 +88,15 @@ describe("the code", () => {
 
 describe("the docs", () => {
   test("say so where they say the creator becomes an owner, in English", () => {
+    expect(DECLARING_OWNER_LINE).toBeGreaterThan(-1);
+    expect(ALERTS_OWNER_LINE).toBeGreaterThan(-1);
+
     const declaring: string = lineOf(
       "en",
       "incidents/declaring-incidents.md",
-      128,
+      DECLARING_OWNER_LINE,
     );
-    const alerts: string = lineOf("en", "alerts/index.md", 79);
+    const alerts: string = lineOf("en", "alerts/index.md", ALERTS_OWNER_LINE);
 
     expect(declaring).toContain(
       "A master admin, who runs the whole installation, is not made an owner of what they create, so their summary lists only the owners they pick and the ones the rules add.",
@@ -94,11 +118,15 @@ describe("the docs", () => {
       ).toContain(word);
 
       expect(
-        lineOf(language, "incidents/declaring-incidents.md", 128).toLowerCase(),
+        lineOf(
+          language,
+          "incidents/declaring-incidents.md",
+          DECLARING_OWNER_LINE,
+        ).toLowerCase(),
       ).toContain(word);
-      expect(lineOf(language, "alerts/index.md", 79).toLowerCase()).toContain(
-        word,
-      );
+      expect(
+        lineOf(language, "alerts/index.md", ALERTS_OWNER_LINE).toLowerCase(),
+      ).toContain(word);
     },
   );
 

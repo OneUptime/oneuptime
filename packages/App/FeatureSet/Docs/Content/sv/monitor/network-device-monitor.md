@@ -761,6 +761,12 @@ För att i stället skapa en från **Monitorer**:
 
 En nätverksenhetsmonitor har inget eget intervall: den utvärderas varje gång enhetens avsökningsresultat kommer in, och varje gång en trap från enheten kommer in.
 
+### En enhets incidenter och larm
+
+En incident eller ett larm kan handla om en nätverksenhet. Välj enheten under **Andra påverkade resurser** när du deklarerar en incident eller skapar ett larm, eller låt en monitor länka den: det en monitor utlöser länkas till enheten den rapporterar om — enheten som en nätverksenhetsmonitor övervakar, enheten som monitorn är bunden till och enheten som en discovery-import skapade monitorn för.
+
+Enhetens sidor **Incidenter** och **Larm**, under **Aktivitet** i dess meny, listar det som är länkat till den, och menyn och enhetens översikt räknar de öppna. **Deklarera incident** och **Skapa larm** på de sidorna börjar med enheten vald.
+
 ### Standardvärden för anpassade fält
 
 Om ditt projekt definierar anpassade monitorfält — tillverkare, konfigurationsobjekt, ansvarig tjänst, vad din CMDB än behöver — kan en monitormall fylla i dem. Öppna mallen från **Monitorer → Inställningar → Mallar** och ange dess **Custom Field Defaults**.

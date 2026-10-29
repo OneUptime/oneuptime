@@ -388,6 +388,12 @@ Disse komponenter handler som Project Admin for workflowets projekt: det, en Pro
 
 Hændelsen registrerer den skabelon, den blev erklæret ud fra, i `createdIncidentTemplateId`. Den kolonne sætter OneUptime selv: et trin, der sender den i **JSON Object**, afvises, og dets kørselslog henviser dig til **Incident Template**. En skabelon fra et andet projekt, eller en, der er slettet, får trinnet til at tage sin udgang **Error**, og på et abonnement, der ikke omfatter hændelsesskabeloner, afvises trinnet med det abonnement, der kræves. Se [Sådan anvendes en skabelon](/docs/incidents/settings#sådan-anvendes-en-skabelon).
 
+### Knyt de ressourcer til, det handler om
+
+**Create One Incident** og **Create One Alert** har en indstilling **Berørte ressourcer**: de værter, netværksenheder, klynger, databaser eller tjenester, posten handler om, efter navn, adresse eller ID, adskilt af kommaer — skrevet ind eller hentet fra et tidligere trin, som den vært, en advarsel fra et andet værktøj nævner. Hver post søges i alle de slags ressourcer, posten kan rumme, som hel værdi og uden hensyn til store og små bogstaver: efter navn, en netværksenhed også efter den adresse, den polles på, eller sit DNS-navn, en vært efter det navn, dens agent rapporterer, eller en af dens IP-adresser, og en cloudressource efter udbyderens ID. Hver ressource, en post passer på, knyttes til, ved siden af det, **JSON Object** og skabelonen allerede knytter til, op til 50 ud fra de første 25 poster.
+
+En post, der ikke passer på noget, stopper ikke trinnet: posten oprettes alligevel, og kørselsloggen siger, hvad hver post knyttede til, og hvilke der ikke passede på noget. Arkiverede ressourcer knyttes ikke til. Monitorer slås ikke op: nævn dem i **JSON Object** (`monitors` på en hændelse, `monitorId` på en advarsel), fordi det at knytte en monitor til en hændelse sætter dens overvågning på pause.
+
 ## Arbejd med poster
 
 Hvert felt på en datakomponent bruger postens egne **kolonne**navne — de samme navne som API'et, ikke etiketterne i dashboardets formular. ID-kolonnen er `_id`. Stavemåden `id` accepteres som alias overalt, hvor du kan skrive et kolonnenavn, men `_id` er det, en post returnerer, så det er det, du skal læse på vej ud:

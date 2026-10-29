@@ -80,6 +80,18 @@ export function getNetworkDeviceBreadcrumbs(
       "View Device",
       "Monitors",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_VIEW_INCIDENTS, [
+      "Project",
+      "Network",
+      "View Device",
+      "Incidents",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_VIEW_ALERTS, [
+      "Project",
+      "Network",
+      "View Device",
+      "Alerts",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_VIEW_LOGS, [
       "Project",
       "Network",
