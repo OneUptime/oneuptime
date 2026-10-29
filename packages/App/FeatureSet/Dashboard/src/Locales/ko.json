@@ -36817,5 +36817,6 @@
   "Evidence File ID": "증거 파일 ID",
   "Pick a person to do {{title}}. They are notified.": "{{title}} 작업을 할 사람을 선택하세요. 담당자에게 알림이 갑니다.",
   "Put any other kind of file, or several files, in a .zip.": "다른 종류의 파일이나 여러 파일은 .zip으로 묶어 주세요.",
-  "Upload a file": "파일 업로드"
+  "Upload a file": "파일 업로드",
+  "Selected: {{name}}": "선택됨: {{name}}"
 }

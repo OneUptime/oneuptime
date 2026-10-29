@@ -217,29 +217,20 @@ const CertificateSummary: FunctionComponent<CertificateSummaryProps> = (
         </SummaryFacts>
       )}
 
-      {!showMoreDetails && (
-        <div className="-ml-3">
-          <Button
-            buttonStyle={ButtonStyleType.SECONDARY_LINK}
-            title="Show More Details"
-            onClick={() => {
-              return setShowMoreDetails(true);
-            }}
-          />
-        </div>
-      )}
-
-      {showMoreDetails && (
-        <div className="-ml-3">
-          <Button
-            buttonStyle={ButtonStyleType.SECONDARY_LINK}
-            title="Hide Details"
-            onClick={() => {
-              return setShowMoreDetails(false);
-            }}
-          />
-        </div>
-      )}
+      {/*
+       * One button, open or folded: its words follow the state and it
+       * keeps its place, so focus stays on it after a press.
+       */}
+      <div className="-ml-3">
+        <Button
+          buttonStyle={ButtonStyleType.SECONDARY_LINK}
+          title={showMoreDetails ? "Hide Details" : "Show More Details"}
+          ariaExpanded={showMoreDetails}
+          onClick={() => {
+            return setShowMoreDetails(!showMoreDetails);
+          }}
+        />
+      </div>
     </SummaryView>
   );
 };

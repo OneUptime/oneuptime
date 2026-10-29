@@ -224,6 +224,11 @@ describe("SavedViewsShowMoreButton — a toggle with nothing to toggle", () => {
     );
 
     expect(screen.getByRole("button", { name: "+7 more" })).toBeInTheDocument();
+    // Says it is folded (issue #5364's sweep: it said nothing either way).
+    expect(screen.getByRole("button", { name: "+7 more" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
 
     cleanup();
 
@@ -260,6 +265,10 @@ describe("SavedViewsShowMoreButton — a toggle with nothing to toggle", () => {
     expect(
       screen.getByRole("button", { name: "Show less" }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Show less" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
   });
 
   test("the toggle reports one click and never submits a form", () => {
