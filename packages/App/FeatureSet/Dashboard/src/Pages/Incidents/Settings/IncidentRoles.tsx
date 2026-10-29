@@ -80,6 +80,7 @@ const IncidentRoles: FunctionComponent<
         modelType={IncidentRole}
         actionButtons={archive.actionButtons}
         getDeleteConfirmation={archive.getDeleteConfirmation}
+        bulkActions={archive.bulkActions}
         refreshToggle={archive.refreshToggle}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,

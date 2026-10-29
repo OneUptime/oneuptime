@@ -39,6 +39,8 @@ De meeste berichten kunnen de oproep bevestigen: e-mails, sms'jes en berichten v
 
 Een episode roept je op via zijn eigen bereikbaarheidsbeleid, los van de incidenten of waarschuwingen erin, daarom staan zijn regels op een eigen tabblad. Het adres van de pagina noemt het geopende tabblad, bijvoorbeeld `/dashboard/{projectId}/user-settings/on-call-rules?type=alerts`; de andere waarden zijn `incident-episodes` en `alert-episodes`, en zonder `type` opent de pagina op **Incidenten**.
 
+Een ernst die uw project heeft gearchiveerd, staat na de andere, gemarkeerd met **Gearchiveerd**, zolang u er regels voor hebt: incidenten en waarschuwingen die deze ernst nog hebben, roepen u volgens die regels op. U kunt die regels wijzigen of verwijderen, maar geen nieuwe toevoegen.
+
 ## De regels waarmee je begint
 
 Elke methode die je verifieert, krijgt een regel op elke kaart van elk tabblad, verstuurd zodra je wordt opgeroepen. Je aanmeld-e-mailadres heeft ze sinds de dag dat je lid werd, zodat een oproep je altijd bereikt. Verifieer een telefoonnummer voor sms, en elke oproep stuurt je ook een sms.

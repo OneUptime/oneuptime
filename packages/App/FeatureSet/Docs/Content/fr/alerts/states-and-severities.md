@@ -117,12 +117,13 @@ Une gravité n'alerte personne à elle seule. Pour alerter selon la gravité, aj
 Archivez un état ou une gravité que votre équipe ne doit plus utiliser, au lieu de le supprimer. L'archivage ne modifie aucune alerte. Supprimer un état retire ses lignes de l'historique de chaque alerte, et une gravité ne peut pas être supprimée tant que des alertes l'ont.
 
 - **Archiver** se trouve dans le menu **⋯** de la ligne. Il demande d'abord confirmation et liste les règles, mesures, critères de moniteur et flux de travail configurés pour utiliser la valeur : ils continuent à l'utiliser tant que vous ne les modifiez pas.
+- **Les règles d'astreinte de chacun restent.** Pour une gravité, la boîte de dialogue indique aussi combien de personnes ont des règles d'astreinte pour elle. Ces règles restent telles quelles : les alertes qui l'ont continuent de prévenir ces personnes. Sur la page **Règles d'astreinte** de chaque personne, la gravité archivée vient en dernier, marquée **Archivé** : ses règles peuvent être modifiées ou supprimées, mais aucune nouvelle ne peut être ajoutée.
 - **Personne ne peut plus la choisir.** **Modifier l'état**, l'en-tête de l'alerte, Slack, Microsoft Teams, les règles et les critères de moniteur l'excluent. L'API, Terraform et MCP la refusent, en nommant la valeur et l'endroit où la désarchiver.
 - **Les alertes la conservent.** Une alerte qui l'a la conserve à chaque modification ultérieure, sa chronologie d'états l'affiche toujours, et vous pouvez toujours filtrer par celle-ci.
 - **Les valeurs archivées sont listées à part**, dans la section repliée **États d'alerte archivés** ou **Gravités d'alerte archivées** sous le tableau, avec qui a archivé chacune et quand. **Désarchiver** en remet une telle qu'elle était.
 - **Certaines ne peuvent pas être archivées.** Les états créé, accusé et résolu, ainsi que la dernière gravité non archivée du projet. Leur **Archiver** est verrouillé, avec la raison.
 
-**Supprimer** indique d'abord ce que la suppression ferait. Tant que des alertes ou des épisodes ont la valeur, la suppression est refusée et la boîte de dialogue les liste. Sinon, elle liste ce que la suppression changerait et propose **Archiver plutôt**.
+**Supprimer** indique d'abord ce que la suppression ferait. Tant que des alertes ou des épisodes ont la valeur, la suppression est refusée et la boîte de dialogue les liste. Sinon, elle liste ce que la suppression changerait et propose **Archiver plutôt**. Pour en supprimer plusieurs à la fois, sélectionnez-les et choisissez **Supprimer** sous **Actions groupées** : la boîte de dialogue indique d'abord la même chose pour toutes, celles qui ne peuvent pas être supprimées restent telles quelles, et les autres sont supprimées.
 
 ## Faire passer une alerte par ses états
 

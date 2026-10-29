@@ -39,6 +39,8 @@ La maggior parte dei messaggi può riconoscere la chiamata: e-mail, SMS e messag
 
 Un episodio vi chiama tramite le proprie politiche di reperibilità, separatamente dagli incidenti o avvisi che contiene, per questo le sue regole hanno una scheda a parte. L'indirizzo della pagina indica la scheda aperta, per esempio `/dashboard/{projectId}/user-settings/on-call-rules?type=alerts`; gli altri valori sono `incident-episodes` e `alert-episodes`, e senza `type` la pagina si apre su **Incidenti**.
 
+Una gravità che il tuo progetto ha archiviato compare dopo le altre, contrassegnata come **Archiviato**, finché hai regole per essa: gli incidenti e gli avvisi che ce l'hanno ancora ti contattano con quelle regole. Puoi modificarle o rimuoverle, ma non aggiungerne di nuove.
+
 ## Le regole con cui partite
 
 Ogni metodo che verificate riceve una regola su ogni riquadro di ogni scheda, inviata appena venite chiamati. La vostra e-mail di accesso le ha dal giorno in cui siete entrati, perché una chiamata vi raggiunga sempre. Verificate un numero di telefono per gli SMS, e ogni chiamata vi manda anche un SMS.

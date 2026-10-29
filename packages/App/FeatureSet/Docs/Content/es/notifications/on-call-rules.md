@@ -39,6 +39,8 @@ La mayoría de los mensajes pueden reconocer el aviso: los correos, los SMS y lo
 
 Un episodio te avisa mediante sus propias políticas de guardia, aparte de los incidentes o alertas que contiene, por eso sus reglas tienen su propia pestaña. La dirección de la página indica la pestaña abierta, por ejemplo `/dashboard/{projectId}/user-settings/on-call-rules?type=alerts`; los otros valores son `incident-episodes` y `alert-episodes`, y sin `type` la página se abre en **Incidentes**.
 
+Una gravedad que su proyecto archivó aparece después de las demás, marcada como **Archivado**, mientras tenga reglas para ella: los incidentes y las alertas que aún la tienen le avisan con esas reglas. Puede cambiarlas o eliminarlas, pero no añadir otras nuevas.
+
 ## Las reglas con las que empiezas
 
 Cada método que verificas recibe una regla en cada tarjeta de cada pestaña, enviada en cuanto te avisan. Tu correo de inicio de sesión las tiene desde el día en que te uniste, para que un aviso siempre te llegue. Verifica un número de teléfono para SMS, y cada aviso también te envía un SMS.

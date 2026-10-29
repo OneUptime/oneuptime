@@ -39,6 +39,8 @@ De flesta meddelanden kan bekräfta larmet: e-post, SMS och meddelanden i WhatsA
 
 En episod larmar dig genom sina egna jourpolicyer, separat från incidenterna eller larmen i den, så dess regler har en egen flik. Sidans adress anger den öppna fliken, till exempel `/dashboard/{projectId}/user-settings/on-call-rules?type=alerts`; de andra värdena är `incident-episodes` och `alert-episodes`, och utan `type` öppnas sidan på **Incidenter**.
 
+En allvarlighetsgrad som ditt projekt har arkiverat kommer efter de andra, markerad med **Arkiverad**, så länge du har regler för den: Incidenter och larm som fortfarande har den larmar dig enligt dem. Du kan ändra eller ta bort de reglerna, men inte lägga till nya.
+
 ## Reglerna du börjar med
 
 Varje metod som du verifierar får en regel på varje kort på varje flik, skickad så snart du larmas. Din inloggnings-e-post har dem sedan dagen du gick med, så att ett larm alltid når dig. Verifiera ett telefonnummer för SMS, så skickar varje larm också ett SMS till dig.
