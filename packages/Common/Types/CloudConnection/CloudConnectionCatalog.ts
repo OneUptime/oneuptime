@@ -202,10 +202,11 @@ function dataSecurityField(): CloudConnectionField {
 
 /*
  * The setting that records whether the connection may also close a data
- * store's exposure, as its setup command granted it: Security Operations
- * playbooks block a store's public access and revoke its sharing - the
- * only writes a connection is ever given, granted on their own and off
- * until someone picks "block".
+ * store's exposure, as its setup command granted it: a person on the
+ * store's issue, or a Security Operations playbook, blocks a store's public
+ * access and revokes its sharing (DataSecurityResponse) - the only writes
+ * a connection is ever given, granted on their own and off until someone
+ * picks "block".
  */
 export const DATA_SECURITY_RESPONSE_FIELD_KEY: string = "dataSecurityResponse";
 
@@ -226,7 +227,7 @@ function dataSecurityResponseField(): CloudConnectionField {
     key: DATA_SECURITY_RESPONSE_FIELD_KEY,
     title: "Data security response",
     description:
-      "Lets Security Operations playbooks block public access to a data store and revoke its sharing, each run approved by a person unless the playbook says otherwise. The command changes with it.",
+      "Lets Data Security block public access to a data store and revoke its sharing, from its issue or a playbook. The command changes with it.",
     type: "dropdown",
     required: false,
     options: [

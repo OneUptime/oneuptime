@@ -7,6 +7,7 @@ Data Security runs 32 checks on every store, in nine groups. A check reads what 
 - [Every check](#every-check): All 32, with what each one checks and how to fix it.
 - [Risk score](#risk-score): How issues are ordered inside a severity.
 - [What happens to an issue](#what-happens-to-an-issue): Open, resolved, accepted, not an issue.
+- [Fix it from here](#fix-it-from-here): Block a public bucket, or stop sharing a snapshot, in one click.
 :::
 
 ## How a check decides
@@ -156,6 +157,19 @@ OneUptime opens, updates and resolves issues as the checks run. What a person do
 Security Members, Security Admins, Project Admins and Project Owners can change an issue's status, and **Assign** it to a person or a team. Every change is written to the issue's **Timeline**: when it opened, each change of severity, each status change and who made it, the re-checks asked for, and what the integrations did.
 
 An issue that opens again keeps its history. Accepted risks are looked at again every day, so one expires on time even when nothing was scanned.
+
+## Fix it from here
+
+An open issue about a public bucket or a shared snapshot can be fixed from its page. Above the console steps, **Fix it from here** offers the change that fixes it:
+
+| The issue | Its store | The button | What it changes |
+| --- | --- | --- | --- |
+| `public-read`, `public-write` or `public-access-not-blocked` | An S3 bucket, an Azure storage account or a Cloud Storage bucket | **Block Public Access** | Turns on the bucket's four Block Public Access settings, turns off the storage account's anonymous blob access, or enforces the bucket's public access prevention |
+| `snapshot-public` or `snapshot-shared-externally` | An RDS snapshot, an RDS database, or an Aurora or DocumentDB cluster | **Revoke Sharing** | Stops sharing the snapshot, or each shared manual snapshot of the database, with everyone and with accounts outside the ones you connected |
+
+It asks first, saying what changes and what stops working. It changes how the store is shared, never its data, and changes nothing that is already closed. A store marked **Public By Design** is never blocked.
+
+It acts through the store's cloud connection, so the connection needs **Data security response** turned on and its setup command run again (see [Set Up Data Security](/docs/data-security/setup#let-data-security-close-an-exposure)). Until then the panel says what to turn on. The store is checked again right after, and the issue resolves on its own once its check passes. The issue's **Timeline** and the store's feed say what was done, and who did it.
 
 ## Check settings
 

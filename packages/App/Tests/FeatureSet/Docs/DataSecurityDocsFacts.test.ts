@@ -23,6 +23,7 @@ import {
   CloudConnectionDefinition,
   CloudConnectionField,
   DATA_SECURITY_FIELD_KEY,
+  DATA_SECURITY_RESPONSE_FIELD_KEY,
   getCloudConnectionDefinition,
 } from "Common/Types/CloudConnection/CloudConnectionCatalog";
 import {
@@ -32,12 +33,18 @@ import {
   AWS_DATA_SECURITY_GROUP_NAME,
   AWS_DATA_SECURITY_KMS_CONDITION,
   AWS_DATA_SECURITY_POLICY_NAME,
+  AWS_DATA_SECURITY_RESPONSE_ACTIONS,
+  AWS_DATA_SECURITY_RESPONSE_POLICY_NAME,
   AZURE_DATA_SECURITY_CONTENT_ROLE,
+  AZURE_DATA_SECURITY_RESPONSE_ACTIONS,
+  AZURE_DATA_SECURITY_RESPONSE_ROLE,
   AZURE_READ_ONLY_ROLE,
   AwsReadOnlyActionGroup,
   CloudConnectionSetupScope,
   GCP_DATA_SECURITY_CONTENT_ROLES,
   GCP_DATA_SECURITY_CONTENT_SERVICES,
+  GCP_DATA_SECURITY_RESPONSE_PERMISSIONS,
+  GCP_DATA_SECURITY_RESPONSE_ROLE_ID,
   getAwsAccessKeySetupCommand,
   getAwsDataSecurityPolicy,
   getAwsDataSecurityPolicyDocument,
@@ -68,6 +75,18 @@ import {
   getDataSecurityCheck,
 } from "Common/Types/DataSecurity/DataSecurityCheckCatalog";
 import { DATA_SECURITY_API_ROUTES } from "Common/Types/DataSecurity/DataSecurityApiTypes";
+import {
+  BLOCKABLE_DATA_STORE_KINDS,
+  DATA_SECURITY_RESPONSE_ACTION_CHECKS,
+  DataSecurityResponseAction,
+  SHAREABLE_DATA_STORE_KINDS,
+} from "Common/Types/DataSecurity/DataSecurityResponseAction";
+import {
+  SECURITY_PLAYBOOK_ACTIONS,
+  SecurityPlaybookActionCategory,
+  SecurityPlaybookActionDefinition,
+  SecurityPlaybookActionType,
+} from "Common/Types/SecurityPlaybook/SecurityPlaybookAction";
 import { regionMatches } from "Common/Types/DataSecurity/DataSecurityResidency";
 import {
   RISK_BASE_BY_SEVERITY,
@@ -1576,6 +1595,178 @@ describe("Data Security Compliance", () => {
   });
 });
 
+describe("Closing an exposure", () => {
+  const checks: string = english(CHECKS);
+  const setup: string = english(SETUP);
+  const integrations: string = english(INTEGRATIONS);
+  const panel: string = source(
+    "App/FeatureSet/Dashboard/src/Components/DataSecurity/IssueResponseAction.tsx",
+  );
+
+  function codeSpans(cell: string): Array<string> {
+    return cell
+      .split("`")
+      .filter((_part: string, index: number): boolean => {
+        return index % 2 === 1;
+      });
+  }
+
+  it("offers on an issue's page the fix of each check a response action fixes, by the button the panel draws", () => {
+    const table: Array<Array<string>> = rows(
+      tables(section(checks, "## Fix it from here"))[0],
+    );
+
+    expect(table).toHaveLength(2);
+    expect(codeSpans(table[0]![0] as string)).toEqual([
+      ...DATA_SECURITY_RESPONSE_ACTION_CHECKS[
+        DataSecurityResponseAction.BlockPublicAccess
+      ],
+    ]);
+    expect(codeSpans(table[1]![0] as string)).toEqual([
+      ...DATA_SECURITY_RESPONSE_ACTION_CHECKS[
+        DataSecurityResponseAction.RevokeSharing
+      ],
+    ]);
+    expect(table[0]![2]).toBe("**Block Public Access**");
+    expect(table[1]![2]).toBe("**Revoke Sharing**");
+    expect(panel).toContain('translationKey("Block Public Access")');
+    expect(panel).toContain('translationKey("Revoke Sharing")');
+    expect(panel).toContain('translationKey("Fix it from here")');
+    expect(section(checks, "## Fix it from here")).toContain(
+      "**Fix it from here**",
+    );
+
+    // The stores each row names are the kinds each action takes.
+    expect([...BLOCKABLE_DATA_STORE_KINDS]).toEqual([
+      DataStoreKind.AwsS3Bucket,
+      DataStoreKind.AzureStorageAccount,
+      DataStoreKind.GcpStorageBucket,
+    ]);
+    expect(table[0]![1]).toBe(
+      "An S3 bucket, an Azure storage account or a Cloud Storage bucket",
+    );
+    expect([...SHAREABLE_DATA_STORE_KINDS]).toEqual([
+      DataStoreKind.AwsRdsSnapshot,
+      DataStoreKind.AwsRdsInstance,
+      DataStoreKind.AwsRdsCluster,
+      DataStoreKind.AwsDocumentDbCluster,
+    ]);
+    expect(table[1]![1]).toBe(
+      "An RDS snapshot, an RDS database, or an Aurora or DocumentDB cluster",
+    );
+  });
+
+  it("says what each cloud's response grant may do, word for word as the commands grant it", () => {
+    const response: string = section(
+      setup,
+      "## Let Data Security close an exposure",
+    );
+    const table: Array<Array<string>> = rows(tables(response)[0]);
+    const field: CloudConnectionField | undefined = (
+      getCloudConnectionDefinition(
+        CloudProvider.AWS,
+      ) as CloudConnectionDefinition
+    ).configFields.find((candidate: CloudConnectionField): boolean => {
+      return candidate.key === DATA_SECURITY_RESPONSE_FIELD_KEY;
+    });
+
+    expect(field?.title).toBe("Data security response");
+    expect(response).toContain(`**${field?.title}**`);
+    expect(
+      field?.options?.find((option: { value: string }): boolean => {
+        return option.value === "block";
+      })?.label,
+    ).toBe("Block public access and sharing");
+    expect(response).toContain("**Block public access and sharing**");
+
+    const aws: Array<string> = table[0] as Array<string>;
+    const azure: Array<string> = table[1] as Array<string>;
+    const gcp: Array<string> = table[2] as Array<string>;
+
+    expect(codeSpans(aws[1] as string)).toEqual([
+      AWS_DATA_SECURITY_RESPONSE_POLICY_NAME,
+    ]);
+    expect(codeSpans(aws[2] as string)).toEqual([
+      ...AWS_DATA_SECURITY_RESPONSE_ACTIONS,
+    ]);
+    expect(codeSpans(azure[1] as string)).toEqual([
+      AZURE_DATA_SECURITY_RESPONSE_ROLE,
+    ]);
+    expect(codeSpans(azure[2] as string)).toEqual([
+      ...AZURE_DATA_SECURITY_RESPONSE_ACTIONS,
+    ]);
+    expect(codeSpans(gcp[1] as string)).toEqual([
+      GCP_DATA_SECURITY_RESPONSE_ROLE_ID,
+    ]);
+    expect(codeSpans(gcp[2] as string)).toEqual([
+      ...GCP_DATA_SECURITY_RESPONSE_PERMISSIONS,
+    ]);
+    expect(response).toContain(
+      `--policy-name ${AWS_DATA_SECURITY_RESPONSE_POLICY_NAME}`,
+    );
+  });
+
+  it("names the playbook steps as the step picker does, and the most stores one acts on", () => {
+    const close: string = section(integrations, "## Close an exposure");
+    const steps: Array<SecurityPlaybookActionDefinition> =
+      SECURITY_PLAYBOOK_ACTIONS.filter(
+        (action: SecurityPlaybookActionDefinition): boolean => {
+          return (
+            action.type ===
+              SecurityPlaybookActionType.BlockDataStorePublicAccess ||
+            action.type === SecurityPlaybookActionType.RevokeDataStoreSharing
+          );
+        },
+      );
+
+    expect(steps).toHaveLength(2);
+
+    for (const step of steps) {
+      expect(step.category).toBe(SecurityPlaybookActionCategory.Contain);
+      expect(step.needsApprovalByDefault).toBe(true);
+      expect(close).toContain(`**${step.title}**`);
+    }
+
+    expect(close).toContain("steps of the **Contain** category");
+    expect(close).toContain("at most 10, each a step that starts with **Needs Approval** on");
+    expect(
+      constant(
+        "Common/Server/Utils/SecurityPlaybook/SecurityPlaybookDataStoreOwners.ts",
+        "MAX_NOTIFIED_DATA_STORES",
+      ),
+    ).toBe(10);
+  });
+
+  it("lists Ask AI's Data Security tools by the names the toolbox gives them, and says they never read a sample", () => {
+    const tools: string = source(
+      "Common/Server/Utils/AI/Toolbox/DataSecurityTools.ts",
+    );
+    const names: Array<string> = Array.from(
+      tools.matchAll(/\n {2}name: "(query_[a-z_]+)",/g),
+      (match: RegExpMatchArray): string => {
+        return match[1] as string;
+      },
+    );
+    const askAi: string = section(integrations, "### Ask AI");
+
+    expect(names).toEqual([
+      "query_data_stores",
+      "query_data_security_issues",
+      "query_data_store_access",
+    ]);
+    expect(
+      rows(tables(askAi)[0]).map((row: Array<string>): string => {
+        return withoutTicks(row[0] as string);
+      }),
+    ).toEqual(names);
+    expect(tools).toContain(
+      "// Never maskedSamples: a model needs no value to say where data is.",
+    );
+    expect(tools).not.toContain("maskedSamples: true");
+    expect(askAi).toContain("never a finding's samples, masked or not");
+  });
+});
+
 describe("Data Security Integrations", () => {
   const page: string = english(INTEGRATIONS);
 
@@ -1669,6 +1860,8 @@ describe("Data Security Integrations", () => {
       DATA_SECURITY_API_ROUTES.scrubFinding("<id>"),
       DATA_SECURITY_API_ROUTES.explainIssue("<id>"),
       DATA_SECURITY_API_ROUTES.fixIssueWithAi("<id>"),
+      DATA_SECURITY_API_ROUTES.responseActions("<id>"),
+      DATA_SECURITY_API_ROUTES.respond("<id>"),
     ]);
   });
 
@@ -1712,10 +1905,15 @@ describe("Data Security Integrations", () => {
   });
 
   it("names the AI actions as the API and the Dashboard do", () => {
-    const api: string = source("Common/Server/API/DataSecurityAPI.ts");
+    const prompt: string = source(
+      "Common/Server/Utils/AI/DataSecurity/DataSecurityIssuePrompt.ts",
+    );
 
-    expect(api).toContain(
+    expect(prompt).toContain(
       "Fix this data security issue in the infrastructure code (Terraform, CloudFormation, Bicep or similar)",
+    );
+    expect(source("Common/Server/API/DataSecurityAPI.ts")).toContain(
+      "message: buildDataSecurityFixRequest(issue),",
     );
     expect(section(page, "## OneUptime AI")).toContain(
       "Terraform, CloudFormation, Bicep or the like",

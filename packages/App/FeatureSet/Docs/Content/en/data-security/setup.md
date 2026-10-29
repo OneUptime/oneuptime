@@ -7,6 +7,7 @@ Data Security reads only what you let it. Each cloud connection is read at one o
 - [What each level grants](#what-each-level-grants): The AWS actions, and the Azure and Google Cloud roles.
 - [Scan a database you run](#scan-a-database-you-run): A read-only connection string, or a probe in your network.
 - [What OneUptime keeps](#what-oneuptime-keeps): Counts, locations and masked samples, never a value.
+- [Let Data Security close an exposure](#let-data-security-close-an-exposure): The one write a connection can be given, off until you turn it on.
 :::
 
 ## Choose a level for each connection
@@ -136,6 +137,18 @@ The configuration level adds nothing: the connection's **Monitoring Reader** rol
 ### Google Cloud
 
 The configuration level adds nothing: the connection's **Cloud Asset Viewer** role already reads every resource's configuration and IAM policy. The content level adds two roles, `roles/storage.objectViewer` and `roles/bigquery.dataViewer`, on the project or the organization, and turns on the BigQuery API, `bigquery.googleapis.com`.
+
+## Let Data Security close an exposure
+
+Reading is all a connection does until you choose otherwise. **Data security response**, under **More fields** beside **Data security**, also lets Data Security block a store's public access and stop sharing its snapshots: from the store's issue, with **Fix it from here** (see [Data Security Checks and Issues](/docs/data-security/checks-and-issues#fix-it-from-here)), and from Security Operations playbooks. It is **Off** until you pick **Block public access and sharing**, and the command the form shows then grants one narrow write, on its own:
+
+| Cloud | What the command adds | What it may do |
+| --- | --- | --- |
+| AWS | A third inline policy, `OneUptimeDataSecurityResponse` | `s3:GetBucketPublicAccessBlock`, `s3:PutBucketPublicAccessBlock`, `rds:DescribeDBSnapshotAttributes`, `rds:DescribeDBClusterSnapshotAttributes`, `rds:ModifyDBSnapshotAttribute` and `rds:ModifyDBClusterSnapshotAttribute`: a bucket's Block Public Access, and whom a manual snapshot is shared with |
+| Azure | A custom role, `OneUptime Data Security Response`, on the connection's scope | `Microsoft.Storage/storageAccounts/read` and `Microsoft.Storage/storageAccounts/write`: a storage account's settings, such as anonymous blob access, never its keys |
+| Google Cloud | A custom role, `oneuptimeDataSecurityResponse` | `storage.buckets.get` and `storage.buckets.update`: a bucket's settings, such as public access prevention |
+
+Nothing it grants reads data, deletes anything or changes who may sign in. Set it back to **Off** and Data Security stops using it at once. To take the access away as well on AWS, delete the policy with `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeDataSecurityResponse`.
 
 ## Why content samples are optional
 

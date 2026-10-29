@@ -6,7 +6,8 @@ Data Security does not run a pager or a security queue of its own. It hands what
 - [Security Operations](#security-operations): A security case for every store with a Critical issue.
 - [Alerts and on-call](#alerts-and-on-call): Page whoever is on call when a Critical issue opens.
 - [Owners](#owners): Who owns each store, set by hand or by rules, and the email they get.
-- [OneUptime AI](#oneuptime-ai): Explain an issue, or open a pull request that fixes it.
+- [OneUptime AI](#oneuptime-ai): Explain an issue, open a pull request that fixes it, or ask Ask AI about your data.
+- [Close an exposure](#close-an-exposure): Block public access or stop sharing, from an issue or a playbook.
 :::
 
 ## How it works
@@ -79,6 +80,27 @@ Two actions on an issue ask OneUptime AI for help. Both send OneUptime AI the is
 - **Explain** writes, for the store's owner, what is wrong, what could happen and the exact steps to fix it on their cloud. The explanation is kept on the issue's **Timeline**. Anyone who can read Data Security can ask.
 - **Fix with AI** asks OneUptime AI to fix the issue in your infrastructure code - Terraform, CloudFormation, Bicep or the like - with the smallest change that makes the check pass, and to open a pull request. It needs the repository that holds the store's infrastructure code connected under **Code**: choose it under **Repository** when the project has several. The pull request appears under **Code** (see [Code](/docs/ai/ai-agent)). Security Members and above can ask.
 
+### Ask AI
+
+**Ask AI** reads Data Security too. On any Data Security page, ask which stores hold card numbers, what to fix first, or which stores a role could reach if it leaked; on a store's or an issue's page it reads that record first. It answers with three read tools, run with your own permissions:
+
+| Tool | What it reads |
+| --- | --- |
+| `query_data_stores` | The stores, riskiest first, by sensitivity, data type, exposure, provider or name - or one store with what was found where, who can reach it and its open issues |
+| `query_data_security_issues` | The issues, riskiest first, by status, severity, store or check - or one issue with its evidence and the fix for its cloud |
+| `query_data_store_access` | Who can reach a store, or every store one principal can reach |
+
+They read data types, locations and counts, never a finding's samples, masked or not. Ask AI changes nothing in Data Security.
+
+## Close an exposure
+
+Two changes close a cloud store's exposure, each through the store's cloud connection with **Data security response** turned on (see [Set Up Data Security](/docs/data-security/setup#let-data-security-close-an-exposure)):
+
+- **Block public access**, on an S3 bucket, an Azure storage account or a Cloud Storage bucket.
+- **Revoke sharing**, on an RDS snapshot, or on the shared manual snapshots of an RDS database, an Aurora cluster or a DocumentDB cluster.
+
+A person runs one from an open issue it fixes, with **Fix it from here** (see [Data Security Checks and Issues](/docs/data-security/checks-and-issues#fix-it-from-here)). A Security Operations playbook runs them as steps of the **Contain** category, **Block public access to data stores** and **Revoke data store sharing**: on every data store the case is about, at most 10, each a step that starts with **Needs Approval** on. A store marked **Public By Design** is never blocked. Either way the store's feed says what was done, and the store is checked again at once, so the issue resolves when the change took.
+
 ## API, Terraform and MCP
 
 Everything Data Security keeps is a record of the OneUptime API, read with the same permissions as in the dashboard (see the [API Reference](/docs/api-reference/api-reference)):
@@ -104,6 +126,8 @@ A few answers are worked out on request rather than stored. Each is a `POST`:
 | `/data-store-finding/<id>/scrub` | **Scrub It** on a telemetry finding |
 | `/data-security-issue/<id>/explain` | **Explain** an issue |
 | `/data-security-issue/<id>/fix-with-ai` | **Fix with AI** on an issue |
+| `/data-store/<id>/response-actions` | Which response actions the store can take now, and why not |
+| `/data-store/<id>/respond` | **Block public access** or **Revoke sharing** on the store, with the issue it was run from |
 
 The [Terraform provider](/docs/terraform/index) has a resource for each kind of record you create - data stores you add yourself, custom data types, check settings, residency rules, owner and label rules - named after the record, such as `oneuptime_residency_rule`.
 
