@@ -120,6 +120,13 @@ export interface ComponentProps {
   hideCard?: boolean | undefined;
   chartCssClass?: string | undefined;
   /*
+   * Stretch each chart's value axis to take its warning and critical lines
+   * in. Off by default: a threshold far above a dashboard's data must not
+   * squeeze the data flat. A Metrics monitor's form turns it on, since its
+   * red line is the value its rule is being given.
+   */
+  thresholdLinesExtendAxis?: boolean | undefined;
+  /*
    * Keep a minimum plot height under hideCard (see ChartGroup's
    * minPlotHeight). Only for hosts whose panel can grow: a fixed-height
    * dashboard widget must leave it off, or the floor pushes the series
@@ -629,15 +636,20 @@ function getChartTypeForConfig(
 /*
  * Warning/critical threshold reference lines. Shared by query panels
  * (each overlaid query contributes its own thresholds, formatted in its
- * own display unit) and formula charts.
+ * own display unit) and formula charts. With extendsDomain the value axis
+ * stretches to take each line in (a monitor form's red line).
  */
-function buildThresholdReferenceLines(input: {
+export function buildThresholdReferenceLines(input: {
   warningThreshold?: number | undefined;
   criticalThreshold?: number | undefined;
   unit: string;
   formatterOptions?: { metricName: string } | undefined;
+  extendsDomain?: boolean | undefined;
 }): Array<ChartReferenceLineProps> {
   const referenceLines: Array<ChartReferenceLineProps> = [];
+  const axis: { extendsDomain?: boolean } = input.extendsDomain
+    ? { extendsDomain: true }
+    : {};
 
   if (input.warningThreshold !== undefined && input.warningThreshold !== null) {
     referenceLines.push({
@@ -650,6 +662,7 @@ function buildThresholdReferenceLines(input: {
         ),
       }),
       color: "#f59e0b", // amber
+      ...axis,
     });
   }
 
@@ -667,6 +680,7 @@ function buildThresholdReferenceLines(input: {
         ),
       }),
       color: "#ef4444", // red
+      ...axis,
     });
   }
 
@@ -1220,6 +1234,7 @@ function renderSeriesControls(input: {
               />
             </svg>
             <input
+              data-unsaved-changes-ignore
               type="text"
               value={controls.searchQuery}
               aria-label={translator.translateText("Filter series by name")}
@@ -2664,6 +2679,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
             criticalThreshold: member.queryConfig.criticalThreshold,
             unit: member.unit,
             formatterOptions: { metricName: member.metricName },
+            extendsDomain: props.thresholdLinesExtendAxis,
           }),
         );
       }
@@ -3284,6 +3300,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           warningThreshold: formulaConfig.warningThreshold,
           criticalThreshold: formulaConfig.criticalThreshold,
           unit: formulaUnit,
+          extendsDomain: props.thresholdLinesExtendAxis,
         });
 
       const formulaMetricInfo: ChartMetricInfo = {

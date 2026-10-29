@@ -257,6 +257,7 @@ const ColumnSelector: FunctionComponent<ColumnSelectorProps> = (
               </p>
 
               <input
+                data-unsaved-changes-ignore
                 value={searchQuery}
                 onChange={(event: ChangeEvent<HTMLInputElement>) => {
                   setSearchQuery(event.target.value);

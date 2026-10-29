@@ -32,6 +32,10 @@ import React, {
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
 import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 import { getOnCallPolicyCreateFormFields } from "../../Components/OnCallPolicy/OnCallPolicyCreateForm";
+import useEveryNewEventRulesOffer, {
+  EveryNewEventRulesOffer,
+} from "../../Components/OnCallPolicy/UseEveryNewEventRulesOffer";
+import { JSONObject } from "Common/Types/JSON";
 
 /*
  * Whether the user may add escalation rules, which "Who gets paged first?"
@@ -99,6 +103,14 @@ const OnCallDutyPage: FunctionComponent<
   });
 
   /*
+   * A project's first policy is offered "Page this policy for every new
+   * incident and alert" (UseEveryNewEventRulesOffer): the list's first page
+   * says whether there is a policy yet.
+   */
+  const everyNewEventRules: EveryNewEventRulesOffer =
+    useEveryNewEventRulesOffer();
+
+  /*
    * Name, who gets paged first, and the description and labels folded under
    * Advanced (OnCallPolicyCreateForm.ts). Built once, not on every render of
    * the page.
@@ -107,6 +119,7 @@ const OnCallDutyPage: FunctionComponent<
     useMemo((): Array<ModelField<OnCallDutyPolicy>> => {
       return getOnCallPolicyCreateFormFields({
         canAddEscalationRules: canAddEscalationRules,
+        offerEveryNewEventRules: everyNewEventRules.isOffered,
       });
     }, []);
 
@@ -127,6 +140,7 @@ const OnCallDutyPage: FunctionComponent<
         query={mergeFiltersIntoQuery({ isArchived: false })}
         onFetchSuccess={(data: Array<OnCallDutyPolicy>) => {
           onResourcesFetched(data);
+          everyNewEventRules.onPoliciesListed(data.length);
         }}
         saveFilterProps={{
           tableId: "on-call-policies-table",
@@ -152,6 +166,13 @@ const OnCallDutyPage: FunctionComponent<
         }}
         videoLink={URL.fromString("https://youtu.be/HzhKmCryYdc")}
         formFields={createFormFields}
+        onBeforeCreate={(
+          item: OnCallDutyPolicy,
+          miscDataProps: JSONObject,
+        ): Promise<OnCallDutyPolicy> => {
+          everyNewEventRules.prepareCreate(miscDataProps);
+          return Promise.resolve(item);
+        }}
         onCreateSuccess={(
           item: OnCallDutyPolicy,
         ): Promise<OnCallDutyPolicy> => {

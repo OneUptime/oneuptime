@@ -8,7 +8,6 @@ import React, {
 import {
   View,
   SectionList,
-  ScrollView,
   RefreshControl,
   SectionListRenderItemInfo,
   DefaultSectionT,
@@ -39,6 +38,7 @@ import {
 } from "../navigation/paneState";
 import ScreenIntro from "../components/ScreenIntro";
 import SearchField from "../components/SearchField";
+import ListStatusScroll from "../components/ListStatusScroll";
 import { matchesSearch } from "../utils/search";
 import { useAllProjectMonitors } from "../hooks/useAllProjectMonitors";
 import { useHaptics } from "../hooks/useHaptics";
@@ -341,6 +341,7 @@ export default function MonitorsScreen(): React.JSX.Element {
         ?.getScrollResponder()
         ?.scrollTo({ x: 0, y: offsetY, animated: false });
     },
+    { headerTop: spacing.xl },
   );
 
   useEffect(() => {
@@ -593,18 +594,18 @@ export default function MonitorsScreen(): React.JSX.Element {
       <View
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
       >
-        <ScrollView
+        <ListStatusScroll
+          scrollKey="monitors.scroll.status"
+          header={listHeader}
           testID="monitor-list-loading"
-          contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={scrollContentStyle}
         >
-          {listHeader}
           <View style={{ marginTop: spacing.sm }}>
             <SkeletonCard />
             <SkeletonCard />
             <SkeletonCard />
           </View>
-        </ScrollView>
+        </ListStatusScroll>
       </View>
     );
   }
@@ -614,13 +615,13 @@ export default function MonitorsScreen(): React.JSX.Element {
       <View
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
       >
-        <ScrollView
+        <ListStatusScroll
+          scrollKey="monitors.scroll.status"
+          header={listHeader}
           testID="monitor-list-error"
-          contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={scrollContentStyle}
           refreshControl={refreshControl}
         >
-          {listHeader}
           <EmptyState
             title="Something went wrong"
             subtitle="Failed to load monitors. Pull to refresh or try again."
@@ -630,7 +631,7 @@ export default function MonitorsScreen(): React.JSX.Element {
               return refetch();
             }}
           />
-        </ScrollView>
+        </ListStatusScroll>
       </View>
     );
   }
@@ -652,7 +653,9 @@ export default function MonitorsScreen(): React.JSX.Element {
           return `${wrapped.projectId}-${wrapped.item._id}`;
         }}
         contentContainerStyle={scrollContentStyle}
-        ListHeaderComponent={listHeader}
+        ListHeaderComponent={
+          <View onLayout={scroll.onHeaderLayout}>{listHeader}</View>
+        }
         renderSectionHeader={(params: {
           section: DefaultSectionT & MonitorSection;
         }) => {

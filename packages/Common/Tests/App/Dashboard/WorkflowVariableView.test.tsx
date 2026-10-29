@@ -2417,7 +2417,11 @@ describe("permissions", () => {
       expect(button.getAttribute("title")).toContain(
         "You do not have permission to update",
       );
-      expect(button.getAttribute("title")).toContain("Project Admin");
+      // The permission to ask for, not the roles that hold it as well.
+      expect(button.getAttribute("title")).toContain(
+        "You need this permission: Edit Workflow Variables.",
+      );
+      expect(button.getAttribute("title")).not.toContain("Project Admin");
     });
 
     test("Update Content opens nothing even if its click fires", async () => {

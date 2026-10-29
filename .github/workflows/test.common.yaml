@@ -90,6 +90,10 @@ jobs:
       # The CLIENT span of each statement TypeORM sends (PostgresQuerySpans),
       # on a bare Postgres. A schema of its own, dropped after.
       RUN_POSTGRES_QUERY_SPAN_TESTS: "true"
+      # Connections opened with the production options have JIT off, and a
+      # rule read's shape is compiled only with it on (PostgresJitOffPostgres).
+      # A schema of its own, dropped after.
+      RUN_POSTGRES_JIT_TESTS: "true"
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass

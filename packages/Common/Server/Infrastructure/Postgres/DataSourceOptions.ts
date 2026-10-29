@@ -28,6 +28,39 @@ import DatabaseType from "../../../Types/DatabaseType";
 import Entities from "../../../Models/DatabaseModels/Index";
 import { DataSourceOptions } from "typeorm";
 
+/*
+ * The libpq `options` startup parameter every connection is opened with:
+ *
+ *   - idle_session_timeout, the server-side backstop for orphaned idle
+ *     sessions. Unitless values are milliseconds. It must exceed
+ *     idleTimeoutMillis (see EnvironmentConfig), so the pool reaps its
+ *     healthy idle connections before the server force-closes them.
+ *   - jit=off. Postgres compiles a statement to machine code when its
+ *     estimated cost passes jit_above_cost, and the reads behind incident
+ *     and alert rules (a rule with its seven to-many relations, LIMIT 10000)
+ *     pass it even on empty tables: on Postgres 15 each spent 170-270 ms
+ *     compiling and 4 ms planning and running, seven of them for every
+ *     incident or alert created (2026-10-27). OneUptime's statements read a
+ *     page of rows, never enough for compiled code to pay that back.
+ *
+ * Sent only while DATABASE_IDLE_SESSION_TIMEOUT_MS is above 0, as the
+ * parameter was before it carried jit, so an install that turned the timeout
+ * off to keep the parameter off its connections still connects as it did.
+ * PgBouncer drops startup parameters: behind it, the chart's own Postgres
+ * sets jit = off itself (HelmChart/Docs/Postgres.md).
+ */
+export const postgresStartupOptions: (idleSessionTimeoutMs: number) => {
+  options?: string;
+} = (idleSessionTimeoutMs: number): { options?: string } => {
+  if (idleSessionTimeoutMs > 0) {
+    return {
+      options: `-c idle_session_timeout=${idleSessionTimeoutMs} -c jit=off`,
+    };
+  }
+
+  return {};
+};
+
 const dataSourceOptions: DataSourceOptions = {
   type: DatabaseType.Postgres,
   host: DatabaseHost.toString(),
@@ -142,15 +175,10 @@ const dataSourceOptions: DataSourceOptions = {
     keepAlive: true,
     keepAliveInitialDelayMillis: PostgresKeepAliveInitialDelayMs,
     /*
-     * Server-side backstop for orphaned idle sessions. node-postgres has no
-     * first-class option for this GUC, so pass it via the libpq `options`
-     * startup parameter. Unitless values are milliseconds. Only applied when
-     * > 0, and must exceed idleTimeoutMillis (see EnvironmentConfig) so the
-     * pool reaps healthy idle connections before the server force-closes them.
+     * GUCs node-postgres has no first-class option for, in the libpq
+     * `options` startup parameter (see postgresStartupOptions).
      */
-    ...(PostgresIdleSessionTimeoutMs > 0
-      ? { options: `-c idle_session_timeout=${PostgresIdleSessionTimeoutMs}` }
-      : {}),
+    ...postgresStartupOptions(PostgresIdleSessionTimeoutMs),
   },
   /*
    * Log any query slower than the configured threshold so we can find

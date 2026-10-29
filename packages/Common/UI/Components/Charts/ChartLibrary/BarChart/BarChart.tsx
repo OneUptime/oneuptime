@@ -768,6 +768,7 @@ const BarChart: React.ForwardRefExoticComponent<
       customTooltip,
       formattedTimeReferenceLines,
       formattedReferenceRegions,
+      referenceLines,
       onTimeRangeSelect,
       onTimeRangeReset,
       ...other
@@ -1227,7 +1228,7 @@ const BarChart: React.ForwardRefExoticComponent<
                   />
                 );
               })}
-              {props.referenceLines?.map(
+              {referenceLines?.map(
                 (refLine: ChartReferenceLineProps, refIndex: number) => {
                   return (
                     <ReferenceLine
@@ -1236,6 +1237,9 @@ const BarChart: React.ForwardRefExoticComponent<
                       stroke={refLine.color}
                       strokeDasharray={refLine.strokeDasharray || "4 4"}
                       strokeWidth={1.5}
+                      {...(refLine.extendsDomain
+                        ? { ifOverflow: "extendDomain" as const }
+                        : {})}
                     >
                       {refLine.label && (
                         <Label

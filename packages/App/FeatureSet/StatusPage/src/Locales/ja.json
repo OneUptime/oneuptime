@@ -404,6 +404,7 @@
   "Loading the latest version": "最新バージョンを読み込んでいます",
   "A newer version of this page is available. It's loading now.": "このページの新しいバージョンがあります。現在読み込んでいます。",
   "You're offline": "オフラインです",
+  "This page will come back as soon as you're online again, just as you left it.": "オンラインに戻るとすぐに、このページが元の状態のまま表示されます。",
   "This page needs an internet connection to load. It will load as soon as you're back online.": "このページの読み込みにはインターネット接続が必要です。オンラインに戻るとすぐに読み込まれます。",
   "Can't reach the server": "サーバーに接続できません",
   "It may be restarting after an update. This page will load as soon as the server is back.": "アップデート後に再起動している可能性があります。サーバーが復旧するとすぐにこのページが読み込まれます。",

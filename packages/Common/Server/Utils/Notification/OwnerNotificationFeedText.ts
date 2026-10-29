@@ -25,6 +25,15 @@ import FeedMarkdown, {
  *
  * These entries stay in the Dashboard feed: they are never posted to Slack
  * or Microsoft Teams (WorkspaceSideEffectsStayInFeed).
+ *
+ * A record with no owners of its own is told to the project's owners
+ * instead (ProjectService.getOwners) - the person who made the project, at
+ * first, which is how a new project's first incident reaches anyone at all.
+ * The entry says so ("isProjectOwners"): "Owners were notified" beside an
+ * Owners field that reads "Add" left the reader guessing who was told.
+ *
+ *   The project's owners were notified that this incident was created, as
+ *   it has no owners yet.
  */
 export type OwnerNotificationRecordNoun =
   | "incident"
@@ -33,40 +42,103 @@ export type OwnerNotificationRecordNoun =
   | "alert episode"
   | "scheduled maintenance event";
 
+/*
+ * Who was told: the record's own owners, or the project's owners standing in
+ * for a record that has none.
+ */
+export interface OwnerNotificationAudience {
+  isProjectOwners?: boolean | undefined;
+}
+
 export default class OwnerNotificationFeedText {
-  // "Owners were notified that this incident was created."
-  public static created(recordNoun: OwnerNotificationRecordNoun): string {
-    return mdText`Owners were notified that this ${recordNoun} was created.`.toString();
+  /*
+   * "Owners were notified that this incident was created.", or, for a record
+   * nobody owns, "The project's owners were notified that this incident was
+   * created, as it has no owners yet."
+   */
+  public static created(
+    recordNoun: OwnerNotificationRecordNoun,
+    audience?: OwnerNotificationAudience,
+  ): string {
+    return OwnerNotificationFeedText.told({
+      sentence: mdText`were notified that this ${recordNoun} was created`,
+      audience: audience,
+    });
   }
 
   // "Owners were notified that this incident is now **Identified**."
-  public static stateChanged(data: {
-    recordNoun: OwnerNotificationRecordNoun;
-    stateName: string | undefined;
-  }): string {
+  public static stateChanged(
+    data: {
+      recordNoun: OwnerNotificationRecordNoun;
+      stateName: string | undefined;
+    } & OwnerNotificationAudience,
+  ): string {
     const stateName: string = (data.stateName || "").trim();
 
     if (!stateName) {
-      return mdText`Owners were notified that this ${data.recordNoun} changed state.`.toString();
+      return OwnerNotificationFeedText.told({
+        sentence: mdText`were notified that this ${data.recordNoun} changed state`,
+        audience: data,
+      });
     }
 
-    return mdText`Owners were notified that this ${data.recordNoun} is now **${stateName}**.`.toString();
+    return OwnerNotificationFeedText.told({
+      sentence: mdText`were notified that this ${data.recordNoun} is now **${stateName}**`,
+      audience: data,
+    });
   }
 
-  // "Owners were notified of the new private note."
-  public static notePosted(data: { isPrivateNote: boolean }): string {
-    return mdText`Owners were notified of the new ${data.isPrivateNote ? "private" : "public"} note.`.toString();
+  /*
+   * "Owners were notified of the new private note." For a record nobody
+   * owns, the record is named: "The project's owners were notified of the
+   * new private note, as this incident has no owners yet."
+   */
+  public static notePosted(
+    data: {
+      isPrivateNote: boolean;
+      recordNoun?: OwnerNotificationRecordNoun | undefined;
+    } & OwnerNotificationAudience,
+  ): string {
+    return OwnerNotificationFeedText.told({
+      sentence: mdText`were notified of the new ${data.isPrivateNote ? "private" : "public"} note`,
+      audience: data,
+      recordNoun: data.recordNoun,
+    });
+  }
+
+  /*
+   * One sentence of who was told, ending with why the project's owners were
+   * when they stood in. `sentence` is everything after the subject, without
+   * its full stop. A record noun names the record in the reason when the
+   * sentence itself does not ("this" record of a note).
+   */
+  private static told(data: {
+    sentence: MarkdownText;
+    audience?: OwnerNotificationAudience | undefined;
+    recordNoun?: OwnerNotificationRecordNoun | undefined;
+  }): string {
+    if (!data.audience?.isProjectOwners) {
+      return mdText`Owners ${data.sentence}.`.toString();
+    }
+
+    const reason: MarkdownText = data.recordNoun
+      ? mdText`, as this ${data.recordNoun} has no owners yet`
+      : mdText`, as it has no owners yet`;
+
+    return mdText`The project's owners ${data.sentence}${reason}.`.toString();
   }
 
   /*
    * "Owners were reminded that this incident is still **Investigating**,
    * open for **2 hours**."
    */
-  public static reminder(data: {
-    recordNoun: OwnerNotificationRecordNoun;
-    stateName: string | undefined;
-    openDuration: string | undefined;
-  }): string {
+  public static reminder(
+    data: {
+      recordNoun: OwnerNotificationRecordNoun;
+      stateName: string | undefined;
+      openDuration: string | undefined;
+    } & OwnerNotificationAudience,
+  ): string {
     const stateName: string = (data.stateName || "").trim();
     const openDuration: string = (data.openDuration || "").trim();
 
@@ -77,23 +149,31 @@ export default class OwnerNotificationFeedText {
       ? mdText`, open for **${openDuration}**`
       : FeedMarkdown.empty();
 
-    return mdText`Owners were reminded that this ${data.recordNoun} is${state}${duration}.`.toString();
+    return OwnerNotificationFeedText.told({
+      sentence: mdText`were reminded that this ${data.recordNoun} is${state}${duration}`,
+      audience: data,
+    });
   }
 
   /*
    * "Owners were notified that 3 incidents were added to this episode."
    */
-  public static membersAdded(data: {
-    memberNoun: "incident" | "alert";
-    count: number;
-  }): string {
+  public static membersAdded(
+    data: {
+      memberNoun: "incident" | "alert";
+      count: number;
+    } & OwnerNotificationAudience,
+  ): string {
     const count: number = Math.max(0, Math.floor(data.count));
     const members: string =
       count === 1
         ? `1 ${data.memberNoun} was`
         : `${count} ${data.memberNoun}s were`;
 
-    return mdText`Owners were notified that ${members} added to this episode.`.toString();
+    return OwnerNotificationFeedText.told({
+      sentence: mdText`were notified that ${members} added to this episode`,
+      audience: data,
+    });
   }
 
   /*

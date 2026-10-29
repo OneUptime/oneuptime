@@ -22,6 +22,7 @@ import SecurityEventsPage from "../Pages/SecurityEvents/Index";
 import SecurityEventsCorrelatePage from "../Pages/SecurityEvents/Correlate";
 import SecurityEventsCampaignsPage from "../Pages/SecurityEvents/Campaigns";
 import SecurityEventsDetectionRulesPage from "../Pages/SecurityEvents/DetectionRules";
+import SecurityEventsRuleExceptionsPage from "../Pages/SecurityEvents/RuleExceptions";
 import SecurityEventsDocumentationPage from "../Pages/SecurityEvents/Documentation";
 import SecurityEventsConnectionsPage from "../Pages/SecurityEvents/Connections";
 import SecurityEventsThreatIntelPage from "../Pages/SecurityEvents/ThreatIntel";
@@ -183,6 +184,20 @@ const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.SECURITY_EVENTS_DETECTION_RULES] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_RULE_EXCEPTIONS] ||
+            ""
+          }
+          element={
+            <SecurityEventsRuleExceptionsPage
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SECURITY_EVENTS_RULE_EXCEPTIONS] as Route
               }
             />
           }

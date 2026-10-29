@@ -1463,6 +1463,7 @@
   "Updating to the new version": "正在更新到新版本",
   "OneUptime was updated while you had it open. This page will open in the new version in a moment.": "OneUptime 在你開啟期間已更新。此頁面將很快以新版本開啟。",
   "You're offline": "你已離線",
+  "This page will come back as soon as you're online again, just as you left it.": "恢復連線後，此頁面會立即恢復，保持你離開時的樣子。",
   "This page needs an internet connection to load. It will load as soon as you're back online.": "此頁面需要網路連線才能載入。恢復連線後會立即載入。",
   "Can't reach the server": "無法連線到伺服器",
   "It may be restarting after an update. This page will load as soon as the server is back.": "伺服器可能在更新後正在重新啟動。伺服器恢復後，此頁面會立即載入。",
@@ -1513,6 +1514,8 @@
   "Light": "淺色",
   "Dark": "深色",
   "System": "系統",
+  "Enable": "啟用",
+  "Disable": "停用",
   "markdownCallouts": {
     "caution": "小心",
     "danger": "危險",

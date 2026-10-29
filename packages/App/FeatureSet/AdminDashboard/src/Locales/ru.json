@@ -1463,6 +1463,7 @@
   "Updating to the new version": "Обновление до новой версии",
   "OneUptime was updated while you had it open. This page will open in the new version in a moment.": "OneUptime обновился, пока он был у вас открыт. Через мгновение эта страница откроется в новой версии.",
   "You're offline": "Вы не в сети",
+  "This page will come back as soon as you're online again, just as you left it.": "Как только вы снова будете в сети, страница вернётся в том виде, в каком вы её оставили.",
   "This page needs an internet connection to load. It will load as soon as you're back online.": "Для загрузки этой страницы нужно подключение к интернету. Она загрузится, как только вы снова будете в сети.",
   "Can't reach the server": "Нет связи с сервером",
   "It may be restarting after an update. This page will load as soon as the server is back.": "Возможно, он перезапускается после обновления. Страница загрузится, как только сервер снова станет доступен.",
@@ -1513,6 +1514,8 @@
   "Light": "Светлая",
   "Dark": "Тёмная",
   "System": "Система",
+  "Enable": "Включить",
+  "Disable": "Отключить",
   "markdownCallouts": {
     "caution": "Осторожно",
     "danger": "Опасно",

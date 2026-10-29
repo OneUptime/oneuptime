@@ -48,6 +48,8 @@ Sotto, i **Criteri del monitor** decidono quando il monitor cambia stato, dichia
 
 Fate clic su un criterio per aprirlo e modificarlo. **Aggiungi criteri** ne aggiunge uno, aperto e pronto da compilare. Per cambiare l'ordine, trascinate un criterio dalla maniglia alla sua sinistra.
 
+Un monitor di log, tracce, eccezioni o metriche chiede invece di cosa deve informarvi, e imposta una sola regola con parole semplici: cosa osservare, **Quando avvisare** e **Cosa succede**, con un grafico di ciò che la regola avrebbe rilevato. Vedete [Monitor log](/docs/monitor/logs-monitor#creare-un-monitor-log).
+
 ### Passare al passaggio successivo
 
 Fate clic su **Avanti**. Niente su questo passaggio viene segnalato come mancante finché non fate clic su **Avanti**.

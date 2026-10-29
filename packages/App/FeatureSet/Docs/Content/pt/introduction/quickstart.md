@@ -59,16 +59,16 @@ Para testar a verificação antes de salvar, clique em **Testar monitor** na seg
 
 ## Ser acionado quando cair
 
-Do jeito que está, um incidente sem proprietários é enviado por e-mail aos proprietários do projeto, e isso inclui você. Para ser acionado até que alguém responda, crie uma política de plantão e faça com que cada incidente a acione.
+Do jeito que está, um incidente sem proprietários é enviado por e-mail aos proprietários do projeto, e isso inclui você. Para ser acionado até que alguém responda, crie uma política de plantão: a primeira de um projeto é disparada a cada novo incidente e a cada novo alerta.
 
 :::steps
 ### Criar uma política de plantão
 
-Na lista, clique em **Configure uma política de plantão**, ou abra **Plantão** no menu **Produtos**. Clique em **Criar: Política de plantão** e digite um **Nome**. Em **Quem é acionado primeiro?**, clique em **Adicionar destinatário** e escolha você. Clique em **Criar: Política de plantão**.
+Na lista, clique em **Configure uma política de plantão**, ou abra **Plantão** no menu **Produtos**. Clique em **Criar: Política de plantão** e digite um **Nome**. Em **Quem é acionado primeiro?**, clique em **Adicionar destinatário** e escolha você. Deixe **Dispará-la a cada novo incidente e a cada novo alerta** ativado e clique em **Criar: Política de plantão**.
 
-### Acioná-la em cada incidente
+### Ver a regra que a dispara
 
-Abra **Incidentes** no menu **Produtos**, expanda **Regras** no menu lateral e escolha **Regras de Plantão**. Clique em **Criar: Incident On-Call Rule**, digite um **Nome** e clique em **Próximo**. Em **Critérios de Correspondência**, deixe **Todos os incidentes** selecionado, para que a regra valha para todos os incidentes, e clique em **Próximo**. Escolha sua política em **Políticas de plantão** e clique em **Criar: Incident On-Call Rule**.
+O botão adicionou uma regra de plantão para incidentes e outra para alertas. Para ver a sua, abra **Incidentes** no menu **Produtos**, expanda **Regras** no menu lateral e escolha **Regras de Plantão**: ela corresponde a **Todos os incidentes**. Para disparar a política só em alguns incidentes, como os críticos, edite a regra ali, ou clique em **Criar: Incident On-Call Rule** para adicionar uma sua.
 
 ### Escolher como você é contatado
 

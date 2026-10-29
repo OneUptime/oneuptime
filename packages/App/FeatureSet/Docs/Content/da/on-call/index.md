@@ -65,7 +65,7 @@ Klik på politikkens side **Eskaleringsregler** på **Tilføj eskaleringsregel**
 
 ### Kør politikken automatisk
 
-Gå til **Hændelser → Regler → Vagtregler** eller **Advarsler → Regler → Vagtregler**, og tilføj en regel, der kører politikken for de hændelser eller advarsler, den matcher, fx alle kritiske. Se [Hvad der kører en politik](/docs/on-call/policies#hvad-der-kører-en-politik).
+Et projekts første politik kan gøre det allerede, når den oprettes: lad **Udløs den ved hver ny hændelse og hver ny advarsel** være slået til. For enhver anden politik går du til **Hændelser → Regler → Vagtregler** eller **Advarsler → Regler → Vagtregler** og tilføjer en regel, der kører den for de hændelser eller advarsler, den matcher, fx alle kritiske. Se [Hvad der kører en politik](/docs/on-call/policies#hvad-der-kører-en-politik).
 
 ### Tjek, at alle kan nås
 

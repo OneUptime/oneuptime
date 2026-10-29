@@ -25,6 +25,8 @@ const LogsPage: FunctionComponent<PageComponentProps> = (
       syncUrlState={true}
       // The product page: an empty explorer offers the setup guide.
       offersSetupWhenEmpty={true}
+      // ...and a monitor watching what it shows.
+      offersCreateMonitor={true}
     />
   );
 };

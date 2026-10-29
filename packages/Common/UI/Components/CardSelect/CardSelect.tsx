@@ -1165,6 +1165,7 @@ const CardSelect: FunctionComponent<ComponentProps> = (
               className="h-4 w-4 flex-shrink-0 text-gray-400"
             />
             <input
+              data-unsaved-changes-ignore
               ref={searchInputRef}
               type="text"
               value={search}

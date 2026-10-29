@@ -700,59 +700,72 @@ describe("filters the page applies itself (facet chips)", () => {
   });
 });
 
+/*
+ * A viewer who may read none of the table's columns: no access, what would
+ * give it - PermissionGate's sentence, as every lock words it - and who to
+ * ask. It used to name every role and permission that may read the list
+ * ("Ask a project admin for one of these permissions: Project Owner,
+ * Project Admin, Project Member, Monitor Admin, Monitor Member, Monitor
+ * Viewer, Viewer, Read Monitor").
+ */
 describe("buildNoAccessState", () => {
-  test("says the viewer has no access and which permissions would give it", () => {
+  test("says the viewer has no access, what would give it, and who to ask", () => {
     const props: TableEmptyStateProps = buildNoAccessState({
-      permissionTitles: ["Project Owner", "Read Monitor"],
+      neededPermissions: "You need this permission: Read Monitor.",
       translate: IDENTITY,
     });
 
     expect(props.kind).toBe(TableEmptyStateKind.NoAccess);
     expect(props.title).toBe(NO_ACCESS_TITLE);
+    expect(NO_ACCESS_DESCRIPTION).toBe("Ask a project admin for access.");
     expect(props.description).toBe(
-      `${NO_ACCESS_DESCRIPTION} Project Owner, Read Monitor`,
+      "You need this permission: Read Monitor. Ask a project admin for access.",
     );
     expect(props.actions).toBeUndefined();
   });
 
-  test("names no permissions it does not know", () => {
+  test("with nothing to name, says only that there is no access", () => {
     expect(
-      buildNoAccessState({ permissionTitles: [], translate: IDENTITY })
+      buildNoAccessState({ neededPermissions: "", translate: IDENTITY })
+        .description,
+    ).toBeUndefined();
+    expect(
+      buildNoAccessState({ neededPermissions: "  ", translate: IDENTITY })
         .description,
     ).toBeUndefined();
   });
 
-  test("is said in the reader's language, a role's name included", () => {
+  test("is said in the reader's language", () => {
     const props: TableEmptyStateProps = buildNoAccessState({
-      permissionTitles: ["Project Owner", "Read Monitor"],
+      // Already in the reader's language: PermissionGate's sentence.
+      neededPermissions: "Sie benötigen diese Berechtigung: Read Monitor.",
       translate: (value: string): string => {
         const dictionary: Record<string, string> = {
           [NO_ACCESS_TITLE]: "Sie haben keinen Zugriff auf diese Liste",
           [NO_ACCESS_DESCRIPTION]:
-            "Bitten Sie einen Projektadministrator um eine dieser Berechtigungen:",
-          "Project Owner": "Projektinhaber",
+            "Bitten Sie einen Projektadministrator um Zugriff.",
         };
         return dictionary[value] ?? value;
       },
     });
 
     expect(props.title).toBe("Sie haben keinen Zugriff auf diese Liste");
-    // A permission with no translation of its own reads as given.
     expect(props.description).toBe(
-      "Bitten Sie einen Projektadministrator um eine dieser Berechtigungen: Projektinhaber, Read Monitor",
+      "Sie benötigen diese Berechtigung: Read Monitor. Bitten Sie einen Projektadministrator um Zugriff.",
     );
   });
 
-  test("keeps a name the lookup has nothing for, rather than an empty one", () => {
+  test("keeps the English sentence where the lookup has nothing for it, rather than an empty one", () => {
     const props: TableEmptyStateProps = buildNoAccessState({
-      permissionTitles: ["Project Owner", "Read Monitor"],
-      translate: (value: string): string => {
-        return value === "Read Monitor" ? "" : value;
+      neededPermissions: "You need this permission: Read Monitor.",
+      translate: (): string => {
+        return "";
       },
     });
 
+    expect(props.title).toBe(NO_ACCESS_TITLE);
     expect(props.description).toBe(
-      `${NO_ACCESS_DESCRIPTION} Project Owner, Read Monitor`,
+      `You need this permission: Read Monitor. ${NO_ACCESS_DESCRIPTION}`,
     );
   });
 });

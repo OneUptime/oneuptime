@@ -15,8 +15,9 @@ import Columns from "../../../Types/Database/Columns";
 import ColumnType from "../../../Types/Database/ColumnType";
 import TableColumn, {
   TableColumnMetadata,
+  TableColumnNames,
   getTableColumn,
-  getTableColumns,
+  getTableColumnNames,
 } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import {
@@ -263,16 +264,13 @@ export default class DatabaseBaseModel extends BaseEntity {
     }
   }
 
+  /*
+   * The column lists below are made once per class (getTableColumnNames)
+   * and copied here, as each call used to build a fresh one.
+   */
   public getHashedColumns(): Columns {
-    const dictionary: Dictionary<TableColumnMetadata> = getTableColumns(this);
-    const columns: Array<string> = [];
-    for (const key in dictionary) {
-      if (dictionary[key]?.hashed) {
-        columns.push(key);
-      }
-    }
-
-    return new Columns(columns);
+    const names: TableColumnNames = getTableColumnNames(this);
+    return new Columns([...names.hashed]);
   }
 
   public getDisplayColumnPlaceholderAs(columnName: string): string | null {
@@ -288,19 +286,13 @@ export default class DatabaseBaseModel extends BaseEntity {
   }
 
   public getEncryptedColumns(): Columns {
-    const dictionary: Dictionary<TableColumnMetadata> = getTableColumns(this);
-    const columns: Array<string> = [];
-    for (const key in dictionary) {
-      if (dictionary[key]?.encrypted) {
-        columns.push(key);
-      }
-    }
-
-    return new Columns(columns);
+    const names: TableColumnNames = getTableColumnNames(this);
+    return new Columns([...names.encrypted]);
   }
 
   public getTableColumns(): Columns {
-    return new Columns(Object.keys(getTableColumns(this)));
+    const names: TableColumnNames = getTableColumnNames(this);
+    return new Columns([...names.all]);
   }
 
   public getFirstColorColumn(): string | null {
@@ -386,15 +378,8 @@ export default class DatabaseBaseModel extends BaseEntity {
   }
 
   public getUniqueColumns(): Columns {
-    const dictionary: Dictionary<TableColumnMetadata> = getTableColumns(this);
-    const columns: Array<string> = [];
-    for (const key in dictionary) {
-      if (dictionary[key]?.unique) {
-        columns.push(key);
-      }
-    }
-
-    return new Columns(columns);
+    const names: TableColumnNames = getTableColumnNames(this);
+    return new Columns([...names.unique]);
   }
 
   public setSlugifyColumn(columnName: string): void {
@@ -427,15 +412,8 @@ export default class DatabaseBaseModel extends BaseEntity {
   }
 
   public getRequiredColumns(): Columns {
-    const dictionary: Dictionary<TableColumnMetadata> = getTableColumns(this);
-    const columns: Array<string> = [];
-    for (const key in dictionary) {
-      if (dictionary[key]?.required) {
-        columns.push(key);
-      }
-    }
-
-    return new Columns(columns);
+    const names: TableColumnNames = getTableColumnNames(this);
+    return new Columns([...names.required]);
   }
 
   public getSlugifyColumn(): string | null {

@@ -1,4 +1,12 @@
-import React, { useContext, useEffect, useMemo, useRef } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { StyleSheet, View } from "react-native";
 import {
   SafeAreaInsetsContext,
@@ -32,10 +40,14 @@ import { useTheme } from "../theme";
 import {
   PaneProvider,
   useHeaderHeightOverride,
+  useListPaneWidthControl,
   useWindowLayout,
+  type ListPaneWidthControl,
   type PaneLayout,
 } from "../layout/WindowLayout";
-import type { WindowLayout } from "../layout/windowLayout";
+import type { ListPaneWidthRange, WindowLayout } from "../layout/windowLayout";
+import { clampListPaneWidth } from "../layout/paneDivider";
+import PaneDivider from "./PaneDivider";
 import {
   AdaptiveStackRouter,
   type AdaptiveStackRouterOptions,
@@ -63,6 +75,11 @@ import {
  * half-written note, an open sheet and a scroll position through the fold.
  * Only the list is drawn afresh, and it keeps its own view state through
  * paneState.tsx.
+ *
+ * Where the platform says how the window folds, two more layouts follow
+ * from windowLayout.ts, in the same tree. Half open on a table, the panes
+ * stack: the detail stands above the fold, the list lies below it. Lying
+ * flat, the divider carries a handle the reader can drag (PaneDivider).
  */
 
 type StackState = StackNavigationState<ParamListBase>;
@@ -209,54 +226,286 @@ export function getSplitDescriptors(
   return next;
 }
 
+/*
+ * The top of the pane above a tabletop fold, as on a phone: the bar keeps the
+ * project switcher, since the list below the fold has no header of its own -
+ * half a screen is too short for one. The empty detail and the record opened
+ * from the list have no Back button (the list is right there, below the
+ * fold); the record appears without a push, as switching rows should feel.
+ */
+const FIRST_IN_STACKED_PANE_OPTIONS: NativeStackNavigationOptions = {
+  headerBackVisible: false,
+  headerLeft: (): null => {
+    return null;
+  },
+};
+
+/**
+ * The descriptors the stack above a tabletop fold draws from: like
+ * getSplitDescriptors, the empty detail in the list's place and the record
+ * opened from the list without a push - but every bar keeps the stack's own
+ * title, the project switcher, as a phone's does.
+ */
+export function getStackedDescriptors(
+  descriptors: StackDescriptorMap,
+  state: StackState,
+  EmptyDetail: React.ComponentType,
+  overlayRouteNames: ReadonlyArray<string>,
+): StackDescriptorMap {
+  const next: StackDescriptorMap = { ...descriptors };
+
+  state.routes.forEach(
+    (route: StackState["routes"][number], index: number): void => {
+      const descriptor: StackDescriptor | undefined = descriptors[route.key];
+      if (!descriptor) {
+        return;
+      }
+
+      if (index === 0) {
+        next[route.key] = {
+          ...descriptor,
+          options: { ...descriptor.options, ...FIRST_IN_STACKED_PANE_OPTIONS },
+          render: (): React.JSX.Element => {
+            return (
+              <NavigationProvider
+                route={descriptor.route}
+                navigation={descriptor.navigation}
+              >
+                <EmptyDetail />
+              </NavigationProvider>
+            );
+          },
+        };
+        return;
+      }
+
+      if (index === 1 && !overlayRouteNames.includes(route.name)) {
+        next[route.key] = {
+          ...descriptor,
+          options: {
+            ...descriptor.options,
+            ...FIRST_IN_STACKED_PANE_OPTIONS,
+            gestureEnabled: false,
+            animation: "none",
+          },
+        };
+      }
+    },
+  );
+
+  return next;
+}
+
+/*
+ * Where the reader is dragging the divider to, while they drag it. It lives
+ * in a context of its own, read only by the list pane's frame and the
+ * handle, so a move re-renders those two and neither the navigator nor the
+ * screens in the panes: the detail pane follows by layout alone, and the
+ * layout takes the new width once, when the reader lets go.
+ */
+interface ListWidthDrag {
+  draggedWidth: number | null;
+  setDraggedWidth: (width: number | null) => void;
+}
+
+const NO_LIST_WIDTH_DRAG: ListWidthDrag = Object.freeze({
+  draggedWidth: null,
+  setDraggedWidth: (): void => {
+    // No divider to drag.
+  },
+});
+
+const ListWidthDragContext: React.Context<ListWidthDrag> =
+  createContext<ListWidthDrag>(NO_LIST_WIDTH_DRAG);
+
+function ListWidthDragScope({
+  dividerOffered,
+  children,
+}: {
+  /** Whether the layout offers the divider for dragging right now. */
+  dividerOffered: boolean;
+  children: React.ReactNode;
+}): React.JSX.Element {
+  const [draggedWidth, setDraggedWidth] = useState<number | null>(null);
+
+  /*
+   * A drag the window takes away - half closed, folded, turned to one pane -
+   * is dropped, so the divider never comes back at a width nobody let go at.
+   */
+  useEffect((): void => {
+    if (!dividerOffered) {
+      setDraggedWidth(null);
+    }
+  }, [dividerOffered]);
+
+  const value: ListWidthDrag = useMemo((): ListWidthDrag => {
+    return { draggedWidth, setDraggedWidth };
+  }, [draggedWidth]);
+
+  return (
+    <ListWidthDragContext.Provider value={value}>
+      {children}
+    </ListWidthDragContext.Provider>
+  );
+}
+
+/** The width the list pane is drawn at: the layout's, or where it is being dragged to. */
+function useDrawnListWidth(
+  width: number,
+  range: ListPaneWidthRange | null,
+): number {
+  const { draggedWidth }: ListWidthDrag = useContext(ListWidthDragContext);
+  return range && draggedWidth !== null
+    ? clampListPaneWidth(draggedWidth, range)
+    : width;
+}
+
+/** The handle, at the divider wherever it is being dragged. */
+function DividerHandle({
+  width,
+  defaultWidth,
+  range,
+  contentWidth,
+  onCommit,
+}: {
+  width: number;
+  defaultWidth: number;
+  range: ListPaneWidthRange;
+  contentWidth: number;
+  onCommit: (width: number | null) => void;
+}): React.JSX.Element {
+  const { setDraggedWidth }: ListWidthDrag = useContext(ListWidthDragContext);
+  const drawnWidth: number = useDrawnListWidth(width, range);
+  const commit: (next: number | null) => void = useCallback(
+    (next: number | null): void => {
+      onCommit(next);
+      setDraggedWidth(null);
+    },
+    [onCommit, setDraggedWidth],
+  );
+  const cancel: () => void = useCallback((): void => {
+    setDraggedWidth(null);
+  }, [setDraggedWidth]);
+
+  return (
+    <PaneDivider
+      width={drawnWidth}
+      defaultWidth={defaultWidth}
+      range={range}
+      contentWidth={contentWidth}
+      onDrag={setDraggedWidth}
+      onCommit={commit}
+      onCancel={cancel}
+    />
+  );
+}
+
+/*
+ * The space between two panes: a hinge that hides part of the window, or the
+ * band kept clear around a tabletop fold. Stacked, the line between the panes
+ * runs along the middle of the band - on the fold itself, as the divider runs
+ * along a book's fold - so the crease and the line are one, with the same
+ * room on either side of it.
+ */
+function PaneGap({
+  size,
+  stacked,
+}: {
+  size: number;
+  stacked: boolean;
+}): React.JSX.Element {
+  const { theme } = useTheme();
+  if (!stacked) {
+    return <View testID="pane-gap" style={{ width: size }} />;
+  }
+  return (
+    <View testID="pane-gap" style={{ height: size, justifyContent: "center" }}>
+      <View
+        testID="pane-fold-line"
+        style={{ height: 1, backgroundColor: theme.colors.borderSubtle }}
+      />
+    </View>
+  );
+}
+
 function ListPane({
   descriptor,
   width,
+  dividerRange,
+  height,
   selection,
 }: {
   descriptor: StackDescriptor;
+  /** The pane's width, as screens inside read it. */
   width: number;
+  /** Where the divider may be dragged, while it may: the pane is drawn where it is dragged to. */
+  dividerRange: ListPaneWidthRange | null;
+  /** Below a tabletop fold: the pane's height. Beside the detail it is the window's. */
+  height?: number;
   selection: DetailSelection | null;
 }): React.JSX.Element {
   const { theme } = useTheme();
+  const drawnWidth: number = useDrawnListWidth(width, dividerRange);
   const insets: EdgeInsets | null = useContext(SafeAreaInsetsContext);
   const headerHeight: number | undefined = useHeaderHeightOverride();
+  const stacked: boolean = height !== undefined;
   const pane: PaneLayout = useMemo((): PaneLayout => {
+    if (height !== undefined) {
+      // Below the fold: the window's full width, and its bottom edge, but not its top.
+      return {
+        kind: "list",
+        arrangement: "stacked",
+        width,
+        height,
+        insetLeft: insets?.left ?? 0,
+        insetRight: insets?.right ?? 0,
+        insetTop: 0,
+      };
+    }
     return {
       kind: "list",
       width,
       insetLeft: insets?.left ?? 0,
       insetRight: 0,
     };
-  }, [width, insets?.left]);
+  }, [width, height, insets?.left, insets?.right]);
   const { options, route, navigation } = descriptor;
 
   return (
     <PaneProvider pane={pane}>
       <View
         testID="list-pane"
-        style={{
-          width,
-          borderRightWidth: 1,
-          borderRightColor: theme.colors.borderSubtle,
-          backgroundColor: theme.colors.backgroundPrimary,
-        }}
+        style={
+          stacked
+            ? {
+                height,
+                backgroundColor: theme.colors.backgroundPrimary,
+              }
+            : {
+                width: drawnWidth,
+                borderRightWidth: 1,
+                borderRightColor: theme.colors.borderSubtle,
+                backgroundColor: theme.colors.backgroundPrimary,
+              }
+        }
       >
-        <NavigationProvider route={route} navigation={navigation}>
-          <Header
-            title={getHeaderTitle(options, route.name)}
-            headerTitle={options.headerTitle}
-            headerTitleAlign={options.headerTitleAlign}
-            headerTintColor={options.headerTintColor}
-            headerTitleStyle={options.headerTitleStyle}
-            headerStyle={
-              headerHeight === undefined
-                ? options.headerStyle
-                : [options.headerStyle, { height: headerHeight }]
-            }
-            headerShadowVisible={options.headerShadowVisible}
-          />
-        </NavigationProvider>
+        {stacked ? null : (
+          <NavigationProvider route={route} navigation={navigation}>
+            <Header
+              title={getHeaderTitle(options, route.name)}
+              headerTitle={options.headerTitle}
+              headerTitleAlign={options.headerTitleAlign}
+              headerTintColor={options.headerTintColor}
+              headerTitleStyle={options.headerTitleStyle}
+              headerStyle={
+                headerHeight === undefined
+                  ? options.headerStyle
+                  : [options.headerStyle, { height: headerHeight }]
+              }
+              headerShadowVisible={options.headerShadowVisible}
+            />
+          </NavigationProvider>
+        )}
         <ListPaneProvider selection={selection}>
           <View key={route.key} style={styles.fill}>
             {descriptor.render()}
@@ -283,6 +532,12 @@ function AdaptiveStackNavigator({
 }: AdaptiveStackNavigatorProps): React.JSX.Element {
   const windowLayout: WindowLayout = useWindowLayout();
   const split: boolean = windowLayout.panes === 2;
+  const stacked: boolean = split && windowLayout.paneArrangement === "stacked";
+  const dividerRange: ListPaneWidthRange | null = split
+    ? windowLayout.listPaneWidthRange
+    : null;
+  const { setPreferredListPaneWidth }: ListPaneWidthControl =
+    useListPaneWidthControl();
 
   /*
    * The router is created once, so it reads the current layout through a
@@ -377,12 +632,28 @@ function AdaptiveStackNavigator({
 
   const stackDescriptors: StackDescriptorMap =
     useMemo((): StackDescriptorMap => {
-      return split
-        ? getSplitDescriptors(descriptors, state, emptyDetail, overlays)
-        : descriptors;
-    }, [split, descriptors, state, emptyDetail, overlays]);
+      if (!split) {
+        return descriptors;
+      }
+      return stacked
+        ? getStackedDescriptors(descriptors, state, emptyDetail, overlays)
+        : getSplitDescriptors(descriptors, state, emptyDetail, overlays);
+    }, [split, stacked, descriptors, state, emptyDetail, overlays]);
 
   const stackPane: PaneLayout = useMemo((): PaneLayout => {
+    if (stacked) {
+      // Above the fold: the window's full width, and its top edge, but not its bottom.
+      return {
+        kind: "detail",
+        arrangement: "stacked",
+        width: windowLayout.detailPaneWidth,
+        height: windowLayout.detailPaneHeight,
+        insetLeft: insets?.left ?? 0,
+        insetRight: insets?.right ?? 0,
+        insetBottom: 0,
+        reachesBottom: false,
+      };
+    }
     return split
       ? {
           kind: "detail",
@@ -398,43 +669,66 @@ function AdaptiveStackNavigator({
         };
   }, [
     split,
+    stacked,
     windowLayout.detailPaneWidth,
+    windowLayout.detailPaneHeight,
     windowLayout.contentWidth,
     insets?.left,
     insets?.right,
   ]);
 
   /*
-   * The element tree is the same in both layouts - the list pane slot is
-   * simply empty on a narrow window - so the stack on the right keeps its
-   * place, and every screen in it keeps its state, when the window changes.
+   * The element tree is the same in every layout - the list pane, the gap
+   * and the divider slots are simply empty on a narrow window - so the stack
+   * on the right keeps its place, and every screen in it keeps its state,
+   * when the window changes. Stacked, the same children are laid out bottom
+   * up: the list below the fold, the gap on it, the detail above.
    */
   return (
     <NavigationContent>
       <SafeAreaProviderCompat>
         <PaneStateScope scope={rootRoute.key}>
-          <View style={styles.row}>
-            {split ? (
-              <ListPane
-                descriptor={rootDescriptor}
-                width={windowLayout.listPaneWidth}
-                selection={selection}
-              />
-            ) : null}
-            <PaneProvider pane={stackPane}>
-              <View
-                testID={split ? "detail-pane" : undefined}
-                style={styles.fill}
-              >
-                <NativeStackView
-                  state={state}
-                  navigation={navigation}
-                  descriptors={stackDescriptors}
-                  describe={describe}
+          <ListWidthDragScope dividerOffered={dividerRange !== null}>
+            <View
+              testID="adaptive-panes"
+              style={stacked ? styles.stacked : styles.row}
+            >
+              {split ? (
+                <ListPane
+                  descriptor={rootDescriptor}
+                  width={windowLayout.listPaneWidth}
+                  dividerRange={dividerRange}
+                  height={stacked ? windowLayout.listPaneHeight : undefined}
+                  selection={selection}
                 />
-              </View>
-            </PaneProvider>
-          </View>
+              ) : null}
+              {split && windowLayout.paneGap > 0 ? (
+                <PaneGap size={windowLayout.paneGap} stacked={stacked} />
+              ) : null}
+              <PaneProvider pane={stackPane}>
+                <View
+                  testID={split ? "detail-pane" : undefined}
+                  style={styles.fill}
+                >
+                  <NativeStackView
+                    state={state}
+                    navigation={navigation}
+                    descriptors={stackDescriptors}
+                    describe={describe}
+                  />
+                </View>
+              </PaneProvider>
+              {dividerRange ? (
+                <DividerHandle
+                  width={windowLayout.listPaneWidth}
+                  defaultWidth={windowLayout.defaultListPaneWidth}
+                  range={dividerRange}
+                  contentWidth={windowLayout.contentWidth}
+                  onCommit={setPreferredListPaneWidth}
+                />
+              ) : null}
+            </View>
+          </ListWidthDragScope>
         </PaneStateScope>
       </SafeAreaProviderCompat>
     </NavigationContent>
@@ -443,9 +737,11 @@ function AdaptiveStackNavigator({
 
 const styles: {
   row: { flex: number; flexDirection: "row" };
+  stacked: { flex: number; flexDirection: "column-reverse" };
   fill: { flex: number };
 } = StyleSheet.create({
   row: { flex: 1, flexDirection: "row" },
+  stacked: { flex: 1, flexDirection: "column-reverse" },
   fill: { flex: 1 },
 });
 

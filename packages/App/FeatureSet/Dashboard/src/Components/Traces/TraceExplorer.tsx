@@ -1212,6 +1212,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                   />
                 </span>
                 <input
+                  data-unsaved-changes-ignore
                   ref={searchInputRef}
                   type="text"
                   value={searchText}

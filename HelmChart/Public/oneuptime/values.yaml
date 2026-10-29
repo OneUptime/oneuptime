@@ -380,6 +380,14 @@ postgresql:
       # are unaffected. Do NOT add statement_timeout here: it would apply to
       # migrations too, which legitimately run long.
       lock_timeout = '3s'
+      # No JIT compiling. Postgres compiles a statement to machine code once
+      # its estimated cost passes jit_above_cost, and the reads behind
+      # incident and alert rules pass it on empty tables: 170-270 ms of
+      # compiling each, against 4 ms to plan and run them, seven for every
+      # incident or alert created. The app turns JIT off on its own
+      # connections too, but pgbouncer drops that startup parameter, so behind
+      # the pooler this is the setting that applies.
+      jit = off
     # pg_hba.conf rules. These enable password auth (md5) from any host/IP.
     # Tighten these for production to your pod/service/network CIDRs.
     hbaConfiguration: |-
@@ -448,6 +456,8 @@ postgresOperator:
       # See the lock_timeout note in postgresql.primary.configuration above:
       # behind pgbouncer this backend-side value is the only one that applies.
       lock_timeout: "3s"
+      # No JIT compiling: see the jit note in postgresql.primary.configuration.
+      jit: "off"
     resources: {}
     nodeSelector: {}
     tolerations: []

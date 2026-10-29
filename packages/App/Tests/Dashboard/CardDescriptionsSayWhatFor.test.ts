@@ -268,15 +268,15 @@ const OTHER_DESCRIPTIONS: Array<[string, string]> = [
   ],
   [
     "Components/Form/Monitor/LogMonitor/LogMonitorStepFrom.tsx",
-    "The logs these filters match, so you can check the filters before you save.",
+    "The logs these filters match now, to check them before you save.",
   ],
   [
     "Components/Form/Monitor/TraceMonitor/TraceMonitorStepForm.tsx",
-    "The spans these filters match, so you can check the filters before you save.",
+    "The spans these filters match now, to check them before you save.",
   ],
   [
     "Components/Form/Monitor/ExceptionMonitor/ExceptionMonitorStepForm.tsx",
-    "The exceptions these filters match, so you can check the filters before you save.",
+    "The exceptions these filters match now, to check them before you save.",
   ],
   [
     "Components/Form/Monitor/SecurityEventsMonitor/SecurityEventsMonitorStepForm.tsx",

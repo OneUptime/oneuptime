@@ -316,7 +316,7 @@ describe("Home orientation copy", () => {
         "Dismiss",
         "steps completed",
         "Create your first monitor",
-        "Route alerts and incidents to the right person at the right time.",
+        "Page the right person when an incident or alert opens. Until then, the project's owners get an email.",
       ]),
     );
     expect(literals.length).toBeGreaterThanOrEqual(23);

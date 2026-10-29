@@ -3,6 +3,7 @@ import PermissionGate, {
   PermissionGateOptions,
   PermissionGateResult,
 } from "../../Utils/PermissionGate";
+import { translationKey } from "../../Utils/TranslateTemplate";
 import User from "../../Utils/User";
 import Workflow from "../../../Models/DatabaseModels/Workflow";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
@@ -28,6 +29,11 @@ import UUID from "../../../Utils/UUID";
  * naming the column.
  */
 export const WEBHOOK_SECRET_KEY_COLUMN: string = "webhookSecretKey";
+
+// Why Reset is locked, before what would open it (PermissionGate's words).
+export const RESET_WEBHOOK_URL_REFUSED_SENTENCE: string = translationKey(
+  "You do not have permission to reset this webhook URL.",
+);
 
 type ColumnPermissionsFunction = () => Array<Permission>;
 
@@ -119,15 +125,13 @@ export const getWebhookSecretKeyResetGate: GetWebhookSecretKeyResetGateFunction 
       return { isAllowed: true };
     }
 
-    const titles: Array<string> =
-      PermissionGate.getPermissionTitles(columnPermissions);
-
     return {
       isAllowed: false,
-      disabledReason:
-        titles.length > 0
-          ? `You do not have permission to reset this webhook URL. You need one of these permissions: ${titles.join(", ")}.`
-          : "You do not have permission to reset this webhook URL.",
+      disabledReason: PermissionGate.getRefusalReason({
+        sentence: RESET_WEBHOOK_URL_REFUSED_SENTENCE,
+        permissions: columnPermissions,
+        options: options,
+      }),
     };
   };
 

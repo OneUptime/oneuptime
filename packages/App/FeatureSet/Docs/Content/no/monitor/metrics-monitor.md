@@ -33,23 +33,23 @@ Hvert minutt kjører OneUptime hver av monitorens metrikkspørringer over tidsin
 :::steps
 ### Start en ny monitor
 
-Gå til **Monitorer**, og klikk på **Opprett monitor**.
+Gå til **Monitorer**, og klikk på **Opprett monitor**. Eller bygg diagrammet du vil følge med på i metrikkutforskeren, og klikk på **Opprett monitor fra denne visningen**: den nye monitoren starter med spørringene derfra.
 
 ### Velg Metrics
 
 Under **Monitortype** klikker du på **Flere monitortyper** og velger **Målinger** under **Telemetri**, eller du skriver `metrics` i søkefeltet. Skriv inn et **Navn**, og klikk deretter på **Neste**.
 
-### Velg tidsintervallet
-
-I **Metrikkmonitorkonfigurasjon** velger du et **Tidsintervall**: hvor langt tilbake hver evaluering ser. Det starter på **Past 1 Minute**.
-
 ### Legg til metrikkspørringene
 
-Under **Velg målinger** velger du en **Metrikk** og hvordan den aggregeres med **Aggregate by**. Åpne **Filters & grouping** for å filtrere etter attributter eller gruppere med **Grupper etter**. Klikk på **Legg til metrikk** for en spørring til, eller på **Legg til formel** for å kombinere dem. Diagrammet under spørringene viser en forhåndsvisning av tidsintervallet, så du ser verdiene kriteriene kommer til å sjekke.
+I **Metrikk å følge med på** velger du en **Metrikk** og hvordan den aggregeres med **Aggregate by**. Åpne **Filters & grouping** for å filtrere etter attributter eller gruppere med **Grupper etter**. Klikk på **Legg til metrikk** for en spørring til, eller på **Legg til formel** for å kombinere dem. Diagrammet under spørringene viser de siste timene, med regelens verdi som en rød linje, så du ser verdiene regelen kommer til å sjekke.
 
-### Angi kriteriene
+### Si når det skal varsles
 
-I **Monitorkriterier** velger hvert kriterium **Metrikk** som skal sjekkes (en spørring eller en formel), sin **Aggregering**, en **Betingelse** og en **Terskel**. Se [Kriterier](#kriterier) for kriteriene en ny monitor starter med.
+I **Når det skal varsles** velger du under **Målt som** hvordan metrikken måles, og deretter et **Tidsvindu**, en **Betingelse** og en **Verdi**. Når trinnet har mer enn én spørring eller formel, velger du også **Metrikk** som regelen leser. Setningen under dem gjentar regelen med vanlige ord.
+
+### Velg hva som skjer
+
+I **Hva som skjer** velger du **Opprett et varsel**, **Erklær en hendelse** eller **Begge**, og gir det en tittel og en alvorlighetsgrad. Mens regelen samsvarer, viser monitoren statusen under **Flere felt**; når den slutter å samsvare, går monitoren tilbake til standardstatusen sin, og varselet eller hendelsen løser seg selv.
 
 ### Opprett monitoren
 
@@ -79,44 +79,44 @@ En formel kombinerer spørringsvariabler med `+`, `-`, `*`, `/`, `%`, `^` og par
 
 ### Glidende tidsvindu
 
-**Tidsintervall** bestemmer hvor langt tilbake hver evaluering ser: **Past 1 Minute**, **Siste 5 minutter**, **Past 10 Minutes**, **Siste 15 minutter**, **Siste 30 minutter**, **Siste time**, **Siste 2 timer**, **Siste 3 timer**, **Past 6 Hours**, **Past 12 Hours**, **Siste døgn**, **Siste 2 døgn**, **Past 3 Days**, **Past 7 Days**, **Past 14 Days**, **Past 30 Days**, **Past 60 Days**, **Past 90 Days**, **Past 180 Days** eller **Past 365 Days**.
+**Tidsvindu** i **Når det skal varsles** bestemmer hvor langt tilbake hver evaluering ser: **Siste 1 minutt**, **Siste 5 minutter**, **Siste 10 minutter**, **Siste 15 minutter**, **Siste 30 minutter**, **Siste 1 time**, **Siste 2 timer**, **Siste 3 timer**, **Siste 6 timer**, **Siste 12 timer**, **Siste 24 timer**, **Siste 2 dager**, **Siste 3 dager**, **Siste 7 dager**, **Siste 14 dager**, **Siste 30 dager**, **Siste 60 dager**, **Siste 90 dager**, **Siste 180 dager** eller **Siste 365 dager**.
 
-Jo lengre intervallet er, desto bredere er hvert tidsintervall, så ett datapunkt står for mer tid:
+Jo lengre vinduet er, desto bredere er hvert tidsintervall, så ett datapunkt står for mer tid:
 
-| Tidsintervall | Ett datapunkt per |
+| Tidsvindu | Ett datapunkt per |
 | --- | --- |
-| Past 1 Minute til Past 3 Hours | minutt |
-| Past 6 Hours, Past 12 Hours | 5 minutter |
-| Past 1 Day | 15 minutter |
-| Past 2 Days, Past 3 Days | 30 minutter |
-| Past 7 Days | time |
-| Past 14 Days, Past 30 Days | dag |
-| Past 60 Days til Past 180 Days | uke |
-| Past 365 Days | måned |
+| Siste 1 minutt til Siste 3 timer | minutt |
+| Siste 6 timer, Siste 12 timer | 5 minutter |
+| Siste 24 timer | 15 minutter |
+| Siste 2 dager, Siste 3 dager | 30 minutter |
+| Siste 7 dager | time |
+| Siste 14 dager, Siste 30 dager | dag |
+| Siste 60 dager til Siste 180 dager | uke |
+| Siste 365 dager | måned |
 
 ## Slik evalueres den
 
 - **Hvert minutt.** En metrikkmonitor sjekkes ikke av sonder, så den har ikke noe intervall å angi og ingen side **Sonder og intervall**.
 - **Først spørringer, så formler.** Hver spørring returnerer ett datapunkt per tidsintervall i tidsintervallet, med sin **Aggregate by**. Formler regnes ut for hvert intervall fra spørringenes datapunkter.
-- **Deretter kriteriets aggregering.** Hvert kriterium reduserer datapunktene for sin **Metrikk** til det det sammenligner med terskelen:
+- **Deretter regelens mål.** Regelen reduserer datapunktene for metrikken sin til det den sammenligner med verdien sin, slik **Målt som** sier:
 
-| Aggregering | Betingelsen sjekkes mot… |
-| --- | --- |
-| Gjennomsnitt | gjennomsnittet av datapunktene |
-| Sum | summen av datapunktene |
-| Maximum Value | det høyeste datapunktet |
-| Minimum Value | det laveste datapunktet |
-| All Values | hvert datapunkt: alle må oppfylle betingelsen og dekke hele tidsintervallet |
-| Any Value | hvert datapunkt: det holder at ett av dem oppfyller betingelsen |
+| Målt som | I de egne kriteriene | Betingelsen sjekkes mot… |
+| --- | --- | --- |
+| Gjennomsnittet | Gjennomsnitt | gjennomsnittet av datapunktene |
+| Summen | Sum | summen av datapunktene |
+| Den høyeste verdien | Maximum Value | det høyeste datapunktet |
+| Den laveste verdien | Minimum Value | det laveste datapunktet |
+| Hver verdi (hele vinduet) | All Values | hvert datapunkt: alle må oppfylle betingelsen og dekke hele tidsintervallet |
+| En hvilken som helst verdi (når som helst) | Any Value | hvert datapunkt: det holder at ett av dem oppfyller betingelsen |
 
 - **Kriterier fra topp til bunn.** På en monitor uten Group By avgjør det første kriteriet som samsvarer, så legg det mest alvorlige øverst. En gruppert monitor sjekker alle kriterier for hver serie (se [Evalueringen av kriterier er annerledes](#evalueringen-av-kriterier-er-annerledes)).
-- **Ingen data er ikke null.** Når spørringen ikke returnerer noen datapunkter i tidsintervallet, gjør et kriterium det innstillingen **Hvis ingen data** sier, under **Flere felt**: **Ignore** (standard: kriteriet samsvarer ikke), **Treat As Zero** eller **Utløser**.
-- **All Values trenger hele tidsintervallet.** En serie oppfyller først et kriterium med **All Values** når datapunktene dens dekker tidsintervallet, fra starten til nå, uten et hull på mer enn ett manglende datapunkt. Når alle monitorens data kommer forsinket, slik CloudWatchs gjør, trer det nyeste datapunktet i stedet for nå. En vert, container eller deployment som nettopp har begynt å sende data, eller som har vært stille en stund, venter til den har data for et helt tidsintervall, og evalueringsloggen viser hvor langt den har kommet: `Waiting for 15 minutes of data: 2 of 15 minutes so far`. En serie med et varsel eller en hendelse som allerede er åpen, bedømmes ut fra datapunktene alene, så et kort hull i dataene løser det ikke. Hvis metrikken sender sjeldnere enn tidsintervallet er langt, teller et enkelt datapunkt for hele intervallet når det er noen minutter gammelt; for å bedømme hvor lenge en verdi varer, må tidsintervallet være minst to rapporteringsintervaller langt.
-- **OneUptimes eget nedetid er ikke stillhet.** Så lenge tidsintervallet inneholder tid da OneUptime selv ikke mottok data (det startet på nytt, ble oppgradert eller tok igjen et etterslep), venter sjekken: statusen endres ikke, og ingen hendelse eller varsel åpnes eller løses, uansett hva **Hvis ingen data** sier. Se [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving).
+- **Ingen data er ikke null.** Når spørringen ikke returnerer noen datapunkter i tidsintervallet, gjør regelen det **Hvis det ikke finnes data** sier, under **Flere felt** i **Når det skal varsles**: **Ingenting** (standard: regelen samsvarer ikke), **Tell det som null** eller **Varsle, som om den samsvarte**.
+- **Hver verdi trenger hele tidsintervallet.** En serie oppfyller først en regel målt som **Hver verdi (hele vinduet)** når datapunktene dens dekker tidsintervallet, fra starten til nå, uten et hull på mer enn ett manglende datapunkt. Når alle monitorens data kommer forsinket, slik CloudWatchs gjør, trer det nyeste datapunktet i stedet for nå. En vert, container eller deployment som nettopp har begynt å sende data, eller som har vært stille en stund, venter til den har data for et helt tidsintervall, og evalueringsloggen viser hvor langt den har kommet: `Waiting for 15 minutes of data: 2 of 15 minutes so far`. En serie der varselet eller hendelsen allerede er åpen, bedømmes bare på datapunktene sine, så et kort hull i dataene løser det ikke. Når metrikken rapporterer sjeldnere enn tidsintervallet er langt, teller ett enkelt datapunkt for hele intervallet når det er noen minutter gammelt; for å bedømme hvor lenge en verdi varer, bør tidsintervallet være minst to rapporteringsintervaller langt.
+- **OneUptimes eget nedetid er ikke stillhet.** Så lenge tidsintervallet inneholder tid da OneUptime selv ikke mottok data (det startet på nytt, ble oppgradert eller tok igjen et etterslep), venter sjekken: statusen endres ikke, og ingen hendelse eller varsel åpnes eller løses, uansett hva **Hvis det ikke finnes data** sier. Se [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Kriterier
 
-Disse monitorene evaluerer alltid **Metric Value**: den aggregerte verdien av den konfigurerte metrikkspørringen eller formelen. Kriterieskjemaet har ingen velger for filtertype; det viser **Metrikk**, **Aggregering**, **Betingelse** og **Terskel**. Når metrikken har en enhet, velger du terskelens enhet ved siden av den.
+Disse monitorene evaluerer alltid **Metric Value**: den aggregerte verdien av den konfigurerte metrikkspørringen eller formelen. **Når det skal varsles** setter opp ett kriterium ut fra **Målt som**, **Tidsvindu**, **Betingelse** og **Verdi**. Når metrikken har en enhet, velger du verdiens enhet ved siden av den. **Betingelse** er **Over**, **På eller over**, **Under**, **På eller under**, **Nøyaktig**, **Uvanlig høy**, **Uvanlig lav** eller **Uvanlig høy eller lav**. For flere kriterier, for eksempel alvorlighetsbånd, klikker du på **Rediger som egne kriterier** under **Flere felt** i **Hva som skjer**: hvert kriterium der har en **Metrikk**, en **Aggregering**, en **Betingelse** og en **Terskel**.
 
 | Betingelse | Samsvarer når verdien er… |
 | --- | --- |
@@ -129,9 +129,11 @@ Disse monitorene evaluerer alltid **Metric Value**: den aggregerte verdien av de
 | **Anomalously Low** | under det området |
 | **Anomalous** | utenfor det området, i hvilken som helst retning |
 
-Avviksvilkårene har ingen terskel. Skjemaet viser i stedet **Følsomhet** (Low, Medium, som er standard, eller High) og **Grunnlinjevindu** (14 dager, som er standard, 28, 60 eller 90), og sammenligner hvert datapunkt med grunnlinjen for samme time i uken, bygd fra det vinduet. Inntil den timen i uken har nok historikk, lærer kriteriet fortsatt og gir ingen varsler.
+Avviksvilkårene har ingen terskel. **Når det skal varsles** viser i stedet **Følsomhet** (Lav, Middels, som er standard, eller Høy), og de egne kriteriene også et **Grunnlinjevindu** (14 dager, som er standard, 28, 60 eller 90), og hvert datapunkt sammenlignes med grunnlinjen for samme time i uken, bygd fra det vinduet. Inntil den timen i uken har nok historikk, lærer kriteriet fortsatt og gir ingen varsler.
 
-En ny metrikkmonitor starter med to kriterier på den første spørringen, begge med aggregeringen **Any Value**:
+En metrikkmonitor som er opprettet i Opprett monitor, starter med én regel på den første spørringen: **Gjennomsnittet** over **Siste 5 minutter**, **Over** **Verdi** du angir, og **Opprett et varsel**.
+
+En ny metrikkmonitor som er opprettet via API-et eller Terraform uten kriterier, starter med to kriterier på den første spørringen, begge med aggregeringen **Any Value**:
 
 | Kriterium | Betingelse | Virkning |
 | --- | --- | --- |
@@ -143,24 +145,24 @@ En ny metrikkmonitor starter med to kriterier på den første spørringen, begge
 
 ## Gjennomgått eksempel: en kø som vokser
 
-Du vil ha en hendelse når checkout-køen forblir dyp. Spørring `a` er måleren `checkout.queue.depth`, med **Aggregate by** Max, og **Tidsintervall** er **Siste 5 minutter**. Én evaluering ser disse fem datapunktene på ett minutt hver:
+Du vil ha en hendelse når checkout-køen forblir dyp. Spørring `a` er måleren `checkout.queue.depth`, med **Aggregate by** Max, og **Tidsvindu** er **Siste 5 minutter**. Én evaluering ser disse fem datapunktene på ett minutt hver:
 
 | Minutt | 10:01 | 10:02 | 10:03 | 10:04 | 10:05 |
 | --- | --- | --- | --- | --- | --- |
 | `a` | 640 | 980 | 1 500 | 1 620 | 1 100 |
 
-Et kriterium med **Metrikk** `a`, **Betingelse** **Større enn** og **Terskel** `1000` gir et ulikt svar for hver **Aggregering**:
+En regel **Over** `1000` gir et ulikt svar for hvert valg under **Målt som**:
 
-| Aggregering | Sammenlignet med 1 000 | Samsvarer? |
+| Målt som | Sammenlignet med 1 000 | Samsvarer? |
 | --- | --- | --- |
-| Gjennomsnitt | 1 168 | Ja |
-| Sum | 5 840 | Ja |
-| Maximum Value | 1 620 | Ja |
-| Minimum Value | 640 | Nei |
-| All Values | 640, 980, 1 500, 1 620, 1 100 | Nei: to punkter er ikke over 1 000 |
-| Any Value | 640, 980, 1 500, 1 620, 1 100 | Ja: 1 500 er det |
+| Gjennomsnittet | 1 168 | Ja |
+| Summen | 5 840 | Ja |
+| Den høyeste verdien | 1 620 | Ja |
+| Den laveste verdien | 640 | Nei |
+| Hver verdi (hele vinduet) | 640, 980, 1 500, 1 620, 1 100 | Nei: to punkter er ikke over 1 000 |
+| En hvilken som helst verdi (når som helst) | 640, 980, 1 500, 1 620, 1 100 | Ja: 1 500 er det |
 
-**Gjennomsnitt** varsler om et vedvarende etterslep og ignorerer ett enkelt dypt minutt; **All Values** venter til hvert minutt i intervallet er dypt; **Any Value** varsler ved det første dype minuttet.
+**Gjennomsnittet** varsler om et vedvarende etterslep og ignorerer ett enkelt dypt minutt; **Hver verdi (hele vinduet)** venter til hvert minutt i intervallet er dypt; **En hvilken som helst verdi (når som helst)** varsler ved det første dype minuttet.
 
 ## Varsler per serie (Group By)
 
@@ -198,11 +200,11 @@ Grupperingsattributtets verdier er også tilgjengelige som [malvariabler](/docs/
 ## Feilsøking
 
 :::details Diagrammet viser en overskridelse, men monitoren varslet ikke
-Sjekk først kriteriets **Aggregering**: **All Values** samsvarer bare når hvert datapunkt i tidsintervallet overskrider terskelen, og **Gjennomsnitt** jevner ut en kort topp. **All Values** venter også til en serie har data for hele tidsintervallet, så en vert eller deployment som nettopp har begynt å sende data, blir ikke bedømt ennå. Sjekk deretter at kriteriets **Metrikk** er spørringen eller formelen du mener (`a` er ikke formelen `c`), og at terskelen er i enheten du tror.
+Sjekk først **Målt som**: **Hver verdi (hele vinduet)** samsvarer bare når hvert datapunkt i tidsintervallet overskrider verdien, og **Gjennomsnittet** jevner ut en kort topp. **Hver verdi (hele vinduet)** venter også til en serie har data for hele tidsintervallet, så en vert eller deployment som nettopp har begynt å sende data, blir ikke bedømt ennå. Sjekk deretter at regelen leser spørringen eller formelen du mener (`a` er ikke formelen `c`), og at **Verdi** er i enheten du tror.
 :::
 
 :::details Metrikken sluttet å komme, og ingenting skjedde
-Et tidsintervall uten datapunkter er ikke en verdi på 0. Med **Hvis ingen data** på standardverdien, **Ignore**, samsvarer ikke kriteriet. Sett det til **Utløser** under kriteriets **Flere felt** for å bli varslet om stillhet.
+Et tidsintervall uten datapunkter er ikke en verdi på 0. Med **Hvis det ikke finnes data** på standardverdien, **Ingenting**, samsvarer ikke regelen. Sett det til **Varsle, som om den samsvarte** under **Flere felt** i **Når det skal varsles** for å bli varslet om stillhet.
 :::
 
 :::details Jeg får ett varsel for hele flåten

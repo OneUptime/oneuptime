@@ -801,13 +801,17 @@ describe("permissions", () => {
       for (const action of [...rowActions, ...bulkActions]) {
         /*
          * Never the table's own words ("create this Incident State
-         * Timeline"), still the permissions that would allow it - one of
-         * which is the timeline's own create permission.
+         * Timeline"), still the permission that would allow it: the
+         * timeline's own create permission, not the roles that hold it.
          */
         expect(action.tooltip).not.toContain(`this ${sentences.timeline}`);
-        expect(action.tooltip).toContain(`Create ${sentences.timeline}`);
         expect(action.tooltip).not.toContain("permission to create");
-        expect(action.tooltip).toContain("You need one of these permissions:");
+        expect(
+          action.tooltip?.endsWith(
+            ` You need this permission: Create ${sentences.timeline}.`,
+          ),
+        ).toBe(true);
+        expect(action.tooltip).not.toContain("Project Admin");
       }
     },
   );

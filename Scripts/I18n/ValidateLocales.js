@@ -28,6 +28,7 @@ const LOCALE_DIRS = {
   AdminDashboard: "packages/App/FeatureSet/AdminDashboard/src/Locales",
   StatusPage: "packages/App/FeatureSet/StatusPage/src/Locales",
   Accounts: "packages/App/FeatureSet/Accounts/src/Locales",
+  PublicDashboard: "packages/App/FeatureSet/PublicDashboard/src/Locales",
   Docs: "packages/App/FeatureSet/Docs/Locales",
   APIReference: "packages/App/FeatureSet/APIReference/Locales",
 };

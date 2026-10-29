@@ -56,6 +56,10 @@
  *                     column may grow, five labels on one monitor
  *   - rows=<n>        n more rows on every list (pagination, a long page)
  *   - role=viewer     a member who may read but not create, edit or delete
+ *   - role=none       a member whose teams grant nothing beyond what every
+ *                     member holds (Project User: teams, labels, member
+ *                     profiles), so the Incidents, Alerts, Monitors and
+ *                     Status Pages lists deny every column
  *   - delay=<ms>      each list read takes this long (40 ms otherwise), to
  *                     see the tables while they load
  *   - fail=<table>    every read of that table fails (Incident, Monitor,
@@ -1078,25 +1082,32 @@ function failsFor(tableName) {
 // ------------------------------------------------------------ permissions
 
 const heldPermission =
-  role === "viewer" ? Permission.Viewer : Permission.ProjectOwner;
+  role === "none"
+    ? null
+    : role === "viewer"
+      ? Permission.Viewer
+      : Permission.ProjectOwner;
 
 UserUtil.isMasterAdmin = () => false;
 UserUtil.getUserId = () => new ObjectID(USER_ID);
 /*
  * The people gallery lists users, whom a signed-in member may read
- * (Logged in User); every other page holds only the member's role.
+ * (Logged in User); every other page holds only the member's role. A member
+ * with no role here holds what every member of a project does.
  */
 PermissionUtil.getAllPermissions = () =>
-  galleryTable === "people" && window.location.pathname.endsWith("/tables")
-    ? [heldPermission, Permission.CurrentUser]
-    : [heldPermission];
+  !heldPermission
+    ? [Permission.ProjectUser, Permission.CurrentUser]
+    : galleryTable === "people" && window.location.pathname.endsWith("/tables")
+      ? [heldPermission, Permission.CurrentUser]
+      : [heldPermission];
 PermissionUtil.getProjectPermissions = () => ({
   _type: "UserTenantAccessPermission",
   projectId: new ObjectID(PROJECT_ID),
   permissions: [
     {
       _type: "UserPermission",
-      permission: heldPermission,
+      permission: heldPermission || Permission.ProjectUser,
       labelIds: [],
       isBlockPermission: false,
     },

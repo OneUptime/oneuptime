@@ -5,6 +5,8 @@ import OneUptimeDate from "Common/Types/Date";
 import URL from "Common/Types/API/URL";
 import { getProductCompareSlugs } from "./ProductCompare";
 import { AIR_GAPPED_SHORT_PATHS } from "./AirGapped";
+import { getPublishedGuides } from "./Integrations/OpenTelemetry/OpenTelemetryGuides";
+import { getOpenTelemetryGuidePath } from "Common/Types/Telemetry/OpenTelemetryGuides";
 import Express, {
   ExpressApplication,
   ExpressResponse,
@@ -93,6 +95,9 @@ const PAGE_CONFIG: Record<string, SitemapPageConfig> = {
   // The comparisons' hub; each comparison is in the compare sitemap.
   "/compare": { priority: 0.8, changefreq: "weekly" },
 
+  // The integrations' index; each OpenTelemetry guide is in the integrations sitemap.
+  "/integrations": { priority: 0.8, changefreq: "weekly" },
+
   // Books and blog
   "/books": { priority: 0.7, changefreq: "monthly" },
   "/blog": { priority: 0.7, changefreq: "daily" },
@@ -125,6 +130,8 @@ export const REDIRECT_PATHS: Set<string> = new Set<string>([
   "/ai-agent",
   // The Terms of Service, which /legal/terms is.
   "/legal",
+  // The OpenTelemetry guides' folder, which is the integrations index.
+  "/integrations/opentelemetry",
 ]);
 
 /*
@@ -175,6 +182,12 @@ const COMPARE_PAGE_CONFIG: SitemapPageConfig = {
   changefreq: "monthly",
 };
 
+// An OpenTelemetry guide: a page people search for by framework.
+const INTEGRATION_GUIDE_CONFIG: SitemapPageConfig = {
+  priority: 0.8,
+  changefreq: "monthly",
+};
+
 // Number of blog posts per sitemap file
 const BLOG_POSTS_PER_SITEMAP: number = 1000;
 
@@ -190,6 +203,7 @@ interface CachedData<T> {
 let indexCache: CachedData<string> | null = null;
 let pagesCache: CachedData<string> | null = null;
 let compareCache: CachedData<string> | null = null;
+let integrationsCache: CachedData<string> | null = null;
 const blogCaches: Map<number, CachedData<string>> = new Map();
 
 // Cache for blog post count to avoid repeated fetches
@@ -486,6 +500,11 @@ export async function generateSitemapIndexXml(): Promise<string> {
     loc: `${baseUrlString}/sitemap-compare.xml`,
   });
 
+  // The OpenTelemetry guides, one per framework
+  sitemaps.push({
+    loc: `${baseUrlString}/sitemap-integrations.xml`,
+  });
+
   /*
    * Note: Blog tag sitemaps removed - tag pages are noindex to improve
    * site quality signals and crawl budget efficiency
@@ -591,6 +610,39 @@ export async function generateCompareSitemapXml(): Promise<string> {
   const xml: string = buildUrlsetXml(entries);
 
   compareCache = {
+    data: xml,
+    generatedAt: OneUptimeDate.getCurrentDate().getTime(),
+  };
+
+  return xml;
+}
+
+/*
+ * The OpenTelemetry guides, /integrations/opentelemetry/<framework>: every
+ * guide the site publishes. No lastmod, as for the other pages (see
+ * SitemapEntry).
+ */
+export async function generateIntegrationsSitemapXml(): Promise<string> {
+  if (isCacheValid(integrationsCache)) {
+    return integrationsCache!.data;
+  }
+
+  const baseUrl: URL = await BlogPostUtil.getHomeUrl();
+  const baseUrlString: string = baseUrl.toString().replace(/\/$/, "");
+
+  const entries: SitemapEntry[] = getPublishedGuides().map(
+    ({ guide }: { guide: { slug: string } }): SitemapEntry => {
+      return {
+        loc: `${baseUrlString}${getOpenTelemetryGuidePath(guide.slug)}`,
+        priority: INTEGRATION_GUIDE_CONFIG.priority,
+        changefreq: INTEGRATION_GUIDE_CONFIG.changefreq,
+      };
+    },
+  );
+
+  const xml: string = buildUrlsetXml(entries);
+
+  integrationsCache = {
     data: xml,
     generatedAt: OneUptimeDate.getCurrentDate().getTime(),
   };

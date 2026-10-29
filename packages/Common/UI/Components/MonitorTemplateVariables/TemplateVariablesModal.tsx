@@ -213,6 +213,7 @@ const TemplateVariablesModal: FunctionComponent<ComponentProps> = (
             />
           </div>
           <input
+            data-unsaved-changes-ignore
             type="text"
             value={search}
             onChange={(e: React.ChangeEvent<HTMLInputElement>): void => {

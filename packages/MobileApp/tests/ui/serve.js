@@ -12,4 +12,4 @@ http.createServer((request, response) => {
   const file = fs.existsSync(requested) && fs.statSync(requested).isFile() ? requested : path.join(root, "index.html");
   response.writeHead(200, { "Content-Type": types[path.extname(file)] || "application/octet-stream" });
   fs.createReadStream(file).pipe(response);
-}).listen(8096, "127.0.0.1");
+}).listen(Number(process.env.MOBILE_UI_PORT || 8096), "127.0.0.1");

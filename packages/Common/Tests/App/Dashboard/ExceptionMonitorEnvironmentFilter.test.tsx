@@ -28,7 +28,8 @@ import { JSONObject } from "../../../Types/JSON";
  * preview under the form must show the same slice the worker will count, so
  * both what the form emits and what reaches the preview table are pinned
  * here. The table itself lists occurrences over the API, so it is stubbed to
- * record the query it is given.
+ * record the query it is given. It sits folded under Matching exceptions,
+ * read only once opened, so each test that reads it opens it first.
  */
 
 let previewQueries: Array<JSONObject> = [];
@@ -119,6 +120,11 @@ function latestPreviewQuery(): JSONObject {
   return previewQueries[previewQueries.length - 1]!;
 }
 
+// Opens the fold that lists the exceptions the filters match.
+function openMatchingExceptions(): void {
+  fireEvent.click(screen.getByRole("button", { name: "Matching exceptions" }));
+}
+
 // ExceptionMonitorStepForm's preview debounce.
 const PREVIEW_DEBOUNCE_MS: number = 500;
 
@@ -164,11 +170,17 @@ describe("Exceptions monitor form — environment filter", () => {
   test("an unfiltered monitor previews every environment", () => {
     renderForm();
 
+    // Folded, nothing is read.
+    expect(previewQueries).toEqual([]);
+
+    openMatchingExceptions();
+
     expect(latestPreviewQuery()["environment"]).toBeUndefined();
   });
 
   test("typing environments saves them and narrows the preview", () => {
     const recorder: Recorder = renderForm({ exceptionTypes: ["TypeError"] });
+    openMatchingExceptions();
 
     fireEvent.change(environmentsInput(), {
       target: { value: "production, staging" },
@@ -216,6 +228,7 @@ describe("Exceptions monitor form — environment filter", () => {
 
   test("a saved monitor loads its environments back into the form and preview", () => {
     renderForm({ environments: ["production", "staging"] });
+    openMatchingExceptions();
 
     expect(environmentsInput().value).toBe("production, staging");
     expect(latestPreviewQuery()["environment"]).toEqual({
@@ -226,6 +239,7 @@ describe("Exceptions monitor form — environment filter", () => {
 
   test("clearing the field goes back to every environment", () => {
     const recorder: Recorder = renderForm({ environments: ["production"] });
+    openMatchingExceptions();
 
     fireEvent.change(environmentsInput(), { target: { value: "" } });
 

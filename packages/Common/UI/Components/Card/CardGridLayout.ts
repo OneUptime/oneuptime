@@ -123,11 +123,42 @@ export const CARD_GRID_CONTAINER_CLASS_NAME: string =
 export const CARD_GRID_CLASS_NAME: string = "grid grid-cols-1 gap-5";
 
 /*
- * A cell: a column whose last box - the card - takes the cell's height. The
- * grid stretches its cells to their row (never items-start here), and the
- * card, told by the cell that it fills one, draws its frame to the bottom.
+ * A cell: two of the grid's rows - one for its card's header, one for the
+ * card's body - shared with the cells beside it. The cell is a subgrid of
+ * those two rows and hands them to its card ([&>*]:grid-rows-subgrid), and
+ * the card draws its frame, its padding, then its header and its body on
+ * the same two rows (Card, CARD_IN_ROW_CLASS_NAME). So in a row of cards:
+ *
+ * - every body starts on one line, however long the titles and the
+ *   descriptions above them - a list beside a list, a chart beside a
+ *   chart, in every language ("Verdicts' description is a line longer than
+ *   its neighbours', so its list starts a line lower");
+ * - every frame ends on one line, at the row's bottom: the shorter card's
+ *   body takes the room its content leaves, so an empty sentence can sit
+ *   in the middle of it (CARD_GRID_CENTERED_STATE_CLASS_NAME).
+ *
+ * The grid's gap (20px) is between a row's header row and its body row
+ * too; a card's body takes back 4px of it, so it starts 16px under its
+ * header, as it does in a card outside a grid. Margins never sit on a
+ * subgrid's box: browsers agree on a subgrid that keeps its parent's gap,
+ * and not on one that sets its own (Firefox drew a gap of 0 as 20px more).
+ * A card the cell holds through a wrapper of its own still fills the cell,
+ * its header and body on two rows of its own (grid-rows-[auto_1fr]). The
+ * cell's one column may be narrower than its card's widest content
+ * (grid-cols-1: minmax(0, 1fr)), so a chart or a long word never widens a
+ * cell past its share of the row.
  */
 export const CARD_GRID_CELL_CLASS_NAME: string =
+  "grid min-w-0 row-span-2 grid-cols-1 grid-rows-subgrid [&>*]:row-span-2 [&>*]:grid-rows-subgrid";
+
+/*
+ * A column of a hand-built row of boxes that are not Cards - a heading over
+ * a list's box, as the Traces overview's Recent Errors and Slowest Requests
+ * are: the column's last box takes the column's height, so it runs to the
+ * row's bottom beside a taller one. A CardGrid's cells align their cards'
+ * bodies as well; a column like this only fills.
+ */
+export const CARD_ROW_COLUMN_CLASS_NAME: string =
   "flex min-w-0 flex-col [&>*:last-child]:flex-1";
 
 /*

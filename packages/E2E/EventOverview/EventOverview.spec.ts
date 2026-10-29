@@ -1,4 +1,5 @@
 import {
+  ElementHandle,
   expect,
   Locator,
   Page,
@@ -99,7 +100,7 @@ const DECLARE_INCIDENT_BUTTON_ID: string = "alert-declare-incident-btn";
 const DECLARE_INCIDENT_FROM_ALERT_PATH: string = `${DASHBOARD}/incidents/create?alertIds=${ALERT_ID}`;
 // Its disabled reason for someone who may not create incidents (PermissionGate).
 const DECLARE_INCIDENT_DENIED: string =
-  "You do not have permission to create this Incident. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Create Incident.";
+  "You do not have permission to create this Incident. You need this permission: Create Incident.";
 
 interface RecordedApiRequest {
   method: string;
@@ -768,6 +769,40 @@ async function documentBox(locator: Locator): Promise<Box> {
       height: rect.height,
     };
   });
+}
+
+/*
+ * The document boxes of several elements, read from one layout, for checks
+ * of where they sit against each other. documentBox() is a round trip of its
+ * own, and a card still filling in above them moves them all between two of
+ * those: on a busy runner the AI card draws its investigation after its
+ * conversation has loaded, and the composer below moves down by hundreds of
+ * pixels while its parts are read one by one.
+ */
+async function documentBoxes(
+  page: Page,
+  locators: Array<Locator>,
+): Promise<Array<Box>> {
+  const elements: Array<ElementHandle<Element>> = [];
+
+  for (const locator of locators) {
+    const element: ElementHandle<Element> | null =
+      await locator.elementHandle();
+    expect(element).not.toBeNull();
+    elements.push(element!);
+  }
+
+  return page.evaluate((nodes: Array<Element>): Array<Box> => {
+    return nodes.map((node: Element): Box => {
+      const rect: DOMRect = node.getBoundingClientRect();
+      return {
+        x: rect.left + window.scrollX,
+        y: rect.top + window.scrollY,
+        width: rect.width,
+        height: rect.height,
+      };
+    });
+  }, elements);
 }
 
 async function expectAbove(
@@ -5608,7 +5643,6 @@ test.describe("one AI card: the investigation and the conversation", () => {
     }) => {
       await openConversation(page, "");
       const frame: Locator = composerFrame(page);
-      const frameBox: Box = await documentBox(frame);
 
       // The dashboard's input frame: white, a gray-300 hairline all round.
       const look: {
@@ -5638,21 +5672,22 @@ test.describe("one AI card: the investigation and the conversation", () => {
         widths: ["1px", "1px", "1px", "1px"],
       });
 
-      // Everything it needs is inside that frame.
-      for (const part of [
+      // Everything it needs is inside that frame (one layout: documentBoxes).
+      const [frameBox, ...partBoxes]: Array<Box> = await documentBoxes(page, [
+        frame,
         composerBox(page),
         modePicker(page),
         modeCaption(page),
         sendButton(page),
-      ]) {
-        const box: Box = await documentBox(part);
-        expect(box.x).toBeGreaterThanOrEqual(frameBox.x);
+      ]);
+      for (const box of partBoxes) {
+        expect(box.x).toBeGreaterThanOrEqual(frameBox!.x);
         expect(box.x + box.width).toBeLessThanOrEqual(
-          frameBox.x + frameBox.width,
+          frameBox!.x + frameBox!.width,
         );
-        expect(box.y).toBeGreaterThanOrEqual(frameBox.y);
+        expect(box.y).toBeGreaterThanOrEqual(frameBox!.y);
         expect(box.y + box.height).toBeLessThanOrEqual(
-          frameBox.y + frameBox.height,
+          frameBox!.y + frameBox!.height,
         );
       }
 
@@ -5666,16 +5701,18 @@ test.describe("one AI card: the investigation and the conversation", () => {
       );
 
       // One row under the text: the picker, its caption, then Send at the end.
-      const picker: Box = await documentBox(modePicker(page));
-      const caption: Box = await documentBox(modeCaption(page));
-      const send: Box = await documentBox(sendButton(page));
-      expect(caption.x).toBeGreaterThan(picker.x + picker.width);
-      expect(send.x).toBeGreaterThan(caption.x + caption.width - 1);
+      const [picker, caption, send]: Array<Box> = await documentBoxes(page, [
+        modePicker(page),
+        modeCaption(page),
+        sendButton(page),
+      ]);
+      expect(caption!.x).toBeGreaterThan(picker!.x + picker!.width);
+      expect(send!.x).toBeGreaterThan(caption!.x + caption!.width - 1);
       expect(
-        Math.abs(picker.y + picker.height / 2 - (send.y + send.height / 2)),
+        Math.abs(picker!.y + picker!.height / 2 - (send!.y + send!.height / 2)),
       ).toBeLessThanOrEqual(3);
       // The caption fits on one line of the row.
-      expect(caption.height).toBeLessThanOrEqual(22);
+      expect(caption!.height).toBeLessThanOrEqual(22);
     });
 
     test("does not take focus when the page loads, and shows an indigo focus when used", async ({
@@ -9910,7 +9947,7 @@ test.describe("the header, by its own width", () => {
 
     // What they pressed, in their words - not "create this Incident State Timeline".
     const reason: string =
-      "You do not have permission to change this incident's state. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Create Incident State Timeline.";
+      "You do not have permission to change this incident's state. You need this permission: Create Incident State Timeline.";
     await expect(heroActions(page).getByRole("button")).toHaveText([
       "Acknowledge",
       "Resolve",

@@ -263,12 +263,28 @@ describe("the toolbar below md", () => {
     );
 
     expect(search.parentElement).toHaveClass("flex", "flex-wrap");
-    expect(search).toHaveClass("min-w-0", "flex-[1_1_12rem]", "md:flex-1");
+    expect(search).toHaveClass("min-w-0", "flex-[1_1_12rem]");
     /*
      * A bare flex-1 is a zero basis: the wrapping row then never breaks, and
      * the search gets whatever the buttons leave, which on a phone is ~50px.
      */
     expect(classTokens(search)).not.toContain("flex-1");
+  });
+
+  test("from md up the search grows into what the buttons leave, but never below 16rem: past that the buttons wrap", () => {
+    renderViewer();
+
+    const search: HTMLElement = screen.getByTestId(
+      TELEMETRY_VIEWER_SEARCH_TEST_ID,
+    );
+
+    expect(search).toHaveClass("md:flex-[1_1_16rem]");
+    /*
+     * md:flex-1 was a zero basis from md up as well: the Traces page's one
+     * more button (Create monitor) left its search 8px wide in a 1024px
+     * window, the buttons never wrapping under it.
+     */
+    expect(classTokens(search)).not.toContain("md:flex-1");
   });
 
   test("the input can shrink with its box instead of painting over the buttons", () => {

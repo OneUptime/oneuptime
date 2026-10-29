@@ -404,6 +404,7 @@
   "Loading the latest version": "Загружается последняя версия",
   "A newer version of this page is available. It's loading now.": "Доступна более новая версия этой страницы. Она уже загружается.",
   "You're offline": "Вы не в сети",
+  "This page will come back as soon as you're online again, just as you left it.": "Как только вы снова будете в сети, страница вернётся в том виде, в каком вы её оставили.",
   "This page needs an internet connection to load. It will load as soon as you're back online.": "Для загрузки этой страницы нужно подключение к интернету. Она загрузится, как только вы снова будете в сети.",
   "Can't reach the server": "Нет связи с сервером",
   "It may be restarting after an update. This page will load as soon as the server is back.": "Возможно, он перезапускается после обновления. Страница загрузится, как только сервер снова станет доступен.",

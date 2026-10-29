@@ -3,7 +3,9 @@
 The official logos OneUptime shows next to a third-party product's name: the
 storage an audit log export or a backup goes to, the security tools a project
 connects, its clouds and AI providers, Slack and Microsoft Teams, the tools
-Import from another tool reads, the languages the telemetry guide instruments.
+Import from another tool reads, the languages the telemetry guide instruments
+and the frameworks and languages the website's OpenTelemetry guides are
+written for.
 `Common/Types/ProviderLogo/ProviderLogo.ts` names them; the component that draws
 them is `Common/UI/Components/ProviderLogo/ProviderLogoImage.tsx`, which loads
 each file by itself (`ProviderLogoAssets.ts`), the first time a page shows it.
@@ -105,6 +107,22 @@ is registered and listed below, and no file reaches outside itself.
 | `swift.svg` | Swift | SVG Logos, `swift` | [Apple trademarks](https://www.apple.com/legal/intellectual-property/guidelinesfor3rdparties.html) |
 | `react.svg` | React | SVG Logos, `react` | [react.dev](https://react.dev) |
 | `angular.svg` | Angular | SVG Logos, `angular-icon` | [Angular press kit](https://angular.dev/press-kit) |
+| `express.svg`, `express-dark.svg` | Express | Simple Icons, `express` (the OpenJS Foundation's Express icon); dark: in white | [OpenJS trademark policy](https://trademark-policy.openjsf.org/) |
+| `nestjs.svg` | NestJS | SVG Logos, `nestjs` | [nestjs.com](https://nestjs.com) |
+| `nextjs.svg` | Next.js | SVG Logos, `nextjs-icon` | [Vercel brand](https://vercel.com/design/brands#next-js) |
+| `fastify.svg`, `fastify-dark.svg` | Fastify | SVG Logos, `fastify-icon`; dark: in white | [Fastify graphics](https://github.com/fastify/graphics) |
+| `koa.svg`, `koa-dark.svg` | Koa | SVG Logos, `koa` (Koa's logo is its wordmark); dark: in white | [koajs.com](https://koajs.com) |
+| `hapi.svg`, `hapi-dark.svg` | hapi | SVG Logos, `hapi`; dark: the lettering in white | [hapi.dev](https://hapi.dev) |
+| `bun.svg` | Bun | SVG Logos, `bun` | [Bun press kit](https://bun.sh/press-kit) |
+| `deno.svg` | Deno | SVG Logos, `deno` | [Deno brand](https://deno.com/brand) |
+| `django.svg` | Django | SVG Logos, `django-icon` (the Django Software Foundation's "dj" mark) | [Django logos](https://www.djangoproject.com/community/logos/) |
+| `flask.svg` | Flask | Simple Icons, `flask` (Pallets' current Flask icon, in its teal) | [Pallets brand](https://palletsprojects.com/) |
+| `fastapi.svg` | FastAPI | SVG Logos, `fastapi-icon` | [fastapi.tiangolo.com](https://fastapi.tiangolo.com) |
+| `celery.svg` | Celery | Simple Icons, `celery` (the Celery project's icon) | [docs.celeryq.dev](https://docs.celeryq.dev) |
+| `spring-boot.svg` | Spring Boot | Simple Icons, `springboot` | [Spring trademark guidelines](https://spring.io/trademarks) |
+| `quarkus.svg` | Quarkus | SVG Logos, `quarkus-icon` | [Quarkus brand](https://design.jboss.org/quarkus/) |
+| `kotlin.svg` | Kotlin | SVG Logos, `kotlin-icon` | [JetBrains brand](https://www.jetbrains.com/company/brand/) |
+| `ktor.svg` | Ktor | SVG Logos, `ktor-icon` | [JetBrains brand](https://www.jetbrains.com/company/brand/) |
 
 ## Adding a logo
 

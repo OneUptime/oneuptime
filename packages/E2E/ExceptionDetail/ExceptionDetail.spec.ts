@@ -1420,3 +1420,106 @@ test.describe("settings", () => {
     ]);
   });
 });
+
+/*
+ * Create monitor on an exception's page: an Exceptions monitor for this
+ * exception's type in its service (TelemetryMonitorLink), beside Resolve
+ * and Archive. With three buttons, the header puts them beside the
+ * exception only when the card itself is wide enough (a container query):
+ * from lg up beside the side menu they left the message a word a line at
+ * 1024px.
+ */
+test.describe("Create monitor on an exception", () => {
+  test("sits beside Resolve and leads to an Exceptions monitor for this type in its service", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "");
+
+    const actions: Locator = page.getByTestId("exception-summary-actions");
+    const button: Locator = actions.getByTestId("exception-create-monitor");
+
+    await expect(button).toHaveText("Create monitor");
+    await expect(actions.getByTestId("exception-triage-resolve")).toBeVisible();
+
+    await button.click();
+    await page.waitForURL(
+      (url: URL): boolean => {
+        return url.pathname === `/dashboard/${PROJECT_ID}/monitors/create`;
+      },
+      { timeout: 30000 },
+    );
+
+    const link: URL = new URL(page.url());
+    expect(link.searchParams.get("monitorType")).toBe("Exceptions");
+    expect(JSON.parse(link.searchParams.get("telemetryQuery") || "{}")).toEqual(
+      {
+        serviceIds: [SERVICE_ID],
+        exceptionTypes: [EXCEPTION_TYPE],
+      },
+    );
+  });
+
+  test("the message stays readable beside the side menu: the actions go under it until the card is wide enough", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const width of [1024, 1280, 1440]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await open(page, "", "exception=long");
+
+      const message: Locator = page.getByTestId("exception-summary-message");
+      const actions: Locator = page.getByTestId("exception-summary-actions");
+      await expect(
+        actions.getByTestId("exception-create-monitor"),
+      ).toBeVisible();
+
+      const messageBox: { x: number; y: number; width: number } | null =
+        await message.boundingBox();
+      const actionsBox: { x: number; y: number; height: number } | null =
+        await actions.boundingBox();
+      expect(messageBox).not.toBeNull();
+      expect(actionsBox).not.toBeNull();
+
+      // Never a word a line: the message keeps a reading width.
+      expect(
+        messageBox!.width,
+        `the message's width at ${width}px`,
+      ).toBeGreaterThan(420);
+
+      if (width === 1440) {
+        // A wide card: the actions beside the exception, at its top.
+        expect(actionsBox!.x).toBeGreaterThan(
+          messageBox!.x + messageBox!.width,
+        );
+        expect(actionsBox!.y).toBeLessThan(messageBox!.y);
+      } else {
+        // A narrower one: the actions under the message.
+        expect(actionsBox!.y, `the actions at ${width}px`).toBeGreaterThan(
+          messageBox!.y,
+        );
+
+        /*
+         * ... and the first of them where the exception's words start,
+         * past its status icon: it started under the icon, 12px further in
+         * (each Button's own md:ml-3).
+         */
+        const firstButton: { x: number } | null = await actions
+          .getByTestId("exception-triage-resolve")
+          .boundingBox();
+        expect(firstButton).not.toBeNull();
+        expect(
+          Math.abs(firstButton!.x - messageBox!.x),
+          `the first action against the words at ${width}px`,
+        ).toBeLessThan(2);
+      }
+
+      await expectNoHorizontalOverflow(page);
+    }
+
+    await page.setViewportSize({ width: 1024, height: 1000 });
+    await screenshot(page, "exception-header-create-monitor-1024");
+  });
+});

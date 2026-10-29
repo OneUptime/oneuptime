@@ -464,6 +464,7 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
             <Icon icon={IconProp.Search} className="h-4 w-4" />
           </span>
           <input
+            data-unsaved-changes-ignore
             ref={searchInputRef}
             type="text"
             role="combobox"

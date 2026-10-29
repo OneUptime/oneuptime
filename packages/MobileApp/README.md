@@ -87,6 +87,8 @@ MobileApp/
 │   ├── storage/       # AsyncStorage: session tokens, server URL, preferences
 │   ├── theme/         # Colors, typography, spacing, theme context
 │   └── App.tsx        # Root component with providers
+├── modules/
+│   └── window-posture/ # Android module: where the window folds, and how it is held
 ├── assets/            # App icons and splash screen
 ├── app.json           # Expo configuration
 ├── index.ts           # Entry point
@@ -172,6 +174,29 @@ when the window changes while somebody is using it.
   (`expo-build-properties`, `ios.enableSceneSupport`) and the store build
   compiles with Xcode 27.1 (`eas.json`), the first SDK whose apps fill the
   iPhone Duo's inner screen instead of being letterboxed in it.
+
+### Hinge and posture
+
+On Android the app also knows where its window folds and how the phone is
+held, from its own module (`modules/window-posture`, Jetpack WindowManager's
+folding features). Where nothing reports a fold - iOS today, Expo Go, a build
+without the module - the layout above is used unchanged.
+
+- **Half open like a book:** the list and its detail meet on the fold itself,
+  wherever the window has it, and the divider stays there.
+- **Half open on a table:** the detail stands above the fold and the list lies
+  below it, with the bar along the bottom under the reader's hand. The list
+  opens at its first row, its search and filters a short scroll up, and
+  nothing sits on the crease.
+- **Lying flat, or a window that does not fold:** a handle in the middle of the
+  divider moves it, within the widths both panes need. The width is
+  remembered; let go near the fold's line and the divider settles on it; a
+  double tap puts it back. With a screen reader the handle is an adjustable
+  control.
+
+The posture rules are in `src/layout/windowLayout.ts` and
+`src/layout/windowPosture.ts`; the module, its checks and what to try on a
+device are in [its README](modules/window-posture/README.md).
 
 The rules are in `src/layout/windowLayout.ts`; how to build a screen that
 follows them is in the [design system](docs/DESIGN_SYSTEM.md).

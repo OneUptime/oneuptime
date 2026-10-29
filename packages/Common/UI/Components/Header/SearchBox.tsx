@@ -19,6 +19,7 @@ const SearchBox: FunctionComponent<ComponentProps> = (
         <label className="sr-only">{translator.translateText("Search")}</label>
         <div className="relative">
           <Input
+            isSearchOrFilter={true}
             onChange={(value: string) => {
               props.onChange(value);
             }}

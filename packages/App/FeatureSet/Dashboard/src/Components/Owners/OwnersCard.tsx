@@ -59,6 +59,36 @@ import React, {
  * may add no owner finds Add owner locked, saying why.
  */
 
+/*
+ * The Owners page's two controls that open the Add owners list - the "+"
+ * after the owners' avatars and, with nobody owning the record yet, the
+ * empty state's "Add owner" - each with an open state of its own: while the
+ * list is open, the control that opened it stays as the pointer draws it
+ * (filled), so it is clear which control the list belongs to, as a header's
+ * place button and AddOwnersTextButton stay lit. Their colours are one set
+ * or the other, never both: the Dashboard's Tailwind would let whichever
+ * rule it wrote last win.
+ *
+ * The "+" is the control's only mark, so it is grey-500 (4.8:1 on white),
+ * not a decoration's grey-400 (2.5:1).
+ */
+export const OWNERS_ADD_CIRCLE_CLASS_NAME: string =
+  "-ml-2 relative z-10 flex h-11 w-11 items-center justify-center rounded-full border-2 border-dashed transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1";
+
+export const OWNERS_ADD_CIRCLE_IDLE_CLASS_NAME: string =
+  "border-gray-300 bg-white text-gray-500 hover:-translate-y-0.5 hover:scale-105 hover:border-indigo-500 hover:bg-indigo-600 hover:text-white hover:shadow-md";
+
+export const OWNERS_ADD_CIRCLE_OPEN_CLASS_NAME: string =
+  "border-indigo-500 bg-indigo-600 text-white shadow-md";
+
+export const OWNERS_ADD_BUTTON_CLASS_NAME: string =
+  "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-white shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1";
+
+export const OWNERS_ADD_BUTTON_IDLE_CLASS_NAME: string =
+  "bg-indigo-600 hover:bg-indigo-700";
+
+export const OWNERS_ADD_BUTTON_OPEN_CLASS_NAME: string = "bg-indigo-700";
+
 interface OwnerCircle extends PeopleAvatarItem {
   rowId: ObjectID;
   email?: string | undefined;
@@ -540,8 +570,13 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
               ) : (
                 <button
                   type="button"
+                  data-testid="owners-add"
                   {...getAnchoredPopupTriggerProps(popup)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 shadow-sm transition-colors"
+                  className={`${OWNERS_ADD_BUTTON_CLASS_NAME} ${
+                    popup.isPopupOpen
+                      ? OWNERS_ADD_BUTTON_OPEN_CLASS_NAME
+                      : OWNERS_ADD_BUTTON_IDLE_CLASS_NAME
+                  }`}
                 >
                   <Icon
                     icon={IconProp.Add}
@@ -596,9 +631,14 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
                   <Tooltip text={addOwnerText}>
                     <button
                       type="button"
+                      data-testid="owners-add-circle"
                       {...getAnchoredPopupTriggerProps(popup)}
                       aria-label={addOwnerText}
-                      className="-ml-2 h-11 w-11 rounded-full border-2 border-dashed border-gray-300 bg-white text-gray-400 flex items-center justify-center hover:border-indigo-500 hover:text-white hover:bg-indigo-600 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1 transition-all duration-200 hover:scale-105 hover:-translate-y-0.5 relative z-10"
+                      className={`${OWNERS_ADD_CIRCLE_CLASS_NAME} ${
+                        popup.isPopupOpen
+                          ? OWNERS_ADD_CIRCLE_OPEN_CLASS_NAME
+                          : OWNERS_ADD_CIRCLE_IDLE_CLASS_NAME
+                      }`}
                     >
                       <Icon
                         icon={IconProp.Add}

@@ -404,6 +404,7 @@
   "Loading the latest version": "नवीनतम संस्करण लोड हो रहा है",
   "A newer version of this page is available. It's loading now.": "इस पेज का नया संस्करण उपलब्ध है। यह अभी लोड हो रहा है।",
   "You're offline": "आप ऑफ़लाइन हैं",
+  "This page will come back as soon as you're online again, just as you left it.": "आपके फिर से ऑनलाइन होते ही यह पेज वैसा ही वापस आ जाएगा, जैसा आपने छोड़ा था।",
   "This page needs an internet connection to load. It will load as soon as you're back online.": "इस पेज को लोड होने के लिए इंटरनेट कनेक्शन चाहिए। आपके फिर से ऑनलाइन होते ही यह लोड हो जाएगा।",
   "Can't reach the server": "सर्वर तक नहीं पहुँचा जा सका",
   "It may be restarting after an update. This page will load as soon as the server is back.": "हो सकता है कि यह किसी अपडेट के बाद फिर से शुरू हो रहा हो। सर्वर के वापस आते ही यह पेज लोड हो जाएगा।",

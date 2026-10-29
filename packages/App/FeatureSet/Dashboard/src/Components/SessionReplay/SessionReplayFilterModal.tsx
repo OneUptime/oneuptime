@@ -127,6 +127,7 @@ const SessionReplayFilterModal: FunctionComponent<ComponentProps> = (
 
     return (
       <Input
+        isSearchOrFilter={true}
         value={value}
         placeholder={field.placeholder}
         type={

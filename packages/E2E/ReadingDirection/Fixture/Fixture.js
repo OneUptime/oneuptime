@@ -18,7 +18,8 @@
  * (Table), a dialog (Modal), a side panel (SideOver), notes in the
  * Markdown viewer and editor, a
  * folded More fields line (FoldedSection), a side menu section, the
- * breadcrumbs, pagination, a keyboard shortcut, code, and dates.
+ * breadcrumbs, the product bar (NavBar: Home and Products, and a product
+ * that is open), pagination, a keyboard shortcut, code, and dates.
  */
 import "Common/UI/Styles/Theme.css";
 import React, { useState } from "react";
@@ -49,6 +50,7 @@ import KeyboardShortcut, {
 import MarkdownEditor from "Common/UI/Components/Markdown.tsx/MarkdownEditor";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
 import Modal from "Common/UI/Components/Modal/Modal";
+import NavBar from "Common/UI/Components/Navbar/NavBar";
 import Pagination from "Common/UI/Components/Pagination/Pagination";
 import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
 import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
@@ -182,6 +184,59 @@ function Page() {
 
   return (
     <main className="mx-auto max-w-5xl p-6">
+      <Section name="product-bar">
+        {/*
+         * The bar every page of the Dashboard opens with: Home, then the
+         * products menu - once with no product open, once with this page's
+         * product open.
+         */}
+        <div className="bg-white px-4" data-testid="product-bar-home-only">
+          <NavBar
+            items={[
+              {
+                id: "home-nav-bar-item",
+                title: "Home",
+                icon: IconProp.Home,
+                route: new Route("/home"),
+                exact: true,
+              },
+            ]}
+            moreMenuItems={[
+              {
+                title: "Incidents",
+                description: "Respond to what is going wrong.",
+                route: new Route("/incidents"),
+                icon: IconProp.Alert,
+                category: "Essentials",
+              },
+            ]}
+          />
+        </div>
+        <div className="bg-white px-4" data-testid="product-bar-product-open">
+          <NavBar
+            items={[
+              {
+                id: "home-nav-bar-item",
+                title: "Home",
+                icon: IconProp.Home,
+                route: new Route("/home"),
+                exact: true,
+              },
+            ]}
+            moreMenuItems={[
+              {
+                title: "Monitors",
+                description: "Watch what matters.",
+                route: new Route("/reading-direction"),
+                activeRoute: new Route("/reading-direction"),
+                icon: IconProp.AltGlobe,
+                category: "Essentials",
+              },
+            ]}
+          />
+        </div>
+      </Section>
+
       <Section name="breadcrumbs">
         <Breadcrumbs
           links={[

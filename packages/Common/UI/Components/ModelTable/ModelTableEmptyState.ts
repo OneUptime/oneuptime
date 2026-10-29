@@ -51,8 +51,13 @@ export const CREATE_NOT_ALLOWED_NOTE: string = translationKey(
 export const NO_ACCESS_TITLE: string = translationKey(
   "You don't have access to this list",
 );
+/*
+ * After what would let the viewer read the list - PermissionGate's sentence,
+ * as every lock in the product words it ("You need this permission: Read
+ * Monitor.") - who to ask.
+ */
 export const NO_ACCESS_DESCRIPTION: string = translationKey(
-  "Ask a project admin for one of these permissions:",
+  "Ask a project admin for access.",
 );
 
 export const EMPTY_TABLE_CREATE_BUTTON_TEST_ID: string =
@@ -355,32 +360,33 @@ export const isListEmptyWithNothingApplied: (
 
 export interface NoAccessStateInput {
   /*
-   * The English names of the permissions that would let the viewer read the
-   * list. Each is looked up: a built-in role's name (Project Owner, Incident
-   * Viewer ...) reads in the reader's language, as the role picker and the
-   * team pages draw it; a permission with no translation reads as given.
+   * What would let the viewer read the list, already in the reader's
+   * language: PermissionGate.getNeededPermissionsSentence of the table's
+   * read permissions ("You need this permission: Read Monitor."), the words
+   * every lock in the product uses. Empty when there is nothing to name.
    */
-  permissionTitles: Array<string>;
+  neededPermissions: string;
   translate: TranslateFunction;
 }
 
-// A viewer who may read none of the table's columns.
+/*
+ * A viewer who may read none of the table's columns: no access, what would
+ * give it, and who to ask. It used to name every role that may read the
+ * list as well ("Project Owner, Project Admin, Project Member, Incident
+ * Admin, Incident Member, Incident Viewer, Viewer, Read Incident").
+ */
 export const buildNoAccessState: (
   input: NoAccessStateInput,
 ) => TableEmptyStateProps = (
   input: NoAccessStateInput,
 ): TableEmptyStateProps => {
-  const permissions: string = input.permissionTitles
-    .map((title: string): string => {
-      return input.translate(title) || title;
-    })
-    .join(", ");
+  const neededPermissions: string = input.neededPermissions.trim();
 
   return {
     kind: TableEmptyStateKind.NoAccess,
     title: input.translate(NO_ACCESS_TITLE) || NO_ACCESS_TITLE,
-    description: permissions
-      ? `${input.translate(NO_ACCESS_DESCRIPTION) || NO_ACCESS_DESCRIPTION} ${permissions}`
+    description: neededPermissions
+      ? `${neededPermissions} ${input.translate(NO_ACCESS_DESCRIPTION) || NO_ACCESS_DESCRIPTION}`
       : undefined,
   };
 };

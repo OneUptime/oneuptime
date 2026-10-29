@@ -67,6 +67,7 @@ const MonitorCriteria: FunctionComponent<
         id: modelId,
         select: {
           monitorType: true,
+          name: true,
         },
       });
 
@@ -75,6 +76,13 @@ const MonitorCriteria: FunctionComponent<
 
         return;
       }
+
+      /*
+       * A telemetry monitor's rule names what it opens after the monitor
+       * ("Checkout: too many errors"), and follows a changed rule only in
+       * the titles it wrote - which it knows by the monitor's name.
+       */
+      setMonitorName(item.name || "");
 
       const probes: Array<Probe> = await ProbeUtil.getAllProbes();
 
@@ -90,6 +98,8 @@ const MonitorCriteria: FunctionComponent<
   const [monitorType, setMonitorType] = useState<MonitorType | undefined>(
     undefined,
   );
+
+  const [monitorName, setMonitorName] = useState<string>("");
 
   const [monitorSteps, setMonitorSteps] = useState<
     MonitorStepsType | undefined
@@ -206,6 +216,7 @@ const MonitorCriteria: FunctionComponent<
                   {...props}
                   monitorType={monitorType || MonitorType.Manual}
                   monitorId={modelId}
+                  monitorName={monitorName}
                 />
               );
             },

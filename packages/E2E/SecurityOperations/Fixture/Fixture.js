@@ -65,6 +65,10 @@
  *            record from, or a case naming one record of every kind with
  *            every fact and four possible matches. (ConnectionsFixture.js
  *            lays the records out.)
+ *   ?retrohunt= quiet, noisy or fail: what Run on Past Events answers - a
+ *            rule that would not have fired, one that would have fired more
+ *            than a person can look at, or YAML the run refuses.
+ *            (RuleExceptionsFixture.js lays the rules' exceptions out.)
  *
  * Every read is recorded on window.__securityOperationsFixture: getItem,
  * list, count and API requests, the writes, and `unhandled` - anything the
@@ -100,6 +104,7 @@ import SecurityCaseAuditLogsPage from "../../../App/FeatureSet/Dashboard/src/Pag
 import SecurityCaseDeletePage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Delete";
 import RuleLibraryPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/RuleLibrary";
 import DetectionRulesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/DetectionRules";
+import SecurityRuleExceptionsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/RuleExceptions";
 import ThreatIntelPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/ThreatIntel";
 import AttackCoveragePage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/AttackCoverage";
 import SecurityPlaybooksPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Playbooks";
@@ -126,6 +131,11 @@ import {
   createConnectionsFixture,
 } from "./ConnectionsFixture";
 import { createCaseContextFixture } from "./CaseContextFixture";
+import {
+  RETROHUNT_SCENARIOS,
+  createRuleExceptionsFixture,
+} from "./RuleExceptionsFixture";
+import DetectionRuleException from "Common/Models/DatabaseModels/DetectionRuleException";
 import { SECURITY_PLAYBOOK_TEMPLATES } from "../../../App/FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookTemplates";
 import { SECURITY_CASE_QUEUE_VIEWS } from "../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseQueueViews";
 import { SECURITY_PLAYBOOK_RUN_VIEWS } from "../../../App/FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookRunViews";
@@ -320,6 +330,10 @@ const SETUP_SCENARIOS = ["partly", "fail"];
 const setupScenario = SETUP_SCENARIOS.includes(params.get("setup"))
   ? params.get("setup")
   : "";
+// ?retrohunt=: RuleExceptionsFixture.js's answers to Run on Past Events.
+const retrohuntScenario = RETROHUNT_SCENARIOS.includes(params.get("retrohunt"))
+  ? params.get("retrohunt")
+  : "";
 /*
  * ?sources=silent: the project's sources sent their last security event
  * three days ago and nothing since - a connection that stopped, as the
@@ -488,6 +502,7 @@ const ID = {
   connection: (n) => uuid("27000000", n),
   intel: (n) => uuid("28000000", n),
   protectedEntity: (n) => uuid("2b000000", n),
+  exception: (n) => uuid("2c000000", n),
 };
 
 let rowCounter = 9000;
@@ -2013,6 +2028,24 @@ if (!isEmpty) {
 
 /*
  * ---------------------------------------------------------------------------
+ * What the rules skip, and what Run on Past Events answers
+ * (RuleExceptionsFixture.js lays both out)
+ * ---------------------------------------------------------------------------
+ */
+const ruleExceptions = createRuleExceptionsFixture({
+  insert,
+  table,
+  ID,
+  ago,
+  now: NOW,
+  people,
+  isEmpty,
+  scenario: retrohuntScenario,
+});
+ruleExceptions.seed();
+
+/*
+ * ---------------------------------------------------------------------------
  * Threat intel: one free list added from Free Lists (its tile says Added)
  * and the team's own TAXII collection, with the indicators they hold.
  * ---------------------------------------------------------------------------
@@ -2198,6 +2231,7 @@ for (const modelType of [
   // The other signals Connections watches: none yet in this project.
   SecurityTelemetrySource,
   DetectionRule,
+  DetectionRuleException,
   ThreatIntelFeed,
   SecurityProtectedEntity,
   Team,
@@ -2797,6 +2831,9 @@ function withRelations(modelName, record) {
       ),
     };
   }
+  if (modelName === tableName(DetectionRuleException)) {
+    return ruleExceptions.withRelations(record);
+  }
   return record;
 }
 
@@ -2921,6 +2958,15 @@ ModelAPI.createOrUpdate = async (options) => {
     projectId: projectObjectId,
     createdAt: NOW,
   };
+  /*
+   * An exception's rule, by its id column, as the server stores the
+   * relation the form's dropdown sends; and who added it, the reader.
+   */
+  if (modelName === tableName(DetectionRuleException)) {
+    record.detectionRuleId =
+      record.detectionRuleId || record.detectionRule?._id?.toString();
+    record.createdByUserId = people.maya._id;
+  }
   tables.get(modelName)?.records.push(record);
   return new HTTPResponse(
     200,
@@ -3504,6 +3550,12 @@ async function handleApi(method, options) {
   if (method === "POST" && path.endsWith("/detection-rule/draft-with-ai")) {
     return draftRule(options.data);
   }
+  if (method === "POST" && path.endsWith("/detection-rule/retrohunt")) {
+    const answer = ruleExceptions.retrohunt(options.data);
+    return answer.status === 200
+      ? new HTTPResponse(200, answer.body, {})
+      : new HTTPErrorResponse(answer.status, answer.body, {});
+  }
   if (method === "POST" && path.endsWith("/ai-chat/providers")) {
     return new HTTPResponse(200, AI_PROVIDERS, {});
   }
@@ -3629,6 +3681,7 @@ const PAGES = [
   [PageMap.SECURITY_EVENTS_ENTITY_RISK, SecurityEntityRiskPage],
   [PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW, SecurityEntityRiskViewPage],
   [PageMap.SECURITY_EVENTS_DETECTION_RULES, DetectionRulesPage],
+  [PageMap.SECURITY_EVENTS_RULE_EXCEPTIONS, SecurityRuleExceptionsPage],
   [PageMap.SECURITY_EVENTS_RULE_LIBRARY, RuleLibraryPage],
   [PageMap.SECURITY_EVENTS_THREAT_INTEL, ThreatIntelPage],
   [PageMap.SECURITY_EVENTS_ATTACK_COVERAGE, AttackCoveragePage],
