@@ -440,13 +440,21 @@ describe("the header's layout", () => {
   });
 
   test("a column aligned right puts them before its first word, so no table draws past its edge", () => {
+    /*
+     * The sort button's words: a plain header draws its label in a span of
+     * its own too (an edge a person drags reads it), before the button.
+     */
+    const button: number = header.indexOf("<button");
     const before: number = header.indexOf(
       "{props.alignRight ? indicator : <></>}",
     );
-    const words: number = header.indexOf("<span>{label}</span>");
+    const words: number = header.indexOf("<span>{label}</span>", button);
     const after: number = header.indexOf(
       "{props.alignRight ? <></> : indicator}",
     );
+
+    expect(button).toBeGreaterThan(0);
+    expect(before).toBeGreaterThan(button);
 
     expect(before).toBeGreaterThan(0);
     expect(words).toBeGreaterThan(before);

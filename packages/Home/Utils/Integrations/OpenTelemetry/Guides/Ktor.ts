@@ -586,7 +586,7 @@ export const KtorGuide: OpenTelemetryGuide = {
     metrics:
       "`http.server.request.duration` by route and `http.client.request.duration` for outgoing calls, the JVM's memory, garbage collection, threads and CPU, and your own instruments.",
     logs: "Logback records with the trace and span IDs of the coroutine that wrote them, sent by OpenTelemetry's Logback appender.",
-    exceptions: `An exception that escapes a route is recorded on its span with the stack trace, and the span is marked failed. ${SCREENS.exceptions} groups them by type and place.`,
+    exceptions: `An exception that escapes a route is recorded on its span with the stack trace, and the span is marked failed. ${SCREENS.exceptions} lists each, grouped with the others of its type thrown at the same place.`,
   },
 
   exampleTrace: {
@@ -831,7 +831,7 @@ export const KtorGuide: OpenTelemetryGuide = {
       validateKeyStep("server"),
       {
         title: "Find the service",
-        body: `Call a route, then open ${SCREENS.services}: \`checkout-api\` is listed within a minute. Nothing? Check that the protocol variable is \`http/protobuf\`.`,
+        body: `Send a request to any route: \`checkout-api\` appears in ${SCREENS.services} within a minute. Nothing? Check that the protocol variable is \`http/protobuf\`.`,
       },
       {
         title: "See the coroutine keep its trace",

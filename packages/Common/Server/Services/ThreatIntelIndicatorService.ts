@@ -363,6 +363,53 @@ export class ThreatIntelIndicatorService extends AnalyticsDatabaseService<Threat
   }
 
   /*
+   * A feed's active indicators of the given types, as a subquery of their
+   * values (lowercased): what a watchlist that follows the feed matches an
+   * event's field against (SecurityWatchlistMatch). Resolved per identity
+   * like every read here, so a revoked or expired indicator, or one an
+   * update retracted, is not on the list. Read where it is used, at each
+   * run of a rule, so the list is the feed's as it stands then: nothing is
+   * copied, and the feed's own poll keeps it up to date.
+   */
+  public buildActiveValuesSubquery(data: {
+    projectId: ObjectID;
+    feedId: ObjectID;
+    indicatorTypes: Array<string>;
+    now: Date;
+  }): Statement {
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    const databaseName: string =
+      this.database!.getDatasourceOptions().database!;
+
+    const statement: Statement = SQL`SELECT lowerUTF8(indicatorValue) FROM (`;
+
+    this.appendPerIdentityActiveSubquery(statement, {
+      databaseName,
+      whereClause: SQL` WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.projectId,
+      }} AND feedId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.feedId,
+      }}`,
+      groupByFeedId: false,
+      now: data.now,
+    });
+
+    statement.append(
+      SQL`) WHERE indicatorTypeLatest IN ${{
+        type: TableColumnType.Text,
+        value: new Includes(data.indicatorTypes),
+      }}`,
+    );
+
+    return statement;
+  }
+
+  /*
    * The values of one feed's identity (a list feed's single stixId) that
    * are active right now, resolved version-aware like every read here. The
    * list poller reads them before it writes a new copy of the list, to let

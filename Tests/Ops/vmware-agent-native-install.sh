@@ -359,6 +359,12 @@ except FileNotFoundError:
 sys.exit(0 if any(r["path"] == path and eval(expression, {"r": r}) for r in requests) else 1)
 PY
 
+# Rocky's systemd starts dnf-makecache at boot: it downloads every
+# repository's metadata, and `systemctl is-system-running` says "starting"
+# until it ends - about 27 s here, and past the 60 s wait below on a runner
+# with a slow mirror (2026-10-29), though everything this test needs is up
+# within a second. Nothing here installs a package after the build, so the
+# cache is masked off.
 docker build -q -t "${IMAGE_TAG}" - >/dev/null <<DOCKERFILE
 FROM ${BASE_IMAGE}
 RUN if command -v apt-get >/dev/null; then \\
@@ -369,7 +375,8 @@ RUN if command -v apt-get >/dev/null; then \\
     else \\
       dnf install -y systemd sudo python3 tar gzip procps-ng diffutils shadow-utils ca-certificates \\
       && (command -v curl >/dev/null || dnf install -y curl-minimal || dnf install -y curl) \\
-      && dnf clean all; \\
+      && dnf clean all \\
+      && systemctl mask dnf-makecache.timer dnf-makecache.service; \\
     fi \\
  && useradd -m tester \\
  && echo 'tester ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/tester \\

@@ -12,6 +12,7 @@ import NewVersion, {
 } from "Common/UI/Utils/NewVersion/NewVersion";
 import ForeignDomMutationGuard from "Common/UI/Utils/ForeignDomMutationGuard";
 import ProjectUtil from "Common/UI/Utils/Project";
+import Realtime from "Common/UI/Utils/Realtime";
 import ThemeUtil from "Common/UI/Utils/Theme";
 import UserUtil from "Common/UI/Utils/User";
 import API from "Common/UI/Utils/API/API";
@@ -59,6 +60,17 @@ Telemetry.init({
  * failing (Common/UI/Utils/NewVersion/NewVersion.ts).
  */
 NewVersion.start({ audience: NewVersionAudience.Members });
+
+/*
+ * The live connection - the header's incident and alert counts, and lists
+ * that keep themselves current as their records change (Common's
+ * ModelTable/UseLiveRows) - opened as the app starts, for someone signed
+ * in, so every list on the first page can join it. A list never opens one
+ * of its own.
+ */
+if (UserUtil.isLoggedIn()) {
+  Realtime.init();
+}
 
 /*
  * Tell OneUptime's service worker, in a browser registered for push

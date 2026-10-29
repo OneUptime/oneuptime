@@ -59,6 +59,7 @@ export function toFlowSummary(
     topDevices: [],
     sources: [],
     lastFlowAt: null,
+    addressNames: {},
   };
 }
 

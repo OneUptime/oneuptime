@@ -68,7 +68,7 @@ El menú Red mantiene a la vista lo que abres cada día: **Vista general**, **Di
 | --- | --- |
 | **Topología** | **Topología del dispositivo**, **Endpoints**, **Matriz de latencia**, **Enlaces del sitio**, **Enlaces del dispositivo** |
 | **Reglas** | **Reglas de importación automática**, **Reglas de asignación de sitios**, **Reglas del propietario**, **Reglas de etiquetas**, **Reglas de enlaces** |
-| **Ajustes** | **Políticas de alertas**, **Credenciales SNMP**, **Roles de dispositivo**, **Tipos de sitio**, **Plantillas de recopilación de OID** |
+| **Ajustes** | **Políticas de alertas**, **Credenciales SNMP**, **Roles de dispositivo**, **Tipos de sitio**, **Nombres de dirección**, **Plantillas de recopilación de OID** |
 | **Avanzado** | **Dispositivos archivados** |
 
 ## Añadir un dispositivo de red
@@ -514,6 +514,10 @@ Un dispositivo solo con ping conserva el nombre y la dirección que le diste tú
 
 Estos datos se guardan junto a los campos propios del dispositivo, nunca dentro de ellos, y cada escaneo, recorrido de router o sondeo que vuelve a leer uno lo pone al día. La vista general del dispositivo y su elemento del inventario indican qué escaneo, router o sonda leyó cada valor, y cuándo. Un valor que guardaste en el dispositivo nunca se sustituye. Cuando un escaneo encuentra otra máquina en la dirección del dispositivo, como una concesión DHCP que se movió, la vista general lo indica, y no se usa nada de lo que ese escaneo leyó allí.
 
+Un switch, punto de acceso o appliance de Meraki no da por SNMP número de serie, modelo ni firmware: Meraki no implementa ENTITY-MIB. Cuando una [conexión de Meraki](/docs/monitor/network-traffic#cisco-meraki-sin-netflow) lee su organización, el dispositivo toma esos datos, y todo lo demás que su sondeo deja vacío, del panel de Meraki, y su tarjeta **Inventario** nombra la conexión en una fila **Meraki**.
+
+Para volver a leer un dispositivo ahora, pulsa **Actualizar** en su tarjeta **Inventario**. Su sonda lo consulta en menos de un minuto y su conexión de Meraki vuelve a leer la organización. La tarjeta indica cuándo ha llegado la nueva lectura, o que la sonda no pudo alcanzar el dispositivo. **Actualizar** está disponible para quien puede editar dispositivos de red, en un dispositivo que una sonda consulta o que una conexión de Meraki describe.
+
 ## Descubrir dispositivos con un escaneo de red
 
 En lugar de añadir los dispositivos de uno en uno, recorre un rango de direcciones desde una sonda e importa lo que responda.
@@ -756,6 +760,12 @@ Para crear uno desde **Monitores**:
 3. Elige el dispositivo de red sobre el que alertar. Todo lo relativo a recopilar datos — nombre de host, credenciales, horario, recorridos de interfaces, OID de salud — viene del dispositivo; el monitor solo elige sobre qué alertar, mediante sus criterios.
 
 Un monitor de dispositivo de red no tiene intervalo propio: se evalúa cada vez que llegan los resultados de sondeo del dispositivo, y cada vez que llega un trap del dispositivo.
+
+### Los incidentes y alertas de un dispositivo
+
+Un incidente o una alerta puede tratar de un dispositivo de red. Elige el dispositivo en **Otros recursos afectados** al declarar un incidente o crear una alerta, o deja que lo vincule un monitor: lo que genera un monitor se vincula al dispositivo del que informa — el dispositivo que vigila un monitor de dispositivo de red, el dispositivo vinculado al monitor y el dispositivo para el que una importación de descubrimiento creó el monitor.
+
+Las páginas **Incidentes** y **Alertas** del dispositivo, en **Actividad** dentro de su menú, muestran lo que está vinculado a él, y el menú y la vista general del dispositivo cuentan los abiertos. **Declarar incidente** y **Crear alerta** en esas páginas empiezan con el dispositivo ya elegido.
 
 ### Valores predeterminados de campos personalizados
 

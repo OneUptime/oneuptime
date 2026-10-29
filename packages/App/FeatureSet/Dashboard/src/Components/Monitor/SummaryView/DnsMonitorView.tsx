@@ -5,6 +5,11 @@ import DnsMonitorResponse, {
   DnsRecordResponse,
 } from "Common/Types/Monitor/DnsMonitor/DnsMonitorResponse";
 import React, { FunctionComponent, ReactElement } from "react";
+import useResizableColumns, {
+  ResizableColumns,
+} from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
+import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import ProbeAttemptsView from "./ProbeAttemptsView";
 import {
   SUMMARY_TABLE_FRAME_CLASS_NAME,
@@ -27,6 +32,19 @@ const DnsMonitorView: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const dnsResponse: DnsMonitorResponse | undefined =
     props.probeMonitorResponse?.dnsResponse;
+
+  /*
+   * The records' columns as wide as a person makes them (Common's
+   * Table/ColumnResize): a record's value gives way, its type and TTL never.
+   */
+  const recordColumns: ResizableColumns = useResizableColumns({
+    tableKey: "dns-monitor-records-table",
+    columns: [
+      { id: "type", cellNumber: 1 },
+      { id: "value", cellNumber: 2 },
+      { id: "ttl", cellNumber: 3 },
+    ],
+  });
 
   let responseTimeInMs: number = dnsResponse?.responseTimeInMs || 0;
 
@@ -109,18 +127,43 @@ const DnsMonitorView: FunctionComponent<ComponentProps> = (
             {translator.translateText("DNS Records")}
           </h3>
           <div className={SUMMARY_TABLE_FRAME_CLASS_NAME}>
-            <table className="min-w-full divide-y divide-gray-200">
+            {recordColumns.styles}
+            <table
+              className={`${recordColumns.getTableWidthClassName("min-w-full")} divide-y divide-gray-200`}
+              {...recordColumns.tableAttributes}
+            >
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {translator.translateText("Type")}
-                  </th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {translator.translateText("Value")}
-                  </th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {translator.translateText("TTL")}
-                  </th>
+                  <ResizableHeaderCell
+                    className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    resize={recordColumns.getResize(
+                      "type",
+                      translator.translateText("Type") || "Type",
+                      ColumnWidthKind.Whole,
+                    )}
+                  >
+                    <span>{translator.translateText("Type")}</span>
+                  </ResizableHeaderCell>
+                  <ResizableHeaderCell
+                    className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    resize={recordColumns.getResize(
+                      "value",
+                      translator.translateText("Value") || "Value",
+                      ColumnWidthKind.Prose,
+                    )}
+                  >
+                    <span>{translator.translateText("Value")}</span>
+                  </ResizableHeaderCell>
+                  <ResizableHeaderCell
+                    className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    resize={recordColumns.getResize(
+                      "ttl",
+                      translator.translateText("TTL") || "TTL",
+                      ColumnWidthKind.Whole,
+                    )}
+                  >
+                    <span>{translator.translateText("TTL")}</span>
+                  </ResizableHeaderCell>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">

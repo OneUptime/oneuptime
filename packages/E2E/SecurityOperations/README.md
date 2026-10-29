@@ -14,10 +14,14 @@ An offline harness for the Security Events SOC pages, on a month of synthetic se
 | A case's pages     | `SECURITY_CASE_VIEW_*` `.../cases/:id/{timeline,detections,entities,playbook-runs,...}`   | `Pages/SecurityEvents/CaseView/*`, `EventNotes`, `SecurityPlaybookRunCard`, `AuditLogsTable` |
 | Story              | `SECURITY_CASE_VIEW_STORY` `.../cases/:id/story`                                          | `Pages/SecurityEvents/CaseView/Story`, `SecurityCase/Context/*`                              |
 | Connected Signals  | `SECURITY_CASE_VIEW_CONNECTED_SIGNALS` `.../cases/:id/connected-signals`                  | `Pages/SecurityEvents/CaseView/ConnectedSignals`, `SecurityConnections/*`                    |
+| Evidence           | `SECURITY_CASE_VIEW_EVIDENCE` `.../cases/:id/evidence`                                    | `Pages/SecurityEvents/CaseView/Evidence`, `SecurityCase/Evidence/*`                          |
+| Tasks              | `SECURITY_CASE_VIEW_TASKS` `.../cases/:id/tasks`                                          | `Pages/SecurityEvents/CaseView/Tasks`, `SecurityCase/Tasks/*`                                |
 | Entity Risk        | `SECURITY_EVENTS_ENTITY_RISK` `.../security-events/entity-risk` (and the old `entities`)  | `Pages/SecurityEvents/EntityRisk`, `EntityRisk/*`, `EntityLookupCard` under the list         |
 | Protected Entities | `SECURITY_PROTECTED_ENTITIES` `.../security-events/protected-entities`                    | `Pages/SecurityEvents/ProtectedEntities`                                                     |
 | Detection Rules    | `SECURITY_EVENTS_DETECTION_RULES` `.../security-events/detection-rules`                   | `Pages/SecurityEvents/DetectionRules`, `DetectionRuleSummary`                                |
 | Rule Exceptions    | `SECURITY_EVENTS_RULE_EXCEPTIONS` `.../security-events/rule-exceptions`                   | `Pages/SecurityEvents/RuleExceptions`, `SecurityEvents/RuleExceptions/*`                     |
+| Watchlists         | `SECURITY_EVENTS_WATCHLISTS` `.../security-events/watchlists`                             | `Pages/SecurityEvents/Watchlists`, `SecurityEvents/Watchlists/*`                             |
+| A watchlist        | `SECURITY_EVENTS_WATCHLIST_VIEW` `.../security-events/watchlists/:id`                     | `Pages/SecurityEvents/WatchlistView`, `WatchlistRuleSnippet`, `WatchlistImportModal`         |
 | Rule Library       | `SECURITY_EVENTS_RULE_LIBRARY` `.../security-events/rule-library`                         | `Pages/SecurityEvents/RuleLibrary`                                                           |
 | Threat Intel       | `SECURITY_EVENTS_THREAT_INTEL` `.../security-events/threat-intel`                         | `Pages/SecurityEvents/ThreatIntel`, `ThreatIntelRecommendedLists`                            |
 | ATT&CK Coverage    | `SECURITY_EVENTS_ATTACK_COVERAGE` `.../security-events/attack-coverage`                   | `Pages/SecurityEvents/AttackCoverage`, `AttackCoverageTactics`, `AttackCoverageMatrix`       |
@@ -28,6 +32,7 @@ An offline harness for the Security Events SOC pages, on a month of synthetic se
 | AI Settings        | `SECURITY_EVENTS_SETTINGS_AI` `.../security-events/ai/settings`                           | `Pages/SecurityEvents/AISettings`, `AISettings/ProjectAiSwitchesCard`, `ProjectAiNotice`     |
 | Case Priorities    | `SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES` `.../security-events/settings/case-priorities` | `Pages/SecurityEvents/Settings/CasePriorities`, `StateSettings/*`, `ArchivableValue/*`       |
 | Case Statuses      | `SECURITY_EVENTS_SETTINGS_CASE_STATUSES` `.../security-events/settings/case-statuses`     | `Pages/SecurityEvents/Settings/CaseStatuses`, the same                                       |
+| Response Targets   | `SECURITY_EVENTS_SETTINGS_RESPONSE_TARGETS` `.../settings/response-targets`               | `Pages/SecurityEvents/Settings/ResponseTargets`, `SecurityCase/ResponseTargets/*`            |
 
 `Fixture/server.js` bundles the production layout (breadcrumbs, the Security Events side menu) and
 the pages with esbuild, serves them with the same Tailwind build, `tailwind.config`, Inter font and
@@ -414,6 +419,76 @@ beside Draft with AI, and not on an empty form - with "The rule changed after th
 Exception on a case's detection, started with the rule and the address it grouped by, and none on
 a threat intel match. Its screenshots are named `rule-exceptions-*`, `rule-retrohunt-desktop` and
 `rule-exception-from-detection`.
+
+## Watchlists
+
+The lists the rules match against, with their own spec, `Watchlists.spec.ts`.
+`Fixture/WatchlistsFixture.js` lays out four: `vip_users` (users, kept by hand: the CEO, the CFO
+and the finance admins' accounts, a pattern with `*`), `admin_addresses` (IP addresses, kept by
+hand: the office range, the VPN's address and the bastion hosts' range), `c2_addresses` (IP
+addresses, following the Feodo Tracker list) and `lab_hosts` (hosts, no values yet). So the common
+lists still offered are Critical hosts and Known-bad file hashes. "VIP sign-in from outside the
+office", off while it is tuned (the Overview's count of rules on is unchanged), reads `vip_users`
+and `admin_addresses`. A list's `valueCount` follows its values as they are added, imported and
+deleted, and a list's values go with it, as the server keeps them. `POST
+/security-watchlist/import` reads its text with the shared reader the server uses
+(`parseSecurityWatchlistImport`), adds to the list or replaces it, and answers what it did.
+
+`Watchlists.spec.ts` covers: the list under Detections, its entry lit and its trail, three columns
+at 1280 (a name in the mono type with what it is for, what it holds with its values or the feed
+it follows under it, the rules that read it), and at 1024 beside the side menu - in German too -
+a table that never runs under its row buttons; below lg (768), Holds and Read By folded under the
+name; the common lists, one added and drawn as Added, created empty and kept by hand; Create
+Watchlist refusing a name rules cannot write, then opening the new list's page, named in the
+trail; a list's page, the list first (its settings with the rule that reads it), then its values
+with their notes and who added them, then Use It in a Rule and Open Detection Rules; at 768 a
+value's note folded under it; an empty list's Import Values; Add Value refusing a lone `*` and
+adding a value, the count following; Import Values from the Values card's ⋯ - the paste box
+across the dialog, the preview as it is typed, one request, what it did - and Replace the list; a
+list that follows a feed, with no table of its own; the line under a rule's YAML, with a list the
+project does not have on a line of its own in red, whose Create it in Watchlists opens Create
+Watchlist with the name (`?create=`); a phone; a new project's common lists; a Security Viewer,
+Add and Import Values locked; German, and Persian, right to left, with `svc-*` in order inside a
+Persian sentence. Its screenshots are named `watchlists-*`, `watchlist-*` and
+`watchlist-rule-line-desktop`.
+
+## Response targets, tasks and evidence
+
+A case's response targets, its checklist and the evidence kept on it, with their own spec,
+`CaseWork.spec.ts`. `Fixture/CaseWorkFixture.js` lays them out. The spray case (CASE-142) has three
+tasks - one done by Diego, one the reader's, one nobody's - and two pieces of evidence: the Okta
+System Log export Maya uploaded, with its SHA-256, and a link to the Okta admin console. Ticking a
+task off stamps who did it and when, as the server does; what is added is the reader's; a link added
+without a name of its own is named after its address, as the server names it.
+
+| Parameter   | Values                                                                                                                                                                                        |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `?targets=` | `on`: the priorities carry a new project's response targets, and every case the due times they gave it, with what the every-minute check stamped by now. Left out, a project from before them |
+
+With targets, CASE-141 (acknowledge in 12 minutes) and CASE-142 (contain in 48 minutes) are in
+their targets' last fifth, CASE-138 missed its acknowledge target an hour ago, CASE-139 is on
+track and CASE-140 met both, its acknowledge target 5 minutes late.
+
+`CaseWork.spec.ts` covers: the Tasks page from the case's menu, its entry lit and its trail, the
+tasks the oldest first, a done one ticked with who did it and when, the count of done ones beside
+the title and of open ones beside Tasks in the menu; a task added with Enter, ticked off and on,
+handed to the reader and deleted after asking, the menu's count following; Assign to Someone Else
+naming the task in bold and handing it to one person from the picker a case's own Assign To has
+("Choose someone"); Close Case saying how many tasks are still open; a Security Viewer's locked
+list; Evidence from the menu, the latest first, a file with its size and short SHA-256, a link with
+its address, who added each and when under it, the rows never scrolling sideways from 768 up; Add
+Link filing a link on the case, and one added without a name named after its address, said once;
+Add File asking for one file ("Upload a file"); a Security Viewer's locked Add buttons; a case with
+nothing on it yet (CASE-141): its checklist's empty state with the line to add a task, a Security
+Viewer's saying why there is none, and Evidence's Add File and Add Link; Settings >
+Response Targets beside Case Priorities, each priority's targets, No target for a project from
+before them, Edit in the field's units refusing what it cannot keep, the amount and its unit
+level; the case header's chip in each state; the Overview's notes under Time to Acknowledge and
+Time to Contain; the due line under each open case's priority; and every page at 390 and in the
+dark theme. Its screenshots are named `case-tasks-*` (`case-tasks-empty-*` among them),
+`case-evidence-*` (`case-evidence-empty-*` among them), `response-targets-*`,
+`case-header-target-missed-1280-light`, `case-overview-targets-1280-light`,
+`case-close-open-tasks-1280-light` and `cases-due-lines-*`.
 
 ## Run it
 

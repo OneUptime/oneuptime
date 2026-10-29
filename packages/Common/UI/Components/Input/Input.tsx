@@ -90,6 +90,8 @@ export interface ComponentProps {
   disableSpellCheck?: boolean | undefined;
   showSecondsForDateTime?: boolean | undefined;
   autoComplete?: string | undefined;
+  // The most characters it takes, as the column it fills keeps them.
+  maxLength?: number | undefined;
   /*
    * A password field that holds the person's own password, on a page where
    * they sign in, sign up or change it: password managers may fill and save
@@ -388,6 +390,7 @@ const Input: FunctionComponent<ComponentProps> = (
               : undefined
           }
           readOnly={props.readOnly || props.disabled || false}
+          maxLength={props.maxLength}
           type={props.type || "text"}
           step={
             props.type === InputType.DATETIME_LOCAL &&

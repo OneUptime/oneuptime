@@ -12,6 +12,8 @@ import Incident from "../../../../Models/DatabaseModels/Incident";
 import IncidentMember from "../../../../Models/DatabaseModels/IncidentMember";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import IncidentMemberService from "../../../../Server/Services/IncidentMemberService";
+import CreateBy from "../../../../Server/Types/Database/CreateBy";
+import IncidentRoleFeedText from "../../../../Server/Utils/Incident/IncidentRoleFeedText";
 import IncidentService from "../../../../Server/Services/IncidentService";
 import NetworkDeviceOwnerUserService from "../../../../Server/Services/NetworkDeviceOwnerUserService";
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
@@ -118,6 +120,7 @@ function emptyResourceContext(): SeriesResolvedResourceIds {
     databaseServerIds: [],
     storageArrayIds: [],
     cloudResourceIds: [],
+    networkDeviceIds: [],
   };
 }
 
@@ -213,5 +216,67 @@ describe("MonitorIncident - incident roles from the criteria", () => {
     expect(asked.sort()).toEqual(
       [DEPARTED.toString(), MEMBER.toString()].sort(),
     );
+  });
+
+  /*
+   * The role is the monitor's to give, not anybody's by hand: the
+   * incident's feed entry - and its Slack and Teams message - says
+   * "Monitor Checkout API added ... as Scribe", and is by no one
+   * (IncidentRoleFeedText). Its create says so, as OneUptime's own write.
+   */
+  it("gives each role as the monitor, which the incident's feed entry names", async () => {
+    const creates: Array<CreateBy<IncidentMember>> = [];
+
+    jest.spyOn(IncidentMemberService, "create").mockImplementation((async (
+      createBy: CreateBy<IncidentMember>,
+    ) => {
+      creates.push(createBy);
+      return createBy.data;
+    }) as never);
+
+    await MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus({
+      criteriaInstance: criteriaInstance(),
+      monitor: monitor(),
+      dataToProcess: dataToProcess,
+      rootCause: "Checkout returned 503",
+      autoResolveCriteriaInstanceIdIncidentIdsDictionary: NO_AUTO_RESOLVE,
+      props: {},
+    });
+
+    expect(creates).toHaveLength(1);
+    expect(creates[0]!.props).toEqual({ isRoot: true });
+    expect(
+      IncidentRoleFeedText.readCause({
+        miscDataProps: creates[0]!.miscDataProps,
+        props: creates[0]!.props,
+      }),
+    ).toEqual({ kind: "monitor", monitorName: "Checkout API" });
+  });
+
+  it("a monitor read without its name gives the role with no cause: the line is as it was", async () => {
+    const creates: Array<CreateBy<IncidentMember>> = [];
+
+    jest.spyOn(IncidentMemberService, "create").mockImplementation((async (
+      createBy: CreateBy<IncidentMember>,
+    ) => {
+      creates.push(createBy);
+      return createBy.data;
+    }) as never);
+
+    const unnamed: Monitor = monitor();
+    unnamed.name = undefined as never;
+
+    await MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus({
+      criteriaInstance: criteriaInstance(),
+      monitor: unnamed,
+      dataToProcess: dataToProcess,
+      rootCause: "Checkout returned 503",
+      autoResolveCriteriaInstanceIdIncidentIdsDictionary: NO_AUTO_RESOLVE,
+      props: {},
+    });
+
+    expect(creates).toHaveLength(1);
+    expect(creates[0]!.miscDataProps).toBeUndefined();
+    expect(creates[0]!.props).toEqual({ isRoot: true });
   });
 });

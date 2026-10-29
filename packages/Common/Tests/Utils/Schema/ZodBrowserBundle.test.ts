@@ -5,31 +5,30 @@ import os from "os";
 import path from "path";
 
 /*
- * ZOD IN THE FRONTENDS: WHAT COMMON'S TYPES USE, NOT ALL OF ZOD 4.
+ * NO ZOD IN THE FRONTENDS' BUNDLES.
  *
- * Common's Types (Email, ObjectID, Color, MonitorStep and the rest) build
- * their OpenAPI schema with Utils/Schema/Zod, so every frontend - the
- * Dashboard, Accounts, Admin Dashboard, Status Page and public dashboards -
- * bundles zod. With zod 3 that cost 63 KB of the shared chunk. zod 4's
- * namespace carries every one of its ~45 locales, and a bundler keeps all of
- * a namespace that is handed around as a value: when Common moved to zod 4,
- * Zod.ts exported zod's namespace and gave it to extendZodWithOpenApi, and
- * zod grew to 483 KB of every frontend (about 100 KB gzipped), loaded on
- * every page, status pages included. Zod.ts now picks zod's functions by
- * name, and the bundle keeps what the schemas use: about 105 KB, English
- * only.
+ * Common's Types (Email, ObjectID, Color, MonitorStep and the rest) built
+ * their OpenAPI schemas with zod, so every frontend - the Dashboard,
+ * Accounts, the Admin Dashboard, status pages and public dashboards -
+ * bundled zod and zod-to-openapi: about 105 KB and 7 KB of the chunks every
+ * page loads (an Accounts or status page build, 2026-10-28), for schemas no
+ * browser reads, and zod 4 probed whether it may compile code as the monitor
+ * criteria made their schemas on load. The schemas are built in Common's
+ * Utils/Schema now, which only the server loads.
  *
- * This bundles every Type that imports Utils/Schema/Zod with the frontends'
- * own esbuild configuration (Common/UI/esbuild-config's createConfig, as a
- * production build), and reads what zod put into it. A second build runs the
- * bundle as a browser would and asks a Type for its schema: the zod in a
- * frontend still has zod-to-openapi's .openapi(), and turns no string into
- * code (zod 4's compiled parsers use new Function, which a status page's
- * Content-Security-Policy forbids; Zod.ts makes zod jitless in a browser).
+ * ZodOutOfBrowserGuard walks the frontends' imports; this builds what they
+ * load and reads what is in it. It bundles the Types that built schemas and
+ * both model indexes - the Dashboard's tables and forms load every model, and
+ * the models load the Types of their columns - with the frontends' own
+ * esbuild configuration (Common/UI/esbuild-config's createConfig, as a
+ * production build), and checks that nothing of zod, of zod-to-openapi or of
+ * Utils/Schema is in it. A second build runs the bundle as a browser would:
+ * the Types and models load and work, and nothing turns a string into code,
+ * which a status page's Content-Security-Policy (no 'unsafe-eval') would
+ * refuse.
  */
 
 const COMMON_DIRECTORY: string = path.resolve(__dirname, "..", "..", "..");
-const TYPES_DIRECTORY: string = path.join(COMMON_DIRECTORY, "Types");
 const ESBUILD_CONFIG: string = path.join(
   COMMON_DIRECTORY,
   "UI",
@@ -37,12 +36,29 @@ const ESBUILD_CONFIG: string = path.join(
 );
 const COMMON_MODULES: string = path.join(COMMON_DIRECTORY, "node_modules");
 
-// zod 3 cost 63 KB here, the functions Zod.ts picks about 105 KB, all of zod 4 483 KB.
-const ZOD_BYTES_CEILING: number = 160 * 1024;
-
-const ZOD_MODULE_IMPORTS: ReadonlyArray<string> = [
-  'Utils/Schema/Zod"',
-  'from "zod"',
+// The Types that built their own API schema, and what loads every model.
+const BUNDLED_MODULES: ReadonlyArray<string> = [
+  "Types/Color.ts",
+  "Types/Database/DatabaseProperty.ts",
+  "Types/Date.ts",
+  "Types/Domain.ts",
+  "Types/Email.ts",
+  "Types/IP/IP.ts",
+  "Types/Monitor/CriteriaAlert.ts",
+  "Types/Monitor/CriteriaFilter.ts",
+  "Types/Monitor/CriteriaIncident.ts",
+  "Types/Monitor/IncomingMonitor/IncidentGroupingConfig.ts",
+  "Types/Monitor/MonitorCriteria.ts",
+  "Types/Monitor/MonitorCriteriaInstance.ts",
+  "Types/Monitor/MonitorStep.ts",
+  "Types/Monitor/MonitorSteps.ts",
+  "Types/Name.ts",
+  "Types/ObjectID.ts",
+  "Types/Phone.ts",
+  "Types/Port.ts",
+  "Types/Version.ts",
+  "Models/DatabaseModels/Index.ts",
+  "Models/AnalyticsModels/Index.ts",
 ];
 
 const temporaryRoots: Array<string> = [];
@@ -53,45 +69,24 @@ afterAll(() => {
   }
 });
 
-// Every Type (not a test) that imports Common's Zod module, or zod itself.
-function typesThatImportZod(): Array<string> {
-  const found: Array<string> = [];
-  const visit: (directory: string) => void = (directory: string): void => {
-    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-      const entryPath: string = path.join(directory, entry.name);
-
-      if (entry.isDirectory()) {
-        visit(entryPath);
-        continue;
-      }
-
-      if (!entry.name.endsWith(".ts") || entry.name.endsWith(".d.ts")) {
-        continue;
-      }
-
-      const source: string = fs.readFileSync(entryPath, "utf8");
-
-      if (
-        ZOD_MODULE_IMPORTS.some((text: string): boolean => {
-          return source.includes(text);
-        })
-      ) {
-        found.push(entryPath);
-      }
-    }
-  };
-
-  visit(TYPES_DIRECTORY);
-
-  return found.sort();
+interface ProbeAnswer {
+  email: string;
+  objectId: string;
+  monitorStepsType: string;
+  databaseModels: number;
+  analyticsModels: number;
 }
 
 interface BundleReport {
   error: string;
+  // Bytes in the output from each: zod, zod-to-openapi, Common's Utils/Schema.
   zodBytes: number;
   zodToOpenApiBytes: number;
-  localeFiles: Array<string>;
-  emailSchemaMetadata: unknown;
+  schemaModules: Array<string>;
+  // Every input the output holds code of, and every module it leaves to load at run time.
+  inputs: number;
+  externalImports: Array<string>;
+  probe: ProbeAnswer | null;
   // What the bundle turned from a string into code while it loaded and ran.
   evaluatedCode: Array<string>;
 }
@@ -99,9 +94,9 @@ interface BundleReport {
 /*
  * Builds `entry` with the frontends' production esbuild configuration, in a
  * child Node (esbuild and the configuration load as the frontends' build
- * scripts load them), and reports what zod contributed to the output. Then
- * it builds a CommonJS copy, runs it, and returns what the probe the entry
- * sets on globalThis answers.
+ * scripts load them), and reports what the output holds. Then it builds a
+ * CommonJS copy, runs it as a browser would, and returns what the probe the
+ * entry sets on globalThis answers.
  */
 function bundle(entry: string): BundleReport {
   const script: string = `
@@ -128,27 +123,35 @@ function bundle(entry: string): BundleReport {
 
     const NODE_MODULES_ZOD = "node_modules/zod/";
     const NODE_MODULES_ZOD_TO_OPENAPI = "node_modules/@asteasolutions/zod-to-openapi/";
-    const LOCALES = "node_modules/zod/v4/locales/";
+    const SCHEMA_MODULES = "Utils/Schema/";
 
     (async () => {
       const result = await esbuild.build(configFor("esm"));
       let zodBytes = 0;
       let zodToOpenApiBytes = 0;
-      const localeFiles = new Set();
+      let inputs = 0;
+      const schemaModules = new Set();
+      const externalImports = new Set();
 
       for (const output of Object.values(result.metafile.outputs)) {
         for (const [input, info] of Object.entries(output.inputs)) {
           if (info.bytesInOutput === 0) {
             continue;
           }
+          inputs += 1;
           if (input.includes(NODE_MODULES_ZOD)) {
             zodBytes += info.bytesInOutput;
           }
           if (input.includes(NODE_MODULES_ZOD_TO_OPENAPI)) {
             zodToOpenApiBytes += info.bytesInOutput;
           }
-          if (input.includes(LOCALES)) {
-            localeFiles.add(input.slice(input.indexOf(LOCALES) + LOCALES.length));
+          if (input.includes(SCHEMA_MODULES)) {
+            schemaModules.add(input.slice(input.indexOf(SCHEMA_MODULES)));
+          }
+        }
+        for (const imported of output.imports) {
+          if (imported.external) {
+            externalImports.add(imported.path);
           }
         }
       }
@@ -181,10 +184,10 @@ function bundle(entry: string): BundleReport {
         },
       });
 
-      let emailSchemaMetadata;
+      let probe;
       try {
         runBundle(require, { exports: {} }, {});
-        emailSchemaMetadata = globalThis.zodBrowserBundleProbe();
+        probe = globalThis.zodBrowserBundleProbe();
       } finally {
         globalThis.Function = RealFunction;
       }
@@ -193,8 +196,10 @@ function bundle(entry: string): BundleReport {
         error: "",
         zodBytes,
         zodToOpenApiBytes,
-        localeFiles: [...localeFiles].sort(),
-        emailSchemaMetadata,
+        schemaModules: [...schemaModules].sort(),
+        inputs,
+        externalImports: [...externalImports].sort(),
+        probe,
         evaluatedCode,
       }));
     })().catch((error) => {
@@ -202,8 +207,10 @@ function bundle(entry: string): BundleReport {
         error: String((error && error.stack) || error),
         zodBytes: 0,
         zodToOpenApiBytes: 0,
-        localeFiles: [],
-        emailSchemaMetadata: null,
+        schemaModules: [],
+        inputs: 0,
+        externalImports: [],
+        probe: null,
         evaluatedCode: [],
       }));
     });
@@ -220,31 +227,39 @@ function bundle(entry: string): BundleReport {
   ) as BundleReport;
 }
 
-// An entry that uses every Type as a frontend does, and a probe of Email's schema.
-function writeEntry(root: string, types: Array<string>): string {
+// An entry that loads every module as a frontend does, and a probe that uses a few.
+function writeEntry(root: string): string {
   const entry: string = path.join(root, "Entry.ts");
-  const email: string = path.join(TYPES_DIRECTORY, "Email.ts");
+  const modulePath: (id: string) => string = (id: string): string => {
+    return JSON.stringify(path.join(COMMON_DIRECTORY, id));
+  };
 
   fs.writeFileSync(
     entry,
     [
-      'import { getOpenApiMetadata } from "@asteasolutions/zod-to-openapi";',
-      `import Email from ${JSON.stringify(email)};`,
-      ...types.map((file: string, index: number): string => {
-        return `import * as Type${index} from ${JSON.stringify(file)};`;
+      `import Email from ${modulePath("Types/Email.ts")};`,
+      `import ObjectID from ${modulePath("Types/ObjectID.ts")};`,
+      `import MonitorSteps from ${modulePath("Types/Monitor/MonitorSteps.ts")};`,
+      `import DatabaseModels from ${modulePath("Models/DatabaseModels/Index.ts")};`,
+      `import AnalyticsModels from ${modulePath("Models/AnalyticsModels/Index.ts")};`,
+      ...BUNDLED_MODULES.map((id: string, index: number): string => {
+        return `import * as Module${index} from ${modulePath(id)};`;
       }),
       "",
-      "// Every Type in use, so nothing of theirs is shaken out.",
-      `(globalThis as any).zodBrowserBundleTypes = [${types
-        .map((_file: string, index: number): string => {
-          return `Type${index}`;
-        })
-        .join(", ")}];`,
+      "// Every module in use, so nothing of theirs is shaken out.",
+      `(globalThis as any).zodBrowserBundleModules = [${BUNDLED_MODULES.map(
+        (_id: string, index: number): string => {
+          return `Module${index}`;
+        },
+      ).join(", ")}];`,
       "(globalThis as any).zodBrowserBundleProbe = () => {",
-      "  const schema = Email.getSchema();",
-      "  // A parse too: no frontend parses with zod today, and one that did would not evaluate code either.",
-      '  schema.parse({ _type: "Email", value: "user@example.com" });',
-      "  return getOpenApiMetadata(schema);",
+      "  return {",
+      '    email: new Email(" USER@Example.com ").toString(),',
+      '    objectId: new ObjectID("123e4567-e89b-12d3-a456-426614174000").toString(),',
+      "    monitorStepsType: String(new MonitorSteps().toJSON()['_type']),",
+      "    databaseModels: DatabaseModels.length,",
+      "    analyticsModels: AnalyticsModels.length,",
+      "  };",
       "};",
       "",
     ].join("\n"),
@@ -254,16 +269,13 @@ function writeEntry(root: string, types: Array<string>): string {
 }
 
 describe("zod in the frontends' bundles", () => {
-  const types: Array<string> = typesThatImportZod();
-
-  test("the Types that build their schema with zod are found", () => {
-    // 18 today: Email, ObjectID, Color, Date, the monitor criteria and steps, ...
-    expect(types.length).toBeGreaterThan(10);
-    expect(types).toContain(path.join(TYPES_DIRECTORY, "Email.ts"));
-    expect(types).toContain(path.join(TYPES_DIRECTORY, "ObjectID.ts"));
-    expect(types).toContain(
-      path.join(TYPES_DIRECTORY, "Monitor", "MonitorSteps.ts"),
-    );
+  test("the modules bundled are there", () => {
+    for (const id of BUNDLED_MODULES) {
+      expect({
+        id,
+        exists: fs.existsSync(path.join(COMMON_DIRECTORY, id)),
+      }).toEqual({ id, exists: true });
+    }
   });
 
   describe("bundled as the frontends bundle them", () => {
@@ -274,47 +286,57 @@ describe("zod in the frontends' bundles", () => {
         path.join(os.tmpdir(), "oneuptime-zod-bundle-"),
       );
       temporaryRoots.push(root);
-      // The entry's own import (zod-to-openapi) resolves as Common's do.
+      // The entry's own imports resolve as Common's do.
       fs.symlinkSync(COMMON_MODULES, path.join(root, "node_modules"), "dir");
 
-      report = bundle(writeEntry(root, types));
+      report = bundle(writeEntry(root));
     }, 300000);
 
-    test("the build succeeds", () => {
+    test("the build succeeds, and holds the Types and every model", () => {
       expect(report.error).toBe("");
+      // Hundreds of models and the Types of their columns.
+      expect(report.inputs).toBeGreaterThan(1000);
     });
 
-    test("zod is in it: the Types do build schemas with it", () => {
-      expect(report.zodBytes).toBeGreaterThan(0);
-      expect(report.zodToOpenApiBytes).toBeGreaterThan(0);
+    test("nothing of zod or zod-to-openapi is in it", () => {
+      expect({
+        zodBytes: report.zodBytes,
+        zodToOpenApiBytes: report.zodToOpenApiBytes,
+      }).toEqual({ zodBytes: 0, zodToOpenApiBytes: 0 });
+
+      // Nor is either left for the page to load at run time.
+      expect(
+        report.externalImports.filter((specifier: string): boolean => {
+          return (
+            specifier.startsWith("zod") || specifier.includes("zod-to-openapi")
+          );
+        }),
+      ).toEqual([]);
     });
 
-    test("only zod's English messages are in it, not its other locales", () => {
-      // zod configures English as it loads; the rest stay out.
-      expect(report.localeFiles).toEqual(["en.js"]);
+    test("no module of Common's Utils/Schema is in it", () => {
+      expect(report.schemaModules).toEqual([]);
     });
 
-    test(`zod costs what the schemas use: under ${ZOD_BYTES_CEILING / 1024} KB, not all of zod 4 (483 KB)`, () => {
-      expect(report.zodBytes).toBeLessThan(ZOD_BYTES_CEILING);
-    });
+    test("in a browser the Types and the models load and work", () => {
+      expect(report.probe).not.toBeNull();
 
-    test("the bundled zod has zod-to-openapi's .openapi(): a Type's schema keeps its OpenAPI metadata", () => {
-      expect(report.emailSchemaMetadata).toEqual({
-        type: "object",
-        description: "Email object",
-        example: { _type: "Email", value: "user@example.com" },
+      const probe: ProbeAnswer = report.probe as ProbeAnswer;
+
+      expect({
+        email: probe.email,
+        objectId: probe.objectId,
+        monitorStepsType: probe.monitorStepsType,
+      }).toEqual({
+        email: "user@example.com",
+        objectId: "123e4567-e89b-12d3-a456-426614174000",
+        monitorStepsType: "MonitorSteps",
       });
+      expect(probe.databaseModels).toBeGreaterThan(400);
+      expect(probe.analyticsModels).toBeGreaterThan(5);
     });
 
     test("in a browser it turns no string into code, so a page that forbids eval reports nothing", () => {
-      /*
-       * zod 4 compiles each object schema's parser with new Function, and
-       * probes whether it may as the first object schema is made - which
-       * the monitor criteria Types do as their modules load. Status pages
-       * forbid eval (StatusPageContentSecurityPolicy has no 'unsafe-eval'),
-       * so every page load reported a refused eval. Zod.ts makes zod
-       * jitless in a browser.
-       */
       expect(report.evaluatedCode).toEqual([]);
     });
   });

@@ -39,6 +39,8 @@ A maioria das mensagens pode confirmar o acionamento: e-mails, SMS e mensagens d
 
 Um episódio aciona você pelas próprias políticas de plantão, à parte dos incidentes ou alertas que ele contém, por isso as regras dele ficam em uma aba própria. O endereço da página indica a aba aberta, por exemplo `/dashboard/{projectId}/user-settings/on-call-rules?type=alerts`; os outros valores são `incident-episodes` e `alert-episodes`, e sem `type` a página abre em **Incidentes**.
 
+Uma gravidade que seu projeto arquivou aparece depois das outras, marcada como **Arquivado**, enquanto você tiver regras para ela: os incidentes e alertas que ainda a têm acionam você por essas regras. Você pode alterá-las ou removê-las, mas não adicionar novas.
+
 ## As regras com que você começa
 
 Cada método que você verifica recebe uma regra em cada cartão de cada aba, enviada assim que você é acionado. O seu e-mail de login as tem desde o dia em que você entrou, para que um acionamento sempre chegue até você. Verifique um número de telefone para SMS, e todo acionamento também manda um SMS para você.

@@ -23,6 +23,8 @@ import SecurityEventsCorrelatePage from "../Pages/SecurityEvents/Correlate";
 import SecurityEventsCampaignsPage from "../Pages/SecurityEvents/Campaigns";
 import SecurityEventsDetectionRulesPage from "../Pages/SecurityEvents/DetectionRules";
 import SecurityEventsRuleExceptionsPage from "../Pages/SecurityEvents/RuleExceptions";
+import SecurityWatchlistsPage from "../Pages/SecurityEvents/Watchlists";
+import SecurityWatchlistViewPage from "../Pages/SecurityEvents/WatchlistView";
 import SecurityEventsDocumentationPage from "../Pages/SecurityEvents/Documentation";
 import SecurityEventsConnectionsPage from "../Pages/SecurityEvents/Connections";
 import SecurityEventsThreatIntelPage from "../Pages/SecurityEvents/ThreatIntel";
@@ -35,6 +37,8 @@ import SecurityCaseStoryPage from "../Pages/SecurityEvents/CaseView/Story";
 import SecurityCaseDetectionsPage from "../Pages/SecurityEvents/CaseView/Detections";
 import SecurityCaseEntitiesPage from "../Pages/SecurityEvents/CaseView/Entities";
 import SecurityCaseConnectedSignalsPage from "../Pages/SecurityEvents/CaseView/ConnectedSignals";
+import SecurityCaseEvidencePage from "../Pages/SecurityEvents/CaseView/Evidence";
+import SecurityCaseTasksPage from "../Pages/SecurityEvents/CaseView/Tasks";
 import SecurityCasePlaybookRunsPage from "../Pages/SecurityEvents/CaseView/PlaybookRuns";
 import SecurityCaseNotesPage from "../Pages/SecurityEvents/CaseView/Notes";
 import SecurityCaseAuditLogsPage from "../Pages/SecurityEvents/CaseView/AuditLogs";
@@ -50,6 +54,7 @@ import SecurityEventsWorkspaceConnectionMicrosoftTeamsPage from "../Pages/Securi
 import WorkspaceConnectionsOverview from "../Components/Workspace/WorkspaceConnectionsOverview";
 import SecurityEventsAISettingsPage from "../Pages/SecurityEvents/AISettings";
 import SecurityCasePrioritiesPage from "../Pages/SecurityEvents/Settings/CasePriorities";
+import SecurityResponseTargetsPage from "../Pages/SecurityEvents/Settings/ResponseTargets";
 import SecurityCaseStatusesPage from "../Pages/SecurityEvents/Settings/CaseStatuses";
 import SecurityEntityRiskPage from "../Pages/SecurityEvents/EntityRisk";
 import SecurityEntityRiskViewPage from "../Pages/SecurityEvents/EntityRiskView";
@@ -198,6 +203,32 @@ const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.SECURITY_EVENTS_RULE_EXCEPTIONS] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_WATCHLISTS] || ""
+          }
+          element={
+            <SecurityWatchlistsPage
+              {...props}
+              pageRoute={RouteMap[PageMap.SECURITY_EVENTS_WATCHLISTS] as Route}
+            />
+          }
+        />
+        {/* One watchlist's page, under Watchlists in the menu: its values. */}
+        <PageRoute
+          path={
+            SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_WATCHLIST_VIEW] ||
+            ""
+          }
+          element={
+            <SecurityWatchlistViewPage
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SECURITY_EVENTS_WATCHLIST_VIEW] as Route
               }
             />
           }
@@ -399,6 +430,23 @@ const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={
             SecurityEventsRoutePath[
+              PageMap.SECURITY_EVENTS_SETTINGS_RESPONSE_TARGETS
+            ] || ""
+          }
+          element={
+            <SecurityResponseTargetsPage
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.SECURITY_EVENTS_SETTINGS_RESPONSE_TARGETS
+                ] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            SecurityEventsRoutePath[
               PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES
             ] || ""
           }
@@ -496,6 +544,26 @@ const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.SECURITY_CASE_VIEW_CONNECTED_SIGNALS] as Route
               }
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SECURITY_CASE_VIEW_EVIDENCE,
+          )}
+          element={
+            <SecurityCaseEvidencePage
+              {...props}
+              pageRoute={RouteMap[PageMap.SECURITY_CASE_VIEW_EVIDENCE] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SECURITY_CASE_VIEW_TASKS)}
+          element={
+            <SecurityCaseTasksPage
+              {...props}
+              pageRoute={RouteMap[PageMap.SECURITY_CASE_VIEW_TASKS] as Route}
             />
           }
         />

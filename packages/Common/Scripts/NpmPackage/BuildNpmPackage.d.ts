@@ -97,6 +97,8 @@ export interface BuildOptions {
   buildDirectory?: string;
   typescript?: typeof TypeScript;
   leftOut?: Record<string, string>;
+  // The other modules the build must find left out (default: PINNED_LEFT_OUT).
+  pinnedLeftOut?: Record<string, string>;
   rootExports?: ReadonlyArray<RootExport>;
   licenseFile?: string;
   readmeFile?: string;
@@ -122,6 +124,7 @@ export const PACKAGE_DIRECTORY: string;
 export const PUBLIC_DIRECTORIES: ReadonlyArray<string>;
 export const PUBLIC_FILES: ReadonlyArray<string>;
 export const LEFT_OUT: Readonly<Record<string, string>>;
+export const PINNED_LEFT_OUT: Readonly<Record<string, string>>;
 export const ROOT_EXPORTS: ReadonlyArray<RootExport>;
 export const NODE_ENGINE: string;
 
@@ -200,6 +203,12 @@ export function selectModules(input: {
   dependencies: Record<string, string>;
   leftOut: Record<string, string>;
 }): ModuleSelection;
+export function leftOutProblems(input: {
+  leftOut: Array<LeftOutModule>;
+  candidates: Array<string>;
+  onPurpose: Readonly<Record<string, string>>;
+  pinned: Readonly<Record<string, string>>;
+}): Array<string>;
 export function selectDeclarations(input: {
   published: Array<string>;
   declarations: Set<string>;

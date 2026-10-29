@@ -44,6 +44,13 @@ export type SecurityCaseQueueViewKey =
 export type SecurityCaseQueueColumn =
   | "case"
   | "priority"
+  /*
+   * When the case's next response target is due (SecurityCase.nextDueAt),
+   * to sort the open lists by. Turned on by whoever wants it: the line under
+   * each row's priority says the same, so it starts hidden, and a project
+   * with no targets never draws it.
+   */
+  | "due"
   | "status"
   | "verdict"
   | "assignee"
@@ -82,6 +89,23 @@ export function getSecurityCaseQueueFilters(
 }
 
 export type SecurityCaseQueueSort = "lastDetectedAt" | "closedAt";
+
+// The columns only a project that sets response targets draws.
+export const SECURITY_CASE_TARGET_COLUMNS: ReadonlyArray<SecurityCaseQueueColumn> =
+  ["due"];
+
+/*
+ * A list's columns as drawn: without the Due column for a project none of
+ * whose priorities sets a target - a column of dashes says nothing.
+ */
+export function getSecurityCaseQueueColumns(
+  view: SecurityCaseQueueView,
+  hasTargets: boolean,
+): Array<SecurityCaseQueueColumn> {
+  return view.columns.filter((column: SecurityCaseQueueColumn): boolean => {
+    return hasTargets || !SECURITY_CASE_TARGET_COLUMNS.includes(column);
+  });
+}
 
 export interface SecurityCaseQueueView {
   key: SecurityCaseQueueViewKey;
@@ -134,6 +158,7 @@ export interface SecurityCaseQueueView {
 const OPEN_COLUMNS: ReadonlyArray<SecurityCaseQueueColumn> = [
   "case",
   "priority",
+  "due",
   "status",
   "assignee",
   "labels",
@@ -183,7 +208,7 @@ export const SECURITY_CASE_QUEUE_VIEWS: ReadonlyArray<SecurityCaseQueueView> = [
     canAssignToMe: true,
     canAssignToSomeoneElse: true,
     columns: OPEN_COLUMNS,
-    hiddenColumns: ["labels", "lastDetection"],
+    hiddenColumns: ["due", "labels", "lastDetection"],
     filters: OPEN_FILTERS,
     sortBy: "lastDetectedAt",
   },
@@ -204,7 +229,7 @@ export const SECURITY_CASE_QUEUE_VIEWS: ReadonlyArray<SecurityCaseQueueView> = [
     canAssignToSomeoneElse: true,
     // Every case here is yours: no Assignee column saying so on each row.
     columns: withoutColumn(OPEN_COLUMNS, "assignee"),
-    hiddenColumns: ["labels", "lastDetection"],
+    hiddenColumns: ["due", "labels", "lastDetection"],
     filters: OPEN_FILTERS,
     sortBy: "lastDetectedAt",
   },
@@ -228,8 +253,16 @@ export const SECURITY_CASE_QUEUE_VIEWS: ReadonlyArray<SecurityCaseQueueView> = [
      * Unassigned on every row. A case handed to a team waits here too, and
      * its Team says which team.
      */
-    columns: ["case", "priority", "status", "team", "labels", "lastDetection"],
-    hiddenColumns: ["labels", "lastDetection"],
+    columns: [
+      "case",
+      "priority",
+      "due",
+      "status",
+      "team",
+      "labels",
+      "lastDetection",
+    ],
+    hiddenColumns: ["due", "labels", "lastDetection"],
     filters: OPEN_FILTERS,
     sortBy: "lastDetectedAt",
   },
@@ -284,13 +317,14 @@ export const SECURITY_CASE_QUEUE_VIEWS: ReadonlyArray<SecurityCaseQueueView> = [
     columns: [
       "case",
       "priority",
+      "due",
       "status",
       "verdict",
       "assignee",
       "labels",
       "lastDetection",
     ],
-    hiddenColumns: ["verdict", "labels", "lastDetection"],
+    hiddenColumns: ["due", "verdict", "labels", "lastDetection"],
     filters: [
       "title",
       "priority",

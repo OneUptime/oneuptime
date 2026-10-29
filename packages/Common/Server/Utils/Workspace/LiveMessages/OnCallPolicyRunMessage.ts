@@ -62,6 +62,7 @@ import { readAwayUntil } from "../../../../Types/OnCallDutyPolicy/AwayTimelineMe
 import { ALREADY_PAGED_TIMELINE_MESSAGE } from "../../../../Types/OnCallDutyPolicy/AlreadyPagedTimelineMessage";
 import { isOnCallDirectPage } from "../../../../Types/OnCallDutyPolicy/OnCallDirectPage";
 import { isOnCallPageAgainRun } from "../../../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
+import { isOnCallEmptyLevelMovedOnAtOnce } from "../../../../Types/OnCallDutyPolicy/OnCallEmptyLevel";
 import { MarkdownText } from "../../../../Utils/Markdown/FeedMarkdown";
 import OnCallPolicyRunMessageView, {
   ON_CALL_RUN_NOT_PAGED,
@@ -105,21 +106,26 @@ const METHOD_LABELS: Array<{
 /*
  * What one escalation rule's steps came to (buildRun). "nobody next" is a
  * schedule whose next person in the rotation the rule pages, with nobody
- * next: it pages nobody, and - unlike a schedule with nobody on call - is not
- * tried again.
+ * next; "empty team" a team of it with no members. "moved on at once" is
+ * the level's own line saying it paged nobody and the run moved on from it
+ * at once (OnCallEmptyLevel); "nobody in it" the line runs wrote before
+ * that, when such a level was waited out.
  */
 type RuleStepKind =
   | "reached"
   | "not reached"
   | "nobody in it"
+  | "moved on at once"
   | "schedule gap"
-  | "nobody next";
+  | "nobody next"
+  | "empty team";
 
 interface RuleSteps {
   firstStep: number;
   pages: number;
   reached: number;
   nobodyInIt: boolean;
+  movedOnAtOnce: boolean;
   scheduleGap: boolean;
 }
 
@@ -732,7 +738,6 @@ export default class OnCallPolicyRunMessage {
           lastExecutedEscalationRuleOrder: true,
           lastEscalationRuleExecutedAt: true,
           executeNextEscalationRuleInMinutes: true,
-          scheduleGapRetryCount: true,
           onCallPolicyExecutionRepeatCount: true,
           // A run that waits to page: when it starts, and why it started early.
           pagingStartsAt: true,
@@ -1124,10 +1129,10 @@ export default class OnCallPolicyRunMessage {
     /*
      * Per escalation rule, as its steps tell it: where its first step is in
      * the timeline; how many people it paged, and how many of those pages
-     * reached somebody; whether the engine found nobody in it at all (its
-     * "no users in this rule" step, written once every target was tried);
-     * and whether a schedule of it had nobody on call (the engine tries such
-     * a rule again before it moves on).
+     * reached somebody; whether the engine found nobody to page in it (its
+     * own line, written once every target was tried), and whether that line
+     * says the run moved on from it at once (OnCallEmptyLevel); and whether
+     * a schedule of it had nobody on call.
      */
     const stepsByRuleId: Map<string, RuleSteps> = new Map<string, RuleSteps>();
 
@@ -1149,6 +1154,7 @@ export default class OnCallPolicyRunMessage {
         pages: 0,
         reached: 0,
         nobodyInIt: false,
+        movedOnAtOnce: false,
         scheduleGap: false,
       };
 
@@ -1160,8 +1166,12 @@ export default class OnCallPolicyRunMessage {
         steps.reached++;
       }
 
-      if (kind === "nobody in it") {
+      if (kind === "nobody in it" || kind === "moved on at once") {
         steps.nobodyInIt = true;
+      }
+
+      if (kind === "moved on at once") {
+        steps.movedOnAtOnce = true;
       }
 
       if (kind === "schedule gap") {
@@ -1383,41 +1393,44 @@ export default class OnCallPolicyRunMessage {
       }
 
       /*
-       * A direct page's step about a team: the team it named has no
-       * members, so nobody was paged through it.
+       * A step about a team, with nobody in it: the team a direct page or
+       * an escalation rule named has no members, so nobody was paged
+       * through it.
        */
-      if (data.directPage && step.userBelongsToTeamId) {
+      if (step.userBelongsToTeamId) {
+        const teamName: string =
+          step.userBelongsToTeam?.name?.trim() || "(unnamed)";
+
+        countStep(
+          step.onCallDutyPolicyEscalationRuleId,
+          stepIndex,
+          "empty team",
+        );
+
         addNotPaged(`team:${step.userBelongsToTeamId.toString()}`, {
-          teamName: step.userBelongsToTeam?.name?.trim() || "(unnamed)",
+          teamName: teamName,
           reason: "has no members",
         });
+        addRuleReason(
+          step.onCallDutyPolicyEscalationRuleId,
+          `team ${teamName} has no members`,
+        );
         continue;
       }
 
-      // A step with no person and no schedule: the rule found nobody to page.
+      /*
+       * A step with no person, no schedule and no team: the level's own
+       * line, the rule found nobody to page - and, as written since a level
+       * with nobody to page is passed at once, that the run moved on.
+       */
       countStep(
         step.onCallDutyPolicyEscalationRuleId,
         stepIndex,
-        "nobody in it",
+        isOnCallEmptyLevelMovedOnAtOnce(step.statusMessage)
+          ? "moved on at once"
+          : "nobody in it",
       );
     }
-
-    /*
-     * A rule the run is trying again, because nobody was on call in its
-     * schedules yet: the engine samples such a rule again every minute, a
-     * few times, before it moves on (OnCallDutyPolicyEscalationRuleService,
-     * which counts the tries and rewinds the run to the rule before between
-     * them), as someone may be coming on call that minute.
-     */
-    const isRetryingCurrentRule: boolean = Boolean(
-      currentRuleModel &&
-        typeof currentRuleModel.order === "number" &&
-        (executionLog.scheduleGapRetryCount || 0) > 0 &&
-        (executionLog.lastExecutedEscalationRuleOrder ===
-          currentRuleModel.order - 1 ||
-          executionLog.lastExecutedEscalationRuleOrder ===
-            currentRuleModel.order),
-    );
 
     const isRunOver: boolean =
       executionLog.status === OnCallDutyPolicyStatus.Completed ||
@@ -1432,11 +1445,11 @@ export default class OnCallPolicyRunMessage {
      *
      * It is said - an alarm, once per run - only once the rule is finished:
      * the run has moved on from it, or has ended. Until then the rule may
-     * still reach somebody: its pages are written one target at a time, a
-     * page that is skipped is only found to be a while after it was made,
-     * and a rule whose schedules had nobody on call is tried again. Only a
-     * rule the engine found nobody in, with no schedule to try again, is
-     * finished as soon as that is written.
+     * still reach somebody: its pages are written one target at a time, and
+     * a page that is skipped is only found to be a while after it was made.
+     * A rule whose own line says the run moved on from it at once is
+     * finished as soon as that is written; so, in runs from before that, is
+     * a rule the engine found nobody in with no schedule of it to try again.
      */
     const rulesThatReachedNobody: Array<OnCallDutyPolicyEscalationRule> = [];
 
@@ -1473,7 +1486,10 @@ export default class OnCallPolicyRunMessage {
         rule.id?.toString() === latestStepRuleId;
 
       const isFinished: boolean =
-        isRunOver || !isCurrentRule || (steps.nobodyInIt && !steps.scheduleGap);
+        isRunOver ||
+        !isCurrentRule ||
+        steps.movedOnAtOnce ||
+        (steps.nobodyInIt && !steps.scheduleGap);
 
       if (reachedNobody && isFinished) {
         rulesThatReachedNobody.push(rule);
@@ -1493,15 +1509,47 @@ export default class OnCallPolicyRunMessage {
       },
     );
 
+    /*
+     * The level the run moved on to at once from a rule that reached
+     * nobody: the one after it, when there is one. Said only where the
+     * rule's own line says the run did not wait (OnCallEmptyLevel) - a rule
+     * of a run from before that was waited out.
+     */
+    const getMovedOnTo: (
+      rule: OnCallDutyPolicyEscalationRule,
+    ) => OnCallPolicyRunRule | undefined = (
+      rule: OnCallDutyPolicyEscalationRule,
+    ): OnCallPolicyRunRule | undefined => {
+      if (
+        !stepsByRuleId.get(rule.id!.toString())?.movedOnAtOnce ||
+        typeof rule.order !== "number"
+      ) {
+        return undefined;
+      }
+
+      const order: number = rule.order;
+
+      return toRule(
+        data.rules.find(
+          (candidate: OnCallDutyPolicyEscalationRule): boolean => {
+            return candidate.order === order + 1;
+          },
+        ),
+      );
+    };
+
     // A rule that reached nobody, with nothing else to say why: it has nobody to page.
     for (const rule of rulesThatReachedNobody) {
       const reasons: Array<string | MarkdownText> =
         reasonsByRuleId.get(rule.id!.toString()) || [];
 
       if (reasons.length === 0) {
+        const movedOnTo: OnCallPolicyRunRule | undefined = getMovedOnTo(rule);
+
         addNotPaged(`rule:${rule.id!.toString()}`, {
           rule: toRule(rule),
           reason: "nobody to page",
+          ...(movedOnTo ? { movedOnTo: movedOnTo } : {}),
         });
       }
     }
@@ -1562,10 +1610,48 @@ export default class OnCallPolicyRunMessage {
     const firstRule: OnCallDutyPolicyEscalationRule | undefined =
       rulesThatReachedNobody[0];
 
-    const escalateAfterInMinutes: number =
-      executionLog.executeNextEscalationRuleInMinutes ??
-      currentRuleModel?.escalateAfterInMinutes ??
-      0;
+    const firstRuleMovedOnTo: OnCallPolicyRunRule | undefined = firstRule
+      ? getMovedOnTo(firstRule)
+      : undefined;
+
+    /*
+     * The rule the run's log is on reached nobody, and its own line says
+     * the run moves on from it at once (OnCallEmptyLevel): the run is on
+     * its way to the next level that same moment, and its log names that
+     * level as soon as the level is paged. A message read in between - the
+     * run's first post often is - says where the run is going, with that
+     * level's own wait ("Level 2 of 2: if nobody acknowledges within 30
+     * minutes, paging stops."), not a wait the empty level never holds
+     * ("Level 1 of 2: if nobody acknowledges by 5:19 PM, Level 2 of 2 is
+     * next.").
+     */
+    const levelMovingOnTo: OnCallDutyPolicyEscalationRule | undefined =
+      !isRunOver &&
+      currentRuleModel &&
+      typeof currentRuleModel.order === "number" &&
+      stepsByRuleId.get(currentRuleModel.id?.toString() || "")?.movedOnAtOnce
+        ? data.rules.find((rule: OnCallDutyPolicyEscalationRule): boolean => {
+            return rule.order === currentRuleModel.order! + 1;
+          })
+        : undefined;
+
+    const shownRule: OnCallPolicyRunRule | undefined = levelMovingOnTo
+      ? toRule(levelMovingOnTo)
+      : currentRule;
+
+    const shownNextRule: OnCallPolicyRunRule | undefined = levelMovingOnTo
+      ? toRule(
+          data.rules.find((rule: OnCallDutyPolicyEscalationRule): boolean => {
+            return (rule.order || 0) > (levelMovingOnTo.order || 0);
+          }),
+        )
+      : nextRule;
+
+    const escalateAfterInMinutes: number = levelMovingOnTo
+      ? levelMovingOnTo.escalateAfterInMinutes || 0
+      : executionLog.executeNextEscalationRuleInMinutes ??
+        currentRuleModel?.escalateAfterInMinutes ??
+        0;
 
     /*
      * When the current rule's wait is over: the next step names that moment
@@ -1577,7 +1663,9 @@ export default class OnCallPolicyRunMessage {
         ? new Date(executionLog.lastEscalationRuleExecutedAt)
         : undefined;
 
+    // A level the run is moving on to has not started its wait yet.
     const nextStepAt: Date | undefined =
+      !levelMovingOnTo &&
       ruleStartedAt &&
       !isNaN(ruleStartedAt.getTime()) &&
       escalateAfterInMinutes > 0
@@ -1634,11 +1722,10 @@ export default class OnCallPolicyRunMessage {
         ? this.getPersonName(executionLog.acknowledgedByUser)
         : undefined,
       ruleCount: data.rules.length,
-      currentRule: currentRule,
-      nextRule: nextRule,
+      currentRule: shownRule,
+      nextRule: shownNextRule,
       escalateAfterInMinutes: escalateAfterInMinutes,
       nextStepAt: nextStepAt,
-      retryingCurrentRule: isRetryingCurrentRule,
       repeatNumber: Math.max(
         (executionLog.onCallPolicyExecutionRepeatCount || 1) - 1,
         0,
@@ -1655,6 +1742,7 @@ export default class OnCallPolicyRunMessage {
             reasons: reasonsByRuleId.get(firstRule.id!.toString()) || [
               "the rule has nobody to page",
             ],
+            ...(firstRuleMovedOnTo ? { movedOnTo: firstRuleMovedOnTo } : {}),
           }
         : undefined,
     };

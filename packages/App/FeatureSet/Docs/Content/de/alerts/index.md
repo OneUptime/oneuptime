@@ -43,7 +43,7 @@ Lösen Sie eine Warnung aus, wenn Ihr Team nachsehen sollte, bevor jemand außer
 ## Woher Warnungen kommen
 
 - **Die Kriterien eines Monitors.** Schalten Sie unter den **Aktionen** eines Kriteriums **Wenn Filter übereinstimmen, eine Warnung erstellen.** ein und füllen Sie die Warnung aus, die es erstellt: **Warnungstitel** und **Schweregrad**, dann, jeweils eingeklappt, **Beschreibung**, **Eigentümerschaft & Beschriftungen**, **Bereitschaft** und **Weitere Felder** mit **Warnung automatisch beheben**, **Private Warnung** und **Behebungs-Notizen**. Ein Kriterium hält jeweils eine offene Warnung, bei einem Monitor, der nach einem Feld gruppiert, eine pro Reihe, und **Warnung automatisch beheben** behebt sie, sobald das Kriterium nicht mehr zutrifft. Siehe [Einen Monitor erstellen](/docs/monitor/create-monitor) und [Vorfall- & Warnmeldungsvorlagen](/docs/monitor/incident-alert-templating).
-- **Von Hand.** Klicken Sie in der Warnungsliste auf **Warnung erstellen**, oder auf dem Tab **Warnungen** eines Monitors, eines Hosts oder einer anderen Ressource, der diese Ressource für Sie auswählt. Siehe [Eine Warnung von Hand erstellen](#eine-warnung-von-hand-erstellen).
+- **Von Hand.** Klicken Sie in der Warnungsliste auf **Warnung erstellen**, oder auf dem Tab **Warnungen** eines Monitors, eines Hosts, eines Netzwerkgeräts oder einer anderen Ressource, der diese Ressource für Sie auswählt. Siehe [Eine Warnung von Hand erstellen](#eine-warnung-von-hand-erstellen).
 - **Die Burn-Rate eines SLO.** Eine Burn-Rate-Regel kann eine Warnung erstellen, wenn ein SLO sein Fehlerbudget zu schnell verbraucht. Siehe [Burn-Rate-Warnungen und -Vorfälle](/docs/slo/burn-rate-alerts).
 - **Netzwerkstandorte und Sicherheitsereignisse.** Ein Netzwerkstandort, der bei schlechtem Zustand warnen soll, öffnet eine Warnung, sobald seine Zusammenfassung nicht mehr betriebsbereit ist, und auch Ihre Erkennungsregeln für Sicherheitsereignisse öffnen Warnungen. Siehe [Netzwerkstandorte (Integritätszusammenfassung & Verfügbarkeit)](/docs/monitor/network-sites) und [Sicherheitsereignisse (SIEM)](/docs/telemetry/security-events).
 - **Eine Alarmierung.** `/oneuptime page` in Slack oder Microsoft Teams öffnet eine Warnung mit Ihrer Nachricht als Titel und alarmiert die Personen, die Sie nennen. Die Alarmierungsblöcke eines Workflows tun dasselbe mit dem Titel und der Nachricht, die Sie ihnen geben. Siehe [Jemanden aus Slack alarmieren](/docs/workspace-connections/slack#jemanden-aus-slack-alarmieren) und [Alarmierung](/docs/workflows/components#paging).
@@ -81,7 +81,7 @@ Füllen Sie den **Titel** aus und wählen Sie einen **Warnungsschweregrad**; bei
 
 ### Wählen, was sie betrifft und wer alarmiert wird
 
-Klicken Sie auf **Weiter**, um zu **Ressourcen & Bereitschaft** zu gelangen. Wählen Sie unter **Überwachung** den Monitor, um den es geht, und unter **Andere betroffene Ressourcen** alles Weitere, etwa Hosts, Kubernetes-Cluster oder Dienste. Wählen Sie unter **Bereitschaftsrichtlinie** die Richtlinien, die beim Erstellen der Warnung laufen sollen.
+Klicken Sie auf **Weiter**, um zu **Ressourcen & Bereitschaft** zu gelangen. Wählen Sie unter **Überwachung** den Monitor, um den es geht, und unter **Andere betroffene Ressourcen** alles Weitere, etwa Hosts, Netzwerkgeräte, Kubernetes-Cluster oder Dienste. Wählen Sie unter **Bereitschaftsrichtlinie** die Richtlinien, die beim Erstellen der Warnung laufen sollen.
 
 ### Sie erstellen
 

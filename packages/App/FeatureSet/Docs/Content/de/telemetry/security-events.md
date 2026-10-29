@@ -41,6 +41,7 @@ flowchart TB
 | **Korrelieren** | Ereignisse | Ein Graph der Ereignisse, die einen Host, einen Benutzer oder eine IP-Adresse teilen |
 | **Erkennungsregeln** | Erkennungen | Sigma-Regeln, die nach Zeitplan laufen und Fälle eröffnen |
 | **Regelausnahmen** | Erkennungen | Was Ihre Regeln absichtlich auslassen, etwa einen Scanner oder einen geplanten Test, jeweils mit dem, der es hinzugefügt hat, und dem Grund |
+| **Beobachtungslisten** | Erkennungen | Die Listen, mit denen Ihre Regeln abgleichen, etwa VIP-Benutzer, kritische Hosts, bekannte schädliche Datei-Hashes und die Adressen, von denen sich Admins anmelden dürfen |
 | **Regelbibliothek** | Erkennungen | Fertige Erkennungsregeln zum Hinzufügen, jede mit den Ereignissen, die sie liest, und ob sie eingehen, die empfohlenen markiert |
 | **Threat Intel** | Erkennungen | STIX/TAXII-Feeds bekannter bösartiger Indikatoren |
 | **ATT&CK-Abdeckung** | Erkennungen | Die Techniken von MITRE ATT&CK, die Ihre Regeln abdecken |
@@ -52,6 +53,7 @@ flowchart TB
 | **Verbindungen** | Verbindungen | Ihre Logs, die Sicherheitsprodukte, die OneUptime abfragt, und die SIEMs, an die es sendet |
 | **Einrichtungsanleitung** | Verbindungen | Snippets zum Senden von Ereignissen, mit Ihrem Ingestion-Schlüssel ausgefüllt |
 | **Fallprioritäten** | Einstellungen | Wie dringend ein Fall ist: die eigenen Prioritäten des Projekts, die dringendste zuerst |
+| **Reaktionsziele** | Einstellungen | Wie schnell ein Fall jeder Priorität übernommen und eingedämmt werden muss |
 | **Fallstatus** | Einstellungen | Die Schritte, die ein Fall durchläuft, und wofür ein Fall in jedem zählt |
 | **Risikobewertung** | Einstellungen | Ob das Risiko einer Entität einen Fall eröffnet, ab welchem Risiko, und wie wichtig jede Entität ist |
 
@@ -299,7 +301,7 @@ OneUptime führt den booleschen Kern von Sigma aus:
 
 - Selektionen sind Feld-Maps (jedes Feld muss passen; eine Liste von Werten passt auf jeden davon) oder Schlüsselwortlisten, die überall in der Nachricht passen.
 - Bedingungen verknüpfen Selektionen mit `and`, `or`, `not` und Klammern, oder mit `1 of selection_*`, `all of selection_*`, `any of them` und `all of them`.
-- Feldmodifikatoren: `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists` und `windash`. Text wird ohne Beachtung der Groß- und Kleinschreibung verglichen, sofern Sie nicht `cased` hinzufügen.
+- Feldmodifikatoren: `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists`, `windash` und `expand`, das eine [Beobachtungsliste](#beobachtungslisten) liest. Text wird ohne Beachtung der Groß- und Kleinschreibung verglichen, sofern Sie nicht `cased` hinzufügen.
 - Ein Feld ist ein typisiertes Feld (`principalUser`), eine gängige Sigma-Schreibweise davon (`CommandLine`, `src_ip`, `Hostname`) oder ein beliebiger Attributschlüssel, so geschrieben wie im Ereignis (`threat.matched`).
 - `Image` und `CommandLine` lesen den Prozess, um den es im Ereignis geht, beim Start eines Prozesses den gestarteten (`processPath`, `processCommandLine`), und `ParentImage` und `ParentCommandLine` den Prozess, der ihn gestartet hat (`parentProcessPath`, `parentProcessCommandLine`). `principalProcess` ist der handelnde Prozess, beim Start also der übergeordnete.
 - `level` legt den Schweregrad fest: `informational`, `low`, `medium`, `high` oder `critical`, und `medium`, wenn es fehlt. ATT&CK-IDs in `tags` (`attack.t1110`, `attack.ta0006`) füllen die MITRE-Felder des Befunds.
@@ -435,6 +437,32 @@ Eine Ausnahme ist etwas, das eine Regel auslässt, weil Sie es erwarten, etwa ei
 - Ausgelassene Ereignisse werden entfernt, bevor die Regel irgendetwas zählt, sodass sie nie zu ihrem **Schwellenwert der Trefferanzahl** zählen und keinen Fall, keine Warnung, keinen Vorfall und keinen Befund eröffnen. Ausnahmen gelten für jeden Lauf der Regel, Korrelationen eingeschlossen, und für **Auf vergangene Ereignisse anwenden**, aber nie für einen Testangriff, der prüft, dass Ereignisse ankommen.
 - Eine Regel hat höchstens 100 Ausnahmen. Wer Erkennungsregeln bearbeiten darf, fügt sie hinzu, ändert und entfernt sie, jede Sicherheitsrolle kann sie lesen, und jede Änderung steht im Audit-Log des Projekts.
 
+### Beobachtungslisten
+
+Eine Beobachtungsliste ist eine Liste, die Ihr Team einmal pflegt und die jede Regel lesen kann, etwa VIP-Benutzer, kritische Hosts, bekannte schädliche Datei-Hashes oder die Adressen, von denen sich Admins anmelden dürfen. Jede Liste steht unter **Produkte → Sicherheitsereignisse → Erkennungen → Beobachtungslisten**: Erstellen Sie dort eine mit **Beobachtungsliste erstellen**, das nach ihrem Namen und ihrem Inhalt fragt, oder fügen Sie eine gängige unter **Mit einer gängigen Liste beginnen** hinzu. Die Seite einer Liste zeigt ihre Werte, und **In einer Regel verwenden** gibt eine Selektion, die die Liste liest, zum Kopieren in eine Regel.
+
+Eine Regel liest eine Liste mit `expand` und dem Namen der Liste zwischen zwei `%`-Zeichen. Diese Regel löst aus, wenn sich ein Admin von einer Adresse anmeldet, die nicht auf der erlaubten Liste steht:
+
+```yaml title="admin-sign-in-from-outside.yml"
+title: Admin sign-in from outside the allowed addresses
+detection:
+  admin_sign_in:
+    className: Authentication
+    principalUser|expand: '%admins%'
+  allowed:
+    principalIp|expand: '%admin_addresses%'
+  condition: admin_sign_in and not allowed
+level: high
+```
+
+- Eine Liste enthält Benutzer, Hosts, IP-Adressen, Datei-Hashes, Domains, URLs, Prozesse oder andere Werte, gewählt beim Erstellen. Ein Wert passt unabhängig von Groß- und Kleinschreibung, und `*` steht für eine beliebige Zeichenfolge: `svc-*` passt auf jedes Dienstkonto. Eine Liste von IP-Adressen nimmt auch Bereiche wie `10.20.0.0/16` an, und eine Liste von Datei-Hashes MD5-, SHA-1-, SHA-256- und SHA-512-Hashes.
+- Fügen Sie Werte einzeln mit **Wert hinzufügen** hinzu oder viele auf einmal mit **Werte importieren**: Fügen Sie sie ein oder wählen Sie eine `.txt`- oder `.csv`-Datei, ein Wert pro Zeile, mit einer optionalen Notiz nach einem Komma. **Zur Liste hinzufügen** behält die Werte, die schon darauf stehen, und **Liste ersetzen** entfernt die, die der Import nicht enthält.
+- Statt Werte zu pflegen, kann eine Liste von IP-Adressen, Datei-Hashes, Domains oder URLs einem Threat-Intel-Feed folgen: Ihre Werte sind dann die aktiven Indikatoren des Feeds von der Art der Liste, aktuell gehalten, während der Feed gelesen wird.
+- `expand` wird allein verwendet, da die Werte der Liste bestimmen, wie sie passen. Ein Feld mit mehreren Werten, etwa `observables`, passt, wenn einer davon auf der Liste steht. **Gelesen von** nennt die Regeln, die jede Liste lesen, und unter dem YAML einer Regel nennt ihr Formular die Listen, die die Regel liest.
+- Eine Regel nennt eine Liste unabhängig von Groß- und Kleinschreibung. Eine Regel, die eine Liste nennt, die das Projekt nicht hat, wird beim Speichern abgelehnt, und eine Liste, die Regeln lesen, lässt sich erst umbenennen oder löschen, wenn keine Regel sie mehr liest.
+- Eine Änderung an einer Liste erreicht jede Regel, die sie liest, bei deren nächstem Lauf. Auch Korrelationsregeln und **Auf vergangene Ereignisse anwenden** lesen Listen.
+- Eine Liste enthält höchstens 5.000 Werte, davon höchstens 100 mit `*` und 100 Bereiche, und ein Projekt hat höchstens 200 Listen: Für eine längere Liste folgen Sie einem Threat-Intel-Feed. Wer Erkennungsregeln erstellen, bearbeiten oder löschen darf, darf dasselbe mit Listen tun, und wer Erkennungsregeln bearbeiten darf, fügt ihre Werte hinzu, ändert und entfernt sie. Jede Sicherheitsrolle kann sie lesen, und jede Änderung steht im Audit-Log des Projekts.
+
 ### Auf vergangene Ereignisse anwenden
 
 **Auf vergangene Ereignisse anwenden** zeigt, was eine Regel gefunden hätte, wenn sie gelaufen wäre, ohne etwas zu eröffnen, zu senden oder zu schreiben. Es steht in der Zeile einer Regel, für die gespeicherte Regel, und unter **Sigma-Regel (YAML)** im Formular der Regel, für die Regel, wie sie dort gerade steht, bevor Sie sie speichern. Wählen Sie **Letzte 24 Stunden**, **Letzte 7 Tage** oder **Letzte 30 Tage**.
@@ -503,6 +531,14 @@ Fügen Sie dafür eine Ausnahme hinzu, statt die Regel auszuschalten: **Ausnahme
 
 :::details Eine Ausnahme lässt nicht aus, was sie soll
 Prüfen Sie ihren **Status** in **Regelausnahmen**: Eine Ausnahme mit dem Status **Abgelaufen** lässt nichts aus, und ein Zeitfenster lässt nur die Ereignisse zwischen seinen beiden Zeitpunkten aus. Eine Entität wird als Handelnder, als Ziel der Handlung und unter den `observables` des Ereignisses gesucht; um einen Wert eines anderen Feldes auszulassen, fügen Sie eine Ausnahme der Art **Ein Wert** hinzu, die das Feld nennt. Ohne `*` muss ein Wert dem ganzen Feld entsprechen: `svc-*` lässt `svc-backup` aus, `svc-` nicht.
+:::
+
+:::details Eine Regel, die eine Beobachtungsliste liest, trifft nicht
+Öffnen Sie die Liste und prüfen Sie ihre Werte: Ein Wert ohne `*` muss dem ganzen Feld entsprechen, unabhängig von Groß- und Kleinschreibung, und eine Liste, die einem Threat-Intel-Feed folgt, enthält nur die aktiven Indikatoren des Feeds von ihrer Art. Prüfen Sie, ob die Regel das Feld liest, das Ihre Ereignisse füllen: **In einer Regel verwenden** beginnt mit dem Feld, in dem eine Liste ihrer Art meist steht. Eine Änderung an einer Liste erreicht eine Regel bei deren nächstem Lauf.
+:::
+
+:::details Eine Beobachtungsliste lässt sich nicht umbenennen oder löschen
+Regeln lesen sie noch über ihren Namen, und die Meldung nennt sie. Ändern Sie den Namen in diesen Regeln oder nehmen Sie die Liste aus ihnen heraus, und benennen Sie sie dann um oder löschen Sie sie.
 :::
 
 :::details „Auf vergangene Ereignisse anwenden“ findet nichts

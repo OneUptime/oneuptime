@@ -79,11 +79,13 @@ Når en hendelse eller et varsel når retningslinjen, varsler **Level 1** mottak
 
 En hendelse, et varsel eller en episode som opprettes allerede bekreftet eller løst — registrert i etterkant — kjører ingen av retningslinjene sine: ingen varsles, og feeden sier det og nevner dem ved navn. Se [Erklært allerede bekreftet eller løst](/docs/incidents/declaring-incidents#erklært-allerede-bekreftet-eller-løst).
 
+Et nivå som ikke har noen å varsle når det nås, hoppes over med en gang: neste nivå varsles straks, uten å vente. Det er et nivå uten mottakere, og et nivå der mottakerne ikke gir noen å varsle akkurat da: et team uten medlemmer, en vaktplan der ingen har vakt, eller folk som er borte uten noen til å dekke, har forlatt prosjektet eller ikke kan nås i det hele tatt. Har ingen nivåer noen å varsle, stopper retningslinjen med en gang og gjentas ikke.
+
 For å gjenta en retningslinje klikker du på **Rediger** på kortet **Gjentakelsesretningslinje**, velger **Start på nytt fra Level 1** og angir **Hvor mange ganger til?**.
 
 ### Eskaleringsoversikten
 
-Oversikten øverst på siden **Eskaleringsregler** viser hele stigen: når hvert nivå varsles, hvem det varsler, og hva som skjer etter det siste. Et nivå der ikke alle mottakerne kan varsles, sier det på kortet sitt; klikk på etiketten for å se hvem og hvorfor.
+Oversikten øverst på siden **Eskaleringsregler** viser hele stigen: når hvert nivå varsles, hvem det varsler, og hva som skjer etter det siste. Et nivå der ikke alle mottakerne kan varsles, sier det på kortet sitt; klikk på etiketten for å se hvem og hvorfor. Et nivå uten mottakere viser **Hoppet over med en gang**, og ventetiden telles ikke med når neste nivå varsles.
 
 ### Slik nås hver person
 
@@ -184,7 +186,7 @@ Neste person finnes når nivået kjører, ut fra vaktplanen slik den er da:
 - Det er personen etter den som har vakt, i den rekkefølgen personene i rotasjonen bytter på. Etter den siste personen kommer den første igjen.
 - Personer som er borte, hoppes over, uansett om noen dekker for dem, og det samme gjelder alle som har vakt i stedet for en annen.
 - Det er alltid noen fra samme rotasjon: med flere lag, laget som den som har vakt, kommer fra. En rotasjon uten andre i, eller der alle andre er borte, har ingen neste person, og nivået varsler ingen der og sier det.
-- Når ingen har vakt i vaktplanen i det hele tatt, er det heller ingen neste person, og nivået prøves på nytt i noen minutter, som for selve vaktplanen.
+- Når ingen har vakt i vaktplanen i det hele tatt, er det heller ingen neste person, og nivået varsler ingen der.
 
 Kjøringens melding i Slack og Microsoft Teams, hendelsens feed og **Tidslinje for utførelsen** viser hvem som ble varslet som neste i rotasjonen, og fra hvilken vaktplan: "Sam Lee (next in the Payments primary rotation)".
 

@@ -19,7 +19,9 @@ En Cisco Meraki-miljö kan också läsas utan att exportera något: anslut Merak
 - **Toppgränssnitt** på en enhets sida: vad som kom in och gick ut genom varje gränssnitt, med namn och hastighet från enhetens SNMP-walk. **Toppenheter** på en plats sida och på nätverkets sida.
 - **Toppkonversationer**: de tio mest aktiva adressparen, ritade som ett diagram från avsändare till mottagare, eller som en lista.
 
-Klicka på en rad - en adress, en applikation, ett gränssnitt, en enhet, ett band i diagrammet - så smalnar hela sidan av till den trafiken. En bricka ovanför sidan visar vad den är avsmalnad till; klicka på dess x för att vidga sidan igen. **Sök en IP-adress** smalnar av sidan till trafiken till eller från en adress. Tidsintervallet och filtren sparas i sidans adress, så en länk öppnar exakt samma vy.
+Klicka på en rad - en adress, en applikation, ett gränssnitt, en enhet, ett band i diagrammet - så smalnar hela sidan av till den trafiken. En bricka ovanför sidan visar vad den är avsmalnad till; klicka på dess x för att vidga sidan igen. **Sök ett namn eller en IP-adress** smalnar av sidan till trafiken till eller från en adress: skriv adressen, eller en del av dess namn, och välj den om flera passar. Tidsintervallet och filtren sparas i sidans adress, så en länk öppnar exakt samma vy.
+
+En adress som OneUptime känner till visas med sitt namn, med adressen bredvid. Se [Namn i stället för adresser](#namn-i-stället-för-adresser).
 
 ## Så kommer flödena hit
 
@@ -196,6 +198,8 @@ Den första läsningen börjar inom en minut och hämtar det senaste dygnet. Dä
 
 Ett klick på ett nätverk begränsar sidan till det och listar dess uplinks. En appliances trafik hör till dess enhet i OneUptime när en enhet har appliancens serienummer eller MAC-adress: den visas då också på Trafik-sidorna för den enheten och dess plats. Trafiken från en appliance som inte är en enhet i OneUptime visas på nätverkets sida.
 
+Varje läsning listar också organisationens enheter. En Meraki-enhet som är en nätverksenhet i OneUptime hämtar det som dess egen pollning lämnar tomt från dashboarden: dess serienummer, modell, firmware, MAC-adress och resten ([Tillgångsattribut för nätverksenheter](/docs/inventory/cmdb-sync#tillgångsattribut-för-nätverksenheter)). Anslutningens rad räknar dem, och enhetens kort **Inventarie** säger på en egen rad när Meraki lästes.
+
 Meraki ger varje organisation 10 API-förfrågningar per sekund, delade av alla applikationer som läser den. OneUptime använder högst 3 av dem, saktar ner när Meraki ber om det och stoppar en läsning efter 900 förfrågningar eller 6 minuter; nästa fortsätter en minut senare. En organisation med 1 200 nätverk får sina uplinks lästa med ett anrop per fönster, och nätverkens applikationer och klienter över några läsningar.
 
 Anslutningarna listas längst ned på nätverkets Trafik-sida under **Meraki**, var och en med hur den mår och vad dess senaste läsning täckte. Var och en har en knapp för nästa steg: **Läs nu** läser den direkt, **Slå på** slår på den igen när den är avstängd, och **Uppdatera API-nyckel** ersätter en nyckel som Meraki nekade och testar den nya nyckeln innan den sparas. Dess meny har **Redigera** (dess namn, hur ofta uplinks läses, en ny nyckel), **Stäng av** och **Ta bort**. En läsning som misslyckas säger varför, där och ovanför trafiken: en nekad nyckel, en nyckel som inte kan läsa organisationen, Meraki som ber OneUptime sakta ner, eller nätverk vars trafikanalys är avstängd. Ovanför trafiken leder **Granska** till anslutningen. Bara projektägare och projektadministratörer kan ansluta Meraki och ändra eller läsa en anslutning.
@@ -210,6 +214,49 @@ Flöden kan komma innan enheten som skickar dem har lagts till i OneUptime. På 
 - **Det är en av mina enheter** lägger till adressen bland en enhets **Övriga adresser**: använd det när en enhet du redan har lagt till skickar från en annan adress, till exempel en loopback. Dess flöden går till den enheten från och med nästa minut.
 
 Flera enheter bakom en NAT-adress delar den adressen, så deras flöden går till den enda enhet som har den.
+
+## Namn i stället för adresser
+
+Överallt där en Trafik-sida visar en adress - topplistorna, båda vyerna av **Toppkonversationer**, brickorna, **Sök** - visar den först adressens namn när OneUptime känner till ett, med adressen bredvid: `mumbai-fs01` ovanför `10.18.167.35`. En adress som inget namnger visas som sig själv. Under pekaren visas ett förkortat namn i sin helhet.
+
+Ett namn kommer från den första av dessa källor som namnger adressen:
+
+| Ordning | Var namnet kommer ifrån | Vad som namnger adressen |
+| ------- | ----------------------- | ------------------------ |
+| 1 | **Adressnamn** | Ett namn som någon gav den här adressen under **Nätverk** -> **Inställningar** -> **Adressnamn** |
+| 2 | Nätverksenheter | En enhet som pollas på adressen, eller som har den under **Övriga adresser** |
+| 3 | Värdar | En värd vars agent rapporterar adressen |
+| 4 | Molnresurser | En molnresurs som ert molnkonto anger adressen för |
+| 5 | Kubernetes | En nod med adressen, sedan en podd (en podd i sin nods eget nätverk har nodens adress) |
+| 6 | DNS | Adressens omvända DNS-namn, uppslaget av proben som tog emot flödena |
+
+En post namnger bara trafiken från en tid då den fanns: en värd som sågs först efter tidsintervallet, eller en podd som försvann före det, namnger inte trafiken i det intervallet. Ett namn som någon gav ett delnät - `10.18.167.0/24` är ”Kontoret i Mumbai” - visas bredvid varje adress i det, aldrig i stället för adressens eget namn; där namngivna delnät överlappar visas det smalaste.
+
+### En adress
+
+Klicka på en adress, eller sök fram den, så smalnar sidan av till den, med ett kort ovanför siffrorna som säger vem den är: namnet, var namnet kommer ifrån, adressen med en knapp för att kopiera den och det namngivna delnät den ligger i. Kortet har nästa steg:
+
+- **Öppna värden**, **Öppna enheten** eller **Öppna molnresursen**, när namnet är den postens. Ändra namnet där.
+- **Ge adressen ett namn**, när inget namnger den eller bara DNS. Adressen är redan ifylld; vidga den till ett delnät, till exempel `10.18.167.0/24`, för att namnge hela delnätet i stället.
+- **Redigera i Inställningar**, när namnet är ett adressnamn. Det öppnar **Adressnamn**, där namnet ändras.
+
+**Ge adressen ett namn** är för den som får lägga till nätverksenheter, och **Redigera i Inställningar** för den som får ändra dem. Alla som får läsa dem ser namnen.
+
+### Adressnamn
+
+**Nätverk** -> **Inställningar** -> **Adressnamn** visar de namn som personer har gett adresser och delnät som inget annat namnger: en partners VPN-gateway, en SaaS-slutpunkt, gäst-wifi:t. **Skapa Adressnamn** frågar efter namnet och efter en IP-adress (`10.0.0.5`, `2001:db8::5`) eller ett delnät (`10.18.167.0/24`). Ett delnät sparas som sin första adress och sin längd, så `10.18.167.35/24` sparas som `10.18.167.0/24`. Varje adress eller delnät har ett namn.
+
+### DNS-namn från proben
+
+DNS-namn slås upp av proben som tog emot flödena, med den resolver som dess värd använder: inne i ert nätverk, där privata adresser har namn. Proben behåller bara ett namn när namnets egna A- eller AAAA-poster pekar tillbaka på adressen, så en inaktuell eller förfalskad omvänd post namnger inget, och ett namn i hosts-filen på probens värd används som det är. Den skickar namnen med flödena, och de sparas med dem: ett tidsintervall visar de namn dess adresser hade då.
+
+Uppslagen håller aldrig upp flödena. De mest trafikerade adresserna slås upp först, högst 300 i minuten och åtta åt gången; ett namn sparas i en timme, en adress utan namn i 30 minuter, och ett uppslag som misslyckades görs om efter 5 minuter. Loopback-, länklokala, multicast- och broadcast-adresser slås aldrig upp. De globala proberna i en driftad OneUptime, som alla konton delar, slår bara upp offentliga adresser; era egna prober, och proberna i er egen OneUptime-installation, slår även upp privata adresser.
+
+| Variabel                            | Vad den gör                                                         | Standard |
+| ----------------------------------- | ------------------------------------------------------------------- | -------- |
+| PROBE_FLOW_NAME_LOOKUP_ENABLED      | Sätt till `false` för att sluta slå upp flödenas adresser i DNS     | true     |
+| PROBE_FLOW_NAME_LOOKUPS_PER_MINUTE  | Adresser som slås upp per minut; `0` stoppar uppslagen              | 300      |
+| PROBE_FLOW_NAME_DNS_SERVERS         | DNS-servrar att fråga i stället för värdens resolver, till exempel `10.0.0.53, 10.0.0.54:5353` | ingen |
 
 ## Så läser du siffrorna
 
@@ -236,6 +283,12 @@ Om Trafik-sidan fortfarande visar sina konfigurationssteg:
 - **Sondens logg.** En gång i minuten loggar sonden det den inte kunde läsa: datagram i ett format som inte stöds (NetFlow v1, v6, v7 eller v8, eller sFlow före version 5), felaktiga datagram, data som väntar på en mall och datagram som kastades över `PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE`.
 - **Mallar.** NetFlow v9 och IPFIX skickar uppbyggnaden av sina poster som mallar. Sonden håller kvar data som kommer före sin mall i upp till 10 minuter; ställ in enheten att skicka sina mallar var 60:e sekund så fylls sidan inom en minut.
 - **En global sond.** En enhet som pollas av en global sond kan inte skicka flöden till den från ett privat nätverk. Kör en anpassad sond i enhetens nätverk och välj den i enhetens inställningar.
+
+Om en adress inte visar något namn:
+
+- **Ge den ett.** Klicka på adressen och sedan på **Ge adressen ett namn** på kortet ovanför siffrorna.
+- **Dess DNS-namn.** Namnets egen A- eller AAAA-post måste peka tillbaka på adressen; en reverse-post räcker inte ensam. Ett namn som läggs till i DNS namnger de flöden som kommer efter det.
+- **Probens resolver.** Om probens värd inte ser er interna DNS anger ni `PROBE_FLOW_NAME_DNS_SERVERS` till en DNS-server som har era reverse-zoner.
 
 Om en Meraki-anslutning säger att den inte kan läsa:
 

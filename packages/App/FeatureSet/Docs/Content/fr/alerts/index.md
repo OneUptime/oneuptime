@@ -43,7 +43,7 @@ Levez une alerte quand votre équipe doit regarder avant que quiconque à l'ext�
 ## D'où viennent les alertes
 
 - **Les critères d'un moniteur.** Dans les **Actions** d'un critère, activez **Lorsque les filtres correspondent, créer une alerte.** et remplissez l'alerte qu'il crée : **Titre de l'alerte** et **Gravité**, puis, chacun replié, **Description**, **Propriété et étiquettes**, **Astreinte** et **Plus de champs**, qui contient **Résoudre automatiquement l'alerte**, **Alerte privée** et **Notes de remédiation**. Un critère garde une seule alerte ouverte à la fois, une par série sur un moniteur qui regroupe par un champ, et **Résoudre automatiquement l'alerte** la résout dès que le critère ne correspond plus. Voir [Créer un moniteur](/docs/monitor/create-monitor) et [Modèles d'incident et d'alerte](/docs/monitor/incident-alert-templating).
-- **À la main.** Cliquez sur **Créer une alerte** dans la liste des alertes, ou dans l'onglet **Alertes** d'un moniteur, d'un hôte ou d'une autre ressource, qui choisit cette ressource pour vous. Voir [Créer une alerte à la main](#créer-une-alerte-à-la-main).
+- **À la main.** Cliquez sur **Créer une alerte** dans la liste des alertes, ou dans l'onglet **Alertes** d'un moniteur, d'un hôte, d'un équipement réseau ou d'une autre ressource, qui choisit cette ressource pour vous. Voir [Créer une alerte à la main](#créer-une-alerte-à-la-main).
 - **Le taux de consommation d'un SLO.** Une règle de taux de consommation peut créer une alerte quand un SLO dépense son budget d'erreurs trop vite. Voir [Alertes et incidents de taux de consommation](/docs/slo/burn-rate-alerts).
 - **Sites réseau et événements de sécurité.** Un site réseau configuré pour alerter quand il n'est pas en bonne santé ouvre une alerte dès que son agrégation cesse d'être opérationnelle, et vos règles de détection d'événements de sécurité ouvrent aussi des alertes. Voir [Sites réseau (agrégation de santé et disponibilité)](/docs/monitor/network-sites) et [Événements de sécurité (SIEM)](/docs/telemetry/security-events).
 - **Un appel.** `/oneuptime page` dans Slack ou Microsoft Teams ouvre une alerte dont le titre est votre message, et alerte les personnes que vous nommez. Les blocs d'appel d'un workflow font de même avec le titre et le message que vous leur donnez. Voir [Alerter quelqu'un depuis Slack](/docs/workspace-connections/slack#alerter-quelquun-depuis-slack) et [Paging](/docs/workflows/components#paging).
@@ -81,7 +81,7 @@ Remplissez le **Titre** et choisissez une **Gravité de l'alerte** ; les deux so
 
 ### Choisir ce qu'elle touche et qui est alerté
 
-Cliquez sur **Suivant** pour atteindre **Ressources et astreinte**. Choisissez le **Moniteur** concerné et, dans **Autres ressources affectées**, tout autre élément touché, comme des hôtes, des clusters Kubernetes ou des services. Dans **Politique d'astreinte**, choisissez les politiques à exécuter à la création de l'alerte.
+Cliquez sur **Suivant** pour atteindre **Ressources et astreinte**. Choisissez le **Moniteur** concerné et, dans **Autres ressources affectées**, tout autre élément touché, comme des hôtes, des équipements réseau, des clusters Kubernetes ou des services. Dans **Politique d'astreinte**, choisissez les politiques à exécuter à la création de l'alerte.
 
 ### La créer
 

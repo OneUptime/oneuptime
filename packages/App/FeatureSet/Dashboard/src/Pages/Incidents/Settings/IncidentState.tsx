@@ -56,6 +56,7 @@ const IncidentStatesPage: FunctionComponent<
         query={archive.query}
         actionButtons={archive.actionButtons}
         getDeleteConfirmation={archive.getDeleteConfirmation}
+        bulkActions={archive.bulkActions}
         refreshToggle={archive.refreshToggle}
         id="incident-state-table"
         userPreferencesKey="incident-state-table"

@@ -26,6 +26,11 @@ import HealthLicenseRequired, {
   HealthRequestError,
   toHealthRequestError,
 } from "./HealthLicenseRequired";
+import useResizableColumns, {
+  ResizableColumns,
+} from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
+import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -91,6 +96,22 @@ const TelemetryIngestionBySignal: FunctionComponent = (): ReactElement => {
   const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<HealthRequestError | null>(null);
+
+  /*
+   * The signals' columns as wide as a person makes them (Common's
+   * Table/ColumnResize): a count or a size is never cut short.
+   */
+  const signalColumns: ResizableColumns = useResizableColumns({
+    tableKey: "admin-telemetry-by-signal-table",
+    columns: [
+      { id: "signal", cellNumber: 1 },
+      { id: "actualSize", cellNumber: 2 },
+      { id: "lastMinute", cellNumber: 3 },
+      { id: "lastHour", cellNumber: 4 },
+      { id: "lastDay", cellNumber: 5 },
+      { id: "averagePerHour", cellNumber: 6 },
+    ],
+  });
 
   const loadIngestionRate: () => Promise<void> = async (): Promise<void> => {
     setError(null);
@@ -260,21 +281,73 @@ const TelemetryIngestionBySignal: FunctionComponent = (): ReactElement => {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full">
+          {signalColumns.styles}
+          <table
+            className={`${signalColumns.getTableWidthClassName("w-full")}`}
+            {...signalColumns.tableAttributes}
+          >
             <thead>
               <tr className="text-xs uppercase tracking-wide text-gray-500">
-                <th className="py-2 pr-4 text-left font-medium">Signal</th>
-                <th className="px-4 py-2 text-right font-medium">
-                  Actual size
-                </th>
-                <th className="px-4 py-2 text-right font-medium">
-                  Last minute
-                </th>
-                <th className="px-4 py-2 text-right font-medium">Last hour</th>
-                <th className="px-4 py-2 text-right font-medium">
-                  Last 24 hours
-                </th>
-                <th className="py-2 pl-4 text-right font-medium">Avg / hour</th>
+                <ResizableHeaderCell
+                  className="py-2 pr-4 text-left font-medium"
+                  resize={signalColumns.getResize(
+                    "signal",
+                    "Signal",
+                    ColumnWidthKind.Name,
+                  )}
+                >
+                  <span>Signal</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  className="px-4 py-2 text-right font-medium"
+                  resize={signalColumns.getResize(
+                    "actualSize",
+                    "Actual size",
+                    ColumnWidthKind.Whole,
+                  )}
+                >
+                  <span>Actual size</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  className="px-4 py-2 text-right font-medium"
+                  resize={signalColumns.getResize(
+                    "lastMinute",
+                    "Last minute",
+                    ColumnWidthKind.Whole,
+                  )}
+                >
+                  <span>Last minute</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  className="px-4 py-2 text-right font-medium"
+                  resize={signalColumns.getResize(
+                    "lastHour",
+                    "Last hour",
+                    ColumnWidthKind.Whole,
+                  )}
+                >
+                  <span>Last hour</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  className="px-4 py-2 text-right font-medium"
+                  resize={signalColumns.getResize(
+                    "lastDay",
+                    "Last 24 hours",
+                    ColumnWidthKind.Whole,
+                  )}
+                >
+                  <span>Last 24 hours</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  className="py-2 pl-4 text-right font-medium"
+                  resize={signalColumns.getResize(
+                    "averagePerHour",
+                    "Avg / hour",
+                    ColumnWidthKind.Whole,
+                  )}
+                >
+                  <span>Avg / hour</span>
+                </ResizableHeaderCell>
               </tr>
             </thead>
             <tbody>

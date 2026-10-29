@@ -167,6 +167,72 @@ test("the arrow keys walk the results and Enter opens the one selected", async (
   );
 });
 
+/*
+ * A setting is found by the name its card or switch shows, as a result of
+ * its own that says the page it is on: a row called "Billing" for "cancel
+ * plan" never said why it was found.
+ */
+test("a setting is a result of its own: its name, the page it is on, and Enter opens that page", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  const input: Locator = await openSearch(page);
+  await input.fill("require sso for login");
+
+  const first: Locator = options(page).first();
+  await expect(first).toContainText("Require SSO for Login");
+  await expect(first).toContainText("Project Settings");
+  await expect(first).toContainText("Security");
+  await expect(first.locator('[data-testid$="-breadcrumb"]')).toContainText(
+    "SSO",
+  );
+  // The words typed are marked where they are found: in its name.
+  await expect(
+    first.locator("p").first().locator("mark").first(),
+  ).toBeVisible();
+
+  await input.press("Enter");
+
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByTestId("current-route")).toHaveText(
+    `${projectPath}/settings/sso`,
+  );
+});
+
+test("a setting never comes before the page it is on", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  const input: Locator = await openSearch(page);
+  await input.fill("saml");
+
+  // The SSO page first, then its SAML card.
+  await expect(options(page).nth(0)).toContainText("SSO");
+  await expect(options(page).nth(0)).not.toContainText("SAML");
+  await expect(options(page).nth(1)).toContainText("SAML");
+});
+
+test("a setting folded under More settings opens its page at its card", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  const input: Locator = await openSearch(page);
+  await input.fill("daily ai spend");
+
+  await expect(options(page).first()).toContainText(
+    "Daily AI Spend Limit (USD)",
+  );
+  await input.press("Enter");
+
+  await expect(page.getByTestId("current-route")).toHaveText(
+    `${projectPath}/settings/ai-features`,
+  );
+  expect(new URL(page.url()).hash).toBe("#DailyLimits");
+});
+
 test("a breadcrumb stays inside the panel, without a sideways scroll", async ({
   page,
 }: {

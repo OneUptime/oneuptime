@@ -6,8 +6,10 @@ import RouteMap, { RouteUtil, SettingsRoutePath } from "../Utils/RouteMap";
 import {
   MOVED_OIDC_SETTINGS_PATH,
   MOVED_RUNNER_SETTINGS_PATHS,
+  MOVED_USERS_SETTINGS_PATHS,
 } from "./MovedPagePaths";
 import MovedPageRedirect from "../Components/Routing/MovedPageRedirect";
+import PageNotFound from "../Pages/PageNotFound/PageNotFound";
 import Route from "Common/Types/API/Route";
 import React, { FunctionComponent, lazy, ReactElement } from "react";
 import { Route as PageRoute, Routes } from "react-router-dom";
@@ -125,6 +127,23 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
       <PageRoute
         path={MOVED_RUNNER_SETTINGS_PATHS.runnerCredentials}
         element={<MovedRunnerPageRedirect pageMap={PageMap.RUNBOOKS_RUNNERS} />}
+      />
+      {/*
+       * Users moved out of Settings to a page of their own. Every person a
+       * feed entry, a Slack or Teams message or an email names linked to
+       * their old page here, and those links forward to the person.
+       */}
+      <PageRoute
+        path={MOVED_USERS_SETTINGS_PATHS.users}
+        element={<MovedPageRedirect pageMap={PageMap.USERS} />}
+      />
+      <PageRoute
+        path={MOVED_USERS_SETTINGS_PATHS.userView}
+        element={<MovedPageRedirect pageMap={PageMap.USER_VIEW} />}
+      />
+      <PageRoute
+        path={MOVED_USERS_SETTINGS_PATHS.userViewPage}
+        element={<MovedPageRedirect pageMap={PageMap.USER_VIEW} />}
       />
 
       <PageRoute
@@ -497,6 +516,21 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
       </PageRoute>
+
+      {/*
+       * An address no Settings page has - a mistyped link, a page that is
+       * gone - says so, as any other unknown address does, instead of
+       * leaving the page blank under the header.
+       */}
+      <PageRoute
+        path="*"
+        element={
+          <PageNotFound
+            {...props}
+            pageRoute={RouteMap[PageMap.SETTINGS] as Route}
+          />
+        }
+      />
     </Routes>
   );
 };

@@ -61,6 +61,18 @@ export const getSecurityCaseFeedKind: GetSecurityCaseFeedKindFunction = (
     // OneUptime AI's triage: drawn as an AI investigation's report is.
     case SecurityCaseFeedEventType.AiTriage:
       return SHARED_FEED_ENTRY_KINDS.AIRootCause;
+    // A task added, done, opened again, handed on or deleted.
+    case SecurityCaseFeedEventType.Task:
+      return { icon: IconProp.ClipboardDocumentCheck, tone: FeedTone.Record };
+    // Evidence kept on the case, or taken off it.
+    case SecurityCaseFeedEventType.Evidence:
+      return { icon: IconProp.PaperClip, tone: FeedTone.Record };
+    /*
+     * A response target about to be missed (amber) or missed (red), in the
+     * color the server chose.
+     */
+    case SecurityCaseFeedEventType.ResponseTarget:
+      return { icon: IconProp.Clock, tone: FeedTone.Record };
     default:
       return undefined;
   }

@@ -19,6 +19,7 @@ import {
 } from "@testing-library/react";
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { searchThroughGetList } from "./AffectedResourceSearchFake";
 
 /*
  * The incident and alert overview pages, rendered for real with every heavy
@@ -107,6 +108,25 @@ jest.mock("react-i18next", () => {
     },
   };
 });
+
+/*
+ * The picker asks one route for every kind (POST /affected-resources/search).
+ * It is answered from this suite's getList store, kind by kind, as the
+ * server reads each kind (AffectedResourceSearchFake).
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/AffectedResources/AffectedResourceSearchApi",
+  () => {
+    return {
+      __esModule: true,
+      searchAffectedResources: (query: unknown): Promise<unknown> => {
+        return searchThroughGetList((args: unknown) => {
+          return getListMock(args) as never;
+        })(query as never);
+      },
+    };
+  },
+);
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -4040,8 +4060,12 @@ describe("alert-only behaviour", () => {
       // Read as a pair with the dropdown above it.
       expect(pickerField.title).toBe("Other Affected Resources");
       expect(pickerField.fieldType).toBe(FormFieldSchemaType.CustomComponent);
-      // Hidden registrations so the form still loads the other relations.
+      /*
+       * Hidden registrations so the form still loads the other relations -
+       * the alert's network devices (issue #5341) right after its hosts.
+       */
       expect(hiddenFields.flatMap(keysOf)).toEqual([
+        "networkDevices",
         "kubernetesClusters",
         "dockerHosts",
         "podmanHosts",
@@ -4059,14 +4083,22 @@ describe("alert-only behaviour", () => {
       // The picker does not offer monitors: the dropdown is the one place.
       render(pickerField.getCustomElement!({}, {}));
 
-      const picker: { monitors?: unknown; resourceTypes?: Array<string> } =
-        latestProps<{ monitors?: unknown; resourceTypes?: Array<string> }>(
-          "AffectedResourcesPicker",
-        );
+      const picker: {
+        monitors?: unknown;
+        resourceTypes?: Array<string>;
+        monitorFieldTitle?: string;
+      } = latestProps<{
+        monitors?: unknown;
+        resourceTypes?: Array<string>;
+        monitorFieldTitle?: string;
+      }>("AffectedResourcesPicker");
 
       expect(picker.monitors).toBeUndefined();
       expect(picker.resourceTypes).toContain("Host");
+      expect(picker.resourceTypes).toContain("NetworkDevice");
       expect(picker.resourceTypes).not.toContain("Monitor");
+      // A search that matches monitors says they are picked in the dropdown.
+      expect(picker.monitorFieldTitle).toBe("Monitor");
     });
 
     test("says it covers monitors", () => {

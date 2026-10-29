@@ -365,8 +365,21 @@ describe("Host overview", () => {
 
   test("the Filesystems table explains its two metric columns", () => {
     const head: string = between(code, "<thead", "</thead>");
-    const usedTotal: string = between(head, "Used / Total", "</th>");
-    const utilization: string = between(head, "Utilization", "</th>");
+    /*
+     * Its columns can be resized, so each header cell is a
+     * ResizableHeaderCell (Common's Table/ColumnResize), which draws the
+     * <th>: a column's (i) sits inside its own cell.
+     */
+    const usedTotal: string = between(
+      head,
+      "Used / Total",
+      "</ResizableHeaderCell>",
+    );
+    const utilization: string = between(
+      head,
+      "Utilization",
+      "</ResizableHeaderCell>",
+    );
 
     expect(usedTotal).toContain('<InfoTooltip label="Used / Total"');
     expect(usedTotal).toContain(

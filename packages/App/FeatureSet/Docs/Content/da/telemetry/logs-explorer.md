@@ -88,6 +88,7 @@ Live-tilstanden slår sig selv fra, når du ændrer søgningen, et filter eller 
 
 - **Kolonner** vælger, hvad listen viser. **Tid**, **Tjeneste**, **Alvorlighed** og **Besked** kommer først; tilføj **Spor-ID**, **Span-ID** eller en vilkårlig attribut, flyt kolonner op og ned, eller gå tilbage til standarden med **Nulstil**.
 - **Eksport** henter protokollerne på den side, du kigger på. **Eksportér som CSV** skriver de kolonner, du viser; **Eksportér som JSON** skriver hvert felt i hver protokol med alle dens attributter.
+- Peg på overskriftsrækken, og træk stregen for enden af et kolonnenavn for at gøre kolonnen bredere eller smallere, eller dobbeltklik på stregen for at tilpasse kolonnen til indholdet. Listen husker dine bredder i denne browser; **Nulstil kolonnebredder** for enden af overskriftsrækken giver hver kolonne dens egen bredde igen.
 
 ## Gem en visning
 

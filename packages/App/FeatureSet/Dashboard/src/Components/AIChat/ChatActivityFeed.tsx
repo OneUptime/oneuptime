@@ -439,6 +439,7 @@ export function describePromptOmissions(
  */
 export const LINKED_RESOURCE_KIND_NOUNS: { [kind: string]: string } = {
   Host: translationKey("Host"),
+  NetworkDevice: translationKey("Network device"),
   DockerHost: translationKey("Docker host"),
   PodmanHost: translationKey("Podman host"),
   KubernetesCluster: translationKey("Kubernetes cluster"),

@@ -114,7 +114,7 @@ export const CUSTOM_CHANNELS_NOT_ACTIVE_WARNING: string =
   "Custom channels are a OneUptime Enterprise feature, and this server has no Enterprise license that includes them, so nothing is sent to a custom channel and members are not checked for one.";
 
 export const NO_CUSTOM_CHANNEL_ON_WARNING: string =
-  "No custom channel is turned on, so nothing is sent to one and members are not checked for one. A server admin can turn one on in the Admin Dashboard, under Settings > Custom Channels.";
+  "No custom channel is turned on, so nothing is sent to one and members are not checked for one. A server admin can turn one on in the Admin Dashboard, under Settings > Notifications > Custom Channels.";
 
 /*
  * Why a rule a severity delete left with nothing to check

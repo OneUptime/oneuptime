@@ -206,6 +206,8 @@ Um dispositivo de rede (`entityType: network.device`) é espelhado a partir do s
 
 As linhas de ENTITY-MIB se preenchem depois do primeiro walk SNMP do dispositivo. Um dispositivo que não é percorrido, por ser monitorado só por ping ou ainda não consultado, ainda obtém o nome, a marca, o sistema operacional e a localização do que a última varredura de descoberta do seu endereço leu por SNMP, e o endereço MAC da tabela ARP de um roteador percorrido. Um dispositivo que não implementa ENTITY-MIB não tem número de série nem firmware para informar. O seu `sysDescr` ainda cita o modelo e o sistema operacional em muitas plataformas: um Cisco Meraki MX informa `Meraki MX85`, o que preenche a marca e o modelo. Uma plataforma cujo `sysDescr` não tem formato conhecido não acrescenta nada, em vez de chutar.
 
+Um dispositivo Meraki obtém do painel do Meraki o que a sua própria consulta deixa vazio, quando uma [conexão do Meraki](/docs/monitor/network-traffic#cisco-meraki-sem-netflow) lê a organização dele: o número de série, o modelo, o firmware e a marca, o endereço MAC, o nome, o endereço de gerenciamento, o endereço postal em que está cadastrado e o tipo. Um dispositivo é um dos dispositivos da organização quando tem o número de série ou o endereço MAC do dispositivo Meraki, ou quando o OneUptime o consulta no endereço de gerenciamento do dispositivo Meraki e ele tem o mesmo nome. Um valor salvo no dispositivo, e o que a sua própria consulta lê, vêm primeiro.
+
 Um valor salvo no dispositivo, digitado ou definido pela API, nunca é substituído pelo que a descoberta lê. Entre um valor que o próprio walk do dispositivo leu e um que uma varredura leu, vale o mais recente. O que uma varredura leu só é usado quando ela encontrou a mesma máquina no endereço: quando o nome do sistema, o `sysObjectID` ou o nome NetBIOS que ela leu contradiz o do dispositivo, nada do que ela leu ali é usado. O cartão **Detalhes do ativo** do item mostra de onde veio cada valor e quando.
 
 O nome do host nunca é o endereço IP. Um dispositivo que só o endereço identifica tem `host.ip` e nenhum `host.name`. Quando o seu walk SNMP informa um nome de sistema, `host.name` aparece na próxima passagem.
@@ -223,6 +225,8 @@ As datas em `customFields` são strings ISO-8601 em UTC, e a exportação CSV as
 ## Manter tudo em dia
 
 Não há um feed de mudanças. Consulte o endpoint de lista no intervalo que preferir e compare por `entityKey`. `lastSeenAt` diz quando um item foi observado pela última vez, o que costuma ser a forma mais barata de perceber o que ficou em silêncio desde a sua última execução.
+
+Para ler um dispositivo de rede de novo agora, sem esperar a próxima consulta e a próxima cópia, clique em **Atualizar** no cartão **Detalhes do ativo** do item dele, ou envie `POST /api/network-device/{id}/refresh` com uma chave que tenha **Edit Network Device**. A sonda dele o consulta em até um minuto, a conexão do Meraki lê a organização de novo, e o item é copiado assim que a nova leitura chega.
 
 Um item que desaparece entre execuções expirou (um item descoberto que ficou em silêncio além da sua janela) ou teve o seu registro de origem excluído. Um item espelhado que tem valores de campos personalizados é arquivado em vez de excluído quando o seu registro some, então consulte com `"isArchived": true` para ver o que foi desativado sem perder os dados de ativo ligados a ele.
 

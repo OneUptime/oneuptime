@@ -1748,6 +1748,88 @@ describe("the dialog, as a reader meets it", () => {
     expect(
       screen.queryByTestId("discovery-import-issue-more-DeviceFailed"),
     ).not.toBeInTheDocument();
+
+    /*
+     * Issue #5364: the list used to open for good. Show fewer, under it,
+     * says it is open, names the list, and has focus.
+     */
+    const fewer: HTMLElement = screen.getByTestId(
+      "discovery-import-issue-fewer-DeviceFailed",
+    );
+
+    expect(fewer).toHaveTextContent("Show fewer");
+    expect(fewer).toHaveAttribute("aria-expanded", "true");
+    expect(fewer).toHaveAttribute("aria-controls", hosts.id);
+    expect(hosts.id).toBeTruthy();
+    expect(fewer).toHaveFocus();
+  });
+
+  test("Show fewer folds the list back to the names, focus on the way to open it again", async () => {
+    const many: Array<DiscoveredNetworkDevice> = Array.from(
+      { length: 30 },
+      (_value: unknown, index: number): DiscoveredNetworkDevice => {
+        return { ipAddress: `10.70.0.${index + 1}`, snmpReachable: false };
+      },
+    );
+    getItemSpy.mockResolvedValue(scanRow({ discoveredDevices: many }) as never);
+
+    for (const host of many) {
+      server.control.failDevices.set(
+        host.ipAddress,
+        "This project has reached its plan's limit of network devices.",
+      );
+    }
+
+    await openDialog();
+    await next();
+    await submitImport();
+
+    const more: HTMLElement = screen.getByTestId(
+      "discovery-import-issue-more-DeviceFailed",
+    );
+
+    expect(more).toHaveAttribute("aria-expanded", "false");
+    expect(more).toHaveTextContent("and 18 more");
+
+    await act(async () => {
+      fireEvent.click(more);
+    });
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId("discovery-import-issue-fewer-DeviceFailed"),
+      );
+    });
+
+    const group: HTMLElement = screen.getByTestId(
+      "discovery-import-issue-DeviceFailed",
+    );
+
+    expect(
+      screen.queryByTestId("discovery-import-issue-hosts-DeviceFailed"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("discovery-import-issue-fewer-DeviceFailed"),
+    ).not.toBeInTheDocument();
+    expect(group).toHaveTextContent("10.70.0.12");
+    expect(group).not.toHaveTextContent("10.70.0.13,");
+
+    const moreAgain: HTMLElement = screen.getByTestId(
+      "discovery-import-issue-more-DeviceFailed",
+    );
+
+    expect(moreAgain).toHaveAttribute("aria-expanded", "false");
+    expect(moreAgain).toHaveFocus();
+
+    // And it opens again, as often as it is pressed.
+    await act(async () => {
+      fireEvent.click(moreAgain);
+    });
+
+    expect(
+      within(
+        screen.getByTestId("discovery-import-issue-hosts-DeviceFailed"),
+      ).getAllByRole("listitem"),
+    ).toHaveLength(30);
   });
 });
 

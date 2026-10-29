@@ -1119,6 +1119,11 @@ describe("the feed item for a changed note", () => {
     );
     expect(String(item["incidentId"])).toBe(RECORD_ID);
     expect(String(item["userId"])).toBe(USER_ID.toString());
+    /*
+     * Its Slack and Teams message is posted as it reads, opening with its
+     * heading: a name in front of "Postmortem Note updated for Incident
+     * INC-42" is no sentence. The feed names the editor (its userId).
+     */
     expect(item["workspaceNotification"]).toEqual({
       sendWorkspaceNotification: true,
     });

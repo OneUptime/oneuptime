@@ -148,6 +148,16 @@ describe("the sentence that follows the person's name", () => {
       "Started on-call policy **X**.",
       "started on-call policy **X**.",
     ],
+    [
+      "Took",
+      "👤 Took the **Incident Commander** role on [Incident INC-8](x).",
+      "took the **Incident Commander** role on [Incident INC-8](x).",
+    ],
+    [
+      "Left",
+      "👤 Left the **Responder** role on [Incident INC-8](x).",
+      "left the **Responder** role on [Incident INC-8](x).",
+    ],
   ])(
     "a sentence that opens with '%s' reads in lower case after the name",
     (_verb: string, stored: string, expected: string) => {

@@ -1717,9 +1717,8 @@ describePostgres("IncidentAlert against a migrated Postgres", () => {
       expect(feedItems).toHaveLength(1);
       expect(feedItems[0]!.alertId.toString()).toBe(alertId.toString());
       expect(String(feedItems[0]!.userId)).toBe(userId.toString());
-      expect(String(feedItems[0]!.workspaceNotification?.notifyUserId)).toBe(
-        userId.toString(),
-      );
+      // Its Slack and Teams message opens with them: the entry's author.
+      expect(feedItems[0]!.workspaceNotification?.leadWithAuthor).toBe(true);
       expect(feedItems[0]!.moreInformationInMarkdown).toContain(
         "Acknowledged because Incident #1 was declared from this alert.",
       );

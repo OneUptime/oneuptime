@@ -20,6 +20,7 @@ import SigmaClickhouseCompiler, {
   buildSigmaDistinctCountExpression,
   buildSigmaFieldExpression,
 } from "../Sigma/SigmaClickhouseCompiler";
+import { assertDetectionReadFits } from "../Watchlists/SecurityWatchlistMatch";
 
 /*
  * The ClickHouse reads behind correlation rules. Each builds one Statement
@@ -372,6 +373,9 @@ export default class CorrelationQueries {
   }
 
   private static async read(statement: Statement): Promise<Array<JSONObject>> {
+    // A step's watchlists travel with every read that names the step.
+    assertDetectionReadFits(statement);
+
     const result: Results = await SecurityEventService.executeQuery(statement);
     const response: DbJSONResponse = await result.json<{
       data?: Array<JSONObject>;

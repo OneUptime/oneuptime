@@ -1299,12 +1299,22 @@ describe("paging again when an acknowledged incident or alert is not resolved", 
     expect(sentence).toContain(
       "template={AcknowledgementTimeoutCopy.policySentence}",
     );
-    // Both summaries draw it, only while the policy pages again.
+    /*
+     * Both summaries draw it, only while the policy pages again - and only
+     * while it has somebody to page: with nobody on any level, a run passes
+     * every level at once and nobody acknowledges (OnCallEmptyLevel).
+     */
     expect(glance).toContain("{overview.acknowledgementTimeoutInMinutes ? (");
+    expect(glance).toContain(
+      "{hasResponders ? getEscalationNarrative() : <></>}",
+    );
     expect(glance).toContain("<AcknowledgementTimeoutPolicySentence");
     expect(glance).toContain('translator.translateText("Policy at a glance")');
     expect(escalationSummary).toContain(
-      "{props.acknowledgementTimeoutInMinutes ? (",
+      "Boolean(props.acknowledgementTimeoutInMinutes) && !isEveryLevelSkipped;",
+    );
+    expect(escalationSummary).toContain(
+      "{isPageAgainShown && props.acknowledgementTimeoutInMinutes ? (",
     );
     expect(escalationSummary).toContain(
       "<AcknowledgementTimeoutPolicySentence",

@@ -80,6 +80,18 @@ export function getNetworkDeviceBreadcrumbs(
       "View Device",
       "Monitors",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_VIEW_INCIDENTS, [
+      "Project",
+      "Network",
+      "View Device",
+      "Incidents",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_VIEW_ALERTS, [
+      "Project",
+      "Network",
+      "View Device",
+      "Alerts",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_VIEW_LOGS, [
       "Project",
       "Network",
@@ -163,12 +175,29 @@ export function getNetworkDeviceBreadcrumbs(
       ["Project", "Network", "Settings", "Device Roles"],
     ),
     ...BuildBreadcrumbLinksByTitles(
+      PageMap.NETWORK_DEVICE_SETTINGS_ADDRESS_NAMES,
+      ["Project", "Network", "Settings", "Address Names"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
       PageMap.NETWORK_DEVICE_SETTINGS_SNMP_CREDENTIAL_PROFILES,
       ["Project", "Network", "Settings", "SNMP Credentials"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.NETWORK_DEVICE_SETTINGS_ALERT_POLICIES,
       ["Project", "Network", "Settings", "Alert Policies"],
+    ),
+    /*
+     * Pages that had no trail. Every page this product routes has one:
+     * Common/Tests/App/Dashboard/EveryPageHasATrail fails by name for a
+     * page left out.
+     */
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.NETWORK_DEVICE_SETTINGS_OWNER_RULE_VIEW,
+      ["Project", "Network", "Rules", "Owner Rules", "View Rule"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.NETWORK_DEVICE_SETTINGS_LABEL_RULE_VIEW,
+      ["Project", "Network", "Rules", "Label Rules", "View Rule"],
     ),
   };
   return breadcrumpLinksMap[path];

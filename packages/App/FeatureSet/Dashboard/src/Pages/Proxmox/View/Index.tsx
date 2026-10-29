@@ -109,6 +109,11 @@ import {
 } from "../Utils/ProxmoxResourceUtils";
 import { PROXMOX_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ProxmoxMetricDescriptions";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import useResizableColumns, {
+  ResizableColumns,
+} from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
+import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 type ClusterHealth = "Healthy" | "Degraded" | "Unhealthy";
@@ -220,11 +225,64 @@ const DEFAULT_TIME_RANGE: RangeStartAndEndDateTime = {
 
 const REFRESH_STORAGE_KEY: string = "proxmox-overview-auto-refresh-interval";
 
+// The replication card's columns, in order.
+interface ReplicationColumn {
+  id: string;
+  heading: string;
+  description?: string;
+  kind: ColumnWidthKind;
+}
+
+const REPLICATION_COLUMNS: Array<ReplicationColumn> = [
+  { id: "job", heading: "Job", kind: ColumnWidthKind.Name },
+  { id: "guest", heading: "Guest", kind: ColumnWidthKind.Text },
+  {
+    id: "sourceTarget",
+    heading: "Source → Target",
+    kind: ColumnWidthKind.Text,
+  },
+  {
+    id: "lastSync",
+    heading: "Last Sync",
+    description: PROXMOX_METRIC_DESCRIPTIONS.replicationLastSync,
+    kind: ColumnWidthKind.Whole,
+  },
+  {
+    id: "duration",
+    heading: "Duration",
+    description: PROXMOX_METRIC_DESCRIPTIONS.replicationDuration,
+    kind: ColumnWidthKind.Whole,
+  },
+  {
+    id: "failedSyncs",
+    heading: "Failed Syncs",
+    description: PROXMOX_METRIC_DESCRIPTIONS.replicationFailedSyncs,
+    kind: ColumnWidthKind.Whole,
+  },
+];
+
 const ProxmoxClusterOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+
+  /*
+   * The replication jobs' columns as wide as a person makes them (Common's
+   * Table/ColumnResize): a job, a guest and its nodes give way, a time or
+   * a count never.
+   */
+  const replicationColumns: ResizableColumns = useResizableColumns({
+    tableKey: "proxmox-replication-table",
+    columns: REPLICATION_COLUMNS.map(
+      (
+        column: ReplicationColumn,
+        index: number,
+      ): { id: string; cellNumber: number } => {
+        return { id: column.id, cellNumber: index + 1 };
+      },
+    ),
+  });
 
   const [cluster, setCluster] = useState<ProxmoxCluster | null>(null);
   /*
@@ -2167,37 +2225,24 @@ const ProxmoxClusterOverview: FunctionComponent<
         description="Storage replication jobs (pvesr) reported by this cluster — last successful sync, duration, and failed sync count per job."
       >
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-100">
+          {replicationColumns.styles}
+          <table
+            className={`${replicationColumns.getTableWidthClassName("min-w-full")} divide-y divide-gray-100`}
+            {...replicationColumns.tableAttributes}
+          >
             <thead>
               <tr>
-                {[
-                  { heading: "Job" },
-                  { heading: "Guest" },
-                  { heading: "Source → Target" },
-                  {
-                    heading: "Last Sync",
-                    description:
-                      PROXMOX_METRIC_DESCRIPTIONS.replicationLastSync,
-                  },
-                  {
-                    heading: "Duration",
-                    description:
-                      PROXMOX_METRIC_DESCRIPTIONS.replicationDuration,
-                  },
-                  {
-                    heading: "Failed Syncs",
-                    description:
-                      PROXMOX_METRIC_DESCRIPTIONS.replicationFailedSyncs,
-                  },
-                ].map(
-                  (column: {
-                    heading: string;
-                    description?: string;
-                  }): ReactElement => {
+                {REPLICATION_COLUMNS.map(
+                  (column: ReplicationColumn): ReactElement => {
                     return (
-                      <th
-                        key={column.heading}
+                      <ResizableHeaderCell
+                        key={column.id}
                         className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                        resize={replicationColumns.getResize(
+                          column.id,
+                          column.heading,
+                          column.kind,
+                        )}
                       >
                         <span className="inline-flex items-center gap-1">
                           {column.heading}
@@ -2207,7 +2252,7 @@ const ProxmoxClusterOverview: FunctionComponent<
                             className="normal-case tracking-normal"
                           />
                         </span>
-                      </th>
+                      </ResizableHeaderCell>
                     );
                   },
                 )}

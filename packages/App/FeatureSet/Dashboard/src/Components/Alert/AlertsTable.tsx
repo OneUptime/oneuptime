@@ -135,6 +135,7 @@ export const getAlertAffectedResources: GetAlertAffectedResourcesFunction = (
   return {
     monitors: alert.monitor ? [alert.monitor] : [],
     hosts: alert.hosts || [],
+    networkDevices: alert.networkDevices || [],
     kubernetesClusters: alert.kubernetesClusters || [],
     dockerHosts: alert.dockerHosts || [],
     podmanHosts: alert.podmanHosts || [],
@@ -489,6 +490,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
       // Burn rate alerts are linked to the SLO that raised them.
       includeServiceLevelObjective: true,
       includeCloudResource: true,
+      includeNetworkDevice: true,
     }),
   ];
 
@@ -717,6 +719,11 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
            * of each column.field. Include the remaining relations explicitly
            * so all attached resources actually load.
            */
+          networkDevices: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
           kubernetesClusters: {
             name: true,
             _id: true,
@@ -903,6 +910,11 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             id: ALERTS_AFFECTED_RESOURCES_COLUMN_ID,
             field: {
               hosts: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
+              networkDevices: {
                 name: true,
                 _id: true,
                 projectId: true,

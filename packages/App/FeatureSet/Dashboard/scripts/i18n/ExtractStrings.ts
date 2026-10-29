@@ -160,6 +160,15 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Types/SecurityEvent/DetectionRuleException.ts",
     kind: "ui",
   },
+  /*
+   * What is wrong with a watchlist or one of its values: the forms and the
+   * Import Values preview show each problem in the reader's language, and
+   * the API answers a save with the same words.
+   */
+  {
+    directory: "packages/Common/Types/SecurityEvent/SecurityWatchlist.ts",
+    kind: "ui",
+  },
 ];
 
 /*

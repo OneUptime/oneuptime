@@ -553,6 +553,69 @@ describe("picking and changing the type", () => {
     );
   });
 
+  /*
+   * Issue #5364: More monitor types went once pressed, so the long tail
+   * stayed open until the page was reloaded. On the real page it folds
+   * again, and nothing else of Monitor Info moves or resets.
+   */
+  test("More monitor types folds the long tail away again, and the name stays as typed", async () => {
+    const form: HTMLElement = await renderPage();
+
+    typeName("Checkout cluster");
+
+    const more: HTMLElement = screen.getByTestId("card-select-more");
+
+    fireEvent.click(more);
+
+    expect(more).toHaveAttribute("aria-expanded", "true");
+    expect(
+      screen.getByTestId("card-select-group-Infrastructure"),
+    ).toBeVisible();
+
+    fireEvent.click(more);
+
+    expect(more).toHaveAttribute("aria-expanded", "false");
+    expect(more).toHaveFocus();
+    expect(shownTypes()).toEqual(COMMON_TYPES);
+    expect(within(form).queryByText("Infrastructure")).not.toBeInTheDocument();
+    expect(nameInput()).toHaveValue("Checkout cluster");
+    expect(createOrUpdateMock).not.toHaveBeenCalled();
+  });
+
+  test("a link's type from the long tail: Change opens it with More open, and More folds it", async () => {
+    await renderPage({ monitorType: MonitorType.Kubernetes });
+
+    fireEvent.click(screen.getByTestId("card-select-change"));
+
+    expect(screen.getByTestId("card-select-more")).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(screen.getByTestId("card-select-option-Kubernetes")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+
+    fireEvent.click(screen.getByTestId("card-select-more"));
+
+    expect(shownTypes()).toEqual(COMMON_TYPES);
+
+    // A common type picked from there builds that type's steps.
+    fireEvent.click(screen.getByTestId("card-select-option-Website"));
+
+    expect(screen.getByTestId("card-select-summary")).toHaveAttribute(
+      "data-card-select-value",
+      MonitorType.Website,
+    );
+    await waitFor(() => {
+      expect(stepTitles()).toEqual([
+        "Monitor Info",
+        "Criteria",
+        "Probes & Interval",
+      ]);
+    });
+  });
+
   test("a type from the long tail, by search and Enter", async () => {
     await renderPage();
 

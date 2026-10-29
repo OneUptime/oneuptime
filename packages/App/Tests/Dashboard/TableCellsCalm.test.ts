@@ -8,7 +8,10 @@ import {
   getEventDurationParts,
   getEventDurationText,
 } from "../../FeatureSet/Dashboard/src/Utils/EventDuration";
-import { FACET_FILTER_BAR_CLASS_NAME } from "../../FeatureSet/Dashboard/src/Components/ResourceOwners/FilterChipStyles";
+import {
+  FACET_FILTER_BAR_CLASS_NAME,
+  FACET_FILTER_BAR_FOLDED_CLASS_NAME,
+} from "../../FeatureSet/Dashboard/src/Components/ResourceOwners/FilterChipStyles";
 
 /*
  * The Dashboard's half of the table redesign (model-table-ui), on the
@@ -190,7 +193,11 @@ describe("a row's owners", () => {
 });
 
 describe("the facet chips sit on the card", () => {
-  const tokens: Array<string> = FACET_FILTER_BAR_CLASS_NAME.split(" ");
+  // The row's look, and what it adds folded on a phone.
+  const tokens: Array<string> = [
+    ...FACET_FILTER_BAR_CLASS_NAME.split(" "),
+    ...FACET_FILTER_BAR_FOLDED_CLASS_NAME.split(" "),
+  ];
 
   test("a row that wraps, with room under it for the table's header", () => {
     expect(tokens).toEqual(
@@ -226,7 +233,11 @@ describe("the facet chips sit on the card", () => {
       "FacetFilterBar.tsx",
     );
 
-    expect(bar).toContain("className={FACET_FILTER_BAR_CLASS_NAME}");
+    // Always the row's own look; folded on a phone, the fold's rule as well.
+    expect(bar).toContain(
+      "? `${FACET_FILTER_BAR_CLASS_NAME} ${FACET_FILTER_BAR_FOLDED_CLASS_NAME}`",
+    );
+    expect(bar).toContain(": FACET_FILTER_BAR_CLASS_NAME }");
     expect(bar).toContain(
       'data-testid={props.dataTestId || "facet-filter-bar"}',
     );

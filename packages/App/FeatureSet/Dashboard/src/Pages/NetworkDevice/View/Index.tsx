@@ -10,6 +10,7 @@ import DeviceVendorTemplateBanner from "../../../Components/NetworkDevice/Device
 import DeviceAttachmentCard from "../../../Components/NetworkDevice/DeviceAttachmentCard";
 import DeviceDiagnosticsCard from "../../../Components/NetworkDevice/DeviceDiagnosticsCard";
 import ResourceSecurityCard from "../../../Components/SecurityConnections/ResourceSecurityCard";
+import ResourceActivityCards from "../../../Components/ResourceActivity/ResourceActivityCards";
 import { SecurityConnectionKind } from "Common/Types/SecurityCase/SecurityConnection";
 import {
   DEVICE_NAME_SOURCE_FIELD_DESCRIPTION,
@@ -168,6 +169,25 @@ const NetworkDeviceView: FunctionComponent<
        */}
       <DeviceStatusHero modelId={modelId} />
       <DeviceVendorTemplateBanner modelId={modelId} />
+      {/*
+       * The device's open incidents and alerts (issue #5341): the ones linked
+       * to it by a person, by the monitors that report on it, or by
+       * OneUptime AI, as every resource's overview counts them. A
+       * maintenance window holds the device's monitors, not the device, so
+       * there is no maintenance card.
+       */}
+      <ResourceActivityCards
+        modelId={modelId}
+        resourceQueryKey="networkDevices"
+        incidentsRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.NETWORK_DEVICE_VIEW_INCIDENTS] as Route,
+          { modelId: modelId },
+        )}
+        alertsRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.NETWORK_DEVICE_VIEW_ALERTS] as Route,
+          { modelId: modelId },
+        )}
+      />
       <CardModelDetail<NetworkDevice>
         name="Network Device Details"
         cardProps={{

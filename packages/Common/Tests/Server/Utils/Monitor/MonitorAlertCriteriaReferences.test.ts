@@ -219,6 +219,7 @@ describe("MonitorAlert drops criteria references the project cannot use", () => 
         databaseServerIds: [],
         storageArrayIds: [],
         cloudResourceIds: [],
+        networkDeviceIds: [],
       });
 
     // Linked by hand (Monitor > Overview > Linked Resources): nothing here.

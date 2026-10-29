@@ -86,6 +86,7 @@ import ResellerPlanAPI from "Common/Server/API/ResellerPlanAPI";
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
 import OpenSourceDeploymentAPI from "Common/Server/API/OpenSourceDeploymentAPI";
 import MonitorAPI from "Common/Server/API/MonitorAPI";
+import AffectedResourceSearchAPI from "Common/Server/API/AffectedResourceSearchAPI";
 import MonitorTemplateAPI from "Common/Server/API/MonitorTemplateAPI";
 import ShortLinkAPI from "Common/Server/API/ShortLinkAPI";
 import StatusPageAPI from "Common/Server/API/StatusPageAPI";
@@ -183,6 +184,7 @@ import AlertCustomFieldService, {
   Service as AlertCustomFieldServiceType,
 } from "Common/Server/Services/AlertCustomFieldService";
 import AlertInternalNoteAPI from "Common/Server/API/AlertInternalNoteAPI";
+import SecurityCaseEvidenceAPI from "Common/Server/API/SecurityCaseEvidenceAPI";
 import CustomFieldDefinitionAPI from "Common/Server/API/CustomFieldDefinitionAPI";
 import TelemetryExceptionAPI from "Common/Server/API/TelemetryExceptionAPI";
 import KubernetesResourceAPI from "Common/Server/API/KubernetesResourceAPI";
@@ -589,6 +591,11 @@ import LogDropFilterService, {
   Service as LogDropFilterServiceType,
 } from "Common/Server/Services/LogDropFilterService";
 import DetectionRuleAPI from "Common/Server/API/DetectionRuleAPI";
+import SecurityWatchlistAPI from "Common/Server/API/SecurityWatchlistAPI";
+import SecurityWatchlistItem from "Common/Models/DatabaseModels/SecurityWatchlistItem";
+import SecurityWatchlistItemService, {
+  Service as SecurityWatchlistItemServiceType,
+} from "Common/Server/Services/SecurityWatchlistItemService";
 import DetectionRuleException from "Common/Models/DatabaseModels/DetectionRuleException";
 import DetectionRuleExceptionService, {
   Service as DetectionRuleExceptionServiceType,
@@ -631,6 +638,9 @@ import SecurityCaseFeedService, {
 import SecurityCaseNoteService, {
   Service as SecurityCaseNoteServiceType,
 } from "Common/Server/Services/SecurityCaseNoteService";
+import SecurityCaseTaskService, {
+  Service as SecurityCaseTaskServiceType,
+} from "Common/Server/Services/SecurityCaseTaskService";
 import SecurityDetectionService, {
   Service as SecurityDetectionServiceType,
 } from "Common/Server/Services/SecurityDetectionService";
@@ -1668,6 +1678,7 @@ import BackupSetting from "Common/Models/DatabaseModels/BackupSetting";
 import BackupRun from "Common/Models/DatabaseModels/BackupRun";
 import SecurityCaseFeed from "Common/Models/DatabaseModels/SecurityCaseFeed";
 import SecurityCaseNote from "Common/Models/DatabaseModels/SecurityCaseNote";
+import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
 import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityProtectedEntity from "Common/Models/DatabaseModels/SecurityProtectedEntity";
@@ -1785,6 +1796,7 @@ import OnCallDutyPolicyAPI from "Common/Server/API/OnCallDutyPolicyAPI";
 import OnCallReadinessAPI from "Common/Server/API/OnCallReadinessAPI";
 import ToolImportAPI from "Common/Server/API/ToolImportAPI";
 import NetworkDeviceDiscoveryImportAPI from "Common/Server/API/NetworkDeviceDiscoveryImportAPI";
+import NetworkDeviceRefreshAPI from "Common/Server/API/NetworkDeviceRefreshAPI";
 import OnCallCalendarAPI from "Common/Server/API/OnCallCalendarAPI";
 import ScheduledMaintenanceCalendarAPI from "Common/Server/API/ScheduledMaintenanceCalendarAPI";
 import ScheduledMaintenanceExternalCalendarAPI from "Common/Server/API/ScheduledMaintenanceExternalCalendarAPI";
@@ -2037,6 +2049,12 @@ import NetworkSiteAssignmentRule from "Common/Models/DatabaseModels/NetworkSiteA
 import NetworkSiteAssignmentRuleService, {
   Service as NetworkSiteAssignmentRuleServiceType,
 } from "Common/Server/Services/NetworkSiteAssignmentRuleService";
+
+// NetworkAddressName
+import NetworkAddressName from "Common/Models/DatabaseModels/NetworkAddressName";
+import NetworkAddressNameService, {
+  Service as NetworkAddressNameServiceType,
+} from "Common/Server/Services/NetworkAddressNameService";
 
 // Open API Spec
 import OpenAPI from "Common/Server/API/OpenAPI";
@@ -4008,6 +4026,21 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    // Lists the rules match against, and importing values into one (Security Events > Watchlists).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new SecurityWatchlistAPI().getRouter(),
+    );
+
+    // The values of the watchlists a team keeps.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityWatchlistItem, SecurityWatchlistItemServiceType>(
+        SecurityWatchlistItem,
+        SecurityWatchlistItemService,
+      ).getRouter(),
+    );
+
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<ThreatIntelFeed, ThreatIntelFeedServiceType>(
@@ -4111,6 +4144,20 @@ const BaseAPIFeatureSet: FeatureSet = {
         SecurityCaseNote,
         SecurityCaseNoteService,
       ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityCaseTask, SecurityCaseTaskServiceType>(
+        SecurityCaseTask,
+        SecurityCaseTaskService,
+      ).getRouter(),
+    );
+
+    // A case's evidence, and the route its files download through.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new SecurityCaseEvidenceAPI().getRouter(),
     );
 
     app.use(
@@ -5450,6 +5497,15 @@ const BaseAPIFeatureSet: FeatureSet = {
     );
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ShortLinkAPI().getRouter());
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new MonitorAPI().getRouter());
+    /*
+     * The Affected Resources picker's one search across every kind of
+     * resource (issue #5341). Its own path, beside no CRUD router: nothing
+     * else answers under `/affected-resources`.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new AffectedResourceSearchAPI().getRouter(),
+    );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new StatusPageAPI().getRouter(),
@@ -5541,6 +5597,12 @@ const BaseAPIFeatureSet: FeatureSet = {
       `/${APP_NAME.toLocaleLowerCase()}`,
       NetworkDeviceDiscoveryImportAPI,
     );
+
+    /*
+     * Refresh: a network device read again now - by its probe, and by the
+     * Meraki connection that describes it (NetworkDeviceRefreshAPI).
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, NetworkDeviceRefreshAPI);
 
     /*
      * On-call calendar feeds. The custom router carries the public
@@ -6488,6 +6550,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<NetworkSiteType, NetworkSiteTypeServiceType>(
         NetworkSiteType,
         NetworkSiteTypeService,
+      ).getRouter(),
+    );
+
+    // network address name (what the Traffic pages call an address or subnet)
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<NetworkAddressName, NetworkAddressNameServiceType>(
+        NetworkAddressName,
+        NetworkAddressNameService,
       ).getRouter(),
     );
 

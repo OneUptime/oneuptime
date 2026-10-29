@@ -322,7 +322,7 @@ describe("the network pages read the same asset facts as Inventory", () => {
       expect(card).toContain(`factField(fact("${fact}")`);
     }
     expect(card).toContain(
-      "selectMoreFields: { ...NETWORK_DEVICE_ASSET_FACT_COLUMNS, }",
+      "selectMoreFields: { ...NETWORK_DEVICE_ASSET_FACT_COLUMNS, ...NETWORK_DEVICE_REFRESH_COLUMNS, }",
     );
   });
 

@@ -40,9 +40,15 @@ import ActionButtonSchema, {
 import { withRowActionContext } from "../ActionButton/RowActionContext";
 import {
   BulkActionButtonSchema,
+  BulkActionConfirmControls,
   BulkActionOnClickProps,
 } from "../BulkUpdate/BulkUpdateForm";
-import { runBulkAction } from "../BulkUpdate/BulkActionRunner";
+import {
+  BULK_ITEM_CHANGED,
+  BulkItemOutcome,
+  bulkItemUnchanged,
+  runBulkAction,
+} from "../BulkUpdate/BulkActionRunner";
 import { ButtonSize, ButtonStyleType } from "../Button/Button";
 import Card, {
   CardButtonSchema,
@@ -82,6 +88,7 @@ import Pill from "../Pill/Pill";
 import Table from "../Table/Table";
 import {
   RowClickEventLike,
+  hasTextSelection,
   isNewTabClick,
   isRowOpeningClick,
 } from "../Table/RowClick";
@@ -141,6 +148,15 @@ import useCustomFieldColumns, {
   CustomFieldColumnsResult,
 } from "./useCustomFieldColumns";
 import { getExportKeysFromColumn } from "./ExportFromColumns";
+import {
+  LIVE_ROWS_ARRIVED_IN_MS,
+  LiveRowsHeard,
+  ROW_ARRIVED_ATTRIBUTE,
+  getArrivedRowIds,
+  isDialogOrMenuOpen,
+  isLiveRowsHeld,
+} from "./LiveRows";
+import useLiveRows from "./UseLiveRows";
 import {
   getRelationSelectFromColumns,
   getSelectFromColumns,
@@ -316,6 +332,8 @@ export interface BaseTableCallbacks<
      * for the new record is one none of them uses yet.
      */
     existingItems?: Array<TBaseModel> | undefined;
+    // The Edit dialog's own title for the row it edits (editFormTitle).
+    editFormTitle?: string | undefined;
   }) => ReactElement;
 }
 
@@ -362,6 +380,29 @@ export interface BulkActionProps<T extends BaseModel | AnalyticsBaseModel> {
    * incidents) passes BULK_ACTION_CONCURRENCY.
    */
   deleteConcurrency?: number | undefined;
+  /*
+   * Drawn in the bulk Delete's dialog after the names: what deleting the
+   * selected rows would change, read when the dialog opens - what uses a
+   * value the rows are, say (UseArchivableValues). It may hold the dialog's
+   * Delete while it reads (BulkActionConfirmControls), as a row's Delete
+   * waits for its own words.
+   */
+  deleteConfirmationDetails?:
+    | ((
+        items: Array<T>,
+        controls: BulkActionConfirmControls,
+      ) => ReactElement | undefined)
+    | undefined;
+  /*
+   * Why one selected row is not deleted, when the list already knows the
+   * server would refuse it - records still have a value, say - and its
+   * dialog said so: it is not sent, and the result lists it as skipped
+   * (BULK_SKIPPED_COUNT), with the reason. Only the bulk Delete asks: a
+   * row's own Delete says why in its dialog.
+   */
+  getDeleteRefusal?: ((item: T) => string | undefined) | undefined;
+  // Once a bulk Delete has run: a page that counts what is left reads again.
+  onDeleteEnd?: (() => void) | undefined;
 }
 
 /**
@@ -490,6 +531,16 @@ export interface BaseTableProps<
    * dialog says "<verb> New <singular name>" as before.
    */
   createFormTitle?: string | undefined;
+  /*
+   * The Edit dialog's title for one row, where "Edit <singular name>" does
+   * not say which row is open: Response Targets' rows are a project's case
+   * priorities, and every one's dialog was "Edit Response Target" over a
+   * blurred table - with two empty fields on a project that had set none,
+   * nothing in it said which priority it was. English to look up, or words
+   * already in the reader's language. Left out, the dialog says "Edit
+   * <singular name>" as before.
+   */
+  editFormTitle?: ((item: TBaseModel) => string) | undefined;
   createFormSubmitButtonText?: string | undefined;
   showAs?: ShowAs | undefined;
   singularName?: string | undefined;
@@ -509,6 +560,15 @@ export interface BaseTableProps<
   editButtonText?: string | undefined;
   viewButtonText?: string | undefined;
   refreshToggle?: string | undefined;
+  /*
+   * Whether the rows keep themselves current. A list of a table whose
+   * changes the server announces (incidents, alerts, episodes, SLOs, ...)
+   * reads its page again, quietly, whenever one of its records is created,
+   * changed or deleted, so nobody has to press Refresh (LiveRows.ts). Leave
+   * it unset; false keeps the rows as they were loaded, for a list where a
+   * row moving would get in the way of what the page is for.
+   */
+  isLive?: boolean | undefined;
   fetchRequestOptions?: RequestOptions | undefined;
   deleteRequestOptions?: RequestOptions | undefined;
   onItemDeleted?: ((item: TBaseModel) => void) | undefined;
@@ -774,6 +834,17 @@ export const BULK_NOT_DELETED_COUNT: PluralTemplate = {
   other: "{{count}} {{itemsName}} not deleted",
 };
 
+/*
+ * Rows a bulk Delete left out on purpose, as its dialog said it would
+ * (getDeleteRefusal): "1 Incident Severity skipped", beside what was
+ * deleted - its own gray list, so a row it was asked to skip never reads as
+ * a delete that failed.
+ */
+export const BULK_SKIPPED_COUNT: PluralTemplate = {
+  one: "{{count}} {{itemName}} skipped",
+  other: "{{count}} {{itemsName}} skipped",
+};
+
 // A table that names its own verb ("Unlink") for the bulk action.
 export const BULK_ACTION_TITLE: PluralTemplate = {
   one: "{{action}} {{count}} {{itemName}}",
@@ -799,6 +870,9 @@ export const SEARCH_RESULT_COUNT_ON_PAGE: PluralTemplate = {
   one: "{{count}} result on this page",
   other: "{{count}} results on this page",
 };
+
+// No row just brought in by a live read: one set, so a list at rest never redraws for it.
+const NO_ARRIVED_ROWS: ReadonlySet<string> = new Set<string>();
 
 const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   props: ComponentProps<TBaseModel>,
@@ -1749,6 +1823,62 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     Boolean(initialUrlState.view.itemsOnPage),
   );
 
+  /*
+   * Counts the reads of the page, so a read the list made by itself (it
+   * keeps itself current, useLiveRows) that answers after a read the reader
+   * asked for - another page, a search - is dropped rather than put back
+   * over the rows they asked for.
+   */
+  const fetchGenerationRef: MutableRefObject<number> = React.useRef(0);
+
+  /*
+   * The ids of the rows on the page, as last read: null until the first
+   * read draws them.
+   */
+  const shownRowIdsRef: MutableRefObject<Array<string> | null> =
+    React.useRef<Array<string> | null>(null);
+
+  /*
+   * The rows a live read just brought in (useLiveRows), tinted for a moment
+   * (data-row-arrived, LiveRows.LIVE_ROWS_ARRIVED_IN_MS) so the eye finds the
+   * new incident among the rows that moved down for it.
+   */
+  const [arrivedRowIds, setArrivedRowIds] =
+    useState<ReadonlySet<string>>(NO_ARRIVED_ROWS);
+  const arrivedTimerRef: MutableRefObject<ReturnType<
+    typeof setTimeout
+  > | null> = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const markArrivedRows: (ids: Array<string>) => void = (
+    ids: Array<string>,
+  ): void => {
+    if (arrivedTimerRef.current !== null) {
+      clearTimeout(arrivedTimerRef.current);
+      arrivedTimerRef.current = null;
+    }
+
+    if (ids.length === 0) {
+      setArrivedRowIds(NO_ARRIVED_ROWS);
+      return;
+    }
+
+    setArrivedRowIds(new Set(ids));
+
+    arrivedTimerRef.current = setTimeout((): void => {
+      arrivedTimerRef.current = null;
+      setArrivedRowIds(NO_ARRIVED_ROWS);
+    }, LIVE_ROWS_ARRIVED_IN_MS);
+  };
+
+  useEffect(() => {
+    return (): void => {
+      if (arrivedTimerRef.current !== null) {
+        clearTimeout(arrivedTimerRef.current);
+        arrivedTimerRef.current = null;
+      }
+    };
+  }, []);
+
   useEffect(() => {
     // update items on page in localstorage.
     if (itemsOnPage && props.userPreferencesKey) {
@@ -2588,6 +2718,15 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
      * has rows, instead of an empty page under a "Showing 21-20 of 20".
      */
     stayInRange?: boolean | undefined;
+    /*
+     * A read nobody asked for: the list keeping itself current
+     * (useLiveRows). Quiet, and a read that fails keeps the rows on
+     * screen rather than putting an error where they were - the next change
+     * reads again.
+     */
+    isBackground?: boolean | undefined;
+    // A live read's: the records announced as created since the last one.
+    createdIds?: Array<string> | undefined;
   }) => Promise<void>;
 
   const getFetchSort: () => Sort<TBaseModel> = (): Sort<TBaseModel> => {
@@ -2615,10 +2754,18 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const fetchItems: FetchItemsFunction = async (options?: {
     quiet?: boolean | undefined;
     stayInRange?: boolean | undefined;
+    isBackground?: boolean | undefined;
+    createdIds?: Array<string> | undefined;
   }): Promise<void> => {
-    const isQuiet: boolean = Boolean(options?.quiet);
+    const isBackground: boolean = Boolean(options?.isBackground);
+    const isQuiet: boolean = Boolean(options?.quiet) || isBackground;
 
-    setError("");
+    fetchGenerationRef.current += 1;
+    const generation: number = fetchGenerationRef.current;
+
+    if (!isBackground) {
+      setError("");
+    }
 
     if (!isQuiet) {
       setIsLoading(true);
@@ -2679,9 +2826,45 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         return;
       }
 
+      if (isBackground) {
+        /*
+         * The reader moved on while this read was out - another page, a
+         * search, a filter: the read they asked for owns the rows.
+         */
+        if (generation !== fetchGenerationRef.current) {
+          return;
+        }
+
+        // A list that could not be read before reads now: the error goes.
+        setError("");
+      }
+
       setTotalItemsCount(listResult.count);
       setHasMore(listResult.hasMore);
       setData(listResult.data);
+
+      /*
+       * A live read tints the rows it brought in; a read the reader asked
+       * for (another page, a search) draws the rows they asked for, none
+       * of them new to them.
+       */
+      const readRowIds: Array<string> = listResult.data.map(
+        (item: TBaseModel): string => {
+          return getRecordIdText(item["_id"]);
+        },
+      );
+
+      markArrivedRows(
+        isBackground
+          ? getArrivedRowIds(
+              shownRowIdsRef.current,
+              readRowIds,
+              options?.createdIds || [],
+            )
+          : [],
+      );
+      shownRowIdsRef.current = readRowIds;
+
       setIsEmptyWithNothingApplied(
         isListEmptyWithNothingApplied({
           rowCount: listResult.data.length,
@@ -2702,7 +2885,15 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         props.onFetchSuccess(listResult.data, listResult.count);
       }
     } catch (err) {
-      setError(API.getFriendlyMessage(err));
+      if (isBackground) {
+        /*
+         * The rows on screen stay: they were right a moment ago, and the
+         * next change reads again.
+         */
+        Logger.error(API.getFriendlyMessage(err));
+      } else {
+        setError(API.getFriendlyMessage(err));
+      }
     }
 
     if (!isQuiet) {
@@ -3104,6 +3295,41 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     rowActionRefreshCount,
   ]);
 
+  /*
+   * The rows keep themselves current: a new incident, an alert a teammate
+   * acknowledged, an episode that was resolved show up without Refresh,
+   * while the reader is not in the middle of something (LiveRows.ts).
+   */
+  useLiveRows({
+    modelType:
+      model instanceof BaseModel
+        ? (props.modelType as { new (): BaseModel })
+        : null,
+    tenantId: ProjectUtil.getCurrentProjectId(),
+    isEnabled: props.isLive !== false,
+    isHeld: (): boolean => {
+      return isLiveRowsHeld({
+        isLoading: isLoading,
+        hasSelection: bulkSelectedItems.length > 0,
+        isReordering: isReordering,
+        isDialogOrMenuOpen: isDialogOrMenuOpen(),
+        hasTextSelection: hasTextSelection(),
+      });
+    },
+    refresh: (heard: LiveRowsHeard): Promise<void> => {
+      return fetchItems({
+        isBackground: true,
+        createdIds: heard.createdIds,
+      });
+    },
+    // The rows (Table's body), which a pointer on its way to one holds still.
+    getRowsElement: (): Element | null => {
+      return typeof document === "undefined"
+        ? null
+        : document.getElementById(`${props.id}-body`);
+    },
+  });
+
   type ShouldDisableSortFunction = (
     columnName: keyof TBaseModel | null,
   ) => boolean;
@@ -3403,7 +3629,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     item: TBaseModel,
   ) => React.HTMLAttributes<HTMLElement>;
 
-  const getRowProps: GetRowPropsFunction | undefined = isRowClickable
+  const getClickableRowProps: GetRowPropsFunction | undefined = isRowClickable
     ? (item: TBaseModel): React.HTMLAttributes<HTMLElement> => {
         const rowProps: React.HTMLAttributes<HTMLElement> & {
           "data-row-opens-record": string;
@@ -3420,6 +3646,27 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         return rowProps;
       }
     : undefined;
+
+  /*
+   * A row's own attributes: what opens it on a click, and the mark of a row
+   * a live read just brought in.
+   */
+  const getRowProps: GetRowPropsFunction | undefined =
+    arrivedRowIds.size > 0
+      ? (item: TBaseModel): React.HTMLAttributes<HTMLElement> => {
+          const rowProps: React.HTMLAttributes<HTMLElement> =
+            getClickableRowProps?.(item) || {};
+
+          if (!arrivedRowIds.has(getRecordIdText(item["_id"]))) {
+            return rowProps;
+          }
+
+          return {
+            ...rowProps,
+            [ROW_ARRIVED_ATTRIBUTE]: "true",
+          } as React.HTMLAttributes<HTMLElement>;
+        }
+      : getClickableRowProps;
 
   const setActionSchema: VoidFunction = () => {
     const actionsSchema: Array<ActionButtonSchema<TBaseModel>> = [];
@@ -3772,11 +4019,18 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
          * list's own sentence): after the names it is about them, where in
          * the middle of the question it was one more sentence to read past.
          */
-        confirmDetails: (items: Array<TBaseModel>): ReactElement => {
+        confirmDetails: (
+          items: Array<TBaseModel>,
+          controls: BulkActionConfirmControls,
+        ): ReactElement => {
           const warning: string = getDeleteWarning(
             props.bulkActions?.deleteConfirmationWarning ??
               props.deleteConfirmationWarning,
           );
+
+          // What deleting them would change, when the list reads it.
+          const details: ReactElement | undefined =
+            props.bulkActions?.deleteConfirmationDetails?.(items, controls);
 
           return (
             <div className="space-y-3">
@@ -3796,6 +4050,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               ) : (
                 <></>
               )}
+              {details || <></>}
             </div>
           );
         },
@@ -3809,6 +4064,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           : {
               succeeded: BULK_DELETED_COUNT,
               failed: BULK_NOT_DELETED_COUNT,
+              unchanged: BULK_SKIPPED_COUNT,
             },
         /*
          * Through the shared runner (runBulkAction): each row its own delete,
@@ -3822,7 +4078,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           await runBulkAction<TBaseModel>({
             actionProps: actionProps,
             concurrency: props.bulkActions?.deleteConcurrency ?? 1,
-            step: async (item: TBaseModel): Promise<void> => {
+            step: async (item: TBaseModel): Promise<BulkItemOutcome> => {
               /*
                * A row the table says can never be deleted is not sent to the
                * server at all: it is listed with the reason, like a row the
@@ -3837,9 +4093,24 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 throw new BadDataException(deleteDisabledReason);
               }
 
+              /*
+               * One the list knows the server would refuse, which its
+               * dialog said it skips: not sent, and listed as skipped.
+               */
+              const deleteRefusal: string | undefined =
+                props.bulkActions?.getDeleteRefusal?.(item);
+
+              if (deleteRefusal) {
+                return bulkItemUnchanged(deleteRefusal);
+              }
+
               await props.callbacks.deleteItem(item);
+
+              return BULK_ITEM_CHANGED;
             },
           });
+
+          props.bulkActions?.onDeleteEnd?.();
         },
       };
     };
@@ -4532,6 +4803,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         }}
         actionButtons={actionButtonSchema}
         getRowProps={getRowProps}
+        /*
+         * The widths a person gives this list's columns are remembered with
+         * its column choices and page size, under the same key.
+         */
+        columnWidthsKey={props.userPreferencesKey}
       />,
     );
   };
@@ -5605,6 +5881,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             setShowModal(false);
           },
           modalType: modalType,
+          editFormTitle:
+            modalType === ModalType.Edit &&
+            currentEditableItem &&
+            props.editFormTitle
+              ? props.editFormTitle(currentEditableItem) || undefined
+              : undefined,
           onBeforeCreate: async (
             item: TBaseModel,
             miscDataProps: JSONObject,

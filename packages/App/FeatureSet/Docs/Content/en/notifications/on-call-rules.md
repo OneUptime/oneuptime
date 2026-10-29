@@ -39,6 +39,8 @@ Most messages can acknowledge the page: emails, texts and WhatsApp, Telegram, Sl
 
 An episode pages you through its own on-call policies, apart from the incidents or alerts in it, so its rules are on their own tab. The page's address names the open tab, such as `/dashboard/{projectId}/user-settings/on-call-rules?type=alerts`; the other values are `incident-episodes` and `alert-episodes`, and with no `type` the page opens on **Incidents**.
 
+A severity your project has archived comes after the others, marked **Archived**, while you have rules for it: incidents and alerts that still have it page you by them. You can change or remove those rules, but not add new ones.
+
 ## The rules you start with
 
 Every method you verify gets a rule on every card of every tab, sent as soon as you are paged. Your sign-in email has them from the day you join, so a page always reaches you. Verify a phone number for SMS, and every page texts you too.

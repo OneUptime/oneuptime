@@ -74,7 +74,7 @@ monitor-{secret-key}@{inbound-domain}
 | 操作 | 作用 | 适用场景 |
 | --- | --- | --- |
 | **Reset Address** | 为监视器分配一个新的、随机生成的 `monitor-{secret-key}@{inbound-domain}` 地址。如果监视器有自定义地址，重置会删除它。执行前会要求你确认。 | 地址已泄露，或者你想切断所有向它发送邮件的来源。 |
-| **Customize Address** | 让你选择 @ 前面的部分，例如 `nightly-backups@{inbound-domain}`。在 **Address name** 中输入它（可以输入名称，也可以粘贴完整地址），然后点击 **Save Address**。 | 你想要一个大家一看就认得的地址。 |
+| **Customize Address** | 让你选择 @ 前面的部分，例如 `nightly-backups@{inbound-domain}`。在 **地址名称** 中输入它（可以输入名称，也可以粘贴完整地址），然后点击 **Save Address**。 | 你想要一个大家一看就认得的地址。 |
 
 两种操作最后都会显示新地址和一个复制按钮。
 

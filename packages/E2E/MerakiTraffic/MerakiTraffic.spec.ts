@@ -778,6 +778,68 @@ test("a large organization read in part: what is still to come, and why", async 
 });
 
 /*
+ * Each read also lists the organization's devices: the connection's row
+ * counts them, and says how many network devices here it fills in the
+ * model, serial number and firmware of. A read from before reads counted
+ * them says nothing of devices (the first test of the page).
+ */
+test("the organization's devices: counted on the connection's row, and the network devices here it fills in", async ({
+  page,
+}: {
+  page: Page;
+}, testInfo: TestInfo) => {
+  await open(page, "state=meraki&devices=counted");
+
+  const row: Locator = page.getByTestId("meraki-connection");
+  await expect(row.getByTestId("meraki-connection-covered")).toHaveText(
+    "Every 5 minutes · 4 networks · 6 devices · 4 appliances · 4 API calls a read",
+  );
+  const notes: Locator = row.getByTestId("meraki-connection-note");
+  await expect(notes).toHaveCount(1);
+  await expect(notes).toHaveText(
+    "Fills in the model, serial number and firmware of 5 network devices.",
+  );
+  // Grey: OneUptime did it by itself, nothing to act on.
+  await expect(notes).toHaveAttribute("data-tone", "info");
+  await screenshot(
+    page,
+    testInfo,
+    "devices",
+    page.getByTestId("meraki-connections"),
+  );
+
+  // One of them, said as one.
+  await open(page, "state=meraki&devices=one");
+  await expect(
+    page.getByTestId("meraki-connection").getByTestId("meraki-connection-note"),
+  ).toHaveText(
+    "Fills in the model, serial number and firmware of 1 network device.",
+  );
+
+  // In German.
+  await open(page, "state=meraki&devices=counted&lang=de");
+  await expect(
+    page.getByTestId("meraki-connection").getByTestId("meraki-connection-note"),
+  ).toHaveText(
+    "Ergänzt Modell, Seriennummer und Firmware von 5 Netzwerkgeräten.",
+  );
+  // The card says what the connections read: traffic, and device details.
+  await expect(
+    page
+      .getByTestId("meraki-connections")
+      .locator("xpath=ancestor::div[@data-testid='card'][1]"),
+  ).toContainText(
+    "Die Meraki-Organisationen, deren Datenverkehr und Geräteangaben OneUptime über die Meraki-Dashboard-API liest.",
+  );
+  await screenshot(
+    page,
+    testInfo,
+    "devices-de",
+    page.getByTestId("meraki-connections"),
+  );
+});
+
+/*
  * ---------------------------------------------------------------------------
  * In another language
  * ---------------------------------------------------------------------------
@@ -903,6 +965,57 @@ test("a device's page: its MX's uplinks, applications and clients - nothing to n
   ).toBe("40000000-0000-4000-8000-000000000001");
   expect(await scrollsSideways(page)).toBe(false);
   await screenshot(page, testInfo, "device");
+});
+
+/*
+ * Issue #5341: incidents and alerts can be about a network device, so the
+ * device's own menu lists them under Activity, after the pages of every
+ * visit. A project with no open state counts nothing - not a request is
+ * sent for a badge that could only say zero (the fence above fails on a
+ * request the fixture does not model).
+ */
+test("a device's menu lists its incidents and alerts under Activity, each on the device's own page", async ({
+  page,
+}: {
+  page: Page;
+}, testInfo: TestInfo) => {
+  await open(page, "state=meraki", DEVICE_TRAFFIC);
+
+  // A phone folds the menu behind its Go to button: open it first.
+  if (testInfo.project.name === "phone") {
+    await page.getByTestId("mobile-sidemenu-toggle").click();
+  }
+
+  const device: string = `/dashboard/${PROJECT_ID}/network-devices/40000000-0000-4000-8000-000000000001`;
+  // A side menu section is its h6 title and the links under it.
+  const activity: Locator = page.locator("div.mb-2", {
+    has: page.locator("h6", { hasText: /^Activity$/ }),
+  });
+
+  await expect(
+    activity.getByRole("link", { name: "Incidents" }),
+  ).toHaveAttribute("href", `${device}/incidents`);
+  await expect(activity.getByRole("link", { name: "Alerts" })).toHaveAttribute(
+    "href",
+    `${device}/alerts`,
+  );
+
+  // After the device's pages, before what is folded under More.
+  const sections: Array<string> = (
+    await page.locator("h6").allTextContents()
+  ).map((title: string): string => {
+    return title.trim();
+  });
+  expect(sections.indexOf("Activity")).toBeGreaterThan(
+    sections.indexOf("Device"),
+  );
+  expect(sections.indexOf("Activity")).toBeLessThan(sections.indexOf("More"));
+  expect(sections.indexOf("Device")).toBeGreaterThan(-1);
+
+  // No open state in this project: no badge, and no count asked for.
+  await expect(activity.locator("span.tabular-nums")).toHaveCount(0);
+
+  await screenshot(page, testInfo, "device-menu-activity", activity);
 });
 
 test("a site's page: its networks, one click from narrowing to one", async ({

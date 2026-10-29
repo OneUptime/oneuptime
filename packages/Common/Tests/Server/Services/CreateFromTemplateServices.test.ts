@@ -31,6 +31,7 @@ import {
   getCreateFromTemplateTableNames,
 } from "../../../Types/Workflow/CreateFromTemplate";
 import Text from "../../../Types/Text";
+import { getAffectedResourcesArgument } from "../../../Types/Workflow/AffectedResourcesSetting";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -144,12 +145,22 @@ describe("a template setting has a service that applies it", () => {
           },
         );
       const setting: Argument = getCreateFromTemplateArgument(tableName)!;
+      const affectedResources: Argument | null =
+        getAffectedResourcesArgument(tableName);
 
+      /*
+       * The template, then JSON Object - and, for a record that holds
+       * resources, Affected Resources after them (issue #5341).
+       */
       expect(
         (createOne?.arguments || []).map((argument: Argument): string => {
           return argument.id;
         }),
-      ).toEqual([setting.id, "json"]);
+      ).toEqual(
+        affectedResources
+          ? [setting.id, "json", affectedResources.id]
+          : [setting.id, "json"],
+      );
       expect(createOne?.arguments?.[0]).toEqual(setting);
       expect(createOne?.arguments?.[1]?.notRequiredWhen).toEqual({
         argumentId: setting.id,

@@ -16,6 +16,7 @@ import {
 } from "@testing-library/react";
 import React, { ReactElement, useState } from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { searchThroughGetList } from "./AffectedResourceSearchFake";
 
 /*
  * Silent data loss in the affected-resources picker. A viewer whose role can
@@ -36,6 +37,25 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 const getItemMock: MockFunction = getJestMockFunction();
 const getListMock: MockFunction = getJestMockFunction();
 const createOrUpdateMock: MockFunction = getJestMockFunction();
+
+/*
+ * The picker asks one route for every kind (POST /affected-resources/search).
+ * It is answered from this suite's getList store, kind by kind, as the
+ * server reads each kind (AffectedResourceSearchFake).
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/AffectedResources/AffectedResourceSearchApi",
+  () => {
+    return {
+      __esModule: true,
+      searchAffectedResources: (query: unknown): Promise<unknown> => {
+        return searchThroughGetList((args: unknown) => {
+          return getListMock(args) as never;
+        })(query as never);
+      },
+    };
+  },
+);
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {

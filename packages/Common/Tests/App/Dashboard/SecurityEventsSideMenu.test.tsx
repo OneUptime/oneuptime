@@ -13,8 +13,9 @@ import * as React from "react";
 /*
  * The Security Events side menu, rendered against the real RouteMap: nine
  * sections - Overview, Security Cases, Events, Detections, Playbooks, AI,
- * Workspace, Connections and Settings (the project's own Case Priorities and
- * Case Statuses) - each holding its pages, every page an entry of its own. "Can we create side menu sections instead and have different
+ * Workspace, Connections and Settings (the project's own Case Priorities,
+ * the Response Targets each sets, and Case Statuses) - each holding its
+ * pages, every page an entry of its own. "Can we create side menu sections instead and have different
  * pages for these things?" (the maintainer, of the tabs each page carried
  * and the views along the top of the case queue).
  *
@@ -137,6 +138,8 @@ const EXPECTED: Array<[string, Array<[string, string]>]> = [
       ["Detection Rules", PageMap.SECURITY_EVENTS_DETECTION_RULES],
       // What the rules skip, every exception in one list to review.
       ["Rule Exceptions", PageMap.SECURITY_EVENTS_RULE_EXCEPTIONS],
+      // The lists the rules match against: VIP users, critical hosts.
+      ["Watchlists", PageMap.SECURITY_EVENTS_WATCHLISTS],
       ["Rule Library", PageMap.SECURITY_EVENTS_RULE_LIBRARY],
       ["Threat Intel", PageMap.SECURITY_EVENTS_THREAT_INTEL],
       ["ATT&CK Coverage", PageMap.SECURITY_EVENTS_ATTACK_COVERAGE],
@@ -176,6 +179,7 @@ const EXPECTED: Array<[string, Array<[string, string]>]> = [
     "Settings",
     [
       ["Case Priorities", PageMap.SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES],
+      ["Response Targets", PageMap.SECURITY_EVENTS_SETTINGS_RESPONSE_TARGETS],
       ["Case Statuses", PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES],
       ["Risk Scoring", PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING],
     ],

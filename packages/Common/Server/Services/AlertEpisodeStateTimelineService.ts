@@ -544,8 +544,7 @@ export class Service extends ProjectReferencesService<AlertEpisodeStateTimeline>
             stateAfterThis: onCreate.carryForward.statusTimelineAfterThisStatus,
           },
         ),
-        notifyUserId:
-          createdItem.createdByUserId || onCreate.createBy.props.userId,
+        leadWithAuthor: true,
       },
     });
 

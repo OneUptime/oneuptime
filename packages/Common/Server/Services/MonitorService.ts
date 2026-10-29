@@ -128,6 +128,7 @@ import FeedMarkdown, {
   mdText,
   MarkdownText,
 } from "../../Utils/Markdown/FeedMarkdown";
+import FeedWorkspaceNotificationUtil from "../Utils/Feed/FeedWorkspaceNotification";
 
 const MONITOR_TEMPLATE_RELATION_KEYS: Array<string> = [
   "monitorTemplateId",
@@ -1649,11 +1650,26 @@ export class Service extends ProjectReferencesService<Model> {
         const monitorName: string = monitor!.name!;
 
         let shouldAddMonitorFeed: boolean = false;
-        let feedInfoInMarkdown: string =
-          mdText`Monitor **[${monitorName}](${(await this.getMonitorLinkInDashboard(projectId!, monitorId!)).toString()}) was updated.**`.toString();
-
         const createdByUserId: ObjectID | undefined | null =
           onUpdate.updateBy.props.userId;
+
+        const monitorLink: string = (
+          await this.getMonitorLinkInDashboard(projectId!, monitorId!)
+        ).toString();
+
+        /*
+         * Written to follow the name of whoever made the change, which its
+         * message opens with: "Valeria Mustafaeva updated Monitor API
+         * Health." Read after a name, "Monitor API Health was updated."
+         * became "Valeria Mustafaeva Monitor API Health was updated." A
+         * change nobody made by hand still reads "Monitor API Health was
+         * updated."
+         */
+        let feedInfoInMarkdown: string = (
+          FeedWorkspaceNotificationUtil.hasAuthor({ userId: createdByUserId })
+            ? mdText`✏️ Updated Monitor **[${monitorName}](${monitorLink})**.`
+            : mdText`Monitor **[${monitorName}](${monitorLink}) was updated.**`
+        ).toString();
 
         if (onUpdate.updateBy.data.monitoringInterval) {
           await MonitorProbeService.updateNextPingAtForMonitor({
@@ -1766,6 +1782,8 @@ export class Service extends ProjectReferencesService<Model> {
             userId: createdByUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
+              // Who changed it - the name, the labels - as the feed names them.
+              leadWithAuthor: true,
             },
           });
         }

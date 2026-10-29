@@ -5,6 +5,9 @@ import LinkedAffectedResources, {
   LinkedAffectedResourceType,
 } from "../AffectedResources/LinkedAffectedResources";
 import MonitorService from "../../Services/MonitorService";
+import NetworkDeviceService from "../../Services/NetworkDeviceService";
+import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
+import ObjectID from "../../../Types/ObjectID";
 import MonitorStepResourceIdentity from "./MonitorStepResourceIdentity";
 import { SeriesResourceRefs } from "./SeriesResourceLabels";
 import SeriesResourceLinker, {
@@ -120,12 +123,31 @@ export default class MonitorResourceContextUtil {
     }
 
     try {
-      const resources: Array<LinkedAffectedResource> =
-        await LinkedAffectedResources.readForMonitors({
+      const [resources, networkDeviceIds]: [
+        Array<LinkedAffectedResource>,
+        Array<string>,
+      ] = await Promise.all([
+        LinkedAffectedResources.readForMonitors({
           service: MonitorService,
           projectId: input.monitor.projectId,
           monitorIds: [input.monitor.id],
-        });
+        }),
+        /*
+         * Read on its own terms: a device read that fails costs the
+         * devices, never the resources linked by hand.
+         */
+        this.resolveNetworkDevicesTheMonitorReportsOn({
+          monitorId: input.monitor.id,
+          projectId: input.monitor.projectId,
+          autoProvisionedNetworkDeviceId:
+            input.monitor.autoProvisionedNetworkDeviceId,
+        }).catch((err: unknown): Array<string> => {
+          logger.error(
+            `Failed to read the network devices monitor ${input.monitor.id?.toString()} reports on: ${err}`,
+          );
+          return [];
+        }),
+      ]);
 
       for (const resource of resources) {
         const key: keyof SeriesResolvedResourceIds | undefined =
@@ -136,6 +158,12 @@ export default class MonitorResourceContextUtil {
         }
       }
 
+      for (const networkDeviceId of networkDeviceIds) {
+        if (!resolved.networkDeviceIds.includes(networkDeviceId)) {
+          resolved.networkDeviceIds.push(networkDeviceId);
+        }
+      }
+
       return resolved;
     } catch (err) {
       logger.error(
@@ -143,6 +171,89 @@ export default class MonitorResourceContextUtil {
       );
       return this.emptyContext();
     }
+  }
+
+  /*
+   * The network devices a monitor reports on without its steps naming them
+   * (issue #5341): the device bound to it - a device whose monitoring
+   * method is Monitor takes its status from this monitor
+   * (NetworkDevice.monitorId) - and the device a discovery import made it
+   * for (Monitor.autoProvisionedNetworkDeviceId), an ordinary Ping, IP,
+   * Port or NTP monitor of the device's address. A Network Device monitor
+   * names its device in its steps instead, which
+   * resolveResourceContextForMonitor reads. The same three ways the
+   * device's own Monitors page lists (DeviceMonitorLookupUtil), so the
+   * device's Incidents and Alerts tabs show what those monitors raise.
+   *
+   * Held to the monitor's project like every lookup here; at most a page of
+   * bound devices, though a monitor is bound to one device in practice.
+   */
+  private static async resolveNetworkDevicesTheMonitorReportsOn(input: {
+    monitorId: ObjectID;
+    projectId: ObjectID;
+    autoProvisionedNetworkDeviceId?: ObjectID | undefined | null;
+  }): Promise<Array<string>> {
+    let madeForDeviceId: ObjectID | undefined | null =
+      input.autoProvisionedNetworkDeviceId;
+
+    if (!madeForDeviceId) {
+      // Not every caller selects the column: read it off the monitor's row.
+      const monitor: Monitor | null = await MonitorService.findOneBy({
+        query: {
+          _id: input.monitorId,
+          projectId: input.projectId,
+        },
+        select: {
+          _id: true,
+          autoProvisionedNetworkDeviceId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      madeForDeviceId = monitor?.autoProvisionedNetworkDeviceId;
+    }
+
+    const [boundDevices, madeForDevices]: [
+      Array<NetworkDevice>,
+      Array<NetworkDevice>,
+    ] = await Promise.all([
+      NetworkDeviceService.findBy({
+        query: {
+          projectId: input.projectId,
+          monitorId: input.monitorId,
+        },
+        select: { _id: true },
+        skip: 0,
+        limit: MAX_BOUND_NETWORK_DEVICES,
+        props: { isRoot: true },
+      }),
+      madeForDeviceId
+        ? NetworkDeviceService.findBy({
+            query: {
+              projectId: input.projectId,
+              _id: madeForDeviceId,
+            },
+            select: { _id: true },
+            skip: 0,
+            limit: 1,
+            props: { isRoot: true },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const ids: Array<string> = [];
+
+    for (const device of [...boundDevices, ...madeForDevices]) {
+      const id: string = device._id?.toString().toLowerCase() || "";
+
+      if (id && !ids.includes(id)) {
+        ids.push(id);
+      }
+    }
+
+    return ids;
   }
 
   public static emptyContext(): SeriesResolvedResourceIds {
@@ -160,15 +271,24 @@ export default class MonitorResourceContextUtil {
       databaseServerIds: [],
       storageArrayIds: [],
       cloudResourceIds: [],
+      networkDeviceIds: [],
     };
   }
 }
+
+/*
+ * The most devices one monitor is read as bound to. A device takes its
+ * status from one monitor, and a monitor normally reports on one device;
+ * the cap only bounds a project that bound one monitor to many.
+ */
+const MAX_BOUND_NETWORK_DEVICES: number = 10;
 
 // Where each kind of linked resource goes in a resolved context.
 const LINKED_RESOURCE_KEYS: Partial<
   Record<LinkedAffectedResourceType, keyof SeriesResolvedResourceIds>
 > = {
   [LinkedAffectedResourceType.Host]: "hostIds",
+  [LinkedAffectedResourceType.NetworkDevice]: "networkDeviceIds",
   [LinkedAffectedResourceType.KubernetesCluster]: "kubernetesClusterIds",
   [LinkedAffectedResourceType.DockerHost]: "dockerHostIds",
   [LinkedAffectedResourceType.PodmanHost]: "podmanHostIds",

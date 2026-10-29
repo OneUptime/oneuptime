@@ -110,14 +110,10 @@ const NAVIGABLE_PAGE_KEYS: ReadonlyArray<string> =
   });
 
 /**
- * Like every other product, the Archived page renders under the product
- * Layout without a breadcrumb trail.
+ * Every navigable page has a trail, the Archived list included, as on
+ * every other product (Common/Tests/App/Dashboard/EveryPageHasATrail).
  */
-const BREADCRUMB_PAGE_KEYS: ReadonlyArray<string> = NAVIGABLE_PAGE_KEYS.filter(
-  (key: string): boolean => {
-    return key !== "STORAGE_ARRAYS_ARCHIVED";
-  },
-);
+const BREADCRUMB_PAGE_KEYS: ReadonlyArray<string> = NAVIGABLE_PAGE_KEYS;
 
 /**
  * Every page module under Pages/StorageArray/View and the PageMap key whose
@@ -406,8 +402,10 @@ describe("every navigable page has breadcrumbs", () => {
     },
   );
 
-  test("the archived page has no trail, like every other product", () => {
-    expect(breadcrumbs).not.toContain("PageMap.STORAGE_ARRAYS_ARCHIVED");
+  test("the archived page's trail reads Project > Storage Arrays > Archived", () => {
+    expect(dense(breadcrumbs)).toContain(
+      'PageMap.STORAGE_ARRAYS_ARCHIVED,["Project","StorageArrays","Archived",]',
+    );
   });
 
   test("the trails use storage vocabulary, not Ceph's", () => {

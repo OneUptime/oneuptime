@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 36659,
-    "untranslated": 4044
+    "keys": 36930,
+    "untranslated": 4038
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -507,6 +507,7 @@
     "Twilio Account SID",
     "Twilio Auth Token",
     "UID",
+    "URLs",
     "USD",
     "UTC",
     "Uganda",

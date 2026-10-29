@@ -1,4 +1,3 @@
-import Zod, { ZodSchema } from "../Utils/Schema/Zod";
 import { refusedValue } from "../Utils/RefusedValue";
 import DatabaseProperty from "./Database/DatabaseProperty";
 import BadDataException from "./Exception/BadDataException";
@@ -108,19 +107,5 @@ export default class Color extends DatabaseProperty {
       return true;
     }
     return false;
-  }
-
-  public static override getSchema(): ZodSchema {
-    return Zod.object({
-      _type: Zod.literal(ObjectType.Color),
-      value: Zod.string().openapi({
-        type: "string",
-        example: "#ff0000",
-      }),
-    }).openapi({
-      type: "object",
-      description: "Color object",
-      example: { _type: ObjectType.Color, value: "#ff0000" },
-    });
   }
 }

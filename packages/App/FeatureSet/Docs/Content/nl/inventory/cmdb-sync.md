@@ -206,6 +206,8 @@ Een netwerkapparaat (`entityType: network.device`) wordt gespiegeld uit zijn Net
 
 De ENTITY-MIB-rijen vullen zich na de eerste SNMP-walk van het apparaat. Een apparaat dat niet wordt gewalkt, omdat het alleen met ping wordt gemonitord of nog niet is gepold, krijgt toch zijn naam, merk, besturingssysteem en locatie uit wat de laatste discovery-scan van zijn adres via SNMP las, en zijn MAC-adres uit de ARP-tabel van een doorlopen router. Een apparaat dat geen ENTITY-MIB implementeert, heeft geen serienummer of firmware te melden. Zijn `sysDescr` noemt voor veel platforms toch het model en het besturingssysteem: een Cisco Meraki MX meldt `Meraki MX85`, wat het merk en model invult. Een platform waarvan de `sysDescr` geen bekende vorm heeft, voegt niets toe in plaats van te gokken.
 
+Een Meraki-apparaat neemt wat zijn eigen poll leeg laat over uit het Meraki-dashboard, wanneer een [Meraki-koppeling](/docs/monitor/network-traffic#cisco-meraki-zonder-netflow) zijn organisatie leest: zijn serienummer, model, firmware en merk, zijn MAC-adres, zijn naam, zijn beheeradres, het postadres waaronder het staat en zijn type. Een apparaat is een van de apparaten van de organisatie als zijn serienummer of MAC-adres dat van het Meraki-apparaat is, of als OneUptime het pollt op het beheeradres van het Meraki-apparaat en het dezelfde naam heeft. Een waarde die op het apparaat is opgeslagen, en wat zijn eigen poll leest, gaan voor.
+
 Een waarde die op het apparaat is opgeslagen, ingetypt of via de API ingesteld, wordt nooit vervangen door wat discovery leest. Van een waarde die de eigen walk van het apparaat las en een die een scan las, wordt de nieuwste gebruikt. Wat een scan las, wordt alleen gebruikt als de scan dezelfde machine op het adres vond: als de systeemnaam, `sysObjectID` of NetBIOS-naam die hij las die van het apparaat tegenspreekt, wordt niets gebruikt van wat hij daar las. De kaart **Assetgegevens** van het item toont waar elke waarde vandaan kwam en wanneer.
 
 De hostnaam is nooit het IP-adres. Een apparaat dat alleen zijn adres benoemt, heeft `host.ip` en geen `host.name`. Zodra zijn SNMP-walk een systeemnaam meldt, volgt `host.name` bij de volgende ronde.
@@ -223,6 +225,8 @@ Datums in `customFields` zijn ISO-8601-tekenreeksen in UTC, en de CSV-export sch
 ## Actueel blijven
 
 Er is geen wijzigingsfeed. Vraag het lijstendpoint op met het interval dat je uitkomt, en vergelijk op `entityKey`. `lastSeenAt` vertelt wanneer een item voor het laatst is waargenomen, wat meestal de goedkoopste manier is om te zien wat sinds je vorige ronde stil is geworden.
+
+Om een netwerkapparaat nu opnieuw te lezen, zonder op zijn volgende poll en de volgende kopie te wachten, klik je op **Vernieuwen** op de kaart **Assetgegevens** van zijn item, of stuur je `POST /api/network-device/{id}/refresh` met een sleutel die **Edit Network Device** heeft. Zijn probe pollt het binnen een minuut, zijn Meraki-koppeling leest de organisatie opnieuw, en zijn item wordt gekopieerd zodra de nieuwe leesbeurt binnen is.
 
 Een item dat tussen twee rondes verdwijnt, is ofwel verlopen (een ontdekt item dat langer stil bleef dan zijn venster), ofwel is het eigen record verwijderd. Een gespiegeld item dat waarden van aangepaste velden draagt, wordt gearchiveerd in plaats van verwijderd wanneer zijn record verdwijnt, dus vraag op met `"isArchived": true` om te zien wat buiten gebruik is gesteld zonder de bijbehorende assetgegevens kwijt te raken.
 

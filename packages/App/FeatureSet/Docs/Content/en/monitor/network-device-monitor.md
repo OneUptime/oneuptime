@@ -68,7 +68,7 @@ The Network menu keeps what you open every day in view: **Overview**, **Devices*
 | --- | --- |
 | **Topology** | **Device Topology**, **Endpoints**, **Latency Matrix**, **Site Links**, **Device Links** |
 | **Rules** | **Auto Import Rules**, **Site Assignment Rules**, **Owner Rules**, **Label Rules**, **Link Rules** |
-| **Settings** | **Alert Policies**, **SNMP Credentials**, **Device Roles**, **Site Types**, **OID Collection Templates** |
+| **Settings** | **Alert Policies**, **SNMP Credentials**, **Device Roles**, **Site Types**, **Address Names**, **OID Collection Templates** |
 | **Advanced** | **Archived Devices** |
 
 ## Adding a Network Device
@@ -514,6 +514,10 @@ A ping-only device keeps the name and address you, or a discovery scan, gave it.
 
 These are kept beside the device's own fields, never written into them, and each scan, router walk or poll that reads one again brings it up to date. The device's Overview and its Inventory item say which scan, router or probe read each value, and when. A value you saved on the device is never replaced. When a scan finds another machine at the device's address, such as a DHCP lease that moved, the Overview says so, and nothing that scan read there is used.
 
+A Meraki switch, access point or appliance reads no serial number, model or firmware over SNMP: Meraki implements no ENTITY-MIB. When a [Meraki connection](/docs/monitor/network-traffic#cisco-meraki-without-netflow) reads its organization, the device takes those, and whatever else its poll leaves empty, from the Meraki dashboard, and its **Inventory** card names the connection in a **Meraki** row.
+
+To read a device again now, press **Refresh** on its **Inventory** card. Its probe polls it within a minute, and its Meraki connection reads the organization again. The card says when the new reading has landed, or that the probe could not reach the device. **Refresh** is there for whoever may edit network devices, on a device a probe polls or a Meraki connection describes.
+
 ## Discovering Devices with a Network Scan
 
 Instead of adding devices one at a time, sweep a range of addresses from a probe and import what answers.
@@ -756,6 +760,12 @@ To create one from **Monitors** instead:
 3. Pick the network device to alert on. Everything about collecting data — hostname, credentials, schedule, interface walks, health OIDs — comes from the device; the monitor only chooses what to alert on, through its criteria.
 
 A Network Device monitor has no interval of its own: it is evaluated every time the device's poll results arrive, and every time a trap from the device arrives.
+
+### A device's incidents and alerts
+
+An incident or an alert can be about a network device. Pick the device under **Other Affected Resources** when you declare an incident or create an alert, or let a monitor link it: what a monitor raises is linked to the device it reports on — the device a Network Device monitor watches, the device bound to the monitor, and the device a discovery import made the monitor for.
+
+The device's **Incidents** and **Alerts** pages, under **Activity** in its menu, list what is linked to it, and the menu and the device's overview count the open ones. **Declare Incident** and **Create Alert** on those pages start with the device picked.
 
 ### Custom Field Defaults
 

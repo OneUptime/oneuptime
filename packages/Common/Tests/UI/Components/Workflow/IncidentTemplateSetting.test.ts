@@ -53,6 +53,7 @@ import ComponentID from "../../../../Types/Workflow/ComponentID";
 import Components from "../../../../Types/Workflow/Components";
 import BaseModelComponents from "../../../../Types/Workflow/Components/BaseModel";
 import { INCIDENT_TEMPLATE_ARGUMENT_ID } from "../../../../Types/Workflow/CreateFromTemplate";
+import { AFFECTED_RESOURCES_ARGUMENT_ID } from "../../../../Types/Workflow/AffectedResourcesSetting";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 const TEMPLATE_ID: string = "7c000000-0000-4000-8000-0000000000a1";
@@ -99,7 +100,15 @@ describe("Create One Incident's settings", () => {
       CREATE_ONE_INCIDENT.arguments.map((argument: Argument): string => {
         return argument.id;
       }),
-    ).toEqual([INCIDENT_TEMPLATE_ARGUMENT_ID, "json"]);
+      /*
+       * Affected Resources (issue #5341) after JSON Object: the hosts and
+       * devices the incident is about, by name.
+       */
+    ).toEqual([
+      INCIDENT_TEMPLATE_ARGUMENT_ID,
+      "json",
+      AFFECTED_RESOURCES_ARGUMENT_ID,
+    ]);
 
     const setting: Argument = argumentOf(
       CREATE_ONE_INCIDENT,

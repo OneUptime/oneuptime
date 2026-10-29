@@ -1,4 +1,9 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import useResizableColumns, {
+  ResizableColumns,
+} from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
+import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import Card from "Common/UI/Components/Card/Card";
 import {
   useCardRuledBodyClassName,
@@ -131,26 +136,60 @@ function DeviceTable<TRow>(props: DeviceTableProps<TRow>): ReactElement {
   const bodyClassName: string = useCardRuledBodyClassName();
   const listClassName: string = useCardRuledListClassName();
 
+  /*
+   * The devices' columns as wide as a person makes them (Common's
+   * Table/ColumnResize): a device's name gives way, a reading never - one
+   * set of widths for each kind of device.
+   */
+  const deviceColumns: ResizableColumns = useResizableColumns({
+    tableKey: `vmware-host-devices.${props.rowTestId}`,
+    columns: [
+      { id: "name", cellNumber: 1 },
+      ...props.columns.map(
+        (
+          column: DeviceColumn<TRow>,
+          index: number,
+        ): { id: string; cellNumber: number } => {
+          return { id: column.title, cellNumber: index + 2 };
+        },
+      ),
+    ],
+  });
+
   return (
     <>
       <div className={`max-xl:hidden ${bodyClassName}`}>
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+          {deviceColumns.styles}
+          <table
+            className={`${deviceColumns.getTableWidthClassName("min-w-full")} divide-y divide-gray-200`}
+            {...deviceColumns.tableAttributes}
+          >
             <thead className="bg-gray-50">
               <tr>
-                <th
+                <ResizableHeaderCell
                   scope="col"
                   className={`${HEADER_CLASS_NAME} whitespace-nowrap text-left`}
+                  resize={deviceColumns.getResize(
+                    "name",
+                    tx(props.nameTitle),
+                    ColumnWidthKind.Name,
+                  )}
                 >
-                  {tx(props.nameTitle)}
-                </th>
+                  <span>{tx(props.nameTitle)}</span>
+                </ResizableHeaderCell>
                 {props.columns.map(
                   (column: DeviceColumn<TRow>): ReactElement => {
                     return (
-                      <th
+                      <ResizableHeaderCell
                         key={column.title}
                         scope="col"
                         className={`${HEADER_CLASS_NAME} whitespace-nowrap text-right`}
+                        resize={deviceColumns.getResize(
+                          column.title,
+                          tx(column.title),
+                          ColumnWidthKind.Whole,
+                        )}
                       >
                         <span className="inline-flex items-center justify-end gap-1">
                           {tx(column.title)}
@@ -163,7 +202,7 @@ function DeviceTable<TRow>(props: DeviceTableProps<TRow>): ReactElement {
                             <></>
                           )}
                         </span>
-                      </th>
+                      </ResizableHeaderCell>
                     );
                   },
                 )}

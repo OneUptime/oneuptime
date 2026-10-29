@@ -158,12 +158,13 @@ Hvor alvorsgraden gør mere end at beskrive: under **Hændelser → Regler → V
 Arkivér en status eller alvorsgrad, som dit team ikke længere skal bruge, i stedet for at slette den. Arkivering ændrer ingen hændelse. Sletning af en status fjerner dens rækker fra hver hændelses historik, og en alvorsgrad kan ikke slettes, så længe hændelser har den.
 
 - **Arkiver** findes i rækkens menu **⋯**. Den spørger først og viser de regler, skabeloner, målinger, monitorkriterier og arbejdsgange, der er sat op til at bruge værdien: De bliver ved med at bruge den, indtil du ændrer dem.
+- **Personernes egne vagtregler bliver.** For en alvorlighed siger dialogen også, hvor mange personer der har vagtregler for den. De regler forbliver, som de er, så hændelser med den tilkalder stadig de personer. På hver persons side **Vagtregler** kommer den arkiverede alvorlighed sidst, markeret med **Arkiveret**: Dens regler kan ændres eller fjernes, men der kan ikke tilføjes nye.
 - **Ingen kan vælge den igen.** Meldeformularen, **Skift tilstand**, hændelsens overskrift, Slack, Microsoft Teams, regler, skabeloner og monitorkriterier udelader den. API'et, Terraform og MCP afviser den og nævner værdien og hvor den kan fjernes fra arkivet.
 - **Hændelser beholder den.** En hændelse, der har den, beholder den ved enhver senere redigering, dens tidslinje over statusser viser den stadig, og du kan stadig filtrere efter den.
 - **Arkiverede værdier vises for sig**, i den sammenfoldede sektion **Arkiverede hændelsesstatusser** eller **Arkiverede hændelsesalvorsgrader** under tabellen, med hvem der arkiverede hver enkelt og hvornår. **Fjern fra arkiv** sætter en tilbage, som den var.
 - **Nogle kan ikke arkiveres.** Den oprettede, den kvitterede og den løste status samt projektets sidste alvorsgrad, der ikke er arkiveret. Deres **Arkiver** er låst, med begrundelsen.
 
-**Slet** fortæller først, hvad den ville gøre. Så længe hændelser eller episoder har værdien, afvises sletningen, og dialogen viser dem. Ellers viser den, hvad sletningen ville ændre, og tilbyder **Arkivér i stedet**.
+**Slet** fortæller først, hvad den ville gøre. Så længe hændelser eller episoder har værdien, afvises sletningen, og dialogen viser dem. Ellers viser den, hvad sletningen ville ændre, og tilbyder **Arkivér i stedet**. For at slette flere på én gang skal du vælge dem og vælge **Slet** under **Massehandlinger**: Dialogen siger først det samme for dem alle, dem, der ikke kan slettes, forbliver, som de er, og resten slettes.
 
 ## Flyt en hændelse gennem dens tilstande
 

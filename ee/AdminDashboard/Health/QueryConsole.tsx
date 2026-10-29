@@ -20,6 +20,11 @@ import { APP_API_URL } from "Common/UI/Config";
 import HealthLicenseRequired, {
   isHealthLicenseRequiredError,
 } from "./HealthLicenseRequired";
+import useResizableColumns, {
+  ResizableColumns,
+} from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
+import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -282,6 +287,25 @@ const renderCell: (value: JSONValue) => ReactElement = (
   return <span>{String(value)}</span>;
 };
 
+/*
+ * Each result column's id, as its width is remembered: its name - so a
+ * column a person widened stays wide for the next query that returns it -
+ * with "#2", "#3" after a name the result repeats.
+ */
+const getResultColumnIds: (columns: Array<string>) => Array<string> = (
+  columns: Array<string>,
+): Array<string> => {
+  const timesSeen: Map<string, number> = new Map();
+
+  return columns.map((column: string): string => {
+    const times: number = (timesSeen.get(column) || 0) + 1;
+
+    timesSeen.set(column, times);
+
+    return times === 1 ? column : `${column}#${times}`;
+  });
+};
+
 // --- Component ------------------------------------------------------------
 
 const QueryConsoleContent: FunctionComponent = (): ReactElement => {
@@ -303,6 +327,23 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
    * do nothing at all on a page served over plain http (issue #5132).
    */
   const resultClipboard: ClipboardCopy = useClipboardCopy();
+
+  /*
+   * A result's columns as wide as a person makes them (Common's
+   * Table/ColumnResize), remembered per engine: a long value gives way and
+   * shows in full under the pointer. The row number is as wide as it is.
+   */
+  const resultColumnIds: Array<string> = getResultColumnIds(
+    result && result.kind === "table" ? result.columns : [],
+  );
+  const resultColumns: ResizableColumns = useResizableColumns({
+    tableKey: `admin-query-console-${engine}-table`,
+    columns: resultColumnIds.map(
+      (id: string, index: number): { id: string; cellNumber: number } => {
+        return { id: id, cellNumber: index + 2 };
+      },
+    ),
+  });
 
   const config: EngineConfig = getEngineConfig(engine);
 
@@ -666,7 +707,11 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
         </div>
 
         <div className="overflow-auto max-h-[28rem] rounded-lg border border-gray-200">
-          <table className="min-w-full divide-y divide-gray-200 text-sm">
+          {resultColumns.styles}
+          <table
+            className={`${resultColumns.getTableWidthClassName("min-w-full")} divide-y divide-gray-200 text-sm`}
+            {...resultColumns.tableAttributes}
+          >
             <thead className="bg-gray-50 sticky top-0 z-10">
               <tr>
                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-400 w-12">
@@ -682,11 +727,16 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
                       },
                     );
                     return (
-                      <th
+                      <ResizableHeaderCell
                         key={`${column}-${index}`}
                         className="px-3 py-2 text-left text-xs font-semibold text-gray-600 whitespace-nowrap"
+                        resize={resultColumns.getResize(
+                          resultColumnIds[index] || column,
+                          column,
+                          ColumnWidthKind.Text,
+                        )}
                       >
-                        {column}
+                        <span>{column}</span>
                         {columnType ? (
                           <span className="ml-1 font-normal text-gray-400">
                             {columnType.type}
@@ -694,7 +744,7 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
                         ) : (
                           <></>
                         )}
-                      </th>
+                      </ResizableHeaderCell>
                     );
                   },
                 )}

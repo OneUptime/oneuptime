@@ -243,6 +243,12 @@ describe("every value is archived where it is managed", () => {
       for (const prop of [
         "actionButtons={archive.actionButtons}",
         "getDeleteConfirmation={archive.getDeleteConfirmation}",
+        /*
+         * Bulk Actions > Delete says first what deleting the selected values
+         * would do, and leaves out the ones records still have, as a row's
+         * Delete does (block 28: it used to delete them unannounced).
+         */
+        "bulkActions={archive.bulkActions}",
         "refreshToggle={archive.refreshToggle}",
         "{archive.element}",
       ]) {

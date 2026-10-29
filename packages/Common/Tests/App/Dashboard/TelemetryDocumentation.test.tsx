@@ -576,6 +576,63 @@ describe("TelemetryDocumentation", () => {
       ]);
     });
 
+    test("Go, Rust, PHP, Ruby and Elixir each open their own guide and their frameworks'", () => {
+      renderGuide("traces");
+      const url: (slug: string) => string = (slug: string): string => {
+        return `https://oneuptime.com/integrations/opentelemetry/${slug}`;
+      };
+      const expected: Array<[string, Array<[string, string]>]> = [
+        [
+          "Go",
+          [
+            ["Go", url("go")],
+            ["Gin", url("gin")],
+            ["Echo", url("echo")],
+            ["Fiber", url("fiber")],
+            ["gRPC", url("grpc")],
+          ],
+        ],
+        [
+          "Rust",
+          [
+            ["Rust", url("rust")],
+            ["Axum", url("axum")],
+            ["Actix Web", url("actix-web")],
+          ],
+        ],
+        [
+          "PHP",
+          [
+            ["PHP", url("php")],
+            ["Laravel", url("laravel")],
+            ["Symfony", url("symfony")],
+            ["Slim", url("slim")],
+          ],
+        ],
+        [
+          "Ruby",
+          [
+            ["Ruby", url("ruby")],
+            ["Ruby on Rails", url("rails")],
+            ["Sinatra", url("sinatra")],
+            ["Sidekiq", url("sidekiq")],
+          ],
+        ],
+        [
+          "Elixir",
+          [
+            ["Elixir", url("elixir")],
+            ["Phoenix", url("phoenix")],
+          ],
+        ],
+      ];
+
+      for (const [button, links] of expected) {
+        fireEvent.click(screen.getByRole("button", { name: button }));
+        expect([button, guideLinks()]).toEqual([button, links]);
+      }
+    });
+
     test("offers a button for every language the guides' catalog knows, in its order", () => {
       expect(
         TELEMETRY_LANGUAGES.map((language: { key: string }): string => {

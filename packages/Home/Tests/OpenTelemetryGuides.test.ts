@@ -46,6 +46,10 @@ import {
   propertiesProblems,
 } from "../Utils/Integrations/OpenTelemetry/GuideCodeChecks";
 import {
+  syntaxProblems,
+  tomlProblems,
+} from "../Utils/Integrations/OpenTelemetry/GuideSyntaxChecks";
+import {
   inlineTextLinks,
   inlineTextProblems,
 } from "../Utils/Integrations/OpenTelemetry/GuideText";
@@ -89,32 +93,16 @@ const SHARED_TEXT_LENGTH: number = 60;
 const GUIDE_LINK: RegExp =
   /^\/integrations\/opentelemetry\/([a-z0-9-]+)(?:#.*)?$/;
 const DOCS_LINK: RegExp = /^\/docs\//;
-/*
- * The JavaScript and TypeScript guides were written before their code was
- * held to the page's width: these are the lines each still has that run
- * past it, so a laptop scrolls the block sideways. The counts only go down
- * (a guide with fewer fails until its count is lowered), and every guide
- * not named here has none.
- */
-const LINES_PAST_THE_COLUMN_TO_FIX: Record<string, number> = {
-  nodejs: 1,
-  express: 1,
-  nestjs: 3,
-  nextjs: 1,
-  fastify: 1,
-  koa: 1,
-  hapi: 1,
-  bun: 8,
-  deno: 1,
-  browser: 14,
-  react: 15,
-  angular: 16,
-};
 
 const DOCKERFILE_INSTRUCTION: RegExp =
   /^(FROM|WORKDIR|COPY|ADD|RUN|ENV|EXPOSE|CMD|USER|ARG|ENTRYPOINT|LABEL) /;
+/*
+ * A line of YAML: a key (a Symfony service's may hold a PHP class's
+ * backslashes, or an argument's $), a list item, a quoted or plain scalar,
+ * a comment, or nothing.
+ */
 const YAML_LINE: RegExp =
-  /^( {2})*(- )?([A-Za-z0-9_.-]+:( .+)?|"[^"]*"|[A-Za-z0-9_.:/@-]+)$/;
+  /^(( {2})*(- )?([A-Za-z0-9_.$\\-]+:( .+)?|"[^"]*"|[A-Za-z0-9_.:/@-]+)|( {2})*#.*|)$/;
 const DOCUMENT_SEPARATOR: string = "---";
 const IMPORT_NAMES: RegExp =
   /import\s+(type\s+)?\{([^}]*)\}\s+from\s+"([^"]+)"/g;
@@ -129,7 +117,24 @@ const COMPILED_OR_RUN_LANGUAGES: ReadonlyArray<SnippetLanguage> = [
   "java",
   "kotlin",
   "csharp",
+  "go",
+  "ruby",
+  "php",
+  "rust",
+  "elixir",
 ];
+
+// A text's sentences, and the clauses a colon or a semicolon closes.
+function sentencesOf(text: InlineText): Array<string> {
+  return text
+    .split(/(?<=[.!?:;])\s+/)
+    .map((sentence: string): string => {
+      return sentence.trim();
+    })
+    .filter((sentence: string): boolean => {
+      return sentence.length > 0;
+    });
+}
 
 // Every inline text a guide writes itself, with where it is written.
 function guideTexts(guide: OpenTelemetryGuide): Array<[string, InlineText]> {
@@ -528,7 +533,12 @@ function parseProblems(snippet: GuideSnippet): Array<string> {
     case "dockerfile":
       return dockerfileInstructions(snippet.code)
         .filter((line: string): boolean => {
-          return line.trim().length > 0 && !DOCKERFILE_INSTRUCTION.test(line);
+          // A comment is a line of its own that starts with #.
+          return (
+            line.trim().length > 0 &&
+            !line.startsWith("# ") &&
+            !DOCKERFILE_INSTRUCTION.test(line)
+          );
         })
         .map((line: string): string => {
           return `not a Dockerfile instruction: ${line}`;
@@ -568,6 +578,17 @@ function parseProblems(snippet: GuideSnippet): Array<string> {
       return propertiesProblems(snippet.code);
     case "ini":
       return iniProblems(snippet.code);
+    case "go":
+    case "rust":
+    case "php":
+    case "ruby":
+    case "elixir":
+      return syntaxProblems(snippet.code, snippet.language);
+    // A .proto file's comments, strings and braces are Go's.
+    case "protobuf":
+      return syntaxProblems(snippet.code, "go");
+    case "toml":
+      return tomlProblems(snippet.code);
     default:
       return [];
   }
@@ -637,6 +658,29 @@ describe("the OpenTelemetry guide catalog", () => {
       "dotnet",
       "aspnet-core",
       "dotnet-worker-service",
+      // Go.
+      "go",
+      "gin",
+      "echo",
+      "fiber",
+      "grpc",
+      // Ruby.
+      "ruby",
+      "rails",
+      "sinatra",
+      "sidekiq",
+      // PHP.
+      "php",
+      "laravel",
+      "symfony",
+      "slim",
+      // Rust.
+      "rust",
+      "axum",
+      "actix-web",
+      // Elixir.
+      "elixir",
+      "phoenix",
     ]);
   });
 
@@ -683,7 +727,13 @@ describe.each(BY_SLUG)(
       expect(
         guide.logs.snippets.length + guide.logs.notes.length,
       ).toBeGreaterThanOrEqual(2);
-      expect(guide.metrics.builtIn.length).toBeGreaterThanOrEqual(1);
+      /*
+       * The metrics the instrumentations send, or, where they send none
+       * (Ruby's record spans only), the code that makes one.
+       */
+      expect(
+        guide.metrics.builtIn.length > 0 || guide.metrics.snippets.length > 0,
+      ).toBe(true);
       expect(guide.sampling.snippets.length).toBeGreaterThanOrEqual(1);
       expect(guide.deploy.snippets.length).toBeGreaterThanOrEqual(1);
       expect(guide.verify.steps.length).toBeGreaterThanOrEqual(3);
@@ -845,13 +895,7 @@ describe.each(BY_SLUG)(
         },
       );
 
-      expect([guide.slug, lines.length]).toEqual([
-        guide.slug,
-        LINES_PAST_THE_COLUMN_TO_FIX[guide.slug] || 0,
-      ]);
-      if (!LINES_PAST_THE_COLUMN_TO_FIX[guide.slug]) {
-        expect(lines).toEqual([]);
-      }
+      expect([guide.slug, lines]).toEqual([guide.slug, []]);
     });
 
     test("pins every OpenTelemetry package it installs, at the version that ran", () => {
@@ -1116,21 +1160,28 @@ describe("what the guides write", () => {
     }
   });
 
+  /*
+   * Sentence by sentence, not only text by text: two guides share a fact
+   * only through the texts kept in one place, so that no page reads as
+   * another's copy with its names changed.
+   */
   test("writes no sentence two guides share, beyond the facts kept in one place", () => {
     const writers: Map<string, Array<string>> = new Map();
 
     for (const guide of GUIDES) {
       for (const [where, text] of guideTexts(guide)) {
-        if (
-          text.length < SHARED_TEXT_LENGTH ||
-          SHARED_GUIDE_TEXTS.includes(text)
-        ) {
+        if (SHARED_GUIDE_TEXTS.includes(text)) {
           continue;
         }
-        writers.set(text, [
-          ...(writers.get(text) || []),
-          `${guide.slug}.${where}`,
-        ]);
+        for (const sentence of sentencesOf(text)) {
+          if (sentence.length < SHARED_TEXT_LENGTH) {
+            continue;
+          }
+          writers.set(sentence, [
+            ...(writers.get(sentence) || []),
+            `${guide.slug}.${where}`,
+          ]);
+        }
       }
     }
 

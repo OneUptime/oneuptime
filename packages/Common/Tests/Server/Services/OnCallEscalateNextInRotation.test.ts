@@ -5,6 +5,7 @@ import Semaphore from "../../../Server/Infrastructure/Semaphore";
 import OnCallDutyPolicyEscalationRuleScheduleService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleScheduleService";
 import OnCallDutyPolicyEscalationRuleService, {
   NOT_A_PROJECT_MEMBER_TIMELINE_MESSAGE,
+  OnCallRuleExecutionOutcome,
 } from "../../../Server/Services/OnCallDutyPolicyEscalationRuleService";
 import OnCallDutyPolicyEscalationRuleTeamService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleTeamService";
 import OnCallDutyPolicyEscalationRuleUserService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleUserService";
@@ -41,6 +42,7 @@ import {
   NOBODY_NEXT_IN_ROTATION_TIMELINE_MESSAGE,
   readNextInRotationScheduleIds,
 } from "../../../Types/OnCallDutyPolicy/NextInRotation";
+import { ON_CALL_LEVEL_PAGED_NOBODY_TIMELINE_MESSAGE } from "../../../Types/OnCallDutyPolicy/OnCallEmptyLevel";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import UserNotificationEventType from "../../../Types/UserNotification/UserNotificationEventType";
 import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
@@ -402,7 +404,6 @@ let members: Set<string>;
 let ruleUsers: Record<string, Array<string>>;
 let ruleTeams: Record<string, Array<string>>;
 let teamMembers: Record<string, Array<string>>;
-let scheduleGapRetryCount: number;
 
 const RULE_ORDERS: Record<string, number> = {
   [LEVEL_1]: 1,
@@ -418,7 +419,6 @@ function installRun(): void {
   ruleUsers = {};
   ruleTeams = {};
   teamMembers = { [TEAM]: [ALEX, SAM, KIM, RIA] };
-  scheduleGapRetryCount = 0;
 
   jest
     .spyOn(OnCallDutyPolicyEscalationRuleService, "findOneById")
@@ -439,10 +439,24 @@ function installRun(): void {
       runUpdates.push({ ...data.data });
       return undefined;
     }) as never);
+  /*
+   * Whether each page of a level went out, read back from the run's
+   * timeline once the level has paged.
+   */
   jest
-    .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")
-    .mockImplementation((async () => {
-      return { scheduleGapRetryCount: scheduleGapRetryCount };
+    .spyOn(OnCallDutyPolicyExecutionLogTimelineService, "findBy")
+    .mockImplementation((async (data: {
+      query: { _id?: { value?: Array<ObjectID> } };
+    }) => {
+      const ids: Array<string> = (data.query._id?.value || []).map(
+        (id: ObjectID): string => {
+          return id.toString();
+        },
+      );
+
+      return timeline.filter((row: OnCallDutyPolicyExecutionLogTimeline) => {
+        return ids.includes(row.id?.toString() || "");
+      });
     }) as never);
 
   jest
@@ -519,14 +533,17 @@ function installRun(): void {
 async function runLevel(
   ruleId: string,
   policy: string = POLICY,
-): Promise<void> {
-  await OnCallDutyPolicyEscalationRuleService.startRuleExecution(oid(ruleId), {
-    projectId: oid(PROJECT),
-    triggeredByIncidentId: oid(INCIDENT),
-    userNotificationEventType: UserNotificationEventType.IncidentCreated,
-    onCallPolicyExecutionLogId: oid(EXECUTION_LOG),
-    onCallPolicyId: oid(policy),
-  });
+): Promise<OnCallRuleExecutionOutcome> {
+  return await OnCallDutyPolicyEscalationRuleService.startRuleExecution(
+    oid(ruleId),
+    {
+      projectId: oid(PROJECT),
+      triggeredByIncidentId: oid(INCIDENT),
+      userNotificationEventType: UserNotificationEventType.IncidentCreated,
+      onCallPolicyExecutionLogId: oid(EXECUTION_LOG),
+      onCallPolicyId: oid(policy),
+    },
+  );
 }
 
 // The rows of the run's timeline a rule wrote, readable.
@@ -659,7 +676,7 @@ describe("an escalation rule that pages the next person in the rotation", () => 
     ]);
   });
 
-  test("nobody next (everybody else away): nobody is paged there, the line says why, and the rule is not tried again", async () => {
+  test("nobody next (everybody else away): nobody is paged there, the line says why, and the run moves on at once", async () => {
     awayUntilFriday({ who: SAM });
     awayUntilFriday({ who: KIM });
     attach({
@@ -668,7 +685,7 @@ describe("an escalation rule that pages the next person in the rotation", () => 
       pageNextInRotation: true,
     });
 
-    await runLevel(LEVEL_2);
+    const outcome: OnCallRuleExecutionOutcome = await runLevel(LEVEL_2);
 
     expect(paged).toEqual([]);
     expect(steps()).toEqual([
@@ -686,22 +703,23 @@ describe("an escalation rule that pages the next person in the rotation", () => 
         scheduleId: null,
         isNextInRotation: false,
         overridedByUserId: null,
-        message: "Skipped because no users in this rule.",
+        message: ON_CALL_LEVEL_PAGED_NOBODY_TIMELINE_MESSAGE,
       },
     ]);
 
-    // No rewind to try the rule again: the run moves on after its wait.
-    expect(
-      runUpdates.some((update: JSONObject) => {
-        return update["lastExecutedEscalationRuleOrder"] === 1;
-      }),
-    ).toBe(false);
-    expect(runUpdates[runUpdates.length - 1]).toEqual({
-      scheduleGapRetryCount: 0,
+    // Nobody to wait for: the run moves on now, not after the level's wait.
+    expect(outcome.movesOnAtOnce).toBe(true);
+
+    // The rule is recorded on the run, once; nothing rewinds it to try again.
+    expect(runUpdates).toHaveLength(1);
+    expect(runUpdates[0]).toMatchObject({
+      lastExecutedEscalationRuleOrder: 2,
+      executeNextEscalationRuleInMinutes: 30,
     });
+    expect(runUpdates[0]).not.toHaveProperty("scheduleGapRetryCount");
   });
 
-  test("nobody on call at all: the schedule's gap line, and the rule is tried again in a minute", async () => {
+  test("nobody on call at all: the schedule's gap line, and the level is passed at once rather than tried again", async () => {
     for (const who of [ALEX, SAM, KIM]) {
       awayUntilFriday({ who });
     }
@@ -711,22 +729,54 @@ describe("an escalation rule that pages the next person in the rotation", () => 
       pageNextInRotation: true,
     });
 
-    await runLevel(LEVEL_2);
+    const outcome: OnCallRuleExecutionOutcome = await runLevel(LEVEL_2);
 
     expect(paged).toEqual([]);
-    expect(steps()[0]).toEqual({
-      status: OnCallDutyExecutionLogTimelineStatus.Skipped,
-      userId: null,
-      scheduleId: SCHEDULE,
-      isNextInRotation: false,
-      overridedByUserId: null,
-      message: "Skipped because no active users are found in this schedule.",
+    expect(steps()).toEqual([
+      {
+        status: OnCallDutyExecutionLogTimelineStatus.Skipped,
+        userId: null,
+        scheduleId: SCHEDULE,
+        isNextInRotation: false,
+        overridedByUserId: null,
+        message: "Skipped because no active users are found in this schedule.",
+      },
+      {
+        status: OnCallDutyExecutionLogTimelineStatus.Skipped,
+        userId: null,
+        scheduleId: null,
+        isNextInRotation: false,
+        overridedByUserId: null,
+        message: ON_CALL_LEVEL_PAGED_NOBODY_TIMELINE_MESSAGE,
+      },
+    ]);
+    expect(outcome.movesOnAtOnce).toBe(true);
+    expect(outcome.hadScheduleGap).toBe(true);
+
+    // No rewind and no retry count: the gap does not hold the run.
+    expect(runUpdates).toHaveLength(1);
+    expect(runUpdates[0]).toMatchObject({
+      lastExecutedEscalationRuleOrder: 2,
     });
-    expect(runUpdates[runUpdates.length - 1]).toEqual({
-      lastExecutedEscalationRuleOrder: 1,
-      executeNextEscalationRuleInMinutes: 1,
-      scheduleGapRetryCount: 1,
+    expect(runUpdates[0]).not.toHaveProperty("scheduleGapRetryCount");
+  });
+
+  test("the next person paged: the level holds the run for its wait, as every level that reached somebody does", async () => {
+    attach({
+      id: "0e400000-0000-4000-8000-000000000317",
+      ruleId: LEVEL_2,
+      pageNextInRotation: true,
     });
+
+    const outcome: OnCallRuleExecutionOutcome = await runLevel(LEVEL_2);
+
+    expect(pagedUserIds()).toEqual([SAM]);
+    expect(outcome.movesOnAtOnce).toBe(false);
+    expect(
+      steps().filter((step: { message: string }): boolean => {
+        return step.message === ON_CALL_LEVEL_PAGED_NOBODY_TIMELINE_MESSAGE;
+      }),
+    ).toEqual([]);
   });
 
   test("Sam named on the rule too: paged once, and the next-in-rotation line says he was paged already", async () => {

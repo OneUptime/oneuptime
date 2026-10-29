@@ -93,6 +93,37 @@ export function getRunbooksBreadcrumbs(path: string): Array<Link> | undefined {
       "Runners",
       "View Runner",
     ]),
+    /*
+     * Pages that had no trail. Every page this product routes has one:
+     * Common/Tests/App/Dashboard/EveryPageHasATrail fails by name for a
+     * page left out.
+     */
+    ...BuildBreadcrumbLinksByTitles(PageMap.RUNBOOKS_SETTINGS_OWNER_RULES, [
+      "Project",
+      "Runbooks",
+      "Settings",
+      "Owner Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.RUNBOOKS_SETTINGS_OWNER_RULE_VIEW, [
+      "Project",
+      "Runbooks",
+      "Settings",
+      "Owner Rules",
+      "View Rule",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.RUNBOOKS_SETTINGS_LABEL_RULES, [
+      "Project",
+      "Runbooks",
+      "Settings",
+      "Label Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.RUNBOOKS_SETTINGS_LABEL_RULE_VIEW, [
+      "Project",
+      "Runbooks",
+      "Settings",
+      "Label Rules",
+      "View Rule",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

@@ -834,7 +834,7 @@ export class Service extends ProjectReferencesService<Model> {
         userId: createdItem.addedByUserId || undefined,
         workspaceNotification: {
           sendWorkspaceNotification: true,
-          notifyUserId: createdItem.addedByUserId || undefined,
+          leadWithAuthor: true,
         },
       });
     }
@@ -1532,7 +1532,7 @@ export class Service extends ProjectReferencesService<Model> {
         userId: data.addedByUserId,
         workspaceNotification: {
           sendWorkspaceNotification: true,
-          notifyUserId: data.addedByUserId,
+          leadWithAuthor: true,
         },
       });
     } catch (error) {

@@ -1516,6 +1516,11 @@
   "System": "سیستم",
   "Enable": "فعال کردن",
   "Disable": "غیرفعال کردن",
+  "Drag to resize. Double-click to fit.": "برای تغییر عرض بکشید. برای تنظیم عرض بر اساس محتوا دوبار کلیک کنید.",
+  "Reset column widths": "بازنشانی عرض ستون‌ها",
+  "Resize the {{column}} column": "تغییر عرض ستون {{column}}",
+  "{{count}} pixels wide": "عرض {{count}} پیکسل",
+  "{{count}} pixels wide_one": "عرض {{count}} پیکسل",
   "markdownCallouts": {
     "caution": "احتیاط",
     "danger": "خطر",

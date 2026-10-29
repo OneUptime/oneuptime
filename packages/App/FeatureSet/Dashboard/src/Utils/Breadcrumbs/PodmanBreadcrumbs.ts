@@ -99,6 +99,85 @@ export function getPodmanBreadcrumbs(path: string): Array<Link> | undefined {
       "Podman",
       "Documentation",
     ]),
+    /*
+     * Pages that had no trail. Every page this product routes has one:
+     * Common/Tests/App/Dashboard/EveryPageHasATrail fails by name for a
+     * page left out.
+     */
+    ...BuildBreadcrumbLinksByTitles(PageMap.PODMAN_HOST_VIEW_CONTAINER_DETAIL, [
+      "Project",
+      "Podman",
+      "View Host",
+      "Containers",
+      "Container Detail",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.PODMAN_HOST_VIEW_METRICS, [
+      "Project",
+      "Podman",
+      "View Host",
+      "Metrics",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.PODMAN_HOST_VIEW_TRACES, [
+      "Project",
+      "Podman",
+      "View Host",
+      "Traces",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.PODMAN_HOST_VIEW_PROFILES, [
+      "Project",
+      "Podman",
+      "View Host",
+      "Performance Profiles",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.PODMAN_HOST_VIEW_OWNERS, [
+      "Project",
+      "Podman",
+      "View Host",
+      "Owners",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.PODMAN_HOST_VIEW_FEED, [
+      "Project",
+      "Podman",
+      "View Host",
+      "Feed",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.PODMAN_HOST_VIEW_AUDIT_LOGS, [
+      "Project",
+      "Podman",
+      "View Host",
+      "Audit Logs",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.PODMAN_SETTINGS_OWNER_RULES, [
+      "Project",
+      "Podman",
+      "Settings",
+      "Owner Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.PODMAN_SETTINGS_OWNER_RULE_VIEW, [
+      "Project",
+      "Podman",
+      "Settings",
+      "Owner Rules",
+      "View Rule",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.PODMAN_SETTINGS_LABEL_RULES, [
+      "Project",
+      "Podman",
+      "Settings",
+      "Label Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.PODMAN_SETTINGS_LABEL_RULE_VIEW, [
+      "Project",
+      "Podman",
+      "Settings",
+      "Label Rules",
+      "View Rule",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.PODMAN_ARCHIVED, [
+      "Project",
+      "Podman",
+      "Archived",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

@@ -213,12 +213,17 @@ export function generateGuideMarkdown(
     "",
     absolute(guide.metrics.intro, baseUrl),
     "",
-    ...guide.metrics.builtIn.map(
-      (row: { name: string; description: InlineText }): string => {
-        return `- \`${row.name}\`: ${absolute(row.description, baseUrl)}`;
-      },
-    ),
-    "",
+    // What the instrumentations send, where they send any.
+    ...(guide.metrics.builtIn.length > 0
+      ? [
+          ...guide.metrics.builtIn.map(
+            (row: { name: string; description: InlineText }): string => {
+              return `- \`${row.name}\`: ${absolute(row.description, baseUrl)}`;
+            },
+          ),
+          "",
+        ]
+      : []),
     ...guide.metrics.snippets.flatMap(snippetMarkdown),
     ...notesMarkdown(guide.metrics.notes, baseUrl),
     `## ${title("sampling")}`,

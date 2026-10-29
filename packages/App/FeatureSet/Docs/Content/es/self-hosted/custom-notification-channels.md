@@ -31,7 +31,7 @@ Cuando una política de guardia avisa a alguien y su regla de guardia usa el can
 
 ## Añadir un canal
 
-1. En el Admin Dashboard, abre **Ajustes**, luego **Custom Channels**, y selecciona **Add**.
+1. En el Admin Dashboard, abre **Ajustes**, luego **Notificaciones > Custom Channels** en el menú lateral (**Notificaciones** empieza plegado), y selecciona **Add**.
 2. En el paso **Channel**, rellena:
    - **Nombre**: lo que las personas ven en sus métodos de notificación y sus reglas de guardia, por ejemplo `CorpoApp`.
    - **Webhook URL**: adonde OneUptime envía cada aviso. Puede estar en tu red privada.

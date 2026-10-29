@@ -79,11 +79,13 @@ Cuando un incidente o una alerta llega a la política, **Level 1** avisa a sus d
 
 Un incidente, una alerta o un episodio que se crea ya reconocido o resuelto —registrado a posteriori— no ejecuta ninguna de sus políticas: no se avisa a nadie, y su feed lo indica, nombrándolas. Consulta [Declarado ya reconocido o resuelto](/docs/incidents/declaring-incidents#declarado-ya-reconocido-o-resuelto).
 
+Un nivel que no tiene a nadie a quien avisar cuando se llega a él se pasa de inmediato: se avisa al siguiente nivel en el acto, sin esperar. Es un nivel sin destinatarios, y uno cuyos destinatarios no dejan a nadie a quien avisar en ese momento: un equipo sin miembros, una programación sin nadie de guardia, o personas ausentes sin nadie que las cubra, que han dejado el proyecto o a las que no se puede localizar de ningún modo. Cuando ningún nivel tiene a nadie a quien avisar, la política se detiene de inmediato y no se repite.
+
 Para repetir una política, haz clic en **Editar** en la tarjeta **Política de repetición**, elige **Empezar de nuevo desde Level 1** y define **¿Cuántas veces más?**.
 
 ### El resumen de escalado
 
-El resumen de la parte superior de la página **Reglas de escalado** muestra toda la escalera: cuándo se avisa a cada nivel, a quién avisa y qué ocurre después del último. Un nivel cuyos destinatarios no pueden recibir todos el aviso lo indica en su tarjeta; haz clic en la etiqueta para ver quién y por qué.
+El resumen de la parte superior de la página **Reglas de escalado** muestra toda la escalera: cuándo se avisa a cada nivel, a quién avisa y qué ocurre después del último. Un nivel cuyos destinatarios no pueden recibir todos el aviso lo indica en su tarjeta; haz clic en la etiqueta para ver quién y por qué. Un nivel sin destinatarios muestra **Omitido de inmediato**, y su espera no cuenta para cuándo se avisa al siguiente nivel.
 
 ### Cómo se localiza a cada persona
 
@@ -184,7 +186,7 @@ La siguiente persona se determina cuando se ejecuta el nivel, a partir de la pro
 - Es la persona que va después de quien está de guardia, en el orden en que se turnan las personas de la rotación. Después de la última persona vuelve la primera.
 - Se pasa por alto a las personas ausentes, las cubra alguien o no, y también a quien esté de guardia en lugar de otra persona.
 - Siempre es alguien de la misma rotación: con varias capas, la capa de la que viene quien está de guardia. Una rotación sin nadie más, o con todos los demás ausentes, no tiene siguiente persona, y el nivel no avisa a nadie allí y lo indica.
-- Cuando no hay nadie de guardia en la programación, tampoco hay siguiente persona, y el nivel se vuelve a intentar durante unos minutos, como ocurre con la propia programación.
+- Cuando no hay nadie de guardia en la programación, tampoco hay siguiente persona, y el nivel no avisa a nadie allí.
 
 El mensaje de la ejecución en Slack y Microsoft Teams, el feed del incidente y la **Cronología de ejecución** indican a quién se avisó como siguiente en la rotación, y de qué programación: «Sam Lee (next in the Payments primary rotation)».
 

@@ -133,6 +133,15 @@ export default class SecurityCaseDefaultValues {
     priority.color = value.color;
     priority.order = value.order;
 
+    // Its response targets; a priority without one stays empty.
+    if (value.acknowledgeWithinInMinutes !== null) {
+      priority.acknowledgeWithinInMinutes = value.acknowledgeWithinInMinutes;
+    }
+
+    if (value.containWithinInMinutes !== null) {
+      priority.containWithinInMinutes = value.containWithinInMinutes;
+    }
+
     for (const level of SECURITY_CASE_PRIORITY_LEVELS) {
       priority.setColumnValue(
         SECURITY_CASE_PRIORITY_LEVEL_FLAGS[level],

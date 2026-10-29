@@ -33,6 +33,7 @@ import NetworkDeviceLinkRule from "./NetworkDeviceLinkRule";
 import NetworkTopologySuppression from "./NetworkTopologySuppression";
 import NetworkSiteAssignmentRule from "./NetworkSiteAssignmentRule";
 import NetworkControllerConnection from "./NetworkControllerConnection";
+import NetworkAddressName from "./NetworkAddressName";
 import DockerHostOwnerTeam from "./DockerHostOwnerTeam";
 import DockerHostOwnerUser from "./DockerHostOwnerUser";
 import DockerResource from "./DockerResource";
@@ -159,6 +160,8 @@ import LogPipelineProcessor from "./LogPipelineProcessor";
 import LogDropFilter from "./LogDropFilter";
 import DetectionRule from "./DetectionRule";
 import DetectionRuleException from "./DetectionRuleException";
+import SecurityWatchlist from "./SecurityWatchlist";
+import SecurityWatchlistItem from "./SecurityWatchlistItem";
 import SecurityEventConnection from "./SecurityEventConnection";
 import SecurityEventConnectionRun from "./SecurityEventConnectionRun";
 import ToolImportRun from "./ToolImportRun";
@@ -167,6 +170,8 @@ import ThreatIntelFeed from "./ThreatIntelFeed";
 import SecurityCase from "./SecurityCase";
 import SecurityCaseFeed from "./SecurityCaseFeed";
 import SecurityCaseNote from "./SecurityCaseNote";
+import SecurityCaseTask from "./SecurityCaseTask";
+import SecurityCaseEvidence from "./SecurityCaseEvidence";
 import SecurityCasePriority from "./SecurityCasePriority";
 import SecurityCaseStatus from "./SecurityCaseStatus";
 import SecurityDetection from "./SecurityDetection";
@@ -597,6 +602,8 @@ const AllModelTypes: Array<{
   LogDropFilter,
   DetectionRule,
   DetectionRuleException,
+  SecurityWatchlist,
+  SecurityWatchlistItem,
   SecurityEventConnection,
   SecurityEventConnectionRun,
   ToolImportRun,
@@ -605,6 +612,8 @@ const AllModelTypes: Array<{
   SecurityCase,
   SecurityCaseFeed,
   SecurityCaseNote,
+  SecurityCaseTask,
+  SecurityCaseEvidence,
   SecurityCasePriority,
   SecurityCaseStatus,
   SecurityDetection,
@@ -1068,6 +1077,7 @@ const AllModelTypes: Array<{
   NetworkTopologySuppression,
   NetworkSiteAssignmentRule,
   NetworkControllerConnection,
+  NetworkAddressName,
   DockerHostOwnerTeam,
   DockerHostOwnerUser,
   DockerResource,

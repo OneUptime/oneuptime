@@ -40,62 +40,72 @@ const HiddenFacetsFooter: FunctionComponent<HiddenFacetsFooterProps> = (
     })
     .join(", ");
 
+  /*
+   * One button, folded or open: the count goes before it while the filters
+   * are folded away, so the button keeps its place among the row's children
+   * and React keeps the same element - focus stays on it after a press. Two
+   * buttons, one per state, dropped focus to the page on every press. Its
+   * focus ring is the sidebar's own (the facet rows'), not the browser's.
+   */
   return (
     <div
       data-testid="facet-sidebar-hidden-footer"
       className="-mt-px flex items-center justify-between gap-2 border-t border-gray-100 px-3 py-2 text-[11px] text-gray-400"
     >
-      {props.isShowingHidden ? (
-        <button
-          type="button"
-          className="flex min-w-0 items-center gap-1.5 rounded font-medium text-indigo-500 transition-colors hover:text-indigo-600"
-          aria-expanded={true}
-          aria-controls={props.controlsId}
-          title={hiddenTitlesText}
-          onClick={props.onToggle}
-        >
+      {!props.isShowingHidden && (
+        <div className="flex min-w-0 items-center gap-1.5">
           <span className="flex flex-none items-center">
-            <Icon icon={IconProp.EyeSlash} className="h-3.5 w-3.5" />
+            <Icon
+              icon={IconProp.EyeSlash}
+              className="h-3.5 w-3.5 text-gray-400"
+            />
           </span>
-          <span className="truncate">
-            {translator.translateText("Hide empty filters")}
-          </span>
-        </button>
-      ) : (
-        <>
-          <div className="flex min-w-0 items-center gap-1.5">
-            <span className="flex flex-none items-center">
-              <Icon
-                icon={IconProp.EyeSlash}
-                className="h-3.5 w-3.5 text-gray-400"
-              />
-            </span>
-            <span
-              className="truncate text-gray-500"
-              title={hiddenTitlesText}
-              data-testid="facet-sidebar-hidden-count"
-            >
-              {formatHiddenFacetCount(props.hiddenCount)}
-            </span>
-          </div>
-          <button
-            type="button"
-            className="flex-none rounded font-medium text-indigo-500 transition-colors hover:text-indigo-600"
-            aria-expanded={false}
-            aria-controls={props.controlsId}
-            aria-label={translator.translatePlural(
-              {
-                one: "Show {{count}} empty filter",
-                other: "Show {{count}} empty filters",
-              },
-              props.hiddenCount,
-            )}
-            onClick={props.onToggle}
+          <span
+            className="truncate text-gray-500"
+            title={hiddenTitlesText}
+            data-testid="facet-sidebar-hidden-count"
           >
-            {translator.translateText("Show")}
-          </button>
-        </>
+            {formatHiddenFacetCount(props.hiddenCount)}
+          </span>
+        </div>
       )}
+      <button
+        type="button"
+        className={`${
+          props.isShowingHidden
+            ? "flex min-w-0 items-center gap-1.5"
+            : "flex-none"
+        } -mx-1 rounded px-1 font-medium text-indigo-500 transition-colors hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500`}
+        aria-expanded={props.isShowingHidden}
+        aria-controls={props.controlsId}
+        aria-label={
+          props.isShowingHidden
+            ? undefined
+            : translator.translatePlural(
+                {
+                  one: "Show {{count}} empty filter",
+                  other: "Show {{count}} empty filters",
+                },
+                props.hiddenCount,
+              )
+        }
+        title={props.isShowingHidden ? hiddenTitlesText : undefined}
+        data-testid="facet-sidebar-hidden-toggle"
+        onClick={props.onToggle}
+      >
+        {props.isShowingHidden ? (
+          <>
+            <span className="flex flex-none items-center">
+              <Icon icon={IconProp.EyeSlash} className="h-3.5 w-3.5" />
+            </span>
+            <span className="truncate">
+              {translator.translateText("Hide empty filters")}
+            </span>
+          </>
+        ) : (
+          translator.translateText("Show")
+        )}
+      </button>
     </div>
   );
 };

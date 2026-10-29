@@ -2577,6 +2577,20 @@ const CASE_PAGES: ReadonlyArray<CasePage> = [
   },
   {
     section: "Investigation",
+    title: "Evidence",
+    segment: "/evidence",
+    text: "okta-system-log-2026-10-14.json",
+    slug: "evidence",
+  },
+  {
+    section: "Investigation",
+    title: "Tasks",
+    segment: "/tasks",
+    text: "Reset the sprayed accounts' passwords",
+    slug: "tasks",
+  },
+  {
+    section: "Investigation",
     title: "Playbooks",
     segment: "/playbook-runs",
     text: "Started on its own: Case Opened",
@@ -4613,6 +4627,13 @@ test.describe("a case", () => {
   }: {
     page: Page;
   }) => {
+    /*
+     * Thirteen pages since Evidence and Tasks, three looks at each and two
+     * more on a phone in the dark: 41 pages drawn and shot, past the
+     * config's two minutes on a busy machine.
+     */
+    test.setTimeout(300000);
+
     for (const casePage of CASE_PAGES) {
       const shots: Array<[number, "dark" | undefined]> = [
         ...CASE_PAGE_SHOTS,
@@ -5579,6 +5600,15 @@ test.describe("detections", () => {
       });
 
       const filters: Locator = page.getByTestId("rule-library-filters");
+
+      if (width < 768) {
+        // On a phone the chips are folded behind Filter (FacetFilterBar).
+        const filter: Locator = filters.getByTestId("facet-filter-bar-toggle");
+        await expect(filter).toHaveAttribute("aria-expanded", "false");
+        await expect(page.getByTestId("rule-library-count")).toBeVisible();
+        await filter.click();
+        await expect(filter).toHaveAttribute("aria-expanded", "true");
+      }
       await expect(filters).toHaveAttribute("role", "group");
       await expect(chipButton(page, CATEGORY_CHIP)).toHaveText("Rule category");
       await expect(chipButton(page, DATA_CHIP)).toHaveText("Data");
@@ -6166,6 +6196,10 @@ test.describe("detections", () => {
       await expect(libraryRow(page, BRUTE_FORCE_RULE)).toBeVisible({
         timeout: 30000,
       });
+      if (width < 768) {
+        // On a phone the chips are folded behind Filter (FacetFilterBar).
+        await page.getByTestId("facet-filter-bar-toggle").click();
+      }
       // The filter chips speak the language too.
       await expect(chipButton(page, CATEGORY_CHIP)).toHaveText(category);
       await expect(
@@ -8645,9 +8679,13 @@ test.describe("the project's case priorities and statuses", () => {
       .click();
     const dialog: Locator = page.getByRole("dialog");
     await expect(dialog).toContainText("Close Case");
-    // Where the case goes comes first, before OneUptime AI's read of it.
+    /*
+     * Where the case goes comes first, then the work still open on it (two
+     * of the spray case's three tasks, CaseWorkFixture.js), before OneUptime
+     * AI's read of it.
+     */
     await expect(dialog).toContainText(
-      "The case moves to Closed - Duplicate. OneUptime AI read this case as Likely Malicious. Pick what you found.",
+      "The case moves to Closed - Duplicate. 2 tasks on this case are still open. OneUptime AI read this case as Likely Malicious. Pick what you found.",
     );
     await dialog
       .getByRole("button", { name: "Close Case", exact: true })

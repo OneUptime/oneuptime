@@ -485,7 +485,7 @@ export const AspNetCoreGuide: OpenTelemetryGuide = {
       validateKeyStep("server"),
       {
         title: "Find the service",
-        body: `Send a request, then open ${SCREENS.services}: \`checkout-api\` is listed within a minute. Nothing? \`OTEL_EXPORTER_OTLP_PROTOCOL\` must be \`http/protobuf\`.`,
+        body: `Call the API once, and \`checkout-api\` shows up in ${SCREENS.services} within a minute. Nothing? \`OTEL_EXPORTER_OTLP_PROTOCOL\` must be \`http/protobuf\`.`,
       },
       {
         title: "Open a request's trace",

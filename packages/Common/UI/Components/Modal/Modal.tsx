@@ -4,6 +4,7 @@ import Icon from "../Icon/Icon";
 import Loader, { LoaderType } from "../Loader/Loader";
 import ModalBody from "./ModalBody";
 import { CardSurface, CardSurfaceContext } from "../Card/CardSurface";
+import { CardMenuExtrasContext } from "../Card/CardMenuExtras";
 import { DetailValueContext } from "../Detail/DetailValueContext";
 import { TableCellContext } from "../Table/TableCellContext";
 import ModalFooter from "./ModalFooter";
@@ -757,14 +758,17 @@ const Modal: FunctionComponent<ComponentProps> = (
                      * never a section of the card it was opened from, nor is
                      * what it draws a value of the detail card it was opened
                      * from (DetailValueContext), nor a cell of the table it
-                     * was opened from (TableCellContext).
+                     * was opened from (TableCellContext), nor are its
+                     * options that card's (CardMenuExtrasContext).
                      */
                     <CardSurfaceContext.Provider value={CardSurface.Page}>
-                      <DetailValueContext.Provider value={false}>
-                        <TableCellContext.Provider value={false}>
-                          {props.children}
-                        </TableCellContext.Provider>
-                      </DetailValueContext.Provider>
+                      <CardMenuExtrasContext.Provider value={null}>
+                        <DetailValueContext.Provider value={false}>
+                          <TableCellContext.Provider value={false}>
+                            {props.children}
+                          </TableCellContext.Provider>
+                        </DetailValueContext.Provider>
+                      </CardMenuExtrasContext.Provider>
                     </CardSurfaceContext.Provider>
                   ) : (
                     <div className="modal-body flex justify-center py-16">

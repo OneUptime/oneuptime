@@ -9,9 +9,11 @@ import ProjectReferencesService from "./ProjectReferencesService";
 import OnCallDutyPolicyFeed, {
   OnCallDutyPolicyFeedEventType,
 } from "../../Models/DatabaseModels/OnCallDutyPolicyFeed";
-import WorkspaceNotificationRuleService, {
-  MessageBlocksByWorkspaceType,
-} from "./WorkspaceNotificationRuleService";
+import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
+import FeedWorkspaceNotificationUtil, {
+  FeedWorkspaceAuthor,
+  FeedWorkspaceNotification,
+} from "../Utils/Feed/FeedWorkspaceNotification";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends ProjectReferencesService<OnCallDutyPolicyFeed> {
@@ -44,14 +46,8 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyFeed> {
     displayColor?: Color | undefined;
     userId?: ObjectID | undefined;
     postedAt?: Date | undefined;
-    // send notifificatin to slack and teams. This is optional
-    workspaceNotification?:
-      | {
-          notifyUserId?: ObjectID | undefined; // this is oneuptime user id.
-          sendWorkspaceNotification: boolean;
-          appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
-        }
-      | undefined;
+    // Posted to Slack and Microsoft Teams too (FeedWorkspaceNotification).
+    workspaceNotification?: FeedWorkspaceNotification | undefined;
   }): Promise<void> {
     try {
       logger.debug(
@@ -137,6 +133,10 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyFeed> {
             onCallDutyPolicyId: data.onCallDutyPolicyId,
             feedInfoInMarkdown: data.feedInfoInMarkdown,
             workspaceNotification: data.workspaceNotification,
+            author: FeedWorkspaceNotificationUtil.getAuthor({
+              workspaceNotification: data.workspaceNotification,
+              userId: data.userId,
+            }),
           });
         }
       } catch (e) {
@@ -165,16 +165,18 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyFeed> {
     }
   }
 
+  /*
+   * Posts an entry to the record's Slack and Microsoft Teams channels,
+   * opening with the author the entry names (FeedWorkspaceNotification).
+   */
   @CaptureSpan()
   public async sendWorkspaceNotification(data: {
     projectId: ObjectID;
     onCallDutyPolicyId: ObjectID;
     feedInfoInMarkdown: string;
-    workspaceNotification: {
-      notifyUserId?: ObjectID | undefined; // this is oneuptime user id.
-      sendWorkspaceNotification: boolean;
-      appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
-    };
+    workspaceNotification: FeedWorkspaceNotification;
+    // Who the message opens with (FeedWorkspaceNotificationUtil.getAuthor).
+    author?: FeedWorkspaceAuthor | undefined;
   }): Promise<void> {
     return await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification(
       {
@@ -183,7 +185,12 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyFeed> {
           onCallDutyPolicyId: data.onCallDutyPolicyId,
         },
         feedInfoInMarkdown: data.feedInfoInMarkdown,
-        workspaceNotification: data.workspaceNotification,
+        notificationText: data.workspaceNotification.notificationText,
+        workspaceNotification:
+          FeedWorkspaceNotificationUtil.toWorkspaceNotification({
+            workspaceNotification: data.workspaceNotification,
+            author: data.author,
+          }),
       },
     );
   }

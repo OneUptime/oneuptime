@@ -7,6 +7,7 @@ import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluste
 import Host from "../../../Models/DatabaseModels/Host";
 import IoTFleet from "../../../Models/DatabaseModels/IoTFleet";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
+import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
 import Service from "../../../Models/DatabaseModels/Service";
@@ -25,6 +26,7 @@ import DockerSwarmClusterService from "../../Services/DockerSwarmClusterService"
 import HostService from "../../Services/HostService";
 import IoTFleetService from "../../Services/IoTFleetService";
 import KubernetesClusterService from "../../Services/KubernetesClusterService";
+import NetworkDeviceService from "../../Services/NetworkDeviceService";
 import PodmanHostService from "../../Services/PodmanHostService";
 import ProxmoxClusterService from "../../Services/ProxmoxClusterService";
 import ServiceService from "../../Services/ServiceService";
@@ -79,6 +81,7 @@ export interface SeriesLinkableModel {
   databaseServers?: Array<DatabaseServer> | undefined;
   storageArrays?: Array<StorageArray> | undefined;
   cloudResources?: Array<CloudResource> | undefined;
+  networkDevices?: Array<NetworkDevice> | undefined;
 }
 
 /*
@@ -104,6 +107,13 @@ export interface SeriesResolvedResourceIds {
    * monitors are created that way), so only that path fills this.
    */
   cloudResourceIds: Array<string>;
+  /*
+   * The routers, switches and firewalls the monitor reports on: the device
+   * a Network Device monitor's step watches, the device a monitor is bound
+   * to (its monitoring method is Monitor) and the device a discovery import
+   * made the monitor for (MonitorResourceContext).
+   */
+  networkDeviceIds: Array<string>;
 }
 
 /*
@@ -273,6 +283,16 @@ export default class SeriesResourceLinker {
         nameColumn: "name",
         findBy: StorageArrayService.findBy.bind(StorageArrayService),
       },
+      /*
+       * Id-only: a Network Device monitor names its device by the picker's
+       * primary key, never by a name.
+       */
+      {
+        ids: refs.networkDeviceIds || [],
+        names: [],
+        nameColumn: "name",
+        findBy: NetworkDeviceService.findBy.bind(NetworkDeviceService),
+      },
     ];
 
     const [resolvedBySpec, databaseServerIdsByEndpoint] = await Promise.all([
@@ -307,6 +327,7 @@ export default class SeriesResourceLinker {
       iotFleetIds,
       databaseServerIdsById,
       storageArrayIds,
+      networkDeviceIds,
     ] = resolvedBySpec;
 
     /*
@@ -334,6 +355,7 @@ export default class SeriesResourceLinker {
       databaseServerIds: databaseServerIds,
       storageArrayIds: storageArrayIds || [],
       cloudResourceIds: [],
+      networkDeviceIds: networkDeviceIds || [],
     };
   }
 
@@ -574,6 +596,16 @@ export default class SeriesResourceLinker {
         resolved.cloudResourceIds,
         (): CloudResource => {
           return new CloudResource();
+        },
+      );
+    }
+
+    if (resolved.networkDeviceIds.length > 0) {
+      model.networkDevices = this.mergeById(
+        model.networkDevices,
+        resolved.networkDeviceIds,
+        (): NetworkDevice => {
+          return new NetworkDevice();
         },
       );
     }

@@ -85,6 +85,7 @@ import NetworkDeviceLinkRuleService from "./NetworkDeviceLinkRuleService";
 import NetworkTopologySuppressionService from "./NetworkTopologySuppressionService";
 import NetworkSiteAssignmentRuleService from "./NetworkSiteAssignmentRuleService";
 import NetworkControllerConnectionService from "./NetworkControllerConnectionService";
+import NetworkAddressNameService from "./NetworkAddressNameService";
 import PodmanHostService from "./PodmanHostService";
 import PodmanHostOwnerRuleService from "./PodmanHostOwnerRuleService";
 import PodmanHostOwnerUserService from "./PodmanHostOwnerUserService";
@@ -377,6 +378,8 @@ import AlertOwnerUserService from "./AlertOwnerUserService";
 import AlertSeverityService from "./AlertSeverityService";
 import DetectionRuleService from "./DetectionRuleService";
 import DetectionRuleExceptionService from "./DetectionRuleExceptionService";
+import SecurityWatchlistService from "./SecurityWatchlistService";
+import SecurityWatchlistItemService from "./SecurityWatchlistItemService";
 import SecurityEventConnectionService from "./SecurityEventConnectionService";
 import SecurityEventConnectionRunService from "./SecurityEventConnectionRunService";
 import SecurityEventDestinationService from "./SecurityEventDestinationService";
@@ -390,6 +393,8 @@ import ThreatIntelIndicatorService from "./ThreatIntelIndicatorService";
 import SecurityCaseService from "./SecurityCaseService";
 import SecurityCaseFeedService from "./SecurityCaseFeedService";
 import SecurityCaseNoteService from "./SecurityCaseNoteService";
+import SecurityCaseTaskService from "./SecurityCaseTaskService";
+import SecurityCaseEvidenceService from "./SecurityCaseEvidenceService";
 import SecurityCasePriorityService from "./SecurityCasePriorityService";
 import SecurityCaseStatusService from "./SecurityCaseStatusService";
 import SecurityDetectionService from "./SecurityDetectionService";
@@ -635,6 +640,7 @@ const services: Array<BaseService> = [
   NetworkTopologySuppressionService,
   NetworkSiteAssignmentRuleService,
   NetworkControllerConnectionService,
+  NetworkAddressNameService,
   PodmanHostService,
   PodmanHostOwnerRuleService,
   PodmanHostOwnerUserService,
@@ -891,6 +897,8 @@ const services: Array<BaseService> = [
   AlertSeverityService,
   DetectionRuleService,
   DetectionRuleExceptionService,
+  SecurityWatchlistService,
+  SecurityWatchlistItemService,
   SecurityEventConnectionService,
   SecurityEventConnectionRunService,
   SecurityEventDestinationService,
@@ -903,6 +911,8 @@ const services: Array<BaseService> = [
   SecurityCaseService,
   SecurityCaseFeedService,
   SecurityCaseNoteService,
+  SecurityCaseTaskService,
+  SecurityCaseEvidenceService,
   SecurityCasePriorityService,
   SecurityCaseStatusService,
   SecurityDetectionService,

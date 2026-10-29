@@ -249,6 +249,18 @@ const EXPECTED_SECTIONS: Array<ExpectedMenuSection> = [
         getBreadcrumbs: getNetworkSiteBreadcrumbs,
         breadcrumbTitles: ["Project", "Network", "Settings", "Site Types"],
       },
+      /*
+       * Names for the addresses and subnets the Traffic pages show that
+       * nothing else names (#5340, PR #5386). A vocabulary like the roles
+       * and types, so it follows them. A Network Devices route, while Site
+       * Types above is a Network Sites one.
+       */
+      {
+        title: "Address Names",
+        pageMapKey: PageMap.NETWORK_DEVICE_SETTINGS_ADDRESS_NAMES,
+        getBreadcrumbs: getNetworkDeviceBreadcrumbs,
+        breadcrumbTitles: ["Project", "Network", "Settings", "Address Names"],
+      },
       {
         title: "OID Collection Templates",
         pageMapKey: PageMap.NETWORK_DEVICE_SETTINGS_OID_TEMPLATES,
@@ -575,7 +587,7 @@ describe("Network side menu", () => {
       await renderNetworkMenu();
 
       expect(isExpanded("Settings")).toBe(false);
-      expect(linksIn("Settings")).toHaveLength(5);
+      expect(linksIn("Settings")).toHaveLength(6);
 
       fireEvent.click(sectionToggle("Settings"));
       expect(isExpanded("Settings")).toBe(true);
@@ -610,11 +622,11 @@ describe("Network side menu", () => {
   });
 
   describe("coverage", () => {
-    test("keeps all twenty-six destinations reachable exactly once", async () => {
+    test("keeps all twenty-seven destinations reachable exactly once", async () => {
       await renderNetworkMenu();
 
-      expect(EXPECTED_ENTRIES).toHaveLength(26);
-      expect(allLinks()).toHaveLength(26);
+      expect(EXPECTED_ENTRIES).toHaveLength(27);
+      expect(allLinks()).toHaveLength(27);
       expect(hrefsInMenu().sort()).toEqual(
         EXPECTED_ENTRIES.map(expectedHref).sort(),
       );
@@ -727,16 +739,24 @@ describe("Network side menu", () => {
       expectActiveLink("Link Rules");
     });
 
-    test("an active Settings deep link expands Settings and highlights its item", async () => {
-      goTo(routeFor(PageMap.NETWORK_SITE_SETTINGS_SITE_TYPES));
+    // A Settings page from each route family: Network Sites, then Devices.
+    test.each([
+      [PageMap.NETWORK_SITE_SETTINGS_SITE_TYPES, "Site Types"],
+      [PageMap.NETWORK_DEVICE_SETTINGS_ADDRESS_NAMES, "Address Names"],
+    ])(
+      "an active Settings deep link (%s) expands Settings and highlights %s",
+      async (pageMapKey: string, title: string): Promise<void> => {
+        goTo(routeFor(pageMapKey));
 
-      await renderNetworkMenu();
+        await renderNetworkMenu();
 
-      expect(isExpanded("Settings")).toBe(true);
-      expect(sectionBody("Settings")).toHaveClass("opacity-100");
-      expect(isExpanded("Rules")).toBe(false);
-      expectActiveLink("Site Types");
-    });
+        expect(isExpanded("Settings")).toBe(true);
+        expect(sectionBody("Settings")).toHaveClass("opacity-100");
+        expect(isExpanded("Rules")).toBe(false);
+        expect(isExpanded("Topology")).toBe(false);
+        expectActiveLink(title);
+      },
+    );
 
     test("the Archived Devices page expands Advanced and highlights its item", async () => {
       goTo(routeFor(PageMap.NETWORK_DEVICE_ARCHIVED));
@@ -832,6 +852,10 @@ describe("Network side menu", () => {
       [PageMap.NETWORK_DEVICE_TOPOLOGY, "Topology / Device Topology"],
       [PageMap.NETWORK_DEVICE_SETTINGS_OWNER_RULES, "Rules / Owner Rules"],
       [PageMap.NETWORK_SITE_SETTINGS_SITE_TYPES, "Settings / Site Types"],
+      [
+        PageMap.NETWORK_DEVICE_SETTINGS_ADDRESS_NAMES,
+        "Settings / Address Names",
+      ],
       [PageMap.NETWORK_DEVICE_ARCHIVED, "Advanced / Archived Devices"],
     ])(
       "%s reports its section and page",

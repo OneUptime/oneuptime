@@ -7,7 +7,13 @@ import {
   layoutConversationDiagram,
 } from "./TrafficConversationLayout";
 import { formatTrafficBytes } from "./NetworkTrafficFormat";
+import {
+  TrafficAddressLabel,
+  getTrafficAddressLabel,
+  getTrafficAddressText,
+} from "./NetworkTrafficAddressNames";
 import { NetworkTrafficConversationRow } from "Common/Types/NetFlow/NetworkTraffic";
+import { NetworkTrafficAddressNames } from "Common/Types/NetFlow/NetworkAddressName";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -26,22 +32,35 @@ import React, {
  *
  * The colours are mid tones, which read the same on the light and the dark
  * theme; the labels take the text colour of the card they are on.
+ *
+ * An address the project has a name for (issue #5340) is labelled by its
+ * name, with the address under it in small grey mono; what a label cuts
+ * short, its title (under the pointer) says whole.
+ *
+ * The flow reads left to right in every language, as the list's arrow
+ * does: senders on the left, receivers on the right, with "Sent by" and
+ * "Received by" over them - on a Persian page too, where the page itself
+ * reads right to left.
  */
 
 export interface ComponentProps {
   conversations: Array<NetworkTrafficConversationRow>;
+  // What the page's addresses are called.
+  addressNames?: NetworkTrafficAddressNames | undefined;
   onSelectConversation: (sourceIp: string, destinationIp: string) => void;
   onSelectSource: (address: string) => void;
   onSelectDestination: (address: string) => void;
 }
 
-// An address longer than this is cut in the label (the title holds it all).
-const MAX_LABEL_CHARACTERS: number = 22;
+// A label longer than this is cut (the title holds it all).
+export const MAX_LABEL_CHARACTERS: number = 22;
 
-function shorten(address: string): string {
-  return address.length > MAX_LABEL_CHARACTERS
-    ? `${address.substring(0, MAX_LABEL_CHARACTERS - 1)}…`
-    : address;
+export function shortenDiagramLabel(text: string): string {
+  const characters: Array<string> = Array.from(text);
+
+  return characters.length > MAX_LABEL_CHARACTERS
+    ? `${characters.slice(0, MAX_LABEL_CHARACTERS - 1).join("")}…`
+    : text;
 }
 
 const TrafficConversationDiagram: FunctionComponent<ComponentProps> = (
@@ -50,9 +69,27 @@ const TrafficConversationDiagram: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const [hovered, setHovered] = useState<string | null>(null);
 
+  const labelOf: (address: string) => TrafficAddressLabel = (
+    address: string,
+  ): TrafficAddressLabel => {
+    return getTrafficAddressLabel(address, props.addressNames);
+  };
+
+  // Two lines a label when any address shown has a name.
+  const hasTwoLineLabels: boolean = props.conversations.some(
+    (conversation: NetworkTrafficConversationRow): boolean => {
+      return Boolean(
+        labelOf(conversation.sourceIp).name ||
+          labelOf(conversation.destinationIp).name,
+      );
+    },
+  );
+
   const layout: ConversationDiagramLayout = useMemo(() => {
-    return layoutConversationDiagram(props.conversations);
-  }, [props.conversations]);
+    return layoutConversationDiagram(props.conversations, {
+      hasTwoLineLabels: hasTwoLineLabels,
+    });
+  }, [props.conversations, hasTwoLineLabels]);
 
   if (layout.nodes.length === 0) {
     return <></>;
@@ -66,6 +103,7 @@ const TrafficConversationDiagram: FunctionComponent<ComponentProps> = (
 
   return (
     <figure
+      dir="ltr"
       className="text-gray-700"
       aria-label={translator.translateText(
         "The busiest conversations, from the address that sent to the address that received, each band as thick as its bytes",
@@ -109,8 +147,10 @@ const TrafficConversationDiagram: FunctionComponent<ComponentProps> = (
                   {translator.translateTemplate(
                     "{{source}} to {{destination}}: {{bytes}}",
                     {
-                      source: band.sourceIp,
-                      destination: band.destinationIp,
+                      source: getTrafficAddressText(labelOf(band.sourceIp)),
+                      destination: getTrafficAddressText(
+                        labelOf(band.destinationIp),
+                      ),
                       bytes: formatTrafficBytes(band.octets),
                     },
                   )}
@@ -124,6 +164,7 @@ const TrafficConversationDiagram: FunctionComponent<ComponentProps> = (
           const labelX: number = isSource
             ? LABEL_GUTTER - 8
             : layout.width - LABEL_GUTTER + 8;
+          const label: TrafficAddressLabel = labelOf(node.address);
 
           return (
             <g
@@ -144,7 +185,7 @@ const TrafficConversationDiagram: FunctionComponent<ComponentProps> = (
                     ? "{{address}} sent {{bytes}}"
                     : "{{address}} received {{bytes}}",
                   {
-                    address: node.address,
+                    address: getTrafficAddressText(label),
                     bytes: formatTrafficBytes(node.octets),
                   },
                 )}
@@ -158,25 +199,62 @@ const TrafficConversationDiagram: FunctionComponent<ComponentProps> = (
                 className={isSource ? "text-indigo-600" : "text-emerald-600"}
                 fill="currentColor"
               />
-              <text
-                x={labelX}
-                y={node.labelY}
-                textAnchor={isSource ? "end" : "start"}
-                dominantBaseline="middle"
-                fill="currentColor"
-                className="font-mono"
-                fontSize={12}
-              >
-                {shorten(node.address)}
-                <tspan
-                  className="text-gray-500"
+              {label.name ? (
+                /*
+                 * A name on the first line, alone - it is the longest thing
+                 * a label holds - and the address with the bytes under it.
+                 */
+                <>
+                  <text
+                    x={labelX}
+                    y={node.labelY - 7}
+                    textAnchor={isSource ? "end" : "start"}
+                    dominantBaseline="middle"
+                    fill="currentColor"
+                    fontSize={12}
+                    data-testid="traffic-conversation-label"
+                  >
+                    {shortenDiagramLabel(label.name)}
+                  </text>
+                  <text
+                    x={labelX}
+                    y={node.labelY + 8}
+                    textAnchor={isSource ? "end" : "start"}
+                    dominantBaseline="middle"
+                    fill="currentColor"
+                    className="text-gray-500"
+                    fontSize={11}
+                    direction="ltr"
+                    data-testid="traffic-conversation-label-address"
+                  >
+                    <tspan className="font-mono">
+                      {shortenDiagramLabel(node.address)}
+                    </tspan>
+                    <tspan dx={6}>{formatTrafficBytes(node.octets)}</tspan>
+                  </text>
+                </>
+              ) : (
+                <text
+                  x={labelX}
+                  y={node.labelY}
+                  textAnchor={isSource ? "end" : "start"}
+                  dominantBaseline="middle"
                   fill="currentColor"
-                  fontSize={11}
-                  dx={6}
+                  className="font-mono"
+                  fontSize={12}
+                  data-testid="traffic-conversation-label"
                 >
-                  {formatTrafficBytes(node.octets)}
-                </tspan>
-              </text>
+                  {shortenDiagramLabel(node.address)}
+                  <tspan
+                    className="text-gray-500"
+                    fill="currentColor"
+                    fontSize={11}
+                    dx={6}
+                  >
+                    {formatTrafficBytes(node.octets)}
+                  </tspan>
+                </text>
+              )}
             </g>
           );
         })}

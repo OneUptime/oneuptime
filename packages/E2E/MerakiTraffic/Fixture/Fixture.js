@@ -26,6 +26,9 @@
  *              connect dialog's test and the edit dialog's test of a new key
  *   ?role=     owner (default) | member: a project member, who may read
  *              connections but not add, change or read them
+ *   ?devices=  counted: the last read listed the organization's 6 devices,
+ *              and filled in 5 network devices here | one: 1 of them | absent
+ *              (default): a read from before reads counted devices
  *   ?lang=     de reads the German locale file
  *   ?theme=    dark adds html.dark (handled by server.js)
  *
@@ -65,6 +68,8 @@ import NetworkControllerConnection from "Common/Models/DatabaseModels/NetworkCon
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import AlertState from "Common/Models/DatabaseModels/AlertState";
 import Project from "Common/Models/DatabaseModels/Project";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -102,6 +107,17 @@ const verdict = ["pass", "several", "auth"].includes(params.get("verdict"))
   : "pass";
 const language = params.get("lang") === "de" ? "de" : "en";
 const role = params.get("role") === "member" ? "member" : "owner";
+
+/*
+ * What the last read counted of the organization's device list: every device,
+ * and how many are network devices here (NetworkControllerInventory). A read
+ * from before reads counted them has neither.
+ */
+const DEVICE_COUNTS = {
+  counted: { deviceCount: 6, describedDeviceCount: 5 },
+  one: { deviceCount: 6, describedDeviceCount: 1 },
+};
+const deviceCounts = DEVICE_COUNTS[params.get("devices")] || {};
 
 const GLOBAL_PERMISSIONS = [
   Permission.Public,
@@ -248,6 +264,7 @@ function connectionRecord(fields) {
       warnings: [],
       durationMs: 1800,
       finishedAt: READ_AT.toISOString(),
+      ...deviceCounts,
     },
     ...fields,
   });
@@ -882,6 +899,14 @@ ModelAPI.getList = async (options) => {
     return { data: [], count: 0, skip: 0, limit: options.limit };
   }
 
+  /*
+   * A device's side menu counts its open incidents and alerts by state
+   * (issue #5341): none here.
+   */
+  if (options.modelType === IncidentState || options.modelType === AlertState) {
+    return { data: [], count: 0, skip: 0, limit: options.limit };
+  }
+
   fixture.unhandled.push({
     kind: "getList",
     modelName: tableName(options.modelType),
@@ -1017,6 +1042,14 @@ async function handleApi(method, options) {
 
   // The site's side menu counts the site's maintenance events: none.
   if (method === "POST" && url.endsWith("/scheduled-maintenance/count")) {
+    return ok({ count: 0 });
+  }
+
+  // A device's side menu counts its open incidents and alerts: none.
+  if (
+    method === "POST" &&
+    (url.endsWith("/incident/count") || url.endsWith("/alert/count"))
+  ) {
     return ok({ count: 0 });
   }
 

@@ -47,6 +47,7 @@ import PageMap from "../../Utils/PageMap";
 export enum CreateFromRecordKind {
   Monitor = "Monitor",
   Host = "Host",
+  NetworkDevice = "NetworkDevice",
   KubernetesCluster = "KubernetesCluster",
   DockerHost = "DockerHost",
   PodmanHost = "PodmanHost",
@@ -172,6 +173,30 @@ export const CREATE_FROM_RECORD_KINDS: ReadonlyArray<CreateFromRecordKindDefinit
         [CreatedRecordKind.ScheduledMaintenance]: {
           page: PageMap.HOST_VIEW_SCHEDULED_MAINTENANCE,
           title: SCHEDULED_MAINTENANCE_TAB_TITLE,
+        },
+      },
+    },
+    /*
+     * Only incidents and alerts are attached to a network device (issue
+     * #5341): a maintenance window holds the device's monitors instead.
+     */
+    {
+      kind: CreateFromRecordKind.NetworkDevice,
+      queryParam: "networkDeviceId",
+      // The device's own trail: Project > Network > View Device.
+      listTitle: "Network",
+      listPage: PageMap.NETWORK_DEVICES,
+      viewTitle: "View Device",
+      viewPage: PageMap.NETWORK_DEVICE_VIEW,
+      field: namedRecords("networkDevices"),
+      tabs: {
+        [CreatedRecordKind.Incident]: {
+          page: PageMap.NETWORK_DEVICE_VIEW_INCIDENTS,
+          title: INCIDENTS_TAB_TITLE,
+        },
+        [CreatedRecordKind.Alert]: {
+          page: PageMap.NETWORK_DEVICE_VIEW_ALERTS,
+          title: ALERTS_TAB_TITLE,
         },
       },
     },

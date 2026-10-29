@@ -47,6 +47,7 @@ const MonitorStatusesPage: FunctionComponent<
         query={archive.query}
         actionButtons={archive.actionButtons}
         getDeleteConfirmation={archive.getDeleteConfirmation}
+        bulkActions={archive.bulkActions}
         refreshToggle={archive.refreshToggle}
         id="monitor-status-table"
         userPreferencesKey="monitor-status-table"

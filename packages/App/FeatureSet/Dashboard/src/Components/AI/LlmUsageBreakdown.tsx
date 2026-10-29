@@ -1,3 +1,8 @@
+import useResizableColumns, {
+  ResizableColumns,
+} from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
+import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -470,6 +475,24 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
   const dimension: LlmUsageDimension = useMemo(() => {
     return getDimension(dimensionKey);
   }, [dimensionKey]);
+
+  /*
+   * The table's columns as wide as a person makes them (Common's
+   * Table/ColumnResize), after each row's number: what the rows are, then
+   * their counts, which are never cut.
+   */
+  const resizableColumns: ResizableColumns = useResizableColumns({
+    tableKey: "llm-usage-breakdown-table",
+    columns: [
+      { id: "group", cellNumber: 2 },
+      { id: "calls", cellNumber: 3 },
+      { id: "inputTokens", cellNumber: 4 },
+      { id: "outputTokens", cellNumber: 5 },
+      { id: "totalTokens", cellNumber: 6 },
+      { id: "cost", cellNumber: 7 },
+      { id: "share", cellNumber: 8 },
+    ],
+  });
 
   /*
    * Service names, loaded once. A raw primaryEntityId ObjectID in a
@@ -1103,33 +1126,91 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 text-sm">
+          {resizableColumns.styles}
+          <table
+            className={`${resizableColumns.getTableWidthClassName("min-w-full")} divide-y divide-gray-200 text-sm`}
+            {...resizableColumns.tableAttributes}
+          >
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-4 py-2 text-left font-medium text-gray-500">
                   #
                 </th>
-                <th className="px-4 py-2 text-left font-medium text-gray-500">
-                  {translator.translateText(dimension.columnTitle)}
-                </th>
-                <th className="px-4 py-2 text-right font-medium text-gray-500">
-                  {translator.translateText("Calls")}
-                </th>
-                <th className="px-4 py-2 text-right font-medium text-gray-500">
-                  {translator.translateText("Input tokens")}
-                </th>
-                <th className="px-4 py-2 text-right font-medium text-gray-500">
-                  {translator.translateText("Output tokens")}
-                </th>
-                <th className="px-4 py-2 text-right font-medium text-gray-500">
-                  {translator.translateText("Total tokens")}
-                </th>
-                <th className="px-4 py-2 text-right font-medium text-gray-500">
-                  {translator.translateText("Cost (USD)")}
-                </th>
-                <th className="px-4 py-2 text-left font-medium text-gray-500">
-                  {translator.translateText("Share")}
-                </th>
+                <ResizableHeaderCell
+                  className="px-4 py-2 text-left font-medium text-gray-500"
+                  resize={resizableColumns.getResize(
+                    "group",
+                    translator.translateText(dimension.columnTitle) ||
+                      dimension.columnTitle,
+                    ColumnWidthKind.Name,
+                  )}
+                >
+                  <span>
+                    {translator.translateText(dimension.columnTitle) ||
+                      dimension.columnTitle}
+                  </span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  className="px-4 py-2 text-right font-medium text-gray-500"
+                  resize={resizableColumns.getResize(
+                    "calls",
+                    translator.translateText("Calls") || "Calls",
+                    ColumnWidthKind.Whole,
+                  )}
+                >
+                  <span>{translator.translateText("Calls")}</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  className="px-4 py-2 text-right font-medium text-gray-500"
+                  resize={resizableColumns.getResize(
+                    "inputTokens",
+                    translator.translateText("Input tokens") || "Input tokens",
+                    ColumnWidthKind.Whole,
+                  )}
+                >
+                  <span>{translator.translateText("Input tokens")}</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  className="px-4 py-2 text-right font-medium text-gray-500"
+                  resize={resizableColumns.getResize(
+                    "outputTokens",
+                    translator.translateText("Output tokens") ||
+                      "Output tokens",
+                    ColumnWidthKind.Whole,
+                  )}
+                >
+                  <span>{translator.translateText("Output tokens")}</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  className="px-4 py-2 text-right font-medium text-gray-500"
+                  resize={resizableColumns.getResize(
+                    "totalTokens",
+                    translator.translateText("Total tokens") || "Total tokens",
+                    ColumnWidthKind.Whole,
+                  )}
+                >
+                  <span>{translator.translateText("Total tokens")}</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  className="px-4 py-2 text-right font-medium text-gray-500"
+                  resize={resizableColumns.getResize(
+                    "cost",
+                    translator.translateText("Cost (USD)") || "Cost (USD)",
+                    ColumnWidthKind.Whole,
+                  )}
+                >
+                  <span>{translator.translateText("Cost (USD)")}</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  className="px-4 py-2 text-left font-medium text-gray-500"
+                  resize={resizableColumns.getResize(
+                    "share",
+                    translator.translateText("Share") || "Share",
+                    ColumnWidthKind.Whole,
+                  )}
+                >
+                  <span>{translator.translateText("Share")}</span>
+                </ResizableHeaderCell>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">

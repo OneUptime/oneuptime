@@ -38,6 +38,11 @@ import {
 import { APP_API_URL } from "../../../Config";
 import ModelAPI from "../../../Utils/ModelAPI/ModelAPI";
 import ComponentLoader from "../../ComponentLoader/ComponentLoader";
+import useResizableColumns, {
+  ResizableColumns,
+} from "../../Table/ColumnResize/useResizableColumns";
+import ResizableHeaderCell from "../../Table/ColumnResize/ResizableHeaderCell";
+import { ColumnWidthKind } from "../../Table/ColumnResize/ColumnWidths";
 import TelemetryLoadErrorMessage from "../../TelemetryViewer/components/TelemetryLoadErrorMessage";
 import TelemetryLoadErrorUtil, {
   TelemetryLoadError,
@@ -627,6 +632,26 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
   }, [timeseriesData, entityNameMap]);
 
   /*
+   * The table's columns as wide as a person makes them (Table/ColumnResize),
+   * after each row's number: the values of what the rows are grouped by,
+   * and the count.
+   */
+  const tableGroupKeys: Array<string> = Object.keys(
+    tableData[0]?.groupValues || {},
+  );
+  const resizableColumns: ResizableColumns = useResizableColumns({
+    tableKey: "logs-analytics-table",
+    columns: [
+      ...tableGroupKeys.map(
+        (key: string, index: number): { id: string; cellNumber: number } => {
+          return { id: `group:${key}`, cellNumber: index + 2 };
+        },
+      ),
+      { id: "count", cellNumber: tableGroupKeys.length + 2 },
+    ],
+  });
+
+  /*
    * Only the timeseries has a time axis: a window dragged across a top
    * list or a table would not be a time range. Handlers the host passes win
    * over the zoom the enclosing viewer offers.
@@ -1179,32 +1204,56 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
 
     return (
       <div className="p-5">
-        <div className="overflow-hidden rounded-lg border border-gray-200/80">
-          <table className="min-w-full">
+        {/*
+         * Scrolls sideways when its columns are made wider than the box,
+         * rather than cut off at its rounded edge.
+         */}
+        <div className="overflow-x-auto rounded-lg border border-gray-200/80">
+          {resizableColumns.styles}
+          <table
+            className={resizableColumns.getTableWidthClassName("min-w-full")}
+            {...resizableColumns.tableAttributes}
+          >
             <thead>
               <tr className="border-b border-gray-200/80 bg-gray-50/80">
                 <th className="w-10 px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-400">
                   #
                 </th>
-                {groupKeys.map((key: string) => {
+                {groupKeys.map((key: string, keyIndex: number) => {
+                  const label: string = getAnalyticsDimensionLabel(
+                    key,
+                    tableData.map((row: AnalyticsTableRow): string => {
+                      return row.groupValues?.[key] || "";
+                    }),
+                    entityNameMap,
+                  );
+
                   return (
-                    <th
+                    <ResizableHeaderCell
                       key={key}
                       className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-400"
-                    >
-                      {getAnalyticsDimensionLabel(
-                        key,
-                        tableData.map((row: AnalyticsTableRow): string => {
-                          return row.groupValues?.[key] || "";
-                        }),
-                        entityNameMap,
+                      resize={resizableColumns.getResize(
+                        `group:${key}`,
+                        label,
+                        keyIndex === 0
+                          ? ColumnWidthKind.Name
+                          : ColumnWidthKind.Text,
                       )}
-                    </th>
+                    >
+                      <span>{label}</span>
+                    </ResizableHeaderCell>
                   );
                 })}
-                <th className="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                  {translator.translateText("Count")}
-                </th>
+                <ResizableHeaderCell
+                  className="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-400"
+                  resize={resizableColumns.getResize(
+                    "count",
+                    translator.translateText("Count") || "Count",
+                    ColumnWidthKind.Whole,
+                  )}
+                >
+                  <span>{translator.translateText("Count")}</span>
+                </ResizableHeaderCell>
                 <th className="w-48 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400" />
               </tr>
             </thead>

@@ -763,7 +763,7 @@ describe.each(KINDS)(
       expect(idOf(entry["userId"])).toBe(idOf(PERSON_ID));
       expect(entry["workspaceNotification"]).toEqual({
         sendWorkspaceNotification: true,
-        notifyUserId: PERSON_ID,
+        leadWithAuthor: true,
       });
     });
 
