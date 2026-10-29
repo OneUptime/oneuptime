@@ -41,6 +41,10 @@ addresses, an RDS database, a BigQuery warehouse and a service's logs), their fi
 samples, the bucket's access, scans and owners, five issues (one an accepted risk), and the bucket's
 and its public-read issue's timelines.
 
+Each issue is of one of the catalog's own checks (`getDataSecurityCheck`), titled and grouped as
+the server writes it; the fixture throws on a check id the catalog has not. Each store's open issue
+count, worst severity and risk are worked out from its open issues, as the evaluator keeps them.
+
 ## Scenarios
 
 | Parameter    | Values                                                                                         |
