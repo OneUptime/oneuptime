@@ -1352,9 +1352,14 @@ describe("SECRET_DETECTORS", () => {
   }
 
   test.each(
-    SECRET_DETECTORS.map((detector: DataTypeDetector, index: number) => {
-      return [`${detector.dataTypeId} #${index}`, detector];
-    }),
+    SECRET_DETECTORS.map(
+      (
+        detector: DataTypeDetector,
+        index: number,
+      ): [string, DataTypeDetector] => {
+        return [`${detector.dataTypeId} #${index}`, detector];
+      },
+    ),
   )(
     "%s: its pattern is global, bounded, nests no quantifier and stands apart from longer tokens",
     (_name: string, detector: DataTypeDetector) => {
@@ -1707,9 +1712,14 @@ describe("SECRET_DETECTORS on megabytes", () => {
   });
 
   test.each(
-    SECRET_DETECTORS.map((detector: DataTypeDetector, index: number) => {
-      return [`${detector.dataTypeId} #${index}`, detector];
-    }),
+    SECRET_DETECTORS.map(
+      (
+        detector: DataTypeDetector,
+        index: number,
+      ): [string, DataTypeDetector] => {
+        return [`${detector.dataTypeId} #${index}`, detector];
+      },
+    ),
   )(
     "%s reads them in well under a second",
     (_name: string, detector: DataTypeDetector) => {

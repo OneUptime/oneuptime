@@ -11,7 +11,7 @@ import { DataStoreFeedEventType } from "../../../../Models/DatabaseModels/DataSt
 import { Blue500, Gray500, Yellow500 } from "../../../../Types/BrandColors";
 import DataSensitivity from "../../../../Types/DataSecurity/DataSensitivity";
 import DataStoreEnvironment from "../../../../Types/DataSecurity/DataStoreEnvironment";
-import ColumnAccessControl from "../../../../Types/Database/AccessControl/ColumnAccessControl";
+import { ColumnAccessControl } from "../../../../Types/BaseDatabase/AccessControl";
 import Dictionary from "../../../../Types/Dictionary";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
@@ -24,6 +24,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * A DATA STORE'S TIMELINE: what a person changed on it and to what, and
@@ -44,7 +45,7 @@ const USER_ID: ObjectID = new ObjectID("33333333-3333-4333-8333-333333333333");
 
 const LINK: MarkdownText = mdText`[Data Store customer-exports](https://oneuptime.example/dashboard/p/data-security/stores/s)`;
 
-let feedSpy: jest.SpyInstance;
+let feedSpy: SpyInstance<typeof DataStoreFeedService.createDataStoreFeedItem>;
 
 beforeEach(() => {
   feedSpy = jest
@@ -246,7 +247,7 @@ describe("a person's change, on the store's Timeline", () => {
   });
 
   test("a Timeline that cannot be written never fails the change", async () => {
-    feedSpy.mockRejectedValue(new Error("feed table locked"));
+    feedSpy.mockRejectedValue(new Error("feed table locked") as never);
 
     await expect(
       update({ isAiData: true }, { userId: USER_ID }),

@@ -32,6 +32,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * WHAT A PERSON DOES TO A DATA SECURITY ISSUE, through the whole update.
@@ -94,10 +95,10 @@ describe("changing a data security issue", () => {
   const service: DatabaseService<BaseModel> =
     DataSecurityIssueService as unknown as DatabaseService<BaseModel>;
   let table: InMemoryTable;
-  let feedSpy: jest.SpiedFunction<
+  let feedSpy: SpyInstance<
     typeof DataSecurityIssueFeedService.createDataSecurityIssueFeedItem
   >;
-  let evaluationSpy: jest.SpiedFunction<
+  let evaluationSpy: SpyInstance<
     typeof DataSecurityJobs.queueDataSecurityEvaluation
   >;
 
@@ -174,12 +175,8 @@ describe("changing a data security issue", () => {
       expect(stored("acceptedReason")).toBe(
         "The bucket serves the public website.",
       );
-      expect((stored("acceptedUntil") as Date).getTime()).toBe(
-        until.getTime(),
-      );
-      expect(String(stored("acceptedByUserId"))).toBe(
-        props.userId!.toString(),
-      );
+      expect((stored("acceptedUntil") as Date).getTime()).toBe(until.getTime());
+      expect(String(stored("acceptedByUserId"))).toBe(props.userId!.toString());
       expect(feedSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           eventType: DataSecurityIssueFeedEventType.Accepted,
@@ -252,10 +249,7 @@ describe("changing a data security issue", () => {
   test.each([
     ["a security viewer", [Permission.SecurityViewer]],
     ["a project member", [Permission.ProjectMember]],
-    [
-      "someone who may only read issues",
-      [Permission.ReadDataSecurityIssue],
-    ],
+    ["someone who may only read issues", [Permission.ReadDataSecurityIssue]],
   ])(
     "%s may not change it, and nothing changes",
     async (_who: string, permissions: Array<Permission>) => {
@@ -367,9 +361,7 @@ describe("changing a data security issue", () => {
     );
 
     expect(stored("status")).toBe(DataSecurityIssueStatus.Resolved);
-    expect((stored("resolvedAt") as Date).getTime()).toBe(
-      resolvedAt.getTime(),
-    );
+    expect((stored("resolvedAt") as Date).getTime()).toBe(resolvedAt.getTime());
     expect(stored("recheckRequestedAt")).toBeUndefined();
   });
 
@@ -444,10 +436,8 @@ describe("changing a data security issue", () => {
       await hooks.onUpdatePermitted(resolve);
       await hooks.onUpdatePermitted(assign);
 
-      const accepted: Record<string, unknown> = accept.data as unknown as Record<
-        string,
-        unknown
-      >;
+      const accepted: Record<string, unknown> =
+        accept.data as unknown as Record<string, unknown>;
       const resolved: Record<string, unknown> =
         resolve.data as unknown as Record<string, unknown>;
 
@@ -457,9 +447,9 @@ describe("changing a data security issue", () => {
       expect(resolved["resolvedAt"]).toBeInstanceOf(Date);
       expect(resolved["recheckRequestedAt"]).toBeInstanceOf(Date);
       // A change that is not of the status records nothing about one.
-      expect(Object.keys(assign.data as unknown as object)).toEqual([
-        "assignedToUserId",
-      ]);
+      expect(
+        Object.keys(assign.data as unknown as Record<string, unknown>),
+      ).toEqual(["assignedToUserId"]);
     });
   });
 });

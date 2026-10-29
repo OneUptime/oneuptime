@@ -166,7 +166,7 @@ function fakeWithBuckets(
   });
 }
 
-function fakeWithRegion(region: FakeRegion): FakeAws {
+function fakeWithRegion(region: Omit<FakeRegion, "metrics">): FakeAws {
   return createFakeAws({
     regions: { "us-east-1": { metrics: [], ...region } },
   });

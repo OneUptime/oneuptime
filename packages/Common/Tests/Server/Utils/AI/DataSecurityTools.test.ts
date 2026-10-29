@@ -42,6 +42,7 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import SecuritySeverity from "../../../../Types/SecuritySeverity";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * What OneUptime AI reads of Data Security (Toolbox/DataSecurityTools):
@@ -158,16 +159,16 @@ describe("the Data Security tools in the toolbox", () => {
 });
 
 describe("query_data_stores", () => {
-  function listed(rows: Array<DataStore>): jest.SpiedFunction<
-    typeof DataStoreService.findBy
-  > {
+  function listed(
+    rows: Array<DataStore>,
+  ): SpyInstance<typeof DataStoreService.findBy> {
     return jest
       .spyOn(DataStoreService, "findBy")
       .mockResolvedValue(rows as never);
   }
 
   test("lists the project's stores riskiest first, as the caller, with what each holds - never a value", async () => {
-    const spy: jest.SpiedFunction<typeof DataStoreService.findBy> = listed([
+    const spy: SpyInstance<typeof DataStoreService.findBy> = listed([
       CARDS,
       CUSTOMERS,
       IMAGES,
@@ -208,7 +209,11 @@ describe("query_data_stores", () => {
   test("a data type is found by its id or its name, in any case", async () => {
     listed([CARDS, CUSTOMERS, IMAGES]);
 
-    for (const dataType of ["credit-card-number", "Card number", "CARD NUMBER"]) {
+    for (const dataType of [
+      "credit-card-number",
+      "Card number",
+      "CARD NUMBER",
+    ]) {
       const result: ToolExecutionResult = await run(QueryDataStoresTool, {
         dataType,
       });
@@ -224,9 +229,7 @@ describe("query_data_stores", () => {
   });
 
   test("exposure, provider and name narrow the query itself", async () => {
-    const spy: jest.SpiedFunction<typeof DataStoreService.findBy> = listed([
-      CARDS,
-    ]);
+    const spy: SpyInstance<typeof DataStoreService.findBy> = listed([CARDS]);
 
     await run(QueryDataStoresTool, {
       exposure: "public",
@@ -259,13 +262,16 @@ describe("query_data_stores", () => {
 
   test("the limit holds what is listed, and the count says how many matched", async () => {
     listed(
-      Array.from({ length: 60 }, (_value: unknown, index: number): DataStore => {
-        return store({
-          id: ObjectID.generate(),
-          name: `bucket-${index}`,
-          riskScore: 60 - index,
-        });
-      }),
+      Array.from(
+        { length: 60 },
+        (_value: unknown, index: number): DataStore => {
+          return store({
+            id: ObjectID.generate(),
+            name: `bucket-${index}`,
+            riskScore: 60 - index,
+          });
+        },
+      ),
     );
 
     const result: ToolExecutionResult = await run(QueryDataStoresTool, {
@@ -285,7 +291,7 @@ describe("query_data_stores", () => {
       access?: Array<DataStoreAccess> | Error;
       issues?: Array<DataSecurityIssue> | Error;
     }): {
-      findings: jest.SpiedFunction<typeof DataStoreFindingService.findBy>;
+      findings: SpyInstance<typeof DataStoreFindingService.findBy>;
     } {
       jest
         .spyOn(DataStoreService, "findOneBy")
@@ -303,10 +309,9 @@ describe("query_data_stores", () => {
         };
       };
 
-      const findings: jest.SpiedFunction<typeof DataStoreFindingService.findBy> =
-        jest
-          .spyOn(DataStoreFindingService, "findBy")
-          .mockImplementation(respond(data.findings) as never);
+      const findings: SpyInstance<typeof DataStoreFindingService.findBy> = jest
+        .spyOn(DataStoreFindingService, "findBy")
+        .mockImplementation(respond(data.findings) as never);
       jest
         .spyOn(DataStoreAccessService, "findBy")
         .mockImplementation(respond(data.access) as never);
@@ -336,7 +341,7 @@ describe("query_data_stores", () => {
 
     test("reads what was found where, who can reach it and its open issues - and never the samples", async () => {
       const spies: {
-        findings: jest.SpiedFunction<typeof DataStoreFindingService.findBy>;
+        findings: SpyInstance<typeof DataStoreFindingService.findBy>;
       } = readable({
         findings: [finding()],
         access: [
@@ -395,16 +400,16 @@ describe("query_data_stores", () => {
     });
 
     test("a store of another project, or none the caller may read, is not found", async () => {
-      const spy: jest.SpiedFunction<typeof DataStoreService.findOneBy> = jest
+      const spy: SpyInstance<typeof DataStoreService.findOneBy> = jest
         .spyOn(DataStoreService, "findOneBy")
         .mockResolvedValue(null as never);
 
       await expect(
         run(QueryDataStoresTool, { dataStoreId: STORE_A.toString() }),
       ).rejects.toThrow(BadDataException);
-      expect(
-        (spy.mock.calls[0]![0] as unknown as JSONObject)["query"],
-      ).toEqual({ _id: STORE_A, projectId: PROJECT_ID });
+      expect((spy.mock.calls[0]![0] as unknown as JSONObject)["query"]).toEqual(
+        { _id: STORE_A, projectId: PROJECT_ID },
+      );
     });
   });
 });
@@ -425,7 +430,7 @@ describe("query_data_security_issues", () => {
   }
 
   test("lists the open issues riskiest first by default", async () => {
-    const spy: jest.SpiedFunction<typeof DataSecurityIssueService.findBy> = jest
+    const spy: SpyInstance<typeof DataSecurityIssueService.findBy> = jest
       .spyOn(DataSecurityIssueService, "findBy")
       .mockResolvedValue([issue()] as never);
 
@@ -447,7 +452,7 @@ describe("query_data_security_issues", () => {
   });
 
   test("status all reads every status; severity, store and check narrow the query", async () => {
-    const spy: jest.SpiedFunction<typeof DataSecurityIssueService.findBy> = jest
+    const spy: SpyInstance<typeof DataSecurityIssueService.findBy> = jest
       .spyOn(DataSecurityIssueService, "findBy")
       .mockResolvedValue([] as never);
 
@@ -474,7 +479,9 @@ describe("query_data_security_issues", () => {
     [{ dataStoreId: "x" }, "dataStoreId must be a data store's ID"],
     [{ dataSecurityIssueId: "x" }, "dataSecurityIssueId must be an issue's ID"],
   ])("%p is refused", async (args: JSONObject, words: string) => {
-    jest.spyOn(DataSecurityIssueService, "findBy").mockResolvedValue([] as never);
+    jest
+      .spyOn(DataSecurityIssueService, "findBy")
+      .mockResolvedValue([] as never);
 
     await expect(run(QueryDataSecurityIssuesTool, args)).rejects.toThrow(words);
   });
@@ -559,25 +566,24 @@ describe("query_data_store_access", () => {
   });
 
   test("a principal's blast radius: every store it can reach, most sensitive first, only stores the caller may read", async () => {
-    const accessSpy: jest.SpiedFunction<typeof DataStoreAccessService.findBy> =
-      jest
-        .spyOn(DataStoreAccessService, "findBy")
-        .mockResolvedValueOnce([
-          entry({ dataStoreId: STORE_B, principal: "role/etl" }),
-          entry({ dataStoreId: STORE_C, principal: "role/etl" }),
-        ] as never)
-        .mockResolvedValueOnce([
-          // The same entry found by its name: listed once.
-          entry({ dataStoreId: STORE_B, principal: "role/etl" }),
-          entry({
-            dataStoreId: STORE_A,
-            principal: "role/etl",
-            principalName: "etl",
-            accessLevel: "Write",
-          }),
-        ] as never);
+    const accessSpy: SpyInstance<typeof DataStoreAccessService.findBy> = jest
+      .spyOn(DataStoreAccessService, "findBy")
+      .mockResolvedValueOnce([
+        entry({ dataStoreId: STORE_B, principal: "role/etl" }),
+        entry({ dataStoreId: STORE_C, principal: "role/etl" }),
+      ] as never)
+      .mockResolvedValueOnce([
+        // The same entry found by its name: listed once.
+        entry({ dataStoreId: STORE_B, principal: "role/etl" }),
+        entry({
+          dataStoreId: STORE_A,
+          principal: "role/etl",
+          principalName: "etl",
+          accessLevel: "Write",
+        }),
+      ] as never);
     // STORE_C is one the caller may not read: the store read leaves it out.
-    const storeSpy: jest.SpiedFunction<typeof DataStoreService.findBy> = jest
+    const storeSpy: SpyInstance<typeof DataStoreService.findBy> = jest
       .spyOn(DataStoreService, "findBy")
       .mockResolvedValue([CUSTOMERS, CARDS] as never);
 
@@ -604,7 +610,7 @@ describe("query_data_store_access", () => {
   });
 
   test("externalOnly keeps only access from outside the project's accounts", async () => {
-    const spy: jest.SpiedFunction<typeof DataStoreAccessService.findBy> = jest
+    const spy: SpyInstance<typeof DataStoreAccessService.findBy> = jest
       .spyOn(DataStoreAccessService, "findBy")
       .mockResolvedValue([] as never);
 

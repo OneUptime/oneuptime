@@ -36,6 +36,7 @@ import PermissionUtil from "../../../UI/Utils/Permission";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import User from "../../../UI/Utils/User";
 import { PROJECT_ID } from "./SideMenuHarness";
+import type { Mock, SpyInstance } from "jest-mock";
 
 jest.mock("react-i18next", () => {
   return {
@@ -100,11 +101,9 @@ function grant(permissions: Array<Permission>): void {
 }
 
 let availability: DataSecurityResponseAvailability;
-let availabilitySpy: jest.SpiedFunction<
-  typeof DataSecurityApi.getResponseActions
->;
-let respondSpy: jest.SpiedFunction<typeof DataSecurityApi.respond>;
-let onChanged: jest.Mock<() => void>;
+let availabilitySpy: SpyInstance<typeof DataSecurityApi.getResponseActions>;
+let respondSpy: SpyInstance<typeof DataSecurityApi.respond>;
+let onChanged: Mock<() => void>;
 
 function available(action: DataSecurityResponseAction): void {
   availability = { actions: [{ action, isAvailable: true }] };
@@ -164,7 +163,9 @@ describe("which issues offer it", () => {
   test("a public bucket offers Block Public Access, once the server says the store can take it", async () => {
     renderPanel({ checkId: "public-read", kind: DataStoreKind.AwsS3Bucket });
 
-    const panel: HTMLElement = await screen.findByTestId(ISSUE_RESPONSE_TEST_ID);
+    const panel: HTMLElement = await screen.findByTestId(
+      ISSUE_RESPONSE_TEST_ID,
+    );
     const button: HTMLElement = within(panel).getByTestId(
       `${ISSUE_RESPONSE_TEST_ID}-button`,
     );
@@ -215,7 +216,9 @@ describe("which issues offer it", () => {
     await waitFor(() => {
       expect(availabilitySpy).toHaveBeenCalled();
     });
-    expect(screen.queryByTestId(ISSUE_RESPONSE_TEST_ID)).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId(ISSUE_RESPONSE_TEST_ID),
+    ).not.toBeInTheDocument();
   });
 
   test("a store whose kind the server says takes nothing draws nothing", async () => {
@@ -225,7 +228,9 @@ describe("which issues offer it", () => {
     await waitFor(() => {
       expect(availabilitySpy).toHaveBeenCalled();
     });
-    expect(screen.queryByTestId(ISSUE_RESPONSE_TEST_ID)).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId(ISSUE_RESPONSE_TEST_ID),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -247,7 +252,9 @@ describe("when it cannot run from here", () => {
     expect(
       within(reason).getByTestId(`${ISSUE_RESPONSE_TEST_ID}-connections`),
     ).toHaveTextContent("Open cloud connections");
-    expect(screen.getByTestId(`${ISSUE_RESPONSE_TEST_ID}-button`)).toBeDisabled();
+    expect(
+      screen.getByTestId(`${ISSUE_RESPONSE_TEST_ID}-button`),
+    ).toBeDisabled();
   });
 
   test.each([
@@ -360,7 +367,9 @@ describe("running it", () => {
 
     expect(
       await screen.findByTestId(`${ISSUE_RESPONSE_TEST_ID}-result`),
-    ).toHaveTextContent("Nothing to change: public access was already blocked.");
+    ).toHaveTextContent(
+      "Nothing to change: public access was already blocked.",
+    );
   });
 
   test("a refusal stays in the dialog, in the server's words, and nothing else changes", async () => {

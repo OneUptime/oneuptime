@@ -23,6 +23,7 @@ import {
   FAKE_ACCOUNT_ID,
   FakeAws,
   FakeBucket,
+  FakeRegion,
   FakeSnapshot,
   createFakeAws,
   queryError,
@@ -314,7 +315,7 @@ describe("revoking a snapshot's sharing", () => {
   function snapshotFake(data: {
     snapshots?: Array<FakeSnapshot> | undefined;
     clusterSnapshots?: Array<FakeSnapshot> | undefined;
-    dataErrors?: Record<string, { status?: number; body?: string }> | undefined;
+    dataErrors?: FakeRegion["dataErrors"];
   }): FakeAws {
     return createFakeAws({
       regions: {
