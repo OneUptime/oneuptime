@@ -38313,5 +38313,6 @@
   "Who can reach this store? Start with public access and accounts outside ours.": "Who can reach this store? Start with public access and accounts outside ours.",
   "data security": "data security",
   "data security issue": "data security issue",
-  "data store": "data store"
+  "data store": "data store",
+  "Lets Data Security block public access to a data store and revoke its sharing, from its issue or a playbook. The command changes with it.": "Lets Data Security block public access to a data store and revoke its sharing, from its issue or a playbook. The command changes with it."
 }
