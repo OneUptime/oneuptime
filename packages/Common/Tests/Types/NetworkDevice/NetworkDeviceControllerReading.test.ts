@@ -51,7 +51,8 @@ const VALUES: Readonly<Record<NetworkDeviceControllerField, string>> = {
   [NetworkDeviceControllerField.FirmwareVersion]: "wireless-29-7",
   [NetworkDeviceControllerField.ProductType]: "wireless",
   [NetworkDeviceControllerField.NetworkName]: "Branch 12",
-  [NetworkDeviceControllerField.Address]: "1600 Amphitheatre Pkwy, Mountain View",
+  [NetworkDeviceControllerField.Address]:
+    "1600 Amphitheatre Pkwy, Mountain View",
 };
 
 function reading(
@@ -132,7 +133,10 @@ describe("normalizeControllerValue", () => {
     }
 
     expect(
-      normalizeControllerValue(NetworkDeviceControllerField.MacAddress, "lobby"),
+      normalizeControllerValue(
+        NetworkDeviceControllerField.MacAddress,
+        "lobby",
+      ),
     ).toBeUndefined();
     expect(
       normalizeControllerValue(NetworkDeviceControllerField.MacAddress, 42),
@@ -171,7 +175,10 @@ describe("normalizeControllerValue", () => {
     ).toBe("switch");
     for (const other of ["Switch", "router", "<b>switch</b>", ""]) {
       expect(
-        normalizeControllerValue(NetworkDeviceControllerField.ProductType, other),
+        normalizeControllerValue(
+          NetworkDeviceControllerField.ProductType,
+          other,
+        ),
       ).toBeUndefined();
     }
   });
@@ -221,7 +228,10 @@ describe("buildControllerReading", () => {
     expect(reading({ provider: undefined })).toBeUndefined();
     expect(
       reading({
-        readBy: { ...CONNECTION, type: NetworkDeviceDiscoveryReaderType.DiscoveryScan },
+        readBy: {
+          ...CONNECTION,
+          type: NetworkDeviceDiscoveryReaderType.DiscoveryScan,
+        },
       }),
     ).toBeUndefined();
     expect(reading({ readBy: { type: "networkController" } })).toBeUndefined();
@@ -327,9 +337,9 @@ describe("the column, with the controller's reading in it", () => {
   });
 
   test("an API create keeps a well-formed reading and drops a forged one", () => {
-    expect(
-      sanitizeDiscoveredDetailsOnWrite({ controller: reading() }),
-    ).toEqual({ controller: reading() });
+    expect(sanitizeDiscoveredDetailsOnWrite({ controller: reading() })).toEqual(
+      { controller: reading() },
+    );
     expect(
       sanitizeDiscoveredDetailsOnWrite({
         controller: { provider: "meraki", values: { model: "MR46" } },

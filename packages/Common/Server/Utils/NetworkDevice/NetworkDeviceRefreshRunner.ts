@@ -61,7 +61,9 @@ export interface NetworkDeviceRefreshDependencies {
 export default class NetworkDeviceRefreshRunner {
   // Why a device cannot be refreshed, in a sentence the page shows.
   public static getCannotRefreshReason(device: NetworkDevice): string {
-    if (NetworkDeviceMonitoringMethodUtil.isMonitorBacked(device.monitoringMethod)) {
+    if (
+      NetworkDeviceMonitoringMethodUtil.isMonitorBacked(device.monitoringMethod)
+    ) {
       return MONITOR_BACKED_REASON;
     }
 

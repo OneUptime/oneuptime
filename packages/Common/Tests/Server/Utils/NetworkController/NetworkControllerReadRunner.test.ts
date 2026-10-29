@@ -702,7 +702,11 @@ describe("the devices' details the device list fills in", () => {
     // Every device's serial number, MAC and management address is looked up.
     expect(lookups).toHaveLength(1);
     expect(lookups[0]!.serials).toEqual(
-      expect.arrayContaining(["Q2XX-AAAA-0000", "Q2HP-SWCH-0001", "Q2KD-WLAN-0001"]),
+      expect.arrayContaining([
+        "Q2XX-AAAA-0000",
+        "Q2HP-SWCH-0001",
+        "Q2KD-WLAN-0001",
+      ]),
     );
     expect(lookups[0]!.addresses).toEqual(["10.0.0.2", "10.0.0.20"]);
 
@@ -766,7 +770,9 @@ describe("the devices' details the device list fills in", () => {
 
   test("an unchanged reading is written again only after an hour, or when someone asks for the device to be read again", async () => {
     withSwitchesAndAccessPoints();
-    candidates = [{ id: SWITCH_DEVICE, name: "Branch 1 core", hostname: "10.0.0.2" }];
+    candidates = [
+      { id: SWITCH_DEVICE, name: "Branch 1 core", hostname: "10.0.0.2" },
+    ];
 
     await run();
     expect(merged).toHaveLength(1);
@@ -785,7 +791,9 @@ describe("the devices' details the device list fills in", () => {
     expect(merged).toEqual([]);
 
     // Someone asks for it to be read again: written at once.
-    candidates[0]!.refreshRequestedAt = new Date(clock.now().getTime() - MINUTE);
+    candidates[0]!.refreshRequestedAt = new Date(
+      clock.now().getTime() - MINUTE,
+    );
     clock.advance(MINUTE);
     await run();
     expect(merged).toHaveLength(1);

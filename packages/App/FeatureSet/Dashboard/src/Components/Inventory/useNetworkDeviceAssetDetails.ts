@@ -42,7 +42,8 @@ export interface NetworkDeviceAssetDetailsRead {
   device?: NetworkDevice | null | undefined;
 }
 
-export interface NetworkDeviceAssetDetailsReader extends NetworkDeviceAssetDetailsRead {
+export interface NetworkDeviceAssetDetailsReader
+  extends NetworkDeviceAssetDetailsRead {
   // Reads the device again, quietly: what is shown stays until it lands.
   reload: () => void;
 }

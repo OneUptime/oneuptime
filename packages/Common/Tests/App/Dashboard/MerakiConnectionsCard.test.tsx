@@ -366,9 +366,11 @@ describe("the list", () => {
     const notes: Array<HTMLElement> = within(row).getAllByTestId(
       "meraki-connection-note",
     );
-    expect(notes.map((note: HTMLElement) => {
-      return note.textContent;
-    })).toContain(
+    expect(
+      notes.map((note: HTMLElement) => {
+        return note.textContent;
+      }),
+    ).toContain(
       "212 of its devices are network devices here: their model, serial number and firmware come from Meraki.",
     );
   });

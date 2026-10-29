@@ -19,7 +19,9 @@ import { APP_API_URL } from "Common/UI/Config";
 export const NETWORK_DEVICE_REFRESH_ROUTE: string =
   "/network-device/:networkDeviceId/refresh";
 
-export function getNetworkDeviceRefreshPath(deviceId: ObjectID | string): string {
+export function getNetworkDeviceRefreshPath(
+  deviceId: ObjectID | string,
+): string {
   return NETWORK_DEVICE_REFRESH_ROUTE.replace(
     ":networkDeviceId",
     encodeURIComponent(deviceId.toString()),

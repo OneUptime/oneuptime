@@ -37,7 +37,9 @@ let enqueued: Array<string>;
 let deviceQueries: Array<JSONObject>;
 let connectionQueries: Array<JSONObject>;
 
-function probePolledDevice(overrides: Partial<NetworkDevice> = {}): NetworkDevice {
+function probePolledDevice(
+  overrides: Partial<NetworkDevice> = {},
+): NetworkDevice {
   const model: NetworkDevice = new NetworkDevice();
   model.id = DEVICE;
   model.projectId = PROJECT;
@@ -245,21 +247,13 @@ describe("a device a Meraki connection describes", () => {
 });
 
 describe("a device nothing reads on its own", () => {
-  test.each([
-    [
-      "monitor-backed",
-      { monitoringMethod: "Monitor" },
-      MONITOR_BACKED_REASON,
-    ],
+  test.each<[string, Record<string, unknown>, string]>([
+    ["monitor-backed", { monitoringMethod: "Monitor" }, MONITOR_BACKED_REASON],
     ["polling turned off", { isPollingEnabled: false }, POLLING_OFF_REASON],
     ["no probe", { probeId: undefined }, NO_PROBE_REASON],
   ])(
     "%s: refused, saying why",
-    async (
-      _: string,
-      overrides: Partial<NetworkDevice>,
-      reason: string,
-    ) => {
+    async (_: string, overrides: Record<string, unknown>, reason: string) => {
       device = probePolledDevice(overrides as never);
 
       await expect(refresh()).rejects.toThrow(new BadDataException(reason));

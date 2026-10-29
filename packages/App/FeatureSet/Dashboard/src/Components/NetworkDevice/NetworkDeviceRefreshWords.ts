@@ -5,7 +5,10 @@ import {
   NetworkDeviceRefreshProgress,
   NetworkDeviceRefreshStanding,
 } from "Common/Utils/NetworkDevice/NetworkDeviceRefresh";
-import { TemplateValues, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  TemplateValues,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * What Refresh says, on a network device's Inventory card and on its

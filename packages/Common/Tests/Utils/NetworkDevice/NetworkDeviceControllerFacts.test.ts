@@ -438,8 +438,6 @@ describe("the controller as a source", () => {
   });
 
   test("names the connection that read it, when, and the controller", () => {
-    expect(sourceOfControllerReading(controllerReading())).toEqual(
-      FROM_MERAKI,
-    );
+    expect(sourceOfControllerReading(controllerReading())).toEqual(FROM_MERAKI);
   });
 });

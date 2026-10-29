@@ -331,7 +331,10 @@ describe("where a refresh stands", () => {
     });
     expect(
       getNetworkDeviceRefreshStanding({
-        answer: { ...both, requestedAt: new Date(NOW.getTime() - 4 * MINUTE).toISOString() },
+        answer: {
+          ...both,
+          requestedAt: new Date(NOW.getTime() - 4 * MINUTE).toISOString(),
+        },
         lastPolledAt: new Date(NOW.getTime() - MINUTE),
         isReachable: true,
         controllerReadAt: undefined,
@@ -390,7 +393,9 @@ describe("a refresh under way when the page opens", () => {
         now: NOW,
       }),
     ).toBeUndefined();
-    expect(getPendingNetworkDeviceRefresh({ device, now: NOW })).toBeUndefined();
+    expect(
+      getPendingNetworkDeviceRefresh({ device, now: NOW }),
+    ).toBeUndefined();
   });
 });
 

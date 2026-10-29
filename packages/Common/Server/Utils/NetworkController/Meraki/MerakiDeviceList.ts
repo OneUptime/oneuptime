@@ -10,7 +10,12 @@ import {
   NetworkControllerAppliance,
   NetworkControllerDevice,
 } from "../NetworkControllerTypes";
-import { TEXT_LIMITS, cleanMac, cleanSerial, cleanText } from "./MerakiUsageRecords";
+import {
+  TEXT_LIMITS,
+  cleanMac,
+  cleanSerial,
+  cleanText,
+} from "./MerakiUsageRecords";
 
 /*
  * THE ORGANIZATION'S DEVICE LIST (GET organizations/{id}/devices, every
@@ -100,7 +105,9 @@ export function readMerakiDevices(
       lanIp: readAddressLiteral(device["lanIp"]),
       firmware: cleanText(
         device["firmware"],
-        MAX_CONTROLLER_VALUE_LENGTH[NetworkDeviceControllerField.FirmwareVersion],
+        MAX_CONTROLLER_VALUE_LENGTH[
+          NetworkDeviceControllerField.FirmwareVersion
+        ],
       ),
       productType: readProductType(device["productType"]),
       controllerNetworkId: networkId,

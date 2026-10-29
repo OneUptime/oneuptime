@@ -57,7 +57,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 jest.mock("../../../UI/Utils/API/API", () => {
   const actual: { default: Record<string, unknown> } = jest.requireActual(
     "../../../UI/Utils/API/API",
-  );
+  ) as { default: Record<string, unknown> };
 
   return {
     __esModule: true,
@@ -291,9 +291,7 @@ describe("Inventory's Asset Details card: Refresh", () => {
   test("not offered on a host's card", async () => {
     render(<InventoryAssetDetailsCard item={hostItem()} />);
 
-    expect(
-      screen.getByTestId("inventory-asset-details"),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId("inventory-asset-details")).toBeInTheDocument();
     expect(screen.queryByTestId(BUTTON)).toBeNull();
     expect(getItemMock).not.toHaveBeenCalled();
   });
@@ -598,6 +596,8 @@ describe("the device's Inventory card: Refresh, and what Meraki says", () => {
     await waitFor((): void => {
       expect(screen.getByTestId("device-inventory-model")).toBeInTheDocument();
     });
-    expect(screen.queryByTestId("device-inventory-controller-source")).toBeNull();
+    expect(
+      screen.queryByTestId("device-inventory-controller-source"),
+    ).toBeNull();
   });
 });

@@ -176,7 +176,9 @@ interface CandidateIdentity {
   details: NetworkDeviceDiscoveredDetails;
 }
 
-function identityOf(candidate: ControllerInventoryCandidate): CandidateIdentity {
+function identityOf(
+  candidate: ControllerInventoryCandidate,
+): CandidateIdentity {
   const details: NetworkDeviceDiscoveredDetails =
     readNetworkDeviceDiscoveredDetails(candidate.discoveredDetails);
   const macs: Array<string> = [];
@@ -216,7 +218,10 @@ function identityOf(candidate: ControllerInventoryCandidate): CandidateIdentity 
 }
 
 // Counts of a key: whether it is held once.
-function countBy<T>(items: Array<T>, keyOf: (item: T) => string): Map<string, number> {
+function countBy<T>(
+  items: Array<T>,
+  keyOf: (item: T) => string,
+): Map<string, number> {
   const counts: Map<string, number> = new Map<string, number>();
 
   for (const item of items) {
@@ -238,7 +243,11 @@ function isContradicted(
   identity: CandidateIdentity,
   device: NetworkControllerDevice,
 ): boolean {
-  if (identity.serial && device.serial && identity.serial !== toSerialKey(device.serial)) {
+  if (
+    identity.serial &&
+    device.serial &&
+    identity.serial !== toSerialKey(device.serial)
+  ) {
     return true;
   }
 
@@ -462,11 +471,12 @@ export function planControllerInventory(data: {
   isDeviceListComplete: boolean;
   candidates: Array<ControllerInventoryCandidate>;
 }): ControllerInventoryPlan {
-  const matches: Map<string, ControllerInventoryMatch> =
-    matchControllerDevices({
+  const matches: Map<string, ControllerInventoryMatch> = matchControllerDevices(
+    {
       devices: data.devices,
       candidates: data.candidates,
-    });
+    },
+  );
   const patches: Array<DiscoveredDetailsMerge> = [];
   const described: Set<string> = new Set<string>();
   const seen: Set<string> = new Set<string>();
@@ -486,8 +496,9 @@ export function planControllerInventory(data: {
     seen.add(id);
 
     const stored: NetworkDeviceControllerReading | undefined =
-      readNetworkDeviceDiscoveredDetails(candidate.discoveredDetails)
-        .controller;
+      readNetworkDeviceDiscoveredDetails(
+        candidate.discoveredDetails,
+      ).controller;
     const match: ControllerInventoryMatch | undefined = matches.get(id);
 
     if (!match) {

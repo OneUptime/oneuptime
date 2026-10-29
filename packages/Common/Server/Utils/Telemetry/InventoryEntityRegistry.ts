@@ -958,8 +958,10 @@ export async function mirrorInventoryRow(data: {
     return "notMirrored";
   }
 
-  const written: { created: number; updated: number } =
-    await writeProjections(source, [row]);
+  const written: { created: number; updated: number } = await writeProjections(
+    source,
+    [row],
+  );
 
   if (written.created > 0) {
     return "created";

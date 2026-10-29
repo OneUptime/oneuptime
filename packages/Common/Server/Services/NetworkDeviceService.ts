@@ -3336,7 +3336,11 @@ export class Service extends ProjectReferencesService<Model> {
   public async findControllerMatchCandidates(data: {
     projectId: ObjectID;
     connectionId: ObjectID;
-    lookup: { serials: Array<string>; macs: Array<string>; addresses: Array<string> };
+    lookup: {
+      serials: Array<string>;
+      macs: Array<string>;
+      addresses: Array<string>;
+    };
     limit: number;
   }): Promise<
     Array<{

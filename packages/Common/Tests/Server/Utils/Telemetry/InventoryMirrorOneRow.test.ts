@@ -63,24 +63,22 @@ beforeEach(() => {
   created = [];
   updated = [];
 
-  jest
-    .spyOn(NetworkDeviceService, "findBy")
-    .mockImplementation((async (data: { query: JSONObject }) => {
-      deviceQueries.push(data.query);
-      return rows;
-    }) as never);
+  jest.spyOn(NetworkDeviceService, "findBy").mockImplementation((async (data: {
+    query: JSONObject;
+  }) => {
+    deviceQueries.push(data.query);
+    return rows;
+  }) as never);
   jest.spyOn(NetworkDeviceRoleService, "findBy").mockResolvedValue([]);
-  jest
-    .spyOn(InventoryItemService, "findBy")
-    .mockImplementation((async () => {
-      return existing;
-    }) as never);
-  jest
-    .spyOn(InventoryItemService, "create")
-    .mockImplementation((async (data: { data: InventoryItem }) => {
-      created.push(data.data);
-      return data.data;
-    }) as never);
+  jest.spyOn(InventoryItemService, "findBy").mockImplementation((async () => {
+    return existing;
+  }) as never);
+  jest.spyOn(InventoryItemService, "create").mockImplementation((async (data: {
+    data: InventoryItem;
+  }) => {
+    created.push(data.data);
+    return data.data;
+  }) as never);
   jest
     .spyOn(InventoryItemService, "updateOneById")
     .mockImplementation((async (data: { id: ObjectID; data: JSONObject }) => {

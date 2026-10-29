@@ -112,7 +112,10 @@ describe("readMerakiDevices", () => {
           { name: "unclaimed", serial: "", networkId: "L_1000" },
           { name: "no network", serial: "Q2ZZ-0000-0001" },
           ANSWER[2],
-          { ...(ANSWER[2] as object), name: "the same box again" },
+          {
+            ...(ANSWER[2] as Record<string, unknown>),
+            name: "the same box again",
+          },
           null,
           "Q2ZZ",
           [ANSWER[0]],
@@ -128,7 +131,7 @@ describe("readMerakiDevices", () => {
     const [device] = readMerakiDevices(
       [
         {
-          ...(ANSWER[1] as object),
+          ...(ANSWER[1] as Record<string, unknown>),
           lanIp: "core.branch1.example",
           productType: "router",
         },
@@ -142,8 +145,10 @@ describe("readMerakiDevices", () => {
 
   test("a network the read did not list leaves the network's name empty", () => {
     expect(
-      readMerakiDevices([{ ...(ANSWER[1] as object), networkId: "L_9999" }], NETWORKS)[0]
-        ?.networkName,
+      readMerakiDevices(
+        [{ ...(ANSWER[1] as Record<string, unknown>), networkId: "L_9999" }],
+        NETWORKS,
+      )[0]?.networkName,
     ).toBe("");
   });
 

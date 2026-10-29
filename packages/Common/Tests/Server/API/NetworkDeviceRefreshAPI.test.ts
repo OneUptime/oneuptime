@@ -59,12 +59,15 @@ jest.mock("../../../Server/Services/NetworkDeviceService", () => {
   };
 });
 
-jest.mock("../../../Server/Utils/NetworkDevice/NetworkDeviceRefreshRunner", () => {
-  return {
-    __esModule: true,
-    default: { refresh: jest.fn() },
-  };
-});
+jest.mock(
+  "../../../Server/Utils/NetworkDevice/NetworkDeviceRefreshRunner",
+  () => {
+    return {
+      __esModule: true,
+      default: { refresh: jest.fn() },
+    };
+  },
+);
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "aa000000-0000-4000-8000-000000000011",

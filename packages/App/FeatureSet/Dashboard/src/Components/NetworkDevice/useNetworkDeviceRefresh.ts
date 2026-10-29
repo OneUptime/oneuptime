@@ -117,7 +117,10 @@ const useNetworkDeviceRefresh: (data: {
     ModelAction.Update,
   ).isAllowed;
   const canRefresh: boolean = Boolean(
-    data.deviceId && data.device && canEdit && canRefreshNetworkDevice(data.device),
+    data.deviceId &&
+      data.device &&
+      canEdit &&
+      canRefreshNetworkDevice(data.device),
   );
 
   // A refresh under way when the page opened: followed as if asked here.

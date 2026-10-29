@@ -1,5 +1,6 @@
-import { Service as NetworkDeviceServiceType } from "../../../Server/Services/NetworkDeviceService";
-import NetworkDeviceService from "../../../Server/Services/NetworkDeviceService";
+import NetworkDeviceService, {
+  Service as NetworkDeviceServiceType,
+} from "../../../Server/Services/NetworkDeviceService";
 import { Service as NetworkControllerConnectionServiceType } from "../../../Server/Services/NetworkControllerConnectionService";
 import DeleteBy from "../../../Server/Types/Database/DeleteBy";
 import { OnDelete } from "../../../Server/Types/Database/Hooks";
@@ -8,7 +9,7 @@ import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
-import type { Mock, SpiedFunction } from "jest-mock";
+import type { Mock, SpyInstance } from "jest-mock";
 
 /*
  * The server's half of Meraki as a source of device details, and of
@@ -45,7 +46,10 @@ const READING: JSONObject = {
   values: { model: "MS225-48LP", serialNumber: "Q2HP-SWCH-0001" },
 };
 
-type QueryFunction = (sql: string, parameters: Array<unknown>) => Promise<unknown>;
+type QueryFunction = (
+  sql: string,
+  parameters: Array<unknown>,
+) => Promise<unknown>;
 
 function flat(sql: string): string {
   return sql.split(/\s+/).join(" ").trim();
@@ -249,7 +253,8 @@ describe("a deleted connection's readings are forgotten", () => {
   test("the connection service forgets each deleted connection's readings, and only theirs", async () => {
     const connectionService: NetworkControllerConnectionServiceType =
       new NetworkControllerConnectionServiceType();
-    const hooks: ConnectionHooks = connectionService as unknown as ConnectionHooks;
+    const hooks: ConnectionHooks =
+      connectionService as unknown as ConnectionHooks;
 
     const deleted: NetworkControllerConnection =
       new NetworkControllerConnection();
@@ -262,7 +267,7 @@ describe("a deleted connection's readings are forgotten", () => {
     jest
       .spyOn(connectionService, "findBy")
       .mockResolvedValue([deleted, kept] as never);
-    const forget: SpiedFunction<
+    const forget: SpyInstance<
       typeof NetworkDeviceService.forgetControllerReadings
     > = jest
       .spyOn(NetworkDeviceService, "forgetControllerReadings")
@@ -286,7 +291,8 @@ describe("a deleted connection's readings are forgotten", () => {
   test("a failure to forget never undoes the delete", async () => {
     const connectionService: NetworkControllerConnectionServiceType =
       new NetworkControllerConnectionServiceType();
-    const hooks: ConnectionHooks = connectionService as unknown as ConnectionHooks;
+    const hooks: ConnectionHooks =
+      connectionService as unknown as ConnectionHooks;
 
     jest
       .spyOn(NetworkDeviceService, "forgetControllerReadings")
@@ -308,8 +314,13 @@ describe("a deleted connection's readings are forgotten", () => {
 
 describe("refreshRequestedAt", () => {
   test("is kept by the server alone: nobody creates or updates it through the API", () => {
-    const column: { create: Array<unknown>; update: Array<unknown>; read: Array<unknown> } =
-      new NetworkDevice().getColumnAccessControlFor("refreshRequestedAt") as never;
+    const column: {
+      create: Array<unknown>;
+      update: Array<unknown>;
+      read: Array<unknown>;
+    } = new NetworkDevice().getColumnAccessControlFor(
+      "refreshRequestedAt",
+    ) as never;
 
     expect(column.create).toEqual([]);
     expect(column.update).toEqual([]);

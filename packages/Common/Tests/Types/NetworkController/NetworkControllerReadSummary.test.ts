@@ -78,7 +78,10 @@ describe("reading a stored read summary", () => {
 
   test("a summary from before Meraki filled in devices' details has no device counts, not zeros", () => {
     const read: NetworkControllerReadSummary | undefined =
-      readNetworkControllerReadSummary({ status: "success", applianceCount: 5 });
+      readNetworkControllerReadSummary({
+        status: "success",
+        applianceCount: 5,
+      });
 
     expect(read).toBeDefined();
     expect("deviceCount" in read!).toBe(false);

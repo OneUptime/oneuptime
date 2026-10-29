@@ -73,13 +73,12 @@ router.post(
       const deviceId: ObjectID = new ObjectID(value);
 
       // The caller must be able to see the device, in their own project.
-      const visible: NetworkDevice | null = await NetworkDeviceService.findOneBy(
-        {
+      const visible: NetworkDevice | null =
+        await NetworkDeviceService.findOneBy({
           query: { _id: deviceId, projectId: projectId },
           select: { _id: true, projectId: true },
           props: props,
-        },
-      );
+        });
 
       if (!visible) {
         throw new NotFoundException("This network device does not exist.");

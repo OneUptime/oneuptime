@@ -250,8 +250,9 @@ describe("3. its address and its name, the address held once on both sides", () 
   });
 
   test("an address alone is never enough", () => {
-    expect(match([{ id: id(1), hostname: "10.0.0.2", name: "printer-3" }]).size)
-      .toBe(0);
+    expect(
+      match([{ id: id(1), hostname: "10.0.0.2", name: "printer-3" }]).size,
+    ).toBe(0);
     expect(match([{ id: id(1), hostname: "10.0.0.2" }]).size).toBe(0);
   });
 
@@ -401,7 +402,10 @@ describe("what a read records", () => {
       hostname: "10.0.0.2",
       name: "Branch 1 core",
       discoveredDetails: {
-        controller: storedReading(SWITCH, new Date(READ_AT.getTime() - 59 * MINUTE)),
+        controller: storedReading(
+          SWITCH,
+          new Date(READ_AT.getTime() - 59 * MINUTE),
+        ),
       },
     };
 
@@ -444,7 +448,10 @@ describe("what a read records", () => {
       name: "Branch 1 core",
       refreshRequestedAt: new Date(READ_AT.getTime() - 2 * MINUTE),
       discoveredDetails: {
-        controller: storedReading(SWITCH, new Date(READ_AT.getTime() - 5 * MINUTE)),
+        controller: storedReading(
+          SWITCH,
+          new Date(READ_AT.getTime() - 5 * MINUTE),
+        ),
       },
     };
 
@@ -461,10 +468,14 @@ describe("what a read records", () => {
       hostname: "10.0.0.2",
       name: "Branch 1 core",
       discoveredDetails: {
-        controller: storedReading(SWITCH, new Date(READ_AT.getTime() - MINUTE), {
-          ...CONNECTION,
-          id: OTHER_CONNECTION_ID,
-        }),
+        controller: storedReading(
+          SWITCH,
+          new Date(READ_AT.getTime() - MINUTE),
+          {
+            ...CONNECTION,
+            id: OTHER_CONNECTION_ID,
+          },
+        ),
       },
     };
 
