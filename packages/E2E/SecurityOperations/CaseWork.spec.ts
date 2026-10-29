@@ -1039,7 +1039,7 @@ test.describe("a case with nothing on it yet", () => {
       ).toBeVisible({ timeout: 30000 });
       await expect(
         page.getByText(
-          "Keep what shows what happened on the case: logs, screenshots, captures, or links to where they are.",
+          "Keep what shows what happened on the case: logs, screenshots, captures, links to where they are, or events from Security Events.",
           { exact: true },
         ),
       ).toBeVisible();

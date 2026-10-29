@@ -175,10 +175,7 @@ describe("the Security Events menu", () => {
        * second "riskiest" by how many findings named a value, folded into
        * Entity Risk.
        */
-      [
-        "Events",
-        ["Events", "Hunts", "Campaigns", "Entity Risk", "Correlate"],
-      ],
+      ["Events", ["Events", "Hunts", "Campaigns", "Entity Risk", "Correlate"]],
       /*
        * What the rules skip on purpose sits right under the rules, and the
        * lists they match against (VIP users, critical hosts) after it,
