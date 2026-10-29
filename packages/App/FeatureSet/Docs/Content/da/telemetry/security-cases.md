@@ -229,7 +229,7 @@ For at slå op i en kanal tilføjer du en regel under **Produkter → Security E
 | Prioritet for sikkerhedssag | En af projektets sagsprioriteter, f.eks. Kritisk eller High |
 | Titel på sikkerhedssag, Beskrivelse af sikkerhedssag | Tekst, som sagens titel eller beskrivelse indeholder, starter med eller slutter med |
 | Status for sikkerhedssag | En af projektets sagsstatusser, f.eks. Ny eller Lukket |
-| Kilde til sikkerhedssag | Detection Rule, Threat Intel, Connected Product, Entitetsrisiko, Data Security eller Manual |
+| Kilde til sikkerhedssag | Detection Rule, Threat Intel, Connected Product, Entitetsrisiko, Datasikkerhed eller Manual |
 | Etiketter på sikkerhedssag | Sagens etiketter |
 
 Alle notifikationer undtagen en opgaves slås op i kanalerne for hver regel, sagen matcher i det øjeblik. En regel, hvor **Prioritet for sikkerhedssag** indeholder en af **Kritisk** og **Høj**, slår sager med High og Kritisk op, når de åbnes, og en sag med Medium, når den stiger til High. En sikkerhedssag får aldrig sin egen kanal.
@@ -281,6 +281,8 @@ En deaktiveret playbook kører hverken af sig selv eller manuelt.
 | Contain | Unsuspend the user in Okta | Ophæver suspenderingen af den bruger, sagen handler om, i Okta |
 | Contain | Lift containment in CrowdStrike | Ophæver CrowdStrike Falcons netværksisolering af den vært, sagen handler om |
 | Contain | Release the device in Microsoft Defender | Frigiver den vært, sagen handler om, fra isoleringen i Microsoft Defender for Endpoint |
+| Contain | Bloker offentlig adgang til datalagre | Blokerer offentlig adgang til hver bucket eller storage account, sagen handler om, gennem dens cloudforbindelse |
+| Contain | Tilbagekald deling af datalager | Stopper delingen uden for jeres konti af snapshots af hver database, sagen handler om, gennem dens cloudforbindelse |
 | Automate | Send a webhook | Sender sagen som JSON til en URL |
 | Automate | Run a workflow | Starter et OneUptime-workflow med sagen som input |
 | Automate | Run a runbook | Starter en af dine OneUptime-runbooks med sagen som input |
@@ -288,7 +290,7 @@ En deaktiveret playbook kører hverken af sig selv eller manuelt.
 
 En playbook har højst 25 trin. De kører i rækkefølge, hvert trin, når det foregående er færdigt. Hvert trin kan også:
 
-- **Kræver godkendelse**: stoppe kørslen før trinnet, indtil nogen godkender det på sagen. De fire trin, der lukker nogen ude, stopper altid kørslen, medmindre en Security Admin slår det fra. **Run a runbook** og **Post a status page announcement** starter med godkendelse slået til, fordi det ene kører kommandoer på jeres systemer og det andet taler til jeres kunder; den, der tilføjer trinnet, kan slå det fra.
+- **Kræver godkendelse**: stoppe kørslen før trinnet, indtil nogen godkender det på sagen. De fire trin, der lukker nogen ude, stopper altid kørslen, medmindre en Security Admin slår det fra. **Run a runbook**, **Post a status page announcement** og de to datalagertrin starter med godkendelse slået til, fordi de kører kommandoer på jeres systemer, taler til jeres kunder eller ændrer en clouds indstillinger; den, der tilføjer trinnet, kan slå det fra.
 - **Kun ved træf i trusselsinformation**: springe trinnet over, medmindre et tidligere trin **Tjek entiteter mod trusselsinformation** i kørslen fandt en kendt indikator.
 - **Fortsæt, hvis det mislykkes**: køre det næste trin, selv om dette mislykkes. Er den slået fra, stopper et mislykket trin kørslen.
 
@@ -303,20 +305,23 @@ Fire trin handler gennem resten af OneUptime i stedet for gennem et forbundet pr
 
 ### Inddæmning
 
-Contain-trinnene handler gennem en [forbindelse for sikkerhedsbegivenheder](/docs/telemetry/security-events#forbind-et-sikkerhedsprodukt) til produktet, og den skal have mere end læseadgang:
+Contain-trinnene handler gennem en forbindelse, der skal have mere end læseadgang: en [forbindelse for sikkerhedsbegivenheder](/docs/telemetry/security-events#forbind-et-sikkerhedsprodukt) til produktet eller datalagerets [cloudforbindelse](/docs/telemetry/cloud-accounts):
 
 | Trin | Forbindelse | Kræver |
 | --- | --- | --- |
 | Suspend the user in Okta, End the user's Okta sessions, Unsuspend the user in Okta | Okta System Log | Et API-token, der må administrere brugere |
 | Contain the host in CrowdStrike, Lift containment in CrowdStrike | CrowdStrike Falcon | En API-klient med skriveadgang til scopet Hosts |
 | Isolate the device in Microsoft Defender, Release the device in Microsoft Defender | Microsoft Defender XDR | En app med tilladelsen Machine.Isolate |
+| Bloker offentlig adgang til datalagre, Tilbagekald deling af datalager | Datalagerets cloudforbindelse | **Datasikkerhedsrespons** slået til, og dens opsætningskommando kørt igen |
 
-Et Contain-trin handler kun på de brugere eller værter, sagen handler om, aldrig på alle dem, den nævner:
+Et bruger- eller værtstrin handler kun på de brugere eller værter, sagen handler om, aldrig på alle dem, den nævner:
 
 - Den værdi, en af sagens detektioner er grupperet efter, f.eks. den konto, en regel for umulige rejser grupperer efter, eller den vært, en advarsel fra et forbundet produkt nævner.
 - En bruger eller vært i sagen, som din trusselsintelligens kender som en indikator.
 
 En sag, der er grupperet efter en adresse, f.eks. et brute force-angreb mod din VPN, handler om ingen af delene: dens Contain-trin springes over, og den forsøgte konto og den ramte gateway lades i fred. Et trin handler på højst 10 brugere eller værter. Det finder hver af dem i produktet ud fra navnet og skriver på kørslen, hvad det gjorde med hver enkelt: udført, allerede udført, ikke fundet, afvist eller beskyttet.
+
+De to datalagertrin handler på de datalagre, sagen handler om, højst 10: dem fra de datasikkerhedsproblemer, den har optaget, og dem, en detektion har grupperet den efter. De lader et datalager markeret **Offentlig med vilje** være i fred, ændrer, hvordan et datalager deles, men aldrig dets data, og skriver på kørslen, hvad de gjorde med hvert datalager (se [Luk en eksponering](/docs/data-security/integrations#luk-en-eksponering)).
 
 #### Beskyttede entiteter
 
