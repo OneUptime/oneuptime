@@ -79,11 +79,13 @@ Wanneer een incident of waarschuwing het beleid bereikt, roept **Level 1** metee
 
 Een incident, waarschuwing of episode die al bevestigd of opgelost wordt aangemaakt — achteraf vastgelegd — voert geen enkel beleid uit: niemand wordt opgeroepen, en de feed meldt dat, met de namen van het beleid erbij. Zie [Al bevestigd of opgelost gemeld](/docs/incidents/declaring-incidents#al-bevestigd-of-opgelost-gemeld).
 
+Een niveau dat niemand heeft om op te roepen wanneer het wordt bereikt, wordt meteen overgeslagen: het volgende niveau wordt direct opgeroepen, zonder wachten. Dat is een niveau zonder ontvangers, en een niveau waarvan de ontvangers op dat moment niemand opleveren om op te roepen: een team zonder leden, een schema waarin niemand dienst heeft, of mensen die afwezig zijn zonder vervanger, het project hebben verlaten of helemaal niet bereikbaar zijn. Heeft geen enkel niveau iemand om op te roepen, dan stopt het beleid meteen en wordt het niet herhaald.
+
 Om een beleid te herhalen, klikt u op **Bewerken** op de kaart **Herhaalbeleid**, kiest u **Opnieuw beginnen bij Level 1** en vult u **Hoe vaak nog?** in.
 
 ### Het escalatieoverzicht
 
-Het overzicht boven aan de pagina **Escalatieregels** toont de hele ladder: wanneer elk niveau wordt opgeroepen, wie het oproept en wat er na het laatste gebeurt. Een niveau waarvan niet alle ontvangers kunnen worden opgeroepen, meldt dat op zijn kaart; klik op het label om te zien wie en waarom.
+Het overzicht boven aan de pagina **Escalatieregels** toont de hele ladder: wanneer elk niveau wordt opgeroepen, wie het oproept en wat er na het laatste gebeurt. Een niveau waarvan niet alle ontvangers kunnen worden opgeroepen, meldt dat op zijn kaart; klik op het label om te zien wie en waarom. Een niveau zonder ontvangers toont **Direct overgeslagen**, en de wachttijd ervan telt niet mee voor wanneer het volgende niveau wordt opgeroepen.
 
 ### Hoe iedere persoon wordt bereikt
 
@@ -184,7 +186,7 @@ De volgende persoon wordt bepaald wanneer het niveau wordt uitgevoerd, op basis 
 - Het is de persoon na wie er dienst heeft, in de volgorde waarin de mensen van de rotatie elkaar afwisselen. Na de laatste persoon komt weer de eerste.
 - Afwezige mensen worden overgeslagen, of iemand hen nu vervangt of niet, en ook wie dienst heeft in de plaats van iemand anders.
 - Het is altijd iemand uit dezelfde rotatie: bij meerdere lagen de laag waar wie dienst heeft uit komt. Een rotatie met verder niemand erin, of waarin alle anderen afwezig zijn, heeft geen volgende persoon; het niveau roept daar dan niemand op en meldt dat.
-- Heeft er in het schema helemaal niemand dienst, dan is er ook geen volgende persoon, en wordt het niveau een paar minuten lang opnieuw geprobeerd, net als bij het schema zelf.
+- Heeft er in het schema helemaal niemand dienst, dan is er ook geen volgende persoon, en roept het niveau daar niemand op.
 
 Het bericht van de uitvoering in Slack en Microsoft Teams, de feed van het incident en de **Tijdlijn van de uitvoering** vermelden wie als volgende in de rotatie is opgeroepen, en uit welk schema: "Sam Lee (next in the Payments primary rotation)".
 

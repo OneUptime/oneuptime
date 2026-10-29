@@ -17,6 +17,7 @@ import UserNotificationRuleService from "../../../Server/Services/UserNotificati
 import logger from "../../../Server/Utils/Logger";
 import ProjectMembership from "../../../Server/Utils/TeamMember/ProjectMembership";
 import OnCallDutyExecutionLogTimelineStatus from "../../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
+import { ON_CALL_LEVEL_PAGED_NOBODY_TIMELINE_MESSAGE } from "../../../Types/OnCallDutyPolicy/OnCallEmptyLevel";
 import ObjectID from "../../../Types/ObjectID";
 import UserNotificationEventType from "../../../Types/UserNotification/UserNotificationEventType";
 import {
@@ -183,9 +184,24 @@ describe("an escalation rule pages project members only", () => {
     jest
       .spyOn(OnCallDutyPolicyExecutionLogService, "updateOneById")
       .mockResolvedValue(undefined as never);
+    // Whether each page of the level went out, read back from the timeline.
     jest
-      .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")
-      .mockResolvedValue({ scheduleGapRetryCount: 0 } as never);
+      .spyOn(OnCallDutyPolicyExecutionLogTimelineService, "findBy")
+      .mockImplementation((async (data: {
+        query: { _id?: { value?: Array<ObjectID> } };
+      }) => {
+        const ids: Array<string> = (data.query._id?.value || []).map(
+          (id: ObjectID): string => {
+            return id.toString();
+          },
+        );
+
+        return timeline.filter(
+          (row: OnCallDutyPolicyExecutionLogTimeline): boolean => {
+            return ids.includes(row.id?.toString() || "");
+          },
+        );
+      }) as never);
 
     jest
       .spyOn(OnCallDutyPolicyEscalationRuleTeamService, "findBy")
@@ -414,7 +430,7 @@ describe("an escalation rule pages project members only", () => {
     expect(teamRow?.userBelongsToTeamId?.toString()).toBe(TEAM_ID.toString());
   });
 
-  test("nobody left to page: the rule says it reached no one", async () => {
+  test("nobody left to page: the rule says it reached no one, and that the run moved on at once", async () => {
     members.clear();
 
     await runRule();
@@ -422,10 +438,12 @@ describe("an escalation rule pages project members only", () => {
     expect(paged).toEqual([]);
     expect(skippedAsNonMembers()).toHaveLength(6);
     expect(
-      timeline.some((row: OnCallDutyPolicyExecutionLogTimeline) => {
-        return row.statusMessage === "Skipped because no users in this rule.";
+      timeline.filter((row: OnCallDutyPolicyExecutionLogTimeline) => {
+        return (
+          row.statusMessage === ON_CALL_LEVEL_PAGED_NOBODY_TIMELINE_MESSAGE
+        );
       }),
-    ).toBe(true);
+    ).toHaveLength(1);
   });
 
   describe("an override in force in a schedule", () => {
