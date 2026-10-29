@@ -75,6 +75,8 @@ Every store gets the checks that apply to its kind. A store whose content cannot
 
 A store is archived, with its history, once its source no longer lists it: **Archived Stores**, at the end of Data Security's menu, keeps it. It comes back by itself if its source lists it again.
 
+A store's **Timeline** says what happened to it, and who did it: when it was found or added, each change to its settings and owners, when it was archived or came back, and each exposure closed from an issue or a playbook.
+
 ## How often it runs
 
 | What | When |

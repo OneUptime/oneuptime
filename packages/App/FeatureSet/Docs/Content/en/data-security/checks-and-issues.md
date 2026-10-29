@@ -169,7 +169,7 @@ An open issue about a public bucket or a shared snapshot can be fixed from its p
 
 It asks first, saying what changes and what stops working. It changes how the store is shared, never its data, and changes nothing that is already closed. A store marked **Public By Design** is never blocked.
 
-It acts through the store's cloud connection, so the connection needs **Data security response** turned on and its setup command run again (see [Set Up Data Security](/docs/data-security/setup#let-data-security-close-an-exposure)). Until then the panel says what to turn on. The store is checked again right after, and the issue resolves on its own once its check passes. The issue's **Timeline** and the store's feed say what was done, and who did it.
+It acts through the store's cloud connection, so the connection needs **Data security response** turned on and its setup command run again (see [Set Up Data Security](/docs/data-security/setup#let-data-security-close-an-exposure)). Until then the panel says what to turn on. The store is checked again right after, and the issue resolves on its own once its check passes. The issue's **Timeline** and the store's **Timeline** say what was done, and who did it.
 
 ## Check settings
 

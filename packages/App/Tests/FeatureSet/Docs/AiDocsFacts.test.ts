@@ -1910,9 +1910,11 @@ describe("MCP Server", () => {
      * Postmortem Status, the 28th, came with the Postmortems list; Security
      * Case Priority and Security Case Status with Security Events > Settings;
      * Security Case Task and Security Case Evidence with a case's Tasks and
-     * Evidence pages.
+     * Evidence pages; Data Security's ten records - its stores, their
+     * findings and access, flows, issues, scans, settings, check settings,
+     * custom data types and residency rules - with the product.
      */
-    expect(records()).toHaveLength(32);
+    expect(records()).toHaveLength(42);
     expect(namesIn(0)).toEqual(records());
     // Every database model with MCP on gets all six tools.
     for (const tool of [

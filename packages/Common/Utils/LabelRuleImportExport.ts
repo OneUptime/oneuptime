@@ -3,6 +3,7 @@ import AlertLabelRule from "../Models/DatabaseModels/AlertLabelRule";
 import CephClusterLabelRule from "../Models/DatabaseModels/CephClusterLabelRule";
 import CloudResourceLabelRule from "../Models/DatabaseModels/CloudResourceLabelRule";
 import DashboardLabelRule from "../Models/DatabaseModels/DashboardLabelRule";
+import DataStoreLabelRule from "../Models/DatabaseModels/DataStoreLabelRule";
 import BaseModel, {
   DatabaseBaseModelType,
 } from "../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -65,6 +66,7 @@ export const LABEL_RULE_MODELS: Array<DatabaseBaseModelType> = [
   CephClusterLabelRule,
   CloudResourceLabelRule,
   DashboardLabelRule,
+  DataStoreLabelRule,
   DatabaseServerLabelRule,
   DockerHostLabelRule,
   DockerSwarmClusterLabelRule,
