@@ -731,7 +731,8 @@ describe("Set Up Data Security", () => {
     );
     const titles: Array<string> = Array.from(
       model.matchAll(
-        /\n\s+title: "([^"]+)",\n\s+description: "(?!Relation|ID of)/g,
+        // A long description is written on the line below its key.
+        /\n\s+title: "([^"]+)",\n\s+description:\s+"(?!Relation|ID of)/g,
       ),
       (match: RegExpMatchArray): string => {
         // The severity's id column is the Alert Severity the form shows.
@@ -1627,9 +1628,14 @@ describe("Closing an exposure", () => {
     ]);
     expect(table[0]![2]).toBe("**Block Public Access**");
     expect(table[1]![2]).toBe("**Revoke Sharing**");
-    expect(panel).toContain('translationKey("Block Public Access")');
-    expect(panel).toContain('translationKey("Revoke Sharing")');
-    expect(panel).toContain('translationKey("Fix it from here")');
+    // However the formatter breaks a call, its text is the same.
+    const panelCalls: string = panel
+      .replace(/\(\s+"/g, '("')
+      .replace(/",?\s+\)/g, '")');
+
+    expect(panelCalls).toContain('translationKey("Block Public Access")');
+    expect(panelCalls).toContain('translationKey("Revoke Sharing")');
+    expect(panelCalls).toContain('translationKey("Fix it from here")');
     expect(section(checks, "## Fix it from here")).toContain(
       "**Fix it from here**",
     );
