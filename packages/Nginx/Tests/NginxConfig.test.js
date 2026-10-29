@@ -27,6 +27,7 @@ const {
   locationRegexSource,
   resolveLocation,
 } = require("./NginxConfigParser");
+const { readDemoAddresses } = require("./HomeShortAddresses");
 
 const template = readTemplate();
 const nginxConf = readNginxConf();
@@ -2468,36 +2469,8 @@ test("everything the app serves under /file still reaches it", () => {
  * the app's that happened to start the same way would answer instead, as
  * `location /workflow` answered /workflows and `location /file` answered
  * /files/, and so would a `return` of nginx's own, which drops the query.
+ * NginxTemplateRender.test.js sends the same addresses through a real nginx.
  */
-const DEMO_PAGE_PATH = "/enterprise/demo";
-
-/** DEMO_SHORT_PATHS of Home/Utils/DemoPage.ts, read from its source. */
-function readDemoShortPaths() {
-  const source = fs.readFileSync(
-    path.join(NGINX_DIRECTORY, "..", "Home", "Utils", "DemoPage.ts"),
-    "utf8",
-  );
-  const list = source.match(
-    /DEMO_SHORT_PATHS:\s*ReadonlyArray<string>\s*=\s*\[([^\]]*)\]/,
-  );
-
-  assert.ok(list, "read no DEMO_SHORT_PATHS from DemoPage.ts");
-
-  const shortPaths = Array.from(list[1].matchAll(/"([^"]*)"/g), (match) => {
-    return match[1];
-  });
-
-  // A list this reads only part of would let the tests below pass vacuously.
-  assert.ok(shortPaths.includes("/demo"), "DEMO_SHORT_PATHS lost /demo");
-  assert.equal(
-    shortPaths.length,
-    (list[1].split('"').length - 1) / 2,
-    "every entry of DEMO_SHORT_PATHS must be read",
-  );
-
-  return shortPaths;
-}
-
 test("every short address of the demo page reaches the marketing site", () => {
   const locations = getLocationBlocks(primaryServerBlock.body);
   const catchAll = findCatchAllLocation();
@@ -2507,7 +2480,7 @@ test("every short address of the demo page reaches the marketing site", () => {
     "the premise: location / sends the marketing site to Home",
   );
 
-  for (const shortPath of readDemoShortPaths()) {
+  for (const shortPath of readDemoAddresses().shortPaths) {
     // Home answers each with and without a trailing slash.
     for (const uri of [shortPath, `${shortPath}/`]) {
       const location = resolveLocation(locations, uri);
@@ -2524,8 +2497,11 @@ test("every short address of the demo page reaches the marketing site", () => {
 test("the demo page itself reaches the marketing site", () => {
   const locations = getLocationBlocks(primaryServerBlock.body);
   const catchAll = findCatchAllLocation();
+  const { pagePath } = readDemoAddresses();
 
-  for (const uri of [DEMO_PAGE_PATH, `${DEMO_PAGE_PATH}/`]) {
+  assert.equal(pagePath, "/enterprise/demo");
+
+  for (const uri of [pagePath, `${pagePath}/`]) {
     const location = resolveLocation(locations, uri);
 
     assert.deepEqual(
