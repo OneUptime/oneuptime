@@ -47,6 +47,11 @@ const FilterChipButton: FunctionComponent<ComponentProps> = (
   return (
     <div
       data-testid="filter-chip"
+      /*
+       * Whether the chip holds a filter. On a phone the bar folds away the
+       * chips that do not (FacetFilterBar) and keeps these in sight.
+       */
+      data-filter-chip-set={props.isActive ? "true" : "false"}
       className={`${FILTER_CHIP_BOX_CLASSES} ${
         props.isActive
           ? FILTER_CHIP_ACTIVE_CLASSES

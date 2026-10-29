@@ -5600,6 +5600,15 @@ test.describe("detections", () => {
       });
 
       const filters: Locator = page.getByTestId("rule-library-filters");
+
+      if (width < 768) {
+        // On a phone the chips are folded behind Filter (FacetFilterBar).
+        const filter: Locator = filters.getByTestId("facet-filter-bar-toggle");
+        await expect(filter).toHaveAttribute("aria-expanded", "false");
+        await expect(page.getByTestId("rule-library-count")).toBeVisible();
+        await filter.click();
+        await expect(filter).toHaveAttribute("aria-expanded", "true");
+      }
       await expect(filters).toHaveAttribute("role", "group");
       await expect(chipButton(page, CATEGORY_CHIP)).toHaveText("Rule category");
       await expect(chipButton(page, DATA_CHIP)).toHaveText("Data");
@@ -6187,6 +6196,10 @@ test.describe("detections", () => {
       await expect(libraryRow(page, BRUTE_FORCE_RULE)).toBeVisible({
         timeout: 30000,
       });
+      if (width < 768) {
+        // On a phone the chips are folded behind Filter (FacetFilterBar).
+        await page.getByTestId("facet-filter-bar-toggle").click();
+      }
       // The filter chips speak the language too.
       await expect(chipButton(page, CATEGORY_CHIP)).toHaveText(category);
       await expect(

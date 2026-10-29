@@ -872,6 +872,8 @@ test.describe("the Alerts list of the screenshot", () => {
 
     const bar: Locator = page.getByTestId("facet-filter-bar");
 
+    // On a phone the chips are folded behind Filter.
+    await bar.getByTestId("facet-filter-bar-toggle").click();
     await bar.getByRole("button", { name: "Monitor", exact: true }).click();
     await page.getByRole("option", { name: FIRST_MONITOR }).click();
     await page.getByTestId("fixture-trail").click();
@@ -962,6 +964,182 @@ test.describe("the Alerts list of the screenshot", () => {
     }
 
     await screenshot(page, "alerts-1280-dark");
+  });
+
+  /*
+   * On a phone the chips fold away behind "Filter" (FacetFilterBar). An
+   * alerts list's chips - six here, eight with two custom fields - wrapped
+   * onto a line each or two under the search, Saved Views and Create, and
+   * pushed the first alert down the list someone paged at night opens.
+   */
+  const ALERT_CHIPS: number = 6;
+
+  // The chips the row draws, by what they say.
+  async function drawnChips(bar: Locator): Promise<Array<string>> {
+    return await bar
+      .getByTestId("filter-chip")
+      .evaluateAll((chips: Array<Element>): Array<string> => {
+        return chips
+          .filter((chip: Element): boolean => {
+            return chip.getClientRects().length > 0;
+          })
+          .map((chip: Element): string => {
+            // What the chip says: its words, not its avatar's.
+            const words: Element | null = chip.querySelector("span.truncate");
+            return ((words || chip).textContent || "").trim();
+          });
+      });
+  }
+
+  async function sidewaysScroll(page: Page): Promise<number> {
+    return await page.evaluate((): number => {
+      return (
+        document.documentElement.scrollWidth -
+        document.documentElement.clientWidth
+      );
+    });
+  }
+
+  test("on a phone, the chips fold behind Filter and the first alert is on the first screen; Filter opens them and folds them again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ALERTS, 390, 900);
+
+    const bar: Locator = page.getByTestId("facet-filter-bar");
+    const filter: Locator = bar.getByRole("button", {
+      name: "Filter",
+      exact: true,
+    });
+    const firstCard: Locator = page.locator("#alerts-table-body > div").first();
+
+    await expect(filter).toHaveAttribute("aria-expanded", "false");
+    await expect(bar.getByTestId("filter-chip")).toHaveCount(ALERT_CHIPS);
+    expect(await drawnChips(bar)).toEqual([]);
+
+    // Folded: the row is one line, Filter alone.
+    const folded: Box = await box(bar);
+    const button: Box = await box(filter);
+    expect(folded.height).toBeLessThanOrEqual(button.height + 1);
+
+    // The whole of the first alert's card is on the first screen.
+    const foldedCard: Box = await box(firstCard);
+    expect(foldedCard.y + 120).toBeLessThan(900);
+    expect(await sidewaysScroll(page)).toBe(0);
+    await screenshot(page, "alerts-filters-folded-390");
+
+    await filter.click();
+
+    await expect(filter).toHaveAttribute("aria-expanded", "true");
+    expect(await drawnChips(bar)).toHaveLength(ALERT_CHIPS);
+    // Every chip inside the screen, the cards below them.
+    for (const chip of await bar.getByTestId("filter-chip").all()) {
+      const chipBox: Box = await box(chip);
+      expect(chipBox.x + chipBox.width).toBeLessThanOrEqual(390);
+    }
+    // Opened, the chips take two lines more at least, and the cards move down.
+    const openCard: Box = await box(firstCard);
+    expect(openCard.y - foldedCard.y).toBeGreaterThanOrEqual(2 * button.height);
+    expect(await sidewaysScroll(page)).toBe(0);
+    await screenshot(page, "alerts-filters-open-390");
+
+    await filter.click();
+
+    await expect(filter).toHaveAttribute("aria-expanded", "false");
+    expect(await drawnChips(bar)).toEqual([]);
+    expect(Math.abs((await box(firstCard)).y - foldedCard.y)).toBeLessThan(1);
+  });
+
+  test("on a phone, a chip that holds a filter stays in sight folded, with the count and Clear all", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ALERTS, 390, 900);
+
+    const bar: Locator = page.getByTestId("facet-filter-bar");
+    const cards: Locator = page.locator("#alerts-table-body > div");
+
+    await bar.getByTestId("facet-filter-bar-toggle").click();
+    await bar.getByRole("button", { name: "Monitor", exact: true }).click();
+    await page.getByRole("option", { name: FIRST_MONITOR }).click();
+    await page.getByTestId("fixture-trail").click();
+    await expect(page.getByRole("listbox")).toHaveCount(0);
+    await expect(cards).toHaveCount(1);
+
+    // Folded again: Filter, with its count, the Monitor chip and Clear all.
+    const filter: Locator = bar.getByRole("button", {
+      name: "Filter 1",
+      exact: true,
+    });
+    await filter.click();
+    await expect(filter).toHaveAttribute("aria-expanded", "false");
+
+    expect(await drawnChips(bar)).toEqual([`Monitor · ${FIRST_MONITOR}`]);
+    await expect(bar.getByTestId("facet-filter-bar-count")).toHaveText("1");
+    await expect(bar.getByTestId("facet-filter-bar-clear-all")).toBeVisible();
+    expect(await sidewaysScroll(page)).toBe(0);
+    await screenshot(page, "alerts-filters-folded-filtered-390");
+
+    // The chip's own clear still works folded.
+    await bar.getByRole("button", { name: "Clear Monitor filter" }).click();
+
+    await expect(cards).toHaveCount(6);
+    await expect(
+      bar.getByRole("button", { name: "Filter", exact: true }),
+    ).toHaveAttribute("aria-expanded", "false");
+    expect(await drawnChips(bar)).toEqual([]);
+    await expect(bar.getByTestId("facet-filter-bar-clear-all")).toHaveCount(0);
+  });
+
+  for (const width of [768, 1280]) {
+    test(`at ${width}px nothing folds: Filter is the row's label and every chip is drawn`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, ALERTS, width, 900);
+
+      const bar: Locator = page.getByTestId("facet-filter-bar");
+
+      await expect(bar.getByTestId("facet-filter-bar-toggle")).toHaveCount(0);
+      await expect(bar.getByTestId("facet-filter-bar-label")).toHaveText(
+        "Filter",
+      );
+      await expect(bar).toHaveAttribute("data-folded", "false");
+      expect(await drawnChips(bar)).toHaveLength(ALERT_CHIPS);
+    });
+  }
+
+  test("in the dark theme, Filter reads at WCAG AA on the phone's card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${ALERTS}?theme=dark`, 390, 900);
+
+    const filter: Locator = page.getByTestId("facet-filter-bar-toggle");
+    const colours: { color: string; background: string } =
+      await filter.evaluate((element: Element) => {
+        // The first box behind the words that paints a background.
+        let behind: Element | null = element;
+        let background: string = "rgba(0, 0, 0, 0)";
+        while (behind) {
+          background = getComputedStyle(behind).backgroundColor;
+          if (background !== "rgba(0, 0, 0, 0)") {
+            break;
+          }
+          behind = behind.parentElement;
+        }
+        return { color: getComputedStyle(element).color, background };
+      });
+
+    expect(contrast(colours.color, colours.background)).toBeGreaterThanOrEqual(
+      4.5,
+    );
+
+    await screenshot(page, "alerts-filters-folded-390-dark");
   });
 });
 
