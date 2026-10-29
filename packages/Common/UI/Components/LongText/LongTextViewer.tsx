@@ -37,6 +37,7 @@ const LongTextViewer: FunctionComponent<ComponentProps> = (
             return setShowFullText(!showFullText);
           }}
           title={showFullText ? "Show less" : "Show more"}
+          ariaExpanded={showFullText}
           buttonStyle={ButtonStyleType.SECONDARY_LINK}
         />
       )}

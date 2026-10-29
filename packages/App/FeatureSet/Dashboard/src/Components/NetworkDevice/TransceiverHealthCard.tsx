@@ -314,6 +314,7 @@ const TransceiverHealthCard: FunctionComponent<ComponentProps> = (
                       )
                 }
                 dataTestId="transceiver-show-all"
+                ariaExpanded={showAll}
                 onClick={() => {
                   setShowAll(!showAll);
                 }}

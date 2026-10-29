@@ -205,6 +205,7 @@ const ResourceTopologyOutline: FunctionComponent<ComponentProps> = (
           <button
             type="button"
             className="ml-auto font-medium text-indigo-600 hover:text-indigo-800"
+            aria-expanded={group.isShownInFull}
             onClick={() => {
               props.callbacks.onToggleGroup(group.groupKey);
             }}

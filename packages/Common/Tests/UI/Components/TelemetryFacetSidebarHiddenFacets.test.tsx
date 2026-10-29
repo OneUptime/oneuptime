@@ -287,6 +287,65 @@ describe("TelemetryFacetSidebar hides empty resource facets", () => {
     expect(footer()).toHaveTextContent("2 empty filters hidden");
   });
 
+  /*
+   * Show and Hide used to be two buttons, one drawn per state: a press
+   * unmounted the button it was made on, and focus fell back to the page.
+   * It is one button now, whose words follow the state.
+   */
+  test("Show and Hide are one button: focus stays on it both ways, aria-expanded follows", () => {
+    render(sidebarElement({ facetData: MIXED }));
+
+    const toggle: HTMLElement = screen.getByRole("button", {
+      name: "Show 2 empty filters",
+    });
+
+    toggle.focus();
+    fireEvent.click(toggle);
+
+    const hide: HTMLElement = screen.getByRole("button", {
+      name: "Hide empty filters",
+    });
+
+    expect(hide).toBe(toggle);
+    expect(hide).toHaveFocus();
+    expect(hide).toHaveAttribute("aria-expanded", "true");
+
+    fireEvent.click(hide);
+
+    expect(screen.getByRole("button", { name: "Show 2 empty filters" })).toBe(
+      toggle,
+    );
+    expect(toggle).toHaveFocus();
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+  });
+
+  /*
+   * Its focus ring is the sidebar's own - the facet rows' indigo ring, with
+   * room around the words - not the browser's outline, both ways.
+   */
+  test("draws the sidebar's focus ring, folded and open", () => {
+    render(sidebarElement({ facetData: MIXED }));
+
+    const toggle: HTMLElement = screen.getByTestId(
+      "facet-sidebar-hidden-toggle",
+    );
+    const ring: Array<string> = [
+      "focus:outline-none",
+      "focus-visible:ring-2",
+      "focus-visible:ring-indigo-500",
+      "rounded",
+      "-mx-1",
+      "px-1",
+    ];
+
+    expect(toggle).toHaveClass(...ring);
+
+    fireEvent.click(toggle);
+
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(toggle).toHaveClass(...ring);
+  });
+
   test("the footer is the last thing in the facet list", () => {
     render(sidebarElement({ facetData: MIXED }));
 

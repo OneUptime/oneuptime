@@ -36817,5 +36817,6 @@
   "Evidence File ID": "Bewijsbestand-ID",
   "Pick a person to do {{title}}. They are notified.": "Kies een persoon die {{title}} doet. Diegene krijgt bericht.",
   "Put any other kind of file, or several files, in a .zip.": "Zet elk ander soort bestand, of meerdere bestanden, in een .zip.",
-  "Upload a file": "Een bestand uploaden"
+  "Upload a file": "Een bestand uploaden",
+  "Selected: {{name}}": "Geselecteerd: {{name}}"
 }

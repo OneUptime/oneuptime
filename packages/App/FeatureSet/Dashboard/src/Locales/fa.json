@@ -36817,5 +36817,6 @@
   "Evidence File ID": "شناسهٔ فایل شواهد",
   "Pick a person to do {{title}}. They are notified.": "فردی را برای انجام {{title}} برگزینید. به او اطلاع داده می‌شود.",
   "Put any other kind of file, or several files, in a .zip.": "هر نوع فایل دیگر، یا چند فایل را در یک .zip بگذارید.",
-  "Upload a file": "بارگذاری فایل"
+  "Upload a file": "بارگذاری فایل",
+  "Selected: {{name}}": "انتخاب‌شده: {{name}}"
 }

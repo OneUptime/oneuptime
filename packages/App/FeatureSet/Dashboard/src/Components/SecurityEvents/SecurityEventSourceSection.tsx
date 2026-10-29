@@ -388,6 +388,7 @@ const SecurityEventSourceSection: FunctionComponent<ComponentProps> = (
               <button
                 type="button"
                 className="mt-1 text-xs font-medium text-indigo-600 hover:text-indigo-700"
+                aria-expanded={isLineUnfolded}
                 onClick={() => {
                   setIsLineUnfolded(!isLineUnfolded);
                 }}

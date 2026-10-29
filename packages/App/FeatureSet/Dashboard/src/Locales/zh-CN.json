@@ -36817,5 +36817,6 @@
   "Evidence File ID": "证据文件 ID",
   "Pick a person to do {{title}}. They are notified.": "选择完成 {{title}} 的人。对方会收到通知。",
   "Put any other kind of file, or several files, in a .zip.": "其他类型的文件或多个文件请放入 .zip。",
-  "Upload a file": "上传文件"
+  "Upload a file": "上传文件",
+  "Selected: {{name}}": "已选择：{{name}}"
 }
