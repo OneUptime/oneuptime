@@ -42,6 +42,24 @@ export const MOVED_RUNBOOK_SECRETS_PATH: string = "settings/secrets";
 export const MOVED_RUNNER_CREDENTIALS_PATH: string = "runner-credentials";
 
 /*
+ * Users moved out of Project Settings to a page of their own (Users, and a
+ * person under it). The server kept linking every person it names - in feed
+ * entries, Slack and Microsoft Teams messages and emails - to their old
+ * page (…/settings/users/:id) for a long time after, so years of stored
+ * entries and posted messages point there: the old addresses forward to
+ * the person, and the old list to Users. Relative to …/settings/.
+ */
+export const MOVED_USERS_SETTINGS_PATHS: {
+  users: string;
+  userView: string;
+  userViewPage: string;
+} = {
+  users: "users",
+  userView: `users/${RouteParams.ModelID}`,
+  userViewPage: `users/${RouteParams.ModelID}/*`,
+};
+
+/*
  * Project Settings > Security > OIDC folded into SSO: one page for single
  * sign-on, the OpenID Connect providers under the SAML ones, with one test
  * link and the Require SSO for Login switch both kinds meet. Relative to

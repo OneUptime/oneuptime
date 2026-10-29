@@ -591,8 +591,7 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
             stateAfterThis: onCreate.carryForward.statusTimelineAfterThisStatus,
           },
         ),
-        notifyUserId:
-          createdItem.createdByUserId || onCreate.createBy.props.userId,
+        leadWithAuthor: true,
       },
     });
 

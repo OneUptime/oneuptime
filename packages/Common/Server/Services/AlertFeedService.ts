@@ -18,10 +18,11 @@ import ProjectReferencesService from "./ProjectReferencesService";
 import Model, {
   AlertFeedEventType,
 } from "../../Models/DatabaseModels/AlertFeed";
-import WorkspaceNotificationRuleService, {
-  MessageBlocksByWorkspaceType,
-  WorkspaceChannelToSkip,
-} from "./WorkspaceNotificationRuleService";
+import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
+import FeedWorkspaceNotificationUtil, {
+  FeedWorkspaceAuthor,
+  FeedWorkspaceNotification,
+} from "../Utils/Feed/FeedWorkspaceNotification";
 import { applyAlertRelatedRecordPrivacyFilter } from "../Utils/Alert/AlertPrivacyFilter";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
@@ -108,15 +109,8 @@ export class Service extends ProjectReferencesService<Model> {
      */
     savedFromChatMessage?: SavedChatMessage | undefined;
     aiRunId?: ObjectID | undefined;
-    workspaceNotification?:
-      | {
-          notifyUserId?: ObjectID | undefined; // this is oneuptime user id.
-          sendWorkspaceNotification: boolean;
-          appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
-          // Not posted in this channel: the note came from a message there.
-          exceptChannel?: WorkspaceChannelToSkip | undefined;
-        }
-      | undefined;
+    // Posted to Slack and Microsoft Teams too (FeedWorkspaceNotification).
+    workspaceNotification?: FeedWorkspaceNotification | undefined;
   }): Promise<void> {
     try {
       if (!data.alertId) {
@@ -184,6 +178,11 @@ export class Service extends ProjectReferencesService<Model> {
             alertId: data.alertId,
             feedInfoInMarkdown: data.feedInfoInMarkdown,
             workspaceNotification: data.workspaceNotification,
+            author: FeedWorkspaceNotificationUtil.getAuthor({
+              workspaceNotification: data.workspaceNotification,
+              userId: data.userId,
+              savedFromChatMessage: data.savedFromChatMessage,
+            }),
           });
         }
       } catch (e) {
@@ -211,18 +210,18 @@ export class Service extends ProjectReferencesService<Model> {
     }
   }
 
+  /*
+   * Posts an entry to the record's Slack and Microsoft Teams channels,
+   * opening with the author the entry names (FeedWorkspaceNotification).
+   */
   @CaptureSpan()
   public async sendWorkspaceNotification(data: {
     projectId: ObjectID;
     alertId: ObjectID;
     feedInfoInMarkdown: string;
-    workspaceNotification: {
-      notifyUserId?: ObjectID | undefined; // this is oneuptime user id.
-      sendWorkspaceNotification: boolean;
-      appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
-      // Not posted in this channel: the note came from a message there.
-      exceptChannel?: WorkspaceChannelToSkip | undefined;
-    };
+    workspaceNotification: FeedWorkspaceNotification;
+    // Who the message opens with (FeedWorkspaceNotificationUtil.getAuthor).
+    author?: FeedWorkspaceAuthor | undefined;
   }): Promise<void> {
     return await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification(
       {
@@ -231,7 +230,12 @@ export class Service extends ProjectReferencesService<Model> {
           alertId: data.alertId,
         },
         feedInfoInMarkdown: data.feedInfoInMarkdown,
-        workspaceNotification: data.workspaceNotification,
+        notificationText: data.workspaceNotification.notificationText,
+        workspaceNotification:
+          FeedWorkspaceNotificationUtil.toWorkspaceNotification({
+            workspaceNotification: data.workspaceNotification,
+            author: data.author,
+          }),
       },
     );
   }

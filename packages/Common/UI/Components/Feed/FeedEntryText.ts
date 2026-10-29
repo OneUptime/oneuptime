@@ -101,6 +101,8 @@ const LEAD_VERBS: ReadonlySet<string> = new Set<string>([
   "executed",
   "invited",
   "joined",
+  // "Valeria left the Responder role on Incident INC-18" (IncidentRoleFeedText).
+  "left",
   "linked",
   "marked",
   "merged",
@@ -128,6 +130,8 @@ const LEAD_VERBS: ReadonlySet<string> = new Set<string>([
   "snoozed",
   "started",
   "stopped",
+  // "Valeria took the Incident Commander role on Incident INC-18".
+  "took",
   "triggered",
   "unassigned",
   "unlinked",
