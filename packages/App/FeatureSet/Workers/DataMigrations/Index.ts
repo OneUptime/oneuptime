@@ -905,6 +905,14 @@ const DataMigrations: Array<DataMigrationBase> = [
    */
   new AddIsEntrySpanToSpanTable(),
   /*
+   * Scheduled hunts tell the people they name when they find security
+   * events: every existing member gets the setting, email and push on, so
+   * Notification Settings shows it as it is. Idempotent; it sits above the
+   * runbook moves, which keep their places before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new AddSecurityHuntNotificationSettingsForUsers(),
+  /*
    * A runbook step's approval moved to the step it guards ("Require approval
    * before running this step"): every stored runbook's approval after step
    * N becomes an approval before step N+1, and one after the last step a
@@ -945,12 +953,6 @@ const DataMigrations: Array<DataMigrationBase> = [
    * idempotent; rows written before it read as "not through an MCP client".
    */
   new AddAuditLogMcpClientColumns(),
-  /*
-   * Scheduled hunts tell the people they name when they find security
-   * events: every existing member gets the setting, email and push on, so
-   * Notification Settings shows it as it is. Idempotent.
-   */
-  new AddSecurityHuntNotificationSettingsForUsers(),
 ];
 
 export default DataMigrations;
