@@ -29,6 +29,7 @@ const Labels: FunctionComponent<PageComponentProps> = (): ReactElement => {
         modelType={Label}
         actionButtons={archive.actionButtons}
         getDeleteConfirmation={archive.getDeleteConfirmation}
+        bulkActions={archive.bulkActions}
         refreshToggle={archive.refreshToggle}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,

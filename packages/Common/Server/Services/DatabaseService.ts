@@ -2171,7 +2171,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * propagates the original exception on the synchronous throw path.
    */
   protected getException(error: Exception): never {
-    throw PostgresErrorTranslator.translateException(error);
+    /*
+     * The model's own table: a delete of one of its rows that records still
+     * have is answered in its own words (a value records pick from: archive
+     * it instead). See PostgresErrorContext.
+     */
+    throw PostgresErrorTranslator.translateException(error, {
+      tableName: this.model.tableName,
+    });
   }
 
   /*

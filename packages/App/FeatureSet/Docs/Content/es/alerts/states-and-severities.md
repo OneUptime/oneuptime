@@ -117,12 +117,13 @@ Una gravedad no avisa a nadie por sí sola. Para avisar según la gravedad, aña
 Archive un estado o una gravedad que su equipo ya no deba usar, en lugar de eliminarlo. Archivar no cambia ninguna alerta. Eliminar un estado quita sus filas del historial de cada alerta, y una gravedad no se puede eliminar mientras haya alertas que la tengan.
 
 - **Archivar** está en el menú **⋯** de la fila. Primero pide confirmación y enumera las reglas, mediciones, criterios de monitor y flujos de trabajo configurados para usar el valor: lo siguen usando hasta que los cambie.
+- **Las reglas de guardia de cada persona se mantienen.** Para una gravedad, el diálogo también dice cuántas personas tienen reglas de guardia para ella. Esas reglas se quedan como están, así que las alertas que la tienen siguen avisando a esas personas. En la página **Reglas de guardia** de cada persona, la gravedad archivada aparece al final, marcada como **Archivado**: sus reglas se pueden cambiar o eliminar, pero no se pueden añadir nuevas.
 - **Nadie puede volver a elegirlo.** **Cambiar estado**, la cabecera de la alerta, Slack, Microsoft Teams, las reglas y los criterios de monitor lo omiten. La API, Terraform y MCP lo rechazan, indicando el valor y dónde desarchivarlo.
 - **Las alertas lo conservan.** Una alerta que lo tiene lo conserva en cada edición posterior, su cronología de estados lo sigue mostrando y puede seguir filtrando por él.
 - **Los valores archivados se listan aparte**, en la sección plegada **Estados de alerta archivados** o **Gravedades de alerta archivadas** bajo la tabla, con quién archivó cada uno y cuándo. **Desarchivar** devuelve uno tal como estaba.
 - **Algunos no se pueden archivar.** Los estados creado, reconocido y resuelto, y la última gravedad sin archivar del proyecto. Su **Archivar** está bloqueado, con el motivo.
 
-**Eliminar** dice primero lo que haría. Mientras haya alertas o episodios con el valor, la eliminación se rechaza y el diálogo los enumera. En caso contrario, enumera lo que cambiaría la eliminación y ofrece **Archivar en su lugar**.
+**Eliminar** dice primero lo que haría. Mientras haya alertas o episodios con el valor, la eliminación se rechaza y el diálogo los enumera. En caso contrario, enumera lo que cambiaría la eliminación y ofrece **Archivar en su lugar**. Para eliminar varias a la vez, selecciónelas y elija **Eliminar** en **Acciones masivas**: el diálogo dice primero lo mismo de todas, las que no se pueden eliminar se quedan como están y el resto se elimina.
 
 ## Mover una alerta por sus estados
 

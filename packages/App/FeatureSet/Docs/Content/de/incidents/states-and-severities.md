@@ -158,12 +158,13 @@ Wo der Schweregrad mehr tut als beschreiben: Unter **Vorfälle → Regeln → Be
 Archivieren Sie einen Status oder Schweregrad, den Ihr Team nicht mehr verwenden soll, statt ihn zu löschen. Das Archivieren ändert keinen Vorfall. Das Löschen eines Status nimmt seine Zeilen aus dem Verlauf jedes Vorfalls, und ein Schweregrad lässt sich nicht löschen, solange Vorfälle ihn haben.
 
 - **Archivieren** steht im Menü **⋯** der Zeile. Es fragt zuerst nach und listet die Regeln, Vorlagen, Messungen, Monitorkriterien und Workflows auf, die so eingerichtet sind, dass sie den Wert verwenden: Sie verwenden ihn weiter, bis Sie sie ändern.
+- **Die eigenen Bereitschaftsregeln der Personen bleiben.** Bei einem Schweregrad sagt der Dialog außerdem, wie viele Personen Bereitschaftsregeln dafür haben. Diese Regeln bleiben, wie sie sind, sodass Vorfälle mit diesem Schweregrad diese Personen weiterhin alarmieren. Auf der Seite **Bereitschaftsregeln** jeder Person steht der archivierte Schweregrad zuletzt, markiert mit **Archiviert**: Seine Regeln lassen sich ändern oder entfernen, aber es lassen sich keine neuen hinzufügen.
 - **Niemand kann ihn erneut auswählen.** Das Meldeformular, **Status ändern**, die Kopfzeile des Vorfalls, Slack, Microsoft Teams, Regeln, Vorlagen und Monitorkriterien lassen ihn weg. Die API, Terraform und MCP lehnen ihn ab und nennen den Wert und den Ort, an dem er sich wieder aus dem Archiv holen lässt.
 - **Vorfälle behalten ihn.** Ein Vorfall, der ihn hat, behält ihn bei jeder späteren Bearbeitung, seine Statuszeitachse zeigt ihn weiterhin, und Sie können weiterhin danach filtern.
 - **Archivierte Werte werden getrennt aufgeführt**, im eingeklappten Abschnitt **Archivierte Vorfallsstatus** oder **Archivierte Vorfallsschweregrade** unter der Tabelle, mit Angabe, wer jeden archiviert hat und wann. **Aus Archiv entfernen** stellt einen so wieder her, wie er war.
 - **Manche lassen sich nicht archivieren.** Der Erstellungs-, der bestätigte und der behobene Status sowie der letzte nicht archivierte Schweregrad des Projekts. Ihr **Archivieren** ist gesperrt, mit Begründung.
 
-**Löschen** sagt zuerst, was es bewirken würde. Solange Vorfälle oder Episoden den Wert haben, wird das Löschen abgelehnt, und der Dialog listet sie auf. Andernfalls listet er auf, was das Löschen ändern würde, und bietet **Stattdessen archivieren** an.
+**Löschen** sagt zuerst, was es bewirken würde. Solange Vorfälle oder Episoden den Wert haben, wird das Löschen abgelehnt, und der Dialog listet sie auf. Andernfalls listet er auf, was das Löschen ändern würde, und bietet **Stattdessen archivieren** an. Um mehrere auf einmal zu löschen, wählen Sie sie aus und wählen Sie **Löschen** unter **Massenaktionen**: Der Dialog sagt zuerst dasselbe für alle, die nicht löschbaren bleiben, wie sie sind, und die übrigen werden gelöscht.
 
 ## Einen Vorfall durch seine Status bewegen
 

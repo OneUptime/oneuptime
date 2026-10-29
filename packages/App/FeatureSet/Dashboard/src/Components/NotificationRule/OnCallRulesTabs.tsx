@@ -96,6 +96,22 @@ const OnCallRulesTabs: FunctionComponent<ComponentProps> = (
     return translator.translateTemplate(definition.ownCardDescription);
   };
 
+  // The same for the card of an archived severity.
+  const getArchivedCardDescription: (
+    definition: OnCallRuleKindDefinition,
+  ) => string = (definition: OnCallRuleKindDefinition): string => {
+    if (props.person) {
+      return translator.translateTemplate(
+        definition.memberArchivedCardDescription,
+        {
+          name: props.person.firstName,
+        },
+      );
+    }
+
+    return translator.translateTemplate(definition.ownArchivedCardDescription);
+  };
+
   const tabs: Array<Tab> = ON_CALL_RULE_KIND_DEFINITIONS.map(
     (definition: OnCallRuleKindDefinition): Tab => {
       return {
@@ -118,6 +134,7 @@ const OnCallRulesTabs: FunctionComponent<ComponentProps> = (
             userPreferencesKeyPrefix={props.userPreferencesKeyPrefix}
             noItemsMessage={props.noItemsMessage}
             cardDescription={getCardDescription(definition)}
+            archivedCardDescription={getArchivedCardDescription(definition)}
           />
         ),
       };

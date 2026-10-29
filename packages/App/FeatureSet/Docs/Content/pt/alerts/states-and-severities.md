@@ -117,12 +117,13 @@ Uma gravidade sozinha não aciona ninguém. Para acionar conforme a gravidade, a
 Arquive um estado ou uma severidade que sua equipe não deve mais usar, em vez de excluí-lo. Arquivar não altera nenhum alerta. Excluir um estado remove suas linhas do histórico de cada alerta, e uma severidade não pode ser excluída enquanto houver alertas com ela.
 
 - **Arquivar** fica no menu **⋯** da linha. Ele pede confirmação primeiro e lista as regras, medições, critérios de monitor e fluxos de trabalho configurados para usar o valor: eles continuam usando-o até que você os altere.
+- **As regras de plantão de cada pessoa continuam.** Para uma gravidade, a caixa de diálogo também diz quantas pessoas têm regras de plantão para ela. Essas regras ficam como estão, então os alertas que a têm continuam acionando essas pessoas. Na página **Regras de Plantão** de cada pessoa, a gravidade arquivada aparece por último, marcada como **Arquivado**: suas regras podem ser alteradas ou removidas, mas não é possível adicionar novas.
 - **Ninguém pode escolhê-lo novamente.** **Alterar estado**, o cabeçalho do alerta, Slack, Microsoft Teams, regras e critérios de monitor o deixam de fora. A API, o Terraform e o MCP o recusam, indicando o valor e onde desarquivá-lo.
 - **Os alertas o mantêm.** Um alerta que o tem o mantém em toda edição posterior, sua linha do tempo de estados ainda o mostra e você ainda pode filtrar por ele.
 - **Os valores arquivados são listados à parte**, na seção recolhida **Estados de alerta arquivados** ou **Severidades de alerta arquivadas** abaixo da tabela, com quem arquivou cada um e quando. **Desarquivar** devolve um como era.
 - **Alguns não podem ser arquivados.** Os estados criado, reconhecido e resolvido, e a última severidade não arquivada do projeto. O **Arquivar** deles fica bloqueado, com o motivo.
 
-**Excluir** diz primeiro o que faria. Enquanto alertas ou episódios tiverem o valor, a exclusão é recusada e a caixa de diálogo os lista. Caso contrário, ela lista o que a exclusão mudaria e oferece **Arquivar em vez disso**.
+**Excluir** diz primeiro o que faria. Enquanto alertas ou episódios tiverem o valor, a exclusão é recusada e a caixa de diálogo os lista. Caso contrário, ela lista o que a exclusão mudaria e oferece **Arquivar em vez disso**. Para excluir várias de uma vez, selecione-as e escolha **Excluir** em **Ações em massa**: a caixa de diálogo diz primeiro o mesmo para todas, as que não podem ser excluídas ficam como estão e as demais são excluídas.
 
 ## Mover um alerta pelos seus estados
 

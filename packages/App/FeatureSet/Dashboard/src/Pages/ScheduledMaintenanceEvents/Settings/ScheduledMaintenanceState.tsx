@@ -57,6 +57,7 @@ const ScheduledMaintenanceStatesPage: FunctionComponent<
         query={archive.query}
         actionButtons={archive.actionButtons}
         getDeleteConfirmation={archive.getDeleteConfirmation}
+        bulkActions={archive.bulkActions}
         refreshToggle={archive.refreshToggle}
         id="scheduled-maintenance-state-table"
         userPreferencesKey="scheduled-maintenance-state-table"
