@@ -56,6 +56,15 @@ export enum AIChatCitationTargetType {
    * open it on the profiles the evidence was read from.
    */
   Profiles = "Profiles",
+  /*
+   * Data Security: the data stores and one store ({ dataStoreId }), the
+   * issues and one issue ({ dataSecurityIssueId }), and who can reach what.
+   */
+  DataStores = "DataStores",
+  DataStoreView = "DataStoreView",
+  DataSecurityIssues = "DataSecurityIssues",
+  DataSecurityIssueView = "DataSecurityIssueView",
+  DataSecurityAccess = "DataSecurityAccess",
 }
 
 export interface AIChatCitationTarget {
