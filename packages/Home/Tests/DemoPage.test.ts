@@ -71,6 +71,13 @@ const GET_ROUTE_PATH_HERE: RegExp = /^app\.get\(\s*"([^"]+)"/;
 
 const SEGMENT_WORD: RegExp = /^[a-z-]+$/;
 
+// Each string in double quotes.
+const QUOTED_STRING: RegExp = /"([^"]*)"/g;
+
+// Where the deployed check (E2E Tests/Home/DemoAddresses.spec.ts) lists the addresses.
+const E2E_SHORT_PATHS_DECLARATION: string =
+  "const DEMO_SHORT_PATHS: Array<string> = [";
+
 // The two settings that would make Express match paths more strictly.
 const ROUTER_MATCHING_SETTING: RegExp =
   /strict routing|case sensitive routing|caseSensitive/i;
@@ -187,12 +194,31 @@ function pathOf(address: string): string {
 }
 
 /*
+ * The pages the site serves, as Express compares them: every GET route but
+ * the short addresses, which only redirect.
+ */
+const SITE_PAGES: ReadonlySet<string> = new Set<string>(
+  registeredGetPaths
+    .map((registered: string): string => {
+      return registered.toLowerCase();
+    })
+    .filter((registered: string): boolean => {
+      return !DEMO_SHORT_PATHS.includes(registered);
+    }),
+);
+
+/*
  * Whether an address is meant for the demo page: the page itself or its
  * Markdown copy, one of its short addresses, or any other one word asking
  * for a demo at the site's root or under /enterprise - /demos,
- * /demo-request, /enterprise/book-a-demo - which would be a 404.
+ * /demo-request, /enterprise/book-a-demo - that is no page of the site, so
+ * it would be a 404. A page of its own whose name happens to say "demo" (a
+ * /live-demo, say) is another page, not a misspelt link to this one.
  */
-function isDemoAddress(address: string): boolean {
+function isDemoAddress(
+  address: string,
+  pages: ReadonlySet<string> = SITE_PAGES,
+): boolean {
   const sitePath: string = pathOf(address);
 
   if (
@@ -203,11 +229,14 @@ function isDemoAddress(address: string): boolean {
     return true;
   }
 
-  const segments: Array<string> = sitePath.split("/").slice(1);
-  const word: string = (segments[segments.length - 1] || "").replace(
-    /\.md$/,
-    "",
-  );
+  const withoutMarkdown: string = sitePath.replace(/\.md$/, "");
+
+  if (pages.has(withoutMarkdown)) {
+    return false;
+  }
+
+  const segments: Array<string> = withoutMarkdown.split("/").slice(1);
+  const word: string = segments[segments.length - 1] || "";
   const atTheRootOrUnderEnterprise: boolean =
     segments.length === 1 ||
     (segments.length === 2 && segments[0] === "enterprise");
@@ -253,7 +282,9 @@ function demoAddressesIn(
     }
   }
 
-  return addresses.filter(isDemoAddress);
+  return addresses.filter((address: string): boolean => {
+    return isDemoAddress(address);
+  });
 }
 
 // Text another package writes, and the addresses for the demo page in it.
@@ -334,7 +365,54 @@ const NAMES_THE_PAGE: Array<[string, boolean]> = [
   ["/enterprise/demos", false],
 ];
 
+/*
+ * A site that also served a page whose name says "demo", and what its
+ * addresses are: that page and its Markdown copy are another page, while the
+ * demo page, its short addresses and the words that are no page stay links
+ * to the demo page.
+ */
+const SITE_WITH_A_LIVE_DEMO_PAGE: ReadonlySet<string> = new Set<string>([
+  ...SITE_PAGES,
+  "/live-demo",
+  "/enterprise/demo-video",
+]);
+
+const BESIDE_A_LIVE_DEMO_PAGE: Array<[string, boolean]> = [
+  ["/live-demo", false],
+  ["/Live-Demo/", false],
+  ["/live-demo.md", false],
+  ["/live-demo?utm_source=x", false],
+  ["/enterprise/demo-video", false],
+  ["/enterprise/demo", true],
+  ["/enterprise/demo.md", true],
+  ["/demo", true],
+  ["/contact-sales", true],
+  ["/live-demos", true],
+  ["/enterprise/demo-videos", true],
+];
+
 describe("telling a link to the demo page from any other", () => {
+  test.each(BESIDE_A_LIVE_DEMO_PAGE)(
+    "beside a page of its own named /live-demo, %s is a link to the demo page: %s",
+    (address: string, expected: boolean) => {
+      expect(isDemoAddress(address, SITE_WITH_A_LIVE_DEMO_PAGE)).toBe(expected);
+    },
+  );
+
+  test("the site's pages, as the scan reads them, are its real routes and none of the short addresses", () => {
+    // Proof the list the scan compares with is the route table, not empty.
+    expect(SITE_PAGES.has(DEMO_PAGE_PATH)).toBe(true);
+    expect(SITE_PAGES.size).toBeGreaterThan(50);
+
+    // A short address only redirects, so a link to one is never "a page".
+    for (const shortPath of DEMO_SHORT_PATHS) {
+      expect([shortPath, SITE_PAGES.has(shortPath)]).toEqual([
+        shortPath,
+        false,
+      ]);
+    }
+  });
+
   test.each(FULL_ADDRESSES)(
     "finds the address for the demo page in %s",
     (text: string, expected: Array<string>) => {
@@ -389,6 +467,41 @@ describe("the demo page's short addresses", () => {
       "/contact-sales",
       "/enterprise/request-demo",
     ]);
+  });
+
+  test("the deployed check asks for every one of them, and for the page", () => {
+    /*
+     * The e2e image builds without Home, so E2E Tests/Home/DemoAddresses.spec.ts
+     * writes the list out again. An address added here and not there would
+     * never be asked for through a real ingress.
+     */
+    const spec: string = fs.readFileSync(
+      path.join(
+        REPOSITORY,
+        "packages",
+        "E2E",
+        "Tests",
+        "Home",
+        "DemoAddresses.spec.ts",
+      ),
+      "utf-8",
+    );
+    const listStart: number = spec.indexOf(E2E_SHORT_PATHS_DECLARATION);
+
+    expect(listStart).toBeGreaterThan(-1);
+
+    const listEnd: number = spec.indexOf("];", listStart);
+
+    expect(listEnd).toBeGreaterThan(listStart);
+    expect(
+      Array.from(
+        spec.slice(listStart, listEnd).matchAll(QUOTED_STRING),
+        (match: RegExpMatchArray): string => {
+          return match[1]!;
+        },
+      ),
+    ).toEqual([...DEMO_SHORT_PATHS]);
+    expect(spec).toContain(`const PAGE_PATH: string = "${DEMO_PAGE_PATH}";`);
   });
 
   test("each is a lower-case path of whole words, with no trailing slash, query or fragment", () => {
@@ -781,11 +894,49 @@ function filesOf(source: string): Array<string> {
   return fs.statSync(full).isDirectory() ? filesIn(full) : [full];
 }
 
-function linksIn(
+// A file the scan read.
+interface ReadFile {
+  // The file, from the repository's root, "/"-separated.
+  file: string;
+  // How many links to the demo page the scan found in it.
+  links: number;
+  /*
+   * Whether a plain search, with no pattern, finds the page's own address
+   * in it: written out in full, or - in the site's own text - as the href
+   * the click tracking matches.
+   */
+  namesThePagePlainly: boolean;
+}
+
+// The page's address written out in full, after its scheme, in lower case.
+const FULL_PAGE_ADDRESSES: Array<string> = [
+  `://oneuptime.com${DEMO_PAGE_PATH}`,
+  `://www.oneuptime.com${DEMO_PAGE_PATH}`,
+];
+
+// The page's link as the site's own pages write it.
+const SITE_PAGE_HREF: string = `href="${DEMO_PAGE_PATH}`;
+
+function namesThePagePlainly(
+  text: string,
+  options: { siteRelative: boolean },
+): boolean {
+  const lowerCased: string = text.toLowerCase();
+
+  return (
+    FULL_PAGE_ADDRESSES.some((address: string): boolean => {
+      return lowerCased.includes(address);
+    }) ||
+    (options.siteRelative && text.includes(SITE_PAGE_HREF))
+  );
+}
+
+function scan(
   files: Array<string>,
   options: { siteRelative: boolean },
-): Array<FoundLink> {
+): { links: Array<FoundLink>; read: Array<ReadFile> } {
   const links: Array<FoundLink> = [];
+  const read: Array<ReadFile> = [];
 
   for (const file of files) {
     const relative: string = path
@@ -797,19 +948,47 @@ function linksIn(
       continue;
     }
 
-    for (const address of demoAddressesIn(
-      fs.readFileSync(file, "utf-8"),
-      options,
-    )) {
+    const text: string = fs.readFileSync(file, "utf-8");
+    const addresses: Array<string> = demoAddressesIn(text, options);
+
+    for (const address of addresses) {
       links.push({ file: relative, address: address });
     }
+
+    read.push({
+      file: relative,
+      links: addresses.length,
+      namesThePagePlainly: namesThePagePlainly(text, options),
+    });
   }
 
-  return links;
+  return { links, read };
 }
+
+/*
+ * Where the scan must reach, whatever links the page there today: a test
+ * that asked for a link in each would fail the day a page stops linking the
+ * demo page, which is no fault.
+ */
+const AREAS: Array<[string, string]> = [
+  ["the marketing site's pages", "packages/Home/Views/"],
+  ["the marketing site's data", "packages/Home/Utils/"],
+  ["the docs", "packages/App/FeatureSet/Docs/Content/"],
+  ["the Dashboard", "packages/App/FeatureSet/Dashboard/"],
+  ["the Admin Dashboard", "packages/App/FeatureSet/AdminDashboard/"],
+  ["the sign-in pages", "packages/App/FeatureSet/Accounts/"],
+  ["the status pages", "packages/App/FeatureSet/StatusPage/"],
+  ["the emails", "packages/App/FeatureSet/Notification/Templates/"],
+  ["the shared components", "packages/Common/UI/"],
+  ["the text the server writes", "packages/Common/Server/"],
+  ["the mobile app", "packages/MobileApp/src/"],
+  ["the CLI", "packages/CLI/"],
+  ["the repository's documents", "Docs/"],
+];
 
 describe("every link to the demo page the repository writes", () => {
   let links: Array<FoundLink> = [];
+  let read: Array<ReadFile> = [];
 
   beforeAll(() => {
     for (const source of [...SITE_SOURCES, ...OTHER_SOURCES]) {
@@ -820,18 +999,22 @@ describe("every link to the demo page the repository writes", () => {
       ]);
     }
 
-    links = [
-      ...linksIn(SITE_SOURCES.flatMap(filesOf), { siteRelative: true }),
-      ...linksIn(
-        [
-          ...OTHER_SOURCES,
-          ...OPTIONAL_SOURCES.filter((source: string): boolean => {
-            return fs.existsSync(path.join(REPOSITORY, source));
-          }),
-        ].flatMap(filesOf),
-        { siteRelative: false },
-      ),
-    ];
+    const site: { links: Array<FoundLink>; read: Array<ReadFile> } = scan(
+      SITE_SOURCES.flatMap(filesOf),
+      { siteRelative: true },
+    );
+    const others: { links: Array<FoundLink>; read: Array<ReadFile> } = scan(
+      [
+        ...OTHER_SOURCES,
+        ...OPTIONAL_SOURCES.filter((source: string): boolean => {
+          return fs.existsSync(path.join(REPOSITORY, source));
+        }),
+      ].flatMap(filesOf),
+      { siteRelative: false },
+    );
+
+    links = [...site.links, ...others.links];
+    read = [...site.read, ...others.read];
   }, 120 * 1000);
 
   test("names the page itself: never a short address, another spelling, or a page that is not there", () => {
@@ -846,23 +1029,46 @@ describe("every link to the demo page the repository writes", () => {
     ).toEqual([]);
   });
 
-  test.each([
-    ["the marketing site's pages", "packages/Home/Views/"],
-    ["the marketing site's data", "packages/Home/Utils/"],
-    ["the docs", "packages/App/FeatureSet/Docs/Content/"],
-    ["the Dashboard", "packages/App/FeatureSet/Dashboard/"],
-    ["the Admin Dashboard", "packages/App/FeatureSet/AdminDashboard/"],
-    ["the shared components", "packages/Common/UI/"],
-  ])("reads the links of %s", (_area: string, folder: string) => {
-    // Proof that the reading above reaches every place that links the page.
+  test("misses none: every file a plain search finds the page's address in yields its link", () => {
+    /*
+     * The scan reads links with patterns. A plain search for the page's own
+     * address holds those patterns to the repository's real text, wherever
+     * the links are today: every file that names the page must yield a link,
+     * so a pattern that stopped reading some way of writing one shows here.
+     */
+    const namingThePage: Array<ReadFile> = read.filter(
+      (readFile: ReadFile): boolean => {
+        return readFile.namesThePagePlainly;
+      },
+    );
+
+    // The site's own pages always name it: the nav's Enterprise > Request Demo.
     expect(
-      links.filter((link: FoundLink): boolean => {
-        return link.file.startsWith(folder);
+      namingThePage.some((readFile: ReadFile): boolean => {
+        return readFile.file.startsWith("packages/Home/Views/");
+      }),
+    ).toBe(true);
+    expect(
+      namingThePage
+        .filter((readFile: ReadFile): boolean => {
+          return readFile.links === 0;
+        })
+        .map((readFile: ReadFile): string => {
+          return readFile.file;
+        }),
+    ).toEqual([]);
+  });
+
+  test.each(AREAS)("reaches %s", (_area: string, folder: string) => {
+    // Proof that the walk above reads every place that could link the page.
+    expect(
+      read.filter((readFile: ReadFile): boolean => {
+        return readFile.file.startsWith(folder);
       }).length,
     ).toBeGreaterThan(0);
   });
 
-  test("reads the docs in every language they are written in", () => {
+  test("reaches the docs in every language they are written in", () => {
     const languages: Array<string> = fs
       .readdirSync(
         path.join(
@@ -887,8 +1093,8 @@ describe("every link to the demo page the repository writes", () => {
     for (const language of languages) {
       expect([
         language,
-        links.some((link: FoundLink): boolean => {
-          return link.file.startsWith(
+        read.some((readFile: ReadFile): boolean => {
+          return readFile.file.startsWith(
             `packages/App/FeatureSet/Docs/Content/${language}/`,
           );
         }),
