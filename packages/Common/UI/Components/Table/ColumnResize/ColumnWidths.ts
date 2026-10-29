@@ -582,7 +582,10 @@ export const getColumnWidthsPreferenceKey: (data: {
  * value at 20rem and floors some (a row's name, a column of prose) at
  * 10rem, so a column made wider would show them no wider, and one made
  * narrower would have them run over the column beside it; a table a page
- * draws itself may cap a cell itself (max-w-xs on a logs list's trace id).
+ * draws itself may cap a cell itself (max-w-xs on a logs list's trace id),
+ * and its words on one line would run on over the next column: a sized
+ * column's cell clips what it holds, sideways only, ending a line of words
+ * in "..." (a ring or a lifted avatar above and below still shows).
  * The rules that lift them are written for the column's place in the row -
  * one rule a column, read by every row at once, rather than a class on each
  * of a table's cells - inside the table that carries the scope attribute.
@@ -621,7 +624,7 @@ export const getSizedColumnsCss: (data: {
   return numbers
     .map((cellNumber: number): string => {
       return [
-        `${table} > tbody > tr > td:nth-child(${cellNumber}) { max-width: none; }`,
+        `${table} > tbody > tr > td:nth-child(${cellNumber}) { max-width: none; overflow-x: clip; text-overflow: ellipsis; }`,
         `${table} > tbody > tr > td:nth-child(${cellNumber}) > div { max-width: none; min-width: 0; }`,
         `${table} > thead > tr > th:nth-child(${cellNumber}) * { white-space: normal; }`,
       ].join("\n");

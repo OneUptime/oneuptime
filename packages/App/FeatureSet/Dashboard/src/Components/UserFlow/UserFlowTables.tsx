@@ -15,6 +15,11 @@ import RowActions from "Common/UI/Components/ActionButton/RowActions";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import useResizableColumns, {
+  ResizableColumns,
+} from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
+import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import {
   UserFlowDirection,
   UserFlowLoop,
@@ -191,6 +196,31 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
   const [tab, setTab] = useState<UserFlowTableTab>("paths");
   const [pageSort, setPageSort] = useState<PageSortKey>("sessions");
 
+  /*
+   * Each table's columns as wide as a person makes them (Common's
+   * Table/ColumnResize): a journey or a page gives way, a count never.
+   */
+  const pathColumns: ResizableColumns = useResizableColumns({
+    tableKey: "user-flow-paths-table",
+    columns: [
+      { id: "journey", cellNumber: 2 },
+      { id: "sessions", cellNumber: 3 },
+      { id: "avgDuration", cellNumber: 4 },
+      { id: "withErrors", cellNumber: 5 },
+    ],
+  });
+  const pageColumns: ResizableColumns = useResizableColumns({
+    tableKey: "user-flow-pages-table",
+    columns: [
+      { id: "page", cellNumber: 1 },
+      ...PAGE_COLUMNS.map(
+        (column: PageColumn, index: number): { id: string; cellNumber: number } => {
+          return { id: column.key, cellNumber: index + 2 };
+        },
+      ),
+    ],
+  });
+
   const tabs: Array<{ id: UserFlowTableTab; label: string; count: number }> = [
     { id: "paths", label: "Top paths", count: props.paths.length },
     { id: "pages", label: "Pages", count: props.pages.length },
@@ -287,29 +317,64 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
 
       {tab === "paths" ? (
         <div className="overflow-x-auto" role="tabpanel">
-          <table className="min-w-full" data-testid="user-flow-paths-table">
+          {pathColumns.styles}
+          <table
+            className={pathColumns.getTableWidthClassName("min-w-full")}
+            data-testid="user-flow-paths-table"
+            {...pathColumns.tableAttributes}
+          >
             <thead>
               <tr>
                 <th className={HEADER_CELL}>#</th>
-                <th className={HEADER_CELL}>Journey</th>
-                <th className={HEADER_CELL}>
+                <ResizableHeaderCell
+                  className={HEADER_CELL}
+                  resize={pathColumns.getResize(
+                    "journey",
+                    "Journey",
+                    ColumnWidthKind.Prose,
+                  )}
+                >
+                  <span>Journey</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  className={HEADER_CELL}
+                  resize={pathColumns.getResize(
+                    "sessions",
+                    "Sessions",
+                    ColumnWidthKind.Whole,
+                  )}
+                >
                   <HeaderWithInfo
                     label="Sessions"
                     tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.pathSessions}
                   />
-                </th>
-                <th className={HEADER_CELL}>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  className={HEADER_CELL}
+                  resize={pathColumns.getResize(
+                    "avgDuration",
+                    "Avg. duration",
+                    ColumnWidthKind.Whole,
+                  )}
+                >
                   <HeaderWithInfo
                     label="Avg. duration"
                     tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.pathAvgDuration}
                   />
-                </th>
-                <th className={HEADER_CELL}>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  className={HEADER_CELL}
+                  resize={pathColumns.getResize(
+                    "withErrors",
+                    "With errors",
+                    ColumnWidthKind.Whole,
+                  )}
+                >
                   <HeaderWithInfo
                     label="With errors"
                     tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.pathWithErrors}
                   />
-                </th>
+                </ResizableHeaderCell>
                 <th className={HEADER_CELL}></th>
               </tr>
             </thead>
@@ -403,18 +468,37 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
 
       {tab === "pages" ? (
         <div className="overflow-x-auto" role="tabpanel">
-          <table className="min-w-full" data-testid="user-flow-pages-table">
+          {pageColumns.styles}
+          <table
+            className={pageColumns.getTableWidthClassName("min-w-full")}
+            data-testid="user-flow-pages-table"
+            {...pageColumns.tableAttributes}
+          >
             <thead>
               <tr>
-                <th className={HEADER_CELL}>Page</th>
+                <ResizableHeaderCell
+                  className={HEADER_CELL}
+                  resize={pageColumns.getResize(
+                    "page",
+                    "Page",
+                    ColumnWidthKind.Name,
+                  )}
+                >
+                  <span>Page</span>
+                </ResizableHeaderCell>
                 {PAGE_COLUMNS.map((column: PageColumn): ReactElement => {
                   const active: boolean = column.key === pageSort;
 
                   return (
-                    <th
+                    <ResizableHeaderCell
                       key={column.key}
                       className={HEADER_CELL}
                       aria-sort={active ? "descending" : "none"}
+                      resize={pageColumns.getResize(
+                        column.key,
+                        column.label,
+                        ColumnWidthKind.Whole,
+                      )}
                     >
                       <HeaderWithInfo
                         label={column.label}
@@ -440,7 +524,7 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
                           )}
                         </button>
                       </HeaderWithInfo>
-                    </th>
+                    </ResizableHeaderCell>
                   );
                 })}
                 <th className={HEADER_CELL}></th>
