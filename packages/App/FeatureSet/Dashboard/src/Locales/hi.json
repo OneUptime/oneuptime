@@ -36817,5 +36817,6 @@
   "Evidence File ID": "साक्ष्य फ़ाइल ID",
   "Pick a person to do {{title}}. They are notified.": "{{title}} करने के लिए कोई व्यक्ति चुनें। उन्हें सूचित किया जाता है।",
   "Put any other kind of file, or several files, in a .zip.": "किसी अन्य प्रकार की फ़ाइल, या कई फ़ाइलें, एक .zip में रखें।",
-  "Upload a file": "फ़ाइल अपलोड करें"
+  "Upload a file": "फ़ाइल अपलोड करें",
+  "Selected: {{name}}": "चयनित: {{name}}"
 }

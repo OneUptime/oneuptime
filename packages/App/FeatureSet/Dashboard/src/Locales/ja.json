@@ -36817,5 +36817,6 @@
   "Evidence File ID": "証拠ファイル ID",
   "Pick a person to do {{title}}. They are notified.": "{{title}} を担当するユーザーを選択します。担当者に通知されます。",
   "Put any other kind of file, or several files, in a .zip.": "その他の種類のファイルや複数のファイルは .zip にまとめてください。",
-  "Upload a file": "ファイルをアップロード"
+  "Upload a file": "ファイルをアップロード",
+  "Selected: {{name}}": "選択中: {{name}}"
 }

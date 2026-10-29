@@ -632,6 +632,29 @@ test.describe("More monitor types folds the rest away again", () => {
     expect(await shownTypes(page)).toEqual(COMMON_TYPES);
     await expect(more(page)).toBeFocused();
 
+    /*
+     * No row on screen is checked, though Kubernetes is still the choice:
+     * More's line names it after a dot, as the More fields line under it
+     * names what it holds - on the same line, More's name its words alone.
+     */
+    const selection: Locator = page.getByTestId("card-select-more-selection");
+    await expect(selection).toHaveText("Selected: Kubernetes");
+    await expect(more(page)).toHaveAccessibleName("More monitor types");
+    await expect(more(page)).toHaveAccessibleDescription(
+      "Selected: Kubernetes",
+    );
+    // On the words' line: their middles level.
+    const title: { y: number; height: number } = await boxOf(
+      page.getByTestId("card-select-more-title"),
+    );
+    const named: { y: number; height: number } = await boxOf(selection);
+    expect(
+      Math.abs(named.y + named.height / 2 - (title.y + title.height / 2)),
+    ).toBeLessThan(2);
+
+    await atRest(page);
+    await screenshot(page, "create-monitor-more-folded-selection");
+
     await page.keyboard.press("Escape");
 
     await expect(summary(page)).toHaveAttribute(
@@ -639,6 +662,97 @@ test.describe("More monitor types folds the rest away again", () => {
       "Kubernetes",
     );
     await expect(page.getByTestId("card-select-change")).toBeFocused();
+  });
+
+  test("More's line and the More fields line under it are one style: the same indigo, weight and size, chevrons in line with the rows", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openCreate(page);
+
+    const styleOf: (locator: Locator) => Promise<Array<string>> = (
+      locator: Locator,
+    ): Promise<Array<string>> => {
+      return locator.evaluate((element: Element): Array<string> => {
+        const style: CSSStyleDeclaration = getComputedStyle(element);
+        return [style.color, style.fontWeight, style.fontSize];
+      });
+    };
+
+    const moreTitle: Locator = page.getByTestId("card-select-more-title");
+    const fieldsTitle: Locator = page
+      .getByTestId("folded-section-title")
+      .first();
+
+    expect(await styleOf(moreTitle)).toEqual(await styleOf(fieldsTitle));
+
+    // Both chevrons start where the rows do (to the pixel, give or take one).
+    const rows: { x: number } = await boxOf(
+      page.getByTestId("card-select-common"),
+    );
+    const moreChevron: { x: number } = await boxOf(
+      page.getByTestId("card-select-more-chevron"),
+    );
+    const fieldsChevron: { x: number } = await boxOf(
+      page.getByTestId("folded-section-chevron").first(),
+    );
+    expect(Math.abs(moreChevron.x - rows.x)).toBeLessThan(2);
+    expect(Math.abs(fieldsChevron.x - rows.x)).toBeLessThan(2);
+
+    // Under the pointer, its words underline, as a link's do.
+    await more(page).hover();
+    await expect
+      .poll(() => {
+        return moreTitle.evaluate((element: Element): string => {
+          return getComputedStyle(element).textDecorationLine;
+        });
+      })
+      .toBe("underline");
+  });
+
+  test("on a phone, in German, the choice it folds away wraps under its words, whole", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openCreate(page, "?monitorType=Custom%20JavaScript%20Code&lang=de");
+
+    await page.getByTestId("card-select-change").click();
+    await expect(more(page)).toHaveAttribute("aria-expanded", "true");
+    await more(page).click();
+    await expect(more(page)).toHaveAttribute("aria-expanded", "false");
+
+    const selection: Locator = page.getByTestId("card-select-more-selection");
+    await expect(selection).toHaveText("Ausgewählt: Custom JavaScript Code");
+    await expect(page.getByTestId("card-select-more-title")).toHaveText(
+      "Weitere Monitortypen",
+    );
+
+    // On a line of its own, under the words: one line tall, never cut in two.
+    const title: { x: number; y: number; height: number } = await boxOf(
+      page.getByTestId("card-select-more-title"),
+    );
+    const named: { x: number; y: number; height: number } =
+      await boxOf(selection);
+    const lineHeight: number = await more(page).evaluate(
+      (element: Element): number => {
+        return parseFloat(getComputedStyle(element).lineHeight);
+      },
+    );
+    expect(named.y).toBeGreaterThan(title.y + title.height - 2);
+    expect(Math.abs(named.x - title.x)).toBeLessThan(2);
+    expect(named.height).toBeLessThanOrEqual(lineHeight + 1);
+    await expect
+      .poll(() => {
+        return sidewaysOverflow(page);
+      })
+      .toBeLessThanOrEqual(0);
+
+    await atRest(page);
+    await screenshot(page, "create-monitor-more-folded-selection-de-phone");
   });
 
   test("a search hides More, and clearing it brings More back as it was left", async ({
@@ -710,9 +824,11 @@ test.describe("More monitor types folds the rest away again", () => {
     await openCreate(page, "?theme=dark");
 
     const colorOf: () => Promise<string> = (): Promise<string> => {
-      return more(page).evaluate((element: Element): string => {
-        return getComputedStyle(element).color;
-      });
+      return page
+        .getByTestId("card-select-more-title")
+        .evaluate((element: Element): string => {
+          return getComputedStyle(element).color;
+        });
     };
 
     // Not the light theme's indigo-600, which is too dark to read there.
@@ -768,13 +884,19 @@ test.describe("More monitor types folds the rest away again", () => {
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
     await expect(more(page)).toHaveText("انواع دیگر مانیتور");
 
-    // The start of a right-to-left line is its right edge.
-    const button: { x: number; width: number } = await boxOf(more(page));
+    /*
+     * The start of a right-to-left line is its right edge: the chevron is
+     * there, in line with the rows' edge (the button reaches a little past
+     * it, for room inside its focus ring).
+     */
+    const chevron: { x: number; width: number } = await boxOf(
+      page.getByTestId("card-select-more-chevron"),
+    );
     const rows: { x: number; width: number } = await boxOf(
       page.getByTestId("card-select-common"),
     );
     expect(
-      Math.abs(button.x + button.width - (rows.x + rows.width)),
+      Math.abs(chevron.x + chevron.width - (rows.x + rows.width)),
     ).toBeLessThan(2);
 
     // A chevron that points down or up is not mirrored.
@@ -901,6 +1023,14 @@ test.describe("A monitor template's More monitor types", () => {
       "aria-expanded",
       "false",
     );
+
+    // The template's type is out of sight, so More's line names it.
+    await expect(dialog.getByTestId("card-select-more-selection")).toHaveText(
+      "Selected: Kubernetes",
+    );
+
+    await atRest(page);
+    await screenshot(page, "monitor-template-more-folded-selection");
 
     await page.keyboard.press("Escape");
 

@@ -1,5 +1,11 @@
 import "@testing-library/jest-dom";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { UserEvent } from "@testing-library/user-event/dist/types/setup/setup";
 import React, { ReactElement, useState } from "react";
@@ -1161,6 +1167,47 @@ describe("CardSelect", () => {
         ).toBeVisible();
       });
 
+      /*
+       * More sits a few lines above the form's More fields line, and reads
+       * as its sibling (FoldedSection's line): its words a quiet indigo
+       * link that underlines under the pointer - the cue the dark theme
+       * keeps, where both indigos are one colour - its chevron a shade
+       * lighter, and room inside its focus ring, the chevron still in line
+       * with the rows' edge.
+       */
+      test("is drawn as the form's More fields line is", () => {
+        renderCatalog();
+
+        const more: HTMLElement = screen.getByTestId("card-select-more");
+        const title: HTMLElement = screen.getByTestId("card-select-more-title");
+        const chevron: HTMLElement = screen.getByTestId(
+          "card-select-more-chevron",
+        );
+
+        expect(more).toHaveClass(
+          "group",
+          "-mx-1",
+          "px-1",
+          "text-sm",
+          "leading-6",
+          "focus-visible:ring-2",
+          "focus-visible:ring-indigo-500",
+        );
+        expect(more).toHaveAttribute("aria-labelledby", title.id);
+        expect(title).toHaveClass(
+          "font-medium",
+          "text-indigo-600",
+          "group-hover:text-indigo-800",
+          "group-hover:underline",
+        );
+        expect(title).toHaveTextContent(/^More monitor types$/);
+        expect(chevron.closest("span")).toHaveClass(
+          "text-indigo-500",
+          "group-hover:text-indigo-700",
+        );
+        expect(chevron.closest("span")).toHaveAttribute("aria-hidden", "true");
+      });
+
       test("a catalog with nothing beyond its common choices has no More button", () => {
         renderCatalog({
           catalog: {
@@ -1861,6 +1908,183 @@ describe("CardSelect", () => {
 
         expect(screen.getByTestId("card-select-search")).toHaveValue("");
         expect(screen.getByTestId("card-select-common")).toBeVisible();
+      });
+    });
+
+    /*
+     * Change on a Kubernetes monitor, then More folded: no row on screen is
+     * checked, though Kubernetes is still the choice. More's line names it
+     * after a dot - "More monitor types · Selected: Kubernetes" - as a
+     * fold's line names what is set inside it (FoldedSection), so nothing
+     * in force is out of sight. Its name stays its words alone.
+     */
+    describe("More's line, with the choice among what it folds away", () => {
+      test("names the choice after a dot, and More is described by it", () => {
+        renderCatalog({ initialValue: "Kubernetes" });
+
+        fireEvent.click(screen.getByTestId("card-select-change"));
+        fireEvent.click(screen.getByTestId("card-select-more"));
+
+        const more: HTMLElement = screen.getByTestId("card-select-more");
+        const selection: HTMLElement = screen.getByTestId(
+          "card-select-more-selection",
+        );
+
+        expect(more).toHaveAttribute("aria-expanded", "false");
+        expect(shownValues()).toEqual(["Ping", "Website"]);
+        expect(selection).toHaveTextContent(/^Selected: Kubernetes$/);
+        expect(more).toHaveTextContent(
+          /^More monitor types\s*·\s*Selected: Kubernetes$/,
+        );
+        expect(more).toHaveAttribute("aria-describedby", selection.id);
+        expect(more).toHaveAccessibleDescription("Selected: Kubernetes");
+        // Its name is its words alone: the dot and the choice describe it.
+        expect(more).toHaveAccessibleName("More monitor types");
+        expect(screen.getByRole("button", { name: "More monitor types" })).toBe(
+          more,
+        );
+      });
+
+      test("says nothing of it while the rest is open: the row itself is checked there", () => {
+        renderCatalog({ initialValue: "Kubernetes" });
+
+        fireEvent.click(screen.getByTestId("card-select-change"));
+
+        const more: HTMLElement = screen.getByTestId("card-select-more");
+
+        expect(more).toHaveAttribute("aria-expanded", "true");
+        expect(
+          screen.queryByTestId("card-select-more-selection"),
+        ).not.toBeInTheDocument();
+        expect(more).not.toHaveAttribute("aria-describedby");
+        expect(more).toHaveTextContent(/^More monitor types$/);
+        expect(
+          screen.getByTestId("card-select-option-Kubernetes"),
+        ).toHaveAttribute("aria-checked", "true");
+
+        // Folded, then opened again: the line goes as the row comes back.
+        fireEvent.click(more);
+        expect(
+          screen.getByTestId("card-select-more-selection"),
+        ).toBeInTheDocument();
+        fireEvent.click(more);
+        expect(
+          screen.queryByTestId("card-select-more-selection"),
+        ).not.toBeInTheDocument();
+        expect(more).not.toHaveAttribute("aria-describedby");
+      });
+
+      test("says nothing when the choice is a common one, or when nothing is picked", () => {
+        renderCatalog({ initialValue: "Ping" });
+
+        fireEvent.click(screen.getByTestId("card-select-change"));
+
+        const more: HTMLElement = screen.getByTestId("card-select-more");
+
+        // Folded on opening, and folded again after a press each way.
+        expect(more).toHaveAttribute("aria-expanded", "false");
+        expect(
+          screen.queryByTestId("card-select-more-selection"),
+        ).not.toBeInTheDocument();
+        fireEvent.click(more);
+        fireEvent.click(more);
+        expect(
+          screen.queryByTestId("card-select-more-selection"),
+        ).not.toBeInTheDocument();
+        expect(more).toHaveTextContent(/^More monitor types$/);
+        expect(more).not.toHaveAttribute("aria-describedby");
+
+        cleanup();
+        renderCatalog();
+
+        fireEvent.click(screen.getByTestId("card-select-more"));
+        fireEvent.click(screen.getByTestId("card-select-more"));
+        expect(
+          screen.queryByTestId("card-select-more-selection"),
+        ).not.toBeInTheDocument();
+      });
+
+      test("a press on the choice it names opens the rest, the choice checked there", () => {
+        const { onChange } = renderCatalog({ initialValue: "Kubernetes" });
+
+        fireEvent.click(screen.getByTestId("card-select-change"));
+        fireEvent.click(screen.getByTestId("card-select-more"));
+        fireEvent.click(screen.getByTestId("card-select-more-selection"));
+
+        expect(screen.getByTestId("card-select-more")).toHaveAttribute(
+          "aria-expanded",
+          "true",
+        );
+        expect(
+          screen.getByTestId("card-select-option-Kubernetes"),
+        ).toHaveAttribute("aria-checked", "true");
+        expect(onChange).not.toHaveBeenCalled();
+      });
+
+      test("a common choice picked with the rest folded leaves the line: nothing folded away is chosen", () => {
+        const { onChange } = renderCatalog({ initialValue: "Kubernetes" });
+
+        fireEvent.click(screen.getByTestId("card-select-change"));
+        fireEvent.click(screen.getByTestId("card-select-more"));
+        fireEvent.click(screen.getByTestId("card-select-option-Website"));
+
+        expect(onChange).toHaveBeenCalledWith("Website");
+
+        fireEvent.click(screen.getByTestId("card-select-change"));
+
+        expect(screen.getByTestId("card-select-more")).toHaveAttribute(
+          "aria-expanded",
+          "false",
+        );
+        expect(
+          screen.queryByTestId("card-select-more-selection"),
+        ).not.toBeInTheDocument();
+      });
+
+      test("names the choice in its own words: a name typed by someone is drawn as typed", () => {
+        renderCatalog({
+          initialValue: "custom-role-1",
+          options: [
+            ...catalogOptions,
+            {
+              label: "Custom Roles",
+              options: [
+                {
+                  value: "custom-role-1",
+                  title: "Incident Responder (EU nights)",
+                  description: "A role someone made.",
+                  icon: IconProp.User,
+                  isUserContent: true,
+                },
+              ],
+            },
+          ],
+        });
+
+        fireEvent.click(screen.getByTestId("card-select-change"));
+        fireEvent.click(screen.getByTestId("card-select-more"));
+
+        expect(
+          screen.getByTestId("card-select-more-selection"),
+        ).toHaveTextContent(/^Selected: Incident Responder \(EU nights\)$/);
+      });
+
+      test("the dot is not read out: only the words and the choice are", () => {
+        renderCatalog({ initialValue: "SQL Query" });
+
+        fireEvent.click(screen.getByTestId("card-select-change"));
+        fireEvent.click(screen.getByTestId("card-select-more"));
+
+        const more: HTMLElement = screen.getByTestId("card-select-more");
+        const dot: HTMLElement | undefined = Array.from(
+          more.querySelectorAll("span"),
+        ).find((span: HTMLSpanElement): boolean => {
+          return span.textContent === "·";
+        });
+
+        expect(dot).toBeDefined();
+        expect(dot).toHaveAttribute("aria-hidden", "true");
+        expect(more).toHaveAccessibleDescription("Selected: SQL Query");
       });
     });
 

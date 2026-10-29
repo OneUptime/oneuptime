@@ -58,7 +58,9 @@ export interface CardSelectOptionGroup {
  * is once pressed, its chevron turns up, aria-expanded says the rest is open,
  * and a second press folds the rest away again - as every "More fields" fold
  * does (FoldedSection). It used to go once pressed, leaving the rest open
- * until the page was reloaded.
+ * until the page was reloaded. Folded while the choice made is one of the
+ * rest, its line names that choice ("Selected: Kubernetes"), as a fold
+ * names what is set inside it.
  */
 export interface CardSelectCatalog {
   /*
@@ -435,6 +437,9 @@ const CardSelect: FunctionComponent<ComponentProps> = (
     useRef<HTMLButtonElement>(null);
   const summaryTitleId: string = useId();
   const moreOptionsId: string = useId();
+  // More's words, which name it, and the choice its line says it folds away.
+  const moreTitleId: string = useId();
+  const moreSelectionId: string = useId();
   // The error under the cards, read with the choice.
   const errorId: string = `card-select-error-${useId()}`;
   const groupDescribedBy: string | undefined = joinAriaIds(
@@ -585,6 +590,16 @@ const CardSelect: FunctionComponent<ComponentProps> = (
   );
 
   const areMoreOptionsShown: boolean = isShowingMoreOptions;
+
+  /*
+   * The choice made is one of the types More folds away (Change on a
+   * Kubernetes monitor, then More pressed): no row on screen is checked, so
+   * More's line names the choice - "More monitor types · Selected:
+   * Kubernetes" - as a fold names what is set inside it (FoldedSection), so
+   * nothing in force is out of sight.
+   */
+  const isSelectionFoldedAway: boolean =
+    isSelectionInMoreOptions && !areMoreOptionsShown;
 
   /*
    * A search flattens the groups. Ranked results in nine separate headed
@@ -1336,14 +1351,25 @@ const CardSelect: FunctionComponent<ComponentProps> = (
                  * second press folds what the first opened. Its words stay
                  * the same either way, as a fold's title does; the chevron
                  * turns up and aria-expanded says the rest is open.
+                 *
+                 * Drawn as the form's More fields line is (FoldedSection's
+                 * line): a quiet indigo link, underlined under the pointer -
+                 * the cue the dark theme keeps, where both indigos are one
+                 * colour - with room inside its focus ring. Its name is its
+                 * words alone; the choice it folds away, when it does, is
+                 * after a dot on the same line, and describes it.
                  */}
                 <button
                   ref={moreToggleRef}
                   type="button"
                   aria-expanded={areMoreOptionsShown}
                   aria-controls={moreOptionsId}
+                  aria-labelledby={moreTitleId}
+                  aria-describedby={
+                    isSelectionFoldedAway ? moreSelectionId : undefined
+                  }
                   data-testid="card-select-more"
-                  className="mt-3 inline-flex items-center gap-1.5 rounded-md py-1 text-sm font-medium text-indigo-600 transition-colors duration-150 hover:text-indigo-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                  className="group -mx-1 mt-3 inline-flex max-w-full items-start gap-1.5 rounded-md px-1 py-0.5 text-start text-sm leading-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                   onClick={() => {
                     const isOpening: boolean = !areMoreOptionsShown;
 
@@ -1359,14 +1385,60 @@ const CardSelect: FunctionComponent<ComponentProps> = (
                     );
                   }}
                 >
-                  <Icon
-                    icon={IconProp.ChevronDown}
-                    data-testid="card-select-more-chevron"
-                    className={`h-4 w-4 transition-transform duration-200 motion-reduce:transition-none ${
-                      areMoreOptionsShown ? "rotate-180" : ""
-                    }`}
-                  />
-                  {translator.translateText(props.catalog!.moreOptionsText)}
+                  <span
+                    aria-hidden="true"
+                    className="flex h-6 flex-none items-center text-indigo-500 transition-colors duration-150 group-hover:text-indigo-700"
+                  >
+                    <Icon
+                      icon={IconProp.ChevronDown}
+                      data-testid="card-select-more-chevron"
+                      className={`h-4 w-4 transition-transform duration-200 motion-reduce:transition-none ${
+                        areMoreOptionsShown ? "rotate-180" : ""
+                      }`}
+                    />
+                  </span>
+                  <span className="min-w-0 break-words">
+                    {/*
+                     * The words keep the dot after them on their line; the
+                     * choice may wrap onto the next, under them, whole.
+                     */}
+                    <span className="whitespace-nowrap">
+                      <span
+                        id={moreTitleId}
+                        className="font-medium text-indigo-600 underline-offset-2 transition-colors duration-150 group-hover:text-indigo-800 group-hover:underline"
+                        data-testid="card-select-more-title"
+                      >
+                        {translator.translateText(
+                          props.catalog!.moreOptionsText,
+                        )}
+                      </span>
+                      {isSelectionFoldedAway && (
+                        <span
+                          aria-hidden="true"
+                          className="pe-0.5 ps-1.5 text-gray-400"
+                        >
+                          ·
+                        </span>
+                      )}
+                    </span>
+                    {isSelectionFoldedAway && selectedOption && (
+                      <>
+                        {" "}
+                        <span
+                          id={moreSelectionId}
+                          className="inline-block max-w-full font-medium text-gray-600"
+                          data-testid="card-select-more-selection"
+                        >
+                          {translator.translateTemplate("Selected: {{name}}", {
+                            name: getOptionText(
+                              selectedOption,
+                              selectedOption.title,
+                            ),
+                          })}
+                        </span>
+                      </>
+                    )}
+                  </span>
                 </button>
 
                 {/*

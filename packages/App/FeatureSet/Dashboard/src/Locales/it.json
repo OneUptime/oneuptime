@@ -36817,5 +36817,6 @@
   "Evidence File ID": "ID del file di prova",
   "Pick a person to do {{title}}. They are notified.": "Scegli una persona che si occupi di {{title}}. Riceve una notifica.",
   "Put any other kind of file, or several files, in a .zip.": "Metti qualsiasi altro tipo di file, o più file, in un .zip.",
-  "Upload a file": "Carica un file"
+  "Upload a file": "Carica un file",
+  "Selected: {{name}}": "Selezionato: {{name}}"
 }

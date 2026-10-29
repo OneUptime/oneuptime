@@ -161,7 +161,8 @@ export const IpAddressCell: FunctionComponent<{ ipString: string }> = (props: {
    * One button under the addresses, open or folded: "+2 more" opens the rest
    * above it and it becomes Show less, in the same place, so a press keeps
    * focus on it. They were two buttons, one per state, and a press dropped
-   * focus to the page.
+   * focus to the page. Its focus ring is the product's link ring, not the
+   * browser's outline.
    */
   return (
     <div className="text-sm text-gray-700">
@@ -193,7 +194,7 @@ export const IpAddressCell: FunctionComponent<{ ipString: string }> = (props: {
           }}
           className={`${
             isExpanded ? "mt-0.5 " : ""
-          }text-xs text-indigo-600 hover:text-indigo-700 hover:underline cursor-pointer`}
+          }-mx-1 cursor-pointer rounded-sm px-1 text-xs text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500`}
         >
           {isExpanded
             ? translator.translateText("Show less")

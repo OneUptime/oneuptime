@@ -319,6 +319,33 @@ describe("TelemetryFacetSidebar hides empty resource facets", () => {
     expect(toggle).toHaveAttribute("aria-expanded", "false");
   });
 
+  /*
+   * Its focus ring is the sidebar's own - the facet rows' indigo ring, with
+   * room around the words - not the browser's outline, both ways.
+   */
+  test("draws the sidebar's focus ring, folded and open", () => {
+    render(sidebarElement({ facetData: MIXED }));
+
+    const toggle: HTMLElement = screen.getByTestId(
+      "facet-sidebar-hidden-toggle",
+    );
+    const ring: Array<string> = [
+      "focus:outline-none",
+      "focus-visible:ring-2",
+      "focus-visible:ring-indigo-500",
+      "rounded",
+      "-mx-1",
+      "px-1",
+    ];
+
+    expect(toggle).toHaveClass(...ring);
+
+    fireEvent.click(toggle);
+
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(toggle).toHaveClass(...ring);
+  });
+
   test("the footer is the last thing in the facet list", () => {
     render(sidebarElement({ facetData: MIXED }));
 

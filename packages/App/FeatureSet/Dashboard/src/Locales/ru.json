@@ -36817,5 +36817,6 @@
   "Evidence File ID": "ID файла доказательства",
   "Pick a person to do {{title}}. They are notified.": "Выберите человека, который выполнит {{title}}. Ему придёт уведомление.",
   "Put any other kind of file, or several files, in a .zip.": "Файлы других типов или несколько файлов поместите в .zip.",
-  "Upload a file": "Загрузить файл"
+  "Upload a file": "Загрузить файл",
+  "Selected: {{name}}": "Выбрано: {{name}}"
 }

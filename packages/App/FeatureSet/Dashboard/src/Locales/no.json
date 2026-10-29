@@ -36817,5 +36817,6 @@
   "Evidence File ID": "Bevisfil-ID",
   "Pick a person to do {{title}}. They are notified.": "Velg en person som skal gjøre {{title}}. Vedkommende får beskjed.",
   "Put any other kind of file, or several files, in a .zip.": "Legg andre filtyper, eller flere filer, i en .zip.",
-  "Upload a file": "Last opp en fil"
+  "Upload a file": "Last opp en fil",
+  "Selected: {{name}}": "Valgt: {{name}}"
 }

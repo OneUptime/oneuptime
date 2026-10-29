@@ -44,7 +44,8 @@ const HiddenFacetsFooter: FunctionComponent<HiddenFacetsFooterProps> = (
    * One button, folded or open: the count goes before it while the filters
    * are folded away, so the button keeps its place among the row's children
    * and React keeps the same element - focus stays on it after a press. Two
-   * buttons, one per state, dropped focus to the page on every press.
+   * buttons, one per state, dropped focus to the page on every press. Its
+   * focus ring is the sidebar's own (the facet rows'), not the browser's.
    */
   return (
     <div
@@ -70,11 +71,11 @@ const HiddenFacetsFooter: FunctionComponent<HiddenFacetsFooterProps> = (
       )}
       <button
         type="button"
-        className={
+        className={`${
           props.isShowingHidden
-            ? "flex min-w-0 items-center gap-1.5 rounded font-medium text-indigo-500 transition-colors hover:text-indigo-600"
-            : "flex-none rounded font-medium text-indigo-500 transition-colors hover:text-indigo-600"
-        }
+            ? "flex min-w-0 items-center gap-1.5"
+            : "flex-none"
+        } -mx-1 rounded px-1 font-medium text-indigo-500 transition-colors hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500`}
         aria-expanded={props.isShowingHidden}
         aria-controls={props.controlsId}
         aria-label={

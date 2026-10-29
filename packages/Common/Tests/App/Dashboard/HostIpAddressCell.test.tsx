@@ -96,6 +96,31 @@ describe("a host's IP addresses", () => {
     expect(rowClicks).toBe(0);
   });
 
+  /*
+   * A keyboard reaches it in a table of hosts: its focus ring is the
+   * product's link ring, with room around the words, not the browser's
+   * outline drawn tight on them - and the words stay in line with the
+   * addresses above them.
+   */
+  test("draws the product's focus ring, its words in line with the addresses", () => {
+    render(<IpAddressCell ipString={ADDRESSES} />);
+
+    const toggle: HTMLElement = screen.getByTestId("host-ip-addresses-toggle");
+
+    expect(toggle).toHaveClass(
+      "focus:outline-none",
+      "focus-visible:ring-2",
+      "focus-visible:ring-indigo-500",
+      "rounded-sm",
+      "-mx-1",
+      "px-1",
+    );
+
+    fireEvent.click(toggle);
+
+    expect(toggle).toHaveClass("focus-visible:ring-2", "-mx-1", "px-1");
+  });
+
   test("one address draws no button", () => {
     render(<IpAddressCell ipString="10.0.0.12" />);
 
