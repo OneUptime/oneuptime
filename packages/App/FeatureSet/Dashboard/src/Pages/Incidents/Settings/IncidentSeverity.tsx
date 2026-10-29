@@ -38,6 +38,7 @@ const IncidentSeveritiesPage: FunctionComponent<
         query={archive.query}
         actionButtons={archive.actionButtons}
         getDeleteConfirmation={archive.getDeleteConfirmation}
+        bulkActions={archive.bulkActions}
         refreshToggle={archive.refreshToggle}
         id="incident-severity-table"
         userPreferencesKey="incident-severity-table"

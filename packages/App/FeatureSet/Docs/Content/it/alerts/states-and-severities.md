@@ -117,12 +117,13 @@ Una gravità da sola non chiama nessuno. Per chiamare in base alla gravità, agg
 Archivia uno stato o una gravità che il tuo team non deve più usare, invece di eliminarlo. L'archiviazione non modifica alcun avviso. Eliminare uno stato toglie le sue righe dalla cronologia di ogni avviso, e una gravità non può essere eliminata finché ci sono avvisi che la hanno.
 
 - **Archivia** si trova nel menu **⋯** della riga. Chiede prima conferma ed elenca le regole, le misurazioni, i criteri dei monitor e i flussi di lavoro configurati per usare il valore: continuano a usarlo finché non li modifichi.
+- **Le regole di reperibilità di ciascuno restano.** Per una gravità, la finestra di dialogo dice anche quante persone hanno regole di reperibilità per essa. Quelle regole restano come sono, quindi gli avvisi che ce l'hanno continuano a contattare quelle persone. Nella pagina **Regole di reperibilità** di ciascuno, la gravità archiviata compare per ultima, contrassegnata come **Archiviato**: le sue regole si possono modificare o rimuovere, ma non se ne possono aggiungere di nuove.
 - **Nessuno può più sceglierlo.** **Cambia stato**, l'intestazione dell'avviso, Slack, Microsoft Teams, le regole e i criteri dei monitor lo escludono. L'API, Terraform e MCP lo rifiutano, indicando il valore e dove annullarne l'archiviazione.
 - **Gli avvisi lo mantengono.** Un avviso che lo ha lo mantiene a ogni modifica successiva, la sua cronologia degli stati lo mostra ancora e puoi ancora filtrare in base a esso.
 - **I valori archiviati sono elencati a parte**, nella sezione compressa **Stati avviso archiviati** o **Gravità avviso archiviate** sotto la tabella, con chi ha archiviato ciascuno e quando. **Annulla archiviazione** ne ripristina uno com'era.
 - **Alcuni non possono essere archiviati.** Gli stati creato, confermato e risolto, e l'ultima gravità non archiviata del progetto. Il loro **Archivia** è bloccato, con il motivo.
 
-**Elimina** dice prima cosa farebbe. Finché avvisi o episodi hanno il valore, l'eliminazione viene rifiutata e la finestra di dialogo li elenca. Altrimenti elenca cosa cambierebbe l'eliminazione e offre **Archivia invece**.
+**Elimina** dice prima cosa farebbe. Finché avvisi o episodi hanno il valore, l'eliminazione viene rifiutata e la finestra di dialogo li elenca. Altrimenti elenca cosa cambierebbe l'eliminazione e offre **Archivia invece**. Per eliminarne più di uno alla volta, selezionali e scegli **Elimina** in **Azioni di massa**: la finestra di dialogo dice prima la stessa cosa per tutti, quelli che non si possono eliminare restano come sono e gli altri vengono eliminati.
 
 ## Far passare un avviso tra i suoi stati
 

@@ -158,12 +158,13 @@ Waar ernst meer doet dan beschrijven: onder **Incidenten → Regels → Bereikba
 Archiveer een status of ernst die uw team niet meer moet gebruiken, in plaats van die te verwijderen. Archiveren wijzigt geen enkel incident. Een status verwijderen haalt zijn rijen uit de geschiedenis van elk incident, en een ernst kan niet worden verwijderd zolang incidenten die hebben.
 
 - **Archiveren** staat in het menu **⋯** van de rij. Het vraagt eerst om bevestiging en toont de regels, sjablonen, metingen, monitorcriteria en workflows die zijn ingesteld om de waarde te gebruiken: die blijven hem gebruiken tot u ze wijzigt.
+- **De eigen bereikbaarheidsregels van mensen blijven.** Bij een ernst zegt het dialoogvenster ook hoeveel personen er bereikbaarheidsregels voor hebben. Die regels blijven zoals ze zijn, dus incidenten met deze ernst roepen die personen nog steeds op. Op de pagina **Bereikbaarheidsregels** van elke persoon staat de gearchiveerde ernst als laatste, gemarkeerd met **Gearchiveerd**: de regels ervan kunnen worden gewijzigd of verwijderd, maar er kunnen geen nieuwe bij.
 - **Niemand kan hem nog kiezen.** Het meldformulier, **Status wijzigen**, de kop van het incident, Slack, Microsoft Teams, regels, sjablonen en monitorcriteria laten hem weg. De API, Terraform en MCP weigeren hem, met de naam van de waarde en waar u hem uit het archief haalt.
 - **Incidenten behouden hem.** Een incident dat hem heeft, behoudt hem bij elke latere bewerking, de statustijdlijn toont hem nog, en u kunt er nog steeds op filteren.
 - **Gearchiveerde waarden staan apart**, in de ingeklapte sectie **Gearchiveerde statussen van incidenten** of **Gearchiveerde ernstniveaus van incidenten** onder de tabel, met wie elke waarde heeft gearchiveerd en wanneer. **Uit archief halen** zet er een terug zoals hij was.
 - **Sommige kunnen niet worden gearchiveerd.** De aangemaakte, bevestigde en opgeloste status, en de laatste niet-gearchiveerde ernst van het project. Hun **Archiveren** is vergrendeld, met de reden.
 
-**Verwijderen** zegt eerst wat het zou doen. Zolang incidenten of episodes de waarde hebben, wordt het verwijderen geweigerd en toont het dialoogvenster ze. Anders toont het wat het verwijderen zou wijzigen en biedt het **In plaats daarvan archiveren** aan.
+**Verwijderen** zegt eerst wat het zou doen. Zolang incidenten of episodes de waarde hebben, wordt het verwijderen geweigerd en toont het dialoogvenster ze. Anders toont het wat het verwijderen zou wijzigen en biedt het **In plaats daarvan archiveren** aan. Om er meerdere tegelijk te verwijderen, selecteert u ze en kiest u **Verwijderen** onder **Bulkacties**: het dialoogvenster zegt eerst hetzelfde voor allemaal, de waarden die niet kunnen worden verwijderd, blijven zoals ze zijn, en de rest wordt verwijderd.
 
 ## Een incident door zijn statussen bewegen
 
