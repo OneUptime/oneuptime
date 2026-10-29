@@ -514,6 +514,10 @@ Un dispositivo solo ping mantiene il nome e l'indirizzo che gli hai dato tu, o u
 
 Questi valori sono tenuti accanto ai campi del dispositivo, mai scritti al loro interno, e ogni scansione, walk di un router o polling che ne rilegge uno lo aggiorna. La panoramica del dispositivo e il suo elemento nell'inventario indicano quale scansione, router o sonda ha letto ogni valore, e quando. Un valore che hai salvato sul dispositivo non viene mai sostituito. Quando una scansione trova un'altra macchina all'indirizzo del dispositivo, per esempio un lease DHCP che si è spostato, la panoramica lo dice, e non si usa nulla di ciò che quella scansione vi ha letto.
 
+Uno switch, un access point o un'appliance Meraki non fornisce via SNMP né numero di serie, né modello, né firmware: Meraki non implementa ENTITY-MIB. Quando una [connessione Meraki](/docs/monitor/network-traffic#cisco-meraki-senza-netflow) legge la sua organizzazione, il dispositivo prende questi valori, e tutto ciò che il suo polling lascia vuoto, dalla dashboard di Meraki, e la sua scheda **Inventario** nomina la connessione in una riga **Meraki**.
+
+Per rileggere subito un dispositivo, premi **Aggiorna** nella sua scheda **Inventario**. La sua sonda lo interroga entro un minuto e la sua connessione Meraki rilegge l'organizzazione. La scheda dice quando è arrivata la nuova lettura, o che la sonda non è riuscita a raggiungere il dispositivo. **Aggiorna** c'è per chi può modificare i dispositivi di rete, su un dispositivo che una sonda interroga o che una connessione Meraki descrive.
+
 ## Rilevare i dispositivi con una scansione di rete
 
 Invece di aggiungere i dispositivi uno alla volta, scansiona un intervallo di indirizzi da una sonda e importa ciò che risponde.

@@ -73,8 +73,11 @@ En vært eller en netværksenhed har et kort **Aktivdetaljer**, der beskriver be
 
 - En værts oplysninger kommer fra ressourceattributterne på dens telemetri: dens IP- og MAC-adresser, arkitektur og operativsystem fra start, og dens serienummer, mærke, model og firmware, når du stempler dem på.
 - En netværksenheds oplysninger kommer fra dens SNMP-polling, dens rolle og dens site. Det, dens polling ikke har læst, kommer fra discovery: den seneste scanning af dens adresse, en routers ARP-tabel eller dens sondes DNS-opslag. En enhed uden ENTITY-MIB, som en Meraki MX, får stadig sit mærke og sin model fra sin systembeskrivelse. Dens IP-adresse vises aldrig som dens værtsnavn.
+- En Meraki-enhed henter også det, dens polling lader stå tomt, fra Meraki-dashboardet, blandt andet dens serienummer, model og firmware, når en [Meraki-forbindelse](/docs/monitor/network-traffic#cisco-meraki-uden-netflow) læser dens organisation.
 
 Kortet viser, hvor hver oplysning kom fra, og hvornår. Den kilde, de fleste oplysninger deler, som en værts collector, en netværksenheds egen SNMP-polling eller den discovery-scanning, der læste den, nævnes én gang, under oplysningerne. Enhver anden kilde, som en routers ARP-tabel eller en værdi gemt på enheden, nævnes under sin oplysning. En værdi, der er gemt på en netværksenhed, erstattes aldrig af det, discovery læser, og når de to er forskellige, viser kortet begge.
+
+En netværksenheds kort har en knap **Opdater** for dem, der må redigere netværksenheder. Den læser enheden igen nu: dens sonde poller den inden for et minut, og dens Meraki-forbindelse læser organisationen igen. Kortet fortæller, hvornår den nye aflæsning er landet, eller at sonden ikke kunne nå enheden, og elementet kopieres fra enheden, så snart aflæsningen er landet.
 
 De samme oplysninger er kolonner i listen **All Items**, skjult indtil du slår dem til, og de kommer med i dens CSV-eksport. [Eksport til en CMDB](/docs/inventory/cmdb-sync#aktivdetaljer) viser deres nøgler.
 
