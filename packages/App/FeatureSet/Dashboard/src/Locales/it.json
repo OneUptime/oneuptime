@@ -38374,7 +38374,8 @@
   "Reopened": "Riaperto",
   "Response Action Taken": "Azione di risposta eseguita",
   "Security Case Opened": "Caso di sicurezza aperto",
-  "All data stores": "All data stores",
-  "Lets Data Security block public access to a data store and revoke its sharing: from its issue, when a person asks, or in a playbook, each run approved by a person unless the playbook says otherwise. The command changes with it.": "Lets Data Security block public access to a data store and revoke its sharing: from its issue, when a person asks, or in a playbook, each run approved by a person unless the playbook says otherwise. The command changes with it.",
-  "Only data stores that match conditions": "Only data stores that match conditions"
+  "All data stores": "Tutti gli archivi dati",
+  "Lets Data Security block public access to a data store and revoke its sharing: from its issue, when a person asks, or in a playbook, each run approved by a person unless the playbook says otherwise. The command changes with it.": "Consente a Sicurezza dei dati di bloccare l'accesso pubblico a un archivio dati e di revocarne la condivisione: dal suo problema, quando una persona lo chiede, o in un playbook, con ogni esecuzione approvata da una persona salvo diversa indicazione del playbook. Il comando cambia di conseguenza.",
+  "Only data stores that match conditions": "Solo gli archivi dati che soddisfano le condizioni",
+  "Open (status)": "Aperto"
 }

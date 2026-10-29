@@ -3,6 +3,7 @@ import AppLink from "../../Components/AppLink/AppLink";
 import {
   IssueStatusPill,
   SeverityPill,
+  getIssueStatusOptions,
 } from "../../Components/DataSecurity/DataSecurityPills";
 import {
   ISSUE_DELETE_WARNING,
@@ -69,13 +70,6 @@ const severityOptions: Array<DropdownOption> = SEVERITIES_MOST_SEVERE_FIRST.map(
     return { value: severity, label: severity };
   },
 );
-
-const statusOptions: Array<DropdownOption> =
-  ALL_DATA_SECURITY_ISSUE_STATUSES.map(
-    (status: DataSecurityIssueStatus): DropdownOption => {
-      return { value: status, label: status };
-    },
-  );
 
 const groupOptions: Array<DropdownOption> = ALL_DATA_SECURITY_CHECK_GROUPS.map(
   (group: DataSecurityCheckGroup): DropdownOption => {
@@ -180,7 +174,10 @@ const DataSecurityIssuesPage: FunctionComponent<
             field: { status: true },
             title: "Status",
             type: FieldType.Dropdown,
-            filterDropdownOptions: statusOptions,
+            filterDropdownOptions: getIssueStatusOptions(
+              translator,
+              ALL_DATA_SECURITY_ISSUE_STATUSES,
+            ),
           },
           {
             field: { checkGroup: true },

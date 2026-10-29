@@ -445,6 +445,7 @@ const DataStoreOverview: FunctionComponent<
 
       <CardGrid columns={2}>
         <Card
+          headerLayout="stacked"
           title="What's Inside"
           description="The kinds of sensitive data its scans found, from samples of its content."
           buttons={[
@@ -522,6 +523,7 @@ const DataStoreOverview: FunctionComponent<
         </Card>
 
         <Card
+          headerLayout="stacked"
           title="Configuration"
           description="What its configuration says about its safety. A line says Unknown when OneUptime could not read it."
           buttons={checkButtons}
@@ -544,6 +546,7 @@ const DataStoreOverview: FunctionComponent<
 
       <CardGrid columns={2}>
         <Card
+          headerLayout="stacked"
           title="Fix These First"
           description="Its open issues with the highest risk, from 0 to 100."
           buttons={[
@@ -566,6 +569,7 @@ const DataStoreOverview: FunctionComponent<
           />
         </Card>
         <Card
+          headerLayout="stacked"
           title="Owners"
           description="The people and teams this store's issues go to."
           buttons={[

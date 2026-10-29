@@ -1,4 +1,8 @@
-import { IssueStatusPill, SeverityPill } from "./DataSecurityPills";
+import {
+  IssueStatusPill,
+  SeverityPill,
+  getIssueStatusOptions,
+} from "./DataSecurityPills";
 import AppLink from "../AppLink/AppLink";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -30,11 +34,12 @@ const SEVERITY_OPTIONS: Array<DropdownOption> = [
   { label: "Low", value: SecuritySeverity.Low },
 ];
 
-const STATUS_OPTIONS: Array<DropdownOption> = [
-  { label: "Open", value: DataSecurityIssueStatus.Open },
-  { label: "Accepted", value: DataSecurityIssueStatus.Accepted },
-  { label: "Resolved", value: DataSecurityIssueStatus.Resolved },
-  { label: "Not an issue", value: DataSecurityIssueStatus.NotAnIssue },
+// The statuses in the order the filter offers them.
+const STATUSES: ReadonlyArray<DataSecurityIssueStatus> = [
+  DataSecurityIssueStatus.Open,
+  DataSecurityIssueStatus.Accepted,
+  DataSecurityIssueStatus.Resolved,
+  DataSecurityIssueStatus.NotAnIssue,
 ];
 
 export function getDataSecurityIssueRoute(issueId: ObjectID | string): Route {
@@ -104,12 +109,13 @@ const StoreIssuesTable: FunctionComponent<ComponentProps> = (
                 field: { status: true },
                 title: "Status",
                 type: FieldType.Dropdown,
-                filterDropdownOptions: STATUS_OPTIONS.filter(
-                  (option: DropdownOption): boolean => {
-                    return props.statuses.includes(
-                      option.value as DataSecurityIssueStatus,
-                    );
-                  },
+                filterDropdownOptions: getIssueStatusOptions(
+                  translator,
+                  STATUSES.filter(
+                    (status: DataSecurityIssueStatus): boolean => {
+                      return props.statuses.includes(status);
+                    },
+                  ),
                 ),
               },
             ]

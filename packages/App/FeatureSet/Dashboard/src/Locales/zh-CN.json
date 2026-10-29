@@ -38376,5 +38376,6 @@
   "Security Case Opened": "Security Case Opened",
   "All data stores": "All data stores",
   "Lets Data Security block public access to a data store and revoke its sharing: from its issue, when a person asks, or in a playbook, each run approved by a person unless the playbook says otherwise. The command changes with it.": "Lets Data Security block public access to a data store and revoke its sharing: from its issue, when a person asks, or in a playbook, each run approved by a person unless the playbook says otherwise. The command changes with it.",
-  "Only data stores that match conditions": "Only data stores that match conditions"
+  "Only data stores that match conditions": "Only data stores that match conditions",
+  "Open (status)": "Open (status)"
 }

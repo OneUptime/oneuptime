@@ -377,6 +377,7 @@ const DataSecurityOverviewPage: FunctionComponent<
 
       <CardGrid columns={2} dataTestId={DATA_SECURITY_OVERVIEW_CHARTS_ID}>
         <Card
+          headerLayout="stacked"
           title="Fix These First"
           description="The open issues with the highest risk, from 0 to 100: how sensitive the data is, how exposed the store is, and what the check found."
           buttons={[
@@ -397,6 +398,7 @@ const DataSecurityOverviewPage: FunctionComponent<
           />
         </Card>
         <Card
+          headerLayout="stacked"
           title="Stores by Data Category"
           description="How many stores hold each kind of sensitive data. A store with several kinds is counted under each."
           buttons={[
@@ -432,6 +434,7 @@ const DataSecurityOverviewPage: FunctionComponent<
           />
         </Card>
         <Card
+          headerLayout="stacked"
           title="Scan Coverage"
           description="How much of your data Data Security has looked at: every store's configuration is checked, and its content is sampled where OneUptime can read it."
           buttons={[

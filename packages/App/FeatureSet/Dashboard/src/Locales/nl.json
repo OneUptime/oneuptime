@@ -38374,7 +38374,8 @@
   "Reopened": "Heropend",
   "Response Action Taken": "Responsactie uitgevoerd",
   "Security Case Opened": "Beveiligingszaak geopend",
-  "All data stores": "All data stores",
-  "Lets Data Security block public access to a data store and revoke its sharing: from its issue, when a person asks, or in a playbook, each run approved by a person unless the playbook says otherwise. The command changes with it.": "Lets Data Security block public access to a data store and revoke its sharing: from its issue, when a person asks, or in a playbook, each run approved by a person unless the playbook says otherwise. The command changes with it.",
-  "Only data stores that match conditions": "Only data stores that match conditions"
+  "All data stores": "Alle gegevensopslagen",
+  "Lets Data Security block public access to a data store and revoke its sharing: from its issue, when a person asks, or in a playbook, each run approved by a person unless the playbook says otherwise. The command changes with it.": "Hiermee kan Gegevensbeveiliging openbare toegang tot een gegevensopslag blokkeren en het delen ervan intrekken: vanuit het probleem, wanneer iemand erom vraagt, of in een playbook, waarbij elke uitvoering door een persoon wordt goedgekeurd, tenzij het playbook anders bepaalt. De opdracht verandert mee.",
+  "Only data stores that match conditions": "Alleen gegevensopslagen die aan de voorwaarden voldoen",
+  "Open (status)": "Openstaand"
 }

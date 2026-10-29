@@ -17,8 +17,9 @@ import {
   DataStoreExposure,
 } from "Common/Types/DataSecurity/DataStorePosture";
 import SecuritySeverity from "Common/Types/SecuritySeverity";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -97,12 +98,7 @@ export const SeverityPill: FunctionComponent<{
   const severity: SecuritySeverity =
     (props.severity as SecuritySeverity | undefined) || SecuritySeverity.Low;
 
-  return (
-    <Pill
-      text={severity}
-      color={SEVERITY_COLOR[severity] || Gray500}
-    />
-  );
+  return <Pill text={severity} color={SEVERITY_COLOR[severity] || Gray500} />;
 };
 
 export const ExposurePill: FunctionComponent<{
@@ -135,25 +131,55 @@ export const ConfidencePill: FunctionComponent<{
     (props.confidence as DataConfidence | undefined) || DataConfidence.Low;
 
   return (
-    <Pill
-      text={confidence}
-      color={CONFIDENCE_COLOR[confidence] || Gray500}
-    />
+    <Pill text={confidence} color={CONFIDENCE_COLOR[confidence] || Gray500} />
   );
 };
+
+/*
+ * The words of the Open status. An open issue reads "Open" in English, but
+ * "Open" alone is every Open button's verb, and every language words it so
+ * ("Öffnen", "Ouvrir", "Abrir"). So a language words the status from its
+ * own key, "Open (status)", and a reader whose language has no wording of
+ * its own reads "Open". The other statuses are words of their own.
+ */
+export const OPEN_STATUS_TERM: string = translationKey("Open (status)");
+
+export function getIssueStatusLabel(
+  translator: Translator,
+  status: DataSecurityIssueStatus | string,
+): string {
+  if (status === DataSecurityIssueStatus.Open) {
+    return translator.hasTranslation(OPEN_STATUS_TERM)
+      ? translator.translateText(OPEN_STATUS_TERM) || status
+      : status;
+  }
+
+  return translator.translateText(status) || status;
+}
+
+// The statuses as a list's filter offers them, in the words of the pill.
+export function getIssueStatusOptions(
+  translator: Translator,
+  statuses: ReadonlyArray<DataSecurityIssueStatus>,
+): Array<DropdownOption> {
+  return statuses.map((status: DataSecurityIssueStatus): DropdownOption => {
+    return { value: status, label: getIssueStatusLabel(translator, status) };
+  });
+}
 
 export const IssueStatusPill: FunctionComponent<{
   status: DataSecurityIssueStatus | string | undefined;
 }> = (props: {
   status: DataSecurityIssueStatus | string | undefined;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
   const status: DataSecurityIssueStatus =
     (props.status as DataSecurityIssueStatus | undefined) ||
     DataSecurityIssueStatus.Open;
 
   return (
     <Pill
-      text={status}
+      text={getIssueStatusLabel(translator, status)}
       color={ISSUE_STATUS_COLOR[status] || Gray500}
     />
   );
