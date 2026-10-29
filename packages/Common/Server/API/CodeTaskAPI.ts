@@ -46,9 +46,12 @@ import CodeFixTaskType, {
 import {
   getGitHubTaskContext,
   getProductionReviewTaskContext,
+  getReviewedPullRequest,
   GitHubTaskContext,
   ProductionReviewTaskContext,
+  ReviewedPullRequest,
 } from "../../Types/AI/CodeFixTaskContext";
+import CodeRepositoryType from "../../Types/CodeRepository/CodeRepositoryType";
 import { ProductionReviewTrigger } from "../../Types/CodeRepository/ProductionReview";
 import ProductionReviewQueue from "../Utils/CodeRepository/ProductionReview/ProductionReviewQueue";
 import {
@@ -798,7 +801,8 @@ export default class CodeTaskAPI {
    * Review a pull request against production again, now: its production
    * review task is asked again (ProductionReviewQueue), as a push or a
    * command asks. For those who may ask AI in the repository; the
-   * repository must still be reached through the GitHub App.
+   * repository must still be reached - through the GitHub App, or its
+   * GitLab, Forgejo or Gitea connection.
    */
   private async reviewAgain(
     req: ExpressRequest,
@@ -826,6 +830,63 @@ export default class CodeTaskAPI {
       throw new NotAuthorizedException(CODE_TASK_REVIEW_AGAIN_REFUSED_MESSAGE);
     }
 
+    const stored: AIRun | null = await AIRunService.findOneById({
+      id: task.id!,
+      select: { _id: true, title: true, taskContext: true },
+      props: { isRoot: true },
+    });
+
+    const reviewed: ReviewedPullRequest | null = getReviewedPullRequest(
+      stored?.taskContext,
+    );
+    const review: ProductionReviewTaskContext | null =
+      getProductionReviewTaskContext(stored?.taskContext);
+
+    if (!reviewed || !review) {
+      throw new BadDataException(CODE_TASK_NOT_A_PRODUCTION_REVIEW_MESSAGE);
+    }
+
+    /*
+     * A repository on GitLab, Forgejo or Gitea: reached through its
+     * connection, which must still work (the token not refused, the
+     * connection there), and on the host the review was asked on.
+     */
+    if (reviewed.provider !== CodeRepositoryType.GitHub) {
+      const summary: CodeHostConnectionSummary | undefined = (
+        await CodeHostAccess.getConnectionSummaries({
+          projectId,
+          repositoryIds: [repository.id!],
+        })
+      ).get(repository.id!.toString());
+
+      if (
+        !summary ||
+        summary.provider !== reviewed.provider ||
+        summary.state !== CodeHostConnectionState.Connected ||
+        !summary.isReachableFromServer
+      ) {
+        throw new BadDataException(getRepositoryNotReachableMessage(summary));
+      }
+
+      await ProductionReviewQueue.request({
+        projectId,
+        codeRepositoryId: repository.id!,
+        provider: reviewed.provider as
+          | CodeRepositoryType.GitLab
+          | CodeRepositoryType.Forgejo,
+        pullRequestNumber: reviewed.number,
+        pullRequestTitle: stored?.title || "",
+        headSha: review.headSha,
+        isFromFork: reviewed.isFromFork,
+        trigger: ProductionReviewTrigger.OneUptime,
+        isAuthorTrusted: review.isAuthorTrusted,
+        requestedByUserId: props.userId,
+        isImmediate: true,
+      });
+
+      return { taskId: task.id!.toString() };
+    }
+
     const installationId: string | null =
       await CodeTaskGate.getReachableInstallationId({
         projectId,
@@ -836,19 +897,11 @@ export default class CodeTaskAPI {
       throw new BadDataException(CODE_TASK_REPOSITORY_NOT_CONNECTED_MESSAGE);
     }
 
-    const stored: AIRun | null = await AIRunService.findOneById({
-      id: task.id!,
-      select: { _id: true, title: true, taskContext: true },
-      props: { isRoot: true },
-    });
-
     const github: GitHubTaskContext | null = getGitHubTaskContext(
       stored?.taskContext,
     );
-    const review: ProductionReviewTaskContext | null =
-      getProductionReviewTaskContext(stored?.taskContext);
 
-    if (!github || !review || github.pullRequestNumber === undefined) {
+    if (!github || github.pullRequestNumber === undefined) {
       throw new BadDataException(CODE_TASK_NOT_A_PRODUCTION_REVIEW_MESSAGE);
     }
 

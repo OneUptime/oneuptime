@@ -8,13 +8,19 @@ import CodeRepositoryService from "../../../Services/CodeRepositoryService";
 import logger from "../../Logger";
 import ProductBrandingText from "../../ProductBrandingText";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
-import GitHubConversation, {
-  GitHubIssueComment,
-  GitHubPullRequestDetails,
-  GitHubPullRequestFile,
-} from "../GitHub/GitHubConversation";
-import GitHubInstallationBinding from "../GitHub/GitHubInstallationBinding";
 import GitHubRunReply from "../GitHub/GitHubRunReply";
+import {
+  CODE_HOST_REPOSITORY_SELECT,
+} from "../CodeHost/CodeHostAccess";
+import {
+  CodeHostChangedFile,
+  CodeHostChangedFiles,
+  CodeHostComment,
+  CodeHostPullRequestDetails,
+} from "../CodeHost/CodeHostTypes";
+import ProductionReviewHosts, {
+  ProductionReviewHost,
+} from "./ProductionReviewHost";
 import { CodeAgentScopedService } from "../../AI/CodeFix/CodeAgentTelemetryScope";
 import ProductionReviewAI, {
   ProductionReviewAiResult,
@@ -39,8 +45,15 @@ import {
   GitHubTaskContext,
   getGitHubTaskContext,
   getProductionReviewTaskContext,
+  getReviewedPullRequest,
   ProductionReviewTaskContext,
+  ReviewedPullRequest,
 } from "../../../../Types/AI/CodeFixTaskContext";
+import {
+  CodeHost,
+  PullRequestTerm,
+} from "../../../../Types/CodeRepository/CodeHost";
+import CodeRepositoryType from "../../../../Types/CodeRepository/CodeRepositoryType";
 import { CodeTaskOutcome } from "../../../../Types/AI/CodeTask";
 import {
   PRODUCTION_REVIEW_LIMITS,
@@ -61,12 +74,12 @@ import ObjectID from "../../../../Types/ObjectID";
  * out here, on the OneUptime server: nothing is cloned and nothing the pull
  * request holds is run. In order:
  *
- *   1. The repository, still connected through the GitHub App to the
- *      project, and still asking for reviews when OneUptime started this
- *      one on its own.
+ *   1. The repository, still connected to the project - through the
+ *      GitHub App, or its GitLab, Forgejo or Gitea connection - and still
+ *      asking for reviews when OneUptime started this one on its own.
  *   2. The pull request as it is now - open, its head, its files and their
- *      diff - read from GitHub. A closed one is not reviewed; a draft is
- *      reviewed only when someone asked.
+ *      diff - read from its host (ProductionReviewHost). A closed one is
+ *      not reviewed; a draft is reviewed only when someone asked.
  *   3. What its code is in production: the services the repository serves
  *      (ProductionReviewScope), what production does with their code
  *      (ProductionReviewRepositoryProfile, shared by the repository's pull
@@ -81,7 +94,7 @@ import ObjectID from "../../../../Types/ObjectID";
  *      or queued again when the pull request was asked about while it ran.
  */
 
-// The files of a pull request read from GitHub.
+// The files of a pull request read from its host.
 const MAX_FILES_READ: number = PRODUCTION_REVIEW_LIMITS.maxFilesRead;
 
 // A repository's AI reads of the day are counted under this cache name.
@@ -99,8 +112,49 @@ export const REPOSITORY_NOT_CONNECTED_MESSAGE: string =
 
 // Why a review ended failed: kept once it was tried again and failed again.
 export const PRODUCTION_REVIEW_FAILED_MESSAGE: () => string = (): string => {
-  return `${ProductBrandingText.getProductName()} could not finish this production review, even after trying again. A push to the pull request, or Review again, starts a new one.`;
+  return getProductionReviewFailedMessage("pull request");
 };
+
+// The host's word for a pull request: GitLab's merge request.
+export function getPullRequestTerm(
+  provider: CodeRepositoryType | string | null | undefined,
+): PullRequestTerm {
+  return CodeHost.getFacts(provider).pullRequestTerm;
+}
+
+/*
+ * The same sentences in the host's words: "The merge request is closed"
+ * on GitLab. GitHub's are the constants above, word for word.
+ */
+export function getPullRequestClosedMessage(term: PullRequestTerm): string {
+  return `The ${term} is closed, so it was not reviewed.`;
+}
+
+export function getPullRequestDraftMessage(term: PullRequestTerm): string {
+  return `The ${term} is a draft. It is reviewed once it is marked ready for review, or when someone asks.`;
+}
+
+export function getProductionReviewFailedMessage(term: PullRequestTerm): string {
+  return `${ProductBrandingText.getProductName()} could not finish this production review, even after trying again. A push to the ${term}, or Review again, starts a new one.`;
+}
+
+/*
+ * Why a repository's review was not done: it is no longer reached the
+ * way it was connected - GitHub's App installation, or the connection of
+ * a repository on GitLab, Forgejo or Gitea (a token refused, a connection
+ * gone).
+ */
+export function getRepositoryNotConnectedMessage(
+  provider: CodeRepositoryType | string | null | undefined,
+): string {
+  const type: CodeRepositoryType = CodeHost.readType(provider);
+
+  if (type === CodeRepositoryType.GitHub) {
+    return REPOSITORY_NOT_CONNECTED_MESSAGE;
+  }
+
+  return `This repository's connection to ${CodeHost.getFacts(type).name} no longer works - its access token was refused, or the connection is gone - so it was not reviewed.`;
+}
 
 // What one review leaves behind.
 export interface ProductionReviewRunResult {
@@ -148,7 +202,12 @@ export default class ProductionReviewRunner {
       await ProductionReviewQueue.fail({
         run,
         requestNumber,
-        errorMessage: PRODUCTION_REVIEW_FAILED_MESSAGE(),
+        errorMessage: getProductionReviewFailedMessage(
+          getPullRequestTerm(
+            getReviewedPullRequest(run.taskContext)?.provider ||
+              CodeRepositoryType.GitHub,
+          ),
+        ),
         isRetryable: true,
       }).catch((failError: unknown) => {
         logger.error(
@@ -160,17 +219,20 @@ export default class ProductionReviewRunner {
 
   /*
    * The review itself (steps 1-6 above). Throws on a failure worth trying
-   * again - GitHub or a database that could not be reached.
+   * again - a host or a database that could not be reached.
    */
   @CaptureSpan()
   public static async review(run: AIRun): Promise<ProductionReviewRunResult> {
     const review: ProductionReviewTaskContext | null =
       getProductionReviewTaskContext(run.taskContext);
+    const reviewed: ReviewedPullRequest | null = getReviewedPullRequest(
+      run.taskContext,
+    );
     const github: GitHubTaskContext | null = getGitHubTaskContext(
       run.taskContext,
     );
 
-    if (!review || !github || !run.projectId || !run.id) {
+    if (!review || !reviewed || !run.projectId || !run.id) {
       await ProductionReviewQueue.finish({
         run,
         requestNumber: review?.requestNumber || 0,
@@ -183,14 +245,12 @@ export default class ProductionReviewRunner {
     }
 
     const projectId: ObjectID = run.projectId;
+    const term: PullRequestTerm = getPullRequestTerm(reviewed.provider);
     const repository: CodeRepository | null = run.codeRepositoryId
       ? await CodeRepositoryService.findOneBy({
           query: { _id: run.codeRepositoryId.toString(), projectId },
           select: {
-            _id: true,
-            organizationName: true,
-            repositoryName: true,
-            gitHubAppInstallationId: true,
+            ...CODE_HOST_REPOSITORY_SELECT,
             isProductionReviewEnabled: true,
             productionReviewPullRequestContent: true,
             productionReviewLlmProviderId: true,
@@ -199,20 +259,20 @@ export default class ProductionReviewRunner {
         })
       : null;
 
-    const isBound: boolean = Boolean(
-      repository?.gitHubAppInstallationId &&
-        repository.gitHubAppInstallationId === github.installationId &&
-        (await GitHubInstallationBinding.isInstallationBoundToProject({
+    const host: ProductionReviewHost | null = repository
+      ? await ProductionReviewHosts.open({
           projectId,
-          installationId: repository.gitHubAppInstallationId,
-        })),
-    );
+          repository,
+          provider: reviewed.provider,
+          github,
+        })
+      : null;
 
-    if (!repository || !isBound) {
+    if (!repository || !host) {
       return await ProductionReviewRunner.skip({
         run,
         review,
-        message: REPOSITORY_NOT_CONNECTED_MESSAGE,
+        message: getRepositoryNotConnectedMessage(reviewed.provider),
       });
     }
 
@@ -227,21 +287,16 @@ export default class ProductionReviewRunner {
       });
     }
 
-    const pullRequestNumber: number = github.pullRequestNumber!;
+    const pullRequestNumber: number = reviewed.number;
 
-    const pullRequest: GitHubPullRequestDetails =
-      await GitHubConversation.getPullRequestDetails({
-        installationId: github.installationId,
-        organizationName: github.organizationName,
-        repositoryName: github.repositoryName,
-        pullRequestNumber,
-      });
+    const pullRequest: CodeHostPullRequestDetails =
+      await host.getPullRequest(pullRequestNumber);
 
-    if (pullRequest.state !== "open") {
+    if (!pullRequest.isOpen) {
       return await ProductionReviewRunner.skip({
         run,
         review,
-        message: PULL_REQUEST_CLOSED_MESSAGE,
+        message: getPullRequestClosedMessage(term),
       });
     }
 
@@ -252,22 +307,19 @@ export default class ProductionReviewRunner {
       return await ProductionReviewRunner.skip({
         run,
         review,
-        message: PULL_REQUEST_DRAFT_MESSAGE,
+        message: getPullRequestDraftMessage(term),
       });
     }
 
-    const files: Array<GitHubPullRequestFile> =
-      await GitHubConversation.listPullRequestFiles({
-        installationId: github.installationId,
-        organizationName: github.organizationName,
-        repositoryName: github.repositoryName,
-        pullRequestNumber,
-        maxFiles: MAX_FILES_READ,
-      });
+    const listed: CodeHostChangedFiles = await host.listFiles({
+      pullRequest,
+      maxFiles: MAX_FILES_READ,
+    });
+    const files: Array<CodeHostChangedFile> = listed.files;
 
     const changed: ChangedCode = readChangedCode({
       files,
-      hasMoreFiles: pullRequest.changedFilesCount > files.length,
+      hasMoreFiles: listed.hasMore,
     });
 
     const now: Date = OneUptimeDate.getCurrentDate();
@@ -319,15 +371,14 @@ export default class ProductionReviewRunner {
         ),
         url:
           pullRequest.htmlUrl ||
-          `https://github.com/${github.organizationName}/${github.repositoryName}/pull/${pullRequestNumber}`,
+          reviewed.url ||
+          (github
+            ? `https://github.com/${github.organizationName}/${github.repositoryName}/pull/${pullRequestNumber}`
+            : ""),
         authorLogin: pullRequest.authorLogin,
         headSha: pullRequest.headSha,
         baseRefName: pullRequest.baseRefName,
-        isFromFork: GitHubConversation.isFromFork({
-          headRepositoryFullName: pullRequest.headRepositoryFullName,
-          organizationName: github.organizationName,
-          repositoryName: github.repositoryName,
-        }),
+        isFromFork: pullRequest.isFromFork,
         // Its pushes are reviewed on their own only when it is.
         isAuthorTrusted: review.isAuthorTrusted,
       },
@@ -366,14 +417,15 @@ export default class ProductionReviewRunner {
     await ProductionReviewRunner.post({
       run,
       review,
-      github,
+      host,
+      pullRequest,
       repository,
       report,
       update: contextUpdate,
     });
 
     const outcome: CodeTaskOutcome = {
-      summary: ProductionReviewComposer.summarize(report),
+      summary: ProductionReviewComposer.summarize(report, term),
       filesChanged: [],
       productionReview: report,
     };
@@ -400,7 +452,7 @@ export default class ProductionReviewRunner {
     run: AIRun;
     review: ProductionReviewTaskContext;
     report: ProductionReviewReport;
-    files: Array<GitHubPullRequestFile>;
+    files: Array<CodeHostChangedFile>;
     changed: ChangedCode;
     repositoryId: ObjectID;
     // The repository's pick (CodeRepository.productionReviewLlmProviderId).
@@ -420,7 +472,7 @@ export default class ProductionReviewRunner {
     }
 
     const diffText: string = ProductionReviewAI.buildDiffText({
-      files: data.files.map((file: GitHubPullRequestFile) => {
+      files: data.files.map((file: CodeHostChangedFile) => {
         return { path: file.filename, patch: file.patch };
       }),
       changed: data.changed,
@@ -544,7 +596,8 @@ export default class ProductionReviewRunner {
   public static async post(data: {
     run: AIRun;
     review: ProductionReviewTaskContext;
-    github: GitHubTaskContext;
+    host: ProductionReviewHost;
+    pullRequest: CodeHostPullRequestDetails;
     repository: CodeRepository;
     report: ProductionReviewReport;
     update: ProductionReviewContextUpdate;
@@ -560,12 +613,7 @@ export default class ProductionReviewRunner {
       return;
     }
 
-    const isPublic: boolean | null =
-      await GitHubConversation.isRepositoryPublic({
-        installationId: data.github.installationId,
-        organizationName: data.github.organizationName,
-        repositoryName: data.github.repositoryName,
-      });
+    const isPublic: boolean | null = await data.host.isRepositoryPublic();
 
     const posting:
       | ProductionReviewPosting.Review
@@ -587,59 +635,28 @@ export default class ProductionReviewRunner {
       dashboardUrl: DashboardClientUrl.toString(),
       projectId: data.run.projectId!.toString(),
       productName: ProductBrandingText.getProductName(),
-      appSlug: await GitHubConversation.getAppSlug(),
+      reviewCommand: await data.host.getReviewCommand(),
       updatesOnPush:
         data.review.isAuthorTrusted &&
         data.repository.isProductionReviewEnabled === true,
       isPublicRepository: isPublic,
+      pullRequestTerm: data.host.pullRequestTerm,
+      asksAgainInProduct: data.host.provider !== CodeRepositoryType.GitHub,
     });
 
-    const comment: GitHubIssueComment =
-      await ProductionReviewRunner.writeComment({
-        github: data.github,
-        commentId: data.review.commentId,
-        body,
-      });
+    const comment: CodeHostComment = await data.host.writeComment({
+      pullRequest: {
+        number: data.pullRequest.number,
+        htmlUrl: data.pullRequest.htmlUrl || data.report.pullRequest.url,
+      },
+      commentId: data.review.commentId,
+      body,
+    });
 
     data.update.commentId = comment.commentId;
     data.update.commentUrl = comment.htmlUrl;
     data.update.commentPosting = posting;
     data.report.commentUrl = comment.htmlUrl || undefined;
-  }
-
-  /*
-   * The comment edited in place, or written when there is none - or when
-   * the one there is gone: someone deleted it, which is an ordinary thing
-   * to do to a bot's comment.
-   */
-  public static async writeComment(data: {
-    github: GitHubTaskContext;
-    commentId: number | undefined;
-    body: string;
-  }): Promise<GitHubIssueComment> {
-    if (data.commentId) {
-      try {
-        return await GitHubConversation.updateIssueComment({
-          installationId: data.github.installationId,
-          organizationName: data.github.organizationName,
-          repositoryName: data.github.repositoryName,
-          commentId: data.commentId,
-          body: data.body,
-        });
-      } catch (error) {
-        logger.info(
-          `Production review: its comment ${data.commentId} could not be edited (${error}); writing a new one.`,
-        );
-      }
-    }
-
-    return await GitHubConversation.createIssueComment({
-      installationId: data.github.installationId,
-      organizationName: data.github.organizationName,
-      repositoryName: data.github.repositoryName,
-      issueNumber: data.github.pullRequestNumber!,
-      body: data.body,
-    });
   }
 
   // A review that ends without reviewing: done, and why.

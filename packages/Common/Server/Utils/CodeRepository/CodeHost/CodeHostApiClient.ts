@@ -45,6 +45,8 @@ export type CodeHostQuery = Dictionary<string | number | boolean | undefined>;
 
 export interface CodeHostApiAnswer {
   json: unknown;
+  // The answer as the server wrote it: what getText reads.
+  text: string;
   headers: Dictionary<string>;
   statusCode: number;
 }
@@ -83,6 +85,17 @@ export default class CodeHostApiClient {
   }
 
   /*
+   * An answer that is text rather than JSON - a pull request's diff
+   * (Forgejo's and Gitea's /pulls/{index}.diff) - with the same rules.
+   */
+  public async getText(
+    path: string,
+    query?: CodeHostQuery,
+  ): Promise<CodeHostApiAnswer> {
+    return await this.request({ method: "GET", path, query, isText: true });
+  }
+
+  /*
    * One request to the API, and its parsed JSON answer. Throws a
    * CodeHostHttpError whose message a person can act on.
    */
@@ -91,6 +104,8 @@ export default class CodeHostApiClient {
     path: string;
     query?: CodeHostQuery | undefined;
     body?: unknown;
+    // The answer is text, not JSON (getText).
+    isText?: boolean | undefined;
   }): Promise<CodeHostApiAnswer> {
     const url: string = this.buildUrl(data.path, data.query);
     let failureRetries: number = 0;
@@ -105,7 +120,7 @@ export default class CodeHostApiClient {
           method: data.method,
           url,
           headers: {
-            Accept: "application/json",
+            Accept: data.isText ? "text/plain" : "application/json",
             ...(data.body !== undefined
               ? { "Content-Type": "application/json" }
               : {}),
@@ -146,7 +161,11 @@ export default class CodeHostApiClient {
       const status: number = response.statusCode;
 
       if (status >= 200 && status < 300) {
-        if (response.bodyJson === undefined && status !== 204) {
+        if (
+          !data.isText &&
+          response.bodyJson === undefined &&
+          status !== 204
+        ) {
           throw new CodeHostHttpError({
             kind: CodeHostHttpErrorKind.BadResponse,
             statusCode: status,
@@ -155,7 +174,8 @@ export default class CodeHostApiClient {
         }
 
         return {
-          json: response.bodyJson,
+          json: data.isText ? undefined : response.bodyJson,
+          text: response.bodyText || "",
           headers: response.headers,
           statusCode: status,
         };

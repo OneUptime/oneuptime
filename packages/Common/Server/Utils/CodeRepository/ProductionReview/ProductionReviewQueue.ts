@@ -9,13 +9,17 @@ import AIRunStatus, {
 } from "../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import CodeFixTaskContext, {
+  CodeHostPullRequestTaskContext,
   GitHubTaskContext,
   getProductionReviewTaskContext,
+  getReviewedPullRequest,
   ProductionReviewTaskContext,
+  ReviewedPullRequest,
 } from "../../../../Types/AI/CodeFixTaskContext";
 import CodeFixTaskType from "../../../../Types/AI/CodeFixTaskType";
 import { CodeTaskOutcome } from "../../../../Types/AI/CodeTask";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
+import CodeRepositoryType from "../../../../Types/CodeRepository/CodeRepositoryType";
 import GitHubCommandType from "../../../../Types/CodeRepository/GitHubCommand";
 import { ProductionReviewTrigger } from "../../../../Types/CodeRepository/ProductionReview";
 import OneUptimeDate from "../../../../Types/Date";
@@ -26,7 +30,8 @@ import ObjectID from "../../../../Types/ObjectID";
  *
  * A pull request has ONE production review task - a code-fix run of the
  * GitHubPullRequestProductionReview recipe, its repository's, named by the
- * pull request in its context - reviewed again in place every time it is
+ * pull request in its context (`github` on GitHub, `codeHostPullRequest`
+ * on GitLab, Forgejo and Gitea) - reviewed again in place every time it is
  * asked: a push, a command, Review again. The same task, so the pull
  * request's one comment and its one page in Code always show the latest.
  *
@@ -58,12 +63,9 @@ export const PRODUCTION_REVIEW_CLAIMS_PER_TICK: number = 10;
 
 const LOCK_NAMESPACE: string = "ProductionReview.pullRequest";
 
-export interface ProductionReviewRequest {
+interface ProductionReviewRequestBase {
   projectId: ObjectID;
   codeRepositoryId: ObjectID;
-  installationId: string;
-  organizationName: string;
-  repositoryName: string;
   pullRequestNumber: number;
   pullRequestTitle: string;
   headSha: string;
@@ -76,6 +78,40 @@ export interface ProductionReviewRequest {
   requestedByUserId?: ObjectID | undefined;
   // Due at once: a person asked and waits. A push waits a little.
   isImmediate?: boolean | undefined;
+}
+
+// A GitHub pull request, reached through the App's installation.
+export interface GitHubProductionReviewRequest
+  extends ProductionReviewRequestBase {
+  provider?: CodeRepositoryType.GitHub | undefined;
+  installationId: string;
+  organizationName: string;
+  repositoryName: string;
+}
+
+/*
+ * A merge request on GitLab, or a pull request on Forgejo or Gitea, reached
+ * through the repository's connection.
+ */
+export interface CodeHostProductionReviewRequest
+  extends ProductionReviewRequestBase {
+  provider: CodeRepositoryType.GitLab | CodeRepositoryType.Forgejo;
+  // Its page on the host; an ask that does not say keeps the one known.
+  pullRequestUrl?: string | undefined;
+}
+
+export type ProductionReviewRequest =
+  | GitHubProductionReviewRequest
+  | CodeHostProductionReviewRequest;
+
+// Whether an ask is for a pull request on GitLab, Forgejo or Gitea.
+export function isCodeHostReviewRequest(
+  request: ProductionReviewRequest,
+): request is CodeHostProductionReviewRequest {
+  return (
+    request.provider === CodeRepositoryType.GitLab ||
+    request.provider === CodeRepositoryType.Forgejo
+  );
 }
 
 // What a finished review keeps of itself for the next one.
@@ -150,14 +186,20 @@ export function getDueAt(review: ProductionReviewTaskContext): Date {
 export default class ProductionReviewQueue {
   /*
    * The pull request's review task, or null: the first run of the recipe in
-   * the repository whose context names the pull request.
+   * the repository whose context names the pull request - under `github`
+   * for a GitHub repository, `codeHostPullRequest` for any other.
    */
   @CaptureSpan()
   public static async findTask(data: {
     projectId: ObjectID;
     codeRepositoryId: ObjectID;
     pullRequestNumber: number;
+    provider?: CodeRepositoryType | undefined;
   }): Promise<AIRun | null> {
+    const isOtherHost: boolean =
+      data.provider === CodeRepositoryType.GitLab ||
+      data.provider === CodeRepositoryType.Forgejo;
+
     return await AIRunService.findOneBy({
       query: {
         projectId: data.projectId,
@@ -165,9 +207,15 @@ export default class ProductionReviewQueue {
         codeFixTaskType: CodeFixTaskType.GitHubPullRequestProductionReview,
         codeRepositoryId: data.codeRepositoryId,
         codeTaskId: QueryHelper.isNull(),
-        taskContext: QueryHelper.jsonContains({
-          github: { pullRequestNumber: data.pullRequestNumber },
-        }),
+        taskContext: QueryHelper.jsonContains(
+          isOtherHost
+            ? {
+                codeHostPullRequest: {
+                  pullRequestNumber: data.pullRequestNumber,
+                },
+              }
+            : { github: { pullRequestNumber: data.pullRequestNumber } },
+        ),
       } as never,
       select: RUN_SELECT,
       sort: { createdAt: SortOrder.Ascending },
@@ -213,14 +261,25 @@ export default class ProductionReviewQueue {
         delete review.requestedByLogin;
       }
 
-      const taskContext: CodeFixTaskContext = {
-        ...(task.taskContext || {}),
-        github: {
-          ...ProductionReviewQueue.buildGitHubContext(data),
-          ...ProductionReviewQueue.keptGitHubFields(task.taskContext?.github),
-        },
-        productionReview: review,
-      };
+      const taskContext: CodeFixTaskContext = isCodeHostReviewRequest(data)
+        ? {
+            ...(task.taskContext || {}),
+            codeHostPullRequest: ProductionReviewQueue.buildCodeHostContext(
+              data,
+              task.taskContext?.codeHostPullRequest,
+            ),
+            productionReview: review,
+          }
+        : {
+            ...(task.taskContext || {}),
+            github: {
+              ...ProductionReviewQueue.buildGitHubContext(data),
+              ...ProductionReviewQueue.keptGitHubFields(
+                task.taskContext?.github,
+              ),
+            },
+            productionReview: review,
+          };
 
       const status: AIRunStatus = task.status || AIRunStatus.Queued;
       const isDone: boolean =
@@ -351,13 +410,8 @@ export default class ProductionReviewQueue {
     // Set when the review ended without reviewing (a closed pull request).
     errorMessage?: string | undefined;
   }): Promise<ProductionReviewFinishOutcome> {
-    const github: GitHubTaskContext | undefined = data.run.taskContext?.github;
-    const mutex: SemaphoreMutex | null = github
-      ? await ProductionReviewQueue.lock(
-          data.run.codeRepositoryId || new ObjectID(github.codeRepositoryId),
-          github.pullRequestNumber || 0,
-        )
-      : null;
+    const mutex: SemaphoreMutex | null =
+      await ProductionReviewQueue.lockReviewOf(data.run);
 
     try {
       const current: AIRun | null = await AIRunService.findOneById({
@@ -423,13 +477,8 @@ export default class ProductionReviewQueue {
     errorMessage: string;
     isRetryable: boolean;
   }): Promise<void> {
-    const github: GitHubTaskContext | undefined = data.run.taskContext?.github;
-    const mutex: SemaphoreMutex | null = github
-      ? await ProductionReviewQueue.lock(
-          data.run.codeRepositoryId || new ObjectID(github.codeRepositoryId),
-          github.pullRequestNumber || 0,
-        )
-      : null;
+    const mutex: SemaphoreMutex | null =
+      await ProductionReviewQueue.lockReviewOf(data.run);
 
     try {
       const current: AIRun | null = await AIRunService.findOneById({
@@ -541,10 +590,18 @@ export default class ProductionReviewQueue {
       review.requestedByLogin = data.requestedByLogin;
     }
 
-    run.taskContext = {
-      github: ProductionReviewQueue.buildGitHubContext(data),
-      productionReview: review,
-    };
+    run.taskContext = isCodeHostReviewRequest(data)
+      ? {
+          codeHostPullRequest: ProductionReviewQueue.buildCodeHostContext(
+            data,
+            undefined,
+          ),
+          productionReview: review,
+        }
+      : {
+          github: ProductionReviewQueue.buildGitHubContext(data),
+          productionReview: review,
+        };
 
     return await AIRunService.create({
       data: run,
@@ -552,8 +609,37 @@ export default class ProductionReviewQueue {
     });
   }
 
+  /*
+   * A pull request on GitLab, Forgejo or Gitea, as its task names it - with
+   * the page an earlier ask gave, when this one does not say.
+   */
+  private static buildCodeHostContext(
+    data: CodeHostProductionReviewRequest,
+    earlier: CodeHostPullRequestTaskContext | undefined,
+  ): CodeHostPullRequestTaskContext {
+    const context: CodeHostPullRequestTaskContext = {
+      codeRepositoryId: data.codeRepositoryId.toString(),
+      provider: data.provider,
+      pullRequestNumber: data.pullRequestNumber,
+      isPullRequestFromFork: data.isFromFork,
+    };
+
+    const url: string | undefined =
+      data.pullRequestUrl || earlier?.pullRequestUrl || undefined;
+
+    if (url) {
+      context.pullRequestUrl = url;
+    }
+
+    if (data.requestedByLogin) {
+      context.triggeredByLogin = data.requestedByLogin;
+    }
+
+    return context;
+  }
+
   private static buildGitHubContext(
-    data: ProductionReviewRequest,
+    data: GitHubProductionReviewRequest,
   ): GitHubTaskContext {
     const github: GitHubTaskContext = {
       codeRepositoryId: data.codeRepositoryId.toString(),
@@ -609,6 +695,25 @@ export default class ProductionReviewQueue {
     }
 
     return fields;
+  }
+
+  /*
+   * The lock on the pull request a run reviews, whichever host it is on -
+   * or none for a run that names none.
+   */
+  private static async lockReviewOf(run: AIRun): Promise<SemaphoreMutex | null> {
+    const reviewed: ReviewedPullRequest | null = getReviewedPullRequest(
+      run.taskContext,
+    );
+
+    if (!reviewed) {
+      return null;
+    }
+
+    return await ProductionReviewQueue.lock(
+      run.codeRepositoryId || new ObjectID(reviewed.codeRepositoryId),
+      reviewed.number,
+    );
   }
 
   private static async lock(

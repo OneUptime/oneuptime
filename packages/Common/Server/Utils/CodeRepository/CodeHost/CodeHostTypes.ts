@@ -83,3 +83,62 @@ export interface CodeHostServerInfo {
   product: string | null;
   version: string | null;
 }
+
+/*
+ * A pull (or merge) request, as a production review reads it: what it is,
+ * where it goes, whether it is open, a draft, or from a fork, and who
+ * opened it. GitLab's merge request iid and Forgejo's index are its number.
+ */
+export interface CodeHostPullRequestDetails {
+  number: number;
+  title: string;
+  isOpen: boolean;
+  isMerged: boolean;
+  isDraft: boolean;
+  htmlUrl: string;
+  authorLogin: string;
+  // The server's own id for the author: what GitLab's member reads take.
+  authorId: string;
+  headSha: string;
+  headRefName: string;
+  baseRefName: string;
+  /*
+   * Whether its branch lives in another repository: a fork - or a branch
+   * whose repository is gone, which is no branch of this one either.
+   */
+  isFromFork: boolean;
+  // The files it changes, as the server counts them; 0 when it does not say.
+  changedFilesCount: number;
+  // Lines it adds and removes, when the server says; 0 otherwise.
+  changedLineCount: number;
+  // When it last changed, as the server says: an ISO time, or "".
+  updatedAt: string;
+}
+
+/*
+ * One file a pull request changes, with its diff - the shape GitHub's pull
+ * request files have, which a production review reads on every host.
+ */
+export interface CodeHostChangedFile {
+  filename: string;
+  // The file's name before the pull request renamed it, when it did.
+  previousFilename?: string | null | undefined;
+  // "added", "removed", "modified" or "renamed".
+  status: string;
+  additions: number;
+  deletions: number;
+  // Its hunks ("@@ ..."): null for a binary file, or one not sent.
+  patch: string | null;
+}
+
+export interface CodeHostChangedFiles {
+  files: Array<CodeHostChangedFile>;
+  // The pull request changes more files than these.
+  hasMore: boolean;
+}
+
+// A comment OneUptime wrote, as the server keeps it.
+export interface CodeHostComment {
+  commentId: number;
+  htmlUrl: string;
+}

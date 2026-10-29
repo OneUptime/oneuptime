@@ -19,8 +19,12 @@ import {
   CodeHostAccount,
   CodeHostBranch,
   CodeHostBranchNames,
+  CodeHostChangedFile,
+  CodeHostChangedFiles,
   CodeHostCiSummary,
+  CodeHostComment,
   CodeHostFileContent,
+  CodeHostPullRequestDetails,
   CodeHostPullRequestState,
   CodeHostRepository,
   CodeHostRepositoryPage,
@@ -31,9 +35,12 @@ import CodeHostText from "./CodeHostText";
  * A GITLAB SERVER - GitLab.com or a self-managed one - THROUGH ITS API (v4).
  *
  * Who the token is, the projects it can push to (Developer or more), a
- * project's branches and files, and a merge request's state and the
- * pipeline on its head. Merge requests are opened by the Runner, which
- * holds the token for the run (Runner/Utils/PullRequests/GitLabMergeRequests).
+ * project's branches and files, a merge request's state and the pipeline
+ * on its head - and, for a production review, a merge request, its diff,
+ * the project's visibility, its members' roles, its recently changed merge
+ * requests and the note the review keeps on one. Merge requests are opened
+ * by the Runner, which holds the token for the run
+ * (Runner/Utils/PullRequests/GitLabMergeRequests).
  *
  * A project is read by its id, which stays the same when it is renamed or
  * moved to another group; its path ("group/subgroup/project") is the
@@ -445,6 +452,414 @@ export default class GitLabApi {
     }
 
     return (compare["commits"] as JSONArray).length === 0;
+  }
+
+  /*
+   * A merge request, as a production review reads it: its title, state,
+   * whether it is a draft or from a fork, its head, where it goes, who
+   * opened it and how many files it changes.
+   */
+  public async getMergeRequest(data: {
+    project: string;
+    iid: number;
+  }): Promise<CodeHostPullRequestDetails> {
+    const answer: CodeHostApiAnswer = await this.client.getJson(
+      `${GitLabApi.projectPath(data.project)}/merge_requests/${Math.floor(data.iid)}`,
+    );
+
+    const details: CodeHostPullRequestDetails | null =
+      GitLabApi.readMergeRequest(answer.json);
+
+    if (!details) {
+      throw GitLabApi.badAnswer("the merge request");
+    }
+
+    return details;
+  }
+
+  /*
+   * The files a merge request changes, each with its diff: GitLab's
+   * /diffs, a page at a time, as far as `maxFiles` - or, on a GitLab older
+   * than 15.7 that has no /diffs, its /changes. A file whose diff GitLab
+   * left out (too large, collapsed) has no patch.
+   */
+  public async listMergeRequestFiles(data: {
+    project: string;
+    iid: number;
+    maxFiles: number;
+  }): Promise<CodeHostChangedFiles> {
+    const path: string = `${GitLabApi.projectPath(data.project)}/merge_requests/${Math.floor(data.iid)}`;
+    const maxFiles: number = Math.max(0, Math.floor(data.maxFiles));
+    const files: Array<CodeHostChangedFile> = [];
+
+    for (let page: number = 1; files.length < maxFiles; page++) {
+      let answer: CodeHostApiAnswer;
+
+      try {
+        answer = await this.client.getJson(`${path}/diffs`, {
+          page,
+          per_page: GITLAB_PAGE_SIZE,
+        });
+      } catch (error) {
+        if (
+          page === 1 &&
+          error instanceof CodeHostHttpError &&
+          error.kind === CodeHostHttpErrorKind.NotFound
+        ) {
+          return await this.listMergeRequestChanges({ path, maxFiles });
+        }
+
+        throw error;
+      }
+
+      const entries: JSONArray = Array.isArray(answer.json)
+        ? (answer.json as JSONArray)
+        : [];
+
+      for (const entry of entries) {
+        const file: CodeHostChangedFile | null = GitLabApi.readDiff(entry);
+
+        if (file) {
+          files.push(file);
+        }
+      }
+
+      const nextPage: string = (answer.headers["x-next-page"] || "").trim();
+
+      if (!nextPage || entries.length === 0) {
+        return {
+          files: files.slice(0, maxFiles),
+          hasMore: files.length > maxFiles,
+        };
+      }
+    }
+
+    return { files: files.slice(0, maxFiles), hasMore: true };
+  }
+
+  // GitLab before 15.7: every file at once, under `changes`.
+  private async listMergeRequestChanges(data: {
+    path: string;
+    maxFiles: number;
+  }): Promise<CodeHostChangedFiles> {
+    const answer: CodeHostApiAnswer = await this.client.getJson(
+      `${data.path}/changes`,
+    );
+
+    const body: JSONObject = GitLabApi.asObject(
+      answer.json,
+      "the merge request's changes",
+    );
+    const entries: JSONArray = Array.isArray(body["changes"])
+      ? (body["changes"] as JSONArray)
+      : [];
+    const files: Array<CodeHostChangedFile> = [];
+
+    for (const entry of entries) {
+      const file: CodeHostChangedFile | null = GitLabApi.readDiff(entry);
+
+      if (file) {
+        files.push(file);
+      }
+    }
+
+    return {
+      files: files.slice(0, data.maxFiles),
+      hasMore: files.length > data.maxFiles || body["overflow"] === true,
+    };
+  }
+
+  /*
+   * Whether anyone on the internet can read the project: true for a public
+   * one, false for a private or an internal one (internal: the signed-in
+   * users of this GitLab only), null when GitLab could not say - which a
+   * caller deciding what to post reads as public. Asked every time it
+   * matters, never kept.
+   */
+  public async isProjectPublic(project: string): Promise<boolean | null> {
+    let answer: CodeHostApiAnswer;
+
+    try {
+      answer = await this.client.getJson(GitLabApi.projectPath(project));
+    } catch {
+      return null;
+    }
+
+    const visibility: string = CodeHostText.readString(
+      (answer.json as JSONObject | null)?.["visibility"],
+    ).toLowerCase();
+
+    if (visibility === "public") {
+      return true;
+    }
+
+    if (visibility === "private" || visibility === "internal") {
+      return false;
+    }
+
+    return null;
+  }
+
+  /*
+   * The project's open merge requests that changed after a time, the
+   * least recently changed first, as many as `limit` (a page): what the
+   * production review poll reads every minute.
+   */
+  public async listUpdatedMergeRequests(data: {
+    project: string;
+    updatedAfter: Date;
+    limit: number;
+  }): Promise<Array<CodeHostPullRequestDetails>> {
+    const answer: CodeHostApiAnswer = await this.client.getJson(
+      `${GitLabApi.projectPath(data.project)}/merge_requests`,
+      {
+        state: "opened",
+        updated_after: data.updatedAfter.toISOString(),
+        order_by: "updated_at",
+        sort: "asc",
+        per_page: Math.max(1, Math.min(GITLAB_PAGE_SIZE, Math.floor(data.limit))),
+        page: 1,
+      },
+    );
+
+    const entries: JSONArray = Array.isArray(answer.json)
+      ? (answer.json as JSONArray)
+      : [];
+    const mergeRequests: Array<CodeHostPullRequestDetails> = [];
+
+    for (const entry of entries) {
+      const details: CodeHostPullRequestDetails | null =
+        GitLabApi.readMergeRequest(entry);
+
+      if (details) {
+        mergeRequests.push(details);
+      }
+    }
+
+    return mergeRequests;
+  }
+
+  /*
+   * A user's role in the project - their own or one a group gives them
+   * (members/all) - as GitLab's access level: 30 is Developer, who pushes.
+   * -1 when they are not a member.
+   */
+  public async getMemberAccessLevel(data: {
+    project: string;
+    userId: string;
+  }): Promise<number> {
+    const userId: number = Number(data.userId);
+
+    if (!Number.isSafeInteger(userId) || userId <= 0) {
+      return -1;
+    }
+
+    let answer: CodeHostApiAnswer;
+
+    try {
+      answer = await this.client.getJson(
+        `${GitLabApi.projectPath(data.project)}/members/all/${userId}`,
+      );
+    } catch (error) {
+      if (
+        error instanceof CodeHostHttpError &&
+        error.kind === CodeHostHttpErrorKind.NotFound
+      ) {
+        return -1;
+      }
+
+      throw error;
+    }
+
+    const member: JSONObject | null =
+      answer.json && typeof answer.json === "object"
+        ? (answer.json as JSONObject)
+        : null;
+    const level: number = Number(member?.["access_level"]);
+
+    // A blocked or not yet accepted membership gives no role.
+    if (
+      CodeHostText.readString(member?.["state"]) &&
+      CodeHostText.readString(member?.["state"]) !== "active"
+    ) {
+      return -1;
+    }
+
+    return Number.isFinite(level) ? level : -1;
+  }
+
+  // Whether a role may push to the project: Developer or more.
+  public static canPush(accessLevel: number): boolean {
+    return accessLevel >= DEVELOPER_ACCESS_LEVEL;
+  }
+
+  // A note (comment) on a merge request, written as the token's account.
+  public async createMergeRequestNote(data: {
+    project: string;
+    iid: number;
+    body: string;
+    mergeRequestUrl: string;
+  }): Promise<CodeHostComment> {
+    const answer: CodeHostApiAnswer = await this.client.postJson(
+      `${GitLabApi.projectPath(data.project)}/merge_requests/${Math.floor(data.iid)}/notes`,
+      { body: data.body },
+    );
+
+    return GitLabApi.readNote(answer.json, data.mergeRequestUrl);
+  }
+
+  // A note OneUptime wrote, edited in place.
+  public async updateMergeRequestNote(data: {
+    project: string;
+    iid: number;
+    noteId: number;
+    body: string;
+    mergeRequestUrl: string;
+  }): Promise<CodeHostComment> {
+    const answer: CodeHostApiAnswer = await this.client.request({
+      method: "PUT",
+      path: `${GitLabApi.projectPath(data.project)}/merge_requests/${Math.floor(data.iid)}/notes/${Math.floor(data.noteId)}`,
+      body: { body: data.body },
+    });
+
+    return GitLabApi.readNote(answer.json, data.mergeRequestUrl);
+  }
+
+  // A merge request as the API answers it, or null for one that is not.
+  public static readMergeRequest(
+    raw: unknown,
+  ): CodeHostPullRequestDetails | null {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+      return null;
+    }
+
+    const mergeRequest: JSONObject = raw as JSONObject;
+    const iid: number = Number(mergeRequest["iid"]);
+
+    if (!Number.isSafeInteger(iid) || iid <= 0) {
+      return null;
+    }
+
+    const author: JSONObject = (mergeRequest["author"] as JSONObject) || {};
+    const state: string = CodeHostText.readString(mergeRequest["state"]);
+    const sourceProjectId: string = CodeHostText.readId(
+      mergeRequest["source_project_id"],
+    );
+    const targetProjectId: string = CodeHostText.readId(
+      mergeRequest["target_project_id"],
+    );
+
+    return {
+      number: iid,
+      title: CodeHostText.readString(mergeRequest["title"]),
+      isOpen: state === "opened" || state === "locked",
+      isMerged: state === "merged",
+      isDraft:
+        mergeRequest["draft"] === true ||
+        mergeRequest["work_in_progress"] === true,
+      htmlUrl: CodeHostText.readString(mergeRequest["web_url"]),
+      authorLogin: CodeHostText.readString(author["username"]),
+      authorId: CodeHostText.readId(author["id"]),
+      headSha: CodeHostText.readString(mergeRequest["sha"]),
+      headRefName: CodeHostText.readString(mergeRequest["source_branch"]),
+      baseRefName: CodeHostText.readString(mergeRequest["target_branch"]),
+      isFromFork:
+        !sourceProjectId ||
+        !targetProjectId ||
+        sourceProjectId !== targetProjectId,
+      changedFilesCount: GitLabApi.readChangesCount(
+        mergeRequest["changes_count"],
+      ),
+      changedLineCount: 0,
+      updatedAt: CodeHostText.readString(mergeRequest["updated_at"]),
+    };
+  }
+
+  /*
+   * GitLab's count of a merge request's files: a text ("12"), or "1000+"
+   * past what it counts - read as that many. 0 when it says nothing.
+   */
+  public static readChangesCount(raw: unknown): number {
+    const text: string =
+      typeof raw === "number" ? raw.toString() : CodeHostText.readString(raw);
+    const digits: string = text.endsWith("+")
+      ? text.substring(0, text.length - 1)
+      : text;
+    const count: number = Number(digits);
+
+    return Number.isSafeInteger(count) && count > 0 ? count : 0;
+  }
+
+  // One file of a merge request's diff, as /diffs and /changes list it.
+  public static readDiff(raw: unknown): CodeHostChangedFile | null {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+      return null;
+    }
+
+    const entry: JSONObject = raw as JSONObject;
+    const oldPath: string = CodeHostText.readString(entry["old_path"]);
+    const newPath: string = CodeHostText.readString(entry["new_path"]);
+    const isDeleted: boolean = entry["deleted_file"] === true;
+    const isNew: boolean = entry["new_file"] === true;
+    const isRenamed: boolean =
+      entry["renamed_file"] === true && !isNew && !isDeleted;
+    const filename: string = isDeleted ? oldPath || newPath : newPath || oldPath;
+
+    if (!filename) {
+      return null;
+    }
+
+    const diff: string = CodeHostText.readString(entry["diff"]);
+    let additions: number = 0;
+    let deletions: number = 0;
+
+    for (const line of diff.split("\n")) {
+      if (line.startsWith("+")) {
+        additions++;
+      } else if (line.startsWith("-")) {
+        deletions++;
+      }
+    }
+
+    const trimmed: string = diff.endsWith("\n")
+      ? diff.substring(0, diff.length - 1)
+      : diff;
+
+    return {
+      filename,
+      previousFilename: isRenamed && oldPath !== newPath ? oldPath : null,
+      status: isNew
+        ? "added"
+        : isDeleted
+          ? "removed"
+          : isRenamed
+            ? "renamed"
+            : "modified",
+      additions,
+      deletions,
+      patch: trimmed && entry["too_large"] !== true ? trimmed : null,
+    };
+  }
+
+  /*
+   * A note as GitLab answers it, with its address: GitLab gives none, and
+   * its page is the merge request's, at #note_<id>.
+   */
+  public static readNote(raw: unknown, mergeRequestUrl: string): CodeHostComment {
+    const id: number = Number(
+      raw && typeof raw === "object" ? (raw as JSONObject)["id"] : undefined,
+    );
+
+    if (!Number.isSafeInteger(id) || id <= 0) {
+      throw GitLabApi.badAnswer("the note it wrote");
+    }
+
+    return {
+      commentId: id,
+      htmlUrl: mergeRequestUrl
+        ? `${CodeHostUrl.trimTrailingSlashes(mergeRequestUrl)}#note_${id}`
+        : "",
+    };
   }
 
   /*

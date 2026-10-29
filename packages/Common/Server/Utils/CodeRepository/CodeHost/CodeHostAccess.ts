@@ -187,6 +187,32 @@ export interface CodeHostReader {
   }): string | null;
 }
 
+/*
+ * The API of a GitLab or Forgejo repository's connection, for the work the
+ * reader does not do - a production review's reads, and the comment it
+ * keeps on the pull request - under the reader's rules: only while the
+ * connection is usable and OneUptime's server reaches its host, and every
+ * call through `call`, which marks the connection refused when its server
+ * refuses the token and accepted again when it answers.
+ */
+export interface CodeHostConnectionApi {
+  repositoryId: string;
+  type: CodeRepositoryType;
+  // The repository's page on its host.
+  webUrl: string;
+  // Who the token acts as: OneUptime's own name on the host.
+  accountLogin: string | null;
+  // "Forgejo" or "Gitea", for a Forgejo-family server.
+  hostProduct: string | null;
+  gitLab: GitLabApi | null;
+  // The GitLab project, by id or path.
+  gitLabProject: string;
+  forgejo: ForgejoApi | null;
+  owner: string;
+  name: string;
+  call<T>(work: () => Promise<T>): Promise<T>;
+}
+
 export class CodeHostUnavailableError extends Error {}
 
 export default class CodeHostAccess {
@@ -444,6 +470,140 @@ export default class CodeHostAccess {
       connection,
       transport: CodeHostAccess.getTransport(),
     });
+  }
+
+  /*
+   * The API of a GitLab or Forgejo repository read with
+   * CODE_HOST_REPOSITORY_SELECT - or null when it is on another host, its
+   * connection is not usable (gone, another project's, refused) or
+   * OneUptime's server does not reach its host.
+   */
+  @CaptureSpan()
+  public static async getConnectionApi(
+    repository: CodeRepository,
+  ): Promise<CodeHostConnectionApi | null> {
+    if (!repository.id || !repository.projectId) {
+      return null;
+    }
+
+    const type: CodeRepositoryType = CodeHost.readType(
+      repository.repositoryHostedAt,
+    );
+
+    if (
+      type !== CodeRepositoryType.GitLab &&
+      type !== CodeRepositoryType.Forgejo
+    ) {
+      return null;
+    }
+
+    if (!repository.codeRepositoryConnectionId) {
+      return null;
+    }
+
+    const connections: Map<string, CodeRepositoryConnection> =
+      await CodeHostAccess.readConnections({
+        projectId: repository.projectId,
+        connectionIds: [repository.codeRepositoryConnectionId.toString()],
+      });
+
+    const connection: CodeRepositoryConnection | undefined = connections.get(
+      repository.codeRepositoryConnectionId.toString(),
+    );
+
+    const summary: CodeHostConnectionSummary = CodeHostAccess.summarize({
+      repository,
+      boundInstallationId: null,
+      connection,
+    });
+
+    if (
+      summary.state !== CodeHostConnectionState.Connected ||
+      !connection ||
+      connection.isReachableFromServer === false
+    ) {
+      return null;
+    }
+
+    return CodeHostAccess.createConnectionApi({
+      repository,
+      connection,
+      transport: CodeHostAccess.getTransport(),
+    });
+  }
+
+  // The API of a repository and its usable connection (getConnectionApi).
+  public static createConnectionApi(data: {
+    repository: CodeRepository;
+    connection: CodeRepositoryConnection;
+    transport: CodeHostTransport;
+  }): CodeHostConnectionApi {
+    const repository: CodeRepository = data.repository;
+    const connection: CodeRepositoryConnection = data.connection;
+    const type: CodeRepositoryType = CodeHost.readType(
+      repository.repositoryHostedAt,
+    );
+    const credentials: CodeRepositoryConnectionCredentials =
+      CodeRepositoryConnectionServiceClass.readCredentials(
+        connection.credentials,
+      )!;
+    const hostUrl: string = connection.hostUrl || "";
+    const owner: string = repository.organizationName || "";
+    const name: string = repository.repositoryName || "";
+
+    return {
+      repositoryId: repository.id!.toString(),
+      type,
+      webUrl: repository.repositoryUrl?.toString() || `${hostUrl}/${owner}/${name}`,
+      accountLogin: connection.accountLogin || null,
+      hostProduct: connection.hostProduct || null,
+      gitLab:
+        type === CodeRepositoryType.GitLab
+          ? new GitLabApi({
+              hostUrl,
+              token: credentials.token,
+              transport: data.transport,
+            })
+          : null,
+      gitLabProject:
+        repository.gitLabProjectId || (owner && name ? `${owner}/${name}` : ""),
+      forgejo:
+        type === CodeRepositoryType.Forgejo
+          ? new ForgejoApi({
+              hostUrl,
+              token: credentials.token,
+              transport: data.transport,
+              providerName: connection.hostProduct || "Forgejo",
+            })
+          : null,
+      owner,
+      name,
+      call: async <T>(work: () => Promise<T>): Promise<T> => {
+        return await CodeHostAccess.callThroughConnection(connection, work);
+      },
+    };
+  }
+
+  /*
+   * One call to a connection's host: a refusal of the token marks the
+   * connection refused (its repositories show as not connected, with
+   * Replace access token), and an answer after one clears it.
+   */
+  public static async callThroughConnection<T>(
+    connection: CodeRepositoryConnection,
+    work: () => Promise<T>,
+  ): Promise<T> {
+    try {
+      const result: T = await work();
+      await CodeRepositoryConnectionService.markAccepted(connection);
+      return result;
+    } catch (error) {
+      if (error instanceof CodeHostHttpError && error.isCredentialRefusal()) {
+        await CodeRepositoryConnectionService.markRefused(connection);
+      }
+
+      throw error;
+    }
   }
 
   // How many of the project's repositories use each of the connections.
@@ -706,17 +866,7 @@ export default class CodeHostAccess {
         );
       }
 
-      try {
-        const result: T = await work();
-        await CodeRepositoryConnectionService.markAccepted(connection);
-        return result;
-      } catch (error) {
-        if (error instanceof CodeHostHttpError && error.isCredentialRefusal()) {
-          await CodeRepositoryConnectionService.markRefused(connection);
-        }
-
-        throw error;
-      }
+      return await CodeHostAccess.callThroughConnection(connection, work);
     };
 
     const tokenKey: string = crypto
