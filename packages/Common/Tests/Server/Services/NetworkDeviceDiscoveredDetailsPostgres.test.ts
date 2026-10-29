@@ -4,6 +4,12 @@ import NetworkDeviceService, {
   DISCOVERED_DETAILS_MERGE_CHUNK_SIZE,
 } from "../../../Server/Services/NetworkDeviceService";
 import { JSONObject } from "../../../Types/JSON";
+import NetworkControllerProvider from "../../../Types/NetworkController/NetworkControllerProvider";
+import {
+  NetworkDeviceControllerReading,
+  NetworkDeviceDiscoveryReaderType,
+  buildControllerReading,
+} from "../../../Types/NetworkDevice/NetworkDeviceDiscoveredDetails";
 import ObjectID from "../../../Types/ObjectID";
 import {
   afterAll,
@@ -34,6 +40,20 @@ import { DataSource } from "typeorm";
  *     serialises the statements, and neither reads a stale column;
  *   - a batch larger than one chunk is written whole;
  *   - it leaves updatedAt alone.
+ *
+ * And what a network controller connection (the Meraki dashboard) reads and
+ * writes there (NetworkControllerInventory):
+ *
+ *   - its reading, the `controller` key, is merged whole beside the other
+ *     writers' keys, and the next one replaces it whole;
+ *   - findControllerMatchCandidates finds the devices its device list may
+ *     describe - by serial number without case or padding, by a MAC typed
+ *     or learned from an ARP table, by the address a device is polled at,
+ *     or by the connection's own earlier reading - in the project only,
+ *     never a deleted or archived device, and reads refreshRequestedAt, the
+ *     column AddNetworkDeviceRefreshRequestedAt1808300000000 added;
+ *   - forgetControllerReadings drops that connection's reading only, and
+ *     leaves updatedAt alone.
  *
  * Opt in with RUN_POSTGRES_NETWORK_DEVICE_DISCOVERED_DETAILS_TESTS=true
  * against a Postgres migrated to the current head - the Postgres Schema Drift
@@ -397,5 +417,322 @@ describePostgres("a device's discovered details merged on Postgres", () => {
     expect(new Date(rows[0]!.updatedAt).toISOString()).toBe(
       "2026-10-01T00:00:00.000Z",
     );
+  });
+
+  /*
+   * ------------------------------------------------------------------
+   * What a network controller connection reads and writes
+   * ------------------------------------------------------------------
+   */
+
+  const CONNECTION_ID: ObjectID = ObjectID.generate();
+  const OTHER_CONNECTION_ID: ObjectID = ObjectID.generate();
+
+  function controllerReading(
+    connectionId: ObjectID,
+    values: Record<string, string>,
+  ): NetworkDeviceControllerReading {
+    const reading: NetworkDeviceControllerReading | undefined =
+      buildControllerReading({
+        provider: NetworkControllerProvider.Meraki,
+        readBy: {
+          type: NetworkDeviceDiscoveryReaderType.NetworkController,
+          id: connectionId.toString(),
+          name: "Acme Retail",
+        },
+        readAt: "2026-10-28T10:00:00.000Z",
+        values: values,
+      });
+
+    if (!reading) {
+      throw new Error("The controller reading was not built");
+    }
+
+    return reading;
+  }
+
+  async function insertCandidate(data: {
+    projectId?: ObjectID;
+    hostname?: string;
+    serialNumber?: string;
+    macAddress?: string;
+    discoveredDetails?: JSONObject;
+    isArchived?: boolean;
+    deletedAt?: Date;
+    refreshRequestedAt?: Date;
+  }): Promise<string> {
+    const id: ObjectID = ObjectID.generate();
+    await database.query(
+      `INSERT INTO "${schema}"."NetworkDevice"
+         ("_id", "projectId", "name", "hostname", "serialNumber", "macAddress",
+          "discoveredDetails", "isArchived", "deletedAt", "refreshRequestedAt",
+          "createdAt", "updatedAt", "version")
+       VALUES ($1, $2, 'device', $3, $4, $5, $6::jsonb, $7, $8, $9,
+               '2026-10-01T00:00:00.000Z', '2026-10-01T00:00:00.000Z', 1)`,
+      [
+        id.toString(),
+        (data.projectId || PROJECT_ID).toString(),
+        data.hostname || null,
+        data.serialNumber || null,
+        data.macAddress || null,
+        data.discoveredDetails ? JSON.stringify(data.discoveredDetails) : null,
+        data.isArchived === true,
+        data.deletedAt || null,
+        data.refreshRequestedAt || null,
+      ],
+    );
+    return id.toString();
+  }
+
+  test("a controller reading is merged whole beside the other writers' keys, and the next replaces it whole", async () => {
+    const id: ObjectID = await insertDevice({
+      discoveredDetails: {
+        macAddress: arpReading("00:1b:54:c2:7a:07", "2026-10-23T06:00:00.000Z"),
+      },
+    });
+    const first: NetworkDeviceControllerReading = controllerReading(
+      CONNECTION_ID,
+      {
+        name: "Lobby AP",
+        model: "MR46",
+        serialNumber: "Q2KD-ABCD-1234",
+        firmwareVersion: "wireless-29-7",
+        networkName: "Branch 12",
+      },
+    );
+
+    expect(
+      await NetworkDeviceService.mergeDiscoveredDetails({
+        projectId: PROJECT_ID,
+        patches: [{ deviceId: id, set: { controller: first } }],
+      }),
+    ).toBe(1);
+    expect(await detailsOf(id)).toEqual({
+      macAddress: arpReading("00:1b:54:c2:7a:07", "2026-10-23T06:00:00.000Z"),
+      controller: JSON.parse(JSON.stringify(first)),
+    });
+
+    // The next read: a firmware upgrade, and Meraki says no network now.
+    const next: NetworkDeviceControllerReading = controllerReading(
+      CONNECTION_ID,
+      {
+        name: "Lobby AP",
+        model: "MR46",
+        serialNumber: "Q2KD-ABCD-1234",
+        firmwareVersion: "wireless-30-1",
+      },
+    );
+
+    await NetworkDeviceService.mergeDiscoveredDetails({
+      projectId: PROJECT_ID,
+      patches: [{ deviceId: id, set: { controller: next } }],
+    });
+
+    const after: JSONObject | null = await detailsOf(id);
+    expect(after?.["controller"]).toEqual(JSON.parse(JSON.stringify(next)));
+    // Nothing of the reading before it is left behind.
+    expect(
+      (after?.["controller"] as { values: JSONObject }).values["networkName"],
+    ).toBeUndefined();
+
+    // A device the connection no longer describes loses it, and only it.
+    await NetworkDeviceService.mergeDiscoveredDetails({
+      projectId: PROJECT_ID,
+      patches: [{ deviceId: id, unset: ["controller"] }],
+    });
+    expect(await detailsOf(id)).toEqual({
+      macAddress: arpReading("00:1b:54:c2:7a:07", "2026-10-23T06:00:00.000Z"),
+    });
+  });
+
+  test("the devices a connection's device list may describe, by each rule, in the project, live and not archived", async () => {
+    const askedAt: Date = new Date("2026-10-28T11:59:00.000Z");
+    const bySerial: string = await insertCandidate({
+      serialNumber: " q2kd-abcd-1234 ",
+      refreshRequestedAt: askedAt,
+    });
+    const byTypedMac: string = await insertCandidate({
+      macAddress: "e0:55:3d:12:34:57",
+    });
+    const byLearnedMac: string = await insertCandidate({
+      discoveredDetails: {
+        macAddress: arpReading("e0:55:3d:12:34:58", "2026-10-23T06:00:00.000Z"),
+      },
+    });
+    const byAddress: string = await insertCandidate({
+      hostname: "10.20.30.44",
+    });
+    const describedBefore: string = await insertCandidate({
+      hostname: "10.99.0.1",
+      discoveredDetails: {
+        controller: JSON.parse(
+          JSON.stringify(
+            controllerReading(CONNECTION_ID, {
+              serialNumber: "Q2KD-GONE-0001",
+            }),
+          ),
+        ),
+      },
+    });
+
+    // None of these.
+    await insertCandidate({
+      hostname: "10.99.0.2",
+      discoveredDetails: {
+        controller: JSON.parse(
+          JSON.stringify(
+            controllerReading(OTHER_CONNECTION_ID, {
+              serialNumber: "Q2KD-ELSE-0001",
+            }),
+          ),
+        ),
+      },
+    });
+    await insertCandidate({
+      projectId: OTHER_PROJECT_ID,
+      serialNumber: "Q2KD-ABCD-1234",
+    });
+    await insertCandidate({
+      serialNumber: "Q2KD-ABCD-1234",
+      deletedAt: new Date("2026-10-22T00:00:00.000Z"),
+    });
+    await insertCandidate({
+      macAddress: "e0:55:3d:12:34:57",
+      isArchived: true,
+    });
+    await insertCandidate({
+      hostname: "10.20.30.99",
+      serialNumber: "FOC1840X0AB",
+      macAddress: "00:1b:54:c2:7a:01",
+    });
+
+    const found: Awaited<
+      ReturnType<typeof NetworkDeviceService.findControllerMatchCandidates>
+    > = await NetworkDeviceService.findControllerMatchCandidates({
+      projectId: PROJECT_ID,
+      connectionId: CONNECTION_ID,
+      lookup: {
+        serials: ["Q2KD-ABCD-1234"],
+        macs: ["e0:55:3d:12:34:57", "e0:55:3d:12:34:58"],
+        addresses: ["10.20.30.44"],
+      },
+      limit: 100,
+    });
+
+    expect(
+      found
+        .map((row: { id: string }) => {
+          return row.id;
+        })
+        .sort(),
+    ).toEqual(
+      [bySerial, byTypedMac, byLearnedMac, byAddress, describedBefore].sort(),
+    );
+
+    const serialRow: (typeof found)[number] | undefined = found.find(
+      (row: { id: string }) => {
+        return row.id === bySerial;
+      },
+    );
+    expect(serialRow?.serialNumber).toBe(" q2kd-abcd-1234 ");
+    expect(serialRow?.isArchived).toBe(false);
+    expect(new Date(serialRow!.refreshRequestedAt!).toISOString()).toBe(
+      askedAt.toISOString(),
+    );
+    expect(
+      found.find((row: { id: string }) => {
+        return row.id === byLearnedMac;
+      })?.discoveredDetails,
+    ).toEqual({
+      macAddress: arpReading("e0:55:3d:12:34:58", "2026-10-23T06:00:00.000Z"),
+    });
+
+    // At most `limit` rows.
+    expect(
+      (
+        await NetworkDeviceService.findControllerMatchCandidates({
+          projectId: PROJECT_ID,
+          connectionId: CONNECTION_ID,
+          lookup: {
+            serials: ["Q2KD-ABCD-1234"],
+            macs: ["e0:55:3d:12:34:57", "e0:55:3d:12:34:58"],
+            addresses: ["10.20.30.44"],
+          },
+          limit: 2,
+        })
+      ).length,
+    ).toBe(2);
+
+    // An empty list finds only what the connection described before.
+    expect(
+      (
+        await NetworkDeviceService.findControllerMatchCandidates({
+          projectId: PROJECT_ID,
+          connectionId: CONNECTION_ID,
+          lookup: { serials: [], macs: [], addresses: [] },
+          limit: 100,
+        })
+      ).map((row: { id: string }) => {
+        return row.id;
+      }),
+    ).toEqual([describedBefore]);
+  });
+
+  test("forgetting a deleted connection drops its readings only, in its project, and leaves updatedAt alone", async () => {
+    const arp: JSONObject = arpReading(
+      "00:1b:54:c2:7a:07",
+      "2026-10-23T06:00:00.000Z",
+    );
+    const ours: JSONObject = JSON.parse(
+      JSON.stringify(
+        controllerReading(CONNECTION_ID, { serialNumber: "Q2KD-ABCD-1234" }),
+      ),
+    );
+    const theirs: JSONObject = JSON.parse(
+      JSON.stringify(
+        controllerReading(OTHER_CONNECTION_ID, {
+          serialNumber: "Q2KD-ELSE-0001",
+        }),
+      ),
+    );
+
+    const described: ObjectID = await insertDevice({
+      discoveredDetails: { macAddress: arp, controller: ours },
+    });
+    const describedByAnother: ObjectID = await insertDevice({
+      discoveredDetails: { controller: theirs },
+    });
+    const anotherProjects: ObjectID = await insertDevice({
+      projectId: OTHER_PROJECT_ID,
+      discoveredDetails: { controller: ours },
+    });
+
+    const touched: number = await NetworkDeviceService.forgetControllerReadings(
+      {
+        projectId: PROJECT_ID,
+        connectionId: CONNECTION_ID,
+      },
+    );
+
+    expect(touched).toBe(1);
+    expect(await detailsOf(described)).toEqual({ macAddress: arp });
+    expect(await detailsOf(describedByAnother)).toEqual({ controller: theirs });
+    expect(await detailsOf(anotherProjects)).toEqual({ controller: ours });
+
+    const rows: Array<{ updatedAt: Date }> = await database.query(
+      `SELECT "updatedAt" FROM "${schema}"."NetworkDevice" WHERE "_id" = $1`,
+      [described.toString()],
+    );
+    expect(new Date(rows[0]!.updatedAt).toISOString()).toBe(
+      "2026-10-01T00:00:00.000Z",
+    );
+
+    // Again: nothing left to forget.
+    expect(
+      await NetworkDeviceService.forgetControllerReadings({
+        projectId: PROJECT_ID,
+        connectionId: CONNECTION_ID,
+      }),
+    ).toBe(0);
   });
 });

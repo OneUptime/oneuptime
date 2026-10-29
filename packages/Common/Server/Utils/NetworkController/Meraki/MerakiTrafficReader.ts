@@ -9,6 +9,7 @@ import { NetworkTrafficUsageKind } from "../../../../Types/NetFlow/NetworkTraffi
 import LlmProviderError from "../../LlmObservability/LlmProviderError";
 import {
   NetworkControllerAppliance,
+  NetworkControllerDevice,
   NetworkControllerPullState,
   NetworkControllerReadOptions,
   NetworkControllerReadResult,
@@ -16,6 +17,7 @@ import {
   NetworkTrafficUsageRecord,
   NetworkTrafficUsageWindowKey,
 } from "../NetworkControllerTypes";
+import { getMerakiAppliances, readMerakiDevices } from "./MerakiDeviceList";
 import MerakiApiClient, {
   MerakiBudgetSpent,
   MerakiList,
@@ -37,8 +39,11 @@ import {
  * What the Meraki dashboard API can tell, and how often it is asked
  * (OneUptime issue #5140 - the research is in the PR that added this):
  *
- *   1. the organization, its networks and its appliances (MX, Z): three
- *      listings of 1,000 a page, so 1,200 devices are a few calls;
+ *   1. the organization, its networks and its devices: listings of 1,000 a
+ *      page, so 1,200 devices are a few calls. The appliances among the
+ *      devices (MX, Z) carry the uplinks; every device's description is
+ *      what Inventory fills a device's missing details from
+ *      (MerakiDeviceList, NetworkControllerInventory);
  *   2. uplink usage, for EVERY appliance of the organization in one call
  *      (organizations/{id}/appliance/uplinks/usage/byNetwork, any window of
  *      up to 14 days in the last 30): read in five-minute windows, each
@@ -404,28 +409,56 @@ export default class MerakiTrafficReader {
       );
     }
 
+    const networkNames: Map<string, string> = new Map(
+      networks.map((network: MerakiNetwork): [string, string] => {
+        return [network.id, network.name];
+      }),
+    );
+
+    /*
+     * Every device, not only the appliances: Inventory takes what Meraki
+     * says about each from the same listing (MerakiDeviceList), and the
+     * appliances among them are what the uplinks are named by.
+     */
     const deviceList: MerakiList = await progress.client.getAll(
       `${progress.orgPath}/devices`,
-      buildMerakiQuery([
-        ["perPage", LIST_PAGE_SIZE],
-        ["productTypes[]", "appliance"],
-      ]),
-      "list of appliances",
+      buildMerakiQuery([["perPage", LIST_PAGE_SIZE]]),
+      "list of devices",
       MAX_LIST_PAGES,
     );
-    const appliances: Array<NetworkControllerAppliance> = readAppliances(
+    const devices: Array<NetworkControllerDevice> = readMerakiDevices(
       deviceList.items,
+      networkNames,
     );
+    let appliances: Array<NetworkControllerAppliance> =
+      getMerakiAppliances(devices);
+
+    if (deviceList.isTruncated) {
+      progress.warnings.add(
+        `The organization has more than ${(LIST_PAGE_SIZE * MAX_LIST_PAGES).toLocaleString("en-US")} devices: only the first ${(LIST_PAGE_SIZE * MAX_LIST_PAGES).toLocaleString("en-US")} have their details read.`,
+      );
+
+      /*
+       * The appliances past the cut still carry uplinks: they are listed on
+       * their own, as the read listed them before it read every device.
+       */
+      const applianceList: MerakiList = await progress.client.getAll(
+        `${progress.orgPath}/devices`,
+        buildMerakiQuery([
+          ["perPage", LIST_PAGE_SIZE],
+          ["productTypes[]", "appliance"],
+        ]),
+        "list of appliances",
+        MAX_LIST_PAGES,
+      );
+      appliances = readAppliances(applianceList.items);
+    }
 
     try {
       // 2. Uplink usage, organization-wide, window by window.
       await MerakiTrafficReader.readUplinks(progress, {
         appliances,
-        networkNames: new Map(
-          networks.map((network: MerakiNetwork): [string, string] => {
-            return [network.id, network.name];
-          }),
-        ),
+        networkNames,
       });
 
       // 3. Applications, destinations and clients, network by network.
@@ -471,6 +504,8 @@ export default class MerakiTrafficReader {
       organizationName,
       networkCount: networks.length,
       appliances,
+      devices,
+      isDeviceListComplete: !deviceList.isTruncated,
       records: progress.records,
       windows: progress.windows,
       uplinkWindows: progress.uplinkWindows,

@@ -206,6 +206,8 @@ En nätverksenhet (`entityType: network.device`) speglas från sin Network Devic
 
 ENTITY-MIB-raderna fylls i efter enhetens första SNMP-walk. En enhet som inte gås igenom, eftersom den bara övervakas med ping eller ännu inte har pollats, får ändå sitt namn, märke, operativsystem och sin plats från det som den senaste discovery-skanningen av dess adress läste över SNMP, och sin MAC-adress från ARP-tabellen i en genomgången router. En enhet som inte implementerar ENTITY-MIB har inget serienummer eller firmware att rapportera. Dess `sysDescr` nämner ändå modellen och operativsystemet för många plattformar: en Cisco Meraki MX rapporterar `Meraki MX85`, vilket fyller i märke och modell. En plattform vars `sysDescr` inte har någon känd form lägger inte till något, i stället för att gissa.
 
+En Meraki-enhet hämtar det som dess egen pollning lämnar tomt från Meraki-dashboarden, när en [Meraki-anslutning](/docs/monitor/network-traffic#cisco-meraki-utan-netflow) läser dess organisation: dess serienummer, modell, firmware och märke, dess MAC-adress, dess namn, dess hanteringsadress, den gatuadress den är registrerad under och dess typ. En enhet är en av organisationens enheter när dess serienummer eller MAC-adress är Meraki-enhetens, eller när OneUptime pollar den på Meraki-enhetens hanteringsadress och den har samma namn. Ett värde som har sparats på enheten, och det som dess egen pollning läser, går först.
+
 Ett värde som har sparats på enheten, inskrivet eller satt via API:et, ersätts aldrig av det som discovery läser. Av ett värde som enhetens egen walk läste och ett som en skanning läste används det nyaste. Det som en skanning läste används bara när skanningen hittade samma maskin på adressen: när systemnamnet, `sysObjectID` eller NetBIOS-namnet den läste motsäger enhetens används inget av det den läste där. Objektets kort **Tillgångsdetaljer** visar var varje värde kom ifrån och när.
 
 Värdnamnet är aldrig IP-adressen. En enhet som bara dess adress namnger har `host.ip` och inget `host.name`. När dess SNMP-walk rapporterar ett systemnamn följer `host.name` vid nästa genomgång.
@@ -223,6 +225,8 @@ Datum i `customFields` är ISO-8601-strängar i UTC, och CSV-exporten skriver de
 ## Håll det aktuellt
 
 Det finns inget ändringsflöde. Polla listslutpunkten med det intervall som passar dig, och jämför på `entityKey`. `lastSeenAt` talar om när ett objekt senast observerades, vilket oftast är det billigaste sättet att upptäcka det som har tystnat sedan din senaste körning.
+
+För att läsa en nätverksenhet igen nu, utan att vänta på dess nästa pollning och nästa kopia, trycker du på **Uppdatera** på objektets kort **Tillgångsdetaljer**, eller skickar `POST /api/network-device/{id}/refresh` med en nyckel som har **Edit Network Device**. Dess sond pollar den inom en minut, dess Meraki-anslutning läser organisationen igen, och dess objekt kopieras så snart den nya avläsningen har kommit in.
 
 Ett objekt som försvinner mellan två körningar har antingen löpt ut (ett upptäckt objekt som var tyst längre än sitt fönster) eller fått sin egen post raderad. Ett speglat objekt som bär värden i anpassade fält arkiveras i stället för att raderas när dess post försvinner, så fråga med `"isArchived": true` för att se vad som har fasats ut utan att förlora de tillgångsdata som hör till det.
 

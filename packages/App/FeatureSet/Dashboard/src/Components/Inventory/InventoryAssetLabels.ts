@@ -71,3 +71,16 @@ export const INVENTORY_ASSET_HELP: Readonly<
     },
   },
 };
+
+/*
+ * The same line for a network device the Meraki dashboard describes: the
+ * dashboard was asked too, and it has not got them either (Meraki lists no
+ * operating system, for one), so the line names it beside the poll and the
+ * scans rather than leaving the reader to wonder whether it was read.
+ */
+export const NETWORK_DEVICE_CONTROLLER_UNKNOWN: { one: string; other: string } =
+  {
+    one: "{{count}} detail is unknown: neither this device's SNMP poll, the Meraki dashboard nor a discovery scan has found it.",
+    other:
+      "{{count}} details are unknown: neither this device's SNMP poll, the Meraki dashboard nor a discovery scan has found them.",
+  };

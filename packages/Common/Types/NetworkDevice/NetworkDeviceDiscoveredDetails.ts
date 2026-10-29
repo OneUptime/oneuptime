@@ -1,4 +1,7 @@
 import IP from "../IP/IP";
+import NetworkControllerProvider, {
+  isNetworkControllerProvider,
+} from "../NetworkController/NetworkControllerProvider";
 import { normalizeMac } from "../../Utils/Monitor/EndpointAttachmentUtil";
 import { normalizeNetbiosName } from "../../Utils/NetworkDiscovery/NetbiosNameUtil";
 import { normalizeReverseDnsName } from "../../Utils/NetworkDiscovery/ReverseDnsNameUtil";
@@ -36,10 +39,12 @@ import { normalizeReverseDnsName } from "../../Utils/NetworkDiscovery/ReverseDns
  * discovery read, both are shown.
  *
  * FLAT, ON PURPOSE. Each entry is a top-level key of the jsonb column, so the
- * three writers - the discovery engine (scan results), the ARP learner (MACs)
- * and the poll pipeline (resolved addresses) - each merge their own keys with
- * jsonb `||` in one statement (NetworkDeviceService.mergeDiscoveredDetails)
- * and never overwrite one another's.
+ * four writers - the discovery engine (scan results), the ARP learner (MACs),
+ * the poll pipeline (resolved addresses) and a network controller connection
+ * (what the device's controller says it is, under one key of its own) - each
+ * merge their own keys with jsonb `||` in one statement
+ * (NetworkDeviceService.mergeDiscoveredDetails) and never overwrite one
+ * another's.
  *
  * EVERY VALUE IS UNTRUSTED. A PTR name is chosen by whoever runs DNS for the
  * scanned subnet, a NetBIOS name and an SNMP system group by the machine at
@@ -81,6 +86,12 @@ export enum NetworkDeviceDiscoveryReaderType {
   // A walked device: the router or switch whose ARP table it is.
   NetworkDevice = "networkDevice",
   Probe = "probe",
+  /*
+   * A network controller connection - a Meraki organization the project
+   * reads (NetworkControllerConnection): what its controller says about the
+   * device. Only the controller reading below is read by one.
+   */
+  NetworkController = "networkController",
 }
 
 export interface NetworkDeviceDiscoveryReader {
@@ -124,13 +135,104 @@ export interface NetworkDeviceOtherMachineSighting {
   netbiosName?: string | undefined;
 }
 
+/*
+ * What a device's network controller says it is: one reading of the
+ * controller's device list (the Meraki dashboard's, for a Meraki
+ * organization the project reads), recorded whole by the connection that
+ * read it - unlike the per-field entries above, every value of it was read
+ * at the same moment by the same reader, and it is replaced whole by the next
+ * reading. Integration data as a source of a device's details (the
+ * follow-ups of #5185 and #5225).
+ *
+ * The controller knows the box by its serial number, so what it says is the
+ * device's own: its model, serial number, firmware, MAC address and
+ * management address, the name it carries in the controller, its product
+ * type, the controller network it belongs to and the street address the
+ * controller files it under.
+ */
+export enum NetworkDeviceControllerField {
+  Name = "name",
+  Model = "model",
+  SerialNumber = "serialNumber",
+  MacAddress = "macAddress",
+  IpAddress = "ipAddress",
+  FirmwareVersion = "firmwareVersion",
+  ProductType = "productType",
+  NetworkName = "networkName",
+  Address = "address",
+}
+
+export const NETWORK_DEVICE_CONTROLLER_FIELDS: ReadonlyArray<NetworkDeviceControllerField> =
+  [
+    NetworkDeviceControllerField.Name,
+    NetworkDeviceControllerField.Model,
+    NetworkDeviceControllerField.SerialNumber,
+    NetworkDeviceControllerField.MacAddress,
+    NetworkDeviceControllerField.IpAddress,
+    NetworkDeviceControllerField.FirmwareVersion,
+    NetworkDeviceControllerField.ProductType,
+    NetworkDeviceControllerField.NetworkName,
+    NetworkDeviceControllerField.Address,
+  ];
+
+/*
+ * The product types a Meraki device list names
+ * (developer.cisco.com/meraki/api-v1/get-organization-devices). Anything
+ * else is not one and is dropped, never shown.
+ */
+export const NETWORK_CONTROLLER_PRODUCT_TYPES: ReadonlyArray<string> = [
+  "appliance",
+  "switch",
+  "wireless",
+  "camera",
+  "sensor",
+  "cellularGateway",
+  "wirelessController",
+  "campusGateway",
+  "secureConnect",
+  "systemsManager",
+];
+
+/*
+ * The longest each controller value is kept: a name, model, serial number,
+ * firmware and network name as wide as the device columns that hold the
+ * same kind of detail (varchar(100)); a street address 255.
+ */
+export const MAX_CONTROLLER_VALUE_LENGTH: Readonly<
+  Record<NetworkDeviceControllerField, number>
+> = {
+  [NetworkDeviceControllerField.Name]: 100,
+  [NetworkDeviceControllerField.Model]: 100,
+  [NetworkDeviceControllerField.SerialNumber]: 100,
+  [NetworkDeviceControllerField.MacAddress]: 17,
+  [NetworkDeviceControllerField.IpAddress]: 45,
+  [NetworkDeviceControllerField.FirmwareVersion]: 100,
+  [NetworkDeviceControllerField.ProductType]: 32,
+  [NetworkDeviceControllerField.NetworkName]: 100,
+  [NetworkDeviceControllerField.Address]: 255,
+};
+
+export interface NetworkDeviceControllerReading {
+  // The controller: a NetworkControllerProvider ("meraki").
+  provider: NetworkControllerProvider;
+  // The connection that read it, by id and by its name at the time.
+  readBy: NetworkDeviceDiscoveryReader;
+  // ISO-8601, UTC: when the connection read the controller's device list.
+  readAt: string;
+  values: Partial<Record<NetworkDeviceControllerField, string>>;
+}
+
 export interface NetworkDeviceDiscoveredDetails {
   values: Partial<
     Record<NetworkDeviceDiscoveredField, NetworkDeviceDiscoveredValue>
   >;
   foundBy?: NetworkDeviceDiscoverySighting | undefined;
   otherMachine?: NetworkDeviceOtherMachineSighting | undefined;
+  controller?: NetworkDeviceControllerReading | undefined;
 }
+
+// The jsonb key of the controller reading.
+export const DISCOVERED_DETAILS_CONTROLLER_KEY: string = "controller";
 
 // The jsonb keys of the two address notes.
 export const DISCOVERED_DETAILS_FOUND_BY_KEY: string = "foundBy";
@@ -255,14 +357,16 @@ export function isNetworkDeviceDiscoveredField(
 }
 
 /*
- * True for a top-level key of the jsonb column: a field, or one of the two
- * address notes. A writer may set or drop only these.
+ * True for a top-level key of the jsonb column: a field, one of the two
+ * address notes, or the controller reading. A writer may set or drop only
+ * these.
  */
 export function isDiscoveredDetailsKey(value: unknown): value is string {
   return (
     isNetworkDeviceDiscoveredField(value) ||
     value === DISCOVERED_DETAILS_FOUND_BY_KEY ||
-    value === DISCOVERED_DETAILS_OTHER_MACHINE_KEY
+    value === DISCOVERED_DETAILS_OTHER_MACHINE_KEY ||
+    value === DISCOVERED_DETAILS_CONTROLLER_KEY
   );
 }
 
@@ -607,6 +711,101 @@ export function buildOtherMachineSighting(data: {
 }
 
 /**
+ * One value of a controller reading as it may be stored and shown, or
+ * undefined when it is not usable as one: a MAC through the one MAC
+ * normaliser, an address only when it is an address literal, a product type
+ * only when it is one the controller names, and cleaned, bounded text for the
+ * rest. The controller's answer is outside text, and so is the column an API
+ * create can carry: both pass through here.
+ */
+export function normalizeControllerValue(
+  field: NetworkDeviceControllerField,
+  value: unknown,
+): string | undefined {
+  switch (field) {
+    case NetworkDeviceControllerField.MacAddress:
+      return typeof value === "string"
+        ? normalizeMac(value.substring(0, MAX_INPUT_SCAN_LENGTH))
+        : undefined;
+    case NetworkDeviceControllerField.IpAddress: {
+      const text: string | undefined = cleanDiscoveredText(
+        value,
+        MAX_CONTROLLER_VALUE_LENGTH[NetworkDeviceControllerField.IpAddress],
+      );
+      return text && IP.isIP(text) ? text : undefined;
+    }
+    case NetworkDeviceControllerField.ProductType: {
+      const text: string | undefined = cleanDiscoveredText(
+        value,
+        MAX_CONTROLLER_VALUE_LENGTH[NetworkDeviceControllerField.ProductType],
+      );
+      return text && NETWORK_CONTROLLER_PRODUCT_TYPES.includes(text)
+        ? text
+        : undefined;
+    }
+    default:
+      return cleanDiscoveredText(value, MAX_CONTROLLER_VALUE_LENGTH[field]);
+  }
+}
+
+/**
+ * A controller reading, ready to store - or undefined when the controller is
+ * not one OneUptime reads, the reader is not a network controller
+ * connection, the time does not parse, or nothing it holds is usable. Every
+ * writer builds its reading here, and the reader below reads stored ones
+ * through it, so what is stored is what is read back.
+ */
+export function buildControllerReading(data: {
+  provider: unknown;
+  // A NetworkDeviceDiscoveryReader; read defensively all the same.
+  readBy: unknown;
+  readAt: unknown;
+  values: unknown;
+}): NetworkDeviceControllerReading | undefined {
+  if (!isNetworkControllerProvider(data.provider)) {
+    return undefined;
+  }
+
+  const readBy: NetworkDeviceDiscoveryReader | undefined = readDiscoveryReader(
+    data.readBy,
+  );
+  const readAt: string | undefined = readDiscoveryTime(data.readAt);
+
+  if (
+    !readBy ||
+    readBy.type !== NetworkDeviceDiscoveryReaderType.NetworkController ||
+    !readAt ||
+    !isPlainObject(data.values)
+  ) {
+    return undefined;
+  }
+
+  const values: Partial<Record<NetworkDeviceControllerField, string>> = {};
+
+  for (const field of NETWORK_DEVICE_CONTROLLER_FIELDS) {
+    const value: string | undefined = normalizeControllerValue(
+      field,
+      data.values[field],
+    );
+
+    if (value) {
+      values[field] = value;
+    }
+  }
+
+  if (Object.keys(values).length === 0) {
+    return undefined;
+  }
+
+  return {
+    provider: data.provider,
+    readBy: readBy,
+    readAt: readAt,
+    values: values,
+  };
+}
+
+/**
  * A device's discovered details, read defensively out of its jsonb column:
  * every entry that is not exactly what OneUptime writes - an unknown key, a
  * field read by the wrong method or reader, a value its normaliser refuses,
@@ -665,6 +864,22 @@ export function readNetworkDeviceDiscoveredDetails(
     }
   }
 
+  const controller: unknown = raw[DISCOVERED_DETAILS_CONTROLLER_KEY];
+
+  if (isPlainObject(controller)) {
+    const reading: NetworkDeviceControllerReading | undefined =
+      buildControllerReading({
+        provider: controller["provider"],
+        readBy: controller["readBy"],
+        readAt: controller["readAt"],
+        values: controller["values"],
+      });
+
+    if (reading) {
+      details.controller = reading;
+    }
+  }
+
   return details;
 }
 
@@ -693,6 +908,10 @@ export function toDiscoveredDetailsJson(
 
   if (details.otherMachine) {
     json[DISCOVERED_DETAILS_OTHER_MACHINE_KEY] = details.otherMachine;
+  }
+
+  if (details.controller) {
+    json[DISCOVERED_DETAILS_CONTROLLER_KEY] = details.controller;
   }
 
   return json;

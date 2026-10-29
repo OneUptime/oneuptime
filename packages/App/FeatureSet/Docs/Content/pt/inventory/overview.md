@@ -73,8 +73,11 @@ Um host ou um dispositivo de rede tem um cartão **Detalhes do ativo** que descr
 
 - Os dados de um host vêm dos atributos de recurso da sua telemetria: os endereços IP e MAC, a arquitetura e o sistema operacional de imediato, e o número de série, a marca, o modelo e o firmware depois que você os carimba.
 - Os dados de um dispositivo de rede vêm da sua consulta SNMP, da sua função e do seu site. O que a sua consulta não leu vem da descoberta: a última varredura do seu endereço, a tabela ARP de um roteador ou a consulta DNS da sua sonda. Um dispositivo sem ENTITY-MIB, como um Meraki MX, ainda obtém a marca e o modelo da sua descrição de sistema. O endereço IP dele nunca é mostrado como nome do host.
+- Um dispositivo Meraki também obtém do painel do Meraki o que a sua consulta deixa vazio, entre eles o número de série, o modelo e o firmware, quando uma [conexão do Meraki](/docs/monitor/network-traffic#cisco-meraki-sem-netflow) lê a organização dele.
 
 O cartão mostra de onde veio cada dado e quando. A fonte que a maioria dos dados compartilha, como o coletor de um host, a própria consulta SNMP de um dispositivo de rede ou a varredura de descoberta que o leu, é citada uma só vez, abaixo dos dados. Qualquer outra fonte, como a tabela ARP de um roteador ou um valor salvo no dispositivo, é citada sob o seu dado. Um valor salvo em um dispositivo de rede nunca é substituído pelo que a descoberta lê, e quando os dois diferem, o cartão mostra os dois.
+
+O cartão de um dispositivo de rede tem um botão **Atualizar** para quem pode editar dispositivos de rede. Ele lê o dispositivo de novo agora: a sonda o consulta em até um minuto, e a conexão do Meraki lê a organização de novo. O cartão diz quando a nova leitura chegou, ou que a sonda não conseguiu alcançar o dispositivo, e o item é copiado do dispositivo assim que a leitura chega.
 
 Os mesmos dados são colunas da lista **All Items**, ocultas até você ativá-las, e entram na sua exportação CSV. [Exportar para um CMDB](/docs/inventory/cmdb-sync#detalhes-do-ativo) lista as chaves deles.
 

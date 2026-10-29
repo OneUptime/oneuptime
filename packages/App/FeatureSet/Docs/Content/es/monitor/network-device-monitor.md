@@ -514,6 +514,10 @@ Un dispositivo solo con ping conserva el nombre y la dirección que le diste tú
 
 Estos datos se guardan junto a los campos propios del dispositivo, nunca dentro de ellos, y cada escaneo, recorrido de router o sondeo que vuelve a leer uno lo pone al día. La vista general del dispositivo y su elemento del inventario indican qué escaneo, router o sonda leyó cada valor, y cuándo. Un valor que guardaste en el dispositivo nunca se sustituye. Cuando un escaneo encuentra otra máquina en la dirección del dispositivo, como una concesión DHCP que se movió, la vista general lo indica, y no se usa nada de lo que ese escaneo leyó allí.
 
+Un switch, punto de acceso o appliance de Meraki no da por SNMP número de serie, modelo ni firmware: Meraki no implementa ENTITY-MIB. Cuando una [conexión de Meraki](/docs/monitor/network-traffic#cisco-meraki-sin-netflow) lee su organización, el dispositivo toma esos datos, y todo lo demás que su sondeo deja vacío, del panel de Meraki, y su tarjeta **Inventario** nombra la conexión en una fila **Meraki**.
+
+Para volver a leer un dispositivo ahora, pulsa **Actualizar** en su tarjeta **Inventario**. Su sonda lo consulta en menos de un minuto y su conexión de Meraki vuelve a leer la organización. La tarjeta indica cuándo ha llegado la nueva lectura, o que la sonda no pudo alcanzar el dispositivo. **Actualizar** está disponible para quien puede editar dispositivos de red, en un dispositivo que una sonda consulta o que una conexión de Meraki describe.
+
 ## Descubrir dispositivos con un escaneo de red
 
 En lugar de añadir los dispositivos de uno en uno, recorre un rango de direcciones desde una sonda e importa lo que responda.

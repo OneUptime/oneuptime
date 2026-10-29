@@ -71,6 +71,8 @@ export const PERMISSION_NAMES: Readonly<Record<string, ReadonlyArray<string>>> =
       "Read Telemetry Service",
       "Edit Telemetry Service",
       "Create Telemetry Service",
+      // Refresh: POST /api/network-device/{id}/refresh.
+      "Edit Network Device",
     ],
   };
 

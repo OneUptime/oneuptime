@@ -101,7 +101,7 @@ describe("the item overview", () => {
    */
   test("shows a machine's asset details before its raw attributes", () => {
     const assets: number = overview.indexOf(
-      "<InventoryAssetDetailsCard item={entity} />",
+      "<InventoryAssetDetailsCard item={entity} onRefreshed={reload} />",
     );
     expect(assets).toBeGreaterThan(-1);
     expect(assets).toBeLessThan(overview.indexOf("<InventoryAttributes"));

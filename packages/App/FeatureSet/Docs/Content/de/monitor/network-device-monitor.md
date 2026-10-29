@@ -514,6 +514,10 @@ Ein nur angepingtes Gerät behält den Namen und die Adresse, die Sie oder ein E
 
 Diese Angaben werden neben den eigenen Feldern des Geräts gespeichert, nie in sie geschrieben, und jeder Scan, Router-Walk oder jede Abfrage, die eine davon erneut liest, bringt sie auf den neuesten Stand. Die Übersicht des Geräts und sein Element im Inventar zeigen, welcher Scan, welcher Router oder welche Sonde jeden Wert gelesen hat und wann. Einen Wert, den Sie am Gerät gespeichert haben, ersetzt nichts. Findet ein Scan unter der Adresse des Geräts eine andere Maschine, etwa wegen eines umgezogenen DHCP-Leases, sagt die Übersicht das, und nichts, was dieser Scan dort gelesen hat, wird verwendet.
 
+Ein Meraki-Switch, ein Meraki-Access-Point oder eine Meraki-Appliance liefert über SNMP weder Seriennummer noch Modell noch Firmware: Meraki implementiert keine ENTITY-MIB. Wenn eine [Meraki-Verbindung](/docs/monitor/network-traffic#cisco-meraki-ohne-netflow) die Organisation des Geräts liest, übernimmt das Gerät diese Werte und alles andere, was seine Abfrage leer lässt, aus dem Meraki-Dashboard, und seine Karte **Inventar** nennt die Verbindung in einer Zeile **Meraki**.
+
+Um ein Gerät sofort erneut zu lesen, klicken Sie auf **Aktualisieren** auf seiner Karte **Inventar**. Seine Sonde fragt es innerhalb einer Minute ab, und seine Meraki-Verbindung liest die Organisation erneut. Die Karte sagt, wann der neue Lesevorgang eingetroffen ist oder dass die Sonde das Gerät nicht erreichen konnte. **Aktualisieren** gibt es für alle, die Netzwerkgeräte bearbeiten dürfen, bei einem Gerät, das eine Sonde abfragt oder das eine Meraki-Verbindung beschreibt.
+
 ## Geräte mit einem Netzwerkscan erkennen
 
 Statt Geräte einzeln hinzuzufügen, durchsuchen Sie von einer Sonde aus einen Adressbereich und importieren, was antwortet.

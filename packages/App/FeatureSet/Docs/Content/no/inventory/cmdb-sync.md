@@ -206,6 +206,8 @@ En nettverksenhet (`entityType: network.device`) speiles fra Network Device-post
 
 ENTITY-MIB-radene fylles ut etter enhetens første SNMP-walk. En enhet som ikke gjennomgås, fordi den bare overvåkes med ping eller ikke er pollet ennå, får likevel navn, merke, operativsystem og plassering fra det den siste discovery-skanningen av adressen leste over SNMP, og MAC-adressen fra ARP-tabellen i en gjennomgått ruter. En enhet som ikke implementerer ENTITY-MIB, har ikke noe serienummer eller fastvare å rapportere. `sysDescr` nevner likevel modell og operativsystem for mange plattformer: en Cisco Meraki MX rapporterer `Meraki MX85`, som fyller ut merke og modell. En plattform der `sysDescr` ikke har en kjent form, legger ikke til noe, i stedet for å gjette.
 
+En Meraki-enhet henter det dens egen polling lar stå tomt, fra Meraki-dashbordet når en [Meraki-tilkobling](/docs/monitor/network-traffic#cisco-meraki-uten-netflow) leser organisasjonen dens: serienummer, modell, fastvare og merke, MAC-adresse, navn, administrasjonsadresse, postadressen den er registrert under, og type. En enhet er en av organisasjonens enheter når serienummeret eller MAC-adressen er Meraki-enhetens, eller når OneUptime poller den på Meraki-enhetens administrasjonsadresse og den har samme navn. En verdi som er lagret på enheten, og det dens egen polling leser, går foran.
+
 En verdi som er lagret på enheten, skrevet inn eller satt via API-et, erstattes aldri av det discovery leser. Av en verdi enhetens egen walk leste og en en skanning leste, brukes den nyeste. Det en skanning leste, brukes bare når skanningen fant den samme maskinen på adressen: når systemnavnet, `sysObjectID` eller NetBIOS-navnet den leste, motsier enhetens, brukes ingenting av det den leste der. Elementets kort **Eiendelsdetaljer** viser hvor hver verdi kom fra, og når.
 
 Vertsnavnet er aldri IP-adressen. En enhet som bare adressen navngir, har `host.ip` og ikke noe `host.name`. Når SNMP-walken rapporterer et systemnavn, følger `host.name` ved neste gjennomgang.
@@ -223,6 +225,8 @@ Datoer i `customFields` er ISO-8601-strenger i UTC, og CSV-eksporten skriver dem
 ## Hold det oppdatert
 
 Det finnes ingen endringsstrøm. Poll listeendepunktet med det intervallet som passer deg, og sammenlign på `entityKey`. `lastSeenAt` forteller når et element sist ble observert, noe som vanligvis er den billigste måten å oppdage det som har blitt stille siden forrige kjøring.
+
+For å lese en nettverksenhet på nytt nå, uten å vente på neste polling og neste kopi, trykker du på **Oppdater** på elementets kort **Eiendelsdetaljer**, eller sender `POST /api/network-device/{id}/refresh` med en nøkkel som har **Edit Network Device**. Sonden poller den innen et minutt, Meraki-tilkoblingen leser organisasjonen på nytt, og elementet kopieres så snart den nye avlesningen er kommet inn.
 
 Et element som forsvinner mellom to kjøringer, har enten utløpt (et oppdaget element som var stille lenger enn vinduet sitt), eller fått den egne posten slettet. Et speilet element som har verdier i egendefinerte felt, arkiveres i stedet for å slettes når posten forsvinner, så spør med `"isArchived": true` for å se hva som er faset ut uten å miste eiendelsdataene knyttet til det.
 

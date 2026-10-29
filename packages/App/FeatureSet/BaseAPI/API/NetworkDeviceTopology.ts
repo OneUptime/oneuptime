@@ -767,8 +767,13 @@ export default class NetworkDeviceTopologyAPI {
                     : undefined,
                 interfacesUp: device.interfacesUp,
                 interfacesDown: device.interfacesDown,
-                vendor: device.vendor,
-                deviceModel: device.deviceModel,
+                /*
+                 * Its maker and model as its asset facts have them: its
+                 * own, else what its Meraki dashboard says - so a pinged
+                 * Meraki access point is drawn as one, with its model.
+                 */
+                vendor: classifierInputs.vendor.value,
+                deviceModel: classifierInputs.deviceModel.value,
                 sysDescr: classifierInputs.sysDescr.value,
                 sysObjectId: classifierInputs.sysObjectId.value,
                 deviceRole: device.networkDeviceRole?.key || device.deviceRole,

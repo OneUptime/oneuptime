@@ -53,6 +53,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 
 import InventoryAssetDetailsCard from "../../../../App/FeatureSet/Dashboard/src/Components/Inventory/InventoryAssetDetailsCard";
 import { NETWORK_DEVICE_ASSET_FACT_SELECT } from "../../../../App/FeatureSet/Dashboard/src/Components/Inventory/NetworkDeviceAssetSelect";
+import { NETWORK_DEVICE_REFRESH_COLUMNS } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/NetworkDeviceRefreshWords";
 import DeviceInventoryCard, {
   NOTHING_READ_YET,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceInventoryCard";
@@ -512,7 +513,11 @@ describe("Inventory's Asset Details card says where each detail came from (issue
       getItemMock.mock.calls[0]![0] as never;
     expect(call.modelType).toBe(NetworkDevice);
     expect(call.id.toString()).toBe(DEVICE_ID);
-    expect(call.select).toEqual(NETWORK_DEVICE_ASSET_FACT_SELECT);
+    // The facts, and what Refresh is decided and followed by.
+    expect(call.select).toEqual({
+      ...NETWORK_DEVICE_ASSET_FACT_SELECT,
+      ...NETWORK_DEVICE_REFRESH_COLUMNS,
+    });
     for (const column of [
       "discoveredDetails",
       "lastSnmpSeenAt",

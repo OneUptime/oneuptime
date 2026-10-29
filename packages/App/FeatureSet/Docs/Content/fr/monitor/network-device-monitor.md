@@ -514,6 +514,10 @@ Un équipement seulement pingué garde le nom et l'adresse que vous, ou une anal
 
 Ces valeurs sont conservées à côté des champs de l'équipement, jamais écrites dedans, et chaque analyse, parcours de routeur ou interrogation qui en relit une la met à jour. L'aperçu de l'équipement et son élément d'inventaire indiquent quelle analyse, quel routeur ou quelle sonde a lu chaque valeur, et quand. Une valeur que vous avez enregistrée sur l'équipement n'est jamais remplacée. Quand une analyse trouve une autre machine à l'adresse de l'équipement, par exemple un bail DHCP qui a changé, l'aperçu le signale, et rien de ce que cette analyse y a lu n'est utilisé.
 
+Un commutateur, un point d'accès ou une appliance Meraki ne livre ni numéro de série, ni modèle, ni firmware par SNMP : Meraki n'implémente pas ENTITY-MIB. Quand une [connexion Meraki](/docs/monitor/network-traffic#cisco-meraki-sans-netflow) lit son organisation, l'équipement prend ces valeurs, et tout ce que son interrogation laisse vide, dans le tableau de bord Meraki, et sa carte **Inventaire** nomme la connexion dans une ligne **Meraki**.
+
+Pour relire un équipement maintenant, cliquez sur **Actualiser** sur sa carte **Inventaire**. Sa sonde l'interroge dans la minute, et sa connexion Meraki relit l'organisation. La carte indique quand la nouvelle lecture est arrivée, ou que la sonde n'a pas pu joindre l'équipement. **Actualiser** est proposé à qui peut modifier les équipements réseau, sur un équipement qu'une sonde interroge ou qu'une connexion Meraki décrit.
+
 ## Découvrir des équipements par une analyse réseau
 
 Au lieu d'ajouter les équipements un par un, balayez une plage d'adresses depuis une sonde et importez ce qui répond.

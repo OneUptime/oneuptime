@@ -206,6 +206,8 @@ A network device (`entityType: network.device`) is mirrored from its Network Dev
 
 The ENTITY-MIB rows fill in after the device's first SNMP walk. A device that is not walked, because it is monitored by ping alone or not yet polled, still gets its name, make, operating system and location from what the last discovery scan of its address read over SNMP, and its MAC address from a walked router's ARP table. A device that does not implement ENTITY-MIB has no serial number or firmware to report. Its `sysDescr` still names the model and operating system for many platforms: a Cisco Meraki MX reports `Meraki MX85`, which fills in the make and model. A platform whose `sysDescr` has no known shape adds nothing, rather than a guess.
 
+A Meraki device takes what its own poll leaves empty from the Meraki dashboard, when a [Meraki connection](/docs/monitor/network-traffic#cisco-meraki-without-netflow) reads its organization: its serial number, model, firmware and make, its MAC address, its name, its management address, the street address it is filed under and its type. A device is one of the organization's devices when its serial number or MAC address is the Meraki device's, or when OneUptime polls it at the Meraki device's management address and it has the same name. A value saved on the device, and what its own poll reads, come first.
+
 A value saved on the device, typed or set through the API, is never replaced by what discovery reads. Of a value the device's own walk read and one a scan read, the newer is used. A scan's reading is used only when the scan found the same machine at the address: when the system name, `sysObjectID` or NetBIOS name it read contradicts the device's, nothing it read there is used. The item's **Asset Details** card says where each value came from and when.
 
 The hostname is never the IP address. A device that only its address names has `host.ip` and no `host.name`. Once its SNMP walk reports a system name, `host.name` follows on the next pass.
@@ -223,6 +225,8 @@ Dates in `customFields` are ISO-8601 UTC strings, and the CSV export writes them
 ## Keep it fresh
 
 There is no change feed. Poll the list endpoint at whatever interval suits you, and compare on `entityKey`. `lastSeenAt` says when an item was last observed, which is usually the cheapest way to spot what has gone quiet since your last run.
+
+To read a network device again now, without waiting for its next poll and the next copy, press **Refresh** on its item's **Asset Details** card, or send `POST /api/network-device/{id}/refresh` with a key that has **Edit Network Device**. Its probe polls it within a minute, its Meraki connection reads the organization again, and its item is copied as soon as the new reading lands.
 
 An item that disappears between runs has either aged out (a discovered item that stayed silent past its window) or had its owning record deleted. A mirrored item that carries custom field values is archived rather than deleted when its record goes, so query with `"isArchived": true` to see what has been retired without losing the asset data attached to it.
 

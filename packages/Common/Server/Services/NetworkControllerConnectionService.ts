@@ -17,9 +17,18 @@ import NetworkControllerProvider, {
 } from "../../Types/NetworkController/NetworkControllerProvider";
 import ObjectID from "../../Types/ObjectID";
 import CreateBy from "../Types/Database/CreateBy";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import DeleteBy from "../Types/Database/DeleteBy";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import logger from "../Utils/Logger";
 import { NetworkControllerSettings } from "../Utils/NetworkController/NetworkControllerTypes";
+import NetworkDeviceService from "./NetworkDeviceService";
+
+// What onBeforeDelete hands onDeleteSuccess: the connections and their projects.
+interface ConnectionDeleteCarryForward {
+  connections: Array<{ id: ObjectID; projectId: ObjectID }>;
+}
 
 /*
  * Network controller connections (a Meraki organization, Network >
@@ -314,6 +323,75 @@ export class Service extends DatabaseService<Model> {
       incoming["nextPullAt"] = null;
       incoming["lastError"] = null;
     }
+  }
+
+  /*
+   * The connections a delete removes, with their projects: what each said
+   * about the project's devices is forgotten once it is gone. Read as the
+   * delete reads them - the ones its caller may delete, in its own window -
+   * and the delete held to them (findRowsAndHoldDeleteToThem), so it never
+   * removes a connection whose readings stay behind.
+   */
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    const connections: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      { _id: true, projectId: true },
+    );
+
+    const carryForward: ConnectionDeleteCarryForward = {
+      connections: connections
+        .filter((connection: Model): boolean => {
+          return Boolean(connection.id && connection.projectId);
+        })
+        .map((connection: Model): { id: ObjectID; projectId: ObjectID } => {
+          return { id: connection.id!, projectId: connection.projectId! };
+        }),
+    };
+
+    return { deleteBy, carryForward };
+  }
+
+  /*
+   * A deleted connection's readings of the project's devices go with it
+   * (NetworkControllerInventory): Meraki no longer describes them, so their
+   * model, serial number and the rest no longer come from it. Guarded: a
+   * failure here never undoes the delete.
+   */
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    itemIdsBeforeDelete: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    const deleted: Set<string> = new Set<string>(
+      itemIdsBeforeDelete.map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    );
+    const carried: ConnectionDeleteCarryForward | null =
+      (onDelete.carryForward as ConnectionDeleteCarryForward | null) || null;
+
+    for (const connection of carried?.connections || []) {
+      if (!deleted.has(connection.id.toString())) {
+        continue;
+      }
+
+      try {
+        await NetworkDeviceService.forgetControllerReadings({
+          projectId: connection.projectId,
+          connectionId: connection.id,
+        });
+      } catch (error) {
+        logger.error(
+          `Network controller connection ${connection.id.toString()} was deleted, but what it said about the project's devices could not be forgotten: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    }
+
+    return onDelete;
   }
 
   /*

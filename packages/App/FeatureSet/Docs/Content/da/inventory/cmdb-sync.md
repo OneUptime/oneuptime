@@ -206,6 +206,8 @@ En netværksenhed (`entityType: network.device`) spejles fra sin Network Device-
 
 ENTITY-MIB-rækkerne udfyldes efter enhedens første SNMP-walk. En enhed, der ikke gennemgås, fordi den kun overvåges med ping eller endnu ikke er pollet, får stadig sit navn, mærke, operativsystem og placering fra det, den seneste discovery-scanning af dens adresse læste over SNMP, og sin MAC-adresse fra ARP-tabellen i en gennemgået router. En enhed, der ikke implementerer ENTITY-MIB, har intet serienummer eller firmware at rapportere. Dens `sysDescr` nævner stadig modellen og operativsystemet for mange platforme: en Cisco Meraki MX rapporterer `Meraki MX85`, hvilket udfylder mærke og model. En platform, hvis `sysDescr` ikke har en kendt form, tilføjer intet i stedet for at gætte.
 
+En Meraki-enhed henter det, dens egen polling lader stå tomt, fra Meraki-dashboardet, når en [Meraki-forbindelse](/docs/monitor/network-traffic#cisco-meraki-uden-netflow) læser dens organisation: dens serienummer, model, firmware og mærke, dens MAC-adresse, dens navn, dens administrationsadresse, den postadresse, den er registreret under, og dens type. En enhed er en af organisationens enheder, når dens serienummer eller MAC-adresse er Meraki-enhedens, eller når OneUptime poller den på Meraki-enhedens administrationsadresse, og den har samme navn. En værdi, der er gemt på enheden, og det, dens egen polling læser, kommer først.
+
 En værdi, der er gemt på enheden, skrevet ind eller sat via API'et, erstattes aldrig af det, discovery læser. Af en værdi, enhedens egen walk læste, og en, en scanning læste, bruges den nyeste. En scannings aflæsning bruges kun, når scanningen fandt den samme maskine på adressen: når det systemnavn, den `sysObjectID` eller det NetBIOS-navn, den læste, modsiger enhedens, bruges intet af det, den læste der. Elementets kort **Aktivdetaljer** viser, hvor hver værdi kom fra, og hvornår.
 
 Værtsnavnet er aldrig IP-adressen. En enhed, som kun dens adresse navngiver, har `host.ip` og intet `host.name`. Når dens SNMP-walk rapporterer et systemnavn, følger `host.name` ved næste gennemløb.
@@ -223,6 +225,8 @@ Datoer i `customFields` er ISO-8601-strenge i UTC, og CSV-eksporten skriver dem 
 ## Hold det ajour
 
 Der er intet ændringsfeed. Poll listeendpointet med det interval, der passer dig, og sammenlign på `entityKey`. `lastSeenAt` fortæller, hvornår et element sidst blev observeret, hvilket som regel er den billigste måde at opdage det, der er blevet stille siden din sidste kørsel.
+
+For at læse en netværksenhed igen nu, uden at vente på dens næste polling og den næste kopi, trykker du på **Opdater** på dens elements kort **Aktivdetaljer**, eller du sender `POST /api/network-device/{id}/refresh` med en nøgle, der har **Edit Network Device**. Dens sonde poller den inden for et minut, dens Meraki-forbindelse læser organisationen igen, og dens element kopieres, så snart den nye aflæsning er landet.
 
 Et element, der forsvinder mellem to kørsler, er enten udløbet (et fundet element, der var stille længere end sit vindue) eller har fået sin egen post slettet. Et spejlet element, der bærer værdier i brugerdefinerede felter, arkiveres i stedet for at blive slettet, når dets post forsvinder, så forespørg med `"isArchived": true` for at se, hvad der er udfaset, uden at miste de tilknyttede aktivdata.
 
