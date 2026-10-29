@@ -10,6 +10,7 @@ import type { Mock } from "jest-mock";
 import fs from "fs";
 import { JSDOM } from "jsdom";
 import path from "path";
+import postcss, { Declaration, Rule } from "postcss";
 
 /*
  * Static/js/integrations.js on the pages it serves, run in a browser-like
@@ -162,6 +163,52 @@ describe("a guide's code blocks", () => {
       after.document.querySelectorAll("[data-copy-button]"),
     )) {
       expect((button as HTMLButtonElement).hidden).toBe(false);
+    }
+
+    /*
+     * The hidden attribute alone does not hide it: the button's own
+     * inline-flex class, a Tailwind utility of the same weight as the
+     * browser's [hidden] rule, comes later and wins. The page's styles hide
+     * a waiting button by a rule of more weight - so without the script,
+     * no Copy button that cannot copy is on the page.
+     */
+    const buttons: Array<Element> = Array.from(
+      before.querySelectorAll("[data-copy-button]"),
+    );
+    const hidingSelectors: Array<string> = Array.from(
+      before.querySelectorAll("head style"),
+    ).flatMap((style: Element): Array<string> => {
+      const selectors: Array<string> = [];
+
+      postcss.parse(style.textContent || "").walkRules((rule: Rule) => {
+        let hides: boolean = false;
+
+        rule.walkDecls("display", (declaration: Declaration) => {
+          hides = hides || declaration.value.trim() === "none";
+        });
+        if (hides) {
+          selectors.push(rule.selector);
+        }
+      });
+
+      return selectors;
+    });
+    const hidingRule: string | undefined = hidingSelectors.find(
+      (selector: string): boolean => {
+        return buttons.every((button: Element): boolean => {
+          return button.matches(selector);
+        });
+      },
+    );
+
+    expect(buttons.length).toBeGreaterThan(0);
+    expect(buttons[0]!.classList.contains("inline-flex")).toBe(true);
+    // Two attributes and a class: more weight than one class.
+    expect(hidingRule).toBe(".guide-code [data-copy-button][hidden]");
+    for (const button of Array.from(
+      after.document.querySelectorAll("[data-copy-button]"),
+    )) {
+      expect(button.matches(hidingRule!)).toBe(false);
     }
   });
 
@@ -393,7 +440,6 @@ describe("the index's search", () => {
     // The newer languages' other names find each of their guides.
     for (const [name, language] of [
       ["golang", "go"],
-      ["ror", "ruby"],
       ["rustlang", "rust"],
       ["erlang", "elixir"],
       ["beam", "elixir"],
@@ -408,6 +454,13 @@ describe("the index's search", () => {
       "/integrations/opentelemetry/elixir",
       "/integrations/opentelemetry/phoenix",
     ]);
+
+    // RoR is Rails, not Ruby: it finds the Rails guide and no other Ruby one.
+    search(page, "ror");
+    expect(shownCards(page.document)).toEqual([
+      "/integrations/opentelemetry/rails",
+    ]);
+    expect(groupCards("ruby").length).toBeGreaterThan(1);
 
     // A language's other name narrows with the guide's own words.
     search(page, "dotnet worker");

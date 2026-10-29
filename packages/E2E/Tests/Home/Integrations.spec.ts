@@ -214,7 +214,7 @@ test.describe("Home: OpenTelemetry integrations", () => {
     }
   });
 
-  test("without its script, a guide shows every tab's choice under its name", async ({
+  test("without its script, a guide shows every tab's choice under its name, and no Copy button", async ({
     browser,
   }: {
     browser: Browser;
@@ -247,6 +247,17 @@ test.describe("Home: OpenTelemetry integrations", () => {
         await expect(labels.nth(index)).toHaveText(
           (await panels.nth(index).getAttribute("data-tab-value")) || "",
         );
+      }
+
+      // A Copy button could not copy without the script: none is shown.
+      const copyButtons: Locator = page.locator("[data-copy-button]");
+      expect(await copyButtons.count()).toBeGreaterThan(0);
+      for (
+        let index: number = 0;
+        index < (await copyButtons.count());
+        index++
+      ) {
+        await expect(copyButtons.nth(index)).toBeHidden();
       }
     } finally {
       await context.close();

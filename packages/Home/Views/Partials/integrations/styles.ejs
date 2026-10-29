@@ -47,6 +47,12 @@
   /* A long line scrolls inside its block, never the page. */
   .guide-code pre { tab-size: 2; }
   /*
+   * The Copy button stays hidden until the script can copy: its
+   * inline-flex class outranks the hidden attribute on its own, and a page
+   * without the script would show a button that does nothing.
+   */
+  .guide-code [data-copy-button][hidden] { display: none; }
+  /*
    * A heading a link jumps to lands with a little room above it: the site's
    * nav scrolls away, so nothing covers the top of the screen.
    */
