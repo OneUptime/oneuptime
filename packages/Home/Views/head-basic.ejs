@@ -40,29 +40,55 @@
 <!-- Font and form element styles -->
 <style>
     /*
-     * Until Geist has loaded (display=swap), Arial drawn at Geist's size and
-     * line height, so the text keeps its place when Geist swaps in and the
-     * page does not shift. The overrides are Geist's metrics over Arial's
-     * (Liberation Sans, Linux's stand-in, has Arial's), as next/font
-     * computes them; the bold face is matched against Arial Bold.
+     * Until Geist has loaded (display=swap), Arial drawn as wide as Geist
+     * and on Geist's line, so a line of text breaks where Geist will break
+     * it and the page does not shift when Geist swaps in. One face per
+     * weight the site draws, as each of Geist's weights has its own width:
+     * size-adjust is how much wider Geist's text is than Arial's (Arial
+     * Bold's from semibold up), measured on the site's own pages: every
+     * line of text laid out in both, kerned, with the fractional glyph
+     * widths macOS and Windows draw, summed per weight. The ascent and
+     * descent are Geist's (1.005 and 0.295 of its size) over that
+     * size-adjust, as next/font computes them. Liberation Sans, Linux's
+     * stand-in for Arial, has Arial's widths.
      */
     @font-face {
         font-family: "Geist Fallback";
-        font-weight: 100 500;
+        font-weight: 100 449;
         src: local("Arial"), local("ArialMT"), local("Liberation Sans"), local("LiberationSans");
-        size-adjust: 105.52%;
-        ascent-override: 95.25%;
-        descent-override: 27.96%;
+        size-adjust: 102.23%;
+        ascent-override: 98.31%;
+        descent-override: 28.86%;
         line-gap-override: 0%;
     }
 
     @font-face {
         font-family: "Geist Fallback";
-        font-weight: 600 900;
+        font-weight: 450 549;
+        src: local("Arial"), local("ArialMT"), local("Liberation Sans"), local("LiberationSans");
+        size-adjust: 105.09%;
+        ascent-override: 95.63%;
+        descent-override: 28.07%;
+        line-gap-override: 0%;
+    }
+
+    @font-face {
+        font-family: "Geist Fallback";
+        font-weight: 550 649;
         src: local("Arial Bold"), local("Arial-BoldMT"), local("Liberation Sans Bold"), local("LiberationSans-Bold");
-        size-adjust: 104.04%;
-        ascent-override: 96.60%;
-        descent-override: 28.36%;
+        size-adjust: 100.32%;
+        ascent-override: 100.18%;
+        descent-override: 29.41%;
+        line-gap-override: 0%;
+    }
+
+    @font-face {
+        font-family: "Geist Fallback";
+        font-weight: 650 900;
+        src: local("Arial Bold"), local("Arial-BoldMT"), local("Liberation Sans Bold"), local("LiberationSans-Bold");
+        size-adjust: 102.38%;
+        ascent-override: 98.16%;
+        descent-override: 28.81%;
         line-gap-override: 0%;
     }
 
