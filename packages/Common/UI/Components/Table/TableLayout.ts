@@ -252,6 +252,80 @@ export const TABLE_STUCK_END_SHADOW_RIGHT_TO_LEFT_CLASS_NAME: string =
 export const TABLE_STUCK_END_CELL_CLASS_NAME: string = `border-l border-gray-200 shadow-[-8px_0_12px_-10px_rgba(15,23,42,0.18)] ${TABLE_STUCK_END_SHADOW_RIGHT_TO_LEFT_CLASS_NAME}`;
 
 /*
+ * The cell at the end of each row of a table whose columns a person sized
+ * (Table/ColumnResize) and that has no Actions column. A table that fits
+ * its card gives the room its columns leave to the ones with no width of
+ * their own first - this empty one among them, when every column is sized
+ * - so a column made narrower is that narrow, the spare room left at the
+ * row's end. Without it the room went back to the sized columns, and
+ * narrowing the last of them did nothing. The header's keeps the band's
+ * look, a row's the hairline under it.
+ */
+export const TABLE_END_FILLER_HEADER_CELL_CLASS_NAME: string =
+  "border-y border-gray-200 bg-gray-50 p-0 align-middle";
+
+export const TABLE_END_FILLER_BODY_CELL_CLASS_NAME: string = "p-0";
+
+// The filler's test id, for the suites that count a row's cells.
+export const TABLE_END_FILLER_TEST_ID: string = "table-end-filler";
+
+/*
+ * Reset column widths, at the header row's end - in the Actions column's
+ * header, or the filler's - for a table whose card has no ⋯ to keep it in
+ * (a table drawn outside a card, or in one with no options): a quiet icon
+ * button, there only while a column is sized - and, like the columns'
+ * edges, shown only while the pointer is over the header row or the
+ * keyboard is in it (always on a touch screen, which has no pointer to
+ * hover with). A table someone sized once and reads every day keeps its
+ * header as calm as the product draws it, not an undo arrow for good.
+ */
+export const TABLE_RESET_COLUMN_WIDTHS_BUTTON_CLASS_NAME: string =
+  "inline-flex h-6 w-6 flex-none items-center justify-center rounded text-gray-400 opacity-0 transition duration-150 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:opacity-100 [thead:hover_&]:opacity-100 [thead:focus-within_&]:opacity-100 [@media(pointer:coarse)]:opacity-100";
+
+// The filler's header holds it with the room a cell's end has.
+export const TABLE_END_FILLER_CONTENT_CLASS_NAME: string =
+  "flex items-center justify-end py-1.5 pl-3 pr-6";
+
+/*
+ * ...and the last header cell of a table a page draws itself
+ * (ResizableHeaderCell), which has no filler: the column's name as it was,
+ * taking the room, and the reset after it, at the row's end - clear of the
+ * column's edge, which takes the cell's last 12px (24px on a touch screen)
+ * whatever padding the page gave the cell.
+ */
+export const RESIZABLE_HEADER_RESET_ROW_CLASS_NAME: string =
+  "flex items-center gap-2 pr-3 [@media(pointer:coarse)]:pr-6";
+
+export const RESIZABLE_HEADER_RESET_CONTENT_CLASS_NAME: string =
+  "min-w-0 flex-1";
+
+/*
+ * ...unless that column's name is drawn at its end, over a column of
+ * numbers (text-right): there the reset is before the name, which keeps
+ * its place over its values. After it, the name was pushed in by the
+ * button's width and the edge's room, and "Cache hit" stood about 45px
+ * short of the "1.0%" under it.
+ */
+export const RESIZABLE_HEADER_RESET_END_ROW_CLASS_NAME: string =
+  "flex items-center justify-end gap-2";
+
+export const RESIZABLE_HEADER_RESET_END_CONTENT_CLASS_NAME: string = "min-w-0";
+
+// A header cell's classes that draw its name at the cell's end.
+const END_ALIGNED_HEADER_CLASS_NAMES: ReadonlyArray<string> = [
+  "text-right",
+  "text-end",
+];
+
+export const isEndAlignedHeaderCell: (
+  className: string | undefined,
+) => boolean = (className: string | undefined): boolean => {
+  return (className || "").split(" ").some((token: string): boolean => {
+    return END_ALIGNED_HEADER_CLASS_NAMES.includes(token.trim());
+  });
+};
+
+/*
  * The 30px row button and ⋯ sit centred on the row's 24px line: 3px above
  * and below it are taken back, so a row of one line is 48px tall with or
  * without its buttons. leading-none: the ⋯'s box would otherwise add the

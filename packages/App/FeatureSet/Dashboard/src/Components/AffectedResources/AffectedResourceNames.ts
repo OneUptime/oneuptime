@@ -1,7 +1,7 @@
 /*
  * The names an Affected Resources cell lists, in the order it lists them
- * (AffectedResourcesCell): the monitors first, then hosts, Kubernetes
- * clusters, Docker and Podman hosts, Proxmox clusters, vCenters, Ceph
+ * (AffectedResourcesCell): the monitors first, then hosts, network devices,
+ * Kubernetes clusters, Docker and Podman hosts, Proxmox clusters, vCenters, Ceph
  * clusters, storage arrays, Docker Swarm clusters, IoT fleets, databases,
  * cloud resources, network sites, services and SLOs.
  *
@@ -23,6 +23,7 @@ export interface NamedResource {
 export interface AffectedResourceLists {
   monitors?: Array<NamedResource> | undefined;
   hosts?: Array<NamedResource> | undefined;
+  networkDevices?: Array<NamedResource> | undefined;
   kubernetesClusters?: Array<NamedResource> | undefined;
   dockerHosts?: Array<NamedResource> | undefined;
   podmanHosts?: Array<NamedResource> | undefined;
@@ -45,6 +46,7 @@ export const AFFECTED_RESOURCE_LIST_ORDER: ReadonlyArray<
 > = [
   "monitors",
   "hosts",
+  "networkDevices",
   "kubernetesClusters",
   "dockerHosts",
   "podmanHosts",

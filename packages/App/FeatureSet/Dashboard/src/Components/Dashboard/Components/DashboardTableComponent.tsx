@@ -57,6 +57,11 @@ import useDashboardWidgetSort, {
   useReportDashboardWidgetSortColumns,
 } from "Common/UI/Utils/UseDashboardWidgetSort";
 import DashboardSortableColumnHeader from "./DashboardSortableColumnHeader";
+import useDashboardWidgetColumns, {
+  DashboardWidgetColumn,
+  DashboardWidgetColumns,
+} from "./DashboardWidgetColumns";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardTableComponent;
@@ -622,6 +627,31 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
     return rows.slice(0, maxRows);
   }, [isGroupedMode, metricResults, valueColumns, maxRows, sortConfig]);
 
+  /*
+   * Its columns as wide as each person makes them: an attribute's values
+   * give way (the first to 10rem, the others to 8rem), a time or a reading
+   * is never cut.
+   */
+  const widgetColumns: DashboardWidgetColumns = useDashboardWidgetColumns([
+    ...(isGroupedMode
+      ? widgetGroupByAttributes.map(
+          (
+            attr: TableGroupByAttribute,
+            attrIndex: number,
+          ): DashboardWidgetColumn => {
+            return {
+              id: `attr:${attr.key}`,
+              kind:
+                attrIndex === 0 ? ColumnWidthKind.Name : ColumnWidthKind.Text,
+            };
+          },
+        )
+      : [{ id: "timestamp", kind: ColumnWidthKind.Whole }]),
+    ...visibleValueColumns.map((column: ValueColumn): DashboardWidgetColumn => {
+      return { id: `value:${column.key}`, kind: ColumnWidthKind.Whole };
+    }),
+  ]);
+
   if (isLoading && metricResults.length === 0) {
     return (
       <div className="h-full flex flex-col animate-pulse p-1">
@@ -774,7 +804,11 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
         </div>
       </div>
       <div className="flex-1 overflow-auto rounded-md border border-gray-100 mx-1 mb-1">
-        <table className="w-full text-sm text-left">
+        {widgetColumns.resizable.styles}
+        <table
+          className={`${widgetColumns.tableWidthClassName} text-sm text-left`}
+          {...widgetColumns.resizable.tableAttributes}
+        >
           <thead className="text-xs text-gray-400 uppercase bg-gray-50/80 sticky top-0 border-b border-gray-100">
             <tr>
               {isGroupedMode
@@ -795,6 +829,7 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
                           )}
                           sort={widgetSort.sort}
                           onSortClick={widgetSort.onColumnClick}
+                          resize={widgetColumns.getResize(`attr:${attr.key}`)}
                         />
                       );
                     },
@@ -810,6 +845,7 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
                       )}
                       sort={widgetSort.sort}
                       onSortClick={widgetSort.onColumnClick}
+                      resize={widgetColumns.getResize("timestamp")}
                     />,
                   ]}
               {visibleValueColumns.map((column: ValueColumn): ReactElement => {
@@ -826,6 +862,7 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
                     )}
                     sort={widgetSort.sort}
                     onSortClick={widgetSort.onColumnClick}
+                    resize={widgetColumns.getResize(`value:${column.key}`)}
                   />
                 );
               })}

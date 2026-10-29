@@ -43,7 +43,7 @@ Sollevate un avviso quando il vostro team deve guardare prima che qualcuno all'e
 ## Da dove arrivano gli avvisi
 
 - **I criteri di un monitor.** Nelle **Azioni** di un criterio, attivate **Quando i filtri corrispondono, crea un avviso.** e compilate l'avviso che crea: **Titolo dell'avviso** e **Gravità**, poi, ciascuno compresso, **Descrizione**, **Proprietà ed etichette**, **Reperibilità** e **Altri campi**, che contiene **Risoluzione automatica dell'avviso**, **Avviso privato** e **Note di rimedio**. Un criterio mantiene un solo avviso aperto alla volta, uno per serie su un monitor che raggruppa per un campo, e **Risoluzione automatica dell'avviso** lo risolve quando il criterio smette di corrispondere. Vedere [Creare un monitor](/docs/monitor/create-monitor) e [Modelli di incidenti e avvisi](/docs/monitor/incident-alert-templating).
-- **A mano.** Fate clic su **Crea avviso** nell'elenco degli avvisi, o nella scheda **Avvisi** di un monitor, di un host o di un'altra risorsa, che sceglie quella risorsa per voi. Vedere [Creare un avviso a mano](#creare-un-avviso-a-mano).
+- **A mano.** Fate clic su **Crea avviso** nell'elenco degli avvisi, o nella scheda **Avvisi** di un monitor, di un host, di un dispositivo di rete o di un'altra risorsa, che sceglie quella risorsa per voi. Vedere [Creare un avviso a mano](#creare-un-avviso-a-mano).
 - **Il tasso di consumo di uno SLO.** Una regola sul tasso di consumo può creare un avviso quando uno SLO spende il suo budget di errori troppo in fretta. Vedere [Avvisi e incidenti di tasso di consumo](/docs/slo/burn-rate-alerts).
 - **Siti di rete ed eventi di sicurezza.** Un sito di rete impostato per avvisare quando non è in salute apre un avviso quando il suo riepilogo smette di essere operativo, e anche le vostre regole di rilevamento degli eventi di sicurezza aprono avvisi. Vedere [Siti di rete (riepilogo dello stato e uptime)](/docs/monitor/network-sites) e [Eventi di sicurezza (SIEM)](/docs/telemetry/security-events).
 - **Una chiamata.** `/oneuptime page` in Slack o Microsoft Teams apre un avviso il cui titolo è il vostro messaggio, e chiama le persone che indicate. I blocchi di chiamata di un workflow fanno lo stesso con il titolo e il messaggio che fornite loro. Vedere [Chiamare qualcuno da Slack](/docs/workspace-connections/slack#chiamare-qualcuno-da-slack) e [Paging](/docs/workflows/components#paging).
@@ -81,7 +81,7 @@ Compilate il **Titolo** e scegliete una **Gravità avviso**; entrambi sono obbli
 
 ### Scegliere che cosa riguarda e chi viene chiamato
 
-Fate clic su **Avanti** per arrivare a **Risorse e reperibilità**. Scegliete il **Monitor** a cui si riferisce e, in **Altre risorse interessate**, qualsiasi altra risorsa coinvolta, come host, cluster Kubernetes o servizi. In **Policy di reperibilità**, scegliete le policy da eseguire quando l'avviso viene creato.
+Fate clic su **Avanti** per arrivare a **Risorse e reperibilità**. Scegliete il **Monitor** a cui si riferisce e, in **Altre risorse interessate**, qualsiasi altra risorsa coinvolta, come host, dispositivi di rete, cluster Kubernetes o servizi. In **Policy di reperibilità**, scegliete le policy da eseguire quando l'avviso viene creato.
 
 ### Crearlo
 

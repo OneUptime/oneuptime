@@ -74,6 +74,11 @@ export const LINKED_INFRASTRUCTURE_KINDS: ReadonlyArray<{
     noun: "Host",
   },
   {
+    type: LinkedAffectedResourceType.NetworkDevice,
+    aiResourceType: AIResourceType.NetworkDevice,
+    noun: "Network device",
+  },
+  {
     type: LinkedAffectedResourceType.DockerHost,
     aiResourceType: AIResourceType.DockerHost,
     noun: "Docker host",

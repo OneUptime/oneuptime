@@ -1,5 +1,10 @@
 import SnmpInterface from "Common/Types/Monitor/SnmpMonitor/SnmpInterface";
 import React, { FunctionComponent, ReactElement } from "react";
+import useResizableColumns, {
+  ResizableColumns,
+} from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
+import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
@@ -39,6 +44,24 @@ const SnmpInterfacesView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement | null => {
   const translator: Translator = useTranslator();
+
+  /*
+   * The interfaces' columns as wide as a person makes them (Common's
+   * Table/ColumnResize): an interface's name gives way, a reading never.
+   */
+  const interfaceColumns: ResizableColumns = useResizableColumns({
+    tableKey: "snmp-interfaces-table",
+    columns: [
+      { id: "interface", cellNumber: 1 },
+      { id: "status", cellNumber: 2 },
+      { id: "speed", cellNumber: 3 },
+      { id: "in", cellNumber: 4 },
+      { id: "out", cellNumber: 5 },
+      { id: "utilization", cellNumber: 6 },
+      { id: "errors", cellNumber: 7 },
+    ],
+  });
+
   if (props.interfaceWalkFailure) {
     return (
       <div className="rounded-md border-2 border-gray-100 p-4 text-sm text-gray-700">
@@ -67,30 +90,83 @@ const SnmpInterfacesView: FunctionComponent<ComponentProps> = (
         )}
       </div>
       <div className="overflow-x-auto">
-        <table className="min-w-full text-sm text-gray-700">
+        {interfaceColumns.styles}
+        <table
+          className={`${interfaceColumns.getTableWidthClassName("min-w-full")} text-sm text-gray-700`}
+          {...interfaceColumns.tableAttributes}
+        >
           <thead>
             <tr className="text-left text-xs text-gray-500">
-              <th className="pr-4 pb-2 font-medium">
-                {translator.translateText("Interface")}
-              </th>
-              <th className="pr-4 pb-2 font-medium">
-                {translator.translateText("Status")}
-              </th>
-              <th className="pr-4 pb-2 font-medium">
-                {translator.translateText("Speed")}
-              </th>
-              <th className="pr-4 pb-2 font-medium">
-                {translator.translateText("In")}
-              </th>
-              <th className="pr-4 pb-2 font-medium">
-                {translator.translateText("Out")}
-              </th>
-              <th className="pr-4 pb-2 font-medium">
-                {translator.translateText("Utilization")}
-              </th>
-              <th className="pb-2 font-medium">
-                {translator.translateText("Errors/s")}
-              </th>
+              <ResizableHeaderCell
+                className="pr-4 pb-2 font-medium"
+                resize={interfaceColumns.getResize(
+                  "interface",
+                  translator.translateText("Interface") || "Interface",
+                  ColumnWidthKind.Name,
+                )}
+              >
+                <span>{translator.translateText("Interface")}</span>
+              </ResizableHeaderCell>
+              <ResizableHeaderCell
+                className="pr-4 pb-2 font-medium"
+                resize={interfaceColumns.getResize(
+                  "status",
+                  translator.translateText("Status") || "Status",
+                  ColumnWidthKind.Whole,
+                )}
+              >
+                <span>{translator.translateText("Status")}</span>
+              </ResizableHeaderCell>
+              <ResizableHeaderCell
+                className="pr-4 pb-2 font-medium"
+                resize={interfaceColumns.getResize(
+                  "speed",
+                  translator.translateText("Speed") || "Speed",
+                  ColumnWidthKind.Whole,
+                )}
+              >
+                <span>{translator.translateText("Speed")}</span>
+              </ResizableHeaderCell>
+              <ResizableHeaderCell
+                className="pr-4 pb-2 font-medium"
+                resize={interfaceColumns.getResize(
+                  "in",
+                  translator.translateText("In") || "In",
+                  ColumnWidthKind.Whole,
+                )}
+              >
+                <span>{translator.translateText("In")}</span>
+              </ResizableHeaderCell>
+              <ResizableHeaderCell
+                className="pr-4 pb-2 font-medium"
+                resize={interfaceColumns.getResize(
+                  "out",
+                  translator.translateText("Out") || "Out",
+                  ColumnWidthKind.Whole,
+                )}
+              >
+                <span>{translator.translateText("Out")}</span>
+              </ResizableHeaderCell>
+              <ResizableHeaderCell
+                className="pr-4 pb-2 font-medium"
+                resize={interfaceColumns.getResize(
+                  "utilization",
+                  translator.translateText("Utilization") || "Utilization",
+                  ColumnWidthKind.Whole,
+                )}
+              >
+                <span>{translator.translateText("Utilization")}</span>
+              </ResizableHeaderCell>
+              <ResizableHeaderCell
+                className="pb-2 font-medium"
+                resize={interfaceColumns.getResize(
+                  "errors",
+                  translator.translateText("Errors/s") || "Errors/s",
+                  ColumnWidthKind.Whole,
+                )}
+              >
+                <span>{translator.translateText("Errors/s")}</span>
+              </ResizableHeaderCell>
             </tr>
           </thead>
           <tbody>

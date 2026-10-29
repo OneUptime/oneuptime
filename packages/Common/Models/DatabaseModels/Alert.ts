@@ -16,6 +16,7 @@ import KubernetesResource from "./KubernetesResource";
 import Label from "./Label";
 import Monitor from "./Monitor";
 import MonitorStatus from "./MonitorStatus";
+import NetworkDevice from "./NetworkDevice";
 import OnCallDutyPolicy from "./OnCallDutyPolicy";
 import Probe from "./Probe";
 import Project from "./Project";
@@ -700,6 +701,69 @@ export default class Alert extends BaseModel {
     },
   })
   public hosts?: Array<Host> = undefined; // hosts affected by this alert.
+
+  /*
+   * The routers, switches, firewalls and access points this alert is
+   * about (issue #5341): picked under Other Affected Resources, linked by the
+   * network device monitors that watch them, and by OneUptime AI from a
+   * device's page. Lazy: NetworkDevice and Monitor import each other, and
+   * this model imports Monitor (see modelTypeThunk).
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.CreateAlert,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlert,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.EditAlert,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelTypeThunk: () => {
+      return NetworkDevice;
+    },
+    title: "Network Devices",
+    description: "List of network devices affected by this alert.",
+  })
+  @ManyToMany(
+    () => {
+      return NetworkDevice;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AlertNetworkDevice",
+    inverseJoinColumn: {
+      name: "networkDeviceId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "alertId",
+      referencedColumnName: "_id",
+    },
+  })
+  public networkDevices?: Array<NetworkDevice> = undefined;
 
   @ColumnAccessControl({
     create: [

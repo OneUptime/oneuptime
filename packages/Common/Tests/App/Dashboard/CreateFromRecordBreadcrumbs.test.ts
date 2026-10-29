@@ -66,6 +66,7 @@ import {
   getVMwareBreadcrumbs,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs";
 import { getNetworkSiteBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkSite/Utils/Breadcrumbs";
+import { getNetworkDeviceBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/Utils/Breadcrumbs";
 import { getCloudBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/CloudBreadcrumbs";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
@@ -84,6 +85,7 @@ type GetBreadcrumbs = (path: string) => Array<Link> | undefined;
 const PRODUCT_BREADCRUMBS: Record<CreateFromRecordKind, GetBreadcrumbs> = {
   [CreateFromRecordKind.Monitor]: getMonitorBreadcrumbs,
   [CreateFromRecordKind.Host]: getHostBreadcrumbs,
+  [CreateFromRecordKind.NetworkDevice]: getNetworkDeviceBreadcrumbs,
   [CreateFromRecordKind.KubernetesCluster]: getKubernetesBreadcrumbs,
   [CreateFromRecordKind.DockerHost]: getDockerBreadcrumbs,
   [CreateFromRecordKind.PodmanHost]: getPodmanBreadcrumbs,

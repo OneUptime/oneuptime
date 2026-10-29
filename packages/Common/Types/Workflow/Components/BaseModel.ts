@@ -2,6 +2,7 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import IconProp from "../../Icon/IconProp";
 import Text from "../../Text";
 import { getCreateFromTemplateArgument } from "../CreateFromTemplate";
+import { getAffectedResourcesArgument } from "../AffectedResourcesSetting";
 import {
   WHAT_HAPPENED_ID,
   WHAT_HAPPENED_NAME,
@@ -474,6 +475,22 @@ export default class BaseModelComponent {
         jsonArgument.notRequiredWhen = { argumentId: templateArgument.id };
       }
 
+      /*
+       * An incident or an alert also takes what it is about by name - the
+       * host, router or service an alert from another tool names - looked
+       * up across every kind of resource it can be linked to and added to
+       * its lists (Types/Workflow/AffectedResourcesSetting). Last, after the
+       * record it adds to.
+       */
+      const affectedResourcesArgument: Argument | null =
+        getAffectedResourcesArgument(model.tableName || undefined);
+
+      const createOneArguments: Array<Argument> = [
+        ...(templateArgument ? [templateArgument] : []),
+        jsonArgument,
+        ...(affectedResourcesArgument ? [affectedResourcesArgument] : []),
+      ];
+
       components.push({
         id: `${Text.pascalCaseToDashes(model.tableName!)}-create-one`,
         title: `Create One ${model.singularName}`,
@@ -482,9 +499,7 @@ export default class BaseModelComponent {
         iconProp: IconProp.Database,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
-        arguments: templateArgument
-          ? [templateArgument, jsonArgument]
-          : [jsonArgument],
+        arguments: createOneArguments,
         returnValues: [
           {
             id: "model",

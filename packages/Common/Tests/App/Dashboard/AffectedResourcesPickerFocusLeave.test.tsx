@@ -22,6 +22,7 @@ import {
   describeNestedControls,
   findNestedControls,
 } from "../../Helpers/NestedControls";
+import { searchThroughGetList } from "./AffectedResourceSearchFake";
 
 /*
  * The results list of the Affected Resources picker closes when keyboard
@@ -41,6 +42,25 @@ import {
  */
 
 const getListMock: MockFunction = getJestMockFunction();
+
+/*
+ * The picker asks one route for every kind (POST /affected-resources/search).
+ * It is answered from this suite's getList store, kind by kind, as the
+ * server reads each kind (AffectedResourceSearchFake).
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/AffectedResources/AffectedResourceSearchApi",
+  () => {
+    return {
+      __esModule: true,
+      searchAffectedResources: (query: unknown): Promise<unknown> => {
+        return searchThroughGetList((args: unknown) => {
+          return getListMock(args) as never;
+        })(query as never);
+      },
+    };
+  },
+);
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -125,7 +145,7 @@ const fakeGetList: (args: GetListArgs) => Promise<GetListResult> = async (
 
 // The picker's search input. Its placeholder names the one type it offers.
 const getPickerInput: () => HTMLInputElement = (): HTMLInputElement => {
-  return screen.getByPlaceholderText("Search monitor...") as HTMLInputElement;
+  return screen.getByPlaceholderText("Search monitors...") as HTMLInputElement;
 };
 
 const queryPickerList: () => HTMLElement | null = (): HTMLElement | null => {

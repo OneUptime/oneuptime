@@ -4,6 +4,11 @@ import { JSONObject } from "../Types/JSON";
 export enum UserPreferenceType {
   BaseModelTablePageSize = "BaseModelTablePageSize",
   BaseModelTableColumns = "BaseModelTableColumns",
+  /*
+   * How wide a person made a table's columns, per person and per table
+   * (Common/UI/Components/Table/ColumnResize/useColumnWidths).
+   */
+  TableColumnWidths = "TableColumnWidths",
 }
 
 export default class UserPreferences {

@@ -1516,6 +1516,11 @@
   "System": "System",
   "Enable": "Enable",
   "Disable": "Disable",
+  "Drag to resize. Double-click to fit.": "Drag to resize. Double-click to fit.",
+  "Reset column widths": "Reset column widths",
+  "Resize the {{column}} column": "Resize the {{column}} column",
+  "{{count}} pixels wide": "{{count}} pixels wide",
+  "{{count}} pixels wide_one": "{{count}} pixel wide",
   "markdownCallouts": {
     "caution": "Caution",
     "danger": "Danger",

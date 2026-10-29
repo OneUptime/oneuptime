@@ -23,6 +23,8 @@ const OVERVIEW_PLACEHOLDERS = {
   DeviceDiagnosticsCard: "Diagnostics",
   DeviceMonitorsCard: "Monitors",
   DeviceVendorTemplateBanner: null,
+  // The device's open incidents and alerts (issue #5341).
+  ResourceActivityCards: "Activity",
 };
 
 const overviewPlaceholders = {
@@ -32,6 +34,17 @@ const overviewPlaceholders = {
       {
         filter:
           /\/NetworkDevice\/(DeviceStatusHero|DeviceInterfacesPreview|DeviceAttachmentCard|DeviceDiagnosticsCard|DeviceMonitorsCard|DeviceVendorTemplateBanner|DeviceMonitorLookupUtil)$/,
+      },
+      (args) => {
+        return {
+          path: args.path.split("/").pop(),
+          namespace: "asset-details-placeholder",
+        };
+      },
+    );
+    build.onResolve(
+      {
+        filter: /\/ResourceActivity\/ResourceActivityCards$/,
       },
       (args) => {
         return {

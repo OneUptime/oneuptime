@@ -43,6 +43,11 @@ import useDashboardWidgetSort, {
   useReportDashboardWidgetSortColumns,
 } from "Common/UI/Utils/UseDashboardWidgetSort";
 import DashboardSortableColumnHeader from "./DashboardSortableColumnHeader";
+import useDashboardWidgetColumns, {
+  DashboardWidgetColumn,
+  DashboardWidgetColumns,
+} from "./DashboardWidgetColumns";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardDataSourceTableComponentType;
@@ -265,6 +270,26 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
   const description: string | undefined =
     props.component.arguments.tableDescription;
 
+  /*
+   * Its columns as wide as each person makes them: a number is never cut,
+   * any other value gives way to 8rem (the first, the row's name, to 10rem).
+   */
+  const widgetColumns: DashboardWidgetColumns = useDashboardWidgetColumns(
+    (result?.columns || []).map(
+      (column: DataSourceTableColumn, index: number): DashboardWidgetColumn => {
+        return {
+          id: column.key,
+          kind:
+            column.type === DataSourceTableColumnType.Number
+              ? ColumnWidthKind.Whole
+              : index === 0
+                ? ColumnWidthKind.Name
+                : ColumnWidthKind.Text,
+        };
+      },
+    ),
+  );
+
   if (isPublicDashboard()) {
     return <DataSourceWidgetPlaceholder icon={IconProp.TableCells} />;
   }
@@ -357,7 +382,11 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
         </div>
       ) : (
         <div className="flex-1 overflow-auto rounded-md border border-gray-100 mx-1 mb-1">
-          <table className="w-full text-sm text-left">
+          {widgetColumns.resizable.styles}
+          <table
+            className={`${widgetColumns.tableWidthClassName} text-sm text-left`}
+            {...widgetColumns.resizable.tableAttributes}
+          >
             <thead className="text-xs text-gray-400 uppercase bg-gray-50/80 sticky top-0 border-b border-gray-100">
               <tr>
                 {columns.map((column: DataSourceTableColumn): ReactElement => {
@@ -377,6 +406,7 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
                       )}
                       sort={widgetSort.sort}
                       onSortClick={widgetSort.onColumnClick}
+                      resize={widgetColumns.getResize(column.key)}
                     />
                   );
                 })}

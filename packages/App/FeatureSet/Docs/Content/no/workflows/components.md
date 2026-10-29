@@ -388,6 +388,12 @@ Disse komponentene handler som Project Admin for prosjektet til arbeidsflyten: d
 
 Hendelsen registrerer malen den ble erklært ut fra, i `createdIncidentTemplateId`. Den kolonnen setter OneUptime selv: et trinn som sender den i **JSON Object**, avvises, og kjøringsloggen viser deg til **Incident Template**. En mal fra et annet prosjekt, eller en som er slettet, får trinnet til å ta utgangen **Error**, og på en plan som ikke inkluderer hendelsesmaler, avvises trinnet med planen som kreves. Se [Slik brukes en mal](/docs/incidents/settings#slik-brukes-en-mal).
 
+### Knytte til ressursene det gjelder
+
+**Create One Incident** og **Create One Alert** har en innstilling **Berørte ressurser**: vertene, nettverksenhetene, klyngene, databasene eller tjenestene posten gjelder, etter navn, adresse eller ID, skilt med komma — skrevet inn eller hentet fra et tidligere trinn, som verten et varsel fra et annet verktøy navngir. Hver oppføring letes etter i alle typer ressurser posten kan holde, som hel verdi og uten hensyn til store og små bokstaver: etter navn, en nettverksenhet også etter adressen den polles på eller DNS-navnet sitt, en vert etter navnet agenten dens rapporterer eller en av IP-adressene dens, og en skyressurs etter leverandørens ID. Hver ressurs en oppføring treffer, knyttes til, ved siden av det **JSON Object** og malen allerede knytter til, opptil 50 fra de første 25 oppføringene.
+
+En oppføring som ikke treffer noe, stopper ikke trinnet: posten opprettes likevel, og kjøringsloggen sier hva hver oppføring knyttet til og hvilke som ikke traff noe. Arkiverte ressurser knyttes ikke til. Monitorer slås ikke opp: navngi dem i **JSON Object** (`monitors` på en hendelse, `monitorId` på et varsel), fordi det å knytte en monitor til en hendelse setter overvåkingen dens på pause.
+
 ## Arbeide med poster
 
 Hvert felt på en datakomponent bruker postens egne **kolonne**navn — de samme navnene som API-et, ikke etikettene i dashbordets skjema. ID-kolonnen er `_id`. Stavemåten `id` godtas som alias overalt der du kan skrive et kolonnenavn, men `_id` er det en post returnerer, så det er det du skal lese på vei ut:

@@ -77,6 +77,8 @@ describe("getMonitorLinkedResourcesFormFields", () => {
       __affectedResourcesPayload: true,
       monitors: undefined,
       hosts: ["h-1"],
+      // A monitor is not linked to a network device by hand.
+      networkDevices: undefined,
       kubernetesClusters: ["k-1"],
       dockerHosts: [],
       podmanHosts: [],

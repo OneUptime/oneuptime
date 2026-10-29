@@ -43,7 +43,7 @@ Genera una alerta cuando tu equipo deba mirar antes de que nadie de fuera lo not
 ## De dónde vienen las alertas
 
 - **Los criterios de un monitor.** En las **Acciones** de un criterio, activa **Cuando los filtros coinciden, crear una alerta.** y completa la alerta que crea: **Título de la alerta** y **Gravedad**, y después, cada uno plegado, **Descripción**, **Propiedad y etiquetas**, **De guardia** y **Más campos**, que contiene **Resolver alerta automáticamente**, **Alerta privada** y **Notas de remediación**. Un criterio mantiene una sola alerta abierta a la vez, una por serie en un monitor que agrupa por un campo, y **Resolver alerta automáticamente** la resuelve cuando el criterio deja de coincidir. Consulta [Crear un monitor](/docs/monitor/create-monitor) y [Plantillas de incidentes y alertas](/docs/monitor/incident-alert-templating).
-- **A mano.** Haz clic en **Crear alerta** en la lista de alertas, o en la pestaña **Alertas** de un monitor, un host u otro recurso, que elige ese recurso por ti. Consulta [Crear una alerta a mano](#crear-una-alerta-a-mano).
+- **A mano.** Haz clic en **Crear alerta** en la lista de alertas, o en la pestaña **Alertas** de un monitor, un host, un dispositivo de red u otro recurso, que elige ese recurso por ti. Consulta [Crear una alerta a mano](#crear-una-alerta-a-mano).
 - **La tasa de consumo de un SLO.** Una regla de tasa de consumo puede crear una alerta cuando un SLO gasta su presupuesto de errores demasiado rápido. Consulta [Alertas e incidentes de tasa de consumo](/docs/slo/burn-rate-alerts).
 - **Sitios de red y eventos de seguridad.** Un sitio de red configurado para alertar cuando no está sano abre una alerta cuando su resumen deja de estar operativo, y tus reglas de detección de eventos de seguridad también abren alertas. Consulta [Sitios de red (resumen de salud y tiempo de actividad)](/docs/monitor/network-sites) y [Eventos de seguridad (SIEM)](/docs/telemetry/security-events).
 - **Un aviso.** `/oneuptime page` en Slack o Microsoft Teams abre una alerta cuyo título es tu mensaje y avisa a las personas que nombres. Los bloques de aviso de un flujo de trabajo hacen lo mismo con el título y el mensaje que les des. Consulta [Avisar a alguien desde Slack](/docs/workspace-connections/slack#avisar-a-alguien-desde-slack) y [Paging](/docs/workflows/components#paging).
@@ -81,7 +81,7 @@ Rellena el **Título** y elige una **Gravedad de la alerta**; ambos son obligato
 
 ### Elegir a qué afecta y a quién se avisa
 
-Haz clic en **Siguiente** para llegar a **Recursos y guardia**. Elige el **Monitor** del que trata y cualquier **Otros recursos afectados**, como hosts, clústeres de Kubernetes o servicios. En **Política de guardia**, elige las políticas que se ejecutarán cuando se cree la alerta.
+Haz clic en **Siguiente** para llegar a **Recursos y guardia**. Elige el **Monitor** del que trata y cualquier **Otros recursos afectados**, como hosts, dispositivos de red, clústeres de Kubernetes o servicios. En **Política de guardia**, elige las políticas que se ejecutarán cuando se cree la alerta.
 
 ### Crearla
 

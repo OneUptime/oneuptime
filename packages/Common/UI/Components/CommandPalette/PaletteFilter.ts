@@ -32,6 +32,9 @@ import {
  * - Between equally good matches, the command's searchPriority decides (the
  *   Dashboard puts products before pages, and pages before actions), then
  *   the caller's order.
+ * - A command on a page - a setting found by the name its card shows - is
+ *   never listed before that page: it comes right after it when both match
+ *   ("saml" opens SSO, then its SAML card).
  *
  * Plurals and typos are matched by Utils/WordMatch, which the workflow step
  * pickers use too.
@@ -812,6 +815,56 @@ interface IndexedMatch {
   index: number;
 }
 
+/*
+ * A command on a page (PaletteCommand.onPageCommandId: a setting found by
+ * its card's name) comes right after its page when the page is listed
+ * too, in the order the two were ranked; and where its page is not listed,
+ * where it ranked. "single sign-on" names the SSO page in a keyword and its
+ * Test Single Sign On (SSO) card in a title, and the page is what the
+ * search was for.
+ */
+const placeAfterTheirPages: (
+  ranked: Array<PaletteCommandMatch>,
+) => Array<PaletteCommandMatch> = (
+  ranked: Array<PaletteCommandMatch>,
+): Array<PaletteCommandMatch> => {
+  const positions: Map<string, number> = new Map();
+
+  ranked.forEach((match: PaletteCommandMatch, position: number): void => {
+    positions.set(match.command.id, position);
+  });
+
+  const waiting: Map<string, Array<PaletteCommandMatch>> = new Map();
+  const placed: Array<PaletteCommandMatch> = [];
+
+  ranked.forEach((match: PaletteCommandMatch, position: number): void => {
+    const pageId: string | undefined = match.command.onPageCommandId;
+    const pagePosition: number | undefined =
+      pageId !== undefined ? positions.get(pageId) : undefined;
+
+    if (pageId !== undefined && pagePosition !== undefined) {
+      if (pagePosition > position) {
+        // Its page is further down: it waits for it.
+        waiting.set(pageId, [...(waiting.get(pageId) || []), match]);
+        return;
+      }
+    }
+
+    placed.push(match);
+
+    const followers: Array<PaletteCommandMatch> | undefined = waiting.get(
+      match.command.id,
+    );
+
+    if (followers) {
+      placed.push(...followers);
+      waiting.delete(match.command.id);
+    }
+  });
+
+  return placed;
+};
+
 /**
  * Filter commands against free text and return them best match first.
  * Equal scores go by searchPriority, then keep the caller's order, so two
@@ -885,27 +938,29 @@ export const filterPaletteCommands: (
     },
   );
 
-  return matches
-    .filter((entry: IndexedMatch): boolean => {
-      return !hasBetterMatches || !FALLBACK_RANKS.has(entry.match.rank);
-    })
-    .sort((a: IndexedMatch, b: IndexedMatch): number => {
-      if (b.match.score !== a.match.score) {
-        return b.match.score - a.match.score;
-      }
+  return placeAfterTheirPages(
+    matches
+      .filter((entry: IndexedMatch): boolean => {
+        return !hasBetterMatches || !FALLBACK_RANKS.has(entry.match.rank);
+      })
+      .sort((a: IndexedMatch, b: IndexedMatch): number => {
+        if (b.match.score !== a.match.score) {
+          return b.match.score - a.match.score;
+        }
 
-      const priorityA: number = a.match.command.searchPriority || 0;
-      const priorityB: number = b.match.command.searchPriority || 0;
+        const priorityA: number = a.match.command.searchPriority || 0;
+        const priorityB: number = b.match.command.searchPriority || 0;
 
-      if (priorityB !== priorityA) {
-        return priorityB - priorityA;
-      }
+        if (priorityB !== priorityA) {
+          return priorityB - priorityA;
+        }
 
-      return a.index - b.index;
-    })
-    .map((entry: IndexedMatch): PaletteCommandMatch => {
-      return entry.match;
-    });
+        return a.index - b.index;
+      })
+      .map((entry: IndexedMatch): PaletteCommandMatch => {
+        return entry.match;
+      }),
+  );
 };
 
 /*
@@ -1068,16 +1123,24 @@ export const getHighlightSegments: (
   return segments;
 };
 
+const SECTION_ID_EDGE_DASHES: RegExp = /^-+|-+$/g;
+
 /**
- * Stable slug for section test ids: "Analytics & Automation" →
+ * Stable slug for section keys and test ids: "Analytics & Automation" →
  * "analytics-automation". Search-provider sections use the provider's own id
  * instead of this.
+ *
+ * Letters of every script count: a section is a React key too, and a slug
+ * of Latin letters only made every Persian, Russian, Japanese, Chinese,
+ * Korean and Hindi section "" - one key for all of them, so React warned on
+ * every open and could draw a section twice or drop one as the results
+ * changed under the reader's typing.
  */
 export const getPaletteSectionId: (title: string) => string = (
   title: string,
 ): string => {
   return title
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+    .replace(NOT_A_LETTER_OR_DIGIT, "-")
+    .replace(SECTION_ID_EDGE_DASHES, "");
 };

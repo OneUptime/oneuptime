@@ -368,6 +368,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
       // Burn rate incidents are linked to the SLO that declared them.
       includeServiceLevelObjective: true,
       includeCloudResource: true,
+      includeNetworkDevice: true,
     }),
     // Incidents limited to some status pages (Incident.statusPages).
     buildStatusPageScopeFacet(),
@@ -648,6 +649,11 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             _id: true,
             projectId: true,
           },
+          networkDevices: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
           kubernetesClusters: {
             name: true,
             _id: true,
@@ -851,6 +857,11 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                 _id: true,
                 projectId: true,
               },
+              networkDevices: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
               kubernetesClusters: {
                 name: true,
                 _id: true,
@@ -926,6 +937,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                 <AffectedResourcesCell
                   monitors={item.monitors || []}
                   hosts={item.hosts || []}
+                  networkDevices={item.networkDevices || []}
                   kubernetesClusters={item.kubernetesClusters || []}
                   dockerHosts={item.dockerHosts || []}
                   podmanHosts={item.podmanHosts || []}

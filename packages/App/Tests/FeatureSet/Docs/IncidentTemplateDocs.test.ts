@@ -1241,11 +1241,18 @@ describe("Incident docs", () => {
         WORKFLOW_CREATE_COMPONENT_FILE,
       );
 
+      /*
+       * The step's props are read once - the same ones look up its
+       * Affected Resources (issue #5341) and create the record.
+       */
       expect(createComponent).toMatch(
-        /this\.modelService\.create\(\{[\s\S]*?props:\s*await this\.getStepProps\(options\),/,
+        /const props: DatabaseCommonInteractionProps =\s*await this\.getStepProps\(options\);/,
       );
       expect(createComponent).toMatch(
-        /this\.modelService\.createFromTemplate\(\{[\s\S]*?props:\s*await this\.getStepProps\(options\),/,
+        /this\.modelService\.create\(\{[\s\S]*?props:\s*props,/,
+      );
+      expect(createComponent).toMatch(
+        /this\.modelService\.createFromTemplate\(\{[\s\S]*?props:\s*props,/,
       );
       expect(createComponent).not.toMatch(/isRoot\s*:/);
 

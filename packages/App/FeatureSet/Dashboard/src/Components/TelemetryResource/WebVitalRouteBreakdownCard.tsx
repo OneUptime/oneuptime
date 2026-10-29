@@ -1,4 +1,9 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import useResizableColumns, {
+  ResizableColumns,
+} from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
+import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import Card from "Common/UI/Components/Card/Card";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { WebVital, WebVitalByRoute, WebVitalRoute } from "./telemetryMetrics";
@@ -27,6 +32,19 @@ const WebVitalRouteBreakdownCard: FunctionComponent<
 > = (props: WebVitalRouteBreakdownCardProps): ReactElement => {
   const title: string = `${props.vital.key.toUpperCase()} by route`;
   const routes: Array<WebVitalRoute> = props.breakdown?.routes || [];
+
+  /*
+   * The routes' columns as wide as a person makes them (Common's
+   * Table/ColumnResize): a route gives way, its average and rating never.
+   */
+  const routeColumns: ResizableColumns = useResizableColumns({
+    tableKey: "web-vital-routes-table",
+    columns: [
+      { id: "route", cellNumber: 1 },
+      { id: "average", cellNumber: 2 },
+      { id: "rating", cellNumber: 3 },
+    ],
+  });
 
   const body: () => ReactElement = (): ReactElement => {
     if (props.loading && !props.breakdown) {
@@ -82,23 +100,50 @@ const WebVitalRouteBreakdownCard: FunctionComponent<
 
     return (
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200 text-sm">
+        {routeColumns.styles}
+        <table
+          className={`${routeColumns.getTableWidthClassName("min-w-full")} divide-y divide-gray-200 text-sm`}
+          {...routeColumns.tableAttributes}
+        >
           <thead>
             <tr>
-              <th className="py-2 pr-4 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Route
-                {props.breakdown?.routeAttribute ? (
-                  <span className="ml-1 font-mono normal-case tracking-normal text-gray-400">
-                    ({props.breakdown.routeAttribute})
-                  </span>
-                ) : null}
-              </th>
-              <th className="py-2 pr-4 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
-                Average
-              </th>
-              <th className="py-2 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
-                Rating
-              </th>
+              <ResizableHeaderCell
+                className="py-2 pr-4 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                resize={routeColumns.getResize(
+                  "route",
+                  "Route",
+                  ColumnWidthKind.Name,
+                )}
+              >
+                <span>
+                  Route
+                  {props.breakdown?.routeAttribute ? (
+                    <span className="ml-1 font-mono normal-case tracking-normal text-gray-400">
+                      ({props.breakdown.routeAttribute})
+                    </span>
+                  ) : null}
+                </span>
+              </ResizableHeaderCell>
+              <ResizableHeaderCell
+                className="py-2 pr-4 text-right text-xs font-medium uppercase tracking-wider text-gray-500"
+                resize={routeColumns.getResize(
+                  "average",
+                  "Average",
+                  ColumnWidthKind.Whole,
+                )}
+              >
+                <span>Average</span>
+              </ResizableHeaderCell>
+              <ResizableHeaderCell
+                className="py-2 text-right text-xs font-medium uppercase tracking-wider text-gray-500"
+                resize={routeColumns.getResize(
+                  "rating",
+                  "Rating",
+                  ColumnWidthKind.Whole,
+                )}
+              >
+                <span>Rating</span>
+              </ResizableHeaderCell>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">

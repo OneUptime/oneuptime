@@ -43,7 +43,7 @@ Maak een waarschuwing aan wanneer je team moet kijken voordat iemand buiten het 
 ## Waar waarschuwingen vandaan komen
 
 - **De criteria van een monitor.** Zet onder de **Acties** van een criterium **Wanneer filters overeenkomen, maak een waarschuwing aan.** aan en vul de waarschuwing in die het aanmaakt: **Waarschuwingstitel** en **Ernst**, dan, elk ingeklapt, **Beschrijving**, **Eigendom & labels**, **Bereikbaarheid** en **Meer velden**, met daarin **Waarschuwing automatisch oplossen**, **Privéwaarschuwing** en **Herstelnotities**. Een criterium houdt één open waarschuwing tegelijk aan, één per reeks bij een monitor die op een veld groepeert, en **Waarschuwing automatisch oplossen** lost haar op zodra het criterium niet meer overeenkomt. Zie [Een monitor maken](/docs/monitor/create-monitor) en [Incident- en waarschuwingstemplates](/docs/monitor/incident-alert-templating).
-- **Met de hand.** Klik op **Waarschuwing maken** in de lijst met waarschuwingen, of op het tabblad **Waarschuwingen** van een monitor, host of andere resource, dat die resource voor je kiest. Zie [Een waarschuwing met de hand aanmaken](#een-waarschuwing-met-de-hand-aanmaken).
+- **Met de hand.** Klik op **Waarschuwing maken** in de lijst met waarschuwingen, of op het tabblad **Waarschuwingen** van een monitor, host, netwerkapparaat of andere resource, dat die resource voor je kiest. Zie [Een waarschuwing met de hand aanmaken](#een-waarschuwing-met-de-hand-aanmaken).
 - **De verbruikssnelheid van een SLO.** Een regel voor de verbruikssnelheid kan een waarschuwing aanmaken wanneer een SLO zijn foutbudget te snel verbruikt. Zie [Waarschuwingen en incidenten voor verbruikssnelheid](/docs/slo/burn-rate-alerts).
 - **Netwerklocaties en beveiligingsgebeurtenissen.** Een netwerklocatie die is ingesteld om te waarschuwen wanneer ze ongezond is, opent een waarschuwing zodra haar overzicht niet meer operationeel is, en je detectieregels voor beveiligingsgebeurtenissen openen ook waarschuwingen. Zie [Netwerklocaties (gezondheidsoverzicht en uptime)](/docs/monitor/network-sites) en [Beveiligingsgebeurtenissen (SIEM)](/docs/telemetry/security-events).
 - **Een oproep.** `/oneuptime page` in Slack of Microsoft Teams opent een waarschuwing met je bericht als titel en roept de mensen op die je noemt. De oproepblokken van een workflow doen hetzelfde met de titel en het bericht die je ze meegeeft. Zie [Iemand oproepen vanuit Slack](/docs/workspace-connections/slack#iemand-oproepen-vanuit-slack) en [Paging](/docs/workflows/components#paging).
@@ -81,7 +81,7 @@ Vul de **Titel** in en kies een **Ernst van waarschuwing**; beide zijn verplicht
 
 ### Kiezen wat ze treft en wie wordt opgeroepen
 
-Klik op **Volgende** om naar **Middelen en bereikbaarheid** te gaan. Kies de **Monitor** waar het om gaat en alle **Andere getroffen resources**, zoals hosts, Kubernetes-clusters of services. Kies bij **Bereikbaarheidsbeleid** het beleid dat moet draaien wanneer de waarschuwing wordt aangemaakt.
+Klik op **Volgende** om naar **Middelen en bereikbaarheid** te gaan. Kies de **Monitor** waar het om gaat en alle **Andere getroffen resources**, zoals hosts, netwerkapparaten, Kubernetes-clusters of services. Kies bij **Bereikbaarheidsbeleid** het beleid dat moet draaien wanneer de waarschuwing wordt aangemaakt.
 
 ### Haar aanmaken
 
