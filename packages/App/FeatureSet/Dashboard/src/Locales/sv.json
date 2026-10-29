@@ -36818,6 +36818,7 @@
   "Pick a person to do {{title}}. They are notified.": "Välj en person som ska göra {{title}}. Personen får ett meddelande.",
   "Put any other kind of file, or several files, in a .zip.": "Lägg andra filtyper, eller flera filer, i en .zip.",
   "Upload a file": "Ladda upp en fil",
+  "Selected: {{name}}": "Vald: {{name}}",
   "A description is at most 500 characters.": "En beskrivning är högst 500 tecken.",
   "A name is at most 50 characters.": "Ett namn är högst 50 tecken.",
   "A note is at most 500 characters.": "En anteckning är högst 500 tecken.",

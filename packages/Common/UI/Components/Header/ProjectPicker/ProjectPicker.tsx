@@ -51,7 +51,11 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
           type="button"
           className="relative w-full cursor-pointer rounded-lg border border-gray-200 bg-gray-50 py-2.5 pl-3 pr-10 text-left hover:bg-gray-100 hover:border-gray-300 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 transition-all duration-150 sm:text-sm"
           aria-haspopup="listbox"
-          aria-expanded="true"
+          /*
+           * Whether the project list is open: it was written as "true", so
+           * a screen reader heard the closed picker as open.
+           */
+          aria-expanded={isComponentVisible}
           aria-labelledby="listbox-label"
         >
           <span className="flex items-center">

@@ -1736,6 +1736,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
             {chipOverflow > 0 && (
               <button
                 type="button"
+                aria-expanded={showAllChips}
                 onClick={() => {
                   return setShowAllChips(!showAllChips);
                 }}

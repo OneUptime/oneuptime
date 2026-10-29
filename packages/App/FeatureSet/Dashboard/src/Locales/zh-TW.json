@@ -36818,6 +36818,7 @@
   "Pick a person to do {{title}}. They are notified.": "選擇完成 {{title}} 的人。對方會收到通知。",
   "Put any other kind of file, or several files, in a .zip.": "其他類型的檔案或多個檔案請放入 .zip。",
   "Upload a file": "上傳檔案",
+  "Selected: {{name}}": "已選擇：{{name}}",
   "A description is at most 500 characters.": "描述最多 500 個字元。",
   "A name is at most 50 characters.": "名稱最多 50 個字元。",
   "A note is at most 500 characters.": "備註最多 500 個字元。",

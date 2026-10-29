@@ -38,7 +38,8 @@ const instrumentation: GuideSnippet = {
   title: "instrumentation.mjs",
   code: nodeInstrumentationFile({
     autoInstrumentationLines: [
-      "// Nest runs on Express 5, which routes through the router package: one set of spans is enough.",
+      "// Nest runs on Express 5, which routes through the router package:",
+      "// one set of spans is enough.",
       '"@opentelemetry/instrumentation-router": { enabled: false },',
     ],
   }),
@@ -109,7 +110,9 @@ const main: GuideSnippet = {
     "async function bootstrap(): Promise<void> {",
     "  const app = await NestFactory.create(AppModule, { bufferLogs: true });",
     "  app.useLogger(app.get(Logger));",
-    "  app.useGlobalFilters(new TelemetryExceptionFilter(app.get(HttpAdapterHost).httpAdapter));",
+    "  app.useGlobalFilters(",
+    "    new TelemetryExceptionFilter(app.get(HttpAdapterHost).httpAdapter),",
+    "  );",
     "  app.enableShutdownHooks();",
     "  await app.listen(process.env.PORT ?? 3000);",
     "}",

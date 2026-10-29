@@ -8,9 +8,10 @@ import websiteHljs, {
 
 /*
  * The grammars only the website's OpenTelemetry guides highlight - Java,
- * Kotlin, Java's .properties and INI - registered on the Dashboard's
- * highlight.js core by WebsiteLanguageRegistry, which the website alone
- * imports: every frontend's bundle stays without them.
+ * Kotlin, Java's .properties, INI (TOML too, by its alias) and Protobuf -
+ * registered on the Dashboard's highlight.js core by
+ * WebsiteLanguageRegistry, which the website alone imports: every
+ * frontend's bundle stays without them.
  */
 
 const COMMON: string = path.resolve(__dirname, "../../..");
@@ -46,12 +47,17 @@ function sourceFiles(folder: string): Array<string> {
 }
 
 describe("the website's own grammars", () => {
-  test("highlight Java, Kotlin, .properties and INI", () => {
+  test("highlight Java, Kotlin, .properties, INI and Protobuf", () => {
     const samples: Array<[string, string, string]> = [
       ["java", "public class App { }", "hljs-keyword"],
       ["kotlin", "fun main() { val count = 1 }", "hljs-keyword"],
       ["properties", "otel.traces.exporter=otlp", "hljs-meta"],
       ["ini", "[uwsgi]\nmodule = shop.wsgi", "hljs-section"],
+      [
+        "protobuf",
+        "service Orders { rpc GetOrder(Req) returns (Order); }",
+        "hljs-keyword",
+      ],
     ];
 
     expect([...WEBSITE_ONLY_LANGUAGES].sort()).toEqual(
@@ -74,6 +80,28 @@ describe("the website's own grammars", () => {
     for (const language of ["python", "csharp", "xml", "bash", "yaml"]) {
       expect(resolveRegisteredLanguage(language)).toBe(language);
     }
+  });
+
+  test("read Go, Ruby, PHP, Rust and Elixir with the Dashboard's own grammars", () => {
+    const registry: string = fs.readFileSync(REGISTRY_FILE, "utf8");
+
+    for (const language of ["go", "ruby", "php", "rust", "elixir"]) {
+      expect(resolveRegisteredLanguage(language)).toBe(language);
+      expect([
+        language,
+        registry.includes(`highlight.js/lib/languages/${language}"`),
+      ]).toEqual([language, true]);
+      expect(WEBSITE_ONLY_LANGUAGES).not.toContain(language);
+    }
+  });
+
+  test("read a Cargo.toml as TOML, the INI grammar's alias", () => {
+    expect(resolveRegisteredLanguage("toml")).toBe("toml");
+    expect(
+      websiteHljs.highlight('[dependencies]\nopentelemetry = "0.33.1"', {
+        language: "toml",
+      }).value,
+    ).toContain("hljs-section");
   });
 
   test("are not in the Dashboard's registry, which every frontend loads", () => {

@@ -36818,6 +36818,7 @@
   "Pick a person to do {{title}}. They are notified.": "{{title}} करने के लिए कोई व्यक्ति चुनें। उन्हें सूचित किया जाता है।",
   "Put any other kind of file, or several files, in a .zip.": "किसी अन्य प्रकार की फ़ाइल, या कई फ़ाइलें, एक .zip में रखें।",
   "Upload a file": "फ़ाइल अपलोड करें",
+  "Selected: {{name}}": "चयनित: {{name}}",
   "A description is at most 500 characters.": "विवरण अधिकतम 500 अक्षरों का होता है।",
   "A name is at most 50 characters.": "नाम अधिकतम 50 अक्षरों का होता है।",
   "A note is at most 500 characters.": "नोट अधिकतम 500 अक्षरों का होता है।",

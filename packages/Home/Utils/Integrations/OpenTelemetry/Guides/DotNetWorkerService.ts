@@ -462,7 +462,7 @@ export const DotNetWorkerServiceGuide: OpenTelemetryGuide = {
       },
       {
         title: "Open a run's trace",
-        body: `In ${SCREENS.traces}, search \`invoices.sync\`: the run's \`GET\`, then an \`invoice.post\` with its \`POST\` for each invoice, though another worker posted them.`,
+        body: `Search ${SCREENS.traces} for \`invoices.sync\`: the run's \`GET\`, then an \`invoice.post\` with its \`POST\` for each invoice, though another worker posted them.`,
       },
       {
         title: "Read a run's log records",

@@ -208,6 +208,7 @@
           <section id="metrics" class="guide-section mt-14" aria-labelledby="metrics-title">
             <h2 id="metrics-title" class="text-2xl font-semibold tracking-tight text-gray-900"><%= sectionOf('metrics').title %></h2>
             <p class="mt-3 text-[15px] leading-7 text-gray-600"><%- guide.metrics.introHtml %></p>
+            <% if (guide.metrics.builtIn.length > 0) { %>
             <dl class="mt-5 divide-y divide-gray-100 overflow-hidden rounded-xl bg-white ring-1 ring-gray-200">
               <% guide.metrics.builtIn.forEach(function (metric) { %>
               <div class="px-4 py-3 sm:grid sm:grid-cols-[minmax(0,17rem)_minmax(0,1fr)] sm:gap-4">
@@ -216,6 +217,7 @@
               </div>
               <% }) %>
             </dl>
+            <% } %>
             <% guide.metrics.snippets.forEach(function (snippet) { %><%- include('../Partials/integrations/code-block', { snippet: snippet }) -%><% }) %>
             <%- include('../Partials/integrations/notes', { notes: guide.metrics.notesHtml }) -%>
           </section>

@@ -36818,6 +36818,7 @@
   "Pick a person to do {{title}}. They are notified.": "Выберите человека, который выполнит {{title}}. Ему придёт уведомление.",
   "Put any other kind of file, or several files, in a .zip.": "Файлы других типов или несколько файлов поместите в .zip.",
   "Upload a file": "Загрузить файл",
+  "Selected: {{name}}": "Выбрано: {{name}}",
   "A description is at most 500 characters.": "Описание — не больше 500 символов.",
   "A name is at most 50 characters.": "Имя — не больше 50 символов.",
   "A note is at most 500 characters.": "Заметка — не больше 500 символов.",

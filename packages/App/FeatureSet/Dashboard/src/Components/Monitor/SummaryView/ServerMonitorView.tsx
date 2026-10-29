@@ -223,25 +223,18 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
-      {!showMoreDetails && hasMoreDetails && (
+      {/*
+       * One button, open or folded: its words follow the state and it
+       * keeps its place, so focus stays on it after a press.
+       */}
+      {hasMoreDetails && (
         <div className="-ml-3">
           <Button
             buttonStyle={ButtonStyleType.SECONDARY_LINK}
-            title="Show More Details"
+            title={showMoreDetails ? "Hide Details" : "Show More Details"}
+            ariaExpanded={showMoreDetails}
             onClick={() => {
-              return setShowMoreDetails(true);
-            }}
-          />
-        </div>
-      )}
-
-      {showMoreDetails && hasMoreDetails && (
-        <div className="-ml-3">
-          <Button
-            buttonStyle={ButtonStyleType.SECONDARY_LINK}
-            title="Hide Details"
-            onClick={() => {
-              return setShowMoreDetails(false);
+              return setShowMoreDetails(!showMoreDetails);
             }}
           />
         </div>

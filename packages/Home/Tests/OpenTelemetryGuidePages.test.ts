@@ -279,6 +279,47 @@ describe.each(
     }
   });
 
+  test("shows every tab's choice under its name when the script does not run", () => {
+    // What the page shows without its script: its <noscript> styles.
+    const noscriptStyles: string = Array.from(
+      document.querySelectorAll("head noscript"),
+    )
+      .map((noscript: Element): string => {
+        return noscript.textContent || "";
+      })
+      .join("\n");
+
+    expect(noscriptStyles).toContain(
+      '[data-tabs] [role="tablist"] { display: none; }',
+    );
+    expect(noscriptStyles).toContain("[data-tabs] [data-tab-panel][hidden],");
+    expect(noscriptStyles).toContain(
+      "[data-tabs] [data-tab-label][hidden] { display: block; }",
+    );
+
+    for (const set of Array.from(document.querySelectorAll("[data-tabs]"))) {
+      const names: Array<string> = Array.from(
+        set.querySelectorAll('[role="tab"]'),
+      ).map((tab: Element): string => {
+        return (tab.textContent || "").trim();
+      });
+      const labels: Array<Element> = Array.from(
+        set.querySelectorAll("[data-tab-label]"),
+      );
+
+      // Each panel has its name above it, hidden while the tabs can switch.
+      expect(
+        labels.map((label: Element): string => {
+          return (label.textContent || "").trim();
+        }),
+      ).toEqual(names);
+      for (const label of labels) {
+        expect(label.hasAttribute("hidden")).toBe(true);
+        expect(label.nextElementSibling?.getAttribute("role")).toBe("tabpanel");
+      }
+    }
+  });
+
   test("gives every image its size, so nothing moves as the page loads", () => {
     for (const image of Array.from(document.querySelectorAll("main img"))) {
       expect([
@@ -548,7 +589,18 @@ describe("the integrations index", () => {
       groups.map((group: Element): string => {
         return group.id;
       }),
-    ).toEqual(["javascript", "python", "java", "kotlin", "dotnet"]);
+    ).toEqual([
+      "javascript",
+      "python",
+      "java",
+      "kotlin",
+      "dotnet",
+      "go",
+      "ruby",
+      "php",
+      "rust",
+      "elixir",
+    ]);
     expect(
       Array.from(document.querySelectorAll("[data-integration-card] a")).map(
         (link: Element): string | null => {

@@ -123,7 +123,9 @@ export function nodeInstrumentationFile(
   const lines: Array<string> = [
     'import { register } from "node:module";',
     'import { NodeSDK } from "@opentelemetry/sdk-node";',
-    'import { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentations-node";',
+    "import {",
+    "  getNodeAutoInstrumentations,",
+    '} from "@opentelemetry/auto-instrumentations-node";',
     ...(options.extraImports || []),
     "",
     "// Lets the instrumentations patch the packages your ES modules import.",

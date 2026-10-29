@@ -105,6 +105,12 @@
  * /dashboard/:projectId/monitors/create, for CreateMonitor.spec.ts. Its
  * create is answered with CREATED_MONITOR_ID, whose page is a stub: the
  * monitor it made is recorded on `creates`, and nothing else reads it.
+ *
+ * So is Settings > Monitor Templates (Pages/Monitor/Settings/
+ * MonitorTemplates), at /dashboard/:projectId/monitors/settings/templates,
+ * with no template yet: its create form's Monitor Defaults step draws
+ * Create Monitor's type picker, which CreateMonitor.spec.ts drives there
+ * too. Nothing is created from it.
  */
 import React from "react";
 import { createRoot } from "react-dom/client";
@@ -128,6 +134,7 @@ import MonitorViewLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Monit
 import MonitorView from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/Index";
 import MonitorLogs from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/Logs";
 import MonitorCreate from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Create";
+import MonitorTemplates from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorTemplates";
 import MonitorCriteriaPage from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/Criteria";
 import {
   applyRecipe,
@@ -162,6 +169,8 @@ import MonitorOwnerUser from "Common/Models/DatabaseModels/MonitorOwnerUser";
 import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
+import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
+import TableView from "Common/Models/DatabaseModels/TableView";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Probe, {
   ProbeConnectionStatus,
@@ -935,6 +944,10 @@ for (const modelType of [
 ]) {
   table(modelType);
 }
+
+// Settings > Monitor Templates: no template yet, and no saved view of its table.
+table(MonitorTemplate);
+table(TableView);
 
 // The id the fixture answers Create Monitor's create with (a stub page).
 const CREATED_MONITOR_ID = ID.monitor(100);
@@ -3340,6 +3353,18 @@ function CreateMonitorPage() {
   );
 }
 
+// Settings > Monitor Templates, under the dashboard's own navigation hooks.
+function MonitorTemplatesPage() {
+  Navigation.setNavigateHook(useNavigate());
+  Navigation.setLocation(useLocation());
+  Navigation.setParams(useParams());
+  return (
+    <main className="py-6">
+      <MonitorTemplates {...pageProps(PageMap.MONITORS_SETTINGS_TEMPLATES)} />
+    </main>
+  );
+}
+
 const CREATED_MONITOR_PATH = RouteMap[PageMap.MONITOR_VIEW]
   .toString()
   .replace(":id", CREATED_MONITOR_ID);
@@ -3397,6 +3422,10 @@ function FixtureApp() {
           <Route
             path={RouteMap[PageMap.MONITOR_CREATE].toString()}
             element={<CreateMonitorPage />}
+          />
+          <Route
+            path={RouteMap[PageMap.MONITORS_SETTINGS_TEMPLATES].toString()}
+            element={<MonitorTemplatesPage />}
           />
           <Route
             path={CREATED_MONITOR_PATH}

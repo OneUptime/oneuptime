@@ -9,8 +9,13 @@ import {
 import { JSDOM } from "jsdom";
 import {
   highlightSnippet,
-  plainFlags,
+  plainArgumentBuiltins,
 } from "../Utils/Integrations/OpenTelemetry/GuideHighlight";
+import { OPEN_TELEMETRY_GUIDE_PAGES } from "../Utils/Integrations/OpenTelemetry/OpenTelemetryGuides";
+import {
+  PlacedSnippet,
+  placedGuideSnippets,
+} from "../Utils/Integrations/OpenTelemetry/GuideSnippets";
 import { listInWords } from "../Utils/Integrations/OpenTelemetry/IntegrationsIndex";
 import {
   GuideMark,
@@ -205,25 +210,138 @@ describe("the highlighter", () => {
     );
   });
 
-  test("unwraps only a builtin right after a dash, and leaves anything else as it was", () => {
-    expect(plainFlags('--<span class="hljs-built_in">bind</span> :80')).toBe(
-      "--bind :80",
-    );
+  test("draws a word of a path or a module name as plain text, not as a shell builtin of the same name", () => {
+    const install: string = [
+      "go get go.opentelemetry.io/otel@v1.47.0 \\",
+      "  go.opentelemetry.io/otel/sdk/log@v1.47.0 \\",
+      "  github.com/labstack/echo/v5@v5.4.2",
+    ].join("\n");
+    const html: string = highlightSnippet(install, "bash");
+
+    // Go's log SDK and Echo's module, not bash's log and echo.
+    expect(html).toContain("otel/sdk/log@v1.47.0");
+    expect(html).toContain("labstack/echo/v5@v5.4.2");
+    expect(html).not.toContain("hljs-built_in");
     expect(
-      plainFlags(
+      new JSDOM(`<code>${html}</code>`).window.document.body.textContent,
+    ).toBe(install);
+
+    // Bundler's exec and config set, and the local of /usr/local.
+    for (const [code, language] of [
+      ["bundle exec puma", "bash"],
+      [
+        'RUN bundle config set --local without "development test"',
+        "dockerfile",
+      ],
+      [
+        "COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer",
+        "dockerfile",
+      ],
+    ] as Array<[string, "bash" | "dockerfile"]>) {
+      expect([code, highlightSnippet(code, language)]).toEqual([
+        code,
+        expect.not.stringContaining("hljs-built_in"),
+      ]);
+    }
+
+    // Where a command starts, a builtin is still one.
+    for (const [code, language, word] of [
+      ['export OTEL_SERVICE_NAME="orders-api"', "bash", "export"],
+      [
+        'RUN echo "FallbackResource /index.php" > site.conf',
+        "dockerfile",
+        "echo",
+      ],
+      ["cd app && export A=1", "bash", "export"],
+      ["if true; then echo ready; fi", "bash", "echo"],
+    ] as Array<[string, "bash" | "dockerfile", string]>) {
+      expect([code, highlightSnippet(code, language)]).toEqual([
+        code,
+        expect.stringContaining(`<span class="hljs-built_in">${word}</span>`),
+      ]);
+    }
+  });
+
+  test("puts back as plain text only the builtins that are arguments, and leaves anything else as it was", () => {
+    expect(
+      plainArgumentBuiltins('--<span class="hljs-built_in">bind</span> :80'),
+    ).toBe("--bind :80");
+    expect(
+      plainArgumentBuiltins(
         'a -<span class="hljs-built_in">set</span> b -<span class="hljs-built_in">read</span>',
       ),
     ).toBe("a -set b -read");
+    expect(
+      plainArgumentBuiltins(
+        'bundle <span class="hljs-built_in">exec</span> puma',
+      ),
+    ).toBe("bundle exec puma");
+    // A line that ends in a backslash goes on as the same command.
+    expect(
+      plainArgumentBuiltins(
+        'go get a \\\n  <span class="hljs-built_in">log</span>',
+      ),
+    ).toBe("go get a \\\n  log");
     for (const html of [
       "",
       "plain words",
       '<span class="hljs-built_in">set</span> -e',
+      '  <span class="hljs-built_in">export</span> A=1',
+      'a\n<span class="hljs-built_in">export</span> A=1',
+      'a &amp;&amp; <span class="hljs-built_in">export</span> A=1',
+      'a; <span class="hljs-built_in">set</span> -e',
+      'x=$(<span class="hljs-built_in">pwd</span>)',
+      '<span class="hljs-keyword">RUN</span><span class="bash"> <span class="hljs-built_in">echo</span> hi</span>',
       '-<span class="hljs-string">bind</span>',
       // A tag left open, as no highlighter writes: kept whole.
       '--<span class="hljs-built_in">bind',
+      '--<span class="hljs-built_in',
     ]) {
-      expect(plainFlags(html)).toBe(html);
+      expect(plainArgumentBuiltins(html)).toBe(html);
     }
+  });
+
+  test("leaves no shell builtin inside an argument in any guide's commands", () => {
+    const BUILT_IN: string = '<span class="hljs-built_in">';
+    // One element to read a line's text through, its tags left out.
+    const reader: Element = new JSDOM(
+      "<code></code>",
+    ).window.document.querySelector("code")!;
+    let builtins: number = 0;
+
+    for (const guide of OPEN_TELEMETRY_GUIDE_PAGES) {
+      for (const placed of placedGuideSnippets(guide)) {
+        const snippet: PlacedSnippet["snippet"] = placed.snippet;
+
+        if (snippet.language !== "bash" && snippet.language !== "dockerfile") {
+          continue;
+        }
+
+        const html: string = highlightSnippet(snippet.code, snippet.language);
+        let at: number = html.indexOf(BUILT_IN);
+
+        while (at >= 0) {
+          builtins++;
+          // What the line holds before the builtin, with its tags left out.
+          const lineStart: number = html.lastIndexOf("\n", at) + 1;
+          reader.innerHTML = html.slice(lineStart, at);
+          const before: string = (reader.textContent || "").trimEnd();
+          const startsTheLine: boolean =
+            before.length === 0 || before.endsWith("RUN");
+
+          expect([guide.slug, snippet.id, before, startsTheLine]).toEqual([
+            guide.slug,
+            snippet.id,
+            before,
+            true,
+          ]);
+          at = html.indexOf(BUILT_IN, at + BUILT_IN.length);
+        }
+      }
+    }
+
+    // The guides' export lines and RUN echo lines are still coloured.
+    expect(builtins).toBeGreaterThan(300);
   });
 });
 
@@ -354,7 +472,19 @@ describe("a guide's mark", () => {
       return entry.slug;
     });
 
-    expect(wide).toEqual(["fastify", "koa", "hapi"]);
+    /*
+     * Go's and PHP's marks are wordmarks, drawn wide on their language
+     * guides; Sinatra's fedora and Phoenix's bird are wide symbols.
+     */
+    expect(wide).toEqual([
+      "fastify",
+      "koa",
+      "hapi",
+      "go",
+      "sinatra",
+      "php",
+      "phoenix",
+    ]);
   });
 
   test("falls back to the framework's initials for a guide with no logo and no icon", () => {

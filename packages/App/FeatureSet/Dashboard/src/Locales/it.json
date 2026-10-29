@@ -36818,6 +36818,7 @@
   "Pick a person to do {{title}}. They are notified.": "Scegli una persona che si occupi di {{title}}. Riceve una notifica.",
   "Put any other kind of file, or several files, in a .zip.": "Metti qualsiasi altro tipo di file, o più file, in un .zip.",
   "Upload a file": "Carica un file",
+  "Selected: {{name}}": "Selezionato: {{name}}",
   "A description is at most 500 characters.": "Una descrizione ha al massimo 500 caratteri.",
   "A name is at most 50 characters.": "Un nome ha al massimo 50 caratteri.",
   "A note is at most 500 characters.": "Una nota ha al massimo 500 caratteri.",

@@ -36818,6 +36818,7 @@
   "Pick a person to do {{title}}. They are notified.": "{{title}} を担当するユーザーを選択します。担当者に通知されます。",
   "Put any other kind of file, or several files, in a .zip.": "その他の種類のファイルや複数のファイルは .zip にまとめてください。",
   "Upload a file": "ファイルをアップロード",
+  "Selected: {{name}}": "選択中: {{name}}",
   "A description is at most 500 characters.": "説明は 500 文字以内です。",
   "A name is at most 50 characters.": "名前は 50 文字以内です。",
   "A note is at most 500 characters.": "メモは 500 文字以内です。",
