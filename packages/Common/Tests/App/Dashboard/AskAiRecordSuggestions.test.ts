@@ -180,9 +180,9 @@ const ASKS_FOR_A_STATUS_UPDATE: RegExp = /so far|status update/i;
 const ASKS_TO_CREATE_AN_INCIDENT: RegExp = /create an incident/i;
 const ASKS_ABOUT_THE_WINDOW_SO_FAR: RegExp = /during this maintenance window/i;
 
-let incidentStatesRead: jest.SpyInstance;
-let alertStatesRead: jest.SpyInstance;
-let maintenanceStatesRead: jest.SpyInstance;
+let incidentStatesRead: ReturnType<typeof jest.spyOn>;
+let alertStatesRead: ReturnType<typeof jest.spyOn>;
+let maintenanceStatesRead: ReturnType<typeof jest.spyOn>;
 
 beforeEach(() => {
   jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
@@ -428,7 +428,7 @@ describe("one read, each time Ask AI opens: the title and where it stands", () =
       ],
     ] as Array<
       [
-        jest.SpyInstance,
+        ReturnType<typeof jest.spyOn>,
         AIChatPageContextType,
         JSONObject,
         { new (): BaseModel },

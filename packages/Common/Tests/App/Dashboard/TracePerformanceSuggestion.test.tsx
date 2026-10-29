@@ -366,6 +366,7 @@ describe("what each offer draws", () => {
             fixOutcome: null,
             blocker: null,
             aiRunId: null,
+            repositories: [],
           }}
           taskRoute={null}
           connectRepositoryRoute={CODE_ROUTE}
