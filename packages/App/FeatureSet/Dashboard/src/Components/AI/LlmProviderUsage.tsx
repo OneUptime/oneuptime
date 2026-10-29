@@ -470,9 +470,7 @@ const LlmProviderUsage: FunctionComponent = (): ReactElement => {
                     ColumnWidthKind.Whole,
                   )}
                 >
-                  <span>
-                    {translator.translateText("Requests") || "Requests"}
-                  </span>
+                  <span>{translator.translateText("Requests")}</span>
                 </ResizableHeaderCell>
                 <ResizableHeaderCell
                   className="px-4 py-2 text-right font-medium text-gray-500"
@@ -482,9 +480,7 @@ const LlmProviderUsage: FunctionComponent = (): ReactElement => {
                     ColumnWidthKind.Whole,
                   )}
                 >
-                  <span>
-                    {translator.translateText("Input tokens") || "Input tokens"}
-                  </span>
+                  <span>{translator.translateText("Input tokens")}</span>
                 </ResizableHeaderCell>
                 <ResizableHeaderCell
                   className="px-4 py-2 text-right font-medium text-gray-500"
@@ -495,10 +491,7 @@ const LlmProviderUsage: FunctionComponent = (): ReactElement => {
                     ColumnWidthKind.Whole,
                   )}
                 >
-                  <span>
-                    {translator.translateText("Output tokens") ||
-                      "Output tokens"}
-                  </span>
+                  <span>{translator.translateText("Output tokens")}</span>
                 </ResizableHeaderCell>
                 <ResizableHeaderCell
                   className="px-4 py-2 text-right font-medium text-gray-500"
@@ -508,9 +501,7 @@ const LlmProviderUsage: FunctionComponent = (): ReactElement => {
                     ColumnWidthKind.Whole,
                   )}
                 >
-                  <span>
-                    {translator.translateText("Cost (USD)") || "Cost (USD)"}
-                  </span>
+                  <span>{translator.translateText("Cost (USD)")}</span>
                 </ResizableHeaderCell>
               </tr>
             </thead>

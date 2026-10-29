@@ -117,12 +117,13 @@ En allvarlighetsgrad larmar ingen på egen hand. För att larma efter allvarligh
 Arkivera en status eller allvarlighetsgrad som ditt team inte längre ska använda, i stället för att ta bort den. Arkivering ändrar inget larm. Att ta bort en status tar bort dess rader ur varje larms historik, och en allvarlighetsgrad kan inte tas bort så länge larm har den.
 
 - **Arkivera** finns i radens meny **⋯**. Den frågar först och listar de regler, mätningar, monitorkriterier och arbetsflöden som är inställda på att använda värdet: De fortsätter att använda det tills du ändrar dem.
+- **Personernas egna jourregler finns kvar.** För en allvarlighetsgrad säger dialogen också hur många personer som har jourregler för den. De reglerna förblir som de är, så larm med den larmar fortfarande de personerna. På varje persons sida **Jourregler** kommer den arkiverade allvarlighetsgraden sist, markerad med **Arkiverad**: Dess regler kan ändras eller tas bort, men inga nya kan läggas till.
 - **Ingen kan välja den igen.** **Ändra tillstånd**, larmets sidhuvud, Slack, Microsoft Teams, regler och monitorkriterier utelämnar den. API:et, Terraform och MCP avvisar den och anger värdet och var den kan avarkiveras.
 - **Larm behåller den.** Ett larm som har den behåller den vid varje senare redigering, dess statustidslinje visar den fortfarande, och du kan fortfarande filtrera på den.
 - **Arkiverade värden listas för sig**, i det hopfällda avsnittet **Arkiverade larmstatusar** eller **Arkiverade allvarlighetsgrader för larm** under tabellen, med vem som arkiverade varje värde och när. **Avarkivera** återställer ett som det var.
 - **Vissa kan inte arkiveras.** Den skapade, den kvitterade och den lösta statusen, och projektets sista allvarlighetsgrad som inte är arkiverad. Deras **Arkivera** är låst, med skälet.
 
-**Ta bort** talar först om vad den skulle göra. Så länge larm eller episoder har värdet nekas borttagningen, och dialogen listar dem. Annars listar den vad borttagningen skulle ändra och erbjuder **Arkivera i stället**.
+**Ta bort** talar först om vad den skulle göra. Så länge larm eller episoder har värdet nekas borttagningen, och dialogen listar dem. Annars listar den vad borttagningen skulle ändra och erbjuder **Arkivera i stället**. Om du vill ta bort flera på en gång markerar du dem och väljer **Ta bort** under **Massåtgärder**: Dialogen säger först samma sak för alla, de som inte kan tas bort förblir som de är, och resten tas bort.
 
 ## Flytta ett larm genom dess tillstånd
 

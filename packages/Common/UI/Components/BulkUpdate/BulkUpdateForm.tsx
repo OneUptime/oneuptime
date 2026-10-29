@@ -303,6 +303,19 @@ export interface BulkActionOnClickProps<T extends GenericObject> {
   stopSignal?: AbortSignal | undefined;
 }
 
+/*
+ * What a confirmation's details may ask of the dialog they are drawn in.
+ */
+export interface BulkActionConfirmControls {
+  /*
+   * Holds the dialog's action while the details are still being read - what
+   * the action would do, asked of the server when the dialog opens - and
+   * lets it go once they are. Details that find there is nothing the action
+   * could do keep it held.
+   */
+  setIsSubmitHeld: (isHeld: boolean) => void;
+}
+
 export interface BulkActionButtonSchema<T extends GenericObject> {
   title: string;
   /*
@@ -329,21 +342,31 @@ export interface BulkActionButtonSchema<T extends GenericObject> {
   confirmTitle?: ((items: Array<T>) => string) | undefined;
   /*
    * Drawn under confirmMessage: which records the action is about to touch,
-   * where the count alone does not say (DeleteItemNames lists them).
+   * where the count alone does not say (DeleteItemNames lists them), and
+   * what it would do to what uses them, read when the dialog opens - which
+   * may hold the dialog's action meanwhile (controls).
    */
-  confirmDetails?: ((items: Array<T>) => ReactElement | undefined) | undefined;
+  confirmDetails?:
+    | ((
+        items: Array<T>,
+        controls: BulkActionConfirmControls,
+      ) => ReactElement | undefined)
+    | undefined;
   confirmButtonStyleType?: ButtonStyleType;
   /*
    * The result's words for what happened to each item, when this action has
    * better ones than "succeeded" and "failed": a Delete says "2 Monitors
    * deleted" and "1 Monitor not deleted", which is what the reader is
-   * looking for. Plural templates with {{count}}, {{itemName}} and
-   * {{itemsName}}, as BULK_SUCCEEDED_COUNT.
+   * looking for - and "1 Monitor skipped" for one it left alone on purpose,
+   * where "not changed" (BULK_UNCHANGED_COUNT) would read oddly. Plural
+   * templates with {{count}}, {{itemName}} and {{itemsName}}, as
+   * BULK_SUCCEEDED_COUNT.
    */
   resultLabels?:
     | {
         succeeded: PluralTemplate;
         failed: PluralTemplate;
+        unchanged?: PluralTemplate | undefined;
       }
     | undefined;
   /*
@@ -415,6 +438,10 @@ const BulkUpdateForm: <T extends GenericObject>(
 
   const [confirmModalProps, setConfirmModalProps] =
     React.useState<ConfirmModalProps | null>(null);
+
+  // The confirmation's action, held while its details are read.
+  const [isConfirmSubmitHeld, setIsConfirmSubmitHeld] =
+    React.useState<boolean>(false);
 
   const [progressInfo, setProgressInfo] =
     React.useState<ProgressInfo<T> | null>(null);
@@ -525,12 +552,16 @@ const BulkUpdateForm: <T extends GenericObject>(
     };
 
     if (button.confirmMessage) {
+      // A fresh dialog starts free; its details hold it if they need to.
+      setIsConfirmSubmitHeld(false);
       setConfirmModalProps({
         title: button.confirmTitle
           ? button.confirmTitle(props.selectedItems)
           : tx("Confirm"),
         description: button.confirmMessage(props.selectedItems),
-        children: button.confirmDetails?.(props.selectedItems),
+        children: button.confirmDetails?.(props.selectedItems, {
+          setIsSubmitHeld: setIsConfirmSubmitHeld,
+        }),
         submitButtonType: button.confirmButtonStyleType,
         submitButtonText: button.title,
         onClose: () => {
@@ -621,7 +652,7 @@ const BulkUpdateForm: <T extends GenericObject>(
         liveCounts.push({
           key: "unchanged",
           text: translator.translatePlural(
-            BULK_UNCHANGED_COUNT,
+            runningAction?.resultLabels?.unchanged || BULK_UNCHANGED_COUNT,
             unchangedItems.length,
             {
               count: translator.formatNumber(unchangedItems.length),
@@ -812,7 +843,8 @@ const BulkUpdateForm: <T extends GenericObject>(
               />
               <div className="ml-2 text-sm font-medium text-gray-800">
                 {translator.translatePlural(
-                  BULK_UNCHANGED_COUNT,
+                  runningAction?.resultLabels?.unchanged ||
+                    BULK_UNCHANGED_COUNT,
                   unchangedItems.length,
                   {
                     count: translator.formatNumber(unchangedItems.length),
@@ -1038,7 +1070,15 @@ const BulkUpdateForm: <T extends GenericObject>(
       {confirmModalProps && (
         <ConfirmModal
           {...confirmModalProps}
+          disableSubmitButton={
+            isConfirmSubmitHeld || confirmModalProps.disableSubmitButton
+          }
           onSubmit={() => {
+            // Held while its details are read: nothing to do yet.
+            if (isConfirmSubmitHeld) {
+              return;
+            }
+
             confirmModalProps.onSubmit();
             setConfirmModalProps(null);
           }}
