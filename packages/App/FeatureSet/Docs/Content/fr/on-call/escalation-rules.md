@@ -79,11 +79,13 @@ Lorsqu'un incident ou une alerte atteint la politique, **Level 1** alerte ses in
 
 Un incident, une alerte ou un épisode créé déjà pris en compte ou résolu — enregistré après coup — n'exécute aucune de ses politiques : personne n'est alerté, et son fil d'activité l'indique en les nommant. Voir [Déclaré déjà pris en compte ou résolu](/docs/incidents/declaring-incidents#déclaré-déjà-pris-en-compte-ou-résolu).
 
+Un niveau qui n'a personne à alerter quand il est atteint est passé immédiatement : le niveau suivant est alerté tout de suite, sans attendre. C'est le cas d'un niveau sans intervenant, et d'un niveau dont les intervenants ne laissent personne à alerter à ce moment-là : une équipe sans membre, un planning où personne n'est d'astreinte, ou des personnes absentes sans remplaçant, qui ont quitté le projet ou qui ne peuvent pas être jointes du tout. Quand aucun niveau n'a personne à alerter, la politique s'arrête immédiatement et ne se répète pas.
+
 Pour répéter une politique, cliquez sur **Modifier** sur la carte **Politique de répétition**, choisissez **Recommencer depuis Level 1** et indiquez **Combien de fois de plus ?**.
 
 ### Le résumé de l'escalade
 
-Le résumé en haut de la page **Règles d'escalade** montre toute l'échelle : quand chaque niveau est alerté, qui il alerte et ce qui se passe après le dernier. Un niveau dont tous les intervenants ne peuvent pas être alertés l'indique sur sa carte ; cliquez sur le libellé pour voir qui et pourquoi.
+Le résumé en haut de la page **Règles d'escalade** montre toute l'échelle : quand chaque niveau est alerté, qui il alerte et ce qui se passe après le dernier. Un niveau dont tous les intervenants ne peuvent pas être alertés l'indique sur sa carte ; cliquez sur le libellé pour voir qui et pourquoi. Un niveau sans intervenant affiche **Ignoré immédiatement**, et son délai n'est pas compté pour savoir quand le niveau suivant est alerté.
 
 ### Comment chaque personne est jointe
 
@@ -184,7 +186,7 @@ La personne suivante est déterminée au moment où le niveau s'exécute, d'apr�
 - C'est la personne qui suit la personne d'astreinte, dans l'ordre où les personnes de la rotation se relaient. Après la dernière personne revient la première.
 - Les personnes absentes sont passées, que quelqu'un les remplace ou non, de même que toute personne d'astreinte à la place de quelqu'un d'autre.
 - C'est toujours quelqu'un de la même rotation : avec plusieurs couches, la couche d'où vient la personne d'astreinte. Une rotation où il n'y a personne d'autre, ou dont tous les autres membres sont absents, n'a personne de suivant : le niveau n'y alerte personne et l'indique.
-- Quand personne n'est d'astreinte dans le planning, il n'y a personne de suivant non plus, et le niveau est retenté pendant quelques minutes, comme pour le planning lui-même.
+- Quand personne n'est d'astreinte dans le planning, il n'y a personne de suivant non plus, et le niveau n'y alerte personne.
 
 Le message de l'exécution dans Slack et Microsoft Teams, le fil d'activité de l'incident et la **Chronologie d'exécution** indiquent qui a été alerté en tant que suivant dans la rotation, et depuis quel planning : « Sam Lee (next in the Payments primary rotation) ».
 

@@ -459,7 +459,7 @@ describe("On-Call Duty > Logs, and the logs of an incident or an alert", () => {
       return screen.getByTestId("pill").getAttribute("data-tooltip") || "";
     }
 
-    test("a policy's run: its escalation rules found nobody on call", () => {
+    test("a policy's run: its escalation rules had nobody to page - no responders, nobody on call, or only people away", () => {
       expect(
         tooltipOf(
           run({
@@ -469,7 +469,7 @@ describe("On-Call Duty > Logs, and the logs of an incident or an alert", () => {
         ),
       ).toBe(POLICY_PAGED_NOBODY_TOOLTIP);
       expect(POLICY_PAGED_NOBODY_TOOLTIP).toBe(
-        "This execution ran to completion without notifying anyone. Usually every escalation rule targeted an on-call schedule that had nobody on call.",
+        "This execution reached nobody. Usually its escalation rules had no responders, their schedules had nobody on call, or the people they named were away.",
       );
     });
 

@@ -3,7 +3,9 @@ import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import ProjectReferencesService from "./ProjectReferencesService";
 import OnCallDutyPolicyEscalationRuleService, {
   OnCallPagingOutcome,
+  OnCallRuleExecutionOutcome,
 } from "./OnCallDutyPolicyEscalationRuleService";
+import OnCallEscalationAdvance from "../Utils/OnCall/OnCallEscalationAdvance";
 import UserOnCallLogService from "./UserOnCallLogService";
 import UserService from "./UserService";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -579,19 +581,23 @@ export class Service extends ProjectReferencesService<Model> {
         },
       });
 
-      await OnCallDutyPolicyEscalationRuleService.startRuleExecution(rule.id!, {
-        projectId: data.projectId,
-        triggeredByIncidentId: data.triggeredByIncidentId,
-        triggeredByAlertId: data.triggeredByAlertId,
-        triggeredByAlertEpisodeId: data.triggeredByAlertEpisodeId,
-        triggeredByIncidentEpisodeId: data.triggeredByIncidentEpisodeId,
-        userNotificationEventType: data.userNotificationEventType,
-        onCallPolicyExecutionLogId: runId,
-        onCallPolicyId: data.onCallDutyPolicyId,
-        alsoPageUserIds: data.acknowledgedByUserId
-          ? [data.acknowledgedByUserId]
-          : [],
-      });
+      const firstRuleOutcome: OnCallRuleExecutionOutcome =
+        await OnCallDutyPolicyEscalationRuleService.startRuleExecution(
+          rule.id!,
+          {
+            projectId: data.projectId,
+            triggeredByIncidentId: data.triggeredByIncidentId,
+            triggeredByAlertId: data.triggeredByAlertId,
+            triggeredByAlertEpisodeId: data.triggeredByAlertEpisodeId,
+            triggeredByIncidentEpisodeId: data.triggeredByIncidentEpisodeId,
+            userNotificationEventType: data.userNotificationEventType,
+            onCallPolicyExecutionLogId: runId,
+            onCallPolicyId: data.onCallDutyPolicyId,
+            alsoPageUserIds: data.acknowledgedByUserId
+              ? [data.acknowledgedByUserId]
+              : [],
+          },
+        );
 
       await this.updateOneById({
         id: runId,
@@ -606,6 +612,15 @@ export class Service extends ProjectReferencesService<Model> {
           isRoot: true,
         },
       });
+
+      /*
+       * Nobody at the level it starts at could be paged - not even whoever
+       * acknowledged: the page again moves on now, as any run does from a
+       * level with nobody to wait for (OnCallEmptyLevel).
+       */
+      if (firstRuleOutcome?.movesOnAtOnce) {
+        await OnCallEscalationAdvance.moveOnAtOnce({ runId: runId });
+      }
     } catch (err) {
       // The run says what went wrong rather than sitting at "started".
       await this.updateOneById({
@@ -1200,19 +1215,20 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException("Invalid userNotificationEventType");
     }
 
-    await OnCallDutyPolicyEscalationRuleService.startRuleExecution(
-      executionRule.id!,
-      {
-        projectId: run.projectId!,
-        triggeredByIncidentId: run.triggeredByIncidentId,
-        triggeredByAlertId: run.triggeredByAlertId,
-        triggeredByAlertEpisodeId: run.triggeredByAlertEpisodeId,
-        triggeredByIncidentEpisodeId: run.triggeredByIncidentEpisodeId,
-        userNotificationEventType: userNotificationEventType,
-        onCallPolicyExecutionLogId: run.id!,
-        onCallPolicyId: run.onCallDutyPolicyId!,
-      },
-    );
+    const firstRuleOutcome: OnCallRuleExecutionOutcome =
+      await OnCallDutyPolicyEscalationRuleService.startRuleExecution(
+        executionRule.id!,
+        {
+          projectId: run.projectId!,
+          triggeredByIncidentId: run.triggeredByIncidentId,
+          triggeredByAlertId: run.triggeredByAlertId,
+          triggeredByAlertEpisodeId: run.triggeredByAlertEpisodeId,
+          triggeredByIncidentEpisodeId: run.triggeredByIncidentEpisodeId,
+          userNotificationEventType: userNotificationEventType,
+          onCallPolicyExecutionLogId: run.id!,
+          onCallPolicyId: run.onCallDutyPolicyId!,
+        },
+      );
 
     await this.updateOneById({
       id: run.id!,
@@ -1224,6 +1240,15 @@ export class Service extends ProjectReferencesService<Model> {
         isRoot: true,
       },
     });
+
+    /*
+     * The first rule reached nobody: there is nobody on it to wait for, so
+     * the run moves on now - to the next level, or to its end - rather than
+     * a whole wait later (Types/OnCallDutyPolicy/OnCallEmptyLevel).
+     */
+    if (firstRuleOutcome?.movesOnAtOnce) {
+      await OnCallEscalationAdvance.moveOnAtOnce({ runId: run.id! });
+    }
   }
 
   // Whether the run pages about an incident, an alert or an episode.

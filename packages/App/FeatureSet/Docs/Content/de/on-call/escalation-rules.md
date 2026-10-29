@@ -79,11 +79,13 @@ Erreicht ein Vorfall oder eine Warnung die Richtlinie, alarmiert **Level 1** sei
 
 Ein Vorfall, eine Warnung oder eine Episode, die bereits bestätigt oder behoben erstellt wird – also nachträglich erfasst –, führt keine ihrer Richtlinien aus: Niemand wird alarmiert, und ihr Feed vermerkt das und nennt die Richtlinien. Siehe [Bereits bestätigt oder behoben gemeldet](/docs/incidents/declaring-incidents#bereits-bestätigt-oder-behoben-gemeldet).
 
+Eine Stufe, die beim Erreichen niemanden zu alarmieren hat, wird sofort übersprungen: Die nächste Stufe wird gleich alarmiert, ohne die Wartezeit abzuwarten. Das ist eine Stufe ohne Empfänger und eine, bei der über ihre Empfänger in diesem Moment niemand zu alarmieren ist: ein Team ohne Mitglieder, ein Plan, in dem niemand Bereitschaft hat, oder Personen, die abwesend sind, ohne dass jemand sie vertritt, die das Projekt verlassen haben oder gar nicht erreichbar sind. Hat keine Stufe jemanden zu alarmieren, hört die Richtlinie sofort auf und wird nicht wiederholt.
+
 Um eine Richtlinie zu wiederholen, klicken Sie auf der Karte **Wiederholungsrichtlinie** auf **Bearbeiten**, wählen **Erneut bei Level 1 beginnen** und legen **Wie oft noch?** fest.
 
 ### Die Eskalationsübersicht
 
-Die Übersicht oben auf der Seite **Eskalationsregeln** zeigt die ganze Leiter: wann jede Stufe alarmiert wird, wen sie alarmiert und was nach der letzten passiert. Eine Stufe, deren Empfänger nicht alle alarmiert werden können, sagt das auf ihrer Karte; klicken Sie auf die Markierung, um zu sehen, wer betroffen ist und warum.
+Die Übersicht oben auf der Seite **Eskalationsregeln** zeigt die ganze Leiter: wann jede Stufe alarmiert wird, wen sie alarmiert und was nach der letzten passiert. Eine Stufe, deren Empfänger nicht alle alarmiert werden können, sagt das auf ihrer Karte; klicken Sie auf die Markierung, um zu sehen, wer betroffen ist und warum. Eine Stufe ohne Empfänger zeigt **Sofort übersprungen**, und ihre Wartezeit zählt nicht mit, wenn die nächste Stufe alarmiert wird.
 
 ### Wie jede Person erreicht wird
 
@@ -184,7 +186,7 @@ Die nächste Person wird ermittelt, wenn die Stufe ausgelöst wird, und zwar aus
 - Es ist die Person nach der, die gerade Bereitschaft hat, in der Reihenfolge, in der sich die Personen der Rotation abwechseln. Nach der letzten Person kommt wieder die erste.
 - Abwesende Personen werden übersprungen, ob jemand sie vertritt oder nicht, ebenso wer gerade für jemand anderen Bereitschaft hat.
 - Es ist immer jemand aus derselben Rotation: bei mehreren Ebenen aus der Ebene, aus der die Person in Bereitschaft kommt. Eine Rotation, in der sonst niemand ist oder alle anderen abwesend sind, hat keine nächste Person; die Stufe alarmiert dort dann niemanden und vermerkt das.
-- Hat im Plan überhaupt niemand Bereitschaft, gibt es auch keine nächste Person, und die Stufe wird einige Minuten lang erneut versucht, wie beim Plan selbst.
+- Hat im Plan überhaupt niemand Bereitschaft, gibt es auch keine nächste Person, und die Stufe alarmiert dort niemanden.
 
 Die Nachricht des Laufs in Slack und Microsoft Teams, der Feed des Vorfalls und die **Zeitachse der Ausführung** zeigen, wer als nächste Person in der Rotation alarmiert wurde und aus welchem Plan: „Sam Lee (next in the Payments primary rotation)“.
 
