@@ -4,7 +4,9 @@ import React, { useEffect, useState } from "react";
  * Horizontal edge of the trigger that a popup pins itself to.
  * "Left" means the popup grows rightwards from the trigger's left edge
  * (Tailwind `left-0`), "Right" means it grows leftwards from the trigger's
- * right edge (Tailwind `right-0`).
+ * right edge (Tailwind `right-0`). On a page that reads right to left both
+ * mirror, as Tailwind's left and right do there: "Left" is the line's start
+ * (getDropdownAnchorEdges).
  */
 export enum DropdownHorizontalAlignment {
   Left = "left",
@@ -105,6 +107,40 @@ export function getDropdownWidthToFit(input: DropdownWidthToFitInput): number {
 }
 
 /*
+ * The trigger's edges as the resolver above reads them, on a page that
+ * reads right to left too. Tailwind's left-0 and right-0 mean the start and
+ * the end of the line in every frontend (Styles/TailwindReadingDirection.js),
+ * so on a Persian page "Left" pins the popup to the trigger's right edge and
+ * grows it leftwards. Measured from the right instead - the viewport
+ * mirrored - the same resolver keeps that popup on the screen: a trigger at
+ * the page's left end, the toolbar's last, opens from its left edge.
+ */
+export function getDropdownAnchorEdges(data: {
+  anchorLeft: number;
+  anchorRight: number;
+  viewportWidth: number;
+  isRightToLeft: boolean;
+}): { anchorLeft: number; anchorRight: number } {
+  if (!data.isRightToLeft) {
+    return { anchorLeft: data.anchorLeft, anchorRight: data.anchorRight };
+  }
+
+  return {
+    anchorLeft: data.viewportWidth - data.anchorRight,
+    anchorRight: data.viewportWidth - data.anchorLeft,
+  };
+}
+
+// Whether the page lays the element out right to left (a Persian page).
+function isRightToLeftElement(element: HTMLElement): boolean {
+  try {
+    return window.getComputedStyle(element).direction === "rtl";
+  } catch {
+    return false;
+  }
+}
+
+/*
  * Tailwind positioning class for an alignment. Kept next to the resolver so
  * callers cannot drift out of sync with the enum.
  */
@@ -160,11 +196,18 @@ export function useDropdownHorizontalAlignment(
 
       const anchorRect: DOMRect = anchor.getBoundingClientRect();
       const measuredWidth: number = dropdownRef?.current?.offsetWidth || 0;
+      const edges: { anchorLeft: number; anchorRight: number } =
+        getDropdownAnchorEdges({
+          anchorLeft: anchorRect.left,
+          anchorRight: anchorRect.right,
+          viewportWidth: window.innerWidth,
+          isRightToLeft: isRightToLeftElement(anchor),
+        });
 
       setAlignment(
         getDropdownHorizontalAlignment({
-          anchorLeft: anchorRect.left,
-          anchorRight: anchorRect.right,
+          anchorLeft: edges.anchorLeft,
+          anchorRight: edges.anchorRight,
           dropdownWidth: getDropdownWidthToFit({
             measuredWidthInPx: measuredWidth,
             dropdownWidthInPx: dropdownWidthInPx,

@@ -4,6 +4,7 @@ import {
   HUNTS_MENU_NOT_LOADED,
   HUNTS_MENU_SAVE_AS_HUNT,
   HUNTS_MENU_SEARCH,
+  HUNTS_MENU_TRY_AGAIN,
   HUNTS_TABLE_TITLE,
   HUNTS_TEST_IDS,
   SAVES_THIS_SEARCH,
@@ -178,12 +179,48 @@ const HuntsMenu: FunctionComponent<ComponentProps> = (
       SAVE_AS_HUNT_NOTHING_TO_SAVE;
   }
 
-  let emptyLabel: string = HUNTS_MENU_EMPTY;
+  /*
+   * While the list is read, and when it could not be: said in the panel, a
+   * failed read with Try again under it (red, and announced). The trigger
+   * shows no count then - "0" would say the project has no hunts - nor
+   * for a project that has none, as the side menu's counts leave out a
+   * zero: the panel says "No hunts yet.".
+   */
+  let emptyContent: ReactElement | undefined = undefined;
 
   if (listState === ListState.Loading) {
-    emptyLabel = HUNTS_MENU_LOADING;
+    emptyContent = (
+      <div
+        className="px-3 py-6 text-center text-xs text-gray-500"
+        role="status"
+      >
+        {translator.translateText(HUNTS_MENU_LOADING) || HUNTS_MENU_LOADING}
+      </div>
+    );
   } else if (listState === ListState.NotLoaded) {
-    emptyLabel = HUNTS_MENU_NOT_LOADED;
+    emptyContent = (
+      <div
+        className="flex flex-col items-center gap-1.5 px-3 py-5 text-center"
+        role="alert"
+        data-testid={HUNTS_TEST_IDS.menuNotLoaded}
+      >
+        <p className="text-xs text-red-700">
+          {translator.translateText(HUNTS_MENU_NOT_LOADED) ||
+            HUNTS_MENU_NOT_LOADED}
+        </p>
+        <button
+          type="button"
+          className="rounded-md px-2 py-1 text-xs font-medium text-indigo-600 transition-colors hover:bg-indigo-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          onClick={() => {
+            setListState(ListState.Loading);
+            void loadHunts();
+          }}
+        >
+          {translator.translateText(HUNTS_MENU_TRY_AGAIN) ||
+            HUNTS_MENU_TRY_AGAIN}
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -197,6 +234,8 @@ const HuntsMenu: FunctionComponent<ComponentProps> = (
               })
             : []
         }
+        showCount={listState === ListState.Loaded && hunts.length > 0}
+        emptyContent={emptyContent}
         selectedSavedViewId={props.currentHuntId || null}
         // A hunt's page names the hunt in its header; the toolbar says Hunts.
         showSelectedNameInTrigger={false}
@@ -205,7 +244,7 @@ const HuntsMenu: FunctionComponent<ComponentProps> = (
         labels={{
           trigger: HUNTS_TABLE_TITLE,
           panel: HUNTS_TABLE_TITLE,
-          empty: emptyLabel,
+          empty: HUNTS_MENU_EMPTY,
           create: HUNTS_MENU_SAVE_AS_HUNT,
           search: HUNTS_MENU_SEARCH,
         }}
@@ -231,33 +270,31 @@ const HuntsMenu: FunctionComponent<ComponentProps> = (
           modelType={SecurityHunt}
           name="security-events-save-as-hunt"
           title={SAVE_AS_HUNT}
-          // The modal draws its description in a <p>: spans, laid out as blocks.
-          description={
-            <span className="block">
-              <span className="block">
-                {translator.translateText(SAVE_AS_HUNT_DESCRIPTION) ||
-                  SAVE_AS_HUNT_DESCRIPTION}
-              </span>
-              <span
-                className="mt-3 block rounded-md border border-gray-200 bg-gray-50 px-3 py-2"
-                data-testid={HUNTS_TEST_IDS.saveSummary}
-              >
-                <span className="block text-xs font-medium text-gray-500">
-                  {translator.translateText(SAVES_THIS_SEARCH) ||
-                    SAVES_THIS_SEARCH}
+          description={SAVE_AS_HUNT_DESCRIPTION}
+          /*
+           * What it saves - the search, its filters, how far back it looks -
+           * over the fields, as wide as they are.
+           */
+          beforeFormElement={
+            <div
+              className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2"
+              data-testid={HUNTS_TEST_IDS.saveSummary}
+            >
+              <p className="text-xs font-medium text-gray-500">
+                {translator.translateText(SAVES_THIS_SEARCH) ||
+                  SAVES_THIS_SEARCH}
+              </p>
+              <div className="mt-1 flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
+                <HuntSearchLine
+                  searchQuery={toSave.searchQuery}
+                  filters={toSave.filters}
+                />
+                <span className="whitespace-nowrap text-xs text-gray-500">
+                  {translator.translateText(toSave.timeRange) ||
+                    toSave.timeRange}
                 </span>
-                <span className="mt-1 flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
-                  <HuntSearchLine
-                    searchQuery={toSave.searchQuery}
-                    filters={toSave.filters}
-                  />
-                  <span className="whitespace-nowrap text-xs text-gray-500">
-                    {translator.translateText(toSave.timeRange) ||
-                      toSave.timeRange}
-                  </span>
-                </span>
-              </span>
-            </span>
+              </div>
+            </div>
           }
           submitButtonText={SAVE_HUNT}
           onClose={() => {

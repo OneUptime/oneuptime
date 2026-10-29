@@ -171,7 +171,8 @@ export function buildHuntFoundMessage(data: {
     templateType: EmailTemplateType.SecurityHuntFound,
     emailVars: {
       emailTitle: `Hunt found ${found}`,
-      leadSentence: `The scheduled hunt ${facts.huntName} found ${found} among the events that arrived from ${from} to ${to}.`,
+      // The time range it read is the card's to say, under the hunt.
+      leadSentence: `The scheduled hunt ${facts.huntName} found ${found}.`,
       huntName: facts.huntName,
       huntSearch: describeHuntSearch(facts),
       foundText: found,
@@ -179,9 +180,10 @@ export function buildHuntFoundMessage(data: {
       projectName: facts.projectName,
       huntViewLink: facts.url,
       reasonSentence:
-        "This scheduled hunt names you, or a team you are on, to tell when it finds security events. Change these emails in User Settings > Notification Settings.",
+        "This scheduled hunt tells you, or a team you are on, when it finds security events. Change these emails in User Settings > Notification Settings.",
     },
-    smsText: buildNotificationSms(`Hunt ${facts.huntName} found ${found}.`),
+    // Said as the subject says it, the name last: "Hunt found 3 security events: Encoded PowerShell."
+    smsText: buildNotificationSms(`Hunt found ${found}: ${facts.huntName}.`),
     callText: `This is a message from OneUptime. The scheduled hunt ${facts.huntName} found ${found}. Open OneUptime to see them. To change these calls go to User Settings in the OneUptime Dashboard. Good bye.`,
     pushTitle: `Hunt found ${found}`,
     pushBody: facts.huntName,

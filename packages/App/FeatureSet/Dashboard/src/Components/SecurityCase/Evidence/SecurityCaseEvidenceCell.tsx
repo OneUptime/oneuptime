@@ -8,7 +8,7 @@ import {
   shortenSha256,
 } from "./SecurityCaseEvidenceCopy";
 import RelativeTime from "../../EpisodeView/RelativeTime";
-import { getEventEvidenceMeta, readEventEvidence } from "./EventEvidence";
+import { getEventEvidenceMetaParts, readEventEvidence } from "./EventEvidence";
 import {
   FOUND_BY_HUNT,
   HUNTS_TEST_IDS,
@@ -98,13 +98,17 @@ const SecurityCaseEvidenceCell: FunctionComponent<ComponentProps> = (
   const isFile: boolean = isFileEvidence(item);
   const event: SecurityCaseEventSnapshot | null = readEventEvidence(item);
   const link: string | null = getEvidenceLink(item);
-  const meta: string = event
-    ? getEventEvidenceMeta({
+  // A kept event's line, part by part: each reads the way it is written.
+  const eventMetaParts: Array<string> = event
+    ? getEventEvidenceMetaParts({
         snapshot: event,
         formatTime: (time: Date): string => {
           return OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(time);
         },
       })
+    : [];
+  const meta: string = event
+    ? eventMetaParts.join(" · ")
     : getEvidenceMeta({
         name: item.name,
         isFile,
@@ -143,7 +147,18 @@ const SecurityCaseEvidenceCell: FunctionComponent<ComponentProps> = (
               : SECURITY_CASE_EVIDENCE_TEST_IDS.meta
           }
         >
-          <IsolatedText text={meta} />
+          {event ? (
+            eventMetaParts.map((part: string, index: number): ReactElement => {
+              return (
+                <React.Fragment key={`${index}-${part}`}>
+                  {index > 0 ? " · " : ""}
+                  <IsolatedText text={part} />
+                </React.Fragment>
+              );
+            })
+          ) : (
+            <IsolatedText text={meta} />
+          )}
         </span>
       ) : (
         <></>

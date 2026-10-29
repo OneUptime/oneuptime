@@ -43,6 +43,18 @@ export function getEventEvidenceMeta(data: {
   snapshot: SecurityCaseEventSnapshot;
   formatTime: (time: Date) => string;
 }): string {
+  return getEventEvidenceMetaParts(data).join(" · ");
+}
+
+/*
+ * The same line's parts, each drawn in an isolate of its own: the time in
+ * the reader's language, the event's words as the event wrote them - so a
+ * Persian date and an English vendor each read their own way.
+ */
+export function getEventEvidenceMetaParts(data: {
+  snapshot: SecurityCaseEventSnapshot;
+  formatTime: (time: Date) => string;
+}): Array<string> {
   const snapshot: SecurityCaseEventSnapshot = data.snapshot;
   const time: Date | null = snapshot.time ? new Date(snapshot.time) : null;
   const source: string = [snapshot.vendorName, snapshot.productName]
@@ -66,8 +78,7 @@ export function getEventEvidenceMeta(data: {
     })
     .filter((part: string): boolean => {
       return Boolean(part);
-    })
-    .join(" · ");
+    });
 }
 
 /*

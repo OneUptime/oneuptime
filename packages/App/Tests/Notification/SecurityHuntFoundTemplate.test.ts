@@ -88,22 +88,24 @@ describe("the email a scheduled hunt sends", () => {
     expect(fs.existsSync(TEMPLATE)).toBe(true);
   });
 
-  test("says the hunt, what it found, when the events arrived, its search and its project, in that order", () => {
+  test("says the hunt, what it found, the time range it read, its search and its project, in that order", () => {
     expect(
       rows(render()).map((row: DetailCardRow): string => {
         return row.label;
       }),
-    ).toEqual([
-      "Hunt:",
-      "Found:",
-      "Events That Arrived:",
-      "Search:",
-      "Project:",
-    ]);
+    ).toEqual(["Hunt:", "Found:", "Time Range:", "Search:", "Project:"]);
 
     const html: string = render();
 
     expect(html).toContain("Hunt found 3 security events");
+    /*
+     * The time range is said once, in its row: the lead says what was
+     * found in one short sentence (it named both dates too).
+     */
+    expect(html).toContain(
+      "The scheduled hunt Encoded PowerShell found 3 security events.",
+    );
+    expect(html.split("Oct 28 2026").length - 1).toBe(1);
     expect(html).toContain(
       "processname:powershell.exe commandline:-enc (and 2 filters)",
     );
@@ -120,7 +122,7 @@ describe("the email a scheduled hunt sends", () => {
 
   test("says why the person is getting it, and where to change it", () => {
     expect(render()).toContain(
-      "This scheduled hunt names you, or a team you are on, to tell when it finds security events.",
+      "This scheduled hunt tells you, or a team you are on, when it finds security events.",
     );
   });
 

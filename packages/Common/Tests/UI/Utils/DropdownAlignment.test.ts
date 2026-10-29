@@ -2,6 +2,7 @@ import {
   DEFAULT_DROPDOWN_VIEWPORT_MARGIN_IN_PX,
   DropdownHorizontalAlignment,
   getDropdownAlignmentClassName,
+  getDropdownAnchorEdges,
   getDropdownHorizontalAlignment,
 } from "../../../UI/Utils/DropdownAlignment";
 import { describe, expect, test } from "@jest/globals";
@@ -302,5 +303,74 @@ describe("getDropdownAlignmentClassName", () => {
         className.includes("left-0") && className.includes("right-0"),
       ).toBe(false);
     }
+  });
+});
+
+/*
+ * On a page that reads right to left, Tailwind's left-0 and right-0 mean
+ * the line's start and end (Styles/TailwindReadingDirection.js): "Left"
+ * pins a popup to its trigger's right edge and grows it leftwards. The
+ * trigger's edges are read from the right, so the same resolver keeps the
+ * popup on the screen - a Persian toolbar's last trigger sits at the
+ * page's left end, and its popup opens from the trigger's left edge.
+ */
+describe("getDropdownAnchorEdges", () => {
+  test("left to right, the trigger's edges as they are", () => {
+    expect(
+      getDropdownAnchorEdges({
+        anchorLeft: 625,
+        anchorRight: 744,
+        viewportWidth: 768,
+        isRightToLeft: false,
+      }),
+    ).toEqual({ anchorLeft: 625, anchorRight: 744 });
+  });
+
+  test("right to left, measured from the screen's right edge", () => {
+    expect(
+      getDropdownAnchorEdges({
+        anchorLeft: 24,
+        anchorRight: 145,
+        viewportWidth: 768,
+        isRightToLeft: true,
+      }),
+    ).toEqual({ anchorLeft: 623, anchorRight: 744 });
+  });
+
+  test("a Persian toolbar's last trigger, at the page's left end, opens toward the page", () => {
+    const edges: { anchorLeft: number; anchorRight: number } =
+      getDropdownAnchorEdges({
+        anchorLeft: 24,
+        anchorRight: 145,
+        viewportWidth: 768,
+        isRightToLeft: true,
+      });
+
+    // "Right" is the line's end: the popup's left edge on the trigger's, growing rightwards.
+    expect(
+      getDropdownHorizontalAlignment({
+        ...edges,
+        dropdownWidth: DROPDOWN_WIDTH,
+        viewportWidth: 768,
+      }),
+    ).toBe(DropdownHorizontalAlignment.Right);
+  });
+
+  test("a Persian trigger with room toward the page's left opens from its start", () => {
+    const edges: { anchorLeft: number; anchorRight: number } =
+      getDropdownAnchorEdges({
+        anchorLeft: 463,
+        anchorRight: 584,
+        viewportWidth: 1280,
+        isRightToLeft: true,
+      });
+
+    expect(
+      getDropdownHorizontalAlignment({
+        ...edges,
+        dropdownWidth: DROPDOWN_WIDTH,
+        viewportWidth: 1280,
+      }),
+    ).toBe(DropdownHorizontalAlignment.Left);
   });
 });

@@ -17,6 +17,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import type { SpyInstance } from "jest-mock";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import { goTo } from "./SideMenuHarness";
@@ -112,6 +113,8 @@ type CapturedFormModal = {
   modelIdToEdit?: { toString: () => string };
   submitButtonText?: string;
   description?: React.ReactElement | string;
+  // Drawn in the body, over the fields.
+  beforeFormElement?: React.ReactElement;
   onClose?: () => void;
   onSuccess?: (item: unknown) => void;
   onBeforeCreate?: (item: unknown) => Promise<unknown>;
@@ -136,6 +139,7 @@ jest.mock("../../../UI/Components/ModelFormModal/ModelFormModal", () => {
         "div",
         { "data-testid": `form-modal-${props.name || ""}` },
         typeof props.description === "string" ? null : props.description,
+        props.beforeFormElement || null,
       );
     },
   };
@@ -210,10 +214,12 @@ import {
   HUNTS_EMPTY_DESCRIPTION,
   HUNTS_EMPTY_TITLE,
   HUNTS_MENU_EMPTY,
+  HUNTS_MENU_LOADING,
   HUNTS_MENU_NOT_LOADED,
   HUNTS_TABLE_DESCRIPTION,
   HUNTS_TEST_IDS,
   HUNT_NOT_FOUND,
+  SAVE_AS_HUNT_DESCRIPTION,
   SAVE_AS_HUNT_NOTHING_TO_SAVE,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Hunts/HuntsCopy";
 import {
@@ -524,6 +530,25 @@ describe("Security Events > Hunts", () => {
     expect(
       within(name).getByText("processname:powershell.exe commandline:-enc"),
     ).toHaveAttribute("dir", "ltr");
+
+    /*
+     * The description is cut to two lines in its own direction, so the
+     * ellipsis ends it: on a Persian page an English one lost its first
+     * letter to an ellipsis on its left ("…s attackers"). It lines up
+     * under the name as the page reads.
+     */
+    const description: HTMLElement = within(name).getByText(
+      "PowerShell started with an encoded command.",
+    );
+
+    expect(description.tagName).toBe("P");
+    expect(description).toHaveAttribute("dir", "auto");
+    expect(description).toHaveClass(
+      "line-clamp-2",
+      "break-words",
+      "[text-align:left]",
+      "rtl:[text-align:right]",
+    );
     cleanup();
 
     const schedule: HTMLElement = drawCell("Schedule", hunt());
@@ -531,6 +556,16 @@ describe("Security Events > Hunts", () => {
     expect(within(schedule).getByText("Every Day")).toBeInTheDocument();
     expect(flat(schedule)).toContain("Tells Maya Chen, SOC Tier 2");
     expect(flat(schedule)).toContain("Next run in 3 hours");
+    /*
+     * Each name is one piece on its line: a narrow column broke "SOC Tier
+     * 2" after "Tier", which read as two names.
+     */
+    for (const name of ["Maya Chen", "SOC Tier 2"]) {
+      const piece: HTMLElement = within(schedule).getByText(name);
+
+      expect(piece.tagName).toBe("BDI");
+      expect(piece).toHaveClass("inline-block", "max-w-full", "break-words");
+    }
     cleanup();
     expect(seen(drawCell("Last Found", hunt()))).toBe("3 events 2 hours ago");
   });
@@ -625,10 +660,16 @@ describe("a hunt's page", () => {
       "Encoded PowerShell",
     );
     expect(flat(header)).toContain("Hunt");
+    // How often it runs is its chip's to say, once.
     expect(flat(header)).toContain("Every Day");
-    expect(flat(header)).toContain("Runs every day");
-    expect(flat(header)).toContain("Tells Maya Chen, SOC Tier 2");
-    expect(flat(header)).toContain("Next run in 3 hours");
+    expect(flat(header).toLowerCase().split("every day")).toHaveLength(2);
+
+    const scheduleLine: HTMLElement = within(header).getByTestId(
+      HUNTS_TEST_IDS.headerSchedule,
+    );
+
+    expect(flat(scheduleLine)).toMatch(/^Tells Maya Chen, SOC Tier 2/);
+    expect(flat(scheduleLine)).toMatch(/Next run in 3 hours$/);
     expect(seen(within(header).getByTestId(HUNTS_TEST_IDS.lastFound))).toBe(
       "Last found 3 events 2 hours ago Show them",
     );
@@ -770,7 +811,7 @@ describe("a hunt's page", () => {
     ).toBe(true);
   });
 
-  test("reads the team's own words the way they are written: its description in an isolate, a Persian team listed with ،", async () => {
+  test("reads the team's own words the way they are written: its description by its own script, a Persian team listed with ،", async () => {
     const team: Team = socTeam();
     team.name = "تیم امنیت";
     stored = hunt({
@@ -786,9 +827,132 @@ describe("a hunt's page", () => {
     );
 
     // On a Persian page its full stop stays at its end.
-    expect(description.tagName).toBe("BDI");
-    expect(description).toHaveAttribute("dir", "ltr");
+    expect(description.tagName).toBe("P");
+    expect(description).toHaveAttribute("dir", "auto");
     expect(flat(header)).toContain("Tells Maya Chen، تیم امنیت");
+  });
+
+  /*
+   * A description runs to 2,000 characters, and the explorer the hunt opens
+   * on is under the header: drawn whole, a long one pushed the search and
+   * the events below the fold. It is drawn as a resource's hero draws its
+   * own (ResourceHeroDescription): two lines, and "Show more" for the
+   * rest. jsdom lays nothing out, so the paragraph's heights are given.
+   */
+  test("a long description takes two lines, and Show more opens the rest", async () => {
+    const longDescription: string = Array.from({ length: 12 }, () => {
+      return "Break-glass accounts should never sign in interactively.";
+    }).join(" ");
+    const isDescription: (element: Element) => boolean = (
+      element: Element,
+    ): boolean => {
+      return (
+        element.getAttribute("data-testid") === "resource-hero-description"
+      );
+    };
+    const scrollHeight: SpyInstance<() => number> = jest
+      .spyOn(Element.prototype, "scrollHeight", "get")
+      .mockImplementation(function (this: Element): number {
+        return isDescription(this) ? 240 : 0;
+      });
+    const clientHeight: SpyInstance<() => number> = jest
+      .spyOn(Element.prototype, "clientHeight", "get")
+      .mockImplementation(function (this: Element): number {
+        if (!isDescription(this)) {
+          return 0;
+        }
+
+        return this.classList.contains("line-clamp-2") ? 40 : 240;
+      });
+
+    try {
+      stored = hunt({ description: longDescription });
+
+      await renderHunt();
+
+      const header: HTMLElement = screen.getByTestId(HUNTS_TEST_IDS.header);
+      const place: HTMLElement = within(header).getByTestId(
+        HUNTS_TEST_IDS.headerDescription,
+      );
+      const description: HTMLElement = within(place).getByTestId(
+        "resource-hero-description",
+      );
+
+      // All of it is there, cut to two lines.
+      expect(description).toHaveTextContent(longDescription);
+      expect(description).toHaveClass("line-clamp-2");
+
+      const toggle: HTMLElement = await within(place).findByRole("button", {
+        name: "Show more",
+      });
+
+      expect(toggle).toHaveAttribute("aria-expanded", "false");
+      expect(toggle).toHaveAttribute("aria-controls", description.id);
+
+      await act(async () => {
+        fireEvent.click(toggle);
+      });
+
+      expect(description).not.toHaveClass("line-clamp-2");
+      expect(
+        within(place).getByRole("button", { name: "Show less" }),
+      ).toHaveAttribute("aria-expanded", "true");
+      // What the hunt does comes after it, as before.
+      expect(
+        place.compareDocumentPosition(
+          within(header).getByTestId(HUNTS_TEST_IDS.headerSchedule),
+        ) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    } finally {
+      scrollHeight.mockRestore();
+      clientHeight.mockRestore();
+    }
+  });
+
+  /*
+   * A hunt opened by hand: its chip says Not Scheduled, and nothing under
+   * its name says it again - nor leaves an empty line where its runs would
+   * be told.
+   */
+  test("a hunt opened by hand says so in its chip alone", async () => {
+    stored = hunt({
+      schedule: SecurityHuntSchedule.NotScheduled,
+      description: "",
+      nextRunAt: undefined,
+      lastRunAt: undefined,
+      lastFoundAt: undefined,
+      lastFoundSinceAt: undefined,
+      lastFoundEventCount: undefined,
+    });
+
+    await renderHunt();
+
+    const header: HTMLElement = screen.getByTestId(HUNTS_TEST_IDS.header);
+
+    expect(flat(header)).toContain("Not Scheduled");
+    expect(flat(header).toLowerCase().split("not scheduled")).toHaveLength(2);
+    expect(within(header).queryByTestId(HUNTS_TEST_IDS.headerFacts)).toBeNull();
+    expect(
+      within(header).queryByTestId(HUNTS_TEST_IDS.headerSchedule),
+    ).toBeNull();
+    expect(flat(header)).not.toContain("Tells");
+    cleanup();
+
+    // With a description, that is all it says under its name.
+    stored = hunt({
+      schedule: SecurityHuntSchedule.NotScheduled,
+      nextRunAt: undefined,
+      lastRunAt: undefined,
+      lastFoundAt: undefined,
+      lastFoundSinceAt: undefined,
+      lastFoundEventCount: undefined,
+    });
+
+    await renderHunt();
+
+    expect(seen(screen.getByTestId(HUNTS_TEST_IDS.headerFacts))).toBe(
+      "PowerShell started with an encoded command.",
+    );
   });
 
   test("a hunt whose last run failed says why, in red, as an alert", async () => {
@@ -801,8 +965,9 @@ describe("a hunt's page", () => {
     const line: HTMLElement = screen.getByTestId(HUNTS_TEST_IDS.lastFound);
 
     expect(line).toHaveAttribute("role", "alert");
+    // Said as the line over it says what a run found ("Last found 3 events ...").
     expect(line).toHaveTextContent(
-      `Its last run could not be made: ${SECURITY_HUNT_RUN_ERRORS.schedulerCannotRead.message}`,
+      `Last run failed: ${SECURITY_HUNT_RUN_ERRORS.schedulerCannotRead.message}`,
     );
   });
 
@@ -982,7 +1147,13 @@ describe("the Events toolbar's Hunts list", () => {
       timeRange: TimeRange.PAST_ONE_DAY,
       notifyUsers: [MAYA],
     });
-    // What it saves, said over its fields.
+    /*
+     * What it saves, said over its fields in the dialog's body, as wide as
+     * they are - not squeezed into the header's description, beside the
+     * close button.
+     */
+    expect(save.description).toBe(SAVE_AS_HUNT_DESCRIPTION);
+    expect(save.beforeFormElement).toBeDefined();
     expect(seen(screen.getByTestId(HUNTS_TEST_IDS.saveSummary))).toBe(
       "Saves this search user:svc-backup + 1 filter Past 1 Day",
     );
@@ -1015,16 +1186,38 @@ describe("the Events toolbar's Hunts list", () => {
 
     listFails = true;
     await renderMenu({ search: "", filters: new Map() });
-    expect(
-      within(await openPanel()).getByText(HUNTS_MENU_NOT_LOADED),
-    ).toBeInTheDocument();
+    // Nothing to count: no "0", which would say the project has no hunts.
+    expect(trigger()).toHaveTextContent(/^Hunts$/);
 
-    // Closed, and opened again once it can be read.
+    const failed: HTMLElement = within(await openPanel()).getByTestId(
+      HUNTS_TEST_IDS.menuNotLoaded,
+    );
+
+    // Said in red, and announced, with a way to try again where it is said.
+    expect(failed).toHaveAttribute("role", "alert");
+    expect(within(failed).getByText(HUNTS_MENU_NOT_LOADED)).toHaveClass(
+      "text-red-700",
+    );
+
     listFails = false;
     listed = [hunt()];
     await act(async () => {
-      fireEvent.click(trigger());
+      fireEvent.click(
+        within(failed).getByRole("button", { name: "Try again" }),
+      );
     });
+    expect(
+      await within(screen.getByRole("dialog")).findByRole("button", {
+        name: "Encoded PowerShell",
+      }),
+    ).toBeInTheDocument();
+    expect(trigger()).toHaveTextContent(/^Hunts1$/);
+    cleanup();
+
+    // Closed, and opened again once it can be read: read again as it opens.
+    listFails = true;
+    await renderMenu({ search: "", filters: new Map() });
+    listFails = false;
     await act(async () => {
       fireEvent.click(trigger());
     });
@@ -1033,6 +1226,23 @@ describe("the Events toolbar's Hunts list", () => {
         name: "Encoded PowerShell",
       }),
     ).toBeInTheDocument();
+  });
+
+  test("while its hunts are read, says so, and counts nothing yet", async () => {
+    jest.spyOn(ModelAPI, "getList").mockImplementation((() => {
+      return new Promise<never>(() => {});
+    }) as never);
+
+    await renderMenu({ search: "", filters: new Map() });
+
+    expect(trigger()).toHaveTextContent(/^Hunts$/);
+
+    const panel: HTMLElement = await openPanel();
+
+    expect(within(panel).getByRole("status")).toHaveTextContent(
+      HUNTS_MENU_LOADING,
+    );
+    expect(within(panel).queryByText(HUNTS_MENU_EMPTY)).toBeNull();
   });
 
   test("is left out for a role that may not read hunts", async () => {
@@ -1219,6 +1429,25 @@ describe("Add to Case", () => {
       "This event was not found. It may be past its retention, or one you cannot read.",
     );
 
+    /*
+     * Each count in the action's own words: the ones the case kept already
+     * are "already on the case", not the runner's "not changed".
+     */
+    expect(actions!.bulkActions[0]!.resultLabels).toEqual({
+      succeeded: {
+        one: "{{count}} {{itemName}} added to the case",
+        other: "{{count}} {{itemsName}} added to the case",
+      },
+      failed: {
+        one: "{{count}} {{itemName}} not added",
+        other: "{{count}} {{itemsName}} not added",
+      },
+      unchanged: {
+        one: "{{count}} {{itemName}} already on the case",
+        other: "{{count}} {{itemsName}} already on the case",
+      },
+    });
+
     // The result's last line opens the case's Evidence page.
     const details: React.ReactElement | undefined =
       actions!.bulkActions[0]!.resultDetails!();
@@ -1256,9 +1485,36 @@ describe("a kept event on a case's Evidence page", () => {
       </MemoryRouter>,
     );
 
-    expect(
-      flat(within(container).getByTestId(HUNTS_TEST_IDS.eventEvidenceMeta)),
-    ).toContain("High · Process Activity · Microsoft Defender for Endpoint");
+    const meta: HTMLElement = within(container).getByTestId(
+      HUNTS_TEST_IDS.eventEvidenceMeta,
+    );
+
+    expect(flat(meta)).toContain(
+      "High · Process Activity · Microsoft Defender for Endpoint",
+    );
+    /*
+     * Each part in an isolate of its own: on a Persian page the date reads
+     * right to left and the event's English words left to right, each in
+     * its place - not one line whose order the first word decides.
+     */
+    const parts: Array<string> = Array.from(meta.children)
+      .filter((part: Element): boolean => {
+        return part.tagName === "BDI";
+      })
+      .map((part: Element): string => {
+        return part.textContent || "";
+      });
+
+    expect(parts).toHaveLength(4);
+    expect(parts.slice(1)).toEqual([
+      "High",
+      "Process Activity",
+      "Microsoft Defender for Endpoint",
+    ]);
+    expect(within(meta).getByText("Process Activity")).toHaveAttribute(
+      "dir",
+      "ltr",
+    );
 
     const found: HTMLElement = within(container).getByTestId(
       HUNTS_TEST_IDS.eventEvidenceHunt,

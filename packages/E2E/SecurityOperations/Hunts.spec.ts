@@ -258,9 +258,15 @@ function huntsMenu(page: Page): Locator {
   return page.getByTestId("security-events-hunts-menu");
 }
 
-async function openHuntsMenu(page: Page): Promise<Locator> {
+// The panel names itself in the page's language: "Hunts", "شکارها".
+async function openHuntsMenu(
+  page: Page,
+  panelName: string = "Hunts",
+): Promise<Locator> {
   await huntsMenu(page).getByRole("button").first().click();
-  const panel: Locator = huntsMenu(page).getByRole("dialog", { name: "Hunts" });
+  const panel: Locator = huntsMenu(page).getByRole("dialog", {
+    name: panelName,
+  });
   await expect(panel).toBeVisible();
   return panel;
 }
@@ -408,6 +414,82 @@ test.describe("the Events toolbar's Hunts list", () => {
     await expect(
       onHunt.getByRole("button", { name: "Encoded PowerShell" }),
     ).toHaveAttribute("aria-pressed", "true");
+  });
+
+  /*
+   * Beside the side menu at 768px the toolbar wraps and leaves the Hunts
+   * list last on its row: its 288px panel, opened from the trigger's
+   * start, ran past the screen's edge and scrolled the page sideways. It
+   * opens from the trigger's end when its start has no room, and on a
+   * Persian page, where the toolbar runs right to left, the other way
+   * round. A long name keeps the row's width, its schedule under it.
+   */
+  test("opens on the screen beside the side menu, left to right and right to left", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const lang of [undefined, "fa"] as const) {
+      await open(page, PRODUCT, {
+        width: 768,
+        ...(lang ? { lang } : {}),
+      });
+
+      const panel: Locator = await openHuntsMenu(
+        page,
+        lang === "fa" ? "شکارها" : "Hunts",
+      );
+      const fits: { left: number; right: number; width: number } =
+        await panel.evaluate(
+          (
+            element: Element,
+          ): { left: number; right: number; width: number } => {
+            const box: DOMRect = element.getBoundingClientRect();
+
+            return {
+              left: box.left,
+              right: box.right,
+              width: document.documentElement.clientWidth,
+            };
+          },
+        );
+
+      expect(
+        fits.left,
+        `the panel's start (${lang || "en"})`,
+      ).toBeGreaterThanOrEqual(0);
+      expect(
+        fits.right,
+        `the panel's end (${lang || "en"})`,
+      ).toBeLessThanOrEqual(fits.width);
+
+      // The schedule under the name, not beside it.
+      const row: Locator = panel.getByRole("button", {
+        name: "Encoded PowerShell",
+      });
+      const [name, detail] = await row.evaluate(
+        (element: Element): Array<{ top: number; bottom: number }> => {
+          return Array.from(element.querySelectorAll("bdi, span"))
+            .filter((part: Element): boolean => {
+              return (
+                part.children.length === 0 &&
+                ["Encoded PowerShell", "Every Day", "هر روز"].includes(
+                  (part.textContent || "").trim(),
+                )
+              );
+            })
+            .map((part: Element): { top: number; bottom: number } => {
+              const box: DOMRect = part.getBoundingClientRect();
+
+              return { top: box.top, bottom: box.bottom };
+            });
+        },
+      );
+
+      expect(detail!.top).toBeGreaterThanOrEqual(name!.bottom - 1);
+    }
+
+    await screenshot(page, "hunts-menu-768-fa", { window: true });
   });
 
   test("locks Save as Hunt with nothing on screen to save, saying why", async ({
@@ -566,7 +648,7 @@ test.describe("a hunt's page", () => {
     await expect(
       page.getByTestId("security-hunt-last-found-line"),
     ).toContainText(
-      "Its last run could not be made: The person it runs as can no longer read security events in this project.",
+      "Last run failed: The person it runs as can no longer read security events in this project.",
     );
 
     await page.getByTestId("security-hunt-more").click();
@@ -592,6 +674,37 @@ test.describe("a hunt's page", () => {
   }) => {
     await open(page, HUNT_PATH, { width: 390, height: 900 });
     expect(await pageOverflow(page)).toBe(0);
+
+    /*
+     * The hunt's description takes two lines, and Show more opens the
+     * rest: drawn whole, a long one pushed the search and the events
+     * below the fold, on a phone most of all.
+     */
+    const description: Locator = page.getByTestId("security-hunt-description");
+    const words: Locator = description.getByTestId("resource-hero-description");
+    const showMore: Locator = description.getByRole("button", {
+      name: "Show more",
+    });
+    const heightOf: (element: Element) => number = (
+      element: Element,
+    ): number => {
+      return element.getBoundingClientRect().height;
+    };
+
+    await expect(showMore).toHaveAttribute("aria-expanded", "false");
+
+    const collapsed: number = await words.evaluate(heightOf);
+
+    await showMore.click();
+
+    const showLess: Locator = description.getByRole("button", {
+      name: "Show less",
+    });
+
+    await expect(showLess).toHaveAttribute("aria-expanded", "true");
+    expect(await words.evaluate(heightOf)).toBeGreaterThan(collapsed * 1.5);
+    await showLess.click();
+    await expect(showMore).toBeVisible();
     await screenshot(page, "hunts-hunt-390");
 
     await open(page, HUNT_PATH, { lang: "fa" });
@@ -601,6 +714,27 @@ test.describe("a hunt's page", () => {
     );
     expect(await pageOverflow(page)).toBe(0);
     await screenshot(page, "hunts-hunt-fa-1440");
+
+    /*
+     * On the list, an English description reads left to right - cut at
+     * its own end, not with its first letter lost to an ellipsis on its
+     * left - and lines up under its name, at the start of a Persian line.
+     */
+    await open(page, HUNTS_PATH, { lang: "fa" });
+
+    const listed: Locator = rowWith(page, "Threat intel matches").getByText(
+      "Every event that names a known-bad indicator.",
+    );
+    const reading: { direction: string; textAlign: string } =
+      await listed.evaluate(
+        (element: Element): { direction: string; textAlign: string } => {
+          const style: CSSStyleDeclaration = window.getComputedStyle(element);
+
+          return { direction: style.direction, textAlign: style.textAlign };
+        },
+      );
+
+    expect(reading).toEqual({ direction: "ltr", textAlign: "right" });
   });
 });
 

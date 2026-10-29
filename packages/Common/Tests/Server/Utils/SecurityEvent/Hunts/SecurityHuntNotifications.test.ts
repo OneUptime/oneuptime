@@ -231,11 +231,22 @@ describe("what a message says", () => {
       "processname:powershell.exe commandline:-enc (and 1 filter)",
     );
     expect(message.emailVars["huntViewLink"]).toBe(FACTS.url);
-    expect(message.emailVars["leadSentence"]).toContain(
-      formatHuntTime(WINDOW.startTime),
+    /*
+     * The lead is one short sentence; the time range it read is the card's
+     * row, said once (it was in the lead too, two dates long).
+     */
+    expect(message.emailVars["leadSentence"]).toBe(
+      "The scheduled hunt Encoded PowerShell found 3 security events.",
     );
-    expect(message.smsText).toContain(
-      "Hunt Encoded PowerShell found 3 security events.",
+    expect(message.emailVars["windowText"]).toBe(
+      `${formatHuntTime(WINDOW.startTime)} to ${formatHuntTime(WINDOW.endTime)}`,
+    );
+    // Said as the subject says it, the hunt's name after what it found.
+    expect(message.smsText).toBe(
+      "OneUptime: Hunt found 3 security events: Encoded PowerShell. Turn off in User Settings > Notification Settings.",
+    );
+    expect(message.emailVars["reasonSentence"]).toBe(
+      "This scheduled hunt tells you, or a team you are on, when it finds security events. Change these emails in User Settings > Notification Settings.",
     );
     expect(message.callText).toContain(
       "The scheduled hunt Encoded PowerShell found 3 security events.",

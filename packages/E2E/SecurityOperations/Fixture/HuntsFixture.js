@@ -400,8 +400,9 @@ export function createHuntsFixture(options) {
     insert(SecurityHunt, {
       _id: ID.hunt(1),
       name: "Encoded PowerShell",
+      // Longer than two lines on a phone: the hunt's header folds the rest under Show more.
       description:
-        "PowerShell started with an encoded command, as attackers start what they would rather nobody read.",
+        "PowerShell started with an encoded command, as attackers start what they would rather nobody read. When it finds something, check the parent process and the host's other sign-ins before you open a case.",
       searchQuery: "processname:powershell.exe commandline:-enc",
       filters: {},
       timeRange: TimeRange.PAST_ONE_WEEK,

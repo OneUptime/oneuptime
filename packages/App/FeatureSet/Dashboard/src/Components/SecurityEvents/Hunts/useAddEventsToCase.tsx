@@ -1,6 +1,7 @@
 import {
   ADDED_TO_CASE,
   ADD_TO_CASE,
+  ALREADY_ON_CASE_COUNT,
   ADD_TO_CASE_CAP_TOOLTIP,
   NOT_ADDED_TO_CASE,
   OPEN_CASE_NUMBER,
@@ -191,6 +192,7 @@ export default function useAddEventsToCase(options: {
     resultLabels: {
       succeeded: ADDED_TO_CASE,
       failed: NOT_ADDED_TO_CASE,
+      unchanged: ALREADY_ON_CASE_COUNT,
     },
     resultDetails: resultDetails,
     onClick: async (

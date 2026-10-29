@@ -38,6 +38,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Hunts/AddToCaseModel";
 import {
   getEventEvidenceMeta,
+  getEventEvidenceMetaParts,
   isEventEvidence,
   readEventEvidence,
   toSecurityEvent,
@@ -569,6 +570,49 @@ describe("the hunt forms", () => {
     }
   });
 
+  /*
+   * A field with no description of its own shows its column's, which is
+   * written for the API and is English in every language ("What the hunt
+   * looks for, in a few words. At most 100 characters." under a German
+   * Name). The name and the description say what they are by their
+   * placeholders; a name that is too long says so as it is typed.
+   */
+  test("the name and the description never show the API's English description", () => {
+    const forms: Array<Array<ModelField<SecurityHunt>>> = [
+      getHuntFormFields({ translator }),
+      getSaveAsHuntFormFields({ translator }),
+    ];
+
+    for (const fields of forms) {
+      const name: ModelField<SecurityHunt> = fieldOf(fields, "name");
+
+      expect(name.hideColumnDescription).toBe(true);
+      expect(name.description).toBeUndefined();
+      expect(name.placeholder).toBe("e.g. Encoded PowerShell");
+    }
+
+    const description: ModelField<SecurityHunt> = fieldOf(
+      getHuntFormFields({ translator }),
+      "description",
+    );
+
+    expect(description.hideColumnDescription).toBe(true);
+    expect(description.placeholder).toBe(
+      "Why it matters, and what to do when it finds something",
+    );
+
+    // The fields that say more than their placeholder keep their own words.
+    for (const key of ["searchQuery", "timeRange", "schedule"]) {
+      const field: ModelField<SecurityHunt> = fieldOf(
+        getHuntFormFields({ translator }),
+        key,
+      );
+
+      expect(field.hideColumnDescription).toBeUndefined();
+      expect(typeof field.description).toBe("string");
+    }
+  });
+
   test("a new hunt starts not scheduled, telling the person saving it once it is", () => {
     expect(
       getNewHuntInitialValues({
@@ -764,6 +808,33 @@ describe("a kept event on a case's Evidence page", () => {
         },
       }),
     ).toBe("Process Activity · Okta Workforce");
+  });
+
+  // Each part is drawn in an isolate of its own: a Persian date, an English vendor.
+  test("is the same line in parts, each to be read the way it is written", () => {
+    const formatTime: (time: Date) => string = (): string => {
+      return "۲۸ اکتبر ۲۰۲۶، ۲۲:۴۲";
+    };
+
+    expect(
+      getEventEvidenceMetaParts({ snapshot: SNAPSHOT, formatTime }),
+    ).toEqual(["۲۸ اکتبر ۲۰۲۶، ۲۲:۴۲", "High", "Process Activity", "Okta"]);
+    expect(getEventEvidenceMeta({ snapshot: SNAPSHOT, formatTime })).toBe(
+      getEventEvidenceMetaParts({ snapshot: SNAPSHOT, formatTime }).join(" · "),
+    );
+    expect(
+      getEventEvidenceMetaParts({
+        snapshot: {
+          ...SNAPSHOT,
+          time: "",
+          severityName: " ",
+          className: "",
+          vendorName: "",
+          productName: "",
+        },
+        formatTime,
+      }),
+    ).toEqual([]);
   });
 
   test("opens in the Events panel as the event it was", () => {

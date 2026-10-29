@@ -39,6 +39,19 @@ export interface HuntCellProps {
   hunt: SecurityHunt;
 }
 
+/*
+ * A hunt's description under its name in the list (HuntNameCell): two
+ * lines, cut in the words' own direction (dir="auto", as a resource's hero
+ * description is), and lined up as the page reads - left, or right on a
+ * Persian page - under the name.
+ */
+export const HUNT_DESCRIPTION_CLASS_NAME: string =
+  "line-clamp-2 break-words text-xs text-gray-500 [text-align:left] rtl:[text-align:right]";
+
+// A name a hunt tells, one piece on its line (HuntRecipients).
+export const HUNT_RECIPIENT_NAME_CLASS_NAME: string =
+  "inline-block max-w-full break-words align-baseline";
+
 // The names of who a hunt tells, as its row lists them: people, then teams.
 export function getHuntRecipientNames(hunt: SecurityHunt): Array<string> {
   return [
@@ -193,9 +206,14 @@ export const HuntNameCell: FunctionComponent<HuntCellProps> = (
       </span>
       <HuntSearchLine searchQuery={hunt.searchQuery} filters={hunt.filters} />
       {hunt.description ? (
-        <span className="line-clamp-2 break-words text-xs text-gray-500">
-          <IsolatedText text={hunt.description} />
-        </span>
+        /*
+         * Cut to two lines in the words' own direction, so the ellipsis
+         * ends them: an English description on a Persian page lost its
+         * first letter to an ellipsis on its left ("…s attackers").
+         */
+        <p dir="auto" className={HUNT_DESCRIPTION_CLASS_NAME}>
+          {hunt.description}
+        </p>
       ) : (
         <></>
       )}
@@ -223,7 +241,12 @@ export const HuntRecipients: FunctionComponent<{
     );
   }
 
-  // "Maya Chen, SOC Tier 2"; names written in Persian are listed with ،.
+  /*
+   * "Maya Chen, SOC Tier 2"; names written in Persian are listed with ،.
+   * Each name is kept whole on its line ("SOC Tier" / "2" read as two
+   * things in a narrow column), wrapping inside itself only when it alone
+   * is wider than the line.
+   */
   const separator: string = getListSeparator(line.names);
   const names: ReactElement = (
     <>
@@ -231,7 +254,10 @@ export const HuntRecipients: FunctionComponent<{
         return (
           <React.Fragment key={`${name}-${index}`}>
             {index > 0 ? separator : ""}
-            <IsolatedText text={name} />
+            <IsolatedText
+              text={name}
+              className={HUNT_RECIPIENT_NAME_CLASS_NAME}
+            />
           </React.Fragment>
         );
       })}

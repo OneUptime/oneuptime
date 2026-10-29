@@ -197,6 +197,8 @@ export function getHuntFormFields(data: {
       title: NAME_FIELD_TITLE,
       fieldType: FormFieldSchemaType.Text,
       placeholder: NAME_FIELD_PLACEHOLDER,
+      // The column's description is the API's, in English: the placeholder says it.
+      hideColumnDescription: true,
       required: true,
       customValidation: getHuntFieldProblem({
         translator: data.translator,
@@ -245,6 +247,7 @@ export function getHuntFormFields(data: {
       title: DESCRIPTION_FIELD_TITLE,
       fieldType: FormFieldSchemaType.LongText,
       placeholder: DESCRIPTION_FIELD_PLACEHOLDER,
+      hideColumnDescription: true,
       required: false,
       customValidation: getHuntFieldProblem({
         translator: data.translator,
@@ -293,6 +296,8 @@ export function getSaveAsHuntFormFields(data: {
       title: NAME_FIELD_TITLE,
       fieldType: FormFieldSchemaType.Text,
       placeholder: NAME_FIELD_PLACEHOLDER,
+      // The column's description is the API's, in English: the placeholder says it.
+      hideColumnDescription: true,
       required: true,
       customValidation: getHuntFieldProblem({
         translator: data.translator,

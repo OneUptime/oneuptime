@@ -57,15 +57,6 @@ export const SCHEDULE_LABELS: Record<SecurityHuntSchedule, string> = {
   [SecurityHuntSchedule.EveryWeek]: translationKey("Every Week"),
 };
 
-// The same, in a sentence on a hunt's page: "Runs every day".
-export const SCHEDULE_SENTENCES: Record<SecurityHuntSchedule, string> = {
-  [SecurityHuntSchedule.NotScheduled]: translationKey("Not scheduled"),
-  [SecurityHuntSchedule.EveryHour]: translationKey("Runs every hour"),
-  [SecurityHuntSchedule.EverySixHours]: translationKey("Runs every 6 hours"),
-  [SecurityHuntSchedule.EveryDay]: translationKey("Runs every day"),
-  [SecurityHuntSchedule.EveryWeek]: translationKey("Runs every week"),
-};
-
 // Who a scheduled hunt tells: "Tells Maya Chen", "Tells Maya Chen and 2 more".
 export const TELLS: string = translationKey("Tells {{names}}");
 export const TELLS_AND_MORE: PluralTemplate = {
@@ -139,8 +130,9 @@ export const SHOW_THEM: string = translationKey("Show them");
 export const RUNS_FOUND_NOTHING_YET: string = translationKey(
   "Its runs have found nothing yet.",
 );
+// Said as the line over it says what a run found: "Last found 3 events 2 hours ago".
 export const LAST_RUN_FAILED: string = translationKey(
-  "Its last run could not be made: {{error}}",
+  "Last run failed: {{error}}",
 );
 
 export const SEARCH_CHANGED: string = translationKey(
@@ -163,9 +155,11 @@ export const HUNT_ACTIONS_LABEL: string = translationKey("Hunt actions");
 export const HUNTS_MENU_SAVE_AS_HUNT: string = translationKey("+ Save as Hunt");
 export const HUNTS_MENU_EMPTY: string = translationKey("No hunts yet.");
 export const HUNTS_MENU_LOADING: string = translationKey("Loading hunts…");
+// A read that failed, in red, with Try again under it.
 export const HUNTS_MENU_NOT_LOADED: string = translationKey(
-  "Hunts could not be loaded. Open this list again to try again.",
+  "Hunts could not be loaded.",
 );
+export const HUNTS_MENU_TRY_AGAIN: string = translationKey("Try again");
 export const HUNTS_MENU_SEARCH: string = translationKey("Search hunts...");
 
 // ---------- Save as Hunt, on Events ----------
@@ -195,8 +189,9 @@ export const ADD_EVENTS_BUTTON: PluralTemplate = {
 export const SEARCH_CASES_PLACEHOLDER: string = translationKey(
   "Search open cases by number or title",
 );
+// Open Case is in an event's panel, which a click on the event opens.
 export const NO_OPEN_CASES: string = translationKey(
-  "No open cases. To open one about an event, select it and choose Open Case.",
+  "No open cases. To start one, click an event and choose Open Case.",
 );
 export const NO_MATCHING_CASES: string = translationKey(
   "No open case matches this search.",
@@ -223,6 +218,11 @@ export const NOT_ADDED_TO_CASE: PluralTemplate = {
   one: "{{count}} {{itemName}} not added",
   other: "{{count}} {{itemsName}} not added",
 };
+// The ones the case kept already, left as they were (not "not changed").
+export const ALREADY_ON_CASE_COUNT: PluralTemplate = {
+  one: "{{count}} {{itemName}} already on the case",
+  other: "{{count}} {{itemsName}} already on the case",
+};
 export const EVENT_SINGULAR: string = translationKey("Event");
 export const EVENT_PLURAL: string = translationKey("Events");
 
@@ -245,6 +245,8 @@ export const HUNTS_TEST_IDS: {
   lastFoundCell: string;
   header: string;
   headerFacts: string;
+  headerDescription: string;
+  headerSchedule: string;
   lastFound: string;
   showThem: string;
   changed: string;
@@ -254,6 +256,7 @@ export const HUNTS_TEST_IDS: {
   more: string;
   delete: string;
   huntsMenu: string;
+  menuNotLoaded: string;
   saveSummary: string;
   addToCase: string;
   addToCaseResult: string;
@@ -270,6 +273,8 @@ export const HUNTS_TEST_IDS: {
   lastFoundCell: "security-hunt-last-found",
   header: "security-hunt-header",
   headerFacts: "security-hunt-facts",
+  headerDescription: "security-hunt-description",
+  headerSchedule: "security-hunt-schedule-line",
   lastFound: "security-hunt-last-found-line",
   showThem: "security-hunt-show-them",
   changed: "security-hunt-changed",
@@ -279,6 +284,7 @@ export const HUNTS_TEST_IDS: {
   more: "security-hunt-more",
   delete: "security-hunt-delete",
   huntsMenu: "security-events-hunts-menu",
+  menuNotLoaded: "security-events-hunts-menu-not-loaded",
   saveSummary: "security-hunt-save-summary",
   addToCase: "security-event-add-to-case",
   addToCaseResult: "security-event-add-to-case-result",

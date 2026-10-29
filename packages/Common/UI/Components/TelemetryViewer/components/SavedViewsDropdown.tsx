@@ -1,6 +1,7 @@
 import React, {
   FunctionComponent,
   ReactElement,
+  ReactNode,
   useEffect,
   useMemo,
   useRef,
@@ -11,7 +12,13 @@ import useTranslator from "../../../Utils/UseTranslator";
 import { SavedViewOption } from "../types";
 import useComponentOutsideClick from "../../../Types/UseComponentOutsideClick";
 import Icon from "../../Icon/Icon";
+import IsolatedText from "../../IsolatedText/IsolatedText";
 import IconProp from "../../../../Types/Icon/IconProp";
+import {
+  DropdownHorizontalAlignment,
+  getDropdownAlignmentClassName,
+  useDropdownHorizontalAlignment,
+} from "../../../Utils/DropdownAlignment";
 import SavedViewsSearchInput from "../../SavedViews/SavedViewsSearchInput";
 import SavedViewsShowMoreButton from "../../SavedViews/SavedViewsShowMoreButton";
 import {
@@ -85,7 +92,22 @@ export interface SavedViewsDropdownProps {
   // Called as the panel opens: a host that reads its list afresh does it here.
   onOpen?: (() => void) | undefined;
   dataTestId?: string | undefined;
+  /*
+   * Whether the trigger shows how many there are (the default). A host that
+   * is still reading its list, or could not, leaves it off: "0" would say
+   * there are none.
+   */
+  showCount?: boolean | undefined;
+  /*
+   * What the panel shows in place of its list while there is nothing to
+   * list - a host's "Loading…", or what went wrong with a way to try again.
+   * Without it the panel says labels.empty.
+   */
+  emptyContent?: ReactNode | undefined;
 }
+
+// Tailwind w-72: the panel's width, which it opens on the side with room for.
+const PANEL_WIDTH_IN_PX: number = 288;
 
 const triggerButtonClassName: string =
   "inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400";
@@ -115,6 +137,32 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
    */
   const triggerRef: React.MutableRefObject<HTMLButtonElement | null> =
     useRef<HTMLButtonElement | null>(null);
+
+  /*
+   * The panel opens on the side of its trigger with room for it: from the
+   * trigger's start, else from its end. A toolbar wraps at 768px beside the
+   * side menu and leaves this trigger last on its row, and the panel then
+   * ran past the screen's edge and scrolled the page sideways. A host that
+   * names the side (dropdownAlignment) keeps it.
+   *
+   * The panel is as wide as it is styled (w-72), whatever it lists, so it is
+   * never measured: opened the first time, before Tailwind's runtime wrote
+   * the w-72 rule, it measured its longest name (670px) and opened to the
+   * left with room to spare on the right.
+   */
+  const fittingAlignment: DropdownHorizontalAlignment =
+    useDropdownHorizontalAlignment({
+      isOpen: isComponentVisible && !props.dropdownAlignment,
+      anchorRef: triggerRef,
+      dropdownWidthInPx: PANEL_WIDTH_IN_PX,
+    });
+  let panelAlignment: DropdownHorizontalAlignment = fittingAlignment;
+
+  if (props.dropdownAlignment === "right") {
+    panelAlignment = DropdownHorizontalAlignment.Right;
+  } else if (props.dropdownAlignment === "left") {
+    panelAlignment = DropdownHorizontalAlignment.Left;
+  }
 
   /*
    * A search is scoped to the visit that typed it. Leaving it behind means
@@ -234,15 +282,17 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
           {(props.showSelectedNameInTrigger !== false && selectedView?.name) ||
             label("trigger")}
         </span>
-        <span
-          className={`text-xs text-gray-400 ${
-            props.showTriggerIcon
-              ? "rounded-md bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold"
-              : ""
-          }`}
-        >
-          {props.savedViews.length.toLocaleString()}
-        </span>
+        {props.showCount === false ? null : (
+          <span
+            className={`text-xs text-gray-400 ${
+              props.showTriggerIcon
+                ? "rounded-md bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold"
+                : ""
+            }`}
+          >
+            {props.savedViews.length.toLocaleString()}
+          </span>
+        )}
         {props.showTriggerIcon ? (
           <Icon
             icon={IconProp.ChevronDown}
@@ -263,9 +313,10 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
         <div
           role="dialog"
           aria-label={label("panel")}
-          className={`absolute z-20 mt-2 w-72 rounded-lg border border-gray-200 bg-white shadow-xl ${
-            props.dropdownAlignment === "right" ? "right-0" : "left-0"
-          }`}
+          data-align={panelAlignment}
+          className={`absolute z-20 mt-2 w-72 max-w-[calc(100vw-1rem)] rounded-lg border border-gray-200 bg-white shadow-xl ${getDropdownAlignmentClassName(
+            panelAlignment,
+          )}`}
         >
           {/*
            * Explicit way back to the unfiltered explorer. Clicking the
@@ -311,11 +362,14 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
 
           {/* View list */}
           <div className="max-h-72 overflow-y-auto py-1">
-            {props.savedViews.length === 0 && (
-              <div className="px-3 py-6 text-center text-xs text-gray-400">
-                {label("empty")}
-              </div>
-            )}
+            {props.savedViews.length === 0 &&
+              (props.emptyContent ? (
+                props.emptyContent
+              ) : (
+                <div className="px-3 py-6 text-center text-xs text-gray-400">
+                  {label("empty")}
+                </div>
+              ))}
 
             {props.savedViews.length > 0 && visible.views.length === 0 && (
               <div className="px-3 py-6 text-center text-xs text-gray-400">
@@ -325,6 +379,9 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
 
             {visible.views.map((view: SavedViewOption) => {
               const isSelected: boolean = view.id === props.selectedSavedViewId;
+              const nameClassName: string = isSelected
+                ? "font-medium text-indigo-700"
+                : "text-gray-700";
 
               return (
                 <div
@@ -375,27 +432,46 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
                         ""
                       )}
                     </span>
-                    <span
-                      className={`truncate text-sm ${
-                        isSelected
-                          ? "font-medium text-indigo-700"
-                          : "text-gray-700"
-                      }`}
-                      // A long name is cut to the panel; the whole of it on hover.
-                      title={view.name}
-                    >
-                      {view.name}
-                    </span>
-                    {view.isDefault && (
-                      <span className="shrink-0 text-[10px] text-gray-400">
-                        {translator.translateText("default")}
-                      </span>
-                    )}
                     {!view.isDefault && view.detail ? (
-                      <span className="shrink-0 text-[10px] text-gray-400">
-                        {view.detail}
+                      /*
+                       * A detail - a hunt's schedule - under the name, so
+                       * the name has the row's width: beside it, "Admin
+                       * sign-ins outside t..." was all a 288px panel kept.
+                       */
+                      <span className="flex min-w-0 flex-1 flex-col">
+                        {/*
+                         * As wide as it is, from the line's start: an
+                         * English name on a Persian page starts where the
+                         * schedule under it does.
+                         */}
+                        <IsolatedText
+                          text={view.name}
+                          title={view.name}
+                          className={`max-w-full self-start truncate text-sm ${nameClassName}`}
+                        />
+                        <span className="truncate text-[11px] leading-4 text-gray-500">
+                          {view.detail}
+                        </span>
                       </span>
-                    ) : null}
+                    ) : (
+                      <>
+                        {/*
+                         * A long name is cut to the panel; the whole of it
+                         * on hover. In an isolate: an English name on a
+                         * Persian page is cut at its own end, not its start.
+                         */}
+                        <IsolatedText
+                          text={view.name}
+                          title={view.name}
+                          className={`truncate text-sm ${nameClassName}`}
+                        />
+                        {view.isDefault && (
+                          <span className="shrink-0 text-[10px] text-gray-400">
+                            {translator.translateText("default")}
+                          </span>
+                        )}
+                      </>
+                    )}
                   </button>
 
                   {/* Actions — visible on hover */}

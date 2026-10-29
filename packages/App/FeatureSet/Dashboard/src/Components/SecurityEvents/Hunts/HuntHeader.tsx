@@ -12,7 +12,6 @@ import {
   RUNS_FOUND_NOTHING_YET,
   SAVE_CHANGES,
   SCHEDULE_LABELS,
-  SCHEDULE_SENTENCES,
   SEARCH_CHANGED,
   SHOW_THEM,
 } from "./HuntsCopy";
@@ -23,6 +22,7 @@ import {
   getHuntRunState,
 } from "./HuntsModel";
 import RelativeTime from "../../EpisodeView/RelativeTime";
+import ResourceHeroDescription from "../../TelemetryResource/ResourceHeroDescription";
 import {
   HeaderAction,
   HeaderActionButton,
@@ -95,6 +95,12 @@ const HuntHeader: FunctionComponent<ComponentProps> = (
   const runState: HuntRunState = getHuntRunState(hunt);
   const lastFoundWindow: SecurityHuntRunWindow | null =
     getHuntLastFoundWindow(hunt);
+  const hasFacts: boolean =
+    Boolean(hunt.description) ||
+    isScheduled ||
+    (runState === HuntRunState.Found && Boolean(hunt.lastFoundAt)) ||
+    runState === HuntRunState.NothingFound ||
+    runState === HuntRunState.Failed;
 
   const updateGate: PermissionGateResult = PermissionGate.check(
     new SecurityHunt(),
@@ -225,27 +231,37 @@ const HuntHeader: FunctionComponent<ComponentProps> = (
           </div>
         </div>
 
-        <div
-          className="mt-3 space-y-1.5 text-sm text-gray-600"
-          data-testid={HUNTS_TEST_IDS.headerFacts}
-        >
-          {hunt.description ? (
-            <p className="break-words text-gray-700">
-              {/* The team's own words, read the way they are written. */}
-              <IsolatedText text={hunt.description} />
-            </p>
-          ) : (
-            <></>
-          )}
-          {/* How often it runs, who it tells and when it runs next, one line wrapping. */}
-          <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-500">
-            <span>
-              {translator.translateText(SCHEDULE_SENTENCES[schedule]) ||
-                SCHEDULE_SENTENCES[schedule]}
-            </span>
+        {/* Nothing to say - a hunt opened by hand, with no description - leaves no gap. */}
+        {hasFacts ? (
+          <div
+            className="mt-3 space-y-1.5 text-sm text-gray-600"
+            data-testid={HUNTS_TEST_IDS.headerFacts}
+          >
+            {hunt.description ? (
+              /*
+               * The team's own words, read the way they are written, as a
+               * resource's hero draws its description: two lines, and
+               * "Show more" for the rest. A description runs to 2,000
+               * characters, and the explorer the hunt opens on is under
+               * this header: drawn whole, it pushed the search and the
+               * events below the fold.
+               */
+              <div data-testid={HUNTS_TEST_IDS.headerDescription}>
+                <ResourceHeroDescription text={hunt.description} />
+              </div>
+            ) : (
+              <></>
+            )}
+            {/*
+             * Who a scheduled hunt tells and when it runs next, one line
+             * wrapping. How often it runs is its chip's to say, over the
+             * name; a hunt opened by hand has nothing more to say here.
+             */}
             {isScheduled ? (
-              <>
-                <span aria-hidden="true">·</span>
+              <p
+                className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-500"
+                data-testid={HUNTS_TEST_IDS.headerSchedule}
+              >
                 <HuntRecipients names={getHuntRecipientNames(hunt)} />
                 {hunt.nextRunAt ? (
                   <>
@@ -267,82 +283,84 @@ const HuntHeader: FunctionComponent<ComponentProps> = (
                 ) : (
                   <></>
                 )}
-              </>
+              </p>
             ) : (
               <></>
             )}
-          </p>
-          {runState === HuntRunState.Found && hunt.lastFoundAt ? (
-            <p
-              className="flex flex-wrap items-center gap-x-2 text-xs text-gray-700"
-              data-testid={HUNTS_TEST_IDS.lastFound}
-            >
-              <span>
-                <TranslatedSentence
-                  template={LAST_FOUND}
-                  count={hunt.lastFoundEventCount || 0}
-                  slots={{
-                    time: (
-                      <RelativeTime
-                        date={hunt.lastFoundAt}
-                        className="whitespace-nowrap"
-                      />
-                    ),
-                  }}
+            {runState === HuntRunState.Found && hunt.lastFoundAt ? (
+              <p
+                className="flex flex-wrap items-center gap-x-2 text-xs text-gray-700"
+                data-testid={HUNTS_TEST_IDS.lastFound}
+              >
+                <span>
+                  <TranslatedSentence
+                    template={LAST_FOUND}
+                    count={hunt.lastFoundEventCount || 0}
+                    slots={{
+                      time: (
+                        <RelativeTime
+                          date={hunt.lastFoundAt}
+                          className="whitespace-nowrap"
+                        />
+                      ),
+                    }}
+                  />
+                </span>
+                {lastFoundWindow ? (
+                  <button
+                    type="button"
+                    className="font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    data-testid={HUNTS_TEST_IDS.showThem}
+                    onClick={() => {
+                      props.onShowWindow(lastFoundWindow);
+                    }}
+                  >
+                    {translator.translateText(SHOW_THEM) || SHOW_THEM}
+                  </button>
+                ) : (
+                  <></>
+                )}
+              </p>
+            ) : (
+              <></>
+            )}
+            {runState === HuntRunState.NothingFound ? (
+              <p
+                className="text-xs text-gray-500"
+                data-testid={HUNTS_TEST_IDS.lastFound}
+              >
+                {translator.translateText(RUNS_FOUND_NOTHING_YET) ||
+                  RUNS_FOUND_NOTHING_YET}
+              </p>
+            ) : (
+              <></>
+            )}
+            {runState === HuntRunState.Failed ? (
+              <div
+                className="flex items-start gap-1.5 text-xs text-red-700"
+                role="alert"
+                data-testid={HUNTS_TEST_IDS.lastFound}
+              >
+                <Icon
+                  icon={IconProp.Alert}
+                  className="mt-0.5 h-3.5 w-3.5 shrink-0"
                 />
-              </span>
-              {lastFoundWindow ? (
-                <button
-                  type="button"
-                  className="font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                  data-testid={HUNTS_TEST_IDS.showThem}
-                  onClick={() => {
-                    props.onShowWindow(lastFoundWindow);
-                  }}
-                >
-                  {translator.translateText(SHOW_THEM) || SHOW_THEM}
-                </button>
-              ) : (
-                <></>
-              )}
-            </p>
-          ) : (
-            <></>
-          )}
-          {runState === HuntRunState.NothingFound ? (
-            <p
-              className="text-xs text-gray-500"
-              data-testid={HUNTS_TEST_IDS.lastFound}
-            >
-              {translator.translateText(RUNS_FOUND_NOTHING_YET) ||
-                RUNS_FOUND_NOTHING_YET}
-            </p>
-          ) : (
-            <></>
-          )}
-          {runState === HuntRunState.Failed ? (
-            <div
-              className="flex items-start gap-1.5 text-xs text-red-700"
-              role="alert"
-              data-testid={HUNTS_TEST_IDS.lastFound}
-            >
-              <Icon
-                icon={IconProp.Alert}
-                className="mt-0.5 h-3.5 w-3.5 shrink-0"
-              />
-              <span>
-                {translator.translateTemplate(LAST_RUN_FAILED, {
-                  error:
-                    translator.translateText(hunt.lastRunError || "") ||
-                    hunt.lastRunError ||
-                    "",
-                })}
-              </span>
-            </div>
-          ) : (
-            <></>
-          )}
-        </div>
+                <span>
+                  {translator.translateTemplate(LAST_RUN_FAILED, {
+                    error:
+                      translator.translateText(hunt.lastRunError || "") ||
+                      hunt.lastRunError ||
+                      "",
+                  })}
+                </span>
+              </div>
+            ) : (
+              <></>
+            )}
+          </div>
+        ) : (
+          <></>
+        )}
 
         {props.isChanged ? (
           <div

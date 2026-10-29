@@ -93,6 +93,41 @@ describe("the host's words", () => {
     expect(within(panel).queryByText("No saved views yet.")).toBeNull();
   });
 
+  /*
+   * What a host shows while there is nothing to list - its "Loading…", or
+   * what went wrong with a way to try again - in place of the empty words.
+   */
+  test("give way to the host's own empty content", () => {
+    const retry: ReturnType<typeof jest.fn> = jest.fn();
+
+    draw({
+      savedViews: [],
+      emptyContent: (
+        <div role="alert">
+          <p>Hunts could not be loaded.</p>
+          <button type="button" onClick={retry}>
+            Try again
+          </button>
+        </div>
+      ),
+    });
+
+    const panel: HTMLElement = open();
+
+    expect(within(panel).getByRole("alert")).toHaveTextContent(
+      "Hunts could not be loaded.",
+    );
+    expect(within(panel).queryByText("No hunts yet.")).toBeNull();
+
+    fireEvent.click(within(panel).getByRole("button", { name: "Try again" }));
+    expect(retry).toHaveBeenCalledTimes(1);
+    cleanup();
+
+    // A list to show is shown, whatever the host would say about none.
+    draw({ emptyContent: <p>Loading hunts…</p> });
+    expect(within(open()).queryByText("Loading hunts…")).toBeNull();
+  });
+
   test("name the search box a long list grows", () => {
     draw({
       savedViews: Array.from(
@@ -178,6 +213,44 @@ describe("the rows", () => {
     ).toHaveTextContent(/^Threat intel matches$/);
   });
 
+  /*
+   * Beside its name, a detail left a 288px panel room for "Admin sign-ins
+   * outside t..." only: under it, the name has the row's width.
+   */
+  test("say their detail under the name, which keeps the row's width", () => {
+    draw();
+
+    const panel: HTMLElement = open();
+    const name: HTMLElement = within(panel).getByText(
+      "Admin sign-ins outside the office",
+    );
+    const detail: HTMLElement = within(panel).getByText("Every Hour");
+
+    // One column: the name over its detail.
+    expect(name.parentElement).toBe(detail.parentElement);
+    expect(name.parentElement).toHaveClass("flex-col", "min-w-0", "flex-1");
+    expect(name).toHaveClass("truncate", "max-w-full", "self-start");
+    expect(detail).toHaveClass("truncate");
+  });
+
+  // An English name on a Persian page is cut at its own end, not its start.
+  test("draw each name in an isolate that reads the way it is written", () => {
+    draw({
+      savedViews: [...HUNTS, { id: "h4", name: "شکار ورودهای مدیر" }],
+    });
+
+    const panel: HTMLElement = open();
+    const english: HTMLElement = within(panel).getByText(
+      "Threat intel matches",
+    );
+    const persian: HTMLElement = within(panel).getByText("شکار ورودهای مدیر");
+
+    expect(english.tagName).toBe("BDI");
+    expect(english).toHaveAttribute("dir", "ltr");
+    expect(persian.tagName).toBe("BDI");
+    expect(persian).toHaveAttribute("dir", "rtl");
+  });
+
   test("give a long name whole on hover", () => {
     draw();
 
@@ -241,6 +314,17 @@ describe("the trigger", () => {
     expect(ownPaths).not.toBe(plainPaths);
   });
 
+  // A host still reading its list, or that could not, has nothing to count: "0" would say none.
+  test("leaves the count out when its host says so", () => {
+    draw({ showCount: false });
+
+    expect(trigger()).toHaveTextContent(/^Hunts$/);
+    cleanup();
+
+    draw({ showCount: true });
+    expect(trigger()).toHaveTextContent(/^Hunts3$/);
+  });
+
   test("tells its host the panel opens, each time, and not as it closes", () => {
     const onOpen: ReturnType<typeof jest.fn> = jest.fn();
     draw({ onOpen });
@@ -253,5 +337,89 @@ describe("the trigger", () => {
 
     fireEvent.click(trigger());
     expect(onOpen).toHaveBeenCalledTimes(2);
+  });
+});
+
+/*
+ * THE PANEL OPENS ON THE SCREEN. Beside the side menu at 768px the
+ * explorer's toolbar wraps and leaves the trigger last on its row, and
+ * the 288px panel, opened from the trigger's start, ran past the screen's
+ * edge and scrolled the page sideways. It opens from the trigger's end
+ * when its start has no room - measured as it is styled (w-72), never as
+ * it first measures: the Dashboard's Tailwind runtime writes the w-72 rule
+ * after the panel is in the page, and it measured its longest name.
+ */
+describe("the panel's place", () => {
+  const originalInnerWidth: number = window.innerWidth;
+
+  function placeTrigger(box: {
+    left: number;
+    right: number;
+    viewportWidth: number;
+  }): void {
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      writable: true,
+      value: box.viewportWidth,
+    });
+    jest.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
+      left: box.left,
+      right: box.right,
+      x: box.left,
+      width: box.right - box.left,
+      top: 0,
+      bottom: 30,
+      y: 0,
+      height: 30,
+      toJSON: (): Record<string, never> => {
+        return {};
+      },
+    } as DOMRect);
+    // Measured before its width applies, the panel is as wide as its longest name.
+    jest
+      .spyOn(HTMLElement.prototype, "offsetWidth", "get")
+      .mockReturnValue(670);
+  }
+
+  afterEach(() => {
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      writable: true,
+      value: originalInnerWidth,
+    });
+  });
+
+  test("opens from the trigger's start while there is room", () => {
+    placeTrigger({ left: 712, right: 831, viewportWidth: 1280 });
+    draw();
+
+    const panel: HTMLElement = open();
+
+    expect(panel).toHaveAttribute("data-align", "left");
+    expect(panel).toHaveClass("left-0");
+    expect(panel).not.toHaveClass("right-0");
+  });
+
+  test("opens from the trigger's end when its start would run off the screen", () => {
+    placeTrigger({ left: 625, right: 744, viewportWidth: 768 });
+    draw();
+
+    const panel: HTMLElement = open();
+
+    expect(panel).toHaveAttribute("data-align", "right");
+    expect(panel).toHaveClass("right-0");
+    // And never wider than a phone's screen.
+    expect(panel).toHaveClass("w-72", "max-w-[calc(100vw-1rem)]");
+  });
+
+  test("keeps the side a host names", () => {
+    placeTrigger({ left: 625, right: 744, viewportWidth: 768 });
+    draw({ dropdownAlignment: "left" });
+    expect(open()).toHaveAttribute("data-align", "left");
+    cleanup();
+
+    placeTrigger({ left: 16, right: 135, viewportWidth: 390 });
+    draw({ dropdownAlignment: "right" });
+    expect(open()).toHaveAttribute("data-align", "right");
   });
 });
