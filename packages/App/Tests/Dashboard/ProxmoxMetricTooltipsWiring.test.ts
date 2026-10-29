@@ -34,6 +34,7 @@ const BLOCK_COMMENT: RegExp = /\/\*[\s\S]*?\*\//g;
 const LINE_COMMENT: RegExp = /(^|[^:])\/\/[^\n]*/g;
 const WHITESPACE: RegExp = /\s+/g;
 const DESCRIPTION_REFERENCE: RegExp = /PROXMOX_METRIC_DESCRIPTIONS\.(\w+)/g;
+const COLUMN_HEADING: RegExp = /heading: "([^"]+)"/;
 const RECORD_IMPORT: string =
   'import { PROXMOX_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ProxmoxMetricDescriptions";';
 const TOOLTIP_IMPORT: string =
@@ -115,6 +116,31 @@ const ALL_PAGES: Record<string, string> = {
   "Storage.tsx": STORAGE,
   "Insights.tsx": INSIGHTS,
 };
+
+/*
+ * The overview's replication columns by heading: each `{ ... }` record of
+ * the REPLICATION_COLUMNS list its header row maps over. A record also
+ * names its column for resizing (id) and how far its values may give way
+ * (kind).
+ */
+function replicationColumns(): Map<string, string> {
+  const list: string = between(
+    OVERVIEW,
+    "const REPLICATION_COLUMNS: Array<ReplicationColumn> = [",
+    "];",
+  );
+  const columns: Map<string, string> = new Map<string, string>();
+
+  for (const record of list.match(/\{[^{}]*\}/g) || []) {
+    const heading: string | undefined = COLUMN_HEADING.exec(record)?.[1];
+
+    if (heading) {
+      columns.set(heading, record);
+    }
+  }
+
+  return columns;
+}
 
 describe("the Proxmox pages read their words from one record", () => {
   test.each(Object.keys(ALL_PAGES))(
@@ -350,21 +376,35 @@ describe("cluster overview: hero, cards and tables", () => {
   ] as Array<[string, ProxmoxMetric]>)(
     "the replication column %s carries %s",
     (heading: string, key: ProxmoxMetric) => {
-      expect(OVERVIEW).toContain(
-        `heading: "${heading}", description: PROXMOX_METRIC_DESCRIPTIONS.${key}, }`,
+      const column: string | undefined = replicationColumns().get(heading);
+
+      expect(column).toContain(
+        `description: PROXMOX_METRIC_DESCRIPTIONS.${key},`,
       );
+      // Its own description, and no other.
+      expect(count(column!, "description:")).toBe(1);
     },
   );
 
   test("replication identity columns have no (i)", () => {
-    expect(OVERVIEW).toContain('{ heading: "Job" }');
-    expect(OVERVIEW).toContain('{ heading: "Guest" }');
-    expect(OVERVIEW).toContain('{ heading: "Source → Target" }');
+    const columns: Map<string, string> = replicationColumns();
+
+    for (const heading of ["Job", "Guest", "Source → Target"]) {
+      const column: string | undefined = columns.get(heading);
+
+      expect({
+        heading,
+        isColumn: column !== undefined,
+        hasDescription: Boolean(column?.includes("description")),
+      }).toEqual({ heading, isColumn: true, hasDescription: false });
+    }
   });
 
   test("each replication header renders its own (i), which renders nothing without text", () => {
     const header: string = between(OVERVIEW, "<thead>", "</thead>");
 
+    // The header row draws the records the tests above read.
+    expect(header).toContain("{REPLICATION_COLUMNS.map(");
     expect(header).toContain(
       "<InfoTooltip label={column.heading} text={column.description}",
     );
