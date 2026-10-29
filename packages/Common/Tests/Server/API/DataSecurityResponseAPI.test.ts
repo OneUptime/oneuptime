@@ -170,7 +170,8 @@ async function call(
   } as unknown as ExpressRequest;
   const res: ExpressResponse = {} as ExpressResponse;
   const next: jest.Mock = jest.fn();
-  const send: jest.Mock = Response.sendJsonObjectResponse as unknown as jest.Mock;
+  const send: jest.Mock =
+    Response.sendJsonObjectResponse as unknown as jest.Mock;
   const before: number = send.mock.calls.length;
 
   await mockRouter
@@ -186,9 +187,12 @@ async function call(
   };
 }
 
-const RESPONSE_ACTIONS: string = DATA_SECURITY_API_ROUTES.responseActions(":id");
+const RESPONSE_ACTIONS: string =
+  DATA_SECURITY_API_ROUTES.responseActions(":id");
 const RESPOND: string = DATA_SECURITY_API_ROUTES.respond(":id");
-const BLOCK: JSONObject = { action: DataSecurityResponseAction.BlockPublicAccess };
+const BLOCK: JSONObject = {
+  action: DataSecurityResponseAction.BlockPublicAccess,
+};
 
 beforeAll(() => {
   mockRouter.routes.length = 0;

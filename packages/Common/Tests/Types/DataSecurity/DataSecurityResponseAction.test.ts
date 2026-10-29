@@ -89,9 +89,9 @@ describe("the response actions", () => {
     }
 
     expect(getDataSecurityResponseActions(undefined)).toEqual([]);
-    expect(getDataSecurityResponseActions("A kind from a later release")).toEqual(
-      [],
-    );
+    expect(
+      getDataSecurityResponseActions("A kind from a later release"),
+    ).toEqual([]);
   });
 });
 
@@ -177,7 +177,10 @@ describe("the issues each action fixes", () => {
       ),
     ).toBeUndefined();
     expect(
-      getDataSecurityResponseActionForIssue(undefined, DataStoreKind.AwsS3Bucket),
+      getDataSecurityResponseActionForIssue(
+        undefined,
+        DataStoreKind.AwsS3Bucket,
+      ),
     ).toBeUndefined();
     expect(
       getDataSecurityResponseActionForIssue("public-read", undefined),

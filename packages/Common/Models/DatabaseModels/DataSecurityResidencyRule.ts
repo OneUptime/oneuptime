@@ -19,13 +19,7 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import EnableMCP from "../../Types/Database/EnableMCP";
 import EnableAuditLog from "../../Types/Database/EnableAuditLog";
 import ColumnLength from "../../Types/Database/ColumnLength";
-import {
-  Column,
-  Entity,
-  Index,
-  JoinColumn,
-  ManyToOne,
-} from "typeorm";
+import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
  * Where data may live: data categories (all personal data when none are
@@ -199,7 +193,8 @@ export default class DataSecurityResidencyRule extends BaseModel {
     type: TableColumnType.JSON,
     required: false,
     title: "Data Categories",
-    description: "The categories of data the rule covers. Empty means every kind of personal data.",
+    description:
+      "The categories of data the rule covers. Empty means every kind of personal data.",
   })
   @Column({
     type: ColumnType.JSON,
@@ -212,7 +207,8 @@ export default class DataSecurityResidencyRule extends BaseModel {
     type: TableColumnType.JSON,
     required: false,
     title: "Data About People In",
-    description: "Only data about people in these countries (ISO 3166-1 alpha-2). Empty means data about anyone.",
+    description:
+      "Only data about people in these countries (ISO 3166-1 alpha-2). Empty means data about anyone.",
   })
   @Column({
     type: ColumnType.JSON,
@@ -225,7 +221,8 @@ export default class DataSecurityResidencyRule extends BaseModel {
     type: TableColumnType.JSON,
     required: true,
     title: "Allowed Regions",
-    description: "The regions the data may live in. A * matches any characters: eu-*, europe-*, westeurope.",
+    description:
+      "The regions the data may live in. A * matches any characters: eu-*, europe-*, westeurope.",
   })
   @Column({
     type: ColumnType.JSON,

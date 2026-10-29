@@ -48,7 +48,8 @@ export const DATA_SENSITIVITY_DESCRIPTION: Readonly<
     "Harm follows if it leaks: secrets, card numbers, health records, government IDs.",
   [DataSensitivity.Confidential]:
     "Personal data, and documents marked confidential.",
-  [DataSensitivity.Internal]: "The business's own data, not meant for outsiders.",
+  [DataSensitivity.Internal]:
+    "The business's own data, not meant for outsiders.",
   [DataSensitivity.Public]: "Nothing sensitive was found.",
 };
 

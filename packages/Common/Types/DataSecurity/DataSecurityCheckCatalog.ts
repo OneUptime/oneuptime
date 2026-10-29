@@ -144,7 +144,9 @@ export interface DataSecurityCheckInfo {
   requirements: ReadonlyArray<FrameworkRequirementRef>;
   // How to fix it: by kind first, then by provider, then for any store.
   remediation: Readonly<
-    Partial<Record<DataStoreKind | DataStoreProvider | "default", CheckRemediation>>
+    Partial<
+      Record<DataStoreKind | DataStoreProvider | "default", CheckRemediation>
+    >
   >;
   evaluate: (input: DataStoreCheckInput) => DataSecurityCheckResult;
 }
@@ -173,7 +175,10 @@ const NOT_APPLICABLE: DataSecurityCheckResult = {
   status: DataSecurityCheckStatus.NotApplicable,
 };
 
-function fail(evidence: string, severity?: SecuritySeverity): DataSecurityCheckResult {
+function fail(
+  evidence: string,
+  severity?: SecuritySeverity,
+): DataSecurityCheckResult {
   return { status: DataSecurityCheckStatus.Fail, evidence, severity };
 }
 
@@ -331,7 +336,7 @@ export const DATA_SECURITY_CHECKS: ReadonlyArray<DataSecurityCheckInfo> = [
         steps: [
           "Open the bucket in the S3 console and choose Permissions.",
           "Under Block public access, choose Edit, turn on all four settings and save.",
-          "Remove any bucket policy statement whose Principal is \"*\" without a restricting condition, and any ACL grant to Everyone or Authenticated users.",
+          'Remove any bucket policy statement whose Principal is "*" without a restricting condition, and any ACL grant to Everyone or Authenticated users.',
         ],
         cli: "aws s3api put-public-access-block --bucket {name} --public-access-block-configuration BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true",
         terraform:
@@ -392,7 +397,12 @@ export const DATA_SECURITY_CHECKS: ReadonlyArray<DataSecurityCheckInfo> = [
       "The store's policy, ACL or IAM bindings let anyone write or delete its data.",
     whyItMatters:
       "Anyone can plant malware, replace files your apps serve, or delete everything in it.",
-    severityBySensitivity: severities(S.Critical, S.Critical, S.Critical, S.High),
+    severityBySensitivity: severities(
+      S.Critical,
+      S.Critical,
+      S.Critical,
+      S.High,
+    ),
     families: [FAM.ObjectStorage, FAM.Warehouse, FAM.Search],
     requirements: ACCESS_REQUIREMENTS,
     remediation: {
@@ -552,7 +562,12 @@ export const DATA_SECURITY_CHECKS: ReadonlyArray<DataSecurityCheckInfo> = [
       "A database snapshot is shared publicly, so any cloud account can restore a full copy.",
     whyItMatters:
       "A public snapshot is a complete copy of the database, handed to anyone who looks.",
-    severityBySensitivity: severities(S.Critical, S.Critical, S.Critical, S.High),
+    severityBySensitivity: severities(
+      S.Critical,
+      S.Critical,
+      S.Critical,
+      S.High,
+    ),
     families: [FAM.Database, FAM.Snapshot],
     requirements: ACCESS_REQUIREMENTS,
     remediation: {
@@ -780,8 +795,7 @@ export const DATA_SECURITY_CHECKS: ReadonlyArray<DataSecurityCheckInfo> = [
     id: "no-backups",
     group: G.Recovery,
     title: "It has no backups, or keeps them under 7 days",
-    description:
-      "Automated backups are off, or kept for fewer than 7 days.",
+    description: "Automated backups are off, or kept for fewer than 7 days.",
     whyItMatters:
       "Ransomware, a bad migration or a deleted table is permanent without a backup to restore.",
     severityBySensitivity: severities(S.High, S.Medium, S.Low, null),
@@ -789,12 +803,16 @@ export const DATA_SECURITY_CHECKS: ReadonlyArray<DataSecurityCheckInfo> = [
     requirements: RECOVERY_REQUIREMENTS,
     remediation: {
       [K.AwsRdsInstance]: {
-        steps: ["Modify the instance and set the backup retention period to at least 7 days."],
+        steps: [
+          "Modify the instance and set the backup retention period to at least 7 days.",
+        ],
         cli: "aws rds modify-db-instance --db-instance-identifier {name} --backup-retention-period 7 --apply-immediately --region {region}",
         terraform:
           'resource "aws_db_instance" "{name}" {\n  # ...\n  backup_retention_period = 7\n}',
       },
-      default: { steps: ["Turn on automated backups and keep them for at least 7 days."] },
+      default: {
+        steps: ["Turn on automated backups and keep them for at least 7 days."],
+      },
     },
     evaluate: (input: DataStoreCheckInput): DataSecurityCheckResult => {
       if (input.posture.backupsEnabled === false) {
@@ -840,7 +858,9 @@ export const DATA_SECURITY_CHECKS: ReadonlyArray<DataSecurityCheckInfo> = [
     requirements: RECOVERY_REQUIREMENTS,
     remediation: {
       [K.AwsDynamoDbTable]: {
-        steps: ["Open the table's Backups tab and turn on point-in-time recovery."],
+        steps: [
+          "Open the table's Backups tab and turn on point-in-time recovery.",
+        ],
         cli: "aws dynamodb update-continuous-backups --table-name {name} --point-in-time-recovery-specification PointInTimeRecoveryEnabled=true --region {region}",
         terraform:
           'resource "aws_dynamodb_table" "{name}" {\n  # ...\n  point_in_time_recovery {\n    enabled = true\n  }\n}',
@@ -1098,7 +1118,12 @@ export const DATA_SECURITY_CHECKS: ReadonlyArray<DataSecurityCheckInfo> = [
       "CVV or CVC codes were found. PCI DSS forbids keeping them after a payment is authorised, encrypted or not.",
     whyItMatters:
       "A card number with its security code is everything a fraudster needs, and keeping codes breaks PCI DSS outright.",
-    severityBySensitivity: severities(S.Critical, S.Critical, S.Critical, S.Critical),
+    severityBySensitivity: severities(
+      S.Critical,
+      S.Critical,
+      S.Critical,
+      S.Critical,
+    ),
     families: STORING_FAMILIES,
     requirements: [r(CF.PCIDSS, "3.3.1")],
     remediation: {
@@ -1146,7 +1171,12 @@ export const DATA_SECURITY_CHECKS: ReadonlyArray<DataSecurityCheckInfo> = [
       "A password field holds values that are not password hashes (bcrypt, argon2, scrypt or PBKDF2).",
     whyItMatters:
       "One read of this store hands over every user's password, and with password reuse, their other accounts.",
-    severityBySensitivity: severities(S.Critical, S.Critical, S.Critical, S.Critical),
+    severityBySensitivity: severities(
+      S.Critical,
+      S.Critical,
+      S.Critical,
+      S.Critical,
+    ),
     families: STORING_FAMILIES,
     requirements: [
       r(CF.GDPR, "Art. 32"),
@@ -1193,7 +1223,9 @@ export const DATA_SECURITY_CHECKS: ReadonlyArray<DataSecurityCheckInfo> = [
       }
 
       return input.copiedFromProductionStoreName
-        ? fail(`It holds copies of data from ${input.copiedFromProductionStoreName}.`)
+        ? fail(
+            `It holds copies of data from ${input.copiedFromProductionStoreName}.`,
+          )
         : PASS;
     },
   },
@@ -1277,7 +1309,9 @@ export const DATA_SECURITY_CHECKS: ReadonlyArray<DataSecurityCheckInfo> = [
       });
 
       return unscrubbed.length > 0
-        ? fail(`${unscrubbed.length} kind(s) of sensitive data are not scrubbed.`)
+        ? fail(
+            `${unscrubbed.length} kind(s) of sensitive data are not scrubbed.`,
+          )
         : PASS;
     },
   },
@@ -1289,7 +1323,12 @@ export const DATA_SECURITY_CHECKS: ReadonlyArray<DataSecurityCheckInfo> = [
       "Passwords, API keys or tokens appear in logs, traces, exceptions or AI conversations.",
     whyItMatters:
       "Anyone who can read the telemetry can use the secret; rotate it and stop the code that logs it.",
-    severityBySensitivity: severities(S.Critical, S.Critical, S.Critical, S.Critical),
+    severityBySensitivity: severities(
+      S.Critical,
+      S.Critical,
+      S.Critical,
+      S.Critical,
+    ),
     families: [FAM.Telemetry],
     requirements: LEAKAGE_REQUIREMENTS,
     remediation: {
@@ -1322,7 +1361,11 @@ export const DATA_SECURITY_CHECKS: ReadonlyArray<DataSecurityCheckInfo> = [
       "Personal data moved outside its allowed regions can be an unlawful transfer under GDPR and similar laws.",
     severityBySensitivity: severities(S.High, S.High, S.Medium, null),
     families: STORING_FAMILIES,
-    requirements: [r(CF.GDPR, "Arts. 44-49"), r(CF.LGPD, "Art. 33"), r(CF.DPDP, "Sec. 16")],
+    requirements: [
+      r(CF.GDPR, "Arts. 44-49"),
+      r(CF.LGPD, "Art. 33"),
+      r(CF.DPDP, "Sec. 16"),
+    ],
     remediation: {
       default: {
         steps: [
@@ -1341,7 +1384,9 @@ export const DATA_SECURITY_CHECKS: ReadonlyArray<DataSecurityCheckInfo> = [
 
       const first: { ruleName: string; region: string } = violations[0]!;
 
-      return fail(`${first.region} is outside what "${first.ruleName}" allows.`);
+      return fail(
+        `${first.region} is outside what "${first.ruleName}" allows.`,
+      );
     },
   },
 
@@ -1479,9 +1524,7 @@ export function evaluateDataStoreChecks(
   input: DataStoreCheckInput,
   options: {
     disabledCheckIds?: ReadonlySet<string> | undefined;
-    severityOverrides?:
-      | ReadonlyMap<string, SecuritySeverity>
-      | undefined;
+    severityOverrides?: ReadonlyMap<string, SecuritySeverity> | undefined;
   } = {},
 ): Array<EvaluatedCheck> {
   const results: Array<EvaluatedCheck> = [];

@@ -233,7 +233,9 @@ describe("the two steps", () => {
       ),
     ).toBe(DataSecurityResponseAction.BlockPublicAccess);
     expect(
-      getResponseActionOfStep(SecurityPlaybookActionType.RevokeDataStoreSharing),
+      getResponseActionOfStep(
+        SecurityPlaybookActionType.RevokeDataStoreSharing,
+      ),
     ).toBe(DataSecurityResponseAction.RevokeSharing);
     expect(
       getResponseActionOfStep(SecurityPlaybookActionType.EmailPeople),
@@ -257,7 +259,9 @@ describe("Block public access to data stores", () => {
     expect(outcome.detailsInMarkdown?.toString()).toBe(
       "- **customer-exports**: customer-exports is closed now.",
     );
-    expect(outcome.feedEventType).toBe(SecurityCaseFeedEventType.ResponseAction);
+    expect(outcome.feedEventType).toBe(
+      SecurityCaseFeedEventType.ResponseAction,
+    );
     // No person runs it: a playbook acts as OneUptime, never naming an issue.
     expect(runSpy).toHaveBeenCalledWith({
       projectId: PROJECT_ID,
@@ -356,7 +360,9 @@ describe("Block public access to data stores", () => {
     ] as never);
     runSpy.mockImplementation((async (data: { dataStoreId: ObjectID }) => {
       if (data.dataStoreId.toString() === second.id!.toString()) {
-        throw new BadDataException("The store's cloud connection is gone or turned off.");
+        throw new BadDataException(
+          "The store's cloud connection is gone or turned off.",
+        );
       }
 
       return { changed: true, summary: "Closed." };
@@ -460,18 +466,21 @@ describe("a case about no data store", () => {
   test.each([
     SecurityPlaybookActionType.BlockDataStorePublicAccess,
     SecurityPlaybookActionType.RevokeDataStoreSharing,
-  ])("skips %s, and changes nothing", async (action: SecurityPlaybookActionType) => {
-    const outcome: PlaybookStepOutcome = await run(
-      context(action, [
-        { type: SecurityEntityType.User, value: "alice" },
-        { type: SecurityEntityType.IpAddress, value: "203.0.113.9" },
-      ]),
-    );
+  ])(
+    "skips %s, and changes nothing",
+    async (action: SecurityPlaybookActionType) => {
+      const outcome: PlaybookStepOutcome = await run(
+        context(action, [
+          { type: SecurityEntityType.User, value: "alice" },
+          { type: SecurityEntityType.IpAddress, value: "203.0.113.9" },
+        ]),
+      );
 
-    expect(outcome.status).toBe(SecurityPlaybookStepStatus.Skipped);
-    expect(outcome.summary.toString()).toBe("The case names no data store.");
-    expect(runSpy).not.toHaveBeenCalled();
-  });
+      expect(outcome.status).toBe(SecurityPlaybookStepStatus.Skipped);
+      expect(outcome.summary.toString()).toBe("The case names no data store.");
+      expect(runSpy).not.toHaveBeenCalled();
+    },
+  );
 
   test("whose stores are gone from Data Security skips the step too", async () => {
     getJestSpyOn(DataStoreService, "findBy").mockResolvedValue([] as never);

@@ -78,7 +78,9 @@ export default class FieldCollector {
     }
 
     if (value && typeof value === "object" && !(value instanceof Date)) {
-      for (const [key, child] of Object.entries(value as object)) {
+      for (const [key, child] of Object.entries(
+        value as Record<string, unknown>,
+      )) {
         this.walk(child, path ? path + "." + key : key, depth + 1);
       }
 

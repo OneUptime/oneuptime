@@ -28,9 +28,7 @@ export class Service extends ProjectReferencesService<Model> {
       return null;
     }
 
-    if (
-      !(Object.values(SecuritySeverity) as Array<unknown>).includes(value)
-    ) {
+    if (!(Object.values(SecuritySeverity) as Array<unknown>).includes(value)) {
       throw new BadDataException(
         "Choose a severity: Critical, High, Medium or Low.",
       );
@@ -45,7 +43,10 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
 
-    if (!createBy.data.checkId || !getDataSecurityCheck(createBy.data.checkId)) {
+    if (
+      !createBy.data.checkId ||
+      !getDataSecurityCheck(createBy.data.checkId)
+    ) {
       throw new BadDataException("Choose one of Data Security's checks.");
     }
 
@@ -142,8 +143,7 @@ export class Service extends ProjectReferencesService<Model> {
   private static async queueEvaluations(projectIds: unknown): Promise<void> {
     const seen: Set<string> = new Set();
 
-    for (const projectId of (projectIds as Array<ObjectID> | undefined) ||
-      []) {
+    for (const projectId of (projectIds as Array<ObjectID> | undefined) || []) {
       if (!seen.has(projectId.toString())) {
         seen.add(projectId.toString());
         await queueDataSecurityEvaluation(projectId);

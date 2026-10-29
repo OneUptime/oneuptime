@@ -1604,11 +1604,9 @@ describe("Closing an exposure", () => {
   );
 
   function codeSpans(cell: string): Array<string> {
-    return cell
-      .split("`")
-      .filter((_part: string, index: number): boolean => {
-        return index % 2 === 1;
-      });
+    return cell.split("`").filter((_part: string, index: number): boolean => {
+      return index % 2 === 1;
+    });
   }
 
   it("offers on an issue's page the fix of each check a response action fixes, by the button the panel draws", () => {
@@ -1728,7 +1726,9 @@ describe("Closing an exposure", () => {
     }
 
     expect(close).toContain("steps of the **Contain** category");
-    expect(close).toContain("at most 10, each a step that starts with **Needs Approval** on");
+    expect(close).toContain(
+      "at most 10, each a step that starts with **Needs Approval** on",
+    );
     expect(
       constant(
         "Common/Server/Utils/SecurityPlaybook/SecurityPlaybookDataStoreOwners.ts",

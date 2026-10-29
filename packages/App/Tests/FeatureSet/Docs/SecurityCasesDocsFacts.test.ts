@@ -1055,7 +1055,10 @@ describe("Security Cases and Playbooks docs", () => {
           },
         )?.title;
       }),
-    ).toEqual(["Block public access to data stores", "Revoke data store sharing"]);
+    ).toEqual([
+      "Block public access to data stores",
+      "Revoke data store sharing",
+    ]);
     expect(MAX_NOTIFIED_DATA_STORES).toBe(10);
     expect(containment).toContain(
       "| Block public access to data stores, Revoke data store sharing | The store's cloud connection | **Data security response** turned on, and its setup command run again |",
@@ -1063,7 +1066,9 @@ describe("Security Cases and Playbooks docs", () => {
     expect(containment).toContain(
       "The two data store steps act on the data stores the case is about, at most 10:",
     );
-    expect(containment).toContain("They leave a store marked **Public By Design** alone");
+    expect(containment).toContain(
+      "They leave a store marked **Public By Design** alone",
+    );
     expect(steps).toContain(
       "**Run a runbook**, **Post a status page announcement** and the two data store steps start with it on",
     );

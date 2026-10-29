@@ -159,9 +159,7 @@ function readEnumValue<T extends string>(
   });
 
   if (!found) {
-    throw new BadDataException(
-      `${what} must be one of: ${values.join(", ")}.`,
-    );
+    throw new BadDataException(`${what} must be one of: ${values.join(", ")}.`);
   }
 
   return found;
@@ -247,7 +245,7 @@ export function describeStoreRow(store: DataStore): JSONObject {
 export const QueryDataStoresTool: ObservabilityTool = {
   name: "query_data_stores",
   description:
-    "Data Security's data stores - the buckets, databases, warehouses and telemetry streams OneUptime watches - with how sensitive each is (Restricted, Confidential, Internal, Public), the kinds of sensitive data found in it, how exposed it is and its open issues, riskiest first. Pass dataStoreId for one store with what was found where (each data type by column, field, object pattern or attribute, with counts and confidence - never a value), who can reach it and its open issues. Without it, list stores: filter by sensitivity (that level or above), dataType (a data type's id or name, such as credit-card-number or Email address), exposure (Public, Other accounts, Internet reachable, Private, Unknown), provider (aws, azure, gcp, self-managed, oneuptime) or name (part of a store's name). Answers \"which stores hold card numbers\", \"what is public\" and \"what do we have in eu-west-1\".",
+    'Data Security\'s data stores - the buckets, databases, warehouses and telemetry streams OneUptime watches - with how sensitive each is (Restricted, Confidential, Internal, Public), the kinds of sensitive data found in it, how exposed it is and its open issues, riskiest first. Pass dataStoreId for one store with what was found where (each data type by column, field, object pattern or attribute, with counts and confidence - never a value), who can reach it and its open issues. Without it, list stores: filter by sensitivity (that level or above), dataType (a data type\'s id or name, such as credit-card-number or Email address), exposure (Public, Other accounts, Internet reachable, Private, Unknown), provider (aws, azure, gcp, self-managed, oneuptime) or name (part of a store\'s name). Answers "which stores hold card numbers", "what is public" and "what do we have in eu-west-1".',
   inputSchema: {
     type: "object",
     properties: {
@@ -263,8 +261,7 @@ export const QueryDataStoresTool: ObservabilityTool = {
       },
       dataType: {
         type: "string",
-        description:
-          "Only stores holding this data type: its id or its name.",
+        description: "Only stores holding this data type: its id or its name.",
       },
       exposure: {
         type: "string",
@@ -532,8 +529,7 @@ async function readOneStore(
           findings.value.map((finding: DataStoreFinding): JSONObject => {
             return {
               dataType:
-                finding.dataTypeName ||
-                dataTypeName(finding.dataTypeId || ""),
+                finding.dataTypeName || dataTypeName(finding.dataTypeId || ""),
               location: finding.location || "",
               locationKind: finding.locationKind || "",
               confidence: finding.confidence || "",
@@ -652,14 +648,13 @@ const STATUS_FILTERS: Readonly<
 export const QueryDataSecurityIssuesTool: ObservabilityTool = {
   name: "query_data_security_issues",
   description:
-    "Data Security issues: what is wrong with how a data store keeps its data - a public bucket, a database open to the internet, no encryption or backups, secrets or plaintext passwords in a store, sensitive data in logs, data outside its allowed regions - each with a severity and a risk score from 0 to 100. Pass dataSecurityIssueId for one issue with its evidence, why it matters and how to fix it on the store's cloud (console steps, the CLI command and Terraform). Without it, list issues riskiest first: status (open by default, accepted, resolved, not-an-issue or all), severity (Critical, High, Medium, Low), dataStoreId or checkId. Answers \"what should we fix first\".",
+    'Data Security issues: what is wrong with how a data store keeps its data - a public bucket, a database open to the internet, no encryption or backups, secrets or plaintext passwords in a store, sensitive data in logs, data outside its allowed regions - each with a severity and a risk score from 0 to 100. Pass dataSecurityIssueId for one issue with its evidence, why it matters and how to fix it on the store\'s cloud (console steps, the CLI command and Terraform). Without it, list issues riskiest first: status (open by default, accepted, resolved, not-an-issue or all), severity (Critical, High, Medium, Low), dataStoreId or checkId. Answers "what should we fix first".',
   inputSchema: {
     type: "object",
     properties: {
       dataSecurityIssueId: {
         type: "string",
-        description:
-          "One issue's ID, for its evidence and how to fix it.",
+        description: "One issue's ID, for its evidence and how to fix it.",
       },
       status: {
         type: "string",
@@ -910,7 +905,9 @@ async function readOneIssue(
           })
           .join(" ")
       : "",
-    fixCli: remediation?.cli ? fillRemediationText(remediation.cli, values) : "",
+    fixCli: remediation?.cli
+      ? fillRemediationText(remediation.cli, values)
+      : "",
     fixTerraform: remediation?.terraform
       ? fillRemediationText(remediation.terraform, values)
       : "",
@@ -956,8 +953,7 @@ export const QueryDataStoreAccessTool: ObservabilityTool = {
       },
       principal: {
         type: "string",
-        description:
-          "Part of a principal's id or name: what it can reach.",
+        description: "Part of a principal's id or name: what it can reach.",
       },
       externalOnly: {
         type: "boolean",
@@ -1076,18 +1072,16 @@ export const QueryDataStoreAccessTool: ObservabilityTool = {
       limit: DATA_SECURITY_SCAN_LIMIT,
       props: ctx.props,
     });
-    const byName: Array<DataStoreAccess> = await DataStoreAccessService.findBy(
-      {
-        query: {
-          ...query,
-          principalName: QueryHelper.searchAllWords([principal!]),
-        } as never,
-        select,
-        skip: 0,
-        limit: DATA_SECURITY_SCAN_LIMIT,
-        props: ctx.props,
-      },
-    );
+    const byName: Array<DataStoreAccess> = await DataStoreAccessService.findBy({
+      query: {
+        ...query,
+        principalName: QueryHelper.searchAllWords([principal!]),
+      } as never,
+      select,
+      skip: 0,
+      limit: DATA_SECURITY_SCAN_LIMIT,
+      props: ctx.props,
+    });
     const entries: Array<DataStoreAccess> = [];
     const seen: Set<string> = new Set();
 
@@ -1140,9 +1134,7 @@ export const QueryDataStoreAccessTool: ObservabilityTool = {
         return storesById.has(entry.dataStoreId?.toString() || "");
       })
       .map((entry: DataStoreAccess): JSONObject => {
-        const store: DataStore = storesById.get(
-          entry.dataStoreId!.toString(),
-        )!;
+        const store: DataStore = storesById.get(entry.dataStoreId!.toString())!;
 
         return {
           ...describeAccessRow(entry),

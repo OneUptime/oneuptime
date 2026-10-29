@@ -79,7 +79,9 @@ describe("which Data Security page Ask AI is on", () => {
     "/settings",
     "/delete",
   ])("a store's page (%s) is the store itself", (suffix: string) => {
-    navigateTo(`/dashboard/${PROJECT_ID}/data-security/stores/${STORE_ID}${suffix}`);
+    navigateTo(
+      `/dashboard/${PROJECT_ID}/data-security/stores/${STORE_ID}${suffix}`,
+    );
 
     expect(PageContextUtil.detectPageContext()).toEqual(STORE_CONTEXT);
   });
@@ -194,13 +196,21 @@ describe("what Ask AI cites opens where the data is", () => {
       { dataStoreId: STORE_ID },
       `data-security/stores/${STORE_ID}`,
     ],
-    [AIChatCitationTargetType.DataSecurityIssues, undefined, "data-security/issues"],
+    [
+      AIChatCitationTargetType.DataSecurityIssues,
+      undefined,
+      "data-security/issues",
+    ],
     [
       AIChatCitationTargetType.DataSecurityIssueView,
       { dataSecurityIssueId: ISSUE_ID },
       `data-security/issues/${ISSUE_ID}`,
     ],
-    [AIChatCitationTargetType.DataSecurityAccess, undefined, "data-security/access"],
+    [
+      AIChatCitationTargetType.DataSecurityAccess,
+      undefined,
+      "data-security/access",
+    ],
   ])(
     "%s",
     (
@@ -221,9 +231,9 @@ describe("what Ask AI cites opens where the data is", () => {
   );
 
   test("each page is named in the evidence list", () => {
-    expect(describeCitationTargetPage(AIChatCitationTargetType.DataStoreView)).toBe(
-      "Data store",
-    );
+    expect(
+      describeCitationTargetPage(AIChatCitationTargetType.DataStoreView),
+    ).toBe("Data store");
     expect(
       describeCitationTargetPage(AIChatCitationTargetType.DataSecurityIssues),
     ).toBe("Data security issues");

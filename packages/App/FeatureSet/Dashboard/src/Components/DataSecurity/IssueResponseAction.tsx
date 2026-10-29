@@ -60,8 +60,9 @@ export const ISSUE_RESPONSE_TEST_ID: string = "data-security-issue-response";
 export const RESPONSE_ACTION_TITLES: Readonly<
   Record<DataSecurityResponseAction, string>
 > = {
-  [DataSecurityResponseAction.BlockPublicAccess]:
-    translationKey("Block Public Access"),
+  [DataSecurityResponseAction.BlockPublicAccess]: translationKey(
+    "Block Public Access",
+  ),
   [DataSecurityResponseAction.RevokeSharing]: translationKey("Revoke Sharing"),
 };
 
@@ -150,9 +151,7 @@ const IssueResponseAction: FunctionComponent<ComponentProps> = (
   const [isConfirming, setIsConfirming] = useState<boolean>(false);
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const [result, setResult] = useState<DataSecurityResponseResult | null>(
-    null,
-  );
+  const [result, setResult] = useState<DataSecurityResponseResult | null>(null);
 
   useEffect(() => {
     let isCurrent: boolean = true;

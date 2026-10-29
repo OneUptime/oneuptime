@@ -20,13 +20,7 @@ import EnableMCP from "../../Types/Database/EnableMCP";
 import EnableAuditLog from "../../Types/Database/EnableAuditLog";
 import SecuritySeverity from "../../Types/SecuritySeverity";
 import ColumnLength from "../../Types/Database/ColumnLength";
-import {
-  Column,
-  Entity,
-  Index,
-  JoinColumn,
-  ManyToOne,
-} from "typeorm";
+import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
  * A project's change to one built-in check
@@ -203,7 +197,8 @@ export default class DataSecurityCheckSetting extends BaseModel {
     required: false,
     canReadOnRelationQuery: true,
     title: "Severity",
-    description: "The severity every failure of the check gets, instead of the one its store's sensitivity sets.",
+    description:
+      "The severity every failure of the check gets, instead of the one its store's sensitivity sets.",
   })
   @Column({
     type: ColumnType.ShortText,

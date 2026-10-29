@@ -124,8 +124,12 @@ const mockedLogger: { error: jest.Mock } = logger as unknown as {
   error: jest.Mock;
 };
 
-const PROJECT_A: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
-const PROJECT_B: ObjectID = new ObjectID("22222222-2222-4222-8222-222222222222");
+const PROJECT_A: ObjectID = new ObjectID(
+  "11111111-1111-4111-8111-111111111111",
+);
+const PROJECT_B: ObjectID = new ObjectID(
+  "22222222-2222-4222-8222-222222222222",
+);
 const STORE_ID: ObjectID = new ObjectID("33333333-3333-4333-8333-333333333333");
 const CONNECTION_ID: ObjectID = new ObjectID(
   "44444444-4444-4444-8444-444444444444",
@@ -298,9 +302,13 @@ describe("Data Security jobs: the schedule", () => {
       }),
     );
 
-    expect(new Set(QUEUE_JOBS.map((job: { name: string }) => {
-      return job.name;
-    })).size).toBe(QUEUE_JOBS.length);
+    expect(
+      new Set(
+        QUEUE_JOBS.map((job: { name: string }) => {
+          return job.name;
+        }),
+      ).size,
+    ).toBe(QUEUE_JOBS.length);
 
     for (const job of QUEUE_JOBS) {
       expect({ job: job.name, isACronName: cronNames.has(job.name) }).toEqual({

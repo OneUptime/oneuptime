@@ -20,13 +20,7 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import EnableMCP from "../../Types/Database/EnableMCP";
 import DataSensitivity from "../../Types/DataSecurity/DataSensitivity";
 import ColumnLength from "../../Types/Database/ColumnLength";
-import {
-  Column,
-  Entity,
-  Index,
-  JoinColumn,
-  ManyToOne,
-} from "typeorm";
+import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
  * One edge of where data goes: a store read or written by a service (from
@@ -154,7 +148,8 @@ export default class DataSecurityFlow extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Flow Key",
-    description: "The flow's kind, source and destination, which identify it within the project.",
+    description:
+      "The flow's kind, source and destination, which identify it within the project.",
   })
   @Column({
     type: ColumnType.LongText,
@@ -170,7 +165,8 @@ export default class DataSecurityFlow extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Kind",
-    description: "What the flow is: Read, Write, AI Provider, External Host or Copy.",
+    description:
+      "What the flow is: Read, Write, AI Provider, External Host or Copy.",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -303,7 +299,8 @@ export default class DataSecurityFlow extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Destination",
-    description: "Where the data goes, when it is not a store: a host or an AI provider.",
+    description:
+      "Where the data goes, when it is not a store: a host or an AI provider.",
   })
   @Column({
     type: ColumnType.LongText,
@@ -352,7 +349,8 @@ export default class DataSecurityFlow extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Confirmed",
-    description: "A scan found the data at the destination, not only the path to it.",
+    description:
+      "A scan found the data at the destination, not only the path to it.",
     defaultValue: false,
     isDefaultValueColumn: true,
   })
@@ -370,7 +368,8 @@ export default class DataSecurityFlow extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Overlap Percent",
-    description: "For a copy: how much of the source's values were found in the destination, from 0 to 100.",
+    description:
+      "For a copy: how much of the source's values were found in the destination, from 0 to 100.",
     defaultValue: 0,
     isDefaultValueColumn: true,
   })
@@ -388,7 +387,8 @@ export default class DataSecurityFlow extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Calls",
-    description: "How many calls the service map counted along the flow in its last window.",
+    description:
+      "How many calls the service map counted along the flow in its last window.",
     defaultValue: 0,
     isDefaultValueColumn: true,
   })

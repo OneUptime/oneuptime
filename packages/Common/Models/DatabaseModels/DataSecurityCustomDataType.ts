@@ -21,13 +21,7 @@ import EnableAuditLog from "../../Types/Database/EnableAuditLog";
 import DataCategory from "../../Types/DataSecurity/DataCategory";
 import DataSensitivity from "../../Types/DataSecurity/DataSensitivity";
 import ColumnLength from "../../Types/Database/ColumnLength";
-import {
-  Column,
-  Entity,
-  Index,
-  JoinColumn,
-  ManyToOne,
-} from "typeorm";
+import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
  * A kind of sensitive data a project defines for itself - an employee ID, a
@@ -221,7 +215,8 @@ export default class DataSecurityCustomDataType extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Sensitivity",
-    description: "How sensitive it is: Restricted, Confidential, Internal or Public.",
+    description:
+      "How sensitive it is: Restricted, Confidential, Internal or Public.",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -236,7 +231,8 @@ export default class DataSecurityCustomDataType extends BaseModel {
     required: false,
     canReadOnRelationQuery: true,
     title: "Pattern",
-    description: "A JavaScript regular expression for one value. Leave empty to find it from field names alone.",
+    description:
+      "A JavaScript regular expression for one value. Leave empty to find it from field names alone.",
   })
   @Column({
     type: ColumnType.LongText,
@@ -281,7 +277,8 @@ export default class DataSecurityCustomDataType extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Requires A Keyword",
-    description: "Count a value only when a keyword is nearby or the field's name hints at the type.",
+    description:
+      "Count a value only when a keyword is nearby or the field's name hints at the type.",
     defaultValue: false,
     isDefaultValueColumn: true,
   })
@@ -297,7 +294,8 @@ export default class DataSecurityCustomDataType extends BaseModel {
     type: TableColumnType.JSON,
     required: false,
     title: "Field Names",
-    description: "Field, column and attribute names that hold this type, such as employee id.",
+    description:
+      "Field, column and attribute names that hold this type, such as employee id.",
   })
   @Column({
     type: ColumnType.JSON,

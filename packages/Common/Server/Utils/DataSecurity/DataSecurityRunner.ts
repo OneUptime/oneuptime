@@ -12,7 +12,10 @@ import DataSecuritySettingService from "../../Services/DataSecuritySettingServic
 import ChangeEventService from "../../Services/ChangeEventService";
 import { EncryptionSecret } from "../../EnvironmentConfig";
 import { CloudConnectionSettings } from "../CloudConnection/CloudConnectorTypes";
-import { readAwsDataSecurity, createAwsObjectStoreReader } from "./Cloud/Aws/AwsDataSecurityReader";
+import {
+  readAwsDataSecurity,
+  createAwsObjectStoreReader,
+} from "./Cloud/Aws/AwsDataSecurityReader";
 import {
   createAzureBlobObjectStoreReader,
   listAzureBlobContainers,
@@ -82,8 +85,13 @@ import {
   customDataTypeId,
   CustomDataTypeValidator,
 } from "../../../Utils/DataSecurity/CustomDataTypeDetector";
-import FieldCollector, { CollectedField } from "../../../Utils/DataSecurity/FieldCollector";
-import { classifyField, FieldClassification } from "../../../Utils/DataSecurity/FieldClassifier";
+import FieldCollector, {
+  CollectedField,
+} from "../../../Utils/DataSecurity/FieldCollector";
+import {
+  classifyField,
+  FieldClassification,
+} from "../../../Utils/DataSecurity/FieldClassifier";
 import { BUILT_IN_DETECTORS } from "../../../Utils/DataSecurity/Detectors/Index";
 import { ScanDetector } from "../../../Utils/DataSecurity/TextScanner";
 import { ResponseJSON } from "@clickhouse/client";
@@ -162,7 +170,10 @@ export function getConnectionDataSecurityLevel(
  * scanned and one a worker scanned compare like any two stores.
  */
 export function getFingerprintKey(projectId: ObjectID): string {
-  return deriveFingerprintKey(EncryptionSecret.toString(), projectId.toString());
+  return deriveFingerprintKey(
+    EncryptionSecret.toString(),
+    projectId.toString(),
+  );
 }
 
 interface ScanSetup {
@@ -266,7 +277,9 @@ export default class DataSecurityRunner {
           maxBytesTotal: setting.maxBytesPerScan || 52428800,
           maxRowsPerTable: setting.maxRowsPerTable || 1000,
           maxTables: setting.maxTablesPerScan || 200,
-          deadline: new Date(now.getTime() + DATA_SECURITY_TURN_TIME_LIMIT_IN_MS),
+          deadline: new Date(
+            now.getTime() + DATA_SECURITY_TURN_TIME_LIMIT_IN_MS,
+          ),
         },
         customDetectors,
         extraHints,
@@ -277,7 +290,8 @@ export default class DataSecurityRunner {
           }),
         ),
         exclusions: store?.scanExclusions || [],
-        previousState: (store?.contentScanState as JSONObject | undefined) || undefined,
+        previousState:
+          (store?.contentScanState as JSONObject | undefined) || undefined,
         fingerprintKey: getFingerprintKey(projectId),
       },
     };
@@ -466,9 +480,11 @@ export default class DataSecurityRunner {
       scan.durationInMs = scan.finishedAt.getTime() - startedAt.getTime();
       scan.storesRead = recorded;
       scan.findingsFound = 0;
-      scan.readLog = result.stores.slice(0, 200).map((store: { identity: { name: string } }) => {
-        return store.identity.name.slice(0, 300);
-      });
+      scan.readLog = result.stores
+        .slice(0, 200)
+        .map((store: { identity: { name: string } }) => {
+          return store.identity.name.slice(0, 300);
+        });
       scan.warnings = result.warnings.slice(0, 50).map((warning: string) => {
         return warning.slice(0, 500);
       });
@@ -620,7 +636,8 @@ export default class DataSecurityRunner {
         result,
         startedAt,
         keepMaskedSamples: setup.setting.keepMaskedSamples !== false,
-        contentScanIntervalInHours: setup.setting.contentScanIntervalInHours || 24,
+        contentScanIntervalInHours:
+          setup.setting.contentScanIntervalInHours || 24,
         customDataTypes: setup.customTypes,
       });
     } catch (error) {
@@ -641,7 +658,9 @@ export default class DataSecurityRunner {
     store: DataStore,
     options: ContentScanOptions,
   ): Promise<ContentScanResult | null> {
-    const info: DataStoreKindInfo | undefined = getDataStoreKindInfo(store.kind);
+    const info: DataStoreKindInfo | undefined = getDataStoreKindInfo(
+      store.kind,
+    );
 
     if (!info?.contentScannable) {
       return null;
@@ -683,7 +702,10 @@ export default class DataSecurityRunner {
         props: { isRoot: true },
       });
 
-    if (!connection || getConnectionDataSecurityLevel(connection.config) !== "content") {
+    if (
+      !connection ||
+      getConnectionDataSecurityLevel(connection.config) !== "content"
+    ) {
       return null;
     }
 
@@ -713,13 +735,19 @@ export default class DataSecurityRunner {
     }
 
     if (store.kind === DataStoreKind.AzureStorageAccount) {
-      const containers: Array<string> = await listAzureBlobContainers(settings, {
-        connectionId: connection.id!.toString(),
-        accountName: name,
-      });
+      const containers: Array<string> = await listAzureBlobContainers(
+        settings,
+        {
+          connectionId: connection.id!.toString(),
+          accountName: name,
+        },
+      );
       const merged: ContentScanResult = emptyContentScanResult();
 
-      for (const containerName of containers.slice(0, MAX_CONTAINERS_PER_ACCOUNT)) {
+      for (const containerName of containers.slice(
+        0,
+        MAX_CONTAINERS_PER_ACCOUNT,
+      )) {
         const part: ContentScanResult = await sampleObjectStore(
           createAzureBlobObjectStoreReader(settings, {
             connectionId: connection.id!.toString(),
@@ -756,7 +784,10 @@ export default class DataSecurityRunner {
     prefix: string,
   ): void {
     for (const location of part.locations) {
-      target.locations.push({ ...location, location: prefix + location.location });
+      target.locations.push({
+        ...location,
+        location: prefix + location.location,
+      });
     }
 
     target.readLog.push(
@@ -965,14 +996,18 @@ export default class DataSecurityRunner {
     kind: DataStoreKind,
     coverage: ScrubCoverage,
   ): Promise<void> {
-    const findings: Array<{ id?: ObjectID | null; dataTypeId?: string; location?: string; isScrubbed?: boolean }> =
-      await DataStoreFindingService.findBy({
-        query: { dataStoreId },
-        select: { _id: true, dataTypeId: true, location: true, isScrubbed: true },
-        skip: 0,
-        limit: 2000,
-        props: { isRoot: true },
-      });
+    const findings: Array<{
+      id?: ObjectID | null;
+      dataTypeId?: string;
+      location?: string;
+      isScrubbed?: boolean;
+    }> = await DataStoreFindingService.findBy({
+      query: { dataStoreId },
+      select: { _id: true, dataTypeId: true, location: true, isScrubbed: true },
+      skip: 0,
+      limit: 2000,
+      props: { isRoot: true },
+    });
 
     for (const finding of findings) {
       if (!finding.id || !finding.dataTypeId || !finding.location) {

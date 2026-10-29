@@ -60,9 +60,7 @@ class DataStoreOwnerRuleEngineServiceClass
    * owners; rules with notifyOwners off add silently.
    */
   @CaptureSpan()
-  public async applyRulesToDataStore(
-    dataStore: DataStore,
-  ): Promise<void> {
+  public async applyRulesToDataStore(dataStore: DataStore): Promise<void> {
     if (!dataStore.id || !dataStore.projectId) {
       return;
     }
@@ -109,10 +107,7 @@ class DataStoreOwnerRuleEngineServiceClass
    */
   @CaptureSpan()
   public async applyRulesToExistingResource(
-    data: ApplyRulesToExistingResourceData<
-      DataStore,
-      DataStoreOwnerRule
-    >,
+    data: ApplyRulesToExistingResourceData<DataStore, DataStoreOwnerRule>,
   ): Promise<RuleApplicationResult> {
     try {
       return await this.applyRules({
@@ -369,10 +364,7 @@ class DataStoreOwnerRuleEngineServiceClass
     if (
       rule.descriptionRegexPattern &&
       (!dataStore.description ||
-        !this.testRegex(
-          rule.descriptionRegexPattern,
-          dataStore.description,
-        ))
+        !this.testRegex(rule.descriptionRegexPattern, dataStore.description))
     ) {
       return false;
     }

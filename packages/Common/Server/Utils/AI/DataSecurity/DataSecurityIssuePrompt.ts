@@ -91,7 +91,10 @@ export function describeDataSecurityIssueForAi(
       return part.length > 0;
     },
   );
-  const store: string = [name || "unknown", where.length > 0 ? `(${where.join(", ")})` : ""]
+  const store: string = [
+    name || "unknown",
+    where.length > 0 ? `(${where.join(", ")})` : "",
+  ]
     .filter((part: string): boolean => {
       return part.length > 0;
     })
@@ -134,8 +137,6 @@ export function describeDataSecurityIssueForAi(
 }
 
 // What Fix with AI asks the coding agent to do: the instruction, then the issue.
-export function buildDataSecurityFixRequest(
-  issue: DataSecurityIssue,
-): string {
+export function buildDataSecurityFixRequest(issue: DataSecurityIssue): string {
   return `${DATA_SECURITY_FIX_INSTRUCTION}\n\n${describeDataSecurityIssueForAi(issue)}`;
 }

@@ -23,13 +23,7 @@ import DataCategory from "../../Types/DataSecurity/DataCategory";
 import DataSensitivity from "../../Types/DataSecurity/DataSensitivity";
 import DataConfidence from "../../Types/DataSecurity/DataConfidence";
 import ColumnLength from "../../Types/Database/ColumnLength";
-import {
-  Column,
-  Entity,
-  Index,
-  JoinColumn,
-  ManyToOne,
-} from "typeorm";
+import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
  * One data type at one location of one store - a column, a JSON field, a
@@ -242,7 +236,8 @@ export default class DataStoreFinding extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Finding Key",
-    description: "The data type and location, which identify the finding within its store.",
+    description:
+      "The data type and location, which identify the finding within its store.",
   })
   @Column({
     type: ColumnType.LongText,
@@ -258,7 +253,8 @@ export default class DataStoreFinding extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Data Type",
-    description: "The data type found: a built-in id such as credit-card-number, or custom: and a custom type's id.",
+    description:
+      "The data type found: a built-in id such as credit-card-number, or custom: and a custom type's id.",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -322,7 +318,8 @@ export default class DataStoreFinding extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Location",
-    description: "Where in the store it was found: a table and column, a field path, an object path pattern, or a telemetry attribute.",
+    description:
+      "Where in the store it was found: a table and column, a field path, an object path pattern, or a telemetry attribute.",
   })
   @Column({
     type: ColumnType.LongText,
@@ -338,7 +335,8 @@ export default class DataStoreFinding extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Location Kind",
-    description: "What the location is: Column, Field, Object, Attribute, Body or Text.",
+    description:
+      "What the location is: Column, Field, Object, Attribute, Body or Text.",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -427,7 +425,8 @@ export default class DataStoreFinding extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Distinct Values",
-    description: "How many different values matched, estimated from hashes that never leave the scan.",
+    description:
+      "How many different values matched, estimated from hashes that never leave the scan.",
     defaultValue: 0,
     isDefaultValueColumn: true,
   })
@@ -445,7 +444,8 @@ export default class DataStoreFinding extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Test Values",
-    description: "How many matches were well-known test values, which are never findings.",
+    description:
+      "How many matches were well-known test values, which are never findings.",
     defaultValue: 0,
     isDefaultValueColumn: true,
   })
@@ -462,7 +462,8 @@ export default class DataStoreFinding extends BaseModel {
     required: false,
     computed: true,
     title: "Masked Samples",
-    description: "At most three masked samples, such as j***@e******.com. Never a raw value.",
+    description:
+      "At most three masked samples, such as j***@e******.com. Never a raw value.",
   })
   @Column({
     type: ColumnType.JSON,
@@ -477,7 +478,8 @@ export default class DataStoreFinding extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Free Text",
-    description: "The location holds free text, so the finding is about values inside it rather than the whole field.",
+    description:
+      "The location holds free text, so the finding is about values inside it rather than the whole field.",
     defaultValue: false,
     isDefaultValueColumn: true,
   })
@@ -513,7 +515,8 @@ export default class DataStoreFinding extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Found By Name",
-    description: "Found from the location's name alone, for a data type no value pattern can confirm.",
+    description:
+      "Found from the location's name alone, for a data type no value pattern can confirm.",
     defaultValue: false,
     isDefaultValueColumn: true,
   })
@@ -531,7 +534,8 @@ export default class DataStoreFinding extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Scrubbed",
-    description: "For telemetry: a scrub rule already masks this data at ingest.",
+    description:
+      "For telemetry: a scrub rule already masks this data at ingest.",
     defaultValue: false,
     isDefaultValueColumn: true,
   })
@@ -548,7 +552,8 @@ export default class DataStoreFinding extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Not Sensitive",
-    description: "A person marked the finding as not sensitive. It no longer counts toward the store's sensitivity or checks.",
+    description:
+      "A person marked the finding as not sensitive. It no longer counts toward the store's sensitivity or checks.",
     defaultValue: false,
     isDefaultValueColumn: true,
   })

@@ -166,10 +166,7 @@ export default class DataSecurityFindingWriter {
     scan.status = data.status || DataSecurityScanStatus.Failed;
     scan.startedAt = data.startedAt;
     scan.finishedAt = now;
-    scan.durationInMs = Math.max(
-      0,
-      now.getTime() - data.startedAt.getTime(),
-    );
+    scan.durationInMs = Math.max(0, now.getTime() - data.startedAt.getTime());
     scan.errorMessage = data.errorMessage.slice(0, 500);
 
     try {
@@ -254,8 +251,8 @@ export default class DataSecurityFindingWriter {
     const existing: Map<string, DataStoreFinding> = new Map();
 
     for (let start: number = 0; start < keys.length; start += 500) {
-      const rows: Array<DataStoreFinding> = await DataStoreFindingService.findBy(
-        {
+      const rows: Array<DataStoreFinding> =
+        await DataStoreFindingService.findBy({
           query: {
             dataStoreId: data.dataStoreId,
             findingKey: new Includes(keys.slice(start, start + 500)),
@@ -264,8 +261,7 @@ export default class DataSecurityFindingWriter {
           skip: 0,
           limit: 500,
           props: { isRoot: true },
-        },
-      );
+        });
 
       for (const row of rows) {
         if (row.findingKey) {

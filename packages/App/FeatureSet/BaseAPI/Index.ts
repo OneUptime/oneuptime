@@ -4351,7 +4351,10 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<DataSecurityCustomDataType, DataSecurityCustomDataTypeServiceType>(
+      new BaseAPI<
+        DataSecurityCustomDataType,
+        DataSecurityCustomDataTypeServiceType
+      >(
         DataSecurityCustomDataType,
         DataSecurityCustomDataTypeService,
       ).getRouter(),
@@ -4359,15 +4362,18 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<DataSecurityCheckSetting, DataSecurityCheckSettingServiceType>(
+      new BaseAPI<
         DataSecurityCheckSetting,
-        DataSecurityCheckSettingService,
-      ).getRouter(),
+        DataSecurityCheckSettingServiceType
+      >(DataSecurityCheckSetting, DataSecurityCheckSettingService).getRouter(),
     );
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<DataSecurityResidencyRule, DataSecurityResidencyRuleServiceType>(
+      new BaseAPI<
+        DataSecurityResidencyRule,
+        DataSecurityResidencyRuleServiceType
+      >(
         DataSecurityResidencyRule,
         DataSecurityResidencyRuleService,
       ).getRouter(),

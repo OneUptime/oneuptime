@@ -140,7 +140,10 @@ JobDictionary.setJobFunction(
     }
   },
 );
-JobDictionary.setTimeoutInMs(DATA_SECURITY_DISCOVER_PROJECT_JOB, 10 * 60 * 1000);
+JobDictionary.setTimeoutInMs(
+  DATA_SECURITY_DISCOVER_PROJECT_JOB,
+  10 * 60 * 1000,
+);
 
 JobDictionary.setJobFunction(
   DATA_SECURITY_SCAN_TELEMETRY_JOB,
@@ -167,7 +170,10 @@ JobDictionary.setJobFunction(
     }
   },
 );
-JobDictionary.setTimeoutInMs(DATA_SECURITY_EVALUATE_PROJECT_JOB, 10 * 60 * 1000);
+JobDictionary.setTimeoutInMs(
+  DATA_SECURITY_EVALUATE_PROJECT_JOB,
+  10 * 60 * 1000,
+);
 
 JobDictionary.setJobFunction(
   DATA_SECURITY_SCAN_STORE_JOB,

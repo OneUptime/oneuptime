@@ -20,13 +20,7 @@ import Permission from "../../Types/Permission";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import EnableMCP from "../../Types/Database/EnableMCP";
 import ColumnLength from "../../Types/Database/ColumnLength";
-import {
-  Column,
-  Entity,
-  Index,
-  JoinColumn,
-  ManyToOne,
-} from "typeorm";
+import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
  * One scan: a configuration and access read of a cloud connection's stores,
@@ -458,7 +452,8 @@ export default class DataSecurityScan extends BaseModel {
     required: false,
     computed: true,
     title: "What Was Read",
-    description: "The objects, tables or services read, by name. Never their contents.",
+    description:
+      "The objects, tables or services read, by name. Never their contents.",
   })
   @Column({
     type: ColumnType.JSON,

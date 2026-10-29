@@ -22,7 +22,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  */
 
 export class AddDataSecurity1808400000000 implements MigrationInterface {
-  name = "AddDataSecurity1808400000000";
+  public name: string = "AddDataSecurity1808400000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

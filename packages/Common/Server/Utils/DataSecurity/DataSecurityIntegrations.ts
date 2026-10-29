@@ -139,7 +139,10 @@ export default class DataSecurityIntegrations {
       },
     );
 
-    if (critical.length > 0 && data.setting.openCasesForCriticalIssues !== false) {
+    if (
+      critical.length > 0 &&
+      data.setting.openCasesForCriticalIssues !== false
+    ) {
       await this.openSecurityCases(data.projectId, critical);
     }
 
@@ -171,10 +174,11 @@ export default class DataSecurityIntegrations {
 
     try {
       for (const issue of issues) {
-        const link: URL = await DataSecurityIssueService.getIssueLinkInDashboard(
-          projectId,
-          issue.issueId,
-        );
+        const link: URL =
+          await DataSecurityIssueService.getIssueLinkInDashboard(
+            projectId,
+            issue.issueId,
+          );
         const entityValue: string = this.entityValueOf(issue);
 
         signals.push({
@@ -182,11 +186,14 @@ export default class DataSecurityIntegrations {
           source: SecurityDetectionSource.DataSecurity,
           fingerprint: `data-security-issue:${issue.issueId.toString()}`,
           title: `${issue.title}: ${issue.dataStoreName}`.slice(0, 480),
-          description: mdText`Data Security opened a **Critical** issue on ${issue.dataStoreName} (${issue.sensitivity} data): ${issue.title}. [Open the issue](${link.toString()}).`.toString(),
+          description:
+            mdText`Data Security opened a **Critical** issue on ${issue.dataStoreName} (${issue.sensitivity} data): ${issue.title}. [Open the issue](${link.toString()}).`.toString(),
           severity: OCSF_SEVERITY[issue.severity],
           eventCount: 1,
           groupValue: entityValue,
-          entities: [{ type: SecurityEntityType.DataStore, value: entityValue }],
+          entities: [
+            { type: SecurityEntityType.DataStore, value: entityValue },
+          ],
           mitreTactics: [],
           mitreTechniques: [],
           ruleName: `Data Security: ${issue.checkId}`,
@@ -202,7 +209,8 @@ export default class DataSecurityIntegrations {
           dataSecurityIssueId: issue.issueId,
           eventType: DataSecurityIssueFeedEventType.SecurityCaseOpened,
           displayColor: Red500,
-          feedInfoInMarkdown: mdText`Sent to Security Operations: a security case about this store was opened, or the open one took this issue in.`.toString(),
+          feedInfoInMarkdown:
+            mdText`Sent to Security Operations: a security case about this store was opened, or the open one took this issue in.`.toString(),
         });
       }
     } catch (error) {
@@ -243,8 +251,10 @@ export default class DataSecurityIntegrations {
         matches.push({
           fingerprint: `data-security-issue:${issue.issueId.toString()}`,
           title: `Data Security: ${issue.title} (${issue.dataStoreName})`,
-          description: mdText`${issue.dataStoreName} holds ${issue.sensitivity} data and failed a Data Security check: ${issue.title}. [Open the issue](${link.toString()}).`.toString(),
-          rootCause: mdText`The Data Security check "${issue.checkId}" failed on ${issue.dataStoreName}.`.toString(),
+          description:
+            mdText`${issue.dataStoreName} holds ${issue.sensitivity} data and failed a Data Security check: ${issue.title}. [Open the issue](${link.toString()}).`.toString(),
+          rootCause:
+            mdText`The Data Security check "${issue.checkId}" failed on ${issue.dataStoreName}.`.toString(),
         });
       }
 
@@ -262,7 +272,8 @@ export default class DataSecurityIntegrations {
             dataSecurityIssueId: issue.issueId,
             eventType: DataSecurityIssueFeedEventType.AlertRaised,
             displayColor: Red500,
-            feedInfoInMarkdown: mdText`An alert was raised, so whoever is on call is paged.`.toString(),
+            feedInfoInMarkdown:
+              mdText`An alert was raised, so whoever is on call is paged.`.toString(),
           });
         }
       }

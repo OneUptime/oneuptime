@@ -1133,7 +1133,8 @@ export default class PageContextUtil {
           {
             icon: IconProp.Fingerprint,
             title: "Card numbers",
-            question: "Which data stores hold card numbers, and are any of them public?",
+            question:
+              "Which data stores hold card numbers, and are any of them public?",
           },
           {
             icon: IconProp.Globe,

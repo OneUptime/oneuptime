@@ -31,7 +31,10 @@ import { DataStoreKind } from "../../Types/DataSecurity/DataStoreKind";
 import DataStoreEnvironment from "../../Types/DataSecurity/DataStoreEnvironment";
 import DataSensitivity from "../../Types/DataSecurity/DataSensitivity";
 import DataCategory from "../../Types/DataSecurity/DataCategory";
-import { DataStoreExposure, DataStorePostureFacts } from "../../Types/DataSecurity/DataStorePosture";
+import {
+  DataStoreExposure,
+  DataStorePostureFacts,
+} from "../../Types/DataSecurity/DataStorePosture";
 import SecuritySeverity from "../../Types/SecuritySeverity";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import { JSONObject } from "../../Types/JSON";
@@ -255,7 +258,8 @@ export default class DataStore extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Name",
-    description: "The store's name: a bucket, database, dataset or service name.",
+    description:
+      "The store's name: a bucket, database, dataset or service name.",
   })
   @Column({
     type: ColumnType.LongText,
@@ -286,7 +290,8 @@ export default class DataStore extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Store Key",
-    description: "What identifies the store within the project: its provider, kind and native id. One row per store, however often it is discovered.",
+    description:
+      "What identifies the store within the project: its provider, kind and native id. One row per store, however often it is discovered.",
   })
   @Column({
     type: ColumnType.LongText,
@@ -301,7 +306,8 @@ export default class DataStore extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Kind",
-    description: "What kind of store it is: an S3 bucket, an RDS instance, a PostgreSQL database, a service's logs.",
+    description:
+      "What kind of store it is: an S3 bucket, an RDS instance, a PostgreSQL database, a service's logs.",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -317,7 +323,8 @@ export default class DataStore extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Provider",
-    description: "Where the store lives: aws, azure, gcp, self-managed or oneuptime.",
+    description:
+      "Where the store lives: aws, azure, gcp, self-managed or oneuptime.",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -333,7 +340,8 @@ export default class DataStore extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Family",
-    description: "The store's family: object storage, database, warehouse, search, cache, file system, snapshot or telemetry.",
+    description:
+      "The store's family: object storage, database, warehouse, search, cache, file system, snapshot or telemetry.",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -349,7 +357,8 @@ export default class DataStore extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Discovered From",
-    description: "How OneUptime found the store: cloud inventory, the Database product, telemetry, the service map, or added by hand.",
+    description:
+      "How OneUptime found the store: cloud inventory, the Database product, telemetry, the service map, or added by hand.",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -403,7 +412,8 @@ export default class DataStore extends BaseModel {
     type: TableColumnType.Entity,
     modelType: CloudResource,
     title: "Cloud Resource",
-    description: "Relation to the cloud resource the store was discovered from.",
+    description:
+      "Relation to the cloud resource the store was discovered from.",
   })
   @ManyToOne(
     () => {
@@ -466,7 +476,8 @@ export default class DataStore extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Cloud Connection ID",
-    description: "The cloud connection that reads the store's configuration, if any.",
+    description:
+      "The cloud connection that reads the store's configuration, if any.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -505,7 +516,8 @@ export default class DataStore extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Database Server ID",
-    description: "The Database product server the store is, for a self-managed database.",
+    description:
+      "The Database product server the store is, for a self-managed database.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -544,7 +556,8 @@ export default class DataStore extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Service ID",
-    description: "The telemetry service whose logs, traces, exceptions, replays or AI conversations the store is.",
+    description:
+      "The telemetry service whose logs, traces, exceptions, replays or AI conversations the store is.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -560,7 +573,8 @@ export default class DataStore extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Provider Resource ID",
-    description: "The store's id in its cloud: an ARN, an Azure resource id or a Google Cloud resource name.",
+    description:
+      "The store's id in its cloud: an ARN, an Azure resource id or a Google Cloud resource name.",
   })
   @Column({
     type: ColumnType.LongText,
@@ -576,7 +590,8 @@ export default class DataStore extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Account",
-    description: "The cloud's own id for the account: an AWS account id, an Azure subscription id or a Google Cloud project id.",
+    description:
+      "The cloud's own id for the account: an AWS account id, an Azure subscription id or a Google Cloud project id.",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -607,7 +622,8 @@ export default class DataStore extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Environment",
-    description: "Which environment the store serves: Production, Staging, Development, Test or Unknown. Read from its tags and name; people may set it.",
+    description:
+      "Which environment the store serves: Production, Staging, Development, Test or Unknown. Read from its tags and name; people may set it.",
     defaultValue: "Unknown",
     isDefaultValueColumn: true,
   })
@@ -626,7 +642,8 @@ export default class DataStore extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Sensitivity",
-    description: "How sensitive the store is: Restricted, Confidential, Internal or Public, from the most sensitive data type found in it.",
+    description:
+      "How sensitive the store is: Restricted, Confidential, Internal or Public, from the most sensitive data type found in it.",
     defaultValue: "Public",
     isDefaultValueColumn: true,
   })
@@ -644,7 +661,8 @@ export default class DataStore extends BaseModel {
     required: false,
     canReadOnRelationQuery: true,
     title: "Sensitivity Override",
-    description: "A sensitivity people set by hand, which the store is treated as instead of what the scans found.",
+    description:
+      "A sensitivity people set by hand, which the store is treated as instead of what the scans found.",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -659,7 +677,8 @@ export default class DataStore extends BaseModel {
     required: false,
     computed: true,
     title: "Data Types",
-    description: "The data types found in the store with at least Medium confidence.",
+    description:
+      "The data types found in the store with at least Medium confidence.",
   })
   @Column({
     type: ColumnType.JSON,
@@ -687,7 +706,8 @@ export default class DataStore extends BaseModel {
     required: false,
     computed: true,
     title: "Data Subject Countries",
-    description: "Countries whose people's data the store holds, from country-bound data types (ISO 3166-1 alpha-2).",
+    description:
+      "Countries whose people's data the store holds, from country-bound data types (ISO 3166-1 alpha-2).",
   })
   @Column({
     type: ColumnType.JSON,
@@ -702,7 +722,8 @@ export default class DataStore extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Exposure",
-    description: "Where the store sits relative to the internet and other organizations: Public, Other accounts, Internet reachable, Private or Unknown.",
+    description:
+      "Where the store sits relative to the internet and other organizations: Public, Other accounts, Internet reachable, Private or Unknown.",
     defaultValue: "Unknown",
     isDefaultValueColumn: true,
   })
@@ -720,7 +741,8 @@ export default class DataStore extends BaseModel {
     required: false,
     computed: true,
     title: "Configuration",
-    description: "What the store's configuration says about its safety: public access, encryption, backups, logging and the rest.",
+    description:
+      "What the store's configuration says about its safety: public access, encryption, backups, logging and the rest.",
   })
   @Column({
     type: ColumnType.JSON,
@@ -734,7 +756,8 @@ export default class DataStore extends BaseModel {
     required: false,
     computed: true,
     title: "Fingerprints",
-    description: "16-bit MinHash fingerprints of matched values by data type, used to find copies between stores.",
+    description:
+      "16-bit MinHash fingerprints of matched values by data type, used to find copies between stores.",
   })
   @Column({
     type: ColumnType.JSON,
@@ -763,7 +786,8 @@ export default class DataStore extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Size (Bytes)",
-    description: "How much data the store holds, from the metrics already collected.",
+    description:
+      "How much data the store holds, from the metrics already collected.",
   })
   @Column({
     type: ColumnType.BigNumber,
@@ -779,7 +803,8 @@ export default class DataStore extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Objects",
-    description: "How many objects, rows or documents the store holds, when known.",
+    description:
+      "How many objects, rows or documents the store holds, when known.",
   })
   @Column({
     type: ColumnType.BigNumber,
@@ -795,7 +820,8 @@ export default class DataStore extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Estimated Sensitive Records",
-    description: "An estimate of how many records with sensitive data the store holds, from its samples.",
+    description:
+      "An estimate of how many records with sensitive data the store holds, from its samples.",
   })
   @Column({
     type: ColumnType.BigNumber,
@@ -811,7 +837,8 @@ export default class DataStore extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Last Activity At",
-    description: "When the store was last read or written, when its metrics or traces say.",
+    description:
+      "When the store was last read or written, when its metrics or traces say.",
   })
   @Column({
     type: ColumnType.Date,
@@ -825,7 +852,8 @@ export default class DataStore extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Public By Design",
-    description: "The store is meant to be public, such as a website's assets. Public access checks pass for it.",
+    description:
+      "The store is meant to be public, such as a website's assets. Public access checks pass for it.",
     defaultValue: false,
     isDefaultValueColumn: true,
   })
@@ -859,7 +887,8 @@ export default class DataStore extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Scan Content",
-    description: "Whether Data Security samples the store's content. Configuration checks run either way.",
+    description:
+      "Whether Data Security samples the store's content. Configuration checks run either way.",
     defaultValue: true,
     isDefaultValueColumn: true,
   })
@@ -899,7 +928,8 @@ export default class DataStore extends BaseModel {
     required: false,
     canReadOnRelationQuery: true,
     title: "Scan From Probe ID",
-    description: "A probe that scans the store's content from inside your network instead of OneUptime's workers.",
+    description:
+      "A probe that scans the store's content from inside your network instead of OneUptime's workers.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -914,7 +944,8 @@ export default class DataStore extends BaseModel {
     required: false,
     canReadOnRelationQuery: true,
     title: "Probe Connection Variable",
-    description: "For a database scanned from a probe: the environment variable on that probe that holds its connection string. The connection string itself never reaches OneUptime.",
+    description:
+      "For a database scanned from a probe: the environment variable on that probe that holds its connection string. The connection string itself never reaches OneUptime.",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -929,7 +960,8 @@ export default class DataStore extends BaseModel {
     required: false,
     encrypted: true,
     title: "Connection String",
-    description: "For a database scanned by OneUptime's workers: a read-only connection string. Encrypted at rest and never returned by the API.",
+    description:
+      "For a database scanned by OneUptime's workers: a read-only connection string. Encrypted at rest and never returned by the API.",
   })
   @Column({
     type: ColumnType.VeryLongText,
@@ -942,7 +974,8 @@ export default class DataStore extends BaseModel {
     type: TableColumnType.JSON,
     required: false,
     title: "Scan Exclusions",
-    description: "Path prefixes, tables or attribute keys the content scan skips.",
+    description:
+      "Path prefixes, tables or attribute keys the content scan skips.",
   })
   @Column({
     type: ColumnType.JSON,
@@ -956,7 +989,8 @@ export default class DataStore extends BaseModel {
     required: false,
     canReadOnRelationQuery: true,
     title: "Purpose",
-    description: "Why the store holds personal data, for the GDPR record of processing.",
+    description:
+      "Why the store holds personal data, for the GDPR record of processing.",
   })
   @Column({
     type: ColumnType.LongText,
@@ -971,7 +1005,8 @@ export default class DataStore extends BaseModel {
     required: false,
     canReadOnRelationQuery: true,
     title: "Retention",
-    description: "How long data is kept in the store, for the GDPR record of processing.",
+    description:
+      "How long data is kept in the store, for the GDPR record of processing.",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -1048,7 +1083,8 @@ export default class DataStore extends BaseModel {
     required: false,
     computed: true,
     title: "Content Scan State",
-    description: "Where the last content scan got to, so the next one skips what has not changed.",
+    description:
+      "Where the last content scan got to, so the next one skips what has not changed.",
   })
   @Column({
     type: ColumnType.JSON,
@@ -1116,7 +1152,8 @@ export default class DataStore extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Risk Score",
-    description: "The risk score of the store's worst open issue, from 0 to 100.",
+    description:
+      "The risk score of the store's worst open issue, from 0 to 100.",
     defaultValue: 0,
     isDefaultValueColumn: true,
   })
@@ -1134,7 +1171,8 @@ export default class DataStore extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Archived",
-    description: "The store is gone from its cloud or source; it is kept with its history.",
+    description:
+      "The store is gone from its cloud or source; it is kept with its history.",
     defaultValue: false,
     isDefaultValueColumn: true,
   })

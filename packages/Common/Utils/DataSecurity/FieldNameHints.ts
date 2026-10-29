@@ -59,7 +59,8 @@ export function splitFieldName(name: string): Array<string> {
     }
 
     if (current.length > 0) {
-      const lowerToUpper: boolean = previousKind === "lower" && kind === "upper";
+      const lowerToUpper: boolean =
+        previousKind === "lower" && kind === "upper";
       const letterToDigit: boolean =
         (previousKind === "digit") !== (kind === "digit");
       /*
@@ -96,7 +97,11 @@ export function containsWordRun(
     return false;
   }
 
-  for (let start: number = 0; start + hintWords.length <= words.length; start++) {
+  for (
+    let start: number = 0;
+    start + hintWords.length <= words.length;
+    start++
+  ) {
     let matched: boolean = true;
 
     for (let offset: number = 0; offset < hintWords.length; offset++) {

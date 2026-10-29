@@ -52,9 +52,7 @@ class DataStoreLabelRuleEngineServiceClass
    * resource before insert to avoid PK conflicts on the join table.
    */
   @CaptureSpan()
-  public async applyRulesToDataStore(
-    dataStore: DataStore,
-  ): Promise<void> {
+  public async applyRulesToDataStore(dataStore: DataStore): Promise<void> {
     if (!dataStore.id || !dataStore.projectId) {
       return;
     }
@@ -97,10 +95,7 @@ class DataStoreLabelRuleEngineServiceClass
    */
   @CaptureSpan()
   public async applyRulesToExistingResource(
-    data: ApplyRulesToExistingResourceData<
-      DataStore,
-      DataStoreLabelRule
-    >,
+    data: ApplyRulesToExistingResourceData<DataStore, DataStoreLabelRule>,
   ): Promise<RuleApplicationResult> {
     try {
       return await this.applyRules({
@@ -296,10 +291,7 @@ class DataStoreLabelRuleEngineServiceClass
     if (
       rule.descriptionRegexPattern &&
       (!dataStore.description ||
-        !this.testRegex(
-          rule.descriptionRegexPattern,
-          dataStore.description,
-        ))
+        !this.testRegex(rule.descriptionRegexPattern, dataStore.description))
     ) {
       return false;
     }

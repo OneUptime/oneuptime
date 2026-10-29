@@ -155,9 +155,12 @@ describe("the Data Security job names", () => {
   });
 });
 
+type QueueCase = (typeof CASES)[number];
+
 describe("queueing Data Security's work", () => {
-  for (const item of CASES) {
-    test(`${item.what} is one Worker job, deduplicated by what it is about`, async () => {
+  test.each(CASES)(
+    "$what is one Worker job, deduplicated by what it is about",
+    async (item: QueueCase) => {
       await item.queue();
 
       expect(queued()).toHaveLength(1);
@@ -173,9 +176,12 @@ describe("queueing Data Security's work", () => {
       });
       expect(job.jobId.startsWith(`${item.key}-`)).toBe(true);
       expect(job.jobId).toMatch(UUID_SUFFIX);
-    });
+    },
+  );
 
-    test(`${item.what} asked for twice is two jobs with one deduplication id`, async () => {
+  test.each(CASES)(
+    "$what asked for twice is two jobs with one deduplication id",
+    async (item: QueueCase) => {
       await item.queue();
       await item.queue();
 
@@ -185,9 +191,12 @@ describe("queueing Data Security's work", () => {
       expect(first!.options.deduplication.id).toBe(
         second!.options.deduplication.id,
       );
-    });
+    },
+  );
 
-    test(`${item.what} that cannot be queued is logged, never thrown`, async () => {
+  test.each(CASES)(
+    "$what that cannot be queued is logged, never thrown",
+    async (item: QueueCase) => {
       queueSpy.mockRejectedValue(new Error("Valkey went away"));
 
       await expect(item.queue()).resolves.toBeUndefined();
@@ -195,8 +204,8 @@ describe("queueing Data Security's work", () => {
       expect(String(errorSpy.mock.calls[0]![0])).toMatch(
         /^DataSecurity: could not queue the .+:$/,
       );
-    });
-  }
+    },
+  );
 
   test("each kind of work has its own deduplication id, so one never holds another back", async () => {
     for (const item of CASES) {

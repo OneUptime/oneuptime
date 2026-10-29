@@ -1,10 +1,7 @@
 import SecuritySeverity from "../SecuritySeverity";
 import DataCategory from "./DataCategory";
 import DataConfidence, { isConfidentEnough } from "./DataConfidence";
-import {
-  DataTypeInfo,
-  getBuiltInDataType,
-} from "./DataTypeCatalog";
+import { DataTypeInfo, getBuiltInDataType } from "./DataTypeCatalog";
 import DataSensitivity, { moreSensitive } from "./DataSensitivity";
 import {
   DATA_STORE_EXPOSURE_WEIGHT,
@@ -137,7 +134,10 @@ export function getRiskScore(input: RiskScoreInput): RiskScore {
   );
 
   if (exposurePoints > 0) {
-    factors.push({ label: `Exposure: ${input.exposure}`, points: exposurePoints });
+    factors.push({
+      label: `Exposure: ${input.exposure}`,
+      points: exposurePoints,
+    });
   }
 
   const volumePoints: number = Math.round(
@@ -162,9 +162,12 @@ export function getRiskScore(input: RiskScoreInput): RiskScore {
     factors.push({ label: "Production store", points: 4 });
   }
 
-  const total: number = factors.reduce((sum: number, factor: RiskScoreFactor) => {
-    return sum + factor.points;
-  }, 0);
+  const total: number = factors.reduce(
+    (sum: number, factor: RiskScoreFactor) => {
+      return sum + factor.points;
+    },
+    0,
+  );
 
   return { score: Math.min(100, total), factors };
 }

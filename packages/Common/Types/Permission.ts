@@ -8604,8 +8604,7 @@ export class PermissionHelper {
       {
         permission: Permission.CreateDataStore,
         title: "Create Data Store",
-        description:
-          "This permission can create Data Stores of this project.",
+        description: "This permission can create Data Stores of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,
@@ -8614,8 +8613,7 @@ export class PermissionHelper {
       {
         permission: Permission.DeleteDataStore,
         title: "Delete Data Store",
-        description:
-          "This permission can delete Data Stores of this project.",
+        description: "This permission can delete Data Stores of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,
@@ -8624,8 +8622,7 @@ export class PermissionHelper {
       {
         permission: Permission.EditDataStore,
         title: "Edit Data Store",
-        description:
-          "This permission can edit Data Stores of this project.",
+        description: "This permission can edit Data Stores of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,
@@ -8634,8 +8631,7 @@ export class PermissionHelper {
       {
         permission: Permission.ReadDataStore,
         title: "Read Data Store",
-        description:
-          "This permission can read Data Stores of this project.",
+        description: "This permission can read Data Stores of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,
@@ -8700,8 +8696,7 @@ export class PermissionHelper {
       {
         permission: Permission.DeleteDataSecurityFlow,
         title: "Delete Data Flow",
-        description:
-          "This permission can delete Data Flows of this project.",
+        description: "This permission can delete Data Flows of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -8710,8 +8705,7 @@ export class PermissionHelper {
       {
         permission: Permission.ReadDataSecurityFlow,
         title: "Read Data Flow",
-        description:
-          "This permission can read Data Flows of this project.",
+        description: "This permission can read Data Flows of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

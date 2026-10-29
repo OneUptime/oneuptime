@@ -378,7 +378,9 @@ export default class DataSecurityEvaluator {
     return all;
   }
 
-  private static async readStores(projectId: ObjectID): Promise<Array<DataStore>> {
+  private static async readStores(
+    projectId: ObjectID,
+  ): Promise<Array<DataStore>> {
     const select: Select<DataStore> = {
       _id: true,
       name: true,
@@ -419,7 +421,9 @@ export default class DataSecurityEvaluator {
 
   private static async readCustomTypes(
     projectId: ObjectID,
-  ): Promise<Map<string, { sensitivity: DataSensitivity; category: DataCategory }>> {
+  ): Promise<
+    Map<string, { sensitivity: DataSensitivity; category: DataCategory }>
+  > {
     const rows: Array<DataSecurityCustomDataType> =
       await DataSecurityCustomDataTypeService.findBy({
         query: { projectId },
@@ -449,7 +453,10 @@ export default class DataSecurityEvaluator {
     projectId: ObjectID,
     now: Date,
     facts: Map<string, StoreFacts>,
-    custom: Map<string, { sensitivity: DataSensitivity; category: DataCategory }>,
+    custom: Map<
+      string,
+      { sensitivity: DataSensitivity; category: DataCategory }
+    >,
   ): Promise<void> {
     const since: Date = OneUptimeDate.addRemoveDays(
       now,
@@ -498,10 +505,7 @@ export default class DataSecurityEvaluator {
         customCategory: customType?.category,
       });
 
-      if (
-        !finding.isScrubbed &&
-        finding.confidence !== DataConfidence.Low
-      ) {
+      if (!finding.isScrubbed && finding.confidence !== DataConfidence.Low) {
         storeFacts.unscrubbedDataTypeIds.add(finding.dataTypeId);
       }
     }

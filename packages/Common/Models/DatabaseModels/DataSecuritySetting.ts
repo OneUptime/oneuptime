@@ -19,13 +19,7 @@ import Permission from "../../Types/Permission";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import EnableMCP from "../../Types/Database/EnableMCP";
 import EnableAuditLog from "../../Types/Database/EnableAuditLog";
-import {
-  Column,
-  Entity,
-  Index,
-  JoinColumn,
-  ManyToOne,
-} from "typeorm";
+import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
  * A project's Data Security switches and limits, one row per project,
@@ -185,7 +179,8 @@ export default class DataSecuritySetting extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Scan Content",
-    description: "Sample stores' content for sensitive data, where the content permission was granted.",
+    description:
+      "Sample stores' content for sensitive data, where the content permission was granted.",
     defaultValue: true,
     isDefaultValueColumn: true,
   })
@@ -202,7 +197,8 @@ export default class DataSecuritySetting extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Scan Telemetry",
-    description: "Sample the project's logs, traces, exceptions, replays and AI conversations for sensitive data.",
+    description:
+      "Sample the project's logs, traces, exceptions, replays and AI conversations for sensitive data.",
     defaultValue: true,
     isDefaultValueColumn: true,
   })
@@ -219,7 +215,8 @@ export default class DataSecuritySetting extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Keep Masked Samples",
-    description: "Keep up to three masked samples with each finding. Off keeps counts only.",
+    description:
+      "Keep up to three masked samples with each finding. Off keeps counts only.",
     defaultValue: true,
     isDefaultValueColumn: true,
   })
@@ -236,7 +233,8 @@ export default class DataSecuritySetting extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Open Security Cases",
-    description: "Open a security case, grouped by store, when a Critical issue opens.",
+    description:
+      "Open a security case, grouped by store, when a Critical issue opens.",
     defaultValue: true,
     isDefaultValueColumn: true,
   })
@@ -253,7 +251,8 @@ export default class DataSecuritySetting extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Raise Alerts",
-    description: "Raise an alert, which pages whoever is on call, when a Critical issue opens.",
+    description:
+      "Raise an alert, which pages whoever is on call, when a Critical issue opens.",
     defaultValue: false,
     isDefaultValueColumn: true,
   })
@@ -293,7 +292,8 @@ export default class DataSecuritySetting extends BaseModel {
     required: false,
     canReadOnRelationQuery: true,
     title: "Alert Severity ID",
-    description: "The severity of the alerts raised. The project's most severe when empty.",
+    description:
+      "The severity of the alerts raised. The project's most severe when empty.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -410,7 +410,8 @@ export default class DataSecuritySetting extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Telemetry Sample Size",
-    description: "How many recent records of each service and signal a telemetry scan reads.",
+    description:
+      "How many recent records of each service and signal a telemetry scan reads.",
     defaultValue: 500,
     isDefaultValueColumn: true,
   })
@@ -443,7 +444,8 @@ export default class DataSecuritySetting extends BaseModel {
     type: TableColumnType.JSON,
     required: false,
     title: "Never Sensitive",
-    description: "Values that are never findings, such as your own support address.",
+    description:
+      "Values that are never findings, such as your own support address.",
   })
   @Column({
     type: ColumnType.JSON,

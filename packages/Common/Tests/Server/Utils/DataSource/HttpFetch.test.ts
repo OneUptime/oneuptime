@@ -773,7 +773,9 @@ describe("DataSourceHttpFetch.fetch - response handling", () => {
     const transforms: Array<(body: ArrayBuffer | Buffer) => Buffer> =
       config.transformResponse as Array<(body: ArrayBuffer | Buffer) => Buffer>;
     const source: Uint8Array = new Uint8Array([1, 2, 250]);
-    const fromArrayBuffer: Buffer = transforms[0]!(source.buffer as ArrayBuffer);
+    const fromArrayBuffer: Buffer = transforms[0]!(
+      source.buffer as ArrayBuffer,
+    );
     const buffer: Buffer = Buffer.from([9, 8]);
 
     expect(Buffer.isBuffer(fromArrayBuffer)).toBe(true);

@@ -50,8 +50,10 @@ export const SHAREABLE_DATA_STORE_KINDS: ReadonlyArray<DataStoreKind> = [
 ];
 
 // The kinds whose snapshots are cluster snapshots (DescribeDBClusterSnapshots).
-export const CLUSTER_SNAPSHOT_DATA_STORE_KINDS: ReadonlyArray<DataStoreKind> =
-  [DataStoreKind.AwsRdsCluster, DataStoreKind.AwsDocumentDbCluster];
+export const CLUSTER_SNAPSHOT_DATA_STORE_KINDS: ReadonlyArray<DataStoreKind> = [
+  DataStoreKind.AwsRdsCluster,
+  DataStoreKind.AwsDocumentDbCluster,
+];
 
 /*
  * The checks each action fixes: an issue of one of these, on a store the

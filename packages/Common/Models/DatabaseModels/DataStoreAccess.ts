@@ -18,13 +18,7 @@ import Permission from "../../Types/Permission";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import EnableMCP from "../../Types/Database/EnableMCP";
 import ColumnLength from "../../Types/Database/ColumnLength";
-import {
-  Column,
-  Entity,
-  Index,
-  JoinColumn,
-  ManyToOne,
-} from "typeorm";
+import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
  * One principal that can reach one store - the internet, another account, a
@@ -191,7 +185,8 @@ export default class DataStoreAccess extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Access Key",
-    description: "The principal, level and grant, which identify the entry within its store.",
+    description:
+      "The principal, level and grant, which identify the entry within its store.",
   })
   @Column({
     type: ColumnType.LongText,
@@ -207,7 +202,8 @@ export default class DataStoreAccess extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Principal",
-    description: "Who or what has access, as its cloud names it: *, an account id, an ARN, an email, a service account.",
+    description:
+      "Who or what has access, as its cloud names it: *, an account id, an ARN, an email, a service account.",
   })
   @Column({
     type: ColumnType.LongText,
@@ -239,7 +235,8 @@ export default class DataStoreAccess extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Principal Type",
-    description: "What the principal is: Public, Account, Role, User, Group, Service Principal, Service Account or Service.",
+    description:
+      "What the principal is: Public, Account, Role, User, Group, Service Principal, Service Account or Service.",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -271,7 +268,8 @@ export default class DataStoreAccess extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Granted Via",
-    description: "What grants the access: a bucket policy, an ACL, a role assignment, an IAM binding, a snapshot share, or traffic seen in traces.",
+    description:
+      "What grants the access: a bucket policy, an ACL, a role assignment, an IAM binding, a snapshot share, or traffic seen in traces.",
   })
   @Column({
     type: ColumnType.LongText,

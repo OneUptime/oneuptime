@@ -214,7 +214,8 @@ export default class DataSecurityIssueFeed extends BaseModel {
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
   })
-  public dataSecurityIssueFeedEventType?: DataSecurityIssueFeedEventType = undefined;
+  public dataSecurityIssueFeedEventType?: DataSecurityIssueFeedEventType =
+    undefined;
 
   @ColumnAccessControl(columnAccess)
   @TableColumn({

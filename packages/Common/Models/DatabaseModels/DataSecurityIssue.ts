@@ -27,13 +27,7 @@ import SecuritySeverity from "../../Types/SecuritySeverity";
 import DataSecurityIssueStatus from "../../Types/DataSecurity/DataSecurityIssueStatus";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import { JSONArray } from "../../Types/JSON";
-import {
-  Column,
-  Entity,
-  Index,
-  JoinColumn,
-  ManyToOne,
-} from "typeorm";
+import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
  * One failing check on one store
@@ -227,7 +221,8 @@ export default class DataSecurityIssue extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Issue Key",
-    description: "The store and check, which identify the issue within the project.",
+    description:
+      "The store and check, which identify the issue within the project.",
   })
   @Column({
     type: ColumnType.LongText,
@@ -259,7 +254,8 @@ export default class DataSecurityIssue extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Group",
-    description: "The check's group: Exposure, Encryption, Recovery, Visibility, Access, Data hygiene, Telemetry, Residency or AI.",
+    description:
+      "The check's group: Exposure, Encryption, Recovery, Visibility, Access, Data hygiene, Telemetry, Residency or AI.",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -308,7 +304,8 @@ export default class DataSecurityIssue extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Severity",
-    description: "How severe the issue is for this store's data: Critical, High, Medium or Low.",
+    description:
+      "How severe the issue is for this store's data: Critical, High, Medium or Low.",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -324,7 +321,8 @@ export default class DataSecurityIssue extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Risk Score",
-    description: "Orders issues inside a severity, from 0 to 100: severity, exposure, volume, recent activity and production.",
+    description:
+      "Orders issues inside a severity, from 0 to 100: severity, exposure, volume, recent activity and production.",
     defaultValue: 0,
     isDefaultValueColumn: true,
   })
@@ -374,7 +372,8 @@ export default class DataSecurityIssue extends BaseModel {
     required: false,
     computed: true,
     title: "Data Types",
-    description: "The sensitive data types the store holds, which make the issue as severe as it is.",
+    description:
+      "The sensitive data types the store holds, which make the issue as severe as it is.",
   })
   @Column({
     type: ColumnType.JSON,

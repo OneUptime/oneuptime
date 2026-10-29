@@ -200,7 +200,10 @@ export default class DataSecurityFlows {
   }
 
   // Production first; otherwise the store OneUptime knew of first.
-  private static copyDirection(a: DataStore, b: DataStore): [DataStore, DataStore] {
+  private static copyDirection(
+    a: DataStore,
+    b: DataStore,
+  ): [DataStore, DataStore] {
     const aProduction: boolean =
       a.environment === DataStoreEnvironment.Production;
     const bProduction: boolean =
@@ -279,7 +282,9 @@ export default class DataSecurityFlows {
     const drafts: Array<FlowDraft> = [];
 
     for (const edge of edges) {
-      const from: InventoryItem | undefined = byKey.get(edge.fromEntityKey || "");
+      const from: InventoryItem | undefined = byKey.get(
+        edge.fromEntityKey || "",
+      );
       const to: InventoryItem | undefined = byKey.get(edge.toEntityKey || "");
 
       if (!from || !to || from.entityType !== EntityType.Service) {
@@ -365,20 +370,22 @@ export default class DataSecurityFlows {
     }
 
     if (byDatabaseServer.size > 0) {
-      const servers: Array<DatabaseServer> = await DatabaseServerService.findBy({
-        query: {
-          projectId,
-          _id: new Includes(
-            [...byDatabaseServer.keys()].map((id: string) => {
-              return new ObjectID(id);
-            }),
-          ),
+      const servers: Array<DatabaseServer> = await DatabaseServerService.findBy(
+        {
+          query: {
+            projectId,
+            _id: new Includes(
+              [...byDatabaseServer.keys()].map((id: string) => {
+                return new ObjectID(id);
+              }),
+            ),
+          },
+          select: { _id: true, serverAddress: true },
+          skip: 0,
+          limit: byDatabaseServer.size,
+          props: { isRoot: true },
         },
-        select: { _id: true, serverAddress: true },
-        skip: 0,
-        limit: byDatabaseServer.size,
-        props: { isRoot: true },
-      });
+      );
 
       for (const server of servers) {
         const store: DataStore | undefined = byDatabaseServer.get(
@@ -392,20 +399,22 @@ export default class DataSecurityFlows {
     }
 
     if (byCloudResource.size > 0) {
-      const resources: Array<CloudResource> = await CloudResourceService.findBy({
-        query: {
-          projectId,
-          _id: new Includes(
-            [...byCloudResource.keys()].map((id: string) => {
-              return new ObjectID(id);
-            }),
-          ),
+      const resources: Array<CloudResource> = await CloudResourceService.findBy(
+        {
+          query: {
+            projectId,
+            _id: new Includes(
+              [...byCloudResource.keys()].map((id: string) => {
+                return new ObjectID(id);
+              }),
+            ),
+          },
+          select: { _id: true, cloudEndpoints: true },
+          skip: 0,
+          limit: byCloudResource.size,
+          props: { isRoot: true },
         },
-        select: { _id: true, cloudEndpoints: true },
-        skip: 0,
-        limit: byCloudResource.size,
-        props: { isRoot: true },
-      });
+      );
 
       for (const resource of resources) {
         const store: DataStore | undefined = byCloudResource.get(
@@ -415,7 +424,10 @@ export default class DataSecurityFlows {
         for (const endpoint of resource.cloudEndpoints || []) {
           if (store) {
             byAddress.set(
-              endpoint.replace(/:[0-9]{1,5}$/, "").trim().toLowerCase(),
+              endpoint
+                .replace(/:[0-9]{1,5}$/, "")
+                .trim()
+                .toLowerCase(),
               store,
             );
           }
@@ -498,15 +510,14 @@ export default class DataSecurityFlows {
     drafts: Array<FlowDraft>,
   ): Promise<void> {
     const now: Date = OneUptimeDate.getCurrentDate();
-    const existing: Array<DataSecurityFlow> = await DataSecurityFlowService.findBy(
-      {
+    const existing: Array<DataSecurityFlow> =
+      await DataSecurityFlowService.findBy({
         query: { projectId },
         select: { _id: true, flowKey: true, lastSeenAt: true },
         skip: 0,
         limit: 10000,
         props: { isRoot: true },
-      },
-    );
+      });
     const byKey: Map<string, DataSecurityFlow> = new Map();
 
     for (const flow of existing) {
@@ -573,7 +584,10 @@ export default class DataSecurityFlows {
     }
 
     // Flows nobody has seen for a month are gone - not the ones seen just now.
-    const cutoff: Date = OneUptimeDate.addRemoveDays(now, -FLOW_RETENTION_IN_DAYS);
+    const cutoff: Date = OneUptimeDate.addRemoveDays(
+      now,
+      -FLOW_RETENTION_IN_DAYS,
+    );
     const seenNow: Set<string> = new Set(
       drafts.map((draft: FlowDraft) => {
         return draft.flowKey;

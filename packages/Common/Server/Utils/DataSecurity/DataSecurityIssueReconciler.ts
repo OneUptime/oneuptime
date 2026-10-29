@@ -3,7 +3,12 @@ import { DataSecurityIssueFeedEventType } from "../../../Models/DatabaseModels/D
 import DataSecurityIssueFeedService from "../../Services/DataSecurityIssueFeedService";
 import DataSecurityIssueService from "../../Services/DataSecurityIssueService";
 import logger from "../Logger";
-import { Gray500, Green500, Orange500, Red500 } from "../../../Types/BrandColors";
+import {
+  Gray500,
+  Green500,
+  Orange500,
+  Red500,
+} from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
 import OneUptimeDate from "../../../Types/Date";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
@@ -139,7 +144,9 @@ export default class DataSecurityIssueReconciler {
             now,
             output,
           });
-        } else if (evaluated.result.status === DataSecurityCheckStatus.Unknown) {
+        } else if (
+          evaluated.result.status === DataSecurityCheckStatus.Unknown
+        ) {
           // Cannot tell: an open issue stays open and counts.
           if (issue && issue.status === DataSecurityIssueStatus.Open) {
             this.count(output, issue.severity, issue.riskScore || 0);
@@ -228,7 +235,8 @@ export default class DataSecurityIssueReconciler {
         await this.feed(input.projectId, saved.id, {
           eventType: DataSecurityIssueFeedEventType.IssueOpened,
           color: severityColor(severity),
-          markdown: mdText`**${severity}** issue opened: ${evaluated.check.title}. ${evidence}`.toString(),
+          markdown:
+            mdText`**${severity}** issue opened: ${evaluated.check.title}. ${evidence}`.toString(),
         });
 
         output.opened.push({
@@ -332,7 +340,8 @@ export default class DataSecurityIssueReconciler {
         await this.feed(input.projectId, issue.id, {
           eventType: DataSecurityIssueFeedEventType.SeverityChanged,
           color: severityColor(severity),
-          markdown: mdText`Severity changed from **${issue.severity || "none"}** to **${severity}**, as the store's data or exposure changed.`.toString(),
+          markdown:
+            mdText`Severity changed from **${issue.severity || "none"}** to **${severity}**, as the store's data or exposure changed.`.toString(),
         });
       }
     } else {
