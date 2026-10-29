@@ -22,6 +22,9 @@ it. On the Overview page, the cards that read a backend of their own (health, in
 attachment, diagnostics, monitors, the vendor template offer) are placeholders: each has suites of
 its own.
 
+Every refresh asked of the server is recorded on `window.__assetDetailsFixture.state.refreshAsks`,
+and `itemReloads` counts how often the item page read its item again after a refresh landed.
+
 ## What the cards say
 
 The reading most of a machine's details came from is said once, below them: a host's collector, a
@@ -30,6 +33,12 @@ other source is said under its value: a router's ARP table, a reverse-DNS lookup
 lookup, a value saved on the device, a role someone assigned. On the device's own pages, its own
 poll and the values saved on it go unsaid, as its Name and Hostname do; a saved value discovery
 reads differently says so, with what discovery read in amber.
+
+A device a Meraki connection describes takes what its own poll leaves empty from the Meraki
+dashboard, said once below the details on Inventory's card, and in a **Meraki** row (the
+connection, when, and the Meraki network) on the device's own card. **Refresh** reads the device
+again now: one line at the top of the card says who reads it again, then that it was read again
+just now, or that its probe could not reach it.
 
 ## Scenarios
 
@@ -50,6 +59,15 @@ Picked with query parameters:
 - `scenario=dns`: a firewall polled at a DNS name, whose probe resolved the address.
 - `scenario=host`: a Windows host its collector reports, placed by its cloud zone.
 - `scenario=noread`: the device cannot be read, so the card shows the item's own facts.
+- `scenario=meraki`: a Meraki access point its probe pings, which a Meraki connection describes:
+  its serial number, model and firmware come from the Meraki dashboard, read four minutes ago,
+  and both cards offer **Refresh**.
+- `refresh=read|unreachable`: what a refresh finds. The fixture answers
+  `POST /api/network-device/<id>/refresh` as the server does (its probe and the Meraki dashboard
+  read it again); reads of the device within 2.5 seconds of the ask are the device as it was, and
+  later ones the device read again - reached by its probe (the default) or not.
+- `role=owner|reader`: a project owner (the default), or someone who may read network devices but
+  not edit them, who is offered no **Refresh**.
 - `frame=<pixels>`: the card's width. `lang=ja|de`, `theme=dark`.
 
 The page is drawn in Inter, as production draws it (`server.js` serves the font and the Dashboard's

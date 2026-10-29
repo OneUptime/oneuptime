@@ -18,7 +18,7 @@ import {
   composedValue,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
-import { formatRelativeTime } from "../Home/HomeRelativeTime";
+import { formatRelativeTime, isJustNow } from "../Home/HomeRelativeTime";
 
 /*
  * Where an asset detail came from, and when, in words (OneUptime issue
@@ -363,9 +363,16 @@ function readerName(
   return name ? name : undefined;
 }
 
+/*
+ * A reading of the last few seconds - a device Refresh has just read again:
+ * "just now", where the relative time alone would say a bare "now".
+ */
+export const JUST_NOW: string = translationKey("just now");
+
 /**
  * When a source was read, in the reader's language ("2 hours ago", "vor 2
- * Stunden") - or undefined when it is not known or does not parse.
+ * Stunden", "just now") - or undefined when it is not known or does not
+ * parse.
  */
 export function getAssetFactSourceTime(
   readAt: string | undefined,
@@ -382,9 +389,15 @@ export function getAssetFactSourceTime(
     return undefined;
   }
 
+  const current: Date = now || OneUptimeDate.getCurrentDate();
+
+  if (isJustNow({ date: date, now: current })) {
+    return translator.translateText(JUST_NOW) || JUST_NOW;
+  }
+
   return formatRelativeTime({
     date: date,
-    now: now || OneUptimeDate.getCurrentDate(),
+    now: current,
     language: translator.language,
   });
 }
@@ -666,10 +679,9 @@ export function getControllerReadLine(
         name: name,
         time: time,
       })
-    : translator.translateTemplate(
-        CONTROLLER_READ_UNNAMED_TEMPLATE[provider],
-        { time: time },
-      );
+    : translator.translateTemplate(CONTROLLER_READ_UNNAMED_TEMPLATE[provider], {
+        time: time,
+      });
 }
 
 /**

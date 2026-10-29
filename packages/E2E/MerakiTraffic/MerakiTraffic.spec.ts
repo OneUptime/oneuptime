@@ -778,6 +778,60 @@ test("a large organization read in part: what is still to come, and why", async 
 });
 
 /*
+ * Each read also lists the organization's devices: the connection's row
+ * counts them, and says how many are network devices here - whose model,
+ * serial number and firmware come from Meraki. A read from before reads
+ * counted them says nothing of devices (the first test of the page).
+ */
+test("the organization's devices: counted on the connection's row, and the ones that are network devices here", async ({
+  page,
+}: {
+  page: Page;
+}, testInfo: TestInfo) => {
+  await open(page, "state=meraki&devices=counted");
+
+  const row: Locator = page.getByTestId("meraki-connection");
+  await expect(row.getByTestId("meraki-connection-covered")).toHaveText(
+    "Every 5 minutes · 4 networks · 6 devices · 4 appliances · 4 API calls a read",
+  );
+  const notes: Locator = row.getByTestId("meraki-connection-note");
+  await expect(notes).toHaveCount(1);
+  await expect(notes).toHaveText(
+    "5 of its devices are network devices here: their model, serial number and firmware come from Meraki.",
+  );
+  // Grey: OneUptime did it by itself, nothing to act on.
+  await expect(notes).toHaveAttribute("data-tone", "info");
+  await screenshot(
+    page,
+    testInfo,
+    "devices",
+    page.getByTestId("meraki-connections"),
+  );
+
+  // One of them, said as one.
+  await open(page, "state=meraki&devices=one");
+  await expect(
+    page.getByTestId("meraki-connection").getByTestId("meraki-connection-note"),
+  ).toHaveText(
+    "1 of its devices is a network device here: its model, serial number and firmware come from Meraki.",
+  );
+
+  // In German.
+  await open(page, "state=meraki&devices=counted&lang=de");
+  await expect(
+    page.getByTestId("meraki-connection").getByTestId("meraki-connection-note"),
+  ).toHaveText(
+    "5 seiner Geräte sind hier Netzwerkgeräte: Ihr Modell, ihre Seriennummer und ihre Firmware kommen von Meraki.",
+  );
+  await screenshot(
+    page,
+    testInfo,
+    "devices-de",
+    page.getByTestId("meraki-connections"),
+  );
+});
+
+/*
  * ---------------------------------------------------------------------------
  * In another language
  * ---------------------------------------------------------------------------

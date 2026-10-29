@@ -685,3 +685,279 @@ test.describe("at a phone's width, in the dark and in other languages", () => {
     await shoot(page, "device-pinged-390-de");
   });
 });
+
+/*
+ * The Meraki dashboard as a source, and Refresh: a Meraki access point its
+ * probe pings, which a Meraki connection describes. Its serial number, model
+ * and firmware come from the dashboard, said once below the details; Refresh
+ * asks its probe and the dashboard to read it again, the card says who does,
+ * then that it was read again - or that the probe could not reach it.
+ */
+test.describe("the Meraki dashboard as a source, and Refresh", () => {
+  const MERAKI_LINE: string =
+    "Read from the Meraki dashboard (Acme Retail), 4 minutes ago.";
+  const WAITING: string =
+    "Its probe and the Meraki dashboard read it again within a minute.";
+
+  interface FixtureRefreshState {
+    refreshAsks: Array<{ path: string; at: string }>;
+    itemReloads: number;
+  }
+
+  async function refreshState(page: Page): Promise<FixtureRefreshState> {
+    return await page.evaluate(() => {
+      const state: {
+        refreshAsks: Array<{ path: string; at: string }>;
+        itemReloads: number;
+      } = (
+        window as unknown as {
+          __assetDetailsFixture: {
+            state: {
+              refreshAsks: Array<{ path: string; at: string }>;
+              itemReloads: number;
+            };
+          };
+        }
+      ).__assetDetailsFixture.state;
+
+      return {
+        refreshAsks: JSON.parse(JSON.stringify(state.refreshAsks)),
+        itemReloads: state.itemReloads,
+      };
+    });
+  }
+
+  test("a Meraki access point: what the dashboard read, said once below the details, and Refresh offered", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openItem(page, "?scenario=meraki");
+
+    await expect(value(page, "hostname")).toContainText("Lobby AP");
+    await expect(value(page, "serialNumber")).toContainText("Q2KD-ABCD-1234");
+    await expect(value(page, "model")).toContainText("MR46");
+    await expect(value(page, "firmwareVersion")).toContainText("wireless-29-7");
+    await expect(value(page, "manufacturer")).toContainText("Cisco Meraki");
+    await expect(value(page, "macAddress")).toContainText("E0-55-3D-12-34-56");
+    await expect(value(page, "location")).toContainText(
+      "1600 Amphitheatre Pkwy, Mountain View",
+    );
+
+    // The dashboard, said once - not under each of its details.
+    await expect(saidOnce(page)).toHaveText(MERAKI_LINE);
+    await expect(saidOnce(page)).toHaveAttribute("title", /\d/);
+    for (const field of [
+      "hostname",
+      "serialNumber",
+      "model",
+      "firmwareVersion",
+      "manufacturer",
+      "macAddress",
+      "location",
+    ]) {
+      await expect(source(page, field)).toHaveCount(0);
+    }
+    // Its address is still the one its probe polls.
+    await expect(value(page, "ipAddress")).toContainText("10.20.30.41");
+    await expect(source(page, "ipAddress")).toHaveText(
+      "The address its probe polls",
+    );
+
+    // Refresh is offered; nothing is said until someone presses it.
+    const button: Locator = page.getByTestId("inventory-asset-details-refresh");
+    await expect(button).toBeVisible();
+    await expect(button).toBeEnabled();
+    await expect(button).toContainText("Refresh");
+    await expect(
+      page.getByTestId("inventory-asset-details-refresh-status"),
+    ).toHaveCount(0);
+
+    // The card read every column Refresh is decided and followed by.
+    const deviceRead: FixtureRead | undefined = (await reads(page)).find(
+      (read: FixtureRead) => {
+        return read.model === "NetworkDevice";
+      },
+    );
+    expect(deviceRead?.select).toEqual(
+      expect.arrayContaining([
+        "probeId",
+        "isPollingEnabled",
+        "monitoringMethod",
+        "hostname",
+        "discoveredDetails",
+        "refreshRequestedAt",
+        "lastPolledAt",
+        "isReachable",
+      ]),
+    );
+
+    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await shoot(page, "item-meraki-1280-light");
+  });
+
+  test("Refresh on the Asset Details card: who reads it again, then read again just now, and the item read again once", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openItem(page, "?scenario=meraki");
+
+    const button: Locator = page.getByTestId("inventory-asset-details-refresh");
+    const status: Locator = page.getByTestId(
+      "inventory-asset-details-refresh-status",
+    );
+
+    await button.click();
+
+    // Asked: who reads it again, while the button waits.
+    await expect(status).toHaveText(WAITING);
+    await expect(status).toHaveAttribute("data-tone", "progress");
+    await expect(status).toHaveAttribute("role", "status");
+    await expect(button).toBeDisabled();
+    await expect(button).toContainText("Refreshing…");
+    await shoot(page, "item-meraki-refreshing-1280-light");
+
+    // Its probe and the dashboard have read it again.
+    await expect(status).toHaveText("Read again just now.");
+    await expect(status).toHaveAttribute("data-tone", "done");
+    await expect(button).toBeEnabled();
+    await expect(button).toContainText("Refresh");
+    // The details say the new reading, not the one from four minutes ago.
+    await expect(saidOnce(page)).toHaveText(
+      "Read from the Meraki dashboard (Acme Retail), just now.",
+    );
+
+    const after: FixtureRefreshState = await refreshState(page);
+    expect(
+      after.refreshAsks.map((ask: { path: string }) => {
+        return ask.path;
+      }),
+    ).toEqual([`/api/network-device/${DEVICE_ID}/refresh`]);
+    // The page read its item again once, when the reading landed.
+    expect(after.itemReloads).toBe(1);
+
+    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await shoot(page, "item-meraki-refreshed-1280-light");
+  });
+
+  test("Refresh on the device's Inventory card: the Meraki row, and a probe that could not reach the device", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "?page=device&scenario=meraki&refresh=unreachable");
+
+    // What Meraki says, and who read it when, in a row of its own.
+    await expect(page.getByTestId("device-inventory-model")).toContainText(
+      "MR46",
+    );
+    await expect(page.getByTestId("device-inventory-serial")).toContainText(
+      "Q2KD-ABCD-1234",
+    );
+    await expect(
+      page.getByTestId("device-inventory-controller-source"),
+    ).toHaveText(MERAKI_LINE);
+    await expect(
+      page.getByTestId("device-inventory-controller-network"),
+    ).toHaveText("In the Branch 12 network.");
+    await shoot(page, "device-meraki-1280-light");
+
+    const button: Locator = page.getByTestId("device-inventory-refresh");
+    const status: Locator = page.getByTestId("device-inventory-refresh-status");
+
+    await expect(status).toHaveCount(0);
+    await button.click();
+    await expect(status).toHaveText(WAITING);
+
+    // Its probe polled it, and could not reach it.
+    await expect(status).toHaveText(
+      "Its probe could not reach it just now. Its details are as it last read them.",
+    );
+    await expect(status).toHaveAttribute("data-tone", "warning");
+    await expect(button).toBeEnabled();
+    // The Meraki dashboard was read again all the same.
+    await expect(
+      page.getByTestId("device-inventory-controller-source"),
+    ).toHaveText("Read from the Meraki dashboard (Acme Retail), just now.");
+
+    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await shoot(page, "device-meraki-unreachable-1280-light");
+  });
+
+  test("no Refresh for a device nothing reads on its own, or for someone who may not edit network devices", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // Typed by hand, no probe, no Meraki connection: nothing to ask.
+    await openItem(page, "?scenario=typed");
+    await expect(value(page, "hostname")).toBeVisible();
+    await expect(
+      page.getByTestId("inventory-asset-details-refresh"),
+    ).toHaveCount(0);
+
+    // May read network devices, not edit them.
+    await openItem(page, "?scenario=meraki&role=reader");
+    await expect(saidOnce(page)).toHaveText(MERAKI_LINE);
+    await expect(
+      page.getByTestId("inventory-asset-details-refresh"),
+    ).toHaveCount(0);
+
+    await open(page, "?page=device&scenario=meraki&role=reader");
+    await expect(
+      page.getByTestId("device-inventory-controller-source"),
+    ).toHaveText(MERAKI_LINE);
+    await expect(page.getByTestId("device-inventory-refresh")).toHaveCount(0);
+
+    expect((await refreshState(page)).refreshAsks).toEqual([]);
+  });
+
+  test("at a phone's width, in the dark and in German: the status wraps inside the card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+
+    const card: Locator = await openItem(
+      page,
+      "?scenario=meraki&theme=dark&lang=de",
+    );
+    await expect(saidOnce(page)).toHaveText(
+      "Aus dem Meraki-Dashboard (Acme Retail) gelesen, vor 4 Minuten.",
+    );
+
+    const button: Locator = page.getByTestId("inventory-asset-details-refresh");
+    const status: Locator = page.getByTestId(
+      "inventory-asset-details-refresh-status",
+    );
+
+    await expect(button).toContainText("Aktualisieren");
+    await button.click();
+    await expect(status).toHaveText(
+      "Seine Sonde und das Meraki-Dashboard lesen es innerhalb einer Minute erneut.",
+    );
+    expect(await staysInside(status, card)).toBe(true);
+    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await shoot(page, "item-meraki-refreshing-390-dark-de");
+
+    await expect(status).toHaveText("Gerade eben erneut gelesen.");
+    // Readable against the dark card.
+    const surface: Locator = card.locator(
+      "xpath=ancestor::div[contains(@class,'rounded')][1]",
+    );
+    expect(await textBrightness(status)).toBeGreaterThan(
+      (await backgroundBrightness(surface)) + 150,
+    );
+    expect(await staysInside(status, card)).toBe(true);
+    await shoot(page, "item-meraki-refreshed-390-dark-de");
+
+    await open(page, "?page=device&scenario=meraki&theme=dark");
+    await expect(
+      page.getByTestId("device-inventory-controller-source"),
+    ).toBeVisible();
+    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await shoot(page, "device-meraki-390-dark");
+  });
+});

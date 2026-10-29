@@ -4,11 +4,13 @@ import path from "path";
 import {
   CONTROLLER_READ_TEMPLATE,
   CONTROLLER_READ_UNNAMED_TEMPLATE,
+  JUST_NOW,
   NAMED_CONTROLLER_SOURCE,
   UNNAMED_CONTROLLER_SOURCE,
   getAssetFactDifferenceLine,
   getAssetFactSourceLine,
   getAssetFactSourceText,
+  getAssetFactSourceTime,
   getControllerReadLine,
   getSharedAssetFactSource,
   getSharedSourceLine,
@@ -211,7 +213,10 @@ describe("the Meraki dashboard as a source, in words", () => {
     expect(
       isSameAssetFactSource(MERAKI, {
         ...MERAKI,
-        readBy: { ...MERAKI.readBy!, id: "55555555-5555-4555-8555-555555555555" },
+        readBy: {
+          ...MERAKI.readBy!,
+          id: "55555555-5555-4555-8555-555555555555",
+        },
       }),
     ).toBe(false);
   });
@@ -226,6 +231,59 @@ describe("the Meraki dashboard as a source, in words", () => {
     expect(getAssetFactSourceText(MERAKI, persian)).toBe(
       "داشبورد Meraki (Acme Retail)",
     );
+  });
+
+  /*
+   * Refresh makes readings of a few seconds ago common: they say "just
+   * now", where the relative time alone says a bare "now" ("Read from the
+   * Meraki dashboard (Acme Retail), now.").
+   */
+  test("a reading of the last few seconds was read just now, in every language", () => {
+    const justRead: AssetFactSource = {
+      ...MERAKI,
+      readAt: "2026-10-28T11:59:50.000Z",
+    };
+
+    expect(getAssetFactSourceTime(justRead.readAt, english, NOW)).toBe(
+      "just now",
+    );
+    expect(getControllerReadLine(justRead, english, NOW)).toBe(
+      "Read from the Meraki dashboard (Acme Retail), just now.",
+    );
+    expect(getAssetFactSourceLine(justRead, english, NOW)).toBe(
+      "Meraki dashboard (Acme Retail) · just now",
+    );
+    // Any other reader's too: the scan that just finished.
+    expect(
+      getAssetFactSourceTime("2026-10-28T11:59:30.000Z", english, NOW),
+    ).toBe("just now");
+    expect(getControllerReadLine(justRead, translatorFor("de"), NOW)).toBe(
+      "Aus dem Meraki-Dashboard (Acme Retail) gelesen, gerade eben.",
+    );
+
+    // A minute ago is a minute ago.
+    expect(
+      getAssetFactSourceTime("2026-10-28T11:59:00.000Z", english, NOW),
+    ).toBe("1 minute ago");
+
+    expect(JUST_NOW).toBe("just now");
+
+    for (const code of LANGUAGES) {
+      const words: string | undefined = getAssetFactSourceTime(
+        justRead.readAt,
+        translatorFor(code),
+        NOW,
+      );
+
+      expect({ code, words: words !== JUST_NOW && Boolean(words) }).toEqual({
+        code,
+        words: true,
+      });
+      expect({ code, words }).toEqual({
+        code,
+        words: readLocale(code)[JUST_NOW],
+      });
+    }
   });
 });
 
@@ -301,10 +359,14 @@ describe("what Refresh says", () => {
 
   test("late: the probe to check, by name when it has one; else the Meraki connection", () => {
     expect(
-      words(NetworkDeviceRefreshProgress.Late, {}, {
-        probe: true,
-        controller: false,
-      }),
+      words(
+        NetworkDeviceRefreshProgress.Late,
+        {},
+        {
+          probe: true,
+          controller: false,
+        },
+      ),
     ).toEqual({
       tone: "warning",
       template: PROBE_LATE,
