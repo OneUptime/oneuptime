@@ -37074,5 +37074,6 @@
   "You changed this hunt's search.": "Sie haben die Suche dieser Bedrohungssuche geändert.",
   "e.g. Encoded PowerShell": "z. B. Codiertes PowerShell",
   "{{count}} {{itemsName}} added to the case": "{{count}} {{itemsName}} zum Fall hinzugefügt",
-  "{{count}} {{itemsName}} added to the case_one": "{{count}} {{itemName}} zum Fall hinzugefügt"
+  "{{count}} {{itemsName}} added to the case_one": "{{count}} {{itemName}} zum Fall hinzugefügt",
+  "Notify me when a scheduled hunt that names me, or a team I am on, finds security events.": "Benachrichtige mich, wenn eine geplante Bedrohungssuche, die mich oder eines meiner Teams nennt, Sicherheitsereignisse findet."
 }

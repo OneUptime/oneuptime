@@ -37074,5 +37074,6 @@
   "You changed this hunt's search.": "आपने इस हंट की खोज बदल दी है।",
   "e.g. Encoded PowerShell": "उदा. एन्कोडेड PowerShell",
   "{{count}} {{itemsName}} added to the case": "{{count}} {{itemsName}} केस में जोड़े गए",
-  "{{count}} {{itemsName}} added to the case_one": "{{count}} {{itemName}} केस में जोड़ा गया"
+  "{{count}} {{itemsName}} added to the case_one": "{{count}} {{itemName}} केस में जोड़ा गया",
+  "Notify me when a scheduled hunt that names me, or a team I am on, finds security events.": "जब कोई शेड्यूल किया गया हंट, जो मुझे या मेरी किसी टीम को नामित करता है, सुरक्षा इवेंट ढूंढे तो मुझे सूचित करें।"
 }

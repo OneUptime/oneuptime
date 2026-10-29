@@ -37074,5 +37074,6 @@
   "You changed this hunt's search.": "이 헌트의 검색을 변경했습니다.",
   "e.g. Encoded PowerShell": "예: 인코딩된 PowerShell",
   "{{count}} {{itemsName}} added to the case": "{{itemsName}} {{count}}개를 케이스에 추가함",
-  "{{count}} {{itemsName}} added to the case_one": "{{itemName}} {{count}}개를 케이스에 추가함"
+  "{{count}} {{itemsName}} added to the case_one": "{{itemName}} {{count}}개를 케이스에 추가함",
+  "Notify me when a scheduled hunt that names me, or a team I am on, finds security events.": "나 또는 내가 속한 팀을 알림 대상으로 지정한 예약 헌트가 보안 이벤트를 찾으면 알려 주세요."
 }

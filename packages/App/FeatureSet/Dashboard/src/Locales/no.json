@@ -37074,5 +37074,6 @@
   "You changed this hunt's search.": "Du har endret søket i denne hunten.",
   "e.g. Encoded PowerShell": "f.eks. Kodet PowerShell",
   "{{count}} {{itemsName}} added to the case": "{{count}} {{itemsName}} lagt til i saken",
-  "{{count}} {{itemsName}} added to the case_one": "{{count}} {{itemName}} lagt til i saken"
+  "{{count}} {{itemsName}} added to the case_one": "{{count}} {{itemName}} lagt til i saken",
+  "Notify me when a scheduled hunt that names me, or a team I am on, finds security events.": "Varsle meg når en planlagt hunt som nevner meg, eller et team jeg er med i, finner sikkerhetshendelser."
 }

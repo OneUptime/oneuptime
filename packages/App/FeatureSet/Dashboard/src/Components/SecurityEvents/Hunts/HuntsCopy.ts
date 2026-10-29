@@ -48,11 +48,6 @@ export const FILTER_COUNT: PluralTemplate = {
   other: "{{count}} filters",
 };
 
-// A search beside its filters: "processname:powershell.exe + 2 filters".
-export const SEARCH_AND_FILTERS: string = translationKey(
-  "{{search}} + {{filters}}",
-);
-
 // How often a hunt runs, as the schedule's dropdown and the list say it.
 export const SCHEDULE_LABELS: Record<SecurityHuntSchedule, string> = {
   [SecurityHuntSchedule.NotScheduled]: translationKey("Not Scheduled"),

@@ -37074,5 +37074,6 @@
   "You changed this hunt's search.": "このハントの検索を変更しました。",
   "e.g. Encoded PowerShell": "例: エンコードされた PowerShell",
   "{{count}} {{itemsName}} added to the case": "{{count}} 件の{{itemsName}}をケースに追加しました",
-  "{{count}} {{itemsName}} added to the case_one": "{{count}} 件の{{itemName}}をケースに追加しました"
+  "{{count}} {{itemsName}} added to the case_one": "{{count}} 件の{{itemName}}をケースに追加しました",
+  "Notify me when a scheduled hunt that names me, or a team I am on, finds security events.": "自分または自分が所属するチームを通知先とするスケジュール済みハントがセキュリティイベントを見つけたときに通知します。"
 }

@@ -37074,5 +37074,6 @@
   "You changed this hunt's search.": "Вы изменили запрос этого поиска угроз.",
   "e.g. Encoded PowerShell": "например, Закодированный PowerShell",
   "{{count}} {{itemsName}} added to the case": "Добавлено в кейс: {{count}} ({{itemsName}})",
-  "{{count}} {{itemsName}} added to the case_one": "Добавлено в кейс: {{count}} ({{itemName}})"
+  "{{count}} {{itemsName}} added to the case_one": "Добавлено в кейс: {{count}} ({{itemName}})",
+  "Notify me when a scheduled hunt that names me, or a team I am on, finds security events.": "Уведомлять меня, когда запланированный поиск угроз, в котором указан я или моя команда, находит события безопасности."
 }

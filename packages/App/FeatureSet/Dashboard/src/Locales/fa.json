@@ -37074,5 +37074,6 @@
   "You changed this hunt's search.": "جستجوی این شکار را تغییر دادید.",
   "e.g. Encoded PowerShell": "مثلاً PowerShell رمزگذاری‌شده",
   "{{count}} {{itemsName}} added to the case": "{{count}} مورد به پرونده افزوده شد ({{itemsName}})",
-  "{{count}} {{itemsName}} added to the case_one": "{{count}} مورد به پرونده افزوده شد ({{itemName}})"
+  "{{count}} {{itemsName}} added to the case_one": "{{count}} مورد به پرونده افزوده شد ({{itemName}})",
+  "Notify me when a scheduled hunt that names me, or a team I am on, finds security events.": "وقتی یک شکار زمان‌بندی‌شده که من یا تیمی را که عضو آن هستم نام می‌برد رویدادهای امنیتی پیدا کرد، به من اطلاع بده."
 }

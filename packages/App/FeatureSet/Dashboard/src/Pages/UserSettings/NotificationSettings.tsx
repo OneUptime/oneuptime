@@ -1166,9 +1166,12 @@ const security: Array<SectionDef> = [
       NotificationSettingEventType.SEND_SECURITY_CASE_TASK_ASSIGNED_NOTIFICATION,
     ],
   ),
+  // Keys of their own, so the card says them in the reader's language.
   buildSection(
-    "Hunts",
-    "Notify me when a scheduled hunt that names me, or a team I am on, finds security events.",
+    translationKey("Hunts"),
+    translationKey(
+      "Notify me when a scheduled hunt that names me, or a team I am on, finds security events.",
+    ),
     [NotificationSettingEventType.SEND_SECURITY_HUNT_FOUND_NOTIFICATION],
   ),
 ];

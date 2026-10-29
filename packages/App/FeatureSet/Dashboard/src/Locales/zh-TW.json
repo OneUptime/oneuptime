@@ -37074,5 +37074,6 @@
   "You changed this hunt's search.": "您變更了此獵捕的搜尋。",
   "e.g. Encoded PowerShell": "例如：編碼的 PowerShell",
   "{{count}} {{itemsName}} added to the case": "已將 {{count}} 個{{itemsName}}新增至案例",
-  "{{count}} {{itemsName}} added to the case_one": "已將 {{count}} 個{{itemName}}新增至案例"
+  "{{count}} {{itemsName}} added to the case_one": "已將 {{count}} 個{{itemName}}新增至案例",
+  "Notify me when a scheduled hunt that names me, or a team I am on, finds security events.": "當將我或我所在團隊設為通知對象的排程獵捕發現安全事件時通知我。"
 }
