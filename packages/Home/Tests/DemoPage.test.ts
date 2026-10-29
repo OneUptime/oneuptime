@@ -56,9 +56,12 @@ const sitemapSource: string = fs.readFileSync(
   "utf-8",
 );
 
-// What every short address's route does, and nothing else.
-const PERMANENT_REDIRECT_TO_THE_PAGE: string =
-  'redirectPreservingQuery(req, res, "/enterprise/demo", 301);';
+/*
+ * What every short address's route does, and nothing else: a permanent
+ * redirect to the page that keeps the query, however Prettier lays it out.
+ */
+const PERMANENT_REDIRECT_TO_THE_PAGE: RegExp =
+  /redirectPreservingQuery\(\s*req,\s*res,\s*"\/enterprise\/demo",\s*301,?\s*\);/g;
 
 // Every path Routes.ts registers a GET route on, as written.
 const GET_ROUTE_PATH: RegExp = /app\.get\(\s*"([^"]+)"/g;
@@ -111,25 +114,22 @@ function bodyOfGetRoute(routePath: string): string | null {
 
 // Each path whose route moves people to the demo page, in the route table.
 function routesRedirectingToThePage(): Array<string> {
-  const paths: Array<string> = [];
-  let from: number = routesSource.indexOf(PERMANENT_REDIRECT_TO_THE_PAGE);
+  return Array.from(
+    routesSource.matchAll(PERMANENT_REDIRECT_TO_THE_PAGE),
+    (redirect: RegExpMatchArray): string => {
+      const declaration: number = routesSource.lastIndexOf(
+        "app.get(",
+        redirect.index,
+      );
+      const match: RegExpMatchArray | null = routesSource
+        .slice(declaration)
+        .match(GET_ROUTE_PATH_HERE);
 
-  while (from !== -1) {
-    const declaration: number = routesSource.lastIndexOf("app.get(", from);
-    const match: RegExpMatchArray | null = routesSource
-      .slice(declaration)
-      .match(GET_ROUTE_PATH_HERE);
+      expect(match).not.toBeNull();
 
-    expect(match).not.toBeNull();
-    paths.push(match![1]!);
-
-    from = routesSource.indexOf(
-      PERMANENT_REDIRECT_TO_THE_PAGE,
-      from + PERMANENT_REDIRECT_TO_THE_PAGE.length,
-    );
-  }
-
-  return paths;
+      return match![1]!;
+    },
+  );
 }
 
 /*
@@ -151,7 +151,25 @@ const SITE_ADDRESS: RegExp =
   /(?<=["'`(>}])\/[A-Za-z0-9][^\s"'`<>()[\]{}\\,|]*/g;
 
 // Sentence punctuation after an address in prose ("... at https://oneuptime.com/enterprise/demo.").
-const TRAILING_PUNCTUATION: RegExp = /[.,;:!?]+$/;
+const SENTENCE_PUNCTUATION: ReadonlySet<string> = new Set<string>([
+  ".",
+  ",",
+  ";",
+  ":",
+  "!",
+  "?",
+]);
+
+// The address without the sentence punctuation after it: a loop, not a pattern, so it takes one pass.
+function withoutTrailingPunctuation(address: string): string {
+  let end: number = address.length;
+
+  while (end > 0 && SENTENCE_PUNCTUATION.has(address.charAt(end - 1))) {
+    end--;
+  }
+
+  return address.slice(0, end);
+}
 
 /*
  * The address's path, as Express compares it with a route: letter case
@@ -226,12 +244,12 @@ function demoAddressesIn(
   const addresses: Array<string> = [];
 
   for (const match of text.matchAll(ONEUPTIME_ADDRESS)) {
-    addresses.push((match[1] || "/").replace(TRAILING_PUNCTUATION, ""));
+    addresses.push(withoutTrailingPunctuation(match[1] || "/"));
   }
 
   if (options.siteRelative) {
     for (const match of text.matchAll(SITE_ADDRESS)) {
-      addresses.push(match[0].replace(TRAILING_PUNCTUATION, ""));
+      addresses.push(withoutTrailingPunctuation(match[0]));
     }
   }
 
@@ -267,6 +285,7 @@ const FULL_ADDRESSES: Array<[string, Array<string>]> = [
     "Book at https://oneuptime.com/demo, or see https://oneuptime.com/pricing.",
     ["/demo"],
   ],
+  ["Ask us: https://oneuptime.com/enterprise/demo?!", ["/enterprise/demo"]],
 ];
 
 // Text another package writes, with no address for the demo page in it.
@@ -501,7 +520,7 @@ describe("the routes that answer them", () => {
 
       const body: string = bodyOfGetRoute(shortPath)!;
 
-      expect(body.split(PERMANENT_REDIRECT_TO_THE_PAGE)).toHaveLength(2);
+      expect(body.match(PERMANENT_REDIRECT_TO_THE_PAGE)).toHaveLength(1);
       expect(body).toContain("(req: ExpressRequest, res: ExpressResponse)");
       expect(body).not.toContain("res.render(");
       expect(body).not.toContain("res.redirect(");
