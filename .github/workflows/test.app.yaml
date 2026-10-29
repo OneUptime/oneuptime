@@ -828,7 +828,7 @@ jobs:
           # Security Operations gained a test on 2026-10-28 (about 16 seconds
           # locally: the Overview's pipeline laid out by its own width, its
           # cells' names whole in German and Dutch at four widths): about 18.5.
-          # It gained Watchlists.spec.ts the same day (13 tests, about 45
+          # It gained Watchlists.spec.ts on 2026-10-29 (13 tests, about 45
           # seconds locally: the list and its common lists, Create Watchlist,
           # a list's page, Add Value, Import Values, a list that follows a
           # feed, the line under a rule's YAML, a phone, a new project, a
