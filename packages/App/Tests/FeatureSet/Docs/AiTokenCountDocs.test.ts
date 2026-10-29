@@ -19,7 +19,9 @@ import LLMService, {
   LLMProviderConfig,
   LLMToolDefinition,
 } from "Common/Server/Utils/LLM/LLMService";
+import LLMPromptCacheKey from "Common/Server/Utils/LLM/LLMPromptCacheKey";
 import logger from "Common/Server/Utils/Logger";
+import ObjectID from "Common/Types/ObjectID";
 import stubLLMEgressGuard from "Common/Tests/Server/Utils/AI/StubLLMEgressGuard";
 import {
   afterEach,
@@ -359,5 +361,200 @@ describe("the provider guide's Anthropic section, against LLMService", () => {
     });
 
     expect(markers(bodyOf(spy, 0))).toBe(4);
+  });
+});
+
+/*
+ * Cache weights per model and OpenAI's prompt_cache_key (the follow-ups of
+ * #5111 that #5273 listed): how tokens are counted names the shares the
+ * code counts each model's cache at, and the provider guide's OpenAI section
+ * says what OneUptime tells OpenAI about its prompt cache.
+ */
+describe("AI SRE: a cached token counts at the call's model's prices", () => {
+  it("names the shares AiTokenCount counts each model's cache at", () => {
+    const text: string = section();
+
+    expect(text).toContain(
+      "counts for what the call's model charges for it next to a fresh token",
+    );
+
+    // "on Claude and on OpenAI's current models a read counts as a tenth of a token"
+    expect(text).toContain(
+      "on Claude and on OpenAI's current models a read counts as a tenth of a token",
+    );
+    for (const model of ["claude-sonnet-4-5", "claude-haiku-4-5", "gpt-5.1"]) {
+      expect({
+        model,
+        read: AiTokenCount.getCacheWeights(model).read,
+      }).toEqual({ model, read: { numerator: 1, denominator: 10 } });
+    }
+
+    // "(a twentieth on Claude Opus 5.5 and Sonnet 5.5, half on gpt-4o)"
+    expect(text).toContain(
+      "(a twentieth on Claude Opus 5.5 and Sonnet 5.5, half on gpt-4o)",
+    );
+    for (const model of ["claude-opus-5-5", "claude-sonnet-5-5"]) {
+      expect({
+        model,
+        read: AiTokenCount.getCacheWeights(model).read,
+      }).toEqual({ model, read: { numerator: 1, denominator: 20 } });
+    }
+    expect(AiTokenCount.getCacheWeights("gpt-4o").read).toEqual({
+      numerator: 1,
+      denominator: 2,
+    });
+
+    // "a write to Anthropic's cache, or to OpenAI's from GPT-5.6, as one and a quarter"
+    expect(text).toContain(
+      "a write to Anthropic's cache, or to OpenAI's from GPT-5.6, as one and a quarter",
+    );
+    for (const model of ["claude-sonnet-4-5", "gpt-5.6-terra", "gpt-6.1-sol"]) {
+      expect({
+        model,
+        write: AiTokenCount.getCacheWeights(model).write,
+      }).toEqual({ model, write: { numerator: 5, denominator: 4 } });
+    }
+
+    // "A model OneUptime has no cache price for counts a read as a tenth of a token and a write as one and a quarter."
+    expect(text).toContain(
+      "A model OneUptime has no cache price for counts a read as a tenth of a token and a write as one and a quarter.",
+    );
+    expect(AiTokenCount.getCacheWeights("prod-fast")).toEqual({
+      read: CACHE_READ_TOKEN_WEIGHT,
+      write: CACHE_WRITE_TOKEN_WEIGHT,
+      isModelPriced: false,
+    });
+  });
+
+  it("the AI Logs read each row's model, so a row counts at its model's prices", () => {
+    const table: string = read(LLM_LOGS_TABLE);
+
+    expect(table).toContain("modelName: true");
+    expect(table).toContain("AiTokenCount.getBreakdown(item)");
+  });
+});
+
+describe("the provider guide's OpenAI section, against LLMService", () => {
+  type PostSpy = ReturnType<typeof jest.spyOn>;
+
+  function openAiSection(): string {
+    return flat(getSection(read(LLM_PROVIDER), "### OpenAI"));
+  }
+
+  const OPENAI: LLMProviderConfig = {
+    llmType: LlmType.OpenAI,
+    apiKey: "sk-test",
+    modelName: "gpt-5.1",
+  };
+
+  function reply(): HTTPResponse<JSONObject> {
+    return {
+      jsonData: {
+        choices: [{ message: { content: "OK" }, finish_reason: "stop" }],
+      },
+    } as unknown as HTTPResponse<JSONObject>;
+  }
+
+  function bodyOf(spy: PostSpy, index: number): JSONObject {
+    return (spy.mock.calls[index]![0] as { data: JSONObject }).data;
+  }
+
+  beforeEach(() => {
+    stubLLMEgressGuard();
+    LLMService.clearRequestAdaptationCache();
+    jest.spyOn(logger, "debug").mockImplementation((): void => {});
+    jest.spyOn(logger, "error").mockImplementation((): void => {});
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("says OneUptime sends one prompt_cache_key for each project and kind of AI work, and does", async () => {
+    expect(openAiSection()).toContain(
+      "one prompt cache for each project and kind of AI work, sent as `prompt_cache_key`, so no project's prompts share a cache with another's",
+    );
+
+    const projectA: ObjectID = new ObjectID(
+      "6f1d2c3b-4a59-4e8f-9a7b-1c2d3e4f5a6b",
+    );
+    const projectB: ObjectID = new ObjectID(
+      "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+    );
+
+    expect(
+      LLMPromptCacheKey.build({ projectId: projectA, feature: "AI Chat" }),
+    ).not.toBe(
+      LLMPromptCacheKey.build({ projectId: projectB, feature: "AI Chat" }),
+    );
+    expect(
+      LLMPromptCacheKey.build({ projectId: projectA, feature: "AI Chat" }),
+    ).not.toBe(
+      LLMPromptCacheKey.build({
+        projectId: projectA,
+        feature: "AI Incident Investigation",
+      }),
+    );
+
+    const key: string = LLMPromptCacheKey.build({
+      projectId: projectA,
+      feature: "AI Chat",
+    });
+    const spy: PostSpy = jest
+      .spyOn(API, "post")
+      .mockResolvedValue(reply()) as PostSpy;
+
+    await LLMService.getCompletion({
+      llmProviderConfig: OPENAI,
+      messages: [{ role: "user", content: "hi" }],
+      promptCacheKey: key,
+    });
+
+    expect(bodyOf(spy, 0)["prompt_cache_key"]).toBe(key);
+  });
+
+  it("says a server that refuses the field gets the request again without it, remembered for the provider", async () => {
+    expect(openAiSection()).toContain(
+      "If the server at the provider's **Base URL** refuses the field, OneUptime sends the request again without it and remembers that for the provider.",
+    );
+
+    const spy: PostSpy = jest
+      .spyOn(API, "post")
+      .mockResolvedValueOnce(
+        new HTTPErrorResponse(
+          400,
+          {
+            error: {
+              message:
+                "Unrecognized request argument supplied: prompt_cache_key",
+              type: "invalid_request_error",
+              param: null,
+              code: null,
+            },
+          },
+          {},
+        ),
+      )
+      .mockResolvedValue(reply()) as PostSpy;
+
+    for (let call: number = 0; call < 2; call++) {
+      await LLMService.getCompletion({
+        llmProviderConfig: {
+          ...OPENAI,
+          baseUrl: "https://openai-proxy.example.com/v1",
+        },
+        messages: [{ role: "user", content: "hi" }],
+        promptCacheKey: "0123456789abcdef0123456789abcdef",
+      });
+    }
+
+    // The refusal, the request that worked, then the next call: one request.
+    expect(spy).toHaveBeenCalledTimes(3);
+    expect(bodyOf(spy, 1)).not.toHaveProperty("prompt_cache_key");
+    expect(bodyOf(spy, 2)).not.toHaveProperty("prompt_cache_key");
+  });
+
+  it("links to how cached tokens are counted", () => {
+    expect(openAiSection()).toContain(`(${ANCHOR})`);
   });
 });

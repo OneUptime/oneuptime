@@ -21,6 +21,13 @@ export interface ComponentProps {
    * away once read.
    */
   onDismiss?: (() => void) | undefined;
+  /*
+   * The way forward, under the quieter line: links to what clears the
+   * message. A row of its own, never inside the line's paragraph (a link's
+   * arrow is drawn in a div).
+   */
+  actions?: ReactNode | undefined;
+  actionsTestId?: string | undefined;
 }
 
 // The marks a notice usually carries, in the card's own colours.
@@ -72,6 +79,16 @@ const InvestigationNotice: FunctionComponent<ComponentProps> = (
           <p className="mt-1 break-words text-sm leading-6 text-gray-600">
             {props.children}
           </p>
+        ) : (
+          <></>
+        )}
+        {props.actions ? (
+          <div
+            className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1"
+            data-testid={props.actionsTestId}
+          >
+            {props.actions}
+          </div>
         ) : (
           <></>
         )}

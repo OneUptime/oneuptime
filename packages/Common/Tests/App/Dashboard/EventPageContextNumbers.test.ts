@@ -77,14 +77,19 @@ describe("an incident's title in Ask AI", () => {
     expect(await PageContextUtil.resolveEntityTitle(INCIDENT_CONTEXT)).toBe(
       "INC-18 Manually declared",
     );
-    expect(getItem).toHaveBeenCalledWith({
-      modelType: Incident,
-      id: new ObjectID(ENTITY_ID),
-      select: {
-        title: true,
-        incidentNumber: true,
-        incidentNumberWithPrefix: true,
-      },
+    const read: { modelType: unknown; id: ObjectID; select: JSONObject } =
+      getItem.mock.calls[0]![0] as {
+        modelType: unknown;
+        id: ObjectID;
+        select: JSONObject;
+      };
+    expect(read.modelType).toBe(Incident);
+    expect(read.id.toString()).toBe(ENTITY_ID);
+    // Its number, with its title, in the read Ask AI already makes.
+    expect(read.select).toMatchObject({
+      title: true,
+      incidentNumber: true,
+      incidentNumberWithPrefix: true,
     });
   });
 
@@ -154,7 +159,7 @@ describe("an alert's title in Ask AI", () => {
     expect(await PageContextUtil.resolveEntityTitle(ALERT_CONTEXT)).toBe(
       "ALT-7 CPU high on web-1",
     );
-    expect(selectOf(getItem)).toEqual({
+    expect(selectOf(getItem)).toMatchObject({
       title: true,
       alertNumber: true,
       alertNumberWithPrefix: true,
@@ -184,7 +189,7 @@ describe("a maintenance event's title in Ask AI", () => {
     expect(await PageContextUtil.resolveEntityTitle(MAINTENANCE_CONTEXT)).toBe(
       "SM-3 Primary database failover drill",
     );
-    expect(selectOf(getItem)).toEqual({
+    expect(selectOf(getItem)).toMatchObject({
       title: true,
       scheduledMaintenanceNumber: true,
       scheduledMaintenanceNumberWithPrefix: true,

@@ -1285,6 +1285,33 @@ describe("Traces Explorer (telemetry/traces-explorer)", () => {
     );
   });
 
+  /*
+   * A repository picker for Fix performance with AI: with several
+   * repositories connected and none found to hold the trace's code for
+   * certain, the suggestion lists them (FixPerformanceTaskTrigger), the
+   * strip asks which one holds the code before the fix starts, and the
+   * create route refuses a click without the pick.
+   */
+  it("says a trace no repository was matched to asks which repository holds the code", () => {
+    const strip: string = readDashboardSource(
+      "Components/Traces/TraceDetail/TracePerformanceSuggestion.tsx",
+    );
+    const trigger: string = readCommonSource(
+      "Server/Utils/AI/SRE/FixPerformanceTaskTrigger.ts",
+    );
+
+    expect(page).toContain(
+      "With several repositories connected and none matched to the trace's service or code, it first asks which repository holds the code.",
+    );
+    // Only between two or more, and only when the facts resolve none.
+    expect(trigger).toContain("repositories.length > 1 ? repositories : []");
+    expect(trigger).toContain("!isRepositoryResolved");
+    expect(trigger).toContain("PICK_A_REPOSITORY_FOR_THE_FIX_MESSAGE");
+    // The strip asks in the telemetry finding's own words.
+    expect(strip).toContain("TELEMETRY_AI_FIX_COPY.pickRepository");
+    expect(strip).toContain("needsRepositoryPick");
+  });
+
   it("quotes the finding as the strip words it", () => {
     const suggestionCopy: string = readDashboardSource(
       "Components/Traces/TraceDetail/TracePerformanceSuggestionCopy.ts",

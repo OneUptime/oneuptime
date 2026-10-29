@@ -134,6 +134,8 @@ API Key: sk-xxxxxxxxxxxxxxxxxxxx
 Model Name: gpt-5.1
 ```
 
+OpenAI는 이전에 본 프롬프트를 자동으로 캐시하고, 다시 읽어 온 부분에는 요금을 덜 받습니다. OneUptime은 어떤 호출이 함께 묶이는지 OpenAI에 알려 줍니다: 프로젝트와 AI 작업 종류마다 하나의 프롬프트 캐시를 `prompt_cache_key`로 보내므로, 두 프로젝트의 프롬프트가 캐시를 공유하는 일은 없고 조사의 각 호출은 앞선 호출이 보낸 내용을 다시 읽어 옵니다. 공급자의 **기본 URL**에 있는 서버가 이 필드를 거부하면 OneUptime은 필드 없이 요청을 다시 보내고 그 공급자에 대해 이를 기억합니다. 캐시된 토큰이 한도에 어떻게 계산되는지는 [토큰을 세는 방법](/docs/ai/ai-sre#토큰을-세는-방법)에서 설명합니다.
+
 ### Anthropic
 
 1. [Anthropic Console](https://console.anthropic.com/)에서 API 키를 받습니다

@@ -116,6 +116,22 @@ describe.each(EVENT_PAGES)(
       expect(view).toContain("investigationStage={slot.investigationStage}");
     });
 
+    /*
+     * And where the record itself stands, read from its own state timeline
+     * by the project's acknowledged and resolved states, so the card never
+     * offers to acknowledge what is acknowledged or resolved.
+     */
+    test(`tells the conversation where the ${subjectType} stands, read from its state timeline`, () => {
+      const slot: RegExpMatchArray | null = view.match(
+        /renderConversation=\{\(slot: InvestigationConversationSlot\) => \{ return \( (<InvestigationConversation [^>]*\/>) \); \}\}/,
+      );
+
+      expect(slot![1]).toContain("standing={standing}");
+      expect(view).toContain(
+        "const standing: EventStanding | undefined = getEventStanding({ timelines: timelineDates, acknowledgedStateIds: acknowledgedStateIds, resolvedStateIds: resolvedStateIds, });",
+      );
+    });
+
     test("no longer chooses between a card and an embedded conversation", () => {
       // Everything the page hands the panel, up to the end of its element.
       const panelStart: number = view.indexOf("<InvestigationPanel ");

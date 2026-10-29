@@ -3,6 +3,7 @@ import AiTokenCount, {
   AiTokenUsage,
   CACHE_READ_TOKEN_WEIGHT,
   CACHE_WRITE_TOKEN_WEIGHT,
+  DEFAULT_CACHE_TOKEN_WEIGHTS,
 } from "../../../Types/AI/AiTokenCount";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
@@ -191,6 +192,8 @@ describe("AiTokenCount.getBreakdown", () => {
       countedCacheReadTokens: 2_066,
       cacheWriteTokens: 0,
       countedCacheWriteTokens: 0,
+      // A call that names no model counts at the weights of an unpriced one.
+      cacheWeights: DEFAULT_CACHE_TOKEN_WEIGHTS,
     });
   });
 
@@ -234,16 +237,16 @@ describe("AiTokenCount.toTokenCount", () => {
 
 describe("a day of calls, added up and then counted", () => {
   test("adds every part of every call", () => {
-    expect(AiTokenCount.add(ISSUE_CALLS)).toEqual({
-      totalTokens: 161_996,
-      cachedInputTokens: 4 * 20_654,
-      cacheCreationTokens: 20_654,
-    });
-    expect(AiTokenCount.add([])).toEqual({
-      totalTokens: 0,
-      cachedInputTokens: 0,
-      cacheCreationTokens: 0,
-    });
+    expect(AiTokenCount.sumByModel(ISSUE_CALLS)).toEqual([
+      {
+        totalTokens: 161_996,
+        cachedInputTokens: 4 * 20_654,
+        cacheCreationTokens: 20_654,
+        modelName: null,
+      },
+    ]);
+    expect(AiTokenCount.sumByModel([])).toEqual([]);
+    expect(AiTokenCount.countAll([])).toBe(0);
   });
 
   test("counts what the calls count one by one, give or take the rounding of each", () => {
@@ -271,7 +274,7 @@ describe("a day of calls, added up and then counted", () => {
         },
         0,
       );
-      const together: number = AiTokenCount.count(AiTokenCount.add(calls));
+      const together: number = AiTokenCount.countAll(calls);
 
       // Each call rounds its two weighted parts up: at most two tokens more.
       expect(together).toBeLessThanOrEqual(oneByOne);

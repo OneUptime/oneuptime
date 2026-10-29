@@ -46,6 +46,15 @@ Mens undersøkelsen pågår, viser siden til hendelsen eller varselet et live-pa
 
 En undersøkelse kjører til den er ferdig: den har **ingen tidsgrense** og ikke noe lite spørringsbudsjett, så den kan kjøre alle spørringer og alle kubectl- eller infrastrukturkommandoer den trenger. Lange kommandoutdata (en `kubectl describe node` for en travel node, loggene til en pod) blir aldri kuttet: OneUptime AI leser dem én side om gangen. Vil du ha en hard stopp, angir du en **tidsgrense for undersøkelser** for hver signaltype (se **Kostnadskontroll** nedenfor).
 
+### Når loggene ikke hadde noe å si
+
+En undersøkelse som ikke kunne fastslå en årsak, og som ikke fant noen logglinje i noen av søkene sine, sier hvorfor på kortet **AI Investigation** under rapporten sin, med veien videre:
+
+- **Ingen logger å lese**: ingen logg nådde OneUptime fra timen før hendelsen eller varselet startet. **Sett opp logger** åpner oppsettveiledningen for logger: send loggene til tjenestene dine til OneUptime, så kan den neste undersøkelsen bruke dem.
+- **Ingen logger om denne hendelsen** (for et varsel **Ingen logger om dette varselet**): logger nådde OneUptime, og ingen av undersøkelsens søk fant noe om den. **Sett opp logger** hjelper når en tjeneste som er involvert ennå ikke sender loggene sine, og **Finn feil uten logg** åpner **Logger → KI**, som finner feilene koden din ikke logger og legger til loggingen med en pull-forespørsel.
+
+OneUptime avgjør dette ut fra det den vet, aldri ut fra det analysen sier: den samme serverkontrollerte dommen som [stille modus](#stille-modus), undersøkelsens egne loggsøk og ett oppslag av om noen logg nådde prosjektet i den perioden. En undersøkelse som fant årsaken, eller en logglinje, sier ikke noe slikt.
+
 ## Hva en undersøkelse leser
 
 En undersøkelse starter ved hendelsen eller varselet og ved infrastrukturen den er koblet til: vertene, Docker- og Podman-vertene, Kubernetes-klyngene, databasene og tjenestene som overvåkingene dens følger med på. En nettsted-, API- eller syntetisk overvåking følger med på det du kobler den til under **Overvåking → Oversikt → Tilkoblede ressurser**, så koble den til vertene som leverer det den sjekker, og hver undersøkelse av hendelsene dens starter der. Før alt dette leser den prosjektets [AI-kontekst](/docs/ai/ai-context): det teamet ditt har skrevet ned for OneUptime AI om deres egne systemer, med notatene fra AI-reglene som samsvarer.
@@ -65,7 +74,7 @@ Det skjer høyst én gang per hendelse, med de samme bryterne og grensene som en
 
 ## Snakk med OneUptime AI om hendelsen
 
-Kortet **AI Investigation** slutter med en samtale, **Ask OneUptime AI**, som deles av alle som kan se hendelsen eller varselet. Det er ett kort uansett hva som skjedde over det: under en rapport stiller du oppfølgingsspørsmål, og når ingen automatisk undersøkelse kjørte (eller den stoppet før rapporten), er det første forslaget **What is the root cause?**, som får OneUptime AI til å undersøke ved behov.
+Kortet **AI Investigation** slutter med en samtale, **Ask OneUptime AI**, som deles av alle som kan se hendelsen eller varselet. Det er ett kort uansett hva som skjedde over det: under en rapport stiller du oppfølgingsspørsmål, og når ingen automatisk undersøkelse kjørte (eller den stoppet før rapporten), er det første forslaget **Hva er rotårsaken?**, som får OneUptime AI til å undersøke ved behov. Forslagene følger hvor hendelsen eller varselet står: etter bekreftelsen foreslår ingen av dem å bekrefte, og etter løsningen spør de hvordan responsen gikk og hva som ville hindre en gjentakelse.
 
 - **Still oppfølgingsspørsmål**: «hvilke pods bruker mest minne?», «hva endret seg rett før dette startet?», «er noe annet berørt?». OneUptime AI bygger videre på rapporten sin, henter ferske data (og kjører skrivebeskyttede kubectl- eller infrastrukturkommandoer der den har tilgang, på klyngene og ressursene du har lov til å se) og oppgir kilde for hver påstand.
 - **Be den handle**: «bekreft denne hendelsen», «legg ut en statusoppdatering om at vi undersøker», «varsle databasevakten», «øk alvorlighetsgraden». Den bruker de samme handlingene som Spør AI og handler alltid **med dine egne tillatelser**, så den kan aldri gjøre mer enn du kunne.
@@ -448,7 +457,7 @@ KI-arbeid utenfor hendelser og varsler (triage av innsikt, og rettingsoppgaver f
 
 ### Slik telles tokener
 
-Hver tokengrense på denne siden teller tokenene i et kall etter hva de koster, og det samme gjør AI-loggene og, på OneUptime Cloud, AI-kredittene. En token modellen leser for første gang, og hver token den skriver, teller som én. En undersøkelse eller et svar fra Spør AI består av mange kall, og hvert kall sender hele samtalen på nytt: leverandøren leverer den delen den allerede har sett, fra sin prompt-cache, til en brøkdel av prisen. En token som leses fra den cachen, teller som en tidel token, og en token som skrives til den, som en og en kvart.
+Hver tokengrense på denne siden teller tokenene i et kall etter hva de koster, og det samme gjør AI-loggene og, på OneUptime Cloud, AI-kredittene. En token modellen leser for første gang, og hver token den skriver, teller som én. En undersøkelse eller et svar fra Spør AI består av mange kall, og hvert kall sender hele samtalen på nytt: leverandøren leverer den delen den allerede har sett, fra sin prompt-cache, til en brøkdel av prisen. En token som leses fra den cachen, eller skrives til den, teller for det kallets modell tar for den sammenlignet med en ny token: på Claude og OpenAIs nåværende modeller teller en lest token som en tidel token (en tjuendedel på Claude Opus 5.5 og Sonnet 5.5, halvparten på gpt-4o), og en token som skrives til Anthropics cache, eller fra GPT-5.6 til OpenAIs, som en og en kvart. En modell som OneUptime ikke kjenner en cachepris for, teller en lest token som en tidel token og en skrevet som en og en kvart.
 
 AI-loggene (**Prosjektinnstillinger → KI → AI-logger**) viser hvert kall med tokenene som teller og, under dem, hvor mange tokener det brukte totalt og hvor mange av dem som kom fra cachen eller ble skrevet til den. Med Anthropic, Claude i Microsoft Foundry inkludert, merker OneUptime systemprompten, verktøyene og samtalen for cachen, slik at hvert kall i en undersøkelse leser alt før sine nyeste verktøyresultater fra den. OpenAI og Azure OpenAI cacher en gjentatt prompt på egen hånd.
 

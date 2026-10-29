@@ -16,9 +16,13 @@ import SpanTreeAnalyzer, {
 import {
   getFindingsWorthFixing,
   getTracePerformanceFixOffer,
+  MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES,
   NO_TRACE_PERFORMANCE_FIX_SUGGESTION,
+  PICK_A_REPOSITORY_FOR_THE_FIX_MESSAGE,
+  PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE,
   TRACE_NOT_WORTH_FIXING_MESSAGE,
   TracePerformanceFixOffer,
+  TracePerformanceFixRepository,
   TracePerformanceFixSuggestion,
 } from "../../../../Utils/Suggestions/TracePerformanceFixSuggestion";
 import {
@@ -31,10 +35,13 @@ import {
 } from "../../../../Utils/Suggestions/SuggestionBlocker";
 import SuggestionOffer from "../../../../Utils/Suggestions/SuggestionOffer";
 import AIService from "../../../Services/AIService";
+import CodeRepositoryService from "../../../Services/CodeRepositoryService";
 import ServiceService from "../../../Services/ServiceService";
+import { ResolvableRepository } from "../../CodeRepository/StackTraceRepoResolver";
 import SpanService from "../../../Services/SpanService";
 import SubjectCodeFixRun from "./SubjectCodeFixRun";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import logger from "../../Logger";
 import CodeFixStartGate, { CodeFixStart } from "../CodeFix/CodeFixStartGate";
 import CodeTaskGate from "../CodeTask/CodeTaskGate";
 import CodeTaskRuns from "../CodeTask/CodeTaskRuns";
@@ -304,6 +311,64 @@ export default class FixPerformanceTaskTrigger {
     };
   }
 
+  /*
+   * The repositories a person may pick for a fix no repository was found to
+   * hold for certain: every connected one OneUptime AI can work in
+   * (CodeRepositoryService.getResolvableRepositories, the candidates the
+   * run's own resolution reads), by name.
+   */
+  public static async getRepositoryChoices(
+    projectId: ObjectID,
+  ): Promise<Array<TracePerformanceFixRepository>> {
+    const repositories: Array<ResolvableRepository> =
+      await CodeRepositoryService.getResolvableRepositories(projectId);
+
+    return repositories
+      .map(
+        (repository: ResolvableRepository): TracePerformanceFixRepository => {
+          const name: string =
+            repository.name.trim() ||
+            [repository.organizationName, repository.repositoryName]
+              .filter(Boolean)
+              .join("/") ||
+            repository.id;
+
+          return { id: repository.id, name };
+        },
+      )
+      .sort(
+        (
+          a: TracePerformanceFixRepository,
+          b: TracePerformanceFixRepository,
+        ): number => {
+          return (
+            a.name.localeCompare(b.name, "en", { sensitivity: "base" }) ||
+            a.id.localeCompare(b.id)
+          );
+        },
+      )
+      .slice(0, MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES);
+  }
+
+  /*
+   * The choices, or none when they cannot be read: a pick is then not asked
+   * for, and a run is queued as it was before picks - it finds its
+   * repository when it starts.
+   */
+  private static async readRepositoryChoices(
+    projectId: ObjectID,
+  ): Promise<Array<TracePerformanceFixRepository>> {
+    try {
+      return await FixPerformanceTaskTrigger.getRepositoryChoices(projectId);
+    } catch (error) {
+      logger.warn(
+        `Could not list the repositories a performance fix of project ${projectId.toString()} could be asked in: ${error}`,
+      );
+
+      return [];
+    }
+  }
+
   // The context a FixPerformance run carries: the trace's evidence.
   public static buildTaskContext(data: {
     traceId: string;
@@ -396,6 +461,8 @@ export default class FixPerformanceTaskTrigger {
      * a repository to work in.
      */
     let blocker: SuggestionBlocker | null = null;
+    // Whether the trace's facts resolve the repository the run would work in.
+    let isRepositoryResolved: boolean = false;
 
     if (!activeRun && !finishedFix && hasConnectedRepository) {
       const start: CodeFixStart = await CodeFixStartGate.check({
@@ -420,6 +487,7 @@ export default class FixPerformanceTaskTrigger {
             start.codeRepositoryId?.toString() || null,
           )
         : null;
+      isRepositoryResolved = Boolean(start.codeRepositoryId);
     }
 
     const offer: TracePerformanceFixOffer = getTracePerformanceFixOffer({
@@ -434,6 +502,18 @@ export default class FixPerformanceTaskTrigger {
     const linkedRunId: string | null =
       activeRun?.id?.toString() || finishedFix?.aiRunId || null;
 
+    /*
+     * The fix is offered, but the trace's facts found no repository to hold
+     * its code for certain: the person picks one, from every connected
+     * repository AI can work in - or the run would find none when it starts.
+     * One repository is no choice (the resolver takes it), so a pick is
+     * asked for only between two or more.
+     */
+    const repositories: Array<TracePerformanceFixRepository> =
+      offer.offer === SuggestionOffer.Act && !isRepositoryResolved
+        ? await FixPerformanceTaskTrigger.readRepositoryChoices(data.projectId)
+        : [];
+
     return {
       ...offer,
       aiRunId:
@@ -441,6 +521,7 @@ export default class FixPerformanceTaskTrigger {
         offer.offer === SuggestionOffer.Done
           ? linkedRunId
           : null,
+      repositories: repositories.length > 1 ? repositories : [],
     };
   }
 
@@ -462,6 +543,11 @@ export default class FixPerformanceTaskTrigger {
     spans: Array<AnalyzableSpan>;
     serviceName?: string | undefined;
     userId: ObjectID;
+    /*
+     * The repository the person picked, when the page asked for a pick: no
+     * connected repository was found to hold the trace's code for certain.
+     */
+    repositoryId?: ObjectID | undefined;
   }): Promise<AIRun> {
     if (!data.traceId) {
       throw new BadDataException(
@@ -499,6 +585,7 @@ export default class FixPerformanceTaskTrigger {
       codeLocations: this.collectCodeLocations(data.spans, findings),
       userId: data.userId,
       isAskedByPerson: true,
+      pickedRepositoryId: data.repositoryId,
     });
   }
 
@@ -568,6 +655,8 @@ export default class FixPerformanceTaskTrigger {
     userId?: ObjectID | undefined;
     // A person clicked Fix performance with AI: Code's gate is asked.
     isAskedByPerson?: boolean | undefined;
+    // The repository the person picked (createPerformanceFixTaskFromTrace).
+    pickedRepositoryId?: ObjectID | undefined;
   }): Promise<AIRun> {
     // Gate — a repository the agent can actually open a PR against.
     const hasConnectedRepository: boolean =
@@ -615,6 +704,27 @@ export default class FixPerformanceTaskTrigger {
       });
 
     /*
+     * Gate — a repository the person picked is one the project connected
+     * and AI can work in; the run works in it, when it is queued and when
+     * it starts (CodeFixTaskContext.pickedCodeRepositoryId).
+     */
+    if (data.pickedRepositoryId) {
+      const pickedId: string = data.pickedRepositoryId.toString().toLowerCase();
+      const choices: Array<TracePerformanceFixRepository> =
+        await FixPerformanceTaskTrigger.getRepositoryChoices(data.projectId);
+
+      if (
+        !choices.some((choice: TracePerformanceFixRepository): boolean => {
+          return choice.id.toLowerCase() === pickedId;
+        })
+      ) {
+        throw new BadDataException(PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE);
+      }
+
+      taskContext.pickedCodeRepositoryId = pickedId;
+    }
+
+    /*
      * Gate — what Code's gate says about the repository the run will be
      * queued on; the run is queued on that very repository.
      */
@@ -629,6 +739,21 @@ export default class FixPerformanceTaskTrigger {
 
       if (start.blocker) {
         throw CodeTaskGate.toException(start.blocker);
+      }
+
+      /*
+       * Gate — somewhere to work: several repositories are connected, the
+       * trace's facts match none, and the person picked none. The page asks
+       * for the pick first; a run queued without one would find no
+       * repository when it starts.
+       */
+      if (!start.codeRepositoryId && !data.pickedRepositoryId) {
+        const choices: Array<TracePerformanceFixRepository> =
+          await FixPerformanceTaskTrigger.readRepositoryChoices(data.projectId);
+
+        if (choices.length > 1) {
+          throw new BadDataException(PICK_A_REPOSITORY_FOR_THE_FIX_MESSAGE);
+        }
       }
 
       codeRepositoryId = start.codeRepositoryId;

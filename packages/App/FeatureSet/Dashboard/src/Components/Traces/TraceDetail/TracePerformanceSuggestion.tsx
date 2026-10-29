@@ -4,16 +4,29 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import SuggestionOffer from "Common/Utils/Suggestions/SuggestionOffer";
-import { TracePerformanceFixSuggestion } from "Common/Utils/Suggestions/TracePerformanceFixSuggestion";
-import React, { FunctionComponent, ReactElement, ReactNode } from "react";
+import {
+  TracePerformanceFixRepository,
+  TracePerformanceFixSuggestion,
+} from "Common/Utils/Suggestions/TracePerformanceFixSuggestion";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  ReactNode,
+  useState,
+} from "react";
 import { formatDurationNano } from "../../../Utils/TraceDetailPresentation";
 import CodeBlockerNotice from "../../Code/CodeBlockerNotice";
+import { TELEMETRY_AI_FIX_COPY } from "../../TelemetryAi/TelemetryAiFixCopy";
 import {
   AI_IS_WORKING_ON_A_FIX,
   CONNECT_REPOSITORY_TO_FIX,
@@ -48,7 +61,11 @@ export interface ComponentProps {
   isCreating: boolean;
   // Why the last click did not start a fix, as the server said it.
   error: string | null;
-  onFix: () => void;
+  /*
+   * Starts the fix - in the repository the person picked, when the
+   * suggestion asked for a pick (TracePerformanceFixSuggestion.repositories).
+   */
+  onFix: (repositoryId?: string | undefined) => void;
   // Reveals the spans the finding is about; undefined when none is loaded.
   onShowSpans?: (() => void) | undefined;
 }
@@ -58,6 +75,21 @@ const MS_TO_NANOSECONDS: number = 1_000_000;
 // The strip's links: quiet, and plain to see under the keyboard.
 const LINK_CLASS_NAME: string =
   "rounded-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+
+const REPOSITORY_LABEL_ID: string = "trace-fix-performance-repository-label";
+
+/*
+ * The pick and the fix, one under the other: the whole width the strip
+ * gives the next step on a phone, a column of its own beside the finding
+ * from sm up. A width of its own, not a container query: the next step's
+ * box takes its width from what it holds (flex-none), so an inline-size
+ * container in it would have none.
+ */
+export const TRACE_FIX_PERFORMANCE_PICK_CLASS_NAME: string =
+  "flex w-full flex-col gap-2 sm:w-72";
+
+export const TRACE_FIX_PERFORMANCE_REPOSITORY_TEST_ID: string =
+  "trace-fix-performance-repository";
 
 /*
  * "Fix performance with AI", only on a trace worth fixing, saying what it
@@ -80,10 +112,26 @@ const TracePerformanceSuggestion: FunctionComponent<ComponentProps> = (
 ): ReactElement | null => {
   const translator: Translator = useTranslator();
   const { suggestion } = props;
+  const [pickedRepositoryId, setPickedRepositoryId] = useState<string>("");
 
   if (!suggestion.finding || suggestion.offer === SuggestionOffer.None) {
     return null;
   }
+
+  /*
+   * No connected repository was found to hold this trace's code for
+   * certain, and several could: the person picks one before the fix starts
+   * (as a telemetry finding's Fix with AI asks), or the run would find none
+   * when it starts. A pick stands only while the list still holds it.
+   */
+  const repositories: Array<TracePerformanceFixRepository> =
+    suggestion.repositories || [];
+  const needsRepositoryPick: boolean =
+    suggestion.offer === SuggestionOffer.Act && repositories.length > 1;
+  const pickedRepository: TracePerformanceFixRepository | undefined =
+    repositories.find((repository: TracePerformanceFixRepository): boolean => {
+      return repository.id === pickedRepositoryId;
+    });
 
   const words: PerformanceFindingWords = getPerformanceFindingWords(
     suggestion.finding,
@@ -96,9 +144,15 @@ const TracePerformanceSuggestion: FunctionComponent<ComponentProps> = (
     (suggestion.offer === SuggestionOffer.InProgress ||
       suggestion.offer === SuggestionOffer.Act);
 
-  // The next step is the fix button (not a link or a line of status).
+  /*
+   * The next step is the fix button alone (not a link, a line of status,
+   * or a pick of the repository first).
+   */
   const isFixButton: boolean =
-    !isWorking && !isDone && suggestion.offer !== SuggestionOffer.SetUp;
+    !isWorking &&
+    !isDone &&
+    suggestion.offer !== SuggestionOffer.SetUp &&
+    !needsRepositoryPick;
 
   const name: (text: string) => ReactNode = (text: string): ReactNode => {
     return (
@@ -243,6 +297,69 @@ const TracePerformanceSuggestion: FunctionComponent<ComponentProps> = (
       );
     }
 
+    if (needsRepositoryPick) {
+      const repositoryOptions: Array<DropdownOption> = repositories.map(
+        (repository: TracePerformanceFixRepository): DropdownOption => {
+          return {
+            value: repository.id,
+            label: repository.name,
+            isUserContent: true,
+          };
+        },
+      );
+
+      return (
+        <div className={TRACE_FIX_PERFORMANCE_PICK_CLASS_NAME}>
+          <div
+            className="w-full"
+            data-testid={TRACE_FIX_PERFORMANCE_REPOSITORY_TEST_ID}
+          >
+            <p
+              className="mb-1 text-sm font-medium text-gray-700"
+              id={REPOSITORY_LABEL_ID}
+            >
+              {translator.translateText(TELEMETRY_AI_FIX_COPY.pickRepository)}
+            </p>
+            <Dropdown
+              options={repositoryOptions}
+              value={repositoryOptions.find(
+                (option: DropdownOption): boolean => {
+                  return option.value === pickedRepository?.id;
+                },
+              )}
+              placeholder={translator.translateText(
+                TELEMETRY_AI_FIX_COPY.pickRepositoryPlaceholder,
+              )}
+              ariaLabelledby={REPOSITORY_LABEL_ID}
+              isClearable={false}
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ) => {
+                setPickedRepositoryId(value ? value.toString() : "");
+              }}
+            />
+          </div>
+          <Button
+            title={FIX_PERFORMANCE_BUTTON_TITLE}
+            icon={IconProp.Bolt}
+            buttonStyle={ButtonStyleType.NORMAL}
+            buttonSize={ButtonSize.Small}
+            isLoading={props.isCreating}
+            tooltip={FIX_PERFORMANCE_BUTTON_TOOLTIP}
+            disabled={!pickedRepository}
+            dataTestId="trace-fix-performance"
+            // Under the pick, where the eye goes next.
+            className="self-start whitespace-nowrap md:!ml-0"
+            onClick={() => {
+              if (pickedRepository) {
+                props.onFix(pickedRepository.id);
+              }
+            }}
+          />
+        </div>
+      );
+    }
+
     return (
       <Button
         title={FIX_PERFORMANCE_BUTTON_TITLE}
@@ -253,7 +370,9 @@ const TracePerformanceSuggestion: FunctionComponent<ComponentProps> = (
         tooltip={FIX_PERFORMANCE_BUTTON_TOOLTIP}
         dataTestId="trace-fix-performance"
         className="md:!ml-0"
-        onClick={props.onFix}
+        onClick={() => {
+          props.onFix();
+        }}
       />
     );
   };

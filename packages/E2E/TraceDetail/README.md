@@ -25,8 +25,10 @@ The suite covers:
 - large and unusual traces: a 501-span trace loading its last span, a 1,250-span trace
   staying virtualised and loading the rest in one request, orphaned spans, an empty
   trace, a failed read and the loading skeleton
-- actions and related signals: fix performance with AI (created and refused), logs,
-  exceptions, metrics (and a failed metrics read) and the profile flame graph
+- actions and related signals: fix performance with AI (created and refused, and the
+  repository to pick when several are connected and none matched - `?repo=pick`, or
+  `?repo=pick-gone`, whose pick is disconnected before the click), logs, exceptions,
+  metrics (and a failed metrics read) and the profile flame graph
 - a phone-sized screen: no sideways scrolling and the span panel as a sheet
 
 `Fixture/Fixture.js` records every read on `window.__traceFixture`, so the assertions

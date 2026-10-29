@@ -32,7 +32,10 @@ import { isAIAccessibleOnCurrentPlan } from "../AI/AIPlanGate";
 import AIChatUnavailableReason, {
   getAIChatUnavailableReason,
 } from "./AIChatAvailability";
-import PageContextUtil, { DashboardPageContext } from "./PageContext";
+import PageContextUtil, {
+  DashboardPageContext,
+  ResolvedPageEntity,
+} from "./PageContext";
 
 // The thumbs rating a user can put on an assistant answer.
 export type ChatMessageFeedback = AIConversationMessageFeedback;
@@ -576,7 +579,28 @@ export function useAiChat(options: {
       signature !== lastContextSignatureRef.current;
     lastContextSignatureRef.current = signature;
 
-    setPageContext(detected);
+    setPageContext((current: DashboardPageContext | null) => {
+      /*
+       * The same record again (Ask AI opened on it once more): what the
+       * last read said about it stays until the read below comes back, so
+       * its chip and its questions do not fall back to the generic ones
+       * and change again each time Ask AI opens.
+       */
+      if (
+        detected &&
+        current &&
+        !contextChanged &&
+        AIChatPageContextHelper.getIdentity(current) ===
+          AIChatPageContextHelper.getIdentity(detected)
+      ) {
+        return {
+          ...detected,
+          ...(current.entityTitle ? { entityTitle: current.entityTitle } : {}),
+          ...(current.entityState ? { entityState: current.entityState } : {}),
+        };
+      }
+      return detected;
+    });
     if (contextChanged) {
       setIsPageContextAttached(Boolean(detected));
       if (detected) {
@@ -587,25 +611,36 @@ export function useAiChat(options: {
     let isCurrentPage: boolean = true;
 
     if (detected?.isEntity) {
-      PageContextUtil.resolveEntityTitle(detected)
-        .then((title: string | null) => {
-          if (!title || !isCurrentPage) {
+      // Read each time Ask AI opens: the record may have moved on since.
+      PageContextUtil.resolveEntity(detected)
+        .then((entity: ResolvedPageEntity | null) => {
+          if (!isCurrentPage) {
             return;
           }
           setPageContext((current: DashboardPageContext | null) => {
             // Only decorate the context this fetch was started for.
             if (
-              current &&
-              AIChatPageContextHelper.getIdentity(current) ===
+              !current ||
+              AIChatPageContextHelper.getIdentity(current) !==
                 AIChatPageContextHelper.getIdentity(detected)
             ) {
-              return { ...current, entityTitle: title };
+              return current;
             }
-            return current;
+            // What this read says replaces what the last one said.
+            const next: DashboardPageContext = { ...current };
+            delete next.entityTitle;
+            delete next.entityState;
+            if (entity?.title) {
+              next.entityTitle = entity.title;
+            }
+            if (entity?.state) {
+              next.entityState = entity.state;
+            }
+            return next;
           });
         })
         .catch(() => {
-          // The generic chip label is fine without a title.
+          // The generic chip label and questions are fine without a read.
         });
     }
 
