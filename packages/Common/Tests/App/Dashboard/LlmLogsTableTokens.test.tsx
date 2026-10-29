@@ -129,7 +129,7 @@ const ONE_TOKEN_AS_IN_ENGLISH: Array<string> = [...TOKENS_AS_IN_ENGLISH, "it"];
 const WITHOUT_ONE_FORM: Array<string> = ["ja", "ko", "zh-CN", "zh-TW"];
 
 const HEADER_TOOLTIP: string =
-  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.";
+  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache, or wrote to it, counts for what the model charges for it next to a fresh token. On most current models a read counts as a tenth of a token.";
 
 function readLocale(language: string): Record<string, string> {
   return JSON.parse(
@@ -149,11 +149,15 @@ function log(values: {
   totalTokens: number;
   cachedInputTokens?: number;
   cacheCreationTokens?: number;
+  modelName?: string;
 }): LlmLog {
   const row: LlmLog = new LlmLog();
   row.totalTokens = values.totalTokens;
   row.cachedInputTokens = values.cachedInputTokens || 0;
   row.cacheCreationTokens = values.cacheCreationTokens || 0;
+  if (values.modelName) {
+    row.modelName = values.modelName;
+  }
   return row;
 }
 
@@ -353,7 +357,7 @@ describe("the AI Logs' Tokens Used", () => {
     expect(tokensColumn().disableSort).toBe(true);
   });
 
-  test("the table reads both cache columns of every row", () => {
+  test("the table reads both cache columns of every row, and its model", () => {
     render(<LlmLogsTable />);
 
     const props: Record<string, unknown> =
@@ -363,8 +367,47 @@ describe("the AI Logs' Tokens Used", () => {
       expect.objectContaining({
         cachedInputTokens: true,
         cacheCreationTokens: true,
+        modelName: true,
       }),
     );
+  });
+
+  test("a row counts its cached tokens at its model's prices", () => {
+    // gpt-4o reads its cache for half a fresh token's price.
+    expect(
+      cellParts(
+        log({
+          totalTokens: 28_496,
+          cachedInputTokens: 20_654,
+          modelName: "gpt-4o",
+        }),
+      ),
+    ).toEqual({
+      count: "18,169",
+      facts: ["28,496 tokens", "20,654 from cache"],
+    });
+
+    // Claude Opus 5.5 for a twentieth.
+    expect(
+      cellParts(
+        log({
+          totalTokens: 28_496,
+          cachedInputTokens: 20_654,
+          modelName: "claude-opus-5-5",
+        }),
+      ).count,
+    ).toBe("8,875");
+
+    // A model the cost catalog has no cache price for: a tenth, as before.
+    expect(
+      cellParts(
+        log({
+          totalTokens: 28_496,
+          cachedInputTokens: 20_654,
+          modelName: "prod-fast",
+        }),
+      ).count,
+    ).toBe("9,908");
   });
 });
 

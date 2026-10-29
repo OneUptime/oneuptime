@@ -16,25 +16,44 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 const CACHE_TOKEN_SUMS: string =
   'COALESCE(SUM("log"."cachedInputTokens"), 0) AS "cacheRead", COALESCE(SUM("log"."cacheCreationTokens"), 0) AS "cacheWrite"';
 
+/*
+ * What a cached token counts as depends on the model the call asked for
+ * (AiTokenCount.getCacheWeights), so a usage aggregate sums each model's
+ * calls apart: one row per model, the model beside its sums.
+ */
+const MODEL_OF_THE_SUMS: string = '"log"."modelName" AS "modelName"';
+const GROUP_BY_MODEL: string = 'GROUP BY "log"."modelName"';
+
 // What a usage aggregate hands back for a day's tokens: SQL sums, as strings.
 type SummedTokens = string | number | null | undefined;
 
+interface SummedTokensOfAModel {
+  modelName?: string | null | undefined;
+  total: SummedTokens;
+  cacheRead?: SummedTokens;
+  cacheWrite?: SummedTokens;
+}
+
 /*
  * A day's tokens as OneUptime counts them, from the summed tokens and the
- * summed cache columns (CACHE_TOKEN_SUMS). The day is counted as one: its
- * weighted parts are rounded up once, where the AI Logs round each call's,
- * so the day can count a token or so per call less than its rows add up to.
+ * summed cache columns (CACHE_TOKEN_SUMS) of each model: every model's day
+ * is counted at its own weights, and the counts added up. A model's day is
+ * counted as one: its weighted parts are rounded up once, where the AI Logs
+ * round each call's, so the day can count a token or so per call less than
+ * its rows add up to.
  */
-function countSummedTokens(sums: {
-  total: SummedTokens;
-  cacheRead: SummedTokens;
-  cacheWrite: SummedTokens;
-}): number {
-  return AiTokenCount.count({
-    totalTokens: AiTokenCount.toTokenCount(sums.total),
-    cachedInputTokens: AiTokenCount.toTokenCount(sums.cacheRead),
-    cacheCreationTokens: AiTokenCount.toTokenCount(sums.cacheWrite),
-  });
+function countSummedTokens(rows: Array<SummedTokensOfAModel>): number {
+  return rows.reduce((total: number, row: SummedTokensOfAModel): number => {
+    return (
+      total +
+      AiTokenCount.count({
+        totalTokens: AiTokenCount.toTokenCount(row.total),
+        cachedInputTokens: AiTokenCount.toTokenCount(row.cacheRead),
+        cacheCreationTokens: AiTokenCount.toTokenCount(row.cacheWrite),
+        modelName: row.modelName,
+      })
+    );
+  }, 0);
 }
 
 export class Service extends DatabaseService<Model> {
@@ -48,8 +67,9 @@ export class Service extends DatabaseService<Model> {
   /*
    * The tokens this project has used for the given features since the given
    * time, as OneUptime counts them (AiTokenCount: a token read from the
-   * provider's prompt cache counts as a tenth) — one SQL aggregate, used on
-   * the hot path of the daily autonomous-budget check (G4).
+   * provider's prompt cache counts at what the model charges for it, a tenth
+   * on most current models) — one SQL aggregate, used on the hot path of the
+   * daily autonomous-budget check (G4).
    */
   @CaptureSpan()
   public async getTotalTokensUsedSince(data: {
@@ -120,28 +140,21 @@ export class Service extends DatabaseService<Model> {
       subjectClause = `AND "log"."incidentId" IS NULL AND "log"."alertId" IS NULL AND NOT ("log"."feature" = ANY($4)) AND NOT ("log"."feature" = ANY($5)) AND NOT (${incidentRunMembership}) AND NOT (${alertRunMembership})`;
     }
 
-    const rows: Array<{
-      total: SummedTokens;
-      cacheRead?: SummedTokens;
-      cacheWrite?: SummedTokens;
-    }> = await this.getRepository().manager.query(
-      `SELECT COALESCE(SUM("log"."totalTokens"), 0) AS "total", ${CACHE_TOKEN_SUMS} FROM "LlmLog" AS "log" WHERE "log"."projectId" = $1 AND "log"."createdAt" >= $2 AND "log"."feature" = ANY($3) ${subjectClause} AND "log"."deletedAt" IS NULL`,
-      params,
-    );
+    const rows: Array<SummedTokensOfAModel> =
+      await this.getRepository().manager.query(
+        `SELECT ${MODEL_OF_THE_SUMS}, COALESCE(SUM("log"."totalTokens"), 0) AS "total", ${CACHE_TOKEN_SUMS} FROM "LlmLog" AS "log" WHERE "log"."projectId" = $1 AND "log"."createdAt" >= $2 AND "log"."feature" = ANY($3) ${subjectClause} AND "log"."deletedAt" IS NULL ${GROUP_BY_MODEL}`,
+        params,
+      );
 
-    return countSummedTokens({
-      total: rows[0]?.total,
-      cacheRead: rows[0]?.cacheRead,
-      cacheWrite: rows[0]?.cacheWrite,
-    });
+    return countSummedTokens(rows || []);
   }
 
   /*
    * Everything this project's AI has used since the given time, whatever
    * it was doing: every token of every call (any feature, any provider,
    * Ask AI included), counted as OneUptime counts them (AiTokenCount: a
-   * token read from the provider's prompt cache counts as a tenth, one
-   * written to it as one and a quarter), and what was billed to the
+   * token read from or written to the provider's prompt cache counts at
+   * what the call's model charges for it), and what was billed to the
    * project's AI credits. One SQL aggregate, read on the hot path of the
    * project's own daily limits (Project Settings → AI → AI Features) - only
    * when the project has set one.
@@ -159,23 +172,46 @@ export class Service extends DatabaseService<Model> {
     since: Date;
   }): Promise<{ totalTokens: number; billedCostInUSDCents: number }> {
     const rows: Array<{
+      modelName?: string | null | undefined;
       totalTokens: SummedTokens;
       cacheRead?: SummedTokens;
       cacheWrite?: SummedTokens;
       billedCostInUSDCents: string | number | null;
     }> = await this.getRepository().manager.query(
-      `SELECT COALESCE(SUM("log"."totalTokens"), 0) AS "totalTokens", ${CACHE_TOKEN_SUMS}, COALESCE(SUM(CASE WHEN "log"."wasBilled" = true THEN "log"."costInUSDCents" ELSE 0 END), 0) AS "billedCostInUSDCents" FROM "LlmLog" AS "log" WHERE "log"."projectId" = $1 AND "log"."createdAt" >= $2 AND "log"."deletedAt" IS NULL`,
+      `SELECT ${MODEL_OF_THE_SUMS}, COALESCE(SUM("log"."totalTokens"), 0) AS "totalTokens", ${CACHE_TOKEN_SUMS}, COALESCE(SUM(CASE WHEN "log"."wasBilled" = true THEN "log"."costInUSDCents" ELSE 0 END), 0) AS "billedCostInUSDCents" FROM "LlmLog" AS "log" WHERE "log"."projectId" = $1 AND "log"."createdAt" >= $2 AND "log"."deletedAt" IS NULL ${GROUP_BY_MODEL}`,
       [data.projectId.toString(), data.since],
     );
 
     return {
       // The day's tokens as OneUptime counts them, not their raw sum.
-      totalTokens: countSummedTokens({
-        total: rows[0]?.totalTokens,
-        cacheRead: rows[0]?.cacheRead,
-        cacheWrite: rows[0]?.cacheWrite,
-      }),
-      billedCostInUSDCents: Number(rows[0]?.billedCostInUSDCents || 0),
+      totalTokens: countSummedTokens(
+        (rows || []).map(
+          (row: {
+            modelName?: string | null | undefined;
+            totalTokens: SummedTokens;
+            cacheRead?: SummedTokens;
+            cacheWrite?: SummedTokens;
+          }): SummedTokensOfAModel => {
+            return {
+              modelName: row.modelName,
+              total: row.totalTokens,
+              cacheRead: row.cacheRead,
+              cacheWrite: row.cacheWrite,
+            };
+          },
+        ),
+      ),
+      billedCostInUSDCents: (rows || []).reduce(
+        (
+          total: number,
+          row: { billedCostInUSDCents: string | number | null },
+        ): number => {
+          const cents: number = Number(row.billedCostInUSDCents || 0);
+
+          return total + (Number.isFinite(cents) ? cents : 0);
+        },
+        0,
+      ),
     };
   }
 

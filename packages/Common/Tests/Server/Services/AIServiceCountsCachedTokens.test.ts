@@ -9,6 +9,7 @@ import ProjectService from "../../../Server/Services/ProjectService";
 import AiCreditsUsedUpOwnerNotice from "../../../Server/Utils/AI/AiCreditsUsedUpOwnerNotice";
 import ProjectAiDailyLimitOwnerNotice from "../../../Server/Utils/AI/ProjectAiDailyLimitOwnerNotice";
 import LLMService, { LLMUsage } from "../../../Server/Utils/LLM/LLMService";
+import LLMPromptCacheKey from "../../../Server/Utils/LLM/LLMPromptCacheKey";
 import logger from "../../../Server/Utils/Logger";
 import LlmLog from "../../../Models/DatabaseModels/LlmLog";
 import LlmProvider from "../../../Models/DatabaseModels/LlmProvider";
@@ -24,8 +25,10 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * caching OneUptime's count - and on OneUptime Cloud the AI credits charged
  * for it - ran far ahead of what the calls cost. Every AI call goes through
  * AIService.executeWithLogging, and these hold it to counting tokens by what
- * they cost (AiTokenCount: a cache read is a tenth of a token, a cache write
- * one and a quarter):
+ * they cost (AiTokenCount: a cache read or write counts at what the call's
+ * model charges for it next to a fresh token - on Claude Sonnet 5.5, the
+ * hosted provider here, a read is a twentieth of a token and a write one and
+ * a quarter; a day's sums with no model, a tenth and one and a quarter):
  *
  *  - the AI credits a call through the OneUptime-hosted provider is charged;
  *  - the project's own daily token limit, read before every call;
@@ -230,8 +233,8 @@ describe("AI credits: a call through the OneUptime-hosted provider is charged fo
     provider = globalProvider();
   });
 
-  test("tokens read from the prompt cache are charged a tenth", async () => {
-    // A million tokens, 900,000 of them read from the cache: counted 190,000.
+  test("tokens read from the prompt cache are charged what the model charges for them: a twentieth on Claude Sonnet 5.5", async () => {
+    // A million tokens, 900,000 of them read from the cache: counted 145,000.
     usage = {
       promptTokens: 980_000,
       completionTokens: 20_000,
@@ -243,12 +246,105 @@ describe("AI credits: a call through the OneUptime-hosted provider is charged fo
 
     const log: LlmLog = writtenLog();
 
-    expect(log.costInUSDCents).toBe(95);
+    // 100,000 fresh + 45,000 (900,000 ÷ 20) at $5 a million: 72.5 cents, up.
+    expect(log.costInUSDCents).toBe(73);
     expect(log.wasBilled).toBe(true);
     expect(deduct).toHaveBeenCalledWith({
       projectId: PROJECT_ID,
-      amountInUSDCents: 95,
+      amountInUSDCents: 73,
     });
+  });
+
+  test("on a model whose cache reads cost half, they are charged half", async () => {
+    provider = {
+      ...globalProvider(),
+      llmType: LlmType.OpenAI,
+      modelName: "gpt-4o",
+    } as unknown as LlmProvider;
+    usage = {
+      promptTokens: 980_000,
+      completionTokens: 20_000,
+      totalTokens: 1_000_000,
+      cachedInputTokens: 900_000,
+    };
+
+    await askAi();
+
+    // 100,000 fresh + 450,000 (900,000 ÷ 2) at $5 a million.
+    expect(writtenLog().costInUSDCents).toBe(275);
+    expect(writtenLog().modelName).toBe("gpt-4o");
+  });
+
+  test("the model the call asked for decides, when the provider names none", async () => {
+    provider = {
+      ...globalProvider(),
+      llmType: LlmType.OpenAI,
+      modelName: undefined,
+    } as unknown as LlmProvider;
+    completion.mockImplementation(async () => {
+      return {
+        content: "the model answered",
+        usage: usage,
+        modelName: "gpt-4o",
+      };
+    });
+    usage = {
+      promptTokens: 980_000,
+      completionTokens: 20_000,
+      totalTokens: 1_000_000,
+      cachedInputTokens: 900_000,
+    };
+
+    await askAi();
+
+    expect(writtenLog().modelName).toBe("gpt-4o");
+    expect(writtenLog().costInUSDCents).toBe(275);
+  });
+
+  test("a model the cost catalog has no cache price for is charged a tenth for a read", async () => {
+    provider = {
+      ...globalProvider(),
+      llmType: LlmType.OpenAICompatible,
+      modelName: "house-model-v2",
+    } as unknown as LlmProvider;
+    usage = {
+      promptTokens: 980_000,
+      completionTokens: 20_000,
+      totalTokens: 1_000_000,
+      cachedInputTokens: 900_000,
+    };
+
+    await askAi();
+
+    // 100,000 fresh + 90,000 (900,000 ÷ 10): 95 cents, as every model was.
+    expect(writtenLog().costInUSDCents).toBe(95);
+  });
+
+  test("the call asks OpenAI to keep one prompt cache for the project's kind of work", async () => {
+    await askAi();
+
+    const request: { promptCacheKey?: string } = completion.mock
+      .calls[0]![0] as { promptCacheKey?: string };
+
+    expect(request.promptCacheKey).toBe(
+      LLMPromptCacheKey.build({
+        projectId: PROJECT_ID,
+        feature: "Observability Chat",
+      }),
+    );
+
+    await investigate();
+
+    const investigation: { promptCacheKey?: string } = completion.mock
+      .calls[1]![0] as { promptCacheKey?: string };
+
+    expect(investigation.promptCacheKey).toBe(
+      LLMPromptCacheKey.build({
+        projectId: PROJECT_ID,
+        feature: AI_INCIDENT_INVESTIGATION_FEATURE,
+      }),
+    );
+    expect(investigation.promptCacheKey).not.toBe(request.promptCacheKey);
   });
 
   test("tokens written to the prompt cache are charged one and a quarter", async () => {
