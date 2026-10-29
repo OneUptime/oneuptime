@@ -218,7 +218,7 @@ describe("a device a Meraki connection describes", () => {
     "a device %s whose connection is off: refused, naming the connection it was offered Refresh for",
     async (_: string, overrides: Record<string, unknown>) => {
       device = probePolledDevice({
-        ...(overrides as never),
+        ...(overrides as Partial<NetworkDevice>),
         discoveredDetails: { controller: MERAKI_READING },
       });
       connection = null;
