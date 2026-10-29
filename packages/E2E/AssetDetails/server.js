@@ -114,6 +114,15 @@ const tailwind = path.join(
   repository,
   "packages/Common/Server/Static/Vendor/tailwind/tailwind-3.4.5.js",
 );
+/*
+ * What every index.ejs loads right after the runtime: left and right follow
+ * the page's reading direction, so the Persian page (dir="rtl", ?lang=fa) is
+ * laid out as production lays it out.
+ */
+const readingDirection = path.join(
+  repository,
+  "packages/Common/UI/Styles/TailwindReadingDirection.js",
+);
 
 /*
  * Inter, as production serves it: the Dashboard's index.ejs declares the
@@ -141,7 +150,7 @@ if (!universalRule) {
 const fontRules = `@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url("/fonts/InterVariable.woff2") format("woff2");}${universalRule[0]}`;
 const tailwindConfig = `tailwind.config={darkMode:"class",theme:{extend:{fontFamily:{display:["Inter","sans-serif"],body:["Inter","sans-serif"]}}}};`;
 
-const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Asset details fixture</title><script>window.process={env:{HOST:"localhost",HTTP_PROTOCOL:"http",BILLING_ENABLED:"false",VERSION:"1.0.0",NODE_ENV:"development"}};window.global=window;</script><script src="/tailwind.js"></script><script>${tailwindConfig}</script><style>${fontRules}body{margin:0}*{box-sizing:border-box}</style></head><body class="bg-gray-50"><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
+const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Asset details fixture</title><script>window.process={env:{HOST:"localhost",HTTP_PROTOCOL:"http",BILLING_ENABLED:"false",VERSION:"1.0.0",NODE_ENV:"development"}};window.global=window;</script><script src="/tailwind.js"></script><script src="/tailwind-reading-direction.js"></script><script>${tailwindConfig}</script><style>${fontRules}body{margin:0}*{box-sizing:border-box}</style></head><body class="bg-gray-50"><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
 
 async function main() {
   fs.mkdirSync(output, { recursive: true });
@@ -152,6 +161,11 @@ async function main() {
     if (url.pathname === "/tailwind.js") {
       response.setHeader("Content-Type", "application/javascript");
       fs.createReadStream(tailwind).pipe(response);
+      return;
+    }
+    if (url.pathname === "/tailwind-reading-direction.js") {
+      response.setHeader("Content-Type", "application/javascript");
+      fs.createReadStream(readingDirection).pipe(response);
       return;
     }
     if (url.pathname === "/fonts/InterVariable.woff2") {

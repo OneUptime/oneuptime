@@ -59,7 +59,7 @@ const InventoryItemOverview: FunctionComponent<
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
-  const { item, isLoading, error }: UseInventoryItemResult =
+  const { item, isLoading, error, reload }: UseInventoryItemResult =
     useInventoryItem(modelId);
 
   const [typedRowLink, setTypedRowLink] = useState<TypedRowLink | null>(null);
@@ -208,9 +208,12 @@ const InventoryItemOverview: FunctionComponent<
 
       {/*
        * Hosts and network devices: the same asset facts for both, with the
-       * unknown ones named (issue #4569). Nothing for any other type.
+       * unknown ones named (issue #4569). Nothing for any other type. A
+       * network device can be read again from it (Refresh); once it has
+       * been, the item is read again too - the server copied the reading
+       * onto it - so the attributes below say the same.
        */}
-      <InventoryAssetDetailsCard item={entity} />
+      <InventoryAssetDetailsCard item={entity} onRefreshed={reload} />
 
       {/*
        * What Security Events found about the machine this week - by its

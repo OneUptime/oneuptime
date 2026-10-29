@@ -514,6 +514,10 @@ En enhet med bare ping beholder navnet og adressen du, eller en discovery-skanni
 
 Disse lagres ved siden av enhetens egne felter, skrives aldri inn i dem, og hver skanning, ruter-walk eller polling som leser en av dem på nytt, oppdaterer den. Enhetens oversikt og elementet i inventaret viser hvilken skanning, ruter eller sonde som leste hver verdi, og når. En verdi du har lagret på enheten, erstattes aldri. Når en skanning finner en annen maskin på enhetens adresse, for eksempel en DHCP-leie som har flyttet seg, sier oversikten det, og ingenting av det den skanningen leste der, brukes.
 
+En Meraki-svitsj, et Meraki-tilgangspunkt eller en Meraki-appliance gir verken serienummer, modell eller fastvare over SNMP: Meraki implementerer ingen ENTITY-MIB. Når en [Meraki-tilkobling](/docs/monitor/network-traffic#cisco-meraki-uten-netflow) leser organisasjonen dens, henter enheten disse, og alt annet pollingen lar stå tomt, fra Meraki-dashbordet, og kortet **Inventar** nevner tilkoblingen i en rad **Meraki**.
+
+For å lese en enhet på nytt nå trykker du på **Oppdater** på kortet **Inventar**. Sonden poller den innen et minutt, og Meraki-tilkoblingen leser organisasjonen på nytt. Kortet sier når den nye avlesningen er kommet inn, eller at sonden ikke nådde enheten. **Oppdater** finnes for dem som kan redigere nettverksenheter, på en enhet som en sonde poller eller som en Meraki-tilkobling beskriver.
+
 ## Finn enheter med en nettverksskanning
 
 I stedet for å legge til enheter én om gangen kan du skanne et adresseområde fra en sonde og importere det som svarer.

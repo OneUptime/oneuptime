@@ -833,6 +833,114 @@ describe("a large organization", () => {
   });
 });
 
+describe("the organization's device list", () => {
+  function withOtherDevices(count: number): FakeMerakiOrganization {
+    const organization: FakeMerakiOrganization = buildBranchOrganization({
+      id: "549236",
+      name: "Acme Retail",
+      count: 5,
+    });
+
+    organization.devices = Array.from(
+      { length: count },
+      (_: unknown, index: number) => {
+        return {
+          serial: `Q2HP-SWCH-${String(index).padStart(4, "0")}`,
+          name: `Switch ${index + 1}`,
+          model: "MS225-48LP",
+          mac: `88:15:44:aa:00:${(index % 256).toString(16).padStart(2, "0")}`,
+          networkId: `L_${1000 + (index % 5)}`,
+          productType: index % 2 === 0 ? "switch" : "wireless",
+          lanIp: `10.0.${index % 250}.2`,
+        };
+      },
+    );
+
+    return organization;
+  }
+
+  test("every device is listed, in the one call that listed the appliances", async () => {
+    const env: Env = environment({ organizations: [withOtherDevices(2)] });
+    const result: NetworkControllerReadResult = await readOnce(env);
+
+    const deviceCalls: Array<FakeMerakiRequest> = env.api.callsTo(
+      "/api/v1/organizations/549236/devices",
+    );
+    expect(deviceCalls).toHaveLength(1);
+    expect(deviceCalls[0]!.url.searchParams.getAll("productTypes[]")).toEqual(
+      [],
+    );
+    // Nothing more than the read cost before it listed every device.
+    expect(result.requestCount).toBe(3 + 34 + 10);
+
+    expect(result.devices).toHaveLength(7);
+    expect(result.isDeviceListComplete).toBe(true);
+    expect(result.devices[5]).toEqual({
+      serial: "Q2HP-SWCH-0000",
+      name: "Switch 1",
+      model: "MS225-48LP",
+      mac: "88:15:44:aa:00:00",
+      lanIp: "10.0.0.2",
+      firmware: "switch-16-7",
+      productType: "switch",
+      controllerNetworkId: "L_1000",
+      networkName: "Branch 1",
+      address: "",
+    });
+
+    // The uplinks are still the appliances', named as before.
+    expect(result.appliances).toHaveLength(5);
+    expect(
+      result.appliances.map((appliance: { serial: string }): string => {
+        return appliance.serial;
+      }),
+    ).toEqual([
+      "Q2XX-AAAA-0000",
+      "Q2XX-AAAA-0001",
+      "Q2XX-AAAA-0002",
+      "Q2XX-AAAA-0003",
+      "Q2XX-AAAA-0004",
+    ]);
+    expect(
+      ofKind(result.records, NetworkTrafficUsageKind.Uplink)[0],
+    ).toMatchObject({ deviceSerial: "Q2XX-AAAA-0000", deviceName: "MX 1" });
+  });
+
+  test("a list cut short says so, and the appliances are listed on their own so no uplink loses its name", async () => {
+    const env: Env = environment({
+      organizations: [withOtherDevices(60)],
+      maxPerPage: 1,
+    });
+    const result: NetworkControllerReadResult = await readOnce(env);
+
+    expect(result.isDeviceListComplete).toBe(false);
+    expect(result.devices).toHaveLength(50);
+    expect(result.appliances).toHaveLength(5);
+
+    const deviceCalls: Array<FakeMerakiRequest> = env.api.callsTo(
+      "/api/v1/organizations/549236/devices",
+    );
+    // Fifty pages of every device, then the appliances alone.
+    expect(
+      deviceCalls.filter((call: FakeMerakiRequest): boolean => {
+        return call.url.searchParams.getAll("productTypes[]").length === 0;
+      }),
+    ).toHaveLength(50);
+    expect(
+      deviceCalls.filter((call: FakeMerakiRequest): boolean => {
+        return (
+          call.url.searchParams.getAll("productTypes[]").join(",") ===
+          "appliance"
+        );
+      }),
+    ).toHaveLength(5);
+
+    expect(result.warnings).toContain(
+      "The organization has more than 50,000 devices: only the first 50,000 have their details read.",
+    );
+  });
+});
+
 describe("what else a read says", () => {
   test("after a long pause, the gap is said - never filled with a guess", async () => {
     const env: Env = environment();
