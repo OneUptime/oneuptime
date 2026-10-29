@@ -9,6 +9,7 @@ import {
   sendRetiredSitemap,
 } from "../Utils/Sitemap";
 import { getProductCompareSlugs } from "../Utils/ProductCompare";
+import { DEMO_PAGE_PATH, DEMO_SHORT_PATHS } from "../Utils/DemoPage";
 import { ExpressResponse } from "Common/Server/Utils/Express";
 import fs from "fs";
 import path from "path";
@@ -567,6 +568,71 @@ describe("the Resellers page in the sitemap", () => {
     expect(entry).toContain("<priority>0.6</priority>");
     expect(entry).toContain("<changefreq>monthly</changefreq>");
     expect(isRedirectPath("/resellers")).toBe(false);
+  });
+});
+
+describe("the demo page in the sitemap", () => {
+  /*
+   * oneuptime.com/demo and the demo page's other short addresses
+   * (Utils/DemoPage.ts) are routes that only redirect. The sitemap names
+   * the page they lead to, once, and none of them.
+   */
+  test("is configured once, as a weekly page of priority 0.9", () => {
+    const sitemapSource: string = fs.readFileSync(
+      path.join(__dirname, "..", "Utils", "Sitemap.ts"),
+      "utf-8",
+    );
+
+    expect(sitemapSource.split(`"${DEMO_PAGE_PATH}"`).length - 1).toBe(1);
+    expect(sitemapSource).toContain(
+      '"/enterprise/demo": { priority: 0.9, changefreq: "weekly" }',
+    );
+  });
+
+  test("is listed once, and none of the addresses that lead to it is", async () => {
+    const mod: SitemapModule = loadSitemap({
+      posts: [],
+      routes: REGISTERED_GET_PATHS,
+    });
+    const entries: Array<string> = elementsOf(
+      await mod.generatePagesSitemapXml(),
+      "url",
+    );
+    const pageEntries: Array<string> = entries.filter(
+      (entry: string): boolean => {
+        return locOf(entry) === `${HOME_URL}${DEMO_PAGE_PATH}`;
+      },
+    );
+
+    expect(pageEntries).toHaveLength(1);
+    expect(pageEntries[0]).toContain("<priority>0.9</priority>");
+    expect(pageEntries[0]).toContain("<changefreq>weekly</changefreq>");
+
+    for (const shortPath of DEMO_SHORT_PATHS) {
+      // Each is a route of its own, and one that only redirects...
+      expect([shortPath, REDIRECTING_GET_PATHS.includes(shortPath)]).toEqual([
+        shortPath,
+        true,
+      ]);
+      // ...so the sitemap leaves it out.
+      expect(entries.map(locOf)).not.toContain(`${HOME_URL}${shortPath}`);
+    }
+  });
+
+  test("would list oneuptime.com/demo were it not kept out, so the test above can fail", async () => {
+    // The same routes, with /demo taken out of this module's REDIRECT_PATHS.
+    const mod: SitemapModule = loadSitemap({
+      posts: [],
+      routes: REGISTERED_GET_PATHS,
+    });
+
+    (mod as unknown as { REDIRECT_PATHS: Set<string> }).REDIRECT_PATHS.delete(
+      "/demo",
+    );
+
+    expect(
+      elementsOf(await mod.generatePagesSitemapXml(), "url").map(locOf),
+    ).toContain(`${HOME_URL}/demo`);
   });
 });
 
