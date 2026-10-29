@@ -11,10 +11,12 @@ import path from "path";
  * sight when the rows scroll sideways, a header that sticks while a long
  * page scrolls, a row that opens its record, the phone's cards and the dark
  * theme as drawn - and, in CardHeaders.spec.ts, where every card header
- * shape puts its description under its title, and in RowActions.spec.ts,
+ * shape puts its description under its title, in RowActions.spec.ts,
  * what each row's ⋯ menu offers and does on the incidents, alerts, monitors
- * and runbooks lists - and, in LiveLists.spec.ts, that the incidents and
- * alerts lists keep themselves current as the server announces changes.
+ * and runbooks lists, in LiveLists.spec.ts, that the incidents and alerts
+ * lists keep themselves current as the server announces changes, and in
+ * ColumnResize.spec.ts, a column's edge dragged, double-clicked, keyed,
+ * reset, on a tablet and right to left.
  */
 const port: string = process.env["MODEL_TABLES_FIXTURE_PORT"] || "4319";
 
@@ -25,6 +27,7 @@ export default defineConfig({
     "CardHeaders.spec.ts",
     "RowActions.spec.ts",
     "LiveLists.spec.ts",
+    "ColumnResize.spec.ts",
   ],
   fullyParallel: false,
   workers: 1,

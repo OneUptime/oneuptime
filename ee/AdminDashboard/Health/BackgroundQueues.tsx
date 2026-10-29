@@ -20,6 +20,11 @@ import HealthLicenseRequired, {
   HealthRequestError,
   toHealthRequestError,
 } from "./HealthLicenseRequired";
+import useResizableColumns, {
+  ResizableColumns,
+} from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
+import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -470,6 +475,25 @@ const BackgroundQueues: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const [selectedQueue, setSelectedQueue] = useState<string | null>(null);
 
+  /*
+   * The queues' columns as wide as a person makes them (Common's
+   * Table/ColumnResize): a queue's name gives way, a count never. The
+   * View failures column is as wide as its button.
+   */
+  const queueColumns: ResizableColumns = useResizableColumns({
+    tableKey: "admin-background-queues-table",
+    columns: [
+      { id: "queue", cellNumber: 1 },
+      { id: "status", cellNumber: 2 },
+      { id: "waiting", cellNumber: 3 },
+      { id: "active", cellNumber: 4 },
+      { id: "completed", cellNumber: 5 },
+      { id: "failed", cellNumber: 6 },
+      { id: "delayed", cellNumber: 7 },
+      { id: "total", cellNumber: 8 },
+    ],
+  });
+
   const queues: JSONArray = props.queues;
 
   // Cross-queue roll-ups for the summary tiles (errored queues contribute 0).
@@ -592,19 +616,93 @@ const BackgroundQueues: FunctionComponent<ComponentProps> = (
 
         {/* Per-queue breakdown */}
         <div className="mt-5 overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 text-sm">
+          {queueColumns.styles}
+          <table
+            className={`${queueColumns.getTableWidthClassName("min-w-full")} divide-y divide-gray-200 text-sm`}
+            {...queueColumns.tableAttributes}
+          >
             <thead>
               <tr className="text-left text-xs uppercase text-gray-500">
-                <th className="py-2 pr-4 font-medium">Queue</th>
-                <th className="py-2 px-4 font-medium">Status</th>
-                <th className="py-2 px-4 font-medium tabular-nums">Waiting</th>
-                <th className="py-2 px-4 font-medium tabular-nums">Active</th>
-                <th className="py-2 px-4 font-medium tabular-nums">
-                  Completed
-                </th>
-                <th className="py-2 px-4 font-medium tabular-nums">Failed</th>
-                <th className="py-2 px-4 font-medium tabular-nums">Delayed</th>
-                <th className="py-2 px-4 font-medium tabular-nums">Total</th>
+                <ResizableHeaderCell
+                  className="py-2 pr-4 font-medium"
+                  resize={queueColumns.getResize(
+                    "queue",
+                    "Queue",
+                    ColumnWidthKind.Name,
+                  )}
+                >
+                  <span>Queue</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  className="py-2 px-4 font-medium"
+                  resize={queueColumns.getResize(
+                    "status",
+                    "Status",
+                    ColumnWidthKind.Whole,
+                  )}
+                >
+                  <span>Status</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  className="py-2 px-4 font-medium tabular-nums"
+                  resize={queueColumns.getResize(
+                    "waiting",
+                    "Waiting",
+                    ColumnWidthKind.Whole,
+                  )}
+                >
+                  <span>Waiting</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  className="py-2 px-4 font-medium tabular-nums"
+                  resize={queueColumns.getResize(
+                    "active",
+                    "Active",
+                    ColumnWidthKind.Whole,
+                  )}
+                >
+                  <span>Active</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  className="py-2 px-4 font-medium tabular-nums"
+                  resize={queueColumns.getResize(
+                    "completed",
+                    "Completed",
+                    ColumnWidthKind.Whole,
+                  )}
+                >
+                  <span>Completed</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  className="py-2 px-4 font-medium tabular-nums"
+                  resize={queueColumns.getResize(
+                    "failed",
+                    "Failed",
+                    ColumnWidthKind.Whole,
+                  )}
+                >
+                  <span>Failed</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  className="py-2 px-4 font-medium tabular-nums"
+                  resize={queueColumns.getResize(
+                    "delayed",
+                    "Delayed",
+                    ColumnWidthKind.Whole,
+                  )}
+                >
+                  <span>Delayed</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  className="py-2 px-4 font-medium tabular-nums"
+                  resize={queueColumns.getResize(
+                    "total",
+                    "Total",
+                    ColumnWidthKind.Whole,
+                  )}
+                >
+                  <span>Total</span>
+                </ResizableHeaderCell>
                 <th className="py-2 pl-4 font-medium" />
               </tr>
             </thead>

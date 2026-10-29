@@ -34,6 +34,11 @@ import TableEmptyState, {
 } from "Common/UI/Components/Table/TableEmptyState";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import useResizableColumns, {
+  ResizableColumns,
+} from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
+import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -163,6 +168,24 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+
+  /*
+   * The entities' columns as wide as a person makes them (Common's
+   * Table/ColumnResize): an entity gives way to 10rem, a count, a
+   * severity, a time or a risk never.
+   */
+  const entityColumns: ResizableColumns = useResizableColumns({
+    tableKey: "security-case-entities-table",
+    columns: [
+      { id: "entity", cellNumber: 1 },
+      { id: "type", cellNumber: 2 },
+      { id: "events", cellNumber: 3 },
+      { id: "findings", cellNumber: 4 },
+      { id: "worstSeverity", cellNumber: 5 },
+      { id: "lastSeen", cellNumber: 6 },
+      { id: "risk", cellNumber: 7 },
+    ],
+  });
   const [activity, setActivity] = useState<Map<string, EntityActivity>>(
     new Map(),
   );
@@ -314,54 +337,111 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
             <></>
           )}
           <div className="overflow-x-auto">
+            {entityColumns.styles}
             <table
-              className="min-w-full divide-y divide-gray-200 text-sm"
+              className={`${entityColumns.getTableWidthClassName("min-w-full")} divide-y divide-gray-200 text-sm`}
               data-testid={SECURITY_CASE_ENTITIES_TEST_IDS.table}
+              {...entityColumns.tableAttributes}
             >
               <thead>
                 <tr>
-                  <th scope="col" className={headerCellClassName}>
-                    {translator.translateText("Entity")}
-                  </th>
-                  <th
+                  <ResizableHeaderCell
+                    scope="col"
+                    className={headerCellClassName}
+                    resize={entityColumns.getResize(
+                      "entity",
+                      translator.translateText("Entity") || "Entity",
+                      ColumnWidthKind.Name,
+                    )}
+                  >
+                    <span>
+                      {translator.translateText("Entity") || "Entity"}
+                    </span>
+                  </ResizableHeaderCell>
+                  <ResizableHeaderCell
                     scope="col"
                     className={`${headerCellClassName} ${ENTITIES_TABLE_WIDE_ONLY_CLASS_NAME}`}
+                    resize={entityColumns.getResize(
+                      "type",
+                      translator.translateText("Type") || "Type",
+                      ColumnWidthKind.Text,
+                    )}
                   >
-                    {translator.translateText("Type")}
-                  </th>
-                  <th
+                    <span>{translator.translateText("Type") || "Type"}</span>
+                  </ResizableHeaderCell>
+                  <ResizableHeaderCell
                     scope="col"
                     className={`${headerCellClassName} text-right`}
                     title={translator.translateText(
                       "Security events naming it in the last 7 days",
                     )}
+                    resize={entityColumns.getResize(
+                      "events",
+                      translator.translateText("Events") || "Events",
+                      ColumnWidthKind.Whole,
+                    )}
                   >
-                    {translator.translateText("Events")}
-                  </th>
-                  <th
+                    <span>
+                      {translator.translateText("Events") || "Events"}
+                    </span>
+                  </ResizableHeaderCell>
+                  <ResizableHeaderCell
                     scope="col"
                     className={`${headerCellClassName} text-right ${ENTITIES_TABLE_WIDE_ONLY_CLASS_NAME}`}
+                    resize={entityColumns.getResize(
+                      "findings",
+                      translator.translateText("Findings") || "Findings",
+                      ColumnWidthKind.Whole,
+                    )}
                   >
-                    {translator.translateText("Findings")}
-                  </th>
-                  <th
+                    <span>
+                      {translator.translateText("Findings") || "Findings"}
+                    </span>
+                  </ResizableHeaderCell>
+                  <ResizableHeaderCell
                     scope="col"
                     className={`${headerCellClassName} ${ENTITIES_TABLE_WIDE_ONLY_CLASS_NAME}`}
+                    resize={entityColumns.getResize(
+                      "worstSeverity",
+                      translator.translateText("Worst Severity") ||
+                        "Worst Severity",
+                      ColumnWidthKind.Whole,
+                    )}
                   >
-                    {translator.translateText("Worst Severity")}
-                  </th>
-                  <th
+                    <span>
+                      {translator.translateText("Worst Severity") ||
+                        "Worst Severity"}
+                    </span>
+                  </ResizableHeaderCell>
+                  <ResizableHeaderCell
                     scope="col"
                     className={`${headerCellClassName} ${ENTITIES_TABLE_WIDE_ONLY_CLASS_NAME}`}
+                    resize={entityColumns.getResize(
+                      "lastSeen",
+                      translator.translateText("Last Seen") || "Last Seen",
+                      ColumnWidthKind.Whole,
+                    )}
                   >
-                    {translator.translateText("Last Seen")}
-                  </th>
-                  <th
+                    <span>
+                      {translator.translateText("Last Seen") || "Last Seen"}
+                    </span>
+                  </ResizableHeaderCell>
+                  <ResizableHeaderCell
                     scope="col"
                     className={`${headerCellClassName} ${ENTITIES_TABLE_RISK_COLUMN_CLASS_NAME}`}
+                    resize={entityColumns.getResize(
+                      "risk",
+                      translator.translateText(CASE_ENTITY_RISK_COLUMN_TITLE) ||
+                        CASE_ENTITY_RISK_COLUMN_TITLE,
+                      ColumnWidthKind.Whole,
+                    )}
                   >
-                    {translator.translateText(CASE_ENTITY_RISK_COLUMN_TITLE)}
-                  </th>
+                    <span>
+                      {translator.translateText(
+                        CASE_ENTITY_RISK_COLUMN_TITLE,
+                      ) || CASE_ENTITY_RISK_COLUMN_TITLE}
+                    </span>
+                  </ResizableHeaderCell>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">

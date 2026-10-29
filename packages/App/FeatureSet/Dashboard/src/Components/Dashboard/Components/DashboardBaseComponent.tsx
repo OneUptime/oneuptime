@@ -10,6 +10,7 @@ import DashboardValueComponent from "./DashboardValueComponent";
 import DashboardTextComponent from "./DashboardTextComponent";
 import DashboardClockComponent from "./DashboardClockComponent";
 import DashboardTableComponent from "./DashboardTableComponent";
+import { DashboardWidgetIdContext } from "./DashboardWidgetColumns";
 import DashboardGaugeComponent from "./DashboardGaugeComponent";
 import DashboardDataSourceChartComponent from "./DashboardDataSourceChartComponent";
 import DashboardDataSourceValueComponent from "./DashboardDataSourceValueComponent";
@@ -573,12 +574,18 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           );
         }}
       >
-        <Widget
-          {...props}
-          isEditMode={props.isEditMode}
-          isSelected={props.isSelected}
-          component={component}
-        />
+        {/*
+         * Which widget it is, for what it keeps per widget: a table's
+         * column widths (DashboardWidgetColumns).
+         */}
+        <DashboardWidgetIdContext.Provider value={props.componentId.toString()}>
+          <Widget
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={component}
+          />
+        </DashboardWidgetIdContext.Provider>
       </ContainedErrorBoundary>
     );
   };

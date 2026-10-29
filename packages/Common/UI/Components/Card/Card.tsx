@@ -1,6 +1,11 @@
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import ShortcutKey from "../ShortcutKey/ShortcutKey";
 import { CardGridCellContext, useIsCardGridCell } from "./CardGridCell";
+import {
+  CardMenuExtras,
+  CardMenuExtrasContext,
+  useCardMenuExtrasState,
+} from "./CardMenuExtras";
 import { useCardPlaceFromTitle, useIsCardSection } from "./CardSurface";
 import IconProp from "../../../Types/Icon/IconProp";
 import {
@@ -519,6 +524,12 @@ const Card: FunctionComponent<ComponentProps> = (
   const isSection: boolean = useIsCardSection();
   const isGridCell: boolean = useIsCardGridCell();
   /*
+   * The options what the card holds adds to its ⋯ (CardMenuExtras): a
+   * table's Reset column widths. A section of a card is part of the card it
+   * is in, and gives them to that card's ⋯.
+   */
+  const menuExtras: CardMenuExtras = useCardMenuExtrasState();
+  /*
    * Its place on the page: the id its page gives it - or, in a page's More
    * settings, one after its title (CardPlaceFromTitleContext), so a link
    * can land on any card there.
@@ -930,6 +941,12 @@ const Card: FunctionComponent<ComponentProps> = (
     );
   }
 
+  const contentWithMenuExtras: ReactElement = (
+    <CardMenuExtrasContext.Provider value={menuExtras}>
+      {content}
+    </CardMenuExtrasContext.Provider>
+  );
+
   /*
    * A card that fills its box leaves no gap under it either: that would
    * reach past the box's bottom, and its parent spaces its cards (a grid's
@@ -958,7 +975,7 @@ const Card: FunctionComponent<ComponentProps> = (
             CARD_FILL_HEIGHT_FRAME_CLASS_NAME,
           )}
         >
-          {content}
+          {contentWithMenuExtras}
         </div>
       </div>
     </React.Fragment>

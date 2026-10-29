@@ -50,6 +50,8 @@ export interface ComponentProps<T extends GenericObject> {
    * ruled off from the cells passing under it (TableLayout).
    */
   isOverflowing?: boolean | undefined;
+  // A cell after the columns in each row, as the header draws one.
+  hasEndFiller?: boolean | undefined;
 
   // responsive
   isMobile?: boolean;
@@ -254,6 +256,7 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
               <TableRow
                 isLastRow={i === props.data.length - 1}
                 isOverflowing={props.isOverflowing}
+                hasEndFiller={props.hasEndFiller}
                 isBulkActionsEnabled={props.isBulkActionsEnabled}
                 onItemSelected={props.onItemSelected}
                 onItemDeselected={props.onItemDeselected}

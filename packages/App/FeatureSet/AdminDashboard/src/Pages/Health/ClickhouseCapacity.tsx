@@ -12,6 +12,11 @@ import ResourceUsageBar from "Common/UI/Components/ResourceUsageBar/ResourceUsag
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import API from "Common/UI/Utils/API/API";
 import { APP_API_URL } from "Common/UI/Config";
+import useResizableColumns, {
+  ResizableColumns,
+} from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
+import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -73,6 +78,23 @@ const ClickhouseCapacity: FunctionComponent = (): ReactElement => {
   const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+
+  /*
+   * The local tables' columns as wide as a person makes them (Common's
+   * Table/ColumnResize): a host or a table's name gives way, a size or a
+   * count never.
+   */
+  const localTableColumns: ResizableColumns = useResizableColumns({
+    tableKey: "admin-clickhouse-local-tables-table",
+    columns: [
+      { id: "shard", cellNumber: 1 },
+      { id: "host", cellNumber: 2 },
+      { id: "localTable", cellNumber: 3 },
+      { id: "data", cellNumber: 4 },
+      { id: "rows", cellNumber: 5 },
+      { id: "activeParts", cellNumber: 6 },
+    ],
+  });
 
   const loadCapacity: () => Promise<void> = async (): Promise<void> => {
     setError("");
@@ -271,15 +293,73 @@ const ClickhouseCapacity: FunctionComponent = (): ReactElement => {
       >
         {localTableSizes.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+            {localTableColumns.styles}
+            <table
+              className={`${localTableColumns.getTableWidthClassName("min-w-full")} divide-y divide-gray-200`}
+              {...localTableColumns.tableAttributes}
+            >
               <thead>
                 <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <th className="pb-2 pr-4">Shard</th>
-                  <th className="pb-2 px-4">Host</th>
-                  <th className="pb-2 px-4">Local table</th>
-                  <th className="pb-2 px-4 text-right">Data</th>
-                  <th className="pb-2 px-4 text-right">Rows</th>
-                  <th className="pb-2 pl-4 text-right">Active parts</th>
+                  <ResizableHeaderCell
+                    className="pb-2 pr-4"
+                    resize={localTableColumns.getResize(
+                      "shard",
+                      "Shard",
+                      ColumnWidthKind.Whole,
+                    )}
+                  >
+                    <span>Shard</span>
+                  </ResizableHeaderCell>
+                  <ResizableHeaderCell
+                    className="pb-2 px-4"
+                    resize={localTableColumns.getResize(
+                      "host",
+                      "Host",
+                      ColumnWidthKind.Text,
+                    )}
+                  >
+                    <span>Host</span>
+                  </ResizableHeaderCell>
+                  <ResizableHeaderCell
+                    className="pb-2 px-4"
+                    resize={localTableColumns.getResize(
+                      "localTable",
+                      "Local table",
+                      ColumnWidthKind.Text,
+                    )}
+                  >
+                    <span>Local table</span>
+                  </ResizableHeaderCell>
+                  <ResizableHeaderCell
+                    className="pb-2 px-4 text-right"
+                    resize={localTableColumns.getResize(
+                      "data",
+                      "Data",
+                      ColumnWidthKind.Whole,
+                    )}
+                  >
+                    <span>Data</span>
+                  </ResizableHeaderCell>
+                  <ResizableHeaderCell
+                    className="pb-2 px-4 text-right"
+                    resize={localTableColumns.getResize(
+                      "rows",
+                      "Rows",
+                      ColumnWidthKind.Whole,
+                    )}
+                  >
+                    <span>Rows</span>
+                  </ResizableHeaderCell>
+                  <ResizableHeaderCell
+                    className="pb-2 pl-4 text-right"
+                    resize={localTableColumns.getResize(
+                      "activeParts",
+                      "Active parts",
+                      ColumnWidthKind.Whole,
+                    )}
+                  >
+                    <span>Active parts</span>
+                  </ResizableHeaderCell>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">

@@ -36,6 +36,13 @@ import HealthLicenseRequired, {
   HealthRequestError,
   toHealthRequestError,
 } from "./HealthLicenseRequired";
+import useResizableColumns, {
+  ResizableColumns,
+} from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
+import ResizableHeaderCell, {
+  ColumnResize,
+} from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -116,6 +123,8 @@ const SortableHeader: FunctionComponent<{
   align?: "left" | "right" | undefined;
   onClick: () => void;
   dotClassName?: string | undefined;
+  // The column's edge, which a person drags to size it.
+  resize?: ColumnResize | undefined;
 }> = (props: {
   label: string;
   isActive: boolean;
@@ -123,11 +132,13 @@ const SortableHeader: FunctionComponent<{
   align?: "left" | "right" | undefined;
   onClick: () => void;
   dotClassName?: string | undefined;
+  resize?: ColumnResize | undefined;
 }): ReactElement => {
   const alignRight: boolean = props.align !== "left";
 
   return (
-    <th
+    <ResizableHeaderCell
+      resize={props.resize}
       scope="col"
       aria-sort={
         props.isActive
@@ -172,7 +183,7 @@ const SortableHeader: FunctionComponent<{
             : "▾"}
         </span>
       </button>
-    </th>
+    </ResizableHeaderCell>
   );
 };
 
@@ -195,6 +206,29 @@ const TelemetryIngestionByProject: FunctionComponent = (): ReactElement => {
   const [sortDirection, setSortDirection] = useState<TelemetrySortDirection>(
     TelemetrySortDirection.Descending,
   );
+
+  /*
+   * The projects' columns as wide as a person makes them (Common's
+   * Table/ColumnResize): a project's name gives way, a count never.
+   */
+  const projectColumnIds: Array<string> = [
+    "project",
+    ...TELEMETRY_SIGNAL_ORDER.map((telemetryType: string): string => {
+      return `signal:${telemetryType}`;
+    }),
+    "total",
+    "share",
+    "lastHour",
+    "lastMinute",
+  ];
+  const projectColumns: ResizableColumns = useResizableColumns({
+    tableKey: "admin-telemetry-by-project-table",
+    columns: projectColumnIds.map(
+      (id: string, index: number): { id: string; cellNumber: number } => {
+        return { id: id, cellNumber: index + 1 };
+      },
+    ),
+  });
 
   const loadIngestion: () => Promise<void> = async (): Promise<void> => {
     setError(null);
@@ -405,11 +439,20 @@ const TelemetryIngestionByProject: FunctionComponent = (): ReactElement => {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
+                {projectColumns.styles}
+                <table
+                  className={`${projectColumns.getTableWidthClassName("min-w-full")} divide-y divide-gray-200`}
+                  {...projectColumns.tableAttributes}
+                >
                   <thead>
                     <tr>
                       <SortableHeader
                         label="Project"
+                        resize={projectColumns.getResize(
+                          "project",
+                          "Project",
+                          ColumnWidthKind.Name,
+                        )}
                         align="left"
                         isActive={
                           sortColumn === TelemetrySortColumn.Project &&
@@ -426,6 +469,11 @@ const TelemetryIngestionByProject: FunctionComponent = (): ReactElement => {
                             <SortableHeader
                               key={telemetryType}
                               label={telemetryType}
+                              resize={projectColumns.getResize(
+                                `signal:${telemetryType}`,
+                                telemetryType,
+                                ColumnWidthKind.Whole,
+                              )}
                               dotClassName={
                                 SIGNAL_STYLES[telemetryType]?.dot ||
                                 "bg-gray-400"
@@ -444,6 +492,11 @@ const TelemetryIngestionByProject: FunctionComponent = (): ReactElement => {
                       )}
                       <SortableHeader
                         label="Total (24h)"
+                        resize={projectColumns.getResize(
+                          "total",
+                          "Total (24h)",
+                          ColumnWidthKind.Whole,
+                        )}
                         isActive={
                           sortColumn === TelemetrySortColumn.Total &&
                           !sortSignal
@@ -453,14 +506,24 @@ const TelemetryIngestionByProject: FunctionComponent = (): ReactElement => {
                           applySort(TelemetrySortColumn.Total, null);
                         }}
                       />
-                      <th
+                      <ResizableHeaderCell
                         scope="col"
                         className="whitespace-nowrap px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
+                        resize={projectColumns.getResize(
+                          "share",
+                          "Share",
+                          ColumnWidthKind.Whole,
+                        )}
                       >
-                        Share
-                      </th>
+                        <span>Share</span>
+                      </ResizableHeaderCell>
                       <SortableHeader
                         label="Last hour"
+                        resize={projectColumns.getResize(
+                          "lastHour",
+                          "Last hour",
+                          ColumnWidthKind.Whole,
+                        )}
                         isActive={
                           sortColumn === TelemetrySortColumn.LastHour &&
                           !sortSignal
@@ -472,6 +535,11 @@ const TelemetryIngestionByProject: FunctionComponent = (): ReactElement => {
                       />
                       <SortableHeader
                         label="Last minute"
+                        resize={projectColumns.getResize(
+                          "lastMinute",
+                          "Last minute",
+                          ColumnWidthKind.Whole,
+                        )}
                         isActive={
                           sortColumn === TelemetrySortColumn.LastMinute &&
                           !sortSignal
