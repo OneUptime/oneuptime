@@ -81,6 +81,13 @@ export default interface Column<T extends GenericObject> {
    */
   hideTitleOnMobile?: boolean | undefined;
   /*
+   * Its header has no edge to drag: the table keeps this column as wide as
+   * it draws it. Every other column but the row's actions a person may make
+   * wider or narrower (ColumnResize). For a column whose width a page's
+   * layout depends on.
+   */
+  disableResize?: boolean | undefined;
+  /*
    * List view only (ModelTable's ShowAs.List, where each item is a card of
    * its columns): draw this column's row only when this says so. A table
    * keeps every column for every row and does not read it.

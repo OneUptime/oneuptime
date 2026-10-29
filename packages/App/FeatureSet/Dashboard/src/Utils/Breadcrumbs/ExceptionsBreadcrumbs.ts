@@ -104,6 +104,15 @@ export function getExceptionsBreadcrumbs(
       "AI",
       "Settings",
     ]),
+    /*
+     * Pages that had no trail. Every page this product routes has one:
+     * Common/Tests/App/Dashboard/EveryPageHasATrail fails by name for a
+     * page left out.
+     */
+    ...BuildBreadcrumbLinksByTitles(PageMap.EXCEPTIONS_VIEW_ROOT, [
+      "Project",
+      "Exceptions",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

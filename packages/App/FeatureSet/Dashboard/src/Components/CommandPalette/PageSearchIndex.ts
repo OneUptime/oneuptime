@@ -41,6 +41,16 @@ import EntitySource from "Common/Types/Telemetry/EntitySource";
  * translates them when it shows them. Keywords are other words people type
  * for a page ("pager", "rota", "2fa"): lowercase English, never shown.
  *
+ * A settings page also lists its settings: the names its cards and switches
+ * show ("Require SSO for Login", "Monitor Groups", "Cancel Plan"). Each is a
+ * result of its own, found by that name in English or in the reader's
+ * language, which says the page it is on ("Project Settings > Security >
+ * SSO") and opens it - at the setting's card where it waits folded under
+ * the page's More settings. So a setting is found by the name it goes by,
+ * not only by the menu entry of the page that holds it, and the result says
+ * what was found (SettingsFoundByName in App's tests holds every settings
+ * page to it).
+ *
  * Kept free of React and of Common/UI so the App tests can read it.
  */
 
@@ -78,12 +88,34 @@ export interface PageSearchAction {
   anchor?: string | undefined;
 }
 
+/*
+ * A setting a page holds, by the name its card or switch shows, in English as
+ * the page writes it. Gated like a page where the setting is: Customer
+ * Support Access is on OneUptime Cloud only.
+ */
+export interface PageSearchSetting {
+  name: string;
+  gate?: PageSearchGate | undefined;
+  /*
+   * Its card's place on the page, for a card folded under the page's More
+   * settings: the result opens the fold there (as PageSearchAction.anchor),
+   * so it never lands on a page with the setting it was for hidden.
+   */
+  anchor?: string | undefined;
+}
+
 export interface PageSearchPage {
   // The page's key in RouteMap: a PageMap key, or a generated Developer page.
   page: PageMap | string;
   title: string;
   icon?: IconProp | undefined;
   keywords?: Array<string> | undefined;
+  /*
+   * The settings the page holds, by the names their cards and switches show:
+   * each is a result of its own that opens the page (see the note at the
+   * top).
+   */
+  settings?: Array<string | PageSearchSetting> | undefined;
   // A query string the menu's link carries, with its "?".
   queryString?: string | undefined;
   gate?: PageSearchGate | undefined;
@@ -136,8 +168,21 @@ const labelRules: PageFunction = (page: PageMap): PageSearchPage => {
   };
 };
 
-const customFields: PageFunction = (page: PageMap): PageSearchPage => {
-  return { page, title: "Custom Fields", icon: IconProp.TableCells };
+/*
+ * A Custom Fields page. Its card names whose fields they are ("Team Member
+ * Custom Fields"): where the menu does not say it, that name finds the page
+ * too.
+ */
+const customFields: (page: PageMap, cardTitle?: string) => PageSearchPage = (
+  page: PageMap,
+  cardTitle?: string,
+): PageSearchPage => {
+  return {
+    page,
+    title: "Custom Fields",
+    icon: IconProp.TableCells,
+    ...(cardTitle ? { settings: [cardTitle] } : {}),
+  };
 };
 
 const archived: PageFunction = (page: PageMap): PageSearchPage => {
@@ -378,6 +423,13 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "project id",
               "data residency",
             ],
+            settings: [
+              "Project Details",
+              {
+                name: "Customer Support Access",
+                gate: PageSearchGate.Billing,
+              },
+            ],
           },
           {
             page: PageMap.SETTINGS_LABELS,
@@ -420,6 +472,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "conference bridge",
               "war room",
             ],
+            settings: ["Call transcripts"],
           },
         ],
       },
@@ -437,6 +490,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "otlp",
               "send telemetry",
             ],
+            settings: ["Telemetry Ingestion Keys"],
           },
           {
             page: PageMap.SETTINGS_TELEMETRY_SETTINGS,
@@ -446,6 +500,17 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "retention",
               "telemetry settings",
               "how long data is kept",
+            ],
+            settings: [
+              "Telemetry Data Retention",
+              /*
+               * Folded under the page's More settings: the result opens the
+               * fold at its card (TelemetryRetentionFold's place for it).
+               */
+              {
+                name: "Retention by Telemetry Type",
+                anchor: "retention-by-telemetry-type",
+              },
             ],
           },
         ],
@@ -467,6 +532,11 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "twilio",
               "balance",
               "auto recharge",
+            ],
+            settings: [
+              "Notification Channels",
+              { name: "Current Balance", gate: PageSearchGate.Billing },
+              { name: "Auto Recharge", gate: PageSearchGate.Billing },
             ],
             /*
              * The project's own mail servers and Twilio accounts, folded
@@ -507,6 +577,16 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "Notification Logs",
             icon: IconProp.Bell,
             keywords: ["sms logs", "email logs", "call logs", "delivery"],
+            settings: [
+              "Email Logs",
+              "SMS Logs",
+              "WhatsApp Logs",
+              "Telegram Logs",
+              "Webhook Logs",
+              "Call Logs",
+              "Push Logs",
+              "Workspace Logs",
+            ],
           },
           {
             page: PageMap.SETTINGS_MOBILE_APPS,
@@ -524,6 +604,17 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "AI Features",
             icon: IconProp.Sparkles,
             keywords: ["enable ai", "turn on ai", "artificial intelligence"],
+            settings: [
+              "Enable AI",
+              "AI context",
+              /*
+               * Folded under the page's More settings: each opens the fold
+               * at the Daily limits card (PROJECT_AI_DAILY_LIMITS_CARD_KEY).
+               */
+              { name: "Daily limits", anchor: "DailyLimits" },
+              { name: "Daily AI Token Limit", anchor: "DailyLimits" },
+              { name: "Daily AI Spend Limit (USD)", anchor: "DailyLimits" },
+            ],
           },
           {
             page: PageMap.SETTINGS_AI_LLM_PROVIDERS,
@@ -537,6 +628,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "model provider",
               "ai provider",
             ],
+            settings: ["Global LLM Providers"],
           },
           {
             page: PageMap.SETTINGS_AI_EXTERNAL_MCP_SERVERS,
@@ -557,6 +649,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Billing,
             gate: PageSearchGate.Billing,
             keywords: ["buy ai credits", "ai usage"],
+            settings: ["Current Balance", "Auto Recharge"],
           },
           {
             page: PageMap.SETTINGS_AI_LOGS,
@@ -569,6 +662,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "MCP Server",
             icon: IconProp.Terminal,
             keywords: ["model context protocol", "cursor", "ai assistant"],
+            settings: ["Connected MCP Clients", "What agents can do"],
           },
         ],
       },
@@ -597,6 +691,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "Feature Flags",
             icon: IconProp.Flag,
             keywords: ["beta features", "experimental", "early access"],
+            settings: ["Monitor Groups"],
           },
           // Last in Advanced, as the side menu lists it.
           {
@@ -624,6 +719,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "statuscake",
               "uptime kuma",
             ],
+            settings: ["Start a new import", "Earlier imports"],
           },
         ],
       },
@@ -643,12 +739,20 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "payment method",
               "credit card",
             ],
+            settings: [
+              "Current Plan",
+              "Payment Methods",
+              "Business Details / Billing Address",
+              "Customer Balance",
+              "Cancel Plan",
+            ],
           },
           {
             page: PageMap.SETTINGS_USAGE_HISTORY,
             title: "Usage History",
             icon: IconProp.ChartBar,
             keywords: ["usage", "data ingested"],
+            settings: ["Telemetry Usage History"],
           },
           {
             page: PageMap.SETTINGS_BILLING_INVOICES,
@@ -680,12 +784,23 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "openid connect",
               "oauth",
             ],
+            settings: [
+              "SAML",
+              "OpenID Connect (OIDC)",
+              "Test Single Sign On (SSO)",
+              "SSO Settings",
+              "Require SSO for Login",
+            ],
           },
           {
             page: PageMap.SETTINGS_SCIM,
             title: "SCIM",
             icon: IconProp.Refresh,
             keywords: ["user provisioning", "directory sync", "sync users"],
+            settings: [
+              "SCIM (System for Cross-domain Identity Management)",
+              "SCIM User Provisioning",
+            ],
           },
         ],
       },
@@ -703,6 +818,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "Settings",
             icon: IconProp.Settings,
             keywords: ["audit log settings", "audit log retention"],
+            settings: ["Audit Logs Settings"],
           },
           {
             page: PageMap.SETTINGS_AUDIT_LOGS_EXPORT,
@@ -715,6 +831,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "siem",
               "syslog",
             ],
+            settings: ["Export Audit Logs"],
           },
         ],
       },
@@ -1228,7 +1345,12 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.ON_CALL_DUTY_EXECUTION_LOGS,
             title: "Execution Logs",
             icon: IconProp.Logs,
-            keywords: ["paging logs", "escalation logs"],
+            /*
+             * Its card says "On-Call Policy Logs": "policy logs" finds it with
+             * "on-call" from where it lives, while "on-call policy" still
+             * opens the policies first.
+             */
+            keywords: ["paging logs", "escalation logs", "policy logs"],
           },
           {
             page: PageMap.ON_CALL_DUTY_POLICIES_ARCHIVED,
@@ -3077,7 +3199,9 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       },
       {
         title: "Settings",
-        pages: [customFields(PageMap.USER_CUSTOM_FIELDS)],
+        pages: [
+          customFields(PageMap.USER_CUSTOM_FIELDS, "Team Member Custom Fields"),
+        ],
       },
     ],
   },
@@ -3120,8 +3244,9 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "permission sets",
               "permissions",
             ],
+            settings: ["Custom Roles", "Built-in Roles"],
           },
-          customFields(PageMap.TEAM_CUSTOM_FIELDS),
+          customFields(PageMap.TEAM_CUSTOM_FIELDS, "Team Custom Fields"),
         ],
       },
     ],
@@ -3141,6 +3266,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "Setup Checklist",
             icon: IconProp.ClipboardDocumentCheck,
             keywords: ["get started", "onboarding"],
+            settings: ["Your setup checklist"],
           },
         ],
       },
@@ -3157,6 +3283,15 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "email",
               "push",
               "contact methods",
+            ],
+            settings: [
+              "Emails for Notifications",
+              "Phone Numbers for SMS Notifications",
+              "Phone Numbers for Call Notifications",
+              "WhatsApp Numbers for Notifications",
+              "Telegram Accounts for Notifications",
+              "Push Notifications",
+              "Webhooks",
             ],
           },
           {
@@ -3176,6 +3311,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "Email Preferences",
             icon: IconProp.Envelope,
             keywords: ["unsubscribe", "email digest"],
+            settings: ["Fewer routine emails", "Email Rollup"],
           },
         ],
       },
@@ -3197,6 +3333,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.USER_SETTINGS_INCOMING_CALL_PHONE_NUMBERS,
             title: "Incoming Phone Numbers",
             icon: IconProp.Call,
+            settings: ["Phone Numbers for Incoming Call Routing"],
           },
         ],
       },
@@ -3208,12 +3345,19 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "Calendar Feed",
             icon: IconProp.Calendar,
             keywords: ["ical", "ics", "my on-call calendar"],
+            settings: [
+              "Subscribe to your on-call shifts",
+              "Upcoming shifts",
+              "Remind me before shifts",
+            ],
           },
         ],
       },
       {
         title: "Profile",
-        pages: [customFields(PageMap.USER_SETTINGS_CUSTOM_FIELDS)],
+        pages: [
+          customFields(PageMap.USER_SETTINGS_CUSTOM_FIELDS, "My Custom Fields"),
+        ],
       },
       {
         title: "Workspace",
@@ -3248,6 +3392,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "Overview",
             icon: IconProp.Info,
             keywords: ["my profile", "profile", "my name", "my email"],
+            settings: ["Basic Info", "Full Name", "Timezone"],
           },
           {
             page: PageMap.USER_PROFILE_PICTURE,
@@ -3265,6 +3410,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "Password Management",
             icon: IconProp.Lock,
             keywords: ["change password", "reset password", "update password"],
+            settings: ["Update Password"],
           },
           {
             page: PageMap.USER_PASSKEYS,
@@ -3277,6 +3423,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "Two-factor authentication",
             icon: IconProp.ShieldCheck,
             keywords: ["2fa", "mfa", "authenticator app", "otp"],
+            settings: ["Security keys", "Authenticator apps", "Backup codes"],
           },
         ],
       },

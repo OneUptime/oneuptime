@@ -1,4 +1,9 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import useResizableColumns, {
+  ResizableColumns,
+} from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
+import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import SecurityEventConnectionRun from "Common/Models/DatabaseModels/SecurityEventConnectionRun";
 import { JSONObject } from "Common/Types/JSON";
 import {
@@ -278,6 +283,21 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
     }),
   );
 
+  /*
+   * The sample records' columns as wide as a person makes them (Common's
+   * Table/ColumnResize): a record gives way, a severity or a time never.
+   */
+  const sampleColumns: ResizableColumns = useResizableColumns({
+    tableKey: "security-connection-run-samples-table",
+    columns: [
+      { id: "record", cellNumber: 1 },
+      { id: "severity", cellNumber: 2 },
+      { id: "eventTime", cellNumber: 3 },
+      { id: "createdAtSource", cellNumber: 4 },
+      ...(showAlertColumn ? [{ id: "alert", cellNumber: 5 }] : []),
+    ],
+  });
+
   return (
     <section
       aria-label="Run details"
@@ -530,16 +550,65 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
                 the record. Samples may cover only part of the result.
               </p>
               <div className="mt-2 overflow-x-auto">
-                <table className="min-w-full text-left text-sm">
+                {sampleColumns.styles}
+                <table
+                  className={`${sampleColumns.getTableWidthClassName("min-w-full")} text-left text-sm`}
+                  {...sampleColumns.tableAttributes}
+                >
                   <thead className="border-b border-gray-200 text-gray-500">
                     <tr>
-                      <th className="py-2 pr-4">Record</th>
-                      <th className="py-2 pr-4">Severity</th>
-                      <th className="py-2 pr-4">Event time (UTC)</th>
-                      <th className={showAlertColumn ? "py-2 pr-4" : "py-2"}>
-                        Created at source (UTC)
-                      </th>
-                      {showAlertColumn && <th className="py-2">Alert</th>}
+                      <ResizableHeaderCell
+                        className="py-2 pr-4"
+                        resize={sampleColumns.getResize(
+                          "record",
+                          "Record",
+                          ColumnWidthKind.Name,
+                        )}
+                      >
+                        <span>{"Record"}</span>
+                      </ResizableHeaderCell>
+                      <ResizableHeaderCell
+                        className="py-2 pr-4"
+                        resize={sampleColumns.getResize(
+                          "severity",
+                          "Severity",
+                          ColumnWidthKind.Whole,
+                        )}
+                      >
+                        <span>{"Severity"}</span>
+                      </ResizableHeaderCell>
+                      <ResizableHeaderCell
+                        className="py-2 pr-4"
+                        resize={sampleColumns.getResize(
+                          "eventTime",
+                          "Event time (UTC)",
+                          ColumnWidthKind.Whole,
+                        )}
+                      >
+                        <span>{"Event time (UTC)"}</span>
+                      </ResizableHeaderCell>
+                      <ResizableHeaderCell
+                        className={showAlertColumn ? "py-2 pr-4" : "py-2"}
+                        resize={sampleColumns.getResize(
+                          "createdAtSource",
+                          "Created at source (UTC)",
+                          ColumnWidthKind.Whole,
+                        )}
+                      >
+                        <span>{"Created at source (UTC)"}</span>
+                      </ResizableHeaderCell>
+                      {showAlertColumn && (
+                        <ResizableHeaderCell
+                          className="py-2"
+                          resize={sampleColumns.getResize(
+                            "alert",
+                            "Alert",
+                            ColumnWidthKind.Whole,
+                          )}
+                        >
+                          <span>{"Alert"}</span>
+                        </ResizableHeaderCell>
+                      )}
                     </tr>
                   </thead>
                   <tbody>

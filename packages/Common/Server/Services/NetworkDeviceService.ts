@@ -31,6 +31,8 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../Types/ObjectID";
+import URL from "../../Types/API/URL";
+import DatabaseConfig from "../DatabaseConfig";
 import OneUptimeDate from "../../Types/Date";
 import CidrMatchUtil from "../../Utils/NetworkSite/CidrMatchUtil";
 import { normalizeMac } from "../../Utils/Monitor/EndpointAttachmentUtil";
@@ -694,6 +696,23 @@ export class Service extends ProjectReferencesService<Model> {
    */
   protected override getReferencesFilledFromNamedRecords(): Array<string> {
     return ["probe"];
+  }
+
+  /*
+   * The device's page in the dashboard: where an incident's or an alert's
+   * Resources Affected line links a network device it names
+   * (LinkedAffectedResources).
+   */
+  @CaptureSpan()
+  public async getNetworkDeviceLinkInDashboard(
+    projectId: ObjectID,
+    networkDeviceId: ObjectID,
+  ): Promise<URL> {
+    const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+
+    return URL.fromString(dashboardUrl.toString()).addRoute(
+      `/${projectId.toString()}/network-devices/${networkDeviceId.toString()}`,
+    );
   }
 
   /**

@@ -761,6 +761,12 @@ Um einen stattdessen unter **Monitore** anzulegen:
 
 Ein Netzwerkgerät-Monitor hat kein eigenes Intervall: Er wird jedes Mal ausgewertet, wenn die Abfrageergebnisse des Geräts eintreffen, und jedes Mal, wenn ein Trap vom Gerät eintrifft.
 
+### Vorfälle und Warnungen eines Geräts
+
+Ein Vorfall oder eine Warnung kann ein Netzwerkgerät betreffen. Wählen Sie das Gerät unter **Andere betroffene Ressourcen**, wenn Sie einen Vorfall melden oder eine Warnung erstellen, oder lassen Sie es von einem Monitor verknüpfen: Was ein Monitor auslöst, wird mit dem Gerät verknüpft, über das er berichtet – dem Gerät, das ein Netzwerkgerät-Monitor überwacht, dem Gerät, an das der Monitor gebunden ist, und dem Gerät, für das ein Discovery-Import den Monitor angelegt hat.
+
+Die Seiten **Vorfälle** und **Warnungen** des Geräts, unter **Aktivität** in seinem Menü, listen auf, was mit ihm verknüpft ist, und das Menü und die Übersicht des Geräts zählen die offenen. **Vorfall melden** und **Warnung erstellen** auf diesen Seiten beginnen mit dem ausgewählten Gerät.
+
 ### Standardwerte für benutzerdefinierte Felder
 
 Wenn Ihr Projekt benutzerdefinierte Monitorfelder definiert — Hersteller, Konfigurationselement, zuständiger Dienst, was immer Ihre CMDB braucht —, kann eine Monitor-Vorlage sie ausfüllen. Öffnen Sie die Vorlage unter **Monitore → Einstellungen → Vorlagen** und legen Sie ihre **Standardwerte für benutzerdefinierte Felder** fest.

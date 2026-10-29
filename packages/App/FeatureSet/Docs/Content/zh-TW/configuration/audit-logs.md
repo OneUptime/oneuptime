@@ -102,6 +102,8 @@ flowchart TB
 | 封包擷取及其下載 | `Packet Capture` |
 | 安全案件及其優先順序與狀態、劇本及其執行、受保護的實體、實體重要性，以及被重設的實體風險 | `Security Case`、`Security Case Priority`、`Security Case Status`、`Security Playbook`、`Security Playbook Run`、`Protected Entity`、`Entity Criticality`、`Entity Risk` |
 | 規則例外 | `Rule Exception` |
+| 監看清單 | `Watchlist` |
+| 監看清單值 | `Watchlist Value` |
 | 安全案件的任務和證據 | `Security Case Task`、`Security Case Evidence` |
 | 稽核日誌匯出 | `Audit Log Export` |
 

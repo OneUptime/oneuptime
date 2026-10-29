@@ -177,6 +177,22 @@ export function getProxmoxBreadcrumbs(path: string): Array<Link> | undefined {
       "Label Rules",
       "View Rule",
     ]),
+    /*
+     * Pages that had no trail. Every page this product routes has one:
+     * Common/Tests/App/Dashboard/EveryPageHasATrail fails by name for a
+     * page left out.
+     */
+    ...BuildBreadcrumbLinksByTitles(PageMap.PROXMOX_CLUSTER_VIEW_FEED, [
+      "Project",
+      "Proxmox",
+      "View Cluster",
+      "Feed",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.PROXMOX_ARCHIVED, [
+      "Project",
+      "Proxmox",
+      "Archived",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

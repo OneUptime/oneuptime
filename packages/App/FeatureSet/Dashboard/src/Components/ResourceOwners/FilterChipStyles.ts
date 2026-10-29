@@ -22,6 +22,16 @@ export const FACET_FILTER_BAR_CLASS_NAME: string =
   "-mt-1 mb-4 flex flex-wrap items-center gap-x-2 gap-y-2";
 
 /*
+ * The row folded, on a phone: a chip that holds no filter is not drawn
+ * (FilterChipButton marks each chip data-filter-chip-set), with the place
+ * it sits in. What the list is filtered by stays in sight, and so does
+ * everything else in the row - "Filter", "Clear all", the rule library's
+ * count of rules.
+ */
+export const FACET_FILTER_BAR_FOLDED_CLASS_NAME: string =
+  "[&>*:has([data-filter-chip-set=false])]:hidden";
+
+/*
  * The pill: shape, border, fill and hover. The colours come from below.
  * Never wider than the place it is given (max-w-full): a dropdown chip's
  * place is never wider than the bar (FILTER_CHIP_PLACE_CLASSES).

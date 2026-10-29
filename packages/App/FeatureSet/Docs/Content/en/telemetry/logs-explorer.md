@@ -88,6 +88,7 @@ Live mode turns itself off when you change the search, a filter or the time rang
 
 - **Columns** picks what the list shows. **Time**, **Service**, **Severity** and **Message** come first; add **Trace ID**, **Span ID** or any attribute, move columns up and down, or **Reset** to the defaults.
 - **Export** downloads the logs on the page you are looking at. **Export as CSV** writes the columns you show; **Export as JSON** writes every field of each log, with all its attributes.
+- Point at the header row and drag the line at the end of a column's name to make the column wider or narrower, or double-click the line to fit the column to what it holds. The list keeps your widths in this browser; **Reset column widths**, at the end of the header row, sets every column back to its own width.
 
 ## Save a view
 

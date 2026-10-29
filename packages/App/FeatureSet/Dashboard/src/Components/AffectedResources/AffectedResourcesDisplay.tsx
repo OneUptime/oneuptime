@@ -11,6 +11,7 @@ import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import Service from "Common/Models/DatabaseModels/Service";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
@@ -33,6 +34,7 @@ import PodmanHostElement from "../PodmanHost/PodmanHost";
 import HostElement from "../Host/Host";
 import KubernetesClusterElement from "../KubernetesCluster/KubernetesCluster";
 import MonitorElement from "../Monitor/Monitor";
+import NetworkDeviceElement from "../NetworkDevice/NetworkDeviceElement";
 import NetworkSiteElement from "../NetworkSite/NetworkSiteElement";
 import ServiceElement from "../Service/ServiceElement";
 import SloElement from "../Slo/SloElement";
@@ -40,6 +42,7 @@ import SloElement from "../Slo/SloElement";
 export interface ComponentProps {
   monitors?: Array<Monitor> | undefined;
   hosts?: Array<Host> | undefined;
+  networkDevices?: Array<NetworkDevice> | undefined;
   kubernetesClusters?: Array<KubernetesCluster> | undefined;
   dockerHosts?: Array<DockerHost> | undefined;
   podmanHosts?: Array<PodmanHost> | undefined;
@@ -68,6 +71,7 @@ export interface ComponentProps {
    */
   hideMonitors?: boolean | undefined;
   hideHosts?: boolean | undefined;
+  hideNetworkDevices?: boolean | undefined;
   hideKubernetesClusters?: boolean | undefined;
   hideDockerHosts?: boolean | undefined;
   hidePodmanHosts?: boolean | undefined;
@@ -214,18 +218,19 @@ function CategorySection<T extends NamedResource>(
             data-testid="affected-resource-category-count"
             className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium tabular-nums text-gray-600"
           >
-            {total.toLocaleString()}
+            {translator.formatNumber(total)}
           </span>
         </h3>
       </div>
       {/*
        * Indented to line up with the label, past the icon (h-6 plus gap-2),
-       * so the icon column reads as the section's gutter.
+       * so the icon column reads as the section's gutter - from the start of
+       * the line, so a right-to-left page lines them up the same way.
        */}
       <ul
         id={listId}
         aria-labelledby={headingId}
-        className="mt-1.5 flex flex-col gap-0.5 pl-8"
+        className="mt-1.5 flex flex-col gap-0.5 ps-8"
       >
         {visibleItems.map((item: T, i: number) => {
           const itemName: string = item.name?.toString() || "";
@@ -233,7 +238,7 @@ function CategorySection<T extends NamedResource>(
           return (
             <li
               key={i}
-              className="relative -ml-2 rounded-md px-2 py-1.5 text-sm text-gray-700 transition-colors hover:bg-gray-50"
+              className="relative -ms-2 rounded-md px-2 py-1.5 text-sm text-gray-700 transition-colors hover:bg-gray-50"
             >
               <div
                 data-testid="affected-resource-item"
@@ -249,7 +254,7 @@ function CategorySection<T extends NamedResource>(
       {isTruncated && (
         <div
           data-testid="affected-resource-truncated-note"
-          className="ml-8 mt-2 flex items-start gap-1.5 text-xs leading-5 text-amber-700"
+          className="ms-8 mt-2 flex items-start gap-1.5 text-xs leading-5 text-amber-700"
         >
           <Icon
             icon={IconProp.Alert}
@@ -276,7 +281,7 @@ function CategorySection<T extends NamedResource>(
           type="button"
           aria-expanded={showAll}
           aria-controls={listId}
-          className="ml-6 mt-1 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-indigo-600 transition-colors hover:bg-indigo-50 hover:text-indigo-700"
+          className="ms-6 mt-1 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-indigo-600 transition-colors hover:bg-indigo-50 hover:text-indigo-700"
           onClick={() => {
             return setShowAll(!showAll);
           }}
@@ -314,6 +319,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const monitors: Array<Monitor> = props.monitors || [];
   const hosts: Array<Host> = props.hosts || [];
+  const networkDevices: Array<NetworkDevice> = props.networkDevices || [];
   const kubernetesClusters: Array<KubernetesCluster> =
     props.kubernetesClusters || [];
   const dockerHosts: Array<DockerHost> = props.dockerHosts || [];
@@ -334,6 +340,8 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
 
   const showMonitors: boolean = !props.hideMonitors && monitors.length > 0;
   const showHosts: boolean = !props.hideHosts && hosts.length > 0;
+  const showNetworkDevices: boolean =
+    !props.hideNetworkDevices && networkDevices.length > 0;
   const showClusters: boolean =
     !props.hideKubernetesClusters && kubernetesClusters.length > 0;
   const showDocker: boolean = !props.hideDockerHosts && dockerHosts.length > 0;
@@ -361,6 +369,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
   if (
     !showMonitors &&
     !showHosts &&
+    !showNetworkDevices &&
     !showClusters &&
     !showDocker &&
     !showPodman &&
@@ -421,6 +430,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
   const totalCount: number =
     (showMonitors ? monitors.length : 0) +
     (showHosts ? hosts.length : 0) +
+    (showNetworkDevices ? networkDevices.length : 0) +
     (showClusters ? kubernetesClusters.length : 0) +
     (showDocker ? dockerHosts.length : 0) +
     (showPodman ? podmanHosts.length : 0) +
@@ -438,6 +448,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
   const categoryCount: number =
     (showMonitors ? 1 : 0) +
     (showHosts ? 1 : 0) +
+    (showNetworkDevices ? 1 : 0) +
     (showClusters ? 1 : 0) +
     (showDocker ? 1 : 0) +
     (showPodman ? 1 : 0) +
@@ -514,6 +525,25 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
             items={hosts}
             renderItem={(host: Host) => {
               return <HostElement host={host} />;
+            }}
+          />
+        )}
+        {/*
+         * Routers, switches, firewalls and access points (issue #5341):
+         * beside hosts, the other machines people link by hand. Yellow is a
+         * hue no other category uses, and Theme.css remaps its 50 and 600
+         * shades for dark mode.
+         */}
+        {showNetworkDevices && (
+          <CategorySection<NetworkDevice>
+            className={sectionClassName}
+            icon={IconProp.Signal}
+            label="Network Devices"
+            iconBgClass="bg-yellow-50"
+            iconColorClass="text-yellow-600"
+            items={networkDevices}
+            renderItem={(networkDevice: NetworkDevice) => {
+              return <NetworkDeviceElement networkDevice={networkDevice} />;
             }}
           />
         )}

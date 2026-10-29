@@ -761,6 +761,12 @@ For at oprette en fra **Monitorer** i stedet:
 
 En netværksenheds-monitor har intet eget interval: den vurderes, hver gang enhedens pollingresultater ankommer, og hver gang en trap fra enheden ankommer.
 
+### En enheds hændelser og advarsler
+
+En hændelse eller en advarsel kan handle om en netværksenhed. Vælg enheden under **Andre berørte ressourcer**, når du erklærer en hændelse eller opretter en advarsel, eller lad en monitor tilknytte den: det, en monitor udløser, knyttes til den enhed, den rapporterer om — den enhed, en netværksenheds-monitor overvåger, den enhed, monitoren er bundet til, og den enhed, en discovery-import oprettede monitoren til.
+
+Enhedens sider **Hændelser** og **Advarsler**, under **Aktivitet** i dens menu, viser det, der er knyttet til den, og menuen og enhedens oversigt tæller de åbne. **Erklær hændelse** og **Opret advarsel** på de sider starter med enheden valgt.
+
 ### Standardværdier for brugerdefinerede felter
 
 Hvis dit projekt definerer brugerdefinerede monitorfelter — producent, konfigurationselement, ansvarlig tjeneste, hvad end din CMDB har brug for —, kan en monitorskabelon udfylde dem. Åbn skabelonen fra **Monitorer → Indstillinger → Skabeloner**, og sæt dens **Custom Field Defaults**.

@@ -388,6 +388,12 @@ Diese Komponenten handeln als Project Admin des Projekts des Workflows: Was ein 
 
 Der Vorfall hält die Vorlage, aus der er gemeldet wurde, in `createdIncidentTemplateId` fest. Diese Spalte setzt OneUptime: Ein Schritt, der sie in **JSON Object** sendet, wird abgelehnt, und sein Protokoll verweist Sie auf **Incident Template**. Eine Vorlage aus einem anderen Projekt oder eine gelöschte nimmt den Ausgang **Error** des Schritts, und in einem Plan, der keine Vorfallsvorlagen enthält, wird der Schritt mit dem Plan abgelehnt, den er braucht. Siehe [Wie eine Vorlage angewendet wird](/docs/incidents/settings#wie-eine-vorlage-angewendet-wird).
 
+### Die Ressourcen verknüpfen, um die es geht
+
+**Create One Incident** und **Create One Alert** haben die Einstellung **Betroffene Ressourcen**: die Hosts, Netzwerkgeräte, Cluster, Datenbanken oder Dienste, um die es beim Datensatz geht, über Name, Adresse oder ID, durch Kommas getrennt – eingetippt oder aus einem früheren Schritt übernommen, etwa der Host, den eine Warnung aus einem anderen Tool nennt. Jeder Eintrag wird in jeder Art von Ressource gesucht, die der Datensatz halten kann, als ganzer Wert und ohne Rücksicht auf Groß- und Kleinschreibung: über den Namen, ein Netzwerkgerät auch über die Adresse, unter der es abgefragt wird, oder seinen DNS-Namen, ein Host über den Namen, den sein Agent meldet, oder eine seiner IP-Adressen, und eine Cloud-Ressource über die ID ihres Anbieters. Jede Ressource, auf die ein Eintrag passt, wird verknüpft, neben dem, was **JSON Object** und die Vorlage schon verknüpfen – bis zu 50 aus den ersten 25 Einträgen.
+
+Ein Eintrag, der auf nichts passt, hält den Schritt nicht auf: Der Datensatz wird trotzdem erstellt, und das Protokoll des Laufs sagt, was jeder Eintrag verknüpft hat und welche auf nichts passten. Archivierte Ressourcen werden nicht verknüpft. Monitore werden nicht nachgeschlagen: Nennen Sie sie in **JSON Object** (`monitors` bei einem Vorfall, `monitorId` bei einer Warnung), denn einen Monitor mit einem Vorfall zu verknüpfen, pausiert seine Überwachung.
+
 ## Mit Datensätzen arbeiten
 
 Jedes Feld einer Datenkomponente ist nach den eigenen **Spalten**-Namen des Datensatzes benannt – denselben Namen, die die API verwendet, nicht den Beschriftungen im Formular des Dashboards. Die ID-Spalte ist `_id`. Die Schreibweise `id` wird überall, wo Sie einen Spaltennamen tippen können, als Alias angenommen, aber `_id` ist, was ein Datensatz zurückgibt, also lesen Sie das auf dem Rückweg:

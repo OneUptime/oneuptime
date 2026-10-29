@@ -170,6 +170,25 @@ export default class MonitorStepResourceIdentity {
       monitorType: input.monitorType,
       refs: input.refs,
     });
+
+    /*
+     * 5. Network devices. A Network Device monitor watches the device its
+     *    step's device picker names - a primary key, as precise as the
+     *    telemetry service ids above - so its alerts and incidents land on
+     *    that router, switch or firewall (issue #5341). Only for that type:
+     *    no other step carries a device id.
+     */
+    const networkDeviceId: unknown =
+      input.monitorType === MonitorType.NetworkDevice
+        ? stepData.networkDeviceMonitor?.networkDeviceId
+        : undefined;
+
+    if (
+      typeof networkDeviceId === "string" &&
+      ObjectID.isValidUUID(networkDeviceId.trim())
+    ) {
+      input.refs.networkDeviceIds.push(networkDeviceId.trim().toLowerCase());
+    }
   }
 
   private static collectDatabaseRefs(input: {
@@ -670,6 +689,7 @@ export default class MonitorStepResourceIdentity {
       serviceNames: [],
       databaseServerIds: [],
       databaseServerEndpoints: [],
+      networkDeviceIds: [],
     };
   }
 

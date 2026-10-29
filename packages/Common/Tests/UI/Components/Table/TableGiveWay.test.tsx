@@ -874,8 +874,14 @@ describe("a drawn table", () => {
   test("every header's name can wrap, once the table says so", () => {
     renderTable();
 
+    /*
+     * What each header cell draws its name in - not the edge a person drags
+     * to size its column (ColumnResize), drawn over the cell's end.
+     */
     const headers: Array<HTMLElement> = Array.from(
-      document.querySelectorAll("thead th button, thead th > div"),
+      document.querySelectorAll(
+        "thead th button, thead th > div:not([data-column-resize-handle])",
+      ),
     ) as Array<HTMLElement>;
 
     expect(headers.length).toBeGreaterThan(0);

@@ -127,11 +127,19 @@ Dos barras recorren la parte superior de cada página.
 
 **Ayuda** abre esta documentación (**Documentación**) y la lista **Atajos de teclado**, y ofrece soporte por correo y en Slack. En una pantalla estrecha, como la de un teléfono, **Buscar**, **Preguntar a la IA** y **Ayuda** se quitan para ganar espacio; la campana y tu foto se quedan.
 
+### Páginas y listas
+
+Sobre el título de cada página, una ruta como *Proyecto › Docker › Ajustes › Reglas del propietario* dice dónde está la página. Cada paso antes del último abre su página.
+
+- **Las listas se mantienen al día solas.** Cuando se crea, se reconoce o se resuelve un incidente o una alerta en cualquier lugar, las listas de incidentes, alertas y episodios lo muestran en segundos, sin recargar. Mientras estás a mitad de algo en una lista, como filas marcadas o un diálogo abierto, la lista espera y se pone al día cuando terminas.
+- **En un teléfono, los chips de filtro se pliegan** tras **Filtro**, para que la lista empiece más arriba. Los chips que fijaste siguen a la vista, con **Borrar todo**. Pulsa **Filtro** para ver todos los chips, y otra vez para plegarlos.
+
 ## Buscar una página, un ajuste o una acción
 
 Pulsa **Cmd+K** (Mac) o **Ctrl+K** (Windows y Linux), o haz clic en el icono de búsqueda de la barra superior, y empieza a escribir. La búsqueda encuentra:
 
 - **Cada página de los menús**, por el nombre que le da el menú: Claves de API, Zona de peligro, Programaciones de guardia, Gravedad del incidente, tus propios Métodos de notificación. Cada resultado dice dónde está, por ejemplo *Ajustes del proyecto › Avanzado*, de modo que las páginas con el mismo nombre (Campos personalizados en Incidentes, Alertas y Monitores) se distinguen fácilmente.
+- **Los ajustes de una página**, por el nombre que muestra su tarjeta o su interruptor: *Requerir SSO para iniciar sesión* encuentra SSO, y *Canales de notificación* encuentra Ajustes de notificaciones. Escribe el nombre en inglés o en tu idioma.
 - **Acciones**, por lo que quieres hacer: Declarar incidente, Crear monitor o Eliminar proyecto, que abre la Zona de peligro. Una acción que cambia algo solo se ofrece a quien tiene permiso para hacerla.
 - **Tus monitores, incidentes, alertas, páginas de estado y políticas de guardia**, por su nombre.
 

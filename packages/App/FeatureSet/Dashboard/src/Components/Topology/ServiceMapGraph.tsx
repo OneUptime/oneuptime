@@ -24,6 +24,11 @@ import ReactFlow, {
 import "reactflow/dist/style.css";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import Icon from "Common/UI/Components/Icon/Icon";
+import useResizableColumns, {
+  ResizableColumns,
+} from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
+import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import Input from "Common/UI/Components/Input/Input";
 import Link from "Common/UI/Components/Link/Link";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -278,6 +283,22 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
   const t: (value: string) => string = (value: string): string => {
     return translateString(value) || value;
   };
+
+  /*
+   * The services list's columns as wide as a person makes them (Common's
+   * Table/ColumnResize): a name gives way to 10rem, a count or a rate never.
+   */
+  const serviceListColumns: ResizableColumns = useResizableColumns({
+    tableKey: "service-map-list",
+    columns: [
+      { id: "name", cellNumber: 1 },
+      { id: "status", cellNumber: 2 },
+      { id: "requests", cellNumber: 3 },
+      { id: "errorRate", cellNumber: 4 },
+      { id: "avgLatency", cellNumber: 5 },
+      { id: "connections", cellNumber: 6 },
+    ],
+  });
 
   const [searchText, setSearchTextState] = useState<string>(
     Navigation.getQueryStringByName("search") || "",
@@ -1028,30 +1049,80 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
           aria-label={t("Service directory table")}
           tabIndex={0}
         >
+          {serviceListColumns.styles}
           <table
-            className="w-full text-left text-sm"
+            className={`${serviceListColumns.getTableWidthClassName("w-full")} text-left text-sm`}
             data-testid="service-map-list"
+            {...serviceListColumns.tableAttributes}
           >
             <thead className="border-b border-gray-200 bg-gray-50 text-xs text-gray-500">
               <tr>
-                <th scope="col" className="px-5 py-3 font-medium">
-                  {t("Name")}
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium">
-                  {t("Status")}
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium">
-                  {t("Requests")}
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium">
-                  {t("Error rate")}
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium">
-                  {t("Avg latency")}
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium">
-                  {t("Connections")}
-                </th>
+                <ResizableHeaderCell
+                  scope="col"
+                  className="px-5 py-3 font-medium"
+                  resize={serviceListColumns.getResize(
+                    "name",
+                    t("Name"),
+                    ColumnWidthKind.Name,
+                  )}
+                >
+                  <span>{t("Name")}</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  scope="col"
+                  className="px-4 py-3 font-medium"
+                  resize={serviceListColumns.getResize(
+                    "status",
+                    t("Status"),
+                    ColumnWidthKind.Text,
+                  )}
+                >
+                  <span>{t("Status")}</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  scope="col"
+                  className="px-4 py-3 font-medium"
+                  resize={serviceListColumns.getResize(
+                    "requests",
+                    t("Requests"),
+                    ColumnWidthKind.Whole,
+                  )}
+                >
+                  <span>{t("Requests")}</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  scope="col"
+                  className="px-4 py-3 font-medium"
+                  resize={serviceListColumns.getResize(
+                    "errorRate",
+                    t("Error rate"),
+                    ColumnWidthKind.Whole,
+                  )}
+                >
+                  <span>{t("Error rate")}</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  scope="col"
+                  className="px-4 py-3 font-medium"
+                  resize={serviceListColumns.getResize(
+                    "avgLatency",
+                    t("Avg latency"),
+                    ColumnWidthKind.Whole,
+                  )}
+                >
+                  <span>{t("Avg latency")}</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  scope="col"
+                  className="px-4 py-3 font-medium"
+                  resize={serviceListColumns.getResize(
+                    "connections",
+                    t("Connections"),
+                    ColumnWidthKind.Whole,
+                  )}
+                >
+                  <span>{t("Connections")}</span>
+                </ResizableHeaderCell>
                 <th scope="col" className="px-5 py-3 font-medium">
                   <span className="sr-only">{t("Actions")}</span>
                 </th>

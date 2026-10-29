@@ -50,6 +50,52 @@ export function getServerlessBreadcrumbs(
       "View Function",
       "Delete Function",
     ]),
+    /*
+     * Pages that had no trail. Every page this product routes has one:
+     * Common/Tests/App/Dashboard/EveryPageHasATrail fails by name for a
+     * page left out.
+     */
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SERVERLESS_FUNCTION_VIEW_INSTANCES,
+      ["Project", "Serverless Functions", "View Function", "Instances"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVERLESS_SETTINGS_OWNER_RULES, [
+      "Project",
+      "Serverless Functions",
+      "Settings",
+      "Owner Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SERVERLESS_SETTINGS_OWNER_RULE_VIEW,
+      [
+        "Project",
+        "Serverless Functions",
+        "Settings",
+        "Owner Rules",
+        "View Rule",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVERLESS_SETTINGS_LABEL_RULES, [
+      "Project",
+      "Serverless Functions",
+      "Settings",
+      "Label Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SERVERLESS_SETTINGS_LABEL_RULE_VIEW,
+      [
+        "Project",
+        "Serverless Functions",
+        "Settings",
+        "Label Rules",
+        "View Rule",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVERLESS_ARCHIVED, [
+      "Project",
+      "Serverless Functions",
+      "Archived",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

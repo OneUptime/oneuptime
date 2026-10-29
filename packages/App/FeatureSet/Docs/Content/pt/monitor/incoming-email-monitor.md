@@ -74,7 +74,7 @@ Vá para a aba **Configurações** do monitor. O cartão **Incoming Email Addres
 | Ação | O que faz | Quando usar |
 | --- | --- | --- |
 | **Reset Address** | Dá ao monitor um novo endereço `monitor-{secret-key}@{inbound-domain}` gerado aleatoriamente. Se o monitor tiver um endereço personalizado, a redefinição o remove. Pede confirmação antes. | O endereço vazou, ou você quer cortar o que estiver enviando para ele. |
-| **Customize Address** | Permite escolher a parte antes do @, por exemplo `nightly-backups@{inbound-domain}`. Digite-a em **Address name** (você pode digitar o nome ou colar o endereço inteiro) e clique em **Save Address**. | Você quer um endereço que as pessoas reconheçam. |
+| **Customize Address** | Permite escolher a parte antes do @, por exemplo `nightly-backups@{inbound-domain}`. Digite-a em **Nome de endereço** (você pode digitar o nome ou colar o endereço inteiro) e clique em **Save Address**. | Você quer um endereço que as pessoas reconheçam. |
 
 As duas ações terminam mostrando o novo endereço com um botão de copiar.
 

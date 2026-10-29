@@ -43,7 +43,7 @@ Gere um alerta quando sua equipe deve olhar antes que alguém de fora perceba, e
 ## De onde vêm os alertas
 
 - **Os critérios de um monitor.** Em **Ações** de um critério, ative **Quando os filtros corresponderem, criar um alerta.** e preencha o alerta que ele cria: **Título do alerta** e **Gravidade**, depois, cada um recolhido, **Descrição**, **Propriedade e rótulos**, **Plantão** e **Mais campos**, que contém **Resolver alerta automaticamente**, **Alerta privado** e **Notas de remediação**. Um critério mantém um alerta aberto por vez, um por série em um monitor que agrupa por um campo, e **Resolver alerta automaticamente** o resolve quando o critério deixa de corresponder. Veja [Criar um monitor](/docs/monitor/create-monitor) e [Modelos de incidentes e alertas](/docs/monitor/incident-alert-templating).
-- **Manualmente.** Clique em **Criar alerta** na lista de alertas, ou na aba **Alertas** de um monitor, host ou outro recurso, que escolhe esse recurso para você. Veja [Criar um alerta manualmente](#criar-um-alerta-manualmente).
+- **Manualmente.** Clique em **Criar alerta** na lista de alertas, ou na aba **Alertas** de um monitor, host, dispositivo de rede ou outro recurso, que escolhe esse recurso para você. Veja [Criar um alerta manualmente](#criar-um-alerta-manualmente).
 - **A taxa de consumo de um SLO.** Uma regra de taxa de consumo pode criar um alerta quando um SLO gasta seu orçamento de erros rápido demais. Veja [Alertas e incidentes de taxa de consumo](/docs/slo/burn-rate-alerts).
 - **Sites de rede e eventos de segurança.** Um site de rede configurado para alertar quando não está saudável abre um alerta quando seu resumo deixa de estar operacional, e suas regras de detecção de eventos de segurança também abrem alertas. Veja [Sites de rede (resumo de saúde e tempo de atividade)](/docs/monitor/network-sites) e [Eventos de segurança (SIEM)](/docs/telemetry/security-events).
 - **Um acionamento.** `/oneuptime page` no Slack ou no Microsoft Teams abre um alerta cujo título é a sua mensagem e aciona as pessoas que você indicar. Os blocos de acionamento de um workflow fazem o mesmo com o título e a mensagem que você fornecer. Veja [Acionar alguém pelo Slack](/docs/workspace-connections/slack#acionar-alguém-pelo-slack) e [Paging](/docs/workflows/components#paging).
@@ -81,7 +81,7 @@ Preencha o **Título** e escolha uma **Severidade do alerta**; ambos são obriga
 
 ### Escolher o que ele afeta e quem é acionado
 
-Clique em **Próximo** para chegar a **Recursos e plantão**. Escolha o **Monitor** de que se trata e quaisquer **Outros recursos afetados**, como hosts, clusters Kubernetes ou serviços. Em **Política de plantão**, escolha as políticas que serão executadas quando o alerta for criado.
+Clique em **Próximo** para chegar a **Recursos e plantão**. Escolha o **Monitor** de que se trata e quaisquer **Outros recursos afetados**, como hosts, dispositivos de rede, clusters Kubernetes ou serviços. Em **Política de plantão**, escolha as políticas que serão executadas quando o alerta for criado.
 
 ### Criá-lo
 

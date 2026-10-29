@@ -54,9 +54,13 @@ describe("the names an Affected Resources cell lists", () => {
     });
 
     // Every kind of resource the cell draws, monitors first, cloud resources included.
-    expect(cellOrder).toHaveLength(16);
+    expect(cellOrder).toHaveLength(17);
     expect(cellOrder.indexOf("cloudResources")).toBe(
       cellOrder.indexOf("databaseServers") + 1,
+    );
+    // Issue #5341: a network device comes right after a host, as on the card.
+    expect(cellOrder.indexOf("networkDevices")).toBe(
+      cellOrder.indexOf("hosts") + 1,
     );
     expect(cellOrder[0]).toBe("monitors");
     expect([...AFFECTED_RESOURCE_LIST_ORDER]).toEqual(cellOrder);

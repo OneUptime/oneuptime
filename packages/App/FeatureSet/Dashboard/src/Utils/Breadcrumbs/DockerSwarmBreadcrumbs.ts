@@ -177,6 +177,22 @@ export function getDockerSwarmBreadcrumbs(
       PageMap.DOCKER_SWARM_SETTINGS_LABEL_RULE_VIEW,
       ["Project", "Docker Swarm", "Settings", "Label Rules", "View Rule"],
     ),
+    /*
+     * Pages that had no trail. Every page this product routes has one:
+     * Common/Tests/App/Dashboard/EveryPageHasATrail fails by name for a
+     * page left out.
+     */
+    ...BuildBreadcrumbLinksByTitles(PageMap.DOCKER_SWARM_CLUSTER_VIEW_FEED, [
+      "Project",
+      "Docker Swarm",
+      "View Cluster",
+      "Feed",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DOCKER_SWARM_ARCHIVED, [
+      "Project",
+      "Docker Swarm",
+      "Archived",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }
