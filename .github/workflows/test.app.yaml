@@ -403,6 +403,10 @@ jobs:
           # about 40 seconds locally, Chromium only: Metrics > Insights'
           # service cards at 1440, 1280, 1024, 768 and 390 pixels, with long
           # names and in the dark theme): about 19.
+          # Model Tables gained ColumnResize.spec.ts on 2026-10-29 (14 tests,
+          # about a minute locally, Chromium only: a column's edge dragged,
+          # double-clicked, keyed and reset, right to left, on a tablet and on
+          # a list of 200 rows): about 20.
           - group: 4
             workflow_builder_shard: 1/2
             suites: >-

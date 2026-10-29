@@ -107,7 +107,7 @@ const LogsList: FunctionComponent<{
       isLoading={false}
       onRowClick={() => {}}
       selectedColumns={COLUMNS}
-      selectedLogId={props.selectedLogId}
+      selectedLogId={props.selectedLogId ?? null}
       renderExpandedContent={() => {
         return <div data-testid="log-details">details</div>;
       }}

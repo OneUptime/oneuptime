@@ -151,6 +151,7 @@ const tableProps: (overrides?: Partial<TableProps<Row>>) => TableProps<Row> = (
       {
         title: "View",
         buttonStyleType: ButtonStyleType.NORMAL,
+        icon: IconProp.ChevronRight,
         onClick: () => {},
       },
     ],

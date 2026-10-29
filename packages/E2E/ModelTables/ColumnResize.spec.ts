@@ -670,13 +670,15 @@ test.describe("on a tablet", () => {
   }: {
     browser: Browser;
   }) => {
+    // The project's address, which a context of the test's own does not take on.
+    const baseURL: string | undefined = test.info().project.use.baseURL;
     const context: BrowserContext = await browser.newContext({
       viewport: { width: 1024, height: 768 },
       hasTouch: true,
       isMobile: true,
       timezoneId: "Europe/London",
       locale: "en-US",
-      baseURL: test.info().project.use.baseURL,
+      ...(baseURL ? { baseURL: baseURL } : {}),
     });
     const page: Page = await context.newPage();
     const errors: Array<string> = [];

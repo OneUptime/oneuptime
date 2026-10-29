@@ -8,6 +8,7 @@ import {
   test,
 } from "@jest/globals";
 import { act, cleanup, render } from "@testing-library/react";
+import { Mock } from "jest-mock";
 import React, { ReactElement } from "react";
 import useColumnWidths, {
   UseColumnWidthsResult,
@@ -37,6 +38,16 @@ import { UserPreferenceType } from "../../../../../Utils/UserPreferences";
  */
 
 const PERSON_A: string = "8a3b0c3e-0000-4000-8000-0000000000aa";
+
+/*
+ * The browser's storage, as its two methods: @jest/globals types
+ * spyOn(Storage.prototype, ...) as never, Storage having a string index
+ * signature.
+ */
+const STORAGE: {
+  getItem: (key: string) => string | null;
+  setItem: (key: string, value: string) => void;
+} = Storage.prototype;
 const PERSON_B: string = "8a3b0c3e-0000-4000-8000-0000000000bb";
 
 let person: string = PERSON_A;
@@ -147,7 +158,7 @@ describe("reading a table's widths", () => {
   });
 
   test("a browser that refuses to be read draws the table's own widths", () => {
-    jest.spyOn(Storage.prototype, "getItem").mockImplementation((): string => {
+    jest.spyOn(STORAGE, "getItem").mockImplementation((): string => {
       throw new Error("SecurityError: storage is blocked");
     });
 
@@ -213,7 +224,7 @@ describe("keeping a width", () => {
   });
 
   test("a browser that refuses to store still sizes the column while the page is open", () => {
-    jest.spyOn(Storage.prototype, "setItem").mockImplementation((): void => {
+    jest.spyOn(STORAGE, "setItem").mockImplementation((): void => {
       throw new Error("QuotaExceededError");
     });
 
@@ -332,7 +343,7 @@ describe("another tab, another table", () => {
 describe("the widths' store", () => {
   test("tells those who read it, and only when the widths change", () => {
     const store: ColumnWidthsStore = new ColumnWidthsStore();
-    const listener: jest.Mock<() => void> = jest.fn<() => void>();
+    const listener: Mock<() => void> = jest.fn<() => void>();
     const unsubscribe: () => void = store.subscribe(listener);
     const widths: ColumnWidths = { title: 300 };
 

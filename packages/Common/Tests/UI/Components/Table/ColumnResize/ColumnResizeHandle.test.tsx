@@ -9,6 +9,7 @@ import {
   test,
 } from "@jest/globals";
 import { act, cleanup, fireEvent, render } from "@testing-library/react";
+import { Mock } from "jest-mock";
 import React, { ReactElement } from "react";
 import ColumnResizeHandle, {
   COLUMN_RESIZE_DOUBLE_PRESS_MS,
@@ -141,14 +142,18 @@ afterEach(() => {
 });
 
 interface Calls {
-  onWidthChange: jest.Mock<(columnId: string, width: number | null) => void>;
-  onResizeStart: jest.Mock<
-    (columnId: string, headerCell: HTMLTableCellElement) => void
+  onWidthChange: Mock<(columnId: string, width: number | null) => void>;
+  onResizeStart: Mock<
+    (
+      columnId: string,
+      headerCell: HTMLTableCellElement,
+      kind: ColumnWidthKind,
+    ) => void
   >;
-  onResizeMove: jest.Mock<(columnId: string, width: number) => void>;
-  onResizeEnd: jest.Mock<(columnId: string) => void>;
-  parentClick: jest.Mock<() => void>;
-  parentPointerDown: jest.Mock<() => void>;
+  onResizeMove: Mock<(columnId: string, width: number) => void>;
+  onResizeEnd: Mock<(columnId: string) => void>;
+  parentClick: Mock<() => void>;
+  parentPointerDown: Mock<() => void>;
 }
 
 interface Drawn {
@@ -170,7 +175,13 @@ const drawHandle: (data?: {
   const calls: Calls = {
     onWidthChange: jest.fn<(columnId: string, width: number | null) => void>(),
     onResizeStart:
-      jest.fn<(columnId: string, headerCell: HTMLTableCellElement) => void>(),
+      jest.fn<
+        (
+          columnId: string,
+          headerCell: HTMLTableCellElement,
+          kind: ColumnWidthKind,
+        ) => void
+      >(),
     onResizeMove: jest.fn<(columnId: string, width: number) => void>(),
     onResizeEnd: jest.fn<(columnId: string) => void>(),
     parentClick: jest.fn<() => void>(),

@@ -8,6 +8,7 @@ import {
   screen,
   within,
 } from "@testing-library/react";
+import { Mock } from "jest-mock";
 import React, { ReactElement, useLayoutEffect } from "react";
 import Card from "../../../UI/Components/Card/Card";
 import CardMoreMenu from "../../../UI/Components/Card/CardMoreMenu";
@@ -81,8 +82,8 @@ describe("the items a card's ⋯ adds", () => {
   });
 
   test("one item for two owners runs both owners' onClick", () => {
-    const first: jest.Mock<() => void> = jest.fn<() => void>();
-    const second: jest.Mock<() => void> = jest.fn<() => void>();
+    const first: Mock<() => void> = jest.fn<() => void>();
+    const second: Mock<() => void> = jest.fn<() => void>();
     const merged: Array<CardMenuExtraItem> = mergeCardMenuExtraItems([
       ["table-a", item("reset", "Reset column widths", first)],
       ["table-b", item("reset", "Reset column widths", second)],
@@ -167,7 +168,7 @@ const menuItems: (menu: HTMLElement) => Array<string> = (
 
 describe("a card and its ⋯", () => {
   test("its ⋯ draws what the card holds adds, after its own items", () => {
-    const reset: jest.Mock<() => void> = jest.fn<() => void>();
+    const reset: Mock<() => void> = jest.fn<() => void>();
     const resetItem: CardMenuExtraItem = item(
       "reset",
       "Reset column widths",

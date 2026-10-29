@@ -56,16 +56,28 @@ import { JSONObject } from "../../../../../Types/JSON";
 // A rule's place in its row, as getSizedColumnsCss writes it.
 const NTH_CHILD_RULE: RegExp = /td:nth-child\((\d+)\)/g;
 
+/*
+ * A column of a row of any fields: its key is a field's name, which
+ * Column<GenericObject> (an object of no known fields) cannot name.
+ */
+type ColumnExtra = Partial<Omit<Column<GenericObject>, "key">> & {
+  key?: string | null | undefined;
+};
+
 type MakeColumnFunction = (
   type: FieldType,
-  extra?: Partial<Column<GenericObject>>,
+  extra?: ColumnExtra,
 ) => Column<GenericObject>;
 
 const makeColumn: MakeColumnFunction = (
   type: FieldType,
-  extra?: Partial<Column<GenericObject>>,
+  extra?: ColumnExtra,
 ): Column<GenericObject> => {
-  return { title: "Value", type: type, ...(extra || {}) };
+  return {
+    title: "Value",
+    type: type,
+    ...(extra || {}),
+  } as unknown as Column<GenericObject>;
 };
 
 const measured: (data: Partial<ColumnContentWidths>) => ColumnContentWidths = (
