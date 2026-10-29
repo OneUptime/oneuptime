@@ -8,6 +8,7 @@ import MicrosoftTeamsUtil from "./MicrosoftTeams/MicrosoftTeams";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import { MarkdownText, mdText } from "../../../Utils/Markdown/FeedMarkdown";
+import { leadWithAuthorMarkdown } from "../../../Utils/Markdown/FeedLead";
 import WorkspaceMessagePayload, {
   WorkspacePayloadMarkdown,
 } from "../../../Types/Workspace/WorkspaceMessagePayload";
@@ -38,8 +39,21 @@ export default class WorkspaceUtil {
   @CaptureSpan()
   public static async getMessageBlocksByMarkdown(data: {
     projectId: ObjectID;
-    // this is oneuptime user id.
+    /*
+     * Who did what the message says, as a OneUptime user id: their name
+     * leads it, as the Dashboard's feed puts it before the same sentence -
+     * after the emoji every line opens with, the verb in lower case: "👤
+     * Valeria Mustafaeva added Deane Looi as Responder" (FeedLead). Never
+     * the person the message is about: that line is led by whoever added
+     * Deane.
+     */
     userId: ObjectID | undefined;
+    /*
+     * The project API key that did it, when no person did
+     * (Utils/Feed/FeedApiKeyActor): its name leads the message instead,
+     * "Jira Automation (API key) ...", as the feed names it.
+     */
+    apiKeyName?: string | undefined;
     markdown: string;
   }): Promise<Array<MessageBlocksByWorkspaceType>> {
     const workspaceTypes: Array<WorkspaceType> = this.getAllWorkspaceTypes();
@@ -57,6 +71,8 @@ export default class WorkspaceUtil {
           projectId: data.projectId,
           workspaceType: workspaceType,
         });
+      } else {
+        authorMarkdown = this.getApiKeyStringForWorkspace(data.apiKeyName);
       }
 
       messageBlocksByWorkspaceType.push({
@@ -64,13 +80,34 @@ export default class WorkspaceUtil {
         messageBlocks: [
           {
             _type: "WorkspacePayloadMarkdown",
-            text: authorMarkdown + data.markdown,
+            text: leadWithAuthorMarkdown({
+              authorMarkdown: authorMarkdown,
+              markdown: data.markdown,
+            }),
           } as WorkspacePayloadMarkdown,
         ],
       });
     }
 
     return messageBlocksByWorkspaceType;
+  }
+
+  /*
+   * The "who did this" prefix of a message a project API key's change
+   * posts: the key's name, as its owner typed it - placed as text, so it
+   * reads as typed and is no link or mention - and what it is. Nothing
+   * without a name.
+   */
+  public static getApiKeyStringForWorkspace(
+    apiKeyName: string | undefined,
+  ): string {
+    const name: string = (apiKeyName || "").trim();
+
+    if (!name) {
+      return "";
+    }
+
+    return mdText`${name} (API key) `.toString();
   }
 
   /*

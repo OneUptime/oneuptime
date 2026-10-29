@@ -28,6 +28,7 @@ import VideoCallConnectionService from "../../Services/VideoCallConnectionServic
 import WorkspaceNotificationRuleService from "../../Services/WorkspaceNotificationRuleService";
 import WorkspaceProjectAuthTokenService from "../../Services/WorkspaceProjectAuthTokenService";
 import { WorkspaceChannel } from "../Workspace/WorkspaceBase";
+import { FeedWorkspaceNotification } from "../Feed/FeedWorkspaceNotification";
 import logger, { LogAttributes } from "../Logger";
 import SlackHuddleLink from "./Providers/SlackHuddleLink";
 import IncidentCallRecordingSetting from "./Transcripts/IncidentCallRecordingSetting";
@@ -631,15 +632,10 @@ export default class EventVideoCall {
           announcement,
         )?.toString();
 
-      const workspaceNotification: {
-        sendWorkspaceNotification: boolean;
-        notifyUserId?: ObjectID | undefined;
-        appendMessageBlocks: ReturnType<
-          typeof VideoCallMessages.getJoinButtonBlocks
-        >;
-      } = {
+      // Led by whoever started the call: the entry's author.
+      const workspaceNotification: FeedWorkspaceNotification = {
         sendWorkspaceNotification: true,
-        notifyUserId: data.userId,
+        leadWithAuthor: true,
         appendMessageBlocks: VideoCallMessages.getJoinButtonBlocks({
           provider: data.provider,
           joinUrl: data.joinUrl,

@@ -342,6 +342,15 @@ export class Service extends DatabaseService<Model> {
     return mdText`[${displayName}](${(await this.getUserLinkInDashboard(data.projectId, data.userId)).toString()})`;
   }
 
+  /*
+   * Where a person's name links to, in every feed entry, Slack and
+   * Microsoft Teams message and email: their page in the project - Users,
+   * then the person (USER_VIEW in the Dashboard's RouteMap) - with their
+   * teams, on-call readiness and rules. The link used to point at
+   * .../settings/users/<id>, where no page has been since Users moved out
+   * of Project Settings, and opened a blank page; the Dashboard forwards
+   * that address to this one, for every link already written.
+   */
   @CaptureSpan()
   public async getUserLinkInDashboard(
     projectId: ObjectID,
@@ -350,7 +359,7 @@ export class Service extends DatabaseService<Model> {
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
     return URL.fromString(dashboardUrl.toString()).addRoute(
-      `/${projectId.toString()}/settings/users/${userId.toString()}`,
+      `/${projectId.toString()}/users/${userId.toString()}`,
     );
   }
 

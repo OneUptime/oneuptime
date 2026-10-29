@@ -1644,7 +1644,7 @@ insert(IncidentFeed, {
 });
 if (feedMode === "oncall-run") {
   const checkoutPolicy = `[${policies.checkout.name}](${dashboard}/on-call-duty/policies/${policies.checkout._id})`;
-  const sam = `[${people.sam.name.toString()}](${dashboard}/settings/users/${people.sam._id})`;
+  const sam = `[${people.sam.name.toString()}](${dashboard}/users/${people.sam._id})`;
   const runStep = (seconds, markdown, color) => {
     insert(IncidentFeed, {
       incidentId: mainIncident.id,
@@ -1678,7 +1678,8 @@ if (feedMode === "oncall-run") {
 insert(IncidentFeed, {
   incidentId: mainIncident.id,
   incidentFeedEventType: IncidentFeedEventType.IncidentMemberAdded,
-  feedInfoInMarkdown: `👤 Added **${people.maya.name}** (${people.maya.email}) as **${roles.commander.name}** to [Incident #${INCIDENT_NUMBER}](${incidentLink(INCIDENT_NUMBER)}).`,
+  // Maya declared it and took the role herself (IncidentRoleFeedText).
+  feedInfoInMarkdown: `👤 Took the **${roles.commander.name}** role on [Incident #${INCIDENT_NUMBER}](${incidentLink(INCIDENT_NUMBER)}).`,
   displayColor: new Color("#6366f1"),
   postedAt: at("18:05"),
   createdAt: at("18:05"),

@@ -1695,8 +1695,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
       userId: createdItem.createdByUserId || createBy.props.userId,
       workspaceNotification: {
         sendWorkspaceNotification: true,
-        notifyUserId:
-          createdItem.createdByUserId || createBy.props.userId || undefined,
+        leadWithAuthor: true,
       },
     });
   }

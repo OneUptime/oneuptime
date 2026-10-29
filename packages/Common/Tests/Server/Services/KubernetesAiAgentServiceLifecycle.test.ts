@@ -807,7 +807,7 @@ describe("markDisconnected", () => {
 });
 
 describe("resetAgent", () => {
-  const USER_MARKDOWN: string = `[Jane Doe](https://oneuptime.example/dashboard/${PROJECT_ID.toString()}/settings/users/${USER_ID.toString()})`;
+  const USER_MARKDOWN: string = `[Jane Doe](https://oneuptime.example/dashboard/${PROJECT_ID.toString()}/users/${USER_ID.toString()})`;
 
   interface ResetHarness {
     find: SpyCalls;

@@ -297,8 +297,8 @@ describe("an incident from declared to resolved, in its Slack channel", () => {
       "NB User 3 could not be added to this channel",
       "PolicyX is paging for Incident INC-8",
       "PolicyX paged nobody at third (Level 3 of 3) for Incident INC-8",
-      "Nitin 👀 Changed Incident INC-8 State to Acknowledged",
-      "Nitin ✅ Changed Incident INC-8 State to Resolved",
+      "👀 Nitin changed Incident INC-8 State to Acknowledged",
+      "✅ Nitin changed Incident INC-8 State to Resolved",
     ]);
 
     // Every message went to the incident's channel, as a message of its own.

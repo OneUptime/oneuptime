@@ -1020,9 +1020,10 @@ describe("EventVideoCall.announce", () => {
     const item: JSONObject = createFeedItem.mock
       .calls[0]![0] as unknown as JSONObject;
     expect(item["userId"]).toBe(userId);
-    expect((item["workspaceNotification"] as JSONObject)["notifyUserId"]).toBe(
-      userId,
-    );
+    // Its message opens with them: the entry's author.
+    expect(
+      (item["workspaceNotification"] as JSONObject)["leadWithAuthor"],
+    ).toBe(true);
     expect(item["feedInfoInMarkdown"]).toContain(
       "📞 added a **War room** video call",
     );

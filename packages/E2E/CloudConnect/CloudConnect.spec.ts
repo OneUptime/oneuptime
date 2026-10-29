@@ -1267,8 +1267,19 @@ test.describe("cloud accounts", () => {
     });
     expect(reads[0]!.cloudAccountIds).toContain("123456789012");
 
-    // The Owner and Labels chips over the table, as on All Resources.
+    /*
+     * The Owner and Labels chips over the table, as on All Resources. A
+     * phone folds a list's chips behind Filter (FacetFilterBar), and one
+     * press on it draws them.
+     */
     const bar: Locator = page.getByTestId("facet-filter-bar");
+    if (test.info().project.name !== "desktop") {
+      const filter: Locator = bar.getByTestId("facet-filter-bar-toggle");
+      await expect(bar).toHaveAttribute("data-folded", "true");
+      await expect(bar.getByRole("button", { name: /^Owner/ })).toBeHidden();
+      await filter.click();
+      await expect(filter).toHaveAttribute("aria-expanded", "true");
+    }
     await expect(bar.getByRole("button", { name: /^Owner/ })).toBeVisible();
     await expect(bar.getByRole("button", { name: /^Labels/ })).toBeVisible();
 
