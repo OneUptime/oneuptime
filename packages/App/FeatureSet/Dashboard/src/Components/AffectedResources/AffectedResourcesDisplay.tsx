@@ -218,18 +218,19 @@ function CategorySection<T extends NamedResource>(
             data-testid="affected-resource-category-count"
             className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium tabular-nums text-gray-600"
           >
-            {total.toLocaleString()}
+            {translator.formatNumber(total)}
           </span>
         </h3>
       </div>
       {/*
        * Indented to line up with the label, past the icon (h-6 plus gap-2),
-       * so the icon column reads as the section's gutter.
+       * so the icon column reads as the section's gutter - from the start of
+       * the line, so a right-to-left page lines them up the same way.
        */}
       <ul
         id={listId}
         aria-labelledby={headingId}
-        className="mt-1.5 flex flex-col gap-0.5 pl-8"
+        className="mt-1.5 flex flex-col gap-0.5 ps-8"
       >
         {visibleItems.map((item: T, i: number) => {
           const itemName: string = item.name?.toString() || "";
@@ -237,7 +238,7 @@ function CategorySection<T extends NamedResource>(
           return (
             <li
               key={i}
-              className="relative -ml-2 rounded-md px-2 py-1.5 text-sm text-gray-700 transition-colors hover:bg-gray-50"
+              className="relative -ms-2 rounded-md px-2 py-1.5 text-sm text-gray-700 transition-colors hover:bg-gray-50"
             >
               <div
                 data-testid="affected-resource-item"
@@ -253,7 +254,7 @@ function CategorySection<T extends NamedResource>(
       {isTruncated && (
         <div
           data-testid="affected-resource-truncated-note"
-          className="ml-8 mt-2 flex items-start gap-1.5 text-xs leading-5 text-amber-700"
+          className="ms-8 mt-2 flex items-start gap-1.5 text-xs leading-5 text-amber-700"
         >
           <Icon
             icon={IconProp.Alert}
@@ -280,7 +281,7 @@ function CategorySection<T extends NamedResource>(
           type="button"
           aria-expanded={showAll}
           aria-controls={listId}
-          className="ml-6 mt-1 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-indigo-600 transition-colors hover:bg-indigo-50 hover:text-indigo-700"
+          className="ms-6 mt-1 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-indigo-600 transition-colors hover:bg-indigo-50 hover:text-indigo-700"
           onClick={() => {
             return setShowAll(!showAll);
           }}

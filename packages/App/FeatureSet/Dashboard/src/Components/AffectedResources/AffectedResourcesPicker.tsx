@@ -40,12 +40,14 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useId,
   useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import { getListSeparator } from "Common/UI/Utils/ListSeparator";
 import {
   AFFECTED_RESOURCE_SEARCH_DEFAULT_LIMIT,
   AFFECTED_RESOURCE_SEARCH_MAX_LIMIT,
@@ -862,6 +864,8 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     Array<AffectedResourceType>
   >([]);
   const [hasSearchFailed, setHasSearchFailed] = useState<boolean>(false);
+  // Bumped by Try again: the same search, asked once more.
+  const [searchAttempt, setSearchAttempt] = useState<number>(0);
   /*
    * The one kind the results are narrowed to, or null for every kind: the
    * customer's "All, Hosts, Network Devices" (issue #5341). Narrowed, the
@@ -1293,6 +1297,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     activeTab,
     activeKind,
     countsMonitorsForHint,
+    searchAttempt,
   ]);
 
   // A closed list opens on every kind again.
@@ -1352,9 +1357,13 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     0,
   );
 
-  // The filter shows once the results hold two kinds, or one is picked.
-  const showsKindFilter: boolean =
-    activeKind !== null || filterTypes.length > 1;
+  /*
+   * The filter shows once there are two kinds to choose from - the one
+   * narrowed to counts, so a narrowed list always offers its way back. A
+   * search that found one kind has nothing to filter, narrowed or not: "All
+   * 178" beside "Network Devices 178" said the same thing twice.
+   */
+  const showsKindFilter: boolean = filterTypes.length > 1;
 
   // Narrowing to a kind starts its list from the top.
   const narrowToKind: (type: AffectedResourceType | null) => void = (
@@ -1714,14 +1723,24 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
   };
 
   /*
-   * Four kinds or more are named by the first three and "and more": the
-   * Other Affected Resources picker offers fourteen, and a placeholder that
-   * lists them all is cut off long before its end.
+   * What the placeholder says. A picker of four kinds or more that finds
+   * hosts or network devices says how to find them - by name, or by the IP
+   * address a device is polled at or a host reports ("WAN-RTR-01",
+   * "10.0.4.1", issue #5341) - and leaves naming the kinds to the field's
+   * description, which lists them: the Other Affected Resources picker
+   * offers fourteen, and a placeholder naming even three of them was cut
+   * off on a phone, in German before its verb ("... durchsuchen"). Three
+   * kinds or fewer are each named; any other picker names two and "and
+   * more". Listed the way the language lists names (Utils/ListSeparator):
+   * "hosts, network devices", "主机、网络设备", "میزبان‌ها، دستگاه‌های شبکه".
    */
+  const findsByAddress: boolean =
+    resourceTypes.includes("Host") || resourceTypes.includes("NetworkDevice");
+
   const placeholderTypes: ComposedValue = composedValue(
     (sentenceTranslator: Translator): string => {
-      return resourceTypes
-        .slice(0, resourceTypes.length > 3 ? 3 : resourceTypes.length)
+      const names: Array<string> = resourceTypes
+        .slice(0, resourceTypes.length > 3 ? 2 : resourceTypes.length)
         .map((t: AffectedResourceType): string => {
           return sentenceTranslator.translateTerm(
             RESOURCE_CONFIG[t].pluralLabel,
@@ -1729,8 +1748,9 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
               inSentence: true,
             },
           );
-        })
-        .join(", ");
+        });
+
+      return names.join(getListSeparator(names));
     },
   );
 
@@ -1742,9 +1762,11 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     })
       ? "Search monitors, hosts, Kubernetes clusters, Docker hosts, Podman hosts, or services..."
       : resourceTypes.length > 3
-        ? translator.translateTemplate("Search {{types}} and more...", {
-            types: placeholderTypes,
-          })
+        ? findsByAddress
+          ? translationKey("Search by name or IP address...")
+          : translator.translateTemplate("Search {{types}} and more...", {
+              types: placeholderTypes,
+            })
         : translator.translateTemplate("Search {{types}}...", {
             types: placeholderTypes,
           }));
@@ -1778,6 +1800,42 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
       return !deniedTypes.includes(type);
     }),
   ];
+
+  /*
+   * Kinds named inside a sentence: in the sentence's own language, so a
+   * locale that has not worded the sentence yet reads it all in English
+   * rather than "You don't have permission to read: Datenbank.", and listed
+   * the way that language lists names (Utils/ListSeparator).
+   */
+  const kindNames: (labels: Array<string>) => ComposedValue = (
+    labels: Array<string>,
+  ): ComposedValue => {
+    return composedValue((sentenceTranslator: Translator): string => {
+      const names: Array<string> = labels.map((label: string): string => {
+        return sentenceTranslator.translateText(label) as string;
+      });
+
+      return names.join(getListSeparator(names));
+    });
+  };
+
+  /*
+   * Each kind's results are a group of the list named by its header, so a
+   * screen reader says "Network Devices" before WAN-RTR-01, as the header
+   * shows it.
+   */
+  const groupIdPrefix: string = useId();
+
+  /*
+   * Results already on screen stay while the next search runs: the panel
+   * kept collapsing to one "Searching..." line and growing back with every
+   * pause in typing. Only a list with nothing to show yet says it is
+   * searching; the rest is dimmed until the answer lands.
+   */
+  const isRefreshingResults: boolean = isLoading && groupedAvailable.length > 0;
+  const showsSearchingLine: boolean =
+    isLoading && groupedAvailable.length === 0;
+  const showsAnswer: boolean = !isLoading || groupedAvailable.length > 0;
 
   const chipOverflow: number = Math.max(0, selected.length - MAX_VISIBLE_CHIPS);
   const visibleChips: Array<AffectedResourceItem> =
@@ -1998,11 +2056,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
               },
               hiddenCount,
               {
-                types: hiddenLabels
-                  .map((label: string): string => {
-                    return translator.translateText(label) as string;
-                  })
-                  .join(", "),
+                types: kindNames(hiddenLabels),
               },
             )}
           </span>
@@ -2212,7 +2266,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
              * What each tab is for. Left out on a phone, where it wrapped to
              * three lines beside the tabs and pushed the results down.
              */}
-            <span className="ms-auto pe-1 text-[11px] text-gray-400 max-sm:hidden sm:inline">
+            <span className="ms-auto pe-1 text-[11px] text-gray-500 max-sm:hidden sm:inline">
               {translator.translateText(
                 activeTab === "resources"
                   ? "Search and add individually"
@@ -2283,8 +2337,12 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
 
           {/* Resources tab body. */}
           {activeTab === "resources" && (
-            <div className="flex-1 overflow-auto pb-1">
-              {isLoading && (
+            <div
+              className="flex-1 overflow-auto pb-1"
+              aria-busy={isLoading}
+              data-testid="affected-resources-results"
+            >
+              {showsSearchingLine && (
                 <div className="flex w-full items-center px-3 py-2 text-start text-gray-500">
                   <svg
                     className="animate-spin -ms-0.5 me-2 h-4 w-4 text-indigo-500"
@@ -2318,11 +2376,28 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
               {!isLoading && hasSearchFailed && (
                 <div
                   data-testid="affected-resources-search-failed"
-                  className="px-3 py-2 text-red-600"
+                  className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2"
                 >
-                  {translator.translateText(
-                    "Could not search resources. Try again in a moment.",
-                  )}
+                  <span className="text-red-600">
+                    {translator.translateText("Could not search resources.")}
+                  </span>
+                  <button
+                    type="button"
+                    data-testid="affected-resources-search-retry"
+                    onMouseDown={(
+                      event: React.MouseEvent<HTMLButtonElement>,
+                    ): void => {
+                      event.preventDefault();
+                    }}
+                    onClick={(): void => {
+                      setSearchAttempt((attempt: number): number => {
+                        return attempt + 1;
+                      });
+                    }}
+                    className="rounded font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  >
+                    {translator.translateText("Try again")}
+                  </button>
                 </div>
               )}
 
@@ -2346,143 +2421,160 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                   </div>
                 )}
 
-              {!isLoading &&
-                (() => {
-                  /*
-                   * Track the running flat index alongside the visual render
-                   * so the highlight class matches the keyboard cursor
-                   * exactly.
-                   */
-                  let flatIdx: number = -1;
-                  return groupedAvailable.map(
-                    (group: {
-                      type: AffectedResourceType;
-                      items: Array<AffectedResourceItem>;
-                    }) => {
-                      const cfg: ResourceConfig = RESOURCE_CONFIG[group.type];
-                      const matchCount: number =
-                        kindCounts[group.type] || group.items.length;
-                      /*
-                       * More of this kind match than the answer listed:
-                       * Show all narrows the results to it.
-                       */
-                      const hasMore: boolean =
-                        activeKind === null &&
-                        matchCount > (listedCounts[group.type] || 0);
-                      return (
-                        <div
-                          key={group.type}
-                          data-testid={`affected-resources-group-${group.type}`}
-                        >
-                          {/*
-                           * Each result's kind, kept in view while its rows
-                           * scroll under it.
-                           */}
-                          <div className="sticky top-0 z-10 flex items-center justify-between gap-2 bg-gray-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                            <span className="min-w-0 truncate">
-                              {translator.translateText(cfg.pluralLabel)}
-                            </span>
-                            {hasMore && (
-                              <button
-                                type="button"
-                                data-testid={`affected-resources-show-all-${group.type}`}
-                                onMouseDown={(
-                                  event: React.MouseEvent<HTMLButtonElement>,
-                                ): void => {
-                                  event.preventDefault();
-                                }}
-                                onClick={(): void => {
-                                  narrowToKind(group.type);
-                                }}
-                                className="flex-shrink-0 rounded font-medium normal-case tracking-normal text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                              >
-                                {translator.translatePlural(
-                                  {
-                                    one: "Show all {{count}}",
-                                    other: "Show all {{count}}",
-                                  },
-                                  matchCount,
-                                )}
-                              </button>
-                            )}
-                          </div>
-                          {group.items.map((item: AffectedResourceItem) => {
-                            flatIdx += 1;
-                            const isHighlighted: boolean =
-                              flatIdx === highlightedIndex;
-                            return (
-                              <button
-                                key={`${item.type}-${item._id}`}
-                                type="button"
-                                role="option"
-                                aria-selected={isHighlighted}
-                                onMouseEnter={() => {
-                                  /*
-                                   * Sync the highlight to the mouse so keyboard
-                                   * and mouse never disagree on which row is
-                                   * about to be picked.
-                                   */
-                                  setHighlightedIndex(flatIdx);
-                                }}
-                                onMouseDown={(
-                                  event: React.MouseEvent<HTMLButtonElement>,
-                                ) => {
-                                  /*
-                                   * Prevent the input blur from firing before
-                                   * onClick resolves the selection.
-                                   */
-                                  event.preventDefault();
-                                }}
-                                onClick={() => {
-                                  addItem(item);
-                                }}
-                                className={`flex w-full items-center gap-2 px-3 py-2 text-start ${
-                                  isHighlighted
-                                    ? "bg-indigo-600 text-white"
-                                    : "text-gray-700 hover:bg-indigo-50"
-                                }`}
-                              >
-                                <Icon
-                                  icon={cfg.icon}
-                                  className={`h-4 w-4 flex-shrink-0 ${
+              {showsAnswer && (
+                <div
+                  className={`transition-opacity duration-150 ${
+                    isRefreshingResults ? "opacity-60" : ""
+                  }`}
+                >
+                  {(() => {
+                    /*
+                     * Track the running flat index alongside the visual render
+                     * so the highlight class matches the keyboard cursor
+                     * exactly.
+                     */
+                    let flatIdx: number = -1;
+                    return groupedAvailable.map(
+                      (group: {
+                        type: AffectedResourceType;
+                        items: Array<AffectedResourceItem>;
+                      }) => {
+                        const cfg: ResourceConfig = RESOURCE_CONFIG[group.type];
+                        const matchCount: number =
+                          kindCounts[group.type] || group.items.length;
+                        const listedCount: number =
+                          listedCounts[group.type] || 0;
+                        /*
+                         * More of this kind match than the answer listed: Show
+                         * more narrows the results to it, which lists up to
+                         * SEARCH_LIMIT_FOR_ONE_TYPE of them - so it says how
+                         * many more that brings, never "all" of a kind with
+                         * hundreds (the footer then says how many of how many).
+                         */
+                        const moreCount: number =
+                          Math.min(matchCount, SEARCH_LIMIT_FOR_ONE_TYPE) -
+                          listedCount;
+                        const hasMore: boolean =
+                          activeKind === null && moreCount > 0;
+                        const headerId: string = `${groupIdPrefix}-${group.type}`;
+                        return (
+                          <div
+                            key={group.type}
+                            role="group"
+                            aria-labelledby={headerId}
+                            data-testid={`affected-resources-group-${group.type}`}
+                          >
+                            {/*
+                             * Each result's kind, kept in view while its rows
+                             * scroll under it.
+                             */}
+                            <div className="sticky top-0 z-10 flex items-center justify-between gap-2 bg-gray-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                              <span id={headerId} className="min-w-0 truncate">
+                                {translator.translateText(cfg.pluralLabel)}
+                              </span>
+                              {hasMore && (
+                                <button
+                                  type="button"
+                                  data-testid={`affected-resources-show-more-${group.type}`}
+                                  onMouseDown={(
+                                    event: React.MouseEvent<HTMLButtonElement>,
+                                  ): void => {
+                                    event.preventDefault();
+                                  }}
+                                  onClick={(): void => {
+                                    narrowToKind(group.type);
+                                  }}
+                                  className="flex-shrink-0 rounded font-medium normal-case tracking-normal text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                >
+                                  {translator.translatePlural(
+                                    {
+                                      one: "Show {{count}} more",
+                                      other: "Show {{count}} more",
+                                    },
+                                    moreCount,
+                                  )}
+                                </button>
+                              )}
+                            </div>
+                            {group.items.map((item: AffectedResourceItem) => {
+                              flatIdx += 1;
+                              const isHighlighted: boolean =
+                                flatIdx === highlightedIndex;
+                              return (
+                                <button
+                                  key={`${item.type}-${item._id}`}
+                                  type="button"
+                                  role="option"
+                                  aria-selected={isHighlighted}
+                                  onMouseEnter={() => {
+                                    /*
+                                     * Sync the highlight to the mouse so keyboard
+                                     * and mouse never disagree on which row is
+                                     * about to be picked.
+                                     */
+                                    setHighlightedIndex(flatIdx);
+                                  }}
+                                  onMouseDown={(
+                                    event: React.MouseEvent<HTMLButtonElement>,
+                                  ) => {
+                                    /*
+                                     * Prevent the input blur from firing before
+                                     * onClick resolves the selection.
+                                     */
+                                    event.preventDefault();
+                                  }}
+                                  onClick={() => {
+                                    addItem(item);
+                                  }}
+                                  className={`flex w-full items-center gap-2 px-3 py-2 text-start ${
                                     isHighlighted
-                                      ? "text-white"
-                                      : "text-gray-400"
+                                      ? "bg-indigo-600 text-white"
+                                      : "text-gray-700 hover:bg-indigo-50"
                                   }`}
-                                />
-                                <span className="min-w-0 flex-1 truncate">
-                                  {item.name}
-                                </span>
-                                {/*
-                                 * An address reads left to right in every
-                                 * language, beside the name it tells apart.
-                                 */}
-                                {item.detail && (
-                                  <span
-                                    dir="ltr"
-                                    className={`max-w-[45%] flex-shrink-0 truncate text-xs ${
+                                >
+                                  <Icon
+                                    icon={cfg.icon}
+                                    className={`h-4 w-4 flex-shrink-0 ${
                                       isHighlighted
-                                        ? "text-indigo-100"
+                                        ? "text-white"
                                         : "text-gray-400"
                                     }`}
-                                  >
-                                    {item.detail}
+                                  />
+                                  <span className="min-w-0 flex-1 truncate">
+                                    {item.name}
                                   </span>
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      );
-                    },
-                  );
-                })()}
+                                  {/*
+                                   * An address reads left to right in every
+                                   * language, beside the name it tells apart.
+                                   */}
+                                  {item.detail && (
+                                    <span
+                                      dir="ltr"
+                                      className={`max-w-[45%] flex-shrink-0 truncate text-xs ${
+                                        isHighlighted
+                                          ? "text-indigo-100"
+                                          : "text-gray-400"
+                                      }`}
+                                    >
+                                      {item.detail}
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        );
+                      },
+                    );
+                  })()}
+                </div>
+              )}
 
               {/*
                * Narrowed to one kind and more of it match than are listed:
                * how many, and how to find the rest.
                */}
-              {!isLoading &&
+              {showsAnswer &&
                 activeKind !== null &&
                 (kindCounts[activeKind] || 0) >
                   (listedCounts[activeKind] || 0) && (
@@ -2509,7 +2601,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                * that matches some says so, rather than leaving the person to
                * think they cannot be found (issue #5341).
                */}
-              {!isLoading &&
+              {showsAnswer &&
                 props.monitorFieldTitle &&
                 monitorMatchCount > 0 &&
                 searchQuery.trim() !== "" && (
@@ -2522,19 +2614,27 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                       className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-gray-400"
                     />
                     <span>
-                      {translator.translatePlural(
-                        {
-                          one: "{{count}} monitor matches too. Monitors are picked under {{field}}.",
+                      {/*
+                       * The field by its name, in bold, so "the Monitors
+                       * field" reads as the field above and not as the word.
+                       */}
+                      <TranslatedSentence
+                        template={{
+                          one: "{{count}} monitor also matches. Monitors are picked in the {{field}} field.",
                           other:
-                            "{{count}} monitors match too. Monitors are picked under {{field}}.",
-                        },
-                        monitorMatchCount,
-                        {
-                          field: translator.translateText(
-                            props.monitorFieldTitle,
-                          ) as string,
-                        },
-                      )}
+                            "{{count}} monitors also match. Monitors are picked in the {{field}} field.",
+                        }}
+                        count={monitorMatchCount}
+                        slots={{
+                          field: (
+                            <span className="font-medium text-gray-700">
+                              {translator.translateText(
+                                props.monitorFieldTitle,
+                              )}
+                            </span>
+                          ),
+                        }}
+                      />
                     </span>
                   </div>
                 )}
@@ -2544,13 +2644,13 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                   {translator.translateTemplate(
                     "You don't have permission to read: {{types}}.",
                     {
-                      types: unreadableNoteTypes
-                        .map((t: AffectedResourceType): string => {
-                          return translator.translateText(
-                            RESOURCE_CONFIG[t].label,
-                          ) as string;
-                        })
-                        .join(", "),
+                      types: kindNames(
+                        unreadableNoteTypes.map(
+                          (t: AffectedResourceType): string => {
+                            return RESOURCE_CONFIG[t].label;
+                          },
+                        ),
+                      ),
                     },
                   )}
                 </div>

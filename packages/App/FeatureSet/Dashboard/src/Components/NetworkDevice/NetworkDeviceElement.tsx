@@ -38,7 +38,7 @@ const NetworkDeviceElement: FunctionComponent<ComponentProps> = (
       >
         <span className="flex">
           {props.showIcon ? (
-            <Icon icon={IconProp.Signal} className="w-5 h-5 mr-1" />
+            <Icon icon={IconProp.Signal} className="w-5 h-5 me-1" />
           ) : (
             <></>
           )}{" "}

@@ -33,10 +33,13 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *   - results grouped under a header naming their kind, a device's address
  *     beside its name;
  *   - a kind filter with how many of each match, narrowing to a kind lists
- *     more of it and only counts the rest, and Show all on a kind's header;
- *   - the monitors a search also matches are said, and where they are
- *     picked - on a picker that does not offer them;
- *   - a failed search says so; a kind the server would not read is named.
+ *     more of it and only counts the rest, and Show N more on a kind's
+ *     header, as many more as narrowing brings;
+ *   - the monitors a search also matches are said, and the field they are
+ *     picked in - on a picker that does not offer them;
+ *   - results on screen stay, dimmed, while the next search runs;
+ *   - a failed search says so and can be asked again; a kind the server
+ *     would not read is named.
  *
  * The route itself is stood in for (AffectedResourceSearchApi); the server's
  * half has its own suites.
@@ -241,9 +244,20 @@ async function type(text: string): Promise<void> {
   await settle();
 }
 
+/*
+ * Settled once no search is in flight: results on screen stay while the
+ * next one runs, so the results' aria-busy says so, not a "Searching..."
+ * line.
+ */
 async function settle(): Promise<void> {
   await waitFor(() => {
     expect(screen.queryByText("Searching...")).toBeNull();
+    const results: HTMLElement | null = screen.queryByTestId(
+      "affected-resources-results",
+    );
+    if (results) {
+      expect(results).toHaveAttribute("aria-busy", "false");
+    }
   });
 }
 
@@ -371,6 +385,20 @@ describe("every result says what kind it is", () => {
     ).toBeInTheDocument();
     expect(rowNames("Host")).toEqual(["wan-proxy"]);
     expect(rowNames("NetworkDevice")).toEqual(["WAN-RTR-01"]);
+  });
+
+  test("each kind's results are a group named by its header, so a screen reader hears the kind too", async () => {
+    renderPicker();
+    await open();
+    await type("wan");
+
+    const devices: HTMLElement = screen.getByRole("group", {
+      name: "Network Devices",
+    });
+
+    expect(devices).toBe(group("NetworkDevice"));
+    expect(within(devices).getByRole("option")).toHaveTextContent("WAN-RTR-01");
+    expect(screen.getByRole("group", { name: "Hosts" })).toBe(group("Host"));
   });
 
   test("a device's address shows beside its name, read left to right in any language", async () => {
@@ -517,7 +545,7 @@ describe("the kind filter", () => {
   });
 });
 
-describe("Show all, and what a narrowed list leaves out", () => {
+describe("Show N more, and what a narrowed list leaves out", () => {
   beforeEach(() => {
     project[AffectedResourceKind.NetworkDevice] = Array.from(
       { length: 180 },
@@ -531,7 +559,7 @@ describe("Show all, and what a narrowed list leaves out", () => {
     );
   });
 
-  test("a kind with more matches than its page offers Show all, with how many", async () => {
+  test("a kind with more matches than its page offers as many more as narrowing to it lists - never 'all' of 180", async () => {
     renderPicker();
     await open();
     await type("sw");
@@ -539,19 +567,53 @@ describe("Show all, and what a narrowed list leaves out", () => {
     expect(rowNames("NetworkDevice")).toHaveLength(
       AFFECTED_RESOURCE_SEARCH_DEFAULT_LIMIT,
     );
+    // 15 listed, narrowing lists 50: 35 more.
     expect(
-      screen.getByTestId("affected-resources-show-all-NetworkDevice"),
-    ).toHaveTextContent("Show all 180");
+      screen.getByTestId("affected-resources-show-more-NetworkDevice"),
+    ).toHaveTextContent(
+      `Show ${
+        AFFECTED_RESOURCE_SEARCH_MAX_LIMIT -
+        AFFECTED_RESOURCE_SEARCH_DEFAULT_LIMIT
+      } more`,
+    );
+    expect(screen.queryByText(/Show all/)).toBeNull();
   });
 
-  test("Show all narrows to the kind, and the footer says how many of how many are shown", async () => {
+  test("a kind with a few more than its page offers exactly those, and lists them all", async () => {
+    project[AffectedResourceKind.NetworkDevice] = project[
+      AffectedResourceKind.NetworkDevice
+    ]!.slice(0, 20);
+
+    renderPicker();
+    await open();
+    await type("sw");
+
+    expect(
+      screen.getByTestId("affected-resources-show-more-NetworkDevice"),
+    ).toHaveTextContent("Show 5 more");
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId("affected-resources-show-more-NetworkDevice"),
+      );
+    });
+    await waitFor(() => {
+      expect(lastQuery().kinds).toEqual(["NetworkDevice"]);
+    });
+    await settle();
+
+    expect(rowNames("NetworkDevice")).toHaveLength(20);
+    expect(screen.queryByTestId("affected-resources-narrowed-more")).toBeNull();
+  });
+
+  test("Show more narrows to the kind, and the footer says how many of how many are shown", async () => {
     renderPicker();
     await open();
     await type("sw");
 
     await act(async () => {
       fireEvent.click(
-        screen.getByTestId("affected-resources-show-all-NetworkDevice"),
+        screen.getByTestId("affected-resources-show-more-NetworkDevice"),
       );
     });
     await waitFor(() => {
@@ -565,35 +627,47 @@ describe("Show all, and what a narrowed list leaves out", () => {
     expect(
       screen.getByTestId("affected-resources-narrowed-more"),
     ).toHaveTextContent("Showing 50 of 180. Type to narrow the list.");
-    // Narrowed already: no Show all on its own header.
+    // Narrowed already: no Show more on its own header.
     expect(
-      screen.queryByTestId("affected-resources-show-all-NetworkDevice"),
+      screen.queryByTestId("affected-resources-show-more-NetworkDevice"),
     ).toBeNull();
+    /*
+     * Only network devices match: no kind filter saying "All 180" beside
+     * "Network Devices 180", the same thing twice.
+     */
+    expect(screen.queryByTestId("affected-resources-kind-filter")).toBeNull();
   });
 
-  test("a kind whose matches all fit offers no Show all and no footer", async () => {
+  test("a kind whose matches all fit offers no Show more and no footer", async () => {
     renderPicker();
     await open();
     await type("wan-proxy");
 
-    expect(screen.queryByTestId(/^affected-resources-show-all-/)).toBeNull();
+    expect(screen.queryByTestId(/^affected-resources-show-more-/)).toBeNull();
     expect(screen.queryByTestId("affected-resources-narrowed-more")).toBeNull();
   });
 });
 
 describe("the monitors a search also matches", () => {
-  test("are counted and said, with where they are picked", async () => {
+  test("are counted and said, with the field they are picked in", async () => {
     renderPicker({ monitorFieldTitle: "Monitors" });
     await open();
     await type("wan");
 
     expect(lastQuery().countKinds).toEqual(["Monitor"]);
     expect(lastQuery().kinds).not.toContain("Monitor");
-    expect(
-      screen.getByTestId("affected-resources-monitors-hint"),
-    ).toHaveTextContent(
-      "2 monitors match too. Monitors are picked under Monitors.",
+
+    const hint: HTMLElement = screen.getByTestId(
+      "affected-resources-monitors-hint",
     );
+
+    expect(hint).toHaveTextContent(
+      "2 monitors also match. Monitors are picked in the Monitors field.",
+    );
+    // The field by its name, in bold: the field above, not the word.
+    expect(
+      within(hint).getByText("Monitors", { selector: "span" }),
+    ).toHaveClass("font-medium");
   });
 
   test("one monitor is said as one, and an alert's field by its own name", async () => {
@@ -604,7 +678,7 @@ describe("the monitors a search also matches", () => {
     expect(
       screen.getByTestId("affected-resources-monitors-hint"),
     ).toHaveTextContent(
-      "1 monitor matches too. Monitors are picked under Monitor.",
+      "1 monitor also matches. Monitors are picked in the Monitor field.",
     );
   });
 
@@ -650,8 +724,32 @@ describe("when the search cannot answer", () => {
 
     expect(
       screen.getByTestId("affected-resources-search-failed"),
-    ).toHaveTextContent("Could not search resources. Try again in a moment.");
+    ).toHaveTextContent("Could not search resources.Try again");
     expect(screen.queryByText("No matching resources.")).toBeNull();
+  });
+
+  test("Try again asks the same search once more, and its answer replaces the error", async () => {
+    failing = true;
+
+    renderPicker();
+    await open();
+    await type("wan");
+
+    const before: number = searchMock.mock.calls.length;
+    failing = false;
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("affected-resources-search-retry"));
+    });
+    await waitFor(() => {
+      expect(searchMock.mock.calls.length).toBe(before + 1);
+    });
+    await settle();
+
+    expect(lastQuery().search).toBe("wan");
+    expect(screen.queryByTestId("affected-resources-search-failed")).toBeNull();
+    expect(rowNames("Host")).toEqual(["wan-proxy"]);
+    expect(rowNames("NetworkDevice")).toEqual(["WAN-RTR-01"]);
   });
 
   test("the next search that works clears it", async () => {
@@ -691,13 +789,92 @@ describe("when the search cannot answer", () => {
   });
 });
 
+describe("while the next search runs", () => {
+  test("the results on screen stay, dimmed, and the list never collapses to 'Searching...'", async () => {
+    let release: () => void = (): void => {};
+
+    renderPicker();
+    await open();
+    await type("wan");
+
+    searchMock.mockImplementationOnce((query: unknown) => {
+      return new Promise((resolve: (value: unknown) => void) => {
+        release = (): void => {
+          resolve(answer(query as SearchQuery));
+        };
+      });
+    });
+
+    await act(async () => {
+      fireEvent.change(input(), { target: { value: "wan-rtr" } });
+    });
+    await waitFor(() => {
+      expect(lastQuery().search).toBe("wan-rtr");
+    });
+
+    const results: HTMLElement = screen.getByTestId(
+      "affected-resources-results",
+    );
+
+    expect(results).toHaveAttribute("aria-busy", "true");
+    expect(screen.queryByText("Searching...")).toBeNull();
+    // The last answer's rows, still there to read and pick.
+    expect(rowNames("Host")).toEqual(["wan-proxy"]);
+    expect(group("Host").parentElement).toHaveClass("opacity-60");
+
+    await act(async () => {
+      release();
+    });
+    await settle();
+
+    expect(results).toHaveAttribute("aria-busy", "false");
+    expect(screen.queryByTestId("affected-resources-group-Host")).toBeNull();
+    expect(rowNames("NetworkDevice")).toEqual(["WAN-RTR-01"]);
+    expect(group("NetworkDevice").parentElement).not.toHaveClass("opacity-60");
+  });
+
+  test("a list with nothing on it yet says it is searching", async () => {
+    searchMock.mockImplementation(() => {
+      return new Promise(() => {});
+    });
+
+    renderPicker();
+
+    await act(async () => {
+      fireEvent.focus(input());
+    });
+
+    expect(await screen.findByText("Searching...")).toBeInTheDocument();
+    expect(screen.getByTestId("affected-resources-results")).toHaveAttribute(
+      "aria-busy",
+      "true",
+    );
+  });
+});
+
 describe("the placeholder", () => {
-  test("fourteen kinds are named by the first three and 'and more'", () => {
+  test("fourteen kinds that find hosts and devices say how to find them, by name or IP address", () => {
     renderPicker();
 
     expect(input()).toHaveAttribute(
       "placeholder",
-      "Search hosts, network devices, Kubernetes clusters and more...",
+      "Search by name or IP address...",
+    );
+  });
+
+  test("four kinds or more without an address to search are named by the first two and 'and more'", () => {
+    renderPicker({
+      resourceTypes: [
+        "KubernetesCluster",
+        "DatabaseServer",
+        "CloudResource",
+        "Service",
+      ],
+    });
+
+    expect(input()).toHaveAttribute(
+      "placeholder",
+      "Search Kubernetes clusters, databases and more...",
     );
   });
 

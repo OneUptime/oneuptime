@@ -62,7 +62,7 @@ export const getAffectedResourcesArgument: GetAffectedResourcesArgumentFunction 
       name: "Affected Resources",
       type: ComponentInputType.Text,
       required: false,
-      description: `The hosts, network devices, clusters, databases or services this ${setting.noun} is about, by name, address or ID, separated by commas. Each one found is linked; monitors go in JSON Object.`,
+      description: `Names, addresses or IDs of the hosts, network devices, clusters, databases or services this ${setting.noun} is about, separated by commas. Each one found is linked. Monitors go in JSON Object.`,
       placeholder: "Example: WAN-RTR-01, 10.0.4.1",
     };
   };

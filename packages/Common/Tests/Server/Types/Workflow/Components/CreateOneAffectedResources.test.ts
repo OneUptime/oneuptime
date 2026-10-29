@@ -652,11 +652,19 @@ describe("the step's help", () => {
 
   // The help names the record as the model does: "the Incident", "the Alert".
   test.each([
-    ["Incident", new Incident()],
-    ["Alert", new Alert()],
+    [
+      "Incident",
+      new Incident(),
+      "Monitors go in **JSON Object**, because linking a monitor to an incident pauses its checks.",
+    ],
+    [
+      "Alert",
+      new Alert(),
+      "The Alert's monitor goes in **JSON Object**, as `monitorId`.",
+    ],
   ])(
-    "Create One %s says, under Learn more, how a name is matched and what is never linked",
-    (name: string, model: BaseModel) => {
+    "Create One %s says, under Learn more, what to write, how a name is matched and where its monitor goes",
+    (name: string, model: BaseModel, monitorsSentence: string) => {
       const topic: ComponentDocumentationTopic | undefined = topicsOf(
         model,
       ).find((candidate: ComponentDocumentationTopic): boolean => {
@@ -667,14 +675,20 @@ describe("the step's help", () => {
 
       const text: string = topic!.paragraphs.join("\n");
 
-      expect(text).toContain("**Affected Resources**");
+      // What to write comes first, then how it is matched.
+      expect(topic!.paragraphs[0]).toContain(
+        "Under **Affected Resources**, write the names, addresses or OneUptime IDs",
+      );
       expect(text).toContain("network devices");
       expect(text).toContain(`services the ${name} is about`);
+      expect(text).toContain("upper or lower case alike");
       expect(text).toContain(`the ${name} is still created`);
       expect(text).toContain("Archived resources are not linked.");
-      expect(text).toContain(
-        "Monitors go in **JSON Object**, because linking a monitor to an incident pauses its checks.",
-      );
+      expect(text).toContain(monitorsSentence);
+      // An alert's help never says what an incident's monitors do.
+      if (name === "Alert") {
+        expect(text).not.toContain("incident");
+      }
     },
   );
 

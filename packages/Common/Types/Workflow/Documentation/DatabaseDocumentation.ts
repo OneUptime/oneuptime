@@ -356,11 +356,20 @@ const affectedResourcesTopic: TemplateTopicFunction = (data: {
   words: ModelWords;
   setting: Argument;
 }): ComponentDocumentationTopic => {
+  /*
+   * An incident's monitors are a list of their own, and linking one pauses
+   * its checks; an alert has one monitor, its monitorId.
+   */
+  const monitorsSentence: string =
+    data.words.model.tableName === "Alert"
+      ? `The ${data.words.one}'s monitor goes in **JSON Object**, as \`monitorId\`.`
+      : "Monitors go in **JSON Object**, because linking a monitor to an incident pauses its checks.";
+
   return {
     title: "Linking what it is about",
     paragraphs: [
-      `**${data.setting.name}** takes the hosts, network devices, clusters, databases, cloud resources or services the ${data.words.one} is about: by name, by address (a host's or a network device's IP address or DNS name) or by OneUptime ID, typed or from an earlier step - the host an alert from another tool names. Each one is looked for in every kind of resource, as a whole value and in any case, and every resource it matches is linked, beside what **JSON Object** and a template already link.`,
-      `A name that matches nothing does not stop the step: the ${data.words.one} is still created, and the run's log says what each name linked and which matched nothing. Archived resources are not linked. Monitors go in **JSON Object**, because linking a monitor to an incident pauses its checks.`,
+      `Under **${data.setting.name}**, write the names, addresses or OneUptime IDs of the hosts, network devices, clusters, databases, cloud resources or services the ${data.words.one} is about, separated by commas - typed in, or taken from an earlier step, such as the host an alert from another tool names. An address is a host's or a network device's IP address or DNS name.`,
+      `Each one is matched as a whole, upper or lower case alike, against every kind of resource, and every resource it matches is linked, beside what **JSON Object** and a template already link. A name that matches nothing does not stop the step: the ${data.words.one} is still created, and the run's log says what each name linked and which matched nothing. Archived resources are not linked. ${monitorsSentence}`,
     ],
   };
 };

@@ -21616,7 +21616,7 @@
   "{{count}} resources that are not in any group": "どのグループにも属していない {{count}} 個のリソース",
   "{{count}} resources that are not in any group_one": "{{count}} resource that is not in any group",
   "{{count}} resources you don't have permission to view are also attached ({{types}}). They will be kept.": "閲覧権限のない {{count}} 件のリソースも関連付けられています（{{types}}）。これらは保持されます。",
-  "{{count}} resources you don't have permission to view are also attached ({{types}}). They will be kept._one": "{{count}} resource you don't have permission to view is also attached ({{types}}). It will be kept.",
+  "{{count}} resources you don't have permission to view are also attached ({{types}}). They will be kept._one": "閲覧権限のない {{count}} 件のリソースも関連付けられています（{{types}}）。これらは保持されます。",
   "{{count}} resources, A to Z. Search above to find one by name.": "{{count}} 個のリソース（A から Z の順）。名前で探すには上で検索してください。",
   "{{count}} resources, A to Z. Search above to find one by name._one": "{{count}} resource, A to Z. Search above to find one by name.",
   "{{count}} returned an error": "{{count}} 件がエラーを返しました",
@@ -36960,12 +36960,12 @@
   "MD5, SHA-1, SHA-256 and SHA-512 hashes, matched whatever the case.": "MD5、SHA-1、SHA-256、SHA-512 のハッシュです。大文字と小文字は区別しません。",
   "Choose what the list holds": "リストに入れるものを選択",
   "Couldn't load the rules": "ルールを読み込めませんでした",
-  "Could not search resources. Try again in a moment.": "リソースを検索できませんでした。しばらくしてからもう一度お試しください。",
   "Search and attach the hosts, network devices, clusters, databases, cloud resources or services this alert affects.": "このアラートの影響を受けるホスト、ネットワークデバイス、クラスター、データベース、クラウドリソース、またはサービスを検索して添付します。",
   "Search and attach the hosts, network devices, clusters, databases, cloud resources or services this incident affects.": "このインシデントの影響を受けるホスト、ネットワークデバイス、クラスター、データベース、クラウドリソース、またはサービスを検索して添付します。",
   "Search {{types}} and more...": "{{types}}などを検索...",
-  "Show all {{count}}_one": "{{count}} 件すべてを表示",
   "Showing {{shown}} of {{total}}. Type to narrow the list.": "{{total}} 件中 {{shown}} 件を表示しています。入力すると一覧を絞り込めます。",
-  "{{count}} monitors match too. Monitors are picked under {{field}}.": "モニターも {{count}} 件一致します。モニターは「{{field}}」で選択します。",
-  "{{count}} monitors match too. Monitors are picked under {{field}}._one": "モニターも {{count}} 件一致します。モニターは「{{field}}」で選択します。"
+  "Could not search resources.": "リソースを検索できませんでした。",
+  "{{count}} monitors also match. Monitors are picked in the {{field}} field.": "モニターも {{count}} 件一致します。モニターは「{{field}}」欄で選択します。",
+  "{{count}} monitors also match. Monitors are picked in the {{field}} field._one": "モニターも {{count}} 件一致します。モニターは「{{field}}」欄で選択します。",
+  "Search by name or IP address...": "名前または IP アドレスで検索..."
 }

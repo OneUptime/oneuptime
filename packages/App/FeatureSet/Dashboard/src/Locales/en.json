@@ -36960,12 +36960,12 @@
   "MD5, SHA-1, SHA-256 and SHA-512 hashes, matched whatever the case.": "MD5, SHA-1, SHA-256 and SHA-512 hashes, matched whatever the case.",
   "Choose what the list holds": "Choose what the list holds",
   "Couldn't load the rules": "Couldn't load the rules",
-  "Could not search resources. Try again in a moment.": "Could not search resources. Try again in a moment.",
   "Search and attach the hosts, network devices, clusters, databases, cloud resources or services this alert affects.": "Search and attach the hosts, network devices, clusters, databases, cloud resources or services this alert affects.",
   "Search and attach the hosts, network devices, clusters, databases, cloud resources or services this incident affects.": "Search and attach the hosts, network devices, clusters, databases, cloud resources or services this incident affects.",
   "Search {{types}} and more...": "Search {{types}} and more...",
-  "Show all {{count}}_one": "Show all {{count}}",
   "Showing {{shown}} of {{total}}. Type to narrow the list.": "Showing {{shown}} of {{total}}. Type to narrow the list.",
-  "{{count}} monitors match too. Monitors are picked under {{field}}.": "{{count}} monitors match too. Monitors are picked under {{field}}.",
-  "{{count}} monitors match too. Monitors are picked under {{field}}._one": "{{count}} monitor matches too. Monitors are picked under {{field}}."
+  "Could not search resources.": "Could not search resources.",
+  "{{count}} monitors also match. Monitors are picked in the {{field}} field.": "{{count}} monitors also match. Monitors are picked in the {{field}} field.",
+  "{{count}} monitors also match. Monitors are picked in the {{field}} field._one": "{{count}} monitor also matches. Monitors are picked in the {{field}} field.",
+  "Search by name or IP address...": "Search by name or IP address..."
 }

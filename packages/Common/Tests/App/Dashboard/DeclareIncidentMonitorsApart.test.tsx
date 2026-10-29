@@ -593,12 +593,14 @@ describe("Resources Affected: the monitors apart, and the status they change to 
 
     expect(monitors).toHaveAttribute("placeholder", "Search monitors...");
     /*
-     * Fourteen kinds are named by the first three and "and more": a
-     * placeholder listing them all is cut off long before its end.
+     * Fourteen kinds: the placeholder says how to find them - by name, or
+     * a host's or a device's IP address - and the field's description
+     * below names the kinds. A placeholder naming them was cut off on a
+     * phone.
      */
     expect(others).toHaveAttribute(
       "placeholder",
-      "Search hosts, network devices, Kubernetes clusters and more...",
+      "Search by name or IP address...",
     );
     expect(isBefore(fieldOf(monitors), fieldOf(others))).toBe(true);
     expect(

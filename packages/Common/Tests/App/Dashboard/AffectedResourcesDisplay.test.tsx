@@ -539,8 +539,17 @@ describe("AffectedResourcesDisplay: category headings", () => {
   test("the resources are indented under the label, past the icon tile", () => {
     render(<AffectedResourcesDisplay monitors={MONITORS} columns={1} />);
 
-    // The tile is h-6 w-6 and the header row has gap-2: 24px + 8px = pl-8.
-    expect(screen.getByRole("list")).toHaveClass("pl-8");
+    /*
+     * The tile is h-6 w-6 and the header row has gap-2: 24px + 8px = 8.
+     * From the start of the line, so a right-to-left page lines the names
+     * up under the label too, not under the icon.
+     */
+    expect(screen.getByRole("list")).toHaveClass("ps-8");
+    expect(screen.getByRole("list")).not.toHaveClass("pl-8");
+    for (const item of screen.getAllByRole("listitem")) {
+      expect(item).toHaveClass("-ms-2");
+      expect(item).not.toHaveClass("-ml-2");
+    }
     expect(screen.getByRole("heading", { level: 3 }).parentElement).toHaveClass(
       "flex",
       "items-center",
@@ -748,11 +757,15 @@ describe("AffectedResourcesDisplay: rows", () => {
       .getByTitle(LONG_MONITOR_NAME)
       .closest("li")!;
 
-    // Pulled left by its own padding so the name lines up with the label...
-    expect(row).toHaveClass("-ml-2", "px-2");
-    // ...but not past the right edge, where the dividers and counts end.
+    /*
+     * Pulled toward the start by its own padding so the name lines up with
+     * the label (the left in English, the right in Persian)...
+     */
+    expect(row).toHaveClass("-ms-2", "px-2");
+    // ...but not past the far edge, where the dividers and counts end.
     expect(row).not.toHaveClass("-mx-2");
-    expect(row).not.toHaveClass("-mr-2");
+    expect(row).not.toHaveClass("-me-2");
+    expect(row).not.toHaveClass("-ml-2");
   });
 
   test("the old chevron is gone: the whole row says it is a link", () => {
@@ -857,9 +870,9 @@ describe("AffectedResourcesDisplay: Show more", () => {
       name: "Show 3 more",
     });
 
-    // ml-6 plus its own px-2 puts its text on the names' pl-8 line.
+    // ms-6 plus its own px-2 puts its text on the names' ps-8 line.
     expect(toggle).toHaveClass(
-      "ml-6",
+      "ms-6",
       "px-2",
       "inline-flex",
       "text-xs",
@@ -916,7 +929,7 @@ describe("AffectedResourcesDisplay: Show more", () => {
     );
     // Lined up with the names, and a div: the icon renders a <div> of its own.
     expect(note.tagName).toBe("DIV");
-    expect(note).toHaveClass("ml-8", "text-amber-700");
+    expect(note).toHaveClass("ms-8", "text-amber-700");
     // The count still covers every item.
     expect(
       screen.getByTestId("affected-resource-category-count"),

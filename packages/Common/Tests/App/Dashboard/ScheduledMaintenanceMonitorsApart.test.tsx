@@ -613,12 +613,13 @@ describe("Resources Affected: the monitors apart, and the status they change to 
 
     expect(monitors).toHaveAttribute("placeholder", "Search monitors...");
     /*
-     * The other picker names what it searches, monitors not among them. A
-     * maintenance event holds no network devices, so none is named.
+     * The other picker says how to find what it searches - by name, or a
+     * host's IP address - and the field's description names the kinds,
+     * monitors not among them.
      */
     expect(others).toHaveAttribute(
       "placeholder",
-      "Search hosts, Kubernetes clusters, Docker hosts and more...",
+      "Search by name or IP address...",
     );
     // Network sites are named by the field's description, below.
     expect(others.getAttribute("placeholder")).not.toContain("monitor");
