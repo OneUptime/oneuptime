@@ -36833,5 +36833,6 @@
   "The Meraki dashboard has not been read yet. The connection's status is on the network's Traffic page.": "尚未讀取 Meraki 儀表板。連線的狀態在該網路的 Traffic 頁面上。",
   "The Meraki dashboard is read again within a minute.": "將在一分鐘內重新讀取 Meraki 儀表板。",
   "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki.": "其中 {{count}} 台裝置在此是網路裝置：其型號、序號和韌體來自 Meraki。",
-  "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki._one": "其中 {{count}} 台裝置在此是網路裝置：其型號、序號和韌體來自 Meraki。"
+  "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki._one": "其中 {{count}} 台裝置在此是網路裝置：其型號、序號和韌體來自 Meraki。",
+  "Selected: {{name}}": "已選擇：{{name}}"
 }

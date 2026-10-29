@@ -123,6 +123,13 @@ is registered and listed below, and no file reaches outside itself.
 | `quarkus.svg` | Quarkus | SVG Logos, `quarkus-icon` | [Quarkus brand](https://design.jboss.org/quarkus/) |
 | `kotlin.svg` | Kotlin | SVG Logos, `kotlin-icon` | [JetBrains brand](https://www.jetbrains.com/company/brand/) |
 | `ktor.svg` | Ktor | SVG Logos, `ktor-icon` | [JetBrains brand](https://www.jetbrains.com/company/brand/) |
+| `gin.svg` | Gin | Simple Icons, `gin` (gin-gonic's one-colour logo, its file wb.svg) | ["Gin-Gonic Framework Logo" by Javier Provecho, CC BY 4.0](https://github.com/gin-gonic/logo) |
+| `rails.svg` | Ruby on Rails | Simple Icons, `rubyonrails` (the Rails logo's rail, its symbol on its own) | [Rails trademarks](https://rubyonrails.org/trademarks) |
+| `sinatra.svg` | Sinatra | SVG Logos, `sinatra` (Sinatra's fedora) | [sinatrarb.com](https://sinatrarb.com) |
+| `sidekiq.svg` | Sidekiq | Simple Icons, `sidekiq` (from sidekiq.org, CC BY-SA 4.0) | [sidekiq.org](https://sidekiq.org) |
+| `slim.svg` | Slim | SVG Logos, `slim` (the Slim Framework's logo) | [slimframework.com](https://www.slimframework.com) |
+| `actix-web.svg`, `actix-web-dark.svg` | Actix Web | Simple Icons, `actix` (the Actix wheel actix.rs shows); dark: in white | [actix.rs](https://actix.rs) |
+| `phoenix.svg` | Phoenix | SVG Logos, `phoenix` (Phoenix's bird) | [phoenixframework.org](https://www.phoenixframework.org) |
 
 ## Adding a logo
 

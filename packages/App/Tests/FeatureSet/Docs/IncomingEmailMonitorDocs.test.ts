@@ -188,7 +188,8 @@ describe("What the section tells readers to click", () => {
     {
       label: "Show More Details",
       file: "Components/Monitor/SummaryView/IncomingEmailMonitorSummaryView.tsx",
-      source: 'title="Show More Details"',
+      // One button, open or folded (issue #5364): its title follows the state.
+      source: 'title={showMoreDetails ? "Hide Details" : "Show More Details"}',
     },
     {
       label: "Email Headers",

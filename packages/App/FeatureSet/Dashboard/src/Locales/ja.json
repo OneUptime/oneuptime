@@ -36833,5 +36833,6 @@
   "The Meraki dashboard has not been read yet. The connection's status is on the network's Traffic page.": "Meraki ダッシュボードはまだ読み取られていません。接続の状態はネットワークのトラフィックページにあります。",
   "The Meraki dashboard is read again within a minute.": "Meraki ダッシュボードを 1 分以内に再度読み取ります。",
   "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki.": "そのうち {{count}} 台がここでネットワークデバイスとして登録されています。モデル、シリアル番号、ファームウェアは Meraki から取得します。",
-  "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki._one": "そのうち {{count}} 台がここでネットワークデバイスとして登録されています。モデル、シリアル番号、ファームウェアは Meraki から取得します。"
+  "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki._one": "そのうち {{count}} 台がここでネットワークデバイスとして登録されています。モデル、シリアル番号、ファームウェアは Meraki から取得します。",
+  "Selected: {{name}}": "選択中: {{name}}"
 }

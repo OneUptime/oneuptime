@@ -1155,6 +1155,8 @@ const CaptionBand: FunctionComponent<{
           type="button"
           className={FOCUS_RING}
           data-testid={`resource-topology-group-toggle-${group.groupKey}`}
+          // Shown in full is open: the button then folds the group.
+          aria-expanded={canFold}
           onClick={() => {
             props.onToggleGroup(group.groupKey);
           }}

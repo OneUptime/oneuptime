@@ -36,7 +36,16 @@ export type SnippetLanguage =
   // application.properties.
   | "properties"
   // uwsgi.ini.
-  | "ini";
+  | "ini"
+  | "go"
+  | "ruby"
+  | "php"
+  | "rust"
+  | "elixir"
+  // Cargo.toml.
+  | "toml"
+  // A gRPC service's .proto file.
+  | "protobuf";
 
 /*
  * How the tests and the end-to-end check hold a snippet to working:
@@ -74,7 +83,14 @@ export interface GuideTabs {
    * Tab sets of one group share the reader's choice: picking "Self-hosted"
    * once picks it in every set of the group, on every guide.
    */
-  group: "deployment" | "setup" | "modules" | "packageManager" | "buildTool";
+  group:
+    | "deployment"
+    | "setup"
+    | "modules"
+    | "packageManager"
+    | "buildTool"
+    // A framework's major versions, where their code differs: Echo v5 and v4.
+    | "version";
   tabs: Array<GuideTab>;
 }
 
@@ -217,6 +233,14 @@ export interface ExpectedSpan {
    * or a task's threads.
    */
   parent?: string | undefined;
+  // Attributes the span must not carry: what the guide's options leave out.
+  absentAttributes?: Array<string> | undefined;
+  /*
+   * The span's parent must be the span with this ID, in hex: the caller's,
+   * sent in the traceparent header of one of the run's requests, which the
+   * framework read.
+   */
+  parentSpanId?: string | undefined;
 }
 
 export interface ExpectedLog {
@@ -229,6 +253,11 @@ export interface ExpectedLog {
    * under Exceptions; false: it carries none.
    */
   hasException?: boolean | undefined;
+  /*
+   * Attributes the record must carry, with these values: the order id a
+   * handler logged, as it logged it.
+   */
+  attributes?: Record<string, string> | undefined;
 }
 
 export interface VerificationExpectations {
@@ -286,13 +315,29 @@ export interface GuideVerificationRun {
   expect: VerificationExpectations;
 }
 
+export type GuideRuntime =
+  | "node"
+  | "bun"
+  | "deno"
+  | "browser"
+  | "python"
+  | "jvm"
+  | "dotnet"
+  | "go"
+  | "ruby"
+  | "php"
+  | "rust"
+  | "elixir";
+
 export interface GuideVerification extends GuideVerificationRun {
   /*
    * The runtime the check uses: "node", "bun", "deno", "browser"; "python"
    * (a virtual environment of the app's own, whose pip, python and scripts
-   * come first on PATH), "jvm" (a JDK, with Maven and Gradle) or "dotnet".
+   * come first on PATH), "jvm" (a JDK, with Maven and Gradle) or "dotnet";
+   * or "go", "ruby", "php", "rust" and "elixir", each run in a container of
+   * the language's official image (Scripts/VerifyOpenTelemetryGuides.ts).
    */
-  runtime: "node" | "bun" | "deno" | "browser" | "python" | "jvm" | "dotnet";
+  runtime: GuideRuntime;
   /*
    * The framework the app runs on, as the page names it, and the package
    * its installed version is read from: { name: "Express", package: "express" },

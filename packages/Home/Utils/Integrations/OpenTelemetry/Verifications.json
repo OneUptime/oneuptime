@@ -1,36 +1,75 @@
 {
+  "actix-web": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Rust 1.99.1",
+    "packages": {
+      "actix-web": "4.18.1",
+      "opentelemetry": "0.33.1",
+      "opentelemetry-appender-tracing": "0.33.1",
+      "opentelemetry-http": "0.33.1",
+      "opentelemetry-otlp": "0.33.1",
+      "opentelemetry_sdk": "0.33.1",
+      "reqwest": "0.13.5",
+      "serde": "1.0.229",
+      "tracing": "0.1.44",
+      "tracing-actix-web": "0.7.25",
+      "tracing-opentelemetry": "0.34.0",
+      "tracing-subscriber": "0.3.23"
+    },
+    "framework": "Actix Web 4.18.1",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:6c042a1595e1a93fc1909e9aeeba2909e6d5f58032543e3c027ef4d02c710863",
+    "observed": {
+      "spans": [
+        "GET /orders/{id}",
+        "GET /orders/{id}/receipt",
+        "GET default",
+        "POST",
+        "POST /orders",
+        "checkout.charge"
+      ],
+      "metrics": ["orders.placed"],
+      "logs": [
+        "Error encountered while processing the incoming HTTP request: Internal(\"the receipt printer is offline for order 42\")",
+        "Error encountered while processing the incoming HTTP request: NotFound",
+        "listening on :8080",
+        "loading order"
+      ]
+    },
+    "packageExports": {}
+  },
   "angular": {
-    "checkedOn": "2026-10-27",
+    "checkedOn": "2026-10-28",
     "runtime": "Chrome 153.0.8010.12",
     "packages": {
-      "@opentelemetry/api": "1.10.0",
-      "@opentelemetry/sdk-trace": "3.0.0",
-      "@opentelemetry/sdk-logs": "3.0.0",
-      "@opentelemetry/sdk-metrics": "3.0.0",
-      "@opentelemetry/core": "3.0.0",
-      "@opentelemetry/resources": "3.0.0",
-      "@opentelemetry/exporter-trace-otlp-http": "0.300.0",
-      "@opentelemetry/exporter-logs-otlp-http": "0.300.0",
-      "@opentelemetry/exporter-metrics-otlp-http": "0.300.0",
-      "@opentelemetry/instrumentation": "0.300.0",
-      "@opentelemetry/auto-instrumentations-web": "0.69.0",
-      "@opentelemetry/opentelemetry-browser-detector": "0.300.0",
-      "web-vitals": "6.2.3",
-      "@angular/core": "22.2.3",
-      "@angular/common": "22.2.3",
-      "@angular/compiler": "22.2.3",
-      "@angular/platform-browser": "22.2.3",
-      "@angular/router": "22.2.3",
-      "rxjs": "7.8.2",
-      "tslib": "2.8.1",
       "@angular/build": "22.2.4",
       "@angular/cli": "22.2.4",
+      "@angular/common": "22.2.3",
+      "@angular/compiler": "22.2.3",
       "@angular/compiler-cli": "22.2.3",
-      "typescript": "6.0.3"
+      "@angular/core": "22.2.3",
+      "@angular/platform-browser": "22.2.3",
+      "@angular/router": "22.2.3",
+      "@opentelemetry/api": "1.10.0",
+      "@opentelemetry/auto-instrumentations-web": "0.69.0",
+      "@opentelemetry/core": "3.0.0",
+      "@opentelemetry/exporter-logs-otlp-http": "0.300.0",
+      "@opentelemetry/exporter-metrics-otlp-http": "0.300.0",
+      "@opentelemetry/exporter-trace-otlp-http": "0.300.0",
+      "@opentelemetry/instrumentation": "0.300.0",
+      "@opentelemetry/opentelemetry-browser-detector": "0.300.0",
+      "@opentelemetry/resources": "3.0.0",
+      "@opentelemetry/sdk-logs": "3.0.0",
+      "@opentelemetry/sdk-metrics": "3.0.0",
+      "@opentelemetry/sdk-trace": "3.0.0",
+      "rxjs": "7.8.2",
+      "tslib": "2.8.1",
+      "typescript": "6.0.3",
+      "web-vitals": "6.2.3"
     },
     "framework": "Angular 22.2.3",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:cde639822473b3f491996659e67f46326069f8e0ca068e018f342a3cd7877af2",
+    "snippetDigest": "sha256:13ef3d7b0a256658e0e1ad146131184bc9c33b539a2c384bc0eec8f5615719ae",
     "observed": {
       "spans": [
         "POST",
@@ -1471,29 +1510,68 @@
     },
     "packageExports": {}
   },
+  "axum": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Rust 1.99.1",
+    "packages": {
+      "axum": "0.8.9",
+      "axum-tracing-opentelemetry": "0.42.1",
+      "opentelemetry": "0.33.1",
+      "opentelemetry-appender-tracing": "0.33.1",
+      "opentelemetry-http": "0.33.1",
+      "opentelemetry-otlp": "0.33.1",
+      "opentelemetry_sdk": "0.33.1",
+      "reqwest": "0.13.5",
+      "serde": "1.0.229",
+      "tokio": "1.54.1",
+      "tracing": "0.1.44",
+      "tracing-opentelemetry": "0.34.0",
+      "tracing-subscriber": "0.3.23"
+    },
+    "framework": "Axum 0.8.9",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:27f9d433527699417972c910bbd300b9378ccb7974b57e873aef3a20852aeae9",
+    "observed": {
+      "spans": [
+        "GET",
+        "GET /orders/{id}",
+        "GET /orders/{id}/receipt",
+        "POST",
+        "POST /orders",
+        "checkout.charge"
+      ],
+      "metrics": ["orders.placed"],
+      "logs": [
+        "listening on :8080",
+        "loading order",
+        "request failed: the receipt printer is offline for order 42"
+      ]
+    },
+    "packageExports": {}
+  },
   "browser": {
-    "checkedOn": "2026-10-27",
+    "checkedOn": "2026-10-28",
     "runtime": "Chrome 153.0.8010.12",
     "packages": {
       "@opentelemetry/api": "1.10.0",
-      "@opentelemetry/sdk-trace": "3.0.0",
-      "@opentelemetry/sdk-logs": "3.0.0",
-      "@opentelemetry/sdk-metrics": "3.0.0",
+      "@opentelemetry/auto-instrumentations-web": "0.69.0",
       "@opentelemetry/core": "3.0.0",
-      "@opentelemetry/resources": "3.0.0",
-      "@opentelemetry/exporter-trace-otlp-http": "0.300.0",
       "@opentelemetry/exporter-logs-otlp-http": "0.300.0",
       "@opentelemetry/exporter-metrics-otlp-http": "0.300.0",
+      "@opentelemetry/exporter-trace-otlp-http": "0.300.0",
       "@opentelemetry/instrumentation": "0.300.0",
-      "@opentelemetry/auto-instrumentations-web": "0.69.0",
       "@opentelemetry/opentelemetry-browser-detector": "0.300.0",
-      "web-vitals": "6.2.3",
+      "@opentelemetry/resources": "3.0.0",
+      "@opentelemetry/sdk-logs": "3.0.0",
+      "@opentelemetry/sdk-metrics": "3.0.0",
+      "@opentelemetry/sdk-trace": "3.0.0",
       "esbuild": "0.28.2",
-      "typescript": "7.0.2"
+      "typescript": "7.0.2",
+      "web-vitals": "6.2.3"
     },
     "framework": "Chromium",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:e2398be1a0aede3d077639e2c4df61da69739cb5e08d08a02363c4944c897a29",
+    "snippetDigest": "sha256:ad4937dd19ae7d508289b8ec05b540bcd578c29d9e6f68b6d054195d89b4c4b3",
     "observed": {
       "spans": [
         "GET",
@@ -1507,17 +1585,13 @@
         "window.error"
       ],
       "metrics": [
-        "v8js.gc.duration",
         "web_vital.cls",
         "web_vital.fcp",
         "web_vital.inp",
         "web_vital.lcp",
         "web_vital.ttfb"
       ],
-      "logs": [
-        "[\"DiagConsoleLogger\",\"DiagLogLevel\",\"INVALID_SPANID\",\"INVALID_SPAN_CONTEXT\",\"INVALID_TRACEID\",\"ProxyTracer\",\"ProxyTracer",
-        "cart refreshed"
-      ]
+      "logs": ["cart refreshed"]
     },
     "packageExports": {
       "@opentelemetry/api": [
@@ -1864,17 +1938,17 @@
     }
   },
   "bun": {
-    "checkedOn": "2026-10-27",
+    "checkedOn": "2026-10-28",
     "runtime": "Bun 1.4.4",
     "packages": {
       "@opentelemetry/api": "1.10.0",
       "@opentelemetry/sdk-node": "0.300.0",
-      "typescript": "7.0.2",
-      "@types/bun": "1.4.4"
+      "@types/bun": "1.4.4",
+      "typescript": "7.0.2"
     },
     "framework": "Bun",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:e4366816711a4aa18f9c3b720b9ae5faea04fd98e7357519818162775672c410",
+    "snippetDigest": "sha256:012361f77674bef18368c98bf4768c9a690f09dff1c2677eddd34dd8d8ce59d7",
     "observed": {
       "spans": ["GET", "GET /products/:id", "POST /orders", "orders.place"],
       "metrics": ["http.server.request.duration", "orders.placed"],
@@ -2036,14 +2110,14 @@
     "packageExports": {}
   },
   "deno": {
-    "checkedOn": "2026-10-27",
+    "checkedOn": "2026-10-28",
     "runtime": "Deno 2.9.8",
     "packages": {
       "@opentelemetry/api": "1.10.0"
     },
     "framework": "Deno",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:8c9e787eace43dea714b53f08f19dcc9d599ee193a5a8d6a283ce77b6d980c12",
+    "snippetDigest": "sha256:4b46b09273b7611e3a060f8cc20c484163de41f38398395d1c4acbf0264eda59",
     "observed": {
       "spans": ["GET", "GET /products/:id", "POST /orders", "orders.place"],
       "metrics": [
@@ -2354,20 +2428,175 @@
     },
     "packageExports": {}
   },
+  "echo": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Go 1.27.3",
+    "packages": {
+      "github.com/exaring/otelpgx": "v0.13.0",
+      "github.com/jackc/pgx/v5": "v5.11.0",
+      "github.com/labstack/echo-otel/v5": "v5.0.0",
+      "github.com/labstack/echo/v5": "v5.4.2",
+      "go.opentelemetry.io/contrib/bridges/otelslog": "v0.21.0",
+      "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp": "v0.72.0",
+      "go.opentelemetry.io/contrib/instrumentation/runtime": "v0.72.0",
+      "go.opentelemetry.io/otel": "v1.47.0",
+      "go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp": "v0.23.0",
+      "go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp": "v1.47.0",
+      "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp": "v1.47.0",
+      "go.opentelemetry.io/otel/sdk": "v1.47.0",
+      "go.opentelemetry.io/otel/sdk/log": "v1.47.0",
+      "go.opentelemetry.io/otel/sdk/metric": "v1.47.0"
+    },
+    "framework": "Echo 5.4.2",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:119e433ba9c60d908a3852477bf2c472efb19f2d7beec158c7854e09a2fa1201",
+    "observed": {
+      "spans": [
+        "GET /products/:sku",
+        "GET /products/:sku/unit-price",
+        "HTTP POST",
+        "POST /products/:sku/reservations",
+        "SELECT",
+        "UPDATE",
+        "catalog.reserve",
+        "connect"
+      ],
+      "metrics": [
+        "db.client.operation.duration",
+        "go.config.gogc",
+        "go.goroutine.count",
+        "go.memory.allocated",
+        "go.memory.allocations",
+        "go.memory.gc.goal",
+        "go.memory.used",
+        "go.processor.limit",
+        "http.client.request.body.size",
+        "http.client.request.duration",
+        "http.server.request.body.size",
+        "http.server.request.duration",
+        "http.server.response.body.size",
+        "pgxpool.acquire_duration",
+        "pgxpool.acquired_connections",
+        "pgxpool.acquires",
+        "pgxpool.canceled_acquires",
+        "pgxpool.constructing_connections",
+        "pgxpool.empty_acquire",
+        "pgxpool.empty_acquire_wait_time",
+        "pgxpool.idle_connections",
+        "pgxpool.max_connections",
+        "pgxpool.max_idle_destroys",
+        "pgxpool.max_lifetime_destroys",
+        "pgxpool.new_connections",
+        "pgxpool.total_connections",
+        "products.reserved"
+      ],
+      "logs": ["http(s) server started", "loading product", "request failed"]
+    },
+    "packageExports": {},
+    "variants": {
+      "Echo v4": {
+        "observed": {
+          "spans": [
+            "GET /products/:sku",
+            "GET /products/:sku/unit-price",
+            "HTTP POST",
+            "POST /products/:sku/reservations",
+            "SELECT",
+            "UPDATE",
+            "catalog.reserve",
+            "connect"
+          ],
+          "metrics": [
+            "db.client.operation.duration",
+            "go.config.gogc",
+            "go.goroutine.count",
+            "go.memory.allocated",
+            "go.memory.allocations",
+            "go.memory.gc.goal",
+            "go.memory.used",
+            "go.processor.limit",
+            "http.client.request.body.size",
+            "http.client.request.duration",
+            "http.server.request.body.size",
+            "http.server.request.duration",
+            "http.server.response.body.size",
+            "pgxpool.acquire_duration",
+            "pgxpool.acquired_connections",
+            "pgxpool.acquires",
+            "pgxpool.canceled_acquires",
+            "pgxpool.constructing_connections",
+            "pgxpool.empty_acquire",
+            "pgxpool.empty_acquire_wait_time",
+            "pgxpool.idle_connections",
+            "pgxpool.max_connections",
+            "pgxpool.max_idle_destroys",
+            "pgxpool.max_lifetime_destroys",
+            "pgxpool.new_connections",
+            "pgxpool.total_connections",
+            "products.reserved"
+          ],
+          "logs": ["loading product", "request failed"]
+        },
+        "packages": {
+          "github.com/exaring/otelpgx": "v0.13.0",
+          "github.com/jackc/pgx/v5": "v5.11.0",
+          "github.com/labstack/echo-otel/v4": "v4.0.0",
+          "github.com/labstack/echo/v4": "v4.16.2",
+          "go.opentelemetry.io/contrib/bridges/otelslog": "v0.21.0",
+          "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp": "v0.72.0",
+          "go.opentelemetry.io/contrib/instrumentation/runtime": "v0.72.0",
+          "go.opentelemetry.io/otel": "v1.47.0",
+          "go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp": "v0.23.0",
+          "go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp": "v1.47.0",
+          "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp": "v1.47.0",
+          "go.opentelemetry.io/otel/sdk": "v1.47.0",
+          "go.opentelemetry.io/otel/sdk/log": "v1.47.0",
+          "go.opentelemetry.io/otel/sdk/metric": "v1.47.0"
+        }
+      }
+    }
+  },
+  "elixir": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Elixir 1.20.4",
+    "packages": {
+      "opentelemetry": "1.7.0",
+      "opentelemetry_api": "1.5.0",
+      "opentelemetry_api_experimental": "0.6.0",
+      "opentelemetry_experimental": "0.6.0",
+      "opentelemetry_exporter": "1.11.0",
+      "opentelemetry_process_propagator": "0.3.0",
+      "opentelemetry_req": "1.0.0",
+      "req": "0.7.5"
+    },
+    "framework": "Elixir",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:9f66471c46abcc913fc56a8e0e93cf2aa4d28319758d8d2090846d8d004ae421",
+    "observed": {
+      "spans": ["GET", "POST", "payout.send", "payouts.run"],
+      "metrics": ["payouts.sent"],
+      "logs": [
+        "Exporter otel_exporter_logs_otlp successfully initialized",
+        "held a payout: inv_2 is below the minimum payout",
+        "sent 1 of 2 payouts"
+      ]
+    },
+    "packageExports": {}
+  },
   "express": {
-    "checkedOn": "2026-10-27",
+    "checkedOn": "2026-10-28",
     "runtime": "Node.js 24.22.1",
     "packages": {
       "@opentelemetry/api": "1.10.0",
-      "@opentelemetry/sdk-node": "0.300.0",
       "@opentelemetry/auto-instrumentations-node": "0.82.0",
       "@opentelemetry/instrumentation": "0.300.0",
+      "@opentelemetry/sdk-node": "0.300.0",
       "express": "5.3.0",
       "pino": "10.4.0"
     },
     "framework": "Express 5.3.0",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:b3bbbc0195a876849d5f68d69efaba3dbb5e88e04d188947bb00cdd98c088f84",
+    "snippetDigest": "sha256:e59f360392cb4b0bf28cb4427d117f093ebfcd3a19a6d45ab24f532d7b47c0fa",
     "observed": {
       "spans": [
         "GET /boom",
@@ -2627,19 +2856,19 @@
     }
   },
   "fastify": {
-    "checkedOn": "2026-10-27",
+    "checkedOn": "2026-10-28",
     "runtime": "Node.js 24.22.1",
     "packages": {
+      "@fastify/otel": "0.21.4",
       "@opentelemetry/api": "1.10.0",
-      "@opentelemetry/sdk-node": "0.300.0",
       "@opentelemetry/auto-instrumentations-node": "0.82.0",
       "@opentelemetry/instrumentation": "0.300.0",
-      "@fastify/otel": "0.21.4",
+      "@opentelemetry/sdk-node": "0.300.0",
       "fastify": "5.12.7"
     },
     "framework": "Fastify 5.12.7",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:f20c6d9a33c4d6333fa3c97be7795c9ee0543526835649ed422364aea1aac404",
+    "snippetDigest": "sha256:4a4198cb68242dc461c18d069984a1924cd0287559c8eb79fd8b4e1c3cc739f3",
     "observed": {
       "spans": [
         "GET /stock/:sku",
@@ -2909,6 +3138,136 @@
       ]
     }
   },
+  "fiber": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Go 1.27.3",
+    "packages": {
+      "github.com/gofiber/contrib/v3/otel": "v1.3.1",
+      "github.com/gofiber/fiber/v3": "v3.6.1",
+      "github.com/redis/go-redis/extra/redisotel/v9": "v9.23.0",
+      "github.com/redis/go-redis/v9": "v9.23.0",
+      "go.opentelemetry.io/contrib/bridges/otelslog": "v0.21.0",
+      "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp": "v0.72.0",
+      "go.opentelemetry.io/contrib/instrumentation/runtime": "v0.72.0",
+      "go.opentelemetry.io/otel": "v1.47.0",
+      "go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp": "v0.23.0",
+      "go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp": "v1.47.0",
+      "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp": "v1.47.0",
+      "go.opentelemetry.io/otel/sdk": "v1.47.0",
+      "go.opentelemetry.io/otel/sdk/log": "v1.47.0",
+      "go.opentelemetry.io/otel/sdk/metric": "v1.47.0"
+    },
+    "framework": "Fiber 3.6.1",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:6c21d8847265dece5731bdacf58c21d7bd7f23688b7e31cb8d8ae836a450cc7f",
+    "observed": {
+      "spans": [
+        "GET",
+        "GET /carts/:id",
+        "GET /carts/:id/total",
+        "HTTP GET",
+        "POST /carts/:id/items",
+        "cart.add_item",
+        "hello",
+        "hgetall",
+        "hincrby",
+        "redis.dial",
+        "redis.pipeline client"
+      ],
+      "metrics": [
+        "cart.items_added",
+        "db.client.connections.create_time",
+        "db.client.connections.hits",
+        "db.client.connections.idle.max",
+        "db.client.connections.idle.min",
+        "db.client.connections.max",
+        "db.client.connections.misses",
+        "db.client.connections.timeouts",
+        "db.client.connections.usage",
+        "db.client.connections.use_time",
+        "db.client.connections.waits",
+        "db.client.connections.waits_duration",
+        "go.config.gogc",
+        "go.goroutine.count",
+        "go.memory.allocated",
+        "go.memory.allocations",
+        "go.memory.gc.goal",
+        "go.memory.used",
+        "go.processor.limit",
+        "http.client.request.body.size",
+        "http.client.request.duration",
+        "http.server.active_requests",
+        "http.server.request.body.size",
+        "http.server.request.duration",
+        "http.server.response.body.size"
+      ],
+      "logs": ["loading cart"]
+    },
+    "packageExports": {},
+    "variants": {
+      "Fiber v2": {
+        "observed": {
+          "spans": [
+            "/",
+            "/carts/:id",
+            "/carts/:id/items",
+            "/carts/:id/total",
+            "HTTP GET",
+            "cart.add_item",
+            "hello",
+            "hgetall",
+            "hincrby",
+            "redis.dial",
+            "redis.pipeline client"
+          ],
+          "metrics": [
+            "cart.items_added",
+            "db.client.connections.create_time",
+            "db.client.connections.hits",
+            "db.client.connections.idle.max",
+            "db.client.connections.idle.min",
+            "db.client.connections.max",
+            "db.client.connections.misses",
+            "db.client.connections.timeouts",
+            "db.client.connections.usage",
+            "db.client.connections.use_time",
+            "db.client.connections.waits",
+            "db.client.connections.waits_duration",
+            "go.config.gogc",
+            "go.goroutine.count",
+            "go.memory.allocated",
+            "go.memory.allocations",
+            "go.memory.gc.goal",
+            "go.memory.used",
+            "go.processor.limit",
+            "http.client.request.body.size",
+            "http.client.request.duration",
+            "http.server.active_requests",
+            "http.server.duration",
+            "http.server.request.size",
+            "http.server.response.size"
+          ],
+          "logs": ["loading cart"]
+        },
+        "packages": {
+          "github.com/gofiber/contrib/otelfiber/v2": "v2.2.3",
+          "github.com/gofiber/fiber/v2": "v2.52.16",
+          "github.com/redis/go-redis/extra/redisotel/v9": "v9.23.0",
+          "github.com/redis/go-redis/v9": "v9.23.0",
+          "go.opentelemetry.io/contrib/bridges/otelslog": "v0.21.0",
+          "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp": "v0.72.0",
+          "go.opentelemetry.io/contrib/instrumentation/runtime": "v0.72.0",
+          "go.opentelemetry.io/otel": "v1.47.0",
+          "go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp": "v0.23.0",
+          "go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp": "v1.47.0",
+          "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp": "v1.47.0",
+          "go.opentelemetry.io/otel/sdk": "v1.47.0",
+          "go.opentelemetry.io/otel/sdk/log": "v1.47.0",
+          "go.opentelemetry.io/otel/sdk/metric": "v1.47.0"
+        }
+      }
+    }
+  },
   "flask": {
     "checkedOn": "2026-10-28",
     "runtime": "Python 3.14.10",
@@ -2949,20 +3308,197 @@
     },
     "packageExports": {}
   },
+  "gin": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Go 1.27.3",
+    "packages": {
+      "github.com/gin-gonic/gin": "v1.12.0",
+      "go.opentelemetry.io/contrib/bridges/otelslog": "v0.21.0",
+      "go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin": "v0.72.0",
+      "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp": "v0.72.0",
+      "go.opentelemetry.io/contrib/instrumentation/runtime": "v0.72.0",
+      "go.opentelemetry.io/otel": "v1.47.0",
+      "go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp": "v0.23.0",
+      "go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp": "v1.47.0",
+      "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp": "v1.47.0",
+      "go.opentelemetry.io/otel/sdk": "v1.47.0",
+      "go.opentelemetry.io/otel/sdk/log": "v1.47.0",
+      "go.opentelemetry.io/otel/sdk/metric": "v1.47.0",
+      "gorm.io/driver/postgres": "v1.6.3",
+      "gorm.io/gorm": "v1.31.2",
+      "gorm.io/plugin/opentelemetry": "v0.1.16"
+    },
+    "framework": "Gin 1.12.0",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:5d2a7e61bceb717acc40f392341ce381b0429df3a9eaacbc8d196d64a4b12c71",
+    "observed": {
+      "spans": [
+        "GET /me/orders",
+        "GET /orders/:id",
+        "GET /orders/:id/invoice",
+        "HTTP GET",
+        "HTTP POST",
+        "POST /orders",
+        "checkout.charge",
+        "insert orders",
+        "select orders"
+      ],
+      "metrics": [
+        "go.config.gogc",
+        "go.goroutine.count",
+        "go.memory.allocated",
+        "go.memory.allocations",
+        "go.memory.gc.goal",
+        "go.memory.used",
+        "go.processor.limit",
+        "go.sql.connections_closed_max_idle",
+        "go.sql.connections_closed_max_idle_time",
+        "go.sql.connections_closed_max_lifetime",
+        "go.sql.connections_idle",
+        "go.sql.connections_in_use",
+        "go.sql.connections_max_open",
+        "go.sql.connections_open",
+        "go.sql.connections_wait_count",
+        "go.sql.connections_wait_duration",
+        "http.client.request.body.size",
+        "http.client.request.duration",
+        "http.server.request.body.size",
+        "http.server.request.duration",
+        "http.server.response.body.size",
+        "orders.placed"
+      ],
+      "logs": ["loading order", "request panicked"]
+    },
+    "packageExports": {}
+  },
+  "go": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Go 1.27.3",
+    "packages": {
+      "github.com/XSAM/otelsql": "v0.44.0",
+      "go.opentelemetry.io/contrib/bridges/otelslog": "v0.21.0",
+      "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp": "v0.72.0",
+      "go.opentelemetry.io/contrib/instrumentation/runtime": "v0.72.0",
+      "go.opentelemetry.io/otel": "v1.47.0",
+      "go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp": "v0.23.0",
+      "go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp": "v1.47.0",
+      "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp": "v1.47.0",
+      "go.opentelemetry.io/otel/sdk": "v1.47.0",
+      "go.opentelemetry.io/otel/sdk/log": "v1.47.0",
+      "go.opentelemetry.io/otel/sdk/metric": "v1.47.0",
+      "modernc.org/sqlite": "v1.61.0"
+    },
+    "framework": "Go",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:aba60b4d61beef453fcfcc105028c9768306e4ec86be951f5cb0d6f3fba0b9f7",
+    "observed": {
+      "spans": [
+        "GET /orders/{id}",
+        "GET /orders/{id}/receipt",
+        "HTTP POST",
+        "POST /orders",
+        "checkout.charge",
+        "sql.conn.exec",
+        "sql.conn.query"
+      ],
+      "metrics": [
+        "db.client.operation.duration",
+        "db.sql.connection.closed_max_idle",
+        "db.sql.connection.closed_max_idle_time",
+        "db.sql.connection.closed_max_lifetime",
+        "db.sql.connection.max_open",
+        "db.sql.connection.open",
+        "db.sql.connection.wait",
+        "db.sql.connection.wait_duration",
+        "go.config.gogc",
+        "go.goroutine.count",
+        "go.memory.allocated",
+        "go.memory.allocations",
+        "go.memory.gc.goal",
+        "go.memory.used",
+        "go.processor.limit",
+        "http.client.request.body.size",
+        "http.client.request.duration",
+        "http.server.request.body.size",
+        "http.server.request.duration",
+        "http.server.response.body.size",
+        "orders.placed"
+      ],
+      "logs": ["listening on :8080", "loading order", "request panicked"]
+    },
+    "packageExports": {}
+  },
+  "grpc": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Go 1.27.3",
+    "packages": {
+      "go.opentelemetry.io/contrib/bridges/otelslog": "v0.21.0",
+      "go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc": "v0.72.0",
+      "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp": "v0.72.0",
+      "go.opentelemetry.io/contrib/instrumentation/runtime": "v0.72.0",
+      "go.opentelemetry.io/otel": "v1.47.0",
+      "go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp": "v0.23.0",
+      "go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp": "v1.47.0",
+      "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp": "v1.47.0",
+      "go.opentelemetry.io/otel/sdk": "v1.47.0",
+      "go.opentelemetry.io/otel/sdk/log": "v1.47.0",
+      "go.opentelemetry.io/otel/sdk/metric": "v1.47.0",
+      "google.golang.org/grpc": "v1.85.0",
+      "google.golang.org/grpc/cmd/protoc-gen-go-grpc": "v1.6.2",
+      "google.golang.org/protobuf/cmd/protoc-gen-go": "v1.36.12"
+    },
+    "framework": "gRPC 1.85.0",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:4a19e303a501d8e9f502d30a53d41c45bf9fa28c440aff53f53b97b52cb04efc",
+    "observed": {
+      "spans": [
+        "GET /orders/{id}",
+        "HTTP POST",
+        "POST /orders",
+        "orders.charge",
+        "orders.v1.Orders/GetOrder",
+        "orders.v1.Orders/PlaceOrder"
+      ],
+      "metrics": [
+        "go.config.gogc",
+        "go.goroutine.count",
+        "go.memory.allocated",
+        "go.memory.allocations",
+        "go.memory.gc.goal",
+        "go.memory.used",
+        "go.processor.limit",
+        "http.client.request.body.size",
+        "http.client.request.duration",
+        "http.server.request.body.size",
+        "http.server.request.duration",
+        "http.server.response.body.size",
+        "orders.placed",
+        "rpc.client.call.duration",
+        "rpc.server.call.duration"
+      ],
+      "logs": [
+        "call panicked",
+        "charging",
+        "loading order",
+        "orders service listening on :50051"
+      ]
+    },
+    "packageExports": {}
+  },
   "hapi": {
-    "checkedOn": "2026-10-27",
+    "checkedOn": "2026-10-28",
     "runtime": "Node.js 24.22.1",
     "packages": {
+      "@hapi/hapi": "21.4.11",
       "@opentelemetry/api": "1.10.0",
-      "@opentelemetry/sdk-node": "0.300.0",
       "@opentelemetry/auto-instrumentations-node": "0.82.0",
       "@opentelemetry/instrumentation": "0.300.0",
-      "hapi-pino": "13.0.0",
-      "@hapi/hapi": "21.4.11"
+      "@opentelemetry/sdk-node": "0.300.0",
+      "hapi-pino": "13.0.0"
     },
     "framework": "hapi 21.4.11",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:ab072e8dfd83ec64b07aa164a1789a90dd56ecaebcf70178d1708edc6102f53c",
+    "snippetDigest": "sha256:779574db075f769406dd80ea83f319a83919c729ce180c60637e90a2c9e13281",
     "observed": {
       "spans": [
         "GET /rooms/{id}",
@@ -2993,8 +3529,8 @@
       ],
       "logs": [
         "Room inventory unavailable",
-        "[response] get /rooms/42 200 (3ms)",
-        "[response] post /bookings 201 (5ms)",
+        "[response] get /rooms/42 200 (2ms)",
+        "[response] post /bookings 201 (2ms)",
         "[response] post /bookings 500 (4ms)",
         "loading room",
         "server started"
@@ -3344,22 +3880,22 @@
     }
   },
   "koa": {
-    "checkedOn": "2026-10-27",
+    "checkedOn": "2026-10-28",
     "runtime": "Node.js 24.22.1",
     "packages": {
+      "@koa/bodyparser": "6.1.0",
+      "@koa/router": "15.7.0",
       "@opentelemetry/api": "1.10.0",
-      "@opentelemetry/sdk-node": "0.300.0",
       "@opentelemetry/auto-instrumentations-node": "0.82.0",
       "@opentelemetry/instrumentation": "0.300.0",
+      "@opentelemetry/sdk-node": "0.300.0",
       "@opentelemetry/winston-transport": "0.35.0",
       "koa": "3.2.1",
-      "@koa/router": "15.7.0",
-      "@koa/bodyparser": "6.1.0",
       "winston": "3.19.0"
     },
     "framework": "Koa 3.2.1",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:92f618732832a9a4b278609f3df91980813f1fdbbb6feccea512469d53844cc4",
+    "snippetDigest": "sha256:30403dbbe32160940219fc52c74a564fb69e42b6fb833258829652ad5dcfac21",
     "observed": {
       "spans": [
         "GET /products/:id",
@@ -3827,6 +4363,39 @@
       }
     }
   },
+  "laravel": {
+    "checkedOn": "2026-10-28",
+    "runtime": "PHP 8.5.12",
+    "packages": {
+      "laravel/framework": "13.39.0",
+      "open-telemetry/exporter-otlp": "1.4.0",
+      "open-telemetry/opentelemetry-auto-laravel": "1.10.0",
+      "open-telemetry/sdk": "1.15.0",
+      "opentelemetry": "1.4.2"
+    },
+    "framework": "Laravel 13.39.0",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:8a35b32c4afb7edcd7b4130e186a131cef54eea91e9ba61fa5ce4aeab60a0988",
+    "observed": {
+      "spans": [
+        "App\\Models\\Order::create",
+        "App\\Models\\Order::get",
+        "Command migrate",
+        "Command tinker",
+        "GET /api/orders/{order}",
+        "GET /api/orders/{order}/receipt",
+        "POST",
+        "POST /api/orders",
+        "checkout.charge",
+        "sql",
+        "sql INSERT",
+        "sql SELECT"
+      ],
+      "metrics": ["orders.placed"],
+      "logs": ["loading order", "the receipt printer is offline for order 42"]
+    },
+    "packageExports": {}
+  },
   "micronaut": {
     "checkedOn": "2026-10-28",
     "runtime": "Java 25.0.5",
@@ -3884,26 +4453,26 @@
     "packageExports": {}
   },
   "nestjs": {
-    "checkedOn": "2026-10-27",
+    "checkedOn": "2026-10-28",
     "runtime": "Node.js 24.22.1",
     "packages": {
-      "@opentelemetry/api": "1.10.0",
-      "@opentelemetry/sdk-node": "0.300.0",
-      "@opentelemetry/auto-instrumentations-node": "0.82.0",
-      "@opentelemetry/instrumentation": "0.300.0",
-      "nestjs-pino": "5.3.1",
-      "pino-http": "11.0.0",
-      "pino": "10.4.0",
       "@nestjs/common": "12.3.2",
       "@nestjs/core": "12.3.2",
       "@nestjs/platform-express": "12.3.2",
+      "@opentelemetry/api": "1.10.0",
+      "@opentelemetry/auto-instrumentations-node": "0.82.0",
+      "@opentelemetry/instrumentation": "0.300.0",
+      "@opentelemetry/sdk-node": "0.300.0",
+      "nestjs-pino": "5.3.1",
+      "pino": "10.4.0",
+      "pino-http": "11.0.0",
       "reflect-metadata": "0.2.2",
       "rxjs": "7.8.2",
       "typescript": "6.0.3"
     },
     "framework": "NestJS 12.3.2",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:37250ffb838d7cf9c7173337fb883b65a2a9765eea287b9379becee24fc32f99",
+    "snippetDigest": "sha256:81d458c8b56a85d0433ae188603aced9a2b42a383082df6fba30654e01772159",
     "observed": {
       "spans": [
         "GET /orders/:id/invoice",
@@ -4358,23 +4927,23 @@
     }
   },
   "nextjs": {
-    "checkedOn": "2026-10-27",
+    "checkedOn": "2026-10-28",
     "runtime": "Node.js 24.22.1",
     "packages": {
       "@opentelemetry/api": "1.10.0",
-      "@opentelemetry/sdk-node": "0.300.0",
       "@opentelemetry/auto-instrumentations-node": "0.82.0",
+      "@opentelemetry/sdk-node": "0.300.0",
+      "@types/node": "24.19.2",
+      "@types/react": "19.3.0",
       "next": "16.4.3",
+      "pino": "10.4.0",
       "react": "19.3.1",
       "react-dom": "19.3.1",
-      "pino": "10.4.0",
-      "typescript": "6.0.3",
-      "@types/react": "19.3.0",
-      "@types/node": "24.19.2"
+      "typescript": "6.0.3"
     },
     "framework": "Next.js 16.4.3",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:1d4b3eafdcee17c68ae0ca13bf5ee1d42683d90ba03d7f76ab37f84ef5b0cb98",
+    "snippetDigest": "sha256:56756c2a082abd44e24fcf4e2b43ad1ea95f37be43b027067e3234b644667f32",
     "observed": {
       "spans": [
         "GET",
@@ -4626,14 +5195,14 @@
     "runtime": "Node.js 24.22.1",
     "packages": {
       "@opentelemetry/api": "1.10.0",
-      "@opentelemetry/sdk-node": "0.300.0",
       "@opentelemetry/auto-instrumentations-node": "0.82.0",
+      "@opentelemetry/core": "3.0.0",
       "@opentelemetry/instrumentation": "0.300.0",
-      "@opentelemetry/core": "3.0.0"
+      "@opentelemetry/sdk-node": "0.300.0"
     },
     "framework": "Node.js",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:b7d4db0b62ff9cad059d38e8de245aa34119815885be6608ff3df4a0d819c0c7",
+    "snippetDigest": "sha256:913f3fa9e116da26802e55984019016d4882d15fa686d1dccedbf6091f7f80a1",
     "observed": {
       "spans": ["GET /invoices/:id", "invoice.render"],
       "metrics": [
@@ -4829,6 +5398,121 @@
       ]
     }
   },
+  "phoenix": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Elixir 1.20.4",
+    "packages": {
+      "bandit": "1.14.1",
+      "dns_cluster": "0.2.0",
+      "ecto_sql": "3.14.0",
+      "jason": "1.4.5",
+      "opentelemetry": "1.7.0",
+      "opentelemetry_api": "1.5.0",
+      "opentelemetry_api_experimental": "0.6.0",
+      "opentelemetry_bandit": "0.3.0",
+      "opentelemetry_ecto": "1.2.0",
+      "opentelemetry_experimental": "0.6.0",
+      "opentelemetry_exporter": "1.11.0",
+      "opentelemetry_phoenix": "2.0.1",
+      "opentelemetry_req": "1.0.0",
+      "phoenix": "1.8.16",
+      "phoenix_ecto": "4.7.0",
+      "postgrex": "0.22.4",
+      "req": "0.7.5",
+      "telemetry_metrics": "1.2.0",
+      "telemetry_poller": "1.3.0"
+    },
+    "framework": "Phoenix 1.8.16",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:22767616c1b045ea88c882ffe3dccdd04e380727b663427a61cdfbf1207ad92d",
+    "observed": {
+      "spans": [
+        "GET",
+        "GET /api/orders/:id",
+        "GET /api/orders/:id/receipt",
+        "POST",
+        "POST /api/orders",
+        "checkout.charge",
+        "storefront.repo.query:orders"
+      ],
+      "metrics": ["orders.placed"],
+      "logs": [
+        "** (RuntimeError) the receipt printer is offline for order 42, (storefront 0.1.0) lib/storefront_web/controllers/order_c",
+        "Access StorefrontWeb.Endpoint at https://example.com",
+        "Exporter otel_exporter_logs_otlp successfully initialized",
+        "GET /api/orders/42",
+        "GET /api/orders/42/receipt",
+        "GET /api/orders/7",
+        "GET /nowhere",
+        "POST /api/orders",
+        "Running StorefrontWeb.Endpoint with Bandit 1.14.1 at :::4000 (http)",
+        "Sent 200 in 25ms",
+        "Sent 200 in 2ms",
+        "Sent 201 in 49ms",
+        "Sent 404 in 1ms",
+        "Sent 500 in 7ms",
+        "loading order 42",
+        "loading order 7"
+      ]
+    },
+    "packageExports": {}
+  },
+  "php": {
+    "checkedOn": "2026-10-28",
+    "runtime": "PHP 8.5.12",
+    "packages": {
+      "guzzlehttp/guzzle": "8.3.1",
+      "monolog/monolog": "3.12.1",
+      "open-telemetry/exporter-otlp": "1.4.0",
+      "open-telemetry/opentelemetry-auto-guzzle": "1.5.0",
+      "open-telemetry/opentelemetry-auto-pdo": "0.6.0",
+      "open-telemetry/opentelemetry-logger-monolog": "1.3.1",
+      "open-telemetry/sdk": "1.15.0",
+      "opentelemetry": "1.4.2"
+    },
+    "framework": "PHP",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:8b2284f5f11c81f0398e62e5321b63d595976e9d5a894ec382b40d49fc0c3203",
+    "observed": {
+      "spans": [
+        "GET /orders/{id}",
+        "GET /orders/{id}/receipt",
+        "PDO::__construct",
+        "PDO::prepare",
+        "PDOStatement::execute",
+        "POST",
+        "POST /orders",
+        "checkout.charge"
+      ],
+      "metrics": ["orders.placed"],
+      "logs": ["loading order", "request failed"]
+    },
+    "packageExports": {},
+    "variants": {
+      "Instrumentations off": {
+        "observed": {
+          "spans": [
+            "GET /orders/{id}",
+            "POST",
+            "POST /orders",
+            "checkout.charge"
+          ],
+          "metrics": ["orders.placed"],
+          "logs": ["loading order"]
+        },
+        "packages": {
+          "guzzlehttp/guzzle": "8.3.1",
+          "monolog/monolog": "3.12.1",
+          "open-telemetry/exporter-otlp": "1.4.0",
+          "open-telemetry/opentelemetry-auto-guzzle": "1.5.0",
+          "open-telemetry/opentelemetry-auto-pdo": "0.6.0",
+          "open-telemetry/opentelemetry-logger-monolog": "1.3.1",
+          "open-telemetry/sdk": "1.15.0",
+          "opentelemetry": "1.4.2"
+        }
+      }
+    }
+  },
   "python": {
     "checkedOn": "2026-10-28",
     "runtime": "Python 3.14.10",
@@ -4957,34 +5641,215 @@
     },
     "packageExports": {}
   },
+  "rails": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Ruby 4.0.9",
+    "packages": {
+      "opentelemetry-exporter-otlp": "0.37.0",
+      "opentelemetry-exporter-otlp-logs": "0.7.0",
+      "opentelemetry-exporter-otlp-metrics": "0.15.0",
+      "opentelemetry-instrumentation-all": "0.99.0",
+      "opentelemetry-instrumentation-logger": "0.5.0",
+      "opentelemetry-logs-sdk": "0.8.1",
+      "opentelemetry-metrics-sdk": "0.22.0",
+      "opentelemetry-sdk": "1.13.1",
+      "pg": "1.7.0",
+      "puma": "8.0.2",
+      "rails": "8.1.4"
+    },
+    "framework": "Rails 8.1.4",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:cdac65ddb1b871002537308540fcda8119f1a29cfe81380ad01d26a73d67be47",
+    "observed": {
+      "spans": [
+        "BEGIN shop",
+        "COMMIT shop",
+        "CREATE shop",
+        "GET /orders/:id",
+        "GET /orders/:id/receipt",
+        "INSERT shop",
+        "Order query",
+        "Order#save!",
+        "Order.create!",
+        "POST",
+        "POST /orders",
+        "ReceiptJob process",
+        "ReceiptJob publish",
+        "SELECT shop",
+        "SET shop",
+        "SHOW shop",
+        "checkout.charge",
+        "connect",
+        "rake.execute",
+        "render_layout.action_view",
+        "render_partial.action_view",
+        "render_template.action_view"
+      ],
+      "metrics": ["http.server.request.duration", "orders.placed"],
+      "logs": [
+        "  \nIOError (the receipt printer is offline):\n  \napp/controllers/orders_controller.rb:33:in 'OrdersController#receipt'\n",
+        "  \u001b[1m\u001b[35m (0.2ms)\u001b[0m  \u001b[1m\u001b[34mSELECT pg_try_advisory_lock(5939944341529942170) /*application='Storefront'*/\u001b[0m\n",
+        "  \u001b[1m\u001b[35m (0.4ms)\u001b[0m  \u001b[1m\u001b[34mSELECT pg_advisory_unlock(5939944341529942170) /*application='Storefront'*/\u001b[0m\n",
+        "  \u001b[1m\u001b[35m (17.0ms)\u001b[0m  \u001b[1m\u001b[35mCREATE TABLE \"schema_migrations\" (\"version\" character varying NOT NULL PRIMARY KEY) /",
+        "  \u001b[1m\u001b[35m (5.1ms)\u001b[0m  \u001b[1m\u001b[35mCREATE TABLE \"ar_internal_metadata\" (\"key\" character varying NOT NULL PRIMARY KEY, \"va",
+        "  \u001b[1m\u001b[35m (6.7ms)\u001b[0m  \u001b[1m\u001b[35mCREATE TABLE \"orders\" (\"id\" bigserial primary key, \"items\" integer, \"payment_method\" c",
+        "  \u001b[1m\u001b[35mSQL (0.1ms)\u001b[0m  \u001b[1m\u001b[35mSET search_path TO \"$user\", public /*application='Storefront'*/\u001b[0m\n",
+        "  \u001b[1m\u001b[35mSQL (0.2ms)\u001b[0m  \u001b[1m\u001b[35mSET search_path TO \"$user\", public /*application='Storefront'*/\u001b[0m\n",
+        "  \u001b[1m\u001b[35mSQL (0.2ms)\u001b[0m  \u001b[1m\u001b[35mSET search_path TO public /*application='Storefront'*/\u001b[0m\n",
+        "  \u001b[1m\u001b[36mActiveRecord::InternalMetadata Create (0.8ms)\u001b[0m  \u001b[1m\u001b[32mINSERT INTO \"ar_internal_metadata\" (\"key\", \"value",
+        "  \u001b[1m\u001b[36mActiveRecord::InternalMetadata Load (0.7ms)\u001b[0m  \u001b[1m\u001b[34mSELECT * FROM \"ar_internal_metadata\" WHERE \"ar_inte",
+        "  \u001b[1m\u001b[36mActiveRecord::SchemaMigration Create (0.4ms)\u001b[0m  \u001b[1m\u001b[32mINSERT INTO \"schema_migrations\" (\"version\") VALUES",
+        "  \u001b[1m\u001b[36mActiveRecord::SchemaMigration Load (0.4ms)\u001b[0m  \u001b[1m\u001b[34mSELECT \"schema_migrations\".\"version\" FROM \"schema_mi",
+        "  \u001b[1m\u001b[36mActiveRecord::SchemaMigration Load (0.5ms)\u001b[0m  \u001b[1m\u001b[34mSELECT \"schema_migrations\".\"version\" FROM \"schema_mi",
+        "  \u001b[1m\u001b[36mActiveRecord::SchemaMigration Load (0.9ms)\u001b[0m  \u001b[1m\u001b[34mSELECT \"schema_migrations\".\"version\" FROM \"schema_mi",
+        "  \u001b[1m\u001b[36mOrder Create (2.1ms)\u001b[0m  \u001b[1m\u001b[32mINSERT INTO \"orders\" (\"id\", \"items\", \"payment_method\", \"created_at\", \"upda",
+        "  \u001b[1m\u001b[36mOrder Create (4.4ms)\u001b[0m  \u001b[1m\u001b[32mINSERT INTO \"orders\" (\"items\", \"payment_method\", \"created_at\", \"updated_at",
+        "  \u001b[1m\u001b[36mOrder Load (0.8ms)\u001b[0m  \u001b[1m\u001b[34mSELECT \"orders\".* FROM \"orders\" WHERE \"orders\".\"id\" = 7 LIMIT 1 /*action='sh",
+        "  \u001b[1m\u001b[36mOrder Load (1.0ms)\u001b[0m  \u001b[1m\u001b[34mSELECT \"orders\".* FROM \"orders\" WHERE \"orders\".\"id\" = 42 LIMIT 1 /*action='s",
+        "  \u001b[1m\u001b[36mTRANSACTION (0.2ms)\u001b[0m  \u001b[1m\u001b[35mBEGIN /*application='Storefront'*/\u001b[0m\n",
+        "  \u001b[1m\u001b[36mTRANSACTION (0.4ms)\u001b[0m  \u001b[1m\u001b[35mBEGIN /*application='Storefront'*/\u001b[0m\n",
+        "  \u001b[1m\u001b[36mTRANSACTION (0.8ms)\u001b[0m  \u001b[1m\u001b[35mCOMMIT /*application='Storefront'*/\u001b[0m\n",
+        "  \u001b[1m\u001b[36mTRANSACTION (0.9ms)\u001b[0m  \u001b[1m\u001b[35mBEGIN /*action='create',application='Storefront',controller='orders'*/\u001b[0m\n",
+        "  \u001b[1m\u001b[36mTRANSACTION (22.9ms)\u001b[0m  \u001b[1m\u001b[35mCOMMIT /*application='Storefront'*/\u001b[0m\n",
+        "  \u001b[1m\u001b[36mTRANSACTION (4.0ms)\u001b[0m  \u001b[1m\u001b[35mCOMMIT /*action='create',application='Storefront',controller='orders'*/\u001b[0m",
+        "  Parameters: {\"id\" => \"42\"}\n",
+        "  Parameters: {\"id\" => \"7\"}\n",
+        "  Parameters: {\"items\" => [\"kettle\", \"mug\"], \"payment_method\" => \"card\", \"order\" => {\"items\" => [\"kettle\", \"mug\"], \"paym",
+        "  Rendered html template (Duration: 0.1ms | GC: 0.0ms)\n",
+        "  Rendering html template\n",
+        "  ↳ app/controllers/orders_controller.rb:16:in 'OrdersController#show'\n",
+        "  ↳ app/controllers/orders_controller.rb:24:in 'block in OrdersController#create'\n",
+        "Completed 200 OK in 66ms (Views: 0.4ms | ActiveRecord: 45.5ms (1 query, 0 cached) | GC: 0.0ms)\n\n\n",
+        "Completed 200 OK in 6ms (Views: 4.6ms | ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)\n\n\n",
+        "Completed 201 Created in 62ms (Views: 0.3ms | ActiveRecord: 9.3ms (1 query, 0 cached) | GC: 0.0ms)\n\n\n",
+        "Completed 404 Not Found in 3ms (Views: 0.1ms | ActiveRecord: 0.8ms (1 query, 0 cached) | GC: 0.0ms)\n\n\n",
+        "Completed 500 Internal Server Error in 1ms (ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)\n\n\n",
+        "I, [2026-10-28T20:36:25.649995 #220]  INFO -- : Instrumentation: OpenTelemetry::Instrumentation::Logger was successfully",
+        "I, [2026-10-28T20:36:27.142424 #231]  INFO -- : Instrumentation: OpenTelemetry::Instrumentation::Logger was successfully",
+        "I, [2026-10-28T20:36:28.580021 #248]  INFO -- : Instrumentation: OpenTelemetry::Instrumentation::Logger was successfully",
+        "Migrating to CreateOrders (20261028000000)\n",
+        "Processing by OrdersController#create as HTML\n",
+        "Processing by OrdersController#receipt as HTML\n",
+        "Processing by OrdersController#show as HTML\n",
+        "Processing by Rails::HealthController#show as HTML\n",
+        "Started GET \"/orders/42\" for 127.0.0.1 at 2026-10-28 20:36:31 +0000\n",
+        "Started GET \"/orders/42/receipt\" for 127.0.0.1 at 2026-10-28 20:36:31 +0000\n",
+        "Started GET \"/orders/7\" for 127.0.0.1 at 2026-10-28 20:36:31 +0000\n",
+        "Started GET \"/up\" for 127.0.0.1 at 2026-10-28 20:36:31 +0000\n",
+        "Started POST \"/orders\" for 127.0.0.1 at 2026-10-28 20:36:31 +0000\n",
+        "[ActiveJob] Enqueued ReceiptJob (Job ID: 0277452a-a967-46b2-a8f2-7af4040b668c) to Async(default) with arguments: 1\n",
+        "[ActiveJob] [ReceiptJob] [0277452a-a967-46b2-a8f2-7af4040b668c] Performed ReceiptJob (Job ID: 0277452a-a967-46b2-a8f2-7a",
+        "[ActiveJob] [ReceiptJob] [0277452a-a967-46b2-a8f2-7af4040b668c] Performing ReceiptJob (Job ID: 0277452a-a967-46b2-a8f2-7",
+        "[ActiveJob] [ReceiptJob] [0277452a-a967-46b2-a8f2-7af4040b668c] sending the receipt for order 1\n",
+        "[ActiveJob] ↳ app/controllers/orders_controller.rb:27:in 'OrdersController#create'\n",
+        "loading order 42\n",
+        "loading order 7\n",
+        "rescue_from handled ActiveRecord::RecordNotFound (Couldn't find Order with 'id'=\"7\") - /usr/local/bundle/gems/activereco"
+      ]
+    },
+    "packageExports": {},
+    "variants": {
+      "Production": {
+        "observed": {
+          "spans": [
+            "BEGIN shop",
+            "COMMIT shop",
+            "CREATE shop",
+            "EXECUTE shop",
+            "GET /orders/:id",
+            "GET /orders/:id/receipt",
+            "INSERT shop",
+            "Order query",
+            "Order#save!",
+            "Order.create!",
+            "POST",
+            "POST /orders",
+            "PREPARE shop",
+            "ReceiptJob process",
+            "ReceiptJob publish",
+            "SELECT shop",
+            "SET shop",
+            "SHOW shop",
+            "checkout.charge",
+            "connect",
+            "rake.execute"
+          ],
+          "metrics": ["http.server.request.duration", "orders.placed"],
+          "logs": [
+            "I, [2026-10-28T20:36:58.691341 #226]  INFO -- : Instrumentation: OpenTelemetry::Instrumentation::Logger was successfully",
+            "I, [2026-10-28T20:37:00.541266 #237]  INFO -- : Instrumentation: OpenTelemetry::Instrumentation::Logger was successfully",
+            "I, [2026-10-28T20:37:02.645312 #254]  INFO -- : Instrumentation: OpenTelemetry::Instrumentation::Logger was successfully",
+            "Migrating to CreateOrders (20261028000000)\n",
+            "[1e4020ee-e3a0-4abc-9341-bb9e90f084e8]   Parameters: {\"id\" => \"42\"}\n",
+            "[1e4020ee-e3a0-4abc-9341-bb9e90f084e8] Completed 200 OK in 137ms (Views: 0.7ms | ActiveRecord: 99.4ms (1 query, 0 cached",
+            "[1e4020ee-e3a0-4abc-9341-bb9e90f084e8] Processing by OrdersController#show as HTML\n",
+            "[1e4020ee-e3a0-4abc-9341-bb9e90f084e8] Started GET \"/orders/42\" for 127.0.0.1 at 2026-10-28 20:37:05 +0000\n",
+            "[1e4020ee-e3a0-4abc-9341-bb9e90f084e8] loading order 42\n",
+            "[ActiveJob] [ReceiptJob] [181060db-6d33-4e6f-b9c5-bf67049b9eb1] Performed ReceiptJob (Job ID: 181060db-6d33-4e6f-b9c5-bf",
+            "[ActiveJob] [ReceiptJob] [181060db-6d33-4e6f-b9c5-bf67049b9eb1] Performing ReceiptJob (Job ID: 181060db-6d33-4e6f-b9c5-b",
+            "[ActiveJob] [ReceiptJob] [181060db-6d33-4e6f-b9c5-bf67049b9eb1] sending the receipt for order 1\n",
+            "[aad476dc-d54f-4691-beeb-a34b98b1e759]   \n[aad476dc-d54f-4691-beeb-a34b98b1e759] IOError (the receipt printer is offline",
+            "[aad476dc-d54f-4691-beeb-a34b98b1e759]   Parameters: {\"id\" => \"42\"}\n",
+            "[aad476dc-d54f-4691-beeb-a34b98b1e759] Completed 500 Internal Server Error in 3ms (ActiveRecord: 0.0ms (0 queries, 0 cac",
+            "[aad476dc-d54f-4691-beeb-a34b98b1e759] Processing by OrdersController#receipt as HTML\n",
+            "[aad476dc-d54f-4691-beeb-a34b98b1e759] Started GET \"/orders/42/receipt\" for 127.0.0.1 at 2026-10-28 20:37:05 +0000\n",
+            "[e7becab9-8a48-44f9-b76f-21176ef3154a]   Parameters: {\"items\" => [\"kettle\", \"mug\"], \"payment_method\" => \"card\", \"order\" ",
+            "[e7becab9-8a48-44f9-b76f-21176ef3154a] Completed 201 Created in 45ms (Views: 3.0ms | ActiveRecord: 10.7ms (1 query, 0 ca",
+            "[e7becab9-8a48-44f9-b76f-21176ef3154a] Processing by OrdersController#create as HTML\n",
+            "[e7becab9-8a48-44f9-b76f-21176ef3154a] Started POST \"/orders\" for 127.0.0.1 at 2026-10-28 20:37:05 +0000\n",
+            "[e7becab9-8a48-44f9-b76f-21176ef3154a] [ActiveJob] Enqueued ReceiptJob (Job ID: 181060db-6d33-4e6f-b9c5-bf67049b9eb1) to",
+            "[f0f196fd-2bf0-49b8-bfb9-4ab209919997]   Parameters: {\"id\" => \"7\"}\n",
+            "[f0f196fd-2bf0-49b8-bfb9-4ab209919997] Completed 404 Not Found in 4ms (Views: 0.2ms | ActiveRecord: 1.0ms (1 query, 0 ca",
+            "[f0f196fd-2bf0-49b8-bfb9-4ab209919997] Processing by OrdersController#show as HTML\n",
+            "[f0f196fd-2bf0-49b8-bfb9-4ab209919997] Started GET \"/orders/7\" for 127.0.0.1 at 2026-10-28 20:37:05 +0000\n",
+            "[f0f196fd-2bf0-49b8-bfb9-4ab209919997] loading order 7\n",
+            "[f0f196fd-2bf0-49b8-bfb9-4ab209919997] rescue_from handled ActiveRecord::RecordNotFound (Couldn't find Order with 'id'=\""
+          ]
+        },
+        "packages": {
+          "opentelemetry-exporter-otlp": "0.37.0",
+          "opentelemetry-exporter-otlp-logs": "0.7.0",
+          "opentelemetry-exporter-otlp-metrics": "0.15.0",
+          "opentelemetry-instrumentation-all": "0.99.0",
+          "opentelemetry-instrumentation-logger": "0.5.0",
+          "opentelemetry-logs-sdk": "0.8.1",
+          "opentelemetry-metrics-sdk": "0.22.0",
+          "opentelemetry-sdk": "1.13.1",
+          "pg": "1.7.0",
+          "puma": "8.0.2",
+          "rails": "8.1.4"
+        }
+      }
+    }
+  },
   "react": {
-    "checkedOn": "2026-10-27",
+    "checkedOn": "2026-10-28",
     "runtime": "Chrome 153.0.8010.12",
     "packages": {
       "@opentelemetry/api": "1.10.0",
-      "@opentelemetry/sdk-trace": "3.0.0",
-      "@opentelemetry/sdk-logs": "3.0.0",
-      "@opentelemetry/sdk-metrics": "3.0.0",
+      "@opentelemetry/auto-instrumentations-web": "0.69.0",
       "@opentelemetry/core": "3.0.0",
-      "@opentelemetry/resources": "3.0.0",
-      "@opentelemetry/exporter-trace-otlp-http": "0.300.0",
       "@opentelemetry/exporter-logs-otlp-http": "0.300.0",
       "@opentelemetry/exporter-metrics-otlp-http": "0.300.0",
+      "@opentelemetry/exporter-trace-otlp-http": "0.300.0",
       "@opentelemetry/instrumentation": "0.300.0",
-      "@opentelemetry/auto-instrumentations-web": "0.69.0",
       "@opentelemetry/opentelemetry-browser-detector": "0.300.0",
-      "web-vitals": "6.2.3",
-      "react": "19.3.1",
-      "react-dom": "19.3.1",
-      "react-router": "8.5.1",
+      "@opentelemetry/resources": "3.0.0",
+      "@opentelemetry/sdk-logs": "3.0.0",
+      "@opentelemetry/sdk-metrics": "3.0.0",
+      "@opentelemetry/sdk-trace": "3.0.0",
       "@types/react": "19.3.0",
       "@types/react-dom": "19.3.0",
       "esbuild": "0.28.2",
-      "typescript": "7.0.2"
+      "react": "19.3.1",
+      "react-dom": "19.3.1",
+      "react-router": "8.5.1",
+      "typescript": "7.0.2",
+      "web-vitals": "6.2.3"
     },
     "framework": "React 19.3.1",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:bc5a5f29e9cab92af93ce2bccb62b8fc24dc5e0ce9e7e352ed8f17ad4c328041",
+    "snippetDigest": "sha256:3f23c78202f09af7a0d8b26fea4d78599e9266be9f8227315525450604d04fec",
     "observed": {
       "spans": [
         "POST",
@@ -5942,6 +6807,294 @@
       ]
     }
   },
+  "ruby": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Ruby 4.0.9",
+    "packages": {
+      "opentelemetry-exporter-otlp": "0.37.0",
+      "opentelemetry-exporter-otlp-logs": "0.7.0",
+      "opentelemetry-exporter-otlp-metrics": "0.15.0",
+      "opentelemetry-instrumentation-all": "0.99.0",
+      "opentelemetry-instrumentation-logger": "0.5.0",
+      "opentelemetry-logs-sdk": "0.8.1",
+      "opentelemetry-metrics-sdk": "0.22.0",
+      "opentelemetry-sdk": "1.13.1",
+      "pg": "1.7.0"
+    },
+    "framework": "Ruby",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:4809a3a0aa3b970b88924ace9db1fe716fbefeb87ad27cb3e09ed0a9a8ff8273",
+    "observed": {
+      "spans": ["GET", "INSERT shop", "connect", "price.save", "prices.import"],
+      "metrics": ["prices.imported"],
+      "logs": [
+        "I, [2026-10-28T23:06:39.041378 #97]  INFO -- : Instrumentation: OpenTelemetry::Instrumentation::Logger was successfully ",
+        "imported 1 of 2 prices\n",
+        "skipped a price: inv_2 is below the minimum price\n"
+      ]
+    },
+    "packageExports": {},
+    "variants": {
+      "Instrumentations off": {
+        "observed": {
+          "spans": ["INSERT shop", "connect", "price.save", "prices.import"],
+          "metrics": ["prices.imported"],
+          "logs": [
+            "imported 1 of 2 prices\n",
+            "skipped a price: inv_2 is below the minimum price\n"
+          ]
+        },
+        "packages": {
+          "opentelemetry-exporter-otlp": "0.37.0",
+          "opentelemetry-exporter-otlp-logs": "0.7.0",
+          "opentelemetry-exporter-otlp-metrics": "0.15.0",
+          "opentelemetry-instrumentation-all": "0.99.0",
+          "opentelemetry-instrumentation-logger": "0.5.0",
+          "opentelemetry-logs-sdk": "0.8.1",
+          "opentelemetry-metrics-sdk": "0.22.0",
+          "opentelemetry-sdk": "1.13.1",
+          "pg": "1.7.0"
+        }
+      }
+    }
+  },
+  "rust": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Rust 1.99.1",
+    "packages": {
+      "opentelemetry": "0.33.1",
+      "opentelemetry-appender-tracing": "0.33.1",
+      "opentelemetry-http": "0.33.1",
+      "opentelemetry-otlp": "0.33.1",
+      "opentelemetry_sdk": "0.33.1",
+      "reqwest": "0.13.5",
+      "serde": "1.0.229",
+      "tracing": "0.1.44",
+      "tracing-opentelemetry": "0.34.0",
+      "tracing-subscriber": "0.3.23"
+    },
+    "framework": "Rust",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:9749e579974ba23fb626e6ca08e5a113e64c71456c827af3f3288a4001238a45",
+    "observed": {
+      "spans": ["GET", "POST", "invoice.post", "invoices.sync"],
+      "metrics": ["invoices.synced"],
+      "logs": [
+        "skipped an invoice: inv_2 is below the minimum total",
+        "synced 2 invoices"
+      ]
+    },
+    "packageExports": {}
+  },
+  "sidekiq": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Ruby 4.0.9",
+    "packages": {
+      "opentelemetry-exporter-otlp": "0.37.0",
+      "opentelemetry-exporter-otlp-logs": "0.7.0",
+      "opentelemetry-exporter-otlp-metrics": "0.15.0",
+      "opentelemetry-instrumentation-all": "0.99.0",
+      "opentelemetry-instrumentation-logger": "0.5.0",
+      "opentelemetry-logs-sdk": "0.8.1",
+      "opentelemetry-metrics-sdk": "0.22.0",
+      "opentelemetry-sdk": "1.13.1",
+      "sidekiq": "8.1.7"
+    },
+    "framework": "Sidekiq 8.1.7",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:44cf032286dc7ebb6a3ff707b32edc9a4f2209541a9ea15606d57ac5a7e9c42c",
+    "observed": {
+      "spans": [
+        "PIPELINED",
+        "POST",
+        "ReceiptJob process",
+        "ReceiptJob publish",
+        "connect",
+        "receipt.render",
+        "receipts.enqueue"
+      ],
+      "metrics": ["messaging.process.duration", "receipts.sent"],
+      "logs": [
+        "I, [2026-10-28T20:37:20.869344 #113]  INFO -- : Instrumentation: OpenTelemetry::Instrumentation::Logger was successfully",
+        "I, [2026-10-28T20:37:22.745082 #125]  INFO -- : Instrumentation: OpenTelemetry::Instrumentation::Logger was successfully",
+        "INFO 2026-10-28T20:37:20.870Z pid=113 tid=161: Running in ruby 4.0.9 (2026-10-23 revision 3e93b23afc) +PRISM [x86_64-lin",
+        "INFO 2026-10-28T20:37:20.870Z pid=113 tid=161: See LICENSE and the LGPL-3.0 for licensing details.\n",
+        "INFO 2026-10-28T20:37:20.870Z pid=113 tid=161: Sidekiq 8.1.7 connecting to Redis with options {size: 10, pool_name: \"int",
+        "INFO 2026-10-28T20:37:20.870Z pid=113 tid=161: Upgrade to Sidekiq Pro for more features and support: https://sidekiq.org",
+        "INFO 2026-10-28T20:37:20.872Z pid=113 tid=161: Sidekiq 8.1.7 connecting to Redis with options {size: 5, pool_name: \"defa",
+        "INFO 2026-10-28T20:37:22.746Z pid=125 tid=wl: Sidekiq 8.1.7 connecting to Redis with options {size: 10, pool_name: \"inte",
+        "INFO 2026-10-28T20:37:22.749Z pid=113 tid=19t jid=0c1b491c40e5d5b4f6118025 class=ReceiptJob: sending the receipt for ord",
+        "INFO 2026-10-28T20:37:22.749Z pid=113 tid=19t jid=0c1b491c40e5d5b4f6118025 class=ReceiptJob: start\n",
+        "INFO 2026-10-28T20:37:22.750Z pid=113 tid=19d jid=4f9f034ad1e1d8359913f4ca class=ReceiptJob: start\n",
+        "INFO 2026-10-28T20:37:22.797Z pid=113 tid=19d jid=4f9f034ad1e1d8359913f4ca class=ReceiptJob elapsed=0.047: fail\n",
+        "INFO 2026-10-28T20:37:22.799Z pid=113 tid=19d context=Job raised exception job={\"retry\" => 3, \"queue\" => \"default\", \"arg",
+        "INFO 2026-10-28T20:37:22.800Z pid=113 tid=19t jid=0c1b491c40e5d5b4f6118025 class=ReceiptJob elapsed=0.051: done\n",
+        "INFO 2026-10-28T20:37:26.838Z pid=113 tid=161: Shutting down\n",
+        "INFO 2026-10-28T20:37:26.839Z pid=113 tid=161: Terminating quiet threads for default capsule\n",
+        "INFO 2026-10-28T20:37:26.840Z pid=113 tid=195: Scheduler exiting...\n",
+        "INFO 2026-10-28T20:37:27.342Z pid=113 tid=161: Bye!\n",
+        "W, [2026-10-28T20:37:27.343128 #113]  WARN -- : calling Tracer#shutdown multiple times.\n"
+      ]
+    },
+    "packageExports": {},
+    "variants": {
+      "Sent at exit": {
+        "observed": {
+          "spans": [
+            "PIPELINED",
+            "POST",
+            "ReceiptJob process",
+            "ReceiptJob publish",
+            "connect",
+            "receipt.render",
+            "receipts.enqueue"
+          ],
+          "metrics": ["messaging.process.duration", "receipts.sent"],
+          "logs": [
+            "I, [2026-10-28T20:37:37.724792 #95]  INFO -- : Instrumentation: OpenTelemetry::Instrumentation::Logger was successfully ",
+            "I, [2026-10-28T20:37:39.538902 #107]  INFO -- : Instrumentation: OpenTelemetry::Instrumentation::Logger was successfully",
+            "INFO 2026-10-28T20:37:37.725Z pid=95 tid=153: Running in ruby 4.0.9 (2026-10-23 revision 3e93b23afc) +PRISM [x86_64-linu",
+            "INFO 2026-10-28T20:37:37.725Z pid=95 tid=153: See LICENSE and the LGPL-3.0 for licensing details.\n",
+            "INFO 2026-10-28T20:37:37.725Z pid=95 tid=153: Upgrade to Sidekiq Pro for more features and support: https://sidekiq.org\n",
+            "INFO 2026-10-28T20:37:37.726Z pid=95 tid=153: Sidekiq 8.1.7 connecting to Redis with options {size: 10, pool_name: \"inte",
+            "INFO 2026-10-28T20:37:37.728Z pid=95 tid=153: Sidekiq 8.1.7 connecting to Redis with options {size: 5, pool_name: \"defau",
+            "INFO 2026-10-28T20:37:39.539Z pid=107 tid=w3: Sidekiq 8.1.7 connecting to Redis with options {size: 10, pool_name: \"inte",
+            "INFO 2026-10-28T20:37:39.541Z pid=95 tid=14f jid=124ec19487e7457a4269f5e8 class=ReceiptJob: start\n",
+            "INFO 2026-10-28T20:37:39.542Z pid=95 tid=14f jid=124ec19487e7457a4269f5e8 class=ReceiptJob: sending the receipt for orde",
+            "INFO 2026-10-28T20:37:39.542Z pid=95 tid=19b jid=4be86e51745130135e1399af class=ReceiptJob: start\n",
+            "INFO 2026-10-28T20:37:39.599Z pid=95 tid=19b jid=4be86e51745130135e1399af class=ReceiptJob elapsed=0.057: fail\n",
+            "INFO 2026-10-28T20:37:39.601Z pid=95 tid=14f jid=124ec19487e7457a4269f5e8 class=ReceiptJob elapsed=0.06: done\n",
+            "INFO 2026-10-28T20:37:39.601Z pid=95 tid=19b context=Job raised exception job={\"retry\" => 3, \"queue\" => \"default\", \"args",
+            "INFO 2026-10-28T20:37:43.637Z pid=95 tid=153: Shutting down\n",
+            "INFO 2026-10-28T20:37:43.637Z pid=95 tid=153: Terminating quiet threads for default capsule\n",
+            "INFO 2026-10-28T20:37:43.639Z pid=95 tid=18n: Scheduler exiting...\n",
+            "INFO 2026-10-28T20:37:44.141Z pid=95 tid=153: Bye!\n",
+            "W, [2026-10-28T20:37:44.142234 #95]  WARN -- : calling Tracer#shutdown multiple times.\n"
+          ]
+        },
+        "packages": {
+          "opentelemetry-exporter-otlp": "0.37.0",
+          "opentelemetry-exporter-otlp-logs": "0.7.0",
+          "opentelemetry-exporter-otlp-metrics": "0.15.0",
+          "opentelemetry-instrumentation-all": "0.99.0",
+          "opentelemetry-instrumentation-logger": "0.5.0",
+          "opentelemetry-logs-sdk": "0.8.1",
+          "opentelemetry-metrics-sdk": "0.22.0",
+          "opentelemetry-sdk": "1.13.1",
+          "sidekiq": "8.1.7"
+        }
+      }
+    }
+  },
+  "sinatra": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Ruby 4.0.9",
+    "packages": {
+      "opentelemetry-exporter-otlp": "0.37.0",
+      "opentelemetry-exporter-otlp-logs": "0.7.0",
+      "opentelemetry-exporter-otlp-metrics": "0.15.0",
+      "opentelemetry-instrumentation-all": "0.99.0",
+      "opentelemetry-instrumentation-logger": "0.5.0",
+      "opentelemetry-logs-sdk": "0.8.1",
+      "opentelemetry-metrics-sdk": "0.22.0",
+      "opentelemetry-sdk": "1.13.1",
+      "puma": "8.0.2",
+      "redis": "6.0.0",
+      "sinatra": "4.2.1"
+    },
+    "framework": "Sinatra 4.2.1",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:5a146e2d9285927b768444bdd4ba0cbda01be85cb9e7f75348e397a05d94b4ab",
+    "observed": {
+      "spans": [
+        "GET",
+        "GET /products/:sku",
+        "GET /products/:sku/stock",
+        "PIPELINED",
+        "SET",
+        "catalog.fetch",
+        "connect"
+      ],
+      "metrics": ["catalog.cache_misses", "http.server.request.duration"],
+      "logs": [
+        "I, [2026-10-28T20:20:28.279433 #294]  INFO -- : Instrumentation: OpenTelemetry::Instrumentation::Logger was successfully",
+        "loading product KETTLE-3\n"
+      ]
+    },
+    "packageExports": {},
+    "variants": {
+      "Puma workers": {
+        "observed": {
+          "spans": [
+            "GET",
+            "GET /products/:sku",
+            "GET /products/:sku/stock",
+            "PIPELINED",
+            "SET",
+            "catalog.fetch",
+            "connect"
+          ],
+          "metrics": ["catalog.cache_misses", "http.server.request.duration"],
+          "logs": [
+            "I, [2026-10-28T20:20:44.700061 #95]  INFO -- : Instrumentation: OpenTelemetry::Instrumentation::Logger was successfully ",
+            "loading product KETTLE-3\n"
+          ]
+        },
+        "packages": {
+          "opentelemetry-exporter-otlp": "0.37.0",
+          "opentelemetry-exporter-otlp-logs": "0.7.0",
+          "opentelemetry-exporter-otlp-metrics": "0.15.0",
+          "opentelemetry-instrumentation-all": "0.99.0",
+          "opentelemetry-instrumentation-logger": "0.5.0",
+          "opentelemetry-logs-sdk": "0.8.1",
+          "opentelemetry-metrics-sdk": "0.22.0",
+          "opentelemetry-sdk": "1.13.1",
+          "puma": "8.0.2",
+          "redis": "6.0.0",
+          "sinatra": "4.2.1"
+        }
+      }
+    }
+  },
+  "slim": {
+    "checkedOn": "2026-10-28",
+    "runtime": "PHP 8.5.12",
+    "packages": {
+      "guzzlehttp/guzzle": "8.3.1",
+      "monolog/monolog": "3.12.1",
+      "open-telemetry/exporter-otlp": "1.4.0",
+      "open-telemetry/opentelemetry-auto-guzzle": "1.5.0",
+      "open-telemetry/opentelemetry-auto-pdo": "0.6.0",
+      "open-telemetry/opentelemetry-auto-slim": "1.5.1",
+      "open-telemetry/opentelemetry-logger-monolog": "1.3.1",
+      "open-telemetry/sdk": "1.15.0",
+      "opentelemetry": "1.4.2",
+      "slim/psr7": "1.8.0",
+      "slim/slim": "4.15.3"
+    },
+    "framework": "Slim 4.15.3",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:118fa4a19639e9db47dadd80ee728624ea455cd579a40074c7c2e97cb001fc78",
+    "observed": {
+      "spans": [
+        "GET",
+        "GET /orders/{id}",
+        "GET /orders/{id}/receipt",
+        "PDO::__construct",
+        "PDO::prepare",
+        "PDOStatement::execute",
+        "POST",
+        "POST /orders",
+        "checkout.charge",
+        "createOrder",
+        "showOrder",
+        "showReceipt"
+      ],
+      "metrics": ["orders.placed"],
+      "logs": ["loading order"]
+    },
+    "packageExports": {}
+  },
   "spring-boot": {
     "checkedOn": "2026-10-28",
     "runtime": "Java 25.0.5",
@@ -6309,5 +7462,41 @@
         }
       }
     }
+  },
+  "symfony": {
+    "checkedOn": "2026-10-28",
+    "runtime": "PHP 8.5.12",
+    "packages": {
+      "doctrine/dbal": "4.5.0",
+      "doctrine/doctrine-bundle": "3.3.3",
+      "open-telemetry/exporter-otlp": "1.4.0",
+      "open-telemetry/opentelemetry-auto-pdo": "0.6.0",
+      "open-telemetry/opentelemetry-auto-symfony": "1.7.0",
+      "open-telemetry/opentelemetry-logger-monolog": "1.3.1",
+      "open-telemetry/sdk": "1.15.0",
+      "opentelemetry": "1.4.2",
+      "symfony/framework-bundle": "8.1.10",
+      "symfony/http-client": "8.1.10",
+      "symfony/monolog-bundle": "4.1.0"
+    },
+    "framework": "Symfony 8.1.10",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:2b45331cf85f52130c98def637e0487011f4c66d4c02a7a793015d2581376e23",
+    "observed": {
+      "spans": [
+        "GET error_controller",
+        "GET orders_receipt",
+        "GET orders_show",
+        "PDO::connect",
+        "PDO::prepare",
+        "PDOStatement::execute",
+        "POST",
+        "POST orders_create",
+        "checkout.charge"
+      ],
+      "metrics": ["orders.placed"],
+      "logs": ["loading order"]
+    },
+    "packageExports": {}
   }
 }

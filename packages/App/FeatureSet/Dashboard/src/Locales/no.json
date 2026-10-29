@@ -36833,5 +36833,6 @@
   "The Meraki dashboard has not been read yet. The connection's status is on the network's Traffic page.": "Meraki-dashbordet er ikke lest ennå. Tilkoblingens status står på nettverkets Traffic-side.",
   "The Meraki dashboard is read again within a minute.": "Meraki-dashbordet leses på nytt innen ett minutt.",
   "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki.": "{{count}} av enhetene er nettverksenheter her: modell, serienummer og fastvare kommer fra Meraki.",
-  "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki._one": "{{count}} av enhetene er en nettverksenhet her: modell, serienummer og fastvare kommer fra Meraki."
+  "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki._one": "{{count}} av enhetene er en nettverksenhet her: modell, serienummer og fastvare kommer fra Meraki.",
+  "Selected: {{name}}": "Valgt: {{name}}"
 }

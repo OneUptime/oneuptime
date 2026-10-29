@@ -110,27 +110,18 @@ const WebsiteMonitorSummaryView: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
-      {!showMoreDetails && (fields.length > 0 || hadRetries) && (
+      {/*
+       * One button, open or folded: its words follow the state and it
+       * keeps its place, so focus stays on it after a press.
+       */}
+      {(fields.length > 0 || hadRetries) && (
         <div className="-ml-3">
           <Button
             buttonStyle={ButtonStyleType.SECONDARY_LINK}
-            title="Show More Details"
+            title={showMoreDetails ? "Hide Details" : "Show More Details"}
+            ariaExpanded={showMoreDetails}
             onClick={() => {
-              return setShowMoreDetails(true);
-            }}
-          />
-        </div>
-      )}
-
-      {/* Hide details button */}
-
-      {showMoreDetails && (fields.length > 0 || hadRetries) && (
-        <div className="-ml-3">
-          <Button
-            buttonStyle={ButtonStyleType.SECONDARY_LINK}
-            title="Hide Details"
-            onClick={() => {
-              return setShowMoreDetails(false);
+              return setShowMoreDetails(!showMoreDetails);
             }}
           />
         </div>

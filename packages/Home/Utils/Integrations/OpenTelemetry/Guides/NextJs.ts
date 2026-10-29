@@ -43,7 +43,9 @@ const instrumentationNode: GuideSnippet = {
   title: "instrumentation.node.ts",
   code: [
     'import { NodeSDK } from "@opentelemetry/sdk-node";',
-    'import { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentations-node";',
+    "import {",
+    "  getNodeAutoInstrumentations,",
+    '} from "@opentelemetry/auto-instrumentations-node";',
     "",
     "// Reads OTEL_SERVICE_NAME and the OTEL_EXPORTER_OTLP_* variables, and sends",
     "// Next.js's spans, your libraries' and your own to OneUptime over OTLP/HTTP.",

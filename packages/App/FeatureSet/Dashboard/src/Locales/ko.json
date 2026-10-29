@@ -36833,5 +36833,6 @@
   "The Meraki dashboard has not been read yet. The connection's status is on the network's Traffic page.": "Meraki 대시보드를 아직 읽지 않았습니다. 연결 상태는 네트워크의 Traffic 페이지에 있습니다.",
   "The Meraki dashboard is read again within a minute.": "Meraki 대시보드를 1분 안에 다시 읽습니다.",
   "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki.": "그중 {{count}}대가 여기서 네트워크 디바이스입니다. 모델, 일련번호, 펌웨어는 Meraki에서 가져옵니다.",
-  "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki._one": "그중 {{count}}대가 여기서 네트워크 디바이스입니다. 모델, 일련번호, 펌웨어는 Meraki에서 가져옵니다."
+  "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki._one": "그중 {{count}}대가 여기서 네트워크 디바이스입니다. 모델, 일련번호, 펌웨어는 Meraki에서 가져옵니다.",
+  "Selected: {{name}}": "선택됨: {{name}}"
 }

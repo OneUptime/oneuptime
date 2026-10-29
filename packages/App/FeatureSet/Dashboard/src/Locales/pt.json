@@ -36833,5 +36833,6 @@
   "The Meraki dashboard has not been read yet. The connection's status is on the network's Traffic page.": "O painel do Meraki ainda não foi lido. O estado da conexão está na página Traffic da rede.",
   "The Meraki dashboard is read again within a minute.": "O painel do Meraki é lido novamente dentro de um minuto.",
   "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki.": "{{count}} dos seus dispositivos são dispositivos de rede aqui: o modelo, o número de série e o firmware vêm do Meraki.",
-  "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki._one": "{{count}} dos seus dispositivos é um dispositivo de rede aqui: o modelo, o número de série e o firmware vêm do Meraki."
+  "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki._one": "{{count}} dos seus dispositivos é um dispositivo de rede aqui: o modelo, o número de série e o firmware vêm do Meraki.",
+  "Selected: {{name}}": "Selecionado: {{name}}"
 }

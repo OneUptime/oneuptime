@@ -36833,5 +36833,6 @@
   "The Meraki dashboard has not been read yet. The connection's status is on the network's Traffic page.": "Meraki डैशबोर्ड अभी तक नहीं पढ़ा गया है। कनेक्शन की स्थिति नेटवर्क के Traffic पेज पर है।",
   "The Meraki dashboard is read again within a minute.": "Meraki डैशबोर्ड एक मिनट के भीतर फिर से पढ़ा जाएगा।",
   "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki.": "इसके {{count}} डिवाइस यहाँ नेटवर्क डिवाइस हैं: उनका मॉडल, सीरियल नंबर और फ़र्मवेयर Meraki से आते हैं।",
-  "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki._one": "इसका {{count}} डिवाइस यहाँ एक नेटवर्क डिवाइस है: उसका मॉडल, सीरियल नंबर और फ़र्मवेयर Meraki से आते हैं।"
+  "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki._one": "इसका {{count}} डिवाइस यहाँ एक नेटवर्क डिवाइस है: उसका मॉडल, सीरियल नंबर और फ़र्मवेयर Meraki से आते हैं।",
+  "Selected: {{name}}": "चयनित: {{name}}"
 }

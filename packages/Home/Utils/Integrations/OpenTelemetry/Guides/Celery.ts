@@ -477,7 +477,7 @@ export const CeleryGuide: OpenTelemetryGuide = {
       question:
         "Nothing arrives, and the worker prints “Failed to auto initialize OpenTelemetry”",
       answer:
-        "`OTEL_EXPORTER_OTLP_PROTOCOL` is unset, so the distro looked for the gRPC exporter: set it to `http/protobuf`. The worker runs tasks anyway, without telemetry.",
+        "`OTEL_EXPORTER_OTLP_PROTOCOL` is missing, and without it the distro loads its gRPC exporter: set it to `http/protobuf`. The worker runs tasks anyway, without telemetry.",
     },
     {
       question: "pip cannot install redis 8 with Celery",
