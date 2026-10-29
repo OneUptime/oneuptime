@@ -47,9 +47,13 @@ const UNLOCKED_DESCRIPTION: string =
 const LOCKED_DESCRIPTION: string =
   "This alert was raised by this monitor, which resolves it automatically when the monitor recovers, so it can't be moved to another monitor or removed.";
 
-// The picker's description, which now names databases too.
+/*
+ * The picker's description. It names network devices and cloud resources
+ * too since the picker became one search across every kind (#5341), in the
+ * words the Create page's picker uses.
+ */
 const PICKER_DESCRIPTION: string =
-  "Search and attach hosts, clusters, container hosts, databases, or services affected by this alert.";
+  "Search and attach the hosts, network devices, clusters, databases, cloud resources or services this alert affects.";
 
 /*
  * Strings the two fields share with the Create page, already in every
@@ -64,8 +68,8 @@ const REUSED_KEYS: Array<string> = [
 ];
 
 /*
- * Strings the card added. The Locales files are updated separately from
- * this change, so their check below is marked `failing` until they are.
+ * Strings the card added, each checked below for a real translation in
+ * every locale.
  */
 const NEW_KEYS: Array<string> = [LOCKED_DESCRIPTION, PICKER_DESCRIPTION];
 
