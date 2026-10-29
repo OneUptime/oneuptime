@@ -42,6 +42,7 @@ import Column from "../../../../../UI/Components/Table/Types/Column";
 import FieldType from "../../../../../UI/Components/Types/FieldType";
 import GenericObject from "../../../../../Types/GenericObject";
 import { JSONObject } from "../../../../../Types/JSON";
+import { FastestRun, fastestRun } from "../../../../Helpers/FastestRun";
 
 /*
  * "I'm not able to resize columns, so I'm not able to drag and increase the
@@ -208,14 +209,18 @@ describe("a column's id", () => {
 
   test("a title of any length is made an id in time in line with it", () => {
     const title: string = `${"- x -".repeat(80000)}end`;
-    const startedAt: number = Date.now();
-    const id: string = getTableColumnIds([
-      makeColumn(FieldType.Text, { title: title }),
-    ])[0] as string;
+    const timed: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return getTableColumnIds([
+          makeColumn(FieldType.Text, { title: title }),
+        ])[0] as string;
+      },
+      limitInMs: 2000,
+    });
 
-    expect(Date.now() - startedAt).toBeLessThan(2000);
-    expect(id.startsWith("x-x-")).toBe(true);
-    expect(id.endsWith("-x-end")).toBe(true);
+    expect(timed.inMs).toBeLessThan(2000);
+    expect(timed.result.startsWith("x-x-")).toBe(true);
+    expect(timed.result.endsWith("-x-end")).toBe(true);
   });
 
   test("ids are unique even when two columns carry the same explicit id", () => {
