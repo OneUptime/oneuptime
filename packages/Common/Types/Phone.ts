@@ -2,7 +2,6 @@ import DatabaseProperty from "./Database/DatabaseProperty";
 import BadDataException from "./Exception/BadDataException";
 import { JSONObject, ObjectType } from "./JSON";
 import { FindOperator } from "typeorm";
-import Zod, { ZodSchema } from "../Utils/Schema/Zod";
 import { refusedValue } from "../Utils/RefusedValue";
 
 export default class Phone extends DatabaseProperty {
@@ -162,20 +161,6 @@ export default class Phone extends DatabaseProperty {
     }
 
     return null;
-  }
-
-  public static override getSchema(): ZodSchema {
-    return Zod.object({
-      _type: Zod.literal(ObjectType.Phone),
-      value: Zod.string().openapi({
-        type: "string",
-        example: "+1-555-123-4567",
-      }),
-    }).openapi({
-      type: "object",
-      description: "Phone object",
-      example: { _type: ObjectType.Phone, value: "+1-555-123-4567" },
-    });
   }
 
   // Map of calling code prefixes to ISO country codes

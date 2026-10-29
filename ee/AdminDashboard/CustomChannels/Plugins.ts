@@ -3,12 +3,14 @@ import { lazy } from "react";
 import { CUSTOM_CHANNELS_SETTINGS_PAGE_PATH } from "./CustomChannelsPaths";
 import CustomChannelsSideMenuItem from "./CustomChannelsSideMenuItem";
 
-type CustomChannelsPluginKeys = "SettingsPages" | "SettingsSideMenuItems";
+type CustomChannelsPluginKeys =
+  | "SettingsPages"
+  | "SettingsNotificationSideMenuItems";
 
 /*
  * Custom notification channels (EnterpriseFeature.CustomNotificationChannels):
- * Settings > Custom Channels, where the server's admin adds the ways to reach
- * people through their own service.
+ * Settings > Notifications > Custom Channels, where the server's admin adds
+ * the ways to reach people through their own service.
  */
 const CustomChannelsPlugins: Pick<
   AdminDashboardEnterprisePlugins,
@@ -22,7 +24,7 @@ const CustomChannelsPlugins: Pick<
       }),
     },
   ],
-  SettingsSideMenuItems: CustomChannelsSideMenuItem,
+  SettingsNotificationSideMenuItems: CustomChannelsSideMenuItem,
 };
 
 export default CustomChannelsPlugins;

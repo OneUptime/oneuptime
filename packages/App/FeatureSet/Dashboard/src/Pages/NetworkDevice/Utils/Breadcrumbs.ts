@@ -163,6 +163,10 @@ export function getNetworkDeviceBreadcrumbs(
       ["Project", "Network", "Settings", "Device Roles"],
     ),
     ...BuildBreadcrumbLinksByTitles(
+      PageMap.NETWORK_DEVICE_SETTINGS_ADDRESS_NAMES,
+      ["Project", "Network", "Settings", "Address Names"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
       PageMap.NETWORK_DEVICE_SETTINGS_SNMP_CREDENTIAL_PROFILES,
       ["Project", "Network", "Settings", "SNMP Credentials"],
     ),

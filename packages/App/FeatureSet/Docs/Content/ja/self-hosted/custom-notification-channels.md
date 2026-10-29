@@ -31,7 +31,7 @@ flowchart TB
 
 ## チャネルを追加する
 
-1. Admin Dashboard で **設定**、 **Custom Channels** の順に開き、 **Add** を選びます。
+1. Admin Dashboard で **設定** を開き、サイドメニューの **通知 > Custom Channels** を開いて (**通知** は最初は折りたたまれています)、 **Add** を選びます。
 2. **Channel** ステップで、次を入力します。
    - **名前**: 通知方法とオンコールルールで表示される名前です。例: `CorpoApp`。
    - **Webhook URL**: OneUptime が各呼び出しを送る先です。プライベートネットワーク上でもかまいません。

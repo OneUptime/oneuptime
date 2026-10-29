@@ -466,7 +466,7 @@ describe("not sent", () => {
     expect(result).toEqual({
       ok: false,
       message:
-        "Not sent: CorpoApp is turned off. Your administrator can turn it on in the Admin Dashboard, under Settings > Custom Channels.",
+        "Not sent: CorpoApp is turned off. Your administrator can turn it on in the Admin Dashboard, under Settings > Notifications > Custom Channels.",
     });
   });
 

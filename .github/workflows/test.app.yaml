@@ -781,11 +781,21 @@ jobs:
           # Overview 12.9 and 16.5 minutes on 14.0.94's two gate runs,
           # Dashboard Templates 2.1 and 2.6 - 15.0 and 19.1 in all, so
           # nothing moved.
+          # Network Traffic Names (2.1 minutes locally with its bundle,
+          # Chromium only: names instead of bare addresses on Network >
+          # Traffic - the top lists, both views of the conversations, long
+          # names, the chips, the address card with Open host, Name this
+          # address and Edit in Settings, find by a name, the senders that
+          # are no device yet, and Network > Settings > Address Names - at
+          # 1280, 1024, 768 and 390 pixels, dark, German and Persian) joined
+          # them on 2026-10-28, the lightest group on App Test's run of 10:32
+          # that day (15.8 minutes): about 18.5 to 22.
           - group: 10
             event_overview_shard: 2/2
             suites: >-
               test-event-overview-ui
               test-dashboard-templates-ui
+              test-network-traffic-names-ui
           # Security Operations on its own, Chromium only, from 2026-10-25. In
           # group 8 it took 9.8 of that group's 23.4 minutes on master's run of
           # 03:08 that day, and the group took 26.1 and 26.7 minutes on the
@@ -1052,6 +1062,8 @@ jobs:
             output/playwright/network-first-run-ui/test-results
             output/playwright/meraki-traffic-ui/*.png
             output/playwright/meraki-traffic-ui/test-results
+            output/playwright/network-traffic-names-ui/*.png
+            output/playwright/network-traffic-names-ui/test-results
             output/playwright/code-ui/*.png
             output/playwright/code-ui/test-results
             output/playwright/infrastructure-first-run-ui/*.png

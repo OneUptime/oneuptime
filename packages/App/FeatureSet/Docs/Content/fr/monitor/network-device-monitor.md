@@ -68,7 +68,7 @@ Le menu Réseau garde en vue ce que vous ouvrez tous les jours : **Vue d'ensembl
 | --- | --- |
 | **Topologie** | **Topologie de l'équipement**, **Points de terminaison**, **Matrice de latence**, **Site Links**, **Liens d'équipements** |
 | **Règles** | **Règles d'import automatique**, **Site Assignment Rules**, **Règles de propriétaire**, **Règles d'étiquettes**, **Règles de liens** |
-| **Paramètres** | **Politiques d'alerte**, **Identifiants SNMP**, **Rôles d'équipement**, **Site Types**, **Modèles de collecte d'OID** |
+| **Paramètres** | **Politiques d'alerte**, **Identifiants SNMP**, **Rôles d'équipement**, **Site Types**, **Noms d'adresse**, **Modèles de collecte d'OID** |
 | **Avancé** | **Appareils archivés** |
 
 ## Ajouter un équipement réseau

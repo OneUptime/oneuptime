@@ -2,6 +2,10 @@ import BadDataException from "../Exception/BadDataException";
 import IP from "../IP/IP";
 import { JSONObject } from "../JSON";
 import ObjectID from "../ObjectID";
+import {
+  NetworkAddressNameSource,
+  NetworkTrafficAddressNames,
+} from "./NetworkAddressName";
 import IpCanonicalUtil from "../../Utils/IpCanonicalUtil";
 
 /*
@@ -162,6 +166,45 @@ export interface NetworkTrafficSummary {
    * flows' retention; null when it has never sent one.
    */
   lastFlowAt: string | null;
+  /*
+   * What the page's addresses are called (issue #5340), by address: every
+   * address its lists, conversations and filters show, and the exporters
+   * that are no device yet. An address the project knows nothing about is
+   * not in it, and is shown as itself. NetworkAddressName says where names
+   * come from, in which order.
+   */
+  addressNames: NetworkTrafficAddressNames;
+}
+
+// The longest text "find an address" searches names for.
+export const MAX_NETWORK_TRAFFIC_FIND_QUERY_LENGTH: number = 100;
+
+// Addresses "find an address" answers with at most.
+export const NETWORK_TRAFFIC_FIND_LIMIT: number = 10;
+
+/*
+ * Finding an address by its name (POST /network-traffic/find-address): the
+ * page's scope and window, and what was typed. An address typed is filtered
+ * on directly, never sent here.
+ */
+export interface NetworkTrafficFindRequest {
+  networkDeviceId?: string | undefined;
+  networkSiteId?: string | undefined;
+  startTime: string;
+  endTime: string;
+  query: string;
+}
+
+// An address whose name matched, with the traffic it had in the window.
+export interface NetworkTrafficFindMatch {
+  address: string;
+  name: string;
+  source: NetworkAddressNameSource;
+  octets: number;
+}
+
+export interface NetworkTrafficFindResult {
+  matches: Array<NetworkTrafficFindMatch>;
 }
 
 /*

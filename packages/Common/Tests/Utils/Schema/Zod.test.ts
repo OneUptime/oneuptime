@@ -15,15 +15,16 @@ import {
  * Common's Zod module: the zod functions OneUptime builds its schemas with,
  * picked by name, and zod-to-openapi's .openapi() on every zod schema.
  *
- * It hands zod's namespace to nothing, so a frontend bundle keeps only the
- * parts of zod the schemas use - zod 4's namespace carries all of its
- * locales, about 270 KB minified (ZodBrowserBundle holds the bundles to it).
- * These hold the module to what it says: the functions are zod's own, every
- * schema has .openapi(), the one assumption it rests on - that
- * extendZodWithOpenApi reads nothing of zod but ZodType - still holds for
- * the installed zod-to-openapi, and zod is jitless in a browser (it turns no
- * string into code there, which a status page's CSP forbids) and keeps its
- * compiled parsers on the server.
+ * It hands zod's namespace to nothing, so a bundle that took it in would
+ * keep only the parts of zod the schemas use - zod 4's namespace carries all
+ * of its locales, about 270 KB minified. No frontend loads it any more
+ * (ZodOutOfBrowserGuard walks their imports; ZodBrowserBundle builds what
+ * they load). These hold the module to what it says: the functions are
+ * zod's own, every schema has .openapi(), the one assumption it rests on -
+ * that extendZodWithOpenApi reads nothing of zod but ZodType - still holds
+ * for the installed zod-to-openapi, and zod is jitless in a browser (it
+ * turns no string into code there, which a status page's CSP forbids) and
+ * keeps its compiled parsers on the server.
  */
 
 const ZOD_MODULE: string = path.resolve(

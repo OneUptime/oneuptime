@@ -809,6 +809,255 @@ integration("network traffic reads against ClickHouse", () => {
     expect(caught).not.toBeNull();
     expect(NetworkTrafficAggregationService.isTimeout(caught)).toBe(true);
   });
+
+  /*
+   * Names (issue #5340): the DNS names a probe sends with its flows are kept
+   * on the rows (srcName / dstName) and read back in the same pass as the
+   * bytes - the newest name of each listed address, a flow with no name
+   * never winning over one with a name - and "find an address" searches
+   * them, held to the project and the window like every other read. Written
+   * for a project of their own, so the sums above stay as they are.
+   */
+  describe("names", () => {
+    const NAMES_PROJECT: ObjectID = ObjectID.generate();
+    const NAMES_DEVICE: ObjectID = ObjectID.generate();
+
+    const namesQuery: (
+      filters?: NetworkTrafficFilters,
+      window?: { start: Date; end: Date },
+    ) => NetworkTrafficQuery = (
+      filters: NetworkTrafficFilters = {},
+      window: { start: Date; end: Date } = {
+        start: WINDOW_START,
+        end: WINDOW_END,
+      },
+    ): NetworkTrafficQuery => {
+      return {
+        projectId: NAMES_PROJECT,
+        startTime: window.start,
+        endTime: window.end,
+        devices: {},
+        filters: filters,
+      };
+    };
+
+    const write: (
+      fixtures: Array<FlowFixture>,
+      names: Map<string, string>,
+    ) => Promise<void> = async (
+      fixtures: Array<FlowFixture>,
+      names: Map<string, string>,
+    ): Promise<void> => {
+      const result: FlowIngestResult = await NetworkFlowIngest.buildRows({
+        probe: { id: PROBE, projectId: NAMES_PROJECT },
+        rawRecords: fixtures.map((fixture: FlowFixture): JSONObject => {
+          return {
+            ...fixture.record,
+            exporterIpAddress: fixture.exporter,
+            flowStartAt: fixture.record.flowStartAt!.toISOString(),
+            flowEndAt: fixture.record.flowEndAt!.toISOString(),
+          } as unknown as JSONObject;
+        }),
+        ingestedAt: ingestedAt,
+        attribute: async (): Promise<FlowExporterAttribution> => {
+          return {
+            devices: [
+              { networkDeviceId: NAMES_DEVICE, projectId: NAMES_PROJECT },
+            ],
+            unmatchedProjectId: null,
+          };
+        },
+        addressNames: names,
+        isBillingEnabled: false,
+      });
+
+      await NetworkFlowService.insertJsonRows(result.rows);
+    };
+
+    beforeAll(async (): Promise<void> => {
+      // An older name, then a newer one for the file server.
+      await write(
+        [
+          flow("10.0.0.1", {
+            sourceIpAddress: "10.18.167.35",
+            destinationIpAddress: "10.18.167.20",
+            protocolNumber: 6,
+            octets: 4_000,
+            flowStartAt: at(5),
+          }),
+        ],
+        new Map([
+          ["10.18.167.35", "old-fs01.corp.example"],
+          ["10.18.167.20", "backup.corp.example"],
+        ]),
+      );
+      await write(
+        [
+          flow("10.0.0.1", {
+            sourceIpAddress: "10.18.167.35",
+            destinationIpAddress: "10.18.167.20",
+            protocolNumber: 6,
+            octets: 6_000,
+            flowStartAt: at(25),
+          }),
+        ],
+        new Map([["10.18.167.35", "FS01.Corp.Example"]]),
+      );
+      // The newest flow of the backup box carried no name: its name stays.
+      await write(
+        [
+          flow("10.0.0.1", {
+            sourceIpAddress: "10.18.167.20",
+            destinationIpAddress: "198.51.100.20",
+            protocolNumber: 6,
+            octets: 9_000,
+            flowStartAt: at(45),
+          }),
+        ],
+        new Map(),
+      );
+      // A name before the window is no name of the window.
+      await write(
+        [
+          flow("10.0.0.1", {
+            sourceIpAddress: "10.18.167.99",
+            destinationIpAddress: "198.51.100.20",
+            protocolNumber: 6,
+            octets: 1_000,
+            flowStartAt: OneUptimeDate.addRemoveMinutes(WINDOW_START, -30),
+          }),
+        ],
+        new Map([["10.18.167.99", "gone.corp.example"]]),
+      );
+      // A name with LIKE's and regexp's own characters in it.
+      await write(
+        [
+          flow("10.0.0.1", {
+            sourceIpAddress: "10.18.167.77",
+            destinationIpAddress: "198.51.100.20",
+            protocolNumber: 6,
+            octets: 500,
+            flowStartAt: at(50),
+          }),
+        ],
+        new Map([["10.18.167.77", "lab_100.corp.example"]]),
+      );
+    });
+
+    test("each listed address's newest name, a flow with no name never winning", async () => {
+      const result: NetworkTrafficAggregates =
+        await NetworkTrafficAggregationService.getAggregates({
+          query: namesQuery(),
+          bucketSeconds: 60,
+          includeInterfaces: false,
+          includeDevices: true,
+        });
+
+      expect(result.dnsNames.get("10.18.167.35")?.name).toBe(
+        "FS01.Corp.Example",
+      );
+      expect(result.dnsNames.get("10.18.167.20")?.name).toBe(
+        "backup.corp.example",
+      );
+      // An address no flow carried a name for has none.
+      expect(result.dnsNames.has("198.51.100.20")).toBe(false);
+      // Out of the window: no name of it.
+      expect(result.dnsNames.has("10.18.167.99")).toBe(false);
+      // The page's rows are what they were.
+      expect(result.topSources[0]).toEqual({
+        ip: "10.18.167.35",
+        octets: 10_000,
+        packets: 2,
+      });
+    });
+
+    test("a window that holds only the older flow reads the older name", async () => {
+      const result: NetworkTrafficAggregates =
+        await NetworkTrafficAggregationService.getAggregates({
+          query: namesQuery({}, { start: WINDOW_START, end: at(15) }),
+          bucketSeconds: 60,
+          includeInterfaces: false,
+          includeDevices: true,
+        });
+
+      expect(result.dnsNames.get("10.18.167.35")?.name).toBe(
+        "old-fs01.corp.example",
+      );
+    });
+
+    test("find by a DNS name: without case, literally, the newest name of each address", async () => {
+      const found: Map<string, string> =
+        await NetworkTrafficAggregationService.findAddressesByDnsName({
+          query: namesQuery(),
+          text: "fs01",
+        });
+
+      expect(Array.from(found.entries())).toEqual([
+        ["10.18.167.35", "FS01.Corp.Example"],
+      ]);
+
+      // "_" and "%" are themselves, never a pattern.
+      expect(
+        Array.from(
+          (
+            await NetworkTrafficAggregationService.findAddressesByDnsName({
+              query: namesQuery(),
+              text: "lab_1",
+            })
+          ).keys(),
+        ),
+      ).toEqual(["10.18.167.77"]);
+      expect(
+        (
+          await NetworkTrafficAggregationService.findAddressesByDnsName({
+            query: namesQuery(),
+            text: "lab%",
+          })
+        ).size,
+      ).toBe(0);
+      expect(
+        (
+          await NetworkTrafficAggregationService.findAddressesByDnsName({
+            query: namesQuery(),
+            text: "fs0.",
+          })
+        ).size,
+      ).toBe(0);
+    });
+
+    test("find never reaches another project's flows, or the window's outside", async () => {
+      expect(
+        (
+          await NetworkTrafficAggregationService.findAddressesByDnsName({
+            query: { ...namesQuery(), projectId: PROJECT },
+            text: "corp",
+          })
+        ).size,
+      ).toBe(0);
+      expect(
+        (
+          await NetworkTrafficAggregationService.findAddressesByDnsName({
+            query: namesQuery(),
+            text: "gone",
+          })
+        ).size,
+      ).toBe(0);
+    });
+
+    test("the window's traffic of the addresses found: sent and received together, busiest first", async () => {
+      const traffic: Map<string, number> =
+        await NetworkTrafficAggregationService.getAddressTraffic({
+          query: namesQuery(),
+          addresses: ["10.18.167.35", "10.18.167.20", "10.18.167.99"],
+        });
+
+      expect(Array.from(traffic.entries())).toEqual([
+        // Received 4,000 + 6,000 and sent 9,000.
+        ["10.18.167.20", 19_000],
+        ["10.18.167.35", 10_000],
+      ]);
+    });
+  });
 });
 
 describe("network traffic ClickHouse suite wiring", () => {

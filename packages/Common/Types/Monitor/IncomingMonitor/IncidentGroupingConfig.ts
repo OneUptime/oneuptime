@@ -1,5 +1,3 @@
-import Zod, { ZodSchema } from "../../../Utils/Schema/Zod";
-
 /**
  * Per-criteria configuration that lets a single Incoming Request /
  * webhook monitor open MULTIPLE concurrent incidents — one per distinct
@@ -65,10 +63,3 @@ export default interface IncidentGroupingConfig {
    */
   maxKeysPerPayload?: number | undefined;
 }
-
-export const IncidentGroupingConfigSchema: ZodSchema = Zod.object({
-  groupByJSONPath: Zod.string(),
-  resolvedWhenJSONPath: Zod.string().optional(),
-  resolvedWhenValue: Zod.string().optional(),
-  maxKeysPerPayload: Zod.number().optional(),
-});

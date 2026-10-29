@@ -31,7 +31,7 @@ Wenn eine Bereitschaftsrichtlinie jemanden alarmiert und dessen Bereitschaftsreg
 
 ## Einen Kanal hinzufügen
 
-1. Öffnen Sie im Admin Dashboard **Einstellungen**, dann **Custom Channels**, und wählen Sie **Add**.
+1. Öffnen Sie im Admin Dashboard **Einstellungen**, dann im Seitenmenü **Benachrichtigungen > Custom Channels** (**Benachrichtigungen** ist anfangs eingeklappt), und wählen Sie **Add**.
 2. Füllen Sie im Schritt **Channel** aus:
    - **Name**: was Personen in ihren Benachrichtigungsmethoden und Bereitschaftsregeln sehen, zum Beispiel `CorpoApp`.
    - **Webhook URL**: wohin OneUptime jeden Alarm sendet. Sie kann in Ihrem privaten Netzwerk liegen.

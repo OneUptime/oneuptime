@@ -31,7 +31,7 @@ Wanneer een bereikbaarheidsbeleid iemand oproept en diens bereikbaarheidsregel h
 
 ## Een kanaal toevoegen
 
-1. Open in het Admin Dashboard **Instellingen**, dan **Custom Channels**, en kies **Add**.
+1. Open in het Admin Dashboard **Instellingen**, dan **Meldingen > Custom Channels** in het zijmenu (**Meldingen** is eerst ingeklapt), en kies **Add**.
 2. Vul bij de stap **Channel** in:
    - **Naam**: wat mensen zien in hun meldingsmethoden en bereikbaarheidsregels, bijvoorbeeld `CorpoApp`.
    - **Webhook URL**: waar OneUptime elke oproep naartoe stuurt. Die mag in uw privénetwerk liggen.

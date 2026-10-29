@@ -249,14 +249,29 @@ async function activeTestId(page: Page): Promise<string> {
   });
 }
 
+/*
+ * Whether the page is no wider than its viewport, once its layout has
+ * settled. After a viewport change the preview chart keeps the width recharts'
+ * ResponsiveContainer gave it (an inline width: 1080px at 1440 pixels) until
+ * the container's ResizeObserver runs, a frame or more later: 14.0.96's gate
+ * measured 11 ms after going to a phone's width and read the desktop chart,
+ * 748 pixels too wide. A page that really is too wide never settles, and
+ * still fails.
+ */
 async function noSidewaysScroll(page: Page): Promise<void> {
-  const overflow: number = await page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
-  expect(overflow, "the page scrolls sideways").toBeLessThanOrEqual(0);
+  await expect
+    .poll(
+      async (): Promise<number> => {
+        return page.evaluate((): number => {
+          return (
+            document.documentElement.scrollWidth -
+            document.documentElement.clientWidth
+          );
+        });
+      },
+      { message: "the page scrolls sideways", timeout: 10000 },
+    )
+    .toBeLessThanOrEqual(0);
 }
 
 test.describe("A Logs monitor's criteria step", () => {

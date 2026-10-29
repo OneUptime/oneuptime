@@ -12,6 +12,7 @@ import {
   MIN_SLOT_HEIGHT,
   PADDING_Y,
   SLOT_GAP,
+  TWO_LINE_MIN_SLOT_HEIGHT,
   layoutConversationDiagram,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkTraffic/TrafficConversationLayout";
 import { NetworkTrafficConversationRow } from "Common/Types/NetFlow/NetworkTraffic";
@@ -269,5 +270,65 @@ describe("layoutConversationDiagram", () => {
 
     expect(first).toEqual(second);
     expect(nodesOn(first, "source")[0]!.address).toBe("10.0.0.1");
+  });
+});
+
+/*
+ * Names (issue #5340): when any address in the diagram has a name, every
+ * label has two lines - the name, and the address with the bytes under it -
+ * so every slot is tall enough for two, the thinnest included.
+ */
+describe("two-line labels", () => {
+  const SLIVER: Array<NetworkTrafficConversationRow> = [
+    row("10.0.0.1", "10.0.0.2", 1_000_000_000),
+    row("10.0.0.3", "10.0.0.4", 1),
+    row("10.0.0.5", "10.0.0.6", 1),
+  ];
+
+  test("a two-line slot is taller than a one-line one", () => {
+    expect(TWO_LINE_MIN_SLOT_HEIGHT).toBeGreaterThan(MIN_SLOT_HEIGHT);
+    expect(TWO_LINE_MIN_SLOT_HEIGHT).toBe(34);
+  });
+
+  test("with two-line labels, the thinnest nodes' labels are a two-line slot apart", () => {
+    const layout: ConversationDiagramLayout = layoutConversationDiagram(
+      SLIVER,
+      { hasTwoLineLabels: true },
+    );
+    const sources: Array<DiagramNode> = nodesOn(layout, "source");
+
+    expect(sources[2]!.labelY - sources[1]!.labelY).toBeCloseTo(
+      TWO_LINE_MIN_SLOT_HEIGHT + SLOT_GAP,
+      1,
+    );
+  });
+
+  test("without, the slots are as they were", () => {
+    const plain: ConversationDiagramLayout = layoutConversationDiagram(SLIVER);
+    const explicit: ConversationDiagramLayout = layoutConversationDiagram(
+      SLIVER,
+      { hasTwoLineLabels: false },
+    );
+    const sources: Array<DiagramNode> = nodesOn(plain, "source");
+
+    expect(explicit).toEqual(plain);
+    expect(sources[2]!.labelY - sources[1]!.labelY).toBeCloseTo(
+      MIN_SLOT_HEIGHT + SLOT_GAP,
+      1,
+    );
+  });
+
+  test("two-line labels make the diagram taller only by the slots they need", () => {
+    const plain: ConversationDiagramLayout = layoutConversationDiagram(SLIVER);
+    const named: ConversationDiagramLayout = layoutConversationDiagram(SLIVER, {
+      hasTwoLineLabels: true,
+    });
+
+    expect(named.height).toBeGreaterThan(plain.height);
+    expect(named.height - plain.height).toBeLessThanOrEqual(
+      SLIVER.length * (TWO_LINE_MIN_SLOT_HEIGHT - MIN_SLOT_HEIGHT) + 0.01,
+    );
+    // The geometry of the bands is still closed paths between the bars.
+    expect(named.bands).toHaveLength(SLIVER.length);
   });
 });

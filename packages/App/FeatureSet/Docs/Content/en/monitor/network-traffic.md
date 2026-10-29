@@ -19,7 +19,9 @@ A Cisco Meraki estate can also be read without exporting anything: connect the M
 - **Top interfaces** on a device's page: what came in and went out through each interface, with its name and speed from the device's SNMP walk. **Top devices** on a site's and on the network's page.
 - **Top conversations**: the ten busiest pairs of addresses, drawn as a diagram from senders to receivers, or as a list.
 
-Click any row - an address, an application, an interface, a device, a band of the diagram - and the whole page narrows to that traffic. A chip above the page says what it is narrowed to; click its x to widen the page again. **Find an IP address** narrows the page to the traffic to or from one address. The time range and the filters are kept in the page's address, so a link opens on exactly the same view.
+Click any row - an address, an application, an interface, a device, a band of the diagram - and the whole page narrows to that traffic. A chip above the page says what it is narrowed to; click its x to widen the page again. **Find a name or an IP address** narrows the page to the traffic to or from one address: type the address, or part of its name, and pick it if several match. The time range and the filters are kept in the page's address, so a link opens on exactly the same view.
+
+An address OneUptime knows is shown by its name, with the address beside it. See [Names instead of addresses](#names-instead-of-addresses).
 
 ## How flows get here
 
@@ -211,6 +213,49 @@ Flows can arrive before the device that sends them is added to OneUptime. On you
 
 Several devices behind one NAT address share that address, so their flows go to the one device that has it.
 
+## Names instead of addresses
+
+Wherever a Traffic page lists an address - the top lists, both views of **Top conversations**, the chips, **Find** - it shows the address's name first when OneUptime knows one, with the address beside it: `mumbai-fs01` over `10.18.167.35`. An address nothing names is shown as itself. Under the pointer, a name cut short is shown whole.
+
+A name comes from the first of these that names the address:
+
+| Order | Where the name comes from | What names the address |
+| ----- | ------------------------- | ---------------------- |
+| 1 | **Address Names** | A name someone gave this address under **Network** -> **Settings** -> **Address Names** |
+| 2 | Network devices | A device polled at the address, or listing it under **Other Addresses** |
+| 3 | Hosts | A host whose agent reports the address |
+| 4 | Cloud resources | A cloud resource your cloud account lists the address for |
+| 5 | Kubernetes | A node that holds the address, then a pod (a pod on its node's own network has the node's address) |
+| 6 | DNS | The address's reverse DNS name, looked up by the probe that received the flows |
+
+A record names only the traffic of a time it was there: a host first seen after the time range, or a pod gone before it, does not name that range's traffic. A name someone gave a subnet - `10.18.167.0/24` is "Mumbai office" - is shown beside every address in it, never instead of the address's own name; where named subnets overlap, the narrowest one is shown.
+
+### One address
+
+Click an address, or find it, and the page narrows to it with a card over the numbers that says who it is: the name, where the name comes from, the address with a button to copy it, and the named subnet it is in. The card has the next step:
+
+- **Open host**, **Open device** or **Open cloud resource**, when the name is that record's. Change the name there.
+- **Name this address**, when nothing names it or only DNS does. The address is filled in; widen it to a subnet, such as `10.18.167.0/24`, to name the whole subnet instead.
+- **Edit in Settings**, when the name is an Address Name. It opens **Address Names**, where the name is changed.
+
+**Name this address** is for who may add network devices, and **Edit in Settings** for who may change them. Everyone who may read them sees the names.
+
+### Address Names
+
+**Network** -> **Settings** -> **Address Names** lists the names people gave addresses and subnets that nothing else names: a partner's VPN gateway, a SaaS endpoint, the guest Wi-Fi. **Create Address Name** asks for the name and for one IP address (`10.0.0.5`, `2001:db8::5`) or a subnet (`10.18.167.0/24`). A subnet is kept as its first address and its length, so `10.18.167.35/24` is saved as `10.18.167.0/24`. Each address or subnet has one name.
+
+### DNS names from the probe
+
+DNS names are looked up by the probe that received the flows, on the resolver its host uses: inside your network, where private addresses have names. The probe keeps a name only when the name's own A or AAAA records point back to the address, so a stale or forged reverse record names nothing, and a name in the probe host's hosts file is used as it is. It sends the names with the flows, and they are kept with them: a time range shows the names its addresses had then.
+
+The lookups never hold the flows up. The busiest addresses are looked up first, at most 300 a minute and eight at a time; a name is kept for an hour, an address with no name for 30 minutes, and a lookup that failed is asked again after 5 minutes. Loopback, link-local, multicast and broadcast addresses are never looked up. The global probes of a hosted OneUptime, which every account shares, look up public addresses only; your own probes, and the probes of your own OneUptime installation, look up private addresses too.
+
+| Variable                            | What it does                                                        | Default |
+| ----------------------------------- | ------------------------------------------------------------------- | ------- |
+| PROBE_FLOW_NAME_LOOKUP_ENABLED      | Set to `false` to stop looking up the flows' addresses in DNS       | true    |
+| PROBE_FLOW_NAME_LOOKUPS_PER_MINUTE  | Addresses looked up per minute; `0` stops the lookups               | 300     |
+| PROBE_FLOW_NAME_DNS_SERVERS         | DNS servers to ask instead of the host's resolver, such as `10.0.0.53, 10.0.0.54:5353` | none |
+
 ## Reading the numbers
 
 - **Sampling.** A device that samples - sFlow always does, and NetFlow or IPFIX can - reports one packet in every N. The probe multiplies the counts by N, so the page shows estimates, and says so under the four numbers. They are accurate for heavy traffic and rough for a few packets.
@@ -236,6 +281,12 @@ If the Traffic page still shows its set-up steps:
 - **The probe's log.** Once a minute the probe logs what it could not read: datagrams in an unsupported format (NetFlow v1, v6, v7 or v8, or sFlow before version 5), malformed datagrams, data waiting for a template, and datagrams dropped over `PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE`.
 - **Templates.** NetFlow v9 and IPFIX send the layout of their records as templates. The probe holds data that arrives before its template for up to 10 minutes; set the device to send its templates every 60 seconds so the page fills in within a minute.
 - **A global probe.** A device polled by a global probe cannot send flows to it from a private network. Run a custom probe on the device's network and pick it in the device's settings.
+
+If an address shows no name:
+
+- **Give it one.** Click it, then **Name this address** on the card over the numbers.
+- **Its DNS names.** The name's own A or AAAA record must point back to the address; a reverse record alone is not enough. A name added to DNS names the flows that arrive after it.
+- **The probe's resolver.** If the probe's host cannot see your internal DNS, set `PROBE_FLOW_NAME_DNS_SERVERS` to a DNS server that holds your reverse zones.
 
 If a Meraki connection says it cannot read:
 

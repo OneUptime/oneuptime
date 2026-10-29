@@ -4,10 +4,12 @@ import AnalyticsTableColumn from "../../Types/AnalyticsDatabase/TableColumn";
 import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import { z as ZodTypes } from "zod";
 import { BaseSchema, SchemaExample, ShapeRecord } from "./BaseSchema";
-import IP from "../../Types/IP/IP";
-import Port from "../../Types/Port";
-import ObjectID from "../../Types/ObjectID";
-import OneUptimeDate from "../../Types/Date";
+import {
+  getDateSchema,
+  getIPSchema,
+  getObjectIDSchema,
+  getPortSchema,
+} from "./TypeSchemas";
 
 export type AnalyticsModelSchemaType = ZodSchema;
 
@@ -165,9 +167,9 @@ export class AnalyticsModelSchema extends BaseSchema {
           ),
         );
       } else if (column.type === TableColumnType.IP) {
-        zodType = IP.getSchema();
+        zodType = getIPSchema();
       } else if (column.type === TableColumnType.Port) {
-        zodType = Port.getSchema();
+        zodType = getPortSchema();
       } else {
         // Default fallback
         zodType = z.any().openapi(
@@ -209,9 +211,9 @@ export class AnalyticsModelSchema extends BaseSchema {
   ): ZodTypes.ZodTypeAny {
     switch (column.type) {
       case TableColumnType.ObjectID:
-        return ObjectID.getSchema();
+        return getObjectIDSchema();
       case TableColumnType.Date:
-        return OneUptimeDate.getSchema();
+        return getDateSchema();
       case TableColumnType.Text:
         return this.applyOpenApi(
           z.string(),
@@ -312,9 +314,9 @@ export class AnalyticsModelSchema extends BaseSchema {
           disableOpenApiSchema,
         );
       case TableColumnType.IP:
-        return IP.getSchema();
+        return getIPSchema();
       case TableColumnType.Port:
-        return Port.getSchema();
+        return getPortSchema();
       default:
         return this.applyOpenApi(
           z.any(),
@@ -886,10 +888,10 @@ export class AnalyticsModelSchema extends BaseSchema {
         return z.any();
 
       case TableColumnType.IP:
-        return IP.getSchema();
+        return getIPSchema();
 
       case TableColumnType.Port:
-        return Port.getSchema();
+        return getPortSchema();
 
       default:
         return z.string();
