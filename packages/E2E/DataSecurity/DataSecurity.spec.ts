@@ -206,22 +206,20 @@ test.describe("the Overview", () => {
 
     const fixFirst: Locator = page.getByTestId("data-security-overview-charts");
     await expect(
-      fixFirst.getByText("Anyone on the internet can read this bucket"),
+      fixFirst.getByText("Anyone on the internet can read it"),
     ).toBeVisible();
 
     // Riskiest first: the public bucket, then the unencrypted database.
     const text: string = await fixFirst.innerText();
-    expect(
-      text.indexOf("Anyone on the internet can read this bucket"),
-    ).toBeLessThan(text.indexOf("The database is not encrypted at rest"));
+    expect(text.indexOf("Anyone on the internet can read it")).toBeLessThan(
+      text.indexOf("Its data is not encrypted at rest"),
+    );
     // An accepted risk is not open, so it is not ranked.
-    expect(text).not.toContain("Reads over plain HTTP are allowed");
+    expect(text).not.toContain("Unencrypted connections are allowed");
 
     await screenshot(page, "overview-1280");
 
-    await fixFirst
-      .getByText("Anyone on the internet can read this bucket")
-      .click();
+    await fixFirst.getByText("Anyone on the internet can read it").click();
     await expect(page).toHaveURL(new RegExp(`${PUBLIC_BUCKET_ISSUE}$`));
     await expect(responsePanel(page)).toBeVisible();
   });

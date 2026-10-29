@@ -100,7 +100,11 @@ import DataStoreEnvironment from "Common/Types/DataSecurity/DataStoreEnvironment
 import { DataStoreKind } from "Common/Types/DataSecurity/DataStoreKind";
 import { DataStoreExposure } from "Common/Types/DataSecurity/DataStorePosture";
 import DataSensitivity from "Common/Types/DataSecurity/DataSensitivity";
-import { getRiskScore } from "Common/Types/DataSecurity/DataSecurityRisk";
+import {
+  getRiskScore,
+  moreSevere,
+} from "Common/Types/DataSecurity/DataSecurityRisk";
+import { getDataSecurityCheck } from "Common/Types/DataSecurity/DataSecurityCheckCatalog";
 import {
   DATA_SECURITY_API_ROUTES,
   DataSecurityResponseUnavailableReason,
@@ -410,6 +414,13 @@ function storeById(id) {
  */
 function issue(number, data) {
   const store = storeById(data.dataStoreId);
+  // A check the catalog has, titled and grouped as the server writes it.
+  const check = getDataSecurityCheck(data.checkId);
+  if (!check) {
+    throw new Error(
+      `The fixture names a check the catalog has not: ${data.checkId}`,
+    );
+  }
   const risk = getRiskScore({
     severity: data.severity,
     exposure: store.exposure,
@@ -420,6 +431,8 @@ function issue(number, data) {
     _id: ID.issue(number),
     projectId,
     issueKey: `${data.checkId}:${data.dataStoreId}`,
+    checkGroup: check.group,
+    title: check.title,
     status: DataSecurityIssueStatus.Open,
     riskScore: risk.score,
     riskFactors: risk.factors,
@@ -434,8 +447,6 @@ table(DataSecurityIssue).push(
   issue(1, {
     dataStoreId: ID.store(1),
     checkId: "public-read",
-    checkGroup: "Exposure",
-    title: "Anyone on the internet can read this bucket",
     evidence:
       'The bucket policy grants s3:GetObject to Principal "*", and it holds Restricted data.',
     severity: SecuritySeverity.Critical,
@@ -445,9 +456,7 @@ table(DataSecurityIssue).push(
   }),
   issue(2, {
     dataStoreId: ID.store(2),
-    checkId: "unencrypted-at-rest",
-    checkGroup: "Encryption",
-    title: "The database is not encrypted at rest",
+    checkId: "not-encrypted-at-rest",
     evidence: "StorageEncrypted is false on the RDS instance.",
     severity: SecuritySeverity.High,
     dataTypeIds: ["email-address"],
@@ -457,8 +466,6 @@ table(DataSecurityIssue).push(
   issue(3, {
     dataStoreId: ID.store(4),
     checkId: "sensitive-data-in-telemetry",
-    checkGroup: "Telemetry",
-    title: "Email addresses in this service's logs",
     evidence:
       "37 log records in the last hour hold an email address in attributes.user.email.",
     severity: SecuritySeverity.Medium,
@@ -468,9 +475,7 @@ table(DataSecurityIssue).push(
   }),
   issue(4, {
     dataStoreId: ID.store(1),
-    checkId: "no-access-logging",
-    checkGroup: "Visibility",
-    title: "Nobody records who reads this bucket",
+    checkId: "access-not-logged",
     evidence: "Server access logging is off.",
     severity: SecuritySeverity.Medium,
     dataTypeIds: [],
@@ -479,9 +484,7 @@ table(DataSecurityIssue).push(
   }),
   issue(5, {
     dataStoreId: ID.store(1),
-    checkId: "transit-not-enforced",
-    checkGroup: "Encryption",
-    title: "Reads over plain HTTP are allowed",
+    checkId: "encryption-in-transit-not-enforced",
     evidence: "The bucket policy does not deny aws:SecureTransport false.",
     severity: SecuritySeverity.Low,
     dataTypeIds: [],
@@ -493,6 +496,26 @@ table(DataSecurityIssue).push(
     lastDetectedAt: ago(2 * HOUR),
   }),
 );
+
+/*
+ * Each store's open issues, their count, worst severity and highest risk, as
+ * the evaluator keeps them on the store: an accepted issue does not count.
+ */
+for (const store of table(DataStore)) {
+  const open = table(DataSecurityIssue).filter((row) => {
+    return (
+      String(row.dataStoreId) === store._id &&
+      row.status === DataSecurityIssueStatus.Open
+    );
+  });
+  store.openIssueCount = open.length;
+  store.highestIssueSeverity = open.reduce((worst, row) => {
+    return moreSevere(worst, row.severity);
+  }, null);
+  store.riskScore = open.reduce((highest, row) => {
+    return Math.max(highest, row.riskScore);
+  }, 0);
+}
 
 /*
  * ---------------------------------------------------------------------------
