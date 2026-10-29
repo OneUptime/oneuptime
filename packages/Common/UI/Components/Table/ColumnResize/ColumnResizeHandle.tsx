@@ -13,6 +13,7 @@ import {
   COLUMN_RESIZE_HANDLE_ATTRIBUTE,
   ColumnMeasurement,
   SavedHeaderCellWidth,
+  getColumnEdgeLineInset,
   measureTableColumn,
   readHeaderCellWidth,
   restoreHeaderCellWidth,
@@ -20,6 +21,7 @@ import {
 } from "./ColumnWidthMeasure";
 import {
   COLUMN_RESIZE_ACTIVE_LINE_CLASS_NAME,
+  COLUMN_RESIZE_EDGE_INSET_PROPERTY,
   COLUMN_RESIZE_GUIDE_CLASS_NAME,
   COLUMN_RESIZE_GUIDE_TEST_ID,
   COLUMN_RESIZE_HANDLE_CLASS_NAME,
@@ -36,6 +38,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -305,6 +308,47 @@ const ColumnResizeHandle: FunctionComponent<ComponentProps> = (
         : undefined,
     );
   }, [props.width]);
+
+  /*
+   * The edge's lines in the middle of the room between this column's words
+   * and the next column's (ColumnWidthMeasure's getColumnEdgeLineInset),
+   * written on the edge - a style its own classes read, so nothing is drawn
+   * again for it. Read whenever the edge is drawn, as the column after it
+   * can change (a logs list's columns), and once more a frame after it
+   * first is: the page's Tailwind writes the rule of a class it has not met
+   * before only once the element is on the page, so a new cell's padding
+   * can read 0 until then.
+   */
+  const writeEdgeLineInset: () => void = (): void => {
+    const handle: HTMLDivElement | null = handleRef.current;
+    const headerCell: HTMLTableCellElement | null = handle
+      ? getHeaderCell(handle)
+      : null;
+
+    if (!handle || !headerCell) {
+      return;
+    }
+
+    const inset: string = `${getColumnEdgeLineInset(headerCell)}px`;
+
+    if (
+      handle.style.getPropertyValue(COLUMN_RESIZE_EDGE_INSET_PROPERTY) !== inset
+    ) {
+      handle.style.setProperty(COLUMN_RESIZE_EDGE_INSET_PROPERTY, inset);
+    }
+  };
+
+  useLayoutEffect(() => {
+    writeEdgeLineInset();
+  });
+
+  useEffect(() => {
+    const frame: number = requestFrame(writeEdgeLineInset);
+
+    return () => {
+      cancelFrame(frame);
+    };
+  }, []);
 
   // A table that goes away mid-drag leaves no frame waiting.
   useEffect(() => {

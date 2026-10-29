@@ -249,8 +249,9 @@ describe("a column's edge drawn in the reader's language", () => {
       "Zum Ändern der Breite ziehen. Zum Anpassen an den Inhalt doppelklicken.",
     );
     expect(edge).toHaveAttribute("aria-valuetext", "240 Pixel breit");
+    // One line in a card's ⋯ (E2E ModelTables/ColumnResize.spec.ts measures it).
     expect(
-      screen.getByRole("button", { name: "Spaltenbreiten zurücksetzen" }),
+      screen.getByRole("button", { name: "Breiten zurücksetzen" }),
     ).toBeInTheDocument();
   });
 

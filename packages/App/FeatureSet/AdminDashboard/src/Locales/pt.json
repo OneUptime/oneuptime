@@ -1517,7 +1517,7 @@
   "Enable": "Ativar",
   "Disable": "Desativar",
   "Drag to resize. Double-click to fit.": "Arraste para alterar a largura. Clique duas vezes para ajustá-la ao conteúdo.",
-  "Reset column widths": "Redefinir a largura das colunas",
+  "Reset column widths": "Redefinir larguras",
   "Resize the {{column}} column": "Redimensionar a coluna {{column}}",
   "{{count}} pixels wide": "{{count}} pixels de largura",
   "{{count}} pixels wide_one": "{{count}} pixel de largura",

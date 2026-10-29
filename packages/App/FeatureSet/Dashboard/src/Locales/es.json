@@ -36837,7 +36837,7 @@
   "Fills in the model, serial number and firmware of {{count}} network devices.": "Completa el modelo, el número de serie y el firmware de {{count}} dispositivos de red.",
   "Fills in the model, serial number and firmware of {{count}} network devices._one": "Completa el modelo, el número de serie y el firmware de {{count}} dispositivo de red.",
   "Hardware, software and location details from this device's SNMP poll, from discovery and from the Meraki dashboard.": "Detalles de hardware, software y ubicación del sondeo SNMP de este dispositivo, del descubrimiento y del panel de Meraki.",
-  "Reset column widths": "Restablecer el ancho de las columnas",
+  "Reset column widths": "Restablecer anchos",
   "Resize the {{column}} column": "Cambiar el ancho de la columna {{column}}",
   "Skipped at once": "Omitido de inmediato",
   "The Meraki organizations OneUptime reads traffic and device details from, through the Meraki dashboard API.": "Las organizaciones de Meraki cuyo tráfico y detalles de dispositivos lee OneUptime, mediante la API del panel de Meraki.",

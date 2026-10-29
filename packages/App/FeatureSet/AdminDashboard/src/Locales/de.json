@@ -1517,7 +1517,7 @@
   "Enable": "Aktivieren",
   "Disable": "Deaktivieren",
   "Drag to resize. Double-click to fit.": "Zum Ändern der Breite ziehen. Zum Anpassen an den Inhalt doppelklicken.",
-  "Reset column widths": "Spaltenbreiten zurücksetzen",
+  "Reset column widths": "Breiten zurücksetzen",
   "Resize the {{column}} column": "Breite der Spalte {{column}} ändern",
   "{{count}} pixels wide": "{{count}} Pixel breit",
   "{{count}} pixels wide_one": "{{count}} Pixel breit",

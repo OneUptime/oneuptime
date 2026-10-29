@@ -130,6 +130,52 @@ export const getHorizontalPadding: (element: Element) => number = (
 };
 
 /*
+ * The most an edge's lines are drawn in from its column's end: inside the
+ * edge's 12px, so the line under the pointer is the edge it presses.
+ */
+export const COLUMN_EDGE_LINE_MAX_INSET_IN_PX: number = 10;
+
+/*
+ * How far in from a column's end its edge's line is drawn
+ * (ColumnResizeLayout's COLUMN_RESIZE_EDGE_INSET_PROPERTY): the middle of
+ * the room between this column's words and the next column's - the end
+ * padding of this header cell and the start padding of the next. The
+ * shared Table pads what its header cells hold, alike at both ends, so its
+ * lines stay on the columns' ends (0); a table a page draws itself that
+ * pads its cells at their end only (pr-4) has its lines 8px in, where they
+ * no longer touch the next column's name. Never drawn past the column's
+ * end: a column after one with no end padding of its own keeps its line on
+ * the end.
+ */
+export const getColumnEdgeLineInset: (headerCell: Element) => number = (
+  headerCell: Element,
+): number => {
+  const style: CSSStyleDeclaration | null = getComputedStyleOf(headerCell);
+
+  if (!style) {
+    return 0;
+  }
+
+  const endPadding: number = readPixels(
+    style.getPropertyValue("padding-inline-end"),
+  );
+  const next: Element | null = headerCell.nextElementSibling;
+  const nextStyle: CSSStyleDeclaration | null = next
+    ? getComputedStyleOf(next)
+    : null;
+  const nextStartPadding: number = nextStyle
+    ? readPixels(nextStyle.getPropertyValue("padding-inline-start"))
+    : 0;
+
+  return Math.round(
+    Math.min(
+      COLUMN_EDGE_LINE_MAX_INSET_IN_PX,
+      Math.max(0, (endPadding - nextStartPadding) / 2),
+    ),
+  );
+};
+
+/*
  * The element a cell draws its value or its name in: its one element, when
  * it has one and no words beside it (a table's cells, a header's sort
  * button). A cell of loose words, or of several parts, is read as a whole

@@ -20,8 +20,13 @@ import ColumnResizeHandle, {
 import * as Measure from "../../../../../UI/Components/Table/ColumnResize/ColumnWidthMeasure";
 import { ColumnWidthKind } from "../../../../../UI/Components/Table/ColumnResize/ColumnWidths";
 import {
+  COLUMN_RESIZE_ACTIVE_LINE_CLASS_NAME,
+  COLUMN_RESIZE_EDGE_INSET_PROPERTY,
+  COLUMN_RESIZE_GUIDE_CLASS_NAME,
   COLUMN_RESIZE_GUIDE_TEST_ID,
+  COLUMN_RESIZE_HANDLE_CLASS_NAME,
   COLUMN_RESIZE_HANDLE_TEST_ID,
+  COLUMN_RESIZE_LINE_CLASS_NAME,
 } from "../../../../../UI/Components/Table/ColumnResize/ColumnResizeLayout";
 
 /*
@@ -333,6 +338,96 @@ describe("what the edge is", () => {
 
     expect(guide).not.toBeNull();
     expect(guide.style.display).toBe("none");
+  });
+
+  test("a phone draws none: the shared Table's rows are cards there, and a swipe across a page's own header is no drag", () => {
+    const { handle } = drawHandle();
+
+    expect(COLUMN_RESIZE_HANDLE_CLASS_NAME.split(" ")).toContain(
+      "max-md:hidden",
+    );
+    expect(handle.className).toBe(COLUMN_RESIZE_HANDLE_CLASS_NAME);
+  });
+});
+
+describe("where the edge draws its lines", () => {
+  test("in the middle of the room between its column's words and the next column's, written on the edge for its lines to read", () => {
+    jest.spyOn(Measure, "getColumnEdgeLineInset").mockReturnValue(8);
+
+    const { handle, headerCell } = drawHandle();
+
+    expect(Measure.getColumnEdgeLineInset).toHaveBeenCalledWith(headerCell);
+    expect(
+      handle.style.getPropertyValue(COLUMN_RESIZE_EDGE_INSET_PROPERTY),
+    ).toBe("8px");
+
+    // The faint line, the line under the pointer and the guide alike.
+    for (const className of [
+      COLUMN_RESIZE_LINE_CLASS_NAME,
+      COLUMN_RESIZE_ACTIVE_LINE_CLASS_NAME,
+      COLUMN_RESIZE_GUIDE_CLASS_NAME,
+    ]) {
+      expect(className.split(" ")).toContain(
+        `right-[var(${COLUMN_RESIZE_EDGE_INSET_PROPERTY},0px)]`,
+      );
+      expect(className.split(" ")).not.toContain("right-0");
+    }
+  });
+
+  test("read again a frame after it is first drawn: the page's Tailwind writes a new cell's padding only once the cell is on the page", () => {
+    const frames: Array<FrameRequestCallback> = [];
+
+    jest
+      .spyOn(window, "requestAnimationFrame")
+      .mockImplementation((callback: FrameRequestCallback): number => {
+        frames.push(callback);
+        return frames.length;
+      });
+
+    let padding: number = 0;
+
+    jest
+      .spyOn(Measure, "getColumnEdgeLineInset")
+      .mockImplementation((): number => {
+        return padding / 2;
+      });
+
+    const { handle } = drawHandle();
+
+    expect(
+      handle.style.getPropertyValue(COLUMN_RESIZE_EDGE_INSET_PROPERTY),
+    ).toBe("0px");
+
+    // The page's styles land; the frame after reads them.
+    padding = 16;
+    act(() => {
+      for (const frame of frames.splice(0)) {
+        frame(now);
+      }
+    });
+
+    expect(
+      handle.style.getPropertyValue(COLUMN_RESIZE_EDGE_INSET_PROPERTY),
+    ).toBe("8px");
+  });
+
+  test("and whenever it is drawn again: the column after it can change", () => {
+    let inset: number = 0;
+
+    jest
+      .spyOn(Measure, "getColumnEdgeLineInset")
+      .mockImplementation((): number => {
+        return inset;
+      });
+
+    const { handle, rerender } = drawHandle({ width: 200 });
+
+    inset = 6;
+    rerender(220);
+
+    expect(
+      handle.style.getPropertyValue(COLUMN_RESIZE_EDGE_INSET_PROPERTY),
+    ).toBe("6px");
   });
 });
 

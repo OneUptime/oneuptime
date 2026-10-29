@@ -43,6 +43,11 @@ export interface ComponentProps {
   columns: ReadonlyArray<SizedColumn>;
   // A column's kind, where the columns do not say it.
   getKind?: ((columnId: string) => ColumnWidthKind | undefined) | undefined;
+  /*
+   * A table a page draws itself: a sized column's value boxes end words
+   * they cut short in "..." (getSizedColumnsCss' clipsValueBoxes).
+   */
+  clipsValueBoxes?: boolean | undefined;
 }
 
 export const SIZED_COLUMNS_STYLE_ATTRIBUTE: string = "data-column-widths-style";
@@ -82,6 +87,7 @@ const SizedColumnsStyle: FunctionComponent<ComponentProps> = (
         .map((column: SizedColumn): number => {
           return column.cellNumber;
         }),
+      clipsValueBoxes: props.clipsValueBoxes,
     });
 
     if (style.textContent !== css) {

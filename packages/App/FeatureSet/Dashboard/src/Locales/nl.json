@@ -36837,7 +36837,7 @@
   "Fills in the model, serial number and firmware of {{count}} network devices.": "Vult model, serienummer en firmware aan van {{count}} netwerkapparaten.",
   "Fills in the model, serial number and firmware of {{count}} network devices._one": "Vult model, serienummer en firmware aan van {{count}} netwerkapparaat.",
   "Hardware, software and location details from this device's SNMP poll, from discovery and from the Meraki dashboard.": "Hardware-, software- en locatiegegevens uit de SNMP-poll van dit apparaat, uit detectie en uit het Meraki-dashboard.",
-  "Reset column widths": "Kolombreedtes terugzetten",
+  "Reset column widths": "Breedtes terugzetten",
   "Resize the {{column}} column": "Breedte van kolom {{column}} wijzigen",
   "Skipped at once": "Direct overgeslagen",
   "The Meraki organizations OneUptime reads traffic and device details from, through the Meraki dashboard API.": "De Meraki-organisaties waarvan OneUptime het verkeer en de apparaatgegevens leest, via de Meraki-dashboard-API.",

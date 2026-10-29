@@ -88,7 +88,7 @@ Le mode direct se coupe tout seul quand vous changez la recherche, un filtre ou 
 
 - **Colonnes** choisit ce que la liste affiche. **Heure**, **Service**, **Gravité** et **Message** viennent en premier ; ajoutez **ID de trace**, **ID du span** ou n'importe quel attribut, déplacez les colonnes vers le haut ou le bas, ou revenez aux valeurs par défaut avec **Réinitialiser**.
 - **Export** télécharge les journaux de la page que vous regardez. **Exporter en CSV** écrit les colonnes affichées ; **Exporter en JSON** écrit chaque champ de chaque journal, avec tous ses attributs.
-- Pointez la ligne d'en-tête et faites glisser le trait à la fin du nom d'une colonne pour l'élargir ou la rétrécir, ou double-cliquez sur le trait pour ajuster la colonne à son contenu. La liste conserve vos largeurs dans ce navigateur ; **Réinitialiser la largeur des colonnes**, à la fin de la ligne d'en-tête, rend à chaque colonne sa propre largeur.
+- Pointez la ligne d'en-tête et faites glisser le trait à la fin du nom d'une colonne pour l'élargir ou la rétrécir, ou double-cliquez sur le trait pour ajuster la colonne à son contenu. La liste conserve vos largeurs dans ce navigateur ; **Rétablir les largeurs**, à la fin de la ligne d'en-tête, rend à chaque colonne sa propre largeur.
 
 ## Enregistrer une vue
 

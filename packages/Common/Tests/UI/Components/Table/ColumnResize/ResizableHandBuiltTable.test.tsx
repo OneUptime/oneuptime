@@ -27,6 +27,13 @@ import {
 import { COLUMN_RESIZE_HANDLE_TEST_ID } from "../../../../../UI/Components/Table/ColumnResize/ColumnResizeLayout";
 import { RESET_COLUMN_WIDTHS_TEST_ID } from "../../../../../UI/Components/Table/ColumnResize/ResetColumnWidthsButton";
 import { SIZED_COLUMNS_STYLE_ATTRIBUTE } from "../../../../../UI/Components/Table/ColumnResize/SizedColumnsStyle";
+import {
+  RESIZABLE_HEADER_RESET_END_CONTENT_CLASS_NAME,
+  RESIZABLE_HEADER_RESET_END_ROW_CLASS_NAME,
+  RESIZABLE_HEADER_RESET_ROW_CLASS_NAME,
+  TABLE_RESET_COLUMN_WIDTHS_BUTTON_CLASS_NAME,
+  isEndAlignedHeaderCell,
+} from "../../../../../UI/Components/Table/TableLayout";
 import Card from "../../../../../UI/Components/Card/Card";
 import CardMoreMenu from "../../../../../UI/Components/Card/CardMoreMenu";
 import MoreMenuItem from "../../../../../UI/Components/MoreMenu/MoreMenuItem";
@@ -400,9 +407,13 @@ describe("a width kept for a column of a page's own table", () => {
       })
       .join("\n");
 
-    // Name (a row's name) is the second cell, TTL (a number) the fourth.
+    /*
+     * Name (a row's name) is the second cell, TTL (a number) the fourth. A
+     * page's own value box cuts its words short with "..." itself - a
+     * Postgres table's name ran on past its box and was cut mid-letter.
+     */
     expect(rules).toContain(
-      "td:nth-child(2) > div { max-width: none; min-width: 0; contain: inline-size; }",
+      "td:nth-child(2) > div { max-width: none; min-width: 0; contain: inline-size; overflow-x: clip; text-overflow: ellipsis; }",
     );
     expect(rules).toContain(
       "td:nth-child(4) > div { max-width: none; min-width: 0; }",
@@ -557,5 +568,85 @@ describe("Reset column widths for a page's own table", () => {
         name: "Reset column widths",
       }),
     ).toBeInTheDocument();
+  });
+
+  test("a last column whose name is drawn at its end, over numbers (TTL), has the reset before its name, which stays over its values", () => {
+    keep("dns-records", { name: 260 });
+
+    render(<RecordsTable tableKey="dns-records" />);
+
+    const lastHeader: HTMLTableCellElement = headerCellOf("TTL");
+    const reset: HTMLElement = within(lastHeader).getByRole("button", {
+      name: "Reset column widths",
+    });
+    const name: HTMLElement = within(lastHeader).getByText("TTL");
+
+    expect(
+      reset.compareDocumentPosition(name) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // Drawn at the cell's end with no room kept after the name.
+    expect(reset.parentElement?.className).toBe(
+      RESIZABLE_HEADER_RESET_END_ROW_CLASS_NAME,
+    );
+    expect(name.parentElement?.className).toBe(
+      RESIZABLE_HEADER_RESET_END_CONTENT_CLASS_NAME,
+    );
+  });
+
+  test("...and one whose name starts its column has it after its name, clear of the column's edge", () => {
+    keep("two-columns", { name: 200 });
+
+    render(<RecordsTableOfTwoColumns tableKey="two-columns" />);
+
+    const lastHeader: HTMLTableCellElement = headerCellOf("Type");
+    const reset: HTMLElement = within(lastHeader).getByRole("button", {
+      name: "Reset column widths",
+    });
+    const name: HTMLElement = within(lastHeader).getByText("Type");
+
+    expect(
+      name.compareDocumentPosition(reset) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(reset.parentElement?.className).toBe(
+      RESIZABLE_HEADER_RESET_ROW_CLASS_NAME,
+    );
+  });
+
+  test("a header cell's name is at its end with text-right or text-end - a class of its own, never one of a wider screen's", () => {
+    expect(isEndAlignedHeaderCell("px-4 py-2 text-right")).toBe(true);
+    expect(isEndAlignedHeaderCell("text-end text-xs")).toBe(true);
+    expect(isEndAlignedHeaderCell("px-4 py-2 text-left")).toBe(false);
+    expect(isEndAlignedHeaderCell("md:text-right")).toBe(false);
+    expect(isEndAlignedHeaderCell("text-right-ish")).toBe(false);
+    expect(isEndAlignedHeaderCell("")).toBe(false);
+    expect(isEndAlignedHeaderCell(undefined)).toBe(false);
+  });
+
+  test("it is quiet until it is wanted: shown while the pointer is over the header row or the keyboard is in it, and always on a touch screen", () => {
+    keep("dns-records", { name: 260 });
+
+    render(<RecordsTable tableKey="dns-records" />);
+
+    const reset: HTMLElement = within(headerCellOf("TTL")).getByRole("button", {
+      name: "Reset column widths",
+    });
+    const tokens: Array<string> = reset.className.split(" ");
+
+    expect(reset.className).toBe(TABLE_RESET_COLUMN_WIDTHS_BUTTON_CLASS_NAME);
+
+    for (const token of [
+      "opacity-0",
+      "[thead:hover_&]:opacity-100",
+      "[thead:focus-within_&]:opacity-100",
+      "focus-visible:opacity-100",
+      "[@media(pointer:coarse)]:opacity-100",
+    ]) {
+      expect([token, tokens.includes(token)]).toEqual([token, true]);
+    }
+
+    // Still a button the keyboard and a screen reader reach, named.
+    expect(reset.tagName).toBe("BUTTON");
+    expect(reset).not.toHaveAttribute("tabindex", "-1");
+    expect(reset).not.toHaveAttribute("aria-hidden");
   });
 });

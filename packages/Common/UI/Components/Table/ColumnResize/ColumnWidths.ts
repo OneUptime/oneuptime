@@ -646,6 +646,14 @@ export const getColumnWidthsPreferenceKey: (data: {
  * inline-size): it is as wide as the column, and its value is cut short
  * inside it. Not a column kept whole (dates, numbers): it still grows for a
  * wider value rather than cut one (getHeaderCellWidthStyle).
+ *
+ * The shared Table's value boxes cut their own words short, each ending in
+ * "..." (CellClassName). A table a page draws itself often draws a value in
+ * a box of no truncation of its own - a Postgres table's name over its
+ * share of the database - whose words ran on past the box and were cut
+ * mid-letter at the cell's edge; so a page's own table (clipsValueBoxes)
+ * has its sized column's value boxes clip their words too, ending them in
+ * "...".
  */
 export const COLUMN_WIDTHS_SCOPE_ATTRIBUTE: string = "data-column-widths-scope";
 
@@ -664,10 +672,16 @@ export const getSizedColumnsCss: (data: {
   cellNumbers: ReadonlyArray<number>;
   // ...and the places of those whose values are kept whole.
   wholeCellNumbers?: ReadonlyArray<number> | undefined;
+  /*
+   * A table a page draws itself: a value box that is cut short ends its
+   * words in "..." (the shared Table's boxes do it themselves).
+   */
+  clipsValueBoxes?: boolean | undefined;
 }) => string = (data: {
   scope: string;
   cellNumbers: ReadonlyArray<number>;
   wholeCellNumbers?: ReadonlyArray<number> | undefined;
+  clipsValueBoxes?: boolean | undefined;
 }): string => {
   const whole: Set<number> = new Set<number>(data.wholeCellNumbers || []);
   const scope: string = getColumnWidthsScope(data.scope);
@@ -685,7 +699,11 @@ export const getSizedColumnsCss: (data: {
       return [
         `${table} > tbody > tr > td:nth-child(${cellNumber}) { max-width: none; overflow-x: clip; text-overflow: ellipsis; }`,
         `${table} > tbody > tr > td:nth-child(${cellNumber}) > div { max-width: none; min-width: 0;${
-          whole.has(cellNumber) ? "" : " contain: inline-size;"
+          whole.has(cellNumber)
+            ? ""
+            : data.clipsValueBoxes
+              ? " contain: inline-size; overflow-x: clip; text-overflow: ellipsis;"
+              : " contain: inline-size;"
         } }`,
         `${table} > thead > tr > th:nth-child(${cellNumber}) * { white-space: normal; }`,
       ].join("\n");

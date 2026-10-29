@@ -33,9 +33,10 @@ The pages:
 - `/dashboard/<project>/tables` - the gallery: every kind of column
   (`?table=kinds`), a table with many columns (`?table=wide`), a table drawn
   outside a card (`?table=plain`), people, each name drawn beside a
-  picture and over an email (`?table=people`), and a table a page draws
+  picture and over an email (`?table=people`), and tables a page draws
   itself - a monitor's network interfaces, in a card with no ⋯
-  (`?table=handbuilt`);
+  (`?table=handbuilt`), and a web vital's routes, whose last column is
+  drawn at its end over its ratings (`?table=vitals`);
 - `/dashboard/<project>/runbooks` - the Runbooks list of the maintainer's
   screenshot of the gap under a card's title, in the real Runbooks layout
   (its side menu and breadcrumbs) and as wide as the Dashboard draws it;
@@ -130,11 +131,16 @@ next visit; never narrower than a header's words or a date; a double-click
 fitting the widest value; the arrows, Shift, Home, End and Delete on a
 focused edge, its width announced; Reset column widths in the card's ⋯ and,
 in a card with none, beside the last column's name of a table a page draws
-itself; Persian (the edge at the column's left end, a drag left widening
-it), German at 1024px, a phone's cards with nothing to size, the dark
-theme's faint line, a tablet's finger (a 24px edge, a touch drag), and a
-list of 200 rows, where only the edge's line follows the pointer until it
-is let go. Its screenshots are `column-resize-*.png`.
+itself - shown only while the header row is pointed at or the keyboard is
+in it, and before a name drawn at its column's end, which stays over its
+values; a page's own table's lines in the middle of the room between two
+columns' names, and none on a phone; the reset's words on one line of the
+⋯ in every language of the Dashboard and the Admin Dashboard; Persian (the
+edge at the column's left end, a drag left widening it), German at 1024px,
+a phone's cards with nothing to size, the dark theme's faint line, a
+tablet's finger (a 24px edge, a touch drag), and a list of 200 rows, where
+only the edge's line follows the pointer until it is let go. Its
+screenshots are `column-resize-*.png`.
 
 `Fixture/Fixture.js` records every list read on
 `window.__fixture.listRequests`, every write on `window.__fixture.updates`,

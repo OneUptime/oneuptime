@@ -88,7 +88,7 @@ Direktemodus slår seg av selv når du endrer søket, et filter eller tidsinterv
 
 - **Kolonner** velger hva listen viser. **Tid**, **Tjeneste**, **Alvorlighetsgrad** og **Melding** kommer først; legg til **Spor-ID**, **Span-ID** eller et hvilket som helst attributt, flytt kolonner opp og ned, eller gå tilbake til standarden med **Tilbakestill**.
 - **Eksport** laster ned loggene på siden du ser på. **Eksporter som CSV** skriver kolonnene du viser; **Eksporter som JSON** skriver hvert felt i hver logg med alle attributtene.
-- Pek på overskriftsraden og dra streken på slutten av et kolonnenavn for å gjøre kolonnen bredere eller smalere, eller dobbeltklikk på streken for å tilpasse kolonnen til innholdet. Listen husker breddene dine i denne nettleseren; **Tilbakestill kolonnebredder** på slutten av overskriftsraden gir hver kolonne sin egen bredde igjen.
+- Pek på overskriftsraden og dra streken på slutten av et kolonnenavn for å gjøre kolonnen bredere eller smalere, eller dobbeltklikk på streken for å tilpasse kolonnen til innholdet. Listen husker breddene dine i denne nettleseren; **Tilbakestill bredder** på slutten av overskriftsraden gir hver kolonne sin egen bredde igjen.
 
 ## Lagre en visning
 

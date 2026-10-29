@@ -36837,7 +36837,7 @@
   "Fills in the model, serial number and firmware of {{count}} network devices.": "Дополняет модель, серийный номер и прошивку сетевых устройств: {{count}}.",
   "Fills in the model, serial number and firmware of {{count}} network devices._one": "Дополняет модель, серийный номер и прошивку {{count}} сетевого устройства.",
   "Hardware, software and location details from this device's SNMP poll, from discovery and from the Meraki dashboard.": "Сведения об оборудовании, ПО и расположении из опроса SNMP этого устройства, из обнаружения и из панели Meraki.",
-  "Reset column widths": "Сбросить ширину столбцов",
+  "Reset column widths": "Сбросить ширину",
   "Resize the {{column}} column": "Изменить ширину столбца «{{column}}»",
   "Skipped at once": "Пропущено сразу",
   "The Meraki organizations OneUptime reads traffic and device details from, through the Meraki dashboard API.": "Организации Meraki, трафик и сведения об устройствах которых OneUptime читает через API панели Meraki.",

@@ -273,10 +273,14 @@ export const TABLE_END_FILLER_TEST_ID: string = "table-end-filler";
  * Reset column widths, at the header row's end - in the Actions column's
  * header, or the filler's - for a table whose card has no ⋯ to keep it in
  * (a table drawn outside a card, or in one with no options): a quiet icon
- * button, there only while a column is sized.
+ * button, there only while a column is sized - and, like the columns'
+ * edges, shown only while the pointer is over the header row or the
+ * keyboard is in it (always on a touch screen, which has no pointer to
+ * hover with). A table someone sized once and reads every day keeps its
+ * header as calm as the product draws it, not an undo arrow for good.
  */
 export const TABLE_RESET_COLUMN_WIDTHS_BUTTON_CLASS_NAME: string =
-  "inline-flex h-6 w-6 flex-none items-center justify-center rounded text-gray-400 transition-colors duration-150 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+  "inline-flex h-6 w-6 flex-none items-center justify-center rounded text-gray-400 opacity-0 transition duration-150 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:opacity-100 [thead:hover_&]:opacity-100 [thead:focus-within_&]:opacity-100 [@media(pointer:coarse)]:opacity-100";
 
 // The filler's header holds it with the room a cell's end has.
 export const TABLE_END_FILLER_CONTENT_CLASS_NAME: string =
@@ -294,6 +298,32 @@ export const RESIZABLE_HEADER_RESET_ROW_CLASS_NAME: string =
 
 export const RESIZABLE_HEADER_RESET_CONTENT_CLASS_NAME: string =
   "min-w-0 flex-1";
+
+/*
+ * ...unless that column's name is drawn at its end, over a column of
+ * numbers (text-right): there the reset is before the name, which keeps
+ * its place over its values. After it, the name was pushed in by the
+ * button's width and the edge's room, and "Cache hit" stood 44px short of
+ * the "1.0%" under it.
+ */
+export const RESIZABLE_HEADER_RESET_END_ROW_CLASS_NAME: string =
+  "flex items-center justify-end gap-2";
+
+export const RESIZABLE_HEADER_RESET_END_CONTENT_CLASS_NAME: string = "min-w-0";
+
+// A header cell's classes that draw its name at the cell's end.
+const END_ALIGNED_HEADER_CLASS_NAMES: ReadonlyArray<string> = [
+  "text-right",
+  "text-end",
+];
+
+export const isEndAlignedHeaderCell: (
+  className: string | undefined,
+) => boolean = (className: string | undefined): boolean => {
+  return (className || "").split(" ").some((token: string): boolean => {
+    return END_ALIGNED_HEADER_CLASS_NAMES.includes(token.trim());
+  });
+};
 
 /*
  * The 30px row button and ⋯ sit centred on the row's 24px line: 3px above

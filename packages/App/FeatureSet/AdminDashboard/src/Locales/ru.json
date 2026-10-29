@@ -1517,7 +1517,7 @@
   "Enable": "Включить",
   "Disable": "Отключить",
   "Drag to resize. Double-click to fit.": "Перетащите, чтобы изменить ширину. Дважды щёлкните, чтобы подогнать её по содержимому.",
-  "Reset column widths": "Сбросить ширину столбцов",
+  "Reset column widths": "Сбросить ширину",
   "Resize the {{column}} column": "Изменить ширину столбца «{{column}}»",
   "{{count}} pixels wide": "Ширина: {{count}} пикс.",
   "{{count}} pixels wide_one": "Ширина: {{count}} пикс.",

@@ -88,7 +88,7 @@ Live-läget stänger av sig självt när du ändrar sökningen, ett filter eller
 
 - **Kolumner** väljer vad listan visar. **Tid**, **Tjänst**, **Allvarlighetsgrad** och **Meddelande** kommer först; lägg till **Spår-ID**, **Span-ID** eller valfritt attribut, flytta kolumner upp och ned, eller återgå till standard med **Återställ**.
 - **Export** laddar ned loggarna på sidan du tittar på. **Exportera som CSV** skriver de kolumner du visar; **Exportera som JSON** skriver varje fält i varje logg med alla dess attribut.
-- Peka på rubrikraden och dra strecket i slutet av ett kolumnnamn för att göra kolumnen bredare eller smalare, eller dubbelklicka på strecket för att anpassa kolumnen till innehållet. Listan kommer ihåg dina bredder i den här webbläsaren; **Återställ kolumnbredder** i slutet av rubrikraden ger varje kolumn dess egen bredd igen.
+- Peka på rubrikraden och dra strecket i slutet av ett kolumnnamn för att göra kolumnen bredare eller smalare, eller dubbelklicka på strecket för att anpassa kolumnen till innehållet. Listan kommer ihåg dina bredder i den här webbläsaren; **Återställ kolumnbredd** i slutet av rubrikraden ger varje kolumn dess egen bredd igen.
 
 ## Spara en vy
 

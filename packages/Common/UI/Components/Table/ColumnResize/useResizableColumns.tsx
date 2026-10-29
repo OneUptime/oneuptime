@@ -206,6 +206,8 @@ const useResizableColumns: (data: {
           getKind={(columnId: string): ColumnWidthKind | undefined => {
             return kindsRef.current.get(columnId);
           }}
+          /* A page's own cells: words cut short end in "...". */
+          clipsValueBoxes={true}
         />
         <style ref={dragStyleRef} data-column-resize-drag-style={scope} />
       </>
@@ -230,6 +232,7 @@ const useResizableColumns: (data: {
           scope: scope,
           cellNumbers: [cellNumber],
           wholeCellNumbers: kind === ColumnWidthKind.Whole ? [cellNumber] : [],
+          clipsValueBoxes: true,
         });
       }
     },

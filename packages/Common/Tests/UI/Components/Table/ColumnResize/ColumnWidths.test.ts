@@ -885,6 +885,28 @@ describe("the rules a sized column's values are drawn by", () => {
     );
   });
 
+  test("a page's own table: a sized column's value box ends the words it cuts short in '...', where the shared Table's boxes do it themselves", () => {
+    const pages: string = getSizedColumnsCss({
+      scope: "r1",
+      cellNumbers: [2, 3],
+      wholeCellNumbers: [3],
+      clipsValueBoxes: true,
+    });
+
+    expect(pages).toContain(
+      "td:nth-child(2) > div { max-width: none; min-width: 0; contain: inline-size; overflow-x: clip; text-overflow: ellipsis; }",
+    );
+    // A column kept whole cuts nothing short: it grows for a wider value.
+    expect(pages).toContain(
+      "td:nth-child(3) > div { max-width: none; min-width: 0; }",
+    );
+
+    // The shared Table's: its boxes truncate their own words (CellClassName).
+    expect(getSizedColumnsCss({ scope: "r1", cellNumbers: [2] })).not.toContain(
+      "> div { max-width: none; min-width: 0; contain: inline-size; overflow-x",
+    );
+  });
+
   test("one rule a column, in order, whatever it is handed", () => {
     const css: string = getSizedColumnsCss({
       scope: ":r9:",

@@ -177,8 +177,12 @@ const DashboardSortableColumnHeader: FunctionComponent<ComponentProps> = (
             : "none"
       }
       className={`p-0 font-medium tracking-wider${
-        props.className ? ` ${props.className}` : ""
-      }`}
+        /*
+         * Its words are at its end, as the button draws them: a Reset
+         * column widths beside them goes before them (ResizableHeaderCell).
+         */
+        props.alignRight ? " text-right" : ""
+      }${props.className ? ` ${props.className}` : ""}`}
       style={style}
       resize={resize}
     >

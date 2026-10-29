@@ -36837,7 +36837,7 @@
   "Fills in the model, serial number and firmware of {{count}} network devices.": "Fyller i modell, serienummer och firmware för {{count}} nätverksenheter.",
   "Fills in the model, serial number and firmware of {{count}} network devices._one": "Fyller i modell, serienummer och firmware för {{count}} nätverksenhet.",
   "Hardware, software and location details from this device's SNMP poll, from discovery and from the Meraki dashboard.": "Hårdvaru-, programvaru- och platsuppgifter från den här enhetens SNMP-avläsning, från upptäckt och från Meraki-instrumentpanelen.",
-  "Reset column widths": "Återställ kolumnbredder",
+  "Reset column widths": "Återställ kolumnbredd",
   "Resize the {{column}} column": "Ändra bredden på kolumnen {{column}}",
   "Skipped at once": "Hoppades över direkt",
   "The Meraki organizations OneUptime reads traffic and device details from, through the Meraki dashboard API.": "De Meraki-organisationer som OneUptime läser trafik och enhetsuppgifter från, via Meraki-instrumentpanelens API.",

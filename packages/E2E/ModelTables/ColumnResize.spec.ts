@@ -45,8 +45,16 @@ const PROJECT: string = "10000000-0000-4000-8000-000000000001";
 const PERSON: string = "80000000-0000-4000-8000-000000000001";
 const INCIDENTS: string = `/dashboard/${PROJECT}/incidents`;
 const HAND_BUILT: string = `/dashboard/${PROJECT}/tables?table=handbuilt`;
+// A page's own table whose last column (Rating) is drawn at its end.
+const VITALS: string = `/dashboard/${PROJECT}/tables?table=vitals`;
 const INCIDENTS_KEY: string = `TableColumnWidths.${PERSON}.incidents-table`;
 const INTERFACES_KEY: string = `TableColumnWidths.${PERSON}.snmp-interfaces-table`;
+
+// Where the Dashboard's and the Admin Dashboard's words are, per language.
+const LOCALES: Array<string> = [
+  path.resolve(__dirname, "../../App/FeatureSet/Dashboard/src/Locales"),
+  path.resolve(__dirname, "../../App/FeatureSet/AdminDashboard/src/Locales"),
+];
 
 const NOW: Date = new Date("2026-10-16T05:35:00.000Z");
 
@@ -551,6 +559,247 @@ test.describe("a table a page draws itself", () => {
 
     expect(Math.abs((await widthOf(header)) - before)).toBeLessThanOrEqual(1);
     expect(await storedWidths(page, INTERFACES_KEY)).toBeNull();
+  });
+});
+
+test.describe("a table a page draws itself, read closely", () => {
+  test("an edge's line sits in the middle of the room between two columns' names, never against the next one's", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, HAND_BUILT);
+
+    /*
+     * The interfaces' header cells pad their end only (pr-4): the Interface
+     * column ends where "Status" starts, and a line on that end was drawn
+     * against the S, as if it were Status' left rule.
+     */
+    const header: Locator = headerOf(page, "interface");
+    const line: Locator = edgeOf(page, "interface").locator("span").first();
+    const headerBox: Box = await box(header);
+
+    await page.mouse.move(headerBox.x + 20, headerBox.y + headerBox.height / 2);
+    await expect(line).toHaveCSS("background-color", FAINT_LINE_LIGHT);
+
+    const lineBox: Box = await box(line);
+    const nextName: Box = await box(
+      headerOf(page, "status").getByText("Status", { exact: true }),
+    );
+
+    // Half the column's 16px of end padding in from its end.
+    expect(
+      Math.round(headerBox.x + headerBox.width - (lineBox.x + lineBox.width)),
+    ).toBe(8);
+    expect(nextName.x - (lineBox.x + lineBox.width)).toBeGreaterThanOrEqual(7);
+    await screenshot(page, "hand-built-lines");
+
+    // The shared Table pads its names alike at both ends: its lines stay on the ends.
+    await open(page, INCIDENTS);
+
+    const title: Locator = headerOf(page, "title");
+    const titleBox: Box = await box(title);
+
+    await page.mouse.move(titleBox.x + 10, titleBox.y + titleBox.height / 2);
+
+    const titleLine: Box = await box(
+      edgeOf(page, "title").locator("span").first(),
+    );
+
+    expect(
+      Math.abs(titleBox.x + titleBox.width - (titleLine.x + titleLine.width)),
+    ).toBeLessThanOrEqual(1);
+  });
+
+  test("Reset column widths at the header row's end shows only while the header row is pointed at, or the keyboard is in it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, HAND_BUILT);
+    await drag(page, edgeOf(page, "interface"), -200);
+
+    const reset: Locator = headerOf(page, "errors").getByRole("button", {
+      name: "Reset column widths",
+    });
+
+    // The pointer elsewhere: the header as calm as the product draws it.
+    await page.mouse.move(5, 5);
+    await expect(reset).toHaveCSS("opacity", "0");
+    await screenshot(page, "hand-built-sized-at-rest");
+
+    // Over the header row: there, with the columns' edges.
+    const speed: Box = await box(headerOf(page, "speed"));
+
+    await page.mouse.move(speed.x + 10, speed.y + speed.height / 2);
+    await expect(reset).toHaveCSS("opacity", "1");
+
+    // The keyboard in the header row: there too, a key before the last edge.
+    await page.mouse.move(5, 5);
+    await expect(reset).toHaveCSS("opacity", "0");
+    await edgeOf(page, "errors").focus();
+    await expect(reset).toHaveCSS("opacity", "1");
+    await page.keyboard.press("Shift+Tab");
+    await expect(reset).toBeFocused();
+    await expect(reset).toHaveCSS("opacity", "1");
+  });
+
+  test("a last column drawn at its end, over numbers, keeps its name over its values: the reset goes before the name", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, VITALS);
+
+    const rating: Locator = headerOf(page, "rating");
+    const ratingName: Locator = rating.getByText("Rating", { exact: true });
+    const firstRating: Locator = page
+      .locator("tbody tr")
+      .first()
+      .locator("td")
+      .nth(2)
+      .locator("span")
+      .first();
+
+    await drag(page, edgeOf(page, "route"), -200);
+
+    const route: Box = await box(headerOf(page, "route"));
+
+    await page.mouse.move(route.x + 10, route.y + route.height / 2);
+
+    const reset: Locator = rating.getByRole("button", {
+      name: "Reset column widths",
+    });
+
+    await expect(reset).toHaveCSS("opacity", "1");
+
+    const name: Box = await box(ratingName);
+    const value: Box = await box(firstRating);
+    const resetBox: Box = await box(reset);
+
+    expect(resetBox.x + resetBox.width).toBeLessThanOrEqual(name.x);
+    // "Rating" ends where "Poor" under it ends, as it did before anything was sized.
+    expect(
+      Math.abs(name.x + name.width - (value.x + value.width)),
+    ).toBeLessThanOrEqual(1);
+    await screenshot(page, "end-aligned-reset");
+  });
+
+  test("a phone draws no edge on a page's own table either: it scrolls sideways under a finger", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, HAND_BUILT, 390, 844);
+
+    const edges: Locator = page.locator(
+      '[data-testid="table-column-resize-handle"]',
+    );
+
+    expect(await edges.count()).toBeGreaterThan(0);
+
+    for (const edge of await edges.all()) {
+      await expect(edge).toBeHidden();
+    }
+  });
+});
+
+test.describe("Reset column widths in every language", () => {
+  test("reads on one line in a card's ⋯, in each of the Dashboard's and the Admin Dashboard's languages", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const labels: Array<{ language: string; label: string }> = [];
+
+    for (const folder of LOCALES) {
+      const files: Array<string> = (await fs.readdir(folder)).filter(
+        (file: string): boolean => {
+          return file.endsWith(".json");
+        },
+      );
+
+      for (const file of files) {
+        const words: Record<string, unknown> = JSON.parse(
+          await fs.readFile(path.join(folder, file), "utf8"),
+        ) as Record<string, unknown>;
+        const label: unknown = words["Reset column widths"];
+
+        if (typeof label === "string" && label) {
+          labels.push({
+            language: `${path.basename(path.dirname(folder))} ${file}`,
+            label: label,
+          });
+        }
+      }
+    }
+
+    // 17 languages, in both apps.
+    expect(labels.length).toBeGreaterThanOrEqual(34);
+
+    await open(page, INCIDENTS);
+    await drag(page, edgeOf(page, "monitors"), -100);
+    await page.getByRole("button", { name: "More options" }).first().click();
+
+    const item: Locator = page.getByRole("menuitem", {
+      name: "Reset column widths",
+    });
+
+    await expect(item).toBeVisible();
+
+    // The item's words written in each language, its height read each time.
+    const heights: Array<{ language: string; label: string; lines: number }> =
+      await item.evaluate(
+        (
+          element: Element,
+          list: Array<{ language: string; label: string }>,
+        ): Array<{ language: string; label: string; lines: number }> => {
+          const words: HTMLElement | undefined = Array.from(
+            element.querySelectorAll("div"),
+          ).find((candidate: HTMLDivElement): boolean => {
+            return (
+              candidate.childElementCount === 0 &&
+              (candidate.textContent || "").trim() === "Reset column widths"
+            );
+          });
+
+          if (!words) {
+            return [];
+          }
+
+          const lineHeight: number = parseFloat(
+            getComputedStyle(words).lineHeight,
+          );
+
+          return list.map(
+            (entry: {
+              language: string;
+              label: string;
+            }): { language: string; label: string; lines: number } => {
+              words.textContent = entry.label;
+
+              return {
+                language: entry.language,
+                label: entry.label,
+                lines: Math.round(
+                  words.getBoundingClientRect().height / lineHeight,
+                ),
+              };
+            },
+          );
+        },
+        labels,
+      );
+
+    expect(heights).toHaveLength(labels.length);
+
+    for (const entry of heights) {
+      expect([entry.language, entry.label, entry.lines]).toEqual([
+        entry.language,
+        entry.label,
+        1,
+      ]);
+    }
   });
 });
 

@@ -45,7 +45,10 @@
  *                                                table a page draws itself:
  *                                                a monitor's network
  *                                                interfaces, in a card with
- *                                                no ⋯ (?table=handbuilt)
+ *                                                no ⋯ (?table=handbuilt),
+ *                                                and a web vital's routes,
+ *                                                its last column numbers
+ *                                                (?table=vitals)
  *
  * Steered by the query string:
  *   - data=rich       more incidents, monitors and status pages: labels,
@@ -101,6 +104,7 @@ import RunbooksLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/
 import RunbooksPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Runbooks";
 import CardHeadersPage from "./CardHeaders";
 import SnmpInterfacesView from "../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/SnmpInterfacesView";
+import WebVitalRouteBreakdownCard from "../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/WebVitalRouteBreakdownCard";
 import Card from "Common/UI/Components/Card/Card";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -1762,6 +1766,42 @@ function GalleryHandBuilt() {
   );
 }
 
+/*
+ * Another table a page draws itself, whose last column is drawn at its end
+ * over numbers: a web vital's routes, slowest first (the RUM overview's
+ * INP by route), in its own card with no ⋯ - so its Reset column widths
+ * goes before the Rating column's name, which stays over its values.
+ */
+const VITAL_ROUTES = [
+  { route: "/checkout/:cartId/payment/confirm", value: 612 },
+  { route: "/products/:id", value: 284 },
+  { route: "/search", value: 143 },
+  { route: "/", value: 96 },
+];
+
+function GalleryVitals() {
+  return (
+    <WebVitalRouteBreakdownCard
+      vital={{
+        key: "inp",
+        label: "Interaction to Next Paint",
+        description: "How long the page takes to answer a click or a key.",
+        value: 238,
+        unit: "ms",
+        thresholds: { warn: 200, danger: 500 },
+        metricName: "web_vital.inp",
+      }}
+      breakdown={{
+        routeAttribute: "app.route",
+        routes: VITAL_ROUTES,
+        totalRoutes: VITAL_ROUTES.length,
+        failed: false,
+      }}
+      loading={false}
+    />
+  );
+}
+
 const GALLERY = {
   kinds: GalleryKinds,
   wide: GalleryWide,
@@ -1769,6 +1809,7 @@ const GALLERY = {
   people: GalleryPeople,
   give: GalleryGive,
   handbuilt: GalleryHandBuilt,
+  vitals: GalleryVitals,
 };
 
 /*

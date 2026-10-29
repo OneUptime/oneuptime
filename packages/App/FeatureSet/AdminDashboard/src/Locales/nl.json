@@ -1517,7 +1517,7 @@
   "Enable": "Inschakelen",
   "Disable": "Uitschakelen",
   "Drag to resize. Double-click to fit.": "Sleep om de breedte te wijzigen. Dubbelklik om deze aan de inhoud aan te passen.",
-  "Reset column widths": "Kolombreedtes terugzetten",
+  "Reset column widths": "Breedtes terugzetten",
   "Resize the {{column}} column": "Breedte van kolom {{column}} wijzigen",
   "{{count}} pixels wide": "{{count}} pixels breed",
   "{{count}} pixels wide_one": "{{count}} pixel breed",
