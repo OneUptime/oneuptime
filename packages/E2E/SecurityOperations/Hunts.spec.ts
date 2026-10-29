@@ -171,12 +171,21 @@ async function fixture(page: Page): Promise<FixtureState> {
   });
 }
 
-async function screenshot(page: Page, name: string): Promise<void> {
+/*
+ * The page as a person sees it. A dialog or an open list is taken in the
+ * window alone: a whole-page picture would draw the page below the window
+ * without the dialog's backdrop over it.
+ */
+async function screenshot(
+  page: Page,
+  name: string,
+  options: { window?: boolean } = {},
+): Promise<void> {
   await fs.mkdir(SCREENSHOTS, { recursive: true });
   await page.mouse.move(0, 0);
   await page.screenshot({
     path: path.join(SCREENSHOTS, `${name}-synthetic.png`),
-    fullPage: true,
+    fullPage: !options.window,
     animations: "disabled",
   });
 }
@@ -385,7 +394,7 @@ test.describe("the Events toolbar's Hunts list", () => {
     await expect(
       panel.getByRole("button", { name: "Encoded PowerShell" }),
     ).toContainText("Every Day");
-    await screenshot(page, "hunts-menu-1440");
+    await screenshot(page, "hunts-menu-1440", { window: true });
     await panel.getByRole("button", { name: "Encoded PowerShell" }).click();
 
     await expectPath(page, HUNT_PATH);
@@ -444,7 +453,7 @@ test.describe("the Events toolbar's Hunts list", () => {
     await expect(
       dialog(page).getByText("Notify", { exact: true }),
     ).toBeVisible();
-    await screenshot(page, "hunts-save-as-hunt-1440");
+    await screenshot(page, "hunts-save-as-hunt-1440", { window: true });
     await dialog(page).getByRole("button", { name: "Save Hunt" }).click();
 
     await expect(page.getByTestId("security-hunt-title")).toHaveText(
@@ -620,7 +629,7 @@ test.describe("Add to Case from a hunt", () => {
       .getByTestId("security-add-to-case-row")
       .filter({ hasText: "CASE-138" })
       .click();
-    await screenshot(page, "hunts-add-to-case-1440");
+    await screenshot(page, "hunts-add-to-case-1440", { window: true });
     await dialog(page).getByRole("button", { name: "Add 2 Events" }).click();
 
     // One request for both, naming the hunt; one kept already.
@@ -674,7 +683,7 @@ test.describe("Add to Case from a hunt", () => {
     await expect(
       page.getByText(/Kept on this case as OneUptime read it/),
     ).toBeVisible();
-    await screenshot(page, "hunts-view-event-1440");
+    await screenshot(page, "hunts-view-event-1440", { window: true });
 
     await page.keyboard.press("Escape");
     await page
