@@ -2455,6 +2455,87 @@ test("everything the app serves under /file still reaches it", () => {
   );
 });
 
+// ---------------------------------------------------------------------------
+// /demo: the demo page's short addresses
+// ---------------------------------------------------------------------------
+
+/*
+ * Home answers oneuptime.com/demo, and the other addresses people type for
+ * the demo page, with a 301 to /enterprise/demo (Home/Utils/DemoPage.ts),
+ * keeping the campaign's query string. It can only do that if nginx sends
+ * them where it sends the rest of the marketing site: to `location /`
+ * itself, or to a block that proxies exactly like it. A prefix location of
+ * the app's that happened to start the same way would answer instead, as
+ * `location /workflow` answered /workflows and `location /file` answered
+ * /files/, and so would a `return` of nginx's own, which drops the query.
+ */
+const DEMO_PAGE_PATH = "/enterprise/demo";
+
+/** DEMO_SHORT_PATHS of Home/Utils/DemoPage.ts, read from its source. */
+function readDemoShortPaths() {
+  const source = fs.readFileSync(
+    path.join(NGINX_DIRECTORY, "..", "Home", "Utils", "DemoPage.ts"),
+    "utf8",
+  );
+  const list = source.match(
+    /DEMO_SHORT_PATHS:\s*ReadonlyArray<string>\s*=\s*\[([^\]]*)\]/,
+  );
+
+  assert.ok(list, "read no DEMO_SHORT_PATHS from DemoPage.ts");
+
+  const shortPaths = Array.from(list[1].matchAll(/"([^"]*)"/g), (match) => {
+    return match[1];
+  });
+
+  // A list this reads only part of would let the tests below pass vacuously.
+  assert.ok(shortPaths.includes("/demo"), "DEMO_SHORT_PATHS lost /demo");
+  assert.equal(
+    shortPaths.length,
+    (list[1].split('"').length - 1) / 2,
+    "every entry of DEMO_SHORT_PATHS must be read",
+  );
+
+  return shortPaths;
+}
+
+test("every short address of the demo page reaches the marketing site", () => {
+  const locations = getLocationBlocks(primaryServerBlock.body);
+  const catchAll = findCatchAllLocation();
+
+  assert.ok(
+    directivesOf(catchAll).includes("proxy_pass $backend_home;"),
+    "the premise: location / sends the marketing site to Home",
+  );
+
+  for (const shortPath of readDemoShortPaths()) {
+    // Home answers each with and without a trailing slash.
+    for (const uri of [shortPath, `${shortPath}/`]) {
+      const location = resolveLocation(locations, uri);
+
+      assert.deepEqual(
+        directivesOf(location),
+        directivesOf(catchAll),
+        `${uri} lands in "location ${location.spec}", which does not send it to the marketing site`,
+      );
+    }
+  }
+});
+
+test("the demo page itself reaches the marketing site", () => {
+  const locations = getLocationBlocks(primaryServerBlock.body);
+  const catchAll = findCatchAllLocation();
+
+  for (const uri of [DEMO_PAGE_PATH, `${DEMO_PAGE_PATH}/`]) {
+    const location = resolveLocation(locations, uri);
+
+    assert.deepEqual(
+      directivesOf(location),
+      directivesOf(catchAll),
+      `${uri} lands in "location ${location.spec}", which does not send it to the marketing site`,
+    );
+  }
+});
+
 /*
  * The scheme the visitor used reaches the app, so the app can keep the
  * visitor's cookies on HTTPS (Secure) whenever the browser is on HTTPS:
