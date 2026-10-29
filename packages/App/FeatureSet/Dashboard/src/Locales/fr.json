@@ -21182,7 +21182,7 @@
   "Search {{count}} fields_one": "Rechercher parmi {{count}} champ",
   "Search {{name}}": "Rechercher dans {{name}}",
   "Search {{name}}...": "Rechercher dans {{name}}...",
-  "Search {{types}}...": "Search {{types}}...",
+  "Search {{types}}...": "Rechercher parmi les {{types}}...",
   "Search {{value}}": "Rechercher dans {{value}}",
   "Searching logs": "Recherche dans les journaux",
   "See Investigation activity for why.": "See Investigation activity for why.",
@@ -36823,5 +36823,13 @@
   "Skipped at once": "Ignoré immédiatement",
   "This level has no responders": "Ce niveau n'a aucun intervenant",
   "{{levels}} along the way have no responders, so they are skipped without waiting.": "{{levels}} en chemin n'ont aucun intervenant et sont donc ignorés sans attendre.",
-  "{{levels}} along the way have no responders, so they are skipped without waiting._one": "{{levels}} en chemin n'a aucun intervenant et est donc ignoré sans attendre."
+  "{{levels}} along the way have no responders, so they are skipped without waiting._one": "{{levels}} en chemin n'a aucun intervenant et est donc ignoré sans attendre.",
+  "Could not search resources. Try again in a moment.": "Impossible de rechercher les ressources. Réessayez dans un instant.",
+  "Search and attach the hosts, network devices, clusters, databases, cloud resources or services this alert affects.": "Recherchez et associez les hôtes, équipements réseau, clusters, bases de données, ressources cloud ou services touchés par cette alerte.",
+  "Search and attach the hosts, network devices, clusters, databases, cloud resources or services this incident affects.": "Recherchez et associez les hôtes, équipements réseau, clusters, bases de données, ressources cloud ou services touchés par cet incident.",
+  "Search {{types}} and more...": "Rechercher parmi les {{types}} et plus...",
+  "Show all {{count}}_one": "Tout afficher ({{count}})",
+  "Showing {{shown}} of {{total}}. Type to narrow the list.": "{{shown}} sur {{total}} affichés. Saisissez du texte pour affiner la liste.",
+  "{{count}} monitors match too. Monitors are picked under {{field}}.": "{{count}} moniteurs correspondent aussi. Les moniteurs se choisissent dans {{field}}.",
+  "{{count}} monitors match too. Monitors are picked under {{field}}._one": "{{count}} moniteur correspond aussi. Les moniteurs se choisissent dans {{field}}."
 }

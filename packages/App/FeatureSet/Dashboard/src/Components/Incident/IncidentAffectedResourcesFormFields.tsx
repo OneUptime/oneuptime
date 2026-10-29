@@ -164,7 +164,7 @@ export const getIncidentAffectedResourcesFormFields: () => Fields<Incident> =
                 "CloudResource",
                 "Service",
               ]}
-              monitorsFieldTitle="Monitors"
+              monitorFieldTitle="Monitors"
               ariaLabelledby={elementProps.ariaLabelledby}
               onChange={(payload: unknown) => {
                 elementProps.onChange?.(payload);

@@ -1440,7 +1440,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         "CloudResource",
                         "Service",
                       ]}
-                      monitorsFieldTitle="Monitor"
+                      monitorFieldTitle="Monitor"
                       ariaLabelledby={elementProps.ariaLabelledby}
                       onChange={(payload: unknown) => {
                         elementProps.onChange?.(payload);

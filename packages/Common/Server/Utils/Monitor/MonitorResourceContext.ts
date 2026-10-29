@@ -132,11 +132,20 @@ export default class MonitorResourceContextUtil {
           projectId: input.monitor.projectId,
           monitorIds: [input.monitor.id],
         }),
+        /*
+         * Read on its own terms: a device read that fails costs the
+         * devices, never the resources linked by hand.
+         */
         this.resolveNetworkDevicesTheMonitorReportsOn({
           monitorId: input.monitor.id,
           projectId: input.monitor.projectId,
           autoProvisionedNetworkDeviceId:
             input.monitor.autoProvisionedNetworkDeviceId,
+        }).catch((err: unknown): Array<string> => {
+          logger.error(
+            `Failed to read the network devices monitor ${input.monitor.id?.toString()} reports on: ${err}`,
+          );
+          return [];
         }),
       ]);
 

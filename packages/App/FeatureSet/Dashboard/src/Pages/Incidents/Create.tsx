@@ -1897,7 +1897,7 @@ const IncidentCreate: FunctionComponent<
                         }
                         services={values.services as Array<Service>}
                         resourceTypes={OTHER_AFFECTED_RESOURCE_TYPES}
-                        monitorsFieldTitle="Monitors"
+                        monitorFieldTitle="Monitors"
                         ariaLabelledby={elementProps.ariaLabelledby}
                         onChange={(payload: unknown) => {
                           elementProps.onChange?.(payload);

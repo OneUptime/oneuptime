@@ -21182,7 +21182,7 @@
   "Search {{count}} fields_one": "{{count}} Feld durchsuchen",
   "Search {{name}}": "{{name}} durchsuchen",
   "Search {{name}}...": "{{name}} durchsuchen...",
-  "Search {{types}}...": "Search {{types}}...",
+  "Search {{types}}...": "{{types}} durchsuchen...",
   "Search {{value}}": "{{value}} durchsuchen",
   "Searching logs": "Protokolle werden durchsucht",
   "See Investigation activity for why.": "See Investigation activity for why.",
@@ -36823,5 +36823,13 @@
   "Skipped at once": "Sofort übersprungen",
   "This level has no responders": "Diese Stufe hat keine Bearbeiter",
   "{{levels}} along the way have no responders, so they are skipped without waiting.": "{{levels}} auf dem Weg haben keine Bearbeiter und werden daher ohne Wartezeit übersprungen.",
-  "{{levels}} along the way have no responders, so they are skipped without waiting._one": "{{levels}} auf dem Weg hat keine Bearbeiter und wird daher ohne Wartezeit übersprungen."
+  "{{levels}} along the way have no responders, so they are skipped without waiting._one": "{{levels}} auf dem Weg hat keine Bearbeiter und wird daher ohne Wartezeit übersprungen.",
+  "Could not search resources. Try again in a moment.": "Die Ressourcen konnten nicht durchsucht werden. Bitte gleich noch einmal versuchen.",
+  "Search and attach the hosts, network devices, clusters, databases, cloud resources or services this alert affects.": "Suchen und verknüpfen Sie die Hosts, Netzwerkgeräte, Cluster, Datenbanken, Cloud-Ressourcen oder Dienste, die von dieser Warnung betroffen sind.",
+  "Search and attach the hosts, network devices, clusters, databases, cloud resources or services this incident affects.": "Suchen und verknüpfen Sie die Hosts, Netzwerkgeräte, Cluster, Datenbanken, Cloud-Ressourcen oder Dienste, die von diesem Vorfall betroffen sind.",
+  "Search {{types}} and more...": "{{types}} und mehr durchsuchen...",
+  "Show all {{count}}_one": "Alle {{count}} anzeigen",
+  "Showing {{shown}} of {{total}}. Type to narrow the list.": "{{shown}} von {{total}} angezeigt. Weitertippen, um die Liste einzugrenzen.",
+  "{{count}} monitors match too. Monitors are picked under {{field}}.": "Auch {{count}} Monitore passen. Monitore werden unter {{field}} ausgewählt.",
+  "{{count}} monitors match too. Monitors are picked under {{field}}._one": "Auch {{count}} Monitor passt. Monitore werden unter {{field}} ausgewählt."
 }

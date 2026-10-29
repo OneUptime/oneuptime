@@ -2,8 +2,11 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import IncidentStateUtil from "../../../Utils/IncidentState";
 import AlertStateUtil from "../../../Utils/AlertState";
+import {
+  getNetworkDeviceOpenAlertCountQuery,
+  getNetworkDeviceOpenIncidentCountQuery,
+} from "../Utils/NetworkDeviceOpenActivityCountQuery";
 import Route from "Common/Types/API/Route";
-import Includes from "Common/Types/BaseDatabase/Includes";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -45,38 +48,67 @@ const NetworkDeviceSideMenu: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
-  const [unresolvedIncidentStates, setUnresolvedIncidentStates] = useState<
-    Array<IncidentState>
-  >([]);
-  const [unresolvedAlertStates, setUnresolvedAlertStates] = useState<
-    Array<AlertState>
-  >([]);
+  /*
+   * The Incidents and Alerts badges count what is still open, which takes
+   * the project's unresolved state ids. They stay null until those arrive
+   * (or for good, if they cannot be loaded), and the count queries stay
+   * undefined meanwhile, so no badge flashes a number about to change.
+   */
+  const [unresolvedIncidentStateIds, setUnresolvedIncidentStateIds] =
+    useState<Array<ObjectID> | null>(null);
+  const [unresolvedAlertStateIds, setUnresolvedAlertStateIds] =
+    useState<Array<ObjectID> | null>(null);
 
   useEffect(() => {
-    const fetchStates: PromiseVoidFunction = async (): Promise<void> => {
+    const fetchIncidentStateIds: PromiseVoidFunction =
+      async (): Promise<void> => {
+        if (!projectId) {
+          return;
+        }
+
+        const states: Array<IncidentState> =
+          await IncidentStateUtil.getUnresolvedIncidentStates(projectId);
+
+        setUnresolvedIncidentStateIds(
+          states
+            .map((state: IncidentState): ObjectID | null => {
+              return state.id;
+            })
+            .filter((id: ObjectID | null): id is ObjectID => {
+              return Boolean(id);
+            }),
+        );
+      };
+
+    const fetchAlertStateIds: PromiseVoidFunction = async (): Promise<void> => {
       if (!projectId) {
         return;
       }
 
-      try {
-        setUnresolvedIncidentStates(
-          await IncidentStateUtil.getUnresolvedIncidentStates(projectId),
-        );
-      } catch {
-        // The badge simply shows no count.
-      }
+      const states: Array<AlertState> =
+        await AlertStateUtil.getUnresolvedAlertStates(projectId);
 
-      try {
-        setUnresolvedAlertStates(
-          await AlertStateUtil.getUnresolvedAlertStates(projectId),
-        );
-      } catch {
-        // The badge simply shows no count.
-      }
+      setUnresolvedAlertStateIds(
+        states
+          .map((state: AlertState): ObjectID | null => {
+            return state.id;
+          })
+          .filter((id: ObjectID | null): id is ObjectID => {
+            return Boolean(id);
+          }),
+      );
     };
 
-    fetchStates().catch(() => {
-      // Nothing to show: the badges stay empty.
+    /*
+     * Both lists come from ModelListCache, which the header has usually
+     * warmed already. A failure only costs its badge: the items still link
+     * to their tabs.
+     */
+    fetchIncidentStateIds().catch(() => {
+      // The Incidents badge simply stays hidden.
+    });
+    fetchAlertStateIds().catch(() => {
+      // The Alerts badge simply stays hidden.
     });
   }, []);
 
@@ -167,15 +199,11 @@ const NetworkDeviceSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.Alert}
           badgeType={BadgeType.DANGER}
           modelType={Incident}
-          countQuery={{
-            projectId: projectId!,
-            networkDevices: new Includes([props.modelId]),
-            currentIncidentStateId: new Includes(
-              unresolvedIncidentStates.map((state: IncidentState) => {
-                return state.id!;
-              }),
-            ),
-          }}
+          countQuery={getNetworkDeviceOpenIncidentCountQuery({
+            projectId: projectId,
+            networkDeviceId: props.modelId,
+            unresolvedStateIds: unresolvedIncidentStateIds,
+          })}
         />
         <CountModelSideMenuItem<Alert>
           link={{
@@ -188,15 +216,11 @@ const NetworkDeviceSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.ExclaimationCircle}
           badgeType={BadgeType.DANGER}
           modelType={Alert}
-          countQuery={{
-            projectId: projectId!,
-            networkDevices: new Includes([props.modelId]),
-            currentAlertStateId: new Includes(
-              unresolvedAlertStates.map((state: AlertState) => {
-                return state.id!;
-              }),
-            ),
-          }}
+          countQuery={getNetworkDeviceOpenAlertCountQuery({
+            projectId: projectId,
+            networkDeviceId: props.modelId,
+            unresolvedStateIds: unresolvedAlertStateIds,
+          })}
         />
       </SideMenuSection>
 

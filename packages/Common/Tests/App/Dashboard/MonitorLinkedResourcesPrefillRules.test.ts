@@ -75,8 +75,20 @@ describe("what a monitor can be linked to", () => {
   });
 
   test("each create form's field writes the linked kinds, and maintenance its network sites too - never cloud resources, which an event does not hold", () => {
-    expect(INCIDENT_PREFILL_PAYLOAD_KEYS).toEqual(MONITOR_LINKED_RESOURCE_KEYS);
-    expect(ALERT_PREFILL_PAYLOAD_KEYS).toEqual(MONITOR_LINKED_RESOURCE_KEYS);
+    /*
+     * An incident's and an alert's field also holds network devices (issue
+     * #5341). A monitor is not linked to one by hand, so none is ever added
+     * from a monitor - but the payload carries the ones the form holds.
+     */
+    expect(INCIDENT_PREFILL_PAYLOAD_KEYS).toEqual([
+      ...MONITOR_LINKED_RESOURCE_KEYS,
+      "networkDevices",
+    ]);
+    expect(ALERT_PREFILL_PAYLOAD_KEYS).toEqual([
+      ...MONITOR_LINKED_RESOURCE_KEYS,
+      "networkDevices",
+    ]);
+    expect(MONITOR_LINKED_RESOURCE_KEYS).not.toContain("networkDevices");
     expect(MONITOR_LINKED_RESOURCE_KEYS).toContain("cloudResources");
     expect(SCHEDULED_MAINTENANCE_PREFILL_PAYLOAD_KEYS).toEqual([
       ...MONITOR_LINKED_RESOURCE_KEYS.filter((key: string): boolean => {
@@ -219,6 +231,43 @@ describe("buildPrefillPayload", () => {
     expect(payload.databaseServers).toEqual([]);
     // Not a field the incident form writes.
     expect(payload.networkSites).toBeUndefined();
+  });
+
+  /*
+   * Issue #5341: declared from a router's page, the form holds the router.
+   * Picking a monitor then adds the monitor's own resources - and must not
+   * take the router off, as it would if the payload left the devices out.
+   */
+  test.each([
+    ["an incident", INCIDENT_PREFILL_PAYLOAD_KEYS],
+    ["an alert", ALERT_PREFILL_PAYLOAD_KEYS],
+  ])(
+    "keeps the network devices %s form holds while adding a monitor's resources",
+    (_form: string, payloadKeys: Array<string>) => {
+      const payload: AffectedResourcesPayload = buildPrefillPayload({
+        values: {
+          networkDevices: [{ _id: "nd-1", name: "WAN-RTR-01" }, "nd-2"],
+        },
+        toAdd: [linked("hosts", HOST_ID, "web-01")],
+        payloadKeys: payloadKeys as never,
+      });
+
+      expect(payload.networkDevices).toEqual(["nd-1", "nd-2"]);
+      expect(payload.hosts).toEqual([HOST_ID]);
+    },
+  );
+
+  test("a maintenance event's payload leaves network devices alone: an event holds none", () => {
+    const payload: AffectedResourcesPayload = buildPrefillPayload({
+      values: { networkSites: [{ _id: SITE_ID }] },
+      toAdd: [linked("hosts", HOST_ID, "web-01")],
+      payloadKeys: SCHEDULED_MAINTENANCE_PREFILL_PAYLOAD_KEYS,
+    });
+
+    expect(payload.networkDevices).toBeUndefined();
+    expect(SCHEDULED_MAINTENANCE_PREFILL_PAYLOAD_KEYS).not.toContain(
+      "networkDevices",
+    );
   });
 
   test("keeps a maintenance event's network sites", () => {

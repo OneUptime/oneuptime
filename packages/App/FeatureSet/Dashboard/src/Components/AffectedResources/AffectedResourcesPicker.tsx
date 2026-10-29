@@ -27,6 +27,8 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import User from "Common/UI/Utils/User";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import {
+  ComposedValue,
+  composedValue,
   translatableTerm,
   translateTemplate,
   translationKey,
@@ -153,7 +155,7 @@ export interface ComponentProps {
    * Monitor. A search here that also matches monitors then says so, and
    * where they are picked, instead of finding nothing (issue #5341).
    */
-  monitorsFieldTitle?: string | undefined;
+  monitorFieldTitle?: string | undefined;
 }
 
 interface ResourceConfig {
@@ -693,12 +695,12 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
    * monitors.
    */
   const countsMonitorsForHint: boolean = useMemo((): boolean => {
-    if (!props.monitorsFieldTitle || resourceTypes.includes("Monitor")) {
+    if (!props.monitorFieldTitle || resourceTypes.includes("Monitor")) {
       return false;
     }
 
     return filterTypesByReadPermission(["Monitor"]).allowed.length > 0;
-  }, [props.monitorsFieldTitle, resourceTypesKey]);
+  }, [props.monitorFieldTitle, resourceTypesKey]);
 
   /*
    * The subset the Labels tab can query. A model with no `labels` relation
@@ -1716,14 +1718,21 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
    * Other Affected Resources picker offers fourteen, and a placeholder that
    * lists them all is cut off long before its end.
    */
-  const placeholderTypes: string = resourceTypes
-    .slice(0, resourceTypes.length > 3 ? 3 : resourceTypes.length)
-    .map((t: AffectedResourceType): string => {
-      return translator.translateTerm(RESOURCE_CONFIG[t].pluralLabel, {
-        inSentence: true,
-      });
-    })
-    .join(", ");
+  const placeholderTypes: ComposedValue = composedValue(
+    (sentenceTranslator: Translator): string => {
+      return resourceTypes
+        .slice(0, resourceTypes.length > 3 ? 3 : resourceTypes.length)
+        .map((t: AffectedResourceType): string => {
+          return sentenceTranslator.translateTerm(
+            RESOURCE_CONFIG[t].pluralLabel,
+            {
+              inSentence: true,
+            },
+          );
+        })
+        .join(", ");
+    },
+  );
 
   const resourcesPlaceholder: string =
     props.placeholder ||
@@ -2199,7 +2208,11 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                 </span>
               )}
             </button>
-            <span className="ml-auto pr-1 text-[11px] text-gray-400">
+            {/*
+             * What each tab is for. Left out on a phone, where it wrapped to
+             * three lines beside the tabs and pushed the results down.
+             */}
+            <span className="ms-auto pe-1 text-[11px] text-gray-400 max-sm:hidden sm:inline">
               {translator.translateText(
                 activeTab === "resources"
                   ? "Search and add individually"
@@ -2218,8 +2231,8 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
             <div
               data-testid="affected-resources-kind-filter"
               role="group"
-              aria-label={translator.translateText("Show resources of")}
-              className="flex flex-shrink-0 flex-wrap items-center gap-1 border-b border-gray-100 px-2 py-1.5"
+              aria-label={translator.translateText("Resource type")}
+              className="flex flex-shrink-0 items-center gap-1 overflow-x-auto border-b border-gray-100 px-2 py-1.5 sm:flex-wrap sm:overflow-visible"
             >
               {[null, ...filterTypes].map(
                 (type: AffectedResourceType | null): ReactElement => {
@@ -2241,7 +2254,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                       onClick={(): void => {
                         narrowToKind(type);
                       }}
-                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
+                      className={`inline-flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
                         isActive
                           ? "bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200"
                           : "text-gray-600 hover:bg-gray-100"
@@ -2423,7 +2436,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                                 onClick={() => {
                                   addItem(item);
                                 }}
-                                className={`flex w-full items-center gap-2 px-3 py-2 text-left ${
+                                className={`flex w-full items-center gap-2 px-3 py-2 text-start ${
                                   isHighlighted
                                     ? "bg-indigo-600 text-white"
                                     : "text-gray-700 hover:bg-indigo-50"
@@ -2497,7 +2510,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                * think they cannot be found (issue #5341).
                */}
               {!isLoading &&
-                props.monitorsFieldTitle &&
+                props.monitorFieldTitle &&
                 monitorMatchCount > 0 &&
                 searchQuery.trim() !== "" && (
                   <div
@@ -2518,7 +2531,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                         monitorMatchCount,
                         {
                           field: translator.translateText(
-                            props.monitorsFieldTitle,
+                            props.monitorFieldTitle,
                           ) as string,
                         },
                       )}

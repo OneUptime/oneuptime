@@ -529,7 +529,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
         )}
         {/*
          * Routers, switches, firewalls and access points (issue #5341):
-         * beside hosts, the other machines people link by hand. Slate is a
+         * beside hosts, the other machines people link by hand. Yellow is a
          * hue no other category uses, and Theme.css remaps its 50 and 600
          * shades for dark mode.
          */}
@@ -538,8 +538,8 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
             className={sectionClassName}
             icon={IconProp.Signal}
             label="Network Devices"
-            iconBgClass="bg-slate-50"
-            iconColorClass="text-slate-600"
+            iconBgClass="bg-yellow-50"
+            iconColorClass="text-yellow-600"
             items={networkDevices}
             renderItem={(networkDevice: NetworkDevice) => {
               return <NetworkDeviceElement networkDevice={networkDevice} />;

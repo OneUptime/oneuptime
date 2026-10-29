@@ -393,7 +393,7 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         }
                         services={values.services as Array<Service>}
                         resourceTypes={OTHER_AFFECTED_RESOURCE_TYPES}
-                        monitorsFieldTitle="Monitor"
+                        monitorFieldTitle="Monitor"
                         ariaLabelledby={elementProps.ariaLabelledby}
                         onChange={(payload: unknown) => {
                           elementProps.onChange?.(payload);

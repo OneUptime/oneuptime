@@ -36823,5 +36823,13 @@
   "Skipped at once": "すぐにスキップ",
   "This level has no responders": "このレベルには対応者がいません",
   "{{levels}} along the way have no responders, so they are skipped without waiting.": "途中の{{levels}}には対応者がいないため、待たずにスキップされます。",
-  "{{levels}} along the way have no responders, so they are skipped without waiting._one": "{{levels}} along the way has no responders, so it is skipped without waiting."
+  "{{levels}} along the way have no responders, so they are skipped without waiting._one": "{{levels}} along the way has no responders, so it is skipped without waiting.",
+  "Could not search resources. Try again in a moment.": "リソースを検索できませんでした。しばらくしてからもう一度お試しください。",
+  "Search and attach the hosts, network devices, clusters, databases, cloud resources or services this alert affects.": "このアラートの影響を受けるホスト、ネットワークデバイス、クラスター、データベース、クラウドリソース、またはサービスを検索して添付します。",
+  "Search and attach the hosts, network devices, clusters, databases, cloud resources or services this incident affects.": "このインシデントの影響を受けるホスト、ネットワークデバイス、クラスター、データベース、クラウドリソース、またはサービスを検索して添付します。",
+  "Search {{types}} and more...": "{{types}}などを検索...",
+  "Show all {{count}}_one": "{{count}} 件すべてを表示",
+  "Showing {{shown}} of {{total}}. Type to narrow the list.": "{{total}} 件中 {{shown}} 件を表示しています。入力すると一覧を絞り込めます。",
+  "{{count}} monitors match too. Monitors are picked under {{field}}.": "モニターも {{count}} 件一致します。モニターは「{{field}}」で選択します。",
+  "{{count}} monitors match too. Monitors are picked under {{field}}._one": "モニターも {{count}} 件一致します。モニターは「{{field}}」で選択します。"
 }

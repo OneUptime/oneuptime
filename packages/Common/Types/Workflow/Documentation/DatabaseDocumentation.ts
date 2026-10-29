@@ -387,11 +387,11 @@ const createOne: BuildFunction = (
       required.length > 0
         ? `Under **JSON Object**, fill in the ${words.one}'s fields. The ones it needs come first.`
         : `Under **JSON Object**, add the ${words.one}'s fields with **Add a field**.`,
-      ...(affectedResourcesSetting
-        ? [
-            `To link the hosts, network devices or services it is about, write their names, addresses or IDs under **${affectedResourcesSetting.name}**, separated by commas.`,
-          ]
-        : []),
+      /*
+       * Affected Resources gets no step of its own: the help shows at most
+       * four before Learn more, and the setting's own description in the
+       * dialog says what to write. Learn more says how a name is matched.
+       */
       "Connect **Success** to what runs next, and **Error** to handle a failure.",
       `Use the new ${words.one} in later steps, starting with its ID.`,
     ],

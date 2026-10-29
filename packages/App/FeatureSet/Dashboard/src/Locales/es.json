@@ -21182,7 +21182,7 @@
   "Search {{count}} fields_one": "Buscar en {{count}} campo",
   "Search {{name}}": "Buscar {{name}}",
   "Search {{name}}...": "Buscar {{name}}...",
-  "Search {{types}}...": "Search {{types}}...",
+  "Search {{types}}...": "Buscar {{types}}...",
   "Search {{value}}": "Buscar {{value}}",
   "Searching logs": "Buscando en los registros",
   "See Investigation activity for why.": "See Investigation activity for why.",
@@ -36823,5 +36823,13 @@
   "Skipped at once": "Omitido de inmediato",
   "This level has no responders": "Este nivel no tiene respondedores",
   "{{levels}} along the way have no responders, so they are skipped without waiting.": "{{levels}} del recorrido no tienen respondedores, así que se omiten sin esperar.",
-  "{{levels}} along the way have no responders, so they are skipped without waiting._one": "{{levels}} del recorrido no tiene respondedores, así que se omite sin esperar."
+  "{{levels}} along the way have no responders, so they are skipped without waiting._one": "{{levels}} del recorrido no tiene respondedores, así que se omite sin esperar.",
+  "Could not search resources. Try again in a moment.": "No se pudieron buscar los recursos. Inténtalo de nuevo en un momento.",
+  "Search and attach the hosts, network devices, clusters, databases, cloud resources or services this alert affects.": "Busca y asocia los hosts, dispositivos de red, clústeres, bases de datos, recursos en la nube o servicios afectados por esta alerta.",
+  "Search and attach the hosts, network devices, clusters, databases, cloud resources or services this incident affects.": "Busca y asocia los hosts, dispositivos de red, clústeres, bases de datos, recursos en la nube o servicios afectados por este incidente.",
+  "Search {{types}} and more...": "Buscar {{types}} y más...",
+  "Show all {{count}}_one": "Mostrar los {{count}}",
+  "Showing {{shown}} of {{total}}. Type to narrow the list.": "Se muestran {{shown}} de {{total}}. Escribe para acotar la lista.",
+  "{{count}} monitors match too. Monitors are picked under {{field}}.": "También coinciden {{count}} monitores. Los monitores se eligen en {{field}}.",
+  "{{count}} monitors match too. Monitors are picked under {{field}}._one": "También coincide {{count}} monitor. Los monitores se eligen en {{field}}."
 }

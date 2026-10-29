@@ -48,6 +48,7 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import DatabaseRequestType from "../../Types/BaseDatabase/DatabaseRequestType";
 import MultiSearch from "../../../Types/BaseDatabase/MultiSearch";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import StartsWith from "../../../Types/BaseDatabase/StartsWith";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
 import { JSONObject } from "../../../Types/JSON";
@@ -290,6 +291,57 @@ export default class AffectedResourceSearch {
   }
 
   /*
+   * The query of the resources whose name starts with the text: the kind's
+   * own query with the name in place of the search across fields, read when
+   * the page by name was cut (see readKind). Matched literally, as the
+   * search is.
+   */
+  public static buildNamePrefixQuery(data: {
+    kindQuery: JSONObject;
+    search: string;
+  }): JSONObject {
+    const query: JSONObject = { ...data.kindQuery };
+
+    delete query["_multiFieldSearch"];
+    query["name"] = new StartsWith(
+      escapeLikePattern(data.search),
+    ) as unknown as JSONObject;
+
+    return query;
+  }
+
+  /*
+   * One page from two reads: the rows whose name starts with the text
+   * first, then the rest of the page by name, each row once, cut to the
+   * limit.
+   */
+  public static mergePages(data: {
+    first: Array<BaseModel>;
+    rest: Array<BaseModel>;
+    limit: number;
+  }): Array<BaseModel> {
+    const seen: Set<string> = new Set();
+    const page: Array<BaseModel> = [];
+
+    for (const row of [...data.first, ...data.rest]) {
+      const id: string = row._id?.toString() || "";
+
+      if (!id || seen.has(id)) {
+        continue;
+      }
+
+      seen.add(id);
+      page.push(row);
+
+      if (page.length >= data.limit) {
+        break;
+      }
+    }
+
+    return page;
+  }
+
+  /*
    * The matches in the order a person scans them: a name that is the text
    * typed, then names that start with it, then the rest by name - so "sw"
    * finds the switch called "sw" before "core-sw-02".
@@ -443,9 +495,44 @@ export default class AffectedResourceSearch {
           }),
         ]);
 
+      /*
+       * The page is the first rows by name, so when more match than it
+       * holds, the resource called exactly what was typed - or one that
+       * starts with it - can sort past its end ("sw" behind a hundred
+       * "access-sw-..." switches). Those are read on their own then, and
+       * lead the page; when everything that matches fits, nothing more is
+       * asked.
+       */
+      let page: Array<BaseModel> = rows;
+
+      if (
+        !data.countOnly &&
+        data.search &&
+        count.toNumber() > rows.length &&
+        rows.length > 0
+      ) {
+        const startingRows: Array<BaseModel> = await service.findBy({
+          query: AffectedResourceSearch.buildNamePrefixQuery({
+            kindQuery: query,
+            search: data.search,
+          }),
+          select: select,
+          sort: { name: SortOrder.Ascending },
+          skip: 0,
+          limit: data.limit,
+          props: data.props,
+        });
+
+        page = AffectedResourceSearch.mergePages({
+          first: startingRows,
+          rest: rows,
+          limit: data.limit,
+        });
+      }
+
       const matches: Array<AffectedResourceSearchMatch> = [];
 
-      for (const row of rows) {
+      for (const row of page) {
         const match: AffectedResourceSearchMatch | null =
           AffectedResourceSearch.toMatch({
             row: row,
