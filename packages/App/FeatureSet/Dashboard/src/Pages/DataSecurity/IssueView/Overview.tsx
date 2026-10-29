@@ -35,6 +35,7 @@ import {
   IssueRepositoryModal,
 } from "../../../Components/DataSecurity/IssueModals";
 import IssueRemediation from "../../../Components/DataSecurity/IssueRemediation";
+import IssueResponseAction from "../../../Components/DataSecurity/IssueResponseAction";
 import IssueRiskScore, {
   readIssueRiskFactors,
 } from "../../../Components/DataSecurity/IssueRiskScore";
@@ -208,7 +209,8 @@ const RequirementChip: FunctionComponent<{
  * and in its ⋯ Not an Issue and Assign; a closed issue offers Reopen.
  * Explain with AI and Fix with AI sit with the fix, while the project's
  * AI is on; Fix with AI asks which repository when the project has
- * several.
+ * several. An open issue that a response action fixes - a public bucket,
+ * a shared snapshot - offers it first, as one click (IssueResponseAction).
  */
 const DataSecurityIssueOverviewPage: FunctionComponent<
   PageComponentProps
@@ -796,6 +798,20 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
         buttons={fixButtons}
       >
         <div className="space-y-4">
+          {issue.status === DataSecurityIssueStatus.Open && storeId ? (
+            <IssueResponseAction
+              issueId={view.issueId}
+              checkId={issue.checkId}
+              dataStoreId={storeId}
+              storeKind={store?.kind}
+              storeName={storeName}
+              onChanged={() => {
+                view.refresh();
+              }}
+            />
+          ) : (
+            <></>
+          )}
           {fixNotice ? (
             <Alert
               type={fixNotice.taskId ? AlertType.SUCCESS : AlertType.WARNING}

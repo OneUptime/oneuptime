@@ -84,6 +84,8 @@ export const SECURITY_PLAYBOOK_ACTION_TITLES: Readonly<Record<string, string>> =
     "Unsuspend Okta User": "Unsuspend the user in Okta",
     "Lift CrowdStrike Containment": "Lift containment in CrowdStrike",
     "Release Defender Device": "Release the device in Microsoft Defender",
+    "Block Data Store Public Access": "Block public access to data stores",
+    "Revoke Data Store Sharing": "Revoke data store sharing",
     "Send Webhook": "Send a webhook",
     "Run Workflow": "Run a workflow",
     "Run Runbook": "Run a runbook",

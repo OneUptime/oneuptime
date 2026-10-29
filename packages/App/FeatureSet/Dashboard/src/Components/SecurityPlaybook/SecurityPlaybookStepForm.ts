@@ -78,6 +78,8 @@ const PLAIN_KEYS_BY_ACTION: Record<
   [SecurityPlaybookActionType.UnsuspendOktaUser]: [],
   [SecurityPlaybookActionType.LiftCrowdStrikeContainment]: [],
   [SecurityPlaybookActionType.ReleaseDefenderDevice]: [],
+  [SecurityPlaybookActionType.BlockDataStorePublicAccess]: [],
+  [SecurityPlaybookActionType.RevokeDataStoreSharing]: [],
   [SecurityPlaybookActionType.SendWebhook]: ["url"],
   [SecurityPlaybookActionType.RunWorkflow]: ["workflowId"],
   [SecurityPlaybookActionType.RunRunbook]: ["runbookId"],

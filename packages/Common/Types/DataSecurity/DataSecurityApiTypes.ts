@@ -1,5 +1,6 @@
 import SecuritySeverity from "../SecuritySeverity";
 import ComplianceFramework from "./ComplianceFramework";
+import { DataSecurityResponseAction } from "./DataSecurityResponseAction";
 import { ComplianceFrameworkResult } from "./ComplianceRequirementCatalog";
 import DataCategory from "./DataCategory";
 import DataSensitivity from "./DataSensitivity";
@@ -24,6 +25,8 @@ export const DATA_SECURITY_API_ROUTES: {
   scrubFinding: (findingId: string) => string;
   explainIssue: (issueId: string) => string;
   fixIssueWithAi: (issueId: string) => string;
+  responseActions: (dataStoreId: string) => string;
+  respond: (dataStoreId: string) => string;
 } = {
   overview: "/data-security/overview",
   compliance: "/data-security/compliance",
@@ -42,6 +45,14 @@ export const DATA_SECURITY_API_ROUTES: {
   },
   fixIssueWithAi: (issueId: string): string => {
     return `/data-security-issue/${issueId}/fix-with-ai`;
+  },
+  // Which response actions a store can take now (DataSecurityResponse).
+  responseActions: (dataStoreId: string): string => {
+    return `/data-store/${dataStoreId}/response-actions`;
+  },
+  // Block public access, or revoke sharing: { action, dataSecurityIssueId? }.
+  respond: (dataStoreId: string): string => {
+    return `/data-store/${dataStoreId}/respond`;
   },
 };
 
@@ -127,4 +138,35 @@ export interface DataSecurityFixResult {
   // What happened, for the toast: a run started, or why it could not.
   message: string;
   aiRunId?: string | undefined;
+}
+
+// Why a store cannot take a response action now.
+export enum DataSecurityResponseUnavailableReason {
+  // The store was not found through a cloud connection.
+  NotThroughACloud = "NotThroughACloud",
+  // Its cloud connection is gone, or turned off.
+  ConnectionGone = "ConnectionGone",
+  // Its connection's "Data security response" setting is off.
+  ResponseOff = "ResponseOff",
+  // The store is marked public by design: its public access stays.
+  PublicByDesign = "PublicByDesign",
+}
+
+export interface DataSecurityResponseActionAvailability {
+  action: DataSecurityResponseAction;
+  isAvailable: boolean;
+  unavailableReason?: DataSecurityResponseUnavailableReason | undefined;
+}
+
+export interface DataSecurityResponseAvailability {
+  // The actions a store of its kind takes; none for the others.
+  actions: Array<DataSecurityResponseActionAvailability>;
+  // The connection to turn the response on for, when that is what is missing.
+  cloudConnectionId?: string | undefined;
+}
+
+export interface DataSecurityResponseResult {
+  // Whether anything changed: false when the store was already closed.
+  changed: boolean;
+  summary: string;
 }

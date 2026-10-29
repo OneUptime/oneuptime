@@ -110,6 +110,7 @@ import WorkspaceUtil from "../Workspace/Workspace";
 import { WorkspaceSendMessageResponse } from "../Workspace/WorkspaceBase";
 import SecurityPlaybookContainment from "./SecurityPlaybookContainment";
 import SecurityPlaybookDataStoreOwners from "./SecurityPlaybookDataStoreOwners";
+import SecurityPlaybookDataStoreResponse from "./SecurityPlaybookDataStoreResponse";
 import SecurityPlaybookResponseSteps from "./SecurityPlaybookResponseSteps";
 import logger from "../Logger";
 import { loadSecurityConnections } from "../SecurityEvent/Connections/ConnectionsLoader";
@@ -263,6 +264,10 @@ export default class SecurityPlaybookActions {
         );
       case SecurityPlaybookActionType.FixWithAi:
         return await SecurityPlaybookResponseSteps.fixWithAi(context);
+      // A data store's exposure, closed through its cloud connection.
+      case SecurityPlaybookActionType.BlockDataStorePublicAccess:
+      case SecurityPlaybookActionType.RevokeDataStoreSharing:
+        return await SecurityPlaybookDataStoreResponse.run(context);
       case SecurityPlaybookActionType.SuspendOktaUser:
       case SecurityPlaybookActionType.EndOktaSessions:
       case SecurityPlaybookActionType.ContainCrowdStrikeHost:
@@ -1375,8 +1380,9 @@ export default class SecurityPlaybookActions {
 
 /*
  * Entity types the containment steps act on, for a summary that names what
- * was skipped. Never a data store: the steps that touch one only tell its
- * owners (Notify data store owners), as PROTECTED_ENTITY_TYPES says.
+ * was skipped. Never a data store: the steps that close one's exposure act
+ * through its cloud connection, store by store (SecurityPlaybookDataStore
+ * Response), as PROTECTED_ENTITY_TYPES says.
  */
 export const CONTAINABLE_ENTITY_TYPES: ReadonlyArray<SecurityEntityType> = [
   SecurityEntityType.User,

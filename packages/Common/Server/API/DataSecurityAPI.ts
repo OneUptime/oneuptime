@@ -63,6 +63,8 @@ import {
 } from "../Utils/AI/DataSecurity/DataSecurityIssuePrompt";
 import FeedMarkdown from "../../Utils/Markdown/FeedMarkdown";
 import DataSecurityIntegrations from "../Utils/DataSecurity/DataSecurityIntegrations";
+import DataSecurityResponse from "../Utils/DataSecurity/DataSecurityResponse";
+import { isDataSecurityResponseAction } from "../../Types/DataSecurity/DataSecurityResponseAction";
 import {
   queueDataSecurityConnectionRead,
   queueDataSecurityEvaluation,
@@ -92,7 +94,11 @@ import CommonAPI from "./CommonAPI";
  *    rules - the rule is theirs, made under their own permissions;
  *  - Explain and Fix With AI on an issue, under the project's OneUptime AI
  *    switches and limits, sending the issue, its evidence and how to fix
- *    it - never a finding's samples.
+ *    it - never a finding's samples;
+ *  - Block public access and Revoke sharing on a cloud store, for anyone
+ *    who may edit it, through the store's cloud connection and only when
+ *    its "Data security response" setting is on (DataSecurityResponse) -
+ *    and which of them a store can take now, for anyone who may read it.
  *
  * Every route reads only the caller's project and answers 404-like errors
  * for another project's records.
@@ -198,6 +204,54 @@ export default class DataSecurityAPI extends BaseAPI<
         await queueDataSecurityEvaluation(projectId);
 
         return {};
+      },
+    );
+
+    this.post(
+      DATA_SECURITY_API_ROUTES.responseActions(":id"),
+      READ_PERMISSIONS,
+      async (projectId: ObjectID, req: ExpressRequest) => {
+        const store: DataStore = await DataSecurityAPI.readStore(projectId, req);
+
+        return (await DataSecurityResponse.getAvailability({
+          projectId,
+          dataStoreId: store.id!,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_SECURITY_API_ROUTES.respond(":id"),
+      OPERATE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const store: DataStore = await DataSecurityAPI.readStore(projectId, req);
+        const body: JSONObject = (req.body || {}) as JSONObject;
+        const action: unknown = body["action"];
+
+        if (!isDataSecurityResponseAction(action)) {
+          throw new BadDataException(
+            'Choose "Block public access" or "Revoke sharing".',
+          );
+        }
+
+        const issueId: ObjectID | undefined =
+          await DataSecurityAPI.readIssueOfStore(
+            projectId,
+            store.id!,
+            body["dataSecurityIssueId"],
+          );
+
+        return (await DataSecurityResponse.run({
+          projectId,
+          dataStoreId: store.id!,
+          action,
+          userId: props.userId || undefined,
+          dataSecurityIssueId: issueId,
+        })) as unknown as JSONObject;
       },
     );
 
@@ -432,6 +486,38 @@ export default class DataSecurityAPI extends BaseAPI<
     }
 
     return store;
+  }
+
+  /*
+   * The issue a response was run from, when the request names one: one of
+   * this store's, in this project - never another store's, whose timeline
+   * would then claim a change it did not see.
+   */
+  private static async readIssueOfStore(
+    projectId: ObjectID,
+    dataStoreId: ObjectID,
+    value: unknown,
+  ): Promise<ObjectID | undefined> {
+    if (value === undefined || value === null || value === "") {
+      return undefined;
+    }
+
+    if (typeof value !== "string" || !ObjectID.isValidUUID(value)) {
+      throw new BadDataException("Issue not found.");
+    }
+
+    const issue: DataSecurityIssue | null =
+      await DataSecurityIssueService.findOneBy({
+        query: { _id: new ObjectID(value), projectId, dataStoreId },
+        select: { _id: true },
+        props: { isRoot: true },
+      });
+
+    if (!issue?.id) {
+      throw new BadDataException("Issue not found.");
+    }
+
+    return issue.id;
   }
 
   private static async readIssue(

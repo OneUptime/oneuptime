@@ -12,10 +12,11 @@ import { SecurityEntityType } from "../SecurityCase/SecurityEntity";
 
 /*
  * The kinds of entity containment acts on, and so the ones a project
- * protects. A data store is neither: no step cuts a bucket or a database
- * off - closing one that holds sensitive data is its owners' call, which
- * Notify data store owners and the fix Data Security gives each issue put
- * to them - so there is nothing to protect it from.
+ * protects. A data store is neither: the steps that close a store's
+ * exposure (Block public access to data stores, Revoke data store sharing)
+ * change how it is shared, never cut anyone off, and a store meant to be
+ * public is protected where it is described - marked public by design in
+ * its Settings, which those steps leave alone.
  */
 export const PROTECTED_ENTITY_TYPES: ReadonlyArray<SecurityEntityType> = [
   SecurityEntityType.User,

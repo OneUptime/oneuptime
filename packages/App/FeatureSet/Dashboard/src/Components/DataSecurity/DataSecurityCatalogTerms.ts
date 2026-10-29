@@ -667,4 +667,10 @@ export const DATA_SECURITY_CATALOG_TERMS: ReadonlyArray<string> = [
   translationKey("Passing"),
   translationKey("Failing"),
   translationKey("Not evaluated"),
+  // What each response action changes, by the kind of store it acts on
+  translationKey("Turns off anonymous blob access on the storage account, so no container is readable by anyone on the internet. Anything that reads it without a key stops working. No blob is changed."),
+  translationKey("Enforces public access prevention on the bucket, so nobody on the internet can read it. Anything that reads it publicly stops working. No object is changed."),
+  translationKey("Turns on the bucket's four Block Public Access settings, so nobody on the internet can read it. Anything that reads it publicly - a website, a download link - stops working. No object is changed."),
+  translationKey("Stops sharing the snapshot with everyone, and with any account outside the ones this project has connected. The snapshot itself is not changed."),
+  translationKey("Stops sharing every manual snapshot of it with everyone, and with any account outside the ones this project has connected. No snapshot or database is changed."),
 ];

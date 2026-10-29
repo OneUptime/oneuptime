@@ -298,6 +298,18 @@ export function summarizeSecurityPlaybookStep(
           "A pull request for each exception the case's requests threw",
         ) || ""
       );
+    case SecurityPlaybookActionType.BlockDataStorePublicAccess:
+      return (
+        translator.translateText(
+          "The buckets and storage accounts the case is about",
+        ) || ""
+      );
+    case SecurityPlaybookActionType.RevokeDataStoreSharing:
+      return (
+        translator.translateText(
+          "The snapshots of the databases the case is about",
+        ) || ""
+      );
     default:
       return "";
   }

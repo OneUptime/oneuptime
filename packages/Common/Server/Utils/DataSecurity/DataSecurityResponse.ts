@@ -1,7 +1,9 @@
 import CloudConnection from "../../../Models/DatabaseModels/CloudConnection";
 import DataStore from "../../../Models/DatabaseModels/DataStore";
 import { DataStoreFeedEventType } from "../../../Models/DatabaseModels/DataStoreFeed";
+import { DataSecurityIssueFeedEventType } from "../../../Models/DatabaseModels/DataSecurityIssueFeed";
 import CloudConnectionService from "../../Services/CloudConnectionService";
+import DataSecurityIssueFeedService from "../../Services/DataSecurityIssueFeedService";
 import DataStoreFeedService from "../../Services/DataStoreFeedService";
 import DataStoreService from "../../Services/DataStoreService";
 import { CloudConnectionSettings } from "../CloudConnection/CloudConnectorTypes";
@@ -22,6 +24,17 @@ import {
 } from "../../../Types/CloudConnection/CloudConnectionCatalog";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  DataSecurityResponseActionAvailability,
+  DataSecurityResponseAvailability,
+  DataSecurityResponseUnavailableReason,
+} from "../../../Types/DataSecurity/DataSecurityApiTypes";
+import {
+  CLUSTER_SNAPSHOT_DATA_STORE_KINDS,
+  DataSecurityResponseAction,
+  getDataSecurityResponseActions,
+  isDataSecurityResponseAction,
+} from "../../../Types/DataSecurity/DataSecurityResponseAction";
 import { DataStoreKind } from "../../../Types/DataSecurity/DataStoreKind";
 import { DataStorePostureFacts } from "../../../Types/DataSecurity/DataStorePosture";
 import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
@@ -43,58 +56,28 @@ import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
  * and changes only what is not already so, so a second run changes
  * nothing; and runs only when the store's cloud connection has its "Data
  * security response" setting on (whose setup command grants the narrow
- * write role). The store's feed records what was done, and the connection
- * is read again at once, so the store's exposure and its issues follow.
+ * write role). The store's feed records what was done - and the issue's
+ * timeline, when a person ran it from an issue - and the connection is read
+ * again at once, so the store's exposure and its issues follow.
+ *
+ * A store marked public by design (its Settings) is never blocked: a public
+ * website's bucket is meant to be read by anyone, and the person who marked
+ * it so is the one to say otherwise.
+ *
+ * Which action a store can take, and which checks it fixes, is data in
+ * Types/DataSecurity/DataSecurityResponseAction, which the Dashboard and
+ * the playbook steps read too.
  */
 
-export enum DataSecurityResponseAction {
-  BlockPublicAccess = "Block public access",
-  RevokeSharing = "Revoke sharing",
-}
+export {
+  DataSecurityResponseAction,
+  getDataSecurityResponseActions,
+  isDataSecurityResponseAction,
+};
 
-const BLOCKABLE_KINDS: ReadonlyArray<DataStoreKind> = [
-  DataStoreKind.AwsS3Bucket,
-  DataStoreKind.AzureStorageAccount,
-  DataStoreKind.GcpStorageBucket,
-];
-
-const SHAREABLE_KINDS: ReadonlyArray<DataStoreKind> = [
-  DataStoreKind.AwsRdsSnapshot,
-  DataStoreKind.AwsRdsInstance,
-  DataStoreKind.AwsRdsCluster,
-  DataStoreKind.AwsDocumentDbCluster,
-];
-
-// The kinds whose snapshots are cluster snapshots (DescribeDBClusterSnapshots).
-const CLUSTER_KINDS: ReadonlyArray<DataStoreKind> = [
-  DataStoreKind.AwsRdsCluster,
-  DataStoreKind.AwsDocumentDbCluster,
-];
-
-// The response actions a store of this kind can take.
-export function getDataSecurityResponseActions(
-  kind: DataStoreKind | string | undefined,
-): Array<DataSecurityResponseAction> {
-  const actions: Array<DataSecurityResponseAction> = [];
-
-  if (BLOCKABLE_KINDS.includes(kind as DataStoreKind)) {
-    actions.push(DataSecurityResponseAction.BlockPublicAccess);
-  }
-
-  if (SHAREABLE_KINDS.includes(kind as DataStoreKind)) {
-    actions.push(DataSecurityResponseAction.RevokeSharing);
-  }
-
-  return actions;
-}
-
-export function isDataSecurityResponseAction(
-  value: unknown,
-): value is DataSecurityResponseAction {
-  return (Object.values(DataSecurityResponseAction) as Array<unknown>).includes(
-    value,
-  );
-}
+// Why a store cannot take the action: the store, then its connection.
+const PUBLIC_BY_DESIGN_MESSAGE: string =
+  "This store is marked public by design, so its public access is left as it is. Turn that off in the store's Settings first if it should not be public.";
 
 interface ResponseTarget {
   store: DataStore;
@@ -109,6 +92,8 @@ export default class DataSecurityResponse {
     action: DataSecurityResponseAction;
     // Who asked, for the store's feed: a person, or a playbook run (none).
     userId?: ObjectID | undefined;
+    // The issue a person ran it from, whose timeline says what was done.
+    dataSecurityIssueId?: ObjectID | undefined;
   }): Promise<DataSecurityResponseOutcome> {
     const target: ResponseTarget = await this.readTarget(
       data.projectId,
@@ -129,6 +114,20 @@ export default class DataSecurityResponse {
       userId: data.userId,
     });
 
+    if (data.dataSecurityIssueId) {
+      await DataSecurityIssueFeedService.createDataSecurityIssueFeedItem({
+        projectId: data.projectId,
+        dataSecurityIssueId: data.dataSecurityIssueId,
+        eventType: DataSecurityIssueFeedEventType.ResponseActionTaken,
+        displayColor: Blue500,
+        feedInfoInMarkdown: (outcome.changed
+          ? mdText`**${data.action}** on the store, through its cloud connection: ${outcome.summary} The store is being checked again.`
+          : mdText`**${data.action}** on the store changed nothing: ${outcome.summary}`
+        ).toString(),
+        userId: data.userId,
+      });
+    }
+
     if (outcome.changed && target.connection.id) {
       await queueDataSecurityConnectionRead({
         projectId: data.projectId,
@@ -137,6 +136,82 @@ export default class DataSecurityResponse {
     }
 
     return outcome;
+  }
+
+  /*
+   * Which actions a store can take now, and why not when it cannot: what
+   * its page shows before anybody presses anything. Reads the store's
+   * connection as OneUptime - the person asking may not read connections -
+   * and answers only whether the response is on, never the connection.
+   */
+  public static async getAvailability(data: {
+    projectId: ObjectID;
+    dataStoreId: ObjectID;
+  }): Promise<DataSecurityResponseAvailability> {
+    const store: DataStore | null = await DataStoreService.findOneBy({
+      query: { _id: data.dataStoreId, projectId: data.projectId },
+      select: {
+        _id: true,
+        kind: true,
+        cloudConnectionId: true,
+        isPublicByDesign: true,
+      },
+      props: { isRoot: true },
+    });
+
+    if (!store?.id) {
+      throw new BadDataException("Data store not found.");
+    }
+
+    const actions: Array<DataSecurityResponseAction> =
+      getDataSecurityResponseActions(store.kind);
+
+    if (actions.length === 0) {
+      return { actions: [] };
+    }
+
+    const connection: CloudConnection | null = store.cloudConnectionId
+      ? await CloudConnectionService.findOneBy({
+          query: { _id: store.cloudConnectionId, projectId: data.projectId },
+          select: { _id: true, config: true, isEnabled: true },
+          props: { isRoot: true },
+        })
+      : null;
+
+    const connectionReason: DataSecurityResponseUnavailableReason | undefined =
+      !store.cloudConnectionId
+        ? DataSecurityResponseUnavailableReason.NotThroughACloud
+        : !connection?.id || connection.isEnabled === false
+          ? DataSecurityResponseUnavailableReason.ConnectionGone
+          : !isCloudConnectionDataSecurityResponseOn(
+                connection.config
+                  ? connection.config[DATA_SECURITY_RESPONSE_FIELD_KEY]
+                  : undefined,
+              )
+            ? DataSecurityResponseUnavailableReason.ResponseOff
+            : undefined;
+
+    return {
+      actions: actions.map(
+        (
+          action: DataSecurityResponseAction,
+        ): DataSecurityResponseActionAvailability => {
+          const reason: DataSecurityResponseUnavailableReason | undefined =
+            action === DataSecurityResponseAction.BlockPublicAccess &&
+            store.isPublicByDesign
+              ? DataSecurityResponseUnavailableReason.PublicByDesign
+              : connectionReason;
+
+          return reason
+            ? { action, isAvailable: false, unavailableReason: reason }
+            : { action, isAvailable: true };
+        },
+      ),
+      ...(connectionReason ===
+        DataSecurityResponseUnavailableReason.ResponseOff && connection?.id
+        ? { cloudConnectionId: connection.id.toString() }
+        : {}),
+    };
   }
 
   // The store, its connection and that connection's settings, or why not.
@@ -156,6 +231,7 @@ export default class DataSecurityResponse {
         cloudConnectionId: true,
         providerResourceId: true,
         posture: true,
+        isPublicByDesign: true,
       },
       props: { isRoot: true },
     });
@@ -168,6 +244,13 @@ export default class DataSecurityResponse {
       throw new BadDataException(
         `${action} is not something Data Security can do to a ${store.kind || "store of this kind"}.`,
       );
+    }
+
+    if (
+      action === DataSecurityResponseAction.BlockPublicAccess &&
+      store.isPublicByDesign
+    ) {
+      throw new BadDataException(PUBLIC_BY_DESIGN_MESSAGE);
     }
 
     if (!store.cloudConnectionId) {
@@ -265,7 +348,9 @@ export default class DataSecurityResponse {
             (id: string): { id: string; isCluster: boolean } => {
               return {
                 id,
-                isCluster: CLUSTER_KINDS.includes(store.kind as DataStoreKind),
+                isCluster: CLUSTER_SNAPSHOT_DATA_STORE_KINDS.includes(
+                  store.kind as DataStoreKind,
+                ),
               };
             },
           );

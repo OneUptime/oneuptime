@@ -10,8 +10,11 @@ import {
   DataSecurityFixResult,
   DataSecurityOverview,
   DataSecurityRecordOfProcessingResponse,
+  DataSecurityResponseAvailability,
+  DataSecurityResponseResult,
   DataSecurityScrubResult,
 } from "Common/Types/DataSecurity/DataSecurityApiTypes";
+import { DataSecurityResponseAction } from "Common/Types/DataSecurity/DataSecurityResponseAction";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -96,6 +99,32 @@ export default class DataSecurityApi {
     return (await post(
       DATA_SECURITY_API_ROUTES.explainIssue(issueId.toString()),
     )) as unknown as DataSecurityExplainResult;
+  }
+
+  // Which response actions a store can take now, and why not.
+  public static async getResponseActions(
+    dataStoreId: ObjectID,
+  ): Promise<DataSecurityResponseAvailability> {
+    return (await post(
+      DATA_SECURITY_API_ROUTES.responseActions(dataStoreId.toString()),
+    )) as unknown as DataSecurityResponseAvailability;
+  }
+
+  // Block public access, or revoke sharing, on a store - from one of its issues.
+  public static async respond(data: {
+    dataStoreId: ObjectID;
+    action: DataSecurityResponseAction;
+    dataSecurityIssueId?: ObjectID | undefined;
+  }): Promise<DataSecurityResponseResult> {
+    return (await post(
+      DATA_SECURITY_API_ROUTES.respond(data.dataStoreId.toString()),
+      {
+        action: data.action,
+        ...(data.dataSecurityIssueId
+          ? { dataSecurityIssueId: data.dataSecurityIssueId.toString() }
+          : {}),
+      },
+    )) as unknown as DataSecurityResponseResult;
   }
 
   public static async fixIssueWithAi(

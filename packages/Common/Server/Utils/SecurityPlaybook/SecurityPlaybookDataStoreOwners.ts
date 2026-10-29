@@ -2,6 +2,7 @@ import DataStore from "../../../Models/DatabaseModels/DataStore";
 import { SecurityCaseFeedEventType } from "../../../Models/DatabaseModels/SecurityCaseFeed";
 import User from "../../../Models/DatabaseModels/User";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import Select from "../../Types/Database/Select";
 import DataSensitivity from "../../../Types/DataSecurity/DataSensitivity";
 import Email from "../../../Types/Email";
 import EmailTemplateType from "../../../Types/Email/EmailTemplateType";
@@ -155,18 +156,19 @@ export function buildDataStoreOwnersMessage(data: {
   );
 }
 
-// The stores a case names, found by their key - or by their id, which an issue without a key names.
-async function findStores(
+/*
+ * The stores a case names, found by their key - or by their id, which an
+ * issue without a key names - in the case's order, each once. Every step
+ * that acts on a case's data stores finds them here (the response steps
+ * too: SecurityPlaybookDataStoreResponse).
+ */
+export async function findCaseDataStores(
   projectId: ObjectID,
   keys: Array<string>,
+  extraSelect: Select<DataStore> = {},
 ): Promise<Array<DataStore>> {
-  const select: {
-    _id: true;
-    name: true;
-    storeKey: true;
-    sensitivity: true;
-    sensitivityOverride: true;
-  } = {
+  const select: Select<DataStore> = {
+    ...extraSelect,
     _id: true,
     name: true,
     storeKey: true,
@@ -282,7 +284,10 @@ export default class SecurityPlaybookDataStoreOwners {
       return skipped(mdText`The case names no data store.`);
     }
 
-    const stores: Array<DataStore> = await findStores(context.projectId, keys);
+    const stores: Array<DataStore> = await findCaseDataStores(
+      context.projectId,
+      keys,
+    );
 
     if (stores.length === 0) {
       return skipped(

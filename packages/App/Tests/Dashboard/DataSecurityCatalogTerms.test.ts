@@ -42,6 +42,12 @@ import {
   DataTypeInfo,
 } from "Common/Types/DataSecurity/DataTypeCatalog";
 import { DataStoreLocationKind } from "Common/Server/Utils/DataSecurity/DataSecurityScanTypes";
+import {
+  ALL_DATA_SECURITY_RESPONSE_ACTIONS,
+  DataSecurityResponseAction,
+  describeDataSecurityResponseAction,
+  getDataSecurityResponseActions,
+} from "Common/Types/DataSecurity/DataSecurityResponseAction";
 
 /*
  * The Data Security pages draw their catalogs as written and translate each
@@ -133,6 +139,23 @@ describe("Data Security's catalog terms", () => {
       ...Object.values(DataSecurityCheckStatus),
       ...Object.values(ComplianceRequirementStatus),
     ]);
+  });
+
+  test("what every response action changes, on every kind of store it acts on", () => {
+    const sentences: Array<string> = Object.values(DataStoreKind).flatMap(
+      (kind: DataStoreKind): Array<string> => {
+        return getDataSecurityResponseActions(kind).map(
+          (action: DataSecurityResponseAction): string => {
+            return describeDataSecurityResponseAction(action, kind);
+          },
+        );
+      },
+    );
+
+    // Five sentences: three clouds' buckets, a snapshot, and a database's snapshots.
+    expect(new Set(sentences).size).toBe(5);
+    expect(ALL_DATA_SECURITY_RESPONSE_ACTIONS).toHaveLength(2);
+    expectRegistered("response actions", sentences);
   });
 
   test("each term is listed once", () => {

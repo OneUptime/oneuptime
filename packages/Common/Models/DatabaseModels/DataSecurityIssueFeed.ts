@@ -40,6 +40,8 @@ export enum DataSecurityIssueFeedEventType {
   // OneUptime AI's explanation, or a fix it was asked to open.
   AiExplanation = "AiExplanation",
   AiFixRequested = "AiFixRequested",
+  // Public access blocked or sharing revoked from the issue (DataSecurityResponse).
+  ResponseActionTaken = "ResponseActionTaken",
 }
 
 /*

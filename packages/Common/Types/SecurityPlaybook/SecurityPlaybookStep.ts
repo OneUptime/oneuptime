@@ -562,6 +562,8 @@ export function normalizeSecurityPlaybookStepConfig(
     // Nothing to set: each reads what it acts on from the case.
     case SecurityPlaybookActionType.PreserveEvidence:
     case SecurityPlaybookActionType.FixWithAi:
+    case SecurityPlaybookActionType.BlockDataStorePublicAccess:
+    case SecurityPlaybookActionType.RevokeDataStoreSharing:
       return {};
   }
 }

@@ -160,6 +160,8 @@ const FILLED: Record<SecurityPlaybookActionType, JSONObject> = {
   [SecurityPlaybookActionType.ReleaseDefenderDevice]: {
     defenderConnectionId: ID_C,
   },
+  [SecurityPlaybookActionType.BlockDataStorePublicAccess]: {},
+  [SecurityPlaybookActionType.RevokeDataStoreSharing]: {},
   [SecurityPlaybookActionType.SendWebhook]: {
     url: "https://example.com/hooks/security",
   },
@@ -701,6 +703,15 @@ describe("a step's one-line summary", () => {
         message: "Lock it down.",
       }),
     ).toBe("The owners of the case's data stores, with your message");
+    expect(
+      responseSummary(
+        SecurityPlaybookActionType.BlockDataStorePublicAccess,
+        {},
+      ),
+    ).toBe("The buckets and storage accounts the case is about");
+    expect(
+      responseSummary(SecurityPlaybookActionType.RevokeDataStoreSharing, {}),
+    ).toBe("The snapshots of the databases the case is about");
   });
 
   test("shows only the start of a long note, on one line", () => {
