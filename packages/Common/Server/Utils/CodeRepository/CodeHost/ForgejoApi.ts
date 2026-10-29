@@ -49,11 +49,13 @@ import UnifiedDiff from "./UnifiedDiff";
  *
  * The token goes in the Authorization header ("token <token>"), never in an
  * address. What the token needs: write access to repositories
- * (write:repository) and read access to the user (read:user).
+ * (write:repository) and read access to the user (read:user) - and, for
+ * the comment a production review keeps on a pull request, write access to
+ * issues (write:issue): a pull request's comments are its issue's.
  */
 
 export const FORGEJO_TOKEN_SCOPE_HINT: string =
-  "The token needs read and write access to repositories (write:repository) and read access to the user (read:user).";
+  "The token needs read and write access to repositories (write:repository) and issues (write:issue), and read access to the user (read:user).";
 
 // Forgejo's and Gitea's largest page (API.MaxResponseItems).
 export const FORGEJO_PAGE_SIZE: number = 50;
@@ -881,13 +883,17 @@ export default class ForgejoApi {
   /*
    * What a user may do in the repository: "owner", "admin", "write",
    * "read" or "none" - the collaborator permission API's answer, owners
-   * and organization teams included. "none" when the server says nothing.
+   * and organization teams included; "none" for a user the server does
+   * not know, or when it says nothing. Null when the server will not say:
+   * Forgejo and Gitea tell another user's permission only to the
+   * repository's administrators (and the server's), so a token whose
+   * account only writes to the repository is refused (403).
    */
   public async getUserPermission(data: {
     owner: string;
     name: string;
     login: string;
-  }): Promise<string> {
+  }): Promise<string | null> {
     if (!data.login) {
       return "none";
     }
@@ -901,10 +907,16 @@ export default class ForgejoApi {
     } catch (error) {
       if (
         error instanceof CodeHostHttpError &&
-        (error.kind === CodeHostHttpErrorKind.NotFound ||
-          error.kind === CodeHostHttpErrorKind.Forbidden)
+        error.kind === CodeHostHttpErrorKind.NotFound
       ) {
         return "none";
+      }
+
+      if (
+        error instanceof CodeHostHttpError &&
+        error.kind === CodeHostHttpErrorKind.Forbidden
+      ) {
+        return null;
       }
 
       throw error;
@@ -985,6 +997,7 @@ export default class ForgejoApi {
     );
     const title: string = CodeHostText.readString(pullRequest["title"]);
     const isMerged: boolean = pullRequest["merged"] === true;
+    const headRefName: string = CodeHostText.readString(head["ref"]);
 
     return {
       number,
@@ -997,18 +1010,30 @@ export default class ForgejoApi {
       authorLogin: CodeHostText.readString(user["login"]),
       authorId: CodeHostText.readId(user["id"]),
       headSha: CodeHostText.readString(head["sha"]),
-      headRefName: CodeHostText.readString(head["ref"]),
+      headRefName,
       baseRefName: CodeHostText.readString(base["ref"]),
       isFromFork:
         !headRepositoryId ||
         !baseRepositoryId ||
-        headRepositoryId !== baseRepositoryId,
+        headRepositoryId !== baseRepositoryId ||
+        !ForgejoApi.isBranchHead(headRefName),
       changedFilesCount: Math.max(0, Number(pullRequest["changed_files"]) || 0),
       changedLineCount:
         Math.max(0, Number(pullRequest["additions"]) || 0) +
         Math.max(0, Number(pullRequest["deletions"]) || 0),
       updatedAt: CodeHostText.readString(pullRequest["updated_at"]),
     };
+  }
+
+  /*
+   * Whether a pull request's head is a branch of a repository. One opened
+   * with AGit (git push origin HEAD:refs/for/main) has none: its head is
+   * the server's own ref ("refs/pull/12/head") in the base repository,
+   * which anyone who may read the repository can push - so, like a fork's,
+   * its code need not come from someone who can write.
+   */
+  public static isBranchHead(headRefName: string): boolean {
+    return Boolean(headRefName) && !headRefName.startsWith("refs/");
   }
 
   /*

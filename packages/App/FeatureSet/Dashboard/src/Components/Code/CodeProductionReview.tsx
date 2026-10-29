@@ -12,6 +12,7 @@ import {
   getProductionReviewNothingSentence,
   getProductionReviewProviderLine,
   getProfileKindLabel,
+  inReviewHostWords,
   splitCodeNameAtBreaks,
   splitPointText,
 } from "./CodeProductionReviewCopy";
@@ -21,6 +22,8 @@ import PageMap from "../../Utils/PageMap";
 import { buildProfilesRoute } from "../../Utils/ProfilesUrlState";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import { CodeHost } from "Common/Types/CodeRepository/CodeHost";
+import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
 import {
   PRODUCTION_REVIEW_WINDOWS,
   ProductionReviewDeployJSON,
@@ -63,6 +66,13 @@ import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 
 export interface ComponentProps {
   report: ProductionReviewReport;
+  /*
+   * Where the repository is hosted: GitLab's words say merge request, and
+   * what a posted review holds names the host. Unset reads as GitHub.
+   */
+  provider?: string | undefined;
+  // The host's name as Code says it: "GitLab", "Forgejo", "Gitea".
+  hostName?: string | undefined;
 }
 
 const SECTION_CLASS_NAME: string =
@@ -302,8 +312,11 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
   const notableIncidents: Array<ProductionReviewIncidentJSON> =
     ProductionReviewUtil.getNotableIncidents(report.incidents);
 
+  // A sentence in the host's words: GitLab's merge request.
   const text: (key: string) => string = (key: string): string => {
-    return translator.translateText(key) || key;
+    const sentence: string = inReviewHostWords(key, props.provider);
+
+    return translator.translateText(sentence) || sentence;
   };
 
   const days: (count: number) => string = (count: number): string => {
@@ -957,7 +970,11 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
               {text(PRODUCTION_REVIEW_COPY.nothingFoundTitle)}
             </p>
             <p className="mt-1 text-sm leading-6 text-gray-600">
-              {getProductionReviewNothingSentence(report, translator)}
+              {getProductionReviewNothingSentence(
+                report,
+                translator,
+                props.provider,
+              )}
             </p>
           </div>
         </div>
@@ -977,7 +994,16 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
             className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-gray-400"
           />
           <p className="min-w-0">
-            {text(PRODUCTION_REVIEW_COPY.aggregatesOnly)}
+            {CodeHost.readType(props.provider) === CodeRepositoryType.GitHub
+              ? text(PRODUCTION_REVIEW_COPY.aggregatesOnly)
+              : translator.translateTemplate(
+                  PRODUCTION_REVIEW_COPY.aggregatesOnlyHost,
+                  {
+                    host:
+                      props.hostName ||
+                      CodeHost.getFacts(props.provider).name,
+                  },
+                )}
           </p>
         </div>
       ) : (

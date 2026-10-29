@@ -6,6 +6,7 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import { CODE_HOST_REPOSITORY_SELECT } from "../CodeHost/CodeHostAccess";
 import { CodeHostPullRequestDetails } from "../CodeHost/CodeHostTypes";
 import ProductionReviewHosts, {
+  AuthorWriteAccess,
   isBotLogin,
   PolledReviewHost,
   UpdatedPullRequests,
@@ -38,12 +39,15 @@ import ObjectID from "../../../../Types/ObjectID";
  *   - it is open and not a draft;
  *   - it is not OneUptime's own (its connection's account, on a branch AI
  *     pushes) and not a bot's;
- *   - its branch is in the repository itself, not a fork: whoever pushes
- *     to such a branch can write to the repository, where a fork's pushes
- *     come from whoever has the fork;
+ *   - its branch is in the repository itself: whoever pushes to such a
+ *     branch can write to the repository, where a fork's pushes come from
+ *     whoever has the fork, and a head pushed with AGit (Forgejo's and
+ *     Gitea's refs/for/main) from anyone who may read it;
  *   - its head is not one a review was already asked for;
  *   - its author can write to the repository - Developer or more on
- *     GitLab, write on Forgejo and Gitea - as the host says now.
+ *     GitLab, write on Forgejo and Gitea - as the host says now. Forgejo
+ *     and Gitea tell it only to the repository's administrators: with a
+ *     token whose account only writes, the branch rule above is the rule.
  *
  * Anyone else's pull request - an outside contributor's, a fork's, a bot's
  * - is reviewed when someone who may ask AI in the repository presses
@@ -98,10 +102,18 @@ export enum ProductionReviewPollOutcome {
   Draft = "Draft",
   OwnPullRequest = "OwnPullRequest",
   Bot = "Bot",
+  // A fork's, or (Forgejo, Gitea) one whose head is no branch: AGit's.
   Fork = "Fork",
   AlreadyAsked = "AlreadyAsked",
   AuthorCannotWrite = "AuthorCannotWrite",
 }
+
+// How the cache keeps what a host said of an author.
+const AUTHOR_WRITE_ACCESS_KEPT: Record<AuthorWriteAccess, string> = {
+  [AuthorWriteAccess.CanWrite]: "1",
+  [AuthorWriteAccess.CannotWrite]: "0",
+  [AuthorWriteAccess.NotSaid]: "?",
+};
 
 export interface ProductionReviewPollResult {
   repositories: number;
@@ -307,12 +319,16 @@ export default class ProductionReviewPoller {
       return ProductionReviewPollOutcome.AlreadyAsked;
     }
 
+    /*
+     * A host that will not say goes by the branch, checked above: only
+     * someone who can write pushes a branch of the repository itself.
+     */
     if (
-      !(await ProductionReviewPoller.canAuthorWrite({
+      (await ProductionReviewPoller.getAuthorWriteAccess({
         repositoryId: data.repository.id!,
         host: data.host,
         pullRequest,
-      }))
+      })) === AuthorWriteAccess.CannotWrite
     ) {
       return ProductionReviewPollOutcome.AuthorCannotWrite;
     }
@@ -341,21 +357,22 @@ export default class ProductionReviewPoller {
   }
 
   /*
-   * Whether a pull request's author may write to the repository, as its
-   * host says - kept a few minutes, so a busy repository asks once for an
-   * author, not once a minute. A cache that cannot be reached asks the
-   * host; a host that cannot say answers no.
+   * What a pull request's host says of whether its author may write to
+   * the repository - kept a few minutes, so a busy repository asks once for
+   * an author, not once a minute. A cache that cannot be reached asks the
+   * host; a host that could not be read, or an author with no name, is
+   * CannotWrite: nothing is reviewed on a guess.
    */
-  public static async canAuthorWrite(data: {
+  public static async getAuthorWriteAccess(data: {
     repositoryId: ObjectID;
     host: PolledReviewHost;
     pullRequest: CodeHostPullRequestDetails;
-  }): Promise<boolean> {
+  }): Promise<AuthorWriteAccess> {
     const author: string =
       data.pullRequest.authorId || data.pullRequest.authorLogin.toLowerCase();
 
     if (!author) {
-      return false;
+      return AuthorWriteAccess.CannotWrite;
     }
 
     const key: string = `${data.repositoryId.toString()}:${author}`;
@@ -366,33 +383,38 @@ export default class ProductionReviewPoller {
         key,
       );
 
-      if (kept === "1" || kept === "0") {
-        return kept === "1";
+      for (const access of Object.values(AuthorWriteAccess)) {
+        if (kept === AUTHOR_WRITE_ACCESS_KEPT[access]) {
+          return access;
+        }
       }
     } catch (error) {
       logger.debug(error);
     }
 
-    let canWrite: boolean = false;
+    let access: AuthorWriteAccess = AuthorWriteAccess.CannotWrite;
 
     try {
-      canWrite = await data.host.canAuthorWrite(data.pullRequest);
+      access = await data.host.getAuthorWriteAccess(data.pullRequest);
     } catch (error) {
       logger.debug(
         `Production review poll: could not read whether ${data.pullRequest.authorLogin} may write: ${error}`,
       );
-      return false;
+      return AuthorWriteAccess.CannotWrite;
     }
 
     try {
-      await GlobalCache.setString(TRUST_NAMESPACE, key, canWrite ? "1" : "0", {
-        expiresInSeconds: AUTHOR_TRUST_CACHE_SECONDS,
-      });
+      await GlobalCache.setString(
+        TRUST_NAMESPACE,
+        key,
+        AUTHOR_WRITE_ACCESS_KEPT[access],
+        { expiresInSeconds: AUTHOR_TRUST_CACHE_SECONDS },
+      );
     } catch (error) {
       logger.debug(error);
     }
 
-    return canWrite;
+    return access;
   }
 
   /*

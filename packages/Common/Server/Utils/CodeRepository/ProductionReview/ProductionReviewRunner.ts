@@ -9,9 +9,11 @@ import logger from "../../Logger";
 import ProductBrandingText from "../../ProductBrandingText";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import GitHubRunReply from "../GitHub/GitHubRunReply";
+import { CODE_HOST_REPOSITORY_SELECT } from "../CodeHost/CodeHostAccess";
 import {
-  CODE_HOST_REPOSITORY_SELECT,
-} from "../CodeHost/CodeHostAccess";
+  CodeHostHttpError,
+  CodeHostHttpErrorKind,
+} from "../CodeHost/CodeHostHttp";
 import {
   CodeHostChangedFile,
   CodeHostChangedFiles,
@@ -154,6 +156,17 @@ export function getRepositoryNotConnectedMessage(
   }
 
   return `This repository's connection to ${CodeHost.getFacts(type).name} no longer works - its access token was refused, or the connection is gone - so it was not reviewed.`;
+}
+
+/*
+ * Whether a host refused to let the token comment (403): the token may not
+ * write there, which trying again does not change.
+ */
+export function isCommentRefusal(error: unknown): boolean {
+  return (
+    error instanceof CodeHostHttpError &&
+    error.kind === CodeHostHttpErrorKind.Forbidden
+  );
 }
 
 // What one review leaves behind.
@@ -644,14 +657,40 @@ export default class ProductionReviewRunner {
       asksAgainInProduct: data.host.provider !== CodeRepositoryType.GitHub,
     });
 
-    const comment: CodeHostComment = await data.host.writeComment({
-      pullRequest: {
-        number: data.pullRequest.number,
-        htmlUrl: data.pullRequest.htmlUrl || data.report.pullRequest.url,
-      },
-      commentId: data.review.commentId,
-      body,
-    });
+    let comment: CodeHostComment;
+
+    try {
+      comment = await data.host.writeComment({
+        pullRequest: {
+          number: data.pullRequest.number,
+          htmlUrl: data.pullRequest.htmlUrl || data.report.pullRequest.url,
+        },
+        commentId: data.review.commentId,
+        body,
+      });
+    } catch (error) {
+      /*
+       * A GitLab, Forgejo or Gitea that would not let the token comment -
+       * a Forgejo or Gitea token without write access to issues, a merge
+       * request whose discussion is locked - keeps the review here, its
+       * page says why, rather than failing it: trying again would be
+       * refused again. Anything else is tried again.
+       */
+      if (
+        data.host.provider === CodeRepositoryType.GitHub ||
+        !isCommentRefusal(error)
+      ) {
+        throw error;
+      }
+
+      logger.info(
+        `Production review ${data.run.id?.toString()}: the ${data.host.pullRequestTerm}'s host refused its comment, so it is kept in Code only: ${error instanceof Error ? error.message : String(error)}`,
+      );
+
+      data.report.posting = ProductionReviewPosting.None;
+      data.report.isCommentRefused = true;
+      return;
+    }
 
     data.update.commentId = comment.commentId;
     data.update.commentUrl = comment.htmlUrl;

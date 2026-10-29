@@ -45,6 +45,13 @@ import ObjectID from "../../../../Types/ObjectID";
  * the host who may write to the repository - what PolledReviewHost adds.
  */
 
+// A GitHub repository, as the App's installation reaches it.
+export interface GitHubReviewedRepository {
+  installationId: string;
+  organizationName: string;
+  repositoryName: string;
+}
+
 export interface ProductionReviewHost {
   provider: CodeRepositoryType;
   // The host's word for a pull request: "merge request" on GitLab.
@@ -87,12 +94,32 @@ export interface UpdatedPullRequests {
   continueFrom: Date | null;
 }
 
+/*
+ * What a host says of whether a pull request's author may write to the
+ * repository (push to it).
+ */
+export enum AuthorWriteAccess {
+  // Developer or more on GitLab; write, admin or owner on Forgejo and Gitea.
+  CanWrite = "CanWrite",
+  // Less than that, or not a member at all.
+  CannotWrite = "CannotWrite",
+  /*
+   * The host will not say: Forgejo and Gitea tell another user's
+   * permission only to the repository's administrators, and the token's
+   * account only writes. The poll then goes by the pull request's branch,
+   * which only someone who can write could push.
+   */
+  NotSaid = "NotSaid",
+}
+
 // A host whose pull requests the poll finds: GitLab, Forgejo, Gitea.
 export interface PolledReviewHost extends ProductionReviewHost {
   // The open pull requests that changed after a time.
   listUpdatedPullRequests(updatedAfter: Date): Promise<UpdatedPullRequests>;
   // Whether a pull request's author may write to the repository.
-  canAuthorWrite(pullRequest: CodeHostPullRequestDetails): Promise<boolean>;
+  getAuthorWriteAccess(
+    pullRequest: CodeHostPullRequestDetails,
+  ): Promise<AuthorWriteAccess>;
   /*
    * Whether OneUptime opened the pull request itself: its account (the
    * token's) wrote it, on one of the branches AI pushes ("oneuptime-...").
@@ -278,12 +305,8 @@ export default class ProductionReviewHosts {
   }
 
   // A GitHub repository, through the App's installation (GitHubConversation).
-  public static gitHub(github: GitHubTaskContext): ProductionReviewHost {
-    const repository: {
-      installationId: string;
-      organizationName: string;
-      repositoryName: string;
-    } = {
+  public static gitHub(github: GitHubReviewedRepository): ProductionReviewHost {
+    const repository: GitHubReviewedRepository = {
       installationId: github.installationId,
       organizationName: github.organizationName,
       repositoryName: github.repositoryName,
@@ -465,9 +488,9 @@ export default class ProductionReviewHosts {
               : null,
         };
       },
-      canAuthorWrite: async (
+      getAuthorWriteAccess: async (
         pullRequest: CodeHostPullRequestDetails,
-      ): Promise<boolean> => {
+      ): Promise<AuthorWriteAccess> => {
         const level: number = await api.call(() => {
           return gitLab.getMemberAccessLevel({
             project,
@@ -475,7 +498,9 @@ export default class ProductionReviewHosts {
           });
         });
 
-        return GitLabApi.canPush(level);
+        return GitLabApi.canPush(level)
+          ? AuthorWriteAccess.CanWrite
+          : AuthorWriteAccess.CannotWrite;
       },
       isOwnPullRequest: (pullRequest: CodeHostPullRequestDetails): boolean => {
         return ProductionReviewHosts.isOwn(api, pullRequest);
@@ -577,10 +602,10 @@ export default class ProductionReviewHosts {
 
         return { pullRequests, continueFrom: null };
       },
-      canAuthorWrite: async (
+      getAuthorWriteAccess: async (
         pullRequest: CodeHostPullRequestDetails,
-      ): Promise<boolean> => {
-        const permission: string = await api.call(() => {
+      ): Promise<AuthorWriteAccess> => {
+        const permission: string | null = await api.call(() => {
           return forgejo.getUserPermission({
             owner,
             name,
@@ -588,7 +613,13 @@ export default class ProductionReviewHosts {
           });
         });
 
-        return ForgejoApi.canPush(permission);
+        if (permission === null) {
+          return AuthorWriteAccess.NotSaid;
+        }
+
+        return ForgejoApi.canPush(permission)
+          ? AuthorWriteAccess.CanWrite
+          : AuthorWriteAccess.CannotWrite;
       },
       isOwnPullRequest: (pullRequest: CodeHostPullRequestDetails): boolean => {
         return ProductionReviewHosts.isOwn(api, pullRequest);

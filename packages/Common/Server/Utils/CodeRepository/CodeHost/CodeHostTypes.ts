@@ -103,8 +103,11 @@ export interface CodeHostPullRequestDetails {
   headRefName: string;
   baseRefName: string;
   /*
-   * Whether its branch lives in another repository: a fork - or a branch
-   * whose repository is gone, which is no branch of this one either.
+   * Whether its code comes from anywhere but a branch of the repository
+   * itself: a fork, a branch whose repository is gone - or, on Forgejo and
+   * Gitea, a head pushed with AGit (refs/for/main), which anyone who may
+   * read the repository can do. A branch of the repository was pushed by
+   * someone who can write to it.
    */
   isFromFork: boolean;
   // The files it changes, as the server counts them; 0 when it does not say.

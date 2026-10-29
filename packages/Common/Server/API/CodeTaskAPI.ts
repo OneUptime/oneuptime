@@ -13,6 +13,7 @@ import CallerPermission from "../Utils/Permission/CallerPermission";
 import CodeTaskAccess, {
   CODE_TASK_ASK_REFUSED_MESSAGE,
   CODE_TASK_NOT_FOUND_MESSAGE,
+  CODE_TASK_REPOSITORY_NOT_FOUND_MESSAGE,
 } from "../Utils/AI/CodeTask/CodeTaskAccess";
 import CodeTaskContextBuilder from "../Utils/AI/CodeTask/CodeTaskContextBuilder";
 import CodeTaskGate, {
@@ -52,8 +53,16 @@ import {
   ReviewedPullRequest,
 } from "../../Types/AI/CodeFixTaskContext";
 import CodeRepositoryType from "../../Types/CodeRepository/CodeRepositoryType";
-import { ProductionReviewTrigger } from "../../Types/CodeRepository/ProductionReview";
+import {
+  ProductionReviewTrigger,
+  ProductionReviewUtil,
+} from "../../Types/CodeRepository/ProductionReview";
 import ProductionReviewQueue from "../Utils/CodeRepository/ProductionReview/ProductionReviewQueue";
+import ProductionReviewAsk, {
+  getPullRequestNumberRefusedMessage,
+} from "../Utils/CodeRepository/ProductionReview/ProductionReviewAsk";
+import { CODE_HOST_REPOSITORY_SELECT } from "../Utils/CodeRepository/CodeHost/CodeHostAccess";
+import CodeRepositoryService from "../Services/CodeRepositoryService";
 import {
   CODE_TASK_LIMITS,
   CodeRepositoryBranchesJSON,
@@ -99,6 +108,10 @@ import { CodeHost } from "../../Types/CodeRepository/CodeHost";
  *   POST /code-task/stop/:taskId          stop the turn in progress
  *   POST /code-task/review-again/:taskId  review a pull request against
  *                                         production again, now
+ *   POST /code-task/review-pull-request/:id
+ *                                         review one of a repository's pull
+ *                                         requests against production, now,
+ *                                         by its number (any host's)
  *   POST /code-task/source-links          where running code's files live in
  *                                         the repositories, with links
  *
@@ -114,6 +127,9 @@ export const CODE_TASK_STOP_REFUSED_MESSAGE: string =
 
 export const CODE_TASK_REVIEW_AGAIN_REFUSED_MESSAGE: string =
   "Reviewing a pull request again takes permission to edit its repository - ask a project admin for it.";
+
+export const CODE_TASK_REVIEW_PULL_REQUEST_REFUSED_MESSAGE: string =
+  "Asking for a production review takes permission to edit the repository - ask a project admin for it.";
 
 export const CODE_TASK_NOT_A_PRODUCTION_REVIEW_MESSAGE: string =
   "Only a pull request's production review can be reviewed again.";
@@ -161,6 +177,10 @@ export default class CodeTaskAPI {
     this.route("/code-task/retry/:taskId", this.retryTask);
     this.route("/code-task/stop/:taskId", this.stopTask);
     this.route("/code-task/review-again/:taskId", this.reviewAgain);
+    this.route(
+      "/code-task/review-pull-request/:repositoryId",
+      this.reviewPullRequest,
+    );
     this.route("/code-task/source-links", this.getSourceLinks);
   }
 
@@ -922,6 +942,77 @@ export default class CodeTaskAPI {
     });
 
     return { taskId: task.id!.toString() };
+  }
+
+  /*
+   * Review one of a repository's pull requests against production, now,
+   * by its number - any of them, one from a fork, a bot or anyone else
+   * too, which is never reviewed on its own (ProductionReviewAsk). On
+   * GitHub the "@oneuptime production review" command asks the same; on
+   * GitLab, Forgejo and Gitea this is the one way. For those who may ask AI
+   * in the repository. Body: { number } - 12, "12", "#12" or "!12".
+   * Answers the review's task.
+   */
+  private async reviewPullRequest(
+    req: ExpressRequest,
+    props: DatabaseCommonInteractionProps,
+    projectId: ObjectID,
+  ): Promise<JSONObject> {
+    const repositoryId: ObjectID = CodeTaskAPI.readId(
+      req.params["repositoryId"],
+      "repository",
+    );
+
+    const readable: CodeRepository = await CodeTaskAccess.getReadableRepository(
+      {
+        props,
+        projectId,
+        repositoryId,
+      },
+    );
+
+    if (
+      !(await CodeTaskAccess.canAskInRepository({
+        props,
+        projectId,
+        repositoryId,
+      }))
+    ) {
+      throw new NotAuthorizedException(
+        CODE_TASK_REVIEW_PULL_REQUEST_REFUSED_MESSAGE,
+      );
+    }
+
+    const body: JSONObject = (req.body as JSONObject) || {};
+    const pullRequestNumber: number | null =
+      ProductionReviewUtil.readPullRequestNumber(body["number"]);
+
+    if (pullRequestNumber === null) {
+      throw new BadDataException(
+        getPullRequestNumberRefusedMessage(readable.repositoryHostedAt),
+      );
+    }
+
+    // How it is reached, read as root: never part of what a reader sees.
+    const repository: CodeRepository | null =
+      await CodeRepositoryService.findOneBy({
+        query: { _id: repositoryId.toString(), projectId },
+        select: CODE_HOST_REPOSITORY_SELECT,
+        props: { isRoot: true },
+      });
+
+    if (!repository) {
+      throw new NotFoundException(CODE_TASK_REPOSITORY_NOT_FOUND_MESSAGE);
+    }
+
+    const run: AIRun = await ProductionReviewAsk.ask({
+      projectId,
+      repository,
+      pullRequestNumber,
+      requestedByUserId: props.userId,
+    });
+
+    return { taskId: run.id!.toString() };
   }
 
   // The task, when the caller may read it, and its repository.

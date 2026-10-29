@@ -276,6 +276,13 @@ export interface ProductionReviewReport {
   posting: ProductionReviewPosting;
   isPublicRepository?: boolean | undefined;
   commentUrl?: string | undefined;
+  /*
+   * The pull request's host would not let the access token comment on it
+   * (GitLab, Forgejo, Gitea: a Forgejo or Gitea token without write access
+   * to issues, a merge request whose discussion is locked): nothing was
+   * posted, and the review is only on its page in Code. Unset otherwise.
+   */
+  isCommentRefused?: boolean | undefined;
 }
 
 // What a list row says of a review.
@@ -339,6 +346,8 @@ export const PRODUCTION_REVIEW_LIMITS: {
   // AI reads of one pull request, and of one repository, in a UTC day.
   maxAiReadsPerPullRequestPerDay: number;
   maxAiReadsPerRepositoryPerDay: number;
+  // The digits of a pull request's number a person may give: 1 to 999,999,999.
+  maxPullRequestNumberDigits: number;
 } = {
   maxFilesRead: 300,
   maxCodeFiles: 60,
@@ -357,6 +366,7 @@ export const PRODUCTION_REVIEW_LIMITS: {
   minHotFunctionPercent: 1,
   maxAiReadsPerPullRequestPerDay: 10,
   maxAiReadsPerRepositoryPerDay: 100,
+  maxPullRequestNumberDigits: 9,
 };
 
 // The hidden line every production review comment starts with.
@@ -467,5 +477,44 @@ export class ProductionReviewUtil {
   // A commit as GitHub shortens it.
   public static shortSha(sha: string | null | undefined): string {
     return (sha || "").substring(0, 7);
+  }
+
+  /*
+   * A pull request's number as a person gives it - 12, "12", "#12", or
+   * GitLab's "!12" - or null for anything else: a whole number from 1 up,
+   * of at most PRODUCTION_REVIEW_LIMITS.maxPullRequestNumberDigits digits.
+   * Read character by character, never with a pattern.
+   */
+  public static readPullRequestNumber(raw: unknown): number | null {
+    if (typeof raw === "number") {
+      return Number.isSafeInteger(raw) && raw > 0 ? raw : null;
+    }
+
+    if (typeof raw !== "string") {
+      return null;
+    }
+
+    let text: string = raw.trim();
+
+    if (text.startsWith("#") || text.startsWith("!")) {
+      text = text.substring(1).trim();
+    }
+
+    if (
+      text.length === 0 ||
+      text.length > PRODUCTION_REVIEW_LIMITS.maxPullRequestNumberDigits
+    ) {
+      return null;
+    }
+
+    for (const character of text) {
+      if (character < "0" || character > "9") {
+        return null;
+      }
+    }
+
+    const number: number = Number(text);
+
+    return Number.isSafeInteger(number) && number > 0 ? number : null;
   }
 }

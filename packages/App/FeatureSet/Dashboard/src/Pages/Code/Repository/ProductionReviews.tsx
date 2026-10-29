@@ -3,7 +3,9 @@ import CodeApi, {
   CodeRepositoryResponse,
 } from "../../../Components/Code/CodeApi";
 import { CODE_COLUMN_CLASS_NAME } from "../../../Components/Code/CodeAskBox";
+import { getCodeHostName } from "../../../Components/Code/CodeHostCopy";
 import { getRepositorySettingsRoute } from "../../../Components/Code/CodePaths";
+import CodeProductionReviewAsk from "../../../Components/Code/CodeProductionReviewAsk";
 import { CodeRepositorySetting } from "../../../Components/Code/CodeRepositorySettingsCopy";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -11,6 +13,7 @@ import Route from "Common/Types/API/Route";
 import {
   PRODUCTION_REVIEW_COPY,
   getProductionReviewCommand,
+  inReviewHostWords,
 } from "../../../Components/Code/CodeProductionReviewCopy";
 import CodeTaskList from "../../../Components/Code/CodeTaskList";
 import { CodeTaskListKind } from "Common/Types/AI/CodeTask";
@@ -18,6 +21,7 @@ import {
   CodeHost,
   CodeHostCapability,
 } from "Common/Types/CodeRepository/CodeHost";
+import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -43,13 +47,16 @@ export const CODE_PRODUCTION_REVIEWS_TEST_ID: string =
 /*
  * A repository's pull requests, reviewed against production: what the
  * review does and whether it is on for the repository - how a pull request
- * gets one, on its own or by asking with the GitHub command (only while the
- * GitHub App answers commands there), with a way to Settings, where it is
- * turned on or off - then one row per pull request, newest first, saying
- * what its latest review found. A row opens the review.
+ * gets one, on its own or by asking (the GitHub command, while the GitHub
+ * App answers commands there, or Review a pull request here, on every
+ * host), with a way to Settings, where it is turned on or off - then one
+ * row per pull request, newest first, saying what its latest review found.
+ * A row opens the review.
  *
- * With none yet, the list says what it will hold: the status line above it
- * already says how a review comes.
+ * GitHub, GitLab, Forgejo and Gitea repositories have them, each in its
+ * host's words: GitLab says merge request (inReviewHostWords). With none
+ * yet, the list says what it will hold: the status line above it already
+ * says how a review comes.
  */
 const CodeRepositoryProductionReviews: FunctionComponent<
   PageComponentProps
@@ -95,37 +102,48 @@ const CodeRepositoryProductionReviews: FunctionComponent<
     return <PageLoader isVisible={true} />;
   }
 
+  const provider: string | undefined = repository.repository.provider;
+
   /*
-   * A repository on GitLab, Forgejo, Gitea or a Git server: the GitHub App
-   * reviews pull requests, so this one has none - said plainly, with
-   * nothing to turn on (its menu does not offer the page; an address can).
+   * A repository on a Git server has no pull requests, so none is reviewed -
+   * said plainly, with nothing to turn on (its menu does not offer the
+   * page; an address can).
    */
-  if (
-    !CodeHost.can(
-      repository.repository.provider,
-      CodeHostCapability.ProductionReview,
-    )
-  ) {
+  if (!CodeHost.can(provider, CodeHostCapability.ProductionReview)) {
     return (
       <div
         data-testid={CODE_PRODUCTION_REVIEWS_TEST_ID}
         className={`${CODE_COLUMN_CLASS_NAME} pb-10`}
       >
         <p
-          data-testid="code-production-reviews-github-only"
+          data-testid="code-production-reviews-no-pull-requests"
           className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm leading-6 text-gray-700 shadow-sm"
         >
-          {translator.translateText(PRODUCTION_REVIEW_COPY.gitHubOnly)}
+          {translator.translateText(PRODUCTION_REVIEW_COPY.noPullRequests)}
         </p>
       </div>
     );
   }
 
+  // A sentence in the host's words: GitLab's merge request.
+  const words: (sentence: string) => string = (sentence: string): string => {
+    const inHostWords: string = inReviewHostWords(sentence, provider);
+
+    return translator.translateText(inHostWords) || inHostWords;
+  };
+  const isOnGitHub: boolean =
+    CodeHost.readType(provider) === CodeRepositoryType.GitHub;
+  const hostName: string = getCodeHostName({
+    provider,
+    hostProduct: repository.repository.connection?.hostProduct,
+  });
   const isOn: boolean =
     repository.repository.isProductionReviewEnabled === true;
   /*
-   * A repository the GitHub App no longer reaches has nothing reviewed,
-   * whatever its switch says: the status says that, and how to connect it.
+   * A repository OneUptime no longer reaches - the GitHub App's, or a
+   * GitLab, Forgejo or Gitea connection whose token was refused or that is
+   * gone - has nothing reviewed, whatever its switch says: the status says
+   * that, and where it is fixed.
    */
   const isConnected: boolean = repository.repository.isConnected;
   const status: "on" | "off" | "not-connected" = !isConnected
@@ -134,11 +152,12 @@ const CodeRepositoryProductionReviews: FunctionComponent<
       ? "on"
       : "off";
   /*
-   * The command is answered only while the GitHub App answers commands in
-   * the repository (unset is on): the page never offers one it ignores.
+   * The command is answered only on GitHub, while the GitHub App answers
+   * commands in the repository (unset is on): the page never offers one it
+   * ignores. Everywhere else Review a pull request, here, asks.
    */
   const areCommandsOn: boolean =
-    repository.repository.isGitHubCommandsEnabled !== false;
+    isOnGitHub && repository.repository.isGitHubCommandsEnabled !== false;
   const command: ReactElement = (
     <code className="break-words rounded bg-gray-100 px-1 py-0.5 font-mono text-xs text-gray-800">
       {getProductionReviewCommand()}
@@ -166,7 +185,12 @@ const CodeRepositoryProductionReviews: FunctionComponent<
       </>
     </Link>
   );
-  const connectLink: ReactElement = (
+  /*
+   * Where a repository that is not reached is fixed: GitHub's from Code's
+   * Repositories, where GitHub is connected; any other host's from its own
+   * Settings, where its access token is replaced.
+   */
+  const connectLink: ReactElement = isOnGitHub ? (
     <Link
       to={RouteUtil.populateRouteParams(
         RouteMap[PageMap.CODE_REPOSITORIES] as Route,
@@ -175,6 +199,14 @@ const CodeRepositoryProductionReviews: FunctionComponent<
       className="font-medium text-indigo-600 hover:text-indigo-500"
     >
       <>{translator.translateText(PRODUCTION_REVIEW_COPY.connectGitHub)}</>
+    </Link>
+  ) : (
+    <Link
+      to={getRepositorySettingsRoute(repositoryId)}
+      dataTestId="code-production-reviews-connect"
+      className="font-medium text-indigo-600 hover:text-indigo-500"
+    >
+      <>{translator.translateText(PRODUCTION_REVIEW_COPY.goToSettings)}</>
     </Link>
   );
   const pillClassName: string =
@@ -197,7 +229,7 @@ const CodeRepositoryProductionReviews: FunctionComponent<
     >
       <div className="space-y-3">
         <p className="text-sm leading-6 text-gray-600">
-          {translator.translateText(PRODUCTION_REVIEW_COPY.pageDescription)}
+          {words(PRODUCTION_REVIEW_COPY.pageDescription)}
         </p>
         <div
           data-testid="code-production-reviews-status"
@@ -222,35 +254,48 @@ const CodeRepositoryProductionReviews: FunctionComponent<
           >
             <p className="text-gray-700">
               {status === "not-connected" ? (
-                translator.translateText(
-                  PRODUCTION_REVIEW_COPY.statusNotConnected,
+                isOnGitHub ? (
+                  translator.translateText(
+                    PRODUCTION_REVIEW_COPY.statusNotConnected,
+                  )
+                ) : (
+                  translator.translateTemplate(
+                    inReviewHostWords(
+                      PRODUCTION_REVIEW_COPY.statusNotConnectedHost,
+                      provider,
+                    ),
+                    { host: hostName },
+                  )
                 )
               ) : isOn ? (
-                translator.translateText(PRODUCTION_REVIEW_COPY.statusOn)
+                words(PRODUCTION_REVIEW_COPY.statusOn)
               ) : areCommandsOn ? (
                 <TranslatedSentence
                   template={PRODUCTION_REVIEW_COPY.statusOff}
                   slots={{ command }}
                 />
               ) : (
-                translator.translateText(
-                  PRODUCTION_REVIEW_COPY.statusOffNoCommands,
-                )
+                words(PRODUCTION_REVIEW_COPY.statusOffNoCommands)
               )}
             </p>
             {/*
              * On, the pull requests of anyone who cannot write to the
-             * repository - outside contributors, forks - wait to be asked.
+             * repository - outside contributors, forks, bots - wait to be
+             * asked: with the command, or here.
              */}
-            {status === "on" && areCommandsOn ? (
+            {status === "on" ? (
               <p
                 data-testid="code-production-reviews-status-others"
                 className="mt-1 text-gray-500"
               >
-                <TranslatedSentence
-                  template={PRODUCTION_REVIEW_COPY.statusOnOthers}
-                  slots={{ command }}
-                />
+                {areCommandsOn ? (
+                  <TranslatedSentence
+                    template={PRODUCTION_REVIEW_COPY.statusOnOthers}
+                    slots={{ command }}
+                  />
+                ) : (
+                  words(PRODUCTION_REVIEW_COPY.statusOnOthersAsk)
+                )}
               </p>
             ) : (
               <></>
@@ -270,25 +315,44 @@ const CodeRepositoryProductionReviews: FunctionComponent<
         aria-labelledby="code-production-reviews-heading"
         data-testid="code-production-reviews-list"
       >
-        <h2
-          id="code-production-reviews-heading"
-          className="flex items-baseline gap-2 px-1 text-sm font-semibold text-gray-900"
-        >
-          {translator.translateText(PRODUCTION_REVIEW_COPY.listTitle)}
-          {reviewCount ? (
-            <span
-              data-testid="code-production-reviews-count"
-              className="text-sm font-normal text-gray-500"
-            >
-              {translator.formatNumber(reviewCount)}
-            </span>
+        {/*
+         * The list's heading, and - for those who may ask, while the
+         * repository is reached - Review a pull request: any of them, one
+         * from a fork or anyone else too.
+         */}
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-1">
+          <h2
+            id="code-production-reviews-heading"
+            className="flex items-baseline gap-2 text-sm font-semibold text-gray-900"
+          >
+            {words(PRODUCTION_REVIEW_COPY.listTitle)}
+            {reviewCount ? (
+              <span
+                data-testid="code-production-reviews-count"
+                className="text-sm font-normal text-gray-500"
+              >
+                {translator.formatNumber(reviewCount)}
+              </span>
+            ) : (
+              <></>
+            )}
+          </h2>
+          {repository.canAsk && isConnected ? (
+            <CodeProductionReviewAsk
+              repositoryId={repositoryId}
+              provider={provider}
+            />
           ) : (
             <></>
           )}
-        </h2>
+        </div>
         <div className="mt-3 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
           <CodeTaskList
             scope={{ repositoryId: new ObjectID(repositoryId).toString() }}
+            repositoryHost={{
+              provider,
+              hostProduct: repository.repository.connection?.hostProduct,
+            }}
             kind={CodeTaskListKind.ProductionReviews}
             dataTestId="code-production-review-list"
             onCount={(count: number) => {
@@ -306,12 +370,10 @@ const CodeRepositoryProductionReviews: FunctionComponent<
                   />
                 </div>
                 <p className="mt-3 text-sm font-medium text-gray-900">
-                  {translator.translateText(PRODUCTION_REVIEW_COPY.emptyTitle)}
+                  {words(PRODUCTION_REVIEW_COPY.emptyTitle)}
                 </p>
                 <p className="mx-auto mt-1 max-w-md text-sm text-gray-500">
-                  {translator.translateText(
-                    PRODUCTION_REVIEW_COPY.emptyDescription,
-                  )}
+                  {words(PRODUCTION_REVIEW_COPY.emptyDescription)}
                 </p>
               </div>
             }

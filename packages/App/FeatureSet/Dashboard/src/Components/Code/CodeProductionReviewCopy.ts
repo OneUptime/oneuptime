@@ -7,6 +7,7 @@ import {
   LlmProviderFallbackReason,
   LlmProviderSource,
 } from "Common/Types/AI/LlmProviderChoice";
+import { CodeHost } from "Common/Types/CodeRepository/CodeHost";
 import { env } from "Common/UI/Config";
 import {
   PRODUCTION_REVIEW_WINDOWS,
@@ -28,7 +29,9 @@ import {
 /*
  * A pull request's production review in Code, in words and plain rules -
  * React-free, so the pages, the offline fixture and App's tests read the
- * same ones. The review itself, and the rules the server applies to it, are
+ * same ones. A repository on GitHub, GitLab, Forgejo or Gitea has them; on
+ * GitLab every sentence that names a pull request says merge request
+ * (inReviewHostWords). The review itself, and the rules the server applies to it, are
  * Types/CodeRepository/ProductionReview's.
  *
  * OneUptime reviews a pull request against what production shows of the
@@ -52,10 +55,13 @@ export const PRODUCTION_REVIEW_COPY: {
   statusOffLabel: string;
   statusOff: string;
   statusOffNoCommands: string;
+  statusOnOthersAsk: string;
   statusNotConnectedLabel: string;
   statusNotConnected: string;
-  gitHubOnly: string;
+  statusNotConnectedHost: string;
+  noPullRequests: string;
   connectGitHub: string;
+  goToSettings: string;
   openSettings: string;
   turnOnInSettings: string;
   listTitle: string;
@@ -104,12 +110,16 @@ export const PRODUCTION_REVIEW_COPY: {
   postedLinkPublic: string;
   postedLinkChosen: string;
   postedNothing: string;
+  commentRefused: string;
+  commentRefusedIssues: string;
+  aggregatesOnlyHost: string;
   viewComment: string;
   updatesOnChange: string;
   updatesWhenAsked: string;
   updatesWhenAskedForAuthor: string;
   cannotReviewAgain: string;
   notConnected: string;
+  notConnectedHost: string;
 } = {
   // The recipe, as a task's kind is named.
   recipeLabel: translationKey("Production Review"),
@@ -135,9 +145,21 @@ export const PRODUCTION_REVIEW_COPY: {
   statusOff: translationKey(
     "A pull request is reviewed only when someone with write access comments {{command}} on it.",
   ),
-  // Off, and the GitHub App answers no command in the repository either.
+  /*
+   * Off, where no command is answered - the GitHub App answers none in the
+   * repository, or it is on GitLab, Forgejo or Gitea: Review a pull
+   * request, on this page, still asks for one.
+   */
   statusOffNoCommands: translationKey(
-    "Pull requests are not reviewed against production.",
+    "Pull requests are reviewed only when someone with write access asks for one here.",
+  ),
+  /*
+   * After statusOn, where no command is answered: how a pull request from
+   * an outside contributor, a fork or a bot is reviewed - Review a pull
+   * request, on this page.
+   */
+  statusOnOthersAsk: translationKey(
+    "A pull request from anyone else is reviewed when someone with write access asks for it here.",
   ),
   /*
    * The GitHub App no longer reaches the repository (Code's Repositories
@@ -148,14 +170,27 @@ export const PRODUCTION_REVIEW_COPY: {
     "This repository is not connected through the GitHub App, so its pull requests are not reviewed.",
   ),
   /*
-   * A repository that is not on GitHub (GitLab, Forgejo, Gitea, a Git
-   * server): the GitHub App reviews pull requests, so none of its are.
+   * The same on GitLab, Forgejo or Gitea: the repository's connection - its
+   * access token - was refused, or is gone. {{host}} is "GitLab",
+   * "Forgejo" or "Gitea".
    */
-  gitHubOnly: translationKey(
-    "Production reviews work in GitHub repositories only, for now: the OneUptime GitHub App reviews each pull request against production. Ask AI about a change in this repository from its Tasks.",
+  statusNotConnectedHost: translationKey(
+    "This repository's connection to {{host}} does not work, so its pull requests are not reviewed.",
+  ),
+  /*
+   * A repository on a Git server, which has no pull requests: there is
+   * nothing to review (its menu does not offer the page; an address can).
+   */
+  noPullRequests: translationKey(
+    "A Git server has no pull requests for OneUptime to review: production reviews work in GitHub, GitLab, Forgejo and Gitea repositories. Ask AI about a change in this repository from its Tasks.",
   ),
   // Repositories, where GitHub is connected - as a task's blocker links it.
   connectGitHub: translationKey("Connect GitHub"),
+  /*
+   * The repository's Settings, where a connection that stopped working is
+   * fixed (Replace access token).
+   */
+  goToSettings: translationKey("Go to Settings"),
   openSettings: translationKey("Change in Settings"),
   turnOnInSettings: translationKey("Turn on in Settings"),
   // The list's heading: what its rows are.
@@ -242,6 +277,26 @@ export const PRODUCTION_REVIEW_COPY: {
   ),
   // The review below says why: it found nothing.
   postedNothing: translationKey("Nothing was posted on the pull request."),
+  /*
+   * GitLab, Forgejo or Gitea would not let the access token comment on the
+   * pull request (a Forgejo or Gitea token without write access to issues,
+   * a locked discussion): the review is only here. {{host}} is the host's
+   * name.
+   */
+  commentRefused: translationKey(
+    "{{host}} did not let the access token comment on this pull request, so this review is only here.",
+  ),
+  // After commentRefused, on Forgejo and Gitea: what lets it comment.
+  commentRefusedIssues: translationKey(
+    "Replace the access token with one that can also write issues.",
+  ),
+  /*
+   * Under a review posted on GitLab, Forgejo or Gitea: what it holds.
+   * {{host}} is the host's name. GitHub's is aggregatesOnly.
+   */
+  aggregatesOnlyHost: translationKey(
+    "Only counts, durations and the names of code are posted on {{host}}: never an exception's message, a log line, an incident's title or personal data.",
+  ),
   viewComment: translationKey("View comment"),
   updatesOnChange: translationKey(
     "Reviewed again each time the pull request changes.",
@@ -262,7 +317,34 @@ export const PRODUCTION_REVIEW_COPY: {
   notConnected: translationKey(
     "This repository is no longer connected through the GitHub App, so its pull requests cannot be reviewed again.",
   ),
+  // The same on GitLab, Forgejo or Gitea. {{host}} is the host's name.
+  notConnectedHost: translationKey(
+    "This repository's connection to {{host}} does not work now, so its pull requests cannot be reviewed again.",
+  ),
 };
+
+/*
+ * Review a pull request, on a repository's Production Reviews page: any
+ * of its open pull requests, by number - one from a fork, a bot or anyone
+ * else too, which is never reviewed on its own. GitHub's command asks the
+ * same; on GitLab, Forgejo and Gitea it is the one way.
+ */
+export const PRODUCTION_REVIEW_ASK_COPY: {
+  button: string;
+  numberTitle: string;
+  numberDescription: string;
+  submit: string;
+} = {
+  // The button, and the dialog's title.
+  button: translationKey("Review a pull request"),
+  numberTitle: translationKey("Pull request number"),
+  numberDescription: translationKey(
+    "Any of this repository's open pull requests, from a fork or anyone else too.",
+  ),
+  submit: translationKey("Review"),
+};
+
+
 
 /*
  * What a list row says a review found, part by part: "2 exceptions",
@@ -692,40 +774,61 @@ export function getProductionReviewGlance(
 }
 
 /*
+ * How each host's pull request is written where a review names what
+ * started it: GitHub's and Forgejo's or Gitea's "#42", GitLab's merge
+ * request "!42".
+ */
+const REVIEWED_PULL_REQUEST_LABEL_PREFIXES: Partial<
+  Record<CodeTaskOriginType, string>
+> = {
+  [CodeTaskOriginType.GitHubPullRequest]: "#",
+  [CodeTaskOriginType.CodeHostPullRequest]: "#",
+  [CodeTaskOriginType.GitLabMergeRequest]: "!",
+};
+
+/*
  * The pull request a review is of, by its number, from what started it
- * ("#42", a GitHub pull request) - none for anything else.
+ * ("#42" on GitHub, Forgejo or Gitea; "!42", a GitLab merge request) -
+ * none for anything else.
  */
 export function getReviewedPullRequestNumber(
   origin: CodeTaskOriginJSON | undefined,
 ): number | null {
-  if (
-    !origin ||
-    origin.type !== CodeTaskOriginType.GitHubPullRequest ||
-    !origin.label.startsWith("#")
-  ) {
+  const prefix: string | undefined = origin
+    ? REVIEWED_PULL_REQUEST_LABEL_PREFIXES[origin.type]
+    : undefined;
+
+  if (!origin || !prefix || !origin.label.startsWith(prefix)) {
     return null;
   }
 
-  const number: number = Number(origin.label.substring(1));
+  const number: number = Number(origin.label.substring(prefix.length));
 
   return Number.isInteger(number) && number > 0 ? number : null;
 }
 
-// Which sentence says what the pull request shows of a review.
+/*
+ * Which sentence says what the pull request shows of a review, in its
+ * host's words.
+ */
 export function getProductionReviewPostingSentence(
   report: Pick<ProductionReviewReport, "posting" | "isPublicRepository">,
+  provider?: string | null | undefined,
 ): string {
   if (report.posting === ProductionReviewPosting.Review) {
-    return PRODUCTION_REVIEW_COPY.postedReview;
+    return inReviewHostWords(PRODUCTION_REVIEW_COPY.postedReview, provider);
   }
 
   if (report.posting === ProductionReviewPosting.Link) {
-    return report.isPublicRepository === false
-      ? PRODUCTION_REVIEW_COPY.postedLinkChosen
-      : PRODUCTION_REVIEW_COPY.postedLinkPublic;
+    return inReviewHostWords(
+      report.isPublicRepository === false
+        ? PRODUCTION_REVIEW_COPY.postedLinkChosen
+        : PRODUCTION_REVIEW_COPY.postedLinkPublic,
+      provider,
+    );
   }
 
-  return PRODUCTION_REVIEW_COPY.postedNothing;
+  return inReviewHostWords(PRODUCTION_REVIEW_COPY.postedNothing, provider);
 }
 
 /*
@@ -738,18 +841,26 @@ export function getProductionReviewNothingSentence(
     "codeFileCount" | "services" | "noServicesReason"
   >,
   translator: Translator,
+  provider?: string | null | undefined,
 ): string {
   if (report.codeFileCount === 0) {
-    return translator.translateText(PRODUCTION_REVIEW_COPY.noCodeChanged) || "";
+    return (
+      translator.translateText(
+        inReviewHostWords(PRODUCTION_REVIEW_COPY.noCodeChanged, provider),
+      ) || ""
+    );
   }
 
   if (report.services.length === 0 && report.noServicesReason) {
     return translator.translateText(PRODUCTION_REVIEW_COPY.noServices) || "";
   }
 
-  return translator.translateTemplate(PRODUCTION_REVIEW_COPY.nothingFound, {
-    days: translator.formatNumber(PRODUCTION_REVIEW_WINDOWS.exceptionsDays),
-  });
+  return translator.translateTemplate(
+    inReviewHostWords(PRODUCTION_REVIEW_COPY.nothingFound, provider),
+    {
+      days: translator.formatNumber(PRODUCTION_REVIEW_WINDOWS.exceptionsDays),
+    },
+  );
 }
 
 // A duration in milliseconds, short: "840 ms", "1.2 s".
@@ -863,4 +974,108 @@ export function splitPointText(
   });
 
   return parts;
+}
+/*
+ * The sentences above that name a pull request, on GitLab - which calls it
+ * a merge request - by the sentence GitHub, Forgejo and Gitea say. Each is
+ * the same sentence with the host's word (CodeProductionReviewCopy.test
+ * holds them to it).
+ */
+export const PRODUCTION_REVIEW_MERGE_REQUEST_COPY: Record<string, string> = {
+  [PRODUCTION_REVIEW_COPY.pageDescription]: translationKey(
+    "OneUptime reviews merge requests against what production shows of the code they change, posts each review on its merge request and keeps it here.",
+  ),
+  [PRODUCTION_REVIEW_COPY.statusOn]: translationKey(
+    "A merge request from someone with write access is reviewed when it opens and each time it changes.",
+  ),
+  [PRODUCTION_REVIEW_COPY.statusOffNoCommands]: translationKey(
+    "Merge requests are reviewed only when someone with write access asks for one here.",
+  ),
+  [PRODUCTION_REVIEW_COPY.statusOnOthersAsk]: translationKey(
+    "A merge request from anyone else is reviewed when someone with write access asks for it here.",
+  ),
+  [PRODUCTION_REVIEW_COPY.statusNotConnectedHost]: translationKey(
+    "This repository's connection to {{host}} does not work, so its merge requests are not reviewed.",
+  ),
+  [PRODUCTION_REVIEW_COPY.listTitle]: translationKey("Merge Requests"),
+  [PRODUCTION_REVIEW_COPY.emptyTitle]: translationKey(
+    "No merge request reviewed yet",
+  ),
+  [PRODUCTION_REVIEW_COPY.emptyDescription]: translationKey(
+    "Each merge request's latest review shows up here.",
+  ),
+  [PRODUCTION_REVIEW_COPY.pullRequestFallbackTitle]: translationKey(
+    "Merge request {{label}}",
+  ),
+  [PRODUCTION_REVIEW_COPY.nothingFound]: translationKey(
+    "Nothing in production runs through this merge request's changes: no exception thrown in them in the last {{days}} days, no traced operation or profiled function that runs them in the last hour, and no open incident or suspect deploy on their services.",
+  ),
+  [PRODUCTION_REVIEW_COPY.noCodeChanged]: translationKey(
+    "This merge request changes no code production runs, so production has nothing to say about it.",
+  ),
+  [PRODUCTION_REVIEW_COPY.postedReview]: translationKey(
+    "Posted on the merge request.",
+  ),
+  [PRODUCTION_REVIEW_COPY.postedLinkPublic]: translationKey(
+    "This repository is public, so the merge request only links to this review.",
+  ),
+  [PRODUCTION_REVIEW_COPY.postedLinkChosen]: translationKey(
+    "This repository's merge requests only link to their review, as its settings ask.",
+  ),
+  [PRODUCTION_REVIEW_COPY.postedNothing]: translationKey(
+    "Nothing was posted on the merge request.",
+  ),
+  [PRODUCTION_REVIEW_COPY.commentRefused]: translationKey(
+    "{{host}} did not let the access token comment on this merge request, so this review is only here.",
+  ),
+  [PRODUCTION_REVIEW_COPY.updatesOnChange]: translationKey(
+    "Reviewed again each time the merge request changes.",
+  ),
+  [PRODUCTION_REVIEW_COPY.updatesWhenAsked]: translationKey(
+    "Production review is off for this repository, so this merge request is reviewed again only when someone asks.",
+  ),
+  [PRODUCTION_REVIEW_COPY.notConnectedHost]: translationKey(
+    "This repository's connection to {{host}} does not work now, so its merge requests cannot be reviewed again.",
+  ),
+  [PRODUCTION_REVIEW_ASK_COPY.button]: translationKey(
+    "Review a merge request",
+  ),
+  [PRODUCTION_REVIEW_ASK_COPY.numberTitle]: translationKey(
+    "Merge request number",
+  ),
+  [PRODUCTION_REVIEW_ASK_COPY.numberDescription]: translationKey(
+    "Any of this repository's open merge requests, from a fork or anyone else too.",
+  ),
+  [PRODUCTION_REVIEW_AI_NOTES[ProductionReviewAiNoteCode.DailyLimit]]:
+    translationKey(
+      "OneUptime AI already read this merge request, or this repository, as often as it may today. The facts below are read every time.",
+    ),
+  [PRODUCTION_REVIEW_SETTINGS_COPY.switchTitle]: translationKey(
+    "Review Merge Requests Against Production",
+  ),
+  [PRODUCTION_REVIEW_SETTINGS_COPY.switchDescription]: translationKey(
+    "When someone with write access opens or updates a merge request, OneUptime comments with what production shows of the code it changes.",
+  ),
+  [PRODUCTION_REVIEW_SETTINGS_COPY.contentCardDescription]: translationKey(
+    "What a production review posts on a merge request.",
+  ),
+  [PRODUCTION_REVIEW_CONTENT_COPY[ProductionReviewPullRequestContent.Link]
+    .description]: translationKey(
+    "Every merge request links to its review in OneUptime, which only members of this project can open. Nothing from production is posted.",
+  ),
+};
+
+/*
+ * A production review sentence in the host's words: on GitLab, its merge
+ * request sentence; everywhere else, as written.
+ */
+export function inReviewHostWords(
+  sentence: string,
+  provider: string | null | undefined,
+): string {
+  if (CodeHost.getFacts(provider).pullRequestTerm !== "merge request") {
+    return sentence;
+  }
+
+  return PRODUCTION_REVIEW_MERGE_REQUEST_COPY[sentence] || sentence;
 }
