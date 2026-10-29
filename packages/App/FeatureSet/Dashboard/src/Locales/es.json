@@ -36818,5 +36818,10 @@
   "Pick a person to do {{title}}. They are notified.": "Elige una persona para hacer {{title}}. Se le avisa.",
   "Put any other kind of file, or several files, in a .zip.": "Pon cualquier otro tipo de archivo, o varios archivos, en un .zip.",
   "Upload a file": "Subir un archivo",
-  "Selected: {{name}}": "Seleccionado: {{name}}"
+  "Selected: {{name}}": "Seleccionado: {{name}}",
+  "Drag to resize. Double-click to fit.": "Arrastrar para cambiar el ancho. Doble clic para ajustarlo al contenido.",
+  "Reset column widths": "Restablecer el ancho de las columnas",
+  "Resize the {{column}} column": "Cambiar el ancho de la columna {{column}}",
+  "{{count}} pixels wide": "{{count}} píxeles de ancho",
+  "{{count}} pixels wide_one": "{{count}} píxel de ancho"
 }

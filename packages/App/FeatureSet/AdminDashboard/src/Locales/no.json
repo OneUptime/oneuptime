@@ -1516,6 +1516,11 @@
   "System": "System",
   "Enable": "Aktiver",
   "Disable": "Deaktiver",
+  "Drag to resize. Double-click to fit.": "Dra for å endre bredden. Dobbeltklikk for å tilpasse den til innholdet.",
+  "Reset column widths": "Tilbakestill kolonnebredder",
+  "Resize the {{column}} column": "Endre bredden på kolonnen {{column}}",
+  "{{count}} pixels wide": "{{count}} piksler bred",
+  "{{count}} pixels wide_one": "{{count}} piksel bred",
   "markdownCallouts": {
     "caution": "Forsiktig",
     "danger": "Fare",

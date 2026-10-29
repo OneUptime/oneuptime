@@ -36818,5 +36818,10 @@
   "Pick a person to do {{title}}. They are notified.": "选择完成 {{title}} 的人。对方会收到通知。",
   "Put any other kind of file, or several files, in a .zip.": "其他类型的文件或多个文件请放入 .zip。",
   "Upload a file": "上传文件",
-  "Selected: {{name}}": "已选择：{{name}}"
+  "Selected: {{name}}": "已选择：{{name}}",
+  "Drag to resize. Double-click to fit.": "拖动以调整宽度。双击以适应内容。",
+  "Reset column widths": "重置列宽",
+  "Resize the {{column}} column": "调整“{{column}}”列的宽度",
+  "{{count}} pixels wide": "宽 {{count}} 像素",
+  "{{count}} pixels wide_one": "宽 {{count}} 像素"
 }

@@ -36818,5 +36818,10 @@
   "Pick a person to do {{title}}. They are notified.": "Vælg en person til at udføre {{title}}. Vedkommende får besked.",
   "Put any other kind of file, or several files, in a .zip.": "Læg andre filtyper eller flere filer i en .zip.",
   "Upload a file": "Upload en fil",
-  "Selected: {{name}}": "Valgt: {{name}}"
+  "Selected: {{name}}": "Valgt: {{name}}",
+  "Drag to resize. Double-click to fit.": "Træk for at ændre bredden. Dobbeltklik for at tilpasse den til indholdet.",
+  "Reset column widths": "Nulstil kolonnebredder",
+  "Resize the {{column}} column": "Ændr bredden på kolonnen {{column}}",
+  "{{count}} pixels wide": "{{count}} pixels bred",
+  "{{count}} pixels wide_one": "{{count}} pixel bred"
 }

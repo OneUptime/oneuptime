@@ -36818,5 +36818,10 @@
   "Pick a person to do {{title}}. They are notified.": "Wählen Sie eine Person, die {{title}} erledigt. Sie wird benachrichtigt.",
   "Put any other kind of file, or several files, in a .zip.": "Legen Sie andere Dateiarten oder mehrere Dateien in eine .zip-Datei.",
   "Upload a file": "Datei hochladen",
-  "Selected: {{name}}": "Ausgewählt: {{name}}"
+  "Selected: {{name}}": "Ausgewählt: {{name}}",
+  "Drag to resize. Double-click to fit.": "Zum Ändern der Breite ziehen. Zum Anpassen an den Inhalt doppelklicken.",
+  "Reset column widths": "Spaltenbreiten zurücksetzen",
+  "Resize the {{column}} column": "Breite der Spalte {{column}} ändern",
+  "{{count}} pixels wide": "{{count}} Pixel breit",
+  "{{count}} pixels wide_one": "{{count}} Pixel breit"
 }

@@ -36818,5 +36818,10 @@
   "Pick a person to do {{title}}. They are notified.": "Kies een persoon die {{title}} doet. Diegene krijgt bericht.",
   "Put any other kind of file, or several files, in a .zip.": "Zet elk ander soort bestand, of meerdere bestanden, in een .zip.",
   "Upload a file": "Een bestand uploaden",
-  "Selected: {{name}}": "Geselecteerd: {{name}}"
+  "Selected: {{name}}": "Geselecteerd: {{name}}",
+  "Drag to resize. Double-click to fit.": "Sleep om de breedte te wijzigen. Dubbelklik om deze aan de inhoud aan te passen.",
+  "Reset column widths": "Kolombreedtes terugzetten",
+  "Resize the {{column}} column": "Breedte van kolom {{column}} wijzigen",
+  "{{count}} pixels wide": "{{count}} pixels breed",
+  "{{count}} pixels wide_one": "{{count}} pixel breed"
 }

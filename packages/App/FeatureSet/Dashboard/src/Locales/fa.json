@@ -36818,5 +36818,10 @@
   "Pick a person to do {{title}}. They are notified.": "فردی را برای انجام {{title}} برگزینید. به او اطلاع داده می‌شود.",
   "Put any other kind of file, or several files, in a .zip.": "هر نوع فایل دیگر، یا چند فایل را در یک .zip بگذارید.",
   "Upload a file": "بارگذاری فایل",
-  "Selected: {{name}}": "انتخاب‌شده: {{name}}"
+  "Selected: {{name}}": "انتخاب‌شده: {{name}}",
+  "Drag to resize. Double-click to fit.": "برای تغییر عرض بکشید. برای تنظیم عرض بر اساس محتوا دوبار کلیک کنید.",
+  "Reset column widths": "بازنشانی عرض ستون‌ها",
+  "Resize the {{column}} column": "تغییر عرض ستون {{column}}",
+  "{{count}} pixels wide": "عرض {{count}} پیکسل",
+  "{{count}} pixels wide_one": "عرض {{count}} پیکسل"
 }

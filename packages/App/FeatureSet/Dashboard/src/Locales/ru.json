@@ -36818,5 +36818,10 @@
   "Pick a person to do {{title}}. They are notified.": "Выберите человека, который выполнит {{title}}. Ему придёт уведомление.",
   "Put any other kind of file, or several files, in a .zip.": "Файлы других типов или несколько файлов поместите в .zip.",
   "Upload a file": "Загрузить файл",
-  "Selected: {{name}}": "Выбрано: {{name}}"
+  "Selected: {{name}}": "Выбрано: {{name}}",
+  "Drag to resize. Double-click to fit.": "Перетащите, чтобы изменить ширину. Дважды щёлкните, чтобы подогнать её по содержимому.",
+  "Reset column widths": "Сбросить ширину столбцов",
+  "Resize the {{column}} column": "Изменить ширину столбца «{{column}}»",
+  "{{count}} pixels wide": "Ширина: {{count}} пикс.",
+  "{{count}} pixels wide_one": "Ширина: {{count}} пикс."
 }

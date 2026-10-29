@@ -1516,6 +1516,11 @@
   "System": "Sistema",
   "Enable": "Attiva",
   "Disable": "Disattiva",
+  "Drag to resize. Double-click to fit.": "Trascina per cambiare la larghezza. Doppio clic per adattarla al contenuto.",
+  "Reset column widths": "Reimposta la larghezza delle colonne",
+  "Resize the {{column}} column": "Ridimensiona la colonna {{column}}",
+  "{{count}} pixels wide": "{{count}} pixel di larghezza",
+  "{{count}} pixels wide_one": "{{count}} pixel di larghezza",
   "markdownCallouts": {
     "caution": "Attenzione",
     "danger": "Pericolo",

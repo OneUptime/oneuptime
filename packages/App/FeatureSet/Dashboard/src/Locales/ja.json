@@ -36818,5 +36818,10 @@
   "Pick a person to do {{title}}. They are notified.": "{{title}} を担当するユーザーを選択します。担当者に通知されます。",
   "Put any other kind of file, or several files, in a .zip.": "その他の種類のファイルや複数のファイルは .zip にまとめてください。",
   "Upload a file": "ファイルをアップロード",
-  "Selected: {{name}}": "選択中: {{name}}"
+  "Selected: {{name}}": "選択中: {{name}}",
+  "Drag to resize. Double-click to fit.": "ドラッグして幅を変更します。ダブルクリックで内容に合わせます。",
+  "Reset column widths": "列の幅をリセット",
+  "Resize the {{column}} column": "{{column}}列の幅を変更",
+  "{{count}} pixels wide": "幅 {{count}} ピクセル",
+  "{{count}} pixels wide_one": "幅 {{count}} ピクセル"
 }

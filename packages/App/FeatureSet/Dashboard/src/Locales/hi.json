@@ -36818,5 +36818,10 @@
   "Pick a person to do {{title}}. They are notified.": "{{title}} करने के लिए कोई व्यक्ति चुनें। उन्हें सूचित किया जाता है।",
   "Put any other kind of file, or several files, in a .zip.": "किसी अन्य प्रकार की फ़ाइल, या कई फ़ाइलें, एक .zip में रखें।",
   "Upload a file": "फ़ाइल अपलोड करें",
-  "Selected: {{name}}": "चयनित: {{name}}"
+  "Selected: {{name}}": "चयनित: {{name}}",
+  "Drag to resize. Double-click to fit.": "चौड़ाई बदलने के लिए खींचें। सामग्री के अनुसार चौड़ाई करने के लिए डबल-क्लिक करें।",
+  "Reset column widths": "कॉलम की चौड़ाई रीसेट करें",
+  "Resize the {{column}} column": "{{column}} कॉलम की चौड़ाई बदलें",
+  "{{count}} pixels wide": "{{count}} पिक्सेल चौड़ा",
+  "{{count}} pixels wide_one": "{{count}} पिक्सेल चौड़ा"
 }
