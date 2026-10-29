@@ -36967,5 +36967,6 @@
   "Could not search resources.": "Det gick inte att söka bland resurserna.",
   "{{count}} monitors also match. Monitors are picked in the {{field}} field.": "{{count}} monitorer matchar också. Monitorer väljs i fältet {{field}}.",
   "{{count}} monitors also match. Monitors are picked in the {{field}} field._one": "{{count}} monitor matchar också. Monitorer väljs i fältet {{field}}.",
-  "Search by name or IP address...": "Sök efter namn eller IP-adress..."
+  "Search by name or IP address...": "Sök efter namn eller IP-adress...",
+  "No resources to link yet.": "Inga resurser att koppla ännu."
 }

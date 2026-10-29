@@ -36967,5 +36967,6 @@
   "Could not search resources.": "संसाधन खोजे नहीं जा सके।",
   "{{count}} monitors also match. Monitors are picked in the {{field}} field.": "{{count}} मॉनिटर भी मेल खाते हैं। मॉनिटर {{field}} फ़ील्ड में चुने जाते हैं।",
   "{{count}} monitors also match. Monitors are picked in the {{field}} field._one": "{{count}} मॉनिटर भी मेल खाता है। मॉनिटर {{field}} फ़ील्ड में चुने जाते हैं।",
-  "Search by name or IP address...": "नाम या IP पते से खोजें..."
+  "Search by name or IP address...": "नाम या IP पते से खोजें...",
+  "No resources to link yet.": "अभी जोड़ने के लिए कोई संसाधन नहीं है।"
 }

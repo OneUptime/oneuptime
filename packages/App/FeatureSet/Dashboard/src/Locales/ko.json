@@ -36967,5 +36967,6 @@
   "Could not search resources.": "리소스를 검색하지 못했습니다.",
   "{{count}} monitors also match. Monitors are picked in the {{field}} field.": "모니터도 {{count}}개 일치합니다. 모니터는 {{field}} 필드에서 선택합니다.",
   "{{count}} monitors also match. Monitors are picked in the {{field}} field._one": "모니터도 {{count}}개 일치합니다. 모니터는 {{field}} 필드에서 선택합니다.",
-  "Search by name or IP address...": "이름 또는 IP 주소로 검색..."
+  "Search by name or IP address...": "이름 또는 IP 주소로 검색...",
+  "No resources to link yet.": "아직 연결할 리소스가 없습니다."
 }

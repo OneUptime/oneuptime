@@ -36967,5 +36967,6 @@
   "Could not search resources.": "リソースを検索できませんでした。",
   "{{count}} monitors also match. Monitors are picked in the {{field}} field.": "モニターも {{count}} 件一致します。モニターは「{{field}}」欄で選択します。",
   "{{count}} monitors also match. Monitors are picked in the {{field}} field._one": "モニターも {{count}} 件一致します。モニターは「{{field}}」欄で選択します。",
-  "Search by name or IP address...": "名前または IP アドレスで検索..."
+  "Search by name or IP address...": "名前または IP アドレスで検索...",
+  "No resources to link yet.": "関連付けられるリソースはまだありません。"
 }

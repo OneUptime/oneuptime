@@ -36967,5 +36967,6 @@
   "Could not search resources.": "Impossible de rechercher les ressources.",
   "{{count}} monitors also match. Monitors are picked in the {{field}} field.": "{{count}} moniteurs correspondent aussi. Les moniteurs se choisissent dans le champ {{field}}.",
   "{{count}} monitors also match. Monitors are picked in the {{field}} field._one": "{{count}} moniteur correspond aussi. Les moniteurs se choisissent dans le champ {{field}}.",
-  "Search by name or IP address...": "Rechercher par nom ou adresse IP..."
+  "Search by name or IP address...": "Rechercher par nom ou adresse IP...",
+  "No resources to link yet.": "Aucune ressource à associer pour l'instant."
 }

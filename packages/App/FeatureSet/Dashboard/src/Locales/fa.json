@@ -36967,5 +36967,6 @@
   "Could not search resources.": "جست‌وجوی منابع ممکن نشد.",
   "{{count}} monitors also match. Monitors are picked in the {{field}} field.": "{{count}} مانیتور هم مطابقت دارد. مانیتورها در فیلد «{{field}}» انتخاب می‌شوند.",
   "{{count}} monitors also match. Monitors are picked in the {{field}} field._one": "{{count}} مانیتور هم مطابقت دارد. مانیتورها در فیلد «{{field}}» انتخاب می‌شوند.",
-  "Search by name or IP address...": "جستجو بر اساس نام یا آدرس IP..."
+  "Search by name or IP address...": "جستجو بر اساس نام یا آدرس IP...",
+  "No resources to link yet.": "هنوز منبعی برای پیوست کردن نیست."
 }

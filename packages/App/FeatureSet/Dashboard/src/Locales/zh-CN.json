@@ -36967,5 +36967,6 @@
   "Could not search resources.": "无法搜索资源。",
   "{{count}} monitors also match. Monitors are picked in the {{field}} field.": "另有 {{count}} 个监视器匹配。监视器请在“{{field}}”字段中选择。",
   "{{count}} monitors also match. Monitors are picked in the {{field}} field._one": "另有 {{count}} 个监视器匹配。监视器请在“{{field}}”字段中选择。",
-  "Search by name or IP address...": "按名称或 IP 地址搜索..."
+  "Search by name or IP address...": "按名称或 IP 地址搜索...",
+  "No resources to link yet.": "暂无可关联的资源。"
 }

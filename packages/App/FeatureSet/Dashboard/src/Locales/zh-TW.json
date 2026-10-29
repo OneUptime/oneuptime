@@ -36967,5 +36967,6 @@
   "Could not search resources.": "無法搜尋資源。",
   "{{count}} monitors also match. Monitors are picked in the {{field}} field.": "另有 {{count}} 個監測器符合。監測器請在「{{field}}」欄位中選擇。",
   "{{count}} monitors also match. Monitors are picked in the {{field}} field._one": "另有 {{count}} 個監測器符合。監測器請在「{{field}}」欄位中選擇。",
-  "Search by name or IP address...": "依名稱或 IP 位址搜尋..."
+  "Search by name or IP address...": "依名稱或 IP 位址搜尋...",
+  "No resources to link yet.": "目前沒有可關聯的資源。"
 }

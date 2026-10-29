@@ -2410,13 +2410,24 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                 </div>
               )}
 
+              {/*
+               * Nothing listed before anything is typed. When nothing
+               * matched at all, the project has nothing of these kinds to
+               * link - typing would not find any. Otherwise every resource
+               * listed is picked already, and typing finds the others.
+               */}
               {!isLoading &&
                 !hasSearchFailed &&
                 searchQuery.trim() === "" &&
                 groupedAvailable.length === 0 && (
-                  <div className="px-3 py-2 text-gray-500">
+                  <div
+                    data-testid="affected-resources-search-empty"
+                    className="px-3 py-2 text-gray-500"
+                  >
                     {translator.translateText(
-                      "No resources available. Type to search across all resources.",
+                      totalMatchCount === 0
+                        ? "No resources to link yet."
+                        : "No resources available. Type to search across all resources.",
                     )}
                   </div>
                 )}

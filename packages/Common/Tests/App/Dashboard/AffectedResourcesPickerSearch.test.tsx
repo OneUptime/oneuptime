@@ -801,6 +801,33 @@ describe("when the search cannot answer", () => {
     expect(rowNames("Host")).toEqual(["wan-proxy"]);
   });
 
+  test("a project with nothing to link says so, rather than to type", async () => {
+    project = {};
+
+    renderPicker();
+    await open();
+
+    expect(
+      screen.getByTestId("affected-resources-search-empty"),
+    ).toHaveTextContent("No resources to link yet.");
+    expect(screen.queryByText(/Type to search/)).toBeNull();
+  });
+
+  test("with every listed resource picked already, typing finds the others", async () => {
+    project = {
+      [AffectedResourceKind.Host]: [{ _id: HOST_ID, name: "wan-proxy" }],
+    };
+
+    renderPicker({ hosts: [{ _id: HOST_ID, name: "wan-proxy" }] as never });
+    await open();
+
+    expect(
+      screen.getByTestId("affected-resources-search-empty"),
+    ).toHaveTextContent(
+      "No resources available. Type to search across all resources.",
+    );
+  });
+
   test("nothing matched is said as such", async () => {
     renderPicker();
     await open();

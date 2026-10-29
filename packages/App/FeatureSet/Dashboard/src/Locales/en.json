@@ -36967,5 +36967,6 @@
   "Could not search resources.": "Could not search resources.",
   "{{count}} monitors also match. Monitors are picked in the {{field}} field.": "{{count}} monitors also match. Monitors are picked in the {{field}} field.",
   "{{count}} monitors also match. Monitors are picked in the {{field}} field._one": "{{count}} monitor also matches. Monitors are picked in the {{field}} field.",
-  "Search by name or IP address...": "Search by name or IP address..."
+  "Search by name or IP address...": "Search by name or IP address...",
+  "No resources to link yet.": "No resources to link yet."
 }

@@ -36967,5 +36967,6 @@
   "Could not search resources.": "Не удалось выполнить поиск ресурсов.",
   "{{count}} monitors also match. Monitors are picked in the {{field}} field.": "Совпадают и мониторы: {{count}}. Мониторы выбираются в поле «{{field}}».",
   "{{count}} monitors also match. Monitors are picked in the {{field}} field._one": "Совпадает и {{count}} монитор. Мониторы выбираются в поле «{{field}}».",
-  "Search by name or IP address...": "Поиск по имени или IP-адресу..."
+  "Search by name or IP address...": "Поиск по имени или IP-адресу...",
+  "No resources to link yet.": "Пока нет ресурсов для привязки."
 }

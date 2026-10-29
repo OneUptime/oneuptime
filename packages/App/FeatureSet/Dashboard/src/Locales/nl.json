@@ -36967,5 +36967,6 @@
   "Could not search resources.": "De resources konden niet worden doorzocht.",
   "{{count}} monitors also match. Monitors are picked in the {{field}} field.": "Ook {{count}} monitoren komen overeen. Monitoren kies je in het veld {{field}}.",
   "{{count}} monitors also match. Monitors are picked in the {{field}} field._one": "Ook {{count}} monitor komt overeen. Monitoren kies je in het veld {{field}}.",
-  "Search by name or IP address...": "Zoeken op naam of IP-adres..."
+  "Search by name or IP address...": "Zoeken op naam of IP-adres...",
+  "No resources to link yet.": "Nog geen resources om te koppelen."
 }
