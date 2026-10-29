@@ -95,6 +95,19 @@ export const LABEL_RULE_MODELS: Array<DatabaseBaseModelType> = [
 ];
 
 /*
+ * Rule types whose criteria have generic names - nameRegexPattern,
+ * descriptionRegexPattern, matchLabels - rather than the resource's own
+ * (monitorNamePattern), mapped to the same meaning when a rule moves
+ * between types.
+ */
+const RESOURCES_WITH_GENERIC_CRITERIA: ReadonlyArray<string> = [
+  "RumApplication",
+  "CloudResource",
+  "ServerlessFunction",
+  "DataStore",
+];
+
+/*
  * Rule types whose engines match patterns through RulePatternMatchUtil: a
  * regex, with a '*' wildcard fallback, on the trimmed pattern. Every other
  * label rule compiles its pattern as a plain regex, so a pattern moving
@@ -719,9 +732,7 @@ export default class LabelRuleImportExport {
     }
     if (
       [`${prefix}NamePattern`, `${prefix}TitlePattern`].includes(column) ||
-      (["RumApplication", "CloudResource", "ServerlessFunction"].includes(
-        resource,
-      ) &&
+      (RESOURCES_WITH_GENERIC_CRITERIA.includes(resource) &&
         column === "nameRegexPattern") ||
       (resource === "ScheduledMaintenance" && column === "titlePattern")
     ) {
@@ -729,9 +740,7 @@ export default class LabelRuleImportExport {
     }
     if (
       column === `${prefix}DescriptionPattern` ||
-      (["RumApplication", "CloudResource", "ServerlessFunction"].includes(
-        resource,
-      ) &&
+      (RESOURCES_WITH_GENERIC_CRITERIA.includes(resource) &&
         column === "descriptionRegexPattern") ||
       (resource === "ScheduledMaintenance" && column === "descriptionPattern")
     ) {
@@ -739,9 +748,7 @@ export default class LabelRuleImportExport {
     }
     if (
       column === `${prefix}Labels` ||
-      (["RumApplication", "CloudResource", "ServerlessFunction"].includes(
-        resource,
-      ) &&
+      (RESOURCES_WITH_GENERIC_CRITERIA.includes(resource) &&
         column === "matchLabels")
     ) {
       return "$resourceLabels";
