@@ -30,7 +30,7 @@ import { describe, expect, test } from "@jest/globals";
 /*
  * "Let AI fix problems" on a cloud account asks one question — how far may
  * AI go — and builds one command for the cloud's shell. Everything else has
- * a safe default under Advanced: every change (their tiers still apply), no
+ * a safe default under More fields: every change (their tiers still apply), no
  * protected resources, no required tag, logs unread, approvals not
  * bypassed.
  */
@@ -134,7 +134,7 @@ describe("the setup command's options", () => {
     expect(describeCloudAiAgentSetupProblem(built)).toBeNull();
   });
 
-  test("Advanced choices reach the command", () => {
+  test("the choices under More fields reach the command", () => {
     const choices: CloudAiAgentSetupChoices = {
       ...getDefaultCloudAiAgentSetupChoices({ provider: CloudProvider.AWS }),
       enabledOperations: ["restart-service", "scale-out"],

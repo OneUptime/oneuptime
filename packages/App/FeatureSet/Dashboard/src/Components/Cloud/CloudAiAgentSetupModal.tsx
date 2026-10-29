@@ -49,6 +49,7 @@ import {
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import { HOST, HTTP_PROTOCOL } from "Common/UI/Config";
@@ -68,7 +69,7 @@ import React, {
  * go — and one command for the cloud's own shell, which creates the Cloud
  * AI agent's role and starts the agent. Nothing is pasted back: the agent
  * connects on its own, and the dialog says Connected when it does. Every
- * other setting has a safe default and is folded under Advanced.
+ * other setting has a safe default and is folded under More fields.
  *
  * Changing how far AI may go is running the updated command: the agent's
  * own settings decide, as for every AI agent, and the final say stays in
@@ -312,7 +313,7 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
     <Modal
       title="Let AI fix problems"
       description={translator.translateTemplate(
-        "OneUptime AI can already read this account. To let it fix problems too, run one command in {{shell}}: it creates the agent's role and starts the agent, which connects on its own.",
+        "Run one command in {{shell}} to let OneUptime AI fix problems here: it creates the agent's role and starts the agent, which connects on its own.",
         { shell },
       )}
       modalWidth={ModalWidth.Medium}
@@ -426,7 +427,7 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
         </div>
 
         <CollapsibleSection
-          title="Advanced"
+          title={MORE_FIELDS_SECTION_TITLE}
           defaultCollapsed={true}
           collapsedDescription={translationKey(
             "Which changes AI may make, resources it must never change, a required tag, reading logs, and running the agent somewhere else.",

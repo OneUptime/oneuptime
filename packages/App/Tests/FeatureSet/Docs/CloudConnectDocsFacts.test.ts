@@ -454,7 +454,9 @@ describe("Let AI fix problems", () => {
     expect(card).toContain('title="AI agent"');
     expect(card).toContain('title="Let AI fix problems"');
     expect(dialog).toContain('translationKey("How far may AI go?")');
-    expect(dialog).toContain('title="Advanced"');
+    // Its fold of the rest is the forms' More fields, never Advanced.
+    expect(dialog).toContain("title={MORE_FIELDS_SECTION_TITLE}");
+    expect(dialog).not.toContain('title="Advanced"');
     expect(setup).toContain('translationKey("Ask me first")');
     expect(setup).toContain(
       'translationKey( "Fix safe problems on its own", )',
@@ -470,7 +472,7 @@ describe("Let AI fix problems", () => {
       "select **Let AI fix problems** in the **AI agent** card of its **Overview**.",
     );
     expect(fix).toContain(
-      "The dialog asks one question, **How far may AI go?**: **Ask me first**, the default, where OneUptime AI proposes each fix and a person approves it with one click, or **Fix safe problems on its own**, where safe changes run on their own and riskier ones still wait for approval. Everything else has a safe default under **Advanced**.",
+      "The dialog asks one question, **How far may AI go?**: **Ask me first**, the default, where OneUptime AI proposes each fix and a person approves it with one click, or **Fix safe problems on its own**, where safe changes run on their own and riskier ones still wait for approval. Everything else has a safe default under **More fields**.",
     );
   });
 

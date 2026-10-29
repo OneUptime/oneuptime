@@ -117,6 +117,7 @@ import {
   RESOURCE_SHELL_SYNTAX_RULE,
   ResourceCommandPolicyResult,
 } from "Common/Utils/AiRemediation/Resource/ResourceCommandPolicyCore";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -1672,7 +1673,10 @@ describe("Infrastructure AI Agents docs", (): void => {
       expect(card).toContain('title="AI agent"');
       expect(card).toContain('title="Let AI fix problems"');
       expect(dialog).toContain('translationKey("How far may AI go?")');
-      expect(dialog).toContain('title="Advanced"');
+      // Its fold of the rest is the forms' More fields, never Advanced.
+      expect(dialog).toContain("title={MORE_FIELDS_SECTION_TITLE}");
+      expect(dialog).not.toContain('title="Advanced"');
+      expect(MORE_FIELDS_SECTION_TITLE).toBe("More fields");
       expect(words).toContain(
         "select **Let AI fix problems** in the **AI agent** card of its **Overview**.",
       );
@@ -2316,7 +2320,7 @@ describe("Infrastructure AI Agents docs", (): void => {
         ),
       ).toContain("isAiLogReadEnabled");
       expect(oneLine(bulletOf(readLogs))).toContain(
-        "Log lines can hold customer data, so this read is off until someone turns on **Let AI read this account's logs during investigations**, under **Advanced** in **Let AI fix problems**, which is saved at once, with no command to run.",
+        "Log lines can hold customer data, so this read is off until someone turns on **Let AI read this account's logs during investigations**, under **More fields** in **Let AI fix problems**, which is saved at once, with no command to run.",
       );
     });
   });
@@ -3215,7 +3219,7 @@ describe("Infrastructure AI Agents docs", (): void => {
         "A value that is not `key=value` refuses every change.",
       );
       expect(oneLine(writeAccess)).toContain(
-        "A Cloud AI agent's come from its setup command, as **Which changes AI may make (their tiers still apply)**, **Resources AI must never change** and the tag under **Advanced** in **Let AI fix problems** set them: run the command again to change them.",
+        "A Cloud AI agent's come from its setup command, as **Which changes AI may make (their tiers still apply)**, **Resources AI must never change** and the tag under **More fields** in **Let AI fix problems** set them: run the command again to change them.",
       );
     });
 

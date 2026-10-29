@@ -36329,7 +36329,7 @@
   "Let riskier changes run without approval (Bypass approval)": "リスクの高い変更も承認なしで実行する（承認をバイパス）",
   "Off by default: log lines can hold customer data. Saved at once, with no command to run.": "デフォルトではオフです。ログ行には顧客データが含まれることがあります。すぐに保存され、実行するコマンドはありません。",
   "One name or id pattern per line, such as *prod-db*": "1 行に 1 つの名前または ID のパターン（例: *prod-db*）",
-  "OneUptime AI can already read this account. To let it fix problems too, run one command in {{shell}}: it creates the agent's role and starts the agent, which connects on its own.": "OneUptime AI はすでにこのアカウントを読み取れます。問題の修正もさせるには、{{shell}} でコマンドを 1 つ実行してください。エージェントのロールが作成されてエージェントが起動し、自動的に接続されます。",
+  "Run one command in {{shell}} to let OneUptime AI fix problems here: it creates the agent's role and starts the agent, which connects on its own.": "OneUptime AI にここで問題を修正させるには、{{shell}} でコマンドを 1 つ実行してください。エージェントのロールが作成されてエージェントが起動し、自動的に接続されます。",
   "OneUptime AI can read this account but can't change it.": "OneUptime AI はこのアカウントを読み取れますが、変更はできません。",
   "OneUptime AI can read this account but can't change it. One command in the cloud's own shell starts the agent, which connects on its own.": "OneUptime AI はこのアカウントを読み取れますが、変更はできません。クラウドが提供するシェルでコマンドを 1 つ実行するとエージェントが起動し、自動的に接続されます。",
   "OneUptime AI proposes each fix, and a person approves it with one click.": "OneUptime AI が修正を 1 つずつ提案し、人がワンクリックで承認します。",

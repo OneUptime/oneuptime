@@ -36329,7 +36329,7 @@
   "Let riskier changes run without approval (Bypass approval)": "允许风险较高的更改无需批准即可运行（跳过批准）",
   "Off by default: log lines can hold customer data. Saved at once, with no command to run.": "默认关闭：日志行可能包含客户数据。此设置会立即保存，无需运行命令。",
   "One name or id pattern per line, such as *prod-db*": "每行一个名称或 ID 模式，例如 *prod-db*",
-  "OneUptime AI can already read this account. To let it fix problems too, run one command in {{shell}}: it creates the agent's role and starts the agent, which connects on its own.": "OneUptime AI 已经可以读取此账户。若要让它也能修复问题，请在 {{shell}} 中运行一条命令：该命令会创建代理的角色并启动代理，代理会自行连接。",
+  "Run one command in {{shell}} to let OneUptime AI fix problems here: it creates the agent's role and starts the agent, which connects on its own.": "在 {{shell}} 中运行一条命令，即可让 OneUptime AI 在此修复问题：该命令会创建代理的角色并启动代理，代理会自行连接。",
   "OneUptime AI can read this account but can't change it.": "OneUptime AI 可以读取此账户，但无法更改它。",
   "OneUptime AI can read this account but can't change it. One command in the cloud's own shell starts the agent, which connects on its own.": "OneUptime AI 可以读取此账户，但无法更改它。在云平台自带的 Shell 中运行一条命令即可启动代理，代理会自行连接。",
   "OneUptime AI proposes each fix, and a person approves it with one click.": "OneUptime AI 提出每项修复，由人工一键批准。",

@@ -58,6 +58,7 @@ import {
   headerOf,
 } from "./CloudLiveReadFakes";
 import { FakeResponse, json } from "../LlmObservability/FakeProviderApi";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * One live read of a cloud account, end to end against fake clouds: what
@@ -1251,10 +1252,15 @@ describe("the answer's cap and the tool_result frame", () => {
   });
 
   test("defusing a long answer is linear", () => {
-    const started: number = Date.now();
     const text: string = "<".repeat(2_000_000);
+    const timed: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return defuseToolResultClose(text);
+      },
+      limitInMs: 3000,
+    });
 
-    expect(defuseToolResultClose(text)).toBe(text);
-    expect(Date.now() - started).toBeLessThan(3000);
+    expect(timed.result).toBe(text);
+    expect(timed.inMs).toBeLessThan(3000);
   });
 });

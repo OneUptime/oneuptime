@@ -29,7 +29,7 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * "Let AI fix problems" dialog asks, and the setup command it builds.
  *
  * One question — how far may AI go — and one command for the cloud's own
- * shell. Every other choice has a safe default and sits under Advanced:
+ * shell. Every other choice has a safe default and sits under More fields:
  * which changes AI may make (all; their tiers still apply), resources AI
  * must never change, only changing resources that carry a tag, reading the
  * account's logs during investigations (off), letting riskier changes run
@@ -43,13 +43,13 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 export interface CloudAiAgentSetupChoices {
   // "Ask me first" (RequireApproval, the default) or "Fix safe problems on its own" (Automatic).
   fixSafeProblemsAlone: boolean;
-  // Advanced: riskier changes run without approval too (BypassApproval).
+  // More fields: riskier changes run without approval too (BypassApproval).
   bypassApproval: boolean;
-  // Advanced: the catalog changes AI may make; every change of the cloud by default.
+  // More fields: the catalog changes AI may make; every change of the cloud by default.
   enabledOperations: Array<string>;
-  // Advanced: resources AI must never change, one name or id pattern per line.
+  // More fields: resources AI must never change, one name or id pattern per line.
   protectedTargetsText: string;
-  // Advanced: change only resources tagged CLOUD_AI_DEFAULT_REQUIRED_TAG.
+  // More fields: change only resources tagged CLOUD_AI_DEFAULT_REQUIRED_TAG.
   onlyTaggedResources: boolean;
 }
 

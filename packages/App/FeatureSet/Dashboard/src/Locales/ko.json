@@ -36329,7 +36329,7 @@
   "Let riskier changes run without approval (Bypass approval)": "위험도가 높은 변경도 승인 없이 실행(승인 건너뛰기)",
   "Off by default: log lines can hold customer data. Saved at once, with no command to run.": "기본적으로 꺼져 있습니다. 로그 줄에 고객 데이터가 담길 수 있습니다. 바로 저장되며 실행할 명령은 없습니다.",
   "One name or id pattern per line, such as *prod-db*": "한 줄에 이름 또는 ID 패턴 하나(예: *prod-db*)",
-  "OneUptime AI can already read this account. To let it fix problems too, run one command in {{shell}}: it creates the agent's role and starts the agent, which connects on its own.": "OneUptime AI는 이미 이 계정을 읽을 수 있습니다. 문제 해결까지 맡기려면 {{shell}}에서 명령 하나를 실행하세요. 이 명령은 에이전트의 역할을 만들고 에이전트를 시작하며, 에이전트는 스스로 연결됩니다.",
+  "Run one command in {{shell}} to let OneUptime AI fix problems here: it creates the agent's role and starts the agent, which connects on its own.": "OneUptime AI가 여기에서 문제를 해결하도록 하려면 {{shell}}에서 명령 하나를 실행하세요. 이 명령은 에이전트의 역할을 만들고 에이전트를 시작하며, 에이전트는 스스로 연결됩니다.",
   "OneUptime AI can read this account but can't change it.": "OneUptime AI는 이 계정을 읽을 수 있지만 변경할 수는 없습니다.",
   "OneUptime AI can read this account but can't change it. One command in the cloud's own shell starts the agent, which connects on its own.": "OneUptime AI는 이 계정을 읽을 수 있지만 변경할 수는 없습니다. 클라우드 자체 셸에서 명령 하나만 실행하면 에이전트가 시작되고 스스로 연결됩니다.",
   "OneUptime AI proposes each fix, and a person approves it with one click.": "OneUptime AI가 수정을 하나씩 제안하고, 사람이 클릭 한 번으로 승인합니다.",

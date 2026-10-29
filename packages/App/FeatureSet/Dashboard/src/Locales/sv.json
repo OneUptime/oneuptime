@@ -36329,7 +36329,7 @@
   "Let riskier changes run without approval (Bypass approval)": "Låt mer riskfyllda ändringar köras utan godkännande (Hoppa över godkännande)",
   "Off by default: log lines can hold customer data. Saved at once, with no command to run.": "Av som standard: loggrader kan innehålla kunddata. Sparas direkt, utan något kommando att köra.",
   "One name or id pattern per line, such as *prod-db*": "Ett namn- eller ID-mönster per rad, till exempel *prod-db*",
-  "OneUptime AI can already read this account. To let it fix problems too, run one command in {{shell}}: it creates the agent's role and starts the agent, which connects on its own.": "OneUptime AI kan redan läsa det här kontot. Om du vill att den även ska åtgärda problem kör du ett kommando i {{shell}}: det skapar agentens roll och startar agenten, som ansluter av sig själv.",
+  "Run one command in {{shell}} to let OneUptime AI fix problems here: it creates the agent's role and starts the agent, which connects on its own.": "Kör ett kommando i {{shell}} för att låta OneUptime AI åtgärda problem här: det skapar agentens roll och startar agenten, som ansluter av sig själv.",
   "OneUptime AI can read this account but can't change it.": "OneUptime AI kan läsa det här kontot men inte ändra det.",
   "OneUptime AI can read this account but can't change it. One command in the cloud's own shell starts the agent, which connects on its own.": "OneUptime AI kan läsa det här kontot men inte ändra det. Ett kommando i molnets eget skal startar agenten, som ansluter av sig själv.",
   "OneUptime AI proposes each fix, and a person approves it with one click.": "OneUptime AI föreslår varje korrigering, och en person godkänner den med ett klick.",

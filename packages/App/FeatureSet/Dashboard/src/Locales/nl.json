@@ -36329,7 +36329,7 @@
   "Let riskier changes run without approval (Bypass approval)": "Riskantere wijzigingen zonder goedkeuring laten uitvoeren (Goedkeuring overslaan)",
   "Off by default: log lines can hold customer data. Saved at once, with no command to run.": "Standaard uit: logregels kunnen klantgegevens bevatten. Dit wordt meteen opgeslagen; u hoeft geen opdracht uit te voeren.",
   "One name or id pattern per line, such as *prod-db*": "Eén naam- of ID-patroon per regel, zoals *prod-db*",
-  "OneUptime AI can already read this account. To let it fix problems too, run one command in {{shell}}: it creates the agent's role and starts the agent, which connects on its own.": "OneUptime AI kan dit account al lezen. Wilt u dat het ook problemen oplost, voer dan één opdracht uit in {{shell}}: deze maakt de rol van de agent aan en start de agent, die zelf verbinding maakt.",
+  "Run one command in {{shell}} to let OneUptime AI fix problems here: it creates the agent's role and starts the agent, which connects on its own.": "Voer één opdracht uit in {{shell}} om OneUptime AI hier problemen te laten oplossen: deze maakt de rol van de agent aan en start de agent, die zelf verbinding maakt.",
   "OneUptime AI can read this account but can't change it.": "OneUptime AI kan dit account lezen, maar niet wijzigen.",
   "OneUptime AI can read this account but can't change it. One command in the cloud's own shell starts the agent, which connects on its own.": "OneUptime AI kan dit account lezen, maar niet wijzigen. Eén opdracht in de eigen shell van de cloud start de agent, die zelf verbinding maakt.",
   "OneUptime AI proposes each fix, and a person approves it with one click.": "OneUptime AI stelt elke oplossing voor en iemand keurt die met één klik goed.",

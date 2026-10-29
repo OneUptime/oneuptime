@@ -23,6 +23,7 @@ import {
   liveUsage,
   sliceWhole,
 } from "../../../../Server/Utils/CloudConnection/LiveRead/LiveReadFormat";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * The XML reader the AWS Query protocol's answers are read with, and the
@@ -215,32 +216,39 @@ describe("the AWS XML reader", () => {
   });
 
   test("reads in time linear in the answer, whatever its shape", () => {
-    const started: number = Date.now();
-
     // A large, ordinary answer: 50,000 members.
     const members: string =
       "<member><Id>i-0123456789abcdef0</Id><State>ok</State></member>".repeat(
         50000,
       );
-    expect(xmlList(parseAwsXml(`<R><L>${members}</L></R>`), "L")).toHaveLength(
+    const ampersands: string = `<a>${"&".repeat(2_000_000)};</a>`;
+    const entities: string = `<a>${"&amp;".repeat(400_000)}</a>`;
+    const openQuote: string = `<a b="${"x".repeat(2_000_000)}`;
+    const openTags: string = `<a>${"<".repeat(1_000_000)}`;
+
+    const timed: FastestRun<Array<unknown>> = fastestRun({
+      run: (): Array<unknown> => {
+        return [
+          xmlList(parseAwsXml(`<R><L>${members}</L></R>`), "L").length,
+          // Ampersands that never end an entity, and runs of entities.
+          parseAwsXml(ampersands).text.length,
+          parseAwsXml(entities).text.length,
+          // A quote that never closes inside a tag, and a "<" with no ">" after it.
+          parseError(openQuote),
+          parseError(openTags) !== "",
+        ];
+      },
+      limitInMs: 10000,
+    });
+
+    expect(timed.result).toEqual([
       50000,
-    );
-
-    // Ampersands that never end an entity, and runs of entities.
-    expect(parseAwsXml(`<a>${"&".repeat(2_000_000)};</a>`).text.length).toBe(
       2_000_001,
-    );
-    expect(parseAwsXml(`<a>${"&amp;".repeat(400_000)}</a>`).text.length).toBe(
       400_000,
-    );
-
-    // A quote that never closes inside a tag, and a "<" with no ">" after it.
-    expect(parseError(`<a b="${"x".repeat(2_000_000)}`)).toBe(
       "A tag is not closed.",
-    );
-    expect(parseError(`<a>${"<".repeat(1_000_000)}`)).not.toBe("");
-
-    expect(Date.now() - started).toBeLessThan(10000);
+      true,
+    ]);
+    expect(timed.inMs).toBeLessThan(10000);
   });
 });
 
@@ -274,11 +282,16 @@ describe("how a live read writes a value from the cloud", () => {
     expect(sliceWhole("ab😀", 3)).toBe("ab");
     expect(sliceWhole("ab😀", 4)).toBe("ab😀");
 
-    const started: number = Date.now();
-    const huge: string = liveText("x".repeat(16 * 1024 * 1024), 500);
-    expect(huge).toHaveLength(500);
-    expect(huge.endsWith("…")).toBe(true);
-    expect(Date.now() - started).toBeLessThan(2000);
+    const input: string = "x".repeat(16 * 1024 * 1024);
+    const timed: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return liveText(input, 500);
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.result).toHaveLength(500);
+    expect(timed.result.endsWith("…")).toBe(true);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   test("times are ISO 8601 in UTC, to the second unless asked for milliseconds", () => {

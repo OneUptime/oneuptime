@@ -36329,7 +36329,7 @@
   "Let riskier changes run without approval (Bypass approval)": "अधिक जोखिम वाले बदलावों को बिना अनुमोदन के चलने दें (अनुमोदन छोड़ें)",
   "Off by default: log lines can hold customer data. Saved at once, with no command to run.": "डिफ़ॉल्ट रूप से बंद: लॉग पंक्तियों में ग्राहक डेटा हो सकता है। यह तुरंत सहेजा जाता है, कोई कमांड चलाने की ज़रूरत नहीं।",
   "One name or id pattern per line, such as *prod-db*": "प्रति पंक्ति एक नाम या ID पैटर्न, जैसे *prod-db*",
-  "OneUptime AI can already read this account. To let it fix problems too, run one command in {{shell}}: it creates the agent's role and starts the agent, which connects on its own.": "OneUptime AI पहले से ही इस खाते को पढ़ सकता है। इसे समस्याएँ ठीक करने की अनुमति भी देने के लिए, {{shell}} में एक कमांड चलाएँ: यह एजेंट की भूमिका बनाती है और एजेंट को शुरू करती है, जो अपने आप कनेक्ट हो जाता है।",
+  "Run one command in {{shell}} to let OneUptime AI fix problems here: it creates the agent's role and starts the agent, which connects on its own.": "OneUptime AI को यहाँ समस्याएँ ठीक करने देने के लिए {{shell}} में एक कमांड चलाएँ: यह एजेंट की भूमिका बनाती है और एजेंट को शुरू करती है, जो अपने आप कनेक्ट हो जाता है।",
   "OneUptime AI can read this account but can't change it.": "OneUptime AI इस खाते को पढ़ सकता है, लेकिन इसे बदल नहीं सकता।",
   "OneUptime AI can read this account but can't change it. One command in the cloud's own shell starts the agent, which connects on its own.": "OneUptime AI इस खाते को पढ़ सकता है, लेकिन इसे बदल नहीं सकता। क्लाउड के अपने शेल में एक कमांड एजेंट को शुरू करती है, जो अपने आप कनेक्ट हो जाता है।",
   "OneUptime AI proposes each fix, and a person approves it with one click.": "OneUptime AI हर सुधार सुझाता है, और कोई व्यक्ति एक क्लिक में उसे अनुमोदित करता है।",

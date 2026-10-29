@@ -143,7 +143,7 @@ sudo bash install.sh
 AWS 账户、Azure 订阅或 Google Cloud 项目旁边没有可供代理依附的采集器，而 OneUptime 无需代理也能读取它（参见 [云账户](#云账户)）。负责修复的云 AI 代理运行在该账户自身之中，只需在账户页面上运行一条命令即可设置，无需 compose 文件，也无需 `.env`：
 
 1. 在“云 → 账户”下打开该账户，然后在其 **概览** 的 **AI 代理** 卡片中选择 **让 AI 修复问题**。
-2. 回答唯一的问题——**AI 可以做到哪一步？** 选择默认的 **先询问我** 会将 **修复** 设为 **请求批准**，选择 **自行修复低风险问题** 则会将其设为 **自动**。**高级** 中包含其余设置：AI 可以进行哪些更改、AI 绝不能更改的资源、仅更改带有 `oneuptime-ai=allow` 标签的资源、**跳过批准**、读取账户的日志，以及在其他地方运行代理所需的变量。
+2. 回答唯一的问题——**AI 可以做到哪一步？** 选择默认的 **先询问我** 会将 **修复** 设为 **请求批准**，选择 **自行修复低风险问题** 则会将其设为 **自动**。**更多字段** 中包含其余设置：AI 可以进行哪些更改、AI 绝不能更改的资源、仅更改带有 `oneuptime-ai=allow` 标签的资源、**跳过批准**、读取账户的日志，以及在其他地方运行代理所需的变量。
 3. 在云平台自带的 Shell 中登录该账户，然后运行它显示的命令。该命令会根据已开启的更改写出代理的角色并启动代理，代理会在几分钟内自行连接：无需粘贴任何内容。如果它没有连接，其日志会说明原因（参见 [日志和状态](#日志和状态)）。
 
 | 云 | 在何处运行 | 命令创建的内容 |
@@ -268,7 +268,7 @@ OneUptime 会通过账户的只读连接，亲自实时读取 AWS 账户、Azure
 - `cloud recent-events RESOURCE [--hours N] [--limit N]`——平台最近对该资源做了什么：部署和服务事件、RDS 事件、扩缩活动、资源运行状况和活动日志条目（`--hours` 默认为 6，最多 72）。
 - `cloud target-health RESOURCE`——仅限 AWS：目标组或负载均衡器将哪些后端视为健康，以及其他后端为何不健康。
 - `cloud quota-usage RESOURCE [--limit N]`——账户在资源所在区域中针对该资源所属服务的用量与其限额的对比。
-- `cloud read-logs RESOURCE [--filter TEXT] [--minutes N] [--limit N]`——资源的日志行，按从新到旧排列，给出 `--filter` 时只返回包含它的日志行（`--minutes` 默认为 60，最多 1440）。日志行可能包含客户数据，因此在有人开启 **让 AI 修复问题** 中 **高级** 下的 **允许 AI 在调查期间读取此账户的日志** 之前，这项读取一直是关闭的；该设置会立即保存，无需运行命令。
+- `cloud read-logs RESOURCE [--filter TEXT] [--minutes N] [--limit N]`——资源的日志行，按从新到旧排列，给出 `--filter` 时只返回包含它的日志行（`--minutes` 默认为 60，最多 1440）。日志行可能包含客户数据，因此在有人开启 **让 AI 修复问题** 中 **更多字段** 下的 **允许 AI 在调查期间读取此账户的日志** 之前，这项读取一直是关闭的；该设置会立即保存，无需运行命令。
 - `cloud whoami`——在云 AI 代理上运行的一种读取：它所操作的账户、它是否可以更改任何内容，以及可以进行哪些更改。代理状态旁边 **⋯** 菜单中的 **测试连接** 会运行它。
 - `cloud dry-run CHANGE RESOURCE [--flag value]`——另一种在云 AI 代理上运行的读取：按其将要运行的样子写出的更改，只检查而不执行。代理会像执行更改前那样检查它（它的写入权限、它可以进行的更改、账户、要求的标签、资源的状态以及扩缩的上下限），读取更改将替换的值，并在执行更改的调用之前停下。它会回答更改是否会运行、会替换什么以及如何撤销，或者为什么会被拒绝。
 
@@ -429,7 +429,7 @@ OneUptime 会通过账户的只读连接，亲自实时读取 AWS 账户、Azure
 | `ONEUPTIME_AI_CLOUD_OPERATIONS` | 空 | 仅限云 AI 代理：以逗号分隔的、它可以进行的更改，例如 `restart-service,scale-out`。为空表示目录中的每项更改，各自带有其级别。代理不认识的名称会被忽略，并在其日志中记录一条警告。 |
 | `ONEUPTIME_AI_CLOUD_REQUIRED_TAG` | 空 | 仅限云 AI 代理：以 `key=value` 形式写出的标签，例如 `oneuptime-ai=allow`。此后代理只更改带有该标签的资源（在 Google Cloud 上为 label），并且在 AWS 上，其写入角色只允许对这些资源进行更改。不是 `key=value` 形式的值会拒绝每一项更改。 |
 
-请在代理与采集器共享的 `.env` 中（或在其容器的环境中）设置它们，并用 `docker compose up -d` 重启代理。超过 64 个条目的列表，或含有超过 256 个字符的条目的列表，会让代理保持只读，直到问题被修正。云 AI 代理的这些设置来自其设置命令，由 **让 AI 修复问题** 中 **高级** 下的 **AI 可以进行哪些更改（各项更改的风险等级仍然适用）**、**AI 绝不能更改的资源** 和标签设定：要更改它们，请再次运行该命令。
+请在代理与采集器共享的 `.env` 中（或在其容器的环境中）设置它们，并用 `docker compose up -d` 重启代理。超过 64 个条目的列表，或含有超过 256 个字符的条目的列表，会让代理保持只读，直到问题被修正。云 AI 代理的这些设置来自其设置命令，由 **让 AI 修复问题** 中 **更多字段** 下的 **AI 可以进行哪些更改（各项更改的风险等级仍然适用）**、**AI 绝不能更改的资源** 和标签设定：要更改它们，请再次运行该命令。
 
 代理会在每次心跳时向 OneUptime 上报这些设置，因此当 OneUptime AI 提出超出这些范围的修复时，OneUptime 就已拒绝它，有人批准时还会再拒绝一次——它永远不会以失败修复的形式到达代理。代理在运行任何内容之前也会拒绝它。
 
@@ -543,7 +543,7 @@ docker exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/status
 | `Killed (timeout …)` | 资源没有及时应答；如果完全没有输出，说明代理无法访问它——请检查两者之间的网络。 |
 | Proxmox、vCenter、Ceph 或数据库报出缺少某项权限、角色或 cap 的错误 | 凭据是不可逾越的上限：授予消息中指出的内容（参见 [凭据与最小权限](#凭据与最小权限)），或把该更改留给人处理。 |
 | `The Cloud AI agent could not check its cloud: …` | 它的角色、托管标识或服务账号已不存在或缺少某项权限，或者它无法访问其云的 API：请从账户页面再次运行设置命令。 |
-| `cloud … is not one of the changes this agent may make` | 在 **让 AI 修复问题** 的 **高级** 下开启该更改，然后再次运行命令：这也会为代理的角色授予该更改的权限。 |
+| `cloud … is not one of the changes this agent may make` | 在 **让 AI 修复问题** 的 **更多字段** 下开启该更改，然后再次运行命令：这也会为代理的角色授予该更改的权限。 |
 | `the agent only changes resources that carry the …` | 为资源加上 `oneuptime-ai=allow` 标签（在 Google Cloud 上为 label），或重新设置代理但不使用该标签。 |
 
 [Proxmox](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent)、[VMware](https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent)、[Ceph](https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent) 和 [数据库](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent) 代理的 README，以及 [主机 AI 代理](https://github.com/OneUptime/oneuptime/tree/master/agents/HostAIAgent) 的 README，都有针对其自身连接错误的故障排除表。

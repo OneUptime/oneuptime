@@ -36329,7 +36329,7 @@
   "Let riskier changes run without approval (Bypass approval)": "Let riskier changes run without approval (Bypass approval)",
   "Off by default: log lines can hold customer data. Saved at once, with no command to run.": "Off by default: log lines can hold customer data. Saved at once, with no command to run.",
   "One name or id pattern per line, such as *prod-db*": "One name or id pattern per line, such as *prod-db*",
-  "OneUptime AI can already read this account. To let it fix problems too, run one command in {{shell}}: it creates the agent's role and starts the agent, which connects on its own.": "OneUptime AI can already read this account. To let it fix problems too, run one command in {{shell}}: it creates the agent's role and starts the agent, which connects on its own.",
+  "Run one command in {{shell}} to let OneUptime AI fix problems here: it creates the agent's role and starts the agent, which connects on its own.": "Run one command in {{shell}} to let OneUptime AI fix problems here: it creates the agent's role and starts the agent, which connects on its own.",
   "OneUptime AI can read this account but can't change it.": "OneUptime AI can read this account but can't change it.",
   "OneUptime AI can read this account but can't change it. One command in the cloud's own shell starts the agent, which connects on its own.": "OneUptime AI can read this account but can't change it. One command in the cloud's own shell starts the agent, which connects on its own.",
   "OneUptime AI proposes each fix, and a person approves it with one click.": "OneUptime AI proposes each fix, and a person approves it with one click.",

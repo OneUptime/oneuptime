@@ -143,7 +143,7 @@ sudo bash install.sh
 AWS 帳戶、Azure 訂用帳戶或 Google Cloud 專案旁邊沒有可供代理程式依附的收集器，而 OneUptime 不需要代理程式也能讀取它（請參閱 [雲端帳戶](#雲端帳戶)）。負責修正的雲端 AI 代理程式在該帳戶本身中執行，只需在帳戶頁面上執行一個指令即可設定，不需要 compose 檔案，也不需要 `.env`：
 
 1. 在「雲端 → 帳戶」下開啟該帳戶，然後在其 **概覽** 的 **AI 代理程式** 卡片中選擇 **讓 AI 修正問題**。
-2. 回答唯一的問題——**AI 可以做到哪一步？** 選擇預設的 **先詢問我** 會將 **修正** 設為 **請求核准**，選擇 **自行修正低風險問題** 則會將其設為 **自動**。**進階** 中包含其餘設定：AI 可以進行哪些變更、AI 絕不能變更的資源、僅變更帶有 `oneuptime-ai=allow` 標籤的資源、**略過核准**、讀取帳戶的日誌，以及在其他地方執行代理程式所需的變數。
+2. 回答唯一的問題——**AI 可以做到哪一步？** 選擇預設的 **先詢問我** 會將 **修正** 設為 **請求核准**，選擇 **自行修正低風險問題** 則會將其設為 **自動**。**更多欄位** 中包含其餘設定：AI 可以進行哪些變更、AI 絕不能變更的資源、僅變更帶有 `oneuptime-ai=allow` 標籤的資源、**略過核准**、讀取帳戶的日誌，以及在其他地方執行代理程式所需的變數。
 3. 在雲端平台內建的 Shell 中登入該帳戶，然後執行它顯示的指令。該指令會依已開啟的變更寫出代理程式的角色並啟動代理程式，代理程式會在幾分鐘內自行連線：不需要貼回任何內容。如果它沒有連線，其日誌會說明原因（請參閱 [日誌與狀態](#日誌與狀態)）。
 
 | 雲端 | 在何處執行 | 指令建立的內容 |
@@ -268,7 +268,7 @@ OneUptime 會透過帳戶的唯讀連線，自行即時讀取 AWS 帳戶、Azure
 - `cloud recent-events RESOURCE [--hours N] [--limit N]`——平台最近對該資源做了什麼：部署和服務事件、RDS 事件、擴展活動、資源健康狀態和活動記錄項目（`--hours` 預設為 6，最多 72）。
 - `cloud target-health RESOURCE`——僅限 AWS：目標群組或負載平衡器將哪些後端視為健康，以及其他後端為何不健康。
 - `cloud quota-usage RESOURCE [--limit N]`——帳戶在資源所在區域中針對該資源所屬服務的使用量與其限制的對比。
-- `cloud read-logs RESOURCE [--filter TEXT] [--minutes N] [--limit N]`——資源的日誌行，依從新到舊排列，指定 `--filter` 時只傳回包含它的日誌行（`--minutes` 預設為 60，最多 1440）。日誌行可能包含客戶資料，因此在有人開啟 **讓 AI 修正問題** 中 **進階** 下的 **允許 AI 在調查期間讀取此帳戶的日誌** 之前，這項讀取一直是關閉的；該設定會立即儲存，不需要執行指令。
+- `cloud read-logs RESOURCE [--filter TEXT] [--minutes N] [--limit N]`——資源的日誌行，依從新到舊排列，指定 `--filter` 時只傳回包含它的日誌行（`--minutes` 預設為 60，最多 1440）。日誌行可能包含客戶資料，因此在有人開啟 **讓 AI 修正問題** 中 **更多欄位** 下的 **允許 AI 在調查期間讀取此帳戶的日誌** 之前，這項讀取一直是關閉的；該設定會立即儲存，不需要執行指令。
 - `cloud whoami`——在雲端 AI 代理程式上執行的一種讀取：它所操作的帳戶、它是否可以變更任何內容，以及可以進行哪些變更。代理程式狀態旁 **⋯** 選單中的 **測試連線** 會執行它。
 - `cloud dry-run CHANGE RESOURCE [--flag value]`——另一種在雲端 AI 代理程式上執行的讀取：依其將要執行的樣子寫出的變更，只檢查而不執行。代理程式會像執行變更前那樣檢查它（它的寫入權限、它可以進行的變更、帳戶、要求的標籤、資源的狀態以及擴縮的上下限），讀取變更將取代的值，並在執行變更的呼叫之前停下。它會回答變更是否會執行、會取代什麼以及如何復原，或者為什麼會被拒絕。
 
@@ -429,7 +429,7 @@ OneUptime 會透過帳戶的唯讀連線，自行即時讀取 AWS 帳戶、Azure
 | `ONEUPTIME_AI_CLOUD_OPERATIONS` | 空白 | 僅限雲端 AI 代理程式：以逗號分隔的、它可以進行的變更，例如 `restart-service,scale-out`。空白表示目錄中的每項變更，各自帶有其層級。代理程式不認得的名稱會被略過，並在其日誌中記錄一則警告。 |
 | `ONEUPTIME_AI_CLOUD_REQUIRED_TAG` | 空白 | 僅限雲端 AI 代理程式：以 `key=value` 形式寫出的標籤，例如 `oneuptime-ai=allow`。此後代理程式只變更帶有該標籤的資源（在 Google Cloud 上為 label），而且在 AWS 上，其寫入角色只允許對這些資源進行變更。不是 `key=value` 形式的值會拒絕每一項變更。 |
 
-請在代理程式與收集器共用的 `.env` 中（或在其容器的環境中）設定它們，並用 `docker compose up -d` 重新啟動代理程式。超過 64 個項目的清單，或含有超過 256 個字元項目的清單，會讓代理程式保持唯讀，直到問題被修正。雲端 AI 代理程式的這些設定來自其設定指令，由 **讓 AI 修正問題** 中 **進階** 下的 **AI 可以進行哪些變更（各項變更的風險等級仍然適用）**、**AI 絕不能變更的資源** 和標籤設定：要變更它們，請再次執行該指令。
+請在代理程式與收集器共用的 `.env` 中（或在其容器的環境中）設定它們，並用 `docker compose up -d` 重新啟動代理程式。超過 64 個項目的清單，或含有超過 256 個字元項目的清單，會讓代理程式保持唯讀，直到問題被修正。雲端 AI 代理程式的這些設定來自其設定指令，由 **讓 AI 修正問題** 中 **更多欄位** 下的 **AI 可以進行哪些變更（各項變更的風險等級仍然適用）**、**AI 絕不能變更的資源** 和標籤設定：要變更它們，請再次執行該指令。
 
 代理程式會在每次心跳時向 OneUptime 回報這些設定，因此當 OneUptime AI 提出超出這些範圍的修正時，OneUptime 就已拒絕它，有人核准時還會再拒絕一次——它永遠不會以失敗修正的形式抵達代理程式。代理程式在執行任何內容之前也會拒絕它。
 
@@ -543,7 +543,7 @@ docker exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/status
 | `Killed (timeout …)` | 資源沒有及時回應；如果完全沒有輸出，表示代理程式無法存取它——請檢查兩者之間的網路。 |
 | Proxmox、vCenter、Ceph 或資料庫回報缺少某項權限、角色或 cap 的錯誤 | 憑證是不可逾越的上限：授予訊息中指出的內容（請參閱 [憑證與最小權限](#憑證與最小權限)），或把該變更留給人處理。 |
 | `The Cloud AI agent could not check its cloud: …` | 它的角色、受控識別或服務帳戶已不存在或缺少某項權限，或者它無法連到其雲端的 API：請從帳戶頁面再次執行設定指令。 |
-| `cloud … is not one of the changes this agent may make` | 在 **讓 AI 修正問題** 的 **進階** 下開啟該變更，然後再次執行指令：這也會為代理程式的角色授予該變更的權限。 |
+| `cloud … is not one of the changes this agent may make` | 在 **讓 AI 修正問題** 的 **更多欄位** 下開啟該變更，然後再次執行指令：這也會為代理程式的角色授予該變更的權限。 |
 | `the agent only changes resources that carry the …` | 為資源加上 `oneuptime-ai=allow` 標籤（在 Google Cloud 上為 label），或重新設定代理程式但不使用該標籤。 |
 
 [Proxmox](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent)、[VMware](https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent)、[Ceph](https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent) 和 [資料庫](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent) 代理程式的 README，以及 [主機 AI 代理程式](https://github.com/OneUptime/oneuptime/tree/master/agents/HostAIAgent) 的 README，都有針對其自身連線錯誤的疑難排解表格。
