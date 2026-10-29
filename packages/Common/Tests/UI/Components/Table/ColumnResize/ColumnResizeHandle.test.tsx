@@ -351,6 +351,10 @@ describe("what the edge is", () => {
 });
 
 describe("where the edge draws its lines", () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   test("in the middle of the room between its column's words and the next column's, written on the edge for its lines to read", () => {
     jest.spyOn(Measure, "getColumnEdgeLineInset").mockReturnValue(8);
 
@@ -374,15 +378,8 @@ describe("where the edge draws its lines", () => {
     }
   });
 
-  test("read again a frame after it is first drawn: the page's Tailwind writes a new cell's padding only once the cell is on the page", () => {
-    const frames: Array<FrameRequestCallback> = [];
-
-    jest
-      .spyOn(window, "requestAnimationFrame")
-      .mockImplementation((callback: FrameRequestCallback): number => {
-        frames.push(callback);
-        return frames.length;
-      });
+  test("read again whenever the pointer or the keyboard comes into the header row - the moment its lines show - with no timer armed", () => {
+    jest.useFakeTimers();
 
     let padding: number = 0;
 
@@ -393,22 +390,36 @@ describe("where the edge draws its lines", () => {
       });
 
     const { handle } = drawHandle();
+    const headerRow: HTMLElement = document.querySelector(
+      "thead",
+    ) as HTMLElement;
 
     expect(
       handle.style.getPropertyValue(COLUMN_RESIZE_EDGE_INSET_PROPERTY),
     ).toBe("0px");
+    // A table at rest arms no timer for it.
+    expect(jest.getTimerCount()).toBe(0);
 
-    // The page's styles land; the frame after reads them.
+    /*
+     * The page's Tailwind writes a new cell's padding once the cell is on
+     * the page: the pointer coming into the header row reads it.
+     */
     padding = 16;
-    act(() => {
-      for (const frame of frames.splice(0)) {
-        frame(now);
-      }
-    });
+    fireEvent.pointerEnter(headerRow);
 
     expect(
       handle.style.getPropertyValue(COLUMN_RESIZE_EDGE_INSET_PROPERTY),
     ).toBe("8px");
+
+    // ...and the keyboard coming into it.
+    padding = 12;
+    act(() => {
+      handle.focus();
+    });
+
+    expect(
+      handle.style.getPropertyValue(COLUMN_RESIZE_EDGE_INSET_PROPERTY),
+    ).toBe("6px");
   });
 
   test("and whenever it is drawn again: the column after it can change", () => {

@@ -314,10 +314,12 @@ const ColumnResizeHandle: FunctionComponent<ComponentProps> = (
    * and the next column's (ColumnWidthMeasure's getColumnEdgeLineInset),
    * written on the edge - a style its own classes read, so nothing is drawn
    * again for it. Read whenever the edge is drawn, as the column after it
-   * can change (a logs list's columns), and once more a frame after it
-   * first is: the page's Tailwind writes the rule of a class it has not met
-   * before only once the element is on the page, so a new cell's padding
-   * can read 0 until then.
+   * can change (a logs list's columns); once more after it is first painted,
+   * as the page's Tailwind writes the rule of a class it has not met before
+   * only once the element is on the page (a new cell's padding can read 0
+   * until then); and whenever the pointer or the keyboard comes into the
+   * header row, the moment its lines show. No timer: a table at rest arms
+   * none (StateTimelineColumns counts them).
    */
   const writeEdgeLineInset: () => void = (): void => {
     const handle: HTMLDivElement | null = handleRef.current;
@@ -343,10 +345,21 @@ const ColumnResizeHandle: FunctionComponent<ComponentProps> = (
   });
 
   useEffect(() => {
-    const frame: number = requestFrame(writeEdgeLineInset);
+    writeEdgeLineInset();
+
+    const headerRow: HTMLTableSectionElement | null | undefined =
+      handleRef.current?.closest("thead");
+
+    if (!headerRow) {
+      return undefined;
+    }
+
+    headerRow.addEventListener("pointerenter", writeEdgeLineInset);
+    headerRow.addEventListener("focusin", writeEdgeLineInset);
 
     return () => {
-      cancelFrame(frame);
+      headerRow.removeEventListener("pointerenter", writeEdgeLineInset);
+      headerRow.removeEventListener("focusin", writeEdgeLineInset);
     };
   }, []);
 
