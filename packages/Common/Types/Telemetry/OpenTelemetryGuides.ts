@@ -132,33 +132,39 @@ export const OPEN_TELEMETRY_GUIDE_LANGUAGE_GROUPS: ReadonlyArray<OpenTelemetryGu
     {
       language: OpenTelemetryGuideLanguage.Go,
       title: "Go",
-      description: "Go services and their HTTP routers.",
+      description:
+        "Services on net/http, Gin, Echo or Fiber, and gRPC services.",
       logo: ProviderLogo.Go,
       searchTerms: ["golang"],
     },
     {
       language: OpenTelemetryGuideLanguage.Ruby,
       title: "Ruby",
-      description: "Rails and other Ruby apps.",
+      description:
+        "Rails, Sinatra, Sidekiq workers and any other Ruby program.",
       logo: ProviderLogo.Ruby,
     },
     {
       language: OpenTelemetryGuideLanguage.Php,
       title: "PHP",
-      description: "Laravel, Symfony and plain PHP.",
+      description:
+        "Laravel, Symfony, Slim and plain PHP, through the OpenTelemetry extension.",
       logo: ProviderLogo.Php,
     },
     {
       language: OpenTelemetryGuideLanguage.Rust,
       title: "Rust",
-      description: "Rust services.",
+      description:
+        "Axum, Actix Web and any program that records with the tracing crate.",
       logo: ProviderLogo.Rust,
+      searchTerms: ["rustlang"],
     },
     {
       language: OpenTelemetryGuideLanguage.Elixir,
       title: "Elixir",
-      description: "Phoenix and other Elixir apps.",
+      description: "Phoenix and any other OTP application.",
       logo: ProviderLogo.Elixir,
+      searchTerms: ["erlang", "beam"],
     },
   ];
 
@@ -241,6 +247,7 @@ export const OPEN_TELEMETRY_GUIDES: ReadonlyArray<OpenTelemetryGuideEntry> = [
     kind: "framework",
     logo: ProviderLogo.NextJs,
     telemetryGuideLanguage: "node",
+    isFeatured: true,
   },
   {
     slug: "fastify",
@@ -425,6 +432,175 @@ export const OPEN_TELEMETRY_GUIDES: ReadonlyArray<OpenTelemetryGuideEntry> = [
     kind: "worker",
     logo: ProviderLogo.DotNet,
     telemetryGuideLanguage: "dotnet",
+  },
+  {
+    // Any Go service on the standard library's net/http.
+    slug: "go",
+    name: "Go",
+    language: OpenTelemetryGuideLanguage.Go,
+    kind: "runtime",
+    logo: ProviderLogo.Go,
+    telemetryGuideLanguage: "go",
+    isLanguageGuide: true,
+    isFeatured: true,
+  },
+  {
+    slug: "gin",
+    name: "Gin",
+    language: OpenTelemetryGuideLanguage.Go,
+    kind: "framework",
+    logo: ProviderLogo.Gin,
+    telemetryGuideLanguage: "go",
+  },
+  {
+    // No logo set the registry draws from has Echo's: its initials stand in.
+    slug: "echo",
+    name: "Echo",
+    language: OpenTelemetryGuideLanguage.Go,
+    kind: "framework",
+    telemetryGuideLanguage: "go",
+  },
+  {
+    // No logo set the registry draws from has Fiber's: its initials stand in.
+    slug: "fiber",
+    name: "Fiber",
+    language: OpenTelemetryGuideLanguage.Go,
+    kind: "framework",
+    telemetryGuideLanguage: "go",
+  },
+  {
+    /*
+     * gRPC services and clients in Go. No logo: the Linux Foundation, gRPC's
+     * home, asks for written permission before its projects' logos appear
+     * on a company's website beside its products, so the initials stand in.
+     */
+    slug: "grpc",
+    name: "gRPC",
+    language: OpenTelemetryGuideLanguage.Go,
+    kind: "framework",
+    telemetryGuideLanguage: "go",
+  },
+  {
+    // Any Ruby program: a script, a scheduled job, a worker.
+    slug: "ruby",
+    name: "Ruby",
+    language: OpenTelemetryGuideLanguage.Ruby,
+    kind: "runtime",
+    logo: ProviderLogo.Ruby,
+    telemetryGuideLanguage: "ruby",
+    isLanguageGuide: true,
+  },
+  {
+    // Ruby's framework: the guide the product pages feature for Ruby.
+    slug: "rails",
+    name: "Ruby on Rails",
+    language: OpenTelemetryGuideLanguage.Ruby,
+    kind: "framework",
+    logo: ProviderLogo.Rails,
+    telemetryGuideLanguage: "ruby",
+    isFeatured: true,
+  },
+  {
+    slug: "sinatra",
+    name: "Sinatra",
+    language: OpenTelemetryGuideLanguage.Ruby,
+    kind: "framework",
+    logo: ProviderLogo.Sinatra,
+    telemetryGuideLanguage: "ruby",
+  },
+  {
+    // Ruby's most used background job processor: Celery's counterpart.
+    slug: "sidekiq",
+    name: "Sidekiq",
+    language: OpenTelemetryGuideLanguage.Ruby,
+    kind: "worker",
+    logo: ProviderLogo.Sidekiq,
+    telemetryGuideLanguage: "ruby",
+  },
+  {
+    // Any PHP app, with the extension's automatic instrumentation.
+    slug: "php",
+    name: "PHP",
+    language: OpenTelemetryGuideLanguage.Php,
+    kind: "runtime",
+    logo: ProviderLogo.Php,
+    telemetryGuideLanguage: "php",
+    isLanguageGuide: true,
+    isFeatured: true,
+  },
+  {
+    /*
+     * No logo: Laravel's trademark policy asks for a licence to use its logo
+     * commercially, and Symfony's for written permission to use its logo at
+     * all, so their initials stand in.
+     */
+    slug: "laravel",
+    name: "Laravel",
+    language: OpenTelemetryGuideLanguage.Php,
+    kind: "framework",
+    telemetryGuideLanguage: "php",
+  },
+  {
+    slug: "symfony",
+    name: "Symfony",
+    language: OpenTelemetryGuideLanguage.Php,
+    kind: "framework",
+    telemetryGuideLanguage: "php",
+  },
+  {
+    slug: "slim",
+    name: "Slim",
+    language: OpenTelemetryGuideLanguage.Php,
+    kind: "framework",
+    logo: ProviderLogo.Slim,
+    telemetryGuideLanguage: "php",
+  },
+  {
+    // Any Rust program, through the tracing crate's bridge.
+    slug: "rust",
+    name: "Rust",
+    language: OpenTelemetryGuideLanguage.Rust,
+    kind: "runtime",
+    logo: ProviderLogo.Rust,
+    telemetryGuideLanguage: "rust",
+    isLanguageGuide: true,
+    isFeatured: true,
+  },
+  {
+    // No logo set the registry draws from has Axum's: its initials stand in.
+    slug: "axum",
+    name: "Axum",
+    language: OpenTelemetryGuideLanguage.Rust,
+    kind: "framework",
+    telemetryGuideLanguage: "rust",
+  },
+  {
+    slug: "actix-web",
+    name: "Actix Web",
+    language: OpenTelemetryGuideLanguage.Rust,
+    kind: "framework",
+    logo: ProviderLogo.ActixWeb,
+    telemetryGuideLanguage: "rust",
+  },
+  {
+    // Any OTP application: a worker, a consumer, a service with no Phoenix.
+    slug: "elixir",
+    name: "Elixir",
+    language: OpenTelemetryGuideLanguage.Elixir,
+    kind: "runtime",
+    logo: ProviderLogo.Elixir,
+    telemetryGuideLanguage: "elixir",
+    isLanguageGuide: true,
+  },
+  {
+    // Elixir's framework: the guide the product pages feature for Elixir.
+    slug: "phoenix",
+    name: "Phoenix",
+    language: OpenTelemetryGuideLanguage.Elixir,
+    kind: "framework",
+    logo: ProviderLogo.Phoenix,
+    telemetryGuideLanguage: "elixir",
+    isFeatured: true,
   },
 ];
 

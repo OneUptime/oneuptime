@@ -18,7 +18,8 @@ import ProviderLogo from "../../../Types/ProviderLogo/ProviderLogo";
 
 /*
  * The logos that are wider than they are tall - a wordmark, as AWS's,
- * Splunk's, Zoom's, Cisco's and Go's are, or Cloudflare's cloud: drawn
+ * Splunk's, Zoom's, Cisco's and Go's are, or a wide symbol, as Cloudflare's
+ * cloud, Sinatra's fedora and Phoenix's bird are: drawn
  * across the tile's whole inside, so they are as large as the square ones
  * beside them instead of shrunk to fit a square. A file's viewBox is fitted
  * to what it draws, so its proportions are the logo's own (the tests hold
@@ -35,6 +36,8 @@ export const WIDE_PROVIDER_LOGOS: ReadonlyArray<ProviderLogo> = [
   ProviderLogo.Fastify,
   ProviderLogo.Koa,
   ProviderLogo.Hapi,
+  ProviderLogo.Sinatra,
+  ProviderLogo.Phoenix,
 ];
 
 export function getProviderLogoFileName(
@@ -71,6 +74,12 @@ type ProviderLogoFileLoader = () => Promise<ProviderLogoFileModule>;
 export const PROVIDER_LOGO_FILE_LOADERS: Readonly<
   Record<string, ProviderLogoFileLoader>
 > = {
+  "actix-web-dark.svg": () => {
+    return import("../../Images/ProviderLogos/actix-web-dark.svg");
+  },
+  "actix-web.svg": () => {
+    return import("../../Images/ProviderLogos/actix-web.svg");
+  },
   "amazon-bedrock.svg": () => {
     return import("../../Images/ProviderLogos/amazon-bedrock.svg");
   },
@@ -184,6 +193,9 @@ export const PROVIDER_LOGO_FILE_LOADERS: Readonly<
   },
   "fluentd.svg": () => {
     return import("../../Images/ProviderLogos/fluentd.svg");
+  },
+  "gin.svg": () => {
+    return import("../../Images/ProviderLogos/gin.svg");
   },
   "go.svg": () => {
     return import("../../Images/ProviderLogos/go.svg");
@@ -302,6 +314,9 @@ export const PROVIDER_LOGO_FILE_LOADERS: Readonly<
   "pagerduty.svg": () => {
     return import("../../Images/ProviderLogos/pagerduty.svg");
   },
+  "phoenix.svg": () => {
+    return import("../../Images/ProviderLogos/phoenix.svg");
+  },
   "php.svg": () => {
     return import("../../Images/ProviderLogos/php.svg");
   },
@@ -313,6 +328,9 @@ export const PROVIDER_LOGO_FILE_LOADERS: Readonly<
   },
   "quarkus.svg": () => {
     return import("../../Images/ProviderLogos/quarkus.svg");
+  },
+  "rails.svg": () => {
+    return import("../../Images/ProviderLogos/rails.svg");
   },
   "react.svg": () => {
     return import("../../Images/ProviderLogos/react.svg");
@@ -326,8 +344,17 @@ export const PROVIDER_LOGO_FILE_LOADERS: Readonly<
   "rust.svg": () => {
     return import("../../Images/ProviderLogos/rust.svg");
   },
+  "sidekiq.svg": () => {
+    return import("../../Images/ProviderLogos/sidekiq.svg");
+  },
+  "sinatra.svg": () => {
+    return import("../../Images/ProviderLogos/sinatra.svg");
+  },
   "slack.svg": () => {
     return import("../../Images/ProviderLogos/slack.svg");
+  },
+  "slim.svg": () => {
+    return import("../../Images/ProviderLogos/slim.svg");
   },
   "splunk-dark.svg": () => {
     return import("../../Images/ProviderLogos/splunk-dark.svg");

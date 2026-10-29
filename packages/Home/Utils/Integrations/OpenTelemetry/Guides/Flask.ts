@@ -467,7 +467,7 @@ export const FlaskGuide: OpenTelemetryGuide = {
       },
       {
         title: "Open a request's trace",
-        body: `In ${SCREENS.traces}, search \`@http.route:/orders\`: each request's trace holds \`checkout.charge\`, the payment call and the SQLAlchemy spans.`,
+        body: `With \`@http.route:/orders\` searched in ${SCREENS.traces}, each request's trace holds \`checkout.charge\`, the payment call and the SQLAlchemy spans.`,
       },
       {
         title: "Find the exception",
@@ -496,7 +496,7 @@ export const FlaskGuide: OpenTelemetryGuide = {
       question:
         "Nothing arrives, and gunicorn prints “Failed to auto initialize OpenTelemetry”",
       answer:
-        "`OTEL_EXPORTER_OTLP_PROTOCOL` is unset, so the distro looked for the gRPC exporter: set it to `http/protobuf`. The app serves requests anyway, without telemetry.",
+        "With `OTEL_EXPORTER_OTLP_PROTOCOL` unset, the distro reached for its gRPC exporter: set the variable to `http/protobuf`. The app serves requests anyway, without telemetry.",
     },
     {
       question: "The exporter logs a 401",
