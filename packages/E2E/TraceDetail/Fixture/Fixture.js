@@ -44,6 +44,9 @@
  *   ?repo=pick several repositories are connected and none was found to
  *              hold the trace's code for certain: the suggestion lists
  *              them to pick from, and the create route wants the pick
+ *   ?repo=pick-gone as pick, but acme/checkout-api is disconnected right
+ *              before the click: the create route refuses that pick, and
+ *              the suggestion no longer lists it
  *
  * POST /ai-investigation/performance-fix-suggestion is answered by the real
  * span-tree analysis and suggestion rule (Common/Utils/Traces and
@@ -111,7 +114,11 @@ const isAiOn = params.get("ai") !== "off";
 const hasRepository = params.get("repo") !== "none";
 const repositoryGoesAway = params.get("repo") === "gone";
 // ?repo=pick: the repositories a person picks the fix's repository from.
-const isRepositoryPick = params.get("repo") === "pick";
+const isPickGone = params.get("repo") === "pick-gone";
+const isRepositoryPick = params.get("repo") === "pick" || isPickGone;
+// ?repo=pick-gone: the one disconnected before the click, and whether it is yet.
+const GONE_PICK_ID = "51000000-0000-4000-8000-000000000001";
+let isPickDisconnected = false;
 const PICK_REPOSITORIES = [
   { id: "51000000-0000-4000-8000-000000000002", name: "acme/billing" },
   { id: "51000000-0000-4000-8000-000000000001", name: "acme/checkout-api" },
@@ -120,6 +127,14 @@ const PICK_REPOSITORIES = [
     name: "acme/storefront-web-with-a-rather-long-repository-name",
   },
 ];
+// What the project has connected now, as the routes list it.
+function pickRepositories() {
+  return isPickDisconnected
+    ? PICK_REPOSITORIES.filter((repository) => {
+        return repository.id !== GONE_PICK_ID;
+      })
+    : PICK_REPOSITORIES;
+}
 // Set once the create route has refused a click for want of a repository.
 let isRepositoryGone = false;
 const isFixRunning = params.get("fix") === "running";
@@ -1486,7 +1501,7 @@ async function handleApi(method, options) {
               : null,
         // Only the fix itself asks for a pick (FixPerformanceTaskTrigger).
         repositories:
-          isRepositoryPick && offer.offer === "Act" ? PICK_REPOSITORIES : [],
+          isRepositoryPick && offer.offer === "Act" ? pickRepositories() : [],
       }),
     );
   }
@@ -1523,7 +1538,10 @@ async function handleApi(method, options) {
         {},
       );
     }
-    // The pick, held to the repositories the suggestion listed.
+    // The pick, held to the repositories the project has connected now.
+    if (isPickGone) {
+      isPickDisconnected = true;
+    }
     if (isRepositoryPick) {
       const picked = body ? body.repositoryId : undefined;
       if (!picked) {
@@ -1537,7 +1555,7 @@ async function handleApi(method, options) {
         );
       }
       if (
-        !PICK_REPOSITORIES.some((repository) => {
+        !pickRepositories().some((repository) => {
           return repository.id === picked;
         })
       ) {

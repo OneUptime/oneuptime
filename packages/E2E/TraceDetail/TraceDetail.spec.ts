@@ -1930,6 +1930,63 @@ test.describe("a repository to pick before the fix starts (?repo=pick)", () => {
     });
   });
 
+  /*
+   * The pick was disconnected between the page's read and the click: the
+   * server's reason shows beside the finding, the list to pick from is the
+   * server's again - without it - and the fix waits for a new pick.
+   */
+  test("a pick disconnected before the click: the reason shows, and the list no longer offers it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLoaded(page, "report", "repo=pick-gone");
+
+    const strip: Locator = page.getByTestId("trace-performance-suggestion");
+    const picker: Locator = strip.getByTestId(
+      "trace-fix-performance-repository",
+    );
+    const button: Locator = strip.getByTestId("trace-fix-performance");
+    const menu: Locator = page.locator(".ou-select__menu");
+
+    await picker.getByRole("combobox").click();
+    await menu
+      .locator(".ou-select__option", { hasText: "acme/checkout-api" })
+      .click();
+    await button.click();
+
+    await expect(strip.getByTestId("trace-fix-performance-error")).toHaveText(
+      "Could not start the fix: That repository is not one of this project's connected repositories OneUptime AI can work in. Pick another, or connect it in Code.",
+    );
+    // The pick is gone with the repository: nothing to start until another is picked.
+    await expect(button).toBeDisabled();
+    await expect(picker).toContainText("Pick a repository");
+
+    await picker.getByRole("combobox").click();
+    await expect(menu.locator(".ou-select__option")).toHaveText([
+      "acme/billing",
+      "acme/storefront-web-with-a-rather-long-repository-name",
+    ]);
+    await menu
+      .locator(".ou-select__option", { hasText: "acme/billing" })
+      .click();
+    await button.click();
+
+    await expect(page.getByTestId("trace-fix-performance-progress")).toHaveText(
+      "OneUptime AI is working on a fix. View task progress",
+    );
+    expect(
+      createRequests(await fixture(page)).map(
+        (request: RecordedApiRequest): unknown => {
+          return (request.body as { repositoryId?: string }).repositoryId;
+        },
+      ),
+    ).toEqual([
+      "51000000-0000-4000-8000-000000000001",
+      "51000000-0000-4000-8000-000000000002",
+    ]);
+  });
+
   test("without a pick nothing is asked", async ({ page }: { page: Page }) => {
     await openLoaded(page, "report", "repo=pick");
 
