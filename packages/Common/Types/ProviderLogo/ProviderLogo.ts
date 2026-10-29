@@ -116,6 +116,13 @@ enum ProviderLogo {
   Quarkus = "quarkus",
   Kotlin = "kotlin",
   Ktor = "ktor",
+  Gin = "gin",
+  Rails = "rails",
+  Sinatra = "sinatra",
+  Sidekiq = "sidekiq",
+  Slim = "slim",
+  ActixWeb = "actix-web",
+  Phoenix = "phoenix",
 }
 
 export default ProviderLogo;
@@ -206,6 +213,13 @@ export const PROVIDER_LOGO_NAMES: Readonly<Record<ProviderLogo, string>> = {
   [ProviderLogo.Quarkus]: "Quarkus",
   [ProviderLogo.Kotlin]: "Kotlin",
   [ProviderLogo.Ktor]: "Ktor",
+  [ProviderLogo.Gin]: "Gin",
+  [ProviderLogo.Rails]: "Ruby on Rails",
+  [ProviderLogo.Sinatra]: "Sinatra",
+  [ProviderLogo.Sidekiq]: "Sidekiq",
+  [ProviderLogo.Slim]: "Slim",
+  [ProviderLogo.ActixWeb]: "Actix Web",
+  [ProviderLogo.Phoenix]: "Phoenix",
 };
 
 export const ALL_PROVIDER_LOGOS: ReadonlyArray<ProviderLogo> = Object.values(

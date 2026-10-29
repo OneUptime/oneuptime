@@ -924,6 +924,40 @@ test.describe("the import as it runs", () => {
     await expect(
       page.getByRole("button", { name: /^Retry \d+ hosts$/ }),
     ).toBeVisible();
+
+    /*
+     * The hosts not reached are more than the group names: "and N more"
+     * opens every one of them, and Show fewer folds them back (issue
+     * #5364's sweep: the list used to open for good, its button gone).
+     * Each press hands focus to the button that undoes it.
+     */
+    const more: Locator = page.getByTestId(
+      "discovery-import-issue-more-NotReached",
+    );
+    await expect(more).toHaveAttribute("aria-expanded", "false");
+    await more.click();
+
+    const hosts: Locator = page.getByTestId(
+      "discovery-import-issue-hosts-NotReached",
+    );
+    const fewer: Locator = page.getByTestId(
+      "discovery-import-issue-fewer-NotReached",
+    );
+    await expect(hosts).toBeVisible();
+    await expect(fewer).toHaveText("Show fewer");
+    await expect(fewer).toHaveAttribute("aria-expanded", "true");
+    await expect(fewer).toBeFocused();
+    expect(await hosts.getByRole("listitem").count()).toBeGreaterThan(12);
+
+    await page.screenshot({
+      path: path.join(screenshots, "discovery-import-not-reached-open.png"),
+    });
+
+    await page.keyboard.press("Enter");
+
+    await expect(hosts).toHaveCount(0);
+    await expect(more).toBeFocused();
+    await expect(more).toHaveAttribute("aria-expanded", "false");
   });
 
   test("closed while it runs, the import shows on its scan's row, and View progress opens it where it stands", async ({

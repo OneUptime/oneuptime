@@ -17,6 +17,24 @@ import {
 export const SECTION_CODE_COLUMNS: number = 94;
 export const INDENTED_CODE_COLUMNS: number = 87;
 
+/*
+ * The columns a tab takes in a code block (the guides' stylesheet sets
+ * tab-size: 2): Go's code is indented with tabs, as gofmt writes it.
+ */
+export const CODE_TAB_SIZE: number = 2;
+
+// How many columns a line takes on the page, its tabs as wide as they are drawn.
+export function lineColumns(line: string): number {
+  let columns: number = 0;
+
+  for (const character of line) {
+    columns +=
+      character === "\t" ? CODE_TAB_SIZE - (columns % CODE_TAB_SIZE) : 1;
+  }
+
+  return columns;
+}
+
 // A snippet, and how wide its page shows it.
 export interface PlacedSnippet {
   snippet: GuideSnippet;
@@ -96,11 +114,13 @@ export function guideSnippets(guide: OpenTelemetryGuide): Array<GuideSnippet> {
  */
 export function linesPastColumns(code: string, columns: number): Array<string> {
   return code.split("\n").filter((line: string): boolean => {
-    if (line.length <= columns) {
+    if (lineColumns(line) <= columns) {
       return false;
     }
 
-    const indentation: number = line.length - line.trimStart().length;
+    const indentation: number = lineColumns(
+      line.slice(0, line.length - line.trimStart().length),
+    );
 
     return !line
       .trim()
@@ -109,6 +129,45 @@ export function linesPastColumns(code: string, columns: number): Array<string> {
         return indentation + word.length > columns;
       });
   });
+}
+
+/*
+ * One block of a file, word for word as the file the end-to-end check ran
+ * holds it: from the line that starts with `firstLine` (after its
+ * indentation) to the first line after it that is `closing` at that same
+ * indentation - a Ruby or Elixir method and its `end`, a PHP or Rust
+ * function and its `}`, a call and its `)`. A guide shows a fragment of a
+ * file this way, so the fragment cannot drift from the file.
+ */
+export function blockOf(
+  source: string,
+  firstLine: string,
+  closing: string,
+): string {
+  const lines: Array<string> = source.split("\n");
+  const start: number = lines.findIndex((line: string): boolean => {
+    return line.trimStart().startsWith(firstLine);
+  });
+  const indentation: string =
+    start >= 0
+      ? lines[start]!.slice(
+          0,
+          lines[start]!.length - lines[start]!.trimStart().length,
+        )
+      : "";
+  const end: number = lines.findIndex(
+    (line: string, index: number): boolean => {
+      return start >= 0 && index > start && line === `${indentation}${closing}`;
+    },
+  );
+
+  if (start < 0 || end < 0) {
+    throw new Error(
+      `No block starts with ${firstLine} and ends with ${closing}`,
+    );
+  }
+
+  return lines.slice(start, end + 1).join("\n");
 }
 
 export function findGuideSnippet(

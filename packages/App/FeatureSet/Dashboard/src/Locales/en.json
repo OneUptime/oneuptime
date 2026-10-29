@@ -36819,6 +36819,7 @@
   "No responders assigned. Edit this rule to add responders.": "No responders assigned. Edit this rule to add responders.",
   "Nobody at this level could be paged": "Nobody at this level could be paged",
   "Nobody to page here, so the next level is paged at once": "Nobody to page here, so the next level is paged at once",
+  "Selected: {{name}}": "Selected: {{name}}",
   "Skipped at once": "Skipped at once",
   "This level has no responders": "This level has no responders",
   "{{levels}} along the way have no responders, so they are skipped without waiting.": "{{levels}} along the way have no responders, so they are skipped without waiting.",

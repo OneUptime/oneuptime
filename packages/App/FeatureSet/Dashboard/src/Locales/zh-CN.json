@@ -36819,6 +36819,7 @@
   "No responders assigned. Edit this rule to add responders.": "未分配响应人。请编辑此规则以添加响应人。",
   "Nobody at this level could be paged": "此级别无法通知任何人",
   "Nobody to page here, so the next level is paged at once": "此处无人可通知，因此立即通知下一级别",
+  "Selected: {{name}}": "已选择：{{name}}",
   "Skipped at once": "已立即跳过",
   "This level has no responders": "此级别没有响应人",
   "{{levels}} along the way have no responders, so they are skipped without waiting.": "途中的{{levels}}没有响应人，因此会被直接跳过，无需等待。",

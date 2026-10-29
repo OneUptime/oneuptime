@@ -36819,6 +36819,7 @@
   "No responders assigned. Edit this rule to add responders.": "対応者が割り当てられていません。対応者を追加するには、このルールを編集してください。",
   "Nobody at this level could be paged": "このレベルでは誰にも通知できませんでした",
   "Nobody to page here, so the next level is paged at once": "ここには通知する相手がいないため、すぐに次のレベルに通知します",
+  "Selected: {{name}}": "選択中: {{name}}",
   "Skipped at once": "すぐにスキップ",
   "This level has no responders": "このレベルには対応者がいません",
   "{{levels}} along the way have no responders, so they are skipped without waiting.": "途中の{{levels}}には対応者がいないため、待たずにスキップされます。",

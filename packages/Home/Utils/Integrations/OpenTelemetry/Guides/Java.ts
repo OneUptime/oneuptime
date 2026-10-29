@@ -578,7 +578,7 @@ export const JavaGuide: OpenTelemetryGuide = {
       },
       {
         title: "Follow a log line to its request",
-        body: `In ${SCREENS.logs}, open a \`loading user\` line: its trace ID opens the request that wrote it.`,
+        body: `Open a \`loading user\` line in ${SCREENS.logs}: its trace ID opens the request that wrote it.`,
       },
     ],
   },

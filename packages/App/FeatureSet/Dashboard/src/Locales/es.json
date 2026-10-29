@@ -36819,6 +36819,7 @@
   "No responders assigned. Edit this rule to add responders.": "No hay respondedores asignados. Edita esta regla para añadir respondedores.",
   "Nobody at this level could be paged": "No se pudo notificar a nadie en este nivel",
   "Nobody to page here, so the next level is paged at once": "No hay nadie a quien notificar aquí, así que el siguiente nivel se notifica de inmediato",
+  "Selected: {{name}}": "Seleccionado: {{name}}",
   "Skipped at once": "Omitido de inmediato",
   "This level has no responders": "Este nivel no tiene respondedores",
   "{{levels}} along the way have no responders, so they are skipped without waiting.": "{{levels}} del recorrido no tienen respondedores, así que se omiten sin esperar.",

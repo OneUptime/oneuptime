@@ -599,7 +599,7 @@ export const DotNetGuide: OpenTelemetryGuide = {
     {
       question: "Do I need an OpenTelemetry Collector?",
       answer:
-        "No: both ways send straight to OneUptime. A Collector helps when you want one place to filter or batch what many services send: see [OpenTelemetry](/docs/telemetry/open-telemetry).",
+        "No: both ways send straight to OneUptime. Run a Collector when you want what many services send to pass through one place that filters or batches it: see [OpenTelemetry](/docs/telemetry/open-telemetry).",
     },
   ],
 

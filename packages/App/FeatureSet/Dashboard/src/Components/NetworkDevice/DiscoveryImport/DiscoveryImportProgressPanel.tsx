@@ -17,7 +17,14 @@ import ProgressBar, {
 } from "Common/UI/Components/ProgressBar/ProgressBar";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from "react";
 import {
   DiscoveryImportIssueGroup,
   DiscoveryImportIssueHost,
@@ -122,12 +129,39 @@ export function getIssueHostLabel(host: DiscoveryImportIssueHost): string {
     : host.ipAddress;
 }
 
+/*
+ * A group of more hosts than it names: "and 18 more" opens the list of every
+ * host, and Show fewer under the list folds it back to the names (issue
+ * #5364: it used to open for good, the button gone). Each press hands focus
+ * to the button that undoes it, which is drawn where the other one was not.
+ */
 const IssueGroup: FunctionComponent<{
   group: DiscoveryImportIssueGroup;
 }> = (props: { group: DiscoveryImportIssueGroup }): ReactElement => {
   const translator: Translator = useTranslator();
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
+  // Set by a press, until focus has moved to the button that undoes it.
+  const isTogglingRef: React.MutableRefObject<boolean> = useRef<boolean>(false);
+  const moreButtonRef: React.RefObject<HTMLButtonElement> =
+    useRef<HTMLButtonElement>(null);
+  const fewerButtonRef: React.RefObject<HTMLButtonElement> =
+    useRef<HTMLButtonElement>(null);
+  const hostListId: string = `discovery-import-issue-hosts-${useId()}`;
   const group: DiscoveryImportIssueGroup = props.group;
+
+  useEffect(() => {
+    if (!isTogglingRef.current) {
+      return;
+    }
+
+    isTogglingRef.current = false;
+    (isExpanded ? fewerButtonRef : moreButtonRef).current?.focus();
+  }, [isExpanded]);
+
+  const toggle: (expand: boolean) => void = (expand: boolean): void => {
+    isTogglingRef.current = true;
+    setIsExpanded(expand);
+  };
   const isWarning: boolean =
     group.kind === DiscoveryImportIssueKind.DeviceFailed ||
     group.kind === DiscoveryImportIssueKind.MonitorFailed;
@@ -162,31 +196,47 @@ const IssueGroup: FunctionComponent<{
             </p>
           )}
           {isExpanded ? (
-            /*
-             * Every host, one a line, in a box of its own height: a group
-             * can hold thousands, and a paragraph of five hundred names
-             * would push the rest of the summary out of reach.
-             */
-            <ul
-              className="mt-2 grid max-h-48 grid-cols-1 gap-x-6 gap-y-1 overflow-y-auto rounded-md border border-gray-100 bg-gray-50 px-3 py-2 text-xs text-gray-600 sm:grid-cols-2"
-              data-testid={`discovery-import-issue-hosts-${group.kind}`}
-            >
-              {group.hosts.map(
-                (host: DiscoveryImportIssueHost, index: number) => {
-                  const label: string = getIssueHostLabel(host);
+            <>
+              {/*
+               * Every host, one a line, in a box of its own height: a group
+               * can hold thousands, and a paragraph of five hundred names
+               * would push the rest of the summary out of reach.
+               */}
+              <ul
+                id={hostListId}
+                className="mt-2 grid max-h-48 grid-cols-1 gap-x-6 gap-y-1 overflow-y-auto rounded-md border border-gray-100 bg-gray-50 px-3 py-2 text-xs text-gray-600 sm:grid-cols-2"
+                data-testid={`discovery-import-issue-hosts-${group.kind}`}
+              >
+                {group.hosts.map(
+                  (host: DiscoveryImportIssueHost, index: number) => {
+                    const label: string = getIssueHostLabel(host);
 
-                  return (
-                    <li
-                      key={`${host.ipAddress}-${index}`}
-                      className="truncate"
-                      title={label}
-                    >
-                      {label}
-                    </li>
-                  );
-                },
-              )}
-            </ul>
+                    return (
+                      <li
+                        key={`${host.ipAddress}-${index}`}
+                        className="truncate"
+                        title={label}
+                      >
+                        {label}
+                      </li>
+                    );
+                  },
+                )}
+              </ul>
+              <button
+                ref={fewerButtonRef}
+                type="button"
+                aria-expanded={isExpanded}
+                aria-controls={hostListId}
+                className="mt-1.5 text-xs font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:underline"
+                data-testid={`discovery-import-issue-fewer-${group.kind}`}
+                onClick={() => {
+                  toggle(false);
+                }}
+              >
+                {translator.translateText("Show fewer")}
+              </button>
+            </>
           ) : (
             <p className="mt-1 break-words text-xs text-gray-500">
               {previewHosts.map(getIssueHostLabel).join(", ")}
@@ -194,11 +244,13 @@ const IssueGroup: FunctionComponent<{
                 <>
                   {" "}
                   <button
+                    ref={moreButtonRef}
                     type="button"
+                    aria-expanded={isExpanded}
                     className="font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:underline"
                     data-testid={`discovery-import-issue-more-${group.kind}`}
                     onClick={() => {
-                      setIsExpanded(true);
+                      toggle(true);
                     }}
                   >
                     {translator.translatePlural(

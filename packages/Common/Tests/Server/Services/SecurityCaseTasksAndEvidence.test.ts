@@ -486,8 +486,24 @@ describe("changing a task", () => {
   });
 
   test("taken off its assignee - either spelling: on the timeline, nobody told", async () => {
-    await change({ assignedToUser: null });
+    const data: JSONObject = { assignedToUser: null };
 
+    await change(data);
+
+    // Written as a cleared ID column, with no relation left beside it.
+    expect(data).toEqual({ assignedToUserId: null });
+    expect(feedTexts()).toEqual([
+      "👤 Unassigned the task **Reset the admin password**.",
+    ]);
+    expect(tasksHandedOver).toEqual([]);
+  });
+
+  test("taken off its assignee by its ID column: the same", async () => {
+    const data: JSONObject = { assignedToUserId: null };
+
+    await change(data);
+
+    expect(data).toEqual({ assignedToUserId: null });
     expect(feedTexts()).toEqual([
       "👤 Unassigned the task **Reset the admin password**.",
     ]);

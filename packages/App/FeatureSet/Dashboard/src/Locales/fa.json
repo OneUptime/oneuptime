@@ -36819,6 +36819,7 @@
   "No responders assigned. Edit this rule to add responders.": "هیچ پاسخ‌دهنده‌ای تعیین نشده. برای افزودن پاسخ‌دهنده این قاعده را ویرایش کنید.",
   "Nobody at this level could be paged": "به هیچ‌کس در این سطح نمی‌شد اعلان داد",
   "Nobody to page here, so the next level is paged at once": "اینجا کسی برای اعلان نیست، پس بی‌درنگ به سطح بعد اعلان داده می‌شود",
+  "Selected: {{name}}": "انتخاب‌شده: {{name}}",
   "Skipped at once": "بی‌درنگ رد شد",
   "This level has no responders": "این سطح پاسخ‌دهنده‌ای ندارد",
   "{{levels}} along the way have no responders, so they are skipped without waiting.": "{{levels}} در مسیر پاسخ‌دهنده‌ای ندارند، پس بدون انتظار رد می‌شوند.",

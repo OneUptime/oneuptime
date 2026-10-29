@@ -159,6 +159,36 @@ describe("a guide's entry", () => {
     }
   });
 
+  test("is drawn by its official logo where its brand lets a company's website show it, and by its initials where not", () => {
+    const withoutLogo: Array<string> = slugsOf(
+      OPEN_TELEMETRY_GUIDES.filter(
+        (guide: OpenTelemetryGuideEntry): boolean => {
+          return guide.logo === undefined;
+        },
+      ),
+    );
+
+    /*
+     * Nothing to draw: no logo set the registry takes from has the mark
+     * (Micronaut, Echo, Fiber, Axum), or plain JavaScript in the browser,
+     * which has no brand. Asked not to: Laravel licenses its logo for
+     * commercial use, Symfony allows its logo only in writing, and the
+     * Linux Foundation asks the same before gRPC's logo appears on a
+     * company's website. A logo added for any of them needs that brand's
+     * permission first: the registry's README names each brand's rules.
+     */
+    expect(withoutLogo).toEqual([
+      "browser",
+      "micronaut",
+      "echo",
+      "fiber",
+      "grpc",
+      "laravel",
+      "symfony",
+      "axum",
+    ]);
+  });
+
   test("belongs to a language group the index lists", () => {
     const languages: Array<string> = OPEN_TELEMETRY_GUIDE_LANGUAGE_GROUPS.map(
       (group: OpenTelemetryGuideLanguageGroup): string => {
@@ -214,6 +244,17 @@ describe("the language groups", () => {
       "ts",
     ]);
     expect(termsOf(OpenTelemetryGuideLanguage.Go)).toEqual(["golang"]);
+    /*
+     * Elixir runs on Erlang's VM, the BEAM. RoR names Rails alone, so it is
+     * the Rails guide's own term, not the Ruby group's.
+     */
+    expect(termsOf(OpenTelemetryGuideLanguage.Ruby)).toEqual([]);
+    expect(termsOf(OpenTelemetryGuideLanguage.Php)).toEqual([]);
+    expect(termsOf(OpenTelemetryGuideLanguage.Rust)).toEqual(["rustlang"]);
+    expect(termsOf(OpenTelemetryGuideLanguage.Elixir)).toEqual([
+      "erlang",
+      "beam",
+    ]);
 
     for (const group of OPEN_TELEMETRY_GUIDE_LANGUAGE_GROUPS) {
       const titleWords: Array<string> = group.title.toLowerCase().split(" ");
@@ -321,12 +362,17 @@ describe("the guides the Dashboard's telemetry guide opens", () => {
     ]);
   });
 
-  test("are each language's own guide and then its frameworks, for Python, Java and .NET", () => {
+  test("are each language's own guide and then its frameworks, for Python, Java, .NET, Go, Ruby, PHP, Rust and Elixir", () => {
     for (const [key, own, frameworks] of [
       ["python", "python", ["django", "flask", "fastapi", "celery"]],
       // Kotlin runs on the JVM: Ktor is listed with Java's frameworks.
       ["java", "java", ["spring-boot", "quarkus", "micronaut", "ktor"]],
       ["dotnet", "dotnet", ["aspnet-core", "dotnet-worker-service"]],
+      ["go", "go", ["gin", "echo", "fiber", "grpc"]],
+      ["ruby", "ruby", ["rails", "sinatra", "sidekiq"]],
+      ["php", "php", ["laravel", "symfony", "slim"]],
+      ["rust", "rust", ["axum", "actix-web"]],
+      ["elixir", "elixir", ["phoenix"]],
     ] as Array<[TelemetryGuideLanguageKey, string, Array<string>]>) {
       const guides: TelemetryGuideLanguageGuides | undefined =
         getGuidesForTelemetryGuideLanguage(key);
@@ -396,14 +442,25 @@ describe("the guides the product pages feature", () => {
         },
       ),
     );
-    // One full row of six: a framework of every language with guides.
+    /*
+     * Two full rows of six: a guide of every language with guides, each
+     * with its brand's logo - the framework most of its people use (Rails,
+     * Phoenix), or the language's own guide where that framework has no
+     * logo the registry may show (Laravel, Axum) - and Next.js.
+     */
     expect(slugsOf(featured)).toEqual([
       "nodejs",
+      "nextjs",
       "react",
       "fastapi",
       "spring-boot",
       "ktor",
       "aspnet-core",
+      "go",
+      "rails",
+      "php",
+      "rust",
+      "phoenix",
     ]);
   });
 

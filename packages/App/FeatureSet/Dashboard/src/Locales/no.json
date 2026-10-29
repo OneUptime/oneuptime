@@ -36819,6 +36819,7 @@
   "No responders assigned. Edit this rule to add responders.": "Ingen mottakere tildelt. Rediger regelen for å legge til mottakere.",
   "Nobody at this level could be paged": "Ingen på dette nivået kunne varsles",
   "Nobody to page here, so the next level is paged at once": "Ingen å varsle her, så neste nivå varsles med en gang",
+  "Selected: {{name}}": "Valgt: {{name}}",
   "Skipped at once": "Hoppet over med en gang",
   "This level has no responders": "Dette nivået har ingen mottakere",
   "{{levels}} along the way have no responders, so they are skipped without waiting.": "{{levels}} underveis har ingen mottakere og hoppes derfor over uten å vente.",

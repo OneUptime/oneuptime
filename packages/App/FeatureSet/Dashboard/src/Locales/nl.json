@@ -36819,6 +36819,7 @@
   "No responders assigned. Edit this rule to add responders.": "Geen ontvangers toegewezen. Bewerk deze regel om ontvangers toe te voegen.",
   "Nobody at this level could be paged": "Niemand op dit niveau kon worden gewaarschuwd",
   "Nobody to page here, so the next level is paged at once": "Niemand om hier te waarschuwen, dus het volgende niveau wordt direct gewaarschuwd",
+  "Selected: {{name}}": "Geselecteerd: {{name}}",
   "Skipped at once": "Direct overgeslagen",
   "This level has no responders": "Dit niveau heeft geen ontvangers",
   "{{levels}} along the way have no responders, so they are skipped without waiting.": "{{levels}} onderweg hebben geen ontvangers en worden daarom zonder wachten overgeslagen.",

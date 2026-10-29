@@ -36819,6 +36819,7 @@
   "No responders assigned. Edit this rule to add responders.": "कोई प्रतिक्रियाकर्ता असाइन नहीं है। प्रतिक्रियाकर्ता जोड़ने के लिए यह नियम संपादित करें।",
   "Nobody at this level could be paged": "इस स्तर पर किसी को सूचित नहीं किया जा सका",
   "Nobody to page here, so the next level is paged at once": "यहाँ सूचित करने के लिए कोई नहीं है, इसलिए अगले स्तर को तुरंत सूचित किया जाता है",
+  "Selected: {{name}}": "चयनित: {{name}}",
   "Skipped at once": "तुरंत छोड़ा गया",
   "This level has no responders": "इस स्तर पर कोई प्रतिक्रियाकर्ता नहीं है",
   "{{levels}} along the way have no responders, so they are skipped without waiting.": "रास्ते के {{levels}} में कोई प्रतिक्रियाकर्ता नहीं है, इसलिए उन्हें बिना प्रतीक्षा किए छोड़ दिया जाता है।",

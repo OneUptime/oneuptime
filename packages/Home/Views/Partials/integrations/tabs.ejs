@@ -2,7 +2,9 @@
   A set of tabs: the reader's choices (OneUptime Cloud or self-hosted, ES
   modules or CommonJS). The first is open as the page arrives; the page's
   script opens the one the reader picked before, on this guide or another,
-  and every set of the same group follows a new pick.
+  and every set of the same group follows a new pick. Without the script
+  the buttons cannot switch, so the page's <noscript> styles (styles.ejs)
+  show every choice instead, each under its name.
 -%>
 <div class="mt-5" data-tabs="<%= tabs.group %>">
   <div role="tablist" class="inline-flex max-w-full gap-1 overflow-x-auto rounded-lg bg-gray-100 p-1">
@@ -11,6 +13,7 @@
     <% }) %>
   </div>
   <% tabs.tabs.forEach(function (tab, index) { %>
+  <p class="mt-5 text-sm font-semibold text-gray-900" data-tab-label hidden><%= tab.label %></p>
   <div role="tabpanel" id="<%= tab.id %>" aria-labelledby="<%= tab.id %>-tab" data-tab-panel data-tab-value="<%= tab.label %>"<%= index === 0 ? '' : ' hidden' %>>
     <% if (tab.bodyHtml) { %><p class="mt-4 text-[15px] leading-7 text-gray-600"><%- tab.bodyHtml %></p><% } %>
     <% tab.snippets.forEach(function (snippet) { %><%- include('./code-block', { snippet: snippet }) -%><% }) %>

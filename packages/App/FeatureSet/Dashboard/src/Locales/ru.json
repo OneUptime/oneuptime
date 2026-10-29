@@ -36819,6 +36819,7 @@
   "No responders assigned. Edit this rule to add responders.": "Получатели не назначены. Измените правило, чтобы добавить получателей.",
   "Nobody at this level could be paged": "Никого на этом уровне не удалось уведомить",
   "Nobody to page here, so the next level is paged at once": "Здесь некого уведомлять, поэтому следующий уровень уведомляется сразу",
+  "Selected: {{name}}": "Выбрано: {{name}}",
   "Skipped at once": "Пропущено сразу",
   "This level has no responders": "На этом уровне нет получателей",
   "{{levels}} along the way have no responders, so they are skipped without waiting.": "{{levels}} по пути не имеют получателей, поэтому пропускаются без ожидания.",

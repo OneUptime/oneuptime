@@ -163,6 +163,7 @@ const ProfileServicesCard: FunctionComponent<ComponentProps> = (
                 type="button"
                 className="rounded-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                 data-testid="profiles-services-show-all"
+                aria-expanded={showAll}
                 onClick={() => {
                   setShowAll(!showAll);
                 }}

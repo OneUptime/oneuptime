@@ -3,9 +3,11 @@ import { GuideSnippet } from "./GuideTypes";
 /*
  * Reading a guide's code the way its checks need to: the packages its
  * JavaScript imports, the packages its install commands and build files
- * pin (npm, pip, Maven, Gradle, NuGet), and whether code in a language
- * the tests cannot run (Java, Kotlin, C#, a .properties or INI file) is
- * at least well formed. The end-to-end check (Scripts/
+ * pin (npm, pip, Maven, Gradle, NuGet, go get, RubyGems and a Gemfile,
+ * Composer and PECL, Cargo, Mix), and whether code in a language the
+ * tests cannot run (Java, Kotlin, C#, a .properties or INI file) is at
+ * least well formed; GuideSyntaxChecks reads Go, Rust, PHP, Ruby, Elixir
+ * and TOML. The end-to-end check (Scripts/
  * VerifyOpenTelemetryGuides.ts) records each imported package's exports
  * and each installed package's version, and Tests/OpenTelemetryGuides
  * holds every import of every snippet to those records and every install
@@ -131,14 +133,32 @@ export function importedPackages(snippets: Array<GuideSnippet>): Array<string> {
   return specifiers.sort();
 }
 
-// Where a package's name is looked up: npm, PyPI, Maven Central, NuGet.
-export type PackageEcosystem = "npm" | "pypi" | "maven" | "nuget";
+/*
+ * Where a package's name is looked up: npm, PyPI, Maven Central, NuGet, the
+ * Go module proxy, RubyGems, Packagist (Composer), PECL (PHP's
+ * extensions), crates.io and Hex.
+ */
+export type PackageEcosystem =
+  | "npm"
+  | "pypi"
+  | "maven"
+  | "nuget"
+  | "go"
+  | "rubygems"
+  | "packagist"
+  | "pecl"
+  | "crates"
+  | "hex";
 
 export interface InstalledPackage {
   /*
    * As its registry names it: "express", "opentelemetry-distro",
    * "io.opentelemetry:opentelemetry-api" (group and artifact), a Gradle
-   * plugin by its id ("io.ktor.plugin"), "OpenTelemetry.Extensions.Hosting".
+   * plugin by its id ("io.ktor.plugin"), "OpenTelemetry.Extensions.Hosting",
+   * a Go module by its path ("go.opentelemetry.io/otel"), a gem
+   * ("opentelemetry-sdk"), a Composer package ("open-telemetry/sdk"), a
+   * PECL extension ("opentelemetry"), a crate ("opentelemetry-otlp") or a
+   * Hex package ("opentelemetry_phoenix").
    */
   name: string;
   // The version the command or build file pins, if it pins one.
@@ -148,6 +168,143 @@ export interface InstalledPackage {
 
 const NPM_TOOLS: ReadonlyArray<string> = ["npm", "pnpm", "yarn", "bun", "deno"];
 const PIP_TOOLS: ReadonlyArray<string> = ["pip", "pip3"];
+
+/*
+ * The flags of each tool that take a value, so the value is never read as
+ * a package: cargo add's --features names features, not crates.
+ */
+const FLAGS_WITH_VALUES: Partial<
+  Record<PackageEcosystem, ReadonlyArray<string>>
+> = {
+  crates: [
+    "--features",
+    "-F",
+    "--package",
+    "-p",
+    "--rename",
+    "--git",
+    "--branch",
+    "--tag",
+    "--rev",
+    "--path",
+    "--registry",
+    "--manifest-path",
+  ],
+  packagist: ["--working-dir", "-d"],
+};
+
+// gem install's and bundle add's version flags, which pin the gem before them.
+const GEM_VERSION_FLAGS: ReadonlyArray<string> = ["-v", "--version"];
+
+// A character of an Elixir atom: {:opentelemetry_phoenix, ...}.
+const ATOM_CHARACTER: RegExp = /[a-z0-9_]/;
+
+const DIGIT_CHARACTER: RegExp = /[0-9]/;
+
+function withoutQuotes(word: string): string {
+  for (const quote of ['"', "'"]) {
+    if (word.startsWith(quote) && word.endsWith(quote) && word.length > 1) {
+      return word.slice(1, -1);
+    }
+  }
+
+  return word;
+}
+
+// "name@version" read at the last separator: "@scope/a@1" is @scope/a at 1.
+function splitAt(
+  spec: string,
+  separatorAt: number,
+  ecosystem: PackageEcosystem,
+): InstalledPackage {
+  return separatorAt > 0
+    ? {
+        name: spec.slice(0, separatorAt),
+        version: spec.slice(separatorAt + 1),
+        ecosystem: ecosystem,
+      }
+    : { name: spec, ecosystem: ecosystem };
+}
+
+/*
+ * A word of an install command, as a package of its registry:
+ * "go.opentelemetry.io/otel@v1.47.0", "open-telemetry/sdk:1.15.0",
+ * "opentelemetry-1.4.2" (a PECL release), "opentelemetry-otlp@0.33.1".
+ */
+function packageSpec(
+  ecosystem: PackageEcosystem,
+  word: string,
+): InstalledPackage {
+  const spec: string = withoutQuotes(word);
+
+  switch (ecosystem) {
+    case "go":
+    case "crates":
+      return splitAt(spec, spec.lastIndexOf("@"), ecosystem);
+    case "packagist":
+      return splitAt(
+        spec,
+        Math.max(spec.lastIndexOf(":"), spec.lastIndexOf("=")),
+        ecosystem,
+      );
+    case "pecl": {
+      // A release is the extension's name, a dash and its version.
+      const dashAt: number = spec.lastIndexOf("-");
+
+      return DIGIT_CHARACTER.test(spec.charAt(dashAt + 1))
+        ? splitAt(spec, dashAt, ecosystem)
+        : { name: spec, ecosystem: ecosystem };
+    }
+    default:
+      return { name: spec, ecosystem: ecosystem };
+  }
+}
+
+/*
+ * The registry an install command adds from, when `word` (after
+ * `previous`) is the command's verb: npm install, pip install, go get,
+ * gem install, bundle add, composer require, pecl install, cargo add.
+ */
+function installVerb(previous: string, word: string): PackageEcosystem | null {
+  if (
+    (word === "install" || word === "i" || word === "add") &&
+    NPM_TOOLS.includes(previous)
+  ) {
+    return "npm";
+  }
+
+  if (word === "install" && PIP_TOOLS.includes(previous)) {
+    return "pypi";
+  }
+
+  if ((word === "get" || word === "install") && previous === "go") {
+    return "go";
+  }
+
+  if (
+    (word === "install" && previous === "gem") ||
+    (word === "add" && previous === "bundle")
+  ) {
+    return "rubygems";
+  }
+
+  if (word === "require" && previous === "composer") {
+    return "packagist";
+  }
+
+  if (
+    (word === "install" && previous === "pecl") ||
+    word === "install-php-extensions"
+  ) {
+    return "pecl";
+  }
+
+  if (word === "add" && previous === "cargo") {
+    return "crates";
+  }
+
+  return null;
+}
 
 // A command's words, its continuation lines joined and "\n" between commands.
 function commandWords(commands: string): Array<string> {
@@ -241,6 +398,11 @@ export function javaAgentDownload(word: string): InstalledPackage | undefined {
  *   pip install a==1.0, pip3 install, python -m pip install          (PyPI)
  *   dotnet add package A --version 1.0.0                            (NuGet)
  *   the Java agent's release download (curl, a Dockerfile's ADD)    (Maven)
+ *   go get a@v1.0.0, go install a@v1.0.0                               (Go)
+ *   gem install a -v 1.0.0, bundle add a --version "1.0.0"       (RubyGems)
+ *   composer require vendor/a:1.0.0                             (Packagist)
+ *   pecl install a-1.0.0, install-php-extensions a-1.0.0             (PECL)
+ *   cargo add a@1.0.0 --features x                              (crates.io)
  *
  * each on one line or continued with "\" at the ends of its lines.
  */
@@ -265,17 +427,10 @@ export function installedPackages(commands: string): Array<InstalledPackage> {
     }
 
     const previous: string = words[index - 1] || "";
+    const verb: PackageEcosystem | null = installVerb(previous, word);
 
-    if (
-      (word === "install" || word === "i" || word === "add") &&
-      NPM_TOOLS.includes(previous)
-    ) {
-      installing = "npm";
-      continue;
-    }
-
-    if (word === "install" && PIP_TOOLS.includes(previous)) {
-      installing = "pypi";
+    if (verb) {
+      installing = verb;
       continue;
     }
 
@@ -309,7 +464,21 @@ export function installedPackages(commands: string): Array<InstalledPackage> {
       continue;
     }
 
-    if (!installing || word.startsWith("-")) {
+    if (!installing) {
+      continue;
+    }
+
+    // gem install a -v 1.0.0, bundle add a --version "1.0.0": the gem's pin.
+    if (installing === "rubygems" && GEM_VERSION_FLAGS.includes(previous)) {
+      const gem: InstalledPackage | undefined = packages[packages.length - 1];
+
+      if (gem && gem.ecosystem === "rubygems") {
+        gem.version = withoutQuotes(word);
+      }
+      continue;
+    }
+
+    if (word.startsWith("-")) {
       continue;
     }
 
@@ -318,7 +487,23 @@ export function installedPackages(commands: string): Array<InstalledPackage> {
       continue;
     }
 
-    packages.push(installing === "npm" ? npmSpec(word) : pipSpec(word));
+    // A flag's value: cargo add's --features, composer's --working-dir.
+    if ((FLAGS_WITH_VALUES[installing] || []).includes(previous)) {
+      continue;
+    }
+
+    // go get ./... names the module's own packages, not a dependency.
+    if (installing === "go" && word.startsWith(".")) {
+      continue;
+    }
+
+    if (installing === "npm") {
+      packages.push(npmSpec(word));
+    } else if (installing === "pypi") {
+      packages.push(pipSpec(word));
+    } else {
+      packages.push(packageSpec(installing, word));
+    }
   }
 
   return packages;
@@ -703,14 +888,21 @@ export function gradleReportVersions(report: string): Record<string, string> {
   return versions;
 }
 
-// A snippet that is a build file: pom.xml, build.gradle.kts, a .csproj.
+/*
+ * A snippet that is a build file: pom.xml, build.gradle.kts, a .csproj, a
+ * Gemfile, composer.json, Cargo.toml or mix.exs.
+ */
 export function isBuildFileSnippet(snippet: GuideSnippet): boolean {
   const title: string = snippet.title || "";
 
   return (
     (snippet.language === "xml" &&
       (title.endsWith("pom.xml") || title.endsWith(".csproj"))) ||
-    (snippet.language === "kotlin" && title.endsWith(".gradle.kts"))
+    (snippet.language === "kotlin" && title.endsWith(".gradle.kts")) ||
+    (snippet.language === "ruby" && title.endsWith("Gemfile")) ||
+    (snippet.language === "json" && title.endsWith("composer.json")) ||
+    (snippet.language === "toml" && title.endsWith("Cargo.toml")) ||
+    (snippet.language === "elixir" && title.endsWith("mix.exs"))
   );
 }
 
@@ -722,9 +914,240 @@ export function buildFileDependencies(
     return [];
   }
 
-  return snippet.language === "xml"
-    ? xmlBuildFileDependencies(snippet.code)
-    : gradleBuildFileDependencies(snippet.code);
+  switch (snippet.language) {
+    case "xml":
+      return xmlBuildFileDependencies(snippet.code);
+    case "kotlin":
+      return gradleBuildFileDependencies(snippet.code);
+    case "ruby":
+      return gemfileDependencies(snippet.code);
+    case "json":
+      return composerDependencies(snippet.code);
+    case "toml":
+      return cargoDependencies(snippet.code);
+    case "elixir":
+      return mixDependencies(snippet.code);
+    default:
+      return [];
+  }
+}
+
+// The strings of one line, in either quote: gem 'rails', "8.1.4" has both.
+function quotedStringsOfEitherKind(line: string): Array<string> {
+  const strings: Array<string> = [];
+  let from: number = 0;
+
+  for (;;) {
+    const double: number = line.indexOf('"', from);
+    const single: number = line.indexOf("'", from);
+    const start: number =
+      double === -1
+        ? single
+        : single === -1
+          ? double
+          : Math.min(double, single);
+
+    if (start === -1) {
+      return strings;
+    }
+
+    const end: number = line.indexOf(line.charAt(start), start + 1);
+
+    if (end === -1) {
+      return strings;
+    }
+
+    strings.push(line.slice(start + 1, end));
+    from = end + 1;
+  }
+}
+
+/*
+ * A Gemfile's gems: gem "opentelemetry-sdk", "1.13.1" pins 1.13.1; a
+ * requirement ("~> 1.13") is kept as written, so the check of exact pins
+ * refuses it; gem "puma" pins nothing.
+ */
+function gemfileDependencies(code: string): Array<InstalledPackage> {
+  const packages: Array<InstalledPackage> = [];
+
+  for (const rawLine of code.split("\n")) {
+    const line: string = rawLine.trim();
+
+    if (!line.startsWith("gem ")) {
+      continue;
+    }
+
+    const strings: Array<string> = quotedStringsOfEitherKind(line);
+    const name: string | undefined = strings[0];
+    const requirement: string | undefined = strings[1];
+
+    if (!name) {
+      continue;
+    }
+
+    // A string after a keyword (require: "x", group: "test") is not a version.
+    const isVersion: boolean =
+      requirement !== undefined &&
+      !line
+        .slice(0, line.indexOf(requirement, line.indexOf(name) + name.length))
+        .trimEnd()
+        .slice(0, -1)
+        .trimEnd()
+        .endsWith(":");
+
+    packages.push(
+      isVersion
+        ? { name: name, version: requirement, ecosystem: "rubygems" }
+        : { name: name, ecosystem: "rubygems" },
+    );
+  }
+
+  return packages;
+}
+
+// What a composer.json requires, PHP itself and its extensions aside.
+function composerDependencies(code: string): Array<InstalledPackage> {
+  let manifest: {
+    require?: Record<string, string>;
+    "require-dev"?: Record<string, string>;
+  };
+
+  try {
+    manifest = JSON.parse(code) as typeof manifest;
+  } catch {
+    return [];
+  }
+
+  return Object.entries({
+    ...(manifest.require || {}),
+    ...(manifest["require-dev"] || {}),
+  })
+    .filter(([name]: [string, string]): boolean => {
+      return name.includes("/");
+    })
+    .map(([name, version]: [string, string]): InstalledPackage => {
+      return { name: name, version: version, ecosystem: "packagist" };
+    });
+}
+
+/*
+ * A Cargo.toml's dependencies: name = "0.33.1", name = { version = "0.33.1",
+ * features = [...] }, or a [dependencies.name] table with its version; a
+ * crate by path or git pins nothing.
+ */
+function cargoDependencies(code: string): Array<InstalledPackage> {
+  const packages: Array<InstalledPackage> = [];
+  let table: string = "";
+  let tableCrate: InstalledPackage | null = null;
+
+  for (const rawLine of code.split("\n")) {
+    const line: string = rawLine.trim();
+
+    if (line.startsWith("[")) {
+      table = line.slice(1, line.indexOf("]")).trim();
+      tableCrate = null;
+
+      // [dependencies.opentelemetry-otlp]: one crate's table.
+      for (const kind of [
+        "dependencies.",
+        "dev-dependencies.",
+        "build-dependencies.",
+      ]) {
+        if (table.startsWith(kind)) {
+          tableCrate = { name: table.slice(kind.length), ecosystem: "crates" };
+          packages.push(tableCrate);
+        }
+      }
+      continue;
+    }
+
+    const equals: number = line.indexOf("=");
+
+    if (equals <= 0 || line.startsWith("#")) {
+      continue;
+    }
+
+    const key: string = line.slice(0, equals).trim();
+    const value: string = line.slice(equals + 1).trim();
+
+    if (tableCrate) {
+      if (key === "version") {
+        tableCrate.version = quotedStringsOfEitherKind(value)[0];
+      }
+      continue;
+    }
+
+    if (!table.endsWith("dependencies")) {
+      continue;
+    }
+
+    if (value.startsWith('"') || value.startsWith("'")) {
+      packages.push({
+        name: key,
+        version: quotedStringsOfEitherKind(value)[0],
+        ecosystem: "crates",
+      });
+      continue;
+    }
+
+    // An inline table: its version = "...", if it has one.
+    const versionAt: number = value.indexOf("version");
+    const version: string | undefined =
+      versionAt === -1
+        ? undefined
+        : quotedStringsOfEitherKind(value.slice(versionAt))[0];
+
+    packages.push(
+      version
+        ? { name: key, version: version, ecosystem: "crates" }
+        : { name: key, ecosystem: "crates" },
+    );
+  }
+
+  return packages;
+}
+
+/*
+ * A mix.exs's dependencies: {:opentelemetry, "1.7.0"} pins 1.7.0, a
+ * requirement ("~> 1.7") is kept as written, and {:app, path: "..."} pins
+ * nothing.
+ */
+function mixDependencies(code: string): Array<InstalledPackage> {
+  const packages: Array<InstalledPackage> = [];
+  let from: number = 0;
+
+  for (;;) {
+    const start: number = code.indexOf("{:", from);
+
+    if (start === -1) {
+      return packages;
+    }
+
+    let end: number = start + 2;
+
+    while (end < code.length && ATOM_CHARACTER.test(code.charAt(end))) {
+      end++;
+    }
+
+    const name: string = code.slice(start + 2, end);
+    const rest: string = code.slice(end).trimStart();
+
+    if (name && rest.startsWith(",")) {
+      const afterComma: string = rest.slice(1).trimStart();
+
+      packages.push(
+        afterComma.startsWith('"')
+          ? {
+              name: name,
+              version: afterComma.slice(1, afterComma.indexOf('"', 1)),
+              ecosystem: "hex",
+            }
+          : { name: name, ecosystem: "hex" },
+      );
+    }
+
+    from = end;
+  }
 }
 
 /*

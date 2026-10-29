@@ -36819,6 +36819,7 @@
   "No responders assigned. Edit this rule to add responders.": "지정된 대응자가 없습니다. 규칙을 편집해 대응자를 추가하세요.",
   "Nobody at this level could be paged": "이 단계에서는 아무에게도 알릴 수 없었습니다",
   "Nobody to page here, so the next level is paged at once": "여기에는 알릴 사람이 없어 다음 단계에 바로 알립니다",
+  "Selected: {{name}}": "선택됨: {{name}}",
   "Skipped at once": "바로 건너뜀",
   "This level has no responders": "이 단계에는 대응자가 없습니다",
   "{{levels}} along the way have no responders, so they are skipped without waiting.": "중간의 {{levels}}에는 대응자가 없어 기다리지 않고 건너뜁니다.",

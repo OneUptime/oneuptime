@@ -579,7 +579,7 @@ export const QuarkusGuide: OpenTelemetryGuide = {
       validateKeyStep("server"),
       {
         title: "Find the service",
-        body: `Send a request, then open ${SCREENS.services}: \`checkout-api\` is listed within a minute. If nothing appears, check that the variables are the \`QUARKUS_\` ones.`,
+        body: `After a request, \`checkout-api\` is listed in ${SCREENS.services} within a minute. If nothing appears, check that the variables are the \`QUARKUS_\` ones.`,
       },
       {
         title: "Open a request's trace",
