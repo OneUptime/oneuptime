@@ -38,10 +38,28 @@
  *            "long" gives Incident #1042 a TL;DR at the server's
  *            320-character cap (InvestigationTldr.MAX_TLDR_CHARS), long
  *            enough to wrap and clamp in the event header.
- *   ?title=  default | long
+ *   ?title=  default | long | sentence
  *            "long" gives Alert #311 a 67-character title, wider than the
  *            room its header leaves beside the actions from 1280px, so the
- *            title row has to give way somewhere.
+ *            title row has to give way somewhere. "sentence" gives each
+ *            event under test - Incident #1042, Alert #311, Scheduled
+ *            Maintenance #58 and both episodes - a title a sentence long,
+ *            about 140 characters, wider than the page's heading at 1280px
+ *            and three lines of it on a phone.
+ *   ?numbers= default | prefixed | custom | bare | none
+ *            How the events under test are numbered (the Numbering page,
+ *            #4863). By default as a project without prefixes numbers
+ *            them: #1042, #311, #58, #12, #7. "prefixed": as a new project
+ *            numbers them, INC-1042, ALT-311, SM-58, IE-12, AE-7. "custom":
+ *            with long prefixes the project chose, CHECKOUT-INC-1042,
+ *            PAYMENTS-ALT-311, DB-MAINTENANCE-58, CHECKOUT-EP-12,
+ *            PAYMENTS-EP-7. "bare": numbered before numbers carried their
+ *            prefix, the number with no number-with-prefix beside it (shown
+ *            #1042). "none": no number at all.
+ *   ?dir=    auto: <html> takes its language's reading direction as the
+ *            Dashboard sets it (Common/UI/Utils/PageLanguage), right to
+ *            left for Persian. Left out, every language is laid out left to
+ *            right, as the header specs measure it.
  *   ?verdict= none (default) | confirmed | rejected
  *            A responder's verdict already saved on the completed runs of
  *            Incident #1042 and Alert #311, as if rated before the page
@@ -394,6 +412,7 @@ import TranscriptText from "Common/Utils/VideoCall/TranscriptText";
 import CallSummaryFeedMarkdown from "Common/Utils/VideoCall/CallSummaryFeedMarkdown";
 import UserUtil from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
+import { setPageLanguage } from "Common/UI/Utils/PageLanguage";
 
 /*
  * ---------------------------------------------------------------------------
@@ -443,7 +462,45 @@ const WAIT_ENDS_IN_MINUTES = { default: 8, tomorrow: 23 * 60, ended: -0.5 }[
 const WAIT_MINUTES = waitEndMode === "tomorrow" ? 1440 : 10;
 const startedNow = new Set();
 const tldrMode = params.get("tldr") === "long" ? "long" : "default";
-const titleMode = params.get("title") === "long" ? "long" : "default";
+const titleMode = ["long", "sentence"].includes(params.get("title"))
+  ? params.get("title")
+  : "default";
+const isSentenceTitle = titleMode === "sentence";
+/*
+ * ?numbers=: the number each event under test carries, as the server
+ * stores it - the number, and the number with the prefix it was given.
+ */
+const numbersMode = ["prefixed", "custom", "bare", "none"].includes(
+  params.get("numbers"),
+)
+  ? params.get("numbers")
+  : "default";
+const NUMBER_PREFIXES = {
+  prefixed: {
+    incident: "INC-",
+    alert: "ALT-",
+    scheduledMaintenance: "SM-",
+    incidentEpisode: "IE-",
+    alertEpisode: "AE-",
+  },
+  custom: {
+    incident: "CHECKOUT-INC-",
+    alert: "PAYMENTS-ALT-",
+    scheduledMaintenance: "DB-MAINTENANCE-",
+    incidentEpisode: "CHECKOUT-EP-",
+    alertEpisode: "PAYMENTS-EP-",
+  },
+};
+function numberedAs(kind, number) {
+  if (numbersMode === "none") {
+    return { number: null, numberWithPrefix: null };
+  }
+  if (numbersMode === "bare") {
+    return { number, numberWithPrefix: null };
+  }
+  const prefix = NUMBER_PREFIXES[numbersMode]?.[kind] || "#";
+  return { number, numberWithPrefix: `${prefix}${number}` };
+}
 /*
  * ?paged=: whether somebody was paged about incident #1042 and alert #311
  * (First Paged At), and the project's "Time to acknowledge after paging"
@@ -764,6 +821,7 @@ const fixture = {
     ai: aiMode,
     tldr: tldrMode,
     title: titleMode,
+    numbers: numbersMode,
     verdict: presetVerdict,
     sm: smMode,
     publish: publishMode,
@@ -1361,12 +1419,17 @@ function defineIncident(spec) {
       ? incidentStates.acknowledged
       : incidentStates.created;
 
+  // ?numbers= numbers the incident under test; every other one is #N.
+  const numbering = spec.numbering || {
+    number: spec.number,
+    numberWithPrefix: `#${spec.number}`,
+  };
   const record = {
     _id: ID.incident(spec.number),
     title: spec.title,
     description: spec.description,
-    incidentNumber: spec.number,
-    incidentNumberWithPrefix: `#${spec.number}`,
+    incidentNumber: numbering.number,
+    incidentNumberWithPrefix: numbering.numberWithPrefix,
     declaredAt: spec.createdAt,
     createdAt: spec.createdAt,
     impactStartedAt: spec.impactStartedAt || spec.createdAt,
@@ -1606,7 +1669,10 @@ const MAIN_INCIDENT_ROOT_CAUSE =
         : undefined;
 const mainIncident = defineIncident({
   number: INCIDENT_NUMBER,
-  title: "Checkout API p95 latency above 2s",
+  numbering: numberedAs("incident", INCIDENT_NUMBER),
+  title: isSentenceTitle
+    ? "Checkout API p95 latency above 2s for EU customers after release 2026.09.14-2 started with a smaller database connection pool"
+    : "Checkout API p95 latency above 2s",
   description: MAIN_INCIDENT_DESCRIPTION,
   changeMonitorStatusTo: monitorStatus.degraded,
   severity: incidentSeverities.sev2,
@@ -1760,12 +1826,17 @@ function defineAlert(spec) {
     : spec.ackAt
       ? alertStates.acknowledged
       : alertStates.created;
+  // ?numbers= numbers the alert under test; every other one is #N.
+  const numbering = spec.numbering || {
+    number: spec.number,
+    numberWithPrefix: `#${spec.number}`,
+  };
   const record = {
     _id: ID.alert(spec.number),
     title: spec.title,
     description: spec.description,
-    alertNumber: spec.number,
-    alertNumberWithPrefix: `#${spec.number}`,
+    alertNumber: numbering.number,
+    alertNumberWithPrefix: numbering.numberWithPrefix,
     createdAt: spec.createdAt,
     ...(spec.firstPagedAt ? { firstPagedAt: spec.firstPagedAt } : {}),
     alertSeverity: spec.severity,
@@ -1908,9 +1979,12 @@ const ALERT_NUMBER = 311;
 const ALERT_TITLE =
   titleMode === "long"
     ? "Payment webhook 5xx rate above 5% on the eu-west-1 checkout cluster"
-    : "Payment webhook 5xx rate above 5%";
+    : isSentenceTitle
+      ? "Payment webhook 5xx rate above 5% for card payments from the EU storefront while the payment provider retried its callbacks"
+      : "Payment webhook 5xx rate above 5%";
 const mainAlert = defineAlert({
   number: ALERT_NUMBER,
+  numbering: numberedAs("alert", ALERT_NUMBER),
   title: ALERT_TITLE,
   description:
     "payments-webhooks returned 5xx for 7.8% of payment provider callbacks over the last 5 minutes.",
@@ -2110,14 +2184,17 @@ function recurring(intervalType, count) {
   return value;
 }
 
+const smNumbering = numberedAs("scheduledMaintenance", SM_NUMBER);
 table(ScheduledMaintenance).push({
   _id: smId.toString(),
   projectId: projectObjectId,
-  title: "Primary database failover drill",
+  title: isSentenceTitle
+    ? "Primary database failover drill for the orders database in eu-west-1, moving every checkout connection to its standby and back"
+    : "Primary database failover drill",
   description:
     "Planned failover of the orders database primary to its standby in eu-west-1b. Checkout may be read-only for up to 5 minutes while connections move.",
-  scheduledMaintenanceNumber: SM_NUMBER,
-  scheduledMaintenanceNumberWithPrefix: `#${SM_NUMBER}`,
+  scheduledMaintenanceNumber: smNumbering.number,
+  scheduledMaintenanceNumberWithPrefix: smNumbering.numberWithPrefix,
   startsAt: smWindow.startsAt,
   endsAt: smWindow.endsAt,
   createdAt: smCreatedAt,
@@ -2278,14 +2355,20 @@ const incidentEpisodeState = isResolved
   : isAcknowledged
     ? incidentStates.acknowledged
     : incidentStates.created;
+const incidentEpisodeNumbering = numberedAs(
+  "incidentEpisode",
+  INCIDENT_EPISODE_NUMBER,
+);
 table(IncidentEpisode).push({
   _id: incidentEpisodeId.toString(),
   projectId: projectObjectId,
-  title: "Checkout degradation — Sep 14",
+  title: isSentenceTitle
+    ? "Checkout degradation — Sep 14: four checkout incidents opened within 30 minutes of each other across the EU and US storefronts"
+    : "Checkout degradation — Sep 14",
   description:
     "Grouped automatically: four checkout incidents opened within 30 minutes of each other.",
-  episodeNumber: INCIDENT_EPISODE_NUMBER,
-  episodeNumberWithPrefix: `#${INCIDENT_EPISODE_NUMBER}`,
+  episodeNumber: incidentEpisodeNumbering.number,
+  episodeNumberWithPrefix: incidentEpisodeNumbering.numberWithPrefix,
   currentIncidentState: incidentEpisodeState,
   currentIncidentStateId: incidentEpisodeState.id,
   incidentSeverity: incidentSeverities.sev2,
@@ -2465,14 +2548,20 @@ const alertEpisodeState = isResolved
   : isAcknowledged
     ? alertStates.acknowledged
     : alertStates.created;
+const alertEpisodeNumbering = numberedAs(
+  "alertEpisode",
+  ALERT_EPISODE_NUMBER,
+);
 table(AlertEpisode).push({
   _id: alertEpisodeId.toString(),
   projectId: projectObjectId,
-  title: "Payment webhook failures — Sep 14",
+  title: isSentenceTitle
+    ? "Payment webhook failures — Sep 14: five payment webhook alerts from the same monitor group while the provider retried its callbacks"
+    : "Payment webhook failures — Sep 14",
   description:
     "Grouped automatically: payment webhook alerts from the same monitor group.",
-  episodeNumber: ALERT_EPISODE_NUMBER,
-  episodeNumberWithPrefix: `#${ALERT_EPISODE_NUMBER}`,
+  episodeNumber: alertEpisodeNumbering.number,
+  episodeNumberWithPrefix: alertEpisodeNumbering.numberWithPrefix,
   currentAlertState: alertEpisodeState,
   currentAlertStateId: alertEpisodeState.id,
   alertSeverity: alertSeverities.high,
@@ -7259,7 +7348,12 @@ await i18next.use(initReactI18next).init({
   keySeparator: false,
   nsSeparator: false,
 });
-document.documentElement.lang = language;
+if (params.get("dir") === "auto") {
+  // As the Dashboard does: <html lang> and its reading direction.
+  setPageLanguage(language);
+} else {
+  document.documentElement.lang = language;
+}
 
 /*
  * ---------------------------------------------------------------------------

@@ -22,10 +22,10 @@ interface ComponentProps {
  * start. The whole of it on hover.
  */
 export const BREADCRUMB_NUMBERED_RECORD_CLASS_NAME: string =
-  "inline-flex min-w-0 max-w-xs items-baseline gap-x-1 align-bottom";
+  "inline-flex min-w-0 max-w-xs items-baseline align-bottom";
 
 export const BREADCRUMB_RECORD_NUMBER_CLASS_NAME: string =
-  "shrink-0 whitespace-nowrap tabular-nums";
+  "shrink-0 whitespace-nowrap";
 
 export const BREADCRUMB_RECORD_NUMBER_NAME_CLASS_NAME: string =
   "min-w-0 truncate";
@@ -68,7 +68,7 @@ const Breadcrumbs: FunctionComponent<ComponentProps> = ({
                   </bdi>
                   {link.recordName ? (
                     <>
-                      {" "}
+                      {"\u00a0"}
                       <IsolatedText
                         className={BREADCRUMB_RECORD_NUMBER_NAME_CLASS_NAME}
                         text={link.recordName}

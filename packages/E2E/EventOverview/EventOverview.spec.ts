@@ -211,7 +211,8 @@ interface EventPage {
 const INCIDENT_PAGE: EventPage = {
   name: "incident-overview",
   path: INCIDENT_PATH,
-  pageTitle: "Incident - Checkout API p95 latency above 2s",
+  // Its number first, then its title (Utils/Project/RecordNumber).
+  pageTitle: "#1042 Checkout API p95 latency above 2s",
   title: "Checkout API p95 latency above 2s",
   identifier: "#1042",
   feed: "Incident Feed",
@@ -290,7 +291,7 @@ const INCIDENT_PAGE: EventPage = {
 const ALERT_PAGE: EventPage = {
   name: "alert-overview",
   path: ALERT_PATH,
-  pageTitle: "Alert - Payment webhook 5xx rate above 5%",
+  pageTitle: "#311 Payment webhook 5xx rate above 5%",
   title: "Payment webhook 5xx rate above 5%",
   identifier: "#311",
   feed: "Alert Feed",
@@ -351,7 +352,7 @@ const ALERT_PAGE: EventPage = {
 const SCHEDULED_MAINTENANCE_PAGE: EventPage = {
   name: "scheduled-maintenance-overview",
   path: SCHEDULED_MAINTENANCE_PATH,
-  pageTitle: "Scheduled Event - Primary database failover drill",
+  pageTitle: "#58 Primary database failover drill",
   title: "Primary database failover drill",
   identifier: "#58",
   feed: "Scheduled Maintenance Feed",
@@ -413,7 +414,7 @@ const SCHEDULED_MAINTENANCE_PAGE: EventPage = {
 const INCIDENT_EPISODE_PAGE: EventPage = {
   name: "incident-episode-overview",
   path: INCIDENT_EPISODE_PATH,
-  pageTitle: "Episode - Checkout degradation — Sep 14",
+  pageTitle: "#12 Checkout degradation — Sep 14",
   title: "Checkout degradation — Sep 14",
   identifier: "#12",
   feed: "Episode Feed",
@@ -467,7 +468,7 @@ const INCIDENT_EPISODE_PAGE: EventPage = {
 const ALERT_EPISODE_PAGE: EventPage = {
   name: "alert-episode-overview",
   path: ALERT_EPISODE_PATH,
-  pageTitle: "Episode - Payment webhook failures — Sep 14",
+  pageTitle: "#7 Payment webhook failures — Sep 14",
   title: "Payment webhook failures — Sep 14",
   identifier: "#7",
   feed: "Episode Feed",
@@ -1527,7 +1528,7 @@ test.describe("AI investigation report", () => {
 
     await expect(page).toHaveURL(new RegExp(`${incidentPath(1029)}$`));
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      "Incident - Checkout requests timing out on orders-db",
+      "#1029 Checkout requests timing out on orders-db",
     );
     await expect(hero(page).getByRole("heading", { level: 2 })).toHaveText(
       "Checkout requests timing out on orders-db",
@@ -2231,7 +2232,7 @@ test.describe("AI investigation report", () => {
     await expect(page).toHaveURL(new RegExp(`${alertPath(298)}$`));
     await expect(hero(page)).toContainText("#298");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      "Alert - Payment webhook 5xx rate above 5%",
+      "#298 Payment webhook 5xx rate above 5%",
     );
   });
 });
@@ -8933,7 +8934,7 @@ const ALERT_LONG_TITLE: string =
   "Payment webhook 5xx rate above 5% on the eu-west-1 checkout cluster";
 const LONG_TITLE_ALERT_PAGE: EventPage = {
   ...ALERT_PAGE,
-  pageTitle: `Alert - ${ALERT_LONG_TITLE}`,
+  pageTitle: `#311 ${ALERT_LONG_TITLE}`,
   title: ALERT_LONG_TITLE,
 };
 
@@ -11593,7 +11594,7 @@ test.describe("episode overviews", () => {
       .click();
     await expect(page).toHaveURL(new RegExp(`${incidentPath(1040)}$`));
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      "Incident - Orders DB connection pool saturated",
+      "#1040 Orders DB connection pool saturated",
     );
     await expect(hero(page)).toContainText("#1040");
   });
@@ -11994,7 +11995,7 @@ test.describe("navigation", () => {
   }) => {
     await open(page, incidentPath(1017));
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      "Incident - Checkout API p95 latency above 2s",
+      "#1017 Checkout API p95 latency above 2s",
     );
     await expect(hero(page).getByTitle("Number", { exact: true })).toHaveText(
       "#1017",

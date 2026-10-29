@@ -97,20 +97,27 @@ export const PAGE_HEADER_RIGHT_TEST_ID: string = "page-header-right";
 
 /*
  * A numbered record's heading (recordHeading): the number, then the name.
- * The number is never cut or wrapped, and keeps its place at the start of
- * the line - on the right on a right-to-left page. The name gives way: two
- * lines at most on a phone, one from 640px up, cut short with an ellipsis
- * at its own end (an English name on a Persian page still reads from its
- * start), the whole heading on hover.
+ * The number is never cut or wrapped, and never parted from the name: a
+ * no-break space holds it to the name's first word. It keeps its place at
+ * the start of the line - on the right on a right-to-left page.
+ *
+ * The name gives way. On a phone the two run on as one sentence, two lines
+ * at most. From 640px up the heading is one line: the number keeps its
+ * whole width and the name is cut short with an ellipsis at its own end,
+ * so an English name on a Persian page still reads from its start (a cut
+ * across the whole line would take the name's start away there). The
+ * whole heading on hover.
  */
 export const PAGE_RECORD_HEADING_CLASS_NAME: string =
-  "flex min-w-0 items-baseline gap-x-2 text-xl font-semibold leading-7 text-gray-900 sm:tracking-tight";
+  "line-clamp-2 break-words [overflow-wrap:anywhere] text-xl font-semibold leading-7 text-gray-900 sm:flex sm:min-w-0 sm:items-baseline sm:line-clamp-none sm:tracking-tight";
 
 export const PAGE_RECORD_NUMBER_CLASS_NAME: string =
-  "shrink-0 whitespace-nowrap tabular-nums text-gray-500";
+  "whitespace-nowrap text-gray-500 sm:shrink-0";
 
-export const PAGE_RECORD_NAME_CLASS_NAME: string =
-  "min-w-0 break-words [overflow-wrap:anywhere] line-clamp-2 sm:line-clamp-none sm:truncate";
+export const PAGE_RECORD_NAME_CLASS_NAME: string = "sm:min-w-0 sm:truncate";
+
+// Between the number and the name: a space no line may break at.
+export const PAGE_RECORD_HEADING_SEPARATOR: string = "\u00a0";
 
 export const PAGE_RECORD_HEADING_TEST_IDS: {
   heading: string;
@@ -251,7 +258,8 @@ const Page: FunctionComponent<ComponentProps> = (
                         data-testid={PAGE_RECORD_HEADING_TEST_IDS.number}
                       >
                         {recordHeading.number}
-                      </bdi>{" "}
+                      </bdi>
+                      {PAGE_RECORD_HEADING_SEPARATOR}
                       <IsolatedText
                         className={PAGE_RECORD_NAME_CLASS_NAME}
                         text={recordHeading.name}
