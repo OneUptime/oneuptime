@@ -106,7 +106,7 @@ import {
 } from "Common/Types/SecurityEvent/SecurityHunt";
 import { HuntSearchState } from "./Hunts/HuntsModel";
 import { EVENT_PLURAL, EVENT_SINGULAR } from "./Hunts/HuntsCopy";
-import SaveAsHuntButton from "./Hunts/SaveAsHuntButton";
+import HuntsMenu from "./Hunts/HuntsMenu";
 import useAddEventsToCase, {
   AddEventsToCaseActions,
 } from "./Hunts/useAddEventsToCase";
@@ -301,8 +301,9 @@ function toFilterTuples(
  * so the chart never counts events the list would not show and a facet count
  * never promises rows a click cannot reach.
  *
- * What is on screen can be kept: Save as Hunt on the toolbar saves the
- * search as a hunt (Hunts/SaveAsHuntButton), and the events ticked are
+ * What is on screen can be kept: the toolbar's Hunts list opens the
+ * project's hunts and saves the search as one (Hunts/HuntsMenu), where
+ * Traces and Metrics keep their saved views, and the events ticked are
  * kept on a case with Add to Case (Hunts/useAddEventsToCase), as one is from
  * its panel. On a hunt's page (`hunt`) the search starts as the hunt keeps
  * it, the page says what it searches as it changes, and what is kept on a
@@ -1194,20 +1195,18 @@ const SecurityEventsViewer: FunctionComponent<ComponentProps> = (
           isLive: isLive,
           onToggle: setIsLive,
         }}
+        toolbarLeadingActions={
+          <HuntsMenu
+            state={{
+              search: submittedSearch,
+              filters: facetFilters,
+              timeRange: timeRange,
+            }}
+            currentHuntId={props.hunt?.id.toString()}
+          />
+        }
         toolbarTrailingActions={
           <>
-            {/* A hunt's page saves its changes in its own header. */}
-            {props.hunt ? (
-              <></>
-            ) : (
-              <SaveAsHuntButton
-                state={{
-                  search: submittedSearch,
-                  filters: facetFilters,
-                  timeRange: timeRange,
-                }}
-              />
-            )}
             <SecurityEventAttributeColumnPicker
               attributeKeys={pickerAttributeKeys}
               isLoading={attributesLoading}

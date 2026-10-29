@@ -69,12 +69,24 @@ import React, {
  *
  * Inside the Security Events menu, Hunts lit; its crumb names the hunt once
  * it is read (nameRecordInTrail, as a watchlist's does).
+ *
+ * Each hunt draws afresh (keyed by its id): the toolbar's Hunts list opens
+ * another hunt on this same route, and nothing of the one before - its
+ * header, its explorer, a dialog - stays on screen while it is read.
  */
 const SecurityHuntViewPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const translator: Translator = useTranslator();
   const huntId: ObjectID = Navigation.getLastParamAsObjectID();
+
+  return <HuntOnPage key={huntId.toString()} huntId={huntId} />;
+};
+
+const HuntOnPage: FunctionComponent<{ huntId: ObjectID }> = (props: {
+  huntId: ObjectID;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+  const huntId: ObjectID = props.huntId;
   const path: string = Navigation.getRoutePath(RouteUtil.getRoutes());
 
   const [hunt, setHunt] = useState<SecurityHunt | null>(null);

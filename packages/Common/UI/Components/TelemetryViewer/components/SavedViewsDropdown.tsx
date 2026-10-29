@@ -6,7 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Translator } from "../../../Utils/TranslateTemplate";
+import { Translator, translationKey } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import { SavedViewOption } from "../types";
 import useComponentOutsideClick from "../../../Types/UseComponentOutsideClick";
@@ -19,6 +19,36 @@ import {
   getVisibleSavedViews,
   shouldShowSavedViewsSearch,
 } from "../../SavedViews/SavedViewsList";
+
+/*
+ * The words a host names its saved things with, each a translation key: a
+ * host that keeps something other than views (Security Events' hunts) names
+ * them its own way. Any left out read as views.
+ */
+export interface SavedViewsDropdownLabels {
+  // The trigger's name while nothing is applied.
+  trigger?: string | undefined;
+  // The open panel's name, for assistive tech.
+  panel?: string | undefined;
+  // Said in the panel while there is nothing saved (or while it is read).
+  empty?: string | undefined;
+  // The footer action that saves what is on screen.
+  create?: string | undefined;
+  // The panel's search box, once the list is long.
+  search?: string | undefined;
+}
+
+const DEFAULT_LABELS: {
+  trigger: string;
+  panel: string;
+  empty: string;
+  create: string;
+} = {
+  trigger: translationKey("Saved Views"),
+  panel: translationKey("Saved views"),
+  empty: translationKey("No saved views yet."),
+  create: translationKey("+ Save Current View"),
+};
 
 export interface SavedViewsDropdownProps {
   savedViews: Array<SavedViewOption>;
@@ -37,7 +67,24 @@ export interface SavedViewsDropdownProps {
   onUpdateCurrent?: (() => void) | undefined;
   triggerClassName?: string | undefined;
   showTriggerIcon?: boolean | undefined;
+  // The trigger's icon, when it shows one: a bookmark unless named.
+  triggerIcon?: IconProp | undefined;
+  /*
+   * The trigger names the applied view (the default). Off, it keeps its own
+   * name: a page that names the applied one itself - a hunt's page, in its
+   * header - has no need of it twice on its toolbar.
+   */
+  showSelectedNameInTrigger?: boolean | undefined;
   dropdownAlignment?: "left" | "right" | undefined;
+  labels?: SavedViewsDropdownLabels | undefined;
+  /*
+   * Why the footer's save cannot be used right now - nothing on screen to
+   * save, a role that may not - drawn under it, which is then locked.
+   */
+  createDisabledReason?: string | undefined;
+  // Called as the panel opens: a host that reads its list afresh does it here.
+  onOpen?: (() => void) | undefined;
+  dataTestId?: string | undefined;
 }
 
 const triggerButtonClassName: string =
@@ -49,6 +96,14 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
   const translator: Translator = useTranslator();
   const { ref, isComponentVisible, setIsComponentVisible } =
     useComponentOutsideClick(false);
+
+  const label: (key: "trigger" | "panel" | "empty" | "create") => string = (
+    key: "trigger" | "panel" | "empty" | "create",
+  ): string => {
+    const text: string = props.labels?.[key] || DEFAULT_LABELS[key];
+
+    return translator.translateText(text) || text;
+  };
 
   const [searchText, setSearchText] = useState<string>("");
   const [showAll, setShowAll] = useState<boolean>(false);
@@ -154,12 +209,16 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
   };
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative" ref={ref} data-testid={props.dataTestId}>
       <button
         ref={triggerRef}
         type="button"
         className={`${triggerButtonClassName} ${props.triggerClassName || ""}`}
         onClick={() => {
+          if (!isComponentVisible) {
+            props.onOpen?.();
+          }
+
           setIsComponentVisible(!isComponentVisible);
         }}
         aria-haspopup="dialog"
@@ -167,12 +226,13 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
       >
         {props.showTriggerIcon ? (
           <Icon
-            icon={IconProp.Bookmark}
+            icon={props.triggerIcon || IconProp.Bookmark}
             className="h-3.5 w-3.5 text-gray-500"
           />
         ) : null}
         <span className="max-w-40 truncate">
-          {selectedView?.name || translator.translateText("Saved Views")}
+          {(props.showSelectedNameInTrigger !== false && selectedView?.name) ||
+            label("trigger")}
         </span>
         <span
           className={`text-xs text-gray-400 ${
@@ -202,7 +262,7 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
          */
         <div
           role="dialog"
-          aria-label={translator.translateText("Saved views")}
+          aria-label={label("panel")}
           className={`absolute z-20 mt-2 w-72 rounded-lg border border-gray-200 bg-white shadow-xl ${
             props.dropdownAlignment === "right" ? "right-0" : "left-0"
           }`}
@@ -240,6 +300,7 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
             <div className="border-b border-gray-100 px-3 py-2">
               <SavedViewsSearchInput
                 value={searchText}
+                label={props.labels?.search}
                 className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700 placeholder-gray-400 outline-none focus:border-indigo-300 focus:bg-white focus:ring-1 focus:ring-indigo-200"
                 onChange={(text: string) => {
                   setSearchText(text);
@@ -252,7 +313,7 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
           <div className="max-h-72 overflow-y-auto py-1">
             {props.savedViews.length === 0 && (
               <div className="px-3 py-6 text-center text-xs text-gray-400">
-                {translator.translateText("No saved views yet.")}
+                {label("empty")}
               </div>
             )}
 
@@ -320,6 +381,8 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
                           ? "font-medium text-indigo-700"
                           : "text-gray-700"
                       }`}
+                      // A long name is cut to the panel; the whole of it on hover.
+                      title={view.name}
                     >
                       {view.name}
                     </span>
@@ -328,6 +391,11 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
                         {translator.translateText("default")}
                       </span>
                     )}
+                    {!view.isDefault && view.detail ? (
+                      <span className="shrink-0 text-[10px] text-gray-400">
+                        {view.detail}
+                      </span>
+                    ) : null}
                   </button>
 
                   {/* Actions — visible on hover */}
@@ -407,14 +475,25 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
             <div className="border-t border-gray-100 px-3 py-2">
               <button
                 type="button"
-                className="w-full rounded-md px-2 py-1.5 text-left text-xs font-medium text-indigo-600 transition-colors hover:bg-indigo-50"
+                className={`w-full rounded-md px-2 py-1.5 text-left text-xs font-medium transition-colors ${
+                  props.createDisabledReason
+                    ? "cursor-not-allowed text-gray-400"
+                    : "text-indigo-600 hover:bg-indigo-50"
+                }`}
+                disabled={Boolean(props.createDisabledReason)}
                 onClick={() => {
                   props.onCreate?.();
                   setIsComponentVisible(false);
                 }}
               >
-                {translator.translateText("+ Save Current View")}
+                {label("create")}
               </button>
+              {/* Said, not hidden in a tooltip: a locked action says why. */}
+              {props.createDisabledReason ? (
+                <p className="px-2 pb-0.5 text-[11px] leading-4 text-gray-500">
+                  {props.createDisabledReason}
+                </p>
+              ) : null}
             </div>
           )}
         </div>

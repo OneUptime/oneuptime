@@ -162,6 +162,17 @@ export const DELETE_HUNT_CONFIRM: string = translationKey(
 export const MORE_ACTIONS: string = translationKey("More actions");
 export const HUNT_ACTIONS_LABEL: string = translationKey("Hunt actions");
 
+// ---------- The Hunts list on the Events explorer's toolbar ----------
+
+// Its footer, which saves the search on screen; the trigger reads "Hunts".
+export const HUNTS_MENU_SAVE_AS_HUNT: string = translationKey("+ Save as Hunt");
+export const HUNTS_MENU_EMPTY: string = translationKey("No hunts yet.");
+export const HUNTS_MENU_LOADING: string = translationKey("Loading hunts…");
+export const HUNTS_MENU_NOT_LOADED: string = translationKey(
+  "Hunts could not be loaded. Open this list again to try again.",
+);
+export const HUNTS_MENU_SEARCH: string = translationKey("Search hunts...");
+
 // ---------- Save as Hunt, on Events ----------
 
 export const SAVE_AS_HUNT: string = translationKey("Save as Hunt");
@@ -246,7 +257,7 @@ export const HUNTS_TEST_IDS: {
   edit: string;
   more: string;
   delete: string;
-  saveAsHunt: string;
+  huntsMenu: string;
   saveSummary: string;
   addToCase: string;
   addToCaseResult: string;
@@ -270,7 +281,7 @@ export const HUNTS_TEST_IDS: {
   edit: "security-hunt-edit",
   more: "security-hunt-more",
   delete: "security-hunt-delete",
-  saveAsHunt: "security-events-save-as-hunt",
+  huntsMenu: "security-events-hunts-menu",
   saveSummary: "security-hunt-save-summary",
   addToCase: "security-event-add-to-case",
   addToCaseResult: "security-event-add-to-case-result",

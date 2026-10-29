@@ -16,6 +16,7 @@ import {
   SECURITY_HUNTS_PER_PROJECT_MAX,
   SECURITY_HUNT_MESSAGES,
   SECURITY_HUNT_RECIPIENTS_MAX,
+  SECURITY_HUNT_RUN_ERRORS,
   SecurityHuntField,
   SecurityHuntFilters,
   SecurityHuntProblem,
@@ -45,6 +46,11 @@ import { getSecurityHuntFiltersProblem } from "../../Utils/SecurityEvent/Securit
  * the change has passed every permission check (onCreatePermitted,
  * onUpdatePermitted). A hunt taken off its schedule keeps what its runs
  * found, and runs no more.
+ *
+ * A person who saves a scheduled hunt's schedule as it is (its Edit form
+ * does) takes its runs over: they run as that person from then on, from
+ * where they had got to - so a hunt whose author has left, or lost their
+ * access, runs again once a teammate saves it, as its error says.
  */
 
 // What a create or an update does to the hunt's schedule, decided before its checks.
@@ -53,6 +59,17 @@ interface ScheduleStart {
   schedule: SecurityHuntSchedule;
   scheduledByUserId: ObjectID | null;
 }
+
+// A scheduled hunt's runs moved to the person saving it, from where they had got to.
+interface ScheduleTakeOver {
+  scheduledByUserId: ObjectID;
+  // Its last run failed because its author could not read: no longer so.
+  clearsSchedulerError: boolean;
+}
+
+type ScheduleChange =
+  | { start: ScheduleStart | null }
+  | { takeOver: ScheduleTakeOver };
 
 // How many people or teams a write names; null when it leaves the list as it is.
 function countListed(data: JSONObject, key: string): number | null {
@@ -75,10 +92,10 @@ export class Service extends ProjectReferencesService<Model> {
     ScheduleStart | null
   > = new WeakMap<CreateBy<Model>, ScheduleStart | null>();
 
-  private readonly updateScheduleStarts: WeakMap<
+  private readonly updateScheduleChanges: WeakMap<
     UpdateBy<Model>,
-    ScheduleStart | null
-  > = new WeakMap<UpdateBy<Model>, ScheduleStart | null>();
+    ScheduleChange
+  > = new WeakMap<UpdateBy<Model>, ScheduleChange>();
 
   public constructor() {
     super(Model);
@@ -294,7 +311,9 @@ export class Service extends ProjectReferencesService<Model> {
    * An update is checked as the hunt it leaves behind. One that changes
    * what a scheduled hunt searches for, or its schedule, starts the
    * schedule again from now (see the top of this file) - for one hunt at a
-   * time, as it is written with its own moment and its author.
+   * time, as it is written with its own moment and its author. One that
+   * saves a scheduled hunt's schedule as it was, by somebody else than the
+   * person its runs run as, moves its runs to them.
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(
@@ -363,6 +382,8 @@ export class Service extends ProjectReferencesService<Model> {
         schedule: true,
         searchQuery: true,
         filters: true,
+        scheduledByUserId: true,
+        lastRunError: true,
         notifyUsers: {
           _id: true,
         },
@@ -372,7 +393,7 @@ export class Service extends ProjectReferencesService<Model> {
       },
     );
 
-    let start: ScheduleStart | null | undefined = undefined;
+    let change: ScheduleChange | undefined = undefined;
 
     for (const row of rows) {
       const schedule: SecurityHuntSchedule =
@@ -411,6 +432,18 @@ export class Service extends ProjectReferencesService<Model> {
         scheduleChanged || (searchChanged && isScheduledSecurityHunt(schedule));
 
       if (!restarts) {
+        const takeOver: ScheduleTakeOver | null = Service.getTakeOver({
+          row,
+          rowCount: rows.length,
+          sendsSchedule: data["schedule"] !== undefined,
+          schedule,
+          props: updateBy.props,
+        });
+
+        if (takeOver) {
+          change = { takeOver };
+        }
+
         continue;
       }
 
@@ -420,38 +453,93 @@ export class Service extends ProjectReferencesService<Model> {
         );
       }
 
-      start = isScheduledSecurityHunt(schedule)
-        ? {
-            schedule,
-            scheduledByUserId: Service.getScheduler(updateBy.props),
-          }
-        : null;
+      change = {
+        start: isScheduledSecurityHunt(schedule)
+          ? {
+              schedule,
+              scheduledByUserId: Service.getScheduler(updateBy.props),
+            }
+          : null,
+      };
     }
 
-    if (start !== undefined) {
-      this.updateScheduleStarts.set(updateBy, start);
+    if (change !== undefined) {
+      this.updateScheduleChanges.set(updateBy, change);
     }
 
     return { updateBy, carryForward: null };
   }
 
-  // The schedule an update starts (or stops), once it has passed every check.
+  /*
+   * Whether an update that leaves a scheduled hunt's schedule and search as
+   * they were moves its runs to the person saving it: when it sends the
+   * schedule (as the Edit form does), for one hunt, saved by a person other
+   * than the one its runs run as.
+   */
+  private static getTakeOver(data: {
+    row: Model;
+    rowCount: number;
+    sendsSchedule: boolean;
+    schedule: SecurityHuntSchedule;
+    props: DatabaseCommonInteractionProps;
+  }): ScheduleTakeOver | null {
+    const userId: ObjectID | undefined = data.props.userId;
+
+    if (
+      !data.sendsSchedule ||
+      data.rowCount !== 1 ||
+      !userId ||
+      !isScheduledSecurityHunt(data.schedule) ||
+      data.row.scheduledByUserId?.toString() === userId.toString()
+    ) {
+      return null;
+    }
+
+    return {
+      scheduledByUserId: userId,
+      clearsSchedulerError:
+        data.row.lastRunError ===
+        SECURITY_HUNT_RUN_ERRORS.schedulerCannotRead.message,
+    };
+  }
+
+  // The schedule an update starts, stops or takes over, once it has passed every check.
   protected override async onUpdatePermitted(
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
-    if (!this.updateScheduleStarts.has(updateBy)) {
+    const change: ScheduleChange | undefined =
+      this.updateScheduleChanges.get(updateBy);
+
+    if (!change) {
       return;
     }
 
-    const start: ScheduleStart | null | undefined =
-      this.updateScheduleStarts.get(updateBy);
+    this.updateScheduleChanges.delete(updateBy);
 
-    this.updateScheduleStarts.delete(updateBy);
+    const data: JSONObject = updateBy.data as unknown as JSONObject;
 
-    Service.writeScheduleStart(
-      updateBy.data as unknown as JSONObject,
-      start || null,
+    if ("takeOver" in change) {
+      Service.writeScheduleTakeOver(data, change.takeOver);
+      return;
+    }
+
+    Service.writeScheduleStart(data, change.start);
+  }
+
+  // The columns a take-over writes: who the runs run as; the window stays.
+  public static writeScheduleTakeOver(
+    data: JSONObject,
+    takeOver: ScheduleTakeOver,
+  ): void {
+    RelationIdUtil.stamp(
+      data as unknown as Record<string, unknown>,
+      ["scheduledByUserId", "scheduledByUser"],
+      takeOver.scheduledByUserId,
     );
+
+    if (takeOver.clearsSchedulerError) {
+      data["lastRunError"] = null;
+    }
   }
 
   /*

@@ -16,11 +16,7 @@ import {
   SEARCH_CHANGED,
   SHOW_THEM,
 } from "./HuntsCopy";
-import {
-  HuntRecipients,
-  HuntSearchLine,
-  getHuntRecipientNames,
-} from "./HuntCells";
+import { HuntRecipients, getHuntRecipientNames } from "./HuntCells";
 import {
   HuntRunState,
   getHuntLastFoundWindow,
@@ -78,10 +74,10 @@ export interface ComponentProps {
 /*
  * The top of a hunt's page, laid out as a case's and an entity's are
  * (SecurityCaseHeaderLayout): what it is - a hunt, and how often it runs -
- * its name, and its actions; under them its search, what it is for, who it
- * tells and when it runs next, and what its runs found - the last time they
- * found something, with the way to show it, or why the last one could not
- * be made.
+ * its name, and its actions; under them what it is for, who it tells and
+ * when it runs next, and what its runs found - the last time they found
+ * something, with the way to show it, or why the last one could not be
+ * made. Its search is the explorer's search bar, under the header.
  *
  * Changing the search on the explorer below is a change to the hunt: the
  * header says so, with Save Changes (the main move while there is one) and
@@ -233,10 +229,6 @@ const HuntHeader: FunctionComponent<ComponentProps> = (
           className="mt-3 space-y-1.5 text-sm text-gray-600"
           data-testid={HUNTS_TEST_IDS.headerFacts}
         >
-          <HuntSearchLine
-            searchQuery={hunt.searchQuery}
-            filters={hunt.filters}
-          />
           {hunt.description ? (
             <p className="break-words text-gray-700">{hunt.description}</p>
           ) : (

@@ -112,4 +112,9 @@ export interface SavedViewOption {
   id: string;
   name: string;
   isDefault?: boolean;
+  /*
+   * A word or two after the name, in the reader's language - a hunt's
+   * schedule, say. Drawn where "default" is, so a default view shows that.
+   */
+  detail?: string | undefined;
 }
