@@ -823,7 +823,20 @@ async function loadSuggestionAsRoot(
   return suggestion;
 }
 
-// Best-effort feed note on the suggestion's subject — never throws.
+/*
+ * "1 command" / "3 commands", and the verb that goes with them.
+ */
+function describeCommandCount(count: number): string {
+  return count === 1 ? "1 command" : `${count} commands`;
+}
+
+/*
+ * Best-effort feed note on the suggestion's subject — never throws. Each
+ * note is a sentence written to follow the name of whoever approved or
+ * dismissed the fix: the feed puts their name in front of it, and the
+ * incident's or alert's Slack and Teams channels too - "⚡ Valeria
+ * Mustafaeva approved the AI command plan: 3 commands are being run."
+ */
 async function postFeedItem(data: {
   suggestion: AutoRemediationSuggestion;
   markdown: string;
@@ -841,6 +854,8 @@ async function postFeedItem(data: {
         userId: data.userId,
         workspaceNotification: {
           sendWorkspaceNotification: data.pingWorkspace,
+          // Who approved or dismissed the fix, as the feed names them.
+          leadWithAuthor: true,
         },
       });
     } else if (data.suggestion.alertId && data.suggestion.projectId) {
@@ -853,6 +868,8 @@ async function postFeedItem(data: {
         userId: data.userId,
         workspaceNotification: {
           sendWorkspaceNotification: data.pingWorkspace,
+          // Who approved or dismissed the fix, as the feed names them.
+          leadWithAuthor: true,
         },
       });
     }
@@ -962,7 +979,7 @@ async function approveMcpToolCalls(data: {
   await postFeedItem({
     suggestion,
     markdown:
-      mdText`⚡ **Fix through MCP servers approved** (${ExternalMcpToolCallPlanUtil.describeChangeCount(proposed.length)}). The changes are being made; verification will watch the monitors for recovery.`.toString(),
+      mdText`⚡ Approved the **fix through MCP servers** (${ExternalMcpToolCallPlanUtil.describeChangeCount(proposed.length)}). The changes are being made; verification will watch the monitors for recovery.`.toString(),
     userId: props.userId!,
     pingWorkspace: true,
   });
@@ -1245,7 +1262,7 @@ router.post(
         await postFeedItem({
           suggestion,
           markdown:
-            mdText`⚡ **AI command plan approved** — ${plan.commands.length} command(s) are being executed. Verification will watch the monitors for recovery.`.toString(),
+            mdText`⚡ Approved the **AI command plan**: ${describeCommandCount(plan.commands.length)} ${plan.commands.length === 1 ? "is" : "are"} being run. Verification will watch the monitors for recovery.`.toString(),
           userId: props.userId!,
           pingWorkspace: true,
         });
@@ -1374,7 +1391,7 @@ router.post(
       await postFeedItem({
         suggestion,
         markdown:
-          mdText`⚡ **Auto-remediation suggestion approved** — runbook "${suggestion.runbookNameSnapshot || "Runbook"}" was started.`.toString(),
+          mdText`⚡ Approved the **auto-remediation suggestion**: runbook "${suggestion.runbookNameSnapshot || "Runbook"}" was started.`.toString(),
         userId: props.userId!,
         pingWorkspace: true,
       });
@@ -1478,21 +1495,21 @@ router.post(
       let dismissMarkdown: string;
       if (alreadyExecutedCount > 0 && dismissedMcpPlan) {
         dismissMarkdown =
-          mdText`⚠️ **Auto-remediation suggestion dismissed — but ${ExternalMcpToolCallPlanUtil.describeChangeCount(alreadyExecutedCount)} through MCP servers had ALREADY been made.** No further changes will be made and nothing was undone. Review them on the Remediation card.`.toString();
+          mdText`⚠️ Dismissed the **auto-remediation suggestion**, but **${ExternalMcpToolCallPlanUtil.describeChangeCount(alreadyExecutedCount)} through MCP servers had ALREADY been made.** No further changes will be made and nothing was undone. Review them on the Remediation card.`.toString();
       } else if (
         suggestion.suggestionType === AutoRemediationSuggestionType.McpToolCalls
       ) {
-        dismissMarkdown = `⚡ **Auto-remediation suggestion dismissed** — the fix through MCP servers will not be made.`;
+        dismissMarkdown = `⚡ Dismissed the **auto-remediation suggestion**: the fix through MCP servers will not be made.`;
       } else if (alreadyExecutedCount > 0) {
         dismissMarkdown =
-          mdText`⚠️ **Auto-remediation suggestion dismissed — but ${alreadyExecutedCount} command(s) had ALREADY run.** No further commands will run and nothing was rolled back automatically. Review the executed commands and their output on the suggestion.`.toString();
+          mdText`⚠️ Dismissed the **auto-remediation suggestion**, but **${describeCommandCount(alreadyExecutedCount)} had ALREADY run.** No further commands will run and nothing was rolled back automatically. Review the executed commands and their output on the suggestion.`.toString();
       } else if (
         suggestion.suggestionType === AutoRemediationSuggestionType.CommandPlan
       ) {
-        dismissMarkdown = `⚡ **Auto-remediation suggestion dismissed** — the AI-composed command plan will not be run.`;
+        dismissMarkdown = `⚡ Dismissed the **auto-remediation suggestion**: the AI-composed command plan will not be run.`;
       } else {
         dismissMarkdown =
-          mdText`⚡ **Auto-remediation suggestion dismissed** — runbook "${suggestion.runbookNameSnapshot || "(not yet picked)"}" will not be run.`.toString();
+          mdText`⚡ Dismissed the **auto-remediation suggestion**: runbook "${suggestion.runbookNameSnapshot || "(not yet picked)"}" will not be run.`.toString();
       }
 
       await postFeedItem({

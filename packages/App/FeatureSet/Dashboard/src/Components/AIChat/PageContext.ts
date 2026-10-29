@@ -1,11 +1,33 @@
 import PageMap from "../../Utils/PageMap";
+import {
+  getEntityStateSuggestions,
+  getMonitorEntityState,
+  getResolvableEntityState,
+  getScheduledMaintenanceEntityState,
+  PageEntityState,
+} from "./PageEntityState";
 import ResourcePageContextUtil from "./ResourcePageContext";
+import AlertStateUtil from "../../Utils/AlertState";
+import IncidentStateUtil from "../../Utils/IncidentState";
 import RouteMap from "../../Utils/RouteMap";
 import RouteParams from "../../Utils/RouteParams";
+import ScheduledMaintenanceStateUtil from "../../Utils/ScheduledMaintenanceState";
 import Alert from "Common/Models/DatabaseModels/Alert";
+import AlertState from "Common/Models/DatabaseModels/AlertState";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
 import DataStore from "Common/Models/DatabaseModels/DataStore";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
+import ProjectUtil from "Common/UI/Utils/Project";
+import ResolvedStateUtil, {
+  ResolvedStateList,
+} from "Common/Utils/ResolvedState";
+import ScheduledMaintenanceStartUtil, {
+  ScheduledMaintenancePhaseOfState,
+} from "Common/Utils/ScheduledMaintenanceStart";
+import { StateListType } from "Common/Utils/StateOrder";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
@@ -16,6 +38,7 @@ import Route from "Common/Types/API/Route";
 import AIChatPageContextType, {
   AIChatPageContext,
 } from "Common/Types/AI/AIChatPageContext";
+import Select from "Common/Types/BaseDatabase/Select";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -47,12 +70,27 @@ export interface DashboardPageContext extends AIChatPageContext {
   icon: IconProp;
   // True when the context points at one specific record (has an entityId).
   isEntity: boolean;
+  /*
+   * Where that record stands (resolved, not operational, not started yet),
+   * read with its title each time Ask AI opens on it. It picks the
+   * questions Ask AI suggests and stays in the browser: the server reads
+   * the record itself.
+   */
+  entityState?: PageEntityState | undefined;
 }
 
 export interface SuggestedQuestion {
   icon: IconProp;
   title: string;
   question: string;
+}
+
+// What one read of the record on screen says about it.
+export interface ResolvedPageEntity {
+  // Its display title, or null when it has none to show.
+  title: string | null;
+  // Where it stands, for a record whose questions follow its state.
+  state?: PageEntityState | undefined;
 }
 
 // OpenTelemetry trace ids are hex (not OneUptime UUIDs).
@@ -365,6 +403,22 @@ export default class PageContextUtil {
   public static async resolveEntityTitle(
     context: DashboardPageContext,
   ): Promise<string | null> {
+    const entity: ResolvedPageEntity | null =
+      await PageContextUtil.resolveEntity(context);
+
+    return entity?.title || null;
+  }
+
+  /*
+   * One read of the on-screen entity, each time Ask AI opens on it: its
+   * display title for the chip and the prompt, and - for an incident, an
+   * alert, a monitor or a scheduled maintenance event - where it stands,
+   * for the questions it suggests. Returns null when the record is gone or
+   * the user cannot read it.
+   */
+  public static async resolveEntity(
+    context: DashboardPageContext,
+  ): Promise<ResolvedPageEntity | null> {
     if (!context.entityId || !ObjectID.isValidUUID(context.entityId)) {
       return null;
     }
@@ -374,12 +428,25 @@ export default class PageContextUtil {
     try {
       switch (context.type) {
         case AIChatPageContextType.Resource:
-          return await ResourcePageContextUtil.resolveTitle(context);
+          return PageContextUtil.titleOnly(
+            await ResourcePageContextUtil.resolveTitle(context),
+          );
         case AIChatPageContextType.Incident: {
+          // The project's states, read beside the incident (a cached list).
+          const states: Promise<Array<IncidentState> | null> =
+            PageContextUtil.readProjectStates<IncidentState>(
+              (projectId: ObjectID): Promise<Array<IncidentState>> => {
+                return IncidentStateUtil.getIncidentStates(projectId);
+              },
+            );
           const item: Incident | null = await ModelAPI.getItem<Incident>({
             modelType: Incident,
             id: id,
-            select: { title: true, incidentNumber: true },
+            select: {
+              title: true,
+              incidentNumber: true,
+              currentIncidentStateId: true,
+            },
           });
           if (!item) {
             return null;
@@ -387,13 +454,32 @@ export default class PageContextUtil {
           const numberPart: string = item.incidentNumber
             ? `#${item.incidentNumber} `
             : "";
-          return item.title ? `${numberPart}${item.title}` : null;
+          return {
+            title: item.title ? `${numberPart}${item.title}` : null,
+            state: getResolvableEntityState(
+              PageContextUtil.isResolvedIn({
+                list: StateListType.IncidentState,
+                states: await states,
+                stateId: item.currentIncidentStateId,
+              }),
+            ),
+          };
         }
         case AIChatPageContextType.Alert: {
+          const states: Promise<Array<AlertState> | null> =
+            PageContextUtil.readProjectStates<AlertState>(
+              (projectId: ObjectID): Promise<Array<AlertState>> => {
+                return AlertStateUtil.getAlertStates(projectId);
+              },
+            );
           const item: Alert | null = await ModelAPI.getItem<Alert>({
             modelType: Alert,
             id: id,
-            select: { title: true, alertNumber: true },
+            select: {
+              title: true,
+              alertNumber: true,
+              currentAlertStateId: true,
+            },
           });
           if (!item) {
             return null;
@@ -401,24 +487,66 @@ export default class PageContextUtil {
           const numberPart: string = item.alertNumber
             ? `#${item.alertNumber} `
             : "";
-          return item.title ? `${numberPart}${item.title}` : null;
+          return {
+            title: item.title ? `${numberPart}${item.title}` : null,
+            state: getResolvableEntityState(
+              PageContextUtil.isResolvedIn({
+                list: StateListType.AlertState,
+                states: await states,
+                stateId: item.currentAlertStateId,
+              }),
+            ),
+          };
         }
         case AIChatPageContextType.Monitor: {
-          const item: Monitor | null = await ModelAPI.getItem<Monitor>({
-            modelType: Monitor,
-            id: id,
-            select: { name: true },
-          });
-          return item?.name || null;
+          const item: Monitor | null =
+            await PageContextUtil.readWithState<Monitor>({
+              modelType: Monitor,
+              id: id,
+              select: { name: true },
+              stateSelect: {
+                currentMonitorStatus: { isOperationalState: true },
+              },
+            });
+          if (!item) {
+            return null;
+          }
+          return {
+            title: item.name || null,
+            state: getMonitorEntityState(
+              item.currentMonitorStatus?.isOperationalState,
+            ),
+          };
         }
         case AIChatPageContextType.ScheduledMaintenanceEvent: {
+          const states: Promise<Array<ScheduledMaintenanceState> | null> =
+            PageContextUtil.readProjectStates<ScheduledMaintenanceState>(
+              (
+                projectId: ObjectID,
+              ): Promise<Array<ScheduledMaintenanceState>> => {
+                return ScheduledMaintenanceStateUtil.getScheduledMaintenanceStates(
+                  projectId,
+                );
+              },
+            );
           const item: ScheduledMaintenance | null =
             await ModelAPI.getItem<ScheduledMaintenance>({
               modelType: ScheduledMaintenance,
               id: id,
-              select: { title: true },
+              select: { title: true, currentScheduledMaintenanceStateId: true },
             });
-          return item?.title || null;
+          if (!item) {
+            return null;
+          }
+          return {
+            title: item.title || null,
+            state: getScheduledMaintenanceEntityState(
+              PageContextUtil.getMaintenancePhase({
+                states: await states,
+                stateId: item.currentScheduledMaintenanceStateId,
+              }),
+            ),
+          };
         }
         case AIChatPageContextType.TelemetryService: {
           const item: Service | null = await ModelAPI.getItem<Service>({
@@ -426,7 +554,7 @@ export default class PageContextUtil {
             id: id,
             select: { name: true },
           });
-          return item?.name || null;
+          return PageContextUtil.titleOnly(item?.name);
         }
         case AIChatPageContextType.RumApplication: {
           const item: RumApplication | null =
@@ -435,7 +563,7 @@ export default class PageContextUtil {
               id: id,
               select: { name: true },
             });
-          return item?.name || null;
+          return PageContextUtil.titleOnly(item?.name);
         }
         case AIChatPageContextType.Exception: {
           const item: TelemetryException | null =
@@ -444,7 +572,9 @@ export default class PageContextUtil {
               id: id,
               select: { message: true, exceptionType: true },
             });
-          return item?.message || item?.exceptionType || null;
+          return PageContextUtil.titleOnly(
+            item?.message || item?.exceptionType,
+          );
         }
         case AIChatPageContextType.SecurityCase: {
           const item: SecurityCase | null =
@@ -456,9 +586,11 @@ export default class PageContextUtil {
           if (!item?.title) {
             return null;
           }
-          return item.caseNumberWithPrefix
-            ? `${item.caseNumberWithPrefix} ${item.title}`
-            : item.title;
+          return {
+            title: item.caseNumberWithPrefix
+              ? `${item.caseNumberWithPrefix} ${item.title}`
+              : item.title,
+          };
         }
         case AIChatPageContextType.DataStore: {
           const item: DataStore | null = await ModelAPI.getItem<DataStore>({
@@ -466,7 +598,7 @@ export default class PageContextUtil {
             id: id,
             select: { name: true },
           });
-          return item?.name || null;
+          return PageContextUtil.titleOnly(item?.name);
         }
         case AIChatPageContextType.DataSecurityIssue: {
           const item: DataSecurityIssue | null =
@@ -475,7 +607,7 @@ export default class PageContextUtil {
               id: id,
               select: { title: true },
             });
-          return item?.title || null;
+          return PageContextUtil.titleOnly(item?.title);
         }
         default:
           return null;
@@ -483,6 +615,116 @@ export default class PageContextUtil {
     } catch {
       // No read access / record deleted — the generic chip label is used.
       return null;
+    }
+  }
+
+  /*
+   * The project's states of one kind, top first with their places and
+   * flags, through the Dashboard's cached list (one request per project a
+   * minute, which the header and the lists read too) - or null when there
+   * is no project, none is there, or the read fails: then where the record
+   * stands is not known, and its page type's questions stay.
+   */
+  private static async readProjectStates<T>(
+    read: (projectId: ObjectID) => Promise<Array<T>>,
+  ): Promise<Array<T> | null> {
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+    if (!projectId) {
+      return null;
+    }
+
+    try {
+      const states: Array<T> = await read(projectId);
+
+      return states.length > 0 ? states : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /*
+   * Whether an incident or an alert in `stateId` is resolved, by the one
+   * rule (ResolvedStateUtil): its state at or below the project's resolved
+   * state. Null when that cannot be told.
+   */
+  private static isResolvedIn(data: {
+    list: ResolvedStateList;
+    states: Array<unknown> | null;
+    stateId: ObjectID | undefined;
+  }): boolean | null {
+    if (!data.states || !data.stateId) {
+      return null;
+    }
+
+    return ResolvedStateUtil.isResolved({
+      list: data.list,
+      states: data.states,
+      stateId: data.stateId,
+    });
+  }
+
+  /*
+   * Where a scheduled maintenance event in `stateId` is in its life, by the
+   * one rule (ScheduledMaintenanceStartUtil.getPhase), read off the
+   * project's states. Null when that cannot be told.
+   */
+  private static getMaintenancePhase(data: {
+    states: Array<ScheduledMaintenanceState> | null;
+    stateId: ObjectID | undefined;
+  }): ScheduledMaintenancePhaseOfState | null {
+    if (!data.states || !data.stateId) {
+      return null;
+    }
+
+    const stateId: string = data.stateId.toString().toLowerCase();
+    const state: ScheduledMaintenanceState | undefined = data.states.find(
+      (candidate: ScheduledMaintenanceState): boolean => {
+        return (candidate.id?.toString() || "").toLowerCase() === stateId;
+      },
+    );
+
+    if (!state) {
+      return null;
+    }
+
+    return ScheduledMaintenanceStartUtil.getPhase({
+      states: data.states,
+      state: state,
+    });
+  }
+
+  // A record whose questions do not follow a state: its title, if it has one.
+  private static titleOnly(
+    title: string | null | undefined,
+  ): ResolvedPageEntity | null {
+    return title ? { title: title } : null;
+  }
+
+  /*
+   * The record with its state, in one read. The state is the extra: when
+   * that read is refused, the record is read again without it, so a person
+   * who may read the record but not its state still sees its title and the
+   * page type's own questions, as before its state was read.
+   */
+  private static async readWithState<TBaseModel extends BaseModel>(data: {
+    modelType: { new (): TBaseModel };
+    id: ObjectID;
+    select: Select<TBaseModel>;
+    stateSelect: Select<TBaseModel>;
+  }): Promise<TBaseModel | null> {
+    try {
+      return await ModelAPI.getItem<TBaseModel>({
+        modelType: data.modelType,
+        id: data.id,
+        select: { ...data.select, ...data.stateSelect } as Select<TBaseModel>,
+      });
+    } catch {
+      return await ModelAPI.getItem<TBaseModel>({
+        modelType: data.modelType,
+        id: data.id,
+        select: data.select,
+      });
     }
   }
 
@@ -508,6 +750,16 @@ export default class PageContextUtil {
     context: DashboardPageContext,
     translator: Translator = getGlobalTranslator(),
   ): Array<SuggestedQuestion> {
+    // A record whose state the page type's own questions do not fit.
+    const stateSuggestions: Array<SuggestedQuestion> | null =
+      context.isEntity && context.entityId
+        ? getEntityStateSuggestions(context.type, context.entityState)
+        : null;
+
+    if (stateSuggestions) {
+      return stateSuggestions;
+    }
+
     switch (context.type) {
       case AIChatPageContextType.Resource:
       case AIChatPageContextType.ResourcesList:

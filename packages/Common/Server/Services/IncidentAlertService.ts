@@ -922,7 +922,7 @@ export class Service extends ProjectReferencesService<Model> {
         apiKeyActor: data.apiKeyActor,
         workspaceNotification: {
           sendWorkspaceNotification: true,
-          notifyUserId: actorUserId,
+          leadWithAuthor: true,
         },
       });
     }
@@ -978,7 +978,7 @@ export class Service extends ProjectReferencesService<Model> {
       apiKeyActor: data.apiKeyActor,
       workspaceNotification: {
         sendWorkspaceNotification: true,
-        notifyUserId: data.actorUserId,
+        leadWithAuthor: true,
       },
     });
   }

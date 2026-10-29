@@ -18,6 +18,8 @@ import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService
 import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNotificationRule";
 import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
 import IncidentEpisodeService from "./IncidentEpisodeService";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import FeedFollowOnWriteProps from "../Utils/Feed/FeedFollowOnWriteProps";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -88,13 +90,23 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnDelete<Model>> {
     const itemsToDelete: Model[] = onDelete.carryForward.itemsToDelete;
 
-    // Remove the role assignment from all incidents in the episode
+    /*
+     * Remove the role assignment from all incidents in the episode, as
+     * whoever took it off the episode: each incident's entry names them
+     * (FeedFollowOnWriteProps).
+     */
+    const props: DatabaseCommonInteractionProps = FeedFollowOnWriteProps.get({
+      props: onDelete.deleteBy.props,
+      userId: onDelete.deleteBy.deletedByUser?.id,
+    });
+
     for (const item of itemsToDelete) {
       await this.removeRoleFromIncidentsInEpisode({
         incidentEpisodeId: item.incidentEpisodeId!,
         userId: item.userId!,
         incidentRoleId: item.incidentRoleId!,
         projectId: item.projectId!,
+        props: props,
       });
     }
 
@@ -103,7 +115,7 @@ export class Service extends ProjectReferencesService<Model> {
 
   @CaptureSpan()
   public override async onCreateSuccess(
-    _onCreate: OnCreate<Model>,
+    onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
     const incidentEpisodeId: ObjectID | undefined =
@@ -113,12 +125,20 @@ export class Service extends ProjectReferencesService<Model> {
     const incidentRoleId: ObjectID | undefined = createdItem.incidentRoleId;
 
     if (incidentEpisodeId && userId && projectId && incidentRoleId) {
-      // Propagate role assignment to all incidents in the episode
+      /*
+       * Propagate role assignment to all incidents in the episode, as
+       * whoever gave it on the episode: each incident's entry names them
+       * (FeedFollowOnWriteProps). A grouping rule's is OneUptime's own.
+       */
       await this.propagateRoleToIncidentsInEpisode({
         incidentEpisodeId,
         userId,
         incidentRoleId,
         projectId,
+        props: FeedFollowOnWriteProps.get({
+          props: onCreate.createBy.props,
+          userId: createdItem.createdByUserId,
+        }),
       });
 
       // And into the episode's own channels, when their rules add roles.
@@ -182,6 +202,8 @@ export class Service extends ProjectReferencesService<Model> {
     userId: ObjectID;
     incidentRoleId: ObjectID;
     projectId: ObjectID;
+    // OneUptime's own write, naming who gave the role on the episode.
+    props: DatabaseCommonInteractionProps;
   }): Promise<void> {
     const { incidentEpisodeId, userId, incidentRoleId, projectId } = data;
 
@@ -240,9 +262,7 @@ export class Service extends ProjectReferencesService<Model> {
 
         await IncidentMemberService.create({
           data: incidentMember,
-          props: {
-            isRoot: true,
-          },
+          props: data.props,
         });
 
         logger.debug(
@@ -262,6 +282,8 @@ export class Service extends ProjectReferencesService<Model> {
     userId: ObjectID;
     incidentRoleId: ObjectID;
     projectId: ObjectID;
+    // OneUptime's own write, naming who took the role off the episode.
+    props: DatabaseCommonInteractionProps;
   }): Promise<void> {
     const { incidentEpisodeId, userId, incidentRoleId, projectId } = data;
 
@@ -298,9 +320,7 @@ export class Service extends ProjectReferencesService<Model> {
           },
           limit: 1,
           skip: 0,
-          props: {
-            isRoot: true,
-          },
+          props: data.props,
         });
 
         logger.debug(

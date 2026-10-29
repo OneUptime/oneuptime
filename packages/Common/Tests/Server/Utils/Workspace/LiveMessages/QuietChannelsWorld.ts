@@ -2035,7 +2035,7 @@ ${FeedMarkdown.asMarkdown(text)}`.toString(),
       userId: by,
       workspaceNotification: {
         sendWorkspaceNotification: true,
-        notifyUserId: by,
+        leadWithAuthor: true,
       },
     });
   }
@@ -2241,7 +2241,7 @@ ${FeedMarkdown.asMarkdown("p95 over 2s")}
             stateAfterThis: null,
           },
         ),
-        notifyUserId: JANE,
+        leadWithAuthor: true,
       },
     });
   }
@@ -2274,7 +2274,7 @@ ${FeedMarkdown.asMarkdown(text)}`.toString(),
       userId: JANE,
       workspaceNotification: {
         sendWorkspaceNotification: true,
-        notifyUserId: JANE,
+        leadWithAuthor: true,
       },
     });
   }

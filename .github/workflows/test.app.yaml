@@ -190,7 +190,7 @@ jobs:
   # esbuild and serve them against fixture data: no database or Docker stack.
   # They used to run one after another in a single 41-minute job, the longest
   # of every pull request's checks. They are independent - each starts its
-  # own fixture server on its own port - so they run here in thirteen groups
+  # own fixture server on its own port - so they run here in fourteen groups
   # balanced by measured duration. Event Overview and the Workflow Builder
   # suite outgrew a group each on their own (20.4 and 19.4 minutes on
   # 2026-10-17's slowest runner), so each now runs in halves, in two groups
@@ -389,11 +389,9 @@ jobs:
           - group: 3
             suites: >-
               test-monitor-overview-ui
-              test-value-picker-ui
               test-event-notes-ui
               test-trace-detail-ui
               test-label-rule-transfer-ui
-              test-list-delete-ui
               test-rules-menu-section-ui
           # The Workflow Builder suite on its own: it sat in group 2 near the
           # job's 30 minutes, and its On Create or Update spec would take that
@@ -492,11 +490,9 @@ jobs:
               test-incoming-call-policies-ui
               test-push-registration-ui
               test-packet-capture-ui
-              test-llm-provider-test-ui
               test-custom-field-options-ui
               test-pagination-ui
               test-status-timeline-ui
-              test-episode-bulk-add-ui
               test-runbook-triggers-ui
               test-network-first-run-ui
               test-runbook-variables-ui
@@ -505,7 +501,6 @@ jobs:
               test-first-on-call-policy-ui
               test-side-by-side-pages-ui
               test-owner-filters-ui
-              test-shared-ui-ui
           # Added when group 5 took 25.5 of the job's 30 minutes and groups 1,
           # 3 and 4 23.5 to 24.3 on one run: group 5's last five suites, with
           # Discovery from group 3, Status Page Theme from group 1 and Calendar
@@ -772,7 +767,6 @@ jobs:
               test-archivable-values-ui
               test-kubernetes-events-ui
               test-topology-ui
-              test-dashboard-playlists-ui
           # Added on 2026-10-22 with the second half of Event Overview (about
           # 13 minutes on a slow runner) and Navigation Search from group 2
           # (2.9 to 3.5): about 18.5 with the setup. Chromium only. Owner
@@ -922,6 +916,23 @@ jobs:
               test-reading-direction-ui
               test-global-runners-ui
               test-accounts-theme-ui
+          # Added on 2026-10-29, when group 3's run step reached its 28 minutes
+          # on two of master's runs (#5393 grew Monitor Overview from 209 tests
+          # to 222) and took 24.6 on the next, and groups 5 and 9 took 25.3 and
+          # 25.1 on that run (25.9 and 26.6 on others). From the minutes each
+          # suite took on that run: Value Picker (2.9) and List Delete (1.4)
+          # from group 3, which keeps about 20.3; Dashboard Playlists (3.7)
+          # from group 9, about 21.4; Shared UI (2.9), LLM Provider Test (2.6)
+          # and Episode Bulk Add (2.5) from group 5, about 17.3. This group:
+          # about 16.
+          - group: 14
+            suites: >-
+              test-value-picker-ui
+              test-list-delete-ui
+              test-dashboard-playlists-ui
+              test-shared-ui-ui
+              test-llm-provider-test-ui
+              test-episode-bulk-add-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass

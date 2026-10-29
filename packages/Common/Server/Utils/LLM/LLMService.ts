@@ -75,6 +75,12 @@ export interface LLMCompletionRequest {
    * may echo private prompt content in an error response.
    */
   includeProviderErrorDetails?: boolean | undefined;
+  /**
+   * OpenAI's prompt_cache_key (LLMPromptCacheKey): which of the caller's
+   * requests share a prompt cache. Sent on the OpenAI wire only, and left
+   * out for an endpoint that refuses it.
+   */
+  promptCacheKey?: string | undefined;
   llmProviderConfig: LLMProviderConfig;
 }
 
@@ -94,8 +100,9 @@ export interface LLMUsage {
    * Prompt-caching breakdown, when the provider reports it - both are part
    * of promptTokens. cachedInputTokens are input tokens served from cache
    * (billed at a large discount); cacheCreationTokens are input tokens
-   * written to the cache on this call (Anthropic bills a quarter more).
-   * AiTokenCount weighs them when OneUptime counts a call's tokens.
+   * written to the cache on this call (Anthropic, and OpenAI from GPT-5.6,
+   * bill a quarter more). AiTokenCount weighs them at the model's prices
+   * when OneUptime counts a call's tokens.
    */
   cachedInputTokens?: number | undefined;
   cacheCreationTokens?: number | undefined;
@@ -252,6 +259,12 @@ const ANTHROPIC_TRUNCATED_STOP_REASONS: Set<string> = new Set([
 
 // A refusal's category is a short identifier, such as "cyber".
 const ANTHROPIC_REFUSAL_CATEGORY: RegExp = /^[a-z][a-z_]{0,39}$/;
+
+/*
+ * The OpenAI request field that says which requests share a prompt cache
+ * (buildOpenAIRequestBody).
+ */
+export const OPENAI_PROMPT_CACHE_KEY_PARAMETER: string = "prompt_cache_key";
 
 /*
  * Structural fields of an Ollama /api/chat request. additionalParams is
@@ -413,6 +426,11 @@ export default class LLMService {
    * provider names one of these in an error, we drop it and retry rather than
    * failing the whole completion. Only params that merely tune sampling are
    * droppable — never anything that changes what the model is asked to do.
+   *
+   * prompt_cache_key is one too: a hint of OneUptime's own about which
+   * requests share a prompt cache (LLMPromptCacheKey), which changes where a
+   * request is answered, never what it says. A proxy or a server that is not
+   * OpenAI's, set up with the OpenAI provider type, may not know the field.
    */
   private static readonly DROPPABLE_UNSUPPORTED_PARAMETERS: Set<string> =
     new Set([
@@ -424,6 +442,7 @@ export default class LLMService {
       "top_k",
       "top_logprobs",
       "top_p",
+      OPENAI_PROMPT_CACHE_KEY_PARAMETER,
     ]);
 
   /*
@@ -783,6 +802,30 @@ export default class LLMService {
 
       // Legacy compatible APIs may accept this fan-out control separately.
       delete data["best_of"];
+    }
+
+    /*
+     * OpenAI's prompt cache (issue #5073's follow-up). OpenAI caches a
+     * repeated prompt on its own; prompt_cache_key says which requests belong
+     * together: it routes them where the earlier ones are cached (on models
+     * before GPT-5.6), and keeps each key's cache apart from every other's.
+     * OneUptime's key is one per project and kind of AI work
+     * (LLMPromptCacheKey), so no project's prompts share a cache with
+     * another's, and the calls of an investigation or a chat, which send the
+     * same system prompt, tools and conversation again, read them back. Sent
+     * to the OpenAI provider type only: Azure OpenAI and the other servers
+     * that speak this wire may not know the field. An operator's own
+     * prompt_cache_key in Additional Parameters stands; a protected request
+     * keeps only the generation-safe allowlist, so it carries OneUptime's.
+     * An endpoint that refuses the field gets the request again without it,
+     * remembered like every other adaptation (DROPPABLE_UNSUPPORTED_PARAMETERS).
+     */
+    if (
+      request.llmProviderConfig.llmType === LlmType.OpenAI &&
+      request.promptCacheKey &&
+      data[OPENAI_PROMPT_CACHE_KEY_PARAMETER] === undefined
+    ) {
+      data[OPENAI_PROMPT_CACHE_KEY_PARAMETER] = request.promptCacheKey;
     }
 
     /*
@@ -1360,12 +1403,24 @@ export default class LLMService {
      * OpenAI (and Azure OpenAI) automatically cache a stable prompt prefix
      * once it is long enough and report the cache hit under
      * prompt_tokens_details.cached_tokens — surface it for cost visibility.
+     * From GPT-5.6 OpenAI also charges for what a call writes to the cache
+     * (a quarter more than a fresh token) and reports it under
+     * prompt_tokens_details.cache_write_tokens; both are part of
+     * prompt_tokens, and AiTokenCount weighs each at the model's price.
      */
-    const cachedTokens: number | undefined = usage
-      ? ((usage["prompt_tokens_details"] as JSONObject | undefined)?.[
-          "cached_tokens"
-        ] as number | undefined)
-      : undefined;
+    const promptTokensDetails: JSONObject | undefined =
+      usage &&
+      usage["prompt_tokens_details"] &&
+      typeof usage["prompt_tokens_details"] === "object" &&
+      !Array.isArray(usage["prompt_tokens_details"])
+        ? (usage["prompt_tokens_details"] as JSONObject)
+        : undefined;
+    const cachedTokens: number | undefined = this.readTokenCount(
+      promptTokensDetails?.["cached_tokens"],
+    );
+    const cacheWriteTokens: number | undefined = this.readTokenCount(
+      promptTokensDetails?.["cache_write_tokens"],
+    );
 
     return {
       content: (message["content"] as string) || "",
@@ -1377,9 +1432,17 @@ export default class LLMService {
             completionTokens: usage["completion_tokens"] as number,
             totalTokens: usage["total_tokens"] as number,
             cachedInputTokens: cachedTokens || undefined,
+            cacheCreationTokens: cacheWriteTokens || undefined,
           }
         : undefined,
     };
+  }
+
+  // A token count a provider reported, or none when it is not one.
+  private static readTokenCount(value: unknown): number | undefined {
+    return typeof value === "number" && Number.isFinite(value) && value > 0
+      ? Math.floor(value)
+      : undefined;
   }
 
   /*

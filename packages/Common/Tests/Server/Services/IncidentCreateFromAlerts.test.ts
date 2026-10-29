@@ -1114,8 +1114,9 @@ describe("declaring an incident from alerts, through the real link service", () 
     );
     expect(entry["workspaceNotification"]).toEqual({
       sendWorkspaceNotification: true,
-      notifyUserId: USER_ID,
+      leadWithAuthor: true,
     });
+    expect(String(entry["userId"])).toBe(USER_ID.toString());
     expect(entry["feedInfoInMarkdown"]).toBe(
       [
         "🔗 Declared from 2 alerts:",

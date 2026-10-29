@@ -130,6 +130,7 @@ const SUGGESTION: TracePerformanceFixSuggestion = {
   fixOutcome: null,
   blocker: null,
   aiRunId: null,
+  repositories: [],
 };
 
 beforeAll(async () => {

@@ -352,8 +352,8 @@ describe("an incident in its Microsoft Teams channel", () => {
       "🚨 Incident INC-8 Created: testslack",
       "PolicyX is paging for Incident INC-8",
       "PolicyX paged nobody at third (Level 3 of 3) for Incident INC-8",
-      "Nitin 👀 Changed Incident INC-8 State to Acknowledged",
-      "Nitin ✅ Changed Incident INC-8 State to Resolved",
+      "👀 Nitin changed Incident INC-8 State to Acknowledged",
+      "✅ Nitin changed Incident INC-8 State to Resolved",
     ]);
 
     /*

@@ -379,7 +379,7 @@ const CREDENTIAL_SETTINGS: Record<string, string> = {
   ThreatIntelFeed:
     "A TAXII server's bearer token or password: a watchlist that follows a feed matches its rules against the indicators read from that server with them.",
   LlmProvider:
-    "An LLM provider's API key: an investigation, auto remediation or postmortem rule that names one has OneUptime AI do the work it starts with that provider, on that key.",
+    "An LLM provider's API key: an investigation, auto remediation or postmortem rule that names one has OneUptime AI do the work it starts with that provider, on that key, and a code repository that names one has its production reviews read with it.",
   CodeRepositoryConnection:
     "A Git server's access token or password (GitLab, Forgejo, Gitea, any Git server): a code repository that names one is read, cloned and pushed to with it, and its pull requests opened.",
 };
@@ -400,6 +400,8 @@ const CREDENTIAL_REFERENCES: Array<[string, string, string]> = [
   ["SecurityWatchlist", "threatIntelFeed", "ThreatIntelFeed"],
   ["AutoRemediationRule", "llmProvider", "LlmProvider"],
   ["AIPostmortemRule", "llmProvider", "LlmProvider"],
+  // The provider a repository's production reviews read its pull requests with.
+  ["CodeRepository", "productionReviewLlmProvider", "LlmProvider"],
 ];
 
 /*

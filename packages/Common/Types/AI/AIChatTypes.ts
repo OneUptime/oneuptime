@@ -239,6 +239,13 @@ export interface AIRunEventResultSummary {
   // Log severity for ProgressLog events (Info/Warning/Error/…).
   severity?: string | undefined;
   /*
+   * InvestigationStalled events: why the logs could not tell the cause -
+   * none reached OneUptime, or none matched - with how many times the
+   * investigation searched them and the window checked
+   * (Utils/AI/InvestigationLogStall, read with parseInvestigationLogStall).
+   */
+  logStall?: JSONObject | undefined;
+  /*
    * The server-minted citation label and deep-link target of the tool call
    * that completed (ToolCallCompleted events of autonomous investigations).
    * Persisted so the investigation panel can show exactly what each [C#]

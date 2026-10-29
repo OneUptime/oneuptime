@@ -1490,7 +1490,15 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
      */
     notificationText?: string | undefined;
     workspaceNotification: {
-      notifyUserId?: ObjectID | undefined; // this is oneuptime user id.
+      /*
+       * Who did what the message says, as a OneUptime user id: their name
+       * leads the message (WorkspaceUtil.getMessageBlocksByMarkdown), and
+       * its Notification Logs rows name them as who sent it. The author of
+       * the feed item the message posts - never the person it is about.
+       */
+      authorUserId?: ObjectID | undefined;
+      // The project API key that did it, when no person did: its name leads.
+      authorApiKeyName?: string | undefined;
       sendWorkspaceNotification: boolean;
       appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
       // Not posted in this channel (WorkspaceChannelToSkip).
@@ -1537,7 +1545,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     // use markdown to create blocks
     messageBlocksByWorkspaceTypes =
       await WorkspaceUtil.getMessageBlocksByMarkdown({
-        userId: data.workspaceNotification.notifyUserId,
+        userId: data.workspaceNotification.authorUserId,
+        apiKeyName: data.workspaceNotification.authorApiKeyName,
         markdown: data.feedInfoInMarkdown,
         projectId: data.projectId,
       });
@@ -1629,7 +1638,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       notificationFor: data.notificationFor,
       responses: responses,
       messageBlocksByWorkspaceTypes: messageBlocksByWorkspaceTypes,
-      notifyUserId: data.workspaceNotification.notifyUserId,
+      authorUserId: data.workspaceNotification.authorUserId,
     });
   }
 
@@ -1726,7 +1735,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     notificationFor: NotificationFor;
     responses: Array<WorkspaceSendMessageResponse>;
     messageBlocksByWorkspaceTypes: Array<MessageBlocksByWorkspaceType>;
-    notifyUserId?: ObjectID | undefined;
+    // Who did what the message says: each row's User, who sent it.
+    authorUserId?: ObjectID | undefined;
   }): Promise<void> {
     const getMessageSummary: (wt: WorkspaceType) => string = (
       wt: WorkspaceType,
@@ -1797,8 +1807,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           log.onCallDutyPolicyId = data.notificationFor.onCallDutyPolicyId;
         }
 
-        if (data.notifyUserId) {
-          log.userId = data.notifyUserId;
+        if (data.authorUserId) {
+          log.userId = data.authorUserId;
         }
 
         await WorkspaceNotificationLogService.create({
@@ -1848,8 +1858,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           log.onCallDutyPolicyId = data.notificationFor.onCallDutyPolicyId;
         }
 
-        if (data.notifyUserId) {
-          log.userId = data.notifyUserId;
+        if (data.authorUserId) {
+          log.userId = data.authorUserId;
         }
 
         await WorkspaceNotificationLogService.create({

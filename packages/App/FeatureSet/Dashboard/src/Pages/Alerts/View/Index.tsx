@@ -125,8 +125,10 @@ import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import Span from "Common/Models/AnalyticsModels/Span";
 import Log from "Common/Models/AnalyticsModels/Log";
 import {
+  EventStanding,
   EventStateTimelineDate,
   getEventEndDateForCurrentState,
+  getEventStanding,
 } from "../../../Utils/EventDuration";
 import {
   EventResponseTimes,
@@ -854,6 +856,17 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     resolvedStateIds,
   );
 
+  /*
+   * Where the alert stands now - open, acknowledged or resolved - for what
+   * the AI card's conversation suggests: nothing offers to acknowledge what
+   * is acknowledged, or what to do right now about what is resolved.
+   */
+  const standing: EventStanding | undefined = getEventStanding({
+    timelines: timelineDates,
+    acknowledgedStateIds: acknowledgedStateIds,
+    resolvedStateIds: resolvedStateIds,
+  });
+
   type FormatDateFunction = (date: Date | undefined) => string | undefined;
 
   const formatDate: FormatDateFunction = (
@@ -1138,6 +1151,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   subjectId={modelId}
                   investigationStage={slot.investigationStage}
                   fold={slot.fold}
+                  standing={standing}
                 />
               );
             }}

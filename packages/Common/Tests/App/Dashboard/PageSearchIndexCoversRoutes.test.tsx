@@ -22,6 +22,7 @@ import {
   MOVED_AI_SECTION_PATHS,
   MOVED_INCIDENT_FORM_PATHS,
   MOVED_RUNNER_SETTINGS_PATHS,
+  MOVED_USERS_SETTINGS_PATHS,
 } from "../../../../App/FeatureSet/Dashboard/src/Routes/MovedPagePaths";
 import { MOVED_ON_CALL_RULES_PATHS } from "../../../Types/NotificationRule/OnCallRuleKind";
 
@@ -264,6 +265,9 @@ describe("every page that needs no record is offered by Search, or says why not"
 
     const movedPaths: Array<string> = [
       ...Object.values(MOVED_RUNNER_SETTINGS_PATHS).map((part: string) => {
+        return `/settings/${part}`;
+      }),
+      ...Object.values(MOVED_USERS_SETTINGS_PATHS).map((part: string) => {
         return `/settings/${part}`;
       }),
       ...Object.values(MOVED_INCIDENT_FORM_PATHS).map((part: string) => {

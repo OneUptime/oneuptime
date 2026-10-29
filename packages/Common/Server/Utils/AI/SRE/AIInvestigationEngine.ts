@@ -39,6 +39,12 @@ import LlmProviderService from "../../../Services/LlmProviderService";
 import LlmProviderChoice, { RuleLlmProviderChoice } from "../LlmProviderChoice";
 import AIInvestigationQueue from "./InvestigationQueue";
 import AIConfidenceSignal, { ConfidenceSignal } from "./ConfidenceSignal";
+import InvestigationLogStallCheck from "./InvestigationLogStallCheck";
+import {
+  describeInvestigationLogStall,
+  InvestigationLogStall,
+  investigationLogStallToJSON,
+} from "../../../../Utils/AI/InvestigationLogStall";
 import InvestigationTldr from "./InvestigationTldr";
 import ObservabilityAssistant, {
   ObservabilityAssistantExtraTool,
@@ -216,6 +222,21 @@ export interface InvestigationRequest {
    * Engine users with no panel (insight triage, remediation) omit it.
    */
   persistAnalysisTldr?: boolean | undefined;
+  /*
+   * Incident and alert RCA runs opt into saying when the logs stood in the
+   * way (InvestigationLogStallCheck): an investigation that could not tell
+   * the cause, and whose log searches found no line, records why - no log
+   * reached OneUptime from the hour before the record started, or none
+   * matched - as an InvestigationStalled event the AI card reads. Engine
+   * users with no card (insight triage, remediation) omit it.
+   */
+  logStallSubject?:
+    | {
+        subjectType: "incident" | "alert";
+        // When the incident or alert started (its creation).
+        startedAt?: Date | undefined;
+      }
+    | undefined;
   /*
    * Runs only after a Recommended decision and its exact analysis snapshot
    * have been durably committed. Incident/alert runners use this for the
@@ -940,6 +961,39 @@ export default class AIInvestigationEngine {
               })
             : Promise.resolve(null),
         ]);
+
+      /*
+       * An investigation that could not tell the cause for lack of logs
+       * says so, and the card offers a way forward. Recorded BEFORE the
+       * report is posted, like the TL;DR, so the card reads the stall beside
+       * the report from its first look. Never throws: a check that fails
+       * records nothing, and the report still posts.
+       */
+      if (request.logStallSubject) {
+        const logStall: InvestigationLogStall | null =
+          await InvestigationLogStallCheck.check({
+            projectId,
+            confidence,
+            citations: result.citations || [],
+            subjectStartedAt: request.logStallSubject.startedAt,
+          });
+
+        if (logStall) {
+          await this.emitEvent({
+            projectId,
+            aiRunId,
+            sequence: sequence++,
+            eventType: AIRunEventType.InvestigationStalled,
+            resultSummary: {
+              message: describeInvestigationLogStall(
+                logStall,
+                request.logStallSubject.subjectType,
+              ),
+              logStall: investigationLogStallToJSON(logStall),
+            },
+          });
+        }
+      }
 
       /*
        * Persist the TL;DR BEFORE the report is posted, so the panel can never

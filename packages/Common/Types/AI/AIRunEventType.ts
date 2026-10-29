@@ -15,6 +15,14 @@ enum AIRunEventType {
    * code-fix agent container). The message lives in resultSummary.message.
    */
   ProgressLog = "ProgressLog",
+  /*
+   * An incident's or alert's investigation could not tell the cause for
+   * lack of logs (Utils/AI/InvestigationLogStall): what stood in its way is
+   * in resultSummary.logStall, and an English line in resultSummary.message.
+   * The AI card says it, with a way forward; the activity feed draws no step
+   * for it.
+   */
+  InvestigationStalled = "InvestigationStalled",
   RunCompleted = "RunCompleted",
   RunFailed = "RunFailed",
 }

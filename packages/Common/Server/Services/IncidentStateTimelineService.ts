@@ -65,6 +65,7 @@ import StateMoveCheck from "../Utils/StateMoveCheck";
 import { StateMoveRecord, StateMoveState } from "../../Utils/StateMove";
 import FeedApiKeyActorUtil from "../Utils/Feed/FeedApiKeyActor";
 import OnCallAcknowledgementTimeout from "../Utils/OnCall/OnCallAcknowledgementTimeout";
+import IncidentRoleFeedText from "../Utils/Incident/IncidentRoleFeedText";
 
 export class Service extends ProjectReferencesService<IncidentStateTimeline> {
   public constructor() {
@@ -678,8 +679,7 @@ ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString()
             stateAfterThis: onCreate.carryForward.statusTimelineAfterThisStatus,
           },
         ),
-        notifyUserId:
-          createdItem.createdByUserId || onCreate.createBy.props.userId,
+        leadWithAuthor: true,
       },
     });
 
@@ -692,6 +692,7 @@ ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString()
         incidentId: createdItem.incidentId!,
         projectId: createdItem.projectId!,
         userId: stateChangeUserId,
+        stateName: stateName,
       }).catch((error: Error) => {
         logger.error(`Error while auto-assigning incident commander:`, {
           projectId: createdItem.projectId?.toString(),
@@ -1118,6 +1119,8 @@ ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString()
     incidentId: ObjectID;
     projectId: ObjectID;
     userId: ObjectID;
+    // The state they changed it to, which the feed entry names.
+    stateName: string;
   }): Promise<void> {
     // Find the primary role (Incident Commander) for this project
     const primaryRole: IncidentRole | null =
@@ -1200,8 +1203,18 @@ ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString()
     incidentMember.userId = data.userId;
     incidentMember.incidentRoleId = primaryRole.id;
 
+    /*
+     * OneUptime gives the role, not the person: the entry says why - "Deane
+     * Looi became the Incident Commander of Incident INC-18 when they
+     * changed its state to Acknowledged" - and has no author
+     * (IncidentRoleFeedText).
+     */
     await IncidentMemberService.create({
       data: incidentMember,
+      miscDataProps: IncidentRoleFeedText.toMiscDataProps({
+        kind: "stateChange",
+        stateName: data.stateName,
+      }),
       props: {
         isRoot: true,
       },

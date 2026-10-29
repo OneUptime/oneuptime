@@ -13,6 +13,7 @@ import LLMService, {
   LLMToolDefinition,
 } from "../Utils/LLM/LLMService";
 import LLMCallTelemetry from "../Utils/LLM/LLMCallTelemetry";
+import LLMPromptCacheKey from "../Utils/LLM/LLMPromptCacheKey";
 import Telemetry from "../Utils/Telemetry";
 import { Attributes, Span, trace } from "@opentelemetry/api";
 import LlmProvider from "../../Models/DatabaseModels/LlmProvider";
@@ -1481,6 +1482,15 @@ export class Service extends BaseService {
         requestRetries: request.requestRetries,
         protectRequestParameters: request.protectRequestParameters,
         includeProviderErrorDetails: request.storeErrorDetails !== false,
+        /*
+         * One prompt cache per project and kind of AI work, on OpenAI
+         * (LLMPromptCacheKey): no project's prompts share a cache with
+         * another's, and the calls that send the same prompt read it back.
+         */
+        promptCacheKey: LLMPromptCacheKey.build({
+          projectId: request.projectId,
+          feature: request.feature,
+        }),
         ...(llmProvider.additionalParams
           ? { additionalParams: llmProvider.additionalParams }
           : {}),
@@ -1516,12 +1526,17 @@ export class Service extends BaseService {
       /*
        * Calculate and apply costs if using global provider with billing
        * enabled. A call is charged for its tokens as OneUptime counts them
-       * (AiTokenCount): a token the provider served from its prompt cache
-       * costs a tenth of a fresh one, and is charged a tenth.
+       * (AiTokenCount): a token the provider served from its prompt cache,
+       * or wrote to it, is charged what the model charges for it next to a
+       * fresh one - a tenth for a read on most current models.
        */
       if (shouldBill && response.usage) {
         const totalCost: number = Math.ceil(
-          (AiTokenCount.count(response.usage) / 1_000_000) *
+          (AiTokenCount.count({
+            ...response.usage,
+            modelName: logEntry.modelName,
+          }) /
+            1_000_000) *
             (llmProvider.costPerMillionTokensInUSDCents || 0),
         );
 

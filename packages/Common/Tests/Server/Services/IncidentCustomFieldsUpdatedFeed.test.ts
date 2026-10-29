@@ -54,7 +54,13 @@ const USER_ID: ObjectID = new ObjectID("6e7f8091-a2b3-4c4d-9e5f-6a7b8c9d0e1f");
 const INCIDENT_ID: string = "7f8091a2-b3c4-4d5e-8f6a-7b8c9d0e1f2a";
 
 const INCIDENT_LINK: string = "https://oneuptime.test/i";
-const UPDATED_LINE: string = `**[Incident INC-42](${INCIDENT_LINK}) was updated.**`;
+/*
+ * A person's update: a sentence written to follow their name, which the
+ * feed and the incident's channels put in front of it ("Valeria updated
+ * Incident INC-42."). OneUptime's own reads "Incident INC-42 was updated."
+ */
+const UPDATED_LINE: string = `✏️ Updated [Incident INC-42](${INCIDENT_LINK}).`;
+const UPDATED_BY_NOBODY_LINE: string = `**[Incident INC-42](${INCIDENT_LINK}) was updated.**`;
 
 const STORED_TITLE: string = "Checkout errors in EU";
 
@@ -416,6 +422,8 @@ describe("an update that changes an incident's custom fields", () => {
     });
 
     expect(onlyFeedItem()).toContain("- **Ticket**: OPS-300\n");
+    // Nobody made it by hand: it says the incident was updated.
+    expect(onlyFeedItem().startsWith(UPDATED_BY_NOBODY_LINE)).toBe(true);
   });
 });
 

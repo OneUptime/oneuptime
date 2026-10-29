@@ -24,17 +24,17 @@ const POLICY: MarkdownText = FeedMarkdown.link(
 );
 const NITIN: MarkdownText = FeedMarkdown.link(
   "Nitin Kumar",
-  "https://oneuptime.com/dashboard/p/settings/users/n",
+  "https://oneuptime.com/dashboard/p/users/n",
 );
 const SAM: MarkdownText = FeedMarkdown.link(
   "Sam Lee",
-  "https://oneuptime.com/dashboard/p/settings/users/s",
+  "https://oneuptime.com/dashboard/p/users/s",
 );
 
 const POLICY_MD: string =
   "**[Payments primary](https://oneuptime.com/dashboard/p/on-call-duty/policies/x)**";
 const NITIN_MD: string =
-  "**[Nitin Kumar](https://oneuptime.com/dashboard/p/settings/users/n)**";
+  "**[Nitin Kumar](https://oneuptime.com/dashboard/p/users/n)**";
 
 describe("a page sent", () => {
   test("is one sentence: the policy paged the person at the rule", () => {
@@ -131,7 +131,7 @@ describe("the other outcomes of a page", () => {
         overriddenUser: SAM,
       }),
     ).toContain(
-      "They are covering for [Sam Lee](https://oneuptime.com/dashboard/p/settings/users/s) (a user override).",
+      "They are covering for [Sam Lee](https://oneuptime.com/dashboard/p/users/s) (a user override).",
     );
   });
 

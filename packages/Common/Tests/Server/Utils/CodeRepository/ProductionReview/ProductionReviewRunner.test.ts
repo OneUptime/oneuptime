@@ -20,6 +20,10 @@ import GitHubInstallationBinding from "../../../../../Server/Utils/CodeRepositor
 import GitHubCommandParser from "../../../../../Server/Utils/CodeRepository/GitHub/GitHubCommandParser";
 import GlobalCache from "../../../../../Server/Infrastructure/GlobalCache";
 import AIService from "../../../../../Server/Services/AIService";
+import LlmProviderChoice, {
+  RuleLlmProviderChoice,
+} from "../../../../../Server/Utils/AI/LlmProviderChoice";
+import { LlmProviderSource } from "../../../../../Types/AI/LlmProviderChoice";
 import CodeRepositoryService from "../../../../../Server/Services/CodeRepositoryService";
 import AIRun from "../../../../../Models/DatabaseModels/AIRun";
 import CodeRepository from "../../../../../Models/DatabaseModels/CodeRepository";
@@ -654,6 +658,114 @@ describe("ProductionReviewRunner", () => {
       });
       expect(finished().update["aiInputHash"]).toBeUndefined();
       expect(finished().update["aiReadsToday"]).toBe(1);
+    });
+  });
+
+  /*
+   * The LLM provider the read uses (the follow-up #5273 listed): the one
+   * the repository picks for its production reviews, else the project's
+   * default provider, else the global one - LlmProviderChoice decides, as
+   * it does for the AI rules' work.
+   */
+  describe("the LLM provider the read uses", () => {
+    const PICKED_PROVIDER_ID: ObjectID = new ObjectID(
+      "a1b2c3d4-4444-4222-8333-444455556666",
+    );
+
+    function choiceOf(
+      llmProviderId: ObjectID | undefined,
+    ): RuleLlmProviderChoice {
+      return {
+        provider: llmProviderId
+          ? {
+              id: llmProviderId.toString(),
+              name: "Azure GPT-5",
+              isGlobal: false,
+            }
+          : null,
+        source: llmProviderId ? LlmProviderSource.RulePick : null,
+        fallbackReason: null,
+        pickedProviderId: llmProviderId ? llmProviderId.toString() : "",
+        llmProviderId: llmProviderId,
+        activity: null,
+      };
+    }
+
+    test("is read with the repository", async () => {
+      await ProductionReviewRunner.review(claimedRun());
+
+      const select: Record<string, unknown> = (
+        (CodeRepositoryService.findOneBy as unknown as jest.SpyInstance).mock
+          .calls[0]![0] as { select: Record<string, unknown> }
+      ).select;
+
+      expect(select["productionReviewLlmProviderId"]).toBe(true);
+    });
+
+    test("the repository's pick, when it may be used, is the one the read asks", async () => {
+      repository.productionReviewLlmProviderId = PICKED_PROVIDER_ID;
+      const decide: jest.SpyInstance = jest
+        .spyOn(LlmProviderChoice, "decideIfPicked")
+        .mockResolvedValue(choiceOf(PICKED_PROVIDER_ID));
+
+      await ProductionReviewRunner.review(claimedRun());
+
+      expect(decide).toHaveBeenCalledTimes(1);
+      expect(decide.mock.calls[0]![0]).toEqual({
+        projectId: PROJECT_ID,
+        pickedProviderId: PICKED_PROVIDER_ID,
+      });
+      expect(aiRead).toHaveBeenCalledTimes(1);
+      expect(
+        (aiRead.mock.calls[0]![0] as { llmProviderId?: ObjectID })
+          .llmProviderId,
+      ).toBe(PICKED_PROVIDER_ID);
+    });
+
+    test("a pick that cannot be used falls back: the read resolves the project's provider", async () => {
+      repository.productionReviewLlmProviderId = PICKED_PROVIDER_ID;
+      jest
+        .spyOn(LlmProviderChoice, "decideIfPicked")
+        .mockResolvedValue(choiceOf(undefined));
+
+      await ProductionReviewRunner.review(claimedRun());
+
+      expect(aiRead).toHaveBeenCalledTimes(1);
+      expect(
+        (aiRead.mock.calls[0]![0] as { llmProviderId?: ObjectID })
+          .llmProviderId,
+      ).toBeUndefined();
+    });
+
+    test("no pick reads no provider: the project's, as every review used before", async () => {
+      const findProvider: jest.SpyInstance = jest.spyOn(
+        LlmProviderChoice,
+        "decide",
+      );
+
+      await ProductionReviewRunner.review(claimedRun());
+
+      // decideIfPicked answers a missing pick without a read.
+      expect(findProvider).not.toHaveBeenCalled();
+      expect(aiRead).toHaveBeenCalledTimes(1);
+      expect(
+        (aiRead.mock.calls[0]![0] as { llmProviderId?: ObjectID })
+          .llmProviderId,
+      ).toBeUndefined();
+    });
+
+    test("nothing is decided when no read is made", async () => {
+      repository.productionReviewLlmProviderId = PICKED_PROVIDER_ID;
+      jest.spyOn(AIService, "isProjectAIEnabled").mockResolvedValue(false);
+      const decide: jest.SpyInstance = jest.spyOn(
+        LlmProviderChoice,
+        "decideIfPicked",
+      );
+
+      await ProductionReviewRunner.review(claimedRun());
+
+      expect(decide).not.toHaveBeenCalled();
+      expect(aiRead).not.toHaveBeenCalled();
     });
   });
 
