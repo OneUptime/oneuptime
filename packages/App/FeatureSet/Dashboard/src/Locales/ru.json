@@ -31799,7 +31799,6 @@
   "Telemetry stopped after the fix": "Телеметрия пропала после исправления",
   "AI Investigation Waits Until": "Расследование ИИ ожидает до",
   "Alerts resolved during the wait are not investigated.": "Оповещения, устранённые во время ожидания, не расследуются.",
-  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "Так, как они учитываются в дневных лимитах ИИ проекта: токен, который провайдер прочитал из своего кэша промптов, считается за десятую часть токена, а токен, записанный в этот кэш, — за один с четвертью.",
   "Counted from when the alert is created. When several rules match, the shortest wait decides. At most 1440 (a day).": "Отсчитывается с момента создания оповещения. Если подходят несколько правил, решает самое короткое ожидание. Не более 1440 (сутки).",
   "Counted from when the incident is declared. When several rules match, the shortest wait decides. At most 1440 (a day).": "Отсчитывается с момента объявления инцидента. Если подходят несколько правил, решает самое короткое ожидание. Не более 1440 (сутки).",
   "Decision recorded when the wait ended": "Решение записано по окончании ожидания",
@@ -36959,5 +36958,16 @@
   "{{count}} were already on the list_one": "{{count}} значение уже было в списке",
   "MD5, SHA-1, SHA-256 and SHA-512 hashes, matched whatever the case.": "Хеши MD5, SHA-1, SHA-256 и SHA-512, сравниваются без учёта регистра.",
   "Choose what the list holds": "Выберите, что входит в список",
-  "Couldn't load the rules": "Не удалось загрузить правила"
+  "Couldn't load the rules": "Не удалось загрузить правила",
+  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache, or wrote to it, counts for what the model charges for it next to a fresh token. On most current models a read counts as a tenth of a token.": "Так, как они учитываются в дневных лимитах ИИ проекта: токен, который провайдер прочитал из своего кэша промптов или записал в него, считается по тому, сколько модель берёт за него по сравнению с новым токеном. На большинстве современных моделей прочитанный токен считается за десятую часть токена.",
+  "Find unlogged failures": "Найти незаписанные сбои",
+  "No logs about this alert": "Нет журналов об этом оповещении",
+  "No logs about this incident": "Нет журналов об этом инциденте",
+  "No logs reached OneUptime from the hour before this alert started, so OneUptime AI had none to read. Send your services' logs to OneUptime, and the next investigation can use them.": "С часа до начала этого оповещения в OneUptime не поступило ни одного журнала, поэтому OneUptime AI нечего было читать. Отправляйте журналы своих сервисов в OneUptime, и следующее расследование сможет их использовать.",
+  "No logs reached OneUptime from the hour before this incident started, so OneUptime AI had none to read. Send your services' logs to OneUptime, and the next investigation can use them.": "С часа до начала этого инцидента в OneUptime не поступило ни одного журнала, поэтому OneUptime AI нечего было читать. Отправляйте журналы своих сервисов в OneUptime, и следующее расследование сможет их использовать.",
+  "No logs to read": "Нет журналов для чтения",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this alert. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log.": "OneUptime AI искал в журналах (поисков: {{count}}) и ничего не нашёл об этом оповещении. Проверьте, что каждый причастный сервис отправляет свои журналы в OneUptime, и позвольте ИИ журналов найти сбои, которые ваш код не записывает в журнал.",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this alert. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log._one": "OneUptime AI искал в журналах и ничего не нашёл об этом оповещении. Проверьте, что каждый причастный сервис отправляет свои журналы в OneUptime, и позвольте ИИ журналов найти сбои, которые ваш код не записывает в журнал.",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this incident. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log.": "OneUptime AI искал в журналах (поисков: {{count}}) и ничего не нашёл об этом инциденте. Проверьте, что каждый причастный сервис отправляет свои журналы в OneUptime, и позвольте ИИ журналов найти сбои, которые ваш код не записывает в журнал.",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this incident. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log._one": "OneUptime AI искал в журналах и ничего не нашёл об этом инциденте. Проверьте, что каждый причастный сервис отправляет свои журналы в OneUptime, и позвольте ИИ журналов найти сбои, которые ваш код не записывает в журнал."
 }

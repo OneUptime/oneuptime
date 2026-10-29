@@ -18750,3 +18750,226 @@ test.describe("an action linking what a record is about waits for approval (issu
     expect(choiceBox!.x).toBeGreaterThan(titleBox!.x + titleBox!.width);
   });
 });
+
+/*
+ * An investigation that could not tell the cause for lack of logs says so,
+ * under its report, with the way forward (?stall=; the follow-up of #5242
+ * that #5273 listed). The fixture records the stall as the engine does, an
+ * InvestigationStalled event before RunCompleted, beside an inconclusive
+ * report.
+ */
+test.describe("an investigation the logs could not help (?stall=)", () => {
+  const STALL_NOTICE: string = "investigation-log-stall";
+  const SET_UP_LOGS: string = "investigation-log-stall-set-up-logs";
+  const LOGS_AI: string = "investigation-log-stall-logs-ai";
+
+  async function openStall(
+    page: Page,
+    pagePath: string,
+    query: string,
+  ): Promise<Locator> {
+    await open(page, pagePath, query);
+
+    const notice: Locator = investigationCard(page).getByTestId(STALL_NOTICE);
+    await expect(notice).toBeVisible({ timeout: 30000 });
+    return notice;
+  }
+
+  async function shoot(page: Page, name: string): Promise<void> {
+    await fs.mkdir(SCREENSHOTS, { recursive: true });
+    await investigationCard(page).screenshot({
+      path: path.join(SCREENSHOTS, `log-stall-${name}.png`),
+    });
+  }
+
+  test("no log reached OneUptime: No logs to read, under the report, and where to set them up", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const notice: Locator = await openStall(page, INCIDENT_PATH, "stall=nologs");
+
+    await expect(notice).toContainText("No logs to read");
+    await expect(notice).toContainText(
+      "No logs reached OneUptime from the hour before this incident started, so OneUptime AI had none to read. Send your services' logs to OneUptime, and the next investigation can use them.",
+    );
+    await expect(notice.getByTestId(SET_UP_LOGS)).toHaveText("Set up logs");
+    await expect(notice.getByTestId(SET_UP_LOGS)).toHaveAttribute(
+      "href",
+      `${DASHBOARD}/logs/documentation`,
+    );
+    await expect(notice.getByTestId(LOGS_AI)).toHaveCount(0);
+
+    // Under the report it explains, before its working.
+    const order: Array<string> = await investigationCard(page).evaluate(
+      (card: Element): Array<string> => {
+        const notice: Element | null = card.querySelector(
+          "[data-testid='investigation-log-stall']",
+        );
+        const report: Element | null = card.querySelector("h3");
+        const details: Element | null = Array.from(
+          card.querySelectorAll("h3"),
+        ).find((heading: Element): boolean => {
+          return heading.textContent === "Evidence and activity";
+        }) as Element | null;
+        const before: (a: Element | null, b: Element | null) => boolean = (
+          a: Element | null,
+          b: Element | null,
+        ): boolean => {
+          return Boolean(
+            a &&
+              b &&
+              a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING,
+          );
+        };
+        return [
+          before(report, notice) ? "report before notice" : "notice first",
+          before(notice, details) ? "notice before details" : "details first",
+        ];
+      },
+    );
+    expect(order).toEqual(["report before notice", "notice before details"]);
+
+    await shoot(page, "nologs-1280");
+  });
+
+  test("logs reached OneUptime and none matched: how often it searched, and both ways forward", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const notice: Locator = await openStall(
+      page,
+      INCIDENT_PATH,
+      "stall=nomatch",
+    );
+
+    await expect(notice).toContainText("No logs about this incident");
+    await expect(notice).toContainText(
+      "OneUptime AI searched the logs 3 times and found nothing about this incident.",
+    );
+    await expect(notice.getByTestId(SET_UP_LOGS)).toHaveAttribute(
+      "href",
+      `${DASHBOARD}/logs/documentation`,
+    );
+    await expect(notice.getByTestId(LOGS_AI)).toHaveText(
+      "Find unlogged failures",
+    );
+    await expect(notice.getByTestId(LOGS_AI)).toHaveAttribute(
+      "href",
+      `${DASHBOARD}/logs/ai/insights`,
+    );
+
+    // The report itself says it could not tell, and offers no fix.
+    await expect(investigationCard(page)).toContainText("Could not determine");
+    await expect(
+      investigationCard(page).getByRole("button", { name: OPEN_FIX_PR }),
+    ).toHaveCount(0);
+
+    await shoot(page, "nomatch-1280");
+  });
+
+  test("an alert's card says it of the alert", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const notice: Locator = await openStall(page, ALERT_PATH, "stall=nomatch");
+
+    await expect(notice).toContainText("No logs about this alert");
+    await expect(notice).toContainText("found nothing about this alert");
+  });
+
+  test("an investigation that found the cause says nothing of the kind", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH);
+    await expect(investigationCard(page)).toContainText(INCIDENT_TLDR, {
+      timeout: 30000,
+    });
+    await expect(investigationCard(page).getByTestId(STALL_NOTICE)).toHaveCount(
+      0,
+    );
+  });
+
+  test("on a phone the line and its links fit the card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const notice: Locator = await openStall(
+      page,
+      INCIDENT_PATH,
+      "stall=nomatch",
+    );
+    await notice.scrollIntoViewIfNeeded();
+
+    const fit: { pageScrolls: boolean; cardBox: number; links: Array<number> } =
+      await page.evaluate(
+        (): { pageScrolls: boolean; cardBox: number; links: Array<number> } => {
+          const card: Element | null = document.querySelector(
+            "#ai-investigation",
+          );
+          const right: number = card ? card.getBoundingClientRect().right : 0;
+          return {
+            pageScrolls:
+              document.documentElement.scrollWidth >
+              document.documentElement.clientWidth,
+            cardBox: right,
+            links: Array.from(
+              document.querySelectorAll(
+                "[data-testid='investigation-log-stall-actions'] a",
+              ),
+            ).map((link: Element): number => {
+              return link.getBoundingClientRect().right;
+            }),
+          };
+        },
+      );
+
+    expect(fit.pageScrolls).toBe(false);
+    expect(fit.links).toHaveLength(2);
+    for (const linkRight of fit.links) {
+      expect(linkRight).toBeLessThanOrEqual(fit.cardBox + 1);
+    }
+
+    await shoot(page, "nomatch-390");
+  });
+
+  test("in the dark theme the line reads light on the card, its links indigo", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const notice: Locator = await openStall(
+      page,
+      INCIDENT_PATH,
+      "stall=nomatch&theme=dark",
+    );
+
+    const looks: { title: string; text: string; link: string } =
+      await notice.evaluate(
+        (element: Element): { title: string; text: string; link: string } => {
+          const paragraphs: Array<Element> = Array.from(
+            element.querySelectorAll("p"),
+          );
+          const link: Element | null = element.querySelector("a");
+          return {
+            title: window.getComputedStyle(paragraphs[0]!).color,
+            text: window.getComputedStyle(paragraphs[1]!).color,
+            link: link ? window.getComputedStyle(link).color : "",
+          };
+        },
+      );
+
+    // Not the light theme's near-black and gray on a dark card.
+    expect(looks.title).not.toBe("rgb(17, 24, 39)");
+    expect(looks.text).not.toBe("rgb(75, 85, 99)");
+    expect(looks.link).not.toBe("");
+
+    await shoot(page, "nomatch-dark");
+  });
+});

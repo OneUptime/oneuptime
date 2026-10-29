@@ -445,6 +445,18 @@ const startedNow = new Set();
 const tldrMode = params.get("tldr") === "long" ? "long" : "default";
 const titleMode = params.get("title") === "long" ? "long" : "default";
 /*
+ * ?stall=nologs|nomatch: Incident #1042's and Alert #311's investigations
+ * could not tell the cause for lack of logs, as the engine records it
+ * (Utils/AI/InvestigationLogStall): an inconclusive report and, before
+ * RunCompleted, an InvestigationStalled event - nologs: no log reached
+ * OneUptime, and it never searched them; nomatch: logs did, and its three
+ * log searches found no line about the record.
+ */
+const STALL_MODES = ["nologs", "nomatch"];
+const stallMode = STALL_MODES.includes(params.get("stall"))
+  ? params.get("stall")
+  : null;
+/*
  * ?paged=: whether somebody was paged about incident #1042 and alert #311
  * (First Paged At), and the project's "Time to acknowledge after paging"
  * measurement. Absent: neither, as before. `paged`: each was paged a minute
@@ -4019,7 +4031,124 @@ function brandedMarkdown(analysis, citations, toolCallCount, lead) {
   return markdown;
 }
 
+/*
+ * ?stall=: what an investigation the logs could not help read - the record's
+ * traces and metrics, and (nomatch) three log searches that came back empty
+ * - and the report it wrote: no cause found.
+ */
+function stallCitations(window) {
+  const traces = {
+    toolName: "query_traces",
+    queryArguments: {
+      startTime: iso(window.start),
+      endTime: iso(window.end),
+      statusCode: "Error",
+    },
+    label: `Error traces ${iso(window.start)} – ${iso(window.end)} (12 shown)`,
+    rowCount: 12,
+    durationInMs: 640,
+    target: { type: AIChatCitationTargetType.Traces },
+  };
+  const metrics = {
+    toolName: "query_metrics",
+    queryArguments: {
+      metricName: "http.server.request.duration",
+      aggregationType: "P95",
+      startTime: iso(window.start),
+      endTime: iso(window.end),
+    },
+    label: "P95(http.server.request.duration)",
+    rowCount: 30,
+    durationInMs: 380,
+    target: { type: AIChatCitationTargetType.Metrics },
+  };
+
+  if (stallMode !== "nomatch") {
+    return [traces, metrics];
+  }
+
+  const logs = (bodySearchText) => {
+    return {
+      toolName: "search_logs",
+      queryArguments: {
+        startTime: iso(window.start),
+        endTime: iso(window.end),
+        severityTexts: ["Error", "Fatal"],
+        ...(bodySearchText ? { bodySearchText } : {}),
+      },
+      label: `Logs ${iso(window.start)} – ${iso(window.end)} (0 shown)`,
+      rowCount: 0,
+      durationInMs: 210,
+      target: { type: AIChatCitationTargetType.Logs },
+    };
+  };
+
+  return [
+    traces,
+    logs(undefined),
+    logs("checkout"),
+    {
+      toolName: "log_histogram",
+      queryArguments: { startTime: iso(window.start), endTime: iso(window.end) },
+      label: `Log volume by severity, ${iso(window.start)} – ${iso(window.end)}`,
+      rowCount: 0,
+      durationInMs: 180,
+      target: { type: AIChatCitationTargetType.Logs },
+    },
+    metrics,
+  ];
+}
+
+const STALL_ANALYSIS = [
+  "**Summary** — Checkout requests failed with 502s from 17:58 UTC [C1].",
+  "**Most likely root cause** — Could not determine. The error traces show the payment call failing, but nothing in the telemetry says why [C1].",
+  stallMode === "nomatch"
+    ? "**What I checked** — The checkout traces and latency around 17:58, and the logs of that hour, which had no lines about the failing calls [C2][C3][C4]."
+    : "**What I checked** — The checkout traces and latency around 17:58. No logs were available to read.",
+].join("\n\n");
+
+const STALL_TLDR =
+  "OneUptime AI could not tell why checkout requests failed: the traces show the payment call failing, and nothing says why.";
+
+/*
+ * The InvestigationStalled event's summary, as the engine writes it
+ * (describeInvestigationLogStall, investigationLogStallToJSON).
+ */
+function stallSummary(investigation) {
+  const searches = investigation.citations.filter((citation) => {
+    return (
+      citation.toolName === "search_logs" ||
+      citation.toolName === "log_histogram"
+    );
+  }).length;
+  const windowStart = new Date(
+    investigation.createdAt.getTime() - 60 * 60 * 1000,
+  );
+
+  return {
+    message:
+      stallMode === "nologs"
+        ? `No logs reached OneUptime from the hour before this ${investigation.subjectType} started, so OneUptime AI had none to read.`
+        : `OneUptime AI searched the logs ${searches} times and found nothing about this ${investigation.subjectType}.`,
+    logStall: {
+      reason: stallMode === "nologs" ? "NoLogs" : "NoMatchingLogs",
+      logSearchCount: searches,
+      windowStart: iso(windowStart),
+      windowEnd: iso(investigation.completedAt),
+    },
+  };
+}
+
 function defineInvestigation(spec) {
+  if (stallMode) {
+    spec = {
+      ...spec,
+      citations: stallCitations(spec.window),
+      analysis: STALL_ANALYSIS,
+      tldr: STALL_TLDR,
+      references: [],
+    };
+  }
   const citations = spec.citations.map((citation, index) => {
     return { ...citation, id: `C${index + 1}` };
   });
@@ -4130,6 +4259,7 @@ const investigations = {
     startedAt: at("18:01", 22),
     completedAt: at("18:03", 5),
     totalTokens: 48212,
+    window: incidentWindow,
     citations: INCIDENT_CITATIONS,
     analysis: INCIDENT_ANALYSIS,
     tldr: tldrMode === "long" ? INCIDENT_LONG_TLDR : INCIDENT_TLDR,
@@ -4156,6 +4286,7 @@ const investigations = {
     startedAt: at("18:06", 17),
     completedAt: at("18:07", 48),
     totalTokens: 41876,
+    window: alertWindow,
     citations: ALERT_CITATIONS,
     analysis: ALERT_ANALYSIS,
     tldr: ALERT_TLDR,
@@ -4479,6 +4610,7 @@ if (linkedMode === "followup") {
     startedAt: at("18:04", 5),
     completedAt: at("18:05", 50),
     totalTokens: 31544,
+    window: incidentWindow,
     citations: FOLLOW_UP_CITATIONS,
     analysis: FOLLOW_UP_ANALYSIS,
     tldr: FOLLOW_UP_TLDR,
@@ -4625,6 +4757,14 @@ function buildEvents(investigation, options) {
   }
   if (options.ending === "completed") {
     thinking(5200);
+    // Recorded before the report is posted, as the engine does.
+    if (options.stall) {
+      push(
+        AIRunEventType.InvestigationStalled,
+        { resultSummary: options.stall },
+        0,
+      );
+    }
     if (!options.skipRunCompleted) {
       push(AIRunEventType.RunCompleted, {}, 0);
     }
@@ -4846,13 +4986,16 @@ function investigationPayload(investigation) {
     run.totalTokens = investigation.totalTokens;
     run.codeFixRecommendation = isPending
       ? AIRunCodeFixRecommendation.Pending
-      : AIRunCodeFixRecommendation.Recommended;
+      : stallMode
+        ? AIRunCodeFixRecommendation.NotRecommended
+        : AIRunCodeFixRecommendation.Recommended;
     run.humanVerdict = investigation.verdict || undefined;
     run.humanVerdictAt = investigation.verdictAt || undefined;
     events = buildEvents(investigation, {
       toolCount,
       ending: "completed",
       skipRunCompleted: isPending,
+      stall: stallMode ? stallSummary(investigation) : null,
     });
     if (isPending) {
       isAnalysisPending = true;

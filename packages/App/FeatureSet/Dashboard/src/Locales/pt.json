@@ -31799,7 +31799,6 @@
   "Telemetry stopped after the fix": "A telemetria parou após a correção",
   "AI Investigation Waits Until": "Investigação de IA aguarda até",
   "Alerts resolved during the wait are not investigated.": "Alertas resolvidos durante a espera não são investigados.",
-  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "Como contam para os limites diários de IA do projeto: um token que o provedor leu do seu cache de prompts conta como um décimo de token, e um token gravado nesse cache como um e um quarto.",
   "Counted from when the alert is created. When several rules match, the shortest wait decides. At most 1440 (a day).": "Contado a partir da criação do alerta. Se várias regras corresponderem, vale a espera mais curta. No máximo 1440 (um dia).",
   "Counted from when the incident is declared. When several rules match, the shortest wait decides. At most 1440 (a day).": "Contado a partir da declaração do incidente. Se várias regras corresponderem, vale a espera mais curta. No máximo 1440 (um dia).",
   "Decision recorded when the wait ended": "Decisão registrada ao fim da espera",
@@ -36959,5 +36958,16 @@
   "{{count}} were already on the list_one": "{{count}} já estava na lista",
   "MD5, SHA-1, SHA-256 and SHA-512 hashes, matched whatever the case.": "Hashes MD5, SHA-1, SHA-256 e SHA-512, comparados sem diferenciar maiúsculas.",
   "Choose what the list holds": "Escolha o que a lista contém",
-  "Couldn't load the rules": "Não foi possível carregar as regras"
+  "Couldn't load the rules": "Não foi possível carregar as regras",
+  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache, or wrote to it, counts for what the model charges for it next to a fresh token. On most current models a read counts as a tenth of a token.": "Como contam para os limites diários de IA do projeto: um token que o provedor leu do seu cache de prompts, ou gravou nele, conta pelo que o modelo cobra por ele em comparação com um token novo. Na maioria dos modelos atuais, um token lido conta como um décimo de token.",
+  "Find unlogged failures": "Encontrar falhas não registradas",
+  "No logs about this alert": "Nenhum registro sobre este alerta",
+  "No logs about this incident": "Nenhum registro sobre este incidente",
+  "No logs reached OneUptime from the hour before this alert started, so OneUptime AI had none to read. Send your services' logs to OneUptime, and the next investigation can use them.": "Nenhum registro chegou ao OneUptime desde a hora anterior ao início deste alerta, então o OneUptime AI não tinha nada para ler. Envie os registros dos seus serviços ao OneUptime, e a próxima investigação poderá usá-los.",
+  "No logs reached OneUptime from the hour before this incident started, so OneUptime AI had none to read. Send your services' logs to OneUptime, and the next investigation can use them.": "Nenhum registro chegou ao OneUptime desde a hora anterior ao início deste incidente, então o OneUptime AI não tinha nada para ler. Envie os registros dos seus serviços ao OneUptime, e a próxima investigação poderá usá-los.",
+  "No logs to read": "Nenhum registro para ler",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this alert. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log.": "O OneUptime AI pesquisou os registros {{count}} vezes e não encontrou nada sobre este alerta. Verifique se cada serviço envolvido envia seus registros ao OneUptime, e deixe a IA de Registros encontrar as falhas que seu código não registra.",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this alert. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log._one": "O OneUptime AI pesquisou os registros uma vez e não encontrou nada sobre este alerta. Verifique se cada serviço envolvido envia seus registros ao OneUptime, e deixe a IA de Registros encontrar as falhas que seu código não registra.",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this incident. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log.": "O OneUptime AI pesquisou os registros {{count}} vezes e não encontrou nada sobre este incidente. Verifique se cada serviço envolvido envia seus registros ao OneUptime, e deixe a IA de Registros encontrar as falhas que seu código não registra.",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this incident. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log._one": "O OneUptime AI pesquisou os registros uma vez e não encontrou nada sobre este incidente. Verifique se cada serviço envolvido envia seus registros ao OneUptime, e deixe a IA de Registros encontrar as falhas que seu código não registra."
 }

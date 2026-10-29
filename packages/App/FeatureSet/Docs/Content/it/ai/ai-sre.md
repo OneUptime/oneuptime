@@ -46,6 +46,15 @@ Mentre l'indagine è in corso, la pagina dell'incidente o dell'avviso mostra un 
 
 Un'indagine prosegue finché non ha finito: non ha **alcun limite di tempo** né un piccolo budget di query, quindi può eseguire ogni query e ogni comando kubectl o di infrastruttura di cui ha bisogno. Un output di comando lungo (un `kubectl describe node` di un nodo molto carico, i log di un pod) non viene mai troncato: OneUptime AI lo legge una pagina alla volta. Se vuoi uno stop netto, imposta un **limite di tempo per le indagini** per tipo di segnale (vedi **Controllo dei costi** più sotto).
 
+### Quando i registri non avevano niente da dire
+
+Un'indagine che non ha potuto determinare una causa, e non ha trovato alcuna riga di registro in nessuna delle sue ricerche, dice perché sulla scheda **AI Investigation**, sotto il suo rapporto, con la strada da seguire:
+
+- **Nessun registro da leggere**: nessun registro è arrivato a OneUptime dall'ora prima dell'inizio dell'incidente o dell'avviso. **Configura i registri** apre la guida alla configurazione dei registri: invia i registri dei tuoi servizi a OneUptime e la prossima indagine potrà usarli.
+- **Nessun registro su questo incidente** (per un avviso, **Nessun registro su questo avviso**): dei registri sono arrivati a OneUptime, e nessuna ricerca dell'indagine ha trovato nulla al riguardo. **Configura i registri** aiuta quando un servizio coinvolto non invia ancora i suoi registri, e **Trova i fallimenti non registrati** apre **Log → IA**, che trova i fallimenti che il tuo codice non registra e aggiunge la registrazione con una pull request.
+
+OneUptime lo decide da ciò che sa, mai da ciò che dice l'analisi: lo stesso verdetto verificato dal server della [modalità silenziosa](#modalità-silenziosa), le ricerche nei registri dell'indagine stessa, e una lettura che verifica se un registro ha raggiunto il progetto in quel periodo. Un'indagine che ha trovato la causa, o una riga di registro, non dice niente del genere.
+
 ## Che cosa legge un'indagine
 
 Un'indagine parte dall'incidente o dall'avviso e dall'infrastruttura a cui è collegato: gli host, gli host Docker e Podman, i cluster Kubernetes, i database e i servizi che i suoi monitor sorvegliano. Un monitor di sito web, API o sintetico sorveglia ciò a cui lo colleghi in **Monitor → Panoramica → Risorse collegate**: collegalo quindi agli host che servono ciò che controlla, e ogni indagine dei suoi incidenti partirà da lì. Prima di tutto questo, legge il [contesto IA](/docs/ai/ai-context) del progetto: ciò che il tuo team ha scritto per OneUptime AI sui vostri sistemi, con le note delle regole IA che corrispondono.
@@ -448,7 +457,7 @@ Il lavoro dell'IA al di fuori di incidenti e avvisi (il triage degli insight e l
 
 ### Come vengono contati i token
 
-Ogni limite di token di questa pagina conta i token di una chiamata in base a quanto costano, e lo stesso fanno i Registri IA e, su OneUptime Cloud, i crediti IA. Un token che il modello legge per la prima volta, e ogni token che scrive, conta come uno. Un'indagine o una risposta di Chiedi all'IA è fatta di molte chiamate, e ogni chiamata invia di nuovo l'intera conversazione: il provider serve la parte che ha già visto dalla sua cache dei prompt, a una frazione del prezzo. Un token letto da quella cache conta come un decimo di token, e un token scritto in essa come uno e un quarto.
+Ogni limite di token di questa pagina conta i token di una chiamata in base a quanto costano, e lo stesso fanno i Registri IA e, su OneUptime Cloud, i crediti IA. Un token che il modello legge per la prima volta, e ogni token che scrive, conta come uno. Un'indagine o una risposta di Chiedi all'IA è fatta di molte chiamate, e ogni chiamata invia di nuovo l'intera conversazione: il provider serve la parte che ha già visto dalla sua cache dei prompt, a una frazione del prezzo. Un token letto da quella cache, o scritto in essa, conta per quanto il modello della chiamata lo fa pagare rispetto a un token nuovo: su Claude e sui modelli attuali di OpenAI un token letto conta come un decimo di token (un ventesimo su Claude Opus 5.5 e Sonnet 5.5, la metà su gpt-4o), e un token scritto nella cache di Anthropic, o in quella di OpenAI da GPT-5.6, come uno e un quarto. Un modello di cui OneUptime non conosce il prezzo della cache conta un token letto come un decimo di token e uno scritto come uno e un quarto.
 
 I Registri IA (**Impostazioni del progetto → IA → Registri IA**) elencano ogni chiamata con i token che contano e, sotto, quanti token ha usato in tutto e quanti di essi sono arrivati dalla cache o vi sono stati scritti. Con Anthropic, Claude in Microsoft Foundry compreso, OneUptime contrassegna per la cache il prompt di sistema, gli strumenti e la conversazione, così ogni chiamata di un'indagine legge dalla cache tutto ciò che precede i suoi risultati degli strumenti più recenti. OpenAI e Azure OpenAI mettono in cache da soli un prompt ripetuto.
 

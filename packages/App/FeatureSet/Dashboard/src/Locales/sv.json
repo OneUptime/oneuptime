@@ -31799,7 +31799,6 @@
   "Telemetry stopped after the fix": "Telemetrin upphörde efter korrigeringen",
   "AI Investigation Waits Until": "AI-utredning väntar till",
   "Alerts resolved during the wait are not investigated.": "Larm som löses under väntetiden utreds inte.",
-  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "Så som de räknas mot projektets dagliga AI-gränser: en token som leverantören läste från sin promptcache räknas som en tiondels token, och en token som skrevs till den cachen som en och en kvarts.",
   "Counted from when the alert is created. When several rules match, the shortest wait decides. At most 1440 (a day).": "Räknas från att larmet skapas. Matchar flera regler avgör den kortaste väntetiden. Högst 1440 (ett dygn).",
   "Counted from when the incident is declared. When several rules match, the shortest wait decides. At most 1440 (a day).": "Räknas från att incidenten deklareras. Matchar flera regler avgör den kortaste väntetiden. Högst 1440 (ett dygn).",
   "Decision recorded when the wait ended": "Beslut registrerat när väntetiden var slut",
@@ -36959,5 +36958,16 @@
   "{{count}} were already on the list_one": "{{count}} fanns redan på listan",
   "MD5, SHA-1, SHA-256 and SHA-512 hashes, matched whatever the case.": "MD5-, SHA-1-, SHA-256- och SHA-512-hashar. Stora och små bokstäver spelar ingen roll.",
   "Choose what the list holds": "Välj vad listan innehåller",
-  "Couldn't load the rules": "Det gick inte att läsa in reglerna"
+  "Couldn't load the rules": "Det gick inte att läsa in reglerna",
+  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache, or wrote to it, counts for what the model charges for it next to a fresh token. On most current models a read counts as a tenth of a token.": "Så som de räknas mot projektets dagliga AI-gränser: en token som leverantören läste från sin promptcache, eller skrev till den, räknas för det modellen tar betalt för den jämfört med en ny token. På de flesta aktuella modeller räknas en läst token som en tiondels token.",
+  "Find unlogged failures": "Hitta misslyckanden som inte loggas",
+  "No logs about this alert": "Inga loggar om det här larmet",
+  "No logs about this incident": "Inga loggar om den här incidenten",
+  "No logs reached OneUptime from the hour before this alert started, so OneUptime AI had none to read. Send your services' logs to OneUptime, and the next investigation can use them.": "Inga loggar nådde OneUptime från timmen innan det här larmet började, så OneUptime AI hade inga att läsa. Skicka dina tjänsters loggar till OneUptime, så kan nästa undersökning använda dem.",
+  "No logs reached OneUptime from the hour before this incident started, so OneUptime AI had none to read. Send your services' logs to OneUptime, and the next investigation can use them.": "Inga loggar nådde OneUptime från timmen innan den här incidenten började, så OneUptime AI hade inga att läsa. Skicka dina tjänsters loggar till OneUptime, så kan nästa undersökning använda dem.",
+  "No logs to read": "Inga loggar att läsa",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this alert. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log.": "OneUptime AI sökte i loggarna {{count}} gånger och hittade inget om det här larmet. Kontrollera att varje inblandad tjänst skickar sina loggar till OneUptime, och låt AI i Loggar hitta de misslyckanden som din kod inte loggar.",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this alert. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log._one": "OneUptime AI sökte i loggarna en gång och hittade inget om det här larmet. Kontrollera att varje inblandad tjänst skickar sina loggar till OneUptime, och låt AI i Loggar hitta de misslyckanden som din kod inte loggar.",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this incident. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log.": "OneUptime AI sökte i loggarna {{count}} gånger och hittade inget om den här incidenten. Kontrollera att varje inblandad tjänst skickar sina loggar till OneUptime, och låt AI i Loggar hitta de misslyckanden som din kod inte loggar.",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this incident. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log._one": "OneUptime AI sökte i loggarna en gång och hittade inget om den här incidenten. Kontrollera att varje inblandad tjänst skickar sina loggar till OneUptime, och låt AI i Loggar hitta de misslyckanden som din kod inte loggar."
 }

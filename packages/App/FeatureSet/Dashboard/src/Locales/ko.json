@@ -31799,7 +31799,6 @@
   "Telemetry stopped after the fix": "수정 후 텔레메트리 중단",
   "AI Investigation Waits Until": "AI 조사 대기 종료 시각",
   "Alerts resolved during the wait are not investigated.": "대기 중에 해결된 경고는 조사하지 않습니다.",
-  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "프로젝트의 일일 AI 한도에 계산되는 기준입니다. 공급자가 프롬프트 캐시에서 읽은 토큰은 토큰 10분의 1로, 그 캐시에 쓴 토큰은 1.25개로 계산됩니다.",
   "Counted from when the alert is created. When several rules match, the shortest wait decides. At most 1440 (a day).": "경고가 생성된 시점부터 셉니다. 여러 규칙이 일치하면 가장 짧은 대기 시간이 적용됩니다. 최대 1440(하루).",
   "Counted from when the incident is declared. When several rules match, the shortest wait decides. At most 1440 (a day).": "인시던트가 선언된 시점부터 셉니다. 여러 규칙이 일치하면 가장 짧은 대기 시간이 적용됩니다. 최대 1440(하루).",
   "Decision recorded when the wait ended": "대기가 끝났을 때 기록된 결정",
@@ -36959,5 +36958,16 @@
   "{{count}} were already on the list_one": "{{count}}개는 이미 목록에 있었습니다",
   "MD5, SHA-1, SHA-256 and SHA-512 hashes, matched whatever the case.": "MD5, SHA-1, SHA-256, SHA-512 해시입니다. 대소문자를 구분하지 않습니다.",
   "Choose what the list holds": "목록에 담을 항목 선택",
-  "Couldn't load the rules": "규칙을 불러올 수 없습니다"
+  "Couldn't load the rules": "규칙을 불러올 수 없습니다",
+  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache, or wrote to it, counts for what the model charges for it next to a fresh token. On most current models a read counts as a tenth of a token.": "프로젝트의 일일 AI 한도에 계산되는 기준입니다. 공급자가 프롬프트 캐시에서 읽거나 캐시에 쓴 토큰은 모델이 새 토큰 대비 청구하는 비율로 계산됩니다. 현재 대부분의 모델에서 읽은 토큰은 토큰 10분의 1로 계산됩니다.",
+  "Find unlogged failures": "로그에 남지 않는 실패 찾기",
+  "No logs about this alert": "이 경고에 관한 로그가 없습니다",
+  "No logs about this incident": "이 인시던트에 관한 로그가 없습니다",
+  "No logs reached OneUptime from the hour before this alert started, so OneUptime AI had none to read. Send your services' logs to OneUptime, and the next investigation can use them.": "이 경고가 시작되기 1시간 전부터 OneUptime에 로그가 하나도 도착하지 않아 OneUptime AI가 읽을 로그가 없었습니다. 서비스의 로그를 OneUptime으로 보내면 다음 조사에서 사용할 수 있습니다.",
+  "No logs reached OneUptime from the hour before this incident started, so OneUptime AI had none to read. Send your services' logs to OneUptime, and the next investigation can use them.": "이 인시던트가 시작되기 1시간 전부터 OneUptime에 로그가 하나도 도착하지 않아 OneUptime AI가 읽을 로그가 없었습니다. 서비스의 로그를 OneUptime으로 보내면 다음 조사에서 사용할 수 있습니다.",
+  "No logs to read": "읽을 로그가 없습니다",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this alert. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log.": "OneUptime AI가 로그를 {{count}}번 검색했지만 이 경고에 관한 내용을 찾지 못했습니다. 관련된 모든 서비스가 로그를 OneUptime으로 보내는지 확인하고, 코드가 로그에 남기지 않는 실패는 로그 AI가 찾도록 하세요.",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this alert. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log._one": "OneUptime AI가 로그를 한 번 검색했지만 이 경고에 관한 내용을 찾지 못했습니다. 관련된 모든 서비스가 로그를 OneUptime으로 보내는지 확인하고, 코드가 로그에 남기지 않는 실패는 로그 AI가 찾도록 하세요.",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this incident. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log.": "OneUptime AI가 로그를 {{count}}번 검색했지만 이 인시던트에 관한 내용을 찾지 못했습니다. 관련된 모든 서비스가 로그를 OneUptime으로 보내는지 확인하고, 코드가 로그에 남기지 않는 실패는 로그 AI가 찾도록 하세요.",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this incident. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log._one": "OneUptime AI가 로그를 한 번 검색했지만 이 인시던트에 관한 내용을 찾지 못했습니다. 관련된 모든 서비스가 로그를 OneUptime으로 보내는지 확인하고, 코드가 로그에 남기지 않는 실패는 로그 AI가 찾도록 하세요."
 }

@@ -31799,7 +31799,6 @@
   "Telemetry stopped after the fix": "修正後にテレメトリが途絶",
   "AI Investigation Waits Until": "AI 調査の待機終了時刻",
   "Alerts resolved during the wait are not investigated.": "待機中に解決したアラートは調査されません。",
-  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "プロジェクトの 1 日あたりの AI 上限に数えられる量です。プロバイダーがプロンプトキャッシュから読んだトークンは 10 分の 1 トークン、そのキャッシュに書き込まれたトークンは 1.25 トークンとして数えます。",
   "Counted from when the alert is created. When several rules match, the shortest wait decides. At most 1440 (a day).": "アラートが作成された時点から数えます。複数のルールに一致する場合は、最も短い待機時間が使われます。最大 1440（1 日）。",
   "Counted from when the incident is declared. When several rules match, the shortest wait decides. At most 1440 (a day).": "インシデントが宣言された時点から数えます。複数のルールに一致する場合は、最も短い待機時間が使われます。最大 1440（1 日）。",
   "Decision recorded when the wait ended": "待機終了時に記録された判断",
@@ -36959,5 +36958,16 @@
   "{{count}} were already on the list_one": "{{count}} 個はすでにリストにありました",
   "MD5, SHA-1, SHA-256 and SHA-512 hashes, matched whatever the case.": "MD5、SHA-1、SHA-256、SHA-512 のハッシュです。大文字と小文字は区別しません。",
   "Choose what the list holds": "リストに入れるものを選択",
-  "Couldn't load the rules": "ルールを読み込めませんでした"
+  "Couldn't load the rules": "ルールを読み込めませんでした",
+  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache, or wrote to it, counts for what the model charges for it next to a fresh token. On most current models a read counts as a tenth of a token.": "プロジェクトの 1 日あたりの AI 上限に数えられる量です。プロバイダーがプロンプトキャッシュから読んだトークンや書き込んだトークンは、新しいトークンと比べてモデルが請求する割合で数えます。現在の多くのモデルでは、読んだトークンは 10 分の 1 トークンとして数えます。",
+  "Find unlogged failures": "ログに記録されない失敗を探す",
+  "No logs about this alert": "このアラートに関するログがありません",
+  "No logs about this incident": "このインシデントに関するログがありません",
+  "No logs reached OneUptime from the hour before this alert started, so OneUptime AI had none to read. Send your services' logs to OneUptime, and the next investigation can use them.": "このアラートが始まる 1 時間前から OneUptime にログが 1 件も届いていないため、OneUptime AI が読めるログはありませんでした。サービスのログを OneUptime に送ると、次回の調査で使えます。",
+  "No logs reached OneUptime from the hour before this incident started, so OneUptime AI had none to read. Send your services' logs to OneUptime, and the next investigation can use them.": "このインシデントが始まる 1 時間前から OneUptime にログが 1 件も届いていないため、OneUptime AI が読めるログはありませんでした。サービスのログを OneUptime に送ると、次回の調査で使えます。",
+  "No logs to read": "読めるログがありません",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this alert. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log.": "OneUptime AI はログを {{count}} 回検索しましたが、このアラートに関するものは見つかりませんでした。関係するすべてのサービスがログを OneUptime に送っているか確認し、コードがログに記録しない失敗はログの AI に探させてください。",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this alert. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log._one": "OneUptime AI はログを 1 回検索しましたが、このアラートに関するものは見つかりませんでした。関係するすべてのサービスがログを OneUptime に送っているか確認し、コードがログに記録しない失敗はログの AI に探させてください。",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this incident. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log.": "OneUptime AI はログを {{count}} 回検索しましたが、このインシデントに関するものは見つかりませんでした。関係するすべてのサービスがログを OneUptime に送っているか確認し、コードがログに記録しない失敗はログの AI に探させてください。",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this incident. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log._one": "OneUptime AI はログを 1 回検索しましたが、このインシデントに関するものは見つかりませんでした。関係するすべてのサービスがログを OneUptime に送っているか確認し、コードがログに記録しない失敗はログの AI に探させてください。"
 }

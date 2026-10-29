@@ -31799,7 +31799,6 @@
   "Telemetry stopped after the fix": "修正後遙測中斷",
   "AI Investigation Waits Until": "AI 調查等待至",
   "Alerts resolved during the wait are not investigated.": "在等待期間解決的警示不會被調查。",
-  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "依計入專案每日 AI 限制的方式計算：提供者從其提示快取讀取的權杖按十分之一個權杖計算，寫入該快取的權杖按 1.25 個計算。",
   "Counted from when the alert is created. When several rules match, the shortest wait decides. At most 1440 (a day).": "從警示建立時開始計算。多條規則符合時，以最短的等待時間為準。最多 1440（一天）。",
   "Counted from when the incident is declared. When several rules match, the shortest wait decides. At most 1440 (a day).": "從事件宣告時開始計算。多條規則符合時，以最短的等待時間為準。最多 1440（一天）。",
   "Decision recorded when the wait ended": "等待結束時記錄的決定",
@@ -36959,5 +36958,16 @@
   "{{count}} were already on the list_one": "{{count}} 個已在清單中",
   "MD5, SHA-1, SHA-256 and SHA-512 hashes, matched whatever the case.": "MD5、SHA-1、SHA-256 和 SHA-512 雜湊，比對時不區分大小寫。",
   "Choose what the list holds": "選擇清單包含的內容",
-  "Couldn't load the rules": "無法載入規則"
+  "Couldn't load the rules": "無法載入規則",
+  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache, or wrote to it, counts for what the model charges for it next to a fresh token. On most current models a read counts as a tenth of a token.": "依計入專案每日 AI 限制的方式計算：提供者從其提示快取讀取或寫入的權杖，按模型相對新權杖收取的價格計算。在大多數目前的模型上，讀取的權杖按十分之一個權杖計算。",
+  "Find unlogged failures": "尋找未記錄的失敗",
+  "No logs about this alert": "沒有關於此警示的日誌",
+  "No logs about this incident": "沒有關於此事件的日誌",
+  "No logs reached OneUptime from the hour before this alert started, so OneUptime AI had none to read. Send your services' logs to OneUptime, and the next investigation can use them.": "從此警示開始前一小時起，沒有任何日誌到達 OneUptime，因此 OneUptime AI 沒有可讀取的日誌。請將您服務的日誌傳送到 OneUptime，下次調查就能使用它們。",
+  "No logs reached OneUptime from the hour before this incident started, so OneUptime AI had none to read. Send your services' logs to OneUptime, and the next investigation can use them.": "從此事件開始前一小時起，沒有任何日誌到達 OneUptime，因此 OneUptime AI 沒有可讀取的日誌。請將您服務的日誌傳送到 OneUptime，下次調查就能使用它們。",
+  "No logs to read": "沒有可讀取的日誌",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this alert. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log.": "OneUptime AI 搜尋了日誌 {{count}} 次，沒有找到關於此警示的任何內容。請檢查每個相關服務是否都將日誌傳送到 OneUptime，並讓日誌 AI 找出您的程式碼未記錄的失敗。",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this alert. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log._one": "OneUptime AI 搜尋了日誌 1 次，沒有找到關於此警示的任何內容。請檢查每個相關服務是否都將日誌傳送到 OneUptime，並讓日誌 AI 找出您的程式碼未記錄的失敗。",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this incident. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log.": "OneUptime AI 搜尋了日誌 {{count}} 次，沒有找到關於此事件的任何內容。請檢查每個相關服務是否都將日誌傳送到 OneUptime，並讓日誌 AI 找出您的程式碼未記錄的失敗。",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this incident. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log._one": "OneUptime AI 搜尋了日誌 1 次，沒有找到關於此事件的任何內容。請檢查每個相關服務是否都將日誌傳送到 OneUptime，並讓日誌 AI 找出您的程式碼未記錄的失敗。"
 }

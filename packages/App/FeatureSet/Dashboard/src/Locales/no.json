@@ -31799,7 +31799,6 @@
   "Telemetry stopped after the fix": "Telemetri stoppet etter rettelsen",
   "AI Investigation Waits Until": "AI-undersøkelse venter til",
   "Alerts resolved during the wait are not investigated.": "Varsler som løses mens det ventes, blir ikke undersøkt.",
-  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "Slik de teller mot prosjektets daglige KI-grenser: en token som leverandøren leste fra sin prompt-cache, teller som en tidel token, og en token som ble skrevet til den cachen, som en og en kvart.",
   "Counted from when the alert is created. When several rules match, the shortest wait decides. At most 1440 (a day).": "Regnes fra varselet opprettes. Samsvarer flere regler, avgjør den korteste ventetiden. Maks 1440 (ett døgn).",
   "Counted from when the incident is declared. When several rules match, the shortest wait decides. At most 1440 (a day).": "Regnes fra hendelsen erklæres. Samsvarer flere regler, avgjør den korteste ventetiden. Maks 1440 (ett døgn).",
   "Decision recorded when the wait ended": "Beslutning registrert da ventetiden var over",
@@ -36959,5 +36958,16 @@
   "{{count}} were already on the list_one": "{{count}} sto allerede på listen",
   "MD5, SHA-1, SHA-256 and SHA-512 hashes, matched whatever the case.": "MD5-, SHA-1-, SHA-256- og SHA-512-hasher. Store og små bokstaver spiller ingen rolle.",
   "Choose what the list holds": "Velg hva listen inneholder",
-  "Couldn't load the rules": "Kunne ikke laste inn reglene"
+  "Couldn't load the rules": "Kunne ikke laste inn reglene",
+  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache, or wrote to it, counts for what the model charges for it next to a fresh token. On most current models a read counts as a tenth of a token.": "Slik de teller mot prosjektets daglige KI-grenser: en token som leverandøren leste fra sin prompt-cache, eller skrev til den, teller for det modellen tar for den sammenlignet med en ny token. På de fleste nåværende modeller teller en lest token som en tidel token.",
+  "Find unlogged failures": "Finn feil uten logg",
+  "No logs about this alert": "Ingen logger om dette varselet",
+  "No logs about this incident": "Ingen logger om denne hendelsen",
+  "No logs reached OneUptime from the hour before this alert started, so OneUptime AI had none to read. Send your services' logs to OneUptime, and the next investigation can use them.": "Ingen logger nådde OneUptime fra timen før dette varselet startet, så OneUptime AI hadde ingen å lese. Send loggene til tjenestene dine til OneUptime, så kan den neste undersøkelsen bruke dem.",
+  "No logs reached OneUptime from the hour before this incident started, so OneUptime AI had none to read. Send your services' logs to OneUptime, and the next investigation can use them.": "Ingen logger nådde OneUptime fra timen før denne hendelsen startet, så OneUptime AI hadde ingen å lese. Send loggene til tjenestene dine til OneUptime, så kan den neste undersøkelsen bruke dem.",
+  "No logs to read": "Ingen logger å lese",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this alert. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log.": "OneUptime AI søkte i loggene {{count}} ganger og fant ingenting om dette varselet. Sjekk at hver tjeneste som er involvert sender loggene sine til OneUptime, og la KI i Logger finne feilene koden din ikke logger.",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this alert. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log._one": "OneUptime AI søkte i loggene én gang og fant ingenting om dette varselet. Sjekk at hver tjeneste som er involvert sender loggene sine til OneUptime, og la KI i Logger finne feilene koden din ikke logger.",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this incident. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log.": "OneUptime AI søkte i loggene {{count}} ganger og fant ingenting om denne hendelsen. Sjekk at hver tjeneste som er involvert sender loggene sine til OneUptime, og la KI i Logger finne feilene koden din ikke logger.",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this incident. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log._one": "OneUptime AI søkte i loggene én gang og fant ingenting om denne hendelsen. Sjekk at hver tjeneste som er involvert sender loggene sine til OneUptime, og la KI i Logger finne feilene koden din ikke logger."
 }

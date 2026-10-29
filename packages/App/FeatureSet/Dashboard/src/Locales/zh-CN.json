@@ -31799,7 +31799,6 @@
   "Telemetry stopped after the fix": "修复后遥测中断",
   "AI Investigation Waits Until": "AI 调查等待至",
   "Alerts resolved during the wait are not investigated.": "在等待期间解决的警报不会被调查。",
-  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "按计入项目每日 AI 限制的方式计算：提供商从其提示缓存读取的令牌按十分之一个令牌计算，写入该缓存的令牌按 1.25 个计算。",
   "Counted from when the alert is created. When several rules match, the shortest wait decides. At most 1440 (a day).": "从警报创建时开始计算。多条规则匹配时，以最短的等待时间为准。最多 1440（一天）。",
   "Counted from when the incident is declared. When several rules match, the shortest wait decides. At most 1440 (a day).": "从事件声明时开始计算。多条规则匹配时，以最短的等待时间为准。最多 1440（一天）。",
   "Decision recorded when the wait ended": "等待结束时记录的决定",
@@ -36959,5 +36958,16 @@
   "{{count}} were already on the list_one": "{{count}} 个已在列表中",
   "MD5, SHA-1, SHA-256 and SHA-512 hashes, matched whatever the case.": "MD5、SHA-1、SHA-256 和 SHA-512 哈希，匹配时不区分大小写。",
   "Choose what the list holds": "选择列表包含的内容",
-  "Couldn't load the rules": "无法加载规则"
+  "Couldn't load the rules": "无法加载规则",
+  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache, or wrote to it, counts for what the model charges for it next to a fresh token. On most current models a read counts as a tenth of a token.": "按计入项目每日 AI 限制的方式计算：提供商从其提示缓存读取或写入的令牌，按模型相对新令牌收取的价格计算。在大多数当前模型上，读取的令牌按十分之一个令牌计算。",
+  "Find unlogged failures": "查找未记录的失败",
+  "No logs about this alert": "没有关于此警报的日志",
+  "No logs about this incident": "没有关于此事件的日志",
+  "No logs reached OneUptime from the hour before this alert started, so OneUptime AI had none to read. Send your services' logs to OneUptime, and the next investigation can use them.": "从此警报开始前一小时起，没有任何日志到达 OneUptime，因此 OneUptime AI 没有可读取的日志。请将您服务的日志发送到 OneUptime，下次调查就能使用它们。",
+  "No logs reached OneUptime from the hour before this incident started, so OneUptime AI had none to read. Send your services' logs to OneUptime, and the next investigation can use them.": "从此事件开始前一小时起，没有任何日志到达 OneUptime，因此 OneUptime AI 没有可读取的日志。请将您服务的日志发送到 OneUptime，下次调查就能使用它们。",
+  "No logs to read": "没有可读取的日志",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this alert. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log.": "OneUptime AI 搜索了日志 {{count}} 次，没有找到关于此警报的任何内容。请检查每个相关服务是否都将日志发送到 OneUptime，并让日志 AI 找出您的代码未记录的失败。",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this alert. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log._one": "OneUptime AI 搜索了日志 1 次，没有找到关于此警报的任何内容。请检查每个相关服务是否都将日志发送到 OneUptime，并让日志 AI 找出您的代码未记录的失败。",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this incident. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log.": "OneUptime AI 搜索了日志 {{count}} 次，没有找到关于此事件的任何内容。请检查每个相关服务是否都将日志发送到 OneUptime，并让日志 AI 找出您的代码未记录的失败。",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this incident. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log._one": "OneUptime AI 搜索了日志 1 次，没有找到关于此事件的任何内容。请检查每个相关服务是否都将日志发送到 OneUptime，并让日志 AI 找出您的代码未记录的失败。"
 }

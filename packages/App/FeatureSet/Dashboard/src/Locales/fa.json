@@ -31799,7 +31799,6 @@
   "Telemetry stopped after the fix": "پس از اصلاح تله‌متری متوقف شد",
   "AI Investigation Waits Until": "بررسی هوش مصنوعی تا این زمان منتظر می‌ماند",
   "Alerts resolved during the wait are not investigated.": "هشدارهایی که در زمان انتظار برطرف شوند بررسی نمی‌شوند.",
-  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "همان‌طور که در محدودیت‌های روزانهٔ هوش مصنوعی پروژه شمرده می‌شوند: توکنی که ارائه‌دهنده از حافظهٔ نهان پرامپت خود خوانده یک‌دهم توکن شمرده می‌شود، و توکنی که در آن حافظهٔ نهان نوشته شده یک و یک‌چهارم.",
   "Counted from when the alert is created. When several rules match, the shortest wait decides. At most 1440 (a day).": "از زمان ایجاد هشدار شمرده می‌شود. اگر چند قاعده منطبق باشند، کوتاه‌ترین انتظار تعیین‌کننده است. حداکثر 1440 (یک روز).",
   "Counted from when the incident is declared. When several rules match, the shortest wait decides. At most 1440 (a day).": "از زمان اعلام حادثه شمرده می‌شود. اگر چند قاعده منطبق باشند، کوتاه‌ترین انتظار تعیین‌کننده است. حداکثر 1440 (یک روز).",
   "Decision recorded when the wait ended": "تصمیم ثبت‌شده در پایان انتظار",
@@ -36959,5 +36958,16 @@
   "{{count}} were already on the list_one": "{{count}} مورد از قبل در فهرست بود",
   "MD5, SHA-1, SHA-256 and SHA-512 hashes, matched whatever the case.": "هش‌های MD5، SHA-1، SHA-256 و SHA-512. بزرگی و کوچکی حروف مهم نیست.",
   "Choose what the list holds": "محتوای فهرست را انتخاب کنید",
-  "Couldn't load the rules": "قواعد بارگیری نشد"
+  "Couldn't load the rules": "قواعد بارگیری نشد",
+  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache, or wrote to it, counts for what the model charges for it next to a fresh token. On most current models a read counts as a tenth of a token.": "همان‌طور که در محدودیت‌های روزانهٔ هوش مصنوعی پروژه شمرده می‌شوند: توکنی که ارائه‌دهنده از حافظهٔ نهان پرامپت خود خوانده یا در آن نوشته، به اندازهٔ هزینه‌ای شمرده می‌شود که مدل در مقایسه با یک توکن تازه برای آن می‌گیرد. در بیشتر مدل‌های کنونی، توکن خوانده‌شده یک‌دهم توکن شمرده می‌شود.",
+  "Find unlogged failures": "یافتن شکست‌های ثبت‌نشده",
+  "No logs about this alert": "لاگی دربارهٔ این هشدار نیست",
+  "No logs about this incident": "لاگی دربارهٔ این حادثه نیست",
+  "No logs reached OneUptime from the hour before this alert started, so OneUptime AI had none to read. Send your services' logs to OneUptime, and the next investigation can use them.": "از یک ساعت پیش از شروع این هشدار هیچ لاگی به OneUptime نرسیده است، پس OneUptime AI لاگی برای خواندن نداشت. لاگ‌های سرویس‌های خود را به OneUptime بفرستید تا بررسی بعدی بتواند از آن‌ها استفاده کند.",
+  "No logs reached OneUptime from the hour before this incident started, so OneUptime AI had none to read. Send your services' logs to OneUptime, and the next investigation can use them.": "از یک ساعت پیش از شروع این حادثه هیچ لاگی به OneUptime نرسیده است، پس OneUptime AI لاگی برای خواندن نداشت. لاگ‌های سرویس‌های خود را به OneUptime بفرستید تا بررسی بعدی بتواند از آن‌ها استفاده کند.",
+  "No logs to read": "لاگی برای خواندن نیست",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this alert. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log.": "OneUptime AI لاگ‌ها را {{count}} بار جست‌وجو کرد و چیزی دربارهٔ این هشدار پیدا نکرد. بررسی کنید که هر سرویس درگیر لاگ‌های خود را به OneUptime می‌فرستد، و بگذارید هوش مصنوعی لاگ‌ها شکست‌هایی را که کد شما ثبت نمی‌کند پیدا کند.",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this alert. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log._one": "OneUptime AI لاگ‌ها را یک بار جست‌وجو کرد و چیزی دربارهٔ این هشدار پیدا نکرد. بررسی کنید که هر سرویس درگیر لاگ‌های خود را به OneUptime می‌فرستد، و بگذارید هوش مصنوعی لاگ‌ها شکست‌هایی را که کد شما ثبت نمی‌کند پیدا کند.",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this incident. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log.": "OneUptime AI لاگ‌ها را {{count}} بار جست‌وجو کرد و چیزی دربارهٔ این حادثه پیدا نکرد. بررسی کنید که هر سرویس درگیر لاگ‌های خود را به OneUptime می‌فرستد، و بگذارید هوش مصنوعی لاگ‌ها شکست‌هایی را که کد شما ثبت نمی‌کند پیدا کند.",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this incident. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log._one": "OneUptime AI لاگ‌ها را یک بار جست‌وجو کرد و چیزی دربارهٔ این حادثه پیدا نکرد. بررسی کنید که هر سرویس درگیر لاگ‌های خود را به OneUptime می‌فرستد، و بگذارید هوش مصنوعی لاگ‌ها شکست‌هایی را که کد شما ثبت نمی‌کند پیدا کند."
 }

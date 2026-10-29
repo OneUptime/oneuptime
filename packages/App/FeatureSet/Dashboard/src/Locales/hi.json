@@ -31799,7 +31799,6 @@
   "Telemetry stopped after the fix": "सुधार के बाद टेलीमेट्री रुकी",
   "AI Investigation Waits Until": "AI जांच इतने बजे तक प्रतीक्षा करती है",
   "Alerts resolved during the wait are not investigated.": "प्रतीक्षा के दौरान सुलझ जाने वाले अलर्ट की जांच नहीं होती।",
-  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "जैसे वे प्रोजेक्ट की दैनिक AI सीमाओं में गिने जाते हैं: प्रदाता ने अपने प्रॉम्प्ट कैश से जो टोकन पढ़ा, वह एक टोकन का दसवां हिस्सा गिना जाता है, और उस कैश में लिखा गया टोकन सवा टोकन।",
   "Counted from when the alert is created. When several rules match, the shortest wait decides. At most 1440 (a day).": "अलर्ट बनने के समय से गिना जाता है। कई नियम मेल खाएं तो सबसे छोटी प्रतीक्षा तय करती है। अधिकतम 1440 (एक दिन)।",
   "Counted from when the incident is declared. When several rules match, the shortest wait decides. At most 1440 (a day).": "घटना घोषित होने के समय से गिना जाता है। कई नियम मेल खाएं तो सबसे छोटी प्रतीक्षा तय करती है। अधिकतम 1440 (एक दिन)।",
   "Decision recorded when the wait ended": "प्रतीक्षा समाप्त होने पर दर्ज किया गया निर्णय",
@@ -36959,5 +36958,16 @@
   "{{count}} were already on the list_one": "{{count}} पहले से सूची में था",
   "MD5, SHA-1, SHA-256 and SHA-512 hashes, matched whatever the case.": "MD5, SHA-1, SHA-256 और SHA-512 हैश। अक्षरों के छोटे-बड़े होने से फ़र्क नहीं पड़ता।",
   "Choose what the list holds": "चुनें कि सूची में क्या है",
-  "Couldn't load the rules": "नियम लोड नहीं हो सके"
+  "Couldn't load the rules": "नियम लोड नहीं हो सके",
+  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache, or wrote to it, counts for what the model charges for it next to a fresh token. On most current models a read counts as a tenth of a token.": "जैसे वे प्रोजेक्ट की दैनिक AI सीमाओं में गिने जाते हैं: प्रदाता ने अपने प्रॉम्प्ट कैश से जो टोकन पढ़ा या उसमें लिखा, वह उतना गिना जाता है जितना मॉडल उसके लिए एक नए टोकन की तुलना में लेता है। अधिकांश मौजूदा मॉडलों पर पढ़ा गया टोकन एक टोकन का दसवां हिस्सा गिना जाता है।",
+  "Find unlogged failures": "बिना लॉग हुई विफलताएँ खोजें",
+  "No logs about this alert": "इस अलर्ट के बारे में कोई लॉग नहीं",
+  "No logs about this incident": "इस घटना के बारे में कोई लॉग नहीं",
+  "No logs reached OneUptime from the hour before this alert started, so OneUptime AI had none to read. Send your services' logs to OneUptime, and the next investigation can use them.": "इस अलर्ट के शुरू होने से एक घंटे पहले से OneUptime तक कोई लॉग नहीं पहुँचा, इसलिए OneUptime AI के पास पढ़ने के लिए कुछ नहीं था। अपनी सेवाओं के लॉग OneUptime को भेजें, और अगली जाँच उनका उपयोग कर सकेगी।",
+  "No logs reached OneUptime from the hour before this incident started, so OneUptime AI had none to read. Send your services' logs to OneUptime, and the next investigation can use them.": "इस घटना के शुरू होने से एक घंटे पहले से OneUptime तक कोई लॉग नहीं पहुँचा, इसलिए OneUptime AI के पास पढ़ने के लिए कुछ नहीं था। अपनी सेवाओं के लॉग OneUptime को भेजें, और अगली जाँच उनका उपयोग कर सकेगी।",
+  "No logs to read": "पढ़ने के लिए कोई लॉग नहीं",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this alert. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log.": "OneUptime AI ने लॉग में {{count}} बार खोजा और इस अलर्ट के बारे में कुछ नहीं मिला। जाँचें कि हर शामिल सेवा अपने लॉग OneUptime को भेजती है, और लॉग AI को वे विफलताएँ खोजने दें जिन्हें आपका कोड लॉग नहीं करता।",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this alert. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log._one": "OneUptime AI ने लॉग में एक बार खोजा और इस अलर्ट के बारे में कुछ नहीं मिला। जाँचें कि हर शामिल सेवा अपने लॉग OneUptime को भेजती है, और लॉग AI को वे विफलताएँ खोजने दें जिन्हें आपका कोड लॉग नहीं करता।",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this incident. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log.": "OneUptime AI ने लॉग में {{count}} बार खोजा और इस घटना के बारे में कुछ नहीं मिला। जाँचें कि हर शामिल सेवा अपने लॉग OneUptime को भेजती है, और लॉग AI को वे विफलताएँ खोजने दें जिन्हें आपका कोड लॉग नहीं करता।",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this incident. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log._one": "OneUptime AI ने लॉग में एक बार खोजा और इस घटना के बारे में कुछ नहीं मिला। जाँचें कि हर शामिल सेवा अपने लॉग OneUptime को भेजती है, और लॉग AI को वे विफलताएँ खोजने दें जिन्हें आपका कोड लॉग नहीं करता।"
 }

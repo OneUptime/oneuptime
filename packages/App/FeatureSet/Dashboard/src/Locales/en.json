@@ -31799,7 +31799,6 @@
   "Telemetry stopped after the fix": "Telemetry stopped after the fix",
   "AI Investigation Waits Until": "AI Investigation Waits Until",
   "Alerts resolved during the wait are not investigated.": "Alerts resolved during the wait are not investigated.",
-  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.",
   "Counted from when the alert is created. When several rules match, the shortest wait decides. At most 1440 (a day).": "Counted from when the alert is created. When several rules match, the shortest wait decides. At most 1440 (a day).",
   "Counted from when the incident is declared. When several rules match, the shortest wait decides. At most 1440 (a day).": "Counted from when the incident is declared. When several rules match, the shortest wait decides. At most 1440 (a day).",
   "Decision recorded when the wait ended": "Decision recorded when the wait ended",
@@ -36959,5 +36958,16 @@
   "{{count}} were already on the list_one": "{{count}} was already on the list",
   "MD5, SHA-1, SHA-256 and SHA-512 hashes, matched whatever the case.": "MD5, SHA-1, SHA-256 and SHA-512 hashes, matched whatever the case.",
   "Choose what the list holds": "Choose what the list holds",
-  "Couldn't load the rules": "Couldn't load the rules"
+  "Couldn't load the rules": "Couldn't load the rules",
+  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache, or wrote to it, counts for what the model charges for it next to a fresh token. On most current models a read counts as a tenth of a token.": "As counted toward the project's daily AI limits: a token the provider read from its prompt cache, or wrote to it, counts for what the model charges for it next to a fresh token. On most current models a read counts as a tenth of a token.",
+  "Find unlogged failures": "Find unlogged failures",
+  "No logs about this alert": "No logs about this alert",
+  "No logs about this incident": "No logs about this incident",
+  "No logs reached OneUptime from the hour before this alert started, so OneUptime AI had none to read. Send your services' logs to OneUptime, and the next investigation can use them.": "No logs reached OneUptime from the hour before this alert started, so OneUptime AI had none to read. Send your services' logs to OneUptime, and the next investigation can use them.",
+  "No logs reached OneUptime from the hour before this incident started, so OneUptime AI had none to read. Send your services' logs to OneUptime, and the next investigation can use them.": "No logs reached OneUptime from the hour before this incident started, so OneUptime AI had none to read. Send your services' logs to OneUptime, and the next investigation can use them.",
+  "No logs to read": "No logs to read",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this alert. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log.": "OneUptime AI searched the logs {{count}} times and found nothing about this alert. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log.",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this alert. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log._one": "OneUptime AI searched the logs once and found nothing about this alert. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log.",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this incident. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log.": "OneUptime AI searched the logs {{count}} times and found nothing about this incident. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log.",
+  "OneUptime AI searched the logs {{count}} times and found nothing about this incident. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log._one": "OneUptime AI searched the logs once and found nothing about this incident. Check that every service involved sends its logs to OneUptime, and let Logs AI find the failures your code does not log."
 }
