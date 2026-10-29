@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import {
   COLUMN_MEASURE_MAX_ROWS,
   COLUMN_MEASURE_SKIP_ATTRIBUTE,
@@ -43,8 +50,10 @@ const stubWidths: () => WidthStub = (): WidthStub => {
     CSSStyleDeclaration.prototype.setProperty;
   const originalRemoveProperty: typeof CSSStyleDeclaration.prototype.removeProperty =
     CSSStyleDeclaration.prototype.removeProperty;
-  const asked: WeakMap<CSSStyleDeclaration, Record<string, string>> =
-    new WeakMap();
+  const asked: WeakMap<
+    CSSStyleDeclaration,
+    Record<string, string>
+  > = new WeakMap();
 
   CSSStyleDeclaration.prototype.setProperty = function (
     this: CSSStyleDeclaration,
@@ -72,9 +81,7 @@ const stubWidths: () => WidthStub = (): WidthStub => {
     return originalRemoveProperty.call(this, property);
   };
 
-  Element.prototype.getBoundingClientRect = function (
-    this: Element,
-  ): DOMRect {
+  Element.prototype.getBoundingClientRect = function (this: Element): DOMRect {
     const element: HTMLElement = this as HTMLElement;
     const record: Record<string, string> =
       (element.style && asked.get(element.style)) || {};
@@ -92,7 +99,10 @@ const stubWidths: () => WidthStub = (): WidthStub => {
 
     let width: number = read("data-now");
 
-    if (inlineWidth === "max-content") {
+    if (inlineWidth === "0px" && element.hasAttribute("data-least")) {
+      // A header cell given no width: the least its column is drawn at.
+      width = read("data-least");
+    } else if (inlineWidth === "max-content") {
       width = read("data-max");
     } else if (inlineWidth === "min-content") {
       width = read("data-min");
@@ -194,6 +204,8 @@ describe("reading a column off the page", () => {
       // The long name whole - not 204, as wide as its column now.
       widestValueWidth: 310,
       cellPaddingWidth: 36,
+      // A table with no scope draws no sized column: nothing to read.
+      leastDrawnWidth: 0,
     });
   });
 
@@ -236,7 +248,9 @@ describe("reading a column off the page", () => {
     expect(headerReadings).toEqual(["min-content", "max-content"]);
 
     const values: Array<Element> = Array.from(
-      document.querySelectorAll("tbody:not([data-column-measure-skip]) tr td:nth-child(2) > div"),
+      document.querySelectorAll(
+        "tbody:not([data-column-measure-skip]) tr td:nth-child(2) > div",
+      ),
     ).slice(0, 2);
 
     for (const value of values) {
@@ -297,14 +311,17 @@ describe("reading a column off the page", () => {
     const value: HTMLElement = document.querySelector(
       "tbody tr td:nth-child(2) > div",
     ) as HTMLElement;
-    let readWith: { minWidth: string; maxWidth: string; whiteSpace: string } | null =
-      null;
+    let readWith: {
+      minWidth: string;
+      maxWidth: string;
+      whiteSpace: string;
+    } | null = null;
     const original: typeof Element.prototype.getBoundingClientRect =
       Element.prototype.getBoundingClientRect;
 
     jest
       .spyOn(value, "getBoundingClientRect")
-      .mockImplementation(function (this: HTMLElement): DOMRect {
+      .mockImplementation((): DOMRect => {
         readWith = {
           minWidth: value.style.minWidth,
           maxWidth: value.style.maxWidth,
@@ -330,8 +347,9 @@ describe("reading a column off the page", () => {
         <tbody><tr><td style="padding: 0 12px" data-now="200"><span data-max="130">Operational</span></td></tr></tbody>
       </table>`);
 
-    jest.spyOn(window, "getComputedStyle").mockImplementation(
-      (element: Element): CSSStyleDeclaration => {
+    jest
+      .spyOn(window, "getComputedStyle")
+      .mockImplementation((element: Element): CSSStyleDeclaration => {
         const tag: string = element.tagName;
         const padding: string = tag === "TH" || tag === "TD" ? "12px" : "0px";
 
@@ -343,8 +361,7 @@ describe("reading a column off the page", () => {
           borderLeftWidth: "0px",
           borderRightWidth: "0px",
         } as unknown as CSSStyleDeclaration;
-      },
-    );
+      });
 
     const measurement: ColumnMeasurement = measureTableColumn({
       headerCell: headerCell(0),
@@ -426,9 +443,12 @@ describe("reading a column off the page", () => {
 
     for (let index: number = 0; index < COLUMN_MEASURE_MAX_ROWS + 50; index++) {
       // The widest value is past the rows read: it is not read.
-      const max: number = index === COLUMN_MEASURE_MAX_ROWS + 10 ? 900 : 100 + (index % 7);
+      const max: number =
+        index === COLUMN_MEASURE_MAX_ROWS + 10 ? 900 : 100 + (index % 7);
 
-      rows.push(`<tr><td data-now="100"><div data-max="${max}">v</div></td></tr>`);
+      rows.push(
+        `<tr><td data-now="100"><div data-max="${max}">v</div></td></tr>`,
+      );
     }
 
     buildTable(
@@ -451,15 +471,130 @@ describe("reading a column off the page", () => {
     document.body.innerHTML =
       '<div><table><thead><tr><th data-now="80"><div data-min="30" data-max="60">Lone</div></th></tr></thead></table></div>';
 
-    expect(
-      measureTableColumn({ headerCell: headerCell(0) }),
-    ).toEqual({
+    expect(measureTableColumn({ headerCell: headerCell(0) })).toEqual({
       currentWidth: 80,
       headerMinContentWidth: 30,
       headerMaxContentWidth: 60,
       widestValueWidth: 0,
       cellPaddingWidth: 0,
+      leastDrawnWidth: 0,
     });
+  });
+});
+
+describe("the least a column is drawn at once it is sized", () => {
+  const scopedTable: () => HTMLTableElement = (): HTMLTableElement => {
+    const table: HTMLTableElement = buildTable(TABLE);
+
+    table.setAttribute("data-column-widths-scope", "r9");
+    headerCell(1).setAttribute("data-least", "132");
+    headerCell(1).style.setProperty("width", "240px");
+
+    // A page's own cell: words loose in it, in no box of their own.
+    const cell: HTMLTableCellElement = table.tBodies[0]!.rows[0]!
+      .cells[1] as HTMLTableCellElement;
+
+    cell.innerHTML = "A rather long incident name";
+
+    return table;
+  };
+
+  test("a column whose every value is drawn in a box of its own is not read again: its values ask for no width once it is sized", () => {
+    const table: HTMLTableElement = buildTable(TABLE);
+
+    table.setAttribute("data-column-widths-scope", "r9");
+    headerCell(1).setAttribute("data-least", "132");
+
+    const appendChild: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      document.head,
+      "appendChild",
+    );
+
+    expect(
+      measureTableColumn({
+        headerCell: headerCell(1),
+        kind: ColumnWidthKind.Text,
+      }).leastDrawnWidth,
+    ).toBe(0);
+    expect(appendChild).not.toHaveBeenCalled();
+  });
+
+  test("nor is a column kept whole: it is never narrower than its widest value", () => {
+    scopedTable();
+
+    expect(
+      measureTableColumn({
+        headerCell: headerCell(1),
+        kind: ColumnWidthKind.Whole,
+      }).leastDrawnWidth,
+    ).toBe(0);
+  });
+
+  test("is read with a sized column's rules written for it, its header cell given no width and the table as wide as its columns", () => {
+    const table: HTMLTableElement = scopedTable();
+    const written: Array<string> = [];
+    const appendChild: typeof document.head.appendChild =
+      document.head.appendChild.bind(document.head);
+
+    jest
+      .spyOn(document.head, "appendChild")
+      .mockImplementation(<T extends Node>(node: T): T => {
+        written.push(node.textContent || "");
+        // The table as it is while the rules are on the page.
+        written.push(`table width: ${table.style.getPropertyValue("width")}`);
+
+        return appendChild(node);
+      });
+
+    const measurement: ColumnMeasurement = measureTableColumn({
+      headerCell: headerCell(1),
+      kind: ColumnWidthKind.Text,
+    });
+
+    expect(measurement.leastDrawnWidth).toBe(132);
+    // The rules of a sized column, for this one's place in the row.
+    expect(written[0]).toContain(
+      'table[data-column-widths-scope="r9"] > tbody > tr > td:nth-child(2) > div { max-width: none; min-width: 0; contain: inline-size; }',
+    );
+    expect(
+      widths.readings.some(
+        (reading: { element: Element; width: string }): boolean => {
+          return reading.element === headerCell(1) && reading.width === "0px";
+        },
+      ),
+    ).toBe(true);
+  });
+
+  test("gives everything back: no rules left on the page, the table and the header cell as they were", () => {
+    const table: HTMLTableElement = scopedTable();
+
+    measureTableColumn({
+      headerCell: headerCell(1),
+      kind: ColumnWidthKind.Text,
+    });
+
+    expect(document.head.querySelectorAll("style")).toHaveLength(0);
+    expect(table.style.getPropertyValue("width")).toBe("");
+    expect(table.style.getPropertyValue("min-width")).toBe("");
+    expect(headerCell(1).style.getPropertyValue("width")).toBe("240px");
+    expect(headerCell(1).style.getPropertyValue("min-width")).toBe("");
+    expect(headerCell(1).style.getPropertyValue("max-width")).toBe("");
+  });
+
+  test("a value's box is read past its containment: its whole width, not none", () => {
+    buildTable(TABLE);
+
+    const value: HTMLElement = document.querySelectorAll(
+      "tbody td div",
+    )[1] as HTMLElement;
+
+    value.style.setProperty("contain", "inline-size");
+
+    expect(
+      measureTableColumn({ headerCell: headerCell(1) }).widestValueWidth,
+    ).toBe(310);
+    // ...and keeps its own after.
+    expect(value.style.getPropertyValue("contain")).toBe("inline-size");
   });
 });
 
@@ -474,7 +609,8 @@ describe("a cell's padding", () => {
 
 describe("a width written straight onto a header cell while its edge is dragged", () => {
   test("as wide as that, no narrower and no wider - a column of dates no narrower", () => {
-    document.body.innerHTML = "<table><thead><tr><th></th></tr></thead></table>";
+    document.body.innerHTML =
+      "<table><thead><tr><th></th></tr></thead></table>";
 
     const th: HTMLElement = document.querySelector("th") as HTMLElement;
 

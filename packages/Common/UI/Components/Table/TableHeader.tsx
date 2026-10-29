@@ -77,7 +77,11 @@ export interface TableHeaderColumnResize<T extends GenericObject> {
   store: ColumnWidthsStore;
   onWidthChange: (columnId: string, width: number | null) => void;
   onResizeStart?:
-    | ((columnId: string, headerCell: HTMLTableCellElement) => void)
+    | ((
+        columnId: string,
+        headerCell: HTMLTableCellElement,
+        kind: ColumnWidthKind,
+      ) => void)
     | undefined;
   onResizeMove?: ((columnId: string, width: number) => void) | undefined;
   onResizeEnd?: ((columnId: string) => void) | undefined;

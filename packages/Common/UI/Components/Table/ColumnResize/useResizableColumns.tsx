@@ -64,7 +64,11 @@ export interface ResizableColumns {
    * none.
    */
   resetColumnId: string | undefined;
-  onResizeStart: (columnId: string, headerCell: HTMLTableCellElement) => void;
+  onResizeStart: (
+    columnId: string,
+    headerCell: HTMLTableCellElement,
+    kind: ColumnWidthKind,
+  ) => void;
   onResizeEnd: (columnId: string) => void;
   /*
    * What a header cell (ResizableHeaderCell) takes to draw a column's edge:
@@ -118,6 +122,10 @@ const useResizableColumns: (data: {
   const scope: string = getColumnWidthsScope(useId());
   const dragStyleRef: React.RefObject<HTMLStyleElement> =
     useRef<HTMLStyleElement>(null);
+  // Each column's kind, as its header cell names it (getResize).
+  const kindsRef: React.MutableRefObject<Map<string, ColumnWidthKind>> = useRef<
+    Map<string, ColumnWidthKind>
+  >(new Map<string, ColumnWidthKind>());
 
   const columnIds: Array<string> = data.columns.map(
     (column: SizedColumn): string => {
@@ -195,6 +203,9 @@ const useResizableColumns: (data: {
           store={columnWidths.store}
           scope={scope}
           columns={data.columns}
+          getKind={(columnId: string): ColumnWidthKind | undefined => {
+            return kindsRef.current.get(columnId);
+          }}
         />
         <style ref={dragStyleRef} data-column-resize-drag-style={scope} />
       </>
@@ -209,12 +220,16 @@ const useResizableColumns: (data: {
     onResizeStart: (
       _columnId: string,
       headerCell: HTMLTableCellElement,
+      kind: ColumnWidthKind,
     ): void => {
       // The dragged column's values use its width from the first move.
       if (dragStyleRef.current) {
+        const cellNumber: number = headerCell.cellIndex + 1;
+
         dragStyleRef.current.textContent = getSizedColumnsCss({
           scope: scope,
-          cellNumbers: [headerCell.cellIndex + 1],
+          cellNumbers: [cellNumber],
+          wholeCellNumbers: kind === ColumnWidthKind.Whole ? [cellNumber] : [],
         });
       }
     },
@@ -228,6 +243,8 @@ const useResizableColumns: (data: {
       columnTitle: string,
       kind?: ColumnWidthKind | undefined,
     ): ResizableHeaderCellResize => {
+      kindsRef.current.set(columnId, kind || ColumnWidthKind.Text);
+
       return {
         columns: resizableColumns,
         columnId: columnId,

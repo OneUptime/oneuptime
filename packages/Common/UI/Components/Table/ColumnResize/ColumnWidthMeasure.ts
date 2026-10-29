@@ -1,8 +1,10 @@
 import {
+  COLUMN_WIDTHS_SCOPE_ATTRIBUTE,
   ColumnContentWidths,
   ColumnWidthKind,
   HeaderCellWidthStyle,
   getHeaderCellWidthStyle,
+  getSizedColumnsCss,
 } from "./ColumnWidths";
 
 /*
@@ -50,6 +52,7 @@ const MEASURED_PROPERTIES: Array<string> = [
   "max-width",
   "white-space",
   "display",
+  "contain",
 ];
 
 interface SavedStyle {
@@ -63,7 +66,9 @@ const saveStyle: (element: HTMLElement) => SavedStyle = (
   return {
     element: element,
     values: MEASURED_PROPERTIES.map(
-      (property: string): { property: string; value: string; priority: string } => {
+      (
+        property: string,
+      ): { property: string; value: string; priority: string } => {
         return {
           property: property,
           value: element.style.getPropertyValue(property),
@@ -88,9 +93,7 @@ const restoreStyle: (saved: SavedStyle) => void = (saved: SavedStyle): void => {
   }
 };
 
-const getComputedStyleOf: (
-  element: Element,
-) => CSSStyleDeclaration | null = (
+const getComputedStyleOf: (element: Element) => CSSStyleDeclaration | null = (
   element: Element,
 ): CSSStyleDeclaration | null => {
   if (typeof window === "undefined" || !window.getComputedStyle) {
@@ -191,6 +194,8 @@ const prepareForReading: (
   element.style.setProperty("width", extent, "important");
   element.style.setProperty("min-width", "0", "important");
   element.style.setProperty("max-width", "none", "important");
+  // A sized column's value box asks for no width (getSizedColumnsCss): read past it.
+  element.style.setProperty("contain", "none", "important");
   element.style.setProperty(
     "white-space",
     extent === "min-content" ? "normal" : "nowrap",
@@ -230,16 +235,106 @@ export interface ColumnMeasurement extends ColumnContentWidths {
 }
 
 /*
+ * The least the page draws a column at once it is sized: the rules of a
+ * sized column written for it (getSizedColumnsCss, as its table will draw
+ * it), its header cell given no width, and the table as wide as its
+ * columns - so no room the table has to spare is read as the column's.
+ * A third reading, after the two of what the column holds - and only where
+ * it can say more than they do (needsLeastReading): it lays the whole
+ * table out again, 60ms on a list of 200 rows.
+ */
+const readLeastDrawnWidth: (data: {
+  headerCell: HTMLTableCellElement;
+  table: HTMLTableElement;
+  kind: ColumnWidthKind | undefined;
+}) => number = (data: {
+  headerCell: HTMLTableCellElement;
+  table: HTMLTableElement;
+  kind: ColumnWidthKind | undefined;
+}): number => {
+  const scope: string | null = data.table.getAttribute(
+    COLUMN_WIDTHS_SCOPE_ATTRIBUTE,
+  );
+
+  if (!scope || typeof document === "undefined" || !document.head) {
+    return 0;
+  }
+
+  const cellNumber: number = data.headerCell.cellIndex + 1;
+  const rules: HTMLStyleElement = document.createElement("style");
+
+  rules.textContent = getSizedColumnsCss({
+    scope: scope,
+    cellNumbers: [cellNumber],
+    wholeCellNumbers: data.kind === ColumnWidthKind.Whole ? [cellNumber] : [],
+  });
+  document.head.appendChild(rules);
+
+  const savedTable: SavedStyle = saveStyle(data.table);
+  const savedHeader: SavedStyle = saveStyle(data.headerCell);
+
+  data.table.style.setProperty("width", "max-content", "important");
+  data.table.style.setProperty("min-width", "0", "important");
+  data.table.style.setProperty("max-width", "none", "important");
+  data.headerCell.style.setProperty("width", "0px", "important");
+  data.headerCell.style.setProperty("min-width", "0px", "important");
+  data.headerCell.style.setProperty("max-width", "0px", "important");
+
+  const width: number = data.headerCell.getBoundingClientRect().width;
+
+  restoreStyle(savedHeader);
+  restoreStyle(savedTable);
+  rules.remove();
+
+  return width;
+};
+
+/*
  * Reads a column off the page: its header cell, and the cell at its place
  * in every row of its table's bodies (a row that spans the table - an
  * opened log line's details - is no row of its columns and is left out).
  */
+/*
+ * Whether a column's least drawn width can be more than its header's and
+ * its kind's floors (getColumnWidthFloor): a value drawn in a box of its
+ * own - the shared Table's every cell, most of a page's own - asks for no
+ * width once its column is sized (getSizedColumnsCss), and a column kept
+ * whole is never narrower than its widest value. What is left - words
+ * loose in a cell, a link or a picture beside them - is read.
+ */
+const needsLeastReading: (data: {
+  cells: ReadonlyArray<HTMLTableCellElement>;
+  contents: ReadonlyArray<HTMLElement | null>;
+  kind: ColumnWidthKind | undefined;
+}) => boolean = (data: {
+  cells: ReadonlyArray<HTMLTableCellElement>;
+  contents: ReadonlyArray<HTMLElement | null>;
+  kind: ColumnWidthKind | undefined;
+}): boolean => {
+  if (data.kind === ColumnWidthKind.Whole) {
+    return false;
+  }
+
+  return data.cells.some(
+    (cell: HTMLTableCellElement, index: number): boolean => {
+      const content: HTMLElement | null = data.contents[index] || null;
+      const isEmpty: boolean =
+        cell.children.length === 0 && !(cell.textContent || "").trim();
+
+      return !isEmpty && (!content || content.tagName !== "DIV");
+    },
+  );
+};
+
 export const measureTableColumn: (data: {
   headerCell: HTMLTableCellElement;
   maxRows?: number | undefined;
+  // How its values may be cut short, for the least it is drawn at.
+  kind?: ColumnWidthKind | undefined;
 }) => ColumnMeasurement = (data: {
   headerCell: HTMLTableCellElement;
   maxRows?: number | undefined;
+  kind?: ColumnWidthKind | undefined;
 }): ColumnMeasurement => {
   const headerCell: HTMLTableCellElement = data.headerCell;
   const table: HTMLTableElement | null = headerCell.closest("table");
@@ -368,12 +463,23 @@ export const measureTableColumn: (data: {
 
   savedStyles.forEach(restoreStyle);
 
+  const leastDrawnWidth: number =
+    table &&
+    needsLeastReading({ cells: cells, contents: contents, kind: data.kind })
+      ? readLeastDrawnWidth({
+          headerCell: headerCell,
+          table: table,
+          kind: data.kind,
+        })
+      : 0;
+
   return {
     currentWidth: currentWidth,
     headerMinContentWidth: headerMinContentWidth,
     headerMaxContentWidth: headerMaxContentWidth,
     widestValueWidth: widestValueWidth,
     cellPaddingWidth: cellPaddingWidth,
+    leastDrawnWidth: leastDrawnWidth,
   };
 };
 
@@ -386,9 +492,7 @@ export interface SavedHeaderCellWidth {
 
 export const readHeaderCellWidth: (
   headerCell: HTMLElement,
-) => SavedHeaderCellWidth = (
-  headerCell: HTMLElement,
-): SavedHeaderCellWidth => {
+) => SavedHeaderCellWidth = (headerCell: HTMLElement): SavedHeaderCellWidth => {
   return {
     width: headerCell.style.width,
     minWidth: headerCell.style.minWidth,

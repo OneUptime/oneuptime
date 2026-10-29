@@ -41,7 +41,11 @@
  *                                                (?table=plain), and people,
  *                                                each name drawn beside a
  *                                                picture and over an email
- *                                                (?table=people)
+ *                                                (?table=people), and a
+ *                                                table a page draws itself:
+ *                                                a monitor's network
+ *                                                interfaces, in a card with
+ *                                                no ⋯ (?table=handbuilt)
  *
  * Steered by the query string:
  *   - data=rich       more incidents, monitors and status pages: labels,
@@ -96,6 +100,8 @@ import DeviceRolesPage from "../../../App/FeatureSet/Dashboard/src/Pages/Network
 import RunbooksLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Layout";
 import RunbooksPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Runbooks";
 import CardHeadersPage from "./CardHeaders";
+import SnmpInterfacesView from "../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/SnmpInterfacesView";
+import Card from "Common/UI/Components/Card/Card";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -1694,12 +1700,75 @@ function GalleryGive() {
   );
 }
 
+/*
+ * A table a page draws itself, not on the shared Table: an SNMP monitor's
+ * network interfaces, as its summary draws them (SnmpInterfacesView), in a
+ * card with no ⋯ - so its Reset column widths is beside its last column's
+ * name. One interface has a long name and alias.
+ */
+const HAND_BUILT_INTERFACES = [
+  {
+    interfaceIndex: 1,
+    name: "GigabitEthernet0/0/1",
+    alias: "uplink to core-sw-01 (fibre, rack 12, patch 7)",
+    isOperationallyUp: true,
+    isAdministrativelyUp: true,
+    speedInBitsPerSecond: 1000000000,
+    inBitsPerSecond: 182000000,
+    outBitsPerSecond: 96500000,
+    utilizationPercent: 18,
+    errorsPerSecond: 0,
+  },
+  {
+    interfaceIndex: 2,
+    name: "GigabitEthernet0/0/2",
+    alias: "office floor 3",
+    isOperationallyUp: false,
+    isAdministrativelyUp: true,
+    speedInBitsPerSecond: 1000000000,
+    inBitsPerSecond: 0,
+    outBitsPerSecond: 0,
+    utilizationPercent: 0,
+    errorsPerSecond: 2,
+  },
+  {
+    interfaceIndex: 3,
+    name: "Loopback0",
+    isOperationallyUp: true,
+    isAdministrativelyUp: true,
+    speedInBitsPerSecond: 8000000000,
+    inBitsPerSecond: 1200,
+    outBitsPerSecond: 1200,
+    utilizationPercent: 0,
+    errorsPerSecond: 0,
+  },
+  {
+    interfaceIndex: 4,
+    name: "TenGigabitEthernet1/1/1",
+    isOperationallyUp: false,
+    isAdministrativelyUp: false,
+    speedInBitsPerSecond: 10000000000,
+  },
+];
+
+function GalleryHandBuilt() {
+  return (
+    <Card
+      title="Interfaces"
+      description="A table a page draws itself, in a card with no options."
+    >
+      <SnmpInterfacesView interfaces={HAND_BUILT_INTERFACES} />
+    </Card>
+  );
+}
+
 const GALLERY = {
   kinds: GalleryKinds,
   wide: GalleryWide,
   plain: GalleryPlain,
   people: GalleryPeople,
   give: GalleryGive,
+  handbuilt: GalleryHandBuilt,
 };
 
 /*

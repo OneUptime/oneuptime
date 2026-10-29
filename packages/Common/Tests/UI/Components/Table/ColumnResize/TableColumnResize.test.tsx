@@ -26,9 +26,7 @@ import Modal from "../../../../../UI/Components/Modal/Modal";
 import Column from "../../../../../UI/Components/Table/Types/Column";
 import Columns from "../../../../../UI/Components/Table/Types/Columns";
 import FieldType from "../../../../../UI/Components/Types/FieldType";
-import {
-  COLUMN_RESIZE_HANDLE_TEST_ID,
-} from "../../../../../UI/Components/Table/ColumnResize/ColumnResizeLayout";
+import { COLUMN_RESIZE_HANDLE_TEST_ID } from "../../../../../UI/Components/Table/ColumnResize/ColumnResizeLayout";
 import { RESET_COLUMN_WIDTHS_TEST_ID } from "../../../../../UI/Components/Table/ColumnResize/ResetColumnWidthsButton";
 import { COLUMN_WIDTHS_SCOPE_ATTRIBUTE } from "../../../../../UI/Components/Table/ColumnResize/ColumnWidths";
 import { SIZED_COLUMNS_STYLE_ATTRIBUTE } from "../../../../../UI/Components/Table/ColumnResize/SizedColumnsStyle";
@@ -174,7 +172,9 @@ const keep: (tableKey: string, widths: Record<string, number>) => void = (
 const stored: (tableKey: string) => Record<string, number> | null = (
   tableKey: string,
 ): Record<string, number> | null => {
-  const value: string | null = window.localStorage.getItem(storageKey(tableKey));
+  const value: string | null = window.localStorage.getItem(
+    storageKey(tableKey),
+  );
 
   return value ? (JSON.parse(value) as Record<string, number>) : null;
 };
@@ -205,7 +205,9 @@ const headerCellOf: (title: string) => HTMLTableCellElement = (
 
 const edges: () => Array<HTMLElement> = (): Array<HTMLElement> => {
   return Array.from(
-    document.querySelectorAll(`[data-testid="${COLUMN_RESIZE_HANDLE_TEST_ID}"]`),
+    document.querySelectorAll(
+      `[data-testid="${COLUMN_RESIZE_HANDLE_TEST_ID}"]`,
+    ),
   ) as Array<HTMLElement>;
 };
 
@@ -218,7 +220,9 @@ const edgeOf: (columnId: string) => HTMLElement = (
 };
 
 // A width kept with the keyboard: one press of the right arrow, let go.
-const widenByKeyboard: (columnId: string) => void = (columnId: string): void => {
+const widenByKeyboard: (columnId: string) => void = (
+  columnId: string,
+): void => {
   const edge: HTMLElement = edgeOf(columnId);
 
   act(() => {
@@ -278,8 +282,12 @@ describe("the edges a table's header draws", () => {
     );
 
     // The grip's, the box's and the Actions' cells carry none.
-    expect(headerCells[0]!.querySelector("[data-column-resize-handle]")).toBeNull();
-    expect(headerCells[1]!.querySelector("[data-column-resize-handle]")).toBeNull();
+    expect(
+      headerCells[0]!.querySelector("[data-column-resize-handle]"),
+    ).toBeNull();
+    expect(
+      headerCells[1]!.querySelector("[data-column-resize-handle]"),
+    ).toBeNull();
     expect(
       headerCells[headerCells.length - 1]!.querySelector(
         "[data-column-resize-handle]",
@@ -351,7 +359,9 @@ describe("the edges a table's header draws", () => {
 
     render(
       <Table<Row>
-        {...tableProps({ columns: columns({ withActions: true, folded: true }) })}
+        {...tableProps({
+          columns: columns({ withActions: true, folded: true }),
+        })}
       />,
     );
 
@@ -373,9 +383,11 @@ describe("a width kept for a column", () => {
 
     const name: HTMLTableCellElement = headerCellOf("Name");
 
-    expect([name.style.width, name.style.minWidth, name.style.maxWidth]).toEqual(
-      ["320px", "320px", "320px"],
-    );
+    expect([
+      name.style.width,
+      name.style.minWidth,
+      name.style.maxWidth,
+    ]).toEqual(["320px", "320px", "320px"]);
     expect(headerCellOf("Status").style.width).toBe("");
   });
 
@@ -417,7 +429,8 @@ describe("a width kept for a column", () => {
     const table: HTMLTableElement = document.querySelector(
       "table",
     ) as HTMLTableElement;
-    const scope: string = table.getAttribute(COLUMN_WIDTHS_SCOPE_ATTRIBUTE) || "";
+    const scope: string =
+      table.getAttribute(COLUMN_WIDTHS_SCOPE_ATTRIBUTE) || "";
     const style: HTMLStyleElement = document.querySelector(
       `style[${SIZED_COLUMNS_STYLE_ATTRIBUTE}]`,
     ) as HTMLStyleElement;
@@ -425,12 +438,30 @@ describe("a width kept for a column", () => {
     expect(scope).not.toBe("");
     // The box is the row's first cell, Name its second, Status its third.
     expect(style.textContent).toContain(
-      `table[${COLUMN_WIDTHS_SCOPE_ATTRIBUTE}="${scope}"] > tbody > tr > td:nth-child(3) > div { max-width: none; min-width: 0; }`,
+      `table[${COLUMN_WIDTHS_SCOPE_ATTRIBUTE}="${scope}"] > tbody > tr > td:nth-child(3) > div { max-width: none; min-width: 0; contain: inline-size; }`,
     );
     expect(style.textContent).toContain(
       `table[${COLUMN_WIDTHS_SCOPE_ATTRIBUTE}="${scope}"] > thead > tr > th:nth-child(3) * { white-space: normal; }`,
     );
     expect(style.textContent).not.toContain("nth-child(2)");
+  });
+
+  test("a column of dates keeps its values' boxes' own width - it grows for a later, longer date - where a column of words asks for none", () => {
+    keep("services-table", { name: 260, createdAt: 180 });
+
+    render(<Table<Row> {...tableProps()} />);
+
+    const style: HTMLStyleElement = document.querySelector(
+      `style[${SIZED_COLUMNS_STYLE_ATTRIBUTE}]`,
+    ) as HTMLStyleElement;
+
+    // Name is the row's first cell, Created its third.
+    expect(style.textContent).toContain(
+      "td:nth-child(1) > div { max-width: none; min-width: 0; contain: inline-size; }",
+    );
+    expect(style.textContent).toContain(
+      "td:nth-child(3) > div { max-width: none; min-width: 0; }",
+    );
   });
 
   test("a width kept with the keyboard is drawn and remembered, per person and per table", () => {

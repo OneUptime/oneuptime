@@ -283,6 +283,40 @@ describe("the least a column may be", () => {
   });
 });
 
+describe("the least the page can draw a column at", () => {
+  test("is a floor of its own: a width the page could not draw is never kept", () => {
+    // A name of 8rem, whose column the page draws no narrower than 220px.
+    expect(
+      getColumnWidthFloor({
+        measured: measured({ widestValueWidth: 100, leastDrawnWidth: 220.4 }),
+        kind: ColumnWidthKind.Text,
+      }),
+    ).toBe(221);
+
+    // Narrower than what the kind keeps: the kind's floor.
+    expect(
+      getColumnWidthFloor({
+        measured: measured({ widestValueWidth: 300, leastDrawnWidth: 60 }),
+        kind: ColumnWidthKind.Text,
+      }),
+    ).toBe(COLUMN_VALUE_FLOOR_IN_PX + 24);
+  });
+
+  test("a fit is never under it either", () => {
+    const floor: number = getColumnWidthFloor({
+      measured: measured({ widestValueWidth: 100, leastDrawnWidth: 260 }),
+      kind: ColumnWidthKind.Name,
+    });
+
+    expect(
+      getColumnFitWidth({
+        measured: measured({ widestValueWidth: 100, leastDrawnWidth: 260 }),
+        floor: floor,
+      }),
+    ).toBe(260);
+  });
+});
+
 describe("what fits a column (a double-click on its edge)", () => {
   test("its header on one line and its widest value whole, its padding in", () => {
     expect(
@@ -784,14 +818,32 @@ describe("the rules a sized column's values are drawn by", () => {
     expect(COLUMN_WIDTHS_SCOPE_ATTRIBUTE).toBe("data-column-widths-scope");
   });
 
-  test("each sized column's values may use its width - no cap, no floor - and its header breaks its words", () => {
+  test("each sized column's values may use its width - no cap, no floor, their box asking the table for no width - and its header breaks its words", () => {
     const css: string = getSizedColumnsCss({ scope: "r1", cellNumbers: [3] });
 
     expect(css.split("\n")).toEqual([
       'table[data-column-widths-scope="r1"] > tbody > tr > td:nth-child(3) { max-width: none; overflow-x: clip; text-overflow: ellipsis; }',
-      'table[data-column-widths-scope="r1"] > tbody > tr > td:nth-child(3) > div { max-width: none; min-width: 0; }',
+      'table[data-column-widths-scope="r1"] > tbody > tr > td:nth-child(3) > div { max-width: none; min-width: 0; contain: inline-size; }',
       'table[data-column-widths-scope="r1"] > thead > tr > th:nth-child(3) * { white-space: normal; }',
     ]);
+  });
+
+  test("a column kept whole (dates, numbers) keeps its values' boxes' own width: it grows for a wider one rather than cut it", () => {
+    const css: string = getSizedColumnsCss({
+      scope: "r1",
+      cellNumbers: [2, 3],
+      wholeCellNumbers: [3],
+    });
+
+    expect(css).toContain(
+      "td:nth-child(2) > div { max-width: none; min-width: 0; contain: inline-size; }",
+    );
+    expect(css).toContain(
+      "td:nth-child(3) > div { max-width: none; min-width: 0; }",
+    );
+    expect(css).not.toContain(
+      "td:nth-child(3) > div { max-width: none; min-width: 0; contain",
+    );
   });
 
   test("one rule a column, in order, whatever it is handed", () => {

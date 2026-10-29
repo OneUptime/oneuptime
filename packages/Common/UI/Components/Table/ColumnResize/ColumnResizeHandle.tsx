@@ -121,6 +121,12 @@ const getTableRowCount: (headerCell: HTMLTableCellElement) => number = (
   );
 };
 
+/*
+ * Its handlers read the props of the latest render when they run
+ * (propsRef), not those of the render that bound them: a drag outlives
+ * renders. The rule cannot see a prop read through a ref.
+ */
+/* eslint-disable react/no-unused-prop-types */
 export interface ComponentProps {
   columnId: string;
   // The column's name as its header says it: the edge is named after it.
@@ -136,13 +142,18 @@ export interface ComponentProps {
    * values use whatever width it is given.
    */
   onResizeStart?:
-    | ((columnId: string, headerCell: HTMLTableCellElement) => void)
+    | ((
+        columnId: string,
+        headerCell: HTMLTableCellElement,
+        kind: ColumnWidthKind,
+      ) => void)
     | undefined;
   // Each width while the edge moves, before the width is kept.
   onResizeMove?: ((columnId: string, width: number) => void) | undefined;
   onResizeEnd?: ((columnId: string) => void) | undefined;
   dataTestId?: string | undefined;
 }
+/* eslint-enable react/no-unused-prop-types */
 
 // The least a column may be and what fits it, read off the page.
 interface ColumnSizes {
@@ -313,6 +324,7 @@ const ColumnResizeHandle: FunctionComponent<ComponentProps> = (
   ): ColumnSizes => {
     const measured: ColumnMeasurement = measureTableColumn({
       headerCell: headerCell,
+      kind: propsRef.current.kind,
     });
     const floor: number = getColumnWidthFloor({
       measured: measured,
@@ -403,6 +415,7 @@ const ColumnResizeHandle: FunctionComponent<ComponentProps> = (
       propsRef.current.onResizeStart?.(
         propsRef.current.columnId,
         drag.headerCell,
+        propsRef.current.kind,
       );
     }
 
@@ -729,7 +742,11 @@ const ColumnResizeHandle: FunctionComponent<ComponentProps> = (
         width: width,
         isChanged: false,
       };
-      propsRef.current.onResizeStart?.(propsRef.current.columnId, headerCell);
+      propsRef.current.onResizeStart?.(
+        propsRef.current.columnId,
+        headerCell,
+        propsRef.current.kind,
+      );
     }
 
     const current: KeyboardSizing = keyboardRef.current as KeyboardSizing;

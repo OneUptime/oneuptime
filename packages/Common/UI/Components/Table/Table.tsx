@@ -48,7 +48,9 @@ import Column from "./Types/Column";
 import Columns from "./Types/Columns";
 import {
   COLUMN_WIDTHS_SCOPE_ATTRIBUTE,
+  ColumnWidthKind,
   ColumnWidths,
+  getColumnWidthKind,
   getColumnWidthsScope,
   getSizedColumnsCss,
   getTableColumnIds,
@@ -429,6 +431,7 @@ const Table: TableFunction = <T extends GenericObject>(
       resizableColumns.push({
         id: drawnColumnIds[index] || "",
         cellNumber: leadingCellCount + index + 1,
+        kind: getColumnWidthKind(column, index === 0),
       });
     }
   });
@@ -468,7 +471,12 @@ const Table: TableFunction = <T extends GenericObject>(
   const onColumnResizeStart: (
     columnId: string,
     headerCell: HTMLTableCellElement,
-  ) => void = (_columnId: string, headerCell: HTMLTableCellElement): void => {
+    kind: ColumnWidthKind,
+  ) => void = (
+    _columnId: string,
+    headerCell: HTMLTableCellElement,
+    kind: ColumnWidthKind,
+  ): void => {
     scrollStateHold.isHeldRef.current = true;
 
     /*
@@ -477,9 +485,12 @@ const Table: TableFunction = <T extends GenericObject>(
      * again for it.
      */
     if (dragStyleRef.current) {
+      const cellNumber: number = headerCell.cellIndex + 1;
+
       dragStyleRef.current.textContent = getSizedColumnsCss({
         scope: columnWidthsScope,
-        cellNumbers: [headerCell.cellIndex + 1],
+        cellNumbers: [cellNumber],
+        wholeCellNumbers: kind === ColumnWidthKind.Whole ? [cellNumber] : [],
       });
     }
   };
@@ -542,7 +553,6 @@ const Table: TableFunction = <T extends GenericObject>(
       scrollBoxRef.current?.style.removeProperty("overflow-x");
     }
   }, [scrollState.isOverflowing]);
-
 
   /*
    * A refetch with rows already on screen (pagination, sort, refresh - the
@@ -966,77 +976,77 @@ const Table: TableFunction = <T extends GenericObject>(
             ) : (
               // Desktop view: render as table
               <>
-              {isColumnResizeOn ? (
-                <>
-                  <SizedColumnsStyle
-                    store={columnWidths.store}
-                    scope={columnWidthsScope}
-                    columns={resizableColumns}
-                  />
-                  <style
-                    ref={dragStyleRef}
-                    data-column-resize-drag-style={columnWidthsScope}
-                  />
-                </>
-              ) : (
-                <></>
-              )}
-              <table
-                ref={tableElementRef}
-                className={TABLE_CLASS_NAME}
-                {...{ [COLUMN_WIDTHS_SCOPE_ATTRIBUTE]: columnWidthsScope }}
-              >
-                <TableHeader
-                  id={`${props.id}-header`}
-                  columns={drawnColumns}
-                  onSortChanged={props.onSortChanged}
-                  enableDragAndDrop={props.enableDragAndDrop}
-                  sortBy={props.sortBy}
-                  sortOrder={props.sortOrder}
-                  isBulkActionsEnabled={isBulkActionsEnabled}
-                  isSticky={scrollState.canStickHeader}
-                  isOverflowing={scrollState.isOverflowing}
-                  columnResize={
-                    isColumnResizeOn
-                      ? {
-                          getColumnId: (column: Column<T>) => {
-                            return columnIdByColumn.get(column);
-                          },
-                          store: columnWidths.store,
-                          onWidthChange: (
-                            columnId: string,
-                            width: number | null,
-                          ) => {
-                            columnWidths.setColumnWidth(
-                              columnId,
-                              width,
-                              drawnColumnIds,
-                            );
-                          },
-                          onResizeStart: onColumnResizeStart,
-                          onResizeMove: onColumnResizeMove,
-                          onResizeEnd: onColumnResizeEnd,
-                          onReset: columnWidths.resetColumnWidths,
-                          ownerId: columnWidthsScope,
-                        }
-                      : undefined
-                  }
-                  hasEndFiller={hasEndFiller}
-                  onAllItemsDeselected={() => {
-                    setIsAllItemsSelected(false);
-                    props.onBulkClearAllItems?.();
-                  }}
-                  onAllItemsOnThePageSelected={() => {
-                    if (props.onBulkSelectItemsOnCurrentPage) {
-                      props.onBulkSelectItemsOnCurrentPage();
+                {isColumnResizeOn ? (
+                  <>
+                    <SizedColumnsStyle
+                      store={columnWidths.store}
+                      scope={columnWidthsScope}
+                      columns={resizableColumns}
+                    />
+                    <style
+                      ref={dragStyleRef}
+                      data-column-resize-drag-style={columnWidthsScope}
+                    />
+                  </>
+                ) : (
+                  <></>
+                )}
+                <table
+                  ref={tableElementRef}
+                  className={TABLE_CLASS_NAME}
+                  {...{ [COLUMN_WIDTHS_SCOPE_ATTRIBUTE]: columnWidthsScope }}
+                >
+                  <TableHeader
+                    id={`${props.id}-header`}
+                    columns={drawnColumns}
+                    onSortChanged={props.onSortChanged}
+                    enableDragAndDrop={props.enableDragAndDrop}
+                    sortBy={props.sortBy}
+                    sortOrder={props.sortOrder}
+                    isBulkActionsEnabled={isBulkActionsEnabled}
+                    isSticky={scrollState.canStickHeader}
+                    isOverflowing={scrollState.isOverflowing}
+                    columnResize={
+                      isColumnResizeOn
+                        ? {
+                            getColumnId: (column: Column<T>) => {
+                              return columnIdByColumn.get(column);
+                            },
+                            store: columnWidths.store,
+                            onWidthChange: (
+                              columnId: string,
+                              width: number | null,
+                            ) => {
+                              columnWidths.setColumnWidth(
+                                columnId,
+                                width,
+                                drawnColumnIds,
+                              );
+                            },
+                            onResizeStart: onColumnResizeStart,
+                            onResizeMove: onColumnResizeMove,
+                            onResizeEnd: onColumnResizeEnd,
+                            onReset: columnWidths.resetColumnWidths,
+                            ownerId: columnWidthsScope,
+                          }
+                        : undefined
                     }
-                  }}
-                  isAllItemsOnThePageSelected={isAllItemsOnThePageSelected}
-                  isSomeItemsOnThePageSelected={isSomeItemsOnThePageSelected}
-                  hasTableItems={selectableRowsOnThePage.length > 0}
-                />
-                {isEmptyResult ? <></> : getTablebody()}
-              </table>
+                    hasEndFiller={hasEndFiller}
+                    onAllItemsDeselected={() => {
+                      setIsAllItemsSelected(false);
+                      props.onBulkClearAllItems?.();
+                    }}
+                    onAllItemsOnThePageSelected={() => {
+                      if (props.onBulkSelectItemsOnCurrentPage) {
+                        props.onBulkSelectItemsOnCurrentPage();
+                      }
+                    }}
+                    isAllItemsOnThePageSelected={isAllItemsOnThePageSelected}
+                    isSomeItemsOnThePageSelected={isSomeItemsOnThePageSelected}
+                    hasTableItems={selectableRowsOnThePage.length > 0}
+                  />
+                  {isEmptyResult ? <></> : getTablebody()}
+                </table>
               </>
             )}
           </div>

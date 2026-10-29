@@ -387,6 +387,28 @@ describe("a width kept for a column of a page's own table", () => {
     expect(rules).not.toContain("td:nth-child(3)");
   });
 
+  test("a column of words asks the table for no width of its own; a column kept whole keeps its values' width, as each header cell names its kind", () => {
+    keep("dns-records", { name: 320, ttl: 90 });
+
+    render(<RecordsTable tableKey="dns-records" />);
+
+    const rules: string = Array.from(
+      document.querySelectorAll(`style[${SIZED_COLUMNS_STYLE_ATTRIBUTE}]`),
+    )
+      .map((style: Element): string => {
+        return style.textContent || "";
+      })
+      .join("\n");
+
+    // Name (a row's name) is the second cell, TTL (a number) the fourth.
+    expect(rules).toContain(
+      "td:nth-child(2) > div { max-width: none; min-width: 0; contain: inline-size; }",
+    );
+    expect(rules).toContain(
+      "td:nth-child(4) > div { max-width: none; min-width: 0; }",
+    );
+  });
+
   test("Delete on a focused edge gives the column back to the table", () => {
     keep("dns-records", { name: 320 });
 

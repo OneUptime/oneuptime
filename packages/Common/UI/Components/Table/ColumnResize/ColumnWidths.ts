@@ -226,6 +226,13 @@ export interface ColumnContentWidths {
   widestValueWidth: number;
   // A cell's padding at its start and its end.
   cellPaddingWidth: number;
+  /*
+   * The least the page draws the column at once it is sized - its header
+   * cell given no width, its values under the rules of a sized column
+   * (getSizedColumnsCss) - padding in: what no width given to it can go
+   * under (a word, a picture, a value drawn in no box of its own).
+   */
+  leastDrawnWidth?: number | undefined;
 }
 
 /*
@@ -262,6 +269,8 @@ export const getColumnWidthFloor: (data: {
       COLUMN_MIN_WIDTH_IN_PX,
       Math.max(0, measured.headerMinContentWidth || 0),
       valueFloorWithPadding,
+      // A width the page cannot draw would be kept, and never be drawn.
+      Math.max(0, measured.leastDrawnWidth || 0),
     ),
   );
 };
@@ -610,6 +619,15 @@ export const getColumnWidthsPreferenceKey: (data: {
  * of a table's cells - inside the table that carries the scope attribute.
  * A sized column's header breaks its words where they may break, so a
  * column narrower than its name keeps the name whole.
+ *
+ * A table gives a column at least the widest of its values on one line,
+ * whatever width its header cell asks for: a list of resources whose names
+ * do not wrap held its column at 454px when a person dragged it to 224, and
+ * the width kept was never drawn. So the box a sized column's cell draws
+ * its value in asks the table for no width of its own (contain:
+ * inline-size): it is as wide as the column, and its value is cut short
+ * inside it. Not a column kept whole (dates, numbers): it still grows for a
+ * wider value rather than cut one (getHeaderCellWidthStyle).
  */
 export const COLUMN_WIDTHS_SCOPE_ATTRIBUTE: string = "data-column-widths-scope";
 
@@ -626,10 +644,14 @@ export const getSizedColumnsCss: (data: {
   scope: string;
   // Each sized column's place among its row's cells, from 1.
   cellNumbers: ReadonlyArray<number>;
+  // ...and the places of those whose values are kept whole.
+  wholeCellNumbers?: ReadonlyArray<number> | undefined;
 }) => string = (data: {
   scope: string;
   cellNumbers: ReadonlyArray<number>;
+  wholeCellNumbers?: ReadonlyArray<number> | undefined;
 }): string => {
+  const whole: Set<number> = new Set<number>(data.wholeCellNumbers || []);
   const scope: string = getColumnWidthsScope(data.scope);
   const table: string = `table[${COLUMN_WIDTHS_SCOPE_ATTRIBUTE}="${scope}"]`;
   const numbers: Array<number> = Array.from(new Set(data.cellNumbers))
@@ -644,7 +666,9 @@ export const getSizedColumnsCss: (data: {
     .map((cellNumber: number): string => {
       return [
         `${table} > tbody > tr > td:nth-child(${cellNumber}) { max-width: none; overflow-x: clip; text-overflow: ellipsis; }`,
-        `${table} > tbody > tr > td:nth-child(${cellNumber}) > div { max-width: none; min-width: 0; }`,
+        `${table} > tbody > tr > td:nth-child(${cellNumber}) > div { max-width: none; min-width: 0;${
+          whole.has(cellNumber) ? "" : " contain: inline-size;"
+        } }`,
         `${table} > thead > tr > th:nth-child(${cellNumber}) * { white-space: normal; }`,
       ].join("\n");
     })

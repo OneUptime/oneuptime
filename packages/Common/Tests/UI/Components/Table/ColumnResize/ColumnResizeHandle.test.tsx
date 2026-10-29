@@ -122,9 +122,9 @@ beforeEach(() => {
             return direction;
           }
 
-          const value: unknown = (target as unknown as Record<string | symbol, unknown>)[
-            property
-          ];
+          const value: unknown = (
+            target as unknown as Record<string | symbol, unknown>
+          )[property];
 
           return typeof value === "function"
             ? (value as (...args: Array<unknown>) => unknown).bind(target)
@@ -355,7 +355,12 @@ describe("dragging the edge with a pointer", () => {
     pointer(handle, "pointerMove", 540);
 
     expect(calls.onResizeStart).toHaveBeenCalledTimes(1);
-    expect(calls.onResizeStart).toHaveBeenCalledWith("status", headerCell);
+    // With the column's kind: a column kept whole keeps its values' own width.
+    expect(calls.onResizeStart).toHaveBeenCalledWith(
+      "status",
+      headerCell,
+      ColumnWidthKind.Text,
+    );
 
     pointer(handle, "pointerUp", 540);
     expect(calls.onResizeEnd).toHaveBeenCalledTimes(1);
