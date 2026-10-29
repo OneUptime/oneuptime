@@ -108,12 +108,9 @@ describe("getRecordNumberColumns - which columns number a model's records", () =
     ["a number", 18],
     ["a plain object", { incidentNumber: 18 }],
     ["an array", [new Incident()]],
-  ])(
-    "%s is no model, and numbers nothing",
-    (_name: string, value: unknown) => {
-      expect(getRecordNumberColumns(value)).toBeNull();
-    },
-  );
+  ])("%s is no model, and numbers nothing", (_name: string, value: unknown) => {
+    expect(getRecordNumberColumns(value)).toBeNull();
+  });
 
   test("any record of a model gets its model's columns, read once per model", () => {
     const first: RecordNumberColumns | null = getRecordNumberColumns(
@@ -127,9 +124,7 @@ describe("getRecordNumberColumns - which columns number a model's records", () =
   });
 
   test("the answer is shared, so nobody may change it", () => {
-    const columns: RecordNumberColumns = getRecordNumberColumns(
-      new Alert(),
-    )!;
+    const columns: RecordNumberColumns = getRecordNumberColumns(new Alert())!;
 
     expect(Object.isFrozen(columns)).toBe(true);
     expect(() => {
@@ -143,9 +138,9 @@ describe("getRecordNumberColumns - which columns number a model's records", () =
 
 describe("formatRecordNumber - the number as it is shown", () => {
   test("as stored, with the prefix it was numbered with", () => {
-    expect(
-      formatRecordNumber({ number: 18, numberWithPrefix: "INC-18" }),
-    ).toBe("INC-18");
+    expect(formatRecordNumber({ number: 18, numberWithPrefix: "INC-18" })).toBe(
+      "INC-18",
+    );
     // A prefix the project chose: kept exactly.
     expect(
       formatRecordNumber({ number: 7, numberWithPrefix: "OPS/ALT:7" }),
@@ -154,9 +149,9 @@ describe("formatRecordNumber - the number as it is shown", () => {
 
   test("a record keeps its prefix after the project changes it", () => {
     // Numbered when the prefix was INC-; the project's prefix is SEV- now.
-    expect(
-      formatRecordNumber({ number: 18, numberWithPrefix: "INC-18" }),
-    ).toBe("INC-18");
+    expect(formatRecordNumber({ number: 18, numberWithPrefix: "INC-18" })).toBe(
+      "INC-18",
+    );
   });
 
   test("surrounding spaces are not part of it", () => {

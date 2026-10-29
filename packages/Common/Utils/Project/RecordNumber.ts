@@ -1,5 +1,8 @@
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import { TableColumnMetadata, getTableColumns } from "../../Types/Database/TableColumn";
+import {
+  TableColumnMetadata,
+  getTableColumns,
+} from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import Dictionary from "../../Types/Dictionary";
 import NumberPrefixUtil from "./NumberPrefix";
@@ -72,11 +75,15 @@ export const getRecordNumberColumns: GetRecordNumberColumnsFunction = (
    * A list names each of its rows by this (getRecordDisplayName), so the
    * answer is kept per class: a model's columns never change.
    */
-  const modelClass: unknown = (model as { constructor?: unknown }).constructor;
-  const isCacheable: boolean = typeof modelClass === "function";
+  const constructorOfModel: unknown = (model as { constructor?: unknown })
+    .constructor;
+  const modelClass: ModelClass | null =
+    typeof constructorOfModel === "function"
+      ? (constructorOfModel as ModelClass)
+      : null;
 
-  if (isCacheable && numberColumnsByClass.has(modelClass as object)) {
-    return numberColumnsByClass.get(modelClass as object) || null;
+  if (modelClass && numberColumnsByClass.has(modelClass)) {
+    return numberColumnsByClass.get(modelClass) || null;
   }
 
   const found: RecordNumberColumns | null = findRecordNumberColumns(model);
@@ -86,17 +93,20 @@ export const getRecordNumberColumns: GetRecordNumberColumnsFunction = (
     Object.freeze(found);
   }
 
-  if (isCacheable) {
-    numberColumnsByClass.set(modelClass as object, found);
+  if (modelClass) {
+    numberColumnsByClass.set(modelClass, found);
   }
 
   return found;
 };
 
-const numberColumnsByClass: WeakMap<object, RecordNumberColumns | null> =
-  new WeakMap();
+// A model's class, which the answer is kept by.
+type ModelClass = new () => unknown;
 
-function findRecordNumberColumns(model: object): RecordNumberColumns | null {
+const numberColumnsByClass: WeakMap<ModelClass, RecordNumberColumns | null> =
+  new WeakMap<ModelClass, RecordNumberColumns | null>();
+
+function findRecordNumberColumns(model: unknown): RecordNumberColumns | null {
   let columns: Dictionary<TableColumnMetadata> = {};
 
   try {

@@ -283,50 +283,47 @@ const NUMBERED_KINDS: Array<string> = [
 ];
 
 describe("every page of a numbered record numbers it in the trail", () => {
-  test.each(NUMBERED_KINDS)(
-    "%s and every page under it",
-    (viewKey: string) => {
-      const kind: RecordKind = RECORD_KINDS.find(
-        (candidate: RecordKind): boolean => {
-          return candidate.viewKey === viewKey;
-        },
-      )!;
-      const pages: Array<RecordPage> = pagesOf(kind);
-      expect(pages.length).toBeGreaterThan(2);
+  test.each(NUMBERED_KINDS)("%s and every page under it", (viewKey: string) => {
+    const kind: RecordKind = RECORD_KINDS.find(
+      (candidate: RecordKind): boolean => {
+        return candidate.viewKey === viewKey;
+      },
+    )!;
+    const pages: Array<RecordPage> = pagesOf(kind);
+    expect(pages.length).toBeGreaterThan(2);
 
-      for (const page of pages) {
-        const named: Array<Link> = nameRecordInTrail({
-          links: trailOn(kind, page),
-          recordId: RECORD_ID,
-          recordName: RECORD_NAME,
-          recordNumber: "INC-18",
-        })!;
+    for (const page of pages) {
+      const named: Array<Link> = nameRecordInTrail({
+        links: trailOn(kind, page),
+        recordId: RECORD_ID,
+        recordName: RECORD_NAME,
+        recordNumber: "INC-18",
+      })!;
 
-        const numbered: Array<{
-          title: string;
-          number: string | undefined;
-          name: string | undefined;
-        }> = named
-          .filter((link: Link): boolean => {
-            return Boolean(link.recordNumber);
-          })
-          .map((link: Link) => {
-            return {
-              title: link.title,
-              number: link.recordNumber,
-              name: link.recordName,
-            };
-          });
-
-        expect({ page: page.key, numbered }).toEqual({
-          page: page.key,
-          numbered: [
-            { title: kind.viewTitle, number: "INC-18", name: RECORD_NAME },
-          ],
+      const numbered: Array<{
+        title: string;
+        number: string | undefined;
+        name: string | undefined;
+      }> = named
+        .filter((link: Link): boolean => {
+          return Boolean(link.recordNumber);
+        })
+        .map((link: Link) => {
+          return {
+            title: link.title,
+            number: link.recordNumber,
+            name: link.recordName,
+          };
         });
-      }
-    },
-  );
+
+      expect({ page: page.key, numbered }).toEqual({
+        page: page.key,
+        numbered: [
+          { title: kind.viewTitle, number: "INC-18", name: RECORD_NAME },
+        ],
+      });
+    }
+  });
 
   test("an alert's Description names the alert, and its crumb opens it", () => {
     const kind: RecordKind = RECORD_KINDS.find(

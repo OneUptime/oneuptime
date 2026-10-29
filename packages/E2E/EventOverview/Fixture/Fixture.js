@@ -2560,10 +2560,7 @@ const alertEpisodeState = isResolved
   : isAcknowledged
     ? alertStates.acknowledged
     : alertStates.created;
-const alertEpisodeNumbering = numberedAs(
-  "alertEpisode",
-  ALERT_EPISODE_NUMBER,
-);
+const alertEpisodeNumbering = numberedAs("alertEpisode", ALERT_EPISODE_NUMBER);
 table(AlertEpisode).push({
   _id: alertEpisodeId.toString(),
   projectId: projectObjectId,

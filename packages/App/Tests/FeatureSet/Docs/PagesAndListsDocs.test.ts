@@ -192,7 +192,10 @@ describe("Pages and lists says an event's pages lead with its number", () => {
       const layout: string = dense(source(DASHBOARD_SRC, numbered.layout));
       const modelName: string = numbered.model.constructor.name;
 
-      expect({ layout: numbered.layout, isModelPage: layout.includes("<ModelPage") }).toEqual({
+      expect({
+        layout: numbered.layout,
+        isModelPage: layout.includes("<ModelPage"),
+      }).toEqual({
         layout: numbered.layout,
         isModelPage: true,
       });
@@ -211,7 +214,9 @@ describe("Pages and lists says an event's pages lead with its number", () => {
     );
 
     expect(modelPage).toContain("getRecordNumberColumns(modelInstance)");
-    expect(modelPage).toContain("select[numberColumns.numberWithPrefixColumn]=true;");
+    expect(modelPage).toContain(
+      "select[numberColumns.numberWithPrefixColumn]=true;",
+    );
     expect(modelPage).toContain("recordHeading={recordHeading}");
     expect(modelPage).toContain(
       "recordNumber:shownHeader?shownHeader.recordNumber:undefined",

@@ -334,7 +334,10 @@ async function cutsItself(locator: Locator): Promise<boolean> {
  * Every piece of the number drawn whole: the boxes of its letters, as the
  * browser lays them out, all inside the heading's (or the crumb's) box.
  */
-async function isDrawnWhole(number: Locator, within: Locator): Promise<boolean> {
+async function isDrawnWhole(
+  number: Locator,
+  within: Locator,
+): Promise<boolean> {
   const outer: Box = await boxOf(within);
   const rects: Array<{ left: number; right: number }> = await number.evaluate(
     (element: Element): Array<{ left: number; right: number }> => {
@@ -515,7 +518,10 @@ test.describe("each kind of event is headed by its number, then its title", () =
         `${kind.name}: the number whole`,
       ).toBe(true);
       expect(
-        await isDrawnWhole(crumbNumber(page), page.getByTestId("breadcrumb-record-name")),
+        await isDrawnWhole(
+          crumbNumber(page),
+          page.getByTestId("breadcrumb-record-name"),
+        ),
         `${kind.name}: the crumb's number whole`,
       ).toBe(true);
     }
@@ -664,9 +670,7 @@ test.describe("a long title gives way; the number never does", () => {
       });
 
       expect(await headingLines(page)).toBe(1);
-      expect(await isDrawnWhole(headingNumber(page), heading(page))).toBe(
-        true,
-      );
+      expect(await isDrawnWhole(headingNumber(page), heading(page))).toBe(true);
       expect(await cutsItself(headingName(page))).toBe(true);
       expect(await pageOverflow(page)).toBe(0);
 
@@ -698,10 +702,9 @@ test.describe("a long title gives way; the number never does", () => {
         Math.abs(number.x - box.x),
         `${at}: at the start`,
       ).toBeLessThanOrEqual(1);
-      expect(
-        number.y - box.y,
-        `${at}: on the first line`,
-      ).toBeLessThan(HEADING_LINE_HEIGHT / 2);
+      expect(number.y - box.y, `${at}: on the first line`).toBeLessThan(
+        HEADING_LINE_HEIGHT / 2,
+      );
       expect(
         await isDrawnWhole(headingNumber(page), heading(page)),
         `${at}: the number whole`,
@@ -750,9 +753,7 @@ test.describe("in the dark theme and in other languages", () => {
     expect(
       contrastRatio(number.text, number.background),
     ).toBeGreaterThanOrEqual(3);
-    expect(contrastRatio(name.text, name.background)).toBeGreaterThanOrEqual(
-      7,
-    );
+    expect(contrastRatio(name.text, name.background)).toBeGreaterThanOrEqual(7);
     // The number is the quieter of the two.
     expect(contrastRatio(number.text, number.background)).toBeLessThan(
       contrastRatio(name.text, name.background),
@@ -779,9 +780,7 @@ test.describe("in the dark theme and in other languages", () => {
     expect(
       contrastRatio(number.text, number.background),
     ).toBeGreaterThanOrEqual(3);
-    expect(contrastRatio(name.text, name.background)).toBeGreaterThanOrEqual(
-      7,
-    );
+    expect(contrastRatio(name.text, name.background)).toBeGreaterThanOrEqual(7);
     expect(contrastRatio(number.text, number.background)).toBeLessThan(
       contrastRatio(name.text, name.background),
     );
@@ -840,9 +839,7 @@ test.describe("in the dark theme and in other languages", () => {
 
       // The start of the line is on the right.
       expect(Math.abs(number.right - box.right)).toBeLessThanOrEqual(1);
-      expect(await isDrawnWhole(headingNumber(page), heading(page))).toBe(
-        true,
-      );
+      expect(await isDrawnWhole(headingNumber(page), heading(page))).toBe(true);
       // The title is an English one, kept the way it is written.
       await expect(headingName(page)).toHaveAttribute("dir", "ltr");
       await expect(headingNumber(page)).toHaveText("INC-1042");
@@ -873,10 +870,7 @@ test.describe("in the dark theme and in other languages", () => {
       // The crumb: the number on the right of the title, whole.
       const crumbNumberBox: Box = await boxOf(crumbNumber(page));
       const crumbName: Box = await boxOf(
-        page
-          .getByTestId("breadcrumb-record-name")
-          .locator("bdi")
-          .nth(1),
+        page.getByTestId("breadcrumb-record-name").locator("bdi").nth(1),
       );
       expect(crumbName.right).toBeLessThanOrEqual(crumbNumberBox.x + 0.5);
       expect(

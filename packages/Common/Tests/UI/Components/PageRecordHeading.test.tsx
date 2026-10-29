@@ -74,7 +74,10 @@ describe("Page's recordHeading", () => {
 
   test("draws the name as typed, even a name that is interface text", () => {
     render(
-      <Page title="Incident" recordHeading={{ number: "INC-18", name: "Overview" }}>
+      <Page
+        title="Incident"
+        recordHeading={{ number: "INC-18", name: "Overview" }}
+      >
         <div>Body</div>
       </Page>,
     );

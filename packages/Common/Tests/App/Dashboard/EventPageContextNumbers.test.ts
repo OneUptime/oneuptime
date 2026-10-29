@@ -205,7 +205,9 @@ describe("a maintenance event's title in Ask AI", () => {
       event.scheduledMaintenanceNumber = number;
       event.scheduledMaintenanceNumberWithPrefix = `SM-${number}`;
       jest.spyOn(ModelAPI, "getItem").mockResolvedValueOnce(event as never);
-      titles.push(await PageContextUtil.resolveEntityTitle(MAINTENANCE_CONTEXT));
+      titles.push(
+        await PageContextUtil.resolveEntityTitle(MAINTENANCE_CONTEXT),
+      );
     }
 
     expect(titles).toEqual([

@@ -300,53 +300,52 @@ afterEach(() => {
   window.history.replaceState(null, "", "/");
 });
 
-describe.each(CASES.map((layoutCase: LayoutCase) => [layoutCase.name, layoutCase]))(
-  "%s's layout",
-  (_name: unknown, value: unknown) => {
-    const layoutCase: LayoutCase = value as LayoutCase;
-    const named: string = `${layoutCase.number} ${layoutCase.title}`;
+describe.each(
+  CASES.map((layoutCase: LayoutCase) => {
+    return [layoutCase.name, layoutCase];
+  }),
+)("%s's layout", (_name: unknown, value: unknown) => {
+  const layoutCase: LayoutCase = value as LayoutCase;
+  const named: string = `${layoutCase.number} ${layoutCase.title}`;
 
-    test("reads the record's number with its title", async () => {
-      getItemMock.mockResolvedValue(recordOf(layoutCase));
-      await renderLayoutAt(layoutCase, layoutCase.viewPage);
+  test("reads the record's number with its title", async () => {
+    getItemMock.mockResolvedValue(recordOf(layoutCase));
+    await renderLayoutAt(layoutCase, layoutCase.viewPage);
 
-      const select: JSONObject = (
-        getItemMock.mock.calls[0]![0] as { select: JSONObject }
-      ).select;
-      expect(select).toMatchObject({
-        title: true,
-        [layoutCase.numberColumn]: true,
-        [`${layoutCase.numberColumn}WithPrefix`]: true,
-      });
+    const select: JSONObject = (
+      getItemMock.mock.calls[0]![0] as { select: JSONObject }
+    ).select;
+    expect(select).toMatchObject({
+      title: true,
+      [layoutCase.numberColumn]: true,
+      [`${layoutCase.numberColumn}WithPrefix`]: true,
     });
+  });
 
-    test("its own page is headed, trailed and tabbed by the number, then the title", async () => {
-      getItemMock.mockResolvedValue(recordOf(layoutCase));
-      await renderLayoutAt(layoutCase, layoutCase.viewPage);
+  test("its own page is headed, trailed and tabbed by the number, then the title", async () => {
+    getItemMock.mockResolvedValue(recordOf(layoutCase));
+    await renderLayoutAt(layoutCase, layoutCase.viewPage);
 
-      expect(textOf(screen.getByRole("heading", { level: 1 }))).toBe(named);
-      expect(trailText()).toEqual([...layoutCase.trail, named]);
-      expect(document.title).toBe(
-        `OneUptime | ${layoutCase.trail.join(" - ")} - ${named}`,
-      );
-    });
+    expect(textOf(screen.getByRole("heading", { level: 1 }))).toBe(named);
+    expect(trailText()).toEqual([...layoutCase.trail, named]);
+    expect(document.title).toBe(
+      `OneUptime | ${layoutCase.trail.join(" - ")} - ${named}`,
+    );
+  });
 
-    test(`a page under it (${layoutCase.subPageTitle}) is too`, async () => {
-      getItemMock.mockResolvedValue(recordOf(layoutCase));
-      await renderLayoutAt(layoutCase, layoutCase.subPage);
+  test(`a page under it (${layoutCase.subPageTitle}) is too`, async () => {
+    getItemMock.mockResolvedValue(recordOf(layoutCase));
+    await renderLayoutAt(layoutCase, layoutCase.subPage);
 
-      expect(screen.getByTestId("event-page-body")).toHaveTextContent(
-        "Sub-page",
-      );
-      expect(textOf(screen.getByRole("heading", { level: 1 }))).toBe(named);
-      expect(trailText()).toEqual([
-        ...layoutCase.trail,
-        named,
-        layoutCase.subPageTitle,
-      ]);
-      expect(document.title).toBe(
-        `OneUptime | ${layoutCase.trail.join(" - ")} - ${named} - ${layoutCase.subPageTitle}`,
-      );
-    });
-  },
-);
+    expect(screen.getByTestId("event-page-body")).toHaveTextContent("Sub-page");
+    expect(textOf(screen.getByRole("heading", { level: 1 }))).toBe(named);
+    expect(trailText()).toEqual([
+      ...layoutCase.trail,
+      named,
+      layoutCase.subPageTitle,
+    ]);
+    expect(document.title).toBe(
+      `OneUptime | ${layoutCase.trail.join(" - ")} - ${named} - ${layoutCase.subPageTitle}`,
+    );
+  });
+});

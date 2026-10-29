@@ -307,67 +307,68 @@ afterEach(() => {
   window.history.replaceState(null, "", "/");
 });
 
-describe.each(KINDS.map((kind: NumberedKind) => [kind.name, kind]))(
-  "%s's pages lead with its number",
-  (_name: unknown, kindValue: unknown) => {
-    const kind: NumberedKind = kindValue as NumberedKind;
+describe.each(
+  KINDS.map((kind: NumberedKind) => {
+    return [kind.name, kind];
+  }),
+)("%s's pages lead with its number", (_name: unknown, kindValue: unknown) => {
+  const kind: NumberedKind = kindValue as NumberedKind;
 
-    test("the number is read with the title, in the same read", async () => {
-      getItemMock.mockResolvedValue(recordOf(kind, {}));
-      await renderPage(kind);
+  test("the number is read with the title, in the same read", async () => {
+    getItemMock.mockResolvedValue(recordOf(kind, {}));
+    await renderPage(kind);
 
-      expect(getItemMock).toHaveBeenCalledTimes(1);
-      expect(lastSelect()).toMatchObject({
-        title: true,
-        [kind.numberColumn]: true,
-        [kind.numberWithPrefixColumn]: true,
-      });
+    expect(getItemMock).toHaveBeenCalledTimes(1);
+    expect(lastSelect()).toMatchObject({
+      title: true,
+      [kind.numberColumn]: true,
+      [kind.numberWithPrefixColumn]: true,
     });
+  });
 
-    test(`the heading reads "${kind.number} ${TITLE}"`, async () => {
-      getItemMock.mockResolvedValue(recordOf(kind, {}));
-      await renderPage(kind);
+  test(`the heading reads "${kind.number} ${TITLE}"`, async () => {
+    getItemMock.mockResolvedValue(recordOf(kind, {}));
+    await renderPage(kind);
 
-      expect(heading()).toHaveTextContent(`${kind.number} ${TITLE}`);
-      expect(
-        screen.getByTestId(PAGE_RECORD_HEADING_TEST_IDS.number),
-      ).toHaveTextContent(kind.number);
-      expect(
-        screen.getByTestId(PAGE_RECORD_HEADING_TEST_IDS.name),
-      ).toHaveTextContent(TITLE);
-      // What kind of record it is, the trail says once: no "Incident -".
-      expect(heading().textContent).not.toContain(`${kind.pageTitle} -`);
-    });
+    expect(heading()).toHaveTextContent(`${kind.number} ${TITLE}`);
+    expect(
+      screen.getByTestId(PAGE_RECORD_HEADING_TEST_IDS.number),
+    ).toHaveTextContent(kind.number);
+    expect(
+      screen.getByTestId(PAGE_RECORD_HEADING_TEST_IDS.name),
+    ).toHaveTextContent(TITLE);
+    // What kind of record it is, the trail says once: no "Incident -".
+    expect(heading().textContent).not.toContain(`${kind.pageTitle} -`);
+  });
 
-    test("the crumb that stands for it names it by its number and its title", async () => {
-      getItemMock.mockResolvedValue(recordOf(kind, {}));
-      await renderPage(kind);
+  test("the crumb that stands for it names it by its number and its title", async () => {
+    getItemMock.mockResolvedValue(recordOf(kind, {}));
+    await renderPage(kind);
 
-      expect(trailText()).toEqual([
-        "Project",
-        kind.list,
-        `${kind.number} ${TITLE}`,
-        "Owners",
-      ]);
-      expect(screen.getByTestId("breadcrumb-record-number")).toHaveTextContent(
-        kind.number,
-      );
-      // It still opens the record's own page.
-      expect(
-        screen.getByTestId("breadcrumb-record-name").closest("a"),
-      ).toHaveAttribute("href", recordPath(kind));
-    });
+    expect(trailText()).toEqual([
+      "Project",
+      kind.list,
+      `${kind.number} ${TITLE}`,
+      "Owners",
+    ]);
+    expect(screen.getByTestId("breadcrumb-record-number")).toHaveTextContent(
+      kind.number,
+    );
+    // It still opens the record's own page.
+    expect(
+      screen.getByTestId("breadcrumb-record-name").closest("a"),
+    ).toHaveAttribute("href", recordPath(kind));
+  });
 
-    test("the browser tab says it too", async () => {
-      getItemMock.mockResolvedValue(recordOf(kind, {}));
-      await renderPage(kind);
+  test("the browser tab says it too", async () => {
+    getItemMock.mockResolvedValue(recordOf(kind, {}));
+    await renderPage(kind);
 
-      expect(document.title).toBe(
-        `OneUptime | Project - ${kind.list} - ${kind.number} ${TITLE} - Owners`,
-      );
-    });
-  },
-);
+    expect(document.title).toBe(
+      `OneUptime | Project - ${kind.list} - ${kind.number} ${TITLE} - Owners`,
+    );
+  });
+});
 
 describe("the project's own numbering", () => {
   test("a prefix of the project's choosing, exactly as the record was numbered", async () => {
@@ -505,7 +506,9 @@ describe("how the number and the title sit together", () => {
     // The number is never wrapped away from the title's first word.
     expect(nodes[1]!.textContent).toBe(PAGE_RECORD_HEADING_SEPARATOR);
     expect(PAGE_RECORD_HEADING_SEPARATOR).toBe("\u00a0");
-    expect(nodes[2]).toBe(screen.getByTestId(PAGE_RECORD_HEADING_TEST_IDS.name));
+    expect(nodes[2]).toBe(
+      screen.getByTestId(PAGE_RECORD_HEADING_TEST_IDS.name),
+    );
   });
 
   test("the number is never cut or wrapped; the title gives way, two lines on a phone and one from 640px", async () => {
@@ -516,7 +519,10 @@ describe("how the number and the title sit together", () => {
 
     expect(heading().className).toBe(PAGE_RECORD_HEADING_CLASS_NAME);
     expect(heading()).toHaveClass("line-clamp-2", "sm:flex", "sm:min-w-0");
-    expect(heading()).toHaveClass("sm:line-clamp-none", "[overflow-wrap:anywhere]");
+    expect(heading()).toHaveClass(
+      "sm:line-clamp-none",
+      "[overflow-wrap:anywhere]",
+    );
 
     const number: HTMLElement = screen.getByTestId(
       PAGE_RECORD_HEADING_TEST_IDS.number,
@@ -547,9 +553,9 @@ describe("how the number and the title sit together", () => {
     await renderPage(INCIDENT_KIND);
 
     expect(heading()).toHaveClass("text-gray-900");
-    expect(
-      screen.getByTestId(PAGE_RECORD_HEADING_TEST_IDS.number),
-    ).toHaveClass("text-gray-500");
+    expect(screen.getByTestId(PAGE_RECORD_HEADING_TEST_IDS.number)).toHaveClass(
+      "text-gray-500",
+    );
   });
 
   test("the crumb keeps its number whole and cuts its title short, with the whole of it on hover", async () => {
@@ -591,9 +597,7 @@ describe("a right-to-left page: each piece reads its own way", () => {
 
     const crumbName: HTMLElement = screen.getByTestId("breadcrumb-record-name")
       .lastElementChild as HTMLElement;
-    expect(screen.getByTestId("breadcrumb-record-number").tagName).toBe(
-      "BDI",
-    );
+    expect(screen.getByTestId("breadcrumb-record-number").tagName).toBe("BDI");
     expect(crumbName.tagName).toBe("BDI");
     expect(crumbName).toHaveAttribute("dir", "ltr");
   });
@@ -605,10 +609,9 @@ describe("a right-to-left page: each piece reads its own way", () => {
     );
     await renderPage(INCIDENT_KIND);
 
-    expect(screen.getByTestId(PAGE_RECORD_HEADING_TEST_IDS.name)).toHaveAttribute(
-      "dir",
-      "rtl",
-    );
+    expect(
+      screen.getByTestId(PAGE_RECORD_HEADING_TEST_IDS.name),
+    ).toHaveAttribute("dir", "rtl");
     expect(heading()).toHaveTextContent(`INC-18 ${persianTitle}`);
   });
 });
@@ -633,7 +636,9 @@ describe("in another language", () => {
 
   test("a title that is an interface word is never translated", async () => {
     isGerman = true;
-    getItemMock.mockResolvedValue(recordOf(INCIDENT_KIND, { title: "Overview" }));
+    getItemMock.mockResolvedValue(
+      recordOf(INCIDENT_KIND, { title: "Overview" }),
+    );
     await renderPage(INCIDENT_KIND);
 
     expect(heading()).toHaveTextContent("INC-18 Overview");

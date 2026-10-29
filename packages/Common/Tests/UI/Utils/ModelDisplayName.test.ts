@@ -375,7 +375,10 @@ describe("getRecordDisplayName", () => {
  * hand carries it (Utils/Project/RecordNumber).
  */
 describe("getRecordDisplayName names a numbered record by its number first", () => {
-  function incidentNumbered(number: number | null, withPrefix: string | null): Incident {
+  function incidentNumbered(
+    number: number | null,
+    withPrefix: string | null,
+  ): Incident {
     const incident: Incident = new Incident();
     incident.title = "Manually declared";
     if (number !== null) {
@@ -417,7 +420,12 @@ describe("getRecordDisplayName names a numbered record by its number first", () 
   });
 
   test.each([
-    ["a scheduled maintenance event", new ScheduledMaintenance(), "scheduledMaintenanceNumber", "SM-3"],
+    [
+      "a scheduled maintenance event",
+      new ScheduledMaintenance(),
+      "scheduledMaintenanceNumber",
+      "SM-3",
+    ],
     ["an incident episode", new IncidentEpisode(), "episodeNumber", "IE-2"],
     ["an alert episode", new AlertEpisode(), "episodeNumber", "AE-4"],
     ["a security case", new SecurityCase(), "caseNumber", "SC-12"],
@@ -507,10 +515,9 @@ describe("getRecordDisplayName names a numbered record by its number first", () 
   test("a bulk dialog lists them told apart", () => {
     const summary: NameListSummary = summarizeNames({
       names: [17, 18, 19].map((number: number): string => {
-        return getRecordDisplayName(
-          incidentNumbered(number, `INC-${number}`),
-          { model: new Incident() },
-        );
+        return getRecordDisplayName(incidentNumbered(number, `INC-${number}`), {
+          model: new Incident(),
+        });
       }),
       totalCount: 3,
     });
