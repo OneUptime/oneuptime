@@ -504,8 +504,10 @@ describe("each real change adds its own line, once", () => {
       unknown
     >;
 
+    // Opening with them: the entry's author leads the message.
     expect(item["workspaceNotification"]).toEqual({
       sendWorkspaceNotification: true,
+      leadWithAuthor: true,
     });
     expect(String(item["userId"])).toBe(USER_ID.toString());
     expect(String(item["projectId"])).toBe(PROJECT_ID.toString());

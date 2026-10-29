@@ -841,6 +841,8 @@ async function postFeedItem(data: {
         userId: data.userId,
         workspaceNotification: {
           sendWorkspaceNotification: data.pingWorkspace,
+          // Who approved or dismissed the fix, as the feed names them.
+          leadWithAuthor: true,
         },
       });
     } else if (data.suggestion.alertId && data.suggestion.projectId) {
@@ -853,6 +855,8 @@ async function postFeedItem(data: {
         userId: data.userId,
         workspaceNotification: {
           sendWorkspaceNotification: data.pingWorkspace,
+          // Who approved or dismissed the fix, as the feed names them.
+          leadWithAuthor: true,
         },
       });
     }

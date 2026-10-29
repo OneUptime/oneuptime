@@ -1632,7 +1632,7 @@ insert(IncidentFeed, {
 });
 if (feedMode === "oncall-run") {
   const checkoutPolicy = `[${policies.checkout.name}](${dashboard}/on-call-duty/policies/${policies.checkout._id})`;
-  const sam = `[${people.sam.name.toString()}](${dashboard}/settings/users/${people.sam._id})`;
+  const sam = `[${people.sam.name.toString()}](${dashboard}/users/${people.sam._id})`;
   const runStep = (seconds, markdown, color) => {
     insert(IncidentFeed, {
       incidentId: mainIncident.id,

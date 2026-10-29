@@ -187,7 +187,7 @@ describe("WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification —
       feedInfoInMarkdown: NOTE_MARKDOWN,
       workspaceNotification: {
         sendWorkspaceNotification: true,
-        notifyUserId: userId,
+        authorUserId: userId,
       },
     });
 
@@ -232,7 +232,7 @@ describe("WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification —
       feedInfoInMarkdown: NOTE_MARKDOWN,
       workspaceNotification: {
         sendWorkspaceNotification: true,
-        notifyUserId: userId,
+        authorUserId: userId,
       },
     });
 
@@ -270,7 +270,7 @@ describe("WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification —
       feedInfoInMarkdown: "📄 posted **private note** for this Alert #7",
       workspaceNotification: {
         sendWorkspaceNotification: true,
-        notifyUserId: userId,
+        authorUserId: userId,
       },
     });
 
@@ -316,7 +316,7 @@ describe("WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification —
       feedInfoInMarkdown: "📄 posted **private note**",
       workspaceNotification: {
         sendWorkspaceNotification: true,
-        notifyUserId: userId,
+        authorUserId: userId,
       },
     });
 
@@ -339,7 +339,7 @@ describe("WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification —
       feedInfoInMarkdown: NOTE_MARKDOWN,
       workspaceNotification: {
         sendWorkspaceNotification: true,
-        notifyUserId: userId,
+        authorUserId: userId,
       },
     });
 
@@ -407,7 +407,7 @@ describe("WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification —
       feedInfoInMarkdown: NOTE_MARKDOWN,
       workspaceNotification: {
         sendWorkspaceNotification: true,
-        notifyUserId: userId,
+        authorUserId: userId,
       },
     });
 
@@ -787,7 +787,7 @@ describe("WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification - a
       feedInfoInMarkdown: NOTE_MARKDOWN,
       workspaceNotification: {
         sendWorkspaceNotification: true,
-        notifyUserId: userId,
+        authorUserId: userId,
       },
     });
 

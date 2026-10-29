@@ -23,13 +23,13 @@ const POLICY: MarkdownText = FeedMarkdown.link(
 );
 const SAM: MarkdownText = FeedMarkdown.link(
   "Sam Lee",
-  "https://oneuptime.com/dashboard/p/settings/users/s",
+  "https://oneuptime.com/dashboard/p/users/s",
 );
 
 const POLICY_MD: string =
   "**[Payments](https://oneuptime.com/dashboard/p/on-call-duty/policies/x)**";
 const SAM_MD: string =
-  "**[Sam Lee](https://oneuptime.com/dashboard/p/settings/users/s)**";
+  "**[Sam Lee](https://oneuptime.com/dashboard/p/users/s)**";
 
 describe("a page to the next person in a rotation", () => {
   test("sent: the rule's clause says they are next in the schedule's rotation", () => {

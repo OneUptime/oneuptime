@@ -2347,6 +2347,8 @@ ${alertSeverity.name}
             userId: createdByUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
+              // Who changed it - the title, the labels - as the feed names them.
+              leadWithAuthor: true,
             },
           });
         }

@@ -471,7 +471,8 @@ describe.each(NOTE_CASES.map(asRow))(
       });
       expect(item["workspaceNotification"]).toEqual({
         sendWorkspaceNotification: true,
-        notifyUserId: undefined,
+        // The entry names who wrote the message and who saved it itself.
+        leadWithAuthor: false,
         exceptChannel: {
           workspaceType: WorkspaceType.Slack,
           channelId: "C0INC8",
@@ -582,9 +583,11 @@ describe.each(NOTE_CASES.map(asRow))(
       expect(
         (item["workspaceNotification"] as JSONObject)["exceptChannel"],
       ).toBeUndefined();
+      // Its message opens with the person who posted it: its author.
       expect(
-        String((item["workspaceNotification"] as JSONObject)["notifyUserId"]),
-      ).toBe(NITIN_ID.toString());
+        (item["workspaceNotification"] as JSONObject)["leadWithAuthor"],
+      ).toBe(true);
+      expect(String(item["userId"])).toBe(NITIN_ID.toString());
     });
 
     test("a member who may not post the note saves nothing", async () => {

@@ -137,7 +137,7 @@ function renderUsers(): CapturedTableProps {
     <MemoryRouter>
       <Users
         pageRoute={
-          new Route(`/dashboard/${PROJECT_ID.toString()}/settings/users`)
+          new Route(`/dashboard/${PROJECT_ID.toString()}/users`)
         }
         currentProject={currentProject}
         hasPaymentMethod={true}

@@ -329,8 +329,8 @@ ${FeedMarkdown.asMarkdown(createdItem.note)}${attachmentsMarkdown}
           `.toString(),
       workspaceNotification: {
         sendWorkspaceNotification: true,
-        // Not a saved message's: its entry names its people itself.
-        leadWithAuthor: true,
+        // A saved message's entry names its people itself.
+        leadWithAuthor: !saved,
         exceptChannel: SavedChatMessageNote.getSourceChannel({
           saved: saved,
           messageKey: createdItem.postedFromSlackMessageId,

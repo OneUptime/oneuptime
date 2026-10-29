@@ -5126,6 +5126,8 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
         apiKeyActor: data.apiKeyActor,
         workspaceNotification: {
           sendWorkspaceNotification: true,
+          // Who wrote or cleared it, as the feed names them.
+          leadWithAuthor: true,
         },
       });
     }
@@ -6060,6 +6062,8 @@ ${incidentSeverity.name}
             apiKeyActor: FeedApiKeyActorUtil.fromProps(onUpdate.updateBy.props),
             workspaceNotification: {
               sendWorkspaceNotification: true,
+              // Who changed it - the title, the labels - as the feed names them.
+              leadWithAuthor: true,
             },
           });
         }

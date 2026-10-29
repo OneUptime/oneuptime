@@ -424,6 +424,7 @@ describe("approving and dismissing a fix through MCP servers", () => {
     );
     expect(feed.workspaceNotification).toEqual({
       sendWorkspaceNotification: false,
+      leadWithAuthor: true,
     });
     expect(executeSpy).not.toHaveBeenCalled();
   });
@@ -447,8 +448,10 @@ describe("approving and dismissing a fix through MCP servers", () => {
       "2 changes through MCP servers had ALREADY been made",
     );
     expect(feed.feedInfoInMarkdown).toContain("nothing was undone");
+    // Opening with whoever dismissed it, as the feed names them.
     expect(feed.workspaceNotification).toEqual({
       sendWorkspaceNotification: true,
+      leadWithAuthor: true,
     });
   });
 });

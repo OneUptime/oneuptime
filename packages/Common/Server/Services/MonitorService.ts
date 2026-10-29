@@ -1766,6 +1766,8 @@ export class Service extends ProjectReferencesService<Model> {
             userId: createdByUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
+              // Who changed it - the name, the labels - as the feed names them.
+              leadWithAuthor: true,
             },
           });
         }
