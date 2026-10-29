@@ -102,6 +102,10 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       getList: async (): Promise<unknown> => {
         return { data: [], count: 0, skip: 0, limit: 10 };
       },
+      // The headers POST /ai-chat/providers is sent with.
+      getCommonHeaders: (): Record<string, string> => {
+        return {};
+      },
     },
   };
 });
@@ -109,8 +113,22 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 import CodeRepositorySettings, {
   CODE_REPOSITORY_GITHUB_COMMANDS_TEST_ID,
   CODE_REPOSITORY_MORE_SETTINGS_TEST_ID,
+  CODE_REPOSITORY_PRODUCTION_REVIEW_LLM_PROVIDER_TEST_ID,
   CODE_REPOSITORY_PRODUCTION_REVIEW_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Code/Repository/Settings";
+import {
+  RuleLlmProviderFieldHint,
+  RuleLlmProviderPicker,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AI/RuleLlmProviderField";
+import {
+  RuleLlmProviderChoices,
+  UNREAD_RULE_LLM_PROVIDER_CHOICES,
+  readRuleLlmProviderChoices,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AI/RuleLlmProviderCopy";
+import API from "../../../UI/Utils/API/API";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import { JSONObject } from "../../../Types/JSON";
 import {
   PRODUCTION_REVIEW_CONTENT_ANSWERS,
   PRODUCTION_REVIEW_CONTENT_COPY,
@@ -135,8 +153,10 @@ import {
   DEFAULT_GITHUB_TRIGGER_LABEL,
   getGitHubTriggerLabel,
   getPullRequestsCardCopy,
+  getProductionReviewLlmProviderItem,
   getRepositoryMoreSettingsDescription,
   getRepositoryMoreSettingsItems,
+  getRepositorySettingsFor,
   hasRepositoryCommands,
   isMergeRequestHost,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeRepositorySettingsCopy";
@@ -190,6 +210,7 @@ const FOLDED_CARDS: Array<string> = [
   "pull-requests",
   "trigger-label",
   "production-review-comment",
+  "production-review-llm-provider",
 ];
 
 type FormField = ModelField<CodeRepository>;
@@ -217,6 +238,31 @@ let runnerChoices: RunnerChoices = choicesWith();
 let runnerChoiceReads: number = 0;
 
 const english: Translator = createTranslator(undefined, "en");
+
+/*
+ * What POST /ai-chat/providers answers the page (useRuleLlmProviderChoices):
+ * the project's default provider and a global one - or why it fails, or
+ * nothing at all yet ("never").
+ */
+const PROVIDERS_ANSWER: JSONObject = {
+  providers: [
+    {
+      id: "bbbbbbbb-0000-4000-8000-0000000000c7",
+      name: "Azure GPT-5",
+      modelName: "gpt-5",
+      isDefault: true,
+      isGlobal: false,
+    },
+    {
+      id: "bbbbbbbb-0000-4000-8000-0000000000c8",
+      name: "OneUptime AI",
+      isDefault: false,
+      isGlobal: true,
+    },
+  ],
+  defaultProviderId: "bbbbbbbb-0000-4000-8000-0000000000c7",
+};
+let providersAnswer: JSONObject | Error | "never" = PROVIDERS_ANSWER;
 
 // What scrollIntoView was asked of, in order (jsdom has none of its own).
 const scrolled: Array<Element> = [];
@@ -297,6 +343,31 @@ beforeEach(() => {
       };
     },
   );
+
+  providersAnswer = PROVIDERS_ANSWER;
+  getJestSpyOn(API, "post").mockImplementation((async (request: {
+    url: { toString: () => string };
+  }) => {
+    if (!request.url.toString().endsWith("/ai-chat/providers")) {
+      throw new Error(`Not stubbed: ${request.url.toString()}`);
+    }
+
+    if (providersAnswer === "never") {
+      return new Promise(() => {
+        // Never answers: the providers are still being read.
+      });
+    }
+
+    if (providersAnswer instanceof Error) {
+      return new HTTPErrorResponse(
+        403,
+        { message: providersAnswer.message },
+        {},
+      );
+    }
+
+    return new HTTPResponse<JSONObject>(200, providersAnswer, {});
+  }) as never);
 
   runnerChoices = choicesWith();
   runnerChoiceReads = 0;
@@ -466,7 +537,7 @@ async function switchesRead(): Promise<void> {
 }
 
 describe("a repository's settings are cards, not a stepped dialog", () => {
-  test("Repository Details, Runner, then Pull Requests, GitHub Trigger Label and Production Review Comment - and no card walks steps", () => {
+  test("Repository Details, Runner, then Pull Requests, GitHub Trigger Label, Production Review Comment and Production Review LLM Provider - and no card walks steps", () => {
     draw();
 
     const names: Array<unknown> = mockDetails.map(
@@ -481,6 +552,7 @@ describe("a repository's settings are cards, not a stepped dialog", () => {
       "Repository > Pull Requests",
       "Repository > GitHub Trigger Label",
       "Repository > Production Review Comment",
+      "Repository > Production Review LLM Provider",
     ]);
 
     for (const props of mockDetails) {
@@ -516,6 +588,7 @@ describe("a repository's settings are cards, not a stepped dialog", () => {
         "Repository > Pull Requests",
         "Repository > GitHub Trigger Label",
         "Repository > Production Review Comment",
+        "Repository > Production Review LLM Provider",
       ].map((name: string): Array<unknown> => {
         const props: Record<string, unknown> = card(name);
 
@@ -531,6 +604,11 @@ describe("a repository's settings are cards, not a stepped dialog", () => {
       ["Pull Requests", "Edit", "Pull Requests"],
       ["GitHub Trigger Label", "Edit", "GitHub Trigger Label"],
       ["Production Review Comment", "Edit", "Production Review Comment"],
+      [
+        "Production Review LLM Provider",
+        "Edit",
+        "Production Review LLM Provider",
+      ],
     ]);
   });
 });
@@ -638,7 +716,7 @@ describe("on top, the repository itself; every other setting under More settings
     ]);
     expect(
       within(folded()).getByTestId("folded-section-more"),
-    ).toHaveTextContent("2 more");
+    ).toHaveTextContent("3 more");
     // Nothing is set to anything but its default.
     expect(setChips()).toEqual([]);
   });
@@ -1251,6 +1329,7 @@ describe("More settings", () => {
       "Pull Requests",
       "GitHub Trigger Label",
       "Production Review Comment",
+      "Production Review LLM Provider",
     ]);
   });
 
@@ -1596,6 +1675,8 @@ describe("the settings' words and rules, as plain functions", () => {
       ["trigger-label", false, undefined],
       // Never chosen: the default, the review or a link on a public one.
       ["production-review-comment", false, undefined],
+      // None picked: the project's default provider.
+      ["production-review-llm-provider", false, undefined],
     ]);
   });
 
@@ -1743,7 +1824,7 @@ describe("the settings' words and rules, as plain functions", () => {
       value: "None: AI opens no fix pull requests here",
       translateValue: true,
     });
-    expect(items[6]).toMatchObject({
+    expect(items[7]).toMatchObject({
       key: "commands",
       title: "Build and Test Commands",
       isSet: true,
@@ -2098,6 +2179,277 @@ describe("Production Review Comment: what a review posts on a pull request", () 
         "Production Review Comment: Only a link to the review",
       ]);
     });
+  });
+});
+
+/*
+ * The LLM provider OneUptime AI reads a repository's pull requests with in
+ * production reviews (the follow-up #5273 listed): the AI rules' own
+ * picker, under More settings, beside the other production review card.
+ * Empty is the project's default provider, else the global one, named by
+ * the card while none is picked.
+ */
+describe("Production Review LLM Provider: the provider its reviews use", () => {
+  const PROVIDER_ID: string = "bbbbbbbb-0000-4000-8000-0000000000c7";
+  const GONE_PROVIDER_ID: string = "bbbbbbbb-0000-4000-8000-0000000000c9";
+
+  function fields(): Array<FormField> {
+    return card("Repository > Production Review LLM Provider")[
+      "formFields"
+    ] as Array<FormField>;
+  }
+
+  function shownField(): DetailField {
+    return (
+      card("Repository > Production Review LLM Provider")[
+        "modelDetailProps"
+      ] as { fields: Array<DetailField> }
+    ).fields[0]!;
+  }
+
+  function shownFor(productionReviewLlmProviderId?: string): HTMLElement {
+    const item: CodeRepository = new CodeRepository();
+
+    if (productionReviewLlmProviderId) {
+      item.productionReviewLlmProviderId = new ObjectID(
+        productionReviewLlmProviderId,
+      );
+    }
+
+    const { container } = render(
+      <div data-testid="shown">{shownField().getElement!(item)}</div>,
+    );
+
+    return within(container as HTMLElement).getByTestId("shown");
+  }
+
+  async function providersRead(): Promise<void> {
+    await waitFor(() => {
+      expect(
+        shownField().getElement!(new CodeRepository()).props["data-testid"],
+      ).toBe("production-review-llm-provider-value");
+    });
+  }
+
+  test("its Edit asks one thing - the AI rules' LLM provider picker - for the column it writes", () => {
+    draw();
+
+    expect(fields()).toHaveLength(1);
+
+    const [field] = fields();
+
+    expect(columnsOf(field!)).toEqual(["productionReviewLlmProviderId"]);
+    expect(field!.fieldType).toBe(FormFieldSchemaType.CustomComponent);
+    expect(field!.title).toBe("LLM Provider");
+    expect(field!.description).toBe(
+      "OneUptime AI uses the default LLM provider for production reviews, unless you pick another.",
+    );
+    // Empty is an answer of its own - the default provider - not "(Optional)".
+    expect(field!.required).toBe(false);
+    expect(field!.hideOptionalLabel).toBe(true);
+    expect(field!.hideColumnDescription).toBe(true);
+    expect(field!.dataTestId).toBe(
+      CODE_REPOSITORY_PRODUCTION_REVIEW_LLM_PROVIDER_TEST_ID,
+    );
+
+    // The picker the rules use, on the column's value, writing what is picked.
+    const onChange: MockFunction = getJestMockFunction();
+    const picker: ReactElement = (
+      field!.getCustomElement as unknown as (
+        values: Record<string, unknown>,
+        props: Record<string, unknown>,
+      ) => ReactElement
+    )(
+      { productionReviewLlmProviderId: PROVIDER_ID },
+      { onChange: onChange, ariaLabelledby: "provider-label" },
+    );
+
+    expect(picker.type).toBe(RuleLlmProviderPicker);
+    expect(picker.props.value).toBe(PROVIDER_ID);
+    expect(picker.props.ariaLabelledby).toBe("provider-label");
+
+    picker.props.onChange(PROVIDER_ID);
+    picker.props.onChange(null);
+
+    expect(onChange.mock.calls).toEqual([[PROVIDER_ID], [null]]);
+
+    // Under it, where providers are added - as under every rule's field.
+    expect(
+      (
+        (field!.getFooterElement as unknown as () => ReactElement)() as {
+          type: unknown;
+        }
+      ).type,
+    ).toBe(RuleLlmProviderFieldHint);
+  });
+
+  test("its place is under More settings, after Production Review Comment, and it says what it is for", () => {
+    draw();
+
+    const props: Record<string, unknown> = card(
+      "Repository > Production Review LLM Provider",
+    );
+
+    expect((props["cardProps"] as { id: string }).id).toBe(
+      CodeRepositorySetting.ProductionReviewLlmProvider,
+    );
+    expect((props["cardProps"] as { description: string }).description).toBe(
+      "The LLM provider OneUptime AI reads pull requests with in production reviews.",
+    );
+    expect(folded()).toContainElement(
+      document.getElementById(
+        CodeRepositorySetting.ProductionReviewLlmProvider,
+      ),
+    );
+    expect(
+      document
+        .getElementById(CodeRepositorySetting.ProductionReviewComment)!
+        .compareDocumentPosition(
+          document.getElementById(
+            CodeRepositorySetting.ProductionReviewLlmProvider,
+          )!,
+        ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("none picked: the card names the default it stands for, as the empty box does", async () => {
+    draw();
+    await providersRead();
+
+    expect(shownField().title).toBe("LLM Provider");
+    expect(shownFor()).toHaveTextContent("Project default (Azure GPT-5)");
+
+    // A project with no default of its own: the global provider, by name.
+    cleanup();
+    providersAnswer = {
+      providers: [{ id: PROVIDER_ID, name: "OneUptime AI", isGlobal: true }],
+      defaultProviderId: PROVIDER_ID,
+    };
+    draw();
+    await providersRead();
+
+    expect(shownFor()).toHaveTextContent("Global provider (OneUptime AI)");
+  });
+
+  test("a pick: its name; one the project can no longer use says so", async () => {
+    draw();
+    await providersRead();
+
+    expect(shownFor(PROVIDER_ID)).toHaveTextContent("Azure GPT-5");
+    cleanup();
+    draw();
+    await providersRead();
+    expect(shownFor(GONE_PROVIDER_ID)).toHaveTextContent("No longer available");
+  });
+
+  test("a reader who may not read the providers: a pick is one they cannot see, never its id", async () => {
+    providersAnswer = new Error("You do not have permission");
+    draw();
+    await providersRead();
+
+    expect(shownFor(PROVIDER_ID)).toHaveTextContent(
+      "A provider you cannot see",
+    );
+    expect(shownFor(PROVIDER_ID)).not.toHaveTextContent(PROVIDER_ID);
+    cleanup();
+    draw();
+    await providersRead();
+    expect(shownFor()).toHaveTextContent("Default LLM provider");
+  });
+
+  test("while the providers are first read, the card holds the value's place", () => {
+    providersAnswer = "never";
+    draw();
+
+    expect(shownFor(PROVIDER_ID)).toContainElement(
+      screen.getByTestId("production-review-llm-provider-loading"),
+    );
+  });
+
+  test("what the card read shows on More settings' folded header: the provider, by name", async () => {
+    stored = { isProductionReviewEnabled: true };
+    draw();
+    await switchesRead();
+    await providersRead();
+
+    await cardReads("Repository > Production Review LLM Provider", {
+      productionReviewLlmProviderId: new ObjectID(PROVIDER_ID),
+    });
+
+    await waitFor(() => {
+      expect(setChips()).toEqual([
+        "Production Review LLM Provider: Azure GPT-5",
+      ]);
+    });
+
+    // Back to none: the default, its name alone.
+    await cardReads("Repository > Production Review LLM Provider", {});
+
+    await waitFor(() => {
+      expect(setChips()).toEqual([]);
+    });
+  });
+
+  test("folded, as a plain function: none or not read yet is the name alone; a pick its name, or what it is now", () => {
+    const read: RuleLlmProviderChoices =
+      readRuleLlmProviderChoices(PROVIDERS_ANSWER);
+
+    expect(
+      getProductionReviewLlmProviderItem(
+        { pickedProviderId: "", choices: read },
+        english,
+      ),
+    ).toEqual({
+      key: "production-review-llm-provider",
+      title: "Production Review LLM Provider",
+      isSet: false,
+    });
+    // The pick, before the providers are read: named only once they are.
+    expect(
+      getProductionReviewLlmProviderItem(
+        { pickedProviderId: PROVIDER_ID, choices: null },
+        english,
+      ).isSet,
+    ).toBe(false);
+
+    for (const [choices, pickedProviderId, value] of [
+      [read, PROVIDER_ID, "Azure GPT-5"],
+      [read, PROVIDER_ID.toUpperCase(), "Azure GPT-5"],
+      [read, GONE_PROVIDER_ID, "No longer available"],
+      [
+        UNREAD_RULE_LLM_PROVIDER_CHOICES,
+        PROVIDER_ID,
+        "A provider you cannot see",
+      ],
+    ] as Array<[RuleLlmProviderChoices, string, string]>) {
+      expect(
+        getProductionReviewLlmProviderItem(
+          { pickedProviderId, choices },
+          english,
+        ),
+      ).toEqual({
+        key: "production-review-llm-provider",
+        title: "Production Review LLM Provider",
+        isSet: true,
+        value,
+      });
+    }
+  });
+
+  test("off GitHub, where nothing reviews pull requests against production, it is not drawn", async () => {
+    // Forgejo is Gitea's type too: one client reads both.
+    for (const host of [
+      CodeRepositoryType.GitLab,
+      CodeRepositoryType.Forgejo,
+      CodeRepositoryType.Git,
+    ]) {
+      expect(getRepositorySettingsFor(host)).not.toContain(
+        CodeRepositorySetting.ProductionReviewLlmProvider,
+      );
+    }
+    expect(getRepositorySettingsFor(CodeRepositoryType.GitHub)).toContain(
+      CodeRepositorySetting.ProductionReviewLlmProvider,
+    );
   });
 });
 

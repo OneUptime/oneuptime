@@ -37003,5 +37003,9 @@
   "Was this alert a real problem or noise? Check the logs, traces and metrics from around when it fired.": "क्या यह अलर्ट असली समस्या था या शोर? इसके आने के आसपास के लॉग, ट्रेस और मेट्रिक्स देखें।",
   "What would stop this incident from happening again? Base it on its root cause and on similar past incidents.": "इस घटना को दोबारा होने से क्या रोकेगा? इसके मूल कारण और पिछली मिलती-जुलती घटनाओं के आधार पर बताएँ।",
   "Why is this monitor not operational right now? Investigate the telemetry from around when its status changed.": "यह मॉनिटर अभी कार्यरत क्यों नहीं है? इसकी स्थिति बदलने के आसपास की टेलीमेट्री की जाँच करें।",
-  "Why not operational?": "कार्यरत क्यों नहीं?"
+  "Why not operational?": "कार्यरत क्यों नहीं?",
+  "OneUptime AI uses the default LLM provider for production reviews, unless you pick another.": "जब तक आप कोई दूसरा नहीं चुनते, OneUptime AI प्रोडक्शन समीक्षाओं के लिए डिफ़ॉल्ट LLM प्रदाता का उपयोग करता है।",
+  "Production Review LLM Provider": "प्रोडक्शन समीक्षा का LLM प्रदाता",
+  "Production Review LLM Provider ID": "प्रोडक्शन समीक्षा के LLM प्रदाता की ID",
+  "The LLM provider OneUptime AI reads pull requests with in production reviews.": "वह LLM प्रदाता जिससे OneUptime AI प्रोडक्शन समीक्षाओं में पुल रिक्वेस्ट पढ़ता है।"
 }

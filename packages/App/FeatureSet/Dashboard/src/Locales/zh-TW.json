@@ -37003,5 +37003,9 @@
   "Was this alert a real problem or noise? Check the logs, traces and metrics from around when it fired.": "此警示是真正的問題還是雜訊？檢查它觸發前後的日誌、追蹤和指標。",
   "What would stop this incident from happening again? Base it on its root cause and on similar past incidents.": "怎樣才能防止此事件再次發生？請根據它的根本原因和類似的過往事件回答。",
   "Why is this monitor not operational right now? Investigate the telemetry from around when its status changed.": "此監測器現在為什麼未正常運作？調查它狀態變更前後的遙測資料。",
-  "Why not operational?": "為何未正常運作？"
+  "Why not operational?": "為何未正常運作？",
+  "OneUptime AI uses the default LLM provider for production reviews, unless you pick another.": "除非您選擇其他供應商，否則 OneUptime AI 會在正式環境審查中使用預設 LLM 供應商。",
+  "Production Review LLM Provider": "正式環境審查 LLM 提供商",
+  "Production Review LLM Provider ID": "正式環境審查 LLM 提供商 ID",
+  "The LLM provider OneUptime AI reads pull requests with in production reviews.": "OneUptime AI 在正式環境審查中閱讀拉取請求時使用的 LLM 提供商。"
 }

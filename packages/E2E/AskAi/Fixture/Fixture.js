@@ -98,6 +98,9 @@ const USER_ID = "30000000-0000-4000-8000-0000000000c1";
 const INCIDENT_ID = "20000000-0000-4000-8000-000000000042";
 const PROVIDER_ID = "9d9d9d9d-0000-4000-8000-000000000001";
 const SECOND_PROVIDER_ID = "9d9d9d9d-0000-4000-8000-000000000002";
+// The project's incident states, top first: Identified, then Resolved.
+const OPEN_STATE_ID = "50000000-0000-4000-8000-000000000001";
+const RESOLVED_STATE_ID = "50000000-0000-4000-8000-000000000002";
 
 const params = new URLSearchParams(window.location.search);
 const language = ["de", "fa"].includes(params.get("lang"))
@@ -692,6 +695,25 @@ ModelAPI.getList = async (options) => {
     return { data: events, count: events.length, skip: 0, limit: 100 };
   }
 
+  // The project's incident states, which tell whether the incident is resolved.
+  if (table === "IncidentState") {
+    const states = [
+      Object.assign(new IncidentState(), {
+        _id: OPEN_STATE_ID,
+        id: new ObjectID(OPEN_STATE_ID),
+        order: 1,
+        isCreatedState: true,
+      }),
+      Object.assign(new IncidentState(), {
+        _id: RESOLVED_STATE_ID,
+        id: new ObjectID(RESOLVED_STATE_ID),
+        order: 2,
+        isResolvedState: true,
+      }),
+    ];
+    return { data: states, count: states.length, skip: 0, limit: 100 };
+  }
+
   state.unhandled.push(`getList ${table}`);
   return { data: [], count: 0, skip: 0, limit: 10 };
 };
@@ -706,11 +728,11 @@ ModelAPI.getItem = async (options) => {
       title: "Checkout latency above 2s",
       incidentNumber: 42,
       // Its state, when the read asks for it, as the API answers.
-      ...(options.select?.currentIncidentState
+      ...(options.select?.currentIncidentStateId
         ? {
-            currentIncidentState: Object.assign(new IncidentState(), {
-              isResolvedState: isIncidentResolved,
-            }),
+            currentIncidentStateId: new ObjectID(
+              isIncidentResolved ? RESOLVED_STATE_ID : OPEN_STATE_ID,
+            ),
           }
         : {}),
     });

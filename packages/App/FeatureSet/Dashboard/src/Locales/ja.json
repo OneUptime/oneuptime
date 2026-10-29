@@ -37003,5 +37003,9 @@
   "Was this alert a real problem or noise? Check the logs, traces and metrics from around when it fired.": "このアラートは本当の問題でしたか、それともノイズでしたか？ 発火した前後のログ、トレース、メトリクスを確認してください。",
   "What would stop this incident from happening again? Base it on its root cause and on similar past incidents.": "このインシデントの再発を防ぐには何が必要ですか？ 根本原因と過去の類似インシデントに基づいて答えてください。",
   "Why is this monitor not operational right now? Investigate the telemetry from around when its status changed.": "このモニターが今稼働していないのはなぜですか？ ステータスが変わった前後のテレメトリを調査してください。",
-  "Why not operational?": "稼働していない理由"
+  "Why not operational?": "稼働していない理由",
+  "OneUptime AI uses the default LLM provider for production reviews, unless you pick another.": "別のプロバイダーを選ばない限り、OneUptime AI は本番レビューにデフォルトの LLM プロバイダーを使います。",
+  "Production Review LLM Provider": "本番レビューの LLM プロバイダー",
+  "Production Review LLM Provider ID": "本番レビューの LLM プロバイダー ID",
+  "The LLM provider OneUptime AI reads pull requests with in production reviews.": "本番レビューで OneUptime AI がプルリクエストを読むのに使う LLM プロバイダーです。"
 }

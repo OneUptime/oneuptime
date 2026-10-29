@@ -49,9 +49,10 @@ An in-page server answers what the dialog asks and records what it sends on
 
 `?providers=two` gives two LLM providers to choose between, `?ai=off` switches AI off for the
 project, `?fail=send` refuses a question, `?lang=de|fa` draws the Dashboard's German or Persian
-words (Persian right to left), and `?theme=dark` the dark theme. `?incident=resolved` answers
-the read of the incident, when it asks for the incident's state with its title, with a resolved
-state (`?incident=open` an open one), as the API does.
+words (Persian right to left), and `?theme=dark` the dark theme. `?incident=resolved` puts
+incident #42 in the project's Resolved state (`?incident=open`, and the default, in its first,
+open one): the incident read answers its state with its title, and the project's incident
+states are listed, as the API answers them.
 
 ## What the spec holds
 

@@ -10,6 +10,11 @@ import {
   readProductionReviewContent,
 } from "./CodeProductionReviewCopy";
 import type { RunnerChoices } from "../Runner/RunnerChoices";
+import {
+  RuleLlmProviderChoices,
+  getRuleLlmProviderFoldedValue,
+} from "../AI/RuleLlmProviderCopy";
+import { readLlmProviderId } from "Common/Types/AI/LlmProviderChoice";
 import { getCodeRepositoryRunnerChoice } from "./CodeRepositoryRunnerChoice";
 import {
   CODE_HIDDEN_RUNNER_LABEL,
@@ -98,6 +103,7 @@ export const CODE_REPOSITORY_SETTINGS_IN_ORDER: ReadonlyArray<CodeRepositorySett
     CodeRepositorySetting.PullRequests,
     CodeRepositorySetting.TriggerLabel,
     CodeRepositorySetting.ProductionReviewComment,
+    CodeRepositorySetting.ProductionReviewLlmProvider,
     CodeRepositorySetting.Commands,
   ];
 
@@ -112,6 +118,7 @@ const GITHUB_ONLY_SETTINGS: ReadonlyArray<CodeRepositorySetting> = [
   CodeRepositorySetting.ProductionReview,
   CodeRepositorySetting.TriggerLabel,
   CodeRepositorySetting.ProductionReviewComment,
+  CodeRepositorySetting.ProductionReviewLlmProvider,
 ];
 
 export const getRepositorySettingsFor: (
@@ -150,6 +157,11 @@ export interface CodeRepositorySettingsValues {
   buildCommand?: string | undefined | null;
   testCommand?: string | undefined | null;
   productionReviewPullRequestContent?: string | undefined | null;
+  /*
+   * The LLM provider the repository's production reviews use, as
+   * readLlmProviderId reads it: empty for none, the project's default.
+   */
+  productionReviewLlmProviderId?: string | undefined;
   /*
    * Where Respond to GitHub Commands is, as its switch shows it: a
    * repository that never set it is on, as the server reads it.
@@ -436,6 +448,42 @@ export function getRepositoryRunnerItem(
 }
 
 /*
+ * The production reviews' LLM provider, as More settings lists it while it
+ * is folded: by name alone while the repository picks none - the project's
+ * default provider, the default - or while the page has not read the
+ * providers yet; otherwise set, with the provider it picks by name
+ * ("Production Review LLM Provider: Azure GPT-5"), or that the reader
+ * cannot see it, or that it is no longer available - as an AI rule's
+ * folded LLM Provider says it (RuleLlmProviderCopy).
+ */
+export function getProductionReviewLlmProviderItem(
+  data: {
+    pickedProviderId: string | undefined;
+    choices: RuleLlmProviderChoices | null | undefined;
+  },
+  translator: Translator,
+): FoldedSectionItem {
+  const unset: FoldedSectionItem = {
+    key: CodeRepositorySetting.ProductionReviewLlmProvider,
+    title: PRODUCTION_REVIEW_SETTINGS_COPY.providerCardTitle,
+    isSet: false,
+  };
+  const pickedProviderId: string = readLlmProviderId(data.pickedProviderId);
+
+  if (!pickedProviderId || !data.choices) {
+    return unset;
+  }
+
+  const value: string | null = getRuleLlmProviderFoldedValue(
+    { llmProviderId: pickedProviderId },
+    data.choices,
+    translator,
+  );
+
+  return { ...unset, isSet: true, ...(value ? { value } : {}) };
+}
+
+/*
  * What More settings lists while it is folded: its cards by name, in the
  * order it draws them, and the ones set to something other than their
  * default with what they are set to ("GitHub Commands: Off", "Runner:
@@ -450,6 +498,7 @@ export function getRepositoryMoreSettingsItems(
   translator: Translator,
   runnerChoices?: RunnerChoices | null | undefined,
   provider?: string | null | undefined,
+  llmProviderChoices?: RuleLlmProviderChoices | null | undefined,
 ): Array<FoldedSectionItem> {
   const limit: FixPullRequestLimit = getFixPullRequestLimit(repository || {});
   const label: string = (repository?.gitHubTriggerLabel || "").trim();
@@ -520,6 +569,13 @@ export function getRepositoryMoreSettingsItems(
           }
         : {}),
     },
+    getProductionReviewLlmProviderItem(
+      {
+        pickedProviderId: repository?.productionReviewLlmProviderId,
+        choices: llmProviderChoices,
+      },
+      translator,
+    ),
   ];
 
   if (hasRepositoryCommands(repository)) {

@@ -37003,5 +37003,9 @@
   "Was this alert a real problem or noise? Check the logs, traces and metrics from around when it fired.": "이 경고는 실제 문제였나요, 아니면 노이즈였나요? 발생 시점 전후의 로그, 트레이스, 메트릭을 확인해 주세요.",
   "What would stop this incident from happening again? Base it on its root cause and on similar past incidents.": "이 인시던트가 다시 발생하지 않게 하려면 무엇이 필요할까요? 근본 원인과 비슷한 과거 인시던트를 바탕으로 답해 주세요.",
   "Why is this monitor not operational right now? Investigate the telemetry from around when its status changed.": "이 모니터가 지금 정상 작동하지 않는 이유는 무엇인가요? 상태가 바뀐 무렵의 텔레메트리를 조사해 주세요.",
-  "Why not operational?": "정상 작동하지 않는 이유"
+  "Why not operational?": "정상 작동하지 않는 이유",
+  "OneUptime AI uses the default LLM provider for production reviews, unless you pick another.": "다른 제공자를 선택하지 않으면 OneUptime AI는 프로덕션 리뷰에 기본 LLM 제공자를 사용합니다.",
+  "Production Review LLM Provider": "프로덕션 리뷰 LLM 제공자",
+  "Production Review LLM Provider ID": "프로덕션 리뷰 LLM 제공자 ID",
+  "The LLM provider OneUptime AI reads pull requests with in production reviews.": "프로덕션 리뷰에서 OneUptime AI가 풀 리퀘스트를 읽을 때 사용하는 LLM 제공자입니다."
 }

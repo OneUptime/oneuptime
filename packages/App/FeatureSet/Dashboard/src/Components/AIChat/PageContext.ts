@@ -7,11 +7,25 @@ import {
   PageEntityState,
 } from "./PageEntityState";
 import ResourcePageContextUtil from "./ResourcePageContext";
+import AlertStateUtil from "../../Utils/AlertState";
+import IncidentStateUtil from "../../Utils/IncidentState";
 import RouteMap from "../../Utils/RouteMap";
 import RouteParams from "../../Utils/RouteParams";
+import ScheduledMaintenanceStateUtil from "../../Utils/ScheduledMaintenanceState";
 import Alert from "Common/Models/DatabaseModels/Alert";
+import AlertState from "Common/Models/DatabaseModels/AlertState";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
+import ProjectUtil from "Common/UI/Utils/Project";
+import ResolvedStateUtil, {
+  ResolvedStateList,
+} from "Common/Utils/ResolvedState";
+import ScheduledMaintenanceStartUtil, {
+  ScheduledMaintenancePhaseOfState,
+} from "Common/Utils/ScheduledMaintenanceStart";
+import { StateListType } from "Common/Utils/StateOrder";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
@@ -369,7 +383,6 @@ export default class PageContextUtil {
    */
   public static async resolveEntity(
     context: DashboardPageContext,
-    now: Date = new Date(),
   ): Promise<ResolvedPageEntity | null> {
     if (!context.entityId || !ObjectID.isValidUUID(context.entityId)) {
       return null;
@@ -384,13 +397,22 @@ export default class PageContextUtil {
             await ResourcePageContextUtil.resolveTitle(context),
           );
         case AIChatPageContextType.Incident: {
-          const item: Incident | null =
-            await PageContextUtil.readWithState<Incident>({
-              modelType: Incident,
-              id: id,
-              select: { title: true, incidentNumber: true },
-              stateSelect: { currentIncidentState: { isResolvedState: true } },
-            });
+          // The project's states, read beside the incident (a cached list).
+          const states: Promise<Array<IncidentState> | null> =
+            PageContextUtil.readProjectStates<IncidentState>(
+              (projectId: ObjectID): Promise<Array<IncidentState>> => {
+                return IncidentStateUtil.getIncidentStates(projectId);
+              },
+            );
+          const item: Incident | null = await ModelAPI.getItem<Incident>({
+            modelType: Incident,
+            id: id,
+            select: {
+              title: true,
+              incidentNumber: true,
+              currentIncidentStateId: true,
+            },
+          });
           if (!item) {
             return null;
           }
@@ -400,19 +422,30 @@ export default class PageContextUtil {
           return {
             title: item.title ? `${numberPart}${item.title}` : null,
             state: getResolvableEntityState(
-              item.currentIncidentState?.isResolvedState,
+              PageContextUtil.isResolvedIn({
+                list: StateListType.IncidentState,
+                states: await states,
+                stateId: item.currentIncidentStateId,
+              }),
             ),
           };
         }
         case AIChatPageContextType.Alert: {
-          const item: Alert | null = await PageContextUtil.readWithState<Alert>(
-            {
-              modelType: Alert,
-              id: id,
-              select: { title: true, alertNumber: true },
-              stateSelect: { currentAlertState: { isResolvedState: true } },
+          const states: Promise<Array<AlertState> | null> =
+            PageContextUtil.readProjectStates<AlertState>(
+              (projectId: ObjectID): Promise<Array<AlertState>> => {
+                return AlertStateUtil.getAlertStates(projectId);
+              },
+            );
+          const item: Alert | null = await ModelAPI.getItem<Alert>({
+            modelType: Alert,
+            id: id,
+            select: {
+              title: true,
+              alertNumber: true,
+              currentAlertStateId: true,
             },
-          );
+          });
           if (!item) {
             return null;
           }
@@ -422,7 +455,11 @@ export default class PageContextUtil {
           return {
             title: item.title ? `${numberPart}${item.title}` : null,
             state: getResolvableEntityState(
-              item.currentAlertState?.isResolvedState,
+              PageContextUtil.isResolvedIn({
+                list: StateListType.AlertState,
+                states: await states,
+                stateId: item.currentAlertStateId,
+              }),
             ),
           };
         }
@@ -447,38 +484,33 @@ export default class PageContextUtil {
           };
         }
         case AIChatPageContextType.ScheduledMaintenanceEvent: {
+          const states: Promise<Array<ScheduledMaintenanceState> | null> =
+            PageContextUtil.readProjectStates<ScheduledMaintenanceState>(
+              (
+                projectId: ObjectID,
+              ): Promise<Array<ScheduledMaintenanceState>> => {
+                return ScheduledMaintenanceStateUtil.getScheduledMaintenanceStates(
+                  projectId,
+                );
+              },
+            );
           const item: ScheduledMaintenance | null =
-            await PageContextUtil.readWithState<ScheduledMaintenance>({
+            await ModelAPI.getItem<ScheduledMaintenance>({
               modelType: ScheduledMaintenance,
               id: id,
-              select: { title: true },
-              stateSelect: {
-                startsAt: true,
-                endsAt: true,
-                currentScheduledMaintenanceState: {
-                  isScheduledState: true,
-                  isOngoingState: true,
-                  isEndedState: true,
-                  isResolvedState: true,
-                },
-              },
+              select: { title: true, currentScheduledMaintenanceStateId: true },
             });
           if (!item) {
             return null;
           }
-          const state: ScheduledMaintenance["currentScheduledMaintenanceState"] =
-            item.currentScheduledMaintenanceState;
           return {
             title: item.title || null,
-            state: getScheduledMaintenanceEntityState({
-              isScheduledState: state?.isScheduledState,
-              isOngoingState: state?.isOngoingState,
-              isEndedState: state?.isEndedState,
-              isResolvedState: state?.isResolvedState,
-              startsAt: item.startsAt,
-              endsAt: item.endsAt,
-              now: now,
-            }),
+            state: getScheduledMaintenanceEntityState(
+              PageContextUtil.getMaintenancePhase({
+                states: await states,
+                stateId: item.currentScheduledMaintenanceStateId,
+              }),
+            ),
           };
         }
         case AIChatPageContextType.TelemetryService: {
@@ -532,6 +564,82 @@ export default class PageContextUtil {
       // No read access / record deleted — the generic chip label is used.
       return null;
     }
+  }
+
+  /*
+   * The project's states of one kind, top first with their places and
+   * flags, through the Dashboard's cached list (one request per project a
+   * minute, which the header and the lists read too) - or null when there
+   * is no project, none is there, or the read fails: then where the record
+   * stands is not known, and its page type's questions stay.
+   */
+  private static async readProjectStates<T>(
+    read: (projectId: ObjectID) => Promise<Array<T>>,
+  ): Promise<Array<T> | null> {
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+    if (!projectId) {
+      return null;
+    }
+
+    try {
+      const states: Array<T> = await read(projectId);
+
+      return states.length > 0 ? states : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /*
+   * Whether an incident or an alert in `stateId` is resolved, by the one
+   * rule (ResolvedStateUtil): its state at or below the project's resolved
+   * state. Null when that cannot be told.
+   */
+  private static isResolvedIn(data: {
+    list: ResolvedStateList;
+    states: Array<unknown> | null;
+    stateId: ObjectID | undefined;
+  }): boolean | null {
+    if (!data.states || !data.stateId) {
+      return null;
+    }
+
+    return ResolvedStateUtil.isResolved({
+      list: data.list,
+      states: data.states,
+      stateId: data.stateId,
+    });
+  }
+
+  /*
+   * Where a scheduled maintenance event in `stateId` is in its life, by the
+   * one rule (ScheduledMaintenanceStartUtil.getPhase), read off the
+   * project's states. Null when that cannot be told.
+   */
+  private static getMaintenancePhase(data: {
+    states: Array<ScheduledMaintenanceState> | null;
+    stateId: ObjectID | undefined;
+  }): ScheduledMaintenancePhaseOfState | null {
+    if (!data.states || !data.stateId) {
+      return null;
+    }
+
+    const stateId: string = data.stateId.toString().toLowerCase();
+    const state: ScheduledMaintenanceState | undefined = data.states.find(
+      (candidate: ScheduledMaintenanceState): boolean => {
+        return (candidate.id?.toString() || "").toLowerCase() === stateId;
+      },
+    );
+
+    if (!state) {
+      return null;
+    }
+
+    return ScheduledMaintenanceStartUtil.getPhase({
+      states: data.states,
+      state: state,
+    });
   }
 
   // A record whose questions do not follow a state: its title, if it has one.

@@ -37003,5 +37003,9 @@
   "Was this alert a real problem or noise? Check the logs, traces and metrics from around when it fired.": "این هشدار یک مشکل واقعی بود یا نویز؟ لاگ‌ها، ترِیس‌ها و متریک‌های حوالی زمان فعال شدنش را بررسی کن.",
   "What would stop this incident from happening again? Base it on its root cause and on similar past incidents.": "چه چیزی جلوی تکرار این حادثه را می‌گیرد؟ بر پایهٔ علت ریشه‌ای آن و حوادث مشابه گذشته پاسخ بده.",
   "Why is this monitor not operational right now? Investigate the telemetry from around when its status changed.": "چرا این مانیتور همین حالا عملیاتی نیست؟ تله‌متری حوالی زمانی را که وضعیتش تغییر کرد بررسی کن.",
-  "Why not operational?": "چرا عملیاتی نیست؟"
+  "Why not operational?": "چرا عملیاتی نیست؟",
+  "OneUptime AI uses the default LLM provider for production reviews, unless you pick another.": "OneUptime AI برای بازبینی‌های عملیاتی از ارائه‌دهنده پیش‌فرض LLM استفاده می‌کند، مگر اینکه ارائه‌دهنده دیگری انتخاب کنید.",
+  "Production Review LLM Provider": "ارائه‌دهنده LLM بازبینی عملیاتی",
+  "Production Review LLM Provider ID": "شناسه ارائه‌دهنده LLM بازبینی عملیاتی",
+  "The LLM provider OneUptime AI reads pull requests with in production reviews.": "ارائه‌دهنده LLM که OneUptime AI در بازبینی‌های عملیاتی Pull Requestها را با آن می‌خواند."
 }

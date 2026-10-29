@@ -1,5 +1,6 @@
 import CodeRepositoryConnection from "./CodeRepositoryConnection";
 import Label from "./Label";
+import LlmProvider from "./LlmProvider";
 import Project from "./Project";
 import Runner from "./Runner";
 import User from "./User";
@@ -981,6 +982,110 @@ export default class CodeRepository extends BaseModel {
   })
   public productionReviewPullRequestContent?: ProductionReviewPullRequestContent =
     undefined;
+
+  /*
+   * The LLM provider OneUptime AI reads this repository's pull requests
+   * with, in its production reviews: one of the project's own providers, or
+   * a global one (ProjectReferencesService refuses another project's). None
+   * picked is the project's default provider, else the global one - what
+   * every review used before it could be picked, and what Code's other work
+   * in the repository uses. A pick that cannot be used falls back the same
+   * way (Common/Types/AI/LlmProviderChoice). A provider that is deleted
+   * leaves the repository picking none (SET NULL).
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateCodeRepository,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadCodeRepository,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditCodeRepository,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "productionReviewLlmProviderId",
+    type: TableColumnType.Entity,
+    modelType: LlmProvider,
+    title: "Production Review LLM Provider",
+    description:
+      "The LLM provider OneUptime AI reads this repository's pull requests with in its production reviews: one of the project's providers or a global one. Empty: the project's default provider, else the global one.",
+  })
+  @ManyToOne(
+    () => {
+      return LlmProvider;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "productionReviewLlmProviderId" })
+  public productionReviewLlmProvider?: LlmProvider = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateCodeRepository,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadCodeRepository,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditCodeRepository,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Production Review LLM Provider ID",
+    description:
+      "ID of the LLM provider OneUptime AI reads this repository's pull requests with in its production reviews. Empty: the project's default provider, else the global one.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public productionReviewLlmProviderId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [

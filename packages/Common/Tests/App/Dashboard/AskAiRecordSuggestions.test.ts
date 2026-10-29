@@ -12,12 +12,18 @@ import {
   PAGE_ENTITY_STATES,
   PageEntityState,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/PageEntityState";
+import AlertStateUtil from "../../../../App/FeatureSet/Dashboard/src/Utils/AlertState";
+import IncidentStateUtil from "../../../../App/FeatureSet/Dashboard/src/Utils/IncidentState";
+import ScheduledMaintenanceStateUtil from "../../../../App/FeatureSet/Dashboard/src/Utils/ScheduledMaintenanceState";
 import Alert from "../../../Models/DatabaseModels/Alert";
+import AlertState from "../../../Models/DatabaseModels/AlertState";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../../Models/DatabaseModels/Incident";
+import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import RumApplication from "../../../Models/DatabaseModels/RumApplication";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenanceState from "../../../Models/DatabaseModels/ScheduledMaintenanceState";
 import SecurityCase from "../../../Models/DatabaseModels/SecurityCase";
 import Service from "../../../Models/DatabaseModels/Service";
 import TelemetryException from "../../../Models/DatabaseModels/TelemetryException";
@@ -26,7 +32,16 @@ import IconProp from "../../../Types/Icon/IconProp";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import ProjectUtil from "../../../UI/Utils/Project";
+import { ScheduledMaintenancePhaseOfState } from "../../../Utils/ScheduledMaintenanceStart";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import fs from "fs";
 import path from "path";
 
@@ -39,12 +54,31 @@ import path from "path";
  * reads where it stands, and the questions follow: a resolved incident is
  * asked how the response went and what would stop it coming back, a
  * monitor that is not operational is asked why, a maintenance event that
- * has not started what to check before it does. What could not be read is
- * no state, and the page type's own questions stay.
+ * has not started what to check before it does. Whether an incident or an
+ * alert is resolved, and where a maintenance event is in its life, are
+ * asked of the one rule every part of OneUptime asks (ResolvedStateUtil,
+ * ScheduledMaintenanceStartUtil), over the project's states. What could
+ * not be read is no state, and the page type's own questions stay.
  */
 
 const ENTITY_ID: string = "20000000-0000-4000-8000-000000000002";
-const NOW: Date = new Date("2026-10-29T12:00:00.000Z");
+const PROJECT_ID: ObjectID = new ObjectID(
+  "10000000-0000-4000-8000-000000000001",
+);
+
+// A project's incident and alert states: one of its own after Resolved.
+const OPEN_STATE_ID: string = "30000000-0000-4000-8000-000000000001";
+const ACKNOWLEDGED_STATE_ID: string = "30000000-0000-4000-8000-000000000002";
+const RESOLVED_STATE_ID: string = "30000000-0000-4000-8000-000000000003";
+const CLOSED_STATE_ID: string = "30000000-0000-4000-8000-000000000004";
+
+// A project's maintenance states: "Confirmed" and "Verifying" of its own.
+const SCHEDULED_STATE_ID: string = "40000000-0000-4000-8000-000000000001";
+const CONFIRMED_STATE_ID: string = "40000000-0000-4000-8000-000000000002";
+const ONGOING_STATE_ID: string = "40000000-0000-4000-8000-000000000003";
+const VERIFYING_STATE_ID: string = "40000000-0000-4000-8000-000000000004";
+const ENDED_STATE_ID: string = "40000000-0000-4000-8000-000000000005";
+const COMPLETED_STATE_ID: string = "40000000-0000-4000-8000-000000000006";
 
 function contextFor(
   type: AIChatPageContextType,
@@ -89,12 +123,46 @@ function fromApi<T extends BaseModel>(
   return BaseModel.fromJSONObject(json, modelType) as T;
 }
 
+// States as the Dashboard's cached lists hold them: top first, with places.
+function resolvableStateRows(): Array<JSONObject> {
+  return [
+    { _id: OPEN_STATE_ID, order: 1, isCreatedState: true },
+    { _id: ACKNOWLEDGED_STATE_ID, order: 2, isAcknowledgedState: true },
+    { _id: RESOLVED_STATE_ID, order: 3, isResolvedState: true },
+    { _id: CLOSED_STATE_ID, order: 4 },
+  ];
+}
+
+function incidentStates(): Array<IncidentState> {
+  return resolvableStateRows().map((json: JSONObject): IncidentState => {
+    return fromApi(json, IncidentState);
+  });
+}
+
+function alertStates(): Array<AlertState> {
+  return resolvableStateRows().map((json: JSONObject): AlertState => {
+    return fromApi(json, AlertState);
+  });
+}
+
+function maintenanceStates(): Array<ScheduledMaintenanceState> {
+  return [
+    { _id: SCHEDULED_STATE_ID, order: 1, isScheduledState: true },
+    { _id: CONFIRMED_STATE_ID, order: 2 },
+    { _id: ONGOING_STATE_ID, order: 3, isOngoingState: true },
+    { _id: VERIFYING_STATE_ID, order: 4 },
+    { _id: ENDED_STATE_ID, order: 5, isEndedState: true },
+    { _id: COMPLETED_STATE_ID, order: 6, isResolvedState: true },
+  ].map((json: JSONObject): ScheduledMaintenanceState => {
+    return fromApi(json, ScheduledMaintenanceState);
+  });
+}
+
 // One record type's read: what it selects, and what it says from the API's answer.
 interface StateRead {
   type: AIChatPageContextType;
   modelType: { new (): BaseModel };
   select: JSONObject;
-  titleSelect: JSONObject;
   json: JSONObject;
   title: string;
   state: PageEntityState;
@@ -112,19 +180,33 @@ const ASKS_FOR_A_STATUS_UPDATE: RegExp = /so far|status update/i;
 const ASKS_TO_CREATE_AN_INCIDENT: RegExp = /create an incident/i;
 const ASKS_ABOUT_THE_WINDOW_SO_FAR: RegExp = /during this maintenance window/i;
 
+let incidentStatesRead: jest.SpyInstance;
+let alertStatesRead: jest.SpyInstance;
+let maintenanceStatesRead: jest.SpyInstance;
+
+beforeEach(() => {
+  jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+  incidentStatesRead = jest
+    .spyOn(IncidentStateUtil, "getIncidentStates")
+    .mockResolvedValue(incidentStates());
+  alertStatesRead = jest
+    .spyOn(AlertStateUtil, "getAlertStates")
+    .mockResolvedValue(alertStates());
+  maintenanceStatesRead = jest
+    .spyOn(ScheduledMaintenanceStateUtil, "getScheduledMaintenanceStates")
+    .mockResolvedValue(maintenanceStates());
+});
+
 afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("where the record stands, from what the read says", () => {
-  test("an incident or an alert: resolved, open, or not read", () => {
+describe("where the record stands, from what the one rule says", () => {
+  test("an incident or an alert: resolved, open, or not known", () => {
     expect(getResolvableEntityState(true)).toBe(PageEntityState.Resolved);
     expect(getResolvableEntityState(false)).toBe(PageEntityState.Open);
-
-    // Only a flag that was read says which.
-    for (const value of [undefined, null, "true", 1, 0, {}]) {
-      expect(getResolvableEntityState(value)).toBeUndefined();
-    }
+    expect(getResolvableEntityState(null)).toBeUndefined();
+    expect(getResolvableEntityState(undefined)).toBeUndefined();
   });
 
   test("a monitor: operational, not operational, or not read", () => {
@@ -136,99 +218,22 @@ describe("where the record stands, from what the read says", () => {
     }
   });
 
-  test("a maintenance event: its state's flags say it first", () => {
-    const window: JSONObject = {
-      // A window that says the opposite of every flag below.
-      startsAt: new Date("2026-10-29T13:00:00.000Z"),
-      endsAt: new Date("2026-10-29T14:00:00.000Z"),
-    };
-
+  test("a maintenance event: not started, in progress or over", () => {
     expect(
-      getScheduledMaintenanceEntityState({
-        ...window,
-        isEndedState: true,
-        now: NOW,
-      }),
-    ).toBe(PageEntityState.Ended);
+      getScheduledMaintenanceEntityState(
+        ScheduledMaintenancePhaseOfState.NotStarted,
+      ),
+    ).toBe(PageEntityState.Upcoming);
     expect(
-      getScheduledMaintenanceEntityState({
-        ...window,
-        isResolvedState: true,
-        now: NOW,
-      }),
-    ).toBe(PageEntityState.Ended);
-    expect(
-      getScheduledMaintenanceEntityState({
-        ...window,
-        isOngoingState: true,
-        now: NOW,
-      }),
+      getScheduledMaintenanceEntityState(
+        ScheduledMaintenancePhaseOfState.InProgress,
+      ),
     ).toBe(PageEntityState.Ongoing);
     expect(
-      getScheduledMaintenanceEntityState({
-        startsAt: new Date("2026-10-29T10:00:00.000Z"),
-        endsAt: new Date("2026-10-29T11:00:00.000Z"),
-        isScheduledState: true,
-        now: NOW,
-      }),
-    ).toBe(PageEntityState.Upcoming);
-
-    // Ended outranks the others, a flag left on from before included.
-    expect(
-      getScheduledMaintenanceEntityState({
-        isScheduledState: true,
-        isOngoingState: true,
-        isEndedState: true,
-        now: NOW,
-      }),
+      getScheduledMaintenanceEntityState(ScheduledMaintenancePhaseOfState.Over),
     ).toBe(PageEntityState.Ended);
-  });
-
-  test("a state of the project's own, with no flag: its window says it", () => {
-    const at: (startsAt: unknown, endsAt: unknown) => unknown = (
-      startsAt: unknown,
-      endsAt: unknown,
-    ): unknown => {
-      return getScheduledMaintenanceEntityState({
-        isScheduledState: false,
-        isOngoingState: false,
-        isEndedState: false,
-        isResolvedState: false,
-        startsAt,
-        endsAt,
-        now: NOW,
-      });
-    };
-
-    expect(at("2026-10-29T12:00:00.001Z", "2026-10-29T13:00:00.000Z")).toBe(
-      PageEntityState.Upcoming,
-    );
-    // From the moment it starts, until the moment it ends.
-    expect(at("2026-10-29T12:00:00.000Z", "2026-10-29T13:00:00.000Z")).toBe(
-      PageEntityState.Ongoing,
-    );
-    expect(at(new Date("2026-10-29T11:00:00.000Z"), undefined)).toBe(
-      PageEntityState.Ongoing,
-    );
-    expect(at("2026-10-29T11:00:00.000Z", "2026-10-29T12:00:00.000Z")).toBe(
-      PageEntityState.Ended,
-    );
-    expect(
-      at(
-        new Date("2026-10-29T10:00:00.000Z").getTime(),
-        new Date("2026-10-29T11:00:00.000Z").getTime(),
-      ),
-    ).toBe(PageEntityState.Ended);
-
-    // No start that is a time: no state.
-    for (const startsAt of [undefined, null, "", "soon", Number.NaN, {}]) {
-      expect(at(startsAt, "2026-10-29T13:00:00.000Z")).toBeUndefined();
-    }
-
-    // An end that is no time is no end.
-    expect(at("2026-10-29T11:00:00.000Z", "later")).toBe(
-      PageEntityState.Ongoing,
-    );
+    expect(getScheduledMaintenanceEntityState(null)).toBeUndefined();
+    expect(getScheduledMaintenanceEntityState(undefined)).toBeUndefined();
   });
 
   test("names only its own states", () => {
@@ -255,13 +260,12 @@ describe("one read, each time Ask AI opens: the title and where it stands", () =
       select: {
         title: true,
         incidentNumber: true,
-        currentIncidentState: { isResolvedState: true },
+        currentIncidentStateId: true,
       },
-      titleSelect: { title: true, incidentNumber: true },
       json: {
         title: "Checkout unavailable",
         incidentNumber: 42,
-        currentIncidentState: { isResolvedState: true },
+        currentIncidentStateId: RESOLVED_STATE_ID,
       },
       title: "#42 Checkout unavailable",
       state: PageEntityState.Resolved,
@@ -269,16 +273,11 @@ describe("one read, each time Ask AI opens: the title and where it stands", () =
     {
       type: AIChatPageContextType.Alert,
       modelType: Alert,
-      select: {
-        title: true,
-        alertNumber: true,
-        currentAlertState: { isResolvedState: true },
-      },
-      titleSelect: { title: true, alertNumber: true },
+      select: { title: true, alertNumber: true, currentAlertStateId: true },
       json: {
         title: "Elevated errors",
         alertNumber: 7,
-        currentAlertState: { isResolvedState: false },
+        currentAlertStateId: ACKNOWLEDGED_STATE_ID,
       },
       title: "#7 Elevated errors",
       state: PageEntityState.Open,
@@ -290,7 +289,6 @@ describe("one read, each time Ask AI opens: the title and where it stands", () =
         name: true,
         currentMonitorStatus: { isOperationalState: true },
       },
-      titleSelect: { name: true },
       json: {
         name: "Checkout API",
         currentMonitorStatus: { isOperationalState: false },
@@ -301,28 +299,10 @@ describe("one read, each time Ask AI opens: the title and where it stands", () =
     {
       type: AIChatPageContextType.ScheduledMaintenanceEvent,
       modelType: ScheduledMaintenance,
-      select: {
-        title: true,
-        startsAt: true,
-        endsAt: true,
-        currentScheduledMaintenanceState: {
-          isScheduledState: true,
-          isOngoingState: true,
-          isEndedState: true,
-          isResolvedState: true,
-        },
-      },
-      titleSelect: { title: true },
+      select: { title: true, currentScheduledMaintenanceStateId: true },
       json: {
         title: "Database upgrade",
-        startsAt: { _type: "DateTime", value: "2026-10-30T02:00:00.000Z" },
-        endsAt: { _type: "DateTime", value: "2026-10-30T04:00:00.000Z" },
-        currentScheduledMaintenanceState: {
-          isScheduledState: true,
-          isOngoingState: false,
-          isEndedState: false,
-          isResolvedState: false,
-        },
+        currentScheduledMaintenanceStateId: CONFIRMED_STATE_ID,
       },
       title: "Database upgrade",
       state: PageEntityState.Upcoming,
@@ -336,9 +316,10 @@ describe("one read, each time Ask AI opens: the title and where it stands", () =
         .spyOn(ModelAPI, "getItem")
         .mockResolvedValue(fromApi(json, modelType));
 
-      expect(
-        await PageContextUtil.resolveEntity(contextFor(type), NOW),
-      ).toEqual({ title, state });
+      expect(await PageContextUtil.resolveEntity(contextFor(type))).toEqual({
+        title,
+        state,
+      });
       expect(getItem).toHaveBeenCalledTimes(1);
       expect(getItem).toHaveBeenCalledWith({
         modelType: modelType,
@@ -348,76 +329,154 @@ describe("one read, each time Ask AI opens: the title and where it stands", () =
     },
   );
 
-  test.each(STATE_READS)(
-    "$type: a state the person may not read leaves its title, read again without it",
-    async ({ type, modelType, titleSelect, json, title }: StateRead) => {
-      const titleOnly: JSONObject = { ...json };
-      for (const key of [
-        "currentIncidentState",
-        "currentAlertState",
-        "currentMonitorStatus",
-        "currentScheduledMaintenanceState",
-        "startsAt",
-        "endsAt",
-      ]) {
-        delete titleOnly[key];
-      }
-
-      const getItem: ReturnType<typeof jest.spyOn> = jest
-        .spyOn(ModelAPI, "getItem")
-        .mockRejectedValueOnce(new Error("You do not have permission"))
-        .mockResolvedValueOnce(fromApi(titleOnly, modelType));
-
-      expect(
-        await PageContextUtil.resolveEntity(contextFor(type), NOW),
-      ).toEqual({ title, state: undefined });
-      expect(getItem).toHaveBeenCalledTimes(2);
-      expect(getItem).toHaveBeenLastCalledWith({
-        modelType: modelType,
-        id: new ObjectID(ENTITY_ID),
-        select: titleSelect,
-      });
-
-      // And the chip's title is as it was before the state was read.
+  test("an incident or an alert is resolved by its state's place: a state of the project's own after Resolved is resolved too", async () => {
+    for (const [stateId, state] of [
+      [OPEN_STATE_ID, PageEntityState.Open],
+      [ACKNOWLEDGED_STATE_ID, PageEntityState.Open],
+      [RESOLVED_STATE_ID, PageEntityState.Resolved],
+      // "Closed", placed after Resolved and flagged nothing.
+      [CLOSED_STATE_ID, PageEntityState.Resolved],
+    ] as Array<[string, PageEntityState]>) {
       jest
         .spyOn(ModelAPI, "getItem")
-        .mockRejectedValueOnce(new Error("You do not have permission"))
-        .mockResolvedValueOnce(fromApi(titleOnly, modelType));
-      expect(await PageContextUtil.resolveEntityTitle(contextFor(type))).toBe(
-        title,
+        .mockResolvedValueOnce(
+          fromApi(
+            { title: "Checkout unavailable", currentIncidentStateId: stateId },
+            Incident,
+          ),
+        );
+      expect(
+        (await PageContextUtil.resolveEntity(
+          contextFor(AIChatPageContextType.Incident),
+        ))!.state,
+      ).toBe(state);
+
+      jest
+        .spyOn(ModelAPI, "getItem")
+        .mockResolvedValueOnce(
+          fromApi(
+            { title: "Elevated errors", currentAlertStateId: stateId },
+            Alert,
+          ),
+        );
+      expect(
+        (await PageContextUtil.resolveEntity(
+          contextFor(AIChatPageContextType.Alert),
+        ))!.state,
+      ).toBe(state);
+    }
+
+    // Each list is the project's, read through the Dashboard's cached list.
+    expect(incidentStatesRead).toHaveBeenCalledWith(PROJECT_ID);
+    expect(alertStatesRead).toHaveBeenCalledWith(PROJECT_ID);
+  });
+
+  test("a maintenance event is placed by its state, the project's own states included", async () => {
+    for (const [stateId, state] of [
+      [SCHEDULED_STATE_ID, PageEntityState.Upcoming],
+      [CONFIRMED_STATE_ID, PageEntityState.Upcoming],
+      [ONGOING_STATE_ID, PageEntityState.Ongoing],
+      [VERIFYING_STATE_ID, PageEntityState.Ongoing],
+      [ENDED_STATE_ID, PageEntityState.Ended],
+      [COMPLETED_STATE_ID, PageEntityState.Ended],
+    ] as Array<[string, PageEntityState]>) {
+      jest.spyOn(ModelAPI, "getItem").mockResolvedValueOnce(
+        fromApi(
+          {
+            title: "Database upgrade",
+            currentScheduledMaintenanceStateId: stateId,
+          },
+          ScheduledMaintenance,
+        ),
       );
-    },
-  );
 
-  test.each(STATE_READS)(
-    "$type: no read at all, or no record, says nothing",
-    async ({ type }: StateRead) => {
+      expect(
+        (await PageContextUtil.resolveEntity(
+          contextFor(AIChatPageContextType.ScheduledMaintenanceEvent),
+        ))!.state,
+      ).toBe(state);
+    }
+
+    expect(maintenanceStatesRead).toHaveBeenCalledWith(PROJECT_ID);
+  });
+
+  test("states that could not be read, or a state that is none of them: the title, and no state", async () => {
+    for (const [statesRead, type, json, modelType] of [
+      [
+        incidentStatesRead,
+        AIChatPageContextType.Incident,
+        {
+          title: "Checkout unavailable",
+          currentIncidentStateId: RESOLVED_STATE_ID,
+        },
+        Incident,
+      ],
+      [
+        alertStatesRead,
+        AIChatPageContextType.Alert,
+        { title: "Elevated errors", currentAlertStateId: RESOLVED_STATE_ID },
+        Alert,
+      ],
+      [
+        maintenanceStatesRead,
+        AIChatPageContextType.ScheduledMaintenanceEvent,
+        {
+          title: "Database upgrade",
+          currentScheduledMaintenanceStateId: ONGOING_STATE_ID,
+        },
+        ScheduledMaintenance,
+      ],
+    ] as Array<
+      [
+        jest.SpyInstance,
+        AIChatPageContextType,
+        JSONObject,
+        { new (): BaseModel },
+      ]
+    >) {
+      // Refused.
+      statesRead.mockRejectedValueOnce(new Error("Read access denied"));
       jest
         .spyOn(ModelAPI, "getItem")
-        .mockRejectedValue(new Error("Read access denied"));
+        .mockResolvedValueOnce(fromApi(json, modelType));
       expect(
-        await PageContextUtil.resolveEntity(contextFor(type), NOW),
-      ).toBeNull();
+        (await PageContextUtil.resolveEntity(contextFor(type)))!.state,
+      ).toBeUndefined();
 
-      jest.restoreAllMocks();
-      const getItem: ReturnType<typeof jest.spyOn> = jest
+      // None there.
+      statesRead.mockResolvedValueOnce([]);
+      jest
         .spyOn(ModelAPI, "getItem")
-        .mockResolvedValue(null);
+        .mockResolvedValueOnce(fromApi(json, modelType));
       expect(
-        await PageContextUtil.resolveEntity(contextFor(type), NOW),
-      ).toBeNull();
-      // A record that is gone is not read again without its state.
-      expect(getItem).toHaveBeenCalledTimes(1);
-    },
-  );
+        (await PageContextUtil.resolveEntity(contextFor(type)))!.state,
+      ).toBeUndefined();
+    }
 
-  test("a resolved flag that came back false is an open record, not an unread one", async () => {
-    jest.spyOn(ModelAPI, "getItem").mockResolvedValue(
+    // A maintenance event in a state that is none of the project's.
+    jest.spyOn(ModelAPI, "getItem").mockResolvedValueOnce(
+      fromApi(
+        {
+          title: "Database upgrade",
+          currentScheduledMaintenanceStateId: ObjectID.generate().toString(),
+        },
+        ScheduledMaintenance,
+      ),
+    );
+    expect(
+      await PageContextUtil.resolveEntity(
+        contextFor(AIChatPageContextType.ScheduledMaintenanceEvent),
+      ),
+    ).toEqual({ title: "Database upgrade", state: undefined });
+  });
+
+  test("no project open, or a record with no state: no state is read or said", async () => {
+    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(null);
+    jest.spyOn(ModelAPI, "getItem").mockResolvedValueOnce(
       fromApi(
         {
           title: "Checkout unavailable",
-          incidentNumber: 42,
-          currentIncidentState: { isResolvedState: false },
+          currentIncidentStateId: RESOLVED_STATE_ID,
         },
         Incident,
       ),
@@ -427,13 +486,58 @@ describe("one read, each time Ask AI opens: the title and where it stands", () =
       await PageContextUtil.resolveEntity(
         contextFor(AIChatPageContextType.Incident),
       ),
-    ).toEqual({
-      title: "#42 Checkout unavailable",
-      state: PageEntityState.Open,
-    });
+    ).toEqual({ title: "Checkout unavailable", state: undefined });
+    expect(incidentStatesRead).not.toHaveBeenCalled();
+
+    jest.restoreAllMocks();
+    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+    jest
+      .spyOn(IncidentStateUtil, "getIncidentStates")
+      .mockResolvedValue(incidentStates());
+    jest
+      .spyOn(ModelAPI, "getItem")
+      .mockResolvedValueOnce(
+        fromApi({ title: "Checkout unavailable" }, Incident),
+      );
+
+    expect(
+      await PageContextUtil.resolveEntity(
+        contextFor(AIChatPageContextType.Incident),
+      ),
+    ).toEqual({ title: "Checkout unavailable", state: undefined });
   });
 
-  test("a state read without its flag is no state", async () => {
+  test("a monitor's status the person may not read leaves its title, read again without it", async () => {
+    const getItem: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(ModelAPI, "getItem")
+      .mockRejectedValueOnce(new Error("You do not have permission"))
+      .mockResolvedValueOnce(fromApi({ name: "Checkout API" }, Monitor));
+
+    expect(
+      await PageContextUtil.resolveEntity(
+        contextFor(AIChatPageContextType.Monitor),
+      ),
+    ).toEqual({ title: "Checkout API", state: undefined });
+    expect(getItem).toHaveBeenCalledTimes(2);
+    expect(getItem).toHaveBeenLastCalledWith({
+      modelType: Monitor,
+      id: new ObjectID(ENTITY_ID),
+      select: { name: true },
+    });
+
+    // And the chip's title is as it was before the status was read.
+    jest
+      .spyOn(ModelAPI, "getItem")
+      .mockRejectedValueOnce(new Error("You do not have permission"))
+      .mockResolvedValueOnce(fromApi({ name: "Checkout API" }, Monitor));
+    expect(
+      await PageContextUtil.resolveEntityTitle(
+        contextFor(AIChatPageContextType.Monitor),
+      ),
+    ).toBe("Checkout API");
+  });
+
+  test("a monitor's status read without its flag is no state", async () => {
     jest
       .spyOn(ModelAPI, "getItem")
       .mockResolvedValue(
@@ -450,36 +554,23 @@ describe("one read, each time Ask AI opens: the title and where it stands", () =
     ).toEqual({ title: "Checkout API", state: undefined });
   });
 
-  test("a maintenance event's window is read against the time Ask AI opened", async () => {
-    const json: JSONObject = {
-      title: "Database upgrade",
-      startsAt: { _type: "DateTime", value: "2026-10-29T11:00:00.000Z" },
-      endsAt: { _type: "DateTime", value: "2026-10-29T13:00:00.000Z" },
-      // A state of the project's own: no flag says where it is.
-      currentScheduledMaintenanceState: {
-        isScheduledState: false,
-        isOngoingState: false,
-        isEndedState: false,
-        isResolvedState: false,
-      },
-    };
-
-    for (const [now, state] of [
-      [new Date("2026-10-29T10:00:00.000Z"), PageEntityState.Upcoming],
-      [NOW, PageEntityState.Ongoing],
-      [new Date("2026-10-29T13:30:00.000Z"), PageEntityState.Ended],
-    ] as Array<[Date, PageEntityState]>) {
+  test.each(STATE_READS)(
+    "$type: no read at all, or no record, says nothing",
+    async ({ type }: StateRead) => {
       jest
         .spyOn(ModelAPI, "getItem")
-        .mockResolvedValue(fromApi(json, ScheduledMaintenance));
-      expect(
-        (await PageContextUtil.resolveEntity(
-          contextFor(AIChatPageContextType.ScheduledMaintenanceEvent),
-          now,
-        ))!.state,
-      ).toBe(state);
-    }
-  });
+        .mockRejectedValue(new Error("Read access denied"));
+      expect(await PageContextUtil.resolveEntity(contextFor(type))).toBeNull();
+
+      jest.restoreAllMocks();
+      const getItem: ReturnType<typeof jest.spyOn> = jest
+        .spyOn(ModelAPI, "getItem")
+        .mockResolvedValue(null);
+      expect(await PageContextUtil.resolveEntity(contextFor(type))).toBeNull();
+      // A record that is gone is not read again.
+      expect(getItem).toHaveBeenCalledTimes(1);
+    },
+  );
 
   test.each<
     [
@@ -558,6 +649,7 @@ describe("one read, each time Ask AI opens: the title and where it stands", () =
 
       expect(await PageContextUtil.resolveEntity(context)).toBeNull();
       expect(getItem).not.toHaveBeenCalled();
+      expect(incidentStatesRead).not.toHaveBeenCalled();
     },
   );
 

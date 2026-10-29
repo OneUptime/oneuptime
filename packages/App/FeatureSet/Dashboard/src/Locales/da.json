@@ -37003,5 +37003,9 @@
   "Was this alert a real problem or noise? Check the logs, traces and metrics from around when it fired.": "Var denne advarsel et reelt problem eller bare støj? Tjek logs, spor og metrikker omkring tidspunktet, hvor den blev udløst.",
   "What would stop this incident from happening again? Base it on its root cause and on similar past incidents.": "Hvad ville forhindre, at denne hændelse sker igen? Byg på dens grundårsag og på lignende tidligere hændelser.",
   "Why is this monitor not operational right now? Investigate the telemetry from around when its status changed.": "Hvorfor er denne monitor ikke i drift lige nu? Undersøg telemetrien omkring tidspunktet, hvor dens status ændrede sig.",
-  "Why not operational?": "Hvorfor ikke i drift?"
+  "Why not operational?": "Hvorfor ikke i drift?",
+  "OneUptime AI uses the default LLM provider for production reviews, unless you pick another.": "OneUptime AI bruger standard-LLM-udbyderen til produktionsgennemgange, medmindre du vælger en anden.",
+  "Production Review LLM Provider": "LLM-udbyder til produktionsgennemgang",
+  "Production Review LLM Provider ID": "LLM-udbyder-ID til produktionsgennemgang",
+  "The LLM provider OneUptime AI reads pull requests with in production reviews.": "LLM-udbyderen, som OneUptime AI læser pull requests med i produktionsgennemgange."
 }

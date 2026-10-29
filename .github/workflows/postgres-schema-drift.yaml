@@ -2188,6 +2188,25 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Infrastructure/Postgres/AddAutoRemediationRuleRunnerPostgres.test.ts --forceExit
 
+      # The LLM provider a repository's production reviews use, on migrated
+      # Postgres: the two migrations on a copy of the table that already
+      # holds repositories (the column added without a backfill, its index
+      # and key built online and safe to build again), and a provider
+      # deleted while repositories point at it - every repository that
+      # picked it picks none, the others keep theirs.
+      - name: Test the production reviews' LLM provider on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PRODUCTION_REVIEW_LLM_PROVIDER_TESTS: "true"
+          PRODUCTION_REVIEW_LLM_PROVIDER_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PRODUCTION_REVIEW_LLM_PROVIDER_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PRODUCTION_REVIEW_LLM_PROVIDER_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/AddCodeRepositoryProductionReviewLlmProviderPostgres.test.ts
+          --forceExit
+
       # One Docker host, Podman host and host per name (#5214), on migrated
       # Postgres: MergeDuplicateHostsAndAddUniqueHostIdentifier on copies of
       # the host tables and of every table the catalog lists as referring to

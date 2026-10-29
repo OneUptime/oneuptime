@@ -37003,5 +37003,9 @@
   "Was this alert a real problem or noise? Check the logs, traces and metrics from around when it fired.": "Was this alert a real problem or noise? Check the logs, traces and metrics from around when it fired.",
   "What would stop this incident from happening again? Base it on its root cause and on similar past incidents.": "What would stop this incident from happening again? Base it on its root cause and on similar past incidents.",
   "Why is this monitor not operational right now? Investigate the telemetry from around when its status changed.": "Why is this monitor not operational right now? Investigate the telemetry from around when its status changed.",
-  "Why not operational?": "Why not operational?"
+  "Why not operational?": "Why not operational?",
+  "OneUptime AI uses the default LLM provider for production reviews, unless you pick another.": "OneUptime AI uses the default LLM provider for production reviews, unless you pick another.",
+  "Production Review LLM Provider": "Production Review LLM Provider",
+  "Production Review LLM Provider ID": "Production Review LLM Provider ID",
+  "The LLM provider OneUptime AI reads pull requests with in production reviews.": "The LLM provider OneUptime AI reads pull requests with in production reviews."
 }

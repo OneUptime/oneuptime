@@ -271,9 +271,10 @@ describe("Ask AI", () => {
   /*
    * The questions follow where the record on screen stands (the follow-up
    * #5273 listed): the read that names the chip also reads the record's
-   * state, each time Ask AI opens (useAiChat's resolveEntity), and the
-   * states named here are the ones PageEntityState gives questions of
-   * their own.
+   * state, each time Ask AI opens (useAiChat's resolveEntity) - resolved
+   * and where a maintenance event is in its life asked of the one rule
+   * (ResolvedStateUtil, ScheduledMaintenanceStartUtil) - and the states
+   * named here are the ones PageEntityState gives questions of their own.
    */
   it("says the questions follow where the record stands, read each time Ask AI opens", () => {
     const context: string = flat(
@@ -287,10 +288,12 @@ describe("Ask AI", () => {
 
     expect(hook).toContain("PageContextUtil.resolveEntity(detected)");
     for (const stateRead of [
-      "currentIncidentState: { isResolvedState: true }",
-      "currentAlertState: { isResolvedState: true }",
+      "currentIncidentStateId: true",
+      "currentAlertStateId: true",
       "currentMonitorStatus: { isOperationalState: true }",
-      "currentScheduledMaintenanceState: { isScheduledState: true,",
+      "currentScheduledMaintenanceStateId: true",
+      "ResolvedStateUtil.isResolved({",
+      "ScheduledMaintenanceStartUtil.getPhase({",
     ]) {
       expect(context).toContain(stateRead);
     }
@@ -2409,6 +2412,49 @@ describe("Production review of pull requests", () => {
     );
     expect(section).toContain(
       `adds ${bold("What to watch")}: a few short points`,
+    );
+  });
+
+  /*
+   * The LLM provider OneUptime AI's read uses (the follow-up #5273 listed):
+   * the repository's pick, on a card of its own under More settings, else
+   * the project's default provider, else a global one - decided as an AI
+   * rule's pick is (LlmProviderChoice) and handed to the read's one call.
+   */
+  it("names the provider pick as the page draws it, and reads with it as the server does", () => {
+    const copy: string = flat(
+      dashboardSource("Components/Code/CodeProductionReviewCopy.ts"),
+    );
+    const settings: string = flat(
+      dashboardSource("Pages/Code/Repository/Settings.tsx"),
+    );
+    const runner: string = flat(
+      readRepoFile(
+        "Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewRunner.ts",
+      ),
+    );
+    const read: string = flat(
+      readRepoFile(
+        "Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewAI.ts",
+      ),
+    );
+
+    expect(copy).toContain(
+      'providerCardTitle: translationKey("Production Review LLM Provider"),',
+    );
+    expect(
+      isUnderMoreSettings(
+        settings,
+        "id: CodeRepositorySetting.ProductionReviewLlmProvider",
+      ),
+    ).toBe(true);
+    expect(runner).toContain("productionReviewLlmProviderId: true,");
+    expect(runner).toContain(
+      "await LlmProviderChoice.decideIfPicked({ projectId, pickedProviderId: data.pickedLlmProviderId, });",
+    );
+    expect(read).toContain("llmProviderId: data.llmProviderId,");
+    expect(section).toContain(
+      `It reads with the project's default LLM provider, unless ${bold("Production Review LLM Provider")}, under ${bold("More settings")} on the repository's ${bold("Settings")} page, picks another of the project's providers or a global one.`,
     );
   });
 

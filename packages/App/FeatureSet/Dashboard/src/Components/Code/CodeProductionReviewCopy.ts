@@ -437,6 +437,9 @@ export const PRODUCTION_REVIEW_SETTINGS_COPY: {
   contentCardTitle: string;
   contentCardDescription: string;
   contentFieldTitle: string;
+  providerCardTitle: string;
+  providerCardDescription: string;
+  providerFieldDescription: string;
 } = {
   cardTitle: translationKey("Production Review"),
   switchTitle: translationKey("Review Pull Requests Against Production"),
@@ -448,6 +451,18 @@ export const PRODUCTION_REVIEW_SETTINGS_COPY: {
     "What a production review posts on a pull request.",
   ),
   contentFieldTitle: translationKey("What the Comment Shows"),
+  /*
+   * The LLM provider OneUptime AI reads the pull requests with: the card's
+   * line says what it is for, the field's what empty means - the box names
+   * the default it stands for.
+   */
+  providerCardTitle: translationKey("Production Review LLM Provider"),
+  providerCardDescription: translationKey(
+    "The LLM provider OneUptime AI reads pull requests with in production reviews.",
+  ),
+  providerFieldDescription: translationKey(
+    "OneUptime AI uses the default LLM provider for production reviews, unless you pick another.",
+  ),
 };
 
 // The repository's choice, read: unset or unknown is the default (Review).

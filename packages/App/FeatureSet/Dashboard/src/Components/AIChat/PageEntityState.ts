@@ -1,6 +1,7 @@
 import type { SuggestedQuestion } from "./PageContext";
 import AIChatPageContextType from "Common/Types/AI/AIChatPageContext";
 import IconProp from "Common/Types/Icon/IconProp";
+import { ScheduledMaintenancePhaseOfState } from "Common/Utils/ScheduledMaintenanceStart";
 
 /*
  * Where the record Ask AI was opened on stands, read with its title each
@@ -38,17 +39,20 @@ export function isPageEntityState(value: unknown): value is PageEntityState {
 }
 
 /*
- * An incident or an alert, from its current state's isResolvedState: only
- * a flag that was read says which. A state read without it is no state.
+ * An incident or an alert, from whether its state counts as resolved - the
+ * one rule every part of OneUptime asks (Common/Utils/ResolvedState: its
+ * place at or below the project's resolved state, so a state of the
+ * project's own after Resolved, "Closed", is resolved too). Unknown - the
+ * states could not be read - is no state.
  */
 export function getResolvableEntityState(
-  isResolvedState: unknown,
+  isResolved: boolean | null | undefined,
 ): PageEntityState | undefined {
-  if (isResolvedState === true) {
+  if (isResolved === true) {
     return PageEntityState.Resolved;
   }
 
-  if (isResolvedState === false) {
+  if (isResolved === false) {
     return PageEntityState.Open;
   }
 
@@ -70,68 +74,25 @@ export function getMonitorEntityState(
   return undefined;
 }
 
-export interface ScheduledMaintenanceStateFacts {
-  isScheduledState?: unknown;
-  isOngoingState?: unknown;
-  isEndedState?: unknown;
-  isResolvedState?: unknown;
-  startsAt?: unknown;
-  endsAt?: unknown;
-  now: Date;
-}
-
-function toTime(value: unknown): number | null {
-  if (value === undefined || value === null || value === "") {
-    return null;
-  }
-
-  const time: number =
-    value instanceof Date
-      ? value.getTime()
-      : typeof value === "string" || typeof value === "number"
-        ? new Date(value).getTime()
-        : Number.NaN;
-
-  return Number.isFinite(time) ? time : null;
-}
-
 /*
- * A scheduled maintenance event, from its current state's flags - what the
- * product says the event is - and, for a state of the project's own that
- * carries none of them, from its window.
+ * A scheduled maintenance event, from where it is in its life by the state
+ * it is in - the one rule the server, the status pages and the Dashboard's
+ * header ask (Common/Utils/ScheduledMaintenanceStart.getPhase): not started,
+ * in progress, or over. Unknown is no state.
  */
 export function getScheduledMaintenanceEntityState(
-  facts: ScheduledMaintenanceStateFacts,
+  phase: ScheduledMaintenancePhaseOfState | null | undefined,
 ): PageEntityState | undefined {
-  if (facts.isEndedState === true || facts.isResolvedState === true) {
-    return PageEntityState.Ended;
+  switch (phase) {
+    case ScheduledMaintenancePhaseOfState.NotStarted:
+      return PageEntityState.Upcoming;
+    case ScheduledMaintenancePhaseOfState.InProgress:
+      return PageEntityState.Ongoing;
+    case ScheduledMaintenancePhaseOfState.Over:
+      return PageEntityState.Ended;
+    default:
+      return undefined;
   }
-
-  if (facts.isOngoingState === true) {
-    return PageEntityState.Ongoing;
-  }
-
-  if (facts.isScheduledState === true) {
-    return PageEntityState.Upcoming;
-  }
-
-  const now: number = facts.now.getTime();
-  const startsAt: number | null = toTime(facts.startsAt);
-  const endsAt: number | null = toTime(facts.endsAt);
-
-  if (startsAt === null || !Number.isFinite(now)) {
-    return undefined;
-  }
-
-  if (now < startsAt) {
-    return PageEntityState.Upcoming;
-  }
-
-  if (endsAt !== null && now >= endsAt) {
-    return PageEntityState.Ended;
-  }
-
-  return PageEntityState.Ongoing;
 }
 
 /*
