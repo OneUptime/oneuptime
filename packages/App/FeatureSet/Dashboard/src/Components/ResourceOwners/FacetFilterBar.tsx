@@ -72,7 +72,7 @@ const FacetFilterBar: FunctionComponent<ComponentProps> = (
   const [isOpenOnPhone, setIsOpenOnPhone] = useState<boolean>(false);
   const barId: string = `${useId()}-filter-bar`;
   const isFolded: boolean = isPhone && !isOpenOnPhone;
-  const filterText: string = translator.translateText("Filter");
+  const filterText: string = translator.translateText("Filter") || "Filter";
 
   const label: ReactElement = (
     <>
