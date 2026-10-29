@@ -1260,6 +1260,8 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         return { id: columnId, cellNumber: index + 1 };
       },
     ),
+    // The list draws it in the cell that ends its rows (LogsTable).
+    hasOwnReset: true,
   });
 
   const availableColumns: Array<LogsTableColumnOption> = useMemo(() => {

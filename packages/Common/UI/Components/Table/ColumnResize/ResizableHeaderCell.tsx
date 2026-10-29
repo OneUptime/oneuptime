@@ -1,4 +1,9 @@
 import ColumnResizeHandle from "./ColumnResizeHandle";
+import ResetColumnWidthsButton from "./ResetColumnWidthsButton";
+import {
+  RESIZABLE_HEADER_RESET_CONTENT_CLASS_NAME,
+  RESIZABLE_HEADER_RESET_ROW_CLASS_NAME,
+} from "../TableLayout";
 import {
   ColumnWidths,
   HeaderCellWidthStyle,
@@ -12,7 +17,10 @@ import React, { FunctionComponent, ReactElement, ReactNode } from "react";
  * A header cell of a table a page draws itself, with the edge a person
  * drags to size its column (ColumnResizeHandle) and the width they kept -
  * read for this column alone, so keeping a width draws this one cell
- * again. Without `resize` it is the <th> it always was.
+ * again. The row's last also draws Reset column widths, after its name,
+ * while a column is sized and the table's card has no ⋯ to keep it in
+ * (ResizableColumns' resetColumnId). Without `resize` it is the <th> it
+ * always was.
  */
 
 /*
@@ -49,6 +57,8 @@ const ResizableHeaderCellWithEdge: FunctionComponent<
       ? undefined
       : getHeaderCellWidthStyle(keptWidth, resize.kind);
 
+  const isResetHere: boolean = resize.columns.resetColumnId === columnId;
+
   return (
     <th
       {...rest}
@@ -61,7 +71,20 @@ const ResizableHeaderCellWithEdge: FunctionComponent<
       className={[className, "relative"].filter(Boolean).join(" ")}
       style={{ ...(style || {}), ...(widthStyle || {}) }}
     >
-      {children}
+      {isResetHere ? (
+        <div className={RESIZABLE_HEADER_RESET_ROW_CLASS_NAME}>
+          <div className={RESIZABLE_HEADER_RESET_CONTENT_CLASS_NAME}>
+            {children}
+          </div>
+          <ResetColumnWidthsButton
+            onClick={() => {
+              resize.columns.columnWidths.resetColumnWidths();
+            }}
+          />
+        </div>
+      ) : (
+        children
+      )}
       <ColumnResizeHandle
         columnId={columnId}
         columnTitle={resize.columnTitle}

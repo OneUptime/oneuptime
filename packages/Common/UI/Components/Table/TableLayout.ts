@@ -283,6 +283,19 @@ export const TABLE_END_FILLER_CONTENT_CLASS_NAME: string =
   "flex items-center justify-end py-1.5 pl-3 pr-6";
 
 /*
+ * ...and the last header cell of a table a page draws itself
+ * (ResizableHeaderCell), which has no filler: the column's name as it was,
+ * taking the room, and the reset after it, at the row's end - clear of the
+ * column's edge, which takes the cell's last 12px (24px on a touch screen)
+ * whatever padding the page gave the cell.
+ */
+export const RESIZABLE_HEADER_RESET_ROW_CLASS_NAME: string =
+  "flex items-center gap-2 pr-3 [@media(pointer:coarse)]:pr-6";
+
+export const RESIZABLE_HEADER_RESET_CONTENT_CLASS_NAME: string =
+  "min-w-0 flex-1";
+
+/*
  * The 30px row button and ⋯ sit centred on the row's 24px line: 3px above
  * and below it are taken back, so a row of one line is 48px tall with or
  * without its buttons. leading-none: the ⋯'s box would otherwise add the

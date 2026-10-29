@@ -11,8 +11,10 @@ import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnW
  * source's table, the traces table and every resource list. Each widget
  * keeps its own widths for each person - two lists of hosts on two
  * dashboards are sized apart - on a public dashboard for whoever reads it.
- * A widget has no ⋯ to keep a Reset column widths in: a column's edge
- * fits it on a double-click, and gives it back to the widget on Delete.
+ * A widget has no ⋯ to keep a Reset column widths in: while a column is
+ * sized, it is beside the last column's name (ResizableHeaderCell), and a
+ * column's edge fits it on a double-click and gives it back to the widget
+ * on Delete.
  */
 
 // Which widget is drawn: the id its dashboard gives it (DashboardBaseComponent).

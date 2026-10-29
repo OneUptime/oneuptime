@@ -37,7 +37,10 @@ import React, { ReactElement, useId, useLayoutEffect, useRef } from "react";
  *     made narrower would not narrow - each read alone, so a width kept
  *     never draws the table's rows again;
  *   - Reset column widths in the ⋯ of the card the table is in, while a
- *     column is sized, as the shared Table puts it (CardMenuExtras);
+ *     column is sized, as the shared Table puts it (CardMenuExtras) - or,
+ *     with no ⋯ to keep it in, at the header row's end: beside the last
+ *     column's name (resetColumnId), as the shared Table draws it in its
+ *     last header cell;
  *   - and what a column's edge tells the table as it is dragged.
  *
  * Each header cell then draws itself with ResizableHeaderCell.
@@ -55,6 +58,12 @@ export interface ResizableColumns {
   areAllColumnsSized: boolean;
   // Whether the card the table is in keeps its Reset column widths in its ⋯.
   isResetInCardMenu: boolean;
+  /*
+   * The column whose header cell draws Reset column widths - the row's
+   * last - while a column is sized and there is no ⋯ to keep it in; else
+   * none.
+   */
+  resetColumnId: string | undefined;
   onResizeStart: (columnId: string, headerCell: HTMLTableCellElement) => void;
   onResizeEnd: (columnId: string) => void;
   /*
@@ -93,9 +102,15 @@ const useResizableColumns: (data: {
   tableKey: string | null;
   // The columns a person may size, each with its place among its row's cells.
   columns: ReadonlyArray<SizedColumn>;
+  /*
+   * The table draws Reset column widths itself, at its header row's end
+   * (the logs list, in the cell that ends its rows): no header cell does.
+   */
+  hasOwnReset?: boolean | undefined;
 }) => ResizableColumns = (data: {
   tableKey: string | null;
   columns: ReadonlyArray<SizedColumn>;
+  hasOwnReset?: boolean | undefined;
 }): ResizableColumns => {
   const columnWidths: UseColumnWidthsResult = useColumnWidths({
     tableKey: data.tableKey,
@@ -159,6 +174,18 @@ const useResizableColumns: (data: {
     };
   }, [setCardMenuItem, hasColumnWidths, scope]);
 
+  const isResetInCardMenu: boolean = Boolean(
+    cardMenuExtras && cardMenuExtras.menuCount > 0,
+  );
+
+  // The row's last column: the one at the header row's end.
+  const lastColumn: SizedColumn | undefined = data.columns.reduce(
+    (last: SizedColumn | undefined, column: SizedColumn) => {
+      return !last || column.cellNumber > last.cellNumber ? column : last;
+    },
+    undefined,
+  );
+
   const resizableColumns: ResizableColumns = {
     columnWidths: columnWidths,
     tableAttributes: { [COLUMN_WIDTHS_SCOPE_ATTRIBUTE]: scope },
@@ -174,7 +201,11 @@ const useResizableColumns: (data: {
     ),
     hasColumnWidths: hasColumnWidths,
     areAllColumnsSized: areAllColumnsSized,
-    isResetInCardMenu: Boolean(cardMenuExtras && cardMenuExtras.menuCount > 0),
+    isResetInCardMenu: isResetInCardMenu,
+    resetColumnId:
+      !data.hasOwnReset && hasColumnWidths && !isResetInCardMenu
+        ? lastColumn?.id
+        : undefined,
     onResizeStart: (
       _columnId: string,
       headerCell: HTMLTableCellElement,
