@@ -1140,11 +1140,15 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
                   className="px-4 py-2 text-left font-medium text-gray-500"
                   resize={resizableColumns.getResize(
                     "group",
-                    translator.translateText(dimension.columnTitle) || dimension.columnTitle,
+                    translator.translateText(dimension.columnTitle) ||
+                      dimension.columnTitle,
                     ColumnWidthKind.Name,
                   )}
                 >
-                  <span>{translator.translateText(dimension.columnTitle) || dimension.columnTitle}</span>
+                  <span>
+                    {translator.translateText(dimension.columnTitle) ||
+                      dimension.columnTitle}
+                  </span>
                 </ResizableHeaderCell>
                 <ResizableHeaderCell
                   className="px-4 py-2 text-right font-medium text-gray-500"
@@ -1164,17 +1168,23 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
                     ColumnWidthKind.Whole,
                   )}
                 >
-                  <span>{translator.translateText("Input tokens") || "Input tokens"}</span>
+                  <span>
+                    {translator.translateText("Input tokens") || "Input tokens"}
+                  </span>
                 </ResizableHeaderCell>
                 <ResizableHeaderCell
                   className="px-4 py-2 text-right font-medium text-gray-500"
                   resize={resizableColumns.getResize(
                     "outputTokens",
-                    translator.translateText("Output tokens") || "Output tokens",
+                    translator.translateText("Output tokens") ||
+                      "Output tokens",
                     ColumnWidthKind.Whole,
                   )}
                 >
-                  <span>{translator.translateText("Output tokens") || "Output tokens"}</span>
+                  <span>
+                    {translator.translateText("Output tokens") ||
+                      "Output tokens"}
+                  </span>
                 </ResizableHeaderCell>
                 <ResizableHeaderCell
                   className="px-4 py-2 text-right font-medium text-gray-500"
@@ -1184,7 +1194,9 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
                     ColumnWidthKind.Whole,
                   )}
                 >
-                  <span>{translator.translateText("Total tokens") || "Total tokens"}</span>
+                  <span>
+                    {translator.translateText("Total tokens") || "Total tokens"}
+                  </span>
                 </ResizableHeaderCell>
                 <ResizableHeaderCell
                   className="px-4 py-2 text-right font-medium text-gray-500"
@@ -1194,7 +1206,9 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
                     ColumnWidthKind.Whole,
                   )}
                 >
-                  <span>{translator.translateText("Cost (USD)") || "Cost (USD)"}</span>
+                  <span>
+                    {translator.translateText("Cost (USD)") || "Cost (USD)"}
+                  </span>
                 </ResizableHeaderCell>
                 <ResizableHeaderCell
                   className="px-4 py-2 text-left font-medium text-gray-500"

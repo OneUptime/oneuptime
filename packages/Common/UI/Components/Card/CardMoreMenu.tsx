@@ -7,11 +7,7 @@ import {
   CardMenuExtras,
   useCardMenuExtras,
 } from "./CardMenuExtras";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useLayoutEffect,
-} from "react";
+import React, { FunctionComponent, ReactElement, useLayoutEffect } from "react";
 
 export interface ComponentProps {
   children: Array<ReactElement>;

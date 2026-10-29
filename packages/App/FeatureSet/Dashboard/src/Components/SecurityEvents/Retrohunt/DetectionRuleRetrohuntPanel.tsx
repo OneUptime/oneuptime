@@ -432,7 +432,9 @@ const RetrohuntGroups: FunctionComponent<GroupsProps> = (
                 ColumnWidthKind.Name,
               )}
             >
-              <span>{translator.translateText(FIRED_FOR_COLUMN) || FIRED_FOR_COLUMN}</span>
+              <span>
+                {translator.translateText(FIRED_FOR_COLUMN) || FIRED_FOR_COLUMN}
+              </span>
             </ResizableHeaderCell>
             {props.isCorrelation ? (
               <></>
@@ -446,7 +448,9 @@ const RetrohuntGroups: FunctionComponent<GroupsProps> = (
                   ColumnWidthKind.Whole,
                 )}
               >
-                <span>{translator.translateText(TIMES_COLUMN) || TIMES_COLUMN}</span>
+                <span>
+                  {translator.translateText(TIMES_COLUMN) || TIMES_COLUMN}
+                </span>
               </ResizableHeaderCell>
             )}
             <ResizableHeaderCell
@@ -458,7 +462,9 @@ const RetrohuntGroups: FunctionComponent<GroupsProps> = (
                 ColumnWidthKind.Whole,
               )}
             >
-              <span>{translator.translateText(EVENTS_COLUMN) || EVENTS_COLUMN}</span>
+              <span>
+                {translator.translateText(EVENTS_COLUMN) || EVENTS_COLUMN}
+              </span>
             </ResizableHeaderCell>
             {props.isCorrelation ? (
               <></>
@@ -468,11 +474,15 @@ const RetrohuntGroups: FunctionComponent<GroupsProps> = (
                 className="px-3 py-2 text-start text-xs font-medium text-gray-500 max-sm:hidden"
                 resize={groupColumns.getResize(
                   "lastFired",
-                  translator.translateText(LAST_FIRED_COLUMN) || LAST_FIRED_COLUMN,
+                  translator.translateText(LAST_FIRED_COLUMN) ||
+                    LAST_FIRED_COLUMN,
                   ColumnWidthKind.Whole,
                 )}
               >
-                <span>{translator.translateText(LAST_FIRED_COLUMN) || LAST_FIRED_COLUMN}</span>
+                <span>
+                  {translator.translateText(LAST_FIRED_COLUMN) ||
+                    LAST_FIRED_COLUMN}
+                </span>
               </ResizableHeaderCell>
             )}
           </tr>

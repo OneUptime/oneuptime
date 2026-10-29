@@ -1,5 +1,12 @@
 import "@testing-library/jest-dom";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import { act, cleanup, render } from "@testing-library/react";
 import React, { ReactElement } from "react";
 import useColumnWidths, {
@@ -269,7 +276,10 @@ describe("another tab, another table", () => {
       harness.latest().setColumnWidth("title", 410);
     });
 
-    window.localStorage.setItem(keyOf("alerts-table"), JSON.stringify({ x: 1 }));
+    window.localStorage.setItem(
+      keyOf("alerts-table"),
+      JSON.stringify({ x: 1 }),
+    );
 
     act(() => {
       window.dispatchEvent(

@@ -786,7 +786,9 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                   {isSelected && props.renderExpandedContent && (
                     <tr className="bg-white">
                       <td
-                        colSpan={selectedColumns.length + (hasEndFiller ? 1 : 0)}
+                        colSpan={
+                          selectedColumns.length + (hasEndFiller ? 1 : 0)
+                        }
                         className="px-6 pb-6 pt-3"
                       >
                         {props.renderExpandedContent(log)}

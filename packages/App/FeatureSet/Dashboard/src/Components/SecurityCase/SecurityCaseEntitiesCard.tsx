@@ -354,7 +354,9 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
                       ColumnWidthKind.Name,
                     )}
                   >
-                    <span>{translator.translateText("Entity") || "Entity"}</span>
+                    <span>
+                      {translator.translateText("Entity") || "Entity"}
+                    </span>
                   </ResizableHeaderCell>
                   <ResizableHeaderCell
                     scope="col"
@@ -370,16 +372,18 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
                   <ResizableHeaderCell
                     scope="col"
                     className={`${headerCellClassName} text-right`}
-                  title={translator.translateText(
-                    "Security events naming it in the last 7 days",
-                  )}
+                    title={translator.translateText(
+                      "Security events naming it in the last 7 days",
+                    )}
                     resize={entityColumns.getResize(
                       "events",
                       translator.translateText("Events") || "Events",
                       ColumnWidthKind.Whole,
                     )}
                   >
-                    <span>{translator.translateText("Events") || "Events"}</span>
+                    <span>
+                      {translator.translateText("Events") || "Events"}
+                    </span>
                   </ResizableHeaderCell>
                   <ResizableHeaderCell
                     scope="col"
@@ -390,18 +394,24 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
                       ColumnWidthKind.Whole,
                     )}
                   >
-                    <span>{translator.translateText("Findings") || "Findings"}</span>
+                    <span>
+                      {translator.translateText("Findings") || "Findings"}
+                    </span>
                   </ResizableHeaderCell>
                   <ResizableHeaderCell
                     scope="col"
                     className={`${headerCellClassName} ${ENTITIES_TABLE_WIDE_ONLY_CLASS_NAME}`}
                     resize={entityColumns.getResize(
                       "worstSeverity",
-                      translator.translateText("Worst Severity") || "Worst Severity",
+                      translator.translateText("Worst Severity") ||
+                        "Worst Severity",
                       ColumnWidthKind.Whole,
                     )}
                   >
-                    <span>{translator.translateText("Worst Severity") || "Worst Severity"}</span>
+                    <span>
+                      {translator.translateText("Worst Severity") ||
+                        "Worst Severity"}
+                    </span>
                   </ResizableHeaderCell>
                   <ResizableHeaderCell
                     scope="col"
@@ -412,18 +422,25 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
                       ColumnWidthKind.Whole,
                     )}
                   >
-                    <span>{translator.translateText("Last Seen") || "Last Seen"}</span>
+                    <span>
+                      {translator.translateText("Last Seen") || "Last Seen"}
+                    </span>
                   </ResizableHeaderCell>
                   <ResizableHeaderCell
                     scope="col"
                     className={`${headerCellClassName} ${ENTITIES_TABLE_RISK_COLUMN_CLASS_NAME}`}
                     resize={entityColumns.getResize(
                       "risk",
-                      translator.translateText(CASE_ENTITY_RISK_COLUMN_TITLE) || CASE_ENTITY_RISK_COLUMN_TITLE,
+                      translator.translateText(CASE_ENTITY_RISK_COLUMN_TITLE) ||
+                        CASE_ENTITY_RISK_COLUMN_TITLE,
                       ColumnWidthKind.Whole,
                     )}
                   >
-                    <span>{translator.translateText(CASE_ENTITY_RISK_COLUMN_TITLE) || CASE_ENTITY_RISK_COLUMN_TITLE}</span>
+                    <span>
+                      {translator.translateText(
+                        CASE_ENTITY_RISK_COLUMN_TITLE,
+                      ) || CASE_ENTITY_RISK_COLUMN_TITLE}
+                    </span>
                   </ResizableHeaderCell>
                 </tr>
               </thead>

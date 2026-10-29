@@ -54,5 +54,6 @@ export const COLUMN_RESIZE_GUIDE_CLASS_NAME: string =
   "pointer-events-none absolute top-full right-0 w-0.5 bg-indigo-500 opacity-40";
 
 // The test ids an edge carries, for the suites that drive it.
-export const COLUMN_RESIZE_HANDLE_TEST_ID: string = "table-column-resize-handle";
+export const COLUMN_RESIZE_HANDLE_TEST_ID: string =
+  "table-column-resize-handle";
 export const COLUMN_RESIZE_GUIDE_TEST_ID: string = "table-column-resize-guide";

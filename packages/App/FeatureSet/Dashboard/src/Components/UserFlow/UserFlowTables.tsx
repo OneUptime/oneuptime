@@ -214,7 +214,10 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
     columns: [
       { id: "page", cellNumber: 1 },
       ...PAGE_COLUMNS.map(
-        (column: PageColumn, index: number): { id: string; cellNumber: number } => {
+        (
+          column: PageColumn,
+          index: number,
+        ): { id: string; cellNumber: number } => {
           return { id: column.key, cellNumber: index + 2 };
         },
       ),
