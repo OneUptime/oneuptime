@@ -229,7 +229,7 @@ Para publicar en un canal, añade una regla en **Productos → Eventos de seguri
 | Prioridad del caso de seguridad | Una de las prioridades de caso del proyecto, como Crítico o Alta |
 | Título del caso de seguridad, Descripción del caso de seguridad | Un texto que el título o la descripción del caso contiene, por el que empieza o con el que termina |
 | Estado del caso de seguridad | Uno de los estados de caso del proyecto, como Nuevo o Cerrado |
-| Origen del caso de seguridad | Regla de detección, Inteligencia de amenazas, Connected Product, Riesgo de entidades, Data Security o Manual |
+| Origen del caso de seguridad | Regla de detección, Inteligencia de amenazas, Connected Product, Riesgo de entidades, Seguridad de datos o Manual |
 | Etiquetas del caso de seguridad | Las etiquetas del caso |
 
 Cada notificación, salvo la de una tarea, se publica en los canales de todas las reglas con las que coincide el caso en ese momento. Una regla en la que **Prioridad del caso de seguridad** contiene cualquiera de **Crítico** y **Alta** publica los casos de prioridad Alta y Crítico en cuanto se abren, y un caso Medium cuando sube a Alta. Un caso de seguridad nunca tiene un canal propio.
@@ -281,6 +281,8 @@ Un playbook deshabilitado no se ejecuta ni por sí solo ni a mano.
 | Contención | Unsuspend the user in Okta | Levanta en Okta la suspensión del usuario del que trata el caso |
 | Contención | Lift containment in CrowdStrike | Levanta la contención de red que CrowdStrike Falcon aplica al host del que trata el caso |
 | Contención | Release the device in Microsoft Defender | Libera del aislamiento en Microsoft Defender for Endpoint al host del que trata el caso |
+| Contención | Bloquear el acceso público a los almacenes de datos | Bloquea el acceso público a cada bucket o cuenta de almacenamiento del que trata el caso, a través de su conexión a la nube |
+| Contención | Revocar el uso compartido de almacenes de datos | Deja de compartir fuera de tus cuentas las instantáneas de cada base de datos de la que trata el caso, a través de su conexión a la nube |
 | Automatización | Send a webhook | Envía el caso como JSON a una URL |
 | Automatización | Run a workflow | Inicia un flujo de trabajo de OneUptime con el caso como entrada |
 | Automatización | Run a runbook | Inicia uno de tus runbooks de OneUptime con el caso como entradas |
@@ -288,7 +290,7 @@ Un playbook deshabilitado no se ejecuta ni por sí solo ni a mano.
 
 Un playbook tiene como máximo 25 pasos. Se ejecutan en orden, cada uno cuando ha terminado el anterior. Además, cada paso puede:
 
-- **Requiere aprobación**: detener la ejecución antes del paso hasta que alguien lo apruebe en el caso. Los cuatro pasos que dejan a alguien sin acceso siempre se detienen, salvo que un Security Admin lo desactive. **Run a runbook** y **Post a status page announcement** empiezan con la aprobación activada, porque uno ejecuta comandos en tus sistemas y el otro habla con tus clientes; quien añade el paso puede desactivarla.
+- **Requiere aprobación**: detener la ejecución antes del paso hasta que alguien lo apruebe en el caso. Los cuatro pasos que dejan a alguien sin acceso siempre se detienen, salvo que un Security Admin lo desactive. **Run a runbook**, **Post a status page announcement** y los dos pasos de almacenes de datos empiezan con la aprobación activada, porque ejecutan comandos en tus sistemas, hablan con tus clientes o cambian los ajustes de una nube; quien añade el paso puede desactivarla.
 - **Solo si hubo coincidencia de inteligencia de amenazas**: omitir el paso salvo que un paso **Comprobar las entidades con la inteligencia de amenazas** anterior de la misma ejecución haya encontrado un indicador conocido.
 - **Continuar si falla**: ejecutar el paso siguiente aunque este falle. Si está desactivado, un paso fallido detiene la ejecución.
 
@@ -303,20 +305,23 @@ Cuatro pasos actúan a través del resto de OneUptime en lugar de un producto co
 
 ### Contención
 
-Los pasos de contención actúan a través de una [conexión de eventos de seguridad](/docs/telemetry/security-events#conectar-un-producto-de-seguridad) con el producto, y esa conexión necesita algo más que acceso de lectura:
+Los pasos de contención actúan a través de una conexión que necesita algo más que acceso de lectura: una [conexión de eventos de seguridad](/docs/telemetry/security-events#conectar-un-producto-de-seguridad) con el producto, o la [conexión a la nube](/docs/telemetry/cloud-accounts) del almacén de datos:
 
 | Paso | Conexión | Necesita |
 | --- | --- | --- |
 | Suspend the user in Okta, End the user's Okta sessions, Unsuspend the user in Okta | Okta System Log | Un token de API con permiso para gestionar usuarios |
 | Contain the host in CrowdStrike, Lift containment in CrowdStrike | CrowdStrike Falcon | Un cliente de API con permiso de escritura en el ámbito Hosts |
 | Isolate the device in Microsoft Defender, Release the device in Microsoft Defender | Microsoft Defender XDR | Una aplicación con el permiso Machine.Isolate |
+| Bloquear el acceso público a los almacenes de datos, Revocar el uso compartido de almacenes de datos | La conexión a la nube del almacén | **Respuesta de seguridad de datos** activada, y su comando de configuración ejecutado de nuevo |
 
-Un paso de contención solo actúa sobre los usuarios o hosts de los que trata el caso, nunca sobre todos los que el caso nombra:
+Un paso de usuario o de host solo actúa sobre los usuarios o hosts de los que trata el caso, nunca sobre todos los que el caso nombra:
 
 - El valor por el que se agrupa una detección del caso, como la cuenta por la que agrupa una regla de viaje imposible, o el host que nombra la alerta de un producto conectado.
 - Un usuario o host del caso que tu inteligencia de amenazas conoce como indicador.
 
 Un caso agrupado por una dirección, como un ataque de fuerza bruta contra tu VPN, no trata de ninguno de los dos: sus pasos de contención se omiten, y la cuenta contra la que lo intentó y la puerta de enlace que alcanzó quedan intactas. Un paso actúa como máximo sobre 10 usuarios o hosts. Busca cada uno en el producto por su nombre e indica en la ejecución qué hizo con cada uno: hecho, ya hecho, no encontrado, rechazado o protegido.
+
+Los dos pasos de almacenes de datos actúan sobre los almacenes de datos de los que trata el caso, como máximo 10: los de los problemas de Seguridad de datos que ha recibido, y cualquiera por el que lo agrupó una detección. No tocan un almacén marcado como **Público por diseño**, cambian cómo se comparte un almacén pero nunca sus datos, e indican en la ejecución qué hicieron con cada almacén (consulta [Cerrar una exposición](/docs/data-security/integrations#cerrar-una-exposición)).
 
 #### Entidades protegidas
 

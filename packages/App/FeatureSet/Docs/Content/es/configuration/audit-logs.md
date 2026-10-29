@@ -105,6 +105,7 @@ Los monitores, incidentes, alertas, páginas de estado, SLO y muchos otros recur
 | Listas de seguimiento | `Watchlist` |
 | Valores de lista de seguimiento | `Watchlist Value` |
 | Tareas y evidencias de los casos de seguridad | `Security Case Task`, `Security Case Evidence` |
+| Los almacenes de datos y sus hallazgos, y los problemas, los ajustes, los ajustes de las comprobaciones, los tipos de datos personalizados y las reglas de residencia de Seguridad de datos | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
 | Exportaciones del registro de auditoría | `Audit Log Export` |
 
 También se registra que un administrador añada o quite un método de notificación o una regla de guardia personal en la cuenta de otra persona, sin la dirección ni el número en sí.
