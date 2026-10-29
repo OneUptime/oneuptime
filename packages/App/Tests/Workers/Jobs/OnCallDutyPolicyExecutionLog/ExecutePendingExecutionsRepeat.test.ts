@@ -1,10 +1,14 @@
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
+import OnCallDutyPolicyExecutionLogTimeline from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
 import ObjectID from "Common/Types/ObjectID";
-import { ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRunEnding";
+import OnCallDutyExecutionLogTimelineStatus from "Common/Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
+import {
+  ON_CALL_POLICY_RUN_NOBODY_NOTIFIED_MESSAGE,
+  ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE,
+} from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRunEnding";
 import OnCallDutyPolicyStatus from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
-import PositiveNumber from "Common/Types/PositiveNumber";
 
 /*
  * When the last escalation rule's wait runs out with nobody acknowledging,
@@ -103,13 +107,10 @@ jest.mock(
   () => {
     return {
       __esModule: true,
-      // findBy: who passed the run's page on - nobody, here.
+      // findBy: the run's timeline lines, as readTimeline below answers.
       default: {
         create: jest.fn(),
-        countBy: jest.fn(),
-        findBy: jest.fn(async () => {
-          return [];
-        }),
+        findBy: jest.fn(),
       },
     };
   },
@@ -142,15 +143,61 @@ const ruleService: {
   startRuleExecution: jest.Mock;
 };
 
-const timelineService: { countBy: jest.Mock } =
+const timelineService: { findBy: jest.Mock } =
   OnCallDutyPolicyExecutionLogTimelineService as unknown as {
-    countBy: jest.Mock;
+    findBy: jest.Mock;
   };
 
 const incidentService: { isIncidentAcknowledged: jest.Mock } =
   IncidentService as unknown as { isIncidentAcknowledged: jest.Mock };
 
 const FIRST_RULE_ID: ObjectID = ObjectID.generate();
+
+// The person an earlier rule of the run paged.
+const PAGED_USER_ID: ObjectID = ObjectID.generate();
+
+// A line of the run's timeline about that person, and how their page went.
+function personLine(
+  status: OnCallDutyExecutionLogTimelineStatus,
+): OnCallDutyPolicyExecutionLogTimeline {
+  const line: OnCallDutyPolicyExecutionLogTimeline =
+    new OnCallDutyPolicyExecutionLogTimeline();
+  line.alertSentToUserId = PAGED_USER_ID;
+  line.status = status;
+  return line;
+}
+
+type ReadTimeline = (args: {
+  query: { status?: unknown };
+}) => Promise<Array<OnCallDutyPolicyExecutionLogTimeline>>;
+
+/*
+ * The run's timeline lines, as the job reads them back: nobody passed the
+ * run's page on (the read of "Passed On" lines finds none), and its lines
+ * about people are `personLines`.
+ */
+function timelineOf(
+  personLines: Array<OnCallDutyPolicyExecutionLogTimeline>,
+): ReadTimeline {
+  return (args: {
+    query: { status?: unknown };
+  }): Promise<Array<OnCallDutyPolicyExecutionLogTimeline>> => {
+    if (args.query.status === OnCallDutyExecutionLogTimelineStatus.PassedOn) {
+      return Promise.resolve([]);
+    }
+
+    return Promise.resolve(personLines);
+  };
+}
+
+/*
+ * Somebody was paged on the way: a line about a person says their page
+ * went out. A run counts as having notified somebody only on such a line
+ * (OnCallEscalationAdvance), so a run that ends is Completed.
+ */
+const readTimeline: ReadTimeline = timelineOf([
+  personLine(OnCallDutyExecutionLogTimelineStatus.NotificationSent),
+]);
 
 interface RepeatSettings {
   // The policy's "Repeat if no one acknowledges"; left unset when undefined.
@@ -260,7 +307,7 @@ beforeEach(() => {
   incidentService.isIncidentAcknowledged.mockResolvedValue(false);
   ruleService.startRuleExecution.mockResolvedValue(undefined);
   // Somebody was paged on the way, so a run that ends is Completed.
-  timelineService.countBy.mockResolvedValue(new PositiveNumber(2));
+  timelineService.findBy.mockImplementation(readTimeline);
 
   // The policy has two rules: no third after the second, the first on a repeat.
   ruleService.findOneBy.mockImplementation(
@@ -300,7 +347,7 @@ describe("a policy whose last rule went unacknowledged", () => {
       jest.clearAllMocks();
       executionLogService.updateOneById.mockResolvedValue(undefined);
       executionLogService.claimEscalationAdvance.mockResolvedValue(true);
-      timelineService.countBy.mockResolvedValue(new PositiveNumber(2));
+      timelineService.findBy.mockImplementation(readTimeline);
 
       const log: OnCallDutyPolicyExecutionLog = atTheEndOfTheLastRule({
         repeatSwitch: true,
@@ -320,7 +367,7 @@ describe("a policy whose last rule went unacknowledged", () => {
     jest.clearAllMocks();
     executionLogService.updateOneById.mockResolvedValue(undefined);
     executionLogService.claimEscalationAdvance.mockResolvedValue(true);
-    timelineService.countBy.mockResolvedValue(new PositiveNumber(2));
+    timelineService.findBy.mockImplementation(readTimeline);
 
     const last: OnCallDutyPolicyExecutionLog = atTheEndOfTheLastRule({
       repeatSwitch: true,
@@ -340,7 +387,7 @@ describe("a policy whose last rule went unacknowledged", () => {
       jest.clearAllMocks();
       executionLogService.updateOneById.mockResolvedValue(undefined);
       executionLogService.claimEscalationAdvance.mockResolvedValue(true);
-      timelineService.countBy.mockResolvedValue(new PositiveNumber(2));
+      timelineService.findBy.mockImplementation(readTimeline);
 
       const log: OnCallDutyPolicyExecutionLog = atTheEndOfTheLastRule({
         repeatSwitch: false,
@@ -377,6 +424,39 @@ describe("a policy whose last rule went unacknowledged", () => {
       data: {
         status: OnCallDutyPolicyStatus.Completed,
         statusMessage: ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE,
+      },
+      props: { isRoot: true },
+    });
+  });
+
+  /*
+   * A line that names a person is not enough: one whose page was skipped
+   * (away, gone, opted out) or failed reached nobody, so a run with only
+   * those lines ends saying it notified no one.
+   */
+  test("ends as No One Notified when none of its pages went out", async () => {
+    timelineService.findBy.mockImplementation(
+      timelineOf([
+        personLine(OnCallDutyExecutionLogTimelineStatus.Skipped),
+        personLine(OnCallDutyExecutionLogTimelineStatus.Error),
+      ]),
+    );
+
+    const log: OnCallDutyPolicyExecutionLog = atTheEndOfTheLastRule({
+      repeatSwitch: false,
+      times: 3,
+      pass: 1,
+    });
+    executionLogService.findAllBy.mockResolvedValue([log]);
+
+    await tick();
+
+    expect(startedAgain(log)).toBe(false);
+    expect(executionLogService.updateOneById).toHaveBeenCalledWith({
+      id: log.id,
+      data: {
+        status: OnCallDutyPolicyStatus.CompletedWithNoNotifications,
+        statusMessage: ON_CALL_POLICY_RUN_NOBODY_NOTIFIED_MESSAGE,
       },
       props: { isRoot: true },
     });

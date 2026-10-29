@@ -39,6 +39,8 @@ De fleste beskeder kan bekræfte tilkaldet: e-mails, sms'er og beskeder i WhatsA
 
 En episode tilkalder dig gennem sine egne vagtpolitikker, adskilt fra hændelserne eller advarslerne i den, og derfor har dens regler deres egen fane. Sidens adresse angiver den åbne fane, for eksempel `/dashboard/{projectId}/user-settings/on-call-rules?type=alerts`; de andre værdier er `incident-episodes` og `alert-episodes`, og uden `type` åbner siden på **Hændelser**.
 
+En alvorlighed, som dit projekt har arkiveret, kommer efter de andre, markeret med **Arkiveret**, så længe du har regler for den: Hændelser og advarsler, der stadig har den, tilkalder dig efter dem. Du kan ændre eller fjerne de regler, men ikke tilføje nye.
+
 ## De regler, du starter med
 
 Hver metode, du bekræfter, får en regel på hvert kort på hver fane, sendt så snart du bliver tilkaldt. Din login-e-mail har dem fra den dag, du blev medlem, så et tilkald altid når dig. Bekræft et telefonnummer til sms, og hvert tilkald sender dig også en sms.

@@ -39,6 +39,8 @@ Die meisten Nachrichten können den Alarm bestätigen: E-Mails, SMS und Nachrich
 
 Eine Episode alarmiert Sie über ihre eigenen Bereitschaftsrichtlinien, getrennt von den Vorfällen oder Warnungen darin, daher stehen ihre Regeln auf einem eigenen Tab. Die Adresse der Seite nennt den geöffneten Tab, etwa `/dashboard/{projectId}/user-settings/on-call-rules?type=alerts`; die anderen Werte sind `incident-episodes` und `alert-episodes`, und ohne `type` öffnet die Seite auf **Vorfälle**.
 
+Ein Schweregrad, den Ihr Projekt archiviert hat, steht nach den anderen, markiert mit **Archiviert**, solange Sie Regeln dafür haben: Vorfälle und Warnungen, die ihn noch haben, alarmieren Sie danach. Sie können diese Regeln ändern oder entfernen, aber keine neuen hinzufügen.
+
 ## Die Regeln, mit denen Sie starten
 
 Jede Methode, die Sie verifizieren, erhält eine Regel auf jeder Karte jedes Tabs, die gesendet wird, sobald Sie alarmiert werden. Ihre Anmelde-E-Mail hat sie seit dem Tag Ihres Beitritts, damit ein Alarm Sie immer erreicht. Verifizieren Sie eine Telefonnummer für SMS, und jeder Alarm schickt Ihnen auch eine SMS.

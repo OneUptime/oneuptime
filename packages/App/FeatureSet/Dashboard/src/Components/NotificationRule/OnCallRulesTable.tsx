@@ -2,9 +2,10 @@ import NotificationMethodView, {
   DeletionImpactModal,
 } from "../NotificationMethods/NotificationMethod";
 import NotifyAfterDropdownOptions from "./NotifyAfterMinutesDropdownOptions";
-import type {
-  OnCallRuleSeverity,
-  SeverityForeignKeyColumn,
+import {
+  ARCHIVED_SEVERITY_RULES_EDIT_NOTE,
+  type OnCallRuleSeverity,
+  type SeverityForeignKeyColumn,
 } from "./OnCallRuleKinds";
 import PushNotificationLevelControl, {
   getPushNotificationLevelCardSelectOptions,
@@ -42,10 +43,14 @@ import NotificationRuleType from "Common/Types/NotificationRule/NotificationRule
 import PushNotificationLevel from "Common/Types/NotificationRule/PushNotificationLevel";
 import ObjectID from "Common/Types/ObjectID";
 import { isExpoPushDeviceType } from "Common/Types/PushNotification/ExpoPushDeviceType";
+import { isArchivedValue } from "Common/Utils/ArchivableValues";
 import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import ArchivedTag from "Common/UI/Components/ArchivedTag/ArchivedTag";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { joinSentences } from "Common/UI/Components/DeleteConfirmation/DeleteConsequences";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -369,6 +374,15 @@ export interface ComponentProps {
   cardDescription: string;
 
   /*
+   * What the card of an archived severity says instead, already translated:
+   * how the records that keep it still notify by its rules. The card adds,
+   * where the rules can be changed, that they can be changed or removed but
+   * not added to (ARCHIVED_SEVERITY_RULES_EDIT_NOTE). The card description
+   * when left out.
+   */
+  archivedCardDescription?: string | undefined;
+
+  /*
    * Whose rules and whose notification methods these are. Defaults to the
    * signed-in user, which is every self-serve settings page. The admin surface
    * passes somebody else's id.
@@ -485,7 +499,9 @@ const OPT_OUT_LABEL: string = translationKey(
  * project's first), so "<severity> incidents" would read "Critical Incident
  * incidents"; the tab above already says which kind the cards are for, and
  * each card's description says the rest. The name is the project's own word,
- * shown as written rather than looked up as something to translate.
+ * shown as written rather than looked up as something to translate - and
+ * read the way it is written (IsolatedText): "[DONOTUSE] Very critical" on
+ * a Persian page keeps its bracket at its start.
  */
 const SeverityCardTitle: FunctionComponent<{
   severity: OnCallRuleSeverity;
@@ -494,7 +510,7 @@ const SeverityCardTitle: FunctionComponent<{
 
   return (
     <span
-      className="inline-flex items-center gap-2"
+      className="inline-flex flex-wrap items-center gap-2"
       data-testid="on-call-rules-severity-title"
     >
       {color ? (
@@ -506,9 +522,41 @@ const SeverityCardTitle: FunctionComponent<{
       ) : (
         <></>
       )}
-      <span>{props.severity.name || ""}</span>
+      <IsolatedText text={props.severity.name || ""} />
+      {/* Nobody picks it again; the rules it has still notify. */}
+      {isArchivedValue(props.severity) ? <ArchivedTag /> : <></>}
     </span>
   );
+};
+
+/*
+ * The severities a tab draws a card for, in the order the project ranks
+ * them, the archived ones after the rest. An archived severity is drawn only
+ * while the person has rules for it (`hasRules`): those still notify them
+ * for the records that keep it, and can be changed or removed - but nobody
+ * picks an archived severity again, so an archived one they have no rules
+ * for has nothing to show or change.
+ */
+export const getSeveritiesToDraw: (data: {
+  severities: Array<OnCallRuleSeverity>;
+  hasRules: (severity: OnCallRuleSeverity) => boolean;
+}) => Array<OnCallRuleSeverity> = (data: {
+  severities: Array<OnCallRuleSeverity>;
+  hasRules: (severity: OnCallRuleSeverity) => boolean;
+}): Array<OnCallRuleSeverity> => {
+  const live: Array<OnCallRuleSeverity> = data.severities.filter(
+    (severity: OnCallRuleSeverity): boolean => {
+      return !isArchivedValue(severity);
+    },
+  );
+
+  const archived: Array<OnCallRuleSeverity> = data.severities.filter(
+    (severity: OnCallRuleSeverity): boolean => {
+      return isArchivedValue(severity) && data.hasRules(severity);
+    },
+  );
+
+  return [...live, ...archived];
 };
 
 /*
@@ -1249,10 +1297,30 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
          * paged at all.
          */
         isEditable={isEditable}
-        isCreateable={isEditable}
+        /*
+         * Nobody picks an archived severity again - the server refuses a new
+         * rule for one - so its card offers no Add; its rules can still be
+         * changed and removed.
+         */
+        isCreateable={isEditable && !isArchivedValue(severity)}
         cardProps={{
           title: <SeverityCardTitle severity={severity} />,
-          description: props.cardDescription,
+          /*
+           * An archived one says what its rules still do, and - where they
+           * can be changed - why it has no Add. A view that changes nothing
+           * says only the first.
+           */
+          description:
+            isArchivedValue(severity) && props.archivedCardDescription
+              ? joinSentences([
+                  props.archivedCardDescription,
+                  isEditable
+                    ? translator.translateText(
+                        ARCHIVED_SEVERITY_RULES_EDIT_NOTE,
+                      ) || ARCHIVED_SEVERITY_RULES_EDIT_NOTE
+                    : "",
+                ])
+              : props.cardDescription,
         }}
         noItemsMessage={props.noItemsMessage || DEFAULT_NO_ITEMS_MESSAGE}
         /*
@@ -1696,6 +1764,8 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
             select: {
               name: true,
               color: true,
+              // Archived ones are drawn last, and only while they have rules.
+              isArchived: true,
             },
             sort: {
               order: SortOrder.Ascending,
@@ -1704,7 +1774,50 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
           isViewerTheOwner ? loadOwnNotificationMethods() : Promise.resolve(),
         ]);
 
-      setSeverities(severityList.data);
+      /*
+       * Which archived severities the person still has rules for: one count
+       * each, and a project has few archived severities. A count that fails
+       * draws the card, as a live one would be.
+       */
+      const archivedWithRules: Set<string> = new Set<string>();
+
+      await Promise.all(
+        severityList.data
+          .filter((severity: OnCallRuleSeverity): boolean => {
+            return isArchivedValue(severity) && Boolean(severity.id);
+          })
+          .map(async (severity: OnCallRuleSeverity): Promise<void> => {
+            const severityId: string = severity.id!.toString();
+
+            try {
+              const ruleCount: number =
+                await ModelAPI.count<UserNotificationRule>({
+                  modelType: UserNotificationRule,
+                  query: {
+                    projectId: ProjectUtil.getCurrentProjectId()!,
+                    userId: targetUserId!,
+                    ruleType: props.ruleType,
+                    ...getSeverityFilter(severity.id || undefined),
+                  },
+                });
+
+              if (ruleCount > 0) {
+                archivedWithRules.add(severityId);
+              }
+            } catch {
+              archivedWithRules.add(severityId);
+            }
+          }),
+      );
+
+      setSeverities(
+        getSeveritiesToDraw({
+          severities: severityList.data,
+          hasRules: (severity: OnCallRuleSeverity): boolean => {
+            return archivedWithRules.has(severity.id?.toString() || "");
+          },
+        }),
+      );
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }

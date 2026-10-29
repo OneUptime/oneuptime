@@ -39,6 +39,8 @@ De fleste meldinger kan bekrefte tilkallingen: e-post, SMS og meldinger i WhatsA
 
 En episode tilkaller deg gjennom sine egne vaktpolicyer, atskilt fra hendelsene eller varslene i den, så reglene dens har sin egen fane. Sidens adresse angir den åpne fanen, for eksempel `/dashboard/{projectId}/user-settings/on-call-rules?type=alerts`; de andre verdiene er `incident-episodes` og `alert-episodes`, og uten `type` åpner siden på **Hendelser**.
 
+En alvorlighetsgrad som prosjektet ditt har arkivert, kommer etter de andre, merket **Arkivert**, så lenge du har regler for den: Hendelser og varsler som fortsatt har den, varsler deg etter dem. Du kan endre eller fjerne de reglene, men ikke legge til nye.
+
 ## Reglene du starter med
 
 Hver metode du verifiserer, får en regel på hvert kort på hver fane, sendt så snart du blir tilkalt. Påloggings-e-posten din har dem fra dagen du ble medlem, slik at en tilkalling alltid når deg. Verifiser et telefonnummer for SMS, så sender hver tilkalling deg også en SMS.
