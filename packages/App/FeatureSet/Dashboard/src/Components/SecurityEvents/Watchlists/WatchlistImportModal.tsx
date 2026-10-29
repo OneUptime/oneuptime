@@ -213,10 +213,14 @@ const WatchlistImportModal: FunctionComponent<ComponentProps> = (
   };
 
   if (summary) {
+    /*
+     * Done is the only way out: the import has happened, and a Cancel beside
+     * Done reads as a way to undo it. No onClose is what leaves out Cancel
+     * (and the X with it), as on a monitor's "Email address updated".
+     */
     return (
       <Modal
         title={IMPORT_DONE_TITLE}
-        onClose={props.onClose}
         onSubmit={props.onClose}
         submitButtonText={IMPORT_DONE}
         modalWidth={ModalWidth.Medium}

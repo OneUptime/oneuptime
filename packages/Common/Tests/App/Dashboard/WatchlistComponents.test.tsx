@@ -655,6 +655,10 @@ describe("Import Values", () => {
       "The list now holds 14 values.",
     ]);
     expect(screen.getByText("Import finished")).toBeInTheDocument();
+    // Done is the only way out: no Cancel to read as an undo, and no X.
+    expect(screen.queryByTestId("modal-footer-close-button")).toBeNull();
+    expect(screen.queryByTestId("close-button")).toBeNull();
+    expect(submit()).toHaveTextContent("Done");
 
     fireEvent.click(submit());
     expect(onClose).toHaveBeenCalledTimes(1);

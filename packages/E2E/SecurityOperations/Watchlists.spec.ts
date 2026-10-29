@@ -639,6 +639,11 @@ test.describe("a watchlist's page", () => {
       "1 was already on the list",
       "The list now holds 4 values.",
     ]);
+    // Done is the only way out of a finished import: no Cancel beside it.
+    await expect(page.getByTestId("modal-footer-close-button")).toHaveCount(0);
+    await expect(page.getByTestId("modal-footer-submit-button")).toHaveText(
+      "Done",
+    );
 
     const [request] = await importRequests(page);
     expect(request).toMatchObject({
