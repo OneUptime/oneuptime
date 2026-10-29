@@ -127,7 +127,10 @@ const manualSpan: GuideSnippet = {
     "      const product = await fetch(`${CATALOG_URL}/products/${order.productId}`);",
     "      await chargeCard(order);",
     "      countOrder(order.paymentMethod);",
-    '      return Response.json({ id: "ord_1001", product: await product.json() }, { status: 201 });',
+    "      return Response.json(",
+    '        { id: "ord_1001", product: await product.json() },',
+    "        { status: 201 },",
+    "      );",
     "    } catch (error) {",
     "      span.recordException(error as Error);",
     "      span.setStatus({ code: SpanStatusCode.ERROR });",
@@ -224,7 +227,7 @@ export const DenoGuide: OpenTelemetryGuide = {
     metrics:
       "`http.server.request.duration`, with the route the helper sets, `http.server.active_requests` and the request and response body sizes, beside V8's heap and garbage collection metrics.",
     logs: "Everything written with `console.log` or `console.error`, at the info or error level, with the trace ID of the request it was written in.",
-    exceptions: `An error a route throws is recorded on its request's span by the helper, and answered with a 500. ${SCREENS.exceptions} lists it with its stack trace.`,
+    exceptions: `An error a route throws is recorded on its request's span by the helper, and answered with a 500; ${SCREENS.exceptions} shows it, stack trace included.`,
   },
 
   exampleTrace: {
@@ -393,7 +396,7 @@ export const DenoGuide: OpenTelemetryGuide = {
 
   sampling: {
     intro:
-      "Deno applies the standard sampler variables. To keep a quarter of new traces, and every trace a caller kept:",
+      "Deno applies the standard sampler variables. These keep a quarter of the traces that start here, and every trace a caller kept:",
     snippets: [sampling],
     notes: [
       "A request that arrives with a sampled `traceparent` is always traced, so a trace across services stays whole.",
@@ -424,15 +427,15 @@ export const DenoGuide: OpenTelemetryGuide = {
       validateKeyStep("server"),
       {
         title: "Find the service",
-        body: `Start the server, open \`/products/42\`, and look in ${SCREENS.services}: \`orders-api\` appears within a minute.`,
+        body: `Start the server and open \`/products/42\`: \`orders-api\` appears in ${SCREENS.services} within a minute.`,
       },
       {
         title: "Open a trace",
-        body: `In ${SCREENS.traces}, search \`@http.route:/orders\`: an order's trace holds \`orders.place\`, its \`fetch\` and the catalog's own span.`,
+        body: `Search ${SCREENS.traces} for \`@http.route:/orders\`: an order's trace holds \`orders.place\`, its \`fetch\` and the catalog's own span.`,
       },
       {
         title: "Follow a log line",
-        body: `In ${SCREENS.logs}, search \`loading product\`: each line opens the trace of its request.`,
+        body: `Search ${SCREENS.logs} for \`loading product\`: each line opens the trace of its request.`,
       },
     ],
   },

@@ -8,6 +8,7 @@ import OnCallDutyPolicyEscalationRuleService, {
   NOT_A_PROJECT_MEMBER_TIMELINE_MESSAGE,
   OnCallNotPagedReason,
   OnCallPagingOutcome,
+  OnCallRuleExecutionOutcome,
 } from "../../../Server/Services/OnCallDutyPolicyEscalationRuleService";
 import OnCallDutyPolicyEscalationRuleTeamService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleTeamService";
 import OnCallDutyPolicyEscalationRuleUserService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleUserService";
@@ -31,6 +32,7 @@ import {
   OnCallDirectPageTargets,
 } from "../../../Types/OnCallDutyPolicy/OnCallDirectPage";
 import UserNotificationEventType from "../../../Types/UserNotification/UserNotificationEventType";
+import { ON_CALL_LEVEL_PAGED_NOBODY_TIMELINE_MESSAGE } from "../../../Types/OnCallDutyPolicy/OnCallEmptyLevel";
 import {
   afterEach,
   beforeEach,
@@ -1044,6 +1046,11 @@ describe("the user override that decides for a person, with and without a policy
   });
 });
 
+/*
+ * An escalation rule pages as it did, with what a level with nobody to page
+ * now does (OnCallEmptyLevel): its teams with nobody in them say so, as a
+ * direct page's do, and it is passed at once rather than tried again.
+ */
 describe("an escalation rule still pages exactly as it did", () => {
   const POLICY_ID: ObjectID = new ObjectID(
     "dddddddd-0000-4000-8000-000000000001",
@@ -1097,9 +1104,24 @@ describe("an escalation rule still pages exactly as it did", () => {
       }) => {
         runUpdates.push(update.data);
       }) as never);
+    // Whether each page of the level went out, read back from the timeline.
     jest
-      .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")
-      .mockResolvedValue({ scheduleGapRetryCount: 0 } as never);
+      .spyOn(OnCallDutyPolicyExecutionLogTimelineService, "findBy")
+      .mockImplementation((async (data: {
+        query: { _id?: { value?: Array<ObjectID> } };
+      }) => {
+        const ids: Array<string> = (data.query._id?.value || []).map(
+          (id: ObjectID): string => {
+            return id.toString();
+          },
+        );
+
+        return timeline.filter(
+          (row: OnCallDutyPolicyExecutionLogTimeline): boolean => {
+            return ids.includes(row.id?.toString() || "");
+          },
+        );
+      }) as never);
     jest
       .spyOn(OnCallDutyPolicyEscalationRuleTeamService, "findBy")
       .mockResolvedValue([
@@ -1178,17 +1200,25 @@ describe("an escalation rule still pages exactly as it did", () => {
     }
   });
 
-  test("a team of its with nobody in it still goes unsaid: that line is a direct page's", async () => {
+  test("a team of its with nobody in it says so, as a direct page's does - and nobody is paged through it", async () => {
     await runRule();
 
-    expect(
+    const teamLines: Array<OnCallDutyPolicyExecutionLogTimeline> =
       timeline.filter((row: OnCallDutyPolicyExecutionLogTimeline): boolean => {
         return (
           row.statusMessage === ON_CALL_DIRECT_PAGE_EMPTY_TEAM_TIMELINE_MESSAGE
         );
-      }),
-    ).toEqual([]);
-    expect(timeline).toHaveLength(3);
+      });
+
+    expect(teamLines).toHaveLength(1);
+    expect(teamLines[0]!.userBelongsToTeamId).toBe(TEAM_EMPTY);
+    expect(teamLines[0]!.status).toBe(
+      OnCallDutyExecutionLogTimelineStatus.Skipped,
+    );
+    expect(teamLines[0]!.alertSentToUserId).toBeUndefined();
+    expect(teamLines[0]!.onCallDutyPolicyEscalationRuleId).toBe(RULE_ID);
+    // The empty team, Jane, Kim and Sam: the others were paged.
+    expect(timeline).toHaveLength(4);
   });
 
   test("the policy's own overrides are asked about, and its schedules read for the policy", async () => {
@@ -1206,21 +1236,20 @@ describe("an escalation rule still pages exactly as it did", () => {
     ).toHaveBeenCalledWith(SCHEDULE_PRIMARY, { onCallDutyPolicyId: POLICY_ID });
   });
 
-  test("the run records the rule it is on before anybody is paged, then clears its retries", async () => {
+  test("the run records the rule it is on before anybody is paged - and that is all it writes of the run", async () => {
     await runRule();
 
-    expect(runUpdates[0]).toEqual({
-      lastEscalationRuleExecutedAt: expect.any(Date),
-      lastExecutedEscalationRuleId: RULE_ID,
-      lastExecutedEscalationRuleOrder: 2,
-      executeNextEscalationRuleInMinutes: 10,
-    });
-    expect(runUpdates[runUpdates.length - 1]).toEqual({
-      scheduleGapRetryCount: 0,
-    });
+    expect(runUpdates).toEqual([
+      {
+        lastEscalationRuleExecutedAt: expect.any(Date),
+        lastExecutedEscalationRuleId: RULE_ID,
+        lastExecutedEscalationRuleOrder: 2,
+        executeNextEscalationRuleInMinutes: 10,
+      },
+    ]);
   });
 
-  test("a rule that reaches nobody says so in its own words, and tries a schedule gap again", async () => {
+  test("a rule that reaches nobody says so in its own words, and is passed at once - a schedule gap is not tried again", async () => {
     usersByTeam.set(TEAM_PLATFORM.toString(), []);
     (
       OnCallDutyPolicyEscalationRuleUserService.findBy as unknown as {
@@ -1233,20 +1262,31 @@ describe("an escalation rule still pages exactly as it did", () => {
       }
     ).mockResolvedValue(null);
 
-    await runRule();
+    const outcome: OnCallRuleExecutionOutcome =
+      await OnCallDutyPolicyEscalationRuleService.startRuleExecution(RULE_ID, {
+        projectId: PROJECT_ID,
+        triggeredByIncidentId: INCIDENT_ID,
+        userNotificationEventType: UserNotificationEventType.IncidentCreated,
+        onCallPolicyExecutionLogId: RUN_ID,
+        onCallPolicyId: POLICY_ID,
+      });
 
     expect(
       timeline.map((row: OnCallDutyPolicyExecutionLogTimeline) => {
         return row.statusMessage;
       }),
     ).toEqual([
+      ON_CALL_DIRECT_PAGE_EMPTY_TEAM_TIMELINE_MESSAGE,
+      ON_CALL_DIRECT_PAGE_EMPTY_TEAM_TIMELINE_MESSAGE,
       "Skipped because no active users are found in this schedule.",
-      "Skipped because no users in this rule.",
+      ON_CALL_LEVEL_PAGED_NOBODY_TIMELINE_MESSAGE,
     ]);
-    expect(runUpdates[runUpdates.length - 1]).toEqual({
-      lastExecutedEscalationRuleOrder: 1,
-      executeNextEscalationRuleInMinutes: 1,
-      scheduleGapRetryCount: 1,
+    expect(outcome.movesOnAtOnce).toBe(true);
+    expect(outcome.hadScheduleGap).toBe(true);
+    // Nothing rewinds the run to try the rule again.
+    expect(runUpdates).toHaveLength(1);
+    expect(runUpdates[0]).toMatchObject({
+      lastExecutedEscalationRuleOrder: 2,
     });
   });
 });

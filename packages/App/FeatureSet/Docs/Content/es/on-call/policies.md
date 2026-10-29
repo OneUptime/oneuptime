@@ -66,7 +66,7 @@ Cuando la espera del último nivel termina sin que nadie lo reconozca, una polí
 | **Dejar de avisar** | No se avisa a nadie más, así que la política se ejecuta una sola vez. Una política nueva empieza con esta respuesta. |
 | **Empezar de nuevo desde Level 1** | Se avisa de nuevo a cada nivel, en orden. **¿Cuántas veces más?** dice cuántas: 1 o más. |
 
-Una política que empieza de nuevo tres veces más recorre sus niveles cuatro veces en total. La fila **Después del último nivel** de la tarjeta dice lo que hace la política, y **La política de un vistazo** en la **Vista general** dice lo mismo con palabras.
+Una política que empieza de nuevo tres veces más recorre sus niveles cuatro veces en total. Una pasada en la que ningún nivel tenía a nadie a quien avisar no se repite: otra tampoco avisaría a nadie, así que la política se detiene. La fila **Después del último nivel** de la tarjeta dice lo que hace la política, y **La política de un vistazo** en la **Vista general** dice lo mismo con palabras.
 
 ## Volver a avisar si no se resuelve
 
@@ -103,7 +103,7 @@ flowchart TB
 | **Programado**, **Iniciado** | La ejecución se está preparando. Una que sigue aquí al cabo de 5 minutos se detiene como **Error**. |
 | **Executing** | La ejecución está avisando. OneUptime la hace avanzar cada minuto. |
 | **Execution Completed** | Alguien lo reconoció, el incidente o la alerta se resolvió, se usaron todas las reglas y repeticiones, o la política se archivó. |
-| **Execution Completed - No One Notified** | La ejecución recorrió todas las reglas sin avisar a nadie: normalmente una programación sin nadie de guardia. |
+| **Execution Completed - No One Notified** | La ejecución recorrió todas las reglas sin avisar a nadie: normalmente una programación sin nadie de guardia, o un nivel sin destinatarios. |
 | **Error** | La ejecución falló. **Ver mensaje de estado** dice por qué. |
 
 Encontrarás registros de ejecución en tres lugares:
@@ -112,7 +112,7 @@ Encontrarás registros de ejecución en tres lugares:
 - en **Guardia → Avanzado → Registros de ejecución**, para todas las políticas, donde los avisos directos desde workflows y chat aparecen como **Aviso directo**;
 - en la página **Ejecuciones de guardia** de un incidente o de una alerta.
 
-Cada fila muestra qué desencadenó la ejecución, cuándo, su **Estado** y quién la reconoció. **Ver cronología** abre su **Cronología de ejecución**: cada regla de escalado, a quién avisó, a través de qué programación y cómo terminó cada aviso. Una programación sin nadie de guardia muestra **Nadie estaba de guardia** en lugar de una persona. En OneUptime Cloud, los registros de ejecución necesitan el plan **Growth**.
+Cada fila muestra qué desencadenó la ejecución, cuándo, su **Estado** y quién la reconoció. **Ver cronología** abre su **Cronología de ejecución**: cada regla de escalado, a quién avisó, a través de qué programación y cómo terminó cada aviso. Una programación sin nadie de guardia muestra **Nadie estaba de guardia** en lugar de una persona. Un nivel que no avisó a nadie dice por qué, con **Continuó sin esperar** debajo: la política no lo esperó. En OneUptime Cloud, los registros de ejecución necesitan el plan **Growth**.
 
 ## Archivar o eliminar una política
 
@@ -154,6 +154,10 @@ Su ejecución dice **Execution Completed - No One Notified**. Abre **Ver cronolo
 
 :::details El siguiente nivel recibió el aviso un minuto después de su espera
 OneUptime hace avanzar las políticas en curso una vez por minuto, así que un nivel avisa en la primera comprobación tras terminar su espera.
+:::
+
+:::details El siguiente nivel recibió el aviso de inmediato, sin esperar
+El nivel anterior no tenía a nadie a quien avisar: ningún destinatario, nadie de guardia en sus programaciones o nadie a quien se pudiera localizar. Un nivel que no avisa a nadie no tiene espera, así que se avisa al siguiente nivel en cuanto la política llega a él. **Ver cronología** muestra por qué ese nivel no avisó a nadie.
 :::
 
 :::details Un incidente muestra una política que no avisó a nadie

@@ -452,7 +452,7 @@ export const FastApiGuide: OpenTelemetryGuide = {
       },
       {
         title: "Open a request's trace",
-        body: `In ${SCREENS.traces}, search \`@http.route:/orders\`: each request is one span with \`checkout.charge\` and the httpx call beneath it, and no \`http send\` spans.`,
+        body: `Filter ${SCREENS.traces} by \`@http.route:/orders\`: each request is one span with \`checkout.charge\` and the httpx call beneath it, and no \`http send\` spans.`,
       },
       {
         title: "Stop the app and check nothing is missing",
@@ -487,7 +487,7 @@ export const FastApiGuide: OpenTelemetryGuide = {
       question:
         "Nothing arrives, and uvicorn prints “Failed to auto initialize OpenTelemetry”",
       answer:
-        "`OTEL_EXPORTER_OTLP_PROTOCOL` is unset, so the distro looked for the gRPC exporter: set it to `http/protobuf`.",
+        "The distro falls back to gRPC when `OTEL_EXPORTER_OTLP_PROTOCOL` is unset: set it to `http/protobuf`.",
     },
   ],
 

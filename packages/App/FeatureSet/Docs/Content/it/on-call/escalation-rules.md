@@ -79,11 +79,13 @@ Quando un incidente o un avviso raggiunge la policy, **Level 1** avvisa subito i
 
 Un incidente, un avviso o un episodio creato già riconosciuto o risolto — registrato a posteriori — non esegue nessuna delle sue policy: nessuno viene avvisato, e il suo feed lo indica nominandole. Vedi [Dichiarato già riconosciuto o risolto](/docs/incidents/declaring-incidents#dichiarato-già-riconosciuto-o-risolto).
 
+Un livello che non ha nessuno da avvisare quando viene raggiunto viene superato subito: il livello successivo viene avvisato immediatamente, senza attendere. È un livello senza destinatari, e uno i cui destinatari in quel momento non lasciano nessuno da avvisare: un team senza membri, una pianificazione in cui nessuno è reperibile, o persone assenti senza un sostituto, che hanno lasciato il progetto o che non sono raggiungibili in alcun modo. Quando nessun livello ha qualcuno da avvisare, la policy si ferma subito e non si ripete.
+
 Per ripetere una policy, fai clic su **Modifica** nella scheda **Criterio di ripetizione**, scegli **Ricomincia da Level 1** e imposta **Quante volte ancora?**.
 
 ### Il riepilogo dell'escalation
 
-Il riepilogo in cima alla pagina **Regole di escalation** mostra l'intera scala: quando viene avvisato ogni livello, chi avvisa e cosa succede dopo l'ultimo. Un livello i cui destinatari non possono essere avvisati tutti lo indica sulla sua scheda; fai clic sull'etichetta per vedere chi e perché.
+Il riepilogo in cima alla pagina **Regole di escalation** mostra l'intera scala: quando viene avvisato ogni livello, chi avvisa e cosa succede dopo l'ultimo. Un livello i cui destinatari non possono essere avvisati tutti lo indica sulla sua scheda; fai clic sull'etichetta per vedere chi e perché. Un livello senza destinatari mostra **Saltato subito**, e la sua attesa non conta per quando viene avvisato il livello successivo.
 
 ### Come viene raggiunta ogni persona
 
@@ -184,7 +186,7 @@ La persona successiva viene individuata quando il livello si attiva, in base all
 - È la persona dopo chi è reperibile, nell'ordine in cui le persone della rotazione si alternano. Dopo l'ultima persona torna la prima.
 - Le persone assenti vengono saltate, che qualcuno le sostituisca o no, e così chiunque sia reperibile al posto di qualcun altro.
 - È sempre qualcuno della stessa rotazione: se la pianificazione ha più livelli, quello da cui viene chi è reperibile. Una rotazione senza nessun altro, o con tutti gli altri assenti, non ha una persona successiva: lì il livello della policy non avvisa nessuno e lo indica.
-- Quando nella pianificazione non è reperibile nessuno, non c'è nemmeno una persona successiva, e il livello viene ritentato per qualche minuto, come per la pianificazione stessa.
+- Quando nella pianificazione non è reperibile nessuno, non c'è nemmeno una persona successiva, e il livello lì non avvisa nessuno.
 
 Il messaggio dell'esecuzione in Slack e Microsoft Teams, il feed dell'incidente e la **Cronologia di esecuzione** indicano chi è stato avvisato come successivo nella rotazione, e da quale pianificazione: «Sam Lee (next in the Payments primary rotation)».
 
