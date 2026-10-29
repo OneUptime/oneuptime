@@ -225,7 +225,9 @@ describe("the Security Events page on hunts", () => {
   });
 
   it("lists every schedule in the dropdown's order, the one that does not run first", () => {
-    const [notScheduled, ...scheduled] = SECURITY_HUNT_SCHEDULES;
+    const notScheduled: SecurityHuntSchedule = SECURITY_HUNT_SCHEDULES[0]!;
+    const scheduled: Array<SecurityHuntSchedule> =
+      SECURITY_HUNT_SCHEDULES.slice(1);
 
     expect(notScheduled).toBe(SecurityHuntSchedule.NotScheduled);
     expect(isScheduledSecurityHunt(notScheduled)).toBe(false);

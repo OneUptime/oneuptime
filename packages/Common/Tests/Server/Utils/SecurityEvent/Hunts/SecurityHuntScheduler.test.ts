@@ -320,7 +320,9 @@ describe("what a run counts", () => {
       ),
     ).toBe("its own words");
     expect(
-      SecurityHuntScheduler.describeRunError(new QueryTimeoutException()),
+      SecurityHuntScheduler.describeRunError(
+        new QueryTimeoutException("The query took too long."),
+      ),
     ).toBe(SECURITY_HUNT_RUN_ERRORS.timedOut.message);
 
     const isTimeout: Spy = getJestSpyOn(
@@ -450,7 +452,9 @@ describe("one run of a hunt", () => {
   });
 
   test("whose search the time limit stopped: says so, never that it found nothing", async () => {
-    countBy.mockRejectedValue(new QueryTimeoutException() as never);
+    countBy.mockRejectedValue(
+      new QueryTimeoutException("The query took too long.") as never,
+    );
 
     const outcome: SecurityHuntRunOutcome = await SecurityHuntScheduler.runHunt(
       hunt(),

@@ -124,7 +124,7 @@ describe("the host's words", () => {
 
 describe("the save", () => {
   test("saves what is on screen, and closes the panel", () => {
-    const onCreate: jest.Mock = jest.fn();
+    const onCreate: ReturnType<typeof jest.fn> = jest.fn();
     draw({ onCreate });
 
     fireEvent.click(
@@ -136,7 +136,7 @@ describe("the save", () => {
   });
 
   test("locked says why, under it, and does nothing", () => {
-    const onCreate: jest.Mock = jest.fn();
+    const onCreate: ReturnType<typeof jest.fn> = jest.fn();
     draw({
       onCreate,
       createDisabledReason:
@@ -201,7 +201,7 @@ describe("the rows", () => {
   });
 
   test("choosing one opens it", () => {
-    const onSelect: jest.Mock = jest.fn();
+    const onSelect: ReturnType<typeof jest.fn> = jest.fn();
     draw({ onSelect });
 
     fireEvent.click(
@@ -242,7 +242,7 @@ describe("the trigger", () => {
   });
 
   test("tells its host the panel opens, each time, and not as it closes", () => {
-    const onOpen: jest.Mock = jest.fn();
+    const onOpen: ReturnType<typeof jest.fn> = jest.fn();
     draw({ onOpen });
 
     fireEvent.click(trigger());

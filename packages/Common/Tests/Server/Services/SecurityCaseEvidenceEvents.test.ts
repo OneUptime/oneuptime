@@ -13,6 +13,7 @@ import SecurityCase from "../../../Models/DatabaseModels/SecurityCase";
 import SecurityCaseEvidence from "../../../Models/DatabaseModels/SecurityCaseEvidence";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
+import { JSONValue } from "../../../Types/JSON";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
@@ -66,7 +67,7 @@ const HUNT: { id: string; name: string } = {
 function event(
   uid: string,
   time: string,
-  values: Partial<Record<string, unknown>> = {},
+  values: Partial<Record<string, JSONValue>> = {},
 ): SecurityEvent {
   const row: SecurityEvent = new SecurityEvent();
   row.setColumnValue("eventUid", uid);
@@ -79,7 +80,7 @@ function event(
     `Encoded PowerShell started on web-03 (${uid})`,
   );
   for (const [key, value] of Object.entries(values)) {
-    row.setColumnValue(key, value);
+    row.setColumnValue(key, value as JSONValue);
   }
   return row;
 }

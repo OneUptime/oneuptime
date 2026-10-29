@@ -159,7 +159,9 @@ jest.mock(
     return {
       __esModule: true,
       default: (props: ViewerProps) => {
-        const ReactInMock: typeof React = jest.requireActual("react");
+        const ReactInMock: typeof React = jest.requireActual(
+          "react",
+        ) as typeof React;
 
         ReactInMock.useEffect(() => {
           viewerMounts++;
