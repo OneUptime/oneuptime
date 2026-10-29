@@ -118,7 +118,7 @@ export const REDIRECT_PATHS: Set<string> = new Set<string>([
   "/on-premise",
   // The air-gapped page's short addresses: "/air-gapped", "/airgapped".
   ...AIR_GAPPED_SHORT_PATHS,
-  // The demo page's: "/demo", "/request-demo", "/book-a-demo" and the rest.
+  // The demo page's short addresses, oneuptime.com/demo among them.
   ...DEMO_SHORT_PATHS,
   "/security",
   "/security-center",
