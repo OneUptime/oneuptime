@@ -157,13 +157,31 @@ export const isColumnResizable: <T extends GenericObject>(
 type SlugifyFunction = (value: string) => string;
 
 const NOT_A_SLUG_CHARACTER: RegExp = /[^a-z0-9]+/g;
-const SLUG_EDGE_DASHES: RegExp = /^-+|-+$/g;
 
+const SLUG_DASH: string = "-";
+
+/*
+ * A title as an id: its letters and digits, lower case, each run of
+ * anything else one dash, none at either end. The ends are trimmed by
+ * walking in from each, not by a pattern: /-+$/ tries every dash it meets
+ * as a start, which takes time with the square of a title's length.
+ */
 const slugify: SlugifyFunction = (value: string): string => {
-  return value
+  const dashed: string = value
     .toLowerCase()
-    .replace(NOT_A_SLUG_CHARACTER, "-")
-    .replace(SLUG_EDGE_DASHES, "");
+    .replace(NOT_A_SLUG_CHARACTER, SLUG_DASH);
+  let start: number = 0;
+  let end: number = dashed.length;
+
+  while (start < end && dashed.charAt(start) === SLUG_DASH) {
+    start++;
+  }
+
+  while (end > start && dashed.charAt(end - 1) === SLUG_DASH) {
+    end--;
+  }
+
+  return dashed.slice(start, end);
 };
 
 /*

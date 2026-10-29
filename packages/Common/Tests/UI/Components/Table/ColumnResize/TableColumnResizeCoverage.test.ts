@@ -285,13 +285,24 @@ describe("every table lets a person size its columns", () => {
       }),
     );
 
-    // The shared Table, the logs list, a widget's table, an admin page's.
+    /*
+     * The shared Table, the logs list, a widget's table, a page's own and
+     * an admin page's - and, where the enterprise pages are checked out
+     * (CI's Common job runs with ee/ removed), the admin's query console.
+     */
+    const isEnterpriseCheckedOut: boolean = fs.existsSync(
+      path.join(REPOSITORY_ROOT, "ee", "AdminDashboard"),
+    );
+
     for (const file of [
       "packages/Common/UI/Components/Table/Table.tsx",
       "packages/Common/UI/Components/LogsViewer/components/LogsTable.tsx",
       "packages/App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardTableComponent.tsx",
       "packages/App/FeatureSet/Dashboard/src/Components/Traces/TracesAnalyticsView.tsx",
-      "ee/AdminDashboard/Health/QueryConsole.tsx",
+      "packages/App/FeatureSet/AdminDashboard/src/Pages/Health/ClickhouseCapacity.tsx",
+      ...(isEnterpriseCheckedOut
+        ? ["ee/AdminDashboard/Health/QueryConsole.tsx"]
+        : []),
     ]) {
       expect(sizedFiles).toContain(file);
     }
@@ -300,7 +311,7 @@ describe("every table lets a person size its columns", () => {
       ALL_TABLES.filter((table: FoundTable): boolean => {
         return table.sizesItsColumns;
       }).length,
-    ).toBeGreaterThanOrEqual(40);
+    ).toBeGreaterThanOrEqual(isEnterpriseCheckedOut ? 45 : 38);
   });
 
   test("each table sizes its columns, or is left as it is for a reason given here", () => {

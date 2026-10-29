@@ -196,6 +196,28 @@ describe("a column's id", () => {
     ).toEqual(["_id:owners", "_id:labels", "_id:labels#2"]);
   });
 
+  test("a title's own dashes and symbols at either end are no part of its id; a title of nothing else is a column", () => {
+    expect(
+      getTableColumnIds([
+        makeColumn(FieldType.Text, { title: "-- Name --" }),
+        makeColumn(FieldType.Text, { title: "(UTC) Created at [ms]" }),
+        makeColumn(FieldType.Text, { title: "---" }),
+      ]),
+    ).toEqual(["name", "utc-created-at-ms", "column"]);
+  });
+
+  test("a title of any length is made an id in time in line with it", () => {
+    const title: string = `${"- x -".repeat(80000)}end`;
+    const startedAt: number = Date.now();
+    const id: string = getTableColumnIds([
+      makeColumn(FieldType.Text, { title: title }),
+    ])[0] as string;
+
+    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(id.startsWith("x-x-")).toBe(true);
+    expect(id.endsWith("-x-end")).toBe(true);
+  });
+
   test("ids are unique even when two columns carry the same explicit id", () => {
     const ids: Array<string> = getTableColumnIds([
       makeColumn(FieldType.Text, { id: "same" }),
