@@ -1119,8 +1119,10 @@ describe("the feed item for a changed note", () => {
     );
     expect(String(item["incidentId"])).toBe(RECORD_ID);
     expect(String(item["userId"])).toBe(USER_ID.toString());
+    // Its Slack and Teams message opens with the editor, as the feed does.
     expect(item["workspaceNotification"]).toEqual({
       sendWorkspaceNotification: true,
+      leadWithAuthor: true,
     });
   });
 
