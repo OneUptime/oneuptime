@@ -61,6 +61,7 @@ const IncidentPostmortemStatusesPage: FunctionComponent<
         query={archive.query}
         actionButtons={archive.actionButtons}
         getDeleteConfirmation={archive.getDeleteConfirmation}
+        bulkActions={archive.bulkActions}
         refreshToggle={archive.refreshToggle}
         id="incident-postmortem-status-table"
         userPreferencesKey="incident-postmortem-status-table"

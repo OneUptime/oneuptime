@@ -38,6 +38,7 @@ const AlertSeveritiesPage: FunctionComponent<
         query={archive.query}
         actionButtons={archive.actionButtons}
         getDeleteConfirmation={archive.getDeleteConfirmation}
+        bulkActions={archive.bulkActions}
         refreshToggle={archive.refreshToggle}
         id="alert-severity-table"
         userPreferencesKey="alert-severity-table"

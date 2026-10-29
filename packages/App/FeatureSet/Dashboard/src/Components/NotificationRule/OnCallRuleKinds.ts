@@ -56,6 +56,14 @@ export interface OnCallRuleKindDefinition {
   ownCardDescription: string;
   // The same on a member's page, with {{name}} for their first name.
   memberCardDescription: string;
+  /*
+   * What the card of an archived severity says instead (Common/Utils/
+   * ArchivableValues): the records that keep it still notify the person by
+   * its rules, which can be changed or removed - nobody picks an archived
+   * severity again, so no rule is added for it.
+   */
+  ownArchivedCardDescription: string;
+  memberArchivedCardDescription: string;
 }
 
 const DEFINITIONS: Readonly<
@@ -70,6 +78,12 @@ const DEFINITIONS: Readonly<
     ),
     memberCardDescription: translationKey(
       "How {{name}} is notified when an incident of this severity is assigned to them while they are on call.",
+    ),
+    ownArchivedCardDescription: translationKey(
+      "This severity is archived. Incidents that still have it notify you by these rules: you can change or remove them, but not add new ones.",
+    ),
+    memberArchivedCardDescription: translationKey(
+      "This severity is archived. Incidents that still have it notify {{name}} by these rules: you can change or remove them, but not add new ones.",
     ),
   },
   /*
@@ -86,6 +100,12 @@ const DEFINITIONS: Readonly<
     memberCardDescription: translationKey(
       "How {{name}} is notified when an incident episode of this severity is assigned to them while they are on call.",
     ),
+    ownArchivedCardDescription: translationKey(
+      "This severity is archived. Incident episodes that still have it notify you by these rules: you can change or remove them, but not add new ones.",
+    ),
+    memberArchivedCardDescription: translationKey(
+      "This severity is archived. Incident episodes that still have it notify {{name}} by these rules: you can change or remove them, but not add new ones.",
+    ),
   },
   [OnCallRuleKind.Alerts]: {
     tabName: "Alerts",
@@ -97,6 +117,12 @@ const DEFINITIONS: Readonly<
     memberCardDescription: translationKey(
       "How {{name}} is notified when an alert of this severity is assigned to them while they are on call.",
     ),
+    ownArchivedCardDescription: translationKey(
+      "This severity is archived. Alerts that still have it notify you by these rules: you can change or remove them, but not add new ones.",
+    ),
+    memberArchivedCardDescription: translationKey(
+      "This severity is archived. Alerts that still have it notify {{name}} by these rules: you can change or remove them, but not add new ones.",
+    ),
   },
   [OnCallRuleKind.AlertEpisodes]: {
     tabName: "Alert Episodes",
@@ -107,6 +133,12 @@ const DEFINITIONS: Readonly<
     ),
     memberCardDescription: translationKey(
       "How {{name}} is notified when an alert episode of this severity is assigned to them while they are on call.",
+    ),
+    ownArchivedCardDescription: translationKey(
+      "This severity is archived. Alert episodes that still have it notify you by these rules: you can change or remove them, but not add new ones.",
+    ),
+    memberArchivedCardDescription: translationKey(
+      "This severity is archived. Alert episodes that still have it notify {{name}} by these rules: you can change or remove them, but not add new ones.",
     ),
   },
 };

@@ -1,3 +1,7 @@
+import {
+  ArchivableValueDefinition,
+  getArchivableValueByTableName,
+} from "../../../Utils/ArchivableValues";
 import { splitCapitalRunsBeforeWords } from "../../../Utils/CapitalRuns";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import Exception from "../../../Types/Exception/Exception";
@@ -15,6 +19,14 @@ const INVALID_UUID_MESSAGE_START: string = "invalid input syntax for type uuid";
 
 // The example every message about an ID gives (ObjectID, UUIDColumnFilter).
 const EXAMPLE_UUID: string = "550e8400-e29b-41d4-a716-446655440000";
+
+/*
+ * How Postgres begins a delete a foreign key refused: `update or delete on
+ * table "IncidentSeverity" violates foreign key constraint ... on table
+ * "Incident"` - the table whose row was being deleted, quoted. Anchored, and
+ * the name excludes its own closing quote, so it reads in one pass.
+ */
+const DELETED_TABLE_MESSAGE: RegExp = /^update or delete on table "([^"]+)"/;
 
 /*
  * TypeORM reports driver failures as QueryFailedError, which does not extend
@@ -61,8 +73,23 @@ export interface TranslatedPostgresException extends Exception {
   postgresConstraintName?: string | undefined;
 }
 
+/*
+ * What a translation knows about the write that failed: the table of the
+ * model whose service ran it (DatabaseService.getException). A delete of a
+ * value records pick from - a severity, a state, a label - that records
+ * still have is answered with the way on: archive it instead. Only for a
+ * row of that table itself, never one a delete of something else reached
+ * by cascade (a project's statuses, when the project is deleted).
+ */
+export interface PostgresErrorContext {
+  tableName?: string | null | undefined;
+}
+
 export default class PostgresErrorTranslator {
-  public static translate(error: unknown): unknown {
+  public static translate(
+    error: unknown,
+    context?: PostgresErrorContext | undefined,
+  ): unknown {
     const driverError: PostgresDriverError | null =
       this.getPostgresDriverError(error);
 
@@ -71,7 +98,7 @@ export default class PostgresErrorTranslator {
     }
 
     if (driverError.code === FOREIGN_KEY_VIOLATION) {
-      return this.translateForeignKeyViolation(error, driverError);
+      return this.translateForeignKeyViolation(error, driverError, context);
     }
 
     if (driverError.code === UNIQUE_VIOLATION) {
@@ -89,8 +116,11 @@ export default class PostgresErrorTranslator {
    * `throw`-friendly wrapper. Kept synchronous so callers can keep using
    * `throw translator(...)` on the synchronous throw path.
    */
-  public static translateException(error: Exception): Exception {
-    return this.translate(error) as Exception;
+  public static translateException(
+    error: Exception,
+    context?: PostgresErrorContext | undefined,
+  ): Exception {
+    return this.translate(error, context) as Exception;
   }
 
   /*
@@ -187,6 +217,7 @@ export default class PostgresErrorTranslator {
   private static translateForeignKeyViolation(
     error: unknown,
     driverError: PostgresDriverError,
+    context?: PostgresErrorContext | undefined,
   ): unknown {
     const detail: string = driverError.detail || "";
 
@@ -197,6 +228,16 @@ export default class PostgresErrorTranslator {
     if (detail.includes("is still referenced from table")) {
       const referencingTable: string =
         this.getTableNameFromDetail(detail) || driverError.table || "";
+
+      const valueRefusal: string | null = this.getValueDeleteRefusal({
+        driverError: driverError,
+        referencingTable: referencingTable,
+        context: context,
+      });
+
+      if (valueRefusal) {
+        return this.tag(new BadDataException(valueRefusal), driverError);
+      }
 
       return this.tag(
         new BadDataException(
@@ -374,6 +415,46 @@ export default class PostgresErrorTranslator {
     }
 
     return this.getTableNameFromDetail(detail);
+  }
+
+  /*
+   * A delete of a value records pick from (Common/Utils/ArchivableValues)
+   * that rows still have, said with what to do instead - archive it - rather
+   * than "delete those records first", which for a severity means deleting
+   * incidents. Only when the row being deleted is of the table whose service
+   * ran the delete (context.tableName); null otherwise.
+   */
+  private static getValueDeleteRefusal(data: {
+    driverError: PostgresDriverError;
+    referencingTable: string;
+    context?: PostgresErrorContext | undefined;
+  }): string | null {
+    const ownTable: string | null | undefined = data.context?.tableName;
+
+    if (!ownTable) {
+      return null;
+    }
+
+    const match: RegExpMatchArray | null = (
+      data.driverError.message || ""
+    ).match(DELETED_TABLE_MESSAGE);
+
+    if (!match || match[1] !== ownTable) {
+      return null;
+    }
+
+    const value: ArchivableValueDefinition | null =
+      getArchivableValueByTableName(ownTable);
+
+    if (!value) {
+      return null;
+    }
+
+    const holders: string = data.referencingTable
+      ? `${this.humanizeTableName(data.referencingTable)} records`
+      : "other records";
+
+    return `This ${value.singular} can't be deleted while ${holders} still have it. Archive it instead: nobody can pick it again, and everything that has it keeps it.`;
   }
 
   private static getTableNameFromDetail(detail: string): string | null {

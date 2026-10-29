@@ -3,7 +3,10 @@ import {
   ARCHIVABLE_VALUES,
   ArchivableValueType,
 } from "Common/Utils/ArchivableValues";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * What the settings pages of the values records pick from say about
@@ -279,6 +282,122 @@ export const USAGE_ITEM: string = translationKey("{{title}} ({{count}})");
 // A count the server stopped at: "10,000+".
 export const CAPPED_COUNT: string = translationKey("{{count}}+");
 
+/*
+ * PEOPLE'S OWN SETTINGS THAT NAME A VALUE (ArchivableValueUsageKind.Personal).
+ *
+ * Every member of a project has on-call rules of their own - one for each
+ * severity, kind (incidents, episodes) and notification method, which
+ * OneUptime sets up when they join - and their own notification settings.
+ * The Archive dialog used to list them as "Notification Rules (22)" among
+ * the project's settings that keep using a value until someone changes
+ * them: nobody recognised them, and the count was of rows. They are said as
+ * whose they are, counted by person, and as what really happens to them.
+ *
+ * Keyed by the table of the people's settings (the server's tableName).
+ * PersonalUsageCopy.test holds every personal table the models declare to an
+ * entry here.
+ */
+
+// One line of a list - the Delete dialog's - "On-call rules of 11 people".
+export const PERSONAL_USAGE_ITEMS: Record<string, PluralTemplate> = {
+  UserNotificationRule: {
+    one: "On-call rules of {{count}} person",
+    other: "On-call rules of {{count}} people",
+  },
+  UserNotificationSetting: {
+    one: "Notification settings of {{count}} person",
+    other: "Notification settings of {{count}} people",
+  },
+};
+
+// A person's own settings with no words of their own yet.
+export const PERSONAL_USAGE_ITEM_FALLBACK: PluralTemplate = {
+  one: "Own settings of {{count}} person",
+  other: "Own settings of {{count}} people",
+};
+
+/*
+ * The Archive dialog's sentence about them, after what keeps using the
+ * value: they stay as they are, and what they keep doing. Keyed by the kind
+ * of value and the table, `<ArchivableValueType>:<tableName>`.
+ */
+export interface PersonalUsageNote {
+  sentence: PluralTemplate;
+  // The link to the viewer's own, where a person sees what they are.
+  linkText: string;
+}
+
+export const PERSONAL_USAGE_NOTES: Record<string, PersonalUsageNote> = {
+  [`${ArchivableValueType.IncidentSeverity}:UserNotificationRule`]: {
+    sentence: {
+      one: "{{count}} person has on-call rules for this severity. They stay as they are, so incidents with it still page them.",
+      other:
+        "{{count}} people have on-call rules for this severity. They stay as they are, so incidents with it still page them.",
+    },
+    linkText: translationKey("See your on-call rules"),
+  },
+  [`${ArchivableValueType.AlertSeverity}:UserNotificationRule`]: {
+    sentence: {
+      one: "{{count}} person has on-call rules for this severity. They stay as they are, so alerts with it still page them.",
+      other:
+        "{{count}} people have on-call rules for this severity. They stay as they are, so alerts with it still page them.",
+    },
+    linkText: translationKey("See your on-call rules"),
+  },
+  [`${ArchivableValueType.SecurityCasePriority}:UserNotificationSetting`]: {
+    sentence: {
+      one: "{{count}} person is notified about new security cases at this priority and above. That stays as it is.",
+      other:
+        "{{count}} people are notified about new security cases at this priority and above. That stays as it is.",
+    },
+    linkText: translationKey("See your notification settings"),
+  },
+};
+
+// The sentence for people's own settings with no words of their own yet.
+export const PERSONAL_USAGE_NOTE_FALLBACK: PluralTemplate = {
+  one: "{{count}} person has their own settings that use it. They stay as they are.",
+  other:
+    "{{count}} people have their own settings that use it. They stay as they are.",
+};
+
+/*
+ * A bulk Delete of values (Bulk Actions > Delete on a settings page): what
+ * deleting the selected ones would do, read when the dialog opens - each
+ * record or person counted once, however many of them it has.
+ */
+export const CHECKING_WHAT_USES_THEM: string = translationKey(
+  "Checking what still uses them…",
+);
+// {{names}}: the values records still have, "Critical and Major".
+export const BULK_DELETE_REFUSED: PluralTemplate = {
+  one: "{{names}} can't be deleted while these have it:",
+  other: "{{names}} can't be deleted while these have them:",
+};
+export const BULK_DELETE_REFUSED_ARCHIVE_INSTEAD: PluralTemplate = {
+  one: "It is left as it is. Archive it instead: nobody can pick it again, and everything that has it keeps it.",
+  other:
+    "They are left as they are. Archive them instead: nobody can pick them again, and everything that has them keeps them.",
+};
+export const BULK_DELETE_REFUSED_ALREADY_ARCHIVED: PluralTemplate = {
+  one: "It is left as it is, archived: nobody can pick it, and everything that has it keeps it.",
+  other:
+    "They are left as they are, archived: nobody can pick them, and everything that has them keeps them.",
+};
+// What deleting changes: all of them, or the ones left once the refused are.
+export const BULK_DELETE_CHANGES_INTRO: PluralTemplate = {
+  one: "Deleting it also changes these:",
+  other: "Deleting them also changes these:",
+};
+export const BULK_DELETE_CHANGES_INTRO_OTHERS: PluralTemplate = {
+  one: "Deleting the other one also changes these:",
+  other: "Deleting the others also changes these:",
+};
+// Why a value the dialog found in use is not deleted, in the run's result.
+export const BULK_DELETE_REFUSAL_REASON: string = translationKey(
+  "Records still have it, so it can't be deleted. Archive it instead.",
+);
+
 // The folded Archived section's count, beside its title.
 export const ARCHIVED_COUNT: string = translationKey("{{count}} archived");
 
@@ -316,11 +435,41 @@ export const getArchivableValueStrings: () => Array<string> =
       DELETE_CHANGES_ARCHIVE_INSTEAD,
       DELETE_CHANGES_CANNOT_UNDO,
       ARCHIVED_COUNT,
+      CHECKING_WHAT_USES_THEM,
+      BULK_DELETE_REFUSAL_REASON,
     ]) {
       strings.add(text);
     }
 
+    for (const note of Object.values(PERSONAL_USAGE_NOTES)) {
+      strings.add(note.linkText);
+    }
+
+    for (const plural of getArchivableValuePluralStrings()) {
+      strings.add(plural.other);
+    }
+
     return Array.from(strings);
+  };
+
+/** Every plural sentence these pages show, for the locale checks. */
+export const getArchivableValuePluralStrings: () => Array<PluralTemplate> =
+  (): Array<PluralTemplate> => {
+    return [
+      ...Object.values(PERSONAL_USAGE_ITEMS),
+      PERSONAL_USAGE_ITEM_FALLBACK,
+      ...Object.values(PERSONAL_USAGE_NOTES).map(
+        (note: PersonalUsageNote): PluralTemplate => {
+          return note.sentence;
+        },
+      ),
+      PERSONAL_USAGE_NOTE_FALLBACK,
+      BULK_DELETE_REFUSED,
+      BULK_DELETE_REFUSED_ARCHIVE_INSTEAD,
+      BULK_DELETE_REFUSED_ALREADY_ARCHIVED,
+      BULK_DELETE_CHANGES_INTRO,
+      BULK_DELETE_CHANGES_INTRO_OTHERS,
+    ];
   };
 
 /*

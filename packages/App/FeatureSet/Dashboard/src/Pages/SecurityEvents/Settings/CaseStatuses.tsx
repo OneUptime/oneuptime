@@ -77,6 +77,7 @@ const SecurityCaseStatusesPage: FunctionComponent<
         query={archive.query}
         actionButtons={archive.actionButtons}
         getDeleteConfirmation={archive.getDeleteConfirmation}
+        bulkActions={archive.bulkActions}
         refreshToggle={archive.refreshToggle}
         id="security-case-status-table"
         userPreferencesKey="security-case-status-table"

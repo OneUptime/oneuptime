@@ -5,6 +5,7 @@ import {
   ARCHIVE_INSTEAD,
   ARCHIVED_COUNT,
   ArchivableValueCopy,
+  BULK_DELETE_REFUSAL_REASON,
   CHECKING_WHAT_USES_IT,
   DELETE_CHANGES_ARCHIVE_INSTEAD,
   DELETE_CHANGES_CANNOT_UNDO,
@@ -16,16 +17,25 @@ import {
   STILL_SET_UP_TO_USE_IT,
   UNARCHIVE_ACTION,
 } from "./ArchivableValueCopy";
-import { UsageGroups, UsageList } from "./ArchivableValueUsageList";
 import {
+  PersonalUsageNotes,
+  UsageGroups,
+  UsageList,
+} from "./ArchivableValueUsageList";
+import {
+  ArchiveDialogUsage,
   UsageGroup,
-  getArchiveDialogItems,
+  getArchiveDialogUsage,
   getDeleteDialogGroups,
   isDeleteRefused,
 } from "./ArchivableValueUsageText";
+import ArchivableValuesBulkDeleteDetails from "./ArchivableValuesBulkDeleteDetails";
 import { fetchArchivableValueUsage } from "./FetchArchivableValueUsage";
 import { getArchivedColumns } from "../Archive/ArchivedColumns";
+import PageMap from "../../Utils/PageMap";
+import { RouteUtil } from "../../Utils/RouteMap";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Route from "Common/Types/API/Route";
 import { ArchivableValueUsageItem } from "Common/Types/ArchivableValue/ArchivableValueUsage";
 import Query from "Common/Types/BaseDatabase/Query";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -34,6 +44,9 @@ import Color from "Common/Types/Color";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import Select from "Common/Types/BaseDatabase/Select";
+import OnCallRuleKind, {
+  getOnCallRuleKindQuery,
+} from "Common/Types/NotificationRule/OnCallRuleKind";
 import ObjectID from "Common/Types/ObjectID";
 import {
   ARCHIVABLE_VALUES,
@@ -46,13 +59,17 @@ import ActionButtonSchema, {
   ActionButtonPlacement,
 } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { BulkActionConfirmControls } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import CardSections from "Common/UI/Components/Card/CardSections";
 import DeleteConfirmationMessage from "Common/UI/Components/DeleteConfirmation/DeleteConfirmationMessage";
 import NamedSentence from "Common/UI/Components/DeleteConfirmation/NamedSentence";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
 import InlineLoadingLine from "Common/UI/Components/Loader/InlineLoadingLine";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
-import { DeleteConfirmation } from "Common/UI/Components/ModelTable/BaseModelTable";
+import {
+  BulkActionProps,
+  DeleteConfirmation,
+} from "Common/UI/Components/ModelTable/BaseModelTable";
 import Columns from "Common/UI/Components/ModelTable/Columns";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -67,10 +84,12 @@ import PermissionGate, {
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
+  MutableRefObject,
   ReactElement,
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -96,10 +115,19 @@ import React, {
  *   - `getDeleteConfirmation`: Delete says what it would do to everything
  *     that uses the value - refused while records still have it, otherwise
  *     what comes off, goes or is cleared - and offers Archive instead;
+ *   - `bulkActions`: Bulk Actions > Delete says first what deleting the
+ *     selected values would do - which of them records still have, left as
+ *     they are, and what deleting the rest changes - read once for the
+ *     selection (ArchivableValuesBulkDeleteDetails);
  *   - `refreshToggle`: the tables read again after an archive or unarchive;
  *   - `element`, placed after the table: the folded Archived section - only
  *     when something is archived - whose rows Unarchive with one click, and
  *     the Archive dialog.
+ *
+ * The Archive dialog lists the project's settings that keep using the
+ * value, and says apart how many people have their own settings that name
+ * it - their on-call rules for a severity - which stay as they are, with a
+ * link to the reader's own.
  *
  * A page whose table draws its values its own way (a label as a label, a
  * role with its icon) hands that in as `getNameElement`, so an archived
@@ -111,6 +139,7 @@ export interface ArchivableValues<T extends BaseModel> {
   query: Query<T>;
   actionButtons: Array<ActionButtonSchema<T>>;
   getDeleteConfirmation: (item: T) => Promise<DeleteConfirmation>;
+  bulkActions: BulkActionProps<T>;
   refreshToggle: string;
   element: ReactElement;
 }
@@ -118,12 +147,45 @@ export interface ArchivableValues<T extends BaseModel> {
 interface ArchiveDialogState<T extends BaseModel> {
   item: T;
   /*
-   * The settings that keep using it - null while they are read. The dialog
-   * opens at once and says it is checking; a read that fails lists none,
-   * since archiving needs no answer from it.
+   * The settings that keep using it, and the people whose own settings name
+   * it - null while they are read. The dialog opens at once and says it is
+   * checking; a read that fails lists none, since archiving needs no answer
+   * from it.
    */
-  settings: Array<ArchivableValueUsageItem> | null;
+  usage: ArchiveDialogUsage | null;
 }
+
+const NO_USAGE: ArchiveDialogUsage = { settings: [], people: [] };
+
+/*
+ * Where the reader sees their own settings of a table of people's own
+ * settings, for a value of `type`: their on-call rules, on the tab of the
+ * kind of record the value is of, or their notification settings. Null for
+ * a table the product has no page of the reader's own for.
+ */
+export const getOwnSettingsRoute: (
+  type: ArchivableValueType,
+  tableName: string,
+) => Route | null = (
+  type: ArchivableValueType,
+  tableName: string,
+): Route | null => {
+  if (tableName === "UserNotificationRule") {
+    return RouteUtil.getPageRoute(PageMap.USER_SETTINGS_ON_CALL_RULES, {
+      query: getOnCallRuleKindQuery(
+        type === ArchivableValueType.AlertSeverity
+          ? OnCallRuleKind.Alerts
+          : OnCallRuleKind.Incidents,
+      ),
+    });
+  }
+
+  if (tableName === "UserNotificationSetting") {
+    return RouteUtil.getPageRoute(PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS);
+  }
+
+  return null;
+};
 
 const readName: (item: BaseModel) => string = (item: BaseModel): string => {
   const name: unknown = item.getColumnValue("name");
@@ -302,7 +364,7 @@ const useArchivableValues: <T extends BaseModel>(
 
       // The dialog opens at once; what still uses the value follows.
       setArchiveError("");
-      setArchiveDialog({ item: item, settings: id ? null : [] });
+      setArchiveDialog({ item: item, usage: id ? null : NO_USAGE });
       onCompleteAction();
 
       if (!id) {
@@ -310,23 +372,23 @@ const useArchivableValues: <T extends BaseModel>(
       }
 
       // Only for the dialog still open on this value.
-      const showSettings: (
-        settings: Array<ArchivableValueUsageItem>,
-      ) => void = (settings: Array<ArchivableValueUsageItem>): void => {
+      const showUsage: (usage: ArchiveDialogUsage) => void = (
+        usage: ArchiveDialogUsage,
+      ): void => {
         setArchiveDialog(
           (
             current: ArchiveDialogState<T> | null,
           ): ArchiveDialogState<T> | null => {
             return current && current.item === item
-              ? { item: item, settings: settings }
+              ? { item: item, usage: usage }
               : current;
           },
         );
       };
 
       try {
-        showSettings(
-          getArchiveDialogItems(
+        showUsage(
+          getArchiveDialogUsage(
             await fetchArchivableValueUsage({
               modelType: data.modelType,
               valueId: id,
@@ -338,7 +400,7 @@ const useArchivableValues: <T extends BaseModel>(
          * The list only helps: archiving changes no setting, so a read that
          * fails leaves the dialog as it is, without one.
          */
-        showSettings([]);
+        showUsage(NO_USAGE);
       }
     },
   };
@@ -470,6 +532,59 @@ const useArchivableValues: <T extends BaseModel>(
     };
   };
 
+  /*
+   * Bulk Actions > Delete: what deleting the selected values would do, read
+   * when its dialog opens, and the values records still have left out of
+   * the run with why - one set for each list, as only one dialog is open at
+   * a time. See ArchivableValuesBulkDeleteDetails.
+   */
+  const liveRefusedIds: MutableRefObject<Set<string>> = useRef<Set<string>>(
+    new Set<string>(),
+  );
+  const archivedRefusedIds: MutableRefObject<Set<string>> = useRef<
+    Set<string>
+  >(new Set<string>());
+
+  const getBulkActions: (isArchivedList: boolean) => BulkActionProps<T> = (
+    isArchivedList: boolean,
+  ): BulkActionProps<T> => {
+    const refusedIds: MutableRefObject<Set<string>> = isArchivedList
+      ? archivedRefusedIds
+      : liveRefusedIds;
+
+    return {
+      buttons: [],
+      deleteConfirmationDetails: (
+        items: Array<T>,
+        controls: BulkActionConfirmControls,
+      ): ReactElement => {
+        // A new dialog: nothing is known to be refused until it is read.
+        refusedIds.current = new Set<string>();
+
+        return (
+          <ArchivableValuesBulkDeleteDetails
+            modelType={data.modelType}
+            items={items}
+            controls={controls}
+            isArchivedList={isArchivedList}
+            onRefusedValueIds={(valueIds: Array<string>) => {
+              refusedIds.current = new Set<string>(valueIds);
+            }}
+          />
+        );
+      },
+      getDeleteRefusal: (item: T): string | undefined => {
+        const id: ObjectID | null = readId(item);
+
+        return id && refusedIds.current.has(id.toString().toLowerCase())
+          ? translator.translateText(BULK_DELETE_REFUSAL_REASON)
+          : undefined;
+      },
+      // The counts the page keeps - archived, live - read again.
+      onDeleteEnd: refresh,
+    };
+  };
+
   const archivedColumns: Columns<T> = [
     {
       field: { name: true } as never,
@@ -542,6 +657,7 @@ const useArchivableValues: <T extends BaseModel>(
                 }
                 actionButtons={[unarchiveAction]}
                 getDeleteConfirmation={getDeleteConfirmationFor(true)}
+                bulkActions={getBulkActions(true)}
                 onItemDeleted={() => {
                   refresh();
                 }}
@@ -567,24 +683,35 @@ const useArchivableValues: <T extends BaseModel>(
           description={
             <div data-testid="archivable-value-archive-confirmation">
               <p>{translator.translateText(copy.archiveMessage)}</p>
-              {archiveDialog.settings === null ? (
+              {archiveDialog.usage === null ? (
                 <InlineLoadingLine
                   className="mt-3"
                   text={CHECKING_WHAT_USES_IT}
                   dataTestId="archivable-value-checking"
                 />
-              ) : archiveDialog.settings.length > 0 ? (
+              ) : (
                 <>
-                  <p className="mt-3 font-medium text-gray-900">
-                    {translator.translateText(STILL_SET_UP_TO_USE_IT)}
-                  </p>
-                  <UsageList
-                    items={archiveDialog.settings}
-                    dataTestId="archivable-value-still-used-by"
+                  {archiveDialog.usage.settings.length > 0 ? (
+                    <>
+                      <p className="mt-3 font-medium text-gray-900">
+                        {translator.translateText(STILL_SET_UP_TO_USE_IT)}
+                      </p>
+                      <UsageList
+                        items={archiveDialog.usage.settings}
+                        dataTestId="archivable-value-still-used-by"
+                      />
+                    </>
+                  ) : (
+                    <></>
+                  )}
+                  <PersonalUsageNotes
+                    type={data.type}
+                    people={archiveDialog.usage.people}
+                    getOwnSettingsRoute={(tableName: string): Route | null => {
+                      return getOwnSettingsRoute(data.type, tableName);
+                    }}
                   />
                 </>
-              ) : (
-                <></>
               )}
             </div>
           }
@@ -620,6 +747,7 @@ const useArchivableValues: <T extends BaseModel>(
     query: { [ARCHIVED_COLUMN]: false } as Query<T>,
     actionButtons: [archiveAction],
     getDeleteConfirmation: getDeleteConfirmationFor(false),
+    bulkActions: getBulkActions(false),
     refreshToggle: refreshToggle,
     element: element,
   };

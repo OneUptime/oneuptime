@@ -14,6 +14,9 @@ import ArchivableValueUsage, {
  *     the value - monitors' criteria, rules, templates, workflows - which
  *     keep using it until they are changed. Records that have it are not
  *     listed: archiving changes nothing for them, and the dialog says so.
+ *     People's own settings that name it - their on-call rules for a
+ *     severity - are not the project's settings and need no change: the
+ *     dialog says, apart, how many people have them and that they stay.
  *   - The Delete dialog says what a delete would do. When something still
  *     has the value under a key that refuses the delete, the delete cannot
  *     go through, and those are listed. Otherwise every use it changes is
@@ -53,6 +56,49 @@ const byCountThenTitle: (
 };
 
 /*
+ * One line per table, for the Archive dialog: a table reached in more than
+ * one way (a monitor's criteria and its alert suppression) is one line,
+ * counted with every way together - the server's total - and the most
+ * first.
+ */
+const mergeByTable: (
+  items: Array<ArchivableValueUsageItem>,
+) => Array<ArchivableValueUsageItem> = (
+  items: Array<ArchivableValueUsageItem>,
+): Array<ArchivableValueUsageItem> => {
+  const merged: Array<ArchivableValueUsageItem> = [];
+
+  for (const item of items) {
+    const total: { count: number; isCountCapped: boolean } =
+      ArchivableValueUsage.getTotalCount(item);
+
+    const existing: ArchivableValueUsageItem | undefined = merged.find(
+      (candidate: ArchivableValueUsageItem): boolean => {
+        return candidate.tableName === item.tableName;
+      },
+    );
+
+    if (!existing) {
+      merged.push({
+        ...item,
+        count: total.count,
+        isCountCapped: total.isCountCapped,
+      });
+      continue;
+    }
+
+    // Without a total from the server, the larger count is the most it can say.
+    if (total.count > existing.count) {
+      existing.count = total.count;
+    }
+
+    existing.isCountCapped = existing.isCountCapped || total.isCountCapped;
+  }
+
+  return merged.sort(byCountThenTitle);
+};
+
+/*
  * What the Archive dialog lists: the settings that keep using the value,
  * the most first. One line per kind of record: a rule that names the value
  * twice is one rule.
@@ -62,28 +108,40 @@ export const getArchiveDialogItems: (
 ) => Array<ArchivableValueUsageItem> = (
   usage: Array<ArchivableValueUsageItem>,
 ): Array<ArchivableValueUsageItem> => {
-  const merged: Array<ArchivableValueUsageItem> = [];
+  return mergeByTable(ArchivableValueUsage.getSettings(usage));
+};
 
-  for (const item of ArchivableValueUsage.getSettings(usage)) {
-    const existing: ArchivableValueUsageItem | undefined = merged.find(
-      (candidate: ArchivableValueUsageItem): boolean => {
-        return candidate.tableName === item.tableName;
-      },
-    );
+/*
+ * What the Archive dialog says apart: people's own settings that name the
+ * value - their on-call rules for a severity - one line per table, counted
+ * by person. They stay as they are.
+ */
+export const getArchiveDialogPeople: (
+  usage: Array<ArchivableValueUsageItem>,
+) => Array<ArchivableValueUsageItem> = (
+  usage: Array<ArchivableValueUsageItem>,
+): Array<ArchivableValueUsageItem> => {
+  return mergeByTable(ArchivableValueUsage.getPersonal(usage));
+};
 
-    if (!existing) {
-      merged.push({ ...item });
-      continue;
-    }
+/*
+ * Everything the Archive dialog shows about a value's uses: the settings
+ * that keep using it, and the people whose own settings name it.
+ */
+export interface ArchiveDialogUsage {
+  settings: Array<ArchivableValueUsageItem>;
+  people: Array<ArchivableValueUsageItem>;
+}
 
-    if (item.count > existing.count) {
-      existing.count = item.count;
-    }
-
-    existing.isCountCapped = existing.isCountCapped || item.isCountCapped;
-  }
-
-  return merged.sort(byCountThenTitle);
+export const getArchiveDialogUsage: (
+  usage: Array<ArchivableValueUsageItem>,
+) => ArchiveDialogUsage = (
+  usage: Array<ArchivableValueUsageItem>,
+): ArchiveDialogUsage => {
+  return {
+    settings: getArchiveDialogItems(usage),
+    people: getArchiveDialogPeople(usage),
+  };
 };
 
 // Whether the delete would be refused: something still has the value.

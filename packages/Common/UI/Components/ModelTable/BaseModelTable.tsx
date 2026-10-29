@@ -40,6 +40,7 @@ import ActionButtonSchema, {
 import { withRowActionContext } from "../ActionButton/RowActionContext";
 import {
   BulkActionButtonSchema,
+  BulkActionConfirmControls,
   BulkActionOnClickProps,
 } from "../BulkUpdate/BulkUpdateForm";
 import { runBulkAction } from "../BulkUpdate/BulkActionRunner";
@@ -374,6 +375,28 @@ export interface BulkActionProps<T extends BaseModel | AnalyticsBaseModel> {
    * incidents) passes BULK_ACTION_CONCURRENCY.
    */
   deleteConcurrency?: number | undefined;
+  /*
+   * Drawn in the bulk Delete's dialog after the names: what deleting the
+   * selected rows would change, read when the dialog opens - what uses a
+   * value the rows are, say (UseArchivableValues). It may hold the dialog's
+   * Delete while it reads (BulkActionConfirmControls), as a row's Delete
+   * waits for its own words.
+   */
+  deleteConfirmationDetails?:
+    | ((
+        items: Array<T>,
+        controls: BulkActionConfirmControls,
+      ) => ReactElement | undefined)
+    | undefined;
+  /*
+   * Why one selected row is not deleted, when the list already knows the
+   * server would refuse it - records still have a value, say: it is not
+   * sent, and is listed with the reason like a row the server refused.
+   * Only the bulk Delete asks: a row's own Delete says why in its dialog.
+   */
+  getDeleteRefusal?: ((item: T) => string | undefined) | undefined;
+  // Once a bulk Delete has run: a page that counts what is left reads again.
+  onDeleteEnd?: (() => void) | undefined;
 }
 
 /**
@@ -3979,11 +4002,18 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
          * list's own sentence): after the names it is about them, where in
          * the middle of the question it was one more sentence to read past.
          */
-        confirmDetails: (items: Array<TBaseModel>): ReactElement => {
+        confirmDetails: (
+          items: Array<TBaseModel>,
+          controls: BulkActionConfirmControls,
+        ): ReactElement => {
           const warning: string = getDeleteWarning(
             props.bulkActions?.deleteConfirmationWarning ??
               props.deleteConfirmationWarning,
           );
+
+          // What deleting them would change, when the list reads it.
+          const details: ReactElement | undefined =
+            props.bulkActions?.deleteConfirmationDetails?.(items, controls);
 
           return (
             <div className="space-y-3">
@@ -4003,6 +4033,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               ) : (
                 <></>
               )}
+              {details || <></>}
             </div>
           );
         },
@@ -4044,9 +4075,19 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 throw new BadDataException(deleteDisabledReason);
               }
 
+              // One the list knows the server would refuse: not sent either.
+              const deleteRefusal: string | undefined =
+                props.bulkActions?.getDeleteRefusal?.(item);
+
+              if (deleteRefusal) {
+                throw new BadDataException(deleteRefusal);
+              }
+
               await props.callbacks.deleteItem(item);
             },
           });
+
+          props.bulkActions?.onDeleteEnd?.();
         },
       };
     };

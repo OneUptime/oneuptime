@@ -56,6 +56,7 @@ const AlertStatesPage: FunctionComponent<
         query={archive.query}
         actionButtons={archive.actionButtons}
         getDeleteConfirmation={archive.getDeleteConfirmation}
+        bulkActions={archive.bulkActions}
         refreshToggle={archive.refreshToggle}
         id="alert-state-table"
         userPreferencesKey="alert-state-table"
