@@ -411,6 +411,8 @@ describe("every result says what kind it is", () => {
 
     expect(within(row).getByText("core-sw-01")).toBeInTheDocument();
     expect(address).toHaveAttribute("dir", "ltr");
+    // Small text people read: gray-500, not the faint gray-400.
+    expect(address).toHaveClass("text-gray-500");
     // Rows line up with the start of the line, in a right-to-left page too.
     expect(row.className).toContain("text-start");
     expect(row.className).not.toContain("text-left");

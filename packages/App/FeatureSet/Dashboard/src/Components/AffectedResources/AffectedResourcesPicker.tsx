@@ -2332,7 +2332,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                       </span>
                       <span
                         className={
-                          isActive ? "text-indigo-500" : "text-gray-400"
+                          isActive ? "text-indigo-500" : "text-gray-500"
                         }
                       >
                         {translator.formatNumber(count)}
@@ -2565,7 +2565,8 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                                   </span>
                                   {/*
                                    * An address reads left to right in every
-                                   * language, beside the name it tells apart.
+                                   * language, beside the name it tells apart,
+                                   * in a gray that stays readable this small.
                                    */}
                                   {item.detail && (
                                     <span
@@ -2573,7 +2574,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                                       className={`max-w-[45%] flex-shrink-0 truncate text-xs ${
                                         isHighlighted
                                           ? "text-indigo-100"
-                                          : "text-gray-400"
+                                          : "text-gray-500"
                                       }`}
                                     >
                                       {item.detail}
