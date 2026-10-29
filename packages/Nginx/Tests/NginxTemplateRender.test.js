@@ -27,6 +27,7 @@ const {
   readTemplate,
   readNginxConf,
 } = require("./NginxConfigParser");
+const { readDemoAddresses } = require("./HomeShortAddresses");
 
 const template = readTemplate();
 const nginxConf = readNginxConf();
@@ -1192,6 +1193,60 @@ for (const billingEnabled of [true, false]) {
           const response = await getThroughIngress(port, uri, "localhost");
 
           assert.equal(response.answer?.upstream, "app", uri);
+          assert.equal(response.answer.url, uri);
+        }
+      });
+    },
+  );
+}
+
+// ---------------------------------------------------------------------------
+// /demo: the demo page's short addresses
+// ---------------------------------------------------------------------------
+
+/*
+ * Home answers oneuptime.com/demo, and the other addresses people type for
+ * the demo page (Home/Utils/DemoPage.ts), with a 301 to /enterprise/demo
+ * that keeps the campaign's query string. A real nginx must hand each one,
+ * query and all, to wherever it sends the marketing site: Home when billing
+ * is on, the app otherwise. NginxConfig.test.js holds the same addresses to
+ * the location precedence without a running nginx.
+ */
+for (const billingEnabled of [true, false]) {
+  test(
+    `a real nginx sends oneuptime.com/demo and the demo page's other addresses where it sends the marketing site (BILLING_ENABLED=${billingEnabled})`,
+    { skip: runningNginxSkipReason, timeout: 60000 },
+    async () => {
+      const { pagePath, shortPaths } = readDemoAddresses();
+
+      await withRunningIngress(billingEnabled, async ({ port }) => {
+        // Home is the marketing site when billing is on; otherwise the app is.
+        const marketingSite = billingEnabled ? "home" : "app";
+
+        for (const uri of [
+          ...shortPaths,
+          // With the trailing slash, and in the letter case people type.
+          ...shortPaths.map((shortPath) => {
+            return `${shortPath}/`;
+          }),
+          "/Demo",
+          "/DEMO/",
+          // The query a campaign carries reaches Home as it was sent.
+          "/demo?utm_source=linkedin&utm_campaign=q4%20launch%20%2B%20demo&gclid=EAIaIQobChMI",
+          "/enterprise/request-demo?utm_source=newsletter",
+          // And so does the page they all lead to.
+          pagePath,
+          `${pagePath}/`,
+          `${pagePath}?gclid=EAIaIQobChMI`,
+        ]) {
+          const response = await getThroughIngress(port, uri, "localhost");
+
+          assert.equal(response.status, 200, uri);
+          assert.equal(
+            response.answer?.upstream,
+            marketingSite,
+            `${uri} must reach ${marketingSite}: ${response.body}`,
+          );
           assert.equal(response.answer.url, uri);
         }
       });

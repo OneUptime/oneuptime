@@ -5,6 +5,7 @@ import {
 } from "../Utils/Redirect";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
 import { escapeRegExp } from "Common/Utils/RegExpEscape";
+import { DEMO_PAGE_PATH, DEMO_SHORT_PATHS } from "../Utils/DemoPage";
 import fs from "fs";
 import path from "path";
 
@@ -276,6 +277,10 @@ describe("route table wiring", () => {
     ["/scheduled-maintenance", "/product/scheduled-maintenance"],
     ["/incident-management", "/product/incident-management"],
     ["/ai-agent", "/product/ai-agent"],
+    // oneuptime.com/demo and the demo page's other short addresses.
+    ...DEMO_SHORT_PATHS.map((shortPath: string): [string, string] => {
+      return [shortPath, DEMO_PAGE_PATH];
+    }),
   ])(
     "%s redirects permanently through the query-preserving helper",
     (routePath: string, target: string) => {
