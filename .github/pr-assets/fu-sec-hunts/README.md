@@ -54,3 +54,34 @@ Made by:
   branch's, each serving `SecurityOperations/Fixture/server.js` and
   `SecurityEventsEmptyStates/Fixture/server.js`, shot at the same URL, size and clock by one
   Playwright script.
+
+## UI review
+
+The `review-*-before` images are the builder's branch, the `review-*-after` images the branch
+after its UI review, on the same Security Operations fixture, page, size and clock (2x, cut to the
+part that changed). The fixture's Encoded PowerShell description grew a second sentence in the
+review, so a hunt's header shows its two-line fold on a phone.
+
+- `review-menu-768-*`: the Events toolbar's Hunts list beside the side menu at 768, with nine
+  hunts. Before: the panel opened from the trigger's start and ran off the screen. After: it opens
+  from the side with room (mirrored on a Persian page), each schedule under its name.
+- `review-menu-failed-*`: the hunts could not be read. Before: "0" on the trigger and grey words.
+  After: no count, the failure in red with Try again.
+- `review-save-as-hunt-*`: Save as Hunt. Before: what it saves squeezed into the header beside
+  the close button, and the API's English column description under Name. After: the saved search
+  over the fields, as wide as they are; Name says what it is by its placeholder.
+- `review-hunt-*` and `review-hunt-390-*`: a hunt's header. Before: "Runs every day" said again
+  under the Every Day chip, and the whole description. After: the chip says how often it runs, the
+  description takes two lines with Show more.
+- `review-list-*`: the Hunts list. Before: "SOC Tier" / "2" broken across lines. After: each name
+  whole on its line.
+- `review-list-fa-after.png`: the list in Persian: an English description reads left to right,
+  cut at its own end, and lines up under its name.
+- `review-add-to-case-result-*`: events the case kept already. Before: "not changed". After:
+  "already on the case".
+- `review-email-*`: the email. Before: the lead sentence repeated both ends of the time range.
+  After: one short lead, the window in its Time Range row.
+
+Made by the review's own copy of the Security Operations fixture server (the same esbuild config,
+Tailwind runtime, reading-direction plugin and Inter font), one Playwright script, and the email
+rendered by `SecurityHuntFoundTemplate`'s engine.
