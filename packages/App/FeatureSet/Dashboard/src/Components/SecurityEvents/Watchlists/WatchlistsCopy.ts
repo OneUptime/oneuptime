@@ -66,7 +66,9 @@ export const READ_BY_MORE: PluralTemplate = {
   other: "and {{count}} more",
 };
 // When the rules could not be read: the list still shows, without them.
-export const READ_BY_UNKNOWN: string = translationKey("Rules not read");
+export const READ_BY_UNKNOWN: string = translationKey(
+  "Couldn't load the rules",
+);
 
 // ---------- What a list holds ----------
 
@@ -124,6 +126,10 @@ export const HOLDS_FIELD_TITLE: string = translationKey("Holds");
 export const HOLDS_FIELD_DESCRIPTION: string = translationKey(
   "What is on the list. It cannot change once the list is created.",
 );
+// An empty dropdown asks for its choice rather than looking unfinished.
+export const HOLDS_FIELD_PLACEHOLDER: string = translationKey(
+  "Choose what the list holds",
+);
 
 export const DESCRIPTION_FIELD_TITLE: string = translationKey("Description");
 export const DESCRIPTION_FIELD_DESCRIPTION: string = translationKey(
@@ -176,6 +182,10 @@ export const VALUES_TABLE_DESCRIPTION: string = translationKey(
 );
 export const VALUES_TABLE_DESCRIPTION_IP: string = translationKey(
   "Matched whatever the case. A value can be a range such as 10.20.0.0/16, or a pattern with *.",
+);
+// A file hash list takes digests only: no pattern, so no word of *.
+export const VALUES_TABLE_DESCRIPTION_HASH: string = translationKey(
+  "MD5, SHA-1, SHA-256 and SHA-512 hashes, matched whatever the case.",
 );
 export const VALUES_EMPTY_TITLE: string = translationKey(
   "No values on this list yet",
@@ -293,16 +303,22 @@ export const CREATE_WATCHLIST_LINK: string = translationKey(
 export const WATCHLISTS_TEST_IDS: {
   table: string;
   nameCell: string;
+  nameFacts: string;
+  nameReadBy: string;
   holdsCell: string;
   valuesCell: string;
   readByCell: string;
   starters: string;
+  startersError: string;
   starter: string;
   ruleSnippet: string;
   readByLine: string;
   valuesTable: string;
+  noteCell: string;
+  addedLine: string;
   feedValues: string;
   importModal: string;
+  importEmpty: string;
   importText: string;
   importFile: string;
   importPreview: string;
@@ -313,16 +329,22 @@ export const WATCHLISTS_TEST_IDS: {
 } = {
   table: "security-watchlists-table",
   nameCell: "watchlist-name-cell",
+  nameFacts: "watchlist-name-facts",
+  nameReadBy: "watchlist-name-read-by",
   holdsCell: "watchlist-holds-cell",
   valuesCell: "watchlist-values-cell",
   readByCell: "watchlist-read-by-cell",
   starters: "watchlist-starters",
+  startersError: "watchlist-starters-error",
   starter: "watchlist-starter",
   ruleSnippet: "watchlist-rule-snippet",
   readByLine: "watchlist-read-by",
   valuesTable: "security-watchlist-values-table",
+  noteCell: "watchlist-value-note",
+  addedLine: "watchlist-value-added",
   feedValues: "watchlist-feed-values",
   importModal: "watchlist-import-modal",
+  importEmpty: "watchlist-import-empty",
   importText: "watchlist-import-text",
   importFile: "watchlist-import-file",
   importPreview: "watchlist-import-preview",

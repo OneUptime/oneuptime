@@ -36885,7 +36885,6 @@
   "Read by": "خوانده‌شده توسط",
   "Reads watchlists": "فهرست‌های پایشی که می‌خواند",
   "Replace the list": "جایگزین کردن فهرست",
-  "Rules not read": "قواعد خوانده نشد",
   "Servers that must never be compromised: domain controllers, payment and database servers.": "سرورهایی که هرگز نباید به آن‌ها نفوذ شود: کنترل‌کننده‌های دامنه، سرورهای پرداخت و پایگاه داده.",
   "Start with a common list": "با یک فهرست رایج شروع کنید",
   "The feed whose active indicators are the list's values.": "فیدی که شاخص‌های فعالش مقدارهای فهرست‌اند.",
@@ -36938,5 +36937,8 @@
   "{{count}} values to import_one": "{{count}} مقدار برای واردکردن",
   "{{count}} values_one": "{{count}} مقدار",
   "{{count}} were already on the list": "{{count}} مورد از قبل در فهرست بود",
-  "{{count}} were already on the list_one": "{{count}} مورد از قبل در فهرست بود"
+  "{{count}} were already on the list_one": "{{count}} مورد از قبل در فهرست بود",
+  "MD5, SHA-1, SHA-256 and SHA-512 hashes, matched whatever the case.": "هش‌های MD5، SHA-1، SHA-256 و SHA-512. بزرگی و کوچکی حروف مهم نیست.",
+  "Choose what the list holds": "محتوای فهرست را انتخاب کنید",
+  "Couldn't load the rules": "قواعد بارگیری نشد"
 }

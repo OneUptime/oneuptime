@@ -36885,7 +36885,6 @@
   "Read by": "Leses av",
   "Reads watchlists": "Leser overvåkingslister",
   "Replace the list": "Erstatt listen",
-  "Rules not read": "Regler ikke lest",
   "Servers that must never be compromised: domain controllers, payment and database servers.": "Servere som aldri må kompromitteres: domenekontrollere, betalings- og databaseservere.",
   "Start with a common list": "Start med en vanlig liste",
   "The feed whose active indicators are the list's values.": "Feeden der de aktive indikatorene er listens verdier.",
@@ -36938,5 +36937,8 @@
   "{{count}} values to import_one": "{{count}} verdi å importere",
   "{{count}} values_one": "{{count}} verdi",
   "{{count}} were already on the list": "{{count}} sto allerede på listen",
-  "{{count}} were already on the list_one": "{{count}} sto allerede på listen"
+  "{{count}} were already on the list_one": "{{count}} sto allerede på listen",
+  "MD5, SHA-1, SHA-256 and SHA-512 hashes, matched whatever the case.": "MD5-, SHA-1-, SHA-256- og SHA-512-hasher. Store og små bokstaver spiller ingen rolle.",
+  "Choose what the list holds": "Velg hva listen inneholder",
+  "Couldn't load the rules": "Kunne ikke laste inn reglene"
 }

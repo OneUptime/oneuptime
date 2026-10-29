@@ -28,11 +28,15 @@ import type { Mock } from "jest-mock";
  * Import Values dialog, Use It in a Rule, and the line under a detection
  * rule's YAML that says which lists the rule reads.
  *
- * Pinned: a name always as rules write it, in the mono type; what a list
- * holds, its values and its readers in words; a starter created empty and
- * kept by hand, with its description; an import's preview as it is typed,
- * its request, what it did, and a failure in the dialog; a missing list
- * named in red with the way to make it.
+ * Pinned: a name always as rules write it, in the mono type, a long one
+ * breaking after its underscores; what a list holds, its values and its
+ * readers in words - under the name when the table folds its columns below
+ * lg; a value's note with who added it, under the value when folded; a
+ * starter created empty and kept by hand, with its description, the tiles
+ * two to a row only where the card is wide enough; an import's preview as
+ * it is typed, its request, what it did, and a failure in the dialog; a
+ * missing list on a line of its own in red, with the way to make it -
+ * Create Watchlist with its name - read again when the window comes back.
  */
 
 configure({ asyncUtilTimeout: 10000 });
@@ -75,18 +79,31 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 import DetectionRuleWatchlists from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Watchlists/DetectionRuleWatchlists";
 import {
   WatchlistHoldsCell,
+  WatchlistHoldsColumnCell,
   WatchlistNameCell,
+  WatchlistNameText,
   WatchlistReadByCell,
+  WatchlistReadersList,
+  WatchlistValueCell,
+  WatchlistValueNoteCell,
   WatchlistValuesCell,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Watchlists/WatchlistCells";
 import WatchlistImportModal, {
+  WATCHLIST_IMPORT_MODE_LABEL_ID,
+  WATCHLIST_IMPORT_TEXT_HEADER_CLASS_NAME,
   describeWatchlistImportSummary,
   readWatchlistImportSummary,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Watchlists/WatchlistImportModal";
 import WatchlistRuleSnippet from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Watchlists/WatchlistRuleSnippet";
 import WatchlistStarters, {
+  WATCHLIST_STARTERS_CLASS_NAME,
+  WATCHLIST_STARTER_GRID_CLASS_NAME,
   buildWatchlistFromStarter,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Watchlists/WatchlistStarters";
+import {
+  TableCellContext,
+  TableFoldedColumnsContext,
+} from "../../../UI/Components/Table/TableCellContext";
 import { WATCHLISTS_TEST_IDS } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Watchlists/WatchlistsCopy";
 import { WATCHLIST_STARTERS } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Watchlists/WatchlistsModel";
 import SecurityCaseApi from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseApi";
@@ -128,6 +145,17 @@ function listOf(items: Array<SecurityWatchlist>): {
 
 function flat(element: HTMLElement): string {
   return (element.textContent || "").replace(/\s+/g, " ").trim();
+}
+
+// Drawn in a row of a table that leaves a column out below lg, as TableBody tells its cells.
+function inFoldedRow(element: React.ReactElement): React.ReactElement {
+  return (
+    <TableCellContext.Provider value={true}>
+      <TableFoldedColumnsContext.Provider value={true}>
+        {element}
+      </TableFoldedColumnsContext.Provider>
+    </TableCellContext.Provider>
+  );
 }
 
 beforeEach(() => {
@@ -276,7 +304,7 @@ describe("a list's row", () => {
       <WatchlistReadByCell readers={[]} isLoaded={true} hasError={true} />,
     );
     expect(flat(screen.getByTestId(WATCHLISTS_TEST_IDS.readByCell))).toBe(
-      "Rules not read",
+      "Couldn't load the rules",
     );
 
     rerender(
@@ -287,6 +315,259 @@ describe("a list's row", () => {
       />,
     );
     expect(flat(screen.getByTestId(WATCHLISTS_TEST_IDS.readByCell))).toBe("");
+  });
+});
+
+describe("a list's row, below lg and on a phone", () => {
+  const READERS: Array<{ id: string; name: string }> = [
+    { id: "1", name: "VIP sign-in from a new country" },
+    { id: "2", name: "VIP MFA reset" },
+    { id: "3", name: "VIP token theft" },
+  ];
+
+  test("at lg and above the name says nothing the columns say", () => {
+    render(
+      <TableCellContext.Provider value={true}>
+        <WatchlistNameCell
+          name="vip_users"
+          entityType={SecurityEntityType.User}
+          values={{ source: SecurityWatchlistSource.Values, valueCount: 3 }}
+          readers={{ readers: READERS, isLoaded: true, hasError: false }}
+        />
+      </TableCellContext.Provider>,
+    );
+
+    expect(screen.queryByTestId(WATCHLISTS_TEST_IDS.nameFacts)).toBeNull();
+    expect(screen.queryByTestId(WATCHLISTS_TEST_IDS.nameReadBy)).toBeNull();
+  });
+
+  test("folded, what the list holds with its values, then the rules that read it, go under the name", () => {
+    render(
+      inFoldedRow(
+        <WatchlistNameCell
+          name="vip_users"
+          description="Executives and their assistants."
+          entityType={SecurityEntityType.User}
+          values={{ source: SecurityWatchlistSource.Values, valueCount: 3 }}
+          readers={{ readers: READERS, isLoaded: true, hasError: false }}
+        />,
+      ),
+    );
+
+    const facts: HTMLElement = screen.getByTestId(
+      WATCHLISTS_TEST_IDS.nameFacts,
+    );
+
+    // Real spaces around the dot, so it reads as two facts; the dot itself is not read out.
+    expect(flat(facts)).toBe("Users · 3 values");
+    expect(within(facts).getByText("·")).toHaveAttribute("aria-hidden", "true");
+    // One line of text: a long feed's name wraps on after the dot.
+    expect(facts).toHaveClass("block", "whitespace-normal");
+    expect(flat(screen.getByTestId(WATCHLISTS_TEST_IDS.nameReadBy))).toBe(
+      "Read by: VIP sign-in from a new country, VIP MFA reset and 1 more",
+    );
+  });
+
+  test("folded, a list that follows a feed names it, and one no rule reads says so", () => {
+    render(
+      inFoldedRow(
+        <WatchlistNameCell
+          name="c2_addresses"
+          entityType={SecurityEntityType.IpAddress}
+          values={{
+            source: SecurityWatchlistSource.ThreatIntelFeed,
+            threatIntelFeedId: new ObjectID(WATCHLIST_ID),
+            feedName: "Feodo Tracker C2",
+          }}
+          readers={{ readers: [], isLoaded: true, hasError: false }}
+        />,
+      ),
+    );
+
+    expect(flat(screen.getByTestId(WATCHLISTS_TEST_IDS.nameFacts))).toBe(
+      "IP addresses · Follows Feodo Tracker C2",
+    );
+    expect(flat(screen.getByTestId(WATCHLISTS_TEST_IDS.nameReadBy))).toBe(
+      "No rule reads it yet",
+    );
+  });
+
+  test("folded, rules still being read say nothing yet, and rules that could not be read say so", () => {
+    const { rerender } = render(
+      inFoldedRow(
+        <WatchlistNameCell
+          name="vip_users"
+          entityType={SecurityEntityType.User}
+          values={{ source: SecurityWatchlistSource.Values, valueCount: 0 }}
+          readers={{ readers: undefined, isLoaded: false, hasError: false }}
+        />,
+      ),
+    );
+
+    expect(screen.queryByTestId(WATCHLISTS_TEST_IDS.nameReadBy)).toBeNull();
+    // No values yet, in the quieter grey a list's count has nowhere else.
+    expect(
+      within(screen.getByTestId(WATCHLISTS_TEST_IDS.nameFacts)).getByText(
+        "No values yet",
+      ),
+    ).toHaveClass("text-gray-400");
+
+    rerender(
+      inFoldedRow(
+        <WatchlistNameCell
+          name="vip_users"
+          entityType={SecurityEntityType.User}
+          values={{ source: SecurityWatchlistSource.Values, valueCount: 0 }}
+          readers={{ readers: undefined, isLoaded: true, hasError: true }}
+        />,
+      ),
+    );
+
+    expect(flat(screen.getByTestId(WATCHLISTS_TEST_IDS.nameReadBy))).toBe(
+      "Couldn't load the rules",
+    );
+  });
+
+  test("Holds: what the list holds, and its values under it, lined up with its name", () => {
+    render(
+      <WatchlistHoldsColumnCell
+        entityType={SecurityEntityType.FileHash}
+        source={SecurityWatchlistSource.Values}
+        valueCount={1200}
+      />,
+    );
+
+    const kind: HTMLElement = screen.getByTestId(WATCHLISTS_TEST_IDS.holdsCell);
+    const values: HTMLElement = screen.getByTestId(
+      WATCHLISTS_TEST_IDS.valuesCell,
+    );
+
+    expect(flat(kind)).toBe("File hashes");
+    // A long kind's name wraps in a narrow column ("Hachages de" / "fichiers").
+    expect(kind).not.toHaveClass("whitespace-nowrap");
+    expect(flat(values)).toBe("1,200 values");
+    // Under the kind's words, not under its icon.
+    expect(values.parentElement).toHaveClass("ps-[1.375rem]");
+  });
+});
+
+describe("a long list name", () => {
+  test("breaks after its underscores, and reads as written", () => {
+    const name: string = "executive_assistants_and_finance_admin_accounts";
+
+    const { container } = render(<WatchlistNameText name={name} />);
+    const bdi: HTMLElement = container.querySelector("bdi")!;
+
+    expect(bdi).toHaveAttribute("dir", "ltr");
+    expect(bdi).toHaveClass("font-mono");
+    expect(bdi.textContent).toBe(name);
+    expect(bdi.querySelectorAll("wbr")).toHaveLength(5);
+  });
+
+  test("a short one stays whole", () => {
+    const { container } = render(<WatchlistNameText name="vip_users" />);
+
+    expect(container.querySelectorAll("wbr")).toHaveLength(0);
+    expect(container.textContent).toBe("vip_users");
+  });
+});
+
+describe("a value's row", () => {
+  test("its note, with who added it and when under it", () => {
+    render(
+      <WatchlistValueNoteCell
+        note="  The finance team's admin accounts. "
+        addedBy="Maya Chen"
+        createdAt={new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)}
+      />,
+    );
+
+    const cell: HTMLElement = screen.getByTestId(WATCHLISTS_TEST_IDS.noteCell);
+    const added: HTMLElement = screen.getByTestId(
+      WATCHLISTS_TEST_IDS.addedLine,
+    );
+
+    expect(cell).toHaveTextContent("The finance team's admin accounts.");
+    expect(flat(added)).toBe("Added by Maya Chen 3 days ago");
+    // The date whole is under the pointer.
+    expect(added.getAttribute("title")).toBeTruthy();
+    // Never the bold of the row's first column it may sit in.
+    expect(cell).toHaveClass("font-normal");
+  });
+
+  test("a value with no note says only who added it; one an API key added says so", () => {
+    render(<WatchlistValueNoteCell note="   " />);
+
+    expect(flat(screen.getByTestId(WATCHLISTS_TEST_IDS.noteCell))).toBe(
+      "Added through the API",
+    );
+  });
+
+  test("the value in the mono type; folded, its note goes under it", () => {
+    const { unmount } = render(
+      <TableCellContext.Provider value={true}>
+        <WatchlistValueCell value="10.20.0.0/16" note="Office network" />
+      </TableCellContext.Provider>,
+    );
+
+    expect(screen.getByText("10.20.0.0/16")).toHaveClass("font-mono");
+    expect(screen.queryByTestId(WATCHLISTS_TEST_IDS.noteCell)).toBeNull();
+    unmount();
+
+    render(
+      inFoldedRow(
+        <WatchlistValueCell value="10.20.0.0/16" note="Office network" />,
+      ),
+    );
+
+    expect(flat(screen.getByTestId(WATCHLISTS_TEST_IDS.noteCell))).toBe(
+      "Office networkAdded through the API",
+    );
+  });
+});
+
+describe("Read By on a list's page", () => {
+  test("every rule that reads it, by name", () => {
+    render(
+      <WatchlistReadersList
+        readers={[
+          { id: "1", name: "Admin sign-in from outside" },
+          { id: "2", name: "Admin MFA reset" },
+          { id: "3", name: "Admin token theft" },
+        ]}
+        isLoaded={true}
+        hasError={false}
+      />,
+    );
+
+    expect(flat(screen.getByTestId(WATCHLISTS_TEST_IDS.readByLine))).toBe(
+      "Admin sign-in from outside, Admin MFA reset, Admin token theft",
+    );
+  });
+
+  test("no rule, rules that could not be read, and rules still being read", () => {
+    const { rerender } = render(
+      <WatchlistReadersList readers={[]} isLoaded={true} hasError={false} />,
+    );
+    expect(flat(screen.getByTestId(WATCHLISTS_TEST_IDS.readByLine))).toBe(
+      "No rule reads it yet",
+    );
+
+    rerender(
+      <WatchlistReadersList readers={[]} isLoaded={true} hasError={true} />,
+    );
+    expect(flat(screen.getByTestId(WATCHLISTS_TEST_IDS.readByLine))).toBe(
+      "Couldn't load the rules",
+    );
+
+    rerender(
+      <WatchlistReadersList
+        readers={undefined}
+        isLoaded={false}
+        hasError={false}
+      />,
+    );
+    expect(flat(screen.getByTestId(WATCHLISTS_TEST_IDS.readByLine))).toBe("…");
   });
 });
 
@@ -465,14 +746,45 @@ describe("the common lists to start with", () => {
       );
     });
 
-    expect(
-      await screen.findByText(
-        "This project already has a watchlist named vip_users.",
-      ),
-    ).toBeInTheDocument();
+    // An alert over the tiles, not an empty list's quiet line.
+    const alert: HTMLElement = await screen.findByTestId(
+      WATCHLISTS_TEST_IDS.startersError,
+    );
+
+    expect(alert).toHaveTextContent(
+      "This project already has a watchlist named vip_users.",
+    );
     expect(
       screen.getByTestId(`${WATCHLISTS_TEST_IDS.starter}-add-vip-users`),
     ).toBeInTheDocument();
+
+    // Closed with its x.
+    await act(async () => {
+      fireEvent.click(within(alert).getByRole("button"));
+    });
+
+    expect(screen.queryByTestId(WATCHLISTS_TEST_IDS.startersError)).toBeNull();
+  });
+
+  test("the tiles sit two to a row only where their card is wide enough, by the card's width", async () => {
+    getListMock.mockResolvedValue(listOf([]));
+
+    await renderStarters();
+
+    const starters: HTMLElement = await screen.findByTestId(
+      WATCHLISTS_TEST_IDS.starters,
+    );
+
+    expect(starters).toHaveClass(...WATCHLIST_STARTERS_CLASS_NAME.split(" "));
+    expect(WATCHLIST_STARTERS_CLASS_NAME).toContain(
+      "[container-type:inline-size]",
+    );
+    expect(within(starters).getByRole("list")).toHaveClass(
+      ...WATCHLIST_STARTER_GRID_CLASS_NAME.split(" "),
+    );
+    expect(WATCHLIST_STARTER_GRID_CLASS_NAME).toBe(
+      "grid grid-cols-1 gap-4 [@container(min-width:36rem)]:grid-cols-2",
+    );
   });
 
   test("a role that cannot create lists sees the tiles, their Add locked", async () => {
@@ -537,6 +849,38 @@ describe("Import Values", () => {
 
     expect(box).toHaveClass("block", "w-full", "rounded-md", "font-mono");
     expect(box).toHaveClass("border-gray-300", "focus:ring-indigo-500");
+    // Values are written left to right, on a Persian page too.
+    expect(box.closest("[dir]")).toHaveAttribute("dir", "ltr");
+  });
+
+  test("on a phone the box's label has its line, Choose a File under it; side by side from md", () => {
+    renderImport();
+
+    const header: HTMLElement = screen
+      .getByText("Values to import")
+      .closest("div")!;
+
+    expect(header).toHaveClass(
+      ...WATCHLIST_IMPORT_TEXT_HEADER_CLASS_NAME.split(" "),
+    );
+    expect(WATCHLIST_IMPORT_TEXT_HEADER_CLASS_NAME).toContain("flex-col");
+    expect(WATCHLIST_IMPORT_TEXT_HEADER_CLASS_NAME).toContain("md:flex-row");
+    expect(
+      within(header).getByTestId(WATCHLISTS_TEST_IDS.importFile),
+    ).toBeInTheDocument();
+  });
+
+  test("How to import names its choice for a screen reader", () => {
+    renderImport();
+
+    const group: HTMLElement = screen.getByRole("radiogroup");
+    const label: HTMLElement = screen.getByText("How to import");
+
+    expect(label).toHaveAttribute("id", WATCHLIST_IMPORT_MODE_LABEL_ID);
+    expect(group).toHaveAttribute(
+      "aria-labelledby",
+      WATCHLIST_IMPORT_MODE_LABEL_ID,
+    );
   });
 
   test("what it is about to do shows as it is typed, with each line it leaves out", () => {
@@ -812,9 +1156,6 @@ describe("Use It in a Rule", () => {
         <WatchlistRuleSnippet
           name="admin_addresses"
           entityType={SecurityEntityType.IpAddress}
-          readers={[]}
-          isReadersLoaded={true}
-          hasReadersError={false}
           {...props}
         />
       </MemoryRouter>,
@@ -838,46 +1179,16 @@ describe("Use It in a Rule", () => {
     ).toBeInTheDocument();
   });
 
-  test("the rules that read it, by name, with the way to Detection Rules", () => {
-    renderSnippet({
-      readers: [
-        { id: "1", name: "Admin sign-in from outside" },
-        { id: "2", name: "Admin MFA reset" },
-      ],
-    });
+  test("the way to Detection Rules, where the selection goes; the rules that read it are named in About This List", () => {
+    renderSnippet();
 
-    const line: HTMLElement = screen.getByTestId(
-      WATCHLISTS_TEST_IDS.readByLine,
-    );
-
-    expect(flat(line)).toBe(
-      "Read by: Admin sign-in from outside, Admin MFA reset · Open Detection Rules",
-    );
     expect(
-      within(line).getByText("Open Detection Rules").closest("a"),
+      screen.getByText("Open Detection Rules").closest("a"),
     ).toHaveAttribute(
       "href",
       `/dashboard/${PROJECT_ID}/security-events/detection-rules`,
     );
-  });
-
-  test("no rule, rules not read, and rules still being read", () => {
-    renderSnippet();
-    expect(flat(screen.getByTestId(WATCHLISTS_TEST_IDS.readByLine))).toBe(
-      "Read by: No rule reads it yet · Open Detection Rules",
-    );
-    cleanup();
-
-    renderSnippet({ hasReadersError: true });
-    expect(flat(screen.getByTestId(WATCHLISTS_TEST_IDS.readByLine))).toBe(
-      "Read by: Rules not read · Open Detection Rules",
-    );
-    cleanup();
-
-    renderSnippet({ isReadersLoaded: false });
-    expect(flat(screen.getByTestId(WATCHLISTS_TEST_IDS.readByLine))).toBe(
-      "Read by: … · Open Detection Rules",
-    );
+    expect(screen.queryByTestId(WATCHLISTS_TEST_IDS.readByLine)).toBeNull();
   });
 
   test("a list of a kind with no field of its own is looked for among observables", () => {
@@ -950,29 +1261,35 @@ describe("the line under a rule's YAML", () => {
     expect(within(line).getByText("Reads watchlists")).toBeInTheDocument();
     expect(lists).toHaveLength(2);
 
-    // The rule's order: admins first, missing.
-    expect(lists[0]).toHaveAttribute("data-missing", "true");
-    expect(lists[0]).toHaveClass("text-red-600");
-    expect(flat(lists[0]!)).toBe(
-      "No watchlist named adminsCreate it in Watchlists",
-    );
-    expect(within(lists[0]!).getByText("admins")).toHaveClass("font-mono");
-    expect(
-      within(lists[0]!).getByText("Create it in Watchlists").closest("a"),
-    ).toHaveAttribute(
-      "href",
-      `/dashboard/${PROJECT_ID}/security-events/watchlists`,
-    );
-
-    // The list the project has, as it is named, whatever case the rule wrote.
-    expect(lists[1]).not.toHaveAttribute("data-missing");
+    // The list the project has, on the Reads watchlists line, whatever case the rule wrote.
+    expect(lists[0]).not.toHaveAttribute("data-missing");
     // The gap between the name and its values is the row's own (gap-1).
-    expect(flat(lists[1]!)).toBe("admin_addresses(12 values)");
+    expect(flat(lists[0]!)).toBe("admin_addresses(12 values)");
     expect(
-      within(lists[1]!).getByText("admin_addresses").closest("a"),
+      within(lists[0]!).getByText("admin_addresses").closest("a"),
     ).toHaveAttribute(
       "href",
       `/dashboard/${PROJECT_ID}/security-events/watchlists/${WATCHLIST_ID}`,
+    );
+
+    /*
+     * A name the project has no list of: a line of its own after the
+     * lists found, never among them - what is wrong, then the way to fix
+     * it, Create Watchlist with the name in it.
+     */
+    expect(lists[1]).toHaveAttribute("data-missing", "true");
+    expect(lists[1]).toHaveClass("text-red-700");
+    expect(lists[1]!.tagName).toBe("DIV");
+    expect(lists[1]!.querySelector("svg")).not.toBeNull();
+    expect(flat(lists[1]!)).toBe(
+      "No watchlist named admins · Create it in Watchlists",
+    );
+    expect(within(lists[1]!).getByText("admins")).toHaveClass("font-mono");
+    expect(
+      within(lists[1]!).getByText("Create it in Watchlists").closest("a"),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/security-events/watchlists?create=admins`,
     );
 
     // One read of the project's lists.
@@ -981,6 +1298,87 @@ describe("the line under a rule's YAML", () => {
       modelType: SecurityWatchlist,
       query: { projectId: new ObjectID(PROJECT_ID) },
     });
+  });
+
+  test("a rule that names only lists the project lacks has no Reads watchlists line, only what is missing", async () => {
+    getListMock.mockResolvedValue(listOf([]));
+
+    await renderLine(YAML);
+
+    const line: HTMLElement = await screen.findByTestId(
+      WATCHLISTS_TEST_IDS.ruleWatchlists,
+    );
+
+    expect(within(line).queryByText("Reads watchlists")).toBeNull();
+    expect(
+      within(line)
+        .getAllByTestId(WATCHLISTS_TEST_IDS.ruleWatchlist)
+        .map((item: HTMLElement): string | null => {
+          return item.getAttribute("data-missing");
+        }),
+    ).toEqual(["true", "true"]);
+  });
+
+  test("the lists are read again when the window comes back, so one just created is no longer missing", async () => {
+    getListMock.mockResolvedValueOnce(listOf([]));
+
+    await renderLine(YAML);
+
+    const line: HTMLElement = await screen.findByTestId(
+      WATCHLISTS_TEST_IDS.ruleWatchlists,
+    );
+    expect(line.querySelectorAll('[data-missing="true"]')).toHaveLength(2);
+
+    // The reader created admins in the other tab, and comes back.
+    getListMock.mockResolvedValueOnce(
+      listOf([
+        watchlist({
+          _id: WATCHLIST_ID,
+          name: "admins",
+          source: SecurityWatchlistSource.Values,
+          valueCount: 0,
+        }),
+      ]),
+    );
+
+    await act(async () => {
+      window.dispatchEvent(new Event("focus"));
+    });
+
+    await waitFor(() => {
+      expect(
+        screen
+          .getByTestId(WATCHLISTS_TEST_IDS.ruleWatchlists)
+          .querySelectorAll('[data-missing="true"]'),
+      ).toHaveLength(1);
+    });
+    expect(getListMock).toHaveBeenCalledTimes(2);
+
+    // A read that fails then keeps what the line said.
+    getListMock.mockRejectedValueOnce(new Error("offline"));
+
+    await act(async () => {
+      window.dispatchEvent(new Event("focus"));
+    });
+
+    expect(getListMock).toHaveBeenCalledTimes(3);
+    expect(
+      screen
+        .getByTestId(WATCHLISTS_TEST_IDS.ruleWatchlists)
+        .querySelectorAll('[data-missing="true"]'),
+    ).toHaveLength(1);
+  });
+
+  test("a rule that names no list does not read them again on focus", async () => {
+    await renderLine(
+      "title: x\nlogsource:\n  product: okta\ndetection:\n  sel:\n    outcome: failure\n  condition: sel",
+    );
+
+    await act(async () => {
+      window.dispatchEvent(new Event("focus"));
+    });
+
+    expect(getListMock).not.toHaveBeenCalled();
   });
 
   test("lists that cannot be read are not called missing", async () => {

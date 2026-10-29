@@ -202,6 +202,24 @@ async function pageOverflow(page: Page): Promise<number> {
   });
 }
 
+/*
+ * How far the table on screen scrolls sideways inside its card - a row's
+ * last column running under its sticky buttons - read in one frame once
+ * the table has laid out.
+ */
+async function tableOverflow(page: Page): Promise<number> {
+  return page.evaluate((): number => {
+    const table: HTMLTableElement | null = document.querySelector("table");
+    let holder: HTMLElement | null = table ? table.parentElement : null;
+
+    while (holder && getComputedStyle(holder).overflowX === "visible") {
+      holder = holder.parentElement;
+    }
+
+    return holder ? holder.scrollWidth - holder.clientWidth : 0;
+  });
+}
+
 function sideMenu(page: Page): Locator {
   return page.locator('aside[role="navigation"]');
 }
@@ -330,12 +348,8 @@ test.describe("Watchlists", () => {
       "Detections",
       "Watchlists",
     ]);
-    expect(await columnTitles(page)).toEqual([
-      "Watchlist",
-      "Holds",
-      "Values",
-      "Read By",
-    ]);
+    // What a list holds and its values share a column: three, beside the side menu.
+    expect(await columnTitles(page)).toEqual(["Watchlist", "Holds", "Read By"]);
 
     // By name, as rules write it.
     await expect(page.locator("table tbody tr")).toHaveCount(4);
@@ -382,7 +396,53 @@ test.describe("Watchlists", () => {
     ).toHaveText("No values yet");
 
     expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    expect(await tableOverflow(page)).toBeLessThanOrEqual(1);
     await screenshot(page, "watchlists-desktop", { fullPage: false });
+  });
+
+  test("fits its card beside the side menu at 1024, and below lg folds Holds and Read By under the name", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // 1088 here is a 1024 screen in production (the fixture is 64px narrower).
+    await open(page, WATCHLISTS_PATH, { width: 1088 });
+    await expect(rowWith(page, "vip_users")).toBeVisible({ timeout: 30000 });
+
+    expect(await columnTitles(page)).toEqual(["Watchlist", "Holds", "Read By"]);
+    await expect
+      .poll(async () => {
+        return tableOverflow(page);
+      })
+      .toBeLessThanOrEqual(1);
+
+    // In German too, whose View reads Anzeigen.
+    await open(page, WATCHLISTS_PATH, { width: 1088, lang: "de" });
+    await expect(rowWith(page, "vip_users")).toBeVisible({ timeout: 30000 });
+    await expect
+      .poll(async () => {
+        return tableOverflow(page);
+      })
+      .toBeLessThanOrEqual(1);
+
+    // 832 here is a 768 tablet: the name's cell says what Holds and Read By said.
+    await open(page, WATCHLISTS_PATH, { width: 832 });
+    await expect(rowWith(page, "vip_users")).toBeVisible({ timeout: 30000 });
+
+    expect(await columnTitles(page)).toEqual(["Watchlist"]);
+    const vip: Locator = rowWith(page, "vip_users");
+    await expect(vip.getByTestId("watchlist-name-facts")).toHaveText(
+      "Users · 3 values",
+    );
+    await expect(vip.getByTestId("watchlist-name-read-by")).toHaveText(
+      `Read by: ${READING_RULE}`,
+    );
+    await expect(
+      rowWith(page, "c2_addresses").getByTestId("watchlist-name-facts"),
+    ).toHaveText(`IP addresses · Follows ${FEODO_LIST}`);
+    expect(await tableOverflow(page)).toBeLessThanOrEqual(1);
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await screenshot(page, "watchlists-tablet", { fullPage: false });
   });
 
   test("offers the common lists the project does not have, and Add creates one, empty and kept by hand", async ({
@@ -504,23 +564,36 @@ test.describe("a watchlist's page", () => {
     ]);
     expect(await litEntries(page)).toEqual(["Watchlists"]);
 
+    // What the list is: its name, what it holds, its values, the rules that read it.
     const about: Locator = cardTitled(page, "About This List");
     await expect(about).toContainText("vip_users");
     await expect(about).toContainText("Users");
-    await expect(about).toContainText("Values you keep");
     await expect(about).toContainText("3 values");
+    await expect(about.getByTestId("watchlist-read-by")).toHaveText(
+      READING_RULE,
+    );
 
     const snippet: Locator = page.getByTestId("watchlist-rule-snippet");
     await expect(snippet).toContainText("principalUser|expand: '%vip_users%'");
-    await expect(page.getByTestId("watchlist-read-by")).toHaveText(
-      `Read by: ${READING_RULE} · Open Detection Rules`,
-    );
 
-    // The values, each with its note and who added it.
+    // The important thing first: the list, its values, then how a rule reads it.
+    const cards: Array<string> = await page.evaluate((): Array<string> => {
+      return Array.from(
+        document.querySelectorAll('[data-testid="card-details-heading"]'),
+      ).map((heading: Element): string => {
+        return (heading.textContent || "").trim();
+      });
+    });
+    expect(cards).toEqual(["About This List", "Values", "Use It in a Rule"]);
+
+    // The values, each with its note and who added it under it.
     await expect(page.locator("table tbody tr")).toHaveCount(3);
+    expect(await columnTitles(page)).toEqual(["Value", "Note"]);
     const ceo: Locator = rowWith(page, "alice.wong@acme-commerce.example");
     await expect(ceo).toContainText("CEO");
-    await expect(ceo).toContainText("Maya Chen");
+    await expect(ceo.getByTestId("watchlist-value-added")).toContainText(
+      "Added by Maya Chen",
+    );
     await expect(
       rowWith(page, "finance-admin-*@acme-commerce.example"),
     ).toContainText("The finance team's admin accounts.");
@@ -535,6 +608,47 @@ test.describe("a watchlist's page", () => {
         return new URL(page.url()).pathname;
       })
       .toBe(DETECTION_RULES_PATH);
+  });
+
+  test("beside the side menu at 768 a value's note folds under it, and nothing runs under the row's buttons", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, VIP_USERS_PATH, { width: 832 });
+    await expect(
+      page.getByText("alice.wong@acme-commerce.example"),
+    ).toBeVisible({ timeout: 30000 });
+
+    expect(await columnTitles(page)).toEqual(["Value"]);
+    await expect(
+      rowWith(page, "alice.wong@acme-commerce.example").getByTestId(
+        "watchlist-value-note",
+      ),
+    ).toContainText("CEO");
+    expect(await tableOverflow(page)).toBeLessThanOrEqual(1);
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+  });
+
+  test("an empty list offers both ways to fill it, Import Values among them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${WATCHLISTS_PATH}/2f000000-0000-4000-8000-000000000004`);
+    await expect(page.getByText("No values on this list yet")).toBeVisible({
+      timeout: 30000,
+    });
+
+    // A host list's values say how they match, without a user's example.
+    await expect(
+      cardTitled(page, "Values").getByTestId("card-description"),
+    ).toHaveText(
+      "Matched whatever the case. * stands for any run of characters.",
+    );
+
+    await page.getByTestId("watchlist-import-empty").click();
+    await expect(page.getByTestId("watchlist-import-modal")).toBeVisible();
   });
 
   test("Add Value refuses a value the list cannot hold, and adds one it can", async ({
@@ -777,15 +891,38 @@ test.describe("the line under a rule's YAML", () => {
         "title: VIP sign-in\ndetection:\n  selection:\n    principalUser|expand: '%vip_users%'\n  admins:\n    principalUser|expand: '%board_members%'\n  condition: selection or admins\n",
       );
 
+    /*
+     * A name the project has no list of is a line of its own, after the
+     * lists found: what is wrong, then Create Watchlist with that name.
+     */
     const missing: Locator = line.locator('[data-missing="true"]');
     await expect(missing).toHaveCount(1);
     await expect(missing).toContainText("No watchlist named board_members");
     await expect(missing.getByRole("link")).toHaveText(
       "Create it in Watchlists",
     );
+    const href: string | null = await missing
+      .getByRole("link")
+      .getAttribute("href");
+    expect(href).toBe(`${WATCHLISTS_PATH}?create=board_members`);
+    await expect(
+      line.getByTestId("detection-rule-watchlist").last(),
+    ).toHaveAttribute("data-missing", "true");
 
     expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
     await screenshot(page, "watchlist-rule-line-desktop", { fullPage: false });
+
+    // The link's page opens Create Watchlist with the name, and forgets it.
+    await open(page, href!);
+    await expect(dialog(page)).toBeVisible({ timeout: 30000 });
+    await expect(dialog(page).getByTestId("watchlist-name")).toHaveValue(
+      "board_members",
+    );
+    await expect
+      .poll(() => {
+        return new URL(page.url()).search;
+      })
+      .toBe("");
   });
 });
 

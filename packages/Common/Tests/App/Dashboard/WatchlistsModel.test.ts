@@ -14,6 +14,10 @@ import {
   HOLDS_USERS,
   NO_VALUES_YET,
   READ_BY_NO_RULE,
+  VALUES_TABLE_DESCRIPTION,
+  VALUES_TABLE_DESCRIPTION_HASH,
+  VALUES_TABLE_DESCRIPTION_IP,
+  VALUE_FIELD_DESCRIPTION,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Watchlists/WatchlistsCopy";
 import {
   WATCHLIST_IMPORT_PROBLEMS_SHOWN,
@@ -30,7 +34,9 @@ import {
   getWatchlistHoldsLabel,
   getWatchlistHoldsOptions,
   getWatchlistReaders,
+  getWatchlistValuesHint,
   isFeedWatchlist,
+  splitWatchlistName,
   summarizeWatchlistReaders,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Watchlists/WatchlistsModel";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -40,9 +46,11 @@ import {
 } from "../../../Types/SecurityCase/SecurityEntity";
 import {
   SECURITY_WATCHLIST_ENTITY_TYPES,
+  SECURITY_WATCHLIST_NAME_MAX_LENGTH,
   SecurityWatchlistSource,
   getSecurityWatchlistNameProblem,
   getSecurityWatchlistProblems,
+  getSecurityWatchlistValueProblem,
   parseSecurityWatchlistImport,
 } from "../../../Types/SecurityEvent/SecurityWatchlist";
 import { getRulesReadingWatchlists } from "../../../Utils/SecurityEvent/Sigma/SigmaWatchlists";
@@ -80,6 +88,109 @@ function localeTranslator(language: string): Translator {
 
 const GERMAN: Translator = localeTranslator("de");
 const RUSSIAN: Translator = localeTranslator("ru");
+
+describe("how a list's values match, in its kind's words", () => {
+  test("a user list shows a pattern at work, an IP address list its ranges, a file hash list the digests it takes", () => {
+    expect(getWatchlistValuesHint(SecurityEntityType.User)).toBe(
+      VALUES_TABLE_DESCRIPTION,
+    );
+    expect(getWatchlistValuesHint(SecurityEntityType.IpAddress)).toBe(
+      VALUES_TABLE_DESCRIPTION_IP,
+    );
+    expect(getWatchlistValuesHint(SecurityEntityType.FileHash)).toBe(
+      VALUES_TABLE_DESCRIPTION_HASH,
+    );
+
+    // Every other kind: whatever the case, * for any run of characters - no user's example.
+    for (const type of [
+      SecurityEntityType.Host,
+      SecurityEntityType.Domain,
+      SecurityEntityType.Url,
+      SecurityEntityType.Process,
+      SecurityEntityType.Other,
+      "Spaceship",
+      undefined,
+    ]) {
+      expect({ type, hint: getWatchlistValuesHint(type) }).toEqual({
+        type,
+        hint: VALUE_FIELD_DESCRIPTION,
+      });
+    }
+  });
+
+  test("each kind's words say only what its values may be: a hash list's never a pattern", () => {
+    // svc-* is a user's example: only a user list says it.
+    for (const type of SECURITY_WATCHLIST_ENTITY_TYPES) {
+      expect({
+        type,
+        says: getWatchlistValuesHint(type).includes("svc-*"),
+      }).toEqual({ type, says: type === SecurityEntityType.User });
+    }
+
+    // A hash list takes no *, as the shared rules refuse one.
+    expect(VALUES_TABLE_DESCRIPTION_HASH).not.toContain("*");
+    expect(
+      getSecurityWatchlistValueProblem({
+        value: "44d88612fea8a8f36de82e1278abb0*",
+        entityType: SecurityEntityType.FileHash,
+      }),
+    ).not.toBeNull();
+    for (const digest of ["MD5", "SHA-1", "SHA-256", "SHA-512"]) {
+      expect(VALUES_TABLE_DESCRIPTION_HASH).toContain(digest);
+    }
+  });
+
+  test("in German, from the Dashboard's own words", () => {
+    expect(
+      GERMAN.translateText(getWatchlistValuesHint(SecurityEntityType.FileHash)),
+    ).toBe(
+      "MD5-, SHA-1-, SHA-256- und SHA-512-Hashes. Groß- und Kleinschreibung zählt nicht.",
+    );
+  });
+});
+
+describe("a long list name", () => {
+  test("may break after each underscore, and its parts join back to the name", () => {
+    const name: string = "executive_assistants_and_finance_admin_accounts";
+
+    expect(splitWatchlistName(name)).toEqual([
+      "executive_",
+      "assistants_",
+      "and_",
+      "finance_",
+      "admin_",
+      "accounts",
+    ]);
+    expect(splitWatchlistName(name).join("")).toBe(name);
+  });
+
+  test("a short name stays whole, as other short names do", () => {
+    expect(splitWatchlistName("vip_users")).toEqual(["vip_users"]);
+    expect(splitWatchlistName("known_bad_hashes")).toEqual([
+      "known_bad_hashes",
+    ]);
+  });
+
+  test("the longest name a rule can write breaks into parts, the last one whole", () => {
+    const longest: string = `a${"_b".repeat(
+      (SECURITY_WATCHLIST_NAME_MAX_LENGTH - 1) / 2,
+    )}`.slice(0, SECURITY_WATCHLIST_NAME_MAX_LENGTH);
+
+    expect(getSecurityWatchlistNameProblem(longest)).toBeNull();
+
+    const parts: Array<string> = splitWatchlistName(longest);
+
+    expect(parts.join("")).toBe(longest);
+    expect(parts.length).toBeGreaterThan(1);
+    for (const part of parts.slice(0, -1)) {
+      expect(part.endsWith("_")).toBe(true);
+    }
+  });
+
+  test("a name with no underscore has nowhere of its own to break", () => {
+    expect(splitWatchlistName("x".repeat(40))).toEqual(["x".repeat(40)]);
+  });
+});
 
 describe("what a list holds", () => {
   test("each kind has its own plural words, in the form's order", () => {

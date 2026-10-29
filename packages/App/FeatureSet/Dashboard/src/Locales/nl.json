@@ -36885,7 +36885,6 @@
   "Read by": "Gelezen door",
   "Reads watchlists": "Leest volglijsten",
   "Replace the list": "De lijst vervangen",
-  "Rules not read": "Regels niet gelezen",
   "Servers that must never be compromised: domain controllers, payment and database servers.": "Servers die nooit gecompromitteerd mogen worden: domeincontrollers, betaal- en databaseservers.",
   "Start with a common list": "Begin met een veelgebruikte lijst",
   "The feed whose active indicators are the list's values.": "De feed waarvan de actieve indicatoren de waarden van de lijst zijn.",
@@ -36938,5 +36937,8 @@
   "{{count}} values to import_one": "{{count}} waarde om te importeren",
   "{{count}} values_one": "{{count}} waarde",
   "{{count}} were already on the list": "{{count}} stonden al op de lijst",
-  "{{count}} were already on the list_one": "{{count}} stond al op de lijst"
+  "{{count}} were already on the list_one": "{{count}} stond al op de lijst",
+  "MD5, SHA-1, SHA-256 and SHA-512 hashes, matched whatever the case.": "MD5-, SHA-1-, SHA-256- en SHA-512-hashes. Hoofdletters maken niet uit.",
+  "Choose what the list holds": "Kies wat de lijst bevat",
+  "Couldn't load the rules": "Kan de regels niet laden"
 }

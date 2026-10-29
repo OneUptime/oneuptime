@@ -36885,7 +36885,6 @@
   "Read by": "Читается правилами",
   "Reads watchlists": "Читает списки отслеживания",
   "Replace the list": "Заменить список",
-  "Rules not read": "Правила не прочитаны",
   "Servers that must never be compromised: domain controllers, payment and database servers.": "Серверы, которые ни в коем случае не должны быть скомпрометированы: контроллеры домена, платёжные серверы и серверы баз данных.",
   "Start with a common list": "Начните с типового списка",
   "The feed whose active indicators are the list's values.": "Фид, активные индикаторы которого становятся значениями списка.",
@@ -36938,5 +36937,8 @@
   "{{count}} values to import_one": "{{count}} значение для импорта",
   "{{count}} values_one": "{{count}} значение",
   "{{count}} were already on the list": "Уже были в списке: {{count}}",
-  "{{count}} were already on the list_one": "{{count}} значение уже было в списке"
+  "{{count}} were already on the list_one": "{{count}} значение уже было в списке",
+  "MD5, SHA-1, SHA-256 and SHA-512 hashes, matched whatever the case.": "Хеши MD5, SHA-1, SHA-256 и SHA-512, сравниваются без учёта регистра.",
+  "Choose what the list holds": "Выберите, что входит в список",
+  "Couldn't load the rules": "Не удалось загрузить правила"
 }

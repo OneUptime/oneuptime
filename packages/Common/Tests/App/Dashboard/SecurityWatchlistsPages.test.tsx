@@ -29,10 +29,16 @@ import type { SpyInstance } from "jest-mock";
  * start with; deleted one or many at a time; edited only on a list's page,
  * which knows where its values come from.
  *
- * A list's page: its settings (edited there), Use It in a Rule with the
- * rules that read it, and its values - added, edited, deleted and imported
- * for a list the team keeps, or the feed's, for one that follows a threat
- * intel feed. Its trail names the list.
+ * A list's page, the important thing first: its settings (edited there)
+ * with the rules that read it, its values - added, edited, deleted and
+ * imported for a list the team keeps, or the feed's, for one that follows a
+ * threat intel feed - and Use It in a Rule last. Its trail names the list.
+ *
+ * Beside the side menu at a laptop's width the list fits in three columns;
+ * below lg what Holds and Read By say folds under the name, and a value's
+ * note under the value (hideBelowLargeScreen), so no row runs under its
+ * buttons. A rule's form that names a list the project lacks opens the
+ * list here with Create Watchlist and that name in it (?create=).
  *
  * The tables and the settings card are ModelTable and CardModelDetail
  * calls, so their props are pinned; the cells are then drawn from them.
@@ -58,8 +64,12 @@ type Column = {
   title: string;
   type?: unknown;
   hideOnMobile?: boolean | undefined;
+  hideBelowLargeScreen?: boolean | undefined;
+  hideTitleOnMobile?: boolean | undefined;
+  contentClassName?: string | undefined;
   disableSort?: boolean | undefined;
   getElement?: ((item: unknown) => React.ReactElement) | undefined;
+  getExportValue?: ((item: unknown) => string) | undefined;
 };
 
 type CapturedTable = {
@@ -88,8 +98,21 @@ type CapturedTable = {
       }
     | undefined;
   emptyState?:
-    | { title?: string; description?: string; icon?: unknown }
+    | {
+        title?: string;
+        description?: string;
+        icon?: unknown;
+        actions?: Array<{
+          title: string;
+          icon?: unknown;
+          disabled?: boolean | undefined;
+          tooltip?: string | undefined;
+          dataTestId?: string | undefined;
+          onClick: () => void;
+        }>;
+      }
     | undefined;
+  showCreateForm?: boolean | undefined;
   createInitialValues?: Record<string, unknown> | undefined;
   formFields?: Array<{
     field: Record<string, unknown>;
@@ -153,13 +176,20 @@ import SecurityWatchlistViewPage from "../../../../App/FeatureSet/Dashboard/src/
 import {
   IMPORT_VALUES,
   VALUES_TABLE_DESCRIPTION,
+  VALUES_TABLE_DESCRIPTION_HASH,
   VALUES_TABLE_DESCRIPTION_IP,
+  VALUE_FIELD_DESCRIPTION,
   WATCHLISTS_EMPTY_DESCRIPTION,
   WATCHLISTS_EMPTY_TITLE,
   WATCHLISTS_TABLE_DESCRIPTION,
   WATCHLISTS_TEST_IDS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Watchlists/WatchlistsCopy";
 import { getWatchlistHoldsDropdownOptions } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Watchlists/WatchlistFormFields";
+import {
+  WATCHLIST_CREATE_PARAM,
+  getWatchlistsRoute,
+  readWatchlistNameToCreate,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Watchlists/WatchlistsRoute";
 import { getSecurityEventsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import { RouteUtil } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
@@ -177,6 +207,10 @@ import { SecurityEntityType } from "../../../Types/SecurityCase/SecurityEntity";
 import { SecurityWatchlistSource } from "../../../Types/SecurityEvent/SecurityWatchlist";
 import { ModalTableBulkDefaultActions } from "../../../UI/Components/ModelTable/BaseModelTable";
 import Page from "../../../UI/Components/Page/Page";
+import {
+  TableCellContext,
+  TableFoldedColumnsContext,
+} from "../../../UI/Components/Table/TableCellContext";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
@@ -244,17 +278,41 @@ function columnTitles(id: string): Array<string> {
   });
 }
 
-function draw(id: string, title: string, item: unknown): HTMLElement {
+function columnTitled(id: string, title: string): Column {
   const column: Column | undefined = table(id).columns.find(
     (candidate: Column): boolean => {
       return candidate.title === title;
     },
   );
 
-  expect(column?.getElement).toBeDefined();
+  expect(column).toBeDefined();
+
+  return column!;
+}
+
+/*
+ * A column's cell as the table draws it: in a row of a table, and - below
+ * lg, where the table leaves a column out (folded) - in a row whose table
+ * folds one, as TableBody tells its cells.
+ */
+function draw(
+  id: string,
+  title: string,
+  item: unknown,
+  options: { isFolded?: boolean } = {},
+): HTMLElement {
+  const column: Column = columnTitled(id, title);
+
+  expect(column.getElement).toBeDefined();
 
   const { container } = render(
-    <MemoryRouter>{column!.getElement!(item)}</MemoryRouter>,
+    <MemoryRouter>
+      <TableCellContext.Provider value={true}>
+        <TableFoldedColumnsContext.Provider value={Boolean(options.isFolded)}>
+          {column.getElement!(item)}
+        </TableFoldedColumnsContext.Provider>
+      </TableCellContext.Provider>
+    </MemoryRouter>,
   );
 
   return container;
@@ -340,15 +398,134 @@ describe("Security Events > Watchlists", () => {
       },
       searchableFields: ["name", "description"],
     });
-    expect(columnTitles(LIST_TABLE)).toEqual([
-      "Watchlist",
-      "Holds",
-      "Values",
-      "Read By",
-    ]);
+    expect(columnTitles(LIST_TABLE)).toEqual(["Watchlist", "Holds", "Read By"]);
     expect(table(LIST_TABLE).getItemName!(list({ name: "vip_users" }))).toBe(
       "vip_users",
     );
+  });
+
+  test("fits beside the side menu: Holds and Read By fold under the name below lg, each column wraps at a floor that leaves room for the row's buttons", async () => {
+    await renderList();
+
+    const name: Column = columnTitled(LIST_TABLE, "Watchlist");
+    const holds: Column = columnTitled(LIST_TABLE, "Holds");
+    const readBy: Column = columnTitled(LIST_TABLE, "Read By");
+
+    // The name is what a phone's card is about: no label over it, never left out.
+    expect(name.hideTitleOnMobile).toBe(true);
+    expect(name.hideBelowLargeScreen).toBeUndefined();
+    expect(holds.hideBelowLargeScreen).toBe(true);
+    expect(readBy.hideBelowLargeScreen).toBe(true);
+
+    /*
+     * 684px at 1024 beside the side menu: the check box (64), the three
+     * floors and their padding, and the row's buttons - a German
+     * "Anzeigen" (162) the widest - fit with room to spare.
+     */
+    expect(name.contentClassName).toBe("min-w-[9rem]");
+    expect(holds.contentClassName).toBe("min-w-[7rem]");
+    expect(readBy.contentClassName).toBe("min-w-[6rem]");
+    expect(64 + (144 + 24) + (112 + 24) + (96 + 24) + 162).toBeLessThanOrEqual(
+      684,
+    );
+  });
+
+  test("below lg a row says what Holds and Read By said under the name, once", async () => {
+    await renderList();
+
+    const row: SecurityWatchlist = list({
+      description: "Executives and their assistants.",
+      valueCount: 12,
+    });
+
+    // At lg and above, the name and what it is for: the columns say the rest.
+    const wide: HTMLElement = draw(LIST_TABLE, "Watchlist", row);
+    expect(
+      within(wide).queryByTestId(WATCHLISTS_TEST_IDS.nameFacts),
+    ).toBeNull();
+    expect(
+      within(wide).queryByTestId(WATCHLISTS_TEST_IDS.nameReadBy),
+    ).toBeNull();
+    cleanup();
+
+    const folded: HTMLElement = draw(LIST_TABLE, "Watchlist", row, {
+      isFolded: true,
+    });
+
+    expect(
+      flat(within(folded).getByTestId(WATCHLISTS_TEST_IDS.nameFacts)),
+    ).toBe("Users · 12 values");
+    expect(
+      flat(within(folded).getByTestId(WATCHLISTS_TEST_IDS.nameReadBy)),
+    ).toBe("Read by: VIP sign-in from a new country, VIP MFA reset");
+  });
+
+  test("Export CSV writes each column as the row reads it", async () => {
+    await renderList();
+
+    const row: SecurityWatchlist = list({ valueCount: 12 });
+
+    expect(columnTitled(LIST_TABLE, "Watchlist").getExportValue!(row)).toBe(
+      "vip_users",
+    );
+    expect(columnTitled(LIST_TABLE, "Holds").getExportValue!(row)).toBe(
+      "Users · 12 values",
+    );
+    expect(columnTitled(LIST_TABLE, "Read By").getExportValue!(row)).toBe(
+      "VIP sign-in from a new country, VIP MFA reset",
+    );
+  });
+
+  test("opened from a rule's form with a list to create, Create Watchlist opens with its name, and the address forgets it", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      `/dashboard/${PROJECT_ID}/security-events/watchlists?${WATCHLIST_CREATE_PARAM}=board_members`,
+    );
+
+    await renderList();
+
+    expect(table(LIST_TABLE).showCreateForm).toBe(true);
+    expect(table(LIST_TABLE).createInitialValues).toEqual({
+      source: SecurityWatchlistSource.Values,
+      name: "board_members",
+    });
+    expect(window.location.search).toBe("");
+  });
+
+  test("a name no rule can write is not put in the form; the page opens as it always does", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      `/dashboard/${PROJECT_ID}/security-events/watchlists?${WATCHLIST_CREATE_PARAM}=1st%20list`,
+    );
+
+    await renderList();
+
+    expect(table(LIST_TABLE).showCreateForm).toBe(false);
+    expect(table(LIST_TABLE).createInitialValues).toEqual({
+      source: SecurityWatchlistSource.Values,
+    });
+  });
+
+  test("the address that opens Create Watchlist with a name, and the name read back", () => {
+    expect(getWatchlistsRoute().toString()).toBe(
+      `/dashboard/${PROJECT_ID}/security-events/watchlists`,
+    );
+    expect(getWatchlistsRoute("board_members").toString()).toBe(
+      `/dashboard/${PROJECT_ID}/security-events/watchlists?create=board_members`,
+    );
+    // A name a rule cannot write is never put in the address.
+    expect(getWatchlistsRoute("board members").toString()).toBe(
+      `/dashboard/${PROJECT_ID}/security-events/watchlists`,
+    );
+
+    expect(readWatchlistNameToCreate(" board_members ")).toBe("board_members");
+    expect(readWatchlistNameToCreate("1st_list")).toBeNull();
+    expect(readWatchlistNameToCreate("vip users")).toBeNull();
+    expect(readWatchlistNameToCreate("x".repeat(51))).toBeNull();
+    expect(readWatchlistNameToCreate("")).toBeNull();
+    expect(readWatchlistNameToCreate(null)).toBeNull();
   });
 
   test("a list is created and deleted here, and opened to be edited", async () => {
@@ -366,6 +543,7 @@ describe("Security Events > Watchlists", () => {
     expect(captured.viewPageRoute?.toString()).toBe(
       `/dashboard/${PROJECT_ID}/security-events/watchlists`,
     );
+    expect(captured.showCreateForm).toBe(false);
     expect(captured.createInitialValues).toEqual({
       source: SecurityWatchlistSource.Values,
     });
@@ -424,7 +602,7 @@ describe("Security Events > Watchlists", () => {
     ]);
   });
 
-  test("a row: its name, what it holds, its values and the rules that read it", async () => {
+  test("a row: its name, what it holds with its values under it, and the rules that read it", async () => {
     await renderList();
 
     const row: SecurityWatchlist = list({
@@ -435,8 +613,14 @@ describe("Security Events > Watchlists", () => {
     expect(flat(draw(LIST_TABLE, "Watchlist", row))).toBe(
       "vip_usersExecutives and their assistants.",
     );
-    expect(flat(draw(LIST_TABLE, "Holds", row))).toBe("Users");
-    expect(flat(draw(LIST_TABLE, "Values", row))).toBe("12 values");
+
+    const holds: HTMLElement = draw(LIST_TABLE, "Holds", row);
+    expect(flat(within(holds).getByTestId(WATCHLISTS_TEST_IDS.holdsCell))).toBe(
+      "Users",
+    );
+    expect(
+      flat(within(holds).getByTestId(WATCHLISTS_TEST_IDS.valuesCell)),
+    ).toBe("12 values");
 
     const readBy: HTMLElement = draw(LIST_TABLE, "Read By", row);
     expect(readBy).toHaveTextContent("VIP sign-in from a new country");
@@ -462,9 +646,13 @@ describe("Security Events > Watchlists", () => {
       threatIntelFeed: { name: "Feodo Tracker C2" } as never,
     });
 
-    expect(flat(draw(LIST_TABLE, "Values", row))).toBe(
-      "Follows Feodo Tracker C2",
-    );
+    expect(
+      flat(
+        within(draw(LIST_TABLE, "Holds", row)).getByTestId(
+          WATCHLISTS_TEST_IDS.valuesCell,
+        ),
+      ),
+    ).toBe("Follows Feodo Tracker C2");
   });
 
   test("the common lists to start with sit above the table", async () => {
@@ -542,18 +730,22 @@ describe("a watchlist's page", () => {
     ]);
   });
 
-  test("its settings: the name as written, what it holds, where its values come from, how many", async () => {
+  test("its settings: the name as written, what it holds, its values, the rules that read it", async () => {
     await renderView();
 
     expect(detail).not.toBeNull();
     expect(detail!.cardProps.title).toBe("About This List");
     expect(detail!.isEditable).toBe(true);
     expect(detail!.modelDetailProps.modelId.toString()).toBe(WATCHLIST_ID);
+    /*
+     * Where the values come from is what the Values field says - a count,
+     * or the feed it follows - so it is not a field of its own.
+     */
     expect(
       detail!.modelDetailProps.fields.map((field: { title: string }) => {
         return field.title;
       }),
-    ).toEqual(["Name", "Holds", "Values come from", "Values", "Description"]);
+    ).toEqual(["Name", "Holds", "Values", "Read By", "Description"]);
 
     type DetailField = CapturedDetail["modelDetailProps"]["fields"][number];
 
@@ -570,15 +762,16 @@ describe("a watchlist's page", () => {
     const { container: name } = render(fieldTitled("Name").getElement!(saved));
     expect(within(name).getByText("vip_users")).toHaveClass("font-mono");
 
-    const { container: source } = render(
-      fieldTitled("Values come from").getElement!(saved),
-    );
-    expect(flat(source)).toBe("Values you keep");
-
     const { container: count } = render(
       fieldTitled("Values").getElement!(saved),
     );
     expect(flat(count)).toBe("3 values");
+
+    // Every rule that reads it, by name, whatever case the rule wrote.
+    const { container: readers } = render(
+      fieldTitled("Read By").getElement!(saved),
+    );
+    expect(flat(readers)).toBe("VIP sign-in from a new country, VIP MFA reset");
 
     // Edit changes the name and the description: what it holds was chosen once.
     expect(
@@ -588,15 +781,33 @@ describe("a watchlist's page", () => {
     ).toEqual(["name", "description"]);
   });
 
-  test("Use It in a Rule: the selection that reads it, and the rules that do", async () => {
+  test("Use It in a Rule: the selection that reads it, after the values", async () => {
     await renderView();
 
-    expect(
-      screen.getByTestId(WATCHLISTS_TEST_IDS.ruleSnippet).textContent,
-    ).toContain("principalUser|expand: '%vip_users%'");
-    expect(flat(screen.getByTestId(WATCHLISTS_TEST_IDS.readByLine))).toBe(
-      "Read by: VIP sign-in from a new country, VIP MFA reset · Open Detection Rules",
+    const snippet: HTMLElement = screen.getByTestId(
+      WATCHLISTS_TEST_IDS.ruleSnippet,
     );
+
+    expect(snippet.textContent).toContain(
+      "principalUser|expand: '%vip_users%'",
+    );
+
+    // The important thing first: what the list is, its values, then how a rule reads it.
+    const order: Array<string> = [
+      "security-watchlist-detail",
+      VALUES_TABLE,
+      WATCHLISTS_TEST_IDS.ruleSnippet,
+    ];
+    const drawn: Array<HTMLElement> = order.map((id: string): HTMLElement => {
+      return screen.getByTestId(id);
+    });
+
+    for (let index: number = 1; index < drawn.length; index++) {
+      expect(
+        drawn[index - 1]!.compareDocumentPosition(drawn[index]!) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    }
   });
 
   test("its values: added, edited and deleted here, each with why it is on the list", async () => {
@@ -624,7 +835,12 @@ describe("a watchlist's page", () => {
     expect(values.bulkActions?.buttons).toEqual([
       ModalTableBulkDefaultActions.Delete,
     ]);
-    expect(columnTitles(VALUES_TABLE)).toEqual(["Value", "Note", "Added"]);
+    // Two columns, as a rule exception's list reads: who added it is under the note.
+    expect(columnTitles(VALUES_TABLE)).toEqual(["Value", "Note"]);
+    expect(values.selectMoreFields).toEqual({
+      createdAt: true,
+      createdByUser: { name: true, email: true },
+    });
 
     const item: SecurityWatchlistItem = new SecurityWatchlistItem();
     item.value = "alice@example.com";
@@ -633,11 +849,47 @@ describe("a watchlist's page", () => {
     expect(
       within(draw(VALUES_TABLE, "Value", item)).getByText("alice@example.com"),
     ).toHaveClass("font-mono");
-    expect(flat(draw(VALUES_TABLE, "Note", item))).toBe("CFO");
-    expect(flat(draw(VALUES_TABLE, "Note", new SecurityWatchlistItem()))).toBe(
-      "-",
-    );
+    expect(
+      flat(
+        within(draw(VALUES_TABLE, "Note", item)).getByTestId(
+          WATCHLISTS_TEST_IDS.noteCell,
+        ),
+      ),
+    ).toBe("CFOAdded through the API");
+    // A value with no note says only who added it.
+    expect(
+      flat(
+        within(
+          draw(VALUES_TABLE, "Note", new SecurityWatchlistItem()),
+        ).getByTestId(WATCHLISTS_TEST_IDS.noteCell),
+      ),
+    ).toBe("Added through the API");
     expect(values.getItemName!(item)).toBe("alice@example.com");
+    expect(columnTitled(VALUES_TABLE, "Value").getExportValue!(item)).toBe(
+      "alice@example.com",
+    );
+    expect(columnTitled(VALUES_TABLE, "Note").getExportValue!(item)).toBe(
+      "CFO",
+    );
+
+    /*
+     * Below lg the note folds under the value: beside the side menu at 768
+     * the card is too narrow for both beside the row's buttons.
+     */
+    expect(columnTitled(VALUES_TABLE, "Value").hideTitleOnMobile).toBe(true);
+    expect(columnTitled(VALUES_TABLE, "Note").hideBelowLargeScreen).toBe(true);
+    expect(
+      within(draw(VALUES_TABLE, "Value", item)).queryByTestId(
+        WATCHLISTS_TEST_IDS.noteCell,
+      ),
+    ).toBeNull();
+    expect(
+      flat(
+        within(
+          draw(VALUES_TABLE, "Value", item, { isFolded: true }),
+        ).getByTestId(WATCHLISTS_TEST_IDS.noteCell),
+      ),
+    ).toBe("CFOAdded through the API");
 
     // A value is checked against what the list holds, as the API checks it.
     const valueField: {
@@ -647,6 +899,12 @@ describe("a watchlist's page", () => {
       "A value of only * would match everything.",
     );
     expect(valueField.customValidation!({ value: "svc-*" })).toBeNull();
+
+    // How a value matches, in a user list's words, over the list and in Add Value.
+    expect(
+      (values.formFields![0]! as unknown as { description?: string })
+        .description,
+    ).toBe(VALUES_TABLE_DESCRIPTION);
 
     // A new value is put on this list.
     const created: SecurityWatchlistItem = (await values.onBeforeCreate!(
@@ -667,6 +925,10 @@ describe("a watchlist's page", () => {
 
     expect(values.cardProps?.description).toBe(VALUES_TABLE_DESCRIPTION_IP);
     expect(
+      (values.formFields![0]! as unknown as { description?: string })
+        .description,
+    ).toBe(VALUES_TABLE_DESCRIPTION_IP);
+    expect(
       values.formFields![0]!.customValidation!({ value: "not an address" }),
     ).toBe(
       "Enter an IP address, a range such as 10.20.0.0/16, or a pattern with *.",
@@ -674,6 +936,93 @@ describe("a watchlist's page", () => {
     expect(
       values.formFields![0]!.customValidation!({ value: "10.20.0.0/16" }),
     ).toBeNull();
+  });
+
+  test("a file hash list's values are digests: no word of * over them", async () => {
+    saved = list({
+      name: "known_bad_hashes",
+      entityType: SecurityEntityType.FileHash,
+    });
+
+    await renderView();
+
+    const values: CapturedTable = table(VALUES_TABLE);
+
+    expect(values.cardProps?.description).toBe(VALUES_TABLE_DESCRIPTION_HASH);
+    expect(values.cardProps?.description).not.toContain("*");
+    expect(
+      (values.formFields![0]! as unknown as { description?: string })
+        .description,
+    ).toBe(VALUES_TABLE_DESCRIPTION_HASH);
+    expect(values.formFields![0]!.customValidation!({ value: "abc*" })).toBe(
+      "Enter an MD5, SHA-1, SHA-256 or SHA-512 hash.",
+    );
+  });
+
+  test("a host list's values say how they match without a user's example", async () => {
+    saved = list({
+      name: "critical_hosts",
+      entityType: SecurityEntityType.Host,
+    });
+
+    await renderView();
+
+    expect(table(VALUES_TABLE).cardProps?.description).toBe(
+      VALUE_FIELD_DESCRIPTION,
+    );
+    expect(table(VALUES_TABLE).cardProps?.description).not.toContain("svc-*");
+  });
+
+  test("an empty list offers both ways to fill it: Add Value, and Import Values", async () => {
+    await renderView();
+
+    const actions: Array<{
+      title: string;
+      icon?: unknown;
+      dataTestId?: string | undefined;
+      onClick: () => void;
+    }> = table(VALUES_TABLE).emptyState!.actions!;
+
+    expect(
+      actions.map((action: { title: string }) => {
+        return action.title;
+      }),
+    ).toEqual([IMPORT_VALUES]);
+    expect(actions[0]!.icon).toBe(IconProp.Upload);
+    expect(actions[0]!.dataTestId).toBe(WATCHLISTS_TEST_IDS.importEmpty);
+
+    await act(async () => {
+      actions[0]!.onClick();
+    });
+
+    expect(
+      screen.getByTestId(WATCHLISTS_TEST_IDS.importModal),
+    ).toBeInTheDocument();
+  });
+
+  test("a reader who may not add values sees the empty list's Import locked, with why", async () => {
+    jest.spyOn(PermissionGate, "check").mockImplementation(((
+      model: unknown,
+    ) => {
+      return model instanceof SecurityWatchlistItem
+        ? {
+            isAllowed: false,
+            disabledReason: "You need this permission: Edit Detection Rule.",
+          }
+        : { isAllowed: true };
+    }) as never);
+
+    await renderView();
+
+    const action: {
+      disabled?: boolean | undefined;
+      tooltip?: string | undefined;
+    } = table(VALUES_TABLE).emptyState!.actions![0]!;
+
+    expect(action.disabled).toBe(true);
+    expect(action.tooltip).toBe(
+      "You need this permission: Edit Detection Rule.",
+    );
   });
 
   test("Import Values opens the dialog", async () => {
@@ -709,6 +1058,7 @@ describe("a watchlist's page", () => {
     await renderView();
 
     expect(table(VALUES_TABLE).cardProps!.buttons).toEqual([]);
+    expect(table(VALUES_TABLE).emptyState!.actions).toEqual([]);
   });
 
   test("a list that follows a feed shows the feed's values, never a table of its own", async () => {
@@ -738,18 +1088,19 @@ describe("a watchlist's page", () => {
       `/dashboard/${PROJECT_ID}/security-events/threat-intel`,
     );
 
-    // Its settings name the feed, and Edit changes it.
+    // Its settings name the feed as its values, and Edit changes it.
     expect(
       detail!.modelDetailProps.fields.map((field: { title: string }) => {
         return field.title;
       }),
-    ).toEqual([
-      "Name",
-      "Holds",
-      "Values come from",
-      "Threat Intel Feed",
-      "Description",
-    ]);
+    ).toEqual(["Name", "Holds", "Values", "Read By", "Description"]);
+
+    const values: { getElement?: (item: unknown) => React.ReactElement } =
+      detail!.modelDetailProps.fields.find((field: { title: string }) => {
+        return field.title === "Values";
+      })!;
+    const { container: feedValues } = render(values.getElement!(saved));
+    expect(flat(feedValues)).toBe("Follows Feodo Tracker C2");
     expect(
       detail!.formFields.map((field: { field: Record<string, unknown> }) => {
         return Object.keys(field.field)[0];
@@ -782,5 +1133,36 @@ describe("a watchlist's page", () => {
       screen.getByText("This watchlist was deleted, or you cannot read it."),
     ).toBeInTheDocument();
     expect(detail).toBeNull();
+    // Reading it again finds nothing more: no Refresh.
+    expect(screen.queryByTestId("refresh-button")).toBeNull();
+  });
+
+  test("a read that fails says why, and Refresh reads it again", async () => {
+    let reads: number = 0;
+
+    jest.spyOn(ModelAPI, "getItem").mockImplementation((async () => {
+      reads++;
+
+      if (reads === 1) {
+        throw new Error("The server could not be reached. Please try again.");
+      }
+
+      return saved;
+    }) as never);
+
+    await renderView();
+
+    expect(
+      screen.getByText("The server could not be reached. Please try again."),
+    ).toBeInTheDocument();
+    expect(detail).toBeNull();
+
+    await act(async () => {
+      screen.getByTestId("refresh-button").click();
+    });
+
+    expect(reads).toBe(2);
+    expect(detail).not.toBeNull();
+    expect(screen.queryByTestId("refresh-button")).toBeNull();
   });
 });

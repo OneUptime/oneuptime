@@ -6,6 +6,7 @@ import {
   FEED_FIELD_PLACEHOLDER,
   FEED_FIELD_TITLE,
   HOLDS_FIELD_DESCRIPTION,
+  HOLDS_FIELD_PLACEHOLDER,
   HOLDS_FIELD_TITLE,
   NAME_FIELD_DESCRIPTION,
   NAME_FIELD_PLACEHOLDER,
@@ -260,6 +261,7 @@ export function getWatchlistCreateFields(options: {
       description: HOLDS_FIELD_DESCRIPTION,
       fieldType: FormFieldSchemaType.Dropdown,
       dropdownOptions: getWatchlistHoldsDropdownOptions(),
+      placeholder: HOLDS_FIELD_PLACEHOLDER,
       required: true,
       customValidation: problemWith({
         translator: options.translator,
@@ -276,6 +278,8 @@ export function getWatchlistCreateFields(options: {
       // Each choice says what it is; the API reader's column help would repeat them.
       hideColumnDescription: true,
       required: false,
+      // One of the two is always chosen (keeping values, by default): never "(Optional)".
+      hideOptionalLabel: true,
       defaultValue: SecurityWatchlistSource.Values,
       showIf: (values: FormValues<SecurityWatchlist>): boolean => {
         return canChooseWatchlistSource(readValues(values)["entityType"]);

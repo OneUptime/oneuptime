@@ -36885,7 +36885,6 @@
   "Read by": "Letto da",
   "Reads watchlists": "Legge elenchi di controllo",
   "Replace the list": "Sostituisci l'elenco",
-  "Rules not read": "Regole non lette",
   "Servers that must never be compromised: domain controllers, payment and database servers.": "Server che non devono mai essere compromessi: controller di dominio, server di pagamento e di database.",
   "Start with a common list": "Inizia con un elenco comune",
   "The feed whose active indicators are the list's values.": "Il feed i cui indicatori attivi sono i valori dell'elenco.",
@@ -36938,5 +36937,8 @@
   "{{count}} values to import_one": "{{count}} valore da importare",
   "{{count}} values_one": "{{count}} valore",
   "{{count}} were already on the list": "{{count}} erano già nell'elenco",
-  "{{count}} were already on the list_one": "{{count}} era già nell'elenco"
+  "{{count}} were already on the list_one": "{{count}} era già nell'elenco",
+  "MD5, SHA-1, SHA-256 and SHA-512 hashes, matched whatever the case.": "Hash MD5, SHA-1, SHA-256 e SHA-512, confrontati senza distinguere maiuscole e minuscole.",
+  "Choose what the list holds": "Scegli cosa contiene l'elenco",
+  "Couldn't load the rules": "Impossibile caricare le regole"
 }

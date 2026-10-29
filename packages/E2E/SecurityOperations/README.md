@@ -434,18 +434,22 @@ deleted, and a list's values go with it, as the server keeps them. `POST
 /security-watchlist/import` reads its text with the shared reader the server uses
 (`parseSecurityWatchlistImport`), adds to the list or replaces it, and answers what it did.
 
-`Watchlists.spec.ts` covers: the list under Detections, its entry lit and its trail, four columns
-at 1280 (a name in the mono type with what it is for, what it holds, its values or the feed it
-follows, the rules that read it); the common lists, one added and drawn as Added, created empty
-and kept by hand; Create Watchlist refusing a name rules cannot write, then opening the new list's
-page, named in the trail; a list's page (its settings, Use It in a Rule with the rule that reads
-it, its values with their notes and who added them, Open Detection Rules); Add Value refusing a
-lone `*` and adding a value, the count following; Import Values from the Values card's ⋯ - the
-paste box across the dialog, the preview as it is typed, one request, what it did - and Replace
-the list; a list that follows a feed, with no table of its own; the line under a rule's YAML,
-with a list the project does not have named in red; a phone; a new project's common lists; a
-Security Viewer, Add and Import Values locked; German, and Persian, right to left, with `svc-*`
-in order inside a Persian sentence. Its screenshots are named `watchlists-*`, `watchlist-*` and
+`Watchlists.spec.ts` covers: the list under Detections, its entry lit and its trail, three columns
+at 1280 (a name in the mono type with what it is for, what it holds with its values or the feed
+it follows under it, the rules that read it), and at 1024 beside the side menu - in German too -
+a table that never runs under its row buttons; below lg (768), Holds and Read By folded under the
+name; the common lists, one added and drawn as Added, created empty and kept by hand; Create
+Watchlist refusing a name rules cannot write, then opening the new list's page, named in the
+trail; a list's page, the list first (its settings with the rule that reads it), then its values
+with their notes and who added them, then Use It in a Rule and Open Detection Rules; at 768 a
+value's note folded under it; an empty list's Import Values; Add Value refusing a lone `*` and
+adding a value, the count following; Import Values from the Values card's ⋯ - the paste box
+across the dialog, the preview as it is typed, one request, what it did - and Replace the list; a
+list that follows a feed, with no table of its own; the line under a rule's YAML, with a list the
+project does not have on a line of its own in red, whose Create it in Watchlists opens Create
+Watchlist with the name (`?create=`); a phone; a new project's common lists; a Security Viewer,
+Add and Import Values locked; German, and Persian, right to left, with `svc-*` in order inside a
+Persian sentence. Its screenshots are named `watchlists-*`, `watchlist-*` and
 `watchlist-rule-line-desktop`.
 
 ## Response targets, tasks and evidence

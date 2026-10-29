@@ -36885,7 +36885,6 @@
   "Read by": "Lida por",
   "Reads watchlists": "Lê listas de observação",
   "Replace the list": "Substituir a lista",
-  "Rules not read": "Regras não lidas",
   "Servers that must never be compromised: domain controllers, payment and database servers.": "Servidores que nunca podem ser comprometidos: controladores de domínio, servidores de pagamento e de banco de dados.",
   "Start with a common list": "Comece com uma lista comum",
   "The feed whose active indicators are the list's values.": "O feed cujos indicadores ativos são os valores da lista.",
@@ -36938,5 +36937,8 @@
   "{{count}} values to import_one": "{{count}} valor a importar",
   "{{count}} values_one": "{{count}} valor",
   "{{count}} were already on the list": "{{count}} já estavam na lista",
-  "{{count}} were already on the list_one": "{{count}} já estava na lista"
+  "{{count}} were already on the list_one": "{{count}} já estava na lista",
+  "MD5, SHA-1, SHA-256 and SHA-512 hashes, matched whatever the case.": "Hashes MD5, SHA-1, SHA-256 e SHA-512, comparados sem diferenciar maiúsculas.",
+  "Choose what the list holds": "Escolha o que a lista contém",
+  "Couldn't load the rules": "Não foi possível carregar as regras"
 }

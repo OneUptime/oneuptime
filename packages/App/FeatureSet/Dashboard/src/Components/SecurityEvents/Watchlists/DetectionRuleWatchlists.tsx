@@ -5,17 +5,20 @@ import {
   WATCHLISTS_TEST_IDS,
 } from "./WatchlistsCopy";
 import { describeWatchlistValues } from "./WatchlistsModel";
+import { getWatchlistsRoute } from "./WatchlistsRoute";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import SecurityWatchlist from "Common/Models/DatabaseModels/SecurityWatchlist";
 import Route from "Common/Types/API/Route";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import IconProp from "Common/Types/Icon/IconProp";
 import { getSecurityWatchlistNameKey } from "Common/Types/SecurityEvent/SecurityWatchlist";
 import {
   SigmaWatchlistReference,
   readDetectionRuleWatchlistReferences,
 } from "Common/Utils/SecurityEvent/Sigma/SigmaWatchlists";
+import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -42,17 +45,23 @@ type WatchlistsByKey = Map<string, SecurityWatchlist>;
 /*
  * READS WATCHLISTS, under a rule's YAML: the lists the rule names
  * (`field|expand: '%vip_users%'`) as it is typed, each with what it holds
- * now - "vip_users (12 values)" - and a link to it; a name the project has
- * no list of says so in red, with the way to make it, before the save
- * refuses it. Nothing is drawn for a rule that names none.
+ * now - "vip_users (12 values)" - and a link to it. A name the project has
+ * no list of gets a line of its own in red, before the save refuses it,
+ * with the way to make it: Create Watchlist, opened with that name (in a
+ * new tab, so the rule being written stays as it is). Nothing is drawn for
+ * a rule that names none.
  *
- * The project's lists are read once, when the form opens.
+ * The project's lists are read when the form first names one, and again
+ * whenever the window comes back into focus - so a list just created in
+ * that other tab is no longer called missing.
  */
 const DetectionRuleWatchlists: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const [watchlists, setWatchlists] = useState<WatchlistsByKey | null>(null);
+  // Bumped when the window comes back into focus: the lists are read again.
+  const [readVersion, setReadVersion] = useState<number>(0);
 
   const references: Array<SigmaWatchlistReference> = useMemo(() => {
     return readDetectionRuleWatchlistReferences(props.sigmaRuleYaml);
@@ -61,8 +70,26 @@ const DetectionRuleWatchlists: FunctionComponent<ComponentProps> = (
   const hasReferences: boolean = references.length > 0;
 
   useEffect(() => {
-    // Read once a rule first names a list; a rule that names none reads nothing.
-    if (!hasReferences || watchlists !== null) {
+    if (!hasReferences) {
+      return () => {};
+    }
+
+    const onFocus: () => void = (): void => {
+      setReadVersion((current: number): number => {
+        return current + 1;
+      });
+    };
+
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [hasReferences]);
+
+  useEffect(() => {
+    // A rule that names no list reads nothing.
+    if (!hasReferences) {
       return () => {};
     }
 
@@ -101,10 +128,10 @@ const DetectionRuleWatchlists: FunctionComponent<ComponentProps> = (
           );
         }
       } catch {
-        // Lists that cannot be read are not called missing: the line waits for the save to say.
-        if (isCurrent) {
-          setWatchlists(null);
-        }
+        /*
+         * Lists that cannot be read are not called missing: the line keeps
+         * what it said (nothing, the first time) and the save says the rest.
+         */
       }
     };
 
@@ -113,91 +140,128 @@ const DetectionRuleWatchlists: FunctionComponent<ComponentProps> = (
     return () => {
       isCurrent = false;
     };
-  }, [hasReferences]);
+  }, [hasReferences, readVersion]);
 
   if (!hasReferences || watchlists === null) {
     return <></>;
   }
 
-  const listsRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.SECURITY_EVENTS_WATCHLISTS] as Route,
-  );
+  const found: Array<{
+    reference: SigmaWatchlistReference;
+    watchlist: SecurityWatchlist;
+  }> = [];
+  const missing: Array<SigmaWatchlistReference> = [];
+
+  for (const reference of references) {
+    const watchlist: SecurityWatchlist | undefined = watchlists.get(
+      reference.key,
+    );
+
+    if (watchlist && watchlist.id) {
+      found.push({ reference, watchlist });
+    } else {
+      missing.push(reference);
+    }
+  }
 
   return (
     <div
-      className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs text-gray-600"
+      className="mt-2 space-y-1 text-xs"
       data-testid={WATCHLISTS_TEST_IDS.ruleWatchlists}
     >
-      <span className="font-medium text-gray-700">
-        {translator.translateText(RULE_READS_WATCHLISTS)}
-      </span>
-      {references.map(
-        (reference: SigmaWatchlistReference, index: number): ReactElement => {
-          const watchlist: SecurityWatchlist | undefined = watchlists.get(
-            reference.key,
-          );
-
-          return (
-            <Fragment key={reference.key}>
-              {index > 0 ? <span aria-hidden="true">·</span> : <></>}
-              {watchlist && watchlist.id ? (
-                <span
-                  data-testid={WATCHLISTS_TEST_IDS.ruleWatchlist}
-                  className="inline-flex items-baseline gap-1"
-                >
-                  <Link
-                    to={RouteUtil.populateRouteParams(
-                      RouteMap[PageMap.SECURITY_EVENTS_WATCHLIST_VIEW] as Route,
-                      { modelId: watchlist.id },
-                    )}
-                    openInNewTab={true}
-                    className="font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+      {found.length > 0 ? (
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-gray-600">
+          <span className="font-medium text-gray-700">
+            {translator.translateText(RULE_READS_WATCHLISTS)}
+          </span>
+          {found.map(
+            (
+              entry: {
+                reference: SigmaWatchlistReference;
+                watchlist: SecurityWatchlist;
+              },
+              index: number,
+            ): ReactElement => {
+              return (
+                <Fragment key={entry.reference.key}>
+                  {index > 0 ? <span aria-hidden="true">·</span> : <></>}
+                  <span
+                    data-testid={WATCHLISTS_TEST_IDS.ruleWatchlist}
+                    className="inline-flex items-baseline gap-1"
                   >
-                    <bdi dir="ltr" className="font-mono">
-                      {watchlist.name}
-                    </bdi>
-                  </Link>
-                  <span className="text-gray-500">
-                    (
-                    {describeWatchlistValues(translator, {
-                      source: watchlist.source,
-                      valueCount: watchlist.valueCount,
-                      threatIntelFeedId: watchlist.threatIntelFeedId,
-                    })}
-                    )
+                    <Link
+                      to={RouteUtil.populateRouteParams(
+                        RouteMap[
+                          PageMap.SECURITY_EVENTS_WATCHLIST_VIEW
+                        ] as Route,
+                        { modelId: entry.watchlist.id! },
+                      )}
+                      openInNewTab={true}
+                      className="font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    >
+                      <bdi dir="ltr" className="font-mono">
+                        {entry.watchlist.name}
+                      </bdi>
+                    </Link>
+                    <span className="text-gray-500">
+                      (
+                      {describeWatchlistValues(translator, {
+                        source: entry.watchlist.source,
+                        valueCount: entry.watchlist.valueCount,
+                        threatIntelFeedId: entry.watchlist.threatIntelFeedId,
+                      })}
+                      )
+                    </span>
                   </span>
-                </span>
-              ) : (
-                <span
-                  data-testid={WATCHLISTS_TEST_IDS.ruleWatchlist}
-                  data-missing="true"
-                  className="inline-flex items-baseline gap-1 text-red-600"
-                >
-                  <span>
-                    <TranslatedSentence
-                      template={RULE_WATCHLIST_MISSING}
-                      slots={{
-                        name: (
-                          <bdi dir="ltr" className="font-mono">
-                            {reference.name}
-                          </bdi>
-                        ),
-                      }}
-                    />
-                  </span>
-                  <Link
-                    to={listsRoute}
-                    openInNewTab={true}
-                    className="font-medium underline hover:text-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-                  >
-                    {translator.translateText(CREATE_WATCHLIST_LINK)}
-                  </Link>
-                </span>
-              )}
-            </Fragment>
-          );
-        },
+                </Fragment>
+              );
+            },
+          )}
+        </div>
+      ) : (
+        <></>
       )}
+      {/*
+       * Each name the project has no list of, on a line of its own: what is
+       * wrong, then the one way to fix it here - Create Watchlist with the
+       * name in it. Kept apart from the lists found, so a problem never
+       * hides among them.
+       */}
+      {missing.map((reference: SigmaWatchlistReference): ReactElement => {
+        return (
+          <div
+            key={reference.key}
+            data-testid={WATCHLISTS_TEST_IDS.ruleWatchlist}
+            data-missing="true"
+            className="flex items-start gap-1.5 text-red-700"
+          >
+            <Icon
+              icon={IconProp.Alert}
+              className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-red-500"
+            />
+            <span className="min-w-0 [overflow-wrap:anywhere]">
+              <TranslatedSentence
+                template={RULE_WATCHLIST_MISSING}
+                slots={{
+                  name: (
+                    <bdi dir="ltr" className="font-mono">
+                      {reference.name}
+                    </bdi>
+                  ),
+                }}
+              />
+              <span aria-hidden="true">{" · "}</span>
+              <Link
+                to={getWatchlistsRoute(reference.name)}
+                openInNewTab={true}
+                className="font-medium underline hover:text-red-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+              >
+                {translator.translateText(CREATE_WATCHLIST_LINK)}
+              </Link>
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 };

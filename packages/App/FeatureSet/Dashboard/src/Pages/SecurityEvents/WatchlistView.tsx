@@ -1,8 +1,6 @@
 import PageComponentProps from "../PageComponentProps";
 import {
-  ADDED_COLUMN_TITLE,
   DESCRIPTION_FIELD_TITLE,
-  FEED_FIELD_TITLE,
   FEED_VALUES_DESCRIPTION,
   FEED_VALUES_GONE,
   FEED_VALUES_TITLE,
@@ -13,17 +11,12 @@ import {
   NOTE_FIELD_DESCRIPTION,
   NOTE_FIELD_TITLE,
   OPEN_THREAT_INTEL,
-  SOURCE_FEED_TITLE,
-  SOURCE_FIELD_TITLE,
-  SOURCE_VALUES_TITLE,
+  READ_BY_COLUMN_TITLE,
   VALUES_COLUMN_TITLE,
   VALUES_EMPTY_DESCRIPTION,
   VALUES_EMPTY_TITLE,
-  VALUES_TABLE_DESCRIPTION,
-  VALUES_TABLE_DESCRIPTION_IP,
   VALUES_TABLE_TITLE,
   VALUE_COLUMN_TITLE,
-  VALUE_FIELD_DESCRIPTION,
   VALUE_FIELD_TITLE,
   VALUE_PLURAL,
   VALUE_SINGULAR,
@@ -34,6 +27,10 @@ import {
 } from "../../Components/SecurityEvents/Watchlists/WatchlistsCopy";
 import {
   WatchlistHoldsCell,
+  WatchlistNameText,
+  WatchlistReadersList,
+  WatchlistValueCell,
+  WatchlistValueNoteCell,
   WatchlistValuesCell,
 } from "../../Components/SecurityEvents/Watchlists/WatchlistCells";
 import { getWatchlistEditFields } from "../../Components/SecurityEvents/Watchlists/WatchlistFormFields";
@@ -41,12 +38,12 @@ import WatchlistImportModal from "../../Components/SecurityEvents/Watchlists/Wat
 import WatchlistRuleSnippet from "../../Components/SecurityEvents/Watchlists/WatchlistRuleSnippet";
 import {
   getWatchlistReaders,
+  getWatchlistValuesHint,
   isFeedWatchlist,
 } from "../../Components/SecurityEvents/Watchlists/WatchlistsModel";
 import useWatchlistReaders, {
   WatchlistReadersResult,
 } from "../../Components/SecurityEvents/Watchlists/useWatchlistReaders";
-import { RuleExceptionAddedLine } from "../../Components/SecurityEvents/RuleExceptions/RuleExceptionCells";
 import { getSecurityEventsBreadcrumbs } from "../../Utils/Breadcrumbs";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -90,11 +87,21 @@ import React, {
   useState,
 } from "react";
 
+// Who added a value: the person's name, else their email; none for an API key or a workflow.
+function addedByOf(item: SecurityWatchlistItem): string | undefined {
+  return (
+    item.createdByUser?.name?.toString() ||
+    item.createdByUser?.email?.toString() ||
+    undefined
+  );
+}
+
 /*
- * ONE WATCHLIST: what it holds and where its values come from (its
- * settings, edited here), how a rule reads it, with the rules that do, and
- * its values - kept by hand (added, imported, edited, deleted) or, for a
- * list that follows a threat intel feed, the feed's.
+ * ONE WATCHLIST, the important thing first: what it is - what it holds,
+ * its values (how many, or the feed it follows), the rules that read it -
+ * then its values themselves, kept by hand (added, imported, edited,
+ * deleted) or, for a list that follows a threat intel feed, the feed's,
+ * and last how a rule reads it, to copy.
  *
  * Inside the Security Events menu, Watchlists lit; its crumb names the
  * list once it is read (nameRecordInTrail, as a playbook's does).
@@ -110,6 +117,8 @@ const SecurityWatchlistViewPage: FunctionComponent<
   const [watchlist, setWatchlist] = useState<SecurityWatchlist | null>(null);
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  // The read failed (rather than finding no list): it may work again.
+  const [canRetry, setCanRetry] = useState<boolean>(false);
   const [isImporting, setIsImporting] = useState<boolean>(false);
   // Bumped when the values change from outside the table: an import.
   const [valuesVersion, setValuesVersion] = useState<number>(0);
@@ -135,6 +144,7 @@ const SecurityWatchlistViewPage: FunctionComponent<
         });
 
       setWatchlist(item);
+      setCanRetry(false);
       setError(
         item
           ? ""
@@ -142,6 +152,7 @@ const SecurityWatchlistViewPage: FunctionComponent<
               WATCHLIST_NOT_FOUND,
       );
     } catch (err) {
+      setCanRetry(true);
       setError(API.getFriendlyMessage(err));
     }
 
@@ -170,11 +181,26 @@ const SecurityWatchlistViewPage: FunctionComponent<
   }
 
   if (error || !watchlist) {
-    return <ErrorMessage message={error || WATCHLIST_NOT_FOUND} />;
+    return (
+      <ErrorMessage
+        message={error || WATCHLIST_NOT_FOUND}
+        onRefreshClick={
+          canRetry
+            ? () => {
+                setIsLoaded(false);
+                setError("");
+                void load();
+              }
+            : undefined
+        }
+      />
+    );
   }
 
   const isFeed: boolean = isFeedWatchlist(watchlist.source);
   const entityType: SecurityEntityType | undefined = watchlist.entityType;
+  // How this list's values match, in its kind's words (svc-*, ranges, hashes).
+  const valuesHint: string = getWatchlistValuesHint(entityType);
 
   const importButton: CardButtonSchema | null = isFeed
     ? null
@@ -219,6 +245,13 @@ const SecurityWatchlistViewPage: FunctionComponent<
           modelId: watchlistId,
           showDetailsInNumberOfColumns: 2,
           style: DetailStyle.Compact,
+          /*
+           * What the list is, in four facts and what it is for: its name as
+           * rules write it, what it holds, its values - how many it keeps,
+           * or the feed it follows, which says where they come from - and
+           * the rules that read it, so a change to it is made knowing what
+           * it reaches.
+           */
           fields: [
             {
               field: { name: true },
@@ -227,10 +260,7 @@ const SecurityWatchlistViewPage: FunctionComponent<
               getElement: (item: SecurityWatchlist): ReactElement => {
                 return (
                   <span className="text-sm text-gray-900 [overflow-wrap:anywhere]">
-                    <IsolatedText
-                      text={item.name || ""}
-                      className="font-mono"
-                    />
+                    <WatchlistNameText name={item.name || ""} />
                   </span>
                 );
               },
@@ -244,24 +274,8 @@ const SecurityWatchlistViewPage: FunctionComponent<
               },
             },
             {
-              field: { source: true },
-              title: SOURCE_FIELD_TITLE,
-              fieldType: FieldType.Element,
-              getElement: (item: SecurityWatchlist): ReactElement => {
-                return (
-                  <span className="text-sm text-gray-700">
-                    {translator.translateText(
-                      isFeedWatchlist(item.source)
-                        ? SOURCE_FEED_TITLE
-                        : SOURCE_VALUES_TITLE,
-                    )}
-                  </span>
-                );
-              },
-            },
-            {
               field: { valueCount: true },
-              title: isFeed ? FEED_FIELD_TITLE : VALUES_COLUMN_TITLE,
+              title: VALUES_COLUMN_TITLE,
               fieldType: FieldType.Element,
               getElement: (): ReactElement => {
                 return (
@@ -275,6 +289,23 @@ const SecurityWatchlistViewPage: FunctionComponent<
               },
             },
             {
+              field: { _id: true },
+              title: READ_BY_COLUMN_TITLE,
+              fieldType: FieldType.Element,
+              getElement: (): ReactElement => {
+                return (
+                  <WatchlistReadersList
+                    readers={getWatchlistReaders(
+                      readers.readersByKey,
+                      watchlist.name,
+                    )}
+                    isLoaded={readers.isLoaded}
+                    hasError={readers.hasError}
+                  />
+                );
+              },
+            },
+            {
               field: { description: true },
               title: DESCRIPTION_FIELD_TITLE,
               fieldType: FieldType.LongText,
@@ -282,14 +313,6 @@ const SecurityWatchlistViewPage: FunctionComponent<
             },
           ],
         }}
-      />
-
-      <WatchlistRuleSnippet
-        name={watchlist.name || ""}
-        entityType={watchlist.entityType}
-        readers={getWatchlistReaders(readers.readersByKey, watchlist.name)}
-        isReadersLoaded={readers.isLoaded}
-        hasReadersError={readers.hasError}
       />
 
       {isFeed ? (
@@ -367,16 +390,30 @@ const SecurityWatchlistViewPage: FunctionComponent<
           sortOrder={SortOrder.Ascending}
           cardProps={{
             title: VALUES_TABLE_TITLE,
-            description:
-              entityType === SecurityEntityType.IpAddress
-                ? VALUES_TABLE_DESCRIPTION_IP
-                : VALUES_TABLE_DESCRIPTION,
+            description: valuesHint,
             buttons: importButton ? [importButton] : [],
           }}
+          /*
+           * An empty list offers both ways to fill it, as its words say:
+           * Add Value, and Import Values - otherwise only in the card's ⋯ -
+           * locked with the same reason when the reader may not add.
+           */
           emptyState={{
             title: VALUES_EMPTY_TITLE,
             description: VALUES_EMPTY_DESCRIPTION,
             icon: IconProp.ListBullet,
+            actions: importButton
+              ? [
+                  {
+                    title: IMPORT_VALUES,
+                    icon: IconProp.Upload,
+                    disabled: importButton.disabled,
+                    tooltip: importButton.tooltip,
+                    dataTestId: WATCHLISTS_TEST_IDS.importEmpty,
+                    onClick: importButton.onClick,
+                  },
+                ]
+              : [],
           }}
           createInitialValues={
             {
@@ -387,7 +424,7 @@ const SecurityWatchlistViewPage: FunctionComponent<
             {
               field: { value: true },
               title: VALUE_FIELD_TITLE,
-              description: VALUE_FIELD_DESCRIPTION,
+              description: valuesHint,
               fieldType: FormFieldSchemaType.Text,
               required: true,
               disableSpellCheck: true,
@@ -425,23 +462,37 @@ const SecurityWatchlistViewPage: FunctionComponent<
           showRefreshButton={true}
           searchableFields={["value", "note"]}
           filters={[]}
-          selectMoreFields={{ createdAt: true }}
+          selectMoreFields={{
+            createdAt: true,
+            createdByUser: { name: true, email: true },
+          }}
+          /*
+           * Two columns, as a rule exception's list reads: the value, and
+           * why it is on the list with who added it and when under it.
+           * Below lg the note folds under the value (WatchlistValueCell):
+           * beside the side menu at 768 the card is about 430px wide, too
+           * narrow for both beside the row's buttons.
+           */
           columns={[
             {
               field: { value: true },
               title: VALUE_COLUMN_TITLE,
               type: FieldType.Element,
+              // A phone's card is about the value: it needs no label.
+              hideTitleOnMobile: true,
               wrapContent: true,
-              wrapMaxWidthClassName: "max-w-[20rem]",
+              wrapMaxWidthClassName: "max-w-[24rem]",
+              getExportValue: (item: SecurityWatchlistItem): string => {
+                return item.value || "";
+              },
               getElement: (item: SecurityWatchlistItem): ReactElement => {
                 return (
-                  <span className="block text-sm text-gray-900 [overflow-wrap:anywhere]">
-                    <IsolatedText
-                      text={item.value || ""}
-                      className="font-mono"
-                      breaksLikeAName={true}
-                    />
-                  </span>
+                  <WatchlistValueCell
+                    value={item.value || ""}
+                    note={item.note}
+                    addedBy={addedByOf(item)}
+                    createdAt={item.createdAt}
+                  />
                 );
               },
             },
@@ -450,49 +501,31 @@ const SecurityWatchlistViewPage: FunctionComponent<
               title: NOTE_COLUMN_TITLE,
               type: FieldType.Element,
               disableSort: true,
+              hideBelowLargeScreen: true,
               wrapContent: true,
-              wrapMaxWidthClassName: "max-w-[18rem]",
+              wrapMaxWidthClassName: "max-w-[24rem]",
               contentClassName: "min-w-[8rem]",
-              getElement: (item: SecurityWatchlistItem): ReactElement => {
-                const note: string = (item.note || "").trim();
-
-                return note ? (
-                  <span className="block whitespace-pre-line break-words text-sm text-gray-700">
-                    <IsolatedText text={note} />
-                  </span>
-                ) : (
-                  <span className="text-sm text-gray-400">-</span>
-                );
+              getExportValue: (item: SecurityWatchlistItem): string => {
+                return (item.note || "").trim();
               },
-            },
-            {
-              field: {
-                createdByUser: { name: true, email: true },
-              },
-              title: ADDED_COLUMN_TITLE,
-              type: FieldType.Element,
-              disableSort: true,
-              hideOnMobile: true,
-              wrapContent: true,
-              wrapMaxWidthClassName: "max-w-[14rem]",
               getElement: (item: SecurityWatchlistItem): ReactElement => {
                 return (
-                  <span className="block text-xs text-gray-500">
-                    <RuleExceptionAddedLine
-                      addedBy={
-                        item.createdByUser?.name?.toString() ||
-                        item.createdByUser?.email?.toString() ||
-                        undefined
-                      }
-                      createdAt={item.createdAt}
-                    />
-                  </span>
+                  <WatchlistValueNoteCell
+                    note={item.note}
+                    addedBy={addedByOf(item)}
+                    createdAt={item.createdAt}
+                  />
                 );
               },
             },
           ]}
         />
       )}
+
+      <WatchlistRuleSnippet
+        name={watchlist.name || ""}
+        entityType={watchlist.entityType}
+      />
 
       {isImporting ? (
         <WatchlistImportModal

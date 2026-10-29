@@ -36885,7 +36885,6 @@
   "Read by": "पढ़ने वाले नियम",
   "Reads watchlists": "पढ़ी जाने वाली वॉचलिस्ट",
   "Replace the list": "सूची बदलें",
-  "Rules not read": "नियम पढ़े नहीं जा सके",
   "Servers that must never be compromised: domain controllers, payment and database servers.": "ऐसे सर्वर जिनमें कभी सेंध नहीं लगनी चाहिए: डोमेन कंट्रोलर, पेमेंट और डेटाबेस सर्वर।",
   "Start with a common list": "किसी आम सूची से शुरू करें",
   "The feed whose active indicators are the list's values.": "वह फ़ीड जिसके सक्रिय संकेतक सूची के मान हैं।",
@@ -36938,5 +36937,8 @@
   "{{count}} values to import_one": "इंपोर्ट के लिए {{count}} मान",
   "{{count}} values_one": "{{count}} मान",
   "{{count}} were already on the list": "{{count}} पहले से सूची में थे",
-  "{{count}} were already on the list_one": "{{count}} पहले से सूची में था"
+  "{{count}} were already on the list_one": "{{count}} पहले से सूची में था",
+  "MD5, SHA-1, SHA-256 and SHA-512 hashes, matched whatever the case.": "MD5, SHA-1, SHA-256 और SHA-512 हैश। अक्षरों के छोटे-बड़े होने से फ़र्क नहीं पड़ता।",
+  "Choose what the list holds": "चुनें कि सूची में क्या है",
+  "Couldn't load the rules": "नियम लोड नहीं हो सके"
 }

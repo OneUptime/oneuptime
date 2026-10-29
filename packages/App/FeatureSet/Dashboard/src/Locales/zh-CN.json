@@ -36885,7 +36885,6 @@
   "Read by": "读取它的规则",
   "Reads watchlists": "读取的监视列表",
   "Replace the list": "替换列表",
-  "Rules not read": "未能读取规则",
   "Servers that must never be compromised: domain controllers, payment and database servers.": "绝不能被攻陷的服务器：域控制器、支付服务器和数据库服务器。",
   "Start with a common list": "从常用列表开始",
   "The feed whose active indicators are the list's values.": "其有效指标即为列表值的情报源。",
@@ -36938,5 +36937,8 @@
   "{{count}} values to import_one": "待导入 {{count}} 个值",
   "{{count}} values_one": "{{count}} 个值",
   "{{count}} were already on the list": "{{count}} 个已在列表中",
-  "{{count}} were already on the list_one": "{{count}} 个已在列表中"
+  "{{count}} were already on the list_one": "{{count}} 个已在列表中",
+  "MD5, SHA-1, SHA-256 and SHA-512 hashes, matched whatever the case.": "MD5、SHA-1、SHA-256 和 SHA-512 哈希，匹配时不区分大小写。",
+  "Choose what the list holds": "选择列表包含的内容",
+  "Couldn't load the rules": "无法加载规则"
 }

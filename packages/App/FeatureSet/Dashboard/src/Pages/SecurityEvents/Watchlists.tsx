@@ -3,7 +3,6 @@ import {
   HOLDS_COLUMN_TITLE,
   NAME_COLUMN_TITLE,
   READ_BY_COLUMN_TITLE,
-  VALUES_COLUMN_TITLE,
   WATCHLISTS_EMPTY_DESCRIPTION,
   WATCHLISTS_EMPTY_TITLE,
   WATCHLISTS_TABLE_DESCRIPTION,
@@ -13,17 +12,26 @@ import {
   WATCHLIST_SINGULAR,
 } from "../../Components/SecurityEvents/Watchlists/WatchlistsCopy";
 import {
-  WatchlistHoldsCell,
+  WatchlistHoldsColumnCell,
   WatchlistNameCell,
   WatchlistReadByCell,
-  WatchlistValuesCell,
+  WatchlistReadersState,
+  WatchlistValuesFacts,
 } from "../../Components/SecurityEvents/Watchlists/WatchlistCells";
 import {
   getWatchlistCreateFields,
   getWatchlistHoldsDropdownOptions,
   prepareNewWatchlist,
 } from "../../Components/SecurityEvents/Watchlists/WatchlistFormFields";
-import { getWatchlistReaders } from "../../Components/SecurityEvents/Watchlists/WatchlistsModel";
+import {
+  describeWatchlistValues,
+  getWatchlistHoldsLabel,
+  getWatchlistReaders,
+} from "../../Components/SecurityEvents/Watchlists/WatchlistsModel";
+import {
+  WATCHLIST_CREATE_PARAM,
+  readWatchlistNameToCreate,
+} from "../../Components/SecurityEvents/Watchlists/WatchlistsRoute";
 import WatchlistStarters from "../../Components/SecurityEvents/Watchlists/WatchlistStarters";
 import useWatchlistReaders, {
   WatchlistReadersResult,
@@ -45,7 +53,12 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 
 // A watchlist's own page.
 export function getWatchlistViewRoute(watchlistId: ObjectID | string): Route {
@@ -53,6 +66,16 @@ export function getWatchlistViewRoute(watchlistId: ObjectID | string): Route {
     RouteMap[PageMap.SECURITY_EVENTS_WATCHLIST_VIEW] as Route,
     { modelId: watchlistId.toString() },
   );
+}
+
+// A list's values as its row reads them.
+function valuesOf(item: SecurityWatchlist): WatchlistValuesFacts {
+  return {
+    source: item.source,
+    valueCount: item.valueCount,
+    threatIntelFeedId: item.threatIntelFeedId,
+    feedName: item.threatIntelFeed?.name,
+  };
 }
 
 /*
@@ -64,7 +87,9 @@ export function getWatchlistViewRoute(watchlistId: ObjectID | string): Route {
  * Above them, while the project lacks one, the common lists to start with,
  * one click each (WatchlistStarters). A row opens the list's page, where its
  * values are added, imported and edited, and the list itself is edited.
- * Creating a list opens its page, ready for its values.
+ * Creating a list opens its page, ready for its values. Opened with a name
+ * to create (?create=board_members, from a rule's form that names a list
+ * the project lacks), Create Watchlist opens at once with that name.
  */
 const SecurityWatchlistsPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -78,6 +103,32 @@ const SecurityWatchlistsPage: FunctionComponent<PageComponentProps> = (
     projectId,
     String(version),
   );
+
+  /*
+   * The list a rule's form sent the reader here to create, read once: the
+   * address forgets it, so a reload or Back never opens the form again.
+   */
+  const [nameToCreate] = useState<string | null>(() => {
+    return readWatchlistNameToCreate(
+      Navigation.getQueryStringByName(WATCHLIST_CREATE_PARAM),
+    );
+  });
+
+  useEffect(() => {
+    if (Navigation.getQueryStringByName(WATCHLIST_CREATE_PARAM)) {
+      Navigation.setQueryString({ [WATCHLIST_CREATE_PARAM]: null });
+    }
+  }, []);
+
+  const readersOf: (item: SecurityWatchlist) => WatchlistReadersState = (
+    item: SecurityWatchlist,
+  ): WatchlistReadersState => {
+    return {
+      readers: getWatchlistReaders(readers.readersByKey, item.name),
+      isLoaded: readers.isLoaded,
+      hasError: readers.hasError,
+    };
+  };
 
   // Same reseller-telemetry gate as every other Security Events page.
   if (props.currentProject?.reseller?.enableTelemetryFeatures === false) {
@@ -153,9 +204,11 @@ const SecurityWatchlistsPage: FunctionComponent<PageComponentProps> = (
           description: WATCHLISTS_EMPTY_DESCRIPTION,
           icon: IconProp.QueueList,
         }}
+        showCreateForm={Boolean(nameToCreate)}
         createInitialValues={
           {
             source: SecurityWatchlistSource.Values,
+            ...(nameToCreate ? { name: nameToCreate } : {}),
           } as FormValues<SecurityWatchlist>
         }
         formFields={getWatchlistCreateFields({ translator })}
@@ -183,52 +236,64 @@ const SecurityWatchlistsPage: FunctionComponent<PageComponentProps> = (
           threatIntelFeedId: true,
         }}
         /*
-         * Four columns that wrap inside their caps, so the list fits its card
-         * beside the side menu at a laptop's width: the list (its name as
-         * rules write it, what it is for under it), what it holds, its values
-         * and the rules that read it.
+         * Three columns that wrap inside their caps, so the list fits its
+         * card beside the side menu at a laptop's width - 684px at 1024,
+         * where the three at their floors (9rem, 7rem and 6rem) leave room
+         * for the check box and the row's buttons in every language, a
+         * German "Anzeigen" included: the list (its name as rules write
+         * it, what it is for under it), what it holds with its values
+         * under it, and the rules that read it.
+         * Below lg - a tablet beside the side menu, a phone's card - Holds
+         * and Read By fold under the name (WatchlistNameCell), so nothing
+         * runs under the row's buttons.
          */
         columns={[
           {
             field: { name: true },
             title: NAME_COLUMN_TITLE,
             type: FieldType.Element,
+            // A phone's card is about the list: its name needs no label.
+            hideTitleOnMobile: true,
             wrapContent: true,
             wrapMaxWidthClassName: "max-w-[18rem]",
+            // A name breaks anywhere, and what it is for between its words.
+            contentClassName: "min-w-[9rem]",
+            getExportValue: (item: SecurityWatchlist): string => {
+              return item.name || "";
+            },
             getElement: (item: SecurityWatchlist): ReactElement => {
               return (
                 <WatchlistNameCell
                   name={item.name || ""}
                   description={item.description}
+                  entityType={item.entityType}
+                  values={valuesOf(item)}
+                  readers={readersOf(item)}
                 />
               );
             },
           },
           {
-            field: { entityType: true },
+            field: { threatIntelFeed: { name: true } },
             title: HOLDS_COLUMN_TITLE,
             type: FieldType.Element,
             disableSort: true,
-            hideOnMobile: true,
-            getElement: (item: SecurityWatchlist): ReactElement => {
-              return <WatchlistHoldsCell entityType={item.entityType} />;
-            },
-          },
-          {
-            field: { threatIntelFeed: { name: true } },
-            title: VALUES_COLUMN_TITLE,
-            type: FieldType.Element,
-            disableSort: true,
+            hideBelowLargeScreen: true,
             wrapContent: true,
             wrapMaxWidthClassName: "max-w-[14rem]",
+            // Its kind's name and values wrap between their words.
             contentClassName: "min-w-[7rem]",
+            getExportValue: (item: SecurityWatchlist): string => {
+              return [
+                getWatchlistHoldsLabel(translator, item.entityType),
+                describeWatchlistValues(translator, valuesOf(item)),
+              ].join(" · ");
+            },
             getElement: (item: SecurityWatchlist): ReactElement => {
               return (
-                <WatchlistValuesCell
-                  source={item.source}
-                  valueCount={item.valueCount}
-                  threatIntelFeedId={item.threatIntelFeedId}
-                  feedName={item.threatIntelFeed?.name}
+                <WatchlistHoldsColumnCell
+                  entityType={item.entityType}
+                  {...valuesOf(item)}
                 />
               );
             },
@@ -238,18 +303,20 @@ const SecurityWatchlistsPage: FunctionComponent<PageComponentProps> = (
             title: READ_BY_COLUMN_TITLE,
             type: FieldType.Element,
             disableSort: true,
-            hideOnMobile: true,
+            hideBelowLargeScreen: true,
             wrapContent: true,
             wrapMaxWidthClassName: "max-w-[14rem]",
-            contentClassName: "min-w-[8rem]",
+            // A rule's name wraps between its words.
+            contentClassName: "min-w-[6rem]",
+            getExportValue: (item: SecurityWatchlist): string => {
+              return getWatchlistReaders(readers.readersByKey, item.name)
+                .map((reader: { id: string; name: string }): string => {
+                  return reader.name;
+                })
+                .join(", ");
+            },
             getElement: (item: SecurityWatchlist): ReactElement => {
-              return (
-                <WatchlistReadByCell
-                  readers={getWatchlistReaders(readers.readersByKey, item.name)}
-                  isLoaded={readers.isLoaded}
-                  hasError={readers.hasError}
-                />
-              );
+              return <WatchlistReadByCell {...readersOf(item)} />;
             },
           },
         ]}

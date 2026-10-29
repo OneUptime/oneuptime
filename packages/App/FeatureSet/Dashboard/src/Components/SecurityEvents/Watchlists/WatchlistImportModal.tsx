@@ -58,6 +58,18 @@ import React, {
   useState,
 } from "react";
 
+/*
+ * The paste box's label and Choose a File: side by side from md, where the
+ * dialog is wide; on a phone the label has the line to itself and the
+ * button - full width there, as every phone button is - sits under it,
+ * rather than squeezing the label onto two lines beside it.
+ */
+export const WATCHLIST_IMPORT_TEXT_HEADER_CLASS_NAME: string =
+  "mb-1 flex flex-col gap-2 md:flex-row md:items-center md:justify-between";
+
+// The id of How to import's label, which names the choice for a screen reader.
+export const WATCHLIST_IMPORT_MODE_LABEL_ID: string = "watchlist-import-mode";
+
 // The paste box: TextArea's own look, across the dialog, in the mono type.
 export const WATCHLIST_IMPORT_TEXT_CLASS_NAME: string =
   "block w-full min-h-32 resize-y rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 font-mono text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500";
@@ -276,23 +288,25 @@ const WatchlistImportModal: FunctionComponent<ComponentProps> = (
     >
       <div className="space-y-4" data-testid={WATCHLISTS_TEST_IDS.importModal}>
         <div>
-          <div className="mb-1 flex items-center justify-between gap-2">
+          <div className={WATCHLIST_IMPORT_TEXT_HEADER_CLASS_NAME}>
             <label
               htmlFor={WATCHLISTS_TEST_IDS.importText}
               className="text-sm font-medium text-gray-700"
             >
               {translator.translateText(IMPORT_TEXT_LABEL)}
             </label>
-            <Button
-              title={IMPORT_CHOOSE_FILE}
-              icon={IconProp.Upload}
-              buttonStyle={ButtonStyleType.NORMAL}
-              buttonSize={ButtonSize.Small}
-              dataTestId={WATCHLISTS_TEST_IDS.importFile}
-              onClick={() => {
-                fileInput.current?.click();
-              }}
-            />
+            <div className="md:flex-shrink-0">
+              <Button
+                title={IMPORT_CHOOSE_FILE}
+                icon={IconProp.Upload}
+                buttonStyle={ButtonStyleType.NORMAL}
+                buttonSize={ButtonSize.Small}
+                dataTestId={WATCHLISTS_TEST_IDS.importFile}
+                onClick={() => {
+                  fileInput.current?.click();
+                }}
+              />
+            </div>
             <input
               ref={fileInput}
               type="file"
@@ -310,29 +324,41 @@ const WatchlistImportModal: FunctionComponent<ComponentProps> = (
               }}
             />
           </div>
-          <TextArea
-            id={WATCHLISTS_TEST_IDS.importText}
-            value={text}
-            onChange={(value: string) => {
-              setText(value);
-            }}
-            rows={8}
-            disableSpellCheck={true}
-            /*
-             * A class name replaces the box's own look, so it is written in
-             * full: the box, across the dialog, in the type values are
-             * written in.
-             */
-            className={WATCHLIST_IMPORT_TEXT_CLASS_NAME}
-            dataTestId={WATCHLISTS_TEST_IDS.importText}
-          />
+          {/*
+           * Values are written left to right - addresses, hashes, names as
+           * rules write them - so the box reads them that way on a Persian
+           * page too; a note in Persian after the comma still reads right to
+           * left within its line.
+           */}
+          <div dir="ltr">
+            <TextArea
+              id={WATCHLISTS_TEST_IDS.importText}
+              value={text}
+              onChange={(value: string) => {
+                setText(value);
+              }}
+              rows={8}
+              disableSpellCheck={true}
+              /*
+               * A class name replaces the box's own look, so it is written in
+               * full: the box, across the dialog, in the type values are
+               * written in.
+               */
+              className={WATCHLIST_IMPORT_TEXT_CLASS_NAME}
+              dataTestId={WATCHLISTS_TEST_IDS.importText}
+            />
+          </div>
         </div>
 
         <div>
-          <p className="mb-1 text-sm font-medium text-gray-700">
+          <p
+            id={WATCHLIST_IMPORT_MODE_LABEL_ID}
+            className="mb-1 text-sm font-medium text-gray-700"
+          >
             {translator.translateText(IMPORT_MODE_LABEL)}
           </p>
           <GroupRadioButtons
+            ariaLabelledby={WATCHLIST_IMPORT_MODE_LABEL_ID}
             initialValue={mode}
             onChange={(value: string) => {
               setMode(

@@ -13,6 +13,7 @@ import {
 import {
   DESCRIPTION_FIELD_TITLE,
   FEED_FIELD_TITLE,
+  HOLDS_FIELD_PLACEHOLDER,
   HOLDS_FIELD_TITLE,
   NAME_FIELD_PLACEHOLDER,
   NAME_FIELD_TITLE,
@@ -178,6 +179,12 @@ describe("Create Watchlist", () => {
 
     expect(holds.fieldType).toBe(FormFieldSchemaType.Dropdown);
     expect(holds.required).toBe(true);
+    // An empty dropdown asks for its choice, rather than looking unfinished.
+    expect(holds.placeholder).toBe(HOLDS_FIELD_PLACEHOLDER);
+    expect(HOLDS_FIELD_PLACEHOLDER).toBe("Choose what the list holds");
+    expect(GERMAN.translateText(HOLDS_FIELD_PLACEHOLDER)).toBe(
+      "Inhalt der Liste auswählen",
+    );
     expect(holds.dropdownOptions).toEqual(getWatchlistHoldsDropdownOptions());
     expect(getWatchlistHoldsDropdownOptions()).toEqual(
       SECURITY_WATCHLIST_ENTITY_TYPES.map((type: SecurityEntityType) => {
@@ -216,6 +223,8 @@ describe("Create Watchlist", () => {
 
     expect(source.fieldType).toBe(FormFieldSchemaType.RadioButton);
     expect(source.defaultValue).toBe(SecurityWatchlistSource.Values);
+    // One of the two is always chosen: never marked (Optional).
+    expect(source.hideOptionalLabel).toBe(true);
     expect(source.radioButtonOptions).toEqual(getWatchlistSourceChoices());
     expect(
       getWatchlistSourceChoices().map((choice: { title: string }) => {

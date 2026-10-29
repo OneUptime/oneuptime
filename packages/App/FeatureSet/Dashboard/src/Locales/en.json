@@ -36885,7 +36885,6 @@
   "Read by": "Read by",
   "Reads watchlists": "Reads watchlists",
   "Replace the list": "Replace the list",
-  "Rules not read": "Rules not read",
   "Servers that must never be compromised: domain controllers, payment and database servers.": "Servers that must never be compromised: domain controllers, payment and database servers.",
   "Start with a common list": "Start with a common list",
   "The feed whose active indicators are the list's values.": "The feed whose active indicators are the list's values.",
@@ -36938,5 +36937,8 @@
   "{{count}} values to import_one": "{{count}} value to import",
   "{{count}} values_one": "{{count}} value",
   "{{count}} were already on the list": "{{count}} were already on the list",
-  "{{count}} were already on the list_one": "{{count}} was already on the list"
+  "{{count}} were already on the list_one": "{{count}} was already on the list",
+  "MD5, SHA-1, SHA-256 and SHA-512 hashes, matched whatever the case.": "MD5, SHA-1, SHA-256 and SHA-512 hashes, matched whatever the case.",
+  "Choose what the list holds": "Choose what the list holds",
+  "Couldn't load the rules": "Couldn't load the rules"
 }

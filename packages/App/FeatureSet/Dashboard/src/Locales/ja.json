@@ -36885,7 +36885,6 @@
   "Read by": "読み取るルール",
   "Reads watchlists": "読み取るウォッチリスト",
   "Replace the list": "リストを置き換える",
-  "Rules not read": "ルールを読み取れませんでした",
   "Servers that must never be compromised: domain controllers, payment and database servers.": "決して侵害されてはならないサーバー：ドメインコントローラー、決済サーバー、データベースサーバー。",
   "Start with a common list": "よく使うリストから始める",
   "The feed whose active indicators are the list's values.": "アクティブなインジケーターがリストの値になるフィード。",
@@ -36938,5 +36937,8 @@
   "{{count}} values to import_one": "インポートする値：{{count}} 個",
   "{{count}} values_one": "{{count}} 個の値",
   "{{count}} were already on the list": "{{count}} 個はすでにリストにありました",
-  "{{count}} were already on the list_one": "{{count}} 個はすでにリストにありました"
+  "{{count}} were already on the list_one": "{{count}} 個はすでにリストにありました",
+  "MD5, SHA-1, SHA-256 and SHA-512 hashes, matched whatever the case.": "MD5、SHA-1、SHA-256、SHA-512 のハッシュです。大文字と小文字は区別しません。",
+  "Choose what the list holds": "リストに入れるものを選択",
+  "Couldn't load the rules": "ルールを読み込めませんでした"
 }

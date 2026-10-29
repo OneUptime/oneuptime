@@ -24,7 +24,11 @@ import {
   STARTER_KNOWN_BAD_HASHES_TITLE,
   STARTER_VIP_USERS_DESCRIPTION,
   STARTER_VIP_USERS_TITLE,
+  VALUES_TABLE_DESCRIPTION,
+  VALUES_TABLE_DESCRIPTION_HASH,
+  VALUES_TABLE_DESCRIPTION_IP,
   VALUE_COUNT,
+  VALUE_FIELD_DESCRIPTION,
 } from "./WatchlistsCopy";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
@@ -38,6 +42,7 @@ import {
   canSecurityWatchlistFollowFeed,
   getSecurityWatchlistNameKey,
 } from "Common/Types/SecurityEvent/SecurityWatchlist";
+import { NAME_BREAKS_FROM_LENGTH } from "Common/Utils/NameBreaks";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -95,6 +100,57 @@ export function getWatchlistHoldsOptions(): Array<WatchlistHoldsOption> {
       return { value: type, label: getWatchlistHoldsKey(type) };
     },
   );
+}
+
+/*
+ * How a list's values match, in the words of its kind: over its Values
+ * table and under Add Value's field. A user list shows a pattern at work
+ * (svc-*), an IP address list its ranges, and a file hash list - which
+ * takes digests only - the hashes it takes, never a word of *. Any other
+ * kind: whatever the case, * for any run of characters. An English key.
+ */
+export function getWatchlistValuesHint(entityType: unknown): string {
+  switch (entityType) {
+    case SecurityEntityType.User:
+      return VALUES_TABLE_DESCRIPTION;
+    case SecurityEntityType.IpAddress:
+      return VALUES_TABLE_DESCRIPTION_IP;
+    case SecurityEntityType.FileHash:
+      return VALUES_TABLE_DESCRIPTION_HASH;
+    default:
+      return VALUE_FIELD_DESCRIPTION;
+  }
+}
+
+/*
+ * Where a long list name may break: after each of its underscores, so a
+ * name of up to 50 characters wraps between its words in a narrow column
+ * ("executive_assistants_" / "and_finance_admins") rather than at whatever
+ * letter fills the line. A short name stays whole, as Common/Utils/
+ * NameBreaks keeps short names whole. The parts join back to the name.
+ */
+export function splitWatchlistName(name: string): Array<string> {
+  if (name.length < NAME_BREAKS_FROM_LENGTH) {
+    return [name];
+  }
+
+  const parts: Array<string> = [];
+  let current: string = "";
+
+  for (const character of name) {
+    current += character;
+
+    if (character === "_") {
+      parts.push(current);
+      current = "";
+    }
+  }
+
+  if (current) {
+    parts.push(current);
+  }
+
+  return parts;
 }
 
 // Whether the form offers where a list's values come from: only a kind a feed carries.

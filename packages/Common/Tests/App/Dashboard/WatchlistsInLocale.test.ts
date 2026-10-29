@@ -255,6 +255,12 @@ const WRITTEN_AS_IS: Record<string, Array<string>> = {
     "SHA-256",
     "SHA-512",
   ],
+  "MD5, SHA-1, SHA-256 and SHA-512 hashes, matched whatever the case.": [
+    "MD5",
+    "SHA-1",
+    "SHA-256",
+    "SHA-512",
+  ],
   "Paste values, one a line, or choose a .txt or .csv file. A note can follow a comma: alice@example.com, CFO.":
     [".txt", ".csv", "alice@example.com, CFO"],
   "The field is on one of your watchlists, named between % signs. Used alone: the list's values say how they match.":

@@ -21,8 +21,8 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Card from "Common/UI/Components/Card/Card";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -55,6 +55,19 @@ export function buildWatchlistFromStarter(data: {
     data.starter.description;
   return watchlist;
 }
+
+/*
+ * The tiles sit two to a row once their card is wide enough for two to
+ * read on a line each - the title, what rules call the list, what it is
+ * for - and one to a row below that: beside the side menu at 768 the card
+ * is about 430px wide, where two tiles squeezed every line onto two. Four
+ * in a row at 1280 did the same (about 210px a tile), so the card's own
+ * width decides, not the screen's.
+ */
+export const WATCHLIST_STARTERS_CLASS_NAME: string =
+  "space-y-4 [container-type:inline-size]";
+export const WATCHLIST_STARTER_GRID_CLASS_NAME: string =
+  "grid grid-cols-1 gap-4 [@container(min-width:36rem)]:grid-cols-2";
 
 export interface ComponentProps {
   projectId: ObjectID;
@@ -183,10 +196,29 @@ const WatchlistStarters: FunctionComponent<ComponentProps> = (
 
   return (
     <Card title={STARTERS_TITLE} description={STARTERS_DESCRIPTION}>
-      <div className="space-y-4" data-testid={WATCHLISTS_TEST_IDS.starters}>
-        {error ? <ErrorMessage message={error} /> : <></>}
+      <div
+        className={WATCHLIST_STARTERS_CLASS_NAME}
+        data-testid={WATCHLISTS_TEST_IDS.starters}
+      >
+        {/*
+         * Why an Add failed, as an alert over the tiles - not the quiet
+         * centred line of an empty list - closed with its x or by the next
+         * Add; the tile stays to try again.
+         */}
+        {error ? (
+          <Alert
+            type={AlertType.DANGER}
+            title={error}
+            dataTestId={WATCHLISTS_TEST_IDS.startersError}
+            onClose={() => {
+              setError("");
+            }}
+          />
+        ) : (
+          <></>
+        )}
 
-        <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <ul className={WATCHLIST_STARTER_GRID_CLASS_NAME}>
           {shown.map((starter: WatchlistStarter): ReactElement => {
             const isAdded: boolean = addedHere.includes(starter.key);
 
