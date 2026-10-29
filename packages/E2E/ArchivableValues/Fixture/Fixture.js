@@ -18,12 +18,15 @@
  *   - refuse-archive=1  the server refuses every archive, in its own words
  *   - slow-usage=1      what uses a value takes a second and a half to answer,
  *                       as on a big project: the dialogs say they are checking
+ *   - lang=de           the Dashboard's German words (fa: Persian, right to
+ *                       left, as the Dashboard draws it)
  *
  * Every update is recorded on `window.__fixture.updates`, every delete on
  * `window.__fixture.deletes`, every list request on
- * `window.__fixture.listRequests` and every usage read on
- * `window.__fixture.usageReads`, so the spec checks what the page sent as
- * well as what it drew.
+ * `window.__fixture.listRequests`, every usage read on
+ * `window.__fixture.usageReads` and every read of several values at once (a
+ * bulk Delete's) on `window.__fixture.bulkUsageReads`, so the spec checks
+ * what the page sent as well as what it drew.
  */
 import "Common/UI/Styles/Theme.css";
 import React from "react";
@@ -43,6 +46,8 @@ import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Label from "Common/Models/DatabaseModels/Label";
 import UserModel from "Common/Models/DatabaseModels/User";
+import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import FA from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 import Color from "Common/Types/Color";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
@@ -61,12 +66,16 @@ const params = new URLSearchParams(window.location.search);
 const page = params.get("page") || "severities";
 const refuseArchive = params.get("refuse-archive") === "1";
 const slowUsage = params.get("slow-usage") === "1";
+const language = ["de", "fa"].includes(params.get("lang"))
+  ? params.get("lang")
+  : "en";
 
 window.__fixture = {
   updates: [],
   deletes: [],
   listRequests: [],
   usageReads: [],
+  bulkUsageReads: [],
 };
 
 function stamp(record, values) {
@@ -207,9 +216,28 @@ const RECORDS = {
 };
 
 /*
+ * Everybody's own on-call rules for a severity, as the server counts them:
+ * by person, members of the project only (ArchivableValueUsage - the
+ * maintainer's "Notification Rules (22)" was two people's rules, one per
+ * kind and method).
+ */
+function onCallRulesOf(people) {
+  return {
+    tableName: "UserNotificationRule",
+    title: "Notification Rules",
+    singularTitle: "Notification Rule",
+    count: people,
+    isCountCapped: false,
+    effect: "Deleted",
+    kind: "Personal",
+  };
+}
+
+/*
  * What uses each value, as POST <value route>/:id/usage answers: Critical
- * is on incidents (a delete is refused) and in on-call rules; Major only in
- * a label rule; the rest nothing.
+ * is on incidents (a delete is refused), in on-call rules and in the own
+ * on-call rules of 11 people; Major only in a label rule; Minor only in the
+ * own on-call rules of 2 people - the maintainer's dialog; the rest nothing.
  */
 const USAGE = {
   [IDS.critical]: [
@@ -231,7 +259,9 @@ const USAGE = {
       effect: "RemovedFromList",
       kind: "Settings",
     },
+    onCallRulesOf(11),
   ],
+  [IDS.minor]: [onCallRulesOf(2)],
   [IDS.major]: [
     {
       tableName: "IncidentLabelRule",
@@ -446,10 +476,44 @@ ModelAPI.deleteItem = async (options) => {
   }
 };
 
-// POST <value route>/:id/usage, and nothing else the pages ask the API.
+/*
+ * Several values' uses together, as POST <value route>/usage answers a bulk
+ * dialog: one line per table and effect, the counts added up - people once
+ * (the same people's rules name every severity).
+ */
+function together(ids, keep) {
+  const lines = [];
+
+  for (const id of ids) {
+    for (const item of (USAGE[id] || []).filter(keep)) {
+      const line = lines.find((candidate) => {
+        return (
+          candidate.tableName === item.tableName &&
+          candidate.effect === item.effect &&
+          candidate.kind === item.kind
+        );
+      });
+
+      if (!line) {
+        lines.push({ ...item });
+      } else if (item.kind === "Personal") {
+        line.count = Math.max(line.count, item.count);
+      } else {
+        line.count += item.count;
+      }
+    }
+  }
+
+  return lines;
+}
+
+const VALUE_USAGE = /\/([0-9a-f-]{36})\/usage$/;
+const VALUES_USAGE = /\/incident-severity\/usage$/;
+
+// POST <value route>/:id/usage and <value route>/usage, and nothing else the pages ask the API.
 API.post = async (options) => {
   const url = options.url.toString();
-  const match = /\/([0-9a-f-]{36})\/usage$/.exec(url);
+  const match = VALUE_USAGE.exec(url);
 
   if (match) {
     window.__fixture.usageReads.push(match[1]);
@@ -463,18 +527,70 @@ API.post = async (options) => {
     return { data: { usage: USAGE[match[1]] || [] } };
   }
 
+  if (VALUES_USAGE.test(url)) {
+    const ids = (options.data.ids || []).map((id) => {
+      return String(id).toLowerCase();
+    });
+    const purpose = options.data.purpose;
+
+    window.__fixture.bulkUsageReads.push({ ids, purpose });
+
+    if (slowUsage) {
+      await new Promise((resolve) => {
+        setTimeout(resolve, 1500);
+      });
+    }
+
+    const refusedValueIds =
+      purpose === "Delete"
+        ? ids.filter((id) => {
+            return (USAGE[id] || []).some((item) => {
+              return item.effect === "Refused";
+            });
+          })
+        : [];
+
+    return {
+      data: {
+        refusedValueIds,
+        refusedUsage: together(refusedValueIds, (item) => {
+          return item.effect === "Refused";
+        }),
+        usage: together(
+          ids.filter((id) => {
+            return !refusedValueIds.includes(id);
+          }),
+          () => {
+            return true;
+          },
+        ),
+      },
+    };
+  }
+
   return { data: { data: [], count: 0 } };
 };
 API.get = async () => ({ data: { data: [], count: 0 } });
 
+/*
+ * The Dashboard looks every string up by its English text, so the
+ * separators i18next reads in a key (the "." and ":" of a sentence) are
+ * turned off, as the Dashboard's own setup does.
+ */
 await i18next.use(initReactI18next).init({
-  lng: "en",
-  fallbackLng: "en",
-  resources: { en: { translation: {} } },
+  lng: language,
+  fallbackLng: language,
+  resources: {
+    en: { translation: {} },
+    de: { translation: DE },
+    fa: { translation: FA },
+  },
   interpolation: { escapeValue: false },
   keySeparator: false,
   nsSeparator: false,
 });
+document.documentElement.lang = language;
+document.documentElement.dir = language === "fa" ? "rtl" : "ltr";
 
 const PAGES = {
   severities: {
@@ -515,8 +631,9 @@ function Fixture() {
   );
 }
 
+// Without transitions, as the Dashboard routes (Dashboard/src/Index.tsx).
 createRoot(document.getElementById("root")).render(
-  <BrowserRouter>
+  <BrowserRouter useTransitions={false}>
     <Fixture />
   </BrowserRouter>,
 );

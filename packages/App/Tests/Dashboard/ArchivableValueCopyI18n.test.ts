@@ -1,9 +1,15 @@
 import {
   ARCHIVABLE_VALUE_COPY,
   ARCHIVE_LOCKED_REASONS,
+  getArchivableValuePluralStrings,
   getArchivableValueStrings,
   getServerArchiveLockedReasons,
 } from "../../FeatureSet/Dashboard/src/Components/ArchivableValue/ArchivableValueCopy";
+import {
+  ON_CALL_RULE_KIND_DEFINITIONS,
+  OnCallRuleKindDefinition,
+} from "../../FeatureSet/Dashboard/src/Components/NotificationRule/OnCallRuleKinds";
+import { PluralTemplate } from "Common/UI/Utils/TranslateTemplate";
 import { ArchivableValueType } from "Common/Utils/ArchivableValues";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
@@ -108,7 +114,33 @@ const ROLE_PICKER_FILE: string = path.join(
   "IncidentRoleFormField.tsx",
 );
 
-const STRINGS: Array<string> = [...getArchivableValueStrings(), ROLE_NOTE];
+/*
+ * What an archived severity's card says on the On-Call Rules page: its
+ * records still notify the person by its rules, which can be changed or
+ * removed but not added to.
+ */
+const ARCHIVED_CARD_STRINGS: Array<string> = ON_CALL_RULE_KIND_DEFINITIONS.flatMap(
+  (definition: OnCallRuleKindDefinition): Array<string> => {
+    return [
+      definition.ownArchivedCardDescription,
+      definition.memberArchivedCardDescription,
+    ];
+  },
+);
+
+const STRINGS: Array<string> = [
+  ...getArchivableValueStrings(),
+  ROLE_NOTE,
+  ...ARCHIVED_CARD_STRINGS,
+];
+
+/*
+ * The "one" sentence of every plural these pages say ("On-call rules of
+ * {{count}} person"), under "<other sentence>_one". Japanese, Korean and
+ * Chinese never read it (no "one" form), so it may stay English there.
+ */
+const PLURALS: Array<PluralTemplate> = getArchivableValuePluralStrings();
+const NO_ONE_FORM: Array<string> = ["ja.json", "ko.json", "zh-CN.json", "zh-TW.json"];
 
 describe("the archive strings of the value settings pages", () => {
   test("seventeen locales are checked", () => {
@@ -195,6 +227,72 @@ describe("the archive strings of the value settings pages", () => {
 
           if (text.endsWith(":") && !endsWithOneOf(value, COLON_ENDINGS)) {
             return [`no colon before its list: ${text}`];
+          }
+
+          return [];
+        },
+      );
+
+      expect(problems).toEqual([]);
+    },
+  );
+});
+
+describe("the plurals of the value settings pages, in their 'one' form", () => {
+  test("every plural is a pair whose sentences say the same thing", () => {
+    expect(PLURALS.length).toBeGreaterThan(8);
+
+    for (const plural of PLURALS) {
+      expect({
+        other: plural.other,
+        placeholders: (plural.one.match(PLACEHOLDER) || []).sort(),
+      }).toEqual({
+        other: plural.other,
+        placeholders: (plural.other.match(PLACEHOLDER) || []).sort(),
+      });
+    }
+  });
+
+  test("English carries every 'one' sentence under its key", () => {
+    const english: Record<string, unknown> = readLocale("en.json");
+
+    expect(
+      PLURALS.filter((plural: PluralTemplate): boolean => {
+        return english[`${plural.other}_one`] !== plural.one;
+      }),
+    ).toEqual([]);
+  });
+
+  test.each(NON_ENGLISH_FILES)(
+    "%s translates every 'one' sentence, keeping its placeholders and its ending",
+    (file: string) => {
+      const locale: Record<string, unknown> = readLocale(file);
+
+      const problems: Array<string> = PLURALS.flatMap(
+        (plural: PluralTemplate): Array<string> => {
+          const value: unknown = locale[`${plural.other}_one`];
+
+          if (typeof value !== "string" || value.trim().length === 0) {
+            return [`missing: ${plural.one}`];
+          }
+
+          if (value === plural.one && !NO_ONE_FORM.includes(file)) {
+            return [`left in English: ${plural.one}`];
+          }
+
+          if (
+            (value.match(PLACEHOLDER) || []).sort().join(",") !==
+            (plural.one.match(PLACEHOLDER) || []).sort().join(",")
+          ) {
+            return [`placeholders changed: ${plural.one}`];
+          }
+
+          if (plural.one.endsWith(".") && !endsWithOneOf(value, SENTENCE_ENDINGS)) {
+            return [`not a sentence: ${plural.one}`];
+          }
+
+          if (plural.one.endsWith(":") && !endsWithOneOf(value, COLON_ENDINGS)) {
+            return [`no colon before its list: ${plural.one}`];
           }
 
           return [];
