@@ -381,6 +381,42 @@ matches under their own heading, in both themes and in Persian; German; Persian 
 right to left; and an entity's page. Its screenshots are named `case-connected-signals-*` and
 `entity-connected-signals-*`.
 
+## Hunts
+
+Searches over security events kept with a name, run on a schedule, and the events they find kept
+on a case, with their own spec, `Hunts.spec.ts`:
+
+| Page   | Route (from `RouteMap`)                                     | Production components                                                           |
+| ------ | ----------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Hunts  | `SECURITY_EVENTS_HUNTS` `.../security-events/hunts`         | `Pages/SecurityEvents/Hunts`, `SecurityEvents/Hunts/{HuntCells,HuntFormFields}` |
+| A hunt | `SECURITY_EVENTS_HUNT_VIEW` `.../security-events/hunts/:id` | `Pages/SecurityEvents/HuntView`, `HuntHeader`, the Events explorer under it     |
+| Events | `SECURITY_EVENTS` `/dashboard/:projectId/security-events`   | `SecurityEventsViewer`, its toolbar's `HuntsMenu`, `useAddEventsToCase`         |
+
+`Fixture/HuntsFixture.js` lays out four hunts - Encoded PowerShell (every day, tells Maya Chen and
+SOC Tier 2; its last run found the three encoded PowerShell starts on web-03 of the past day),
+Admin sign-ins outside the office (every hour, tells Diego; nothing found yet), Threat intel
+matches (not scheduled; a chip alone) and Sudo by service accounts (every 6 hours; its last run
+could not be made, as the person who set its schedule can no longer read security events) - and
+the events the Events explorer reads, matched as ClickHouse matches the search the page compiles.
+`POST /security-case-evidence/add-events` answers as the server does: each event read again and
+kept as it was, one the case keeps already left alone. CASE-138 keeps one of the PowerShell events,
+found by the first hunt.
+
+| Parameter | Values                                     |
+| --------- | ------------------------------------------ |
+| `?hunts=` | `empty`: the project has saved no hunt yet |
+
+`Hunts.spec.ts` covers: the list under Events, its entry lit, each hunt with its search, schedule,
+who it tells and what its last run found; at phone width, each hunt's schedule and last find under
+its name, in red when its run failed; the empty list and its way to Events; the Events toolbar's
+Hunts list, which opens a hunt, and its save locked with why while nothing is searched; Save as
+Hunt saving a scheduled hunt that tells its saver, and its page opening; a hunt's page on its
+search with Show them; a changed search saved from the header, which starts the hunt's schedule
+again, and Discard Changes opening the hunt's own search; a failed run said on its page, and Delete
+Hunt going back to the list; a hunt's page on a phone, and in Persian, right to left; and Add to
+Case from a hunt's page onto CASE-138's Evidence, the kept event naming the hunt and View Event
+opening it as it was kept. Its screenshots are named `hunts-*`.
+
 ## Rule exceptions and Run on Past Events
 
 What a detection rule skips, and what it would have found over past events, with their own spec,

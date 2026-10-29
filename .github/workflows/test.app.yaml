@@ -843,7 +843,12 @@ jobs:
           # seconds locally: the list and its common lists, Create Watchlist,
           # a list's page, Add Value, Import Values, a list that follows a
           # feed, the line under a rule's YAML, a phone, a new project, a
-          # Security Viewer, German and Persian): about 19.5.
+          # Security Viewer, German and Persian): about 19.5. It gained
+          # Hunts.spec.ts on 2026-10-29 (13 tests, about 40 seconds locally:
+          # the Hunts list, on a phone and empty, the Events toolbar's Hunts
+          # list and Save as Hunt, a hunt's page and its header, a failed
+          # run and Delete Hunt, Persian, and Add to Case onto a case's
+          # Evidence): about 20.
           - group: 11
             suites: >-
               test-security-operations-ui
