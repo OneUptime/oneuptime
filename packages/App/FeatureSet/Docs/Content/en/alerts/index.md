@@ -43,7 +43,7 @@ Raise an alert when your team should look before anyone outside notices, and dec
 ## Where alerts come from
 
 - **A monitor's criteria.** Under a criteria's **Actions**, turn on **When filters match, create an alert.** and fill in the alert it creates: **Alert Title** and **Severity**, then, each folded, **Description**, **Ownership & Labels**, **On-Call** and **More fields**, which holds **Auto Resolve Alert**, **Private Alert** and **Remediation Notes**. A criteria keeps one open alert at a time, one per series on a monitor that groups by a field, and **Auto Resolve Alert** resolves it once the criteria stops matching. See [Creating a Monitor](/docs/monitor/create-monitor) and [Incident & Alert Templating](/docs/monitor/incident-alert-templating).
-- **By hand.** Click **Create Alert** on the alerts list, or on the **Alerts** tab of a monitor, a host or another resource, which picks that resource for you. See [Create an alert by hand](#create-an-alert-by-hand).
+- **By hand.** Click **Create Alert** on the alerts list, or on the **Alerts** tab of a monitor, a host, a network device or another resource, which picks that resource for you. See [Create an alert by hand](#create-an-alert-by-hand).
 - **An SLO's burn rate.** A burn rate rule can create an alert when an SLO spends its error budget too fast. See [Burn Rate Alerts and Incidents](/docs/slo/burn-rate-alerts).
 - **Network sites and security events.** A network site set to alert when it is unhealthy opens an alert when its rollup stops being operational, and your security detection rules open alerts too. See [Network Sites (Health Rollup & Uptime)](/docs/monitor/network-sites) and [Security Events](/docs/telemetry/security-events).
 - **A page.** `/oneuptime page` in Slack or Microsoft Teams opens an alert whose title is your message, and pages the people you name. A workflow's paging blocks do the same with the title and message you give them. See [Paging someone from Slack](/docs/workspace-connections/slack#paging-someone-from-slack) and [Paging](/docs/workflows/components#paging).
@@ -81,7 +81,7 @@ Fill in the **Title** and pick an **Alert Severity**; both are required. Add a *
 
 ### Pick what it affects and who is paged
 
-Click **Next** to reach **Resources & On-Call**. Pick the **Monitor** it is about and any **Other Affected Resources**, such as hosts, Kubernetes clusters or services. In **On-Call Policy**, pick the policies to run when the alert is created.
+Click **Next** to reach **Resources & On-Call**. Pick the **Monitor** it is about and any **Other Affected Resources**, such as hosts, network devices, Kubernetes clusters or services. In **On-Call Policy**, pick the policies to run when the alert is created.
 
 ### Create it
 

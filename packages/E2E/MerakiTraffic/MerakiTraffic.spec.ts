@@ -967,6 +967,57 @@ test("a device's page: its MX's uplinks, applications and clients - nothing to n
   await screenshot(page, testInfo, "device");
 });
 
+/*
+ * Issue #5341: incidents and alerts can be about a network device, so the
+ * device's own menu lists them under Activity, after the pages of every
+ * visit. A project with no open state counts nothing - not a request is
+ * sent for a badge that could only say zero (the fence above fails on a
+ * request the fixture does not model).
+ */
+test("a device's menu lists its incidents and alerts under Activity, each on the device's own page", async ({
+  page,
+}: {
+  page: Page;
+}, testInfo: TestInfo) => {
+  await open(page, "state=meraki", DEVICE_TRAFFIC);
+
+  // A phone folds the menu behind its Go to button: open it first.
+  if (testInfo.project.name === "phone") {
+    await page.getByTestId("mobile-sidemenu-toggle").click();
+  }
+
+  const device: string = `/dashboard/${PROJECT_ID}/network-devices/40000000-0000-4000-8000-000000000001`;
+  // A side menu section is its h6 title and the links under it.
+  const activity: Locator = page.locator("div.mb-2", {
+    has: page.locator("h6", { hasText: /^Activity$/ }),
+  });
+
+  await expect(
+    activity.getByRole("link", { name: "Incidents" }),
+  ).toHaveAttribute("href", `${device}/incidents`);
+  await expect(activity.getByRole("link", { name: "Alerts" })).toHaveAttribute(
+    "href",
+    `${device}/alerts`,
+  );
+
+  // After the device's pages, before what is folded under More.
+  const sections: Array<string> = (
+    await page.locator("h6").allTextContents()
+  ).map((title: string): string => {
+    return title.trim();
+  });
+  expect(sections.indexOf("Activity")).toBeGreaterThan(
+    sections.indexOf("Device"),
+  );
+  expect(sections.indexOf("Activity")).toBeLessThan(sections.indexOf("More"));
+  expect(sections.indexOf("Device")).toBeGreaterThan(-1);
+
+  // No open state in this project: no badge, and no count asked for.
+  await expect(activity.locator("span.tabular-nums")).toHaveCount(0);
+
+  await screenshot(page, testInfo, "device-menu-activity", activity);
+});
+
 test("a site's page: its networks, one click from narrowing to one", async ({
   page,
 }: {

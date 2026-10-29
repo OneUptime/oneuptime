@@ -112,6 +112,7 @@ import Host from "../../../Models/DatabaseModels/Host";
 import IoTFleet from "../../../Models/DatabaseModels/IoTFleet";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
+import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import NetworkSite from "../../../Models/DatabaseModels/NetworkSite";
 import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
 import Project from "../../../Models/DatabaseModels/Project";
@@ -147,6 +148,7 @@ type ResourceModelType = { new (): BaseModel };
 const RESOURCE_PROPS: Record<ResourceProp, ResourceModelType> = {
   monitors: Monitor,
   hosts: Host,
+  networkDevices: NetworkDevice,
   kubernetesClusters: KubernetesCluster,
   dockerHosts: DockerHost,
   podmanHosts: PodmanHost,

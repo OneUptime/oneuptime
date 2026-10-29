@@ -84,11 +84,18 @@ export type AffectedResourcesPayloadKey = Exclude<
   "__affectedResourcesPayload"
 >;
 
-// What the Other Affected Resources field of each create form writes.
+/*
+ * What the Other Affected Resources field of each create form writes. An
+ * incident's and an alert's also hold network devices (issue #5341): a
+ * monitor is never linked to one by hand, so none is added, but the
+ * payload carries the ones the form holds, or adding a monitor's resources
+ * would take them off.
+ */
 export const INCIDENT_PREFILL_PAYLOAD_KEYS: Array<AffectedResourcesPayloadKey> =
-  [...MONITOR_LINKED_RESOURCE_KEYS];
+  [...MONITOR_LINKED_RESOURCE_KEYS, "networkDevices"];
 export const ALERT_PREFILL_PAYLOAD_KEYS: Array<AffectedResourcesPayloadKey> = [
   ...MONITOR_LINKED_RESOURCE_KEYS,
+  "networkDevices",
 ];
 /*
  * Scheduled maintenance holds no cloud resources: a maintenance window does
@@ -249,6 +256,7 @@ export function buildPrefillPayload(data: {
     __affectedResourcesPayload: true,
     monitors: undefined,
     hosts: undefined,
+    networkDevices: undefined,
     kubernetesClusters: undefined,
     dockerHosts: undefined,
     podmanHosts: undefined,

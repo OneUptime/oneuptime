@@ -388,6 +388,12 @@ Deze componenten handelen als Project Admin van het project van de workflow: wat
 
 Het incident legt het sjabloon waarvan het is gemeld vast in `createdIncidentTemplateId`. Die kolom stelt OneUptime zelf in: een stap die hem in **JSON Object** meestuurt, wordt geweigerd, en het logboek van de uitvoering verwijst je naar **Incident Template**. Een sjabloon uit een ander project, of een dat is verwijderd, laat de stap zijn uitgang **Error** nemen, en op een abonnement zonder incidentsjablonen wordt de stap geweigerd met het abonnement dat nodig is. Zie [Hoe een sjabloon wordt toegepast](/docs/incidents/settings#hoe-een-sjabloon-wordt-toegepast).
 
+### De middelen koppelen waar het om gaat
+
+**Create One Incident** en **Create One Alert** hebben een instelling **Getroffen resources**: de hosts, netwerkapparaten, clusters, databases of services waar het record over gaat, op naam, adres of ID, gescheiden door komma's — ingetypt of overgenomen uit een eerdere stap, zoals de host die een waarschuwing uit een andere tool noemt. Elke vermelding wordt gezocht in elke soort middel die het record kan bevatten, als hele waarde en zonder op hoofdletters te letten: op naam, een netwerkapparaat ook op het adres waarop het wordt gepold of op zijn DNS-naam, een host op de naam die zijn agent meldt of op een van zijn IP-adressen, en een cloudresource op de ID van de provider. Elk middel waarop een vermelding past, wordt gekoppeld, naast wat **JSON Object** en het sjabloon al koppelen, tot 50 uit de eerste 25 vermeldingen.
+
+Een vermelding die nergens op past, houdt de stap niet tegen: het record wordt toch gemaakt, en het logboek van de uitvoering zegt wat elke vermelding koppelde en welke nergens op pasten. Gearchiveerde middelen worden niet gekoppeld. Monitoren worden niet opgezocht: noem ze in **JSON Object** (`monitors` bij een incident, `monitorId` bij een waarschuwing), omdat een monitor aan een incident koppelen zijn bewaking pauzeert.
+
 ## Werken met records
 
 Elk veld van een datacomponent gebruikt de eigen **kolom**namen van het record — dezelfde namen als de API, niet de labels van het formulier in het dashboard. De ID-kolom is `_id`. De spelling `id` wordt overal waar je een kolomnaam kunt typen als alias geaccepteerd, maar `_id` is wat een record teruggeeft, dus dat lees je bij de uitvoer:

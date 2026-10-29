@@ -68,6 +68,8 @@ import NetworkControllerConnection from "Common/Models/DatabaseModels/NetworkCon
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import AlertState from "Common/Models/DatabaseModels/AlertState";
 import Project from "Common/Models/DatabaseModels/Project";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -897,6 +899,14 @@ ModelAPI.getList = async (options) => {
     return { data: [], count: 0, skip: 0, limit: options.limit };
   }
 
+  /*
+   * A device's side menu counts its open incidents and alerts by state
+   * (issue #5341): none here.
+   */
+  if (options.modelType === IncidentState || options.modelType === AlertState) {
+    return { data: [], count: 0, skip: 0, limit: options.limit };
+  }
+
   fixture.unhandled.push({
     kind: "getList",
     modelName: tableName(options.modelType),
@@ -1032,6 +1042,14 @@ async function handleApi(method, options) {
 
   // The site's side menu counts the site's maintenance events: none.
   if (method === "POST" && url.endsWith("/scheduled-maintenance/count")) {
+    return ok({ count: 0 });
+  }
+
+  // A device's side menu counts its open incidents and alerts: none.
+  if (
+    method === "POST" &&
+    (url.endsWith("/incident/count") || url.endsWith("/alert/count"))
+  ) {
     return ok({ count: 0 });
   }
 

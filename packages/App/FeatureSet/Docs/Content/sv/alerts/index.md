@@ -43,7 +43,7 @@ Utlös ett larm när ditt team bör titta innan någon utanför märker något, 
 ## Var larm kommer ifrån
 
 - **En monitors kriterier.** Under **Åtgärder** för ett kriterium slår du på **När filter matchar, skapa ett larm.** och fyller i larmet det skapar: **Larmtitel** och **Allvarlighetsgrad**, sedan, var för sig hopfällda, **Beskrivning**, **Ägarskap och etiketter**, **Jour** och **Fler fält**, som innehåller **Lös larm automatiskt**, **Privat larm** och **Åtgärdsanteckningar**. Ett kriterium håller ett öppet larm åt gången, ett per serie på en monitor som grupperar efter ett fält, och **Lös larm automatiskt** löser det när kriteriet slutar matcha. Se [Skapa en monitor](/docs/monitor/create-monitor) och [Incident- och larmmallar](/docs/monitor/incident-alert-templating).
-- **Manuellt.** Klicka på **Skapa larm** i larmlistan, eller på fliken **Larm** för en monitor, en värd eller en annan resurs, som väljer den resursen åt dig. Se [Skapa ett larm manuellt](#skapa-ett-larm-manuellt).
+- **Manuellt.** Klicka på **Skapa larm** i larmlistan, eller på fliken **Larm** för en monitor, en värd, en nätverksenhet eller en annan resurs, som väljer den resursen åt dig. Se [Skapa ett larm manuellt](#skapa-ett-larm-manuellt).
 - **En SLO:s förbrukningstakt.** En regel för förbrukningstakt kan skapa ett larm när en SLO förbrukar sin felbudget för snabbt. Se [Larm och incidenter för förbrukningstakt](/docs/slo/burn-rate-alerts).
 - **Nätverksplatser och säkerhetshändelser.** En nätverksplats som är inställd på att larma när den är ohälsosam öppnar ett larm när dess sammanfattning inte längre är i drift, och dina detekteringsregler för säkerhetshändelser öppnar också larm. Se [Nätverksplatser (hälsosammanfattning och upptid)](/docs/monitor/network-sites) och [Säkerhetshändelser (SIEM)](/docs/telemetry/security-events).
 - **Ett larmanrop.** `/oneuptime page` i Slack eller Microsoft Teams öppnar ett larm med ditt meddelande som titel och larmar personerna du nämner. Larmblocken i ett arbetsflöde gör samma sak med titeln och meddelandet du ger dem. Se [Larma någon från Slack](/docs/workspace-connections/slack#larma-någon-från-slack) och [Paging](/docs/workflows/components#paging).
@@ -81,7 +81,7 @@ Fyll i **Titel** och välj en **Larmallvar**; båda krävs. Lägg till en **Besk
 
 ### Välj vad det påverkar och vem som larmas
 
-Klicka på **Nästa** för att komma till **Resurser och jour**. Välj den **Övervakning** det gäller och eventuella **Andra påverkade resurser**, till exempel värdar, Kubernetes-kluster eller tjänster. Under **Jourpolicy** väljer du de policyer som ska köras när larmet skapas.
+Klicka på **Nästa** för att komma till **Resurser och jour**. Välj den **Övervakning** det gäller och eventuella **Andra påverkade resurser**, till exempel värdar, nätverksenheter, Kubernetes-kluster eller tjänster. Under **Jourpolicy** väljer du de policyer som ska köras när larmet skapas.
 
 ### Skapa det
 

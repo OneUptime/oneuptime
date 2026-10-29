@@ -761,6 +761,12 @@ Om er een te maken vanuit **Monitoren**:
 
 Een netwerkapparaat-monitor heeft geen eigen interval: hij wordt beoordeeld telkens als de pollresultaten van het apparaat binnenkomen, en telkens als er een trap van het apparaat binnenkomt.
 
+### Incidenten en waarschuwingen van een apparaat
+
+Een incident of een waarschuwing kan over een netwerkapparaat gaan. Kies het apparaat onder **Andere getroffen resources** wanneer je een incident meldt of een waarschuwing maakt, of laat een monitor het koppelen: wat een monitor veroorzaakt, wordt gekoppeld aan het apparaat waarover hij rapporteert — het apparaat dat een netwerkapparaat-monitor bewaakt, het apparaat dat aan de monitor is gebonden, en het apparaat waarvoor een discovery-import de monitor heeft gemaakt.
+
+De pagina's **Incidenten** en **Waarschuwingen** van het apparaat, onder **Activiteit** in zijn menu, tonen wat eraan gekoppeld is, en het menu en het overzicht van het apparaat tellen de openstaande. **Incident melden** en **Waarschuwing maken** op die pagina's beginnen met het apparaat al gekozen.
+
 ### Standaardwaarden voor aangepaste velden
 
 Als je project aangepaste monitorvelden definieert — leverancier, configuratie-item, verantwoordelijke dienst, wat je CMDB ook nodig heeft —, kan een monitorsjabloon ze invullen. Open het sjabloon vanuit **Monitoren → Instellingen → Sjablonen** en stel de **Custom Field Defaults** in.

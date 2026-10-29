@@ -34,6 +34,10 @@ import {
  * pages so a link to one still lands somewhere you can see. The SNMP walk
  * (issue #5184), a tool for setting a device up rather than a page of every
  * visit, folds there with them, beside the SNMP tables it helps fill.
+ *
+ * Incidents and alerts can be linked to a device (issue #5341), so its
+ * menu lists them under Activity, open, as a host's and a cloud resource's
+ * do (the counts are NetworkDeviceViewSideMenuCounts).
  */
 
 const DEVICE_ID: ObjectID = new ObjectID(
@@ -68,15 +72,44 @@ describe("a network device's own menu", () => {
     cleanup();
   });
 
-  test("is Device, More, Developer and Manage, in that order", async () => {
+  test("is Device, Activity, More, Developer and Manage, in that order", async () => {
     await renderDeviceMenu();
 
     expect(sectionTitlesInOrder()).toEqual([
       "Device",
+      "Activity",
       "More",
       "Developer",
       "Manage",
     ]);
+  });
+
+  test("lists the incidents and alerts linked to the device under Activity, open", async () => {
+    await renderDeviceMenu();
+
+    expect(isExpanded("Activity")).toBe(true);
+    expect(linksIn("Activity")).toEqual([
+      {
+        title: "Incidents",
+        href: deviceRoute(PageMap.NETWORK_DEVICE_VIEW_INCIDENTS),
+      },
+      {
+        title: "Alerts",
+        href: deviceRoute(PageMap.NETWORK_DEVICE_VIEW_ALERTS),
+      },
+    ]);
+    // Not among the pages of every visit, nor folded with the vendor tables.
+    expect(titles(linksIn("Device"))).not.toContain("Incidents");
+    expect(titles(linksIn("More"))).not.toContain("Alerts");
+  });
+
+  test("the incidents and alerts live at the device's incidents and alerts addresses", () => {
+    expect(deviceRoute(PageMap.NETWORK_DEVICE_VIEW_INCIDENTS)).toBe(
+      `/dashboard/${PROJECT_ID}/network-devices/${DEVICE_ID.toString()}/incidents`,
+    );
+    expect(deviceRoute(PageMap.NETWORK_DEVICE_VIEW_ALERTS)).toBe(
+      `/dashboard/${PROJECT_ID}/network-devices/${DEVICE_ID.toString()}/alerts`,
+    );
   });
 
   test("keeps what most visits are for open, in one section", async () => {
@@ -169,6 +202,8 @@ describe("a network device's own menu", () => {
     [PageMap.NETWORK_DEVICE_VIEW_INTERFACES, "Interfaces"],
     [PageMap.NETWORK_DEVICE_VIEW_EVENTS, "Events"],
     [PageMap.NETWORK_DEVICE_VIEW_MONITORS, "Monitors"],
+    [PageMap.NETWORK_DEVICE_VIEW_INCIDENTS, "Incidents"],
+    [PageMap.NETWORK_DEVICE_VIEW_ALERTS, "Alerts"],
   ])(
     "%s highlights %s and leaves More folded",
     async (pageMapKey: string, title: string): Promise<void> => {
@@ -184,7 +219,7 @@ describe("a network device's own menu", () => {
   test("the device's pages all stay on this device, in this project", async () => {
     await renderDeviceMenu();
 
-    for (const section of ["Device", "More"]) {
+    for (const section of ["Device", "Activity", "More"]) {
       for (const link of linksIn(section)) {
         expect(link.href.startsWith(`/dashboard/${PROJECT_ID}/`)).toBe(true);
         expect(link.href).toContain(DEVICE_ID.toString());

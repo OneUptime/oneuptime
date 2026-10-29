@@ -761,6 +761,12 @@ Per crearne uno invece da **Monitor**:
 
 Un monitor del dispositivo di rete non ha un intervallo proprio: viene valutato ogni volta che arrivano i risultati di polling del dispositivo, e ogni volta che arriva un trap dal dispositivo.
 
+### Incidenti e avvisi di un dispositivo
+
+Un incidente o un avviso può riguardare un dispositivo di rete. Scegli il dispositivo in **Altre risorse interessate** quando dichiari un incidente o crei un avviso, oppure lascia che lo colleghi un monitor: ciò che un monitor genera viene collegato al dispositivo su cui riferisce — il dispositivo che un monitor del dispositivo di rete sorveglia, il dispositivo associato al monitor e il dispositivo per cui un'importazione di discovery ha creato il monitor.
+
+Le pagine **Incidenti** e **Avvisi** del dispositivo, sotto **Attività** nel suo menu, elencano ciò che vi è collegato, e il menu e la panoramica del dispositivo contano quelli aperti. **Dichiara incidente** e **Crea avviso** in quelle pagine partono con il dispositivo già scelto.
+
 ### Valori predefiniti dei campi personalizzati
 
 Se il tuo progetto definisce campi personalizzati dei monitor — produttore, elemento di configurazione, servizio responsabile, qualunque cosa serva al tuo CMDB —, un modello di monitor può compilarli. Apri il modello da **Monitor → Impostazioni → Modelli** e imposta i suoi **Custom Field Defaults**.

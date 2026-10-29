@@ -761,6 +761,12 @@ Para crear uno desde **Monitores**:
 
 Un monitor de dispositivo de red no tiene intervalo propio: se evalúa cada vez que llegan los resultados de sondeo del dispositivo, y cada vez que llega un trap del dispositivo.
 
+### Los incidentes y alertas de un dispositivo
+
+Un incidente o una alerta puede tratar de un dispositivo de red. Elige el dispositivo en **Otros recursos afectados** al declarar un incidente o crear una alerta, o deja que lo vincule un monitor: lo que genera un monitor se vincula al dispositivo del que informa — el dispositivo que vigila un monitor de dispositivo de red, el dispositivo vinculado al monitor y el dispositivo para el que una importación de descubrimiento creó el monitor.
+
+Las páginas **Incidentes** y **Alertas** del dispositivo, en **Actividad** dentro de su menú, muestran lo que está vinculado a él, y el menú y la vista general del dispositivo cuentan los abiertos. **Declarar incidente** y **Crear alerta** en esas páginas empiezan con el dispositivo ya elegido.
+
 ### Valores predeterminados de campos personalizados
 
 Si tu proyecto define campos personalizados de monitor — fabricante, elemento de configuración, servicio responsable, lo que necesite tu CMDB —, una plantilla de monitor puede rellenarlos. Abre la plantilla desde **Monitores → Ajustes → Plantillas** y define sus **Valores predeterminados de campos personalizados**.

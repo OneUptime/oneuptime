@@ -150,6 +150,7 @@ function emptyResourceContext(): SeriesResolvedResourceIds {
     databaseServerIds: [],
     storageArrayIds: [],
     cloudResourceIds: [],
+    networkDeviceIds: [],
   };
 }
 

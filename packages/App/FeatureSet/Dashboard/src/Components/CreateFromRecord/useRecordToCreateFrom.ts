@@ -9,6 +9,7 @@ import Host from "Common/Models/DatabaseModels/Host";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
@@ -43,6 +44,7 @@ import {
 const MODEL_TYPES: Record<CreateFromRecordKind, { new (): BaseModel }> = {
   [CreateFromRecordKind.Monitor]: Monitor,
   [CreateFromRecordKind.Host]: Host,
+  [CreateFromRecordKind.NetworkDevice]: NetworkDevice,
   [CreateFromRecordKind.KubernetesCluster]: KubernetesCluster,
   [CreateFromRecordKind.DockerHost]: DockerHost,
   [CreateFromRecordKind.PodmanHost]: PodmanHost,
