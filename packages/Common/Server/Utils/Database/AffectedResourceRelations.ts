@@ -9,6 +9,7 @@ import IoTFleetService from "../../Services/IoTFleetService";
 import KubernetesClusterService from "../../Services/KubernetesClusterService";
 import KubernetesContainerService from "../../Services/KubernetesContainerService";
 import KubernetesResourceService from "../../Services/KubernetesResourceService";
+import NetworkDeviceService from "../../Services/NetworkDeviceService";
 import NetworkSiteService from "../../Services/NetworkSiteService";
 import PodmanHostService from "../../Services/PodmanHostService";
 import PodmanResourceService from "../../Services/PodmanResourceService";
@@ -30,7 +31,8 @@ import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/
  * services runs these through the same check as its other relation lists.
  *
  * Not every model carries every list (only scheduled maintenance events have
- * network sites; templates have five of these), so only the lists `model`
+ * network sites, only incidents and alerts network devices; templates have
+ * five of these), so only the lists `model`
  * has are returned: a list the model lacks cannot be in its payload, and
  * reading it back on update would select a relation the model does not have.
  *
@@ -71,6 +73,11 @@ function getAllAffectedResourceRelations(): Array<ProjectScopedRelation> {
       column: "hosts",
       modelName: "Host",
       service: HostService,
+    },
+    {
+      column: "networkDevices",
+      modelName: "Network Device",
+      service: NetworkDeviceService,
     },
     {
       column: "kubernetesClusters",

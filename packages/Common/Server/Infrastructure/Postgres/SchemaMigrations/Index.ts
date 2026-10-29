@@ -217,6 +217,7 @@ import { AddDetectionRuleExceptions1808160000000 } from "./1808160000000-AddDete
 import { AddSecurityCaseResponseTargetsTasksAndEvidence1808240000000 } from "./1808240000000-AddSecurityCaseResponseTargetsTasksAndEvidence";
 import { AddSecurityCaseNextTargetCheckIndex1808250000000 } from "./1808250000000-AddSecurityCaseNextTargetCheckIndex";
 import { AddNetworkAddressNames1808260000000 } from "./1808260000000-AddNetworkAddressNames";
+import { AddNetworkDevicesToIncidentsAndAlerts1808300000000 } from "./1808300000000-AddNetworkDevicesToIncidentsAndAlerts";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1636,4 +1637,5 @@ export default [
   AddSecurityCaseResponseTargetsTasksAndEvidence1808240000000,
   AddSecurityCaseNextTargetCheckIndex1808250000000,
   AddNetworkAddressNames1808260000000,
+  AddNetworkDevicesToIncidentsAndAlerts1808300000000,
 ];

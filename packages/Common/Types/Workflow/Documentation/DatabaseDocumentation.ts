@@ -15,6 +15,7 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import { JSONObject } from "../../JSON";
 import { Argument, NodeDataProp } from "../Component";
 import { getCreateFromTemplateArgument } from "../CreateFromTemplate";
+import { getAffectedResourcesArgument } from "../AffectedResourcesSetting";
 import { WHAT_HAPPENED_ID, WhatHappened } from "../CreateOrUpdateTrigger";
 import {
   CUSTOM_FIELDS_COLUMN,
@@ -346,6 +347,24 @@ const templateTopic: TemplateTopicFunction = (data: {
   };
 };
 
+/*
+ * An incident or alert linked to what it is about by name (Create One
+ * Incident's and Create One Alert's Affected Resources): how a name is
+ * matched, what it adds to, and what it never links.
+ */
+const affectedResourcesTopic: TemplateTopicFunction = (data: {
+  words: ModelWords;
+  setting: Argument;
+}): ComponentDocumentationTopic => {
+  return {
+    title: "Linking what it is about",
+    paragraphs: [
+      `**${data.setting.name}** takes the hosts, network devices, clusters, databases, cloud resources or services the ${data.words.one} is about: by name, by address (a host's or a network device's IP address or DNS name) or by OneUptime ID, typed or from an earlier step - the host an alert from another tool names. Each one is looked for in every kind of resource, as a whole value and in any case, and every resource it matches is linked, beside what **JSON Object** and a template already link.`,
+      `A name that matches nothing does not stop the step: the ${data.words.one} is still created, and the run's log says what each name linked and which matched nothing. Archived resources are not linked. Monitors go in **JSON Object**, because linking a monitor to an incident pauses its checks.`,
+    ],
+  };
+};
+
 const createOne: BuildFunction = (
   context: ComponentDocumentationContext,
   words: ModelWords,
@@ -354,6 +373,8 @@ const createOne: BuildFunction = (
   const templateSetting: Argument | null = getCreateFromTemplateArgument(
     words.model.tableName || undefined,
   );
+  const affectedResourcesSetting: Argument | null =
+    getAffectedResourcesArgument(words.model.tableName || undefined);
 
   return {
     summary: `Creates one ${words.one} in this project each time it runs.`,
@@ -366,6 +387,11 @@ const createOne: BuildFunction = (
       required.length > 0
         ? `Under **JSON Object**, fill in the ${words.one}'s fields. The ones it needs come first.`
         : `Under **JSON Object**, add the ${words.one}'s fields with **Add a field**.`,
+      ...(affectedResourcesSetting
+        ? [
+            `To link the hosts, network devices or services it is about, write their names, addresses or IDs under **${affectedResourcesSetting.name}**, separated by commas.`,
+          ]
+        : []),
       "Connect **Success** to what runs next, and **Error** to handle a failure.",
       `Use the new ${words.one} in later steps, starting with its ID.`,
     ],
@@ -388,6 +414,14 @@ const createOne: BuildFunction = (
     learnMore: [
       ...(templateSetting
         ? [templateTopic({ words: words, setting: templateSetting })]
+        : []),
+      ...(affectedResourcesSetting
+        ? [
+            affectedResourcesTopic({
+              words: words,
+              setting: affectedResourcesSetting,
+            }),
+          ]
         : []),
       {
         title: "Writing it as JSON",

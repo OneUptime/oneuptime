@@ -86,6 +86,7 @@ import ResellerPlanAPI from "Common/Server/API/ResellerPlanAPI";
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
 import OpenSourceDeploymentAPI from "Common/Server/API/OpenSourceDeploymentAPI";
 import MonitorAPI from "Common/Server/API/MonitorAPI";
+import AffectedResourceSearchAPI from "Common/Server/API/AffectedResourceSearchAPI";
 import MonitorTemplateAPI from "Common/Server/API/MonitorTemplateAPI";
 import ShortLinkAPI from "Common/Server/API/ShortLinkAPI";
 import StatusPageAPI from "Common/Server/API/StatusPageAPI";
@@ -5475,6 +5476,15 @@ const BaseAPIFeatureSet: FeatureSet = {
     );
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ShortLinkAPI().getRouter());
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new MonitorAPI().getRouter());
+    /*
+     * The Affected Resources picker's one search across every kind of
+     * resource (issue #5341). Its own path, beside no CRUD router: nothing
+     * else answers under `/affected-resources`.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new AffectedResourceSearchAPI().getRouter(),
+    );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new StatusPageAPI().getRouter(),
