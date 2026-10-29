@@ -1,6 +1,6 @@
 # Entitetsrisiko (risikobasert varsling)
 
-Ett enkelt funn sier sjelden mye. En rekke mislykkede pålogginger, en første sudo på en vert og en pålogging fra et nytt land er hver for seg verdt et blikk; den samme kontoen i alle tre i løpet av en uke er verdt en sak. Entitetsrisiko legger sammen det deteksjonsreglene, trusseletterretningen, de tilkoblede produktene dine og Data Security finner om hver bruker, vert, IP-adresse og hvert datalager, viser de mest risikable først og åpner en sak om den som har en risiko som når prosjektets terskel.
+Ett enkelt funn sier sjelden mye. En rekke mislykkede pålogginger, en første sudo på en vert og en pålogging fra et nytt land er hver for seg verdt et blikk; den samme kontoen i alle tre i løpet av en uke er verdt en sak. Entitetsrisiko legger sammen det deteksjonsreglene, trusseletterretningen, de tilkoblede produktene dine og Datasikkerhet finner om hver bruker, vert, IP-adresse og hvert datalager, viser de mest risikable først og åpner en sak om den som har en risiko som når prosjektets terskel.
 
 :::cards
 - [Slik telles en poengsum](#slik-telles-en-poengsum): Poeng etter alvorlighetsgrad, og hver kilde én gang i uken.
@@ -44,8 +44,8 @@ Hvert funn gir risikopoeng til brukeren, verten, IP-adressen eller datalageret d
 | Kritisk | 75 poeng |
 
 - Et informativt funn gir ingenting, og et funn med ukjent alvorlighetsgrad teller som Middels.
-- En deteksjonsregels poeng går til verdien den grupperer etter. Et treff i trusseletterretning teller for IP-adressen indikatoren nevner. Et tilkoblet produkts varsel teller for brukeren og verten det nevner, ellers for IP-adressen. Et problem fra Data Security teller for datalageret det ble funnet i.
-- Hver kilde teller én gang. En deteksjonsregel, en trusseletterretningsfeed, et tilkoblet produkts regel eller en kontroll fra Data Security teller én gang på 7 dager, med det meste den la til, uansett hvor ofte den utløses: én støyende regel kan aldri få en entitet til å se verre ut enn tre ulike.
+- En deteksjonsregels poeng går til verdien den grupperer etter. Et treff i trusseletterretning teller for IP-adressen indikatoren nevner. Et tilkoblet produkts varsel teller for brukeren og verten det nevner, ellers for IP-adressen. Et problem fra Datasikkerhet teller for datalageret det ble funnet i.
+- Hver kilde teller én gang. En deteksjonsregel, en trusseletterretningsfeed, et tilkoblet produkts regel eller en kontroll fra Datasikkerhet teller én gang på 7 dager, med det meste den la til, uansett hvor ofte den utløses: én støyende regel kan aldri få en entitet til å se verre ut enn tre ulike.
 - En kilde som ikke har funnet noe på 7 dager, slutter å telle, og poengsummen faller. Poengsummene sjekkes hvert 15. minutt, så en poengsum faller i tide uten et nytt funn.
 
 En entitets poengsum er summen av kildene, vektet etter kritikaliteten. Testangrepet fra **Send et testangrep**, og en sak noen åpner for hånd, legger ikke til risiko.
@@ -82,7 +82,7 @@ Noen entiteter betyr mer enn andre: en domenekontroller, en leders konto, en bet
 | Høy | ×1.5 |
 | Ekstrem | ×2 |
 
-En oppføring er en verdi eller et `*`-mønster, uavhengig av store og små bokstaver: `dc-*` navngir hver domenekontroller, og `*@contractors.example` hver innleid konsulent. **Type** begrenser den til brukere, verter, IP-adresser eller datalagre; tom passer på alle. Når flere oppføringer nevner en entitet, teller den mest spesifikke: en utskrevet verdi før et mønster, og et lengre mønster før et kortere. En endring når hver entitets poengsum i løpet av minutter. Data Security legger selv inn datalagrene den finner sensitive, konfidensielle som Høy og begrensede som Ekstrem; endrer du en slik oppføring, er den din, og Data Security lar den være.
+En oppføring er en verdi eller et `*`-mønster, uavhengig av store og små bokstaver: `dc-*` navngir hver domenekontroller, og `*@contractors.example` hver innleid konsulent. **Type** begrenser den til brukere, verter, IP-adresser eller datalagre; tom passer på alle. Når flere oppføringer nevner en entitet, teller den mest spesifikke: en utskrevet verdi før et mønster, og et lengre mønster før et kortere. En endring når hver entitets poengsum i løpet av minutter. Datasikkerhet legger selv inn datalagrene den finner sensitive, konfidensielle som Høy og begrensede som Ekstrem; endrer du en slik oppføring, er den din, og Datasikkerhet lar den være.
 
 ## En entitets side
 

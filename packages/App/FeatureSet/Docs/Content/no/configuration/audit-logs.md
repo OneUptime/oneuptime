@@ -105,6 +105,7 @@ Monitorer, hendelser, varsler, statussider, SLO-er og mange andre ressurser har 
 | Overvåkingslister | `Watchlist` |
 | Overvåkingslisteverdier | `Watchlist Value` |
 | Oppgaver og bevis i sikkerhetssaker | `Security Case Task`, `Security Case Evidence` |
+| Datalagre og funnene deres, og problemene, innstillingene, kontrollinnstillingene, de egendefinerte datatypene og residensreglene i Datasikkerhet | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
 | Eksporter av revisjonsloggen | `Audit Log Export` |
 
 Det registreres også når en administrator legger til eller fjerner en varslingsmetode eller en personlig vaktregel på en annens konto, uten selve adressen eller nummeret.

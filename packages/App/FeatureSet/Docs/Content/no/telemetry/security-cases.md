@@ -229,7 +229,7 @@ For å legge ut i en kanal legger du til en regel under **Produkter → Security
 | Prioritet for sikkerhetssak | En av prosjektets saksprioriteter, for eksempel Kritisk eller High |
 | Tittel på sikkerhetssak, Beskrivelse av sikkerhetssak | Tekst som tittelen eller beskrivelsen av saken inneholder, starter med eller slutter med |
 | Status for sikkerhetssak | En av prosjektets saksstatuser, for eksempel Ny eller Lukket |
-| Kilde for sikkerhetssak | Detection Rule, Threat Intel, Connected Product, Entitetsrisiko, Data Security eller Manual |
+| Kilde for sikkerhetssak | Detection Rule, Threat Intel, Connected Product, Entitetsrisiko, Datasikkerhet eller Manual |
 | Etiketter for sikkerhetssak | Etikettene på saken |
 
 Alle varslinger unntatt en oppgaves legges ut i kanalene til hver regel saken treffer i det øyeblikket. En regel der **Prioritet for sikkerhetssak** inneholder en av **Kritisk** og **Høy**, legger ut saker med High og Kritisk når de åpnes, og en sak med Medium når den stiger til High. En sikkerhetssak får aldri en egen kanal.
@@ -281,6 +281,8 @@ En deaktivert playbook kjører verken av seg selv eller manuelt.
 | Contain | Unsuspend the user in Okta | Opphever suspenderingen av brukeren saken gjelder, i Okta |
 | Contain | Lift containment in CrowdStrike | Opphever nettverksisoleringen i CrowdStrike Falcon for verten saken gjelder |
 | Contain | Release the device in Microsoft Defender | Frigir verten saken gjelder, fra isoleringen i Microsoft Defender for Endpoint |
+| Contain | Blokker offentlig tilgang til datalagre | Blokkerer offentlig tilgang til hver bucket eller lagringskonto saken gjelder, gjennom skytilkoblingen |
+| Contain | Tilbakekall deling av datalager | Stopper delingen utenfor kontoene dine av øyeblikksbildene til hver database saken gjelder, gjennom skytilkoblingen |
 | Automate | Send a webhook | Sender saken som JSON til en URL |
 | Automate | Run a workflow | Starter en OneUptime-arbeidsflyt med saken som input |
 | Automate | Run a runbook | Starter en av OneUptime-runbookene dine med saken som input |
@@ -288,7 +290,7 @@ En deaktivert playbook kjører verken av seg selv eller manuelt.
 
 En playbook har høyst 25 steg. De kjører i rekkefølge, hvert steg når det forrige er ferdig. Hvert steg kan også:
 
-- **Krever godkjenning**: stoppe kjøringen før steget til noen godkjenner det på saken. De fire stegene som stenger noen ute, stopper alltid kjøringen, med mindre en Security Admin slår det av. **Run a runbook** og **Post a status page announcement** starter med godkjenning slått på, fordi det ene kjører kommandoer på systemene deres og det andre snakker til kundene deres; den som legger til steget, kan slå det av.
+- **Krever godkjenning**: stoppe kjøringen før steget til noen godkjenner det på saken. De fire stegene som stenger noen ute, stopper alltid kjøringen, med mindre en Security Admin slår det av. **Run a runbook**, **Post a status page announcement** og de to stegene for datalagre starter med godkjenning slått på, fordi de kjører kommandoer på systemene deres, snakker til kundene deres eller endrer innstillingene i en sky; den som legger til steget, kan slå det av.
 - **Bare ved treff i trusselsinformasjon**: hoppe over steget med mindre et tidligere steg **Sjekk entiteter mot trusselsinformasjon** i kjøringen fant en kjent indikator.
 - **Fortsett hvis det mislykkes**: kjøre neste steg selv om dette feiler. Er det av, stopper et mislykket steg kjøringen.
 
@@ -303,20 +305,23 @@ Fire steg handler gjennom resten av OneUptime i stedet for gjennom et tilkoblet 
 
 ### Inndemming
 
-Contain-stegene handler gjennom en [tilkobling for sikkerhetshendelser](/docs/telemetry/security-events#koble-til-et-sikkerhetsprodukt) til produktet, og den trenger mer enn lesetilgang:
+Contain-stegene handler gjennom en tilkobling som trenger mer enn lesetilgang: en [tilkobling for sikkerhetshendelser](/docs/telemetry/security-events#koble-til-et-sikkerhetsprodukt) til produktet, eller datalagerets [skytilkobling](/docs/telemetry/cloud-accounts):
 
 | Steg | Tilkobling | Trenger |
 | --- | --- | --- |
 | Suspend the user in Okta, End the user's Okta sessions, Unsuspend the user in Okta | Okta System Log | Et API-token som har lov til å administrere brukere |
 | Contain the host in CrowdStrike, Lift containment in CrowdStrike | CrowdStrike Falcon | En API-klient med skrivetilgang til scopet Hosts |
 | Isolate the device in Microsoft Defender, Release the device in Microsoft Defender | Microsoft Defender XDR | En app med tillatelsen Machine.Isolate |
+| Blokker offentlig tilgang til datalagre, Tilbakekall deling av datalager | Skytilkoblingen til datalageret | **Datasikkerhetsrespons** slått på, og oppsettkommandoen kjørt på nytt |
 
-Et Contain-steg handler bare på brukerne eller vertene saken gjelder, aldri på alle som den nevner:
+Et steg for brukere eller verter handler bare på brukerne eller vertene saken gjelder, aldri på alle som den nevner:
 
 - Verdien en deteksjon i saken er gruppert etter, for eksempel kontoen en regel for umulige reiser grupperer etter, eller verten som et varsel fra et tilkoblet produkt nevner.
 - En bruker eller vert i saken som trusseletterretningen din kjenner som en indikator.
 
 En sak som er gruppert etter en adresse, for eksempel et brute force-angrep mot VPN-en din, gjelder ingen av delene: Contain-stegene i den hoppes over, og den forsøkte kontoen og den rammede gatewayen får være i fred. Et steg handler på høyst 10 brukere eller verter. Det finner hver av dem i produktet etter navn, og skriver på kjøringen hva det gjorde med hver enkelt: utført, allerede utført, ikke funnet, avvist eller beskyttet.
+
+De to stegene for datalagre handler på datalagrene saken gjelder, høyst 10: datalagrene til datasikkerhetsproblemene den tok inn, og alle som en deteksjon grupperte den etter. De lar et datalager merket **Offentlig med vilje** være i fred, endrer hvordan et datalager deles, men aldri dataene i det, og skriver på kjøringen hva de gjorde med hvert datalager (se [Lukk en eksponering](/docs/data-security/integrations#lukk-en-eksponering)).
 
 #### Beskyttede entiteter
 

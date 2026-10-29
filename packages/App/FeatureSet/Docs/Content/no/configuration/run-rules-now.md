@@ -14,7 +14,7 @@ flowchart TB
 
 ## Hvilke regler kan kjøres
 
-- **Etikettregler** og **Eierregler**, for hver ressurs som har dem: monitorer, hendelser, hendelsesepisoder, varsler, varselepisoder, planlagte vedlikeholdshendelser, statussider, tjenester, verter, Kubernetes-klynger, Docker-verter, Docker Swarm-klynger, Podman-verter, Proxmox-klynger, VMware vCentre, Ceph-klynger, lagringsmatriser, databaser, køer, IoT-flåter, serverløse funksjoner, skyressurser, RUM-applikasjoner, dashbord, vaktpolicyer, vaktplaner, policyer for innkommende anrop, arbeidsflyter, runbooks, nettverksenheter og SLO-er.
+- **Etikettregler** og **Eierregler**, for hver ressurs som har dem: monitorer, hendelser, hendelsesepisoder, varsler, varselepisoder, planlagte vedlikeholdshendelser, statussider, tjenester, verter, Kubernetes-klynger, Docker-verter, Docker Swarm-klynger, Podman-verter, Proxmox-klynger, VMware vCentre, Ceph-klynger, lagringsmatriser, databaser, datalagre, køer, IoT-flåter, serverløse funksjoner, skyressurser, RUM-applikasjoner, dashbord, vaktpolicyer, vaktplaner, policyer for innkommende anrop, arbeidsflyter, runbooks, nettverksenheter og SLO-er.
 - **Personvernregler**, for hendelser, varsler, hendelsesepisoder og varselepisoder.
 - **Monitorregler** på en statusside. De synkroniserer allerede siden på nytt hver gang en regel lagres; å kjøre en synkroniserer den med en gang.
 - **Monitorregler** på en SLO. De synkroniserer allerede SLO-en på nytt hver gang en regel lagres; å kjøre en synkroniserer SLO-ens monitorer med en gang. Se [Monitorer og monitorregler](/docs/slo/monitor-rules).
