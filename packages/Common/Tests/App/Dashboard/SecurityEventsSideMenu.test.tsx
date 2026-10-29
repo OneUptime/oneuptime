@@ -138,6 +138,8 @@ const EXPECTED: Array<[string, Array<[string, string]>]> = [
       ["Detection Rules", PageMap.SECURITY_EVENTS_DETECTION_RULES],
       // What the rules skip, every exception in one list to review.
       ["Rule Exceptions", PageMap.SECURITY_EVENTS_RULE_EXCEPTIONS],
+      // The lists the rules match against: VIP users, critical hosts.
+      ["Watchlists", PageMap.SECURITY_EVENTS_WATCHLISTS],
       ["Rule Library", PageMap.SECURITY_EVENTS_RULE_LIBRARY],
       ["Threat Intel", PageMap.SECURITY_EVENTS_THREAT_INTEL],
       ["ATT&CK Coverage", PageMap.SECURITY_EVENTS_ATTACK_COVERAGE],

@@ -1994,6 +1994,19 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             ],
           },
           {
+            page: PageMap.SECURITY_EVENTS_WATCHLISTS,
+            title: "Watchlists",
+            icon: IconProp.QueueList,
+            keywords: [
+              "reference lists",
+              "value lists",
+              "lookups",
+              "vip users",
+              "critical hosts",
+              "known-bad hashes",
+            ],
+          },
+          {
             page: PageMap.SECURITY_EVENTS_RULE_LIBRARY,
             title: "Rule Library",
             icon: IconProp.SquareStack3D,

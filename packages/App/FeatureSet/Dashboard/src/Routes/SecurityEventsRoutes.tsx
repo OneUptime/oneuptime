@@ -23,6 +23,8 @@ import SecurityEventsCorrelatePage from "../Pages/SecurityEvents/Correlate";
 import SecurityEventsCampaignsPage from "../Pages/SecurityEvents/Campaigns";
 import SecurityEventsDetectionRulesPage from "../Pages/SecurityEvents/DetectionRules";
 import SecurityEventsRuleExceptionsPage from "../Pages/SecurityEvents/RuleExceptions";
+import SecurityWatchlistsPage from "../Pages/SecurityEvents/Watchlists";
+import SecurityWatchlistViewPage from "../Pages/SecurityEvents/WatchlistView";
 import SecurityEventsDocumentationPage from "../Pages/SecurityEvents/Documentation";
 import SecurityEventsConnectionsPage from "../Pages/SecurityEvents/Connections";
 import SecurityEventsThreatIntelPage from "../Pages/SecurityEvents/ThreatIntel";
@@ -201,6 +203,32 @@ const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.SECURITY_EVENTS_RULE_EXCEPTIONS] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_WATCHLISTS] || ""
+          }
+          element={
+            <SecurityWatchlistsPage
+              {...props}
+              pageRoute={RouteMap[PageMap.SECURITY_EVENTS_WATCHLISTS] as Route}
+            />
+          }
+        />
+        {/* One watchlist's page, under Watchlists in the menu: its values. */}
+        <PageRoute
+          path={
+            SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_WATCHLIST_VIEW] ||
+            ""
+          }
+          element={
+            <SecurityWatchlistViewPage
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SECURITY_EVENTS_WATCHLIST_VIEW] as Route
               }
             />
           }

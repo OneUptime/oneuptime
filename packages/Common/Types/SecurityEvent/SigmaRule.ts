@@ -1,6 +1,7 @@
 import Dictionary from "../Dictionary";
 import { JSONValue } from "../JSON";
 import OcsfSeverity from "./OcsfSeverity";
+import { SigmaWatchlists } from "./SecurityWatchlist";
 
 /*
  * Typed representation of a parsed Sigma rule — the subset OneUptime's
@@ -51,6 +52,10 @@ export function isSevereSigmaLevel(level: SigmaLevel): boolean {
  * else is rejected at save time — listed here so the dashboard's rule
  * guide cannot advertise a modifier the parser refuses, or miss one it
  * takes.
+ *
+ * `expand` reads a watchlist: its value is the list's name between % signs
+ * (`principalUser|expand: '%vip_users%'`), as Sigma writes a value kept
+ * outside the rule (Types/SecurityEvent/SecurityWatchlist).
  */
 export const SIGMA_SUPPORTED_MODIFIERS: ReadonlyArray<string> = [
   "contains",
@@ -66,6 +71,7 @@ export const SIGMA_SUPPORTED_MODIFIERS: ReadonlyArray<string> = [
   "cidr",
   "exists",
   "windash",
+  "expand",
 ];
 
 /*
@@ -118,4 +124,10 @@ export default interface SigmaRule {
   logsource: Dictionary<string>;
   selections: Array<SigmaSelection>;
   condition: SigmaConditionNode;
+  /*
+   * The project's watchlists the rule's `expand` values name, by name key,
+   * bound by the server before the rule is compiled (SecurityWatchlists).
+   * Never parsed from YAML: a rule names its lists, the project holds them.
+   */
+  watchlists?: SigmaWatchlists | undefined;
 }

@@ -41,6 +41,7 @@ Ouvrez **Produits → Événements de sécurité**, sous **Observabilité**. Son
 | **Corréler** | Événements | Un graphe des événements qui partagent un hôte, un utilisateur ou une adresse IP |
 | **Règles de détection** | Détections | Des règles Sigma qui s'exécutent selon un calendrier et ouvrent des dossiers |
 | **Exceptions de règle** | Détections | Ce que vos règles ignorent exprès, comme un scanner ou un test planifié, chaque fois avec qui l'a ajouté et pourquoi |
+| **Listes de surveillance** | Détections | Les listes auxquelles vos règles comparent les événements, comme les utilisateurs VIP, les hôtes critiques, les hachages de fichiers malveillants connus et les adresses depuis lesquelles les administrateurs peuvent se connecter |
 | **Bibliothèque de règles** | Détections | Des règles de détection prêtes à ajouter, chacune avec les événements qu'elle lit et s'ils arrivent, les recommandées étant signalées |
 | **Renseignement sur les menaces** | Détections | Des flux STIX/TAXII d'indicateurs malveillants connus |
 | **Couverture ATT&CK** | Détections | Les techniques MITRE ATT&CK que couvrent vos règles |
@@ -300,7 +301,7 @@ OneUptime exécute le noyau booléen de Sigma :
 
 - Les sélections sont des tables de champs (chaque champ doit correspondre ; une liste de valeurs correspond à l'une d'elles) ou des listes de mots-clés, qui correspondent n'importe où dans le message.
 - Les conditions combinent des sélections avec `and`, `or`, `not` et des parenthèses, ou avec `1 of selection_*`, `all of selection_*`, `any of them` et `all of them`.
-- Modificateurs de champ : `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists` et `windash`. Le texte est comparé sans tenir compte de la casse, sauf si vous ajoutez `cased`.
+- Modificateurs de champ : `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists`, `windash` et `expand`, qui lit une [liste de surveillance](#listes-de-surveillance). Le texte est comparé sans tenir compte de la casse, sauf si vous ajoutez `cased`.
 - Un champ est un champ typé (`principalUser`), une graphie Sigma courante de l'un d'eux (`CommandLine`, `src_ip`, `Hostname`) ou n'importe quelle clé d'attribut, écrite comme dans l'événement (`threat.matched`).
 - `Image` et `CommandLine` lisent le processus dont parle l'événement, celui qui a été lancé lors d'un lancement de processus (`processPath`, `processCommandLine`), et `ParentImage` et `ParentCommandLine` le processus qui l'a lancé (`parentProcessPath`, `parentProcessCommandLine`). `principalProcess` est le processus qui a agi, c'est-à-dire le parent lors d'un lancement.
 - `level` fixe la gravité : `informational`, `low`, `medium`, `high` ou `critical`, et `medium` s'il manque. Les ID ATT&CK dans `tags` (`attack.t1110`, `attack.ta0006`) remplissent les champs MITRE du constat.
@@ -436,6 +437,32 @@ Une exception est une chose qu'une règle ignore parce que vous vous y attendez,
 - Les événements ignorés sont écartés avant que la règle ne compte quoi que ce soit : ils ne comptent jamais pour son **Seuil de nombre de correspondances** et n'ouvrent ni dossier, ni alerte, ni incident, ni constat. Les exceptions s'appliquent à chaque exécution de la règle, corrélations comprises, et à **Exécuter sur les événements passés**, mais jamais à une attaque de test, qui vérifie que les événements arrivent.
 - Une règle a au plus 100 exceptions. Quiconque peut modifier les règles de détection les ajoute, les modifie et les supprime, chaque rôle Security peut les lire, et chaque changement est gardé dans le journal d'audit du projet.
 
+### Listes de surveillance
+
+Une liste de surveillance est une liste que votre équipe tient une seule fois et que toute règle peut lire, comme les utilisateurs VIP, les hôtes critiques, les hachages de fichiers malveillants connus ou les adresses depuis lesquelles les administrateurs peuvent se connecter. Chaque liste se trouve sous **Produits → Événements de sécurité → Détections → Listes de surveillance** : créez-en une avec **Créer : Liste de surveillance**, qui demande son nom et ce qu'elle contient, ou ajoutez une liste courante depuis **Commencer par une liste courante**. La page d'une liste montre ses valeurs, et **L'utiliser dans une règle** donne une sélection qui lit la liste, à copier dans une règle.
+
+Une règle lit une liste avec `expand` et le nom de la liste entre deux signes `%`. Cette règle se déclenche quand un administrateur se connecte depuis une adresse qui n'est pas sur la liste autorisée :
+
+```yaml title="admin-sign-in-from-outside.yml"
+title: Admin sign-in from outside the allowed addresses
+detection:
+  admin_sign_in:
+    className: Authentication
+    principalUser|expand: '%admins%'
+  allowed:
+    principalIp|expand: '%admin_addresses%'
+  condition: admin_sign_in and not allowed
+level: high
+```
+
+- Une liste contient des utilisateurs, des hôtes, des adresses IP, des hachages de fichiers, des domaines, des URL, des processus ou d'autres valeurs, choisis à sa création. Une valeur correspond quelle que soit la casse, et `*` remplace n'importe quelle suite de caractères : `svc-*` correspond à chaque compte de service. Une liste d'adresses IP accepte aussi des plages, comme `10.20.0.0/16`, et une liste de hachages de fichiers des hachages MD5, SHA-1, SHA-256 et SHA-512.
+- Ajoutez les valeurs une à une avec **Ajouter : Valeur**, ou plusieurs à la fois avec **Importer des valeurs** : collez-les, ou choisissez un fichier `.txt` ou `.csv`, une valeur par ligne, avec une note facultative après une virgule. **Ajouter à la liste** garde les valeurs déjà présentes, et **Remplacer la liste** retire celles que l'import ne contient pas.
+- Au lieu de tenir des valeurs, une liste d'adresses IP, de hachages de fichiers, de domaines ou d'URL peut suivre un flux de renseignements sur les menaces : ses valeurs sont alors les indicateurs actifs du flux qui sont du type de la liste, tenus à jour à chaque lecture du flux.
+- `expand` s'emploie seul, car les valeurs de la liste disent comment elles correspondent. Un champ qui contient plusieurs valeurs, comme `observables`, correspond quand l'une d'elles est sur la liste. **Lue par** nomme les règles qui lisent chaque liste, et sous le YAML d'une règle, son formulaire nomme les listes que la règle lit.
+- Une règle nomme une liste quelle que soit la casse. Une règle qui nomme une liste que le projet n'a pas est refusée à l'enregistrement, et une liste que des règles lisent ne peut être ni renommée ni supprimée tant qu'une règle la lit.
+- Une modification d'une liste atteint chaque règle qui la lit à la prochaine exécution de la règle. Les règles de corrélation et **Exécuter sur les événements passés** lisent aussi les listes.
+- Une liste contient au plus 5 000 valeurs, dont au plus 100 avec `*` et 100 plages, et un projet a au plus 200 listes : pour une liste plus longue, suivez un flux de renseignements sur les menaces. Quiconque peut créer, modifier ou supprimer des règles de détection peut faire de même avec les listes, et quiconque peut modifier les règles de détection ajoute, modifie et retire leurs valeurs. Chaque rôle Security peut les lire, et chaque changement est gardé dans le journal d'audit du projet.
+
 ### Exécuter sur les événements passés
 
 **Exécuter sur les événements passés** montre ce qu'une règle aurait trouvé si elle avait tourné, sans rien ouvrir, envoyer ni écrire. Il se trouve dans la ligne d'une règle, pour la règle telle qu'enregistrée, et sous **Règle Sigma (YAML)** dans le formulaire de la règle, pour la règle telle qu'elle y est, avant que vous ne l'enregistriez. Choisissez **Dernières 24 heures**, **7 derniers jours** ou **30 derniers jours**.
@@ -504,6 +531,14 @@ Ajoutez une exception pour cela plutôt que de désactiver la règle : **Ajouter
 
 :::details Une exception n'ignore pas ce qu'elle devrait
 Vérifiez son **Statut** dans **Exceptions de règle** : une exception au statut **Expiré** n'ignore rien, et une fenêtre de temps n'ignore que les événements entre ses deux heures. Une entité est cherchée comme celui qui agit, comme celui qui subit l'action et parmi les `observables` de l'événement ; pour ignorer une valeur d'un autre champ, ajoutez une exception **Une valeur** qui nomme ce champ. Sans `*`, une valeur doit égaler tout le champ : `svc-*` ignore `svc-backup`, et `svc-` ne l'ignore pas.
+:::
+
+:::details Une règle qui lit une liste de surveillance ne correspond pas
+Ouvrez la liste et vérifiez ses valeurs : une valeur sans `*` doit être égale au champ entier, quelle que soit la casse, et une liste qui suit un flux de renseignements sur les menaces ne contient que les indicateurs actifs du flux qui sont de son type. Vérifiez que la règle lit le champ que vos événements remplissent : **L'utiliser dans une règle** commence par le champ où se trouve d'habitude une liste de son type. Une modification d'une liste atteint une règle à sa prochaine exécution.
+:::
+
+:::details Une liste de surveillance ne peut être ni renommée ni supprimée
+Des règles la lisent encore par son nom, et le message les nomme. Changez le nom dans ces règles, ou retirez-en la liste, puis renommez-la ou supprimez-la.
 :::
 
 :::details L'exécution sur les événements passés ne trouve rien

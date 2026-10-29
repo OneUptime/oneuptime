@@ -31,6 +31,7 @@ import {
   readSecurityAttackCampaign,
 } from "../../Types/SecurityEvent/SecurityAttackCampaign";
 import { WEB_ATTACK_KIND_ATTRIBUTE } from "../../Utils/SecurityEvent/LogParsers/WebAttackLogParser";
+import { assertDetectionReadFits } from "../Utils/SecurityEvent/Watchlists/SecurityWatchlistMatch";
 
 export interface DetectionMatchGroup {
   groupValue: string;
@@ -352,6 +353,9 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
       }}`,
     );
     statement.append(getQuerySettings({ maxExecutionTimeInSeconds: 60 }));
+
+    // A rule's watchlists travel with the read: refused here when one request cannot carry them.
+    assertDetectionReadFits(statement);
 
     const result: Results = await this.executeQuery(statement);
 

@@ -590,6 +590,11 @@ import LogDropFilterService, {
   Service as LogDropFilterServiceType,
 } from "Common/Server/Services/LogDropFilterService";
 import DetectionRuleAPI from "Common/Server/API/DetectionRuleAPI";
+import SecurityWatchlistAPI from "Common/Server/API/SecurityWatchlistAPI";
+import SecurityWatchlistItem from "Common/Models/DatabaseModels/SecurityWatchlistItem";
+import SecurityWatchlistItemService, {
+  Service as SecurityWatchlistItemServiceType,
+} from "Common/Server/Services/SecurityWatchlistItemService";
 import DetectionRuleException from "Common/Models/DatabaseModels/DetectionRuleException";
 import DetectionRuleExceptionService, {
   Service as DetectionRuleExceptionServiceType,
@@ -4017,6 +4022,21 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<DetectionRuleException, DetectionRuleExceptionServiceType>(
         DetectionRuleException,
         DetectionRuleExceptionService,
+      ).getRouter(),
+    );
+
+    // Lists the rules match against, and importing values into one (Security Events > Watchlists).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new SecurityWatchlistAPI().getRouter(),
+    );
+
+    // The values of the watchlists a team keeps.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityWatchlistItem, SecurityWatchlistItemServiceType>(
+        SecurityWatchlistItem,
+        SecurityWatchlistItemService,
       ).getRouter(),
     );
 
