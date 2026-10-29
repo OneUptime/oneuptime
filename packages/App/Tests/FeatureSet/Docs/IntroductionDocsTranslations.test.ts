@@ -339,6 +339,16 @@ const SEARCH_ACTIONS: ReadonlyArray<string> = [
 ];
 
 /*
+ * The settings Search finds by the names their cards show, and the pages
+ * they are on: written as this language's dashboard draws them, which is
+ * what a reader types (SearchDocs checks each finds its page first).
+ */
+const SEARCH_SETTINGS: ReadonlyArray<[string, string]> = [
+  ["Require SSO for Login", "SSO"],
+  ["Notification Channels", "Notification Settings"],
+];
+
+/*
  * The words Search knows besides the page names: aliases and keywords, all
  * English (Components/CommandPalette/PageSearchIndex.ts), so a translation
  * keeps them as they are typed.
@@ -797,6 +807,14 @@ describe.each(LANGUAGES)("%s", (language: string) => {
         ...SEARCH_WORDS.map((word: string): string => {
           return `*${word}*`;
         }),
+        ...SEARCH_SETTINGS.flatMap(
+          ([setting, page]: [string, string]): Array<string> => {
+            return [
+              `*${searchTitle(language, setting)}*`,
+              searchTitle(language, page),
+            ];
+          },
+        ),
       ];
 
       for (const text of expected) {

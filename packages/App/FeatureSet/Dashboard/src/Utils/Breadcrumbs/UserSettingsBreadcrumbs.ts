@@ -52,6 +52,20 @@ export function getUserSettingsBreadcrumbs(
       "User Settings",
       "Email Preferences",
     ]),
+    /*
+     * Pages that had no trail. Every page this product routes has one:
+     * Common/Tests/App/Dashboard/EveryPageHasATrail fails by name for a
+     * page left out.
+     */
+    ...BuildBreadcrumbLinksByTitles(PageMap.USER_SETTINGS_CUSTOM_FIELDS, [
+      "Project",
+      "User Settings",
+      "Custom Fields",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE,
+      ["Project", "User Settings", "On-Call Logs", "Notification Timeline"],
+    ),
   };
   return breadcrumpLinksMap[path];
 }

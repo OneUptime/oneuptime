@@ -186,6 +186,19 @@ export function getNetworkDeviceBreadcrumbs(
       PageMap.NETWORK_DEVICE_SETTINGS_ALERT_POLICIES,
       ["Project", "Network", "Settings", "Alert Policies"],
     ),
+    /*
+     * Pages that had no trail. Every page this product routes has one:
+     * Common/Tests/App/Dashboard/EveryPageHasATrail fails by name for a
+     * page left out.
+     */
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.NETWORK_DEVICE_SETTINGS_OWNER_RULE_VIEW,
+      ["Project", "Network", "Rules", "Owner Rules", "View Rule"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.NETWORK_DEVICE_SETTINGS_LABEL_RULE_VIEW,
+      ["Project", "Network", "Rules", "Label Rules", "View Rule"],
+    ),
   };
   return breadcrumpLinksMap[path];
 }

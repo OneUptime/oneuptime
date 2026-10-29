@@ -46,7 +46,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
         userPreferencesKey="user-notification-logs-table"
         id="notification-logs-table"
-        name="User Settings > Notification Logs"
+        name="User Settings > On-Call Logs"
         saveFilterProps={{
           tableId: "user-notification-logs-table",
         }}
@@ -54,7 +54,13 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         isEditable={false}
         isCreateable={false}
         cardProps={{
-          title: "Notification Logs",
+          /*
+           * The page's own name, as its menu entry, its trail and the docs
+           * call it. "Notification Logs" is the project's log of everything
+           * it sent (Project Settings > Notifications), not this list of the
+           * times you were paged.
+           */
+          title: "On-Call Logs",
           description:
             "Each time you were paged in this project, by an on-call policy or directly. Open one to see every notification sent and whether it was delivered.",
         }}

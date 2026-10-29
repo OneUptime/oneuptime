@@ -183,6 +183,22 @@ export function getCephBreadcrumbs(path: string): Array<Link> | undefined {
       "Label Rules",
       "View Rule",
     ]),
+    /*
+     * Pages that had no trail. Every page this product routes has one:
+     * Common/Tests/App/Dashboard/EveryPageHasATrail fails by name for a
+     * page left out.
+     */
+    ...BuildBreadcrumbLinksByTitles(PageMap.CEPH_CLUSTER_VIEW_FEED, [
+      "Project",
+      "Ceph",
+      "View Cluster",
+      "Feed",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CEPH_ARCHIVED, [
+      "Project",
+      "Ceph",
+      "Archived",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

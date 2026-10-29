@@ -36,6 +36,23 @@ export function getMonitorGroupBreadcrumbs(
       "View Monitor Group",
       "Delete Monitor Group",
     ]),
+    /*
+     * Pages that had no trail. Every page this product routes has one:
+     * Common/Tests/App/Dashboard/EveryPageHasATrail fails by name for a
+     * page left out.
+     */
+    ...BuildBreadcrumbLinksByTitles(PageMap.MONITOR_GROUP_VIEW_ALERTS, [
+      "Project",
+      "Monitor Groups",
+      "View Monitor Group",
+      "Alerts",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.MONITOR_GROUP_VIEW_AUDIT_LOGS, [
+      "Project",
+      "Monitor Groups",
+      "View Monitor Group",
+      "Audit Logs",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

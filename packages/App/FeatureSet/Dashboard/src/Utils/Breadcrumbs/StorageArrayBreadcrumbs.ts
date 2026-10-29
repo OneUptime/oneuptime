@@ -4,9 +4,8 @@ import Dictionary from "Common/Types/Dictionary";
 import Link from "Common/Types/Link";
 
 /*
- * Every routed STORAGE_ARRAY* page has a trail here except the Archived
- * list, which (like every other product's) renders under the product
- * Layout without one. App/Tests/Dashboard/StorageArrayProductWiring.test.ts
+ * Every routed STORAGE_ARRAY* page has a trail here, the Archived list
+ * included. App/Tests/Dashboard/StorageArrayProductWiring.test.ts
  * enumerates the keys and fails by name when one is missing.
  */
 export function getStorageArrayBreadcrumbs(
@@ -203,6 +202,16 @@ export function getStorageArrayBreadcrumbs(
       PageMap.STORAGE_ARRAYS_SETTINGS_LABEL_RULE_VIEW,
       ["Project", "Storage Arrays", "Settings", "Label Rules", "View Rule"],
     ),
+    /*
+     * Pages that had no trail. Every page this product routes has one:
+     * Common/Tests/App/Dashboard/EveryPageHasATrail fails by name for a
+     * page left out.
+     */
+    ...BuildBreadcrumbLinksByTitles(PageMap.STORAGE_ARRAYS_ARCHIVED, [
+      "Project",
+      "Storage Arrays",
+      "Archived",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

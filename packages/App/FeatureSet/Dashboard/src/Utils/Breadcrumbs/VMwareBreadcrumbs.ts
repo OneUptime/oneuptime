@@ -200,6 +200,16 @@ export function getVMwareBreadcrumbs(path: string): Array<Link> | undefined {
       "Label Rules",
       "View Rule",
     ]),
+    /*
+     * Pages that had no trail. Every page this product routes has one:
+     * Common/Tests/App/Dashboard/EveryPageHasATrail fails by name for a
+     * page left out.
+     */
+    ...BuildBreadcrumbLinksByTitles(PageMap.VMWARE_ARCHIVED, [
+      "Project",
+      "VMware",
+      "Archived",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }
