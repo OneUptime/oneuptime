@@ -19,6 +19,7 @@ import {
   writeHeaderCellWidth,
 } from "./ColumnWidthMeasure";
 import {
+  COLUMN_RESIZE_ACTIVE_LINE_CLASS_NAME,
   COLUMN_RESIZE_GUIDE_CLASS_NAME,
   COLUMN_RESIZE_GUIDE_TEST_ID,
   COLUMN_RESIZE_HANDLE_CLASS_NAME,
@@ -582,10 +583,17 @@ const ColumnResizeHandle: FunctionComponent<ComponentProps> = (
 
     // One width a frame, however fast the pointer moves.
     if (drag.frame === null) {
-      drag.frame = requestFrame(() => {
+      let hasRun: boolean = false;
+      const frame: number = requestFrame(() => {
+        hasRun = true;
         drag.frame = null;
         applyPendingMove(drag);
       });
+
+      // A frame already run (a scheduler that runs at once) is not waited on.
+      if (!hasRun) {
+        drag.frame = frame;
+      }
     }
   };
 
@@ -810,6 +818,10 @@ const ColumnResizeHandle: FunctionComponent<ComponentProps> = (
       onBlur={onBlur}
     >
       <span aria-hidden="true" className={COLUMN_RESIZE_LINE_CLASS_NAME} />
+      <span
+        aria-hidden="true"
+        className={COLUMN_RESIZE_ACTIVE_LINE_CLASS_NAME}
+      />
       {/*
        * Drawn from the start and hidden: its classes are on the page before
        * the first drag, so pressing an edge never has the page's styles

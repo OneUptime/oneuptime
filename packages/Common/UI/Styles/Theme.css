@@ -568,6 +568,22 @@ html.dark tr[data-selected="true"].bg-indigo-50 {
 }
 
 /*
+ * The faint line at a table column's edge while the pointer is over the
+ * header row, and always on a tablet (Table/ColumnResize's
+ * COLUMN_RESIZE_LINE_CLASS_NAME): the dark theme's border, as quiet on the
+ * dark band as light grey is on the light one.
+ */
+html.dark thead:hover [class~="[thead:hover_&]:bg-gray-300"] {
+  background-color: var(--ou-border-default);
+}
+
+@media (pointer: coarse) {
+  html.dark [class~="[@media(pointer:coarse)]:bg-gray-300"] {
+    background-color: var(--ou-border-default);
+  }
+}
+
+/*
  * A team's avatar (PeopleAvatar's group palette) is a dark slate tile: on
  * the dark theme's surfaces it all but vanished, in the people row of an
  * incident's header as on an Owners page. It is lifted to a mid slate that

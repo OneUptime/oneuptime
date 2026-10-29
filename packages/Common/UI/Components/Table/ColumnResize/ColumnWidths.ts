@@ -456,7 +456,8 @@ export const readColumnWidths: (value: unknown) => ColumnWidths = (
  * The widths with one column's set - or taken away (null), the column back
  * at the table's own width. The column changed and the ones in drawnIds
  * (those the table draws now) are kept first when there are more than a
- * table remembers.
+ * table remembers. A change that changes nothing hands back the same
+ * widths, so nothing that draws them is drawn again.
  */
 export const withColumnWidth: (data: {
   widths: ColumnWidths;
@@ -469,6 +470,23 @@ export const withColumnWidth: (data: {
   width: number | null;
   drawnIds?: ReadonlyArray<string> | undefined;
 }): ColumnWidths => {
+  const isRemoved: boolean =
+    data.width === null ||
+    !Number.isFinite(data.width) ||
+    (data.width as number) <= 0;
+
+  if (isRemoved && data.widths[data.columnId] === undefined) {
+    return data.widths;
+  }
+
+  if (
+    !isRemoved &&
+    data.widths[data.columnId] ===
+      clampColumnWidth(data.width as number, COLUMN_MIN_WIDTH_IN_PX)
+  ) {
+    return data.widths;
+  }
+
   const next: Record<string, number> = { ...data.widths };
 
   delete next[data.columnId];

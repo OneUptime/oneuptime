@@ -24,18 +24,25 @@
  * the column rather than sorting it.
  */
 export const COLUMN_RESIZE_HANDLE_CLASS_NAME: string =
-  "group/edge absolute inset-y-0 right-0 z-[1] flex w-3 cursor-col-resize touch-none select-none justify-end focus:outline-none [@media(pointer:coarse)]:w-6";
+  "group/edge absolute inset-y-0 right-0 z-[1] w-3 cursor-col-resize touch-none select-none focus:outline-none [@media(pointer:coarse)]:w-6";
 
 /*
- * The line at the column's end: unseen, faint over the header row (and on
- * a tablet), indigo and 2px over the edge, on its focus and while dragged.
+ * The line at the column's end: unseen until the pointer is over the
+ * header row (and always on a tablet), then a faint 1px rule.
  */
 export const COLUMN_RESIZE_LINE_CLASS_NAME: string = [
-  "pointer-events-none h-full w-px bg-transparent transition-colors duration-150",
+  "pointer-events-none absolute inset-y-0 right-0 w-px bg-transparent transition-colors duration-150",
   "[thead:hover_&]:bg-gray-300 [@media(pointer:coarse)]:bg-gray-300",
-  "group-hover/edge:w-0.5 group-hover/edge:bg-indigo-500",
-  "group-focus-visible/edge:w-0.5 group-focus-visible/edge:bg-indigo-500",
-  "group-data-[resizing=true]/edge:w-0.5 group-data-[resizing=true]/edge:bg-indigo-500",
+].join(" ");
+
+/*
+ * Over it, indigo and 2px, while the edge is pointed at, has the focus or
+ * is dragged: a line of its own drawn over the faint one, so the dark
+ * theme's faint line (Theme.css) never covers it.
+ */
+export const COLUMN_RESIZE_ACTIVE_LINE_CLASS_NAME: string = [
+  "pointer-events-none absolute inset-y-0 right-0 w-0.5 bg-indigo-500 opacity-0 transition-opacity duration-150",
+  "group-hover/edge:opacity-100 group-focus-visible/edge:opacity-100 group-data-[resizing=true]/edge:opacity-100",
 ].join(" ");
 
 /*
