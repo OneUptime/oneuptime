@@ -2,6 +2,7 @@ import NetworkFlowDeviceMatcher, {
   FlowExporterAttribution,
   FlowProbe,
 } from "./NetworkFlowDeviceMatcher";
+import { IsBillingEnabled } from "../../EnvironmentConfig";
 import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
 import NetworkFlowFormat, {
@@ -9,6 +10,12 @@ import NetworkFlowFormat, {
 } from "../../../Types/NetFlow/NetworkFlowFormat";
 import NetworkFlowRecord from "../../../Types/NetFlow/NetworkFlowRecord";
 import ObjectID from "../../../Types/ObjectID";
+import { normalizeReverseDnsName } from "../../../Utils/NetworkDiscovery/ReverseDnsNameUtil";
+import NetworkAddressBlockUtil from "../../../Utils/NetworkTraffic/NetworkAddressBlock";
+import {
+  SecurityAddressScope,
+  getSecurityAddressScope,
+} from "../../../Utils/SecurityCase/SecurityConnectionMatch";
 
 /*
  * Turning what a probe's flow collector forwards into NetworkFlow rows.
@@ -29,6 +36,13 @@ export const MAX_FLOW_COUNT: number = 1_000_000_000;
 // Longest address text a row keeps (an IPv6 address is at most 45).
 const MAX_ADDRESS_LENGTH: number = 64;
 
+/*
+ * Names one request may carry: one per address of its records at most (two
+ * addresses a record, MAX_RECORDS_PER_REQUEST records), and far fewer in
+ * practice - a probe names only the addresses it has looked up.
+ */
+export const MAX_ADDRESS_NAMES_PER_REQUEST: number = 20000;
+
 export interface FlowIngestResult {
   rows: Array<JSONObject>;
   // Flows from exporters nobody could be found for, on a global probe.
@@ -44,17 +58,110 @@ export type AttributeExporterFunction = (
 ) => Promise<FlowExporterAttribution>;
 
 export default class NetworkFlowIngest {
+  /*
+   * The DNS names a probe sent with its records (issue #5340), by address
+   * written one way: { "10.0.0.5": "web-1.corp.example" }. A probe looked
+   * them up on its own network and kept only names that point back to
+   * their address; here each is checked again as any outside text is - an
+   * address that is one, a name a DNS name can be (normalizeReverseDnsName:
+   * no spaces, markup or control characters, at most 253 characters, not
+   * the address restated) - and anything else is dropped, never the batch.
+   * A probe older than the lookups sends none.
+   */
+  public static readAddressNames(value: unknown): Map<string, string> {
+    const names: Map<string, string> = new Map();
+
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return names;
+    }
+
+    for (const [address, name] of Object.entries(value as JSONObject)) {
+      if (names.size >= MAX_ADDRESS_NAMES_PER_REQUEST) {
+        break;
+      }
+
+      const canonical: string | null =
+        NetworkAddressBlockUtil.canonicalAddress(address);
+      const normalized: string | undefined = normalizeReverseDnsName(name);
+
+      if (canonical && normalized) {
+        names.set(canonical, normalized);
+      }
+    }
+
+    return names;
+  }
+
+  /*
+   * The names a probe may give (issue #5340). A global probe of a hosted
+   * instance (BILLING_ENABLED: every sign-up shares it) names public
+   * addresses only - it never looks a private one up, and a private
+   * address's name from it would be a name from OneUptime's own network,
+   * not the customer's - so any other name it sends is dropped. Every
+   * other probe's names are kept: a project's probe, and a self-hosted
+   * instance's own global probe, run in the network their names are of.
+   */
+  public static namesTheProbeMayGive(data: {
+    names: Map<string, string>;
+    probe: FlowProbe;
+    isBillingEnabled: boolean;
+  }): Map<string, string> {
+    if (data.probe.projectId || !data.isBillingEnabled) {
+      return data.names;
+    }
+
+    const kept: Map<string, string> = new Map();
+
+    for (const [address, name] of Array.from(data.names.entries())) {
+      if (getSecurityAddressScope(address) === SecurityAddressScope.Public) {
+        kept.set(address, name);
+      }
+    }
+
+    return kept;
+  }
+
+  // The name a probe sent for a record's address ('' when none).
+  public static nameOf(
+    names: Map<string, string> | undefined,
+    address: string,
+  ): string {
+    if (!names || names.size === 0) {
+      return "";
+    }
+
+    const canonical: string | null =
+      NetworkAddressBlockUtil.canonicalAddress(address);
+
+    return (canonical && names.get(canonical)) || "";
+  }
+
   public static async buildRows(data: {
     probe: FlowProbe;
     rawRecords: Array<unknown>;
     ingestedAt: Date;
     attribute?: AttributeExporterFunction | undefined;
+    // The DNS names the probe sent with the records (readAddressNames).
+    addressNames?: Map<string, string> | undefined;
+    // This instance's BILLING_ENABLED (namesTheProbeMayGive); tests pass it.
+    isBillingEnabled?: boolean | undefined;
   }): Promise<FlowIngestResult> {
     const attribute: AttributeExporterFunction =
       data.attribute ||
       ((probe: FlowProbe, exporterAddress: string) => {
         return NetworkFlowDeviceMatcher.attribute(probe, exporterAddress);
       });
+
+    const addressNames: Map<string, string> | undefined = data.addressNames
+      ? NetworkFlowIngest.namesTheProbeMayGive({
+          names: data.addressNames,
+          probe: data.probe,
+          isBillingEnabled:
+            data.isBillingEnabled === undefined
+              ? IsBillingEnabled
+              : data.isBillingEnabled,
+        })
+      : undefined;
 
     const attributions: Map<string, FlowExporterAttribution> = new Map();
     const result: FlowIngestResult = {
@@ -91,6 +198,7 @@ export default class NetworkFlowIngest {
               networkDeviceId: device.networkDeviceId,
               probeId: data.probe.id,
               ingestedAt: data.ingestedAt,
+              addressNames: addressNames,
             }),
           );
         }
@@ -110,6 +218,7 @@ export default class NetworkFlowIngest {
             networkDeviceId: attribution.unmatchedProjectId,
             probeId: data.probe.id,
             ingestedAt: data.ingestedAt,
+            addressNames: addressNames,
           }),
         );
         result.unmatchedKept++;
@@ -128,6 +237,7 @@ export default class NetworkFlowIngest {
     networkDeviceId: ObjectID;
     probeId: ObjectID;
     ingestedAt: Date;
+    addressNames?: Map<string, string> | undefined;
   }): JSONObject {
     const record: NetworkFlowRecord = data.record;
 
@@ -153,6 +263,14 @@ export default class NetworkFlowIngest {
       flowStartAt: OneUptimeDate.toClickhouseDateTime64(record.flowStartAt),
       flowEndAt: OneUptimeDate.toClickhouseDateTime64(record.flowEndAt),
       ingestedAt: OneUptimeDate.toClickhouseDateTime64(data.ingestedAt),
+      srcName: NetworkFlowIngest.nameOf(
+        data.addressNames,
+        record.sourceIpAddress,
+      ),
+      dstName: NetworkFlowIngest.nameOf(
+        data.addressNames,
+        record.destinationIpAddress,
+      ),
     };
   }
 

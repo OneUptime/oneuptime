@@ -667,7 +667,7 @@ const SecurityOverviewPage: FunctionComponent<
                 </Card>
                 <Card
                   title="Verdicts"
-                  description="What the cases closed in the last 30 days turned out to be. Many false positives point at a rule to tune."
+                  description="What the cases closed in the last 30 days turned out to be."
                 >
                   <RankedBars
                     items={verdicts}

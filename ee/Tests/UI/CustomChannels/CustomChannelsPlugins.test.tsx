@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, test } from "@jest/globals";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import fs from "fs";
 import path from "path";
 import React from "react";
@@ -10,9 +10,10 @@ import React from "react";
  * image builds it ("@oneuptime/ee-admin-dashboard" is the REAL ee plugin
  * here):
  *
- *   - Settings > Custom Channels is a page at /admin/settings/custom-channels,
- *     downloaded only when it is opened, and an entry in the Settings side
- *     menu after Backups - on every Enterprise installation, whatever the
+ *   - Settings > Notifications > Custom Channels is a page at
+ *     /admin/settings/custom-channels, downloaded only when it is opened, and
+ *     an entry in the Notifications section of the Settings side menu after
+ *     Push Notifications - on every Enterprise installation, whatever the
  *     license (the page itself says what a license that leaves custom
  *     channels out stops);
  *   - the Community build has none of it: its plugin stub is empty, core
@@ -47,6 +48,7 @@ import BackupsPlugins from "../../../AdminDashboard/Backups/Plugins";
 import WhiteLabelPlugins from "../../../AdminDashboard/WhiteLabel/Plugins";
 import {
   ENTERPRISE_SETTINGS_AREAS,
+  EnterpriseSettingsNotificationSideMenuItems,
   EnterpriseSettingsSideMenuItems,
 } from "../../../AdminDashboard/EnterpriseSettings";
 import AdminCommunityPlugins from "@oneuptime/admin-dashboard/Enterprise/CommunityPlugins";
@@ -115,9 +117,88 @@ function sourceFilesOf(directory: string): Array<string> {
   return files;
 }
 
+const NOTIFICATIONS: string = "sideMenu.settingsNotifications";
+const BASIC: string = "sideMenu.basic";
+
+// The page the reader is on, as the Admin Dashboard's router sets it.
+function goTo(address: string): void {
+  window.history.pushState({}, "", address);
+  Navigation.setLocation(window.location as unknown as never);
+}
+
+function setViewportWidth(width: number): void {
+  Object.defineProperty(window, "innerWidth", {
+    configurable: true,
+    writable: true,
+    value: width,
+  });
+}
+
+interface DrawnSection {
+  title: string;
+  expanded: boolean;
+  links: Array<string>;
+  lit: Array<string>;
+}
+
+// Every section of the menu as drawn: open or folded, its links, the lit one.
+function drawnSections(): Array<DrawnSection> {
+  return Array.from(document.querySelectorAll("h6")).map(
+    (heading: HTMLElement): DrawnSection => {
+      const section: HTMLElement = heading.closest("div.mb-2") as HTMLElement;
+      const anchors: Array<HTMLAnchorElement> = Array.from(
+        section.querySelectorAll("a"),
+      );
+
+      return {
+        title: heading.textContent?.trim() || "",
+        expanded:
+          section.querySelector("button")?.getAttribute("aria-expanded") ===
+          "true",
+        links: anchors.map((anchor: HTMLAnchorElement): string => {
+          return anchor.getAttribute("href") || "";
+        }),
+        lit: anchors
+          .filter((anchor: HTMLAnchorElement): boolean => {
+            return anchor.hasAttribute("aria-current");
+          })
+          .map((anchor: HTMLAnchorElement): string => {
+            return anchor.getAttribute("href") || "";
+          }),
+      };
+    },
+  );
+}
+
+function drawnSection(title: string): DrawnSection {
+  const found: DrawnSection | undefined = drawnSections().find(
+    (section: DrawnSection): boolean => {
+      return section.title === title;
+    },
+  );
+
+  if (!found) {
+    throw new Error(`The Settings menu has no section "${title}".`);
+  }
+
+  return found;
+}
+
+function expandedTitles(): Array<string> {
+  return drawnSections()
+    .filter((section: DrawnSection): boolean => {
+      return section.expanded;
+    })
+    .map((section: DrawnSection): string => {
+      return section.title;
+    });
+}
+
 afterEach(() => {
   cleanup();
   jest.restoreAllMocks();
+  setViewportWidth(1280);
+  goTo("/");
 });
 
 describe("Settings > Custom Channels in the Enterprise Admin Dashboard", () => {
@@ -150,16 +231,24 @@ describe("Settings > Custom Channels in the Enterprise Admin Dashboard", () => {
 
   test("owns exactly the two settings keys", () => {
     expect(Object.keys(CustomChannelsPlugins).sort()).toEqual(
-      ["SettingsPages", "SettingsSideMenuItems"].sort(),
+      ["SettingsPages", "SettingsNotificationSideMenuItems"].sort(),
     );
-    expect(CustomChannelsPlugins.SettingsSideMenuItems).toBe(
+    expect(CustomChannelsPlugins.SettingsNotificationSideMenuItems).toBe(
       CustomChannelsSideMenuItem,
     );
+    /*
+     * Basic's key is not among its keys: read with `in`, since its type,
+     * picked to the two keys it owns, has no such property to read.
+     */
+    expect("SettingsSideMenuItems" in CustomChannelsPlugins).toBe(false);
   });
 
   test("is part of the plugin the Enterprise image builds, between Backups and White Label", () => {
     expect(AdminEnterprisePlugins.SettingsPages).toEqual(
       expect.arrayContaining([...(CustomChannelsPlugins.SettingsPages || [])]),
+    );
+    expect(AdminEnterprisePlugins.SettingsNotificationSideMenuItems).toBe(
+      EnterpriseSettingsNotificationSideMenuItems,
     );
 
     const index: number = ENTERPRISE_SETTINGS_AREAS.indexOf(
@@ -187,32 +276,188 @@ describe("Settings > Custom Channels in the Enterprise Admin Dashboard", () => {
     ).toHaveAttribute("href", "/admin/settings/custom-channels");
   });
 
-  test("core's Settings side menu shows it once, after Backups", () => {
+  test("core's Settings side menu shows it once, in Notifications after Push Notifications", () => {
     jest.spyOn(Navigation, "isOnThisPage").mockReturnValue(false);
 
     render(<SettingsSideMenu />);
 
     const entries: Array<HTMLElement> = screen.getAllByText("Custom Channels");
-    const backups: HTMLElement = screen.getByText("Backups");
+    const pushNotifications: HTMLElement =
+      screen.getByText("Push Notifications");
+    const notifications: HTMLElement = screen
+      .getByText("sideMenu.settingsNotifications")
+      .closest("div.mb-2") as HTMLElement;
+    const basic: HTMLElement = screen
+      .getByText("sideMenu.basic")
+      .closest("div.mb-2") as HTMLElement;
 
     expect(entries).toHaveLength(1);
     expect(entries[0]!.closest("a")).toHaveAttribute(
       "href",
       "/admin/settings/custom-channels",
     );
+    expect(notifications).toContainElement(entries[0]!);
+    expect(notifications).toContainElement(pushNotifications);
+    expect(basic).not.toContainElement(entries[0]!);
     expect(
-      backups.compareDocumentPosition(entries[0]!) &
+      pushNotifications.compareDocumentPosition(entries[0]!) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 
-  test("the Enterprise settings entries draw it whatever White Label's license says", () => {
+  test("the Enterprise notification entries draw it whatever White Label's license says", () => {
+    jest.spyOn(Navigation, "isOnThisPage").mockReturnValue(false);
+
+    render(<EnterpriseSettingsNotificationSideMenuItems />);
+
+    expect(screen.getByText("Custom Channels")).toBeInTheDocument();
+    expect(document.querySelector('a[href*="white-label"]')).toBeNull();
+  });
+
+  test("the Basic Enterprise entries leave it to Notifications", () => {
     jest.spyOn(Navigation, "isOnThisPage").mockReturnValue(false);
 
     render(<EnterpriseSettingsSideMenuItems />);
 
-    expect(screen.getByText("Custom Channels")).toBeInTheDocument();
-    expect(document.querySelector('a[href*="white-label"]')).toBeNull();
+    expect(screen.queryByText("Custom Channels")).toBeNull();
+    expect(screen.getByText("Backups")).toBeInTheDocument();
+  });
+});
+
+/*
+ * Notifications starts folded, and Custom Channels' entry is drawn by the
+ * Enterprise plugin, which the menu's route scan cannot read into. On the
+ * page itself the menu must still open Notifications at the lit entry - at
+ * once, as a core Notifications page is drawn - and leave every other
+ * section as it is. The real plugin, as the Enterprise image builds it.
+ */
+describe("the Settings menu on the Custom Channels page", () => {
+  test("opens Notifications at Custom Channels and lights it; Basic stays open and the rest folded", () => {
+    goTo("/admin/settings/custom-channels");
+
+    render(<SettingsSideMenu />);
+
+    const notifications: DrawnSection = drawnSection(NOTIFICATIONS);
+
+    expect(expandedTitles()).toEqual([BASIC, NOTIFICATIONS]);
+    expect(notifications.lit).toEqual(["/admin/settings/custom-channels"]);
+    expect(notifications.links[notifications.links.length - 1]).toBe(
+      "/admin/settings/custom-channels",
+    );
+    expect(drawnSection(BASIC).lit).toEqual([]);
+    expect(drawnSection(BASIC).links).not.toContain(
+      "/admin/settings/custom-channels",
+    );
+    expect(document.querySelectorAll('a[aria-current="page"]')).toHaveLength(1);
+  });
+
+  test("draws Notifications open at once, as on a core Notifications page", () => {
+    goTo("/admin/settings/custom-channels");
+
+    render(<SettingsSideMenu />);
+
+    const body: HTMLElement = document.getElementById(
+      screen
+        .getByRole("button", { name: NOTIFICATIONS })
+        .getAttribute("aria-controls") || "",
+    ) as HTMLElement;
+
+    expect(body).toHaveClass("opacity-100", "transition-none");
+    expect(body).not.toHaveClass("max-h-0");
+  });
+
+  test("on Backups, an Enterprise page under Basic, Notifications stays folded", () => {
+    goTo("/admin/settings/backups");
+
+    render(<SettingsSideMenu />);
+
+    expect(expandedTitles()).toEqual([BASIC]);
+    expect(drawnSection(BASIC).lit).toEqual(["/admin/settings/backups"]);
+    expect(drawnSection(NOTIFICATIONS).lit).toEqual([]);
+  });
+
+  test("on Push Notifications, Custom Channels comes right after it, unlit", () => {
+    goTo("/admin/settings/push-notifications");
+
+    render(<SettingsSideMenu />);
+
+    const notifications: DrawnSection = drawnSection(NOTIFICATIONS);
+    const push: number = notifications.links.indexOf(
+      "/admin/settings/push-notifications",
+    );
+
+    expect(expandedTitles()).toEqual([BASIC, NOTIFICATIONS]);
+    expect(notifications.lit).toEqual(["/admin/settings/push-notifications"]);
+    expect(push).toBeGreaterThan(-1);
+    expect(notifications.links[push + 1]).toBe(
+      "/admin/settings/custom-channels",
+    );
+  });
+
+  /*
+   * The docs walk an admin here as the menu draws it: Settings, then
+   * Notifications > Custom Channels, Notifications starting folded. Core's
+   * docs facts hold the step to core's menu and to every translation; this
+   * holds it to the real plugin, which only an Enterprise checkout has.
+   */
+  test("the docs walk an admin to it as the menu draws it, Notifications starting folded", () => {
+    const adminEnglish: {
+      navbar: { settings: string };
+      sideMenu: { settingsNotifications: string };
+    } = JSON.parse(
+      fs.readFileSync(
+        path.join(ADMIN_DASHBOARD_SRC, "Locales", "en.json"),
+        "utf8",
+      ),
+    );
+    const docs: string = fs.readFileSync(
+      path.join(
+        EE_DIR,
+        "..",
+        "packages",
+        "App",
+        "FeatureSet",
+        "Docs",
+        "Content",
+        "en",
+        "self-hosted",
+        "custom-notification-channels.md",
+      ),
+      "utf8",
+    );
+    const settings: string = adminEnglish.navbar.settings;
+    const notifications: string = adminEnglish.sideMenu.settingsNotifications;
+
+    goTo("/admin/settings/authentication");
+
+    render(<SettingsSideMenu />);
+
+    const section: DrawnSection = drawnSection(NOTIFICATIONS);
+
+    expect(section.expanded).toBe(false);
+    expect(section.links[section.links.length - 1]).toBe(
+      "/admin/settings/custom-channels",
+    );
+    expect(drawnSection(BASIC).links).not.toContain(
+      "/admin/settings/custom-channels",
+    );
+    expect(docs).toContain(
+      `open **${settings}**, then **${notifications} > ${CUSTOM_CHANNELS_SETTINGS_PAGE_TITLE}** in the side menu (**${notifications}** starts folded)`,
+    );
+  });
+
+  test("on a phone, the opened menu shows Notifications open with Custom Channels lit", () => {
+    setViewportWidth(375);
+    goTo("/admin/settings/custom-channels");
+
+    render(<SettingsSideMenu />);
+
+    fireEvent.click(screen.getByTestId("mobile-sidemenu-toggle"));
+
+    expect(expandedTitles()).toEqual([BASIC, NOTIFICATIONS]);
+    expect(drawnSection(NOTIFICATIONS).lit).toEqual([
+      "/admin/settings/custom-channels",
+    ]);
   });
 });
 
@@ -221,6 +466,9 @@ describe("the Community build", () => {
     expect(AdminCommunityPlugins).toEqual({});
     expect(AdminCommunityPlugins.SettingsPages).toBeUndefined();
     expect(AdminCommunityPlugins.SettingsSideMenuItems).toBeUndefined();
+    expect(
+      AdminCommunityPlugins.SettingsNotificationSideMenuItems,
+    ).toBeUndefined();
   });
 
   test("the page core used to have is gone", () => {

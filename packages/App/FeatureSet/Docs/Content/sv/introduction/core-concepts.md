@@ -108,7 +108,7 @@ En **statussida** visar dina kunder om dina tjänster fungerar. Du väljer vilka
 
 - **Arbetsflöden** utför åtgärder när något händer, till exempel ett meddelande i Slack när en incident deklareras.
 - **Runbooks** gör om en insatsrutin till steg som ditt team kan köra manuellt eller automatiskt.
-- **OneUptime AI** undersöker nya incidenter och larm och lägger ut vad den hittade på deras tidslinje, och **Ask AI** svarar på frågor om ditt projekt. Ett nytt projekt börjar med AI påslaget; reglaget **Aktivera AI** under **Projektinställningar → AI → AI Features** stänger av allt.
+- **OneUptime AI** undersöker nya incidenter och larm och lägger ut vad den hittade på deras tidslinje, och **Fråga AI** svarar på frågor om ditt projekt. Ett nytt projekt börjar med AI påslaget; reglaget **Aktivera AI** under **Projektinställningar → AI → AI Features** stänger av allt.
 
 :::cards
 - [Översikt över arbetsflöden](/docs/workflows/index): Automatisera åtgärder med utlösare och komponenter.

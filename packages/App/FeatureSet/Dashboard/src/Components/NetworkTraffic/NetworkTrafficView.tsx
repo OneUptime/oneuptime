@@ -1,4 +1,22 @@
-import { fetchNetworkTraffic } from "./NetworkTrafficApi";
+import {
+  fetchNetworkTraffic,
+  findNetworkTrafficAddress,
+} from "./NetworkTrafficApi";
+import {
+  TrafficAddressLabel,
+  getFilteredAddress,
+  getTrafficAddressLabel,
+  getTrafficAddressText,
+} from "./NetworkTrafficAddressNames";
+import {
+  TrafficAddressInline,
+  TrafficAddressPrimary,
+  TrafficAddressText,
+  CONVERSATION_LIST_CLASS_NAME,
+  TrafficConversationLine,
+  getTrafficAddressSecondary,
+} from "./TrafficAddress";
+import TrafficAddressCard from "./TrafficAddressCard";
 import { fetchNetworkTrafficUsage } from "./NetworkTrafficUsageApi";
 import MerakiConnectModal from "./Meraki/MerakiConnectModal";
 import MerakiConnectionsCard from "./Meraki/MerakiConnectionsCard";
@@ -40,6 +58,7 @@ import TrafficTopList, { TrafficTopRow } from "./TrafficTopList";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
+import NetworkAddressName from "Common/Models/DatabaseModels/NetworkAddressName";
 import NetworkControllerConnection from "Common/Models/DatabaseModels/NetworkControllerConnection";
 import Route from "Common/Types/API/Route";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
@@ -52,11 +71,15 @@ import {
   NetworkTrafficDeviceRow,
   NetworkTrafficFilters,
   NetworkTrafficFiltersUtil,
+  NetworkTrafficFindMatch,
+  NetworkTrafficFindRequest,
+  NetworkTrafficFindResult,
   NetworkTrafficInterfaceRow,
   NetworkTrafficRequest,
   NetworkTrafficSource,
   NetworkTrafficSummary,
 } from "Common/Types/NetFlow/NetworkTraffic";
+import { NetworkTrafficAddressNames } from "Common/Types/NetFlow/NetworkAddressName";
 import {
   NetworkTrafficUsageFilters,
   NetworkTrafficUsageRequest,
@@ -93,6 +116,8 @@ import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import {
+  SentencePart,
+  getSentenceParts,
   translatableTerm,
   Translator,
   translationKey,
@@ -120,6 +145,13 @@ import React, {
  * and every other table are 10.0.0.5's - and the chips over the page say
  * what it is narrowed to. The time range and the filters live in the URL,
  * so a link lands on exactly this view.
+ *
+ * Addresses are written by their names (issue #5340): "mumbai-fs01" over
+ * 10.18.167.35, wherever an address shows - the top lists, both views of
+ * the conversations, the chips, the address card a page narrowed to one
+ * address opens with, and "find" (a name or an address). Names come from
+ * the project's inventory, the names people give addresses, and DNS as the
+ * probe resolved it (NetworkAddressName); the summary carries them.
  *
  * Before any flow has arrived the page is the set-up guide instead
  * (TrafficSetupGuide): the probe already listens, the device needs a few
@@ -172,10 +204,10 @@ export const TRAFFIC_HELP: {
   conversations: string;
 } = {
   sources: translationKey(
-    "The 10 addresses that sent the most bytes in this time range, with each one's share of all the traffic shown. Click one to see only its traffic.",
+    "The 10 addresses that sent the most bytes in this time range, with each one's share of all the traffic shown. An address is shown by its name when your inventory, your address names or DNS has one. Click one to see only its traffic.",
   ),
   destinations: translationKey(
-    "The 10 addresses that received the most bytes in this time range. Click one to see only the traffic to it.",
+    "The 10 addresses that received the most bytes in this time range. An address is shown by its name when your inventory, your address names or DNS has one. Click one to see only the traffic to it.",
   ),
   applications: translationKey(
     "Traffic by protocol and service port, named after the service usually on that port (HTTPS is TCP port 443). This is the port, not deep packet inspection. Click one to see only its traffic.",
@@ -296,6 +328,58 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
   );
   const [addressInput, setAddressInput] = useState<string>("");
   const [addressError, setAddressError] = useState<string>("");
+  /*
+   * A name that matched nothing: said plainly under the box, in grey - an
+   * answer, not a failure (a failure is addressError, in red).
+   */
+  const [findNothing, setFindNothing] = useState<string>("");
+  // "Find" by a name: the addresses it found, to pick one of.
+  const [findMatches, setFindMatches] = useState<
+    Array<NetworkTrafficFindMatch>
+  >([]);
+  const [isFinding, setIsFinding] = useState<boolean>(false);
+  const latestFindRef: React.MutableRefObject<number> = useRef<number>(0);
+  const findFormRef: React.RefObject<HTMLFormElement> =
+    useRef<HTMLFormElement>(null);
+
+  // The addresses to pick from close on Escape, or a click outside the box.
+  useEffect(() => {
+    if (findMatches.length === 0) {
+      return;
+    }
+
+    const close: () => void = (): void => {
+      setFindMatches([]);
+    };
+
+    const onPointerDown: (event: MouseEvent) => void = (
+      event: MouseEvent,
+    ): void => {
+      if (
+        findFormRef.current &&
+        event.target instanceof Node &&
+        !findFormRef.current.contains(event.target)
+      ) {
+        close();
+      }
+    };
+
+    const onKeyDown: (event: KeyboardEvent) => void = (
+      event: KeyboardEvent,
+    ): void => {
+      if (event.key === "Escape") {
+        close();
+      }
+    };
+
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [findMatches]);
   const [refreshKey, setRefreshKey] = useState<number>(0);
 
   // The Meraki side: the side picked, its filters, and what it answered.
@@ -534,39 +618,116 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
     );
   };
 
+  const onPickAddress: (address: string) => void = (address: string) => {
+    setAddressError("");
+    setFindNothing("");
+    setAddressInput("");
+    setFindMatches([]);
+    setFilters({ ...view.filters, hostIp: address });
+  };
+
+  /*
+   * Find an address by itself or by its name (issue #5340). An address is
+   * filtered on at once, checked (and written canonically) the way the
+   * server checks it. A name is looked up in the page's window: one
+   * address found is filtered on, several are listed to pick from, none
+   * says so.
+   */
   const onFindAddress: (event: FormEvent) => void = (
     event: FormEvent,
   ): void => {
     event.preventDefault();
-    const address: string = addressInput.trim();
+    const typed: string = addressInput.trim();
 
-    if (!address) {
+    if (!typed) {
       return;
     }
 
-    // Checked (and written canonically) the way the server checks it.
     let hostIp: string | undefined = undefined;
 
     try {
-      hostIp = NetworkTrafficFiltersUtil.sanitize({ hostIp: address }).hostIp;
+      hostIp = NetworkTrafficFiltersUtil.sanitize({ hostIp: typed }).hostIp;
     } catch {
       hostIp = undefined;
     }
 
-    if (!hostIp) {
-      setAddressError(
-        translator.translateText("Enter an IP address, like 10.0.0.5.") || "",
-      );
+    if (hostIp) {
+      onPickAddress(hostIp);
       return;
     }
 
+    latestFindRef.current += 1;
+    const findId: number = latestFindRef.current;
+
     setAddressError("");
-    setAddressInput("");
-    setFilters({ ...view.filters, hostIp: hostIp });
+    setFindNothing("");
+    setFindMatches([]);
+    setIsFinding(true);
+
+    const dateRange: InBetween<Date> =
+      RangeStartAndEndDateTimeUtil.getStartAndEndDate(view.range);
+    const request: NetworkTrafficFindRequest = {
+      startTime: OneUptimeDate.toString(dateRange.startValue),
+      endTime: OneUptimeDate.toString(dateRange.endValue),
+      query: typed,
+    };
+
+    if (scope.kind === "device") {
+      request.networkDeviceId = scope.networkDeviceId.toString();
+    } else if (scope.kind === "site") {
+      request.networkSiteId = scope.networkSiteId.toString();
+    }
+
+    findNetworkTrafficAddress(request)
+      .then((result: NetworkTrafficFindResult) => {
+        if (findId !== latestFindRef.current) {
+          return;
+        }
+
+        if (result.matches.length === 1) {
+          onPickAddress(result.matches[0]!.address);
+          return;
+        }
+
+        if (result.matches.length === 0) {
+          setFindNothing(
+            translator.translateTemplate(
+              "No address with traffic in this time range matches “{{query}}”.",
+              { query: typed },
+            ),
+          );
+          return;
+        }
+
+        setFindMatches(result.matches);
+      })
+      .catch((err: Error) => {
+        if (findId === latestFindRef.current) {
+          setAddressError(API.getFriendlyMessage(err));
+        }
+      })
+      .finally(() => {
+        if (findId === latestFindRef.current) {
+          setIsFinding(false);
+        }
+      });
   };
 
   // ---- Rows ----------------------------------------------------------------
 
+  const addressNames: NetworkTrafficAddressNames | undefined =
+    summary?.addressNames;
+
+  const labelOf: (address: string) => TrafficAddressLabel = (
+    address: string,
+  ): TrafficAddressLabel => {
+    return getTrafficAddressLabel(address, addressNames);
+  };
+
+  /*
+   * A source or destination: its name over its address (and the subnet
+   * it is in), or the address alone when it has no name.
+   */
   const addressRows: (
     rows: Array<NetworkTrafficAddressRow>,
     side: "source" | "destination",
@@ -579,18 +740,20 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
         side === "source"
           ? filters.sourceIp === row.ip
           : filters.destinationIp === row.ip;
+      const label: TrafficAddressLabel = labelOf(row.ip);
 
       return {
         key: row.ip,
-        label: row.ip,
-        isMono: true,
+        label: <TrafficAddressPrimary label={label} />,
+        title: getTrafficAddressText(label),
+        sublabel: getTrafficAddressSecondary(label) || undefined,
         octets: row.octets,
         isActive: isActive,
         ariaLabel: translator.translateTemplate(
           side === "source"
             ? "Show only the traffic from {{address}}"
             : "Show only the traffic to {{address}}",
-          { address: row.ip },
+          { address: getTrafficAddressText(label) },
         ),
         onClick: () => {
           if (side === "source") {
@@ -689,14 +852,28 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
       const isActive: boolean = isKnown
         ? filters.networkDeviceId === row.networkDeviceId
         : filters.exporterIp === row.exporterIp;
+      // An exporter that is no device yet may still have a name (DNS, a host).
+      const exporterLabel: TrafficAddressLabel = labelOf(row.exporterIp);
 
       return {
         key: row.networkDeviceId || `unknown:${row.exporterIp}`,
-        label: isKnown ? row.name || row.exporterIp : row.exporterIp,
-        isMono: !isKnown,
-        sublabel: isKnown
-          ? row.exporterIp
-          : translator.translateText("Not a device yet"),
+        label: isKnown ? (
+          row.name || <TrafficAddressText address={row.exporterIp} />
+        ) : (
+          <TrafficAddressPrimary label={exporterLabel} />
+        ),
+        title: isKnown ? undefined : getTrafficAddressText(exporterLabel),
+        sublabel: isKnown ? (
+          <TrafficAddressText address={row.exporterIp} />
+        ) : exporterLabel.name ? (
+          <Fragment>
+            <TrafficAddressText address={row.exporterIp} />
+            <span aria-hidden="true"> · </span>
+            {translator.translateText("Not a device yet")}
+          </Fragment>
+        ) : (
+          translator.translateText("Not a device yet")
+        ),
         octets: row.octets,
         isActive: isActive,
         ariaLabel: translator.translateTemplate(
@@ -738,16 +915,32 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
     const isActive: boolean =
       filters.sourceIp === row.sourceIp &&
       filters.destinationIp === row.destinationIp;
+    const source: TrafficAddressLabel = labelOf(row.sourceIp);
+    const destination: TrafficAddressLabel = labelOf(row.destinationIp);
 
     return {
       key: `${row.sourceIp}>${row.destinationIp}`,
-      label: `${row.sourceIp} → ${row.destinationIp}`,
-      isMono: true,
+      /*
+       * Each end once: its name with its address beside it, or its address
+       * alone ("mumbai-fs01 10.18.167.35 → Backup appliance 10.18.167.20"),
+       * the senders, the receivers and the bytes in columns.
+       */
+      label: (
+        <TrafficConversationLine
+          source={source}
+          destination={destination}
+          trailing={formatTrafficBytes(row.octets)}
+        />
+      ),
+      title: `${getTrafficAddressText(source)} → ${getTrafficAddressText(destination)}`,
       octets: row.octets,
       isActive: isActive,
       ariaLabel: translator.translateTemplate(
         "Show only the traffic from {{source}} to {{destination}}",
-        { source: row.sourceIp, destination: row.destinationIp },
+        {
+          source: getTrafficAddressText(source),
+          destination: getTrafficAddressText(destination),
+        },
       ),
       onClick: () => {
         onSelectConversation(row.sourceIp, row.destinationIp);
@@ -811,6 +1004,27 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
   );
 
   const description: string = FLOW_DESCRIPTIONS[scope.kind];
+
+  /*
+   * Who the one address the page is narrowed to is, and the next step
+   * (issue #5340): for the filters the page shows, so it changes with them.
+   */
+  const filteredAddress: string | null = getFilteredAddress(filters);
+
+  /*
+   * Naming an address is for whoever may add Address Names, and the way to
+   * change one (Edit in Settings) for whoever may change them.
+   */
+  const nameAddressGate: PermissionGateResult = PermissionGate.check(
+    new NetworkAddressName(),
+    ModelAction.Create,
+    { singularName: "Address Name" },
+  );
+  const editAddressNamesGate: PermissionGateResult = PermissionGate.check(
+    new NetworkAddressName(),
+    ModelAction.Update,
+    { singularName: "Address Name" },
+  );
 
   const deviceStatus: ReactElement | null = ((): ReactElement | null => {
     if (scope.kind !== "device" || !summary || needsSetup) {
@@ -1102,7 +1316,7 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
                       {hasTraffic || isFiltered ? (
                         <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                           <div
-                            className="flex min-h-[2rem] flex-wrap items-center gap-2"
+                            className="flex min-h-[2rem] min-w-0 flex-wrap items-center gap-2 lg:flex-1"
                             data-testid="traffic-filters"
                           >
                             {chips.length === 0 ? (
@@ -1117,19 +1331,74 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
                                   (
                                     chip: NetworkTrafficFilterChip,
                                   ): ReactElement => {
+                                    const chipAddress: TrafficAddressLabel | null =
+                                      chip.address
+                                        ? labelOf(chip.address)
+                                        : null;
                                     const text: string =
                                       translator.translateTemplate(
                                         chip.template,
-                                        chip.values,
+                                        chipAddress
+                                          ? {
+                                              ...chip.values,
+                                              address:
+                                                getTrafficAddressText(
+                                                  chipAddress,
+                                                ),
+                                            }
+                                          : chip.values,
                                       );
 
                                     return (
                                       <span
                                         key={chip.kind}
-                                        className="inline-flex items-center gap-1 rounded-full bg-indigo-50 py-1 pl-3 pr-1 text-sm font-medium text-indigo-700 ring-1 ring-indigo-200"
+                                        className="inline-flex min-w-0 max-w-full items-center gap-1 rounded-full bg-indigo-50 py-1 pl-3 pr-1 text-sm font-medium text-indigo-700 ring-1 ring-indigo-200"
                                         data-testid={`traffic-filter-${chip.kind}`}
+                                        title={text}
                                       >
-                                        {text}
+                                        {chipAddress ? (
+                                          /*
+                                           * The sentence's words and the
+                                           * address keep their room and a
+                                           * long name gives way: "To or from
+                                           * mumbai-fileser… 10.18.167.35",
+                                           * never "To or from …". The words
+                                           * keep the spaces their language
+                                           * puts around the address.
+                                           */
+                                          <span
+                                            className="flex min-w-0 items-baseline overflow-hidden"
+                                            data-testid="traffic-filter-text"
+                                          >
+                                            {getSentenceParts({
+                                              translator: translator,
+                                              template: chip.template,
+                                              slots: ["address"],
+                                              values: chip.values,
+                                            }).map(
+                                              (
+                                                part: SentencePart,
+                                                index: number,
+                                              ): ReactElement => {
+                                                return part.kind === "slot" ? (
+                                                  <TrafficAddressInline
+                                                    key={index}
+                                                    label={chipAddress}
+                                                  />
+                                                ) : (
+                                                  <span
+                                                    key={index}
+                                                    className="flex-shrink-0 whitespace-pre"
+                                                  >
+                                                    {part.text}
+                                                  </span>
+                                                );
+                                              },
+                                            )}
+                                          </span>
+                                        ) : (
+                                          text
+                                        )}
                                         <button
                                           type="button"
                                           className="flex h-5 w-5 items-center justify-center rounded-full text-indigo-600 hover:bg-indigo-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
@@ -1169,12 +1438,14 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
                             )}
                           </div>
                           <form
-                            className="flex flex-shrink-0 items-start gap-2"
+                            ref={findFormRef}
+                            className="relative flex flex-shrink-0 items-start gap-2"
                             onSubmit={onFindAddress}
                             data-testid="traffic-find-address"
                           >
-                            <div>
+                            <div className="min-w-0 flex-1 lg:w-64 lg:flex-none">
                               <input
+                                data-unsaved-changes-ignore
                                 type="text"
                                 inputMode="text"
                                 value={addressInput}
@@ -1183,19 +1454,121 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
                                 ) => {
                                   setAddressInput(event.target.value);
                                   setAddressError("");
+                                  setFindNothing("");
+                                  setFindMatches([]);
                                 }}
                                 placeholder={translator.translateText(
-                                  "Find an IP address",
+                                  "Find a name or an IP address",
                                 )}
                                 aria-label={translator.translateText(
-                                  "Find an IP address",
+                                  "Find a name or an IP address",
                                 )}
-                                className="block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 lg:w-56"
+                                className="block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                               />
                               {addressError ? (
-                                <p className="mt-1 text-xs text-red-600">
+                                <p
+                                  className="mt-1 text-xs text-red-600"
+                                  role="alert"
+                                  data-testid="traffic-find-address-error"
+                                >
                                   {addressError}
                                 </p>
+                              ) : (
+                                <></>
+                              )}
+                              {findNothing ? (
+                                <p
+                                  className="mt-1 text-xs text-gray-500"
+                                  role="status"
+                                  data-testid="traffic-find-address-none"
+                                >
+                                  {findNothing}
+                                </p>
+                              ) : (
+                                <></>
+                              )}
+                              {findMatches.length > 0 ? (
+                                /*
+                                 * Over the page, under the box, as wide as a
+                                 * name needs: Escape or a click elsewhere
+                                 * closes it, a pick filters the page.
+                                 */
+                                <div
+                                  className="absolute right-0 top-full z-20 mt-2 w-full rounded-md bg-white py-1 shadow-lg ring-1 ring-gray-200 sm:w-96"
+                                  role="group"
+                                  aria-label={translator.translateText(
+                                    "Pick the address:",
+                                  )}
+                                  data-testid="traffic-find-address-matches"
+                                >
+                                  <p className="px-3 pb-1 pt-2 text-xs text-gray-500">
+                                    {translator.translateText(
+                                      "Pick the address:",
+                                    )}
+                                  </p>
+                                  <ul className="pb-1">
+                                    {findMatches.map(
+                                      (
+                                        match: NetworkTrafficFindMatch,
+                                      ): ReactElement => {
+                                        const matchLabel: TrafficAddressLabel =
+                                          {
+                                            ...labelOf(match.address),
+                                            name: match.name || null,
+                                          };
+
+                                        return (
+                                          <li key={match.address}>
+                                            <button
+                                              type="button"
+                                              className="flex w-full items-center justify-between gap-3 px-3 py-1.5 text-left hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                                              onClick={() => {
+                                                onPickAddress(match.address);
+                                              }}
+                                              aria-label={translator.translateTemplate(
+                                                "Show only the traffic to or from {{address}}",
+                                                {
+                                                  address:
+                                                    getTrafficAddressText(
+                                                      matchLabel,
+                                                    ),
+                                                },
+                                              )}
+                                              data-testid="traffic-find-address-match"
+                                            >
+                                              <span className="min-w-0">
+                                                <span
+                                                  className="block truncate text-sm text-gray-900"
+                                                  title={getTrafficAddressText(
+                                                    matchLabel,
+                                                  )}
+                                                >
+                                                  <TrafficAddressPrimary
+                                                    label={matchLabel}
+                                                  />
+                                                </span>
+                                                {matchLabel.name ? (
+                                                  <span className="block truncate text-xs text-gray-500">
+                                                    <TrafficAddressText
+                                                      address={match.address}
+                                                    />
+                                                  </span>
+                                                ) : (
+                                                  <></>
+                                                )}
+                                              </span>
+                                              <span className="flex-shrink-0 text-xs tabular-nums text-gray-500">
+                                                {formatTrafficBytes(
+                                                  match.octets,
+                                                )}
+                                              </span>
+                                            </button>
+                                          </li>
+                                        );
+                                      },
+                                    )}
+                                  </ul>
+                                </div>
                               ) : (
                                 <></>
                               )}
@@ -1206,10 +1579,26 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
                               icon={IconProp.Search}
                               buttonSize={ButtonSize.Small}
                               buttonStyle={ButtonStyleType.OUTLINE}
+                              isLoading={isFinding}
                               dataTestId="traffic-find-address-button"
                             />
                           </form>
                         </div>
+                      ) : (
+                        <></>
+                      )}
+
+                      {filteredAddress ? (
+                        <TrafficAddressCard
+                          label={labelOf(filteredAddress)}
+                          canName={nameAddressGate.isAllowed}
+                          canEditNames={editAddressNamesGate.isAllowed}
+                          onNamed={() => {
+                            setRefreshKey((key: number) => {
+                              return key + 1;
+                            });
+                          }}
+                        />
                       ) : (
                         <></>
                       )}
@@ -1444,6 +1833,7 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
                         <div className="max-sm:hidden">
                           <TrafficConversationDiagram
                             conversations={summary.topConversations}
+                            addressNames={summary.addressNames}
                             onSelectConversation={onSelectConversation}
                             onSelectSource={onSelectSource}
                             onSelectDestination={onSelectDestination}
@@ -1459,7 +1849,9 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
                             : undefined
                         }
                       >
-                        <ol className="-mx-2 space-y-0.5">
+                        <ol
+                          className={`-mx-2 space-y-0.5 ${CONVERSATION_LIST_CLASS_NAME}`}
+                        >
                           {conversationRows.map(
                             (row: TrafficTopRow): ReactElement => {
                               return (
@@ -1476,14 +1868,13 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
                                     onClick={row.onClick}
                                     data-testid="traffic-conversation-row"
                                   >
-                                    <div className="flex items-baseline justify-between gap-3">
-                                      <span className="min-w-0 truncate font-mono text-sm text-gray-900">
-                                        {row.label}
-                                      </span>
-                                      <span className="flex-shrink-0 text-sm tabular-nums text-gray-900">
-                                        {formatTrafficBytes(row.octets)}
-                                      </span>
-                                    </div>
+                                    <span
+                                      className="block text-sm text-gray-900"
+                                      title={row.title}
+                                      data-testid="traffic-conversation-row-label"
+                                    >
+                                      {row.label}
+                                    </span>
                                   </button>
                                 </li>
                               );
@@ -1505,6 +1896,7 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
       {scope.kind === "network" && summary && !isMerakiShown ? (
         <TrafficSourcesCard
           sources={summary.sources}
+          addressNames={summary.addressNames}
           onLinked={() => {
             setRefreshKey((key: number) => {
               return key + 1;

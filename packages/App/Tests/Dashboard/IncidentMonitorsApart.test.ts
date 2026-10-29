@@ -492,7 +492,7 @@ describe("the split's copy, in every language", () => {
     "Change Monitor Status to",
     "Search monitors...",
     "Search and attach the monitors affected by this incident. The status pages that list them show it.",
-    "Search and attach hosts, Kubernetes clusters, Docker hosts, databases, or services affected by this incident.",
+    "Search and attach the hosts, network devices, clusters, databases, cloud resources or services this incident affects.",
     "No monitors affected by this incident.",
     "No other resources affected by this incident.",
     "Search and attach the monitors that incidents created from this template should pre-populate.",

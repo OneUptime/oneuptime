@@ -3,6 +3,22 @@ import { hasPage, readPage } from "./DocsContentSupport";
 import { escapeRegExp } from "./DocsTranslationChecks";
 import CriteriaFilterUtil from "../../../FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaFilter";
 import SpanUtil from "../../../FeatureSet/Dashboard/src/Utils/SpanUtil";
+import {
+  ANOMALY_SENSITIVITY_CHOICES,
+  getComparisonChoices,
+  METRIC_AGGREGATION_CHOICES,
+  METRIC_RULE_WINDOW_OPTIONS,
+  TELEMETRY_RULE_WINDOW_OPTIONS,
+  TelemetryRuleChoice,
+  TelemetryRuleCopy,
+  TelemetryRuleWindowOption,
+} from "../../../FeatureSet/Dashboard/src/Utils/Form/Monitor/TelemetryRule/TelemetryRuleText";
+import {
+  getDefaultRecipe,
+  getRecipes,
+  TelemetryRuleRecipe,
+} from "../../../FeatureSet/Dashboard/src/Utils/Form/Monitor/TelemetryRule/TelemetryRuleRecipes";
+import { TelemetryAlertRuleAction } from "Common/Types/Monitor/TelemetryAlertRule";
 import StatusPageDisplaySettingsCopy, {
   DISPLAY_SECTIONS,
   DisplaySectionDefinition,
@@ -749,100 +765,130 @@ describe("OneUptime's own downtime is not silence", () => {
 interface WindowForm {
   name: string;
   markdown: string;
-  file: string;
-  title: string;
-  stepDefaultSeconds: number;
+  monitorType: MonitorType;
 }
 
+/*
+ * A count monitor's window is its rule's Time window, in When to alert
+ * (TelemetryRuleEditor), which writes the step's lastXSeconds... field.
+ */
 const WINDOW_FORMS: Array<WindowForm> = [
-  {
-    name: "Logs",
-    markdown: LOGS,
-    file: LOG_FORM,
-    title: "Monitor Logs for (time)",
-    stepDefaultSeconds:
-      MonitorStepLogMonitorUtil.getDefault().lastXSecondsOfLogs,
-  },
-  {
-    name: "Traces",
-    markdown: TRACES,
-    file: TRACE_FORM,
-    title: "Monitor Traces for (time)",
-    stepDefaultSeconds:
-      MonitorStepTraceMonitorUtil.getDefault().lastXSecondsOfSpans,
-  },
+  { name: "Logs", markdown: LOGS, monitorType: MonitorType.Logs },
+  { name: "Traces", markdown: TRACES, monitorType: MonitorType.Traces },
   {
     name: "Exceptions",
     markdown: EXCEPTIONS,
-    file: EXCEPTION_FORM,
-    title: "Monitor exceptions for (time)",
-    stepDefaultSeconds:
-      MonitorStepExceptionMonitorUtil.getDefault().lastXSecondsOfExceptions,
+    monitorType: MonitorType.Exceptions,
   },
 ];
 
 describe("the window a count looks back over", () => {
   it.each(WINDOW_FORMS)(
-    "$name: $title offers the last 5 seconds to the last 24 hours and starts at Last 1 minute, as the page's table says",
+    "$name: the rule's Time window offers the last 5 seconds to the last 24 hours, and a new monitor starts at its recipe's, as the page's table says",
     (form: WindowForm) => {
-      const options: Array<DurationOption> = durationOptions(
-        dashboardSource(form.file),
-      );
+      const options: Array<TelemetryRuleWindowOption> =
+        TELEMETRY_RULE_WINDOW_OPTIONS;
 
-      expect(options[0]).toEqual({ label: "Last 5 seconds", seconds: 5 });
+      expect(options[0]).toEqual({ value: 5, label: "Last 5 seconds" });
       expect(options[options.length - 1]).toEqual({
+        value: 24 * 60 * 60,
         label: "Last 24 hours",
-        seconds: 24 * 60 * 60,
       });
 
-      const field: SourceField | undefined = sourceFields(
-        dashboardSource(form.file),
-      ).find((candidate: SourceField): boolean => {
-        return candidate.title === form.title;
-      });
-
-      // The form's own default is the step's: written out, or read from it.
-      expect(field?.defaultValue).toMatch(
-        new RegExp(
-          `^(${form.stepDefaultSeconds}|MonitorStep\\w+Util\\.getDefault\\(\\) ?\\.lastXSeconds\\w+)$`,
-        ),
+      // Create Monitor starts on the type's first recipe, and its window.
+      const recipe: TelemetryRuleRecipe | null = getDefaultRecipe(
+        form.monitorType,
       );
-
-      const startsAt: DurationOption | undefined = options.find(
-        (option: DurationOption): boolean => {
-          return option.seconds === form.stepDefaultSeconds;
+      const startsAt: TelemetryRuleWindowOption | undefined = options.find(
+        (option: TelemetryRuleWindowOption): boolean => {
+          return option.value === recipe?.windowInSeconds;
         },
       );
 
-      expect(startsAt?.label).toBe("Last 1 minute");
+      expect(startsAt?.label).toBe("Last 5 minutes");
 
       const row: Array<string> | undefined = tableRows(form.markdown, [
         "Field",
       ]).find((cells: Array<string>): boolean => {
-        return plain(cells[0] as string) === form.title;
+        return plain(cells[0] as string).startsWith(
+          TelemetryRuleCopy.windowTitle,
+        );
       });
 
+      expect(row?.[0]).toBe(
+        `**${TelemetryRuleCopy.windowTitle}** (in **${TelemetryRuleCopy.whenToAlertTitle}**)`,
+      );
       expect(row?.[1]).toContain("the last 5 seconds up to the last 24 hours");
       expect(row?.[2]).toBe(`**${startsAt?.label}**`);
     },
   );
 
   it.each(WINDOW_FORMS)(
-    "$name: the five-minute window the page's example uses is one of the form's options",
+    "$name: the five-minute window the page's example uses is one of the rule's options",
     (form: WindowForm) => {
-      const fiveMinutes: DurationOption | undefined = durationOptions(
-        dashboardSource(form.file),
-      ).find((option: DurationOption): boolean => {
-        return option.seconds === 300;
-      });
+      const fiveMinutes: TelemetryRuleWindowOption | undefined =
+        TELEMETRY_RULE_WINDOW_OPTIONS.find(
+          (option: TelemetryRuleWindowOption): boolean => {
+            return option.value === 300;
+          },
+        );
 
       expect(fiveMinutes?.label).toBe("Last 5 minutes");
-      // "- **Monitor Logs for (time)**: **Last 5 minutes**", or "... to ...".
+      // "- **Time window**: **Last 5 minutes**", "... to ..." or "... at ...".
       expect(form.markdown).toMatch(
         new RegExp(
-          `\\*\\*${escapeRegExp(form.title)}\\*\\*(: | to )\\*\\*${fiveMinutes?.label}\\*\\*`,
+          `\\*\\*${escapeRegExp(TelemetryRuleCopy.windowTitle)}\\*\\*(: | to | at )\\*\\*${fiveMinutes?.label}\\*\\*`,
         ),
       );
+    },
+  );
+
+  it.each(WINDOW_FORMS)(
+    "$name: the recipes the page lists are the ones Create Monitor offers, with their rules",
+    (form: WindowForm) => {
+      const rows: Array<Array<string>> = tableRows(form.markdown, [
+        "Pick",
+        "Rule",
+        "What happens",
+      ]);
+      const recipes: Array<TelemetryRuleRecipe> = getRecipes(form.monitorType);
+
+      expect(
+        rows.map((cells: Array<string>): string => {
+          return plain(cells[0] as string);
+        }),
+      ).toEqual(
+        recipes.map((recipe: TelemetryRuleRecipe): string => {
+          return recipe.title;
+        }),
+      );
+
+      for (const recipe of recipes) {
+        const row: Array<string> = rows.find((cells: Array<string>) => {
+          return plain(cells[0] as string) === recipe.title;
+        }) as Array<string>;
+        const comparison: string =
+          getComparisonChoices({ monitorType: form.monitorType }).find(
+            (choice: TelemetryRuleChoice<FilterType>): boolean => {
+              return choice.value === recipe.filterType;
+            },
+          )?.label || "";
+        const window: string =
+          TELEMETRY_RULE_WINDOW_OPTIONS.find(
+            (option: TelemetryRuleWindowOption): boolean => {
+              return option.value === recipe.windowInSeconds;
+            },
+          )?.label || "";
+
+        expect(row[1]).toContain(
+          `**${comparison}** \`${recipe.threshold}\` in **${window}**`,
+        );
+        expect(row[2]).toBe(
+          recipe.action === TelemetryAlertRuleAction.Incident
+            ? "Declares an incident, which resolves itself"
+            : "Creates an alert, which resolves itself",
+        );
+      }
     },
   );
 
@@ -905,8 +951,12 @@ describe("what each filter matches", () => {
 
     const rows: Array<Array<string>> = tableRows(LOGS, ["Field"]);
 
-    expect(rows[0]).toEqual([
-      "**Monitor Logs that include this text**",
+    expect(
+      rows.find((cells: Array<string>): boolean => {
+        return plain(cells[0] as string) === "Message contains";
+      }),
+    ).toEqual([
+      "**Message contains**",
       "Logs whose body contains this text, ignoring case.",
       "Empty: every log",
     ]);
@@ -932,7 +982,7 @@ describe("what each filter matches", () => {
     );
     const row: Array<string> = tableRows(TRACES, ["Field"]).find(
       (cells: Array<string>): boolean => {
-        return plain(cells[0] as string) === "Filter by Span Status";
+        return plain(cells[0] as string) === "Span Status";
       },
     ) as Array<string>;
 
@@ -1031,7 +1081,10 @@ describe("what each filter matches", () => {
         });
       const shown: Array<string> = rows
         .filter((cells: Array<string>): boolean => {
-          return !(cells[0] as string).includes("(under **");
+          return (
+            !(cells[0] as string).includes("(under **") &&
+            !(cells[0] as string).includes("(in **")
+          );
         })
         .map((cells: Array<string>): string => {
           return plain(cells[0] as string);
@@ -1281,14 +1334,30 @@ describe("criteria", () => {
       "public static readonly MAX_WINDOW_DAYS: number = 90;",
     );
 
+    // When to alert offers the same three, Medium unless one is chosen.
+    expect(
+      ANOMALY_SENSITIVITY_CHOICES.map(
+        (choice: TelemetryRuleChoice<string>): string => {
+          return choice.value;
+        },
+      ),
+    ).toEqual(["Low", "Medium", "High"]);
+    expect(
+      oneLine(
+        dashboardSource(
+          "Components/Form/Monitor/TelemetryRule/TelemetryRuleEditor.tsx",
+        ),
+      ),
+    ).toContain("AnomalyDetectionSensitivity.Medium");
+
     for (const markdown of [LOGS, TRACES]) {
       expect(markdown).toContain(
-        "Pick a **Sensitivity** — Low, Medium (the default) or High — and a **Baseline Window** of 14 (the default), 28, 60 or 90 days.",
+        "Pick a **Sensitivity** — Low, Medium (the default) or High — and, in the custom criteria, a **Baseline Window** of 14 (the default), 28, 60 or 90 days.",
       );
     }
 
     expect(METRICS).toContain(
-      "The form shows **Sensitivity** — Low, Medium (the default) or High — and **Baseline Window** — 14 days (the default), 28, 60 or 90 — instead",
+      "**When to alert** shows **Sensitivity** — Low, Medium (the default) or High — instead, and the custom criteria a **Baseline Window** too — 14 days (the default), 28, 60 or 90 —",
     );
   });
 
@@ -1521,9 +1590,33 @@ describe("the criteria a new monitor starts with", () => {
     },
   );
 
-  it("Metrics: both start on the first query, with the Any Value aggregation, and a reported 0 is not silence", () => {
+  it("Metrics: Create Monitor starts on one rule, the API on two criteria with the Any Value aggregation, and a reported 0 is not silence", () => {
+    const recipe: TelemetryRuleRecipe | null = getDefaultRecipe(
+      MonitorType.Metrics,
+    );
+    const measure: string | undefined = METRIC_AGGREGATION_CHOICES.find(
+      (choice: TelemetryRuleChoice<EvaluateOverTimeType>): boolean => {
+        return choice.value === recipe?.metricAggregationType;
+      },
+    )?.label;
+    const window: string | undefined = METRIC_RULE_WINDOW_OPTIONS.find(
+      (option: { value: RollingTime; label: string }): boolean => {
+        return option.value === recipe?.rollingTime;
+      },
+    )?.label;
+    const comparison: string | undefined = getComparisonChoices({
+      monitorType: MonitorType.Metrics,
+    }).find((choice: TelemetryRuleChoice<FilterType>): boolean => {
+      return choice.value === recipe?.filterType;
+    })?.label;
+
+    expect(recipe?.action).toBe(TelemetryAlertRuleAction.Alert);
+    expect(recipe?.threshold).toBeUndefined();
     expect(METRICS).toContain(
-      `A new Metrics monitor starts with two criteria on its first query, both with the **${EvaluateOverTimeType.AnyValue}** aggregation:`,
+      `A Metrics monitor made in Create Monitor starts on one rule, on its first query: **${measure}** over **${window}**, **${comparison}** the **Value** you enter, and **Create an alert**.`,
+    );
+    expect(METRICS).toContain(
+      `A new Metrics monitor created through the API or Terraform without criteria starts with two criteria on its first query, both with the **${EvaluateOverTimeType.AnyValue}** aggregation:`,
     );
     expect(METRICS).toContain(
       "The offline criteria fires on a reported value of 0, not on silence. To alert when a metric stops arriving, set its **If No Data** to **Trigger**.",
@@ -1532,18 +1625,30 @@ describe("the criteria a new monitor starts with", () => {
 });
 
 describe("the Metrics monitor", () => {
-  it("offers the twenty time ranges the page lists, starting at Past 1 Minute", () => {
+  it("offers the twenty time windows the page lists, one per rolling time a step stores", () => {
     const paragraph: string = lineStartingWith(
       METRICS,
-      "**Time Range** sets how far back every evaluation looks:",
+      "The **Time window** in **When to alert** sets how far back every evaluation looks:",
     );
 
-    expect(boldSpans(paragraph).slice(1)).toEqual(Object.values(RollingTime));
+    expect(boldSpans(paragraph).slice(2)).toEqual(
+      METRIC_RULE_WINDOW_OPTIONS.map(
+        (option: { value: RollingTime; label: string }): string => {
+          return option.label;
+        },
+      ),
+    );
+    expect(
+      METRIC_RULE_WINDOW_OPTIONS.map(
+        (option: { value: RollingTime; label: string }): RollingTime => {
+          return option.value;
+        },
+      ),
+    ).toEqual(Object.values(RollingTime));
     expect(RollingTimeUtil.getDefault()).toBe(RollingTime.Past1Minute);
     expect(MonitorStepMetricMonitorUtil.getDefault().rollingTime).toBe(
       RollingTime.Past1Minute,
     );
-    expect(METRICS).toContain(`It starts at **${RollingTime.Past1Minute}**.`);
   });
 
   it("says how wide one data point is for every time range, as the aggregate query buckets the window", () => {
@@ -1559,11 +1664,27 @@ describe("the Metrics monitor", () => {
       [AggregationInterval.Year]: "year",
       [AggregationInterval.Total]: "total",
     };
-    const order: Array<string> = Object.values(RollingTime);
+    // The rolling times in order, by the names When to alert gives them.
+    const order: Array<string> = METRIC_RULE_WINDOW_OPTIONS.map(
+      (option: { value: RollingTime; label: string }): string => {
+        return option.label;
+      },
+    );
+    const nameOf: (rollingTime: RollingTime) => string = (
+      rollingTime: RollingTime,
+    ): string => {
+      return (
+        METRIC_RULE_WINDOW_OPTIONS.find(
+          (option: { value: RollingTime; label: string }): boolean => {
+            return option.value === rollingTime;
+          },
+        )?.label || rollingTime
+      );
+    };
     const documented: Map<string, string> = new Map<string, string>();
 
     for (const [ranges, width] of tableRows(METRICS, [
-      "Time Range",
+      "Time window",
       "One data point per",
     ])) {
       for (const part of (ranges as string).split(", ")) {
@@ -1584,9 +1705,20 @@ describe("the Metrics monitor", () => {
 
     expect([...documented.keys()].sort()).toEqual([...order].sort());
 
+    /*
+     * Every window ends at one instant, not now, so the check is the same on
+     * whatever day it runs. Past 1, 3 and 7 Days and Past 180 Days each sit
+     * on a bucket's edge: a day range is 24 hours a day, not calendar days,
+     * or a window the clocks went back inside would be an hour longer and
+     * tip into the next bucket (RollingTimeUtilLondon).
+     */
+    const windowEnd: Date = new Date(Date.UTC(2026, 9, 16, 12, 0, 0));
+
     for (const rollingTime of Object.values(RollingTime)) {
-      const window: InBetween<Date> =
-        RollingTimeUtil.convertToStartAndEndDate(rollingTime);
+      const window: InBetween<Date> = RollingTimeUtil.convertToStartAndEndDate(
+        rollingTime,
+        windowEnd,
+      );
       const interval: AggregationInterval =
         AggregationIntervalUtil.getAggregationIntervalForWindow({
           startDate: window.startValue,
@@ -1595,7 +1727,7 @@ describe("the Metrics monitor", () => {
 
       expect({
         rollingTime: rollingTime,
-        width: documented.get(rollingTime),
+        width: documented.get(nameOf(rollingTime)),
       }).toEqual({ rollingTime: rollingTime, width: widths[interval] });
     }
 
@@ -1620,13 +1752,25 @@ describe("the Metrics monitor", () => {
     );
   });
 
-  it("reduces a criteria's data points the six ways the Aggregation table lists, in its order", () => {
+  it("reduces the rule's data points the six ways the Measured as table lists, in its order, each named as the custom criteria name it", () => {
+    const rows: Array<Array<string>> = tableRows(METRICS, [
+      "Measured as",
+      "In the custom criteria",
+      "The condition is checked against…",
+    ]);
+
     expect(
-      tableRows(METRICS, [
-        "Aggregation",
-        "The condition is checked against…",
-      ]).map((cells: Array<string>): string => {
-        return cells[0] as string;
+      rows.map((cells: Array<string>): EvaluateOverTimeType | undefined => {
+        return METRIC_AGGREGATION_CHOICES.find(
+          (choice: TelemetryRuleChoice<EvaluateOverTimeType>): boolean => {
+            return choice.label === cells[0];
+          },
+        )?.value;
+      }),
+    ).toEqual(Object.values(EvaluateOverTimeType));
+    expect(
+      rows.map((cells: Array<string>): string => {
+        return cells[1] as string;
       }),
     ).toEqual(Object.values(EvaluateOverTimeType));
   });
@@ -1639,16 +1783,20 @@ describe("the Metrics monitor", () => {
 
     expect(values).toEqual([640, 980, 1500, 1620, 1100]);
     expect(METRICS).toContain(
-      "A criteria of **Metric** `a`, **Condition** **Greater Than**, **Threshold** `1000` gives a different answer for each **Aggregation**:",
+      "A rule **Above** `1000` gives a different answer for each way it is **Measured as**:",
     );
 
     for (const [aggregation, compared, matches] of tableRows(METRICS, [
-      "Aggregation",
+      "Measured as",
       "Compared with 1,000",
       "Matches?",
     ])) {
       const evaluationType: EvaluateOverTimeType =
-        aggregation as EvaluateOverTimeType;
+        METRIC_AGGREGATION_CHOICES.find(
+          (choice: TelemetryRuleChoice<EvaluateOverTimeType>): boolean => {
+            return choice.label === aggregation;
+          },
+        )?.value as EvaluateOverTimeType;
       const reduced: Array<number> = CompareCriteria.reduceWindow({
         values: values,
         evaluationType: evaluationType,
@@ -1696,8 +1844,28 @@ describe("the Metrics monitor", () => {
 
     expect(form).toContain("<FoldedSection title={MORE_FIELDS_SECTION_TITLE}");
     expect(form).toContain('title="If No Data"');
+
+    // When to alert's words for the same three, folded the same way.
+    const editor: string = oneLine(
+      dashboardSource(
+        "Components/Form/Monitor/TelemetryRule/TelemetryRuleEditor.tsx",
+      ),
+    );
+
+    expect(editor).toContain(
+      '{ value: NoDataPolicy.Ignore, label: translationKey("Nothing") }',
+    );
+    expect(editor).toContain(
+      'value: NoDataPolicy.TreatAsZero, label: translationKey("Count it as zero"),',
+    );
+    expect(editor).toContain(
+      'value: NoDataPolicy.Trigger, label: translationKey("Alert, as if it matched"),',
+    );
+    expect(editor).toContain("(rule.onNoDataPolicy || NoDataPolicy.Ignore)");
+    expect(editor).toContain("title={MORE_FIELDS_SECTION_TITLE}");
+    expect(TelemetryRuleCopy.noDataTitle).toBe("If there is no data");
     expect(METRICS).toContain(
-      "a criteria does what its **If No Data** setting says, under **More fields**: **Ignore** (the default — the criteria does not match), **Treat As Zero**, or **Trigger**.",
+      "the rule does what **If there is no data** says, under **More fields** in **When to alert**: **Nothing** (the default — the rule does not match), **Count it as zero**, or **Alert, as if it matched**.",
     );
   });
 
@@ -1734,7 +1902,16 @@ describe("the Metrics monitor", () => {
       `the evaluation log says how far it has got: \`${message.slice(0, -1)}\`.`,
     );
 
-    expect(METRICS).toContain("- **All Values needs the whole time range.**");
+    expect(METRICS).toContain(
+      "- **Every value needs the whole time range.** A series meets a rule measured as **Every value (the whole window)**",
+    );
+    expect(
+      METRIC_AGGREGATION_CHOICES.find(
+        (choice: TelemetryRuleChoice<EvaluateOverTimeType>): boolean => {
+          return choice.value === EvaluateOverTimeType.AllValues;
+        },
+      )?.label,
+    ).toBe("Every value (the whole window)");
     expect(METRICS).toContain(
       "When all of the monitor's data arrives late, as CloudWatch's does, its newest data point takes the place of now.",
     );
@@ -1898,8 +2075,14 @@ describe("the Exceptions monitor", () => {
         return sum + count;
       }, 0);
 
+    const moreThan: string | undefined = getComparisonChoices({
+      monitorType: MonitorType.Exceptions,
+    }).find((choice: TelemetryRuleChoice<FilterType>): boolean => {
+      return choice.value === FilterType.GreaterThan;
+    })?.label;
+
     expect(EXCEPTIONS).toContain(
-      `The **Exception Count** is ${counted}, so **Greater Than** \`0\` matches`,
+      `The **Exception Count** is ${counted}, so **${moreThan}** \`0\` matches`,
     );
   });
 });

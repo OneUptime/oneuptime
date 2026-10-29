@@ -1,7 +1,9 @@
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import MoreMenu from "../MoreMenu/MoreMenu";
-import React, { FunctionComponent, ReactElement } from "react";
+import { CardMenuExtras, useCardMenuExtras } from "./CardMenuExtras";
+import { getCardMenuExtraItemElements } from "./CardMenuExtraItems";
+import React, { FunctionComponent, ReactElement, useLayoutEffect } from "react";
 
 export interface ComponentProps {
   children: Array<ReactElement>;
@@ -35,10 +37,28 @@ export const CARD_MORE_MENU_TRIGGER_CLASS_NAME: string =
  * Every card header's ⋯ is this one component - an outlined button with three
  * dots, named "More options" unless the card names it - so a table's, a
  * feed's and a detail card's are the same button, and stay so.
+ *
+ * What the card's content adds (CardMenuExtras) - a table's "Reset column
+ * widths" once its columns are sized - comes after the card's own items.
  */
 const CardMoreMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const extras: CardMenuExtras | null = useCardMenuExtras();
+  const addMenu: (() => () => void) | undefined = extras?.addMenu;
+
+  /*
+   * Said before the page is painted, so a table in the card never draws a
+   * reset of its own for a frame first.
+   */
+  useLayoutEffect(() => {
+    return addMenu ? addMenu() : undefined;
+  }, [addMenu]);
+
+  const extraItems: Array<ReactElement> = getCardMenuExtraItemElements(
+    extras?.items || [],
+  );
+
   return (
     <MoreMenu
       menuIcon={IconProp.EllipsisHorizontal}
@@ -55,7 +75,9 @@ const CardMoreMenu: FunctionComponent<ComponentProps> = (
         </button>
       }
     >
-      {props.children}
+      {extraItems.length > 0
+        ? [...props.children, ...extraItems]
+        : props.children}
     </MoreMenu>
   );
 };

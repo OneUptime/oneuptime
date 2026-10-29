@@ -1,6 +1,6 @@
 {
   "name": "mobileapp",
-  "version": "14.0.94",
+  "version": "14.0.95",
   "license": "Apache-2.0",
   "main": "index.ts",
   "scripts": {
@@ -79,6 +79,9 @@
     },
     "@istanbuljs/load-nyc-config": {
       "js-yaml": "^4.3.2"
+    },
+    "@expo/cli": {
+      "zod": "^4.6.7"
     }
   },
   "private": true

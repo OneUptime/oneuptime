@@ -24,6 +24,7 @@ import TelemetryDocumentation, {
 import ProviderLogo, {
   isProviderLogo,
 } from "../../../Types/ProviderLogo/ProviderLogo";
+import { TELEMETRY_GUIDE_LANGUAGE_KEYS } from "../../../Types/Telemetry/OpenTelemetryGuides";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 import API from "../../../UI/Utils/API/API";
@@ -455,6 +456,232 @@ describe("TelemetryDocumentation", () => {
       ]);
       expect(
         screen.queryByTestId("telemetry-guide-advanced"),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  /*
+   * The website's step-by-step guide for the language picked, and one per
+   * framework of that language (Common/Types/Telemetry/OpenTelemetryGuides):
+   * each language button opens its own guides, and a language with no guide
+   * yet shows none. One label, then the guides as a list of links with a
+   * dot between them, each opening in a new tab.
+   */
+  describe("the step-by-step guides on the website", () => {
+    // The dots between the guides, which only the eye reads.
+    const separatorsIn: (line: HTMLElement) => Array<Element> = (
+      line: HTMLElement,
+    ): Array<Element> => {
+      return Array.from(line.querySelectorAll('[aria-hidden="true"]')).filter(
+        (element: Element): boolean => {
+          return element.textContent === "\u00b7";
+        },
+      );
+    };
+
+    const guideLinks: () => Array<[string, string | null]> = (): Array<
+      [string, string | null]
+    > => {
+      return within(screen.getByTestId("telemetry-framework-guides"))
+        .getAllByRole("link")
+        .map((link: HTMLElement): [string, string | null] => {
+          return [link.textContent || "", link.getAttribute("href")];
+        });
+    };
+
+    test("Node.js opens its own guide and every framework's, in the catalog's order", () => {
+      renderGuide("traces");
+
+      expect(guideLinks()).toEqual([
+        ["Node.js", "https://oneuptime.com/integrations/opentelemetry/nodejs"],
+        ["Express", "https://oneuptime.com/integrations/opentelemetry/express"],
+        ["NestJS", "https://oneuptime.com/integrations/opentelemetry/nestjs"],
+        ["Next.js", "https://oneuptime.com/integrations/opentelemetry/nextjs"],
+        ["Fastify", "https://oneuptime.com/integrations/opentelemetry/fastify"],
+        ["Koa", "https://oneuptime.com/integrations/opentelemetry/koa"],
+        ["hapi", "https://oneuptime.com/integrations/opentelemetry/hapi"],
+        ["Bun", "https://oneuptime.com/integrations/opentelemetry/bun"],
+        ["Deno", "https://oneuptime.com/integrations/opentelemetry/deno"],
+      ]);
+      // Several guides: the label is plural.
+      expect(
+        within(screen.getByTestId("telemetry-framework-guides")).getByText(
+          "Step-by-step guides",
+        ),
+      ).toBeInTheDocument();
+      for (const link of within(
+        screen.getByTestId("telemetry-framework-guides"),
+      ).getAllByRole("link")) {
+        expect(link.getAttribute("target")).toBe("_blank");
+        expect(link.getAttribute("rel")).toBe("noopener noreferrer");
+      }
+    });
+
+    test("lists the guides as one list, a dot between two and none after the last", () => {
+      renderGuide("traces");
+      const line: HTMLElement = screen.getByTestId(
+        "telemetry-framework-guides",
+      );
+
+      // A screen reader hears one list of nine guides, not nine loose links.
+      const items: Array<HTMLElement> = within(
+        within(line).getByRole("list"),
+      ).getAllByRole("listitem");
+      expect(items.length).toBe(9);
+
+      // The dots are for the eye only, and the last guide has none.
+      expect(separatorsIn(line).length).toBe(8);
+      expect(items[items.length - 1]!.textContent).toBe("Deno");
+
+      // The words read as a list: no label for the frameworks of their own.
+      expect(line).not.toHaveTextContent("For your framework");
+    });
+
+    test("tells a screen reader that every guide opens in a new tab", () => {
+      renderGuide("traces");
+      const line: HTMLElement = screen.getByTestId(
+        "telemetry-framework-guides",
+      );
+      const links: Array<HTMLElement> = within(line).getAllByRole("link");
+
+      for (const link of links) {
+        expect(link).toHaveAccessibleDescription("(opens in a new tab)");
+      }
+      // One note, read with each link, not repeated on screen.
+      const noteId: string | null = links[0]!.getAttribute("aria-describedby");
+      expect(noteId).toBeTruthy();
+      expect(document.getElementById(noteId!)?.className).toContain("sr-only");
+    });
+
+    test("React and Angular each open their own guide, with no framework list", () => {
+      renderGuide("logs");
+
+      fireEvent.click(screen.getByRole("button", { name: "React" }));
+      expect(guideLinks()).toEqual([
+        ["React", "https://oneuptime.com/integrations/opentelemetry/react"],
+      ]);
+      // One guide: the label is singular, and no dot follows it.
+      const line: HTMLElement = screen.getByTestId(
+        "telemetry-framework-guides",
+      );
+      expect(within(line).getByText("Step-by-step guide")).toBeInTheDocument();
+      expect(
+        within(line).queryByText("Step-by-step guides"),
+      ).not.toBeInTheDocument();
+      expect(separatorsIn(line)).toEqual([]);
+
+      fireEvent.click(screen.getByRole("button", { name: "Angular" }));
+      expect(guideLinks()).toEqual([
+        ["Angular", "https://oneuptime.com/integrations/opentelemetry/angular"],
+      ]);
+    });
+
+    test("Go, Rust, PHP, Ruby and Elixir each open their own guide and their frameworks'", () => {
+      renderGuide("traces");
+      const url: (slug: string) => string = (slug: string): string => {
+        return `https://oneuptime.com/integrations/opentelemetry/${slug}`;
+      };
+      const expected: Array<[string, Array<[string, string]>]> = [
+        [
+          "Go",
+          [
+            ["Go", url("go")],
+            ["Gin", url("gin")],
+            ["Echo", url("echo")],
+            ["Fiber", url("fiber")],
+            ["gRPC", url("grpc")],
+          ],
+        ],
+        [
+          "Rust",
+          [
+            ["Rust", url("rust")],
+            ["Axum", url("axum")],
+            ["Actix Web", url("actix-web")],
+          ],
+        ],
+        [
+          "PHP",
+          [
+            ["PHP", url("php")],
+            ["Laravel", url("laravel")],
+            ["Symfony", url("symfony")],
+            ["Slim", url("slim")],
+          ],
+        ],
+        [
+          "Ruby",
+          [
+            ["Ruby", url("ruby")],
+            ["Ruby on Rails", url("rails")],
+            ["Sinatra", url("sinatra")],
+            ["Sidekiq", url("sidekiq")],
+          ],
+        ],
+        [
+          "Elixir",
+          [
+            ["Elixir", url("elixir")],
+            ["Phoenix", url("phoenix")],
+          ],
+        ],
+      ];
+
+      for (const [button, links] of expected) {
+        fireEvent.click(screen.getByRole("button", { name: button }));
+        expect([button, guideLinks()]).toEqual([button, links]);
+      }
+    });
+
+    test("offers a button for every language the guides' catalog knows, in its order", () => {
+      expect(
+        TELEMETRY_LANGUAGES.map((language: { key: string }): string => {
+          return language.key;
+        }),
+      ).toEqual([...TELEMETRY_GUIDE_LANGUAGE_KEYS]);
+    });
+
+    test("a language with no guide shows none", () => {
+      renderGuide("metrics");
+
+      // Swift has no guide on the website, nor one planned with the others.
+      fireEvent.click(screen.getByRole("button", { name: "Swift" }));
+
+      expect(
+        screen.queryByTestId("telemetry-framework-guides"),
+      ).not.toBeInTheDocument();
+    });
+
+    test("an installation that goes by a name of its own sends nobody to OneUptime's website", () => {
+      const browserWindow: { process?: { env?: Record<string, unknown> } } =
+        window as unknown as { process?: { env?: Record<string, unknown> } };
+      browserWindow.process = browserWindow.process || {};
+      browserWindow.process.env = browserWindow.process.env || {};
+      browserWindow.process.env["PRODUCT_BRANDING"] = JSON.stringify({
+        productName: "Acme Observability",
+      });
+
+      try {
+        renderGuide("traces");
+
+        expect(
+          screen.queryByTestId("telemetry-framework-guides"),
+        ).not.toBeInTheDocument();
+        // The guide itself is all there: only the website's links are left out.
+        expect(
+          screen.getByRole("button", { name: "Node.js" }),
+        ).toBeInTheDocument();
+      } finally {
+        delete browserWindow.process.env["PRODUCT_BRANDING"];
+      }
+    });
+
+    test("the profiles guide, which is not OpenTelemetry, shows none", () => {
+      renderGuide("profiles");
+      pickMethod("Language SDK");
+
+      expect(
+        screen.queryByTestId("telemetry-framework-guides"),
       ).not.toBeInTheDocument();
     });
   });

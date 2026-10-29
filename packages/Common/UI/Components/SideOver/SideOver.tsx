@@ -1,6 +1,7 @@
 import Button, { ButtonStyleType } from "../Button/Button";
 import Icon from "../Icon/Icon";
 import { CardSurface, CardSurfaceContext } from "../Card/CardSurface";
+import { CardMenuExtrasContext } from "../Card/CardMenuExtras";
 import { DetailValueContext } from "../Detail/DetailValueContext";
 import { TableCellContext } from "../Table/TableCellContext";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -158,11 +159,12 @@ const SideOver: FunctionComponent<ComponentProps> = (
     /*
      * z-30 clears every tier of page chrome (sticky headers and table headers
      * at z-10/z-20, map and log-viewer toolbars at z-20) while staying under
-     * the app-wide overlays that must remain visible over a panel: the AI chat
-     * panel at z-40, Modal at z-50, portalled dropdown menus at z-60.
-     * Deliberately NOT z-40 — AIChatPanel is mounted ahead of the routed page
-     * in App.tsx, so an equal z-index would be broken in this panel's favour
-     * by document order and the AI drawer would disappear behind it.
+     * the app-wide overlays that must remain visible over a panel: the Ask
+     * AI dialog at z-40 (a drawer's "Explain with AI" opens it over the
+     * drawer), Modal at z-50, portalled dropdown menus at z-60.
+     * Deliberately NOT z-40 — at an equal z-index document order decides,
+     * and a drawer opened after Ask AI would paint over the dialog it was
+     * asked from.
      *
      * role="dialog" without aria-modal, because the panel genuinely is not
      * modal: everything outside it stays clickable by design (both topology
@@ -269,14 +271,17 @@ const SideOver: FunctionComponent<ComponentProps> = (
                  * never a section of the card it was opened from, nor is
                  * what it draws a value of the detail card it was opened
                  * from (DetailValueContext), nor a cell of the table it was
-                 * opened from (TableCellContext).
+                 * opened from (TableCellContext), nor are its options that
+                 * card's (CardMenuExtrasContext).
                  */}
                 <CardSurfaceContext.Provider value={CardSurface.Page}>
-                  <DetailValueContext.Provider value={false}>
-                    <TableCellContext.Provider value={false}>
-                      {props.children}
-                    </TableCellContext.Provider>
-                  </DetailValueContext.Provider>
+                  <CardMenuExtrasContext.Provider value={null}>
+                    <DetailValueContext.Provider value={false}>
+                      <TableCellContext.Provider value={false}>
+                        {props.children}
+                      </TableCellContext.Provider>
+                    </DetailValueContext.Provider>
+                  </CardMenuExtrasContext.Provider>
                 </CardSurfaceContext.Provider>
               </div>
             </div>

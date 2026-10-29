@@ -13,6 +13,7 @@ import {
   canDeleteProject,
   computeCreateActionGates,
   getEntitySearchSpecs,
+  getPageSearchCommandRanking,
   getVisibleActionIds,
   isRoutePathNavigable,
   PageSearchAvailability,
@@ -77,7 +78,7 @@ import PermissionGate from "Common/UI/Utils/PermissionGate";
 
 /*
  * The dashboard's command palette host: always mounted (App.tsx, next to
- * AIChatPanel), owns the Cmd/Ctrl+K shortcut (the legacy NavBar binding is
+ * AskAiDialog), owns the Cmd/Ctrl+K shortcut (the legacy NavBar binding is
  * disabled via disableCommandKShortcut) and the COMMAND_PALETTE_TOGGLE global
  * event, and feeds the generic Common CommandPalette with:
  *  - every product from the shared NavBar catalog (useDashboardNavigationItems),
@@ -205,7 +206,7 @@ const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
 
   /*
    * Cmd/Ctrl+K opens the palette from anywhere. Same guard style as
-   * AIChatPanel's Cmd/Ctrl+I: bail on extra modifiers and on events another
+   * AskAiDialog's Cmd/Ctrl+I: bail on extra modifiers and on events another
    * handler already claimed (defaultPrevented). No input-focus guard — the
    * chorded shortcut never collides with plain typing.
    */
@@ -696,9 +697,19 @@ const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
         breadcrumbKeywords: descriptor.breadcrumbKeywords,
         icon: descriptor.icon,
         iconColor: descriptor.iconColor,
+        /*
+         * A setting is listed among the pages, by how well it matches: in
+         * a group of its own, a page that only held the words somewhere in
+         * a keyword ("processors" for "sso") was drawn above "Require SSO
+         * for Login".
+         */
         category: descriptor.isAction ? actionsCategory : pagesCategory,
         isSearchOnly: true,
-        searchPriority: PALETTE_SEARCH_PRIORITY.page,
+        /*
+         * Between equally good matches a page before a setting, and a
+         * setting never before its page.
+         */
+        ...getPageSearchCommandRanking(descriptor),
         onSelect: () => {
           closePalette();
           Navigation.navigate(new Route(descriptor.routePath));

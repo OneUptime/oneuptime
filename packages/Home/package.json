@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/home",
-  "version": "14.0.94",
+  "version": "14.0.95",
   "description": "",
   "repository": {
     "type": "git",
@@ -11,6 +11,7 @@
     "start": "export NODE_OPTIONS=\"--max-old-space-size=8096${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --require ts-node/register Index.ts",
     "compile": "tsc",
     "build:css": "node -r ts-node/register/transpile-only Scripts/BuildTailwindCss.ts",
+    "verify:otel-guides": "node -r ts-node/register/transpile-only Scripts/VerifyOpenTelemetryGuides.ts",
     "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
     "dev": "npx nodemon",
     "audit": "npm audit --audit-level=low",

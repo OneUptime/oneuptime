@@ -6,7 +6,8 @@ Das Produkt Sicherheitsereignisse macht aus den Funden Ihrer Erkennungsregeln, I
 - [Woher Fälle kommen](#woher-fälle-kommen): Erkennungsregeln, Threat Intelligence, verbundene Produkte, Entitätsrisiko und Personen.
 - [Einen Fall bearbeiten](#einen-fall-bearbeiten): Ihn zuweisen, seine Entitäten untersuchen und ihn mit einer Bewertung schließen.
 - [Fallprioritäten und Fallstatus](#fallprioritäten-und-fallstatus): Umbenennen, umfärben, neu ordnen und eigene hinzufügen.
-- [Benachrichtigungen](#benachrichtigungen): Wer von einem neuen Fall, einer Zuweisung und einem Schritt erfährt, der auf Genehmigung wartet.
+- [Reaktionsziele](#reaktionsziele): Wie schnell ein Fall jeder Priorität übernommen und eingedämmt werden muss.
+- [Benachrichtigungen](#benachrichtigungen): Wer von einem neuen Fall, einer Zuweisung, einem Reaktionsziel, einer Aufgabe und einem Schritt erfährt, der auf Genehmigung wartet.
 - [Playbooks](#playbooks): Schritte, die auf einem Fall laufen, mit Genehmigung, wo es darauf ankommt.
 - [Die Übersicht](#die-übersicht): Was gerade Aufmerksamkeit braucht, und wie schnell Fälle bearbeitet werden.
 :::
@@ -36,9 +37,9 @@ Fälle und Playbooks folgen den drei Security-Rollen. Project Owner und Project 
 
 | Rolle | Was sie darf |
 | --- | --- |
-| Security Admin | Alles, auch Fälle löschen und Playbooks einrichten |
-| Security Member | Fälle eröffnen, zuweisen, ändern und schließen, Notizen schreiben, Playbooks ausführen und ihre Schritte genehmigen oder ablehnen |
-| Security Viewer | Fälle, Erkennungen, Notizen, Playbooks und deren Ausführungen lesen |
+| Security Admin | Alles, auch Fälle löschen, Belege entfernen und Playbooks einrichten |
+| Security Member | Fälle eröffnen, zuweisen, ändern und schließen, Notizen schreiben, Aufgaben bearbeiten, Belege hinzufügen, Playbooks ausführen und ihre Schritte genehmigen oder ablehnen |
+| Security Viewer | Fälle, Erkennungen, Notizen, Aufgaben, Belege, Playbooks und deren Ausführungen lesen |
 
 Jedes dieser Rechte lässt sich auch einzeln vergeben, vom Erstellen eines Falls bis zum Genehmigen der Schritte eines Playbooks; siehe [Berechtigungsreferenz](/docs/permissions/reference).
 
@@ -88,13 +89,13 @@ Ein Fall hat ein eigenes Seitenmenü, wie ein Vorfall, und jeder Teil des Falls 
 | Abschnitt im Seitenmenü | Seiten |
 | --- | --- |
 | **Übersicht** | **Übersicht**, **Zeitachse** |
-| **Untersuchung** | **Hergang**, **Erkennungen**, **Entitäten**, **Verbundene Signale**, **Playbooks** |
+| **Untersuchung** | **Hergang**, **Erkennungen**, **Entitäten**, **Verbundene Signale**, **Belege**, **Aufgaben**, **Playbooks** |
 | **Notizen** | **Private Notizen** |
 | **Erweitert** | **Audit-Protokolle**, **Fall löschen**, eingeklappt, bis Sie auf **Erweitert** klicken |
 
-Jede Seite behält oben den Kopf des Falls: Nummer, Priorität, Status und Titel, **Mir zuweisen**, **Playbook ausführen**, **Vorfall melden** und **Fall schließen**, und im Menü ⋯ daneben **Priorität setzen**, **Jemand anderem zuweisen**, **Status ändern**, **Fall bearbeiten** und **Fall löschen**. So lässt sich der Fall von jeder seiner Seiten aus bearbeiten, und ein Link zum Fall öffnet weiterhin seine **Übersicht**.
+Jede Seite behält oben den Kopf des Falls: Nummer, Priorität, Status und Titel, **Mir zuweisen**, **Playbook ausführen**, **Vorfall melden** und **Fall schließen**, und im Menü ⋯ daneben **Priorität setzen**, **Jemand anderem zuweisen**, **Status ändern**, **Fall bearbeiten** und **Fall löschen**. So lässt sich der Fall von jeder seiner Seiten aus bearbeiten, und ein Link zum Fall öffnet weiterhin seine **Übersicht**. Hat die Priorität des Falls Reaktionsziele, zeigt der Kopf auch, wann das nächste fällig ist ([Reaktionsziele](#reaktionsziele)).
 
-- **Übersicht**: die Beschreibung, Labels und Statusschritte des Falls, wer ihn hat und was ihn eröffnet hat, und seine Kennzahlen: wie viele Erkennungen er hat, wie lange er schon offen ist und wie lange es bis zur Bestätigung und bis zur Eindämmung gedauert hat.
+- **Übersicht**: die Beschreibung, Labels und Statusschritte des Falls, wer ihn hat und was ihn eröffnet hat, und seine Kennzahlen: wie viele Erkennungen er hat, wie lange er schon offen ist und wie lange es bis zur Bestätigung und bis zur Eindämmung gedauert hat. Unter **Zeit bis zur Bestätigung** und **Zeit bis zur Eindämmung** steht, wie der Fall zu seinen Reaktionszielen steht.
 - **OneUptime AI**, auf der **Übersicht**: was OneUptime AI aus dem Fall gelesen hat, die Priorität und das Playbook, die es vorschlägt, und die Beweise dahinter. Siehe [OneUptime AI in der Sicherheit](/docs/telemetry/security-ai).
 - **Auswirkungen**, auf der **Übersicht**: was der Fall gefährdet: ob OneUptime gesehen hat, dass seine Einträge aus dem Internet erreicht wurden, wem sie gehören und was sich zuletzt an ihnen geändert hat. Klappen Sie sie auf, um zu sehen, was jeder Eintrag aufruft und wovon er aufgerufen wird, welche Monitore und Statusseiten ihn beobachten und mit welchen Rechnern die Adressen des Falls kommuniziert haben.
 - **MITRE ATT&CK**, auf der **Übersicht**: die Taktiken und Techniken, denen seine Erkennungen zugeordnet sind, jeweils verlinkt mit ihrer Seite auf attack.mitre.org.
@@ -103,6 +104,8 @@ Jede Seite behält oben den Kopf des Falls: Nummer, Priorität, Status und Titel
 - **Erkennungen**: was ausgelöst hat, um den Fall zu eröffnen oder ihn zu ergänzen, wie oft, und das neueste passende Ereignis.
 - **Entitäten**: die Benutzer, Hosts und Adressen, um die es im Fall geht, mit ihrer Aktivität in allen Ihren Sicherheitsereignissen der letzten 7 Tage. Jede öffnet sich in **Korrelieren**.
 - **Verbundene Signale**: die Hosts, Cluster, Dienste und Mitglieder, die der Fall nennt, wie OneUptime sie kennt, und was auf jedem davon rund um seine Erkennungen geschah: ihre Protokolle, Traces und Metriken, was darauf offen ist und was sich geändert hat. Siehe [Verbundene Signale](/docs/telemetry/security-connected-signals).
+- **Belege**: die Dateien und Links, die zum Fall aufbewahrt werden, jeweils mit Person und Zeitpunkt des Hinzufügens. Mit **Datei hinzufügen** laden Sie eine Datei mit bis zu 10 MB hoch, und der SHA-256 des Hochgeladenen wird festgehalten, damit jeder, der sie später herunterlädt, prüfen kann, dass es das Aufbewahrte ist; mit **Link hinzufügen** verweisen Sie auf Belege, die anderswo liegen. Nur ein Security Admin kann einen Beleg entfernen, und die **Zeitachse** des Falls zeigt, was hinzugefügt und entfernt wurde.
+- **Aufgaben**: was im Fall zu tun ist, wer es erledigt und ob es erledigt ist. Fügen Sie eine Aufgabe als Zeile hinzu, geben Sie sie jemandem und haken Sie sie ab, wenn sie erledigt ist. Wer die Aufgabe bekommt, wird benachrichtigt, außer er hat sie sich selbst genommen, und das Menü zeigt neben **Aufgaben**, wie viele Aufgaben offen sind.
 - **Playbooks**: was jedes Playbook am Fall getan hat, Schritt für Schritt, und die Schritte, die auf Genehmigung warten. Solange Ausführungen warten, zeigt das Menü neben **Playbooks**, wie viele es sind.
 - **Private Notizen**: was das Team zum Fall geschrieben hat.
 - **Audit-Protokolle**: jede Änderung am Fall und wer sie vorgenommen hat. Siehe [Audit-Protokolle](/docs/configuration/audit-logs).
@@ -129,6 +132,8 @@ Sie müssen einen Fall nicht öffnen, um ihn zu bearbeiten. In den Listen der Wa
 
 Die Bewertungen werden in der Übersicht gezählt. Eine Regel, deren Fälle immer wieder als False Positive geschlossen werden, sollte nachgeschärft werden.
 
+Solange Aufgaben des Falls noch offen sind, nennt der Dialog **Fall schließen** ihre Anzahl.
+
 Ein Fall, der aus Google SecOps-Warnungen eröffnet wurde, schließt sie auch in Google SecOps, mit dem Urteil und der Abschlussnotiz, wenn an seiner Verbindung **Warnungen schließen, wenn ihr Fall geschlossen wird** eingeschaltet ist: siehe [Google SecOps](/docs/integrations/google-secops#warnungen-schließen-wenn-ihr-fall-geschlossen-wird).
 
 ### Einen Vorfall melden
@@ -154,21 +159,49 @@ Einige sind vordefiniert, weil OneUptime liest, was sie bedeuten. Sie lassen sic
 
 Um einen eigenen Status oder eine eigene Priorität nicht mehr zu verwenden, nutzen Sie **Archivieren** in ihrer Zeile. Niemand kann sie dann mehr wählen, und die API, Terraform und MCP lehnen sie ab, aber die Fälle, die sie haben, behalten sie, und Sie können weiter danach filtern. Archivierte Werte stehen im eingeklappten Abschnitt **Archivierte Fallstatus** oder **Archivierte Fallprioritäten** unter der Tabelle, wo **Aus Archiv entfernen** einen zurückholt. **Löschen** wird abgelehnt, solange Fälle den Wert haben oder ein Playbook ab der Priorität läuft.
 
+## Reaktionsziele
+
+Ein Reaktionsziel legt fest, wie schnell ein Fall bearbeitet werden muss: **Bestätigen innerhalb von**, wie lange ein neuer Fall warten darf, bis ihn jemand übernimmt, und **Eindämmen innerhalb von**, wie lange es dauern darf, bis er eingedämmt oder geschlossen ist. Jede Fallpriorität hat ihre eigenen, unter **Produkte → Sicherheitsereignisse → Einstellungen → Reaktionsziele**: Mit **Bearbeiten** in der Zeile einer Priorität setzen Sie ihre beiden Ziele, in Minuten, Stunden oder Tagen, bis zu einem Jahr, und ein leeres Ziel bedeutet kein Ziel. Die Prioritäten eines neuen Projekts beginnen mit diesen:
+
+| Priorität | Bestätigen innerhalb von | Eindämmen innerhalb von |
+| --- | --- | --- |
+| Kritisch | 15 Minuten | 4 Stunden |
+| Hoch | 1 Stunde | 1 Tag |
+| Medium | 12 Stunden | 3 Tage |
+| Low | 1 Tag | 7 Tage |
+| Hinweise | Kein Ziel | Kein Ziel |
+
+Ein Projekt, das vor den Reaktionszielen angelegt wurde, hat keine, bis jemand sie setzt.
+
+- Die Fälligkeiten eines Falls werden bei seiner Eröffnung aus den Zielen seiner Priorität gesetzt. Ein später geändertes Ziel gilt für die Fälle, die danach eröffnet werden.
+- Ein Fall ist bestätigt, sobald ihn jemand übernimmt: Eine Person wird zugewiesen, oder er wechselt in einen Status, der als bestätigt zählt. Er ist eingedämmt, sobald er einen Status erreicht, der als eingedämmt zählt, oder geschlossen wird.
+- Ändert sich die Priorität eines Falls, bleibt ein Ziel, das er erreicht oder verfehlt hat, wie es war. Eine höhere Priorität rückt eine Fälligkeit näher: Das neue Ziel zählt ab der Änderung, es sei denn, die alte Fälligkeit kommt zuerst. Eine niedrigere Priorität verschiebt sie nach hinten, nie nach vorn: Das neue Ziel zählt ab der Eröffnung des Falls. Eine Priorität ohne Ziel behält die Fälligkeit eines hochgestuften Falls und löscht die eines herabgestuften.
+- Ein geschlossener Fall, der wieder geöffnet wird, bevor er je eingedämmt war, bekommt eine neue Fälligkeit für die Eindämmung, gezählt ab dem Wiederöffnen.
+- Im letzten Fünftel eines Ziels verfehlt der Fall es gleich: Die Zuständigen werden benachrichtigt, und noch einmal, wenn es verfehlt ist. Siehe [Benachrichtigungen](#benachrichtigungen).
+
+Wo die Ziele zu sehen sind:
+
+- Der Kopf des Falls nennt das nächste Ziel und wie viel Zeit bleibt, oder wie lange es überfällig ist: grau, solange Zeit bleibt, bernsteinfarben im letzten Fünftel, rot, sobald es verfehlt ist.
+- In der **Übersicht** des Falls, unter **Zeit bis zur Bestätigung** und **Zeit bis zur Eindämmung**: wie der Fall zu jedem Ziel steht, oder wie weit er darüber lag.
+- In den Listen der Warteschlange: die Zeile unter der Priorität jedes Falls und eine Spalte **Fällig**, die Sie einblenden und nach der Sie sortieren können. Die Listen zeigen sie nur, wenn eine Priorität des Projekts ein Ziel hat.
+
 ## Benachrichtigungen
 
-OneUptime informiert Personen über drei Dinge an einem Fall. Niemand muss dafür etwas einrichten: Ein Projekt, das nur auf **Empfohlenes aktivieren** geklickt hat, erfährt von seinen Fällen mit Priorität Hoch und Kritisch per E-Mail und Push.
+OneUptime informiert Personen über fünf Dinge an einem Fall. Niemand muss dafür etwas einrichten: Ein Projekt, das nur auf **Empfohlenes aktivieren** geklickt hat, erfährt von seinen Fällen mit Priorität Hoch und Kritisch per E-Mail und Push.
 
 | Benachrichtigung | Wer informiert wird | Standardmäßig |
 | --- | --- | --- |
 | Neuer Sicherheitsfall | Alle, die die Fälle des Projekts sehen können, wenn ein Fall eröffnet wird oder in der Priorität steigt, ab der Priorität, die sie gewählt haben | Per E-Mail und Push, für Fälle mit Priorität Hoch und Kritisch |
 | Mir zugewiesener Sicherheitsfall | Die Person, der der Fall zugewiesen ist, und die Mitglieder des Teams, dem er zugewiesen ist | Per E-Mail und Push |
 | Playbook-Schritt wartet auf meine Genehmigung | Die Personen am Fall, die den Schritt genehmigen dürfen: die Person, der er zugewiesen ist, und die Mitglieder seines Teams. Darf keiner von ihnen genehmigen, alle im Projekt, die es dürfen | Per E-Mail und Push |
+| Reaktionsziel eines Sicherheitsfalls | Die Personen am Fall: die Person, der er zugewiesen ist, und die Mitglieder seines Teams. Ist niemand am Fall, die Personen, die über neue Fälle seiner Priorität informiert werden | Per E-Mail und Push |
+| Mir zugewiesene Aufgabe eines Sicherheitsfalls | Die Person, der eine Aufgabe des Falls gegeben wird, außer sie hat sie sich selbst genommen | Per E-Mail und Push |
 
 - Nur Personen, die den Fall sehen können, werden darüber informiert: Project Owner, Project Admin und die Rollen Security Admin, Security Member und Security Viewer. Eine Rolle, die auf bestimmte Labels beschränkt ist, wird nur über die Fälle mit diesen Labels informiert.
 - Niemand wird über das informiert, was er selbst getan hat: Wer einen Fall per Hand eröffnet, ihn zuweist oder eine Ausführung startet, wird darüber nicht benachrichtigt.
 - Jede Person erfährt nur einmal von einem Fall. Ein Fall, der mit Medium eröffnet wird und später auf Kritisch steigt, erreicht beim Anstieg die Personen, die Hoch und Kritisch oder Nur Kritisch gewählt haben, und nicht noch einmal die Personen, die Mittel und höher gewählt und schon bei der Eröffnung davon erfahren haben.
 - Der Testangriff aus **Testangriff senden** eröffnet einen Fall, der niemanden benachrichtigt.
-- Ein Fall mit Priorität Kritisch und ein Schritt, der auf Genehmigung wartet, werden sofort gesendet und nie in einer [E-Mail-Zusammenfassung](/docs/emails/notification-rollup) zurückgehalten.
+- Ein Fall mit Priorität Kritisch und ein Schritt, der auf Genehmigung wartet, werden sofort gesendet und nie in einer [E-Mail-Zusammenfassung](/docs/emails/notification-rollup) zurückgehalten. Ebenso ein Reaktionsziel, das gleich verfehlt wird oder verfehlt ist.
 - Die **Zeitachse** des Falls zeigt, wer wann informiert wurde.
 
 ### Wählen, worüber Sie informiert werden
@@ -199,7 +232,7 @@ Um in einem Kanal zu posten, fügen Sie unter **Produkte → Sicherheitsereignis
 | Quelle des Sicherheitsfalls | Erkennungsregel, Threat Intel, Connected Product, Entitätsrisiko, Data Security oder Manuell |
 | Beschriftungen des Sicherheitsfalls | Die Labels des Falls |
 
-Die drei Benachrichtigungen werden jeweils in die Kanäle jeder Regel gepostet, auf die der Fall in diesem Moment passt. Eine Regel, deren **Priorität des Sicherheitsfalls** eines von **Kritisch** und **Hoch** enthält, postet Fälle mit Priorität Hoch und Kritisch, sobald sie eröffnet werden, und einen Fall mit Medium, wenn er auf Hoch steigt. Ein Sicherheitsfall bekommt nie einen eigenen Kanal.
+Jede Benachrichtigung außer der zu einer Aufgabe wird in die Kanäle jeder Regel gepostet, auf die der Fall in diesem Moment passt. Eine Regel, deren **Priorität des Sicherheitsfalls** eines von **Kritisch** und **Hoch** enthält, postet Fälle mit Priorität Hoch und Kritisch, sobald sie eröffnet werden, und einen Fall mit Medium, wenn er auf Hoch steigt. Ein Sicherheitsfall bekommt nie einen eigenen Kanal.
 
 ## Playbooks
 
@@ -351,8 +384,8 @@ Darüber zeigt ein Streifen, wie Sicherheit eingerichtet ist: ihre Quellen, Erke
 ## Automatisieren
 
 - **Arbeitsabläufe**: Ein Fall oder eine Notiz kann einen Workflow starten, wenn er oder sie erstellt, aktualisiert oder gelöscht wird. Ein Schritt **Arbeitsablauf ausführen** startet einen Workflow, dessen Trigger ein Webhook ist.
-- **API**: Fälle, Notizen, Erkennungen, Playbooks, Ausführungen, geschützte Entitäten sowie Fallprioritäten und Fallstatus haben dieselbe REST-API wie der Rest von OneUptime, unter `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` und `/security-case-status`. Siehe [API-Referenz](/docs/api-reference/api-reference).
-- KI-Agenten: Der MCP-Server hat Werkzeuge für Fälle, Notizen, Erkennungen, Playbooks sowie Fallprioritäten und Fallstatus. Siehe [MCP-Server](/docs/ai/mcp-server).
+- **API**: Fälle, Notizen, Aufgaben, Belege, Erkennungen, Playbooks, Ausführungen, geschützte Entitäten sowie Fallprioritäten und Fallstatus haben dieselbe REST-API wie der Rest von OneUptime, unter `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` und `/security-case-status`. Siehe [API-Referenz](/docs/api-reference/api-reference).
+- KI-Agenten: Der MCP-Server hat Werkzeuge für Fälle, Notizen, Aufgaben, Belege, Erkennungen, Playbooks sowie Fallprioritäten und Fallstatus. Siehe [MCP-Server](/docs/ai/mcp-server).
 - Terraform: Die Ressourcen `oneuptime_security_case_priority` und `oneuptime_security_case_status` halten die Prioritäten und Status eines Projekts als Code fest.
 
 ## Fehlerbehebung
@@ -363,6 +396,10 @@ Prüfen Sie **Bei Treffer einen Fall eröffnen** im Schritt **Bei Treffer** der 
 
 :::details Niemand wurde über einen Fall informiert
 Sehen Sie in der **Zeitachse** des Falls nach, die zeigt, wer benachrichtigt wurde. Eine Benachrichtigung **Neuer Sicherheitsfall** geht an die Personen, deren gewählte Priorität der Fall erreicht; ein Fall mit Medium benachrichtigt also niemanden, der die Voreinstellung **Hoch und höher** behalten hat. Prüfen Sie, dass die Personen, die davon erfahren sollen, Sicherheitsfälle sehen können (eine Security-Rolle oder Project Owner bzw. Project Admin) und dass die Benachrichtigung für sie unter **Benutzereinstellungen → Benachrichtigungseinstellungen → Sicherheit** eingeschaltet ist.
+:::
+
+:::details Ein Fall zeigt keine Fälligkeit
+Seine Priorität hat kein Reaktionsziel, oder hat es erst nach der Eröffnung des Falls bekommen: Die Fälligkeiten eines Falls werden bei seiner Eröffnung gesetzt. Der Fall des Testangriffs hat keine. Siehe [Reaktionsziele](#reaktionsziele).
 :::
 
 :::details Ein Playbook ist nicht gelaufen

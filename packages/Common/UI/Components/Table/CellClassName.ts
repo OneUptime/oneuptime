@@ -123,9 +123,10 @@ export function isFillingNameColumn<T extends GenericObject>(
 /*
  * The kinds of value that are never cut short to make a table fit its card
  * (TABLE_VALUE_GIVE_CLASS_NAME): a date, a number, a tick, a colour - each
- * says what it says only whole.
+ * says what it says only whole. Nor by a person narrowing their column
+ * (ColumnResize/ColumnWidths' ColumnWidthKind.Whole).
  */
-const VALUE_KINDS_KEPT_WHOLE: Array<FieldType> = [
+export const VALUE_KINDS_KEPT_WHOLE: ReadonlyArray<FieldType> = [
   FieldType.Actions,
   FieldType.Date,
   FieldType.DateTime,

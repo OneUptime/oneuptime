@@ -151,6 +151,7 @@ import RemoveProjectAccessOfFormerMembers from "./RemoveProjectAccessOfFormerMem
 import AddMissingIdsToMonitorSteps from "./AddMissingIdsToMonitorSteps";
 import MoveRunbookApprovalsBeforeTheirSteps from "./MoveRunbookApprovalsBeforeTheirSteps";
 import AddSecurityCaseNotificationSettingsForUsers from "./AddSecurityCaseNotificationSettingsForUsers";
+import AddSecurityCaseTargetAndTaskNotificationSettingsForUsers from "./AddSecurityCaseTargetAndTaskNotificationSettingsForUsers";
 import AddIncidentSlaBreachedNotificationSettingsForUsers from "./AddIncidentSlaBreachedNotificationSettingsForUsers";
 import RewriteFeedAttachmentLinks from "./RewriteFeedAttachmentLinks";
 import AddProcessColumnsToSecurityEvent from "./AddProcessColumnsToSecurityEvent";
@@ -813,6 +814,14 @@ const DataMigrations: Array<DataMigrationBase> = [
    * Idempotent, no ordering requirement.
    */
   new AddSecurityCaseNotificationSettingsForUsers(),
+  /*
+   * The two security case notification settings that came with response
+   * targets and case tasks (a case I am on about to miss, or missing, a
+   * response target; a task on a case assigned to me), with email and push
+   * on, for every member who joined before they existed. Idempotent, after
+   * the three above only because it was added after them.
+   */
+  new AddSecurityCaseTargetAndTaskNotificationSettingsForUsers(),
   /*
    * Security events gained the process an event is about and its parent
    * (SecurityEvent.processName, processPath, processCommandLine,

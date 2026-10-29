@@ -9,8 +9,18 @@ export interface ComponentProps {
   onActivate: (citationId: string) => void;
 }
 
+/*
+ * A citation mark reads as a footnote, never as code: a small round pill,
+ * a little raised, in the text's own font and with no frame - where the
+ * inline code beside it ("`checkout-api`") is a framed monospace box. Both
+ * used to be framed grey boxes of one size, so an answer read as a row of
+ * code spans. Shared by the report, an incident's AI conversation and Ask
+ * AI, so a mark looks the same wherever OneUptime AI cites. Proportional
+ * figures: Inter's tabular "1" has a foot, and drew "C1" as typewriter
+ * text.
+ */
 export const CITATION_CHIP_CLASS_NAME: string =
-  "mx-0.5 inline-flex h-[18px] items-center rounded px-1 align-baseline text-[11px] font-semibold tabular-nums bg-gray-100 text-gray-700 ring-1 ring-inset ring-gray-200 hover:bg-indigo-50 hover:text-indigo-700 hover:ring-indigo-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+  "mx-0.5 inline-flex h-4 min-w-[1.375rem] items-center justify-center rounded-full px-1.5 align-[0.1em] text-[10px] font-semibold leading-none bg-gray-100 text-gray-600 transition-colors hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
 
 /*
  * An inline "[C11]" marker in the report prose, turned into a small button

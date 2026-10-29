@@ -96,6 +96,21 @@ import {
   isPageAnchorName,
 } from "../../../UI/Utils/PageAnchor";
 
+/*
+ * A self-hosted Community Edition install: billing off and not the
+ * Enterprise Edition, whatever the environment says. CI's config.env turns
+ * billing on for every suite, and with billing on a page asks the project's
+ * plan instead of the edition - a plan this suite does not have, so the
+ * custom roles leftovers its pages fold would never be drawn.
+ */
+jest.mock("../../../UI/Config", () => {
+  return {
+    ...(jest.requireActual("../../../UI/Config") as Record<string, unknown>),
+    BILLING_ENABLED: false,
+    IS_ENTERPRISE_EDITION: false,
+  };
+});
+
 jest.mock("react-i18next", () => {
   return {
     useTranslation: () => {

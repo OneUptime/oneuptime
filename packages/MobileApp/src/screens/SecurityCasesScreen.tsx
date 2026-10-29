@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   FlatList,
   RefreshControl,
-  ScrollView,
   Text,
   View,
   type ListRenderItemInfo,
@@ -33,6 +32,7 @@ import { useRefresh } from "../hooks/useRefresh";
 import { useHaptics } from "../hooks/useHaptics";
 import ListFilters from "../components/ListFilters";
 import SearchField from "../components/SearchField";
+import ListStatusScroll from "../components/ListStatusScroll";
 import SkeletonCard from "../components/SkeletonCard";
 import EmptyState from "../components/EmptyState";
 import SecurityCaseCard from "../components/SecurityCaseCard";
@@ -120,6 +120,7 @@ export default function SecurityCasesScreen(): React.JSX.Element {
     (offsetY: number): void => {
       listRef.current?.scrollToOffset({ offset: offsetY, animated: false });
     },
+    { headerTop: spacing.xl },
   );
 
   useEffect((): void => {
@@ -276,13 +277,13 @@ export default function SecurityCasesScreen(): React.JSX.Element {
         testID="security-cases-screen"
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
       >
-        <ScrollView
+        <ListStatusScroll
+          scrollKey="security.scroll.status"
+          header={listHeader}
           testID="security-cases-status"
-          contentInsetAdjustmentBehavior="automatic"
           refreshControl={refreshControl}
           contentContainerStyle={contentContainerStyle}
         >
-          {listHeader}
           {isLoading ? (
             <View testID="security-cases-loading" style={{ marginTop: 4 }}>
               <SkeletonCard />
@@ -304,7 +305,7 @@ export default function SecurityCasesScreen(): React.JSX.Element {
               onAction={onRefresh}
             />
           )}
-        </ScrollView>
+        </ListStatusScroll>
       </View>
     );
   }
@@ -328,7 +329,9 @@ export default function SecurityCasesScreen(): React.JSX.Element {
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
-        ListHeaderComponent={listHeader}
+        ListHeaderComponent={
+          <View onLayout={scroll.onHeaderLayout}>{listHeader}</View>
+        }
         keyExtractor={(wrapped: ProjectSecurityCaseItem): string => {
           return `${wrapped.projectId}-${wrapped.item._id}`;
         }}

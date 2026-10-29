@@ -122,7 +122,7 @@ repository's retention period, 90 days by default.
 | --- | --- | --- |
 | published | People get this version from it | Nothing |
 | superseded | It has a newer release instead (only when checking an older version) | Nothing |
-| waiting | Not yet, and nothing is wrong. For six hours after the release, the publish jobs and the Pages deploy may still be catching up. For winget, Microsoft may still be reviewing, however long that takes | Wait for the next run. The details say what it is waiting for |
+| waiting | Not yet, and nothing is wrong. For six hours after the release, the publish jobs and the Pages deploy may still be catching up. When a re-run of the publish job puts the version on `OneUptime/packages` later, the site gets six hours from its latest Pages deploy's start, unless that deploy failed. For winget, Microsoft may still be reviewing, however long that takes | Wait for the next run. The details say what it is waiting for |
 | attention | Works, but not for long: the key or the HTTPS certificate expires soon | See below, before it expires |
 | problem | Something people install is missing, wrong or broken, or a winget pull request needs us. The run fails | See the section for it below |
 

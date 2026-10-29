@@ -269,6 +269,7 @@ describe("the Community admin plugin door (what this jest config resolves)", () 
         "LicenseManager",
         "SettingsPages",
         "SettingsSideMenuItems",
+        "SettingsNotificationSideMenuItems",
       ].sort(),
     );
     expect(new Set(ADMIN_DASHBOARD_ENTERPRISE_PLUGIN_KEYS).size).toBe(

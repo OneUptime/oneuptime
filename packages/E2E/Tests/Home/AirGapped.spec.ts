@@ -130,15 +130,19 @@ test.describe("Home: Air-gapped installs", () => {
       await expect(values).toContainText("disabled: true");
 
       /*
-       * Every connection out, each with what to use inside the gap: the three
-       * made unless a setting stops them in a table of their own.
+       * Every connection out, each with what to use inside the gap: the four
+       * made unless a setting stops them (the update check, the instance
+       * check-in, release emails and the probes' DNS) in a table of their
+       * own, and the five made once someone sets them up. Home's
+       * Utils/AirGapped.ts lists them; Home's AirGappedPage test holds the
+       * page to that list.
        */
-      await expect(page.getByTestId("air-gapped-connection")).toHaveCount(8);
+      await expect(page.getByTestId("air-gapped-connection")).toHaveCount(9);
       await expect(
         page
           .getByTestId("air-gapped-connections-on-by-default")
           .getByTestId("air-gapped-connection"),
-      ).toHaveCount(3);
+      ).toHaveCount(4);
       await expect(
         page
           .getByTestId("air-gapped-connections-once-set-up")

@@ -2,6 +2,7 @@ import { JSONObject } from "../../../Types/JSON";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../Types/Monitor/MonitorType";
+import { getMonitorStepSchema } from "../../../Utils/Schema/MonitorSchemas";
 
 describe("MonitorStep template sync field policy persistence", () => {
   test("policy survives step and step-list serialization, cloning, and schema validation", (): void => {
@@ -22,7 +23,7 @@ describe("MonitorStep template sync field policy persistence", () => {
     expect(MonitorStep.clone(step).data!.doNotSyncFields).toEqual(
       step.data!.doNotSyncFields,
     );
-    expect(MonitorStep.getSchema().safeParse(json).success).toBe(true);
+    expect(getMonitorStepSchema().safeParse(json).success).toBe(true);
     const steps: MonitorSteps = new MonitorSteps();
     steps.setMonitorStepsInstanceArray([step]);
     expect(
@@ -56,7 +57,7 @@ describe("MonitorStep template sync field policy persistence", () => {
     expect((): void => {
       MonitorStep.fromJSON(json);
     }).toThrow();
-    expect(MonitorStep.getSchema().safeParse(json).success).toBe(false);
+    expect(getMonitorStepSchema().safeParse(json).success).toBe(false);
   });
 
   test("validates policy against the step's monitor type", (): void => {

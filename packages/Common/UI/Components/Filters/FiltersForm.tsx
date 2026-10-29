@@ -128,7 +128,13 @@ const ShownFiltersForm: FiltersFormFunction = <T extends GenericObject>(
   );
 
   return (
-    <div id={props.id}>
+    /*
+     * Every box in here filters what the list shows - text, numbers,
+     * dates, a key's values, a pick: a query, never work to keep, so a new
+     * version of OneUptime never waits for it (Utils/NewVersion/
+     * UnsavedChanges).
+     */
+    <div id={props.id} data-unsaved-changes-ignore>
       <div className="space-y-3">
         {visibleFilters.map((filter: Filter<T>, i: number) => {
           const hasValue: boolean =

@@ -212,6 +212,14 @@ import { AddDashboardPlaylists1808070000000 } from "./1808070000000-AddDashboard
 import { AddCustomNotificationChannels1808080000000 } from "./1808080000000-AddCustomNotificationChannels";
 import { AddCustomNotificationChannelIndexesAndKeys1808090000000 } from "./1808090000000-AddCustomNotificationChannelIndexesAndKeys";
 import { AddPushSwitchCallAndSmsGatewayAndCustomChannelSetting1808100000000 } from "./1808100000000-AddPushSwitchCallAndSmsGatewayAndCustomChannelSetting";
+import { AddOnCallAiFirstResponder1808110000000 } from "./1808110000000-AddOnCallAiFirstResponder";
+import { AddDetectionRuleExceptions1808160000000 } from "./1808160000000-AddDetectionRuleExceptions";
+import { AddSecurityCaseResponseTargetsTasksAndEvidence1808240000000 } from "./1808240000000-AddSecurityCaseResponseTargetsTasksAndEvidence";
+import { AddSecurityCaseNextTargetCheckIndex1808250000000 } from "./1808250000000-AddSecurityCaseNextTargetCheckIndex";
+import { AddNetworkAddressNames1808260000000 } from "./1808260000000-AddNetworkAddressNames";
+import { AddNetworkDeviceRefreshRequestedAt1808300000000 } from "./1808300000000-AddNetworkDeviceRefreshRequestedAt";
+import { AddSecurityWatchlists1808310000000 } from "./1808310000000-AddSecurityWatchlists";
+import { AddNetworkDevicesToIncidentsAndAlerts1808320000000 } from "./1808320000000-AddNetworkDevicesToIncidentsAndAlerts";
 import { AddDataSecurity1808200000000 } from "./1808200000000-AddDataSecurity";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
@@ -1627,5 +1635,13 @@ export default [
   AddCustomNotificationChannels1808080000000,
   AddCustomNotificationChannelIndexesAndKeys1808090000000,
   AddPushSwitchCallAndSmsGatewayAndCustomChannelSetting1808100000000,
+  AddOnCallAiFirstResponder1808110000000,
+  AddDetectionRuleExceptions1808160000000,
+  AddSecurityCaseResponseTargetsTasksAndEvidence1808240000000,
+  AddSecurityCaseNextTargetCheckIndex1808250000000,
+  AddNetworkAddressNames1808260000000,
+  AddNetworkDeviceRefreshRequestedAt1808300000000,
+  AddSecurityWatchlists1808310000000,
+  AddNetworkDevicesToIncidentsAndAlerts1808320000000,
   AddDataSecurity1808200000000,
 ];

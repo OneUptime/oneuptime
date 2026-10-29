@@ -21,14 +21,20 @@
  *    dual package's ES module and what only that imports do not count. A
  *    package that is not installed is optional (typeorm's other drivers) and
  *    is noted, not fatal. Files that are not code (a .node addon, a
- *    stylesheet) do not stop it.
- *  - What it refuses: a require() or import() of a computed name, a
- *    require.resolve() or a createRequire() in the program's own files (read
- *    with TypeScript's parser, so a comment or a string that says
- *    "require(name)" is not one) - they could need any package - while one
- *    inside a package is fine, since npm keeps a kept package's own
- *    dependencies. And a walk that read nothing, which would prune
- *    everything. Refusing changes nothing.
+ *    stylesheet) do not stop it. A require.resolve() of a name the code
+ *    spells out counts as a require() of it (TypeOrmPatchVersion reads the
+ *    package.json beside require.resolve("typeorm")): esbuild never reads the
+ *    file it finds, so the walk follows that file itself - a package's main
+ *    file, a subpath of one, a file of the program's own, from a package too
+ *    - and notes a name that does not resolve, as require() would fail on it.
+ *  - What it refuses: a require(), import() or require.resolve() of a
+ *    computed name, a require.resolve() with options (esbuild does not record
+ *    one, and their paths move where it looks) and a createRequire() in the
+ *    program's own files (read with TypeScript's parser, so a comment or a
+ *    string that says "require(name)" is not one) - they could need any
+ *    package - while one inside a package is fine, since npm keeps a kept
+ *    package's own dependencies. And a walk that read nothing, which would
+ *    prune everything. Refusing changes nothing.
  *  - The prune: only dependencies the walk never reached leave package.json,
  *    every other field stays, then `npm prune --omit=dev --offline` runs in
  *    the package, and it fails if npm removed anything the walk reached.
@@ -185,6 +191,117 @@ function sidecarLikeProgram() {
     }),
     "shared/node_modules/lazy/index.js": "module.exports = 'lazy';\n",
     // Installed, never imported.
+    "shared/node_modules/unused/package.json": packageJson("unused", {
+      main: "index.js",
+    }),
+    "shared/node_modules/unused/index.js": "module.exports = 'unused';\n",
+  });
+  fs.mkdirSync(path.join(root, "app", "node_modules"));
+  fs.symlinkSync(
+    path.join(root, "shared"),
+    path.join(root, "app", "node_modules", "shared"),
+    "dir",
+  );
+  return root;
+}
+
+/*
+ * The same layout, where the program names packages only in require.resolve()
+ * calls, which esbuild records but never reads the file of.
+ */
+function resolvingProgram() {
+  const root = temporaryDirectory("prune-resolve-");
+  writeTree(root, {
+    "app/package.json": packageJson("app"),
+    "app/Index.ts": [
+      'import { version } from "shared/Versions";',
+      "export default version;",
+      "",
+    ].join("\n"),
+    "shared/package.json": packageJson("shared"),
+    "shared/Versions.ts": [
+      'import fs from "fs";',
+      'import path from "path";',
+      /*
+       * TypeOrmPatchVersion's way to typeorm's version: the exports map
+       * leaves package.json out, so it is read from beside the main file.
+       */
+      'export const version: string = JSON.parse(fs.readFileSync(path.join(path.dirname(require.resolve("closed")), "package.json"), "utf8")).version;',
+      'export const manifest: string = require.resolve("open/package.json");',
+      'export const inner: string = require.resolve("deep/lib/inner.js");',
+      'export const addon: string = require.resolve("native/build/addon.node");',
+      "export const templated: string = require.resolve(`templated`);",
+      'export const worker: string = require.resolve("./Worker");',
+      'export const builtin: string = require.resolve("fs");',
+      "export const notExported = (): string => {",
+      '  return require.resolve("closed/package.json");',
+      "};",
+      "export const absent = (): string => {",
+      '  return require.resolve("not-installed-resolve");',
+      "};",
+      "",
+    ].join("\n"),
+    /*
+     * Walked after Versions.ts, which it reads again: what that finds is
+     * followed, and noted, once.
+     */
+    "shared/Worker.ts": [
+      'import job from "worker-only";',
+      'import { version } from "./Versions";',
+      "export default [job, version];",
+      "",
+    ].join("\n"),
+    /*
+     * closed's main file requires closed-dep, which finds by-package with a
+     * require.resolve() of its own.
+     */
+    "shared/node_modules/closed/package.json": packageJson("closed", {
+      exports: { ".": { require: "./index.js" } },
+    }),
+    "shared/node_modules/closed/index.js":
+      'module.exports = require("closed-dep");\n',
+    "shared/node_modules/closed-dep/package.json": packageJson("closed-dep", {
+      main: "index.js",
+    }),
+    "shared/node_modules/closed-dep/index.js":
+      'module.exports = require.resolve("by-package");\n',
+    "shared/node_modules/by-package/package.json": packageJson("by-package", {
+      main: "index.js",
+    }),
+    "shared/node_modules/by-package/index.js": "module.exports = 1;\n",
+    // Only open's package.json is named: its main file is never loaded.
+    "shared/node_modules/open/package.json": packageJson("open", {
+      main: "index.js",
+    }),
+    "shared/node_modules/open/index.js":
+      'module.exports = require("open-main-only");\n',
+    "shared/node_modules/open-main-only/package.json": packageJson(
+      "open-main-only",
+      { main: "index.js" },
+    ),
+    "shared/node_modules/open-main-only/index.js": "module.exports = 1;\n",
+    "shared/node_modules/deep/package.json": packageJson("deep", {
+      main: "index.js",
+    }),
+    "shared/node_modules/deep/index.js": "module.exports = 1;\n",
+    "shared/node_modules/deep/lib/inner.js":
+      'module.exports = require("deep-inner-dep");\n',
+    "shared/node_modules/deep-inner-dep/package.json": packageJson(
+      "deep-inner-dep",
+      { main: "index.js" },
+    ),
+    "shared/node_modules/deep-inner-dep/index.js": "module.exports = 1;\n",
+    "shared/node_modules/native/package.json": packageJson("native"),
+    "shared/node_modules/native/build/addon.node": "not really an addon",
+    "shared/node_modules/templated/package.json": packageJson("templated", {
+      main: "index.js",
+    }),
+    "shared/node_modules/templated/index.js": "module.exports = 1;\n",
+    "shared/node_modules/worker-only/package.json": packageJson("worker-only", {
+      main: "index.js",
+    }),
+    "shared/node_modules/worker-only/index.js": "module.exports = 1;\n",
+    // Installed, never named.
     "shared/node_modules/unused/package.json": packageJson("unused", {
       main: "index.js",
     }),
@@ -439,6 +556,87 @@ describe("the walk, with esbuild", () => {
   });
 });
 
+describe("the walk, with require.resolve()", () => {
+  let root;
+  let walk;
+
+  beforeAll(async () => {
+    root = resolvingProgram();
+    walk = await walkImports({
+      entry: path.join(root, "app", "Index.ts"),
+      esbuild,
+    });
+  });
+
+  test("a name the code spells out reaches its package, and what the file it finds requires, as require() of the name would", () => {
+    expect(relativeTo(root, walk.reached)).toEqual([
+      "shared/node_modules/by-package",
+      "shared/node_modules/closed",
+      "shared/node_modules/closed-dep",
+      "shared/node_modules/deep",
+      "shared/node_modules/deep-inner-dep",
+      "shared/node_modules/native",
+      "shared/node_modules/open",
+      "shared/node_modules/templated",
+      "shared/node_modules/worker-only",
+    ]);
+  });
+
+  test("a subpath reaches its package through that file alone: the main file it never loads, and what only that requires, do not count", () => {
+    const reached = relativeTo(root, walk.reached);
+    expect(reached).toContain("shared/node_modules/open");
+    expect(reached).not.toContain("shared/node_modules/open-main-only");
+    // deep/lib/inner.js is read, and what it requires reached.
+    expect(reached).toContain("shared/node_modules/deep-inner-dep");
+    // A file that is not code is not read, but its package counts.
+    expect(reached).toContain("shared/node_modules/native");
+  });
+
+  test("a file of the program's own it finds is read as the program's own", () => {
+    expect(relativeTo(root, walk.ownFiles)).toEqual([
+      "app/Index.ts",
+      "shared/Versions.ts",
+      "shared/Worker.ts",
+    ]);
+  });
+
+  test("a name that does not resolve is noted, as require() would fail on it: a package not installed, or a subpath its exports map leaves out", () => {
+    const importer = path.join(root, "shared", "Versions.ts");
+    expect(walk.missing).toEqual([
+      { specifier: "closed/package.json", importer },
+      { specifier: "not-installed-resolve", importer },
+    ]);
+  });
+
+  test("with options it is not read, which is why the program's own files may not have one", async () => {
+    const program = temporaryDirectory("prune-resolve-options-");
+    const source = [
+      'export const elsewhere = require.resolve("searched", { paths: [__dirname] });',
+      "",
+    ].join("\n");
+    writeTree(program, {
+      "Index.ts": source,
+      "node_modules/searched/package.json": packageJson("searched", {
+        main: "index.js",
+      }),
+      "node_modules/searched/index.js": "module.exports = 1;\n",
+    });
+    const optionsWalk = await walkImports({
+      entry: path.join(program, "Index.ts"),
+      esbuild,
+    });
+    expect(relativeTo(program, optionsWalk.reached)).toEqual([]);
+    expect(computedImportsIn({ file: "Index.ts", source, typescript })).toEqual(
+      [
+        {
+          line: 1,
+          text: 'require.resolve("searched", { paths: [__dirname] })',
+        },
+      ],
+    );
+  });
+});
+
 describe("computed imports", () => {
   function computed(source, file = "Own.ts") {
     return computedImportsIn({ file, source, typescript });
@@ -466,19 +664,51 @@ describe("computed imports", () => {
     ]);
   });
 
-  test("require.resolve() and createRequire() are, whatever they name", () => {
+  test("a require.resolve() of a name the code spells out is not, as a require() of one is not", () => {
+    expect(
+      computed(
+        [
+          'import fs from "fs";',
+          'import path from "path";',
+          // TypeOrmPatchVersion's own call.
+          'export const manifest = fs.readFileSync(path.join(path.dirname(require.resolve("typeorm")), "package.json"), "utf8");',
+          "export const templated = require.resolve(`ioredis`);",
+          'export const subpath = require.resolve("acme-client/package.json");',
+          'export const own = require.resolve("./Worker");',
+          // Where require() would look, not a load.
+          'export const searched = require.resolve.paths("pg");',
+          "",
+        ].join("\n"),
+      ),
+    ).toEqual([]);
+  });
+
+  test("a require.resolve() of a computed name, with options or of nothing is one, and a createRequire() is whatever it is given", () => {
     expect(
       computed(
         [
           'import { createRequire } from "module";',
-          'export const where = require.resolve("typeorm");',
+          "const name: string = String(process.env['PLUGIN']);",
+          "export const a = require.resolve(name);",
+          "export const b = require.resolve('pl' + 'ugin');",
+          "export const c = require.resolve(`./plugins/${name}`);",
+          'export const d = require.resolve("typeorm", { paths: [__dirname] });',
+          "export const e = require.resolve(name, { paths: [process.cwd()] });",
+          "export const f = require.resolve();",
+          'export const g = require?.resolve("typeorm");',
           "export const local = createRequire(__filename);",
           "",
         ].join("\n"),
       ),
     ).toEqual([
-      { line: 2, text: 'require.resolve("typeorm")' },
-      { line: 3, text: "createRequire(__filename)" },
+      { line: 3, text: "require.resolve(name)" },
+      { line: 4, text: "require.resolve('pl' + 'ugin')" },
+      { line: 5, text: "require.resolve(`./plugins/${name}`)" },
+      { line: 6, text: 'require.resolve("typeorm", { paths: [__dirname] })' },
+      { line: 7, text: "require.resolve(name, { paths: [process.cwd()] })" },
+      { line: 8, text: "require.resolve()" },
+      { line: 9, text: 'require?.resolve("typeorm")' },
+      { line: 10, text: "createRequire(__filename)" },
     ]);
   });
 
@@ -680,6 +910,92 @@ describe("pruneUnreachablePackages", () => {
     ).rejects.toThrow(
       `${path.join(root, "app", "Plugin.ts")}:2: require(String(process.env['PLUGIN']))`,
     );
+    expect(npm.calls).toEqual([]);
+    expect(
+      fs.readFileSync(path.join(root, "shared", "package.json"), "utf8"),
+    ).toBe(before);
+  });
+
+  test("keeps a dependency the program names only in a require.resolve(), as TypeOrmPatchVersion names typeorm", async () => {
+    const root = resolvingProgram();
+    const manifestPath = path.join(root, "shared", "package.json");
+    fs.writeFileSync(
+      manifestPath,
+      JSON.stringify({
+        ...packageJson("shared"),
+        dependencies: {
+          closed: "^1.0.0",
+          "open-main-only": "^1.0.0",
+          unused: "^1.0.0",
+          "worker-only": "^1.0.0",
+        },
+      }),
+    );
+    const npm = npmPruneThatRemoves([
+      path.join(root, "shared", "node_modules", "open-main-only"),
+      path.join(root, "shared", "node_modules", "unused"),
+    ]);
+    const result = await pruneUnreachablePackages({
+      entry: path.join(root, "app", "Index.ts"),
+      packageDirectory: path.join(root, "shared"),
+      esbuild,
+      typescript,
+      run: npm.run,
+      log: () => {},
+    });
+
+    expect(result.removed).toEqual(["open-main-only", "unused"]);
+    expect(sharedManifest(root).dependencies).toEqual({
+      closed: "^1.0.0",
+      "worker-only": "^1.0.0",
+    });
+    expect(npm.calls).toHaveLength(1);
+  });
+
+  test("refuses to prune for a program with a require.resolve() of a computed name or with options, and changes nothing", async () => {
+    const root = sidecarLikeProgram();
+    withDependencies(root);
+    writeTree(root, {
+      "app/Resolve.ts": [
+        'import Thing from "shared/Thing";',
+        "export const where = require.resolve(String(process.env['PLUGIN']));",
+        'export const elsewhere = require.resolve("alpha", { paths: [process.cwd()] });',
+        'export const named = require.resolve("alpha");',
+        "export default Thing;",
+        "",
+      ].join("\n"),
+    });
+    const before = fs.readFileSync(
+      path.join(root, "shared", "package.json"),
+      "utf8",
+    );
+    const npm = npmPruneThatRemoves([]);
+    const error = await pruneUnreachablePackages({
+      entry: path.join(root, "app", "Resolve.ts"),
+      packageDirectory: path.join(root, "shared"),
+      esbuild,
+      typescript,
+      run: npm.run,
+      log: () => {},
+    }).then(
+      () => {
+        return null;
+      },
+      (rejection) => {
+        return rejection;
+      },
+    );
+
+    const file = path.join(root, "app", "Resolve.ts");
+    expect(error).toBeInstanceOf(Error);
+    expect(
+      error.message.split("\n").filter((line) => {
+        return line.startsWith("  ");
+      }),
+    ).toEqual([
+      `  ${file}:2: require.resolve(String(process.env['PLUGIN']))`,
+      `  ${file}:3: require.resolve("alpha", { paths: [process.cwd()] })`,
+    ]);
     expect(npm.calls).toEqual([]);
     expect(
       fs.readFileSync(path.join(root, "shared", "package.json"), "utf8"),

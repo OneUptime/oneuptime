@@ -101,6 +101,7 @@ import "./Jobs/NetworkAlertPolicy/ReconcilePolicies";
 
 // On-Call Duty Policy Executions.
 import "./Jobs/OnCallDutyPolicyExecutionLog/ExecutePendingExecutions";
+import "./Jobs/OnCallDutyPolicyExecutionLog/ReviewAiFirstResponderHolds";
 import "./Jobs/OnCallDutyPolicyExecutionLog/TimeoutStuckExecutions";
 import "./Jobs/OnCallDutyPolicyExecutionLog/PageAgainAfterAcknowledgementTimeout";
 
@@ -296,6 +297,7 @@ import "./Jobs/SecurityPlaybooks/RunSecurityPlaybook";
 import "./Jobs/SecurityPlaybooks/RecoverSecurityPlaybookRuns";
 import "./Jobs/SecurityCases/SendSecurityCaseNotification";
 import "./Jobs/SecurityCases/CloseSecurityCaseSourceAlerts";
+import "./Jobs/SecurityCases/CheckResponseTargets";
 
 /*
  * Instance capacity management (Community Edition). The Postgres and Redis

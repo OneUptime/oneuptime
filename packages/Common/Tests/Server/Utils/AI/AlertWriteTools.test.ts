@@ -240,10 +240,8 @@ describe.each(cases)(
         type: AIChatCitationTargetType.AlertView,
         params: { alertId: ALERT_ID.toString() },
       });
-      expect(widgetData["fields"]).toEqual([
-        { label: "Number", value: "#9" },
-        { label: "State", value: newStateName },
-      ]);
+      // The heading names it and the line under it says its new state.
+      expect(widgetData["fields"]).toEqual([]);
     });
 
     test("buildActionTitle names the alert, and stays tidy with no id", () => {

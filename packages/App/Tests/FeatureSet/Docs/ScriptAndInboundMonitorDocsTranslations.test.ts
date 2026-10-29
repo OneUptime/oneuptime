@@ -116,14 +116,10 @@ const RECEIVED_CONDITIONS_IN_ENGLISH: Array<string> = [
  */
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   [CUSTOM_CODE_MONITOR]: [
-    // The type picker's card and the category it sits in.
-    "Custom JavaScript Code",
-    "Synthetic Monitoring",
     // The criteria filter (CheckOn).
     "Result Value",
   ],
   [SQL_MONITOR]: [
-    "Database Monitoring",
     // The Database Type dropdown's options.
     "PostgreSQL",
     "MySQL",
@@ -138,7 +134,6 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "JavaScript Expression",
   ],
   [SYNTHETIC_MONITOR]: [
-    "Synthetic Monitoring",
     "Result Value",
     "Screen Size",
     // The Browser Type list's option a new monitor starts on (BrowserType).
@@ -155,7 +150,6 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "POST",
   ],
   [INCOMING_EMAIL_MONITOR]: [
-    "Inbound Monitoring",
     "Email Received",
     ...RECEIVED_CONDITIONS_IN_ENGLISH,
     "Email From Address",
@@ -167,7 +161,6 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "SendGrid Inbound Parse",
   ],
   [EXTERNAL_STATUS_PAGE_MONITOR]: [
-    "Basic Monitoring",
     // The Provider dropdown's options other than Auto.
     "Atlassian Statuspage",
     "incident.io",
@@ -214,8 +207,11 @@ const PROSE: Record<string, Array<string>> = {
   // The probe's operating system, a row of the Windows Integrated Authentication table.
   [SQL_MONITOR]: ["probe", "Windows"],
   [SYNTHETIC_MONITOR]: ["probe"],
-  // "taken from the **first** matching element": the word, stressed.
-  [INCOMING_REQUEST_MONITOR]: ["first"],
+  /*
+   * "taken from the **first** matching element" and "Put the dead-man's
+   * switch **above** the default criteria": words, stressed.
+   */
+  [INCOMING_REQUEST_MONITOR]: ["first", "above"],
   // Azure's buttons (THIRD_PARTY_IN_ENGLISH), not OneUptime's.
   [INCOMING_EMAIL_MONITOR]: ["Resend", "Test"],
 };
@@ -249,7 +245,6 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Heartbeat monitoring",
     "Receiving alerts from another system",
     "not",
-    "above",
     "one",
     "separate incident per distinct value",
     "distinct",

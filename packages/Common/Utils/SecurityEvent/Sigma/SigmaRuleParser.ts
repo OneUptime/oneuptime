@@ -3,6 +3,10 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import Dictionary from "../../../Types/Dictionary";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import { resolveMitreTacticId } from "../../../Types/SecurityEvent/MitreAttack";
+import {
+  SECURITY_WATCHLIST_MODIFIER,
+  readSecurityWatchlistPlaceholder,
+} from "../../../Types/SecurityEvent/SecurityWatchlist";
 import SigmaRule, {
   SIGMA_DEFAULT_LEVEL,
   SIGMA_SUPPORTED_MODIFIERS,
@@ -261,7 +265,41 @@ function parseFieldRequirement(
     }
   }
 
+  if (modifiers.includes(SECURITY_WATCHLIST_MODIFIER)) {
+    checkWatchlistRequirement(key, modifiers, values);
+  }
+
   return { field, modifiers, values };
+}
+
+/*
+ * `field|expand` reads watchlists (Types/SecurityEvent/SecurityWatchlist):
+ * each value names one, as '%vip_users%', and the field matches when it is
+ * on any of them. How a list's values match - whatever the case, * for any
+ * run, an address range - is the list's, so expand takes no other modifier.
+ * Whether the project has the lists is checked where the project is known,
+ * when the rule is saved and each time it runs.
+ */
+function checkWatchlistRequirement(
+  key: string,
+  modifiers: Array<string>,
+  values: Array<JSONValue>,
+): void {
+  if (modifiers.length > 1) {
+    throw new BadDataException(
+      `Sigma detection: "${key}" reads a watchlist, and expand takes no other modifier. Write the field and |expand alone, such as principalUser|expand: '%vip_users%'; to match part of a value, put * in the watchlist's values.`,
+    );
+  }
+
+  for (const value of values) {
+    if (readSecurityWatchlistPlaceholder(value) === null) {
+      throw new BadDataException(
+        `Sigma detection: "${key}" names a watchlist between % signs, such as '%vip_users%' (letters, digits and underscores, starting with a letter), not ${JSON.stringify(
+          value,
+        )}.`,
+      );
+    }
+  }
 }
 
 function parseSelection(name: string, rawValue: JSONValue): SigmaSelection {

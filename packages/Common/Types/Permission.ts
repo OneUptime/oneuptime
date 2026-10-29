@@ -240,6 +240,18 @@ enum Permission {
   // Security Case Feed (what happened on a case, written by OneUptime)
   ReadSecurityCaseFeed = "ReadSecurityCaseFeed",
 
+  // Security Case Tasks (what has to be done on a case, and who does it)
+  CreateSecurityCaseTask = "CreateSecurityCaseTask",
+  DeleteSecurityCaseTask = "DeleteSecurityCaseTask",
+  EditSecurityCaseTask = "EditSecurityCaseTask",
+  ReadSecurityCaseTask = "ReadSecurityCaseTask",
+
+  // Security Case Evidence (files and links kept on a case)
+  CreateSecurityCaseEvidence = "CreateSecurityCaseEvidence",
+  DeleteSecurityCaseEvidence = "DeleteSecurityCaseEvidence",
+  EditSecurityCaseEvidence = "EditSecurityCaseEvidence",
+  ReadSecurityCaseEvidence = "ReadSecurityCaseEvidence",
+
   // Security Case Statuses (the statuses a project's cases move through)
   CreateSecurityCaseStatus = "CreateSecurityCaseStatus",
   DeleteSecurityCaseStatus = "DeleteSecurityCaseStatus",
@@ -2805,7 +2817,7 @@ export class PermissionHelper {
         permission: Permission.SecurityAdmin,
         title: "Security Admin",
         description:
-          "Full control over security operations: security events, cases with their detections and notes, response playbooks and their runs, Sigma detection rules, threat intelligence feeds and their indicators, and security event connections (Google SecOps, Microsoft Sentinel, CrowdStrike Falcon and other sources). Outside the Security roles, only Project Owner and Project Admin read security data.",
+          "Full control over security operations: security events, cases with their detections, notes, tasks and evidence, response playbooks and their runs, Sigma detection rules, threat intelligence feeds and their indicators, and security event connections (Google SecOps, Microsoft Sentinel, CrowdStrike Falcon and other sources). Outside the Security roles, only Project Owner and Project Admin read security data.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2815,7 +2827,7 @@ export class PermissionHelper {
         permission: Permission.SecurityMember,
         title: "Security Member",
         description:
-          "Reads security events and threat intelligence, sends security events, works security cases (opens, assigns, changes and closes them and writes their notes), runs playbooks and approves their steps, and creates, changes and deletes detection rules and threat intel feeds. Cannot configure playbooks or security event connections, or delete security data.",
+          "Reads security events and threat intelligence, sends security events, works security cases (opens, assigns, changes and closes them, writes their notes, works their tasks and adds evidence), runs playbooks and approves their steps, and creates, changes and deletes detection rules and threat intel feeds. Cannot configure playbooks or security event connections, or delete security data.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2825,7 +2837,7 @@ export class PermissionHelper {
         permission: Permission.SecurityViewer,
         title: "Security Viewer",
         description:
-          "Read-only access to security events, cases with their detections and notes, playbooks and their runs, detection rules, threat intelligence feeds and indicators, and security event connections.",
+          "Read-only access to security events, cases with their detections, notes, tasks and evidence, playbooks and their runs, detection rules, threat intelligence feeds and indicators, and security event connections.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -8318,6 +8330,90 @@ export class PermissionHelper {
         title: "Read Security Case Feed",
         description:
           "This permission can read the feed of Security Cases of this project: what happened on each case and when.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Security Case Task Permissions
+      {
+        permission: Permission.CreateSecurityCaseTask,
+        title: "Create Security Case Task",
+        description:
+          "This permission can add tasks to Security Cases of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.DeleteSecurityCaseTask,
+        title: "Delete Security Case Task",
+        description:
+          "This permission can delete tasks of Security Cases of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditSecurityCaseTask,
+        title: "Edit Security Case Task",
+        description:
+          "This permission can edit tasks of Security Cases of this project: rename them, assign them and mark them done.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadSecurityCaseTask,
+        title: "Read Security Case Task",
+        description:
+          "This permission can read tasks of Security Cases of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Security Case Evidence Permissions
+      {
+        permission: Permission.CreateSecurityCaseEvidence,
+        title: "Create Security Case Evidence",
+        description:
+          "This permission can add evidence - files and links - to Security Cases of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.DeleteSecurityCaseEvidence,
+        title: "Delete Security Case Evidence",
+        description:
+          "This permission can remove evidence from Security Cases of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditSecurityCaseEvidence,
+        title: "Edit Security Case Evidence",
+        description:
+          "This permission can rename the evidence of Security Cases of this project and change its description. What a piece of evidence holds never changes.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadSecurityCaseEvidence,
+        title: "Read Security Case Evidence",
+        description:
+          "This permission can read and download the evidence of Security Cases of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

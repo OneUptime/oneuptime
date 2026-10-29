@@ -12,6 +12,7 @@ import {
   isOnCallPageAgainRun,
 } from "Common/Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 import OnCallDutyPolicyStatus from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
+import { OnCallPolicyAiHoldOutcome } from "Common/Types/OnCallDutyPolicy/OnCallPolicyAiHold";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -71,6 +72,34 @@ export const ON_CALL_LOGS_WAITING_MESSAGE_CLASS_NAME: string =
   "mt-1 max-w-[14rem] whitespace-normal text-xs text-gray-500";
 
 /*
+ * How a hold OneUptime AI kept while it worked ended (OnCallPolicyAiHold),
+ * under the run's status. A run still held says so in its waiting message.
+ */
+export const ON_CALL_LOGS_AI_HOLD_OUTCOMES: Record<
+  Exclude<OnCallPolicyAiHoldOutcome, OnCallPolicyAiHoldOutcome.Holding>,
+  string
+> = {
+  [OnCallPolicyAiHoldOutcome.ResolvedByAI]: translationKey(
+    "Resolved by OneUptime AI. Nobody was paged.",
+  ),
+  [OnCallPolicyAiHoldOutcome.RecoveredOnItsOwn]: translationKey(
+    "Recovered on its own while OneUptime AI held the page.",
+  ),
+  [OnCallPolicyAiHoldOutcome.HandledByPerson]: translationKey(
+    "Handled by a person while OneUptime AI held the page.",
+  ),
+  [OnCallPolicyAiHoldOutcome.HandedOff]: translationKey(
+    "OneUptime AI handed it off.",
+  ),
+  [OnCallPolicyAiHoldOutcome.HoldTimeRanOut]: translationKey(
+    "OneUptime AI's hold time ran out.",
+  ),
+  [OnCallPolicyAiHoldOutcome.PageNowPressed]: translationKey(
+    "Page now was pressed while OneUptime AI held the page.",
+  ),
+};
+
+/*
  * Under a page again's pill (OnCallAcknowledgementTimeout): that its policy
  * paged again because the record stayed acknowledged without being
  * resolved, and which time - "Paged again (1 of 5)". What sets the row apart
@@ -82,10 +111,12 @@ export const ON_CALL_LOGS_PAGED_AGAIN: string = translationKey(
 
 /*
  * What a run that paged nobody says on hover. A policy went through its
- * escalation rules; a direct page has none, and names what it found empty.
+ * escalation rules, each passed at once as it had nobody to page
+ * (OnCallEmptyLevel) - no responders, nobody on call, or only people who
+ * were away; a direct page has no rules, and names what it found empty.
  */
 export const POLICY_PAGED_NOBODY_TOOLTIP: string = translationKey(
-  "This execution ran to completion without notifying anyone. Usually every escalation rule targeted an on-call schedule that had nobody on call.",
+  "This execution reached nobody. Usually its escalation rules had no responders, their schedules had nobody on call, or the people they named were away.",
 );
 export const DIRECT_PAGE_PAGED_NOBODY_TOOLTIP: string = translationKey(
   "This page reached nobody. Usually the on-call schedule had nobody on call, the team had no members, or the people it named were away.",
@@ -402,6 +433,30 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
 
       getElement: (item: OnCallDutyPolicyExecutionLog): ReactElement => {
         const status: ReactElement = getStatusPill(item);
+        const aiHoldOutcome: string | undefined =
+          item.aiHoldOutcome &&
+          item.aiHoldOutcome !== OnCallPolicyAiHoldOutcome.Holding
+            ? ON_CALL_LOGS_AI_HOLD_OUTCOMES[
+                item.aiHoldOutcome as Exclude<
+                  OnCallPolicyAiHoldOutcome,
+                  OnCallPolicyAiHoldOutcome.Holding
+                >
+              ]
+            : undefined;
+
+        if (aiHoldOutcome) {
+          return (
+            <div>
+              {status}
+              <p
+                className={ON_CALL_LOGS_WAITING_MESSAGE_CLASS_NAME}
+                data-testid="execution-log-ai-hold-outcome"
+              >
+                {translator.translateText(aiHoldOutcome)}
+              </p>
+            </div>
+          );
+        }
 
         if (!isOnCallPageAgainRun(item)) {
           return status;
@@ -461,6 +516,8 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
         }}
         selectMoreFields={{
           statusMessage: true,
+          // How a hold OneUptime AI kept ended, under the status.
+          aiHoldOutcome: true,
           // A page again says so under its status.
           pageAgainNumber: true,
           // Read with every row: a row with none is a direct page.

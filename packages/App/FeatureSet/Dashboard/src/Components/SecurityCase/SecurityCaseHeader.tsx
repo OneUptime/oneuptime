@@ -9,6 +9,7 @@ import {
   getSecurityDetectionSourceIcon,
 } from "./SecurityCasePills";
 import SecurityCaseStatusStepper from "./SecurityCaseStatusStepper";
+import SecurityCaseTargetChip from "./ResponseTargets/SecurityCaseTargetChip";
 import { SecurityCaseValueLists } from "./SecurityCaseValues";
 import {
   SECURITY_CASE_HEADER_ACTIONS_CLASS_NAME,
@@ -439,6 +440,15 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
             </span>
             <SecurityCasePriorityPill value={priority} />
             <SecurityCaseStatusPill value={status} />
+            {/*
+             * The target the case is working against now, and how long is
+             * left: on every page of the case, beside its priority and
+             * status. Nothing once its targets are met.
+             */}
+            <SecurityCaseTargetChip
+              securityCase={securityCase}
+              priorities={priorities}
+            />
             {isClosed && securityCase.verdict ? (
               <SecurityCaseVerdictPill value={securityCase.verdict} />
             ) : (

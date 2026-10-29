@@ -1,5 +1,10 @@
 import MonitorCriteriaElement from "./MonitorCriteria";
 import MonitorStepMetricPreview from "./MonitorStepMetricPreview";
+import TelemetryRuleSummary from "./TelemetryRuleSummary";
+import TelemetryAlertRuleUtil, {
+  TelemetryAlertRule,
+} from "Common/Types/Monitor/TelemetryAlertRule";
+import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorType, {
@@ -60,7 +65,19 @@ export interface ComponentProps {
   teamOptions: Array<Team>;
   userOptions: Array<User>;
   incidentRoleOptions: Array<IncidentRole>;
+  // The status the monitor shows when no criteria match.
+  defaultMonitorStatusId?: ObjectID | undefined;
 }
+
+/*
+ * The rows a telemetry rule's sentence already says: the window it counts
+ * in ("in 5 minutes").
+ */
+const RULE_WINDOW_ROW_KEYS: Array<string> = [
+  "lastXSecondsOfLogs",
+  "lastXSecondsOfSpans",
+  "lastXSecondsOfExceptions",
+];
 
 type MonitorStepDetailItem = Record<string, MonitorStepViewValue>;
 
@@ -165,9 +182,24 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
    * goes through it, so a type can no longer fall through to a blank
    * section the way it used to when this was a chain of if/else branches.
    */
+  /*
+   * A Logs, Traces, Exceptions or Metrics monitor whose criteria are one
+   * rule reads as that rule (TelemetryRuleSummary), its criteria folded
+   * under it; any other reads as its criteria.
+   */
+  const rule: TelemetryAlertRule | null = TelemetryAlertRuleUtil.read({
+    monitorType: props.monitorType,
+    monitorStep: props.monitorStep,
+    defaultMonitorStatusId: props.defaultMonitorStatusId,
+  }).rule;
+
+  const [isCriteriaCollapsed, setIsCriteriaCollapsed] = useState<boolean>(true);
+
   const rows: Array<MonitorStepViewRow> = MonitorStepViewModel.getRows({
     monitorStep: props.monitorStep,
     monitorType: props.monitorType,
+  }).filter((row: MonitorStepViewRow) => {
+    return !(rule && RULE_WINDOW_ROW_KEYS.includes(row.key));
   });
 
   const telemetryServiceIds: Array<string> = getTelemetryServiceIds(rows);
@@ -400,6 +432,23 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     props.monitorType,
   );
 
+  const criteriaElement: ReactElement = (
+    <MonitorCriteriaElement
+      onCallPolicyOptions={props.onCallPolicyOptions}
+      monitorStatusOptions={props.monitorStatusOptions}
+      incidentSeverityOptions={props.incidentSeverityOptions}
+      alertSeverityOptions={props.alertSeverityOptions}
+      labelOptions={props.labelOptions}
+      teamOptions={props.teamOptions}
+      userOptions={props.userOptions}
+      incidentRoleOptions={props.incidentRoleOptions}
+      monitorCriteria={
+        props.monitorStep?.data?.monitorCriteria as MonitorCriteria
+      }
+      monitorType={props.monitorType}
+    />
+  );
+
   return (
     <div className="mt-5">
       {fields.length > 0 && (
@@ -435,31 +484,45 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 
       {fields.length > 0 && <HorizontalRule />}
 
-      <div className="mt-5">
-        <FieldLabelElement
-          title="Criteria"
-          isHeading={true}
-          description={
-            "Criteria we will use to determine your resource status."
-          }
-          required={true}
-        />
+      {rule ? (
+        <>
+          <TelemetryRuleSummary
+            monitorType={props.monitorType}
+            monitorStep={props.monitorStep}
+            rule={rule}
+            defaultMonitorStatusId={props.defaultMonitorStatusId}
+            monitorStatusOptions={props.monitorStatusOptions}
+            alertSeverityOptions={props.alertSeverityOptions}
+            incidentSeverityOptions={props.incidentSeverityOptions}
+          />
+          <FoldedSection
+            title="Criteria details"
+            variant="line"
+            className="mt-6"
+            summary="The rule's filter, and every setting of its alert or incident."
+            isCollapsed={isCriteriaCollapsed}
+            onToggle={(isCollapsed: boolean) => {
+              setIsCriteriaCollapsed(isCollapsed);
+            }}
+            dataTestId="telemetry-rule-criteria-details"
+          >
+            {criteriaElement}
+          </FoldedSection>
+        </>
+      ) : (
+        <div className="mt-5">
+          <FieldLabelElement
+            title="Criteria"
+            isHeading={true}
+            description={
+              "Criteria we will use to determine your resource status."
+            }
+            required={true}
+          />
 
-        <MonitorCriteriaElement
-          onCallPolicyOptions={props.onCallPolicyOptions}
-          monitorStatusOptions={props.monitorStatusOptions}
-          incidentSeverityOptions={props.incidentSeverityOptions}
-          alertSeverityOptions={props.alertSeverityOptions}
-          labelOptions={props.labelOptions}
-          teamOptions={props.teamOptions}
-          userOptions={props.userOptions}
-          incidentRoleOptions={props.incidentRoleOptions}
-          monitorCriteria={
-            props.monitorStep?.data?.monitorCriteria as MonitorCriteria
-          }
-          monitorType={props.monitorType}
-        />
-      </div>
+          {criteriaElement}
+        </div>
+      )}
     </div>
   );
 };

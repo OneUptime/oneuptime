@@ -22,6 +22,7 @@ import { UserEvent } from "@testing-library/user-event/dist/types/setup/setup";
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { searchThroughGetList } from "./AffectedResourceSearchFake";
 
 /*
  * Create Scheduled Maintenance Event's Resources Affected step, drawn for
@@ -95,6 +96,25 @@ jest.mock("../../../UI/Utils/User", () => {
 const getListMock: MockFunction = getJestMockFunction();
 const getItemMock: MockFunction = getJestMockFunction();
 const createOrUpdateMock: MockFunction = getJestMockFunction();
+
+/*
+ * The picker asks one route for every kind (POST /affected-resources/search).
+ * It is answered from this suite's getList store, kind by kind, as the
+ * server reads each kind (AffectedResourceSearchFake).
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/AffectedResources/AffectedResourceSearchApi",
+  () => {
+    return {
+      __esModule: true,
+      searchAffectedResources: (query: unknown): Promise<unknown> => {
+        return searchThroughGetList((args: unknown) => {
+          return getListMock(args) as never;
+        })(query as never);
+      },
+    };
+  },
+);
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -592,9 +612,16 @@ describe("Resources Affected: the monitors apart, and the status they change to 
     const others: HTMLElement = otherResourcesPicker();
 
     expect(monitors).toHaveAttribute("placeholder", "Search monitors...");
-    // The other picker names what it searches, monitors not among them.
-    expect(others.getAttribute("placeholder")).toMatch(/^Search host, /);
-    expect(others.getAttribute("placeholder")).toContain("network site");
+    /*
+     * The other picker says how to find what it searches - by name, or a
+     * host's IP address - and the field's description names the kinds,
+     * monitors not among them.
+     */
+    expect(others).toHaveAttribute(
+      "placeholder",
+      "Search by name or IP address...",
+    );
+    // Network sites are named by the field's description, below.
     expect(others.getAttribute("placeholder")).not.toContain("monitor");
     expect(isBefore(fieldOf(monitors), fieldOf(others))).toBe(true);
     expect(

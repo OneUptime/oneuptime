@@ -310,6 +310,28 @@ describe("a chat action or a tool import acting as a member", () => {
       plan: PlanType.Growth,
       isSubscriptionUnpaid: false,
     });
+    /*
+     * The person is not one a master admin blocked: 07d925ca80 asks that
+     * first, before any project of theirs is looked at.
+     */
+    jest.spyOn(UserService, "isUserBlocked").mockResolvedValue(false);
+  });
+
+  test("a person a master admin blocked is refused in a live project, before their permissions are read", async () => {
+    jest.spyOn(UserService, "isUserBlocked").mockResolvedValue(true);
+    jest.spyOn(internals, "getAcceptedTeamIds").mockResolvedValue([TEAM_ID]);
+
+    const refusal: Promise<unknown> =
+      WorkspaceActionAuthorization.getProjectMemberProps({
+        userId: USER_ID,
+        projectId: LIVE_PROJECT_ID,
+      });
+
+    await expect(refusal).rejects.toBeInstanceOf(NotAuthorizedException);
+    await expect(refusal).rejects.toThrow(ExceptionMessages.UserBlocked);
+    expect(
+      AccessTokenService.getUserTenantAccessPermission,
+    ).not.toHaveBeenCalled();
   });
 
   /*

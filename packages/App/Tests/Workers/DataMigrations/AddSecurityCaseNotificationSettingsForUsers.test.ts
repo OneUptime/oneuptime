@@ -33,7 +33,9 @@ import {
  *      project), through the service's idempotent helper;
  *   3. one project's or one member's failure is logged and the rest continue;
  *   4. end to end with the real helper: rows are written with email on, and a
- *      row a member already has - switched off, say - is left alone.
+ *      row a member already has - switched off, say - is left alone. The
+ *      helper seeds every security case event there is now, the two that
+ *      came with response targets and case tasks included.
  */
 
 const PROJECT_1: ObjectID = new ObjectID(
@@ -51,6 +53,8 @@ const SECURITY_EVENTS: Array<NotificationSettingEventType> = [
   NotificationSettingEventType.SEND_SECURITY_CASE_OPENED_NOTIFICATION,
   NotificationSettingEventType.SEND_SECURITY_CASE_ASSIGNED_NOTIFICATION,
   NotificationSettingEventType.SEND_SECURITY_PLAYBOOK_APPROVAL_NOTIFICATION,
+  NotificationSettingEventType.SEND_SECURITY_CASE_TARGET_NOTIFICATION,
+  NotificationSettingEventType.SEND_SECURITY_CASE_TASK_ASSIGNED_NOTIFICATION,
 ];
 
 const DATA_MIGRATIONS_DIR: string = path.resolve(
@@ -348,7 +352,7 @@ describe("AddSecurityCaseNotificationSettingsForUsers with the real helper", () 
     jest.restoreAllMocks();
   });
 
-  test("writes the three security case settings with email and push on, and leaves an existing choice alone", async () => {
+  test("writes every security case setting with email and push on, and leaves an existing choice alone", async () => {
     // B already switched the assignment email off.
     rows.set(
       key(
@@ -406,13 +410,14 @@ describe("AddSecurityCaseNotificationSettingsForUsers with the real helper", () 
 
     await new AddSecurityCaseNotificationSettingsForUsers().migrate();
 
-    expect(created).toBe(6);
+    // Two members, five settings each.
+    expect(created).toBe(10);
     expect(
       (
         UserNotificationSettingService.create as unknown as {
           mock: { calls: Array<unknown> };
         }
       ).mock.calls.length,
-    ).toBe(6);
+    ).toBe(10);
   });
 });

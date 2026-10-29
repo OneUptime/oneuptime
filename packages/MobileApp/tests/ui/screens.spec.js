@@ -217,3 +217,35 @@ test("Home shortcuts reset old searches while detail Back preserves context", as
     await expect(page.getByRole("button", { name: /^Monitor .*\. Status/ }).first()).toBeVisible();
   }
 });
+
+test.describe("in dark mode", () => {
+  test.use({ colorScheme: "dark" });
+
+  // The gallery's dark half: the main screens at every phone and tablet size.
+  test("Home, the inbox, an incident, on-call and settings read from the dark palette", async ({ page }, testInfo) => {
+    await installFixtures(page);
+    await page.goto("/");
+    await expect(page.getByText("Overview", { exact: true })).toBeVisible();
+    const canvas = await page.locator("body").evaluate(() => {
+      const root = document.querySelector("#root > div") || document.body;
+      return getComputedStyle(root).backgroundColor;
+    });
+    // The dark canvas, not the light one.
+    expect(canvas).not.toBe("rgb(243, 244, 247)");
+    await capture(page, "home-dark", testInfo);
+
+    await tab(page, "Incidents");
+    await expect(page.getByText("Checkout API latency above threshold", { exact: true })).toBeVisible();
+    await capture(page, "incidents-dark", testInfo);
+    await page.getByText("Checkout API latency above threshold", { exact: true }).click();
+    await expect(page.getByText("Impact", { exact: true })).toBeVisible();
+    await capture(page, "incident-detail-dark", testInfo);
+
+    await tab(page, "On-Call");
+    await expect(page.getByText(/Engineering primary/).first()).toBeVisible();
+    await capture(page, "on-call-dark", testInfo);
+
+    await tab(page, "Settings");
+    await capture(page, "settings-dark", testInfo);
+  });
+});

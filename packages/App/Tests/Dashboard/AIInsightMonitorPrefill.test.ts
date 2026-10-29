@@ -412,58 +412,68 @@ describe("the deep link", () => {
 
 describe("the windows are options the step forms offer", () => {
   /*
-   * The log and exception forms render the window as a fixed-options
-   * dropdown. A prefilled value outside the options renders as an EMPTY
-   * dropdown and is silently replaced on the first edit.
+   * A Logs, Traces or Exceptions monitor's window is its rule's, picked in
+   * When to alert from TELEMETRY_RULE_WINDOW_OPTIONS (TelemetryRuleText),
+   * not in the step forms any more. A prefilled window outside the options
+   * would still show (getWindowOptions adds it), but as a bare count of
+   * seconds - so every window an AI insight prefills is one of them.
    */
-  test("the spike window is an option of both count forms", () => {
+  const ruleWindows: () => string = (): string => {
+    const source: string = readDashboardSource(
+      "Utils",
+      "Form",
+      "Monitor",
+      "TelemetryRule",
+      "TelemetryRuleText.ts",
+    );
+    const start: number = source.indexOf(
+      "export const TELEMETRY_RULE_WINDOW_OPTIONS",
+    );
+
+    expect(start).toBeGreaterThan(-1);
+
+    return source.slice(start, source.indexOf("];", start));
+  };
+
+  test("the spike window is an option of the rule's windows", () => {
     expect(Prefill.SPIKE_MONITOR_WINDOW_SECONDS).toBe(3600);
 
-    const logForm: string = readDashboardSource(
-      "Components",
-      "Form",
-      "Monitor",
-      "LogMonitor",
-      "LogMonitorStepFrom.tsx",
-    );
-    const exceptionForm: string = readDashboardSource(
-      "Components",
-      "Form",
-      "Monitor",
-      "ExceptionMonitor",
-      "ExceptionMonitorStepForm.tsx",
-    );
-
-    expect(logForm).toContain(`value: ${Prefill.SPIKE_MONITOR_WINDOW_SECONDS}`);
-    expect(exceptionForm).toContain(
-      `value: ${Prefill.SPIKE_MONITOR_WINDOW_SECONDS}`,
+    expect(ruleWindows()).toContain(
+      `{ value: ${Prefill.SPIKE_MONITOR_WINDOW_SECONDS}, label: translationKey("Last 1 hour") }`,
     );
   });
 
-  test("the new-exception window is an option of the exception form", () => {
+  test("the new-exception window is an option of the rule's windows", () => {
     expect(Prefill.NEW_EXCEPTION_MONITOR_WINDOW_SECONDS).toBe(86400);
 
-    expect(
-      readDashboardSource(
-        "Components",
-        "Form",
-        "Monitor",
-        "ExceptionMonitor",
-        "ExceptionMonitorStepForm.tsx",
-      ),
-    ).toContain(`value: ${Prefill.NEW_EXCEPTION_MONITOR_WINDOW_SECONDS}`);
+    expect(ruleWindows()).toContain(
+      `{ value: ${Prefill.NEW_EXCEPTION_MONITOR_WINDOW_SECONDS}, label: translationKey("Last 24 hours") }`,
+    );
   });
 
-  test("the failing operation's hour is an option of the trace form", () => {
-    expect(
-      readDashboardSource(
+  test("the count forms no longer offer windows of their own", () => {
+    for (const [folder, file, oldTitle] of [
+      ["LogMonitor", "LogMonitorStepFrom.tsx", "Monitor Logs for (time)"],
+      ["TraceMonitor", "TraceMonitorStepForm.tsx", "Monitor Traces for (time)"],
+      [
+        "ExceptionMonitor",
+        "ExceptionMonitorStepForm.tsx",
+        "Monitor exceptions for (time)",
+      ],
+    ] as Array<[string, string, string]>) {
+      const form: string = readDashboardSource(
         "Components",
         "Form",
         "Monitor",
-        "TraceMonitor",
-        "TraceMonitorStepForm.tsx",
-      ),
-    ).toContain(`value: ${Prefill.SPIKE_MONITOR_WINDOW_SECONDS}`);
+        folder,
+        file,
+      );
+
+      expect(form).not.toContain(oldTitle);
+      expect(form).not.toContain(
+        `value: ${Prefill.SPIKE_MONITOR_WINDOW_SECONDS}`,
+      );
+    }
   });
 
   test("the metric window is a rolling time the picker offers", () => {

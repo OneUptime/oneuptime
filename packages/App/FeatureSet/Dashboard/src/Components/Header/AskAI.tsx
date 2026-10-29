@@ -13,7 +13,7 @@ const AskAI: () => JSX.Element = (): ReactElement => {
       title="Ask AI"
       iconClassName="text-indigo-500"
       /*
-       * AIChatPanel listens for meta-or-ctrl + I, so the keycaps follow the
+       * AskAiDialog listens for meta-or-ctrl + I, so the keycaps follow the
        * platform: ⌘ I on a Mac, Ctrl I on Windows and Linux.
        */
       shortcut={[KeyboardKey.Mod, "I"]}

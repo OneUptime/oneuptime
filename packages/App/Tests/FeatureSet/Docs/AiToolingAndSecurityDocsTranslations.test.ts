@@ -151,7 +151,11 @@ const CREATE_BUTTONS: Record<string, Array<string>> = {
   [GEMINI_COPILOT]: ["Create Ingestion Key"],
   [AI_GATEWAYS]: ["Create Ingestion Key"],
   [CIRCUIT_BREAKER]: ["Create LLM Cost Budget"],
-  [SECURITY_EVENTS]: ["Create Ingestion Key", "Create Detection Rule"],
+  [SECURITY_EVENTS]: [
+    "Create Ingestion Key",
+    "Create Detection Rule",
+    "Create Watchlist",
+  ],
   [THREAT_INTELLIGENCE]: ["Create Threat Intel Feed"],
 };
 
@@ -187,12 +191,12 @@ export const WORKFLOW_STEP_NAMES: Record<string, Array<string>> = {
 
 /*
  * The monitor criteria's filter types (CheckOn), which no Dashboard locale
- * translates. AiToolingDocsFacts and SecurityDocsFacts hold each to its enum.
- * Their conditions (FilterType: Greater Than, Greater Than Or Equal To) are
- * labels since adc8421a1b, drawn like any other.
+ * translates. SecurityDocsFacts holds each to its enum. Their conditions
+ * (FilterType: Greater Than, Greater Than Or Equal To) are labels since
+ * adc8421a1b, drawn like any other. The circuit breaker's monitors are set
+ * up as one rule (When to alert), whose words are all labels.
  */
 export const CRITERIA_NAMES: Record<string, Array<string>> = {
-  [CIRCUIT_BREAKER]: ["Span Count"],
   [SECURITY_EVENTS]: ["Security Event Count"],
 };
 

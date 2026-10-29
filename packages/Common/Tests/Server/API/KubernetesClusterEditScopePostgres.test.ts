@@ -1248,7 +1248,7 @@ describePostgres(
         );
       });
 
-      test("runs on the cluster the member owns, and on the one their team owns", async () => {
+      test("runs on the cluster the member owns, and on one their team owns through that team's own grant", async () => {
         await setTeamPermissions(memberTeamId, ownerEditor);
 
         expectKubectlRanOn(
@@ -1257,6 +1257,19 @@ describePostgres(
         );
 
         kubectlRuns = [];
+
+        /*
+         * Each team's Owned grant reaches what that team owns (#5337): the
+         * member's team does not reach the cluster their other team owns,
+         * which holds no grant of its own...
+         */
+        expectRefused(
+          await testCluster(member, teamOwnedClusterId),
+          KUBERNETES_AI_ACCESS_TEST_EDIT_REFUSAL,
+        );
+
+        // ...and the owning team's own Owned grant does.
+        await setTeamPermissions(owningTeamId, ownerEditor);
 
         expectKubectlRanOn(
           await testCluster(member, teamOwnedClusterId),
@@ -1608,7 +1621,28 @@ describePostgres(
           assertMayApprove(props, productionClusterId),
         ).rejects.toThrow(NotAuthorizedException);
         await expect(
+          assertMayApprove(props, memberOwnedClusterId),
+        ).resolves.toBeUndefined();
+
+        /*
+         * Not the cluster the member's other team owns: an Owned grant
+         * reaches what its own team owns (#5337)...
+         */
+        await expect(
           assertMayApprove(props, teamOwnedClusterId),
+        ).rejects.toThrow(NotAuthorizedException);
+
+        // ...until the owning team's own edits are scoped to Owned too.
+        await setTeamPermissions(owningTeamId, [
+          { permission: Permission.ReadKubernetesCluster },
+          {
+            permission: Permission.EditKubernetesCluster,
+            scope: PermissionScope.Owned,
+          },
+        ]);
+
+        await expect(
+          assertMayApprove(await propsOf(member), teamOwnedClusterId),
         ).resolves.toBeUndefined();
       });
 
@@ -1893,9 +1927,24 @@ describePostgres(
           },
         ]);
 
-        const context: InvestigationThreadTurnContext = await askAsMember();
+        /*
+         * The member's own cluster: not the one their other team owns, which
+         * grants nothing of its own (an Owned grant reaches what its own
+         * team owns, #5337)...
+         */
+        expect(await offeredClusters(await askAsMember())).toEqual([
+          memberOwnedClusterId.toString(),
+        ]);
 
-        expect(await offeredClusters(context)).toEqual([
+        // ...until that team's own view is scoped to Owned too.
+        await setTeamPermissions(owningTeamId, [
+          {
+            permission: Permission.ReadKubernetesCluster,
+            scope: PermissionScope.Owned,
+          },
+        ]);
+
+        expect(await offeredClusters(await askAsMember())).toEqual([
           memberOwnedClusterId.toString(),
           teamOwnedClusterId.toString(),
         ]);

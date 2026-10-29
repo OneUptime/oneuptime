@@ -583,6 +583,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
               {translate(PaginationCopy.pageNumber)}
             </label>
             <input
+              data-unsaved-changes-ignore
               id={goToPageInputId}
               data-testid="pagination-go-to-page-input"
               type="number"

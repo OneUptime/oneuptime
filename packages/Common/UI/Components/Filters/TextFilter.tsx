@@ -192,6 +192,7 @@ const TextFilterControls: TextFilterFunction = <T extends GenericObject>(
       {!valuelessOperator && (
         <div className="flex-1 min-w-0">
           <input
+            data-unsaved-changes-ignore
             type="text"
             value={value}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {

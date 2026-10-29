@@ -46,12 +46,12 @@ stateDiagram-v2
 | **Schemalagd**                      | Utlösaren aktiverades och körningen står i kö för körmotorn. Vanligtvis en bråkdel av en sekund. En körning som fortfarande är schemalagd efter 5 minuter misslyckas: inget plockade upp den.                                                                       |
 | **Körs**                            | Arbetsflödet pågår.                                                                                                                                                                                                                                                   |
 | **Väntar**                          | Körningen står parkerad vid ett **Sleep**-block och fortsätter av sig själv. Den håller ingen worker medan den väntar.                                                                                                                                              |
-| **Executed**                        | Körningen nådde slutet utan att misslyckas. Det är det lyckade läget: etiketten säger **Executed**, inte ”Lyckades”.                                                                                                                                                 |
+| **Utförd**                        | Körningen nådde slutet utan att misslyckas. Det är det lyckade läget: etiketten säger **Utförd**, inte ”Lyckades”.                                                                                                                                                 |
 | **Fel**                             | Ett block stoppade körningen. Används också när en köad körning aldrig plockas upp, när återupptagningen av en sovande körning går förlorad, när ett schemauttryck inte kan lösas upp och när arbetsflödet stängdes av eller arkiverades medan körningen väntade vid ett **Sleep**-block. |
 | **Timeout**                         | Körningen tog längre tid än tillåtet: 2 minuter som standard. Se [Hur länge en körning får ta](/docs/workflows/configuration#hur-länge-en-körning-får-ta).                                                                                                              |
 | **Execution Exceeded Current Plan** | Projektet har förbrukat sina arbetsflödeskörningar för de senaste 30 dagarna, eller så är abonnemanget obetalt. Körningen registreras men utförs inte. Endast OneUptime Cloud.                                                                                      |
 
-Ett block som tar sin utgång **Error** — ett API-block som fick ett 4xx-svar, till exempel — får inte körningen att misslyckas. Blocken som är kopplade till **Error** körs, och körningen slutar ändå som **Executed**. Själva steget ritas i rött, så att du hittar det.
+Ett block som tar sin utgång **Error** — ett API-block som fick ett 4xx-svar, till exempel — får inte körningen att misslyckas. Blocken som är kopplade till **Error** körs, och körningen slutar ändå som **Utförd**. Själva steget ritas i rött, så att du hittar det.
 
 ## Läs en körning
 
@@ -125,7 +125,7 @@ Ett block som inte körs är oftast ett kopplingsproblem. Öppna **Byggare** och
 :::details Ett värde kom fram tomt, eller som {{…}}-text
 Öppna körningen och titta på steget. En referens som inte löstes upp lyfts fram på själva steget som en varning, och dess inställning i blocket **Mottaget** är markerad **Did not resolve**.
 
-- Ser du den bokstavliga texten `{{local.components.…}}` löstes referensen inte upp. Oftast är det ett stavfel i komponent-ID:t eller returvärdets ID — kom ihåg att det är blockets **Identifier**, inte namnet som visas på det. Kontrollera också stavningen av själva `local.components`: `{{local.componets.api-get-1.returnValues.response-body}}` skickas som bokstavlig text och körningen rapporterar ändå **Executed**. Var körningen ett test med **Run just this step** kördes det tidigare blocket inte alls — kör hela arbetsflödet i stället.
+- Ser du den bokstavliga texten `{{local.components.…}}` löstes referensen inte upp. Oftast är det ett stavfel i komponent-ID:t eller returvärdets ID — kom ihåg att det är blockets **Identifier**, inte namnet som visas på det. Kontrollera också stavningen av själva `local.components`: `{{local.componets.api-get-1.returnValues.response-body}}` skickas som bokstavlig text och körningen rapporterar ändå **Utförd**. Var körningen ett test med **Run just this step** kördes det tidigare blocket inte alls — kör hela arbetsflödet i stället.
 - Ser du **Empty text** kördes det tidigare blocket men producerade inte det fältet.
 
 Samma varning finns på fliken **Full Log** som en rad som börjar med `Warning:`.

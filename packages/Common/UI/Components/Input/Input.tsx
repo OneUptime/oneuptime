@@ -90,12 +90,21 @@ export interface ComponentProps {
   disableSpellCheck?: boolean | undefined;
   showSecondsForDateTime?: boolean | undefined;
   autoComplete?: string | undefined;
+  // The most characters it takes, as the column it fills keeps them.
+  maxLength?: number | undefined;
   /*
    * A password field that holds the person's own password, on a page where
    * they sign in, sign up or change it: password managers may fill and save
    * it. Leave it unset everywhere else - see isStoredSecret below.
    */
   isOwnCredential?: boolean | undefined;
+  /*
+   * A box that searches or filters what is shown - a table's search, a
+   * filter, a picker's own search: what is typed in it is a query, never
+   * work to keep, so a new version of OneUptime never waits for it
+   * (data-unsaved-changes-ignore, Utils/NewVersion/UnsavedChanges).
+   */
+  isSearchOrFilter?: boolean | undefined;
 }
 
 type GetDateDisplayValueFunction = (
@@ -320,6 +329,7 @@ const Input: FunctionComponent<ComponentProps> = (
             props.autoComplete || (isStoredSecret ? "new-password" : undefined)
           }
           {...(isStoredSecret ? PASSWORD_MANAGER_IGNORE_ATTRIBUTES : {})}
+          data-unsaved-changes-ignore={props.isSearchOrFilter || undefined}
           aria-label={props.ariaLabel}
           aria-labelledby={props.ariaLabelledby}
           aria-haspopup={props.ariaHasPopup}
@@ -380,6 +390,7 @@ const Input: FunctionComponent<ComponentProps> = (
               : undefined
           }
           readOnly={props.readOnly || props.disabled || false}
+          maxLength={props.maxLength}
           type={props.type || "text"}
           step={
             props.type === InputType.DATETIME_LOCAL &&

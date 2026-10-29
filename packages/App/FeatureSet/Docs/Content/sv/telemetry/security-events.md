@@ -40,6 +40,8 @@ flowchart TB
 | **Entitetsrisk** | Händelser | Varje användare, värd och adress, poängsatt efter vad som hittats om den den här veckan, de mest riskfyllda först |
 | **Korrelera** | Händelser | En graf över händelserna som delar en värd, en användare eller en IP-adress |
 | **Detektionsregler** | Detections | Sigma-regler som körs enligt ett schema och öppnar ärenden |
+| **Regelundantag** | Detections | Det dina regler hoppar över med flit, som en skanner eller ett planerat test, vart och ett med vem som lade till det och varför |
+| **Bevakningslistor** | Detections | Listorna som dina regler jämför mot, som VIP-användare, kritiska värdar, kända skadliga filhashar och adresserna som administratörer får logga in från |
 | **Regelbibliotek** | Detections | Färdiga detektionsregler att lägga till, var och en med händelserna den läser och om de kommer in, med de rekommenderade markerade |
 | **Hotinformation** | Detections | STIX/TAXII-flöden med kända skadliga indikatorer |
 | **ATT&CK-täckning** | Detections | MITRE ATT&CK-teknikerna som dina regler täcker |
@@ -51,6 +53,7 @@ flowchart TB
 | **Anslutningar** | Connections | Dina loggar, säkerhetsprodukterna som OneUptime hämtar från och de SIEM som det skickar till |
 | **Installationsguide** | Connections | Kodsnuttar för att skicka händelser, ifyllda med din ingestion-nyckel |
 | **Ärendeprioriteter** | Inställningar | Hur brådskande ett ärende är: projektets egna prioriteter, den mest brådskande först |
+| **Svarsmål** | Inställningar | Hur snabbt ett ärende med varje prioritet måste tas om hand och begränsas |
 | **Ärendestatusar** | Inställningar | Stegen ett ärende går igenom, och vad ett ärende i varje steg räknas som |
 | **Riskbedömning** | Inställningar | Om en entitets risk öppnar ett ärende, vid vilken risk, och hur mycket varje entitet betyder |
 
@@ -298,7 +301,7 @@ OneUptime kör den booleska kärnan i Sigma:
 
 - Urval är fältmappningar (varje fält måste träffa; en lista med värden träffar vilket som helst av dem) eller nyckelordslistor, som träffar var som helst i meddelandet.
 - Villkor kombinerar urval med `and`, `or`, `not` och parenteser, eller med `1 of selection_*`, `all of selection_*`, `any of them` och `all of them`.
-- Fältmodifierare: `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists` och `windash`. Text jämförs utan hänsyn till versaler och gemener, om du inte lägger till `cased`.
+- Fältmodifierare: `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists`, `windash` och `expand`, som läser en [bevakningslista](#bevakningslistor). Text jämförs utan hänsyn till versaler och gemener, om du inte lägger till `cased`.
 - Ett fält är ett typat fält (`principalUser`), en vanlig Sigma-stavning av ett (`CommandLine`, `src_ip`, `Hostname`) eller vilken attributnyckel som helst, stavad som i händelsen (`threat.matched`).
 - `Image` och `CommandLine` läser den process som händelsen handlar om, vid en processtart den som startade (`processPath`, `processCommandLine`), och `ParentImage` och `ParentCommandLine` den process som startade den (`parentProcessPath`, `parentProcessCommandLine`). `principalProcess` är den process som agerade, vilket vid en start är den överordnade.
 - `level` anger allvarlighetsgraden: `informational`, `low`, `medium`, `high` eller `critical`, och `medium` när den saknas. ATT&CK-ID:n i `tags` (`attack.t1110`, `attack.ta0006`) fyller i fyndets MITRE-fält.
@@ -418,6 +421,58 @@ Ett Detection Finding är en säkerhetshändelse av klassen `Detection Finding` 
 
 Fynd är vanliga händelser: sök efter dem under **Händelser** och pivotera på dem i **Korrelera**. För att prova en ny regel i det tysta stänger du av alla åtgärder utom fyndet tills du litar på den.
 
+### Undantag
+
+Ett undantag är något en regel hoppar över eftersom du väntar dig det, som en sårbarhetsskanner, ett nattligt säkerhetskopieringsjobb eller ett planerat penetrationstest. Det tystar regeln för just den saken utan att stänga av den, och regelns andra träffar utlöses fortfarande. Alla undantag listas under **Produkter → Security Events → Detektioner → Regelundantag**: lägg till ett där med **Lägg till Regelundantag**, med **Lägg till undantag** i en regels rad, eller med **Lägg till undantag** i en detektions rad i ett ärende, som börjar med detektionens regel och det den utlöstes för.
+
+| Det regeln hoppar över | Vad det träffar |
+| --- | --- |
+| **En entitet** | En användare, värd eller IP-adress, var en händelse än nämner den: som den som agerade (`principalUser`, `principalHost`, `principalIp`), som den som agerades mot (`targetUser`, `targetHost`, `targetIp`), eller bland dess `observables` |
+| **Ett värde** | Värdet i ett fält, med fältet namngivet så som en regel namnger det: `processName`, `principalUser` eller en attributnyckel som `http.user_agent` |
+| **Ett tidsfönster** | Alla händelser från **Börjar den** till **Slutar den**, högst 30 dagar isär |
+
+- Värden träffar oavsett versaler och gemener, och `*` står för vilken följd av tecken som helst: `svc-*` hoppar över alla tjänstekonton, och `*.lab.example.com` alla värdar i en domän. En IP-adress kan vara ett intervall, som `10.20.0.0/16`. Ett värde som bara är `*` avvisas: stäng av en regel för att stoppa den.
+- Varje undantag säger varför i sin **Orsak**, som alla som läser listan ser, och sparar vem som lade till det och när. En entitet eller ett värde kan ha ett datum i **Upphör**, varefter regeln ser det igen; ett tidsfönster slutar av sig självt.
+- **Status** säger var vart och ett står: **Aktiv**, **Kommande** för ett fönster som inte har börjat, **Utgången** eller **Avslutad**. Under en regels namn i **Detektionsregler** räknar en rad dess aktiva undantag, och **Visa undantag** i regelns rad öppnar listan filtrerad på regeln.
+- Överhoppade händelser lämnas utanför innan regeln räknar något, så de räknas aldrig mot dess **Tröskel för antal träffar** och öppnar inget ärende, larm, incident eller fynd. Undantag gäller för varje körning av regeln, korrelationer inräknade, och för **Kör på tidigare händelser**, men aldrig för en testattack, som kontrollerar att händelser kommer fram.
+- En regel har högst 100 undantag. Den som får redigera detektionsregler lägger till, ändrar och tar bort dem, alla Security-roller kan läsa dem, och varje ändring sparas i projektets granskningslogg.
+
+### Bevakningslistor
+
+En bevakningslista är en lista som ditt team underhåller en gång och som varje regel kan läsa, som VIP-användare, kritiska värdar, kända skadliga filhashar eller adresserna som administratörer får logga in från. Alla listor finns under **Produkter → Security Events → Detektioner → Bevakningslistor**: Skapa en där med **Skapa Bevakningslista**, som frågar efter dess namn och vad den innehåller, eller lägg till en vanlig från **Börja med en vanlig lista**. En listas sida visar dess värden, och **Använd den i en regel** ger ett urval som läser listan, att kopiera in i en regel.
+
+En regel läser en lista med `expand` och listans namn mellan två `%`-tecken. Den här regeln utlöses när en administratör loggar in från en adress som inte finns på den tillåtna listan:
+
+```yaml title="admin-sign-in-from-outside.yml"
+title: Admin sign-in from outside the allowed addresses
+detection:
+  admin_sign_in:
+    className: Authentication
+    principalUser|expand: '%admins%'
+  allowed:
+    principalIp|expand: '%admin_addresses%'
+  condition: admin_sign_in and not allowed
+level: high
+```
+
+- En lista innehåller användare, värdar, IP-adresser, filhashar, domäner, URL:er, processer eller andra värden, valt när den skapas. Ett värde träffar oavsett versaler och gemener, och `*` står för vilken följd av tecken som helst: `svc-*` träffar alla tjänstekonton. En lista med IP-adresser tar också intervall som `10.20.0.0/16`, och en lista med filhashar MD5-, SHA-1-, SHA-256- och SHA-512-hashar.
+- Lägg till värden ett i taget med **Lägg till Värde**, eller många på en gång med **Importera värden**: klistra in dem, eller välj en `.txt`- eller `.csv`-fil, ett värde per rad, med en valfri anteckning efter ett kommatecken. **Lägg till i listan** behåller värdena som redan finns på den, och **Ersätt listan** tar bort dem som importen inte har.
+- I stället för att underhålla värden kan en lista med IP-adresser, filhashar, domäner eller URL:er följa ett flöde med hotinformation: Dess värden är då flödets aktiva indikatorer av listans typ, som hålls uppdaterade när flödet läses.
+- `expand` används ensamt, eftersom listans värden avgör hur de träffar. Ett fält med flera värden, som `observables`, träffar när något av dem finns på listan. **Läses av** nämner reglerna som läser varje lista, och under en regels YAML nämner dess formulär listorna som regeln läser.
+- En regel nämner en lista oavsett versaler och gemener. En regel som nämner en lista som projektet inte har avvisas när du sparar den, och en lista som regler läser kan inte byta namn eller tas bort förrän ingen regel läser den.
+- En ändring i en lista når varje regel som läser den vid regelns nästa körning. Korrelationsregler och **Kör på tidigare händelser** läser också listor.
+- En lista innehåller högst 5 000 värden, varav högst 100 med `*` och 100 intervall, och ett projekt har högst 200 listor: Följ ett flöde med hotinformation för en längre lista. Den som får skapa, redigera eller ta bort detektionsregler får göra detsamma med listor, och den som får redigera detektionsregler lägger till, ändrar och tar bort deras värden. Alla Security-roller kan läsa dem, och varje ändring sparas i projektets granskningslogg.
+
+### Kör på tidigare händelser
+
+**Kör på tidigare händelser** visar vad en regel skulle ha hittat om den hade körts, utan att öppna, skicka eller skriva något. Den finns i en regels rad, för regeln som den är sparad, och under **Sigma-regel (YAML)** i regelns formulär, för regeln som den står där, innan du sparar den. Välj **Senaste 24 timmarna**, **Senaste 7 dagarna** eller **Senaste 30 dagarna**.
+
+- En regel räknas så som dess körningar räknar den: i fönster lika långa som dess **Utvärderingsintervall (minuter)**, där en grupp utlöses i ett fönster när dess antal där når **Tröskel för antal träffar**. En korrelation läses över hela perioden och listar de grupper den skulle ha träffat, var och en med vad som hände.
+- Svaret säger hur många gånger regeln skulle ha utlösts, hur många gånger per dag, för hur många användare, värdar eller adresser, och hur många händelser som träffade. De 50 grupper som utlöstes mest listas, var och en med sina händelser och när den senast utlöstes.
+- En sparad regels undantag gäller, och svaret säger hur många händelser de hoppade över och hur många utlösningar de förhindrade. En regel som inte skulle ha utlösts säger hur nära den kom: hur många händelser som träffade, och tröskeln som ingen grupp nådde i ett fönster.
+- En regel som skulle utlösas mer än 20 gånger per dag utlöses oftare än en människa hinner titta på, och svaret säger det, med sätt att göra den tystare.
+- Den läser bara de källor du får läsa. En körning som tar mer än 45 sekunder stoppas och säger det: välj en kortare period.
+
 ## Monitorer för säkerhetshändelser
 
 En monitor för säkerhetshändelser räknar händelserna som träffar dess filter över ett glidande fönster och kör de vanliga monitorkriterierna på räkningen: den ändrar monitorns status, öppnar larm eller incidenter och larmar jourhavande. Skapa en under **Övervakare → Skapa monitor**, med **Säkerhetshändelser** som typ; den listas där med dina andra monitorer.
@@ -468,6 +523,26 @@ Kontrollera dess **Status**: med **Inaktiverad** körs regeln inte, och med **K�
 
 :::details En regel öppnar för många larm
 Varje värde i **Grupperingsfält** får ett eget larm: gruppera efter något grövre, höj tröskeln eller lägg till ett Distinct Count Field. Bryr du dig om takten snarare än om varje träff, sätter du **Larm och incidenter** till **Ingetdera** och sätter en monitor på regelns fynd.
+:::
+
+:::details En regel utlöses av något du väntar dig
+Lägg till ett undantag för det i stället för att stänga av regeln: **Lägg till undantag** i detektionens rad i dess ärende börjar med regeln och det den utlöstes för. För att ändra själva regeln visar **Kör på tidigare händelser** under dess YAML vad ändringen skulle ha hittat innan du sparar.
+:::
+
+:::details Ett undantag hoppar inte över det det ska
+Kontrollera undantagets **Status** i **Regelundantag**: ett undantag med status **Utgången** hoppar inte över något, och ett tidsfönster hoppar bara över händelserna mellan sina två tidpunkter. En entitet söks som den som agerade, som den som agerades mot och bland händelsens `observables`; för att hoppa över ett värde i ett annat fält lägger du till ett undantag av typen **Ett värde** som namnger fältet. Utan `*` måste ett värde vara lika med hela fältet: `svc-*` hoppar över `svc-backup`, och `svc-` gör det inte.
+:::
+
+:::details En regel som läser en bevakningslista träffar inte
+Öppna listan och kontrollera dess värden: Ett värde utan `*` måste vara lika med hela fältet, oavsett versaler och gemener, och en lista som följer ett flöde med hotinformation innehåller bara flödets aktiva indikatorer av dess typ. Kontrollera att regeln läser fältet som dina händelser fyller: **Använd den i en regel** börjar med fältet som en lista av dess typ brukar finnas i. En ändring i en lista når en regel vid dess nästa körning.
+:::
+
+:::details En bevakningslista kan inte byta namn eller tas bort
+Regler läser den fortfarande via dess namn, och meddelandet nämner dem. Ändra namnet i de reglerna, eller ta bort listan från dem, och byt sedan namn på den eller ta bort den.
+:::
+
+:::details Att köra en regel på tidigare händelser hittar ingenting
+Den läser bara den period du väljer och de källor du får läsa. När händelser träffade men ingen grupp nådde **Tröskel för antal träffar** i ett fönster säger svaret hur många som träffade: sänk tröskeln, eller räkna över ett längre **Utvärderingsintervall (minuter)**.
 :::
 
 ## Nästa steg

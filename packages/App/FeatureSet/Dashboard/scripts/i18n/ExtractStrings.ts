@@ -134,6 +134,11 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    * groups - each helper writes them with the reader's Translator.
    */
   { directory: "packages/Common/Utils/Monitor", kind: "ui" },
+  /*
+   * The monitor types' cards in Create Monitor's picker: each type's title
+   * and what it alerts on, and the categories More lists them under.
+   */
+  { directory: "packages/Common/Types/Monitor/MonitorType.ts", kind: "ui" },
   // A cron schedule in words: the monitor's interval, a workflow's schedule.
   { directory: "packages/Common/Utils/CronScheduleText.ts", kind: "ui" },
   // The common schedules a workflow's Schedule trigger offers.
@@ -144,6 +149,24 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   {
     directory: "packages/Common/Utils/SecurityCase/SecurityCaseMarkdown.ts",
+    kind: "ui",
+  },
+  /*
+   * What is wrong with a detection rule exception, field by field: the
+   * Add Exception form shows each problem under its field, in the
+   * reader's language, and the API answers a save with the same words.
+   */
+  {
+    directory: "packages/Common/Types/SecurityEvent/DetectionRuleException.ts",
+    kind: "ui",
+  },
+  /*
+   * What is wrong with a watchlist or one of its values: the forms and the
+   * Import Values preview show each problem in the reader's language, and
+   * the API answers a save with the same words.
+   */
+  {
+    directory: "packages/Common/Types/SecurityEvent/SecurityWatchlist.ts",
     kind: "ui",
   },
 ];

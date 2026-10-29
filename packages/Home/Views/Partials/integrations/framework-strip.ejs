@@ -1,0 +1,30 @@
+<%#
+  The telemetry product pages' way into the guides: every framework with a
+  guide, as Routes.ts hands them to every page (app.locals.frameworkGuides),
+  each linking its guide, and the index beside them. A page rendered
+  without the list - a test of its own words - shows nothing here.
+-%>
+<% if (typeof frameworkGuides !== 'undefined' && frameworkGuides && frameworkGuides.length > 0) { %>
+<section class="border-t border-gray-100 bg-white py-16 sm:py-20" aria-labelledby="framework-guides-title" data-framework-guides>
+  <div class="mx-auto max-w-7xl px-6 lg:px-8">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <div class="max-w-2xl">
+        <p class="text-sm font-medium text-indigo-600">Integrations</p>
+        <h2 id="framework-guides-title" class="mt-2 text-2xl font-semibold tracking-tight text-gray-900 sm:text-3xl">Set it up for your framework</h2>
+        <p class="mt-3 text-base leading-7 text-gray-600">Step-by-step OpenTelemetry guides, from the first install to traces, logs, metrics and errors in OneUptime. Each was run end to end before it was published.</p>
+      </div>
+      <a href="/integrations" class="text-sm font-semibold text-indigo-600 hover:text-indigo-500">All integrations <span aria-hidden="true">&rarr;</span></a>
+    </div>
+    <ul class="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6" role="list">
+      <% frameworkGuides.forEach(function (card) { %>
+      <li>
+        <a href="<%= card.href %>" class="group flex h-full items-center gap-3 rounded-xl bg-white p-3 ring-1 ring-gray-200 hover:shadow-sm hover:ring-indigo-300">
+          <%- include('./mark', { mark: card.mark, size: 'md' }) -%>
+          <span class="min-w-0 text-sm font-semibold text-gray-900 group-hover:text-indigo-600"><%= card.name %></span>
+        </a>
+      </li>
+      <% }) %>
+    </ul>
+  </div>
+</section>
+<% } %>

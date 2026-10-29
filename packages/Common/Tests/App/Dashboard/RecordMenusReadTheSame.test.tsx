@@ -193,11 +193,16 @@ const PAGE_SECTIONS: Readonly<Record<string, string>> = {
   Postmortem: "Investigation",
   "Linked Alerts": "Investigation",
   "Linked Incidents": "Investigation",
+  // A security case's story: what happened, in order, across OneUptime.
+  Story: "Investigation",
   // What a security case is made of, and what was done about it.
   Detections: "Investigation",
   Entities: "Investigation",
   // What those entities are in the rest of OneUptime.
   "Connected Signals": "Investigation",
+  // What is kept on a security case, and what is left to do on it.
+  Evidence: "Investigation",
+  Tasks: "Investigation",
   Playbooks: "Investigation",
   Roles: "Team",
   "On-Call Executions": "Team",

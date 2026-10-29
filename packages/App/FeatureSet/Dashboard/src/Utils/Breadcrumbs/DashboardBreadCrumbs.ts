@@ -96,6 +96,23 @@ export function getDashboardBreadcrumbs(path: string): Array<Link> | undefined {
       PageMap.DASHBOARDS_SETTINGS_DATA_SOURCE_VIEW,
       ["Project", "Dashboards", "Settings", "Data Sources", "View Data Source"],
     ),
+    /*
+     * Pages that had no trail. Every page this product routes has one:
+     * Common/Tests/App/Dashboard/EveryPageHasATrail fails by name for a
+     * page left out.
+     */
+    ...BuildBreadcrumbLinksByTitles(PageMap.DASHBOARD_VIEW_CUSTOM_DOMAINS, [
+      "Project",
+      "Dashboards",
+      "View Dashboard",
+      "Custom Domains",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DASHBOARD_VIEW_AUDIT_LOGS, [
+      "Project",
+      "Dashboards",
+      "View Dashboard",
+      "Audit Logs",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

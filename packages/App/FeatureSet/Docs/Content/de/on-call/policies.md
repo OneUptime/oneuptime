@@ -20,6 +20,8 @@ Eine Bereitschaftsrichtlinie entscheidet, wer zu einem Vorfall oder einer Warnun
 
 **Wer wird zuerst alarmiert?** ist optional und wird nur gefragt, wer Eskalationsregeln hinzufügen darf: Bleibt die Frage leer, alarmiert die Richtlinie niemanden, bis sie eine Regel hat. **Beschreibung** und **Beschriftungen** liegen unter **Weitere Felder**. Wie Sie die nächsten Stufen hinzufügen, steht unter [Eskalationsregeln](/docs/on-call/escalation-rules).
 
+Für die erste Richtlinie eines Projekts fragt das Formular außerdem **Bei jedem neuen Vorfall und jeder neuen Warnung auslösen**, anfangs eingeschaltet. Es legt eine Regel unter **Vorfälle → Regeln → Bereitschaftsregeln** und eine unter **Warnungen → Regeln → Bereitschaftsregeln** an, die jeweils auf alles zutreffen und diese Richtlinie ausführen. Gefragt wird nur, wer Bereitschaftsregeln hinzufügen darf, solange das Projekt keine Bereitschaftsrichtlinie und keine Bereitschaftsregel hat.
+
 Die Liste **Bereitschaftsrichtlinien** zeigt für jede Richtlinie **Name**, **Beschreibung**, **Beschriftungen** und **Eigentümer**. Wählen Sie Richtlinien aus, um **Beschriftungen hinzufügen**, **Beschriftungen entfernen**, **Eigentümer hinzufügen**, **Eigentümer entfernen**, **Archivieren** oder **JSON exportieren** auszuführen oder sie zu löschen. **JSON importieren** legt Richtlinien aus einem Export an: Ein Export enthält die eigenen Einstellungen einer Richtlinie, nicht ihre Eskalationsregeln oder Eigentümer.
 
 ## Was eine Richtlinie ausführt
@@ -64,7 +66,7 @@ Läuft die Wartezeit der letzten Stufe ab, ohne dass jemand bestätigt, hört ei
 | **Alarmierung beenden** | Niemand wird erneut alarmiert, die Richtlinie läuft also einmal. Eine neue Richtlinie beginnt mit dieser Antwort. |
 | **Erneut bei Level 1 beginnen** | Jede Stufe wird erneut alarmiert, der Reihe nach. **Wie oft noch?** legt fest, wie oft: 1 oder mehr. |
 
-Eine Richtlinie, die noch dreimal von vorn beginnt, geht insgesamt viermal durch ihre Stufen. Die Zeile **Nach der letzten Stufe** der Karte sagt, was die Richtlinie tut, und **Richtlinie auf einen Blick** in der **Übersicht** sagt dasselbe in Worten.
+Eine Richtlinie, die noch dreimal von vorn beginnt, geht insgesamt viermal durch ihre Stufen. Ein Durchgang, in dem keine Stufe jemanden zu alarmieren hatte, wird nicht wiederholt: Ein weiterer würde ebenfalls niemanden alarmieren, daher hört die Richtlinie auf. Die Zeile **Nach der letzten Stufe** der Karte sagt, was die Richtlinie tut, und **Richtlinie auf einen Blick** in der **Übersicht** sagt dasselbe in Worten.
 
 ## Erneut alarmieren, wenn es nicht behoben wird
 
@@ -101,7 +103,7 @@ flowchart TB
 | **Geplant**, **Begonnen** | Der Lauf wird vorbereitet. Einer, der nach 5 Minuten noch hier steht, wird mit **Fehler** beendet. |
 | **Executing** | Der Lauf alarmiert. OneUptime bringt ihn jede Minute einen Schritt weiter. |
 | **Execution Completed** | Jemand hat bestätigt, der Vorfall oder die Warnung wurde behoben, jede Regel und Wiederholung wurde genutzt, oder die Richtlinie wurde archiviert. |
-| **Execution Completed - No One Notified** | Der Lauf ist durch jede Regel gegangen und hat niemanden alarmiert: meist ein Plan, in dem niemand Bereitschaft hat. |
+| **Execution Completed - No One Notified** | Der Lauf ist durch jede Regel gegangen und hat niemanden alarmiert: meist ein Plan, in dem niemand Bereitschaft hat, oder eine Stufe ohne Empfänger. |
 | **Fehler** | Der Lauf ist fehlgeschlagen. **Statusmeldung anzeigen** sagt, warum. |
 
 Ausführungsprotokolle finden Sie an drei Stellen:
@@ -110,7 +112,7 @@ Ausführungsprotokolle finden Sie an drei Stellen:
 - unter **Bereitschaftsdienst → Erweitert → Ausführungsprotokolle**, für jede Richtlinie, wobei direkte Alarmierungen aus Workflows und Chat als **Direkte Alarmierung** erscheinen;
 - auf der Seite **Bereitschaftsausführungen** eines Vorfalls oder einer Warnung.
 
-Jede Zeile zeigt, was den Lauf ausgelöst hat, wann, seinen **Status** und wer ihn bestätigt hat. **Zeitachse anzeigen** öffnet seine **Zeitachse der Ausführung**: jede Eskalationsregel, wen sie alarmiert hat, über welchen Plan und wie jeder Alarm geendet hat. Ein Plan, in dem niemand Bereitschaft hat, zeigt statt einer Person **Niemand hatte Bereitschaft**. In OneUptime Cloud brauchen Ausführungsprotokolle den Plan **Growth**.
+Jede Zeile zeigt, was den Lauf ausgelöst hat, wann, seinen **Status** und wer ihn bestätigt hat. **Zeitachse anzeigen** öffnet seine **Zeitachse der Ausführung**: jede Eskalationsregel, wen sie alarmiert hat, über welchen Plan und wie jeder Alarm geendet hat. Ein Plan, in dem niemand Bereitschaft hat, zeigt statt einer Person **Niemand hatte Bereitschaft**. Eine Stufe, die niemanden alarmiert hat, sagt, warum, mit **Ohne Wartezeit fortgesetzt** darunter: Die Richtlinie hat nicht auf sie gewartet. In OneUptime Cloud brauchen Ausführungsprotokolle den Plan **Growth**.
 
 ## Eine Richtlinie archivieren oder löschen
 
@@ -152,6 +154,10 @@ Ihr Lauf zeigt **Execution Completed - No One Notified**. Öffnen Sie **Zeitachs
 
 :::details Die nächste Stufe wurde eine Minute nach ihrer Wartezeit alarmiert
 OneUptime bringt laufende Richtlinien einmal pro Minute einen Schritt weiter, daher wird eine Stufe bei der ersten Prüfung nach Ablauf ihrer Wartezeit alarmiert.
+:::
+
+:::details Die nächste Stufe wurde sofort alarmiert, ohne Wartezeit
+Die Stufe davor hatte niemanden zu alarmieren: keine Empfänger, niemand mit Bereitschaft in ihren Plänen oder niemand, der erreichbar war. Eine Stufe, die niemanden alarmiert, hat keine Wartezeit, daher wird die nächste Stufe alarmiert, sobald die Richtlinie sie erreicht. **Zeitachse anzeigen** zeigt, warum diese Stufe niemanden alarmiert hat.
 :::
 
 :::details Ein Vorfall nennt eine Richtlinie, die niemanden alarmiert hat

@@ -436,7 +436,13 @@ describe("a click on any row narrows the whole page", () => {
     const listRows: Array<HTMLElement> = screen.getAllByTestId(
       "traffic-conversation-row",
     );
-    expect(listRows[0]).toHaveTextContent("10.0.0.5 → 10.0.0.9");
+    // Left to right in any language: from, the arrow, to.
+    expect(
+      within(listRows[0]!).getByTestId("traffic-conversation-row-label"),
+    ).toHaveAttribute("title", "10.0.0.5 → 10.0.0.9");
+    expect(listRows[0]).toHaveAccessibleName(
+      "Show only the traffic from 10.0.0.5 to 10.0.0.9",
+    );
     expect(listRows[0]).toHaveAttribute("aria-pressed", "true");
 
     // The same pair again widens the page.
@@ -457,10 +463,10 @@ describe("a click on any row narrows the whole page", () => {
     expect(lastRequest().filters).toEqual({ destinationIp: "8.8.8.8" });
   });
 
-  test("Find an IP address narrows to traffic to or from it", async () => {
+  test("Find narrows to traffic to or from an address typed, without a search", async () => {
     await renderView(DEVICE_SCOPE);
 
-    fireEvent.change(screen.getByLabelText("Find an IP address"), {
+    fireEvent.change(screen.getByLabelText("Find a name or an IP address"), {
       target: { value: " 2001:DB8::1 " },
     });
     fireEvent.click(screen.getByTestId("traffic-find-address-button"));
@@ -470,23 +476,17 @@ describe("a click on any row narrows the whole page", () => {
     expect(screen.getByTestId("traffic-filter-host")).toHaveTextContent(
       "To or from 2001:db8::1",
     );
-    expect(screen.getByLabelText("Find an IP address")).toHaveValue("");
-  });
-
-  test("Find an IP address refuses what is not one, without asking the server", async () => {
-    await renderView(DEVICE_SCOPE);
-    const requests: number = apiPostMock.mock.calls.length;
-
-    fireEvent.change(screen.getByLabelText("Find an IP address"), {
-      target: { value: "core-router" },
-    });
-    fireEvent.submit(screen.getByTestId("traffic-find-address"));
-    await flush();
-
+    expect(screen.getByLabelText("Find a name or an IP address")).toHaveValue(
+      "",
+    );
+    // An address typed is never searched for by name (NetworkTrafficNames pins the search).
     expect(
-      screen.getByText("Enter an IP address, like 10.0.0.5."),
-    ).toBeInTheDocument();
-    expect(apiPostMock.mock.calls.length).toBe(requests);
+      apiPostMock.mock.calls.some((call: Array<unknown>): boolean => {
+        return String((call[0] as { url?: unknown }).url).includes(
+          "/find-address",
+        );
+      }),
+    ).toBe(false);
   });
 
   test("a link with filters opens filtered", async () => {

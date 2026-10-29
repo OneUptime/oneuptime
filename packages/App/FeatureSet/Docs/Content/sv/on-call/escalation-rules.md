@@ -79,11 +79,13 @@ När en incident eller ett larm når policyn larmar **Level 1** sina mottagare d
 
 En incident, ett larm eller en episod som skapas redan bekräftad eller löst — registrerad i efterhand — kör ingen av sina policyer: ingen larmas, och dess feed säger det och nämner dem vid namn. Se [Deklarerad redan bekräftad eller löst](/docs/incidents/declaring-incidents#deklarerad-redan-bekräftad-eller-löst).
 
+En nivå som inte har någon att larma när den nås hoppas över direkt: nästa nivå larmas genast, utan att vänta. Det är en nivå utan mottagare, och en nivå vars mottagare inte ger någon att larma just då: ett team utan medlemmar, ett schema där ingen har jour, eller personer som är borta utan någon som täcker upp, har lämnat projektet eller inte kan nås alls. När ingen nivå har någon att larma slutar policyn direkt och upprepas inte.
+
 För att upprepa en policy klickar du på **Redigera** på kortet **Upprepningspolicy**, väljer **Börja om från Level 1** och anger **Hur många gånger till?**.
 
 ### Eskaleringsöversikten
 
-Översikten högst upp på sidan **Eskaleringsregler** visar hela stegen: när varje nivå larmas, vem den larmar och vad som händer efter den sista. En nivå vars mottagare inte alla kan larmas säger det på sitt kort; klicka på etiketten för att se vem och varför.
+Översikten högst upp på sidan **Eskaleringsregler** visar hela stegen: när varje nivå larmas, vem den larmar och vad som händer efter den sista. En nivå vars mottagare inte alla kan larmas säger det på sitt kort; klicka på etiketten för att se vem och varför. En nivå utan mottagare visar **Hoppades över direkt**, och dess väntetid räknas inte med när nästa nivå larmas.
 
 ### Så nås varje person
 
@@ -184,7 +186,7 @@ Nästa person bestäms när nivån körs, utifrån schemat som det ser ut då:
 - Det är personen efter den som har jour, i den ordning som rotationens personer turas om. Efter den sista personen kommer den första igen.
 - Personer som är borta hoppas över, oavsett om någon täcker upp för dem eller inte, och detsamma gäller den som har jour i någon annans ställe.
 - Det är alltid någon från samma rotation: med flera lager det lager som den som har jour kommer från. En rotation utan någon annan i, eller där alla andra är borta, har ingen nästa person, och nivån larmar ingen där och säger det.
-- När ingen alls har jour i schemat finns det inte heller någon nästa person, och nivån försöks igen i några minuter, som för själva schemat.
+- När ingen alls har jour i schemat finns det inte heller någon nästa person, och nivån larmar ingen där.
 
 Körningens meddelande i Slack och Microsoft Teams, incidentens feed och **Tidslinje för körningen** visar vem som larmades som nästa i rotationen, och från vilket schema: "Sam Lee (next in the Payments primary rotation)".
 

@@ -213,6 +213,16 @@ integration("Meraki traffic reads against ClickHouse", () => {
           { id: MX_DEVICE, serialNumber: "Q2XX-AAAA-0000", macAddress: "" },
         ];
       },
+      /*
+       * The device list's details go to Postgres, which this suite does
+       * not run: no device here is a Meraki device.
+       */
+      findControllerCandidates: async () => {
+        return [];
+      },
+      mergeControllerReadings: async () => {
+        return 0;
+      },
     });
   }
 

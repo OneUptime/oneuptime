@@ -9,11 +9,16 @@ import UserOnCallLogTimeline from "../../../../../Models/DatabaseModels/UserOnCa
 import { NOT_A_PROJECT_MEMBER_TIMELINE_MESSAGE } from "../../../../../Server/Services/OnCallDutyPolicyEscalationRuleService";
 import { NOT_A_PROJECT_MEMBER_STATUS_MESSAGE } from "../../../../../Server/Services/UserOnCallLogService";
 import OnCallPolicyRunMessage from "../../../../../Server/Utils/Workspace/LiveMessages/OnCallPolicyRunMessage";
-import {
+import OnCallPolicyRunMessageView, {
   OnCallPolicyRun,
   OnCallPolicyRunOutcome,
 } from "../../../../../Server/Utils/Workspace/LiveMessages/OnCallPolicyRunMessageView";
 import Email from "../../../../../Types/Email";
+import {
+  LEGACY_ON_CALL_LEVEL_NO_USERS_TIMELINE_MESSAGE,
+  ON_CALL_LEVEL_HAS_NO_RESPONDERS_TIMELINE_MESSAGE,
+  ON_CALL_LEVEL_PAGED_NOBODY_TIMELINE_MESSAGE,
+} from "../../../../../Types/OnCallDutyPolicy/OnCallEmptyLevel";
 import ObjectID from "../../../../../Types/ObjectID";
 import OnCallDutyExecutionLogTimelineStatus from "../../../../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import OnCallDutyPolicyStatus from "../../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
@@ -152,7 +157,10 @@ function executionLog(options: {
   ruleOrder?: number | undefined;
   // When the run started the rule it is on.
   ruleStartedAt?: Date | undefined;
-  // How often the rule was tried again because nobody was on call yet.
+  /*
+   * How often a run from before levels with nobody to page were passed at
+   * once tried its rule again because nobody was on call yet.
+   */
   scheduleGapRetryCount?: number | undefined;
   status?: OnCallDutyPolicyStatus | undefined;
   executeNextInMinutes?: number | undefined;
@@ -812,13 +820,16 @@ describe("OnCallPolicyRunMessage.buildRun - each kind of step", () => {
   });
 
   /*
-   * Nobody was on call in a rule's schedules yet: OneUptime tries the rule
-   * again each minute, a few times, before it moves on (it rewinds the run
-   * to the rule before, and counts the tries). Raising "paged nobody - page
-   * someone or fix the policy" at the first try told a channel to act on a
-   * gap of a minute, while the rule was about to page somebody.
+   * Runs from before a level with nobody to page was passed at once: a
+   * rule whose schedules had nobody on call was tried again each minute, a
+   * few times (the run rewound to the rule before, counting the tries), and
+   * its "no users in this rule" line was written on each try. Raising "paged
+   * nobody - page someone or fix the policy" at the first try told a
+   * channel to act on a gap of a minute. Such a run still on that rule
+   * raises no alarm - and its message no longer says it is trying again:
+   * the engine does not, and moves on from the rule at its next minute.
    */
-  test("REGRESSION: a rule tried again because nobody was on call yet raises no alarm, and says it is tried again", () => {
+  test("REGRESSION: a run from before, on a rule it was trying again because nobody was on call, raises no alarm", () => {
     const built: OnCallPolicyRun = build({
       log: executionLog({
         ruleId: RULE_1,
@@ -839,12 +850,12 @@ describe("OnCallPolicyRunMessage.buildRun - each kind of step", () => {
         step({
           status: SKIPPED,
           ruleId: RULE_1,
-          statusMessage: "Skipped because no users in this rule.",
+          statusMessage: LEGACY_ON_CALL_LEVEL_NO_USERS_TIMELINE_MESSAGE,
         }),
       ],
     });
 
-    expect(built.retryingCurrentRule).toBe(true);
+    expect(built).not.toHaveProperty("retryingCurrentRule");
     expect(built.currentRule).toEqual({ order: 1, name: "fhirst" });
     expect(built.firstRuleThatReachedNobody).toBeUndefined();
     expect(built.nextStepAt).toEqual(new Date("2026-10-08T17:16:00.000Z"));
@@ -854,36 +865,7 @@ describe("OnCallPolicyRunMessage.buildRun - each kind of step", () => {
     ]);
   });
 
-  test("REGRESSION: during a try, too - the run back on the rule while the tries are still counted - it is tried again, with no alarm", () => {
-    const built: OnCallPolicyRun = build({
-      log: executionLog({
-        ruleId: RULE_1,
-        ruleOrder: 1,
-        scheduleGapRetryCount: 2,
-        executeNextInMinutes: 5,
-      }),
-      timeline: [
-        step({
-          status: SKIPPED,
-          ruleId: RULE_1,
-          scheduleId: PRIMARY_COVER,
-          scheduleName: "Primary cover",
-          statusMessage:
-            "Skipped because no active users are found in this schedule.",
-        }),
-        step({
-          status: SKIPPED,
-          ruleId: RULE_1,
-          statusMessage: "Skipped because no users in this rule.",
-        }),
-      ],
-    });
-
-    expect(built.retryingCurrentRule).toBe(true);
-    expect(built.firstRuleThatReachedNobody).toBeUndefined();
-  });
-
-  test("once the tries are over and the run moves on, the rule reached nobody: the alarm is raised then", () => {
+  test("once such a run moved on, the rule reached nobody: the alarm is raised then - with no word of moving on at once, since it waited", () => {
     const built: OnCallPolicyRun = build({
       log: executionLog({
         ruleId: RULE_2,
@@ -903,13 +885,12 @@ describe("OnCallPolicyRunMessage.buildRun - each kind of step", () => {
         step({
           status: SKIPPED,
           ruleId: RULE_1,
-          statusMessage: "Skipped because no users in this rule.",
+          statusMessage: LEGACY_ON_CALL_LEVEL_NO_USERS_TIMELINE_MESSAGE,
         }),
         movedOnTo(RULE_2),
       ],
     });
 
-    expect(built.retryingCurrentRule).toBe(false);
     expect(built.firstRuleThatReachedNobody).toEqual({
       rule: { order: 1, name: "fhirst" },
       reasons: ["nobody was on call in schedule Primary cover"],
@@ -1335,5 +1316,402 @@ describe("OnCallPolicyRunMessage.buildRun - where the escalation is", () => {
       build({ log: executionLog({ policyName: "  " }), timeline: [] })
         .policyName,
     ).toBe("On-call policy");
+  });
+});
+
+/*
+ * A LEVEL WITH NOBODY TO PAGE IS PASSED AT ONCE (OnCallEmptyLevel): its own
+ * line says so, and the message says where the run went - in its list and
+ * in its alarm - as soon as that line is written, whether or not the run's
+ * log has caught up with the next level yet.
+ */
+describe("a level passed at once because it had nobody to page", () => {
+  test("a level that names nobody: its line in the list says the next level was paged at once, and so does its alarm", () => {
+    const built: OnCallPolicyRun = build({
+      log: executionLog({
+        ruleId: RULE_2,
+        ruleOrder: 2,
+        executeNextInMinutes: 7,
+      }),
+      timeline: [
+        step({
+          status: SKIPPED,
+          ruleId: RULE_1,
+          statusMessage: ON_CALL_LEVEL_HAS_NO_RESPONDERS_TIMELINE_MESSAGE,
+        }),
+        movedOnTo(RULE_2),
+      ],
+    });
+
+    expect(built.notPaged).toEqual([
+      {
+        rule: { order: 1, name: "fhirst" },
+        reason: "nobody to page",
+        movedOnTo: { order: 2, name: "second" },
+      },
+    ]);
+    expect(built.firstRuleThatReachedNobody).toEqual({
+      rule: { order: 1, name: "fhirst" },
+      reasons: ["the rule has nobody to page"],
+      movedOnTo: { order: 2, name: "second" },
+    });
+  });
+
+  test("its people's own lines say why: the level is not listed again, and its alarm names them", () => {
+    const built: OnCallPolicyRun = build({
+      log: executionLog({ ruleId: RULE_2, ruleOrder: 2 }),
+      timeline: [
+        step({
+          status: SKIPPED,
+          ruleId: RULE_1,
+          userId: NB_USER_2,
+          userName: "NB User 2",
+          statusMessage: NOT_A_PROJECT_MEMBER_TIMELINE_MESSAGE,
+        }),
+        step({
+          status: SKIPPED,
+          ruleId: RULE_1,
+          statusMessage: ON_CALL_LEVEL_PAGED_NOBODY_TIMELINE_MESSAGE,
+        }),
+        movedOnTo(RULE_2),
+      ],
+    });
+
+    expect(built.notPaged).toEqual([
+      { personName: "NB User 2", reason: "not a member of this project" },
+    ]);
+    expect(built.firstRuleThatReachedNobody).toEqual({
+      rule: { order: 1, name: "fhirst" },
+      reasons: ["NB User 2: not a member of this project"],
+      movedOnTo: { order: 2, name: "second" },
+    });
+  });
+
+  test("finished as soon as its line is written: the run's log still on the level, the alarm is raised and says where the run goes", () => {
+    const built: OnCallPolicyRun = build({
+      log: executionLog({ ruleId: RULE_1, ruleOrder: 1 }),
+      timeline: [
+        step({
+          status: SKIPPED,
+          ruleId: RULE_1,
+          scheduleId: PRIMARY_COVER,
+          scheduleName: "Primary cover",
+          statusMessage:
+            "Skipped because no active users are found in this schedule.",
+        }),
+        step({
+          status: SKIPPED,
+          ruleId: RULE_1,
+          statusMessage: ON_CALL_LEVEL_PAGED_NOBODY_TIMELINE_MESSAGE,
+        }),
+      ],
+    });
+
+    expect(built.firstRuleThatReachedNobody).toEqual({
+      rule: { order: 1, name: "fhirst" },
+      reasons: ["nobody was on call in schedule Primary cover"],
+      movedOnTo: { order: 2, name: "second" },
+    });
+  });
+
+  test("the last level has no level after it: nothing is said of moving on, and the run's ending says the rest", () => {
+    const built: OnCallPolicyRun = build({
+      log: executionLog({
+        ruleId: RULE_3,
+        ruleOrder: 3,
+        status: OnCallDutyPolicyStatus.CompletedWithNoNotifications,
+      }),
+      timeline: [
+        step({
+          status: SKIPPED,
+          ruleId: RULE_3,
+          statusMessage: ON_CALL_LEVEL_HAS_NO_RESPONDERS_TIMELINE_MESSAGE,
+        }),
+      ],
+    });
+
+    expect(built.notPaged).toEqual([
+      { rule: { order: 3, name: "third" }, reason: "nobody to page" },
+    ]);
+    expect(built.firstRuleThatReachedNobody).toEqual({
+      rule: { order: 3, name: "third" },
+      reasons: ["the rule has nobody to page"],
+    });
+  });
+
+  test("every level empty: each is listed, each but the last saying the next was paged at once, and the alarm is about the first", () => {
+    const built: OnCallPolicyRun = build({
+      log: executionLog({
+        ruleId: RULE_3,
+        ruleOrder: 3,
+        status: OnCallDutyPolicyStatus.CompletedWithNoNotifications,
+      }),
+      timeline: [RULE_1, RULE_2, RULE_3].map(
+        (ruleId: ObjectID): OnCallDutyPolicyExecutionLogTimeline => {
+          return step({
+            status: SKIPPED,
+            ruleId: ruleId,
+            statusMessage: ON_CALL_LEVEL_HAS_NO_RESPONDERS_TIMELINE_MESSAGE,
+          });
+        },
+      ),
+    });
+
+    expect(built.notPaged).toEqual([
+      {
+        rule: { order: 1, name: "fhirst" },
+        reason: "nobody to page",
+        movedOnTo: { order: 2, name: "second" },
+      },
+      {
+        rule: { order: 2, name: "second" },
+        reason: "nobody to page",
+        movedOnTo: { order: 3, name: "third" },
+      },
+      { rule: { order: 3, name: "third" }, reason: "nobody to page" },
+    ]);
+    expect(built.firstRuleThatReachedNobody?.rule).toEqual({
+      order: 1,
+      name: "fhirst",
+    });
+  });
+
+  test("a team of the level with nobody in it is said, by name, and is why the level reached nobody", () => {
+    const team: OnCallDutyPolicyExecutionLogTimeline = step({
+      status: SKIPPED,
+      ruleId: RULE_1,
+      statusMessage: "Skipped because this team has no members.",
+    });
+    const teamId: ObjectID = ObjectID.generate();
+    team.userBelongsToTeamId = teamId;
+    team.userBelongsToTeam = { name: "Night Shift" } as never;
+
+    const built: OnCallPolicyRun = build({
+      log: executionLog({ ruleId: RULE_2, ruleOrder: 2 }),
+      timeline: [
+        team,
+        step({
+          status: SKIPPED,
+          ruleId: RULE_1,
+          statusMessage: ON_CALL_LEVEL_PAGED_NOBODY_TIMELINE_MESSAGE,
+        }),
+        movedOnTo(RULE_2),
+      ],
+    });
+
+    expect(built.notPaged).toEqual([
+      { teamName: "Night Shift", reason: "has no members" },
+    ]);
+    expect(built.firstRuleThatReachedNobody).toEqual({
+      rule: { order: 1, name: "fhirst" },
+      reasons: ["team Night Shift has no members"],
+      movedOnTo: { order: 2, name: "second" },
+    });
+  });
+
+  test("a level whose line is from before - the run waited it out - says nothing of moving on at once", () => {
+    const built: OnCallPolicyRun = build({
+      log: executionLog({ ruleId: RULE_2, ruleOrder: 2 }),
+      timeline: [
+        step({
+          status: SKIPPED,
+          ruleId: RULE_1,
+          statusMessage: LEGACY_ON_CALL_LEVEL_NO_USERS_TIMELINE_MESSAGE,
+        }),
+        movedOnTo(RULE_2),
+      ],
+    });
+
+    expect(built.notPaged).toEqual([
+      { rule: { order: 1, name: "fhirst" }, reason: "nobody to page" },
+    ]);
+    expect(built.firstRuleThatReachedNobody).toEqual({
+      rule: { order: 1, name: "fhirst" },
+      reasons: ["the rule has nobody to page"],
+    });
+  });
+
+  test("a level whose next is gone from the policy: nothing is said of where the run went", () => {
+    const built: OnCallPolicyRun = build({
+      log: executionLog({ ruleId: RULE_1, ruleOrder: 1 }),
+      rules: [rule(RULE_1, 1, "fhirst", 5)],
+      timeline: [
+        step({
+          status: SKIPPED,
+          ruleId: RULE_1,
+          statusMessage: ON_CALL_LEVEL_HAS_NO_RESPONDERS_TIMELINE_MESSAGE,
+        }),
+      ],
+    });
+
+    expect(built.firstRuleThatReachedNobody).toEqual({
+      rule: { order: 1, name: "fhirst" },
+      reasons: ["the rule has nobody to page"],
+    });
+  });
+});
+
+/*
+ * REGRESSION (UI review): a run's message read between a level's own line
+ * ("..., so the policy moved on at once.") and the run's log naming the
+ * next level - which is when the run's first post is often made - said
+ * "fhirst (Level 1 of 3): if nobody acknowledges by 5:20 PM, second (Level
+ * 2 of 3) is next." over "fhirst (Level 1 of 3): nobody to page, so second
+ * (Level 2 of 3) was paged at once". The run is on its way to the next
+ * level that moment: the message says that level, with that level's own
+ * wait.
+ */
+describe("a run read while it is moving on from a level with nobody to page", () => {
+  const RULE_STARTED_AT: Date = new Date("2026-10-08T17:15:00.000Z");
+
+  function emptyFirstLevel(
+    statusMessage: string,
+  ): OnCallDutyPolicyExecutionLogTimeline {
+    return step({
+      status: SKIPPED,
+      ruleId: RULE_1,
+      statusMessage: statusMessage,
+    });
+  }
+
+  test("the message is on the next level, waiting that level's own minutes from when it is paged", () => {
+    const built: OnCallPolicyRun = build({
+      log: executionLog({
+        ruleId: RULE_1,
+        ruleOrder: 1,
+        ruleStartedAt: RULE_STARTED_AT,
+        executeNextInMinutes: 5,
+        status: OnCallDutyPolicyStatus.Executing,
+      }),
+      timeline: [
+        emptyFirstLevel(ON_CALL_LEVEL_HAS_NO_RESPONDERS_TIMELINE_MESSAGE),
+      ],
+    });
+
+    expect(built.currentRule).toEqual({ order: 2, name: "second" });
+    expect(built.nextRule).toEqual({ order: 3, name: "third" });
+    // Level 2's own wait, from when Level 2 is paged: no moment yet.
+    expect(built.escalateAfterInMinutes).toBe(7);
+    expect(built.nextStepAt).toBeUndefined();
+    // The list still says why, and where the run went.
+    expect(built.notPaged).toEqual([
+      {
+        rule: { order: 1, name: "fhirst" },
+        reason: "nobody to page",
+        movedOnTo: { order: 2, name: "second" },
+      },
+    ]);
+
+    const markdown: string = OnCallPolicyRunMessageView.getMarkdown(built);
+
+    expect(markdown).toContain(
+      "**second (Level 2 of 3)**: if nobody acknowledges within 7 minutes, third (Level 3 of 3) is next.",
+    );
+    expect(markdown).not.toContain("**fhirst (Level 1 of 3)**: if nobody");
+    expect(markdown).toContain(
+      "fhirst (Level 1 of 3): nobody to page, so second (Level 2 of 3) was paged at once",
+    );
+  });
+
+  test("a level whose people could not be paged, with the next level already started under it: the same", () => {
+    const built: OnCallPolicyRun = build({
+      log: executionLog({
+        ruleId: RULE_1,
+        ruleOrder: 1,
+        ruleStartedAt: RULE_STARTED_AT,
+        status: OnCallDutyPolicyStatus.Executing,
+      }),
+      timeline: [
+        step({
+          status: SKIPPED,
+          ruleId: RULE_1,
+          userId: NB_USER_2,
+          userName: "NB User 2",
+          statusMessage: NOT_A_PROJECT_MEMBER_TIMELINE_MESSAGE,
+        }),
+        emptyFirstLevel(ON_CALL_LEVEL_PAGED_NOBODY_TIMELINE_MESSAGE),
+        movedOnTo(RULE_2),
+      ],
+    });
+
+    expect(built.currentRule).toEqual({ order: 2, name: "second" });
+    expect(built.nextRule).toEqual({ order: 3, name: "third" });
+    expect(built.escalateAfterInMinutes).toBe(7);
+    expect(built.nextStepAt).toBeUndefined();
+  });
+
+  test("once the run's log names the next level, its own moment is back", () => {
+    const built: OnCallPolicyRun = build({
+      log: executionLog({
+        ruleId: RULE_2,
+        ruleOrder: 2,
+        ruleStartedAt: RULE_STARTED_AT,
+        executeNextInMinutes: 7,
+        status: OnCallDutyPolicyStatus.Executing,
+      }),
+      timeline: [
+        emptyFirstLevel(ON_CALL_LEVEL_HAS_NO_RESPONDERS_TIMELINE_MESSAGE),
+        movedOnTo(RULE_2),
+      ],
+    });
+
+    expect(built.currentRule).toEqual({ order: 2, name: "second" });
+    expect(built.nextStepAt).toEqual(new Date("2026-10-08T17:22:00.000Z"));
+  });
+
+  test("a level waited out before levels were passed at once is still the level the run is on", () => {
+    const built: OnCallPolicyRun = build({
+      log: executionLog({
+        ruleId: RULE_1,
+        ruleOrder: 1,
+        ruleStartedAt: RULE_STARTED_AT,
+        executeNextInMinutes: 5,
+        status: OnCallDutyPolicyStatus.Executing,
+      }),
+      timeline: [
+        emptyFirstLevel(LEGACY_ON_CALL_LEVEL_NO_USERS_TIMELINE_MESSAGE),
+      ],
+    });
+
+    expect(built.currentRule).toEqual({ order: 1, name: "fhirst" });
+    expect(built.nextRule).toEqual({ order: 2, name: "second" });
+    expect(built.nextStepAt).toEqual(new Date("2026-10-08T17:20:00.000Z"));
+  });
+
+  test("the last level has nowhere to move on to: the run stays on it until it repeats or ends", () => {
+    const built: OnCallPolicyRun = build({
+      log: executionLog({
+        ruleId: RULE_3,
+        ruleOrder: 3,
+        ruleStartedAt: RULE_STARTED_AT,
+        status: OnCallDutyPolicyStatus.Executing,
+      }),
+      timeline: [
+        step({
+          status: SKIPPED,
+          ruleId: RULE_3,
+          statusMessage: ON_CALL_LEVEL_HAS_NO_RESPONDERS_TIMELINE_MESSAGE,
+        }),
+      ],
+    });
+
+    expect(built.currentRule).toEqual({ order: 3, name: "third" });
+    expect(built.nextRule).toBeUndefined();
+  });
+
+  test("a run that has ended is told as it ended, whatever its last level said", () => {
+    const built: OnCallPolicyRun = build({
+      log: executionLog({
+        ruleId: RULE_1,
+        ruleOrder: 1,
+        ruleStartedAt: RULE_STARTED_AT,
+        status: OnCallDutyPolicyStatus.CompletedWithNoNotifications,
+      }),
+      timeline: [
+        emptyFirstLevel(ON_CALL_LEVEL_HAS_NO_RESPONDERS_TIMELINE_MESSAGE),
+      ],
+    });
+
+    expect(built.currentRule).toEqual({ order: 1, name: "fhirst" });
   });
 });

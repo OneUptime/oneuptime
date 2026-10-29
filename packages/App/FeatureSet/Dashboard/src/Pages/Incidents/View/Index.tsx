@@ -1542,6 +1542,10 @@ const IncidentView: FunctionComponent<
                       name: true,
                       _id: true,
                     },
+                    networkDevices: {
+                      name: true,
+                      _id: true,
+                    },
                     kubernetesClusters: {
                       name: true,
                       _id: true,
@@ -1609,6 +1613,7 @@ const IncidentView: FunctionComponent<
                       <AffectedResourcesDisplay
                         monitors={item.monitors || []}
                         hosts={item.hosts || []}
+                        networkDevices={item.networkDevices || []}
                         kubernetesClusters={item.kubernetesClusters || []}
                         dockerHosts={item.dockerHosts || []}
                         podmanHosts={item.podmanHosts || []}

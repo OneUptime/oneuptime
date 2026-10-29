@@ -1,4 +1,5 @@
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
+import CustomNotificationChannel from "../../../Models/DatabaseModels/CustomNotificationChannel";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import Project from "../../../Models/DatabaseModels/Project";
@@ -42,8 +43,11 @@ import path from "path";
  *  - that every rule type and channel has exactly one definition, in the
  *    order the Dashboard offers them, with the shape its category needs;
  *  - that the catalog matches the models it talks about - one channel per
- *    method a UserNotificationRule can point at, and "has a verification
- *    step" exactly where the method table has an isVerified column;
+ *    thing a UserNotificationRule can page through (a member's own method,
+ *    or the installation's custom channel), a method of the member's own on
+ *    a channel exactly where that thing is a member's row, and "has a
+ *    verification step" exactly where the method table has an isVerified
+ *    column;
  *  - every lookup and predicate, per rule type;
  *  - the one canonical form of a rule's channels (normaliseChannels), which
  *    storage, the duplicate check and every reader agree on;
@@ -78,9 +82,14 @@ const ALL_CHANNELS: Array<ComplianceNotificationChannel> = Object.values(
 
 type ModelType = { new (): BaseModel };
 
-interface ChannelExpectation {
+// A channel as a reader meets it: its stored value and its label.
+interface ChannelLabelExpectation {
   channel: ComplianceNotificationChannel;
   label: string;
+}
+
+// A channel a member owns a method on - nine of the ten.
+interface MethodChannelExpectation extends ChannelLabelExpectation {
   methodNoun: string;
   hasVerification: boolean;
   methodRuleType: ComplianceRuleType;
@@ -90,7 +99,7 @@ interface ChannelExpectation {
   methodSentence: string;
 }
 
-const CHANNELS: Array<ChannelExpectation> = [
+const METHOD_CHANNELS: Array<MethodChannelExpectation> = [
   {
     channel: ComplianceNotificationChannel.Call,
     label: "Call",
@@ -174,6 +183,29 @@ const CHANNELS: Array<ChannelExpectation> = [
     methodSentence: "Every member has a webhook notification method.",
   },
 ];
+
+/*
+ * The channel with nothing per person. A custom channel (#5332) is the
+ * installation's: its admin adds it, and a member's rule names it rather
+ * than a method of their own - so there is no noun to ask for, nothing to
+ * verify and no method rule, and its definition says so with no method.
+ */
+const CUSTOM_CHANNEL: ChannelLabelExpectation & {
+  // What a UserNotificationRule points at to page through it.
+  ruleTarget: ModelType;
+} = {
+  channel: ComplianceNotificationChannel.CustomChannel,
+  label: "Custom channel",
+  ruleTarget: CustomNotificationChannel,
+};
+
+// Every channel, in catalog order.
+const CHANNEL_LABELS: Array<ChannelLabelExpectation> = [
+  ...METHOD_CHANNELS,
+  CUSTOM_CHANNEL,
+].map((expected: ChannelLabelExpectation): ChannelLabelExpectation => {
+  return { channel: expected.channel, label: expected.label };
+});
 
 interface OnCallExpectation {
   ruleType: ComplianceRuleType;
@@ -273,6 +305,7 @@ describe("ComplianceRuleType and ComplianceNotificationChannel - stored values",
       ["Slack", "Slack"],
       ["MicrosoftTeams", "MicrosoftTeams"],
       ["Webhook", "Webhook"],
+      ["CustomChannel", "CustomChannel"],
     ]);
   });
 
@@ -307,7 +340,7 @@ describe("COMPLIANCE_RULE_DEFINITIONS - the catalog", () => {
     ).toEqual([...ON_CALL_RULE_TYPES, ...METHOD_RULE_TYPES]);
   });
 
-  test("the method rules follow the channel order", () => {
+  test("the method rules follow the channel order, one per channel a member owns a method on", () => {
     const methodChannels: Array<ComplianceNotificationChannel | undefined> =
       COMPLIANCE_RULE_DEFINITIONS.filter(
         (definition: ComplianceRuleDefinition): boolean => {
@@ -323,7 +356,17 @@ describe("COMPLIANCE_RULE_DEFINITIONS - the catalog", () => {
         },
       );
 
-    expect(methodChannels).toEqual(ALL_CHANNELS);
+    expect(methodChannels).toEqual(
+      METHOD_CHANNELS.map(
+        (expected: MethodChannelExpectation): ComplianceNotificationChannel => {
+          return expected.channel;
+        },
+      ),
+    );
+    // Nothing per person to have: no "has a verified custom channel" rule.
+    expect(methodChannels).not.toContain(
+      ComplianceNotificationChannel.CustomChannel,
+    );
   });
 
   test("every definition has a title and a one-sentence description, and no two titles are the same", () => {
@@ -360,9 +403,9 @@ describe("COMPLIANCE_RULE_DEFINITIONS - the catalog", () => {
     },
   );
 
-  test.each(CHANNELS)(
+  test.each(METHOD_CHANNELS)(
     "the $channel method rule is $methodRuleType and carries no on-call options",
-    (expected: ChannelExpectation) => {
+    (expected: MethodChannelExpectation) => {
       const definition: ComplianceRuleDefinition = definitionOf(
         expected.methodRuleType,
       );
@@ -440,21 +483,49 @@ describe("COMPLIANCE_CHANNEL_DEFINITIONS - the channels", () => {
     ).toEqual(ALL_CHANNELS);
   });
 
-  test.each(CHANNELS)(
+  test.each(METHOD_CHANNELS)(
     "$channel reads as '$label', asks for a '$methodNoun'",
-    (expected: ChannelExpectation) => {
+    (expected: MethodChannelExpectation) => {
       expect(ComplianceRule.getChannelDefinition(expected.channel)).toEqual({
         channel: expected.channel,
         label: expected.label,
-        methodNoun: expected.methodNoun,
-        hasVerification: expected.hasVerification,
+        method: {
+          noun: expected.methodNoun,
+          hasVerification: expected.hasVerification,
+        },
       });
+      expect(ComplianceRule.isMethodChannel(expected.channel)).toBe(true);
     },
   );
 
-  test.each(CHANNELS)(
+  test("the custom channel reads as 'Custom channel', and has no method: nothing per person to add or verify", () => {
+    expect(ComplianceRule.getChannelDefinition(CUSTOM_CHANNEL.channel)).toEqual(
+      {
+        channel: ComplianceNotificationChannel.CustomChannel,
+        label: "Custom channel",
+        method: null,
+      },
+    );
+    expect(ComplianceRule.isMethodChannel(CUSTOM_CHANNEL.channel)).toBe(false);
+    // So there is no method rule to map back to.
+    expect(
+      ComplianceRule.getMethodRuleTypeForChannel(CUSTOM_CHANNEL.channel),
+    ).toBeUndefined();
+    expect(
+      COMPLIANCE_RULE_DEFINITIONS.filter(
+        (definition: ComplianceRuleDefinition): boolean => {
+          return (
+            (definition.methodChannel as string | undefined) ===
+            CUSTOM_CHANNEL.channel
+          );
+        },
+      ),
+    ).toEqual([]);
+  });
+
+  test.each(METHOD_CHANNELS)(
     "$channel maps back to its method rule, $methodRuleType",
-    (expected: ChannelExpectation) => {
+    (expected: MethodChannelExpectation) => {
       expect(ComplianceRule.getMethodRuleTypeForChannel(expected.channel)).toBe(
         expected.methodRuleType,
       );
@@ -464,11 +535,51 @@ describe("COMPLIANCE_CHANNEL_DEFINITIONS - the channels", () => {
     },
   );
 
+  test("only the custom channel has no method, and every method rule's channel has one", () => {
+    expect(
+      COMPLIANCE_CHANNEL_DEFINITIONS.filter(
+        (definition: ComplianceChannelDefinition): boolean => {
+          return !definition.method;
+        },
+      ).map(
+        (
+          definition: ComplianceChannelDefinition,
+        ): ComplianceNotificationChannel => {
+          return definition.channel;
+        },
+      ),
+    ).toEqual([ComplianceNotificationChannel.CustomChannel]);
+
+    for (const definition of COMPLIANCE_RULE_DEFINITIONS) {
+      if (definition.category !== ComplianceRuleCategory.NotificationMethod) {
+        continue;
+      }
+
+      expect({
+        ruleType: definition.ruleType,
+        hasMethod: ComplianceRule.isMethodChannel(definition.methodChannel),
+      }).toEqual({ ruleType: definition.ruleType, hasMethod: true });
+    }
+  });
+
+  test.each([
+    ["undefined", undefined],
+    ["null", null],
+    ["an unknown channel", "Pager"],
+    ["a label rather than a value", "Custom channel"],
+  ])("%s is not a channel with a method", (_label: string, value: unknown) => {
+    expect(ComplianceRule.isMethodChannel(value as string | undefined)).toBe(
+      false,
+    );
+  });
+
   test("only a webhook skips verification", () => {
     expect(
       COMPLIANCE_CHANNEL_DEFINITIONS.filter(
         (definition: ComplianceChannelDefinition): boolean => {
-          return !definition.hasVerification;
+          return Boolean(
+            definition.method && !definition.method.hasVerification,
+          );
         },
       ).map(
         (
@@ -490,9 +601,9 @@ describe("COMPLIANCE_CHANNEL_DEFINITIONS - the channels", () => {
 });
 
 describe("the catalog matches the notification models", () => {
-  test.each(CHANNELS)(
+  test.each(METHOD_CHANNELS)(
     "$channel: 'has a verification step' is exactly whether its method table has isVerified",
-    (expected: ChannelExpectation) => {
+    (expected: MethodChannelExpectation) => {
       /*
        * The server asks for isVerified: true on every channel that has the
        * column, and for mere existence on the one that does not. A channel
@@ -513,12 +624,14 @@ describe("the catalog matches the notification models", () => {
     },
   );
 
-  test("a notification rule can point at exactly the methods the channels name - no more, no fewer", () => {
+  test("a notification rule can page through exactly what the channels name - no more, no fewer", () => {
     /*
      * "Did the member set up a Telegram rule for Critical incidents" needs a
-     * channel for Telegram. If UserNotificationRule gains a tenth method, a
-     * channel has to be added with it, or members relying on that method are
-     * reported as unreachable.
+     * channel for Telegram. If UserNotificationRule gains something else to
+     * page through - as it gained the custom channel (#5332) - a channel has
+     * to be added with it, or members relying on it are reported as
+     * unreachable. A channel names what a rule points at to page through it:
+     * the member's own method table, or the installation's channel table.
      */
     const rule: UserNotificationRule = new UserNotificationRule();
     const infrastructure: Array<ModelType> = [
@@ -546,10 +659,63 @@ describe("the catalog matches the notification models", () => {
       .sort();
 
     expect(methodModels).toEqual(
-      CHANNELS.map((expected: ChannelExpectation): string => {
-        return expected.methodModel.name;
-      }).sort(),
+      [
+        ...METHOD_CHANNELS.map((expected: MethodChannelExpectation): string => {
+          return expected.methodModel.name;
+        }),
+        CUSTOM_CHANNEL.ruleTarget.name,
+      ].sort(),
     );
+  });
+
+  test("a channel has a method of the member's own exactly where what a rule pages through is a member's row", () => {
+    /*
+     * A method table's rows each belong to a member (userId): a phone, a
+     * device, a webhook of their own - so its channel has a method, with a
+     * noun to ask for and a "has a verified ..." rule. A custom channel's row
+     * belongs to nobody: it is the installation's, set up once by its admin,
+     * so its channel has no method and no method rule, and an on-call rule on
+     * it is met by naming a channel that is on. Read off the models, so the
+     * next thing a rule can page through is classified by what it is.
+     */
+    const targets: Array<{
+      channel: ComplianceNotificationChannel;
+      model: ModelType;
+    }> = [
+      ...METHOD_CHANNELS.map(
+        (
+          expected: MethodChannelExpectation,
+        ): { channel: ComplianceNotificationChannel; model: ModelType } => {
+          return { channel: expected.channel, model: expected.methodModel };
+        },
+      ),
+      { channel: CUSTOM_CHANNEL.channel, model: CUSTOM_CHANNEL.ruleTarget },
+    ];
+
+    expect(
+      targets.map(
+        (target: {
+          channel: ComplianceNotificationChannel;
+        }): ComplianceNotificationChannel => {
+          return target.channel;
+        },
+      ),
+    ).toEqual(ALL_CHANNELS);
+
+    for (const target of targets) {
+      const columns: Array<string> = new target.model().getTableColumns()
+        .columns;
+
+      expect({
+        channel: target.channel,
+        isAMembersRow: columns.includes("userId"),
+      }).toEqual({
+        channel: target.channel,
+        isAMembersRow: Boolean(
+          ComplianceRule.getChannelDefinition(target.channel)?.method,
+        ),
+      });
+    }
   });
 });
 
@@ -657,7 +823,7 @@ const NO_CHANNELS: Array<Array<string> | null | undefined> = [
   [],
 ];
 
-// Every subset of the nine channels, each in catalog order.
+// Every subset of the ten channels, each in catalog order.
 const everyChannelSubset: () => Array<
   Array<ComplianceNotificationChannel>
 > = (): Array<Array<ComplianceNotificationChannel>> => {
@@ -678,15 +844,17 @@ const everyChannelSubset: () => Array<
 
 // Every pair of channels, each pair in catalog order.
 const everyChannelPair: () => Array<
-  [ChannelExpectation, ChannelExpectation]
-> = (): Array<[ChannelExpectation, ChannelExpectation]> => {
-  const pairs: Array<[ChannelExpectation, ChannelExpectation]> = [];
+  [ChannelLabelExpectation, ChannelLabelExpectation]
+> = (): Array<[ChannelLabelExpectation, ChannelLabelExpectation]> => {
+  const pairs: Array<[ChannelLabelExpectation, ChannelLabelExpectation]> = [];
 
-  CHANNELS.forEach((first: ChannelExpectation, index: number): void => {
-    for (const second of CHANNELS.slice(index + 1)) {
-      pairs.push([first, second]);
-    }
-  });
+  CHANNEL_LABELS.forEach(
+    (first: ChannelLabelExpectation, index: number): void => {
+      for (const second of CHANNEL_LABELS.slice(index + 1)) {
+        pairs.push([first, second]);
+      }
+    },
+  );
 
   return pairs;
 };
@@ -780,11 +948,11 @@ describe("ComplianceRule.normaliseChannels", () => {
     }
   });
 
-  test("every one of the 512 subsets of the channels comes back as itself, in catalog order", () => {
+  test("every one of the 1024 subsets of the channels comes back as itself, in catalog order", () => {
     const subsets: Array<Array<ComplianceNotificationChannel>> =
       everyChannelSubset();
 
-    expect(subsets).toHaveLength(512);
+    expect(subsets).toHaveLength(1024);
 
     for (const subset of subsets) {
       expect(ComplianceRule.normaliseChannels([...subset].reverse())).toEqual(
@@ -867,6 +1035,11 @@ describe("ComplianceRule.getTitle", () => {
       ComplianceNotificationChannel.Webhook,
       "Webhook for incidents",
     ],
+    [
+      ComplianceRuleType.HasIncidentOnCallRules,
+      ComplianceNotificationChannel.CustomChannel,
+      "Custom channel for incidents",
+    ],
   ])(
     "%s on %s is '%s'",
     (
@@ -885,7 +1058,7 @@ describe("ComplianceRule.getTitle", () => {
 
   test("every on-call rule on every channel is titled '<channel label> for <subject>s'", () => {
     for (const expected of ON_CALL_RULES) {
-      for (const channel of CHANNELS) {
+      for (const channel of CHANNEL_LABELS) {
         expect(
           ComplianceRule.getTitle({
             ruleType: expected.ruleType,
@@ -935,7 +1108,7 @@ describe("ComplianceRule.getTitle", () => {
       [
         ComplianceRuleType.HasIncidentOnCallRules,
         ALL_CHANNELS,
-        "Call, SMS, Push notification, Email, WhatsApp, Telegram, Slack, Microsoft Teams and Webhook for incidents",
+        "Call, SMS, Push notification, Email, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook and Custom channel for incidents",
       ],
     ],
   )(
@@ -1103,9 +1276,9 @@ describe("ComplianceRule.getTitle", () => {
 });
 
 describe("ComplianceRule.describe", () => {
-  test.each(CHANNELS)(
+  test.each(METHOD_CHANNELS)(
     "the $channel method rule reads '$methodSentence'",
-    (expected: ChannelExpectation) => {
+    (expected: MethodChannelExpectation) => {
       expect(
         ComplianceRule.describe({ ruleType: expected.methodRuleType }),
       ).toBe(expected.methodSentence);
@@ -1214,6 +1387,12 @@ describe("ComplianceRule.describe", () => {
       ["Sev 1", "Sev 2", "Sev 3"],
       "Every member has an incident episode on-call rule that notifies them by Microsoft Teams for Sev 1, Sev 2 and Sev 3.",
     ],
+    [
+      ComplianceRuleType.HasIncidentOnCallRules,
+      ComplianceNotificationChannel.CustomChannel,
+      ["Critical"],
+      "Every member has an incident on-call rule that notifies them by Custom channel for Critical.",
+    ],
   ])(
     "%s on %s for %j",
     (
@@ -1293,7 +1472,16 @@ describe("ComplianceRule.describe", () => {
       ComplianceRuleType.HasAlertEpisodeOnCallRules,
       ALL_CHANNELS,
       ["P1"],
-      "Every member has alert episode on-call rules that notify them by Call, by SMS, by Push notification, by Email, by WhatsApp, by Telegram, by Slack, by Microsoft Teams and by Webhook for P1.",
+      "Every member has alert episode on-call rules that notify them by Call, by SMS, by Push notification, by Email, by WhatsApp, by Telegram, by Slack, by Microsoft Teams, by Webhook and by Custom channel for P1.",
+    ],
+    [
+      ComplianceRuleType.HasIncidentOnCallRules,
+      [
+        ComplianceNotificationChannel.CustomChannel,
+        ComplianceNotificationChannel.Call,
+      ],
+      ["Critical"],
+      "Every member has incident on-call rules that notify them by Call and by Custom channel for Critical.",
     ],
   ])(
     "%s on %j for %j",
@@ -1384,8 +1572,8 @@ describe("ComplianceRule.describe", () => {
       ),
       ...everyChannelPair().map(
         ([first, second]: [
-          ChannelExpectation,
-          ChannelExpectation,
+          ChannelLabelExpectation,
+          ChannelLabelExpectation,
         ]): Array<string> => {
           return [second.channel, first.channel];
         },

@@ -122,16 +122,24 @@ Twee balken lopen bovenaan over elke pagina.
 | Waar | Wat er staat |
 | --- | --- |
 | Linksboven | De projectkiezer: naar een ander van uw projecten wisselen, of een nieuw aanmaken. |
-| Rechtsboven | **Zoeken** en **Ask AI**, de meldingenbel met wat u nu nodig heeft (actieve incidenten en waarschuwingen, het bereikbaarheidsbeleid waarin u dienst hebt, openstaande uitnodigingen), **Hulp**, en uw foto, die het menu van uw [account](/docs/introduction/your-account) opent. |
+| Rechtsboven | **Zoeken** en **AI vragen**, de meldingenbel met wat u nu nodig heeft (actieve incidenten en waarschuwingen, het bereikbaarheidsbeleid waarin u dienst hebt, openstaande uitnodigingen), **Hulp**, en uw foto, die het menu van uw [account](/docs/introduction/your-account) opent. |
 | Daaronder | **Start** en **Producten** links, **Gebruikersinstellingen** rechts: hoe OneUptime u in dit project bereikt. |
 
-**Hulp** opent deze documentatie (**Documentatie**) en de lijst **Keyboard shortcuts**, en biedt ondersteuning per e-mail en op Slack. Op een smal scherm, zoals een telefoon, verdwijnen **Zoeken**, **Ask AI** en **Hulp** om ruimte te besparen; de bel en uw foto blijven.
+**Hulp** opent deze documentatie (**Documentatie**) en de lijst **Keyboard shortcuts**, en biedt ondersteuning per e-mail en op Slack. Op een smal scherm, zoals een telefoon, verdwijnen **Zoeken**, **AI vragen** en **Hulp** om ruimte te besparen; de bel en uw foto blijven.
+
+### Pagina's en lijsten
+
+Boven de titel van elke pagina toont een pad zoals *Project › Docker › Instellingen › Eigenaarsregels* waar de pagina staat. Elke stap vóór de laatste opent zijn pagina.
+
+- **Lijsten houden zichzelf bij.** Wanneer ergens een incident of waarschuwing wordt aangemaakt, bevestigd of opgelost, tonen de lijsten met incidenten, waarschuwingen en episodes dat binnen enkele seconden, zonder te vernieuwen. Terwijl u op een lijst midden in iets zit, zoals aangevinkte rijen of een open dialoogvenster, wacht de lijst en haalt ze alles in zodra u klaar bent.
+- **Op een telefoon klappen de filterchips weg** achter **Filter**, zodat de lijst hoger begint. De chips die u hebt ingesteld blijven in beeld, met **Alles wissen**. Druk op **Filter** om alle chips te zien, en nogmaals om ze weer in te klappen.
 
 ## Zoeken naar een pagina, een instelling of een actie
 
 Druk op **Cmd+K** (Mac) of **Ctrl+K** (Windows en Linux), of klik op het zoekpictogram in de bovenste balk, en begin te typen. Zoeken vindt:
 
 - **Elke pagina in de menu's**, onder de naam die het menu haar geeft: API-sleutels, Gevarenzone, Bereikbaarheidsschema's, Ernst van incident, uw eigen Meldingsmethoden. Elk resultaat zegt waar het staat, zoals *Projectinstellingen › Geavanceerd*, zodat pagina's met dezelfde naam (Aangepaste velden bij Incidenten, Waarschuwingen en Monitoren) makkelijk uit elkaar te houden zijn.
+- **De instellingen op een pagina**, onder de naam die hun kaart of schakelaar toont: *SSO vereisen voor inloggen* vindt SSO, en *Meldingskanalen* vindt Meldingsinstellingen. Typ de naam in het Engels of in uw eigen taal.
 - **Acties**, naar wat u wilt doen: Incident melden, Monitor maken of Delete Project, dat de Gevarenzone opent. Een actie die iets verandert, wordt alleen aangeboden aan wie die mag uitvoeren.
 - **Uw monitoren, incidenten, waarschuwingen, statuspagina's en bereikbaarheidsbeleid**, op naam.
 

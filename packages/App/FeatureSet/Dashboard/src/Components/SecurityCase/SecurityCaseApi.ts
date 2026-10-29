@@ -41,6 +41,10 @@ import {
   SecurityAttackCampaignsResult,
   readSecurityAttackCampaign,
 } from "Common/Types/SecurityEvent/SecurityAttackCampaign";
+import {
+  DetectionRetrohuntResult,
+  parseDetectionRetrohuntResult,
+} from "Common/Types/SecurityEvent/DetectionRetrohunt";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 
@@ -339,6 +343,36 @@ export default class SecurityCaseApi {
           : "",
       title: typeof body["title"] === "string" ? (body["title"] as string) : "",
     };
+  }
+
+  /*
+   * A detection rule run over past events (POST /detection-rule/retrohunt):
+   * a saved rule by its id, the rule as the form holds it, or both - what
+   * it would have found, with its exceptions. Nothing is opened or sent.
+   */
+  public static async runDetectionRuleRetrohunt(
+    request: JSONObject,
+  ): Promise<DetectionRetrohuntResult> {
+    const body: JSONObject = await post("/detection-rule/retrohunt", request);
+
+    return parseDetectionRetrohuntResult(body);
+  }
+
+  /*
+   * Values from a file or a paste put on a watchlist the team keeps (POST
+   * /security-watchlist/import): added to what it holds, or replacing it.
+   * Answers what it did - the counts, and the lines it left out.
+   */
+  public static async importWatchlistValues(data: {
+    watchlistId: ObjectID;
+    text: string;
+    mode: string;
+  }): Promise<JSONObject> {
+    return await post("/security-watchlist/import", {
+      securityWatchlistId: data.watchlistId.toString(),
+      text: data.text,
+      mode: data.mode,
+    });
   }
 
   // Releases one target a containment step contained, with the step's undo.

@@ -18,6 +18,7 @@ import {
 } from "@testing-library/react";
 import React, { ReactElement, useState } from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { searchThroughGetList } from "./AffectedResourceSearchFake";
 
 /*
  * The affected-resources picker is the chip input on every incident, alert and
@@ -30,6 +31,25 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  */
 
 const getListMock: MockFunction = getJestMockFunction();
+
+/*
+ * The picker asks one route for every kind (POST /affected-resources/search).
+ * It is answered from this suite's getList store, kind by kind, as the
+ * server reads each kind (AffectedResourceSearchFake).
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/AffectedResources/AffectedResourceSearchApi",
+  () => {
+    return {
+      __esModule: true,
+      searchAffectedResources: (query: unknown): Promise<unknown> => {
+        return searchThroughGetList((args: unknown) => {
+          return getListMock(args) as never;
+        })(query as never);
+      },
+    };
+  },
+);
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -75,6 +95,7 @@ import Host from "../../../Models/DatabaseModels/Host";
 import IoTFleet from "../../../Models/DatabaseModels/IoTFleet";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
+import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import NetworkSite from "../../../Models/DatabaseModels/NetworkSite";
 import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
@@ -423,6 +444,7 @@ describe("toItems", () => {
       __affectedResourcesPayload: true,
       monitors: [MONITOR_ID],
       hosts: [],
+      networkDevices: [],
       kubernetesClusters: [],
       dockerHosts: [],
       podmanHosts: [],
@@ -540,6 +562,7 @@ describe("AffectedResourcesPicker chips for resources that arrive as bare IDs", 
     const models: Record<AffectedResourceType, ModelClass> = {
       Monitor: Monitor,
       Host: Host,
+      NetworkDevice: NetworkDevice,
       KubernetesCluster: KubernetesCluster,
       DockerHost: DockerHost,
       PodmanHost: PodmanHost,

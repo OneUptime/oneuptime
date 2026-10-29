@@ -39,6 +39,11 @@ export interface TrafficTopRow {
   label: ReactNode;
   // Mono for addresses; plain for names.
   isMono?: boolean | undefined;
+  /*
+   * Under the pointer on the first line: the whole of what it says, for a
+   * name cut short ("mumbai-fileserver-01.corp.example (10.18.167.35)").
+   */
+  title?: string | undefined;
   sublabel?: ReactNode | undefined;
   octets: number;
   // Right of the bytes, small: "in 1.2 GB · out 30 MB", say.
@@ -136,12 +141,17 @@ const TrafficTopList: FunctionComponent<ComponentProps> = (
                           className={`truncate text-sm font-medium text-gray-900 ${
                             row.isMono ? "font-mono" : ""
                           }`}
+                          title={row.title}
+                          data-testid={`${props.dataTestId}-row-label`}
                         >
                           {row.label}
                         </span>
                       </div>
                       {row.sublabel ? (
-                        <div className="mt-0.5 truncate text-xs text-gray-500">
+                        <div
+                          className="mt-0.5 truncate text-xs text-gray-500"
+                          data-testid={`${props.dataTestId}-row-sublabel`}
+                        >
                           {row.sublabel}
                         </div>
                       ) : (

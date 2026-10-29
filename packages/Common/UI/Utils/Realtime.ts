@@ -81,6 +81,17 @@ export default abstract class Realtime {
     (tenantId: ObjectID) => void
   > = new Set();
 
+  /*
+   * Whether the app has opened its live connection. A list that keeps itself
+   * current (ModelTable/UseLiveRows) joins the connection the app keeps
+   * open - the Dashboard opens it as it starts - and never opens one of its
+   * own: drawn where there is none (a preview, an offline page), it stays as
+   * it was loaded.
+   */
+  public static isStarted(): boolean {
+    return Boolean(this.socket);
+  }
+
   public static init(): void {
     const socket: Socket = SocketIO(new URL(HTTP_PROTOCOL, HOST).toString(), {
       path: RealtimeRoute.toString(),

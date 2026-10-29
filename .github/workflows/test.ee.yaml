@@ -66,13 +66,15 @@ jobs:
       # details card shows the record's own ID on its ID line, every Show ID
       # dialog is the shared one that never hands React an object, no list
       # asks for the bulk Delete while keeping Delete off its rows, and every
-      # field, switch, card, dialog and empty-state description is short, and
-      # the bulk actions audit (Enterprise Licenses' Delete and Change Expiry
-      # Date). The App Test job deletes ee/ first, so only this run holds the
-      # Enterprise screens to them. They only read files.
+      # field, switch, card, dialog and empty-state description is short, the
+      # bulk actions audit (Enterprise Licenses' Delete and Change Expiry
+      # Date), and the row actions audit (each row of a list of records
+      # switched on and off - Custom Channels, Audit Log Export - turns its
+      # record on and off). The App Test job deletes ee/ first, so only this
+      # run holds the Enterprise screens to them. They only read files.
       - name: Run App's UI source guards with ee/ present
         working-directory: packages/App
-        run: node node_modules/.bin/jest Tests/MoreMenuItemIconsGuard.test.ts Tests/RecordIdLineGuard.test.ts Tests/ShowIdDialogGuard.test.ts Tests/Dashboard/ListDeletePolicy.test.ts Tests/Dashboard/BulkActionsAudit.test.ts Tests/Dashboard/ShortDescriptionsGuard.test.ts --forceExit
+        run: node node_modules/.bin/jest Tests/MoreMenuItemIconsGuard.test.ts Tests/RecordIdLineGuard.test.ts Tests/ShowIdDialogGuard.test.ts Tests/Dashboard/ListDeletePolicy.test.ts Tests/Dashboard/BulkActionsAudit.test.ts Tests/Dashboard/RowActionsAudit.test.ts Tests/Dashboard/ShortDescriptionsGuard.test.ts --forceExit
       # App's guards that every menu path a text writes ("User Settings >
       # Notification Settings", "Project Settings > Billing and Invoices >
       # Billing", "On-Call Duty > Advanced > User Overrides") is one a reader
@@ -107,6 +109,14 @@ jobs:
       - name: Run App's workflow test-run guard with ee/ present
         working-directory: packages/App
         run: node node_modules/.bin/jest Tests/FeatureSet/Workflow/WorkflowTestRunStartersGuard.test.ts --forceExit
+      # App's guard on worker jobs that run every minute or more often (a
+      # job more often than every minute says why; none lists every project)
+      # reads ee/Server's jobs too - backups, billing, the audit log export.
+      # The App Test job deletes ee/ first, so only this run reads them. It
+      # only reads files.
+      - name: Run App's frequent jobs guard with ee/ present
+        working-directory: packages/App
+        run: node node_modules/.bin/jest Tests/Workers/FrequentJobsGuard.test.ts --forceExit
       # Common's UI source guards that walk ee/Dashboard and ee/AdminDashboard
       # too - the foreign `.hidden` guard, the create-form defaults guard,
       # which lists the ee compliance rule form's Enabled switch, the
@@ -149,6 +159,14 @@ jobs:
       - name: Run Common's test-send routes guard with ee/ present
         working-directory: packages/Common
         run: node node_modules/.bin/jest Tests/Server/API/TestSendRoutesAskTheRule.test.ts --forceExit
+      # Common's guard that every Express router is made by
+      # Express.getRouter() - gated, so a request passes a router none of
+      # whose routes can match it - walks ee/ too, for routers of ee/'s own
+      # APIs. The Common Test job deletes ee/ first, so only this run holds
+      # ee/ to it. It only reads files.
+      - name: Run Common's gated routers guard with ee/ present
+        working-directory: packages/Common
+        run: node node_modules/.bin/jest Tests/Server/Utils/ExpressRoutersAreGatedGuard.test.ts --forceExit
       - name: Install ee
         uses: ./.github/actions/npm-install
         with:
@@ -194,6 +212,12 @@ jobs:
     container:
       image: mcr.microsoft.com/playwright:v1.63.0-noble
       options: --user 1001 --ipc=host
+    # In a container a run step with no shell of its own gets sh, not the
+    # bash -e {0} a runner gives it; the steps here are written for the
+    # runner's (Tests/Ops/PlaywrightImage).
+    defaults:
+      run:
+        shell: bash -e {0}
     env:
       E2E_REQUIRE_ENTERPRISE: "1"
     steps:

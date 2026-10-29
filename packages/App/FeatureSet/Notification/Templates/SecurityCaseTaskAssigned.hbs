@@ -1,0 +1,38 @@
+{{> Start this}}
+
+{{!--
+  A task on a security case handed to this person (SecurityCaseTaskService,
+  SecurityCaseNotifications). Case values and the task's title are written
+  with a double stash: a title is a person's words.
+--}}
+{{> Logo this}}
+{{> EmailTitle title=emailTitle }}
+
+{{#if priorityBadgeText}}
+{{> SeverityBadge badgeText=priorityBadgeText badgeColor=priorityColor badgeTextColor=priorityTextColor }}
+{{/if}}
+
+{{> InfoBlock plainInfo=leadSentence }}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Task: " plainText=taskTitle }}
+{{> DetailBoxField title="Case: " plainText=caseTitle }}
+{{> DetailBoxField title="Priority: " plainText=casePriority color=priorityColor textColor=priorityTextColor }}
+{{> DetailBoxField title="Status: " plainText=caseStatus }}
+{{> DetailBoxField title="Case Assigned To: " plainText=caseAssignee }}
+{{> DetailBoxField title="Entities: " plainText=caseEntities }}
+{{> DetailBoxField title="Project: " plainText=projectName }}
+{{> DetailBoxEnd this }}
+
+{{> ButtonBlock buttonUrl=caseViewLink buttonText="View Tasks"}}
+
+{{> LinkBlock linkUrl=caseViewLink linkLabel="You can also copy and paste this link:"}}
+
+{{> TitleBlock title="Why am I receiving this email?"}}
+{{> InfoBlock plainInfo=reasonSentence }}
+
+{{> UnsubscribeOwnerEmail this }}
+
+{{> Footer this }}
+
+{{> End this}}

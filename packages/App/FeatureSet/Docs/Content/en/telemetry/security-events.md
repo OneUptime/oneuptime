@@ -40,6 +40,8 @@ Open **Products → Security Events**, under **Observability**. Its menu has a s
 | **Entity Risk** | Events | Every user, host and address scored by what was found about it this week, the riskiest first |
 | **Correlate** | Events | A graph of the events that share a host, a user or an IP address |
 | **Detection Rules** | Detections | Sigma rules that run on a schedule and open cases |
+| **Rule Exceptions** | Detections | What your rules skip on purpose, such as a scanner or a planned test, each with who added it and why |
+| **Watchlists** | Detections | The lists your rules match against, such as VIP users, critical hosts, known-bad file hashes and the addresses admins may sign in from |
 | **Rule Library** | Detections | Ready-made detection rules to add, each with the events it reads and whether they arrive, the recommended ones marked |
 | **Threat Intel** | Detections | STIX/TAXII feeds of known-bad indicators |
 | **ATT&CK Coverage** | Detections | The MITRE ATT&CK techniques your rules cover |
@@ -51,6 +53,7 @@ Open **Products → Security Events**, under **Observability**. Its menu has a s
 | **Connections** | Connections | Your logs, the security products OneUptime polls, and the SIEMs it sends to |
 | **Setup Guide** | Connections | Snippets to send events, filled in with your ingestion key |
 | **Case Priorities** | Settings | How urgent a case is: the project's own priorities, most urgent first |
+| **Response Targets** | Settings | How fast a case at each priority must be taken on and contained |
 | **Case Statuses** | Settings | The steps a case moves through, and what a case in each counts as |
 | **Risk Scoring** | Settings | Whether an entity's risk opens a case, at what risk, and how much each entity matters |
 
@@ -298,7 +301,7 @@ OneUptime runs the boolean core of Sigma:
 
 - Selections are field maps (every field must match; a list of values matches any of them) or keyword lists, which match anywhere in the message.
 - Conditions combine selections with `and`, `or`, `not` and parentheses, or with `1 of selection_*`, `all of selection_*`, `any of them` and `all of them`.
-- Field modifiers: `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists` and `windash`. Text is compared ignoring case, unless you add `cased`.
+- Field modifiers: `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists`, `windash` and `expand`, which reads a [watchlist](#watchlists). Text is compared ignoring case, unless you add `cased`.
 - A field is a typed field (`principalUser`), a common Sigma spelling of one (`CommandLine`, `src_ip`, `Hostname`), or any attribute key, spelled as it is in the event (`threat.matched`).
 - `Image` and `CommandLine` read the process the event is about, the one that started in a process launch (`processPath`, `processCommandLine`), and `ParentImage` and `ParentCommandLine` the process that started it (`parentProcessPath`, `parentProcessCommandLine`). `principalProcess` is the process that acted, which in a launch is the parent.
 - `level` sets the severity: `informational`, `low`, `medium`, `high` or `critical`, and `medium` when missing. ATT&CK ids in `tags` (`attack.t1110`, `attack.ta0006`) fill the finding's MITRE fields.
@@ -418,6 +421,58 @@ A Detection Finding is a security event of class `Detection Finding` (OCSF class
 
 Findings are ordinary events: search them in **Events** and pivot on them in **Correlate**. To try a new rule quietly, turn off every action but the finding until you trust it.
 
+### Exceptions
+
+An exception is something a rule skips because you expect it, such as a vulnerability scanner, a nightly backup job or a planned penetration test. It quiets the rule for that one thing without turning it off, and the rule's other matches still fire. Every exception is listed under **Products → Security Events → Detections → Rule Exceptions**: add one there with **Add Rule Exception**, with **Add Exception** in a rule's row, or with **Add Exception** in a detection's row on a case, which starts with the detection's rule and what it fired for.
+
+| What the rule skips | What it matches |
+| --- | --- |
+| **An entity** | A user, host or IP address wherever an event names it: as who acted (`principalUser`, `principalHost`, `principalIp`), as who was acted on (`targetUser`, `targetHost`, `targetIp`), or among its `observables` |
+| **A value** | One field's value, the field named as a rule names it: `processName`, `principalUser` or an attribute key such as `http.user_agent` |
+| **A time window** | Every event from **Starts At** to **Ends At**, at most 30 days apart |
+
+- Values match whatever their case, and `*` stands for any run of characters: `svc-*` skips every service account, and `*.lab.example.com` every host of a domain. An IP address can be a range, such as `10.20.0.0/16`. A value of only `*` is refused: to stop a rule, turn it off.
+- Each exception says why in its **Reason**, which everyone who reads the list sees, and keeps who added it and when. An entity or a value can have an **Expires At**, after which the rule sees it again; a time window ends by itself.
+- **Status** says where each one stands: **Active**, **Upcoming** for a window that has not started, **Expired** or **Ended**. Under a rule's name in **Detection Rules**, a line counts its active exceptions, and **View Exceptions** in the rule's row opens the list filtered to it.
+- Skipped events are left out before the rule counts anything, so they never count toward its **Match Count Threshold** and open no case, alert, incident or finding. Exceptions apply to every run of the rule, correlations included, and to **Run on Past Events**, but never to a test attack, which checks that events get through.
+- A rule has at most 100 exceptions. Whoever may edit detection rules adds, changes and removes them, every Security role can read them, and each change is kept in the project's audit log.
+
+### Watchlists
+
+A watchlist is a list your team keeps once and any rule can read, such as VIP users, critical hosts, known-bad file hashes or the addresses admins may sign in from. Every list is under **Products → Security Events → Detections → Watchlists**: create one there with **Create Watchlist**, which asks for its name and what it holds, or add a common one from **Start with a common list**. A list's page shows its values, and **Use It in a Rule** gives a selection that reads the list, to copy into a rule.
+
+A rule reads a list with `expand` and the list's name between `%` signs. This rule fires when an admin signs in from an address that is not on the allowed list:
+
+```yaml title="admin-sign-in-from-outside.yml"
+title: Admin sign-in from outside the allowed addresses
+detection:
+  admin_sign_in:
+    className: Authentication
+    principalUser|expand: '%admins%'
+  allowed:
+    principalIp|expand: '%admin_addresses%'
+  condition: admin_sign_in and not allowed
+level: high
+```
+
+- A list holds users, hosts, IP addresses, file hashes, domains, URLs, processes or other values, chosen when it is created. A value matches whatever its case, and `*` stands for any run of characters: `svc-*` matches every service account. An IP address list also takes ranges, such as `10.20.0.0/16`, and a file hash list takes MD5, SHA-1, SHA-256 and SHA-512 hashes.
+- Add values one at a time with **Add Value**, or many at once with **Import Values**: paste them, or choose a `.txt` or `.csv` file, one value a line, with an optional note after a comma. **Add to the list** keeps the values already on it, and **Replace the list** removes the ones the import does not have.
+- Instead of keeping values, a list of IP addresses, file hashes, domains or URLs can follow a threat intel feed: its values are the feed's active indicators of the list's kind, kept up to date as the feed is read.
+- `expand` is used alone, since the list's values say how they match. A field that holds several values, such as `observables`, matches when any of them is on the list. **Read By** names the rules that read each list, and under a rule's YAML its form names the lists the rule reads.
+- A rule names a list whatever the case. A rule that names a list the project does not have is refused when you save it, and a list that rules read cannot be renamed or deleted until no rule reads it.
+- A change to a list reaches every rule that reads it at the rule's next run. Correlation rules and **Run on Past Events** read lists too.
+- A list holds at most 5,000 values, at most 100 of them with `*` and 100 of them ranges, and a project has at most 200 lists: for a longer list, follow a threat intel feed. Whoever may create, edit or delete detection rules may do the same to lists, and whoever may edit detection rules adds, changes and removes their values. Every Security role can read them, and each change is kept in the project's audit log.
+
+### Run on Past Events
+
+**Run on Past Events** shows what a rule would have found had it been running, without opening, sending or writing anything. It is in a rule's row, for the rule as saved, and under **Sigma Rule (YAML)** in the rule's form, for the rule as it stands there, before you save it. Pick **Last 24 hours**, **Last 7 days** or **Last 30 days**.
+
+- A rule is counted as its runs count it: in windows as long as its **Evaluation Interval (Minutes)**, a group firing in a window when its count there reaches the **Match Count Threshold**. A correlation is read over the whole period, and lists the groups it would have matched, each with what happened.
+- The answer says how many times the rule would have fired, how many times a day, for how many users, hosts or addresses, and how many events matched. The 50 groups that fired most are listed, each with its events and when it last fired.
+- A saved rule's exceptions apply, and the answer says how many events they skipped and how many firings they prevented. A rule that would not have fired says how close it came: how many events matched, and the threshold no group reached in one window.
+- A rule that would fire more than 20 times a day fires more than a person can look at, and the answer says so, with ways to make it quieter.
+- It reads only the sources you can read. A run that takes longer than 45 seconds is stopped and says so: pick a shorter period.
+
 ## Security Events monitors
 
 A Security Events monitor counts the events that match its filters over a rolling window and runs the usual monitor criteria on the count: it changes the monitor's status, opens alerts or incidents, and pages on-call. Create one under **Monitors → Create Monitor**, with **Security Events** as the type; it is listed there with your other monitors.
@@ -468,6 +523,26 @@ Check its **Status**: a **Disabled** rule does not run, and when it reads **Run 
 
 :::details A rule opens too many alerts
 Each value of the **Group By Field** gets its own alert: group by something coarser, raise the threshold, or add a Distinct Count Field. To care about the rate rather than each match, set **Alerts and Incidents** to **Neither** and put a monitor on the rule's findings.
+:::
+
+:::details A rule fires on something you expect
+Add an exception for it rather than turning the rule off: **Add Exception** in the detection's row on its case starts with the rule and what it fired for. To change the rule itself, **Run on Past Events** under its YAML shows what the change would have found before you save it.
+:::
+
+:::details An exception doesn't skip what it should
+Check its **Status** in **Rule Exceptions**: an **Expired** one skips nothing, and a time window skips only the events between its two times. An entity is looked for as who acted, as who was acted on and among the event's `observables`; to skip a value of another field, add **A value** that names the field. Without a `*`, a value must equal the whole field: `svc-*` skips `svc-backup`, and `svc-` does not.
+:::
+
+:::details A rule that reads a watchlist doesn't match
+Open the list and check its values: a value without `*` must equal the whole field, whatever its case, and a list that follows a threat intel feed holds only the feed's active indicators of its kind. Check that the rule reads the field your events fill: **Use It in a Rule** starts with the field a list of its kind is usually in. A change to a list reaches a rule at the rule's next run.
+:::
+
+:::details A watchlist can't be renamed or deleted
+Rules still read it by its name, and the message names them. Change the name in those rules, or take the list out of them, then rename or delete it.
+:::
+
+:::details Run on Past Events finds nothing
+It reads only the period you pick and the sources you can read. When events matched but no group reached the **Match Count Threshold** in one window, the answer says how many matched: lower the threshold, or count over a longer **Evaluation Interval (Minutes)**.
 :::
 
 ## Next steps

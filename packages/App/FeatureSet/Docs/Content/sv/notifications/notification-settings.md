@@ -53,7 +53,7 @@ När du går med i ett projekt är de här händelserna påslagna, via e-post. A
 | **Statussidor** | Inga | **Statussida skapad**, **Statussidemeddelande publicerat**, **Tillagd som ägare av statussida** |
 | **Schemalagt underhåll** | **Maintenance reminder** | **Underhållshändelse skapad**, **Underhållstillstånd ändrat**, **Underhållsanteckning publicerad**, **Tillagd som ägare av underhåll** |
 | **Jour** | **Du går på jour**, **Du är näst på tur i jouren**, **Du går av jour**, **Tillagd i jourpolicy**, **Borttagen från jourpolicy**, **Missat samtal**, och även via push: **Innan mitt jourpass börjar**, **Mitt kommande jourpass tilldelas någon annan** | Inga |
-| **Säkerhet** | Även via push: **Nytt säkerhetsärende** (ärenden med High och Critical), **Säkerhetsärende tilldelat mig**, **Playbook-steg väntar på mitt godkännande** | Inga |
+| **Säkerhet** | Även via push: **Nytt säkerhetsärende** (ärenden med High och Critical), **Säkerhetsärende tilldelat mig**, **Playbook-steg väntar på mitt godkännande**, **Svarsmål för säkerhetsärende**, **Uppgift i säkerhetsärende tilldelad mig** | Inga |
 
 > [!IMPORTANT]
 > **Övervakningsstatus ändrad** börjar avstängd. För att få veta när en övervakning du äger går ned eller kommer tillbaka slår du på den på fliken **Övervakning**.

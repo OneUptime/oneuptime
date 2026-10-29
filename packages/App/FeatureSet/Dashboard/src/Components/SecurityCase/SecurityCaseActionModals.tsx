@@ -1,9 +1,11 @@
 import SecurityCaseApi, { DeclaredIncident } from "./SecurityCaseApi";
 import { SecurityCaseAiCopy } from "./SecurityCaseAiTriage";
+import { SECURITY_CASE_OPEN_TASKS } from "./Tasks/SecurityCaseTasksCopy";
 import useAiOffered from "../../Utils/UseAiOffered";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
+import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -32,7 +34,12 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 
 // The verdict cards, each with what it means: TruePositive first, the one that needs follow-up.
 export function getVerdictIcon(verdict: SecurityCaseVerdict): IconProp {
@@ -143,10 +150,48 @@ export const CloseSecurityCaseModal: FunctionComponent<CloseCaseModalProps> = (
   );
 
   /*
+   * How many of the case's tasks are still open: closing a case with work
+   * left on it is allowed, and worth a second look. Nothing is said while
+   * they are read, when none is open, or when they cannot be read - a role
+   * that cannot read tasks closes the case as before.
+   */
+  const [openTasks, setOpenTasks] = useState<number>(0);
+
+  useEffect(() => {
+    let isCurrent: boolean = true;
+    const caseId: string = props.securityCase._id?.toString() || "";
+
+    if (!caseId) {
+      return;
+    }
+
+    ModelAPI.count<SecurityCaseTask>({
+      modelType: SecurityCaseTask,
+      query: {
+        securityCaseId: new ObjectID(caseId),
+        isDone: false,
+      },
+    })
+      .then((count: number) => {
+        if (isCurrent) {
+          setOpenTasks(count);
+        }
+      })
+      .catch(() => {
+        // Unreadable: nothing to say.
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [props.securityCase._id?.toString()]);
+
+  /*
    * What the verdict's field says first: closing into a status of the
    * project's own, not its closed one, the status the case moves to - what
-   * the dialog does comes first - then OneUptime AI's read of the case,
-   * which ends on what to do: "Pick what you found." Both, when both apply.
+   * the dialog does comes first - then the tasks still open on it, then
+   * OneUptime AI's read of the case, which ends on what to do: "Pick what
+   * you found." Each, when it applies.
    */
   const closeHints: Array<string> = [
     ...(!props.isProjectClosedStatus
@@ -155,6 +200,9 @@ export const CloseSecurityCaseModal: FunctionComponent<CloseCaseModalProps> = (
             status: translatableTerm(props.closeToStatus.name || ""),
           }),
         ]
+      : []),
+    ...(openTasks > 0
+      ? [translator.translatePlural(SECURITY_CASE_OPEN_TASKS, openTasks)]
       : []),
     ...(aiRead
       ? [

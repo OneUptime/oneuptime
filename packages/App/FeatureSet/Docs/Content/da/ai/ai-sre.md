@@ -398,6 +398,22 @@ Hver hændelse og advarsel har et kort **Afhjælpning**, der fortæller, hvad de
 
 Når hændelsen slet ikke er knyttet til noget cluster eller nogen infrastrukturressource, siger kortet det i én linje (den mest almindelige årsag til, at intet blev rettet), med hvad du skal gøre: tilføj den vært, det cluster eller den database, den drejer sig om, under **Berørte ressourcer**, så prøver OneUptime AI igen, mens hændelsen er åben, som for en ny. En hændelse med monitorer får også et link til hver af dem, hvor du kan knytte dem til det, de overvåger, så den næste hændelse, de udløser, er knyttet. Hver linje linker til, hvor det ændres: clusterets eller ressourcens AI-agentside, hændelsens (eller advarslens) AI-indstillinger, hvor dens rettelseskontakt og dens regler er, **Aktivér AI** eller LLM-udbyderne. Hændelser og advarsler, der blev oprettet, før dette blev registreret, viser kun kortet, når noget blev foreslået. Når AI var helt slået fra for en hændelse, siger linjen på kortet **AI Investigation**, hvorfor intet blev rettet, og kortet **Afhjælpning** udelades.
 
+## OneUptime AI reagerer først
+
+En vagtregel for hændelser eller alarmer kan lade OneUptime AI tage tilkaldet først. Under **Flere felter** skal du svare **Når OneUptime AI har prøvet** på **Hvornår skal denne regel tilkalde?**. Når OneUptime AI må rette det, en matchende hændelse eller alarm handler om, venter reglens politikker, mens AI undersøger, retter og kontrollerer sin rettelse, i højst den tid, der er angivet i **Vent på OneUptime AI i op til (minutter)**: 10 minutter som standard, fra 1 til 30. Hvis AI's rettelse bekræftes, løser OneUptime AI posten, og ingen bliver tilkaldt.
+
+Ellers tilkalder reglen med det samme, og postens feed fortæller hvorfor, når en person har oprettet posten, den har projektets højeste alvorlighed, 3 eller flere andre alarmer og hændelser er åbnet i de 5 minutter før, OneUptime AI ikke må undersøge eller rette den automatisk, ingen monitor er knyttet til den, eller ingen tilknyttet Kubernetes-klynge eller ressource har en AI-agent sat til **Automatisk** eller **Spring godkendelse over**.
+
+Mens AI holder et tilkald tilbage, viser kortet **AI Investigation**, hvornår tilkaldet starter, med **Tilkald nu** til alle, der vil have en person på sagen med det samme. Hvert minut tjekker OneUptime hvert tilkald, AI holder tilbage, og begynder straks at tilkalde med en begrundelse, når:
+
+- undersøgelsen ikke starter, venter på en AI-regel eller ikke bliver færdig;
+- AI ikke finder en rettelse, den selv må køre, eller dens rettelse kræver en persons godkendelse;
+- AI's rettelse ikke får monitorerne tilbage;
+- nogen trykker på **Tilkald nu**, posten når den højeste alvorlighed, eller mange poster åbnes på én gang;
+- AI eller automatisk rettelse slås fra, eller reglen ikke længere lader AI reagere først.
+
+Politikkens kørselslogge viser, hvordan hver tilbageholdelse endte. Via API'et eller Terraform er reglens `whenToPage` `After OneUptime AI`, og dens `aiHoldTimeInMinutes` er ventetiden.
+
 ## Hvad OneUptime AI har lært, og alt, hvad den har gjort
 
 Afsnittet **AI** i sidemenuerne for Hændelser og Advarsler åbner på to sider, der ser tilbage på, hvad OneUptime AI har gjort for den signaltype. Ingen af dem ændrer noget: begge viser kun det, der er registreret, og kun for de hændelser (eller advarsler), du må se.

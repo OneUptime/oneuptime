@@ -3,6 +3,11 @@ import { JSONObject } from "Common/Types/JSON";
 import OneUptimeDate from "Common/Types/Date";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import useResizableColumns, {
+  ResizableColumns,
+} from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
+import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -40,6 +45,23 @@ const DataTableWidget: FunctionComponent<ComponentProps> = (
   const allRows: Array<JSONObject> = props.widget.data.rows || [];
   const rows: Array<JSONObject> = allRows.slice(0, MAX_ROWS);
 
+  /*
+   * Its columns as wide as a person makes them (Common's
+   * Table/ColumnResize), remembered by each column's key for every answer
+   * Ask AI draws a table in: a number or a date is never cut, a text wraps.
+   */
+  const resizableColumns: ResizableColumns = useResizableColumns({
+    tableKey: "ask-ai-data-table",
+    columns: columns.map(
+      (
+        column: AIChatWidgetColumn,
+        index: number,
+      ): { id: string; cellNumber: number } => {
+        return { id: column.key, cellNumber: index + 1 };
+      },
+    ),
+  });
+
   if (columns.length === 0 || rows.length === 0) {
     return (
       <div className="py-3 text-center text-xs text-gray-400">
@@ -50,19 +72,30 @@ const DataTableWidget: FunctionComponent<ComponentProps> = (
 
   return (
     <div className="overflow-x-auto overscroll-x-contain">
-      <table className="w-full border-collapse text-left text-xs">
+      {resizableColumns.styles}
+      <table
+        className={`${resizableColumns.getTableWidthClassName("w-full")} border-collapse text-left text-xs`}
+        {...resizableColumns.tableAttributes}
+      >
         <thead>
           <tr className="border-b border-gray-200 text-[11px] uppercase tracking-wide text-gray-400">
             {columns.map((column: AIChatWidgetColumn) => {
               return (
-                <th
+                <ResizableHeaderCell
                   key={column.key}
                   className={`whitespace-nowrap px-2.5 py-2 font-medium ${
                     column.type === "number" ? "text-right" : "text-left"
                   }`}
+                  resize={resizableColumns.getResize(
+                    column.key,
+                    column.title,
+                    column.type === "number" || column.type === "date"
+                      ? ColumnWidthKind.Whole
+                      : ColumnWidthKind.Prose,
+                  )}
                 >
-                  {column.title}
-                </th>
+                  <span>{column.title}</span>
+                </ResizableHeaderCell>
               );
             })}
           </tr>
@@ -75,17 +108,35 @@ const DataTableWidget: FunctionComponent<ComponentProps> = (
                 className="border-b border-gray-100 last:border-0"
               >
                 {columns.map((column: AIChatWidgetColumn) => {
+                  const text: string = renderCell(row[column.key], column);
+
+                  /*
+                   * Every column on screen, at any width: a number keeps
+                   * its one line, and text wraps - anywhere, an endpoint
+                   * has no spaces to wrap at - up to three lines, the
+                   * whole value on hover. Cut at one line 22rem wide, the
+                   * first column of a table filled a phone and pushed the
+                   * others out of sight, with nothing to say they were
+                   * there.
+                   */
                   return (
                     <td
                       key={column.key}
-                      className={`max-w-[22rem] truncate px-2.5 py-2 text-gray-700 ${
+                      data-testid="ai-chat-table-cell"
+                      className={`px-2.5 py-2 align-top text-gray-700 ${
                         column.type === "number"
-                          ? "text-right tabular-nums"
-                          : "text-left"
+                          ? "whitespace-nowrap text-right tabular-nums"
+                          : "min-w-[5rem] text-left"
                       }`}
-                      title={renderCell(row[column.key], column)}
+                      title={text}
                     >
-                      {renderCell(row[column.key], column)}
+                      {column.type === "number" ? (
+                        text
+                      ) : (
+                        <span className="line-clamp-3 [overflow-wrap:anywhere]">
+                          {text}
+                        </span>
+                      )}
                     </td>
                   );
                 })}

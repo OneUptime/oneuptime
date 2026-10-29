@@ -46,8 +46,10 @@ import Link from "Common/Types/Link";
  */
 
 /*
- * A playbook's page, which opens on its own, and an entity's page, under the
- * section their lists are in.
+ * A playbook's page, which opens on its own, and an entity's page and a
+ * watchlist's page, under the section their lists are in. A watchlist's
+ * crumb is named for the list once its page has read it (nameRecordInTrail,
+ * as a playbook's is).
  */
 const DETAIL_TRAILS: Array<[PageMap, Array<string>]> = [
   [
@@ -57,6 +59,10 @@ const DETAIL_TRAILS: Array<[PageMap, Array<string>]> = [
   [
     PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW,
     ["Security Events", "Events", "Entity Risk", "Entity"],
+  ],
+  [
+    PageMap.SECURITY_EVENTS_WATCHLIST_VIEW,
+    ["Security Events", "Detections", "Watchlists", "Watchlist"],
   ],
 ];
 
@@ -90,6 +96,7 @@ const DETAIL_LISTS: Array<[PageMap, PageMap]> = [
     PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW,
     PageMap.SECURITY_EVENTS_ENTITY_RISK,
   ],
+  [PageMap.SECURITY_EVENTS_WATCHLIST_VIEW, PageMap.SECURITY_EVENTS_WATCHLISTS],
 ];
 
 function getDetailListOf(page: PageMap): PageMap | undefined {
@@ -140,6 +147,10 @@ function getSectionOf(page: PageMap): SecurityEventsMenuSection | undefined {
     case PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW:
       return getSecurityEventsMenuSectionFor(
         PageMap.SECURITY_EVENTS_ENTITY_RISK,
+      );
+    case PageMap.SECURITY_EVENTS_WATCHLIST_VIEW:
+      return getSecurityEventsMenuSectionFor(
+        PageMap.SECURITY_EVENTS_WATCHLISTS,
       );
     default:
       return getSecurityEventsMenuSectionFor(page);

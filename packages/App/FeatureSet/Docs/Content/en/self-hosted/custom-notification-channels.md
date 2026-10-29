@@ -17,13 +17,13 @@ A custom channel sends on-call pages to a service you run: your company's own ap
 ## How It Works
 
 ```mermaid title="A page through a custom channel"
-flowchart LR
+flowchart TB
     OneUptime["OneUptime"]
     Service["Your service"]
     App["Your app"]
     OneUptime -->|"signed JSON request"| Service
     Service -->|"notification"| App
-    App -->|"Acknowledge, Escalate, Resolve"| Service
+    App -->|"Acknowledge,<br/>Escalate, Resolve"| Service
     Service -->|"POST to the action link"| OneUptime
 ```
 
@@ -31,7 +31,7 @@ When an on-call policy pages someone and their on-call rule uses the channel, On
 
 ## Add a Channel
 
-1. In the Admin Dashboard, open **Settings**, then **Custom Channels**, and select **Add**.
+1. In the Admin Dashboard, open **Settings**, then **Notifications > Custom Channels** in the side menu (**Notifications** starts folded), and select **Add**.
 2. On the **Channel** step, fill in:
    - **Name**: what people see in their notification methods and on-call rules, for example `CorpoApp`.
    - **Webhook URL**: where OneUptime sends each page. It can be on your private network.

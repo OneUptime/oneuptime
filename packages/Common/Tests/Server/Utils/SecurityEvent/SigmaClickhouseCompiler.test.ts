@@ -7,6 +7,13 @@ import SigmaClickhouseCompiler, {
 } from "../../../../Server/Utils/SecurityEvent/Sigma/SigmaClickhouseCompiler";
 import { Statement } from "../../../../Server/Utils/AnalyticsDatabase/Statement";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import { SecurityEntityType } from "../../../../Types/SecurityCase/SecurityEntity";
+import {
+  SigmaWatchlist,
+  SigmaWatchlists,
+} from "../../../../Types/SecurityEvent/SecurityWatchlist";
+import SigmaRule from "../../../../Types/SecurityEvent/SigmaRule";
+import SigmaRuleParser from "../../../../Utils/SecurityEvent/Sigma/SigmaRuleParser";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -315,15 +322,55 @@ detection:
     expect(statement.query_params["p0"]).toBe("^Failed login from \\d+");
   });
 
-  test("cidr modifier compiles to isIPAddressInRange", () => {
+  test("cidr modifier compiles to isIPAddressInRange, on text that is an address", () => {
     const statement: Statement = compile(
       singleFieldRule("principalIp|cidr: '10.0.0.0/8'"),
     );
 
     expect(statement.query).toContain(
-      "isIPAddressInRange(principalIp, {p0:String})",
+      "((isIPv4String(principalIp) OR isIPv6String(principalIp)) AND isIPAddressInRange(if((isIPv4String(principalIp) OR isIPv6String(principalIp)), principalIp, '::'), {p0:String}))",
     );
     expect(statement.query_params["p0"]).toBe("10.0.0.0/8");
+  });
+
+  /*
+   * ClickHouse's isIPAddressInRange throws on text that is not an address
+   * ("Neither IPv4 nor IPv6 address: ''"), and most events hold '' in one
+   * IP field or the other: a rule's cidr failed its whole read on the first
+   * such event. Only an address is handed to it now ('::' in place of
+   * anything else, which the guard in front turns down).
+   */
+  test("cidr never hands isIPAddressInRange text that is not an address", () => {
+    const statement: Statement = compile(
+      singleFieldRule("targetIp|cidr: 'fe80::/10'"),
+    );
+
+    const inRange: number = statement.query.indexOf("isIPAddressInRange(");
+    const argument: string = statement.query.slice(
+      inRange + "isIPAddressInRange(".length,
+    );
+
+    expect(
+      argument.startsWith(
+        "if((isIPv4String(targetIp) OR isIPv6String(targetIp)), targetIp, '::')",
+      ),
+    ).toBe(true);
+    // The address check guards the range check.
+    expect(statement.query.indexOf("isIPv4String(targetIp)")).toBeLessThan(
+      inRange,
+    );
+    expect(statement.query_params["p0"]).toBe("fe80::/10");
+  });
+
+  test("cidr on an attribute guards the attribute's text the same way", () => {
+    const statement: Statement = compile(
+      singleFieldRule("client.address|cidr: '192.168.0.0/16'"),
+    );
+
+    expect(statement.query).toContain("isIPv4String(attributes[");
+    expect(statement.query).toContain(
+      "isIPAddressInRange(if((isIPv4String(attributes[",
+    );
   });
 
   test("numeric comparison on a number column stays numeric", () => {
@@ -625,5 +672,170 @@ describe("buildSigmaDistinctCountExpression", () => {
 
     expect(statement.query).toBe("attributes[{p0:String}]");
     expect(statement.query_params["p0"]).toBe("custom.key");
+  });
+});
+
+/*
+ * `field|expand: '%name%'`: the field is on a watchlist. The compiler
+ * takes the project's lists bound to the rule (SigmaRule.watchlists, from
+ * the server's SecurityWatchlists) and writes each as the list's values;
+ * a list that is not bound is the rule's error, by name.
+ */
+describe("SigmaClickhouseCompiler: watchlists", () => {
+  const VIP: SigmaWatchlist = {
+    name: "vip_users",
+    entityType: SecurityEntityType.User,
+    exactValues: ["alice", "bob"],
+    patterns: ["exec-*"],
+    ranges: [],
+  };
+
+  const ADMIN_ADDRESSES: SigmaWatchlist = {
+    name: "admin_addresses",
+    entityType: SecurityEntityType.IpAddress,
+    exactValues: [],
+    patterns: [],
+    ranges: ["10.20.0.0/16"],
+  };
+
+  function compileWith(
+    ruleYaml: string,
+    watchlists: SigmaWatchlists,
+  ): Statement {
+    const rule: SigmaRule = SigmaRuleParser.parse(ruleYaml);
+    return SigmaClickhouseCompiler.compile({ ...rule, watchlists });
+  }
+
+  test("a typed column on a list: its values, its patterns, every value bound", () => {
+    const statement: Statement = compileWith(
+      singleFieldRule("principalUser|expand: '%vip_users%'"),
+      { vip_users: VIP },
+    );
+
+    expect(statement.query).toContain(
+      "(lowerUTF8(principalUser) IN {p0:Array(String)}) OR (lowerUTF8(principalUser) LIKE {p1:String})",
+    );
+    expect(paramValues(statement)).toEqual([["alice", "bob"], "exec-%"]);
+    expect(statement.query).not.toContain("alice");
+    expect(statement.query).not.toContain("vip_users");
+  });
+
+  test("a rule names a list whatever the case of its name", () => {
+    const statement: Statement = compileWith(
+      singleFieldRule("principalUser|expand: '%VIP_Users%'"),
+      { vip_users: VIP },
+    );
+
+    expect(paramValues(statement)).toEqual([["alice", "bob"], "exec-%"]);
+  });
+
+  test("several lists: on any of them", () => {
+    const statement: Statement = compileWith(
+      `
+title: Test
+detection:
+  selection:
+    principalIp|expand:
+      - '%vip_users%'
+      - '%admin_addresses%'
+  condition: selection
+`,
+      { vip_users: VIP, admin_addresses: ADMIN_ADDRESSES },
+    );
+
+    expect(statement.query).toContain(") OR (");
+    expect(statement.query).toContain("isIPAddressInRange(");
+    expect(paramValues(statement)).toEqual([
+      ["alice", "bob"],
+      "exec-%",
+      "10.20.0.0/16",
+    ]);
+  });
+
+  test("an address not on the allow list: `not` of the list's match", () => {
+    const statement: Statement = compileWith(
+      `
+title: Admin sign-in from an address not on the list
+detection:
+  admin:
+    className: Authentication
+    principalUser|expand: '%vip_users%'
+  allowed:
+    principalIp|expand: '%admin_addresses%'
+  condition: admin and not allowed
+`,
+      { vip_users: VIP, admin_addresses: ADMIN_ADDRESSES },
+    );
+
+    const notAt: number = statement.query.indexOf("NOT (");
+
+    // The admin on the VIP list, and NOT the address on the allow list.
+    expect(notAt).toBeGreaterThan(-1);
+    expect(statement.query.slice(0, notAt)).toContain(
+      "lowerUTF8(principalUser) IN",
+    );
+    expect(statement.query.slice(notAt)).toContain("isIPAddressInRange(");
+    expect(statement.query.slice(notAt)).not.toContain("principalUser");
+  });
+
+  test("an attribute, a number column and an array column each read as text", () => {
+    const attribute: Statement = compileWith(
+      singleFieldRule("http.user_agent|expand: '%vip_users%'"),
+      { vip_users: VIP },
+    );
+    expect(attribute.query).toContain(
+      "lowerUTF8(attributes[{p0:String}]) IN {p1:Array(String)}",
+    );
+    expect(paramValues(attribute)[0]).toBe("http.user_agent");
+
+    const port: Statement = compileWith(
+      singleFieldRule("targetPort|expand: '%vip_users%'"),
+      { vip_users: { ...VIP, patterns: [] } },
+    );
+    expect(port.query).toContain(
+      "lowerUTF8(toString(targetPort)) IN {p0:Array(String)}",
+    );
+
+    const observables: Statement = compileWith(
+      singleFieldRule("observables|expand: '%vip_users%'"),
+      { vip_users: { ...VIP, patterns: [] } },
+    );
+    expect(observables.query).toContain(
+      "arrayExists(__watchlist_element -> lowerUTF8(__watchlist_element) IN {p0:Array(String)}, observables)",
+    );
+  });
+
+  test("a list the rule names that is not bound is the rule's error, by name", () => {
+    expect(() => {
+      return compileWith(
+        singleFieldRule("principalUser|expand: '%vip_user%'"),
+        { vip_users: VIP },
+      );
+    }).toThrow(BadDataException);
+
+    expect(() => {
+      return compileWith(
+        singleFieldRule("principalUser|expand: '%vip_user%'"),
+        {},
+      );
+    }).toThrow(
+      "There is no watchlist named vip_user in this project. Create it under Security Events > Detections > Watchlists, or fix its name in the rule.",
+    );
+
+    // A rule compiled with no lists bound at all.
+    expect(() => {
+      return compile(singleFieldRule("principalUser|expand: '%vip_users%'"));
+    }).toThrow("There is no watchlist named vip_users");
+  });
+
+  test("a list bound to a rule that never reads it changes nothing", () => {
+    const plain: Statement = compile(singleFieldRule("principalUser: alice"));
+    const withList: Statement = compileWith(
+      singleFieldRule("principalUser: alice"),
+      { vip_users: VIP },
+    );
+
+    expect(withList.query).toBe(plain.query);
+    expect(paramValues(withList)).toEqual(paramValues(plain));
   });
 });

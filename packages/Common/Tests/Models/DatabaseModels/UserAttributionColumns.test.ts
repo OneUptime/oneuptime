@@ -245,6 +245,13 @@ describe("which columns record a person doing something", () => {
       "created",
       "deleted",
       "dismissed",
+      /*
+       * SecurityCaseTask.doneByUserId: who ticked a task on a security case
+       * off. The task service stamps it from the caller as the task is
+       * marked done, and clears it when it is opened again; no request
+       * chooses it.
+       */
+      "done",
       "humanVerdict",
       /*
        * MarketplaceSubscription.linkedByUserId: who linked a cloud

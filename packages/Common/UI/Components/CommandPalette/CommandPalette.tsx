@@ -604,6 +604,7 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
                 className="h-5 w-5 flex-shrink-0 text-gray-400"
               />
               <input
+                data-unsaved-changes-ignore
                 ref={inputRef}
                 data-testid="command-palette-input"
                 type="text"

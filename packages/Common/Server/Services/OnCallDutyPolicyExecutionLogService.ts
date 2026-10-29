@@ -3,7 +3,9 @@ import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import ProjectReferencesService from "./ProjectReferencesService";
 import OnCallDutyPolicyEscalationRuleService, {
   OnCallPagingOutcome,
+  OnCallRuleExecutionOutcome,
 } from "./OnCallDutyPolicyEscalationRuleService";
+import OnCallEscalationAdvance from "../Utils/OnCall/OnCallEscalationAdvance";
 import UserOnCallLogService from "./UserOnCallLogService";
 import UserService from "./UserService";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -12,6 +14,7 @@ import UserNotificationExecutionStatus from "../../Types/UserNotification/UserNo
 import QueryHelper from "../Types/Database/QueryHelper";
 import { ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE } from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunEnding";
 import OnCallDutyPolicyStatus from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
+import { OnCallPolicyAiHoldOutcome } from "../../Types/OnCallDutyPolicy/OnCallPolicyAiHold";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import OnCallDutyPolicyEscalationRule from "../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import Model from "../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
@@ -187,6 +190,9 @@ export class Service extends ProjectReferencesService<Model> {
       }
     } else {
       (createBy.data as unknown as Record<string, unknown>)["pagingStartsAt"] =
+        undefined;
+      // Paging now: there is no hold for OneUptime AI to keep either.
+      (createBy.data as unknown as Record<string, unknown>)["aiHoldOutcome"] =
         undefined;
 
       if (createBy.data.status === OnCallDutyPolicyStatus.Waiting) {
@@ -575,19 +581,23 @@ export class Service extends ProjectReferencesService<Model> {
         },
       });
 
-      await OnCallDutyPolicyEscalationRuleService.startRuleExecution(rule.id!, {
-        projectId: data.projectId,
-        triggeredByIncidentId: data.triggeredByIncidentId,
-        triggeredByAlertId: data.triggeredByAlertId,
-        triggeredByAlertEpisodeId: data.triggeredByAlertEpisodeId,
-        triggeredByIncidentEpisodeId: data.triggeredByIncidentEpisodeId,
-        userNotificationEventType: data.userNotificationEventType,
-        onCallPolicyExecutionLogId: runId,
-        onCallPolicyId: data.onCallDutyPolicyId,
-        alsoPageUserIds: data.acknowledgedByUserId
-          ? [data.acknowledgedByUserId]
-          : [],
-      });
+      const firstRuleOutcome: OnCallRuleExecutionOutcome =
+        await OnCallDutyPolicyEscalationRuleService.startRuleExecution(
+          rule.id!,
+          {
+            projectId: data.projectId,
+            triggeredByIncidentId: data.triggeredByIncidentId,
+            triggeredByAlertId: data.triggeredByAlertId,
+            triggeredByAlertEpisodeId: data.triggeredByAlertEpisodeId,
+            triggeredByIncidentEpisodeId: data.triggeredByIncidentEpisodeId,
+            userNotificationEventType: data.userNotificationEventType,
+            onCallPolicyExecutionLogId: runId,
+            onCallPolicyId: data.onCallDutyPolicyId,
+            alsoPageUserIds: data.acknowledgedByUserId
+              ? [data.acknowledgedByUserId]
+              : [],
+          },
+        );
 
       await this.updateOneById({
         id: runId,
@@ -602,6 +612,15 @@ export class Service extends ProjectReferencesService<Model> {
           isRoot: true,
         },
       });
+
+      /*
+       * Nobody at the level it starts at could be paged - not even whoever
+       * acknowledged: the page again moves on now, as any run does from a
+       * level with nobody to wait for (OnCallEmptyLevel).
+       */
+      if (firstRuleOutcome?.movesOnAtOnce) {
+        await OnCallEscalationAdvance.moveOnAtOnce({ runId: runId });
+      }
     } catch (err) {
       // The run says what went wrong rather than sitting at "started".
       await this.updateOneById({
@@ -962,6 +981,10 @@ export class Service extends ProjectReferencesService<Model> {
    * (pagingStartedEarlyReason) for its Slack and Microsoft Teams message, and
    * said in its record's feed.
    *
+   * A run OneUptime AI held (OnCallPolicyAiHold) says, in the same claim,
+   * how its hold ended (`aiHoldOutcome`): handed off, Page now, or its hold
+   * time ran out.
+   *
    * `run` is the run as the worker read it: its id, its project, its policy
    * and the record it pages about. Returns whether this call started it.
    */
@@ -970,6 +993,7 @@ export class Service extends ProjectReferencesService<Model> {
     run: Model;
     now: Date;
     startedEarlyReason?: string | undefined;
+    aiHoldOutcome?: OnCallPolicyAiHoldOutcome | undefined;
   }): Promise<boolean> {
     const run: Model = data.run;
     const startedEarlyReason: string | undefined =
@@ -981,6 +1005,7 @@ export class Service extends ProjectReferencesService<Model> {
       statusMessage: "Execution started...",
       pagingStartsAt: data.now,
       pagingStartedEarlyReason: startedEarlyReason,
+      aiHoldOutcome: data.aiHoldOutcome,
     });
 
     if (!claimed) {
@@ -1031,18 +1056,22 @@ export class Service extends ProjectReferencesService<Model> {
    * it, as it ends any run whose record is handled - rather than marked over
    * while its first rule pages. Its record's feed says how it ended, and its
    * Slack and Microsoft Teams message is brought up to date, as for any run
-   * that ends. Returns whether this call ended it.
+   * that ends. A run OneUptime AI held says, in the same claim, how its hold
+   * ended (`aiHoldOutcome`) - or null, when its policy was archived and it
+   * neither paged nor was resolved. Returns whether this call ended it.
    */
   @CaptureSpan()
   public async endWaitingRun(data: {
     executionLogId: ObjectID;
     status: OnCallDutyPolicyStatus;
     statusMessage: string;
+    aiHoldOutcome?: OnCallPolicyAiHoldOutcome | null | undefined;
   }): Promise<boolean> {
     const claimed: boolean = await this.claimWaitingRun({
       executionLogId: data.executionLogId,
       status: data.status,
       statusMessage: data.statusMessage,
+      aiHoldOutcome: data.aiHoldOutcome,
     });
 
     if (!claimed) {
@@ -1071,11 +1100,17 @@ export class Service extends ProjectReferencesService<Model> {
     statusMessage: string;
     pagingStartsAt?: Date | undefined;
     pagingStartedEarlyReason?: string | undefined;
+    aiHoldOutcome?: OnCallPolicyAiHoldOutcome | null | undefined;
   }): Promise<boolean> {
     const values: Record<string, unknown> = {
       status: data.status,
       statusMessage: data.statusMessage,
     };
+
+    // Null clears it: a hold that ended with neither a page nor a resolve.
+    if (data.aiHoldOutcome !== undefined) {
+      values["aiHoldOutcome"] = data.aiHoldOutcome;
+    }
 
     if (data.pagingStartsAt) {
       values["pagingStartsAt"] = data.pagingStartsAt;
@@ -1180,19 +1215,20 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException("Invalid userNotificationEventType");
     }
 
-    await OnCallDutyPolicyEscalationRuleService.startRuleExecution(
-      executionRule.id!,
-      {
-        projectId: run.projectId!,
-        triggeredByIncidentId: run.triggeredByIncidentId,
-        triggeredByAlertId: run.triggeredByAlertId,
-        triggeredByAlertEpisodeId: run.triggeredByAlertEpisodeId,
-        triggeredByIncidentEpisodeId: run.triggeredByIncidentEpisodeId,
-        userNotificationEventType: userNotificationEventType,
-        onCallPolicyExecutionLogId: run.id!,
-        onCallPolicyId: run.onCallDutyPolicyId!,
-      },
-    );
+    const firstRuleOutcome: OnCallRuleExecutionOutcome =
+      await OnCallDutyPolicyEscalationRuleService.startRuleExecution(
+        executionRule.id!,
+        {
+          projectId: run.projectId!,
+          triggeredByIncidentId: run.triggeredByIncidentId,
+          triggeredByAlertId: run.triggeredByAlertId,
+          triggeredByAlertEpisodeId: run.triggeredByAlertEpisodeId,
+          triggeredByIncidentEpisodeId: run.triggeredByIncidentEpisodeId,
+          userNotificationEventType: userNotificationEventType,
+          onCallPolicyExecutionLogId: run.id!,
+          onCallPolicyId: run.onCallDutyPolicyId!,
+        },
+      );
 
     await this.updateOneById({
       id: run.id!,
@@ -1204,6 +1240,15 @@ export class Service extends ProjectReferencesService<Model> {
         isRoot: true,
       },
     });
+
+    /*
+     * The first rule reached nobody: there is nobody on it to wait for, so
+     * the run moves on now - to the next level, or to its end - rather than
+     * a whole wait later (Types/OnCallDutyPolicy/OnCallEmptyLevel).
+     */
+    if (firstRuleOutcome?.movesOnAtOnce) {
+      await OnCallEscalationAdvance.moveOnAtOnce({ runId: run.id! });
+    }
   }
 
   // Whether the run pages about an incident, an alert or an episode.

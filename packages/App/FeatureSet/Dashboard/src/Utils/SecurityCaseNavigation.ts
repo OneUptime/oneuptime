@@ -23,9 +23,11 @@ import IconProp from "Common/Types/Icon/IconProp";
  *                   rest of OneUptime knows them: the hosts, clusters,
  *                   services and users, their logs, traces and metrics
  *                   around the case, the incidents and alerts on them and
- *                   what changed - and the Playbooks that ran on it,
- *                   counted beside their entry while a run waits for an
- *                   approval
+ *                   what changed - the Evidence kept on it (files and
+ *                   links), its Tasks - what has to be done and who is
+ *                   doing it, counted beside their entry while some are
+ *                   open - and the Playbooks that ran on it, counted beside
+ *                   their entry while a run waits for an approval
  *   Notes           what the team wrote (Private Notes, as an incident's
  *                   and an alert's are named: a case has no public side)
  *   Advanced        what most visits never need, folded: the case's Audit
@@ -48,7 +50,7 @@ import IconProp from "Common/Types/Icon/IconProp";
  * A live count beside an entry: what on this case is waiting for somebody
  * (SecurityCaseMenuBadgeCount.ts).
  */
-export type SecurityCaseMenuBadge = "runsWaitingForApproval";
+export type SecurityCaseMenuBadge = "runsWaitingForApproval" | "openTasks";
 
 export interface SecurityCaseMenuItem {
   page: PageMap;
@@ -102,6 +104,19 @@ export const SECURITY_CASE_MENU: Array<SecurityCaseMenuSection> = [
         page: PageMap.SECURITY_CASE_VIEW_CONNECTED_SIGNALS,
         title: "Connected Signals",
         icon: IconProp.Link,
+      },
+      {
+        // Files and links kept on the case, each with who added it and when.
+        page: PageMap.SECURITY_CASE_VIEW_EVIDENCE,
+        title: "Evidence",
+        icon: IconProp.PaperClip,
+      },
+      {
+        // The case's checklist: what has to be done, and who is doing it.
+        page: PageMap.SECURITY_CASE_VIEW_TASKS,
+        title: "Tasks",
+        icon: IconProp.ClipboardDocumentCheck,
+        badge: "openTasks",
       },
       {
         /*

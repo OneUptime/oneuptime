@@ -101,6 +101,10 @@ Monitorer, hendelser, varsler, statussider, SLO-er og mange andre ressurser har 
 | vCenter-servere | `vCenter` |
 | Pakkeopptak og nedlastingene av dem | `Packet Capture` |
 | Sikkerhetssaker og prioritetene og statusene deres, playbooks og kjøringene deres, beskyttede enheter, entitetskritikalitet, og risikoen for en entitet når noen tilbakestiller den | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
+| Regelunntak | `Rule Exception` |
+| Overvåkingslister | `Watchlist` |
+| Overvåkingslisteverdier | `Watchlist Value` |
+| Oppgaver og bevis i sikkerhetssaker | `Security Case Task`, `Security Case Evidence` |
 | Eksporter av revisjonsloggen | `Audit Log Export` |
 
 Det registreres også når en administrator legger til eller fjerner en varslingsmetode eller en personlig vaktregel på en annens konto, uten selve adressen eller nummeret.

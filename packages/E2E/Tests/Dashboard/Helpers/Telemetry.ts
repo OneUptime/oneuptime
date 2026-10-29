@@ -202,11 +202,19 @@ export const postOtlpLogs: PostOtlpLogsFunction = async (data: {
   expect(response.ok()).toBe(true);
 };
 
+/*
+ * One span. By default a successful one; `statusCode` 2 sends a failed one,
+ * and `exception` records an exception on it, as instrumentation does (an
+ * "exception" span event), which ingest turns into an exception of that
+ * type in the service.
+ */
 type PostOtlpTracesFunction = (data: {
   page: Page;
   ingestionKey: string;
   serviceName: string;
   spanName: string;
+  statusCode?: number | undefined;
+  exception?: { type: string; message: string } | undefined;
 }) => Promise<void>;
 
 export const postOtlpTraces: PostOtlpTracesFunction = async (data: {
@@ -214,6 +222,8 @@ export const postOtlpTraces: PostOtlpTracesFunction = async (data: {
   ingestionKey: string;
   serviceName: string;
   spanName: string;
+  statusCode?: number | undefined;
+  exception?: { type: string; message: string } | undefined;
 }): Promise<void> => {
   const otlpTracesUrl: string = URL.fromString(BASE_URL.toString())
     .addRoute("/otlp/v1/traces")
@@ -256,7 +266,35 @@ export const postOtlpTraces: PostOtlpTracesFunction = async (data: {
                       value: { stringValue: "true" },
                     },
                   ],
-                  status: { code: 1 },
+                  status: { code: data.statusCode ?? 1 },
+                  ...(data.exception
+                    ? {
+                        events: [
+                          {
+                            name: "exception",
+                            timeUnixNano: startNano,
+                            attributes: [
+                              {
+                                key: "exception.type",
+                                value: { stringValue: data.exception.type },
+                              },
+                              {
+                                key: "exception.message",
+                                value: {
+                                  stringValue: data.exception.message,
+                                },
+                              },
+                              {
+                                key: "exception.stacktrace",
+                                value: {
+                                  stringValue: `${data.exception.type}: ${data.exception.message}\n    at checkout (/srv/app/checkout.js:42:7)`,
+                                },
+                              },
+                            ],
+                          },
+                        ],
+                      }
+                    : {}),
                 },
               ],
             },

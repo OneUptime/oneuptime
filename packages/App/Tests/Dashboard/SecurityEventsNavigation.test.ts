@@ -174,9 +174,21 @@ describe("the Security Events menu", () => {
        * how many findings named a value, folded into Entity Risk.
        */
       ["Events", ["Events", "Campaigns", "Entity Risk", "Correlate"]],
+      /*
+       * What the rules skip on purpose sits right under the rules, and the
+       * lists they match against (VIP users, critical hosts) after it,
+       * before the library more rules come from.
+       */
       [
         "Detections",
-        ["Detection Rules", "Rule Library", "Threat Intel", "ATT&CK Coverage"],
+        [
+          "Detection Rules",
+          "Rule Exceptions",
+          "Watchlists",
+          "Rule Library",
+          "Threat Intel",
+          "ATT&CK Coverage",
+        ],
       ],
       [
         "Playbooks",
@@ -185,8 +197,20 @@ describe("the Security Events menu", () => {
       // What OneUptime AI does on its own; the triage is on each case.
       ["AI", ["Settings"]],
       ["Connections", ["Connections", "Setup Guide"]],
-      // The project's own scales, as Incidents and Alerts keep theirs.
-      ["Settings", ["Case Priorities", "Case Statuses", "Risk Scoring"]],
+      /*
+       * The project's own scales, as Incidents and Alerts keep theirs; how
+       * fast a case at each priority must be worked right under the
+       * priorities themselves.
+       */
+      [
+        "Settings",
+        [
+          "Case Priorities",
+          "Response Targets",
+          "Case Statuses",
+          "Risk Scoring",
+        ],
+      ],
     ]);
   });
 
@@ -209,6 +233,8 @@ describe("the Security Events menu", () => {
       ["Entity Risk", "SECURITY_EVENTS_ENTITY_RISK"],
       ["Correlate", "SECURITY_EVENTS_CORRELATE"],
       ["Detection Rules", "SECURITY_EVENTS_DETECTION_RULES"],
+      ["Rule Exceptions", "SECURITY_EVENTS_RULE_EXCEPTIONS"],
+      ["Watchlists", "SECURITY_EVENTS_WATCHLISTS"],
       ["Rule Library", "SECURITY_EVENTS_RULE_LIBRARY"],
       ["Threat Intel", "SECURITY_EVENTS_THREAT_INTEL"],
       ["ATT&CK Coverage", "SECURITY_EVENTS_ATTACK_COVERAGE"],
@@ -220,27 +246,35 @@ describe("the Security Events menu", () => {
       ["Connections", "SECURITY_EVENTS_CONNECTIONS"],
       ["Setup Guide", "SECURITY_EVENTS_DOCUMENTATION"],
       ["Case Priorities", "SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES"],
+      ["Response Targets", "SECURITY_EVENTS_SETTINGS_RESPONSE_TARGETS"],
       ["Case Statuses", "SECURITY_EVENTS_SETTINGS_CASE_STATUSES"],
       ["Risk Scoring", "SECURITY_EVENTS_SETTINGS_RISK_SCORING"],
     ]);
   });
 
-  test("lights Entity Risk on an entity's page, the one page in its layout no entry names", () => {
+  test("lights Entity Risk on an entity's page and Watchlists on a list's, the pages in its layout no entry names", () => {
     expect(getSecurityEventsMenuDetailPages()).toEqual([
       "SECURITY_EVENTS_ENTITY_RISK_VIEW",
+      "SECURITY_EVENTS_WATCHLIST_VIEW",
     ]);
     expect(
       getSecurityEventsMenuItems()
         .filter((item: SecurityEventsMenuItem): boolean => {
           return Boolean(item.detailPages && item.detailPages.length > 0);
         })
-        .map((item: SecurityEventsMenuItem): string => {
-          return item.title;
+        .map((item: SecurityEventsMenuItem): [string, Array<string>] => {
+          return [item.title, item.detailPages || []];
         }),
-    ).toEqual(["Entity Risk"]);
-    // Not one of the pages that open on their own, outside the menu.
+    ).toEqual([
+      ["Entity Risk", ["SECURITY_EVENTS_ENTITY_RISK_VIEW"]],
+      ["Watchlists", ["SECURITY_EVENTS_WATCHLIST_VIEW"]],
+    ]);
+    // Not pages that open on their own, outside the menu.
     expect(SECURITY_EVENTS_DETAIL_PAGES).not.toContain(
       "SECURITY_EVENTS_ENTITY_RISK_VIEW",
+    );
+    expect(SECURITY_EVENTS_DETAIL_PAGES).not.toContain(
+      "SECURITY_EVENTS_WATCHLIST_VIEW",
     );
   });
 
@@ -504,6 +538,9 @@ describe("the pages' addresses", () => {
       SecurityEventsRoutePath["SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES"],
     ).toBe("settings/case-priorities");
     expect(
+      SecurityEventsRoutePath["SECURITY_EVENTS_SETTINGS_RESPONSE_TARGETS"],
+    ).toBe("settings/response-targets");
+    expect(
       SecurityEventsRoutePath["SECURITY_EVENTS_SETTINGS_CASE_STATUSES"],
     ).toBe("settings/case-statuses");
     expect(routeFor("SECURITY_EVENTS_SETTINGS_CASE_STATUSES")).toBe(
@@ -629,6 +666,8 @@ describe("where each page says it is", () => {
       ["Security Events", "Events", "Entity Risk"],
       ["Security Events", "Events", "Correlate"],
       ["Security Events", "Detections", "Detection Rules"],
+      ["Security Events", "Detections", "Rule Exceptions"],
+      ["Security Events", "Detections", "Watchlists"],
       ["Security Events", "Detections", "Rule Library"],
       ["Security Events", "Detections", "Threat Intel"],
       ["Security Events", "Detections", "ATT&CK Coverage"],
@@ -640,6 +679,7 @@ describe("where each page says it is", () => {
       ["Security Events", "Connections"],
       ["Security Events", "Connections", "Setup Guide"],
       ["Security Events", "Settings", "Case Priorities"],
+      ["Security Events", "Settings", "Response Targets"],
       ["Security Events", "Settings", "Case Statuses"],
       ["Security Events", "Settings", "Risk Scoring"],
     ]);
@@ -683,6 +723,9 @@ describe("getSecurityEventsPathSegment", () => {
     expect(
       getSecurityEventsPathSegment(routeFor("SECURITY_EVENTS_DETECTION_RULES")),
     ).toBe("detection-rules");
+    expect(
+      getSecurityEventsPathSegment(routeFor("SECURITY_EVENTS_RULE_EXCEPTIONS")),
+    ).toBe("rule-exceptions");
     expect(getSecurityEventsPathSegment(routeFor("SECURITY_CASES"))).toBe(
       "cases",
     );

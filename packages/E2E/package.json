@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/e2e",
-  "version": "14.0.94",
+  "version": "14.0.95",
   "description": "",
   "repository": {
     "type": "git",
@@ -43,6 +43,7 @@
     "test-home-overview-ui": "playwright test --config playwright.home-overview-ui.config.ts",
     "test-network-first-run-ui": "playwright test --config playwright.network-first-run-ui.config.ts",
     "test-meraki-traffic-ui": "playwright test --config playwright.meraki-traffic-ui.config.ts",
+    "test-network-traffic-names-ui": "playwright test --config playwright.network-traffic-names-ui.config.ts",
     "test-infrastructure-first-run-ui": "playwright test --config playwright.infrastructure-first-run-ui.config.ts",
     "test-host-collectors-ui": "playwright test --config playwright.host-collectors-ui.config.ts",
     "test-resource-onboarding-ui": "playwright test --config playwright.resource-onboarding-ui.config.ts",
@@ -82,6 +83,7 @@
     "test-auto-remediation-rules-ui": "playwright test --config playwright.auto-remediation-rules-ui.config.ts",
     "test-external-mcp-servers-ui": "playwright test --config playwright.external-mcp-servers-ui.config.ts",
     "test-ai-context-ui": "playwright test --config playwright.ai-context-ui.config.ts",
+    "test-ask-ai-ui": "playwright test --config playwright.ask-ai-ui.config.ts",
     "test-backups-ui": "playwright test --config playwright.backups-ui.config.ts",
     "test-llm-connect-ui": "playwright test --config playwright.llm-connect-ui.config.ts",
     "test-cloud-connect-ui": "playwright test --config playwright.cloud-connect-ui.config.ts",
@@ -102,6 +104,7 @@
     "test-shared-ui-ui": "playwright test --config playwright.shared-ui-ui.config.ts",
     "test-reading-direction-ui": "playwright test --config playwright.reading-direction-ui.config.ts",
     "test-owners-on-create-ui": "playwright test --config playwright.owners-on-create-ui.config.ts",
+    "test-first-on-call-policy-ui": "playwright test --config playwright.first-on-call-policy-ui.config.ts",
     "test-owner-filters-ui": "playwright test --config playwright.owner-filters-ui.config.ts",
     "test-kubernetes-events-ui": "playwright test --config playwright.kubernetes-events-ui.config.ts",
     "test-snmp-walk-ui": "playwright test --config playwright.snmp-walk-ui.config.ts",

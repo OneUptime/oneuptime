@@ -17,6 +17,9 @@ import buildJSONColumnQuery, {
 
 export type { FindOperator };
 
+// White space inside a listed value ("10.0.0.5, 10.0.0.6" lists "10.0.0.6").
+const LIST_VALUE_SPACES: RegExp = /\s+/g;
+
 /*
  * One of the two tables a kind's owners are kept in (MonitorOwnerUser,
  * MonitorOwnerTeam): its name, its column naming the record owned
@@ -212,6 +215,46 @@ export default class QueryHelper {
         })
         .join(" OR ")})`;
     }, parameters);
+  }
+
+  /*
+   * A text column holding a list of values separated by commas - a host's
+   * addresses ("10.0.0.5, 10.0.0.6"), a device's Other Addresses - that
+   * lists any of these texts WHOLE, compared without case: "10.0.0.1" is in
+   * "10.0.0.1, 10.0.0.2" and not in "10.0.0.10, 10.0.0.2", which a
+   * substring search would claim. Spaces around the commas are not part of
+   * a value. The texts are one bound parameter; an empty list matches
+   * nothing.
+   */
+  public static listsAnyOf(texts: Array<string>): FindWhereProperty<any> {
+    const values: Array<string> = Array.from(
+      new Set(
+        texts
+          .map((text: string): string => {
+            return (text || "").toLowerCase().replace(LIST_VALUE_SPACES, "");
+          })
+          .filter((text: string): boolean => {
+            return text.length > 0;
+          }),
+      ),
+    );
+
+    if (values.length === 0) {
+      return Raw(() => {
+        return "TRUE = FALSE";
+      }, {});
+    }
+
+    const rid: string = Text.generateRandomText(10);
+
+    return Raw(
+      (alias: string) => {
+        return `(string_to_array(regexp_replace(LOWER(CAST(${alias} AS TEXT)), '\\s+', '', 'g'), ',') && CAST(:${rid} AS text[]))`;
+      },
+      {
+        [rid]: values,
+      },
+    );
   }
 
   /*
@@ -784,6 +827,54 @@ export default class QueryHelper {
             })
             .join(" OR ")})`
         : "(FALSE)";
+    }, parameters);
+  }
+
+  /**
+   * Several conditions on a record, all of which it meets: anyOfConditions'
+   * counterpart, each condition written on the record's id or on another
+   * column of the same row (`columnName`). For a block with labels on a
+   * record with no labels of its own, which takes it away through any of
+   * the records it names (ReadPermission.getBlockedLabelsCondition). An
+   * empty list matches every record.
+   */
+  public static allOfConditions(
+    conditions: Array<{
+      columnName?: string | undefined;
+      condition: FindWhereProperty<any>;
+    }>,
+  ): FindWhereProperty<any> {
+    const parameters: Dictionary<unknown> = {};
+    const writers: Array<(alias: string) => string> = [];
+
+    for (const each of conditions) {
+      const getSql: (alias: string) => string = QueryHelper.getRawSql(
+        each.condition,
+      );
+
+      Object.assign(
+        parameters,
+        (each.condition as unknown as FindOperator<unknown>)
+          .objectLiteralParameters || {},
+      );
+
+      writers.push((alias: string): string => {
+        return getSql(
+          each.columnName
+            ? QueryHelper.getColumnBeside(alias, each.columnName)
+            : alias,
+        );
+      });
+    }
+
+    return Raw((alias: string) => {
+      return writers.length > 0
+        ? `(${writers
+            .map((writer: (alias: string) => string): string => {
+              return writer(alias);
+            })
+            .join(" AND ")})`
+        : "(TRUE)";
     }, parameters);
   }
 

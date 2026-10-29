@@ -68,7 +68,7 @@ Het menu Netwerk houdt in beeld wat je elke dag opent: **Overzicht**, **Apparate
 | --- | --- |
 | **Topologie** | **Device Topology**, **Endpoints**, **Latency Matrix**, **Site Links**, **Device Links** |
 | **Regels** | **Auto Import Rules**, **Site Assignment Rules**, **Eigenaarsregels**, **Labelregels**, **Link Rules** |
-| **Instellingen** | **Alert Policies**, **SNMP-inloggegevens**, **Device Roles**, **Site Types**, **OID Collection Templates** |
+| **Instellingen** | **Alert Policies**, **SNMP-inloggegevens**, **Device Roles**, **Site Types**, **Adresnamen**, **OID Collection Templates** |
 | **Geavanceerd** | **Archived Devices** |
 
 ## Een netwerkapparaat toevoegen
@@ -514,6 +514,10 @@ Een apparaat met alleen ping houdt de naam en het adres die jij, of een discover
 
 Deze worden naast de eigen velden van het apparaat bewaard, nooit erin geschreven, en elke scan, router-walk of poll die er een opnieuw leest, werkt die bij. Het overzicht van het apparaat en zijn item in de inventaris tonen welke scan, router of probe elke waarde las, en wanneer. Een waarde die je op het apparaat hebt opgeslagen, wordt nooit vervangen. Als een scan een andere machine op het adres van het apparaat vindt, zoals een DHCP-lease die is verschoven, meldt het overzicht dat, en wordt niets gebruikt van wat die scan daar las.
 
+Een Meraki-switch, -access point of -appliance levert over SNMP geen serienummer, model of firmware: Meraki implementeert geen ENTITY-MIB. Wanneer een [Meraki-koppeling](/docs/monitor/network-traffic#cisco-meraki-zonder-netflow) zijn organisatie leest, neemt het apparaat die, en alles wat zijn poll verder leeg laat, over uit het Meraki-dashboard, en zijn kaart **Inventaris** noemt de koppeling in een rij **Meraki**.
+
+Om een apparaat nu opnieuw te lezen, klik je op **Vernieuwen** op zijn kaart **Inventaris**. Zijn probe pollt het binnen een minuut, en zijn Meraki-koppeling leest de organisatie opnieuw. De kaart zegt wanneer de nieuwe leesbeurt binnen is, of dat de probe het apparaat niet kon bereiken. **Vernieuwen** is er voor wie netwerkapparaten mag bewerken, bij een apparaat dat een probe pollt of dat een Meraki-koppeling beschrijft.
+
 ## Apparaten ontdekken met een netwerkscan
 
 In plaats van apparaten een voor een toe te voegen, scan je een adresbereik vanaf een sonde en importeer je wat antwoordt.
@@ -756,6 +760,12 @@ Om er een te maken vanuit **Monitoren**:
 3. Kies het netwerkapparaat waarop gewaarschuwd moet worden. Alles over het verzamelen van gegevens — hostnaam, inloggegevens, schema, interfacewalks, gezondheids-OID's — komt van het apparaat; de monitor kiest alleen waarop gewaarschuwd wordt, via zijn criteria.
 
 Een netwerkapparaat-monitor heeft geen eigen interval: hij wordt beoordeeld telkens als de pollresultaten van het apparaat binnenkomen, en telkens als er een trap van het apparaat binnenkomt.
+
+### Incidenten en waarschuwingen van een apparaat
+
+Een incident of een waarschuwing kan over een netwerkapparaat gaan. Kies het apparaat onder **Andere getroffen resources** wanneer je een incident meldt of een waarschuwing maakt, of laat een monitor het koppelen: wat een monitor veroorzaakt, wordt gekoppeld aan het apparaat waarover hij rapporteert — het apparaat dat een netwerkapparaat-monitor bewaakt, het apparaat dat aan de monitor is gebonden, en het apparaat waarvoor een discovery-import de monitor heeft gemaakt.
+
+De pagina's **Incidenten** en **Waarschuwingen** van het apparaat, onder **Activiteit** in zijn menu, tonen wat eraan gekoppeld is, en het menu en het overzicht van het apparaat tellen de openstaande. **Incident melden** en **Waarschuwing maken** op die pagina's beginnen met het apparaat al gekozen.
 
 ### Standaardwaarden voor aangepaste velden
 

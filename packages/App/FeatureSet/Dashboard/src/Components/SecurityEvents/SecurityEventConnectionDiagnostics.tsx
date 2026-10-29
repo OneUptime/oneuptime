@@ -1,3 +1,8 @@
+import useResizableColumns, {
+  ResizableColumns,
+} from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
+import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -90,6 +95,22 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
     props.connection,
   );
   const [runs, setRuns] = useState<Array<SecurityEventConnectionRun>>([]);
+
+  /*
+   * The runs' columns as wide as a person makes them (Common's
+   * Table/ColumnResize): a run and its details give way, a time or a count
+   * never.
+   */
+  const runColumns: ResizableColumns = useResizableColumns({
+    tableKey: "security-connection-runs-table",
+    columns: [
+      { id: "run", cellNumber: 1 },
+      { id: "started", cellNumber: 2 },
+      { id: "status", cellNumber: 3 },
+      { id: "returned", cellNumber: 4 },
+      { id: "details", cellNumber: 5 },
+    ],
+  });
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -717,14 +738,63 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
           )}
           {runs.length > 0 && (
             <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
+              {runColumns.styles}
+              <table
+                className={`${runColumns.getTableWidthClassName("min-w-full")} text-left text-sm`}
+                {...runColumns.tableAttributes}
+              >
                 <thead className="border-b border-gray-200 text-gray-500">
                   <tr>
-                    <th className="py-2 pr-3">Run</th>
-                    <th className="py-2 pr-3">Started (UTC)</th>
-                    <th className="py-2 pr-3">Status</th>
-                    <th className="py-2 pr-3">Returned / imported</th>
-                    <th className="py-2">Details</th>
+                    <ResizableHeaderCell
+                      className="py-2 pr-3"
+                      resize={runColumns.getResize(
+                        "run",
+                        "Run",
+                        ColumnWidthKind.Name,
+                      )}
+                    >
+                      <span>{"Run"}</span>
+                    </ResizableHeaderCell>
+                    <ResizableHeaderCell
+                      className="py-2 pr-3"
+                      resize={runColumns.getResize(
+                        "started",
+                        "Started (UTC)",
+                        ColumnWidthKind.Whole,
+                      )}
+                    >
+                      <span>{"Started (UTC)"}</span>
+                    </ResizableHeaderCell>
+                    <ResizableHeaderCell
+                      className="py-2 pr-3"
+                      resize={runColumns.getResize(
+                        "status",
+                        "Status",
+                        ColumnWidthKind.Whole,
+                      )}
+                    >
+                      <span>{"Status"}</span>
+                    </ResizableHeaderCell>
+                    <ResizableHeaderCell
+                      className="py-2 pr-3"
+                      resize={runColumns.getResize(
+                        "returned",
+                        "Returned / imported",
+                        ColumnWidthKind.Whole,
+                      )}
+                    >
+                      <span>{"Returned / imported"}</span>
+                    </ResizableHeaderCell>
+                    <ResizableHeaderCell
+                      className="py-2"
+                      resize={runColumns.getResize(
+                        "details",
+                        "Details",
+                        ColumnWidthKind.Prose,
+                      )}
+                    >
+                      <span>{"Details"}</span>
+                    </ResizableHeaderCell>
                   </tr>
                 </thead>
                 <tbody>

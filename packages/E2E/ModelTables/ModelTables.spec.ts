@@ -872,6 +872,8 @@ test.describe("the Alerts list of the screenshot", () => {
 
     const bar: Locator = page.getByTestId("facet-filter-bar");
 
+    // On a phone the chips are folded behind Filter.
+    await bar.getByTestId("facet-filter-bar-toggle").click();
     await bar.getByRole("button", { name: "Monitor", exact: true }).click();
     await page.getByRole("option", { name: FIRST_MONITOR }).click();
     await page.getByTestId("fixture-trail").click();
@@ -962,6 +964,205 @@ test.describe("the Alerts list of the screenshot", () => {
     }
 
     await screenshot(page, "alerts-1280-dark");
+  });
+
+  /*
+   * On a phone the chips fold away behind "Filter" (FacetFilterBar). An
+   * alerts list's chips - six here, eight with two custom fields - wrapped
+   * onto a line each or two under the search, Saved Views and Create, and
+   * pushed the first alert down the list someone paged at night opens.
+   */
+  const ALERT_CHIPS: number = 6;
+
+  // The chips the row draws, by what they say.
+  async function drawnChips(bar: Locator): Promise<Array<string>> {
+    return await bar
+      .getByTestId("filter-chip")
+      .evaluateAll((chips: Array<Element>): Array<string> => {
+        return chips
+          .filter((chip: Element): boolean => {
+            return chip.getClientRects().length > 0;
+          })
+          .map((chip: Element): string => {
+            // What the chip says: its words, not its avatar's.
+            const words: Element | null = chip.querySelector("span.truncate");
+            return ((words || chip).textContent || "").trim();
+          });
+      });
+  }
+
+  async function sidewaysScroll(page: Page): Promise<number> {
+    return await page.evaluate((): number => {
+      return (
+        document.documentElement.scrollWidth -
+        document.documentElement.clientWidth
+      );
+    });
+  }
+
+  test("on a phone, the chips fold behind Filter and the first alert is on the first screen; Filter opens them and folds them again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ALERTS, 390, 900);
+
+    const bar: Locator = page.getByTestId("facet-filter-bar");
+    const filter: Locator = bar.getByRole("button", {
+      name: "Filter",
+      exact: true,
+    });
+    const firstCard: Locator = page.locator("#alerts-table-body > div").first();
+
+    await expect(filter).toHaveAttribute("aria-expanded", "false");
+    await expect(bar.getByTestId("filter-chip")).toHaveCount(ALERT_CHIPS);
+    expect(await drawnChips(bar)).toEqual([]);
+
+    // Folded: the row is one line, Filter alone.
+    const folded: Box = await box(bar);
+    const button: Box = await box(filter);
+    expect(folded.height).toBeLessThanOrEqual(button.height + 1);
+
+    // The first alert's card starts on the first screen, its number and title in sight.
+    const foldedCard: Box = await box(firstCard);
+    expect(foldedCard.y + 120).toBeLessThan(900);
+    expect(await sidewaysScroll(page)).toBe(0);
+    await screenshot(page, "alerts-filters-folded-390");
+
+    await filter.click();
+
+    await expect(filter).toHaveAttribute("aria-expanded", "true");
+    expect(await drawnChips(bar)).toHaveLength(ALERT_CHIPS);
+    // Every chip inside the screen, the cards below them.
+    for (const chip of await bar.getByTestId("filter-chip").all()) {
+      const chipBox: Box = await box(chip);
+      expect(chipBox.x + chipBox.width).toBeLessThanOrEqual(390);
+    }
+    // Opened, the chips take two lines more at least, and the cards move down.
+    const openCard: Box = await box(firstCard);
+    expect(openCard.y - foldedCard.y).toBeGreaterThanOrEqual(2 * button.height);
+    expect(await sidewaysScroll(page)).toBe(0);
+    await screenshot(page, "alerts-filters-open-390");
+
+    await filter.click();
+
+    await expect(filter).toHaveAttribute("aria-expanded", "false");
+    expect(await drawnChips(bar)).toEqual([]);
+    expect(Math.abs((await box(firstCard)).y - foldedCard.y)).toBeLessThan(1);
+  });
+
+  test("on a phone, a chip that holds a filter stays in sight folded, with the count and Clear all", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ALERTS, 390, 900);
+
+    const bar: Locator = page.getByTestId("facet-filter-bar");
+    const cards: Locator = page.locator("#alerts-table-body > div");
+
+    await bar.getByTestId("facet-filter-bar-toggle").click();
+    await bar.getByRole("button", { name: "Monitor", exact: true }).click();
+    await page.getByRole("option", { name: FIRST_MONITOR }).click();
+    await page.getByTestId("fixture-trail").click();
+    await expect(page.getByRole("listbox")).toHaveCount(0);
+    await expect(cards).toHaveCount(1);
+
+    // Folded again: Filter, with its count, the Monitor chip and Clear all.
+    const filter: Locator = bar.getByRole("button", {
+      name: "Filter 1",
+      exact: true,
+    });
+    await filter.click();
+    await expect(filter).toHaveAttribute("aria-expanded", "false");
+
+    expect(await drawnChips(bar)).toEqual([`Monitor · ${FIRST_MONITOR}`]);
+    await expect(bar.getByTestId("facet-filter-bar-count")).toHaveText("1");
+    const clearAll: Locator = bar.getByTestId("facet-filter-bar-clear-all");
+    await expect(clearAll).toBeVisible();
+
+    /*
+     * Clear all sits on Filter's line, at its far end, and the chip that
+     * holds the filter on the line under them: two lines, not three. At the
+     * row's end it wrapped onto a line of its own under the chip.
+     */
+    const filterBox: Box = await box(filter);
+    const clearBox: Box = await box(clearAll);
+    const chipBox: Box = await box(
+      bar.locator('[data-filter-chip-set="true"]').first(),
+    );
+    expect(
+      Math.abs(
+        clearBox.y + clearBox.height / 2 - (filterBox.y + filterBox.height / 2),
+      ),
+    ).toBeLessThan(2);
+    expect(clearBox.x).toBeGreaterThan(filterBox.x + filterBox.width);
+    expect(clearBox.x + clearBox.width).toBeLessThanOrEqual(390);
+    expect(chipBox.y).toBeGreaterThanOrEqual(filterBox.y + filterBox.height);
+    expect((await box(bar)).height).toBeLessThan(
+      filterBox.height + chipBox.height + 20,
+    );
+    expect(await sidewaysScroll(page)).toBe(0);
+    await screenshot(page, "alerts-filters-folded-filtered-390");
+
+    // The chip's own clear still works folded.
+    await bar.getByRole("button", { name: "Clear Monitor filter" }).click();
+
+    await expect(cards).toHaveCount(6);
+    await expect(
+      bar.getByRole("button", { name: "Filter", exact: true }),
+    ).toHaveAttribute("aria-expanded", "false");
+    expect(await drawnChips(bar)).toEqual([]);
+    await expect(bar.getByTestId("facet-filter-bar-clear-all")).toHaveCount(0);
+  });
+
+  for (const width of [768, 1280]) {
+    test(`at ${width}px nothing folds: Filter is the row's label and every chip is drawn`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, ALERTS, width, 900);
+
+      const bar: Locator = page.getByTestId("facet-filter-bar");
+
+      await expect(bar.getByTestId("facet-filter-bar-toggle")).toHaveCount(0);
+      await expect(bar.getByTestId("facet-filter-bar-label")).toHaveText(
+        "Filter",
+      );
+      await expect(bar).toHaveAttribute("data-folded", "false");
+      expect(await drawnChips(bar)).toHaveLength(ALERT_CHIPS);
+    });
+  }
+
+  test("in the dark theme, Filter reads at WCAG AA on the phone's card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${ALERTS}?theme=dark`, 390, 900);
+
+    const filter: Locator = page.getByTestId("facet-filter-bar-toggle");
+    const colours: { color: string; background: string } =
+      await filter.evaluate((element: Element) => {
+        // The first box behind the words that paints a background.
+        let behind: Element | null = element;
+        let background: string = "rgba(0, 0, 0, 0)";
+        while (behind) {
+          background = getComputedStyle(behind).backgroundColor;
+          if (background !== "rgba(0, 0, 0, 0)") {
+            break;
+          }
+          behind = behind.parentElement;
+        }
+        return { color: getComputedStyle(element).color, background };
+      });
+
+    expect(contrast(colours.color, colours.background)).toBeGreaterThanOrEqual(
+      4.5,
+    );
+
+    await screenshot(page, "alerts-filters-folded-390-dark");
   });
 });
 
@@ -2652,7 +2853,8 @@ test.describe("the header row stays in sight", () => {
         return getComputedStyle(element).position;
       });
 
-    expect(position).toBe("static");
+    // Not sticky: relative only so its column's edge sits on it (ColumnResize).
+    expect(position).toBe("relative");
   });
 
   test("a table that scrolled sideways and fits again - the window made wider - sticks its header again", async ({
@@ -2675,7 +2877,8 @@ test.describe("the header row stays in sight", () => {
     };
 
     await expect(scrollBox).toHaveAttribute("data-overflowing", "true");
-    expect(await positionOf(nameHeader)).toBe("static");
+    // Not sticky: relative only so its column's edge sits on it (ColumnResize).
+    expect(await positionOf(nameHeader)).toBe("relative");
 
     await page.setViewportSize({ width: 1280, height: 900 });
 
@@ -3382,5 +3585,76 @@ test.describe("the gallery", () => {
     await expect(
       rows.nth(1).locator("td").nth(2).getByTestId("table-empty-value"),
     ).toBeVisible();
+  });
+});
+
+/*
+ * A member whose teams grant nothing on a list (?role=none: only what every
+ * member holds). A list with row actions keeps its Actions column for a
+ * locked Edit or Delete, and that column alone used to count as something to
+ * show: the member got the card's frame with rows of nothing but a checkbox
+ * and a ⋯ - on a real server, "Couldn't load incidents" over every role and
+ * permission that may read them - under filter chips and a search box.
+ */
+test.describe("a member who may read none of a list", () => {
+  test("is told so, and the one permission to ask for - not shown rows of nothing but a ⋯, filter chips or a search box", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${INCIDENTS}?role=none`);
+
+    const state: Locator = page.getByTestId("incidents-table-no-access");
+
+    await expect(state).toBeVisible();
+    await expect(state).toContainText("You don't have access to this list");
+    await expect(state).toContainText(
+      "You need this permission: Read Incident. Ask a project admin for access.",
+    );
+    await expect(state).not.toContainText("Project Owner");
+
+    await expect(bodyRows(page, "incidents-table")).toHaveCount(0);
+    await expect(page.locator("table")).toHaveCount(0);
+    await expect(page.getByRole("checkbox")).toHaveCount(0);
+    // Nothing to narrow or search in a list they cannot read.
+    await expect(page.getByTestId("facet-filter-bar")).toHaveCount(0);
+    await expect(page.getByTestId("filter-chip")).toHaveCount(0);
+    await expect(page.getByTestId("model-table-search-slot")).toHaveCount(0);
+
+    await screenshot(page, "no-access-incidents-1280");
+  });
+
+  test("on a phone, in German and dark, the state fits the screen in German words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${MONITORS}?role=none&lang=de&theme=dark`, 390, 800);
+
+    const state: Locator = page.getByTestId("Monitors-table-no-access");
+
+    await expect(state).toBeVisible();
+    await expect(state).toContainText(
+      "Sie haben keinen Zugriff auf diese Liste",
+    );
+    await expect(state).toContainText(
+      "Sie benötigen diese Berechtigung: Read Monitor. Bitten Sie einen Projektadministrator um Zugriff.",
+    );
+    await expect(bodyRows(page, "Monitors-table")).toHaveCount(0);
+
+    const drawn: Box = await box(state);
+
+    expect(drawn.x).toBeGreaterThanOrEqual(0);
+    expect(drawn.x + drawn.width).toBeLessThanOrEqual(390);
+    expect(
+      await page.evaluate((): number => {
+        return (
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth
+        );
+      }),
+    ).toBe(0);
+
+    await screenshot(page, "no-access-monitors-390-de-dark");
   });
 });

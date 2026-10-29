@@ -150,14 +150,14 @@ describe("Ask AI", () => {
 
   it("opens from the header's Ask AI button and Ctrl/Cmd + I, but leaves the keys to a text box being typed in", () => {
     const header: string = dashboardSource("Components/Header/AskAI.tsx");
-    const panel: string = dashboardSource("Components/AIChat/AIChatPanel.tsx");
+    const dialog: string = dashboardSource("Components/AIChat/AskAiDialog.tsx");
     const anyPage: string = rowStartingWith(open, "Any page").join(" | ");
 
     expect(header).toContain('name="Ask AI"');
     expect(header).toContain('shortcut={[KeyboardKey.Mod, "I"]}');
-    expect(panel).toContain('event.key.toLowerCase() !== "i"');
-    expect(panel).toContain('target.tagName === "TEXTAREA"');
-    expect(panel).toContain("target.isContentEditable");
+    expect(dialog).toContain('event.key.toLowerCase() !== "i"');
+    expect(dialog).toContain('target.tagName === "TEXTAREA"');
+    expect(dialog).toContain("target.isContentEditable");
     expect(anyPage).toContain(`Click ${bold("Ask AI")} in the header`);
     expect(anyPage).toContain("`Ctrl` + `I` (`Cmd` + `I` on a Mac)");
     expect(anyPage).toContain(
@@ -197,9 +197,15 @@ describe("Ask AI", () => {
     ).toContain(`Click ${bold("Explain with AI")}`);
   });
 
-  it("has a page of its own under Products → AI → Chat, a conversation at an address of its own", () => {
+  /*
+   * Products → AI → Chat, and a conversation's own address, open the dialog
+   * over the page the person was on (Pages/AICopilot passes the browser
+   * back to it), not a second, full-page design.
+   */
+  it("opens from the products menu over the page you were on, a conversation at an address of its own", () => {
     const items: string = dashboardSource("Utils/NavigationItems.tsx");
     const routes: string = flat(dashboardSource("Utils/RouteMap.ts"));
+    const address: string = dashboardSource("Pages/AICopilot/AICopilot.tsx");
 
     expect(flat(items)).toContain(
       'title: t("navbar.items.aiChatTitle", "Chat")',
@@ -208,8 +214,57 @@ describe("Ask AI", () => {
     expect(routes).toContain(
       "[PageMap.AI_COPILOT_CONVERSATION]: new Route( `/dashboard/${RouteParams.ProjectID}/ai/chat/${RouteParams.ModelID}`, )",
     );
-    expect(rowStartingWith(open, "Its own page")[1]).toContain(
-      `Open ${bold("Products → AI → Chat")} for a full-page workspace. Each conversation there has its own address`,
+    expect(address).toContain("openAskAi({");
+    expect(address).toContain("Navigation.goBack();");
+    expect(rowStartingWith(open, "The products menu")[1]).toContain(
+      `Open ${bold("Products → AI → Chat")}. Ask AI opens over the page you were on. Each conversation has its own address`,
+    );
+  });
+
+  /*
+   * A dialog in the middle of the screen, a full-screen sheet on a phone;
+   * Esc or a click beside it goes back to the page; the conversation is
+   * kept; and an answer still being written when it closed says when it
+   * is ready (AskAiResumeButton).
+   */
+  it("opens as a dialog over the page, and closing it loses nothing", () => {
+    const dialog: string = dashboardSource("Components/AIChat/AskAiDialog.tsx");
+    const resume: string = dashboardSource(
+      "Components/AIChat/AskAiResumeButton.tsx",
+    );
+    const said: string = flat(englishSection(ASK_AI, "## Open Ask AI"));
+
+    expect(dialog).toContain('role="dialog"');
+    expect(dialog).toContain('aria-modal="true"');
+    expect(dialog).toContain("sm:items-center");
+    expect(dialog).toContain("h-[100dvh] w-full");
+    expect(dialog).toContain('event.key === "Escape"');
+    expect(dialog).toContain("onClick={onBackdropClick}");
+    expect(dialog).toContain("<AskAiResumeButton");
+    expect(resume).toContain('translator.translateText("Ask AI has answered")');
+    expect(said).toContain(
+      "Ask AI opens in the middle of the screen, over the page you were on, and on a phone it fills the screen. Press `Esc`, or click beside it, to go back to the page. The conversation stays where you left it: open Ask AI again to carry on. If you close it while it is still answering, a reminder in the corner says when the answer is ready, and opens it.",
+    );
+  });
+
+  /*
+   * The start offers the page's own questions, and the context chip can be
+   * removed and added back (PageContextChip's attach button).
+   */
+  it("suggests the page's own questions, and the chip can be removed and added back", () => {
+    const start: string = dashboardSource("Components/AIChat/ChatHomeView.tsx");
+    const chip: string = dashboardSource(
+      "Components/AIChat/PageContextChip.tsx",
+    );
+    const said: string = flat(englishSection(ASK_AI, "## Page context"));
+
+    expect(start).toContain(
+      "PageContextUtil.getSuggestions(context, translator)",
+    );
+    expect(chip).toContain('translateText("Remove page context")');
+    expect(chip).toContain('"Attach this page as context for your questions"');
+    expect(said).toContain(
+      "the composer shows a chip with the page's subject, and the questions it suggests are that page's own. Remove the chip to ask about the whole project instead, and add it back the same way. Open Ask AI on another page and the context follows you.",
     );
   });
 
@@ -343,8 +398,45 @@ describe("Ask AI", () => {
     expect(chat).toContain(
       '(data["defaultProviderId"] as string) || undefined',
     );
+    // Only when there is a choice: one provider draws no picker at all.
+    expect(dashboardSource("Components/AIChat/AskAiDialog.tsx")).toContain(
+      "chat.providers.length > 1 ? (",
+    );
     expect(steering).toContain(
-      "The composer's provider picker lists your project's LLM providers and the global ones, with the default marked. A new conversation uses the default.",
+      "When your project can use more than one LLM provider, the composer's provider picker lists your project's LLM providers and the global ones, with the default marked. A new conversation uses the default.",
+    );
+  });
+
+  // The live line: what it does now, and its steps a click away.
+  it("says what it is doing in one line, which opens into its steps", () => {
+    const messages: string = dashboardSource(
+      "Components/AIChat/ChatMessageList.tsx",
+    );
+    const steering: string = flat(
+      englishSection(ASK_AI, "## Steering a conversation"),
+    );
+
+    expect(messages).toContain('data-testid="ai-chat-live-step"');
+    expect(messages).toContain(
+      '{ one: "{{count}} step", other: "{{count}} steps" }',
+    );
+    expect(steering).toContain(
+      "While it answers, one line says what it is doing now, such as searching logs. Click the number of steps beside it to see each step.",
+    );
+  });
+
+  // The history: All conversations in the header, the last three on the start.
+  it("keeps every conversation a click away, and the last three on the start", () => {
+    const dialog: string = dashboardSource("Components/AIChat/AskAiDialog.tsx");
+    const start: string = dashboardSource("Components/AIChat/ChatHomeView.tsx");
+    const steering: string = flat(
+      englishSection(ASK_AI, "## Steering a conversation"),
+    );
+
+    expect(dialog).toContain('translator.translateText("All conversations")');
+    expect(numberConstant(start, "RECENT_CONVERSATIONS_SHOWN")).toBe(3);
+    expect(steering).toContain(
+      `${bold("All conversations")}, in Ask AI's header, lists your conversations, newest first, to open again or delete. A new conversation's start shows the last three.`,
     );
   });
 
@@ -374,10 +466,16 @@ describe("Ask AI", () => {
       expect(steering).toContain(bold(text));
     }
 
-    // The footer: cost, tokens and queries of the newest answer.
+    // Under an answer, its sources; the newest one's cost, tokens and queries.
+    expect(messages).toContain(
+      '{ one: "{{count}} source", other: "{{count}} sources" }',
+    );
     expect(messages).toContain("totalCostInUSDCents");
     expect(messages).toContain('other: "{{count}} tokens"');
     expect(messages).toContain('other: "{{count}} queries"');
+    expect(flat(steering)).toContain(
+      "Under each answer, its sources open into the queries it ran, and the newest answer's also say how many queries it ran, its tokens and its cost.",
+    );
   });
 
   it("needs the Growth plan on OneUptime Cloud, Enable AI and a provider, and says so in that order", () => {
@@ -401,7 +499,7 @@ describe("Ask AI", () => {
       `${bold("Enable AI")}, on ${bold("Project Settings → AI → AI Features")}, turns every AI feature of the project off, Ask AI included.`,
     );
 
-    // The panel says why before anything is typed, in this order.
+    // Ask AI says why before anything is typed, in this order.
     const order: Array<number> = [
       "PlanUpgradeRequired = ",
       "DisabledForProject = ",
@@ -1810,9 +1908,11 @@ describe("MCP Server", () => {
   it("lists every record with CRUD tools, by its model's name", () => {
     /*
      * Postmortem Status, the 28th, came with the Postmortems list; Security
-     * Case Priority and Security Case Status with Security Events > Settings.
+     * Case Priority and Security Case Status with Security Events > Settings;
+     * Security Case Task and Security Case Evidence with a case's Tasks and
+     * Evidence pages.
      */
-    expect(records()).toHaveLength(30);
+    expect(records()).toHaveLength(32);
     expect(namesIn(0)).toEqual(records());
     // Every database model with MCP on gets all six tools.
     for (const tool of [

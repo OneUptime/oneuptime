@@ -1,6 +1,11 @@
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import ShortcutKey from "../ShortcutKey/ShortcutKey";
 import { CardGridCellContext, useIsCardGridCell } from "./CardGridCell";
+import {
+  CardMenuExtras,
+  CardMenuExtrasContext,
+  useCardMenuExtrasState,
+} from "./CardMenuExtras";
 import { useCardPlaceFromTitle, useIsCardSection } from "./CardSurface";
 import IconProp from "../../../Types/Icon/IconProp";
 import {
@@ -465,6 +470,44 @@ export const CARD_FILL_HEIGHT_CONTENT_CLASS_NAME: string =
 export const CARD_FILL_HEIGHT_BODY_CLASS_NAME: string = "flex flex-1 flex-col";
 
 /*
+ * The card of a CardGrid cell: it fills the cell as fillHeight does, and
+ * lines its body up with the bodies of the cards beside it. The cell is a
+ * subgrid of two of the grid's rows, a header row and a body row
+ * (CARD_GRID_CELL_CLASS_NAME), and turns the card's box into one; the
+ * frame and the padding inside it are subgrids of the same two rows, so the
+ * header and the body are items of the grid's own rows: the tallest header
+ * of the row sizes the header row, and every body starts under it.
+ *
+ * Its own rows - an auto header row over a body that takes the rest, 20px
+ * apart as the grid's are - are for a card the cell holds through a wrapper
+ * of its own, which hands down no rows: it still fills the cell, its body
+ * starting under its own header. The body takes back 4px of the 20 (-mt-1),
+ * so it starts 16px under the header, as mt-4 puts it outside a grid; a card
+ * with no header starts its body at the top, across both rows.
+ *
+ * Each of these grids has one column that may be narrower than what is in
+ * it (grid-cols-1: minmax(0, 1fr)), as a block is: a grid's own column is
+ * as wide as its widest word or chart, and on a phone a card held its
+ * Traffic chart's 439px in a cell of 358 and the page scrolled sideways.
+ */
+export const CARD_IN_ROW_CLASS_NAME: string =
+  "grid h-full grid-cols-1 grid-rows-[auto_1fr] gap-y-5";
+
+export const CARD_IN_ROW_FRAME_CLASS_NAME: string =
+  "grid row-span-2 grid-cols-1 grid-rows-subgrid";
+
+export const CARD_IN_ROW_CONTENT_CLASS_NAME: string =
+  "grid row-span-2 grid-cols-1 grid-rows-subgrid";
+
+// Its body's place under the header, when the card's page sets none.
+export const CARD_IN_ROW_BODY_OFFSET_CLASS_NAME: string = "-mt-1";
+
+export const CARD_IN_ROW_BODY_CLASS_NAME: string = "flex flex-col";
+
+export const CARD_IN_ROW_HEADERLESS_BODY_CLASS_NAME: string =
+  "row-span-2 flex flex-col";
+
+/*
  * A section's title, a step below a card's: the sections are parts of one
  * card, and their titles say so beside the cards on the rest of the page.
  */
@@ -480,6 +523,12 @@ const Card: FunctionComponent<ComponentProps> = (
   const { translateValue } = useTranslateValue();
   const isSection: boolean = useIsCardSection();
   const isGridCell: boolean = useIsCardGridCell();
+  /*
+   * The options what the card holds adds to its ⋯ (CardMenuExtras): a
+   * table's Reset column widths. A section of a card is part of the card it
+   * is in, and gives them to that card's ⋯.
+   */
+  const menuExtras: CardMenuExtras = useCardMenuExtrasState();
   /*
    * Its place on the page: the id its page gives it - or, in a page's More
    * settings, one after its title (CardPlaceFromTitleContext), so a link
@@ -815,31 +864,52 @@ const Card: FunctionComponent<ComponentProps> = (
    * was, so no other card changes.
    */
   const fillsHeight: boolean = (props.fillHeight ?? isGridCell) && !isSection;
+  /*
+   * The card of a CardGrid cell also lines its body up with the cards
+   * beside it (CARD_IN_ROW_CLASS_NAME); a card that fills a box of any
+   * other kind (Home's columns) fills it as before.
+   */
+  const isInRow: boolean = fillsHeight && isGridCell;
   const isHeaderHidden: boolean = Boolean(props.isHeaderHidden);
   const bodyClassName: string = isHeaderHidden
     ? props.bodyClassName || ""
-    : props.bodyClassName || "mt-4";
+    : props.bodyClassName ||
+      (isInRow ? CARD_IN_ROW_BODY_OFFSET_CLASS_NAME : "mt-4");
   const paddingClassName: string = isHeaderHidden
     ? CARD_HEADERLESS_PADDING_CLASS_NAME
     : CARD_PADDING_CLASS_NAME;
 
+  const getFilledClassName: (
+    own: string,
+    inRow: string,
+    filled: string,
+  ) => string = (own: string, inRow: string, filled: string): string => {
+    if (isInRow) {
+      return [own, inRow].filter(Boolean).join(" ");
+    }
+
+    return fillsHeight ? `${own} ${filled}` : own;
+  };
+
   const content: ReactElement = (
     <div
-      className={
-        fillsHeight
-          ? `${paddingClassName} ${CARD_FILL_HEIGHT_CONTENT_CLASS_NAME}`
-          : paddingClassName
-      }
+      className={getFilledClassName(
+        paddingClassName,
+        CARD_IN_ROW_CONTENT_CLASS_NAME,
+        CARD_FILL_HEIGHT_CONTENT_CLASS_NAME,
+      )}
     >
       {isHeaderHidden ? <></> : isStacked ? stackedHeader : defaultHeader}
 
       {props.children && (
         <div
-          className={
-            fillsHeight
-              ? `${bodyClassName} ${CARD_FILL_HEIGHT_BODY_CLASS_NAME}`
-              : bodyClassName
-          }
+          className={getFilledClassName(
+            bodyClassName,
+            isHeaderHidden
+              ? CARD_IN_ROW_HEADERLESS_BODY_CLASS_NAME
+              : CARD_IN_ROW_BODY_CLASS_NAME,
+            CARD_FILL_HEIGHT_BODY_CLASS_NAME,
+          )}
         >
           {/*
            * The cell is this card's: a card drawn in its body is as tall
@@ -871,14 +941,22 @@ const Card: FunctionComponent<ComponentProps> = (
     );
   }
 
+  const contentWithMenuExtras: ReactElement = (
+    <CardMenuExtrasContext.Provider value={menuExtras}>
+      {content}
+    </CardMenuExtrasContext.Provider>
+  );
+
   /*
    * A card that fills its box leaves no gap under it either: that would
    * reach past the box's bottom, and its parent spaces its cards (a grid's
    * or a column's gap).
    */
-  const frameBoxClassName: string = fillsHeight
-    ? [props.className, CARD_FILL_HEIGHT_CLASS_NAME].filter(Boolean).join(" ")
-    : `mb-5 ${props.className || ""}`;
+  const frameBoxClassName: string = isInRow
+    ? [props.className, CARD_IN_ROW_CLASS_NAME].filter(Boolean).join(" ")
+    : fillsHeight
+      ? [props.className, CARD_FILL_HEIGHT_CLASS_NAME].filter(Boolean).join(" ")
+      : `mb-5 ${props.className || ""}`;
 
   return (
     <React.Fragment>
@@ -887,16 +965,17 @@ const Card: FunctionComponent<ComponentProps> = (
         style={getCardAnchorStyle(props.id, false)}
         data-testid="card"
         data-fill-height={fillsHeight ? "true" : undefined}
+        data-in-row={isInRow ? "true" : undefined}
         className={frameBoxClassName}
       >
         <div
-          className={
-            fillsHeight
-              ? `${CARD_FRAME_CLASS_NAME} ${CARD_FILL_HEIGHT_FRAME_CLASS_NAME}`
-              : CARD_FRAME_CLASS_NAME
-          }
+          className={getFilledClassName(
+            CARD_FRAME_CLASS_NAME,
+            CARD_IN_ROW_FRAME_CLASS_NAME,
+            CARD_FILL_HEIGHT_FRAME_CLASS_NAME,
+          )}
         >
-          {content}
+          {contentWithMenuExtras}
         </div>
       </div>
     </React.Fragment>

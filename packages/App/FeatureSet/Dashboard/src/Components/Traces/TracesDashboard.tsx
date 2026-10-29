@@ -14,7 +14,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import TelemetryServiceUtil from "Common/UI/Utils/TelemetryService";
 import API from "Common/UI/Utils/API/API";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import { CARD_GRID_CELL_CLASS_NAME } from "Common/UI/Components/Card/CardGridLayout";
+import { CARD_ROW_COLUMN_CLASS_NAME } from "Common/UI/Components/Card/CardGridLayout";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -59,6 +59,11 @@ import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlStat
 import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
 import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
 import { getTraceEntityOptionLabel } from "./TracesEntityDisplay";
+import useResizableColumns, {
+  ResizableColumns,
+} from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
+import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import {
   TraceInsightsSpanInput,
   TraceInsightsTrace,
@@ -114,6 +119,22 @@ const getPercentile: (arr: Array<number>, p: number) => number = (
 };
 
 const TracesDashboard: FunctionComponent = (): ReactElement => {
+  /*
+   * The services' columns as wide as a person makes them (Common's
+   * Table/ColumnResize): a service's name gives way to 10rem, a count, a
+   * rate or a duration never.
+   */
+  const serviceColumns: ResizableColumns = useResizableColumns({
+    tableKey: "traces-dashboard-services-table",
+    columns: [
+      { id: "service", cellNumber: 1 },
+      { id: "requests", cellNumber: 2 },
+      { id: "errorRate", cellNumber: 3 },
+      { id: "p50", cellNumber: 4 },
+      { id: "p95", cellNumber: 5 },
+      { id: "status", cellNumber: 6 },
+    ],
+  });
   const [serviceSummaries, setServiceSummaries] = useState<
     Array<ServiceTraceSummary>
   >([]);
@@ -882,27 +903,79 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
           </AppLink>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
-          <table className="w-full">
+          {serviceColumns.styles}
+          <table
+            className={serviceColumns.getTableWidthClassName("w-full")}
+            {...serviceColumns.tableAttributes}
+          >
             <thead>
               <tr className="border-b border-gray-100">
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">
-                  Service
-                </th>
-                <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">
-                  Requests
-                </th>
-                <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">
-                  Error Rate
-                </th>
-                <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">
-                  P50
-                </th>
-                <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">
-                  P95
-                </th>
-                <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">
-                  Status
-                </th>
+                <ResizableHeaderCell
+                  scope="col"
+                  className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3"
+                  resize={serviceColumns.getResize(
+                    "service",
+                    "Service",
+                    ColumnWidthKind.Name,
+                  )}
+                >
+                  <span>{"Service"}</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  scope="col"
+                  className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3"
+                  resize={serviceColumns.getResize(
+                    "requests",
+                    "Requests",
+                    ColumnWidthKind.Whole,
+                  )}
+                >
+                  <span>{"Requests"}</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  scope="col"
+                  className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3"
+                  resize={serviceColumns.getResize(
+                    "errorRate",
+                    "Error Rate",
+                    ColumnWidthKind.Whole,
+                  )}
+                >
+                  <span>{"Error Rate"}</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  scope="col"
+                  className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3"
+                  resize={serviceColumns.getResize(
+                    "p50",
+                    "P50",
+                    ColumnWidthKind.Whole,
+                  )}
+                >
+                  <span>{"P50"}</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  scope="col"
+                  className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3"
+                  resize={serviceColumns.getResize(
+                    "p95",
+                    "P95",
+                    ColumnWidthKind.Whole,
+                  )}
+                >
+                  <span>{"P95"}</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  scope="col"
+                  className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3"
+                  resize={serviceColumns.getResize(
+                    "status",
+                    "Status",
+                    ColumnWidthKind.Whole,
+                  )}
+                >
+                  <span>{"Status"}</span>
+                </ResizableHeaderCell>
                 <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">
                   &nbsp;
                 </th>
@@ -1015,14 +1088,14 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
       </div>
 
       {/*
-       * Two-column: Errors + Slow Requests. Each column is a cell of a
-       * card row (CARD_GRID_CELL_CLASS_NAME): its box runs to the row's
+       * Two-column: Errors + Slow Requests. Each column is a column of a
+       * card row (CARD_ROW_COLUMN_CLASS_NAME): its box runs to the row's
        * bottom, so a short list beside a long one leaves no bare page
        * under it.
        */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Errors */}
-        <div className={CARD_GRID_CELL_CLASS_NAME}>
+        <div className={CARD_ROW_COLUMN_CLASS_NAME}>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-red-500" />
@@ -1104,7 +1177,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
         </div>
 
         {/* Slowest Requests */}
-        <div className={CARD_GRID_CELL_CLASS_NAME}>
+        <div className={CARD_ROW_COLUMN_CLASS_NAME}>
           <div className="flex items-center gap-2 mb-3">
             <div className="w-2 h-2 rounded-full bg-amber-500" />
             <h3 className="text-base font-semibold text-gray-900">

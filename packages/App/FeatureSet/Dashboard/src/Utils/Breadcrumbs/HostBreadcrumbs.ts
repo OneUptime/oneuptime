@@ -153,6 +153,66 @@ export function getHostBreadcrumbs(path: string): Array<Link> | undefined {
       "Hosts",
       "Documentation",
     ]),
+    /*
+     * Pages that had no trail. Every page this product routes has one:
+     * Common/Tests/App/Dashboard/EveryPageHasATrail fails by name for a
+     * page left out.
+     */
+    ...BuildBreadcrumbLinksByTitles(PageMap.HOST_VIEW_TRACES, [
+      "Project",
+      "Hosts",
+      "View Host",
+      "Traces",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.HOST_VIEW_PROFILES, [
+      "Project",
+      "Hosts",
+      "View Host",
+      "Performance Profiles",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.HOST_VIEW_FEED, [
+      "Project",
+      "Hosts",
+      "View Host",
+      "Feed",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.HOST_VIEW_AUDIT_LOGS, [
+      "Project",
+      "Hosts",
+      "View Host",
+      "Audit Logs",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.HOST_SETTINGS_OWNER_RULES, [
+      "Project",
+      "Hosts",
+      "Settings",
+      "Owner Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.HOST_SETTINGS_OWNER_RULE_VIEW, [
+      "Project",
+      "Hosts",
+      "Settings",
+      "Owner Rules",
+      "View Rule",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.HOST_SETTINGS_LABEL_RULES, [
+      "Project",
+      "Hosts",
+      "Settings",
+      "Label Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.HOST_SETTINGS_LABEL_RULE_VIEW, [
+      "Project",
+      "Hosts",
+      "Settings",
+      "Label Rules",
+      "View Rule",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.HOST_ARCHIVED, [
+      "Project",
+      "Hosts",
+      "Archived",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

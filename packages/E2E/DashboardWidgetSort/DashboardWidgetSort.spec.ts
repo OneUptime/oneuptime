@@ -836,12 +836,39 @@ test.describe("the headers take no more room than plain ones", () => {
     });
     await expect(tables).toHaveCount(2);
 
-    const boxes: Array<TableBox> = [];
-
     for (const index of [0, 1]) {
       await expect(tables.nth(index).locator("tbody tr")).toHaveCount(4);
-      boxes.push(await measure(tables.nth(index)));
     }
+
+    const measureBoth: () => Promise<Array<TableBox>> = async (): Promise<
+      Array<TableBox>
+    > => {
+      return [await measure(tables.nth(0)), await measure(tables.nth(1))];
+    };
+
+    /*
+     * At its default width, the list fits its widget - once the dashboard
+     * has given its widgets their widths. Read the moment its rows first
+     * showed, a busy runner (14.0.95's gate) found 542 pixels of rows in a
+     * 483-pixel box, where its failure screenshot shows the list fitting; so
+     * this asks until it settles, as the long-title list's test does, and
+     * the rows below are those of the boxes it settled in.
+     */
+    let boxes: Array<TableBox> = await measureBoth();
+    await expect
+      .poll(
+        async (): Promise<number> => {
+          boxes = await measureBoth();
+          const widest: TableBox = boxes.reduce(
+            (wider: TableBox, box: TableBox): TableBox => {
+              return box.boxWidth > wider.boxWidth ? box : wider;
+            },
+          );
+          return widest.scrollWidth - widest.boxWidth;
+        },
+        { timeout: 10000 },
+      )
+      .toBeLessThanOrEqual(1);
 
     // One line of the list's text and its padding: never two.
     for (const box of boxes) {
@@ -849,14 +876,6 @@ test.describe("the headers take no more room than plain ones", () => {
         expect(height).toBeLessThan(36);
       }
     }
-
-    // At its default width, the list fits its widget.
-    const widest: TableBox = boxes.reduce(
-      (wider: TableBox, box: TableBox): TableBox => {
-        return box.boxWidth > wider.boxWidth ? box : wider;
-      },
-    );
-    expect(widest.scrollWidth).toBeLessThanOrEqual(widest.boxWidth + 1);
 
     await shoot(page, testInfo, "security-events-one-line", undefined);
   });

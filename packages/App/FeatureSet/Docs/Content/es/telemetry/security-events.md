@@ -40,6 +40,8 @@ Abre **Productos → Eventos de seguridad**, en **Observabilidad**. Su menú tie
 | **Riesgo de entidades** | Eventos | Cada usuario, host y dirección, puntuado por lo encontrado sobre él esta semana, primero los de mayor riesgo |
 | **Correlacionar** | Eventos | Un grafo de los eventos que comparten un host, un usuario o una dirección IP |
 | **Reglas de detección** | Detecciones | Reglas Sigma que se ejecutan según una programación y abren casos |
+| **Excepciones de regla** | Detecciones | Lo que tus reglas omiten a propósito, como un escáner o una prueba planificada, cada cosa con quién la añadió y por qué |
+| **Listas de seguimiento** | Detecciones | Las listas con las que comparan tus reglas, como usuarios VIP, hosts críticos, hashes de archivos maliciosos conocidos y las direcciones desde las que los administradores pueden iniciar sesión |
 | **Biblioteca de reglas** | Detecciones | Reglas de detección listas para añadir, cada una con los eventos que lee y si llegan, con las recomendadas marcadas |
 | **Inteligencia de amenazas** | Detecciones | Feeds STIX/TAXII de indicadores maliciosos conocidos |
 | **Cobertura de ATT&CK** | Detecciones | Las técnicas de MITRE ATT&CK que cubren tus reglas |
@@ -51,6 +53,7 @@ Abre **Productos → Eventos de seguridad**, en **Observabilidad**. Su menú tie
 | **Conexiones** | Conexiones | Sus registros, los productos de seguridad que consulta OneUptime y los SIEM a los que envía |
 | **Guía de configuración** | Conexiones | Fragmentos para enviar eventos, rellenados con tu clave de ingesta |
 | **Prioridades de casos** | Ajustes | Lo urgente que es un caso: las prioridades propias del proyecto, la más urgente primero |
+| **Objetivos de respuesta** | Ajustes | Lo rápido que hay que hacerse cargo de un caso de cada prioridad y contenerlo |
 | **Estados de casos** | Ajustes | Los pasos por los que pasa un caso, y qué cuenta un caso en cada uno |
 | **Puntuación de riesgo** | Ajustes | Si el riesgo de una entidad abre un caso, con qué riesgo, y cuánto importa cada entidad |
 
@@ -298,7 +301,7 @@ OneUptime ejecuta el núcleo booleano de Sigma:
 
 - Las selecciones son mapas de campos (cada campo debe coincidir; una lista de valores coincide con cualquiera de ellos) o listas de palabras clave, que coinciden en cualquier parte del mensaje.
 - Las condiciones combinan selecciones con `and`, `or`, `not` y paréntesis, o con `1 of selection_*`, `all of selection_*`, `any of them` y `all of them`.
-- Modificadores de campo: `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists` y `windash`. El texto se compara sin distinguir mayúsculas, salvo que añadas `cased`.
+- Modificadores de campo: `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists`, `windash` y `expand`, que lee una [lista de seguimiento](#listas-de-seguimiento). El texto se compara sin distinguir mayúsculas, salvo que añadas `cased`.
 - Un campo es un campo tipado (`principalUser`), una grafía Sigma habitual de uno (`CommandLine`, `src_ip`, `Hostname`) o cualquier clave de atributo, escrita como en el evento (`threat.matched`).
 - `Image` y `CommandLine` leen el proceso del que trata el evento, el que se inició en el inicio de un proceso (`processPath`, `processCommandLine`), y `ParentImage` y `ParentCommandLine` el proceso que lo inició (`parentProcessPath`, `parentProcessCommandLine`). `principalProcess` es el proceso que actuó, que en un inicio es el proceso padre.
 - `level` fija la gravedad: `informational`, `low`, `medium`, `high` o `critical`, y `medium` si falta. Los IDs de ATT&CK en `tags` (`attack.t1110`, `attack.ta0006`) rellenan los campos MITRE del hallazgo.
@@ -418,6 +421,58 @@ Un Detection Finding es un evento de seguridad de clase `Detection Finding` (cla
 
 Los hallazgos son eventos corrientes: búscalos en **Eventos** y pivota sobre ellos en **Correlacionar**. Para probar una regla nueva sin ruido, desactiva todas las acciones salvo el hallazgo hasta que confíes en ella.
 
+### Excepciones
+
+Una excepción es algo que una regla omite porque lo esperas, como un escáner de vulnerabilidades, una tarea de copia de seguridad nocturna o una prueba de penetración planificada. Silencia la regla para esa sola cosa sin desactivarla, y las demás coincidencias de la regla siguen disparándose. Cada excepción aparece en **Productos → Eventos de seguridad → Detecciones → Excepciones de regla**: añade una allí con **Añadir Excepción de regla**, con **Añadir excepción** en la fila de una regla, o con **Añadir excepción** en la fila de una detección de un caso, que empieza con la regla de la detección y aquello por lo que se disparó.
+
+| Lo que la regla omite | Con qué coincide |
+| --- | --- |
+| **Una entidad** | Un usuario, un host o una dirección IP, dondequiera que un evento lo nombre: como quien actuó (`principalUser`, `principalHost`, `principalIp`), como quien recibió la acción (`targetUser`, `targetHost`, `targetIp`), o entre sus `observables` |
+| **Un valor** | El valor de un campo, con el campo nombrado como lo nombra una regla: `processName`, `principalUser` o una clave de atributo como `http.user_agent` |
+| **Una ventana de tiempo** | Cada evento desde **Comienza en** hasta **Termina en**, con 30 días de diferencia como máximo |
+
+- Los valores coinciden sin importar mayúsculas y minúsculas, y `*` representa cualquier serie de caracteres: `svc-*` omite cada cuenta de servicio, y `*.lab.example.com` cada host de un dominio. Una dirección IP puede ser un rango, como `10.20.0.0/16`. Un valor formado solo por `*` se rechaza: para detener una regla, desactívala.
+- Cada excepción dice por qué en su **Motivo**, que ve todo el que lee la lista, y guarda quién la añadió y cuándo. Una entidad o un valor puede tener una fecha en **Caduca el**, tras la cual la regla vuelve a verlo; una ventana de tiempo termina sola.
+- **Estado** dice en qué punto está cada una: **Activo**, **Próximos** para una ventana que aún no ha empezado, **Caducado** o **Finalizado**. Bajo el nombre de una regla en **Reglas de detección**, una línea cuenta sus excepciones activas, y **Ver excepciones** en la fila de la regla abre la lista filtrada por ella.
+- Los eventos omitidos se descartan antes de que la regla cuente nada, así que nunca cuentan para su **Umbral de número de coincidencias** y no abren ningún caso, alerta, incidente ni hallazgo. Las excepciones se aplican a cada ejecución de la regla, correlaciones incluidas, y a **Ejecutar sobre eventos pasados**, pero nunca a un ataque de prueba, que comprueba que los eventos llegan.
+- Una regla tiene como máximo 100 excepciones. Quien puede editar reglas de detección las añade, las cambia y las elimina, cualquier rol de Security puede leerlas, y cada cambio queda en el registro de auditoría del proyecto.
+
+### Listas de seguimiento
+
+Una lista de seguimiento es una lista que tu equipo mantiene una sola vez y que cualquier regla puede leer, como usuarios VIP, hosts críticos, hashes de archivos maliciosos conocidos o las direcciones desde las que los administradores pueden iniciar sesión. Todas las listas están en **Productos → Eventos de seguridad → Detecciones → Listas de seguimiento**: crea una allí con **Crear Lista de seguimiento**, que pide su nombre y lo que contiene, o añade una habitual desde **Empieza con una lista habitual**. La página de una lista muestra sus valores, y **Úsala en una regla** da una selección que lee la lista, para copiarla en una regla.
+
+Una regla lee una lista con `expand` y el nombre de la lista entre signos `%`. Esta regla se dispara cuando un administrador inicia sesión desde una dirección que no está en la lista permitida:
+
+```yaml title="admin-sign-in-from-outside.yml"
+title: Admin sign-in from outside the allowed addresses
+detection:
+  admin_sign_in:
+    className: Authentication
+    principalUser|expand: '%admins%'
+  allowed:
+    principalIp|expand: '%admin_addresses%'
+  condition: admin_sign_in and not allowed
+level: high
+```
+
+- Una lista contiene usuarios, hosts, direcciones IP, hashes de archivos, dominios, URLs, procesos u otros valores, elegidos al crearla. Un valor coincide sin importar mayúsculas y minúsculas, y `*` representa cualquier serie de caracteres: `svc-*` coincide con cada cuenta de servicio. Una lista de direcciones IP también admite rangos, como `10.20.0.0/16`, y una lista de hashes de archivos admite hashes MD5, SHA-1, SHA-256 y SHA-512.
+- Añade valores de uno en uno con **Añadir Valor**, o muchos a la vez con **Importar valores**: pégalos, o elige un archivo `.txt` o `.csv`, un valor por línea, con una nota opcional tras una coma. **Añadir a la lista** conserva los valores que ya tiene, y **Reemplazar la lista** quita los que la importación no trae.
+- En lugar de mantener valores, una lista de direcciones IP, hashes de archivos, dominios o URLs puede seguir un feed de inteligencia de amenazas: sus valores son entonces los indicadores activos del feed del tipo de la lista, que se mantienen al día a medida que se lee el feed.
+- `expand` se usa solo, porque los valores de la lista dicen cómo coinciden. Un campo que contiene varios valores, como `observables`, coincide cuando alguno de ellos está en la lista. **Leída por** nombra las reglas que leen cada lista, y bajo el YAML de una regla su formulario nombra las listas que la regla lee.
+- Una regla nombra una lista sin importar mayúsculas y minúsculas. Una regla que nombra una lista que el proyecto no tiene se rechaza al guardarla, y una lista que leen reglas no puede renombrarse ni eliminarse hasta que ninguna regla la lea.
+- Un cambio en una lista llega a cada regla que la lee en la siguiente ejecución de la regla. Las reglas de correlación y **Ejecutar sobre eventos pasados** también leen listas.
+- Una lista tiene como máximo 5.000 valores, de ellos como máximo 100 con `*` y 100 rangos, y un proyecto tiene como máximo 200 listas: para una lista más larga, sigue un feed de inteligencia de amenazas. Quien puede crear, editar o eliminar reglas de detección puede hacer lo mismo con las listas, y quien puede editar reglas de detección añade, cambia y quita sus valores. Cualquier rol de Security puede leerlas, y cada cambio queda en el registro de auditoría del proyecto.
+
+### Ejecutar sobre eventos pasados
+
+**Ejecutar sobre eventos pasados** muestra lo que una regla habría encontrado si hubiera estado en marcha, sin abrir, enviar ni escribir nada. Está en la fila de una regla, para la regla tal como está guardada, y bajo **Regla Sigma (YAML)** en el formulario de la regla, para la regla tal como está ahí, antes de que la guardes. Elige **Últimas 24 horas**, **Últimos 7 días** o **Últimos 30 días**.
+
+- Una regla se cuenta como la cuentan sus ejecuciones: en ventanas tan largas como su **Intervalo de evaluación (minutos)**, y un grupo se dispara en una ventana cuando su recuento allí alcanza el **Umbral de número de coincidencias**. Una correlación se lee sobre todo el periodo, y enumera los grupos con los que habría coincidido, cada uno con lo que ocurrió.
+- La respuesta dice cuántas veces se habría disparado la regla, cuántas veces al día, para cuántos usuarios, hosts o direcciones, y cuántos eventos coincidieron. Se enumeran los 50 grupos que más se dispararon, cada uno con sus eventos y la última vez que se disparó.
+- Se aplican las excepciones de una regla guardada, y la respuesta dice cuántos eventos omitieron y cuántos disparos evitaron. Una regla que no se habría disparado dice lo cerca que estuvo: cuántos eventos coincidieron, y el umbral que ningún grupo alcanzó en una ventana.
+- Una regla que se dispararía más de 20 veces al día se dispara más de lo que una persona puede revisar, y la respuesta lo dice, con formas de hacerla más silenciosa.
+- Solo lee las fuentes que puedes leer. Una ejecución que tarda más de 45 segundos se detiene y lo dice: elige un periodo más corto.
+
 ## Monitores de eventos de seguridad
 
 Un monitor de eventos de seguridad cuenta los eventos que coinciden con sus filtros sobre una ventana deslizante y aplica al recuento los criterios habituales de los monitores: cambia el estado del monitor, abre alertas o incidentes y avisa a la guardia. Crea uno en **Monitores → Crear monitor**, con **Eventos de seguridad** como tipo; aparece allí junto a sus demás monitores.
@@ -468,6 +523,26 @@ Comprueba su **Estado**: con **Deshabilitado** la regla no se ejecuta, y con **L
 
 :::details Una regla abre demasiadas alertas
 Cada valor del **Campo de agrupación** recibe su propia alerta: agrupa por algo más general, sube el umbral o añade un recuento distinto. Si te importa el ritmo más que cada coincidencia, elige **Ninguno** en **Alertas e incidentes** y pon un monitor sobre los hallazgos de la regla.
+:::
+
+:::details Una regla se dispara con algo que esperas
+Añade una excepción para ello en lugar de desactivar la regla: **Añadir excepción** en la fila de la detección de su caso empieza con la regla y aquello por lo que se disparó. Para cambiar la propia regla, **Ejecutar sobre eventos pasados** bajo su YAML muestra lo que el cambio habría encontrado antes de que guardes.
+:::
+
+:::details Una excepción no omite lo que debería
+Comprueba su **Estado** en **Excepciones de regla**: una excepción en estado **Caducado** no omite nada, y una ventana de tiempo solo omite los eventos entre sus dos horas. Una entidad se busca como quien actuó, como quien recibió la acción y entre los `observables` del evento; para omitir un valor de otro campo, añade una excepción **Un valor** que nombre ese campo. Sin `*`, un valor debe ser igual al campo entero: `svc-*` omite `svc-backup`, y `svc-` no.
+:::
+
+:::details Una regla que lee una lista de seguimiento no coincide
+Abre la lista y revisa sus valores: un valor sin `*` debe ser igual al campo entero, sin importar mayúsculas y minúsculas, y una lista que sigue un feed de inteligencia de amenazas solo contiene los indicadores activos del feed de su tipo. Comprueba que la regla lee el campo que llenan tus eventos: **Úsala en una regla** empieza con el campo en el que suele estar una lista de su tipo. Un cambio en una lista llega a una regla en su siguiente ejecución.
+:::
+
+:::details Una lista de seguimiento no se puede renombrar ni eliminar
+Hay reglas que aún la leen por su nombre, y el mensaje las nombra. Cambia el nombre en esas reglas, o quita la lista de ellas, y luego renómbrala o elimínala.
+:::
+
+:::details Ejecutar una regla sobre eventos pasados no encuentra nada
+Solo lee el periodo que eliges y las fuentes que puedes leer. Cuando hubo eventos que coincidieron pero ningún grupo alcanzó el **Umbral de número de coincidencias** en una ventana, la respuesta dice cuántos coincidieron: baja el umbral, o cuenta sobre un **Intervalo de evaluación (minutos)** más largo.
 :::
 
 ## Próximos pasos

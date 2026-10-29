@@ -2584,11 +2584,20 @@ describe("queues.ejs", () => {
     ] as Array<[string, string]>) {
       expect(servicesCard).toContain(`${field}: translationKey("${label}")`);
     }
+    /*
+     * The card hands those keys to the services table it shares with the
+     * Databases product (ServiceCallsTable), which shows each column name it
+     * is given in the reader's language.
+     */
     for (const field of ["countHeader", "durationHeader"]) {
-      expect(servicesCard).toContain(
-        `{translator.translateText(copy.${field})}`,
-      );
+      expect(servicesCard).toContain(`${field}={copy.${field}}`);
     }
+    const servicesTable: string = repoFile(
+      "packages/App/FeatureSet/Dashboard/src/Components/ServiceCalls/ServiceCallsTable.tsx",
+    );
+    expect(servicesTable).toContain("props.countHeader,");
+    expect(servicesTable).toContain("props.durationHeader,");
+    expect(servicesTable).toContain("{translator.translateText(header)}");
 
     for (const header of [
       ">Producers</div>",

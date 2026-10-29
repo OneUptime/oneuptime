@@ -1,4 +1,9 @@
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import useResizableColumns, {
+  ResizableColumns,
+} from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
+import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   SecurityConnectorCheck,
@@ -236,6 +241,21 @@ const ConnectorTestReportView: FunctionComponent<ComponentProps> = (
   const samples: Array<SecurityConnectorSample> = report.samples || [];
 
   /*
+   * The sample records' columns as wide as a person makes them (Common's
+   * Table/ColumnResize): a record's title gives way, a severity and a time
+   * never.
+   */
+  const sampleColumns: ResizableColumns = useResizableColumns({
+    tableKey: "connector-test-samples-table",
+    columns: [
+      { id: "record", cellNumber: 1 },
+      { id: "severity", cellNumber: 2 },
+      { id: "created", cellNumber: 3 },
+      { id: "eventTime", cellNumber: 4 },
+    ],
+  });
+
+  /*
    * The report is safe to copy verbatim: testers never place credentials
    * in a check message and the API redacts every error before it lands
    * here. Pretty-printed so it pastes readably into a support ticket.
@@ -382,21 +402,57 @@ const ConnectorTestReportView: FunctionComponent<ComponentProps> = (
             be much earlier than the time the source created the record.
           </p>
           <div className="mt-2 overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
+            {sampleColumns.styles}
+            <table
+              className={`${sampleColumns.getTableWidthClassName("min-w-full")} text-left text-sm`}
+              {...sampleColumns.tableAttributes}
+            >
               <thead className="border-b border-gray-200 text-gray-500">
                 <tr>
-                  <th scope="col" className="py-2 pr-4">
-                    Record
-                  </th>
-                  <th scope="col" className="py-2 pr-4">
-                    Severity
-                  </th>
-                  <th scope="col" className="py-2 pr-4">
-                    Created (UTC)
-                  </th>
-                  <th scope="col" className="py-2">
-                    Event time (UTC)
-                  </th>
+                  <ResizableHeaderCell
+                    scope="col"
+                    className="py-2 pr-4"
+                    resize={sampleColumns.getResize(
+                      "record",
+                      "Record",
+                      ColumnWidthKind.Name,
+                    )}
+                  >
+                    <span>{"Record"}</span>
+                  </ResizableHeaderCell>
+                  <ResizableHeaderCell
+                    scope="col"
+                    className="py-2 pr-4"
+                    resize={sampleColumns.getResize(
+                      "severity",
+                      "Severity",
+                      ColumnWidthKind.Whole,
+                    )}
+                  >
+                    <span>{"Severity"}</span>
+                  </ResizableHeaderCell>
+                  <ResizableHeaderCell
+                    scope="col"
+                    className="py-2 pr-4"
+                    resize={sampleColumns.getResize(
+                      "created",
+                      "Created (UTC)",
+                      ColumnWidthKind.Whole,
+                    )}
+                  >
+                    <span>{"Created (UTC)"}</span>
+                  </ResizableHeaderCell>
+                  <ResizableHeaderCell
+                    scope="col"
+                    className="py-2"
+                    resize={sampleColumns.getResize(
+                      "eventTime",
+                      "Event time (UTC)",
+                      ColumnWidthKind.Whole,
+                    )}
+                  >
+                    <span>{"Event time (UTC)"}</span>
+                  </ResizableHeaderCell>
                 </tr>
               </thead>
               <tbody>

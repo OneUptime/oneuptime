@@ -41,7 +41,14 @@
  *                                                (?table=plain), and people,
  *                                                each name drawn beside a
  *                                                picture and over an email
- *                                                (?table=people)
+ *                                                (?table=people), and a
+ *                                                table a page draws itself:
+ *                                                a monitor's network
+ *                                                interfaces, in a card with
+ *                                                no ⋯ (?table=handbuilt),
+ *                                                and a web vital's routes,
+ *                                                its last column numbers
+ *                                                (?table=vitals)
  *
  * Steered by the query string:
  *   - data=rich       more incidents, monitors and status pages: labels,
@@ -56,12 +63,26 @@
  *                     column may grow, five labels on one monitor
  *   - rows=<n>        n more rows on every list (pagination, a long page)
  *   - role=viewer     a member who may read but not create, edit or delete
+ *   - role=none       a member whose teams grant nothing beyond what every
+ *                     member holds (Project User: teams, labels, member
+ *                     profiles), so the Incidents, Alerts, Monitors and
+ *                     Status Pages lists deny every column
  *   - delay=<ms>      each list read takes this long (40 ms otherwise), to
  *                     see the tables while they load
  *   - fail=<table>    every read of that table fails (Incident, Monitor,
  *                     ... or all), as a server that cannot be reached does
  *   - lang=de|ja|fa   the Dashboard's German, Japanese or Persian words
  *   - theme=dark      (read by server.js) the Dashboard's dark mode
+ *
+ * The live connection the Dashboard keeps open (Index.tsx), which a list of
+ * incidents or alerts joins to keep itself current (ModelTable/UseLiveRows),
+ * is a fake one the suite speaks for: `window.__fixture.liveSubscriptions`
+ * lists what the lists listen for, `window.__fixture.announce(table,
+ * eventType, id)` is the server announcing a created, changed or deleted
+ * record (by its id: a created record's new row is tinted for a moment),
+ * and `window.__fixture.declareIncident(title)` /
+ * `window.__fixture.raiseAlert(title)` add one to the server's rows first
+ * and return its id.
  *
  * Every list read is recorded on `window.__fixture.listRequests`, every
  * write on `window.__fixture.updates`, every record created (a row's state
@@ -92,6 +113,9 @@ import DeviceRolesPage from "../../../App/FeatureSet/Dashboard/src/Pages/Network
 import RunbooksLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Layout";
 import RunbooksPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Runbooks";
 import CardHeadersPage from "./CardHeaders";
+import SnmpInterfacesView from "../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/SnmpInterfacesView";
+import WebVitalRouteBreakdownCard from "../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/WebVitalRouteBreakdownCard";
+import Card from "Common/UI/Components/Card/Card";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -136,6 +160,7 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
+import Realtime from "Common/UI/Utils/Realtime";
 import UserUtil from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
@@ -1078,25 +1103,32 @@ function failsFor(tableName) {
 // ------------------------------------------------------------ permissions
 
 const heldPermission =
-  role === "viewer" ? Permission.Viewer : Permission.ProjectOwner;
+  role === "none"
+    ? null
+    : role === "viewer"
+      ? Permission.Viewer
+      : Permission.ProjectOwner;
 
 UserUtil.isMasterAdmin = () => false;
 UserUtil.getUserId = () => new ObjectID(USER_ID);
 /*
  * The people gallery lists users, whom a signed-in member may read
- * (Logged in User); every other page holds only the member's role.
+ * (Logged in User); every other page holds only the member's role. A member
+ * with no role here holds what every member of a project does.
  */
 PermissionUtil.getAllPermissions = () =>
-  galleryTable === "people" && window.location.pathname.endsWith("/tables")
-    ? [heldPermission, Permission.CurrentUser]
-    : [heldPermission];
+  !heldPermission
+    ? [Permission.ProjectUser, Permission.CurrentUser]
+    : galleryTable === "people" && window.location.pathname.endsWith("/tables")
+      ? [heldPermission, Permission.CurrentUser]
+      : [heldPermission];
 PermissionUtil.getProjectPermissions = () => ({
   _type: "UserTenantAccessPermission",
   projectId: new ObjectID(PROJECT_ID),
   permissions: [
     {
       _type: "UserPermission",
-      permission: heldPermission,
+      permission: heldPermission || Permission.ProjectUser,
       labelIds: [],
       isBlockPermission: false,
     },
@@ -1113,6 +1145,82 @@ PermissionUtil.getGlobalPermissions = () => ({
 });
 ProjectUtil.getCurrentProjectId = () => new ObjectID(PROJECT_ID);
 ModelAPI.getCommonHeaders = () => ({ tenantid: PROJECT_ID });
+
+// ------------------------------------------------------------ the live connection
+
+window.__fixture.liveSubscriptions = [];
+
+Realtime.isStarted = () => {
+  return true;
+};
+
+Realtime.listenToModelEvent = (listen, onEvent) => {
+  const subscription = {
+    tableName: new listen.modelType().tableName,
+    eventType: listen.eventType,
+    tenantId: String(listen.tenantId),
+    isStopped: false,
+  };
+
+  window.__fixture.liveSubscriptions.push(subscription);
+
+  /*
+   * The handler stays off the recorded subscription, so the suite can read
+   * the list as plain data.
+   */
+  const announcements = (window.__liveHandlers = window.__liveHandlers || []);
+  announcements.push({ subscription, onEvent });
+
+  return () => {
+    subscription.isStopped = true;
+  };
+};
+
+// The server announcing that a record of a table was created, changed or deleted.
+window.__fixture.announce = (tableName, eventType, id) => {
+  for (const { subscription, onEvent } of window.__liveHandlers || []) {
+    if (
+      !subscription.isStopped &&
+      subscription.tableName === tableName &&
+      subscription.eventType === eventType
+    ) {
+      onEvent(id || "");
+    }
+  }
+};
+
+let declaredByOthers = 0;
+
+// Someone else declares an incident: it is the server's newest.
+window.__fixture.declareIncident = (title) => {
+  declaredByOthers += 1;
+  const record = incident(900 + declaredByOthers, {
+    title,
+    state: IDENTIFIED,
+    severity: CRITICAL,
+    monitors: [],
+    declaredAt: new Date(
+      Date.parse("2026-10-16T05:30:00.000Z") + declaredByOthers * 1000,
+    ).toISOString(),
+  });
+  INCIDENTS.unshift(record);
+  return String(record._id);
+};
+
+// Something raises an alert: it is the server's newest.
+window.__fixture.raiseAlert = (title) => {
+  declaredByOthers += 1;
+  const record = alertRecord(900 + declaredByOthers, {
+    title,
+    state: ALERT_CREATED,
+    severity: HIGH_ALERT,
+    createdAt: new Date(
+      Date.parse("2026-10-16T05:30:00.000Z") + declaredByOthers * 1000,
+    ).toISOString(),
+  });
+  ALERTS.unshift(record);
+  return String(record._id);
+};
 
 // ------------------------------------------------------------ the data API
 
@@ -1683,12 +1791,112 @@ function GalleryGive() {
   );
 }
 
+/*
+ * A table a page draws itself, not on the shared Table: an SNMP monitor's
+ * network interfaces, as its summary draws them (SnmpInterfacesView), in a
+ * card with no ⋯ - so its Reset column widths is beside its last column's
+ * name. One interface has a long name and alias.
+ */
+const HAND_BUILT_INTERFACES = [
+  {
+    interfaceIndex: 1,
+    name: "GigabitEthernet0/0/1",
+    alias: "uplink to core-sw-01 (fibre, rack 12, patch 7)",
+    isOperationallyUp: true,
+    isAdministrativelyUp: true,
+    speedInBitsPerSecond: 1000000000,
+    inBitsPerSecond: 182000000,
+    outBitsPerSecond: 96500000,
+    utilizationPercent: 18,
+    errorsPerSecond: 0,
+  },
+  {
+    interfaceIndex: 2,
+    name: "GigabitEthernet0/0/2",
+    alias: "office floor 3",
+    isOperationallyUp: false,
+    isAdministrativelyUp: true,
+    speedInBitsPerSecond: 1000000000,
+    inBitsPerSecond: 0,
+    outBitsPerSecond: 0,
+    utilizationPercent: 0,
+    errorsPerSecond: 2,
+  },
+  {
+    interfaceIndex: 3,
+    name: "Loopback0",
+    isOperationallyUp: true,
+    isAdministrativelyUp: true,
+    speedInBitsPerSecond: 8000000000,
+    inBitsPerSecond: 1200,
+    outBitsPerSecond: 1200,
+    utilizationPercent: 0,
+    errorsPerSecond: 0,
+  },
+  {
+    interfaceIndex: 4,
+    name: "TenGigabitEthernet1/1/1",
+    isOperationallyUp: false,
+    isAdministrativelyUp: false,
+    speedInBitsPerSecond: 10000000000,
+  },
+];
+
+function GalleryHandBuilt() {
+  return (
+    <Card
+      title="Interfaces"
+      description="A table a page draws itself, in a card with no options."
+    >
+      <SnmpInterfacesView interfaces={HAND_BUILT_INTERFACES} />
+    </Card>
+  );
+}
+
+/*
+ * Another table a page draws itself, whose last column is drawn at its end
+ * over numbers: a web vital's routes, slowest first (the RUM overview's
+ * INP by route), in its own card with no ⋯ - so its Reset column widths
+ * goes before the Rating column's name, which stays over its values.
+ */
+const VITAL_ROUTES = [
+  { route: "/checkout/:cartId/payment/confirm", value: 612 },
+  { route: "/products/:id", value: 284 },
+  { route: "/search", value: 143 },
+  { route: "/", value: 96 },
+];
+
+function GalleryVitals() {
+  return (
+    <WebVitalRouteBreakdownCard
+      vital={{
+        key: "inp",
+        label: "Interaction to Next Paint",
+        description: "How long the page takes to answer a click or a key.",
+        value: 238,
+        unit: "ms",
+        thresholds: { warn: 200, danger: 500 },
+        metricName: "web_vital.inp",
+      }}
+      breakdown={{
+        routeAttribute: "app.route",
+        routes: VITAL_ROUTES,
+        totalRoutes: VITAL_ROUTES.length,
+        failed: false,
+      }}
+      loading={false}
+    />
+  );
+}
+
 const GALLERY = {
   kinds: GalleryKinds,
   wide: GalleryWide,
   plain: GalleryPlain,
   people: GalleryPeople,
   give: GalleryGive,
+  handbuilt: GalleryHandBuilt,
+  vitals: GalleryVitals,
 };
 
 /*

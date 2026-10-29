@@ -168,10 +168,15 @@ describe("PermissionGate", () => {
 
       /*
        * Human titles, not raw enum values. A user told they need
-       * "CreateProjectMonitor" has been handed an internal identifier.
+       * "CreateProjectMonitor" has been handed an internal identifier. And
+       * the permission to ask for, not the roles that hold it as well
+       * (Project Owner, Project Admin, Project Member, Monitor Admin,
+       * Monitor Member): every lock used to recite them all.
        */
-      expect(result.disabledReason).toContain("Create Monitor");
-      expect(result.disabledReason).toContain("Project Admin");
+      expect(result.disabledReason).toBe(
+        "You do not have permission to create this Monitor. You need this permission: Create Monitor.",
+      );
+      expect(result.disabledReason).not.toContain("Project Admin");
       expect(result.disabledReason).not.toContain("CreateProjectMonitor");
     });
 
@@ -318,7 +323,7 @@ describe("PermissionGate", () => {
       expect(denied.isAllowed).toBe(false);
       expect(
         denied.disabledReason?.startsWith(
-          "You do not have permission to change this monitor. You need one of these permissions: ",
+          "You do not have permission to change this monitor. You need this permission: Create Monitor.",
         ),
       ).toBe(true);
       expect(denied.disabledReason).not.toContain("create this");

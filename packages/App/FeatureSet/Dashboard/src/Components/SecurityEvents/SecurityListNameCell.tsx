@@ -41,6 +41,12 @@ export interface ComponentProps {
   name: string;
   // Already in the reader's words; empty parts are left out.
   detailParts?: Array<string | undefined> | undefined;
+  /*
+   * The line under the name as an element of its own, in place of
+   * detailParts: a link to what the line counts ("2 active exceptions",
+   * opening them).
+   */
+  detail?: ReactNode | undefined;
   detailTestId?: string | undefined;
   // Drawn before the name, level with its first line: a product's logo.
   mark?: ReactNode | undefined;
@@ -65,7 +71,14 @@ const SecurityListNameCell: FunctionComponent<ComponentProps> = (
       <span className="block" data-testid="security-list-name">
         <IsolatedText text={props.name} />
       </span>
-      {parts.length > 0 ? (
+      {props.detail ? (
+        <span
+          className={SECURITY_LIST_NAME_DETAIL_CLASS_NAME}
+          data-testid={props.detailTestId}
+        >
+          {props.detail}
+        </span>
+      ) : parts.length > 0 ? (
         <span
           className={SECURITY_LIST_NAME_DETAIL_CLASS_NAME}
           data-testid={props.detailTestId}

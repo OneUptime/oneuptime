@@ -33,23 +33,23 @@ Varje minut kör OneUptime var och en av monitorns metrikfrågor över dess tids
 :::steps
 ### Börja en ny monitor
 
-Gå till **Monitorer** och klicka på **Skapa monitor**.
+Gå till **Monitorer** och klicka på **Skapa monitor**. Eller bygg i mätvärdesutforskaren det diagram du vill bevaka och klicka på **Skapa monitor från den här vyn**: den nya monitorn börjar med dess frågor.
 
 ### Välj Metrics
 
 Under **Monitortyp** klickar du på **Fler monitortyper** och väljer **Mätvärden** under **Telemetri**, eller skriver `metrics` i sökrutan. Ange ett **Namn** och klicka sedan på **Nästa**.
 
-### Välj tidsintervallet
-
-I **Mätvärdesmonitorkonfiguration** väljer du ett **Tidsintervall**: hur långt bakåt varje utvärdering ser. Det börjar på **Past 1 Minute**.
-
 ### Lägg till metrikfrågorna
 
-Under **Välj mått** väljer du ett **Mätvärde** och hur det ska aggregeras med **Aggregate by**. Öppna **Filters & grouping** för att filtrera efter attribut eller gruppera med **Gruppera efter**. Klicka på **Lägg till mätvärde** för ännu en fråga, eller på **Lägg till formel** för att kombinera dem. Diagrammet under frågorna förhandsgranskar tidsintervallet, så att du ser de värden som kriterierna kommer att kontrollera.
+I **Mätvärde att bevaka** väljer du ett **Mätvärde** och hur det ska aggregeras med **Aggregate by**. Öppna **Filters & grouping** för att filtrera efter attribut eller gruppera med **Gruppera efter**. Klicka på **Lägg till mätvärde** för ännu en fråga, eller på **Lägg till formel** för att kombinera dem. Diagrammet under frågorna visar de senaste timmarna, med regelns värde som en röd linje, så att du ser de värden som regeln kommer att kontrollera.
 
-### Ange kriterierna
+### Säg när det ska larmas
 
-I **Monitorkriterier** väljer varje kriterium vilket **Mätvärde** som ska kontrolleras (en fråga eller en formel), sin **Aggregering**, ett **Villkor** och ett **Tröskel**. Se [Kriterier](#kriterier) för de kriterier som en ny monitor börjar med.
+I **När det ska larmas** väljer du under **Mätt som** hur mätvärdet mäts, och sedan ett **Tidsfönster**, ett **Villkor** och ett **Värde**. När steget har mer än en fråga eller formel väljer du också vilket **Mätvärde** regeln läser. Meningen under dem upprepar regeln med vanliga ord.
+
+### Välj vad som händer
+
+I **Vad som händer** väljer du **Skapa ett larm**, **Deklarera en incident** eller **Båda**, och ger det en titel och en allvarlighetsgrad. Medan regeln matchar visar monitorn statusen under **Fler fält**; när den slutar matcha går monitorn tillbaka till sin standardstatus, och larmet eller incidenten löser sig själv.
 
 ### Skapa monitorn
 
@@ -79,44 +79,44 @@ En formel kombinerar frågevariabler med `+`, `-`, `*`, `/`, `%`, `^` och parent
 
 ### Rullande tidsfönster
 
-**Tidsintervall** anger hur långt bakåt varje utvärdering ser: **Past 1 Minute**, **Senaste 5 minuterna**, **Past 10 Minutes**, **Senaste 15 minuterna**, **Senaste 30 minuterna**, **Senaste timmen**, **Senaste 2 timmarna**, **Senaste 3 timmarna**, **Past 6 Hours**, **Past 12 Hours**, **Senaste dygnet**, **Senaste 2 dygnen**, **Past 3 Days**, **Past 7 Days**, **Past 14 Days**, **Past 30 Days**, **Past 60 Days**, **Past 90 Days**, **Past 180 Days** eller **Past 365 Days**.
+**Tidsfönster** i **När det ska larmas** anger hur långt bakåt varje utvärdering ser: **Senaste 1 minuten**, **Senaste 5 minuterna**, **Senaste 10 minuterna**, **Senaste 15 minuterna**, **Senaste 30 minuterna**, **Senaste 1 timmen**, **Senaste 2 timmarna**, **Senaste 3 timmarna**, **Senaste 6 timmarna**, **Senaste 12 timmarna**, **Senaste 24 timmarna**, **Senaste 2 dagarna**, **Senaste 3 dagarna**, **Senaste 7 dagarna**, **Senaste 14 dagarna**, **Senaste 30 dagarna**, **Senaste 60 dagarna**, **Senaste 90 dagarna**, **Senaste 180 dagarna** eller **Senaste 365 dagarna**.
 
-Ju längre intervallet är, desto bredare är varje tidsintervall, så en datapunkt står för mer tid:
+Ju längre fönstret är, desto bredare är varje tidsintervall, så en datapunkt står för mer tid:
 
-| Tidsintervall | En datapunkt per |
+| Tidsfönster | En datapunkt per |
 | --- | --- |
-| Past 1 Minute till Past 3 Hours | minut |
-| Past 6 Hours, Past 12 Hours | 5 minuter |
-| Past 1 Day | 15 minuter |
-| Past 2 Days, Past 3 Days | 30 minuter |
-| Past 7 Days | timme |
-| Past 14 Days, Past 30 Days | dag |
-| Past 60 Days till Past 180 Days | vecka |
-| Past 365 Days | månad |
+| Senaste 1 minuten till Senaste 3 timmarna | minut |
+| Senaste 6 timmarna, Senaste 12 timmarna | 5 minuter |
+| Senaste 24 timmarna | 15 minuter |
+| Senaste 2 dagarna, Senaste 3 dagarna | 30 minuter |
+| Senaste 7 dagarna | timme |
+| Senaste 14 dagarna, Senaste 30 dagarna | dag |
+| Senaste 60 dagarna till Senaste 180 dagarna | vecka |
+| Senaste 365 dagarna | månad |
 
 ## Så utvärderas den
 
 - **Varje minut.** En metrikmonitor kontrolleras inte av sonder, så den har inget intervall att ange och ingen sida **Sonder och intervall**.
 - **Först frågor, sedan formler.** Varje fråga returnerar en datapunkt per tidsintervall i tidsintervallet, med sin **Aggregate by**. Formler räknas ut för varje intervall från frågornas datapunkter.
-- **Sedan kriteriets aggregering.** Varje kriterium reducerar datapunkterna för sitt **Mätvärde** till det som det jämför med tröskelvärdet:
+- **Sedan regelns mått.** Regeln reducerar datapunkterna för sitt mätvärde till det som den jämför med sitt värde, som **Mätt som** säger:
 
-| Aggregering | Villkoret kontrolleras mot… |
-| --- | --- |
-| Genomsnitt | genomsnittet av datapunkterna |
-| Summa | summan av datapunkterna |
-| Maximum Value | den högsta datapunkten |
-| Minimum Value | den lägsta datapunkten |
-| All Values | varje datapunkt: alla måste uppfylla villkoret och täcka hela tidsintervallet |
-| Any Value | varje datapunkt: det räcker att en av dem uppfyller villkoret |
+| Mätt som | I de egna kriterierna | Villkoret kontrolleras mot… |
+| --- | --- | --- |
+| Genomsnittet | Genomsnitt | genomsnittet av datapunkterna |
+| Summan | Summa | summan av datapunkterna |
+| Det högsta värdet | Maximum Value | den högsta datapunkten |
+| Det lägsta värdet | Minimum Value | den lägsta datapunkten |
+| Varje värde (hela fönstret) | All Values | varje datapunkt: alla måste uppfylla villkoret och täcka hela tidsintervallet |
+| Något värde (vid någon tidpunkt) | Any Value | varje datapunkt: det räcker att en av dem uppfyller villkoret |
 
 - **Kriterier uppifrån och ned.** På en monitor utan Group By avgör det första kriteriet som matchar, så lägg det allvarligaste överst. En grupperad monitor kontrollerar alla kriterier för varje serie (se [Utvärderingen av kriterier skiljer sig](#utvärderingen-av-kriterier-skiljer-sig)).
-- **Ingen data är inte noll.** När frågan inte returnerar några datapunkter i tidsintervallet gör ett kriterium det som dess inställning **Om ingen data** säger, under **Fler fält**: **Ignore** (standard: kriteriet matchar inte), **Treat As Zero** eller **Utlösare**.
-- **All Values behöver hela tidsintervallet.** En serie uppfyller ett kriterium med **All Values** först när dess datapunkter täcker tidsintervallet, från början till nu, utan en lucka på mer än en saknad datapunkt. När alla monitorns data kommer fram försenade, som CloudWatchs gör, ersätter den nyaste datapunkten nu. En värd, container eller deployment som just har börjat skicka data, eller som har varit tyst en stund, väntar tills den har data för ett helt tidsintervall, och utvärderingsloggen visar hur långt den har kommit: `Waiting for 15 minutes of data: 2 of 15 minutes so far`. En serie vars larm eller incident redan är öppen bedöms enbart efter sina datapunkter, så en kort lucka i dess data gör inte att den löses. Om metriken skickar data mer sällan än tidsintervallet är långt räknas en ensam datapunkt för hela intervallet när den är några minuter gammal; för att bedöma hur länge ett värde varar ska tidsintervallet vara minst två rapporteringsintervall långt.
-- **OneUptimes eget avbrott är inte tystnad.** Så länge tidsintervallet innehåller tid då OneUptime självt inte tog emot data (det startade om, uppgraderades eller arbetade ikapp en eftersläpning) väntar kontrollen: statusen ändras inte, och ingen incident eller larm öppnas eller löses, oavsett vad **Om ingen data** säger. Se [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving).
+- **Ingen data är inte noll.** När frågan inte returnerar några datapunkter i tidsintervallet gör regeln det som **Om det inte finns några data** säger, under **Fler fält** i **När det ska larmas**: **Ingenting** (standard: regeln matchar inte), **Räkna det som noll** eller **Larma, som om den matchade**.
+- **Varje värde behöver hela tidsintervallet.** En serie uppfyller en regel mätt som **Varje värde (hela fönstret)** först när dess datapunkter täcker tidsintervallet, från början till nu, utan en lucka på mer än en saknad datapunkt. När alla monitorns data kommer fram försenade, som CloudWatchs gör, ersätter den nyaste datapunkten nu. En värd, container eller deployment som just har börjat skicka data, eller som har varit tyst en stund, väntar tills den har data för ett helt tidsintervall, och utvärderingsloggen visar hur långt den har kommit: `Waiting for 15 minutes of data: 2 of 15 minutes so far`. En serie vars larm eller incident redan är öppen bedöms bara på sina datapunkter, så en kort lucka i dess data löser den inte. När mätvärdet rapporteras mer sällan än tidsintervallet är långt, räknas en enstaka datapunkt för hela intervallet när den är några minuter gammal; för att bedöma hur länge ett värde varar bör tidsintervallet vara minst två rapporteringsintervall långt.
+- **OneUptimes eget avbrott är inte tystnad.** Så länge tidsintervallet innehåller tid då OneUptime självt inte tog emot data (det startade om, uppgraderades eller arbetade ikapp en eftersläpning) väntar kontrollen: statusen ändras inte, och ingen incident eller larm öppnas eller löses, oavsett vad **Om det inte finns några data** säger. Se [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Kriterier
 
-Dessa monitorer utvärderar alltid **Metric Value**: det aggregerade värdet av den konfigurerade metrikfrågan eller formeln. Kriterieformuläret har ingen väljare för filtertyp; det visar **Mätvärde**, **Aggregering**, **Villkor** och **Tröskel**. När mätvärdet har en enhet väljer du tröskelvärdets enhet bredvid det.
+Dessa monitorer utvärderar alltid **Metric Value**: det aggregerade värdet av den konfigurerade metrikfrågan eller formeln. **När det ska larmas** ställer in ett kriterium utifrån **Mätt som**, **Tidsfönster**, **Villkor** och **Värde**. När mätvärdet har en enhet väljer du värdets enhet bredvid det. Dess **Villkor** är **Över**, **På eller över**, **Under**, **På eller under**, **Exakt**, **Ovanligt hög**, **Ovanligt låg** eller **Ovanligt hög eller låg**. För flera kriterier, till exempel allvarlighetsband, klickar du på **Redigera som egna kriterier** under **Fler fält** i **Vad som händer**: varje kriterium där har ett **Mätvärde**, en **Aggregering**, ett **Villkor** och en **Tröskel**.
 
 | Villkor | Matchar när värdet är… |
 | --- | --- |
@@ -129,9 +129,11 @@ Dessa monitorer utvärderar alltid **Metric Value**: det aggregerade värdet av 
 | **Anomalously Low** | under det intervallet |
 | **Anomalous** | utanför det intervallet, åt vilket håll som helst |
 
-Avvikelsevillkoren har inget tröskelvärde. Formuläret visar i stället **Känslighet** (Low, Medium, som är standard, eller High) och **Baslinjefönster** (14 dagar, som är standard, 28, 60 eller 90), och jämför varje datapunkt med baslinjen för samma timme i veckan, byggd från det fönstret. Tills den timmen i veckan har tillräcklig historik lär sig kriteriet fortfarande och ger inga larm.
+Avvikelsevillkoren har inget tröskelvärde. **När det ska larmas** visar i stället **Känslighet** (Låg, Medel, som är standard, eller Hög), och de egna kriterierna även ett **Baslinjefönster** (14 dagar, som är standard, 28, 60 eller 90), och varje datapunkt jämförs med baslinjen för samma timme i veckan, byggd från det fönstret. Tills den timmen i veckan har tillräcklig historik lär sig kriteriet fortfarande och ger inga larm.
 
-En ny metrikmonitor börjar med två kriterier på sin första fråga, båda med aggregeringen **Any Value**:
+En metrikmonitor som skapats i Skapa monitor börjar med en regel på sin första fråga: **Genomsnittet** över **Senaste 5 minuterna**, **Över** det **Värde** du anger, och **Skapa ett larm**.
+
+En ny metrikmonitor som skapats via API:et eller Terraform utan kriterier börjar med två kriterier på sin första fråga, båda med aggregeringen **Any Value**:
 
 | Kriterium | Villkor | Effekt |
 | --- | --- | --- |
@@ -143,24 +145,24 @@ En ny metrikmonitor börjar med två kriterier på sin första fråga, båda med
 
 ## Genomgånget exempel: en kö som växer
 
-Du vill ha en incident när checkout-kön förblir djup. Fråga `a` är mätaren `checkout.queue.depth`, med **Aggregate by** Max, och **Tidsintervall** är **Senaste 5 minuterna**. En utvärdering ser dessa fem datapunkter på en minut vardera:
+Du vill ha en incident när checkout-kön förblir djup. Fråga `a` är mätaren `checkout.queue.depth`, med **Aggregate by** Max, och **Tidsfönster** är **Senaste 5 minuterna**. En utvärdering ser dessa fem datapunkter på en minut vardera:
 
 | Minut | 10:01 | 10:02 | 10:03 | 10:04 | 10:05 |
 | --- | --- | --- | --- | --- | --- |
 | `a` | 640 | 980 | 1 500 | 1 620 | 1 100 |
 
-Ett kriterium med **Mätvärde** `a`, **Villkor** **Större än** och **Tröskel** `1000` ger ett olika svar för varje **Aggregering**:
+En regel **Över** `1000` ger ett olika svar för varje val under **Mätt som**:
 
-| Aggregering | Jämfört med 1 000 | Matchar? |
+| Mätt som | Jämfört med 1 000 | Matchar? |
 | --- | --- | --- |
-| Genomsnitt | 1 168 | Ja |
-| Summa | 5 840 | Ja |
-| Maximum Value | 1 620 | Ja |
-| Minimum Value | 640 | Nej |
-| All Values | 640, 980, 1 500, 1 620, 1 100 | Nej: två punkter är inte över 1 000 |
-| Any Value | 640, 980, 1 500, 1 620, 1 100 | Ja: 1 500 är det |
+| Genomsnittet | 1 168 | Ja |
+| Summan | 5 840 | Ja |
+| Det högsta värdet | 1 620 | Ja |
+| Det lägsta värdet | 640 | Nej |
+| Varje värde (hela fönstret) | 640, 980, 1 500, 1 620, 1 100 | Nej: två punkter är inte över 1 000 |
+| Något värde (vid någon tidpunkt) | 640, 980, 1 500, 1 620, 1 100 | Ja: 1 500 är det |
 
-**Genomsnitt** varnar om en ihållande eftersläpning och bortser från en enstaka djup minut; **All Values** väntar tills varje minut i intervallet är djup; **Any Value** varnar vid den första djupa minuten.
+**Genomsnittet** larmar om en ihållande eftersläpning och bortser från en enstaka djup minut; **Varje värde (hela fönstret)** väntar tills varje minut i intervallet är djup; **Något värde (vid någon tidpunkt)** larmar vid den första djupa minuten.
 
 ## Larm per serie (Group By)
 
@@ -198,11 +200,11 @@ Grupperingsattributets värden finns också som [mallvariabler](/docs/monitor/in
 ## Felsökning
 
 :::details Diagrammet visar ett överskridande, men monitorn varnade inte
-Kontrollera först kriteriets **Aggregering**: **All Values** matchar bara när varje datapunkt i tidsintervallet överskrider tröskelvärdet, och **Genomsnitt** jämnar ut en kort topp. **All Values** väntar också tills en serie har data för hela tidsintervallet, så en värd eller deployment som just har börjat skicka data bedöms inte än. Kontrollera sedan att kriteriets **Mätvärde** är den fråga eller formel som du menar (`a` är inte formeln `c`) och att tröskelvärdet är i den enhet som du tror.
+Kontrollera först **Mätt som**: **Varje värde (hela fönstret)** matchar bara när varje datapunkt i tidsintervallet överskrider värdet, och **Genomsnittet** jämnar ut en kort topp. **Varje värde (hela fönstret)** väntar också tills en serie har data för hela tidsintervallet, så en värd eller deployment som just har börjat skicka data bedöms inte än. Kontrollera sedan att regeln läser den fråga eller formel som du menar (`a` är inte formeln `c`) och att **Värde** är i den enhet du tror.
 :::
 
 :::details Mätvärdet slutade komma och ingenting hände
-Ett tidsintervall utan datapunkter är inte ett värde på 0. Med **Om ingen data** på standardvärdet, **Ignore**, matchar kriteriet inte. Ställ in det på **Utlösare** under kriteriets **Fler fält** för att varnas om tystnad.
+Ett tidsintervall utan datapunkter är inte ett värde på 0. Med **Om det inte finns några data** på standardvärdet, **Ingenting**, matchar regeln inte. Ställ in det på **Larma, som om den matchade** under **Fler fält** i **När det ska larmas** för att larma om tystnad.
 :::
 
 :::details Jag får ett larm för hela flottan

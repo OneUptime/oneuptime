@@ -36,7 +36,9 @@ import {
 import Probe from "../../../Models/DatabaseModels/Probe";
 import ProbeService from "../../Services/ProbeService";
 import IP from "../../../Types/IP/IP";
+import { isFirstPollSinceRefresh } from "../../../Utils/NetworkDevice/NetworkDeviceRefresh";
 import { NetworkDevicePollMode } from "./NetworkDeviceHydrationUtil";
+import { mirrorInventoryRow } from "../Telemetry/InventoryEntityRegistry";
 import logger from "../Logger";
 
 /*
@@ -137,6 +139,12 @@ export default class NetworkInventoryUtil {
           name: true,
           hostname: true,
           discoveredDetails: true,
+          /*
+           * Whether this poll answers a Refresh: the first poll since one
+           * was asked for copies the device's Inventory item at once.
+           */
+          refreshRequestedAt: true,
+          lastPolledAt: true,
         },
         props: {
           isRoot: true,
@@ -471,6 +479,33 @@ export default class NetworkInventoryUtil {
             isRoot: true,
           },
         });
+      }
+
+      /*
+       * The first poll since someone asked to read the device again
+       * (Refresh): its Inventory item is copied now rather than at the
+       * mirror's next pass, so the item says what this poll read. Never
+       * fatal: the pass copies it within fifteen minutes regardless.
+       */
+      if (
+        !isMonitorBacked &&
+        isFirstPollSinceRefresh({
+          refreshRequestedAt: ownedDevice.refreshRequestedAt,
+          previousLastPolledAt: ownedDevice.lastPolledAt,
+        })
+      ) {
+        try {
+          await mirrorInventoryRow({
+            resourceType: "NetworkDevice",
+            resourceId: deviceId,
+          });
+        } catch (error) {
+          logger.error(
+            `Network device ${deviceId.toString()}: its Inventory item could not be copied after a refresh: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
+        }
       }
 
       if (walkedInterfaces.length > 0) {

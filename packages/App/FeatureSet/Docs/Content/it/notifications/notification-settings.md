@@ -53,7 +53,7 @@ Quando entrate in un progetto, questi eventi partono attivi, via e-mail. Tutto i
 | **Pagine di stato** | Nessuno | **Pagina di stato creata**, **Annuncio della pagina di stato pubblicato**, **Aggiunto come proprietario della pagina di stato** |
 | **Manutenzione programmata** | **Maintenance reminder** | **Evento di manutenzione creato**, **Stato della manutenzione modificato**, **Nota di manutenzione pubblicata**, **Aggiunto come proprietario della manutenzione** |
 | **Reperibilità** | **Inizi la reperibilità**, **Sei il prossimo in reperibilità**, **Termini la reperibilità**, **Aggiunto al criterio di reperibilità**, **Rimosso dal criterio di reperibilità**, **Chiamata persa**, e anche via push: **Prima dell'inizio del mio turno di reperibilità**, **Il mio prossimo turno di reperibilità viene riassegnato** | Nessuno |
-| **Sicurezza** | Anche via push: **Nuovo caso di sicurezza** (casi con priorità Alta e Critica), **Caso di sicurezza assegnato a me**, **Passaggio di playbook in attesa della mia approvazione** | Nessuno |
+| **Sicurezza** | Anche via push: **Nuovo caso di sicurezza** (casi con priorità Alta e Critica), **Caso di sicurezza assegnato a me**, **Passaggio di playbook in attesa della mia approvazione**, **Obiettivo di risposta di un caso di sicurezza**, **Attività di un caso di sicurezza assegnata a me** | Nessuno |
 
 > [!IMPORTANT]
 > **Stato del monitor modificato** parte disattivato. Per sapere quando un monitor vostro va giù o torna su, attivatelo nella scheda **Monitoraggio**.

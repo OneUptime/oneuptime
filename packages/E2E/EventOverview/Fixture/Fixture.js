@@ -60,7 +60,10 @@
  *            list adds is refused, as the server refuses a second row for
  *            an owner: "This user is already an owner of this incident."),
  *            role-assign (the commander given from the header's Assign is
- *            refused). The matching API call throws HTTPErrorResponse. "conversation" is
+ *            refused), page-now (Page now on a page OneUptime AI holds is
+ *            refused, as the server refuses someone who may not page
+ *            on-call policies: "You need permission to page on-call
+ *            policies to page now."). The matching API call throws HTTPErrorResponse. "conversation" is
  *            the read of the AI card's thread and "conversation-send" a
  *            question sent to it. "resend" also marks the subscriber
  *            notifications of Incident #1042 and Scheduled Maintenance #58 as
@@ -175,6 +178,19 @@
  *            Acknowledged from then on) or two (two policies page the
  *            viewer about it). Once escalated, the record no longer pages
  *            the viewer.
+ *   ?hold=   1: OneUptime AI holds the on-call pages of Incident #1042 and
+ *            Alert #311 while it works (OnCallPolicyAiHold): an on-call rule
+ *            set to After OneUptime AI tries holds each record's policy run
+ *            for 30 minutes, the most a rule may, from when the record was
+ *            declared. The run waits, marked Holding, and pages at 18:31
+ *            (#1042) or 18:36 (#311) unless OneUptime AI resolves the record
+ *            first, so the AI card says OneUptime AI is on it, with Page
+ *            now. Someone acknowledging a record ends its hold, so it reads
+ *            as it would with ?state=created. Absent, every run paged
+ *            straight away and the card draws no notice. Page now (POST
+ *            /ai-first-responder/page-now) starts the record's held runs at
+ *            once, as AiFirstResponder.pageNow does: the card's next read
+ *            finds nothing held.
  *   ?unknown= the people Slack does not know, as POST .../add answers them
  *            (not found): a comma list of maya, sam, jordan, alex. Alex by
  *            default.
@@ -313,6 +329,7 @@ import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import Project from "Common/Models/DatabaseModels/Project";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
@@ -356,6 +373,12 @@ import MeasurementAnchorKind from "Common/Types/Measurement/MeasurementAnchorKin
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
+import OnCallDutyPolicyStatus from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
+import { getOnCallPolicyRunWaitingMessage } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRunWait";
+import {
+  AiHoldHandOffReason,
+  OnCallPolicyAiHoldOutcome,
+} from "Common/Types/OnCallDutyPolicy/OnCallPolicyAiHold";
 import Permission from "Common/Types/Permission";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
@@ -582,6 +605,11 @@ const unknownToSlack = new Set(
     .filter((value) => value.length > 0),
 );
 /*
+ * ?hold=1: OneUptime AI holds the on-call pages of incident #1042 and alert
+ * #311 while it works (see "On-call runs" below). Absent: it holds none.
+ */
+const isAiHoldMode = params.get("hold") === "1";
+/*
  * ?feed=oncall-run: incident #1042's on-call run in full, as the run writes
  * its feed entries now (OnCallFeedText) - four on-call entries within a
  * minute, which the feed folds into the newest of them.
@@ -754,6 +782,7 @@ const fixture = {
     decided: decidedMode,
     fixing: fixingMode,
     switches: switchesMode,
+    hold: isAiHoldMode,
   },
   // What the channel card asked to add: { channelId, userIds, teamIds }.
   channelAdds: [],
@@ -1895,6 +1924,127 @@ const mainAlert = defineAlert({
   services: [services.payments],
   episode: alertEpisodeRecord,
 });
+
+/*
+ * ---------------------------------------------------------------------------
+ * On-call runs, and the pages OneUptime AI holds (?hold=)
+ * ---------------------------------------------------------------------------
+ * Each record's on-call policy run (OnCallDutyPolicyExecutionLog). The AI
+ * card of an incident or alert reads them for a page OneUptime AI holds
+ * while it works (AiHoldNotice): the record's runs that wait, marked
+ * Holding, the first to page first. By default every run paged straight
+ * away. With ?hold=1 an on-call rule set to After OneUptime AI tries holds
+ * the runs of incident #1042 and alert #311 for 30 minutes, the most a rule
+ * may (AI_HOLD_TIME_MAX_IN_MINUTES), from when each was declared: they page
+ * at 18:31 and 18:36 unless OneUptime AI resolves the record first.
+ * Incident #1029's run was held once, until Alex Kim acknowledged the
+ * incident: a hold that ended is not told.
+ */
+const AI_HOLD_MINUTES = 30;
+
+// A run that paged straight away: done once someone acknowledged.
+function pagedRun(createdAt) {
+  return {
+    createdAt,
+    status: isAcknowledged
+      ? OnCallDutyPolicyStatus.Completed
+      : OnCallDutyPolicyStatus.Executing,
+  };
+}
+
+/*
+ * A run OneUptime AI holds: waiting, marked Holding, with the hold's end and
+ * its waiting message (OnCallRulePagingHold).
+ */
+function heldRun(createdAt) {
+  const pagingStartsAt = new Date(
+    createdAt.getTime() + AI_HOLD_MINUTES * MINUTE,
+  );
+  return {
+    createdAt,
+    status: OnCallDutyPolicyStatus.Waiting,
+    statusMessage: getOnCallPolicyRunWaitingMessage({
+      pagingStartsAt,
+      now: createdAt,
+      isWaitingForWorkingHours: false,
+      isWaitingForOneUptimeAI: true,
+    }),
+    pagingStartsAt,
+    aiHoldOutcome: OnCallPolicyAiHoldOutcome.Holding,
+  };
+}
+
+insert(OnCallDutyPolicyExecutionLog, {
+  onCallDutyPolicyId: policies.checkout.id,
+  onCallDutyPolicy: policies.checkout,
+  triggeredByIncidentId: mainIncident.id,
+  ...(isAiHoldMode ? heldRun(at("18:01")) : pagedRun(at("18:01"))),
+});
+insert(OnCallDutyPolicyExecutionLog, {
+  onCallDutyPolicyId: policies.payments.id,
+  onCallDutyPolicy: policies.payments,
+  triggeredByAlertId: mainAlert.id,
+  ...(isAiHoldMode ? heldRun(at("18:06")) : pagedRun(at("18:06"))),
+});
+insert(OnCallDutyPolicyExecutionLog, {
+  onCallDutyPolicyId: policies.checkout.id,
+  onCallDutyPolicy: policies.checkout,
+  triggeredByIncidentId: new ObjectID(ID.incident(1029)),
+  createdAt: new Date("2026-08-21T19:05:00.000Z"),
+  status: OnCallDutyPolicyStatus.Completed,
+  pagingStartsAt: new Date("2026-08-21T19:35:00.000Z"),
+  aiHoldOutcome: OnCallPolicyAiHoldOutcome.HandledByPerson,
+});
+
+/*
+ * Page now (POST /ai-first-responder/page-now), as AiFirstResponder.pageNow
+ * does it: the record's held runs start at once, their hold ended by Page
+ * now and saying who pressed it, so the AI card's next read finds nothing
+ * held. It names one of incidentId or alertId, of a record in this project.
+ * ?fail=page-now refuses it.
+ */
+const PAGE_NOW_REFUSAL =
+  "You need permission to page on-call policies to page now.";
+
+function pageHeldRunsNow(body) {
+  const incidentId = typeof body.incidentId === "string" ? body.incidentId : "";
+  const alertId = typeof body.alertId === "string" ? body.alertId : "";
+
+  if (Boolean(incidentId) === Boolean(alertId)) {
+    throw fail(400, "Send one of incidentId or alertId.");
+  }
+
+  const recordId = incidentId || alertId;
+  const isKnownRecord = table(incidentId ? Incident : Alert).some((record) => {
+    return String(record._id) === recordId;
+  });
+
+  if (!isKnownRecord) {
+    throw fail(
+      400,
+      `${incidentId ? "Incident" : "Alert"} not found (or you do not have access to it).`,
+    );
+  }
+
+  const key = incidentId ? "triggeredByIncidentId" : "triggeredByAlertId";
+  const heldRuns = table(OnCallDutyPolicyExecutionLog).filter((run) => {
+    return (
+      String(run[key]) === recordId &&
+      run.status === OnCallDutyPolicyStatus.Waiting &&
+      run.aiHoldOutcome === OnCallPolicyAiHoldOutcome.Holding
+    );
+  });
+
+  for (const run of heldRuns) {
+    run.status = OnCallDutyPolicyStatus.Started;
+    run.pagingStartedEarlyReason = AiHoldHandOffReason.pageNow({
+      userName: people.maya.name.toString(),
+    });
+    run.aiHoldOutcome = OnCallPolicyAiHoldOutcome.PageNowPressed;
+  }
+
+  return heldRuns.length;
+}
 
 /*
  * ---------------------------------------------------------------------------
@@ -6850,6 +7000,17 @@ async function handleApi(method, options) {
       }
       return ok({ answers: passOnAnswers(recordType, recordId) });
     }
+  }
+
+  /*
+   * Page now on a page OneUptime AI holds (?hold=): the record's held runs
+   * page at once (see "On-call runs" above). ?fail=page-now refuses it.
+   */
+  if (method === "POST" && url.endsWith("/ai-first-responder/page-now")) {
+    if (failures.has("page-now")) {
+      throw fail(422, PAGE_NOW_REFUSAL);
+    }
+    return ok({ startedRuns: pageHeldRunsNow(body) });
   }
 
   /*

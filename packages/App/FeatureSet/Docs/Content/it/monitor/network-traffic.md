@@ -19,7 +19,9 @@ Un parco Cisco Meraki si può leggere anche senza esportare nulla: collega la da
 - **Interfacce principali** nella pagina di un dispositivo: cosa è entrato e uscito da ogni interfaccia, con nome e velocità dalla scansione SNMP del dispositivo. **Dispositivi principali** nella pagina di un sito e in quella della rete.
 - **Conversazioni principali**: le dieci coppie di indirizzi più attive, disegnate come diagramma dai mittenti ai destinatari, oppure come elenco.
 
-Fai clic su una riga - un indirizzo, un'applicazione, un'interfaccia, un dispositivo, una banda del diagramma - e tutta la pagina si restringe a quel traffico. Un chip sopra la pagina dice a cosa è ristretta; fai clic sulla sua x per allargarla di nuovo. **Trova un indirizzo IP** restringe la pagina al traffico verso o da un indirizzo. L'intervallo di tempo e i filtri sono conservati nell'indirizzo della pagina, quindi un link apre esattamente la stessa vista.
+Fai clic su una riga - un indirizzo, un'applicazione, un'interfaccia, un dispositivo, una banda del diagramma - e tutta la pagina si restringe a quel traffico. Un chip sopra la pagina dice a cosa è ristretta; fai clic sulla sua x per allargarla di nuovo. **Trova un nome o un indirizzo IP** restringe la pagina al traffico verso o da un indirizzo: scrivi l'indirizzo, o parte del suo nome, e sceglilo se ne corrispondono diversi. L'intervallo di tempo e i filtri sono conservati nell'indirizzo della pagina, quindi un link apre esattamente la stessa vista.
+
+Un indirizzo che OneUptime conosce è mostrato con il suo nome, con l'indirizzo accanto. Vedi [Nomi al posto degli indirizzi](#nomi-al-posto-degli-indirizzi).
 
 ## Come arrivano qui i flussi
 
@@ -196,6 +198,8 @@ La prima lettura parte entro un minuto e porta l'ultimo giorno. Da quel momento 
 
 Un clic su una rete limita la pagina a quella rete ed elenca i suoi uplink. Il traffico di un'appliance appartiene al suo dispositivo in OneUptime quando un dispositivo ha il numero di serie o l'indirizzo MAC dell'appliance: allora compare anche nelle pagine Traffico di quel dispositivo e della sua sede. Il traffico di un'appliance che non è un dispositivo in OneUptime compare nella pagina della rete.
 
+Ogni lettura elenca anche i dispositivi dell'organizzazione. Un dispositivo Meraki che in OneUptime è un dispositivo di rete prende dalla dashboard ciò che il suo polling lascia vuoto: numero di serie, modello, firmware, indirizzo MAC e il resto ([Attributi di asset dei dispositivi di rete](/docs/inventory/cmdb-sync#attributi-di-asset-dei-dispositivi-di-rete)). La riga della connessione li conta, e la scheda **Inventario** del dispositivo dice, in una riga a sé, quando è stato letto Meraki.
+
 Meraki concede a ogni organizzazione 10 richieste API al secondo, condivise da tutte le applicazioni che la leggono. OneUptime ne usa al massimo 3, rallenta quando Meraki lo chiede e interrompe una lettura dopo 900 richieste o 6 minuti; la lettura successiva riprende un minuto dopo. Un'organizzazione di 1.200 reti ha gli uplink letti con una chiamata per finestra, e le applicazioni e i client delle sue reti nel corso di alcune letture.
 
 Le connessioni sono elencate in fondo alla pagina Traffico della rete, sotto **Meraki**, ognuna con il suo stato e ciò che ha coperto la sua ultima lettura. Ognuna ha un pulsante per il passo successivo: **Leggi ora** la legge subito, **Attiva** la riattiva quando è disattivata, e **Aggiorna la chiave API** sostituisce una chiave che Meraki ha rifiutato, provando la nuova chiave prima di salvarla. Il suo menu ha **Modifica** (il nome, ogni quanto leggere gli uplink, una nuova chiave), **Disattiva** ed **Elimina**. Una lettura che non riesce dice perché, lì e sopra il traffico: una chiave rifiutata, una chiave che non può leggere l'organizzazione, Meraki che chiede a OneUptime di rallentare, o reti con l'analisi del traffico disattivata. Sopra il traffico, **Esamina** porta alla connessione. Solo i proprietari e gli amministratori del progetto possono collegare Meraki e modificare o leggere una connessione.
@@ -210,6 +214,49 @@ I flussi possono arrivare prima che il dispositivo che li invia venga aggiunto a
 - **È uno dei miei dispositivi** aggiunge l'indirizzo agli **Altri indirizzi** di un dispositivo: usalo quando un dispositivo già aggiunto invia da un altro indirizzo, come una loopback. I suoi flussi vanno a quel dispositivo dal minuto successivo.
 
 Più dispositivi dietro un unico indirizzo NAT condividono quell'indirizzo, quindi i loro flussi vanno all'unico dispositivo che lo possiede.
+
+## Nomi al posto degli indirizzi
+
+Ovunque una pagina Traffico elenca un indirizzo - gli elenchi principali, le due viste di **Conversazioni principali**, i chip, **Trova** -, mostra prima il nome dell'indirizzo quando OneUptime ne conosce uno, con l'indirizzo accanto: `mumbai-fs01` sopra `10.18.167.35`. Un indirizzo che niente nomina è mostrato così com'è. Sotto il puntatore, un nome accorciato appare per intero.
+
+Un nome viene dalla prima di queste fonti che nomina l'indirizzo:
+
+| Ordine | Da dove viene il nome | Che cosa nomina l'indirizzo |
+| ------ | --------------------- | --------------------------- |
+| 1 | **Nomi indirizzo** | Un nome che qualcuno ha dato a questo indirizzo in **Rete** -> **Impostazioni** -> **Nomi indirizzo** |
+| 2 | Dispositivi di rete | Un dispositivo interrogato all'indirizzo, o che lo elenca in **Altri indirizzi** |
+| 3 | Host | Un host il cui agent segnala l'indirizzo |
+| 4 | Risorse cloud | Una risorsa cloud per cui il tuo account cloud elenca l'indirizzo |
+| 5 | Kubernetes | Un nodo che ha l'indirizzo, poi un pod (un pod sulla rete del suo nodo ha l'indirizzo del nodo) |
+| 6 | DNS | Il nome DNS inverso dell'indirizzo, risolto dalla sonda che ha ricevuto i flussi |
+
+Un record nomina solo il traffico di un periodo in cui esisteva: un host visto per la prima volta dopo l'intervallo, o un pod sparito prima, non nomina il traffico di quell'intervallo. Un nome che qualcuno ha dato a una sottorete - `10.18.167.0/24` è «Ufficio di Mumbai» - appare accanto a ogni indirizzo che contiene, mai al posto del nome proprio dell'indirizzo; dove sottoreti con nome si sovrappongono, appare la più stretta.
+
+### Un indirizzo
+
+Fai clic su un indirizzo, o trovalo, e la pagina si restringe a esso, con una scheda sopra i numeri che dice chi è: il nome, da dove viene il nome, l'indirizzo con un pulsante per copiarlo e la sottorete con nome in cui si trova. La scheda propone il passo successivo:
+
+- **Apri l'host**, **Apri il dispositivo** o **Apri la risorsa cloud**, quando il nome è di quel record. Cambia il nome lì.
+- **Dai un nome a questo indirizzo**, quando niente lo nomina o solo il DNS. L'indirizzo è già inserito; allargalo a una sottorete, come `10.18.167.0/24`, per dare un nome all'intera sottorete.
+- **Modifica nelle impostazioni**, quando il nome è un nome indirizzo. Apre **Nomi indirizzo**, dove si cambia il nome.
+
+**Dai un nome a questo indirizzo** è per chi può aggiungere dispositivi di rete, e **Modifica nelle impostazioni** per chi può modificarli. Chiunque può leggerli vede i nomi.
+
+### Nomi indirizzo
+
+**Rete** -> **Impostazioni** -> **Nomi indirizzo** elenca i nomi che le persone hanno dato a indirizzi e sottoreti che nient'altro nomina: il gateway VPN di un partner, un endpoint SaaS, il Wi-Fi ospiti. **Crea: Nome indirizzo** chiede il nome e un indirizzo IP (`10.0.0.5`, `2001:db8::5`) o una sottorete (`10.18.167.0/24`). Una sottorete è conservata come primo indirizzo e lunghezza, quindi `10.18.167.35/24` è salvata come `10.18.167.0/24`. Ogni indirizzo o sottorete ha un solo nome.
+
+### Nomi DNS dalla sonda
+
+I nomi DNS li risolve la sonda che ha ricevuto i flussi, con il resolver che usa il suo host: dentro la tua rete, dove gli indirizzi privati hanno un nome. La sonda tiene un nome solo quando i record A o AAAA del nome puntano all'indirizzo, quindi un record inverso vecchio o falsificato non nomina niente, e un nome nel file hosts dell'host della sonda è usato così com'è. Invia i nomi con i flussi, e sono conservati con essi: un intervallo mostra i nomi che i suoi indirizzi avevano allora.
+
+Le risoluzioni non trattengono mai i flussi. Gli indirizzi più attivi sono risolti per primi, al massimo 300 al minuto e otto alla volta; un nome è tenuto per un'ora, un indirizzo senza nome per 30 minuti, e una risoluzione fallita è ritentata dopo 5 minuti. Gli indirizzi di loopback, link-local, multicast e broadcast non sono mai risolti. Le sonde globali di un OneUptime ospitato, condivise da tutti gli account, risolvono solo indirizzi pubblici; le tue sonde, e quelle della tua installazione di OneUptime, risolvono anche gli indirizzi privati.
+
+| Variabile                           | Cosa fa                                                             | Predefinito |
+| ----------------------------------- | ------------------------------------------------------------------- | ----------- |
+| PROBE_FLOW_NAME_LOOKUP_ENABLED      | Imposta `false` per non risolvere più nel DNS gli indirizzi dei flussi | true |
+| PROBE_FLOW_NAME_LOOKUPS_PER_MINUTE  | Indirizzi risolti al minuto; `0` ferma le risoluzioni               | 300         |
+| PROBE_FLOW_NAME_DNS_SERVERS         | Server DNS da interrogare al posto del resolver dell'host, come `10.0.0.53, 10.0.0.54:5353` | nessuno |
 
 ## Leggere i numeri
 
@@ -236,6 +283,12 @@ Se la pagina Traffico mostra ancora i passaggi di configurazione:
 - **Il log della sonda.** Una volta al minuto la sonda registra ciò che non è riuscita a leggere: datagrammi in un formato non supportato (NetFlow v1, v6, v7 o v8, o sFlow precedente alla versione 5), datagrammi malformati, dati in attesa di un template e datagrammi scartati oltre `PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE`.
 - **Template.** NetFlow v9 e IPFIX inviano la struttura dei loro record come template. La sonda trattiene fino a 10 minuti i dati che arrivano prima del loro template; imposta il dispositivo perché invii i template ogni 60 secondi, così la pagina si riempie entro un minuto.
 - **Una sonda globale.** Un dispositivo interrogato da una sonda globale non può inviarle flussi da una rete privata. Esegui una sonda personalizzata nella rete del dispositivo e sceglila nelle impostazioni del dispositivo.
+
+Se un indirizzo non mostra alcun nome:
+
+- **Dagliene uno.** Fai clic sull'indirizzo, poi su **Dai un nome a questo indirizzo** nella scheda sopra i numeri.
+- **I suoi nomi DNS.** Il record A o AAAA del nome deve puntare all'indirizzo; un record inverso da solo non basta. Un nome aggiunto al DNS dà il nome ai flussi che arrivano dopo.
+- **Il resolver della sonda.** Se l'host della sonda non vede il tuo DNS interno, imposta `PROBE_FLOW_NAME_DNS_SERVERS` su un server DNS che contiene le tue zone inverse.
 
 Se una connessione Meraki dice che non riesce a leggere:
 

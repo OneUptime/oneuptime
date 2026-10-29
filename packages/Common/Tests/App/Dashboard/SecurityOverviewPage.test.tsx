@@ -33,6 +33,9 @@ import {
   SecurityOverviewQueue,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityOverview/SecurityOverviewStatusModel";
 import SecurityPipeline, {
+  SECURITY_PIPELINE_ARROW_SHOWN_CLASS_NAME,
+  SECURITY_PIPELINE_CONTAINER_CLASS_NAME,
+  SECURITY_PIPELINE_GRID_CLASS_NAME,
   SECURITY_PIPELINE_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityOverview/SecurityPipeline";
 import {
@@ -1214,6 +1217,16 @@ describe("when Turn on recommended cannot do everything", () => {
   });
 });
 
+// A grid's columns set by the window's breakpoints.
+const WINDOW_GRID_COLUMNS: RegExp = /(^| )(sm|md|lg|xl):grid-cols-/;
+
+// A chevron hidden by the window's width rather than the pipeline's.
+const WINDOW_HIDDEN: RegExp = /(^| )max-(sm|md|lg|xl):hidden( |$)/;
+
+// One of the pipeline's container steps: "[@container(min-width:25rem)]:grid-cols-2".
+const CONTAINER_COLUMNS_STEP: RegExp =
+  /^\[@container\(min-width:(\d+)rem\)\]:grid-cols-(\d)$/;
+
 describe("the pipeline", () => {
   function renderPipeline(
     value: SecuritySetupStatus,
@@ -1289,20 +1302,30 @@ describe("the pipeline", () => {
     );
   });
 
-  test("one card's row of cells on a hairline grid, two by two until a wide screen, a chevron on each line between them only when they are one row", () => {
+  test("one card's row of cells on a hairline grid, by the pipeline's own width: one above the other, two by two from 25rem, one row from 51rem, a chevron on each line between them only when they are one row", () => {
     renderPipeline(status(SET_UP));
 
-    const list: HTMLElement = screen
-      .getByTestId(SECURITY_PIPELINE_ID)
-      .querySelector("ol")!;
+    const pipeline: HTMLElement = screen.getByTestId(SECURITY_PIPELINE_ID);
+    const list: HTMLElement = pipeline.querySelector("ol")!;
 
+    // The nav is the size container its cells are laid out by.
+    expect(pipeline.getAttribute("class")).toBe(
+      SECURITY_PIPELINE_CONTAINER_CLASS_NAME,
+    );
+    expect(SECURITY_PIPELINE_CONTAINER_CLASS_NAME).toBe(
+      "[container-type:inline-size]",
+    );
+    expect(list.getAttribute("class")).toBe(SECURITY_PIPELINE_GRID_CLASS_NAME);
     expect(list).toHaveClass(
       "grid",
-      "grid-cols-2",
-      "lg:grid-cols-4",
+      "grid-cols-1",
+      "[@container(min-width:25rem)]:grid-cols-2",
+      "[@container(min-width:51rem)]:grid-cols-4",
       "gap-px",
       "bg-gray-200",
     );
+    // Never the window's breakpoints, which ran four cells of 150px at 1024.
+    expect(list.className).not.toMatch(WINDOW_GRID_COLUMNS);
     expect(list.children).toHaveLength(4);
 
     const arrows: Array<HTMLElement> = screen.getAllByTestId(
@@ -1316,7 +1339,24 @@ describe("the pipeline", () => {
     ).toBeNull();
     for (const arrow of arrows) {
       expect(arrow).toHaveAttribute("aria-hidden", "true");
-      expect(arrow).toHaveClass("max-lg:hidden", "pointer-events-none");
+      expect(arrow).toHaveClass(
+        "flex",
+        "[@container(max-width:50.99rem)]:hidden",
+        "pointer-events-none",
+      );
+      expect(arrow.className).toContain(
+        SECURITY_PIPELINE_ARROW_SHOWN_CLASS_NAME,
+      );
+      /*
+       * Hidden below the step that puts the four on one row (51rem) and
+       * shown from it - never the bare `hidden` a variant shows again,
+       * which a foreign `.hidden` rule would keep hidden at every width.
+       */
+      expect(arrow).not.toHaveClass("hidden");
+      expect(arrow.className).not.toMatch(WINDOW_HIDDEN);
+      expect(SECURITY_PIPELINE_GRID_CLASS_NAME).toContain(
+        "[@container(min-width:51rem)]:grid-cols-4",
+      );
       /*
        * On the cell's end edge and pointing on, in either reading
        * direction: the left edge, pointing left, in a right-to-left page.
@@ -1336,6 +1376,63 @@ describe("the pipeline", () => {
     // Every cell is one link, the whole cell.
     for (const key of ["sources", "detections", "cases", "playbooks"]) {
       expect(within(stage(key)).getAllByRole("link")).toHaveLength(1);
+    }
+  });
+
+  /*
+   * The widest a cell's longest word gets in the Dashboard's languages,
+   * with the cell's padding, measured in Chromium with Inter: Dutch's
+   * BEVEILIGINGSZAKEN, 189px from sm up (20px across, letter-spaced), 175px
+   * on a phone. German's SICHERHEITSFAELLE needs 181px: it broke mid-word in
+   * four cells of 150px at 1024, and in two of 161px on a 390px phone.
+   */
+  const WIDEST_CELL_IN_PX: number = 189;
+
+  test("wherever cells share a row, each has room for the longest word of every language", () => {
+    const steps: Array<[number, number]> =
+      SECURITY_PIPELINE_GRID_CLASS_NAME.split(" ")
+        .map((token: string): RegExpExecArray | null => {
+          return CONTAINER_COLUMNS_STEP.exec(token);
+        })
+        .filter((match: RegExpExecArray | null): match is RegExpExecArray => {
+          return match !== null;
+        })
+        .map((match: RegExpExecArray): [number, number] => {
+          return [Number(match[1]), Number(match[2])];
+        });
+
+    expect(steps).toEqual([
+      [25, 2],
+      [51, 4],
+    ]);
+
+    for (const [widthInRem, columns] of steps) {
+      // The narrowest cell at the step: the row less its hairlines, shared.
+      const cellInPx: number = (widthInRem * 16 - (columns - 1)) / columns;
+
+      expect([widthInRem, cellInPx >= WIDEST_CELL_IN_PX]).toEqual([
+        widthInRem,
+        true,
+      ]);
+    }
+
+    /*
+     * Whole rems of two digits, in the order they sort as text: the Tailwind
+     * runtime writes container variants by name, and the wider step must be
+     * written after the narrower one to win where both apply.
+     */
+    const asWritten: Array<string> = steps.map(
+      ([widthInRem]: [number, number]): string => {
+        return "[@container(min-width:" + widthInRem + "rem)]";
+      },
+    );
+
+    expect([...asWritten].sort()).toEqual(asWritten);
+    for (const [widthInRem] of steps) {
+      expect([widthInRem, widthInRem >= 10 && widthInRem < 100]).toEqual([
+        widthInRem,
+        true,
+      ]);
     }
   });
 

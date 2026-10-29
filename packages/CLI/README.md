@@ -11,13 +11,13 @@ oneuptime --version
 
 The CLI needs Node.js 22 or later. It has no dependencies, so npm installs it without fetching other packages or building anything.
 
-Or run directly within the monorepo:
+The CLI is released with OneUptime and has the same version number. On a self-hosted OneUptime, install the CLI of your OneUptime's version, so its commands match the records your server has:
 
 ```bash
-cd packages/CLI
-npm install
-npm start -- --help
+npm install -g @oneuptime/cli@<your-oneuptime-version>
 ```
+
+> **Warning:** CLI versions before 14.0.64 stop as soon as they start, with an error such as `Cannot find module 'Common/Models/DatabaseModels/Index'`. Install 14.0.64 or later with `npm install -g @oneuptime/cli@latest`. On a self-hosted OneUptime older than 14.0.64, [upgrade OneUptime](https://oneuptime.com/docs/installation/upgrading#how-to-upgrade) first, then install the CLI of the version you upgraded to.
 
 ## Quick Start
 
@@ -208,16 +208,16 @@ Every resource is a command: `oneuptime <resource> <subcommand>`. Resources are 
 
 Records take `list`, `get`, `create`, `update`, `delete` and `count`:
 
-| Area                  | Commands                                                                                                                                                              |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Monitoring            | `monitor`, `monitor-status`, `monitor-status-event`                                                                                                                   |
-| Incidents             | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert`, `postmortem-status` |
-| Alerts                | `alert`, `alert-state`, `alert-severity`, `alert-state-timeline`, `alert-internal-note`                                                                               |
-| Status pages          | `status-page`, `status-page-announcement`                                                                                                                             |
-| Scheduled maintenance | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline`                                                                  |
-| Teams and on-call     | `team`, `on-call-policy`                                                                                                                                              |
-| Security              | `security-case`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-detection`, `security-playbook`                                    |
-| Labels                | `label`                                                                                                                                                               |
+| Area                  | Commands                                                                                                                                                                           |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Monitoring            | `monitor`, `monitor-status`, `monitor-status-event`                                                                                                                                |
+| Incidents             | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert`, `postmortem-status`              |
+| Alerts                | `alert`, `alert-state`, `alert-severity`, `alert-state-timeline`, `alert-internal-note`                                                                                            |
+| Status pages          | `status-page`, `status-page-announcement`                                                                                                                                          |
+| Scheduled maintenance | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline`                                                                               |
+| Teams and on-call     | `team`, `on-call-policy`                                                                                                                                                           |
+| Security              | `security-case`, `security-case-evidence`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-case-task`, `security-detection`, `security-playbook` |
+| Labels                | `label`                                                                                                                                                                            |
 
 Telemetry takes `list`, `create` and `count`:
 

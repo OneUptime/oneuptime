@@ -4,7 +4,9 @@ import EnterpriseEdition from "../../../Server/Enterprise/EnterpriseEdition";
 import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../Types/ObjectID";
-import { UserGlobalAccessPermission } from "../../../Types/Permission";
+import Permission, {
+  UserGlobalAccessPermission,
+} from "../../../Types/Permission";
 import Project from "../../../Models/DatabaseModels/Project";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import FakeEnterpriseModule, {
@@ -100,12 +102,24 @@ let repositoryWrites: Array<string>;
 
 const userProps: () => DatabaseCommonInteractionProps =
   (): DatabaseCommonInteractionProps => {
+    /*
+     * A signed-in member's global permissions, whole: the read checks
+     * (OwnedScopePermission's owned-only rows, since b4a4b5056d) read them.
+     */
+    const userGlobalAccessPermission: UserGlobalAccessPermission = {
+      _type: "UserGlobalAccessPermission",
+      globalPermissions: [
+        Permission.Public,
+        Permission.User,
+        Permission.CurrentUser,
+      ],
+      projectIds: [PROJECT_ID],
+    };
+
     return {
       userId: USER_ID,
       tenantId: PROJECT_ID,
-      userGlobalAccessPermission: {
-        projectIds: [PROJECT_ID],
-      } as unknown as UserGlobalAccessPermission,
+      userGlobalAccessPermission: userGlobalAccessPermission,
     };
   };
 

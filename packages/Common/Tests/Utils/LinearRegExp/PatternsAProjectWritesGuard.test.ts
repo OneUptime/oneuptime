@@ -72,6 +72,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
     builtFrom: "secret values, each escaped with escapeRegExp to match itself",
   },
   {
+    file: "packages/Common/Server/Infrastructure/Postgres/QueryPropertyNames.ts",
+    count: 1,
+    builtFrom:
+      "the aliases of a query TypeORM builds - entity and relation names - each escaped with escapeRegExp to match itself, as TypeORM's own function builds it",
+  },
+  {
     file: "packages/Common/Server/Types/MarkdownDocsExtensions.ts",
     count: 1,
     builtFrom: "the container names DOCS_CONTAINER_NAMES lists",

@@ -481,12 +481,29 @@ describe("TransceiverHealthCard", () => {
     await screen.findByTestId("transceiver-card");
 
     expect(tableRows()).toHaveLength(10);
+    expect(screen.getByTestId("transceiver-show-all")).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
 
     fireEvent.click(screen.getByTestId("transceiver-show-all"));
 
     expect(tableRows()).toHaveLength(14);
     expect(screen.getByTestId("transceiver-show-all")).toHaveTextContent(
       "Show fewer",
+    );
+    // Says which way it is (issue #5364's sweep: it said nothing).
+    expect(screen.getByTestId("transceiver-show-all")).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+
+    fireEvent.click(screen.getByTestId("transceiver-show-all"));
+
+    expect(tableRows()).toHaveLength(10);
+    expect(screen.getByTestId("transceiver-show-all")).toHaveAttribute(
+      "aria-expanded",
+      "false",
     );
   });
 

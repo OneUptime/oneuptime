@@ -1,5 +1,11 @@
 {
     "ts-node": {
+        // Every server runs transpile-only (the images set TS_NODE_TRANSPILE_ONLY;
+        // types are checked by npm run compile), and the transpiler below keeps
+        // each module's source map out of the code V8 holds for the life of the
+        // process. See the header of Common/Server/Utils/TsNode/Transpiler.js.
+        "transpileOnly": true,
+        "transpiler": "../Common/Server/Utils/TsNode/Transpiler.js",
         // these options are overrides used only by ts-node
         // same as the --compilerOptions flag and the TS_NODE_COMPILER_OPTIONS environment variable
         "compilerOptions": {

@@ -609,27 +609,10 @@ export function parseStoredPermissionMode(
 
 /*
  * What the chosen mode means, as the caption beside its picker in the
- * composer. The picker names the mode and the box is for asking OneUptime
- * AI, so the sentence does not say who acts again: without that it fits on
- * the picker's row in the two-thirds column of a 1280px page.
+ * composer: the same sentence the picker's menu says under the mode's name
+ * (Components/AIChat/PermissionModeWords).
  */
-export function describePermissionMode(mode: AIChatPermissionMode): string {
-  // English keys; the composer translates the one it shows.
-  switch (mode) {
-    case AIChatPermissionMode.AutoRun:
-      return translationKey(
-        "Acts on clear requests right away, within your permissions.",
-      );
-    case AIChatPermissionMode.AskForApproval:
-      return translationKey("Asks for approval before it changes anything.");
-    case AIChatPermissionMode.ReadOnly:
-      return translationKey(
-        "Only reads and answers. It never changes anything.",
-      );
-    default:
-      return "";
-  }
-}
+export { describePermissionMode } from "../../AIChat/PermissionModeWords";
 
 /*
  * Widgets carry raw rows fetched under the ASKER's permissions, so the

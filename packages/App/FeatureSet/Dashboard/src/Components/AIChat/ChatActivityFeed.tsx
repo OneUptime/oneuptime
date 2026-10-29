@@ -439,6 +439,7 @@ export function describePromptOmissions(
  */
 export const LINKED_RESOURCE_KIND_NOUNS: { [kind: string]: string } = {
   Host: translationKey("Host"),
+  NetworkDevice: translationKey("Network device"),
   DockerHost: translationKey("Docker host"),
   PodmanHost: translationKey("Podman host"),
   KubernetesCluster: translationKey("Kubernetes cluster"),
@@ -907,6 +908,36 @@ export function hasRenderableActivity(events: Array<AIRunEvent>): boolean {
  */
 export function countActivitySteps(events: Array<AIRunEvent>): number {
   return buildSteps(events).length;
+}
+
+/*
+ * The one line an answer being written shows in Ask AI, in place of every
+ * step narrated one by one: the step running now ("Searching logs"), or
+ * "Thinking" between steps and before the first, and how many steps there
+ * are so far - what the line opens into.
+ */
+export interface LiveActivity {
+  text: string;
+  stepCount: number;
+}
+
+export function describeLiveActivity(
+  events: Array<AIRunEvent>,
+  translator: Translator = getGlobalTranslator(),
+): LiveActivity {
+  const steps: Array<ActivityStep> = buildSteps(events, translator);
+  const running: ActivityStep | undefined = [...steps]
+    .reverse()
+    .find((step: ActivityStep): boolean => {
+      return step.status === "running";
+    });
+
+  return {
+    text: running
+      ? running.text
+      : (translator.translateText("Thinking") as string),
+    stepCount: steps.length,
+  };
 }
 
 /*

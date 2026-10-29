@@ -49,6 +49,11 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import useResizableColumns, {
+  ResizableColumns,
+} from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
+import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import React, {
   Fragment,
   FunctionComponent,
@@ -116,6 +121,27 @@ const TransceiverHealthCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+
+  /*
+   * The transceivers' columns as wide as a person makes them (Common's
+   * Table/ColumnResize): a port or an optic gives way, a reading never.
+   */
+  const transceiverColumns: ResizableColumns = useResizableColumns({
+    tableKey: "transceiver-health-table",
+    columns: [
+      { id: "port", cellNumber: 1 },
+      { id: "optic", cellNumber: 2 },
+      { id: "status", cellNumber: 3 },
+      ...TRANSCEIVER_TABLE_READINGS.map(
+        (
+          kind: TransceiverReadingKind,
+          index: number,
+        ): { id: string; cellNumber: number } => {
+          return { id: kind, cellNumber: index + 4 };
+        },
+      ),
+    ],
+  });
 
   const [transceivers, setTransceivers] =
     useState<Array<NetworkDeviceTransceiver> | null>(null);
@@ -248,33 +274,66 @@ const TransceiverHealthCard: FunctionComponent<ComponentProps> = (
             className="-mx-1 max-md:hidden overflow-x-auto md:block"
             data-testid="transceiver-table"
           >
-            <table className="min-w-full divide-y divide-gray-100 text-sm">
+            {transceiverColumns.styles}
+            <table
+              className={`${transceiverColumns.getTableWidthClassName("min-w-full")} divide-y divide-gray-100 text-sm`}
+              {...transceiverColumns.tableAttributes}
+            >
               <thead>
                 <tr>
-                  <th className="py-2 pl-1 pr-4 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
-                    {translator.translateText("Port")}
-                  </th>
-                  <th className="py-2 pr-4 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
-                    {translator.translateText("Optic")}
-                  </th>
-                  <th className="py-2 pr-4 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
-                    {translator.translateText("Status")}
-                  </th>
+                  <ResizableHeaderCell
+                    className="py-2 pl-1 pr-4 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
+                    resize={transceiverColumns.getResize(
+                      "port",
+                      translator.translateText("Port") || "Port",
+                      ColumnWidthKind.Name,
+                    )}
+                  >
+                    <span>{translator.translateText("Port")}</span>
+                  </ResizableHeaderCell>
+                  <ResizableHeaderCell
+                    className="py-2 pr-4 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
+                    resize={transceiverColumns.getResize(
+                      "optic",
+                      translator.translateText("Optic") || "Optic",
+                      ColumnWidthKind.Text,
+                    )}
+                  >
+                    <span>{translator.translateText("Optic")}</span>
+                  </ResizableHeaderCell>
+                  <ResizableHeaderCell
+                    className="py-2 pr-4 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
+                    resize={transceiverColumns.getResize(
+                      "status",
+                      translator.translateText("Status") || "Status",
+                      ColumnWidthKind.Whole,
+                    )}
+                  >
+                    <span>{translator.translateText("Status")}</span>
+                  </ResizableHeaderCell>
                   {TRANSCEIVER_TABLE_READINGS.map(
                     (kind: TransceiverReadingKind): ReactElement => {
+                      const title: string =
+                        translator.translateText(
+                          TRANSCEIVER_READING_COLUMN_TITLES[kind],
+                        ) || TRANSCEIVER_READING_COLUMN_TITLES[kind];
+
                       return (
-                        <th
+                        <ResizableHeaderCell
                           key={kind}
                           className={`py-2 pr-4 text-left text-xs font-medium uppercase tracking-wide text-gray-500 ${
                             TRANSCEIVER_READINGS_HIDDEN_ON_MOBILE.includes(kind)
                               ? "max-md:hidden md:table-cell"
                               : ""
                           }`}
-                        >
-                          {translator.translateText(
-                            TRANSCEIVER_READING_COLUMN_TITLES[kind],
+                          resize={transceiverColumns.getResize(
+                            kind,
+                            title,
+                            ColumnWidthKind.Whole,
                           )}
-                        </th>
+                        >
+                          <span>{title}</span>
+                        </ResizableHeaderCell>
                       );
                     },
                   )}
@@ -314,6 +373,7 @@ const TransceiverHealthCard: FunctionComponent<ComponentProps> = (
                       )
                 }
                 dataTestId="transceiver-show-all"
+                ariaExpanded={showAll}
                 onClick={() => {
                   setShowAll(!showAll);
                 }}

@@ -26,6 +26,8 @@ import NetworkDeviceMetrics from "../Pages/NetworkDevice/View/Metrics";
 import NetworkDeviceTraffic from "../Pages/NetworkDevice/View/Traffic";
 import NetworkDeviceEvents from "../Pages/NetworkDevice/View/Events";
 import NetworkDeviceMonitors from "../Pages/NetworkDevice/View/Monitors";
+import NetworkDeviceIncidents from "../Pages/NetworkDevice/View/Incidents";
+import NetworkDeviceAlerts from "../Pages/NetworkDevice/View/Alerts";
 import NetworkDeviceLogs from "../Pages/NetworkDevice/View/Logs";
 import NetworkDeviceOwners from "../Pages/NetworkDevice/View/Owners";
 import NetworkDeviceSettingsOwnerRules from "../Pages/NetworkDevice/Settings/OwnerRules";
@@ -34,6 +36,7 @@ import NetworkDeviceSettingsLinkRules from "../Pages/NetworkDevice/Settings/Link
 import NetworkDeviceSettingsAutoImportRules from "../Pages/NetworkDevice/Settings/AutoImportRules";
 import NetworkDeviceSettingsOidTemplates from "../Pages/NetworkDevice/Settings/OidCollectionTemplates";
 import NetworkDeviceSettingsDeviceRoles from "../Pages/NetworkDevice/Settings/DeviceRoles";
+import NetworkDeviceSettingsAddressNames from "../Pages/NetworkDevice/Settings/AddressNames";
 import NetworkDeviceSettingsSnmpCredentialProfiles from "../Pages/NetworkDevice/Settings/SnmpCredentialProfiles";
 import NetworkDeviceSettingsAlertPolicies from "../Pages/NetworkDevice/Settings/AlertPolicies";
 import NetworkDeviceSettings from "../Pages/NetworkDevice/View/Settings";
@@ -211,6 +214,21 @@ const NetworkDeviceRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.NETWORK_DEVICE_SETTINGS_DEVICE_ROLES] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            NetworkDeviceRoutePath[
+              PageMap.NETWORK_DEVICE_SETTINGS_ADDRESS_NAMES
+            ] || ""
+          }
+          element={
+            <NetworkDeviceSettingsAddressNames
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.NETWORK_DEVICE_SETTINGS_ADDRESS_NAMES] as Route
               }
             />
           }
@@ -422,6 +440,30 @@ const NetworkDeviceRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.NETWORK_DEVICE_VIEW_MONITORS] as Route
               }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.NETWORK_DEVICE_VIEW_INCIDENTS,
+          )}
+          element={
+            <NetworkDeviceIncidents
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.NETWORK_DEVICE_VIEW_INCIDENTS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.NETWORK_DEVICE_VIEW_ALERTS)}
+          element={
+            <NetworkDeviceAlerts
+              {...props}
+              pageRoute={RouteMap[PageMap.NETWORK_DEVICE_VIEW_ALERTS] as Route}
             />
           }
         />

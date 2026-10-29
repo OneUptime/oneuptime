@@ -20,6 +20,8 @@ Une politique d'astreinte décide qui est alerté pour un incident ou une alerte
 
 **Qui est alerté en premier ?** est facultatif, et n'est demandé qu'aux personnes autorisées à ajouter des règles d'escalade : laissé vide, la politique n'alerte personne tant qu'elle n'a pas de règle. **Description** et **Étiquettes** attendent sous **Plus de champs**. Pour ajouter les niveaux suivants, voir [Règles d'escalade](/docs/on-call/escalation-rules).
 
+Pour la première politique d'un projet, le formulaire demande aussi **La déclencher pour chaque nouvel incident et chaque nouvelle alerte**, activé au départ. Cela ajoute une règle sous **Incidents → Règles → Règles d'astreinte** et une autre sous **Alertes → Règles → Règles d'astreinte**, qui correspondent chacune à tout et exécutent cette politique. La question n'est posée qu'aux personnes autorisées à ajouter des règles d'astreinte, tant que le projet n'a ni politique d'astreinte ni règle d'astreinte.
+
 La liste **Politiques d'astreinte** affiche pour chaque politique **Nom**, **Description**, **Étiquettes** et **Propriétaires**. Sélectionnez des politiques pour **Ajouter des étiquettes**, **Retirer des étiquettes**, **Ajouter un propriétaire**, **Retirer un propriétaire**, **Archiver**, **Exporter en JSON** ou pour les supprimer. **Importer du JSON** crée des politiques à partir d'un export : un export contient les réglages propres à une politique, pas ses règles d'escalade ni ses propriétaires.
 
 ## Ce qui exécute une politique
@@ -64,7 +66,7 @@ Quand l'attente du dernier niveau se termine sans que personne ne prenne en comp
 | **Arrêter les alertes** | Personne n'est alerté de nouveau : la politique s'exécute une seule fois. Une nouvelle politique commence avec cette réponse. |
 | **Recommencer depuis Level 1** | Chaque niveau est alerté de nouveau, dans l'ordre. **Combien de fois de plus ?** indique combien de fois : 1 ou plus. |
 
-Une politique qui recommence trois fois de plus parcourt ses niveaux quatre fois au total. La ligne **Après le dernier niveau** de la carte dit ce que fait la politique, et **La politique en un coup d'œil** sur la **Vue d'ensemble** dit la même chose en toutes lettres.
+Une politique qui recommence trois fois de plus parcourt ses niveaux quatre fois au total. Un passage où aucun niveau n'avait personne à alerter n'est pas répété : un autre n'alerterait personne non plus, donc la politique s'arrête. La ligne **Après le dernier niveau** de la carte dit ce que fait la politique, et **La politique en un coup d'œil** sur la **Vue d'ensemble** dit la même chose en toutes lettres.
 
 ## Alerter de nouveau si ce n'est pas résolu
 
@@ -101,7 +103,7 @@ flowchart TB
 | **Planifié**, **Démarrée** | L'exécution est en préparation. Une exécution encore là après 5 minutes est arrêtée en **Erreur**. |
 | **Executing** | L'exécution alerte. OneUptime la fait avancer chaque minute. |
 | **Execution Completed** | Quelqu'un a pris en compte, l'incident ou l'alerte a été résolu, chaque règle et chaque répétition ont été utilisées, ou la politique a été archivée. |
-| **Execution Completed - No One Notified** | L'exécution a parcouru chaque règle sans alerter personne : en général un planning où personne n'est d'astreinte. |
+| **Execution Completed - No One Notified** | L'exécution a parcouru chaque règle sans alerter personne : en général un planning où personne n'est d'astreinte, ou un niveau sans intervenant. |
 | **Erreur** | L'exécution a échoué. **Voir le message de statut** indique pourquoi. |
 
 Vous trouvez les journaux d'exécution à trois endroits :
@@ -110,7 +112,7 @@ Vous trouvez les journaux d'exécution à trois endroits :
 - dans **Astreinte → Avancé → Journaux d'exécution**, pour toutes les politiques, où les appels directs venus des workflows et du chat apparaissent comme **Appel direct** ;
 - sur la page **Exécutions d'astreinte** d'un incident ou d'une alerte.
 
-Chaque ligne montre ce qui a déclenché l'exécution, quand, son **Statut** et qui l'a prise en compte. **Voir la chronologie** ouvre sa **Chronologie d'exécution** : chaque règle d'escalade, qui elle a alerté, par quel planning, et comment chaque alerte s'est terminée. Un planning où personne n'est d'astreinte affiche **Personne n'était d'astreinte** au lieu d'une personne. Sur OneUptime Cloud, les journaux d'exécution nécessitent l'offre **Growth**.
+Chaque ligne montre ce qui a déclenché l'exécution, quand, son **Statut** et qui l'a prise en compte. **Voir la chronologie** ouvre sa **Chronologie d'exécution** : chaque règle d'escalade, qui elle a alerté, par quel planning, et comment chaque alerte s'est terminée. Un planning où personne n'est d'astreinte affiche **Personne n'était d'astreinte** au lieu d'une personne. Un niveau qui n'a alerté personne dit pourquoi, avec **Poursuivi sans attendre** en dessous : la politique ne l'a pas attendu. Sur OneUptime Cloud, les journaux d'exécution nécessitent l'offre **Growth**.
 
 ## Archiver ou supprimer une politique
 
@@ -152,6 +154,10 @@ Son exécution indique **Execution Completed - No One Notified**. Ouvrez **Voir 
 
 :::details Le niveau suivant a été alerté une minute après son attente
 OneUptime fait avancer les politiques en cours une fois par minute, donc un niveau est alerté au premier contrôle après la fin de son attente.
+:::
+
+:::details Le niveau suivant a été alerté immédiatement, sans attendre
+Le niveau précédent n'avait personne à alerter : aucun intervenant, personne d'astreinte dans ses plannings ou personne de joignable. Un niveau qui n'alerte personne n'a pas de délai, donc le niveau suivant est alerté dès que la politique l'atteint. **Voir la chronologie** montre pourquoi ce niveau n'a alerté personne.
 :::
 
 :::details Un incident affiche une politique qui n'a alerté personne

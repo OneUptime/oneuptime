@@ -17,7 +17,7 @@ Un canale personalizzato invia gli avvisi di reperibilità a un servizio che ges
 ## Come funziona
 
 ```mermaid title="Un avviso tramite un canale personalizzato"
-flowchart LR
+flowchart TB
     OneUptime["OneUptime"]
     Service["Il tuo servizio"]
     App["La tua app"]
@@ -31,7 +31,7 @@ Quando una policy di reperibilità avvisa qualcuno e la sua regola di reperibili
 
 ## Aggiungere un canale
 
-1. Nell'Admin Dashboard apri **Impostazioni**, poi **Custom Channels**, e seleziona **Add**.
+1. Nell'Admin Dashboard apri **Impostazioni**, poi **Notifiche > Custom Channels** nel menu laterale (**Notifiche** è inizialmente chiuso), e seleziona **Add**.
 2. Nel passaggio **Channel**, compila:
    - **Nome**: ciò che le persone vedono nei loro metodi di notifica e nelle regole di reperibilità, per esempio `CorpoApp`.
    - **Webhook URL**: dove OneUptime invia ogni avviso. Può trovarsi nella tua rete privata.

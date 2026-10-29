@@ -20,6 +20,8 @@ Een bereikbaarheidsbeleid bepaalt wie wordt opgeroepen voor een incident of waar
 
 **Wie wordt als eerste opgeroepen?** is optioneel en wordt alleen gevraagd aan wie escalatieregels mag toevoegen: blijft het leeg, dan roept het beleid niemand op tot het een regel heeft. **Beschrijving** en **Labels** staan onder **Meer velden**. Hoe je de volgende niveaus toevoegt, lees je bij [Escalatieregels](/docs/on-call/escalation-rules).
 
+Bij het eerste beleid van een project vraagt het formulier ook **Activeren bij elk nieuw incident en elke nieuwe waarschuwing**, dat in het begin aan staat. Het voegt een regel toe onder **Incidenten → Regels → Bereikbaarheidsregels** en een onder **Waarschuwingen → Regels → Bereikbaarheidsregels**, die elk bij alles passen en dit beleid uitvoeren. Het wordt alleen gevraagd aan wie bereikbaarheidsregels mag toevoegen, zolang het project geen bereikbaarheidsbeleid en geen bereikbaarheidsregel heeft.
+
 De lijst **Bereikbaarheidsbeleid** toont van elk beleid **Naam**, **Beschrijving**, **Labels** en **Eigenaren**. Selecteer beleid om **Labels toevoegen**, **Labels verwijderen**, **Eigenaar toevoegen**, **Eigenaar verwijderen**, **Archiveren** of **JSON exporteren** uit te voeren, of om het te verwijderen. **JSON importeren** maakt beleid aan uit een export: een export bevat de eigen instellingen van een beleid, niet de escalatieregels of eigenaren ervan.
 
 ## Wat een beleid uitvoert
@@ -64,7 +66,7 @@ Loopt de wachttijd van het laatste niveau af zonder dat iemand bevestigt, dan st
 | **Stoppen met oproepen** | Niemand wordt opnieuw opgeroepen, dus het beleid loopt één keer. Een nieuw beleid begint met dit antwoord. |
 | **Opnieuw beginnen bij Level 1** | Elk niveau wordt opnieuw opgeroepen, op volgorde. **Hoe vaak nog?** zegt hoe vaak: 1 of meer. |
 
-Een beleid dat nog drie keer opnieuw begint, gaat in totaal vier keer door zijn niveaus. De regel **Na het laatste niveau** op de kaart zegt wat het beleid doet, en **Beleid in één oogopslag** op het **Overzicht** zegt hetzelfde in woorden.
+Een beleid dat nog drie keer opnieuw begint, gaat in totaal vier keer door zijn niveaus. Een ronde waarin geen enkel niveau iemand had om op te roepen, wordt niet herhaald: een volgende zou ook niemand oproepen, dus het beleid stopt. De regel **Na het laatste niveau** op de kaart zegt wat het beleid doet, en **Beleid in één oogopslag** op het **Overzicht** zegt hetzelfde in woorden.
 
 ## Opnieuw oproepen als het niet is opgelost
 
@@ -101,7 +103,7 @@ flowchart TB
 | **Gepland**, **Gestart** | De uitvoering wordt voorbereid. Een die er na 5 minuten nog staat, wordt gestopt als **Fout**. |
 | **Executing** | De uitvoering roept op. OneUptime brengt haar elke minuut een stap verder. |
 | **Execution Completed** | Iemand heeft bevestigd, het incident of de waarschuwing is opgelost, elke regel en herhaling is gebruikt, of het beleid is gearchiveerd. |
-| **Execution Completed - No One Notified** | De uitvoering is door elke regel gegaan zonder iemand op te roepen: meestal een schema waarin niemand dienst heeft. |
+| **Execution Completed - No One Notified** | De uitvoering is door elke regel gegaan zonder iemand op te roepen: meestal een schema waarin niemand dienst heeft, of een niveau zonder ontvangers. |
 | **Fout** | De uitvoering is mislukt. **Statusbericht bekijken** zegt waarom. |
 
 Uitvoeringslogboeken vind je op drie plekken:
@@ -110,7 +112,7 @@ Uitvoeringslogboeken vind je op drie plekken:
 - onder **Bereikbaarheidsdienst → Geavanceerd → Uitvoeringslogboeken**, voor elk beleid, waar directe oproepen vanuit workflows en chat staan als **Directe oproep**;
 - op de pagina **Bereikbaarheidsuitvoeringen** van een incident of een waarschuwing.
 
-Elke rij toont wat de uitvoering startte, wanneer, de **Status** ervan en wie haar bevestigde. **Tijdlijn bekijken** opent de **Tijdlijn van de uitvoering**: elke escalatieregel, wie die opriep, via welk schema en hoe elke oproep afliep. Een schema waarin niemand dienst heeft, toont **Niemand was bereikbaar** in plaats van een persoon. In OneUptime Cloud hebben uitvoeringslogboeken het abonnement **Growth** nodig.
+Elke rij toont wat de uitvoering startte, wanneer, de **Status** ervan en wie haar bevestigde. **Tijdlijn bekijken** opent de **Tijdlijn van de uitvoering**: elke escalatieregel, wie die opriep, via welk schema en hoe elke oproep afliep. Een schema waarin niemand dienst heeft, toont **Niemand was bereikbaar** in plaats van een persoon. Een niveau dat niemand opriep, zegt waarom, met **Direct doorgegaan** eronder: het beleid heeft er niet op gewacht. In OneUptime Cloud hebben uitvoeringslogboeken het abonnement **Growth** nodig.
 
 ## Een beleid archiveren of verwijderen
 
@@ -152,6 +154,10 @@ De uitvoering ervan toont **Execution Completed - No One Notified**. Open **Tijd
 
 :::details Het volgende niveau werd een minuut na zijn wachttijd opgeroepen
 OneUptime brengt lopend beleid één keer per minuut een stap verder, dus een niveau wordt opgeroepen bij de eerste controle nadat de wachttijd voorbij is.
+:::
+
+:::details Het volgende niveau werd meteen opgeroepen, zonder wachttijd
+Het niveau ervoor had niemand om op te roepen: geen ontvangers, niemand met dienst in zijn schema's of niemand die bereikbaar was. Een niveau dat niemand oproept, heeft geen wachttijd, dus het volgende niveau wordt opgeroepen zodra het beleid het bereikt. **Tijdlijn bekijken** toont waarom dat niveau niemand opriep.
 :::
 
 :::details Een incident noemt een beleid dat niemand opriep

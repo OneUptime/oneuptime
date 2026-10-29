@@ -68,7 +68,7 @@ O menu Rede mantém à vista o que você abre todos os dias: **Visão geral**, *
 | --- | --- |
 | **Topologia** | **Device Topology**, **Endpoints**, **Latency Matrix**, **Site Links**, **Device Links** |
 | **Regras** | **Auto Import Rules**, **Site Assignment Rules**, **Regras de proprietário**, **Regras de Rótulos**, **Link Rules** |
-| **Configurações** | **Alert Policies**, **Credenciais SNMP**, **Device Roles**, **Site Types**, **OID Collection Templates** |
+| **Configurações** | **Alert Policies**, **Credenciais SNMP**, **Device Roles**, **Site Types**, **Nomes de endereço**, **OID Collection Templates** |
 | **Avançado** | **Archived Devices** |
 
 ## Adicionar um dispositivo de rede
@@ -514,6 +514,10 @@ Um dispositivo só com ping mantém o nome e o endereço que você, ou uma varre
 
 Esses valores ficam ao lado dos campos do próprio dispositivo, nunca gravados neles, e cada varredura, walk de roteador ou consulta que lê um deles de novo o atualiza. A visão geral do dispositivo e o seu item no inventário mostram qual varredura, roteador ou sonda leu cada valor, e quando. Um valor que você salvou no dispositivo nunca é substituído. Quando uma varredura encontra outra máquina no endereço do dispositivo, como uma concessão DHCP que mudou, a visão geral avisa, e nada do que essa varredura leu ali é usado.
 
+Um switch, ponto de acesso ou appliance Meraki não informa por SNMP número de série, modelo nem firmware: o Meraki não implementa ENTITY-MIB. Quando uma [conexão do Meraki](/docs/monitor/network-traffic#cisco-meraki-sem-netflow) lê a organização dele, o dispositivo obtém esses dados, e tudo o mais que a sua consulta deixa vazio, do painel do Meraki, e o cartão **Inventário** dele nomeia a conexão em uma linha **Meraki**.
+
+Para ler um dispositivo de novo agora, clique em **Atualizar** no cartão **Inventário** dele. A sonda o consulta em até um minuto, e a conexão do Meraki lê a organização de novo. O cartão diz quando a nova leitura chegou, ou que a sonda não conseguiu alcançar o dispositivo. **Atualizar** aparece para quem pode editar dispositivos de rede, em um dispositivo que uma sonda consulta ou que uma conexão do Meraki descreve.
+
 ## Descobrir dispositivos com uma varredura de rede
 
 Em vez de adicionar os dispositivos um de cada vez, varra uma faixa de endereços a partir de uma sonda e importe o que responder.
@@ -756,6 +760,12 @@ Para criar um a partir de **Monitores**:
 3. Escolha o dispositivo de rede sobre o qual alertar. Tudo o que diz respeito à coleta de dados — nome do host, credenciais, agendamento, walks de interfaces, OIDs de saúde — vem do dispositivo; o monitor só escolhe sobre o que alertar, por meio dos critérios dele.
 
 Um monitor de dispositivo de rede não tem intervalo próprio: ele é avaliado sempre que chegam os resultados de sondagem do dispositivo, e sempre que chega um trap do dispositivo.
+
+### Incidentes e alertas de um dispositivo
+
+Um incidente ou um alerta pode ser sobre um dispositivo de rede. Escolha o dispositivo em **Outros recursos afetados** ao declarar um incidente ou criar um alerta, ou deixe que um monitor o vincule: o que um monitor gera é vinculado ao dispositivo sobre o qual ele informa — o dispositivo que um monitor de dispositivo de rede vigia, o dispositivo vinculado ao monitor e o dispositivo para o qual uma importação de descoberta criou o monitor.
+
+As páginas **Incidentes** e **Alertas** do dispositivo, em **Atividade** no menu dele, listam o que está vinculado a ele, e o menu e a visão geral do dispositivo contam os abertos. **Declarar incidente** e **Criar alerta** nessas páginas começam com o dispositivo já escolhido.
 
 ### Padrões de campos personalizados
 

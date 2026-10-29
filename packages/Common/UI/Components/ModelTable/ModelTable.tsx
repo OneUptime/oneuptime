@@ -356,6 +356,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
             onSuccess?: ((item: TBaseModel) => void) | undefined;
             onClose?: (() => void) | undefined;
             existingItems?: Array<TBaseModel> | undefined;
+            editFormTitle?: string | undefined;
           }): ReactElement => {
             const {
               modalType,
@@ -365,6 +366,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
               onSuccess,
               onClose,
               existingItems,
+              editFormTitle,
             } = data;
 
             return (
@@ -373,19 +375,21 @@ const ModelTable: <TBaseModel extends BaseModel>(
                 title={
                   modalType === ModalType.Create && props.createFormTitle
                     ? props.createFormTitle
-                    : translateNamedAction(translator, {
-                        template:
-                          modalType === ModalType.Create
-                            ? CREATE_NEW_TEMPLATES[
-                                props.createVerb || "Create"
-                              ] || CREATE_NEW_TEMPLATE
-                            : "Edit {{itemName}}",
-                        itemName:
-                          props.singularName || model.singularName || "",
-                        values: {
-                          action: translatableTerm(props.createVerb || ""),
-                        },
-                      })
+                    : modalType === ModalType.Edit && editFormTitle
+                      ? editFormTitle
+                      : translateNamedAction(translator, {
+                          template:
+                            modalType === ModalType.Create
+                              ? CREATE_NEW_TEMPLATES[
+                                  props.createVerb || "Create"
+                                ] || CREATE_NEW_TEMPLATE
+                              : "Edit {{itemName}}",
+                          itemName:
+                            props.singularName || model.singularName || "",
+                          values: {
+                            action: translatableTerm(props.createVerb || ""),
+                          },
+                        })
                 }
                 formRef={props.createEditFromRef}
                 modalWidth={props.createEditModalWidth}

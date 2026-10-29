@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
 import { SpawnSyncReturns, spawnSync } from "child_process";
 import fs from "fs";
 import path from "path";
+import ts from "typescript";
 
 /*
  * Behavioural proof that TS_NODE_TRANSPILE_ONLY does what the Dockerfiles now
@@ -16,6 +17,11 @@ import path from "path";
  *
  * The fixture lives inside App/ so ts-node resolves App/tsconfig.json exactly as
  * it does at container boot.
+ *
+ * Since the App's tsconfig names Common's ts-node transpiler (which keeps
+ * source maps out of the code V8 holds; TsNodeTranspiler.test.ts), it also
+ * says "transpileOnly": ts-node takes a custom transpiler in transpile-only
+ * mode only. So the App never type-checks at boot, flag or not.
  */
 
 const APP_ROOT: string = path.resolve(__dirname, "..");
@@ -87,15 +93,35 @@ describe("TS_NODE_TRANSPILE_ONLY boot behaviour", () => {
     fs.rmSync(FIXTURE_DIR, { recursive: true, force: true });
   });
 
-  test("without the flag, ts-node type-checks at boot and refuses to start", () => {
+  test("the fixture is a real type error: TypeScript's checker reports it", () => {
     /*
-     * This is the cost the production images were paying on every pod start:
-     * a full type-check of the reachable import graph before anything listens.
+     * So that booting it proves the type check was skipped. A full type check
+     * of the reachable import graph before anything listens is the cost the
+     * production images paid on every pod start before the flag.
      */
+    const program: ts.Program = ts.createProgram(
+      [path.join(FIXTURE_DIR, "TypeError.ts")],
+      {
+        strict: true,
+        noEmit: true,
+        target: ts.ScriptTarget.ES2017,
+        types: [],
+      },
+    );
+    const codes: Array<number> = ts
+      .getPreEmitDiagnostics(program)
+      .map((diagnostic: ts.Diagnostic): number => {
+        return diagnostic.code;
+      });
+
+    expect(codes).toContain(2322);
+  }, 180000);
+
+  test("without the flag, the App's tsconfig still makes ts-node skip the type-check and boot", () => {
     const result: RunResult = runWithTsNode("TypeError.ts", false);
 
-    expect(result.status).not.toBe(0);
-    expect(result.output).toContain("TS2322");
+    expect(result.status).toBe(0);
+    expect(result.output).toContain("EXECUTED");
   }, 180000);
 
   test("with the flag, ts-node skips the type-check and boots", () => {

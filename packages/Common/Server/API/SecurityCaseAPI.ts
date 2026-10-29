@@ -825,9 +825,12 @@ export default class SecurityCaseAPI extends BaseAPI<
     /*
      * Triage with AI (and Triage again): a person asks OneUptime AI to
      * triage the case now, whether or not the project triages new cases on
-     * its own. Takes a role that can work cases - the triage records its
-     * read on the case - and everything AI needs (SecurityCaseTriage).
-     * Answers with the run, or 400 with what stopped it.
+     * its own. The triage writes its read on the case - a verdict, a
+     * suggested priority and playbook, a report - as OneUptime, so it takes
+     * a case the person may change (readCaseToChange), not only a role that
+     * can work cases somewhere in the project, and everything AI needs
+     * (SecurityCaseTriage). Answers with the run, or 400 with what stopped
+     * it.
      */
     this.router.post(
       `${basePath}/:caseId/ai-triage/start`,
@@ -847,8 +850,14 @@ export default class SecurityCaseAPI extends BaseAPI<
               "Asking OneUptime AI to triage a case takes a role that can work security cases.",
           });
 
-          const securityCaseId: ObjectID = await this.readCaseForTriage({
-            caseId: req.params["caseId"],
+          const caseId: string | undefined = req.params["caseId"];
+
+          if (!caseId || !ObjectID.isValidUUID(caseId)) {
+            throw new BadDataException("A valid case ID is required.");
+          }
+
+          const securityCase: SecurityCase = await this.readCaseToChange({
+            caseId: new ObjectID(caseId),
             projectId,
             props,
           });
@@ -856,7 +865,7 @@ export default class SecurityCaseAPI extends BaseAPI<
           const result: SecurityCaseTriageStartResult =
             await SecurityCaseTriage.startTriage({
               projectId,
-              securityCaseId,
+              securityCaseId: securityCase.id!,
             });
 
           if (!result.started) {
@@ -994,8 +1003,9 @@ export default class SecurityCaseAPI extends BaseAPI<
   }
 
   /*
-   * The case an incident is declared from, as the caller may change it:
-   * held to what an update of it would be held to
+   * The case a person declares an incident from, or asks OneUptime AI to
+   * triage - each then written on the case by OneUptime, as itself - as
+   * the caller may change it: held to what an update of it would be held to
    * (DatabaseService.findOneUpdatableById) - the case's update permissions
    * in the caller's project, a team's block on them, the labels of the
    * incident it names, and a credential that may make changes. A case they

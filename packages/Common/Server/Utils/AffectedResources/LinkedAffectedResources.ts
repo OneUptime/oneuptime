@@ -45,6 +45,7 @@ import { mdText, MarkdownText } from "../../../Utils/Markdown/FeedMarkdown";
 export enum LinkedAffectedResourceType {
   Monitor = "Monitor",
   Host = "Host",
+  NetworkDevice = "NetworkDevice",
   KubernetesCluster = "KubernetesCluster",
   DockerHost = "DockerHost",
   PodmanHost = "PodmanHost",
@@ -106,6 +107,12 @@ export const LINKED_AFFECTED_RESOURCE_RELATIONS: ReadonlyArray<LinkedAffectedRes
       type: LinkedAffectedResourceType.Host,
       label: "Host",
       dashboardRoute: "host",
+    },
+    {
+      column: "networkDevices",
+      type: LinkedAffectedResourceType.NetworkDevice,
+      label: "Network Device",
+      dashboardRoute: "network-devices",
     },
     {
       column: "kubernetesClusters",

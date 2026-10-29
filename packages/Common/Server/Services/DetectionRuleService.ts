@@ -30,6 +30,9 @@ import {
   indexSigmaRules,
 } from "../../Utils/SecurityEvent/Sigma/SigmaRuleIndex";
 import SigmaClickhouseCompiler from "../Utils/SecurityEvent/Sigma/SigmaClickhouseCompiler";
+import SecurityWatchlists from "../Utils/SecurityEvent/Watchlists/SecurityWatchlists";
+import { assertDetectionReadFits } from "../Utils/SecurityEvent/Watchlists/SecurityWatchlistMatch";
+import { getDetectionRuleWatchlistReferences } from "../../Utils/SecurityEvent/Sigma/SigmaWatchlists";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -44,7 +47,11 @@ export class Service extends ProjectReferencesService<Model> {
    * A correlation is checked whole: its type, its timespan and condition,
    * every rule it reads - from its own YAML or, by Sigma id or name, from
    * the project's other detection rules - and each of those rules compiled.
-   * Returns what was parsed.
+   *
+   * A rule that reads watchlists (`field|expand: '%vip_users%'`) is
+   * compiled with the project's lists, so a list the project does not have
+   * is refused by name, and a rule whose lists one read could not carry is
+   * refused with what to do. Returns what was parsed.
    */
   private async validateSigmaRule(data: {
     ruleYaml: string | undefined;
@@ -84,8 +91,30 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
-    for (const rule of sigmaRulesOf(definition)) {
-      SigmaClickhouseCompiler.compile(rule);
+    if (getDetectionRuleWatchlistReferences(definition).length === 0) {
+      for (const rule of sigmaRulesOf(definition)) {
+        SigmaClickhouseCompiler.compile(rule);
+      }
+
+      return definition;
+    }
+
+    const projectIds: Array<ObjectID> = await data.projectIds();
+
+    if (projectIds.length === 0) {
+      throw new BadDataException(
+        "A rule that reads watchlists needs the project it belongs to.",
+      );
+    }
+
+    // Every project the write reaches must hold the lists it names.
+    for (const projectId of projectIds) {
+      const bound: DetectionRuleDefinition =
+        await SecurityWatchlists.readerFor(projectId).bind(definition);
+
+      for (const rule of sigmaRulesOf(bound)) {
+        assertDetectionReadFits(SigmaClickhouseCompiler.compile(rule));
+      }
     }
 
     return definition;

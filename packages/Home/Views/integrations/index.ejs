@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title><%= seo.title %></title>
+  <meta name="description" content="<%= seo.description %>">
+  <%- include('../head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+  }) -%>
+  <% integrations.structuredData.forEach(function (schema) { %>
+  <%- include('../Partials/json-ld', { schema: schema }) -%>
+  <% }) %>
+  <%- include('../Partials/integrations/styles') -%>
+  <%- include('../Partials/tailwind-stylesheet') -%>
+</head>
+
+<body>
+  <%- include('../nav') -%>
+
+  <main id="main-content">
+    <header class="relative isolate overflow-hidden border-b border-gray-100 bg-white">
+      <div class="absolute inset-x-0 top-0 -z-10 h-[28rem] bg-[radial-gradient(60%_70%_at_50%_0%,rgba(79,70,229,0.08),transparent_70%)]" aria-hidden="true"></div>
+      <div class="mx-auto max-w-7xl px-6 pb-12 pt-20 sm:pt-28 lg:px-8">
+        <div class="mx-auto max-w-3xl text-center">
+          <p class="text-sm font-medium text-indigo-600">Integrations</p>
+          <h1 class="mt-2 text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl">OpenTelemetry for every framework</h1>
+          <p class="mt-5 text-lg leading-8 text-gray-600">Step-by-step guides that send your framework's traces, metrics and logs to OneUptime. Each one was run end to end before it was published.</p>
+        </div>
+
+        <%# Search. Without the page's script nothing filters, and every guide is listed below. %>
+        <div class="mx-auto mt-10 max-w-xl">
+          <label for="integrations-search" class="sr-only">Search the integrations</label>
+          <div class="relative">
+            <svg class="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
+            <input id="integrations-search" type="search" autocomplete="off" spellcheck="false" placeholder="Search frameworks…" data-integrations-search class="integrations-search h-12 w-full rounded-xl border-0 bg-white pl-12 pr-24 text-base text-gray-900 shadow-sm ring-1 ring-inset ring-gray-200 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500">
+            <span class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs text-gray-500" data-integrations-count aria-live="polite"></span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="mx-auto max-w-7xl px-6 py-14 lg:px-8">
+      <% integrations.groups.forEach(function (group) { %>
+      <section id="<%= group.id %>" class="mb-14 scroll-mt-8" data-integrations-group aria-labelledby="<%= group.id %>-title">
+        <div class="flex items-center gap-3">
+          <% if (group.logo) { %>
+          <img src="<%= group.logo.src %>" alt="" width="28" height="28" class="h-7 w-7 object-contain" decoding="async">
+          <% } %>
+          <h2 id="<%= group.id %>-title" class="text-2xl font-semibold tracking-tight text-gray-900"><%= group.title %></h2>
+        </div>
+        <p class="mt-2 text-[15px] text-gray-600"><%= group.description %></p>
+        <ul class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" role="list">
+          <% group.cards.forEach(function (card) { %>
+          <li data-integration-card data-search="<%= card.search %>">
+            <a href="<%= card.href %>" class="group flex h-full gap-4 rounded-xl bg-white p-5 ring-1 ring-gray-200 hover:shadow-sm hover:ring-indigo-300">
+              <%- include('../Partials/integrations/mark', { mark: card.mark, size: 'md' }) -%>
+              <span class="min-w-0">
+                <span class="block text-base font-semibold text-gray-900 group-hover:text-indigo-600"><%= card.name %></span>
+                <span class="mt-1 block text-sm leading-6 text-gray-600"><%= card.description %></span>
+              </span>
+            </a>
+          </li>
+          <% }) %>
+        </ul>
+      </section>
+      <% }) %>
+
+      <p class="mb-14 rounded-xl bg-gray-50 px-5 py-4 text-center text-sm text-gray-600 ring-1 ring-inset ring-gray-200" data-integrations-empty hidden>No guide matches. Every language's setup is also in the <a href="/docs/telemetry/open-telemetry" class="font-medium text-indigo-600 hover:text-indigo-500">OpenTelemetry docs</a>.</p>
+
+      <% if (integrations.languagesToCome.length > 0) { %>
+      <section class="rounded-2xl bg-gray-50 p-6 ring-1 ring-inset ring-gray-200 sm:p-8" aria-labelledby="more-languages-title">
+        <h2 id="more-languages-title" class="text-base font-semibold text-gray-900">Another language?</h2>
+        <p class="mt-2 text-[15px] leading-7 text-gray-600">Guides for <%= integrations.languagesToComeText %> are on their way. Until then, the <a href="/docs/telemetry/open-telemetry" class="font-medium text-indigo-600 hover:text-indigo-500">OpenTelemetry docs</a> set up any SDK in a few minutes: one ingestion key and four environment variables.</p>
+      </section>
+      <% } %>
+    </div>
+
+    <%- include('../Partials/integrations/cta') -%>
+  </main>
+
+  <%- include('../footer') -%>
+  <script src="<%= integrationsScript %>" defer></script>
+</body>
+
+</html>

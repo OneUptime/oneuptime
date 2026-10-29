@@ -629,6 +629,7 @@ const TemplatePicker: <T extends TemplatePickerRowTemplate, C extends string>(
               <Icon icon={IconProp.Search} className="h-4 w-4 text-gray-400" />
             </div>
             <input
+              data-unsaved-changes-ignore
               ref={searchInputRef}
               id={ids.searchInput}
               data-testid={ids.searchInput}

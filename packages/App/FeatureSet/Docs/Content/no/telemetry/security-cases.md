@@ -6,7 +6,8 @@ Security Events gjør det deteksjonsreglene, trusseletterretningen og de tilkobl
 - [Hvor saker kommer fra](#hvor-saker-kommer-fra): Deteksjonsregler, trusseletterretning, tilkoblede produkter, entitetsrisiko og personer.
 - [Behandle en sak](#behandle-en-sak): Tildel den, undersøk entitetene, og lukk den med en konklusjon.
 - [Saksprioriteter og saksstatuser](#saksprioriteter-og-saksstatuser): Gi dem nytt navn, ny farge og ny rekkefølge, og legg til dine egne.
-- [Varslinger](#varslinger): Hvem som får beskjed om en ny sak, en tildeling og et steg som venter på godkjenning.
+- [Responsmål](#responsmål): Hvor raskt en sak med hver prioritet må tas og begrenses.
+- [Varslinger](#varslinger): Hvem som får beskjed om en ny sak, en tildeling, et responsmål, en oppgave og et steg som venter på godkjenning.
 - [Playbooks](#playbooks): Steg som kjører på en sak, med godkjenning der det betyr noe.
 - [Oversikten](#oversikten): Det som trenger noen nå, og hvor raskt saker blir håndtert.
 :::
@@ -36,9 +37,9 @@ Saker og playbooks følger de tre Security-rollene. Project Owner og Project Adm
 
 | Rolle | Hva den kan gjøre |
 | --- | --- |
-| Security Admin | Alt, også å slette saker og sette opp playbooks |
-| Security Member | Åpne, tildele, endre og lukke saker, skrive notater, kjøre playbooks og godkjenne eller avvise stegene deres |
-| Security Viewer | Lese saker, deteksjoner, notater, playbooks og kjøringene deres |
+| Security Admin | Alt, også å slette saker, fjerne bevis og sette opp playbooks |
+| Security Member | Åpne, tildele, endre og lukke saker, skrive notater, jobbe med oppgaver, legge til bevis, kjøre playbooks og godkjenne eller avvise stegene deres |
+| Security Viewer | Lese saker, deteksjoner, notater, oppgaver, bevis, playbooks og kjøringene deres |
 
 Hver av disse rettighetene kan også gis for seg, fra å opprette en sak til å godkjenne stegene i en playbook; se [Tillatelsesreferanse](/docs/permissions/reference).
 
@@ -88,13 +89,13 @@ En sak har sin egen sidemeny, slik en hendelse har, og hver del av saken er en e
 | Seksjon i sidemenyen | Sider |
 | --- | --- |
 | **Oversikt** | **Oversikt**, **Tidslinje** |
-| **Undersøkelse** | **Forløp**, **Deteksjoner**, **Entiteter**, **Tilkoblede signaler**, **Playbooks** |
+| **Undersøkelse** | **Forløp**, **Deteksjoner**, **Entiteter**, **Tilkoblede signaler**, **Bevis**, **Oppgaver**, **Playbooks** |
 | **Notater** | **Private notater** |
 | **Avansert** | **Revisjonslogger**, **Slett sak**, skjult til du klikker på **Avansert** |
 
-Hver side beholder sakens topptekst øverst: nummer, prioritet, status og tittel, **Tildel til meg**, **Kjør playbook**, **Erklær hendelse** og **Lukk sak**, og i menyen ⋯ ved siden av **Angi prioritet**, **Tildel til en annen**, **Endre status**, **Rediger sak** og **Slett sak**. Slik kan saken behandles fra hvilken som helst av sidene, og en lenke til saken åpner fortsatt **Oversikt**.
+Hver side beholder sakens topptekst øverst: nummer, prioritet, status og tittel, **Tildel til meg**, **Kjør playbook**, **Erklær hendelse** og **Lukk sak**, og i menyen ⋯ ved siden av **Angi prioritet**, **Tildel til en annen**, **Endre status**, **Rediger sak** og **Slett sak**. Slik kan saken behandles fra hvilken som helst av sidene, og en lenke til saken åpner fortsatt **Oversikt**. Når sakens prioritet har responsmål, viser toppen også når det neste har frist ([Responsmål](#responsmål)).
 
-- **Oversikt**: sakens beskrivelse, etiketter og statussteg, hvem som har den og hva som åpnet den, og tallene: hvor mange deteksjoner den har, hvor lenge den har vært åpen, og hvor lang tid det tok å bekrefte og inndemme den.
+- **Oversikt**: sakens beskrivelse, etiketter og statussteg, hvem som har den og hva som åpnet den, og tallene: hvor mange deteksjoner den har, hvor lenge den har vært åpen, og hvor lang tid det tok å bekrefte og inndemme den. Under **Tid til bekreftelse** og **Tid til begrensning** står det hvordan saken ligger an mot responsmålene sine.
 - **OneUptime AI**, på **Oversikt**: hva OneUptime AI fikk ut av saken, prioriteten og playbooken den foreslår, og bevisene bak. Se [OneUptime AI i sikkerhet](/docs/telemetry/security-ai).
 - **Påvirkning**, på **Oversikt**: hva saken setter i fare: om OneUptime har sett postene dens bli nådd fra internett, hvem som eier dem, og hva som sist ble endret på dem. Fold den ut for å se hva hver post kaller og hva som kaller den, monitorene og statussidene som følger med på den, og maskinene sakens adresser snakket med.
 - **MITRE ATT&CK**, på **Oversikt**: taktikkene og teknikkene deteksjonene i saken er tilordnet, hver med en lenke til sin side på attack.mitre.org.
@@ -103,6 +104,8 @@ Hver side beholder sakens topptekst øverst: nummer, prioritet, status og tittel
 - **Deteksjoner**: det som slo til og åpnet saken eller ble lagt til i den, hvor ofte, og den siste hendelsen som traff.
 - **Entiteter**: brukerne, vertene og adressene saken gjelder, med aktiviteten deres på tvers av alle sikkerhetshendelsene dine de siste 7 dagene. Hver av dem åpnes i **Korreler**.
 - **Tilkoblede signaler**: vertene, klyngene, tjenestene og medlemmene saken nevner, slik OneUptime kjenner dem, og hva som skjedde på hver av dem rundt deteksjonene: loggene, sporene og målingene deres, hva som er åpent på dem, og hva som endret seg. Se [Tilkoblede signaler](/docs/telemetry/security-connected-signals).
+- **Bevis**: filene og lenkene som oppbevares på saken, hver med hvem som la den til og når. Med **Legg til fil** laster du opp en fil på opptil 10 MB, og SHA-256 for det som ble lastet opp, registreres, så den som laster den ned senere kan kontrollere at det er det som ble oppbevart; med **Legg til lenke** viser du til bevis som oppbevares et annet sted. Bare en Security Admin kan fjerne bevis, og sakens **Tidslinje** viser hva som ble lagt til og fjernet.
+- **Oppgaver**: hva som må gjøres i saken, hvem som gjør det, og om det er gjort. Legg til en oppgave som én linje, gi den til noen, og kryss den av når den er utført. Den som får oppgaven, får beskjed, med mindre vedkommende tok den selv, og menyen viser ved siden av **Oppgaver** hvor mange oppgaver som er åpne.
 - **Playbooks**: hva hver playbook gjorde på saken, steg for steg, og stegene som venter på godkjenning. Mens kjøringer venter, viser menyen hvor mange ved siden av **Playbooks**.
 - **Private notater**: hva teamet skrev om saken.
 - **Revisjonslogger**: hver endring i saken, og hvem som gjorde den. Se [Revisjonslogger](/docs/configuration/audit-logs).
@@ -129,6 +132,8 @@ Du trenger ikke åpne en sak for å behandle den. I køens lister har menyen ⋯
 
 Konklusjonene telles på oversikten. En regel der sakene stadig lukkes som False Positive, er en regel som bør justeres.
 
+Mens oppgaver i saken fortsatt er åpne, sier dialogen **Lukk sak** hvor mange.
+
 En sak som er åpnet fra Google SecOps-varsler, lukker dem også i Google SecOps, med konklusjonen og avslutningsnotatet, når tilkoblingen har **Lukk varsler når saken deres lukkes** slått på: se [Google SecOps](/docs/integrations/google-secops#lukk-varsler-når-saken-deres-lukkes).
 
 ### Erklær en hendelse
@@ -154,21 +159,49 @@ Noen er innebygde, fordi OneUptime leser hva de betyr. De kan få nytt navn og n
 
 For å slutte å bruke en egen status eller prioritet bruker du **Arkiver** i raden dens. Ingen kan velge den igjen, og API-et, Terraform og MCP avviser den, men sakene som har den, beholder den, og du kan fortsatt filtrere på den. Arkiverte verdier står i den sammenslåtte delen **Arkiverte saksstatuser** eller **Arkiverte saksprioriteter** under tabellen, der **Fjern fra arkiv** henter en tilbake. **Slett** avvises så lenge saker har verdien eller en playbook kjører fra prioriteten.
 
+## Responsmål
+
+Et responsmål er hvor raskt en sak må behandles: **Bekreft innen**, hvor lenge en ny sak kan vente på at noen tar den, og **Begrens innen**, hvor lang tid det kan ta før den er begrenset eller lukket. Hver saksprioritet har sine egne, under **Produkter → Security Events → Innstillinger → Responsmål**: med **Rediger** på raden til en prioritet setter du de to målene, i minutter, timer eller dager, opptil ett år, og et tomt mål betyr ingen mål. Prioritetene i et nytt prosjekt starter med disse:
+
+| Prioritet | Bekreft innen | Begrens innen |
+| --- | --- | --- |
+| Kritisk | 15 minutter | 4 timer |
+| High | 1 time | 1 dag |
+| Medium | 12 timer | 3 dager |
+| Low | 1 dag | 7 dager |
+| Til orientering | Ingen mål | Ingen mål |
+
+Et prosjekt som ble opprettet før responsmål, har ingen før noen setter dem.
+
+- En saks frister settes når den åpnes, ut fra målene til prioriteten. Et mål som endres senere, gjelder sakene som åpnes etterpå.
+- En sak er bekreftet så snart noen tar den: en person tildeles, eller den flyttes til en status som teller som bekreftet. Den er begrenset så snart den når en status som teller som begrenset, eller lukkes.
+- Når en saks prioritet endres, forblir et mål den har nådd eller overskredet som det var. En høyere prioritet trekker en frist nærmere: det nye målet telles fra endringen, med mindre den gamle fristen kommer først. En lavere prioritet skyver den senere, aldri tidligere: det nye målet telles fra da saken ble åpnet. En prioritet uten mål beholder fristen til en hevet sak og fjerner fristen til en senket.
+- En lukket sak som åpnes igjen før den noen gang ble begrenset, får en ny frist for begrensning, regnet fra gjenåpningen.
+- I den siste femtedelen av et mål er saken i ferd med å overskride det: de som er på saken, får beskjed, og får beskjed igjen når målet er overskredet. Se [Varslinger](#varslinger).
+
+Her vises målene:
+
+- Toppen av saken nevner det neste målet og hvor mye tid som er igjen, eller hvor lenge det er overskredet: grått mens det er tid, ravgult i den siste femtedelen, rødt når det er overskredet.
+- På sakens **Oversikt**, under **Tid til bekreftelse** og **Tid til begrensning**: hvordan saken ligger an mot hvert mål, eller hvor langt over det saken gikk.
+- I køens lister: linjen under hver saks prioritet, og en kolonne **Frist** som du kan slå på og sortere etter. Listene viser dem bare når en av prosjektets prioriteter har et mål.
+
 ## Varslinger
 
-OneUptime gir folk beskjed om tre ting på en sak. Ingen trenger å sette opp noe: et prosjekt som bare har klikket på **Slå på anbefalt**, får høre om sakene sine med prioritet High og Kritisk via e-post og push.
+OneUptime gir folk beskjed om fem ting på en sak. Ingen trenger å sette opp noe: et prosjekt som bare har klikket på **Slå på anbefalt**, får høre om sakene sine med prioritet High og Kritisk via e-post og push.
 
 | Varsling | Hvem som får beskjed | Som standard |
 | --- | --- | --- |
 | Ny sikkerhetssak | Alle som kan se prosjektets saker, når en sak åpnes eller stiger, på prioriteten de har valgt eller høyere | E-post og push, for saker med High og Kritisk |
 | Sikkerhetssak tildelt meg | Personen saken er tildelt, og medlemmene av teamet den er tildelt | E-post og push |
 | Playbook-trinn venter på min godkjenning | Personene på saken som kan godkjenne steget: personen den er tildelt, og medlemmene av teamet dens. Kan ingen av dem godkjenne, alle i prosjektet som kan | E-post og push |
+| Responsmål for sikkerhetssak | De som er på saken: personen den er tildelt, og medlemmene av teamet dens. Er ingen på den, de som får beskjed om nye saker med prioriteten dens | E-post og push |
+| Oppgave i sikkerhetssak tildelt meg | Personen som får en oppgave i saken, med mindre vedkommende tok den selv | E-post og push |
 
 - Bare personer som kan se saken, får beskjed om den: Project Owners, Project Admins og rollene Security Admin, Security Member og Security Viewer. En rolle som er begrenset til noen etiketter, får bare beskjed om sakene med de etikettene.
 - Ingen får beskjed om det de selv gjorde: den som åpner en sak manuelt, tildeler den eller starter en kjøring, blir ikke varslet om det.
 - Hver person får høre om en sak én gang. En sak som åpnes på Medium og senere stiger til Kritisk, når ved stigningen fram til dem som valgte High eller Kritisk, og ikke på nytt til dem som valgte Medium, for de fikk høre om den da den ble åpnet.
 - Testangrepet fra **Send et testangrep** åpner en sak som ikke varsler noen.
-- En sak med Kritisk og et steg som venter på godkjenning, sendes med en gang og holdes aldri tilbake i en [e-postoppsummering](/docs/emails/notification-rollup).
+- En sak med Kritisk og et steg som venter på godkjenning, sendes med en gang og holdes aldri tilbake i en [e-postoppsummering](/docs/emails/notification-rollup). Det samme gjelder et responsmål som er i ferd med å overskrides, eller er overskredet.
 - Sakens **Tidslinje** viser hvem som fikk beskjed, og når.
 
 ### Velg hva du får beskjed om
@@ -199,7 +232,7 @@ For å legge ut i en kanal legger du til en regel under **Produkter → Security
 | Kilde for sikkerhetssak | Detection Rule, Threat Intel, Connected Product, Entitetsrisiko, Data Security eller Manual |
 | Etiketter for sikkerhetssak | Etikettene på saken |
 
-De tre varslingene legges hver ut i kanalene til hver regel saken treffer i det øyeblikket. En regel der **Prioritet for sikkerhetssak** inneholder en av **Kritisk** og **Høy**, legger ut saker med High og Kritisk når de åpnes, og en sak med Medium når den stiger til High. En sikkerhetssak får aldri en egen kanal.
+Alle varslinger unntatt en oppgaves legges ut i kanalene til hver regel saken treffer i det øyeblikket. En regel der **Prioritet for sikkerhetssak** inneholder en av **Kritisk** og **Høy**, legger ut saker med High og Kritisk når de åpnes, og en sak med Medium når den stiger til High. En sikkerhetssak får aldri en egen kanal.
 
 ## Playbooks
 
@@ -351,8 +384,8 @@ Over dem viser en stripe hvordan sikkerhet er satt opp: kildene, deteksjonene, s
 ## Automatiser
 
 - **Arbeidsflyter**: en sak eller et notat kan starte en arbeidsflyt når den opprettes, oppdateres eller slettes. Et steg **Kjør en arbeidsflyt** starter en arbeidsflyt som har en webhook som utløser.
-- **API**: saker, notater, deteksjoner, playbooks, kjøringer, beskyttede entiteter og saksprioriteter og saksstatuser har det samme REST-API-et som resten av OneUptime, under `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` og `/security-case-status`. Se [API-referanse](/docs/api-reference/api-reference).
-- AI-agenter: MCP-serveren har verktøy for saker, notater, deteksjoner, playbooks og saksprioriteter og saksstatuser. Se [MCP-server](/docs/ai/mcp-server).
+- **API**: saker, notater, oppgaver, bevis, deteksjoner, playbooks, kjøringer, beskyttede entiteter og saksprioriteter og saksstatuser har det samme REST-API-et som resten av OneUptime, under `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` og `/security-case-status`. Se [API-referanse](/docs/api-reference/api-reference).
+- AI-agenter: MCP-serveren har verktøy for saker, notater, oppgaver, bevis, deteksjoner, playbooks og saksprioriteter og saksstatuser. Se [MCP-server](/docs/ai/mcp-server).
 - Terraform: ressursene `oneuptime_security_case_priority` og `oneuptime_security_case_status` holder prioritetene og statusene til et prosjekt som kode.
 
 ## Feilsøking
@@ -363,6 +396,10 @@ Sjekk **Åpne en sak ved treff** i regelens steg **Ved treff**. En deteksjon om 
 
 :::details Ingen fikk beskjed om en sak
 Se på **Tidslinje** for saken, som viser hvem som ble varslet. En varsling om **Ny sikkerhetssak** går til personene som har valgt en prioritet saken når, så en sak med Medium varsler ingen som har beholdt standarden, **Høy og høyere**. Sjekk at personene som burde få beskjed, kan se sikkerhetssaker (en Security-rolle, Project Owner eller Project Admin), og at varslingen er slått på for dem under **Brukerinnstillinger → Varselinnstillinger → Sikkerhet**.
+:::
+
+:::details En sak viser ingen frist
+Prioriteten har ikke noe responsmål, eller fikk det først etter at saken ble åpnet: en saks frister settes når den åpnes. Saken fra testangrepet har ingen. Se [Responsmål](#responsmål).
 :::
 
 :::details En playbook kjørte ikke

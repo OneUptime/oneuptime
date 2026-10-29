@@ -116,10 +116,10 @@ const TITLE: string = "Checkout latency above 2s";
 const CREATE_PAGE_URL: string = `/dashboard/${PROJECT_ID}/incidents/create?alertIds=${ALERT_ID}`;
 
 const INCIDENT_CREATE_REASON: string =
-  "You do not have permission to create this Incident. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Create Incident.";
+  "You do not have permission to create this Incident. You need this permission: Create Incident.";
 
 const INCIDENT_ALERT_CREATE_REASON: string =
-  "You do not have permission to create this Incident Alert. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Alert Admin, Alert Member, Create Incident Alert.";
+  "You do not have permission to create this Incident Alert. You need this permission: Create Incident Alert.";
 
 const START: Date = new Date("2026-09-14T18:00:00.000Z");
 

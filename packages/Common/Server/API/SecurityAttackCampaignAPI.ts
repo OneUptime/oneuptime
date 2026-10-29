@@ -19,6 +19,7 @@ import Express, {
   NextFunction,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
+import TelemetryReadAccess from "../Utils/Telemetry/TelemetryReadAccess";
 import CommonAPI from "./CommonAPI";
 
 /*
@@ -26,9 +27,12 @@ import CommonAPI from "./CommonAPI";
  * the project's web attacks over a window, one row per address that sent
  * them, worst first (SecurityEventService.findAttackCampaigns).
  *
- * Takes the right to read security events, like every other read of them.
- * The window is the page's: at most SECURITY_ATTACK_CAMPAIGNS_MAX_DAYS
- * long, ending no later than now; without one, the last seven days.
+ * Takes the right to read security events, like every other read of them,
+ * and counts only the events of the sources the caller may read
+ * (TelemetryReadAccess): a Security role scoped to the sources it owns, or
+ * to some labels, sees the attacks on those sources alone. The window is
+ * the page's: at most SECURITY_ATTACK_CAMPAIGNS_MAX_DAYS long, ending no
+ * later than now; without one, the last seven days.
  */
 
 export const DEFAULT_CAMPAIGN_WINDOW_IN_DAYS: number = 7;
@@ -117,6 +121,10 @@ export default class SecurityAttackCampaignAPI {
               startTime: range.startTime,
               endTime: range.endTime,
               limit: SECURITY_ATTACK_CAMPAIGNS_MAX,
+              serviceFilter: await TelemetryReadAccess.getServiceFilter({
+                modelType: SecurityEvent,
+                props,
+              }),
             });
 
           const result: SecurityAttackCampaignsResult = {

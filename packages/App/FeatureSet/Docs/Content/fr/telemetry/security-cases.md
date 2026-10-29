@@ -6,7 +6,8 @@
 - [Origine des dossiers](#origine-des-dossiers): Les règles de détection, le renseignement sur les menaces, les produits connectés, le risque des entités et les personnes.
 - [Traiter un dossier](#traiter-un-dossier): L'assigner, enquêter sur ses entités, le fermer avec un verdict.
 - [Priorités et statuts des dossiers](#priorités-et-statuts-des-dossiers): Renommez-les, changez leur couleur et leur ordre, et ajoutez les vôtres.
-- [Notifications](#notifications): Qui est prévenu d'un nouveau dossier, d'une attribution et d'une étape en attente d'approbation.
+- [Objectifs de réponse](#objectifs-de-réponse): La rapidité avec laquelle un dossier de chaque priorité doit être pris en compte et confiné.
+- [Notifications](#notifications): Qui est prévenu d'un nouveau dossier, d'une attribution, d'un objectif de réponse, d'une tâche et d'une étape en attente d'approbation.
 - [Playbooks](#playbooks): Des étapes qui s'exécutent sur un dossier, avec une approbation là où elle compte.
 - [La vue d'ensemble](#la-vue-densemble): Ce qui demande une intervention maintenant, et la rapidité de traitement des dossiers.
 :::
@@ -36,9 +37,9 @@ Les droits sur les dossiers et les playbooks dépendent des trois rôles de séc
 
 | Rôle | Ce qu'il peut faire |
 | --- | --- |
-| Security Admin | Tout, y compris supprimer des dossiers et configurer des playbooks |
-| Security Member | Ouvrir, assigner, modifier et fermer des dossiers, écrire des notes, exécuter des playbooks et approuver ou rejeter leurs étapes |
-| Security Viewer | Lire les dossiers, les détections, les notes, les playbooks et leurs exécutions |
+| Security Admin | Tout, y compris supprimer des dossiers, retirer des preuves et configurer des playbooks |
+| Security Member | Ouvrir, assigner, modifier et fermer des dossiers, écrire des notes, traiter des tâches, ajouter des preuves, exécuter des playbooks et approuver ou rejeter leurs étapes |
+| Security Viewer | Lire les dossiers, les détections, les notes, les tâches, les preuves, les playbooks et leurs exécutions |
 
 Chacune de ces actions peut aussi être accordée isolément, de la création d'un dossier à l'approbation des étapes d'un playbook ; voir [Référence des autorisations](/docs/permissions/reference).
 
@@ -88,13 +89,13 @@ Un dossier a son propre menu latéral, comme un incident, et chaque partie du do
 | Section du menu latéral | Pages |
 | --- | --- |
 | **Vue d'ensemble** | **Vue d'ensemble**, **Chronologie** |
-| **Investigation** | **Déroulé**, **Détections**, **Entités**, **Signaux connectés**, **Playbooks** |
+| **Investigation** | **Déroulé**, **Détections**, **Entités**, **Signaux connectés**, **Preuves**, **Tâches**, **Playbooks** |
 | **Notes** | **Notes privées** |
 | **Avancé** | **Journaux d'audit**, **Supprimer le dossier**, repliés jusqu'à ce que vous cliquiez sur **Avancé** |
 
-Chaque page garde en haut l'en-tête du dossier : son numéro, sa priorité, son statut et son titre, **M'attribuer**, **Exécuter le playbook**, **Déclarer un incident** et **Fermer le dossier**, et, dans le menu ⋯ à côté, **Définir la priorité**, **Attribuer à quelqu'un d'autre**, **Changer le statut**, **Modifier le dossier** et **Supprimer le dossier**. Le dossier se traite ainsi depuis n'importe laquelle de ses pages, et un lien vers le dossier ouvre toujours sa **Vue d'ensemble**.
+Chaque page garde en haut l'en-tête du dossier : son numéro, sa priorité, son statut et son titre, **M'attribuer**, **Exécuter le playbook**, **Déclarer un incident** et **Fermer le dossier**, et, dans le menu ⋯ à côté, **Définir la priorité**, **Attribuer à quelqu'un d'autre**, **Changer le statut**, **Modifier le dossier** et **Supprimer le dossier**. Le dossier se traite ainsi depuis n'importe laquelle de ses pages, et un lien vers le dossier ouvre toujours sa **Vue d'ensemble**. Quand la priorité du dossier a des objectifs de réponse, l'en-tête indique aussi quand le prochain arrive à échéance ([Objectifs de réponse](#objectifs-de-réponse)).
 
-- **Vue d'ensemble** : la description, les libellés et les étapes de statut du dossier, qui l'a en charge et ce qui l'a ouvert, et ses chiffres : combien de détections il compte, depuis combien de temps il est ouvert, et le temps qu'il a fallu pour le prendre en compte et pour le contenir.
+- **Vue d'ensemble** : la description, les libellés et les étapes de statut du dossier, qui l'a en charge et ce qui l'a ouvert, et ses chiffres : combien de détections il compte, depuis combien de temps il est ouvert, et le temps qu'il a fallu pour le prendre en compte et pour le contenir. Sous **Délai de prise en compte** et **Délai de confinement**, elle indique où en est le dossier par rapport à ses objectifs de réponse.
 - **OneUptime AI**, sur la **Vue d'ensemble** : ce que OneUptime AI a tiré du dossier, la priorité et le playbook qu'il propose, et les preuves derrière. Voir [OneUptime AI dans la sécurité](/docs/telemetry/security-ai).
 - **Impact**, sur la **Vue d'ensemble** : ce que le dossier met en danger : si OneUptime a vu ses ressources atteintes depuis Internet, à qui elles appartiennent et ce qui a changé en dernier sur elles. Dépliez-le pour voir ce que chaque ressource appelle et ce qui l'appelle, les moniteurs et pages de statut qui la surveillent, et les machines avec lesquelles les adresses du dossier ont communiqué.
 - **MITRE ATT&CK**, sur la **Vue d'ensemble** : les tactiques et techniques auxquelles se rattachent ses détections, chacune liée à sa page sur attack.mitre.org.
@@ -103,6 +104,8 @@ Chaque page garde en haut l'en-tête du dossier : son numéro, sa priorité, son
 - **Détections** : ce qui s'est déclenché pour ouvrir le dossier ou s'y ajouter, combien de fois, et le dernier événement correspondant.
 - **Entités** : les utilisateurs, hôtes et adresses sur lesquels porte le dossier, avec leur activité dans l'ensemble de vos événements de sécurité des 7 derniers jours. Chacun s'ouvre dans **Corréler**.
 - **Signaux connectés** : les hôtes, clusters, services et membres que le dossier nomme, tels que OneUptime les connaît, et ce qui se passait sur chacun autour de ses détections : leurs journaux, traces et métriques, ce qui est ouvert sur eux et ce qui a changé. Voir [Signaux connectés](/docs/telemetry/security-connected-signals).
+- **Preuves** : les fichiers et les liens conservés sur le dossier, chacun avec qui l'a ajouté et quand. Le bouton **Ajouter un fichier** téléverse un fichier de 10 Mo au plus et enregistre le SHA-256 de ce qui a été téléversé, pour que quiconque le télécharge plus tard puisse vérifier que c'est bien ce qui a été conservé ; le bouton **Ajouter un lien** renvoie vers des preuves conservées ailleurs. Seul un Security Admin peut retirer une preuve, et la **Chronologie** du dossier indique ce qui a été ajouté et retiré.
+- **Tâches** : ce qu'il faut faire sur le dossier, qui s'en charge et si c'est fait. Ajoutez une tâche en une ligne, confiez-la à quelqu'un et cochez-la quand elle est faite. La personne à qui elle est confiée est prévenue, sauf si elle l'a prise elle-même, et le menu indique combien de tâches sont ouvertes à côté de **Tâches**.
 - **Playbooks** : ce que chaque playbook a fait sur le dossier, étape par étape, et les étapes en attente d'approbation. Tant que des exécutions attendent, le menu indique combien à côté de **Playbooks**.
 - **Notes privées** : ce que l'équipe a écrit sur le dossier.
 - **Journaux d'audit** : chaque modification apportée au dossier, et qui l'a faite. Voir [Journaux d'audit](/docs/configuration/audit-logs).
@@ -129,6 +132,8 @@ Inutile d'ouvrir un dossier pour le traiter. Dans les listes de la file d'attent
 
 Les verdicts sont comptabilisés sur la vue d'ensemble. Une règle dont les dossiers se ferment sans cesse en faux positif est une règle à ajuster.
 
+Tant que des tâches du dossier sont encore ouvertes, la fenêtre **Fermer le dossier** indique combien.
+
 Un dossier ouvert à partir d'alertes Google SecOps les ferme aussi dans Google SecOps, avec le verdict et la note de clôture, quand sa connexion a **Fermer les alertes quand leur dossier est fermé** activé : voir [Google SecOps](/docs/integrations/google-secops#fermer-les-alertes-quand-leur-dossier-est-fermé).
 
 ### Déclarer un incident
@@ -154,21 +159,49 @@ Certains sont prédéfinis, car OneUptime lit ce qu'ils signifient. On peut les 
 
 Pour ne plus utiliser un statut ou une priorité à vous, utilisez **Archiver** sur sa ligne. Plus personne ne peut le choisir, et l'API, Terraform et MCP le refusent, mais les dossiers qui l'ont le gardent, et vous pouvez toujours filtrer dessus. Les valeurs archivées sont listées dans la section repliée **Statuts de dossier archivés** ou **Priorités de dossier archivées** sous le tableau, où **Désarchiver** en rétablit une. **Supprimer** est refusé tant que des dossiers ont la valeur ou qu'un playbook part de la priorité.
 
+## Objectifs de réponse
+
+Un objectif de réponse fixe la rapidité avec laquelle un dossier doit être traité : **Prise en compte sous**, combien de temps un nouveau dossier peut attendre que quelqu'un le prenne en compte, et **Confinement sous**, combien de temps il peut mettre à être confiné ou fermé. Chaque priorité de dossier a les siens, sous **Produits → Événements de sécurité → Paramètres → Objectifs de réponse** : le bouton **Modifier** sur la ligne d'une priorité fixe ses deux objectifs, en minutes, en heures ou en jours, jusqu'à un an, et un objectif vide signifie aucun objectif. Les priorités d'un nouveau projet commencent avec ceux-ci :
+
+| Priorité | Prise en compte sous | Confinement sous |
+| --- | --- | --- |
+| Critical | 15 minutes | 4 heures |
+| High | 1 heure | 1 jour |
+| Medium | 12 heures | 3 jours |
+| Low | 1 jour | 7 jours |
+| Informational | Aucun objectif | Aucun objectif |
+
+Un projet créé avant les objectifs de réponse n'en a aucun tant que personne ne les fixe.
+
+- Les échéances d'un dossier sont fixées à son ouverture, d'après les objectifs de sa priorité. Un objectif modifié plus tard s'applique aux dossiers ouverts ensuite.
+- Un dossier est pris en compte dès que quelqu'un s'en charge : une personne lui est attribuée, ou il passe à un statut qui compte comme pris en compte. Il est confiné dès qu'il atteint un statut qui compte comme confiné, ou qu'il est fermé.
+- Quand la priorité d'un dossier change, un objectif qu'il a atteint ou manqué reste tel quel. Une priorité plus haute rapproche une échéance : le nouvel objectif compte à partir du changement, sauf si l'ancienne échéance arrive avant. Une priorité plus basse la repousse, sans jamais l'avancer : le nouvel objectif compte à partir de l'ouverture du dossier. Une priorité sans objectif garde l'échéance d'un dossier relevé et efface celle d'un dossier abaissé.
+- Un dossier fermé, rouvert avant d'avoir jamais été confiné, reçoit une nouvelle échéance de confinement, comptée à partir de la réouverture.
+- Dans le dernier cinquième d'un objectif, le dossier est sur le point de le manquer : les personnes qui s'en occupent sont prévenues, puis de nouveau quand il est manqué. Voir [Notifications](#notifications).
+
+Où les objectifs apparaissent :
+
+- L'en-tête du dossier nomme le prochain objectif et le temps qui reste, ou depuis combien de temps il est dépassé : en gris tant qu'il reste du temps, en ambre dans son dernier cinquième, en rouge une fois manqué.
+- Sur la **Vue d'ensemble** du dossier, sous **Délai de prise en compte** et **Délai de confinement** : où en est le dossier par rapport à chaque objectif, ou de combien il l'a dépassé.
+- Dans les listes de la file : la ligne sous la priorité de chaque dossier, et une colonne **Échéance** que vous pouvez afficher et utiliser pour trier. Les listes ne les affichent que lorsqu'une priorité du projet a un objectif.
+
 ## Notifications
 
-OneUptime prévient les personnes concernées de trois choses sur un dossier. Personne n'a rien à configurer : un projet qui a seulement cliqué sur **Activer les recommandations** est prévenu de ses dossiers de priorité Élevé et Critique par e-mail et par push.
+OneUptime prévient les personnes concernées de cinq choses sur un dossier. Personne n'a rien à configurer : un projet qui a seulement cliqué sur **Activer les recommandations** est prévenu de ses dossiers de priorité Élevé et Critique par e-mail et par push.
 
 | Notification | Qui est prévenu | Par défaut |
 | --- | --- | --- |
 | Nouveau dossier de sécurité | Toutes les personnes qui peuvent voir les dossiers du projet, quand un dossier s'ouvre ou monte en priorité, à partir de la priorité qu'elles ont choisie | Par e-mail et par push, pour les dossiers de priorité Élevé et Critique |
 | Dossier de sécurité qui m'est attribué | La personne à qui le dossier est attribué, et les membres de l'équipe à laquelle il est attribué | Par e-mail et par push |
 | Étape de playbook en attente de mon approbation | Les personnes du dossier qui peuvent approuver l'étape : la personne à qui il est attribué et les membres de son équipe. Quand aucune d'elles ne peut l'approuver, toutes les personnes du projet qui le peuvent | Par e-mail et par push |
+| Objectif de réponse d'un dossier de sécurité | Les personnes qui s'occupent du dossier : la personne à qui il est attribué et les membres de son équipe. Quand personne ne s'en occupe, les personnes prévenues des nouveaux dossiers de sa priorité | Par e-mail et par push |
+| Tâche d'un dossier de sécurité qui m'est attribuée | La personne à qui une tâche du dossier est confiée, sauf si elle l'a prise elle-même | Par e-mail et par push |
 
 - Seules les personnes qui peuvent voir le dossier en sont prévenues : Project Owner, Project Admin, et les rôles Security Admin, Security Member et Security Viewer. Un rôle limité à certaines étiquettes n'est prévenu que des dossiers qui portent ces étiquettes.
 - Personne n'est prévenu de ce qu'il a fait lui-même : la personne qui ouvre un dossier à la main, l'attribue ou lance une exécution n'en reçoit pas de notification.
 - Chaque personne n'est prévenue qu'une fois d'un dossier. Un dossier qui s'ouvre en Medium puis monte à Critique atteint, quand il monte, les personnes qui ont choisi Élevé et Critique ou Critique uniquement, mais pas de nouveau celles qui ont choisi Moyen et au-dessus, déjà prévenues à son ouverture.
 - L'attaque de test lancée avec **Envoyer une attaque de test** ouvre un dossier qui ne prévient personne.
-- Un dossier Critique et une étape en attente d'approbation sont envoyés aussitôt, jamais retenus dans un [récapitulatif par e-mail](/docs/emails/notification-rollup).
+- Un dossier Critique et une étape en attente d'approbation sont envoyés aussitôt, jamais retenus dans un [récapitulatif par e-mail](/docs/emails/notification-rollup). De même pour un objectif de réponse sur le point d'être manqué, ou manqué.
 - La **Chronologie** du dossier indique qui a été prévenu, et quand.
 
 ### Choisir ce dont vous êtes prévenu
@@ -199,7 +232,7 @@ Pour publier dans un canal, ajoutez une règle sous **Produits → Événements 
 | Source du dossier de sécurité | Règle de détection, Threat Intel, Connected Product, Risque des entités, Data Security ou Manuel |
 | Étiquettes du dossier de sécurité | Les étiquettes du dossier |
 
-Les trois notifications sont chacune publiées dans les canaux de toutes les règles auxquelles le dossier correspond à ce moment-là. Une règle où **Priorité du dossier de sécurité** contient l'une des valeurs **Critique** et **Élevé** publie les dossiers Élevé et Critique dès leur ouverture, et un dossier Medium quand il monte à Élevé. Un dossier de sécurité n'a jamais de canal à lui.
+Chaque notification, sauf celle d'une tâche, est publiée dans les canaux de toutes les règles auxquelles le dossier correspond à ce moment-là. Une règle où **Priorité du dossier de sécurité** contient l'une des valeurs **Critique** et **Élevé** publie les dossiers Élevé et Critique dès leur ouverture, et un dossier Medium quand il monte à Élevé. Un dossier de sécurité n'a jamais de canal à lui.
 
 ## Playbooks
 
@@ -351,8 +384,8 @@ Au-dessus, un bandeau montre comment la sécurité est mise en place : ses sourc
 ## Automatiser
 
 - **Flux de travail** : un dossier ou une note peut lancer un flux de travail quand il est créé, mis à jour ou supprimé. Une étape **Exécuter un flux de travail** lance un flux de travail dont le déclencheur est un webhook.
-- **API** : les dossiers, les notes, les détections, les playbooks, les exécutions, les entités protégées ainsi que les priorités et statuts de dossier ont la même API REST que le reste de OneUptime, sous `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` et `/security-case-status`. Voir [Référence de l'API](/docs/api-reference/api-reference).
-- Agents IA : le serveur MCP dispose d'outils pour les dossiers, les notes, les détections, les playbooks ainsi que les priorités et statuts de dossier. Voir [Serveur MCP](/docs/ai/mcp-server).
+- **API** : les dossiers, les notes, les tâches, les preuves, les détections, les playbooks, les exécutions, les entités protégées ainsi que les priorités et statuts de dossier ont la même API REST que le reste de OneUptime, sous `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` et `/security-case-status`. Voir [Référence de l'API](/docs/api-reference/api-reference).
+- Agents IA : le serveur MCP dispose d'outils pour les dossiers, les notes, les tâches, les preuves, les détections, les playbooks ainsi que les priorités et statuts de dossier. Voir [Serveur MCP](/docs/ai/mcp-server).
 - Terraform : les ressources `oneuptime_security_case_priority` et `oneuptime_security_case_status` gèrent sous forme de code les priorités et statuts d'un projet.
 
 ## Dépannage
@@ -363,6 +396,10 @@ Vérifiez **Ouvrir un dossier en cas de correspondance** à l'étape **En cas de
 
 :::details Personne n'a été prévenu d'un dossier
 Consultez la **Chronologie** du dossier, qui indique qui a été notifié. Une notification **Nouveau dossier de sécurité** va aux personnes dont la priorité choisie est atteinte par le dossier : un dossier Medium ne prévient donc personne qui ait gardé le choix par défaut, **Élevé et au-dessus**. Vérifiez que les personnes qui devraient être prévenues peuvent voir les dossiers de sécurité (avec un rôle de sécurité, ou comme Project Owner ou Project Admin), et que la notification est activée pour elles dans **Paramètres utilisateur → Paramètres de notification → Sécurité**.
+:::
+
+:::details Un dossier n'affiche aucune échéance
+Sa priorité n'a pas d'objectif de réponse, ou n'en a reçu un qu'après l'ouverture du dossier : les échéances d'un dossier sont fixées à son ouverture. Le dossier de l'attaque de test n'en a aucune. Voir [Objectifs de réponse](#objectifs-de-réponse).
 :::
 
 :::details Un playbook ne s'est pas exécuté

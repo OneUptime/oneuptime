@@ -9,6 +9,7 @@ import Host from "../../../../Models/DatabaseModels/Host";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import IoTFleet from "../../../../Models/DatabaseModels/IoTFleet";
 import KubernetesCluster from "../../../../Models/DatabaseModels/KubernetesCluster";
+import NetworkDevice from "../../../../Models/DatabaseModels/NetworkDevice";
 import PodmanHost from "../../../../Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "../../../../Models/DatabaseModels/ProxmoxCluster";
 import Service from "../../../../Models/DatabaseModels/Service";
@@ -36,6 +37,7 @@ import DockerSwarmClusterService from "../../../Services/DockerSwarmClusterServi
 import HostService from "../../../Services/HostService";
 import IoTFleetService from "../../../Services/IoTFleetService";
 import KubernetesClusterService from "../../../Services/KubernetesClusterService";
+import NetworkDeviceService from "../../../Services/NetworkDeviceService";
 import PodmanHostService from "../../../Services/PodmanHostService";
 import ProxmoxClusterService from "../../../Services/ProxmoxClusterService";
 import ServiceService from "../../../Services/ServiceService";
@@ -145,6 +147,12 @@ const READERS: Readonly<
     model: Host,
     findBy: (data: FindBy<BaseModel>): Promise<Array<BaseModel>> => {
       return HostService.findBy(data as never);
+    },
+  },
+  [AiAffectedResourceKind.NetworkDevice]: {
+    model: NetworkDevice,
+    findBy: (data: FindBy<BaseModel>): Promise<Array<BaseModel>> => {
+      return NetworkDeviceService.findBy(data as never);
     },
   },
   [AiAffectedResourceKind.DockerHost]: {

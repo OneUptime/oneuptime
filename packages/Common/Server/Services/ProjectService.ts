@@ -174,6 +174,7 @@ import PositiveNumber from "../../Types/PositiveNumber";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 import ActiveMonitorLimitUtil from "../../Types/Monitor/ActiveMonitorLimit";
+import AiFirstResponder from "../Utils/AI/FirstResponder/AiFirstResponder";
 import { IsNull, Repository, UpdateResult } from "typeorm";
 import { ColumnMetadata } from "typeorm/metadata/ColumnMetadata";
 import { EntityMetadata } from "typeorm/metadata/EntityMetadata";
@@ -1175,6 +1176,28 @@ export class ProjectService extends ProjectReferencesService<Model> {
     }
 
     await this.syncInvoiceDetailsToPaymentProvider(updateData, updatedItemIds);
+
+    /*
+     * OneUptime AI or fixing turned off: the pages AI holds while it works
+     * go to people at once, saying why (AiFirstResponder). Turned on, they
+     * change nothing - holds start with new records.
+     */
+    const isAiTurnedOff: boolean = updateData["enableAi"] === false;
+    const isIncidentFixingTurnedOff: boolean =
+      updateData["enableAutomaticIncidentRemediation"] === false;
+    const isAlertFixingTurnedOff: boolean =
+      updateData["enableAutomaticAlertRemediation"] === false;
+
+    if (isAiTurnedOff || isIncidentFixingTurnedOff || isAlertFixingTurnedOff) {
+      for (const projectId of updatedItemIds) {
+        await AiFirstResponder.onProjectAiSettingsChanged({
+          projectId: projectId,
+          isAiTurnedOff: isAiTurnedOff,
+          isIncidentFixingTurnedOff: isIncidentFixingTurnedOff,
+          isAlertFixingTurnedOff: isAlertFixingTurnedOff,
+        });
+      }
+    }
 
     this.announceSignInRulesChanged(
       SsoRequirementChanges.takeProjectsWhoseRuleChanged(

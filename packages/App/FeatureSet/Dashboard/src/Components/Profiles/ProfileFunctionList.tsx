@@ -293,6 +293,7 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
             className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400"
           />
           <input
+            data-unsaved-changes-ignore
             type="text"
             placeholder={translator.translateText("Search…")}
             className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"

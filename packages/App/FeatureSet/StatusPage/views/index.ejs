@@ -215,6 +215,12 @@
   <body class="h-full bg-gray-50">
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
+    <%# The card a page draws when its app cannot start (Partials/EntryLoadFailure.ejs) -%>
+    <%- include('../../../../Common/Server/Views/Partials/EntryLoadFailure', {
+      languageStorageKey: 'statusPageLang',
+      languageChoiceKey: 'statusPageLangUserChoice',
+      usesPageLanguage: true
+    }) -%>
     <script type="module" src="/status-page/dist/Index.js"></script>
     <script>
       tailwind.config = {

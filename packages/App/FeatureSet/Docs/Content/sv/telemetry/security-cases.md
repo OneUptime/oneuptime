@@ -6,7 +6,8 @@ Security Events gör det som dina detektionsregler, hotunderrättelser och anslu
 - [Var ärenden kommer ifrån](#var-ärenden-kommer-ifrån): Detektionsregler, hotunderrättelser, anslutna produkter, entitetsrisk och personer.
 - [Arbeta med ett ärende](#arbeta-med-ett-ärende): Tilldela det, utred dess entiteter och stäng det med en bedömning.
 - [Ärendeprioriteter och ärendestatusar](#ärendeprioriteter-och-ärendestatusar): Byt namn, färg och ordning på dem, och lägg till egna.
-- [Aviseringar](#aviseringar): Vem som får veta om ett nytt ärende, en tilldelning och ett steg som väntar på godkännande.
+- [Svarsmål](#svarsmål): Hur snabbt ett ärende med varje prioritet måste tas om hand och begränsas.
+- [Aviseringar](#aviseringar): Vem som får veta om ett nytt ärende, en tilldelning, ett svarsmål, en uppgift och ett steg som väntar på godkännande.
 - [Playbooks](#playbooks): Steg som körs på ett ärende, med godkännande där det spelar roll.
 - [Översikten](#översikten): Vad som behöver någon just nu, och hur snabbt ärenden hanteras.
 :::
@@ -36,9 +37,9 @@ flowchart TB
 
 | Roll | Vad den kan göra |
 | --- | --- |
-| Security Admin | Allt, inklusive att ta bort ärenden och konfigurera playbooks |
-| Security Member | Öppna, tilldela, ändra och stänga ärenden, skriva anteckningar, köra playbooks samt godkänna eller avvisa deras steg |
-| Security Viewer | Läsa ärenden, detektioner, anteckningar, playbooks och deras körningar |
+| Security Admin | Allt, inklusive att ta bort ärenden, ta bort bevis och konfigurera playbooks |
+| Security Member | Öppna, tilldela, ändra och stänga ärenden, skriva anteckningar, arbeta med uppgifter, lägga till bevis, köra playbooks samt godkänna eller avvisa deras steg |
+| Security Viewer | Läsa ärenden, detektioner, anteckningar, uppgifter, bevis, playbooks och deras körningar |
 
 Var och en av dessa behörigheter kan också ges för sig, från att skapa ett ärende till att godkänna en playbooks steg; se [Behörighetsreferens](/docs/permissions/reference).
 
@@ -88,13 +89,13 @@ Ett ärende har en egen sidomeny, som en incident har, och varje del av ärendet
 | Avsnitt i sidomenyn | Sidor |
 | --- | --- |
 | **Översikt** | **Översikt**, **Tidslinje** |
-| **Utredning** | **Förlopp**, **Detektioner**, **Entiteter**, **Kopplade signaler**, **Playbooks** |
+| **Utredning** | **Förlopp**, **Detektioner**, **Entiteter**, **Kopplade signaler**, **Bevis**, **Uppgifter**, **Playbooks** |
 | **Anteckningar** | **Privata anteckningar** |
 | **Avancerad** | **Granskningsloggar**, **Ta bort ärende**, hopfällda tills du klickar på **Avancerad** |
 
-Varje sida behåller ärendets sidhuvud överst: nummer, prioritet, status och titel, **Tilldela mig**, **Kör playbook**, **Deklarera incident** och **Stäng ärende**, och i menyn ⋯ bredvid dem **Ange prioritet**, **Tilldela någon annan**, **Ändra status**, **Redigera ärende** och **Ta bort ärende**. Så kan ärendet hanteras från vilken av dess sidor som helst, och en länk till ärendet öppnar fortfarande dess **Översikt**.
+Varje sida behåller ärendets sidhuvud överst: nummer, prioritet, status och titel, **Tilldela mig**, **Kör playbook**, **Deklarera incident** och **Stäng ärende**, och i menyn ⋯ bredvid dem **Ange prioritet**, **Tilldela någon annan**, **Ändra status**, **Redigera ärende** och **Ta bort ärende**. Så kan ärendet hanteras från vilken av dess sidor som helst, och en länk till ärendet öppnar fortfarande dess **Översikt**. När ärendets prioritet har svarsmål visar huvudet också när nästa förfaller ([Svarsmål](#svarsmål)).
 
-- **Översikt**: ärendets beskrivning, etiketter och statussteg, vem som har det och vad som öppnade det, och dess siffror: hur många detektioner det har, hur länge det har varit öppet, och hur lång tid det tog att kvittera och begränsa det.
+- **Översikt**: ärendets beskrivning, etiketter och statussteg, vem som har det och vad som öppnade det, och dess siffror: hur många detektioner det har, hur länge det har varit öppet, och hur lång tid det tog att kvittera och begränsa det. Under **Tid till bekräftelse** och **Tid till begränsning** står hur ärendet ligger till mot sina svarsmål.
 - **OneUptime AI**, på **Översikt**: vad OneUptime AI fick ut av ärendet, den prioritet och playbook som den föreslår, och bevisen bakom. Se [OneUptime AI i säkerhet](/docs/telemetry/security-ai).
 - **Påverkan**, på **Översikt**: vad ärendet sätter på spel: om OneUptime har sett dess poster nås från internet, vem som äger dem och vad som senast ändrades på dem. Fäll ut den för att se vad varje post anropar och vad som anropar den, de monitorer och statussidor som bevakar den, och de maskiner som ärendets adresser pratade med.
 - **MITRE ATT&CK**, på **Översikt**: taktikerna och teknikerna som dess detektioner mappas till, var och en länkad till sin sida på attack.mitre.org.
@@ -103,6 +104,8 @@ Varje sida behåller ärendets sidhuvud överst: nummer, prioritet, status och t
 - **Detektioner**: det som löste ut och öppnade ärendet eller lades till i det, hur ofta, och den senaste händelsen som träffade.
 - **Entiteter**: användarna, värdarna och adresserna som ärendet handlar om, med deras aktivitet i alla dina säkerhetshändelser under de senaste 7 dagarna. Var och en öppnas i **Korrelera**.
 - **Kopplade signaler**: de värdar, kluster, tjänster och medlemmar som ärendet nämner, som OneUptime känner dem, och vad som hände på var och en kring dess detekteringar: deras loggar, spår och mätvärden, vad som är öppet på dem och vad som ändrades. Se [Kopplade signaler](/docs/telemetry/security-connected-signals).
+- **Bevis**: filerna och länkarna som sparas i ärendet, var och en med vem som lade till den och när. Med **Lägg till fil** laddar du upp en fil på upp till 10 MB, och SHA-256 för det som laddades upp sparas, så att den som laddar ner den senare kan kontrollera att det är det som sparades; med **Lägg till länk** pekar du på bevis som sparas någon annanstans. Bara en Security Admin kan ta bort bevis, och ärendets **Tidslinje** visar vad som lades till och togs bort.
+- **Uppgifter**: vad som måste göras i ärendet, vem som gör det och om det är gjort. Lägg till en uppgift som en rad, ge den till någon och bocka av den när den är klar. Den som får uppgiften får veta det, om inte personen tog den själv, och menyn visar bredvid **Uppgifter** hur många uppgifter som är öppna.
 - **Playbooks**: vad varje playbook gjorde i ärendet, steg för steg, och stegen som väntar på godkännande. Medan körningar väntar visar menyn hur många bredvid **Playbooks**.
 - **Privata anteckningar**: vad teamet skrev om ärendet.
 - **Granskningsloggar**: varje ändring av ärendet, och vem som gjorde den. Se [Granskningsloggar](/docs/configuration/audit-logs).
@@ -129,6 +132,8 @@ Du behöver inte öppna ett ärende för att arbeta med det. I köns listor har 
 
 Bedömningarna räknas på översikten. En regel vars ärenden gång på gång stängs som False Positive är en regel som behöver finjusteras.
 
+Så länge uppgifter i ärendet fortfarande är öppna säger dialogen **Stäng ärende** hur många.
+
 Ett ärende som öppnats från Google SecOps-larm stänger dem också i Google SecOps, med utlåtandet och avslutningsanteckningen, när dess anslutning har **Stäng larm när deras ärende stängs** påslaget: se [Google SecOps](/docs/integrations/google-secops#stäng-larm-när-deras-ärende-stängs).
 
 ### Deklarera en incident
@@ -154,21 +159,49 @@ Några är inbyggda, eftersom OneUptime läser vad de betyder. De kan byta namn 
 
 För att sluta använda en egen status eller prioritet använder du **Arkivera** på dess rad. Ingen kan välja den igen, och API:t, Terraform och MCP avvisar den, men ärendena som har den behåller den, och du kan fortfarande filtrera på den. Arkiverade värden listas i den hopfällda sektionen **Arkiverade ärendestatusar** eller **Arkiverade ärendeprioriteter** under tabellen, där **Avarkivera** tar tillbaka ett. **Ta bort** avvisas så länge ärenden har värdet eller en playbook körs från prioriteten.
 
+## Svarsmål
+
+Ett svarsmål är hur snabbt ett ärende måste hanteras: **Bekräfta inom**, hur länge ett nytt ärende får vänta på att någon tar det, och **Begränsa inom**, hur lång tid det får ta innan det är begränsat eller stängt. Varje ärendeprioritet har sina egna, under **Produkter → Security Events → Inställningar → Svarsmål**: med **Redigera** på en prioritets rad ställer du in dess två mål, i minuter, timmar eller dagar, upp till ett år, och ett tomt mål betyder inget mål. Ett nytt projekts prioriteter börjar med dessa:
+
+| Prioritet | Bekräfta inom | Begränsa inom |
+| --- | --- | --- |
+| Critical | 15 minuter | 4 timmar |
+| High | 1 timme | 1 dag |
+| Medium | 12 timmar | 3 dagar |
+| Low | 1 dag | 7 dagar |
+| Informational | Inget mål | Inget mål |
+
+Ett projekt som skapades före svarsmålen har inga förrän någon ställer in dem.
+
+- Ett ärendes förfallotider sätts när det öppnas, utifrån prioritetens mål. Ett mål som ändras senare gäller de ärenden som öppnas därefter.
+- Ett ärende är bekräftat så snart någon tar det: en person tilldelas, eller det flyttas till en status som räknas som bekräftad. Det är begränsat så snart det når en status som räknas som begränsad, eller stängs.
+- När ett ärendes prioritet ändras förblir ett mål som det har nått eller missat som det var. En högre prioritet flyttar en förfallotid närmare: det nya målet räknas från ändringen, om inte den gamla förfallotiden kommer först. En lägre prioritet flyttar den senare, aldrig tidigare: det nya målet räknas från när ärendet öppnades. En prioritet utan mål behåller förfallotiden för ett höjt ärende och tar bort den för ett sänkt.
+- Ett stängt ärende som öppnas igen innan det någonsin har begränsats får en ny förfallotid för begränsning, räknad från återöppningen.
+- Under den sista femtedelen av ett mål håller ärendet på att missa det: de som är på ärendet får veta det, och får veta det igen när målet är missat. Se [Aviseringar](#aviseringar).
+
+Här syns målen:
+
+- Ärendets huvud nämner nästa mål och hur mycket tid som är kvar, eller hur länge det har varit försenat: grått medan det finns tid, bärnstensgult under den sista femtedelen, rött när det är missat.
+- På ärendets **Översikt**, under **Tid till bekräftelse** och **Tid till begränsning**: hur ärendet ligger till mot varje mål, eller hur långt över det ärendet gick.
+- I köns listor: raden under varje ärendes prioritet, och en kolumn **Förfaller** som du kan slå på och sortera efter. Listorna visar dem bara när någon av projektets prioriteter har ett mål.
+
 ## Aviseringar
 
-OneUptime berättar för personer om tre saker som händer i ett ärende. Ingen behöver ställa in något: ett projekt som bara har klickat på **Slå på rekommenderat** får veta om sina ärenden med High och Critical via e-post och push.
+OneUptime berättar för personer om fem saker som händer i ett ärende. Ingen behöver ställa in något: ett projekt som bara har klickat på **Slå på rekommenderat** får veta om sina ärenden med High och Critical via e-post och push.
 
 | Avisering | Vem som får veta | Som standard |
 | --- | --- | --- |
 | Nytt säkerhetsärende | Alla som kan se projektets ärenden, när ett ärende öppnas med, eller stiger till, den prioritet de har valt eller högre | E-post och push, för ärenden med High och Critical |
 | Säkerhetsärende tilldelat mig | Personen som ärendet är tilldelat, och medlemmarna i teamet som det är tilldelat | E-post och push |
 | Playbook-steg väntar på mitt godkännande | De personer i ärendet som kan godkänna steget: personen som ärendet är tilldelat och medlemmarna i dess team. När ingen av dem kan godkänna, alla i projektet som kan | E-post och push |
+| Svarsmål för säkerhetsärende | De som är på ärendet: personen som ärendet är tilldelat och medlemmarna i dess team. När ingen är på det, de som får veta om nya ärenden med dess prioritet | E-post och push |
+| Uppgift i säkerhetsärende tilldelad mig | Personen som får en uppgift i ärendet, om inte personen tog den själv | E-post och push |
 
 - Bara personer som kan se ärendet får veta om det: Project Owner, Project Admin och rollerna Security Admin, Security Member och Security Viewer. Den som har en roll som är begränsad till vissa etiketter får bara veta om ärenden med de etiketterna.
 - Ingen får veta om det den själv har gjort: den som öppnar ett ärende manuellt, tilldelar det eller startar en körning aviseras inte om det.
 - Varje person får bara veta om ett ärende en gång. Ett ärende som öppnas med Medium och senare stiger till Critical når dem som valde High eller Critical när det stiger, men inte igen dem som valde Medium, som fick veta om det när det öppnades.
 - Testattacken från **Skicka en testattack** öppnar ett ärende som inte aviserar någon.
-- Ett ärende med Critical och ett steg som väntar på godkännande skickas direkt och hålls aldrig kvar i en [e-postsammanfattning](/docs/emails/notification-rollup).
+- Ett ärende med Critical och ett steg som väntar på godkännande skickas direkt och hålls aldrig kvar i en [e-postsammanfattning](/docs/emails/notification-rollup). Detsamma gäller ett svarsmål som håller på att missas eller har missats.
 - Ärendets **Tidslinje** visar vem som fick veta, och när.
 
 ### Välj vad du får veta
@@ -199,7 +232,7 @@ För att posta i en kanal lägger du till en regel under **Produkter → Securit
 | Källa för säkerhetsärende | Detection Rule, Threat Intel, Connected Product, Entitetsrisk, Data Security eller Manual |
 | Etiketter för säkerhetsärende | Ärendets etiketter |
 
-Var och en av de tre aviseringarna postas i kanalerna för varje regel som ärendet matchar just då. En regel där **Prioritet för säkerhetsärende** innehåller någon av **Kritisk** och **Hög** postar ärenden med High och Critical när de öppnas, och ett ärende med Medium när det stiger till High. Ett säkerhetsärende får aldrig en egen kanal.
+Varje avisering utom en uppgifts postas i kanalerna för varje regel som ärendet matchar just då. En regel där **Prioritet för säkerhetsärende** innehåller någon av **Kritisk** och **Hög** postar ärenden med High och Critical när de öppnas, och ett ärende med Medium när det stiger till High. Ett säkerhetsärende får aldrig en egen kanal.
 
 ## Playbooks
 
@@ -351,8 +384,8 @@ Ovanför visar en remsa hur säkerhet är uppsatt: dess källor, detektioner, ä
 ## Automatisera
 
 - **Arbetsflöden**: ett ärende eller en anteckning kan starta ett arbetsflöde när det skapas, uppdateras eller tas bort. Ett steg **Kör ett arbetsflöde** startar ett arbetsflöde vars utlösare är en webhook.
-- **API**: ärenden, anteckningar, detektioner, playbooks, körningar, skyddade entiteter och ärendeprioriteter och ärendestatusar har samma REST API som resten av OneUptime, under `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` och `/security-case-status`. Se [API-referens](/docs/api-reference/api-reference).
-- AI-agenter: MCP-servern har verktyg för ärenden, anteckningar, detektioner, playbooks och ärendeprioriteter och ärendestatusar. Se [MCP-server](/docs/ai/mcp-server).
+- **API**: ärenden, anteckningar, uppgifter, bevis, detektioner, playbooks, körningar, skyddade entiteter och ärendeprioriteter och ärendestatusar har samma REST API som resten av OneUptime, under `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` och `/security-case-status`. Se [API-referens](/docs/api-reference/api-reference).
+- AI-agenter: MCP-servern har verktyg för ärenden, anteckningar, uppgifter, bevis, detektioner, playbooks och ärendeprioriteter och ärendestatusar. Se [MCP-server](/docs/ai/mcp-server).
 - Terraform: resurserna `oneuptime_security_case_priority` och `oneuptime_security_case_status` håller ett projekts prioriteter och statusar som kod.
 
 ## Felsökning
@@ -363,6 +396,10 @@ Kontrollera **Öppna ett ärende vid matchning** i regelns steg **Vid träff**. 
 
 :::details Ingen fick veta om ett ärende
 Titta på ärendets **Tidslinje**, som visar vem som aviserades. En avisering om **Nytt säkerhetsärende** går till de personer vars valda prioritet ärendet når, så ett ärende med Medium aviserar ingen som har kvar standardvalet, **Hög och högre**. Kontrollera att de som borde få veta kan se säkerhetsärenden (en Security-roll, eller Project Owner eller Project Admin), och att aviseringen är påslagen för dem under **Användarinställningar → Aviseringsinställningar → Säkerhet**.
+:::
+
+:::details Ett ärende visar ingen förfallotid
+Dess prioritet har inget svarsmål, eller fick ett först efter att ärendet öppnades: ett ärendes förfallotider sätts när det öppnas. Testattackens ärende har ingen. Se [Svarsmål](#svarsmål).
 :::
 
 :::details En playbook kördes inte

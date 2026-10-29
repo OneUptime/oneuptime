@@ -46,26 +46,26 @@ La spesa è il segnale più sicuro di un agente fuori controllo. Un budget somma
 :::steps
 1. Apri **Prodotti → AI / LLM → Budget** e fai clic su **Crea: LLM Cost Budget**. Imposta un **Budget giornaliero (USD)** e scegli il servizio dell'agente in **Servizio (facoltativo)**, così il budget sorveglia solo quell'agente.
 2. Nel menu della riga del nuovo budget, scegli **Mostra ID** e copia l'ID.
-3. Crea un [monitor di metriche](/docs/monitor/metrics-monitor) su `oneuptime.llm.budget.percent.used`, filtrato per l'attributo `oneuptime.llm.budget.id` con l'ID che hai copiato, e imposta il suo **Intervallo di tempo** su **Ultimi 30 minuti**.
-4. Aggiungi un criterio **Maggiore o uguale a** `100` che crei un avviso, e dagli un **Titolo dell'avviso** che nomini l'agente, come `LLM budget exceeded: support-bot`. Il flusso di lavoro e il tuo endpoint leggono entrambi quel titolo.
+3. Crea un [monitor di metriche](/docs/monitor/metrics-monitor) su `oneuptime.llm.budget.percent.used`, filtrato per l'attributo `oneuptime.llm.budget.id` con l'ID che hai copiato, e imposta la sua **Finestra temporale** su **Ultimi 30 minuti**.
+4. In **Quando avvisare**, imposta la **Condizione** su **Pari o superiore a** e il **Valore** su `100`, lascia **Crea un avviso**, e dagli un **Titolo dell'avviso** che nomini l'agente, come `LLM budget exceeded: support-bot`. Il flusso di lavoro e il tuo endpoint leggono entrambi quel titolo.
 :::
 
 Filtra per ID, non per nome: rinominare un budget rinomina la sua serie, e un monitor filtrato sul vecchio nome smetterebbe di corrispondere senza avvisare. Tieni l'intervallo a 30 minuti: un budget pubblica un punto ogni 15 minuti, quindi un intervallo più breve non trova nulla tra due punti e l'avviso si apre e si risolve di continuo.
 
-Un secondo criterio a `80` con una gravità più bassa avvisa prima una persona, tramite la politica di reperibilità dell'avviso, prima che il circuit breaker scatti a `100`.
+Un secondo criterio a `80` con una gravità più bassa, aggiunto con **Modifica come criteri personalizzati**, avvisa prima una persona, tramite la politica di reperibilità dell'avviso, prima che il circuit breaker scatti a `100`.
 
 ### Un avviso di ciclo
 
 Un agente bloccato lascia una traccia riconoscibile: lo stesso span di strumento, di continuo. Un'esecuzione sana non chiama uno strumento decine di volte in pochi minuti, quindi un conteggio rileva il ciclo molto prima del budget.
 
 :::steps
-1. Apri **Monitor**, fai clic su **Crea monitor** e scegli **Tracce** in **Altri tipi di monitor**.
-2. In **Altri campi**, imposta **Filtra per servizio di telemetria** sul servizio dell'agente e **Filtra per attributi** su `gen_ai.tool.name` uguale allo strumento su cui ti aspetti il ciclo, come `search_web`. Se la tua strumentazione dà un nome allo span di ogni strumento, metti invece quel nome in **Nome dello span**.
-3. Imposta **Tracce del monitor per (time)** su **Ultimi 5 minuti**.
-4. Aggiungi un criterio **Span Count** **Maggiore di** un numero che nessuna esecuzione sana raggiunge in cinque minuti, come `50`, che crei un avviso intitolato ad esempio `Agent loop: support-bot`.
+1. Apri **Monitor**, fai clic su **Crea monitor** e scegli **Tracce** in **Altri tipi di monitor**. In **Di cosa deve informarti questo monitor?**, scegli **Qualcos'altro** e svuota **Stato dello span**.
+2. In **Altri campi**, imposta **Filtra per servizio di telemetria** sul servizio dell'agente e **Filtra per attributi** su `gen_ai.tool.name` uguale allo strumento su cui ti aspetti il ciclo, come `search_web`. Se la tua strumentazione dà un nome allo span di ogni strumento, metti invece quel nome in **Il nome dello span contiene**.
+3. Imposta la **Finestra temporale** su **Ultimi 5 minuti**.
+4. In **Quando avvisare**, imposta **Più di** un numero che nessuna esecuzione sana raggiunge in cinque minuti, come `50`, e intitola l'avviso ad esempio `Agent loop: support-bot`.
 :::
 
-Un secondo monitor di tracce con **Filtra per stato dello span** su **Errore** e un conteggio più basso rileva le tempeste di tentativi: uno strumento che continua a fallire e un agente che continua a riprovarlo.
+Un secondo monitor di tracce con **Stato dello span** su **Errore** e un conteggio più basso rileva le tempeste di tentativi: uno strumento che continua a fallire e un agente che continua a riprovarlo.
 
 ## Costruisci l'endpoint di arresto
 

@@ -6,6 +6,8 @@ import {
   ANALYTICS_WAITING_NOTE,
   API_CALL_COUNT,
   APPLIANCE_COUNT,
+  DESCRIBED_DEVICES_NOTE,
+  DEVICE_COUNT,
   MERAKI_CONNECTION_NAME,
   MERAKI_STATUS_WORDS,
   MERAKI_TONE_PILL,
@@ -488,7 +490,7 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
     <div id={MERAKI_CONNECTIONS_ANCHOR} className="scroll-mt-4">
       <Card
         title="Meraki"
-        description="The Meraki organizations OneUptime reads traffic from, through the Meraki dashboard API."
+        description="The Meraki organizations OneUptime reads traffic and device details from, through the Meraki dashboard API."
         rightElement={
           canCreate ? (
             <Button
@@ -572,6 +574,13 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
                           NETWORK_COUNT,
                           summary.networkCount,
                         ),
+                        // Every device, when the read counted them.
+                        summary.deviceCount !== undefined
+                          ? translator.translatePlural(
+                              DEVICE_COUNT,
+                              summary.deviceCount,
+                            )
+                          : "",
                         translator.translatePlural(
                           APPLIANCE_COUNT,
                           summary.applianceCount,
@@ -587,6 +596,20 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
                 ].filter(Boolean);
 
                 const notes: Array<RowNote> = [];
+
+                /*
+                 * What the read did for Inventory: the devices here that are
+                 * Meraki devices, with what they take from it.
+                 */
+                if (summary && (summary.describedDeviceCount || 0) > 0) {
+                  notes.push({
+                    text: translator.translatePlural(
+                      DESCRIBED_DEVICES_NOTE,
+                      summary.describedDeviceCount || 0,
+                    ),
+                    isToActOn: false,
+                  });
+                }
 
                 if (summary && summary.trafficAnalysisOffNetworks > 0) {
                   notes.push({

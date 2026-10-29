@@ -59,16 +59,16 @@ Per provare il controllo prima di salvare, fai clic su **Testa il monitor** nel 
 
 ## Essere avvisati quando va giù
 
-Così com'è, un incidente senza proprietari viene inviato via e-mail ai proprietari del progetto, e tra loro ci sei tu. Per essere avvisato finché qualcuno non risponde, crea una policy di reperibilità e falla attivare da ogni incidente.
+Così com'è, un incidente senza proprietari viene inviato via e-mail ai proprietari del progetto, e tra loro ci sei tu. Per essere avvisato finché qualcuno non risponde, crea una policy di reperibilità: la prima di un progetto si attiva per ogni nuovo incidente e ogni nuovo avviso.
 
 :::steps
 ### Creare una policy di reperibilità
 
-Nell'elenco, fai clic su **Configura una policy di reperibilità**, oppure apri **Reperibilità** dal menu **Prodotti**. Fai clic su **Crea: Policy di reperibilità** e inserisci un **Nome**. In **Chi viene avvisato per primo?**, fai clic su **Aggiungi destinatario** e scegli te stesso. Fai clic su **Crea: Policy di reperibilità**.
+Nell'elenco, fai clic su **Configura una policy di reperibilità**, oppure apri **Reperibilità** dal menu **Prodotti**. Fai clic su **Crea: Policy di reperibilità** e inserisci un **Nome**. In **Chi viene avvisato per primo?**, fai clic su **Aggiungi destinatario** e scegli te stesso. Lascia attivo **Attivarla per ogni nuovo incidente e ogni nuovo avviso** e fai clic su **Crea: Policy di reperibilità**.
 
-### Attivarla per ogni incidente
+### Vedere la regola che la attiva
 
-Apri **Incidenti** dal menu **Prodotti**, espandi **Regole** nel menu laterale e scegli **Regole di reperibilità**. Fai clic su **Crea: Incident On-Call Rule**, inserisci un **Nome** e fai clic su **Avanti**. In **Criteri di corrispondenza**, lascia selezionato **Tutti gli incidenti**, così la regola vale per ogni incidente, e fai clic su **Avanti**. Scegli la tua policy in **Policy di reperibilità** e fai clic su **Crea: Incident On-Call Rule**.
+L'interruttore ha aggiunto una regola di reperibilità per gli incidenti e una per gli avvisi. Per vedere la tua, apri **Incidenti** dal menu **Prodotti**, espandi **Regole** nel menu laterale e scegli **Regole di reperibilità**: corrisponde a **Tutti gli incidenti**. Per attivare la policy solo per alcuni incidenti, come quelli critici, modifica lì la regola, oppure fai clic su **Crea: Incident On-Call Rule** per aggiungerne una tua.
 
 ### Scegliere come essere raggiunto
 

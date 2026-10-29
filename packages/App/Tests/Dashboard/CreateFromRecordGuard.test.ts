@@ -164,6 +164,11 @@ const RECORD_TABS: Array<RecordTabShape> = [
     CreateFromRecordKind.Host,
     INCIDENTS_ALERTS_AND_MAINTENANCE,
   ),
+  // Incidents and alerts hold network devices (#5341); maintenance does not yet.
+  ...kindTabs("NetworkDevice", CreateFromRecordKind.NetworkDevice, [
+    CreatedRecordKind.Incident,
+    CreatedRecordKind.Alert,
+  ]),
   ...kindTabs(
     "Kubernetes",
     CreateFromRecordKind.KubernetesCluster,

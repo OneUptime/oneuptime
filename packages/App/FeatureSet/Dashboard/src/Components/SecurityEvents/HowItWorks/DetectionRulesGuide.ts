@@ -269,7 +269,28 @@ export const SIGMA_MODIFIER_DOCS: Array<SigmaModifierDoc> = [
       "Also match each value with its dashes swapped for slashes, so -flag and /flag both match.",
     example: "CommandLine|windash|contains: ' -exec '",
   },
+  {
+    modifier: "expand",
+    meaning:
+      "The field is on one of your watchlists, named between % signs. Used alone: the list's values say how they match.",
+    example: "principalUser|expand: '%vip_users%'",
+  },
 ];
+
+/*
+ * A rule that reads two watchlists: an admin's sign-in from an address that
+ * is not on the allowed list. Exported so tests put it through the real
+ * parser, and the compiler with the lists bound.
+ */
+export const WATCHLIST_RULE_EXAMPLE_YAML: string = `title: Admin sign-in from an unexpected address
+level: high
+detection:
+  admin_sign_in:
+    className: Authentication
+    principalUser|expand: '%admins%'
+  allowed:
+    principalIp|expand: '%admin_addresses%'
+  condition: admin_sign_in and not allowed`;
 
 export interface SigmaFieldDoc {
   column: string;
@@ -518,6 +539,16 @@ ${markdownTable(
 
 Any other modifier is rejected at save.
 
+#### Watchlists
+
+A watchlist is a list your team keeps under **Detections > Watchlists**: VIP users, critical hosts, known-bad file hashes, the addresses admins may sign in from. A rule reads one by its name with \`expand\`, so the list is kept in one place and every rule that names it sees its changes on its next run:
+
+\`\`\`yaml
+${WATCHLIST_RULE_EXAMPLE_YAML}
+\`\`\`
+
+The field matches when it is on the list: whatever the case, with \`*\` in a value matching any run of characters, and an IP address list's ranges as ranges. \`not\` reads an allow list. A list's values are kept by hand or imported, or a list follows a threat intel feed's indicators. A rule that names a list the project does not have is refused when you save it.
+
 #### Field names
 
 A field can be a typed event column, a common Sigma spelling of one, or any key from the event's attributes.
@@ -745,6 +776,8 @@ The form shows the parser's reason. The usual causes:
 - \`logsource\` does not filter anything; a rule that relies on it matches more than you expect, not less.
 - With a threshold above 1, that many matches must land in **one** window. Try a longer interval or a lower threshold.
 - Events that arrive with a timestamp from before the rule's last run are never evaluated by it.
+- An exception skips them: **View Exceptions** in the rule's row lists what it skips.
+- **Run on Past Events** in the rule's row shows what it would have found over the last day, week or month.
 
 #### It matched, but no alert opened
 
@@ -756,8 +789,9 @@ The form shows the parser's reason. The usual causes:
 
 - The Group By Field has too many values — every value gets its own alert. Group by a coarser field, or remove it for one alert per rule.
 - The threshold is too low for the traffic. Raise it, or add a Distinct Count Field.
-- Known-good activity matches. Exclude it with a filter selection: \`condition: selection and not filter_known_good\`.
+- Known-good activity matches: a scanner, a backup job, a planned test. Add an exception for it - **Add Exception** in the rule's row, or on the detection in its case - with why, and when it expires. Or exclude it in the YAML with a filter selection: \`condition: selection and not filter_known_good\`.
 - You care about the rate, not each match. Set **Alerts and Incidents** to **Neither** and put a monitor on the rule's findings instead.
+- Before you save a change, see what it would have found: **Run on Past Events**, under the YAML as you edit the rule, runs it as it stands over past events, with its exceptions.
 `;
 
 const detectionRuleLevels: Array<SecurityEventsGuideLevel> =

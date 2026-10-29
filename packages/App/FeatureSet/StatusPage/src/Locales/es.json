@@ -404,6 +404,7 @@
   "Loading the latest version": "Cargando la versión más reciente",
   "A newer version of this page is available. It's loading now.": "Hay una versión más reciente de esta página. Se está cargando ahora.",
   "You're offline": "No tienes conexión",
+  "This page will come back as soon as you're online again, just as you left it.": "Esta página reaparecerá en cuanto vuelvas a tener conexión, tal como la dejaste.",
   "This page needs an internet connection to load. It will load as soon as you're back online.": "Esta página necesita conexión a internet para cargarse. Se cargará en cuanto vuelvas a tener conexión.",
   "Can't reach the server": "No se puede conectar con el servidor",
   "It may be restarting after an update. This page will load as soon as the server is back.": "Puede que se esté reiniciando tras una actualización. Esta página se cargará en cuanto el servidor vuelva a estar disponible.",

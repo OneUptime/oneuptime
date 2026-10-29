@@ -20,6 +20,7 @@ import {
   exportsMap,
   isBuiltinModule,
   isCandidateModule,
+  leftOutProblems,
   moduleIdOf,
   namesUsedFrom,
   packageManifest,
@@ -492,6 +493,104 @@ describe("which modules npm users get", () => {
             "needs @faker-js/faker, which Common does not depend on (Types/Uses -> Types/Faker)",
         },
       ],
+    });
+  });
+
+  describe("what the build leaves out is what BuildNpmPackage.js names", () => {
+    const candidates: Array<string> = [
+      "Types/Fine",
+      "Types/Logs",
+      "Utils/Analytics",
+      "Utils/Tracks",
+    ];
+    const selection: ModuleSelection = selectModules({
+      candidates,
+      requiresOf: graph({
+        "Types/Logs": { modules: ["Server/Utils/Logger"] },
+        "Utils/Tracks": { modules: ["Utils/Analytics"] },
+      }),
+      dependencies,
+      leftOut: { "Utils/Analytics": "a browser library" },
+    });
+    const onPurpose: Record<string, string> = {
+      "Utils/Analytics": "a browser library",
+    };
+    const pinned: Record<string, string> = {
+      "Types/Logs": "logs through the server's logger",
+      "Utils/Tracks": "tracks through the analytics left out on purpose",
+    };
+
+    test("agree: LEFT_OUT and PINNED_LEFT_OUT name every module left out, and only those", () => {
+      expect(
+        leftOutProblems({
+          leftOut: selection.leftOut,
+          candidates,
+          onPurpose,
+          pinned,
+        }),
+      ).toEqual([]);
+    });
+
+    test("a module left out that neither names: what keeps it out, and the two ways on", () => {
+      expect(
+        leftOutProblems({
+          leftOut: selection.leftOut,
+          candidates,
+          onPurpose,
+          pinned: { "Utils/Tracks": pinned["Utils/Tracks"] as string },
+        }),
+      ).toEqual([
+        "Types/Logs is left out now, and PINNED_LEFT_OUT does not name it: loads Server/Utils/Logger when it runs (Types/Logs -> Server/Utils/Logger). Keep it from loading that, or, if its npm users may lose it, add it to PINNED_LEFT_OUT with why.",
+      ]);
+    });
+
+    test("a pinned module the package would publish: take its line out", () => {
+      expect(
+        leftOutProblems({
+          leftOut: selection.leftOut,
+          candidates,
+          onPurpose,
+          pinned: { ...pinned, "Types/Fine": "it used to load UI code" },
+        }),
+      ).toEqual([
+        "Types/Fine is in PINNED_LEFT_OUT, but nothing keeps it out of the package any more: take its line out, and the package publishes it again.",
+      ]);
+    });
+
+    test("a pinned module that does not exist, or one LEFT_OUT names as well", () => {
+      expect(
+        leftOutProblems({
+          leftOut: selection.leftOut,
+          candidates,
+          onPurpose,
+          pinned: {
+            ...pinned,
+            "Utils/Deleted": "a module since deleted",
+            "Utils/Analytics": "named twice",
+          },
+        }),
+      ).toEqual([
+        "Utils/Analytics is in LEFT_OUT and in PINNED_LEFT_OUT: keep it in one of them.",
+        "Utils/Deleted is in PINNED_LEFT_OUT, but there is no such module under Types, Utils, Models: take its line out.",
+      ]);
+    });
+
+    test("every difference at once, one line each, by module", () => {
+      expect(
+        leftOutProblems({
+          leftOut: selection.leftOut,
+          candidates,
+          onPurpose: {},
+          pinned: { "Types/Fine": "it used to load UI code" },
+        }).map((problem: string): string => {
+          return problem.slice(0, problem.indexOf(" "));
+        }),
+      ).toEqual([
+        "Types/Fine",
+        "Types/Logs",
+        "Utils/Analytics",
+        "Utils/Tracks",
+      ]);
     });
   });
 

@@ -1,5 +1,5 @@
 /*
- * Offline fixture for Metrics' real AI tab.
+ * Offline fixture for Metrics' real AI tab, and its Insights tab.
  *
  * Metrics' layout (Pages/Metrics/Layout, its tabs and breadcrumbs) and its
  * AI section (Pages/Metrics/AI: the side menu, Insights, a finding's page
@@ -13,9 +13,14 @@
  * own), worker's metric names carry job ids, and payments sends traces but
  * no metrics.
  *
- * Scenarios are picked with query parameters (see MetricFindings.js), and
- * ?theme=dark is read by server.js. Every read and write is recorded on
- * window.__metricsAiFixture so a spec can check what the page asked for.
+ * The Insights tab (Pages/Metrics/List: the services reporting metrics, a
+ * card each) reads services, metric types and metric points, answered by
+ * MetricsInsights.js.
+ *
+ * Scenarios are picked with query parameters (see MetricFindings.js and
+ * MetricsInsights.js), and ?theme=dark is read by server.js. Every read and
+ * write is recorded on window.__metricsAiFixture so a spec can check what
+ * the page asked for.
  */
 import "Common/UI/Styles/Theme.css";
 import React from "react";
@@ -37,6 +42,9 @@ import MetricsAIInsights from "../../../App/FeatureSet/Dashboard/src/Pages/Metri
 import MetricsAIInsightView from "../../../App/FeatureSet/Dashboard/src/Pages/Metrics/AI/InsightView";
 import MetricsAILogs from "../../../App/FeatureSet/Dashboard/src/Pages/Metrics/AI/Logs";
 import MetricsAISettings from "../../../App/FeatureSet/Dashboard/src/Pages/Metrics/AI/Settings";
+import MetricsInsightsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Metrics/List";
+import Metric from "Common/Models/AnalyticsModels/Metric";
+import MetricType from "Common/Models/DatabaseModels/MetricType";
 import AIInsight from "Common/Models/DatabaseModels/AIInsight";
 import AutoRemediationRule from "Common/Models/DatabaseModels/AutoRemediationRule";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -66,6 +74,11 @@ import {
   fixSuggestion,
   saveProjectSwitches,
 } from "./MetricFindings";
+import {
+  insightsMetricTypes,
+  insightsMetrics,
+  insightsServices,
+} from "./MetricsInsights";
 
 const params = new URLSearchParams(window.location.search);
 const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
@@ -87,6 +100,8 @@ const SERVICES = Object.values(SERVICE_IDS).map((id) => {
 const fixture = {
   apiRequests: [],
   modelListRequests: [],
+  // The Insights tab's reads of metric points.
+  analyticsListRequests: [],
   fixRequests: [],
   // The project switches the AI settings saved.
   switchSaves: [],
@@ -186,12 +201,27 @@ function serviceRow(service) {
   return Object.assign(new Service(), { _id: service.id, name: service.name });
 }
 
+// Whether the page drawn is the Insights tab, which reads services of its own.
+function isInsightsTab() {
+  return window.location.pathname.endsWith("/metrics/insights");
+}
+
 ModelAPI.getList = async (options) => {
   const model = new options.modelType();
   fixture.modelListRequests.push({
     modelName: model.tableName,
     query: serialize(options.query),
   });
+
+  if (options.modelType === Service && isInsightsTab()) {
+    const services = insightsServices();
+    return { data: services, count: services.length, skip: 0, limit: 100 };
+  }
+
+  if (options.modelType === MetricType) {
+    const types = insightsMetricTypes();
+    return { data: types, count: types.length, skip: 0, limit: 100 };
+  }
 
   if (options.modelType === Service) {
     const ids = idsOf(options.query);
@@ -268,7 +298,37 @@ ModelAPI.updateById = async (options) => {
   return ok({});
 };
 
-AnalyticsModelAPI.getList = async () => {
+AnalyticsModelAPI.getList = async (options) => {
+  fixture.analyticsListRequests.push({
+    modelName: new options.modelType().tableName,
+    query: serialize(options.query),
+    limit: options.limit,
+  });
+
+  if (options.modelType === Metric) {
+    if (failures.has("metrics")) {
+      fail(500, "The metrics could not be read.");
+    }
+
+    // The services the page is scoped to, when it is.
+    const scoped =
+      options.query &&
+      options.query.primaryEntityId &&
+      Array.isArray(options.query.primaryEntityId.values)
+        ? options.query.primaryEntityId.values.map((id) => id.toString())
+        : null;
+    const points = insightsMetrics(PROJECT_ID, NOW).filter((point) => {
+      return !scoped || scoped.includes(point.primaryEntityId.toString());
+    });
+
+    return {
+      data: points.slice(0, options.limit),
+      count: points.length,
+      skip: 0,
+      limit: options.limit,
+    };
+  }
+
   return { data: [], count: 0, skip: 0, limit: 10 };
 };
 AnalyticsModelAPI.count = async () => 0;
@@ -329,6 +389,8 @@ function FixtureRoutes() {
               />
             }
           />
+          {/* The services reporting metrics, a card each. */}
+          <Route path="insights" element={<MetricsInsightsPage />} />
           {/* Open in Metrics lands on the metric, its query in the address. */}
           <Route
             path="view"

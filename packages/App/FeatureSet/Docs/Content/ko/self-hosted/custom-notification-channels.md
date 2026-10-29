@@ -17,7 +17,7 @@
 ## 작동 방식
 
 ```mermaid title="사용자 지정 채널을 통한 호출"
-flowchart LR
+flowchart TB
     OneUptime["OneUptime"]
     Service["자체 서비스"]
     App["자체 앱"]
@@ -31,7 +31,7 @@ flowchart LR
 
 ## 채널 추가하기
 
-1. Admin Dashboard에서 **설정**, **Custom Channels** 순서로 열고 **Add**를 선택합니다.
+1. Admin Dashboard에서 **설정** 을 열고 사이드 메뉴의 **알림 > Custom Channels** 를 연 다음 (**알림** 은 처음에 접혀 있습니다) **Add**를 선택합니다.
 2. **Channel** 단계에서 다음을 입력합니다.
    - **이름**: 사람들이 알림 방법과 온콜 규칙에서 보는 이름입니다. 예: `CorpoApp`.
    - **Webhook URL**: OneUptime이 각 호출을 보내는 곳입니다. 사설 네트워크에 있어도 됩니다.

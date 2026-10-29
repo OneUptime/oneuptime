@@ -975,9 +975,12 @@ describe("useResourceOwners exposes the chips a tile moves", () => {
 
     expect(bar).toContain(
       squash(
-        '{props.onClearAll && ( <button type="button" onClick={props.onClearAll}',
+        'const clearAll: ReactElement | null = props.onClearAll ? ( <button type="button" onClick={props.onClearAll}',
       ),
     );
+    // Drawn on Filter's line on a phone, at the row's end from md up.
+    expect(bar).toContain(squash("{toggle} {clearAll}"));
+    expect(bar).toContain(squash("{!isPhone && clearAll}"));
   });
 
   test("the hook returns what the tiles and the strip read", () => {

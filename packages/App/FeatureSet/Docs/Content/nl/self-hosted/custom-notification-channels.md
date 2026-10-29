@@ -17,13 +17,13 @@ Een aangepast kanaal stuurt oproepen van de bereikbaarheidsdienst naar een diens
 ## Hoe het werkt
 
 ```mermaid title="Een oproep via een aangepast kanaal"
-flowchart LR
+flowchart TB
     OneUptime["OneUptime"]
     Service["Uw dienst"]
     App["Uw app"]
-    OneUptime -->|"ondertekend JSON-verzoek"| Service
+    OneUptime -->|"ondertekend<br/>JSON-verzoek"| Service
     Service -->|"melding"| App
-    App -->|"Bevestigen, Escaleren, Oplossen"| Service
+    App -->|"Bevestigen,<br/>Escaleren, Oplossen"| Service
     Service -->|"POST naar de actielink"| OneUptime
 ```
 
@@ -31,7 +31,7 @@ Wanneer een bereikbaarheidsbeleid iemand oproept en diens bereikbaarheidsregel h
 
 ## Een kanaal toevoegen
 
-1. Open in het Admin Dashboard **Instellingen**, dan **Custom Channels**, en kies **Add**.
+1. Open in het Admin Dashboard **Instellingen**, dan **Meldingen > Custom Channels** in het zijmenu (**Meldingen** is eerst ingeklapt), en kies **Add**.
 2. Vul bij de stap **Channel** in:
    - **Naam**: wat mensen zien in hun meldingsmethoden en bereikbaarheidsregels, bijvoorbeeld `CorpoApp`.
    - **Webhook URL**: waar OneUptime elke oproep naartoe stuurt. Die mag in uw privénetwerk liggen.

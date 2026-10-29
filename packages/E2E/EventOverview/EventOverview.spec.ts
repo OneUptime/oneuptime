@@ -1,4 +1,5 @@
 import {
+  ElementHandle,
   expect,
   Locator,
   Page,
@@ -99,7 +100,7 @@ const DECLARE_INCIDENT_BUTTON_ID: string = "alert-declare-incident-btn";
 const DECLARE_INCIDENT_FROM_ALERT_PATH: string = `${DASHBOARD}/incidents/create?alertIds=${ALERT_ID}`;
 // Its disabled reason for someone who may not create incidents (PermissionGate).
 const DECLARE_INCIDENT_DENIED: string =
-  "You do not have permission to create this Incident. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Create Incident.";
+  "You do not have permission to create this Incident. You need this permission: Create Incident.";
 
 interface RecordedApiRequest {
   method: string;
@@ -768,6 +769,40 @@ async function documentBox(locator: Locator): Promise<Box> {
       height: rect.height,
     };
   });
+}
+
+/*
+ * The document boxes of several elements, read from one layout, for checks
+ * of where they sit against each other. documentBox() is a round trip of its
+ * own, and a card still filling in above them moves them all between two of
+ * those: on a busy runner the AI card draws its investigation after its
+ * conversation has loaded, and the composer below moves down by hundreds of
+ * pixels while its parts are read one by one.
+ */
+async function documentBoxes(
+  page: Page,
+  locators: Array<Locator>,
+): Promise<Array<Box>> {
+  const elements: Array<ElementHandle<Element>> = [];
+
+  for (const locator of locators) {
+    const element: ElementHandle<Element> | null =
+      await locator.elementHandle();
+    expect(element).not.toBeNull();
+    elements.push(element!);
+  }
+
+  return page.evaluate((nodes: Array<Element>): Array<Box> => {
+    return nodes.map((node: Element): Box => {
+      const rect: DOMRect = node.getBoundingClientRect();
+      return {
+        x: rect.left + window.scrollX,
+        y: rect.top + window.scrollY,
+        width: rect.width,
+        height: rect.height,
+      };
+    });
+  }, elements);
 }
 
 async function expectAbove(
@@ -2539,7 +2574,13 @@ const INCIDENT_EVIDENCE: ReadonlyArray<EvidenceCase> = [
       );
       const chart: Locator = details.getByRole("application");
       await expect(chart).toBeVisible();
-      await expect(chart).toContainText("2,600ms");
+      /*
+       * The axis writes its values as the dashboards do, each on one line:
+       * "2,600 ms" did not fit its 64 px and was drawn as "2,600" over
+       * "ms" (Ask AI's UI review, #5349).
+       */
+      await expect(chart).toContainText("2.6 s");
+      await expect(chart).toContainText("650 ms");
     },
   },
   {
@@ -3541,6 +3582,394 @@ test.describe("an investigation rule's wait (issue #5074)", () => {
         );
       }),
     ).toBe(0);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * A page OneUptime AI holds (#5351)
+ * ---------------------------------------------------------------------------
+ */
+
+/*
+ * An on-call rule set to After OneUptime AI tries holds the record's page
+ * while OneUptime AI works on it (?hold=1): the AI card says so before
+ * anything else, with when paging starts unless OneUptime AI resolves the
+ * record - 18:31 for incident #1042 and 18:36 for alert #311, 30 minutes from
+ * when each was declared - and Page now, for anyone who wants a person on it
+ * at once. Someone acknowledging a record ends its hold, so the held pages
+ * are opened before anybody did (?state=created). The notice reads the
+ * record's on-call runs that wait, marked Holding, and nothing more.
+ */
+const ON_CALL_RUNS: string = "OnCallDutyPolicyExecutionLog";
+const HOLD_QUERY: string = "state=created&hold=1";
+const AI_HOLD_TITLE: string = "OneUptime AI is on it";
+const PAGE_NOW: string = "Page now";
+// AiFirstResponderAPI's refusal for someone who may not page on-call policies.
+const PAGE_NOW_REFUSAL: string =
+  "You need permission to page on-call policies to page now.";
+
+interface HeldRecord {
+  kind: "incident" | "alert";
+  path: string;
+  // The record the notice reads the held runs of, as the fixture records it.
+  recordQuery: Record<string, unknown>;
+  sentence: RegExp;
+}
+
+const INCIDENT_HOLD: HeldRecord = {
+  kind: "incident",
+  path: INCIDENT_PATH,
+  recordQuery: {
+    triggeredByIncidentId: { _type: "ObjectID", value: INCIDENT_ID },
+  },
+  sentence:
+    /^On-call paging starts at (6:31 PM|18:31) unless OneUptime AI resolves this incident first\.$/,
+};
+
+const ALERT_HOLD: HeldRecord = {
+  kind: "alert",
+  path: ALERT_PATH,
+  recordQuery: { triggeredByAlertId: { _type: "ObjectID", value: ALERT_ID } },
+  sentence:
+    /^On-call paging starts at (6:36 PM|18:36) unless OneUptime AI resolves this alert first\.$/,
+};
+
+function aiHoldNotice(page: Page): Locator {
+  return investigationCard(page).getByTestId("ai-hold-notice");
+}
+
+// What the page asked of the on-call runs: the notice's reads, and only them.
+async function onCallRunReads(
+  page: Page,
+): Promise<Array<RecordedModelRequest>> {
+  return (await fixture(page)).listRequests.filter(
+    (request: RecordedModelRequest): boolean => {
+      return request.modelName === ON_CALL_RUNS;
+    },
+  );
+}
+
+// The notice's one read: the record's runs OneUptime AI holds, the first to page.
+function heldRunsRead(
+  recordQuery: Record<string, unknown>,
+): RecordedModelRequest {
+  return {
+    modelName: ON_CALL_RUNS,
+    query: { ...recordQuery, status: "Waiting", aiHoldOutcome: "Holding" },
+    select: { _id: true, pagingStartsAt: true },
+    sort: { pagingStartsAt: "ASC" },
+    skip: 0,
+    limit: 1,
+  };
+}
+
+async function openHeld(
+  page: Page,
+  pagePath: string,
+  query: string = HOLD_QUERY,
+): Promise<Locator> {
+  await open(page, pagePath, query);
+  await expect(aiHoldNotice(page)).toBeVisible({ timeout: 30000 });
+  return aiHoldNotice(page);
+}
+
+// Two frames on: an answer that has already arrived has been drawn.
+async function afterNextPaint(page: Page): Promise<void> {
+  await page.evaluate((): Promise<void> => {
+    return new Promise<void>((resolve: () => void): void => {
+      requestAnimationFrame((): void => {
+        requestAnimationFrame((): void => {
+          resolve();
+        });
+      });
+    });
+  });
+}
+
+// A translucent colour laid over an opaque one, as the browser paints it.
+function paintedOver(top: string, bottom: string): string {
+  const [red, green, blue, alpha]: Array<number> = (
+    top.match(/[\d.]+/g) || []
+  ).map(Number);
+  const under: Array<number> = (bottom.match(/[\d.]+/g) || []).map(Number);
+  const opacity: number = alpha === undefined ? 1 : alpha;
+  const mix: (front: number, back: number) => number = (
+    front: number,
+    back: number,
+  ): number => {
+    return Math.round(front * opacity + back * (1 - opacity));
+  };
+
+  return `rgb(${mix(red || 0, under[0] || 0)}, ${mix(green || 0, under[1] || 0)}, ${mix(blue || 0, under[2] || 0)})`;
+}
+
+test.describe("a page OneUptime AI holds (#5351)", () => {
+  for (const held of [INCIDENT_HOLD, ALERT_HOLD]) {
+    test(`the ${held.kind}'s AI card says first that OneUptime AI is on it, when paging starts, and offers Page now, reading only this ${held.kind}'s held pages (?hold=1)`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const notice: Locator = await openHeld(page, held.path);
+
+      await expect(
+        notice.getByText(AI_HOLD_TITLE, { exact: true }),
+      ).toBeVisible();
+      await expect(notice.getByText(held.sentence)).toBeVisible();
+      await expect(
+        notice.getByRole("button", { name: PAGE_NOW }),
+      ).toBeEnabled();
+      // Read out as it changes, without taking the reader's focus.
+      await expect(notice).toHaveAttribute("aria-live", "polite");
+      // Nothing went wrong: no refusal under the words.
+      await expect(notice.getByRole("alert")).toHaveCount(0);
+
+      // The first thing in the card's region, above the report it holds.
+      expect(
+        await page
+          .locator("#ai-investigation")
+          .evaluate((region: Element): string | null => {
+            return (
+              region.firstElementChild?.getAttribute("data-testid") || null
+            );
+          }),
+      ).toBe("ai-hold-notice");
+      await expect(
+        investigationCard(page).getByLabel("Investigation status"),
+      ).toHaveText("Completed", { timeout: 30000 });
+
+      /*
+       * Every read of the on-call runs was the notice's, for this record's
+       * held pages only: it reads again while a page is held.
+       */
+      const reads: Array<RecordedModelRequest> = await onCallRunReads(page);
+      expect(reads.length).toBeGreaterThanOrEqual(1);
+      for (const read of reads) {
+        expect(read).toEqual(heldRunsRead(held.recordQuery));
+      }
+
+      await screenshotElement(notice, `ai-card-hold-${held.kind}`);
+    });
+  }
+
+  test("with nothing held the card says nothing of it, though it asked: an incident and an alert, and an incident while others' pages are held", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const cases: Array<[string, string, Record<string, unknown>]> = [
+      [INCIDENT_PATH, "state=created", INCIDENT_HOLD.recordQuery],
+      [ALERT_PATH, "state=created", ALERT_HOLD.recordQuery],
+      // OneUptime AI holds #1042's and #311's pages; #1029's hold ended long ago.
+      [
+        incidentPath(1029),
+        "hold=1",
+        {
+          triggeredByIncidentId: {
+            _type: "ObjectID",
+            value: uuid("20000000", 1029),
+          },
+        },
+      ],
+    ];
+
+    for (const [pagePath, query, recordQuery] of cases) {
+      await open(page, pagePath, query);
+      await expect
+        .poll(
+          async (): Promise<number> => {
+            return (await onCallRunReads(page)).length;
+          },
+          { timeout: 30000 },
+        )
+        .toBeGreaterThan(0);
+      await afterNextPaint(page);
+
+      await expect(aiHoldNotice(page)).toHaveCount(0);
+      for (const read of await onCallRunReads(page)) {
+        expect(read).toEqual(heldRunsRead(recordQuery));
+      }
+      expect(
+        (await fixture(page)).unhandled,
+        "requests the fixture does not model",
+      ).toEqual([]);
+    }
+  });
+
+  test("a reader who may not read on-call runs is told nothing, and nothing is read (?role=alert-member)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ALERT_PATH, `${HOLD_QUERY}&role=alert-member`);
+    // The card has drawn what it reads on its own.
+    await expect(
+      investigationCard(page).getByLabel("Investigation status"),
+    ).toHaveText("Completed", { timeout: 30000 });
+    await afterNextPaint(page);
+
+    expect(await onCallRunReads(page)).toEqual([]);
+    await expect(aiHoldNotice(page)).toHaveCount(0);
+  });
+
+  test("Page now pages people at once, once, for this incident, and the notice goes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const notice: Locator = await openHeld(page, INCIDENT_PATH);
+    const readsBefore: number = (await onCallRunReads(page)).length;
+
+    await notice.getByRole("button", { name: PAGE_NOW }).click();
+
+    /*
+     * Gone at once: the notice reads the hold again as soon as paging has
+     * started, not on its next read every 15 seconds while a page is held.
+     */
+    await expect(aiHoldNotice(page)).toHaveCount(0, { timeout: 5000 });
+    const pagesNow: Array<RecordedApiRequest> = await apiRequestsTo(
+      page,
+      "/ai-first-responder/page-now",
+    );
+    expect(pagesNow).toHaveLength(1);
+    expect(pagesNow[0]!.method).toBe("POST");
+    expect(pagesNow[0]!.body).toEqual({ incidentId: INCIDENT_ID });
+    // It read the hold again once paging had started, and found none.
+    expect((await onCallRunReads(page)).length).toBeGreaterThan(readsBefore);
+  });
+
+  test("a refusal says why in the server's words, and Page now stays for another try (?fail=page-now)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const notice: Locator = await openHeld(
+      page,
+      INCIDENT_PATH,
+      `${HOLD_QUERY}&fail=page-now`,
+    );
+
+    await notice.getByRole("button", { name: PAGE_NOW }).click();
+
+    await expect(notice.getByRole("alert")).toHaveText(PAGE_NOW_REFUSAL);
+    await expect(notice.getByText(INCIDENT_HOLD.sentence)).toBeVisible();
+    await expect(notice.getByRole("button", { name: PAGE_NOW })).toBeEnabled();
+  });
+
+  test("on a 390px phone the notice fits the card, Page now and its words inside it, and nothing scrolls sideways", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const notice: Locator = await openHeld(page, INCIDENT_PATH);
+    // What happened sits above the card: measure only once it stops moving.
+    await expectWhatHappenedSettled(page);
+    const button: Locator = notice.getByRole("button", { name: PAGE_NOW });
+    await button.scrollIntoViewIfNeeded();
+
+    const cardBox: Box = await documentBox(investigationCard(page));
+    const noticeBox: Box = await documentBox(notice);
+    const buttonBox: Box = await documentBox(button);
+
+    expect(noticeBox.x).toBeGreaterThanOrEqual(cardBox.x - 0.5);
+    expect(noticeBox.x + noticeBox.width).toBeLessThanOrEqual(
+      cardBox.x + cardBox.width + 0.5,
+    );
+    expect(buttonBox.x).toBeGreaterThanOrEqual(noticeBox.x - 0.5);
+    expect(buttonBox.x + buttonBox.width).toBeLessThanOrEqual(
+      noticeBox.x + noticeBox.width + 0.5,
+    );
+    expect(buttonBox.y + buttonBox.height).toBeLessThanOrEqual(
+      noticeBox.y + noticeBox.height + 0.5,
+    );
+    // The sentence wraps rather than being cut.
+    expect(await isOverflowing(notice.getByText(INCIDENT_HOLD.sentence))).toBe(
+      false,
+    );
+    await expectNoHorizontalOverflow(page);
+
+    await screenshotElement(notice, "ai-card-hold-mobile");
+  });
+
+  test("in the dark theme the notice takes the dark card's colours, its words readable on it (?theme=dark)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const notice: Locator = await openHeld(
+      page,
+      INCIDENT_PATH,
+      `${HOLD_QUERY}&theme=dark`,
+    );
+    await expect(
+      investigationCard(page).getByLabel("Investigation status"),
+    ).toHaveText("Completed", { timeout: 30000 });
+
+    const look: {
+      wash: string;
+      edge: string;
+      surface: string;
+      mark: string;
+      title: string;
+      sentence: string;
+    } = await notice.evaluate(
+      (
+        element: Element,
+      ): {
+        wash: string;
+        edge: string;
+        surface: string;
+        mark: string;
+        title: string;
+        sentence: string;
+      } => {
+        const zeroAlpha: RegExp = /rgba\([^)]*,\s*0\)$/;
+        const style: CSSStyleDeclaration = window.getComputedStyle(element);
+        const words: Array<Element> = Array.from(element.querySelectorAll("p"));
+        let surface: string = "";
+        let ancestor: Element | null = element.parentElement;
+
+        // The card's own surface, under the notice's translucent wash.
+        while (ancestor && !surface) {
+          const background: string =
+            window.getComputedStyle(ancestor).backgroundColor;
+
+          if (background !== "transparent" && !zeroAlpha.test(background)) {
+            surface = background;
+          }
+
+          ancestor = ancestor.parentElement;
+        }
+
+        return {
+          wash: style.backgroundColor,
+          edge: style.borderTopColor,
+          surface: surface,
+          mark: window.getComputedStyle(element.querySelector("svg") as Element)
+            .color,
+          title: words[0] ? window.getComputedStyle(words[0]).color : "",
+          sentence: words[1] ? window.getComputedStyle(words[1]).color : "",
+        };
+      },
+    );
+
+    // Theme.css's dark indigo wash and edge, not the light ones.
+    expect(look.wash).toBe("rgba(49, 46, 129, 0.35)");
+    expect(look.edge).toBe("rgba(129, 140, 248, 0.45)");
+    // The dark card's surface under it.
+    expect(look.surface).toBe("rgb(23, 32, 51)");
+    // Light words, and the light indigo mark.
+    expect(look.title).toBe("rgb(248, 250, 252)");
+    expect(look.sentence).toBe("rgb(226, 232, 240)");
+    expect(look.mark).toBe("rgb(165, 180, 252)");
+
+    const ground: string = paintedOver(look.wash, look.surface);
+    expect(contrastRatio(look.title, ground)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(look.sentence, ground)).toBeGreaterThanOrEqual(4.5);
+
+    await screenshotElement(notice, "ai-card-hold-dark");
   });
 });
 
@@ -5214,7 +5643,6 @@ test.describe("one AI card: the investigation and the conversation", () => {
     }) => {
       await openConversation(page, "");
       const frame: Locator = composerFrame(page);
-      const frameBox: Box = await documentBox(frame);
 
       // The dashboard's input frame: white, a gray-300 hairline all round.
       const look: {
@@ -5244,21 +5672,22 @@ test.describe("one AI card: the investigation and the conversation", () => {
         widths: ["1px", "1px", "1px", "1px"],
       });
 
-      // Everything it needs is inside that frame.
-      for (const part of [
+      // Everything it needs is inside that frame (one layout: documentBoxes).
+      const [frameBox, ...partBoxes]: Array<Box> = await documentBoxes(page, [
+        frame,
         composerBox(page),
         modePicker(page),
         modeCaption(page),
         sendButton(page),
-      ]) {
-        const box: Box = await documentBox(part);
-        expect(box.x).toBeGreaterThanOrEqual(frameBox.x);
+      ]);
+      for (const box of partBoxes) {
+        expect(box.x).toBeGreaterThanOrEqual(frameBox!.x);
         expect(box.x + box.width).toBeLessThanOrEqual(
-          frameBox.x + frameBox.width,
+          frameBox!.x + frameBox!.width,
         );
-        expect(box.y).toBeGreaterThanOrEqual(frameBox.y);
+        expect(box.y).toBeGreaterThanOrEqual(frameBox!.y);
         expect(box.y + box.height).toBeLessThanOrEqual(
-          frameBox.y + frameBox.height,
+          frameBox!.y + frameBox!.height,
         );
       }
 
@@ -5272,16 +5701,18 @@ test.describe("one AI card: the investigation and the conversation", () => {
       );
 
       // One row under the text: the picker, its caption, then Send at the end.
-      const picker: Box = await documentBox(modePicker(page));
-      const caption: Box = await documentBox(modeCaption(page));
-      const send: Box = await documentBox(sendButton(page));
-      expect(caption.x).toBeGreaterThan(picker.x + picker.width);
-      expect(send.x).toBeGreaterThan(caption.x + caption.width - 1);
+      const [picker, caption, send]: Array<Box> = await documentBoxes(page, [
+        modePicker(page),
+        modeCaption(page),
+        sendButton(page),
+      ]);
+      expect(caption!.x).toBeGreaterThan(picker!.x + picker!.width);
+      expect(send!.x).toBeGreaterThan(caption!.x + caption!.width - 1);
       expect(
-        Math.abs(picker.y + picker.height / 2 - (send.y + send.height / 2)),
+        Math.abs(picker!.y + picker!.height / 2 - (send!.y + send!.height / 2)),
       ).toBeLessThanOrEqual(3);
       // The caption fits on one line of the row.
-      expect(caption.height).toBeLessThanOrEqual(22);
+      expect(caption!.height).toBeLessThanOrEqual(22);
     });
 
     test("does not take focus when the page loads, and shows an indigo focus when used", async ({
@@ -5456,7 +5887,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
       const caption: Box = await documentBox(modeCaption(page));
       const send: Box = await documentBox(sendButton(page));
 
-      for (const mode of ["Ask for approval", "Read-only", "Auto-run"]) {
+      for (const mode of ["Ask to act", "Read-only", "Auto-run"]) {
         await modePicker(page).click();
         await conversation(page)
           .getByRole("menuitemradio", { name: new RegExp(`^${mode}`) })
@@ -9516,7 +9947,7 @@ test.describe("the header, by its own width", () => {
 
     // What they pressed, in their words - not "create this Incident State Timeline".
     const reason: string =
-      "You do not have permission to change this incident's state. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Create Incident State Timeline.";
+      "You do not have permission to change this incident's state. You need this permission: Create Incident State Timeline.";
     await expect(heroActions(page).getByRole("button")).toHaveText([
       "Acknowledge",
       "Resolve",

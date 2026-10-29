@@ -113,7 +113,6 @@ describe("a direct page that is paging", () => {
       {},
       // Whatever a run's bookkeeping carries, a direct page has no rule to name.
       { ruleCount: 3, currentRule: { order: 1, name: "first" } },
-      { retryingCurrentRule: true },
       { nextStepAt: new Date("2026-10-08T17:28:00.000Z") },
       { repeatNumber: 1, repeatsAllowed: 2 },
     ]) {

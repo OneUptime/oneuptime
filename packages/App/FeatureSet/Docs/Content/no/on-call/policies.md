@@ -20,6 +20,8 @@ En vaktretningslinje avgjør hvem som tilkalles om en hendelse eller et varsel, 
 
 **Hvem varsles først?** er valgfritt og vises bare for folk som kan legge til eskaleringsregler: står det tomt, tilkaller retningslinjen ingen før den har en regel. **Beskrivelse** og **Etiketter** venter under **Flere felt**. Se [Eskaleringsregler](/docs/on-call/escalation-rules) for å legge til de neste nivåene.
 
+For den første retningslinjen i et prosjekt spør skjemaet også **Utløs den ved hver nye hendelse og hvert nye varsel**, som starter slått på. Den legger til en regel under **Hendelser → Regler → Vaktregler** og en under **Varsler → Regler → Vaktregler**, som hver treffer alt og kjører denne retningslinjen. Bare folk som kan legge til vaktregler, får spørsmålet, så lenge prosjektet verken har en vaktpolicy eller en vaktregel.
+
 Listen **Vaktpolicyer** viser **Navn**, **Beskrivelse**, **Etiketter** og **Eiere** for hver retningslinje. Velg retningslinjer for å bruke **Legg til etiketter**, **Fjern etiketter**, **Legg til eier**, **Fjern eier**, **Arkiver** eller **Eksporter JSON**, eller for å slette dem. **Importer JSON** oppretter retningslinjer fra en eksport: en eksport inneholder retningslinjens egne innstillinger, ikke eskaleringsreglene eller eierne.
 
 ## Hva som kjører en retningslinje
@@ -64,7 +66,7 @@ Når ventetiden til det siste nivået er ute uten at noen har bekreftet, stopper
 | **Stopp varslingen** | Ingen varsles igjen, så retningslinjen kjører én gang. En ny retningslinje starter med dette svaret. |
 | **Start på nytt fra Level 1** | Hvert nivå varsles igjen, i rekkefølge. **Hvor mange ganger til?** sier hvor mange: 1 eller flere. |
 
-En retningslinje som starter på nytt tre ganger til, går gjennom nivåene sine fire ganger til sammen. Kortets rad **Etter det siste nivået** sier hva retningslinjen gjør, og **Policyen i korte trekk** på **Oversikt** sier det samme med ord.
+En retningslinje som starter på nytt tre ganger til, går gjennom nivåene sine fire ganger til sammen. En runde der ingen nivåer hadde noen å varsle, gjentas ikke: en til ville heller ikke varsle noen, så retningslinjen stopper. Kortets rad **Etter det siste nivået** sier hva retningslinjen gjør, og **Policyen i korte trekk** på **Oversikt** sier det samme med ord.
 
 ## Varsle igjen hvis den ikke blir løst
 
@@ -101,7 +103,7 @@ flowchart TB
 | **Planlagt**, **Startet** | Kjøringen settes opp. En som fortsatt står her etter 5 minutter, stoppes som **Feil**. |
 | **Executing** | Kjøringen tilkaller. OneUptime fører den et steg videre hvert minutt. |
 | **Execution Completed** | Noen bekreftet, hendelsen eller varselet ble løst, alle regler og gjentakelser ble brukt, eller retningslinjen ble arkivert. |
-| **Execution Completed - No One Notified** | Kjøringen gikk gjennom alle regler og tilkalte ingen: som regel en vaktplan der ingen har vakt. |
+| **Execution Completed - No One Notified** | Kjøringen gikk gjennom alle regler og tilkalte ingen: som regel en vaktplan der ingen har vakt, eller et nivå uten mottakere. |
 | **Feil** | Kjøringen mislyktes. **Vis statusmelding** sier hvorfor. |
 
 Du finner utførelseslogger tre steder:
@@ -110,7 +112,7 @@ Du finner utførelseslogger tre steder:
 - under **Vakttjeneste → Avansert → Utførelseslogger**, for alle retningslinjer, der direkte tilkallinger fra arbeidsflyter og chat står som **Direkte tilkalling**;
 - på siden **Vaktutførelser** for en hendelse eller et varsel.
 
-Hver rad viser hva som startet kjøringen, når, **Status** og hvem som bekreftet. **Vis tidslinje** åpner **Tidslinje for utførelsen**: hver eskaleringsregel, hvem den tilkalte, gjennom hvilken vaktplan, og hvordan hver tilkalling endte. En vaktplan der ingen har vakt, viser **Ingen hadde vakt** i stedet for en person. I OneUptime Cloud krever utførelseslogger abonnementet **Growth**.
+Hver rad viser hva som startet kjøringen, når, **Status** og hvem som bekreftet. **Vis tidslinje** åpner **Tidslinje for utførelsen**: hver eskaleringsregel, hvem den tilkalte, gjennom hvilken vaktplan, og hvordan hver tilkalling endte. En vaktplan der ingen har vakt, viser **Ingen hadde vakt** i stedet for en person. Et nivå som ikke tilkalte noen, sier hvorfor, med **Gikk videre med en gang** under: retningslinjen ventet ikke på det. I OneUptime Cloud krever utførelseslogger abonnementet **Growth**.
 
 ## Arkiver eller slett en retningslinje
 
@@ -152,6 +154,10 @@ Kjøringen viser **Execution Completed - No One Notified**. Åpne **Vis tidslinj
 
 :::details Neste nivå ble tilkalt et minutt etter ventetiden
 OneUptime fører kjørende retningslinjer et steg videre én gang i minuttet, så et nivå tilkalles ved den første sjekken etter at ventetiden er ute.
+:::
+
+:::details Neste nivå ble tilkalt med en gang, uten å vente
+Nivået før hadde ingen å tilkalle: ingen mottakere, ingen med vakt i vaktplanene eller ingen som kunne nås. Et nivå som ikke tilkaller noen, har ingen ventetid, så neste nivå tilkalles så snart retningslinjen når det. **Vis tidslinje** viser hvorfor det nivået ikke tilkalte noen.
 :::
 
 :::details En hendelse viser en retningslinje som ikke tilkalte noen

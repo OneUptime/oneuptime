@@ -101,6 +101,10 @@ Monitors, incidents, alerts, status pages, SLOs and many other resources also ha
 | vCenters | `vCenter` |
 | Packet captures, and their downloads | `Packet Capture` |
 | Security cases and their priorities and statuses, playbooks and their runs, protected entities, entity criticality, and an entity's risk when someone resets it | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
+| Rule exceptions | `Rule Exception` |
+| Watchlists | `Watchlist` |
+| Watchlist values | `Watchlist Value` |
+| Security case tasks and evidence | `Security Case Task`, `Security Case Evidence` |
 | Audit log exports | `Audit Log Export` |
 
 An administrator adding or removing a notification method or a personal on-call rule on someone else's account is recorded too, without the address or number itself.

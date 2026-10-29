@@ -23,6 +23,7 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import OnCallDutyPolicyStatus from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
+import { OnCallPolicyAiHoldOutcome } from "../../Types/OnCallDutyPolicy/OnCallPolicyAiHold";
 import Permission from "../../Types/Permission";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
@@ -1361,6 +1362,44 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     nullable: true,
   })
   public pagingStartedEarlyReason?: string = undefined;
+
+  /*
+   * For a run OneUptime AI held while it worked (OnCallPolicyAiHold): Holding
+   * while it waits, then how the hold ended - Resolved by AI, Recovered on its
+   * own, Handled by a person, Handed off, Hold time ran out or Page now
+   * pressed. Empty for every other run.
+   *
+   * No caller may write it: OneUptime holds the run and ends the hold.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
+      Permission.ReadProjectOnCallDutyPolicyExecutionLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    title: "OneUptime AI Hold",
+    description:
+      "For a run OneUptime AI held while it investigated and fixed: Holding while it waits, then how the hold ended - Resolved by AI, Recovered on its own, Handled by a person, Handed off, Hold time ran out or Page now pressed. Empty for every other run.",
+    canReadOnRelationQuery: false,
+    example: OnCallPolicyAiHoldOutcome.ResolvedByAI,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public aiHoldOutcome?: OnCallPolicyAiHoldOutcome = undefined;
 
   /*
    * The acknowledgement timeout's clock (OnCallAcknowledgementTimeout): set
