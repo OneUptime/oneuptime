@@ -30,6 +30,7 @@ import {
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import { useAreTableColumnsFolded } from "Common/UI/Components/Table/TableCellContext";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { getListSeparator } from "Common/UI/Utils/ListSeparator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -193,7 +194,7 @@ export const HuntNameCell: FunctionComponent<HuntCellProps> = (
       <HuntSearchLine searchQuery={hunt.searchQuery} filters={hunt.filters} />
       {hunt.description ? (
         <span className="line-clamp-2 break-words text-xs text-gray-500">
-          {hunt.description}
+          <IsolatedText text={hunt.description} />
         </span>
       ) : (
         <></>
@@ -222,12 +223,14 @@ export const HuntRecipients: FunctionComponent<{
     );
   }
 
+  // "Maya Chen, SOC Tier 2"; names written in Persian are listed with ،.
+  const separator: string = getListSeparator(line.names);
   const names: ReactElement = (
     <>
       {line.names.map((name: string, index: number): ReactElement => {
         return (
           <React.Fragment key={`${name}-${index}`}>
-            {index > 0 ? ", " : ""}
+            {index > 0 ? separator : ""}
             <IsolatedText text={name} />
           </React.Fragment>
         );

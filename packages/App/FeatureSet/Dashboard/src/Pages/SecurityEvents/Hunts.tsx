@@ -90,7 +90,8 @@ const SecurityHuntsPage: FunctionComponent<PageComponentProps> = (
       bulkActions={{
         buttons: [ModalTableBulkDefaultActions.Delete],
       }}
-      isEditable={true}
+      // A hunt is edited in one place: Edit on its own page, which View opens.
+      isEditable={false}
       isCreateable={true}
       isViewable={true}
       viewButtonText="View"

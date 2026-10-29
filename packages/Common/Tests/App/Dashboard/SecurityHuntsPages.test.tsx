@@ -451,7 +451,8 @@ describe("Security Events > Hunts", () => {
       sortBy: "name",
       sortOrder: SortOrder.Ascending,
       isCreateable: true,
-      isEditable: true,
+      // Edited in one place, its own page (ResourceDetailsOnePlaceGuard).
+      isEditable: false,
       isViewable: true,
       isDeleteable: true,
       cardProps: { title: "Hunts", description: HUNTS_TABLE_DESCRIPTION },
@@ -765,6 +766,27 @@ describe("a hunt's page", () => {
     expect(
       navigated[navigated.length - 1]!.endsWith("/security-events/hunts"),
     ).toBe(true);
+  });
+
+  test("reads the team's own words the way they are written: its description in an isolate, a Persian team listed with ،", async () => {
+    const team: Team = socTeam();
+    team.name = "تیم امنیت";
+    stored = hunt({
+      description: "PowerShell started with an encoded command.",
+      notifyTeams: [team],
+    });
+
+    await renderHunt();
+
+    const header: HTMLElement = screen.getByTestId(HUNTS_TEST_IDS.header);
+    const description: HTMLElement = within(header).getByText(
+      "PowerShell started with an encoded command.",
+    );
+
+    // On a Persian page its full stop stays at its end.
+    expect(description.tagName).toBe("BDI");
+    expect(description).toHaveAttribute("dir", "ltr");
+    expect(flat(header)).toContain("Tells Maya Chen، تیم امنیت");
   });
 
   test("a hunt whose last run failed says why, in red, as an alert", async () => {

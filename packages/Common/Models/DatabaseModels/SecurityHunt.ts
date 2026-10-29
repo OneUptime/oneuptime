@@ -254,7 +254,12 @@ export default class SecurityHunt extends BaseModel {
     type: TableColumnType.JSON,
     title: "Filters",
     description:
-      'The filters the hunt keeps beside its search, as the Events sidebar makes them: each field and the values it keeps, such as { "severityName": ["High", "Critical"] }, or leaves out, with ! before the field, such as { "!statusName": ["Success"] }. A source attribute is attributes.<key>. At most 50 values in all.',
+      "The Events sidebar's filters kept beside the search: each field's values, or with ! before the field the values it leaves out. At most 50 values.",
+    // A source attribute's field is attributes.<key>.
+    example: {
+      severityName: ["High", "Critical"],
+      "!statusName": ["Success"],
+    },
   })
   @Column({
     type: ColumnType.JSON,
@@ -390,8 +395,7 @@ export default class SecurityHunt extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     title: "Scheduled By User ID",
-    description:
-      "ID of the person the hunt's scheduled runs run as.",
+    description: "ID of the person the hunt's scheduled runs run as.",
   })
   @Column({
     type: ColumnType.ObjectID,

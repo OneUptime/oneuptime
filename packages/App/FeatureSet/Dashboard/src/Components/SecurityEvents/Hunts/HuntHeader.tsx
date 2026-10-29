@@ -230,7 +230,10 @@ const HuntHeader: FunctionComponent<ComponentProps> = (
           data-testid={HUNTS_TEST_IDS.headerFacts}
         >
           {hunt.description ? (
-            <p className="break-words text-gray-700">{hunt.description}</p>
+            <p className="break-words text-gray-700">
+              {/* The team's own words, read the way they are written. */}
+              <IsolatedText text={hunt.description} />
+            </p>
           ) : (
             <></>
           )}
