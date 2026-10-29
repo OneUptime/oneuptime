@@ -21,6 +21,7 @@ import ArchivableValueUsageItems, {
   ArchivableValuesUsagePurpose,
 } from "../../Types/ArchivableValue/ArchivableValueUsage";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import ServerException from "../../Types/Exception/ServerException";
@@ -57,8 +58,11 @@ import { DataSource } from "typeorm";
  */
 export const ARCHIVABLE_VALUE_USAGE_ROUTE: string = "/usage";
 
-// The most values one bulk read asks about: a bulk selection's most.
-export const ARCHIVABLE_VALUES_USAGE_MAX_IDS: number = 1000;
+/*
+ * The most values one bulk read asks about: as many as a table's bulk
+ * selection holds (BaseModelTable's select-all stops at LIMIT_PER_PROJECT).
+ */
+export const ARCHIVABLE_VALUES_USAGE_MAX_IDS: number = LIMIT_PER_PROJECT;
 
 export default class ArchivableValueAPI<
   TBaseModel extends BaseModel,
@@ -99,9 +103,10 @@ export default class ArchivableValueAPI<
       }
     };
 
-    // One value by its id, or several (the body names them): one handler.
-    this.router.post([route, bulkRoute], UserMiddleware.getUserMiddleware, handler);
+    this.router.post(route, UserMiddleware.getUserMiddleware, handler);
     this.router.get(route, UserMiddleware.getUserMiddleware, handler);
+    // Several values at once: the body names them. The same handler.
+    this.router.post(bulkRoute, UserMiddleware.getUserMiddleware, handler);
   }
 
   // Someone who may archive the value (an update), or delete it.

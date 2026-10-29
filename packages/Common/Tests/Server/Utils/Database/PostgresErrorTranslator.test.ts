@@ -5,6 +5,7 @@ import { EXAMPLE_UUID } from "../../../../Server/Types/Database/UUIDColumnFilter
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import Exception from "../../../../Types/Exception/Exception";
 import { describe, expect, it } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * Contract under test: TypeORM's QueryFailedError is not an Exception, so it
@@ -87,6 +88,133 @@ describe("PostgresErrorTranslator", () => {
       expect((translated as Exception).message).not.toContain(
         "cfc2f04f-79cb-4344-8c54-dafe5e3a290c",
       );
+    });
+  });
+
+  /*
+   * A value records pick from (a severity, a state, a label) that rows still
+   * have: "delete those records first" would mean deleting incidents to
+   * delete a severity. Its own service's delete is answered with the way on
+   * - archive it - and only that one: the same refusal reached by deleting
+   * something else (a project, whose statuses go with it) keeps its words.
+   */
+  describe("a value records still have, deleted by its own service", () => {
+    const severityDeleteError: () => FakeQueryFailedError =
+      (): FakeQueryFailedError => {
+        return {
+          message:
+            'update or delete on table "IncidentSeverity" violates foreign key constraint "FK_1c523ebcb77b541cb035757081f" on table "Incident"',
+          code: "23503",
+          table: "Incident",
+          detail:
+            'Key (_id)=(cfc2f04f-79cb-4344-8c54-dafe5e3a290c) is still referenced from table "Incident".',
+        };
+      };
+
+    const GENERAL_WORDS: string =
+      "This item cannot be deleted because Incident records still reference it. Please delete those records first, and then try again.";
+
+    it("says to archive it instead, naming what has it", () => {
+      const translated: unknown = PostgresErrorTranslator.translate(
+        severityDeleteError(),
+        { tableName: "IncidentSeverity" },
+      );
+
+      expect(translated).toBeInstanceOf(BadDataException);
+      expect((translated as Exception).message).toBe(
+        "This incident severity can't be deleted while Incident records still have it. Archive it instead: nobody can pick it again, and everything that has it keeps it.",
+      );
+      expect((translated as Exception).message).not.toContain(
+        "cfc2f04f-79cb-4344-8c54-dafe5e3a290c",
+      );
+    });
+
+    it("names each kind of value as its own definition does", () => {
+      const translated: unknown = PostgresErrorTranslator.translate(
+        foreignKeyDeleteError(),
+        { tableName: "MonitorStatus" },
+      );
+
+      expect((translated as Exception).message).toBe(
+        "This monitor status can't be deleted while Monitor Status Timeline records still have it. Archive it instead: nobody can pick it again, and everything that has it keeps it.",
+      );
+    });
+
+    it("reads the deleted table off driverError too", () => {
+      const translated: unknown = PostgresErrorTranslator.translate(
+        { message: "wrapped", driverError: severityDeleteError() },
+        { tableName: "IncidentSeverity" },
+      );
+
+      expect((translated as Exception).message).toContain(
+        "Archive it instead",
+      );
+    });
+
+    it("a project's delete that reached its statuses keeps the general words", () => {
+      const translated: unknown = PostgresErrorTranslator.translate(
+        foreignKeyDeleteError(),
+        { tableName: "Project" },
+      );
+
+      expect((translated as Exception).message).toBe(
+        "This item cannot be deleted because Monitor Status Timeline records still reference it. Please delete those records first, and then try again.",
+      );
+    });
+
+    it("a table that holds no value keeps the general words", () => {
+      const translated: unknown = PostgresErrorTranslator.translate(
+        {
+          ...severityDeleteError(),
+          message:
+            'update or delete on table "Monitor" violates foreign key constraint "FK_x" on table "Incident"',
+        },
+        { tableName: "Monitor" },
+      );
+
+      expect((translated as Exception).message).toBe(GENERAL_WORDS);
+    });
+
+    it("without its own table - a caller outside a service - keeps the general words", () => {
+      for (const context of [undefined, {}, { tableName: null }]) {
+        const translated: unknown = PostgresErrorTranslator.translate(
+          severityDeleteError(),
+          context,
+        );
+
+        expect((translated as Exception).message).toBe(GENERAL_WORDS);
+      }
+    });
+
+    it("a message that does not say which table was deleted from keeps the general words", () => {
+      const translated: unknown = PostgresErrorTranslator.translate(
+        {
+          ...severityDeleteError(),
+          message: "violates foreign key constraint",
+        },
+        { tableName: "IncidentSeverity" },
+      );
+
+      expect((translated as Exception).message).toBe(GENERAL_WORDS);
+    });
+
+    it("reads a long message in time that grows with it", () => {
+      // Its worst case: a table name that never closes.
+      const message: string =
+        'update or delete on table "' + "a".repeat(400000);
+
+      const translated: FastestRun<unknown> = fastestRun({
+        run: (): unknown => {
+          return PostgresErrorTranslator.translate(
+            { ...severityDeleteError(), message: message },
+            { tableName: "IncidentSeverity" },
+          );
+        },
+        limitInMs: 2000,
+      });
+
+      expect(translated.inMs).toBeLessThan(2000);
+      expect((translated.result as Exception).message).toBe(GENERAL_WORDS);
     });
   });
 

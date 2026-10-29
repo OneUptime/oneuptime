@@ -19,6 +19,10 @@ import {
  * OneUptime, and sends back counts only. The route is the real one
  * ArchivableValueAPI registers; the counting and the value read are
  * answered here.
+ *
+ * And POST /<value route>/usage, for a bulk Archive's or Delete's dialog:
+ * the same for several values at once, named in the body - only the ones
+ * the caller may read are counted.
  */
 
 jest.mock("../../../Server/Utils/Express", () => {
@@ -53,6 +57,7 @@ jest.mock("../../../Server/Utils/Response", () => {
 jest.mock("../../../Server/Utils/Logger");
 
 import ArchivableValueAPI, {
+  ARCHIVABLE_VALUES_USAGE_MAX_IDS,
   ARCHIVABLE_VALUE_USAGE_ROUTE,
 } from "../../../Server/API/ArchivableValueAPI";
 import CommonAPI from "../../../Server/API/CommonAPI";
@@ -77,6 +82,8 @@ import {
   ArchivableValueDeleteEffect,
   ArchivableValueUsageItem,
   ArchivableValueUsageKind,
+  ArchivableValuesUsage,
+  ArchivableValuesUsagePurpose,
 } from "../../../Types/ArchivableValue/ArchivableValueUsage";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -302,5 +309,203 @@ describe("asking what uses a value", () => {
 
     await expect(askUsage()).rejects.toBeInstanceOf(BadDataException);
     expect(countUses).not.toHaveBeenCalled();
+  });
+});
+
+describe("asking about several values at once", () => {
+  const OTHER_ID: string = "0193c0de-a91c-4aaa-8bbb-0000000000a2";
+  const UNKNOWN_ID: string = "0193c0de-a91c-4aaa-8bbb-0000000000a3";
+
+  const ANSWER: ArchivableValuesUsage = {
+    usage: USAGE,
+    refusedValueIds: [],
+    refusedUsage: [],
+  };
+
+  let countValuesUsage: ReturnType<typeof jest.spyOn>;
+  let findValues: ReturnType<typeof jest.spyOn>;
+  let foundValues: Array<Label>;
+
+  beforeEach(() => {
+    foundValues = [LABEL_ID, OTHER_ID].map((id: string): Label => {
+      const label: Label = new Label();
+      label._id = id;
+      return label;
+    });
+
+    findValues = jest
+      .spyOn(LabelService, "findBy")
+      .mockImplementation((async (): Promise<Array<Label>> => {
+        return foundValues;
+      }) as never);
+
+    countValuesUsage = jest
+      .spyOn(ArchivableValueUsage, "countValuesUsage")
+      .mockResolvedValue(ANSWER as never);
+  });
+
+  async function askValuesUsage(body: unknown): Promise<void> {
+    labelsApi();
+
+    const request: ExpressRequest = {
+      params: {},
+      body: body,
+      headers: {},
+    } as unknown as ExpressRequest;
+
+    const response: ExpressResponse = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn().mockReturnThis(),
+      send: jest.fn().mockReturnThis(),
+      setHeader: jest.fn(),
+    } as unknown as ExpressResponse;
+
+    let failure: unknown = null;
+
+    const next: NextFunction = ((error: unknown): void => {
+      failure = error;
+    }) as NextFunction;
+
+    await mockRouter
+      .match("POST", `/label${ARCHIVABLE_VALUE_USAGE_ROUTE}`)
+      .handlerFunction(request, response, next);
+
+    if (failure) {
+      throw failure;
+    }
+  }
+
+  test("is POST <route>/usage, behind the signed-in check, and no GET", () => {
+    labelsApi();
+
+    expect(mockRouter.match("POST", "/label/usage").middlewares).toEqual([
+      UserMiddleware.getUserMiddleware,
+    ]);
+    expect(() => {
+      return mockRouter.match("GET", "/label/usage");
+    }).toThrow();
+  });
+
+  test("counts the values the caller may read, in the project asked about, for a Delete", async () => {
+    await askValuesUsage({
+      ids: [LABEL_ID, OTHER_ID.toUpperCase(), UNKNOWN_ID],
+      purpose: ArchivableValuesUsagePurpose.Delete,
+    });
+
+    // The values are read as the caller.
+    const read: {
+      props: DatabaseCommonInteractionProps;
+      limit: number;
+    } = findValues.mock.calls[0]![0] as {
+      props: DatabaseCommonInteractionProps;
+      limit: number;
+    };
+
+    expect(read.props).toBe(caller);
+    expect(read.limit).toBe(3);
+
+    expect(countValuesUsage).toHaveBeenCalledTimes(1);
+
+    const asked: {
+      valueTable: string;
+      valueIds: Array<string>;
+      projectId: ObjectID;
+      purpose: ArchivableValuesUsagePurpose;
+    } = countValuesUsage.mock.calls[0]![0] as {
+      valueTable: string;
+      valueIds: Array<string>;
+      projectId: ObjectID;
+      purpose: ArchivableValuesUsagePurpose;
+    };
+
+    expect(asked.valueTable).toBe("Label");
+    // Only the ones found: the unknown id is not counted.
+    expect(asked.valueIds).toEqual([LABEL_ID, OTHER_ID]);
+    expect(asked.projectId.toString()).toBe(PROJECT_ID.toString());
+    expect(asked.purpose).toBe(ArchivableValuesUsagePurpose.Delete);
+
+    expect(
+      (Response.sendJsonObjectResponse as jest.Mock).mock.calls[0]![2],
+    ).toEqual({ usage: USAGE, refusedValueIds: [], refusedUsage: [] });
+  });
+
+  test("anything but a Delete asks what keeps using them: an Archive", async () => {
+    for (const purpose of [undefined, "Archive", "Everything"]) {
+      countValuesUsage.mockClear();
+
+      await askValuesUsage({ ids: [LABEL_ID], purpose: purpose });
+
+      expect(
+        (
+          countValuesUsage.mock.calls[0]![0] as {
+            purpose: ArchivableValuesUsagePurpose;
+          }
+        ).purpose,
+      ).toBe(ArchivableValuesUsagePurpose.Archive);
+    }
+  });
+
+  test("none the caller may read, or of another project: not found", async () => {
+    foundValues = [];
+
+    await expect(askValuesUsage({ ids: [LABEL_ID] })).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    expect(countValuesUsage).not.toHaveBeenCalled();
+  });
+
+  test("a body that names no values, or ids that are not ids, is refused", async () => {
+    for (const body of [
+      {},
+      { ids: [] },
+      { ids: LABEL_ID },
+      { ids: [3] },
+      { ids: [LABEL_ID, "not-an-id"] },
+      null,
+    ]) {
+      await expect(askValuesUsage(body)).rejects.toBeInstanceOf(
+        BadDataException,
+      );
+    }
+
+    expect(findValues).not.toHaveBeenCalled();
+    expect(countValuesUsage).not.toHaveBeenCalled();
+  });
+
+  test("more values than a bulk selection holds are refused", async () => {
+    const ids: Array<string> = [];
+
+    for (let index: number = 0; index <= ARCHIVABLE_VALUES_USAGE_MAX_IDS; index++) {
+      ids.push(ObjectID.generate().toString());
+    }
+
+    await expect(askValuesUsage({ ids: ids })).rejects.toBeInstanceOf(
+      BadDataException,
+    );
+    expect(countValuesUsage).not.toHaveBeenCalled();
+  });
+
+  test("someone who may only read values is refused, and nothing is read", async () => {
+    caller = personWith([Permission.ReadProjectLabel]);
+
+    await expect(askValuesUsage({ ids: [LABEL_ID] })).rejects.toThrow();
+    expect(findValues).not.toHaveBeenCalled();
+    expect(countValuesUsage).not.toHaveBeenCalled();
+  });
+
+  test("someone who may delete the values may ask, and a request with no project is refused", async () => {
+    caller = personWith([Permission.DeleteProjectLabel]);
+
+    await askValuesUsage({ ids: [LABEL_ID] });
+    expect(countValuesUsage).toHaveBeenCalledTimes(1);
+
+    caller = {
+      ...personWith([Permission.EditProjectLabel]),
+      tenantId: undefined,
+    };
+
+    await expect(askValuesUsage({ ids: [LABEL_ID] })).rejects.toBeInstanceOf(
+      BadDataException,
+    );
   });
 });

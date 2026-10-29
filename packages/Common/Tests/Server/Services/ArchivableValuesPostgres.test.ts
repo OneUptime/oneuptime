@@ -17,12 +17,16 @@ import ArchivableValueUsage, {
   ValueReference,
 } from "../../../Server/Utils/Database/ArchivableValueUsage";
 import { ArchivedValueRow } from "../../../Server/Utils/Database/ArchivedValueCheck";
+import PostgresErrorTranslator from "../../../Server/Utils/Database/PostgresErrorTranslator";
 import logger from "../../../Server/Utils/Logger";
 import {
   ArchivableValueDeleteEffect,
   ArchivableValueUsageItem,
   ArchivableValueUsageKind,
+  ArchivableValuesUsage,
+  ArchivableValuesUsagePurpose,
 } from "../../../Types/ArchivableValue/ArchivableValueUsage";
+import Exception from "../../../Types/Exception/Exception";
 import ObjectID from "../../../Types/ObjectID";
 import { ARCHIVABLE_VALUE_TABLE_NAMES } from "../../../Utils/ArchivableValues";
 import {
@@ -48,7 +52,13 @@ import { DataSource, QueryRunner } from "typeorm";
  *   - the usage counts the Archive and Delete dialogs show
  *     (ArchivableValueUsage): every reference the models declare is counted
  *     by SQL Postgres runs, narrowed to the project, past deleted records,
- *     with lists counted in their join tables and criteria in their JSON.
+ *     with lists read through the records that own them and criteria in
+ *     their JSON - and people's own on-call rules counted by person, members
+ *     of the project only (the maintainer's "Notification Rules (22)" for a
+ *     project with two rules), each record or person once across the ways a
+ *     table reaches the value and the values asked about;
+ *   - the refusal of a delete a real foreign key raises, said as "archive it
+ *     instead" for the value's own delete only.
  *
  * Opt in with RUN_POSTGRES_ARCHIVABLE_VALUES_TESTS=true against a Postgres
  * migrated to the current head (the clones copy public.<table>) - the
@@ -567,9 +577,13 @@ describePostgres("what uses a value, counted by Postgres", () => {
   const labelId: string = ObjectID.generate().toString();
   let database: DataSource;
 
-  // Every table the counts read, for every kind of value.
+  /*
+   * Every table the counts read, for every kind of value: the tables the
+   * value's id is read from, the records that own a list's rows, and the
+   * memberships people's own settings are narrowed by.
+   */
   const tablesCounted: () => Array<string> = (): Array<string> => {
-    const tables: Set<string> = new Set<string>();
+    const tables: Set<string> = new Set<string>(["TeamMember"]);
 
     for (const valueTable of ARCHIVABLE_VALUE_TABLE_NAMES) {
       for (const reference of ArchivableValueUsage.getReferences({
@@ -577,6 +591,7 @@ describePostgres("what uses a value, counted by Postgres", () => {
         valueTable,
       })) {
         tables.add(reference.countTable);
+        tables.add(reference.recordTable);
       }
     }
 
@@ -585,6 +600,90 @@ describePostgres("what uses a value, counted by Postgres", () => {
     }
 
     return Array.from(tables).sort();
+  };
+
+  const countUses: (data: {
+    valueTable: string;
+    valueIds: Array<string>;
+    projectId?: string | undefined;
+  }) => Promise<Array<ArchivableValueUsageItem>> = async (data: {
+    valueTable: string;
+    valueIds: Array<string>;
+    projectId?: string | undefined;
+  }): Promise<Array<ArchivableValueUsageItem>> => {
+    return await ArchivableValueUsage.countUses({
+      dataSource: database,
+      valueTable: data.valueTable,
+      valueIds: data.valueIds,
+      projectId: new ObjectID(data.projectId || projectId),
+    });
+  };
+
+  const insert: (table: string, row: Record<string, unknown>) => Promise<void> =
+    async (table: string, row: Record<string, unknown>): Promise<void> => {
+      const columns: Array<string> = Object.keys(row);
+
+      await database.query(
+        `INSERT INTO "${schema}"."${table}" (${columns
+          .map((column: string): string => {
+            return `"${column}"`;
+          })
+          .join(", ")}) VALUES (${columns
+          .map((_column: string, index: number): string => {
+            return `$${index + 1}`;
+          })
+          .join(", ")})`,
+        columns.map((column: string): unknown => {
+          return row[column];
+        }),
+      );
+    };
+
+  const member: (data: {
+    userId: string;
+    projectId?: string | undefined;
+    hasAcceptedInvitation?: boolean | undefined;
+  }) => Promise<void> = async (data: {
+    userId: string;
+    projectId?: string | undefined;
+    hasAcceptedInvitation?: boolean | undefined;
+  }): Promise<void> => {
+    await insert("TeamMember", {
+      _id: ObjectID.generate().toString(),
+      projectId: data.projectId || projectId,
+      teamId: ObjectID.generate().toString(),
+      userId: data.userId,
+      hasAcceptedInvitation: data.hasAcceptedInvitation ?? true,
+    });
+  };
+
+  // A person's on-call rule for an incident severity: one per kind and method.
+  const rule: (data: {
+    userId: string;
+    severityId: string;
+    projectId?: string | undefined;
+  }) => Promise<void> = async (data: {
+    userId: string;
+    severityId: string;
+    projectId?: string | undefined;
+  }): Promise<void> => {
+    await insert("UserNotificationRule", {
+      _id: ObjectID.generate().toString(),
+      projectId: data.projectId || projectId,
+      userId: data.userId,
+      incidentSeverityId: data.severityId,
+      ruleType: "When incident is created",
+    });
+  };
+
+  const peopleOf: (
+    usage: Array<ArchivableValueUsageItem>,
+  ) => ArchivableValueUsageItem | undefined = (
+    usage: Array<ArchivableValueUsageItem>,
+  ): ArchivableValueUsageItem | undefined => {
+    return usage.find((item: ArchivableValueUsageItem): boolean => {
+      return item.kind === ArchivableValueUsageKind.Personal;
+    });
   };
 
   beforeAll(async () => {
@@ -599,6 +698,13 @@ describePostgres("what uses a value, counted by Postgres", () => {
     }
   });
 
+  beforeEach(async () => {
+    // Each test reads only the rows it writes.
+    for (const table of tablesCounted()) {
+      await database.query(`DELETE FROM "${schema}"."${table}"`);
+    }
+  });
+
   test("every count statement runs, for every kind of value", async () => {
     for (const valueTable of ARCHIVABLE_VALUE_TABLE_NAMES) {
       const references: Array<ValueReference> =
@@ -610,13 +716,25 @@ describePostgres("what uses a value, counted by Postgres", () => {
       expect(references.length).toBeGreaterThan(0);
 
       expect(
-        await ArchivableValueUsage.countUses({
-          dataSource: database,
+        await countUses({
           valueTable,
-          valueId: ObjectID.generate(),
-          projectId: new ObjectID(projectId),
+          valueIds: [ObjectID.generate().toString()],
         }),
       ).toEqual([]);
+
+      // Several at once, and the refusal checks a bulk Delete makes.
+      expect(
+        await ArchivableValueUsage.countValuesUsage({
+          dataSource: database,
+          valueTable,
+          valueIds: [
+            ObjectID.generate().toString(),
+            ObjectID.generate().toString(),
+          ],
+          projectId: new ObjectID(projectId),
+          purpose: ArchivableValuesUsagePurpose.Delete,
+        }),
+      ).toEqual({ usage: [], refusedValueIds: [], refusedUsage: [] });
     }
   });
 
@@ -666,13 +784,10 @@ describePostgres("what uses a value, counted by Postgres", () => {
       ],
     );
 
-    const usage: Array<ArchivableValueUsageItem> =
-      await ArchivableValueUsage.countUses({
-        dataSource: database,
-        valueTable: "IncidentSeverity",
-        valueId: new ObjectID(severityId),
-        projectId: new ObjectID(projectId),
-      });
+    const usage: Array<ArchivableValueUsageItem> = await countUses({
+      valueTable: "IncidentSeverity",
+      valueIds: [severityId],
+    });
 
     expect(usage).toEqual(
       expect.arrayContaining([
@@ -695,26 +810,163 @@ describePostgres("what uses a value, counted by Postgres", () => {
     expect(usage).toHaveLength(2);
   });
 
-  test("a label: the lists it is in, counted in their join tables", async () => {
-    for (let index: number = 0; index < 3; index++) {
-      await database.query(
-        `INSERT INTO "${schema}"."MonitorLabel" ("monitorId", "labelId") VALUES ($1, $2)`,
-        [ObjectID.generate().toString(), labelId],
-      );
+  /*
+   * The maintainer's dialog: "Notification Rules (22)" in a project whose
+   * owners set up two rules. Two members with eleven rules each for the
+   * severity (one per kind and notification method, as OneUptime seeds
+   * them) are two people.
+   */
+  test("people's own on-call rules: two people with eleven rules each are 2 people, not 22 rules", async () => {
+    const maya: string = ObjectID.generate().toString();
+    const deane: string = ObjectID.generate().toString();
+
+    await member({ userId: maya });
+    // A member of two teams of the project is one member.
+    await member({ userId: deane });
+    await member({ userId: deane });
+
+    for (let index: number = 0; index < 11; index++) {
+      await rule({ userId: maya, severityId: severityId });
+      await rule({ userId: deane, severityId: severityId });
     }
 
-    await database.query(
-      `INSERT INTO "${schema}"."IncidentLabelRuleLabelToAdd" ("incidentLabelRuleId", "labelId") VALUES ($1, $2)`,
-      [ObjectID.generate().toString(), labelId],
-    );
+    const usage: Array<ArchivableValueUsageItem> = await countUses({
+      valueTable: "IncidentSeverity",
+      valueIds: [severityId],
+    });
 
-    const usage: Array<ArchivableValueUsageItem> =
-      await ArchivableValueUsage.countUses({
-        dataSource: database,
-        valueTable: "Label",
-        valueId: new ObjectID(labelId),
-        projectId: new ObjectID(projectId),
+    expect(usage).toEqual([
+      {
+        tableName: "UserNotificationRule",
+        title: "Notification Rules",
+        singularTitle: "Notification Rule",
+        count: 2,
+        isCountCapped: false,
+        // Deleting the severity still deletes every one of their rules.
+        effect: ArchivableValueDeleteEffect.Deleted,
+        kind: ArchivableValueUsageKind.Personal,
+      },
+    ]);
+  });
+
+  test("people who left, who were only invited, or are another project's are not counted", async () => {
+    const stays: string = ObjectID.generate().toString();
+    const left: string = ObjectID.generate().toString();
+    const invited: string = ObjectID.generate().toString();
+    const elsewhere: string = ObjectID.generate().toString();
+
+    await member({ userId: stays });
+    // Never accepted the invitation: not a member yet.
+    await member({ userId: invited, hasAcceptedInvitation: false });
+    // A member of another project only.
+    await member({ userId: elsewhere, projectId: otherProjectId });
+
+    await rule({ userId: stays, severityId: severityId });
+    // Rows a removed member left behind: no membership at all.
+    await rule({ userId: left, severityId: severityId });
+    await rule({ userId: invited, severityId: severityId });
+    // Another project's rows never count, whoever they name.
+    await rule({
+      userId: elsewhere,
+      severityId: severityId,
+      projectId: otherProjectId,
+    });
+
+    const usage: Array<ArchivableValueUsageItem> = await countUses({
+      valueTable: "IncidentSeverity",
+      valueIds: [severityId],
+    });
+
+    expect(peopleOf(usage)?.count).toBe(1);
+  });
+
+  test("a person's rules for another severity are not counted for this one; asked about both, each person is counted once", async () => {
+    const otherSeverityId: string = ObjectID.generate().toString();
+    const both: string = ObjectID.generate().toString();
+    const onlyOther: string = ObjectID.generate().toString();
+
+    await member({ userId: both });
+    await member({ userId: onlyOther });
+
+    await rule({ userId: both, severityId: severityId });
+    await rule({ userId: both, severityId: otherSeverityId });
+    await rule({ userId: onlyOther, severityId: otherSeverityId });
+    await rule({ userId: onlyOther, severityId: otherSeverityId });
+
+    expect(
+      peopleOf(
+        await countUses({
+          valueTable: "IncidentSeverity",
+          valueIds: [severityId],
+        }),
+      )?.count,
+    ).toBe(1);
+
+    expect(
+      peopleOf(
+        await countUses({
+          valueTable: "IncidentSeverity",
+          valueIds: [otherSeverityId],
+        }),
+      )?.count,
+    ).toBe(2);
+
+    // Both severities, as a bulk dialog asks: two people, not three.
+    expect(
+      peopleOf(
+        await countUses({
+          valueTable: "IncidentSeverity",
+          valueIds: [severityId, otherSeverityId],
+        }),
+      )?.count,
+    ).toBe(2);
+  });
+
+  test("a label: the lists it is in, read through the records that own them - the project's, still there", async () => {
+    const monitor: (values: {
+      projectId: string;
+      deletedAt?: Date | null;
+    }) => Promise<string> = async (values: {
+      projectId: string;
+      deletedAt?: Date | null;
+    }): Promise<string> => {
+      const id: string = ObjectID.generate().toString();
+
+      await insert("Monitor", {
+        _id: id,
+        projectId: values.projectId,
+        deletedAt: values.deletedAt || null,
       });
+      await insert("MonitorLabel", { monitorId: id, labelId: labelId });
+
+      return id;
+    };
+
+    for (let index: number = 0; index < 3; index++) {
+      await monitor({ projectId });
+    }
+
+    // Not the project's, and deleted: their join rows are not counted.
+    await monitor({ projectId: otherProjectId });
+    await monitor({ projectId, deletedAt: new Date() });
+
+    // A join row whose monitor is gone names nothing.
+    await insert("MonitorLabel", {
+      monitorId: ObjectID.generate().toString(),
+      labelId: labelId,
+    });
+
+    const ruleId: string = ObjectID.generate().toString();
+    await insert("IncidentLabelRule", { _id: ruleId, projectId: projectId });
+    await insert("IncidentLabelRuleLabelToAdd", {
+      incidentLabelRuleId: ruleId,
+      labelId: labelId,
+    });
+
+    const usage: Array<ArchivableValueUsageItem> = await countUses({
+      valueTable: "Label",
+      valueIds: [labelId],
+    });
 
     expect(usage).toEqual(
       expect.arrayContaining([
@@ -734,8 +986,276 @@ describePostgres("what uses a value, counted by Postgres", () => {
     );
   });
 
+  test("a rule that holds a label in two of its lists is one rule; two labels on one monitor are one monitor", async () => {
+    const both: string = ObjectID.generate().toString();
+    const episodesOnly: string = ObjectID.generate().toString();
+
+    for (const id of [both, episodesOnly]) {
+      await insert("IncidentGroupingRule", { _id: id, projectId: projectId });
+    }
+
+    await insert("IncidentGroupingRuleIncidentLabel", {
+      incidentGroupingRuleId: both,
+      labelId: labelId,
+    });
+    await insert("IncidentGroupingRuleMonitorLabel", {
+      incidentGroupingRuleId: both,
+      labelId: labelId,
+    });
+    await insert("IncidentGroupingRuleEpisodeLabel", {
+      incidentGroupingRuleId: episodesOnly,
+      labelId: labelId,
+    });
+
+    const groupingRules: ArchivableValueUsageItem | undefined = (
+      await countUses({ valueTable: "Label", valueIds: [labelId] })
+    ).find((item: ArchivableValueUsageItem): boolean => {
+      return item.tableName === "IncidentGroupingRule";
+    });
+
+    // Three join rows, two rules.
+    expect(groupingRules).toMatchObject({ count: 2 });
+
+    // A monitor with both of the labels asked about is one monitor.
+    const otherLabelId: string = ObjectID.generate().toString();
+    const monitorId: string = ObjectID.generate().toString();
+
+    await insert("Monitor", { _id: monitorId, projectId: projectId });
+    await insert("MonitorLabel", { monitorId: monitorId, labelId: labelId });
+    await insert("MonitorLabel", {
+      monitorId: monitorId,
+      labelId: otherLabelId,
+    });
+
+    expect(
+      (
+        await countUses({
+          valueTable: "Label",
+          valueIds: [labelId, otherLabelId],
+        })
+      ).find((item: ArchivableValueUsageItem): boolean => {
+        return item.tableName === "Monitor";
+      }),
+    ).toMatchObject({ count: 1 });
+  });
+
+  test("a table reached with two effects: a line for each, and its total of monitors, every way together", async () => {
+    const statusId: string = ObjectID.generate().toString();
+    const criteria: string = JSON.stringify({
+      monitorStepsInstanceArray: [
+        {
+          monitorCriteria: {
+            monitorCriteriaInstanceArray: [
+              {
+                monitorStatusId: { _type: "ObjectID", value: statusId },
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    const monitor: (values: {
+      suppresses: boolean;
+      criteria: boolean;
+    }) => Promise<void> = async (values: {
+      suppresses: boolean;
+      criteria: boolean;
+    }): Promise<void> => {
+      const id: string = ObjectID.generate().toString();
+
+      await insert("Monitor", {
+        _id: id,
+        projectId: projectId,
+        monitorSteps: values.criteria ? criteria : null,
+      });
+
+      if (values.suppresses) {
+        await insert("MonitorDependencySuppressionStatus", {
+          monitorId: id,
+          monitorStatusId: statusId,
+        });
+      }
+    };
+
+    // Both ways, criteria only, suppression only.
+    await monitor({ suppresses: true, criteria: true });
+    await monitor({ suppresses: false, criteria: true });
+    await monitor({ suppresses: true, criteria: false });
+
+    const monitors: Array<ArchivableValueUsageItem> = (
+      await countUses({ valueTable: "MonitorStatus", valueIds: [statusId] })
+    ).filter((item: ArchivableValueUsageItem): boolean => {
+      return (
+        item.tableName === "Monitor" &&
+        item.kind === ArchivableValueUsageKind.Settings
+      );
+    });
+
+    expect(monitors).toEqual([
+      expect.objectContaining({
+        effect: ArchivableValueDeleteEffect.RemovedFromList,
+        count: 2,
+        totalCount: 3,
+        isTotalCountCapped: false,
+      }),
+      expect.objectContaining({
+        effect: ArchivableValueDeleteEffect.LeftDangling,
+        count: 2,
+        totalCount: 3,
+        isTotalCountCapped: false,
+      }),
+    ]);
+  });
+
+  test("a bulk Delete: the values records still have, what has them, and what deleting the rest changes", async () => {
+    const inUse: string = ObjectID.generate().toString();
+    const rulesOnly: string = ObjectID.generate().toString();
+    const unused: string = ObjectID.generate().toString();
+    const person: string = ObjectID.generate().toString();
+
+    await insert("Incident", {
+      _id: ObjectID.generate().toString(),
+      projectId: projectId,
+      incidentSeverityId: inUse,
+    });
+    // Another project's incident does not hold this project's delete up.
+    await insert("Incident", {
+      _id: ObjectID.generate().toString(),
+      projectId: otherProjectId,
+      incidentSeverityId: rulesOnly,
+    });
+
+    await member({ userId: person });
+    await rule({ userId: person, severityId: inUse });
+    await rule({ userId: person, severityId: rulesOnly });
+
+    expect(
+      await ArchivableValueUsage.getRefusedValueIds({
+        dataSource: database,
+        valueTable: "IncidentSeverity",
+        valueIds: [unused, rulesOnly.toUpperCase(), inUse],
+        projectId: new ObjectID(projectId),
+      }),
+    ).toEqual([inUse]);
+
+    const answer: ArchivableValuesUsage =
+      await ArchivableValueUsage.countValuesUsage({
+        dataSource: database,
+        valueTable: "IncidentSeverity",
+        valueIds: [inUse, rulesOnly, unused],
+        projectId: new ObjectID(projectId),
+        purpose: ArchivableValuesUsagePurpose.Delete,
+      });
+
+    expect(answer.refusedValueIds).toEqual([inUse]);
+    expect(answer.refusedUsage).toEqual([
+      expect.objectContaining({
+        tableName: "Incident",
+        count: 1,
+        effect: ArchivableValueDeleteEffect.Refused,
+      }),
+    ]);
+    // Deleting the rest takes the person's rules for the second one with it.
+    expect(answer.usage).toEqual([
+      expect.objectContaining({
+        tableName: "UserNotificationRule",
+        count: 1,
+        kind: ArchivableValueUsageKind.Personal,
+        effect: ArchivableValueDeleteEffect.Deleted,
+      }),
+    ]);
+
+    // An archive of all three: everything any of them has, nothing refused.
+    const archive: ArchivableValuesUsage =
+      await ArchivableValueUsage.countValuesUsage({
+        dataSource: database,
+        valueTable: "IncidentSeverity",
+        valueIds: [inUse, rulesOnly, unused],
+        projectId: new ObjectID(projectId),
+        purpose: ArchivableValuesUsagePurpose.Archive,
+      });
+
+    expect(archive.refusedValueIds).toEqual([]);
+    expect(peopleOf(archive.usage)?.count).toBe(1);
+    expect(
+      archive.usage.find((item: ArchivableValueUsageItem): boolean => {
+        return item.tableName === "Incident";
+      })?.count,
+    ).toBe(1);
+  });
+
   test("the model behind every kind of value is the one the counts read", () => {
     expect(new IncidentSeverity().tableName).toBe("IncidentSeverity");
     expect(new Label().tableName).toBe("Label");
+  });
+});
+
+/*
+ * The refusal Postgres raises for deleting a value rows still have, through
+ * a real foreign key, as the services answer it (DatabaseService passes its
+ * own table): "archive it instead", only for the value's own delete.
+ */
+describePostgres("a delete a foreign key refuses, said as Postgres raises it", () => {
+  const schema: string = uniqueSchema("archive_values_refusal");
+  const severityId: string = ObjectID.generate().toString();
+  let database: DataSource;
+  let refusal: unknown = null;
+
+  beforeAll(async () => {
+    database = await connect(schema);
+
+    await database.query(
+      `CREATE TABLE "${schema}"."IncidentSeverity" ("_id" uuid PRIMARY KEY)`,
+    );
+    await database.query(
+      `CREATE TABLE "${schema}"."Incident" ("_id" uuid PRIMARY KEY, "incidentSeverityId" uuid REFERENCES "${schema}"."IncidentSeverity" ("_id"))`,
+    );
+    await database.query(
+      `INSERT INTO "${schema}"."IncidentSeverity" ("_id") VALUES ($1)`,
+      [severityId],
+    );
+    await database.query(
+      `INSERT INTO "${schema}"."Incident" ("_id", "incidentSeverityId") VALUES ($1, $2)`,
+      [ObjectID.generate().toString(), severityId],
+    );
+
+    try {
+      await database.query(
+        `DELETE FROM "${schema}"."IncidentSeverity" WHERE "_id" = $1`,
+        [severityId],
+      );
+    } catch (error) {
+      refusal = error;
+    }
+  });
+
+  afterAll(async () => {
+    if (database?.isInitialized) {
+      await database.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
+      await database.destroy();
+    }
+  });
+
+  test("the value's own delete: archive it instead", () => {
+    expect(refusal).not.toBeNull();
+
+    const translated: unknown = PostgresErrorTranslator.translate(refusal, {
+      tableName: "IncidentSeverity",
+    });
+
+    expect((translated as Exception).message).toBe(
+      "This incident severity can't be deleted while Incident records still have it. Archive it instead: nobody can pick it again, and everything that has it keeps it.",
+    );
+  });
+
+  test("another model's delete that reached it - a project's - says what it always said", () => {
+    const translated: unknown = PostgresErrorTranslator.translate(refusal, {
+      tableName: "Project",
+    });
+
+    expect((translated as Exception).message).toBe(
+      "This item cannot be deleted because Incident records still reference it. Please delete those records first, and then try again.",
+    );
   });
 });
