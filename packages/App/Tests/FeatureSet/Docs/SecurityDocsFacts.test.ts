@@ -138,6 +138,16 @@ import GenericNormalizer from "Common/Utils/SecurityEvent/GenericNormalizer";
 import OcsfNormalizer from "Common/Utils/SecurityEvent/OcsfNormalizer";
 import SecurityEventNormalizer from "Common/Utils/SecurityEvent/SecurityEventNormalizer";
 import SigmaRuleParser from "Common/Utils/SecurityEvent/Sigma/SigmaRuleParser";
+import SigmaRuleSetParser, {
+  sigmaRulesOf,
+} from "Common/Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
+import {
+  bindSigmaWatchlists,
+  getDetectionRuleWatchlistReferences,
+} from "Common/Utils/SecurityEvent/Sigma/SigmaWatchlists";
+import { SigmaWatchlists } from "Common/Types/SecurityEvent/SecurityWatchlist";
+import { DetectionRuleDefinition } from "Common/Types/SecurityEvent/SigmaCorrelation";
+import { SecurityEntityType } from "Common/Types/SecurityCase/SecurityEntity";
 import ThreatIntelFeedType, {
   RECOMMENDED_THREAT_INTEL_LISTS,
   RecommendedThreatIntelList,
@@ -467,6 +477,32 @@ function sigmaRule(selection: string): string {
 
 function compiledSql(ruleYaml: string): Statement {
   return SigmaClickhouseCompiler.compileYaml(ruleYaml);
+}
+
+/*
+ * A rule as a save compiles it: the watchlists it names bound as a project
+ * that keeps them binds them, each a list of users kept by hand.
+ */
+function compiledSqlAsSaved(ruleYaml: string): Statement {
+  const definition: DetectionRuleDefinition =
+    SigmaRuleSetParser.parse(ruleYaml);
+  const watchlists: SigmaWatchlists = {};
+
+  for (const reference of getDetectionRuleWatchlistReferences(definition)) {
+    watchlists[reference.key] = {
+      name: reference.name,
+      entityType: SecurityEntityType.User,
+      exactValues: ["adm"],
+      patterns: ["adm*"],
+      ranges: [],
+    };
+  }
+
+  const rule: SigmaRule | undefined = sigmaRulesOf(
+    bindSigmaWatchlists(definition, watchlists),
+  )[0];
+
+  return SigmaClickhouseCompiler.compile(rule!);
 }
 
 function boundValues(statement: Statement): Array<unknown> {
@@ -1392,6 +1428,7 @@ describe("the Security Events page", () => {
       cidr: "    principalIp|cidr: 10.0.0.0/8",
       exists: "    principalHost|exists: true",
       windash: "    principalProcess|windash|contains: ' -enc '",
+      expand: "    principalUser|expand: '%admins%'",
     };
 
     expect(named.slice(0, SIGMA_SUPPORTED_MODIFIERS.length)).toEqual([
@@ -1401,9 +1438,14 @@ describe("the Security Events page", () => {
 
     for (const modifier of SIGMA_SUPPORTED_MODIFIERS) {
       expect(() => {
-        return compiledSql(sigmaRule(uses[modifier] as string));
+        return compiledSqlAsSaved(sigmaRule(uses[modifier] as string));
       }).not.toThrow();
     }
+
+    // expand reads the list the project keeps: its values as written, and its patterns.
+    expect(boundValues(compiledSqlAsSaved(sigmaRule(uses["expand"]!)))).toEqual(
+      expect.arrayContaining([["adm"], "adm%"]),
+    );
 
     // windash matches the flag in both spellings.
     expect(boundValues(compiledSql(sigmaRule(uses["windash"]!)))).toEqual(

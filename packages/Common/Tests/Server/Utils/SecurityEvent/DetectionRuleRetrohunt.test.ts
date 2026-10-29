@@ -13,6 +13,7 @@ import CorrelationRuleMatcher, {
 } from "../../../../Server/Utils/SecurityEvent/Correlation/CorrelationRuleMatcher";
 import { CORRELATION_TEMPORAL_CANDIDATE_LIMIT } from "../../../../Server/Utils/SecurityEvent/Correlation/CorrelationQueries";
 import ProjectSigmaRules from "../../../../Server/Utils/SecurityEvent/Correlation/ProjectSigmaRules";
+import SecurityWatchlists from "../../../../Server/Utils/SecurityEvent/Watchlists/SecurityWatchlists";
 import DetectionRuleExceptionService from "../../../../Server/Services/DetectionRuleExceptionService";
 import SecurityEventService from "../../../../Server/Services/SecurityEventService";
 import DetectionRuleException from "../../../../Models/DatabaseModels/DetectionRuleException";
@@ -703,5 +704,118 @@ correlation:
     ).rejects.toThrow();
 
     expect(load).toHaveBeenCalledWith(PROJECT_ID, { excludeRuleId: RULE_ID });
+  });
+});
+
+/*
+ * A rule run on past events reads its watchlists as its runs do: bound from
+ * the project before it is compiled, a list the project does not have
+ * answered by name, and a read too large for one request refused with what
+ * to do - never ClickHouse's "URI too long".
+ */
+describe("a run of a rule that reads a watchlist", () => {
+  const VIP_RULE: string = `title: VIP sign-in
+detection:
+  selection:
+    principalUser|expand: '%vip_users%'
+  condition: selection`;
+
+  function stubQuery(): Spy {
+    return getJestSpyOn(SecurityEventService, "executeQuery").mockResolvedValue(
+      {
+        json: async (): Promise<JSONObject> => {
+          return { data: [] };
+        },
+      } as never,
+    );
+  }
+
+  test("the list's values are in the statement it reads with", async () => {
+    getJestSpyOn(SecurityWatchlists, "load").mockResolvedValue(
+      new Map([
+        [
+          "vip_users",
+          {
+            name: "vip_users",
+            entityType: SecurityEntityType.User,
+            exactValues: ["alice", "bob"],
+            patterns: [],
+            ranges: [],
+          },
+        ],
+      ]) as never,
+    );
+    const query: Spy = stubQuery();
+
+    await DetectionRuleRetrohunt.run({
+      projectId: PROJECT_ID,
+      rule: { sigmaRuleYaml: VIP_RULE },
+      periodInHours: 24,
+      serviceFilter: {},
+      now: NOW,
+    });
+
+    const statement: Statement = query.mock.calls[0]![0] as Statement;
+
+    expect(statement.query).toContain("lowerUTF8(principalUser) IN {");
+    expect(Object.values(statement.query_params)).toContainEqual([
+      "alice",
+      "bob",
+    ]);
+  });
+
+  test("a list the project does not have is answered by name, and nothing is read", async () => {
+    getJestSpyOn(SecurityWatchlists, "load").mockResolvedValue(
+      new Map() as never,
+    );
+    const query: Spy = stubQuery();
+
+    await expect(
+      DetectionRuleRetrohunt.run({
+        projectId: PROJECT_ID,
+        rule: { sigmaRuleYaml: VIP_RULE },
+        periodInHours: 24,
+        serviceFilter: {},
+        now: NOW,
+      }),
+    ).rejects.toThrow("There is no watchlist named vip_users in this project.");
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  test("a read too large for one request is refused before it is sent", async () => {
+    const values: Array<string> = [];
+
+    for (let index: number = 0; index < 5000; index++) {
+      values.push(`${"u".repeat(240)}${index}`);
+    }
+
+    getJestSpyOn(SecurityWatchlists, "load").mockResolvedValue(
+      new Map([
+        [
+          "vip_users",
+          {
+            name: "vip_users",
+            entityType: SecurityEntityType.User,
+            exactValues: values,
+            patterns: [],
+            ranges: [],
+          },
+        ],
+      ]) as never,
+    );
+    const query: Spy = stubQuery();
+
+    await expect(
+      DetectionRuleRetrohunt.run({
+        projectId: PROJECT_ID,
+        rule: { sigmaRuleYaml: VIP_RULE },
+        periodInHours: 24,
+        serviceFilter: {},
+        now: NOW,
+      }),
+    ).rejects.toThrow(
+      "This rule reads more watchlist values than one read can send to the database",
+    );
+    expect(query).not.toHaveBeenCalled();
   });
 });

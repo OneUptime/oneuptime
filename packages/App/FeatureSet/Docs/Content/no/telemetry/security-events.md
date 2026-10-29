@@ -41,6 +41,7 @@ flowchart TB
 | **Korreler** | Hendelser | En graf over hendelsene som deler en vert, en bruker eller en IP-adresse |
 | **Deteksjonsregler** | Detections | Sigma-regler som kjører etter en tidsplan og åpner saker |
 | **Regelunntak** | Detections | Det reglene dine hopper over med vilje, som en skanner eller en planlagt test, hver med hvem som la den til og hvorfor |
+| **Overvåkingslister** | Detections | Listene reglene dine sammenligner med, som VIP-brukere, kritiske verter, kjente ondsinnede filhasher og adressene administratorer kan logge på fra |
 | **Regelbibliotek** | Detections | Ferdige deteksjonsregler å legge til, hver med hendelsene den leser og om de kommer inn, med de anbefalte merket |
 | **Trusselsinformasjon** | Detections | STIX/TAXII-feeder med kjente ondsinnede indikatorer |
 | **ATT&CK-dekning** | Detections | MITRE ATT&CK-teknikkene som reglene dine dekker |
@@ -300,7 +301,7 @@ OneUptime kjører den boolske kjernen i Sigma:
 
 - Seleksjoner er feltkart (hvert felt må treffe; en liste med verdier treffer hvilken som helst av dem) eller nøkkelordlister, som treffer hvor som helst i meldingen.
 - Betingelser kombinerer seleksjoner med `and`, `or`, `not` og parenteser, eller med `1 of selection_*`, `all of selection_*`, `any of them` og `all of them`.
-- Feltmodifikatorer: `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists` og `windash`. Tekst sammenlignes uten hensyn til store og små bokstaver, med mindre du legger til `cased`.
+- Feltmodifikatorer: `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists`, `windash` og `expand`, som leser en [overvåkingsliste](#overvåkingslister). Tekst sammenlignes uten hensyn til store og små bokstaver, med mindre du legger til `cased`.
 - Et felt er et typet felt (`principalUser`), en vanlig Sigma-skrivemåte av et (`CommandLine`, `src_ip`, `Hostname`), eller hvilken som helst attributtnøkkel, skrevet slik den er i hendelsen (`threat.matched`).
 - `Image` og `CommandLine` leser prosessen hendelsen handler om, ved en prosessoppstart den som startet (`processPath`, `processCommandLine`), og `ParentImage` og `ParentCommandLine` prosessen som startet den (`parentProcessPath`, `parentProcessCommandLine`). `principalProcess` er prosessen som handlet, som ved en oppstart er den overordnede.
 - `level` angir alvorlighetsgraden: `informational`, `low`, `medium`, `high` eller `critical`, og `medium` når den mangler. ATT&CK-ID-er i `tags` (`attack.t1110`, `attack.ta0006`) fyller ut funnets MITRE-felt.
@@ -436,6 +437,32 @@ Et unntak er noe en regel hopper over fordi du venter det, som en sårbarhetsska
 - Hendelser som hoppes over, holdes utenfor før regelen teller noe, så de teller aldri mot dens **Terskel for antall treff** og åpner ingen sak, varsel, hendelse eller funn. Unntak gjelder for hver kjøring av regelen, korrelasjoner inkludert, og for **Kjør på tidligere hendelser**, men aldri for et testangrep, som sjekker at hendelser kommer gjennom.
 - En regel har høyst 100 unntak. Den som kan redigere deteksjonsregler, legger til, endrer og fjerner dem, alle Security-roller kan lese dem, og hver endring lagres i prosjektets revisjonslogg.
 
+### Overvåkingslister
+
+En overvåkingsliste er en liste teamet ditt holder én gang og som enhver regel kan lese, som VIP-brukere, kritiske verter, kjente ondsinnede filhasher eller adressene administratorer kan logge på fra. Alle lister ligger under **Produkter → Security Events → Deteksjoner → Overvåkingslister**: Opprett en der med **Opprett Overvåkingsliste**, som spør om navnet og hva den inneholder, eller legg til en vanlig fra **Start med en vanlig liste**. Siden til en liste viser verdiene, og **Bruk den i en regel** gir en seleksjon som leser listen, til å kopiere inn i en regel.
+
+En regel leser en liste med `expand` og navnet på listen mellom to `%`-tegn. Denne regelen utløses når en administrator logger på fra en adresse som ikke står på den tillatte listen:
+
+```yaml title="admin-sign-in-from-outside.yml"
+title: Admin sign-in from outside the allowed addresses
+detection:
+  admin_sign_in:
+    className: Authentication
+    principalUser|expand: '%admins%'
+  allowed:
+    principalIp|expand: '%admin_addresses%'
+  condition: admin_sign_in and not allowed
+level: high
+```
+
+- En liste inneholder brukere, verter, IP-adresser, filhasher, domener, URL-er, prosesser eller andre verdier, valgt når den opprettes. En verdi treffer uansett store og små bokstaver, og `*` står for en hvilken som helst rekke tegn: `svc-*` treffer alle tjenestekontoer. En liste med IP-adresser tar også områder som `10.20.0.0/16`, og en liste med filhasher MD5-, SHA-1-, SHA-256- og SHA-512-hasher.
+- Legg til verdier én og én med **Legg til Verdi**, eller mange samtidig med **Importer verdier**: lim dem inn, eller velg en `.txt`- eller `.csv`-fil, én verdi per linje, med et valgfritt notat etter et komma. **Legg til i listen** beholder verdiene som allerede står på den, og **Erstatt listen** fjerner dem importen ikke har.
+- I stedet for å holde verdier kan en liste med IP-adresser, filhasher, domener eller URL-er følge en feed med trusselsinformasjon: Verdiene er da de aktive indikatorene i feeden av listens type, holdt oppdatert etter hvert som feeden leses.
+- `expand` brukes alene, siden verdiene i listen avgjør hvordan de treffer. Et felt med flere verdier, som `observables`, treffer når en av dem står på listen. **Leses av** nevner reglene som leser hver liste, og under YAML-en til en regel nevner skjemaet listene regelen leser.
+- En regel nevner en liste uansett store og små bokstaver. En regel som nevner en liste prosjektet ikke har, avvises når du lagrer den, og en liste som regler leser, kan ikke gis nytt navn eller slettes før ingen regel leser den.
+- En endring i en liste når alle regler som leser den, ved regelens neste kjøring. Korrelasjonsregler og **Kjør på tidligere hendelser** leser også lister.
+- En liste har høyst 5 000 verdier, av dem høyst 100 med `*` og 100 områder, og et prosjekt har høyst 200 lister: Følg en feed med trusselsinformasjon for en lengre liste. Den som kan opprette, redigere eller slette deteksjonsregler, kan gjøre det samme med lister, og den som kan redigere deteksjonsregler, legger til, endrer og fjerner verdiene deres. Alle Security-roller kan lese dem, og hver endring lagres i prosjektets revisjonslogg.
+
 ### Kjør på tidligere hendelser
 
 **Kjør på tidligere hendelser** viser hva en regel ville ha funnet hvis den hadde kjørt, uten å åpne, sende eller skrive noe. Den finnes i en regels rad, for regelen slik den er lagret, og under **Sigma-regel (YAML)** i regelens skjema, for regelen slik den står der, før du lagrer den. Velg **Siste 24 timer**, **Siste 7 dager** eller **Siste 30 dager**.
@@ -504,6 +531,14 @@ Legg til et unntak for det i stedet for å slå av regelen: **Legg til unntak** 
 
 :::details Et unntak hopper ikke over det det skal
 Sjekk unntakets **Status** i **Regelunntak**: et unntak med status **Utløpt** hopper ikke over noe, og et tidsvindu hopper bare over hendelsene mellom sine to tidspunkter. En entitet letes etter som den som handlet, som den det ble handlet mot og blant hendelsens `observables`; for å hoppe over en verdi i et annet felt, legg til et unntak av typen **En verdi** som navngir feltet. Uten `*` må en verdi være lik hele feltet: `svc-*` hopper over `svc-backup`, og `svc-` gjør det ikke.
+:::
+
+:::details En regel som leser en overvåkingsliste, treffer ikke
+Åpne listen og sjekk verdiene: En verdi uten `*` må være lik hele feltet, uansett store og små bokstaver, og en liste som følger en feed med trusselsinformasjon, inneholder bare de aktive indikatorene i feeden av sin type. Sjekk at regelen leser feltet hendelsene dine fyller: **Bruk den i en regel** begynner med feltet en liste av sin type vanligvis står i. En endring i en liste når en regel ved dens neste kjøring.
+:::
+
+:::details En overvåkingsliste kan ikke gis nytt navn eller slettes
+Regler leser den fortsatt via navnet, og meldingen nevner dem. Endre navnet i de reglene, eller ta listen ut av dem, og gi den deretter nytt navn eller slett den.
 :::
 
 :::details Å kjøre en regel på tidligere hendelser finner ingenting

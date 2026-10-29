@@ -41,6 +41,7 @@ Abra **Produtos → Security Events**, em **Observabilidade**. O menu dele tem u
 | **Correlacionar** | Eventos | Um grafo dos eventos que compartilham um host, um usuário ou um endereço IP |
 | **Regras de detecção** | Detections | Regras Sigma que rodam em uma programação e abrem casos |
 | **Exceções de regra** | Detections | O que suas regras ignoram de propósito, como um scanner ou um teste planejado, cada um com quem o adicionou e por quê |
+| **Listas de observação** | Detections | As listas com as quais suas regras comparam os eventos, como usuários VIP, hosts críticos, hashes de arquivos maliciosos conhecidos e os endereços de onde os administradores podem entrar |
 | **Biblioteca de regras** | Detections | Regras de detecção prontas para adicionar, cada uma com os eventos que lê e se eles chegam, com as recomendadas marcadas |
 | **Inteligência de ameaças** | Detections | Feeds STIX/TAXII de indicadores maliciosos conhecidos |
 | **Cobertura ATT&CK** | Detections | As técnicas MITRE ATT&CK que as suas regras cobrem |
@@ -300,7 +301,7 @@ O OneUptime roda o núcleo booleano do Sigma:
 
 - As seleções são mapas de campos (cada campo precisa corresponder; uma lista de valores corresponde a qualquer um deles) ou listas de palavras-chave, que correspondem em qualquer parte da mensagem.
 - As condições combinam seleções com `and`, `or`, `not` e parênteses, ou com `1 of selection_*`, `all of selection_*`, `any of them` e `all of them`.
-- Modificadores de campo: `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists` e `windash`. O texto é comparado sem diferenciar maiúsculas, a menos que você acrescente `cased`.
+- Modificadores de campo: `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists`, `windash` e `expand`, que lê uma [lista de observação](#listas-de-observação). O texto é comparado sem diferenciar maiúsculas, a menos que você acrescente `cased`.
 - Um campo é um campo tipado (`principalUser`), uma grafia Sigma comum de um deles (`CommandLine`, `src_ip`, `Hostname`) ou qualquer chave de atributo, escrita como está no evento (`threat.matched`).
 - `Image` e `CommandLine` leem o processo de que o evento trata, o que foi iniciado na inicialização de um processo (`processPath`, `processCommandLine`), e `ParentImage` e `ParentCommandLine` o processo que o iniciou (`parentProcessPath`, `parentProcessCommandLine`). `principalProcess` é o processo que agiu, que em uma inicialização é o processo pai.
 - `level` define a gravidade: `informational`, `low`, `medium`, `high` ou `critical`, e `medium` quando falta. Os IDs ATT&CK em `tags` (`attack.t1110`, `attack.ta0006`) preenchem os campos MITRE do achado.
@@ -436,6 +437,32 @@ Uma exceção é algo que uma regra ignora porque você já espera, como um scan
 - Os eventos ignorados são descartados antes que a regra conte qualquer coisa, então nunca contam para seu **Limite de correspondências** e não abrem caso, alerta, incidente nem achado. As exceções valem para toda execução da regra, correlações incluídas, e para **Executar em eventos passados**, mas nunca para um ataque de teste, que verifica se os eventos chegam.
 - Uma regra tem no máximo 100 exceções. Quem pode editar regras de detecção as adiciona, altera e remove, toda função de Security pode lê-las, e cada alteração fica no log de auditoria do projeto.
 
+### Listas de observação
+
+Uma lista de observação é uma lista que sua equipe mantém uma única vez e que qualquer regra pode ler, como usuários VIP, hosts críticos, hashes de arquivos maliciosos conhecidos ou os endereços de onde os administradores podem entrar. Toda lista fica em **Produtos → Security Events → Detecções → Listas de observação**: crie uma ali com **Criar: Lista de observação**, que pede o nome dela e o que ela contém, ou adicione uma comum em **Comece com uma lista comum**. A página de uma lista mostra seus valores, e **Use-a em uma regra** dá uma seleção que lê a lista, para copiar em uma regra.
+
+Uma regra lê uma lista com `expand` e o nome da lista entre sinais `%`. Esta regra dispara quando um administrador entra a partir de um endereço que não está na lista permitida:
+
+```yaml title="admin-sign-in-from-outside.yml"
+title: Admin sign-in from outside the allowed addresses
+detection:
+  admin_sign_in:
+    className: Authentication
+    principalUser|expand: '%admins%'
+  allowed:
+    principalIp|expand: '%admin_addresses%'
+  condition: admin_sign_in and not allowed
+level: high
+```
+
+- Uma lista contém usuários, hosts, endereços IP, hashes de arquivos, domínios, URLs, processos ou outros valores, escolhidos ao criá-la. Um valor corresponde sem diferenciar maiúsculas e minúsculas, e `*` representa qualquer sequência de caracteres: `svc-*` corresponde a toda conta de serviço. Uma lista de endereços IP também aceita intervalos, como `10.20.0.0/16`, e uma lista de hashes de arquivos aceita hashes MD5, SHA-1, SHA-256 e SHA-512.
+- Adicione valores um a um com **Adicionar: Valor**, ou vários de uma vez com **Importar valores**: cole-os, ou escolha um arquivo `.txt` ou `.csv`, um valor por linha, com uma nota opcional depois de uma vírgula. **Adicionar à lista** mantém os valores que já estão nela, e **Substituir a lista** remove os que a importação não tem.
+- Em vez de manter valores, uma lista de endereços IP, hashes de arquivos, domínios ou URLs pode seguir um feed de inteligência de ameaças: seus valores são então os indicadores ativos do feed do tipo da lista, mantidos atualizados à medida que o feed é lido.
+- `expand` é usado sozinho, porque os valores da lista dizem como correspondem. Um campo que contém vários valores, como `observables`, corresponde quando algum deles está na lista. **Lida por** nomeia as regras que leem cada lista, e abaixo do YAML de uma regra seu formulário nomeia as listas que a regra lê.
+- Uma regra nomeia uma lista sem diferenciar maiúsculas e minúsculas. Uma regra que nomeia uma lista que o projeto não tem é recusada ao salvar, e uma lista que regras leem não pode ser renomeada nem excluída até que nenhuma regra a leia.
+- Uma mudança em uma lista chega a toda regra que a lê na próxima execução da regra. As regras de correlação e **Executar em eventos passados** também leem listas.
+- Uma lista tem no máximo 5.000 valores, dos quais no máximo 100 com `*` e 100 intervalos, e um projeto tem no máximo 200 listas: para uma lista mais longa, siga um feed de inteligência de ameaças. Quem pode criar, editar ou excluir regras de detecção pode fazer o mesmo com as listas, e quem pode editar regras de detecção adiciona, altera e remove seus valores. Toda função de Security pode lê-las, e cada alteração fica no log de auditoria do projeto.
+
 ### Executar em eventos passados
 
 **Executar em eventos passados** mostra o que uma regra teria encontrado se estivesse rodando, sem abrir, enviar nem gravar nada. Ele fica na linha de uma regra, para a regra como está salva, e sob **Regra Sigma (YAML)** no formulário da regra, para a regra como está ali, antes de você salvá-la. Escolha **Últimas 24 horas**, **Últimos 7 dias** ou **Últimos 30 dias**.
@@ -504,6 +531,14 @@ Adicione uma exceção para isso em vez de desativar a regra: **Adicionar exceç
 
 :::details Uma exceção não ignora o que deveria
 Verifique seu **Status** em **Exceções de regra**: uma exceção com status **Expirado** não ignora nada, e uma janela de tempo só ignora os eventos entre seus dois horários. Uma entidade é procurada como quem agiu, como quem sofreu a ação e entre os `observables` do evento; para ignorar um valor de outro campo, adicione uma exceção **Um valor** que nomeie esse campo. Sem `*`, um valor precisa ser igual ao campo inteiro: `svc-*` ignora `svc-backup`, e `svc-` não.
+:::
+
+:::details Uma regra que lê uma lista de observação não corresponde
+Abra a lista e confira seus valores: um valor sem `*` precisa ser igual ao campo inteiro, sem diferenciar maiúsculas e minúsculas, e uma lista que segue um feed de inteligência de ameaças contém só os indicadores ativos do feed do seu tipo. Confira se a regra lê o campo que seus eventos preenchem: **Use-a em uma regra** começa pelo campo em que uma lista do seu tipo costuma estar. Uma mudança em uma lista chega a uma regra na próxima execução dela.
+:::
+
+:::details Uma lista de observação não pode ser renomeada nem excluída
+Regras ainda a leem pelo nome, e a mensagem as nomeia. Mude o nome nessas regras, ou tire a lista delas, e depois renomeie ou exclua a lista.
 :::
 
 :::details Executar uma regra em eventos passados não encontra nada

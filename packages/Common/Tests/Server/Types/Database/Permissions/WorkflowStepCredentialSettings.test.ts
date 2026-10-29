@@ -18,6 +18,7 @@ import NetworkSnmpCredentialProfile from "../../../../../Models/DatabaseModels/N
 import ProjectCallSMSConfig from "../../../../../Models/DatabaseModels/ProjectCallSMSConfig";
 import ProjectSmtpConfig from "../../../../../Models/DatabaseModels/ProjectSmtpConfig";
 import SecurityEventConnection from "../../../../../Models/DatabaseModels/SecurityEventConnection";
+import ThreatIntelFeed from "../../../../../Models/DatabaseModels/ThreatIntelFeed";
 import StatusPage from "../../../../../Models/DatabaseModels/StatusPage";
 import VideoCallConnection from "../../../../../Models/DatabaseModels/VideoCallConnection";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -334,6 +335,7 @@ describe("a workflow's step naming a setting that holds credentials", () => {
         new ProjectCallSMSConfig().tableName!,
         new ProjectSmtpConfig().tableName!,
         new SecurityEventConnection().tableName!,
+        new ThreatIntelFeed().tableName!,
         new VideoCallConnection().tableName!,
       ].sort(),
     );

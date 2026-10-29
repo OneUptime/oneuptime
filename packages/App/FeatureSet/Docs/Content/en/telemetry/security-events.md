@@ -41,6 +41,7 @@ Open **Products → Security Events**, under **Observability**. Its menu has a s
 | **Correlate** | Events | A graph of the events that share a host, a user or an IP address |
 | **Detection Rules** | Detections | Sigma rules that run on a schedule and open cases |
 | **Rule Exceptions** | Detections | What your rules skip on purpose, such as a scanner or a planned test, each with who added it and why |
+| **Watchlists** | Detections | The lists your rules match against, such as VIP users, critical hosts, known-bad file hashes and the addresses admins may sign in from |
 | **Rule Library** | Detections | Ready-made detection rules to add, each with the events it reads and whether they arrive, the recommended ones marked |
 | **Threat Intel** | Detections | STIX/TAXII feeds of known-bad indicators |
 | **ATT&CK Coverage** | Detections | The MITRE ATT&CK techniques your rules cover |
@@ -300,7 +301,7 @@ OneUptime runs the boolean core of Sigma:
 
 - Selections are field maps (every field must match; a list of values matches any of them) or keyword lists, which match anywhere in the message.
 - Conditions combine selections with `and`, `or`, `not` and parentheses, or with `1 of selection_*`, `all of selection_*`, `any of them` and `all of them`.
-- Field modifiers: `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists` and `windash`. Text is compared ignoring case, unless you add `cased`.
+- Field modifiers: `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists`, `windash` and `expand`, which reads a [watchlist](#watchlists). Text is compared ignoring case, unless you add `cased`.
 - A field is a typed field (`principalUser`), a common Sigma spelling of one (`CommandLine`, `src_ip`, `Hostname`), or any attribute key, spelled as it is in the event (`threat.matched`).
 - `Image` and `CommandLine` read the process the event is about, the one that started in a process launch (`processPath`, `processCommandLine`), and `ParentImage` and `ParentCommandLine` the process that started it (`parentProcessPath`, `parentProcessCommandLine`). `principalProcess` is the process that acted, which in a launch is the parent.
 - `level` sets the severity: `informational`, `low`, `medium`, `high` or `critical`, and `medium` when missing. ATT&CK ids in `tags` (`attack.t1110`, `attack.ta0006`) fill the finding's MITRE fields.
@@ -436,6 +437,32 @@ An exception is something a rule skips because you expect it, such as a vulnerab
 - Skipped events are left out before the rule counts anything, so they never count toward its **Match Count Threshold** and open no case, alert, incident or finding. Exceptions apply to every run of the rule, correlations included, and to **Run on Past Events**, but never to a test attack, which checks that events get through.
 - A rule has at most 100 exceptions. Whoever may edit detection rules adds, changes and removes them, every Security role can read them, and each change is kept in the project's audit log.
 
+### Watchlists
+
+A watchlist is a list your team keeps once and any rule can read, such as VIP users, critical hosts, known-bad file hashes or the addresses admins may sign in from. Every list is under **Products → Security Events → Detections → Watchlists**: create one there with **Create Watchlist**, which asks for its name and what it holds, or add a common one from **Start with a common list**. A list's page shows its values, and **Use It in a Rule** gives a selection that reads the list, to copy into a rule.
+
+A rule reads a list with `expand` and the list's name between `%` signs. This rule fires when an admin signs in from an address that is not on the allowed list:
+
+```yaml title="admin-sign-in-from-outside.yml"
+title: Admin sign-in from outside the allowed addresses
+detection:
+  admin_sign_in:
+    className: Authentication
+    principalUser|expand: '%admins%'
+  allowed:
+    principalIp|expand: '%admin_addresses%'
+  condition: admin_sign_in and not allowed
+level: high
+```
+
+- A list holds users, hosts, IP addresses, file hashes, domains, URLs, processes or other values, chosen when it is created. A value matches whatever its case, and `*` stands for any run of characters: `svc-*` matches every service account. An IP address list also takes ranges, such as `10.20.0.0/16`, and a file hash list takes MD5, SHA-1, SHA-256 and SHA-512 hashes.
+- Add values one at a time with **Add Value**, or many at once with **Import Values**: paste them, or choose a `.txt` or `.csv` file, one value a line, with an optional note after a comma. **Add to the list** keeps the values already on it, and **Replace the list** removes the ones the import does not have.
+- Instead of keeping values, a list of IP addresses, file hashes, domains or URLs can follow a threat intel feed: its values are the feed's active indicators of the list's kind, kept up to date as the feed is read.
+- `expand` is used alone, since the list's values say how they match. A field that holds several values, such as `observables`, matches when any of them is on the list. **Read By** names the rules that read each list, and under a rule's YAML its form names the lists the rule reads.
+- A rule names a list whatever the case. A rule that names a list the project does not have is refused when you save it, and a list that rules read cannot be renamed or deleted until no rule reads it.
+- A change to a list reaches every rule that reads it at the rule's next run. Correlation rules and **Run on Past Events** read lists too.
+- A list holds at most 5,000 values, at most 100 of them with `*` and 100 of them ranges, and a project has at most 200 lists: for a longer list, follow a threat intel feed. Whoever may create, edit or delete detection rules may do the same to lists, and whoever may edit detection rules adds, changes and removes their values. Every Security role can read them, and each change is kept in the project's audit log.
+
 ### Run on Past Events
 
 **Run on Past Events** shows what a rule would have found had it been running, without opening, sending or writing anything. It is in a rule's row, for the rule as saved, and under **Sigma Rule (YAML)** in the rule's form, for the rule as it stands there, before you save it. Pick **Last 24 hours**, **Last 7 days** or **Last 30 days**.
@@ -504,6 +531,14 @@ Add an exception for it rather than turning the rule off: **Add Exception** in t
 
 :::details An exception doesn't skip what it should
 Check its **Status** in **Rule Exceptions**: an **Expired** one skips nothing, and a time window skips only the events between its two times. An entity is looked for as who acted, as who was acted on and among the event's `observables`; to skip a value of another field, add **A value** that names the field. Without a `*`, a value must equal the whole field: `svc-*` skips `svc-backup`, and `svc-` does not.
+:::
+
+:::details A rule that reads a watchlist doesn't match
+Open the list and check its values: a value without `*` must equal the whole field, whatever its case, and a list that follows a threat intel feed holds only the feed's active indicators of its kind. Check that the rule reads the field your events fill: **Use It in a Rule** starts with the field a list of its kind is usually in. A change to a list reaches a rule at the rule's next run.
+:::
+
+:::details A watchlist can't be renamed or deleted
+Rules still read it by its name, and the message names them. Change the name in those rules, or take the list out of them, then rename or delete it.
 :::
 
 :::details Run on Past Events finds nothing

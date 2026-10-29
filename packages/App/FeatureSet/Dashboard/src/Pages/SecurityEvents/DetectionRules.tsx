@@ -83,6 +83,7 @@ import SecurityListNameCell, {
   SECURITY_LIST_NAME_COLUMN_MAX_WIDTH_CLASS_NAME,
 } from "../../Components/SecurityEvents/SecurityListNameCell";
 import DetectionRuleRetrohuntInForm from "../../Components/SecurityEvents/Retrohunt/DetectionRuleRetrohuntInForm";
+import DetectionRuleWatchlists from "../../Components/SecurityEvents/Watchlists/DetectionRuleWatchlists";
 import DetectionRuleRetrohuntModal from "../../Components/SecurityEvents/Retrohunt/DetectionRuleRetrohuntModal";
 import { RUN_ON_PAST_EVENTS } from "../../Components/SecurityEvents/Retrohunt/RetrohuntCopy";
 import AddRuleExceptionModal from "../../Components/SecurityEvents/RuleExceptions/AddRuleExceptionModal";
@@ -395,6 +396,13 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
                   ) : (
                     <></>
                   )}
+                  {/*
+                   * The watchlists the rule reads, as it is typed: each with
+                   * what it holds, or a name the project has no list of.
+                   */}
+                  <DetectionRuleWatchlists
+                    sigmaRuleYaml={values.sigmaRuleYaml}
+                  />
                 </>
               );
             },

@@ -151,7 +151,11 @@ const CREATE_BUTTONS: Record<string, Array<string>> = {
   [GEMINI_COPILOT]: ["Create Ingestion Key"],
   [AI_GATEWAYS]: ["Create Ingestion Key"],
   [CIRCUIT_BREAKER]: ["Create LLM Cost Budget"],
-  [SECURITY_EVENTS]: ["Create Ingestion Key", "Create Detection Rule"],
+  [SECURITY_EVENTS]: [
+    "Create Ingestion Key",
+    "Create Detection Rule",
+    "Create Watchlist",
+  ],
   [THREAT_INTELLIGENCE]: ["Create Threat Intel Feed"],
 };
 

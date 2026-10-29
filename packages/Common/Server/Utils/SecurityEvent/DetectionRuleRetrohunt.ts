@@ -47,6 +47,8 @@ import CorrelationRuleMatcher, {
   CorrelationMatchResult,
 } from "./Correlation/CorrelationRuleMatcher";
 import ProjectSigmaRules from "./Correlation/ProjectSigmaRules";
+import SecurityWatchlists from "./Watchlists/SecurityWatchlists";
+import { assertDetectionReadFits } from "./Watchlists/SecurityWatchlistMatch";
 import DetectionRuleExceptions, {
   andRestrictions,
   buildDetectionRuleExceptionsFilter,
@@ -536,6 +538,11 @@ export default class DetectionRuleRetrohunt {
       });
     }
 
+    // The watchlists it names, as its runs read them.
+    definition = await SecurityWatchlists.readerFor(data.projectId).bind(
+      definition,
+    );
+
     for (const sigmaRule of sigmaRulesOf(definition)) {
       SigmaClickhouseCompiler.compile(sigmaRule);
     }
@@ -631,6 +638,8 @@ export default class DetectionRuleRetrohunt {
       // One more than it lists, to tell there are more.
       maxGroups: DETECTION_RETROHUNT_MAX_GROUPS + 1,
     });
+
+    assertDetectionReadFits(statement);
 
     const result: Results = await SecurityEventService.executeQuery(statement);
     const response: DbJSONResponse = await result.json<{

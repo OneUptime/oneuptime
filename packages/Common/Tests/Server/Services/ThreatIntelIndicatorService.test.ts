@@ -500,3 +500,62 @@ describe("ThreatIntelIndicatorService.findActiveValuesForFeed", () => {
     ).toEqual([]);
   });
 });
+
+/*
+ * A watchlist that follows a feed matches an event's field against the
+ * feed's active indicators of the list's kind, read where the rule runs:
+ * the same version-aware resolution as every read here, as a subquery.
+ */
+describe("ThreatIntelIndicatorService.buildActiveValuesSubquery", () => {
+  function subquery(): Statement {
+    getJestSpyOn(
+      ThreatIntelIndicatorService.database,
+      "getDatasourceOptions",
+    ).mockReturnValue({ database: DATABASE_NAME } as never);
+
+    return ThreatIntelIndicatorService.buildActiveValuesSubquery({
+      projectId: PROJECT_ID,
+      feedId: FEED_ID,
+      indicatorTypes: ["ipv4-addr", "ipv6-addr"],
+      now: NOW,
+    });
+  }
+
+  test("the feed's values, lowercased, resolved per identity and active now", () => {
+    const query: string = subquery().query;
+
+    expect(query.startsWith("SELECT lowerUTF8(indicatorValue) FROM (")).toBe(
+      true,
+    );
+    expect(query).toContain(
+      `FROM ${DATABASE_NAME}.${AnalyticsTableName.ThreatIntelIndicator}`,
+    );
+    expect(query).toContain("argMax(revoked, version) AS revokedLatest");
+    expect(query).toContain("GROUP BY indicatorValue, stixId");
+    expect(query).toContain("HAVING revokedLatest = false");
+    expect(query).toContain("validFromLatest <=");
+    expect(query).toContain("validUntilLatest >");
+    expect(query).toContain(") WHERE indicatorTypeLatest IN {");
+    expectNoAliasSpellingAColumn(query);
+  });
+
+  test("the project, the feed, the time and the kinds are bound, never written into the text", () => {
+    const statement: Statement = subquery();
+    const values: Array<unknown> = Object.values(statement.query_params);
+
+    expect(statement.query).not.toContain(PROJECT_ID.toString());
+    expect(statement.query).not.toContain(FEED_ID.toString());
+    expect(statement.query).not.toContain("ipv4-addr");
+    expect(values).toContain(PROJECT_ID.toString());
+    expect(values).toContain(FEED_ID.toString());
+    expect(values).toContainEqual(["ipv4-addr", "ipv6-addr"]);
+  });
+
+  test("building it reads nothing", () => {
+    const spy: Spy = getJestSpyOn(ThreatIntelIndicatorService, "executeQuery");
+
+    subquery();
+
+    expect(spy).not.toHaveBeenCalled();
+  });
+});
