@@ -42,7 +42,7 @@ import {
   emptyContentScanResult,
   LocationFindings,
 } from "./DataSecurityScanTypes";
-import { buildFingerprint } from "./Fingerprint";
+import { buildFingerprint, deriveFingerprintKey } from "./Fingerprint";
 import { scanProjectTelemetry } from "./Telemetry/TelemetryDataScanner";
 import {
   getScrubCoverage,
@@ -86,7 +86,6 @@ import FieldCollector, { CollectedField } from "../../../Utils/DataSecurity/Fiel
 import { classifyField, FieldClassification } from "../../../Utils/DataSecurity/FieldClassifier";
 import { BUILT_IN_DETECTORS } from "../../../Utils/DataSecurity/Detectors/Index";
 import { ScanDetector } from "../../../Utils/DataSecurity/TextScanner";
-import crypto from "crypto";
 import { ResponseJSON } from "@clickhouse/client";
 
 /*
@@ -156,12 +155,14 @@ export function getConnectionDataSecurityLevel(
   );
 }
 
-// The project's own key for fingerprints: two projects' never compare.
+/*
+ * The project's own key for fingerprints: two projects' never compare. The
+ * one derivation every scan uses - a worker's here, and a probe's, which is
+ * handed it with its work (ProbeIngest/DataSecurity) - so a store a probe
+ * scanned and one a worker scanned compare like any two stores.
+ */
 export function getFingerprintKey(projectId: ObjectID): string {
-  return crypto
-    .createHmac("sha256", EncryptionSecret.toString())
-    .update(`data-security-fingerprint:${projectId.toString()}`)
-    .digest("hex");
+  return deriveFingerprintKey(EncryptionSecret.toString(), projectId.toString());
 }
 
 interface ScanSetup {

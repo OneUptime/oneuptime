@@ -49,7 +49,7 @@ Alerts are off by default because a security case is where most teams want a dat
 
 A store's owners are people and teams, on the store's **Owners** page. They are who an issue is for: they get the email, and **Nobody owns this sensitive store** fails on a sensitive store that has none.
 
-With **Notify Owners** on, each evaluation that opens issues on a store sends its owners one email - the people who own it, and the members of the teams that do, up to 50 - titled with how many new issues the store has, such as "Data Security: 2 new issue(s) on orders-db". It lists each new issue's severity and title and the store's sensitivity, and links to the store. It never carries a sample.
+With **Notify Owners** on, each evaluation that opens issues on a store sends its owners one email - the people who own it, and the members of the teams that do, up to 50 - titled with how many new issues the store has, such as "Data Security: 2 new issues on orders-db". It lists each new issue's severity and title and the store's sensitivity, and links to the store. It never carries a sample.
 
 ### Owner rules and label rules
 

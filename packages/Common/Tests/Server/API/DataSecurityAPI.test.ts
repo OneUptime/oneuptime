@@ -944,7 +944,7 @@ describe("describeIssue", () => {
       `Why it matters: ${check!.whyItMatters}`,
     ]);
     expect(described).toContain(
-      "Suggested fix:\n- Open the bucket in the S3 console and choose Permissions.",
+      "Suggested fix:\nStep 1: Open the bucket in the S3 console and choose Permissions.",
     );
     expect(described).toContain(
       "CLI: aws s3api put-public-access-block --bucket customer-exports --public-access-block-configuration",
@@ -964,7 +964,7 @@ describe("describeIssue", () => {
       [
         "Issue: a-check-from-a-later-release",
         "Severity: Low",
-        "Store:  (PostgreSQL)",
+        "Store: unknown",
         "Sensitivity: unknown",
         "Evidence: none recorded",
       ].join("\n"),

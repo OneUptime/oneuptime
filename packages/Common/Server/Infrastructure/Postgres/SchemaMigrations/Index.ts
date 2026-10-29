@@ -220,7 +220,7 @@ import { AddNetworkAddressNames1808260000000 } from "./1808260000000-AddNetworkA
 import { AddNetworkDeviceRefreshRequestedAt1808300000000 } from "./1808300000000-AddNetworkDeviceRefreshRequestedAt";
 import { AddSecurityWatchlists1808310000000 } from "./1808310000000-AddSecurityWatchlists";
 import { AddNetworkDevicesToIncidentsAndAlerts1808320000000 } from "./1808320000000-AddNetworkDevicesToIncidentsAndAlerts";
-import { AddDataSecurity1808200000000 } from "./1808200000000-AddDataSecurity";
+import { AddDataSecurity1808400000000 } from "./1808400000000-AddDataSecurity";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1643,5 +1643,5 @@ export default [
   AddNetworkDeviceRefreshRequestedAt1808300000000,
   AddSecurityWatchlists1808310000000,
   AddNetworkDevicesToIncidentsAndAlerts1808320000000,
-  AddDataSecurity1808200000000,
+  AddDataSecurity1808400000000,
 ];

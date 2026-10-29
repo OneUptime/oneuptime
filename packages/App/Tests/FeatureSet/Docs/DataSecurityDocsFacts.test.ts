@@ -1620,7 +1620,13 @@ describe("Data Security Integrations", () => {
     ).toBe(50);
     expect(section(page, "## Owners")).toContain("up to 50");
     expect(integrations).toContain(
-      "const subject: string = `Data Security: ${storeIssues.length} new issue(s) on ${first.dataStoreName}`;",
+      "return `Data Security: ${newIssuesPhrase(data.issueCount)} on ${data.dataStoreName}`;",
+    );
+    expect(integrations).toContain(
+      'return count === 1 ? "1 new issue" : `${count} new issues`;',
+    );
+    expect(section(page, "## Owners")).toContain(
+      '"Data Security: 2 new issues on orders-db"',
     );
   });
 

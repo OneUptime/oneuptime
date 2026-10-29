@@ -34,6 +34,10 @@ import { SecurityEntityType } from "../../../../Types/SecurityCase/SecurityEntit
 import OcsfSeverity from "../../../../Types/SecurityEvent/OcsfSeverity";
 import DataSensitivity from "../../../../Types/DataSecurity/DataSensitivity";
 import { DataStoreKind } from "../../../../Types/DataSecurity/DataStoreKind";
+import Markdown, {
+  MarkdownContentType,
+} from "../../../../Server/Types/Markdown";
+import { visibleText } from "../../../Helpers/HtmlText";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -662,21 +666,27 @@ describe("onIssuesOpened: the store's owners", () => {
         .sort(),
     ).toEqual(["alice@acme.io", "bob@acme.io"]);
 
+    const markdown: string = [
+      "**customer-exports** (Restricted data), which you own, has 2 new Data Security issues:",
+      "",
+      "- **Critical**: Anyone on the internet can read it",
+      "- **Medium**: Reads of it are not logged",
+      "",
+      `[Open the store](${link}) to see each issue and how to fix it.`,
+    ].join("\n");
+
     for (const mail of sent) {
       expect(mail.subject).toBe(
-        "Data Security: 2 new issue(s) on customer-exports",
+        "Data Security: 2 new issues on customer-exports",
       );
       expect(mail.templateType).toBe(EmailTemplateType.SimpleMessage);
       expect(mail.isSubjectLiteral).toBe(true);
+      // The template places the message as HTML: it is the Markdown, rendered.
       expect(mail.message).toBe(
-        [
-          "customer-exports (Restricted data), which you own, has new Data Security issues:",
-          "",
-          "- Critical: Anyone on the internet can read it",
-          "- Medium: Reads of it are not logged",
-          "",
-          `Open the store to see each issue and how to fix it: ${link}`,
-        ].join("\n"),
+        await Markdown.convertToHTML(markdown, MarkdownContentType.Email),
+      );
+      expect(visibleText(mail.message)).toBe(
+        "customer-exports (Restricted data), which you own, has 2 new Data Security issues: Critical : Anyone on the internet can read it Medium : Reads of it are not logged Open the store to see each issue and how to fix it.",
       );
       expect(mail.options.projectId).toBe(PROJECT_ID);
     }
@@ -713,7 +723,7 @@ describe("onIssuesOpened: the store's owners", () => {
         eventType: DataSecurityIssueFeedEventType.OwnersNotified,
         displayColor: Blue500,
         feedInfoInMarkdown:
-          "The store's 2 owner(s) were emailed about this issue.",
+          "The store's 2 owners were emailed about this issue.",
       },
     ]);
   });
@@ -743,20 +753,56 @@ describe("onIssuesOpened: the store's owners", () => {
     );
 
     expect(byRecipient.get("alice@acme.io")?.subject).toBe(
-      "Data Security: 1 new issue(s) on customer-exports",
+      "Data Security: 1 new issue on customer-exports",
     );
-    expect(byRecipient.get("alice@acme.io")?.message).toContain(
-      "- Low: Nobody owns it",
+    expect(visibleText(byRecipient.get("alice@acme.io")!.message)).toContain(
+      "has a new Data Security issue: Low : Nobody owns it",
     );
     expect(byRecipient.get("alice@acme.io")?.message).not.toContain(
       "billing-db",
     );
     expect(byRecipient.get("frank@acme.io")?.subject).toBe(
-      "Data Security: 1 new issue(s) on billing-db",
+      "Data Security: 1 new issue on billing-db",
     );
-    expect(byRecipient.get("frank@acme.io")?.message).toContain(
+    expect(visibleText(byRecipient.get("frank@acme.io")!.message)).toContain(
       "billing-db (Confidential data), which you own",
     );
+  });
+
+  test("a store's name is text in the email, never markup: a cloud or a person named it", async () => {
+    ownedBy(STORE_A, userOf("Alice Owner", "alice@acme.io"));
+
+    await opened([
+      issueOf({
+        severity: SecuritySeverity.High,
+        storeName: '<img src=x onerror="alert(1)"> **exports**',
+      }),
+    ]);
+
+    const mail: SentMail = mails()[0]!;
+
+    expect(mail.message).not.toContain("<img");
+    expect(visibleText(mail.message)).toContain(
+      '<img src=x onerror="alert(1)"> **exports** (Restricted data), which you own',
+    );
+    // The subject is plain text, as the mail service sends a literal subject.
+    expect(mail.subject).toBe(
+      'Data Security: 1 new issue on <img src=x onerror="alert(1)"> **exports**',
+    );
+  });
+
+  test("one owner, one issue: the timeline says it in the singular", async () => {
+    ownedBy(STORE_A, userOf("Alice Owner", "alice@acme.io"));
+
+    await opened([issueOf({ severity: SecuritySeverity.High })]);
+
+    expect(
+      feedsOf(DataSecurityIssueFeedEventType.OwnersNotified).map(
+        (feed: JSONObject): unknown => {
+          return feed["feedInfoInMarkdown"];
+        },
+      ),
+    ).toEqual(["The store's owner was emailed about this issue."]);
   });
 
   test("a store nobody owns: no email, nothing marked, no user looked up", async () => {

@@ -452,6 +452,7 @@ const BuiltInDataTypesCard: FunctionComponent = (): ReactElement => {
                 "Search data types"
               }
               dataTestId={`${BUILT_IN_DATA_TYPES_TEST_ID}-search`}
+              isSearchOrFilter={true}
             />
           </div>
           <SaveStatus

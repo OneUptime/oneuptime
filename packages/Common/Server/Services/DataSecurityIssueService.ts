@@ -127,18 +127,9 @@ export class Service extends ProjectReferencesService<Model> {
           data["acceptedUntil"],
           now,
         );
-
-        if (updateBy.props.userId) {
-          data["acceptedByUserId"] = updateBy.props.userId;
-        }
       } else {
         data["acceptedReason"] = null;
         data["acceptedUntil"] = null;
-      }
-
-      if (status === DataSecurityIssueStatus.Resolved) {
-        data["resolvedAt"] = now;
-        data["recheckRequestedAt"] = now;
       }
     } else if (
       data["acceptedReason"] !== undefined ||
@@ -168,6 +159,48 @@ export class Service extends ProjectReferencesService<Model> {
       });
 
     return { updateBy, carryForward: changes };
+  }
+
+  /*
+   * What OneUptime records about a person's change itself - who accepted
+   * the risk, and when an issue was marked resolved and asked to be checked
+   * again - written after every permission check. These columns are
+   * OneUptime's (update: []), and DatabaseService holds what onBeforeUpdate
+   * leaves to the caller's column permissions: written there, they refused
+   * Accept and Mark Resolved for everyone who may edit an issue ("User is
+   * not allowed to update on acceptedByUserId column").
+   */
+  @CaptureSpan()
+  protected override async onUpdatePermitted(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await super.onUpdatePermitted(updateBy);
+
+    if (updateBy.props.isRoot) {
+      return;
+    }
+
+    const data: Record<string, unknown> = updateBy.data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    if (data["status"] === undefined) {
+      return;
+    }
+
+    // Who accepted a risk that is no longer accepted is nobody's to keep.
+    data["acceptedByUserId"] =
+      data["status"] === DataSecurityIssueStatus.Accepted
+        ? updateBy.props.userId || null
+        : null;
+
+    if (data["status"] === DataSecurityIssueStatus.Resolved) {
+      const now: Date = OneUptimeDate.getCurrentDate();
+
+      data["resolvedAt"] = now;
+      data["recheckRequestedAt"] = now;
+    }
   }
 
   @CaptureSpan()

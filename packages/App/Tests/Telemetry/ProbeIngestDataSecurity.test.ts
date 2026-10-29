@@ -8,6 +8,7 @@ import {
   HOLD_CLAIMED_DATA_STORES_STATEMENT,
 } from "Common/Server/Utils/DataSecurity/DataSecurityProbeClaim";
 import { DATA_SECURITY_PROBE_CLAIM_IN_MINUTES } from "Common/Server/Utils/DataSecurity/DataSecurityProbeScan";
+import { getFingerprintKey } from "Common/Server/Utils/DataSecurity/DataSecurityRunner";
 import Response from "Common/Server/Utils/Response";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import DataCategory from "Common/Types/DataSecurity/DataCategory";
@@ -502,6 +503,15 @@ describe("POST /probe/data-security/work", () => {
 
     expect(JSON.stringify(body)).not.toContain("never-handed-out");
     expect(JSON.stringify(body)).not.toContain("connectionString");
+
+    /*
+     * The key a worker's scan of the project uses: a database a probe
+     * scanned and a bucket a worker scanned compare, so a copy between them
+     * is found. Two derivations of it once kept them apart.
+     */
+    for (const store of handedOut) {
+      expect(store["fingerprintKey"]).toBe(getFingerprintKey(PROJECT_ID));
+    }
 
     const select: JSONObject = (
       storeService.findBy.mock.calls[0]![0] as JSONObject

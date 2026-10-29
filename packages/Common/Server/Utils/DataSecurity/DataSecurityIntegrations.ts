@@ -32,7 +32,11 @@ import SecurityDetectionSource from "../../../Types/SecurityCase/SecurityDetecti
 import { SecurityEntityType } from "../../../Types/SecurityCase/SecurityEntity";
 import { dataStoreEntityValue } from "../../../Types/DataSecurity/DataStoreKey";
 import DataSensitivity from "../../../Types/DataSecurity/DataSensitivity";
-import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../../Utils/Markdown/FeedMarkdown";
+import Markdown, { MarkdownContentType } from "../../Types/Markdown";
 
 /*
  * WHAT HAPPENS ELSEWHERE IN ONEUPTIME WHEN AN ISSUE OPENS.
@@ -77,6 +81,51 @@ const OCSF_SEVERITY: Readonly<Record<SecuritySeverity, OcsfSeverity>> = {
 
 // The most owners one store's notice is sent to.
 const MAX_NOTIFIED_OWNERS: number = 50;
+
+// "1 new issue", "3 new issues".
+function newIssuesPhrase(count: number): string {
+  return count === 1 ? "1 new issue" : `${count} new issues`;
+}
+
+// The subject of the email a store's owners get when issues open on it.
+export function getOwnerNoticeSubject(data: {
+  dataStoreName: string;
+  issueCount: number;
+}): string {
+  return `Data Security: ${newIssuesPhrase(data.issueCount)} on ${data.dataStoreName}`;
+}
+
+/*
+ * The email itself, as Markdown: the store, how sensitive it is, each new
+ * issue's severity and title, and the way to the store. The store's name
+ * comes from a cloud or from a person, so it is placed as text (mdText),
+ * never as Markdown or HTML. Never a sample.
+ */
+export function buildOwnerNoticeMarkdown(data: {
+  dataStoreName: string;
+  sensitivity: DataSensitivity;
+  issues: ReadonlyArray<Pick<OpenedIssueForIntegrations, "severity" | "title">>;
+  storeLink: URL;
+}): MarkdownText {
+  return FeedMarkdown.join(
+    [
+      data.issues.length === 1
+        ? mdText`**${data.dataStoreName}** (${data.sensitivity} data), which you own, has a new Data Security issue:`
+        : mdText`**${data.dataStoreName}** (${data.sensitivity} data), which you own, has ${String(data.issues.length)} new Data Security issues:`,
+      FeedMarkdown.bulletList(
+        data.issues.map(
+          (
+            issue: Pick<OpenedIssueForIntegrations, "severity" | "title">,
+          ): MarkdownText => {
+            return mdText`**${issue.severity}**: ${issue.title}`;
+          },
+        ),
+      ),
+      mdText`[Open the store](${data.storeLink.toString()}) to see each issue and how to fix it.`,
+    ],
+    "\n\n",
+  );
+}
 
 export default class DataSecurityIntegrations {
   public static async onIssuesOpened(data: {
@@ -322,19 +371,20 @@ export default class DataSecurityIntegrations {
           projectId,
           first.dataStoreId,
         );
-        const subject: string = `Data Security: ${storeIssues.length} new issue(s) on ${first.dataStoreName}`;
-        const lines: Array<string> = storeIssues.map(
-          (issue: OpenedIssueForIntegrations): string => {
-            return `- ${issue.severity}: ${issue.title}`;
-          },
+        const subject: string = getOwnerNoticeSubject({
+          dataStoreName: first.dataStoreName,
+          issueCount: storeIssues.length,
+        });
+        // The template places the message as HTML: written from Markdown, never as it is.
+        const message: string = await Markdown.convertToHTML(
+          buildOwnerNoticeMarkdown({
+            dataStoreName: first.dataStoreName,
+            sensitivity: first.sensitivity,
+            issues: storeIssues,
+            storeLink: link,
+          }).toString(),
+          MarkdownContentType.Email,
         );
-        const message: string = [
-          `${first.dataStoreName} (${first.sensitivity} data), which you own, has new Data Security issues:`,
-          "",
-          ...lines,
-          "",
-          `Open the store to see each issue and how to fix it: ${link.toString()}`,
-        ].join("\n");
 
         for (const owner of owners) {
           if (!owner.email || !owner.id) {
@@ -366,7 +416,10 @@ export default class DataSecurityIntegrations {
             dataSecurityIssueId: issue.issueId,
             eventType: DataSecurityIssueFeedEventType.OwnersNotified,
             displayColor: Blue500,
-            feedInfoInMarkdown: mdText`The store's ${owners.length} owner(s) were emailed about this issue.`.toString(),
+            feedInfoInMarkdown: (owners.length === 1
+              ? mdText`The store's owner was emailed about this issue.`
+              : mdText`The store's ${String(owners.length)} owners were emailed about this issue.`
+            ).toString(),
           });
         }
       } catch (error) {

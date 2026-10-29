@@ -39,13 +39,6 @@ import {
   DataSecurityRecordOfProcessingResponse,
   DataSecurityRecordOfProcessingRow,
 } from "../../Types/DataSecurity/DataSecurityApiTypes";
-import {
-  DataSecurityCheckInfo,
-  fillRemediationText,
-  getCheckRemediation,
-  getDataSecurityCheck,
-  CheckRemediation,
-} from "../../Types/DataSecurity/DataSecurityCheckCatalog";
 import { getBuiltInDataType } from "../../Types/DataSecurity/DataTypeCatalog";
 import {
   DataStoreKind,
@@ -63,6 +56,12 @@ import DataSecurityIssueFeedService from "../Services/DataSecurityIssueFeedServi
 import DataSecurityIssueService from "../Services/DataSecurityIssueService";
 import AIService from "../Services/AIService";
 import CodeTaskRuns from "../Utils/AI/CodeTask/CodeTaskRuns";
+import {
+  DATA_SECURITY_EXPLAIN_SYSTEM_PROMPT,
+  buildDataSecurityFixRequest,
+  describeDataSecurityIssueForAi,
+} from "../Utils/AI/DataSecurity/DataSecurityIssuePrompt";
+import FeedMarkdown from "../../Utils/Markdown/FeedMarkdown";
 import DataSecurityIntegrations from "../Utils/DataSecurity/DataSecurityIntegrations";
 import {
   queueDataSecurityConnectionRead,
@@ -275,8 +274,7 @@ export default class DataSecurityAPI extends BaseAPI<
           messages: [
             {
               role: "system",
-              content:
-                "You are a data security engineer. Explain the issue to the store's owner in plain words: what is wrong, what could happen, and the exact steps to fix it on their cloud. Be brief and concrete. Never invent facts that are not in the issue.",
+              content: DATA_SECURITY_EXPLAIN_SYSTEM_PROMPT,
             },
             { role: "user", content: DataSecurityAPI.describeIssue(issue) },
           ],
@@ -289,7 +287,10 @@ export default class DataSecurityAPI extends BaseAPI<
           eventType: DataSecurityIssueFeedEventType.AiExplanation,
           displayColor: Purple500,
           feedInfoInMarkdown: "OneUptime AI explained this issue.",
-          moreInformationInMarkdown: response.content.slice(0, 20000),
+          // OneUptime AI's Markdown, with nothing in it that acts on its own.
+          moreInformationInMarkdown: FeedMarkdown.aiWritten(
+            response.content.slice(0, 20000),
+          ).toString(),
           userId: props.userId || undefined,
         });
 
@@ -349,7 +350,7 @@ export default class DataSecurityAPI extends BaseAPI<
           projectId,
           userId: props.userId,
           repository: repositories[0]!,
-          message: `Fix this data security issue in the infrastructure code (Terraform, CloudFormation, Bicep or similar), with the smallest change that makes the check pass. Open a pull request.\n\n${DataSecurityAPI.describeIssue(issue)}`,
+          message: buildDataSecurityFixRequest(issue),
           context: [],
         });
 
@@ -467,55 +468,7 @@ export default class DataSecurityAPI extends BaseAPI<
 
   // The issue in words for OneUptime AI: no samples, only what a check saw.
   public static describeIssue(issue: DataSecurityIssue): string {
-    const check: DataSecurityCheckInfo | undefined = getDataSecurityCheck(
-      issue.checkId || "",
-    );
-    const kind: DataStoreKind = (issue.dataStore?.kind ||
-      DataStoreKind.PostgreSql) as DataStoreKind;
-    const remediation: CheckRemediation | undefined = check
-      ? getCheckRemediation(check, kind)
-      : undefined;
-    const values: { name: string; region?: string | undefined } = {
-      name: issue.dataStore?.name || "",
-      region: issue.dataStore?.region,
-    };
-    const dataTypes: Array<string> = (issue.dataTypeIds || []).map(
-      (id: string) => {
-        return getBuiltInDataType(id)?.name || id;
-      },
-    );
-
-    return [
-      `Issue: ${issue.title || check?.title || issue.checkId}`,
-      `Severity: ${issue.severity}`,
-      `Store: ${values.name} (${kind}${values.region ? `, ${values.region}` : ""})`,
-      issue.dataStore?.providerResourceId
-        ? `Cloud id: ${issue.dataStore.providerResourceId}`
-        : "",
-      `Sensitivity: ${issue.dataStore?.sensitivity || "unknown"}`,
-      dataTypes.length > 0 ? `Data types found: ${dataTypes.join(", ")}` : "",
-      `Evidence: ${issue.evidence || "none recorded"}`,
-      check ? `Why it matters: ${check.whyItMatters}` : "",
-      remediation
-        ? `Suggested fix:\n${remediation.steps
-            .map((step: string) => {
-              return `- ${fillRemediationText(step, values)}`;
-            })
-            .join("\n")}${
-            remediation.cli
-              ? `\nCLI: ${fillRemediationText(remediation.cli, values)}`
-              : ""
-          }${
-            remediation.terraform
-              ? `\nTerraform:\n${fillRemediationText(remediation.terraform, values)}`
-              : ""
-          }`
-        : "",
-    ]
-      .filter((line: string) => {
-        return line.length > 0;
-      })
-      .join("\n");
+    return describeDataSecurityIssueForAi(issue);
   }
 
   public static async getOverview(

@@ -3,7 +3,6 @@ import { ProbeExpressRequest } from "../../Types/Request";
 import DataSecurityCustomDataType from "Common/Models/DatabaseModels/DataSecurityCustomDataType";
 import DataSecuritySetting from "Common/Models/DatabaseModels/DataSecuritySetting";
 import DataStore from "Common/Models/DatabaseModels/DataStore";
-import { EncryptionSecret } from "Common/Server/EnvironmentConfig";
 import DataSecurityCustomDataTypeService from "Common/Server/Services/DataSecurityCustomDataTypeService";
 import DataSecuritySettingService from "Common/Server/Services/DataSecuritySettingService";
 import DataStoreService from "Common/Server/Services/DataStoreService";
@@ -28,7 +27,7 @@ import {
   readProbeScanResult,
 } from "Common/Server/Utils/DataSecurity/DataSecurityProbeScan";
 import { ContentScanResult } from "Common/Server/Utils/DataSecurity/DataSecurityScanTypes";
-import { deriveFingerprintKey } from "Common/Server/Utils/DataSecurity/Fingerprint";
+import { getFingerprintKey } from "Common/Server/Utils/DataSecurity/DataSecurityRunner";
 import Express, {
   ExpressResponse,
   ExpressRouter,
@@ -225,10 +224,8 @@ export function buildStoreWork(data: {
     customDataTypes,
     disabledDataTypeIds: data.settings.disabledDataTypeIds || [],
     allowedValues: data.settings.allowedValues || [],
-    fingerprintKey: deriveFingerprintKey(
-      EncryptionSecret.toString(),
-      data.store.projectId.toString(),
-    ),
+    // The key a worker's scan of the project uses, so the two compare.
+    fingerprintKey: getFingerprintKey(data.store.projectId),
   };
 }
 

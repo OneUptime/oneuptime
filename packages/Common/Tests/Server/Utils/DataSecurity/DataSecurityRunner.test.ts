@@ -28,6 +28,8 @@ import {
 import * as TelemetryDataScanner from "../../../../Server/Utils/DataSecurity/Telemetry/TelemetryDataScanner";
 import * as TelemetryScrubCoverage from "../../../../Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
 import ChangeEventService from "../../../../Server/Services/ChangeEventService";
+import { EncryptionSecret } from "../../../../Server/EnvironmentConfig";
+import { deriveFingerprintKey } from "../../../../Server/Utils/DataSecurity/Fingerprint";
 import CloudConnectionService from "../../../../Server/Services/CloudConnectionService";
 import DataSecurityCustomDataTypeService from "../../../../Server/Services/DataSecurityCustomDataTypeService";
 import DataSecurityScanService from "../../../../Server/Services/DataSecurityScanService";
@@ -324,6 +326,12 @@ describe("getFingerprintKey", () => {
     expect(key).toMatch(/^[0-9a-f]{64}$/);
     expect(getFingerprintKey(new ObjectID(PROJECT_ID.toString()))).toBe(key);
     expect(getFingerprintKey(ObjectID.generate())).not.toBe(key);
+  });
+
+  test("is the one derivation every scan uses, a probe's included", () => {
+    expect(getFingerprintKey(PROJECT_ID)).toBe(
+      deriveFingerprintKey(EncryptionSecret.toString(), PROJECT_ID.toString()),
+    );
   });
 });
 
