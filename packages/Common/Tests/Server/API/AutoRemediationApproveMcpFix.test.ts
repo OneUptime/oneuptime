@@ -31,6 +31,7 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
+import { leadWithAuthorMarkdown } from "../../../Utils/Markdown/FeedLead";
 import {
   afterEach,
   beforeAll,
@@ -341,10 +342,22 @@ describe("approving and dismissing a fix through MCP servers", () => {
     const approval: string = String(
       feedSpy.mock.calls[0]![0].feedInfoInMarkdown,
     );
-    expect(approval).toContain("Fix through MCP servers approved");
+    expect(approval).toContain("Approved the **fix through MCP servers**");
     // The count in words, as the channel reads it: never "1 change(s)".
     expect(approval).toContain("(1 change)");
     expect(approval).not.toContain("change(s)");
+    /*
+     * A sentence written to follow the approver's name, as the feed and the
+     * incident's channels put it in front: "⚡ Valeria approved the fix ...".
+     */
+    expect(
+      leadWithAuthorMarkdown({
+        authorMarkdown: "[Valeria](https://oneuptime.test/users/v) ",
+        markdown: approval,
+      }),
+    ).toBe(
+      "⚡ [Valeria](https://oneuptime.test/users/v) approved the **fix through MCP servers** (1 change). The changes are being made; verification will watch the monitors for recovery.",
+    );
   });
 
   test("a click that lost to someone else's makes nothing", async () => {
@@ -453,5 +466,14 @@ describe("approving and dismissing a fix through MCP servers", () => {
       sendWorkspaceNotification: true,
       leadWithAuthor: true,
     });
+    // A sentence that follows their name: "⚠️ Valeria dismissed ..., but ...".
+    expect(
+      leadWithAuthorMarkdown({
+        authorMarkdown: "[Valeria](https://oneuptime.test/users/v) ",
+        markdown: feed.feedInfoInMarkdown,
+      }).startsWith(
+        "⚠️ [Valeria](https://oneuptime.test/users/v) dismissed the **auto-remediation suggestion**, but **2 changes through MCP servers had ALREADY been made.**",
+      ),
+    ).toBe(true);
   });
 });

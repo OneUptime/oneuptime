@@ -66,6 +66,14 @@ const SLACK_CHANNEL: NotificationRuleWorkspaceChannel = {
 const NOTE_MARKDOWN: string =
   "📄 posted **private note** for this [Incident #42](https://oneuptime.test/incidents/42):\n\nRestarted the primary database.";
 
+/*
+ * The note's message as a channel gets it: the emoji first, then who wrote
+ * it, then the sentence - "📄 Jane Doe posted private note ..." (FeedLead).
+ */
+const ledBy: (author: string) => string = (author: string): string => {
+  return NOTE_MARKDOWN.replace("📄 posted", `📄 ${author} posted`);
+};
+
 function projectAuth(workspaceType: WorkspaceType): WorkspaceProjectAuthToken {
   const token: WorkspaceProjectAuthToken = new WorkspaceProjectAuthToken();
   token.projectId = projectId;
@@ -199,7 +207,7 @@ describe("WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification —
     expect(teamsPayload.teamId).toBe(TEAMS_CHANNEL.teamId);
     expect(
       (teamsPayload.messageBlocks[0] as WorkspacePayloadMarkdown).text,
-    ).toBe(`**Jane Doe** ${NOTE_MARKDOWN}`);
+    ).toBe(ledBy("**Jane Doe**"));
 
     expect(slackSendSpy).toHaveBeenCalledTimes(1);
     expect(sentPayload(slackSendSpy as never).channelIds).toEqual([
@@ -242,7 +250,7 @@ describe("WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification —
         sentPayload(teamsSendSpy as never)
           .messageBlocks[0] as WorkspacePayloadMarkdown
       ).text,
-    ).toBe(`@Jane Teams ${NOTE_MARKDOWN}`);
+    ).toBe(ledBy("@Jane Teams"));
   });
 
   test("an alert note goes to the alert's channels", async () => {
@@ -412,7 +420,7 @@ describe("WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification —
     });
 
     const said: string =
-      "Jane Doe 📄 posted private note for this Incident #42: Restarted the primary database.";
+      "📄 Jane Doe posted private note for this Incident #42: Restarted the primary database.";
 
     expect(sentPayload(teamsSendSpy as never).text).toBe(said);
     expect(sentPayload(slackSendSpy as never).text).toBe(said);

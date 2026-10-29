@@ -1,4 +1,5 @@
 import Incident from "../../../Models/DatabaseModels/Incident";
+import { IncidentFeedEventType } from "../../../Models/DatabaseModels/IncidentFeed";
 import IncidentPostmortemStatus from "../../../Models/DatabaseModels/IncidentPostmortemStatus";
 import CustomFieldMappingService from "../../../Server/Services/CustomFieldMappingService";
 import IncidentFeedService from "../../../Server/Services/IncidentFeedService";
@@ -322,12 +323,33 @@ function statusMoves(): Array<StatusMove> {
 // The incident's "updated" feed items.
 function updatedFeedItems(): Array<string> {
   return feed.mock.calls
-    .map((call: Array<unknown>): string => {
-      return (call[0] as { feedInfoInMarkdown: string }).feedInfoInMarkdown;
+    .map((call: Array<unknown>): {
+      incidentFeedEventType: IncidentFeedEventType;
+      feedInfoInMarkdown: string;
+    } => {
+      return call[0] as {
+        incidentFeedEventType: IncidentFeedEventType;
+        feedInfoInMarkdown: string;
+      };
     })
-    .filter((markdown: string): boolean => {
-      return markdown.includes("was updated");
-    });
+    .filter(
+      (item: {
+        incidentFeedEventType: IncidentFeedEventType;
+        feedInfoInMarkdown: string;
+      }): boolean => {
+        return (
+          item.incidentFeedEventType === IncidentFeedEventType.IncidentUpdated
+        );
+      },
+    )
+    .map(
+      (item: {
+        incidentFeedEventType: IncidentFeedEventType;
+        feedInfoInMarkdown: string;
+      }): string => {
+        return item.feedInfoInMarkdown;
+      },
+    );
 }
 
 describe("writing the postmortem's first note", () => {

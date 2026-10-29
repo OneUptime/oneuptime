@@ -4,7 +4,6 @@ import Model from "../../Models/DatabaseModels/IncidentMember";
 import IncidentFeedService from "./IncidentFeedService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import { Gray500, Red500 } from "../../Types/BrandColors";
-import User from "../../Models/DatabaseModels/User";
 import UserService from "./UserService";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
@@ -132,16 +131,14 @@ export class Service extends ProjectReferencesService<Model> {
       const incidentRoleId: ObjectID | undefined = item.incidentRoleId;
 
       if (incidentId && userId && projectId) {
-        // The person taken off the role, read before the line is written.
-        const user: User | null = await UserService.findOneById({
-          id: userId,
-          select: {
-            name: true,
-            email: true,
-          },
-          props: {
-            isRoot: true,
-          },
+        /*
+         * The person taken off the role, as a link to them - by their
+         * name, or their email when they never gave one. Nobody is named
+         * for a person who is gone.
+         */
+        const person: MarkdownText = await UserService.getUserMarkdownString({
+          userId: userId,
+          projectId: projectId,
         });
 
         let roleName: string = "Member";
@@ -171,18 +168,7 @@ export class Service extends ProjectReferencesService<Model> {
           incidentNumberResult.numberWithPrefix ||
           "#" + incidentNumberResult.number;
 
-        /*
-         * Named by their name, or their email when they never gave one -
-         * a person without a name was taken off a role without a word.
-         */
-        const personName: string =
-          user?.name?.toString() || user?.email?.toString() || "";
-        const personEmail: string | undefined =
-          user?.name?.toString() && user?.email?.toString()
-            ? user.email.toString()
-            : undefined;
-
-        if (user && personName) {
+        if (!person.isEmpty()) {
           const incident: MarkdownText = mdText`[Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()})`;
 
           /*
@@ -199,8 +185,7 @@ export class Service extends ProjectReferencesService<Model> {
             feedInfoInMarkdown: IncidentRoleFeedText.getRemovedMarkdown({
               roleName: roleName,
               incident: incident,
-              personName: personName,
-              personEmail: personEmail,
+              person: person,
               isSelf: deleteByUserId?.toString() === userId.toString(),
               workflowName: IncidentRoleFeedText.getWorkflowName(
                 onDelete.deleteBy.props,

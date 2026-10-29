@@ -1048,7 +1048,7 @@ describe("Auto-remediation CommandPlan approve/dismiss routes", () => {
         expect.objectContaining({
           incidentId: INCIDENT_ID,
           feedInfoInMarkdown: expect.stringContaining(
-            "AI command plan approved",
+            "Approved the **AI command plan**",
           ),
           workspaceNotification: expect.objectContaining({
             sendWorkspaceNotification: true,

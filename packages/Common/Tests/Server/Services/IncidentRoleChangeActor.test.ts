@@ -601,11 +601,11 @@ describe("REGRESSION: someone adds Deane as Responder in the Dashboard", () => {
     );
   });
 
-  test("Slack reads 'Valeria Mustafaeva 👤 Added Deane Looi as Responder to Incident INC-18.'", () => {
+  test("Slack reads '👤 Valeria Mustafaeva added Deane Looi as Responder to Incident INC-18.'", () => {
     const slack: ChannelMessage = slackShows();
 
     expect(slack.reads).toBe(
-      "Valeria Mustafaeva 👤 Added Deane Looi as Responder to Incident INC-18.",
+      "👤 Valeria Mustafaeva added Deane Looi as Responder to Incident INC-18.",
     );
     // Deane is named once: as the one added, never as the one who added.
     expect(timesIn(slack.reads, "Deane Looi")).toBe(1);
@@ -616,7 +616,7 @@ describe("REGRESSION: someone adds Deane as Responder in the Dashboard", () => {
     const teams: ChannelMessage = teamsShows();
 
     expect(teams.reads).toBe(
-      "Valeria Mustafaeva 👤 Added Deane Looi as Responder to Incident INC-18.",
+      "👤 Valeria Mustafaeva added Deane Looi as Responder to Incident INC-18.",
     );
     expect(timesIn(teams.reads, "Deane Looi")).toBe(1);
   });
@@ -660,20 +660,63 @@ describe("REGRESSION: someone takes Deane off Responder in the Dashboard", () =>
       IncidentFeedEventType.IncidentMemberRemoved,
     );
     expect(row.feedInfoInMarkdown).toBe(
-      `👤 Removed **Deane Looi** (deane.looi.from.avepoint@gt.tech.gov.sg) as **Responder** from ${INCIDENT_LINK}.`,
+      `👤 Removed **${DEANE_LINK}** as **Responder** from ${INCIDENT_LINK}.`,
     );
   });
 
   test("Slack and Teams open with them - where the line once opened with Deane", () => {
     for (const message of [slackShows(), teamsShows()]) {
       expect(message.reads).toBe(
-        "Valeria Mustafaeva 👤 Removed Deane Looi (deane.looi.from.avepoint@gt.tech.gov.sg) as Responder from Incident INC-18.",
+        "👤 Valeria Mustafaeva removed Deane Looi as Responder from Incident INC-18.",
       );
       expect(message.links[0]).toEqual({
         text: "Valeria Mustafaeva",
         href: personPage(VALERIA_ID),
       });
     }
+  });
+
+  test("Deane is linked to his page, as the line that gave him the role links him - not named with his email beside", () => {
+    for (const message of [slackShows(), teamsShows()]) {
+      expect(message.links).toEqual([
+        { text: "Valeria Mustafaeva", href: personPage(VALERIA_ID) },
+        { text: "Deane Looi", href: personPage(DEANE_ID) },
+        { text: "Incident INC-18", href: INCIDENT_PAGE },
+      ]);
+      expect(message.reads).not.toContain("@gt.tech.gov.sg");
+    }
+  });
+
+  test("a person who never gave a name is named, and linked, by their email", async () => {
+    feedRows = [];
+    posted = [];
+    PEOPLE[ANA_ID.toString()] = { name: "", email: "ana@example.com" };
+
+    try {
+      await remove({ userId: ANA_ID, props: memberProps(VALERIA_ID) });
+    } finally {
+      PEOPLE[ANA_ID.toString()] = { name: "Ana Ruiz", email: "ana@example.com" };
+    }
+
+    expect(onlyFeedRow().feedInfoInMarkdown).toBe(
+      `👤 Removed **[ana@example.com](${personPage(ANA_ID)})** as **Responder** from ${INCIDENT_LINK}.`,
+    );
+    expect(slackShows().reads).toBe(
+      "👤 Valeria Mustafaeva removed ana@example.com as Responder from Incident INC-18.",
+    );
+  });
+
+  test("nobody is named for a person who is gone: no line at all", async () => {
+    feedRows = [];
+    posted = [];
+
+    await remove({
+      userId: new ObjectID("7d000000-0000-4000-8000-0000000000ee"),
+      props: memberProps(VALERIA_ID),
+    });
+
+    expect(feedRows).toHaveLength(0);
+    expect(posted).toHaveLength(0);
   });
 
   test("the person a delete names wins over a request with nobody on it", async () => {
@@ -687,7 +730,7 @@ describe("REGRESSION: someone takes Deane off Responder in the Dashboard", () =>
     });
 
     expect(onlyFeedRow().userId?.toString()).toBe(VALERIA_ID.toString());
-    expect(slackShows().reads.startsWith("Valeria Mustafaeva ")).toBe(true);
+    expect(slackShows().reads.startsWith("👤 Valeria Mustafaeva ")).toBe(true);
   });
 });
 
@@ -701,7 +744,7 @@ describe("an Observer added after: the third line of the screenshot", () => {
 
     expect(onlyFeedRow().userId?.toString()).toBe(VALERIA_ID.toString());
     expect(slackShows().reads).toBe(
-      "Valeria Mustafaeva 👤 Added Deane Looi as Member to Incident INC-18.",
+      "👤 Valeria Mustafaeva added Deane Looi as Member to Incident INC-18.",
     );
   });
 });
@@ -744,10 +787,10 @@ describe("a person who connected their chat account", () => {
     await add({ userId: DEANE_ID, props: memberProps(VALERIA_ID) });
 
     expect(slackShows().reads).toBe(
-      "@valeria 👤 Added Deane Looi as Responder to Incident INC-18.",
+      "👤 @valeria added Deane Looi as Responder to Incident INC-18.",
     );
     expect(teamsShows().reads).toBe(
-      "@Valeria M. 👤 Added Deane Looi as Responder to Incident INC-18.",
+      "👤 @Valeria M. added Deane Looi as Responder to Incident INC-18.",
     );
   });
 
@@ -775,12 +818,12 @@ describe("a person who connected their chat account", () => {
     await add({ userId: DEANE_ID, props: memberProps(VALERIA_ID) });
 
     expect(slackShows().reads).not.toContain("@deane");
-    expect(slackShows().reads.startsWith("Valeria Mustafaeva ")).toBe(true);
+    expect(slackShows().reads.startsWith("👤 Valeria Mustafaeva ")).toBe(true);
   });
 });
 
 describe("a person who gives themselves a role, or leaves one", () => {
-  test("Deane takes Responder: 'Deane Looi 👤 Took the Responder role ...', named once", async () => {
+  test("Deane takes Responder: '👤 Deane Looi took the Responder role ...', named once", async () => {
     await add({ userId: DEANE_ID, props: memberProps(DEANE_ID) });
 
     const row: IncidentFeed = onlyFeedRow();
@@ -791,20 +834,20 @@ describe("a person who gives themselves a role, or leaves one", () => {
 
     for (const message of [slackShows(), teamsShows()]) {
       expect(message.reads).toBe(
-        "Deane Looi 👤 Took the Responder role on Incident INC-18.",
+        "👤 Deane Looi took the Responder role on Incident INC-18.",
       );
       expect(timesIn(message.reads, "Deane Looi")).toBe(1);
     }
   });
 
-  test("Deane leaves it: 'Deane Looi 👤 Left the Responder role ...'", async () => {
+  test("Deane leaves it: '👤 Deane Looi left the Responder role ...'", async () => {
     await remove({ userId: DEANE_ID, props: memberProps(DEANE_ID) });
 
     expect(onlyFeedRow().feedInfoInMarkdown).toBe(
       `👤 Left the **Responder** role on ${INCIDENT_LINK}.`,
     );
     expect(slackShows().reads).toBe(
-      "Deane Looi 👤 Left the Responder role on Incident INC-18.",
+      "👤 Deane Looi left the Responder role on Incident INC-18.",
     );
   });
 });
@@ -820,7 +863,7 @@ describe("a project API key", () => {
 
     for (const message of [slackShows(), teamsShows()]) {
       expect(message.reads).toBe(
-        "Jira Automation (API key) 👤 Added Deane Looi as Responder to Incident INC-18.",
+        "👤 Jira Automation (API key) added Deane Looi as Responder to Incident INC-18.",
       );
     }
   });
@@ -830,7 +873,7 @@ describe("a project API key", () => {
 
     expect(onlyFeedRow().apiKeyName).toBe("Jira Automation");
     expect(slackShows().reads).toBe(
-      "Jira Automation (API key) 👤 Removed Deane Looi (deane.looi.from.avepoint@gt.tech.gov.sg) as Responder from Incident INC-18.",
+      "👤 Jira Automation (API key) removed Deane Looi as Responder from Incident INC-18.",
     );
   });
 
@@ -873,7 +916,7 @@ describe("a workflow's step", () => {
     await remove({ userId: DEANE_ID, props: workflowProps });
 
     expect(slackShows().reads).toBe(
-      "👤 Workflow Page SRE on SEV1 removed Deane Looi (deane.looi.from.avepoint@gt.tech.gov.sg) as Responder from Incident INC-18.",
+      "👤 Workflow Page SRE on SEV1 removed Deane Looi as Responder from Incident INC-18.",
     );
   });
 });
@@ -965,7 +1008,7 @@ describe("Slack and Teams' Assign Role", () => {
       `👤 Added **${DEANE_LINK}** as **Incident Commander** to ${INCIDENT_LINK}.`,
     );
     expect(feedRows[1]!.feedInfoInMarkdown).toBe(
-      `👤 Removed **Ana Ruiz** (ana@example.com) as **Incident Commander** from ${INCIDENT_LINK}.`,
+      `👤 Removed **[Ana Ruiz](${personPage(ANA_ID)})** as **Incident Commander** from ${INCIDENT_LINK}.`,
     );
 
     for (const row of feedRows) {
@@ -982,7 +1025,7 @@ describe("Slack and Teams' Assign Role", () => {
 
     expect(slackLines).toHaveLength(2);
     for (const line of slackLines) {
-      expect(line.startsWith(`${VALERIA_LINK} `)).toBe(true);
+      expect(line.startsWith(`👤 ${VALERIA_LINK} `)).toBe(true);
     }
   });
 });
@@ -1075,7 +1118,7 @@ describe("OneUptime itself", () => {
 
     expect(onlyFeedRow().userId?.toString()).toBe(VALERIA_ID.toString());
     expect(slackShows().reads).toBe(
-      "Valeria Mustafaeva 👤 Added Deane Looi as Responder to Incident INC-18.",
+      "👤 Valeria Mustafaeva added Deane Looi as Responder to Incident INC-18.",
     );
   });
 
@@ -1136,7 +1179,7 @@ describe("a role given on an incident episode, copied to its incidents", () => {
     ).toEqual({ isRoot: true, userId: VALERIA_ID });
     expect(onlyFeedRow().userId?.toString()).toBe(VALERIA_ID.toString());
     expect(slackShows().reads).toBe(
-      "Valeria Mustafaeva 👤 Added Deane Looi as Responder to Incident INC-18.",
+      "👤 Valeria Mustafaeva added Deane Looi as Responder to Incident INC-18.",
     );
   });
 
@@ -1181,7 +1224,7 @@ describe("a role given on an incident episode, copied to its incidents", () => {
       (deleteBy.mock.calls[0]![0] as DeleteBy<IncidentMember>).props,
     ).toEqual({ isRoot: true, userId: VALERIA_ID });
     expect(slackShows().reads).toBe(
-      "Valeria Mustafaeva 👤 Removed Deane Looi (deane.looi.from.avepoint@gt.tech.gov.sg) as Responder from Incident INC-18.",
+      "👤 Valeria Mustafaeva removed Deane Looi as Responder from Incident INC-18.",
     );
   });
 

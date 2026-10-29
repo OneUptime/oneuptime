@@ -108,21 +108,23 @@ describe("a role change in the incident's feed", () => {
     expect(lead).not.toHaveTextContent(/^Deane/);
   });
 
-  test("someone takes Deane off: 'Valeria Mustafaeva removed Deane Looi ...'", () => {
+  test("someone takes Deane off: 'Valeria Mustafaeva removed Deane Looi ...', Deane linked as when he was added", () => {
     renderEntry({
       markdown: IncidentRoleFeedText.getRemovedMarkdown({
         roleName: "Responder",
         incident: INCIDENT,
-        personName: "Deane Looi",
-        personEmail: "deane@example.com",
+        person: DEANE,
         isSelf: false,
       }),
       extra: { user: person("Valeria Mustafaeva") },
     });
 
-    expect(screen.getByTestId("feed-entry-lead")).toHaveTextContent(
-      /^Valeria Mustafaeva removed \*\*Deane Looi\*\* \(deane@example\.com\) as \*\*Responder\*\* from /,
+    const lead: HTMLElement = screen.getByTestId("feed-entry-lead");
+    expect(lead).toHaveTextContent(
+      /^Valeria Mustafaeva removed \*\*\[Deane Looi\]\(.+\/users\/d\)\*\* as \*\*Responder\*\* from \[Incident INC-18\]\(.+\)\.$/,
     );
+    // No email beside the name: the link opens his page.
+    expect(lead).not.toHaveTextContent(/@/);
   });
 
   test("Deane takes it himself: 'Deane Looi took the Responder role on Incident INC-18', his name once", () => {
@@ -148,7 +150,7 @@ describe("a role change in the incident's feed", () => {
       markdown: IncidentRoleFeedText.getRemovedMarkdown({
         roleName: "Responder",
         incident: INCIDENT,
-        personName: "Deane Looi",
+        person: DEANE,
         isSelf: true,
       }),
       extra: { user: person("Deane Looi") },

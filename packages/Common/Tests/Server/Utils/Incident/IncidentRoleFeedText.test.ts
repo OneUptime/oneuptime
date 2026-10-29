@@ -171,31 +171,44 @@ describe("somebody given a role", () => {
 });
 
 describe("somebody taken off a role", () => {
-  test("by another person: who was taken off, by name and email", () => {
+  /*
+   * Named as the line that gave them the role names them: a link to their
+   * page. The line once named them by name and email - "Removed Deane Looi
+   * (deane.looi.from.avepoint@gt.tech.gov.sg) as Responder" - which ran
+   * across two lines of a phone's channel and linked nowhere useful.
+   */
+  test("by another person: who was taken off, linked to their page", () => {
     expect(
       IncidentRoleFeedText.getRemovedMarkdown({
         roleName: "Responder",
         incident: INCIDENT,
-        personName: "Deane Looi",
-        personEmail: "deane.looi@example.com",
+        person: DEANE,
         isSelf: false,
       }).toString(),
     ).toBe(
-      `👤 Removed **Deane Looi** (deane.looi@example.com) as **Responder** from [Incident INC-18](${LINK}).`,
+      `👤 Removed **[Deane Looi](https://oneuptime.example/dashboard/p/users/d)** as **Responder** from [Incident INC-18](${LINK}).`,
     );
   });
 
-  test("a person named by their email alone is not named twice", () => {
-    expect(
-      IncidentRoleFeedText.getRemovedMarkdown({
-        roleName: "Responder",
-        incident: INCIDENT,
-        personName: "deane@example.com",
-        isSelf: false,
-      }).toString(),
-    ).toBe(
-      `👤 Removed **deane@example.com** as **Responder** from [Incident INC-18](${LINK}).`,
-    );
+  test("the removal and the addition name the person the same way", () => {
+    const added: string = IncidentRoleFeedText.getAddedMarkdown({
+      roleName: "Responder",
+      incident: INCIDENT,
+      person: DEANE,
+      isSelf: false,
+    }).toString();
+    const removed: string = IncidentRoleFeedText.getRemovedMarkdown({
+      roleName: "Responder",
+      incident: INCIDENT,
+      person: DEANE,
+      isSelf: false,
+    }).toString();
+
+    const named: string = `**${DEANE.toString()}**`;
+
+    expect(added).toContain(named);
+    expect(removed).toContain(named);
+    expect(removed).not.toContain("@");
   });
 
   test("by themselves: they left the role", () => {
@@ -203,8 +216,7 @@ describe("somebody taken off a role", () => {
       IncidentRoleFeedText.getRemovedMarkdown({
         roleName: "Observer",
         incident: INCIDENT,
-        personName: "Deane Looi",
-        personEmail: "deane.looi@example.com",
+        person: DEANE,
         isSelf: true,
       }).toString(),
     ).toBe(`👤 Left the **Observer** role on [Incident INC-18](${LINK}).`);
@@ -215,29 +227,27 @@ describe("somebody taken off a role", () => {
       IncidentRoleFeedText.getRemovedMarkdown({
         roleName: "Responder",
         incident: INCIDENT,
-        personName: "Deane Looi",
-        personEmail: "deane.looi@example.com",
+        person: DEANE,
         isSelf: false,
         workflowName: "Stand down",
       }).toString(),
     ).toBe(
-      `👤 Workflow **Stand down** removed **Deane Looi** (deane.looi@example.com) as **Responder** from [Incident INC-18](${LINK}).`,
+      `👤 Workflow **Stand down** removed **[Deane Looi](https://oneuptime.example/dashboard/p/users/d)** as **Responder** from [Incident INC-18](${LINK}).`,
     );
   });
 
-  test("a name and an email are text", () => {
+  test("a role and a workflow are names: placed as text, never Markdown", () => {
     const markdown: string = IncidentRoleFeedText.getRemovedMarkdown({
-      roleName: "Responder",
+      roleName: "*On-call* <!here>",
       incident: INCIDENT,
-      personName: "Deane](https://evil.example) <!here>",
-      personEmail: "a_b@example.com",
+      person: DEANE,
       isSelf: false,
+      workflowName: "Stand](https://evil.example) down",
     }).toString();
 
-    expect(markdown).toContain("Deane\\]");
+    expect(markdown).toContain("\\*On-call\\*");
     expect(markdown).not.toContain("<!here>");
-    // An underscore inside a word starts no emphasis: it stays as typed.
-    expect(markdown).toContain("(a_b@example.com)");
+    expect(markdown).toContain("Stand\\]");
   });
 });
 
@@ -282,7 +292,7 @@ describe("how the Dashboard's feed reads each sentence after its author", () => 
         markdown: IncidentRoleFeedText.getRemovedMarkdown({
           roleName: "Responder",
           incident: INCIDENT,
-          personName: "Deane Looi",
+          person: DEANE,
           isSelf: true,
         }).toString(),
         actorName: "Deane Looi",

@@ -200,7 +200,8 @@ describe("AlertService.onUpdateSuccess after a state change", () => {
     const item: { feedInfoInMarkdown: string } = createFeedItem.mock
       .calls[0]![0] as { feedInfoInMarkdown: string };
 
-    expect(item.feedInfoInMarkdown).toContain("was updated.");
+    // Written to follow the editor's name: "Valeria updated Alert ALT-7."
+    expect(item.feedInfoInMarkdown).toContain("✏️ Updated [Alert ALT-7]");
     expect(item.feedInfoInMarkdown).toContain("Disk full on db-1");
   });
 

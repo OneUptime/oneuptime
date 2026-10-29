@@ -26,22 +26,27 @@
  * Only the start of the Markdown is ever looked at - never a whole entry,
  * which can be megabytes long (a log pasted into a note).
  *
+ * Which sentences follow a name, and how they read after one, are the
+ * rules Slack and Microsoft Teams messages lead with their author by too
+ * (Utils/Markdown/FeedLead), so the feed and the channel never read
+ * differently.
+ *
  * React-free so the rules can be tested on their own.
  */
+
+import {
+  FEED_LEAD_SCAN_LENGTH,
+  FEED_LEADING_EMOJI,
+  getSentenceAfterName,
+  opensWithFeedLeadVerb,
+} from "../../../Utils/Markdown/FeedLead";
 
 /*
  * How much of the start of an entry the rules below read. Generous for a
  * first sentence, and small enough that no regular expression ever runs
  * over a long value.
  */
-const LEAD_SCAN_LENGTH: number = 600;
-
-/*
- * A leading emoji, with its modifiers, joiners and variation selectors -
- * "👨🏻‍💻 ", "🏷️ ", "⚠️ " - and the space after it.
- */
-const LEADING_EMOJI: RegExp =
-  /^(?:\p{Extended_Pictographic}|\p{Emoji_Modifier}|\p{Regional_Indicator}|‍|️)+[ \t]*/u;
+const LEAD_SCAN_LENGTH: number = FEED_LEAD_SCAN_LENGTH;
 
 // A Markdown heading's opening: "#### ".
 const HEADING_OPENING: RegExp = /^#{1,6}[ \t]+/;
@@ -49,9 +54,6 @@ const HEADING_OPENING: RegExp = /^#{1,6}[ \t]+/;
 // An opening that is not a paragraph: a heading, list, quote, table, code, rule.
 const BLOCK_OPENING: RegExp =
   /^(?:#{1,6}[ \t]|[-*+][ \t]|\d+[.)][ \t]|>|\||```|~~~|<|---|\*\*\*|___|===)/;
-
-// The first word of a sentence: letters only.
-const FIRST_WORD: RegExp = /^[A-Za-z]+/;
 
 // A letter or a digit in any script: what a name cannot run on into.
 const NAME_CHARACTER: RegExp = /[\p{L}\p{N}]/u;
@@ -71,74 +73,6 @@ const HAS_DIGIT: RegExp = /\d/;
 
 // "on call policy", as the product writes it: "on-call policy".
 const ON_CALL_WORDS: RegExp = /\bon call\b/g;
-
-/*
- * Past-tense verbs an entry written for someone's action opens with, as
- * the server writes them ("Added", "Changed", "posted"). After the name
- * they read in lower case: "Nitin changed the state".
- */
-const LEAD_VERBS: ReadonlySet<string> = new Set<string>([
-  "acknowledged",
-  "added",
-  "applied",
-  "approved",
-  "archived",
-  "assigned",
-  "attached",
-  "cancelled",
-  "changed",
-  "closed",
-  "completed",
-  "connected",
-  "created",
-  "declared",
-  "deleted",
-  "disabled",
-  "disconnected",
-  "enabled",
-  "ended",
-  "escalated",
-  "executed",
-  "invited",
-  "joined",
-  // "Valeria left the Responder role on Incident INC-18" (IncidentRoleFeedText).
-  "left",
-  "linked",
-  "marked",
-  "merged",
-  "moved",
-  "muted",
-  "notified",
-  "paged",
-  "posted",
-  "ran",
-  "reassigned",
-  "rejected",
-  "removed",
-  "renamed",
-  "reopened",
-  "requested",
-  "reset",
-  "resolved",
-  "restored",
-  "resumed",
-  "scheduled",
-  "sent",
-  "set",
-  "shared",
-  "skipped",
-  "snoozed",
-  "started",
-  "stopped",
-  // "Valeria took the Incident Commander role on Incident INC-18".
-  "took",
-  "triggered",
-  "unassigned",
-  "unlinked",
-  "unmuted",
-  "updated",
-  "uploaded",
-]);
 
 type StripDecorationFunction = (markdown: string) => string;
 
@@ -176,7 +110,7 @@ export const stripLeadingDecoration: StripDecorationFunction = (
     rest = rest.slice(2);
   }
 
-  const emoji: RegExpMatchArray | null = rest.match(LEADING_EMOJI);
+  const emoji: RegExpMatchArray | null = rest.match(FEED_LEADING_EMOJI);
 
   if (!emoji || emoji[0].length === 0) {
     return markdown;
@@ -285,37 +219,6 @@ export const leadStartsWithName: StartsWithNameFunction = (
   return after === "" || !NAME_CHARACTER.test(after);
 };
 
-type LowerCaseLeadVerbFunction = (lead: string) => string | null;
-
-/*
- * The lead with its opening verb in lower case, or null when it does not
- * open with one of the verbs an action is written with.
- */
-const lowerCaseLeadVerb: LowerCaseLeadVerbFunction = (
-  lead: string,
-): string | null => {
-  const word: RegExpMatchArray | null = lead.match(FIRST_WORD);
-
-  if (!word) {
-    return null;
-  }
-
-  const lowerCaseWord: string = word[0].toLowerCase();
-
-  if (!LEAD_VERBS.has(lowerCaseWord)) {
-    return null;
-  }
-
-  // The word must end there: "Setup ..." is not "Set".
-  const after: string = lead.charAt(word[0].length);
-
-  if (after !== "" && after !== " " && after !== "\t") {
-    return null;
-  }
-
-  return lowerCaseWord + lead.slice(word[0].length);
-};
-
 /*
  * How a created entry's record reads after its creator's name: by its
  * number when the heading has one ("created Incident INC-8"), else as the
@@ -409,17 +312,14 @@ export const getFeedEntryLead: (data: {
     return { lead: firstBlock, body: body, leadNamesActor: true };
   }
 
-  const startsLowerCase: boolean =
-    firstBlock.charAt(0) !== firstBlock.charAt(0).toUpperCase();
+  /*
+   * A sentence that opens in lower case already follows a name; one that
+   * opens with an action's verb reads with it in lower case (FeedLead).
+   */
+  const sentence: string | null = getSentenceAfterName(firstBlock);
 
-  if (startsLowerCase) {
-    return { lead: firstBlock, body: body, leadNamesActor: false };
-  }
-
-  const withLowerCaseVerb: string | null = lowerCaseLeadVerb(firstBlock);
-
-  if (withLowerCaseVerb !== null) {
-    return { lead: withLowerCaseVerb, body: body, leadNamesActor: false };
+  if (sentence !== null) {
+    return { lead: sentence, body: body, leadNamesActor: false };
   }
 
   return { body: markdown, leadNamesActor: false };
@@ -551,18 +451,9 @@ const capitalizeLeadVerb: (markdown: string) => string = (
   const leadingWhitespaceLength: number =
     markdown.length - markdown.trimStart().length;
   const text: string = markdown.slice(leadingWhitespaceLength);
-  const word: RegExpMatchArray | null = text
-    .slice(0, LEAD_SCAN_LENGTH)
-    .match(FIRST_WORD);
-
-  if (!word || !LEAD_VERBS.has(word[0])) {
-    return markdown;
-  }
 
   // The verb must be a word of its own: "created-item" is not "created".
-  const after: string = text.charAt(word[0].length);
-
-  if (after !== "" && after !== " " && after !== "\t") {
+  if (!opensWithFeedLeadVerb(text)) {
     return markdown;
   }
 

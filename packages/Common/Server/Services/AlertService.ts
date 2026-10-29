@@ -134,6 +134,7 @@ import FeedMarkdown, {
   mdText,
   MarkdownText,
 } from "../../Utils/Markdown/FeedMarkdown";
+import FeedWorkspaceNotificationUtil from "../Utils/Feed/FeedWorkspaceNotification";
 
 /*
  * The two spellings a write of an alert's monitor arrives under: the FK
@@ -2227,11 +2228,23 @@ ${FeedMarkdown.asMarkdown(alert.remediationNotes || "No remediation notes provid
           );
         });
 
-        let feedInfoInMarkdown: string =
-          mdText`**[Alert ${alertNumberWithPrefix || "#" + alertNumber}](${(await this.getAlertLinkInDashboard(projectId!, alertId!)).toString()}) was updated.**`.toString();
-
         const createdByUserId: ObjectID | undefined | null =
           onUpdate.updateBy.props.userId;
+
+        const alertMarkdownLink: MarkdownText = mdText`[Alert ${alertNumberWithPrefix || "#" + alertNumber}](${(await this.getAlertLinkInDashboard(projectId!, alertId!)).toString()})`;
+
+        /*
+         * Written to follow the name of whoever made the change, which its
+         * message opens with: "Valeria Mustafaeva updated Alert ALR-12."
+         * Read after a name, "Alert ALR-12 was updated." became "Valeria
+         * Mustafaeva Alert ALR-12 was updated." A change nobody made by
+         * hand still reads "Alert ALR-12 was updated."
+         */
+        let feedInfoInMarkdown: string = (
+          FeedWorkspaceNotificationUtil.hasAuthor({ userId: createdByUserId })
+            ? mdText`✏️ Updated ${alertMarkdownLink}.`
+            : mdText`**${alertMarkdownLink} was updated.**`
+        ).toString();
 
         /*
          * A line for each of the title, root cause, description, remediation

@@ -81,9 +81,13 @@ export interface IncidentRoleAddedFeedTextInput
 
 export interface IncidentRoleRemovedFeedTextInput
   extends IncidentRoleFeedTextInput {
-  // The person taken off the role, by name, with their email after it.
-  personName: string;
-  personEmail?: string | undefined;
+  /*
+   * The person taken off the role, as a link to them - named as the line
+   * that gave them the role names them, not by name and email: "Removed
+   * Deane Looi (deane.looi@...) as Responder" ran across two lines of a
+   * phone's channel.
+   */
+  person: MarkdownText;
 }
 
 const getWorkflowName: (input: IncidentRoleFeedTextInput) => string = (
@@ -124,21 +128,17 @@ export default class IncidentRoleFeedText {
   public static getRemovedMarkdown(
     input: IncidentRoleRemovedFeedTextInput,
   ): MarkdownText {
-    const person: MarkdownText = input.personEmail
-      ? mdText`**${input.personName}** (${input.personEmail})`
-      : mdText`**${input.personName}**`;
-
     const workflowName: string = getWorkflowName(input);
 
     if (workflowName) {
-      return mdText`👤 Workflow **${workflowName}** removed ${person} as **${input.roleName}** from ${input.incident}.`;
+      return mdText`👤 Workflow **${workflowName}** removed **${input.person}** as **${input.roleName}** from ${input.incident}.`;
     }
 
     if (input.isSelf) {
       return mdText`👤 Left the **${input.roleName}** role on ${input.incident}.`;
     }
 
-    return mdText`👤 Removed ${person} as **${input.roleName}** from ${input.incident}.`;
+    return mdText`👤 Removed **${input.person}** as **${input.roleName}** from ${input.incident}.`;
   }
 
   /*

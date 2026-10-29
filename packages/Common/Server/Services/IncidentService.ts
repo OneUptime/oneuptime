@@ -200,6 +200,7 @@ import FeedMarkdown, {
 import FeedApiKeyActorUtil, {
   FeedApiKeyActor,
 } from "../Utils/Feed/FeedApiKeyActor";
+import FeedWorkspaceNotificationUtil from "../Utils/Feed/FeedWorkspaceNotification";
 
 /*
  * How an update changed an incident's status page scope, for its feed item.
@@ -5124,10 +5125,13 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
         feedInfoInMarkdown: postmortemFeedMarkdown,
         userId: data.userId,
         apiKeyActor: data.apiKeyActor,
+        /*
+         * Posted as it reads, opening with its heading: a name in front of
+         * "Postmortem Note updated for Incident INC-18" is no sentence. The
+         * feed names who wrote or cleared it.
+         */
         workspaceNotification: {
           sendWorkspaceNotification: true,
-          // Who wrote or cleared it, as the feed names them.
-          leadWithAuthor: true,
         },
       });
     }
@@ -5675,8 +5679,22 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
         }
 
         let shouldAddIncidentFeed: boolean = false;
-        let feedInfoInMarkdown: string =
-          mdText`**[${incidentLabel}](${incidentLink.toString()}) was updated.**`.toString();
+        /*
+         * Written to follow the name of whoever made the change - the
+         * person or the API key the entry names, which its message opens
+         * with: "Valeria Mustafaeva updated Incident INC-18." Read after a
+         * name, "Incident INC-18 was updated." became "Valeria Mustafaeva
+         * Incident INC-18 was updated." A change nobody made by hand (a
+         * workflow, OneUptime) still reads "Incident INC-18 was updated."
+         */
+        let feedInfoInMarkdown: string = (
+          FeedWorkspaceNotificationUtil.hasAuthor({
+            userId: createdByUserId,
+            apiKeyActor: FeedApiKeyActorUtil.fromProps(onUpdate.updateBy.props),
+          })
+            ? mdText`✏️ Updated [${incidentLabel}](${incidentLink.toString()}).`
+            : mdText`**[${incidentLabel}](${incidentLink.toString()}) was updated.**`
+        ).toString();
 
         /*
          * A line for each of the title, root cause, description, remediation

@@ -62,6 +62,21 @@ export interface FeedWorkspaceAuthor {
 
 export default class FeedWorkspaceNotificationUtil {
   /*
+   * Whether an entry names who made its change - a person (its userId), or
+   * the project API key (incident entries keep one) - as the Dashboard's
+   * feed shows it and its message opens with. Such an entry is written to
+   * follow their name: "✏️ Updated Incident INC-18." reads "Valeria
+   * Mustafaeva updated Incident INC-18." in the feed and "✏️ Valeria
+   * Mustafaeva updated Incident INC-18." in the channel.
+   */
+  public static hasAuthor(data: {
+    userId?: ObjectID | null | undefined;
+    apiKeyActor?: FeedApiKeyActor | undefined;
+  }): boolean {
+    return Boolean(data.userId) || Boolean(data.apiKeyActor?.apiKeyId);
+  }
+
+  /*
    * The author a feed entry's message opens with: the entry's own userId,
    * else the API key that made the change (incident entries keep one), else
    * nobody - and nobody at all unless the entry asks for it, or when it is

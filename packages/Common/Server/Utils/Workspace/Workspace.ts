@@ -8,6 +8,7 @@ import MicrosoftTeamsUtil from "./MicrosoftTeams/MicrosoftTeams";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import { MarkdownText, mdText } from "../../../Utils/Markdown/FeedMarkdown";
+import { leadWithAuthorMarkdown } from "../../../Utils/Markdown/FeedLead";
 import WorkspaceMessagePayload, {
   WorkspacePayloadMarkdown,
 } from "../../../Types/Workspace/WorkspaceMessagePayload";
@@ -40,9 +41,11 @@ export default class WorkspaceUtil {
     projectId: ObjectID;
     /*
      * Who did what the message says, as a OneUptime user id: their name
-     * leads it, as the Dashboard's feed puts it before the same sentence.
-     * Never the person the message is about: "Added Deane Looi as
-     * Responder" is led by whoever added Deane.
+     * leads it, as the Dashboard's feed puts it before the same sentence -
+     * after the emoji every line opens with, the verb in lower case: "👤
+     * Valeria Mustafaeva added Deane Looi as Responder" (FeedLead). Never
+     * the person the message is about: that line is led by whoever added
+     * Deane.
      */
     userId: ObjectID | undefined;
     /*
@@ -77,7 +80,10 @@ export default class WorkspaceUtil {
         messageBlocks: [
           {
             _type: "WorkspacePayloadMarkdown",
-            text: authorMarkdown + data.markdown,
+            text: leadWithAuthorMarkdown({
+              authorMarkdown: authorMarkdown,
+              markdown: data.markdown,
+            }),
           } as WorkspacePayloadMarkdown,
         ],
       });
