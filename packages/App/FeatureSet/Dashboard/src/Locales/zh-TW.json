@@ -37000,5 +37000,6 @@
   "{{count}} people have their own settings that use it. They stay as they are.": "{{count}} 人擁有使用它的個人設定。這些設定維持不變。",
   "{{count}} people have their own settings that use it. They stay as they are._one": "{{count}} 人擁有使用它的個人設定。這些設定維持不變。",
   "{{names}} can't be deleted while these have them:": "以下項目仍在使用 {{names}}，無法刪除：",
-  "{{names}} can't be deleted while these have them:_one": "以下項目仍在使用 {{names}}，無法刪除："
+  "{{names}} can't be deleted while these have them:_one": "以下項目仍在使用 {{names}}，無法刪除：",
+  "Deleted with them": "將隨之刪除的項目"
 }

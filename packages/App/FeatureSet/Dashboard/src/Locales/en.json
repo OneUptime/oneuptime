@@ -37000,5 +37000,6 @@
   "{{count}} people have their own settings that use it. They stay as they are.": "{{count}} people have their own settings that use it. They stay as they are.",
   "{{count}} people have their own settings that use it. They stay as they are._one": "{{count}} person has their own settings that use it. They stay as they are.",
   "{{names}} can't be deleted while these have them:": "{{names}} can't be deleted while these have them:",
-  "{{names}} can't be deleted while these have them:_one": "{{names}} can't be deleted while these have it:"
+  "{{names}} can't be deleted while these have them:_one": "{{names}} can't be deleted while these have it:",
+  "Deleted with them": "Deleted with them"
 }

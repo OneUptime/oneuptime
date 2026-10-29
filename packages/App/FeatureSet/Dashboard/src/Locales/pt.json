@@ -37000,5 +37000,6 @@
   "{{count}} people have their own settings that use it. They stay as they are.": "{{count}} pessoas têm configurações próprias que o usam. Elas ficam como estão.",
   "{{count}} people have their own settings that use it. They stay as they are._one": "{{count}} pessoa tem configurações próprias que o usam. Elas ficam como estão.",
   "{{names}} can't be deleted while these have them:": "Não é possível excluir {{names}} enquanto estes os usarem:",
-  "{{names}} can't be deleted while these have them:_one": "Não é possível excluir {{names}} enquanto estes o usarem:"
+  "{{names}} can't be deleted while these have them:_one": "Não é possível excluir {{names}} enquanto estes o usarem:",
+  "Deleted with them": "Excluídos junto"
 }

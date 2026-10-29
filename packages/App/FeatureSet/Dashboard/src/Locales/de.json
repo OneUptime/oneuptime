@@ -37000,5 +37000,6 @@
   "{{count}} people have their own settings that use it. They stay as they are.": "{{count}} Personen haben eigene Einstellungen, die es verwenden. Sie bleiben, wie sie sind.",
   "{{count}} people have their own settings that use it. They stay as they are._one": "{{count}} Person hat eigene Einstellungen, die es verwenden. Sie bleiben, wie sie sind.",
   "{{names}} can't be deleted while these have them:": "{{names}} können nicht gelöscht werden, solange Folgendes darauf verweist:",
-  "{{names}} can't be deleted while these have them:_one": "{{names}} kann nicht gelöscht werden, solange Folgendes darauf verweist:"
+  "{{names}} can't be deleted while these have them:_one": "{{names}} kann nicht gelöscht werden, solange Folgendes darauf verweist:",
+  "Deleted with them": "Werden mitgelöscht"
 }

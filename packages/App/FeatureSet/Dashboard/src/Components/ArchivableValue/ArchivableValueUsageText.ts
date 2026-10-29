@@ -1,4 +1,4 @@
-import { DELETE_EFFECT_LABELS } from "./ArchivableValueCopy";
+import { DELETE_EFFECT_LABELS, DELETED_WITH_THEM } from "./ArchivableValueCopy";
 import ArchivableValueUsage, {
   ArchivableValueDeleteEffect,
   ArchivableValueUsageItem,
@@ -155,11 +155,15 @@ export const isDeleteRefused: (
  * What the Delete dialog lists. A refused delete lists only what refuses it
  * - nothing else happens - and any other delete lists every use it changes,
  * grouped by what happens to it. Empty when nothing uses the value.
+ * `valueCount` is how many values the delete takes - a bulk Delete's are
+ * several, and what goes is "Deleted with them".
  */
 export const getDeleteDialogGroups: (
   usage: Array<ArchivableValueUsageItem>,
+  valueCount?: number,
 ) => Array<UsageGroup> = (
   usage: Array<ArchivableValueUsageItem>,
+  valueCount: number = 1,
 ): Array<UsageGroup> => {
   const refused: boolean = isDeleteRefused(usage);
 
@@ -179,7 +183,10 @@ export const getDeleteDialogGroups: (
     if (items.length > 0) {
       groups.push({
         effect: effect,
-        label: DELETE_EFFECT_LABELS[effect],
+        label:
+          effect === ArchivableValueDeleteEffect.Deleted && valueCount > 1
+            ? DELETED_WITH_THEM
+            : DELETE_EFFECT_LABELS[effect],
         items: items,
       });
     }

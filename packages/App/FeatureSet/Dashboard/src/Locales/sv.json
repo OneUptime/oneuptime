@@ -37000,5 +37000,6 @@
   "{{count}} people have their own settings that use it. They stay as they are.": "{{count}} personer har egna inställningar som använder den. De förblir som de är.",
   "{{count}} people have their own settings that use it. They stay as they are._one": "{{count}} person har egna inställningar som använder den. De förblir som de är.",
   "{{names}} can't be deleted while these have them:": "{{names}} kan inte tas bort så länge dessa använder dem:",
-  "{{names}} can't be deleted while these have them:_one": "{{names}} kan inte tas bort så länge dessa använder den:"
+  "{{names}} can't be deleted while these have them:_one": "{{names}} kan inte tas bort så länge dessa använder den:",
+  "Deleted with them": "Tas bort tillsammans med dem"
 }

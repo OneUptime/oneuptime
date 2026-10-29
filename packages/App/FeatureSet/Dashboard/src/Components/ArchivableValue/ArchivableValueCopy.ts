@@ -277,6 +277,12 @@ export const DELETE_EFFECT_LABELS: Record<ArchivableValueDeleteEffect, string> =
     ),
   };
 
+/*
+ * A bulk Delete's label for what goes with the values it deletes, when
+ * there are several of them; one value's says "Deleted with it".
+ */
+export const DELETED_WITH_THEM: string = translationKey("Deleted with them");
+
 // One kind of record and how many, in a list: "Incidents (12)".
 export const USAGE_ITEM: string = translationKey("{{title}} ({{count}})");
 // A count the server stopped at: "10,000+".
@@ -419,6 +425,8 @@ export const getArchivableValueStrings: () => Array<string> =
     for (const label of Object.values(DELETE_EFFECT_LABELS)) {
       strings.add(label);
     }
+
+    strings.add(DELETED_WITH_THEM);
 
     for (const text of [
       ARCHIVE_ACTION,

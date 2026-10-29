@@ -181,7 +181,11 @@ const ArchivableValuesBulkDeleteDetails: FunctionComponent<ComponentProps> = (
   ).length;
 
   const deletableCount: number = props.items.length - refusedCount;
-  const groups: Array<UsageGroup> = getDeleteDialogGroups(answer.usage);
+  // What goes with the ones it deletes: "Deleted with them" for several.
+  const groups: Array<UsageGroup> = getDeleteDialogGroups(
+    answer.usage,
+    deletableCount,
+  );
 
   if (refusedCount === 0 && groups.length === 0) {
     return <></>;

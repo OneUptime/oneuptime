@@ -37000,5 +37000,6 @@
   "{{count}} people have their own settings that use it. They stay as they are.": "{{count}}명이 이를 사용하는 개인 설정을 가지고 있습니다. 설정은 그대로 유지됩니다.",
   "{{count}} people have their own settings that use it. They stay as they are._one": "{{count}}명이 이를 사용하는 개인 설정을 가지고 있습니다. 설정은 그대로 유지됩니다.",
   "{{names}} can't be deleted while these have them:": "다음 항목에서 사용하는 동안에는 {{names}}을(를) 삭제할 수 없습니다:",
-  "{{names}} can't be deleted while these have them:_one": "다음 항목에서 사용하는 동안에는 {{names}}을(를) 삭제할 수 없습니다:"
+  "{{names}} can't be deleted while these have them:_one": "다음 항목에서 사용하는 동안에는 {{names}}을(를) 삭제할 수 없습니다:",
+  "Deleted with them": "함께 삭제되는 항목"
 }

@@ -37000,5 +37000,6 @@
   "{{count}} people have their own settings that use it. They stay as they are.": "Людей с собственными настройками, которые его используют: {{count}}. Они останутся как есть.",
   "{{count}} people have their own settings that use it. They stay as they are._one": "У {{count}} человека есть собственные настройки, которые его используют. Они останутся как есть.",
   "{{names}} can't be deleted while these have them:": "{{names}} нельзя удалить, пока их используют:",
-  "{{names}} can't be deleted while these have them:_one": "{{names}} нельзя удалить, пока его используют:"
+  "{{names}} can't be deleted while these have them:_one": "{{names}} нельзя удалить, пока его используют:",
+  "Deleted with them": "Удаляются вместе с ними"
 }

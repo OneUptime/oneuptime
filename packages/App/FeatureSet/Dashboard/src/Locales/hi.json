@@ -37000,5 +37000,6 @@
   "{{count}} people have their own settings that use it. They stay as they are.": "{{count}} लोगों की अपनी सेटिंग्स इसका उपयोग करती हैं। वे जैसी हैं वैसी ही रहेंगी।",
   "{{count}} people have their own settings that use it. They stay as they are._one": "{{count}} व्यक्ति की अपनी सेटिंग्स इसका उपयोग करती हैं। वे जैसी हैं वैसी ही रहेंगी।",
   "{{names}} can't be deleted while these have them:": "जब तक ये इनका उपयोग कर रहे हैं, {{names}} को हटाया नहीं जा सकता:",
-  "{{names}} can't be deleted while these have them:_one": "जब तक ये इसका उपयोग कर रहे हैं, {{names}} को हटाया नहीं जा सकता:"
+  "{{names}} can't be deleted while these have them:_one": "जब तक ये इसका उपयोग कर रहे हैं, {{names}} को हटाया नहीं जा सकता:",
+  "Deleted with them": "इनके साथ हटाए जाएंगे"
 }

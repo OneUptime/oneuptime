@@ -750,7 +750,11 @@ describe("Bulk Actions > Delete of values says what it would do first", () => {
       "It is left as it is. Archive it instead: nobody can pick it again, and everything that has it keeps it.",
     );
     expect(bulkText()).toContain("Deleting the others also changes these:");
-    expect(bulkText()).toContain("Deleted with it: On-call rules of 11 people");
+    // Two values go: what goes is deleted with them.
+    expect(bulkText()).toContain(
+      "Deleted with them: On-call rules of 11 people",
+    );
+    expect(bulkText()).not.toContain("Deleted with it");
     expect(bulkText()).toContain("Removed from: Incident On-Call Rules (3)");
 
     // Two of three can go: Delete is free.
@@ -839,10 +843,39 @@ describe("Bulk Actions > Delete of values says what it would do first", () => {
       expect(bulkText()).toContain("Deleting them also changes these:");
     });
 
-    expect(bulkText()).toContain("Deleted with it: On-call rules of 2 people");
+    expect(bulkText()).toContain(
+      "Deleted with them: On-call rules of 2 people",
+    );
     expect(
       screen.queryByTestId("archivable-values-bulk-delete-refused"),
     ).toBeNull();
+  });
+
+  test("one left to delete beside a refused one: what goes is deleted with it", async () => {
+    valuesUsageMock.mockImplementation(
+      async (): Promise<ArchivableValuesUsage> => {
+        return {
+          refusedValueIds: [CRITICAL_ID],
+          refusedUsage: [usageItem({})],
+          usage: [onCallRulesOf(2)],
+        };
+      },
+    );
+
+    await renderPage(IncidentSeveritiesPage);
+    await drawDetails(controls(), [
+      severity(CRITICAL_ID, "Critical"),
+      severity(MINOR_ID, "Minor"),
+    ]);
+
+    await waitFor(() => {
+      expect(bulkText()).toContain(
+        "Deleting the other one also changes these:",
+      );
+    });
+
+    expect(bulkText()).toContain("Deleted with it: On-call rules of 2 people");
+    expect(bulkText()).not.toContain("Deleted with them");
   });
 
   test("a read that fails says nothing and lets Delete go: the server refuses what it must", async () => {

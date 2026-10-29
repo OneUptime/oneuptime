@@ -814,9 +814,10 @@ test.describe("Bulk Actions > Delete of severities", () => {
     await expect(changes).toContainText(
       "Deleting the others also changes these:",
     );
+    // Two values go: what goes is deleted with them.
     await expect(
       changes.getByTestId("archivable-value-delete-group-Deleted"),
-    ).toHaveText("•Deleted with it: On-call rules of 2 people");
+    ).toHaveText("•Deleted with them: On-call rules of 2 people");
     await expect(
       changes.getByTestId("archivable-value-delete-group-RemovedFromList"),
     ).toHaveText("•Removed from: Incident Label Rules (1)");
