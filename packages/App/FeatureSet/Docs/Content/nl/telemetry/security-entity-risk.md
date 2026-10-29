@@ -1,6 +1,6 @@
 # Entiteitrisico (risicogebaseerde meldingen)
 
-Eén bevinding zegt zelden veel. Een reeks mislukte aanmeldingen, een eerste sudo op een host en een aanmelding vanuit een nieuw land zijn elk een blik waard; hetzelfde account in alle drie binnen een week is een zaak waard. Entiteitrisico telt op wat uw detectieregels, dreigingsinformatie, verbonden producten en Data Security vinden over elke gebruiker, host, elk IP-adres en elke gegevensopslag, toont de riskantste eerst en opent een zaak over degene wiens risico de drempel van het project haalt.
+Eén bevinding zegt zelden veel. Een reeks mislukte aanmeldingen, een eerste sudo op een host en een aanmelding vanuit een nieuw land zijn elk een blik waard; hetzelfde account in alle drie binnen een week is een zaak waard. Entiteitrisico telt op wat uw detectieregels, dreigingsinformatie, verbonden producten en Gegevensbeveiliging vinden over elke gebruiker, host, elk IP-adres en elke gegevensopslag, toont de riskantste eerst en opent een zaak over degene wiens risico de drempel van het project haalt.
 
 :::cards
 - [Zo wordt een score geteld](#zo-wordt-een-score-geteld): Punten naar ernst, en elke bron eenmaal per week.
@@ -44,8 +44,8 @@ Elke bevinding geeft risicopunten aan de gebruiker, host, het IP-adres of de geg
 | Kritiek | 75 punten |
 
 - Een informatieve bevinding voegt niets toe, en een bevinding met onbekende ernst telt als Gemiddeld.
-- De punten van een detectieregel gaan naar de waarde waarop die groepeert. Een treffer in dreigingsinformatie telt voor het IP-adres dat de indicator noemt. De melding van een verbonden product telt voor de gebruiker en de host die ze noemt, anders voor het IP-adres. Een probleem van Data Security telt voor de gegevensopslag waarin het werd gevonden.
-- Elke bron telt eenmaal. Een detectieregel, een feed met dreigingsinformatie, de regel van een verbonden product of een controle van Data Security telt eenmaal in 7 dagen, met het meeste dat die toevoegde, hoe vaak die ook afgaat: één luidruchtige regel kan een entiteit nooit erger laten lijken dan drie verschillende.
+- De punten van een detectieregel gaan naar de waarde waarop die groepeert. Een treffer in dreigingsinformatie telt voor het IP-adres dat de indicator noemt. De melding van een verbonden product telt voor de gebruiker en de host die ze noemt, anders voor het IP-adres. Een probleem van Gegevensbeveiliging telt voor de gegevensopslag waarin het werd gevonden.
+- Elke bron telt eenmaal. Een detectieregel, een feed met dreigingsinformatie, de regel van een verbonden product of een controle van Gegevensbeveiliging telt eenmaal in 7 dagen, met het meeste dat die toevoegde, hoe vaak die ook afgaat: één luidruchtige regel kan een entiteit nooit erger laten lijken dan drie verschillende.
 - Een bron die 7 dagen niets heeft gevonden, telt niet meer mee, en de score daalt. De scores worden elke 15 minuten gecontroleerd, zodat een score op tijd daalt, ook zonder nieuwe bevinding.
 
 De score van een entiteit is de som van haar bronnen, gewogen naar haar kritikaliteit. De testaanval van **Testaanval sturen**, en een zaak die iemand met de hand opent, voegen geen risico toe.
@@ -82,7 +82,7 @@ Sommige entiteiten wegen zwaarder dan andere: een domeincontroller, het account 
 | Hoog | ×1.5 |
 | Extreem | ×2 |
 
-Een vermelding is een waarde of een `*`-patroon, ongeacht hoofdletters: `dc-*` noemt elke domeincontroller, en `*@contractors.example` elke externe medewerker. **Type** beperkt die tot gebruikers, hosts, IP-adressen of gegevensopslagen; leeg past op alle. Noemen meerdere vermeldingen een entiteit, dan telt de meest specifieke: een uitgeschreven waarde vóór een patroon, en een langer patroon vóór een korter. Een wijziging bereikt de score van elke entiteit binnen enkele minuten. Data Security vermeldt zelf de gegevensopslagen die het gevoelig vindt, vertrouwelijke als Hoog en beperkte als Extreem; wijzigt u zo'n vermelding, dan is die van u en laat Data Security die met rust.
+Een vermelding is een waarde of een `*`-patroon, ongeacht hoofdletters: `dc-*` noemt elke domeincontroller, en `*@contractors.example` elke externe medewerker. **Type** beperkt die tot gebruikers, hosts, IP-adressen of gegevensopslagen; leeg past op alle. Noemen meerdere vermeldingen een entiteit, dan telt de meest specifieke: een uitgeschreven waarde vóór een patroon, en een langer patroon vóór een korter. Een wijziging bereikt de score van elke entiteit binnen enkele minuten. Gegevensbeveiliging vermeldt zelf de gegevensopslagen die het gevoelig vindt, vertrouwelijke als Hoog en beperkte als Extreem; wijzigt u zo'n vermelding, dan is die van u en laat Gegevensbeveiliging die met rust.
 
 ## De pagina van een entiteit
 

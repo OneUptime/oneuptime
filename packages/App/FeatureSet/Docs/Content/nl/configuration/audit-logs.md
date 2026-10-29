@@ -105,6 +105,7 @@ Monitors, incidenten, waarschuwingen, statuspagina's, SLO's en veel andere resou
 | Volglijsten | `Watchlist` |
 | Volglijstwaarden | `Watchlist Value` |
 | Taken en bewijs van beveiligingszaken | `Security Case Task`, `Security Case Evidence` |
+| Gegevensopslagen en hun bevindingen, en de problemen, instellingen, controle-instellingen, aangepaste gegevenstypen en residentieregels van Gegevensbeveiliging | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
 | Exports van het auditlogboek | `Audit Log Export` |
 
 Ook wordt vastgelegd wanneer een beheerder een meldingsmethode of een persoonlijke piketregel aan het account van iemand anders toevoegt of ervan verwijdert, zonder het adres of nummer zelf.

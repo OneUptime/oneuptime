@@ -229,7 +229,7 @@ Om in een kanaal te plaatsen, voeg je een regel toe onder **Producten → Securi
 | Prioriteit van beveiligingszaak | Een van de zaakprioriteiten van het project, zoals Kritiek of High |
 | Titel van beveiligingszaak, Beschrijving van beveiligingszaak | Tekst die de titel of de beschrijving van de zaak bevat, waarmee die begint of waarmee die eindigt |
 | Status van beveiligingszaak | Een van de zaakstatussen van het project, zoals Nieuw of Gesloten |
-| Bron van beveiligingszaak | Detection Rule, Threat Intel, Connected Product, Entiteitrisico, Data Security of Manual |
+| Bron van beveiligingszaak | Detection Rule, Threat Intel, Connected Product, Entiteitrisico, Gegevensbeveiliging of Manual |
 | Labels van beveiligingszaak | De labels van de zaak |
 
 Elke melding behalve die van een taak wordt geplaatst in de kanalen van elke regel waaraan de zaak op dat moment voldoet. Een regel waarin **Prioriteit van beveiligingszaak** een van **Kritiek** en **Hoog** bevat, plaatst zaken met High en Kritiek zodra ze worden geopend, en een zaak met Medium wanneer die naar High stijgt. Een beveiligingszaak krijgt nooit een eigen kanaal.
@@ -281,6 +281,8 @@ Een uitgeschakeld playbook draait niet vanzelf en ook niet met de hand.
 | Inperken | Unsuspend the user in Okta | Heft in Okta de schorsing op van de gebruiker waar de zaak over gaat |
 | Inperken | Lift containment in CrowdStrike | Heft voor de host waar de zaak over gaat de netwerkisolatie van CrowdStrike Falcon op |
 | Inperken | Release the device in Microsoft Defender | Haalt in Microsoft Defender for Endpoint de host waar de zaak over gaat uit isolatie |
+| Inperken | Openbare toegang tot gegevensopslagen blokkeren | Blokkeert de openbare toegang tot elke bucket of elk opslagaccount waar de zaak over gaat, via de cloudkoppeling ervan |
+| Inperken | Delen van gegevensopslag intrekken | Stopt het delen buiten je accounts van de snapshots van elke database waar de zaak over gaat, via de cloudkoppeling ervan |
 | Automatiseren | Send a webhook | Post de zaak als JSON naar een URL |
 | Automatiseren | Run a workflow | Start een OneUptime-workflow met de zaak als invoer |
 | Automatiseren | Run a runbook | Start een van uw OneUptime-runbooks met de zaak als invoer |
@@ -288,7 +290,7 @@ Een uitgeschakeld playbook draait niet vanzelf en ook niet met de hand.
 
 Een playbook heeft hoogstens 25 stappen. Ze draaien op volgorde, elk zodra de vorige klaar is. Elke stap kan ook:
 
-- **Goedkeuring nodig**: de uitvoering vóór de stap stilzetten totdat iemand hem op de zaak goedkeurt. De vier stappen die iemand de toegang ontnemen, zetten de uitvoering altijd stil, tenzij een Security Admin dit uitzet. **Run a runbook** en **Post a status page announcement** beginnen met goedkeuring aan, omdat de ene opdrachten op uw systemen uitvoert en de andere uw klanten toespreekt; wie de stap toevoegt, kan het uitzetten.
+- **Goedkeuring nodig**: de uitvoering vóór de stap stilzetten totdat iemand hem op de zaak goedkeurt. De vier stappen die iemand de toegang ontnemen, zetten de uitvoering altijd stil, tenzij een Security Admin dit uitzet. **Run a runbook**, **Post a status page announcement** en de twee stappen voor gegevensopslagen beginnen met goedkeuring aan, omdat ze opdrachten op uw systemen uitvoeren, uw klanten toespreken of de instellingen van een cloud wijzigen; wie de stap toevoegt, kan het uitzetten.
 - **Alleen bij treffer in dreigingsinformatie**: de stap overslaan, tenzij een eerdere stap **Entiteiten controleren in dreigingsinformatie** van dezelfde uitvoering een bekende indicator vond.
 - **Doorgaan bij fout**: de volgende stap uitvoeren, ook als deze mislukt. Staat dit uit, dan stopt een mislukte stap de uitvoering.
 
@@ -303,20 +305,23 @@ Vier stappen werken via de rest van OneUptime in plaats van via een verbonden pr
 
 ### Inperking
 
-De inperkingsstappen werken via een [verbinding voor beveiligingsgebeurtenissen](/docs/telemetry/security-events#een-beveiligingsproduct-koppelen) met het product, die daarvoor meer dan leestoegang nodig heeft:
+De inperkingsstappen werken via een verbinding die meer dan leestoegang nodig heeft: een [verbinding voor beveiligingsgebeurtenissen](/docs/telemetry/security-events#een-beveiligingsproduct-koppelen) met het product, of de [cloudkoppeling](/docs/telemetry/cloud-accounts) van de gegevensopslag:
 
 | Stap | Verbinding | Vereist |
 | --- | --- | --- |
 | Suspend the user in Okta, End the user's Okta sessions, Unsuspend the user in Okta | Okta System Log | Een API-token dat gebruikers mag beheren |
 | Contain the host in CrowdStrike, Lift containment in CrowdStrike | CrowdStrike Falcon | Een API-client met schrijfrechten in de scope Hosts |
 | Isolate the device in Microsoft Defender, Release the device in Microsoft Defender | Microsoft Defender XDR | Een app met de machtiging Machine.Isolate |
+| Openbare toegang tot gegevensopslagen blokkeren, Delen van gegevensopslag intrekken | De cloudkoppeling van de opslag | **Gegevensbeveiligingsrespons** aangezet, en de installatieopdracht ervan opnieuw uitgevoerd |
 
-Een inperkingsstap werkt alleen op de gebruikers of hosts waar de zaak over gaat, nooit op alle gebruikers en hosts die ze noemt:
+Een stap voor gebruikers of hosts werkt alleen op de gebruikers of hosts waar de zaak over gaat, nooit op alle gebruikers en hosts die ze noemt:
 
 - De waarde waarop een detectie van de zaak is gegroepeerd, zoals het account waarop een regel voor onmogelijke reizen groepeert, of de host die de waarschuwing van een gekoppeld product noemt.
 - Een gebruiker of host van de zaak die je threat intelligence als indicator kent.
 
 Een zaak die op een adres is gegroepeerd, zoals een brute-forceaanval op je VPN, gaat over geen van beide: haar inperkingsstappen worden overgeslagen, en het geprobeerde account en de geraakte gateway blijven ongemoeid. Een stap werkt op hoogstens 10 gebruikers of hosts. Hij zoekt elk ervan op naam op in het product, en meldt op de uitvoering wat hij met elk deed: uitgevoerd, al uitgevoerd, niet gevonden, geweigerd of beschermd.
+
+De twee stappen voor gegevensopslagen werken op de gegevensopslagen waar de zaak over gaat, hoogstens 10: die van de problemen van Gegevensbeveiliging die ze opnam, en elke opslag waarop een detectie haar groepeerde. Ze laten een opslag die als **Bewust openbaar** is gemarkeerd ongemoeid, wijzigen hoe een opslag wordt gedeeld maar nooit de gegevens ervan, en melden op de uitvoering wat ze met elke opslag deden (zie [Een blootstelling sluiten](/docs/data-security/integrations#een-blootstelling-sluiten)).
 
 #### Beschermde entiteiten
 
