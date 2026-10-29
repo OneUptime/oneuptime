@@ -34,6 +34,7 @@ export enum RollupCategory {
   Slos = "slos",
   IncomingCalls = "incoming-calls",
   SecurityCases = "security-cases",
+  SecurityHunts = "security-hunts",
   OnCall = "on-call",
   Other = "other",
 }
@@ -56,6 +57,7 @@ export const ROLLUP_CATEGORY_LABEL: Record<RollupCategory, string> = {
   [RollupCategory.Slos]: "SLOs",
   [RollupCategory.IncomingCalls]: "Incoming Calls",
   [RollupCategory.SecurityCases]: "Security Cases",
+  [RollupCategory.SecurityHunts]: "Security Hunts",
   [RollupCategory.OnCall]: "On Call",
   [RollupCategory.Other]: "Other",
 };
@@ -206,6 +208,14 @@ export const ROLLUP_CATEGORY_BY_EVENT_TYPE: Record<
     RollupCategory.SecurityCases,
   [NotificationSettingEventType.SEND_SECURITY_CASE_TASK_ASSIGNED_NOTIFICATION]:
     RollupCategory.SecurityCases,
+
+  /*
+   * Scheduled hunts. A category of their own: twenty hunts that run on the
+   * hour and all find something roll up with each other, never with a
+   * case's email.
+   */
+  [NotificationSettingEventType.SEND_SECURITY_HUNT_FOUND_NOTIFICATION]:
+    RollupCategory.SecurityHunts,
 
   /*
    * On Call Notifications, including the two shift reminders. Five of these

@@ -1,0 +1,33 @@
+{{> Start this}}
+
+{{!--
+  A scheduled hunt found security events (SecurityHuntScheduler,
+  SecurityHuntNotifications). The hunt's name and its search are a person's
+  words, written with a double stash. No event's own words are in it: the
+  button opens the hunt on the window its run read, as whoever opens it.
+--}}
+{{> Logo this}}
+{{> EmailTitle title=emailTitle }}
+
+{{> InfoBlock plainInfo=leadSentence }}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Hunt: " plainText=huntName }}
+{{> DetailBoxField title="Found: " plainText=foundText }}
+{{> DetailBoxField title="Events That Arrived: " plainText=windowText }}
+{{> DetailBoxField title="Search: " plainText=huntSearch }}
+{{> DetailBoxField title="Project: " plainText=projectName }}
+{{> DetailBoxEnd this }}
+
+{{> ButtonBlock buttonUrl=huntViewLink buttonText="See What It Found"}}
+
+{{> LinkBlock linkUrl=huntViewLink linkLabel="You can also copy and paste this link:"}}
+
+{{> TitleBlock title="Why am I receiving this email?"}}
+{{> InfoBlock plainInfo=reasonSentence }}
+
+{{> UnsubscribeOwnerEmail this }}
+
+{{> Footer this }}
+
+{{> End this}}

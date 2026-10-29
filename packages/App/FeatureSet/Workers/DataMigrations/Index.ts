@@ -152,6 +152,7 @@ import AddMissingIdsToMonitorSteps from "./AddMissingIdsToMonitorSteps";
 import MoveRunbookApprovalsBeforeTheirSteps from "./MoveRunbookApprovalsBeforeTheirSteps";
 import AddSecurityCaseNotificationSettingsForUsers from "./AddSecurityCaseNotificationSettingsForUsers";
 import AddSecurityCaseTargetAndTaskNotificationSettingsForUsers from "./AddSecurityCaseTargetAndTaskNotificationSettingsForUsers";
+import AddSecurityHuntNotificationSettingsForUsers from "./AddSecurityHuntNotificationSettingsForUsers";
 import AddIncidentSlaBreachedNotificationSettingsForUsers from "./AddIncidentSlaBreachedNotificationSettingsForUsers";
 import RewriteFeedAttachmentLinks from "./RewriteFeedAttachmentLinks";
 import AddProcessColumnsToSecurityEvent from "./AddProcessColumnsToSecurityEvent";
@@ -944,6 +945,12 @@ const DataMigrations: Array<DataMigrationBase> = [
    * idempotent; rows written before it read as "not through an MCP client".
    */
   new AddAuditLogMcpClientColumns(),
+  /*
+   * Scheduled hunts tell the people they name when they find security
+   * events: every existing member gets the setting, email and push on, so
+   * Notification Settings shows it as it is. Idempotent.
+   */
+  new AddSecurityHuntNotificationSettingsForUsers(),
 ];
 
 export default DataMigrations;
