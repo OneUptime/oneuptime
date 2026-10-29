@@ -1924,6 +1924,69 @@ html.dark [data-page-anchor-focused]:focus-visible {
 }
 
 /*
+ * A row a list that keeps itself current just read in (ModelTable/LiveRows,
+ * data-row-arrived): a new incident on the list someone keeps open. It is
+ * tinted as the place a link landed on is, and the tint fades over
+ * LIVE_ROWS_ARRIVED_IN_MS, so the eye finds it among the rows that moved
+ * down for it; a reader who asks for less motion gets the tint held still
+ * until the mark goes.
+ *
+ * A table row's cells take the tint, not the row - the row's white is
+ * !important in the dark theme - and from an opaque colour, the card's own
+ * with the tint mixed in: the Actions cell that sticks at the row's end
+ * takes its colour from the row (bg-inherit), and the cells scrolling under
+ * it must never show through it. A phone's card takes the tint as an inset
+ * shadow, over its own white.
+ */
+@keyframes ou-row-arrived {
+  from {
+    background-color: var(--ou-row-arrived-tint);
+  }
+}
+
+@keyframes ou-row-arrived-card {
+  from {
+    box-shadow: inset 0 0 0 100vmax var(--ou-row-arrived-tint);
+  }
+}
+
+[data-row-arrived] {
+  --ou-row-arrived-tint: color-mix(
+    in srgb,
+    rgb(99 102 241) 12%,
+    var(--ou-surface-primary)
+  );
+}
+
+html.dark [data-row-arrived] {
+  --ou-row-arrived-tint: color-mix(
+    in srgb,
+    rgb(129 140 248) 18%,
+    var(--ou-surface-primary)
+  );
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  tr[data-row-arrived] > td {
+    animation: ou-row-arrived 2.4s ease-out;
+  }
+
+  div[data-row-arrived] {
+    animation: ou-row-arrived-card 2.4s ease-out;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  tr[data-row-arrived] > td {
+    background-color: var(--ou-row-arrived-tint);
+  }
+
+  div[data-row-arrived] {
+    box-shadow: inset 0 0 0 100vmax var(--ou-row-arrived-tint);
+  }
+}
+
+/*
  * A dashboard playlist's turn (Dashboard: Components/Dashboard/Playlist):
  * the line under the player's bar fills from the start side while a
  * dashboard is on screen, and is full when the next one comes. The player

@@ -461,6 +461,50 @@ describe("a change waits while the reader is in the middle of something", () => 
     ).toBeInTheDocument();
   }, 20000);
 
+  /*
+   * A row read in above the one under the pointer would move it as it is
+   * clicked, and the click open the next incident. The pointer moving over
+   * the rows holds them; once it has rested, the list reads.
+   */
+  test("a pointer moving over the rows holds them until it rests", async () => {
+    await renderTable();
+
+    const body: HTMLElement = document.getElementById(
+      "incidents-live-table-body",
+    )!;
+    const cell: HTMLElement = screen.getByText(STOREFRONT.title);
+
+    expect(body).toContainElement(cell);
+    fireEvent(cell, new Event("pointermove", { bubbles: true }));
+
+    const readsBefore: number = listCalls;
+    serverRows = [LOGIN, CHECKOUT, STOREFRONT];
+    announce("Create");
+
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 2500);
+    });
+    expect(listCalls).toBe(readsBefore);
+    expect(screen.queryByText(LOGIN.title)).not.toBeInTheDocument();
+
+    expect(
+      await screen.findByText(LOGIN.title, {}, { timeout: 6000 }),
+    ).toBeInTheDocument();
+  }, 20000);
+
+  test("a pointer moving anywhere else holds nothing", async () => {
+    await renderTable();
+
+    fireEvent(document.body, new Event("pointermove", { bubbles: true }));
+
+    serverRows = [LOGIN, CHECKOUT, STOREFRONT];
+    announce("Create");
+
+    expect(
+      await screen.findByText(LOGIN.title, {}, { timeout: 1500 }),
+    ).toBeInTheDocument();
+  });
+
   test("an open dialog holds the rows until it closes", async () => {
     await renderTable();
 
@@ -484,6 +528,110 @@ describe("a change waits while the reader is in the middle of something", () => 
       await screen.findByText(LOGIN.title, {}, { timeout: 6000 }),
     ).toBeInTheDocument();
   }, 20000);
+});
+
+/*
+ * A row stays itself when a live read moves it: keyed by its position, the
+ * View the keyboard was on became the next incident's, and Enter opened
+ * that one.
+ */
+describe("a row stays itself when the rows move", () => {
+  const rowOf: (element: Element | null) => HTMLElement | null = (
+    element: Element | null,
+  ): HTMLElement | null => {
+    return element ? (element.closest("tr") as HTMLElement | null) : null;
+  };
+
+  test("the keyboard stays on the incident it was on when a new one is read in above it", async () => {
+    await renderTable();
+
+    const checkoutRow: HTMLElement = rowOf(screen.getByText(CHECKOUT.title))!;
+    const box: HTMLInputElement = checkoutRow.querySelector(
+      'input[type="checkbox"]',
+    )!;
+
+    act((): void => {
+      box.focus();
+    });
+    expect(document.activeElement).toBe(box);
+
+    serverRows = [LOGIN, CHECKOUT, STOREFRONT];
+    announce("Create");
+    await screen.findByText(LOGIN.title);
+
+    // Still on Checkout's row, which moved down one: not on the new row.
+    const focusedRow: HTMLElement | null = rowOf(document.activeElement);
+    expect(focusedRow).not.toBeNull();
+    expect(focusedRow).toHaveTextContent(CHECKOUT.title);
+    expect(focusedRow).not.toHaveTextContent(LOGIN.title);
+  });
+});
+
+/*
+ * The rows a live read brings in are tinted for a moment (Theme.css,
+ * data-row-arrived), so the eye finds the new incident among the rows that
+ * moved down for it. A read the reader asked for tints nothing.
+ */
+describe("a row a live read brought in is marked for a moment", () => {
+  const isMarked: (title: string) => boolean = (title: string): boolean => {
+    const row: HTMLElement | null = screen
+      .getByText(title)
+      .closest("tr") as HTMLElement | null;
+
+    return row?.getAttribute("data-row-arrived") === "true";
+  };
+
+  test("the new incident is marked, the rows that were there are not, and the mark goes", async () => {
+    await renderTable();
+
+    serverRows = [LOGIN, CHECKOUT, STOREFRONT];
+    announce("Create");
+    await screen.findByText(LOGIN.title);
+
+    expect(isMarked(LOGIN.title)).toBe(true);
+    expect(isMarked(CHECKOUT.title)).toBe(false);
+    expect(isMarked(STOREFRONT.title)).toBe(false);
+
+    await waitFor(
+      () => {
+        expect(isMarked(LOGIN.title)).toBe(false);
+      },
+      { timeout: 5000 },
+    );
+  }, 15000);
+
+  test("the first page drawn marks nothing", async () => {
+    await renderTable();
+
+    expect(document.querySelector("[data-row-arrived]")).toBeNull();
+  });
+
+  test("a change to a row already there marks nothing", async () => {
+    await renderTable();
+
+    serverRows = [
+      { ...CHECKOUT, title: "Checkout API is returning 502 errors (EU)" },
+      STOREFRONT,
+    ];
+    announce("Update");
+
+    await screen.findByText("Checkout API is returning 502 errors (EU)");
+    expect(document.querySelector("[data-row-arrived]")).toBeNull();
+  });
+
+  test("the rows of a read the reader asked for are not marked", async () => {
+    const view: ReturnType<typeof render> = render(
+      <BaseModelTable<Incident> {...makeProps()} />,
+    );
+    await screen.findByText(CHECKOUT.title);
+
+    view.rerender(
+      <BaseModelTable<Incident> {...makeProps({ isNarrowedToLogin: true })} />,
+    );
+    expect(await screen.findByText(LOGIN.title)).toBeInTheDocument();
+
+    expect(document.querySelector("[data-row-arrived]")).toBeNull();
+  });
 });
 
 describe("lists that stay as they were loaded", () => {

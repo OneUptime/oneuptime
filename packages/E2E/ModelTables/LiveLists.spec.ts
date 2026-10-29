@@ -14,7 +14,9 @@ import path from "path";
  * Now a list reads its page again when one of its records changes: at once
  * for the first change, once more after five seconds however many follow,
  * quietly (the rows stay, undimmed), and not while the reader has rows
- * ticked or a dialog or a menu open.
+ * ticked, a dialog or a menu open, or the pointer on its way to a row. A
+ * row stays itself as the rows move (the keyboard stays on the incident it
+ * was on), and a new row is tinted for a moment, the tint fading.
  */
 
 const PROJECT: string = "10000000-0000-4000-8000-000000000001";
@@ -23,6 +25,9 @@ const ALERTS: string = `/dashboard/${PROJECT}/alerts`;
 const MONITORS: string = `/dashboard/${PROJECT}/monitors`;
 
 const NOW: Date = new Date("2026-10-16T05:35:00.000Z");
+
+// An incident's number as a row shows it.
+const INCIDENT_NUMBER: RegExp = /INC-\d+/;
 
 const SCREENSHOTS: string = path.resolve(
   __dirname,
@@ -141,6 +146,34 @@ async function raiseAlert(page: Page, title: string): Promise<void> {
 
 function incidentRows(page: Page): Locator {
   return page.locator("#incidents-table-body > tr");
+}
+
+// Whether a computed colour paints over what is behind it.
+function isOpaque(colour: string): boolean {
+  if (colour.startsWith("rgba(")) {
+    return colour.endsWith(", 1)");
+  }
+
+  // rgb(), and oklab()/color() with no alpha.
+  return !colour.includes("/");
+}
+
+const TRANSPARENT: string = "rgba(0, 0, 0, 0)";
+
+// The background of a row's first cell and of its Actions cell.
+async function cellColours(
+  row: Locator,
+): Promise<{ first: string; actions: string }> {
+  return await row.evaluate(
+    (element: Element): { first: string; actions: string } => {
+      const cells: Array<Element> = Array.from(element.children);
+
+      return {
+        first: getComputedStyle(cells[0]!).backgroundColor,
+        actions: getComputedStyle(cells[cells.length - 1]!).backgroundColor,
+      };
+    },
+  );
 }
 
 test.describe("the Incidents list keeps itself current", () => {
@@ -309,6 +342,190 @@ test.describe("the Incidents list keeps itself current", () => {
       "Webhook deliveries failing",
       { timeout: 8000 },
     );
+  });
+
+  /*
+   * Keyed by their position, the rows kept their elements where they were
+   * as a new incident pushed them down: the View the keyboard was on became
+   * the next incident's, and Enter opened that one.
+   */
+  test("the keyboard stays on the incident it was on as a new one is read in above it, and Enter opens that one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENTS);
+
+    const second: Locator = incidentRows(page).nth(1);
+    const number: string =
+      ((await second.innerText()).match(INCIDENT_NUMBER) || [""])[0] || "";
+    expect(number).not.toBe("");
+
+    await second.getByRole("button", { name: "View" }).focus();
+
+    await declareIncident(page, "Payments API returns 500 for every card");
+    await announce(page, "Incident", "Create");
+    await expect(incidentRows(page).first()).toContainText(
+      "Payments API returns 500 for every card",
+    );
+
+    // The focused View is still the one of the incident it was on.
+    const focusedRow: string = await page.evaluate((): string => {
+      const row: Element | null = document.activeElement?.closest("tr") || null;
+      return row ? (row as HTMLElement).innerText : "";
+    });
+    expect(focusedRow).toContain(number);
+    expect(focusedRow).not.toContain("Payments API returns 500 for every card");
+
+    await page.keyboard.press("Enter");
+
+    const navigations: Array<string> = await page.evaluate(
+      (): Array<string> => {
+        return (
+          window as unknown as { __fixture: { navigations: Array<string> } }
+        ).__fixture.navigations;
+      },
+    );
+    expect(navigations[navigations.length - 1]).toContain(
+      "/incidents/40000000-0000-4000-8000-000000000001",
+    );
+  });
+
+  /*
+   * A row read in above the one under the pointer moves it as it is
+   * clicked, and the click opens the next incident. While the pointer is at
+   * work on the rows the list waits; it reads once the pointer has rested.
+   */
+  test("the pointer on its way to a row holds the rows; they read once it rests", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENTS);
+
+    const view: Locator = incidentRows(page)
+      .nth(1)
+      .getByRole("button", { name: "View" });
+    await view.hover();
+
+    const readsBefore: number = await reads(page, "Incident");
+    await declareIncident(page, "Search results empty for some queries");
+    await announce(page, "Incident", "Create");
+
+    // On its way: a few moves over the row, as a hand nears a click.
+    for (let step: number = 0; step < 4; step += 1) {
+      await page.waitForTimeout(300);
+      const box: { x: number; y: number } | null = await view.boundingBox();
+      await page.mouse.move(box!.x + 6 + step, box!.y + 6);
+    }
+
+    expect(await reads(page, "Incident")).toBe(readsBefore);
+    await expect(
+      page.getByText("Search results empty for some queries"),
+    ).toHaveCount(0);
+
+    // At rest: the list reads.
+    await expect(incidentRows(page).first()).toContainText(
+      "Search results empty for some queries",
+      { timeout: 10000 },
+    );
+  });
+
+  test("a new incident is tinted for a moment, its Actions cell opaque, and then looks like every other row", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENTS);
+
+    await declareIncident(page, "Checkout API returns 502 for EU customers");
+    await announce(page, "Incident", "Create");
+
+    const arrived: Locator = page.locator(
+      '#incidents-table-body > tr[data-row-arrived="true"]',
+    );
+    await expect(arrived).toHaveCount(1);
+    await expect(arrived).toContainText(
+      "Checkout API returns 502 for EU customers",
+    );
+
+    const tinted: { first: string; actions: string } =
+      await cellColours(arrived);
+    const plain: { first: string; actions: string } = await cellColours(
+      incidentRows(page).nth(1),
+    );
+
+    // Its cells are tinted; the rows that were there are not.
+    expect(tinted.first).not.toBe(TRANSPARENT);
+    expect(plain.first).toBe(TRANSPARENT);
+    /*
+     * The Actions cell, which sticks over the cells that scroll under it,
+     * never lets them show through.
+     */
+    expect(isOpaque(tinted.actions)).toBe(true);
+
+    await page.screenshot({
+      path: path.join(SCREENSHOTS, "live-incidents-arrived-synthetic.png"),
+    });
+
+    // The mark goes with the tint.
+    await expect(arrived).toHaveCount(0, { timeout: 5000 });
+    expect((await cellColours(incidentRows(page).first())).first).toBe(
+      TRANSPARENT,
+    );
+  });
+
+  test("in the dark theme the tint is the dark card's own, and the Actions cell stays opaque", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${INCIDENTS}?theme=dark`);
+
+    await declareIncident(page, "Checkout API returns 502 for EU customers");
+    await announce(page, "Incident", "Create");
+
+    const arrived: Locator = page.locator(
+      '#incidents-table-body > tr[data-row-arrived="true"]',
+    );
+    await expect(arrived).toHaveCount(1);
+
+    const tinted: { first: string; actions: string } =
+      await cellColours(arrived);
+
+    expect(tinted.first).not.toBe(TRANSPARENT);
+    expect(isOpaque(tinted.actions)).toBe(true);
+
+    await page.screenshot({
+      path: path.join(SCREENSHOTS, "live-incidents-arrived-dark-synthetic.png"),
+    });
+  });
+
+  test("a reader who asks for less motion gets the tint held still, then gone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await open(page, INCIDENTS);
+
+    await declareIncident(page, "Checkout API returns 502 for EU customers");
+    await announce(page, "Incident", "Create");
+
+    const arrived: Locator = page.locator(
+      '#incidents-table-body > tr[data-row-arrived="true"]',
+    );
+    await expect(arrived).toHaveCount(1);
+
+    const animations: number = await arrived.evaluate(
+      (element: Element): number => {
+        return element.querySelector("td")!.getAnimations().length;
+      },
+    );
+    expect(animations).toBe(0);
+    expect((await cellColours(arrived)).first).not.toBe(TRANSPARENT);
+
+    await expect(arrived).toHaveCount(0, { timeout: 5000 });
   });
 
   test("on a phone the new incident's card shows up first", async ({

@@ -142,7 +142,13 @@ import useCustomFieldColumns, {
   CustomFieldColumnsResult,
 } from "./useCustomFieldColumns";
 import { getExportKeysFromColumn } from "./ExportFromColumns";
-import { isDialogOrMenuOpen, isLiveRowsHeld } from "./LiveRows";
+import {
+  LIVE_ROWS_ARRIVED_IN_MS,
+  ROW_ARRIVED_ATTRIBUTE,
+  getArrivedRowIds,
+  isDialogOrMenuOpen,
+  isLiveRowsHeld,
+} from "./LiveRows";
 import useLiveRows from "./UseLiveRows";
 import {
   getRelationSelectFromColumns,
@@ -823,6 +829,9 @@ export const SEARCH_RESULT_COUNT_ON_PAGE: PluralTemplate = {
   one: "{{count}} result on this page",
   other: "{{count}} results on this page",
 };
+
+// No row just brought in by a live read: one set, so a list at rest never redraws for it.
+const NO_ARRIVED_ROWS: ReadonlySet<string> = new Set<string>();
 
 const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   props: ComponentProps<TBaseModel>,
@@ -1780,6 +1789,54 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
    * over the rows they asked for.
    */
   const fetchGenerationRef: MutableRefObject<number> = React.useRef(0);
+
+  /*
+   * The ids of the rows on the page, as last read: null until the first
+   * read draws them.
+   */
+  const shownRowIdsRef: MutableRefObject<Array<string> | null> =
+    React.useRef<Array<string> | null>(null);
+
+  /*
+   * The rows a live read just brought in (useLiveRows), tinted for a moment
+   * (data-row-arrived, LiveRows.LIVE_ROWS_ARRIVED_IN_MS) so the eye finds the
+   * new incident among the rows that moved down for it.
+   */
+  const [arrivedRowIds, setArrivedRowIds] =
+    useState<ReadonlySet<string>>(NO_ARRIVED_ROWS);
+  const arrivedTimerRef: MutableRefObject<ReturnType<
+    typeof setTimeout
+  > | null> = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const markArrivedRows: (ids: Array<string>) => void = (
+    ids: Array<string>,
+  ): void => {
+    if (arrivedTimerRef.current !== null) {
+      clearTimeout(arrivedTimerRef.current);
+      arrivedTimerRef.current = null;
+    }
+
+    if (ids.length === 0) {
+      setArrivedRowIds(NO_ARRIVED_ROWS);
+      return;
+    }
+
+    setArrivedRowIds(new Set(ids));
+
+    arrivedTimerRef.current = setTimeout((): void => {
+      arrivedTimerRef.current = null;
+      setArrivedRowIds(NO_ARRIVED_ROWS);
+    }, LIVE_ROWS_ARRIVED_IN_MS);
+  };
+
+  useEffect(() => {
+    return (): void => {
+      if (arrivedTimerRef.current !== null) {
+        clearTimeout(arrivedTimerRef.current);
+        arrivedTimerRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     // update items on page in localstorage.
@@ -2741,6 +2798,25 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       setTotalItemsCount(listResult.count);
       setHasMore(listResult.hasMore);
       setData(listResult.data);
+
+      /*
+       * A live read tints the rows it brought in; a read the reader asked
+       * for (another page, a search) draws the rows they asked for, none
+       * of them new to them.
+       */
+      const readRowIds: Array<string> = listResult.data.map(
+        (item: TBaseModel): string => {
+          return getRecordIdText(item["_id"]);
+        },
+      );
+
+      markArrivedRows(
+        isBackground
+          ? getArrivedRowIds(shownRowIdsRef.current, readRowIds)
+          : [],
+      );
+      shownRowIdsRef.current = readRowIds;
+
       setIsEmptyWithNothingApplied(
         isListEmptyWithNothingApplied({
           rowCount: listResult.data.length,
@@ -3195,6 +3271,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     refresh: (): Promise<void> => {
       return fetchItems({ isBackground: true });
     },
+    // The rows (Table's body), which a pointer on its way to one holds still.
+    getRowsElement: (): Element | null => {
+      return typeof document === "undefined"
+        ? null
+        : document.getElementById(`${props.id}-body`);
+    },
   });
 
   type ShouldDisableSortFunction = (
@@ -3496,7 +3578,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     item: TBaseModel,
   ) => React.HTMLAttributes<HTMLElement>;
 
-  const getRowProps: GetRowPropsFunction | undefined = isRowClickable
+  const getClickableRowProps: GetRowPropsFunction | undefined = isRowClickable
     ? (item: TBaseModel): React.HTMLAttributes<HTMLElement> => {
         const rowProps: React.HTMLAttributes<HTMLElement> & {
           "data-row-opens-record": string;
@@ -3513,6 +3595,27 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         return rowProps;
       }
     : undefined;
+
+  /*
+   * A row's own attributes: what opens it on a click, and the mark of a row
+   * a live read just brought in.
+   */
+  const getRowProps: GetRowPropsFunction | undefined =
+    arrivedRowIds.size > 0
+      ? (item: TBaseModel): React.HTMLAttributes<HTMLElement> => {
+          const rowProps: React.HTMLAttributes<HTMLElement> =
+            getClickableRowProps?.(item) || {};
+
+          if (!arrivedRowIds.has(getRecordIdText(item["_id"]))) {
+            return rowProps;
+          }
+
+          return {
+            ...rowProps,
+            [ROW_ARRIVED_ATTRIBUTE]: "true",
+          } as React.HTMLAttributes<HTMLElement>;
+        }
+      : getClickableRowProps;
 
   const setActionSchema: VoidFunction = () => {
     const actionsSchema: Array<ActionButtonSchema<TBaseModel>> = [];

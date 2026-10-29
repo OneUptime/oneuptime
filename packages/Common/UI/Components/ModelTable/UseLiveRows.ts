@@ -6,7 +6,9 @@ import Realtime from "../../Utils/Realtime";
 import {
   LIVE_ROWS_HOLD_RECHECK_IN_MS,
   LIVE_ROWS_MIN_INTERVAL_IN_MS,
+  LIVE_ROWS_POINTER_REST_IN_MS,
   getLiveRowEventTypes,
+  isPointerAtWorkOnRows,
 } from "./LiveRows";
 import { MutableRefObject, useEffect, useRef } from "react";
 
@@ -27,11 +29,31 @@ export interface UseLiveRowsOptions {
   isHeld: () => boolean;
   // Reads the page again, quietly.
   refresh: () => Promise<void>;
+  /*
+   * The element the rows are drawn in. While the pointer is at work on it -
+   * on its way to a row to open it - the rows stay where they are
+   * (LiveRows.isPointerAtWorkOnRows).
+   */
+  getRowsElement?: (() => Element | null) | undefined;
   // For tests: how close together two reads may come.
   minIntervalInMs?: number | undefined;
   // For tests: how often a list waiting for the reader looks again.
   holdRecheckInMs?: number | undefined;
+  // For tests: how long the pointer must rest before the rows move.
+  pointerRestInMs?: number | undefined;
 }
+
+/*
+ * How long the pointer has rested is a span of time, not a time of day: a
+ * clock that only moves forward, which a change of the system's clock - or
+ * a page whose dates are fixed, as an offline preview's are - does not move.
+ */
+const getElapsedNow: () => number = (): number => {
+  return typeof performance !== "undefined" &&
+    typeof performance.now === "function"
+    ? performance.now()
+    : Date.now();
+};
 
 const isPageHidden: () => boolean = (): boolean => {
   return (
@@ -58,6 +80,11 @@ const useLiveRows: (options: UseLiveRowsOptions) => void = (
   );
   isHeldRef.current = options.isHeld;
 
+  const getRowsElementRef: MutableRefObject<
+    (() => Element | null) | undefined
+  > = useRef<(() => Element | null) | undefined>(options.getRowsElement);
+  getRowsElementRef.current = options.getRowsElement;
+
   const modelType: { new (): BaseModel } | null =
     options.isEnabled && options.tenantId ? options.modelType : null;
 
@@ -77,6 +104,8 @@ const useLiveRows: (options: UseLiveRowsOptions) => void = (
     options.minIntervalInMs ?? LIVE_ROWS_MIN_INTERVAL_IN_MS;
   const holdRecheckInMs: number =
     options.holdRecheckInMs ?? LIVE_ROWS_HOLD_RECHECK_IN_MS;
+  const pointerRestInMs: number =
+    options.pointerRestInMs ?? LIVE_ROWS_POINTER_REST_IN_MS;
 
   useEffect(() => {
     if (!subscriptionKey || !modelType || !options.tenantId) {
@@ -97,6 +126,32 @@ const useLiveRows: (options: UseLiveRowsOptions) => void = (
     // A change was heard while the reader was busy or the page hidden.
     let isPending: boolean = false;
     let recheckTimer: ReturnType<typeof setTimeout> | null = null;
+    /*
+     * When the pointer last moved over the rows, or pressed on them. Null
+     * once it moves anywhere else: it is off the rows.
+     */
+    let lastMovedOverRowsAt: number | null = null;
+
+    const onPointer: (event: Event) => void = (event: Event): void => {
+      const rows: Element | null = getRowsElementRef.current?.() || null;
+      const target: EventTarget | null = event.target;
+
+      lastMovedOverRowsAt =
+        rows && target instanceof Node && rows.contains(target)
+          ? getElapsedNow()
+          : null;
+    };
+
+    const isHeld: () => boolean = (): boolean => {
+      return (
+        isHeldRef.current() ||
+        isPointerAtWorkOnRows(
+          lastMovedOverRowsAt,
+          getElapsedNow(),
+          pointerRestInMs,
+        )
+      );
+    };
 
     const refresh: CoalescedRefresh = new CoalescedRefresh({
       refresh: (): Promise<void> => {
@@ -123,7 +178,7 @@ const useLiveRows: (options: UseLiveRowsOptions) => void = (
        * The reader is in the middle of something: look again in a moment,
        * and read as soon as they are done.
        */
-      if (isHeldRef.current()) {
+      if (isHeld()) {
         isPending = true;
 
         if (recheckTimer === null) {
@@ -148,6 +203,8 @@ const useLiveRows: (options: UseLiveRowsOptions) => void = (
 
     if (typeof document !== "undefined") {
       document.addEventListener("visibilitychange", onVisibilityChange);
+      document.addEventListener("pointermove", onPointer, { passive: true });
+      document.addEventListener("pointerdown", onPointer, { passive: true });
     }
 
     const stopListening: Array<() => void> = eventTypes.map(
@@ -181,13 +238,15 @@ const useLiveRows: (options: UseLiveRowsOptions) => void = (
 
       if (typeof document !== "undefined") {
         document.removeEventListener("visibilitychange", onVisibilityChange);
+        document.removeEventListener("pointermove", onPointer);
+        document.removeEventListener("pointerdown", onPointer);
       }
 
       for (const stop of stopListening) {
         stop();
       }
     };
-  }, [subscriptionKey, minIntervalInMs, holdRecheckInMs]);
+  }, [subscriptionKey, minIntervalInMs, holdRecheckInMs, pointerRestInMs]);
 };
 
 export default useLiveRows;

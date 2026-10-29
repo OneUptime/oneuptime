@@ -1,12 +1,16 @@
 import { afterEach, describe, expect, test } from "@jest/globals";
 import {
+  LIVE_ROWS_ARRIVED_IN_MS,
   LIVE_ROWS_HOLDING_ELEMENTS_SELECTOR,
   LIVE_ROWS_HOLD_RECHECK_IN_MS,
   LIVE_ROWS_MIN_INTERVAL_IN_MS,
+  LIVE_ROWS_POINTER_REST_IN_MS,
   LiveRowsHold,
+  getArrivedRowIds,
   getLiveRowEventTypes,
   isDialogOrMenuOpen,
   isLiveRowsHeld,
+  isPointerAtWorkOnRows,
 } from "../../../../UI/Components/ModelTable/LiveRows";
 import * as fs from "fs";
 import * as path from "path";
@@ -215,6 +219,100 @@ describe("what counts as a dialog or a menu", () => {
   test("the selector names exactly those two", () => {
     expect(LIVE_ROWS_HOLDING_ELEMENTS_SELECTOR).toBe(
       '[role="dialog"][aria-modal="true"], [role="menu"]',
+    );
+  });
+});
+
+/*
+ * A row read in above the one under the pointer moves it as it is clicked,
+ * and the click opens the next incident. While the pointer is at work on
+ * the rows the list waits; a pointer left lying on them holds nothing once
+ * it has rested.
+ */
+describe("when the pointer holds the rows", () => {
+  const now: number = 1_000_000;
+
+  test("a pointer that moved over the rows a moment ago holds them", () => {
+    expect(isPointerAtWorkOnRows(now, now)).toBe(true);
+    expect(
+      isPointerAtWorkOnRows(now - (LIVE_ROWS_POINTER_REST_IN_MS - 1), now),
+    ).toBe(true);
+  });
+
+  test("a pointer that has rested for the rest time holds nothing", () => {
+    expect(isPointerAtWorkOnRows(now - LIVE_ROWS_POINTER_REST_IN_MS, now)).toBe(
+      false,
+    );
+    expect(isPointerAtWorkOnRows(now - 60_000, now)).toBe(false);
+  });
+
+  test("a pointer that is off the rows holds nothing", () => {
+    expect(isPointerAtWorkOnRows(null, now)).toBe(false);
+  });
+
+  test("the rest can be set for a test", () => {
+    expect(isPointerAtWorkOnRows(now - 50, now, 100)).toBe(true);
+    expect(isPointerAtWorkOnRows(now - 100, now, 100)).toBe(false);
+  });
+
+  test("a click follows a pointer's arrival within the rest; a wall screen's pointer is let go", () => {
+    expect(LIVE_ROWS_POINTER_REST_IN_MS).toBe(3000);
+    // The list looks again while it waits more often than the pointer rests.
+    expect(LIVE_ROWS_HOLD_RECHECK_IN_MS).toBeLessThan(
+      LIVE_ROWS_POINTER_REST_IN_MS,
+    );
+  });
+});
+
+/*
+ * The rows a live read brings in are tinted for a moment, so the eye finds
+ * the new incident among the rows that moved down for it.
+ */
+describe("which rows a live read brought in", () => {
+  test("the rows on the page now that were not before", () => {
+    expect(
+      getArrivedRowIds(["inc-2", "inc-1"], ["inc-3", "inc-2", "inc-1"]),
+    ).toEqual(["inc-3"]);
+    expect(
+      getArrivedRowIds(["inc-2", "inc-1"], ["inc-5", "inc-4", "inc-2"]),
+    ).toEqual(["inc-5", "inc-4"]);
+  });
+
+  test("a row that only changed, moved or left brings in nothing", () => {
+    expect(getArrivedRowIds(["inc-2", "inc-1"], ["inc-1", "inc-2"])).toEqual(
+      [],
+    );
+    expect(getArrivedRowIds(["inc-2", "inc-1"], ["inc-1"])).toEqual([]);
+  });
+
+  test("the first rows into an empty list are new", () => {
+    expect(getArrivedRowIds([], ["inc-1"])).toEqual(["inc-1"]);
+  });
+
+  test("a burst that fills the page tints the whole page", () => {
+    expect(getArrivedRowIds(["inc-1"], ["inc-3", "inc-2"])).toEqual([
+      "inc-3",
+      "inc-2",
+    ]);
+  });
+
+  test("nothing before the first page is drawn, and no row without an id", () => {
+    expect(getArrivedRowIds(null, ["inc-1", "inc-2"])).toEqual([]);
+    expect(getArrivedRowIds(["inc-1"], ["", "inc-1"])).toEqual([]);
+  });
+
+  test("the tint lasts as long as its fade in Theme.css", () => {
+    const theme: string = fs.readFileSync(
+      path.join(__dirname, "../../../../UI/Styles/Theme.css"),
+      "utf8",
+    );
+
+    expect(LIVE_ROWS_ARRIVED_IN_MS).toBe(2400);
+    expect(theme).toContain(
+      `animation: ou-row-arrived ${LIVE_ROWS_ARRIVED_IN_MS / 1000}s ease-out;`,
+    );
+    expect(theme).toContain(
+      `animation: ou-row-arrived-card ${LIVE_ROWS_ARRIVED_IN_MS / 1000}s ease-out;`,
     );
   });
 });

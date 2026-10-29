@@ -75,6 +75,7 @@ const PROJECT_ID: string = "8f2a1b3c-4d5e-4f60-9a7b-1c2d3e4f5a6b";
 const OTHER_PROJECT_ID: string = "11111111-2222-4333-8444-555555555555";
 const INTERVAL: number = 5000;
 const RECHECK: number = 2000;
+const POINTER_REST: number = 3000;
 
 const active: () => Array<Subscription> = (): Array<Subscription> => {
   return subscriptions.filter((subscription: Subscription): boolean => {
@@ -391,6 +392,179 @@ describe("a change waits for the reader", () => {
     harness.setHeld(false);
     await advance(RECHECK);
     expect(harness.refresh).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * A row read in above the one under the pointer moves that one down as it
+ * is clicked: the click lands on the next incident and opens it. While the
+ * pointer is at work on the rows - it moved over them, or pressed on them,
+ * less than a rest ago - the rows hold still; a pointer left lying on a
+ * list on a wall screen holds nothing.
+ */
+describe("a pointer on its way to a row holds the rows", () => {
+  let rows: HTMLElement;
+  let row: HTMLElement;
+  let elsewhere: HTMLElement;
+
+  beforeEach(() => {
+    rows = document.createElement("tbody");
+    row = document.createElement("button");
+    rows.appendChild(row);
+    elsewhere = document.createElement("div");
+    document.body.appendChild(rows);
+    document.body.appendChild(elsewhere);
+  });
+
+  afterEach(() => {
+    rows.remove();
+    elsewhere.remove();
+  });
+
+  const point: (
+    target: HTMLElement,
+    type?: "pointermove" | "pointerdown",
+  ) => void = (
+    target: HTMLElement,
+    type: "pointermove" | "pointerdown" = "pointermove",
+  ): void => {
+    act((): void => {
+      target.dispatchEvent(new Event(type, { bubbles: true }));
+    });
+  };
+
+  const mountOverRows: () => Harness = (): Harness => {
+    return mount({
+      getRowsElement: (): Element | null => {
+        return rows;
+      },
+      pointerRestInMs: POINTER_REST,
+    });
+  };
+
+  test("a pointer moving over the rows holds them; they read once it has rested", async () => {
+    const harness: Harness = mountOverRows();
+
+    point(row);
+    announce("Create");
+    expect(harness.refresh).not.toHaveBeenCalled();
+
+    // Two seconds on: the pointer has not rested yet.
+    await advance(RECHECK);
+    expect(harness.refresh).not.toHaveBeenCalled();
+
+    // Four seconds on, three of them still: the rows read.
+    await advance(RECHECK);
+    expect(harness.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  test("a pointer that keeps moving keeps holding them", async () => {
+    const harness: Harness = mountOverRows();
+
+    point(row);
+    announce("Update");
+    await advance(RECHECK);
+    point(row);
+    await advance(RECHECK);
+    expect(harness.refresh).not.toHaveBeenCalled();
+
+    await advance(RECHECK);
+    expect(harness.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  test("a press on the rows holds them too", async () => {
+    const harness: Harness = mountOverRows();
+
+    point(row, "pointerdown");
+    announce("Update");
+    expect(harness.refresh).not.toHaveBeenCalled();
+
+    await advance(RECHECK * 2);
+    expect(harness.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  test("a pointer that moved off the rows holds nothing", () => {
+    const harness: Harness = mountOverRows();
+
+    point(row);
+    point(elsewhere);
+    announce("Create");
+
+    expect(harness.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  test("a pointer resting on the rows holds nothing once it has rested", async () => {
+    const harness: Harness = mountOverRows();
+
+    point(row);
+    await advance(POINTER_REST);
+    announce("Create");
+
+    expect(harness.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  test("a list that names no rows is not held by the pointer", () => {
+    const harness: Harness = mount({ pointerRestInMs: POINTER_REST });
+
+    point(row);
+    announce("Create");
+
+    expect(harness.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  test("the reader's own hold and the pointer's both have to end", async () => {
+    const harness: Harness = mountOverRows();
+    harness.setHeld(true);
+
+    point(row);
+    announce("Update");
+    await advance(RECHECK * 2);
+    expect(harness.refresh).not.toHaveBeenCalled();
+
+    harness.setHeld(false);
+    await advance(RECHECK);
+    expect(harness.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  test("a list that has gone stops listening to the pointer", () => {
+    const listening: Map<string, number> = new Map();
+    const originalAdd: typeof document.addEventListener =
+      document.addEventListener;
+    const originalRemove: typeof document.removeEventListener =
+      document.removeEventListener;
+
+    document.addEventListener = (
+      type: string,
+      listener: EventListenerOrEventListenerObject,
+      options?: boolean | AddEventListenerOptions,
+    ): void => {
+      listening.set(type, (listening.get(type) || 0) + 1);
+      originalAdd.call(document, type, listener, options);
+    };
+    document.removeEventListener = (
+      type: string,
+      listener: EventListenerOrEventListenerObject,
+      options?: boolean | EventListenerOptions,
+    ): void => {
+      listening.set(type, (listening.get(type) || 0) - 1);
+      originalRemove.call(document, type, listener, options);
+    };
+
+    try {
+      const harness: Harness = mountOverRows();
+
+      expect(listening.get("pointermove")).toBe(1);
+      expect(listening.get("pointerdown")).toBe(1);
+
+      harness.unmount();
+
+      for (const type of ["pointermove", "pointerdown", "visibilitychange"]) {
+        expect([type, listening.get(type)]).toEqual([type, 0]);
+      }
+    } finally {
+      document.addEventListener = originalAdd;
+      document.removeEventListener = originalRemove;
+    }
   });
 });
 
