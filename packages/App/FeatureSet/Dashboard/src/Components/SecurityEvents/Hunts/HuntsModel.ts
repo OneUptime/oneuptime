@@ -144,7 +144,7 @@ export function getHuntTimeRange(
  * Whether what the page searches differs from what the hunt keeps: its
  * text (as trimmed) or its chips. The window is the page's to move - a
  * notification opens the hunt on a run's window - and saving it is Edit's
- * Search Over.
+ * Time Range.
  */
 export function isHuntSearchChanged(data: {
   savedSearch: string | undefined | null;

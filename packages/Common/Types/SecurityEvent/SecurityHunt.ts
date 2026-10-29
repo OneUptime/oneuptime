@@ -525,7 +525,7 @@ export const SECURITY_HUNT_RUN_ERRORS: {
 } = {
   schedulerCannotRead: {
     message:
-      "The person who set its schedule can no longer read security events in this project. Save the hunt again to run it with your access.",
+      "The person it runs as can no longer read security events in this project. Edit the hunt and save it to run it as you.",
   },
   timedOut: {
     message:

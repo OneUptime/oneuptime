@@ -267,7 +267,7 @@ export default class SecurityHunt extends BaseModel {
     required: true,
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
-    title: "Search Over",
+    title: "Time Range",
     description:
       "How far back the hunt searches when it is opened, as the Events time picker names it: Past 1 Hour, Past 1 Day, Past 1 Week, Past 1 Month and the rest.",
     defaultValue: DEFAULT_SECURITY_HUNT_TIME_RANGE,
@@ -307,7 +307,7 @@ export default class SecurityHunt extends BaseModel {
     required: false,
     type: TableColumnType.EntityArray,
     modelType: User,
-    title: "Tell These People",
+    title: "Notify Users",
     description:
       "The people told when a scheduled run finds events, each as their notification settings say. Only people who can read security events are told.",
   })
@@ -335,7 +335,7 @@ export default class SecurityHunt extends BaseModel {
     required: false,
     type: TableColumnType.EntityArray,
     modelType: Team,
-    title: "Tell These Teams",
+    title: "Notify Teams",
     description:
       "The teams whose members are told when a scheduled run finds events, each as their notification settings say. Only members who can read security events are told.",
   })
@@ -370,7 +370,7 @@ export default class SecurityHunt extends BaseModel {
     modelType: User,
     title: "Scheduled By User",
     description:
-      "The person who last set the hunt's schedule or changed its search: its scheduled runs read what this person can read.",
+      "The person the hunt's scheduled runs run as, and read what they can read: whoever last set its schedule, changed its search or saved its schedule as it was.",
   })
   @ManyToOne(
     () => {
@@ -391,7 +391,7 @@ export default class SecurityHunt extends BaseModel {
     type: TableColumnType.ObjectID,
     title: "Scheduled By User ID",
     description:
-      "ID of the person who last set the hunt's schedule or changed its search.",
+      "ID of the person the hunt's scheduled runs run as.",
   })
   @Column({
     type: ColumnType.ObjectID,

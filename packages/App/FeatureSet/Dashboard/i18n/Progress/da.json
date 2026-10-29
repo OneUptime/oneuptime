@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 36930,
+    "keys": 37036,
     "untranslated": 13378
   },
   "sameAsEnglish": [
@@ -68,6 +68,8 @@
     "Goroutines",
     "Hardware",
     "Hello world",
+    "Hunt",
+    "Hunts",
     "ICMP (ping)",
     "INP 120 ms",
     "INP 168 ms",

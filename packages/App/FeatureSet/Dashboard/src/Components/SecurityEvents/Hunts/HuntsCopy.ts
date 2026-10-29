@@ -28,7 +28,7 @@ export const HUNTS_TABLE_DESCRIPTION: string = translationKey(
 export const HUNTS_EMPTY_TITLE: string = translationKey("No hunts yet");
 
 export const HUNTS_EMPTY_DESCRIPTION: string = translationKey(
-  "Search on Events and choose Save as Hunt, or create one here. A hunt opens its search again in one click, and on a schedule it tells you when it finds something.",
+  "Search on Events and choose Save as Hunt from its Hunts list, or create one here. A hunt opens its search again in one click, and on a schedule it tells you when it finds something.",
 );
 
 export const SEARCH_EVENTS: string = translationKey("Search Events");
@@ -108,7 +108,7 @@ export const SEARCH_FIELD_DESCRIPTION: string = translationKey(
 export const SEARCH_FIELD_PLACEHOLDER: string =
   "processname:powershell.exe commandline:-enc";
 
-export const SEARCH_OVER_FIELD_TITLE: string = translationKey("Search Over");
+export const SEARCH_OVER_FIELD_TITLE: string = translationKey("Time Range");
 export const SEARCH_OVER_FIELD_DESCRIPTION: string = translationKey(
   "How far back the hunt looks when you open it.",
 );
@@ -118,7 +118,7 @@ export const SCHEDULE_FIELD_DESCRIPTION: string = translationKey(
   "Each run searches the events that arrived since the run before, and tells the people you choose when it finds something.",
 );
 
-export const TELL_FIELD_TITLE: string = translationKey("Tell");
+export const TELL_FIELD_TITLE: string = translationKey("Notify");
 export const TELL_FIELD_DESCRIPTION: string = translationKey(
   "Who is told when a run finds events, each as their notification settings say. Only people who can read security events are told.",
 );

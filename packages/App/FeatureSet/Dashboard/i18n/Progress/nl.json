@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 36930,
+    "keys": 37036,
     "untranslated": 13422
   },
   "sameAsEnglish": [
@@ -90,6 +90,8 @@
     "Headers (JSON)",
     "Host",
     "Hosts",
+    "Hunt",
+    "Hunts",
     "ICMP (ping)",
     "INP 120 ms",
     "INP 168 ms",

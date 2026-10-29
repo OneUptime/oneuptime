@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 36930,
+    "keys": 37036,
     "untranslated": 13368
   },
   "sameAsEnglish": [
@@ -51,6 +51,8 @@
     "Google SecOps",
     "Goroutines",
     "Hello world",
+    "Hunt",
+    "Hunts",
     "ICMP (ping)",
     "INP 120 ms",
     "INP 168 ms",
