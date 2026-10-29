@@ -231,12 +231,38 @@ describe("what a request presents is signed with TokenSigningKey", () => {
   test("JsonWebToken signs and checks OneUptime's own tokens with TokenSigningKey alone", () => {
     const code: string = codeOf("packages/Common/Server/Utils/JsonWebToken.ts");
 
-    expect(code).toContain("jwt.sign(payload, TokenSigningKey.get(), {");
-    expect(code).toContain("jwt.verify(token, TokenSigningKey.get())");
+    /*
+     * Through the key object jsonwebtoken would make of the key, made once
+     * (JsonWebTokenKeys, held below to the key it is given).
+     */
+    expect(code).toContain(
+      "jwt.sign(payload, JsonWebTokenKeys.forSigning(TokenSigningKey.get()) as jwt.Secret, {",
+    );
+    expect(code).toContain(
+      "jwt.verify(token, JsonWebTokenKeys.forVerifying(TokenSigningKey.get()) as jwt.Secret)",
+    );
     // The one other signing call: RS256, with the caller's private key.
     expect(code).toContain("jwt.sign(payload, privateKey, {");
     expect(code.match(JWT_SIGN_CALL)).toHaveLength(2);
     expect(code.match(JWT_VERIFY_CALL)).toHaveLength(1);
+  });
+
+  test("JsonWebTokenKeys makes a key object of the key it is given, and of nothing else", () => {
+    const code: string = codeOf(
+      "packages/Common/Server/Utils/JsonWebTokenKeys.ts",
+    );
+
+    // No key of its own: neither TokenSigningKey nor ENCRYPTION_SECRET.
+    expect(code).not.toMatch(TOKEN_SIGNING_KEY_USE);
+    expect(code).not.toMatch(ENCRYPTION_SECRET_IDENTIFIER);
+    expect(code).not.toContain("EnvironmentConfig");
+    expect(code).not.toContain("process.env");
+    // Only the conversions jsonwebtoken makes, of the text it is handed.
+    expect(code).toContain("crypto.createPrivateKey(text)");
+    expect(code).toContain("crypto.createPublicKey(text)");
+    expect(code).toContain("crypto.createSecretKey(Buffer.from(text))");
+    expect(code.match(JWT_SIGN_CALL)).toBeNull();
+    expect(code.match(JWT_VERIFY_CALL)).toBeNull();
   });
 
   test("the Google clients sign with a private key, and verify nothing", () => {

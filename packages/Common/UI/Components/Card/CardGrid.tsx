@@ -15,12 +15,15 @@ import React, { FunctionComponent, ReactElement, ReactNode } from "react";
  * Each card is drawn in a cell of its own and fills it - a Card, and the
  * tables, lists and detail cards drawn in one, take their cell's height
  * (CardGridCellContext) - so a short card beside a tall one runs to the
- * row's bottom instead of leaving the page showing under it. A list in a
- * card keeps its rows at the top; a card with nothing to list can sit its
- * empty state in the middle of the room it has. A row the cards do not
- * fill is shared by the cards it has: the last card alone in a row of two
- * takes the row. How many cards share a row follows the grid's own width,
- * so a grid beside a side menu never squeezes its cards (CardGridLayout).
+ * row's bottom instead of leaving the page showing under it. The cards of a
+ * row share a header row and a body row (CARD_GRID_CELL_CLASS_NAME), so
+ * their bodies start on one line whatever their titles and descriptions
+ * hold. A list in a card keeps its rows at the top; a card with nothing to
+ * list can sit its empty state in the middle of the room it has. A row the
+ * cards do not fill is shared by the cards it has: the last card alone in a
+ * row of two takes the row. How many cards share a row follows the grid's
+ * own width, so a grid beside a side menu never squeezes its cards
+ * (CardGridLayout).
  *
  *   <CardGrid columns={2}>
  *     <Card title="Open Cases">...</Card>

@@ -1,4 +1,6 @@
+import NetworkControllerProvider from "../../Types/NetworkController/NetworkControllerProvider";
 import {
+  NetworkDeviceControllerReading,
   NetworkDeviceDiscoveredValue,
   NetworkDeviceDiscoveryMethod,
   NetworkDeviceDiscoveryReader,
@@ -48,16 +50,24 @@ export enum AssetFactSourceKind {
   Collector = "collector",
   // A host's cloud zone, standing in for a location it does not report.
   CloudPlacement = "cloudPlacement",
+  /*
+   * What the device's network controller says it is - the Meraki dashboard
+   * of an organization the project reads. `readBy` is the connection that
+   * read it, `readAt` when, and `provider` which controller.
+   */
+  Controller = "controller",
 }
 
 export interface AssetFactSource {
   kind: AssetFactSourceKind;
   // How a discovered value was read.
   method?: NetworkDeviceDiscoveryMethod | undefined;
-  // Who read it: the scan, the walked device, the probe.
+  // Who read it: the scan, the walked device, the probe, the connection.
   readBy?: NetworkDeviceDiscoveryReader | undefined;
   // When it was read (ISO-8601), when that is known.
   readAt?: string | undefined;
+  // Which controller, for a controller's reading ("meraki").
+  provider?: NetworkControllerProvider | undefined;
 }
 
 /*
@@ -82,6 +92,18 @@ export function sourceOfDiscoveredValue(
   };
 }
 
+// The source of what a device's controller says about it.
+export function sourceOfControllerReading(
+  reading: NetworkDeviceControllerReading,
+): AssetFactSource {
+  return {
+    kind: AssetFactSourceKind.Controller,
+    readBy: reading.readBy,
+    readAt: reading.readAt,
+    provider: reading.provider,
+  };
+}
+
 /*
  * True when the source is something OneUptime read by itself, which is what
  * makes it replaceable by a newer reading. A saved value, an assigned role or
@@ -98,7 +120,8 @@ export function isAutomaticAssetFactSource(
     source.kind === AssetFactSourceKind.SnmpPoll ||
     source.kind === AssetFactSourceKind.Discovered ||
     source.kind === AssetFactSourceKind.LearnedFromArp ||
-    source.kind === AssetFactSourceKind.Collector
+    source.kind === AssetFactSourceKind.Collector ||
+    source.kind === AssetFactSourceKind.Controller
   );
 }
 

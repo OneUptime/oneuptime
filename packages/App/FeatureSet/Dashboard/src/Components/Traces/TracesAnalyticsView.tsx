@@ -29,6 +29,11 @@ import { JSONObject } from "Common/Types/JSON";
 import { APP_API_URL } from "Common/UI/Config";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import useResizableColumns, {
+  ResizableColumns,
+} from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
+import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import OneUptimeDate from "Common/Types/Date";
 import { formatTickTime, formatTooltipLabel } from "./TraceTimeFormat";
 import {
@@ -278,6 +283,19 @@ const AnalyticsTooltip: FunctionComponent<AnalyticsTooltipProps> = (
   );
 };
 
+// The table's columns after what its rows are grouped by, as it draws them.
+const TRACES_ANALYTICS_METRIC_HEADERS: Array<string> = [
+  "Requests",
+  "Errors",
+  "Avg",
+  "P50",
+  "P90",
+  "P95",
+  "P99",
+  "Min",
+  "Max",
+];
+
 const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
   props: TracesAnalyticsViewProps,
 ): ReactElement => {
@@ -388,6 +406,33 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
 
     return byColumn;
   }, [tableData, props.serviceNameMap, entityNames]);
+
+  /*
+   * The table's columns as wide as a person makes them (Common's
+   * Table/ColumnResize), after each row's number: what the rows are grouped
+   * by, then the counts and durations, which are never cut.
+   */
+  const tableGroupKeys: Array<string> = Object.keys(
+    tableData[0]?.groupValues || {},
+  );
+  const resizableColumns: ResizableColumns = useResizableColumns({
+    tableKey: "traces-analytics-table",
+    columns: [
+      ...tableGroupKeys.map(
+        (key: string, index: number): { id: string; cellNumber: number } => {
+          return { id: `group:${key}`, cellNumber: index + 2 };
+        },
+      ),
+      ...TRACES_ANALYTICS_METRIC_HEADERS.map(
+        (title: string, index: number): { id: string; cellNumber: number } => {
+          return {
+            id: `metric:${title}`,
+            cellNumber: tableGroupKeys.length + index + 2,
+          };
+        },
+      ),
+    ],
+  });
 
   const fetchAnalytics: () => Promise<void> =
     useCallback(async (): Promise<void> => {
@@ -1099,26 +1144,46 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
     return (
       <div className="p-5">
         <div className="overflow-x-auto rounded-lg border border-gray-200/80">
-          <table className="min-w-full">
+          {resizableColumns.styles}
+          <table
+            className={resizableColumns.getTableWidthClassName("min-w-full")}
+            {...resizableColumns.tableAttributes}
+          >
             <thead>
               <tr className="border-b border-gray-200/80 bg-gray-50/80">
                 <th className={`w-10 text-left ${headerCell}`}>#</th>
-                {groupKeys.map((key: string) => {
+                {groupKeys.map((key: string, keyIndex: number) => {
                   return (
-                    <th key={key} className={`text-left ${headerCell}`}>
-                      {dimensionLabel(key)}
-                    </th>
+                    <ResizableHeaderCell
+                      key={key}
+                      className={`text-left ${headerCell}`}
+                      resize={resizableColumns.getResize(
+                        `group:${key}`,
+                        dimensionLabel(key),
+                        keyIndex === 0
+                          ? ColumnWidthKind.Name
+                          : ColumnWidthKind.Text,
+                      )}
+                    >
+                      <span>{dimensionLabel(key)}</span>
+                    </ResizableHeaderCell>
                   );
                 })}
-                <th className={`text-right ${headerCell}`}>Requests</th>
-                <th className={`text-right ${headerCell}`}>Errors</th>
-                <th className={`text-right ${headerCell}`}>Avg</th>
-                <th className={`text-right ${headerCell}`}>P50</th>
-                <th className={`text-right ${headerCell}`}>P90</th>
-                <th className={`text-right ${headerCell}`}>P95</th>
-                <th className={`text-right ${headerCell}`}>P99</th>
-                <th className={`text-right ${headerCell}`}>Min</th>
-                <th className={`text-right ${headerCell}`}>Max</th>
+                {TRACES_ANALYTICS_METRIC_HEADERS.map((title: string) => {
+                  return (
+                    <ResizableHeaderCell
+                      key={title}
+                      className={`text-right ${headerCell}`}
+                      resize={resizableColumns.getResize(
+                        `metric:${title}`,
+                        title,
+                        ColumnWidthKind.Whole,
+                      )}
+                    >
+                      <span>{title}</span>
+                    </ResizableHeaderCell>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>

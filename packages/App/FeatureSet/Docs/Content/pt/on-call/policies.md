@@ -20,6 +20,8 @@ Uma política de plantão decide quem é acionado por um incidente ou alerta, e 
 
 **Quem é acionado primeiro?** é opcional, e só é perguntado a quem pode adicionar regras de escalonamento: se ficar vazio, a política não aciona ninguém até ter uma regra. **Descrição** e **Rótulos** ficam em **Mais campos**. Para adicionar os próximos níveis, veja [Regras de escalonamento](/docs/on-call/escalation-rules).
 
+Na primeira política de um projeto, o formulário também pergunta **Dispará-la a cada novo incidente e a cada novo alerta**, que começa ativado. Ele adiciona uma regra em **Incidentes → Regras → Regras de Plantão** e outra em **Alertas → Regras → Regras de Plantão**, cada uma correspondendo a tudo e executando esta política. Só é perguntado a quem pode adicionar regras de plantão, enquanto o projeto não tiver nenhuma política de plantão nem regra de plantão.
+
 A lista **Políticas de plantão** mostra de cada política o **Nome**, a **Descrição**, os **Rótulos** e os **Proprietários**. Selecione políticas para **Adicionar rótulos**, **Remover rótulos**, **Adicionar proprietário**, **Remover proprietário**, **Arquivar**, **Exportar JSON** ou excluí-las. **Importar JSON** cria políticas a partir de uma exportação: uma exportação contém as configurações próprias de uma política, não suas regras de escalonamento nem seus proprietários.
 
 ## O que executa uma política
@@ -64,7 +66,7 @@ Quando a espera do último nível acaba sem que ninguém confirme, uma política
 | **Parar de acionar** | Ninguém é acionado de novo, então a política é executada uma única vez. Uma nova política começa com esta resposta. |
 | **Recomeçar a partir do Level 1** | Cada nível é acionado de novo, em ordem. **Quantas vezes mais?** diz quantas vezes: 1 ou mais. |
 
-Uma política que recomeça mais três vezes percorre seus níveis quatro vezes no total. A linha **Depois do último nível** do cartão diz o que a política faz, e **Política em resumo** na **Visão geral** diz o mesmo em palavras.
+Uma política que recomeça mais três vezes percorre seus níveis quatro vezes no total. Uma passada em que nenhum nível tinha alguém para acionar não se repete: outra também não acionaria ninguém, então a política para. A linha **Depois do último nível** do cartão diz o que a política faz, e **Política em resumo** na **Visão geral** diz o mesmo em palavras.
 
 ## Acionar de novo se não for resolvido
 
@@ -101,7 +103,7 @@ flowchart TB
 | **Agendado**, **Iniciada** | A execução está sendo preparada. Uma que ainda esteja aqui depois de 5 minutos é encerrada como **Erro**. |
 | **Executing** | A execução está acionando. O OneUptime a avança a cada minuto. |
 | **Execution Completed** | Alguém confirmou, o incidente ou alerta foi resolvido, todas as regras e repetições foram usadas, ou a política foi arquivada. |
-| **Execution Completed - No One Notified** | A execução passou por todas as regras sem acionar ninguém: em geral um agendamento sem ninguém de plantão. |
+| **Execution Completed - No One Notified** | A execução passou por todas as regras sem acionar ninguém: em geral um agendamento sem ninguém de plantão, ou um nível sem destinatários. |
 | **Erro** | A execução falhou. **Ver mensagem de status** diz por quê. |
 
 Você encontra registros de execução em três lugares:
@@ -110,7 +112,7 @@ Você encontra registros de execução em três lugares:
 - em **Plantão → Avançado → Registros de execução**, para todas as políticas, onde os acionamentos diretos de workflows e do chat aparecem como **Acionamento direto**;
 - na página **Execuções de plantão** de um incidente ou de um alerta.
 
-Cada linha mostra o que disparou a execução, quando, seu **Status** e quem a confirmou. **Ver linha do tempo** abre a **Linha do tempo de execução** dela: cada regra de escalonamento, quem ela acionou, por qual agendamento e como cada acionamento terminou. Um agendamento sem ninguém de plantão mostra **Ninguém estava de plantão** no lugar de uma pessoa. No OneUptime Cloud, os registros de execução precisam do plano **Growth**.
+Cada linha mostra o que disparou a execução, quando, seu **Status** e quem a confirmou. **Ver linha do tempo** abre a **Linha do tempo de execução** dela: cada regra de escalonamento, quem ela acionou, por qual agendamento e como cada acionamento terminou. Um agendamento sem ninguém de plantão mostra **Ninguém estava de plantão** no lugar de uma pessoa. Um nível que não acionou ninguém diz por quê, com **Seguiu sem esperar** embaixo: a política não esperou por ele. No OneUptime Cloud, os registros de execução precisam do plano **Growth**.
 
 ## Arquivar ou excluir uma política
 
@@ -152,6 +154,10 @@ A execução dela diz **Execution Completed - No One Notified**. Abra **Ver linh
 
 :::details O próximo nível foi acionado um minuto depois da espera
 O OneUptime avança as políticas em andamento uma vez por minuto, então um nível é acionado na primeira verificação depois que sua espera acaba.
+:::
+
+:::details O próximo nível foi acionado na hora, sem esperar
+O nível anterior não tinha ninguém para acionar: nenhum destinatário, ninguém de plantão nos agendamentos dele ou ninguém que pudesse ser contatado. Um nível que não aciona ninguém não tem espera, então o próximo nível é acionado assim que a política chega a ele. **Ver linha do tempo** mostra por que esse nível não acionou ninguém.
 :::
 
 :::details Um incidente mostra uma política que não acionou ninguém

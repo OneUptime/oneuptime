@@ -476,6 +476,23 @@ const POSTGRES_WRITE_ENTRY_POINTS: Array<WriteEntryPoint> = [
     },
   },
   {
+    /*
+     * What an update changes on a record limited to what its team owns
+     * (07d925ca80): its owners, or the parent it belongs to.
+     */
+    name: "checkOwnedUpdatePermission",
+    spyOnUnderlying: (): jest.SpyInstance<any, any> => {
+      return getJestSpyOn(CreateScopePermission, "checkOwnedUpdate");
+    },
+    call: async (props: DatabaseCommonInteractionProps): Promise<unknown> => {
+      return await ModelPermission.checkOwnedUpdatePermission({
+        modelType: Label,
+        data: { name: "Renamed" },
+        props: props,
+      });
+    },
+  },
+  {
     name: "checkUpdateQueryPermissions",
     spyOnUnderlying: (): jest.SpyInstance<any, any> => {
       return getJestSpyOn(UpdatePermission, "checkUpdatePermissions");
@@ -897,6 +914,7 @@ const PERMISSION_LAYERS: Array<PermissionLayer> = [
       "checkDeletePermissionByModel",
       "checkDeleteQueryPermission",
       "checkNamedListsPermission",
+      "checkOwnedUpdatePermission",
       "checkTableWritePermission",
       "checkUpdateParentPermission",
       "checkUpdatePermissionByModel",

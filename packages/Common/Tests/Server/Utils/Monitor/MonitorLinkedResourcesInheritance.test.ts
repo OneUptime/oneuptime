@@ -16,6 +16,7 @@ import AlertService from "../../../../Server/Services/AlertService";
 import IncidentService from "../../../../Server/Services/IncidentService";
 import MonitorService from "../../../../Server/Services/MonitorService";
 import NetworkDeviceOwnerUserService from "../../../../Server/Services/NetworkDeviceOwnerUserService";
+import NetworkDeviceService from "../../../../Server/Services/NetworkDeviceService";
 import LinkedAffectedResources, {
   LinkedAffectedResource,
   LinkedAffectedResourceType,
@@ -310,6 +311,31 @@ describe("Incidents and alerts inherit what their monitor is linked to", () => {
     expect(idsOn(incident.services)).toEqual(["svc-1"]);
   });
 
+  /*
+   * Issue #5341: what a monitor raises on a router lands on the router -
+   * the device its step watches (the config path) and the device it is
+   * bound to or was made for (the links path), once each.
+   */
+  it("links a monitor's incident to the network devices it reports on, once each", async () => {
+    stepContext = resolved({ networkDeviceIds: ["nd-1"] });
+    linkedContext = resolved({ networkDeviceIds: ["nd-1", "nd-2"] });
+
+    await evaluateIncidents();
+
+    expect(idsOn(createdIncidents[0]!.networkDevices)).toEqual([
+      "nd-1",
+      "nd-2",
+    ]);
+  });
+
+  it("links a monitor's alert to the network device it reports on", async () => {
+    linkedContext = resolved({ networkDeviceIds: ["nd-1"] });
+
+    await evaluateAlerts();
+
+    expect(idsOn(createdAlerts[0]!.networkDevices)).toEqual(["nd-1"]);
+  });
+
   it("merges the links with the monitor's config resources, without duplicates", async () => {
     stepContext = resolved({ kubernetesClusterIds: [CLUSTER_ID] });
     linkedContext = resolved({
@@ -403,6 +429,15 @@ describe("Incidents and alerts inherit what their monitor is linked to", () => {
 });
 
 describe("MonitorResourceContextUtil.resolveLinkedResourcesForMonitor", () => {
+  /*
+   * The read also asks which network devices the monitor reports on
+   * (issue #5341; MonitorNetworkDeviceLinking covers it): none here.
+   */
+  beforeEach(() => {
+    jest.spyOn(NetworkDeviceService, "findBy").mockResolvedValue([]);
+    jest.spyOn(MonitorService, "findOneBy").mockResolvedValue(null);
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -453,6 +488,7 @@ describe("MonitorResourceContextUtil.resolveLinkedResourcesForMonitor", () => {
       databaseServerIds: ["db-1"],
       cloudResourceIds: ["cr-1"],
       serviceIds: ["svc-1"],
+      networkDeviceIds: [],
     });
 
     // One read, of this monitor, in its own project, through the monitors.

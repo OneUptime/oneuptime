@@ -947,7 +947,7 @@ service:
 
 큐는 브로커 메트릭에 대한 **메트릭** 모니터로 감시합니다([메트릭 모니터](/docs/monitor/metrics-monitor) 참조).
 
-**큐 페이지에서.** **브로커 상태**의 각 게이지와 기간별 개수에는 **Create monitor**가 있습니다: 해당 메트릭에 대한 새 메트릭 모니터를 열며, 그 메트릭에서 이 큐를 지정하는 정확한 속성 값으로 필터링하고, 나빠지는 방향이 분명한 것을 측정하는 메트릭(백로그, 데드 레터, 컨슈머 지연, 가장 오래된 메시지의 나이, 스로틀링, 오류)에는 시작 임계값을 넣습니다. 그중 네 개는 고정 임계값이 오해를 부르기 때문에 임계값 없이 시작합니다: 컨슈머 그룹의 지연이 이미 다루는 Kafka의 파티션 지연(`kafka.consumer_group.lag`), 브로커가 시작된 이후의 평균이라 정체가 끝난 뒤에도 오랫동안 높게 유지되는 ActiveMQ의 큐 내 평균 시간(`activemq.message.enqueue.average_duration`, `activemq.message.wait_time.avg`), 그리고 브로커가 판단할 수 없는 동안 `-1`을 나타내는 Pulsar의 백로그 나이(`pulsar_storage_backlog_age_seconds`)입니다. 카운터에는 모니터가 없습니다: 카운터 차트는 속도를 보여 주지만, 모니터에는 속도 함수가 없습니다.
+**큐 페이지에서.** **브로커 상태**의 각 게이지와 기간별 개수에는 **모니터 생성**이 있습니다: 해당 메트릭에 대한 새 메트릭 모니터를 열며, 그 메트릭에서 이 큐를 지정하는 정확한 속성 값으로 필터링하고, 나빠지는 방향이 분명한 것을 측정하는 메트릭(백로그, 데드 레터, 컨슈머 지연, 가장 오래된 메시지의 나이, 스로틀링, 오류)에는 시작 임계값을 넣습니다. 그중 네 개는 고정 임계값이 오해를 부르기 때문에 임계값 없이 시작합니다: 컨슈머 그룹의 지연이 이미 다루는 Kafka의 파티션 지연(`kafka.consumer_group.lag`), 브로커가 시작된 이후의 평균이라 정체가 끝난 뒤에도 오랫동안 높게 유지되는 ActiveMQ의 큐 내 평균 시간(`activemq.message.enqueue.average_duration`, `activemq.message.wait_time.avg`), 그리고 브로커가 판단할 수 없는 동안 `-1`을 나타내는 Pulsar의 백로그 나이(`pulsar_storage_backlog_age_seconds`)입니다. 카운터에는 모니터가 없습니다: 카운터 차트는 속도를 보여 주지만, 모니터에는 속도 함수가 없습니다.
 
 **카운터.** RabbitMQ, Apache ActiveMQ, Apache RocketMQ의 카운터는 누적 합계로 Collector에 도착하며, `cumulative_to_delta` 프로세서(이전 Collector에서는 `cumulativetodelta`)가 이를 모니터가 알림을 보낼 수 있는 델타로 바꿉니다. 카운터 자체가 아니라 별도 이름의 복사본을 변환하세요: 큐 페이지는 이 카운터들을 각각 누적 합계로 읽고 그 증가 속도를 차트로 보여 주므로, 델타로 바뀐 카운터는 **브로커 상태**와 **메트릭** 탭에서 의미 없는 차트가 되어, 꾸준한 트래픽이 초당 0개 메시지로 표시됩니다. Apache Kafka의 오프셋(`kafka.consumer_group.offset_sum`, `kafka.partition.current_offset`)과 Apache Pulsar의 `pulsar_in_messages_total`, `pulsar_out_messages_total`은 게이지로 도착하며, `cumulative_to_delta`는 이를 건드리지 않습니다: 이 시스템들에서는 대신 지연과 백로그 게이지로 알림을 설정하세요.
 
@@ -1004,9 +1004,9 @@ service:
 | Pub/Sub 구독의 백로그가 늘어남 | `pubsub.googleapis.com/subscription/num_undelivered_messages` | `resource.subscription_id` = `orders-billing` | Max |
 | 아무도 RabbitMQ 큐를 소비하지 않음 | `rabbitmq.consumer.count` | `resource.rabbitmq.queue.name` = `orders` | Min |
 
-하나의 모니터로 시스템의 모든 큐를 감시하려면 그 속성으로 필터링하는 대신 그룹화하세요: 그러면 각 큐가 따로 알림을 보냅니다([시리즈별 알림](/docs/monitor/metrics-monitor#시리즈별-알림group-by) 참조). RabbitMQ 큐의 깊이(`rabbitmq.message.current`)는 `state` = `ready`와 `state` = `unacknowledged`의 두 시리즈로 도착합니다. **Create monitor**가 만드는 모니터는 큐 페이지와 같은 방식으로 이를 합산합니다: 상태별 쿼리 `a_ready`와 `a_unacknowledged`, 그리고 수식 `a_ready + a_unacknowledged`를 사용하며, 시작 임계값은 이 수식의 별칭 `a`에 적용됩니다. 직접 만드는 모니터도 같은 방식으로, 조건을 수식에 두세요.
+하나의 모니터로 시스템의 모든 큐를 감시하려면 그 속성으로 필터링하는 대신 그룹화하세요: 그러면 각 큐가 따로 알림을 보냅니다([시리즈별 알림](/docs/monitor/metrics-monitor#시리즈별-알림group-by) 참조). RabbitMQ 큐의 깊이(`rabbitmq.message.current`)는 `state` = `ready`와 `state` = `unacknowledged`의 두 시리즈로 도착합니다. **모니터 생성**이 만드는 모니터는 큐 페이지와 같은 방식으로 이를 합산합니다: 상태별 쿼리 `a_ready`와 `a_unacknowledged`, 그리고 수식 `a_ready + a_unacknowledged`를 사용하며, 시작 임계값은 이 수식의 별칭 `a`에 적용됩니다. 직접 만드는 모니터도 같은 방식으로, 조건을 수식에 두세요.
 
-**늦게 도착하는 메트릭.** 클라우드 모니터링 API는 값을 측정 시점보다 몇 분 뒤에 게시합니다: `aws_cloudwatch` 리시버의 최신 포인트는 이 페이지의 구성에서 11분에서 17분 전의 것이고, 리시버의 기본 5분 `period`로는 최대 25분 전의 것입니다. `googlecloudmonitoring` 리시버는 최대 9분입니다. 따라서 SQS, SNS, Pub/Sub 메트릭에 대한 모니터에는 그보다 긴 창이 필요하며, 그렇지 않으면 데이터를 보지 못해 절대 트리거되지 않습니다. **Create monitor**는 이런 모니터를 30분과 15분 창으로 시작합니다.
+**늦게 도착하는 메트릭.** 클라우드 모니터링 API는 값을 측정 시점보다 몇 분 뒤에 게시합니다: `aws_cloudwatch` 리시버의 최신 포인트는 이 페이지의 구성에서 11분에서 17분 전의 것이고, 리시버의 기본 5분 `period`로는 최대 25분 전의 것입니다. `googlecloudmonitoring` 리시버는 최대 9분입니다. 따라서 SQS, SNS, Pub/Sub 메트릭에 대한 모니터에는 그보다 긴 창이 필요하며, 그렇지 않으면 데이터를 보지 못해 절대 트리거되지 않습니다. **모니터 생성**은 이런 모니터를 30분과 15분 창으로 시작합니다.
 
 ## 제한 사항
 

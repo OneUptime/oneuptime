@@ -82,6 +82,8 @@ export OTEL_SERVICE_NAME="my-service"
 
 Elige tu lenguaje. Cada configuración lee las variables de entorno anteriores, así que en tu código no aparece ningún endpoint ni ninguna clave.
 
+¿Usas un framework? Las [guías de integración](https://oneuptime.com/integrations) configuran OpenTelemetry paso a paso para cada framework, con lo que traza automáticamente y cómo resolver lo que falla.
+
 :::tabs
 @tab Node.js
 Instala el SDK, las instrumentaciones automáticas y los exportadores OTLP/HTTP:

@@ -37,6 +37,13 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *
  * The Criteria page previews each step the same way, each on its own.
  *
+ * The Metrics monitor's form is the one exception to "over the rolling
+ * window": its window is its rule's, set in When to alert, and its chart
+ * shows the hours before it - as many windows of that length as a Logs
+ * rule's preview reads (TelemetryRulePreviewUtil.getRange: 144, at most a
+ * week) - so the rule's value can be read against what the metric did. It
+ * zooms, resets and follows a new window all the same.
+ *
  * The forms and MetricView are real; MetricCharts is stood in for with
  * buttons that call exactly the handlers MetricView hands the charts.
  */
@@ -231,6 +238,10 @@ import MonitorStepIoTMonitor, {
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import RollingTime from "../../../Types/RollingTime/RollingTime";
+import RollingTimeUtil from "../../../Types/RollingTime/RollingTimeUtil";
+import TelemetryRulePreviewUtil, {
+  TelemetryRulePreviewRange,
+} from "../../../Types/Monitor/TelemetryRulePreview";
 
 const NOW: Date = new Date("2026-09-28T12:00:00.000Z");
 const HOUR_AGO: Date = new Date("2026-09-28T11:00:00.000Z");
@@ -240,6 +251,21 @@ type Window = [number, number];
 
 function windowOf(start: Date, end: Date): Window {
   return [start.getTime(), end.getTime()];
+}
+
+/*
+ * What the Metrics monitor's form charts for a rolling window: the hours
+ * before it, read the way a telemetry rule's preview reads them.
+ */
+function rulePreviewWindowOf(rollingTime: RollingTime): Window {
+  const range: TelemetryRulePreviewRange = TelemetryRulePreviewUtil.getRange({
+    windowInSeconds: Math.round(
+      RollingTimeUtil.getWindowInMs(rollingTime) / 1000,
+    ),
+    now: NOW,
+  });
+
+  return windowOf(range.startTime, range.endTime);
 }
 
 function viewConfigFor(metricName: string): MetricsViewConfig {
@@ -344,6 +370,11 @@ interface FormCase {
   metricName: string;
   // Every infrastructure form keeps its query builder on the Advanced tab.
   opensOnAdvancedTab: boolean;
+  /*
+   * What the preview charts for a rolling window, when it is not the
+   * rolling window itself (the Metrics form's rule preview).
+   */
+  previewWindowFor?: ((rollingTime: RollingTime) => Window) | undefined;
   initial: FormStep;
   renderForm: RenderFormFunction;
 }
@@ -362,6 +393,7 @@ const FORM_CASES: Array<FormCase> = [
     name: "Metric",
     metricName: "form.metric.cpu",
     opensOnAdvancedTab: false,
+    previewWindowFor: rulePreviewWindowOf,
     initial: stepFor(
       MonitorStepMetricMonitorUtil.getDefault(),
       "form.metric.cpu",
@@ -594,8 +626,17 @@ describe.each(FORM_CASES)(
       await renderForm(formCase);
 
       const [start, end] = lastFetchedWindowFor(metricName)!;
-      expect(end - start).toBeGreaterThanOrEqual(60 * 60 * 1000);
-      expect(end - start).toBeLessThan(61 * 60 * 1000);
+      if (formCase.previewWindowFor) {
+        expect([start, end]).toEqual(
+          formCase.previewWindowFor(RollingTime.Past1Hour),
+        );
+        // 144 one-hour windows: six days back, whole hours, ending by now.
+        expect(end - start).toBe(144 * 60 * 60 * 1000);
+        expect(end).toBeLessThanOrEqual(NOW.getTime());
+      } else {
+        expect(end - start).toBeGreaterThanOrEqual(60 * 60 * 1000);
+        expect(end - start).toBeLessThan(61 * 60 * 1000);
+      }
       // Zoom used to be switched off here: the drag is offered now.
       expect(chartsOf(metricName).onTimeRangeSelect).toBeInstanceOf(Function);
       expect(chartsOf(metricName).onTimeRangeReset).toBeUndefined();
@@ -669,7 +710,9 @@ describe.each(FORM_CASES)(
 
       await waitFor(() => {
         expect(lastFetchedWindowFor(metricName)).toEqual(
-          windowOf(SIX_HOURS_AGO, NOW),
+          formCase.previewWindowFor
+            ? formCase.previewWindowFor(RollingTime.Past6Hours)
+            : windowOf(SIX_HOURS_AGO, NOW),
         );
       });
       expect(chartsOf(metricName).onTimeRangeReset).toBeUndefined();

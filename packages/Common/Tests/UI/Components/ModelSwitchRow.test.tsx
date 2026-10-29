@@ -577,8 +577,11 @@ describe("ModelSwitchRow locks for someone who may not change it", () => {
     expect(row).toHaveTextContent(
       "You do not have permission to update this Project.",
     );
-    expect(row).toHaveTextContent("Project Owner");
-    expect(row).toHaveTextContent("Project Admin");
+    /*
+     * The column's own permission - Project Owner and Project Admin hold it
+     * as well - and not the record's Manage Billing, which would not open it.
+     */
+    expect(row).toHaveTextContent("You need this permission: Edit Project.");
     expect(row).not.toHaveTextContent("Manage Billing");
 
     await press();

@@ -17,21 +17,21 @@
 ## 仕組み
 
 ```mermaid title="カスタムチャネルでの呼び出し"
-flowchart LR
+flowchart TB
     OneUptime["OneUptime"]
     Service["自社のサービス"]
     App["自社のアプリ"]
-    OneUptime -->|"署名付き JSON リクエスト"| Service
+    OneUptime -->|"署名付き<br/>JSON リクエスト"| Service
     Service -->|"通知"| App
-    App -->|"確認、エスカレーション、解決"| Service
-    Service -->|"アクションのリンクへの POST"| OneUptime
+    App -->|"確認、<br/>エスカレーション、解決"| Service
+    Service -->|"アクションの<br/>リンクへの POST"| OneUptime
 ```
 
 オンコールポリシーが誰かを呼び出し、その人のオンコールルールがチャネルを使っていると、OneUptime はチャネルの URL にリクエストを送ります。リクエストには、呼び出しの相手 (名前とメールアドレス) と内容が示され、その人がアプリで確認、エスカレーション、解決をしたときにサービスが呼び出すリンクが含まれます。
 
 ## チャネルを追加する
 
-1. Admin Dashboard で **設定**、 **Custom Channels** の順に開き、 **Add** を選びます。
+1. Admin Dashboard で **設定** を開き、サイドメニューの **通知 > Custom Channels** を開いて (**通知** は最初は折りたたまれています)、 **Add** を選びます。
 2. **Channel** ステップで、次を入力します。
    - **名前**: 通知方法とオンコールルールで表示される名前です。例: `CorpoApp`。
    - **Webhook URL**: OneUptime が各呼び出しを送る先です。プライベートネットワーク上でもかまいません。

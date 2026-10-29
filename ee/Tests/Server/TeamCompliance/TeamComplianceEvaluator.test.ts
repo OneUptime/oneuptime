@@ -6,7 +6,10 @@ import TeamComplianceEvaluator, {
   ComplianceNotificationRuleInput,
   ComplianceRuleInput,
   ComplianceSeverityInput,
+  CUSTOM_CHANNELS_NOT_ACTIVE_WARNING,
+  CustomChannelAvailability,
   METHOD_RULE_FAILURE_REASONS,
+  NO_CUSTOM_CHANNEL_ON_WARNING,
   PROJECT_CHANNEL_SWITCHES,
   ProjectChannelSwitch,
   ResolvedComplianceRule,
@@ -18,7 +21,10 @@ import TeamComplianceEvaluator, {
 import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
 import ObjectID from "Common/Types/ObjectID";
 import ComplianceNotificationChannel from "Common/Types/Team/ComplianceNotificationChannel";
-import { ComplianceSeverityKind } from "Common/Types/Team/ComplianceRule";
+import ComplianceRule, {
+  ComplianceMethodChannel,
+  ComplianceSeverityKind,
+} from "Common/Types/Team/ComplianceRule";
 import ComplianceRuleType from "Common/Types/Team/ComplianceRuleType";
 import {
   TeamComplianceIssueJSON,
@@ -250,6 +256,7 @@ function buildInput(
       Map<string, ComplianceMethodInput>
     >(),
     projectSwitches: null,
+    customChannels: null,
     ...overrides,
   };
 }
@@ -1053,7 +1060,7 @@ describe("planLoads", () => {
 
 describe("method rules", () => {
   const METHOD_RULES: Array<
-    [ComplianceRuleType, ComplianceNotificationChannel, string]
+    [ComplianceRuleType, ComplianceMethodChannel, string]
   > = [
     [
       ComplianceRuleType.HasNotificationEmailMethod,
@@ -1102,16 +1109,24 @@ describe("method rules", () => {
     ],
   ];
 
-  test("every channel has a reason, and the four original ones are unchanged", () => {
+  test("every channel a member owns a method on has a reason, and the four original ones are unchanged", () => {
     expect(Object.keys(METHOD_RULE_FAILURE_REASONS).sort()).toEqual(
-      Object.values(ComplianceNotificationChannel).sort(),
+      Object.values(ComplianceNotificationChannel)
+        .filter((channel: ComplianceNotificationChannel): boolean => {
+          return ComplianceRule.isMethodChannel(channel);
+        })
+        .sort(),
+    );
+    // A custom channel is nobody's to have: there is no method rule for it.
+    expect(Object.keys(METHOD_RULE_FAILURE_REASONS)).not.toContain(
+      ComplianceNotificationChannel.CustomChannel,
     );
     expect(METHOD_RULES).toHaveLength(9);
   });
 
   test.each(METHOD_RULES)(
     "%s: a member who owns a verified method passes",
-    (ruleType: ComplianceRuleType, channel: ComplianceNotificationChannel) => {
+    (ruleType: ComplianceRuleType, channel: ComplianceMethodChannel) => {
       expect(
         adaVerdict(rule({ ruleType: ruleType }), {
           verifiedMethodOwnersByChannel: new Map<
@@ -1127,7 +1142,7 @@ describe("method rules", () => {
     "%s: a member without one fails with the exact reason",
     (
       ruleType: ComplianceRuleType,
-      channel: ComplianceNotificationChannel,
+      channel: ComplianceMethodChannel,
       reason: string,
     ) => {
       expect(METHOD_RULE_FAILURE_REASONS[channel]).toBe(reason);
@@ -2844,6 +2859,7 @@ describe("evaluate - the status payload", () => {
     ]);
     expect(Object.keys(onlyRule(result)).sort()).toEqual([
       "appliesToAllSeverities",
+      "channelsNotChecked",
       "compliantCount",
       "enabled",
       "nonCompliantCount",
@@ -2920,6 +2936,7 @@ describe("evaluate - the status payload", () => {
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
       enabled: true,
       notificationChannels: [ComplianceNotificationChannel.Call],
+      channelsNotChecked: [],
       severityKind: ComplianceSeverityKind.Incident,
       appliesToAllSeverities: false,
       severities: [
@@ -2947,6 +2964,7 @@ describe("evaluate - the status payload", () => {
       ruleType: ComplianceRuleType.HasAlertEpisodeOnCallRules,
       enabled: true,
       notificationChannels: [],
+      channelsNotChecked: [],
       severityKind: ComplianceSeverityKind.Alert,
       appliesToAllSeverities: true,
       severities: [],
@@ -2968,6 +2986,7 @@ describe("evaluate - the status payload", () => {
       ruleType: ComplianceRuleType.HasNotificationSlackMethod,
       enabled: true,
       notificationChannels: [],
+      channelsNotChecked: [],
       severityKind: null,
       appliesToAllSeverities: false,
       severities: [],
@@ -2998,6 +3017,7 @@ describe("evaluate - the status payload", () => {
         ComplianceNotificationChannel.SMS,
         ComplianceNotificationChannel.Webhook,
       ],
+      channelsNotChecked: [],
       severityKind: ComplianceSeverityKind.Alert,
       appliesToAllSeverities: false,
       severities: [{ id: HIGH.id, name: "High", color: "#ef4444" }],
@@ -3179,6 +3199,7 @@ describe("evaluate - the status payload", () => {
       ruleType: "HasCarrierPigeon",
       enabled: true,
       notificationChannels: [],
+      channelsNotChecked: [],
       severityKind: null,
       appliesToAllSeverities: false,
       severities: [],
@@ -4073,5 +4094,625 @@ describe("a switched-off channel's warning says who can turn it on", () => {
     expect(WHATSAPP_SWITCHED_OFF_WARNING).toBe(
       `WhatsApp is switched off for this project, so members cannot add a WhatsApp number to meet this rule. ${getWhoCanTurnOnSentence("it")}`,
     );
+  });
+});
+
+/*
+ * ------------------------------------------------------------------------- *
+ * The custom channel (#5332). A custom channel is the installation's: its
+ * admin adds it, and a member's rule names it instead of a method of their
+ * own. An on-call rule can insist on it like any other channel, and is met by
+ * a rule that names a custom channel that is on. While no custom channel can
+ * carry a page, nobody can meet that, so it is the rule's warning - never a
+ * failure per member - and a rule asking for nothing else checks nobody.
+ * -------------------------------------------------------------------------
+ */
+
+describe("the custom channel", () => {
+  const CORPO_APP_ID: string = "c0570000-0000-4000-8000-000000000001";
+  const PAGER_ID: string = "c0570000-0000-4000-8000-000000000002";
+  const TURNED_OFF_ID: string = "c0570000-0000-4000-8000-000000000003";
+
+  // Custom channels are active, and CorpoApp and Pager are on.
+  const ON: CustomChannelAvailability = {
+    isActive: true,
+    channelIdsOn: new Set<string>([CORPO_APP_ID, PAGER_ID]),
+  };
+
+  // No Enterprise license that includes custom channels: nothing is sent.
+  const NOT_ACTIVE: CustomChannelAvailability = {
+    isActive: false,
+    channelIdsOn: new Set<string>(),
+  };
+
+  // Active, but every custom channel is turned off.
+  const NONE_ON: CustomChannelAvailability = {
+    isActive: true,
+    channelIdsOn: new Set<string>(),
+  };
+
+  const customChannelForCritical: (
+    channels?: Array<ComplianceNotificationChannel>,
+    enabled?: boolean,
+  ) => ComplianceRuleInput = (
+    channels: Array<ComplianceNotificationChannel> = [
+      ComplianceNotificationChannel.CustomChannel,
+    ],
+    enabled: boolean = true,
+  ): ComplianceRuleInput => {
+    return rule({
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      notificationChannels: channels,
+      incidentSeverities: [CRITICAL],
+      enabled: enabled,
+    });
+  };
+
+  // A rule of Ada's (or `userId`'s) that pages through custom channel `channelId`.
+  function customChannelRuleFor(
+    severity: ComplianceSeverityInput,
+    channelId: string = CORPO_APP_ID,
+    userId: string = ADA,
+  ): ComplianceNotificationRuleInput {
+    return adaRuleFor({
+      ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+      kind: ComplianceSeverityKind.Incident,
+      severity: severity,
+      methodIds: { [ComplianceNotificationChannel.CustomChannel]: channelId },
+      userId: userId,
+    });
+  }
+
+  function callRuleFor(
+    severity: ComplianceSeverityInput,
+  ): ComplianceNotificationRuleInput {
+    return adaRuleFor({
+      ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+      kind: ComplianceSeverityKind.Incident,
+      severity: severity,
+      methodIds: { [ComplianceNotificationChannel.Call]: CALL_ID },
+    });
+  }
+
+  const verifiedCall: Map<
+    ComplianceNotificationChannel,
+    Map<string, ComplianceMethodInput>
+  > = methods(ComplianceNotificationChannel.Call, [
+    { methodId: CALL_ID, userId: ADA, isVerified: true },
+  ]);
+
+  describe("while a custom channel can carry a page", () => {
+    test("a rule for the severity that pages through a custom channel that is on => compliant", () => {
+      expect(
+        adaVerdict(customChannelForCritical(), {
+          notificationRules: [customChannelRuleFor(CRITICAL)],
+          customChannels: ON,
+        }),
+      ).toBeNull();
+    });
+
+    test("any custom channel that is on will do", () => {
+      expect(
+        adaVerdict(customChannelForCritical(), {
+          notificationRules: [customChannelRuleFor(CRITICAL, PAGER_ID)],
+          customChannels: ON,
+        }),
+      ).toBeNull();
+    });
+
+    test("no rule at all => the severity is missing", () => {
+      expect(
+        adaVerdict(customChannelForCritical(), { customChannels: ON }),
+      ).toBe(
+        "No Custom channel rule for incident severities: Critical Incident",
+      );
+    });
+
+    test("a Call rule is no custom channel rule - and a custom channel rule is no Call rule", () => {
+      expect(
+        adaVerdict(customChannelForCritical(), {
+          notificationRules: [callRuleFor(CRITICAL)],
+          methodsByChannel: verifiedCall,
+          customChannels: ON,
+        }),
+      ).toBe(
+        "No Custom channel rule for incident severities: Critical Incident",
+      );
+
+      expect(
+        adaVerdict(CALL_FOR_CRITICAL_INCIDENTS(), {
+          notificationRules: [customChannelRuleFor(CRITICAL)],
+          methodsByChannel: verifiedCall,
+          customChannels: ON,
+        }),
+      ).toBe("No Call rule for incident severities: Critical Incident");
+    });
+
+    test("a rule that names a custom channel that is turned off is reported as such: the member can point it at one that is on", () => {
+      expect(
+        adaVerdict(customChannelForCritical(), {
+          notificationRules: [customChannelRuleFor(CRITICAL, TURNED_OFF_ID)],
+          customChannels: ON,
+        }),
+      ).toBe(
+        "The Custom channel rule for incident severities Critical Incident points at a custom channel that is turned off",
+      );
+    });
+
+    test("one rule on a channel that is on covers the severity, beside one on a channel that is off", () => {
+      expect(
+        adaVerdict(customChannelForCritical(), {
+          notificationRules: [
+            customChannelRuleFor(CRITICAL, TURNED_OFF_ID),
+            customChannelRuleFor(CRITICAL, CORPO_APP_ID),
+          ],
+          customChannels: ON,
+        }),
+      ).toBeNull();
+    });
+
+    test("an opt-out is not a custom channel rule", () => {
+      expect(
+        adaVerdict(customChannelForCritical(), {
+          notificationRules: [
+            adaRuleFor({
+              ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+              kind: ComplianceSeverityKind.Incident,
+              severity: CRITICAL,
+              isOptOut: true,
+            }),
+          ],
+          customChannels: ON,
+        }),
+      ).toBe("Opted out of incident notifications for: Critical Incident");
+    });
+
+    test("a rule the runtime refuses - another method on it is somebody else's - is not coverage", () => {
+      expect(
+        adaVerdict(customChannelForCritical(), {
+          notificationRules: [
+            { ...customChannelRuleFor(CRITICAL), hasForeignMethod: true },
+          ],
+          customChannels: ON,
+        }),
+      ).toBe(
+        "The Custom channel rule for incident severities Critical Incident is never sent, because another notification method on it belongs to a different user",
+      );
+    });
+
+    test("another member's rule is not Ada's", () => {
+      expect(
+        adaVerdict(customChannelForCritical(), {
+          members: [member(ADA, "Ada"), member(GRACE, "Grace")],
+          notificationRules: [
+            customChannelRuleFor(CRITICAL, CORPO_APP_ID, GRACE),
+          ],
+          customChannels: ON,
+        }),
+      ).toBe(
+        "No Custom channel rule for incident severities: Critical Incident",
+      );
+    });
+
+    test("nothing of the member's is read for it: no method row is consulted, whatever is there", () => {
+      expect(
+        adaVerdict(customChannelForCritical(), {
+          notificationRules: [customChannelRuleFor(CRITICAL)],
+          // A stray method row under the channel's key changes nothing.
+          methodsByChannel: methods(
+            ComplianceNotificationChannel.CustomChannel,
+            [{ methodId: CORPO_APP_ID, userId: GRACE, isVerified: false }],
+          ),
+          customChannels: ON,
+        }),
+      ).toBeNull();
+    });
+
+    test("with no severity selected, every incident severity needs one, named in severity order", () => {
+      expect(
+        adaVerdict(
+          rule({
+            ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+            notificationChannels: [ComplianceNotificationChannel.CustomChannel],
+          }),
+          {
+            notificationRules: [customChannelRuleFor(MAJOR)],
+            customChannels: ON,
+          },
+        ),
+      ).toBe(
+        "No Custom channel rule for incident severities: Critical Incident, Minor Incident",
+      );
+    });
+
+    test("an alert rule on the custom channel reads alert rules, by their alert severity", () => {
+      expect(
+        adaVerdict(
+          rule({
+            ruleType: ComplianceRuleType.HasAlertOnCallRules,
+            notificationChannels: [ComplianceNotificationChannel.CustomChannel],
+            alertSeverities: [HIGH],
+          }),
+          {
+            notificationRules: [
+              adaRuleFor({
+                ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT,
+                kind: ComplianceSeverityKind.Alert,
+                severity: HIGH,
+                methodIds: {
+                  [ComplianceNotificationChannel.CustomChannel]: CORPO_APP_ID,
+                },
+              }),
+            ],
+            customChannels: ON,
+          },
+        ),
+      ).toBeNull();
+    });
+
+    test("on Call and the custom channel, a member needs a rule on each", () => {
+      const callAndCustom: () => ComplianceRuleInput =
+        (): ComplianceRuleInput => {
+          return customChannelForCritical([
+            ComplianceNotificationChannel.CustomChannel,
+            ComplianceNotificationChannel.Call,
+          ]);
+        };
+
+      expect(
+        adaVerdict(callAndCustom(), {
+          notificationRules: [callRuleFor(CRITICAL)],
+          methodsByChannel: verifiedCall,
+          customChannels: ON,
+        }),
+      ).toBe(
+        "No Custom channel rule for incident severities: Critical Incident",
+      );
+      expect(
+        adaVerdict(callAndCustom(), {
+          notificationRules: [customChannelRuleFor(CRITICAL)],
+          methodsByChannel: verifiedCall,
+          customChannels: ON,
+        }),
+      ).toBe("No Call rule for incident severities: Critical Incident");
+      expect(
+        adaVerdict(callAndCustom(), {
+          notificationRules: [
+            callRuleFor(CRITICAL),
+            customChannelRuleFor(CRITICAL),
+          ],
+          methodsByChannel: verifiedCall,
+          customChannels: ON,
+        }),
+      ).toBeNull();
+    });
+
+    test("the rule is checked, sets nothing aside and warns about nothing", () => {
+      const result: TeamComplianceStatusJSON = evaluate({
+        rules: [customChannelForCritical()],
+        members: [member(ADA, "Ada"), member(GRACE, "Grace")],
+        notificationRules: [customChannelRuleFor(CRITICAL)],
+        customChannels: ON,
+      });
+
+      expect(onlyRule(result)).toMatchObject({
+        notificationChannels: [ComplianceNotificationChannel.CustomChannel],
+        channelsNotChecked: [],
+        compliantCount: 1,
+        nonCompliantCount: 1,
+        warnings: [],
+      });
+      expect(statusOf(result, ADA).isCompliant).toBe(true);
+      expect(reasonsOf(result, GRACE)).toEqual([
+        "No Custom channel rule for incident severities: Critical Incident",
+      ]);
+    });
+  });
+
+  describe("while no custom channel can carry a page", () => {
+    test("the two warnings, word for word", () => {
+      expect(CUSTOM_CHANNELS_NOT_ACTIVE_WARNING).toBe(
+        "Custom channels are a OneUptime Enterprise feature, and this server has no Enterprise license that includes them, so nothing is sent to a custom channel and members are not checked for one.",
+      );
+      expect(NO_CUSTOM_CHANNEL_ON_WARNING).toBe(
+        "No custom channel is turned on, so nothing is sent to one and members are not checked for one. A server admin can turn one on in the Admin Dashboard, under Settings > Notifications > Custom Channels.",
+      );
+    });
+
+    test.each<[string, CustomChannelAvailability, string | null]>([
+      ["a channel is on", ON, null],
+      [
+        "custom channels are not active",
+        NOT_ACTIVE,
+        CUSTOM_CHANNELS_NOT_ACTIVE_WARNING,
+      ],
+      ["none is on", NONE_ON, NO_CUSTOM_CHANNEL_ON_WARNING],
+      [
+        "not active, whatever channel ids came with it",
+        { isActive: false, channelIdsOn: new Set<string>([CORPO_APP_ID]) },
+        CUSTOM_CHANNELS_NOT_ACTIVE_WARNING,
+      ],
+    ])(
+      "getCustomChannelWarning when %s",
+      (
+        _label: string,
+        customChannels: CustomChannelAvailability,
+        warning: string | null,
+      ) => {
+        expect(
+          TeamComplianceEvaluator.getCustomChannelWarning(customChannels),
+        ).toBe(warning);
+      },
+    );
+
+    test.each<[string, CustomChannelAvailability, string]>([
+      [
+        "custom channels are not active",
+        NOT_ACTIVE,
+        CUSTOM_CHANNELS_NOT_ACTIVE_WARNING,
+      ],
+      ["none is on", NONE_ON, NO_CUSTOM_CHANNEL_ON_WARNING],
+      [
+        "not active, whatever channel ids came with it",
+        { isActive: false, channelIdsOn: new Set<string>([CORPO_APP_ID]) },
+        CUSTOM_CHANNELS_NOT_ACTIVE_WARNING,
+      ],
+    ])(
+      "%s: a rule on the custom channel alone checks nobody - not everyone non-compliant - and says why once",
+      (
+        _label: string,
+        customChannels: CustomChannelAvailability,
+        warning: string,
+      ) => {
+        const result: TeamComplianceStatusJSON = evaluate({
+          rules: [customChannelForCritical()],
+          members: [member(ADA, "Ada"), member(GRACE, "Grace")],
+          // Ada's rule would have met it; Grace has none.
+          notificationRules: [customChannelRuleFor(CRITICAL)],
+          customChannels: customChannels,
+        });
+
+        expect(onlyRule(result)).toMatchObject({
+          enabled: true,
+          notificationChannels: [ComplianceNotificationChannel.CustomChannel],
+          channelsNotChecked: [ComplianceNotificationChannel.CustomChannel],
+          compliantCount: 0,
+          nonCompliantCount: 0,
+          warnings: [warning],
+        });
+        expect(statusOf(result, ADA)).toMatchObject({
+          isCompliant: true,
+          nonCompliantRules: [],
+        });
+        expect(statusOf(result, GRACE)).toMatchObject({
+          isCompliant: true,
+          nonCompliantRules: [],
+        });
+      },
+    );
+
+    test("it never falls back to 'any channel': nobody is checked for an on-call rule at all", () => {
+      const resolved: Array<ResolvedComplianceRule> =
+        TeamComplianceEvaluator.resolveRules(
+          [customChannelForCritical()],
+          PROJECT_ID,
+          NOT_ACTIVE,
+        );
+
+      expect(TeamComplianceEvaluator.isChecked(resolved[0]!)).toBe(false);
+      expect(TeamComplianceEvaluator.hasNoChannelToCheck(resolved[0]!)).toBe(
+        true,
+      );
+      // No readiness pass, no rule read: there is nothing to check.
+      expect(TeamComplianceEvaluator.planLoads(resolved)).toEqual({
+        needsCoverage: false,
+        methodChannels: [],
+        onCallChannels: [],
+        onCallRuleTypes: [],
+        onCallSeverityKinds: [],
+        projectSwitches: [],
+      });
+
+      // And a member with no rule at all is not failed for "any channel".
+      expect(
+        reasonsOf(
+          evaluate({
+            rules: [customChannelForCritical()],
+            coverageByUserId: coverageFor([
+              cell({
+                ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+                severity: CRITICAL,
+              }),
+            ]),
+            customChannels: NOT_ACTIVE,
+          }),
+          ADA,
+        ),
+      ).toEqual([]);
+    });
+
+    test("a rule on Call and the custom channel still checks Call - and only Call", () => {
+      const callAndCustom: ComplianceRuleInput = customChannelForCritical([
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.CustomChannel,
+      ]);
+
+      const result: TeamComplianceStatusJSON = evaluate({
+        rules: [callAndCustom],
+        members: [member(ADA, "Ada"), member(GRACE, "Grace")],
+        notificationRules: [callRuleFor(CRITICAL)],
+        methodsByChannel: verifiedCall,
+        customChannels: NOT_ACTIVE,
+      });
+
+      expect(onlyRule(result)).toMatchObject({
+        notificationChannels: [
+          ComplianceNotificationChannel.Call,
+          ComplianceNotificationChannel.CustomChannel,
+        ],
+        channelsNotChecked: [ComplianceNotificationChannel.CustomChannel],
+        compliantCount: 1,
+        nonCompliantCount: 1,
+        warnings: [CUSTOM_CHANNELS_NOT_ACTIVE_WARNING],
+      });
+      // Ada has her Call rule and no custom channel rule: she passes.
+      expect(statusOf(result, ADA).isCompliant).toBe(true);
+      // Grace is told about Call only.
+      expect(reasonsOf(result, GRACE)).toEqual([
+        "No Call rule for incident severities: Critical Incident",
+      ]);
+    });
+
+    test("a project switch and the custom channel are warned about together", () => {
+      const result: TeamComplianceStatusJSON = evaluate({
+        rules: [
+          customChannelForCritical([
+            ComplianceNotificationChannel.Call,
+            ComplianceNotificationChannel.CustomChannel,
+          ]),
+        ],
+        projectSwitches: { enableCallNotifications: false },
+        customChannels: NONE_ON,
+      });
+
+      expect(onlyRule(result).warnings).toEqual([
+        TeamComplianceEvaluator.getChannelSwitchedOffWarning(
+          ComplianceNotificationChannel.Call,
+        ),
+        NO_CUSTOM_CHANNEL_ON_WARNING,
+      ]);
+    });
+
+    test("a paused rule on the custom channel sets nothing aside and warns about nothing", () => {
+      const result: TeamComplianceStatusJSON = evaluate({
+        rules: [
+          customChannelForCritical(
+            [ComplianceNotificationChannel.CustomChannel],
+            false,
+          ),
+        ],
+        customChannels: NOT_ACTIVE,
+      });
+
+      expect(onlyRule(result)).toMatchObject({
+        enabled: false,
+        channelsNotChecked: [],
+        compliantCount: 0,
+        nonCompliantCount: 0,
+        warnings: [],
+      });
+    });
+
+    test("an any-channel rule is untouched: a member covered by their custom channel rule still passes, with no warning", () => {
+      const result: TeamComplianceStatusJSON = evaluate({
+        rules: [
+          rule({
+            ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+            incidentSeverities: [CRITICAL],
+          }),
+        ],
+        // Readiness counts the custom channel rule for the cell.
+        coverageByUserId: coverageFor([
+          cell({
+            ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+            severity: CRITICAL,
+            hasRule: true,
+          }),
+        ]),
+        customChannels: NOT_ACTIVE,
+      });
+
+      expect(statusOf(result, ADA).isCompliant).toBe(true);
+      expect(onlyRule(result)).toMatchObject({
+        channelsNotChecked: [],
+        compliantCount: 1,
+        warnings: [],
+      });
+    });
+  });
+
+  describe("resolving and planning", () => {
+    test("before the custom channels are read - planning the reads - nothing is set aside, and the plan asks for them", () => {
+      const rules: Array<ComplianceRuleInput> = [customChannelForCritical()];
+
+      expect(resolveOne(rules[0]!).channelsNotChecked).toEqual([]);
+      expect(plan(rules)).toEqual({
+        needsCoverage: false,
+        methodChannels: [],
+        onCallChannels: [ComplianceNotificationChannel.CustomChannel],
+        onCallRuleTypes: [NotificationRuleType.ON_CALL_EXECUTED_INCIDENT],
+        onCallSeverityKinds: [ComplianceSeverityKind.Incident],
+        // A custom channel has no project switch.
+        projectSwitches: [],
+      });
+    });
+
+    test("with a channel on, the plan is the same: the rules are read, and nothing is set aside", () => {
+      const resolved: Array<ResolvedComplianceRule> =
+        TeamComplianceEvaluator.resolveRules(
+          [customChannelForCritical()],
+          PROJECT_ID,
+          ON,
+        );
+
+      expect(resolved[0]!.channelsNotChecked).toEqual([]);
+      expect(
+        TeamComplianceEvaluator.planLoads(resolved).onCallChannels,
+      ).toEqual([ComplianceNotificationChannel.CustomChannel]);
+    });
+
+    test("set aside, the custom channel leaves the rule's other channels to read", () => {
+      const resolved: Array<ResolvedComplianceRule> =
+        TeamComplianceEvaluator.resolveRules(
+          [
+            customChannelForCritical([
+              ComplianceNotificationChannel.CustomChannel,
+              ComplianceNotificationChannel.Push,
+            ]),
+          ],
+          PROJECT_ID,
+          NONE_ON,
+        );
+
+      expect(resolved[0]!.notificationChannels).toEqual([
+        ComplianceNotificationChannel.Push,
+        ComplianceNotificationChannel.CustomChannel,
+      ]);
+      expect(resolved[0]!.channelsNotChecked).toEqual([
+        ComplianceNotificationChannel.CustomChannel,
+      ]);
+      expect(TeamComplianceEvaluator.getCheckedChannels(resolved[0]!)).toEqual([
+        ComplianceNotificationChannel.Push,
+      ]);
+      expect(TeamComplianceEvaluator.isChecked(resolved[0]!)).toBe(true);
+      expect(
+        TeamComplianceEvaluator.planLoads(resolved).onCallChannels,
+      ).toEqual([ComplianceNotificationChannel.Push]);
+    });
+
+    test("a method rule or an any-channel rule never has a channel set aside", () => {
+      const resolved: Array<ResolvedComplianceRule> =
+        TeamComplianceEvaluator.resolveRules(
+          [
+            rule({ ruleType: ComplianceRuleType.HasIncidentOnCallRules }),
+            rule({
+              ruleType: ComplianceRuleType.HasNotificationWebhookMethod,
+              // A method rule takes no channels, a custom one included.
+              notificationChannels: [
+                ComplianceNotificationChannel.CustomChannel,
+              ],
+            }),
+          ],
+          PROJECT_ID,
+          NOT_ACTIVE,
+        );
+
+      for (const resolvedRule of resolved) {
+        expect(resolvedRule.channelsNotChecked).toEqual([]);
+        expect(TeamComplianceEvaluator.hasNoChannelToCheck(resolvedRule)).toBe(
+          false,
+        );
+      }
+    });
   });
 });

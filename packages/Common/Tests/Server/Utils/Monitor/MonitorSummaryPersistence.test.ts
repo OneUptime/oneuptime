@@ -153,6 +153,7 @@ describe("The monitor summary is stored on the incident / alert it created", () 
         databaseServerIds: [],
         storageArrayIds: [],
         cloudResourceIds: [],
+        networkDeviceIds: [],
       });
 
     // Linked by hand (Monitor > Overview > Linked Resources): nothing here.

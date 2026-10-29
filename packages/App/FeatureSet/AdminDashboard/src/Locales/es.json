@@ -1514,6 +1514,13 @@
   "Light": "Claro",
   "Dark": "Oscuro",
   "System": "Sistema",
+  "Enable": "Activar",
+  "Disable": "Desactivar",
+  "Drag to resize. Double-click to fit.": "Arrastrar para cambiar el ancho. Doble clic para ajustarlo al contenido.",
+  "Reset column widths": "Restablecer anchos",
+  "Resize the {{column}} column": "Cambiar el ancho de la columna {{column}}",
+  "{{count}} pixels wide": "{{count}} píxeles de ancho",
+  "{{count}} pixels wide_one": "{{count}} píxel de ancho",
   "markdownCallouts": {
     "caution": "Precaución",
     "danger": "Peligro",

@@ -12,6 +12,7 @@ import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import Service from "Common/Models/DatabaseModels/Service";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
@@ -37,7 +38,8 @@ import { ResourceFacet } from "../ResourceOwners/ResourceFacet";
  * resource type — Monitor, Service, Host, Kubernetes Cluster, Docker Host,
  * Podman Host, Proxmox / Ceph / Docker Swarm cluster, vCenter, Storage Array,
  * IoT Fleet, Database and — for Scheduled Maintenance only — Network Site,
- * and — for Incidents and Alerts only — Cloud Resource and SLO.
+ * and — for Incidents and Alerts only — Network Device, Cloud Resource and
+ * SLO.
  *
  * The chip's value encoding is `${type}:${id}` so multiple resource types
  * can coexist in the same selection without ID collisions. The hook's
@@ -54,6 +56,7 @@ type AffectedResourceType =
   | "monitor"
   | "service"
   | "host"
+  | "networkDevice"
   | "kubernetesCluster"
   | "dockerHost"
   | "podmanHost"
@@ -93,6 +96,12 @@ const RESOURCE_TYPES: Record<AffectedResourceType, ResourceTypeConfig> = {
     pluralLabel: "Hosts",
     icon: IconProp.Server,
     modelType: Host,
+  },
+  networkDevice: {
+    label: "Network Device",
+    pluralLabel: "Network Devices",
+    icon: IconProp.Signal,
+    modelType: NetworkDevice,
   },
   kubernetesCluster: {
     label: "Kubernetes Cluster",
@@ -178,6 +187,11 @@ const RESOURCE_ORDER: Array<AffectedResourceType> = [
   "monitor",
   "service",
   "host",
+  /*
+   * Only Incident and Alert carry a networkDevices relation (issue #5341),
+   * so this is opt-in (see includeNetworkDevice).
+   */
+  "networkDevice",
   "kubernetesCluster",
   "dockerHost",
   "podmanHost",
@@ -221,6 +235,7 @@ const RESOURCE_QUERY_FIELD: Record<
 > = {
   service: "services",
   host: "hosts",
+  networkDevice: "networkDevices",
   kubernetesCluster: "kubernetesClusters",
   dockerHost: "dockerHosts",
   podmanHost: "podmanHosts",
@@ -433,6 +448,11 @@ export interface AffectedResourcesFacetOptions<T extends BaseModel> {
    * Alert are the only parent models with a `cloudResources` relation.
    */
   includeCloudResource?: boolean | undefined;
+  /**
+   * Offer the Network Device type. Off by default because Incident and
+   * Alert are the only parent models with a `networkDevices` relation.
+   */
+  includeNetworkDevice?: boolean | undefined;
 }
 
 const buildAffectedResourcesFacet: <T extends BaseModel>(
@@ -456,6 +476,9 @@ const buildAffectedResourcesFacet: <T extends BaseModel>(
       }
       if (t === "cloudResource") {
         return Boolean(options.includeCloudResource);
+      }
+      if (t === "networkDevice") {
+        return Boolean(options.includeNetworkDevice);
       }
       return true;
     },

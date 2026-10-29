@@ -97,6 +97,46 @@ export function getServiceBreadcrumbs(path: string): Array<Link> | undefined {
       "Label Rules",
       "View Rule",
     ]),
+    /*
+     * Pages that had no trail. Every page this product routes has one:
+     * Common/Tests/App/Dashboard/EveryPageHasATrail fails by name for a
+     * page left out.
+     */
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_VIEW_FEED, [
+      "Project",
+      "Services",
+      "View Service",
+      "Feed",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_VIEW_PROFILES, [
+      "Project",
+      "Services",
+      "View Service",
+      "Performance Profiles",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_VIEW_EXCEPTIONS, [
+      "Project",
+      "Services",
+      "View Service",
+      "Exceptions",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_VIEW_SOURCE_MAPS, [
+      "Project",
+      "Services",
+      "View Service",
+      "Source Maps",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_VIEW_AUDIT_LOGS, [
+      "Project",
+      "Services",
+      "View Service",
+      "Audit Logs",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_ARCHIVED, [
+      "Project",
+      "Services",
+      "Archived",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

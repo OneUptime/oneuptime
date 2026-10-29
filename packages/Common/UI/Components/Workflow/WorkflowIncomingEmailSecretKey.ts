@@ -3,6 +3,7 @@ import PermissionGate, {
   PermissionGateOptions,
   PermissionGateResult,
 } from "../../Utils/PermissionGate";
+import { translationKey } from "../../Utils/TranslateTemplate";
 import User from "../../Utils/User";
 import Workflow from "../../../Models/DatabaseModels/Workflow";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
@@ -26,6 +27,10 @@ import Permission from "../../../Types/Permission";
  */
 export const INCOMING_EMAIL_SECRET_KEY_COLUMN: string =
   "incomingEmailSecretKey";
+
+// Why Reset is locked, before what would open it (PermissionGate's words).
+export const RESET_INCOMING_EMAIL_ADDRESS_REFUSED_SENTENCE: string =
+  translationKey("You do not have permission to reset this email address.");
 
 type ColumnPermissionsFunction = () => Array<Permission>;
 
@@ -114,15 +119,13 @@ export const getIncomingEmailSecretKeyResetGate: GetIncomingEmailSecretKeyResetG
       return { isAllowed: true };
     }
 
-    const titles: Array<string> =
-      PermissionGate.getPermissionTitles(columnPermissions);
-
     return {
       isAllowed: false,
-      disabledReason:
-        titles.length > 0
-          ? `You do not have permission to reset this email address. You need one of these permissions: ${titles.join(", ")}.`
-          : "You do not have permission to reset this email address.",
+      disabledReason: PermissionGate.getRefusalReason({
+        sentence: RESET_INCOMING_EMAIL_ADDRESS_REFUSED_SENTENCE,
+        permissions: columnPermissions,
+        options: options,
+      }),
     };
   };
 

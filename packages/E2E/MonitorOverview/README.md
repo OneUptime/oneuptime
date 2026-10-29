@@ -1,13 +1,14 @@
 # Monitor overview fixture
 
-An offline harness for the real monitor overview page, its Monitoring Logs page, and Create
-Monitor:
+An offline harness for the real monitor overview page, its Monitoring Logs page, Create
+Monitor, and the monitor templates list, whose create form draws Create Monitor's type picker:
 
-| Page             | Route (from `RouteMap`)                                       | Production components                                                                                                                                                                                               |
-| ---------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Monitor overview | `MONITOR_VIEW` `/dashboard/:projectId/monitors/:id`           | `Pages/Monitor/View/{Layout,Index}` and every card they mount (`Components/Monitor/Overview/*`, `SummaryView/Summary`, `MonitorFeed`, `EmbeddedMetricCard`, `OverviewCustomFields`, `DependencySuppressionWarning`) |
-| Monitoring Logs  | `MONITOR_VIEW_LOGS` `/dashboard/:projectId/monitors/:id/logs` | `Pages/Monitor/View/{Layout,Logs}`: the real `AnalyticsModelTable` over `MonitorLog`, and the View Summary modal (`SummaryView/SummaryInfo`)                                                                        |
-| Create Monitor   | `MONITOR_CREATE` `/dashboard/:projectId/monitors/create`      | `Pages/Monitor/Create`: the real `ModelForm`, the monitor type picker (`CardSelect`'s catalog layout), the criteria step (`Form/Monitor/MonitorSteps`) and Probes & Interval                                        |
+| Page              | Route (from `RouteMap`)                                                           | Production components                                                                                                                                                                                               |
+| ----------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Monitor overview  | `MONITOR_VIEW` `/dashboard/:projectId/monitors/:id`                               | `Pages/Monitor/View/{Layout,Index}` and every card they mount (`Components/Monitor/Overview/*`, `SummaryView/Summary`, `MonitorFeed`, `EmbeddedMetricCard`, `OverviewCustomFields`, `DependencySuppressionWarning`) |
+| Monitoring Logs   | `MONITOR_VIEW_LOGS` `/dashboard/:projectId/monitors/:id/logs`                     | `Pages/Monitor/View/{Layout,Logs}`: the real `AnalyticsModelTable` over `MonitorLog`, and the View Summary modal (`SummaryView/SummaryInfo`)                                                                        |
+| Create Monitor    | `MONITOR_CREATE` `/dashboard/:projectId/monitors/create`                          | `Pages/Monitor/Create`: the real `ModelForm`, the monitor type picker (`CardSelect`'s catalog layout), the criteria step (`Form/Monitor/MonitorSteps`) and Probes & Interval                                        |
+| Monitor templates | `MONITORS_SETTINGS_TEMPLATES` `/dashboard/:projectId/monitors/settings/templates` | `Pages/Monitor/Settings/MonitorTemplates`: the real `ModelTable` over `MonitorTemplate` (no template yet) and its create form, whose Monitor Defaults step draws the type picker. Nothing is created from it        |
 
 `Fixture/server.js` bundles the production layout (ModelPage, side menu) and page with
 esbuild, serves them with the same Tailwind build, `tailwind.config` and `Theme.css`
@@ -213,6 +214,17 @@ and stretch nothing below the form; no error shows until Next is pressed, and th
 Next; Probes & Interval opens on Every 5 Minutes; Create Monitor sends the type, name,
 interval, address and picked probe. A Manual monitor is created from its one step, with no
 interval.
+
+More monitor types folds again (issue #5364): it stays once pressed, its chevron turned up
+and aria-expanded true, and a second press folds the rest away with focus kept on it and the
+form back where it was; by keyboard, the rows are one tab stop and More the next, Enter opens
+it (focus on the first new type), Shift+Tab is back on More and Space folds it; Change on a
+type the rest holds opens them with More open, More folds them and Escape keeps the type; a
+search hides More and clearing it brings More back as it was; on a phone it opens and folds
+with nothing wider than the screen; dark, German and Persian (More at the line's start, its
+chevron not mirrored). The monitor template form (Settings > Monitor Templates, Create, on
+Monitor Defaults) does the same in its dialog, on a desktop and a phone, and Escape after
+Change keeps the type without closing the dialog.
 
 On the criteria step Host and Port share a line, their boxes level and the port a quarter of
 it, and the fields are plain choices: SQL Server's **Authentication** offers

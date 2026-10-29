@@ -225,38 +225,33 @@ describe("OnCallPolicyRunMessageView.getMarkdown - a run that is paging", () => 
     );
   });
 
-  test("a rule tried again because nobody was on call yet says so, and when - not that the next rule is coming", () => {
-    const retrying: string = progressOf(
-      OnCallPolicyRunMessageView.getMarkdown(
-        run({
-          currentRule: { order: 1, name: "fhirst" },
-          nextRule: { order: 2, name: "second" },
-          escalateAfterInMinutes: 1,
-          nextStepAt: new Date("2026-10-08T17:16:00.000Z"),
-          retryingCurrentRule: true,
-        }),
-      ),
+  /*
+   * A level with nobody to page is passed at once (OnCallEmptyLevel): the
+   * run is never held on it, trying it again, so the message never says it
+   * is - it says where the run is now, which is the level after.
+   */
+  test("a level is never said to be tried again: the run moved on from it, and its progress is the next level's", () => {
+    const markdown: string = OnCallPolicyRunMessageView.getMarkdown(
+      run({
+        currentRule: { order: 2, name: "second" },
+        nextRule: { order: 3, name: "third" },
+        escalateAfterInMinutes: 7,
+        nextStepAt: new Date("2026-10-08T17:22:00.000Z"),
+        notPaged: [
+          {
+            rule: { order: 1, name: "fhirst" },
+            reason: "nobody to page",
+            movedOnTo: { order: 2, name: "second" },
+          },
+        ],
+      }),
     );
 
-    expect(retrying).toBe(
-      "**fhirst (Level 1 of 3)**: nobody is on call yet, trying again by {{TIME(2026-10-08T17:16:00Z)}}.",
+    expect(progressOf(markdown)).toBe(
+      "**second (Level 2 of 3)**: if nobody acknowledges by {{TIME(2026-10-08T17:22:00Z)}}, third (Level 3 of 3) is next.",
     );
-    expect(retrying).not.toContain("is next");
-
-    expect(
-      progressOf(
-        OnCallPolicyRunMessageView.getMarkdown(
-          run({
-            currentRule: { order: 1, name: "fhirst" },
-            escalateAfterInMinutes: 1,
-            repeatNumber: 1,
-            retryingCurrentRule: true,
-          }),
-        ),
-      ),
-    ).toBe(
-      "**fhirst (Level 1 of 3)**, repeat 1 of 2: nobody is on call yet, trying again within 1 minute.",
-    );
+    expect(markdown).not.toContain("trying again");
+    expect(markdown).not.toContain("on call yet");
   });
 
   test("before its first rule has started, the run says it is starting, and nothing is promised", () => {
@@ -801,6 +796,140 @@ describe("OnCallPolicyRunMessageView.getAlarms - loud only where somebody has to
     ).toBe(
       `⚠️ ${POLICY} paged nobody at Level 1 of 3 for ${RECORD}. If nobody is on it yet, page someone or fix the policy.`,
     );
+  });
+});
+
+/*
+ * A LEVEL PASSED AT ONCE (OnCallEmptyLevel): nobody was there to page, so
+ * the run paged the next level that same moment. Nobody waited, so there is
+ * nobody to page by hand: the alarm asks for the policy to be fixed, and
+ * says where the run went - as the level's line in the list does.
+ */
+describe("OnCallPolicyRunMessageView - a level passed at once because it had nobody to page", () => {
+  test("its alarm says why, that the run moved on to the next level at once, and that the policy needs fixing", () => {
+    expect(
+      OnCallPolicyRunMessageView.getAlarms(
+        run({
+          firstRuleThatReachedNobody: {
+            rule: { order: 1, name: "fhirst" },
+            reasons: ["the rule has nobody to page"],
+            movedOnTo: { order: 2, name: "second" },
+          },
+        }),
+      ),
+    ).toEqual([
+      {
+        key: ON_CALL_RUN_ALARM_NOBODY_PAGED_AT_A_RULE,
+        markdown: `⚠️ ${POLICY} paged nobody at fhirst (Level 1 of 3) for ${RECORD} (the rule has nobody to page), so second (Level 2 of 3) was paged at once. Fix the policy so this level pages someone.`,
+        text: "PolicyX paged nobody at fhirst (Level 1 of 3) for Incident INC-8, so second (Level 2 of 3) was paged at once",
+      },
+    ]);
+  });
+
+  test("levels with no name of their own are named by their place, as everywhere", () => {
+    const alarm: OnCallPolicyRunAlarm = OnCallPolicyRunMessageView.getAlarms(
+      run({
+        firstRuleThatReachedNobody: {
+          rule: { order: 1 },
+          reasons: [],
+          movedOnTo: { order: 2 },
+        },
+      }),
+    )[0]!;
+
+    expect(alarm.markdown).toBe(
+      `⚠️ ${POLICY} paged nobody at Level 1 of 3 for ${RECORD}, so Level 2 of 3 was paged at once. Fix the policy so this level pages someone.`,
+    );
+    expect(alarm.markdown).not.toContain("page someone or");
+  });
+
+  test("its line in the list says the next level was paged at once; the last level's says nothing more", () => {
+    const markdown: string = OnCallPolicyRunMessageView.getMarkdown(
+      run({
+        notPaged: [
+          {
+            rule: { order: 1, name: "fhirst" },
+            reason: "nobody to page",
+            movedOnTo: { order: 2, name: "second" },
+          },
+          {
+            rule: { order: 2 },
+            reason: "nobody to page",
+            movedOnTo: { order: 3 },
+          },
+          { rule: { order: 3 }, reason: "nobody to page" },
+        ],
+      }),
+    );
+
+    expect(markdown).toContain(
+      "- fhirst (Level 1 of 3): nobody to page, so second (Level 2 of 3) was paged at once\n- Level 2 of 3: nobody to page, so Level 3 of 3 was paged at once\n- Level 3 of 3: nobody to page",
+    );
+  });
+
+  test("a level's name is text in the line and in the alarm: Markdown in it formats nothing, and links nowhere", () => {
+    const name: string = "*Night* [open](https://evil.example/x)";
+    const shown: OnCallPolicyRun = run({
+      notPaged: [
+        {
+          rule: { order: 1, name: "fhirst" },
+          reason: "nobody to page",
+          movedOnTo: { order: 2, name: name },
+        },
+      ],
+      firstRuleThatReachedNobody: {
+        rule: { order: 1, name: "fhirst" },
+        reasons: [],
+        movedOnTo: { order: 2, name: name },
+      },
+    });
+
+    for (const markdown of [
+      OnCallPolicyRunMessageView.getMarkdown(shown),
+      OnCallPolicyRunMessageView.getAlarms(shown)[0]!.markdown,
+    ]) {
+      expect(markdown).toContain("\\*Night\\*");
+      expect(syntaxOf(markdown)).not.toContain("](https://evil.example/x)");
+    }
+  });
+
+  test("a run that went through every level and reached nobody: the level's alarm and the ending's, once each", () => {
+    const alarms: Array<OnCallPolicyRunAlarm> =
+      OnCallPolicyRunMessageView.getAlarms(
+        run({
+          outcome: OnCallPolicyRunOutcome.NobodyReached,
+          paged: [],
+          firstRuleThatReachedNobody: {
+            rule: { order: 1, name: "fhirst" },
+            reasons: ["the rule has nobody to page"],
+            movedOnTo: { order: 2, name: "second" },
+          },
+        }),
+      );
+
+    expect(alarmKeys(alarms)).toEqual([
+      ON_CALL_RUN_ALARM_NOBODY_PAGED_AT_A_RULE,
+      ON_CALL_RUN_ALARM_OUTCOME,
+    ]);
+    expect(alarms[1]!.markdown).toBe(
+      `⚠️ Nobody was paged for ${RECORD}: no escalation rule of ${POLICY} reached anyone. Check who is on call, or page someone yourself.`,
+    );
+  });
+
+  test("once somebody acknowledged, a level passed at once raises nothing", () => {
+    expect(
+      OnCallPolicyRunMessageView.getAlarms(
+        run({
+          outcome: OnCallPolicyRunOutcome.Acknowledged,
+          acknowledgedByName: "Nitin",
+          firstRuleThatReachedNobody: {
+            rule: { order: 1, name: "fhirst" },
+            reasons: [],
+            movedOnTo: { order: 2, name: "second" },
+          },
+        }),
+      ),
+    ).toEqual([]);
   });
 });
 

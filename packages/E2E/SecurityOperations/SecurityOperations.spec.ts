@@ -1553,15 +1553,128 @@ test.describe("the overview's top card", () => {
           );
         }
       } else {
-        // Two by two on a phone, and no chevron pointing at the next row.
-        expect(Math.abs(cells[1]!.y - cells[0]!.y)).toBeLessThanOrEqual(1);
-        expect(Math.abs(cells[3]!.y - cells[2]!.y)).toBeLessThanOrEqual(1);
-        expect(cells[2]!.y).toBeGreaterThan(cells[0]!.y + cells[0]!.height - 1);
+        /*
+         * One above the other on a phone, in the order the parts work in -
+         * two cells of 160px broke German's and Dutch's longest words - and
+         * no chevron pointing at the next row.
+         */
+        for (const index of [1, 2, 3]) {
+          expect(Math.abs(cells[index]!.x - cells[0]!.x)).toBeLessThanOrEqual(
+            1,
+          );
+          expect(cells[index]!.y).toBeGreaterThan(
+            cells[index - 1]!.y + cells[index - 1]!.height - 1,
+          );
+        }
         for (const index of [0, 1, 2]) {
           await expect(arrows.nth(index)).toBeHidden();
         }
       }
       await screenshot(page, layout.name);
+    }
+  });
+
+  /*
+   * The cells follow the pipeline's own width, not the window's (#5256's
+   * follow-up: beside the side menu at 1024 the window's four columns put
+   * four 150px cells in the card and broke German's SICHERHEITSFAELLE
+   * mid-word). Four across from 51rem of pipeline, two from 25rem, one
+   * above the other below that - and in the two languages with the longest
+   * words, no word of a cell's name breaks inside itself at any width. The
+   * fixture's frame is 64px narrower than the Dashboard's: 1344 and 1088
+   * here are a 1280px and a 1024px window beside the side menu.
+   */
+  test("the cells follow the pipeline's own width, and no word of their names breaks inside itself, in German and Dutch", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const lang of ["de", "nl"] as const) {
+      for (const width of [1344, 1088, 832, 390]) {
+        await open(page, OVERVIEW_PATH, { width, lang });
+        await expect(topCard(page)).toBeVisible();
+
+        const pipelineWidth: number = (
+          await boxOf(page.getByTestId("security-pipeline"))
+        ).width;
+        const across: number =
+          pipelineWidth >= 816 ? 4 : pipelineWidth >= 400 ? 2 : 1;
+        const cells: Array<Box> = await cellBoxes(page);
+        const columns: number = new Set(
+          cells.map((cell: Box): number => {
+            return Math.round(cell.x);
+          }),
+        ).size;
+
+        expect({ lang, width, columns }).toEqual({
+          lang,
+          width,
+          columns: across,
+        });
+        // Beside the side menu at 1024 the four share two rows.
+        if (width === 1088) {
+          expect({ lang, width, across }).toEqual({ lang, width, across: 2 });
+        }
+
+        for (const key of STAGE_KEYS) {
+          const label: Locator = page.getByTestId(
+            `security-pipeline-${key}-label`,
+          );
+          // The letters of each word on one line: a break only at a space.
+          const brokenWords: Array<string> = await label.evaluate(
+            (element: HTMLElement): Array<string> => {
+              const text: string = element.textContent || "";
+              const node: Node | null = element.firstChild;
+              const range: Range = document.createRange();
+              const broken: Array<string> = [];
+
+              if (!node || node.nodeType !== Node.TEXT_NODE) {
+                return ["<no text>"];
+              }
+
+              const topOf: (index: number) => number = (
+                index: number,
+              ): number => {
+                range.setStart(node, index);
+                range.setEnd(node, index + 1);
+                return Math.round(range.getBoundingClientRect().top);
+              };
+
+              for (let index: number = 0; index < text.length - 1; index++) {
+                const here: string = text.charAt(index);
+                const next: string = text.charAt(index + 1);
+
+                if (
+                  here.trim() &&
+                  next.trim() &&
+                  topOf(index) !== topOf(index + 1)
+                ) {
+                  broken.push(text);
+                  break;
+                }
+              }
+
+              return broken;
+            },
+          );
+
+          expect({ lang, width, key, brokenWords }).toEqual({
+            lang,
+            width,
+            key,
+            brokenWords: [],
+          });
+          expect(await overflowOf(label)).toBeLessThanOrEqual(0);
+        }
+
+        expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+
+        if (lang === "de" && (width === 1088 || width === 390)) {
+          await screenshot(page, `overview-pipeline-${width}-de`, {
+            fullPage: false,
+          });
+        }
+      }
     }
   });
 
@@ -2461,6 +2574,20 @@ const CASE_PAGES: ReadonlyArray<CasePage> = [
     segment: "/connected-signals",
     text: "Named by k.morgan@acme-commerce.example, their email.",
     slug: "connected-signals",
+  },
+  {
+    section: "Investigation",
+    title: "Evidence",
+    segment: "/evidence",
+    text: "okta-system-log-2026-10-14.json",
+    slug: "evidence",
+  },
+  {
+    section: "Investigation",
+    title: "Tasks",
+    segment: "/tasks",
+    text: "Reset the sprayed accounts' passwords",
+    slug: "tasks",
   },
   {
     section: "Investigation",
@@ -4500,6 +4627,13 @@ test.describe("a case", () => {
   }: {
     page: Page;
   }) => {
+    /*
+     * Thirteen pages since Evidence and Tasks, three looks at each and two
+     * more on a phone in the dark: 41 pages drawn and shot, past the
+     * config's two minutes on a busy machine.
+     */
+    test.setTimeout(300000);
+
     for (const casePage of CASE_PAGES) {
       const shots: Array<[number, "dark" | undefined]> = [
         ...CASE_PAGE_SHOTS,
@@ -5466,6 +5600,15 @@ test.describe("detections", () => {
       });
 
       const filters: Locator = page.getByTestId("rule-library-filters");
+
+      if (width < 768) {
+        // On a phone the chips are folded behind Filter (FacetFilterBar).
+        const filter: Locator = filters.getByTestId("facet-filter-bar-toggle");
+        await expect(filter).toHaveAttribute("aria-expanded", "false");
+        await expect(page.getByTestId("rule-library-count")).toBeVisible();
+        await filter.click();
+        await expect(filter).toHaveAttribute("aria-expanded", "true");
+      }
       await expect(filters).toHaveAttribute("role", "group");
       await expect(chipButton(page, CATEGORY_CHIP)).toHaveText("Rule category");
       await expect(chipButton(page, DATA_CHIP)).toHaveText("Data");
@@ -6053,6 +6196,10 @@ test.describe("detections", () => {
       await expect(libraryRow(page, BRUTE_FORCE_RULE)).toBeVisible({
         timeout: 30000,
       });
+      if (width < 768) {
+        // On a phone the chips are folded behind Filter (FacetFilterBar).
+        await page.getByTestId("facet-filter-bar-toggle").click();
+      }
       // The filter chips speak the language too.
       await expect(chipButton(page, CATEGORY_CHIP)).toHaveText(category);
       await expect(
@@ -8532,9 +8679,13 @@ test.describe("the project's case priorities and statuses", () => {
       .click();
     const dialog: Locator = page.getByRole("dialog");
     await expect(dialog).toContainText("Close Case");
-    // Where the case goes comes first, before OneUptime AI's read of it.
+    /*
+     * Where the case goes comes first, then the work still open on it (two
+     * of the spray case's three tasks, CaseWorkFixture.js), before OneUptime
+     * AI's read of it.
+     */
     await expect(dialog).toContainText(
-      "The case moves to Closed - Duplicate. OneUptime AI read this case as Likely Malicious. Pick what you found.",
+      "The case moves to Closed - Duplicate. 2 tasks on this case are still open. OneUptime AI read this case as Likely Malicious. Pick what you found.",
     );
     await dialog
       .getByRole("button", { name: "Close Case", exact: true })

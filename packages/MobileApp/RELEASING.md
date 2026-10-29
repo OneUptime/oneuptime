@@ -210,7 +210,9 @@ npx expo-doctor
 npm run test-file -- --watch=false --runTestsByPath \
   src/__tests__/appConfig.test.ts \
   src/__tests__/foldableAppConfig.test.ts \
+  src/__tests__/windowPostureModule.test.ts \
   src/navigation/FoldContinuity.integration.test.tsx \
+  src/navigation/PostureNavigator.test.tsx \
   src/api/authServerUrl.test.ts \
   src/api/clientRefreshQueue.test.ts \
   src/api/sso.test.ts \
@@ -355,12 +357,36 @@ and loses everything on screen. Check the built AAB's manifest for both
 foldable emulator fold and unfold with an incident and a half-written note
 open.
 
+Since the hinge and posture release, Android builds also link the app's own
+native module `modules/window-posture` (Jetpack WindowManager's folding
+features, at the `androidx.window` version React Native ships); iOS builds do
+not link it, and keep the layout by window size alone. It compiles with the
+app's Gradle build, and `:window-posture:testReleaseUnitTest` runs its JVM
+tests; `src/__tests__/windowPostureModule.test.ts` holds the names and the
+report's shape it shares with JavaScript. Before the first release that ships
+it, go through [the module's device checks](modules/window-posture/README.md#on-a-device)
+on a Galaxy Z Fold (or the Android Studio foldable emulator) and a Galaxy Z
+Flip: the divider on the crease when half open like a book, the tabletop
+layout half open on a table, the handle that moves the divider when flat and
+remembers its width, and nothing lost through any of them. If any of it
+fails, removing `modules/window-posture` (or its `android` entry in
+`expo-module.config.json`) puts Android back on the layout by window size
+alone, as iOS is.
+
 **Store listings.** iPhone Duo screenshots (outer display 1398 × 2034, inner
 display 2007 × 2853 pixels, portrait) are optional today and earn the product
 page an "Optimized for iPhone Duo" badge; from April 2027 they are required for
 apps built with the iOS 27.1 SDK. Take them in the iPhone Duo simulator. On
 Google Play, add tablet screenshots (7- and 10-inch) from a foldable or tablet
 emulator so the listing shows the two-pane layout.
+
+**The public docs.** The docs on the mobile apps
+(`packages/App/FeatureSet/Docs/Content/<language>/mobile-desktop-apps/`, the
+overview and the FAQ, in all 17 languages) describe only what customers can
+install. Once a release with the two-pane layout is live in both stores,
+describe it there - the list beside its detail on unfolded foldables and
+tablets, the rail, and on Android the tabletop layout and the divider that can
+be moved - in the same change for every language.
 
 ## 5. Publish Android through Play Console
 

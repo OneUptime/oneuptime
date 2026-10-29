@@ -138,6 +138,16 @@ import GenericNormalizer from "Common/Utils/SecurityEvent/GenericNormalizer";
 import OcsfNormalizer from "Common/Utils/SecurityEvent/OcsfNormalizer";
 import SecurityEventNormalizer from "Common/Utils/SecurityEvent/SecurityEventNormalizer";
 import SigmaRuleParser from "Common/Utils/SecurityEvent/Sigma/SigmaRuleParser";
+import SigmaRuleSetParser, {
+  sigmaRulesOf,
+} from "Common/Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
+import {
+  bindSigmaWatchlists,
+  getDetectionRuleWatchlistReferences,
+} from "Common/Utils/SecurityEvent/Sigma/SigmaWatchlists";
+import { SigmaWatchlists } from "Common/Types/SecurityEvent/SecurityWatchlist";
+import { DetectionRuleDefinition } from "Common/Types/SecurityEvent/SigmaCorrelation";
+import { SecurityEntityType } from "Common/Types/SecurityCase/SecurityEntity";
 import ThreatIntelFeedType, {
   RECOMMENDED_THREAT_INTEL_LISTS,
   RecommendedThreatIntelList,
@@ -469,6 +479,32 @@ function compiledSql(ruleYaml: string): Statement {
   return SigmaClickhouseCompiler.compileYaml(ruleYaml);
 }
 
+/*
+ * A rule as a save compiles it: the watchlists it names bound as a project
+ * that keeps them binds them, each a list of users kept by hand.
+ */
+function compiledSqlAsSaved(ruleYaml: string): Statement {
+  const definition: DetectionRuleDefinition =
+    SigmaRuleSetParser.parse(ruleYaml);
+  const watchlists: SigmaWatchlists = {};
+
+  for (const reference of getDetectionRuleWatchlistReferences(definition)) {
+    watchlists[reference.key] = {
+      name: reference.name,
+      entityType: SecurityEntityType.User,
+      exactValues: ["adm"],
+      patterns: ["adm*"],
+      ranges: [],
+    };
+  }
+
+  const rule: SigmaRule | undefined = sigmaRulesOf(
+    bindSigmaWatchlists(definition, watchlists),
+  )[0];
+
+  return SigmaClickhouseCompiler.compile(rule!);
+}
+
 function boundValues(statement: Statement): Array<unknown> {
   return Object.values(statement.query_params);
 }
@@ -562,19 +598,19 @@ describe("the Security Events page", () => {
       "Security Viewer",
     ]);
     expect(permissionTitled("Security Admin").description).toContain(
-      "Full control over security operations: security events, cases with their detections and notes, response playbooks and their runs, Sigma detection rules, threat intelligence feeds and their indicators, and security event connections",
+      "Full control over security operations: security events, cases with their detections, notes, tasks and evidence, response playbooks and their runs, Sigma detection rules, threat intelligence feeds and their indicators, and security event connections",
     );
     expect(rowNamed(rows, "Security Admin")[1]).toBe(
       "Everything: events, cases, playbooks, detection rules, threat intel feeds and connections",
     );
     expect(permissionTitled("Security Member").description).toContain(
-      "works security cases (opens, assigns, changes and closes them and writes their notes), runs playbooks and approves their steps, and creates, changes and deletes detection rules and threat intel feeds. Cannot configure playbooks or security event connections, or delete security data.",
+      "works security cases (opens, assigns, changes and closes them, writes their notes, works their tasks and adds evidence), runs playbooks and approves their steps, and creates, changes and deletes detection rules and threat intel feeds. Cannot configure playbooks or security event connections, or delete security data.",
     );
     expect(rowNamed(rows, "Security Member")[1]).toBe(
       "Read events and threat intel, work cases, run playbooks and approve their steps, and create, change and delete detection rules and feeds. It can't set up playbooks or connections, or delete security data.",
     );
     expect(permissionTitled("Security Viewer").description).toBe(
-      "Read-only access to security events, cases with their detections and notes, playbooks and their runs, detection rules, threat intelligence feeds and indicators, and security event connections.",
+      "Read-only access to security events, cases with their detections, notes, tasks and evidence, playbooks and their runs, detection rules, threat intelligence feeds and indicators, and security event connections.",
     );
     expect(rowNamed(rows, "Security Viewer")[1]).toBe(
       "Read events, cases, playbooks, rules, feeds, indicators and connections",
@@ -1392,6 +1428,7 @@ describe("the Security Events page", () => {
       cidr: "    principalIp|cidr: 10.0.0.0/8",
       exists: "    principalHost|exists: true",
       windash: "    principalProcess|windash|contains: ' -enc '",
+      expand: "    principalUser|expand: '%admins%'",
     };
 
     expect(named.slice(0, SIGMA_SUPPORTED_MODIFIERS.length)).toEqual([
@@ -1401,9 +1438,14 @@ describe("the Security Events page", () => {
 
     for (const modifier of SIGMA_SUPPORTED_MODIFIERS) {
       expect(() => {
-        return compiledSql(sigmaRule(uses[modifier] as string));
+        return compiledSqlAsSaved(sigmaRule(uses[modifier] as string));
       }).not.toThrow();
     }
+
+    // expand reads the list the project keeps: its values as written, and its patterns.
+    expect(boundValues(compiledSqlAsSaved(sigmaRule(uses["expand"]!)))).toEqual(
+      expect.arrayContaining([["adm"], "adm%"]),
+    );
 
     // windash matches the flag in both spellings.
     expect(boundValues(compiledSql(sigmaRule(uses["windash"]!)))).toEqual(

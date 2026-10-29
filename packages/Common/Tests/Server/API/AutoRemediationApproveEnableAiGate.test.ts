@@ -754,7 +754,7 @@ describe("POST /auto-remediation/approve — Enable AI is the one project gate",
         expect.objectContaining({
           alertId: ALERT_ID,
           feedInfoInMarkdown: expect.stringContaining(
-            "AI command plan approved",
+            "Approved the **AI command plan**: 1 command is being run.",
           ),
         }),
       );

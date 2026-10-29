@@ -1149,16 +1149,16 @@ export default class MonitorStepViewModel {
     return compact([
       optional({
         key: "logBody",
-        title: "Filter Log Message",
-        description: "Filter by log message with this text:",
+        title: "Message contains",
+        description: "Only logs whose message contains this text.",
         valueType: MonitorStepViewValueType.Text,
         value: toText(logMonitor?.body),
         placeholder: "No log message entered",
       }),
       optional({
         key: "lastXSecondsOfLogs",
-        title: "Monitor logs for the last (time)",
-        description: "How many seconds of logs to monitor.",
+        title: "Time window",
+        description: "How far back each check counts logs.",
         valueType: MonitorStepViewValueType.Text,
         value: toDuration(logMonitor?.lastXSecondsOfLogs),
         placeholder: "1 minute",
@@ -1166,7 +1166,7 @@ export default class MonitorStepViewModel {
       optional({
         key: "severityTexts",
         title: "Log Severity",
-        description: "Severity of the logs to monitor.",
+        description: "Only logs of these severities.",
         valueType: MonitorStepViewValueType.ArrayOfText,
         value: (logMonitor?.severityTexts || []).map((severity: string) => {
           return String(severity);
@@ -1364,16 +1364,16 @@ export default class MonitorStepViewModel {
     return compact([
       optional({
         key: "spanName",
-        title: "Filter Span Name",
-        description: "Filter by span name with this text:",
+        title: "Span name contains",
+        description: "Only spans whose name contains this text.",
         valueType: MonitorStepViewValueType.Text,
         value: toText(traceMonitor?.spanName),
         placeholder: "No span name entered",
       }),
       optional({
         key: "lastXSecondsOfSpans",
-        title: "Monitor spans for the last (time)",
-        description: "How many seconds of spans to monitor.",
+        title: "Time window",
+        description: "How far back each check counts spans.",
         valueType: MonitorStepViewValueType.Text,
         value: toDuration(traceMonitor?.lastXSecondsOfSpans),
         placeholder: "1 minute",
@@ -1381,7 +1381,7 @@ export default class MonitorStepViewModel {
       optional({
         key: "spanStatuses",
         title: "Span Status",
-        description: "Status of the spans to monitor.",
+        description: "Only spans with these statuses.",
         valueType: MonitorStepViewValueType.ArrayOfText,
         value: (traceMonitor?.spanStatuses || []).map((status: SpanStatus) => {
           return toSpanStatusText(status);
@@ -1428,8 +1428,8 @@ export default class MonitorStepViewModel {
     return compact([
       optional({
         key: "exceptionMessage",
-        title: "Filter Exception Message",
-        description: "Filter by exception message with this text:",
+        title: "Message contains",
+        description: "Only exceptions whose message contains this text.",
         valueType: MonitorStepViewValueType.Text,
         value: toText(exceptionMonitor?.message),
         placeholder: "No message entered",
@@ -1454,8 +1454,8 @@ export default class MonitorStepViewModel {
       }),
       {
         key: "lastXSecondsOfExceptions",
-        title: "Monitor exceptions for the last (time)",
-        description: "How much of the exception history each check reads.",
+        title: "Time window",
+        description: "How far back each check counts exceptions.",
         valueType: MonitorStepViewValueType.Text,
         value: toDuration(exceptionMonitor?.lastXSecondsOfExceptions),
         placeholder: "1 minute",

@@ -199,6 +199,11 @@ export interface NetworkTrafficFilterChip {
   // An English template (translated where it is drawn) and its values.
   template: string;
   values: Dictionary<string | number>;
+  /*
+   * The chip names an address ({{address}}): the page writes it by its name,
+   * with the address beside it (issue #5340).
+   */
+  address?: string | undefined;
 }
 
 /*
@@ -230,6 +235,7 @@ export function getNetworkTrafficFilterChips(
       kind: "exporter",
       template: FILTER_EXPORTER_LABEL,
       values: { address: filters.exporterIp },
+      address: filters.exporterIp,
     });
   }
 
@@ -248,6 +254,7 @@ export function getNetworkTrafficFilterChips(
       kind: "source",
       template: FILTER_SOURCE_LABEL,
       values: { address: filters.sourceIp },
+      address: filters.sourceIp,
     });
   }
 
@@ -256,6 +263,7 @@ export function getNetworkTrafficFilterChips(
       kind: "destination",
       template: FILTER_DESTINATION_LABEL,
       values: { address: filters.destinationIp },
+      address: filters.destinationIp,
     });
   }
 
@@ -264,6 +272,7 @@ export function getNetworkTrafficFilterChips(
       kind: "host",
       template: FILTER_HOST_LABEL,
       values: { address: filters.hostIp },
+      address: filters.hostIp,
     });
   }
 

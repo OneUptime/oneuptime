@@ -1,5 +1,10 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import useResizableColumns, {
+  ResizableColumns,
+} from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
+import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -85,6 +90,19 @@ const TraceOperations: FunctionComponent<ComponentProps> = (
     return sortOperations(props.operations, sortKey, direction);
   }, [props.operations, sortKey, direction]);
 
+  /*
+   * Its columns as wide as a person makes them (Common's
+   * Table/ColumnResize): an operation gives way, a count or a time never.
+   */
+  const operationColumns: ResizableColumns = useResizableColumns({
+    tableKey: "trace-operations-table",
+    columns: COLUMNS.map(
+      (column: Column, index: number): { id: string; cellNumber: number } => {
+        return { id: column.key, cellNumber: index + 1 };
+      },
+    ),
+  });
+
   if (rows.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-gray-200 px-4 py-10 text-center text-sm text-gray-500">
@@ -98,14 +116,25 @@ const TraceOperations: FunctionComponent<ComponentProps> = (
       className="overflow-x-auto rounded-lg border border-gray-200"
       data-testid="trace-operations"
     >
-      <table className="min-w-full divide-y divide-gray-200 text-xs">
+      {operationColumns.styles}
+      <table
+        className={`${operationColumns.getTableWidthClassName("min-w-full")} divide-y divide-gray-200 text-xs`}
+        {...operationColumns.tableAttributes}
+      >
         <thead className="bg-gray-50">
           <tr>
             {COLUMNS.map((column: Column): ReactElement => {
               const isSorted: boolean = column.key === sortKey;
               return (
-                <th
+                <ResizableHeaderCell
                   key={column.key}
+                  resize={operationColumns.getResize(
+                    column.key,
+                    column.label,
+                    column.key === "name"
+                      ? ColumnWidthKind.Name
+                      : ColumnWidthKind.Whole,
+                  )}
                   scope="col"
                   aria-sort={
                     isSorted
@@ -141,7 +170,7 @@ const TraceOperations: FunctionComponent<ComponentProps> = (
                       />
                     )}
                   </button>
-                </th>
+                </ResizableHeaderCell>
               );
             })}
           </tr>

@@ -388,6 +388,12 @@ De här komponenterna agerar som Project Admin för arbetsflödets projekt: det 
 
 Incidenten registrerar mallen den deklarerades från i `createdIncidentTemplateId`. Den kolumnen sätter OneUptime själv: ett steg som skickar den i **JSON Object** avvisas, och dess körningslogg hänvisar dig till **Incident Template**. En mall från ett annat projekt, eller en som har tagits bort, får steget att ta sin utgång **Error**, och på en plan som inte omfattar incidentmallar avvisas steget med den plan som krävs. Se [Hur en mall tillämpas](/docs/incidents/settings#så-tillämpas-en-mall).
 
+### Länka resurserna det gäller
+
+**Create One Incident** och **Create One Alert** har inställningen **Berörda resurser**: de värdar, nätverksenheter, kluster, databaser eller tjänster som posten gäller, med namn, adress eller ID, åtskilda med kommatecken — inskrivna eller hämtade från ett tidigare steg, som värden som ett larm från ett annat verktyg nämner. Varje post söks i alla sorters resurser som posten kan hålla, som helt värde och utan hänsyn till versaler: på namn, en nätverksenhet också på adressen den avsöks på eller sitt DNS-namn, en värd på namnet dess agent rapporterar eller en av dess IP-adresser, och en molnresurs på leverantörens ID. Varje resurs som en post matchar länkas, bredvid det som **JSON Object** och mallen redan länkar, upp till 50 från de första 25 posterna.
+
+En post som inte matchar något stoppar inte steget: posten skapas ändå, och körningsloggen säger vad varje post länkade och vilka som inte matchade något. Arkiverade resurser länkas inte. Monitorer slås inte upp: ange dem i **JSON Object** (`monitors` på en incident, `monitorId` på ett larm), eftersom att länka en monitor till en incident pausar dess övervakning.
+
 ## Arbeta med poster
 
 Varje fält på en datakomponent använder postens egna **kolumn**namn — samma namn som API:t, inte etiketterna i instrumentpanelens formulär. ID-kolumnen är `_id`. Stavningen `id` accepteras som alias överallt där du kan skriva ett kolumnnamn, men `_id` är det en post returnerar, så det är det du ska läsa på vägen ut:

@@ -62,6 +62,7 @@ const SERVICE_ID: string = "33333333-3333-4333-8333-333333333333";
 // The model each kind's list holds.
 const KIND_MODELS: Record<AiAffectedResourceKind, { new (): BaseModel }> = {
   [AiAffectedResourceKind.Host]: Host,
+  [AiAffectedResourceKind.NetworkDevice]: NetworkDevice,
   [AiAffectedResourceKind.DockerHost]: DockerHost,
   [AiAffectedResourceKind.PodmanHost]: PodmanHost,
   [AiAffectedResourceKind.KubernetesCluster]: KubernetesCluster,
@@ -81,7 +82,6 @@ const NOT_LINKABLE_MODELS: Partial<
   Record<AIResourceType, { new (): BaseModel }>
 > = {
   [AIResourceType.ServerlessFunction]: ServerlessFunction,
-  [AIResourceType.NetworkDevice]: NetworkDevice,
 };
 
 // Every list of a model that holds records of `modelType`.
@@ -251,6 +251,9 @@ describe("readAiAffectedResourceKind - a kind as a model spells it", () => {
     ["DatabaseServer", AiAffectedResourceKind.DatabaseServer],
     ["CloudResource", AiAffectedResourceKind.CloudResource],
     ["cloud_resource", AiAffectedResourceKind.CloudResource],
+    ["NetworkDevice", AiAffectedResourceKind.NetworkDevice],
+    ["network device", AiAffectedResourceKind.NetworkDevice],
+    ["network_device", AiAffectedResourceKind.NetworkDevice],
   ])("reads %j", (value: string, kind: AiAffectedResourceKind) => {
     expect(readAiAffectedResourceKind(value)).toBe(kind);
   });
@@ -259,7 +262,7 @@ describe("readAiAffectedResourceKind - a kind as a model spells it", () => {
     ["Monitor"],
     ["CloudResources"],
     ["ServerlessFunction"],
-    ["NetworkDevice"],
+    ["NetworkDevices"],
     ["Hosts"],
     [""],
     ["   "],
@@ -346,12 +349,45 @@ describe("getPageAffectedResource - what an incident declared on a page is about
     });
   });
 
+  /*
+   * Issue #5341: a router's or a switch's page used to be about nothing an
+   * incident could hold, so an incident Ask AI declared there was linked
+   * to nothing. Incidents and alerts hold network devices now.
+   */
+  test("a network device's page is about the device: incidents and alerts hold them now", () => {
+    expect(
+      getPageAffectedResource(
+        resourcePage(AIResourceType.NetworkDevice, CLUSTER_ID),
+      ),
+    ).toEqual({ kind: AiAffectedResourceKind.NetworkDevice, id: CLUSTER_ID });
+    // Linked for its page and its monitors, never fixed: no agent runs on a router.
+    expect(
+      getAiAffectedResourceKindInfo(AiAffectedResourceKind.NetworkDevice),
+    ).toEqual({
+      kind: AiAffectedResourceKind.NetworkDevice,
+      relation: "networkDevices",
+      noun: "network device",
+      isFixedByOneUptimeAi: false,
+    });
+  });
+
+  test("a network device comes right after a host, as on the incident's card", () => {
+    const kinds: Array<string> = AI_AFFECTED_RESOURCE_KINDS.map(
+      (info: AiAffectedResourceKindInfo): string => {
+        return info.kind;
+      },
+    );
+
+    expect(kinds.indexOf(AiAffectedResourceKind.NetworkDevice)).toBe(
+      kinds.indexOf(AiAffectedResourceKind.Host) + 1,
+    );
+  });
+
   test.each([
     [
       "a serverless function's page",
       resourcePage(AIResourceType.ServerlessFunction),
     ],
-    ["a network device's page", resourcePage(AIResourceType.NetworkDevice)],
     [
       "a list of hosts",
       {

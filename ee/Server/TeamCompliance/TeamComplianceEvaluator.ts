@@ -2,6 +2,7 @@ import ComplianceRule, {
   COMPLIANCE_CHANNEL_DEFINITIONS,
   COMPLIANCE_RULE_DEFINITIONS,
   ComplianceChannelDefinition,
+  ComplianceMethodChannel,
   ComplianceRuleCategory,
   ComplianceRuleDefinition,
   ComplianceSeverityKind,
@@ -57,6 +58,18 @@ import ObjectID from "Common/Types/ObjectID";
  *    NOT satisfy a channel rule: "they have asked never to be called for
  *    Critical" is precisely the thing a "Call for Critical" rule exists to
  *    catch.
+ *
+ * CUSTOM CHANNELS (#5332). A custom channel is the installation's, not the
+ * member's: its admin adds it, and a member's notification rule names it
+ * instead of a method of their own. So a rule that pages a member through one
+ * is coverage for an on-call rule with no channel like any other rule, and an
+ * on-call rule can insist on the custom channel itself - met, severity by
+ * severity, by a rule that names any custom channel that is on, with nothing
+ * to verify. While no custom channel can carry a page (custom channels are an
+ * Enterprise feature the license may not include, or none is turned on),
+ * nobody can meet that by changing their own rules, so members are not
+ * checked on it: the rule says why once, in a warning, and a rule that
+ * insists on nothing else checks nobody (channelsNotChecked).
  */
 
 /*
@@ -64,7 +77,7 @@ import ObjectID from "Common/Types/ObjectID";
  * word for word: they are what existing installs have been showing admins.
  */
 export const METHOD_RULE_FAILURE_REASONS: Readonly<
-  Record<ComplianceNotificationChannel, string>
+  Record<ComplianceMethodChannel, string>
 > = {
   [ComplianceNotificationChannel.Email]:
     "No verified email address configured for notifications",
@@ -88,6 +101,20 @@ export const METHOD_RULE_FAILURE_REASONS: Readonly<
 
 export const UNKNOWN_RULE_TYPE_WARNING: string =
   "This rule type is not recognised, so it is not checked.";
+
+/*
+ * Why a rule's custom channel is not checked (channelsNotChecked): no custom
+ * channel can carry a page on this server right now, and no member can
+ * change that, so it is said once on the rule rather than as a failure per
+ * member. The first while custom channels are not active
+ * (CustomChannelEdition: no Enterprise license includes them - always so on
+ * the Community Edition), the second while they are but none is turned on.
+ */
+export const CUSTOM_CHANNELS_NOT_ACTIVE_WARNING: string =
+  "Custom channels are a OneUptime Enterprise feature, and this server has no Enterprise license that includes them, so nothing is sent to a custom channel and members are not checked for one.";
+
+export const NO_CUSTOM_CHANNEL_ON_WARNING: string =
+  "No custom channel is turned on, so nothing is sent to one and members are not checked for one. A server admin can turn one on in the Admin Dashboard, under Settings > Notifications > Custom Channels.";
 
 /*
  * Why a rule a severity delete left with nothing to check
@@ -135,6 +162,26 @@ export const PROJECT_CHANNEL_SWITCHES: Readonly<
 };
 
 export const WHATSAPP_SWITCHED_OFF_WARNING: string = `WhatsApp is switched off for this project, so members cannot add a WhatsApp number to meet this rule. ${getWhoCanTurnOnSentence("it")}`;
+
+/*
+ * Where a page through a custom channel can go on this server right now, as
+ * the runtime decides it: only to a channel that is on, and only while
+ * custom channels are active. Read only when an enabled rule insists on the
+ * custom channel.
+ */
+export interface CustomChannelAvailability {
+  /*
+   * Custom channels are active (CustomChannelEdition.isActive): an
+   * Enterprise feature, never on the Community Edition, stopped when a
+   * license that includes them lapses.
+   */
+  isActive: boolean;
+  /*
+   * The ids of the custom channels that are on - empty while custom
+   * channels are not active, as CustomNotificationChannelService answers.
+   */
+  channelIdsOn: ReadonlySet<string>;
+}
 
 // A severity, as a rule's selection or the project's severity list has it.
 export interface ComplianceSeverityInput {
@@ -200,7 +247,10 @@ export interface ComplianceNotificationRuleInput {
   alertSeverityId?: string | undefined;
   // True only for a stored `isOptOut === true`. NULL on legacy rows is a rule.
   isOptOut: boolean;
-  // The method id in each channel column that is set on the row.
+  /*
+   * The method id in each channel column that is set on the row - and, for
+   * CustomChannel, the id of the custom channel the rule pages through.
+   */
   methodIds: Partial<Record<ComplianceNotificationChannel, string>>;
   /*
    * True when ANY of the row's nine method relations - not only the channel
@@ -262,6 +312,11 @@ export interface TeamComplianceEvaluationInput {
    * not be read looks like, and "off" is the answer that gets it looked at.
    */
   projectSwitches: Partial<Record<ProjectChannelSwitch, boolean>> | null;
+  /*
+   * Where a page through a custom channel can go, or null when no enabled
+   * rule insists on the custom channel (and so nothing was read).
+   */
+  customChannels: CustomChannelAvailability | null;
 }
 
 // A rule once its stored fields have been checked against the catalog.
@@ -278,6 +333,14 @@ export interface ResolvedComplianceRule {
    * is always empty for method rules and unrecognised rules.
    */
   notificationChannels: Array<ComplianceNotificationChannel>;
+  /*
+   * Those of notificationChannels members are not checked on: the custom
+   * channel, on an enabled rule, while no custom channel can carry a page
+   * (getCustomChannelWarning) - nobody can meet it then, whatever their
+   * rules say. Empty otherwise, on a paused rule, and before the custom
+   * channels have been read (resolveRules without them, to plan the reads).
+   */
+  channelsNotChecked: Array<ComplianceNotificationChannel>;
   severityKind: ComplianceSeverityKind | null;
   /*
    * The rule's selected severities of its own kind that belong to the
@@ -298,8 +361,12 @@ export interface ComplianceLoadPlan {
   // An enabled on-call rule with no channel needs readiness coverage.
   needsCoverage: boolean;
   // Channels enabled method rules check, in catalog order.
-  methodChannels: Array<ComplianceNotificationChannel>;
-  // Channels enabled on-call rules insist on, in catalog order.
+  methodChannels: Array<ComplianceMethodChannel>;
+  /*
+   * Channels enabled on-call rules insist on, in catalog order. With
+   * CustomChannel among them, the rules' custom channel ids are read, and
+   * which custom channels are on.
+   */
   onCallChannels: Array<ComplianceNotificationChannel>;
   // The notification rule types those channel rules check.
   onCallRuleTypes: Array<NotificationRuleType>;
@@ -356,11 +423,13 @@ interface ChannelRuleContext {
 /*
  * Why a member is not covered on one of a channel rule's channels: the names
  * of the severities in scope under each heading, and the ids of those opted
- * out of (said once for the rule, not once per channel).
+ * out of (said once for the rule, not once per channel). `unusable` is a
+ * rule whose method cannot be used: unverified, or a custom channel that is
+ * turned off.
  */
 interface ChannelVerdict {
   missing: Array<string>;
-  unverified: Array<string>;
+  unusable: Array<string>;
   refused: Array<string>;
   optedOutSeverityIds: Array<string>;
 }
@@ -381,15 +450,23 @@ export default class TeamComplianceEvaluator {
    * The team's rules as the page lists them - oldest first, so a rule does not
    * move when another is added - with every stored field checked against the
    * catalog: options the rule type does not take are dropped, and so are
-   * selected severities of another kind or another project.
+   * selected severities of another kind or another project. With
+   * `customChannels`, an enabled rule's custom channel is set aside while
+   * none can carry a page (channelsNotChecked); without them - planning the
+   * reads, before they are read - nothing is.
    */
   public static resolveRules(
     rules: Array<ComplianceRuleInput>,
     projectId: string,
+    customChannels: CustomChannelAvailability | null = null,
   ): Array<ResolvedComplianceRule> {
     const resolved: Array<ResolvedComplianceRule> = rules.map(
       (rule: ComplianceRuleInput): ResolvedComplianceRule => {
-        return TeamComplianceEvaluator.resolveRule(rule, projectId);
+        return TeamComplianceEvaluator.resolveRule(
+          rule,
+          projectId,
+          customChannels,
+        );
       },
     );
 
@@ -406,10 +483,57 @@ export default class TeamComplianceEvaluator {
 
   /*
    * Whether members are checked against the rule: it is enabled, of a type
-   * this server recognises, and has not lost its severities to a delete.
+   * this server recognises, has not lost its severities to a delete, and is
+   * not left with only channels members are not checked on.
    */
   public static isChecked(rule: ResolvedComplianceRule): boolean {
-    return rule.enabled && Boolean(rule.definition) && !rule.severitiesDeleted;
+    return (
+      rule.enabled &&
+      Boolean(rule.definition) &&
+      !rule.severitiesDeleted &&
+      !TeamComplianceEvaluator.hasNoChannelToCheck(rule)
+    );
+  }
+
+  // The rule's channels members are checked on, in catalog order.
+  public static getCheckedChannels(
+    rule: ResolvedComplianceRule,
+  ): Array<ComplianceNotificationChannel> {
+    return rule.notificationChannels.filter(
+      (channel: ComplianceNotificationChannel): boolean => {
+        return !rule.channelsNotChecked.includes(channel);
+      },
+    );
+  }
+
+  /*
+   * A rule that insists on channels, not one of which members are checked
+   * on: it checks nobody - it never falls back to "any channel", which is a
+   * different rule. Never true of a rule with no channels.
+   */
+  public static hasNoChannelToCheck(rule: ResolvedComplianceRule): boolean {
+    return (
+      rule.notificationChannels.length > 0 &&
+      TeamComplianceEvaluator.getCheckedChannels(rule).length === 0
+    );
+  }
+
+  /*
+   * Why no rule can be met on the custom channel right now, or null when a
+   * page through one can go out: custom channels are active and one is on.
+   */
+  public static getCustomChannelWarning(
+    customChannels: CustomChannelAvailability,
+  ): string | null {
+    if (!customChannels.isActive) {
+      return CUSTOM_CHANNELS_NOT_ACTIVE_WARNING;
+    }
+
+    if (customChannels.channelIdsOn.size === 0) {
+      return NO_CUSTOM_CHANNEL_ON_WARNING;
+    }
+
+    return null;
   }
 
   /*
@@ -427,8 +551,8 @@ export default class TeamComplianceEvaluator {
       },
     );
 
-    const methodChannels: Set<ComplianceNotificationChannel> =
-      new Set<ComplianceNotificationChannel>();
+    const methodChannels: Set<ComplianceMethodChannel> =
+      new Set<ComplianceMethodChannel>();
     const onCallChannels: Set<ComplianceNotificationChannel> =
       new Set<ComplianceNotificationChannel>();
     const onCallRuleTypes: Set<NotificationRuleType> =
@@ -455,7 +579,7 @@ export default class TeamComplianceEvaluator {
         continue;
       }
 
-      for (const channel of rule.notificationChannels) {
+      for (const channel of TeamComplianceEvaluator.getCheckedChannels(rule)) {
         onCallChannels.add(channel);
         switchedChannels.add(channel);
       }
@@ -469,20 +593,22 @@ export default class TeamComplianceEvaluator {
       }
     }
 
-    const inChannelOrder: (
-      channels: Set<ComplianceNotificationChannel>,
-    ) => Array<ComplianceNotificationChannel> = (
-      channels: Set<ComplianceNotificationChannel>,
-    ): Array<ComplianceNotificationChannel> => {
+    const inChannelOrder: <TChannel extends ComplianceNotificationChannel>(
+      channels: ReadonlySet<TChannel>,
+    ) => Array<TChannel> = <TChannel extends ComplianceNotificationChannel>(
+      channels: ReadonlySet<TChannel>,
+    ): Array<TChannel> => {
       return COMPLIANCE_CHANNEL_DEFINITIONS.map(
         (
           definition: ComplianceChannelDefinition,
         ): ComplianceNotificationChannel => {
           return definition.channel;
         },
-      ).filter((channel: ComplianceNotificationChannel): boolean => {
-        return channels.has(channel);
-      });
+      ).filter(
+        (channel: ComplianceNotificationChannel): channel is TChannel => {
+          return channels.has(channel as TChannel);
+        },
+      );
     };
 
     const projectSwitches: Array<ProjectChannelSwitch> = [];
@@ -527,7 +653,11 @@ export default class TeamComplianceEvaluator {
     input: TeamComplianceEvaluationInput,
   ): TeamComplianceStatusJSON {
     const rules: Array<ResolvedComplianceRule> =
-      TeamComplianceEvaluator.resolveRules(input.rules, input.projectId);
+      TeamComplianceEvaluator.resolveRules(
+        input.rules,
+        input.projectId,
+        input.customChannels,
+      );
 
     const channelRuleContexts: Map<ResolvedComplianceRule, ChannelRuleContext> =
       new Map<ResolvedComplianceRule, ChannelRuleContext>();
@@ -625,6 +755,7 @@ export default class TeamComplianceEvaluator {
             rule,
             outcomes[index]!,
             input.projectSwitches,
+            input.customChannels,
           );
         },
       ),
@@ -634,15 +765,16 @@ export default class TeamComplianceEvaluator {
 
   /*
    * What is wrong with the rule itself rather than with any member. Only
-   * checked rules are checked for a switched-off channel - a paused rule
-   * warns about nothing - but an unrecognised rule, and one whose severities
-   * were all deleted, always say so, enabled or not: otherwise nothing on the
-   * page explains why it is never checked, or that switching it back on is
-   * not the fix.
+   * enabled rules are checked for a switched-off channel, or a custom
+   * channel nothing can be sent to - a paused rule warns about nothing - but
+   * an unrecognised rule, and one whose severities were all deleted, always
+   * say so, enabled or not: otherwise nothing on the page explains why it is
+   * never checked, or that switching it back on is not the fix.
    */
   public static getRuleWarnings(
     rule: ResolvedComplianceRule,
     projectSwitches: Partial<Record<ProjectChannelSwitch, boolean>> | null,
+    customChannels: CustomChannelAvailability | null = null,
   ): Array<string> {
     if (!rule.definition) {
       return [UNKNOWN_RULE_TYPE_WARNING];
@@ -652,27 +784,47 @@ export default class TeamComplianceEvaluator {
       return [SEVERITIES_DELETED_WARNING];
     }
 
-    if (!rule.enabled || !projectSwitches) {
+    if (!rule.enabled) {
       return [];
     }
 
-    const channels: Array<ComplianceNotificationChannel> =
-      rule.definition.category === ComplianceRuleCategory.NotificationMethod
-        ? rule.definition.methodChannel
-          ? [rule.definition.methodChannel]
-          : []
-        : rule.notificationChannels;
+    const warnings: Array<string> = [];
 
-    return TeamComplianceEvaluator.getChannelsSwitchedOffWarnings(
-      channels.filter((channel: ComplianceNotificationChannel): boolean => {
-        const projectSwitch: ProjectChannelSwitch | undefined =
-          PROJECT_CHANNEL_SWITCHES[channel];
+    if (projectSwitches) {
+      const channels: Array<ComplianceNotificationChannel> =
+        rule.definition.category === ComplianceRuleCategory.NotificationMethod
+          ? rule.definition.methodChannel
+            ? [rule.definition.methodChannel]
+            : []
+          : rule.notificationChannels;
 
-        return (
-          projectSwitch !== undefined && projectSwitches[projectSwitch] !== true
-        );
-      }),
-    );
+      warnings.push(
+        ...TeamComplianceEvaluator.getChannelsSwitchedOffWarnings(
+          channels.filter((channel: ComplianceNotificationChannel): boolean => {
+            const projectSwitch: ProjectChannelSwitch | undefined =
+              PROJECT_CHANNEL_SWITCHES[channel];
+
+            return (
+              projectSwitch !== undefined &&
+              projectSwitches[projectSwitch] !== true
+            );
+          }),
+        ),
+      );
+    }
+
+    const customChannelWarning: string | null =
+      rule.channelsNotChecked.includes(
+        ComplianceNotificationChannel.CustomChannel,
+      ) && customChannels
+        ? TeamComplianceEvaluator.getCustomChannelWarning(customChannels)
+        : null;
+
+    if (customChannelWarning) {
+      warnings.push(customChannelWarning);
+    }
+
+    return warnings;
   }
 
   /*
@@ -737,6 +889,7 @@ export default class TeamComplianceEvaluator {
   private static resolveRule(
     rule: ComplianceRuleInput,
     projectId: string,
+    customChannels: CustomChannelAvailability | null,
   ): ResolvedComplianceRule {
     const definition: ComplianceRuleDefinition | undefined =
       ComplianceRule.getDefinition(rule.ruleType);
@@ -754,6 +907,22 @@ export default class TeamComplianceEvaluator {
     const notificationChannels: Array<ComplianceNotificationChannel> =
       definition && ComplianceRule.supportsChannel(definition.ruleType)
         ? ComplianceRule.normaliseChannels(rule.notificationChannels)
+        : [];
+
+    /*
+     * The custom channel, while nothing can be sent to one, is no channel a
+     * member can be checked on. Only worked out for an enabled rule: a
+     * paused one checks nobody, and warns about nothing, anyway.
+     */
+    const channelsNotChecked: Array<ComplianceNotificationChannel> =
+      rule.enabled === true &&
+      customChannels &&
+      TeamComplianceEvaluator.getCustomChannelWarning(customChannels) !== null
+        ? notificationChannels.filter(
+            (channel: ComplianceNotificationChannel): boolean => {
+              return channel === ComplianceNotificationChannel.CustomChannel;
+            },
+          )
         : [];
 
     let severities: Array<ComplianceSeverityInput> = [];
@@ -776,6 +945,7 @@ export default class TeamComplianceEvaluator {
       enabled: rule.enabled === true,
       definition: definition,
       notificationChannels: notificationChannels,
+      channelsNotChecked: channelsNotChecked,
       severityKind: severityKind,
       severities: severities,
       /*
@@ -1014,7 +1184,7 @@ export default class TeamComplianceEvaluator {
 
     const channels: Array<ComplianceChannelDefinition> = [];
 
-    for (const channel of rule.notificationChannels) {
+    for (const channel of TeamComplianceEvaluator.getCheckedChannels(rule)) {
       const channelDefinition: ComplianceChannelDefinition | undefined =
         ComplianceRule.getChannelDefinition(channel);
 
@@ -1091,9 +1261,13 @@ export default class TeamComplianceEvaluator {
         );
       }
 
-      if (verdict.unverified.length > 0) {
+      if (verdict.unusable.length > 0) {
         sentences.push(
-          `The ${channel.label} rule for ${rule.subject} severities ${verdict.unverified.join(", ")} points at an unverified ${channel.methodNoun}`,
+          `The ${channel.label} rule for ${rule.subject} severities ${verdict.unusable.join(", ")} points at ${
+            channel.method
+              ? `an unverified ${channel.method.noun}`
+              : "a custom channel that is turned off"
+          }`,
         );
       }
 
@@ -1130,9 +1304,12 @@ export default class TeamComplianceEvaluator {
    * needs a rule of the right type, for that severity, that is not an opt-out
    * and notifies them on the channel through a method row that exists in this
    * project, belongs to them and is verified (webhooks have no verification).
-   * The runtime skips an unverified method, and refuses a rule outright -
-   * every channel of it - when ANY method on it belongs to somebody else, so
-   * none of those is coverage here either.
+   * On the custom channel, which has no method of the member's own, the rule
+   * names a custom channel that is on - any of them. The runtime skips an
+   * unverified method and a custom channel that is turned off, and refuses a
+   * rule outright - every channel of it, a custom channel included - when ANY
+   * method on it belongs to somebody else, so none of those is coverage here
+   * either.
    *
    * A severity that is not covered is reported under the most useful of four
    * headings - the member has a broken rule for it (fix the method), a rule
@@ -1150,9 +1327,15 @@ export default class TeamComplianceEvaluator {
       context.input.methodsByChannel.get(channel.channel) ||
       new Map<string, ComplianceMethodInput>();
 
+    // Only read for, and only used by, the custom channel.
+    const customChannelIdsOn: ReadonlySet<string> =
+      context.input.customChannels?.isActive === true
+        ? context.input.customChannels.channelIdsOn
+        : new Set<string>();
+
     const verdict: ChannelVerdict = {
       missing: [],
-      unverified: [],
+      unusable: [],
       refused: [],
       optedOutSeverityIds: [],
     };
@@ -1186,11 +1369,15 @@ export default class TeamComplianceEvaluator {
 
         const method: ComplianceMethodInput | undefined = methods.get(methodId);
 
-        if (
-          method &&
-          method.userId === userId &&
-          (!channel.hasVerification || method.isVerified)
-        ) {
+        const isUsable: boolean = channel.method
+          ? Boolean(
+              method &&
+                method.userId === userId &&
+                (!channel.method.hasVerification || method.isVerified),
+            )
+          : customChannelIdsOn.has(methodId);
+
+        if (isUsable) {
           if (!row.hasForeignMethod) {
             isCovered = true;
             break;
@@ -1203,9 +1390,11 @@ export default class TeamComplianceEvaluator {
 
         /*
          * A webhook cannot be "unverified", so a webhook rule that points at
-         * nothing usable is simply not a webhook rule.
+         * nothing usable is simply not a webhook rule. A custom channel that
+         * is not on is turned off: the member can point the rule at one
+         * that is on.
          */
-        if (channel.hasVerification) {
+        if (!channel.method || channel.method.hasVerification) {
           hasBrokenRule = true;
         }
       }
@@ -1217,7 +1406,7 @@ export default class TeamComplianceEvaluator {
       const name: string = severity.name || severity.id;
 
       if (hasBrokenRule) {
-        verdict.unverified.push(name);
+        verdict.unusable.push(name);
       } else if (hasRefusedRule) {
         verdict.refused.push(name);
       } else if (hasOptOut) {
@@ -1287,6 +1476,7 @@ export default class TeamComplianceEvaluator {
     rule: ResolvedComplianceRule,
     outcome: RuleOutcome,
     projectSwitches: Partial<Record<ProjectChannelSwitch, boolean>> | null,
+    customChannels: CustomChannelAvailability | null,
   ): TeamComplianceRuleJSON {
     const isEvaluated: boolean = TeamComplianceEvaluator.isChecked(rule);
 
@@ -1295,6 +1485,7 @@ export default class TeamComplianceEvaluator {
       ruleType: rule.ruleType as ComplianceRuleType,
       enabled: rule.enabled,
       notificationChannels: rule.notificationChannels,
+      channelsNotChecked: rule.channelsNotChecked,
       severityKind: rule.severityKind,
       // A rule left without severities applies to none, not to all.
       appliesToAllSeverities:
@@ -1312,7 +1503,11 @@ export default class TeamComplianceEvaluator {
       ),
       compliantCount: isEvaluated ? outcome.compliantCount : 0,
       nonCompliantCount: isEvaluated ? outcome.nonCompliantCount : 0,
-      warnings: TeamComplianceEvaluator.getRuleWarnings(rule, projectSwitches),
+      warnings: TeamComplianceEvaluator.getRuleWarnings(
+        rule,
+        projectSwitches,
+        customChannels,
+      ),
     };
   }
 

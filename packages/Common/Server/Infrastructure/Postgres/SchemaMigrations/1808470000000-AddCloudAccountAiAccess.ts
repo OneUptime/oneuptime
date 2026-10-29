@@ -14,10 +14,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Every column has a constant default or none, which Postgres adds without
  * rewriting the table.
  */
-export class AddCloudAccountAiAccess1808200000000
+export class AddCloudAccountAiAccess1808470000000
   implements MigrationInterface
 {
-  public name: string = "AddCloudAccountAiAccess1808200000000";
+  public name: string = "AddCloudAccountAiAccess1808470000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

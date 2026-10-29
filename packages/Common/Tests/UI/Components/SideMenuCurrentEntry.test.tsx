@@ -1,4 +1,12 @@
-import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import "@testing-library/jest-dom";
 import {
   act,
@@ -403,6 +411,257 @@ describe("a side menu entry tells a screen reader it is current", () => {
     fireEvent.click(screen.getByTestId("mobile-sidemenu-toggle"));
 
     expect(currentAnchors()).toEqual([{ title: "Roles", current: "true" }]);
+  });
+});
+
+/*
+ * An Enterprise plugin draws its own menu entries (the Admin Dashboard's
+ * Custom Channels, say), so SideMenu's route scan sees the component and not
+ * the rows it draws. The row still says aria-current, and a folded section
+ * must open for it: collapsing must never hide where the reader is.
+ */
+describe("a folded section opens for an entry the route scan cannot see", () => {
+  const OpaqueEntry: () => ReactElement = (): ReactElement => {
+    return entry("Custom Channels", "/admin/settings/custom-channels");
+  };
+
+  function settingsMenu(): ReactElement {
+    return (
+      <SideMenu>
+        <SideMenuSection title="Basic">
+          {entry("Authentication", "/admin/settings/authentication")}
+        </SideMenuSection>
+        <SideMenuSection title="Notifications" defaultCollapsed={true}>
+          {entry("Push Notifications", "/admin/settings/push-notifications")}
+          <OpaqueEntry />
+        </SideMenuSection>
+        <SideMenuSection title="Monitoring" defaultCollapsed={true}>
+          {entry("Global Probes", "/admin/settings/probes")}
+        </SideMenuSection>
+      </SideMenu>
+    );
+  }
+
+  // A section's toggle, and the body it folds (the toggle's aria-controls).
+  function sectionParts(title: string): {
+    toggle: HTMLButtonElement;
+    body: HTMLElement;
+  } {
+    const heading: HTMLElement | undefined = Array.from(
+      document.querySelectorAll("h6"),
+    ).find((candidate: HTMLElement): boolean => {
+      return candidate.textContent?.trim() === title;
+    });
+    const toggle: HTMLButtonElement | null | undefined = heading
+      ?.closest("div.mb-2")
+      ?.querySelector("button");
+
+    if (!toggle) {
+      throw new Error(`No side-menu section titled "${title}".`);
+    }
+
+    const body: HTMLElement | null = document.getElementById(
+      toggle.getAttribute("aria-controls") || "",
+    );
+
+    if (!body) {
+      throw new Error(`The section "${title}" has no body.`);
+    }
+
+    return { toggle, body };
+  }
+
+  function isSectionOpen(title: string): boolean {
+    const heading: HTMLElement | undefined = Array.from(
+      document.querySelectorAll("h6"),
+    ).find((candidate: HTMLElement): boolean => {
+      return candidate.textContent?.trim() === title;
+    });
+
+    return (
+      heading
+        ?.closest("div.mb-2")
+        ?.querySelector("button")
+        ?.getAttribute("aria-expanded") === "true"
+    );
+  }
+
+  test("opens on the page the opaque entry links to", async () => {
+    await renderAt("/admin/settings/custom-channels", settingsMenu());
+
+    expect(isSectionOpen("Notifications")).toBe(true);
+    expect(isSectionOpen("Basic")).toBe(true);
+  });
+
+  test("opens when the user arrives on that page from another one", async () => {
+    const rendered: RenderResult = await renderAt(
+      "/admin/settings/authentication",
+      settingsMenu(),
+    );
+
+    expect(isSectionOpen("Notifications")).toBe(false);
+
+    goTo("/admin/settings/custom-channels");
+    rendered.rerender(settingsMenu());
+
+    expect(isSectionOpen("Notifications")).toBe(true);
+  });
+
+  test("a section the reader folded by hand stays folded on that page", async () => {
+    const rendered: RenderResult = await renderAt(
+      "/admin/settings/custom-channels",
+      settingsMenu(),
+    );
+
+    const heading: HTMLElement = Array.from(
+      document.querySelectorAll("h6"),
+    ).find((candidate: HTMLElement): boolean => {
+      return candidate.textContent?.trim() === "Notifications";
+    }) as HTMLElement;
+    const toggle: HTMLButtonElement = heading
+      .closest("div.mb-2")!
+      .querySelector("button") as HTMLButtonElement;
+
+    fireEvent.click(toggle);
+
+    expect(isSectionOpen("Notifications")).toBe(false);
+
+    rendered.rerender(settingsMenu());
+
+    expect(isSectionOpen("Notifications")).toBe(false);
+  });
+
+  test("opens only the section that holds the lit entry: a folded one without it stays folded", async () => {
+    await renderAt("/admin/settings/custom-channels", settingsMenu());
+
+    expect(isSectionOpen("Notifications")).toBe(true);
+    expect(isSectionOpen("Monitoring")).toBe(false);
+    expect(sectionParts("Monitoring").body).toHaveClass(
+      "max-h-0",
+      "opacity-0",
+      "invisible",
+    );
+    expect(currentAnchors()).toEqual([
+      { title: "Custom Channels", current: "page" },
+    ]);
+  });
+
+  /*
+   * A browser paints a commit before it runs the passive effects (useEffect)
+   * that follow it. Held back here, as a paint holds them back, the section
+   * must be open already: it opens in a layout effect, before the paint. As
+   * a passive effect, Admin Dashboard > Settings > Custom Channels drew
+   * Notifications folded for a frame or two, about a tenth of a second, and
+   * then it sprang open - every time the page was opened.
+   */
+  test("opens before the browser paints: with every passive effect held back, it is open already", async () => {
+    const reactModule: typeof React = jest.requireActual(
+      "react",
+    ) as typeof React;
+    const heldBack: SpyInstance<typeof React.useEffect> = jest
+      .spyOn(reactModule, "useEffect")
+      .mockImplementation((): void => {
+        // A passive effect the browser has not run yet.
+      });
+
+    try {
+      await renderAt("/admin/settings/custom-channels", settingsMenu());
+
+      expect(heldBack).toHaveBeenCalled();
+      expect(isSectionOpen("Notifications")).toBe(true);
+      expect(sectionParts("Notifications").body).not.toHaveClass("max-h-0");
+    } finally {
+      // Unmounted while useEffect is still held, so no render mixes the two.
+      cleanup();
+      heldBack.mockRestore();
+    }
+  });
+
+  /*
+   * Opened for the page, the section is drawn open at once, as a section
+   * that starts open is - no transition. With the press's fade, arriving
+   * from another page made the rows fade in from nothing whenever the
+   * arriving page measured the menu first: the very rows the reader had just
+   * clicked blinked out and back.
+   */
+  test("opens at once, drawn as a section that starts open, without the fade of a press", async () => {
+    await renderAt("/admin/settings/custom-channels", settingsMenu());
+
+    const body: HTMLElement = sectionParts("Notifications").body;
+
+    expect(body).toHaveClass("opacity-100", "transition-none");
+    expect(body).not.toHaveClass("transition-opacity");
+    expect(body).not.toHaveClass("invisible");
+  });
+
+  test("opens at once on arriving from another page too", async () => {
+    const rendered: RenderResult = await renderAt(
+      "/admin/settings/authentication",
+      settingsMenu(),
+    );
+
+    goTo("/admin/settings/custom-channels");
+    rendered.rerender(settingsMenu());
+
+    expect(isSectionOpen("Notifications")).toBe(true);
+    expect(sectionParts("Notifications").body).toHaveClass(
+      "opacity-100",
+      "transition-none",
+    );
+  });
+
+  test("the reader's own presses still fold and open it with their transitions", async () => {
+    await renderAt("/admin/settings/custom-channels", settingsMenu());
+
+    const { toggle, body } = sectionParts("Notifications");
+
+    fireEvent.click(toggle);
+
+    expect(body).toHaveClass(
+      "max-h-0",
+      "opacity-0",
+      "invisible",
+      "transition-all",
+    );
+    expect(body).not.toHaveClass("transition-none");
+
+    fireEvent.click(toggle);
+
+    expect(isSectionOpen("Notifications")).toBe(true);
+    expect(body).toHaveClass("opacity-100", "transition-opacity");
+    expect(body).not.toHaveClass("transition-none");
+  });
+
+  test("a section the reader opens on another page fades in, as a press does", async () => {
+    await renderAt("/admin/settings/authentication", settingsMenu());
+
+    const { toggle, body } = sectionParts("Notifications");
+
+    expect(isSectionOpen("Notifications")).toBe(false);
+
+    fireEvent.click(toggle);
+
+    expect(isSectionOpen("Notifications")).toBe(true);
+    expect(body).toHaveClass("opacity-100", "transition-opacity");
+    expect(body).not.toHaveClass("transition-none");
+  });
+
+  /*
+   * A phone draws the menu only while it is open, so its sections mount as
+   * it opens: the section with the lit entry opens with them.
+   */
+  test("on a phone, the menu opens at the section that holds the entry", async () => {
+    setViewportWidth(PHONE_WIDTH);
+
+    await renderAt("/admin/settings/custom-channels", settingsMenu());
+
+    fireEvent.click(screen.getByTestId("mobile-sidemenu-toggle"));
+
+    expect(isSectionOpen("Notifications")).toBe(true);
+    expect(isSectionOpen("Monitoring")).toBe(false);
+    expect(currentAnchors()).toEqual([
+      { title: "Custom Channels", current: "page" },
+    ]);
   });
 });
 

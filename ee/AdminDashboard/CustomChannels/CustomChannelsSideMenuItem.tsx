@@ -7,7 +7,7 @@ import {
   CUSTOM_CHANNELS_SETTINGS_PAGE_TITLE,
 } from "./CustomChannelsPaths";
 
-// Settings > Custom Channels in the Settings side menu.
+// Settings > Notifications > Custom Channels in the Settings side menu.
 const CustomChannelsSideMenuItem: FunctionComponent = (): ReactElement => {
   return (
     <SideMenuItem

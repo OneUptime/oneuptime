@@ -154,6 +154,14 @@ describe("every logo has its file", () => {
       ProviderLogo.MicrosoftCopilot,
       // Zoom's thin blue wordmark: white on dark, as Zoom shows it there.
       ProviderLogo.Zoom,
+      // The black marks of the frameworks the OpenTelemetry guides cover.
+      ProviderLogo.Express,
+      ProviderLogo.Fastify,
+      ProviderLogo.Koa,
+      // hapi's dark grey lettering, beside its colour helmet.
+      ProviderLogo.Hapi,
+      // The Actix wheel, black.
+      ProviderLogo.ActixWeb,
     ]) {
       expect({ logo, hasDarkMark: hasDarkProviderLogoMark(logo) }).toEqual({
         logo,
@@ -167,6 +175,12 @@ describe("every logo has its file", () => {
       ProviderLogo.MicrosoftTeams,
       ProviderLogo.GoogleCloud,
       ProviderLogo.PagerDuty,
+      ProviderLogo.NestJs,
+      ProviderLogo.Bun,
+      // Rails' red rail, Phoenix's orange bird, Gin's blue glass.
+      ProviderLogo.Rails,
+      ProviderLogo.Phoenix,
+      ProviderLogo.Gin,
     ]) {
       expect({ logo, hasDarkMark: hasDarkProviderLogoMark(logo) }).toEqual({
         logo,

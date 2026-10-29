@@ -43,7 +43,7 @@ Udløs en advarsel, når dit team bør kigge, før nogen udenfor opdager noget, 
 ## Hvor advarsler kommer fra
 
 - **En monitors kriterier.** Under et kriteriums **Handlinger** slår du **Når filtre matcher, oprettes en advarsel.** til og udfylder den advarsel, det opretter: **Advarselstitel** og **Alvorlighed**, derefter, hver foldet sammen, **Beskrivelse**, **Ejerskab og etiketter**, **Vagt** og **Flere felter**, som rummer **Løs advarsel automatisk**, **Privat advarsel** og **Afhjælpningsnoter**. Et kriterium holder én åben advarsel ad gangen, én pr. serie på en monitor, der grupperer efter et felt, og **Løs advarsel automatisk** løser den, når kriteriet holder op med at matche. Se [Opret en monitor](/docs/monitor/create-monitor) og [Hændelse- og advarselsskabeloner](/docs/monitor/incident-alert-templating).
-- **I hånden.** Klik på **Opret advarsel** på listen over advarsler eller på fanen **Advarsler** for en monitor, en host eller en anden ressource, som vælger den ressource for dig. Se [Opret en advarsel i hånden](#opret-en-advarsel-i-hånden).
+- **I hånden.** Klik på **Opret advarsel** på listen over advarsler eller på fanen **Advarsler** for en monitor, en host, en netværksenhed eller en anden ressource, som vælger den ressource for dig. Se [Opret en advarsel i hånden](#opret-en-advarsel-i-hånden).
 - **En SLO's forbrugsrate.** En forbrugsrateregel kan oprette en advarsel, når en SLO bruger sit fejlbudget for hurtigt. Se [Forbrugsrateadvarsler og -hændelser](/docs/slo/burn-rate-alerts).
 - **Netværkslokationer og sikkerhedsbegivenheder.** En netværkslokation, der er sat til at advare, når den er usund, åbner en advarsel, når dens samlede tilstand ikke længere er operationel, og dine detektionsregler for sikkerhedsbegivenheder åbner også advarsler. Se [Netværkslokationer (tilstandsoversigt og oppetid)](/docs/monitor/network-sites) og [Sikkerhedsbegivenheder (SIEM)](/docs/telemetry/security-events).
 - **En tilkaldelse.** `/oneuptime page` i Slack eller Microsoft Teams åbner en advarsel med din besked som titel og tilkalder de personer, du nævner. Et workflows tilkaldelsesblokke gør det samme med den titel og besked, du giver dem. Se [Tilkald nogen fra Slack](/docs/workspace-connections/slack#tilkald-nogen-fra-slack) og [Paging](/docs/workflows/components#paging).
@@ -81,7 +81,7 @@ Udfyld **Titel**, og vælg en **Advarselsalvor**; begge er påkrævede. Tilføj 
 
 ### Vælg, hvad den berører, og hvem der tilkaldes
 
-Klik på **Næste** for at komme til **Ressourcer og vagt**. Vælg den **Overvågning**, den handler om, og eventuelle **Andre berørte ressourcer**, som hosts, Kubernetes-klynger eller tjenester. Under **Vagtpolitik** vælger du de politikker, der skal køre, når advarslen oprettes.
+Klik på **Næste** for at komme til **Ressourcer og vagt**. Vælg den **Overvågning**, den handler om, og eventuelle **Andre berørte ressourcer**, som hosts, netværksenheder, Kubernetes-klynger eller tjenester. Under **Vagtpolitik** vælger du de politikker, der skal køre, når advarslen oprettes.
 
 ### Opret den
 

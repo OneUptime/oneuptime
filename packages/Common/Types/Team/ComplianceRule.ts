@@ -11,6 +11,12 @@ import NotificationRuleType from "../NotificationRule/NotificationRuleType";
  * severities.
  *
  * Pure data and pure functions only - this file is bundled into the Dashboard.
+ *
+ * A channel is either a method a member owns - a phone, a push device, a
+ * webhook - or a custom channel (#5332), which is the installation's: its
+ * admin adds it, and a member's on-call rule just names it. The second kind
+ * has nothing per person, so its definition has no method and there is no
+ * "has a verified ..." rule for it; only on-call rules can insist on it.
  */
 
 export enum ComplianceRuleCategory {
@@ -28,18 +34,40 @@ export enum ComplianceSeverityKind {
   Alert = "Alert",
 }
 
-export interface ComplianceChannelDefinition {
-  channel: ComplianceNotificationChannel;
-  // "Call", "Push notification", ...
-  label: string;
+// The method a member owns on a channel.
+export interface ComplianceChannelMethod {
   // What a member has to add: "phone number for calls", "push device", ...
-  methodNoun: string;
+  noun: string;
   /*
    * False only for webhooks, which have no verification step: a configured
    * webhook is usable as it stands, and the runtime treats it that way.
    */
   hasVerification: boolean;
 }
+
+export interface ComplianceChannelDefinition {
+  channel: ComplianceNotificationChannel;
+  // "Call", "Push notification", ...
+  label: string;
+  /*
+   * The method a member owns on this channel, or null for a channel with
+   * nothing per person: a custom channel is set up once, by the
+   * installation's admin, and reaches whoever's on-call rule names it. Such
+   * a channel has no method rule, and an on-call rule on it is met by a rule
+   * that pages through a custom channel that is on.
+   */
+  method: ComplianceChannelMethod | null;
+}
+
+/*
+ * The channels a member owns a method on - every channel whose definition
+ * has one, which is every channel but CustomChannel. Method rules exist for
+ * exactly these.
+ */
+export type ComplianceMethodChannel = Exclude<
+  ComplianceNotificationChannel,
+  ComplianceNotificationChannel.CustomChannel
+>;
 
 export interface ComplianceRuleDefinition {
   ruleType: ComplianceRuleType;
@@ -49,7 +77,7 @@ export interface ComplianceRuleDefinition {
   // One sentence on what the rule checks.
   description: string;
   // NotificationMethod rules: the channel whose verified method is required.
-  methodChannel?: ComplianceNotificationChannel | undefined;
+  methodChannel?: ComplianceMethodChannel | undefined;
   // OnCallRule rules: the notification rule type the member must have.
   notificationRuleType?: NotificationRuleType | undefined;
   // OnCallRule rules: which severity list scopes the rule.
@@ -63,67 +91,64 @@ export const COMPLIANCE_CHANNEL_DEFINITIONS: ReadonlyArray<ComplianceChannelDefi
     {
       channel: ComplianceNotificationChannel.Call,
       label: "Call",
-      methodNoun: "phone number for calls",
-      hasVerification: true,
+      method: { noun: "phone number for calls", hasVerification: true },
     },
     {
       channel: ComplianceNotificationChannel.SMS,
       label: "SMS",
-      methodNoun: "phone number for SMS",
-      hasVerification: true,
+      method: { noun: "phone number for SMS", hasVerification: true },
     },
     {
       channel: ComplianceNotificationChannel.Push,
       label: "Push notification",
-      methodNoun: "push notification device",
-      hasVerification: true,
+      method: { noun: "push notification device", hasVerification: true },
     },
     {
       channel: ComplianceNotificationChannel.Email,
       label: "Email",
-      methodNoun: "email address",
-      hasVerification: true,
+      method: { noun: "email address", hasVerification: true },
     },
     {
       channel: ComplianceNotificationChannel.WhatsApp,
       label: "WhatsApp",
-      methodNoun: "WhatsApp number",
-      hasVerification: true,
+      method: { noun: "WhatsApp number", hasVerification: true },
     },
     {
       channel: ComplianceNotificationChannel.Telegram,
       label: "Telegram",
-      methodNoun: "Telegram account",
-      hasVerification: true,
+      method: { noun: "Telegram account", hasVerification: true },
     },
     {
       channel: ComplianceNotificationChannel.Slack,
       label: "Slack",
-      methodNoun: "Slack account",
-      hasVerification: true,
+      method: { noun: "Slack account", hasVerification: true },
     },
     {
       channel: ComplianceNotificationChannel.MicrosoftTeams,
       label: "Microsoft Teams",
-      methodNoun: "Microsoft Teams account",
-      hasVerification: true,
+      method: { noun: "Microsoft Teams account", hasVerification: true },
     },
     {
       channel: ComplianceNotificationChannel.Webhook,
       label: "Webhook",
-      methodNoun: "webhook",
-      hasVerification: false,
+      method: { noun: "webhook", hasVerification: false },
+    },
+    {
+      channel: ComplianceNotificationChannel.CustomChannel,
+      label: "Custom channel",
+      // The installation's, not the member's: nothing to add or verify.
+      method: null,
     },
   ];
 
 const methodRule: (data: {
   ruleType: ComplianceRuleType;
-  channel: ComplianceNotificationChannel;
+  channel: ComplianceMethodChannel;
   title: string;
   description: string;
 }) => ComplianceRuleDefinition = (data: {
   ruleType: ComplianceRuleType;
-  channel: ComplianceNotificationChannel;
+  channel: ComplianceMethodChannel;
   title: string;
   description: string;
 }): ComplianceRuleDefinition => {
@@ -314,6 +339,16 @@ export default class ComplianceRule {
   }
 
   /*
+   * Whether a member owns a method on the channel - every channel but a
+   * custom one, which has nothing per person (ComplianceChannelDefinition).
+   */
+  public static isMethodChannel(
+    channel: string | undefined | null,
+  ): channel is ComplianceMethodChannel {
+    return Boolean(ComplianceRule.getChannelDefinition(channel)?.method);
+  }
+
+  /*
    * A rule's channels as one canonical list: the known channels in `value`,
    * each once, in catalog order - so two lists naming the same channels read,
    * compare and store alike however they were picked. Anything that is not a
@@ -433,14 +468,14 @@ export default class ComplianceRule {
     }
 
     if (definition.category === ComplianceRuleCategory.NotificationMethod) {
-      const channel: ComplianceChannelDefinition | undefined =
-        ComplianceRule.getChannelDefinition(definition.methodChannel);
+      const method: ComplianceChannelMethod | null | undefined =
+        ComplianceRule.getChannelDefinition(definition.methodChannel)?.method;
 
-      if (channel && !channel.hasVerification) {
-        return `Every member has a ${channel.methodNoun} notification method.`;
+      if (method && !method.hasVerification) {
+        return `Every member has a ${method.noun} notification method.`;
       }
 
-      return `Every member has a verified ${channel?.methodNoun || "notification method"}.`;
+      return `Every member has a verified ${method?.noun || "notification method"}.`;
     }
 
     const severityNames: Array<string> = data.severityNames || [];

@@ -40,6 +40,8 @@ Open **Producten → Security Events**, onder **Observability**. Het menu heeft 
 | **Entiteitrisico** | Gebeurtenissen | Elke gebruiker, host en elk adres, gescoord op wat er deze week over werd gevonden, de riskantste eerst |
 | **Correleren** | Gebeurtenissen | Een grafiek van de gebeurtenissen die een host, een gebruiker of een IP-adres delen |
 | **Detectieregels** | Detections | Sigma-regels die volgens een schema draaien en zaken openen |
+| **Regeluitzonderingen** | Detections | Wat je regels bewust overslaan, zoals een scanner of een geplande test, elk met wie het heeft toegevoegd en waarom |
+| **Volglijsten** | Detections | De lijsten waartegen je regels vergelijken, zoals VIP-gebruikers, kritieke hosts, bekende kwaadaardige bestandshashes en de adressen waarvandaan beheerders mogen inloggen |
 | **Regelbibliotheek** | Detections | Kant-en-klare detectieregels om toe te voegen, elk met de gebeurtenissen die hij leest en of die binnenkomen, met de aanbevolen regels gemarkeerd |
 | **Dreigingsinformatie** | Detections | STIX/TAXII-feeds van bekende kwaadaardige indicatoren |
 | **ATT&CK-dekking** | Detections | De technieken van MITRE ATT&CK die je regels dekken |
@@ -51,6 +53,7 @@ Open **Producten → Security Events**, onder **Observability**. Het menu heeft 
 | **Verbindingen** | Connections | Uw logs, de beveiligingsproducten die OneUptime opvraagt en de SIEM's waarnaar het verstuurt |
 | **Installatiegids** | Connections | Snippets om gebeurtenissen te sturen, ingevuld met je ingestiesleutel |
 | **Zaakprioriteiten** | Instellingen | Hoe dringend een zaak is: de eigen prioriteiten van het project, de dringendste eerst |
+| **Reactiedoelen** | Instellingen | Hoe snel een zaak van elke prioriteit moet worden opgepakt en ingedamd |
 | **Zaakstatussen** | Instellingen | De stappen die een zaak doorloopt, en hoe een zaak in elke stap telt |
 | **Risicoscoring** | Instellingen | Of het risico van een entiteit een zaak opent, bij welk risico, en hoe zwaar elke entiteit weegt |
 
@@ -298,7 +301,7 @@ OneUptime voert de booleaanse kern van Sigma uit:
 
 - Selecties zijn veldmaps (elk veld moet matchen; een lijst met waarden matcht op elk ervan) of trefwoordlijsten, die overal in het bericht matchen.
 - Voorwaarden combineren selecties met `and`, `or`, `not` en haakjes, of met `1 of selection_*`, `all of selection_*`, `any of them` en `all of them`.
-- Veldmodifiers: `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists` en `windash`. Tekst wordt vergeleken zonder op hoofdletters te letten, tenzij je `cased` toevoegt.
+- Veldmodifiers: `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists`, `windash` en `expand`, dat een [volglijst](#volglijsten) leest. Tekst wordt vergeleken zonder op hoofdletters te letten, tenzij je `cased` toevoegt.
 - Een veld is een getypeerd veld (`principalUser`), een gangbare Sigma-spelling ervan (`CommandLine`, `src_ip`, `Hostname`), of elke attribuutsleutel, gespeld zoals in de gebeurtenis (`threat.matched`).
 - `Image` en `CommandLine` lezen het proces waar de gebeurtenis over gaat, bij het starten van een proces het proces dat startte (`processPath`, `processCommandLine`), en `ParentImage` en `ParentCommandLine` het proces dat het startte (`parentProcessPath`, `parentProcessCommandLine`). `principalProcess` is het proces dat handelde, bij het starten dus het bovenliggende proces.
 - `level` bepaalt de ernst: `informational`, `low`, `medium`, `high` of `critical`, en `medium` als het ontbreekt. ATT&CK-ID's in `tags` (`attack.t1110`, `attack.ta0006`) vullen de MITRE-velden van de bevinding.
@@ -418,6 +421,58 @@ Een Detection Finding is een beveiligingsgebeurtenis van de klasse `Detection Fi
 
 Bevindingen zijn gewone gebeurtenissen: doorzoek ze in **Gebeurtenissen** en draai erop in **Correleren**. Om een nieuwe regel stil uit te proberen, zet je elke actie behalve de bevinding uit tot je hem vertrouwt.
 
+### Uitzonderingen
+
+Een uitzondering is iets dat een regel overslaat omdat je het verwacht, zoals een kwetsbaarheidsscanner, een nachtelijke back-uptaak of een geplande penetratietest. Ze maakt de regel stil voor dat ene ding zonder hem uit te zetten, en de andere treffers van de regel gaan nog steeds af. Elke uitzondering staat onder **Producten → Security Events → Detecties → Regeluitzonderingen**: voeg er daar een toe met **Regeluitzondering toevoegen**, met **Uitzondering toevoegen** in de rij van een regel, of met **Uitzondering toevoegen** in de rij van een detectie op een zaak, die begint met de regel van de detectie en waarvoor die afging.
+
+| Wat de regel overslaat | Waarmee het overeenkomt |
+| --- | --- |
+| **Een entiteit** | Een gebruiker, host of IP-adres, waar een gebeurtenis die ook noemt: als wie handelde (`principalUser`, `principalHost`, `principalIp`), als op wie gehandeld werd (`targetUser`, `targetHost`, `targetIp`), of tussen haar `observables` |
+| **Een waarde** | De waarde van één veld, het veld genoemd zoals een regel het noemt: `processName`, `principalUser` of een attribuutsleutel zoals `http.user_agent` |
+| **Een tijdvenster** | Elke gebeurtenis van **Begint op** tot **Eindigt op**, hoogstens 30 dagen uit elkaar |
+
+- Waarden komen overeen ongeacht hoofdletters, en `*` staat voor elke reeks tekens: `svc-*` slaat elk serviceaccount over, en `*.lab.example.com` elke host van een domein. Een IP-adres kan een bereik zijn, zoals `10.20.0.0/16`. Een waarde van alleen `*` wordt geweigerd: zet een regel uit om hem te stoppen.
+- Elke uitzondering zegt waarom in haar **Reden**, die iedereen ziet die de lijst leest, en bewaart wie haar toevoegde en wanneer. Een entiteit of waarde kan een **Verloopt om** hebben, waarna de regel haar weer ziet; een tijdvenster eindigt vanzelf.
+- **Status** zegt waar elke uitzondering staat: **Actief**, **Aankomend** voor een venster dat nog niet begonnen is, **Verlopen** of **Beëindigd**. Onder de naam van een regel in **Detectieregels** telt een regel tekst haar actieve uitzonderingen, en **Uitzonderingen bekijken** in de rij van de regel opent de lijst gefilterd op die regel.
+- Overgeslagen gebeurtenissen worden weggelaten voordat de regel iets telt, dus ze tellen nooit mee voor haar **Drempel voor aantal treffers** en openen geen zaak, waarschuwing, incident of bevinding. Uitzonderingen gelden voor elke run van de regel, correlaties inbegrepen, en voor **Uitvoeren op eerdere gebeurtenissen**, maar nooit voor een testaanval, die controleert of gebeurtenissen doorkomen.
+- Een regel heeft hoogstens 100 uitzonderingen. Wie detectieregels mag bewerken, voegt ze toe, wijzigt en verwijdert ze, elke Security-rol kan ze lezen, en elke wijziging staat in het auditlogboek van het project.
+
+### Volglijsten
+
+Een volglijst is een lijst die je team één keer bijhoudt en die elke regel kan lezen, zoals VIP-gebruikers, kritieke hosts, bekende kwaadaardige bestandshashes of de adressen waarvandaan beheerders mogen inloggen. Elke lijst staat onder **Producten → Security Events → Detecties → Volglijsten**: maak er daar een met **Volglijst aanmaken**, dat om de naam en de inhoud vraagt, of voeg een veelgebruikte toe via **Begin met een veelgebruikte lijst**. De pagina van een lijst toont de waarden, en **Gebruiken in een regel** geeft een selectie die de lijst leest, om in een regel te kopiëren.
+
+Een regel leest een lijst met `expand` en de naam van de lijst tussen twee `%`-tekens. Deze regel gaat af wanneer een beheerder inlogt vanaf een adres dat niet op de toegestane lijst staat:
+
+```yaml title="admin-sign-in-from-outside.yml"
+title: Admin sign-in from outside the allowed addresses
+detection:
+  admin_sign_in:
+    className: Authentication
+    principalUser|expand: '%admins%'
+  allowed:
+    principalIp|expand: '%admin_addresses%'
+  condition: admin_sign_in and not allowed
+level: high
+```
+
+- Een lijst bevat gebruikers, hosts, IP-adressen, bestandshashes, domeinen, URL's, processen of andere waarden, gekozen bij het aanmaken. Een waarde komt overeen ongeacht hoofdletters, en `*` staat voor elke reeks tekens: `svc-*` past op elk serviceaccount. Een lijst met IP-adressen neemt ook bereiken, zoals `10.20.0.0/16`, en een lijst met bestandshashes MD5-, SHA-1-, SHA-256- en SHA-512-hashes.
+- Voeg waarden een voor een toe met **Waarde toevoegen**, of veel tegelijk met **Waarden importeren**: plak ze, of kies een `.txt`- of `.csv`-bestand, één waarde per regel, met een optionele notitie na een komma. **Aan de lijst toevoegen** houdt de waarden die er al op staan, en **De lijst vervangen** verwijdert de waarden die niet in de import staan.
+- In plaats van waarden bij te houden kan een lijst met IP-adressen, bestandshashes, domeinen of URL's een feed met dreigingsinformatie volgen: de waarden zijn dan de actieve indicatoren van de feed van de soort van de lijst, actueel gehouden terwijl de feed wordt gelezen.
+- `expand` gebruik je alleen, omdat de waarden van de lijst bepalen hoe ze overeenkomen. Een veld met meerdere waarden, zoals `observables`, komt overeen wanneer een ervan op de lijst staat. **Gelezen door** noemt de regels die elke lijst lezen, en onder de YAML van een regel noemt het formulier de lijsten die de regel leest.
+- Een regel noemt een lijst ongeacht hoofdletters. Een regel die een lijst noemt die het project niet heeft, wordt bij het opslaan geweigerd, en een lijst die regels lezen kan pas worden hernoemd of verwijderd als geen regel haar nog leest.
+- Een wijziging aan een lijst bereikt elke regel die haar leest bij de volgende run van die regel. Ook correlatieregels en **Uitvoeren op eerdere gebeurtenissen** lezen lijsten.
+- Een lijst bevat hoogstens 5.000 waarden, waarvan hoogstens 100 met `*` en 100 bereiken, en een project heeft hoogstens 200 lijsten: volg voor een langere lijst een feed met dreigingsinformatie. Wie detectieregels mag aanmaken, bewerken of verwijderen, mag hetzelfde doen met lijsten, en wie detectieregels mag bewerken, voegt hun waarden toe, wijzigt en verwijdert ze. Elke Security-rol kan ze lezen, en elke wijziging staat in het auditlogboek van het project.
+
+### Uitvoeren op eerdere gebeurtenissen
+
+**Uitvoeren op eerdere gebeurtenissen** toont wat een regel gevonden zou hebben als hij had gedraaid, zonder iets te openen, te verzenden of te schrijven. Het staat in de rij van een regel, voor de regel zoals die is opgeslagen, en onder **Sigma-regel (YAML)** in het formulier van de regel, voor de regel zoals die daar staat, voordat je hem opslaat. Kies **Laatste 24 uur**, **Laatste 7 dagen** of **Laatste 30 dagen**.
+
+- Een regel wordt geteld zoals zijn runs hem tellen: in vensters zo lang als zijn **Evaluatie-interval (minuten)**, waarbij een groep in een venster afgaat wanneer haar telling daar de **Drempel voor aantal treffers** bereikt. Een correlatie wordt over de hele periode gelezen, en somt de groepen op waarmee ze overeen zou zijn gekomen, elk met wat er gebeurde.
+- Het antwoord zegt hoe vaak de regel zou zijn afgegaan, hoe vaak per dag, voor hoeveel gebruikers, hosts of adressen, en hoeveel gebeurtenissen overeenkwamen. De 50 groepen die het vaakst afgingen worden opgesomd, elk met haar gebeurtenissen en wanneer ze het laatst afging.
+- De uitzonderingen van een opgeslagen regel gelden, en het antwoord zegt hoeveel gebeurtenissen ze oversloegen en hoeveel keer afgaan ze voorkwamen. Een regel die niet zou zijn afgegaan, zegt hoe dicht hij erbij kwam: hoeveel gebeurtenissen overeenkwamen, en de drempel die geen groep in één venster haalde.
+- Een regel die meer dan 20 keer per dag zou afgaan, gaat vaker af dan een mens kan bekijken, en het antwoord zegt dat, met manieren om hem stiller te maken.
+- Het leest alleen de bronnen die je mag lezen. Een run die langer dan 45 seconden duurt, wordt gestopt en zegt dat: kies een kortere periode.
+
 ## Monitoren voor beveiligingsgebeurtenissen
 
 Een monitor voor beveiligingsgebeurtenissen telt de gebeurtenissen die aan zijn filters voldoen over een glijdend venster en past de gebruikelijke monitorcriteria toe op de telling: hij wijzigt de status van de monitor, opent waarschuwingen of incidenten, en roept de dienstdoende op. Maak er een aan onder **Monitoren → Monitor maken**, met **Beveiligingsgebeurtenissen** als type; daar staat hij tussen uw andere monitoren.
@@ -468,6 +523,26 @@ Controleer de **Status**: bij **Uitgeschakeld** wordt de regel niet uitgevoerd, 
 
 :::details Een regel opent te veel waarschuwingen
 Elke waarde van het **Groeperingsveld** krijgt een eigen waarschuwing: groepeer op iets grovers, verhoog de drempel, of voeg een Distinct Count Field toe. Gaat het je om het tempo in plaats van om elke match, zet dan **Waarschuwingen en incidenten** op **Geen van beide** en zet een monitor op de bevindingen van de regel.
+:::
+
+:::details Een regel gaat af op iets dat je verwacht
+Voeg er een uitzondering voor toe in plaats van de regel uit te zetten: **Uitzondering toevoegen** in de rij van de detectie op haar zaak begint met de regel en waarvoor die afging. Om de regel zelf te wijzigen, toont **Uitvoeren op eerdere gebeurtenissen** onder zijn YAML wat de wijziging gevonden zou hebben, voordat je opslaat.
+:::
+
+:::details Een uitzondering slaat niet over wat ze zou moeten
+Controleer haar **Status** in **Regeluitzonderingen**: een uitzondering met de status **Verlopen** slaat niets over, en een tijdvenster slaat alleen de gebeurtenissen tussen zijn twee tijden over. Een entiteit wordt gezocht als wie handelde, als op wie gehandeld werd en tussen de `observables` van de gebeurtenis; om een waarde van een ander veld over te slaan, voeg je een uitzondering **Een waarde** toe die dat veld noemt. Zonder `*` moet een waarde gelijk zijn aan het hele veld: `svc-*` slaat `svc-backup` over, en `svc-` niet.
+:::
+
+:::details Een regel die een volglijst leest, komt niet overeen
+Open de lijst en controleer de waarden: een waarde zonder `*` moet gelijk zijn aan het hele veld, ongeacht hoofdletters, en een lijst die een feed met dreigingsinformatie volgt, bevat alleen de actieve indicatoren van de feed van haar soort. Controleer of de regel het veld leest dat je gebeurtenissen vullen: **Gebruiken in een regel** begint met het veld waarin een lijst van haar soort meestal staat. Een wijziging aan een lijst bereikt een regel bij de volgende run.
+:::
+
+:::details Een volglijst kan niet worden hernoemd of verwijderd
+Regels lezen haar nog via haar naam, en de melding noemt ze. Wijzig de naam in die regels, of haal de lijst eruit, en hernoem of verwijder haar daarna.
+:::
+
+:::details Een regel uitvoeren op eerdere gebeurtenissen vindt niets
+Het leest alleen de periode die je kiest en de bronnen die je mag lezen. Als er gebeurtenissen overeenkwamen maar geen groep de **Drempel voor aantal treffers** in één venster haalde, zegt het antwoord hoeveel er overeenkwamen: verlaag de drempel, of tel over een langer **Evaluatie-interval (minuten)**.
 :::
 
 ## Volgende stappen

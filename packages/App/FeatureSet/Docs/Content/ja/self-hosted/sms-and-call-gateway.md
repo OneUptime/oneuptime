@@ -12,12 +12,12 @@ OneUptime は、SMS と通話を Twilio の代わりに、あなたが運用す�
 ## 仕組み
 
 ```mermaid title="独自のゲートウェイを通る SMS"
-flowchart LR
+flowchart TB
     OneUptime["OneUptime"]
     Gateway["あなたのゲートウェイ"]
     Provider["あなたの SMS・<br/>音声プロバイダー"]
     Phone["電話"]
-    OneUptime -->|"署名付き JSON リクエスト"| Gateway
+    OneUptime -->|"署名付き<br/>JSON リクエスト"| Gateway
     Gateway --> Provider
     Provider --> Phone
 ```

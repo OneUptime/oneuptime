@@ -40,6 +40,8 @@ flowchart TB
 | **Entitetsrisiko** | Begivenheder | Hver bruger, vært og adresse, scoret efter hvad der er fundet om den i denne uge, de mest risikable først |
 | **Korrelér** | Begivenheder | En graf over de begivenheder, der deler en vært, en bruger eller en IP-adresse |
 | **Detektionsregler** | Detections | Sigma-regler, der kører efter en tidsplan og åbner sager |
+| **Regelundtagelser** | Detections | Det, dine regler springer over med vilje, som en scanner eller en planlagt test, hver med hvem der tilføjede den og hvorfor |
+| **Overvågningslister** | Detections | De lister, dine regler sammenligner med, som VIP-brugere, kritiske værter, kendte ondsindede filhashes og de adresser, administratorer må logge ind fra |
 | **Regelbibliotek** | Detections | Færdige detektionsregler at tilføje, hver med de hændelser, den læser, og om de kommer ind, med de anbefalede markeret |
 | **Trusselsinformation** | Detections | STIX/TAXII-feeds med kendte ondsindede indikatorer |
 | **ATT&CK-dækning** | Detections | De MITRE ATT&CK-teknikker, dine regler dækker |
@@ -51,6 +53,7 @@ flowchart TB
 | **Forbindelser** | Connections | Dine logs, de sikkerhedsprodukter, OneUptime henter fra, og de SIEM'er, det sender til |
 | **Opsætningsvejledning** | Connections | Kodestykker til at sende begivenheder, udfyldt med din ingestion-nøgle |
 | **Sagsprioriteter** | Indstillinger | Hvor presserende en sag er: projektets egne prioriteter, den mest presserende først |
+| **Responsmål** | Indstillinger | Hvor hurtigt en sag med hver prioritet skal tages og inddæmmes |
 | **Sagsstatusser** | Indstillinger | De trin, en sag går igennem, og hvad en sag i hvert trin tæller som |
 | **Risikoscoring** | Indstillinger | Om en entitets risiko åbner en sag, ved hvilken risiko, og hvor meget hver entitet betyder |
 
@@ -298,7 +301,7 @@ OneUptime kører den boolske kerne af Sigma:
 
 - Selektioner er feltkort (hvert felt skal matche; en liste af værdier matcher en hvilken som helst af dem) eller nøgleordslister, der matcher hvor som helst i beskeden.
 - Betingelser kombinerer selektioner med `and`, `or`, `not` og parenteser eller med `1 of selection_*`, `all of selection_*`, `any of them` og `all of them`.
-- Feltmodifikatorer: `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists` og `windash`. Tekst sammenlignes uden hensyn til store og små bogstaver, medmindre du tilføjer `cased`.
+- Feltmodifikatorer: `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists`, `windash` og `expand`, som læser en [overvågningsliste](#overvågningslister). Tekst sammenlignes uden hensyn til store og små bogstaver, medmindre du tilføjer `cased`.
 - Et felt er et typet felt (`principalUser`), en almindelig Sigma-stavemåde af et (`CommandLine`, `src_ip`, `Hostname`) eller en hvilken som helst attributnøgle, stavet som i begivenheden (`threat.matched`).
 - `Image` og `CommandLine` læser den proces, som begivenheden handler om, ved en processtart den, der startede (`processPath`, `processCommandLine`), og `ParentImage` og `ParentCommandLine` den proces, der startede den (`parentProcessPath`, `parentProcessCommandLine`). `principalProcess` er den proces, der handlede, hvilket ved en processtart er den overordnede.
 - `level` angiver alvorligheden: `informational`, `low`, `medium`, `high` eller `critical`, og `medium`, når den mangler. ATT&CK-ID'er i `tags` (`attack.t1110`, `attack.ta0006`) udfylder fundets MITRE-felter.
@@ -418,6 +421,58 @@ Et Detection Finding er en sikkerhedsbegivenhed af klassen `Detection Finding` (
 
 Fund er almindelige begivenheder: søg efter dem under **Begivenheder**, og pivotér på dem i **Korrelér**. For at afprøve en ny regel i stilhed slår du alle handlinger undtagen fundet fra, indtil du stoler på den.
 
+### Undtagelser
+
+En undtagelse er noget, en regel springer over, fordi du forventer det, som en sårbarhedsscanner, et natligt backupjob eller en planlagt penetrationstest. Den gør reglen stille for netop den ene ting uden at slå den fra, og reglens andre match udløser stadig. Alle undtagelser står under **Produkter → Security Events → Detektioner → Regelundtagelser**: tilføj en der med **Tilføj Regelundtagelse**, med **Tilføj undtagelse** i en regels række, eller med **Tilføj undtagelse** i en detektions række på en sag, som starter med detektionens regel og det, den udløste for.
+
+| Det, reglen springer over | Hvad den matcher |
+| --- | --- |
+| **En entitet** | En bruger, vært eller IP-adresse, hvor som helst en hændelse nævner den: som den, der handlede (`principalUser`, `principalHost`, `principalIp`), som den, der blev handlet på (`targetUser`, `targetHost`, `targetIp`), eller blandt dens `observables` |
+| **En værdi** | Ét felts værdi, med feltet navngivet, som en regel navngiver det: `processName`, `principalUser` eller en attributnøgle som `http.user_agent` |
+| **Et tidsvindue** | Alle hændelser fra **Begynder den** til **Slutter den**, højst 30 dage fra hinanden |
+
+- Værdier matcher uanset store og små bogstaver, og `*` står for en vilkårlig række tegn: `svc-*` springer alle tjenestekonti over, og `*.lab.example.com` alle værter i et domæne. En IP-adresse kan være et interval, som `10.20.0.0/16`. En værdi, der kun er `*`, afvises: slå en regel fra for at stoppe den.
+- Hver undtagelse siger hvorfor i sin **Årsag**, som alle, der læser listen, ser, og gemmer, hvem der tilføjede den og hvornår. En entitet eller en værdi kan have en dato i **Udløber den**, hvorefter reglen ser den igen; et tidsvindue slutter af sig selv.
+- **Status** siger, hvor hver enkelt står: **Aktiv**, **Kommende** for et vindue, der ikke er begyndt, **Udløbet** eller **Afsluttet**. Under en regels navn i **Detektionsregler** tæller en linje dens aktive undtagelser, og **Vis undtagelser** i reglens række åbner listen filtreret på den.
+- Oversprungne hændelser udelades, før reglen tæller noget, så de tæller aldrig med i dens **Grænse for antal match** og åbner ingen sag, alarm, hændelse eller fund. Undtagelser gælder for hver kørsel af reglen, korrelationer med, og for **Kør på tidligere hændelser**, men aldrig for et testangreb, der tjekker, at hændelser kommer igennem.
+- En regel har højst 100 undtagelser. Den, der må redigere detektionsregler, tilføjer, ændrer og fjerner dem, alle Security-roller kan læse dem, og hver ændring gemmes i projektets revisionslog.
+
+### Overvågningslister
+
+En overvågningsliste er en liste, dit team vedligeholder én gang, og som enhver regel kan læse, som VIP-brugere, kritiske værter, kendte ondsindede filhashes eller de adresser, administratorer må logge ind fra. Alle lister ligger under **Produkter → Security Events → Detektioner → Overvågningslister**: Opret en der med **Opret Overvågningsliste**, som spørger om dens navn og hvad den indeholder, eller tilføj en almindelig fra **Start med en almindelig liste**. En listes side viser dens værdier, og **Brug den i en regel** giver en selektion, der læser listen, til at kopiere ind i en regel.
+
+En regel læser en liste med `expand` og listens navn mellem to `%`-tegn. Denne regel udløser, når en administrator logger ind fra en adresse, der ikke er på den tilladte liste:
+
+```yaml title="admin-sign-in-from-outside.yml"
+title: Admin sign-in from outside the allowed addresses
+detection:
+  admin_sign_in:
+    className: Authentication
+    principalUser|expand: '%admins%'
+  allowed:
+    principalIp|expand: '%admin_addresses%'
+  condition: admin_sign_in and not allowed
+level: high
+```
+
+- En liste indeholder brugere, værter, IP-adresser, filhashes, domæner, URL'er, processer eller andre værdier, valgt når den oprettes. En værdi matcher uanset store og små bogstaver, og `*` står for en vilkårlig række tegn: `svc-*` matcher alle tjenestekonti. En liste med IP-adresser tager også intervaller som `10.20.0.0/16`, og en liste med filhashes MD5-, SHA-1-, SHA-256- og SHA-512-hashes.
+- Tilføj værdier én ad gangen med **Tilføj Værdi**, eller mange på én gang med **Importér værdier**: indsæt dem, eller vælg en `.txt`- eller `.csv`-fil, én værdi pr. linje, med en valgfri note efter et komma. **Føj til listen** beholder de værdier, der allerede er på den, og **Erstat listen** fjerner dem, importen ikke har.
+- I stedet for at vedligeholde værdier kan en liste med IP-adresser, filhashes, domæner eller URL'er følge et feed med trusselsinformation: Dens værdier er så feedets aktive indikatorer af listens type, holdt opdateret, efterhånden som feedet læses.
+- `expand` bruges alene, fordi listens værdier afgør, hvordan de matcher. Et felt med flere værdier, som `observables`, matcher, når en af dem er på listen. **Læses af** nævner de regler, der læser hver liste, og under en regels YAML nævner dens formular de lister, reglen læser.
+- En regel nævner en liste uanset store og små bogstaver. En regel, der nævner en liste, projektet ikke har, afvises, når du gemmer den, og en liste, som regler læser, kan ikke omdøbes eller slettes, før ingen regel læser den.
+- En ændring af en liste når alle regler, der læser den, ved reglens næste kørsel. Korrelationsregler og **Kør på tidligere hændelser** læser også lister.
+- En liste rummer højst 5.000 værdier, heraf højst 100 med `*` og 100 intervaller, og et projekt har højst 200 lister: Følg et feed med trusselsinformation for en længere liste. Den, der må oprette, redigere eller slette detektionsregler, må gøre det samme med lister, og den, der må redigere detektionsregler, tilføjer, ændrer og fjerner deres værdier. Alle Security-roller kan læse dem, og hver ændring gemmes i projektets revisionslog.
+
+### Kør på tidligere hændelser
+
+**Kør på tidligere hændelser** viser, hvad en regel ville have fundet, hvis den havde kørt, uden at åbne, sende eller skrive noget. Den findes i en regels række, for reglen som gemt, og under **Sigma-regel (YAML)** i reglens formular, for reglen, som den står der, før du gemmer den. Vælg **Seneste 24 timer**, **Seneste 7 dage** eller **Seneste 30 dage**.
+
+- En regel tælles, som dens kørsler tæller den: i vinduer så lange som dens **Evalueringsinterval (minutter)**, hvor en gruppe udløser i et vindue, når dens antal der når **Grænse for antal match**. En korrelation læses over hele perioden og viser de grupper, den ville have matchet, hver med det, der skete.
+- Svaret siger, hvor mange gange reglen ville have udløst, hvor mange gange om dagen, for hvor mange brugere, værter eller adresser, og hvor mange hændelser der matchede. De 50 grupper, der udløste mest, vises, hver med sine hændelser og hvornår den sidst udløste.
+- En gemt regels undtagelser gælder, og svaret siger, hvor mange hændelser de sprang over, og hvor mange udløsninger de forhindrede. En regel, der ikke ville have udløst, siger, hvor tæt den kom: hvor mange hændelser der matchede, og den grænse, ingen gruppe nåede i ét vindue.
+- En regel, der ville udløse mere end 20 gange om dagen, udløser oftere, end et menneske kan nå at se på, og svaret siger det, med måder at gøre den mere stille på.
+- Den læser kun de kilder, du må læse. En kørsel, der tager mere end 45 sekunder, stoppes og siger det: vælg en kortere periode.
+
 ## Monitorer for sikkerhedsbegivenheder
 
 En monitor for sikkerhedsbegivenheder tæller de begivenheder, der matcher dens filtre, over et glidende vindue og kører de sædvanlige monitorkriterier på optællingen: den ændrer monitorens status, åbner advarsler eller hændelser og tilkalder vagthavende. Opret en under **Overvågninger → Opret monitor** med **Sikkerhedshændelser** som type; den vises der sammen med dine andre monitorer.
@@ -468,6 +523,26 @@ Tjek dens **Status**: med **Deaktiveret** kører reglen ikke, og med **Kørsel m
 
 :::details En regel åbner for mange advarsler
 Hver værdi af **Grupperingsfelt** får sin egen advarsel: gruppér efter noget grovere, hæv tærsklen, eller tilføj et Distinct Count Field. Er det hyppigheden, du bekymrer dig om, og ikke hvert match, så sæt **Advarsler og hændelser** til **Ingen af dem**, og sæt en monitor på regelens fund.
+:::
+
+:::details En regel udløser på noget, du forventer
+Tilføj en undtagelse for det i stedet for at slå reglen fra: **Tilføj undtagelse** i detektionens række på dens sag starter med reglen og det, den udløste for. For at ændre selve reglen viser **Kør på tidligere hændelser** under dens YAML, hvad ændringen ville have fundet, før du gemmer.
+:::
+
+:::details En undtagelse springer ikke over det, den skal
+Tjek dens **Status** i **Regelundtagelser**: en undtagelse med status **Udløbet** springer intet over, og et tidsvindue springer kun hændelserne mellem sine to tidspunkter over. En entitet søges som den, der handlede, som den, der blev handlet på, og blandt hændelsens `observables`; for at springe en værdi i et andet felt over, tilføj en undtagelse af typen **En værdi**, der navngiver feltet. Uden `*` skal en værdi være lig med hele feltet: `svc-*` springer `svc-backup` over, og `svc-` gør ikke.
+:::
+
+:::details En regel, der læser en overvågningsliste, matcher ikke
+Åbn listen, og tjek dens værdier: En værdi uden `*` skal svare til hele feltet, uanset store og små bogstaver, og en liste, der følger et feed med trusselsinformation, indeholder kun feedets aktive indikatorer af dens type. Tjek, at reglen læser det felt, dine hændelser udfylder: **Brug den i en regel** begynder med det felt, en liste af dens type plejer at stå i. En ændring af en liste når en regel ved dens næste kørsel.
+:::
+
+:::details En overvågningsliste kan ikke omdøbes eller slettes
+Regler læser den stadig via dens navn, og meddelelsen nævner dem. Ret navnet i de regler, eller tag listen ud af dem, og omdøb eller slet den derefter.
+:::
+
+:::details At køre en regel på tidligere hændelser finder intet
+Den læser kun den periode, du vælger, og de kilder, du må læse. Når hændelser matchede, men ingen gruppe nåede **Grænse for antal match** i ét vindue, siger svaret, hvor mange der matchede: sænk grænsen, eller tæl over et længere **Evalueringsinterval (minutter)**.
 :::
 
 ## Næste trin

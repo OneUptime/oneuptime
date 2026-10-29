@@ -86,7 +86,14 @@ describe("the notification jobs' feed entries in Slack and Microsoft Teams", () 
       "ScheduledMaintenanceOwners/SendStateChangeNotification.ts",
       "OwnerNotificationFeedText.stateChanged",
     ],
-    ["AlertOwners/SendCreatedResourceNotification.ts", "alertFeedText"],
+    [
+      "AlertOwners/SendCreatedResourceNotification.ts",
+      'OwnerNotificationFeedText.created("alert"',
+    ],
+    [
+      "IncidentOwners/SendCreatedResourceNotification.ts",
+      'OwnerNotificationFeedText.created("incident"',
+    ],
   ])(
     "REGRESSION: %s - that the owners were told stays in the feed",
     (job: string, phrase: string) => {

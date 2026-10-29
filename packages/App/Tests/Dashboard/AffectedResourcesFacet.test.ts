@@ -313,3 +313,88 @@ describe("buildAffectedResourcesFacet maps each resource type to its relation", 
     expect(relations.sort()).toEqual(["databaseServers", "hosts"]);
   });
 });
+
+/*
+ * Issue #5341: incidents and alerts hold network devices, so their lists
+ * can be filtered by one. Only theirs: a maintenance event has no such
+ * relation, so the type is offered only where it is asked for.
+ */
+describe("network devices in the Affected Resources filter", () => {
+  function deviceFacet(): ResourceFacet {
+    return buildAffectedResourcesFacet<Alert>({
+      parentModelType: Alert,
+      monitorQueryField: "monitorId",
+      excludeMonitor: true,
+      includeNetworkDevice: true,
+    });
+  }
+
+  test("a networkDevice selection queries the networkDevices relation", async () => {
+    await deviceFacet().computeMatchingResourceIds!(
+      PROJECT_ID,
+      [`networkDevice:${RESOURCE_ID}`],
+      IS_OPERATOR,
+    );
+
+    const query: JSONObject = issuedQuery();
+
+    expect(Object.keys(query).sort()).toEqual(
+      ["networkDevices", "projectId"].sort(),
+    );
+    expect(includedIds(query["networkDevices"])).toEqual([RESOURCE_ID]);
+  });
+
+  test("offers devices in the dropdown, grouped under their own label", async () => {
+    getListMock.mockImplementation(
+      async (args: { modelType: { name: string } }) => {
+        if (args.modelType.name === "NetworkDevice") {
+          return {
+            data: [{ id: new ObjectID(RESOURCE_ID), name: "WAN-RTR-01" }],
+            count: 1,
+            skip: 0,
+            limit: 0,
+          };
+        }
+        return { data: [], count: 0, skip: 0, limit: 0 };
+      },
+    );
+
+    const options: Array<FilterChipDropdownOption> = await deviceFacet()
+      .loadOptions!(PROJECT_ID, "");
+
+    const device: FilterChipDropdownOption | undefined = options.find(
+      (option: FilterChipDropdownOption): boolean => {
+        return option.value === `networkDevice:${RESOURCE_ID}`;
+      },
+    );
+
+    expect(device).toBeDefined();
+    expect(device!.label).toBe("WAN-RTR-01");
+    expect(device!.group).toBe("Network Devices");
+    // One lookup per offered type: the twelve, and devices.
+    expect(getListMock.mock.calls).toHaveLength(13);
+  });
+
+  test("is not offered, nor read, where it was not asked for", async () => {
+    await alertFacet().loadOptions!(PROJECT_ID, "");
+
+    expect(
+      getListMock.mock.calls.some((call: Array<unknown>): boolean => {
+        return (
+          (call[0] as { modelType: { name: string } }).modelType.name ===
+          "NetworkDevice"
+        );
+      }),
+    ).toBe(false);
+
+    getListMock.mockClear();
+
+    await alertFacet().computeMatchingResourceIds!(
+      PROJECT_ID,
+      [`networkDevice:${RESOURCE_ID}`],
+      IS_OPERATOR,
+    );
+
+    expect(getListMock).not.toHaveBeenCalled();
+  });
+});

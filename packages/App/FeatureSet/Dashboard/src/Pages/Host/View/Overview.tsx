@@ -101,6 +101,11 @@ import React, {
   useState,
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import useResizableColumns, {
+  ResizableColumns,
+} from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
+import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 interface OverviewStats {
@@ -188,6 +193,22 @@ const HostOverview: FunctionComponent<
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+
+  /*
+   * The filesystems' columns as wide as a person makes them (Common's
+   * Table/ColumnResize): a mount point and a device give way, a size or a
+   * utilization bar never.
+   */
+  const mountColumns: ResizableColumns = useResizableColumns({
+    tableKey: "host-filesystems-table",
+    columns: [
+      { id: "mount", cellNumber: 1 },
+      { id: "type", cellNumber: 2 },
+      { id: "device", cellNumber: 3 },
+      { id: "usedTotal", cellNumber: 4 },
+      { id: "utilization", cellNumber: 5 },
+    ],
+  });
 
   const [host, setHost] = useState<Host | null>(null);
   const [stats, setStats] = useState<OverviewStats | null>(null);
@@ -1532,30 +1553,55 @@ const HostOverview: FunctionComponent<
         >
           <div className="border-t border-gray-200 -m-6 -mt-2">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
+              {mountColumns.styles}
+              <table
+                className={`${mountColumns.getTableWidthClassName("min-w-full")} divide-y divide-gray-200`}
+                {...mountColumns.tableAttributes}
+              >
                 <thead className="bg-gray-50">
                   <tr>
-                    <th
+                    <ResizableHeaderCell
                       scope="col"
                       className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      resize={mountColumns.getResize(
+                        "mount",
+                        translator.translateText("Mount") || "Mount",
+                        ColumnWidthKind.Name,
+                      )}
                     >
-                      {translator.translateText("Mount")}
-                    </th>
-                    <th
+                      <span>{translator.translateText("Mount")}</span>
+                    </ResizableHeaderCell>
+                    <ResizableHeaderCell
                       scope="col"
                       className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      resize={mountColumns.getResize(
+                        "type",
+                        translator.translateText("Type") || "Type",
+                        ColumnWidthKind.Whole,
+                      )}
                     >
-                      {translator.translateText("Type")}
-                    </th>
-                    <th
+                      <span>{translator.translateText("Type")}</span>
+                    </ResizableHeaderCell>
+                    <ResizableHeaderCell
                       scope="col"
                       className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      resize={mountColumns.getResize(
+                        "device",
+                        translator.translateText("Device") || "Device",
+                        ColumnWidthKind.Text,
+                      )}
                     >
-                      {translator.translateText("Device")}
-                    </th>
-                    <th
+                      <span>{translator.translateText("Device")}</span>
+                    </ResizableHeaderCell>
+                    <ResizableHeaderCell
                       scope="col"
                       className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                      resize={mountColumns.getResize(
+                        "usedTotal",
+                        translator.translateText("Used / Total") ||
+                          "Used / Total",
+                        ColumnWidthKind.Whole,
+                      )}
                     >
                       <span className="inline-flex items-center justify-end gap-1">
                         {translator.translateText("Used / Total")}
@@ -1564,10 +1610,16 @@ const HostOverview: FunctionComponent<
                           text={HOST_METRIC_DESCRIPTIONS.filesystemUsedTotal}
                         />
                       </span>
-                    </th>
-                    <th
+                    </ResizableHeaderCell>
+                    <ResizableHeaderCell
                       scope="col"
                       className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3"
+                      resize={mountColumns.getResize(
+                        "utilization",
+                        translator.translateText("Utilization") ||
+                          "Utilization",
+                        ColumnWidthKind.Whole,
+                      )}
                     >
                       <span className="inline-flex items-center gap-1">
                         {translator.translateText("Utilization")}
@@ -1576,7 +1628,7 @@ const HostOverview: FunctionComponent<
                           text={HOST_METRIC_DESCRIPTIONS.filesystemUtilization}
                         />
                       </span>
-                    </th>
+                    </ResizableHeaderCell>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-100">

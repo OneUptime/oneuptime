@@ -571,14 +571,15 @@ describe("the shared confirmations are wired to the names", () => {
 
     expect(source).toContain("<DeleteConfirmationMessage");
     expect(source).toContain("getRecordDisplayName(item, { model: model })");
-    expect(source).toContain("confirmDetails: (items: Array<TBaseModel>)");
+    // The rows it lists, and the controls a page's own details may hold it by.
+    expect(source).toMatch(/confirmDetails: \(\s*items: Array<TBaseModel>/);
     expect(source).toContain("<DeleteItemNames");
   });
 
   test("the bulk confirmation draws what the action lists", () => {
     expect(
       readSource("packages/Common/UI/Components/BulkUpdate/BulkUpdateForm.tsx"),
-    ).toContain("children: button.confirmDetails?.(props.selectedItems)");
+    ).toMatch(/children: button\.confirmDetails\?\.\(props\.selectedItems[,)]/);
   });
 
   test.each([

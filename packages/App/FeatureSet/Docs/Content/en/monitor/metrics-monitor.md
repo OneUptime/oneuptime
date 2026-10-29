@@ -33,23 +33,23 @@ Every minute, OneUptime runs each of the monitor's metric queries over its time 
 :::steps
 ### Start a new monitor
 
-Go to **Monitors** and click **Create Monitor**.
+Go to **Monitors** and click **Create Monitor**. Or, in the metrics explorer, build the chart you want to watch and click **Create monitor from this view**: the new monitor starts out with its queries.
 
 ### Choose Metrics
 
 Under **Monitor Type**, click **More monitor types** and pick **Metrics** under **Telemetry**, or type `metrics` in the search box. Enter a **Name**, then click **Next**.
 
-### Pick the time range
-
-In **Metric Monitor Configuration**, pick a **Time Range**: how far back each evaluation looks. It starts at **Past 1 Minute**.
-
 ### Add the metric queries
 
-Under **Select Metrics**, pick a **Metric** and how to **Aggregate by** it. Open **Filters & grouping** to filter by attributes or to **Group by** one. Click **Add Metric** for another query, or **Add Formula** to combine them. The chart under the queries previews the time range, so you can see the values the criteria will check.
+In **Metric to watch**, pick a **Metric** and how to **Aggregate by** it. Open **Filters & grouping** to filter by attributes or to **Group by** one. Click **Add Metric** for another query, or **Add Formula** to combine them. The chart under the queries shows the last hours, with the rule's value as a red line, so you can see the values the rule will check.
 
-### Set the criteria
+### Say when to alert
 
-In **Monitor Criteria**, each criteria picks the **Metric** to check (a query or a formula), its **Aggregation**, a **Condition** and a **Threshold**. See [Criteria](#criteria) for what a new monitor starts with.
+In **When to alert**, pick how the metric is **Measured as**, a **Time window**, a **Condition** and a **Value**. When the step has more than one query or formula, pick the **Metric** the rule reads too. The sentence under them says the rule back in plain words.
+
+### Choose what happens
+
+In **What happens**, pick **Create an alert**, **Declare an incident** or **Both**, and give it a title and a severity. While the rule matches, the monitor shows the status under **More fields**; when it stops matching, the monitor goes back to its default status and the alert or incident resolves itself.
 
 ### Create the monitor
 
@@ -79,44 +79,44 @@ A formula combines query variables with `+`, `-`, `*`, `/`, `%`, `^` and parenth
 
 ### Rolling Time Window
 
-**Time Range** sets how far back every evaluation looks: **Past 1 Minute**, **Past 5 Minutes**, **Past 10 Minutes**, **Past 15 Minutes**, **Past 30 Minutes**, **Past 1 Hour**, **Past 2 Hours**, **Past 3 Hours**, **Past 6 Hours**, **Past 12 Hours**, **Past 1 Day**, **Past 2 Days**, **Past 3 Days**, **Past 7 Days**, **Past 14 Days**, **Past 30 Days**, **Past 60 Days**, **Past 90 Days**, **Past 180 Days** or **Past 365 Days**.
+The **Time window** in **When to alert** sets how far back every evaluation looks: **Last 1 minute**, **Last 5 minutes**, **Last 10 minutes**, **Last 15 minutes**, **Last 30 minutes**, **Last 1 hour**, **Last 2 hours**, **Last 3 hours**, **Last 6 hours**, **Last 12 hours**, **Last 24 hours**, **Last 2 days**, **Last 3 days**, **Last 7 days**, **Last 14 days**, **Last 30 days**, **Last 60 days**, **Last 90 days**, **Last 180 days** or **Last 365 days**.
 
-The longer the range, the wider each time bucket, so one data point stands for more time:
+The longer the window, the wider each time bucket, so one data point stands for more time:
 
-| Time Range | One data point per |
+| Time window | One data point per |
 | --- | --- |
-| Past 1 Minute to Past 3 Hours | minute |
-| Past 6 Hours, Past 12 Hours | 5 minutes |
-| Past 1 Day | 15 minutes |
-| Past 2 Days, Past 3 Days | 30 minutes |
-| Past 7 Days | hour |
-| Past 14 Days, Past 30 Days | day |
-| Past 60 Days to Past 180 Days | week |
-| Past 365 Days | month |
+| Last 1 minute to Last 3 hours | minute |
+| Last 6 hours, Last 12 hours | 5 minutes |
+| Last 24 hours | 15 minutes |
+| Last 2 days, Last 3 days | 30 minutes |
+| Last 7 days | hour |
+| Last 14 days, Last 30 days | day |
+| Last 60 days to Last 180 days | week |
+| Last 365 days | month |
 
 ## How it is evaluated
 
 - **Every minute.** A Metrics monitor is not checked by probes, so it has no interval to set and no **Probes & Interval** page.
 - **Queries, then formulas.** Each query returns one data point per time bucket of the time range, using its **Aggregate by**. Formulas are worked out for each bucket from the queries' data points.
-- **Then the criteria's aggregation.** Each criteria reduces the data points of its **Metric** to what it compares with the threshold:
+- **Then the rule's measure.** The rule reduces the data points of its metric to what it compares with its value, as **Measured as** says:
 
-| Aggregation | The condition is checked against… |
-| --- | --- |
-| Average | the average of the data points |
-| Sum | the sum of the data points |
-| Maximum Value | the highest data point |
-| Minimum Value | the lowest data point |
-| All Values | every data point: all of them must meet the condition, and they must cover the whole time range |
-| Any Value | every data point: one of them meeting the condition is enough |
+| Measured as | In the custom criteria | The condition is checked against… |
+| --- | --- | --- |
+| The average | Average | the average of the data points |
+| The sum | Sum | the sum of the data points |
+| The highest value | Maximum Value | the highest data point |
+| The lowest value | Minimum Value | the lowest data point |
+| Every value (the whole window) | All Values | every data point: all of them must meet the condition, and they must cover the whole time range |
+| Any value (at any point) | Any Value | every data point: one of them meeting the condition is enough |
 
 - **Criteria from top to bottom.** On a monitor without Group By, the first criteria that matches decides, so put the most severe one first. A grouped monitor checks every criteria for every series — see [Criteria evaluation differs](#criteria-evaluation-differs).
-- **No data is not zero.** When the query returns no data points in the time range, a criteria does what its **If No Data** setting says, under **More fields**: **Ignore** (the default — the criteria does not match), **Treat As Zero**, or **Trigger**.
-- **All Values needs the whole time range.** A series meets an **All Values** criteria only once its data points cover the time range, from its start to now, with no gap of more than one missing data point. When all of the monitor's data arrives late, as CloudWatch's does, its newest data point takes the place of now. A host, container or deployment that only just started reporting, or that went quiet for a while, waits until it has a whole time range of data, and the evaluation log says how far it has got: `Waiting for 15 minutes of data: 2 of 15 minutes so far`. A series whose alert or incident is already open is judged on its data points alone, so a short gap in its data does not resolve it. When the metric reports less often than the time range is long, a lone data point counts for the whole range once it is a few minutes old; to judge how long a value lasts, make the time range at least two reporting intervals long.
-- **OneUptime's own downtime is not silence.** While the time range holds time OneUptime itself was not receiving data — it was restarting, being upgraded or catching up — the check waits: the status does not change, and no incident or alert is opened or resolved, whatever **If No Data** says. See [When OneUptime Is Not Receiving Data](/docs/monitor/when-oneuptime-is-not-receiving).
+- **No data is not zero.** When the query returns no data points in the time range, the rule does what **If there is no data** says, under **More fields** in **When to alert**: **Nothing** (the default — the rule does not match), **Count it as zero**, or **Alert, as if it matched**.
+- **Every value needs the whole time range.** A series meets a rule measured as **Every value (the whole window)** only once its data points cover the time range, from its start to now, with no gap of more than one missing data point. When all of the monitor's data arrives late, as CloudWatch's does, its newest data point takes the place of now. A host, container or deployment that only just started reporting, or that went quiet for a while, waits until it has a whole time range of data, and the evaluation log says how far it has got: `Waiting for 15 minutes of data: 2 of 15 minutes so far`. A series whose alert or incident is already open is judged on its data points alone, so a short gap in its data does not resolve it. When the metric reports less often than the time range is long, a lone data point counts for the whole range once it is a few minutes old; to judge how long a value lasts, make the time range at least two reporting intervals long.
+- **OneUptime's own downtime is not silence.** While the time range holds time OneUptime itself was not receiving data — it was restarting, being upgraded or catching up — the check waits: the status does not change, and no incident or alert is opened or resolved, whatever **If there is no data** says. See [When OneUptime Is Not Receiving Data](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Criteria
 
-These monitors always evaluate the **Metric Value** — the aggregated value of the configured metric query or formula. The criteria form has no Filter Type selector; it shows **Metric**, **Aggregation**, **Condition**, and **Threshold**. When the metric has a unit, pick the threshold's unit next to it.
+These monitors always evaluate the **Metric Value** — the aggregated value of the configured metric query or formula. **When to alert** sets up one criteria from **Measured as**, **Time window**, **Condition** and **Value**. When the metric has a unit, pick the value's unit next to it. Its **Condition** reads **Above**, **At or above**, **Below**, **At or below**, **Exactly**, **Unusually high**, **Unusually low** or **Unusually high or low**. For several criteria, such as severity bands, click **Edit as custom criteria** under **More fields** in **What happens**: each criteria there has a **Metric**, an **Aggregation**, a **Condition** and a **Threshold**.
 
 | Condition | Matches when the value is… |
 | --- | --- |
@@ -129,9 +129,11 @@ These monitors always evaluate the **Metric Value** — the aggregated value of 
 | **Anomalously Low** | below that range |
 | **Anomalous** | outside that range, either way |
 
-The anomaly conditions have no threshold. The form shows **Sensitivity** — Low, Medium (the default) or High — and **Baseline Window** — 14 days (the default), 28, 60 or 90 — instead, and compares each data point with the same-hour-of-week baseline built from that window. Until that hour of the week has enough history, the criteria is still learning and produces no alerts.
+The anomaly conditions have no threshold. **When to alert** shows **Sensitivity** — Low, Medium (the default) or High — instead, and the custom criteria a **Baseline Window** too — 14 days (the default), 28, 60 or 90 — and each data point is compared with the same-hour-of-week baseline built from that window. Until that hour of the week has enough history, the criteria is still learning and produces no alerts.
 
-A new Metrics monitor starts with two criteria on its first query, both with the **Any Value** aggregation:
+A Metrics monitor made in Create Monitor starts on one rule, on its first query: **The average** over **Last 5 minutes**, **Above** the **Value** you enter, and **Create an alert**.
+
+A new Metrics monitor created through the API or Terraform without criteria starts with two criteria on its first query, both with the **Any Value** aggregation:
 
 | Criteria | Condition | Effect |
 | --- | --- | --- |
@@ -143,24 +145,24 @@ A new Metrics monitor starts with two criteria on its first query, both with the
 
 ## Worked example: a growing queue
 
-You want an incident when the checkout queue stays deep. Query `a` is the gauge `checkout.queue.depth`, with **Aggregate by** Max, and the **Time Range** is **Past 5 Minutes**. One evaluation sees these five one-minute data points:
+You want an incident when the checkout queue stays deep. Query `a` is the gauge `checkout.queue.depth`, with **Aggregate by** Max, and the **Time window** is **Last 5 minutes**. One evaluation sees these five one-minute data points:
 
 | Minute | 10:01 | 10:02 | 10:03 | 10:04 | 10:05 |
 | --- | --- | --- | --- | --- | --- |
 | `a` | 640 | 980 | 1,500 | 1,620 | 1,100 |
 
-A criteria of **Metric** `a`, **Condition** **Greater Than**, **Threshold** `1000` gives a different answer for each **Aggregation**:
+A rule **Above** `1000` gives a different answer for each way it is **Measured as**:
 
-| Aggregation | Compared with 1,000 | Matches? |
+| Measured as | Compared with 1,000 | Matches? |
 | --- | --- | --- |
-| Average | 1,168 | Yes |
-| Sum | 5,840 | Yes |
-| Maximum Value | 1,620 | Yes |
-| Minimum Value | 640 | No |
-| All Values | 640, 980, 1,500, 1,620, 1,100 | No — two points are not above 1,000 |
-| Any Value | 640, 980, 1,500, 1,620, 1,100 | Yes — 1,500 is |
+| The average | 1,168 | Yes |
+| The sum | 5,840 | Yes |
+| The highest value | 1,620 | Yes |
+| The lowest value | 640 | No |
+| Every value (the whole window) | 640, 980, 1,500, 1,620, 1,100 | No — two points are not above 1,000 |
+| Any value (at any point) | 640, 980, 1,500, 1,620, 1,100 | Yes — 1,500 is |
 
-**Average** pages on a sustained backlog and ignores one deep minute; **All Values** waits until every minute in the range is deep; **Any Value** pages on the first deep minute.
+**The average** pages on a sustained backlog and ignores one deep minute; **Every value (the whole window)** waits until every minute in the range is deep; **Any value (at any point)** pages on the first deep minute.
 
 ## Per-Series Alerting (Group By)
 
@@ -198,11 +200,11 @@ The grouping attribute values are also available as [template variables](/docs/m
 ## Troubleshooting
 
 :::details The chart shows a breach, but the monitor did not alert
-Check the criteria's **Aggregation** first: **All Values** only matches when every data point in the time range breaches, and **Average** smooths out a short spike. **All Values** also waits until a series has data for the whole time range, so a host or deployment that only just started reporting is not judged yet. Then check that the criteria's **Metric** is the query or formula you mean (`a` is not the formula `c`), and that the threshold is in the unit you think.
+Check **Measured as** first: **Every value (the whole window)** only matches when every data point in the time range breaches, and **The average** smooths out a short spike. **Every value (the whole window)** also waits until a series has data for the whole time range, so a host or deployment that only just started reporting is not judged yet. Then check that the rule reads the query or formula you mean (`a` is not the formula `c`), and that the **Value** is in the unit you think.
 :::
 
 :::details The metric stopped arriving and nothing happened
-A time range with no data points is not a value of 0. With **If No Data** at its default, **Ignore**, the criteria does not match. Set it to **Trigger** under the criteria's **More fields** to alert on silence.
+A time range with no data points is not a value of 0. With **If there is no data** at its default, **Nothing**, the rule does not match. Set it to **Alert, as if it matched** under **More fields** in **When to alert** to alert on silence.
 :::
 
 :::details I get one alert for the whole fleet

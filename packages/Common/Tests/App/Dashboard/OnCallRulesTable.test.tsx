@@ -1205,7 +1205,12 @@ describe("OnCallRulesTable", () => {
 
     expect(severityRead).toBeDefined();
     expect(severityRead[0].sort).toEqual({ order: SortOrder.Ascending });
-    expect(severityRead[0].select).toEqual({ name: true, color: true });
+    // Whether each is archived too: an archived one is drawn last, marked.
+    expect(severityRead[0].select).toEqual({
+      name: true,
+      color: true,
+      isArchived: true,
+    });
     expect(severityRead[0].query.projectId.toString()).toBe(PROJECT_ID_STRING);
   });
 });

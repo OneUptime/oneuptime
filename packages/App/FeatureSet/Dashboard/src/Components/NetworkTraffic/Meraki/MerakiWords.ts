@@ -502,6 +502,25 @@ export const APPLIANCE_COUNT: PluralTemplate = {
   other: "{{count}} appliances",
 };
 
+// Every device of the organization's device list, appliances among them.
+export const DEVICE_COUNT: PluralTemplate = {
+  one: "{{count}} device",
+  other: "{{count}} devices",
+};
+
+/*
+ * The organization's devices that are network devices here, whose missing
+ * details Inventory fills in from Meraki (NetworkControllerInventory): said
+ * as what the connection does for them, the details named that a Meraki
+ * box's own poll cannot read. "Fills in" - what a device already has (saved,
+ * or read by its own poll) stays.
+ */
+export const DESCRIBED_DEVICES_NOTE: PluralTemplate = {
+  one: "Fills in the model, serial number and firmware of {{count}} network device.",
+  other:
+    "Fills in the model, serial number and firmware of {{count}} network devices.",
+};
+
 export const API_CALL_COUNT: PluralTemplate = {
   one: "{{count}} API call a read",
   other: "{{count}} API calls a read",

@@ -48,6 +48,13 @@ const LEFT_OUT: Record<string, string> = {
   "Utils/Analytics": "a browser library",
 };
 
+// What the build finds the stand-in leaves out, as PINNED_LEFT_OUT pins the real Common's.
+const PINNED_LEFT_OUT: Record<string, string> = {
+  "Types/UsesDevDependency": "needs a package Common has for its tests only",
+  "Types/UsesServer": "logs through the server's logger",
+  "Utils/Tracker": "tracks through the analytics left out on purpose",
+};
+
 // How long one build of the stand-in may take: each takes about a second.
 const BUILD_TIMEOUT_MS: number = 120000;
 
@@ -245,6 +252,7 @@ function buildStandIn(
   extra: Record<string, string>,
   options: {
     rootExports?: ReadonlyArray<RootExport>;
+    pinnedLeftOut?: Record<string, string>;
     buildDirectory?: string;
     readExportsTimeoutMs?: number;
   },
@@ -263,6 +271,7 @@ function buildStandIn(
       buildDirectory:
         options.buildDirectory || path.join(sourceRoot, "build", "npm"),
       leftOut: LEFT_OUT,
+      pinnedLeftOut: options.pinnedLeftOut || PINNED_LEFT_OUT,
       rootExports: options.rootExports || ROOT_EXPORTS,
       licenseFile: path.join(sourceRoot, "LICENSE.txt"),
       readmeFile: path.join(sourceRoot, "README.md"),
@@ -789,6 +798,80 @@ describe("a build that cannot publish what it would write", () => {
 
     expect(missingType.run.error).toBe(
       "The package root exports Nope as Types/Dictionary's Nope, which Types/Dictionary does not export in its types",
+    );
+  });
+
+  test("fails when a module drops out that PINNED_LEFT_OUT does not name, saying what keeps it out and what to do", () => {
+    const { run }: { run: BuildRun } = buildStandIn(
+      "drops-out",
+      {
+        "Types/NowLogs.ts": [
+          'import Logger from "../Server/Logger";',
+          "export const prefix: string = Logger.prefix;",
+          "",
+        ].join("\n"),
+      },
+      {},
+    );
+
+    expect(run.report).toBeUndefined();
+    expect(run.error).toBe(
+      [
+        "The package would leave out other modules than Scripts/NpmPackage/BuildNpmPackage.js says it does:",
+        "  Types/NowLogs is left out now, and PINNED_LEFT_OUT does not name it: loads Server/Logger when it runs (Types/NowLogs -> Server/Logger). Keep it from loading that, or, if its npm users may lose it, add it to PINNED_LEFT_OUT with why.",
+      ].join("\n"),
+    );
+  });
+
+  test("builds once the module that dropped out is pinned, and leaves it out", () => {
+    const { run }: { run: BuildRun } = buildStandIn(
+      "drops-out-pinned",
+      {
+        "Types/NowLogs.ts": [
+          'import Logger from "../Server/Logger";',
+          "export const prefix: string = Logger.prefix;",
+          "",
+        ].join("\n"),
+      },
+      {
+        pinnedLeftOut: {
+          ...PINNED_LEFT_OUT,
+          "Types/NowLogs": "logs through the server's logger",
+        },
+      },
+    );
+
+    expect(run.error).toBeUndefined();
+    expect(
+      run.report?.leftOut.map((entry: { module: string }): string => {
+        return entry.module;
+      }),
+    ).toContain("Types/NowLogs");
+    expect(run.report?.manifest.exports["./Types/NowLogs"]).toBeNull();
+  });
+
+  test("fails when PINNED_LEFT_OUT names a module the package would publish, one that does not exist, or one LEFT_OUT names too", () => {
+    const { run }: { run: BuildRun } = buildStandIn(
+      "pinned-wrongly",
+      {},
+      {
+        pinnedLeftOut: {
+          ...PINNED_LEFT_OUT,
+          "Types/ObjectID": "no longer true",
+          "Types/Gone": "a module since deleted",
+          "Utils/Analytics": "named twice",
+        },
+      },
+    );
+
+    expect(run.report).toBeUndefined();
+    expect(run.error).toBe(
+      [
+        "The package would leave out other modules than Scripts/NpmPackage/BuildNpmPackage.js says it does:",
+        "  Types/Gone is in PINNED_LEFT_OUT, but there is no such module under Types, Utils, Models: take its line out.",
+        "  Types/ObjectID is in PINNED_LEFT_OUT, but nothing keeps it out of the package any more: take its line out, and the package publishes it again.",
+        "  Utils/Analytics is in LEFT_OUT and in PINNED_LEFT_OUT: keep it in one of them.",
+      ].join("\n"),
     );
   });
 

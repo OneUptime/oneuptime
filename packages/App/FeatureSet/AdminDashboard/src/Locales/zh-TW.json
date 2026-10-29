@@ -1514,6 +1514,13 @@
   "Light": "淺色",
   "Dark": "深色",
   "System": "系統",
+  "Enable": "啟用",
+  "Disable": "停用",
+  "Drag to resize. Double-click to fit.": "拖曳以調整寬度。按兩下以符合內容。",
+  "Reset column widths": "重設欄寬",
+  "Resize the {{column}} column": "調整「{{column}}」欄的寬度",
+  "{{count}} pixels wide": "寬 {{count}} 像素",
+  "{{count}} pixels wide_one": "寬 {{count}} 像素",
   "markdownCallouts": {
     "caution": "小心",
     "danger": "危險",

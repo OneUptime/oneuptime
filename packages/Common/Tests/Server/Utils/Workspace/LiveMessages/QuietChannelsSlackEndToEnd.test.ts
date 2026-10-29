@@ -20,6 +20,8 @@ import QuietChannelsWorld, {
   NB_USER_3,
   NITIN,
   PROJECT_ID,
+  RULE_FHIRST,
+  RULE_SECOND,
   STATE_ACKNOWLEDGED,
   STATE_IDENTIFIED,
   STATE_RESOLVED,
@@ -241,10 +243,11 @@ async function escalateThroughTheScreenshots(): Promise<void> {
   await world.escalate();
   await world.invitedToRecordChannels([NB_USER_3, NITIN]);
 
-  // Rule "third": NB User 2 left the project - nobody is paged.
-  await world.escalate();
-
-  // Nobody acknowledged: the policy repeats, rule "fhirst" pages Nitin again.
+  /*
+   * Rule "third": NB User 2 left the project - nobody is paged. Nobody is
+   * on it to wait for, so the policy repeats at once (OnCallEmptyLevel):
+   * rule "fhirst" pages Nitin again, the same minute.
+   */
   await world.escalate();
 }
 
@@ -294,8 +297,8 @@ describe("an incident from declared to resolved, in its Slack channel", () => {
       "NB User 3 could not be added to this channel",
       "PolicyX is paging for Incident INC-8",
       "PolicyX paged nobody at third (Level 3 of 3) for Incident INC-8",
-      "Nitin 👀 Changed Incident INC-8 State to Acknowledged",
-      "Nitin ✅ Changed Incident INC-8 State to Resolved",
+      "👀 Nitin changed Incident INC-8 State to Acknowledged",
+      "✅ Nitin changed Incident INC-8 State to Resolved",
     ]);
 
     // Every message went to the incident's channel, as a message of its own.
@@ -430,21 +433,19 @@ describe("an incident from declared to resolved, in its Slack channel", () => {
       "NB User 3*\u200b: paged once · by SMS and email",
     );
 
-    // Rule "third", at 5:28, reached nobody: NB User 2 left the project.
+    /*
+     * Rule "third", at 5:28, reached nobody: NB User 2 left the project.
+     * Nobody was on it to wait for, so at 5:28 too - not 5:35 - the policy
+     * repeats from rule "fhirst" (OnCallEmptyLevel).
+     */
     await world.escalate();
     message = runMessage();
     expect(message).toContain(
-      `third (Level 3 of 3)*\u200b: if nobody acknowledges by ${slackTime("2026-10-08T17:35:00Z")}, the policy starts again from Level 1.`,
+      `fhirst (Level 1 of 3)*\u200b, repeat 1 of 1: if nobody acknowledges by ${slackTime("2026-10-08T17:34:00Z")}, second (Level 2 of 3) is next.`,
     );
+    expect(message).not.toContain("third (Level 3 of 3)*\u200b: if nobody");
     expect(message).toContain(
       "NB User 2*\u200b: not paged · not a member of this project",
-    );
-
-    // Nobody acknowledged: at 5:35 the policy repeats from rule "fhirst".
-    await world.escalate();
-    message = runMessage();
-    expect(message).toContain(
-      `fhirst (Level 1 of 3)*\u200b, repeat 1 of 1: if nobody acknowledges by ${slackTime("2026-10-08T17:41:00Z")}, second (Level 2 of 3) is next.`,
     );
     expect(message).toContain("Nitin*\u200b: paged 3 times · by SMS and email");
 
@@ -494,8 +495,7 @@ describe("an incident from declared to resolved, in its Slack channel", () => {
   test("a run that ends with nobody acknowledging raises one more alarm, and its message says so", async () => {
     await declareIncidentAndPage();
     await escalateThroughTheScreenshots();
-    // The repeat's last rules, then the end of the run.
-    await world.escalate();
+    // The repeat's last rules: "third" reaches nobody, and the run ends at once.
     await world.escalate();
     await world.escalate();
 
@@ -525,7 +525,6 @@ describe("an incident from declared to resolved, in its Slack channel", () => {
   test("REGRESSION: a run that went through every rule still says so when the incident is acknowledged afterwards", async () => {
     await declareIncidentAndPage();
     await escalateThroughTheScreenshots();
-    await world.escalate();
     await world.escalate();
     await world.escalate();
 
@@ -618,7 +617,7 @@ describe("REGRESSION: each duplicate in the screenshots, one by one", () => {
   test("'On-Call Alert Notification Sent to <person>', once per person per rule per repeat - and each of those twice", async () => {
     await world.startRun();
     await world.escalate();
-    await world.escalate();
+    // Rule "third" pages nobody: the policy repeats from "fhirst" at once.
     await world.escalate();
 
     for (const post of slack.posts()) {
@@ -734,8 +733,7 @@ describe("REGRESSION: each duplicate in the screenshots, one by one", () => {
     await world.escalate();
     await world.escalate();
 
-    // The repeat reaches rule "third" again: no second alarm.
-    await world.escalate();
+    // The repeat reaches rule "third" again, and ends there: no second alarm.
     await world.escalate();
     await world.escalate();
 
@@ -928,5 +926,150 @@ describe("a scheduled maintenance event, in its Slack channel", () => {
 
     // Nothing is edited for a maintenance event: it has no on-call run.
     expect(slack.updates()).toHaveLength(0);
+  });
+});
+
+/*
+ * THE MAINTAINER'S POLICY, IN ITS SLACK CHANNEL. "sg - irm" paged nobody at
+ * Level 1 of 2 ("this escalation rule has no responders"), waited Level 1's
+ * minutes, and only then paged Nitin Main at Level 2. Level 1 now holds no
+ * wait (OnCallEmptyLevel): Nitin is paged the minute the run starts, and
+ * the run's one message and the incident's feed say Level 1 was passed at
+ * once.
+ */
+describe("a policy whose first level has nobody to page, in its Slack channel", () => {
+  beforeEach(() => {
+    world.repeatsAllowed = 0;
+    world.rules = [
+      {
+        id: RULE_FHIRST,
+        order: 1,
+        name: "Level 1",
+        escalateAfterInMinutes: 4,
+        targets: [],
+      },
+      {
+        id: RULE_SECOND,
+        order: 2,
+        name: "Level 2",
+        escalateAfterInMinutes: 30,
+        targets: [{ kind: "page", userId: NITIN }],
+      },
+    ];
+  });
+
+  // The run's message as it reads now: its last edit, else its post.
+  function runMessage(): string {
+    const updates: Array<SlackRequest> = slack.updates();
+
+    if (updates.length > 0) {
+      return updates[updates.length - 1]!.text;
+    }
+
+    return slack.posts().find((post: SlackRequest): boolean => {
+      return headline(post).includes("is paging for");
+    })!.text;
+  }
+
+  test("the run's one message is on Level 2 from the start, waiting Level 2's own minutes", async () => {
+    await declareIncidentAndPage();
+    await world.settle();
+
+    const message: string = runMessage();
+
+    expect(message).toContain("is paging for");
+    expect(message).toContain(
+      `Level 2 of 2*\u200b: if nobody acknowledges by ${slackTime("2026-10-08T17:45:00Z")}, paging stops.`,
+    );
+    expect(message).toContain("Nitin*\u200b: paged once · by SMS and email");
+  });
+
+  test("its list says Level 1 had nobody to page, so Level 2 was paged at once", async () => {
+    await declareIncidentAndPage();
+    await world.settle();
+
+    expect(runMessage()).toContain(
+      "Level 1 of 2: nobody to page, so Level 2 of 2 was paged at once",
+    );
+    expect(runMessage()).not.toContain("trying again");
+  });
+
+  test("the incident's feed: Level 1 passed at once, then Nitin paged - the same minute, nothing in between", async () => {
+    await declareIncidentAndPage();
+    await world.settle();
+
+    const entries: Array<string> = feedOf("OnCallPolicy").map(
+      (entry: FeedEntry): string => {
+        return entry.markdown;
+      },
+    );
+    const levelOne: number = entries.findIndex((markdown: string): boolean => {
+      return markdown.includes(
+        "paged nobody at **Level 1 of 2**: this escalation rule has no responders, so the next level was paged at once.",
+      );
+    });
+    const nitin: number = entries.findIndex((markdown: string): boolean => {
+      return PAGED_SOMEONE_PATTERN.test(markdown);
+    });
+
+    expect(levelOne).toBeGreaterThanOrEqual(0);
+    expect(nitin).toBe(levelOne + 1);
+    expect(entries[nitin]).toContain("at **Level 2 of 2**.");
+    // Said once, in its own words: the step's message is not said again.
+    expect(entries.join("\n")).not.toContain("Skipped because no users");
+  });
+
+  test("nothing asks the channel to page somebody: Level 2 already was", async () => {
+    await declareIncidentAndPage();
+    await world.settle();
+
+    for (const post of slack.posts()) {
+      expect(post.text).not.toContain("page someone or fix the policy");
+    }
+
+    // A level passed at once is said in the run's own message.
+    expect(
+      slack.posts().filter((post: SlackRequest): boolean => {
+        return headline(post).includes("PolicyX");
+      }),
+    ).toHaveLength(1);
+  });
+
+  test("Nitin acknowledges: the run stops, as any run does", async () => {
+    await declareIncidentAndPage();
+    await world.acknowledge(NITIN);
+
+    expect(runMessage()).toContain("stopped paging");
+    expect(runMessage()).toContain(
+      "Level 1 of 2: nobody to page, so Level 2 of 2 was paged at once",
+    );
+  });
+
+  test("with Level 2 empty too, the run stops the minute it starts: one message says nobody was paged, and what to do", async () => {
+    world.rules = [
+      { ...world.rules[0]!, targets: [] },
+      { ...world.rules[1]!, targets: [] },
+    ];
+
+    await declareIncidentAndPage();
+    await world.settle();
+
+    const message: string = runMessage();
+
+    expect(headline({ text: message } as SlackRequest)).toContain(
+      "could not reach anyone",
+    );
+    expect(message).toContain(
+      "Level 1 of 2: nobody to page, so Level 2 of 2 was paged at once",
+    );
+    expect(message).toContain("Level 2 of 2: nobody to page");
+    expect(world.run!.status).toBe("Execution Completed - No One Notified");
+    expect(
+      feedOf("OnCallPolicy").some((entry: FeedEntry): boolean => {
+        return entry.markdown.includes(
+          "This policy's owners should add responders to its escalation rules, or check who is on call in its schedules.",
+        );
+      }),
+    ).toBe(true);
   });
 });

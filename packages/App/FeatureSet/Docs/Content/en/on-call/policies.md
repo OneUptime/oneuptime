@@ -20,6 +20,8 @@ An on-call policy decides who is paged about an incident or alert, and who is ne
 
 **Who gets paged first?** is optional, and asked only of people who may add escalation rules: left empty, the policy pages nobody until it has a rule. **Description** and **Labels** wait under **More fields**. To add the next levels, see [Escalation Rules](/docs/on-call/escalation-rules).
 
+A project's first policy is also asked **Page this policy for every new incident and alert**, which starts on. It adds a rule under **Incidents → Rules → On-Call Rules** and one under **Alerts → Rules → On-Call Rules**, each matching everything and running this policy. It is asked of people who may add on-call rules, while the project has no on-call policy and no on-call rule.
+
 The **On-Call Duty Policies** list shows each policy's **Name**, **Description**, **Labels** and **Owners**. Select policies to **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner**, **Archive**, **Export JSON** or delete them. **Import JSON** creates policies from an export: an export holds a policy's own settings, not its escalation rules or owners.
 
 ## What runs a policy
@@ -64,7 +66,7 @@ When the last level's wait runs out with nobody acknowledging, a policy stops, u
 | **Stop paging** | Nobody is paged again, so the policy runs once. A new policy starts with this answer. |
 | **Start again from Level 1** | Every level is paged again, in order. **How many more times?** says how often: 1 or more. |
 
-A policy that starts again three more times goes through its levels four times in all. The card's **After the last level** row says what the policy does, and **Policy at a glance** on the **Overview** says the same in words.
+A policy that starts again three more times goes through its levels four times in all. A pass in which no level had anybody to page is not repeated: another would page nobody either, so the policy stops. The card's **After the last level** row says what the policy does, and **Policy at a glance** on the **Overview** says the same in words.
 
 ## Page again if it is not resolved
 
@@ -101,7 +103,7 @@ flowchart TB
 | **Scheduled**, **Started** | The run is being set up. One still here after 5 minutes is stopped as **Error**. |
 | **Executing** | The run is paging. OneUptime moves it on every minute. |
 | **Execution Completed** | Someone acknowledged, the incident or alert was resolved, every rule and repeat was used, or the policy was archived. |
-| **Execution Completed - No One Notified** | The run went through every rule and paged nobody: usually a schedule with nobody on call. |
+| **Execution Completed - No One Notified** | The run went through every rule and paged nobody: usually a schedule with nobody on call, or a level with no responders. |
 | **Error** | The run failed. **View Status Message** says why. |
 
 You find execution logs in three places:
@@ -110,7 +112,7 @@ You find execution logs in three places:
 - **On-Call Duty → Advanced → Execution Logs**, for every policy, with direct pages from workflows and chat listed as **Direct page**;
 - the **On-Call Executions** page of an incident or an alert.
 
-Each row shows what triggered the run, when, its **Status** and who acknowledged it. **View Timeline** opens its **Execution Timeline**: each escalation rule, who it paged, through which schedule, and how each page ended. A schedule with nobody on call shows **No one was on call** instead of a person. On OneUptime Cloud, execution logs need the **Growth** plan.
+Each row shows what triggered the run, when, its **Status** and who acknowledged it. **View Timeline** opens its **Execution Timeline**: each escalation rule, who it paged, through which schedule, and how each page ended. A schedule with nobody on call shows **No one was on call** instead of a person. A level that paged nobody says why, with **Moved on at once** under it: the policy did not wait for it. On OneUptime Cloud, execution logs need the **Growth** plan.
 
 ## Archive or delete a policy
 
@@ -152,6 +154,10 @@ Its run says **Execution Completed - No One Notified**. Open **View Timeline**: 
 
 :::details The next level was paged a minute after its wait
 OneUptime moves running policies on once a minute, so a level is paged at the first check after its wait runs out.
+:::
+
+:::details The next level was paged at once, without waiting
+The level before it had nobody to page: no responders, nobody on call in its schedules, or nobody who could be reached. A level that pages nobody holds no wait, so the next level is paged as soon as the policy reaches it. **View Timeline** shows why that level paged nobody.
 :::
 
 :::details An incident lists a policy that paged nobody

@@ -1,4 +1,8 @@
 import OneUptimeDate from "Common/Types/Date";
+import { isRightToLeftLanguage } from "Common/Types/ReadingDirection";
+import NetworkControllerProvider, {
+  isNetworkControllerProvider,
+} from "Common/Types/NetworkController/NetworkControllerProvider";
 import {
   NetworkDeviceDiscoveryMethod,
   NetworkDeviceDiscoveryReader,
@@ -15,7 +19,7 @@ import {
   composedValue,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
-import { formatRelativeTime } from "../Home/HomeRelativeTime";
+import { formatRelativeTime, isJustNow } from "../Home/HomeRelativeTime";
 
 /*
  * Where an asset detail came from, and when, in words (OneUptime issue
@@ -79,9 +83,52 @@ const UNNAMED_DISCOVERED_SOURCE: Readonly<
   [NetworkDeviceDiscoveryMethod.Dns]: translationKey("DNS lookup by its probe"),
 };
 
+/*
+ * What a device's network controller says, by controller: the connection
+ * that read it named in brackets, as a probe is. Meraki is the only
+ * controller OneUptime reads; its product name is the same in every
+ * language.
+ */
+export const NAMED_CONTROLLER_SOURCE: Readonly<
+  Record<NetworkControllerProvider, string>
+> = {
+  [NetworkControllerProvider.Meraki]: translationKey(
+    "Meraki dashboard ({{name}})",
+  ),
+};
+
+export const UNNAMED_CONTROLLER_SOURCE: Readonly<
+  Record<NetworkControllerProvider, string>
+> = {
+  [NetworkControllerProvider.Meraki]: translationKey("The Meraki dashboard"),
+};
+
+// A device's details from its controller's device list, said once.
+export const CONTROLLER_READ_TEMPLATE: Readonly<
+  Record<NetworkControllerProvider, string>
+> = {
+  [NetworkControllerProvider.Meraki]: translationKey(
+    "Read from the Meraki dashboard ({{name}}), {{time}}.",
+  ),
+};
+
+export const CONTROLLER_READ_UNNAMED_TEMPLATE: Readonly<
+  Record<NetworkControllerProvider, string>
+> = {
+  [NetworkControllerProvider.Meraki]: translationKey(
+    "Read from the Meraki dashboard, {{time}}.",
+  ),
+};
+
 // Every other kind of source, which names nothing.
 const SOURCE_TEXT: Readonly<
-  Record<Exclude<AssetFactSourceKind, AssetFactSourceKind.Discovered>, string>
+  Record<
+    Exclude<
+      AssetFactSourceKind,
+      AssetFactSourceKind.Discovered | AssetFactSourceKind.Controller
+    >,
+    string
+  >
 > = {
   [AssetFactSourceKind.SnmpPoll]: translationKey("Its SNMP poll"),
   [AssetFactSourceKind.LearnedFromArp]: translationKey("A router's ARP table"),
@@ -161,18 +208,28 @@ export function isNativeAssetFactSource(
 }
 
 /*
- * A source a card may say once, below its details: a machine's own, or the
+ * A source a card may say once, below its details: a machine's own, the
  * SNMP system group a discovery scan read - which gives a ping-only switch
  * its name, maker, operating system, version, location and description in
- * one reading. A reverse-DNS name, a NetBIOS name, an ARP table's MAC and a
- * probe's DNS lookup each give one detail, and say so under it.
+ * one reading - or the device list of its network controller, which gives a
+ * Meraki access point its model, serial number, firmware, MAC and more. A
+ * reverse-DNS name, a NetBIOS name, an ARP table's MAC and a probe's DNS
+ * lookup each give one detail, and say so under it.
  */
 function isSharableAssetFactSource(source: AssetFactSource): boolean {
   return (
     isNativeAssetFactSource(source) ||
     (source.kind === AssetFactSourceKind.Discovered &&
-      source.method === NetworkDeviceDiscoveryMethod.Snmp)
+      source.method === NetworkDeviceDiscoveryMethod.Snmp) ||
+    source.kind === AssetFactSourceKind.Controller
   );
+}
+
+// The controller a source names: Meraki for every source written so far.
+function providerOf(source: AssetFactSource): NetworkControllerProvider {
+  return isNetworkControllerProvider(source.provider)
+    ? source.provider
+    : NetworkControllerProvider.Meraki;
 }
 
 // A time as epoch milliseconds, or undefined when there is none.
@@ -221,8 +278,9 @@ export function isSameAssetFactSource(
  * that came from somewhere else - which is the only one that still says so.
  *
  * A machine's own source wins a tie, and is said once even for one detail;
- * a scan is said once only when it gave two details or more. Undefined when
- * nothing qualifies: then every detail says where it came from.
+ * a scan - or a network controller's device list, the Meraki dashboard - is
+ * said once only when it gave two details or more. Undefined when nothing
+ * qualifies: then every detail says where it came from.
  */
 export function getSharedAssetFactSource(
   sources: ReadonlyArray<AssetFactSource | undefined>,
@@ -306,9 +364,34 @@ function readerName(
   return name ? name : undefined;
 }
 
+/*
+ * A reading of the last few seconds - a device Refresh has just read again:
+ * "just now", where the relative time alone would say a bare "now".
+ */
+export const JUST_NOW: string = translationKey("just now");
+
+/*
+ * A time in a right-to-left sentence, set apart in a Unicode isolate (FSI
+ * ... PDI). A time that follows a name written in Latin letters - "خوانده‌شده
+ * از داشبورد Meraki (Acme Retail)، ۴ دقیقه پیش." - otherwise joins the name's
+ * left-to-right run: the browser draws its digit and the comma beside the
+ * name, before the words they belong with. In an isolate the time reads as
+ * one piece where the sentence puts it. A left-to-right language gets the
+ * time as it is.
+ */
+export const FIRST_STRONG_ISOLATE: string = String.fromCharCode(0x2068);
+export const POP_DIRECTIONAL_ISOLATE: string = String.fromCharCode(0x2069);
+
+function isolatedForSentence(time: string, translator: Translator): string {
+  return isRightToLeftLanguage(translator.language)
+    ? `${FIRST_STRONG_ISOLATE}${time}${POP_DIRECTIONAL_ISOLATE}`
+    : time;
+}
+
 /**
  * When a source was read, in the reader's language ("2 hours ago", "vor 2
- * Stunden") - or undefined when it is not known or does not parse.
+ * Stunden", "just now") - or undefined when it is not known or does not
+ * parse. Set apart for a right-to-left sentence (isolatedForSentence).
  */
 export function getAssetFactSourceTime(
   readAt: string | undefined,
@@ -325,11 +408,23 @@ export function getAssetFactSourceTime(
     return undefined;
   }
 
-  return formatRelativeTime({
-    date: date,
-    now: now || OneUptimeDate.getCurrentDate(),
-    language: translator.language,
-  });
+  const current: Date = now || OneUptimeDate.getCurrentDate();
+
+  if (isJustNow({ date: date, now: current })) {
+    return isolatedForSentence(
+      translator.translateText(JUST_NOW) || JUST_NOW,
+      translator,
+    );
+  }
+
+  return isolatedForSentence(
+    formatRelativeTime({
+      date: date,
+      now: current,
+      language: translator.language,
+    }),
+    translator,
+  );
 }
 
 /**
@@ -351,6 +446,18 @@ export function getAssetFactSourceText(
         })
       : translator.translateText(UNNAMED_DISCOVERED_SOURCE[method]) ||
           UNNAMED_DISCOVERED_SOURCE[method];
+  }
+
+  if (source.kind === AssetFactSourceKind.Controller) {
+    const provider: NetworkControllerProvider = providerOf(source);
+    const name: string | undefined = readerName(source.readBy);
+
+    return name
+      ? translator.translateTemplate(NAMED_CONTROLLER_SOURCE[provider], {
+          name: name,
+        })
+      : translator.translateText(UNNAMED_CONTROLLER_SOURCE[provider]) ||
+          UNNAMED_CONTROLLER_SOURCE[provider];
   }
 
   const text: string = SOURCE_TEXT[source.kind];
@@ -563,7 +670,43 @@ export function getSharedSourceLine(
     return getScanReadLine(source.readBy, source.readAt, translator, now);
   }
 
+  if (source?.kind === AssetFactSourceKind.Controller) {
+    return getControllerReadLine(source, translator, now);
+  }
+
   return undefined;
+}
+
+/**
+ * "Read from the Meraki dashboard (Acme Retail), 20 minutes ago." - said
+ * once for a device whose details came from its controller's device list.
+ */
+export function getControllerReadLine(
+  source: AssetFactSource,
+  translator: Translator,
+  now?: Date | undefined,
+): string | undefined {
+  const time: string | undefined = getAssetFactSourceTime(
+    source.readAt,
+    translator,
+    now,
+  );
+
+  if (!time) {
+    return undefined;
+  }
+
+  const provider: NetworkControllerProvider = providerOf(source);
+  const name: string | undefined = readerName(source.readBy);
+
+  return name
+    ? translator.translateTemplate(CONTROLLER_READ_TEMPLATE[provider], {
+        name: name,
+        time: time,
+      })
+    : translator.translateTemplate(CONTROLLER_READ_UNNAMED_TEMPLATE[provider], {
+        time: time,
+      });
 }
 
 /**

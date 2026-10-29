@@ -8,7 +8,7 @@ import { tables } from "./DocsPageShape";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import LlmCostBudget from "Common/Models/DatabaseModels/LlmCostBudget";
 import ExceptionCode from "Common/Types/Exception/ExceptionCode";
-import { CheckOn, FilterType } from "Common/Types/Monitor/CriteriaFilter";
+import { FilterType } from "Common/Types/Monitor/CriteriaFilter";
 import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
@@ -45,6 +45,19 @@ import {
 } from "Common/Types/Workflow/TemplateSyntax";
 import { WORKFLOW_ENABLED_SWITCH_LABEL } from "Common/Types/Workflow/WorkflowEnabled";
 import { getWorkflowAddButton } from "Common/UI/Components/Workflow/WorkflowAddButton";
+import { TelemetryAlertRuleAction } from "Common/Types/Monitor/TelemetryAlertRule";
+import {
+  ACTION_CHOICES,
+  METRIC_RULE_WINDOW_OPTIONS,
+  TELEMETRY_RULE_WINDOW_OPTIONS,
+  TelemetryRuleChoice,
+  TelemetryRuleCopy,
+  getComparisonChoices,
+} from "../../../FeatureSet/Dashboard/src/Utils/Form/Monitor/TelemetryRule/TelemetryRuleText";
+import {
+  CUSTOM_RECIPE_COPY,
+  RECIPE_PICKER_COPY,
+} from "../../../FeatureSet/Dashboard/src/Utils/Form/Monitor/TelemetryRule/TelemetryRuleRecipes";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -118,8 +131,6 @@ const WHITESPACE: RegExp = /\s+/g;
 // An exported string constant: `export const NAME: string =\n  "value";`.
 const STRING_CONSTANT: RegExp =
   /export const ([A-Z_]+): string =\s*"([^"]+)";/g;
-// A dropdown option of a monitor form: `label: "Last 5 minutes",`.
-const OPTION_LABEL: RegExp = /label: "([^"]+)",/g;
 // A Dashboard field or menu title: `title: "Time Range",` or `title="..."`.
 const TITLE: RegExp = /title(?:: |=)"([^"]+)"/g;
 // A JSON value of the page's request templates that references a step.
@@ -573,26 +584,72 @@ describe("the AI Agent Circuit Breakers page", () => {
     expect(page).toContain("pick **Show ID** and copy the ID.");
   });
 
-  it("sets the Metrics monitor's Time Range to Past 30 Minutes, the window the evaluator asks for", () => {
-    expect(source("metricMonitorForm")).toContain('title="Time Range"');
-    expect(RollingTime.Past30Minutes).toBe("Past 30 Minutes");
+  it("sets the Metrics monitor's Time window to Last 30 minutes, the window the evaluator asks for", () => {
+    // A Metrics monitor's window is its rule's, under When to alert.
+    expect(TelemetryRuleCopy.windowTitle).toBe("Time window");
+    expect(
+      METRIC_RULE_WINDOW_OPTIONS.find(
+        (option: { value: RollingTime; label: string }): boolean => {
+          return option.value === RollingTime.Past30Minutes;
+        },
+      )?.label,
+    ).toBe("Last 30 minutes");
     expect(flat(evaluator)).toContain("using a rolling window of 30 minutes");
-    expect(page).toContain("set its **Time Range** to **Past 30 Minutes**.");
+    expect(page).toContain("set its **Time window** to **Last 30 minutes**.");
     expect(page).toContain(
       "Keep the time range at 30 minutes: a budget publishes one point every 15 minutes",
     );
   });
 
-  it("builds the alerts from the criteria the monitors offer, titled in the criteria's Alert Title", () => {
-    expect(FilterType.GreaterThanOrEqualTo).toBe("Greater Than Or Equal To");
-    expect(FilterType.GreaterThan).toBe("Greater Than");
-    expect(CheckOn.SpanCount).toBe("Span Count");
+  it("builds the alerts from the rule the monitors offer, titled in the alert's Alert Title", () => {
+    const label: (
+      choices: Array<TelemetryRuleChoice<FilterType>>,
+      filterType: FilterType,
+    ) => string | undefined = (
+      choices: Array<TelemetryRuleChoice<FilterType>>,
+      filterType: FilterType,
+    ): string | undefined => {
+      return choices.find((choice: TelemetryRuleChoice<FilterType>) => {
+        return choice.value === filterType;
+      })?.label;
+    };
+
+    // A metric's value is "At or above" 100; a span count "More than" 50.
+    expect(
+      label(
+        getComparisonChoices({ monitorType: MonitorType.Metrics }),
+        FilterType.GreaterThanOrEqualTo,
+      ),
+    ).toBe("At or above");
+    expect(
+      label(
+        getComparisonChoices({ monitorType: MonitorType.Traces }),
+        FilterType.GreaterThan,
+      ),
+    ).toBe("More than");
+    expect(TelemetryRuleCopy.whenToAlertTitle).toBe("When to alert");
+    expect(TelemetryRuleCopy.conditionTitle).toBe("Condition");
+    expect(TelemetryRuleCopy.metricValueTitle).toBe("Value");
+    expect(TelemetryRuleCopy.editAsCustomCriteria).toBe(
+      "Edit as custom criteria",
+    );
+    expect(
+      ACTION_CHOICES.find(
+        (choice: TelemetryRuleChoice<TelemetryAlertRuleAction>): boolean => {
+          return choice.value === TelemetryAlertRuleAction.Alert;
+        },
+      )?.label,
+    ).toBe("Create an alert");
+    // The rule's alert is the criteria's alert form.
     expect(source("criteriaAlertForm")).toContain('title="Alert Title"');
     expect(source("criteriaAlertForm")).toContain('title="Auto Resolve Alert"');
     expect(page).toContain(
-      "Add a criteria **Greater Than Or Equal To** `100` that creates an alert, and give it an **Alert Title**",
+      "In **When to alert**, set the **Condition** to **At or above** and the **Value** to `100`, keep **Create an alert**, and give it an **Alert Title**",
     );
-    expect(page).toContain("Add a criteria **Span Count** **Greater Than**");
+    expect(page).toContain(
+      "A second criteria at `80` with a lower severity, added with **Edit as custom criteria**",
+    );
+    expect(page).toContain("In **When to alert**, set **More than** a number");
     expect(page).toContain(
       "With **Auto Resolve Alert** on, the alert resolves",
     );
@@ -611,15 +668,23 @@ describe("the AI Agent Circuit Breakers page", () => {
     );
   });
 
+  it("sets the loop monitor up itself, with the recipe picker's Something else", () => {
+    expect(RECIPE_PICKER_COPY.title).toBe(
+      "What should this monitor tell you about?",
+    );
+    expect(CUSTOM_RECIPE_COPY.title).toBe("Something else");
+    expect(page).toContain(
+      "Under **What should this monitor tell you about?**, pick **Something else**, and clear **Span Status**.",
+    );
+  });
+
   it("sets the loop alert's filters with the Traces monitor's own fields and options", () => {
     const form: string = source("traceMonitorForm");
     const titles: Array<string> = allMatches(form, TITLE, 1);
-    const options: Array<string> = allMatches(form, OPTION_LABEL, 1);
 
     for (const field of [
-      "Span Name",
-      "Monitor Traces for (time)",
-      "Filter by Span Status",
+      "Span name contains",
+      "Span Status",
       "Filter by Telemetry Service",
       "Filter by Attributes",
     ]) {
@@ -627,12 +692,15 @@ describe("the AI Agent Circuit Breakers page", () => {
       expect(boldSpans(page)).toContain(field);
     }
 
-    // The window the page picks is one the form offers; 2 minutes is not.
-    expect(options).toContain("Last 5 minutes");
-    expect(options).not.toContain("Last 2 minutes");
-    expect(page).toContain(
-      "Set **Monitor Traces for (time)** to **Last 5 minutes**.",
+    // The window the page picks is one the rule offers; 2 minutes is not.
+    const windows: Array<string> = TELEMETRY_RULE_WINDOW_OPTIONS.map(
+      (option: { label: string }): string => {
+        return option.label;
+      },
     );
+    expect(windows).toContain("Last 5 minutes");
+    expect(windows).not.toContain("Last 2 minutes");
+    expect(page).toContain("Set the **Time window** to **Last 5 minutes**.");
   });
 
   it("filters the retry-storm monitor on the span status Error, a status the form lists", () => {
@@ -643,7 +711,7 @@ describe("the AI Agent Circuit Breakers page", () => {
       /export enum SpanStatus \{[^}]*Error = /,
     );
     expect(page).toContain(
-      "A second Traces monitor with **Filter by Span Status** set to **Error**",
+      "A second Traces monitor with **Span Status** set to **Error**",
     );
   });
 

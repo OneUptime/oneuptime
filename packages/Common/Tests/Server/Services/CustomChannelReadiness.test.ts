@@ -1,5 +1,6 @@
 import CustomNotificationChannelService from "../../../Server/Services/CustomNotificationChannelService";
 import OnCallReadinessService, {
+  ReadinessCoverageCell,
   ReadinessMethod,
   ReadinessMethodType,
   ReadinessStatus,
@@ -14,6 +15,7 @@ import UserNotificationRule from "../../../Models/DatabaseModels/UserNotificatio
 import { CUSTOM_CHANNEL_METHOD_LABEL } from "../../../Types/CustomNotificationChannel/CustomNotificationChannelPayload";
 import Email from "../../../Types/Email";
 import Name from "../../../Types/Name";
+import NotificationRuleType from "../../../Types/NotificationRule/NotificationRuleType";
 import ObjectID from "../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
@@ -54,6 +56,11 @@ interface ReadEveryPageData {
 
 interface Internals {
   readEveryPage: (data: ReadEveryPageData) => Promise<void>;
+  loadCoverageIndex: (
+    projectId: ObjectID,
+    userIds: Array<ObjectID>,
+    completeness: { isTruncated: boolean },
+  ) => Promise<Map<string, unknown>>;
   loadMethods: (
     projectId: ObjectID,
     userIds: Array<ObjectID>,
@@ -403,6 +410,105 @@ describe("a responder reached only through a channel", () => {
     );
 
     expect(readiness.status).toBe(ReadinessStatus.NotReachable);
+  });
+});
+
+/*
+ * Coverage asks whether there is a rule for a severity, whatever the rule
+ * pages through - and team compliance answers its any-channel rules from
+ * these very cells (ee TeamComplianceEvaluator). A rule that names a custom
+ * channel, and no method of the person's own, is such a rule: it is the
+ * person's configuration, whether or not the channel can carry a page right
+ * now, which is reachability's question (the methods above).
+ */
+describe("a rule that pages through a custom channel", () => {
+  test("covers its severity, as a rule on a method of the person's own does", async () => {
+    const jane: User = new User();
+    jane._id = ObjectID.generate().toString();
+    jane.name = new Name("Jane Tan");
+    jane.email = new Email("jane@example.com");
+
+    const critical: { id: ObjectID; name: string } = {
+      id: ObjectID.generate(),
+      name: "Critical",
+    };
+    const major: { id: ObjectID; name: string } = {
+      id: ObjectID.generate(),
+      name: "Major",
+    };
+
+    const rule: UserNotificationRule = new UserNotificationRule();
+    rule._id = ObjectID.generate().toString();
+    rule.userId = jane.id!;
+    rule.ruleType = NotificationRuleType.ON_CALL_EXECUTED_INCIDENT;
+    rule.incidentSeverityId = critical.id;
+    rule.customNotificationChannelId = ObjectID.generate();
+
+    jest
+      .spyOn(internals(), "readEveryPage")
+      .mockImplementation(async (data: ReadEveryPageData): Promise<void> => {
+        reads.push(data);
+        data.consumePage(
+          data.description === "user notification rules" ? [rule] : [],
+        );
+      });
+
+    const coverageByKey: Map<string, unknown> =
+      await internals().loadCoverageIndex(PROJECT_ID, [jane.id!], {
+        isTruncated: false,
+      });
+
+    const readiness: UserReadiness = internals().buildUserReadiness(
+      jane,
+      { sources: new Set([ResponderSource.Direct]), teamIds: new Set() },
+      jane.id!.toString(),
+      {
+        users: [jane],
+        methodsByUserId: new Map(),
+        coverageByKey: coverageByKey,
+        incidentSeverities: [critical, major],
+        alertSeverities: [],
+        // Not even active: coverage does not ask.
+        projectSettings: settings(),
+      },
+      new Map(),
+      true,
+    );
+
+    const incidentCells: Array<ReadinessCoverageCell> =
+      readiness.coverage.filter((cell: ReadinessCoverageCell): boolean => {
+        return cell.ruleType === NotificationRuleType.ON_CALL_EXECUTED_INCIDENT;
+      });
+
+    expect(
+      incidentCells.map(
+        (
+          cell: ReadinessCoverageCell,
+        ): { severityName: string | undefined; hasRule: boolean } => {
+          return { severityName: cell.severityName, hasRule: cell.hasRule };
+        },
+      ),
+    ).toEqual([
+      { severityName: "Critical", hasRule: true },
+      // The control: no rule for Major.
+      { severityName: "Major", hasRule: false },
+    ]);
+
+    // The rule read selects no method at all: what a rule pages through is not asked.
+    const ruleRead: ReadEveryPageData | undefined = reads.find(
+      (read: ReadEveryPageData): boolean => {
+        return read.description === "user notification rules";
+      },
+    );
+
+    expect(ruleRead?.select).toEqual({
+      _id: true,
+      userId: true,
+      ruleType: true,
+      incidentSeverityId: true,
+      alertSeverityId: true,
+      isOptOut: true,
+    });
   });
 });
 

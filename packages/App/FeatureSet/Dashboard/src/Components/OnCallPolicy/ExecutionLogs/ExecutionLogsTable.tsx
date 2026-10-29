@@ -111,10 +111,12 @@ export const ON_CALL_LOGS_PAGED_AGAIN: string = translationKey(
 
 /*
  * What a run that paged nobody says on hover. A policy went through its
- * escalation rules; a direct page has none, and names what it found empty.
+ * escalation rules, each passed at once as it had nobody to page
+ * (OnCallEmptyLevel) - no responders, nobody on call, or only people who
+ * were away; a direct page has no rules, and names what it found empty.
  */
 export const POLICY_PAGED_NOBODY_TOOLTIP: string = translationKey(
-  "This execution ran to completion without notifying anyone. Usually every escalation rule targeted an on-call schedule that had nobody on call.",
+  "This execution reached nobody. Usually its escalation rules had no responders, their schedules had nobody on call, or the people they named were away.",
 );
 export const DIRECT_PAGE_PAGED_NOBODY_TOOLTIP: string = translationKey(
   "This page reached nobody. Usually the on-call schedule had nobody on call, the team had no members, or the people it named were away.",

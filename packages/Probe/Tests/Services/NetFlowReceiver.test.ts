@@ -9,6 +9,7 @@ import NetFlowReceiver, {
   FlowExporterStatistics,
 } from "../../Services/NetFlowReceiver";
 import FlowAggregator from "../../Utils/NetFlow/FlowAggregator";
+import FlowAddressNamer from "../../Utils/NetFlow/FlowAddressNamer";
 import {
   PROBE_INGEST_URL,
   PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE,
@@ -59,7 +60,43 @@ type ReceiverInternals = {
   droppedThisMinute: number;
   minuteWindowStartedAt: number;
   exporterStatistics: Map<string, FlowExporterStatistics>;
+  namer: FlowAddressNamer;
 };
+
+/*
+ * The names the collector sends with its forwards (issue #5340), looked up
+ * on a fake resolver: no test asks a real DNS server anything. A name in
+ * `names` points back to its address; any other address has none.
+ */
+function fakeNamer(names: Record<string, string> = {}): FlowAddressNamer {
+  return new FlowAddressNamer({
+    isEnabled: true,
+    isPrivateLookupAllowed: true,
+    lookup: async (address: string): Promise<Array<string>> => {
+      const name: string | undefined = names[address];
+
+      if (!name) {
+        const error: Error & { code?: string } = new Error("ENOTFOUND");
+        error.code = "ENOTFOUND";
+        throw error;
+      }
+
+      return [name];
+    },
+    forwardLookup: async (name: string): Promise<Array<string>> => {
+      return Object.keys(names).filter((address: string): boolean => {
+        return names[address] === name;
+      });
+    },
+    maxLookupsPerMinute: 100,
+    concurrency: 4,
+    positiveTtlMs: 60 * 60 * 1000,
+    negativeTtlMs: 30 * 60 * 1000,
+    failureTtlMs: 5 * 60 * 1000,
+    maxCacheEntries: 1000,
+    maxWaiting: 1000,
+  });
+}
 
 const receiver: ReceiverInternals =
   NetFlowReceiver as unknown as ReceiverInternals;
@@ -183,6 +220,7 @@ function resetReceiver(): void {
   receiver.droppedThisMinute = 0;
   receiver.minuteWindowStartedAt = Date.now();
   receiver.exporterStatistics = new Map();
+  receiver.namer = fakeNamer();
 }
 
 beforeEach(() => {
@@ -599,5 +637,127 @@ describe("NetFlowReceiver flush", () => {
     }
 
     expect(flushSpy).toHaveBeenCalled();
+  });
+});
+
+describe("NetFlowReceiver names the addresses it forwards (issue #5340)", () => {
+  function mockFetch(): jest.SpyInstance {
+    return jest.spyOn(API, "fetch").mockResolvedValue({} as never);
+  }
+
+  function sentData(
+    fetchSpy: jest.SpyInstance,
+    call: number,
+  ): Record<string, unknown> {
+    return (fetchSpy.mock.calls[call]?.[0] as Record<string, unknown>)[
+      "data"
+    ] as Record<string, unknown>;
+  }
+
+  test("a first forward carries no names; the lookups it started name the next one", async () => {
+    receiver.namer = fakeNamer({
+      "10.0.0.5": "fs01.corp.example",
+      "192.168.1.20": "nas.corp.example",
+    });
+    const fetchSpy: jest.SpyInstance = mockFetch();
+
+    receiver.handleDatagram(buildV5Datagram(oneFlow()), EXPORTER_IP);
+    await receiver.flush();
+
+    // The forward never waited for a lookup: nothing was known yet.
+    expect(sentData(fetchSpy, 0)["addressNames"]).toBeUndefined();
+
+    // The lookups the flush started finish in the background.
+    await receiver.namer.pump();
+    await new Promise<void>((resolve: () => void) => {
+      setImmediate(resolve);
+    });
+
+    receiver.handleDatagram(buildV5Datagram(oneFlow()), EXPORTER_IP);
+    await receiver.flush();
+
+    expect(sentData(fetchSpy, 1)["addressNames"]).toEqual({
+      "10.0.0.5": "fs01.corp.example",
+      "192.168.1.20": "nas.corp.example",
+    });
+  });
+
+  test("only the batch's own addresses' names go with it", async () => {
+    receiver.namer = fakeNamer({
+      "10.0.0.5": "fs01.corp.example",
+      "10.0.0.99": "elsewhere.corp.example",
+    });
+    receiver.namer.note([
+      {
+        exporterIpAddress: EXPORTER_IP,
+        sourceIpAddress: "10.0.0.5",
+        destinationIpAddress: "10.0.0.99",
+        sourcePort: 0,
+        destinationPort: 443,
+        protocolNumber: 6,
+        octets: 1,
+        packets: 1,
+        flowStartAt: new Date(),
+        flowEndAt: new Date(),
+      },
+    ]);
+    await receiver.namer.pump();
+
+    const fetchSpy: jest.SpyInstance = mockFetch();
+    receiver.handleDatagram(buildV5Datagram(oneFlow()), EXPORTER_IP);
+    await receiver.flush();
+
+    expect(sentData(fetchSpy, 0)["addressNames"]).toEqual({
+      "10.0.0.5": "fs01.corp.example",
+    });
+  });
+
+  test("with lookups off, a forward is exactly what it was", async () => {
+    receiver.namer = FlowAddressNamer.create({
+      isEnabled: false,
+      isPrivateLookupAllowed: true,
+      maxLookupsPerMinute: 300,
+      servers: [],
+    });
+    const fetchSpy: jest.SpyInstance = mockFetch();
+
+    receiver.handleDatagram(buildV5Datagram(oneFlow()), EXPORTER_IP);
+    await receiver.flush();
+    receiver.handleDatagram(buildV5Datagram(oneFlow()), EXPORTER_IP);
+    await receiver.flush();
+
+    expect(Object.keys(sentData(fetchSpy, 1)).sort()).toEqual(
+      Object.keys(sentData(fetchSpy, 0)).sort(),
+    );
+    expect(sentData(fetchSpy, 1)["addressNames"]).toBeUndefined();
+  });
+
+  test("a flush starts the lookups and does not wait for them", async () => {
+    const pump: jest.SpyInstance = jest
+      .spyOn(receiver.namer, "pump")
+      .mockImplementation((): Promise<void> => {
+        // A lookup that never ends must not hold the collector up.
+        return new Promise<void>((): void => {
+          // Never settles.
+        });
+      });
+    mockFetch();
+
+    receiver.handleDatagram(buildV5Datagram(oneFlow()), EXPORTER_IP);
+    await receiver.flush();
+
+    expect(pump).toHaveBeenCalledTimes(1);
+    expect(receiver.isFlushing).toBe(false);
+  });
+
+  test("lookups that fail are logged, never thrown out of the flush", async () => {
+    jest
+      .spyOn(receiver.namer, "pump")
+      .mockRejectedValue(new Error("resolver gone") as never);
+    mockFetch();
+
+    receiver.handleDatagram(buildV5Datagram(oneFlow()), EXPORTER_IP);
+
+    await expect(receiver.flush()).resolves.toBeUndefined();
   });
 });

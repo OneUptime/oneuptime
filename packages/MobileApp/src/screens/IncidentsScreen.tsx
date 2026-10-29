@@ -8,7 +8,6 @@ import React, {
 import {
   View,
   SectionList,
-  ScrollView,
   RefreshControl,
   Text,
   Alert,
@@ -39,6 +38,7 @@ import {
 } from "../navigation/paneState";
 import ScreenIntro from "../components/ScreenIntro";
 import SearchField from "../components/SearchField";
+import ListStatusScroll from "../components/ListStatusScroll";
 import { matchesSearch } from "../utils/search";
 import { getResolvedStateIds } from "../utils/resolvedState";
 import {
@@ -173,6 +173,7 @@ export default function IncidentsScreen({
         ?.getScrollResponder()
         ?.scrollTo({ x: 0, y: offsetY, animated: false });
     },
+    { headerTop: spacing.xl },
   );
   const episodeScroll: PaneScrollRestoration = usePaneScrollRestoration(
     "incidents.scroll.episodes",
@@ -181,6 +182,7 @@ export default function IncidentsScreen({
         ?.getScrollResponder()
         ?.scrollTo({ x: 0, y: offsetY, animated: false });
     },
+    { headerTop: spacing.xl },
   );
 
   useEffect(() => {
@@ -599,13 +601,13 @@ export default function IncidentsScreen({
         testID="response-screen"
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
       >
-        <ScrollView
+        <ListStatusScroll
+          scrollKey="incidents.scroll.status"
+          header={listHeader}
           testID="response-list-status"
-          contentInsetAdjustmentBehavior="automatic"
           refreshControl={refreshControl}
           contentContainerStyle={contentContainerStyle}
         >
-          {listHeader}
           <View
             testID="response-list-loading"
             style={{ marginTop: spacing.xs }}
@@ -614,7 +616,7 @@ export default function IncidentsScreen({
             <SkeletonCard />
             <SkeletonCard />
           </View>
-        </ScrollView>
+        </ListStatusScroll>
       </View>
     );
   }
@@ -625,13 +627,13 @@ export default function IncidentsScreen({
         testID="response-screen"
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
       >
-        <ScrollView
+        <ListStatusScroll
+          scrollKey="incidents.scroll.status"
+          header={listHeader}
           testID="response-list-status"
-          contentInsetAdjustmentBehavior="automatic"
           refreshControl={refreshControl}
           contentContainerStyle={contentContainerStyle}
         >
-          {listHeader}
           <EmptyState
             title="Something went wrong"
             subtitle={
@@ -645,7 +647,7 @@ export default function IncidentsScreen({
             actionLabel="Retry"
             onAction={onRefresh}
           />
-        </ScrollView>
+        </ListStatusScroll>
       </View>
     );
   }
@@ -667,7 +669,9 @@ export default function IncidentsScreen({
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           testID="response-list"
-          ListHeaderComponent={listHeader}
+          ListHeaderComponent={
+            <View onLayout={incidentScroll.onHeaderLayout}>{listHeader}</View>
+          }
           keyExtractor={(wrapped: ProjectIncidentItem) => {
             return `${wrapped.projectId}-${wrapped.item._id}`;
           }}
@@ -768,7 +772,9 @@ export default function IncidentsScreen({
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           testID="response-list"
-          ListHeaderComponent={listHeader}
+          ListHeaderComponent={
+            <View onLayout={episodeScroll.onHeaderLayout}>{listHeader}</View>
+          }
           keyExtractor={(wrapped: ProjectIncidentEpisodeItem) => {
             return `${wrapped.projectId}-${wrapped.item._id}`;
           }}

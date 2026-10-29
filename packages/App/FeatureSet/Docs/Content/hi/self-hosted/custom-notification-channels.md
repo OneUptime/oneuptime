@@ -17,7 +17,7 @@
 ## यह कैसे काम करता है
 
 ```mermaid title="कस्टम चैनल के ज़रिए एक पेज"
-flowchart LR
+flowchart TB
     OneUptime["OneUptime"]
     Service["आपकी सेवा"]
     App["आपका ऐप"]
@@ -31,7 +31,7 @@ flowchart LR
 
 ## चैनल जोड़ना
 
-1. Admin Dashboard में **सेटिंग्स**, फिर **Custom Channels** खोलें, और **Add** चुनें।
+1. Admin Dashboard में **सेटिंग्स**, फिर साइड मेनू में **सूचनाएँ > Custom Channels** खोलें (**सूचनाएँ** शुरू में फ़ोल्ड रहता है), और **Add** चुनें।
 2. **Channel** चरण में भरें:
    - **नाम**: लोग अपनी सूचना विधियों और ऑन-कॉल नियमों में जो देखते हैं, जैसे `CorpoApp`।
    - **Webhook URL**: जहाँ OneUptime हर पेज भेजता है। यह आपके निजी नेटवर्क पर हो सकता है।

@@ -52,7 +52,7 @@ import SecurityEventService, {
 import { resolveTelemetryRetentionInDays } from "../../../Types/Telemetry/TelemetryRetentionConfig";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
-import { SQL, Statement } from "../AnalyticsDatabase/Statement";
+import { Statement } from "../AnalyticsDatabase/Statement";
 import ConnectorErrorMessage from "./ConnectorErrorMessage";
 import {
   AlertableMatch,
@@ -87,7 +87,15 @@ import SecurityCaseIngest, {
   SecurityDetectionSignal,
 } from "../SecurityCase/SecurityCaseIngest";
 import SecurityDetectionSource from "../../../Types/SecurityCase/SecurityDetectionSource";
+import { DetectionRuleExceptionShape } from "../../../Types/SecurityEvent/DetectionRuleException";
+import DetectionRuleExceptions, {
+  andRestrictions,
+  buildDetectionRuleExceptionsFilter,
+} from "./DetectionRuleExceptions";
 import SecurityEntityRiskRecorder from "./EntityRisk/SecurityEntityRiskRecorder";
+import SecurityWatchlists, {
+  SecurityWatchlistReader,
+} from "./Watchlists/SecurityWatchlists";
 import { riskFindingsForRuleMatches } from "./EntityRisk/SecurityEntityRiskFindings";
 import {
   SecurityEntity,
@@ -112,6 +120,8 @@ export interface DetectionRuleEvaluationResult {
   findingsWritten: number;
   // Cases the matches opened; the rest joined cases already open.
   casesOpened: number;
+  // The rule's exceptions the run read with (DetectionRuleExceptions); none for a setup test.
+  exceptionsApplied: number;
   error: string | null;
 }
 
@@ -269,12 +279,55 @@ export default class DetectionRuleEvaluator {
         return this.dueTime(a) - this.dueTime(b);
       });
 
+    if (dueRules.length === 0) {
+      return;
+    }
+
+    /*
+     * The due rules' exceptions, in one read for the turn: those that take
+     * part in any window a rule may read now (at most the last
+     * DETECTION_MAX_LOOKBACK_IN_MINUTES). A read that fails fails the turn
+     * before any rule runs - every rule resumes from its own last run next
+     * minute, so nothing is missed, and no rule runs blind to the
+     * exceptions somebody added.
+     */
+    const exceptionsByRule: Map<
+      string,
+      Array<DetectionRuleExceptionShape>
+    > = await DetectionRuleExceptions.loadForProject({
+      projectId,
+      ruleIds: dueRules
+        .map((rule: DetectionRule): ObjectID | undefined => {
+          return rule.id || undefined;
+        })
+        .filter((id: ObjectID | undefined): id is ObjectID => {
+          return Boolean(id);
+        }),
+      from: OneUptimeDate.addRemoveMinutes(
+        now,
+        -DETECTION_MAX_LOOKBACK_IN_MINUTES,
+      ),
+      until: now,
+      now: OneUptimeDate.getCurrentDate(),
+    });
+
+    /*
+     * The watchlists the turn's rules read, each read once for the turn
+     * however many rules name it (SecurityWatchlists).
+     */
+    const watchlists: SecurityWatchlistReader =
+      SecurityWatchlists.readerFor(projectId);
+
     for (const rule of dueRules) {
       if (!lease.hasTimeLeft()) {
         return;
       }
 
-      await this.evaluateRuleRecordingFailure(rule);
+      await this.evaluateRuleRecordingFailure(
+        rule,
+        exceptionsByRule.get(rule.id?.toString() || "") || [],
+        watchlists,
+      );
 
       if (!(await lease.keep())) {
         return;
@@ -285,9 +338,11 @@ export default class DetectionRuleEvaluator {
   // evaluateRule, with a failure recorded on the rule rather than thrown.
   private static async evaluateRuleRecordingFailure(
     rule: DetectionRule,
+    exceptions: Array<DetectionRuleExceptionShape>,
+    watchlists: SecurityWatchlistReader,
   ): Promise<void> {
     try {
-      await this.evaluateRule(rule);
+      await this.evaluateRule(rule, { exceptions, watchlists });
     } catch (error) {
       logger.error(
         `DetectionRuleEvaluator: error evaluating rule ${rule.id?.toString()}:`,
@@ -323,18 +378,33 @@ export default class DetectionRuleEvaluator {
     }
   }
 
+  /*
+   * One run of a rule over the events since its last run. Its exceptions
+   * (`exceptions`, or read here when the caller hands none over) skip the
+   * events they name before anything is counted. A setup test reads none:
+   * it checks that the pipeline works, and an exception must not hide it.
+   *
+   * The watchlists the rule names are read (through `watchlists`, the
+   * turn's reader, or a reader of its own) and bound to it before it is
+   * compiled; a list the project no longer has is the run's error.
+   */
   @CaptureSpan()
   public static async evaluateRule(
     rule: DetectionRule,
-    options: { setupTest?: DetectionRuleSetupTest | undefined } = {},
+    options: {
+      setupTest?: DetectionRuleSetupTest | undefined;
+      exceptions?: Array<DetectionRuleExceptionShape> | undefined;
+      watchlists?: SecurityWatchlistReader | undefined;
+    } = {},
   ): Promise<DetectionRuleEvaluationResult> {
     if (!rule.id || !rule.projectId || !rule.sigmaRuleYaml) {
       throw new Error("Detection rule is missing id, projectId, or YAML.");
     }
 
     const setupTest: DetectionRuleSetupTest | undefined = options.setupTest;
-    const definition: DetectionRuleDefinition =
-      await this.loadRuleDefinition(rule);
+    const definition: DetectionRuleDefinition = await (
+      options.watchlists || SecurityWatchlists.readerFor(rule.projectId)
+    ).bind(await this.loadRuleDefinition(rule));
     // What the findings, alerts and cases are written as: the rule, or the correlation.
     const parsedRule: SigmaRule = detectionRuleHeader(definition);
 
@@ -366,6 +436,21 @@ export default class DetectionRuleEvaluator {
       startTime = setupTest.startTime;
     }
 
+    const exceptions: Array<DetectionRuleExceptionShape> = setupTest
+      ? []
+      : options.exceptions ||
+        (await DetectionRuleExceptions.loadForRule({
+          projectId: rule.projectId,
+          ruleId: rule.id,
+          from: startTime,
+          until: endTime,
+          now: OneUptimeDate.getCurrentDate(),
+        }));
+
+    // What the run ANDs into its reads: the events no exception skips.
+    const exceptionsFilter: Statement | null =
+      buildDetectionRuleExceptionsFilter(exceptions);
+
     /*
      * A correlation's groups come from its own reads (CorrelationRuleMatcher);
      * a single rule's from its compiled condition, counted by the rule's
@@ -384,7 +469,7 @@ export default class DetectionRuleEvaluator {
           endTime,
           // One more than a run records, so it can tell "more than it reads".
           maxGroups: DETECTION_MAX_FINDINGS_PER_EVALUATION + 1,
-          restrictTo: setupTest?.restrictTo,
+          restrictTo: andRestrictions(setupTest?.restrictTo, exceptionsFilter),
         });
 
       matchedGroups = correlationResult.groups;
@@ -399,6 +484,7 @@ export default class DetectionRuleEvaluator {
         startTime,
         endTime,
         setupTest,
+        exceptionsFilter,
       });
     }
 
@@ -580,6 +666,7 @@ export default class DetectionRuleEvaluator {
       incidentsCreated,
       findingsWritten,
       casesOpened,
+      exceptionsApplied: exceptionsFilter ? exceptions.length : 0,
       error: null,
     };
   }
@@ -626,20 +713,23 @@ export default class DetectionRuleEvaluator {
     startTime: Date;
     endTime: Date;
     setupTest: DetectionRuleSetupTest | undefined;
+    // The events no exception skips (buildDetectionRuleExceptionsFilter), or null.
+    exceptionsFilter: Statement | null;
   }): Promise<Array<DetectionMatchGroup>> {
     const { rule, setupTest } = data;
     const ruleWhereFragment: Statement = SigmaClickhouseCompiler.compile(
       data.parsedRule,
     );
 
-    // A setup test reads only its own events.
-    const whereFragment: Statement = setupTest
-      ? SQL`(`
-          .append(ruleWhereFragment)
-          .append(") AND (")
-          .append(setupTest.restrictTo)
-          .append(")")
-      : ruleWhereFragment;
+    /*
+     * A setup test reads only its own events; a run reads only the events
+     * the rule's exceptions leave it.
+     */
+    const whereFragment: Statement =
+      andRestrictions(
+        andRestrictions(ruleWhereFragment, setupTest?.restrictTo),
+        data.exceptionsFilter,
+      ) || ruleWhereFragment;
 
     const groupByExpression: Statement | null = rule.groupByField
       ? buildSigmaFieldExpression(rule.groupByField)

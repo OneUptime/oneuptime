@@ -74,7 +74,7 @@ Andate nella scheda **Impostazioni** del monitor. La scheda **Incoming Email Add
 | Azione | Cosa fa | Quando usarla |
 | --- | --- | --- |
 | **Reset Address** | Dà al monitor un nuovo indirizzo `monitor-{secret-key}@{inbound-domain}` generato a caso. Se il monitor ha un indirizzo personalizzato, la reimpostazione lo rimuove. Vi chiede prima conferma. | L'indirizzo è trapelato, oppure volete tagliare fuori qualunque cosa vi stia inviando email. |
-| **Customize Address** | Vi lascia scegliere la parte prima della @, per esempio `nightly-backups@{inbound-domain}`. Inseritela in **Address name** (potete digitare il nome o incollare l'indirizzo intero) e fate clic su **Save Address**. | Volete un indirizzo che le persone riconoscano. |
+| **Customize Address** | Vi lascia scegliere la parte prima della @, per esempio `nightly-backups@{inbound-domain}`. Inseritela in **Nome indirizzo** (potete digitare il nome o incollare l'indirizzo intero) e fate clic su **Save Address**. | Volete un indirizzo che le persone riconoscano. |
 
 Entrambe le azioni terminano mostrando il nuovo indirizzo con un pulsante di copia.
 

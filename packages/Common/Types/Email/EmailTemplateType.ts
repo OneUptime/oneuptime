@@ -104,6 +104,8 @@ enum EmailTemplateType {
   SecurityCaseOpened = "SecurityCaseOpened.hbs",
   SecurityCaseAssigned = "SecurityCaseAssigned.hbs",
   SecurityPlaybookApprovalRequested = "SecurityPlaybookApprovalRequested.hbs",
+  SecurityCaseTargetDue = "SecurityCaseTargetDue.hbs",
+  SecurityCaseTaskAssigned = "SecurityCaseTaskAssigned.hbs",
 
   ProjectSubscriptionOverdue = "ProjectSubscriptionOverdue.hbs",
   Invoice = "Invoice.hbs",

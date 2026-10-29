@@ -256,10 +256,12 @@ describe("the chips over the page", () => {
         template: FILTER_DEVICE_LABEL,
         values: { device: "core-router" },
       },
+      // A chip that names an address says which, for its name (issue #5340).
       {
         kind: "exporter",
         template: FILTER_EXPORTER_LABEL,
         values: { address: "198.51.100.7" },
+        address: "198.51.100.7",
       },
       {
         kind: "interface",
@@ -270,16 +272,19 @@ describe("the chips over the page", () => {
         kind: "source",
         template: FILTER_SOURCE_LABEL,
         values: { address: "10.0.0.5" },
+        address: "10.0.0.5",
       },
       {
         kind: "destination",
         template: FILTER_DESTINATION_LABEL,
         values: { address: "10.0.0.9" },
+        address: "10.0.0.9",
       },
       {
         kind: "host",
         template: FILTER_HOST_LABEL,
         values: { address: "192.0.2.1" },
+        address: "192.0.2.1",
       },
       {
         kind: "application",

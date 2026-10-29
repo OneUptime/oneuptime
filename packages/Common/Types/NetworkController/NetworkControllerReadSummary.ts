@@ -29,6 +29,15 @@ export interface NetworkControllerReadSummary {
   applianceCount: number;
   // Appliances that are devices in OneUptime (by serial number or MAC address).
   matchedDeviceCount: number;
+  /*
+   * Devices of every kind in the organization's device list, and how many of
+   * them are network devices in OneUptime - whose missing details (model,
+   * serial number, firmware...) are filled in from Meraki
+   * (NetworkControllerInventory). Absent from a summary written before
+   * Meraki was read as a source of device details.
+   */
+  deviceCount?: number | undefined;
+  describedDeviceCount?: number | undefined;
   // Uplink windows this read stored, and the end of the newest (ISO).
   uplinkWindows: number;
   newestUplinkAt?: string | undefined;
@@ -85,6 +94,8 @@ export function readNetworkControllerReadSummary(
 
   const failureKind: unknown = summary["failureKind"];
   const newestUplinkAt: string = readText(summary["newestUplinkAt"]);
+  const hasDeviceCounts: boolean =
+    summary["deviceCount"] !== undefined && summary["deviceCount"] !== null;
 
   return {
     status: status,
@@ -92,6 +103,15 @@ export function readNetworkControllerReadSummary(
     networkCount: readNumber(summary["networkCount"]),
     applianceCount: readNumber(summary["applianceCount"]),
     matchedDeviceCount: readNumber(summary["matchedDeviceCount"]),
+    ...(hasDeviceCounts
+      ? {
+          deviceCount: readNumber(summary["deviceCount"]),
+          describedDeviceCount: Math.min(
+            readNumber(summary["deviceCount"]),
+            readNumber(summary["describedDeviceCount"]),
+          ),
+        }
+      : {}),
     uplinkWindows: readNumber(summary["uplinkWindows"]),
     ...(newestUplinkAt ? { newestUplinkAt: newestUplinkAt } : {}),
     analyticsNetworks: readNumber(summary["analyticsNetworks"]),

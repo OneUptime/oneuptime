@@ -15,6 +15,7 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import { JSONObject } from "../../JSON";
 import { Argument, NodeDataProp } from "../Component";
 import { getCreateFromTemplateArgument } from "../CreateFromTemplate";
+import { getAffectedResourcesArgument } from "../AffectedResourcesSetting";
 import { WHAT_HAPPENED_ID, WhatHappened } from "../CreateOrUpdateTrigger";
 import {
   CUSTOM_FIELDS_COLUMN,
@@ -346,6 +347,33 @@ const templateTopic: TemplateTopicFunction = (data: {
   };
 };
 
+/*
+ * An incident or alert linked to what it is about by name (Create One
+ * Incident's and Create One Alert's Affected Resources): how a name is
+ * matched, what it adds to, and what it never links.
+ */
+const affectedResourcesTopic: TemplateTopicFunction = (data: {
+  words: ModelWords;
+  setting: Argument;
+}): ComponentDocumentationTopic => {
+  /*
+   * An incident's monitors are a list of their own, and linking one pauses
+   * its checks; an alert has one monitor, its monitorId.
+   */
+  const monitorsSentence: string =
+    data.words.model.tableName === "Alert"
+      ? `The ${data.words.one}'s monitor goes in **JSON Object**, as \`monitorId\`.`
+      : "Monitors go in **JSON Object**, because linking a monitor to an incident pauses its checks.";
+
+  return {
+    title: "Linking what it is about",
+    paragraphs: [
+      `Under **${data.setting.name}**, write the names, addresses or OneUptime IDs of the hosts, network devices, clusters, databases, cloud resources or services the ${data.words.one} is about, separated by commas - typed in, or taken from an earlier step, such as the host an alert from another tool names. An address is a host's or a network device's IP address or DNS name.`,
+      `Each one is matched as a whole, upper or lower case alike, against every kind of resource, and every resource it matches is linked, beside what **JSON Object** and a template already link. A name that matches nothing does not stop the step: the ${data.words.one} is still created, and the run's log says what each name linked and which matched nothing. Archived resources are not linked. ${monitorsSentence}`,
+    ],
+  };
+};
+
 const createOne: BuildFunction = (
   context: ComponentDocumentationContext,
   words: ModelWords,
@@ -354,6 +382,8 @@ const createOne: BuildFunction = (
   const templateSetting: Argument | null = getCreateFromTemplateArgument(
     words.model.tableName || undefined,
   );
+  const affectedResourcesSetting: Argument | null =
+    getAffectedResourcesArgument(words.model.tableName || undefined);
 
   return {
     summary: `Creates one ${words.one} in this project each time it runs.`,
@@ -366,6 +396,11 @@ const createOne: BuildFunction = (
       required.length > 0
         ? `Under **JSON Object**, fill in the ${words.one}'s fields. The ones it needs come first.`
         : `Under **JSON Object**, add the ${words.one}'s fields with **Add a field**.`,
+      /*
+       * Affected Resources gets no step of its own: the help shows at most
+       * four before Learn more, and the setting's own description in the
+       * dialog says what to write. Learn more says how a name is matched.
+       */
       "Connect **Success** to what runs next, and **Error** to handle a failure.",
       `Use the new ${words.one} in later steps, starting with its ID.`,
     ],
@@ -388,6 +423,14 @@ const createOne: BuildFunction = (
     learnMore: [
       ...(templateSetting
         ? [templateTopic({ words: words, setting: templateSetting })]
+        : []),
+      ...(affectedResourcesSetting
+        ? [
+            affectedResourcesTopic({
+              words: words,
+              setting: affectedResourcesSetting,
+            }),
+          ]
         : []),
       {
         title: "Writing it as JSON",

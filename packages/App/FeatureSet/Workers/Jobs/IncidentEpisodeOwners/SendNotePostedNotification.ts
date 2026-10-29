@@ -241,6 +241,8 @@ RunCron(
       }
 
       const episodeFeedText: string = OwnerNotificationFeedText.notePosted({
+        recordNoun: "incident episode",
+        isProjectOwners: !doesResourceHasOwners,
         isPrivateNote: true,
       });
 

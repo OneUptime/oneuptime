@@ -74,7 +74,7 @@ monitor-{secret-key}@{inbound-domain}
 | 작업 | 하는 일 | 사용할 때 |
 | --- | --- | --- |
 | **Reset Address** | 모니터에 무작위로 생성한 새 주소 `monitor-{secret-key}@{inbound-domain}` 을 부여합니다. 모니터에 사용자 지정 주소가 있으면 재설정 시 삭제됩니다. 먼저 확인을 요청합니다. | 주소가 유출되었거나, 그 주소로 보내는 것을 모두 끊고 싶을 때. |
-| **Customize Address** | @ 앞부분을 고를 수 있습니다. 예: `nightly-backups@{inbound-domain}`. **Address name** 에 입력하고(이름을 입력해도 되고 주소 전체를 붙여 넣어도 됩니다) **Save Address** 를 클릭합니다. | 사람들이 알아볼 수 있는 주소를 원할 때. |
+| **Customize Address** | @ 앞부분을 고를 수 있습니다. 예: `nightly-backups@{inbound-domain}`. **주소 이름** 에 입력하고(이름을 입력해도 되고 주소 전체를 붙여 넣어도 됩니다) **Save Address** 를 클릭합니다. | 사람들이 알아볼 수 있는 주소를 원할 때. |
 
 두 작업 모두 마지막에 복사 버튼과 함께 새 주소를 보여 줍니다.
 

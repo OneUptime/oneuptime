@@ -33,7 +33,9 @@ import TimeRange from "Common/Types/Time/TimeRange";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
-import ServiceElement from "../Service/ServiceElement";
+import ColorSquareCube from "Common/UI/Components/ColorSquareCube/ColorSquareCube";
+import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
+import { Black } from "Common/Types/BrandColors";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
@@ -73,6 +75,51 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+
+/*
+ * THE SERVICES REPORTING METRICS: A CARD EACH.
+ *
+ * Each card is one link, to the service's metrics, and three rows - the
+ * service, how many metrics and of which kinds, and their names - that it
+ * shares with the cards beside it: the grid's rows are the cards' rows
+ * (grid-rows-subgrid), so a service whose name takes two lines moves the
+ * rows of its whole row down with it, and the counts, bars and names of a
+ * row start on one line at every width. Every card of a row ends on one
+ * line too.
+ *
+ * Nothing in a card runs past it, whatever a large estate names things:
+ * a service's name takes up to two lines, breaking where it must, its
+ * whole name under the pointer; a metric's name wraps inside its chip
+ * (a dotted name of sixty characters has no space to break at), after its
+ * own dots first (BreakableName), anywhere only where a part is still too
+ * long for its line. Drawn in
+ * a browser at every width by the Metrics fixture's Insights tab
+ * (packages/E2E/MetricsAi, MetricsInsights.spec.ts).
+ */
+/*
+ * Cards 12px apart side by side, as the figures above them are, and 16px
+ * apart one above the other - which is also the room between a card's own
+ * rows, since a subgrid keeps its parent's gaps.
+ */
+export const METRICS_SERVICE_GRID_CLASS_NAME: string =
+  "grid grid-cols-1 gap-x-3 gap-y-4 md:grid-cols-2 lg:grid-cols-3";
+
+/*
+ * A card's link: a grid item of three of the grid's rows, handed down. On
+ * the keyboard it is ringed as the card is drawn, round-cornered, not
+ * boxed in the browser's square outline.
+ */
+export const METRICS_SERVICE_CARD_LINK_CLASS_NAME: string =
+  "row-span-3 grid min-w-0 grid-cols-1 grid-rows-subgrid rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+
+export const METRICS_SERVICE_CARD_CLASS_NAME: string =
+  "row-span-3 grid min-w-0 grid-cols-1 grid-rows-subgrid rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md";
+
+export const METRICS_SERVICE_NAME_CLASS_NAME: string =
+  "line-clamp-2 min-w-0 text-base font-medium leading-6 text-gray-900 [overflow-wrap:anywhere]";
+
+export const METRICS_NAME_CHIP_CLASS_NAME: string =
+  "inline-flex max-w-full items-center rounded border border-gray-100 bg-gray-50 px-2 py-0.5 text-left text-xs font-medium text-gray-600 [overflow-wrap:anywhere]";
 
 interface MetricCategory {
   name: string;
@@ -971,8 +1018,8 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
       )}
 
       {/* Per-service cards */}
-      <div className="mb-3 flex items-center justify-between">
-        <div>
+      <div className="mb-3 flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
+        <div className="min-w-0">
           <h3 className="text-base font-semibold text-gray-900">
             {translator.translateText("Services reporting metrics")}
           </h3>
@@ -988,14 +1035,17 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
           </p>
         </div>
         <AppLink
-          className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700"
+          className="inline-flex items-center gap-1 whitespace-nowrap text-sm font-medium text-indigo-600 hover:text-indigo-700"
           to={viewerRoute}
         >
           <span>{translator.translateText("Open Viewer")}</span>
           <Icon icon={IconProp.ChevronRight} className="h-3.5 w-3.5" />
         </AppLink>
       </div>
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+      <div
+        className={METRICS_SERVICE_GRID_CLASS_NAME}
+        data-testid="metrics-service-cards"
+      >
         {serviceSummaries.map((summary: ServiceSummary): ReactElement => {
           const coverage: number = Math.round(
             (summary.metricCount / maxMetrics) * 100,
@@ -1009,10 +1059,12 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
               sid,
               ProjectUtil.getCurrentProjectId(),
             );
+          const serviceName: string = summary.service.name?.toString() || "";
+
           return (
             <AppLink
               key={sid}
-              className="block"
+              className={METRICS_SERVICE_CARD_LINK_CLASS_NAME}
               to={
                 isUnknownService
                   ? (RouteUtil.populateRouteParams(
@@ -1024,32 +1076,55 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
                     )
               }
             >
-              <div className="h-full rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md">
-                <div className="mb-4 flex items-start justify-between">
-                  <ServiceElement service={summary.service} />
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {summary.hasSystemMetrics && (
-                      <span className="rounded-full bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700">
-                        {translator.translateText("System")}
-                      </span>
-                    )}
-                    {summary.hasAppMetrics && (
-                      <span className="rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">
-                        {translator.translateText("App")}
-                      </span>
-                    )}
+              <div
+                className={METRICS_SERVICE_CARD_CLASS_NAME}
+                data-testid="metrics-service-card"
+              >
+                {/*
+                 * The service, by name: the card is its one link, so the
+                 * name is not a link of its own inside it.
+                 */}
+                <div className="flex min-w-0 items-start gap-2">
+                  <div className="mt-1.5 flex-shrink-0">
+                    <ColorSquareCube
+                      color={summary.service.serviceColor || Black}
+                      tooltip={serviceName}
+                    />
                   </div>
+                  <span
+                    className={METRICS_SERVICE_NAME_CLASS_NAME}
+                    title={serviceName}
+                    data-testid="metrics-service-card-name"
+                  >
+                    <BreakableName text={serviceName} />
+                  </span>
                 </div>
 
-                <div className="mb-4">
-                  <div className="mb-1.5 flex items-end justify-between">
-                    <span className="text-2xl font-bold text-gray-900">
-                      {summary.metricCount}
+                {/* How many metrics it sends, and of which kinds. */}
+                <div className="min-w-0">
+                  <div className="mb-1.5 flex items-end justify-between gap-2">
+                    <span className="flex items-baseline gap-1.5">
+                      <span className="text-2xl font-bold text-gray-900">
+                        {summary.metricCount}
+                      </span>{" "}
+                      {/* The space reads "14 metrics", not "14metrics". */}
+                      <span className="text-xs text-gray-500">
+                        {translator.translatePlural(
+                          { one: "metric", other: "metrics" },
+                          summary.metricCount,
+                        )}
+                      </span>
                     </span>
-                    <span className="mb-1 text-xs text-gray-400">
-                      {translator.translatePlural(
-                        { one: "metric", other: "metrics" },
-                        summary.metricCount,
+                    <span className="mb-1 flex flex-wrap items-center justify-end gap-1.5">
+                      {summary.hasSystemMetrics && (
+                        <span className="rounded-full bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700">
+                          {translator.translateText("System")}
+                        </span>
+                      )}
+                      {summary.hasAppMetrics && (
+                        <span className="rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">
+                          {translator.translateText("App")}
+                        </span>
                       )}
                     </span>
                   </div>
@@ -1061,19 +1136,32 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-1.5">
+                {/* The names, each wrapping inside its chip when it must. */}
+                <div className="flex min-w-0 flex-wrap content-start gap-1.5">
                   {summary.metricNames.map((name: string): ReactElement => {
                     return (
                       <span
                         key={name}
-                        className="inline-flex items-center rounded border border-gray-100 bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-600"
+                        className={METRICS_NAME_CHIP_CLASS_NAME}
+                        data-testid="metrics-service-card-metric"
                       >
-                        {name}
+                        {/*
+                         * One flex item for the whole name: Firefox makes
+                         * each run of text between two <wbr>s a flex item
+                         * of its own and stood a long name's parts side by
+                         * side, letters stacked in each.
+                         */}
+                        <span className="min-w-0">
+                          <BreakableName text={name} />
+                        </span>
                       </span>
                     );
                   })}
                   {summary.metricCount > summary.metricNames.length && (
-                    <span className="inline-flex items-center rounded bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-400">
+                    <span
+                      className="inline-flex items-center rounded bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-500"
+                      data-testid="metrics-service-card-more"
+                    >
                       {translator.translateTemplate("+{{count}} more", {
                         count: translator.formatNumber(
                           summary.metricCount - summary.metricNames.length,

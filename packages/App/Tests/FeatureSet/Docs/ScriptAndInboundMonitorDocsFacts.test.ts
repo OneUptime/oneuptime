@@ -665,14 +665,14 @@ describe("Custom Code Monitor", () => {
       expect(summary).toContain(`title: "${title}"`);
     }
 
-    for (const title of [
-      "Probe",
-      "Execution Time (in ms)",
-      "Error",
-      "Show More Details",
-    ]) {
+    for (const title of ["Probe", "Execution Time (in ms)", "Error"]) {
       expect(summary).toContain(`title="${title}"`);
     }
+
+    // One button, open or folded (issue #5364): its title follows the state.
+    expect(summary).toContain(
+      'title={showMoreDetails ? "Hide Details" : "Show More Details"}',
+    );
 
     expect(page).toContain(
       "**Show More Details** shows the result, the script error and the log messages.",

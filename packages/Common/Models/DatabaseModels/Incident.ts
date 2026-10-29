@@ -17,6 +17,7 @@ import KubernetesResource from "./KubernetesResource";
 import Label from "./Label";
 import Monitor from "./Monitor";
 import MonitorStatus from "./MonitorStatus";
+import NetworkDevice from "./NetworkDevice";
 import OnCallDutyPolicy from "./OnCallDutyPolicy";
 import Probe from "./Probe";
 import Project from "./Project";
@@ -693,6 +694,69 @@ export default class Incident extends BaseModel {
     },
   })
   public hosts?: Array<Host> = undefined; // hosts affected by this incident.
+
+  /*
+   * The routers, switches, firewalls and access points this incident is
+   * about (issue #5341): picked under Other Affected Resources, linked by the
+   * network device monitors that watch them, and by OneUptime AI from a
+   * device's page. Lazy: NetworkDevice and Monitor import each other, and
+   * this model imports Monitor (see modelTypeThunk).
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.CreateProjectIncident,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadProjectIncident,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditProjectIncident,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelTypeThunk: () => {
+      return NetworkDevice;
+    },
+    title: "Network Devices",
+    description: "List of network devices affected by this incident.",
+  })
+  @ManyToMany(
+    () => {
+      return NetworkDevice;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "IncidentNetworkDevice",
+    inverseJoinColumn: {
+      name: "networkDeviceId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "incidentId",
+      referencedColumnName: "_id",
+    },
+  })
+  public networkDevices?: Array<NetworkDevice> = undefined;
 
   @ColumnAccessControl({
     create: [

@@ -1514,6 +1514,13 @@
   "Light": "라이트",
   "Dark": "다크",
   "System": "시스템",
+  "Enable": "활성화",
+  "Disable": "비활성화",
+  "Drag to resize. Double-click to fit.": "드래그하여 너비를 변경합니다. 두 번 클릭하면 내용에 맞춥니다.",
+  "Reset column widths": "열 너비 재설정",
+  "Resize the {{column}} column": "{{column}} 열 너비 변경",
+  "{{count}} pixels wide": "너비 {{count}}픽셀",
+  "{{count}} pixels wide_one": "너비 {{count}}픽셀",
   "markdownCallouts": {
     "caution": "주의",
     "danger": "위험",

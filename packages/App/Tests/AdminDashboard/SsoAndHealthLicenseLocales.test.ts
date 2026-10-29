@@ -204,10 +204,13 @@ const RETIRED_PROVIDER_STRINGS: Array<string> = [
 ];
 
 /*
- * The Admin Dashboard had no "Disable" string before that action added one,
- * and has none now. (The Dashboard's own "Disable" entry stays.)
+ * The action's bare "Disable" went with it, and is back for something else:
+ * the shared row switch's Disable, beside its Enable, in each row of Admin
+ * Dashboard > Settings > Custom Channels - worded as the Dashboard words the
+ * same switch (ee/Tests/UI/CustomChannels/CustomChannelsRowSwitch.test.tsx).
+ * Only the action's own strings stay retired.
  */
-const RETIRED_KEYS: Array<string> = [...RETIRED_PROVIDER_STRINGS, "Disable"];
+const RETIRED_KEYS: Array<string> = RETIRED_PROVIDER_STRINGS;
 
 // What a sentence may end with, per script.
 const SENTENCE_ENDINGS: Array<string> = [".", "。", "।"];

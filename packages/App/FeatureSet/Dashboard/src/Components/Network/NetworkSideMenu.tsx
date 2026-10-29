@@ -290,6 +290,19 @@ const NetworkSideMenu: FunctionComponent = (): ReactElement => {
           icon: IconProp.Layers,
         },
         {
+          /*
+           * What the Traffic pages call addresses and subnets nothing else
+           * names (issue #5340) - a vocabulary, beside the roles and types.
+           */
+          link: {
+            title: "Address Names",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_DEVICE_SETTINGS_ADDRESS_NAMES] as Route,
+            ),
+          },
+          icon: IconProp.Label,
+        },
+        {
           link: {
             title: "OID Collection Templates",
             to: RouteUtil.populateRouteParams(

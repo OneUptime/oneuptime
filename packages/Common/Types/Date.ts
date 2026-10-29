@@ -6,7 +6,6 @@ import PositiveNumber from "./PositiveNumber";
 import moment from "moment-timezone";
 import Timezone from "./Timezone";
 import TimezoneAlias from "./TimezoneAlias";
-import Zod, { ZodSchema } from "../Utils/Schema/Zod";
 import { refusedValue } from "../Utils/RefusedValue";
 import {
   DateTextShape,
@@ -236,29 +235,6 @@ export default class OneUptimeDate {
       locale: data.locale,
       timezones: data.timezones ?? this.getCurrentTimezoneNames(),
       shape: data.shape,
-    });
-  }
-
-  public static getSchema(): ZodSchema {
-    return Zod.object({
-      _type: Zod.literal(ObjectType.DateTime),
-      value: Zod.string().openapi({
-        type: "string",
-        example: "2023-10-01T12:00:00Z",
-      }),
-    }).openapi({
-      type: "object",
-      description: "A date time object.",
-      /*
-       * Machine-readable marker so spec consumers (e.g. the Terraform provider
-       * generator) can treat this wrapper as an RFC3339 timestamp instead of an
-       * opaque object.
-       */
-      "x-oneuptime-type": ObjectType.DateTime,
-      example: {
-        _type: ObjectType.DateTime,
-        value: "2023-10-01T12:00:00Z",
-      },
     });
   }
 

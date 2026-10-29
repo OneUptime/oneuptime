@@ -42,6 +42,13 @@ import {
   FormFieldStyleType,
 } from "Common/UI/Components/Forms/Types/Field";
 import MonitorSteps from "../../Components/Form/Monitor/MonitorSteps";
+import {
+  isTelemetryMonitorLinkType,
+  readTelemetryMonitorLinkQuery,
+  TELEMETRY_MONITOR_QUERY_PARAM,
+  TelemetryMonitorLinkQuery,
+  TelemetryMonitorLinkSeed,
+} from "../../Utils/Form/Monitor/TelemetryRule/TelemetryMonitorLink";
 import MonitorStepsType from "Common/Types/Monitor/MonitorSteps";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
@@ -313,6 +320,11 @@ const MonitorCreate: FunctionComponent<
   );
   const [error, setError] = useState<string>("");
   const [initialValues, setInitialValues] = useState<JSONObject>({});
+
+  // What a "Create monitor" link from an explorer shows, for the criteria.
+  const [seedQuery, setSeedQuery] = useState<
+    TelemetryMonitorLinkSeed | undefined
+  >(undefined);
 
   /*
    * Probe picker state. Probes used to be chosen for you after the monitor was
@@ -1444,6 +1456,27 @@ const MonitorCreate: FunctionComponent<
       monitorTypeParam &&
       Object.values(MonitorType).includes(monitorTypeParam as MonitorType)
     ) {
+      /*
+       * "Create monitor" from the logs or traces explorer, or an
+       * exception's page: the criteria step starts watching what it showed
+       * (TelemetryMonitorLink, read by MonitorSteps when it seeds).
+       */
+      if (isTelemetryMonitorLinkType(monitorTypeParam)) {
+        const linkQuery: TelemetryMonitorLinkQuery | null =
+          readTelemetryMonitorLinkQuery(
+            Navigation.getQueryStringByName(TELEMETRY_MONITOR_QUERY_PARAM),
+          );
+
+        setSeedQuery(
+          linkQuery
+            ? {
+                monitorType: monitorTypeParam as MonitorType,
+                query: linkQuery,
+              }
+            : undefined,
+        );
+      }
+
       setInitialValues({
         monitorType: monitorTypeParam as MonitorType,
       });
@@ -1602,8 +1635,14 @@ const MonitorCreate: FunctionComponent<
       <MonitorPayAsYouGoCard />
       <Card
         title="Create New Monitor"
+        /*
+         * Who is told is the first thing someone new asks of a monitor.
+         * Its default criteria open an incident when it goes down (an alert
+         * for a few types), and an incident or alert nobody owns is emailed
+         * to the project's owners.
+         */
         description={
-          "Pick what to monitor and give it a name. Everything else starts with defaults you can change."
+          "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert and emails the project's owners."
         }
         className="mb-10"
       >
@@ -1713,6 +1752,15 @@ const MonitorCreate: FunctionComponent<
                          * summary, so the step opens on what to check.
                          */
                         foldDefaultCriteria={true}
+                        seedQuery={seedQuery}
+                        /*
+                         * Not a template's monitor: criteria nobody has
+                         * worked on follow the monitor type picked, and a
+                         * telemetry monitor offers its recipes - also
+                         * after a walk back to Monitor Info, and for a
+                         * metric chart's Create monitor.
+                         */
+                        isCreating={!monitorTemplateId}
                       />
                     );
                   },

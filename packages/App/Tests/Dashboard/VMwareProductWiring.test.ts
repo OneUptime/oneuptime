@@ -99,8 +99,9 @@ const VMWARE_PAGE_KEYS: ReadonlyArray<string> = [
 
 /**
  * Keys that name a real, navigable page. VMWARE_ROOT is the lazy-route
- * mount (`/vmware/*`), and — like every other product — the Archived page
- * renders under the product Layout without a breadcrumb trail.
+ * mount (`/vmware/*`). Every one of them has a trail, the Archived list
+ * included, as on every other product
+ * (Common/Tests/App/Dashboard/EveryPageHasATrail).
  */
 const NAVIGABLE_PAGE_KEYS: ReadonlyArray<string> = VMWARE_PAGE_KEYS.filter(
   (key: string): boolean => {
@@ -108,11 +109,7 @@ const NAVIGABLE_PAGE_KEYS: ReadonlyArray<string> = VMWARE_PAGE_KEYS.filter(
   },
 );
 
-const BREADCRUMB_PAGE_KEYS: ReadonlyArray<string> = NAVIGABLE_PAGE_KEYS.filter(
-  (key: string): boolean => {
-    return key !== "VMWARE_ARCHIVED";
-  },
-);
+const BREADCRUMB_PAGE_KEYS: ReadonlyArray<string> = NAVIGABLE_PAGE_KEYS;
 
 /**
  * Every page module under Pages/VMware/View and the PageMap key whose
@@ -333,8 +330,10 @@ describe("every navigable page has breadcrumbs", () => {
     },
   );
 
-  test("the archived page has no trail, like every other product", () => {
-    expect(breadcrumbs).not.toContain("PageMap.VMWARE_ARCHIVED");
+  test("the archived page's trail reads Project > VMware > Archived", () => {
+    expect(dense(breadcrumbs)).toContain(
+      'PageMap.VMWARE_ARCHIVED,["Project","VMware","Archived",]',
+    );
   });
 
   test("the trails use vSphere vocabulary, not Proxmox's", () => {

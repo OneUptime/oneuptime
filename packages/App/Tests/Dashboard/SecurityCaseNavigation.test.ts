@@ -127,6 +127,9 @@ describe("a case's side menu", () => {
           "SECURITY_CASE_VIEW_CONNECTED_SIGNALS",
           IconProp.Link,
         ],
+        // What the case keeps, then what it still needs done.
+        ["Evidence", "SECURITY_CASE_VIEW_EVIDENCE", IconProp.PaperClip],
+        ["Tasks", "SECURITY_CASE_VIEW_TASKS", IconProp.ClipboardDocumentCheck],
         ["Playbooks", "SECURITY_CASE_VIEW_PLAYBOOK_RUNS", IconProp.Play],
       ],
       [["Private Notes", "SECURITY_CASE_VIEW_NOTES", IconProp.Lock]],
@@ -195,7 +198,7 @@ describe("a case's side menu", () => {
     }
   });
 
-  test("counts one thing beside an entry: the case's runs waiting for an approval, beside Playbooks", () => {
+  test("counts two things beside their entries: the case's open tasks beside Tasks, its runs waiting for an approval beside Playbooks", () => {
     const counted: Array<[string, string | undefined]> =
       SECURITY_CASE_MENU.flatMap(
         (section: SecurityCaseMenuSection): Array<SecurityCaseMenuItem> => {
@@ -209,7 +212,10 @@ describe("a case's side menu", () => {
           return [item.title, item.badge];
         });
 
-    expect(counted).toEqual([["Playbooks", "runsWaitingForApproval"]]);
+    expect(counted).toEqual([
+      ["Tasks", "openTasks"],
+      ["Playbooks", "runsWaitingForApproval"],
+    ]);
   });
 
   test("draws one entry as a deletion: Delete Case, last, under Advanced", () => {
@@ -279,6 +285,8 @@ describe("a case's pages and their addresses", () => {
       "cases/:id/detections",
       "cases/:id/entities",
       "cases/:id/connected-signals",
+      "cases/:id/evidence",
+      "cases/:id/tasks",
       "cases/:id/playbook-runs",
       "cases/:id/notes",
       "cases/:id/audit-logs",
@@ -354,6 +362,8 @@ describe("where each page of a case says it is", () => {
       ["View Case", "Detections"],
       ["View Case", "Entities"],
       ["View Case", "Connected Signals"],
+      ["View Case", "Evidence"],
+      ["View Case", "Tasks"],
       ["View Case", "Playbooks"],
       ["View Case", "Private Notes"],
       ["View Case", "Audit Logs"],

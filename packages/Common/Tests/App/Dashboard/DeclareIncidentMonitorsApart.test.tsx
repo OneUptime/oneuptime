@@ -22,6 +22,7 @@ import { UserEvent } from "@testing-library/user-event/dist/types/setup/setup";
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { searchThroughGetList } from "./AffectedResourceSearchFake";
 
 /*
  * Declare Incident's Resources Affected step, drawn for real - the page's
@@ -85,6 +86,25 @@ jest.mock("react-i18next", () => {
     },
   };
 });
+
+/*
+ * The picker asks one route for every kind (POST /affected-resources/search).
+ * It is answered from this suite's getList store, kind by kind, as the
+ * server reads each kind (AffectedResourceSearchFake).
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/AffectedResources/AffectedResourceSearchApi",
+  () => {
+    return {
+      __esModule: true,
+      searchAffectedResources: (query: unknown): Promise<unknown> => {
+        return searchThroughGetList((args: unknown) => {
+          return getListMock(args) as never;
+        })(query as never);
+      },
+    };
+  },
+);
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -572,7 +592,16 @@ describe("Resources Affected: the monitors apart, and the status they change to 
     const others: HTMLElement = otherResourcesPicker();
 
     expect(monitors).toHaveAttribute("placeholder", "Search monitors...");
-    expect(others.getAttribute("placeholder")).toMatch(/^Search host, /);
+    /*
+     * Fourteen kinds: the placeholder says how to find them - by name, or
+     * a host's or a device's IP address - and the field's description
+     * below names the kinds. A placeholder naming them was cut off on a
+     * phone.
+     */
+    expect(others).toHaveAttribute(
+      "placeholder",
+      "Search by name or IP address...",
+    );
     expect(isBefore(fieldOf(monitors), fieldOf(others))).toBe(true);
     expect(
       within(fieldOf(monitors)).getByText(
@@ -581,7 +610,7 @@ describe("Resources Affected: the monitors apart, and the status they change to 
     ).toBeVisible();
     expect(
       within(fieldOf(others)).getByText(
-        "Search and attach hosts, Kubernetes clusters, Docker hosts, databases, or services affected by this incident.",
+        "Search and attach the hosts, network devices, clusters, databases, cloud resources or services this incident affects.",
       ),
     ).toBeVisible();
 

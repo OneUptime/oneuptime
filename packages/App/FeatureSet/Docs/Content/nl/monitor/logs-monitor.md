@@ -32,23 +32,31 @@ Elke minuut telt OneUptime de logs die aan de filters van de monitor voldoen en 
 :::steps
 ### Een nieuwe monitor beginnen
 
-Ga naar **Monitoren** en klik op **Monitor maken**.
+Ga naar **Monitoren** en klik op **Monitor maken**. Of zoek in de logverkenner de logs waarover u geïnformeerd wilt worden en klik in de werkbalk op **Monitor maken** (de bel): de nieuwe monitor bewaakt vanaf het begin de zoekopdracht, de ernstniveaus, de services en de attributen van de verkenner.
 
 ### Logs kiezen
 
 Klik onder **Monitortype** op **Meer monitortypen** en kies **Logboeken** onder **Telemetrie**, of typ `logs` in het zoekvak. Vul een **Naam** in en klik dan op **Volgende**.
 
+### Kiezen waarover de monitor u informeert
+
+Kies onder **Waarover moet deze monitor je informeren?** voor **Te veel fouten**, **Er verschijnt een bericht** of **Logs blijven weg**. Elke keuze vult de te bewaken logs en de regel in, die u verderop kunt wijzigen. Kies **Iets anders** om ze zelf in te stellen.
+
 ### De te tellen logs kiezen
 
-Stel in **Logmonitorconfiguratie** de velden **Bewaak logboeken die deze tekst bevatten**, **Bewaak logboeken gedurende (time)** en **Logernst** in. Een filter dat u leeg laat, komt met elke log overeen. **Logboekvoorbeeld** onder de filters toont de logs waarmee ze nu overeenkomen.
+Stel in **Te bewaken logs** de velden **Logernst** en **Bericht bevat** in. Een filter dat u leeg laat, komt met elke log overeen. **Overeenkomende logs** onder de filters toont de logs waarmee ze nu overeenkomen.
 
 ### Verder verfijnen (optioneel)
 
 Open **Meer velden** om te filteren op telemetrieservice, infrastructuurentiteit of attribuut. Wilt u één waarschuwing per tunnel, gebruiker of interface in plaats van één voor de hele monitor, voeg het attribuut dan toe onder **Group by Attributes** (zie [Waarschuwingen per groep](#waarschuwingen-per-groep-group-by)).
 
-### De criteria instellen
+### Zeggen wanneer er gewaarschuwd wordt
 
-De kaart **Monitorcriteria** begint met twee criteria: offline, met een incident, wanneer er geen logs overeenkomen; online wanneer er minstens één overeenkomt. Pas ze aan op datgene waarvoor u gewaarschuwd wilt worden (zie [Criteria](#criteria)).
+Kies in **Wanneer waarschuwen** een **Voorwaarde**, het **Aantal logs** en een **Tijdvenster**. De zin eronder zegt de regel in gewone woorden terug. De grafiek daaronder telt de overeenkomende logs in elk venster van de afgelopen uren, tekent het getal van de regel als lijn en zegt hoe vaak de regel zou hebben gewaarschuwd. De knop ervan stelt een getal voor dat de regel in die tijd niet zou hebben overschreden.
+
+### Kiezen wat er gebeurt
+
+Kies in **Wat er gebeurt** voor **Een waarschuwing maken**, **Een incident melden** of **Beide**, en geef het een titel en een ernst. Zolang de regel overeenkomt, toont de monitor de status onder **Meer velden**; komt hij niet meer overeen, dan gaat de monitor terug naar zijn standaardstatus en lost de waarschuwing of het incident zichzelf op.
 
 ### De monitor maken
 
@@ -59,9 +67,9 @@ Klik op **Monitor maken**. De monitor opent op zijn pagina **Overzicht**, en zij
 
 | Veld | Waarmee het overeenkomt | Standaard |
 | --- | --- | --- |
-| **Bewaak logboeken die deze tekst bevatten** | Logs waarvan de body deze tekst bevat, zonder onderscheid tussen hoofd- en kleine letters. | Leeg: elke log |
-| **Bewaak logboeken gedurende (time)** | Logs van de laatste 5 seconden tot de laatste 24 uur. | **Laatste 1 minuut** |
 | **Logernst** | Logs met een van de gekozen ernstniveaus. | Leeg: elk ernstniveau |
+| **Bericht bevat** | Logs waarvan de body deze tekst bevat, zonder onderscheid tussen hoofd- en kleine letters. | Leeg: elke log |
+| **Tijdvenster** (in **Wanneer waarschuwen**) | Logs van de laatste 5 seconden tot de laatste 24 uur. | **Laatste 5 minuten** |
 | **Group by Attributes** | Geen filter: telt elke combinatie van waarden van deze attributen apart. | Leeg: één telling |
 | **Opgelost door attributen** | Geen filter: de log die een groep oplost. Verschijnt zodra **Group by Attributes** een attribuut heeft; zie [Opgelost door een log](#opgelost-door-een-log). | Leeg: een groep wordt opgelost wanneer de logs ervan stoppen |
 | **Filteren op telemetrieservice** (onder **Meer velden**) | Logs van een van de gekozen services. | Leeg: elke service |
@@ -87,8 +95,8 @@ Elke log wordt opgeslagen met een van zeven ernstniveaus. Bij logs van OpenTelem
 ## Hoe hij wordt geëvalueerd
 
 - **Elke minuut.** Een logs-monitor wordt niet door sondes gecontroleerd, dus hij heeft geen interval om in te stellen en geen pagina **Sondes en interval**.
-- **Eén getal per evaluatie.** De monitor telt de logs die aan elk filter voldoen en binnen **Bewaak logboeken gedurende (time)** vóór de evaluatie zijn binnengekomen. Met **Laatste 5 minuten** kijkt elke evaluatie vijf minuten terug, dus de vensters van opeenvolgende evaluaties overlappen.
-- **Geen logs is een aantal van 0.** Een service die geen logs meer schrijft, levert 0 op, en daar zoekt het standaardcriterium voor offline naar.
+- **Eén getal per evaluatie.** De monitor telt de logs die aan elk filter voldoen en binnen het **Tijdvenster** vóór de evaluatie zijn binnengekomen. Met **Laatste 5 minuten** kijkt elke evaluatie vijf minuten terug, dus de vensters van opeenvolgende evaluaties overlappen.
+- **Geen logs is een aantal van 0.** Een service die geen logs meer schrijft, levert 0 op, en daar zoekt **Logs blijven weg** naar.
 - **De onderbreking van OneUptime zelf is geen stilte.** Zolang het tijdvenster tijd bevat waarin OneUptime zelf geen gegevens ontving (het startte opnieuw, werd geüpgraded of werkte een achterstand weg), wacht de controle: de status verandert niet, en er wordt geen incident of waarschuwing geopend of opgelost. Zie [Als OneUptime geen gegevens ontvangt](/docs/monitor/when-oneuptime-is-not-receiving).
 - **Criteria van boven naar beneden.** Het eerste criterium dat overeenkomt, beslist, dus zet het ernstigste bovenaan. Een gegroepeerde monitor werkt anders: hij controleert elk criterium voor elke groep (zie [De evaluatie van criteria verschilt](#de-evaluatie-van-criteria-verschilt)).
 
@@ -96,7 +104,7 @@ Elke statuswijziging wordt, met de reden ervan, vastgelegd op de **Statustijdlij
 
 ## Criteria
 
-De criteria van een logs-monitor hebben één **Filtertype**: **Log Count**, het aantal logs dat in het venster overeenkwam. Kies een **Filtervoorwaarde** en, bij een drempelvoorwaarde, een **Waarde**.
+De criteria van een logs-monitor hebben één **Filtertype**: **Log Count**, het aantal logs dat in het venster overeenkwam. **Wanneer waarschuwen** stelt één criterium in, met als **Voorwaarde** **Meer dan**, **Minstens**, **Minder dan**, **Hoogstens**, **Precies**, **Ongewoon hoog**, **Ongewoon laag** of **Ongewoon hoog of laag**. Voor meerdere criteria, of één met meer dan één filter, klikt u op **Bewerken als eigen criteria** onder **Meer velden** in **Wat er gebeurt**: elk criterium daar heeft een **Filtervoorwaarde** en, bij een drempelvoorwaarde, een **Waarde**.
 
 | Filtervoorwaarde | Komt overeen wanneer het aantal logs… |
 | --- | --- |
@@ -109,36 +117,41 @@ De criteria van een logs-monitor hebben één **Filtertype**: **Log Count**, het
 | **Anomalously Low** | onder dat bereik ligt |
 | **Anomalous** | buiten dat bereik ligt, in welke richting ook |
 
-De anomaliecondities hebben geen **Waarde**. Kies een **Gevoeligheid** (Low, Medium, de standaard, of High) en een **Baseline-venster** van 14 (de standaard), 28, 60 of 90 dagen. OneUptime zet het aantal om in een tempo per minuut en vergelijkt dat met hetzelfde uur van de week over dat venster. De baseline omvat alleen de services en ernstniveaus van de monitor: de tekst- en attribuutfilters horen er niet bij. Zolang dat uur van de week te weinig geschiedenis heeft, is het criterium nog aan het leren en gaat het niet af.
+De anomaliecondities hebben geen **Waarde**. Kies een **Gevoeligheid** (Laag, Gemiddeld, de standaard, of Hoog) en, in de eigen criteria, een **Baseline-venster** van 14 (de standaard), 28, 60 of 90 dagen. OneUptime zet het aantal om in een tempo per minuut en vergelijkt dat met hetzelfde uur van de week over dat venster. De baseline omvat alleen de services en ernstniveaus van de monitor: de tekst- en attribuutfilters horen er niet bij. Zolang dat uur van de week te weinig geschiedenis heeft, is het criterium nog aan het leren en gaat het niet af.
 
-Een nieuwe logs-monitor begint met deze criteria:
+Een logs-monitor die in Monitor maken is aangemaakt, begint met de regel van wat u onder **Waarover moet deze monitor je informeren?** hebt gekozen:
+
+| Keuze | Regel | Wat er gebeurt |
+| --- | --- | --- |
+| **Te veel fouten** | **Logernst** **Fout** en **Fatal**, **Meer dan** `10` in **Laatste 5 minuten** | Maakt een waarschuwing, die zichzelf oplost |
+| **Er verschijnt een bericht** | **Meer dan** `0` in **Laatste 5 minuten** | Maakt een waarschuwing, die zichzelf oplost |
+| **Logs blijven weg** | **Precies** `0` in **Laatste 10 minuten** | Meldt een incident, dat zichzelf oplost |
+
+Een logs-monitor die via de API of Terraform zonder criteria is aangemaakt, begint met deze criteria:
 
 | Criterium | Filter | Effect |
 | --- | --- | --- |
 | Check if … is offline | **Log Count** **Gelijk aan** `0` | Zet de monitor offline en meldt een incident, dat automatisch wordt opgelost |
 | Check if … is online | **Log Count** **Groter dan** `0` | Zet de monitor online |
 
-> [!TIP]
-> Om gewaarschuwd te worden voor fouten in plaats van voor stilte, zet u **Logernst** op **Fout** en wijzigt u het offline-criterium in **Log Count** **Groter dan** het aantal fouten dat u in het venster accepteert.
-
 ## Uitgewerkt voorbeeld: een piek in fouten
 
 U wilt een incident wanneer de checkout-service in vijf minuten meer dan 50 fouten logt:
 
 - **Logernst**: **Fout**
-- **Bewaak logboeken gedurende (time)**: **Laatste 5 minuten**
+- **Tijdvenster**: **Laatste 5 minuten**
 - **Filteren op telemetrieservice**: `checkout`
-- Criterium 1: **Log Count** **Groter dan** `50`: de monitor offline zetten en een incident melden
-- Criterium 2: **Log Count** **Kleiner dan of gelijk aan** `50`: de monitor online zetten
+- **Wanneer waarschuwen**: **Meer dan** `50`
+- **Wat er gebeurt**: **Een incident melden**
 
 Vier opeenvolgende evaluaties:
 
-| Tijd | Foutlogs in de laatste 5 minuten | Criterium dat overeenkomt | Wat er gebeurt |
+| Tijd | Foutlogs in de laatste 5 minuten | Komt de regel overeen? | Wat er gebeurt |
 | --- | --- | --- | --- |
-| 10:00 | 12 | 2 | De monitor is online. |
-| 10:01 | 64 | 1 | De monitor gaat offline en er wordt een incident gemeld. |
-| 10:02 | 81 | 1 | Blijft offline. Het incident is al open, dus er wordt geen tweede gemeld. |
-| 10:06 | 9 | 2 | De monitor is weer online, en het incident lost zichzelf op omdat **Incident automatisch oplossen** aan staat. |
+| 10:00 | 12 | Nee | De monitor is online. |
+| 10:01 | 64 | Ja | De monitor gaat offline en er wordt een incident gemeld. |
+| 10:02 | 81 | Ja | Blijft offline. Het incident is al open, dus er wordt geen tweede gemeld. |
+| 10:06 | 9 | Nee | De monitor is weer online, en het incident lost zichzelf op omdat **Incident automatisch oplossen** aan staat. |
 
 Omdat de vensters overlappen, houdt één uitbarsting van fouten het aantal tot vijf minuten na afloop hoog. Gebruik een korter venster voor een monitor die sneller moet herstellen.
 
@@ -197,11 +210,11 @@ log_component="IPSec" con_name="HQ-Branch1" status="Terminated" message="IPSec C
 ```
 
 :::steps
-1. Maak een monitor van het type **Logboeken**.
-2. Zet **Bewaak logboeken die deze tekst bevatten** op `terminated` en **Bewaak logboeken gedurende (time)** op **Laatste 5 minuten**.
+1. Maak een monitor van het type **Logboeken** en kies **Er verschijnt een bericht**.
+2. Zet **Bericht bevat** op `terminated` en het **Tijdvenster** op **Laatste 5 minuten**.
 3. Voeg onder **Meer velden** het attribuutfilter `log_component` = `IPSec` toe.
 4. Voeg onder **Group by Attributes** `con_name` toe.
-5. Voeg een criterium toe met het filter **Log Count** **Groter dan** `0` dat een waarschuwing of een incident aanmaakt met de titel `IPsec tunnel {{con_name}} terminated`.
+5. Laat de regel op **Meer dan** `0` staan, en geef de waarschuwing of het incident de titel `IPsec tunnel {{con_name}} terminated`.
 :::
 
 Elke tunnel die een beëindiging logt, krijgt nu een eigen waarschuwing (`IPsec tunnel HQ-Branch1 terminated`, `IPsec tunnel Branch2 terminated`), en elke waarschuwing wordt los van de andere opgelost.
@@ -227,7 +240,7 @@ De waarde van elk Group By-attribuut is een [templatevariabele](/docs/monitor/in
 ## Problemen oplossen
 
 :::details De monitor is offline, maar mijn service schrijft wel logs
-Het aantal was 0, dus de filters komen met geen enkele log van de service overeen. Open de pagina **Criteria** van de monitor (onder **Configuratie**) en klik op **Edit Monitoring Criteria**: **Logboekvoorbeeld** toont wat de filters nu selecteren. De gebruikelijke oorzaken zijn een ernst gekozen op de tekst die de logger afdrukt in plaats van op het ernstnummer (zie [Ernst van logs](#ernst-van-logs)), een service- of attribuutfilter dat niet overeenkomt, en een tijdvenster dat korter is dan de tijd tussen de logs van de service.
+Het aantal was 0, dus de filters komen met geen enkele log van de service overeen. Open de pagina **Criteria** van de monitor (onder **Configuratie**) en klik op **Edit Monitoring Criteria**: **Overeenkomende logs** toont wat de filters nu selecteren, en de grafiek in **Wanneer waarschuwen** telt ze in elk venster. De gebruikelijke oorzaken zijn een ernst gekozen op de tekst die de logger afdrukt in plaats van op het ernstnummer (zie [Ernst van logs](#ernst-van-logs)), een service- of attribuutfilter dat niet overeenkomt, en een tijdvenster dat korter is dan de tussenpoos tussen de logs van de service.
 :::
 
 :::details Er was een piek, maar er kwam geen waarschuwing

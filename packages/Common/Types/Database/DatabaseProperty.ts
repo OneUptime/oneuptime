@@ -1,4 +1,3 @@
-import { ZodSchema } from "zod";
 import NotImplementedException from "../Exception/NotImplementedException";
 import { JSONArray, JSONObject } from "../JSON";
 import SerializableObject from "../SerializableObject";
@@ -115,9 +114,5 @@ export default class DatabaseProperty extends SerializableObject {
         return this._fromDatabase(value);
       },
     };
-  }
-
-  public static getSchema(): ZodSchema {
-    throw new NotImplementedException();
   }
 }

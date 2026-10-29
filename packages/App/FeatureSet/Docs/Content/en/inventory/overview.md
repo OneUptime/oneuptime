@@ -73,8 +73,11 @@ A host or a network device has an **Asset Details** card that describes both the
 
 - A host's facts come from the resource attributes on its telemetry: its IP and MAC addresses, architecture and operating system out of the box, and its serial number, make, model and firmware once you stamp them on.
 - A network device's facts come from its SNMP poll, its role and its site. What its poll has not read comes from discovery: the last scan of its address, a router's ARP table, or its probe's DNS lookup. A device without ENTITY-MIB, such as a Meraki MX, still gets its make and model from its system description. Its IP address is never shown as its hostname.
+- A Meraki device also takes what its poll leaves empty from the Meraki dashboard, its serial number, model and firmware among them, when a [Meraki connection](/docs/monitor/network-traffic#cisco-meraki-without-netflow) reads its organization.
 
 The card says where each fact came from and when. The source most facts share, such as a host's collector, a network device's own SNMP poll or the discovery scan that read it, is named once, below the facts. Any other source, such as a router's ARP table or a value saved on the device, is named under its fact. A value saved on a network device is never replaced by what discovery reads, and when the two differ, the card shows both.
+
+A network device's card has a **Refresh** button for whoever may edit network devices. It reads the device again now: its probe polls it within a minute, and its Meraki connection reads the organization again. The card says when the new reading has landed, or that the probe could not reach the device, and the item is copied from the device as soon as the reading lands.
 
 The same facts are columns of the **All Items** list, hidden until you turn them on, and they go into its CSV export. [Exporting to a CMDB](/docs/inventory/cmdb-sync#asset-details) lists their keys.
 

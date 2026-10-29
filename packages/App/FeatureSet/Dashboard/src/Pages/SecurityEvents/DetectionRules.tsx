@@ -79,6 +79,29 @@ import {
   DETECTION_RULES_EMPTY_TITLE,
   OPEN_RULE_LIBRARY,
 } from "../../Components/SecurityEvents/SecurityDetectionsCopy";
+import SecurityListNameCell, {
+  SECURITY_LIST_NAME_COLUMN_MAX_WIDTH_CLASS_NAME,
+} from "../../Components/SecurityEvents/SecurityListNameCell";
+import DetectionRuleRetrohuntInForm from "../../Components/SecurityEvents/Retrohunt/DetectionRuleRetrohuntInForm";
+import DetectionRuleWatchlists from "../../Components/SecurityEvents/Watchlists/DetectionRuleWatchlists";
+import DetectionRuleRetrohuntModal from "../../Components/SecurityEvents/Retrohunt/DetectionRuleRetrohuntModal";
+import { RUN_ON_PAST_EVENTS } from "../../Components/SecurityEvents/Retrohunt/RetrohuntCopy";
+import AddRuleExceptionModal from "../../Components/SecurityEvents/RuleExceptions/AddRuleExceptionModal";
+import {
+  ACTIVE_EXCEPTION_COUNT,
+  ADD_EXCEPTION_ACTION,
+  ADD_EXCEPTION_DESCRIPTION,
+  RULE_EXCEPTIONS_TEST_IDS,
+  VIEW_EXCEPTIONS_ACTION,
+} from "../../Components/SecurityEvents/RuleExceptions/RuleExceptionsCopy";
+import { getRuleExceptionsRoute } from "../../Components/SecurityEvents/RuleExceptions/RuleExceptionsRoute";
+import useActiveRuleExceptionCounts, {
+  ActiveRuleExceptionCounts,
+} from "../../Components/SecurityEvents/RuleExceptions/useActiveRuleExceptionCounts";
+import DetectionRuleException from "Common/Models/DatabaseModels/DetectionRuleException";
+import Link from "Common/UI/Components/Link/Link";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 /*
@@ -88,6 +111,16 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  * a rule made through the API, is a minute).
  */
 const DETECTION_RULE_FORM_EVALUATION_INTERVAL_IN_MINUTES: number = 5;
+
+/*
+ * The row menu's run of tuning actions - Run on Past Events, Add Exception,
+ * View Exceptions - set apart from Create Monitor, Edit and Delete.
+ */
+export const DETECTION_RULE_TUNING_MENU_GROUP: string = "tuning";
+
+// The line of quiet tools under the form's YAML: Draft with AI, Run on Past Events.
+export const DETECTION_RULE_YAML_TOOLS_TEST_ID: string =
+  "detection-rule-yaml-tools";
 
 /*
  * The description, the detection finding and how matches are counted:
@@ -138,6 +171,23 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
     column: "isEnabled",
   });
 
+  const translator: Translator = useTranslator();
+
+  /*
+   * How many of each rule's exceptions skip something now, for the line
+   * under its name: a rule with blind spots says so where its name is.
+   */
+  const exceptionCounts: ActiveRuleExceptionCounts =
+    useActiveRuleExceptionCounts(ProjectUtil.getCurrentProjectId());
+
+  // The rule whose Run on Past Events or Add Exception is open, from its row.
+  const [retrohuntRule, setRetrohuntRule] = useState<DetectionRule | null>(
+    null,
+  );
+  const [exceptionRule, setExceptionRule] = useState<DetectionRule | null>(
+    null,
+  );
+
   /*
    * Same reseller-telemetry gate as every other Security Events page —
    * detection rules run over telemetry-billed security events, so a plan
@@ -161,6 +211,16 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
    */
   const monitorCreateGate: PermissionGateResult = PermissionGate.check(
     new Monitor(),
+    ModelAction.Create,
+  );
+
+  /*
+   * Add Exception opens the exception form over the list, which ModelTable
+   * never gates: a member who may not add exceptions gets a disabled item
+   * that says why.
+   */
+  const exceptionCreateGate: PermissionGateResult = PermissionGate.check(
+    new DetectionRuleException(),
     ModelAction.Create,
   );
 
@@ -284,15 +344,51 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
 
               return (
                 <>
-                  <DetectionRuleAiDraft
-                    hasRule={
-                      typeof values.sigmaRuleYaml === "string" &&
-                      values.sigmaRuleYaml.trim().length > 0
-                    }
-                    onDraft={(sigmaRuleYaml: string) => {
-                      footer?.setValue(sigmaRuleYaml);
-                    }}
-                  />
+                  {/*
+                   * The field's quiet tools on one line - Draft with AI,
+                   * then Run on Past Events once there is a rule to run -
+                   * and the one opened across the field's width under it.
+                   */}
+                  <div
+                    className="flex flex-wrap items-start gap-x-4"
+                    data-testid={DETECTION_RULE_YAML_TOOLS_TEST_ID}
+                  >
+                    <DetectionRuleAiDraft
+                      hasRule={
+                        typeof values.sigmaRuleYaml === "string" &&
+                        values.sigmaRuleYaml.trim().length > 0
+                      }
+                      onDraft={(sigmaRuleYaml: string) => {
+                        footer?.setValue(sigmaRuleYaml);
+                      }}
+                    />
+                    {/*
+                     * Run on Past Events: the rule as the form holds it -
+                     * new, or changed and not saved - over past events,
+                     * with the saved rule's exceptions on an edit.
+                     */}
+                    <DetectionRuleRetrohuntInForm
+                      rule={{
+                        detectionRuleId:
+                          (values as Record<string, unknown>)[
+                            "_id"
+                          ]?.toString() || undefined,
+                        sigmaRuleYaml:
+                          typeof values.sigmaRuleYaml === "string"
+                            ? values.sigmaRuleYaml
+                            : undefined,
+                        groupByField: values.groupByField,
+                        distinctCountField: values.distinctCountField,
+                        matchCountThreshold: values.matchCountThreshold as
+                          | number
+                          | undefined,
+                        evaluationIntervalInMinutes:
+                          values.evaluationIntervalInMinutes as
+                            | number
+                            | undefined,
+                      }}
+                    />
+                  </div>
                   {shape && shape.isCorrelation ? (
                     <div className="mt-2">
                       <DetectionRuleSummary shape={shape} />
@@ -300,6 +396,13 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
                   ) : (
                     <></>
                   )}
+                  {/*
+                   * The watchlists the rule reads, as it is typed: each with
+                   * what it holds, or a name the project has no list of.
+                   */}
+                  <DetectionRuleWatchlists
+                    sigmaRuleYaml={values.sigmaRuleYaml}
+                  />
                 </>
               );
             },
@@ -493,6 +596,51 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
             getMessages: getDetectionRuleMessages,
             show: ruleErrors.show,
           }),
+          /*
+           * Tuning, in the row's menu: what the rule would have found on
+           * past events, and what it skips - an exception added here, or
+           * the list of its exceptions.
+           */
+          {
+            title: RUN_ON_PAST_EVENTS,
+            buttonStyleType: ButtonStyleType.NORMAL,
+            icon: IconProp.Backward,
+            placement: ActionButtonPlacement.MoreMenu,
+            menuGroup: DETECTION_RULE_TUNING_MENU_GROUP,
+            onClick: (item: DetectionRule, onCompleteAction: VoidFunction) => {
+              setRetrohuntRule(item);
+              onCompleteAction();
+            },
+          },
+          {
+            title: ADD_EXCEPTION_ACTION,
+            buttonStyleType: ButtonStyleType.NORMAL,
+            icon: IconProp.EyeSlash,
+            placement: ActionButtonPlacement.MoreMenu,
+            menuGroup: DETECTION_RULE_TUNING_MENU_GROUP,
+            disabled: !exceptionCreateGate.isAllowed,
+            tooltip: exceptionCreateGate.isAllowed
+              ? undefined
+              : exceptionCreateGate.disabledReason ||
+                "You do not have permission to add exceptions.",
+            onClick: (item: DetectionRule, onCompleteAction: VoidFunction) => {
+              setExceptionRule(item);
+              onCompleteAction();
+            },
+          },
+          {
+            title: VIEW_EXCEPTIONS_ACTION,
+            buttonStyleType: ButtonStyleType.NORMAL,
+            icon: IconProp.List,
+            placement: ActionButtonPlacement.MoreMenu,
+            menuGroup: DETECTION_RULE_TUNING_MENU_GROUP,
+            onClick: (item: DetectionRule, onCompleteAction: VoidFunction) => {
+              Navigation.navigate(
+                getRuleExceptionsRoute(item._id?.toString() || undefined),
+              );
+              onCompleteAction();
+            },
+          },
           {
             title: "Create Monitor",
             buttonStyleType: ButtonStyleType.NORMAL,
@@ -551,12 +699,50 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
           isEnabled: true,
         }}
         columns={[
+          /*
+           * The rule's name, with how many of its exceptions skip
+           * something now under it ("2 active exceptions", opening them):
+           * a rule with blind spots says so where its name is.
+           */
           {
             field: {
               name: true,
             },
             title: "Name",
             type: FieldType.Text,
+            wrapContent: true,
+            wrapMaxWidthClassName:
+              SECURITY_LIST_NAME_COLUMN_MAX_WIDTH_CLASS_NAME,
+            getElement: (item: DetectionRule): ReactElement => {
+              const count: number =
+                exceptionCounts.counts.get(item._id?.toString() || "") || 0;
+
+              return (
+                <SecurityListNameCell
+                  name={item.name || ""}
+                  /*
+                   * The count opens what it counts: the list of the
+                   * rule's exceptions, as View Exceptions in its menu does.
+                   */
+                  detail={
+                    count > 0 ? (
+                      <Link
+                        to={getRuleExceptionsRoute(
+                          item._id?.toString() || undefined,
+                        )}
+                        className="rounded hover:text-indigo-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                      >
+                        {translator.translatePlural(
+                          ACTIVE_EXCEPTION_COUNT,
+                          count,
+                        )}
+                      </Link>
+                    ) : undefined
+                  }
+                  detailTestId={RULE_EXCEPTIONS_TEST_IDS.ruleCount}
+                />
+              );
+            },
           },
           {
             field: {
@@ -661,6 +847,34 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
       />
 
       {ruleErrors.element}
+
+      {retrohuntRule ? (
+        <DetectionRuleRetrohuntModal
+          ruleId={retrohuntRule._id?.toString() || ""}
+          ruleName={retrohuntRule.name || ""}
+          onClose={() => {
+            setRetrohuntRule(null);
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {exceptionRule ? (
+        <AddRuleExceptionModal
+          detectionRuleId={exceptionRule._id?.toString() || undefined}
+          description={ADD_EXCEPTION_DESCRIPTION}
+          onClose={() => {
+            setExceptionRule(null);
+          }}
+          onSuccess={() => {
+            setExceptionRule(null);
+            exceptionCounts.refresh();
+          }}
+        />
+      ) : (
+        <></>
+      )}
     </div>
   );
 };

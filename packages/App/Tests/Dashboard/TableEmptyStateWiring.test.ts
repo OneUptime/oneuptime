@@ -433,7 +433,12 @@ describe("the empty states' words are translated everywhere", () => {
     "View Documentation",
     "You don't have permission to create these. Ask a project admin for access.",
     "You don't have access to this list",
-    "Ask a project admin for one of these permissions:",
+    "Ask a project admin for access.",
+    // What would give access: PermissionGate's sentence, as every lock words it.
+    "You need this permission: {{permission}}.",
+    "You need one of these permissions: {{permissions}}.",
+    "You need this role: {{role}}.",
+    "You need one of these roles: {{roles}}.",
     "Nothing here yet.",
     "Nothing matches your search or filters.",
     "No active incidents",

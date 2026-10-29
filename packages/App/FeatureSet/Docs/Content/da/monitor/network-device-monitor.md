@@ -68,7 +68,7 @@ Netværk-menuen holder det, du åbner hver dag, synligt: **Oversigt**, **Enheder
 | --- | --- |
 | **Topologi** | **Device Topology**, **Endepunkter**, **Latency Matrix**, **Site Links**, **Device Links** |
 | **Regler** | **Auto Import Rules**, **Site Assignment Rules**, **Ejerregler**, **Etiketregler**, **Link Rules** |
-| **Indstillinger** | **Alert Policies**, **SNMP-loginoplysninger**, **Device Roles**, **Site Types**, **OID Collection Templates** |
+| **Indstillinger** | **Alert Policies**, **SNMP-loginoplysninger**, **Device Roles**, **Site Types**, **Adressenavne**, **OID Collection Templates** |
 | **Avanceret** | **Archived Devices** |
 
 ## Tilføj en netværksenhed
@@ -514,6 +514,10 @@ En enhed kun med ping beholder det navn og den adresse, du, eller en discovery-s
 
 De gemmes ved siden af enhedens egne felter, skrives aldrig ind i dem, og hver scanning, router-walk eller polling, der læser en af dem igen, opdaterer den. Enhedens oversigt og dens element i inventaret viser, hvilken scanning, router eller sonde der læste hver værdi, og hvornår. En værdi, du har gemt på enheden, erstattes aldrig. Når en scanning finder en anden maskine på enhedens adresse, for eksempel et DHCP-lease, der er flyttet, siger oversigten det, og intet af det, den scanning læste der, bruges.
 
+En Meraki-switch, et Meraki-adgangspunkt eller en Meraki-appliance giver hverken serienummer, model eller firmware over SNMP: Meraki implementerer ingen ENTITY-MIB. Når en [Meraki-forbindelse](/docs/monitor/network-traffic#cisco-meraki-uden-netflow) læser dens organisation, henter enheden dem, og alt andet, dens polling lader stå tomt, fra Meraki-dashboardet, og dens kort **Inventar** nævner forbindelsen i en række **Meraki**.
+
+For at læse en enhed igen nu trykker du på **Opdater** på dens kort **Inventar**. Dens sonde poller den inden for et minut, og dens Meraki-forbindelse læser organisationen igen. Kortet fortæller, hvornår den nye aflæsning er landet, eller at sonden ikke kunne nå enheden. **Opdater** findes for dem, der må redigere netværksenheder, på en enhed, som en sonde poller, eller som en Meraki-forbindelse beskriver.
+
 ## Find enheder med en netværksscanning
 
 I stedet for at tilføje enheder én ad gangen kan du scanne et adresseområde fra en sonde og importere det, der svarer.
@@ -756,6 +760,12 @@ For at oprette en fra **Monitorer** i stedet:
 3. Vælg den netværksenhed, der skal advares om. Alt om indsamling af data — værtsnavn, loginoplysninger, tidsplan, interface-walks, tilstands-OID'er — kommer fra enheden; monitoren vælger kun, hvad der skal advares om, gennem sine kriterier.
 
 En netværksenheds-monitor har intet eget interval: den vurderes, hver gang enhedens pollingresultater ankommer, og hver gang en trap fra enheden ankommer.
+
+### En enheds hændelser og advarsler
+
+En hændelse eller en advarsel kan handle om en netværksenhed. Vælg enheden under **Andre berørte ressourcer**, når du erklærer en hændelse eller opretter en advarsel, eller lad en monitor tilknytte den: det, en monitor udløser, knyttes til den enhed, den rapporterer om — den enhed, en netværksenheds-monitor overvåger, den enhed, monitoren er bundet til, og den enhed, en discovery-import oprettede monitoren til.
+
+Enhedens sider **Hændelser** og **Advarsler**, under **Aktivitet** i dens menu, viser det, der er knyttet til den, og menuen og enhedens oversigt tæller de åbne. **Erklær hændelse** og **Opret advarsel** på de sider starter med enheden valgt.
 
 ### Standardværdier for brugerdefinerede felter
 

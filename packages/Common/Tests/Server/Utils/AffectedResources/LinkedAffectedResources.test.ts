@@ -9,6 +9,7 @@ import HostService from "../../../../Server/Services/HostService";
 import IncidentService from "../../../../Server/Services/IncidentService";
 import KubernetesClusterService from "../../../../Server/Services/KubernetesClusterService";
 import MonitorService from "../../../../Server/Services/MonitorService";
+import NetworkDeviceService from "../../../../Server/Services/NetworkDeviceService";
 import PodmanHostService from "../../../../Server/Services/PodmanHostService";
 import ProxmoxClusterService from "../../../../Server/Services/ProxmoxClusterService";
 import ScheduledMaintenanceService from "../../../../Server/Services/ScheduledMaintenanceService";
@@ -151,6 +152,7 @@ describe("the relation table", () => {
     ).toEqual([
       "monitors",
       "hosts",
+      "networkDevices",
       "kubernetesClusters",
       "dockerHosts",
       "podmanHosts",
@@ -178,6 +180,10 @@ describe("the relation table", () => {
     expect(columns).not.toContain("monitors");
     expect(columns).not.toContain("networkSites");
     expect(columns).toContain("hosts");
+    // Issue #5341: an alert raised on a router names the router.
+    expect(columns.indexOf("networkDevices")).toBe(
+      columns.indexOf("hosts") + 1,
+    );
     expect(columns[columns.length - 1]).toBe("serviceLevelObjectives");
   });
 
@@ -191,6 +197,8 @@ describe("the relation table", () => {
     expect(columns[0]).toBe("monitors");
     expect(columns).toContain("networkSites");
     expect(columns).not.toContain("serviceLevelObjectives");
+    // Maintenance has no list of network devices yet; its sites stand in.
+    expect(columns).not.toContain("networkDevices");
   });
 });
 
@@ -211,6 +219,15 @@ describe("dashboard links match each resource's own link", () => {
       LinkedAffectedResourceType.Host,
       (): Promise<URL> => {
         return HostService.getHostLinkInDashboard(PROJECT, ID);
+      },
+    ],
+    [
+      LinkedAffectedResourceType.NetworkDevice,
+      (): Promise<URL> => {
+        return NetworkDeviceService.getNetworkDeviceLinkInDashboard(
+          PROJECT,
+          ID,
+        );
       },
     ],
     [

@@ -3,7 +3,33 @@ import Icon from "../Icon/Icon";
 import FieldType from "../Types/FieldType";
 import Column from "./Types/Column";
 import Columns from "./Types/Columns";
+import ColumnResizeHandle from "./ColumnResize/ColumnResizeHandle";
 import {
+  ColumnWidthKind,
+  ColumnWidths,
+  HeaderCellWidthStyle,
+  getColumnWidthKind,
+  getHeaderCellWidthStyle,
+  isColumnResizable,
+} from "./ColumnResize/ColumnWidths";
+import ColumnWidthsStore, {
+  useColumnWidthsSnapshot,
+} from "./ColumnResize/ColumnWidthsStore";
+import ResetColumnWidthsButton, {
+  RESET_COLUMN_WIDTHS_ICON,
+  RESET_COLUMN_WIDTHS_MENU_KEY,
+  RESET_COLUMN_WIDTHS_TEST_ID,
+  RESET_COLUMN_WIDTHS_TEXT,
+} from "./ColumnResize/ResetColumnWidthsButton";
+import {
+  CardMenuExtraItem,
+  CardMenuExtras,
+  useCardMenuExtras,
+} from "../Card/CardMenuExtras";
+import {
+  TABLE_END_FILLER_CONTENT_CLASS_NAME,
+  TABLE_END_FILLER_HEADER_CELL_CLASS_NAME,
+  TABLE_END_FILLER_TEST_ID,
   TABLE_HEADER_CELL_CLASS_NAME,
   TABLE_HEADER_CONTENT_CLASS_NAME,
   TABLE_HEADER_CONTENT_WRAP_CLASS_NAME,
@@ -29,7 +55,44 @@ import GenericObject from "../../../Types/GenericObject";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
 import InfoTooltip from "../Tooltip/InfoTooltip";
-import React, { ReactElement, useEffect, useState } from "react";
+import React, {
+  ReactElement,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+
+/*
+ * What the header needs to let a person size its columns (Table's
+ * ColumnResize): each column's id, the widths kept for them, and what to
+ * tell the table as an edge is dragged.
+ */
+export interface TableHeaderColumnResize<T extends GenericObject> {
+  getColumnId: (column: Column<T>) => string | undefined;
+  /*
+   * The widths kept for the table's columns, which the header reads itself:
+   * a width kept draws the header row again, not the table's rows.
+   */
+  store: ColumnWidthsStore;
+  onWidthChange: (columnId: string, width: number | null) => void;
+  onResizeStart?:
+    | ((
+        columnId: string,
+        headerCell: HTMLTableCellElement,
+        kind: ColumnWidthKind,
+      ) => void)
+    | undefined;
+  onResizeMove?: ((columnId: string, width: number) => void) | undefined;
+  onResizeEnd?: ((columnId: string) => void) | undefined;
+  // Every column back to the table's own width.
+  onReset: () => void;
+  /*
+   * Which table this is in its card's ⋯ (CardMenuExtras), where its
+   * "Reset column widths" is kept.
+   */
+  ownerId: string;
+}
 
 export interface ComponentProps<T extends GenericObject> {
   columns: Columns<T>;
@@ -56,6 +119,13 @@ export interface ComponentProps<T extends GenericObject> {
    * the names that pass under it, as its cells are.
    */
   isOverflowing?: boolean | undefined;
+  // Each column's edge can be dragged; absent, the columns are the table's.
+  columnResize?: TableHeaderColumnResize<T> | undefined;
+  /*
+   * A cell after the columns, to take the room sized columns leave
+   * (TableLayout's TABLE_END_FILLER_HEADER_CELL_CLASS_NAME).
+   */
+  hasEndFiller?: boolean | undefined;
 }
 
 type TableHeaderFunction = <T extends GenericObject>(
@@ -68,6 +138,74 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
   const { translateString } = useTranslateValue();
   // Track mobile view for responsive behavior
   const [isMobile, setIsMobile] = useState<boolean>(false);
+  const columnWidths: ColumnWidths = useColumnWidthsSnapshot(
+    props.columnResize?.store,
+  );
+
+  /*
+   * Reset column widths, where the table keeps its other options: in the
+   * ⋯ of the card it is in (CardMenuExtras) - a ModelTable's, beside
+   * Refresh, Filter and Columns, or the one a page draws for a table of its
+   * own - and at the header row's end, while a column is sized, when there
+   * is no ⋯ to keep it in. Read here, with the widths: a width kept draws
+   * the header row again, never the table's rows.
+   */
+  const hasColumnWidths: boolean = Boolean(
+    props.columnResize &&
+      props.columns.some((column: Column<T>): boolean => {
+        const columnId: string | undefined =
+          props.columnResize?.getColumnId(column);
+
+        return Boolean(
+          columnId &&
+            isColumnResizable(column) &&
+            columnWidths[columnId] !== undefined,
+        );
+      }),
+  );
+
+  const cardMenuExtras: CardMenuExtras | null = useCardMenuExtras();
+  const setCardMenuItem:
+    | ((ownerId: string, item: CardMenuExtraItem | null) => void)
+    | undefined = cardMenuExtras?.setItem;
+  const ownerId: string | undefined = props.columnResize?.ownerId;
+  const resetRef: React.MutableRefObject<(() => void) | undefined> = useRef<
+    (() => void) | undefined
+  >(props.columnResize?.onReset);
+  resetRef.current = props.columnResize?.onReset;
+
+  useLayoutEffect(() => {
+    if (!setCardMenuItem || !hasColumnWidths || !ownerId) {
+      return undefined;
+    }
+
+    setCardMenuItem(ownerId, {
+      key: RESET_COLUMN_WIDTHS_MENU_KEY,
+      text: RESET_COLUMN_WIDTHS_TEXT,
+      icon: RESET_COLUMN_WIDTHS_ICON,
+      dataTestId: RESET_COLUMN_WIDTHS_TEST_ID,
+      onClick: (): void => {
+        resetRef.current?.();
+      },
+    });
+
+    return () => {
+      setCardMenuItem(ownerId, null);
+    };
+  }, [setCardMenuItem, hasColumnWidths, ownerId]);
+
+  const isResetInCardMenu: boolean = Boolean(
+    cardMenuExtras && cardMenuExtras.menuCount > 0,
+  );
+
+  const resetColumnWidthsElement: ReactElement | undefined =
+    hasColumnWidths && !isResetInCardMenu ? (
+      <ResetColumnWidthsButton
+        onClick={() => {
+          resetRef.current?.();
+        }}
+      />
+    ) : undefined;
 
   useEffect(() => {
     const checkMobile: () => void = (): void => {
@@ -243,6 +381,28 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
           );
 
           /*
+           * The column's edge, which a person drags to size it - every
+           * column but the row's actions (ColumnWidths' isColumnResizable),
+           * the first one's kind its own: it is the row's name.
+           */
+          const resize: TableHeaderColumnResize<T> | undefined =
+            props.columnResize;
+          const columnId: string | undefined = resize?.getColumnId(column);
+          const canResize: boolean = Boolean(
+            resize && columnId && isColumnResizable(column),
+          );
+          const widthKind: ColumnWidthKind = getColumnWidthKind(
+            column,
+            i === 0,
+          );
+          const keptWidth: number | undefined =
+            canResize && columnId ? columnWidths[columnId] : undefined;
+          const widthStyle: HeaderCellWidthStyle | undefined =
+            keptWidth !== undefined
+              ? getHeaderCellWidthStyle(keptWidth, widthKind)
+              : undefined;
+
+          /*
            * The Actions column's header sticks at the right edge as its
            * cells do, above them (z-[3]), and also at the top while the
            * header row does.
@@ -257,9 +417,23 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
             <th
               key={i}
               scope="col"
-              aria-label={headerLabel}
+              /*
+               * Named by its title alone: the edge inside it has a name of
+               * its own ("Resize the Status column"), which the column's
+               * would otherwise take on, as it would an (i)'s.
+               */
+              aria-label={
+                headerLabel ||
+                (canResize || (isActions && resetColumnWidthsElement)
+                  ? title
+                  : undefined)
+              }
               aria-sort={ariaSort}
-              className={`${TABLE_HEADER_CELL_CLASS_NAME}${stickyCellClassName}`}
+              data-column-id={canResize ? columnId : undefined}
+              className={`${TABLE_HEADER_CELL_CLASS_NAME}${
+                canResize ? " relative" : ""
+              }${stickyCellClassName}`}
+              style={widthStyle}
             >
               {/*
                * The sort handler used to sit on the <th> itself, which is
@@ -318,11 +492,47 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
                     text={column.headerTooltip}
                     className="font-normal"
                   />
+                  {isActions && resetColumnWidthsElement ? (
+                    resetColumnWidthsElement
+                  ) : (
+                    <></>
+                  )}
                 </div>
+              )}
+              {canResize && resize && columnId ? (
+                <ColumnResizeHandle
+                  columnId={columnId}
+                  columnTitle={title}
+                  kind={widthKind}
+                  width={keptWidth}
+                  onWidthChange={resize.onWidthChange}
+                  onResizeStart={resize.onResizeStart}
+                  onResizeMove={resize.onResizeMove}
+                  onResizeEnd={resize.onResizeEnd}
+                />
+              ) : (
+                <></>
               )}
             </th>
           );
         })}
+        {props.hasEndFiller ? (
+          <th
+            aria-hidden={resetColumnWidthsElement ? undefined : true}
+            data-testid={TABLE_END_FILLER_TEST_ID}
+            className={`${TABLE_END_FILLER_HEADER_CELL_CLASS_NAME}${stickyClassName}`}
+          >
+            {resetColumnWidthsElement ? (
+              <div className={TABLE_END_FILLER_CONTENT_CLASS_NAME}>
+                {resetColumnWidthsElement}
+              </div>
+            ) : (
+              <></>
+            )}
+          </th>
+        ) : (
+          <></>
+        )}
       </tr>
     </thead>
   );

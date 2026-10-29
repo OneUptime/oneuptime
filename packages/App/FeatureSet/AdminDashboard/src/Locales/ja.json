@@ -1514,6 +1514,13 @@
   "Light": "ライト",
   "Dark": "ダーク",
   "System": "システム",
+  "Enable": "有効にする",
+  "Disable": "無効にする",
+  "Drag to resize. Double-click to fit.": "ドラッグして幅を変更します。ダブルクリックで内容に合わせます。",
+  "Reset column widths": "列の幅をリセット",
+  "Resize the {{column}} column": "{{column}}列の幅を変更",
+  "{{count}} pixels wide": "幅 {{count}} ピクセル",
+  "{{count}} pixels wide_one": "幅 {{count}} ピクセル",
   "markdownCallouts": {
     "caution": "注意",
     "danger": "危険",

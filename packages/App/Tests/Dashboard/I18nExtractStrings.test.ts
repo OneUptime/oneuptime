@@ -936,7 +936,7 @@ describe("scanning a source tree", () => {
 });
 
 describe("the real source roots", () => {
-  test("cover the Dashboard, the shared UI, the data models, the vCenter collection errors, the security case and playbook catalogs, the AI and cloud connections' catalogs, the shared monitor helpers, the cron schedule words and its common schedules, and the placeholders of a playbook's message", () => {
+  test("cover the Dashboard, the shared UI, the data models, the vCenter collection errors, the security case and playbook catalogs, the AI and cloud connections' catalogs, the shared monitor helpers, the monitor type cards, the cron schedule words and its common schedules, the placeholders of a playbook's message, what is wrong with a detection rule exception, and what is wrong with a watchlist or one of its values", () => {
     expect(
       SOURCE_ROOTS.map((root: { directory: string; kind: string }) => {
         return `${root.kind} ${root.directory}`;
@@ -957,12 +957,18 @@ describe("the real source roots", () => {
       "ui packages/Common/Types/CloudConnection",
       // The monitor pages' shared helpers: hero, uptime, metric groups.
       "ui packages/Common/Utils/Monitor",
+      // Create Monitor's type cards: each type's title and what it alerts on.
+      "ui packages/Common/Types/Monitor/MonitorType.ts",
       // A cron schedule in words.
       "ui packages/Common/Utils/CronScheduleText.ts",
       // The common schedules a workflow's Schedule trigger offers.
       "ui packages/Common/Utils/CronTab.ts",
       // What each placeholder of a playbook's note or message stands for.
       "ui packages/Common/Utils/SecurityCase/SecurityCaseMarkdown.ts",
+      // What is wrong with a detection rule exception, field by field.
+      "ui packages/Common/Types/SecurityEvent/DetectionRuleException.ts",
+      // What is wrong with a watchlist or one of its values.
+      "ui packages/Common/Types/SecurityEvent/SecurityWatchlist.ts",
     ]);
   });
 

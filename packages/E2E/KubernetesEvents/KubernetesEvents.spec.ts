@@ -1776,46 +1776,79 @@ test.describe("being told when Kubernetes warns", () => {
 
       const line: Locator = page.getByTestId("kubernetes-warning-alerts");
       await expect(line).toBeVisible();
-      const pager: Locator = page
-        .getByTestId("kubernetes-events-view")
-        .getByTestId("pagination-summary")
-        .locator("xpath=ancestor::nav[1]");
 
-      const pagerBox: {
-        x: number;
-        y: number;
-        width: number;
-        height: number;
-      } | null = await pager.boundingBox();
-      const lineBox: {
-        x: number;
-        y: number;
-        width: number;
-        height: number;
-      } | null = await line.boundingBox();
-      const summaryBox: { x: number } | null = await page
-        .getByTestId("kubernetes-events-view")
-        .getByTestId("pagination-summary")
-        .boundingBox();
-      const cardBox: { y: number; height: number } | null = await page
-        .getByTestId("kubernetes-events-view")
-        .boundingBox();
+      /*
+       * On a phone the list's rows are cards, which Common's Table draws only
+       * after its first paint (it learns the window's width in an effect):
+       * until then the desktop table is there, and the pager and the line sit
+       * elsewhere. Read one box at a time across that change, 14.0.95's gate
+       * (cut 3) took the pager from one layout and the line from the next,
+       * 1.45 pixels apart. So a phone waits for its cards, and every box is
+       * read in one frame.
+       */
+      if (width < 768) {
+        await expect(
+          page.getByTestId("kubernetes-events-view").locator("table"),
+        ).toHaveCount(0);
+      }
+
+      type Box = { x: number; y: number; width: number; height: number };
+      const boxes: {
+        pager: Box;
+        line: Box;
+        summary: Box;
+        card: Box;
+        icon: Box;
+      } = await page.evaluate(
+        (): {
+          pager: Box;
+          line: Box;
+          summary: Box;
+          card: Box;
+          icon: Box;
+        } => {
+          const boxOf: (element: Element) => Box = (element: Element): Box => {
+            const rect: DOMRect = element.getBoundingClientRect();
+            return {
+              x: rect.x,
+              y: rect.y,
+              width: rect.width,
+              height: rect.height,
+            };
+          };
+          const card: Element = document.querySelector(
+            '[data-testid="kubernetes-events-view"]',
+          )!;
+          const summary: Element = card.querySelector(
+            '[data-testid="pagination-summary"]',
+          )!;
+          const line: Element = document.querySelector(
+            '[data-testid="kubernetes-warning-alerts"]',
+          )!;
+
+          return {
+            pager: boxOf(summary.closest("nav")!),
+            line: boxOf(line),
+            summary: boxOf(summary),
+            card: boxOf(card),
+            icon: boxOf(line.querySelector("svg")!),
+          };
+        },
+      );
 
       // Right under the pager, never over its Rows per page.
       expect(
-        Math.abs(lineBox!.y - (pagerBox!.y + pagerBox!.height)),
+        Math.abs(boxes.line.y - (boxes.pager.y + boxes.pager.height)),
       ).toBeLessThanOrEqual(1);
       // Across the card, as the pager is; its words where the pager's start.
-      expect(Math.abs(lineBox!.x - pagerBox!.x)).toBeLessThanOrEqual(1);
-      expect(Math.abs(lineBox!.width - pagerBox!.width)).toBeLessThanOrEqual(1);
-      const icon: { x: number } | null = await line
-        .locator("svg")
-        .first()
-        .boundingBox();
-      expect(Math.abs(icon!.x - summaryBox!.x)).toBeLessThanOrEqual(1);
+      expect(Math.abs(boxes.line.x - boxes.pager.x)).toBeLessThanOrEqual(1);
+      expect(
+        Math.abs(boxes.line.width - boxes.pager.width),
+      ).toBeLessThanOrEqual(1);
+      expect(Math.abs(boxes.icon.x - boxes.summary.x)).toBeLessThanOrEqual(1);
       // The card's end.
       expect(
-        cardBox!.y + cardBox!.height - (lineBox!.y + lineBox!.height),
+        boxes.card.y + boxes.card.height - (boxes.line.y + boxes.line.height),
       ).toBeLessThanOrEqual(2);
 
       const look: {

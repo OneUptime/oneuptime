@@ -39,6 +39,8 @@ La plupart des messages peuvent prendre en compte l'alerte : les e-mails, les SM
 
 Un épisode vous alerte par ses propres politiques d'astreinte, indépendamment des incidents ou des alertes qu'il contient, c'est pourquoi ses règles ont leur propre onglet. L'adresse de la page nomme l'onglet ouvert, par exemple `/dashboard/{projectId}/user-settings/on-call-rules?type=alerts` ; les autres valeurs sont `incident-episodes` et `alert-episodes`, et sans `type` la page s'ouvre sur **Incidents**.
 
+Une gravité que votre projet a archivée vient après les autres, marquée **Archivé**, tant que vous avez des règles pour elle : les incidents et les alertes qui l'ont encore vous préviennent selon ces règles. Vous pouvez les modifier ou les supprimer, mais pas en ajouter de nouvelles.
+
 ## Les règles de départ
 
 Chaque méthode que vous vérifiez reçoit une règle sur chaque carte de chaque onglet, envoyée dès que vous êtes alerté. Votre e-mail de connexion les a depuis le jour de votre arrivée, pour qu'une alerte vous joigne toujours. Vérifiez un numéro de téléphone pour les SMS, et chaque alerte vous envoie aussi un SMS.

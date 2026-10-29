@@ -139,7 +139,7 @@ const PAGE_PROPS: PageComponentProps = {
 };
 
 const EDIT_REFUSED: string =
-  "Changing this workflow takes permission to edit it. You need one of these permissions: Project Owner, Project Admin, Edit Workflow, Workflow Admin.";
+  "Changing this workflow takes permission to edit it. You need this permission: Edit Workflow.";
 
 // Roles that open a workflow and may not change it.
 const MAY_NOT_CHANGE: Array<Permission> = [

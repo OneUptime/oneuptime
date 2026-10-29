@@ -33,23 +33,31 @@ Chaque minute, OneUptime compte les exceptions qui correspondent aux filtres du 
 :::steps
 ### Commencer un nouveau moniteur
 
-Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**.
+Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Ou bien, sur la page d'une exception, cliquez sur **Créer un moniteur** à côté de **Résoudre** : le nouveau moniteur surveille d'emblée le type de cette exception dans son service, et alerte quand elle se reproduit.
 
 ### Choisir Exceptions
 
 Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisissez **Exceptions** sous **Télémétrie**, ou tapez `exceptions` dans le champ de recherche. Saisissez un **Nom**, puis cliquez sur **Suivant**.
 
+### Choisir ce dont le moniteur vous informe
+
+Sous **De quoi ce moniteur doit-il vous informer ?**, choisissez **Toute exception** ou **Trop d'exceptions**. Chaque choix remplit la règle, que vous pouvez modifier plus bas. Choisissez **Autre chose** pour la configurer vous-même.
+
 ### Choisir les exceptions à compter
 
-Dans **Configuration du moniteur d'exceptions**, renseignez **Filtrer le message d'exception**, **Types d'exception**, **Environnements** et **Surveiller les exceptions pendant (durée)**. Un filtre laissé vide correspond à toutes les exceptions. **Aperçu des exceptions**, sous les filtres, montre les exceptions qu'ils sélectionnent en ce moment.
+Dans **Exceptions à surveiller**, renseignez **Le message contient**, **Types d'exception** et **Environnements**. Un filtre laissé vide correspond à toutes les exceptions. **Exceptions correspondantes**, sous les filtres, montre les exceptions qu'ils sélectionnent en ce moment.
 
 ### Affiner (facultatif)
 
 Ouvrez **Plus de champs** pour filtrer par service de télémétrie ou entité d'infrastructure, ou pour compter aussi les exceptions résolues et archivées.
 
-### Définir les critères
+### Dire quand alerter
 
-La carte **Critères du moniteur** commence avec deux critères : hors ligne, avec un incident, quand une exception correspond ; en ligne quand aucune ne correspond. Adaptez-les à ce sur quoi vous voulez alerter – voir [Critères](#critères).
+Dans **Quand alerter**, choisissez une **Condition**, le **Nombre d'exceptions** et une **Fenêtre de temps**. La phrase en dessous redit la règle en termes simples. Le graphique sous cette phrase compte les exceptions correspondantes dans chaque fenêtre au cours des dernières heures, trace le nombre de la règle sous forme de ligne et indique combien de fois la règle aurait alerté. Son bouton propose un nombre que la règle n'aurait pas dépassé sur cette période.
+
+### Choisir ce qui se passe
+
+Dans **Ce qui se passe**, choisissez **Créer une alerte**, **Déclarer un incident** ou **Les deux**, puis donnez-lui un titre et une gravité. Tant que la règle correspond, le moniteur affiche le statut indiqué sous **Plus de champs** ; quand elle ne correspond plus, le moniteur revient à son statut par défaut et l'alerte ou l'incident se résout de lui-même.
 
 ### Créer le moniteur
 
@@ -60,10 +68,10 @@ Cliquez sur **Créer un moniteur**. Le moniteur s'ouvre sur sa page **Vue d'ense
 
 | Champ | Ce qu'il sélectionne | Par défaut |
 | --- | --- | --- |
-| **Filtrer le message d'exception** | Les exceptions dont le message contient ce texte, sans tenir compte de la casse. | Vide : toutes les exceptions |
+| **Le message contient** | Les exceptions dont le message contient ce texte, sans tenir compte de la casse. | Vide : toutes les exceptions |
 | **Types d'exception** | Les exceptions de l'un de ces types, séparés par des virgules, comme `TypeError, NullReferenceException`. Le nom du type doit correspondre exactement. | Vide : tous les types |
 | **Environnements** | Les exceptions de l'un de ces environnements, séparés par des virgules – voir [Environnements](#environnements). | Vide : tous les environnements |
-| **Surveiller les exceptions pendant (durée)** | Les exceptions des 5 dernières secondes jusqu'aux 24 dernières heures. | **Dernière minute** |
+| **Fenêtre de temps** (dans **Quand alerter**) | Les exceptions des 5 dernières secondes jusqu'aux 24 dernières heures. | **Dernières 5 minutes** |
 | **Filtrer par service de télémétrie** (sous **Plus de champs**) | Les exceptions de l'un des services choisis. | Vide : tous les services |
 | **Filtrer par entité d'infrastructure** (sous **Plus de champs**) | Les exceptions de l'un des hôtes, pods, conteneurs et autres entités choisis. | Vide : toutes les entités |
 | **Inclure les exceptions résolues** (sous **Plus de champs**) | Compter aussi les exceptions marquées comme résolues. | Désactivé |
@@ -98,7 +106,7 @@ Quand vous créez le moniteur via l'API, définissez `environments` dans le `exc
 ## Comment il est évalué
 
 - **Chaque minute.** Un moniteur d'exceptions n'est pas vérifié par des sondes ; il n'a donc pas d'intervalle à régler ni de page **Sondes et intervalle**.
-- **Des occurrences, pas des types d'exception.** Le moniteur compte chaque fois qu'une exception correspondante s'est produite dans la durée **Surveiller les exceptions pendant (durée)**. Une exception levée 40 fois compte pour 40.
+- **Des occurrences, pas des types d'exception.** Le moniteur compte chaque fois qu'une exception correspondante s'est produite dans la **Fenêtre de temps**. Une exception levée 40 fois compte pour 40.
 - **Les exceptions résolues et archivées sont écartées.** Sauf si vous activez **Inclure les exceptions résolues** ou **Inclure les exceptions archivées**, les occurrences d'une exception que vous avez marquée comme résolue ou archivée ne comptent pas. Marquer une exception comme résolue peut donc fermer l'incident qu'elle a ouvert. Quand une exception résolue se reproduit, elle repasse automatiquement en non résolue et est de nouveau comptée.
 - **Aucune exception, c'est un décompte de 0.**
 - **L'indisponibilité d'OneUptime lui-même n'est pas un silence.** Tant que la fenêtre de temps contient une période où OneUptime lui-même ne recevait pas de données – il redémarrait, était mis à jour ou rattrapait un retard –, la vérification attend : le statut ne change pas, et aucun incident ni aucune alerte n'est ouvert ni résolu. Voir [Quand OneUptime ne reçoit pas de données](/docs/monitor/when-oneuptime-is-not-receiving).
@@ -108,7 +116,7 @@ Chaque changement de statut est enregistré, avec sa raison, dans la **Chronolog
 
 ## Critères
 
-Les critères d'un moniteur d'exceptions ont un seul **Type de filtre** : **Exception Count**, le nombre d'exceptions qui ont correspondu dans la fenêtre. Choisissez une **Condition de filtre** et une **Valeur**.
+Les critères d'un moniteur d'exceptions ont un seul **Type de filtre** : **Exception Count**, le nombre d'exceptions qui ont correspondu dans la fenêtre. **Quand alerter** configure un critère, dont la **Condition** est **Plus de**, **Au moins**, **Moins de**, **Au plus** ou **Exactement**. Pour plusieurs critères, ou un critère avec plus d'un filtre, cliquez sur **Modifier en critères personnalisés** sous **Plus de champs** dans **Ce qui se passe** : chaque critère y a une **Condition de filtre** et une **Valeur**.
 
 | Condition de filtre | Correspond quand le nombre d'exceptions est… |
 | --- | --- |
@@ -121,7 +129,14 @@ Les critères d'un moniteur d'exceptions ont un seul **Type de filtre** : **Exce
 
 Les décomptes d'exceptions n'ont pas de conditions d'anomalie : il n'existe pas de référence à laquelle les comparer.
 
-Un nouveau moniteur d'exceptions commence avec ces critères :
+Un moniteur d'exceptions créé dans « Créer un moniteur » commence avec la règle correspondant à ce que vous avez choisi sous **De quoi ce moniteur doit-il vous informer ?** :
+
+| Choix | Règle | Ce qui se passe |
+| --- | --- | --- |
+| **Toute exception** | **Plus de** `0` sur **Dernières 5 minutes** | Crée une alerte, qui se résout d'elle-même |
+| **Trop d'exceptions** | **Plus de** `20` sur **Dernières 5 minutes** | Crée une alerte, qui se résout d'elle-même |
+
+Un moniteur d'exceptions créé via l'API ou Terraform sans critères commence avec ces critères :
 
 | Critère | Filtre | Effet |
 | --- | --- | --- |
@@ -130,7 +145,7 @@ Un nouveau moniteur d'exceptions commence avec ces critères :
 
 ## Exemple : seulement les exceptions de production
 
-Vous voulez un incident chaque fois que l'API lève une exception en production, et rien pour la préproduction. Vous réglez **Environnements** sur `production` et **Surveiller les exceptions pendant (durée)** sur **Dernières 5 minutes**, et gardez les critères par défaut. Sur les cinq dernières minutes :
+Vous voulez un incident chaque fois que l'API lève une exception en production, et rien pour la préproduction. Vous choisissez **Toute exception**, réglez **Environnements** sur `production`, gardez la **Fenêtre de temps** sur **Dernières 5 minutes**, et choisissez **Déclarer un incident** sous **Ce qui se passe**. Sur les cinq dernières minutes :
 
 | Exceptions | Environnement | État | Comptée ? |
 | --- | --- | --- | --- |
@@ -139,12 +154,12 @@ Vous voulez un incident chaque fois que l'API lève une exception en production,
 | `TimeoutError` × 2 | aucun | Active | Non : pas d'environnement |
 | `NullReferenceException` × 4 | `production` | Résolue après les occurrences | Non : résolue |
 
-L'**Exception Count** vaut 3, donc **Supérieur à** `0` correspond : le moniteur passe hors ligne et un incident est déclaré. Une fois cinq minutes passées sans exception de production active, le critère en ligne correspond et l'incident se résout de lui-même.
+L'**Exception Count** vaut 3, donc **Plus de** `0` correspond : le moniteur passe hors ligne et un incident est déclaré. Une fois cinq minutes passées sans exception de production active, la règle ne correspond plus, le moniteur revient à son statut par défaut et l'incident se résout de lui-même.
 
 ## Dépannage
 
 :::details Des exceptions apparaissent dans l'explorateur, mais le moniteur compte 0
-Comparez la valeur de **Environnements** au filtre `env:` de l'explorateur : la correspondance est exacte et sensible à la casse, et les exceptions sans environnement sont écartées quand le filtre est défini. Vérifiez ensuite si ces exceptions sont résolues ou archivées. Ouvrez la page **Critères** du moniteur (sous **Configuration**) et cliquez sur **Modifier les critères de surveillance** : **Aperçu des exceptions** montre ce que les filtres sélectionnent.
+Comparez la valeur de **Environnements** au filtre `env:` de l'explorateur : la correspondance est exacte et sensible à la casse, et les exceptions sans environnement sont écartées quand le filtre est défini. Vérifiez ensuite si ces exceptions sont résolues ou archivées. Ouvrez la page **Critères** du moniteur (sous **Configuration**) et cliquez sur **Modifier les critères de surveillance** : **Exceptions correspondantes** montre ce que les filtres sélectionnent.
 :::
 
 :::details L'incident s'est résolu quand j'ai résolu l'exception

@@ -105,6 +105,14 @@ const facet: (
   field: string,
   option: string,
 ): Promise<void> => {
+  // On a phone the chips are folded behind Filter (FacetFilterBar).
+  const filter: Locator = page.getByTestId("facet-filter-bar-toggle");
+  if (
+    (await filter.count()) > 0 &&
+    (await filter.getAttribute("aria-expanded")) === "false"
+  ) {
+    await filter.click();
+  }
   await page
     .getByTestId(`session-facet-${field}`)
     .getByRole("button")

@@ -84,7 +84,7 @@ const TEAMS_CHAT_NAME: string = "Ops War Room";
 const PROJECT_NAME: string = "Acme Production";
 
 const USER_MARKDOWN: string =
-  "[Alice Admin](https://oneuptime.example.com/dashboard/p1/settings/users/u1)";
+  "[Alice Admin](https://oneuptime.example.com/dashboard/p1/users/u1)";
 
 const SUCCESS_STATUS_MESSAGE: string =
   "Test notification sent from Project Settings";

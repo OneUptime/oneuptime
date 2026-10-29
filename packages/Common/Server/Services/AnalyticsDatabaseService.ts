@@ -30,6 +30,7 @@ import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
 import StatementGenerator from "../Utils/AnalyticsDatabase/StatementGenerator";
 import {
   getQuerySettings,
+  INTERACTIVE_READ_TIME_LIMIT,
   TimeoutOverflowMode,
 } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import ClickhouseReadResult from "../Utils/AnalyticsDatabase/ClickhouseReadResult";
@@ -578,6 +579,93 @@ export default class AnalyticsDatabaseService<
       return countPositive;
     } catch (error) {
       await this.onCountError(error as Exception);
+      throw this.getException(error as Exception);
+    }
+  }
+
+  /**
+   * How many rows match a query in each window of a time range: one
+   * `count()` per window of `windowInSeconds`, grouped in ClickHouse, for
+   * windows that hold at least one row (the caller fills in the empty
+   * ones). A telemetry monitor's rule preview reads it with the monitor's
+   * own query, so the counts are the ones the monitor compares.
+   *
+   * Exact and bounded: the window is a fixed length, the range is the
+   * caller's, and the read stops with an error at the interactive time
+   * limit (a QueryTimeoutException, answered as 504) rather than return a
+   * partial count that would read as quiet windows.
+   */
+  @CaptureSpan()
+  public async countPerWindow(data: {
+    query: Query<TBaseModel>;
+    timeColumnName: string;
+    windowInSeconds: number;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<{ time: Date; count: number }>> {
+    try {
+      if (!this.model.getTableColumn(data.timeColumnName)) {
+        throw new BadDataException(
+          `Invalid time column: ${data.timeColumnName}`,
+        );
+      }
+
+      if (
+        !Number.isInteger(data.windowInSeconds) ||
+        data.windowInSeconds <= 0
+      ) {
+        throw new BadDataException(
+          "windowInSeconds must be a whole number of seconds",
+        );
+      }
+
+      const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =
+        await ModelPermission.checkReadPermission(
+          this.modelType,
+          data.query,
+          null,
+          data.props,
+        );
+
+      if (!this.database) {
+        this.useDefaultDatabase();
+      }
+
+      const databaseName: string =
+        this.database.getDatasourceOptions().database!;
+
+      const statement: Statement = SQL`
+            SELECT
+                toStartOfInterval(${data.timeColumnName}, INTERVAL ${{
+                  type: TableColumnType.Number,
+                  value: data.windowInSeconds,
+                }} SECOND) AS windowStart,
+                count() AS windowCount
+            FROM ${databaseName}.${this.model.tableName}
+            WHERE TRUE `;
+
+      statement
+        .append(
+          this.statementGenerator.toWhereStatement(
+            checkReadPermissionType.query,
+          ),
+        )
+        .append(this.getRetentionReadFilter())
+        .append(" GROUP BY windowStart ORDER BY windowStart ASC")
+        .append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
+
+      const dbResult: ResultSet<"JSON"> = await this.executeQuery(statement);
+      const resultInJSON: ResponseJSON<JSONObject> =
+        await dbResult.json<JSONObject>();
+
+      return (resultInJSON.data || []).map(
+        (row: JSONObject): { time: Date; count: number } => {
+          return {
+            time: OneUptimeDate.fromString(row["windowStart"] as string),
+            count: Number(row["windowCount"] || 0),
+          };
+        },
+      );
+    } catch (error) {
       throw this.getException(error as Exception);
     }
   }

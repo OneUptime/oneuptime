@@ -722,6 +722,9 @@ const LineChart: React.ForwardRefExoticComponent<
       customTooltip,
       formattedTimeReferenceLines,
       formattedReferenceRegions,
+      referenceLines,
+      formattedExemplarPoints,
+      onExemplarClick,
       onTimeRangeSelect,
       onTimeRangeReset,
       onBucketClick,
@@ -1312,7 +1315,7 @@ const LineChart: React.ForwardRefExoticComponent<
                       );
                     })
                 : null}
-              {props.referenceLines?.map(
+              {referenceLines?.map(
                 (refLine: ChartReferenceLineProps, refIndex: number) => {
                   return (
                     <ReferenceLine
@@ -1321,6 +1324,9 @@ const LineChart: React.ForwardRefExoticComponent<
                       stroke={refLine.color}
                       strokeDasharray={refLine.strokeDasharray || "4 4"}
                       strokeWidth={1.5}
+                      {...(refLine.extendsDomain
+                        ? { ifOverflow: "extendDomain" as const }
+                        : {})}
                     >
                       {refLine.label && (
                         <Label
@@ -1343,7 +1349,7 @@ const LineChart: React.ForwardRefExoticComponent<
                */}
               {annotations.layer}
               {/* Exemplar dots - clickable markers linking to traces */}
-              {props.formattedExemplarPoints?.map(
+              {formattedExemplarPoints?.map(
                 (exemplar: FormattedExemplarPoint, exemplarIndex: number) => {
                   return (
                     <ReferenceDot
@@ -1362,7 +1368,7 @@ const LineChart: React.ForwardRefExoticComponent<
                         if (rangeSelection.isClickSuppressed()) {
                           return;
                         }
-                        props.onExemplarClick?.(exemplar.original);
+                        onExemplarClick?.(exemplar.original);
                       }}
                     >
                       <Label

@@ -14,6 +14,11 @@ import Card from "Common/UI/Components/Card/Card";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import useResizableColumns, {
+  ResizableColumns,
+} from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
+import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 
 export interface ComponentProps {
   snapshot: SnmpTableSnapshot;
@@ -56,6 +61,23 @@ const SnmpTableSnapshotCard: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const snapshot: SnmpTableSnapshot = props.snapshot;
+
+  /*
+   * The walked table's columns as wide as a person makes them (Common's
+   * Table/ColumnResize), after each row's index: one set of widths for
+   * each table a device is walked for.
+   */
+  const snapshotColumns: ResizableColumns = useResizableColumns({
+    tableKey: `snmp-table-snapshot.${snapshot.name}`,
+    columns: snapshot.columns.map(
+      (
+        column: SnmpTableSnapshotColumn,
+        index: number,
+      ): { id: string; cellNumber: number } => {
+        return { id: column.oid, cellNumber: index + 2 };
+      },
+    ),
+  });
 
   const unhealthyRowCount: number = snapshot.rows.filter(
     (row: SnmpTableSnapshotRow): boolean => {
@@ -239,7 +261,11 @@ const SnmpTableSnapshotCard: FunctionComponent<ComponentProps> = (
           )
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
+            {snapshotColumns.styles}
+            <table
+              className={`${snapshotColumns.getTableWidthClassName("min-w-full")} divide-y divide-gray-200 text-sm`}
+              {...snapshotColumns.tableAttributes}
+            >
               <thead>
                 <tr>
                   <th className="whitespace-nowrap py-2 pr-4 text-left font-medium text-gray-500">
@@ -248,7 +274,7 @@ const SnmpTableSnapshotCard: FunctionComponent<ComponentProps> = (
                   {snapshot.columns.map(
                     (column: SnmpTableSnapshotColumn): ReactElement => {
                       return (
-                        <th
+                        <ResizableHeaderCell
                           key={column.oid}
                           title={column.oid}
                           className={`py-2 pr-4 text-left font-medium text-gray-500 ${
@@ -256,9 +282,14 @@ const SnmpTableSnapshotCard: FunctionComponent<ComponentProps> = (
                               ? "min-w-[8rem]"
                               : "whitespace-nowrap"
                           }`}
+                          resize={snapshotColumns.getResize(
+                            column.oid,
+                            column.name,
+                            ColumnWidthKind.Text,
+                          )}
                         >
-                          {column.name}
-                        </th>
+                          <span>{column.name}</span>
+                        </ResizableHeaderCell>
                       );
                     },
                   )}

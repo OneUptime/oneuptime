@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { afterEach, describe, expect, test } from "@jest/globals";
 import {
   cleanup,
   fireEvent,
@@ -9,23 +9,6 @@ import {
 } from "@testing-library/react";
 import React from "react";
 import getJestMockFunction, { MockFunction } from "../../../MockType";
-
-/*
- * Nothing here reads a zod schema. The Types the sidebar imports build
- * theirs as they load, so they get a stand-in that takes any chain of calls,
- * and the suite loads whatever zod build is installed.
- */
-jest.mock("Common/Utils/Schema/Zod", () => {
-  const schema: unknown = new Proxy(() => {}, {
-    get: (_target: unknown, property: string | symbol): unknown => {
-      return property === "then" ? undefined : schema;
-    },
-    apply: (): unknown => {
-      return schema;
-    },
-  });
-  return { __esModule: true, default: schema };
-});
 
 import TelemetryFacetSidebar from "../../../../UI/Components/TelemetryViewer/components/TelemetryFacetSidebar";
 import {

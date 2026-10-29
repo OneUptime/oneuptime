@@ -65,6 +65,17 @@
  *            record from, or a case naming one record of every kind with
  *            every fact and four possible matches. (ConnectionsFixture.js
  *            lays the records out.)
+ *   ?retrohunt= quiet, noisy or fail: what Run on Past Events answers - a
+ *            rule that would not have fired, one that would have fired more
+ *            than a person can look at, or YAML the run refuses.
+ *            (RuleExceptionsFixture.js lays the rules' exceptions out.)
+ *   Watchlists are laid out by WatchlistsFixture.js: four lists, one
+ *            following a feed and one with no values yet, a rule (off) that
+ *            reads two of them, and Import Values' answers.
+ *   ?targets= on: the priorities carry a new project's response targets,
+ *            and every case the due times they gave it. Left out, a project
+ *            from before response targets. (CaseWorkFixture.js lays the
+ *            targets, and the spray case's tasks and evidence, out.)
  *
  * Every read is recorded on window.__securityOperationsFixture: getItem,
  * list, count and API requests, the writes, and `unhandled` - anything the
@@ -94,12 +105,17 @@ import SecurityCaseStoryPage from "../../../App/FeatureSet/Dashboard/src/Pages/S
 import SecurityCaseDetectionsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Detections";
 import SecurityCaseEntitiesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Entities";
 import SecurityCaseConnectedSignalsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/ConnectedSignals";
+import SecurityCaseEvidencePage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Evidence";
+import SecurityCaseTasksPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Tasks";
 import SecurityCasePlaybookRunsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/PlaybookRuns";
 import SecurityCaseNotesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Notes";
 import SecurityCaseAuditLogsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/AuditLogs";
 import SecurityCaseDeletePage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Delete";
 import RuleLibraryPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/RuleLibrary";
 import DetectionRulesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/DetectionRules";
+import SecurityRuleExceptionsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/RuleExceptions";
+import SecurityWatchlistsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Watchlists";
+import SecurityWatchlistViewPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/WatchlistView";
 import ThreatIntelPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/ThreatIntel";
 import AttackCoveragePage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/AttackCoverage";
 import SecurityPlaybooksPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Playbooks";
@@ -109,6 +125,7 @@ import SecurityProtectedEntitiesPage from "../../../App/FeatureSet/Dashboard/src
 import SecurityEventsAISettingsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/AISettings";
 import SecurityCasePrioritiesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Settings/CasePriorities";
 import SecurityCaseStatusesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Settings/CaseStatuses";
+import SecurityResponseTargetsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Settings/ResponseTargets";
 import SecurityEntityRiskPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/EntityRisk";
 import SecurityEntityRiskViewPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/EntityRiskView";
 import SecurityRiskScoringPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Settings/RiskScoring";
@@ -126,6 +143,15 @@ import {
   createConnectionsFixture,
 } from "./ConnectionsFixture";
 import { createCaseContextFixture } from "./CaseContextFixture";
+import { TARGET_SCENARIOS, createCaseWorkFixture } from "./CaseWorkFixture";
+import { createWatchlistsFixture } from "./WatchlistsFixture";
+import SecurityCaseEvidence from "Common/Models/DatabaseModels/SecurityCaseEvidence";
+import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
+import {
+  RETROHUNT_SCENARIOS,
+  createRuleExceptionsFixture,
+} from "./RuleExceptionsFixture";
+import DetectionRuleException from "Common/Models/DatabaseModels/DetectionRuleException";
 import { SECURITY_PLAYBOOK_TEMPLATES } from "../../../App/FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookTemplates";
 import { SECURITY_CASE_QUEUE_VIEWS } from "../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseQueueViews";
 import { SECURITY_PLAYBOOK_RUN_VIEWS } from "../../../App/FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookRunViews";
@@ -320,6 +346,14 @@ const SETUP_SCENARIOS = ["partly", "fail"];
 const setupScenario = SETUP_SCENARIOS.includes(params.get("setup"))
   ? params.get("setup")
   : "";
+// ?retrohunt=: RuleExceptionsFixture.js's answers to Run on Past Events.
+// ?targets=: CaseWorkFixture.js's response targets.
+const targetScenario = TARGET_SCENARIOS.includes(params.get("targets"))
+  ? params.get("targets")
+  : null;
+const retrohuntScenario = RETROHUNT_SCENARIOS.includes(params.get("retrohunt"))
+  ? params.get("retrohunt")
+  : "";
 /*
  * ?sources=silent: the project's sources sent their last security event
  * three days ago and nothing since - a connection that stopped, as the
@@ -488,6 +522,11 @@ const ID = {
   connection: (n) => uuid("27000000", n),
   intel: (n) => uuid("28000000", n),
   protectedEntity: (n) => uuid("2b000000", n),
+  exception: (n) => uuid("2c000000", n),
+  task: (n) => uuid("2d000000", n),
+  evidence: (n) => uuid("2e000000", n),
+  watchlist: (n) => uuid("2f000000", n),
+  watchlistValue: (n) => uuid("3a000000", n),
 };
 
 let rowCounter = 9000;
@@ -2013,6 +2052,24 @@ if (!isEmpty) {
 
 /*
  * ---------------------------------------------------------------------------
+ * What the rules skip, and what Run on Past Events answers
+ * (RuleExceptionsFixture.js lays both out)
+ * ---------------------------------------------------------------------------
+ */
+const ruleExceptions = createRuleExceptionsFixture({
+  insert,
+  table,
+  ID,
+  ago,
+  now: NOW,
+  people,
+  isEmpty,
+  scenario: retrohuntScenario,
+});
+ruleExceptions.seed();
+
+/*
+ * ---------------------------------------------------------------------------
  * Threat intel: one free list added from Free Lists (its tile says Added)
  * and the team's own TAXII collection, with the indicators they hold.
  * ---------------------------------------------------------------------------
@@ -2085,6 +2142,22 @@ if (hasEveryFreeList) {
     });
   });
 }
+
+/*
+ * ---------------------------------------------------------------------------
+ * Watchlists: the lists the rules read, one of them following the Feodo
+ * Tracker list above (WatchlistsFixture.js lays them out)
+ * ---------------------------------------------------------------------------
+ */
+const watchlists = createWatchlistsFixture({
+  insert,
+  table,
+  ID,
+  ago,
+  people,
+  isEmpty,
+});
+watchlists.seed();
 
 /*
  * The indicators the feeds hold, as the ThreatIntelIndicator table lists
@@ -2198,6 +2271,7 @@ for (const modelType of [
   // The other signals Connections watches: none yet in this project.
   SecurityTelemetrySource,
   DetectionRule,
+  DetectionRuleException,
   ThreatIntelFeed,
   SecurityProtectedEntity,
   Team,
@@ -2797,6 +2871,15 @@ function withRelations(modelName, record) {
       ),
     };
   }
+  if (modelName === tableName(DetectionRuleException)) {
+    return ruleExceptions.withRelations(record);
+  }
+  if (watchlists.isWatchlistTable(modelName)) {
+    return watchlists.withRelations(modelName, record);
+  }
+  if (caseWork.isCaseWorkTable(modelName)) {
+    return caseWork.withRelations(modelName, record);
+  }
   return record;
 }
 
@@ -2888,6 +2971,7 @@ ModelAPI.updateById = async (options) => {
   }
   if (record) {
     Object.assign(record, options.data);
+    caseWork.onUpdate(modelName, record, serialize(options.data));
   }
   return new HTTPResponse(200, {}, {});
 };
@@ -2921,7 +3005,19 @@ ModelAPI.createOrUpdate = async (options) => {
     projectId: projectObjectId,
     createdAt: NOW,
   };
+  /*
+   * An exception's rule, by its id column, as the server stores the
+   * relation the form's dropdown sends; and who added it, the reader.
+   */
+  if (modelName === tableName(DetectionRuleException)) {
+    record.detectionRuleId =
+      record.detectionRuleId || record.detectionRule?._id?.toString();
+    record.createdByUserId = people.maya._id;
+  }
+  caseWork.onCreate(modelName, record);
+  watchlists.onCreate(modelName, record);
   tables.get(modelName)?.records.push(record);
+  watchlists.afterWrite(modelName);
   return new HTTPResponse(
     200,
     BaseModel.toJSON(make(options.modelType, record), options.modelType),
@@ -2962,7 +3058,11 @@ ModelAPI.create = async (options) => {
 ModelAPI.deleteItem = async (options) => {
   const modelName = tableName(options.modelType);
   fixture.deletes.push({ modelName, id: options.id?.toString() });
-  if (isEntityRiskTable(options.modelType)) {
+  if (
+    isEntityRiskTable(options.modelType) ||
+    caseWork.isCaseWorkTable(modelName) ||
+    watchlists.isWatchlistTable(modelName)
+  ) {
     const records = table(options.modelType);
     const index = records.findIndex((item) => {
       return String(item._id) === options.id?.toString();
@@ -2970,6 +3070,7 @@ ModelAPI.deleteItem = async (options) => {
     if (index >= 0) {
       records.splice(index, 1);
     }
+    watchlists.afterWrite(modelName);
   }
 };
 
@@ -3428,6 +3529,31 @@ const connections = createConnectionsFixture({
 });
 
 /*
+ * ---------------------------------------------------------------------------
+ * A case's response targets, and the spray case's tasks and evidence
+ * (CaseWorkFixture.js lays them out). After every case is in: the targets
+ * give each one its due times.
+ * ---------------------------------------------------------------------------
+ */
+table(SecurityCaseTask);
+table(SecurityCaseEvidence);
+const caseWork = createCaseWorkFixture({
+  insert,
+  table,
+  ID,
+  ago,
+  now: NOW,
+  people,
+  isEmpty,
+  hasHistory,
+  scenario: targetScenario,
+});
+caseWork.seed();
+caseWork.seedTargets();
+fixture.ids.tasks = [ID.task(1), ID.task(2), ID.task(3)];
+fixture.ids.evidence = [ID.evidence(1), ID.evidence(2)];
+
+/*
  * A case's Story and Impact: what the rest of OneUptime says happened
  * around it and what it puts at risk, from the same rows and records
  * (CaseContextFixture.js lays out what it adds to them).
@@ -3503,6 +3629,18 @@ async function handleApi(method, options) {
   }
   if (method === "POST" && path.endsWith("/detection-rule/draft-with-ai")) {
     return draftRule(options.data);
+  }
+  if (method === "POST" && path.endsWith("/security-watchlist/import")) {
+    const answer = watchlists.importValues(options.data);
+    return answer.status === 200
+      ? new HTTPResponse(200, answer.body, {})
+      : new HTTPErrorResponse(answer.status, answer.body, {});
+  }
+  if (method === "POST" && path.endsWith("/detection-rule/retrohunt")) {
+    const answer = ruleExceptions.retrohunt(options.data);
+    return answer.status === 200
+      ? new HTTPResponse(200, answer.body, {})
+      : new HTTPErrorResponse(answer.status, answer.body, {});
   }
   if (method === "POST" && path.endsWith("/ai-chat/providers")) {
     return new HTTPResponse(200, AI_PROVIDERS, {});
@@ -3629,6 +3767,9 @@ const PAGES = [
   [PageMap.SECURITY_EVENTS_ENTITY_RISK, SecurityEntityRiskPage],
   [PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW, SecurityEntityRiskViewPage],
   [PageMap.SECURITY_EVENTS_DETECTION_RULES, DetectionRulesPage],
+  [PageMap.SECURITY_EVENTS_RULE_EXCEPTIONS, SecurityRuleExceptionsPage],
+  [PageMap.SECURITY_EVENTS_WATCHLISTS, SecurityWatchlistsPage],
+  [PageMap.SECURITY_EVENTS_WATCHLIST_VIEW, SecurityWatchlistViewPage],
   [PageMap.SECURITY_EVENTS_RULE_LIBRARY, RuleLibraryPage],
   [PageMap.SECURITY_EVENTS_THREAT_INTEL, ThreatIntelPage],
   [PageMap.SECURITY_EVENTS_ATTACK_COVERAGE, AttackCoveragePage],
@@ -3643,6 +3784,10 @@ const PAGES = [
     SecurityCasePrioritiesPage,
   ],
   [PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES, SecurityCaseStatusesPage],
+  [
+    PageMap.SECURITY_EVENTS_SETTINGS_RESPONSE_TARGETS,
+    SecurityResponseTargetsPage,
+  ],
   [PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING, SecurityRiskScoringPage],
 ];
 const STUB_PAGES = [
@@ -3671,6 +3816,8 @@ const CASE_PAGES = [
     PageMap.SECURITY_CASE_VIEW_CONNECTED_SIGNALS,
     SecurityCaseConnectedSignalsPage,
   ],
+  [PageMap.SECURITY_CASE_VIEW_EVIDENCE, SecurityCaseEvidencePage],
+  [PageMap.SECURITY_CASE_VIEW_TASKS, SecurityCaseTasksPage],
   [PageMap.SECURITY_CASE_VIEW_PLAYBOOK_RUNS, SecurityCasePlaybookRunsPage],
   [PageMap.SECURITY_CASE_VIEW_NOTES, SecurityCaseNotesPage],
   [PageMap.SECURITY_CASE_VIEW_AUDIT_LOGS, SecurityCaseAuditLogsPage],
@@ -3786,8 +3933,16 @@ function FixtureApp() {
   );
 }
 
+/*
+ * The router updates as the Dashboard's does (src/Index.tsx): synchronously,
+ * not in a React transition, which React Router 7 uses by default. A
+ * transition renders in slices other updates may interrupt, while the side
+ * menu reads the location Navigation keeps, written while rendering. With
+ * the CPU slowed 4x, a case's side menu lit the page being left beside the
+ * page arrived at in 11 of 20 runs; updated synchronously, in none.
+ */
 createRoot(document.getElementById("root")).render(
-  <BrowserRouter>
+  <BrowserRouter useTransitions={false}>
     <FixtureApp />
   </BrowserRouter>,
 );

@@ -37,6 +37,7 @@ const SavedViewsShowMoreButton: FunctionComponent<
         props.className ||
         "mt-1 px-1 text-[11px] font-medium text-indigo-500 hover:text-indigo-600"
       }
+      aria-expanded={props.isShowingAll}
       onClick={props.onToggle}
     >
       {props.isShowingAll

@@ -6,8 +6,29 @@ import SigmaRule, {
   SigmaFieldRequirement,
   SigmaSelection,
 } from "../../../../Types/SecurityEvent/SigmaRule";
+import {
+  SigmaWatchlist,
+  SigmaWatchlists,
+  getMissingSecurityWatchlistsMessage,
+  readSecurityWatchlistPlaceholder,
+} from "../../../../Types/SecurityEvent/SecurityWatchlist";
 import SigmaRuleParser from "../../../../Utils/SecurityEvent/Sigma/SigmaRuleParser";
+import {
+  getSigmaWatchlistKey,
+  isSigmaWatchlistRequirement,
+} from "../../../../Utils/SecurityEvent/Sigma/SigmaWatchlists";
 import { SQL, Statement } from "../../AnalyticsDatabase/Statement";
+import { buildIpInRangeExpression } from "../SecurityValueMatch";
+import {
+  buildWatchlistArrayMatch,
+  buildWatchlistTextMatch,
+} from "../Watchlists/SecurityWatchlistMatch";
+
+/*
+ * Where the address-range check lives now (SecurityValueMatch, shared with
+ * rule exceptions and watchlists), still importable from here.
+ */
+export { buildIpInRangeExpression };
 
 /*
  * Sigma rule -> ClickHouse boolean expression over the SecurityEvent
@@ -299,13 +320,23 @@ export default class SigmaClickhouseCompiler {
     return this.compile(SigmaRuleParser.parse(ruleYaml));
   }
 
+  /*
+   * A rule that reads watchlists (`field|expand: '%vip_users%'`) compiles
+   * only with them bound (SigmaRule.watchlists, bindSigmaWatchlists): the
+   * project holds the lists, and the server reads them first.
+   */
   public static compile(rule: SigmaRule): Statement {
-    return this.compileConditionNode(rule.condition, rule.selections);
+    return this.compileConditionNode(
+      rule.condition,
+      rule.selections,
+      rule.watchlists || {},
+    );
   }
 
   private static compileConditionNode(
     node: SigmaConditionNode,
     selections: Array<SigmaSelection>,
+    watchlists: SigmaWatchlists,
   ): Statement {
     switch (node.kind) {
       case "selection": {
@@ -321,13 +352,13 @@ export default class SigmaClickhouseCompiler {
           );
         }
 
-        return group(this.compileSelection(selection));
+        return group(this.compileSelection(selection, watchlists));
       }
 
       case "and": {
         return joinStatements(
           node.children.map((child: SigmaConditionNode): Statement => {
-            return this.compileConditionNode(child, selections);
+            return this.compileConditionNode(child, selections, watchlists);
           }),
           " AND ",
         );
@@ -336,7 +367,7 @@ export default class SigmaClickhouseCompiler {
       case "or": {
         return joinStatements(
           node.children.map((child: SigmaConditionNode): Statement => {
-            return this.compileConditionNode(child, selections);
+            return this.compileConditionNode(child, selections, watchlists);
           }),
           " OR ",
         );
@@ -345,7 +376,7 @@ export default class SigmaClickhouseCompiler {
       case "not": {
         const statement: Statement = SQL`NOT `;
         statement.append(
-          group(this.compileConditionNode(node.child, selections)),
+          group(this.compileConditionNode(node.child, selections, watchlists)),
         );
         return statement;
       }
@@ -363,6 +394,7 @@ export default class SigmaClickhouseCompiler {
             return this.compileConditionNode(
               { kind: "selection", name },
               selections,
+              watchlists,
             );
           },
         );
@@ -405,7 +437,10 @@ export default class SigmaClickhouseCompiler {
     }
   }
 
-  private static compileSelection(selection: SigmaSelection): Statement {
+  private static compileSelection(
+    selection: SigmaSelection,
+    watchlists: SigmaWatchlists,
+  ): Statement {
     if (selection.keywords.length > 0) {
       // Keywords match the event message, OR semantics.
       return joinStatements(
@@ -426,7 +461,7 @@ export default class SigmaClickhouseCompiler {
           return joinStatements(
             requirements.map(
               (requirement: SigmaFieldRequirement): Statement => {
-                return this.compileRequirement(requirement);
+                return this.compileRequirement(requirement, watchlists);
               },
             ),
             " AND ",
@@ -439,8 +474,20 @@ export default class SigmaClickhouseCompiler {
 
   private static compileRequirement(
     requirement: SigmaFieldRequirement,
+    watchlists: SigmaWatchlists,
   ): Statement {
     const resolved: ResolvedField = resolveSigmaField(requirement.field);
+
+    if (isSigmaWatchlistRequirement(requirement)) {
+      // On any of the lists named: `field|expand: ['%a%', '%b%']`.
+      return joinStatements(
+        requirement.values.map((value: JSONValue): Statement => {
+          return this.compileWatchlistValue(resolved, value, watchlists);
+        }),
+        " OR ",
+      );
+    }
+
     const isAll: boolean = requirement.modifiers.includes("all");
 
     let values: Array<JSONValue> = requirement.values;
@@ -468,6 +515,40 @@ export default class SigmaClickhouseCompiler {
     );
 
     return joinStatements(parts, isAll ? " AND " : " OR ");
+  }
+
+  /*
+   * `field|expand: '%vip_users%'`: the field is on the watchlist. The
+   * parser has already held the value to a list's name; the list must be
+   * bound, or the rule names one the project does not have.
+   */
+  private static compileWatchlistValue(
+    resolved: ResolvedField,
+    value: JSONValue,
+    watchlists: SigmaWatchlists,
+  ): Statement {
+    const key: string | null = getSigmaWatchlistKey(value);
+    const watchlist: SigmaWatchlist | undefined =
+      key && Object.prototype.hasOwnProperty.call(watchlists, key)
+        ? watchlists[key]
+        : undefined;
+
+    if (!watchlist) {
+      throw new BadDataException(
+        getMissingSecurityWatchlistsMessage([
+          readSecurityWatchlistPlaceholder(value) || String(value),
+        ]),
+      );
+    }
+
+    if (resolved.kind === "arrayColumn") {
+      return buildWatchlistArrayMatch(resolved.column, watchlist);
+    }
+
+    return buildWatchlistTextMatch(
+      this.asStringExpression(resolved, this.fieldExpression(resolved)),
+      watchlist,
+    );
   }
 
   private static fieldExpression(resolved: ResolvedField): Statement {
@@ -541,14 +622,16 @@ export default class SigmaClickhouseCompiler {
       return statement;
     }
 
-    // CIDR matching on IP-carrying fields.
+    /*
+     * CIDR matching on IP-carrying fields: an event whose field holds no
+     * address (most events hold '' in one IP field or the other) does not
+     * match, rather than failing the rule's whole read.
+     */
     if (modifiers.includes("cidr")) {
-      const statement: Statement = SQL`isIPAddressInRange(`;
-      statement.append(this.asStringExpression(resolved, fieldExpr));
-      statement.append(", ");
-      statement.append(textParam(String(value)));
-      statement.append(")");
-      return statement;
+      return buildIpInRangeExpression(
+        this.asStringExpression(resolved, fieldExpr),
+        String(value),
+      );
     }
 
     // Numeric comparisons.

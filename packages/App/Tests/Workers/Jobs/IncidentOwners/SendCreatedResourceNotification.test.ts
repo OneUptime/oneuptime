@@ -480,6 +480,53 @@ describe("IncidentOwner:SendCreatedResourceEmail worker", () => {
     );
   });
 
+  test("the feed says the incident's own owners were notified", async () => {
+    incidentService.findAllBy.mockResolvedValue([makeIncident({})]);
+    incidentService.findOwners.mockResolvedValue([makeOwner("user-1")]);
+
+    await runWorkerTick();
+
+    expect(
+      (
+        feedService.createIncidentFeedItem.mock.calls[0]![0] as {
+          feedInfoInMarkdown: string;
+        }
+      ).feedInfoInMarkdown,
+    ).toBe("Owners were notified that this incident was created.");
+  });
+
+  /*
+   * A new project's first incident has no owners: its creator, a project
+   * owner, is emailed instead - and the feed says who, beside an Owners
+   * field that reads "Add".
+   */
+  test("an incident nobody owns says the project's owners were notified in their place", async () => {
+    incidentService.findAllBy.mockResolvedValue([makeIncident({})]);
+    incidentService.findOwners.mockResolvedValue([]);
+    projectService.getOwners.mockResolvedValue([makeOwner("user-2")]);
+
+    await runWorkerTick();
+
+    expect(notificationService.sendUserNotification).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        feedService.createIncidentFeedItem.mock.calls[0]![0] as {
+          feedInfoInMarkdown: string;
+          moreInformationInMarkdown: string;
+        }
+      ).feedInfoInMarkdown,
+    ).toBe(
+      "The project's owners were notified that this incident was created, as it has no owners yet.",
+    );
+    expect(
+      (
+        feedService.createIncidentFeedItem.mock.calls[0]![0] as {
+          moreInformationInMarkdown: string;
+        }
+      ).moreInformationInMarkdown,
+    ).toBe("- Owner user-2 (user-2@acme.test)\n");
+  });
+
   test("an incident with no owners at all converts NOTHING - but is still marked owner-notified", async () => {
     incidentService.findAllBy.mockResolvedValue([
       makeIncident({

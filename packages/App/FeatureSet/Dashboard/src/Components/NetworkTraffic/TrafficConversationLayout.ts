@@ -13,6 +13,9 @@ import { NetworkTrafficConversationRow } from "Common/Types/NetFlow/NetworkTraff
  * An address that both sends and receives is on both sides - once as a
  * sender, once as a receiver - as the table under the diagram reads.
  *
+ * When any address has a name (issue #5340) every label has two lines - the
+ * name, and the address under it - so every slot is tall enough for two.
+ *
  * Plain geometry, free of React, so App/Tests can read it.
  */
 
@@ -24,6 +27,8 @@ export const BAR_WIDTH: number = 10;
 export const BARS_HEIGHT: number = 260;
 // A node's slot is never shorter than this: room for its label.
 export const MIN_SLOT_HEIGHT: number = 22;
+// ...or this, when labels have two lines: a name, and the address under it.
+export const TWO_LINE_MIN_SLOT_HEIGHT: number = 34;
 export const SLOT_GAP: number = 6;
 // A sliver of traffic still draws something you can point at.
 export const MIN_BAR_HEIGHT: number = 2;
@@ -91,9 +96,19 @@ function round(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
+export interface ConversationDiagramOptions {
+  // Labels of two lines (a name over its address): taller slots.
+  hasTwoLineLabels?: boolean | undefined;
+}
+
 export function layoutConversationDiagram(
   conversations: Array<NetworkTrafficConversationRow>,
+  options: ConversationDiagramOptions = {},
 ): ConversationDiagramLayout {
+  const minSlotHeight: number = options.hasTwoLineLabels
+    ? TWO_LINE_MIN_SLOT_HEIGHT
+    : MIN_SLOT_HEIGHT;
+
   const flowing: Array<NetworkTrafficConversationRow> = conversations.filter(
     (conversation: NetworkTrafficConversationRow): boolean => {
       return conversation.octets > 0;
@@ -128,7 +143,7 @@ export function layoutConversationDiagram(
 
     for (const node of totals) {
       const barHeight: number = Math.max(MIN_BAR_HEIGHT, node.octets * scale);
-      const slotHeight: number = Math.max(MIN_SLOT_HEIGHT, barHeight);
+      const slotHeight: number = Math.max(minSlotHeight, barHeight);
       // The bar sits in the middle of its slot.
       const barTop: number = y + (slotHeight - barHeight) / 2;
 

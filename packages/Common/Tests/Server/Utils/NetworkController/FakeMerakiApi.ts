@@ -88,12 +88,30 @@ export interface FakeMerakiAppliance {
   }>;
 }
 
+/*
+ * A device of any other product type - a switch, an access point, a camera
+ * - as the organization's device list answers it. It carries no uplinks.
+ */
+export interface FakeMerakiDevice {
+  serial: string;
+  name: string;
+  model: string;
+  mac: string;
+  networkId: string;
+  productType: string;
+  lanIp?: string | null | undefined;
+  firmware?: string | undefined;
+  address?: string | undefined;
+}
+
 export interface FakeMerakiOrganization {
   id: string;
   name: string;
   isApiEnabled?: boolean | undefined;
   networks: Array<FakeMerakiNetwork>;
   appliances: Array<FakeMerakiAppliance>;
+  // Its other devices: switches, access points and the rest.
+  devices?: Array<FakeMerakiDevice> | undefined;
 }
 
 export interface FakeMerakiResponse {
@@ -298,13 +316,14 @@ export function createFakeMerakiApi(options: FakeMerakiOptions): FakeMerakiApi {
       if (rest.length === 3 && rest[2] === "devices") {
         const types: Array<string> = url.searchParams.getAll("productTypes[]");
 
-        return page({
-          url,
-          items: organization.appliances
-            .filter((): boolean => {
-              return types.length === 0 || types.includes("appliance");
-            })
-            .map((appliance: FakeMerakiAppliance): JSONObject => {
+        /*
+         * Every device of the organization, appliances first, filtered by
+         * productTypes[] when it is given. An MX has no LAN address in the
+         * list (Meraki reports its WAN addresses elsewhere).
+         */
+        const items: Array<JSONObject> = [
+          ...organization.appliances.map(
+            (appliance: FakeMerakiAppliance): JSONObject => {
               return {
                 name: appliance.name,
                 serial: appliance.serial,
@@ -313,8 +332,37 @@ export function createFakeMerakiApi(options: FakeMerakiOptions): FakeMerakiApi {
                 networkId: appliance.networkId,
                 productType: "appliance",
                 firmware: "wired-18-211",
+                lanIp: null,
               };
-            }),
+            },
+          ),
+          ...(organization.devices || []).map(
+            (device: FakeMerakiDevice): JSONObject => {
+              return {
+                name: device.name,
+                serial: device.serial,
+                model: device.model,
+                mac: device.mac,
+                networkId: device.networkId,
+                productType: device.productType,
+                firmware: device.firmware || "switch-16-7",
+                lanIp: device.lanIp === undefined ? null : device.lanIp,
+                address: device.address || "",
+                lat: 37.4180951010362,
+                lng: -122.098531723022,
+                tags: [],
+              };
+            },
+          ),
+        ].filter((item: JSONObject): boolean => {
+          return (
+            types.length === 0 || types.includes(String(item["productType"]))
+          );
+        });
+
+        return page({
+          url,
+          items,
           maxPerPage: options.maxPerPage,
         });
       }

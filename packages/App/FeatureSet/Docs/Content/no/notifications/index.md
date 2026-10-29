@@ -75,6 +75,8 @@ Hver metode du verifiserer senere, får de samme reglene: en regel for hver alvo
 | **Staying informed** | Du får vite når en vakt starter, og bak hver kanal du har slått på i **Varselinnstillinger**, står en verifisert metode |
 | **Nice to have** | Et nummer for innkommende anrop, Slack- og Microsoft Teams-kontoene dine, en kalenderlenke og profilfeltene dine |
 
+**Staying informed** nevner bare push for en oppdatering som ikke når deg på noen annen måte: hver oppdatering et nytt medlem får via push, kommer også på e-post.
+
 **Nice to have** teller ikke med i fremdriftslinjen, og det gjør heller ikke et steg som bare noen andre kan fikse. Linjen øverst oppsummerer:
 
 | Overskrift | Hva den betyr |

@@ -68,7 +68,7 @@ Nätverk-menyn håller det du öppnar varje dag synligt: **Översikt**, **Enhete
 | --- | --- |
 | **Topologi** | **Device Topology**, **Slutpunkter**, **Latency Matrix**, **Site Links**, **Device Links** |
 | **Regler** | **Auto Import Rules**, **Site Assignment Rules**, **Ägarregler**, **Etikettregler**, **Link Rules** |
-| **Inställningar** | **Alert Policies**, **SNMP-autentiseringsuppgifter**, **Device Roles**, **Site Types**, **OID Collection Templates** |
+| **Inställningar** | **Alert Policies**, **SNMP-autentiseringsuppgifter**, **Device Roles**, **Site Types**, **Adressnamn**, **OID Collection Templates** |
 | **Avancerad** | **Archived Devices** |
 
 ## Lägg till en nätverksenhet
@@ -514,6 +514,10 @@ En enhet med bara ping behåller det namn och den adress som du, eller en discov
 
 De sparas bredvid enhetens egna fält, skrivs aldrig in i dem, och varje skanning, router-walk eller pollning som läser något av dem igen uppdaterar det. Enhetens översikt och dess objekt i inventariet visar vilken skanning, router eller sond som läste varje värde, och när. Ett värde som du har sparat på enheten ersätts aldrig. När en skanning hittar en annan maskin på enhetens adress, till exempel ett DHCP-lån som har flyttat, säger översikten det, och inget av det som den skanningen läste där används.
 
+En Meraki-switch, en Meraki-åtkomstpunkt eller en Meraki-appliance ger varken serienummer, modell eller firmware över SNMP: Meraki implementerar ingen ENTITY-MIB. När en [Meraki-anslutning](/docs/monitor/network-traffic#cisco-meraki-utan-netflow) läser dess organisation hämtar enheten dem, och allt annat som dess pollning lämnar tomt, från Meraki-dashboarden, och dess kort **Inventarie** nämner anslutningen på en rad **Meraki**.
+
+För att läsa en enhet igen nu trycker du på **Uppdatera** på dess kort **Inventarie**. Dess sond pollar den inom en minut, och dess Meraki-anslutning läser organisationen igen. Kortet säger när den nya avläsningen har kommit in, eller att sonden inte kunde nå enheten. **Uppdatera** finns för den som får redigera nätverksenheter, på en enhet som en sond pollar eller som en Meraki-anslutning beskriver.
+
 ## Upptäck enheter med en nätverksskanning
 
 I stället för att lägga till enheter en i taget kan du skanna ett adressintervall från en sond och importera det som svarar.
@@ -756,6 +760,12 @@ För att i stället skapa en från **Monitorer**:
 3. Välj den nätverksenhet som ska varnas för. Allt som rör insamling av data — värdnamn, autentiseringsuppgifter, schema, gränssnittswalks, hälso-OID:er — kommer från enheten; monitorn väljer bara vad som ska varnas för, genom sina kriterier.
 
 En nätverksenhetsmonitor har inget eget intervall: den utvärderas varje gång enhetens avsökningsresultat kommer in, och varje gång en trap från enheten kommer in.
+
+### En enhets incidenter och larm
+
+En incident eller ett larm kan handla om en nätverksenhet. Välj enheten under **Andra påverkade resurser** när du deklarerar en incident eller skapar ett larm, eller låt en monitor länka den: det en monitor utlöser länkas till enheten den rapporterar om — enheten som en nätverksenhetsmonitor övervakar, enheten som monitorn är bunden till och enheten som en discovery-import skapade monitorn för.
+
+Enhetens sidor **Incidenter** och **Larm**, under **Aktivitet** i dess meny, listar det som är länkat till den, och menyn och enhetens översikt räknar de öppna. **Deklarera incident** och **Skapa larm** på de sidorna börjar med enheten vald.
 
 ### Standardvärden för anpassade fält
 

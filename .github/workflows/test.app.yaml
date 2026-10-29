@@ -293,6 +293,12 @@ jobs:
           # Metrics AI (1.9 minutes on 14.0.93's gate run) moved to group 4 and
           # Asset Details (0.9) to group 13 on 2026-10-27, when that run took
           # this group 21.7 minutes: about 19.
+          # Timed again on 2026-10-28, after #5262 grew each half of Event
+          # Overview by about half a minute (and one of them by 15 seconds
+          # more with its UI review), from 14.0.94's two gate runs with this
+          # group's suites: its half of Event Overview 16.1 and 16.7 minutes,
+          # SNMP Walk 1.2 and 1.3, Traces AI 1.8 and 1.9 - 19.1 and 19.9 in
+          # all, under the 22 the groups are kept to, so nothing moved.
           - group: 1
             event_overview_shard: 1/2
             suites: >-
@@ -393,6 +399,21 @@ jobs:
           # busy machine; about 12 on a runner), the phone's (188, 9.6 locally)
           # in group 9. Model Tables (4.7) from group 9 and Metrics AI (1.9)
           # from group 1 joined it: about 18.5.
+          # Metrics AI gained MetricsInsights.spec.ts on 2026-10-28 (22 tests,
+          # about 40 seconds locally, Chromium only: Metrics > Insights'
+          # service cards at 1440, 1280, 1024, 768 and 390 pixels, with long
+          # names and in the dark theme): about 19.
+          # Model Tables gained LiveLists.spec.ts and the phone's folded
+          # filter chips on 2026-10-29 (19 tests, about a minute and a half
+          # locally: the incidents and alerts lists reading again as the
+          # server announces a change, holding still for the keyboard and the
+          # pointer, tinting a new row, and the alerts list's chips at 390,
+          # 768 and 1280 pixels, dark; the whole suite 7.5 min): about 20.
+          # Model Tables gained ColumnResize.spec.ts the same day (19 tests,
+          # about 1.2 minutes locally, Chromium only: a column's edge dragged,
+          # double-clicked, keyed and reset, right to left, on a tablet, on a
+          # phone and on a list of 200 rows, and the reset's words in every
+          # language): about 21.5.
           - group: 4
             workflow_builder_shard: 1/2
             suites: >-
@@ -452,6 +473,12 @@ jobs:
           # Shared UI (2.5 minutes on 14.0.93's gate run) from group 11 and Owner
           # Filters (0.9) from group 10 joined it on 2026-10-27, when that run
           # took this group 13.4 minutes before Side by Side Pages: about 18.
+          # First On-Call Policy (about half a minute locally with its bundle,
+          # 11 tests, Chromium only: a new project's Create On-Call Policy
+          # asking "Page this policy for every new incident and alert", what
+          # Create sends, when it is not asked, at 1280 and 390 pixels, German
+          # and Persian dark) joined it the same day, beside Incoming Call
+          # Policies and Owners on Create: about 19.
           - group: 5
             suites: >-
               test-slo-burn-rate-ui
@@ -468,6 +495,7 @@ jobs:
               test-runbook-variables-ui
               test-dashboard-value-widget-ui
               test-owners-on-create-ui
+              test-first-on-call-policy-ui
               test-side-by-side-pages-ui
               test-owner-filters-ui
               test-shared-ui-ui
@@ -760,11 +788,25 @@ jobs:
           # Navigation Search (3.6 minutes on 14.0.93's gate run) and Bulk
           # Actions (1.2) moved to group 13, and Owner Filters (0.9) to group 5,
           # on 2026-10-27, when that run took this group 24.4 minutes: about 19.
+          # Timed again on 2026-10-28 as group 1 was: its half of Event
+          # Overview 12.9 and 16.5 minutes on 14.0.94's two gate runs,
+          # Dashboard Templates 2.1 and 2.6 - 15.0 and 19.1 in all, so
+          # nothing moved.
+          # Network Traffic Names (2.1 minutes locally with its bundle,
+          # Chromium only: names instead of bare addresses on Network >
+          # Traffic - the top lists, both views of the conversations, long
+          # names, the chips, the address card with Open host, Name this
+          # address and Edit in Settings, find by a name, the senders that
+          # are no device yet, and Network > Settings > Address Names - at
+          # 1280, 1024, 768 and 390 pixels, dark, German and Persian) joined
+          # them on 2026-10-28, the lightest group on App Test's run of 10:32
+          # that day (15.8 minutes): about 18.5 to 22.
           - group: 10
             event_overview_shard: 2/2
             suites: >-
               test-event-overview-ui
               test-dashboard-templates-ui
+              test-network-traffic-names-ui
           # Security Operations on its own, Chromium only, from 2026-10-25. In
           # group 8 it took 9.8 of that group's 23.4 minutes on master's run of
           # 03:08 that day, and the group took 26.1 and 26.7 minutes on the
@@ -794,6 +836,14 @@ jobs:
           # on 2026-10-27, when that run took this group 23.4 minutes before
           # Reading Direction and Status Page Search joined: about 18, with room
           # for Security Operations to grow.
+          # Security Operations gained a test on 2026-10-28 (about 16 seconds
+          # locally: the Overview's pipeline laid out by its own width, its
+          # cells' names whole in German and Dutch at four widths): about 18.5.
+          # It gained Watchlists.spec.ts on 2026-10-29 (13 tests, about 45
+          # seconds locally: the list and its common lists, Create Watchlist,
+          # a list's page, Add Value, Import Values, a list that follows a
+          # feed, the line under a rule's YAML, a phone, a new project, a
+          # Security Viewer, German and Persian): about 19.5.
           - group: 11
             suites: >-
               test-security-operations-ui
@@ -824,6 +874,10 @@ jobs:
           # review took it to 50 tests and 3.0 minutes (the marks, charts,
           # tables and figures an answer carries, its menus, deleting a
           # conversation, right to left): about 19.5.
+          # Resource Overviews grew on 2026-10-28 with a queue's Producers and
+          # Consumers and a database's Calling services as one shared table, at
+          # every width with busy and long names, in German and dark (2.4
+          # minutes locally with its bundle, from 1.3): about 20.5.
           - group: 12
             suites: >-
               test-code-ui
@@ -1019,6 +1073,8 @@ jobs:
             output/playwright/network-first-run-ui/test-results
             output/playwright/meraki-traffic-ui/*.png
             output/playwright/meraki-traffic-ui/test-results
+            output/playwright/network-traffic-names-ui/*.png
+            output/playwright/network-traffic-names-ui/test-results
             output/playwright/code-ui/*.png
             output/playwright/code-ui/test-results
             output/playwright/infrastructure-first-run-ui/*.png
@@ -1092,6 +1148,8 @@ jobs:
             output/playwright/owner-filters-ui/test-results
             output/playwright/owners-on-create-ui/*.png
             output/playwright/owners-on-create-ui/test-results
+            output/playwright/first-on-call-policy-ui/*.png
+            output/playwright/first-on-call-policy-ui/test-results
             output/playwright/kubernetes-events-ui/*.png
             output/playwright/kubernetes-events-ui/test-results
             output/playwright/snmp-walk-ui/*.png

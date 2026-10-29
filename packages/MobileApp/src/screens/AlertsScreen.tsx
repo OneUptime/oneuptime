@@ -8,7 +8,6 @@ import React, {
 import {
   View,
   SectionList,
-  ScrollView,
   RefreshControl,
   Text,
   Alert,
@@ -39,6 +38,7 @@ import {
 } from "../navigation/paneState";
 import ScreenIntro from "../components/ScreenIntro";
 import SearchField from "../components/SearchField";
+import ListStatusScroll from "../components/ListStatusScroll";
 import { matchesSearch } from "../utils/search";
 import { getResolvedStateIds } from "../utils/resolvedState";
 import {
@@ -161,6 +161,7 @@ export default function AlertsScreen({
         ?.getScrollResponder()
         ?.scrollTo({ x: 0, y: offsetY, animated: false });
     },
+    { headerTop: spacing.xl },
   );
   const episodeScroll: PaneScrollRestoration = usePaneScrollRestoration(
     "alerts.scroll.episodes",
@@ -169,6 +170,7 @@ export default function AlertsScreen({
         ?.getScrollResponder()
         ?.scrollTo({ x: 0, y: offsetY, animated: false });
     },
+    { headerTop: spacing.xl },
   );
 
   useEffect(() => {
@@ -585,13 +587,13 @@ export default function AlertsScreen({
         testID="response-screen"
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
       >
-        <ScrollView
+        <ListStatusScroll
+          scrollKey="alerts.scroll.status"
+          header={listHeader}
           testID="response-list-status"
-          contentInsetAdjustmentBehavior="automatic"
           refreshControl={refreshControl}
           contentContainerStyle={contentContainerStyle}
         >
-          {listHeader}
           <View
             testID="response-list-loading"
             style={{ marginTop: spacing.xs }}
@@ -600,7 +602,7 @@ export default function AlertsScreen({
             <SkeletonCard />
             <SkeletonCard />
           </View>
-        </ScrollView>
+        </ListStatusScroll>
       </View>
     );
   }
@@ -611,13 +613,13 @@ export default function AlertsScreen({
         testID="response-screen"
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
       >
-        <ScrollView
+        <ListStatusScroll
+          scrollKey="alerts.scroll.status"
+          header={listHeader}
           testID="response-list-status"
-          contentInsetAdjustmentBehavior="automatic"
           refreshControl={refreshControl}
           contentContainerStyle={contentContainerStyle}
         >
-          {listHeader}
           <EmptyState
             title="Something went wrong"
             subtitle={
@@ -631,7 +633,7 @@ export default function AlertsScreen({
             actionLabel="Retry"
             onAction={onRefresh}
           />
-        </ScrollView>
+        </ListStatusScroll>
       </View>
     );
   }
@@ -653,7 +655,9 @@ export default function AlertsScreen({
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           testID="response-list"
-          ListHeaderComponent={listHeader}
+          ListHeaderComponent={
+            <View onLayout={alertScroll.onHeaderLayout}>{listHeader}</View>
+          }
           keyExtractor={(wrapped: ProjectAlertItem) => {
             return `${wrapped.projectId}-${wrapped.item._id}`;
           }}
@@ -754,7 +758,9 @@ export default function AlertsScreen({
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           testID="response-list"
-          ListHeaderComponent={listHeader}
+          ListHeaderComponent={
+            <View onLayout={episodeScroll.onHeaderLayout}>{listHeader}</View>
+          }
           keyExtractor={(wrapped: ProjectAlertEpisodeItem) => {
             return `${wrapped.projectId}-${wrapped.item._id}`;
           }}

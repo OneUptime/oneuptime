@@ -32,23 +32,31 @@ Varje minut räknar OneUptime de spans som matchar monitorns filter och startade
 :::steps
 ### Börja en ny monitor
 
-Gå till **Monitorer** och klicka på **Skapa monitor**.
+Gå till **Monitorer** och klicka på **Skapa monitor**. Eller filtrera i spårningsutforskaren de spans du vill få veta om och klicka på **Skapa monitor** (klockan) i dess verktygsfält: den nya monitorn bevakar från början utforskarens tjänster, statusar, spannamn och attribut.
 
 ### Välj Traces
 
 Under **Monitortyp** klickar du på **Fler monitortyper** och väljer **Spår** under **Telemetri**, eller skriver `traces` i sökrutan. Ange ett **Namn** och klicka sedan på **Nästa**.
 
+### Välj vad monitorn ska berätta om
+
+Under **Vad ska den här övervakningen berätta om?** väljer du **För många misslyckade förfrågningar** eller **Förfrågningar uteblir**. Varje val fyller i de spans som ska bevakas och regeln, som du kan ändra längre ned. Välj **Något annat** för att ställa in dem själv.
+
 ### Välj vilka spans som ska räknas
 
-I **Trace-monitorkonfiguration** anger du **Span-namn**, **Övervakningsspår för (tid)** och **Filtrera efter spannstatus**. Ett filter som du lämnar tomt matchar alla spans. **Förhandsvisning av spans** under filtren visar de spans som de matchar just nu.
+I **Spans att bevaka** anger du **Span-status** och **Spannamnet innehåller**. Ett filter som du lämnar tomt matchar alla spans. **Matchande spans** under filtren visar de spans som de matchar just nu.
 
 ### Begränsa dem (valfritt)
 
 Öppna **Fler fält** för att filtrera efter telemetritjänst, infrastrukturentitet eller attribut.
 
-### Ange kriterierna
+### Säg när det ska larmas
 
-Kortet **Monitorkriterier** börjar med två kriterier: offline, med en incident, när inga spans matchar; online när minst en gör det. Ändra dem till det du vill varnas om (se [Kriterier](#kriterier)).
+I **När det ska larmas** väljer du ett **Villkor**, **Antal spans** och ett **Tidsfönster**. Meningen under dem upprepar regeln med vanliga ord. Diagrammet under den räknar de matchande spans i varje fönster under de senaste timmarna, ritar regelns tal som en linje och berättar hur ofta regeln skulle ha larmat. Dess knapp föreslår ett tal som regeln inte skulle ha passerat under den tiden.
+
+### Välj vad som händer
+
+I **Vad som händer** väljer du **Skapa ett larm**, **Deklarera en incident** eller **Båda**, och ger det en titel och en allvarlighetsgrad. Medan regeln matchar visar monitorn statusen under **Fler fält**; när den slutar matcha går monitorn tillbaka till sin standardstatus, och larmet eller incidenten löser sig själv.
 
 ### Skapa monitorn
 
@@ -62,9 +70,9 @@ Klicka på **Skapa monitor**. Monitorn öppnas på sin sida **Översikt**, och d
 
 | Fält | Vad det matchar | Standard |
 | --- | --- | --- |
-| **Span-namn** | Spans vars namn innehåller denna text, utan skillnad på versaler och gemener. | Tomt: alla spans |
-| **Övervakningsspår för (tid)** | Spans som startade de senaste 5 sekunderna upp till de senaste 24 timmarna. | **Senaste 1 minuten** |
-| **Filtrera efter spannstatus** | Spans med någon av de valda statusarna: **Ej angiven**, **Ok** eller **Fel**. | Tomt: alla statusar |
+| **Span-status** | Spans med någon av de valda statusarna: **Ej angiven**, **Ok** eller **Fel**. | Tomt: alla statusar |
+| **Spannamnet innehåller** | Spans vars namn innehåller denna text, utan skillnad på versaler och gemener. | Tomt: alla spans |
+| **Tidsfönster** (i **När det ska larmas**) | Spans som startade de senaste 5 sekunderna upp till de senaste 24 timmarna. | **Senaste 5 minuterna** |
 | **Filtrera efter telemetritjänst** (under **Fler fält**) | Spans från någon av de valda tjänsterna. | Tomt: alla tjänster |
 | **Filtrera efter infrastrukturenhet** (under **Fler fält**) | Spans från någon av de valda värdarna, poddarna, containrarna och andra entiteterna. | Tomt: alla entiteter |
 | **Filtrera efter attribut** (under **Fler fält**) | Spans vars attribut uppfyller alla villkor. Varje villkor har en egen operator, som "är lika med" eller "innehåller". | Tomt: inga villkor |
@@ -84,8 +92,8 @@ Om du vill att lyckade förfrågningar ska visas som OK, lägger du till en spå
 ## Så utvärderas den
 
 - **Varje minut.** En spårningsmonitor kontrolleras inte av sonder, så den har inget intervall att ange och ingen sida **Sonder och intervall**.
-- **Ett tal per utvärdering.** Monitorn räknar de spans som matchar alla filter och startade inom **Övervakningsspår för (tid)** före utvärderingen. Med **Senaste 5 minuterna** ser varje utvärdering fem minuter bakåt, så fönstren för utvärderingar i följd överlappar.
-- **Inga spans är ett antal på 0.** En tjänst som slutar skicka spårningar ger 0, och det är vad standardkriteriet för offline letar efter.
+- **Ett tal per utvärdering.** Monitorn räknar de spans som matchar alla filter och startade inom **Tidsfönster** före utvärderingen. Med **Senaste 5 minuterna** ser varje utvärdering fem minuter bakåt, så fönstren för utvärderingar i följd överlappar.
+- **Inga spans är ett antal på 0.** En tjänst som slutar skicka spårningar ger 0, och det är vad **Förfrågningar uteblir** letar efter.
 - **OneUptimes eget avbrott är inte tystnad.** Så länge tidsfönstret innehåller tid då OneUptime självt inte tog emot data (det startade om, uppgraderades eller arbetade ikapp en eftersläpning) väntar kontrollen: statusen ändras inte, och ingen incident eller larm öppnas eller löses. Se [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving).
 - **Kriterier uppifrån och ned.** Det första kriteriet som matchar avgör, så lägg det allvarligaste överst.
 
@@ -93,7 +101,7 @@ Varje statusändring registreras med sin orsak på monitorns **Statustidslinje**
 
 ## Kriterier
 
-En spårningsmonitors kriterier har en enda **Filtertyp**: **Span Count**, antalet spans som matchade i fönstret. Välj ett **Filtervillkor** och, för ett tröskelvillkor, ett **Värde**.
+En spårningsmonitors kriterier har en enda **Filtertyp**: **Span Count**, antalet spans som matchade i fönstret. **När det ska larmas** ställer in ett kriterium, vars **Villkor** är **Fler än**, **Minst**, **Färre än**, **Högst**, **Exakt**, **Ovanligt hög**, **Ovanligt låg** eller **Ovanligt hög eller låg**. För flera kriterier, eller ett med mer än ett filter, klickar du på **Redigera som egna kriterier** under **Fler fält** i **Vad som händer**: varje kriterium där har ett **Filtervillkor** och, för ett tröskelvillkor, ett **Värde**.
 
 | Filtervillkor | Matchar när antalet spans är… |
 | --- | --- |
@@ -106,9 +114,16 @@ En spårningsmonitors kriterier har en enda **Filtertyp**: **Span Count**, antal
 | **Anomalously Low** | under det intervallet |
 | **Anomalous** | utanför det intervallet, åt vilket håll som helst |
 
-Avvikelsevillkoren har inget **Värde**. Välj en **Känslighet** (Low, Medium, som är standard, eller High) och ett **Baslinjefönster** på 14 (standard), 28, 60 eller 90 dagar. OneUptime gör om antalet till en takt per minut och jämför den med samma timme i veckan över det fönstret. Baslinjen omfattar bara monitorns tjänster och spannstatusar: dess filter på span-namn och attribut ingår inte. Tills den timmen i veckan har tillräcklig historik lär sig kriteriet fortfarande och utlöses inte.
+Avvikelsevillkoren har inget **Värde**. Välj en **Känslighet** (Låg, Medel, som är standard, eller Hög) och, i de egna kriterierna, ett **Baslinjefönster** på 14 (standard), 28, 60 eller 90 dagar. OneUptime gör om antalet till en takt per minut och jämför den med samma timme i veckan över det fönstret. Baslinjen omfattar bara monitorns tjänster och spannstatusar: dess filter på spannamn och attribut ingår inte. Tills den timmen i veckan har tillräcklig historik lär sig kriteriet fortfarande och löser inte ut.
 
-En ny spårningsmonitor börjar med dessa kriterier:
+En spårningsmonitor som skapats i Skapa monitor börjar med regeln för det du valde under **Vad ska den här övervakningen berätta om?**:
+
+| Val | Regel | Vad som händer |
+| --- | --- | --- |
+| **För många misslyckade förfrågningar** | **Span-status** **Fel**, **Fler än** `10` under **Senaste 5 minuterna** | Skapar ett larm, som löser sig själv |
+| **Förfrågningar uteblir** | **Exakt** `0` under **Senaste 10 minuterna** | Deklarerar en incident, som löser sig själv |
+
+En spårningsmonitor som skapats via API:et eller Terraform utan kriterier börjar med dessa kriterier:
 
 | Kriterium | Filter | Effekt |
 | --- | --- | --- |
@@ -117,9 +132,9 @@ En ny spårningsmonitor börjar med dessa kriterier:
 
 ## Genomgånget exempel: misslyckade checkout-förfrågningar
 
-På fem minuter registrerar checkout-tjänsten 1 200 spans med namnet `POST /api/checkout`: 1 150 UNSET, 20 OK och 30 ERROR. Samma monitor räknar mycket olika tal beroende på **Filtrera efter spannstatus**:
+På fem minuter registrerar checkout-tjänsten 1 200 spans med namnet `POST /api/checkout`: 1 150 UNSET, 20 OK och 30 ERROR. Samma monitor räknar mycket olika tal beroende på **Span-status**:
 
-| Filtrera efter spannstatus | Span Count | Vad det mäter |
+| Span-status | Span Count | Vad det mäter |
 | --- | --- | --- |
 | **Fel** | 30 | Förfrågningar som misslyckades |
 | **Ok** | 20 | Bara de förfrågningar som din kod markerade som lyckade |
@@ -128,18 +143,18 @@ På fem minuter registrerar checkout-tjänsten 1 200 spans med namnet `POST /api
 
 För att bli larmad när fler än 10 checkout-förfrågningar misslyckas på fem minuter:
 
-- **Span-namn**: `POST /api/checkout`
-- **Övervakningsspår för (tid)**: **Senaste 5 minuterna**
-- **Filtrera efter spannstatus**: **Fel**
-- Kriterium 1: **Span Count** **Större än** `10`: markera monitorn som offline och deklarera en incident
-- Kriterium 2: **Span Count** **Mindre än eller lika med** `10`: markera monitorn som online
+- **Spannamnet innehåller**: `POST /api/checkout`
+- **Tidsfönster**: **Senaste 5 minuterna**
+- **Span-status**: **Fel**
+- **När det ska larmas**: **Fler än** `10`
+- **Vad som händer**: **Deklarera en incident**
 
-Med 30 misslyckade förfrågningar matchar kriterium 1 och incidenten deklareras. När fem minuter har gått med 10 eller färre fel matchar kriterium 2, monitorn är online igen och incidenten löser sig själv.
+Med 30 misslyckade förfrågningar matchar regeln och incidenten deklareras. När fem minuter har gått med 10 eller färre fel slutar regeln matcha, monitorn är online igen och incidenten löser sig själv.
 
 ## Felsökning
 
 :::details Monitorn räknar inga spans för min slutpunkt
-**Span-namn** jämförs med spanens namn, och instrumentering namnger ofta server-spans efter routen (`POST /api/checkout`) eller bara efter metoden (`GET`). Leta upp det exakta namnet i spårningsutforskaren. Öppna sedan monitorns sida **Kriterier** (under **Konfiguration**) och klicka på **Edit Monitoring Criteria**: **Förhandsvisning av spans** visar vad filtren matchar just nu.
+**Spannamnet innehåller** jämförs med spanens namn, och instrumentering namnger ofta server-spans efter routen (`POST /api/checkout`) eller bara efter metoden (`GET`). Leta upp det exakta namnet i spårningsutforskaren. Öppna sedan monitorns sida **Kriterier** (under **Konfiguration**) och klicka på **Edit Monitoring Criteria**: **Matchande spans** visar vad filtren matchar just nu.
 :::
 
 :::details Lyckade förfrågningar räknas inte när jag filtrerar på Ok

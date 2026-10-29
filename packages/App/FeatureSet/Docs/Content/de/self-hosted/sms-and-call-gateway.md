@@ -12,10 +12,10 @@ OneUptime kann seine SMS und Anrufe statt über Twilio über ein Gateway senden,
 ## So funktioniert es
 
 ```mermaid title="Eine SMS über Ihr eigenes Gateway"
-flowchart LR
+flowchart TB
     OneUptime["OneUptime"]
     Gateway["Ihr Gateway"]
-    Provider["Ihr SMS- und Sprachanbieter"]
+    Provider["Ihr SMS- und<br/>Sprachanbieter"]
     Phone["Telefon"]
     OneUptime -->|"signierte JSON-Anfrage"| Gateway
     Gateway --> Provider

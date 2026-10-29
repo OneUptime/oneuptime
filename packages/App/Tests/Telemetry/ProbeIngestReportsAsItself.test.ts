@@ -202,10 +202,16 @@ jest.mock("Common/Server/Utils/NetworkFlow/NetworkFlowDeviceMatcher", () => {
 });
 
 jest.mock("Common/Server/Utils/NetworkFlow/NetworkFlowIngest", () => {
+  // The DNS names a probe sends are read as the route reads them (issue #5340).
+  const actual: { default: { readAddressNames: unknown } } = jest.requireActual(
+    "Common/Server/Utils/NetworkFlow/NetworkFlowIngest",
+  ) as { default: { readAddressNames: unknown } };
+
   return {
     __esModule: true,
     default: {
       buildRows: jest.fn(),
+      readAddressNames: actual.default.readAddressNames,
     },
   };
 });
@@ -232,6 +238,7 @@ import ProbeService from "Common/Server/Services/ProbeService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import MonitorProbeService from "Common/Server/Services/MonitorProbeService";
 import NetworkFlowDeviceMatcher from "Common/Server/Utils/NetworkFlow/NetworkFlowDeviceMatcher";
+import NetworkFlowIngest from "Common/Server/Utils/NetworkFlow/NetworkFlowIngest";
 
 type AnyMock = jest.Mock<(...args: Array<any>) => any>;
 
@@ -271,6 +278,10 @@ const syslogService: { processSyslogMessages: AnyMock } =
 
 const flowMatcher: { getProbe: AnyMock } =
   NetworkFlowDeviceMatcher as unknown as { getProbe: AnyMock };
+
+const flowIngest: { buildRows: AnyMock } = NetworkFlowIngest as unknown as {
+  buildRows: AnyMock;
+};
 
 const mockResponse: ExpressResponse = {} as ExpressResponse;
 
@@ -805,5 +816,67 @@ describe("POST /probe/network-flow: the flows are the receiving probe's", () => 
 
     expectRefused("Probe ID not found on network flow request");
     expect(flowMatcher.getProbe).not.toHaveBeenCalled();
+  });
+
+  test("the DNS names the probe sent go with the flows, checked; a name that is not one is dropped, never the batch", async () => {
+    flowMatcher.getProbe.mockResolvedValue({
+      id: SENDER,
+      projectId: null,
+    } as never);
+    flowIngest.buildRows.mockResolvedValue({
+      rows: [],
+      droppedUnmatched: 0,
+      malformed: 0,
+      unmatchedKept: 0,
+    } as never);
+
+    await callEndpoint(
+      path,
+      makeRequest({
+        body: probeBody({
+          flowRecords: [{ srcAddr: "10.0.0.1" }],
+          addressNames: {
+            "10.0.0.5": "fs01.corp.example",
+            "2001:DB8::5": "v6.corp.example",
+            "not-an-address": "x.corp.example",
+            "10.0.0.6": "<b>markup</b>",
+          },
+        }),
+      }),
+    );
+
+    expect(responseUtil.sendJsonObjectResponse).toHaveBeenCalledTimes(1);
+    expect(flowIngest.buildRows).toHaveBeenCalledTimes(1);
+    const built: { addressNames: Map<string, string> } = flowIngest.buildRows
+      .mock.calls[0]![0] as never;
+    expect(Array.from(built.addressNames.entries())).toEqual([
+      ["10.0.0.5", "fs01.corp.example"],
+      ["2001:db8::5", "v6.corp.example"],
+    ]);
+  });
+
+  test("a probe older than the lookups sends no names: the flows are taken as before", async () => {
+    flowMatcher.getProbe.mockResolvedValue({
+      id: SENDER,
+      projectId: null,
+    } as never);
+    flowIngest.buildRows.mockResolvedValue({
+      rows: [],
+      droppedUnmatched: 0,
+      malformed: 0,
+      unmatchedKept: 0,
+    } as never);
+
+    await callEndpoint(
+      path,
+      makeRequest({
+        body: probeBody({ flowRecords: [{ srcAddr: "10.0.0.1" }] }),
+      }),
+    );
+
+    expect(responseUtil.sendJsonObjectResponse).toHaveBeenCalledTimes(1);
+    const built: { addressNames: Map<string, string> } = flowIngest.buildRows
+      .mock.calls[0]![0] as never;
+    expect(built.addressNames.size).toBe(0);
   });
 });

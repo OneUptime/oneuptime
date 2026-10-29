@@ -21,8 +21,11 @@
 #   superseded   it has a newer release instead (only for an older version)
 #   waiting      not yet, and nothing is wrong: for RELEASE_STATUS_GRACE_HOURS
 #                (6) after the release, while the publish jobs and the Pages
-#                deploy catch up; and for winget, while Microsoft reviews the
-#                pull request, however long that takes
+#                deploy catch up; for as long again after the site's latest
+#                Pages deploy started, while it has not failed, for a version
+#                OneUptime/packages has (a publish job re-run hours after the
+#                release publishes only then); and for winget, while Microsoft
+#                reviews the pull request, however long that takes
 #   attention    works, but not for long: the key or the certificate expires
 #                soon
 #   problem      what people install is missing, wrong or broken, or a winget
@@ -264,6 +267,16 @@ if github_file "$SITE_REPOSITORY" "deb/dists/stable/main/binary-amd64/Packages?r
 	SITE_PUSHED=true
 fi
 
+# Whether the site repository has a Pages deploy, its latest one read once
+# into $WORK/pages.json (the rows that ask run in subshells).
+has_pages_deploy() {
+	if [[ ! -e "$WORK/pages.json" ]] &&
+		! github "repos/$SITE_REPOSITORY/actions/runs?per_page=1" "$WORK/pages.json"; then
+		echo '{"workflow_runs": []}' >"$WORK/pages.json"
+	fi
+	[[ "$(jq '.workflow_runs | length' "$WORK/pages.json")" -gt 0 ]]
+}
+
 # Why the site does not have the version yet, for the details.
 site_lag() {
 	local run
@@ -271,8 +284,7 @@ site_lag() {
 		echo "$SITE_REPOSITORY does not have it either: see publish-infrastructure-agent-apt-yum in the release run"
 		return
 	fi
-	if github "repos/$SITE_REPOSITORY/actions/runs?per_page=1" "$WORK/pages.json" &&
-		[[ "$(jq '.workflow_runs | length' "$WORK/pages.json")" -gt 0 ]]; then
+	if has_pages_deploy; then
 		run="$(jq -r '.workflow_runs[0] | "started \(.created_at), is \(.status)\(if .conclusion then " (" + .conclusion + ")" else "" end)"' "$WORK/pages.json")"
 		echo "$SITE_REPOSITORY has it; its latest Pages deploy, $run"
 	else
@@ -284,6 +296,30 @@ site_lag() {
 # is young, a problem after.
 missing_state() {
 	if within_grace; then
+		echo waiting
+	else
+		echo problem
+	fi
+}
+
+# Whether the site is still deploying a version the site repository has: its
+# latest Pages deploy started less than RELEASE_STATUS_GRACE_HOURS ago and has
+# not failed. A publish job re-run hours after the release (RELEASING.md's
+# remedy for a failed one) pushes the version only then, and the release run's
+# end runs this while that deploy still waits for a runner.
+site_catching_up() {
+	local started
+	[[ "$SITE_PUSHED" == "true" ]] && has_pages_deploy || return 1
+	jq -e '.workflow_runs[0] | .status != "completed" or .conclusion == "success"' "$WORK/pages.json" >/dev/null ||
+		return 1
+	started="$(epoch "$(jq -r '.workflow_runs[0].created_at' "$WORK/pages.json")")"
+	(($(date +%s) - started < GRACE_HOURS * 3600))
+}
+
+# The state of a version the site does not serve yet: missing_state's, but
+# waiting too while the site catches up with a version pushed late.
+site_behind_state() {
+	if within_grace || site_catching_up; then
 		echo waiting
 	else
 		echo problem
@@ -419,7 +455,7 @@ apt_or_yum_row() {
 	elif [[ -n "$repository_newest" ]] && newer_than "$repository_newest" "$VERSION"; then
 		row "$name" "$channel" superseded "the repository has $repository_newest"
 	else
-		row "$name" "$channel" "$(missing_state)" "the site has ${repository_newest:-nothing}, not $VERSION; $(site_lag)"
+		row "$name" "$channel" "$(site_behind_state)" "the site has ${repository_newest:-nothing}, not $VERSION; $(site_lag)"
 	fi
 }
 

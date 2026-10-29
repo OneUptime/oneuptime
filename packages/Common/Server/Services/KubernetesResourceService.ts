@@ -574,6 +574,85 @@ export class Service extends DatabaseService<Model> {
   }
 
   /**
+   * The nodes and pods of a project that hold any of these addresses, at
+   * most `limit`, by id (issue #5340: what the Traffic pages call an
+   * address). A node holds its InternalIP and ExternalIP addresses
+   * (status.addresses); a pod its podIP - unless it is on the node's own
+   * network (podIP is hostIP), where the address is the node's. Raw SQL on
+   * purpose: "an object of the jsonb array has one of these" is something
+   * the query builder cannot say. Pinned to the project; callers read the
+   * rows themselves, with the caller's own rights.
+   */
+  @CaptureSpan()
+  public async findIdsHoldingAddresses(data: {
+    projectId: ObjectID;
+    addresses: Array<string>;
+    limit: number;
+  }): Promise<Array<ObjectID>> {
+    const addresses: Array<string> = Array.from(
+      new Set<string>(
+        data.addresses
+          .map((address: string): string => {
+            return address.trim().toLowerCase();
+          })
+          .filter((address: string): boolean => {
+            return address.length > 0;
+          }),
+      ),
+    );
+
+    if (addresses.length === 0 || data.limit <= 0) {
+      return [];
+    }
+
+    const rows: unknown = await this.getRepository().manager.query(
+      `SELECT "_id"
+        FROM "KubernetesResource"
+        WHERE "projectId" = $1
+          AND "deletedAt" IS NULL
+          AND (
+            (
+              "kind" = 'Pod'
+              AND jsonb_typeof("status") = 'object'
+              AND LOWER("status" ->> 'podIP') = ANY($2::text[])
+              AND COALESCE("status" ->> 'hostIP', '') <> COALESCE("status" ->> 'podIP', '')
+            )
+            OR (
+              "kind" = 'Node'
+              AND jsonb_typeof("status") = 'object'
+              AND jsonb_typeof("status" -> 'addresses') = 'array'
+              AND EXISTS (
+                SELECT 1
+                FROM jsonb_array_elements("status" -> 'addresses') AS node_address(item)
+                WHERE jsonb_typeof(node_address.item) = 'object'
+                  AND node_address.item ->> 'type' IN ('InternalIP', 'ExternalIP')
+                  AND LOWER(node_address.item ->> 'address') = ANY($2::text[])
+              )
+            )
+          )
+        ORDER BY "_id"
+        LIMIT $3`,
+      [data.projectId.toString(), addresses, data.limit],
+    );
+
+    return (Array.isArray(rows) ? rows : [])
+      .map((row: unknown): string => {
+        const record: Record<string, unknown> =
+          row && typeof row === "object"
+            ? (row as Record<string, unknown>)
+            : {};
+
+        return String(record["_id"] || "");
+      })
+      .filter((id: string): boolean => {
+        return ObjectID.isValidUUID(id);
+      })
+      .map((id: string): ObjectID => {
+        return new ObjectID(id);
+      });
+  }
+
+  /**
    * Compute the overview-page summary in Postgres. Returns counts per
    * resource kind plus pod phase / node condition breakdowns in a
    * single round-trip.

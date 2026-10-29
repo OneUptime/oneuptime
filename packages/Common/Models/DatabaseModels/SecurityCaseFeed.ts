@@ -43,6 +43,12 @@ export enum SecurityCaseFeedEventType {
   ResponseAction = "ResponseAction",
   // OneUptime AI's triage report (SecurityCaseTriageRunner).
   AiTriage = "AiTriage",
+  // A task added, done, opened again, handed on or deleted (SecurityCaseTaskService).
+  Task = "Task",
+  // Evidence added or removed (SecurityCaseEvidenceService).
+  Evidence = "Evidence",
+  // A response target about to be missed, or missed (SecurityCaseTargetCheck).
+  ResponseTarget = "ResponseTarget",
 }
 
 /*

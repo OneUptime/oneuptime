@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddCloudAccountAiAccess1808200000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808200000000-AddCloudAccountAiAccess";
+import { AddCloudAccountAiAccess1808470000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808470000000-AddCloudAccountAiAccess";
 import CloudAccount from "../../../../Models/DatabaseModels/CloudAccount";
 import DockerHost from "../../../../Models/DatabaseModels/DockerHost";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -22,7 +22,7 @@ import TableColumnType from "../../../../Types/Database/TableColumnType";
  * drift check holds its statements to the model.
  */
 
-const MIGRATION_TIMESTAMP: string = "1808200000000";
+const MIGRATION_TIMESTAMP: string = "1808470000000";
 const MIGRATION_BASE_NAME: string = "AddCloudAccountAiAccess";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 
@@ -49,7 +49,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
   const migration: MigrationInterface =
-    new AddCloudAccountAiAccess1808200000000();
+    new AddCloudAccountAiAccess1808470000000();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -64,7 +64,7 @@ function columnsOf(model: BaseModel): Array<string> {
   return model.getTableColumns().columns;
 }
 
-describe("AddCloudAccountAiAccess1808200000000", () => {
+describe("AddCloudAccountAiAccess1808470000000", () => {
   test("adds each AI access column to CloudAccount, with its default", async () => {
     expect(await statementsOf("up")).toEqual(
       COLUMNS.map(([column, type]: [string, string]): string => {
@@ -143,7 +143,7 @@ describe("AddCloudAccountAiAccess1808200000000", () => {
         return name === MIGRATION_CLASS_NAME;
       }),
     ).toHaveLength(1);
-    expect(new AddCloudAccountAiAccess1808200000000().name).toBe(
+    expect(new AddCloudAccountAiAccess1808470000000().name).toBe(
       MIGRATION_CLASS_NAME,
     );
 

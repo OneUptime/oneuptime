@@ -24,6 +24,8 @@ import {
 } from "@jest/globals";
 import type { UseQueryResult } from "@tanstack/react-query";
 import InboxStackNavigator from "./InboxStackNavigator";
+import { WindowLayoutProvider } from "../layout/WindowLayout";
+import type { FoldReport, PostureSource } from "../layout/windowPosture";
 import { useAllProjectIncidents } from "../hooks/useAllProjectIncidents";
 import { useAllProjectIncidentEpisodes } from "../hooks/useAllProjectIncidentEpisodes";
 import { useAllProjectIncidentStates } from "../hooks/useAllProjectIncidentStates";
@@ -261,22 +263,31 @@ jest.mock("../hooks/useHaptics", () => {
 const CHECKOUT_LABEL: string =
   "Incident INC-7, Checkout is down. State: Created. Severity: Critical.";
 
-async function renderInbox(): Promise<
-  NavigationContainerRefWithCurrent<ParamListBase>
-> {
+async function renderInbox(
+  postureSource?: PostureSource,
+): Promise<NavigationContainerRefWithCurrent<ParamListBase>> {
   const navigationRef: NavigationContainerRefWithCurrent<ParamListBase> =
     createNavigationContainerRef<ParamListBase>();
   const Wrapper: React.ComponentType<{ children: React.ReactNode }> =
     createQueryWrapper(createTestQueryClient());
+  const app: React.JSX.Element = (
+    <Wrapper>
+      <NavigationContainer ref={navigationRef}>
+        <InboxStackNavigator />
+      </NavigationContainer>
+    </Wrapper>
+  );
   await render(
     <SafeAreaInsetsContext.Provider
       value={{ top: 24, right: 0, bottom: 16, left: 0 }}
     >
-      <Wrapper>
-        <NavigationContainer ref={navigationRef}>
-          <InboxStackNavigator />
-        </NavigationContainer>
-      </Wrapper>
+      {postureSource ? (
+        <WindowLayoutProvider postureSource={postureSource}>
+          {app}
+        </WindowLayoutProvider>
+      ) : (
+        app
+      )}
     </SafeAreaInsetsContext.Provider>,
   );
   return navigationRef;
@@ -430,6 +441,131 @@ describe("Nothing is lost when the phone folds and unfolds", () => {
     expect(
       within(screen.getByTestId("list-pane")).getByLabelText(CHECKOUT_LABEL),
     ).toBeSelected();
+    expect(inboxRoutes(navigationRef)).toEqual(["InboxList", "IncidentDetail"]);
+  });
+});
+
+describe("Half closing the phone on a table loses nothing either", () => {
+  /*
+   * The posture comes from the platform; a stand-in source reports it here.
+   * The inner screen on its side, an incident open beside the inbox and a
+   * note half written, is half closed into a tabletop: the incident moves
+   * above the fold and the inbox below it, and the note is exactly as far
+   * along as it was. Opened flat again, everything is back side by side.
+   */
+  const SIZE: { width: number; height: number } =
+    TEST_WINDOWS.innerScreenOnItsSide;
+  const FLAT: FoldReport = {
+    windowWidth: SIZE.width,
+    windowHeight: SIZE.height,
+    folds: [],
+  };
+  const HALF_CLOSED: FoldReport = {
+    windowWidth: SIZE.width,
+    windowHeight: SIZE.height,
+    folds: [
+      {
+        x: 0,
+        y: SIZE.height / 2,
+        width: SIZE.width,
+        height: 0,
+        orientation: "horizontal",
+        separating: true,
+      },
+    ],
+  };
+
+  function postureSource(): PostureSource & {
+    emit: (report: FoldReport) => void;
+  } {
+    let current: FoldReport = FLAT;
+    const listeners: Set<(report: FoldReport | null) => void> = new Set();
+    return {
+      getCurrent: (): FoldReport => {
+        return current;
+      },
+      subscribe: (listener: (report: FoldReport | null) => void) => {
+        listeners.add(listener);
+        return (): void => {
+          listeners.delete(listener);
+        };
+      },
+      emit: (report: FoldReport): void => {
+        current = report;
+        for (const listener of Array.from(listeners)) {
+          listener(report);
+        }
+      },
+    };
+  }
+
+  test("a half-written note survives the tabletop and the way back", async () => {
+    setWindowSize(SIZE);
+    const source: ReturnType<typeof postureSource> = postureSource();
+    const navigationRef: NavigationContainerRefWithCurrent<ParamListBase> =
+      await renderInbox(source);
+
+    await fireEvent.press(screen.getByLabelText(CHECKOUT_LABEL));
+    await fireEvent.press(screen.getByTestId("add-note-button"));
+    await fireEvent.changeText(
+      screen.getByTestId("add-note-input"),
+      "Rolled back to v1.42; error rate falling",
+    );
+
+    await act(async () => {
+      source.emit(HALF_CLOSED);
+    });
+
+    // The incident above the fold, the inbox below it, the note untouched.
+    expect(screen.getByTestId("pane-fold-line")).toBeTruthy();
+    expect(
+      within(screen.getByTestId("detail-pane")).getByRole("header", {
+        name: "Checkout is down",
+      }),
+    ).toBeTruthy();
+    expect(
+      within(screen.getByTestId("list-pane")).getByLabelText(CHECKOUT_LABEL),
+    ).toBeSelected();
+    expect(screen.getByTestId("add-note-sheet")).toBeTruthy();
+    expect(screen.getByTestId("add-note-input")).toHaveProp(
+      "value",
+      "Rolled back to v1.42; error rate falling",
+    );
+    // Half a screen below the fold: the Inbox title gives its height to the list.
+    expect(screen.queryByRole("header", { name: "Inbox" })).toBeNull();
+
+    await act(async () => {
+      source.emit(FLAT);
+    });
+
+    expect(screen.getByTestId("list-pane")).toHaveStyle({
+      borderRightWidth: 1,
+    });
+    expect(screen.getByTestId("add-note-input")).toHaveProp(
+      "value",
+      "Rolled back to v1.42; error rate falling",
+    );
+    expect(inboxRoutes(navigationRef)).toEqual(["InboxList", "IncidentDetail"]);
+  });
+
+  test("below the fold, another incident from the list replaces the one above", async () => {
+    setWindowSize(SIZE);
+    const source: ReturnType<typeof postureSource> = postureSource();
+    const navigationRef: NavigationContainerRefWithCurrent<ParamListBase> =
+      await renderInbox(source);
+    await act(async () => {
+      source.emit(HALF_CLOSED);
+    });
+
+    await fireEvent.press(
+      within(screen.getByTestId("list-pane")).getByLabelText(CHECKOUT_LABEL),
+    );
+
+    expect(
+      within(screen.getByTestId("detail-pane")).getByRole("header", {
+        name: "Checkout is down",
+      }),
+    ).toBeTruthy();
     expect(inboxRoutes(navigationRef)).toEqual(["InboxList", "IncidentDetail"]);
   });
 });

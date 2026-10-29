@@ -569,6 +569,24 @@ jobs:
           Tests/Server/Services/CloudResourceMonitoredSweepsPostgres.test.ts
           --forceExit
 
+      # Clones the migrated tables a Traffic page's names are read from
+      # (Address Names, devices, hosts, cloud resources, Kubernetes) into an
+      # isolated schema and resolves names against them: whole-value address
+      # lists, jsonb endpoints and node addresses, subnets, archived rows,
+      # find by name - SQL only a real database can check (issue #5340).
+      - name: Test the Traffic pages' address names against Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_NETWORK_ADDRESS_NAMES_TESTS: "true"
+          NETWORK_ADDRESS_NAMES_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          NETWORK_ADDRESS_NAMES_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          NETWORK_ADDRESS_NAMES_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/NetworkFlow/NetworkAddressNamesPostgres.test.ts
+          --forceExit
+
       # Clones the migrated IncidentAlert (and its FKs/unique index) into an
       # isolated schema, so it must run after the registered migrations.
       - name: Test IncidentAlert link table on migrated Postgres
@@ -1685,6 +1703,25 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/DashboardWidgetSortPostgres.test.ts
+          --forceExit
+
+      # DatabaseService takes a page of a joined read in one query where one
+      # query gives the same page (PagedFind: every join to-one, or a record
+      # named by its primary key); TypeORM takes it in two. Holds both to
+      # the same pages of monitors, monitor probes and incidents with their
+      # relations, ties and deleted rows. Clones the migrated tables into an
+      # isolated schema.
+      - name: Test one-query pages of joined reads on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PAGED_FIND_TESTS: "true"
+          PAGED_FIND_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PAGED_FIND_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PAGED_FIND_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/PagedFindPostgres.test.ts
           --forceExit
 
       # Clones the migrated alert, note, service, AI insight, team, API key

@@ -7,17 +7,19 @@ import ObjectID from "../../../Types/ObjectID";
 import { getOnCallPolicyRepeatsAllowed } from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyRepeat";
 import {
   ON_CALL_POLICY_RUN_EVERYBODY_PASSED_ON_MESSAGE,
+  ON_CALL_POLICY_RUN_NOBODY_NOTIFIED_MESSAGE,
   ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE,
 } from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunEnding";
+import { isOnCallPageLineReached } from "../../../Types/OnCallDutyPolicy/OnCallEmptyLevel";
 import OnCallDutyExecutionLogTimelineStatus from "../../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import OnCallDutyPolicyStatus from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
-import PositiveNumber from "../../../Types/PositiveNumber";
 import OnCallDutyPolicyEscalationRuleService, {
   OnCallRuleExecutionOutcome,
 } from "../../Services/OnCallDutyPolicyEscalationRuleService";
 import OnCallDutyPolicyExecutionLogService from "../../Services/OnCallDutyPolicyExecutionLogService";
 import OnCallDutyPolicyExecutionLogTimelineService from "../../Services/OnCallDutyPolicyExecutionLogTimelineService";
 import QueryHelper from "../../Types/Database/QueryHelper";
+import Select from "../../Types/Database/Select";
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 
@@ -25,13 +27,15 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
  * MOVING AN ON-CALL POLICY'S RUN ON TO ITS NEXT ESCALATION RULE.
  *
  * A run pages its first escalation rule when it starts, then waits the
- * rule's "Escalate after" for somebody to acknowledge. Two things move it
- * on, and both come here, so a run moves on in one way only:
+ * rule's "Escalate after" for somebody to acknowledge. Three things move it
+ * on, and all of them come here, so a run moves on in one way only:
  *
  * - the worker (OnCallDutyPolicyExecutionLog:ExecutePendingExecutions),
  *   every minute, once the wait has run out;
  * - the person being paged passing the page on (OnCallPagePassOn), straight
- *   away, when nobody else on the current rule is left to take it.
+ *   away, when nobody else on the current rule is left to take it;
+ * - the run itself, straight away, when the rule it starts with pages
+ *   nobody (moveOnAtOnce): there is nobody to wait for.
  *
  * Moving on is CLAIMED first: one atomic conditional UPDATE of the run
  * (claimEscalationAdvance), so a pass and a worker tick that land in the same
@@ -45,10 +49,19 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
  * acknowledged", "nobody was notified", or, when everybody it paged passed
  * the page on, "everybody it paged passed it on".
  *
- * A rule whose people have ALL passed the page on already pages nobody, and
- * waiting out its wait would only hold up the people the page is passed on
- * to: the run moves past it at once (OnCallRuleExecutionOutcome.movesOnAtOnce),
- * claiming again for each such rule.
+ * A LEVEL WITH NOBODY TO PAGE IS PASSED AT ONCE (Types/OnCallDutyPolicy/
+ * OnCallEmptyLevel). A rule that reached nobody - it names nobody, its
+ * teams are empty, nobody is on call in its schedules, everybody it names is
+ * away, has left, has passed the page on or cannot be reached - holds no
+ * wait: the run moves past it at once (OnCallRuleExecutionOutcome.
+ * movesOnAtOnce), claiming again for each such rule. So a policy whose Level
+ * 1 has nobody pages Level 2 the moment it starts, not Level 1's wait later.
+ *
+ * A PASS THAT REACHED NOBODY IS NOT REPEATED. When the run comes to the end
+ * of its rules and not one rule of the pass it is in reached anybody, going
+ * round again at once would page nobody again, and going round with waits
+ * would only wait: the run ends there, saying nobody was paged. A pass that
+ * reached somebody repeats as its policy says.
  */
 
 export enum OnCallEscalationAdvanceKind {
@@ -80,20 +93,111 @@ export interface OnCallEscalationAdvanceResult {
 }
 
 /*
- * What a run that went through every rule and every repeat and reached
- * nobody at all says.
+ * What a run that went through every rule and reached nobody at all says,
+ * and who can put it right (OnCallDutyPolicyRunEnding).
  */
-export const ON_CALL_POLICY_RUN_NOBODY_NOTIFIED_MESSAGE: string =
-  "Execution completed, but no one was notified. Every escalation rule in this policy reached no one - usually because the on-call schedules it targets had nobody on call.";
+export { ON_CALL_POLICY_RUN_NOBODY_NOTIFIED_MESSAGE };
 
 /*
- * How many rules one advance moves through at most, each paging nobody
- * because everybody in it passed the page on. Far more than any policy has
- * rules times repeats; a guard against a loop, not a limit anybody meets.
+ * How many rules one advance moves through at most, each paging nobody.
+ * An empty pass is never repeated, so an advance goes through at most the
+ * rest of one pass and one more; this is a guard against a loop, not a
+ * limit anybody meets.
  */
 const MAX_RULES_IN_ONE_ADVANCE: number = 200;
 
+// The run, read as the worker reads it, for moving it on at once.
+const RUN_SELECT: Select<OnCallDutyPolicyExecutionLog> = {
+  _id: true,
+  projectId: true,
+  status: true,
+  onCallDutyPolicyId: true,
+  lastEscalationRuleExecutedAt: true,
+  lastExecutedEscalationRuleId: true,
+  lastExecutedEscalationRuleOrder: true,
+  executeNextEscalationRuleInMinutes: true,
+  userNotificationEventType: true,
+  triggeredByIncidentId: true,
+  triggeredByAlertId: true,
+  triggeredByAlertEpisodeId: true,
+  triggeredByIncidentEpisodeId: true,
+  createdAt: true,
+  pageAgainNumber: true,
+  onCallDutyPolicy: {
+    repeatPolicyIfNoOneAcknowledges: true,
+    repeatPolicyIfNoOneAcknowledgesNoOfTimes: true,
+  },
+  onCallPolicyExecutionRepeatCount: true,
+};
+
+// What a run that could not be moved on at once says, when it says nothing.
+export const ON_CALL_POLICY_RUN_MOVE_ON_FAILED_MESSAGE: string =
+  "Error occurred while executing the on-call policy.";
+
 export default class OnCallEscalationAdvance {
+  /*
+   * MOVES A RUN ON AT ONCE FROM THE RULE IT HAS JUST STARTED WITH, which
+   * reached nobody (OnCallRuleExecutionOutcome.movesOnAtOnce): its first
+   * rule, as it starts (OnCallDutyPolicyExecutionLogService), or the rule a
+   * page again starts at. There is nobody on that rule to wait for.
+   *
+   * The run is read again first, as the worker reads it, so the claim
+   * compares what starting the rule wrote. A run that is no longer paging
+   * is left as it is. A move that fails ends the run with an error that says
+   * why, as the worker's own would: its record's feed and its Slack and
+   * Microsoft Teams message say so. Never throws: the run starting is not to
+   * fail because moving it on did.
+   */
+  @CaptureSpan()
+  public static async moveOnAtOnce(data: {
+    runId: ObjectID;
+  }): Promise<OnCallEscalationAdvanceResult | null> {
+    try {
+      const run: OnCallDutyPolicyExecutionLog | null =
+        await OnCallDutyPolicyExecutionLogService.findOneById({
+          id: data.runId,
+          select: RUN_SELECT,
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (!run || run.status !== OnCallDutyPolicyStatus.Executing) {
+        return null;
+      }
+
+      return await this.advance({
+        run: run,
+        now: OneUptimeDate.getCurrentDate(),
+        isCurrentRuleEmpty: true,
+      });
+    } catch (err) {
+      logger.error(
+        `Could not move on-call execution log ${data.runId.toString()} on at once from a rule that paged nobody.`,
+      );
+      logger.error(err as Error);
+
+      try {
+        await OnCallDutyPolicyExecutionLogService.updateOneById({
+          id: data.runId,
+          data: {
+            status: OnCallDutyPolicyStatus.Error,
+            statusMessage:
+              (err as Error)?.message ||
+              ON_CALL_POLICY_RUN_MOVE_ON_FAILED_MESSAGE,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      } catch (updateError) {
+        logger.error(updateError as Error);
+      }
+
+      return null;
+    }
+  }
+
   /*
    * Moves a run on to its next escalation rule now, as the worker does once
    * the current rule's wait has run out.
@@ -104,11 +208,17 @@ export default class OnCallEscalationAdvance {
    * started, its pass (onCallPolicyExecutionRepeatCount) and what it pages
    * about. Its lastEscalationRuleExecutedAt is what the claim compares: a
    * run read before somebody else moved it on loses the claim.
+   *
+   * `isCurrentRuleEmpty`: the rule the run is on reached nobody, and the
+   * run moves on from it at once (moveOnAtOnce). Otherwise the rule reached
+   * somebody - its wait ran out, or they passed the page on - and so has
+   * the pass the run is in.
    */
   @CaptureSpan()
   public static async advance(data: {
     run: OnCallDutyPolicyExecutionLog;
     now: Date;
+    isCurrentRuleEmpty?: boolean | undefined;
   }): Promise<OnCallEscalationAdvanceResult> {
     const run: OnCallDutyPolicyExecutionLog = data.run;
     const runId: ObjectID = run.id!;
@@ -143,11 +253,26 @@ export default class OnCallEscalationAdvance {
     let repeatCount: number | undefined = run.onCallPolicyExecutionRepeatCount;
     let lastStarted: OnCallEscalationAdvanceResult | null = null;
 
+    /*
+     * Whether the pass the run is in - its levels from the first to the
+     * last, once round - has reached anybody. A rule that reached somebody
+     * holds the run until its wait runs out, so within one advance only the
+     * rule the run is on can have; every rule started here and moved past
+     * reached nobody. A pass that reached nobody is not repeated.
+     *
+     * A run that moves on at once from a level after the first - a page
+     * again starts at the level that was paging - has not been through the
+     * levels before it in this pass: it may repeat, to reach them.
+     */
+    let hasPassReachedAnybody: boolean =
+      !data.isCurrentRuleEmpty ||
+      (run.lastExecutedEscalationRuleOrder || 0) > 1;
+
     for (let step: number = 0; step < MAX_RULES_IN_ONE_ADVANCE; step++) {
       /*
-       * The rule just started paged nobody, because everybody in it had
-       * passed the page on: the run moves past it at once - claimed again,
-       * as any move on is.
+       * The rule just started paged nobody: the run moves past it at once -
+       * claimed again, as any move on is. A run that ended meanwhile - its
+       * page was acknowledged - or that somebody else moved on is left.
        */
       if (step > 0 && !(await this.claimAgain(runId))) {
         return lastStarted!;
@@ -202,6 +327,25 @@ export default class OnCallEscalationAdvance {
       );
 
       /*
+       * Not one rule of this pass reached anybody: going round again would
+       * page nobody again - at once, or after waits that wait for nobody.
+       * The run ends here, as one that went through every rule.
+       */
+      if (!hasPassReachedAnybody) {
+        logger.debug(
+          `Execution log ${runId.toString()} went through a pass that paged nobody; not repeating it.`,
+          {
+            projectId: run.projectId?.toString(),
+          } as LogAttributes,
+        );
+
+        return await this.endAfterEveryRule({
+          run: run,
+          passedOnUserIds: passedOnUserIds,
+        });
+      }
+
+      /*
        * check if we need to repeat this execution.
        * onCallPolicyExecutionRepeatCount is seeded to 1 on create (the initial
        * pass), and the policy's repeats (getOnCallPolicyRepeatsAllowed) are
@@ -235,6 +379,9 @@ export default class OnCallEscalationAdvance {
         });
 
         repeatCount = newRepeatCount;
+
+        // A new pass: it has reached nobody yet.
+        hasPassReachedAnybody = false;
 
         // get first escalation rule.
         const firstEscalationRule: OnCallDutyPolicyEscalationRule | null =
@@ -498,8 +645,10 @@ export default class OnCallEscalationAdvance {
   /*
    * The run went through every rule and every repeat with nobody
    * acknowledging. Derived from the timeline rather than tracked in a
-   * counter column: a row has a recipient exactly when somebody was
-   * notified, so this cannot drift from what really happened.
+   * counter column, so this cannot drift from what really happened: the
+   * run notified somebody when a line of a person says their page went out
+   * - sent, acknowledged or escalated. A person skipped (away, gone, opted
+   * out) or whose page failed as it was sent was not notified.
    *
    * "Completed" on its own is ambiguous: a policy that walked every
    * escalation rule and paged nobody - because each rule targeted a schedule
@@ -514,18 +663,14 @@ export default class OnCallEscalationAdvance {
     run: OnCallDutyPolicyExecutionLog;
     passedOnUserIds: Array<ObjectID>;
   }): Promise<OnCallEscalationAdvanceResult> {
-    const notifiedCount: PositiveNumber =
-      await OnCallDutyPolicyExecutionLogTimelineService.countBy({
-        query: {
-          onCallDutyPolicyExecutionLogId: data.run.id!,
-          alertSentToUserId: QueryHelper.notNull(),
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+    const lines: Array<OnCallDutyPolicyExecutionLogTimeline> =
+      await this.readPersonLines(data.run.id!);
 
-    const notifiedSomeone: boolean = notifiedCount.toNumber() > 0;
+    const notifiedSomeone: boolean = lines.some(
+      (line: OnCallDutyPolicyExecutionLogTimeline): boolean => {
+        return isOnCallPageLineReached(line.status);
+      },
+    );
 
     if (!notifiedSomeone) {
       return await this.end({
@@ -536,8 +681,7 @@ export default class OnCallEscalationAdvance {
     }
 
     const everybodyPassedItOn: boolean =
-      data.passedOnUserIds.length > 0 &&
-      (await this.hasEverybodyPassedItOn(data.run.id!));
+      data.passedOnUserIds.length > 0 && this.isEverybodyReachedPassedOn(lines);
 
     return await this.end({
       run: data.run,
@@ -557,6 +701,13 @@ export default class OnCallEscalationAdvance {
   public static async hasEverybodyPassedItOn(
     runId: ObjectID,
   ): Promise<boolean> {
+    return this.isEverybodyReachedPassedOn(await this.readPersonLines(runId));
+  }
+
+  // A run's timeline lines about a person: who, and how their page went.
+  private static async readPersonLines(
+    runId: ObjectID,
+  ): Promise<Array<OnCallDutyPolicyExecutionLogTimeline>> {
     const lines: Array<OnCallDutyPolicyExecutionLogTimeline> =
       await OnCallDutyPolicyExecutionLogTimelineService.findBy({
         query: {
@@ -574,7 +725,7 @@ export default class OnCallEscalationAdvance {
         },
       });
 
-    return this.isEverybodyReachedPassedOn(lines || []);
+    return lines || [];
   }
 
   /*

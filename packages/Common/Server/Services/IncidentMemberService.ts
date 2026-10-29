@@ -4,7 +4,6 @@ import Model from "../../Models/DatabaseModels/IncidentMember";
 import IncidentFeedService from "./IncidentFeedService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import { Gray500, Red500 } from "../../Types/BrandColors";
-import User from "../../Models/DatabaseModels/User";
 import UserService from "./UserService";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
@@ -19,8 +18,11 @@ import IncidentRole from "../../Models/DatabaseModels/IncidentRole";
 import IncidentRoleService from "./IncidentRoleService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import TeamMemberService from "./TeamMemberService";
-import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import { MarkdownText, mdText } from "../../Utils/Markdown/FeedMarkdown";
 import FeedApiKeyActorUtil from "../Utils/Feed/FeedApiKeyActor";
+import IncidentRoleFeedText, {
+  IncidentRoleAssignmentCause,
+} from "../Utils/Incident/IncidentRoleFeedText";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -129,15 +131,14 @@ export class Service extends ProjectReferencesService<Model> {
       const incidentRoleId: ObjectID | undefined = item.incidentRoleId;
 
       if (incidentId && userId && projectId) {
-        const user: User | null = await UserService.findOneById({
-          id: userId,
-          select: {
-            name: true,
-            email: true,
-          },
-          props: {
-            isRoot: true,
-          },
+        /*
+         * The person taken off the role, as a link to them - by their
+         * name, or their email when they never gave one. Nobody is named
+         * for a person who is gone.
+         */
+        const person: MarkdownText = await UserService.getUserMarkdownString({
+          userId: userId,
+          projectId: projectId,
         });
 
         let roleName: string = "Member";
@@ -167,19 +168,34 @@ export class Service extends ProjectReferencesService<Model> {
           incidentNumberResult.numberWithPrefix ||
           "#" + incidentNumberResult.number;
 
-        if (user && user.name) {
+        if (!person.isEmpty()) {
+          const incident: MarkdownText = mdText`[Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()})`;
+
+          /*
+           * By whoever took them off - the person (the message in Slack
+           * and Teams opens with them too), the API key, the workflow -
+           * never the person taken off, unless they left the role
+           * themselves.
+           */
           await IncidentFeedService.createIncidentFeedItem({
             incidentId: incidentId,
             projectId: projectId,
             incidentFeedEventType: IncidentFeedEventType.IncidentMemberRemoved,
             displayColor: Red500,
-            feedInfoInMarkdown:
-              mdText`👤 Removed **${user.name.toString()}** (${user.email?.toString()}) as **${roleName}** from [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}).`.toString(),
+            feedInfoInMarkdown: IncidentRoleFeedText.getRemovedMarkdown({
+              roleName: roleName,
+              incident: incident,
+              person: person,
+              isSelf: deleteByUserId?.toString() === userId.toString(),
+              workflowName: IncidentRoleFeedText.getWorkflowName(
+                onDelete.deleteBy.props,
+              ),
+            }).toString(),
             userId: deleteByUserId || undefined,
             apiKeyActor: FeedApiKeyActorUtil.fromProps(onDelete.deleteBy.props),
             workspaceNotification: {
               sendWorkspaceNotification: true,
-              notifyUserId: userId || undefined,
+              leadWithAuthor: true,
             },
           });
         }
@@ -198,8 +214,21 @@ export class Service extends ProjectReferencesService<Model> {
     const projectId: ObjectID | undefined = createdItem.projectId;
     const userId: ObjectID | undefined = createdItem.userId;
     const incidentRoleId: ObjectID | undefined = createdItem.incidentRoleId;
-    const createdByUserId: ObjectID | undefined =
-      createdItem.createdByUserId || onCreate.createBy.props.userId;
+    /*
+     * Why OneUptime gave the role by itself - the first person to change
+     * the incident's state becomes its commander, a monitor's criteria
+     * name people for its incidents - when it did (IncidentRoleFeedText).
+     * The entry then says so, and has no author: nobody did it by hand.
+     */
+    const cause: IncidentRoleAssignmentCause | null =
+      IncidentRoleFeedText.readCause({
+        miscDataProps: onCreate.createBy.miscDataProps,
+        props: onCreate.createBy.props,
+      });
+
+    const createdByUserId: ObjectID | undefined = cause
+      ? undefined
+      : createdItem.createdByUserId || onCreate.createBy.props.userId;
 
     if (incidentId && userId && projectId) {
       let roleName: string = "Member";
@@ -231,21 +260,36 @@ export class Service extends ProjectReferencesService<Model> {
         "#" + incidentNumberResult.number;
 
       if (userId) {
+        const incident: MarkdownText = mdText`[Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()})`;
+
+        /*
+         * By whoever gave the role - the person (the message in Slack and
+         * Teams opens with them too), the API key, the workflow, the monitor
+         * - never the person given it, unless they took it themselves.
+         */
         await IncidentFeedService.createIncidentFeedItem({
           incidentId: incidentId,
           projectId: projectId,
           incidentFeedEventType: IncidentFeedEventType.IncidentMemberAdded,
           displayColor: Gray500,
-          feedInfoInMarkdown:
-            mdText`👤 Added **${await UserService.getUserMarkdownString({
+          feedInfoInMarkdown: IncidentRoleFeedText.getAddedMarkdown({
+            roleName: roleName,
+            incident: incident,
+            person: await UserService.getUserMarkdownString({
               userId: userId,
               projectId: projectId,
-            })}** as **${roleName}** to [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}).`.toString(),
+            }),
+            isSelf: createdByUserId?.toString() === userId.toString(),
+            workflowName: IncidentRoleFeedText.getWorkflowName(
+              onCreate.createBy.props,
+            ),
+            cause: cause,
+          }).toString(),
           userId: createdByUserId || undefined,
           apiKeyActor: FeedApiKeyActorUtil.fromProps(onCreate.createBy.props),
           workspaceNotification: {
             sendWorkspaceNotification: true,
-            notifyUserId: userId || undefined,
+            leadWithAuthor: true,
           },
         });
       }

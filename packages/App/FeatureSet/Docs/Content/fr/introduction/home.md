@@ -127,11 +127,19 @@ Deux barres traversent le haut de chaque page.
 
 **Aide** ouvre cette documentation (**Documentation**) et la liste **Raccourcis clavier**, et propose du support par e-mail et sur Slack. Sur un écran étroit, comme un téléphone, **Rechercher**, **Demander à l'IA** et **Aide** disparaissent pour gagner de la place ; la cloche et votre photo restent.
 
+### Pages et listes
+
+Au-dessus du titre de chaque page, un fil comme *Projet › Docker › Paramètres › Règles de propriétaire* indique où se trouve la page. Chaque étape avant la dernière ouvre sa page.
+
+- **Les listes se tiennent à jour d'elles-mêmes.** Quand un incident ou une alerte est créé, pris en compte ou résolu n'importe où, les listes d'incidents, d'alertes et d'épisodes l'affichent en quelques secondes, sans actualiser. Tant que vous êtes au milieu de quelque chose sur une liste, par exemple des lignes cochées ou une boîte de dialogue ouverte, elle attend et se met à jour quand vous avez terminé.
+- **Sur un téléphone, les puces de filtre se replient** derrière **Filtre**, pour que la liste commence plus haut. Les puces que vous avez définies restent visibles, avec **Tout effacer**. Appuyez sur **Filtre** pour voir toutes les puces, et à nouveau pour les replier.
+
 ## Rechercher une page, un paramètre ou une action
 
 Appuyez sur **Cmd+K** (Mac) ou **Ctrl+K** (Windows et Linux), ou cliquez sur l'icône de recherche dans la barre du haut, et commencez à taper. La recherche trouve :
 
 - **Chaque page des menus**, sous le nom que le menu lui donne : Clés API, Zone de danger, Plannings d'astreinte, Gravité de l'incident, vos propres Méthodes de notification. Chaque résultat indique où il se trouve, par exemple *Paramètres du projet › Avancé*, si bien que les pages qui portent le même nom (Champs personnalisés dans Incidents, Alertes et Moniteurs) se distinguent facilement.
+- **Les paramètres d'une page**, sous le nom qu'affiche leur carte ou leur interrupteur : *Exiger le SSO pour la connexion* trouve SSO, et *Canaux de notification* trouve Paramètres de notification. Tapez le nom en anglais ou dans votre langue.
 - **Actions**, d'après ce que vous voulez faire : Déclarer un incident, Créer un moniteur, ou Supprimer le projet, qui ouvre la Zone de danger. Une action qui modifie quelque chose n'est proposée qu'aux personnes autorisées à la faire.
 - **Vos moniteurs, incidents, alertes, pages de statut et politiques d'astreinte**, par leur nom.
 

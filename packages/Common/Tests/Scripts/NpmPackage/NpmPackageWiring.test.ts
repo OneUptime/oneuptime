@@ -9,6 +9,7 @@ import {
   LEFT_OUT,
   NODE_ENGINE,
   PACKAGE_DIRECTORY,
+  PINNED_LEFT_OUT,
   PUBLIC_DIRECTORIES,
   PUBLIC_FILES,
   ROOT_EXPORTS,
@@ -39,6 +40,9 @@ import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
  */
 
 const REPOSITORY_ROOT: string = path.resolve(COMMON_ROOT, "..", "..");
+
+// The end of a PINNED_LEFT_OUT reason: the module of Common's that keeps it out, as (Server/...) or (UI/...).
+const WHAT_IT_LOADS: RegExp = /\(((?:Server|UI)\/[A-Za-z/]+)\)$/;
 
 function read(relative: string): string {
   return fs.readFileSync(path.join(REPOSITORY_ROOT, relative), "utf8");
@@ -208,6 +212,40 @@ describe("the package root, and what is left out on purpose", () => {
     expect(read("packages/Common/Utils/Analytics.ts")).toContain(
       'from "posthog-js"',
     );
+  });
+
+  test("pins every other module it leaves out: each exists under Types/, Utils/ or Models/, says why and what it loads, in order, and none twice", () => {
+    const pinned: Array<string> = Object.keys(PINNED_LEFT_OUT);
+
+    // The build fails on any other set; npm run build-npm-package says which.
+    expect(pinned.length).toBeGreaterThan(10);
+    expect(pinned).toEqual([...pinned].sort());
+
+    for (const [id, why] of Object.entries(PINNED_LEFT_OUT)) {
+      expect({
+        id,
+        source: sourceOf(id) !== null,
+        public: PUBLIC_DIRECTORIES.includes(id.split("/")[0] as string),
+        alsoOnPurpose: id in LEFT_OUT,
+      }).toEqual({ id, source: true, public: true, alsoOnPurpose: false });
+
+      // What it loads that keeps it out, named at the end: (Server/...) or (UI/...).
+      expect({
+        id,
+        why: why.length > 20,
+        names: WHAT_IT_LOADS.test(why),
+      }).toEqual({ id, why: true, names: true });
+      // A module of Common's that is there.
+      const loads: string = (
+        WHAT_IT_LOADS.exec(why) as RegExpExecArray
+      )[1] as string;
+
+      expect({ id, loads, exists: sourceOf(loads) !== null }).toEqual({
+        id,
+        loads,
+        exists: true,
+      });
+    }
   });
 
   test("supports the maintained Node.js lines", () => {

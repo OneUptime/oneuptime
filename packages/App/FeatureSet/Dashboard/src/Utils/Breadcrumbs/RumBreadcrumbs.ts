@@ -118,6 +118,48 @@ export function getRumBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Session Replay",
     ]),
+    /*
+     * Pages that had no trail. Every page this product routes has one:
+     * Common/Tests/App/Dashboard/EveryPageHasATrail fails by name for a
+     * page left out.
+     */
+    ...BuildBreadcrumbLinksByTitles(PageMap.RUM_APPLICATION_VIEW_CLIENTS, [
+      "Project",
+      "Real User Monitoring",
+      "View Application",
+      "Clients",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.RUM_SETTINGS_OWNER_RULES, [
+      "Project",
+      "Real User Monitoring",
+      "Settings",
+      "Owner Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.RUM_SETTINGS_OWNER_RULE_VIEW, [
+      "Project",
+      "Real User Monitoring",
+      "Settings",
+      "Owner Rules",
+      "View Rule",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.RUM_SETTINGS_LABEL_RULES, [
+      "Project",
+      "Real User Monitoring",
+      "Settings",
+      "Label Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.RUM_SETTINGS_LABEL_RULE_VIEW, [
+      "Project",
+      "Real User Monitoring",
+      "Settings",
+      "Label Rules",
+      "View Rule",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.RUM_ARCHIVED, [
+      "Project",
+      "Real User Monitoring",
+      "Archived",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

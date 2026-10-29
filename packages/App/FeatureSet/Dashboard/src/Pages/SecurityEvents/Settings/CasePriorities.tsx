@@ -74,6 +74,7 @@ const SecurityCasePrioritiesPage: FunctionComponent<
         query={archive.query}
         actionButtons={archive.actionButtons}
         getDeleteConfirmation={archive.getDeleteConfirmation}
+        bulkActions={archive.bulkActions}
         refreshToggle={archive.refreshToggle}
         id="security-case-priority-table"
         userPreferencesKey="security-case-priority-table"

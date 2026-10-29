@@ -35,6 +35,23 @@ jobs:
             echo "has_changes=false" >> $GITHUB_OUTPUT
           fi
 
+      # The audit fixes take half an hour, and master moves meanwhile. A branch
+      # built on the master the run started from carries that master's copy of
+      # every workflow file, and GitHub refuses this token a branch whose
+      # workflow files differ from master's ("refusing to allow a GitHub App to
+      # create or update workflow ... without `workflows` permission"), as on
+      # 2026-10-29 when #5393 changed test.app.yaml mid-run. So the fixes move
+      # onto the newest master just before the pull request is made. A lockfile
+      # master changed in the same lines stops the run here, and the next
+      # night's run starts from that master.
+      - name: Put the fixes on the newest master
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          git stash push --include-untracked
+          git fetch --no-tags origin master
+          git reset --hard origin/master
+          git stash pop
+
       - name: Create pull request
         if: steps.changes.outputs.has_changes == 'true'
         uses: peter-evans/create-pull-request@v6

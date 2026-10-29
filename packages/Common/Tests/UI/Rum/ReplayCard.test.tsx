@@ -365,10 +365,94 @@ describe("ReplayCard other sessions and truncation (correlation-8)", () => {
     expect(hrefParams(firstRowLink).get("rail")).toBe("errors");
     expect(hrefParams(firstRowLink).get("at")).toBeNull();
 
-    fireEvent.click(screen.getByTestId("replay-card-show-all"));
+    const showAll: HTMLElement = screen.getByTestId("replay-card-show-all");
+
+    expect(showAll).toHaveTextContent(`Show all ${others.length}`);
+    expect(showAll).toHaveAttribute("aria-expanded", "false");
+
+    fireEvent.click(showAll);
 
     expect(screen.getAllByTestId("replay-card-session-row")).toHaveLength(
       others.length,
+    );
+
+    /*
+     * Issue #5364: Show all used to open the rest for good and go. It is
+     * Show fewer now, the same button, open, naming the list it opened.
+     */
+    const fewer: HTMLElement = screen.getByTestId("replay-card-show-all");
+
+    expect(fewer).toBe(showAll);
+    expect(fewer).toHaveTextContent("Show fewer");
+    expect(fewer).toHaveAttribute("aria-expanded", "true");
+    expect(
+      document.getElementById(fewer.getAttribute("aria-controls") || ""),
+    ).toBe(screen.getAllByTestId("replay-card-session-row")[0]!.closest("ul"));
+  });
+
+  it("Show fewer folds the sessions back to the first ones, and Show all opens them again", async () => {
+    const others: Array<JSONObject> = [];
+
+    for (
+      let index: number = 0;
+      index < REPLAY_CARD_SESSIONS_SHOWN + 3;
+      index++
+    ) {
+      others.push(
+        sessionRow({
+          sessionId: `d${String(index).padStart(31, "0")}`,
+          startTime: new Date(
+            SESSION_START.getTime() - (index + 1) * 60 * 60 * 1000,
+          ).toISOString(),
+        }),
+      );
+    }
+
+    postMock.mockResolvedValue(okResponse([sessionRow(), ...others]));
+
+    renderCard();
+
+    await screen.findByTestId("replay-card-more-sessions");
+
+    const toggle: HTMLElement = screen.getByTestId("replay-card-show-all");
+
+    fireEvent.click(toggle);
+    toggle.focus();
+    fireEvent.click(toggle);
+
+    expect(screen.getAllByTestId("replay-card-session-row")).toHaveLength(
+      REPLAY_CARD_SESSIONS_SHOWN,
+    );
+    expect(toggle).toHaveTextContent(`Show all ${others.length}`);
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(toggle).toHaveFocus();
+
+    fireEvent.click(toggle);
+
+    expect(screen.getAllByTestId("replay-card-session-row")).toHaveLength(
+      others.length,
+    );
+  });
+
+  it("draws no Show all when every other session fits", async () => {
+    const others: Array<JSONObject> = [];
+
+    for (let index: number = 0; index < REPLAY_CARD_SESSIONS_SHOWN; index++) {
+      others.push(
+        sessionRow({
+          sessionId: `e${String(index).padStart(31, "0")}`,
+        }),
+      );
+    }
+
+    postMock.mockResolvedValue(okResponse([sessionRow(), ...others]));
+
+    renderCard();
+
+    await screen.findByTestId("replay-card-more-sessions");
+
+    expect(screen.getAllByTestId("replay-card-session-row")).toHaveLength(
+      REPLAY_CARD_SESSIONS_SHOWN,
     );
     expect(screen.queryByTestId("replay-card-show-all")).toBeNull();
   });

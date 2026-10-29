@@ -98,7 +98,7 @@ describe("PermissionGate.checkColumnUpdate", () => {
 
     expect(result.isAllowed).toBe(false);
     expect(result.disabledReason).toBe(
-      "You do not have permission to update this Project. You need one of these permissions: Project Owner, Project Admin, Edit Project.",
+      "You do not have permission to update this Project. You need this permission: Edit Project.",
     );
   });
 
@@ -138,7 +138,9 @@ describe("PermissionGate.checkColumnUpdate", () => {
       PermissionGate.check(new Monitor(), ModelAction.Update),
     );
     expect(result.isAllowed).toBe(false);
-    expect(result.disabledReason).toContain("Edit Monitor.");
+    expect(result.disabledReason).toBe(
+      "You do not have permission to update this Monitor. You need this permission: Edit Monitor.",
+    );
   });
 
   test("without the record's permission, it answers what the record's gate answers", () => {
@@ -222,16 +224,19 @@ describe("PermissionGate.checkColumnUpdate", () => {
  */
 describe("PermissionGate.checkColumnUpdate, refused by the record's own gate", () => {
   const OWNER_OR_ADMIN: string =
-    "You do not have permission to update this Project. You need one of these permissions: Project Owner, Project Admin.";
+    "You do not have permission to update this Project. You need one of these roles: Project Owner, Project Admin.";
 
   test.each(["limitIncidentsToOneEpisode", "limitAlertsToOneEpisode"])(
     "a Viewer's lock on the Project's %s switch names only Project Owner and Project Admin",
     (column: string) => {
       permissionsForTest = [Permission.Viewer];
 
+      // The record's own list is wider: billing and Edit Project open it.
       expect(
         PermissionGate.check(new Project(), ModelAction.Update).disabledReason,
-      ).toContain("Billing Admin");
+      ).toBe(
+        "You do not have permission to update this Project. You need one of these permissions: Manage Billing, Edit Project.",
+      );
 
       const result: PermissionGateResult = PermissionGate.checkColumnUpdate(
         new Project(),
@@ -257,7 +262,7 @@ describe("PermissionGate.checkColumnUpdate, refused by the record's own gate", (
         "doNotAddGlobalProbesByDefaultOnNewMonitors",
       ).disabledReason,
     ).toBe(
-      "You do not have permission to update this Project. You need one of these permissions: Project Owner, Project Admin, Edit Project.",
+      "You do not have permission to update this Project. You need this permission: Edit Project.",
     );
   });
 
@@ -289,7 +294,7 @@ describe("PermissionGate.checkColumnUpdate, refused by the record's own gate", (
         { singularName: "Project Setting" },
       ).disabledReason,
     ).toBe(
-      "You do not have permission to update this Project Setting. You need one of these permissions: Project Owner, Project Admin.",
+      "You do not have permission to update this Project Setting. You need one of these roles: Project Owner, Project Admin.",
     );
 
     expect(
@@ -299,7 +304,7 @@ describe("PermissionGate.checkColumnUpdate, refused by the record's own gate", (
         { sentence: "You cannot change how episodes take incidents." },
       ).disabledReason,
     ).toBe(
-      "You cannot change how episodes take incidents. You need one of these permissions: Project Owner, Project Admin.",
+      "You cannot change how episodes take incidents. You need one of these roles: Project Owner, Project Admin.",
     );
   });
 
@@ -405,7 +410,7 @@ describe("PermissionGate.getMissingPermissionMessage is unchanged", () => {
         ModelAction.Update,
       ),
     ).toBe(
-      "You do not have permission to update this Project. You need one of these permissions: Project Owner, Project Admin, Billing Admin, Billing Member, Manage Billing, Edit Project.",
+      "You do not have permission to update this Project. You need one of these permissions: Manage Billing, Edit Project.",
     );
   });
 });

@@ -68,7 +68,7 @@ Il menu Rete tiene in vista ciò che apri ogni giorno: **Panoramica**, **Disposi
 | --- | --- |
 | **Topologia** | **Device Topology**, **Endpoint**, **Latency Matrix**, **Site Links**, **Device Links** |
 | **Regole** | **Auto Import Rules**, **Site Assignment Rules**, **Regole del proprietario**, **Regole etichette**, **Link Rules** |
-| **Impostazioni** | **Alert Policies**, **Credenziali SNMP**, **Device Roles**, **Site Types**, **OID Collection Templates** |
+| **Impostazioni** | **Alert Policies**, **Credenziali SNMP**, **Device Roles**, **Site Types**, **Nomi indirizzo**, **OID Collection Templates** |
 | **Avanzato** | **Archived Devices** |
 
 ## Aggiungere un dispositivo di rete
@@ -514,6 +514,10 @@ Un dispositivo solo ping mantiene il nome e l'indirizzo che gli hai dato tu, o u
 
 Questi valori sono tenuti accanto ai campi del dispositivo, mai scritti al loro interno, e ogni scansione, walk di un router o polling che ne rilegge uno lo aggiorna. La panoramica del dispositivo e il suo elemento nell'inventario indicano quale scansione, router o sonda ha letto ogni valore, e quando. Un valore che hai salvato sul dispositivo non viene mai sostituito. Quando una scansione trova un'altra macchina all'indirizzo del dispositivo, per esempio un lease DHCP che si è spostato, la panoramica lo dice, e non si usa nulla di ciò che quella scansione vi ha letto.
 
+Uno switch, un access point o un'appliance Meraki non fornisce via SNMP né numero di serie, né modello, né firmware: Meraki non implementa ENTITY-MIB. Quando una [connessione Meraki](/docs/monitor/network-traffic#cisco-meraki-senza-netflow) legge la sua organizzazione, il dispositivo prende questi valori, e tutto ciò che il suo polling lascia vuoto, dalla dashboard di Meraki, e la sua scheda **Inventario** nomina la connessione in una riga **Meraki**.
+
+Per rileggere subito un dispositivo, premi **Aggiorna** nella sua scheda **Inventario**. La sua sonda lo interroga entro un minuto e la sua connessione Meraki rilegge l'organizzazione. La scheda dice quando è arrivata la nuova lettura, o che la sonda non è riuscita a raggiungere il dispositivo. **Aggiorna** c'è per chi può modificare i dispositivi di rete, su un dispositivo che una sonda interroga o che una connessione Meraki descrive.
+
 ## Rilevare i dispositivi con una scansione di rete
 
 Invece di aggiungere i dispositivi uno alla volta, scansiona un intervallo di indirizzi da una sonda e importa ciò che risponde.
@@ -756,6 +760,12 @@ Per crearne uno invece da **Monitor**:
 3. Scegli il dispositivo di rete su cui ricevere avvisi. Tutto ciò che riguarda la raccolta dei dati — hostname, credenziali, pianificazione, walk delle interfacce, OID di salute — viene dal dispositivo; il monitor sceglie solo su cosa generare avvisi, tramite i suoi criteri.
 
 Un monitor del dispositivo di rete non ha un intervallo proprio: viene valutato ogni volta che arrivano i risultati di polling del dispositivo, e ogni volta che arriva un trap dal dispositivo.
+
+### Incidenti e avvisi di un dispositivo
+
+Un incidente o un avviso può riguardare un dispositivo di rete. Scegli il dispositivo in **Altre risorse interessate** quando dichiari un incidente o crei un avviso, oppure lascia che lo colleghi un monitor: ciò che un monitor genera viene collegato al dispositivo su cui riferisce — il dispositivo che un monitor del dispositivo di rete sorveglia, il dispositivo associato al monitor e il dispositivo per cui un'importazione di discovery ha creato il monitor.
+
+Le pagine **Incidenti** e **Avvisi** del dispositivo, sotto **Attività** nel suo menu, elencano ciò che vi è collegato, e il menu e la panoramica del dispositivo contano quelli aperti. **Dichiara incidente** e **Crea avviso** in quelle pagine partono con il dispositivo già scelto.
 
 ### Valori predefiniti dei campi personalizzati
 

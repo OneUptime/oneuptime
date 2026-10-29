@@ -212,7 +212,7 @@ describe("getWorkflowRunGate", () => {
     expect(getWorkflowRunGate()).toEqual({
       isAllowed: false,
       disabledReason:
-        "You do not have permission to run this workflow. You need one of these permissions: Project Owner, Project Admin, Edit Workflow, Workflow Admin, Workflow Member.",
+        "You do not have permission to run this workflow. You need this permission: Edit Workflow.",
     });
   });
 
@@ -253,7 +253,7 @@ describe("getWorkflowStepRunGate", () => {
     expect(getWorkflowStepRunGate()).toEqual({
       isAllowed: false,
       disabledReason:
-        "Running one step on its own takes permission to edit this workflow. You need one of these permissions: Project Owner, Project Admin, Edit Workflow, Workflow Admin.",
+        "Running one step on its own takes permission to edit this workflow. You need this permission: Edit Workflow.",
     });
   });
 
@@ -321,7 +321,7 @@ describe("getWorkflowEditGate", () => {
     expect(getWorkflowEditGate()).toEqual({
       isAllowed: false,
       disabledReason:
-        "Changing this workflow takes permission to edit it. You need one of these permissions: Project Owner, Project Admin, Edit Workflow, Workflow Admin.",
+        "Changing this workflow takes permission to edit it. You need this permission: Edit Workflow.",
     });
   });
 

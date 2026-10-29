@@ -1818,8 +1818,11 @@ describe("Project Settings → AI → AI Features", () => {
       const row: HTMLElement = screen.getByTestId(
         `${ENABLE_AI_SWITCH_TEST_ID}-row`,
       );
-      expect(row).toHaveTextContent("Project Owner");
-      expect(row).toHaveTextContent("Manage Billing");
+      // The permission to ask for; Project Owner holds it as well.
+      expect(row).toHaveTextContent(
+        "You need this permission: Manage Billing.",
+      );
+      expect(row).not.toHaveTextContent("Project Admin");
 
       await press(enableAi);
       expect(screen.queryByRole("dialog")).toBeNull();
