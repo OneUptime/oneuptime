@@ -303,8 +303,8 @@ export const RESIZABLE_HEADER_RESET_CONTENT_CLASS_NAME: string =
  * ...unless that column's name is drawn at its end, over a column of
  * numbers (text-right): there the reset is before the name, which keeps
  * its place over its values. After it, the name was pushed in by the
- * button's width and the edge's room, and "Cache hit" stood 44px short of
- * the "1.0%" under it.
+ * button's width and the edge's room, and "Cache hit" stood about 45px
+ * short of the "1.0%" under it.
  */
 export const RESIZABLE_HEADER_RESET_END_ROW_CLASS_NAME: string =
   "flex items-center justify-end gap-2";
