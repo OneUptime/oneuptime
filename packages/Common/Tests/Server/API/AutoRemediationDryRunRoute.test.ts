@@ -1,7 +1,9 @@
 import CommonAPI from "../../../Server/API/CommonAPI";
 import AutoRemediationSuggestionService from "../../../Server/Services/AutoRemediationSuggestionService";
 import ResourceAiAccessService from "../../../Server/Services/ResourceAiAccessService";
-import CloudChangeDryRun from "../../../Server/Utils/AutoRemediation/CloudChangeDryRun";
+import CloudChangeDryRun, {
+  CloudDryRunStart,
+} from "../../../Server/Utils/AutoRemediation/CloudChangeDryRun";
 import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import AutoRemediationSuggestionStatus from "../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationSuggestionType from "../../../Types/AutoRemediation/AutoRemediationSuggestionType";
@@ -44,8 +46,10 @@ import {
  * - the bar is approving's: running runbooks in the project, and an edit
  *   of every resource the plan changes - the dry run is a job sent to the
  *   account's Cloud AI agent;
- * - it starts the dry run in the background (CloudChangeDryRun) and answers
- *   at once with how many changes it checks; refused, it starts nothing.
+ * - it answers once each change is marked as being checked
+ *   (CloudChangeDryRun.startDryRun), so the card's read right after shows
+ *   the dry run on its way; the dry runs go on in the background; refused,
+ *   it starts nothing.
  * ---------------------------------------------------------------------------
  */
 
@@ -298,8 +302,8 @@ describe("POST /auto-remediation/dry-run", () => {
       .mockResolvedValue(undefined);
 
     dryRunSpy = jest
-      .spyOn(CloudChangeDryRun, "dryRunSuggestion")
-      .mockResolvedValue({ kind: "checked", checked: 1 });
+      .spyOn(CloudChangeDryRun, "startDryRun")
+      .mockResolvedValue({ kind: "started", changes: 1 });
   });
 
   afterEach(() => {
@@ -419,12 +423,66 @@ describe("POST /auto-remediation/dry-run", () => {
     expect(mayChangeSpy).not.toHaveBeenCalled();
   });
 
-  test("a dry run that fails later is logged, and the answer was already sent", async () => {
-    dryRunSpy.mockRejectedValue(new Error("boom"));
+  test("answers only once the changes are marked as being checked, never before", async () => {
+    let markDone: (start: CloudDryRunStart) => void = (): void => {
+      return undefined;
+    };
+
+    dryRunSpy.mockImplementation((): Promise<CloudDryRunStart> => {
+      return new Promise<CloudDryRunStart>(
+        (resolve: (start: CloudDryRunStart) => void): void => {
+          markDone = resolve;
+        },
+      );
+    });
+
+    const call: Promise<RouteCallResult> = callDryRun();
+
+    await new Promise<void>((resolve: () => void): void => {
+      setTimeout(resolve, 0);
+    });
+    expect(dryRunSpy).toHaveBeenCalledTimes(1);
+    expect(sendJsonObjectResponseMock).not.toHaveBeenCalled();
+
+    markDone({ kind: "started", changes: 1 });
+
+    expect((await call).nextCallCount).toBe(0);
+    expect(sendJsonObjectResponseMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("while another dry run of it runs, it answers that none was started: that one marked the changes already", async () => {
+    dryRunSpy.mockResolvedValue({ kind: "busy" });
 
     const result: RouteCallResult = await callDryRun();
 
     expect(result.nextCallCount).toBe(0);
-    expect(sendJsonObjectResponseMock).toHaveBeenCalledTimes(1);
+    expect(sendJsonObjectResponseMock.mock.calls[0]![2]).toEqual({
+      suggestionId: SUGGESTION_ID.toString(),
+      started: false,
+      changes: 1,
+    });
+  });
+
+  test("approved or dismissed between the check and the mark: refused with why", async () => {
+    dryRunSpy.mockResolvedValue({ kind: "not-awaiting-approval" });
+
+    const result: RouteCallResult = await callDryRun();
+
+    expect(result.nextCallCount).toBe(1);
+    expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+    expect((result.thrownToNext as Error).message).toBe(
+      "This fix no longer waits for approval, so there is nothing to dry-run.",
+    );
+    expect(sendJsonObjectResponseMock).not.toHaveBeenCalled();
+  });
+
+  test("a fix it could not read or mark is an error, and nothing is answered as started", async () => {
+    dryRunSpy.mockRejectedValue(new Error("database down"));
+
+    const result: RouteCallResult = await callDryRun();
+
+    expect(result.nextCallCount).toBe(1);
+    expect((result.thrownToNext as Error).message).toBe("database down");
+    expect(sendJsonObjectResponseMock).not.toHaveBeenCalled();
   });
 });

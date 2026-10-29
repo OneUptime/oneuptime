@@ -503,6 +503,185 @@ describe("CloudChangeDryRun.dryRunSuggestion", () => {
     ).toEqual({ kind: "checked", checked: 0 });
     expect(release).toHaveBeenCalledTimes(1);
   });
+
+  /*
+   * Dry run again: the route answers once the changes are marked, so the
+   * card's read right after the click shows the dry run on its way (and
+   * polls) - never the plan as it was before the click.
+   */
+  describe("startDryRun", () => {
+    // Lets the background dry runs move on as far as they can.
+    async function settle(): Promise<void> {
+      await new Promise<void>((resolve: () => void): void => {
+        setTimeout(resolve, 0);
+      });
+    }
+
+    it("answers once every change is marked as being checked; the answers land after, and then the lock is given back", async () => {
+      stored = suggestion([
+        cloudStep({
+          sequence: 1,
+          dryRun: {
+            status: AiRemediationDryRunStatus.Failed,
+            checkedAt: "2026-10-29T09:00:00.000Z",
+            summary: "The Cloud AI agent did not pick up the command in time.",
+          },
+        }),
+        cloudStep({ sequence: 2, command: `cloud scale-out ${ASG} --count 5` }),
+      ]);
+
+      const answers: Array<(value: ResourceCommandJobOutcome) => void> = [];
+
+      runJob.mockImplementation(
+        (data: { command: string }): Promise<ResourceCommandJobOutcome> => {
+          return new Promise<ResourceCommandJobOutcome>(
+            (resolve: (value: ResourceCommandJobOutcome) => void): void => {
+              answers.push((value: ResourceCommandJobOutcome): void => {
+                resolve({
+                  ...value,
+                  output: wouldRunOutput(
+                    data.command.replace("dry-run ", ""),
+                    "3",
+                  ),
+                });
+              });
+            },
+          );
+        },
+      );
+
+      expect(
+        await CloudChangeDryRun.startDryRun({ suggestionId: SUGGESTION_ID }),
+      ).toEqual({ kind: "started", changes: 2 });
+
+      // What a read right after the answer sees: both on their way, the old answer gone.
+      expect(
+        storedPlan().commands.map((command: AiRemediationCommand) => {
+          return command.dryRun?.status;
+        }),
+      ).toEqual([
+        AiRemediationDryRunStatus.Running,
+        AiRemediationDryRunStatus.Running,
+      ]);
+      expect(storedPlan().commands[0]!.dryRun?.summary).toBeUndefined();
+      expect(writes).toHaveLength(1);
+      // The first change is with its agent; the lock is still held.
+      expect(runJob).toHaveBeenCalledTimes(1);
+      expect(release).not.toHaveBeenCalled();
+
+      answers[0]!(outcome());
+      await settle();
+      expect(runJob).toHaveBeenCalledTimes(2);
+      expect(storedPlan().commands[0]!.dryRun?.status).toBe(
+        AiRemediationDryRunStatus.WouldRun,
+      );
+      expect(release).not.toHaveBeenCalled();
+
+      answers[1]!(outcome());
+      await settle();
+      expect(
+        storedPlan().commands.map((command: AiRemediationCommand) => {
+          return command.dryRun?.status;
+        }),
+      ).toEqual([
+        AiRemediationDryRunStatus.WouldRun,
+        AiRemediationDryRunStatus.WouldRun,
+      ]);
+      expect(writes).toHaveLength(3);
+      expect(release).toHaveBeenCalledTimes(1);
+    });
+
+    it("busy while another dry run holds the suggestion: it marked the changes already, so nothing is written", async () => {
+      stored = suggestion([cloudStep()]);
+      lock.mockRejectedValue(new Error("lock held"));
+
+      expect(
+        await CloudChangeDryRun.startDryRun({ suggestionId: SUGGESTION_ID }),
+      ).toEqual({ kind: "busy" });
+      expect(writes).toHaveLength(0);
+      expect(runJob).not.toHaveBeenCalled();
+      expect(release).not.toHaveBeenCalled();
+    });
+
+    it("starts nothing for a fix that no longer waits for approval, or has no cloud change, and gives the lock back", async () => {
+      stored = suggestion([cloudStep()], {
+        status: AutoRemediationSuggestionStatus.Approved,
+      });
+
+      expect(
+        await CloudChangeDryRun.startDryRun({ suggestionId: SUGGESTION_ID }),
+      ).toEqual({ kind: "not-awaiting-approval" });
+
+      stored = suggestion([
+        cloudStep({
+          resourceType: AiResourceType.DockerHost,
+          command: "docker restart web",
+        }),
+      ]);
+
+      expect(
+        await CloudChangeDryRun.startDryRun({ suggestionId: SUGGESTION_ID }),
+      ).toEqual({ kind: "nothing-to-check" });
+
+      // Approved between the read and the mark: the mark is refused.
+      stored = suggestion([cloudStep()]);
+      casResult = (): number => {
+        return 0;
+      };
+
+      expect(
+        await CloudChangeDryRun.startDryRun({ suggestionId: SUGGESTION_ID }),
+      ).toEqual({ kind: "not-awaiting-approval" });
+
+      expect(runJob).not.toHaveBeenCalled();
+      expect(release).toHaveBeenCalledTimes(3);
+    });
+
+    it("a suggestion it cannot read is an error for the route, and the lock is given back", async () => {
+      stored = suggestion([cloudStep()]);
+      jest
+        .spyOn(AutoRemediationSuggestionService, "findOneById")
+        .mockRejectedValue(new Error("database down"));
+
+      await expect(
+        CloudChangeDryRun.startDryRun({ suggestionId: SUGGESTION_ID }),
+      ).rejects.toThrow("database down");
+      expect(runJob).not.toHaveBeenCalled();
+      expect(release).toHaveBeenCalledTimes(1);
+    });
+
+    it("a failure in the background is logged, never thrown, and the lock is given back", async () => {
+      stored = suggestion([cloudStep()]);
+      const logged: jest.SpyInstance = jest.spyOn(logger, "error");
+      let write: number = 0;
+
+      jest
+        .spyOn(AutoRemediationSuggestionService, "attemptStatusTransition")
+        .mockImplementation(
+          async (data: { set: Record<string, unknown> }): Promise<number> => {
+            write++;
+
+            if (write > 1) {
+              throw new Error("database down");
+            }
+
+            stored!.commandPlan = data.set["commandPlan"] as JSONObject;
+            return 1;
+          },
+        );
+
+      expect(
+        await CloudChangeDryRun.startDryRun({ suggestionId: SUGGESTION_ID }),
+      ).toEqual({ kind: "started", changes: 1 });
+
+      await settle();
+
+      expect(logged).toHaveBeenCalledWith(
+        expect.stringContaining("database down"),
+      );
+      expect(release).toHaveBeenCalledTimes(1);
+    });
+  });
 });
 
 describe("CloudChangeDryRun.startForProposedPlan", () => {

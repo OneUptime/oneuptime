@@ -81,6 +81,7 @@ import ExternalMcpServer from "../../Models/DatabaseModels/ExternalMcpServer";
 import ExternalMcpServerService from "../Services/ExternalMcpServerService";
 import McpRemediationRunner from "../Utils/AI/Remediation/McpRemediationRunner";
 import CloudChangeDryRun, {
+  CloudDryRunStart,
   getCloudChangesToDryRun,
 } from "../Utils/AutoRemediation/CloudChangeDryRun";
 import {
@@ -1413,7 +1414,7 @@ router.post(
 );
 
 /*
- * Check again: dry-run the cloud changes of a fix that waits for approval
+ * Dry run again: dry-run the cloud changes of a fix that waits for approval
  * (CloudChangeDryRun), as OneUptime did when the fix was proposed. The
  * answers land on the plan's steps, which the Remediation card polls.
  *
@@ -1421,8 +1422,8 @@ router.post(
  * the account's Cloud AI agent, so the same bar as approving holds -
  * executing runbooks, and an edit of every resource the plan changes. It
  * changes nothing, and runs in the background (a change's dry run waits
- * for its agent), so the route answers at once: what it started, or 400
- * with why it would not.
+ * for its agent), so the route answers as soon as each change is marked
+ * as being checked: what it started, or 400 with why it would not.
  */
 router.post(
   "/auto-remediation/dry-run",
@@ -1470,19 +1471,35 @@ router.post(
         projectId: suggestion.projectId,
       });
 
-      // In the background: the answers land on the plan's steps.
-      CloudChangeDryRun.dryRunSuggestion({ suggestionId }).catch(
-        (error: unknown) => {
-          logger.error(
-            `AutoRemediationAPI: the dry run of suggestion ${suggestionId.toString()} failed: ${error}`,
-          );
-        },
-      );
+      /*
+       * Answered once each change is marked as being checked, so the
+       * card's read right after shows the dry run on its way and polls
+       * until the answers land on the plan's steps, in the background.
+       * Busy: another dry run of it already marked them.
+       */
+      const start: CloudDryRunStart = await CloudChangeDryRun.startDryRun({
+        suggestionId,
+      });
+
+      if (start.kind === "not-awaiting-approval") {
+        throw new BadDataException(
+          "This fix no longer waits for approval, so there is nothing to dry-run.",
+        );
+      }
+
+      if (start.kind === "nothing-to-check") {
+        throw new BadDataException(
+          "This fix changes no cloud account, so there is nothing to dry-run.",
+        );
+      }
 
       Response.sendJsonObjectResponse(req, res, {
         suggestionId: suggestionId.toString(),
-        started: true,
-        changes: getCloudChangesToDryRun(plan).length,
+        started: start.kind === "started",
+        changes:
+          start.kind === "started"
+            ? start.changes
+            : getCloudChangesToDryRun(plan).length,
       });
       return;
     } catch (err) {

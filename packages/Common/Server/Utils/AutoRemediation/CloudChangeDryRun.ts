@@ -48,8 +48,9 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
  * be refused. A person approves knowing what will happen, not guessing.
  *
  * It runs on its own once a fix is proposed (RemediationExecutionRunner),
- * and again when a person asks (Check again: POST /auto-remediation/
- * dry-run). Either way:
+ * and again when a person asks (Dry run again: POST /auto-remediation/
+ * dry-run, which answers once the changes are marked as being checked).
+ * Either way:
  *
  *  - only a plan that waits for approval (Suggested) is dry-run, and an
  *    answer is written only while it still waits: one conditional write
@@ -95,6 +96,25 @@ export type CloudDryRunOutcome =
   | { kind: "not-awaiting-approval" }
   // Another dry run of it is running.
   | { kind: "busy" };
+
+// What startDryRun did before it answered.
+export type CloudDryRunStart =
+  // Every change is marked as being checked; the answers come in the background.
+  | { kind: "started"; changes: number }
+  | { kind: "nothing-to-check" }
+  | { kind: "not-awaiting-approval" }
+  // Another dry run of it is running, and marked its changes already.
+  | { kind: "busy" };
+
+// A suggestion's cloud changes, marked as being checked, or why not.
+type MarkedDryRun =
+  | {
+      kind: "marked";
+      suggestion: AutoRemediationSuggestion;
+      changes: Array<AiRemediationCommand>;
+    }
+  | { kind: "nothing-to-check" }
+  | { kind: "not-awaiting-approval" };
 
 // Text held to the plan's cap, cut at a line where one fits.
 function capSummary(text: string): string {
@@ -250,44 +270,131 @@ export default class CloudChangeDryRun {
   public static async dryRunSuggestion(data: {
     suggestionId: ObjectID;
   }): Promise<CloudDryRunOutcome> {
-    let mutex: SemaphoreMutex | null = null;
+    const lock: { mutex: SemaphoreMutex } | null = await this.lockSuggestion(
+      data.suggestionId,
+    );
 
-    try {
-      mutex = await Semaphore.lock({
-        key: `cloud-dry-run-${data.suggestionId.toString()}`,
-        namespace: "CloudChangeDryRun",
-        lockTimeout: DRY_RUN_LOCK_TIMEOUT_MS,
-        acquireAttemptsLimit: 1,
-        onLockLost: (error: Error): void => {
-          logger.warn(
-            `CloudChangeDryRun: lost the lock of suggestion ${data.suggestionId.toString()}'s dry run: ${error.message}`,
-          );
-        },
-      });
-    } catch {
+    if (!lock) {
       // Held: another dry run of this suggestion is running.
       return { kind: "busy" };
     }
 
     try {
-      return await this.dryRunHeld(data.suggestionId);
+      const marked: MarkedDryRun = await this.markHeld(data.suggestionId);
+
+      if (marked.kind !== "marked") {
+        return marked;
+      }
+
+      return await this.checkHeld({
+        suggestionId: data.suggestionId,
+        suggestion: marked.suggestion,
+        changes: marked.changes,
+      });
     } catch (error) {
       logger.error(
         `CloudChangeDryRun: the dry run of suggestion ${data.suggestionId.toString()} failed: ${error}`,
       );
       return { kind: "checked", checked: 0 };
     } finally {
-      try {
-        await Semaphore.release(mutex);
-      } catch {
-        // It runs out on its own.
+      await this.releaseLock(lock.mutex);
+    }
+  }
+
+  /*
+   * A dry run a person asked for (Dry run again): it answers once every
+   * change is marked as being checked, so the card's read right after the
+   * click already shows the dry run on its way - and keeps polling until
+   * the answers land. Answering before the mark, the card could read the
+   * plan as it was, show the old answer and stop polling. The dry runs
+   * themselves go on in the background, holding the lock until they end.
+   * Throws only when the suggestion could not be read or marked.
+   */
+  @CaptureSpan()
+  public static async startDryRun(data: {
+    suggestionId: ObjectID;
+  }): Promise<CloudDryRunStart> {
+    const lock: { mutex: SemaphoreMutex } | null = await this.lockSuggestion(
+      data.suggestionId,
+    );
+
+    if (!lock) {
+      // Another dry run of it holds the suggestion, and marked it already.
+      return { kind: "busy" };
+    }
+
+    let isHandedOff: boolean = false;
+
+    try {
+      const marked: MarkedDryRun = await this.markHeld(data.suggestionId);
+
+      if (marked.kind !== "marked") {
+        return marked;
+      }
+
+      isHandedOff = true;
+
+      this.checkHeld({
+        suggestionId: data.suggestionId,
+        suggestion: marked.suggestion,
+        changes: marked.changes,
+      })
+        .catch((error: unknown): void => {
+          logger.error(
+            `CloudChangeDryRun: the dry run of suggestion ${data.suggestionId.toString()} failed: ${error}`,
+          );
+        })
+        .finally((): Promise<void> => {
+          return this.releaseLock(lock.mutex);
+        })
+        .catch((): void => {
+          // releaseLock never throws.
+        });
+
+      return { kind: "started", changes: marked.changes.length };
+    } finally {
+      if (!isHandedOff) {
+        await this.releaseLock(lock.mutex);
       }
     }
   }
 
-  private static async dryRunHeld(
+  // The lock of one suggestion's dry run, or null while another holds it.
+  private static async lockSuggestion(
     suggestionId: ObjectID,
-  ): Promise<CloudDryRunOutcome> {
+  ): Promise<{ mutex: SemaphoreMutex } | null> {
+    try {
+      const mutex: SemaphoreMutex = await Semaphore.lock({
+        key: `cloud-dry-run-${suggestionId.toString()}`,
+        namespace: "CloudChangeDryRun",
+        lockTimeout: DRY_RUN_LOCK_TIMEOUT_MS,
+        acquireAttemptsLimit: 1,
+        onLockLost: (error: Error): void => {
+          logger.warn(
+            `CloudChangeDryRun: lost the lock of suggestion ${suggestionId.toString()}'s dry run: ${error.message}`,
+          );
+        },
+      });
+
+      return { mutex };
+    } catch {
+      return null;
+    }
+  }
+
+  private static async releaseLock(mutex: SemaphoreMutex): Promise<void> {
+    try {
+      await Semaphore.release(mutex);
+    } catch {
+      // It runs out on its own.
+    }
+  }
+
+  /*
+   * Under the lock: every cloud change of a suggestion that still waits
+   * for approval marked as being checked, in one write, before any is.
+   */
+  private static async markHeld(suggestionId: ObjectID): Promise<MarkedDryRun> {
     const suggestion: AutoRemediationSuggestion | null =
       await this.loadWaiting(suggestionId);
 
@@ -329,6 +436,19 @@ export default class CloudChangeDryRun {
       return { kind: "not-awaiting-approval" };
     }
 
+    return { kind: "marked", suggestion, changes };
+  }
+
+  /*
+   * Under the lock, once marked: each change dry-run in turn, its answer
+   * written onto its step as it comes, while the suggestion still waits.
+   */
+  private static async checkHeld(data: {
+    suggestionId: ObjectID;
+    suggestion: AutoRemediationSuggestion;
+    changes: Array<AiRemediationCommand>;
+  }): Promise<CloudDryRunOutcome> {
+    const { suggestionId, suggestion, changes } = data;
     let checked: number = 0;
 
     for (const change of changes) {
