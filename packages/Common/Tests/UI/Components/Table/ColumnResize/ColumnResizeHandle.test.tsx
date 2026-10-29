@@ -378,48 +378,21 @@ describe("where the edge draws its lines", () => {
     }
   });
 
-  test("read again whenever the pointer or the keyboard comes into the header row - the moment its lines show - with no timer armed", () => {
+  test("drawing it reads no style and arms no timer: the page's rules are never worked out early, and a table at rest stays at rest", () => {
     jest.useFakeTimers();
 
-    let padding: number = 0;
+    const { handle, headerCell, rerender } = drawHandle({ width: 200 });
 
-    jest
-      .spyOn(Measure, "getColumnEdgeLineInset")
-      .mockImplementation((): number => {
-        return padding / 2;
-      });
-
-    const { handle } = drawHandle();
-    const headerRow: HTMLElement = document.querySelector(
-      "thead",
-    ) as HTMLElement;
-
-    expect(
-      handle.style.getPropertyValue(COLUMN_RESIZE_EDGE_INSET_PROPERTY),
-    ).toBe("0px");
-    // A table at rest arms no timer for it.
-    expect(jest.getTimerCount()).toBe(0);
-
-    /*
-     * The page's Tailwind writes a new cell's padding once the cell is on
-     * the page: the pointer coming into the header row reads it.
-     */
-    padding = 16;
-    fireEvent.pointerEnter(headerRow);
+    // Read off the cells' classes (pr-4: 8px in).
+    headerCell.className = "pr-4 pb-2";
+    jest.mocked(window.getComputedStyle).mockClear();
+    rerender(220);
 
     expect(
       handle.style.getPropertyValue(COLUMN_RESIZE_EDGE_INSET_PROPERTY),
     ).toBe("8px");
-
-    // ...and the keyboard coming into it.
-    padding = 12;
-    act(() => {
-      handle.focus();
-    });
-
-    expect(
-      handle.style.getPropertyValue(COLUMN_RESIZE_EDGE_INSET_PROPERTY),
-    ).toBe("6px");
+    expect(window.getComputedStyle).not.toHaveBeenCalled();
+    expect(jest.getTimerCount()).toBe(0);
   });
 
   test("and whenever it is drawn again: the column after it can change", () => {

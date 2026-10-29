@@ -136,35 +136,142 @@ export const getHorizontalPadding: (element: Element) => number = (
 export const COLUMN_EDGE_LINE_MAX_INSET_IN_PX: number = 10;
 
 /*
+ * A cell's padding at the start and the end of its line, in pixels, as its
+ * Tailwind classes give it: p-, px-, pl-/ps- and pr-/pe- (left and right
+ * are the start and the end: TailwindReadingDirection), each side taking
+ * its most particular class, as Tailwind's own order of rules does (pr-4
+ * over px-6 over p-2). A class of a variant (md:px-6, a pointer's) is not
+ * the cell's own at every width, and is passed over.
+ *
+ * Read off the classes, never the computed style: the page's Tailwind
+ * writes the rule of a class it has not met before only once the element
+ * is on the page, and a style read while a table is drawn makes the
+ * browser work every rule out before that - on the click that opens a
+ * list's search and folds the card's buttons away, the buttons jumped shut
+ * instead of folding (ModelTables.spec.ts' "stays level with the card's
+ * title"), their new width read before it had a rule.
+ */
+export interface CellInlinePadding {
+  start: number;
+  end: number;
+}
+
+// Tailwind's spacing scale: 1 is 0.25rem.
+const SPACING_STEP_IN_PX: number = 4;
+const REM_IN_PX: number = 16;
+
+// The padding classes, the sides each sets, and how particular each is.
+const PADDING_CLASSES: ReadonlyArray<{
+  prefix: string;
+  start: boolean;
+  end: boolean;
+  rank: number;
+}> = [
+  { prefix: "p-", start: true, end: true, rank: 0 },
+  { prefix: "px-", start: true, end: true, rank: 1 },
+  { prefix: "pl-", start: true, end: false, rank: 2 },
+  { prefix: "ps-", start: true, end: false, rank: 2 },
+  { prefix: "pr-", start: false, end: true, rank: 2 },
+  { prefix: "pe-", start: false, end: true, rank: 2 },
+];
+
+// A class's value in pixels: 4, px, 2.5, [13px] or [1rem]; null for any other.
+const readSpacing: (value: string) => number | null = (
+  value: string,
+): number | null => {
+  if (value === "px") {
+    return 1;
+  }
+
+  if (value.startsWith("[") && value.endsWith("]")) {
+    const inner: string = value.slice(1, -1);
+    const amount: number = parseFloat(inner);
+
+    if (!Number.isFinite(amount) || amount < 0) {
+      return null;
+    }
+
+    if (inner === `${amount}px`) {
+      return amount;
+    }
+
+    if (inner === `${amount}rem`) {
+      return amount * REM_IN_PX;
+    }
+
+    return null;
+  }
+
+  const steps: number = Number(value);
+
+  return value !== "" && Number.isFinite(steps) && steps >= 0
+    ? steps * SPACING_STEP_IN_PX
+    : null;
+};
+
+export const getCellInlinePadding: (
+  className: string | null | undefined,
+) => CellInlinePadding = (
+  className: string | null | undefined,
+): CellInlinePadding => {
+  const padding: CellInlinePadding = { start: 0, end: 0 };
+  let startRank: number = -1;
+  let endRank: number = -1;
+
+  for (const token of (className || "").split(" ")) {
+    if (!token || token.includes(":")) {
+      continue;
+    }
+
+    for (const paddingClass of PADDING_CLASSES) {
+      if (!token.startsWith(paddingClass.prefix)) {
+        continue;
+      }
+
+      const pixels: number | null = readSpacing(
+        token.slice(paddingClass.prefix.length),
+      );
+
+      if (pixels === null) {
+        continue;
+      }
+
+      if (paddingClass.start && paddingClass.rank >= startRank) {
+        padding.start = pixels;
+        startRank = paddingClass.rank;
+      }
+
+      if (paddingClass.end && paddingClass.rank >= endRank) {
+        padding.end = pixels;
+        endRank = paddingClass.rank;
+      }
+    }
+  }
+
+  return padding;
+};
+
+/*
  * How far in from a column's end its edge's line is drawn
  * (ColumnResizeLayout's COLUMN_RESIZE_EDGE_INSET_PROPERTY): the middle of
  * the room between this column's words and the next column's - the end
- * padding of this header cell and the start padding of the next. The
- * shared Table pads what its header cells hold, alike at both ends, so its
- * lines stay on the columns' ends (0); a table a page draws itself that
- * pads its cells at their end only (pr-4) has its lines 8px in, where they
- * no longer touch the next column's name. Never drawn past the column's
- * end: a column after one with no end padding of its own keeps its line on
- * the end.
+ * padding of this header cell and the start padding of the next
+ * (getCellInlinePadding). The shared Table pads what its header cells
+ * hold, alike at both ends, so its lines stay on the columns' ends (0); a
+ * table a page draws itself that pads its cells at their end only (pr-4)
+ * has its lines 8px in, where they no longer touch the next column's name.
+ * Never drawn past the column's end: a column after one with no end
+ * padding of its own keeps its line on the end.
  */
 export const getColumnEdgeLineInset: (headerCell: Element) => number = (
   headerCell: Element,
 ): number => {
-  const style: CSSStyleDeclaration | null = getComputedStyleOf(headerCell);
-
-  if (!style) {
-    return 0;
-  }
-
-  const endPadding: number = readPixels(
-    style.getPropertyValue("padding-inline-end"),
-  );
+  const endPadding: number = getCellInlinePadding(
+    headerCell.getAttribute("class"),
+  ).end;
   const next: Element | null = headerCell.nextElementSibling;
-  const nextStyle: CSSStyleDeclaration | null = next
-    ? getComputedStyleOf(next)
-    : null;
-  const nextStartPadding: number = nextStyle
-    ? readPixels(nextStyle.getPropertyValue("padding-inline-start"))
+  const nextStartPadding: number = next
+    ? getCellInlinePadding(next.getAttribute("class")).start
     : 0;
 
   return Math.round(

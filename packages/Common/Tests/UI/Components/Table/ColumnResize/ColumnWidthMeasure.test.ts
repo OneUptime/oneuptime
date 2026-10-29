@@ -13,6 +13,7 @@ import {
   COLUMN_RESIZE_HANDLE_ATTRIBUTE,
   ColumnMeasurement,
   SavedHeaderCellWidth,
+  getCellInlinePadding,
   getColumnEdgeLineInset,
   getHorizontalPadding,
   measureTableColumn,
@@ -610,40 +611,89 @@ describe("a cell's padding", () => {
 });
 
 /*
+ * A cell's padding, read off its Tailwind classes - never its computed
+ * style, which would have the browser work the page's rules out while a
+ * table is drawn, before the page's Tailwind writes a class it has just met.
+ */
+describe("a cell's padding at the start and the end of its line, from its classes", () => {
+  test("p-, px-, pl-/ps- and pr-/pe-, on Tailwind's scale", () => {
+    expect(getCellInlinePadding("py-2 pr-4")).toEqual({ start: 0, end: 16 });
+    expect(getCellInlinePadding("px-4 py-2 text-left")).toEqual({
+      start: 16,
+      end: 16,
+    });
+    expect(getCellInlinePadding("pb-2 pl-4 text-right")).toEqual({
+      start: 16,
+      end: 0,
+    });
+    expect(getCellInlinePadding("ps-3 pe-6")).toEqual({ start: 12, end: 24 });
+    expect(getCellInlinePadding("p-0")).toEqual({ start: 0, end: 0 });
+    expect(getCellInlinePadding("px-2.5")).toEqual({ start: 10, end: 10 });
+    expect(getCellInlinePadding("pr-px")).toEqual({ start: 0, end: 1 });
+  });
+
+  test("each side takes its most particular class, whatever their order, as Tailwind's rules do", () => {
+    expect(getCellInlinePadding("pr-4 px-6 p-2")).toEqual({
+      start: 24,
+      end: 16,
+    });
+    expect(getCellInlinePadding("p-2 pl-5")).toEqual({ start: 20, end: 8 });
+  });
+
+  test("a class of a variant is not the cell's own at every width, and is passed over", () => {
+    expect(
+      getCellInlinePadding(
+        "md:px-6 max-md:pr-2 [@media(pointer:coarse)]:pr-6 pr-3",
+      ),
+    ).toEqual({ start: 0, end: 12 });
+  });
+
+  test("arbitrary values in pixels or rem; anything else is no padding", () => {
+    expect(getCellInlinePadding("pr-[13px] pl-[1.5rem]")).toEqual({
+      start: 24,
+      end: 13,
+    });
+    expect(getCellInlinePadding("pr-[calc(1rem+2px)] pl-auto p-x")).toEqual({
+      start: 0,
+      end: 0,
+    });
+    expect(getCellInlinePadding("")).toEqual({ start: 0, end: 0 });
+    expect(getCellInlinePadding(undefined)).toEqual({ start: 0, end: 0 });
+    expect(getCellInlinePadding(null)).toEqual({ start: 0, end: 0 });
+  });
+
+  test("a class that only starts like one is not one (prose-, px-ish)", () => {
+    expect(getCellInlinePadding("prose-sm pe-[x]")).toEqual({
+      start: 0,
+      end: 0,
+    });
+  });
+});
+
+/*
  * Where an edge's line is drawn: in the middle of the room between its
- * column's words and the next column's. jsdom resolves no logical padding
- * (padding-inline-start and -end), so each header cell says its own -
- * data-end and data-start, in pixels - through a stand-in getComputedStyle.
+ * column's words and the next column's - read off the header cells'
+ * classes, with no style read at all.
  */
 describe("where a column's edge draws its line", () => {
-  const drawHeaderRow: (cells: Array<{ start: number; end: number }>) => {
+  const drawHeaderRow: (classNames: Array<string>) => {
     cells: Array<HTMLTableCellElement>;
-  } = (
-    cells: Array<{ start: number; end: number }>,
-  ): { cells: Array<HTMLTableCellElement> } => {
-    document.body.innerHTML = `<table><thead><tr>${cells
-      .map((cell: { start: number; end: number }): string => {
-        return `<th data-start="${cell.start}" data-end="${cell.end}"></th>`;
-      })
-      .join("")}</tr></thead></table>`;
+  } = (classNames: Array<string>): { cells: Array<HTMLTableCellElement> } => {
+    const row: HTMLTableRowElement = document.createElement("tr");
 
-    jest
-      .spyOn(window, "getComputedStyle")
-      .mockImplementation((element: Element): CSSStyleDeclaration => {
-        return {
-          getPropertyValue: (property: string): string => {
-            if (property === "padding-inline-end") {
-              return `${element.getAttribute("data-end") || 0}px`;
-            }
+    for (const className of classNames) {
+      const cell: HTMLTableCellElement = document.createElement("th");
 
-            if (property === "padding-inline-start") {
-              return `${element.getAttribute("data-start") || 0}px`;
-            }
+      cell.className = className;
+      row.appendChild(cell);
+    }
 
-            return "";
-          },
-        } as unknown as CSSStyleDeclaration;
-      });
+    const table: HTMLTableElement = document.createElement("table");
+    const head: HTMLTableSectionElement = document.createElement("thead");
+
+    head.appendChild(row);
+    table.appendChild(head);
+    document.body.replaceChildren(table);
 
     return {
       cells: Array.from(document.querySelectorAll("th")),
@@ -655,20 +705,17 @@ describe("where a column's edge draws its line", () => {
   });
 
   test("a page's own cells padded at their end only (pr-4): 8px in, clear of the next column's name", () => {
-    const { cells } = drawHeaderRow([
-      { start: 0, end: 16 },
-      { start: 0, end: 16 },
-    ]);
+    const { cells } = drawHeaderRow(["pr-4 pb-2", "pr-4 pb-2"]);
 
     expect(getColumnEdgeLineInset(cells[0]!)).toBe(8);
   });
 
-  test("cells padded alike at both ends - the shared Table's names, px-4 - keep it on the column's end", () => {
+  test("cells padded alike at both ends - the shared Table's header cells (p-0), px-4 - keep it on the column's end", () => {
     const { cells } = drawHeaderRow([
-      { start: 0, end: 0 },
-      { start: 0, end: 0 },
-      { start: 16, end: 16 },
-      { start: 16, end: 16 },
+      "border-y p-0",
+      "border-y p-0",
+      "px-4 py-2",
+      "px-4 py-2",
     ]);
 
     expect(getColumnEdgeLineInset(cells[0]!)).toBe(0);
@@ -676,19 +723,13 @@ describe("where a column's edge draws its line", () => {
   });
 
   test("never past the column's end: a next column padded at its start more than this one at its end", () => {
-    const { cells } = drawHeaderRow([
-      { start: 0, end: 0 },
-      { start: 16, end: 0 },
-    ]);
+    const { cells } = drawHeaderRow(["pb-2", "pb-2 pl-4 text-right"]);
 
     expect(getColumnEdgeLineInset(cells[0]!)).toBe(0);
   });
 
   test("never further in than the edge's own width, so the line is the edge it presses", () => {
-    const { cells } = drawHeaderRow([
-      { start: 0, end: 48 },
-      { start: 0, end: 0 },
-    ]);
+    const { cells } = drawHeaderRow(["pr-12", "pb-2"]);
 
     expect(getColumnEdgeLineInset(cells[0]!)).toBe(
       COLUMN_EDGE_LINE_MAX_INSET_IN_PX,
@@ -696,19 +737,20 @@ describe("where a column's edge draws its line", () => {
   });
 
   test("the row's last column: in the middle of its own end padding", () => {
-    const { cells } = drawHeaderRow([
-      { start: 0, end: 16 },
-      { start: 0, end: 12 },
-    ]);
+    const { cells } = drawHeaderRow(["pr-4", "pr-3"]);
 
     expect(getColumnEdgeLineInset(cells[1]!)).toBe(6);
   });
 
-  test("with no styles to read (no browser), on the column's end", () => {
-    document.body.innerHTML =
-      "<table><thead><tr><th></th></tr></thead></table>";
+  test("reads no style: the page's rules are never worked out early for it", () => {
+    const { cells } = drawHeaderRow(["pr-4", "px-4"]);
 
-    expect(getColumnEdgeLineInset(document.querySelector("th")!)).toBe(0);
+    jest.spyOn(window, "getComputedStyle");
+
+    getColumnEdgeLineInset(cells[0]!);
+    getColumnEdgeLineInset(cells[1]!);
+
+    expect(window.getComputedStyle).not.toHaveBeenCalled();
   });
 });
 
