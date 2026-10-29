@@ -7,6 +7,7 @@ Anslut ett AWS-konto, en Azure-prenumeration eller ett Google Cloud-projekt frå
 - [Microsoft Azure](#microsoft-azure): En app med rollen Monitoring Reader.
 - [Google Cloud](#google-cloud): Ett tjänstkonto med fyra skrivskyddade roller.
 - [Vad OneUptime läser](#vad-oneuptime-läser): Resurser, mätvärden, ändringar och hälsohändelser, hur ofta och vad det kostar.
+- [Datasäkerhet](#datasäkerhet): Vad anslutningen låter Datasäkerhet läsa, och vad varje nivå lägger till i kommandot.
 :::
 
 ## Så fungerar det
@@ -20,7 +21,7 @@ flowchart TB
     ou --> chg["Ändringar och<br/>hälsohändelser"]
 ```
 
-- **Åtkomsten kan bara läsa.** Kommandot skapar en åtkomst som läser dina resurser och hur de är konfigurerade, deras mätvärden, vad som ändrats och leverantörens hälsohändelser, och inget annat: åtgärderna nedan på AWS, rollen **Monitoring Reader** på Azure och fyra visningsroller på Google Cloud. Den läser aldrig data eller hemligheter. Ta bort den för att stänga ute OneUptime.
+- **Åtkomsten kan bara läsa.** Kommandot skapar en åtkomst som läser dina resurser och hur de är konfigurerade, deras mätvärden, vad som ändrats och leverantörens hälsohändelser, och inget annat: åtgärderna nedan på AWS, rollen **Monitoring Reader** på Azure och fyra visningsroller på Google Cloud. Den läser aldrig data eller hemligheter, om du inte slår på innehållsprover för [Datasäkerhet](#datasäkerhet). Ta bort den för att stänga ute OneUptime.
 - **OneUptime läser enligt ett schema.** Var 5:e minut för Azure och Google Cloud, och var 10:e minut för AWS, om du inte väljer ett annat intervall när du ansluter. Varje läsning registrerar också vad som ändrats sedan den förra, och var 30:e minut listar en läsning alla resurser igen.
 - **Varje resurs får en egen sida.** Resurser visas under **Moln → Alla resurser** med sina viktigaste mätvärden, ägare och etiketter. Sidan för en listad resurs visar också dess **Anslutna resurser** (vad den körs i, vad som skickar trafik till den), dess slutpunkter, taggar och inställningar, och dess **Incidenter**, **Larm** och **Ändringar**.
 - **Varje konto får en egen sida.** Konton visas under **Moln → Konton** med sina resurser efter typ och region, sina **Ändringar** och en **Topologi** över hur resurserna hänger ihop.
@@ -177,6 +178,62 @@ for ROLE in roles/monitoring.viewer roles/cloudasset.viewer roles/logging.viewer
 ```
 
 En organisations anslutning läser upp till 50 av dess projekt, om du inte listar några under **Projekt**.
+
+## Datasäkerhet
+
+Samma anslutning kan låta [Datasäkerhet](/docs/data-security/index) läsa kontots datalager: dess buckets, databaser och datavaruhus. Under **Fler fält** står **Datasäkerhet** på **Av** tills du väljer något annat, och kommandot som formuläret visar ändras med det:
+
+| Datasäkerhet | Vad Datasäkerhet får läsa | Vad kommandot lägger till |
+| --- | --- | --- |
+| **Av** | Inget av kontots datalager | Ingenting |
+| **Endast konfiguration** | Vem som kan nå varje datalager, och hur det krypteras, säkerhetskopieras och loggas. Aldrig data. | På AWS en andra inbäddad policy, `OneUptimeDataSecurity`, med läsåtgärder. På Azure och Google Cloud ingenting: **Monitoring Reader** och **Cloud Asset Viewer** läser det redan. |
+| **Konfiguration och innehållsprover** | Det, och prov från objekt och rader, för att hitta känsliga data i dem | På AWS samma policy med `s3:ListBucket`, `s3:GetObject` och `kms:Decrypt` enbart via S3. På Azure **Storage Blob Data Reader**. På Google Cloud `roles/storage.objectViewer`, `roles/bigquery.dataViewer` och BigQuery API. |
+
+På AWS lägger rollens kommando till policyn med en rad till. På innehållsnivån ser den ut så här:
+
+```bash
+aws iam put-role-policy --role-name "$ROLE" --policy-name OneUptimeDataSecurity --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["s3:ListAllMyBuckets","s3:GetBucketLocation","s3:GetBucketPolicyStatus","s3:GetBucketPublicAccessBlock","s3:GetAccountPublicAccessBlock","s3:GetBucketAcl","s3:GetBucketPolicy","s3:GetEncryptionConfiguration","s3:GetBucketVersioning","s3:GetBucketLogging","s3:GetBucketOwnershipControls","s3:GetReplicationConfiguration","s3:GetBucketTagging","rds:DescribeDBInstances","rds:DescribeDBClusters","rds:DescribeDBSnapshots","rds:DescribeDBSnapshotAttributes","rds:DescribeDBClusterSnapshots","rds:DescribeDBClusterSnapshotAttributes","dynamodb:ListTables","dynamodb:DescribeTable","dynamodb:DescribeContinuousBackups","redshift:DescribeClusters","redshift:DescribeLoggingStatus","es:ListDomainNames","es:DescribeDomains","elasticache:DescribeReplicationGroups","elasticfilesystem:DescribeFileSystems","kms:ListAliases"],"Resource":"*"},{"Effect":"Allow","Action":["s3:ListBucket"],"Resource":"arn:aws:s3:::*"},{"Effect":"Allow","Action":["s3:GetObject"],"Resource":"arn:aws:s3:::*/*"},{"Effect":"Allow","Action":["kms:Decrypt"],"Resource":"*","Condition":{"StringLike":{"kms:ViaService":"s3.*.amazonaws.com"}}}]}'
+```
+
+IAM begränsar en användares egna inbäddade policyer till totalt 2 048 tecken, så med en **Åtkomstnyckel** läggs policyn på en grupp, `OneUptimeDataSecurity`, som användaren går med i:
+
+```bash
+aws iam create-user --user-name OneUptimeReadOnly > /dev/null 2>&1 || true
+aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeNatGateways","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:DescribeLoadBalancers","elasticloadbalancing:DescribeLoadBalancerAttributes","elasticloadbalancing:DescribeTargetGroups","elasticloadbalancing:DescribeTargetGroupAttributes","elasticloadbalancing:DescribeTargetHealth","elasticloadbalancing:DescribeTags","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","cloudtrail:LookupEvents","health:DescribeEvents","health:DescribeEventDetails"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis","arn:aws:apigateway:*::/restapis/*","arn:aws:apigateway:*::/apis","arn:aws:apigateway:*::/apis/*"]}]}'
+aws iam create-group --group-name OneUptimeDataSecurity > /dev/null 2>&1 || true
+aws iam put-group-policy --group-name OneUptimeDataSecurity --policy-name OneUptimeDataSecurity --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["s3:ListAllMyBuckets","s3:GetBucketLocation","s3:GetBucketPolicyStatus","s3:GetBucketPublicAccessBlock","s3:GetAccountPublicAccessBlock","s3:GetBucketAcl","s3:GetBucketPolicy","s3:GetEncryptionConfiguration","s3:GetBucketVersioning","s3:GetBucketLogging","s3:GetBucketOwnershipControls","s3:GetReplicationConfiguration","s3:GetBucketTagging","rds:DescribeDBInstances","rds:DescribeDBClusters","rds:DescribeDBSnapshots","rds:DescribeDBSnapshotAttributes","rds:DescribeDBClusterSnapshots","rds:DescribeDBClusterSnapshotAttributes","dynamodb:ListTables","dynamodb:DescribeTable","dynamodb:DescribeContinuousBackups","redshift:DescribeClusters","redshift:DescribeLoggingStatus","es:ListDomainNames","es:DescribeDomains","elasticache:DescribeReplicationGroups","elasticfilesystem:DescribeFileSystems","kms:ListAliases"],"Resource":"*"},{"Effect":"Allow","Action":["s3:ListBucket"],"Resource":"arn:aws:s3:::*"},{"Effect":"Allow","Action":["s3:GetObject"],"Resource":"arn:aws:s3:::*/*"},{"Effect":"Allow","Action":["kms:Decrypt"],"Resource":"*","Condition":{"StringLike":{"kms:ViaService":"s3.*.amazonaws.com"}}}]}'
+aws iam add-user-to-group --user-name OneUptimeReadOnly --group-name OneUptimeDataSecurity
+aws iam create-access-key --user-name OneUptimeReadOnly
+```
+
+På Azure lägger innehållsnivån till **Storage Blob Data Reader** i samma omfång som **Monitoring Reader**:
+
+```bash
+SCOPE="/subscriptions/$(az account show --query id --output tsv)"
+OUT=$(az ad sp create-for-rbac --name OneUptimeReadOnly --role "Monitoring Reader" --scopes "$SCOPE")
+APP=$(echo "$OUT" | jq -r .appId)
+az role assignment create --assignee "$APP" --role "Storage Blob Data Reader" --scope "$SCOPE" > /dev/null
+END=$(az ad app credential list --id "$APP" --query "max([].endDateTime)" --output tsv)
+echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'
+```
+
+På Google Cloud lägger den till de två rollerna och slår på `bigquery.googleapis.com`:
+
+```bash
+PROJECT_ID=$(gcloud config get-value project)
+gcloud services enable monitoring.googleapis.com cloudasset.googleapis.com logging.googleapis.com cloudresourcemanager.googleapis.com servicehealth.googleapis.com bigquery.googleapis.com
+gcloud iam service-accounts create oneuptime-read-only --display-name "OneUptime (read only)" > /dev/null 2>&1 || true
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/monitoring.viewer --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/cloudasset.viewer --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/logging.viewer --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/servicehealth.viewer --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/storage.objectViewer --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/bigquery.dataViewer --condition=None > /dev/null
+gcloud iam service-accounts keys create oneuptime-key.json --iam-account "oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com"
+cat oneuptime-key.json && rm oneuptime-key.json
+```
+
+Kommandot för en lägre nivå ersätter AWS-policyn med den lägre nivåns policy. **Av** lägger inte till något, så det som ett tidigare kommando beviljade finns kvar tills du tar bort det: policyn `OneUptimeDataSecurity` på AWS, med `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeDataSecurity`, och innehållsnivåns roller på Azure och Google Cloud. Datasäkerhet slutar läsa direkt i båda fallen: den läser bara det som anslutningens nivå anger. [Konfigurera Datasäkerhet](/docs/data-security/setup) listar varje åtgärd i policyn, och vad Datasäkerhet sparar av det den läser.
 
 ## Vad OneUptime läser
 
