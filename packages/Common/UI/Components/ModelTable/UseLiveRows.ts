@@ -3,10 +3,12 @@ import ObjectID from "../../../Types/ObjectID";
 import ModelEventType from "../../../Types/Realtime/ModelEventType";
 import CoalescedRefresh from "../../Utils/CoalescedRefresh";
 import Realtime from "../../Utils/Realtime";
+import { getRecordIdText } from "../ObjectID/RecordIdText";
 import {
   LIVE_ROWS_HOLD_RECHECK_IN_MS,
   LIVE_ROWS_MIN_INTERVAL_IN_MS,
   LIVE_ROWS_POINTER_REST_IN_MS,
+  LiveRowsHeard,
   getLiveRowEventTypes,
   isPointerAtWorkOnRows,
 } from "./LiveRows";
@@ -27,8 +29,11 @@ export interface UseLiveRowsOptions {
    * .isLiveRowsHeld). Asked each time, so it reads the table as it is then.
    */
   isHeld: () => boolean;
-  // Reads the page again, quietly.
-  refresh: () => Promise<void>;
+  /*
+   * Reads the page again, quietly; told which records were announced as
+   * created since the last read, the ones a new row may be tinted for.
+   */
+  refresh: (heard: LiveRowsHeard) => Promise<void>;
   /*
    * The element the rows are drawn in. While the pointer is at work on it -
    * on its way to a row to open it - the rows stay where they are
@@ -70,9 +75,8 @@ const isPageHidden: () => boolean = (): boolean => {
 const useLiveRows: (options: UseLiveRowsOptions) => void = (
   options: UseLiveRowsOptions,
 ): void => {
-  const refreshRef: MutableRefObject<() => Promise<void>> = useRef<
-    () => Promise<void>
-  >(options.refresh);
+  const refreshRef: MutableRefObject<(heard: LiveRowsHeard) => Promise<void>> =
+    useRef<(heard: LiveRowsHeard) => Promise<void>>(options.refresh);
   refreshRef.current = options.refresh;
 
   const isHeldRef: MutableRefObject<() => boolean> = useRef<() => boolean>(
@@ -153,9 +157,18 @@ const useLiveRows: (options: UseLiveRowsOptions) => void = (
       );
     };
 
+    /*
+     * The records announced as created since the last read began: that
+     * read is told them, and the rows it brings in for them are the new
+     * ones (a row that slid in from the next page is not).
+     */
+    const createdIds: Set<string> = new Set();
+
     const refresh: CoalescedRefresh = new CoalescedRefresh({
       refresh: (): Promise<void> => {
-        return refreshRef.current();
+        const heard: LiveRowsHeard = { createdIds: Array.from(createdIds) };
+        createdIds.clear();
+        return refreshRef.current(heard);
       },
       minIntervalInMs: minIntervalInMs,
     });
@@ -215,7 +228,15 @@ const useLiveRows: (options: UseLiveRowsOptions) => void = (
             eventType: eventType,
             tenantId: options.tenantId!,
           },
-          (): void => {
+          (modelId: unknown): void => {
+            if (eventType === ModelEventType.Create) {
+              const id: string = getRecordIdText(modelId);
+
+              if (id) {
+                createdIds.add(id);
+              }
+            }
+
             if (isPending) {
               // The change waiting already reads this one too.
               return;

@@ -65,6 +65,7 @@ jest.mock("../../../../UI/Utils/Realtime", () => {
 import useLiveRows, {
   UseLiveRowsOptions,
 } from "../../../../UI/Components/ModelTable/UseLiveRows";
+import { LiveRowsHeard } from "../../../../UI/Components/ModelTable/LiveRows";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import ServiceLevelObjective from "../../../../Models/DatabaseModels/ServiceLevelObjective";
@@ -83,14 +84,17 @@ const active: () => Array<Subscription> = (): Array<Subscription> => {
   });
 };
 
+const CHANGED_ID: string = "7b3b1548-23cd-46ab-8359-280eb34362af";
+
 // Announces a change to every list listening for this kind of event.
-const announce: (eventType?: string) => void = (
+const announce: (eventType?: string, modelId?: unknown) => void = (
   eventType: string = "Update",
+  modelId: unknown = CHANGED_ID,
 ): void => {
   act((): void => {
     for (const subscription of active()) {
       if (subscription.eventType === eventType) {
-        subscription.onEvent("7b3b1548-23cd-46ab-8359-280eb34362af");
+        subscription.onEvent(modelId);
       }
     }
   });
@@ -116,7 +120,7 @@ const setVisibility: (state: DocumentVisibilityState) => void = (
   });
 };
 
-type RefreshFunction = () => Promise<void>;
+type RefreshFunction = (heard: LiveRowsHeard) => Promise<void>;
 
 interface Harness {
   refresh: Mock<RefreshFunction>;
@@ -322,6 +326,54 @@ describe("when the list reads again", () => {
 
     expect(harness.refresh).not.toHaveBeenCalled();
     expect(later).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * A row read in for a record announced as created is tinted for a moment
+   * (BaseModelTable): the read is told which records were created since
+   * the last one - and not those changed or deleted.
+   */
+  test("each read is told the records announced as created since the last one", async () => {
+    const harness: Harness = mount();
+    const first: string = "11111111-1111-4111-8111-111111111111";
+    const second: string = "22222222-2222-4222-8222-222222222222";
+    const third: string = "33333333-3333-4333-8333-333333333333";
+
+    announce("Create", new ObjectID(first));
+    expect(harness.refresh).toHaveBeenLastCalledWith({ createdIds: [first] });
+
+    // Within the interval: they wait for the next read, and come with it.
+    announce("Create", new ObjectID(second));
+    announce("Update", new ObjectID(third));
+    announce("Delete", new ObjectID(third));
+    await advance(INTERVAL);
+
+    expect(harness.refresh).toHaveBeenCalledTimes(2);
+    expect(harness.refresh).toHaveBeenLastCalledWith({
+      createdIds: [second],
+    });
+
+    // A change with nothing created tells of none.
+    await advance(INTERVAL);
+    announce("Update", new ObjectID(first));
+    expect(harness.refresh).toHaveBeenLastCalledWith({ createdIds: [] });
+  });
+
+  test("a creation heard while the reader is busy is told to the read that follows", async () => {
+    const harness: Harness = mount();
+    const created: string = "44444444-4444-4444-8444-444444444444";
+    harness.setHeld(true);
+
+    announce("Update");
+    announce("Create", new ObjectID(created));
+
+    harness.setHeld(false);
+    await advance(RECHECK);
+
+    expect(harness.refresh).toHaveBeenCalledTimes(1);
+    expect(harness.refresh).toHaveBeenLastCalledWith({
+      createdIds: [created],
+    });
   });
 
   test("a read that fails is tried again by the next change", async () => {

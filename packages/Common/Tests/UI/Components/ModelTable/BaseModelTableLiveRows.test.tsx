@@ -606,6 +606,17 @@ describe("a row a live read brought in is marked for a moment", () => {
     expect(document.querySelector("[data-row-arrived]")).toBeNull();
   });
 
+  test("a row that comes into the page without being created is not marked", async () => {
+    await renderTable();
+
+    // Login was there all along, below the page; Storefront left it.
+    serverRows = [CHECKOUT, LOGIN];
+    announce("Delete");
+
+    await screen.findByText(LOGIN.title);
+    expect(document.querySelector("[data-row-arrived]")).toBeNull();
+  });
+
   test("a change to a row already there marks nothing", async () => {
     await renderTable();
 

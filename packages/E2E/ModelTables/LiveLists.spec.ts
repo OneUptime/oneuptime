@@ -119,22 +119,37 @@ async function reads(page: Page, tableName: string): Promise<number> {
   ).length;
 }
 
+// The server announcing a change, with the record's id when it names one.
 async function announce(
   page: Page,
   tableName: string,
   eventType: string,
+  id?: string,
 ): Promise<void> {
   await page.evaluate(
-    ({ table, event }: { table: string; event: string }): void => {
-      (window as unknown as FixtureWindow).__fixture.announce(table, event);
+    ({
+      table,
+      event,
+      modelId,
+    }: {
+      table: string;
+      event: string;
+      modelId: string;
+    }): void => {
+      (window as unknown as FixtureWindow).__fixture.announce(
+        table,
+        event,
+        modelId,
+      );
     },
-    { table: tableName, event: eventType },
+    { table: tableName, event: eventType, modelId: id || "" },
   );
 }
 
-async function declareIncident(page: Page, title: string): Promise<void> {
-  await page.evaluate((name: string): void => {
-    (window as unknown as FixtureWindow).__fixture.declareIncident(name);
+// Someone else declares an incident; its id, as the server would announce it.
+async function declareIncident(page: Page, title: string): Promise<string> {
+  return await page.evaluate((name: string): string => {
+    return (window as unknown as FixtureWindow).__fixture.declareIncident(name);
   }, title);
 }
 
@@ -438,8 +453,11 @@ test.describe("the Incidents list keeps itself current", () => {
   }) => {
     await open(page, INCIDENTS);
 
-    await declareIncident(page, "Checkout API returns 502 for EU customers");
-    await announce(page, "Incident", "Create");
+    const created: string = await declareIncident(
+      page,
+      "Checkout API returns 502 for EU customers",
+    );
+    await announce(page, "Incident", "Create", created);
 
     const arrived: Locator = page.locator(
       '#incidents-table-body > tr[data-row-arrived="true"]',
@@ -482,8 +500,11 @@ test.describe("the Incidents list keeps itself current", () => {
   }) => {
     await open(page, `${INCIDENTS}?theme=dark`);
 
-    await declareIncident(page, "Checkout API returns 502 for EU customers");
-    await announce(page, "Incident", "Create");
+    const created: string = await declareIncident(
+      page,
+      "Checkout API returns 502 for EU customers",
+    );
+    await announce(page, "Incident", "Create", created);
 
     const arrived: Locator = page.locator(
       '#incidents-table-body > tr[data-row-arrived="true"]',
@@ -509,8 +530,11 @@ test.describe("the Incidents list keeps itself current", () => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await open(page, INCIDENTS);
 
-    await declareIncident(page, "Checkout API returns 502 for EU customers");
-    await announce(page, "Incident", "Create");
+    const created: string = await declareIncident(
+      page,
+      "Checkout API returns 502 for EU customers",
+    );
+    await announce(page, "Incident", "Create", created);
 
     const arrived: Locator = page.locator(
       '#incidents-table-body > tr[data-row-arrived="true"]',

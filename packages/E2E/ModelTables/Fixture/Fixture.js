@@ -71,9 +71,11 @@
  * incidents or alerts joins to keep itself current (ModelTable/UseLiveRows),
  * is a fake one the suite speaks for: `window.__fixture.liveSubscriptions`
  * lists what the lists listen for, `window.__fixture.announce(table,
- * eventType)` is the server announcing a created, changed or deleted record,
+ * eventType, id)` is the server announcing a created, changed or deleted
+ * record (by its id: a created record's new row is tinted for a moment),
  * and `window.__fixture.declareIncident(title)` /
- * `window.__fixture.raiseAlert(title)` add one to the server's rows first.
+ * `window.__fixture.raiseAlert(title)` add one to the server's rows first
+ * and return its id.
  *
  * Every list read is recorded on `window.__fixture.listRequests`, every
  * write on `window.__fixture.updates`, every record created (a row's state

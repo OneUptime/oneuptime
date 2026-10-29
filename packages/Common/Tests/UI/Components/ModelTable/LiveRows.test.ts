@@ -269,36 +269,53 @@ describe("when the pointer holds the rows", () => {
  * the new incident among the rows that moved down for it.
  */
 describe("which rows a live read brought in", () => {
-  test("the rows on the page now that were not before", () => {
+  test("the rows on the page now that were not before, of records just created", () => {
     expect(
-      getArrivedRowIds(["inc-2", "inc-1"], ["inc-3", "inc-2", "inc-1"]),
+      getArrivedRowIds(
+        ["inc-2", "inc-1"],
+        ["inc-3", "inc-2", "inc-1"],
+        ["inc-3"],
+      ),
     ).toEqual(["inc-3"]);
     expect(
-      getArrivedRowIds(["inc-2", "inc-1"], ["inc-5", "inc-4", "inc-2"]),
+      getArrivedRowIds(
+        ["inc-2", "inc-1"],
+        ["inc-5", "inc-4", "inc-2"],
+        ["inc-4", "inc-5"],
+      ),
     ).toEqual(["inc-5", "inc-4"]);
   });
 
+  test("a row that slid in from the next page as another left is not new", () => {
+    expect(
+      getArrivedRowIds(["inc-3", "inc-2"], ["inc-2", "inc-1"], []),
+    ).toEqual([]);
+    // Created elsewhere, but not the row that came in.
+    expect(
+      getArrivedRowIds(["inc-3", "inc-2"], ["inc-2", "inc-1"], ["inc-9"]),
+    ).toEqual([]);
+  });
+
   test("a row that only changed, moved or left brings in nothing", () => {
-    expect(getArrivedRowIds(["inc-2", "inc-1"], ["inc-1", "inc-2"])).toEqual(
-      [],
-    );
-    expect(getArrivedRowIds(["inc-2", "inc-1"], ["inc-1"])).toEqual([]);
+    expect(
+      getArrivedRowIds(["inc-2", "inc-1"], ["inc-1", "inc-2"], ["inc-1"]),
+    ).toEqual([]);
+    expect(getArrivedRowIds(["inc-2", "inc-1"], ["inc-1"], [])).toEqual([]);
   });
 
   test("the first rows into an empty list are new", () => {
-    expect(getArrivedRowIds([], ["inc-1"])).toEqual(["inc-1"]);
+    expect(getArrivedRowIds([], ["inc-1"], ["inc-1"])).toEqual(["inc-1"]);
   });
 
   test("a burst that fills the page tints the whole page", () => {
-    expect(getArrivedRowIds(["inc-1"], ["inc-3", "inc-2"])).toEqual([
-      "inc-3",
-      "inc-2",
-    ]);
+    expect(
+      getArrivedRowIds(["inc-1"], ["inc-3", "inc-2"], ["inc-2", "inc-3"]),
+    ).toEqual(["inc-3", "inc-2"]);
   });
 
   test("nothing before the first page is drawn, and no row without an id", () => {
-    expect(getArrivedRowIds(null, ["inc-1", "inc-2"])).toEqual([]);
-    expect(getArrivedRowIds(["inc-1"], ["", "inc-1"])).toEqual([]);
+    expect(getArrivedRowIds(null, ["inc-1", "inc-2"], ["inc-1"])).toEqual([]);
+    expect(getArrivedRowIds(["inc-1"], ["", "inc-1"], [""])).toEqual([]);
   });
 
   test("the tint lasts as long as its fade in Theme.css", () => {

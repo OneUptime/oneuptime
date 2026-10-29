@@ -27,9 +27,10 @@ import ModelEventType from "../../../Types/Realtime/ModelEventType";
  * pointer on its way to a row, or the page itself loading. It reads again as
  * soon as they are done, and when a hidden tab comes back into view.
  *
- * A row the read brings in is tinted for a moment (LIVE_ROWS_ARRIVED_IN_MS,
- * the tint fading as a link's landing place fades: Theme.css), so the eye
- * finds the new incident among the ones that moved down for it.
+ * A row the read brings in for a record announced as created is tinted for
+ * a moment (LIVE_ROWS_ARRIVED_IN_MS, the tint fading as a link's landing
+ * place fades: Theme.css), so the eye finds the new incident among the ones
+ * that moved down for it.
  */
 
 // The same pace as the header's counts (Header.tsx).
@@ -81,26 +82,37 @@ export const LIVE_ROWS_ARRIVED_IN_MS: number = 2400;
  */
 export const ROW_ARRIVED_ATTRIBUTE: string = "data-row-arrived";
 
+// What a live read is told about the changes it reads.
+export interface LiveRowsHeard {
+  // The records announced as created since the last read.
+  createdIds: Array<string>;
+}
+
 /*
- * The rows a live read brought in: on the page now and not before it.
- * Nothing when no page was drawn before it. Only a live read is asked: the
- * reader's own reads (another page, a search) draw rows they asked for.
+ * The rows a live read brought in: on the page now and not before it, for
+ * records announced as created - not a row that slid in from the next page
+ * as one above it left. Nothing when no page was drawn before it. Only a
+ * live read is asked: the reader's own reads (another page, a search) draw
+ * rows they asked for.
  */
 export const getArrivedRowIds: (
   shownIds: ReadonlyArray<string> | null,
   readIds: ReadonlyArray<string>,
+  createdIds: ReadonlyArray<string>,
 ) => Array<string> = (
   shownIds: ReadonlyArray<string> | null,
   readIds: ReadonlyArray<string>,
+  createdIds: ReadonlyArray<string>,
 ): Array<string> => {
-  if (shownIds === null) {
+  if (shownIds === null || createdIds.length === 0) {
     return [];
   }
 
   const shown: Set<string> = new Set(shownIds);
+  const created: Set<string> = new Set(createdIds);
 
   return readIds.filter((id: string): boolean => {
-    return Boolean(id) && !shown.has(id);
+    return Boolean(id) && !shown.has(id) && created.has(id);
   });
 };
 

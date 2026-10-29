@@ -144,6 +144,7 @@ import useCustomFieldColumns, {
 import { getExportKeysFromColumn } from "./ExportFromColumns";
 import {
   LIVE_ROWS_ARRIVED_IN_MS,
+  LiveRowsHeard,
   ROW_ARRIVED_ATTRIBUTE,
   getArrivedRowIds,
   isDialogOrMenuOpen,
@@ -2684,6 +2685,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
      * reads again.
      */
     isBackground?: boolean | undefined;
+    // A live read's: the records announced as created since the last one.
+    createdIds?: Array<string> | undefined;
   }) => Promise<void>;
 
   const getFetchSort: () => Sort<TBaseModel> = (): Sort<TBaseModel> => {
@@ -2712,6 +2715,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     quiet?: boolean | undefined;
     stayInRange?: boolean | undefined;
     isBackground?: boolean | undefined;
+    createdIds?: Array<string> | undefined;
   }): Promise<void> => {
     const isBackground: boolean = Boolean(options?.isBackground);
     const isQuiet: boolean = Boolean(options?.quiet) || isBackground;
@@ -2812,7 +2816,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
       markArrivedRows(
         isBackground
-          ? getArrivedRowIds(shownRowIdsRef.current, readRowIds)
+          ? getArrivedRowIds(
+              shownRowIdsRef.current,
+              readRowIds,
+              options?.createdIds || [],
+            )
           : [],
       );
       shownRowIdsRef.current = readRowIds;
@@ -3268,8 +3276,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         hasTextSelection: hasTextSelection(),
       });
     },
-    refresh: (): Promise<void> => {
-      return fetchItems({ isBackground: true });
+    refresh: (heard: LiveRowsHeard): Promise<void> => {
+      return fetchItems({
+        isBackground: true,
+        createdIds: heard.createdIds,
+      });
     },
     // The rows (Table's body), which a pointer on its way to one holds still.
     getRowsElement: (): Element | null => {
