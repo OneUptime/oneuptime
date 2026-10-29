@@ -687,6 +687,7 @@ describe("the rules a sized column's values are drawn by", () => {
     const css: string = getSizedColumnsCss({ scope: "r1", cellNumbers: [3] });
 
     expect(css.split("\n")).toEqual([
+      'table[data-column-widths-scope="r1"] > tbody > tr > td:nth-child(3) { max-width: none; }',
       'table[data-column-widths-scope="r1"] > tbody > tr > td:nth-child(3) > div { max-width: none; min-width: 0; }',
       'table[data-column-widths-scope="r1"] > thead > tr > th:nth-child(3) * { white-space: normal; }',
     ]);
@@ -701,6 +702,8 @@ describe("the rules a sized column's values are drawn by", () => {
     expect(css).toContain('table[data-column-widths-scope="r9"]');
     expect(css.match(NTH_CHILD_RULE)).toEqual([
       "td:nth-child(2)",
+      "td:nth-child(2)",
+      "td:nth-child(5)",
       "td:nth-child(5)",
     ]);
   });

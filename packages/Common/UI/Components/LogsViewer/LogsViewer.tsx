@@ -35,6 +35,9 @@ import LogsFilterCard from "./components/LogsFilterCard";
 import LogsViewerToolbar, {
   LogsViewerToolbarProps,
 } from "./components/LogsViewerToolbar";
+import useResizableColumns, {
+  ResizableColumns,
+} from "../Table/ColumnResize/useResizableColumns";
 import LogsTable, {
   LogsTableSortField,
   resolveLogIdentifier,
@@ -400,6 +403,9 @@ function resolveServiceNameToId(
 
   return undefined;
 }
+
+// Where the logs lists' column widths are remembered, per person.
+export const LOGS_TABLE_COLUMN_WIDTHS_KEY: string = "logs-table";
 
 const LogsViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -1242,6 +1248,20 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     ? normalizeLogsTableColumns(props.selectedColumns)
     : internalSelectedColumns;
 
+  /*
+   * The list's columns as wide as a person made them (Table/ColumnResize):
+   * one set of widths for every logs list they read - the explorer's, an
+   * incident's, a service's - which all draw the same columns.
+   */
+  const resizableColumns: ResizableColumns = useResizableColumns({
+    tableKey: LOGS_TABLE_COLUMN_WIDTHS_KEY,
+    columns: selectedColumns.map(
+      (columnId: string, index: number): { id: string; cellNumber: number } => {
+        return { id: columnId, cellNumber: index + 1 };
+      },
+    ),
+  });
+
   const availableColumns: Array<LogsTableColumnOption> = useMemo(() => {
     const attributeColumns: Array<LogsTableColumnOption> = [...logAttributes]
       .sort((left: string, right: string) => {
@@ -1524,6 +1544,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                   sortOrder={sortOrder}
                   onSortChange={handleSortChange}
                   selectedColumns={selectedColumns}
+                  resizableColumns={resizableColumns}
                   getTraceRoute={props.getTraceRoute}
                   getSpanRoute={props.getSpanRoute}
                   resolveSpanRoute={props.resolveSpanRoute}

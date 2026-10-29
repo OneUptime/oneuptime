@@ -48,6 +48,11 @@ import {
   getDashboardWidgetSortSpec,
 } from "Common/Utils/Dashboard/DashboardWidgetSorts";
 import DashboardSortableColumnHeader from "./DashboardSortableColumnHeader";
+import useDashboardWidgetColumns, {
+  DashboardWidgetColumn,
+  DashboardWidgetColumns,
+} from "./DashboardWidgetColumns";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardTraceTableComponent;
@@ -132,6 +137,33 @@ const DashboardTraceTableComponentElement: FunctionComponent<ComponentProps> = (
       getDashboardWidgetSortSpec(DashboardComponentType.TraceTable)
         ?.defaultSort || null,
   });
+
+  /*
+   * Its columns as wide as each person makes them, after each row's number:
+   * the group's values give way to 10rem, a count or a duration is never
+   * cut.
+   */
+  const groupKeysForWidths: Array<string> = Object.keys(
+    rows[0]?.groupValues || {},
+  );
+  const widgetColumns: DashboardWidgetColumns = useDashboardWidgetColumns(
+    [
+      ...groupKeysForWidths.map(
+        (key: string, index: number): DashboardWidgetColumn => {
+          return {
+            id: `group:${key}`,
+            kind: index === 0 ? ColumnWidthKind.Name : ColumnWidthKind.Text,
+          };
+        },
+      ),
+      ...METRIC_HEADERS.map(
+        (header: { key: string; label: string }): DashboardWidgetColumn => {
+          return { id: header.key, kind: ColumnWidthKind.Whole };
+        },
+      ),
+    ],
+    1,
+  );
 
   const sortKey: string = widgetSort.sort
     ? formatDashboardWidgetSortChoice(widgetSort.sort)
@@ -238,7 +270,13 @@ const DashboardTraceTableComponentElement: FunctionComponent<ComponentProps> = (
 
     return (
       <div className="overflow-auto rounded-lg border border-gray-200/80">
-        <table className="min-w-full">
+        {widgetColumns.resizable.styles}
+        <table
+          className={
+            widgetColumns.resizable.areAllColumnsSized ? "w-max" : "min-w-full"
+          }
+          {...widgetColumns.resizable.tableAttributes}
+        >
           <thead>
             <tr className="border-b border-gray-200/80 bg-gray-50/80 text-[11px] text-gray-400">
               <th className={`w-8 text-left ${HEADER_CELL}`}>#</th>
@@ -255,6 +293,7 @@ const DashboardTraceTableComponentElement: FunctionComponent<ComponentProps> = (
                     }
                     sort={widgetSort.sort}
                     onSortClick={widgetSort.onColumnClick}
+                    resize={widgetColumns.getResize(`group:${key}`)}
                   />
                 );
               })}
@@ -272,6 +311,7 @@ const DashboardTraceTableComponentElement: FunctionComponent<ComponentProps> = (
                       )}
                       sort={widgetSort.sort}
                       onSortClick={widgetSort.onColumnClick}
+                      resize={widgetColumns.getResize(header.key)}
                     />
                   );
                 },

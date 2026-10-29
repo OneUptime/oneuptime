@@ -38,6 +38,12 @@ import {
   LogEntityDisplay,
   LogsResourceEntityMaps,
 } from "../LogsEntityNames";
+import { ResizableColumns } from "../../Table/ColumnResize/useResizableColumns";
+import ResizableHeaderCell, {
+  ColumnResize,
+} from "../../Table/ColumnResize/ResizableHeaderCell";
+import { ColumnWidthKind } from "../../Table/ColumnResize/ColumnWidths";
+import ResetColumnWidthsButton from "../../Table/ColumnResize/ResetColumnWidthsButton";
 
 export interface LogsTableProps {
   logs: Array<Log>;
@@ -83,7 +89,33 @@ export interface LogsTableProps {
   resolveSpanRoute?:
     | ((spanId: string, log: Log) => Promise<Route | URL | undefined>)
     | undefined;
+  /*
+   * The list's columns as wide as a person made them (Table/ColumnResize):
+   * an edge on each column's header to drag, and Reset column widths at the
+   * header row's end while one is sized - as a table with no ⋯ keeps it.
+   * Left out, the columns are the list's own.
+   */
+  resizableColumns?: ResizableColumns | undefined;
 }
+
+/*
+ * How each of the list's columns may be cut short as it is narrowed: the
+ * time and the severity never (a date, a badge), the message wraps, any
+ * other value gives way to 8rem (ColumnWidths' ColumnWidthKind).
+ */
+export const getLogsColumnWidthKind: (columnId: string) => ColumnWidthKind = (
+  columnId: string,
+): ColumnWidthKind => {
+  if (columnId === "time" || columnId === "severity") {
+    return ColumnWidthKind.Whole;
+  }
+
+  if (columnId === "message") {
+    return ColumnWidthKind.Prose;
+  }
+
+  return ColumnWidthKind.Text;
+};
 
 export const resolveLogIdentifier: (log: Log, index: number) => string = (
   log: Log,
@@ -352,12 +384,48 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
     );
   };
 
+  /*
+   * A column's edge, which a person drags to size it, named after the
+   * column as its header says it.
+   */
+  const getColumnResize: (
+    columnId: string,
+    title: string,
+  ) => ColumnResize | undefined = (
+    columnId: string,
+    title: string,
+  ): ColumnResize | undefined => {
+    if (!props.resizableColumns) {
+      return undefined;
+    }
+
+    return {
+      columns: props.resizableColumns,
+      columnId: columnId,
+      columnTitle: title,
+      kind: getLogsColumnWidthKind(columnId),
+    };
+  };
+
+  // A sized list ends each row with a cell that takes the room left over.
+  const hasEndFiller: boolean = Boolean(
+    props.resizableColumns?.hasColumnWidths,
+  );
+
   const getHeaderCell: (columnId: string) => ReactElement = (
     columnId: string,
   ): ReactElement => {
     if (columnId === "time") {
       return (
-        <th scope="col" className="px-4 py-2.5" key={columnId}>
+        <ResizableHeaderCell
+          scope="col"
+          className="px-4 py-2.5"
+          key={columnId}
+          resize={getColumnResize(
+            columnId,
+            translator.translateText("Time") || "Time",
+          )}
+        >
           <button
             type="button"
             className={`flex items-center gap-2 text-left font-semibold tracking-wider text-gray-500 transition-colors hover:text-gray-700 focus:outline-none ${
@@ -381,13 +449,21 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
               aria-hidden="true"
             />
           </button>
-        </th>
+        </ResizableHeaderCell>
       );
     }
 
     if (columnId === "severity") {
       return (
-        <th scope="col" className="px-4 py-2.5" key={columnId}>
+        <ResizableHeaderCell
+          scope="col"
+          className="px-4 py-2.5"
+          key={columnId}
+          resize={getColumnResize(
+            columnId,
+            translator.translateText("Severity") || "Severity",
+          )}
+        >
           <button
             type="button"
             className={`flex items-center gap-2 text-left font-semibold tracking-wider text-gray-500 transition-colors hover:text-gray-700 focus:outline-none ${
@@ -411,46 +487,30 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
               aria-hidden="true"
             />
           </button>
-        </th>
+        </ResizableHeaderCell>
       );
     }
 
-    if (columnId === "service") {
-      return (
-        <th scope="col" className="px-4 py-2.5" key={columnId}>
-          {translator.translateText("Service")}
-        </th>
-      );
-    }
-
-    if (columnId === "message") {
-      return (
-        <th scope="col" className="px-4 py-2.5" key={columnId}>
-          {translator.translateText("Message")}
-        </th>
-      );
-    }
-
-    if (columnId === "traceId") {
-      return (
-        <th scope="col" className="px-4 py-2.5" key={columnId}>
-          {translator.translateText("Trace ID")}
-        </th>
-      );
-    }
-
-    if (columnId === "spanId") {
-      return (
-        <th scope="col" className="px-4 py-2.5" key={columnId}>
-          {translator.translateText("Span ID")}
-        </th>
-      );
-    }
+    const title: string =
+      columnId === "service"
+        ? translator.translateText("Service") || "Service"
+        : columnId === "message"
+          ? translator.translateText("Message") || "Message"
+          : columnId === "traceId"
+            ? translator.translateText("Trace ID") || "Trace ID"
+            : columnId === "spanId"
+              ? translator.translateText("Span ID") || "Span ID"
+              : getLogsAttributeKeyFromColumnId(columnId) || columnId;
 
     return (
-      <th scope="col" className="px-4 py-2.5" key={columnId}>
-        {getLogsAttributeKeyFromColumnId(columnId) || columnId}
-      </th>
+      <ResizableHeaderCell
+        scope="col"
+        className="px-4 py-2.5"
+        key={columnId}
+        resize={getColumnResize(columnId, title)}
+      >
+        <span>{title}</span>
+      </ResizableHeaderCell>
     );
   };
 
@@ -460,12 +520,44 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
       data-testid={LOGS_TABLE_TEST_ID}
     >
       <div className="overflow-x-auto bg-white">
-        <table className="min-w-full">
+        {props.resizableColumns ? props.resizableColumns.styles : <></>}
+        <table
+          className="min-w-full"
+          {...(props.resizableColumns?.tableAttributes || {})}
+        >
           <thead className="bg-gray-50/80">
             <tr className="text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500">
               {selectedColumns.map((columnId: string) => {
                 return getHeaderCell(columnId);
               })}
+              {hasEndFiller ? (
+                <th
+                  scope="col"
+                  className="p-0"
+                  aria-hidden={
+                    props.resizableColumns?.isResetInCardMenu ? true : undefined
+                  }
+                  data-testid="logs-table-end-filler"
+                >
+                  {/*
+                   * Reset column widths, unless the card the list is in
+                   * keeps it in its ⋯ (useResizableColumns).
+                   */}
+                  {props.resizableColumns?.isResetInCardMenu ? (
+                    <></>
+                  ) : (
+                    <div className="flex items-center justify-end py-1.5 pl-3 pr-4">
+                      <ResetColumnWidthsButton
+                        onClick={() => {
+                          props.resizableColumns?.columnWidths.resetColumnWidths();
+                        }}
+                      />
+                    </div>
+                  )}
+                </th>
+              ) : (
+                <></>
+              )}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -684,12 +776,17 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                         </td>
                       );
                     })}
+                    {hasEndFiller ? (
+                      <td aria-hidden="true" className="p-0" />
+                    ) : (
+                      <></>
+                    )}
                   </tr>
 
                   {isSelected && props.renderExpandedContent && (
                     <tr className="bg-white">
                       <td
-                        colSpan={selectedColumns.length}
+                        colSpan={selectedColumns.length + (hasEndFiller ? 1 : 0)}
                         className="px-6 pb-6 pt-3"
                       >
                         {props.renderExpandedContent(log)}
