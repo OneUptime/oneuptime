@@ -2853,7 +2853,8 @@ test.describe("the header row stays in sight", () => {
         return getComputedStyle(element).position;
       });
 
-    expect(position).toBe("static");
+    // Not sticky: relative only so its column's edge sits on it (ColumnResize).
+    expect(position).toBe("relative");
   });
 
   test("a table that scrolled sideways and fits again - the window made wider - sticks its header again", async ({
@@ -2876,7 +2877,8 @@ test.describe("the header row stays in sight", () => {
     };
 
     await expect(scrollBox).toHaveAttribute("data-overflowing", "true");
-    expect(await positionOf(nameHeader)).toBe("static");
+    // Not sticky: relative only so its column's edge sits on it (ColumnResize).
+    expect(await positionOf(nameHeader)).toBe("relative");
 
     await page.setViewportSize({ width: 1280, height: 900 });
 

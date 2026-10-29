@@ -5,6 +5,11 @@ import SnmpMonitorResponse, {
   SnmpOidResponse,
 } from "Common/Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import useResizableColumns, {
+  ResizableColumns,
+} from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
+import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import ProbeAttemptsView from "./ProbeAttemptsView";
 import SnmpInterfacesView from "./SnmpInterfacesView";
 import {
@@ -59,6 +64,20 @@ const SnmpMonitorView: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const snmpResponse: SnmpMonitorResponse | undefined =
     props.probeMonitorResponse?.snmpResponse;
+
+  /*
+   * The values' columns as wide as a person makes them (Common's
+   * Table/ColumnResize): an OID, a name or a value gives way, a type never.
+   */
+  const valueColumns: ResizableColumns = useResizableColumns({
+    tableKey: "snmp-monitor-values-table",
+    columns: [
+      { id: "oid", cellNumber: 1 },
+      { id: "name", cellNumber: 2 },
+      { id: "value", cellNumber: 3 },
+      { id: "type", cellNumber: 4 },
+    ],
+  });
 
   let responseTimeInMs: number = snmpResponse?.responseTimeInMs || 0;
 
@@ -121,21 +140,53 @@ const SnmpMonitorView: FunctionComponent<ComponentProps> = (
             {translator.translateText("OID Responses")}
           </h3>
           <div className={SUMMARY_TABLE_FRAME_CLASS_NAME}>
-            <table className="min-w-full divide-y divide-gray-200">
+            {valueColumns.styles}
+            <table
+              className={`${valueColumns.getTableWidthClassName("min-w-full")} divide-y divide-gray-200`}
+              {...valueColumns.tableAttributes}
+            >
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {translator.translateText("OID")}
-                  </th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {translator.translateText("Name")}
-                  </th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {translator.translateText("Value")}
-                  </th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {translator.translateText("Type")}
-                  </th>
+                  <ResizableHeaderCell
+                    className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    resize={valueColumns.getResize(
+                      "oid",
+                      translator.translateText("OID") || "OID",
+                      ColumnWidthKind.Text,
+                    )}
+                  >
+                    <span>{translator.translateText("OID")}</span>
+                  </ResizableHeaderCell>
+                  <ResizableHeaderCell
+                    className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    resize={valueColumns.getResize(
+                      "name",
+                      translator.translateText("Name") || "Name",
+                      ColumnWidthKind.Name,
+                    )}
+                  >
+                    <span>{translator.translateText("Name")}</span>
+                  </ResizableHeaderCell>
+                  <ResizableHeaderCell
+                    className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    resize={valueColumns.getResize(
+                      "value",
+                      translator.translateText("Value") || "Value",
+                      ColumnWidthKind.Prose,
+                    )}
+                  >
+                    <span>{translator.translateText("Value")}</span>
+                  </ResizableHeaderCell>
+                  <ResizableHeaderCell
+                    className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    resize={valueColumns.getResize(
+                      "type",
+                      translator.translateText("Type") || "Type",
+                      ColumnWidthKind.Whole,
+                    )}
+                  >
+                    <span>{translator.translateText("Type")}</span>
+                  </ResizableHeaderCell>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">

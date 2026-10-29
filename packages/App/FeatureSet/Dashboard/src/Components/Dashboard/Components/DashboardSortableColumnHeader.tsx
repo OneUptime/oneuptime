@@ -9,6 +9,9 @@ import {
 } from "Common/Types/Dashboard/DashboardWidgetSort";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import ResizableHeaderCell, {
+  ColumnResize,
+} from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
 import {
   DASHBOARD_WIDGET_SORT_ARROW_TEST_ID,
   DashboardWidgetSortCopy,
@@ -37,6 +40,10 @@ import {
  * the button clips them to the cell. So a narrow widget's columns are as
  * wide as they were before any header sorted, and the words never move
  * when the rows are sorted by them.
+ *
+ * With `resize` its column's edge can be dragged to size it, as a table's
+ * can (Common/UI/Components/Table/ColumnResize): each person keeps their own
+ * widths for each widget.
  */
 
 export interface ComponentProps {
@@ -60,6 +67,8 @@ export interface ComponentProps {
    */
   isLabelUserText?: boolean | undefined;
   className?: string | undefined;
+  // The column's edge, which a person drags to size it.
+  resize?: Omit<ColumnResize, "columnTitle"> | undefined;
 }
 
 const DEFAULT_PADDING_CLASS_NAME: string = "px-3 py-2.5";
@@ -78,17 +87,23 @@ const DashboardSortableColumnHeader: FunctionComponent<ComponentProps> = (
     ? { width: props.widthPct }
     : undefined;
 
+  // Named after the header's words, as the reader reads them.
+  const resize: ColumnResize | undefined = props.resize
+    ? { ...props.resize, columnTitle: label }
+    : undefined;
+
   if (!column || !props.onSortClick) {
     return (
-      <th
+      <ResizableHeaderCell
         scope="col"
         className={`${padding} font-medium tracking-wider${
           props.alignRight ? " text-right" : ""
         }${props.className ? ` ${props.className}` : ""}`}
         style={style}
+        resize={resize}
       >
-        {label}
-      </th>
+        {resize ? <span>{label}</span> : label}
+      </ResizableHeaderCell>
     );
   }
 
@@ -152,7 +167,7 @@ const DashboardSortableColumnHeader: FunctionComponent<ComponentProps> = (
   );
 
   return (
-    <th
+    <ResizableHeaderCell
       scope="col"
       aria-sort={
         direction === DashboardWidgetSortDirection.Ascending
@@ -162,9 +177,14 @@ const DashboardSortableColumnHeader: FunctionComponent<ComponentProps> = (
             : "none"
       }
       className={`p-0 font-medium tracking-wider${
-        props.className ? ` ${props.className}` : ""
-      }`}
+        /*
+         * Its words are at its end, as the button draws them: a Reset
+         * column widths beside them goes before them (ResizableHeaderCell).
+         */
+        props.alignRight ? " text-right" : ""
+      }${props.className ? ` ${props.className}` : ""}`}
       style={style}
+      resize={resize}
     >
       <button
         type="button"
@@ -195,7 +215,7 @@ const DashboardSortableColumnHeader: FunctionComponent<ComponentProps> = (
         <span>{label}</span>
         {props.alignRight ? <></> : indicator}
       </button>
-    </th>
+    </ResizableHeaderCell>
   );
 };
 

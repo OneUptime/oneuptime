@@ -88,6 +88,7 @@ El modo en vivo se apaga solo cuando cambia la búsqueda, un filtro o el interva
 
 - **Columnas** elige lo que muestra la lista. **Hora**, **Servicio**, **Gravedad** y **Mensaje** van primero; añada **ID de traza**, **ID del span** o cualquier atributo, mueva las columnas arriba y abajo, o vuelva a los valores predeterminados con **Restablecer**.
 - **Exportar** descarga los registros de la página que está viendo. **Exportar como CSV** escribe las columnas que muestra; **Exportar como JSON** escribe cada campo de cada registro, con todos sus atributos.
+- Apunte a la fila de encabezados y arrastre la línea al final del nombre de una columna para ensancharla o estrecharla, o haga doble clic en la línea para ajustar la columna a su contenido. La lista guarda sus anchos en este navegador; **Restablecer anchos**, al final de la fila de encabezados, devuelve a cada columna su propio ancho.
 
 ## Guardar una vista
 

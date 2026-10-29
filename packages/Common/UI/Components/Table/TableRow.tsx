@@ -17,6 +17,8 @@ import {
   TABLE_ACTIONS_CONTENT_CLASS_NAME,
   TABLE_CLICKABLE_ROW_CLASS_NAME,
   TABLE_DRAG_HANDLE_CELL_CLASS_NAME,
+  TABLE_END_FILLER_BODY_CELL_CLASS_NAME,
+  TABLE_END_FILLER_TEST_ID,
   TABLE_MOBILE_FIELD_CLASS_NAME,
   TABLE_MOBILE_FIELD_NAME_CLASS_NAME,
   TABLE_MOBILE_FIELD_VALUE_CLASS_NAME,
@@ -112,6 +114,11 @@ export interface ComponentProps<T extends GenericObject> {
    * cells passing under it.
    */
   isOverflowing?: boolean | undefined;
+  /*
+   * A cell after the columns, as the header draws one, to take the room
+   * the columns a person sized leave (TableLayout).
+   */
+  hasEndFiller?: boolean | undefined;
 
   // responsive
   isMobile?: boolean;
@@ -707,6 +714,14 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                 </td>
               );
             })}
+          {props.hasEndFiller && (
+            <td
+              aria-hidden="true"
+              data-testid={TABLE_END_FILLER_TEST_ID}
+              className={`${TABLE_END_FILLER_BODY_CELL_CLASS_NAME}${ruleClassName}`}
+              style={getLockedCellStyle()}
+            />
+          )}
         </tr>
         {tooltipModalText && (
           <ConfirmModal

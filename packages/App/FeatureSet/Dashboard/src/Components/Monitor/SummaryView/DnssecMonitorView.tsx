@@ -6,6 +6,11 @@ import DnssecMonitorResponse, {
   DnssecResolverCheck,
 } from "Common/Types/Monitor/DnssecMonitor/DnssecMonitorResponse";
 import React, { FunctionComponent, ReactElement } from "react";
+import useResizableColumns, {
+  ResizableColumns,
+} from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
+import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import ProbeAttemptsView from "./ProbeAttemptsView";
 import {
   SUMMARY_TABLE_FRAME_CLASS_NAME,
@@ -28,6 +33,33 @@ const DnssecMonitorView: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const dnssecResponse: DnssecMonitorResponse | undefined =
     props.probeMonitorResponse?.dnssecResponse;
+
+  /*
+   * Each table's columns as wide as a person makes them (Common's
+   * Table/ColumnResize): a name or an error gives way, a flag or a serial never.
+   */
+  const resolverColumns: ResizableColumns = useResizableColumns({
+    tableKey: "dnssec-monitor-resolvers-table",
+    columns: [
+      { id: "resolver", cellNumber: 1 },
+      { id: "adFlag", cellNumber: 2 },
+      { id: "servfail", cellNumber: 3 },
+      { id: "error", cellNumber: 4 },
+    ],
+  });
+
+  /*
+   * ...the nameservers' too.
+   */
+  const nameserverColumns: ResizableColumns = useResizableColumns({
+    tableKey: "dnssec-monitor-nameservers-table",
+    columns: [
+      { id: "nameserver", cellNumber: 1 },
+      { id: "soaSerial", cellNumber: 2 },
+      { id: "rrsigExpires", cellNumber: 3 },
+      { id: "error", cellNumber: 4 },
+    ],
+  });
 
   let responseTimeInMs: number = dnssecResponse?.responseTimeInMs || 0;
   if (responseTimeInMs > 0) {
@@ -129,21 +161,56 @@ const DnssecMonitorView: FunctionComponent<ComponentProps> = (
               {translator.translateText("Resolver Checks")}
             </h3>
             <div className={SUMMARY_TABLE_FRAME_CLASS_NAME}>
-              <table className="min-w-full divide-y divide-gray-200">
+              {resolverColumns.styles}
+              <table
+                className={`${resolverColumns.getTableWidthClassName("min-w-full")} divide-y divide-gray-200`}
+                {...resolverColumns.tableAttributes}
+              >
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {translator.translateText("Resolver")}
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {translator.translateText("AD Flag")}
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {translator.translateText("SERVFAIL on validate")}
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {translator.translateText("Error")}
-                    </th>
+                    <ResizableHeaderCell
+                      className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      resize={resolverColumns.getResize(
+                        "resolver",
+                        translator.translateText("Resolver") || "Resolver",
+                        ColumnWidthKind.Name,
+                      )}
+                    >
+                      <span>{translator.translateText("Resolver")}</span>
+                    </ResizableHeaderCell>
+                    <ResizableHeaderCell
+                      className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      resize={resolverColumns.getResize(
+                        "adFlag",
+                        translator.translateText("AD Flag") || "AD Flag",
+                        ColumnWidthKind.Whole,
+                      )}
+                    >
+                      <span>{translator.translateText("AD Flag")}</span>
+                    </ResizableHeaderCell>
+                    <ResizableHeaderCell
+                      className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      resize={resolverColumns.getResize(
+                        "servfail",
+                        translator.translateText("SERVFAIL on validate") ||
+                          "SERVFAIL on validate",
+                        ColumnWidthKind.Whole,
+                      )}
+                    >
+                      <span>
+                        {translator.translateText("SERVFAIL on validate")}
+                      </span>
+                    </ResizableHeaderCell>
+                    <ResizableHeaderCell
+                      className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      resize={resolverColumns.getResize(
+                        "error",
+                        translator.translateText("Error") || "Error",
+                        ColumnWidthKind.Prose,
+                      )}
+                    >
+                      <span>{translator.translateText("Error")}</span>
+                    </ResizableHeaderCell>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -184,21 +251,54 @@ const DnssecMonitorView: FunctionComponent<ComponentProps> = (
               {translator.translateText("Nameserver Consistency")}
             </h3>
             <div className={SUMMARY_TABLE_FRAME_CLASS_NAME}>
-              <table className="min-w-full divide-y divide-gray-200">
+              {nameserverColumns.styles}
+              <table
+                className={`${nameserverColumns.getTableWidthClassName("min-w-full")} divide-y divide-gray-200`}
+                {...nameserverColumns.tableAttributes}
+              >
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {translator.translateText("Nameserver")}
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {translator.translateText("SOA Serial")}
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {translator.translateText("RRSIG Expires")}
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {translator.translateText("Error")}
-                    </th>
+                    <ResizableHeaderCell
+                      className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      resize={nameserverColumns.getResize(
+                        "nameserver",
+                        translator.translateText("Nameserver") || "Nameserver",
+                        ColumnWidthKind.Name,
+                      )}
+                    >
+                      <span>{translator.translateText("Nameserver")}</span>
+                    </ResizableHeaderCell>
+                    <ResizableHeaderCell
+                      className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      resize={nameserverColumns.getResize(
+                        "soaSerial",
+                        translator.translateText("SOA Serial") || "SOA Serial",
+                        ColumnWidthKind.Whole,
+                      )}
+                    >
+                      <span>{translator.translateText("SOA Serial")}</span>
+                    </ResizableHeaderCell>
+                    <ResizableHeaderCell
+                      className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      resize={nameserverColumns.getResize(
+                        "rrsigExpires",
+                        translator.translateText("RRSIG Expires") ||
+                          "RRSIG Expires",
+                        ColumnWidthKind.Whole,
+                      )}
+                    >
+                      <span>{translator.translateText("RRSIG Expires")}</span>
+                    </ResizableHeaderCell>
+                    <ResizableHeaderCell
+                      className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      resize={nameserverColumns.getResize(
+                        "error",
+                        translator.translateText("Error") || "Error",
+                        ColumnWidthKind.Prose,
+                      )}
+                    >
+                      <span>{translator.translateText("Error")}</span>
+                    </ResizableHeaderCell>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">

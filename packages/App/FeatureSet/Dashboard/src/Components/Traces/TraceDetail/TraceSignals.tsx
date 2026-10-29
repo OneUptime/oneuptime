@@ -25,6 +25,11 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import useResizableColumns, {
+  ResizableColumns,
+} from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
+import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import {
   CrossSignalQueryParams,
   TelemetryCrossSignalScope,
@@ -143,6 +148,21 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const [activeSignalTab, setActiveSignalTab] =
     useState<CorrelatedSignalTab>("logs");
+
+  /*
+   * The trace's metrics' columns as wide as a person makes them (Common's
+   * Table/ColumnResize): a metric's name gives way, its readings never.
+   */
+  const metricColumns: ResizableColumns = useResizableColumns({
+    tableKey: "trace-metrics-table",
+    columns: [
+      { id: "metric", cellNumber: 1 },
+      { id: "sampledValues", cellNumber: 2 },
+      { id: "min", cellNumber: 3 },
+      { id: "max", cellNumber: 4 },
+      { id: "spans", cellNumber: 5 },
+    ],
+  });
   const [exceptionCount, setExceptionCount] = useState<number | null>(null);
 
   /*
@@ -813,24 +833,68 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
                   </div>
                 )}
                 <div className="overflow-x-auto rounded-lg border border-gray-200">
-                  <table className="min-w-full divide-y divide-gray-200 text-xs">
+                  {metricColumns.styles}
+                  <table
+                    className={`${metricColumns.getTableWidthClassName("min-w-full")} divide-y divide-gray-200 text-xs`}
+                    {...metricColumns.tableAttributes}
+                  >
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-3 py-2 text-left font-medium text-gray-500">
-                          Metric
-                        </th>
-                        <th className="px-3 py-2 text-left font-medium text-gray-500">
-                          Sampled values
-                        </th>
-                        <th className="px-3 py-2 text-right font-medium text-gray-500">
-                          Min
-                        </th>
-                        <th className="px-3 py-2 text-right font-medium text-gray-500">
-                          Max
-                        </th>
-                        <th className="px-3 py-2 text-right font-medium text-gray-500">
-                          Spans
-                        </th>
+                        <ResizableHeaderCell
+                          scope="col"
+                          className="px-3 py-2 text-left font-medium text-gray-500"
+                          resize={metricColumns.getResize(
+                            "metric",
+                            "Metric",
+                            ColumnWidthKind.Name,
+                          )}
+                        >
+                          <span>{"Metric"}</span>
+                        </ResizableHeaderCell>
+                        <ResizableHeaderCell
+                          scope="col"
+                          className="px-3 py-2 text-left font-medium text-gray-500"
+                          resize={metricColumns.getResize(
+                            "sampledValues",
+                            "Sampled values",
+                            ColumnWidthKind.Text,
+                          )}
+                        >
+                          <span>{"Sampled values"}</span>
+                        </ResizableHeaderCell>
+                        <ResizableHeaderCell
+                          scope="col"
+                          className="px-3 py-2 text-right font-medium text-gray-500"
+                          resize={metricColumns.getResize(
+                            "min",
+                            "Min",
+                            ColumnWidthKind.Whole,
+                          )}
+                        >
+                          <span>{"Min"}</span>
+                        </ResizableHeaderCell>
+                        <ResizableHeaderCell
+                          scope="col"
+                          className="px-3 py-2 text-right font-medium text-gray-500"
+                          resize={metricColumns.getResize(
+                            "max",
+                            "Max",
+                            ColumnWidthKind.Whole,
+                          )}
+                        >
+                          <span>{"Max"}</span>
+                        </ResizableHeaderCell>
+                        <ResizableHeaderCell
+                          scope="col"
+                          className="px-3 py-2 text-right font-medium text-gray-500"
+                          resize={metricColumns.getResize(
+                            "spans",
+                            "Spans",
+                            ColumnWidthKind.Whole,
+                          )}
+                        >
+                          <span>{"Spans"}</span>
+                        </ResizableHeaderCell>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 bg-white">

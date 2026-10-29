@@ -26,6 +26,11 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import useResizableColumns, {
+  ResizableColumns,
+} from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
+import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import React, {
   Fragment,
   FunctionComponent,
@@ -138,24 +143,61 @@ interface WifiTableProps<T> {
 function WifiTable<T>(props: WifiTableProps<T>): ReactElement {
   const translator: Translator = useTranslator();
 
+  const columnTitles: Array<string> = [
+    props.nameTitle,
+    ...props.columns.map((column: WifiColumn<T>): string => {
+      return column.title;
+    }),
+  ];
+
+  // A column's id: "name" for the name, else its title, a translation key.
+  const getColumnId: (index: number) => string = (index: number): string => {
+    return index === 0 ? "name" : columnTitles[index] || `column-${index}`;
+  };
+
+  /*
+   * Its columns as wide as a person makes them (Common's
+   * Table/ColumnResize), each table's remembered on its own: a name gives
+   * way - an SSID wraps - and a reading never does.
+   */
+  const wifiColumns: ResizableColumns = useResizableColumns({
+    tableKey: `${props.testId}-table`,
+    columns: columnTitles.map(
+      (_title: string, index: number): { id: string; cellNumber: number } => {
+        return { id: getColumnId(index), cellNumber: index + 1 };
+      },
+    ),
+  });
+
+  const nameKind: ColumnWidthKind = props.wrapNames
+    ? ColumnWidthKind.Prose
+    : ColumnWidthKind.Name;
+
   return (
     <div className="overflow-x-auto" data-testid={props.testId}>
-      <table className="min-w-full divide-y divide-gray-200 text-sm">
+      {wifiColumns.styles}
+      <table
+        className={`${wifiColumns.getTableWidthClassName("min-w-full")} divide-y divide-gray-200 text-sm`}
+        {...wifiColumns.tableAttributes}
+      >
         <thead>
           <tr>
-            {[
-              props.nameTitle,
-              ...props.columns.map((column: WifiColumn<T>) => {
-                return column.title;
-              }),
-            ].map((title: string): ReactElement => {
+            {columnTitles.map((title: string, index: number): ReactElement => {
+              const columnTitle: string =
+                translator.translateText(title) || title;
+
               return (
-                <th
+                <ResizableHeaderCell
                   key={title}
                   className="whitespace-nowrap py-2 pr-4 text-left font-medium text-gray-500"
+                  resize={wifiColumns.getResize(
+                    getColumnId(index),
+                    columnTitle,
+                    index === 0 ? nameKind : ColumnWidthKind.Whole,
+                  )}
                 >
-                  {translator.translateText(title)}
-                </th>
+                  <span>{columnTitle}</span>
+                </ResizableHeaderCell>
               );
             })}
           </tr>

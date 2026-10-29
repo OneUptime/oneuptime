@@ -11,8 +11,13 @@ import DashboardResourceHoneycomb, {
   HoneycombTile,
 } from "./DashboardResourceHoneycomb";
 import DashboardSortableColumnHeader from "./DashboardSortableColumnHeader";
+import useDashboardWidgetColumns, {
+  DashboardWidgetColumn,
+  DashboardWidgetColumns,
+} from "./DashboardWidgetColumns";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 
 export interface ResourceListColumn {
   label: string;
@@ -51,6 +56,31 @@ const FIT_CONTENT_WIDTH: string = "1%";
  */
 export const DASHBOARD_LIST_TABLE_CLASS_NAME: string =
   "w-full text-sm text-left [&_td.truncate]:max-w-0 [&_td.truncate]:min-w-[6rem]";
+
+/*
+ * ...unless a person sized every one of its columns
+ * (DashboardWidgetColumns): then it is as wide as they made them, and the
+ * room they leave is the widget's.
+ */
+export const DASHBOARD_LIST_SIZED_TABLE_CLASS_NAME: string =
+  "w-max text-sm text-left [&_td.truncate]:max-w-0 [&_td.truncate]:min-w-[6rem]";
+
+const NOT_AN_ID_CHARACTER: RegExp = /[^a-z0-9]+/g;
+
+/*
+ * A list column's id, which its width is remembered by: its sort key, else
+ * its words - the English label a widget gives it, never its place.
+ */
+export const getResourceListColumnId: (
+  column: ResourceListColumn,
+  index: number,
+) => string = (column: ResourceListColumn, index: number): string => {
+  return (
+    column.sortKey ||
+    column.label.toLowerCase().replace(NOT_AN_ID_CHARACTER, "-") ||
+    `column-${index}`
+  );
+};
 
 /*
  * What a list's sortable headers draw and do: the columns it can sort by,
@@ -97,6 +127,25 @@ const DashboardResourceListBase: FunctionComponent<
 > = (props: DashboardResourceListBaseProps): ReactElement => {
   const translator: Translator = useTranslator();
   const viewMode: ResourceListViewMode = props.viewMode || "list";
+
+  /*
+   * Its columns as wide as each person makes them: a time or a severity
+   * (fitContent) is never cut, the row's name gives way to 10rem.
+   */
+  const widgetColumns: DashboardWidgetColumns = useDashboardWidgetColumns(
+    props.columns.map(
+      (column: ResourceListColumn, index: number): DashboardWidgetColumn => {
+        return {
+          id: getResourceListColumnId(column, index),
+          kind: column.fitContent
+            ? ColumnWidthKind.Whole
+            : index === 0
+              ? ColumnWidthKind.Name
+              : ColumnWidthKind.Text,
+        };
+      },
+    ),
+  );
   // The widgets hand their messages over in English.
   const emptyMessage: string = translator.translateText(
     props.emptyMessage,
@@ -191,7 +240,15 @@ const DashboardResourceListBase: FunctionComponent<
         </div>
       ) : (
         <div className="flex-1 overflow-auto rounded-md border border-gray-100">
-          <table className={DASHBOARD_LIST_TABLE_CLASS_NAME}>
+          {widgetColumns.resizable.styles}
+          <table
+            className={
+              widgetColumns.resizable.areAllColumnsSized
+                ? DASHBOARD_LIST_SIZED_TABLE_CLASS_NAME
+                : DASHBOARD_LIST_TABLE_CLASS_NAME
+            }
+            {...widgetColumns.resizable.tableAttributes}
+          >
             <thead className="text-xs text-gray-400 uppercase bg-gray-50/80 sticky top-0 border-b border-gray-100">
               <tr>
                 {props.columns.map((c: ResourceListColumn, i: number) => {
@@ -202,6 +259,9 @@ const DashboardResourceListBase: FunctionComponent<
                       alignRight={c.alignRight}
                       widthPct={c.fitContent ? FIT_CONTENT_WIDTH : c.widthPct}
                       className={c.fitContent ? "whitespace-nowrap" : undefined}
+                      resize={widgetColumns.getResize(
+                        getResourceListColumnId(c, i),
+                      )}
                       sortColumn={
                         props.sort && c.sortKey
                           ? findDashboardWidgetSortColumn(

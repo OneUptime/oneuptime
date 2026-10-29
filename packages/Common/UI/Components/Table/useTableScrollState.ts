@@ -257,15 +257,30 @@ export const isTableOverflowing: (data: {
   return Math.floor(data.tableWidth) > Math.ceil(data.boxWidth);
 };
 
+/*
+ * While a person drags a column's edge (ColumnResize), the table's width
+ * changes every frame, and reading it each time - every name set free and
+ * back, every value cut short and whole, four times over - would be the
+ * whole table laid out four times a frame. So the readings wait while
+ * isHeldRef says so, and run once when the column is let go: the table
+ * calls what remeasureRef holds.
+ */
+export interface TableScrollStateHold {
+  isHeldRef: React.MutableRefObject<boolean>;
+  remeasureRef: React.MutableRefObject<(() => void) | null>;
+}
+
 const useTableScrollState: (data: {
   scrollRef: React.RefObject<HTMLElement>;
   tableRef: React.RefObject<HTMLElement>;
   // Anything that can change the table's width: its rows, its columns.
   watch: ReadonlyArray<unknown>;
+  hold?: TableScrollStateHold | undefined;
 }) => TableScrollState = (data: {
   scrollRef: React.RefObject<HTMLElement>;
   tableRef: React.RefObject<HTMLElement>;
   watch: ReadonlyArray<unknown>;
+  hold?: TableScrollStateHold | undefined;
 }): TableScrollState => {
   const [state, setState] = useState<TableScrollState>({
     isOverflowing: false,
@@ -409,15 +424,32 @@ const useTableScrollState: (data: {
 
     measure();
 
+    if (data.hold) {
+      data.hold.remeasureRef.current = measure;
+    }
+
+    // Not while a column's edge is dragged (TableScrollStateHold).
+    const measureUnlessHeld: () => void = (): void => {
+      if (data.hold?.isHeldRef.current) {
+        return;
+      }
+
+      measure();
+    };
+
     /*
      * ResizeObserver is missing in jsdom and in older browsers: there the
      * table is measured again when the window changes size.
      */
     if (typeof ResizeObserver === "undefined") {
-      window.addEventListener("resize", measure);
+      window.addEventListener("resize", measureUnlessHeld);
 
       return () => {
-        window.removeEventListener("resize", measure);
+        window.removeEventListener("resize", measureUnlessHeld);
+
+        if (data.hold && data.hold.remeasureRef.current === measure) {
+          data.hold.remeasureRef.current = null;
+        }
       };
     }
 
@@ -436,7 +468,7 @@ const useTableScrollState: (data: {
 
       frame = window.requestAnimationFrame(() => {
         frame = null;
-        measure();
+        measureUnlessHeld();
       });
     });
 
@@ -454,6 +486,10 @@ const useTableScrollState: (data: {
       }
 
       observer.disconnect();
+
+      if (data.hold && data.hold.remeasureRef.current === measure) {
+        data.hold.remeasureRef.current = null;
+      }
     };
   }, data.watch);
 

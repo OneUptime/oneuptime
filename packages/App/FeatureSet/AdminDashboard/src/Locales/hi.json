@@ -1516,6 +1516,11 @@
   "System": "सिस्टम",
   "Enable": "सक्षम करें",
   "Disable": "अक्षम करें",
+  "Drag to resize. Double-click to fit.": "चौड़ाई बदलने के लिए खींचें। सामग्री के अनुसार चौड़ाई करने के लिए डबल-क्लिक करें।",
+  "Reset column widths": "कॉलम की चौड़ाई रीसेट करें",
+  "Resize the {{column}} column": "{{column}} कॉलम की चौड़ाई बदलें",
+  "{{count}} pixels wide": "{{count}} पिक्सेल चौड़ा",
+  "{{count}} pixels wide_one": "{{count}} पिक्सेल चौड़ा",
   "markdownCallouts": {
     "caution": "सावधानी",
     "danger": "खतरा",

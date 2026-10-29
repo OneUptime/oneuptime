@@ -3,6 +3,11 @@ import { JSONObject } from "Common/Types/JSON";
 import OneUptimeDate from "Common/Types/Date";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import useResizableColumns, {
+  ResizableColumns,
+} from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
+import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -40,6 +45,23 @@ const DataTableWidget: FunctionComponent<ComponentProps> = (
   const allRows: Array<JSONObject> = props.widget.data.rows || [];
   const rows: Array<JSONObject> = allRows.slice(0, MAX_ROWS);
 
+  /*
+   * Its columns as wide as a person makes them (Common's
+   * Table/ColumnResize), remembered by each column's key for every answer
+   * Ask AI draws a table in: a number or a date is never cut, a text wraps.
+   */
+  const resizableColumns: ResizableColumns = useResizableColumns({
+    tableKey: "ask-ai-data-table",
+    columns: columns.map(
+      (
+        column: AIChatWidgetColumn,
+        index: number,
+      ): { id: string; cellNumber: number } => {
+        return { id: column.key, cellNumber: index + 1 };
+      },
+    ),
+  });
+
   if (columns.length === 0 || rows.length === 0) {
     return (
       <div className="py-3 text-center text-xs text-gray-400">
@@ -50,19 +72,30 @@ const DataTableWidget: FunctionComponent<ComponentProps> = (
 
   return (
     <div className="overflow-x-auto overscroll-x-contain">
-      <table className="w-full border-collapse text-left text-xs">
+      {resizableColumns.styles}
+      <table
+        className={`${resizableColumns.getTableWidthClassName("w-full")} border-collapse text-left text-xs`}
+        {...resizableColumns.tableAttributes}
+      >
         <thead>
           <tr className="border-b border-gray-200 text-[11px] uppercase tracking-wide text-gray-400">
             {columns.map((column: AIChatWidgetColumn) => {
               return (
-                <th
+                <ResizableHeaderCell
                   key={column.key}
                   className={`whitespace-nowrap px-2.5 py-2 font-medium ${
                     column.type === "number" ? "text-right" : "text-left"
                   }`}
+                  resize={resizableColumns.getResize(
+                    column.key,
+                    column.title,
+                    column.type === "number" || column.type === "date"
+                      ? ColumnWidthKind.Whole
+                      : ColumnWidthKind.Prose,
+                  )}
                 >
-                  {column.title}
-                </th>
+                  <span>{column.title}</span>
+                </ResizableHeaderCell>
               );
             })}
           </tr>
