@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { sideMenuAtRest } from "../SuiteHelpers/SideMenuAtRest";
 
 /*
  * "Create a new section for rules and have monitor rules there. The section
@@ -127,7 +128,13 @@ async function screenshot(page: Page, name: string): Promise<void> {
   });
 }
 
-// A page of the fixture, once the layout has drawn the record's name.
+/*
+ * A page of the fixture, once the layout has drawn the record's name and
+ * the menu is at rest (SuiteHelpers/SideMenuAtRest). While the fixture's
+ * Tailwind folds the sections that start folded, on first paint, their
+ * rows are still tab stops: a Tab from the folded Rules' title went to
+ * Monitor Rules, not to the next section's title.
+ */
 async function open(page: Page, address: string): Promise<void> {
   await page.goto(address);
   // The first load parses a large bundle; the header names the record.
@@ -135,6 +142,7 @@ async function open(page: Page, address: string): Promise<void> {
     address.includes("/slos/") ? "Checkout availability" : "Acme Public Status",
     { timeout: 60000 },
   );
+  await sideMenuAtRest(page);
 }
 
 /*
