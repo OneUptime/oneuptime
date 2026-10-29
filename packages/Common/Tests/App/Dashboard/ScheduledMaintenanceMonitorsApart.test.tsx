@@ -612,8 +612,10 @@ describe("Resources Affected: the monitors apart, and the status they change to 
     const others: HTMLElement = otherResourcesPicker();
 
     expect(monitors).toHaveAttribute("placeholder", "Search monitors...");
-    // The other picker names what it searches, monitors not among them.
-    // A maintenance event holds no network devices, so none is named.
+    /*
+     * The other picker names what it searches, monitors not among them. A
+     * maintenance event holds no network devices, so none is named.
+     */
     expect(others).toHaveAttribute(
       "placeholder",
       "Search hosts, Kubernetes clusters, Docker hosts and more...",

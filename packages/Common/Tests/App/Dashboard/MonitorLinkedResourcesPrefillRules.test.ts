@@ -184,6 +184,7 @@ describe("getLinkedResourcesToAdd", () => {
       __affectedResourcesPayload: true,
       monitors: undefined,
       hosts: [],
+      networkDevices: [],
       kubernetesClusters: [CLUSTER_ID],
       dockerHosts: [],
       podmanHosts: [],

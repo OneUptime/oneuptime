@@ -95,6 +95,7 @@ import Host from "../../../Models/DatabaseModels/Host";
 import IoTFleet from "../../../Models/DatabaseModels/IoTFleet";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
+import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import NetworkSite from "../../../Models/DatabaseModels/NetworkSite";
 import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
@@ -443,6 +444,7 @@ describe("toItems", () => {
       __affectedResourcesPayload: true,
       monitors: [MONITOR_ID],
       hosts: [],
+      networkDevices: [],
       kubernetesClusters: [],
       dockerHosts: [],
       podmanHosts: [],
@@ -560,6 +562,7 @@ describe("AffectedResourcesPicker chips for resources that arrive as bare IDs", 
     const models: Record<AffectedResourceType, ModelClass> = {
       Monitor: Monitor,
       Host: Host,
+      NetworkDevice: NetworkDevice,
       KubernetesCluster: KubernetesCluster,
       DockerHost: DockerHost,
       PodmanHost: PodmanHost,

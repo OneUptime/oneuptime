@@ -129,7 +129,9 @@ function device(id: string): NetworkDevice {
   return row;
 }
 
-function idsOn(relation: Array<{ _id?: string | undefined }> | undefined) {
+function idsOn(
+  relation: Array<{ _id?: string | undefined }> | undefined,
+): Array<string> {
   return (relation || []).map((item: { _id?: string | undefined }): string => {
     return String(item._id);
   });

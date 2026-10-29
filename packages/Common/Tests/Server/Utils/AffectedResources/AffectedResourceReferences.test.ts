@@ -86,7 +86,9 @@ interface Marked {
 
 function isMarked(value: unknown): value is Marked {
   return Boolean(
-    value && typeof value === "object" && "op" in (value as object),
+    value &&
+      typeof value === "object" &&
+      "op" in (value as Record<string, unknown>),
   );
 }
 
