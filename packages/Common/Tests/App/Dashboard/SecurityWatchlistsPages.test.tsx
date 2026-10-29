@@ -18,6 +18,7 @@ import {
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import { goTo } from "./SideMenuHarness";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * SECURITY EVENTS > DETECTIONS > WATCHLISTS, and one watchlist's page.
@@ -382,7 +383,7 @@ describe("Security Events > Watchlists", () => {
   });
 
   test("a new list opens its page, ready for its values", async () => {
-    const navigate: jest.SpiedFunction<typeof Navigation.navigate> = jest
+    const navigate: SpyInstance<typeof Navigation.navigate> = jest
       .spyOn(Navigation, "navigate")
       .mockImplementation(() => {});
 

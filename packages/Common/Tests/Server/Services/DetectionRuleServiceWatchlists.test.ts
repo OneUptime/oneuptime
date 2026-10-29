@@ -9,7 +9,14 @@ import ObjectID from "../../../Types/ObjectID";
 import { SecurityEntityType } from "../../../Types/SecurityCase/SecurityEntity";
 import { SigmaWatchlist } from "../../../Types/SecurityEvent/SecurityWatchlist";
 import { getJestSpyOn } from "../../Spy";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 /*
  * A RULE THAT READS WATCHLISTS, AS IT IS SAVED: compiled with the project's

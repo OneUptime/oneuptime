@@ -7,7 +7,11 @@ import SecurityWatchlistItemService, {
 import SecurityWatchlistService from "../../../Server/Services/SecurityWatchlistService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import DeleteBy from "../../../Server/Types/Database/DeleteBy";
-import { OnCreate, OnDelete, OnUpdate } from "../../../Server/Types/Database/Hooks";
+import {
+  OnCreate,
+  OnDelete,
+  OnUpdate,
+} from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
 import SecurityWatchlist from "../../../Models/DatabaseModels/SecurityWatchlist";
@@ -23,6 +27,7 @@ import {
   SecurityWatchlistSource,
 } from "../../../Types/SecurityEvent/SecurityWatchlist";
 import { getJestSpyOn } from "../../Spy";
+import type { Mock } from "jest-mock";
 import {
   afterEach,
   beforeEach,
@@ -72,7 +77,9 @@ const LIST_ID: ObjectID = new ObjectID("33333333-3333-4333-8333-333333333333");
 const ROW_ID: ObjectID = new ObjectID("55555555-5555-4555-8555-555555555555");
 const USER_ID: ObjectID = new ObjectID("88888888-8888-4888-8888-888888888888");
 
-function list(values: Partial<Record<string, unknown>> = {}): SecurityWatchlist {
+function list(
+  values: Partial<Record<string, unknown>> = {},
+): SecurityWatchlist {
   const model: SecurityWatchlist = new SecurityWatchlist();
   model._id = LIST_ID.toString();
   model.projectId = PROJECT_ID;
@@ -85,13 +92,16 @@ function list(values: Partial<Record<string, unknown>> = {}): SecurityWatchlist 
 
 function item(value: string, id?: string): SecurityWatchlistItem {
   const model: SecurityWatchlistItem = new SecurityWatchlistItem();
-  model._id = id || `99999999-9999-4999-8999-${String(value.length).padStart(12, "0")}`;
+  model._id =
+    id || `99999999-9999-4999-8999-${String(value.length).padStart(12, "0")}`;
   model.securityWatchlistId = LIST_ID;
   model.value = value;
   return model;
 }
 
-function newValue(values: Partial<Record<string, unknown>> = {}): SecurityWatchlistItem {
+function newValue(
+  values: Partial<Record<string, unknown>> = {},
+): SecurityWatchlistItem {
   const model: SecurityWatchlistItem = new SecurityWatchlistItem();
   model.projectId = PROJECT_ID;
   model.securityWatchlistId = LIST_ID;
@@ -204,16 +214,18 @@ describe("adding a value", () => {
     await expect(create(newValue({ value: "alice" }))).rejects.toThrow(
       "Enter an IP address, a range such as 10.20.0.0/16, or a pattern with *.",
     );
-    await expect(create(newValue({ value: "10.0.0.0/8" }))).resolves.toBeDefined();
+    await expect(
+      create(newValue({ value: "10.0.0.0/8" })),
+    ).resolves.toBeDefined();
   });
 
   test("a lone * and a long note are refused", async () => {
     await expect(create(newValue({ value: "*" }))).rejects.toThrow(
       "A value of only * would match everything.",
     );
-    await expect(
-      create(newValue({ note: "n".repeat(501) })),
-    ).rejects.toThrow("A note is at most 500 characters.");
+    await expect(create(newValue({ note: "n".repeat(501) }))).rejects.toThrow(
+      "A note is at most 500 characters.",
+    );
   });
 
   test("a list that follows a feed takes no value", async () => {
@@ -238,7 +250,12 @@ describe("adding a value", () => {
     const values: Array<SecurityWatchlistItem> = [];
 
     for (let index: number = 0; index < 100; index++) {
-      values.push(item(`svc-${index}-*`, `99999999-9999-4999-8999-${String(index).padStart(12, "0")}`));
+      values.push(
+        item(
+          `svc-${index}-*`,
+          `99999999-9999-4999-8999-${String(index).padStart(12, "0")}`,
+        ),
+      );
     }
 
     findValues.mockResolvedValue(values as never);
@@ -254,7 +271,10 @@ describe("adding a value", () => {
     count.mockResolvedValue(new PositiveNumber(12) as never);
 
     await service.onCreateSuccess(
-      { createBy: { data: newValue(), props: { isRoot: true } }, carryForward: null },
+      {
+        createBy: { data: newValue(), props: { isRoot: true } },
+        carryForward: null,
+      },
       newValue(),
     );
 
@@ -377,25 +397,29 @@ describe("importing values", () => {
     tenantId: PROJECT_ID,
   };
 
-  let insert: jest.Mock;
+  let insert: Mock<(rows: unknown) => Promise<unknown>>;
   let deleteBy: Spy;
   let audit: Spy;
 
   beforeEach(() => {
-    insert = jest.fn((rows: unknown): Promise<unknown> => {
-      return Promise.resolve({
-        identifiers: (rows as Array<unknown>).map(
-          (_row: unknown, index: number): JSONObject => {
-            return {
-              _id: `aaaaaaaa-aaaa-4aaa-8aaa-${String(index).padStart(12, "0")}`,
-            };
-          },
-        ),
-      });
-    });
-    getJestSpyOn(SecurityWatchlistItemService, "getRepository").mockReturnValue({
-      insert,
-    } as never);
+    insert = jest.fn<(rows: unknown) => Promise<unknown>>(
+      (rows: unknown): Promise<unknown> => {
+        return Promise.resolve({
+          identifiers: (rows as Array<unknown>).map(
+            (_row: unknown, index: number): JSONObject => {
+              return {
+                _id: `aaaaaaaa-aaaa-4aaa-8aaa-${String(index).padStart(12, "0")}`,
+              };
+            },
+          ),
+        });
+      },
+    );
+    getJestSpyOn(SecurityWatchlistItemService, "getRepository").mockReturnValue(
+      {
+        insert,
+      } as never,
+    );
     deleteBy = getJestSpyOn(
       SecurityWatchlistItemService,
       "deleteBy",
@@ -450,8 +474,20 @@ describe("importing values", () => {
         ];
       }),
     ).toEqual([
-      ["bob", "Board", PROJECT_ID.toString(), LIST_ID.toString(), USER_ID.toString()],
-      ["carol", undefined, PROJECT_ID.toString(), LIST_ID.toString(), USER_ID.toString()],
+      [
+        "bob",
+        "Board",
+        PROJECT_ID.toString(),
+        LIST_ID.toString(),
+        USER_ID.toString(),
+      ],
+      [
+        "carol",
+        undefined,
+        PROJECT_ID.toString(),
+        LIST_ID.toString(),
+        USER_ID.toString(),
+      ],
     ]);
     expect(audit).toHaveBeenCalledTimes(2);
     expect(deleteBy).not.toHaveBeenCalled();
@@ -542,7 +578,9 @@ describe("importing values", () => {
 
     expect(summary.added).toBe(1);
     expect(summary.problemCount).toBe(25);
-    expect(summary.problems).toHaveLength(SECURITY_WATCHLIST_IMPORT_PROBLEMS_SHOWN);
+    expect(summary.problems).toHaveLength(
+      SECURITY_WATCHLIST_IMPORT_PROBLEMS_SHOWN,
+    );
     expect(summary.problems[0]).toEqual({
       line: 2,
       value: "host-0",

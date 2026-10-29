@@ -174,13 +174,15 @@ detection:
 
 describe("the rules that read each list", () => {
   test("by name key, every rule that names the list, in the order given", () => {
-    const readers: Map<string, Array<{ id: string; name: string }>> =
-      getRulesReadingWatchlists([
-        { id: "r1", name: "VIP sign-in", sigmaRuleYaml: VIP_RULE },
-        { id: "r2", name: "Plain", sigmaRuleYaml: "title: x" },
-        { id: "r3", name: "Sequence", sigmaRuleYaml: CORRELATION },
-        { id: "r4", name: "No YAML" },
-      ]);
+    const readers: Map<
+      string,
+      Array<{ id: string; name: string }>
+    > = getRulesReadingWatchlists([
+      { id: "r1", name: "VIP sign-in", sigmaRuleYaml: VIP_RULE },
+      { id: "r2", name: "Plain", sigmaRuleYaml: "title: x" },
+      { id: "r3", name: "Sequence", sigmaRuleYaml: CORRELATION },
+      { id: "r4", name: "No YAML" },
+    ]);
 
     expect(readers.get("vip_users")).toEqual([
       { id: "r1", name: "VIP sign-in" },
@@ -296,8 +298,8 @@ describe("binding a project's lists to a rule", () => {
       { vip_users: list("vip_users") },
     );
 
-    expect(Object.keys((bound as { rule: SigmaRule }).rule.watchlists!)).toEqual(
-      ["vip_users"],
-    );
+    expect(
+      Object.keys((bound as { rule: SigmaRule }).rule.watchlists!),
+    ).toEqual(["vip_users"]);
   });
 });

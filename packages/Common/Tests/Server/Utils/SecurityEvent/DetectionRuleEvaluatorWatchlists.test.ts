@@ -97,10 +97,7 @@ const VIP_LIST: SigmaWatchlist = {
   ranges: [],
 };
 
-function buildRule(
-  yaml: string,
-  id: ObjectID = RULE_ID,
-): DetectionRule {
+function buildRule(yaml: string, id: ObjectID = RULE_ID): DetectionRule {
   const rule: DetectionRule = new DetectionRule();
   rule._id = id.toString();
   rule.projectId = PROJECT_ID;

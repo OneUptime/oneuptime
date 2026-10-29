@@ -5,7 +5,11 @@ import SecurityWatchlistService, {
 import ThreatIntelFeedService from "../../../Server/Services/ThreatIntelFeedService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import DeleteBy from "../../../Server/Types/Database/DeleteBy";
-import { OnCreate, OnDelete, OnUpdate } from "../../../Server/Types/Database/Hooks";
+import {
+  OnCreate,
+  OnDelete,
+  OnUpdate,
+} from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
 import SecurityWatchlists from "../../../Server/Utils/SecurityEvent/Watchlists/SecurityWatchlists";
@@ -66,7 +70,9 @@ const OTHER_ROW_ID: ObjectID = new ObjectID(
 );
 const FEED_ID: ObjectID = new ObjectID("77777777-7777-4777-8777-777777777777");
 
-function newList(values: Partial<Record<string, unknown>> = {}): SecurityWatchlist {
+function newList(
+  values: Partial<Record<string, unknown>> = {},
+): SecurityWatchlist {
   const model: SecurityWatchlist = new SecurityWatchlist();
   model.projectId = PROJECT_ID;
   model.name = "vip_users";
@@ -104,18 +110,17 @@ beforeEach(() => {
 
   const feed: ThreatIntelFeed = new ThreatIntelFeed();
   feed._id = FEED_ID.toString();
-  findFeed = getJestSpyOn(ThreatIntelFeedService, "findOneById").mockResolvedValue(
-    feed as never,
-  );
+  findFeed = getJestSpyOn(
+    ThreatIntelFeedService,
+    "findOneById",
+  ).mockResolvedValue(feed as never);
 });
 
 afterEach(() => {
   jest.restoreAllMocks();
 });
 
-function create(
-  data: SecurityWatchlist,
-): Promise<OnCreate<SecurityWatchlist>> {
+function create(data: SecurityWatchlist): Promise<OnCreate<SecurityWatchlist>> {
   return service.onBeforeCreate({ data, props: { isRoot: true } });
 }
 
@@ -220,12 +225,12 @@ describe("creating a watchlist", () => {
   });
 
   test("what it holds must be said", async () => {
-    await expect(
-      create(newList({ entityType: undefined })),
-    ).rejects.toThrow("Choose what the watchlist holds.");
-    await expect(
-      create(newList({ entityType: "Email" })),
-    ).rejects.toThrow(BadDataException);
+    await expect(create(newList({ entityType: undefined }))).rejects.toThrow(
+      "Choose what the watchlist holds.",
+    );
+    await expect(create(newList({ entityType: "Email" }))).rejects.toThrow(
+      BadDataException,
+    );
   });
 
   test("a list that follows a feed: the feed by its id, one of the project's", async () => {
@@ -241,9 +246,7 @@ describe("creating a watchlist", () => {
     await create(data);
 
     expect(data.threatIntelFeedId?.toString()).toBe(FEED_ID.toString());
-    expect(
-      (data as unknown as JSONObject)["threatIntelFeed"],
-    ).toBeUndefined();
+    expect((data as unknown as JSONObject)["threatIntelFeed"]).toBeUndefined();
     expect(findFeed).toHaveBeenCalledWith({
       id: FEED_ID,
       select: { _id: true },
@@ -349,9 +352,7 @@ describe("changing a watchlist", () => {
     const model: SecurityWatchlist = new SecurityWatchlist();
 
     for (const column of ["entityType", "source", "valueCount", "projectId"]) {
-      expect(
-        model.getColumnAccessControlFor(column)?.update || [],
-      ).toEqual([]);
+      expect(model.getColumnAccessControlFor(column)?.update || []).toEqual([]);
     }
   });
 });
@@ -433,7 +434,9 @@ describe("renaming a watchlist", () => {
 });
 
 describe("deleting a watchlist", () => {
-  function remove(rows: Array<SecurityWatchlist>): Promise<OnDelete<SecurityWatchlist>> {
+  function remove(
+    rows: Array<SecurityWatchlist>,
+  ): Promise<OnDelete<SecurityWatchlist>> {
     getJestSpyOn(
       SecurityWatchlistService,
       "findRowsAndHoldDeleteToThem",

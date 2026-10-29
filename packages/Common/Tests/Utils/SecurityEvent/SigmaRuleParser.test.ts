@@ -519,9 +519,7 @@ ${selectionLines}
       watchlistRule("    principalUser|EXPAND: '%vip_users%'"),
     );
 
-    expect(rule.selections[0]!.fieldMaps[0]![0]!.modifiers).toEqual([
-      "expand",
-    ]);
+    expect(rule.selections[0]!.fieldMaps[0]![0]!.modifiers).toEqual(["expand"]);
   });
 
   test("expand with another modifier is refused, saying how to write it", () => {

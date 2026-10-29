@@ -698,7 +698,10 @@ describe("SigmaClickhouseCompiler: watchlists", () => {
     ranges: ["10.20.0.0/16"],
   };
 
-  function compileWith(ruleYaml: string, watchlists: SigmaWatchlists): Statement {
+  function compileWith(
+    ruleYaml: string,
+    watchlists: SigmaWatchlists,
+  ): Statement {
     const rule: SigmaRule = SigmaRuleParser.parse(ruleYaml);
     return SigmaClickhouseCompiler.compile({ ...rule, watchlists });
   }

@@ -229,8 +229,10 @@ describe("a watchlist's name: what a rule writes", () => {
   });
 
   test("the name column fits the longest name", () => {
-    const column: { type: unknown } | undefined = new SecurityWatchlist()
-      .getTableColumnMetadata("name") as unknown as { type: unknown };
+    const column: { type: unknown } | undefined =
+      new SecurityWatchlist().getTableColumnMetadata("name") as unknown as {
+        type: unknown;
+      };
 
     expect(
       getMaxLengthFromTableColumnType(column!.type as never),
@@ -499,8 +501,10 @@ describe("the values a list takes", () => {
       ).toBeGreaterThanOrEqual(max);
     }
 
-    const description: { type: unknown } = new SecurityWatchlist()
-      .getTableColumnMetadata("description") as unknown as { type: unknown };
+    const description: { type: unknown } =
+      new SecurityWatchlist().getTableColumnMetadata(
+        "description",
+      ) as unknown as { type: unknown };
 
     expect(
       getMaxLengthFromTableColumnType(description.type as never),
@@ -587,9 +591,9 @@ describe("how each value matches", () => {
 
   test("a pattern matches piece by piece, whatever the case", () => {
     expect(matchesSecurityWatchlistPattern("svc-*", "SVC-backup")).toBe(true);
-    expect(matchesSecurityWatchlistPattern("*.corp.example", "db.corp.example")).toBe(
-      true,
-    );
+    expect(
+      matchesSecurityWatchlistPattern("*.corp.example", "db.corp.example"),
+    ).toBe(true);
     expect(matchesSecurityWatchlistPattern("a*b*c", "aXbYc")).toBe(true);
     expect(matchesSecurityWatchlistPattern("a*b*c", "aXcYb")).toBe(false);
     expect(matchesSecurityWatchlistPattern("ab*ba", "aba")).toBe(false);
@@ -635,7 +639,11 @@ describe("a list's limits", () => {
 
   test("a list past a limit is refused, each in its own words", () => {
     expect(
-      getSecurityWatchlistSizeProblem({ total: 5000, patterns: 100, ranges: 100 }),
+      getSecurityWatchlistSizeProblem({
+        total: 5000,
+        patterns: 100,
+        ranges: 100,
+      }),
     ).toBeNull();
     expect(
       getSecurityWatchlistSizeProblem({ total: 5001, patterns: 0, ranges: 0 }),
@@ -688,9 +696,7 @@ describe("what is wrong with a watchlist, field by field", () => {
   });
 
   test("a source that is neither is refused", () => {
-    expect(
-      getSecurityWatchlistProblems({ ...valid, source: "CSV" }),
-    ).toEqual([
+    expect(getSecurityWatchlistProblems({ ...valid, source: "CSV" })).toEqual([
       { field: "source", message: "Choose where the values come from." },
     ]);
   });
@@ -829,9 +835,9 @@ describe("importing values: one a line, a note after a comma or a tab", () => {
       value: 'a, "b"',
       note: "note",
     });
-    expect(readSecurityWatchlistImportLine('alice,"a note, with a comma"')).toEqual(
-      { value: "alice", note: "a note, with a comma" },
-    );
+    expect(
+      readSecurityWatchlistImportLine('alice,"a note, with a comma"'),
+    ).toEqual({ value: "alice", note: "a note, with a comma" });
     expect(readSecurityWatchlistImportLine("solo")).toEqual({
       value: "solo",
       note: "",

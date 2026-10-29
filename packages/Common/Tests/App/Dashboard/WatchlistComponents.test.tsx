@@ -20,6 +20,7 @@ import {
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import type { Mock } from "jest-mock";
 
 /*
  * THE PIECES OF THE WATCHLISTS PAGES, drawn for real and driven as a person
@@ -91,6 +92,7 @@ import { WATCHLIST_STARTERS } from "../../../../App/FeatureSet/Dashboard/src/Com
 import SecurityCaseApi from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseApi";
 import SecurityWatchlist from "../../../Models/DatabaseModels/SecurityWatchlist";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { SecurityEntityType } from "../../../Types/SecurityCase/SecurityEntity";
 import {
@@ -406,9 +408,9 @@ describe("the common lists to start with", () => {
   test("Add creates the list and says Added in its place", async () => {
     getListMock.mockResolvedValue(listOf([]));
     createMock.mockResolvedValue({});
-    const onAdded: jest.Mock = jest.fn();
+    const onAdded: Mock<() => void> = jest.fn<() => void>();
 
-    await renderStarters(onAdded as unknown as () => void);
+    await renderStarters(onAdded);
 
     await act(async () => {
       fireEvent.click(
@@ -524,6 +526,19 @@ describe("Import Values", () => {
     expect(screen.queryByTestId(WATCHLISTS_TEST_IDS.importPreview)).toBeNull();
   });
 
+  test("the paste box keeps a text area's look, across the dialog, in the mono type", () => {
+    renderImport();
+
+    /*
+     * TextArea's className replaces its own look: a box given only
+     * font-mono was a bare, narrow one with a black border.
+     */
+    const box: HTMLElement = screen.getByTestId(WATCHLISTS_TEST_IDS.importText);
+
+    expect(box).toHaveClass("block", "w-full", "rounded-md", "font-mono");
+    expect(box).toHaveClass("border-gray-300", "focus:ring-indigo-500");
+  });
+
   test("what it is about to do shows as it is typed, with each line it leaves out", () => {
     renderImport();
 
@@ -587,7 +602,9 @@ describe("Import Values", () => {
   });
 
   test("an import adds by default, and what it did is the dialog's last word", async () => {
-    const importMock: jest.Mock = jest.fn(async () => {
+    const importMock: Mock<(data: unknown) => Promise<JSONObject>> = jest.fn<
+      (data: unknown) => Promise<JSONObject>
+    >(async () => {
       return {
         added: 2,
         removed: 0,
@@ -600,12 +617,12 @@ describe("Import Values", () => {
     jest
       .spyOn(SecurityCaseApi, "importWatchlistValues")
       .mockImplementation(importMock as never);
-    const onImported: jest.Mock = jest.fn();
-    const onClose: jest.Mock = jest.fn();
+    const onImported: Mock<() => void> = jest.fn<() => void>();
+    const onClose: Mock<() => void> = jest.fn<() => void>();
 
     renderImport({
-      onImported: onImported as unknown as () => void,
-      onClose: onClose as unknown as () => void,
+      onImported,
+      onClose,
     });
 
     type("alice@example.com\nbob@example.com\ncarol@example.com");
@@ -644,7 +661,9 @@ describe("Import Values", () => {
   });
 
   test("Replace the list sends a replace", async () => {
-    const importMock: jest.Mock = jest.fn(async () => {
+    const importMock: Mock<(data: unknown) => Promise<JSONObject>> = jest.fn<
+      (data: unknown) => Promise<JSONObject>
+    >(async () => {
       return { added: 1, removed: 3, unchanged: 0, valueCount: 1 };
     });
     jest

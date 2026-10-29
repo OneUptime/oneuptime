@@ -207,10 +207,7 @@ describe("a list that follows a threat intel feed", () => {
 
 describe("a list with nothing on it", () => {
   test("matches nothing, so `not` of it holds for every event", () => {
-    const statement: Statement = buildWatchlistTextMatch(
-      FIELD,
-      watchlist({}),
-    );
+    const statement: Statement = buildWatchlistTextMatch(FIELD, watchlist({}));
 
     expect(statement.query).toBe("0");
     expect(params(statement)).toEqual([]);

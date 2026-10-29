@@ -59,7 +59,11 @@ const SUMMARY: SecurityWatchlistImportSummary = {
   unchanged: 2,
   duplicates: 1,
   problems: [
-    { line: 4, value: "*", message: "A value of only * would match everything." },
+    {
+      line: 4,
+      value: "*",
+      message: "A value of only * would match everything.",
+    },
   ],
   problemCount: 1,
   valueCount: 5,

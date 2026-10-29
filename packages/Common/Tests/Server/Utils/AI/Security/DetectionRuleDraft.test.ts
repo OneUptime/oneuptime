@@ -288,9 +288,9 @@ describe("DetectionRuleDraft.draft", () => {
       .mockResolvedValue(undefined);
     execute = jest.spyOn(AIService, "executeWithLogging");
     // No watchlists unless a test says so.
-    jest.spyOn(SecurityWatchlistService, "findAllBy").mockResolvedValue(
-      [] as never,
-    );
+    jest
+      .spyOn(SecurityWatchlistService, "findAllBy")
+      .mockResolvedValue([] as never);
   });
 
   afterEach(() => {
