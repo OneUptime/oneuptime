@@ -236,9 +236,12 @@ describe("AlertService.onUpdateSuccess: the feed says what happened to the monit
     expect(item.projectId.toString()).toBe(PROJECT_ID.toString());
     expect(item.alertFeedEventType).toBe(AlertFeedEventType.AlertUpdated);
     expect(item.userId?.toString()).toBe(USER_ID.toString());
-    expect(item.feedInfoInMarkdown).toContain(
-      "[Alert ALR-12](https://oneuptime.example/alerts/12) was updated.",
-    );
+    // Written to follow the editor's name: "Valeria updated Alert ALR-12."
+    expect(
+      item.feedInfoInMarkdown.startsWith(
+        "✏️ Updated [Alert ALR-12](https://oneuptime.example/alerts/12).",
+      ),
+    ).toBe(true);
   });
 
   test("a monitor re-saved unchanged writes no feed item at all", async () => {

@@ -51,6 +51,7 @@ import PerSeriesResolutionRootCause from "./PerSeriesResolutionRootCause";
 import SeriesResourceLinker, {
   SeriesResolvedResourceIds,
 } from "./SeriesResourceLinker";
+import IncidentRoleFeedText from "../Incident/IncidentRoleFeedText";
 
 export default class MonitorIncident {
   @CaptureSpan()
@@ -1058,8 +1059,21 @@ export default class MonitorIncident {
                     assignment.roleId.toString(),
                   );
 
+                  /*
+                   * The monitor gives the role, and the incident's feed
+                   * says so: "Monitor API Health added Deane Looi as
+                   * Responder" (IncidentRoleFeedText).
+                   */
                   await IncidentMemberService.create({
                     data: incidentMember,
+                    ...(input.monitor.name
+                      ? {
+                          miscDataProps: IncidentRoleFeedText.toMiscDataProps({
+                            kind: "monitor",
+                            monitorName: input.monitor.name.toString(),
+                          }),
+                        }
+                      : {}),
                     props: {
                       isRoot: true,
                     },

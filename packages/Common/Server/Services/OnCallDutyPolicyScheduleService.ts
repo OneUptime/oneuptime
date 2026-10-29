@@ -1011,7 +1011,6 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
             userId: sendEmailToUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
-              notifyUserId: undefined,
             },
           });
         }
@@ -1175,7 +1174,6 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
             userId: sendEmailToUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
-              notifyUserId: undefined,
             },
           });
         }
@@ -1236,7 +1234,6 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
               mdText`⚠️ **Coverage gap: no one is on call in schedule ${onCallSchedule.name}.** [On-Call Policy ${escalationRule.onCallDutyPolicy?.name}](${policyLink}) escalation rule **${escalationRule.onCallDutyPolicyEscalationRule?.name}** with order **${escalationRule.onCallDutyPolicyEscalationRule?.order}** targets this schedule, so any alert that escalates to it right now will notify nobody.${resumesClause}`.toString(),
             workspaceNotification: {
               sendWorkspaceNotification: true,
-              notifyUserId: undefined,
             },
           });
         }
@@ -1385,7 +1382,6 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
             userId: sendEmailToUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
-              notifyUserId: undefined,
             },
           });
         }

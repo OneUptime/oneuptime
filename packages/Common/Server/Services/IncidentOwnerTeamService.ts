@@ -137,7 +137,7 @@ export class Service extends ProjectReferencesService<Model> {
             apiKeyActor: FeedApiKeyActorUtil.fromProps(onDelete.deleteBy.props),
             workspaceNotification: {
               sendWorkspaceNotification: true,
-              notifyUserId: deleteByUserId || undefined,
+              leadWithAuthor: true,
             },
           });
         }
@@ -193,7 +193,7 @@ export class Service extends ProjectReferencesService<Model> {
           apiKeyActor: FeedApiKeyActorUtil.fromProps(onCreate.createBy.props),
           workspaceNotification: {
             sendWorkspaceNotification: true,
-            notifyUserId: createdByUserId || undefined,
+            leadWithAuthor: true,
           },
         });
       }

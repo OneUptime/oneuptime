@@ -55,7 +55,7 @@ const PROJECT_ID: ObjectID = new ObjectID(
 );
 const USER_ID: ObjectID = new ObjectID("33333333-3333-4333-8333-333333333333");
 
-const USER_LINK: string = `https://oneuptime.test/dashboard/${PROJECT_ID.toString()}/settings/users/${USER_ID.toString()}`;
+const USER_LINK: string = `https://oneuptime.test/dashboard/${PROJECT_ID.toString()}/users/${USER_ID.toString()}`;
 
 function makeUser(fields: { name?: string; email?: string }): User {
   const user: User = new User(USER_ID);
