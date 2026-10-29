@@ -1962,20 +1962,29 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
             {visibleChips.map((item: AffectedResourceItem) => {
               const cfg: ResourceConfig = RESOURCE_CONFIG[item.type];
               return (
+                /*
+                 * A long name wraps inside its chip; the icon, the kind
+                 * ("NETWORK DEVICE") and the remove button keep their line,
+                 * so the kind never breaks in two beside it.
+                 */
                 <span
                   key={`${item.type}-${item._id}`}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-sm text-gray-700"
+                  data-testid="affected-resources-chip"
+                  className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-sm text-gray-700"
                 >
-                  <Icon icon={cfg.icon} className="h-3.5 w-3.5 text-gray-500" />
-                  <span className="text-xs uppercase tracking-wide text-gray-500">
+                  <Icon
+                    icon={cfg.icon}
+                    className="h-3.5 w-3.5 flex-shrink-0 text-gray-500"
+                  />
+                  <span className="flex-shrink-0 whitespace-nowrap text-xs uppercase tracking-wide text-gray-500">
                     {translator.translateText(cfg.label)}
                   </span>
                   <span
-                    className={
+                    className={`min-w-0 break-words ${
                       item.isNameLoading
                         ? "italic text-gray-400"
                         : "text-gray-800"
-                    }
+                    }`}
                     aria-busy={item.isNameLoading ? true : undefined}
                   >
                     {item.isNameLoading
@@ -1996,7 +2005,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                       onClick={() => {
                         removeItem(item);
                       }}
-                      className="ms-1 rounded-full text-gray-400 hover:bg-gray-200 hover:text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className="ms-1 flex-shrink-0 rounded-full text-gray-400 hover:bg-gray-200 hover:text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     >
                       <svg
                         className="h-3.5 w-3.5"

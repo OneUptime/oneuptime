@@ -416,6 +416,28 @@ describe("every result says what kind it is", () => {
     expect(row.className).not.toContain("text-left");
   });
 
+  test("a picked device's chip keeps its kind on one line beside a long name, which wraps", () => {
+    renderPicker({
+      networkDevices: [
+        {
+          _id: ROUTER_ID,
+          name: "Mumbai office third floor east wing wireless access point (Aruba AP-515, behind the reception)",
+        },
+      ] as never,
+    });
+
+    const chip: HTMLElement = screen.getByTestId("affected-resources-chip");
+    const kind: HTMLElement = within(chip).getByText("Network Device");
+    const name: HTMLElement = within(chip).getByText(/^Mumbai office/);
+
+    expect(chip).toHaveClass("max-w-full");
+    expect(kind).toHaveClass("flex-shrink-0", "whitespace-nowrap");
+    expect(name).toHaveClass("min-w-0", "break-words");
+    expect(
+      within(chip).getByRole("button", { name: /^Remove Mumbai office/ }),
+    ).toHaveClass("flex-shrink-0");
+  });
+
   test("picking a device adds it to the network devices the field holds", async () => {
     renderPicker();
     await open();
