@@ -157,7 +157,9 @@ export default class IncidentRoleFeedText {
   }
 
   // The miscDataProps that carry why OneUptime gives somebody a role.
-  public static toMiscDataProps(cause: IncidentRoleAssignmentCause): JSONObject {
+  public static toMiscDataProps(
+    cause: IncidentRoleAssignmentCause,
+  ): JSONObject {
     return {
       [INCIDENT_ROLE_CAUSE_KEY]: { ...cause } as unknown as JSONObject,
     };

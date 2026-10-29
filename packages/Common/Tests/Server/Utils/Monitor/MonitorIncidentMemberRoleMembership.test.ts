@@ -226,12 +226,12 @@ describe("MonitorIncident - incident roles from the criteria", () => {
   it("gives each role as the monitor, which the incident's feed entry names", async () => {
     const creates: Array<CreateBy<IncidentMember>> = [];
 
-    jest
-      .spyOn(IncidentMemberService, "create")
-      .mockImplementation((async (createBy: CreateBy<IncidentMember>) => {
-        creates.push(createBy);
-        return createBy.data;
-      }) as never);
+    jest.spyOn(IncidentMemberService, "create").mockImplementation((async (
+      createBy: CreateBy<IncidentMember>,
+    ) => {
+      creates.push(createBy);
+      return createBy.data;
+    }) as never);
 
     await MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus({
       criteriaInstance: criteriaInstance(),
@@ -255,12 +255,12 @@ describe("MonitorIncident - incident roles from the criteria", () => {
   it("a monitor read without its name gives the role with no cause: the line is as it was", async () => {
     const creates: Array<CreateBy<IncidentMember>> = [];
 
-    jest
-      .spyOn(IncidentMemberService, "create")
-      .mockImplementation((async (createBy: CreateBy<IncidentMember>) => {
-        creates.push(createBy);
-        return createBy.data;
-      }) as never);
+    jest.spyOn(IncidentMemberService, "create").mockImplementation((async (
+      createBy: CreateBy<IncidentMember>,
+    ) => {
+      creates.push(createBy);
+      return createBy.data;
+    }) as never);
 
     const unnamed: Monitor = monitor();
     unnamed.name = undefined as never;

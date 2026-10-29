@@ -52,7 +52,6 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
 import WorkspaceMessagePayload, {
-  WorkspaceMessageBlock,
   WorkspacePayloadMarkdown,
 } from "../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
@@ -214,16 +213,16 @@ beforeEach(() => {
     .mockResolvedValue(URL.fromString(DASHBOARD));
 
   // The people, by id: for their names, emails and links.
-  jest
-    .spyOn(UserService, "findOneBy")
-    .mockImplementation((async (findBy: { query: { _id?: unknown } }) => {
-      return userRow(findBy.query._id);
-    }) as never);
-  jest
-    .spyOn(UserService, "findOneById")
-    .mockImplementation((async (findBy: { id: unknown }) => {
-      return userRow(findBy.id);
-    }) as never);
+  jest.spyOn(UserService, "findOneBy").mockImplementation((async (findBy: {
+    query: { _id?: unknown };
+  }) => {
+    return userRow(findBy.query._id);
+  }) as never);
+  jest.spyOn(UserService, "findOneById").mockImplementation((async (findBy: {
+    id: unknown;
+  }) => {
+    return userRow(findBy.id);
+  }) as never);
 
   jest
     .spyOn(IncidentRoleService, "findOneById")
@@ -242,19 +241,22 @@ beforeEach(() => {
     .mockResolvedValue(URL.fromString(INCIDENT_PAGE));
 
   // The feed's own row: what the Dashboard's feed shows.
-  jest
-    .spyOn(IncidentFeedService, "create")
-    .mockImplementation((async (createBy: CreateBy<IncidentFeed>) => {
-      feedRows.push(createBy.data);
-      return createBy.data;
-    }) as never);
+  jest.spyOn(IncidentFeedService, "create").mockImplementation((async (
+    createBy: CreateBy<IncidentFeed>,
+  ) => {
+    feedRows.push(createBy.data);
+    return createBy.data;
+  }) as never);
 
   // The incident's Slack and Teams channels.
   jest
     .spyOn(WorkspaceNotificationRuleService, "hasConnectedWorkspace")
     .mockResolvedValue(true);
   jest
-    .spyOn(WorkspaceNotificationRuleService, "createChannelsForRulesThatNowMatch")
+    .spyOn(
+      WorkspaceNotificationRuleService,
+      "createChannelsForRulesThatNowMatch",
+    )
     .mockResolvedValue(undefined as never);
   jest
     .spyOn(WorkspaceNotificationRuleService, "getMessageDestinations")
@@ -361,11 +363,11 @@ afterEach(() => {
 
 const memberRow: (data: {
   userId: ObjectID;
-  roleId?: ObjectID;
+  roleId?: ObjectID | undefined;
   createdByUserId?: ObjectID | undefined;
 }) => IncidentMember = (data: {
   userId: ObjectID;
-  roleId?: ObjectID;
+  roleId?: ObjectID | undefined;
   createdByUserId?: ObjectID | undefined;
 }): IncidentMember => {
   const member: IncidentMember = new IncidentMember();
@@ -407,12 +409,12 @@ const createAsTheDatabaseDoes: (
 
 const add: (data: {
   userId: ObjectID;
-  roleId?: ObjectID;
+  roleId?: ObjectID | undefined;
   props: DatabaseCommonInteractionProps;
   miscDataProps?: JSONObject;
 }) => Promise<void> = async (data: {
   userId: ObjectID;
-  roleId?: ObjectID;
+  roleId?: ObjectID | undefined;
   props: DatabaseCommonInteractionProps;
   miscDataProps?: JSONObject;
 }): Promise<void> => {
@@ -426,12 +428,12 @@ const add: (data: {
 // A delete's success hook, with the rows the delete removed.
 const remove: (data: {
   userId: ObjectID;
-  roleId?: ObjectID;
+  roleId?: ObjectID | undefined;
   props: DatabaseCommonInteractionProps;
   deletedByUser?: User | undefined;
 }) => Promise<void> = async (data: {
   userId: ObjectID;
-  roleId?: ObjectID;
+  roleId?: ObjectID | undefined;
   props: DatabaseCommonInteractionProps;
   deletedByUser?: User | undefined;
 }): Promise<void> => {
@@ -481,19 +483,6 @@ const postedTo: (workspaceType: WorkspaceType) => WorkspaceMessagePayload = (
 
   expect(payloads).toHaveLength(1);
   return payloads[0]!;
-};
-
-// The message's Markdown, as both workspaces are handed it.
-const postedMarkdown: (workspaceType: WorkspaceType) => string = (
-  workspaceType: WorkspaceType,
-): string => {
-  const blocks: Array<WorkspaceMessageBlock> =
-    postedTo(workspaceType).messageBlocks;
-
-  expect(blocks).toHaveLength(1);
-  expect(blocks[0]!._type).toBe("WorkspacePayloadMarkdown");
-
-  return (blocks[0] as WorkspacePayloadMarkdown).text;
 };
 
 // Slack's `<address|words>` link, and `*bold*`.
@@ -553,9 +542,10 @@ const slackShows: () => ChannelMessage = (): ChannelMessage => {
  * Teams draws a TextBlock's Markdown.
  */
 const teamsShows: () => ChannelMessage = (): ChannelMessage => {
-  const card: JSONObject = MicrosoftTeamsUtil.buildAdaptiveCardFromMessageBlocks(
-    { messageBlocks: postedTo(WorkspaceType.MicrosoftTeams).messageBlocks },
-  );
+  const card: JSONObject =
+    MicrosoftTeamsUtil.buildAdaptiveCardFromMessageBlocks({
+      messageBlocks: postedTo(WorkspaceType.MicrosoftTeams).messageBlocks,
+    });
   const texts: Array<string> = (card["body"] as Array<JSONObject>)
     .filter((element: JSONObject): boolean => {
       return element["type"] === "TextBlock";
@@ -766,7 +756,11 @@ describe("a person who connected their chat account", () => {
     deaneSlack.workspaceUserId = "U0DEANE";
 
     linkedAccounts = [
-      { userId: DEANE_ID, workspaceType: WorkspaceType.Slack, token: deaneSlack },
+      {
+        userId: DEANE_ID,
+        workspaceType: WorkspaceType.Slack,
+        token: deaneSlack,
+      },
     ];
 
     jest
@@ -1137,9 +1131,9 @@ describe("a role given on an incident episode, copied to its incidents", () => {
     );
 
     // OneUptime's own write, naming the person - and nothing of theirs.
-    expect((create.mock.calls[0]![0] as CreateBy<IncidentMember>).props).toEqual(
-      { isRoot: true, userId: VALERIA_ID },
-    );
+    expect(
+      (create.mock.calls[0]![0] as CreateBy<IncidentMember>).props,
+    ).toEqual({ isRoot: true, userId: VALERIA_ID });
     expect(onlyFeedRow().userId?.toString()).toBe(VALERIA_ID.toString());
     expect(slackShows().reads).toBe(
       "Valeria Mustafaeva 👤 Added Deane Looi as Responder to Incident INC-18.",
@@ -1211,9 +1205,9 @@ describe("a role given on an incident episode, copied to its incidents", () => {
       episodeRole,
     );
 
-    expect((create.mock.calls[0]![0] as CreateBy<IncidentMember>).props).toEqual(
-      { isRoot: true },
-    );
+    expect(
+      (create.mock.calls[0]![0] as CreateBy<IncidentMember>).props,
+    ).toEqual({ isRoot: true });
     expect(onlyFeedRow().userId).toBeUndefined();
     expect(slackShows().reads).toBe(
       "👤 Added Deane Looi as Responder to Incident INC-18.",

@@ -31,7 +31,7 @@ const LED: FeedWorkspaceNotification = {
 const SAVED: SavedChatMessage = {
   workspaceType: WorkspaceType.Slack,
   authorName: "Aidil Rahman",
-  postedAt: new Date("2026-10-29T09:00:00.000Z"),
+  postedAt: "2026-10-29T09:00:00.000Z",
 };
 
 describe("FeedWorkspaceNotificationUtil.getAuthor", () => {

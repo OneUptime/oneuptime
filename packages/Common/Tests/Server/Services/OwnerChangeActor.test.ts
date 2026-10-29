@@ -248,16 +248,16 @@ beforeEach(() => {
   jest
     .spyOn(DatabaseConfig, "getDashboardUrl")
     .mockResolvedValue(URL.fromString(DASHBOARD));
-  jest
-    .spyOn(UserService, "findOneBy")
-    .mockImplementation((async (findBy: { query: { _id?: unknown } }) => {
-      return userRow(findBy.query._id);
-    }) as never);
-  jest
-    .spyOn(UserService, "findOneById")
-    .mockImplementation((async (findBy: { id: unknown }) => {
-      return userRow(findBy.id);
-    }) as never);
+  jest.spyOn(UserService, "findOneBy").mockImplementation((async (findBy: {
+    query: { _id?: unknown };
+  }) => {
+    return userRow(findBy.query._id);
+  }) as never);
+  jest.spyOn(UserService, "findOneById").mockImplementation((async (findBy: {
+    id: unknown;
+  }) => {
+    return userRow(findBy.id);
+  }) as never);
 
   jest
     .spyOn(
@@ -271,7 +271,6 @@ beforeEach(() => {
       "inviteUsersBasedOnRulesAndWorkspaceChannels",
     )
     .mockResolvedValue(undefined as never);
-
 });
 
 // The owner service's writes: the feed entry it asks for, and its reads.
@@ -296,7 +295,9 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-const ownerRow: (kind: OwnerKind) => BaseModel = (kind: OwnerKind): BaseModel => {
+const ownerRow: (kind: OwnerKind) => BaseModel = (
+  kind: OwnerKind,
+): BaseModel => {
   const row: BaseModel = new kind.model();
   row._id = ROW_ID.toString();
   row.setColumnValue("projectId", PROJECT_ID);
@@ -380,7 +381,10 @@ describe("a person taken off an on-call escalation rule", () => {
       new OnCallDutyPolicyEscalationRuleUser();
     row.projectId = PROJECT_ID;
     row.user = userRow(DEANE_ID)!;
-    row.onCallDutyPolicy = { _id: RECORD_ID.toString(), name: "Payments" } as never;
+    row.onCallDutyPolicy = {
+      _id: RECORD_ID.toString(),
+      name: "Payments",
+    } as never;
     row.onCallDutyPolicyEscalationRule = {
       _id: ROW_ID.toString(),
       name: "First responders",
@@ -524,7 +528,10 @@ describe.each(FEED_KINDS)("the feed of $label", (kind: FeedKind) => {
       .spyOn(kind.service as { create: () => Promise<unknown> }, "create")
       .mockResolvedValue({} as never);
     jest
-      .spyOn(WorkspaceNotificationRuleService, "sendWorkspaceMarkdownNotification")
+      .spyOn(
+        WorkspaceNotificationRuleService,
+        "sendWorkspaceMarkdownNotification",
+      )
       .mockImplementation((async (data: Send) => {
         sends.push(data);
       }) as never);
@@ -613,7 +620,7 @@ describe.each(FEED_KINDS)("the feed of $label", (kind: FeedKind) => {
         savedFromChatMessage: {
           workspaceType: WorkspaceType.Slack,
           authorName: "Aidil Rahman",
-          postedAt: new Date("2026-10-29T09:00:00.000Z"),
+          postedAt: "2026-10-29T09:00:00.000Z",
         },
         workspaceNotification: {
           sendWorkspaceNotification: true,
@@ -649,7 +656,10 @@ describe("the incident feed, which keeps the API key that made a change", () => 
 
     jest.spyOn(IncidentFeedService, "create").mockResolvedValue({} as never);
     jest
-      .spyOn(WorkspaceNotificationRuleService, "sendWorkspaceMarkdownNotification")
+      .spyOn(
+        WorkspaceNotificationRuleService,
+        "sendWorkspaceMarkdownNotification",
+      )
       .mockImplementation((async (data: Send) => {
         sends.push(data);
       }) as never);

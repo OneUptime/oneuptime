@@ -1666,7 +1666,8 @@ if (feedMode === "oncall-run") {
 insert(IncidentFeed, {
   incidentId: mainIncident.id,
   incidentFeedEventType: IncidentFeedEventType.IncidentMemberAdded,
-  feedInfoInMarkdown: `👤 Added **${people.maya.name}** (${people.maya.email}) as **${roles.commander.name}** to [Incident #${INCIDENT_NUMBER}](${incidentLink(INCIDENT_NUMBER)}).`,
+  // Maya declared it and took the role herself (IncidentRoleFeedText).
+  feedInfoInMarkdown: `👤 Took the **${roles.commander.name}** role on [Incident #${INCIDENT_NUMBER}](${incidentLink(INCIDENT_NUMBER)}).`,
   displayColor: new Color("#6366f1"),
   postedAt: at("18:05"),
   createdAt: at("18:05"),
