@@ -49,6 +49,10 @@ const THEME_CSS_PATH: string = path.join(
 );
 
 const WHITESPACE: RegExp = /\s+/g;
+/*
+ * Read only over this repository's own sources and Theme.css - never text
+ * from outside - so its retries on an unclosed comment cannot be driven.
+ */
 const BLOCK_COMMENT: RegExp = /\/\*[\s\S]*?\*\//g;
 const LINE_COMMENT: RegExp = /\/\/.*$/gm;
 
