@@ -11,6 +11,8 @@ import DataSecurityIssueService from "../../../Server/Services/DataSecurityIssue
 import DataStoreFindingService from "../../../Server/Services/DataStoreFindingService";
 import DataStoreService from "../../../Server/Services/DataStoreService";
 import CodeTaskRuns from "../../../Server/Utils/AI/CodeTask/CodeTaskRuns";
+import AiContextReader from "../../../Server/Utils/AI/AiContext/AiContextReader";
+import { AiContextSource } from "../../../Types/AI/AiContext";
 import DataSecurityIntegrations from "../../../Server/Utils/DataSecurity/DataSecurityIntegrations";
 import {
   DATA_SECURITY_EVALUATE_PROJECT_JOB,
@@ -227,6 +229,25 @@ const ROUTES: Array<RouteCase> = [
   },
 ];
 
+// Each route with each permission it answers, and each it refuses.
+const ROUTE_PERMISSIONS_ALLOWED: Array<[string, Permission, RouteCase]> =
+  ROUTES.flatMap((route: RouteCase): Array<[string, Permission, RouteCase]> => {
+    return route.allowed.map(
+      (permission: Permission): [string, Permission, RouteCase] => {
+        return [route.name, permission, route];
+      },
+    );
+  });
+
+const ROUTE_PERMISSIONS_REFUSED: Array<[string, Permission, RouteCase]> =
+  ROUTES.flatMap((route: RouteCase): Array<[string, Permission, RouteCase]> => {
+    return route.refused.map(
+      (permission: Permission): [string, Permission, RouteCase] => {
+        return [route.name, permission, route];
+      },
+    );
+  });
+
 function buildProps(
   permissions: Array<Permission>,
   memberOf: ObjectID = PROJECT_ID,
@@ -276,6 +297,7 @@ let repositoriesSpy: jest.SpyInstance;
 let codeTaskSpy: jest.SpyInstance;
 let scrubSpy: jest.SpyInstance;
 let ownersSpy: jest.SpyInstance;
+let aiContextSpy: jest.SpyInstance;
 
 let storeRow: DataStore | null;
 let issueRow: DataSecurityIssue | null;
@@ -303,7 +325,8 @@ async function call(
   } as unknown as ExpressRequest;
   const res: ExpressResponse = {} as ExpressResponse;
   const next: jest.Mock = jest.fn();
-  const send: jest.Mock = Response.sendJsonObjectResponse as unknown as jest.Mock;
+  const send: jest.Mock =
+    Response.sendJsonObjectResponse as unknown as jest.Mock;
   const before: number = send.mock.calls.length;
 
   await mockRouter
@@ -448,9 +471,11 @@ beforeEach(() => {
     .mockImplementation((async () => {
       return repositories;
     }) as never);
-  codeTaskSpy = jest.spyOn(CodeTaskRuns, "start").mockImplementation((async () => {
-    return new AIRun(new ObjectID("77777777-7777-4777-8777-777777777777"));
-  }) as never);
+  codeTaskSpy = jest
+    .spyOn(CodeTaskRuns, "start")
+    .mockImplementation((async () => {
+      return new AIRun(new ObjectID("77777777-7777-4777-8777-777777777777"));
+    }) as never);
   scrubSpy = jest
     .spyOn(TelemetryScrubCoverage, "createScrubRuleForFinding")
     .mockResolvedValue({
@@ -461,6 +486,8 @@ beforeEach(() => {
   ownersSpy = jest
     .spyOn(DataSecurityIntegrations, "getOwnerUsers")
     .mockResolvedValue([]);
+  // A project with no AI context, unless a test writes one.
+  aiContextSpy = jest.spyOn(AiContextReader, "read").mockResolvedValue(null);
 });
 
 afterEach(() => {
@@ -470,12 +497,18 @@ afterEach(() => {
 describe("routes and who may call them", () => {
   test("the routes are the shared paths the Dashboard calls", () => {
     expect(DATA_SECURITY_API_ROUTES.overview).toBe("/data-security/overview");
-    expect(DATA_SECURITY_API_ROUTES.compliance).toBe("/data-security/compliance");
+    expect(DATA_SECURITY_API_ROUTES.compliance).toBe(
+      "/data-security/compliance",
+    );
     expect(DATA_SECURITY_API_ROUTES.recordOfProcessing).toBe(
       "/data-security/record-of-processing",
     );
-    expect(DATA_SECURITY_API_ROUTES.scanNow("x")).toBe("/data-store/x/scan-now");
-    expect(DATA_SECURITY_API_ROUTES.checkNow("x")).toBe("/data-store/x/check-now");
+    expect(DATA_SECURITY_API_ROUTES.scanNow("x")).toBe(
+      "/data-store/x/scan-now",
+    );
+    expect(DATA_SECURITY_API_ROUTES.checkNow("x")).toBe(
+      "/data-store/x/check-now",
+    );
     expect(DATA_SECURITY_API_ROUTES.scrubFinding("x")).toBe(
       "/data-store-finding/x/scrub",
     );
@@ -497,46 +530,47 @@ describe("routes and who may call them", () => {
     },
   );
 
-  for (const route of ROUTES) {
-    test.each(route.allowed)(
-      `${route.name} answers a caller holding %s`,
-      async (permission: Permission) => {
-        asCaller([permission]);
-        repositories = [new CodeRepository(ObjectID.generate())];
+  test.each(ROUTE_PERMISSIONS_ALLOWED)(
+    "%s answers a caller holding %s",
+    async (_name: string, permission: Permission, route: RouteCase) => {
+      asCaller([permission]);
+      repositories = [new CodeRepository(ObjectID.generate())];
 
-        const result: RouteCall = await call(route.path, paramsFor(route));
+      const result: RouteCall = await call(route.path, paramsFor(route));
 
-        expect(result.thrown).toBeUndefined();
-        expect(result.answer).toBeDefined();
-      },
-    );
+      expect(result.thrown).toBeUndefined();
+      expect(result.answer).toBeDefined();
+    },
+  );
 
-    test.each(route.refused)(
-      `${route.name} refuses a caller holding only %s, before reading anything`,
-      async (permission: Permission) => {
-        asCaller([permission]);
+  test.each(ROUTE_PERMISSIONS_REFUSED)(
+    "%s refuses a caller holding only %s, before reading anything",
+    async (_name: string, permission: Permission, route: RouteCase) => {
+      asCaller([permission]);
 
-        const result: RouteCall = await call(route.path, paramsFor(route));
+      const result: RouteCall = await call(route.path, paramsFor(route));
 
-        expect(result.thrown).toBeInstanceOf(NotAuthorizedException);
-        expect((result.thrown as Exception).message).toBe(PERMISSION_MESSAGE);
-        expect(result.answer).toBeUndefined();
-        expect(readsMade()).toBe(0);
-        expect(queueSpy).not.toHaveBeenCalled();
-        expect(aiSpy).not.toHaveBeenCalled();
-        expect(scrubSpy).not.toHaveBeenCalled();
-      },
-    );
-  }
+      expect(result.thrown).toBeInstanceOf(NotAuthorizedException);
+      expect((result.thrown as Exception).message).toBe(PERMISSION_MESSAGE);
+      expect(result.answer).toBeUndefined();
+      expect(readsMade()).toBe(0);
+      expect(queueSpy).not.toHaveBeenCalled();
+      expect(aiSpy).not.toHaveBeenCalled();
+      expect(scrubSpy).not.toHaveBeenCalled();
+    },
+  );
 
-  test.each(ROUTES)("$name refuses an anonymous caller", async (route: RouteCase) => {
-    propsSpy.mockResolvedValue({});
+  test.each(ROUTES)(
+    "$name refuses an anonymous caller",
+    async (route: RouteCase) => {
+      propsSpy.mockResolvedValue({});
 
-    const result: RouteCall = await call(route.path, paramsFor(route));
+      const result: RouteCall = await call(route.path, paramsFor(route));
 
-    expect(result.thrown).toBeInstanceOf(NotAuthenticatedException);
-    expect(readsMade()).toBe(0);
-  });
+      expect(result.thrown).toBeInstanceOf(NotAuthenticatedException);
+      expect(readsMade()).toBe(0);
+    },
+  );
 
   test.each(ROUTES)(
     "$name refuses someone who is not a member of the project they named",
@@ -555,9 +589,12 @@ describe("routes and who may call them", () => {
 
 describe("Scan Now and Check Now", () => {
   test("Scan Now makes the store due now and queues its scan", async () => {
-    const result: RouteCall = await call(DATA_SECURITY_API_ROUTES.scanNow(":id"), {
-      id: STORE_ID.toString(),
-    });
+    const result: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.scanNow(":id"),
+      {
+        id: STORE_ID.toString(),
+      },
+    );
 
     expect(result.answer).toEqual({});
     expect(storeFindOneSpy.mock.calls[0]![0]).toMatchObject({
@@ -589,7 +626,9 @@ describe("Scan Now and Check Now", () => {
       const result: RouteCall = await call(path, { id: STORE_ID.toString() });
 
       expect(result.thrown).toBeInstanceOf(BadDataException);
-      expect((result.thrown as Exception).message).toBe("Data store not found.");
+      expect((result.thrown as Exception).message).toBe(
+        "Data store not found.",
+      );
     }
 
     expect(storeUpdateSpy).not.toHaveBeenCalled();
@@ -597,9 +636,12 @@ describe("Scan Now and Check Now", () => {
   });
 
   test("an id that is not an id is not found, before anything is read", async () => {
-    const result: RouteCall = await call(DATA_SECURITY_API_ROUTES.scanNow(":id"), {
-      id: "../other-project",
-    });
+    const result: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.scanNow(":id"),
+      {
+        id: "../other-project",
+      },
+    );
 
     expect((result.thrown as Exception).message).toBe("Not found.");
     expect(storeFindOneSpy).not.toHaveBeenCalled();
@@ -609,9 +651,12 @@ describe("Scan Now and Check Now", () => {
     const connectionId: ObjectID = ObjectID.generate();
     storeRow!.cloudConnectionId = connectionId;
 
-    const result: RouteCall = await call(DATA_SECURITY_API_ROUTES.checkNow(":id"), {
-      id: STORE_ID.toString(),
-    });
+    const result: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.checkNow(":id"),
+      {
+        id: STORE_ID.toString(),
+      },
+    );
 
     expect(result.answer).toEqual({});
     expect(queuedJobs()).toEqual([
@@ -647,9 +692,12 @@ describe("Scrub It", () => {
   test("makes the scrub rule as the caller, marks the finding scrubbed, and evaluates again", async () => {
     asCaller([Permission.CreateProjectLogScrubRule]);
 
-    const result: RouteCall = await call(DATA_SECURITY_API_ROUTES.scrubFinding(":id"), {
-      id: STORE_ID.toString(),
-    });
+    const result: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.scrubFinding(":id"),
+      {
+        id: STORE_ID.toString(),
+      },
+    );
 
     expect(scrubSpy).toHaveBeenCalledWith({
       projectId: PROJECT_ID,
@@ -701,9 +749,12 @@ describe("Scrub It", () => {
   test("a finding in a data store, not telemetry, is refused: Scrub It masks telemetry at ingest", async () => {
     findingRow = telemetryFinding(DataStoreKind.AwsS3Bucket);
 
-    const result: RouteCall = await call(DATA_SECURITY_API_ROUTES.scrubFinding(":id"), {
-      id: STORE_ID.toString(),
-    });
+    const result: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.scrubFinding(":id"),
+      {
+        id: STORE_ID.toString(),
+      },
+    );
 
     expect((result.thrown as Exception).message).toBe(
       "Scrub It masks telemetry at ingest; this finding is in a data store.",
@@ -715,18 +766,24 @@ describe("Scrub It", () => {
   test("a finding of another project, or with nothing to scrub, is not found", async () => {
     findingRow = null;
 
-    const missing: RouteCall = await call(DATA_SECURITY_API_ROUTES.scrubFinding(":id"), {
-      id: STORE_ID.toString(),
-    });
+    const missing: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.scrubFinding(":id"),
+      {
+        id: STORE_ID.toString(),
+      },
+    );
 
     expect((missing.thrown as Exception).message).toBe("Finding not found.");
 
     findingRow = telemetryFinding(DataStoreKind.TelemetryLogs);
     delete findingRow.location;
 
-    const nowhere: RouteCall = await call(DATA_SECURITY_API_ROUTES.scrubFinding(":id"), {
-      id: STORE_ID.toString(),
-    });
+    const nowhere: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.scrubFinding(":id"),
+      {
+        id: STORE_ID.toString(),
+      },
+    );
 
     expect((nowhere.thrown as Exception).message).toBe("Finding not found.");
     expect(scrubSpy).not.toHaveBeenCalled();
@@ -735,9 +792,12 @@ describe("Scrub It", () => {
 
 describe("Explain and Fix With AI", () => {
   test("Explain asks OneUptime AI about the issue as the check saw it, and writes the answer to its timeline", async () => {
-    const result: RouteCall = await call(DATA_SECURITY_API_ROUTES.explainIssue(":id"), {
-      id: STORE_ID.toString(),
-    });
+    const result: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.explainIssue(":id"),
+      {
+        id: STORE_ID.toString(),
+      },
+    );
 
     expect(aiSpy).toHaveBeenCalledTimes(1);
 
@@ -770,13 +830,77 @@ describe("Explain and Fix With AI", () => {
     expect(result.answer).toEqual({ markdown: "Turn on Block Public Access." });
   });
 
+  test("Explain puts the project's AI context in front of its prompt, so the steps to fix are the team's own", async () => {
+    aiContextSpy.mockResolvedValue({
+      parts: [
+        {
+          source: AiContextSource.Project,
+          text: "Our buckets are managed with Terraform in the infra repository.",
+        },
+      ],
+      characterCount: 63,
+      estimatedTokenCount: 16,
+    });
+
+    await call(DATA_SECURITY_API_ROUTES.explainIssue(":id"), {
+      id: STORE_ID.toString(),
+    });
+
+    expect(aiContextSpy).toHaveBeenCalledWith({ projectId: PROJECT_ID });
+
+    const system: string = (
+      aiSpy.mock.calls[0]![0] as {
+        messages: Array<{ role: string; content: string }>;
+      }
+    ).messages[0]!.content;
+
+    expect(system).toContain(
+      "Our buckets are managed with Terraform in the infra repository.",
+    );
+    // The context first, then the explanation's own instructions.
+    expect(
+      system.indexOf("Our buckets are managed with Terraform"),
+    ).toBeLessThan(system.length - 200);
+  });
+
+  test("with no AI context, Explain's prompt is its own alone", async () => {
+    await call(DATA_SECURITY_API_ROUTES.explainIssue(":id"), {
+      id: STORE_ID.toString(),
+    });
+
+    const withNone: string = (
+      aiSpy.mock.calls[0]![0] as {
+        messages: Array<{ role: string; content: string }>;
+      }
+    ).messages[0]!.content;
+
+    aiContextSpy.mockResolvedValue({
+      parts: [{ source: AiContextSource.Project, text: "Notes." }],
+      characterCount: 6,
+      estimatedTokenCount: 2,
+    });
+
+    await call(DATA_SECURITY_API_ROUTES.explainIssue(":id"), {
+      id: STORE_ID.toString(),
+    });
+
+    const withSome: string = (
+      aiSpy.mock.calls[1]![0] as {
+        messages: Array<{ role: string; content: string }>;
+      }
+    ).messages[0]!.content;
+
+    expect(withSome.endsWith(withNone)).toBe(true);
+    expect(withSome.length).toBeGreaterThan(withNone.length);
+  });
+
   test("Explain reads the issue without any finding's samples, and only in the caller's project", async () => {
     await call(DATA_SECURITY_API_ROUTES.explainIssue(":id"), {
       id: STORE_ID.toString(),
     });
 
-    const findBy: { query: JSONObject; select: JSONObject } = issueFindOneSpy.mock
-      .calls[0]![0] as { query: JSONObject; select: JSONObject };
+    const findBy: { query: JSONObject; select: JSONObject } = issueFindOneSpy
+      .mock.calls[0]![0] as { query: JSONObject; select: JSONObject };
 
     expect(findBy.query).toEqual({ _id: STORE_ID, projectId: PROJECT_ID });
     expect(JSON.stringify(findBy.select)).not.toContain("maskedSamples");
@@ -794,9 +918,12 @@ describe("Explain and Fix With AI", () => {
   test("a long explanation is answered whole and kept to 20,000 characters on the timeline", async () => {
     aiSpy.mockResolvedValue({ content: "x".repeat(25000) } as never);
 
-    const result: RouteCall = await call(DATA_SECURITY_API_ROUTES.explainIssue(":id"), {
-      id: STORE_ID.toString(),
-    });
+    const result: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.explainIssue(":id"),
+      {
+        id: STORE_ID.toString(),
+      },
+    );
 
     expect((result.answer!["markdown"] as string).length).toBe(25000);
     expect(
@@ -808,9 +935,12 @@ describe("Explain and Fix With AI", () => {
   test("an issue of another project is not found, and OneUptime AI is not asked", async () => {
     issueRow = null;
 
-    const result: RouteCall = await call(DATA_SECURITY_API_ROUTES.explainIssue(":id"), {
-      id: STORE_ID.toString(),
-    });
+    const result: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.explainIssue(":id"),
+      {
+        id: STORE_ID.toString(),
+      },
+    );
 
     expect((result.thrown as Exception).message).toBe("Issue not found.");
     expect(aiSpy).not.toHaveBeenCalled();
@@ -820,9 +950,12 @@ describe("Explain and Fix With AI", () => {
     const repository: CodeRepository = new CodeRepository(ObjectID.generate());
     repositories = [repository];
 
-    const result: RouteCall = await call(DATA_SECURITY_API_ROUTES.fixIssueWithAi(":id"), {
-      id: STORE_ID.toString(),
-    });
+    const result: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.fixIssueWithAi(":id"),
+      {
+        id: STORE_ID.toString(),
+      },
+    );
 
     expect(repositoriesSpy.mock.calls[0]![0]).toMatchObject({
       query: { projectId: PROJECT_ID },
@@ -850,7 +983,8 @@ describe("Explain and Fix With AI", () => {
       dataSecurityIssueId: issueRow!.id,
       eventType: DataSecurityIssueFeedEventType.AiFixRequested,
       displayColor: Purple500,
-      feedInfoInMarkdown: "OneUptime AI was asked to open a fix as a pull request.",
+      feedInfoInMarkdown:
+        "OneUptime AI was asked to open a fix as a pull request.",
       userId: USER_ID,
     });
     expect(result.answer).toEqual({
@@ -861,9 +995,12 @@ describe("Explain and Fix With AI", () => {
   });
 
   test("with no repository connected, it says to connect one", async () => {
-    const result: RouteCall = await call(DATA_SECURITY_API_ROUTES.fixIssueWithAi(":id"), {
-      id: STORE_ID.toString(),
-    });
+    const result: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.fixIssueWithAi(":id"),
+      {
+        id: STORE_ID.toString(),
+      },
+    );
 
     expect(result.answer).toEqual({
       message:
@@ -878,9 +1015,12 @@ describe("Explain and Fix With AI", () => {
       new CodeRepository(ObjectID.generate()),
     ];
 
-    const result: RouteCall = await call(DATA_SECURITY_API_ROUTES.fixIssueWithAi(":id"), {
-      id: STORE_ID.toString(),
-    });
+    const result: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.fixIssueWithAi(":id"),
+      {
+        id: STORE_ID.toString(),
+      },
+    );
 
     expect(result.answer).toEqual({
       message:
@@ -899,8 +1039,9 @@ describe("Explain and Fix With AI", () => {
       { codeRepositoryId: chosen.toString() },
     );
 
-    const query: JSONObject = (repositoriesSpy.mock.calls[0]![0] as { query: JSONObject })
-      .query;
+    const query: JSONObject = (
+      repositoriesSpy.mock.calls[0]![0] as { query: JSONObject }
+    ).query;
 
     expect(query["projectId"]).toBe(PROJECT_ID);
     expect((query["_id"] as ObjectID).toString()).toBe(chosen.toString());
@@ -1026,16 +1167,21 @@ describe("the Overview", () => {
     issue.status = data.status;
     issue.severity = data.severity;
     issue.riskScore = data.riskScore;
-    issue.title = data.title || `${data.severity} issue scoring ${data.riskScore}`;
+    issue.title =
+      data.title || `${data.severity} issue scoring ${data.riskScore}`;
     issue.checkId = "public-read";
     issue.dataStoreId = data.store.id!;
     const store: DataStore = new DataStore();
     store.name = `store of ${issue.title}`;
     issue.dataStore = store;
-    issue.firstDetectedAt = new Date(NOW.getTime() - data.openedDaysAgo * DAY_IN_MS);
+    issue.firstDetectedAt = new Date(
+      NOW.getTime() - data.openedDaysAgo * DAY_IN_MS,
+    );
 
     if (data.resolvedDaysAgo !== undefined) {
-      issue.resolvedAt = new Date(NOW.getTime() - data.resolvedDaysAgo * DAY_IN_MS);
+      issue.resolvedAt = new Date(
+        NOW.getTime() - data.resolvedDaysAgo * DAY_IN_MS,
+      );
     }
 
     issues.push(issue);
@@ -1055,7 +1201,9 @@ describe("the Overview", () => {
   }
 
   function connectionOf(config: JSONObject | undefined): void {
-    const connection: CloudConnection = new CloudConnection(ObjectID.generate());
+    const connection: CloudConnection = new CloudConnection(
+      ObjectID.generate(),
+    );
 
     if (config) {
       connection.config = config;
@@ -1125,7 +1273,9 @@ describe("the Overview", () => {
   });
 
   test("counts open issues by severity, ranks the five riskiest, and charts 30 days of opened and resolved", async () => {
-    const store: DataStore = storeOf({ sensitivity: DataSensitivity.Restricted });
+    const store: DataStore = storeOf({
+      sensitivity: DataSensitivity.Restricted,
+    });
     const scores: Array<[SecuritySeverity, number]> = [
       [SecuritySeverity.Critical, 95],
       [SecuritySeverity.Critical, 80],
@@ -1198,11 +1348,15 @@ describe("the Overview", () => {
 
     const byDay: Map<string, { opened: number; resolved: number }> = new Map(
       answer.issueTrend.map(
-        (entry: { day: string; opened: number; resolved: number }): [
-          string,
-          { opened: number; resolved: number },
-        ] => {
-          return [entry.day, { opened: entry.opened, resolved: entry.resolved }];
+        (entry: {
+          day: string;
+          opened: number;
+          resolved: number;
+        }): [string, { opened: number; resolved: number }] => {
+          return [
+            entry.day,
+            { opened: entry.opened, resolved: entry.resolved },
+          ];
         },
       ),
     );
@@ -1363,7 +1517,11 @@ describe("Compliance", () => {
 
     for (const framework of answer.frameworks) {
       expect(framework).toEqual({
-        ...scoreComplianceFramework(framework.framework, storeInputs, issueInputs),
+        ...scoreComplianceFramework(
+          framework.framework,
+          storeInputs,
+          issueInputs,
+        ),
         fullName: COMPLIANCE_FRAMEWORK_INFO[framework.framework].fullName,
         scope: COMPLIANCE_FRAMEWORK_INFO[framework.framework].scope,
       });
@@ -1381,7 +1539,10 @@ describe("Compliance", () => {
       pci.requirements.find((requirement: ComplianceRequirementResult) => {
         return requirement.requirement === "7.2";
       }),
-    ).toMatchObject({ status: ComplianceRequirementStatus.Failing, failingIssueCount: 1 });
+    ).toMatchObject({
+      status: ComplianceRequirementStatus.Failing,
+      failingIssueCount: 1,
+    });
     expect(pci.score).toBe(86);
     expect(pci.fullName).toBe("PCI DSS v4.0");
 
@@ -1402,7 +1563,10 @@ describe("Compliance", () => {
       result.answer as unknown as DataSecurityComplianceResponse;
 
     for (const framework of answer.frameworks) {
-      expect({ framework: framework.framework, score: framework.score }).toEqual({
+      expect({
+        framework: framework.framework,
+        score: framework.score,
+      }).toEqual({
         framework: framework.framework,
         score: null,
       });
@@ -1486,7 +1650,9 @@ describe("the record of processing", () => {
         : [];
     });
 
-    const result: RouteCall = await call(DATA_SECURITY_API_ROUTES.recordOfProcessing);
+    const result: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.recordOfProcessing,
+    );
     const answer: DataSecurityRecordOfProcessingResponse =
       result.answer as unknown as DataSecurityRecordOfProcessingResponse;
 
@@ -1542,7 +1708,9 @@ describe("the record of processing", () => {
     });
     storeOf({ name: "empty", dataCategories: [], dataTypeIds: [] });
 
-    const result: RouteCall = await call(DATA_SECURITY_API_ROUTES.recordOfProcessing);
+    const result: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.recordOfProcessing,
+    );
 
     expect(result.answer).toEqual({ rows: [] });
     expect(ownersSpy).not.toHaveBeenCalled();

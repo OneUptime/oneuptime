@@ -20,9 +20,9 @@ export interface ComponentProps {
 /*
  * One data store's pages, in the order its questions are asked: what it is
  * and how it is doing (Overview), what is inside it, who can reach it, what
- * to fix (Issues, with how many are open), where its data goes, and the
- * scans that read it. Its owners and settings are set up once, so they fold;
- * Delete closes the menu under Advanced.
+ * to fix (Issues, with how many are open), where its data goes, the scans
+ * that read it, and its Timeline. Its owners and settings are set up once,
+ * so they fold; Delete closes the menu under Advanced.
  */
 const DataStoreViewSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -86,6 +86,13 @@ const DataStoreViewSideMenu: FunctionComponent<ComponentProps> = (
             to: routeOf(PageMap.DATA_SECURITY_STORE_VIEW_SCANS),
           }}
           icon={IconProp.MagnifyingGlass}
+        />
+        <SideMenuItem
+          link={{
+            title: "Timeline",
+            to: routeOf(PageMap.DATA_SECURITY_STORE_VIEW_TIMELINE),
+          }}
+          icon={IconProp.Timeline}
         />
       </SideMenuSection>
 

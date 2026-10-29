@@ -10,7 +10,10 @@ import DatabaseServerService from "../../Services/DatabaseServerService";
 import DataStoreAccessService from "../../Services/DataStoreAccessService";
 import DataStoreService from "../../Services/DataStoreService";
 import InventoryItemService from "../../Services/InventoryItemService";
-import { CloudDataSecurityReadResult, CloudDataStoreRead } from "./Cloud/DataSecurityCloudTypes";
+import {
+  CloudDataSecurityReadResult,
+  CloudDataStoreRead,
+} from "./Cloud/DataSecurityCloudTypes";
 import { queueDataSecurityEvaluation } from "./DataSecurityJobs";
 import logger from "../Logger";
 import Includes from "../../../Types/BaseDatabase/Includes";
@@ -137,7 +140,9 @@ export function postureFromInventory(
       readAt: inventoriedAt.toISOString(),
       encryptedAtRest: true,
       pointInTimeRecovery: booleanOf(
-        properties["PointInTimeRecoverySpecification.PointInTimeRecoveryEnabled"],
+        properties[
+          "PointInTimeRecoverySpecification.PointInTimeRecoveryEnabled"
+        ],
       ),
       deletionProtection: booleanOf(properties["DeletionProtectionEnabled"]),
     };
@@ -173,7 +178,9 @@ export default class DataSecurityDiscovery {
 
     for (const store of discovered.slice(0, MAX_DISCOVERED)) {
       try {
-        if (await this.upsert(projectId, store, existing.get(store.storeKey), now)) {
+        if (
+          await this.upsert(projectId, store, existing.get(store.storeKey), now)
+        ) {
           created++;
         }
       } catch (error) {
@@ -182,7 +189,7 @@ export default class DataSecurityDiscovery {
       }
     }
 
-    await this.archiveGone(existing, covered);
+    await this.archiveGone(projectId, existing, covered);
 
     if (created > 0) {
       await queueDataSecurityEvaluation(projectId);
@@ -244,8 +251,9 @@ export default class DataSecurityDiscovery {
       }
 
       // Inventory posture fills only a store no data-security read has reached.
-      const posture: DataStorePostureFacts | undefined =
-        existing.posture as DataStorePostureFacts | undefined;
+      const posture: DataStorePostureFacts | undefined = existing.posture as
+        | DataStorePostureFacts
+        | undefined;
 
       if (posture?.readAt && columns["posture"] && !columns["postureIsFull"]) {
         delete columns["posture"];
@@ -253,7 +261,9 @@ export default class DataSecurityDiscovery {
 
       delete columns["postureIsFull"];
 
-      if (existing.isArchived) {
+      const wasArchived: boolean = Boolean(existing.isArchived);
+
+      if (wasArchived) {
         columns["isArchived"] = false;
       }
 
@@ -262,10 +272,22 @@ export default class DataSecurityDiscovery {
         data: columns as never,
       });
 
+      // Found again: the store's Timeline says it is back.
+      if (wasArchived) {
+        await DataStoreService.writeRestoredFeed({
+          projectId: projectId,
+          dataStoreId: existing.id,
+        }).catch((error: Error) => {
+          logger.error(error);
+        });
+      }
+
       return false;
     }
 
-    const info: DataStoreKindInfo | undefined = getDataStoreKindInfo(store.kind);
+    const info: DataStoreKindInfo | undefined = getDataStoreKindInfo(
+      store.kind,
+    );
     const row: DataStore = new DataStore();
     row.projectId = projectId;
     row.storeKey = store.storeKey;
@@ -295,6 +317,7 @@ export default class DataSecurityDiscovery {
   }
 
   private static async archiveGone(
+    projectId: ObjectID,
     existing: Map<string, DataStore>,
     covered: Set<string>,
   ): Promise<void> {
@@ -313,6 +336,15 @@ export default class DataSecurityDiscovery {
         await DataStoreService.updateColumnsByIdWithoutHooks({
           id: store.id,
           data: { isArchived: true },
+        });
+
+        // Its Timeline says why it left the everyday lists.
+        await DataStoreService.writeArchivedFeed({
+          projectId: projectId,
+          dataStoreId: store.id,
+          discoveredFrom: store.discoveredFrom,
+        }).catch((error: Error) => {
+          logger.error(error);
         });
       }
     }
@@ -428,7 +460,10 @@ export default class DataSecurityDiscovery {
           return Boolean(account.id);
         })
         .map((account: CloudAccount): [string, ObjectID] => {
-          return [`${account.provider}|${account.accountId || ""}`, account.id!];
+          return [
+            `${account.provider}|${account.accountId || ""}`,
+            account.id!,
+          ];
         }),
     );
   }
@@ -550,7 +585,9 @@ export default class DataSecurityDiscovery {
     const existing: Map<string, DataStore> = await this.readExisting(
       data.projectId,
     );
-    const accounts: Map<string, ObjectID> = await this.accountIds(data.projectId);
+    const accounts: Map<string, ObjectID> = await this.accountIds(
+      data.projectId,
+    );
     let recorded: number = 0;
 
     for (const read of data.result.stores.slice(0, MAX_DISCOVERED)) {
@@ -568,7 +605,10 @@ export default class DataSecurityDiscovery {
           region: (read.identity.region || "").slice(0, 100),
           cloudConnectionId: data.cloudConnectionId,
           cloudTags: tags,
-          posture: { ...read.posture, readAt: read.posture.readAt || now.toISOString() } as unknown as JSONObject,
+          posture: {
+            ...read.posture,
+            readAt: read.posture.readAt || now.toISOString(),
+          } as unknown as JSONObject,
           postureIsFull: true,
           configurationReadAt: now,
           environment: inferDataStoreEnvironment(read.identity.name, tags),
@@ -635,13 +675,15 @@ export default class DataSecurityDiscovery {
     read: CloudDataStoreRead,
     now: Date,
   ): Promise<void> {
-    const current: Array<DataStoreAccess> = await DataStoreAccessService.findBy({
-      query: { dataStoreId },
-      select: { _id: true, accessKey: true, isSeenInTraces: true },
-      skip: 0,
-      limit: 2000,
-      props: { isRoot: true },
-    });
+    const current: Array<DataStoreAccess> = await DataStoreAccessService.findBy(
+      {
+        query: { dataStoreId },
+        select: { _id: true, accessKey: true, isSeenInTraces: true },
+        skip: 0,
+        limit: 2000,
+        props: { isRoot: true },
+      },
+    );
     const byKey: Map<string, DataStoreAccess> = new Map(
       current.map((entry: DataStoreAccess): [string, DataStoreAccess] => {
         return [entry.accessKey || "", entry];
@@ -691,12 +733,19 @@ export default class DataSecurityDiscovery {
         row.setColumnValue(column, value);
       }
 
-      await DataStoreAccessService.create({ data: row, props: { isRoot: true } });
+      await DataStoreAccessService.create({
+        data: row,
+        props: { isRoot: true },
+      });
     }
 
     // Grants the cloud no longer reports are gone; traffic-seen ones stay.
     for (const entry of current) {
-      if (entry.id && !wanted.has(entry.accessKey || "") && !entry.isSeenInTraces) {
+      if (
+        entry.id &&
+        !wanted.has(entry.accessKey || "") &&
+        !entry.isSeenInTraces
+      ) {
         await DataStoreAccessService.deleteOneById({
           id: entry.id,
           props: { isRoot: true },

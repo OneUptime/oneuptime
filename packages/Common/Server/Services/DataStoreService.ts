@@ -4,6 +4,7 @@ import DataStoreFeedService from "./DataStoreFeedService";
 import { DataStoreFeedEventType } from "../../Models/DatabaseModels/DataStoreFeed";
 import DataStoreLabelRuleEngineService from "./DataStoreLabelRuleEngineService";
 import DataStoreOwnerRuleEngineService from "./DataStoreOwnerRuleEngineService";
+import UserService from "./UserService";
 import DatabaseConfig from "../DatabaseConfig";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -11,8 +12,9 @@ import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { queueDataSecurityEvaluation } from "../Utils/DataSecurity/DataSecurityJobs";
+import { describeDataStoreChanges } from "../Utils/DataSecurity/DataStoreChangeFeed";
 import URL from "../../Types/API/URL";
-import { Blue500 } from "../../Types/BrandColors";
+import { Blue500, Gray500, Yellow500 } from "../../Types/BrandColors";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
@@ -36,6 +38,10 @@ import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
  * public by design or used for AI, how it may be scanned. Any of those
  * changes what the checks say, so a change queues the project's
  * evaluation; a new store gets the project's owner and label rules.
+ *
+ * The store's Timeline (DataStoreFeed) says when it was found or added,
+ * what a person changed on it and to what (DataStoreChangeFeed), and when
+ * discovery stopped seeing it or found it again.
  */
 
 // The engines a worker can sample, by the scheme of their connection strings.
@@ -273,7 +279,7 @@ export class Service extends ProjectReferencesService<Model> {
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
-    _updatedItemIds: Array<ObjectID>,
+    updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
     const projectIds: Array<ObjectID> =
       (onUpdate.carryForward as Array<ObjectID> | undefined) || [];
@@ -288,7 +294,135 @@ export class Service extends ProjectReferencesService<Model> {
       await queueDataSecurityEvaluation(projectId);
     }
 
+    // What a person changed; OneUptime's own writes are root and not recorded.
+    if (!onUpdate.updateBy.props.isRoot) {
+      await this.writeUpdatedFeed(onUpdate, updatedItemIds).catch(
+        (error: Error) => {
+          logger.error(error);
+        },
+      );
+    }
+
     return onUpdate;
+  }
+
+  private async writeUpdatedFeed(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<void> {
+    const changes: Array<MarkdownText> = describeDataStoreChanges(
+      onUpdate.updateBy.data as unknown as JSONObject,
+    );
+
+    if (changes.length === 0) {
+      return;
+    }
+
+    const userId: ObjectID | undefined =
+      onUpdate.updateBy.props.userId || undefined;
+
+    for (const dataStoreId of updatedItemIds) {
+      const store: Model | null = await this.findOneById({
+        id: dataStoreId,
+        select: { projectId: true },
+        props: { isRoot: true },
+      });
+
+      if (!store?.projectId) {
+        continue;
+      }
+
+      const link: MarkdownText = await this.getDataStoreMarkdownLink(
+        store.projectId,
+        dataStoreId,
+      );
+      const byWhom: MarkdownText | null = userId
+        ? await UserService.getUserMarkdownString({
+            userId: userId,
+            projectId: store.projectId,
+          })
+        : null;
+
+      await DataStoreFeedService.createDataStoreFeedItem({
+        dataStoreId: dataStoreId,
+        projectId: store.projectId,
+        dataStoreFeedEventType: DataStoreFeedEventType.DataStoreUpdated,
+        displayColor: Gray500,
+        feedInfoInMarkdown: (byWhom
+          ? mdText`📝 ${link} was updated by **${byWhom}**.`
+          : mdText`📝 ${link} was updated.`
+        ).toString(),
+        moreInformationInMarkdown: changes
+          .map((line: MarkdownText): string => {
+            return line.toString();
+          })
+          .join("\n\n"),
+        userId: userId,
+      });
+    }
+  }
+
+  /*
+   * Discovery no longer finds the store where it found it (its cloud
+   * account, its database product, the service map), so it is archived:
+   * kept, with its history, out of everyday lists.
+   */
+  @CaptureSpan()
+  public async writeArchivedFeed(data: {
+    projectId: ObjectID;
+    dataStoreId: ObjectID;
+    discoveredFrom?: string | undefined;
+  }): Promise<void> {
+    const link: MarkdownText = await this.getDataStoreMarkdownLink(
+      data.projectId,
+      data.dataStoreId,
+    );
+
+    let gone: MarkdownText;
+
+    switch (data.discoveredFrom) {
+      case "Cloud inventory":
+        gone = mdText`🗄️ ${link} is gone from its cloud account's inventory, so it was archived.`;
+        break;
+      case "Database product":
+        gone = mdText`🗄️ ${link} is no longer a database server in Databases, so it was archived.`;
+        break;
+      case "Service map":
+        gone = mdText`🗄️ ${link} is no longer seen in any service's traces, so it was archived.`;
+        break;
+      default:
+        gone = mdText`🗄️ ${link} is no longer listed by its source, so it was archived.`;
+    }
+
+    await DataStoreFeedService.createDataStoreFeedItem({
+      dataStoreId: data.dataStoreId,
+      projectId: data.projectId,
+      dataStoreFeedEventType: DataStoreFeedEventType.DataStoreArchived,
+      displayColor: Yellow500,
+      feedInfoInMarkdown:
+        mdText`${gone} Its history is kept, and it comes back on its own once it is found again.`.toString(),
+    });
+  }
+
+  // Discovery found an archived store again: it is back among the data stores.
+  @CaptureSpan()
+  public async writeRestoredFeed(data: {
+    projectId: ObjectID;
+    dataStoreId: ObjectID;
+  }): Promise<void> {
+    const link: MarkdownText = await this.getDataStoreMarkdownLink(
+      data.projectId,
+      data.dataStoreId,
+    );
+
+    await DataStoreFeedService.createDataStoreFeedItem({
+      dataStoreId: data.dataStoreId,
+      projectId: data.projectId,
+      dataStoreFeedEventType: DataStoreFeedEventType.DataStoreRestored,
+      displayColor: Blue500,
+      feedInfoInMarkdown:
+        mdText`♻️ ${link} was found again, so it is back among the data stores.`.toString(),
+    });
   }
 
   @CaptureSpan()

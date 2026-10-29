@@ -6,6 +6,7 @@ import DatabaseConfig from "../DatabaseConfig";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnUpdate } from "../Types/Database/Hooks";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import { queueDataSecurityEvaluation } from "../Utils/DataSecurity/DataSecurityJobs";
 import URL from "../../Types/API/URL";
 import { Blue500, Gray500, Green500, Yellow500 } from "../../Types/BrandColors";
@@ -190,10 +191,13 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     // Who accepted a risk that is no longer accepted is nobody's to keep.
-    data["acceptedByUserId"] =
+    RelationIdUtil.stamp(
+      data,
+      ["acceptedByUserId", "acceptedByUser"],
       data["status"] === DataSecurityIssueStatus.Accepted
         ? updateBy.props.userId || null
-        : null;
+        : null,
+    );
 
     if (data["status"] === DataSecurityIssueStatus.Resolved) {
       const now: Date = OneUptimeDate.getCurrentDate();
@@ -243,9 +247,14 @@ export class Service extends ProjectReferencesService<Model> {
         });
       }
 
+      // Assigned under either name of either reference.
       if (
-        data["assignedToUserId"] !== undefined ||
-        data["assignedToTeamId"] !== undefined
+        RelationIdUtil.isPresent(data, [
+          "assignedToUserId",
+          "assignedToUser",
+          "assignedToTeamId",
+          "assignedToTeam",
+        ])
       ) {
         await DataSecurityIssueFeedService.createDataSecurityIssueFeedItem({
           projectId: new ObjectID(change.projectId),

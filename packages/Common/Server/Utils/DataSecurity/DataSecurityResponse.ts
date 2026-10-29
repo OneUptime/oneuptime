@@ -16,7 +16,8 @@ import { blockGcsBucketPublicAccess } from "./Cloud/Gcp/GcpDataSecurityResponse"
 import { DataSecurityResponseOutcome } from "./Cloud/DataSecurityCloudTypes";
 import { queueDataSecurityConnectionRead } from "./DataSecurityJobs";
 import DataSecurityRunner from "./DataSecurityRunner";
-import { Blue500 } from "../../../Types/BrandColors";
+import { Gray500, Green500 } from "../../../Types/BrandColors";
+import Color from "../../../Types/Color";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import {
   DATA_SECURITY_RESPONSE_FIELD_KEY,
@@ -105,12 +106,18 @@ export default class DataSecurityResponse {
         ? await this.blockPublicAccess(target)
         : await this.revokeSharing(data.projectId, target);
 
+    // Green when the store's configuration changed, grey when it was already so.
+    const displayColor: Color = outcome.changed ? Green500 : Gray500;
+
     await DataStoreFeedService.createDataStoreFeedItem({
       projectId: data.projectId,
       dataStoreId: data.dataStoreId,
       dataStoreFeedEventType: DataStoreFeedEventType.ResponseActionTaken,
-      displayColor: Blue500,
-      feedInfoInMarkdown: mdText`**${data.action}**: ${outcome.summary}`.toString(),
+      displayColor: displayColor,
+      feedInfoInMarkdown: (outcome.changed
+        ? mdText`**${data.action}**, through the store's cloud connection: ${outcome.summary} The store is being checked again.`
+        : mdText`**${data.action}** changed nothing: ${outcome.summary}`
+      ).toString(),
       userId: data.userId,
     });
 
@@ -119,7 +126,7 @@ export default class DataSecurityResponse {
         projectId: data.projectId,
         dataSecurityIssueId: data.dataSecurityIssueId,
         eventType: DataSecurityIssueFeedEventType.ResponseActionTaken,
-        displayColor: Blue500,
+        displayColor: displayColor,
         feedInfoInMarkdown: (outcome.changed
           ? mdText`**${data.action}** on the store, through its cloud connection: ${outcome.summary} The store is being checked again.`
           : mdText`**${data.action}** on the store changed nothing: ${outcome.summary}`

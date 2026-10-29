@@ -227,7 +227,7 @@ function dataSecurityResponseField(): CloudConnectionField {
     key: DATA_SECURITY_RESPONSE_FIELD_KEY,
     title: "Data security response",
     description:
-      "Lets Data Security block public access to a data store and revoke its sharing, from its issue or a playbook. The command changes with it.",
+      "Lets Data Security block public access to a data store and revoke its sharing: from its issue, when a person asks, or in a playbook, each run approved by a person unless the playbook says otherwise. The command changes with it.",
     type: "dropdown",
     required: false,
     options: [

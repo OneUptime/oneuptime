@@ -81,6 +81,13 @@ export function getDataSecurityBreadcrumbs(
       "View Data Store",
       "Scans",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DATA_SECURITY_STORE_VIEW_TIMELINE, [
+      "Project",
+      "Data Security",
+      "Data Stores",
+      "View Data Store",
+      "Timeline",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.DATA_SECURITY_STORE_VIEW_OWNERS, [
       "Project",
       "Data Security",

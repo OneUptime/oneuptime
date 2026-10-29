@@ -55,6 +55,13 @@ export const getDataSecurityIssueFeedKind: GetDataSecurityIssueFeedKindFunction 
         return SHARED_FEED_ENTRY_KINDS.AIRootCause;
       case DataSecurityIssueFeedEventType.AiFixRequested:
         return { icon: IconProp.Bolt, tone: FeedTone.AI };
+      /*
+       * Public access blocked or sharing revoked from the issue, in the
+       * colour the server chose: green when the store changed, grey when it
+       * was already so.
+       */
+      case DataSecurityIssueFeedEventType.ResponseActionTaken:
+        return { icon: IconProp.ShieldCheck, tone: FeedTone.Record };
       default:
         return undefined;
     }

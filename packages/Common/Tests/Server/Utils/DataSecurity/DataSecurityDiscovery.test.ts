@@ -86,6 +86,8 @@ let accessUpdateSpy: jest.SpyInstance;
 let accessDeleteSpy: jest.SpyInstance;
 let queueSpy: jest.SpyInstance;
 let errorSpy: jest.SpyInstance;
+let archivedFeedSpy: jest.SpyInstance;
+let restoredFeedSpy: jest.SpyInstance;
 
 function sameId(left: ObjectID | undefined | null, right: ObjectID): boolean {
   return Boolean(left) && left!.toString() === right.toString();
@@ -142,6 +144,13 @@ beforeEach(() => {
     storeTable.push(createBy.data);
     return createBy.data;
   }) as never);
+  // The store's Timeline: what discovery says when a store leaves or comes back.
+  archivedFeedSpy = jest
+    .spyOn(DataStoreService, "writeArchivedFeed")
+    .mockResolvedValue(undefined);
+  restoredFeedSpy = jest
+    .spyOn(DataStoreService, "writeRestoredFeed")
+    .mockResolvedValue(undefined);
   updateSpy = jest
     .spyOn(DataStoreService, "updateColumnsByIdWithoutHooks")
     .mockImplementation((async (data: { id: ObjectID; data: JSONObject }) => {
@@ -940,6 +949,27 @@ describe("discoverProject: stores found before", () => {
 
     expect(updatesOf(store)[0]!["isArchived"]).toBe(false);
     expect(store.isArchived).toBe(false);
+    // Its Timeline says it is back, once.
+    expect(restoredFeedSpy).toHaveBeenCalledTimes(1);
+    expect(restoredFeedSpy).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      dataStoreId: store.id,
+    });
+    expect(archivedFeedSpy).not.toHaveBeenCalled();
+  });
+
+  test("a store found again that was never archived writes nothing to its Timeline", async () => {
+    existingStore({
+      storeKey: "cloud:aws:AWS S3 Bucket:arn:aws:s3:::customer-exports",
+      name: "customer-exports",
+      discoveredFrom: "Cloud inventory",
+    });
+    resources = [bucket("customer-exports")];
+
+    await discover();
+
+    expect(restoredFeedSpy).not.toHaveBeenCalled();
+    expect(archivedFeedSpy).not.toHaveBeenCalled();
   });
 
   test("an environment a person set is never overwritten; one nobody knows is filled in", async () => {
@@ -1009,11 +1039,19 @@ describe("discoverProject: stores found before", () => {
     for (const store of [goneBucket, goneServer, goneTraced]) {
       expect(updatesOf(store)).toEqual([{ isArchived: true }]);
       expect(store.isArchived).toBe(true);
+      // Its Timeline says why, by where it was found.
+      expect(archivedFeedSpy).toHaveBeenCalledWith({
+        projectId: PROJECT_ID,
+        dataStoreId: store.id,
+        discoveredFrom: store.discoveredFrom,
+      });
     }
 
     for (const store of [alreadyArchived, cloudRead, telemetry, added]) {
       expect(updatesOf(store)).toEqual([]);
     }
+
+    expect(archivedFeedSpy).toHaveBeenCalledTimes(3);
 
     expect(storeTable).toHaveLength(7);
   });

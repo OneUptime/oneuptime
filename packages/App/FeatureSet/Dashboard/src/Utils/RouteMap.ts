@@ -870,6 +870,7 @@ export const DataSecurityRoutePath: Dictionary<string> = {
   [PageMap.DATA_SECURITY_STORE_VIEW_ISSUES]: `stores/${RouteParams.ModelID}/issues`,
   [PageMap.DATA_SECURITY_STORE_VIEW_FLOWS]: `stores/${RouteParams.ModelID}/flows`,
   [PageMap.DATA_SECURITY_STORE_VIEW_SCANS]: `stores/${RouteParams.ModelID}/scans`,
+  [PageMap.DATA_SECURITY_STORE_VIEW_TIMELINE]: `stores/${RouteParams.ModelID}/timeline`,
   [PageMap.DATA_SECURITY_STORE_VIEW_OWNERS]: `stores/${RouteParams.ModelID}/owners`,
   [PageMap.DATA_SECURITY_STORE_VIEW_SETTINGS]: `stores/${RouteParams.ModelID}/settings`,
   [PageMap.DATA_SECURITY_STORE_VIEW_DELETE]: `stores/${RouteParams.ModelID}/delete`,
@@ -7305,6 +7306,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DATA_SECURITY_STORE_VIEW_SCANS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-security/${
       DataSecurityRoutePath[PageMap.DATA_SECURITY_STORE_VIEW_SCANS]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_STORE_VIEW_TIMELINE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_STORE_VIEW_TIMELINE]
     }`,
   ),
 

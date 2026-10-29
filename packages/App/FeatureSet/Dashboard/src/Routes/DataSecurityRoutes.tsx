@@ -32,6 +32,7 @@ import DataStoreAccessPage from "../Pages/DataSecurity/StoreView/Access";
 import DataStoreIssuesPage from "../Pages/DataSecurity/StoreView/Issues";
 import DataStoreFlowsPage from "../Pages/DataSecurity/StoreView/Flows";
 import DataStoreScansPage from "../Pages/DataSecurity/StoreView/Scans";
+import DataStoreTimelinePage from "../Pages/DataSecurity/StoreView/Timeline";
 import DataStoreOwnersPage from "../Pages/DataSecurity/StoreView/Owners";
 import DataStoreSettingsPage from "../Pages/DataSecurity/StoreView/Settings";
 import DataStoreDeletePage from "../Pages/DataSecurity/StoreView/Delete";
@@ -331,6 +332,19 @@ const DataSecurityRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.DATA_SECURITY_STORE_VIEW_SCANS] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DATA_SECURITY_STORE_VIEW_TIMELINE,
+          )}
+          element={
+            <DataStoreTimelinePage
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DATA_SECURITY_STORE_VIEW_TIMELINE] as Route
               }
             />
           }

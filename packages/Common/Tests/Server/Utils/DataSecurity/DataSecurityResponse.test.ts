@@ -13,6 +13,7 @@ import CloudConnection from "../../../../Models/DatabaseModels/CloudConnection";
 import DataStore from "../../../../Models/DatabaseModels/DataStore";
 import { DataStoreFeedEventType } from "../../../../Models/DatabaseModels/DataStoreFeed";
 import { DataSecurityIssueFeedEventType } from "../../../../Models/DatabaseModels/DataSecurityIssueFeed";
+import { Gray500, Green500 } from "../../../../Types/BrandColors";
 import { CloudProvider } from "../../../../Types/Cloud/CloudPlatform";
 import { DATA_SECURITY_RESPONSE_FIELD_KEY } from "../../../../Types/CloudConnection/CloudConnectionCatalog";
 import {
@@ -103,9 +104,7 @@ function connectionOf(data: {
   row.projectId = PROJECT_ID;
   row.isEnabled = data.isEnabled !== false;
   row.config = (
-    data.response
-      ? { [DATA_SECURITY_RESPONSE_FIELD_KEY]: data.response }
-      : {}
+    data.response ? { [DATA_SECURITY_RESPONSE_FIELD_KEY]: data.response } : {}
   ) as JSONObject;
   return row;
 }
@@ -137,10 +136,13 @@ beforeEach(() => {
   jest
     .spyOn(DataSecurityRunner, "connectedAccounts")
     .mockResolvedValue(["123456789012", "210987654321"]);
-  s3Spy = jest.spyOn(AwsResponse, "blockS3BucketPublicAccess").mockResolvedValue({
-    changed: true,
-    summary: "Turned on all four Block Public Access settings of customer-exports.",
-  });
+  s3Spy = jest
+    .spyOn(AwsResponse, "blockS3BucketPublicAccess")
+    .mockResolvedValue({
+      changed: true,
+      summary:
+        "Turned on all four Block Public Access settings of customer-exports.",
+    });
   azureSpy = jest
     .spyOn(AzureResponse, "blockAzureStoragePublicAccess")
     .mockResolvedValue({
@@ -248,7 +250,10 @@ describe("what a store can take now", () => {
   });
 
   test("a bucket marked public by design is never blocked, whatever its connection allows", async () => {
-    store = storeOf({ kind: DataStoreKind.AwsS3Bucket, isPublicByDesign: true });
+    store = storeOf({
+      kind: DataStoreKind.AwsS3Bucket,
+      isPublicByDesign: true,
+    });
 
     expect((await availability()).actions).toEqual([
       {
@@ -260,7 +265,10 @@ describe("what a store can take now", () => {
   });
 
   test("a database's snapshots can have their sharing revoked; public by design does not hold that back", async () => {
-    store = storeOf({ kind: DataStoreKind.AwsRdsInstance, isPublicByDesign: true });
+    store = storeOf({
+      kind: DataStoreKind.AwsRdsInstance,
+      isPublicByDesign: true,
+    });
 
     expect((await availability()).actions).toEqual([
       {
@@ -274,12 +282,15 @@ describe("what a store can take now", () => {
     DataStoreKind.PostgreSql,
     DataStoreKind.TelemetryLogs,
     DataStoreKind.AwsDynamoDbTable,
-  ])("a %s takes no action, and nothing else is read", async (kind: DataStoreKind) => {
-    store = storeOf({ kind });
+  ])(
+    "a %s takes no action, and nothing else is read",
+    async (kind: DataStoreKind) => {
+      store = storeOf({ kind });
 
-    expect(await availability()).toEqual({ actions: [] });
-    expect(connectionFindSpy).not.toHaveBeenCalled();
-  });
+      expect(await availability()).toEqual({ actions: [] });
+      expect(connectionFindSpy).not.toHaveBeenCalled();
+    },
+  );
 
   test("a store of another project is not found", async () => {
     store = null;
@@ -311,7 +322,9 @@ describe("running one", () => {
         dataStoreId: STORE_ID,
         dataStoreFeedEventType: DataStoreFeedEventType.ResponseActionTaken,
         feedInfoInMarkdown:
-          "**Block public access**: Turned on all four Block Public Access settings of customer-exports.",
+          "**Block public access**, through the store's cloud connection: Turned on all four Block Public Access settings of customer-exports. The store is being checked again.",
+        // Green: the store's configuration changed.
+        displayColor: Green500,
         userId: USER_ID,
       }),
     );
@@ -339,13 +352,17 @@ describe("running one", () => {
         eventType: DataSecurityIssueFeedEventType.ResponseActionTaken,
         feedInfoInMarkdown:
           "**Block public access** on the store, through its cloud connection: Turned on all four Block Public Access settings of customer-exports. The store is being checked again.",
+        displayColor: Green500,
         userId: USER_ID,
       }),
     );
   });
 
   test("nothing to change: the timeline says so, and the connection is not read again for it", async () => {
-    store = storeOf({ kind: DataStoreKind.GcpStorageBucket, name: "acme-public" });
+    store = storeOf({
+      kind: DataStoreKind.GcpStorageBucket,
+      name: "acme-public",
+    });
 
     const outcome: { changed: boolean; summary: string } =
       await DataSecurityResponse.run({
@@ -364,6 +381,15 @@ describe("running one", () => {
       expect.objectContaining({
         feedInfoInMarkdown:
           "**Block public access** on the store changed nothing: Public access prevention was already enforced on acme-public.",
+        // Grey: nothing changed.
+        displayColor: Gray500,
+      }),
+    );
+    expect(storeFeedSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        feedInfoInMarkdown:
+          "**Block public access** changed nothing: Public access prevention was already enforced on acme-public.",
+        displayColor: Gray500,
       }),
     );
     expect(readSpy).not.toHaveBeenCalled();
@@ -392,7 +418,10 @@ describe("running one", () => {
   });
 
   test("a bucket marked public by design is refused before any cloud is asked", async () => {
-    store = storeOf({ kind: DataStoreKind.AwsS3Bucket, isPublicByDesign: true });
+    store = storeOf({
+      kind: DataStoreKind.AwsS3Bucket,
+      isPublicByDesign: true,
+    });
 
     await expect(
       DataSecurityResponse.run({
@@ -495,7 +524,9 @@ describe("running one", () => {
       });
 
     expect(outcome.changed).toBe(false);
-    expect(outcome.summary).toContain("No manual snapshot of billing was shared");
+    expect(outcome.summary).toContain(
+      "No manual snapshot of billing was shared",
+    );
     expect(rdsSpy).not.toHaveBeenCalled();
   });
 });

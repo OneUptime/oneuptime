@@ -55,6 +55,9 @@ import DataStoreService, {
 import DataSecurityIssueFeedService from "../Services/DataSecurityIssueFeedService";
 import DataSecurityIssueService from "../Services/DataSecurityIssueService";
 import AIService from "../Services/AIService";
+import AiContextReader from "../Utils/AI/AiContext/AiContextReader";
+import { withAiContext } from "../Utils/AI/AiContext/AiContextPrompt";
+import { AiContextActivity } from "../../Types/AI/AiContext";
 import CodeTaskRuns from "../Utils/AI/CodeTask/CodeTaskRuns";
 import {
   DATA_SECURITY_EXPLAIN_SYSTEM_PROMPT,
@@ -154,13 +157,25 @@ export default class DataSecurityAPI extends BaseAPI<
   public constructor() {
     super(DataStore, DataStoreService);
 
-    this.post(DATA_SECURITY_API_ROUTES.overview, READ_PERMISSIONS, async (projectId: ObjectID) => {
-      return (await DataSecurityAPI.getOverview(projectId)) as unknown as JSONObject;
-    });
+    this.post(
+      DATA_SECURITY_API_ROUTES.overview,
+      READ_PERMISSIONS,
+      async (projectId: ObjectID) => {
+        return (await DataSecurityAPI.getOverview(
+          projectId,
+        )) as unknown as JSONObject;
+      },
+    );
 
-    this.post(DATA_SECURITY_API_ROUTES.compliance, READ_PERMISSIONS, async (projectId: ObjectID) => {
-      return (await DataSecurityAPI.getCompliance(projectId)) as unknown as JSONObject;
-    });
+    this.post(
+      DATA_SECURITY_API_ROUTES.compliance,
+      READ_PERMISSIONS,
+      async (projectId: ObjectID) => {
+        return (await DataSecurityAPI.getCompliance(
+          projectId,
+        )) as unknown as JSONObject;
+      },
+    );
 
     this.post(
       DATA_SECURITY_API_ROUTES.recordOfProcessing,
@@ -176,7 +191,10 @@ export default class DataSecurityAPI extends BaseAPI<
       DATA_SECURITY_API_ROUTES.scanNow(":id"),
       OPERATE_PERMISSIONS,
       async (projectId: ObjectID, req: ExpressRequest) => {
-        const store: DataStore = await DataSecurityAPI.readStore(projectId, req);
+        const store: DataStore = await DataSecurityAPI.readStore(
+          projectId,
+          req,
+        );
 
         await DataStoreService.updateColumnsByIdWithoutHooks({
           id: store.id!,
@@ -192,7 +210,10 @@ export default class DataSecurityAPI extends BaseAPI<
       DATA_SECURITY_API_ROUTES.checkNow(":id"),
       OPERATE_PERMISSIONS,
       async (projectId: ObjectID, req: ExpressRequest) => {
-        const store: DataStore = await DataSecurityAPI.readStore(projectId, req);
+        const store: DataStore = await DataSecurityAPI.readStore(
+          projectId,
+          req,
+        );
 
         if (store.cloudConnectionId) {
           await queueDataSecurityConnectionRead({
@@ -211,7 +232,10 @@ export default class DataSecurityAPI extends BaseAPI<
       DATA_SECURITY_API_ROUTES.responseActions(":id"),
       READ_PERMISSIONS,
       async (projectId: ObjectID, req: ExpressRequest) => {
-        const store: DataStore = await DataSecurityAPI.readStore(projectId, req);
+        const store: DataStore = await DataSecurityAPI.readStore(
+          projectId,
+          req,
+        );
 
         return (await DataSecurityResponse.getAvailability({
           projectId,
@@ -228,7 +252,10 @@ export default class DataSecurityAPI extends BaseAPI<
         req: ExpressRequest,
         props: DatabaseCommonInteractionProps,
       ) => {
-        const store: DataStore = await DataSecurityAPI.readStore(projectId, req);
+        const store: DataStore = await DataSecurityAPI.readStore(
+          projectId,
+          req,
+        );
         const body: JSONObject = (req.body || {}) as JSONObject;
         const action: unknown = body["action"];
 
@@ -276,7 +303,11 @@ export default class DataSecurityAPI extends BaseAPI<
             props: { isRoot: true },
           });
 
-        if (!finding?.dataTypeId || !finding.location || !finding.dataStore?.kind) {
+        if (
+          !finding?.dataTypeId ||
+          !finding.location ||
+          !finding.dataStore?.kind
+        ) {
           throw new BadDataException("Finding not found.");
         }
 
@@ -290,14 +321,17 @@ export default class DataSecurityAPI extends BaseAPI<
           );
         }
 
-        const created: { signal: "log" | "trace"; scrubRuleId: string; scrubRuleName: string } =
-          await createScrubRuleForFinding({
-            projectId,
-            userId: props.userId || undefined,
-            kind: finding.dataStore.kind as DataStoreKind,
-            dataTypeId: finding.dataTypeId,
-            location: finding.location,
-          });
+        const created: {
+          signal: "log" | "trace";
+          scrubRuleId: string;
+          scrubRuleName: string;
+        } = await createScrubRuleForFinding({
+          projectId,
+          userId: props.userId || undefined,
+          kind: finding.dataStore.kind as DataStoreKind,
+          dataTypeId: finding.dataTypeId,
+          location: finding.location,
+        });
 
         await DataStoreFindingService.updateColumnsByIdWithoutHooks({
           id: finding.id!,
@@ -321,19 +355,31 @@ export default class DataSecurityAPI extends BaseAPI<
           projectId,
           req,
         );
-        const response: { content: string } = await AIService.executeWithLogging({
+        /*
+         * The project's AI context first: the team's notes on its systems -
+         * how its stores are managed, in which repository - so the steps to
+         * fix it are the team's own.
+         */
+        const aiContext: AiContextActivity | null = await AiContextReader.read({
           projectId,
-          userId: props.userId || undefined,
-          feature: "DataSecurityIssueExplanation",
-          messages: [
-            {
-              role: "system",
-              content: DATA_SECURITY_EXPLAIN_SYSTEM_PROMPT,
-            },
-            { role: "user", content: DataSecurityAPI.describeIssue(issue) },
-          ],
-          maxTokens: 900,
         });
+        const response: { content: string } =
+          await AIService.executeWithLogging({
+            projectId,
+            userId: props.userId || undefined,
+            feature: "DataSecurityIssueExplanation",
+            messages: [
+              {
+                role: "system",
+                content: withAiContext(
+                  DATA_SECURITY_EXPLAIN_SYSTEM_PROMPT,
+                  aiContext,
+                ),
+              },
+              { role: "user", content: DataSecurityAPI.describeIssue(issue) },
+            ],
+            maxTokens: 900,
+          });
 
         await DataSecurityIssueFeedService.createDataSecurityIssueFeedItem({
           projectId,
@@ -377,9 +423,10 @@ export default class DataSecurityAPI extends BaseAPI<
           : "";
         const repositories: Array<CodeRepository> =
           await CodeRepositoryService.findBy({
-            query: repositoryId && ObjectID.isValidUUID(repositoryId)
-              ? { projectId, _id: new ObjectID(repositoryId) }
-              : { projectId },
+            query:
+              repositoryId && ObjectID.isValidUUID(repositoryId)
+                ? { projectId, _id: new ObjectID(repositoryId) }
+                : { projectId },
             select: { _id: true, name: true },
             skip: 0,
             limit: 2,
@@ -413,12 +460,14 @@ export default class DataSecurityAPI extends BaseAPI<
           dataSecurityIssueId: issue.id!,
           eventType: DataSecurityIssueFeedEventType.AiFixRequested,
           displayColor: Purple500,
-          feedInfoInMarkdown: "OneUptime AI was asked to open a fix as a pull request.",
+          feedInfoInMarkdown:
+            "OneUptime AI was asked to open a fix as a pull request.",
           userId: props.userId,
         });
 
         return {
-          message: "OneUptime AI is working on a fix. Its pull request will appear under Code.",
+          message:
+            "OneUptime AI is working on a fix. Its pull request will appear under Code.",
           aiRunId: run.id?.toString(),
         };
       },
@@ -448,7 +497,8 @@ export default class DataSecurityAPI extends BaseAPI<
           CommonAPI.assertPermittedInProject({
             databaseProps: props,
             allowedPermissions: permissions,
-            errorMessage: "You do not have permission to do this in Data Security.",
+            errorMessage:
+              "You do not have permission to do this in Data Security.",
           });
 
           const answer: JSONObject = await handler(projectId, req, props);
@@ -621,24 +671,25 @@ export default class DataSecurityAPI extends BaseAPI<
       OneUptimeDate.getCurrentDate(),
       -TREND_DAYS,
     );
-    const issues: Array<DataSecurityIssue> = await DataSecurityIssueService.findBy({
-      query: { projectId },
-      select: {
-        _id: true,
-        title: true,
-        severity: true,
-        riskScore: true,
-        status: true,
-        checkId: true,
-        firstDetectedAt: true,
-        resolvedAt: true,
-        dataStoreId: true,
-        dataStore: { name: true },
-      },
-      skip: 0,
-      limit: 20000,
-      props: { isRoot: true },
-    });
+    const issues: Array<DataSecurityIssue> =
+      await DataSecurityIssueService.findBy({
+        query: { projectId },
+        select: {
+          _id: true,
+          title: true,
+          severity: true,
+          riskScore: true,
+          status: true,
+          checkId: true,
+          firstDetectedAt: true,
+          resolvedAt: true,
+          dataStoreId: true,
+          dataStore: { name: true },
+        },
+        skip: 0,
+        limit: 20000,
+        props: { isRoot: true },
+      });
     const openIssuesBySeverity: Record<SecuritySeverity, number> = {
       [SecuritySeverity.Critical]: 0,
       [SecuritySeverity.High]: 0,
@@ -649,7 +700,9 @@ export default class DataSecurityAPI extends BaseAPI<
 
     for (let day: number = TREND_DAYS - 1; day >= 0; day--) {
       trend.set(
-        dayOf(OneUptimeDate.addRemoveDays(OneUptimeDate.getCurrentDate(), -day)),
+        dayOf(
+          OneUptimeDate.addRemoveDays(OneUptimeDate.getCurrentDate(), -day),
+        ),
         { opened: 0, resolved: 0 },
       );
     }
@@ -701,7 +754,9 @@ export default class DataSecurityAPI extends BaseAPI<
     const telemetryStoreIds: Set<string> = new Set(
       stores
         .filter((store: DataStore) => {
-          return TELEMETRY_DATA_STORE_KINDS.includes(store.kind as DataStoreKind);
+          return TELEMETRY_DATA_STORE_KINDS.includes(
+            store.kind as DataStoreKind,
+          );
         })
         .map((store: DataStore) => {
           return store.id!.toString();
@@ -765,7 +820,9 @@ export default class DataSecurityAPI extends BaseAPI<
       unscrubbedTelemetryFindingCount: unscrubbed,
       connectionsWithoutContentAccess: connections.filter(
         (connection: CloudConnection) => {
-          return getConnectionDataSecurityLevel(connection.config) !== "content";
+          return (
+            getConnectionDataSecurityLevel(connection.config) !== "content"
+          );
         },
       ).length,
       hasCloudConnection: connections.length > 0,
@@ -788,20 +845,23 @@ export default class DataSecurityAPI extends BaseAPI<
       limit: 10000,
       props: { isRoot: true },
     });
-    const issues: Array<DataSecurityIssue> = await DataSecurityIssueService.findBy({
-      query: { projectId, status: DataSecurityIssueStatus.Open },
-      select: { dataStoreId: true, checkId: true },
-      skip: 0,
-      limit: 20000,
-      props: { isRoot: true },
-    });
+    const issues: Array<DataSecurityIssue> =
+      await DataSecurityIssueService.findBy({
+        query: { projectId, status: DataSecurityIssueStatus.Open },
+        select: { dataStoreId: true, checkId: true },
+        skip: 0,
+        limit: 20000,
+        props: { isRoot: true },
+      });
     const storeInputs: Array<ComplianceStoreInput> = stores.map(
       (store: DataStore): ComplianceStoreInput => {
         return {
           id: store.id!.toString(),
           dataTypeIds: store.dataTypeIds || [],
           subjectCountries: store.subjectCountries || [],
-          isEvaluated: Boolean(store.configurationReadAt || store.contentScannedAt),
+          isEvaluated: Boolean(
+            store.configurationReadAt || store.contentScannedAt,
+          ),
         };
       },
     );
@@ -815,13 +875,15 @@ export default class DataSecurityAPI extends BaseAPI<
     );
 
     return {
-      frameworks: ALL_COMPLIANCE_FRAMEWORKS.map((framework: ComplianceFramework) => {
-        return {
-          ...scoreComplianceFramework(framework, storeInputs, issueInputs),
-          fullName: COMPLIANCE_FRAMEWORK_INFO[framework].fullName,
-          scope: COMPLIANCE_FRAMEWORK_INFO[framework].scope,
-        };
-      }),
+      frameworks: ALL_COMPLIANCE_FRAMEWORKS.map(
+        (framework: ComplianceFramework) => {
+          return {
+            ...scoreComplianceFramework(framework, storeInputs, issueInputs),
+            fullName: COMPLIANCE_FRAMEWORK_INFO[framework].fullName,
+            scope: COMPLIANCE_FRAMEWORK_INFO[framework].scope,
+          };
+        },
+      ),
     };
   }
 
