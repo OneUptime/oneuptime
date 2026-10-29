@@ -5,6 +5,7 @@ OneUptime bewaart beveiligingsgebeurtenissen naast je logs, traces en metrics, e
 :::cards
 - [Gebeurtenissen sturen](#beveiligingsgebeurtenissen-sturen): Een HTTPS-POST, een Fluent Bit-output of een verbinding met een beveiligingsproduct.
 - [Zoeken en correleren](#beveiligingsgebeurtenissen-verkennen): De verkenner Gebeurtenissen en de grafiek Correleren.
+- [Hunts](#hunts): Opgeslagen zoekopdrachten die volgens een schema draaien en mensen laten weten wanneer ze iets vinden.
 - [Detectieregels](#detectieregels): Sigma-regels die zaken en waarschuwingen openen.
 - [Monitoren](#monitoren-voor-beveiligingsgebeurtenissen): Tellingen over een glijdend venster, met een status die herstelt.
 :::
@@ -36,6 +37,7 @@ Open **Producten → Security Events**, onder **Observability**. Het menu heeft 
 | **Gesloten zaken** | Beveiligingszaken | De zaken die met een oordeel zijn gesloten, de nieuwste eerst |
 | **Alle zaken** | Beveiligingszaken | Elke zaak, open of gesloten |
 | **Gebeurtenissen** | Gebeurtenissen | Elke gebeurtenis zoeken en filteren, en er een openen om al haar velden te zien |
+| **Hunts** | Gebeurtenissen | Zoekopdrachten opgeslagen vanuit Gebeurtenissen, met één klik weer geopend of volgens een schema uitgevoerd dat mensen laat weten wanneer ze iets vinden |
 | **Campaigns** | Gebeurtenissen | Elk adres dat aanvalsverzoeken stuurde, en of een van zijn verzoeken erdoor kwam |
 | **Entiteitrisico** | Gebeurtenissen | Elke gebruiker, host en elk adres, gescoord op wat er deze week over werd gevonden, de riskantste eerst |
 | **Correleren** | Gebeurtenissen | Een grafiek van de gebeurtenissen die een host, een gebruiker of een IP-adres delen |
@@ -252,6 +254,45 @@ Een gebeurtenis uit een logregel die binnen een getracet verzoek is geschreven, 
 ### Correleren
 
 **Correleren** tekent de gebeurtenissen rond een host, een gebruiker of een IP-adres: hun gebeurtenisklassen rond wat je zocht, gemarkeerd met hun ergste ernst, en de andere waarden uit dezelfde gebeurtenissen op de buitenste ring. Klik op een klasse om haar gebeurtenissen te tonen, of op een waarde om daarna daarop te correleren. Elke observable in het paneel van een gebeurtenis op **Gebeurtenissen** opent **Correleren** erop.
+
+## Hunts
+
+Een hunt is een zoekopdracht in je beveiligingsgebeurtenissen die onder een naam is opgeslagen: de tekst van de zoekbalk, de filters van de zijbalk en hoe ver hij terugkijkt. Open hem met één klik opnieuw, laat hem volgens een schema draaien dat mensen laat weten wanneer hij iets vindt, en bewaar de gebeurtenissen die hij vindt bij een zaak.
+
+### Een zoekopdracht opslaan als hunt
+
+Zoek en filter op **Gebeurtenissen** tot de lijst laat zien wat je zoekt, open dan **Hunts** in de werkbalk en kies **Opslaan als hunt**. Geef hem een naam, kies of hij volgens een schema draait, en zijn pagina opent. **Gebeurtenissen → Hunts** toont de hunts van het project, elk met zijn zoekopdracht, hoe vaak hij draait, wie hij op de hoogte stelt en wat zijn laatste run vond; **Hunt aanmaken** neemt daar de zoekopdracht zoals je die op **Gebeurtenissen** zou typen. Een project bewaart tot 200 hunts.
+
+De pagina van een hunt is zijn zoekopdracht, geopend in de verkenner Gebeurtenissen. Wijzig daar de zoekopdracht of de filters, en de kop van de hunt biedt **Wijzigingen opslaan** en **Wijzigingen verwerpen**. **Bewerken** wijzigt zijn naam, zijn zoekopdracht, hoe ver hij terugkijkt, zijn schema en wie hij op de hoogte stelt, en **Hunt verwijderen** staat in zijn menu. Vanaf Security Member kun je hunts opslaan, wijzigen en verwijderen, en een Security Viewer kan ze openen.
+
+### Een hunt volgens een schema uitvoeren
+
+| Schema | Draait |
+| --- | --- |
+| **Niet gepland** | Alleen wanneer je hem opent |
+| **Elk uur**, **Elke 6 uur**, **Elke dag**, **Elke week** | Vanzelf, zo vaak |
+
+Een geplande hunt stelt de mensen en teams op de hoogte die je kiest onder **Op de hoogte stellen**: minstens één, en in totaal hooguit 50. Elke run:
+
+- leest de gebeurtenissen waarvan de tijd na de vorige run ligt, tot twee minuten geleden, zodat elke gebeurtenis één keer wordt doorzocht. De eerste run leest vanaf het moment dat het schema werd ingesteld of de zoekopdracht voor het laatst werd gewijzigd, en na een storing haalt een run hooguit een dag meer in dan zijn interval.
+- telt de gebeurtenissen die zijn zoekopdracht daar vindt, precies zoals **Gebeurtenissen** ze zou tonen, en leest alleen wat de persoon onder wie hij draait mag lezen.
+- stelt, als hij gebeurtenissen vindt, de mensen op de hoogte die de hunt noemt, en de leden van de teams die hij noemt, die hunts en beveiligingsgebeurtenissen mogen lezen.
+
+Een run opent geen zaak en geeft geen waarschuwing: schrijf wat zaken moet openen als een [detectieregel](#detectieregels). Een run waarvan de zoekopdracht te lang duurt, of die de gebeurtenissen niet kan lezen, zegt waarom bij de hunt en wordt binnen het uur opnieuw geprobeerd, vanaf waar hij stopte.
+
+Een geplande hunt draait onder de persoon die als laatste zijn schema instelde, zijn zoekopdracht wijzigde of hem opsloeg met **Bewerken**. Een API-sleutel kan geen schema instellen. Als die persoon het project verlaat of geen beveiligingsgebeurtenissen meer mag lezen, zegt de hunt dat: open **Bewerken** en sla hem op om hem onder jou te laten draaien.
+
+### Wie op de hoogte wordt gesteld
+
+De melding **Hunt heeft beveiligingsgebeurtenissen gevonden** noemt de hunt en zijn zoekopdracht, hoeveel gebeurtenissen zijn run vond en welk venster die las, en linkt naar de pagina van de hunt op die gebeurtenissen; er staat geen woord van een gebeurtenis zelf in. Iedereen krijgt hem per e-mail en push, en kiest de kanalen onder **Gebruikersinstellingen → Meldingsinstellingen**. Net als andere routine-e-mails kan hij worden vastgehouden in een [e-mailoverzicht](/docs/emails/notification-rollup).
+
+### Gebeurtenissen bij een zaak bewaren
+
+Selecteer gebeurtenissen op **Gebeurtenissen** of op de pagina van een hunt en kies **Bulkacties → Aan zaak toevoegen**, of open één gebeurtenis en kies **Aan zaak toevoegen**. Kies een open zaak op nummer of titel. Er gaan maximaal 100 gebeurtenissen tegelijk.
+
+OneUptime leest elke gebeurtenis opnieuw namens jou en bewaart haar zoals ze was op de pagina **Bewijs** van de zaak, zodat de zaak haar nog toont als de bewaartermijn van de gebeurtenis voorbij is. Een gebeurtenis die je niet mag lezen, wordt niet bewaard, en een die de zaak al bewaart, blijft zoals ze is. Een gebeurtenis die via een hunt is gevonden, noemt de hunt, en **Gebeurtenis bekijken** opent haar zoals ze werd bewaard.
+
+Hunts hebben dezelfde REST API als de rest van OneUptime, onder `/security-hunt`, en `POST /security-case-evidence/add-events` bewaart gebeurtenissen bij een zaak. Zie [API-referentie](/docs/api-reference/api-reference).
 
 ## Detectieregels
 
