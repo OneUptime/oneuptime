@@ -228,8 +228,7 @@ export default class ArchivableValueAPI<
 
     this.checkMayManage(props);
 
-    const ids: Array<string> =
-      ArchivableValueUsage.normalizeValueIds(askedIds);
+    const ids: Array<string> = ArchivableValueUsage.normalizeValueIds(askedIds);
 
     // The values of this project the caller may read, among those asked.
     const values: Array<BaseModel> = await this.service.findBy({

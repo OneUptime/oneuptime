@@ -1770,8 +1770,8 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
             const severityId: string = severity.id!.toString();
 
             try {
-              const ruleCount: number = await ModelAPI.count<UserNotificationRule>(
-                {
+              const ruleCount: number =
+                await ModelAPI.count<UserNotificationRule>({
                   modelType: UserNotificationRule,
                   query: {
                     projectId: ProjectUtil.getCurrentProjectId()!,
@@ -1779,8 +1779,7 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
                     ruleType: props.ruleType,
                     ...getSeverityFilter(severity.id || undefined),
                   },
-                },
-              );
+                });
 
               if (ruleCount > 0) {
                 archivedWithRules.add(severityId);

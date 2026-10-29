@@ -146,7 +146,7 @@ export const ARCHIVABLE_VALUE_COPY: Record<
  * Why a value can never be archived, as the server says it
  * (ARCHIVABLE_VALUES' protections and keepsOneLiveReason) - the same English,
  * declared here so the extractor finds it and each locale words it.
- * ArchivableValueCopy.test pins them to the server's.
+ * ArchivableValueCopyI18n.test pins them to the server's.
  */
 export const ARCHIVE_LOCKED_REASONS: Array<string> = [
   translationKey("New incidents start in this state, so it can't be archived."),
@@ -294,8 +294,8 @@ export const CAPPED_COUNT: string = translationKey("{{count}}+");
  * whose they are, counted by person, and as what really happens to them.
  *
  * Keyed by the table of the people's settings (the server's tableName).
- * PersonalUsageCopy.test holds every personal table the models declare to an
- * entry here.
+ * ArchivableValuePersonalCopy.test holds every personal table the models
+ * declare to an entry here.
  */
 
 // One line of a list - the Delete dialog's - "On-call rules of 11 people".

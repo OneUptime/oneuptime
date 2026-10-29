@@ -119,7 +119,11 @@ interface SeveritySpec {
 const SEVERITIES: Array<SeveritySpec> = [
   { id: LIVE_ONE_ID, name: "Sev 1" },
   // Archived between two live ones: drawn after them all.
-  { id: ARCHIVED_WITH_RULES_ID, name: "[DONOTUSE] Very critical", isArchived: true },
+  {
+    id: ARCHIVED_WITH_RULES_ID,
+    name: "[DONOTUSE] Very critical",
+    isArchived: true,
+  },
   { id: LIVE_TWO_ID, name: "Sev 2" },
   { id: ARCHIVED_WITHOUT_RULES_ID, name: "Retired", isArchived: true },
 ];
@@ -209,25 +213,28 @@ const definitionOf: (tabName: string) => OnCallRuleKindDefinition = (
   )!;
 };
 
-const renderTable: (definition: OnCallRuleKindDefinition) => Promise<void> =
-  async (definition: OnCallRuleKindDefinition): Promise<void> => {
-    render(
-      <MemoryRouter>
-        <OnCallRulesTable
-          severityModelType={definition.severityModelType}
-          severityForeignKeyColumn={definition.severityForeignKeyColumn}
-          ruleType={definition.ruleType}
-          userPreferencesKeyPrefix="archived-severities-test"
-          cardDescription="Live card."
-          archivedCardDescription="Archived card."
-        />
-      </MemoryRouter>,
-    );
+const renderTable: (
+  definition: OnCallRuleKindDefinition,
+) => Promise<void> = async (
+  definition: OnCallRuleKindDefinition,
+): Promise<void> => {
+  render(
+    <MemoryRouter>
+      <OnCallRulesTable
+        severityModelType={definition.severityModelType}
+        severityForeignKeyColumn={definition.severityForeignKeyColumn}
+        ruleType={definition.ruleType}
+        userPreferencesKeyPrefix="archived-severities-test"
+        cardDescription="Live card."
+        archivedCardDescription="Archived card."
+      />
+    </MemoryRouter>,
+  );
 
-    await waitFor(() => {
-      expect(capturedTables.length).toBeGreaterThan(0);
-    });
-  };
+  await waitFor(() => {
+    expect(capturedTables.length).toBeGreaterThan(0);
+  });
+};
 
 // The tables of the last render, one per card, in the order drawn.
 const lastCards: () => Array<CapturedTableProps> =
@@ -347,9 +354,9 @@ describe.each([
     const title: HTMLElement = render(archived.cardProps.title).container;
 
     expect(title).toHaveTextContent("[DONOTUSE] Very critical");
-    expect(title.querySelector('[data-testid="archived-tag"]')).toHaveTextContent(
-      "Archived",
-    );
+    expect(
+      title.querySelector('[data-testid="archived-tag"]'),
+    ).toHaveTextContent("Archived");
   });
 
   test("a live card is as it was: Add, its own words, no tag", async () => {
@@ -416,7 +423,11 @@ describe("the words of an archived card, on your own page and an admin's", () =>
   });
 
   test("the page hands each tab's table the archived words, filled in for the member", async () => {
-    window.history.replaceState({}, "", "/dashboard/project/users/x/on-call-rules");
+    window.history.replaceState(
+      {},
+      "",
+      "/dashboard/project/users/x/on-call-rules",
+    );
 
     render(
       <MemoryRouter>

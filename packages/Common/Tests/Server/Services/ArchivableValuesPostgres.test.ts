@@ -619,25 +619,30 @@ describePostgres("what uses a value, counted by Postgres", () => {
     });
   };
 
-  const insert: (table: string, row: Record<string, unknown>) => Promise<void> =
-    async (table: string, row: Record<string, unknown>): Promise<void> => {
-      const columns: Array<string> = Object.keys(row);
+  const insert: (
+    table: string,
+    row: Record<string, unknown>,
+  ) => Promise<void> = async (
+    table: string,
+    row: Record<string, unknown>,
+  ): Promise<void> => {
+    const columns: Array<string> = Object.keys(row);
 
-      await database.query(
-        `INSERT INTO "${schema}"."${table}" (${columns
-          .map((column: string): string => {
-            return `"${column}"`;
-          })
-          .join(", ")}) VALUES (${columns
-          .map((_column: string, index: number): string => {
-            return `$${index + 1}`;
-          })
-          .join(", ")})`,
-        columns.map((column: string): unknown => {
-          return row[column];
-        }),
-      );
-    };
+    await database.query(
+      `INSERT INTO "${schema}"."${table}" (${columns
+        .map((column: string): string => {
+          return `"${column}"`;
+        })
+        .join(", ")}) VALUES (${columns
+        .map((_column: string, index: number): string => {
+          return `$${index + 1}`;
+        })
+        .join(", ")})`,
+      columns.map((column: string): unknown => {
+        return row[column];
+      }),
+    );
+  };
 
   const member: (data: {
     userId: string;
@@ -1196,66 +1201,69 @@ describePostgres("what uses a value, counted by Postgres", () => {
  * a real foreign key, as the services answer it (DatabaseService passes its
  * own table): "archive it instead", only for the value's own delete.
  */
-describePostgres("a delete a foreign key refuses, said as Postgres raises it", () => {
-  const schema: string = uniqueSchema("archive_values_refusal");
-  const severityId: string = ObjectID.generate().toString();
-  let database: DataSource;
-  let refusal: unknown = null;
+describePostgres(
+  "a delete a foreign key refuses, said as Postgres raises it",
+  () => {
+    const schema: string = uniqueSchema("archive_values_refusal");
+    const severityId: string = ObjectID.generate().toString();
+    let database: DataSource;
+    let refusal: unknown = null;
 
-  beforeAll(async () => {
-    database = await connect(schema);
+    beforeAll(async () => {
+      database = await connect(schema);
 
-    await database.query(
-      `CREATE TABLE "${schema}"."IncidentSeverity" ("_id" uuid PRIMARY KEY)`,
-    );
-    await database.query(
-      `CREATE TABLE "${schema}"."Incident" ("_id" uuid PRIMARY KEY, "incidentSeverityId" uuid REFERENCES "${schema}"."IncidentSeverity" ("_id"))`,
-    );
-    await database.query(
-      `INSERT INTO "${schema}"."IncidentSeverity" ("_id") VALUES ($1)`,
-      [severityId],
-    );
-    await database.query(
-      `INSERT INTO "${schema}"."Incident" ("_id", "incidentSeverityId") VALUES ($1, $2)`,
-      [ObjectID.generate().toString(), severityId],
-    );
-
-    try {
       await database.query(
-        `DELETE FROM "${schema}"."IncidentSeverity" WHERE "_id" = $1`,
+        `CREATE TABLE "${schema}"."IncidentSeverity" ("_id" uuid PRIMARY KEY)`,
+      );
+      await database.query(
+        `CREATE TABLE "${schema}"."Incident" ("_id" uuid PRIMARY KEY, "incidentSeverityId" uuid REFERENCES "${schema}"."IncidentSeverity" ("_id"))`,
+      );
+      await database.query(
+        `INSERT INTO "${schema}"."IncidentSeverity" ("_id") VALUES ($1)`,
         [severityId],
       );
-    } catch (error) {
-      refusal = error;
-    }
-  });
+      await database.query(
+        `INSERT INTO "${schema}"."Incident" ("_id", "incidentSeverityId") VALUES ($1, $2)`,
+        [ObjectID.generate().toString(), severityId],
+      );
 
-  afterAll(async () => {
-    if (database?.isInitialized) {
-      await database.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
-      await database.destroy();
-    }
-  });
-
-  test("the value's own delete: archive it instead", () => {
-    expect(refusal).not.toBeNull();
-
-    const translated: unknown = PostgresErrorTranslator.translate(refusal, {
-      tableName: "IncidentSeverity",
+      try {
+        await database.query(
+          `DELETE FROM "${schema}"."IncidentSeverity" WHERE "_id" = $1`,
+          [severityId],
+        );
+      } catch (error) {
+        refusal = error;
+      }
     });
 
-    expect((translated as Exception).message).toBe(
-      "This incident severity can't be deleted while Incident records still have it. Archive it instead: nobody can pick it again, and everything that has it keeps it.",
-    );
-  });
-
-  test("another model's delete that reached it - a project's - says what it always said", () => {
-    const translated: unknown = PostgresErrorTranslator.translate(refusal, {
-      tableName: "Project",
+    afterAll(async () => {
+      if (database?.isInitialized) {
+        await database.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
+        await database.destroy();
+      }
     });
 
-    expect((translated as Exception).message).toBe(
-      "This item cannot be deleted because Incident records still reference it. Please delete those records first, and then try again.",
-    );
-  });
-});
+    test("the value's own delete: archive it instead", () => {
+      expect(refusal).not.toBeNull();
+
+      const translated: unknown = PostgresErrorTranslator.translate(refusal, {
+        tableName: "IncidentSeverity",
+      });
+
+      expect((translated as Exception).message).toBe(
+        "This incident severity can't be deleted while Incident records still have it. Archive it instead: nobody can pick it again, and everything that has it keeps it.",
+      );
+    });
+
+    test("another model's delete that reached it - a project's - says what it always said", () => {
+      const translated: unknown = PostgresErrorTranslator.translate(refusal, {
+        tableName: "Project",
+      });
+
+      expect((translated as Exception).message).toBe(
+        "This item cannot be deleted because Incident records still reference it. Please delete those records first, and then try again.",
+      );
+    });
+  },
+);

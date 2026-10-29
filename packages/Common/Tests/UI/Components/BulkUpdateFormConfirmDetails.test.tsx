@@ -1,11 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  within,
-} from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";

@@ -815,8 +815,9 @@ export default class ArchivableValueUsage {
     for (const [key, tableSources] of tables) {
       const tableItems: Array<ArchivableValueUsageItem> = items.filter(
         (item: ArchivableValueUsageItem): boolean => {
-          return groupKey({ recordTable: item.tableName, kind: item.kind }) ===
-            key;
+          return (
+            groupKey({ recordTable: item.tableName, kind: item.kind }) === key
+          );
         },
       );
 
@@ -832,7 +833,10 @@ export default class ArchivableValueUsage {
       });
 
       for (const item of tableItems) {
-        item.totalCount = Math.max(Math.min(total, USAGE_COUNT_CAP), item.count);
+        item.totalCount = Math.max(
+          Math.min(total, USAGE_COUNT_CAP),
+          item.count,
+        );
         item.isTotalCountCapped = total > USAGE_COUNT_CAP;
       }
     }

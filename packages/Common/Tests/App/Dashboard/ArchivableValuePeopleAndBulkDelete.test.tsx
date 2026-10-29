@@ -269,10 +269,7 @@ const onCallRuleSettings: ArchivableValueUsageItem = usageItem({
   kind: ArchivableValueUsageKind.Settings,
 });
 
-const openArchive: (
-  tableId: string,
-  item: BaseModel,
-) => Promise<void> = async (
+const openArchive: (tableId: string, item: BaseModel) => Promise<void> = async (
   tableId: string,
   item: BaseModel,
 ): Promise<void> => {
@@ -313,7 +310,10 @@ describe("the Archive dialog says people's own settings apart", () => {
     });
 
     await renderPage(IncidentSeveritiesPage);
-    await openArchive("incident-severity-table", severity(CRITICAL_ID, "Critical"));
+    await openArchive(
+      "incident-severity-table",
+      severity(CRITICAL_ID, "Critical"),
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId("archivable-value-people")).toBeInTheDocument();
@@ -355,7 +355,9 @@ describe("the Archive dialog says people's own settings apart", () => {
       expect(screen.getByTestId("archivable-value-people")).toBeInTheDocument();
     });
 
-    expect(screen.getByText("Archive [DONOTUSE] Very critical?")).toBeInTheDocument();
+    expect(
+      screen.getByText("Archive [DONOTUSE] Very critical?"),
+    ).toBeInTheDocument();
     expect(
       screen.queryByText("These keep using it until you change them:"),
     ).toBeNull();
@@ -371,7 +373,10 @@ describe("the Archive dialog says people's own settings apart", () => {
     });
 
     await renderPage(IncidentSeveritiesPage);
-    await openArchive("incident-severity-table", severity(CRITICAL_ID, "Critical"));
+    await openArchive(
+      "incident-severity-table",
+      severity(CRITICAL_ID, "Critical"),
+    );
 
     await waitFor(() => {
       expect(dialogText()).toContain(
@@ -386,7 +391,10 @@ describe("the Archive dialog says people's own settings apart", () => {
     });
 
     await renderPage(IncidentSeveritiesPage);
-    await openArchive("incident-severity-table", severity(CRITICAL_ID, "Critical"));
+    await openArchive(
+      "incident-severity-table",
+      severity(CRITICAL_ID, "Critical"),
+    );
 
     await waitFor(() => {
       expect(dialogText()).toContain(
@@ -401,7 +409,10 @@ describe("the Archive dialog says people's own settings apart", () => {
     });
 
     await renderPage(IncidentSeveritiesPage);
-    await openArchive("incident-severity-table", severity(CRITICAL_ID, "Critical"));
+    await openArchive(
+      "incident-severity-table",
+      severity(CRITICAL_ID, "Critical"),
+    );
 
     const link: HTMLElement = await screen.findByTestId(
       "archivable-value-people-link-UserNotificationRule",
@@ -542,7 +553,10 @@ describe("the Archive dialog says people's own settings apart", () => {
     });
 
     await renderPage(IncidentSeveritiesPage);
-    await openArchive("incident-severity-table", severity(CRITICAL_ID, "Critical"));
+    await openArchive(
+      "incident-severity-table",
+      severity(CRITICAL_ID, "Critical"),
+    );
 
     await waitFor(() => {
       expect(
@@ -655,15 +669,13 @@ describe("Bulk Actions > Delete of values says what it would do first", () => {
   test("reads once for the selection, holding Delete while it does", async () => {
     let answer: (usage: ArchivableValuesUsage) => void = (): void => {};
 
-    valuesUsageMock.mockImplementation(
-      (): Promise<ArchivableValuesUsage> => {
-        return new Promise<ArchivableValuesUsage>(
-          (resolve: (usage: ArchivableValuesUsage) => void) => {
-            answer = resolve;
-          },
-        );
-      },
-    );
+    valuesUsageMock.mockImplementation((): Promise<ArchivableValuesUsage> => {
+      return new Promise<ArchivableValuesUsage>(
+        (resolve: (usage: ArchivableValuesUsage) => void) => {
+          answer = resolve;
+        },
+      );
+    });
 
     await renderPage(IncidentSeveritiesPage);
 
@@ -691,9 +703,9 @@ describe("Bulk Actions > Delete of values says what it would do first", () => {
     expect(asked.purpose).toBe(ArchivableValuesUsagePurpose.Delete);
 
     // Checking, and Delete held meanwhile.
-    expect(screen.getByTestId("archivable-values-bulk-checking")).toHaveTextContent(
-      "Checking what still uses them…",
-    );
+    expect(
+      screen.getByTestId("archivable-values-bulk-checking"),
+    ).toHaveTextContent("Checking what still uses them…");
     expect(held.held).toEqual([true]);
 
     await act(async () => {
@@ -979,7 +991,9 @@ describe("Bulk Actions > Delete of values says what it would do first", () => {
       ).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByTestId("archivable-values-bulk-delete-changes"));
+    fireEvent.click(
+      screen.getByTestId("archivable-values-bulk-delete-changes"),
+    );
     expect(updateByIdMock).not.toHaveBeenCalled();
   });
 });

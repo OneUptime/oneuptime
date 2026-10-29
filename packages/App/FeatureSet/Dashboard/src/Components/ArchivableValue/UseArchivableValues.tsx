@@ -541,9 +541,9 @@ const useArchivableValues: <T extends BaseModel>(
   const liveRefusedIds: MutableRefObject<Set<string>> = useRef<Set<string>>(
     new Set<string>(),
   );
-  const archivedRefusedIds: MutableRefObject<Set<string>> = useRef<
-    Set<string>
-  >(new Set<string>());
+  const archivedRefusedIds: MutableRefObject<Set<string>> = useRef<Set<string>>(
+    new Set<string>(),
+  );
 
   const getBulkActions: (isArchivedList: boolean) => BulkActionProps<T> = (
     isArchivedList: boolean,

@@ -475,7 +475,11 @@ describe("asking about several values at once", () => {
   test("more values than a bulk selection holds are refused", async () => {
     const ids: Array<string> = [];
 
-    for (let index: number = 0; index <= ARCHIVABLE_VALUES_USAGE_MAX_IDS; index++) {
+    for (
+      let index: number = 0;
+      index <= ARCHIVABLE_VALUES_USAGE_MAX_IDS;
+      index++
+    ) {
       ids.push(ObjectID.generate().toString());
     }
 

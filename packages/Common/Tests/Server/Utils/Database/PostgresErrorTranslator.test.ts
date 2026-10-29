@@ -146,9 +146,7 @@ describe("PostgresErrorTranslator", () => {
         { tableName: "IncidentSeverity" },
       );
 
-      expect((translated as Exception).message).toContain(
-        "Archive it instead",
-      );
+      expect((translated as Exception).message).toContain("Archive it instead");
     });
 
     it("a project's delete that reached its statuses keeps the general words", () => {

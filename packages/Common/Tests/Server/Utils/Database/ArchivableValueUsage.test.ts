@@ -514,11 +514,9 @@ describe("counting a value's uses", () => {
         projectId: new ObjectID(PROJECT_ID),
       });
 
-    const peopleCall: QueryCall | undefined = calls.find(
-      (call: QueryCall) => {
-        return call.sql.includes('FROM "UserNotificationRule"');
-      },
-    );
+    const peopleCall: QueryCall | undefined = calls.find((call: QueryCall) => {
+      return call.sql.includes('FROM "UserNotificationRule"');
+    });
 
     // Distinct people, however many rules each has: no bound on rows per person.
     expect(peopleCall).toEqual({
@@ -552,11 +550,9 @@ describe("counting a value's uses", () => {
         projectId: new ObjectID(PROJECT_ID),
       });
 
-    const groupingCalls: Array<QueryCall> = calls.filter(
-      (call: QueryCall) => {
-        return call.sql.includes('INNER JOIN "IncidentGroupingRule"');
-      },
-    );
+    const groupingCalls: Array<QueryCall> = calls.filter((call: QueryCall) => {
+      return call.sql.includes('INNER JOIN "IncidentGroupingRule"');
+    });
 
     // One statement for the three lists a grouping rule holds labels in.
     expect(groupingCalls).toHaveLength(1);
@@ -935,7 +931,7 @@ describe("several values at once", () => {
     ): Promise<Array<unknown>> => {
       calls.push({ sql, parameters });
 
-      if (sql.includes('FROM unnest(')) {
+      if (sql.includes("FROM unnest(")) {
         for (const [table, ids] of Object.entries(refusedBy)) {
           if (sql.includes(`FROM "${table}" AS "record"`)) {
             return ids.map((id: string) => {
@@ -1021,7 +1017,7 @@ describe("several values at once", () => {
 
     // What deleting the other changes: counted for it alone.
     const counts: Array<QueryCall> = calls.filter((call: QueryCall) => {
-      return call.sql.startsWith('SELECT COUNT(*)');
+      return call.sql.startsWith("SELECT COUNT(*)");
     });
     const restCounts: Array<QueryCall> = counts.filter((call: QueryCall) => {
       return (
@@ -1124,8 +1120,12 @@ describe("the count statement", () => {
       });
 
     expect(statement.parameters).toEqual([[VALUE_ID], PROJECT_ID]);
-    expect(statement.sql).toContain("$1::uuid[] IS NOT NULL AND $2 IS NOT NULL");
-    expect(statement.sql).toContain("$2 IS NOT NULL AND $1::uuid[] IS NOT NULL");
+    expect(statement.sql).toContain(
+      "$1::uuid[] IS NOT NULL AND $2 IS NOT NULL",
+    );
+    expect(statement.sql).toContain(
+      "$2 IS NOT NULL AND $1::uuid[] IS NOT NULL",
+    );
     // A relation and a list: up to two rows per record, read before the distinct.
     expect(statement.sql).toContain(`LIMIT ${CAP * 2}) AS "rows"`);
   });

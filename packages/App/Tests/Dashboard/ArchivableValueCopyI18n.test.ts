@@ -119,14 +119,15 @@ const ROLE_PICKER_FILE: string = path.join(
  * records still notify the person by its rules, which can be changed or
  * removed but not added to.
  */
-const ARCHIVED_CARD_STRINGS: Array<string> = ON_CALL_RULE_KIND_DEFINITIONS.flatMap(
-  (definition: OnCallRuleKindDefinition): Array<string> => {
-    return [
-      definition.ownArchivedCardDescription,
-      definition.memberArchivedCardDescription,
-    ];
-  },
-);
+const ARCHIVED_CARD_STRINGS: Array<string> =
+  ON_CALL_RULE_KIND_DEFINITIONS.flatMap(
+    (definition: OnCallRuleKindDefinition): Array<string> => {
+      return [
+        definition.ownArchivedCardDescription,
+        definition.memberArchivedCardDescription,
+      ];
+    },
+  );
 
 const STRINGS: Array<string> = [
   ...getArchivableValueStrings(),
@@ -140,7 +141,12 @@ const STRINGS: Array<string> = [
  * Chinese never read it (no "one" form), so it may stay English there.
  */
 const PLURALS: Array<PluralTemplate> = getArchivableValuePluralStrings();
-const NO_ONE_FORM: Array<string> = ["ja.json", "ko.json", "zh-CN.json", "zh-TW.json"];
+const NO_ONE_FORM: Array<string> = [
+  "ja.json",
+  "ko.json",
+  "zh-CN.json",
+  "zh-TW.json",
+];
 
 describe("the archive strings of the value settings pages", () => {
   test("seventeen locales are checked", () => {
@@ -287,11 +293,17 @@ describe("the plurals of the value settings pages, in their 'one' form", () => {
             return [`placeholders changed: ${plural.one}`];
           }
 
-          if (plural.one.endsWith(".") && !endsWithOneOf(value, SENTENCE_ENDINGS)) {
+          if (
+            plural.one.endsWith(".") &&
+            !endsWithOneOf(value, SENTENCE_ENDINGS)
+          ) {
             return [`not a sentence: ${plural.one}`];
           }
 
-          if (plural.one.endsWith(":") && !endsWithOneOf(value, COLON_ENDINGS)) {
+          if (
+            plural.one.endsWith(":") &&
+            !endsWithOneOf(value, COLON_ENDINGS)
+          ) {
             return [`no colon before its list: ${plural.one}`];
           }
 

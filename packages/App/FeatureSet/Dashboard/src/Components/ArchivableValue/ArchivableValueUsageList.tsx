@@ -214,8 +214,10 @@ export const PersonalUsageNotes: FunctionComponent<PersonalUsageNotesProps> = (
   return (
     <div className="mt-3 space-y-2" data-testid="archivable-value-people">
       {props.people.map((item: ArchivableValueUsageItem): ReactElement => {
-        const note: { sentence: PluralTemplate; linkText?: string | undefined } =
-          getPersonalUsageNote(props.type, item);
+        const note: {
+          sentence: PluralTemplate;
+          linkText?: string | undefined;
+        } = getPersonalUsageNote(props.type, item);
         const route: Route | null =
           note.linkText && props.getOwnSettingsRoute
             ? props.getOwnSettingsRoute(item.tableName)

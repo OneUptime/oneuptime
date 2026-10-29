@@ -763,7 +763,9 @@ test.describe("Bulk Actions > Delete of severities", () => {
     await openBulkDelete(page);
 
     await expect(
-      dialog(page).getByRole("heading", { name: "Delete 3 Incident Severities" }),
+      dialog(page).getByRole("heading", {
+        name: "Delete 3 Incident Severities",
+      }),
     ).toBeVisible();
 
     // Checking, and Delete waits for the answer.
