@@ -23,6 +23,11 @@ import HealthLicenseRequired, {
   HealthRequestError,
   toHealthRequestError,
 } from "./HealthLicenseRequired";
+import useResizableColumns, {
+  ResizableColumns,
+} from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
+import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -271,6 +276,54 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
   const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<HealthRequestError | null>(null);
+  /*
+   * Each table's columns as wide as a person makes them (Common's
+   * Table/ColumnResize): a table's name or a query gives way, a size, a
+   * time or a count never.
+   */
+  const largestTableColumns: ResizableColumns = useResizableColumns({
+    tableKey: "admin-postgres-largest-tables-table",
+    columns: [
+      { id: "table", cellNumber: 1 },
+      { id: "total", cellNumber: 2 },
+      { id: "heap", cellNumber: 3 },
+      { id: "indexes", cellNumber: 4 },
+      { id: "toast", cellNumber: 5 },
+      { id: "liveRows", cellNumber: 6 },
+      { id: "deadRows", cellNumber: 7 },
+    ],
+  });
+
+  /*
+   * ...the running queries'...
+   */
+  const runningQueryColumns: ResizableColumns = useResizableColumns({
+    tableKey: "admin-postgres-running-queries-table",
+    columns: [
+      { id: "pid", cellNumber: 1 },
+      { id: "state", cellNumber: 2 },
+      { id: "running", cellNumber: 3 },
+      { id: "inTransaction", cellNumber: 4 },
+      { id: "query", cellNumber: 5 },
+    ],
+  });
+
+  /*
+   * ...and the statements'.
+   */
+  const statementColumns: ResizableColumns = useResizableColumns({
+    tableKey: "admin-postgres-top-statements-table",
+    columns: [
+      { id: "query", cellNumber: 1 },
+      { id: "calls", cellNumber: 2 },
+      { id: "total", cellNumber: 3 },
+      { id: "mean", cellNumber: 4 },
+      { id: "max", cellNumber: 5 },
+      { id: "rows", cellNumber: 6 },
+      { id: "cacheHit", cellNumber: 7 },
+    ],
+  });
+
   const [activityError, setActivityError] = useState<HealthRequestError | null>(
     null,
   );
@@ -846,16 +899,83 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
 
     return (
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
+        {largestTableColumns.styles}
+        <table
+          className={`${largestTableColumns.getTableWidthClassName("min-w-full")} divide-y divide-gray-200`}
+          {...largestTableColumns.tableAttributes}
+        >
           <thead>
             <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              <th className="pb-2 pr-4">Table</th>
-              <th className="pb-2 px-4 text-right">Total</th>
-              <th className="pb-2 px-4 text-right">Heap</th>
-              <th className="pb-2 px-4 text-right">Indexes</th>
-              <th className="pb-2 px-4 text-right">Toast</th>
-              <th className="pb-2 px-4 text-right">Live rows</th>
-              <th className="pb-2 pl-4 text-right">Dead rows</th>
+              <ResizableHeaderCell
+                className="pb-2 pr-4"
+                resize={largestTableColumns.getResize(
+                  "table",
+                  "Table",
+                  ColumnWidthKind.Name,
+                )}
+              >
+                <span>Table</span>
+              </ResizableHeaderCell>
+              <ResizableHeaderCell
+                className="pb-2 px-4 text-right"
+                resize={largestTableColumns.getResize(
+                  "total",
+                  "Total",
+                  ColumnWidthKind.Whole,
+                )}
+              >
+                <span>Total</span>
+              </ResizableHeaderCell>
+              <ResizableHeaderCell
+                className="pb-2 px-4 text-right"
+                resize={largestTableColumns.getResize(
+                  "heap",
+                  "Heap",
+                  ColumnWidthKind.Whole,
+                )}
+              >
+                <span>Heap</span>
+              </ResizableHeaderCell>
+              <ResizableHeaderCell
+                className="pb-2 px-4 text-right"
+                resize={largestTableColumns.getResize(
+                  "indexes",
+                  "Indexes",
+                  ColumnWidthKind.Whole,
+                )}
+              >
+                <span>Indexes</span>
+              </ResizableHeaderCell>
+              <ResizableHeaderCell
+                className="pb-2 px-4 text-right"
+                resize={largestTableColumns.getResize(
+                  "toast",
+                  "Toast",
+                  ColumnWidthKind.Whole,
+                )}
+              >
+                <span>Toast</span>
+              </ResizableHeaderCell>
+              <ResizableHeaderCell
+                className="pb-2 px-4 text-right"
+                resize={largestTableColumns.getResize(
+                  "liveRows",
+                  "Live rows",
+                  ColumnWidthKind.Whole,
+                )}
+              >
+                <span>Live rows</span>
+              </ResizableHeaderCell>
+              <ResizableHeaderCell
+                className="pb-2 pl-4 text-right"
+                resize={largestTableColumns.getResize(
+                  "deadRows",
+                  "Dead rows",
+                  ColumnWidthKind.Whole,
+                )}
+              >
+                <span>Dead rows</span>
+              </ResizableHeaderCell>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -1015,14 +1135,63 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
+              {runningQueryColumns.styles}
+              <table
+                className={`${runningQueryColumns.getTableWidthClassName("min-w-full")} divide-y divide-gray-200`}
+                {...runningQueryColumns.tableAttributes}
+              >
                 <thead>
                   <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <th className="pb-2 pr-4">PID</th>
-                    <th className="pb-2 px-4">State</th>
-                    <th className="pb-2 px-4 text-right">Running</th>
-                    <th className="pb-2 px-4 text-right">In txn</th>
-                    <th className="pb-2 pl-4">Query</th>
+                    <ResizableHeaderCell
+                      className="pb-2 pr-4"
+                      resize={runningQueryColumns.getResize(
+                        "pid",
+                        "PID",
+                        ColumnWidthKind.Whole,
+                      )}
+                    >
+                      <span>PID</span>
+                    </ResizableHeaderCell>
+                    <ResizableHeaderCell
+                      className="pb-2 px-4"
+                      resize={runningQueryColumns.getResize(
+                        "state",
+                        "State",
+                        ColumnWidthKind.Text,
+                      )}
+                    >
+                      <span>State</span>
+                    </ResizableHeaderCell>
+                    <ResizableHeaderCell
+                      className="pb-2 px-4 text-right"
+                      resize={runningQueryColumns.getResize(
+                        "running",
+                        "Running",
+                        ColumnWidthKind.Whole,
+                      )}
+                    >
+                      <span>Running</span>
+                    </ResizableHeaderCell>
+                    <ResizableHeaderCell
+                      className="pb-2 px-4 text-right"
+                      resize={runningQueryColumns.getResize(
+                        "inTransaction",
+                        "In txn",
+                        ColumnWidthKind.Whole,
+                      )}
+                    >
+                      <span>In txn</span>
+                    </ResizableHeaderCell>
+                    <ResizableHeaderCell
+                      className="pb-2 pl-4"
+                      resize={runningQueryColumns.getResize(
+                        "query",
+                        "Query",
+                        ColumnWidthKind.Text,
+                      )}
+                    >
+                      <span>Query</span>
+                    </ResizableHeaderCell>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -1196,16 +1365,83 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
 
     return (
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
+        {statementColumns.styles}
+        <table
+          className={`${statementColumns.getTableWidthClassName("min-w-full")} divide-y divide-gray-200`}
+          {...statementColumns.tableAttributes}
+        >
           <thead>
             <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              <th className="pb-2 pr-4">Query</th>
-              <th className="pb-2 px-4 text-right">Calls</th>
-              <th className="pb-2 px-4 text-right">Total</th>
-              <th className="pb-2 px-4 text-right">Mean</th>
-              <th className="pb-2 px-4 text-right">Max</th>
-              <th className="pb-2 px-4 text-right">Rows</th>
-              <th className="pb-2 pl-4 text-right">Cache hit</th>
+              <ResizableHeaderCell
+                className="pb-2 pr-4"
+                resize={statementColumns.getResize(
+                  "query",
+                  "Query",
+                  ColumnWidthKind.Name,
+                )}
+              >
+                <span>Query</span>
+              </ResizableHeaderCell>
+              <ResizableHeaderCell
+                className="pb-2 px-4 text-right"
+                resize={statementColumns.getResize(
+                  "calls",
+                  "Calls",
+                  ColumnWidthKind.Whole,
+                )}
+              >
+                <span>Calls</span>
+              </ResizableHeaderCell>
+              <ResizableHeaderCell
+                className="pb-2 px-4 text-right"
+                resize={statementColumns.getResize(
+                  "total",
+                  "Total",
+                  ColumnWidthKind.Whole,
+                )}
+              >
+                <span>Total</span>
+              </ResizableHeaderCell>
+              <ResizableHeaderCell
+                className="pb-2 px-4 text-right"
+                resize={statementColumns.getResize(
+                  "mean",
+                  "Mean",
+                  ColumnWidthKind.Whole,
+                )}
+              >
+                <span>Mean</span>
+              </ResizableHeaderCell>
+              <ResizableHeaderCell
+                className="pb-2 px-4 text-right"
+                resize={statementColumns.getResize(
+                  "max",
+                  "Max",
+                  ColumnWidthKind.Whole,
+                )}
+              >
+                <span>Max</span>
+              </ResizableHeaderCell>
+              <ResizableHeaderCell
+                className="pb-2 px-4 text-right"
+                resize={statementColumns.getResize(
+                  "rows",
+                  "Rows",
+                  ColumnWidthKind.Whole,
+                )}
+              >
+                <span>Rows</span>
+              </ResizableHeaderCell>
+              <ResizableHeaderCell
+                className="pb-2 pl-4 text-right"
+                resize={statementColumns.getResize(
+                  "cacheHit",
+                  "Cache hit",
+                  ColumnWidthKind.Whole,
+                )}
+              >
+                <span>Cache hit</span>
+              </ResizableHeaderCell>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">

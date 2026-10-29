@@ -4739,6 +4739,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         }}
         actionButtons={actionButtonSchema}
         getRowProps={getRowProps}
+        /*
+         * The widths a person gives this list's columns are remembered with
+         * its column choices and page size, under the same key.
+         */
+        columnWidthsKey={props.userPreferencesKey}
       />,
     );
   };

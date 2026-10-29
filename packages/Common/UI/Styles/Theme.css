@@ -568,6 +568,38 @@ html.dark tr[data-selected="true"].bg-indigo-50 {
 }
 
 /*
+ * The faint line at a table column's edge while the pointer is over the
+ * header row, and always on a tablet (Table/ColumnResize's
+ * COLUMN_RESIZE_LINE_CLASS_NAME): the dark theme's border, as quiet on the
+ * dark band as light grey is on the light one.
+ */
+html.dark thead:hover [class~="[thead:hover_&]:bg-gray-300"] {
+  background-color: var(--ou-border-default);
+}
+
+@media (pointer: coarse) {
+  html.dark [class~="[@media(pointer:coarse)]:bg-gray-300"] {
+    background-color: var(--ou-border-default);
+  }
+}
+
+/*
+ * A header cell's words line up with its column's values. A browser
+ * centres a <th> unless its row says otherwise, and a row's text-left is
+ * text-align: start here (TailwindReadingDirection) - the one alignment a
+ * <th> does not take from its row - so the tables pages draw themselves
+ * (a monitor's interfaces, the admin's queues) drew each name in the
+ * middle of its column, which a column made wider (Table/ColumnResize)
+ * left far from its values. A table whose columns can be sized lets each
+ * header cell take its row's alignment; a cell with an alignment class of
+ * its own (text-right over a column of numbers) keeps it: :where() adds
+ * nothing to a class.
+ */
+:where(table[data-column-widths-scope] > thead > tr > th) {
+  text-align: inherit;
+}
+
+/*
  * A team's avatar (PeopleAvatar's group palette) is a dark slate tile: on
  * the dark theme's surfaces it all but vanished, in the people row of an
  * incident's header as on an Owners page. It is lifted to a mid slate that

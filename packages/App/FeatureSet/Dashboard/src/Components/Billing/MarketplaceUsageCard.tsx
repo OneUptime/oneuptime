@@ -24,6 +24,11 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import useResizableColumns, {
+  ResizableColumns,
+} from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
+import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -43,6 +48,17 @@ export interface ComponentProps {
   marketplace: CloudMarketplace;
 }
 
+// The usage table's columns, in order, as their widths are remembered.
+const MARKETPLACE_USAGE_COLUMN_IDS: Array<string> = [
+  "month",
+  "users",
+  "activeMonitors",
+  "telemetry",
+  "smsAndCallBalance",
+  "aiCredits",
+  "total",
+];
+
 const MarketplaceUsageCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -52,6 +68,19 @@ const MarketplaceUsageCard: FunctionComponent<ComponentProps> = (
   const [summary, setSummary] = useState<MarketplaceUsageSummary | null>(null);
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  /*
+   * The months' columns as wide as a person makes them (Common's
+   * Table/ColumnResize): a month or an amount is never cut short.
+   */
+  const usageColumns: ResizableColumns = useResizableColumns({
+    tableKey: "marketplace-usage-table",
+    columns: MARKETPLACE_USAGE_COLUMN_IDS.map(
+      (id: string, index: number): { id: string; cellNumber: number } => {
+        return { id: id, cellNumber: index + 1 };
+      },
+    ),
+  });
 
   useEffect(() => {
     let isCurrent: boolean = true;
@@ -141,21 +170,28 @@ const MarketplaceUsageCard: FunctionComponent<ComponentProps> = (
 
     return (
       <div className="overflow-x-auto">
+        {usageColumns.styles}
         <table
-          className="min-w-full divide-y divide-gray-200 text-sm"
+          className={`${usageColumns.getTableWidthClassName("min-w-full")} divide-y divide-gray-200 text-sm`}
           data-testid="marketplace-usage-table"
+          {...usageColumns.tableAttributes}
         >
           <thead>
             <tr>
               {headers.map((header: string, index: number) => {
                 return (
-                  <th
+                  <ResizableHeaderCell
                     key={header}
                     scope="col"
                     className={`py-2 px-3 font-medium text-gray-900 ${index === 0 ? "text-start" : "text-end"}`}
+                    resize={usageColumns.getResize(
+                      MARKETPLACE_USAGE_COLUMN_IDS[index] || `column-${index}`,
+                      header,
+                      ColumnWidthKind.Whole,
+                    )}
                   >
-                    {header}
-                  </th>
+                    <span>{header}</span>
+                  </ResizableHeaderCell>
                 );
               })}
             </tr>

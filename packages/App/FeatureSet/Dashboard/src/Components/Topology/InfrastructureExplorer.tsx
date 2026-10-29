@@ -9,6 +9,11 @@ import React, {
 } from "react";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import Icon from "Common/UI/Components/Icon/Icon";
+import useResizableColumns, {
+  ResizableColumns,
+} from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
+import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import IconProp from "Common/Types/Icon/IconProp";
 import Link from "Common/UI/Components/Link/Link";
 import Route from "Common/Types/API/Route";
@@ -238,6 +243,28 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
   const t: (value: string) => string = (value: string): string => {
     return translateString(value) || value;
   };
+
+  /*
+   * The resources' and each collection's columns as wide as a person makes
+   * them (Common's Table/ColumnResize): a name gives way to 10rem, what it
+   * holds to 8rem, when it was last seen never.
+   */
+  const explorerColumns: ResizableColumns = useResizableColumns({
+    tableKey: "infrastructure-table",
+    columns: [
+      { id: "name", cellNumber: 1 },
+      { id: "contains", cellNumber: 2 },
+      { id: "servicesRunning", cellNumber: 3 },
+      { id: "lastSeen", cellNumber: 4 },
+    ],
+  });
+  const collectionColumns: ResizableColumns = useResizableColumns({
+    tableKey: "infrastructure-collection-table",
+    columns: [
+      { id: "name", cellNumber: 1 },
+      { id: "lastSeen", cellNumber: 2 },
+    ],
+  });
 
   /*
    * A busy server (429) is worth another try in a moment; a server that
@@ -1128,24 +1155,58 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
           aria-label={t("Resources")}
           tabIndex={0}
         >
+          {explorerColumns.styles}
           <table
-            className="w-full text-left text-sm"
+            className={`${explorerColumns.getTableWidthClassName("w-full")} text-left text-sm`}
             data-testid="infrastructure-table"
+            {...explorerColumns.tableAttributes}
           >
             <thead className="border-b border-gray-200 bg-gray-50 text-xs text-gray-500">
               <tr>
-                <th scope="col" className="px-4 py-2.5 font-medium">
-                  {t("Name")}
-                </th>
-                <th scope="col" className="px-4 py-2.5 font-medium">
-                  {t("Contains")}
-                </th>
-                <th scope="col" className="px-4 py-2.5 font-medium">
-                  {t("Services running")}
-                </th>
-                <th scope="col" className="px-4 py-2.5 font-medium">
-                  {t("Last seen")}
-                </th>
+                <ResizableHeaderCell
+                  scope="col"
+                  className="px-4 py-2.5 font-medium"
+                  resize={explorerColumns.getResize(
+                    "name",
+                    t("Name"),
+                    ColumnWidthKind.Name,
+                  )}
+                >
+                  <span>{t("Name")}</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  scope="col"
+                  className="px-4 py-2.5 font-medium"
+                  resize={explorerColumns.getResize(
+                    "contains",
+                    t("Contains"),
+                    ColumnWidthKind.Text,
+                  )}
+                >
+                  <span>{t("Contains")}</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  scope="col"
+                  className="px-4 py-2.5 font-medium"
+                  resize={explorerColumns.getResize(
+                    "servicesRunning",
+                    t("Services running"),
+                    ColumnWidthKind.Text,
+                  )}
+                >
+                  <span>{t("Services running")}</span>
+                </ResizableHeaderCell>
+                <ResizableHeaderCell
+                  scope="col"
+                  className="px-4 py-2.5 font-medium"
+                  resize={explorerColumns.getResize(
+                    "lastSeen",
+                    t("Last seen"),
+                    ColumnWidthKind.Whole,
+                  )}
+                >
+                  <span>{t("Last seen")}</span>
+                </ResizableHeaderCell>
                 <th scope="col" className="px-3 py-2.5">
                   <span className="sr-only">{t("Open")}</span>
                 </th>
@@ -1361,18 +1422,36 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
               aria-label={collection.name}
               tabIndex={0}
             >
+              {collectionColumns.styles}
               <table
-                className="w-full text-left text-sm"
+                className={`${collectionColumns.getTableWidthClassName("w-full")} text-left text-sm`}
                 data-testid="infrastructure-collection-table"
+                {...collectionColumns.tableAttributes}
               >
                 <thead className="border-b border-gray-200 bg-gray-50 text-xs text-gray-500">
                   <tr>
-                    <th scope="col" className="px-4 py-2.5 font-medium">
-                      {t("Name")}
-                    </th>
-                    <th scope="col" className="px-4 py-2.5 font-medium">
-                      {t("Last seen")}
-                    </th>
+                    <ResizableHeaderCell
+                      scope="col"
+                      className="px-4 py-2.5 font-medium"
+                      resize={collectionColumns.getResize(
+                        "name",
+                        t("Name"),
+                        ColumnWidthKind.Name,
+                      )}
+                    >
+                      <span>{t("Name")}</span>
+                    </ResizableHeaderCell>
+                    <ResizableHeaderCell
+                      scope="col"
+                      className="px-4 py-2.5 font-medium"
+                      resize={collectionColumns.getResize(
+                        "lastSeen",
+                        t("Last seen"),
+                        ColumnWidthKind.Whole,
+                      )}
+                    >
+                      <span>{t("Last seen")}</span>
+                    </ResizableHeaderCell>
                     <th scope="col" className="px-3 py-2.5">
                       <span className="sr-only">{t("Open")}</span>
                     </th>

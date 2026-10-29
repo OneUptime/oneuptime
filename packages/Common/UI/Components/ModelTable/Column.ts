@@ -90,6 +90,11 @@ export default interface Columns<
    */
   hideBelowLargeScreen?: boolean | undefined;
   /*
+   * Its header has no edge to drag (see the Table Column of the same name).
+   * Spread through to the table as is.
+   */
+  disableResize?: boolean | undefined;
+  /*
    * List view (ShowAs.List) only: draw this column's row on an item's card
    * only when this says so - an empty description, or a setting the item
    * does not use, is left off its card instead of a label over nothing. A

@@ -43,6 +43,11 @@ import InlineLoadingLine from "Common/UI/Components/Loader/InlineLoadingLine";
 import API from "Common/UI/Utils/API/API";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import useResizableColumns, {
+  ResizableColumns,
+} from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
+import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -389,45 +394,96 @@ const RetrohuntGroups: FunctionComponent<GroupsProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
 
+  /*
+   * Its columns as wide as a person makes them (Common's
+   * Table/ColumnResize): what it fired for gives way, a count or a time
+   * never. A correlation's rows have no times or last fired.
+   */
+  const groupColumnIds: Array<string> = props.isCorrelation
+    ? ["firedFor", "events"]
+    : ["firedFor", "times", "events", "lastFired"];
+  const groupColumns: ResizableColumns = useResizableColumns({
+    tableKey: props.isCorrelation
+      ? "retrohunt-correlation-groups-table"
+      : "retrohunt-groups-table",
+    columns: groupColumnIds.map(
+      (id: string, index: number): { id: string; cellNumber: number } => {
+        return { id: id, cellNumber: index + 1 };
+      },
+    ),
+  });
+
   return (
     <div className="overflow-x-auto rounded-md border border-gray-200">
+      {groupColumns.styles}
       <table
-        className="min-w-full divide-y divide-gray-200 text-sm"
+        className={`${groupColumns.getTableWidthClassName("min-w-full")} divide-y divide-gray-200 text-sm`}
         data-testid={RETROHUNT_TEST_IDS.groups}
+        {...groupColumns.tableAttributes}
       >
         <thead className="bg-gray-50">
           <tr>
-            <th
+            <ResizableHeaderCell
               scope="col"
               className="px-3 py-2 text-start text-xs font-medium text-gray-500"
+              resize={groupColumns.getResize(
+                "firedFor",
+                translator.translateText(FIRED_FOR_COLUMN) || FIRED_FOR_COLUMN,
+                ColumnWidthKind.Name,
+              )}
             >
-              {translator.translateText(FIRED_FOR_COLUMN)}
-            </th>
+              <span>
+                {translator.translateText(FIRED_FOR_COLUMN) || FIRED_FOR_COLUMN}
+              </span>
+            </ResizableHeaderCell>
             {props.isCorrelation ? (
               <></>
             ) : (
-              <th
+              <ResizableHeaderCell
                 scope="col"
                 className="px-3 py-2 text-end text-xs font-medium text-gray-500"
+                resize={groupColumns.getResize(
+                  "times",
+                  translator.translateText(TIMES_COLUMN) || TIMES_COLUMN,
+                  ColumnWidthKind.Whole,
+                )}
               >
-                {translator.translateText(TIMES_COLUMN)}
-              </th>
+                <span>
+                  {translator.translateText(TIMES_COLUMN) || TIMES_COLUMN}
+                </span>
+              </ResizableHeaderCell>
             )}
-            <th
+            <ResizableHeaderCell
               scope="col"
               className="px-3 py-2 text-end text-xs font-medium text-gray-500"
+              resize={groupColumns.getResize(
+                "events",
+                translator.translateText(EVENTS_COLUMN) || EVENTS_COLUMN,
+                ColumnWidthKind.Whole,
+              )}
             >
-              {translator.translateText(EVENTS_COLUMN)}
-            </th>
+              <span>
+                {translator.translateText(EVENTS_COLUMN) || EVENTS_COLUMN}
+              </span>
+            </ResizableHeaderCell>
             {props.isCorrelation ? (
               <></>
             ) : (
-              <th
+              <ResizableHeaderCell
                 scope="col"
                 className="px-3 py-2 text-start text-xs font-medium text-gray-500 max-sm:hidden"
+                resize={groupColumns.getResize(
+                  "lastFired",
+                  translator.translateText(LAST_FIRED_COLUMN) ||
+                    LAST_FIRED_COLUMN,
+                  ColumnWidthKind.Whole,
+                )}
               >
-                {translator.translateText(LAST_FIRED_COLUMN)}
-              </th>
+                <span>
+                  {translator.translateText(LAST_FIRED_COLUMN) ||
+                    LAST_FIRED_COLUMN}
+                </span>
+              </ResizableHeaderCell>
             )}
           </tr>
         </thead>

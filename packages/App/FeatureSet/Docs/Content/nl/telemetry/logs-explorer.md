@@ -88,6 +88,7 @@ De livemodus zet zichzelf uit als u de zoekopdracht, een filter of het tijdsbere
 
 - **Kolommen** kiest wat de lijst toont. **Tijd**, **Service**, **Ernst** en **Bericht** staan vooraan; voeg **Trace-ID**, **Span-ID** of een willekeurig attribuut toe, verplaats kolommen omhoog en omlaag, of ga terug naar de standaard met **Opnieuw instellen**.
 - **Export** downloadt de logboeken van de pagina die u bekijkt. **Exporteren als CSV** schrijft de kolommen die u toont; **Exporteren als JSON** schrijft elk veld van elk logboek, met al zijn attributen.
+- Wijs de koprij aan en sleep de lijn aan het eind van een kolomnaam om de kolom breder of smaller te maken, of dubbelklik op de lijn om de kolom aan de inhoud aan te passen. De lijst onthoudt uw breedtes in deze browser; **Breedtes terugzetten**, aan het eind van de koprij, geeft elke kolom zijn eigen breedte terug.
 
 ## Een weergave opslaan
 
