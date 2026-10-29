@@ -147,7 +147,10 @@ const WatchlistStarters: FunctionComponent<ComponentProps> = (
     },
   );
 
-  if (shown.length === 0 || (available.length === 0 && addedHere.length === 0)) {
+  if (
+    shown.length === 0 ||
+    (available.length === 0 && addedHere.length === 0)
+  ) {
     return <></>;
   }
 

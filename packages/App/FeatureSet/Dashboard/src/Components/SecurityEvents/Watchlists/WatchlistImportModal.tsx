@@ -58,6 +58,10 @@ import React, {
   useState,
 } from "react";
 
+// The paste box: TextArea's own look, across the dialog, in the mono type.
+export const WATCHLIST_IMPORT_TEXT_CLASS_NAME: string =
+  "block w-full min-h-32 resize-y rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 font-mono text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500";
+
 // What an import did, as the API answers it.
 export interface WatchlistImportSummary {
   added: number;
@@ -309,9 +313,13 @@ const WatchlistImportModal: FunctionComponent<ComponentProps> = (
               setText(value);
             }}
             rows={8}
-            maxRows={14}
             disableSpellCheck={true}
-            className="font-mono"
+            /*
+             * A class name replaces the box's own look, so it is written in
+             * full: the box, across the dialog, in the type values are
+             * written in.
+             */
+            className={WATCHLIST_IMPORT_TEXT_CLASS_NAME}
             dataTestId={WATCHLISTS_TEST_IDS.importText}
           />
         </div>

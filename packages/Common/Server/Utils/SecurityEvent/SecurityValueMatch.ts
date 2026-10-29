@@ -144,9 +144,7 @@ export function buildAnyElementMatches(data: {
   const statement: Statement = new Statement([
     `arrayExists(${data.elementName} -> `,
   ]);
-  statement.append(
-    data.matchElement(new Statement([data.elementName], [])),
-  );
+  statement.append(data.matchElement(new Statement([data.elementName], [])));
   statement.append(`, ${data.column})`);
   return statement;
 }

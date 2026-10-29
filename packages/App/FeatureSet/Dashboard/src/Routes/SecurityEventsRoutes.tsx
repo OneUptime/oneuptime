@@ -208,7 +208,9 @@ const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
-          path={SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_WATCHLISTS] || ""}
+          path={
+            SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_WATCHLISTS] || ""
+          }
           element={
             <SecurityWatchlistsPage
               {...props}

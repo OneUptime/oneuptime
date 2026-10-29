@@ -158,11 +158,11 @@ export function summarizeWatchlistReaders(
   const all: ReadonlyArray<{ name: string }> = readers || [];
 
   return {
-    names: all.slice(0, WATCHLIST_READERS_SHOWN).map(
-      (reader: { name: string }): string => {
+    names: all
+      .slice(0, WATCHLIST_READERS_SHOWN)
+      .map((reader: { name: string }): string => {
         return reader.name;
-      },
-    ),
+      }),
     more: Math.max(0, all.length - WATCHLIST_READERS_SHOWN),
   };
 }

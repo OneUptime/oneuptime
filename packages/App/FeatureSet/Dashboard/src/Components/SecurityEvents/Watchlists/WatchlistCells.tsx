@@ -38,7 +38,10 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 export const WatchlistNameCell: FunctionComponent<{
   name: string;
   description?: string | undefined;
-}> = (props: { name: string; description?: string | undefined }): ReactElement => {
+}> = (props: {
+  name: string;
+  description?: string | undefined;
+}): ReactElement => {
   const description: string = (props.description || "").trim();
 
   return (
@@ -59,9 +62,9 @@ export const WatchlistNameCell: FunctionComponent<{
 };
 
 // What a list holds: the kind's icon and its name, "Users".
-export const WatchlistHoldsCell: FunctionComponent<{ entityType: unknown }> = (
-  props: { entityType: unknown },
-): ReactElement => {
+export const WatchlistHoldsCell: FunctionComponent<{
+  entityType: unknown;
+}> = (props: { entityType: unknown }): ReactElement => {
   const translator: Translator = useTranslator();
 
   return (

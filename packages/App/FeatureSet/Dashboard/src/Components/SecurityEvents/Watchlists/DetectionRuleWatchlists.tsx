@@ -91,7 +91,10 @@ const DetectionRuleWatchlists: FunctionComponent<ComponentProps> = (
             new Map(
               result.data.map(
                 (watchlist: SecurityWatchlist): [string, SecurityWatchlist] => {
-                  return [getSecurityWatchlistNameKey(watchlist.name), watchlist];
+                  return [
+                    getSecurityWatchlistNameKey(watchlist.name),
+                    watchlist,
+                  ];
                 },
               ),
             ),

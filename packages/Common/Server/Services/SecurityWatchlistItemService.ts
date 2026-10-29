@@ -134,9 +134,7 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   // The values a list holds, with their ids.
-  private async readListValues(
-    watchlistId: ObjectID,
-  ): Promise<Array<Model>> {
+  private async readListValues(watchlistId: ObjectID): Promise<Array<Model>> {
     return await this.findAllBy({
       query: {
         securityWatchlistId: watchlistId,
@@ -323,7 +321,9 @@ export class Service extends ProjectReferencesService<Model> {
     createdItem: Model,
   ): Promise<Model> {
     if (createdItem.securityWatchlistId) {
-      await this.recountWatchlists([createdItem.securityWatchlistId.toString()]);
+      await this.recountWatchlists([
+        createdItem.securityWatchlistId.toString(),
+      ]);
     }
 
     return createdItem;
@@ -597,7 +597,10 @@ export class Service extends ProjectReferencesService<Model> {
       removed: toRemove.length,
       unchanged: parsed.values.length - toAdd.length,
       duplicates: parsed.duplicates,
-      problems: parsed.problems.slice(0, SECURITY_WATCHLIST_IMPORT_PROBLEMS_SHOWN),
+      problems: parsed.problems.slice(
+        0,
+        SECURITY_WATCHLIST_IMPORT_PROBLEMS_SHOWN,
+      ),
       problemCount: parsed.problems.length,
       valueCount,
     };

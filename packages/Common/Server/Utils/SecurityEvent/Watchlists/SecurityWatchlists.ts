@@ -6,9 +6,7 @@ import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import { SecurityEntityType } from "../../../../Types/SecurityCase/SecurityEntity";
-import {
-  DetectionRuleDefinition,
-} from "../../../../Types/SecurityEvent/SigmaCorrelation";
+import { DetectionRuleDefinition } from "../../../../Types/SecurityEvent/SigmaCorrelation";
 import {
   SecurityWatchlistSource,
   SigmaWatchlist,

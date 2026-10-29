@@ -103,8 +103,8 @@ export class Service extends ProjectReferencesService<Model> {
 
   // A feed the list follows is the project's own (ProjectReferencesService checks the id).
   private async assertFeedFollowable(feedId: string): Promise<void> {
-    const feed: ThreatIntelFeed | null = await ThreatIntelFeedService.findOneById(
-      {
+    const feed: ThreatIntelFeed | null =
+      await ThreatIntelFeedService.findOneById({
         id: new ObjectID(feedId),
         select: {
           _id: true,
@@ -112,8 +112,7 @@ export class Service extends ProjectReferencesService<Model> {
         props: {
           isRoot: true,
         },
-      },
-    );
+      });
 
     if (!feed) {
       throw new BadDataException("Choose the threat intel feed to follow.");

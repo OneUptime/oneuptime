@@ -72,20 +72,23 @@ export default class SecurityWatchlistAPI extends BaseAPI<
 
           const watchlistId: unknown = body["securityWatchlistId"];
 
-          if (typeof watchlistId !== "string" || !ObjectID.isValidUUID(watchlistId)) {
+          if (
+            typeof watchlistId !== "string" ||
+            !ObjectID.isValidUUID(watchlistId)
+          ) {
             throw new BadDataException("Choose the watchlist to import into.");
           }
 
-          const mode: SecurityWatchlistImportMode = isSecurityWatchlistImportMode(
-            body["mode"],
-          )
-            ? body["mode"]
-            : SecurityWatchlistImportMode.Add;
+          const mode: SecurityWatchlistImportMode =
+            isSecurityWatchlistImportMode(body["mode"])
+              ? body["mode"]
+              : SecurityWatchlistImportMode.Add;
 
           if (mode === SecurityWatchlistImportMode.Replace) {
             CommonAPI.assertPermittedInProject({
               databaseProps: props,
-              allowedPermissions: new SecurityWatchlistItem().getDeletePermissions(),
+              allowedPermissions:
+                new SecurityWatchlistItem().getDeletePermissions(),
               errorMessage:
                 "Replacing a list takes a role that can remove values from watchlists.",
             });

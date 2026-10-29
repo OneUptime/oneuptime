@@ -8,6 +8,7 @@ import {
   getDetectionRuleLibraryEntry,
 } from "../../../../Types/SecurityEvent/DetectionRuleLibrary";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import PromptText from "../../../../Utils/AI/PromptText";
 import SigmaRuleSetParser, {
@@ -244,7 +245,7 @@ export function buildDraftMessages(
         watchlists.length > 0
           ? `\n\nThe project's watchlists (a rule reads one as field|expand: '%name%'): ${JSON.stringify(
               watchlists.map(
-                (watchlist: DetectionRuleDraftWatchlist): object => {
+                (watchlist: DetectionRuleDraftWatchlist): JSONObject => {
                   return {
                     name: watchlist.name,
                     holds: watchlist.holds,

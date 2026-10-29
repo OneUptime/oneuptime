@@ -60,8 +60,7 @@ import ObjectID from "Common/Types/ObjectID";
 import { SecurityEntityType } from "Common/Types/SecurityCase/SecurityEntity";
 import { getSecurityWatchlistValueProblem } from "Common/Types/SecurityEvent/SecurityWatchlist";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import Card from "Common/UI/Components/Card/Card";
-import { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import { DetailStyle } from "Common/UI/Components/Detail/Detail";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -78,9 +77,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
-import PermissionGate, {
-  ModelAction,
-} from "Common/UI/Utils/PermissionGate";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -230,7 +227,10 @@ const SecurityWatchlistViewPage: FunctionComponent<
               getElement: (item: SecurityWatchlist): ReactElement => {
                 return (
                   <span className="text-sm text-gray-900 [overflow-wrap:anywhere]">
-                    <IsolatedText text={item.name || ""} className="font-mono" />
+                    <IsolatedText
+                      text={item.name || ""}
+                      className="font-mono"
+                    />
                   </span>
                 );
               },
@@ -299,7 +299,8 @@ const SecurityWatchlistViewPage: FunctionComponent<
             data-testid={WATCHLISTS_TEST_IDS.feedValues}
           >
             <p>
-              {watchlist.threatIntelFeedId && watchlist.threatIntelFeed?.name ? (
+              {watchlist.threatIntelFeedId &&
+              watchlist.threatIntelFeed?.name ? (
                 <TranslatedSentence
                   template={FEED_VALUES_DESCRIPTION}
                   slots={{
@@ -393,11 +394,12 @@ const SecurityWatchlistViewPage: FunctionComponent<
               customValidation: (
                 values: FormValues<SecurityWatchlistItem>,
               ): string | null => {
-                const problem: string | null =
-                  getSecurityWatchlistValueProblem({
+                const problem: string | null = getSecurityWatchlistValueProblem(
+                  {
                     value: (values as Record<string, unknown>)["value"],
                     entityType,
-                  });
+                  },
+                );
 
                 return problem
                   ? translator.translateText(problem) || problem
