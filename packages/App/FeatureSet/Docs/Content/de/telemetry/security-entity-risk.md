@@ -1,6 +1,6 @@
 # Entitätsrisiko (risikobasierte Alarmierung)
 
-Ein einzelner Befund sagt selten viel. Eine Reihe fehlgeschlagener Anmeldungen, ein erstes sudo auf einem Host und eine Anmeldung aus einem neuen Land sind jeweils einen Blick wert; dasselbe Konto in allen dreien innerhalb einer Woche ist einen Fall wert. Das Entitätsrisiko summiert, was Ihre Erkennungsregeln, Threat Intelligence, verbundenen Produkte und Data Security zu jedem Benutzer, Host, jeder IP-Adresse und jedem Datenspeicher finden, listet die riskantesten zuerst und eröffnet einen Fall zu einer Entität, deren Risiko den Schwellenwert des Projekts erreicht.
+Ein einzelner Befund sagt selten viel. Eine Reihe fehlgeschlagener Anmeldungen, ein erstes sudo auf einem Host und eine Anmeldung aus einem neuen Land sind jeweils einen Blick wert; dasselbe Konto in allen dreien innerhalb einer Woche ist einen Fall wert. Das Entitätsrisiko summiert, was Ihre Erkennungsregeln, Threat Intelligence, verbundenen Produkte und Datensicherheit zu jedem Benutzer, Host, jeder IP-Adresse und jedem Datenspeicher finden, listet die riskantesten zuerst und eröffnet einen Fall zu einer Entität, deren Risiko den Schwellenwert des Projekts erreicht.
 
 :::cards
 - [So wird ein Wert gezählt](#so-wird-ein-wert-gezählt): Punkte nach Schweregrad, und jede Quelle einmal pro Woche.
@@ -44,8 +44,8 @@ Jeder Befund gibt dem Benutzer, Host, der IP-Adresse oder dem Datenspeicher, um 
 | Kritisch | 75 Punkte |
 
 - Ein informativer Befund fügt nichts hinzu, und ein Befund mit unbekanntem Schweregrad zählt als Mittel.
-- Die Punkte einer Erkennungsregel gehen an den Wert, nach dem sie gruppiert. Ein Threat-Intelligence-Treffer zählt für die IP-Adresse, die der Indikator nennt. Die Warnung eines verbundenen Produkts zählt für den Benutzer und den Host, die sie nennt, sonst für ihre IP-Adresse. Ein Problem von Data Security zählt für den Datenspeicher, in dem es gefunden wurde.
-- Jede Quelle zählt einmal. Eine Erkennungsregel, ein Threat-Intelligence-Feed, die Regel eines verbundenen Produkts oder eine Prüfung von Data Security zählt einmal in 7 Tagen, mit dem Höchsten, das sie beitrug, wie oft sie auch auslöst: Eine laute Regel kann eine Entität nie schlimmer aussehen lassen als drei verschiedene.
+- Die Punkte einer Erkennungsregel gehen an den Wert, nach dem sie gruppiert. Ein Threat-Intelligence-Treffer zählt für die IP-Adresse, die der Indikator nennt. Die Warnung eines verbundenen Produkts zählt für den Benutzer und den Host, die sie nennt, sonst für ihre IP-Adresse. Ein Problem der Datensicherheit zählt für den Datenspeicher, an dem es gefunden wurde.
+- Jede Quelle zählt einmal. Eine Erkennungsregel, ein Threat-Intelligence-Feed, die Regel eines verbundenen Produkts oder eine Prüfung der Datensicherheit zählt einmal in 7 Tagen, mit dem Höchsten, das sie beitrug, wie oft sie auch auslöst: Eine laute Regel kann eine Entität nie schlimmer aussehen lassen als drei verschiedene.
 - Eine Quelle, die 7 Tage lang nichts gefunden hat, zählt nicht mehr, und der Wert sinkt. Die Werte werden alle 15 Minuten geprüft, sodass ein Wert pünktlich sinkt, auch ohne neuen Befund.
 
 Der Wert einer Entität ist die Summe ihrer Quellen, gewichtet nach ihrer Kritikalität. Der Testangriff aus **Testangriff senden** und ein Fall, den jemand von Hand eröffnet, fügen kein Risiko hinzu.
@@ -82,7 +82,7 @@ Manche Entitäten zählen mehr als andere: ein Domänencontroller, das Konto ein
 | Hoch | ×1.5 |
 | Extrem | ×2 |
 
-Ein Eintrag ist ein Wert oder ein `*`-Muster, unabhängig von Groß- und Kleinschreibung: `dc-*` nennt jeden Domänencontroller und `*@contractors.example` jeden externen Mitarbeiter. **Typ** beschränkt ihn auf Benutzer, Hosts, IP-Adressen oder Datenspeicher; leer passt auf alle. Nennen mehrere Einträge eine Entität, zählt der genaueste: ein ausgeschriebener Wert vor einem Muster, und ein längeres Muster vor einem kürzeren. Eine Änderung erreicht den Wert jeder Entität innerhalb von Minuten. Data Security trägt die Datenspeicher, die es als sensibel einstuft, selbst ein, vertrauliche mit Hoch und streng vertrauliche mit Extrem; ändern Sie einen solchen Eintrag, gehört er Ihnen, und Data Security lässt ihn in Ruhe.
+Ein Eintrag ist ein Wert oder ein `*`-Muster, unabhängig von Groß- und Kleinschreibung: `dc-*` nennt jeden Domänencontroller und `*@contractors.example` jeden externen Mitarbeiter. **Typ** beschränkt ihn auf Benutzer, Hosts, IP-Adressen oder Datenspeicher; leer passt auf alle. Nennen mehrere Einträge eine Entität, zählt der genaueste: ein ausgeschriebener Wert vor einem Muster, und ein längeres Muster vor einem kürzeren. Eine Änderung erreicht den Wert jeder Entität innerhalb von Minuten. Datensicherheit trägt die Datenspeicher, die sie als sensibel einstuft, selbst ein, vertrauliche mit Hoch und eingeschränkte mit Extrem; ändern Sie einen solchen Eintrag, gehört er Ihnen, und Datensicherheit lässt ihn in Ruhe.
 
 ## Die Seite einer Entität
 

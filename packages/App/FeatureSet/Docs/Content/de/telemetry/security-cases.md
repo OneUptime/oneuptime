@@ -229,7 +229,7 @@ Um in einem Kanal zu posten, fügen Sie unter **Produkte → Sicherheitsereignis
 | Priorität des Sicherheitsfalls | Eine der Fallprioritäten des Projekts, etwa Kritisch oder Hoch |
 | Titel des Sicherheitsfalls, Beschreibung des Sicherheitsfalls | Text, den der Titel oder die Beschreibung des Falls enthält, mit dem sie beginnen oder auf den sie enden |
 | Status des Sicherheitsfalls | Einer der Fallstatus des Projekts, etwa Neu oder Geschlossen |
-| Quelle des Sicherheitsfalls | Erkennungsregel, Threat Intel, Connected Product, Entitätsrisiko, Data Security oder Manuell |
+| Quelle des Sicherheitsfalls | Erkennungsregel, Threat Intel, Connected Product, Entitätsrisiko, Datensicherheit oder Manuell |
 | Beschriftungen des Sicherheitsfalls | Die Labels des Falls |
 
 Jede Benachrichtigung außer der zu einer Aufgabe wird in die Kanäle jeder Regel gepostet, auf die der Fall in diesem Moment passt. Eine Regel, deren **Priorität des Sicherheitsfalls** eines von **Kritisch** und **Hoch** enthält, postet Fälle mit Priorität Hoch und Kritisch, sobald sie eröffnet werden, und einen Fall mit Medium, wenn er auf Hoch steigt. Ein Sicherheitsfall bekommt nie einen eigenen Kanal.
@@ -268,7 +268,7 @@ Ein deaktiviertes Playbook läuft weder von selbst noch per Hand.
 | Untersuchen | Look up entity activity | Zählt die Sicherheitsereignisse jeder Entität in einem kürzlich zurückliegenden Zeitfenster und vermerkt das am Fall |
 | Untersuchen | Preserve the evidence | Behält die Session Replays der Anfragen hinter dem Fall und vermerkt deren Traces und Ausnahmen am Fall |
 | Benachrichtigen | Email people | Schickt Benutzern und Teams eine Zusammenfassung des Falls per E-Mail, mit einem Link darauf |
-| Benachrichtigen | Notify data store owners | Schickt den Verantwortlichen jedes Datenspeichers, um den es im Fall geht, eine E-Mail mit einem Link zum Fall |
+| Benachrichtigen | Notify data store owners | Schickt den Eigentümern jedes Datenspeichers, um den es im Fall geht, eine E-Mail mit einem Link zum Fall |
 | Benachrichtigen | Post to Slack | Postet eine Zusammenfassung des Falls in einen Slack-Kanal |
 | Benachrichtigen | Post to Microsoft Teams | Postet eine Zusammenfassung des Falls in einen Kanal von Microsoft Teams |
 | Benachrichtigen | Post a status page announcement | Veröffentlicht eine von Ihnen geschriebene Ankündigung auf den gewählten Statusseiten |
@@ -281,6 +281,8 @@ Ein deaktiviertes Playbook läuft weder von selbst noch per Hand.
 | Eindämmen | Unsuspend the user in Okta | Hebt die Sperre des Benutzers, um den es im Fall geht, in Okta auf |
 | Eindämmen | Lift containment in CrowdStrike | Hebt die Netzwerkisolierung durch CrowdStrike Falcon für den Host auf, um den es im Fall geht |
 | Eindämmen | Release the device in Microsoft Defender | Hebt die Isolierung des Hosts, um den es im Fall geht, in Microsoft Defender for Endpoint auf |
+| Eindämmen | Öffentlichen Zugriff auf Datenspeicher sperren | Sperrt den öffentlichen Zugriff auf jeden Bucket und jedes Speicherkonto, um die es im Fall geht, über deren Cloud-Verbindung |
+| Eindämmen | Freigabe von Datenspeichern widerrufen | Beendet die Freigabe der Snapshots jeder Datenbank, um die es im Fall geht, außerhalb Ihrer Konten, über deren Cloud-Verbindung |
 | Automatisieren | Send a webhook | Sendet den Fall als JSON per POST an eine URL |
 | Automatisieren | Run a workflow | Startet einen OneUptime-Workflow mit dem Fall als Eingabe |
 | Automatisieren | Run a runbook | Startet eines Ihrer OneUptime-Runbooks mit dem Fall als Eingaben |
@@ -288,7 +290,7 @@ Ein deaktiviertes Playbook läuft weder von selbst noch per Hand.
 
 Ein Playbook hat höchstens 25 Schritte. Sie laufen der Reihe nach, jeder, sobald der vorige fertig ist. Jeder Schritt kann außerdem:
 
-- **Genehmigung erforderlich**: die Ausführung vor dem Schritt anhalten, bis jemand ihn am Fall genehmigt. Die vier Schritte, die jemanden aussperren, halten immer an, es sei denn, ein Security Admin schaltet das ab. **Run a runbook** und **Post a status page announcement** beginnen mit eingeschalteter Genehmigung, denn das eine führt Befehle auf Ihren Systemen aus und das andere spricht zu Ihren Kunden; wer den Schritt hinzufügt, kann sie abschalten.
+- **Genehmigung erforderlich**: die Ausführung vor dem Schritt anhalten, bis jemand ihn am Fall genehmigt. Die vier Schritte, die jemanden aussperren, halten immer an, es sei denn, ein Security Admin schaltet das ab. **Run a runbook**, **Post a status page announcement** und die beiden Datenspeicher-Schritte beginnen mit eingeschalteter Genehmigung, denn sie führen Befehle auf Ihren Systemen aus, sprechen zu Ihren Kunden oder ändern die Einstellungen einer Cloud; wer den Schritt hinzufügt, kann sie abschalten.
 - **Nur bei Threat-Intel-Treffer**: den Schritt überspringen, sofern nicht ein früherer Schritt **Entitäten mit Threat Intel abgleichen** derselben Ausführung einen bekannten Indikator gefunden hat.
 - **Bei Fehler weitermachen**: den nächsten Schritt ausführen, auch wenn dieser fehlschlägt. Ist die Option aus, beendet ein fehlgeschlagener Schritt die Ausführung.
 
@@ -303,20 +305,23 @@ Vier Schritte handeln über den Rest von OneUptime statt über ein verbundenes P
 
 ### Eindämmung
 
-Die Eindämmungsschritte handeln über eine [Verbindung für Sicherheitsereignisse](/docs/telemetry/security-events#ein-sicherheitsprodukt-verbinden) zum Produkt, die dafür mehr als Lesezugriff braucht:
+Die Eindämmungsschritte handeln über eine Verbindung, die mehr als Lesezugriff braucht: eine [Verbindung für Sicherheitsereignisse](/docs/telemetry/security-events#ein-sicherheitsprodukt-verbinden) zum Produkt oder die [Cloud-Verbindung](/docs/telemetry/cloud-accounts) des Datenspeichers:
 
 | Schritt | Verbindung | Braucht |
 | --- | --- | --- |
 | Suspend the user in Okta, End the user's Okta sessions, Unsuspend the user in Okta | Okta System Log | Ein API-Token, das Benutzer verwalten darf |
 | Contain the host in CrowdStrike, Lift containment in CrowdStrike | CrowdStrike Falcon | Einen API-Client mit Schreibrecht im Scope Hosts |
 | Isolate the device in Microsoft Defender, Release the device in Microsoft Defender | Microsoft Defender XDR | Eine App mit der Berechtigung Machine.Isolate |
+| Öffentlichen Zugriff auf Datenspeicher sperren, Freigabe von Datenspeichern widerrufen | Die Cloud-Verbindung des Datenspeichers | **Datensicherheitsreaktion** eingeschaltet und ihr Einrichtungsbefehl erneut ausgeführt |
 
-Ein Eindämmungsschritt wirkt nur auf die Benutzer oder Hosts, um die es im Fall geht, nie auf alle, die der Fall nennt:
+Ein Schritt für Benutzer oder Hosts wirkt nur auf die Benutzer oder Hosts, um die es im Fall geht, nie auf alle, die der Fall nennt:
 
 - Der Wert, nach dem eine Erkennung des Falls gruppiert ist, etwa das Konto, nach dem eine Regel für unmögliche Ortswechsel gruppiert, oder der Host, den die Warnung eines verbundenen Produkts nennt.
 - Ein Benutzer oder Host des Falls, den Ihre Threat Intelligence als Indikator kennt.
 
 Bei einem Fall, der nach einer Adresse gruppiert ist, etwa einem Brute-Force-Angriff auf Ihr VPN, geht es um keines von beiden: Seine Eindämmungsschritte werden übersprungen, und das Konto, bei dem er es versucht hat, und das Gateway, das er getroffen hat, bleiben unangetastet. Ein Schritt wirkt auf höchstens 10 Benutzer oder Hosts. Er sucht jeden davon im Produkt nach seinem Namen und vermerkt an der Ausführung, was er mit jedem getan hat: erledigt, bereits erledigt, nicht gefunden, abgelehnt oder geschützt.
+
+Die beiden Datenspeicher-Schritte wirken auf die Datenspeicher, um die es im Fall geht, höchstens 10: die der Datensicherheitsprobleme, die er aufgenommen hat, und alle, nach denen eine Erkennung ihn gruppiert hat. Sie lassen einen als **Absichtlich öffentlich** markierten Datenspeicher unangetastet, ändern, wie ein Datenspeicher geteilt wird, aber nie seine Daten, und vermerken an der Ausführung, was sie mit jedem Datenspeicher getan haben (siehe [Eine Exponierung schließen](/docs/data-security/integrations#eine-exponierung-schließen)).
 
 #### Geschützte Entitäten
 

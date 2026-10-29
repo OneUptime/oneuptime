@@ -182,13 +182,10 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, Array<string>>> = {
     "Logs Viewer",
     "Service Health Viewer",
     /*
-     * The connection form's Data security field and its levels, which the
-     * Dashboard's locales do not word yet, and the Azure role the content
-     * level grants.
+     * The Azure role the content level of the connection's Data security
+     * field grants. The field and its levels are Dashboard labels, drawn as
+     * each language's Dashboard draws them.
      */
-    "Data security",
-    "Configuration only",
-    "Configuration and content samples",
     "Storage Blob Data Reader",
   ],
   [CLOUD_RESOURCES]: [
