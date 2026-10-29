@@ -70,15 +70,20 @@ export function normalizeTaskTitle(value: unknown): string {
   return title;
 }
 
-// A cleared assignee ({ assignedToUser: null }) is cleared in its ID column too.
+/*
+ * The assignee a write names, in its ID column. A cleared assignee
+ * ({ assignedToUser: null }) is cleared in its ID column too, written with
+ * stamp so no other name of it is left beside the null.
+ */
 function readAssignee(data: JSONObject): void {
-  RelationIdUtil.readIntoIdColumn(data, ASSIGNEE_KEYS, "Assignee");
+  const assignee: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+    data,
+    ASSIGNEE_KEYS,
+    "Assignee",
+  );
 
-  if (
-    data["assignedToUser"] === null &&
-    data["assignedToUserId"] === undefined
-  ) {
-    data["assignedToUserId"] = null;
+  if (!assignee && RelationIdUtil.isPresent(data, ASSIGNEE_KEYS)) {
+    RelationIdUtil.stamp(data, ASSIGNEE_KEYS, null);
   }
 }
 
@@ -185,7 +190,8 @@ export class Service extends ProjectReferencesService<Model> {
     readAssignee(data);
 
     const watches: boolean =
-      data["isDone"] !== undefined || data["assignedToUserId"] !== undefined;
+      data["isDone"] !== undefined ||
+      RelationIdUtil.isPresent(data, ASSIGNEE_KEYS);
 
     if (!watches) {
       return { updateBy, carryForward: null };
