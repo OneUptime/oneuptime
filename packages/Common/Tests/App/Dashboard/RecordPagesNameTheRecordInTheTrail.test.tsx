@@ -75,6 +75,17 @@ const RECORD_KINDS: Array<RecordKind> = [
     viewTitle: "View Alert",
     builder: getAlertsBreadcrumbs,
   },
+  // An incident's and an alert's episodes, numbered like them.
+  {
+    viewKey: "INCIDENT_EPISODE_VIEW",
+    viewTitle: "View Episode",
+    builder: getIncidentsBreadcrumbs,
+  },
+  {
+    viewKey: "ALERT_EPISODE_VIEW",
+    viewTitle: "View Episode",
+    builder: getAlertsBreadcrumbs,
+  },
   {
     viewKey: "STATUS_PAGE_VIEW",
     viewTitle: "View Status Page",
@@ -130,10 +141,13 @@ const RECORD_KINDS: Array<RecordKind> = [
 ];
 
 /*
- * Pages whose trail has no crumb for the record, left as they were: an
- * alert's Description reads "Project > Alerts > Description".
+ * Pages whose trail has no crumb for the record, left as they were. None
+ * now: an alert's Description read "Project > Alerts > Description", with
+ * nothing to say which alert it was, until it named the alert like an
+ * incident's Description does ("Project > Alerts > ALT-7 CPU high >
+ * Description").
  */
-const PAGES_WITHOUT_A_RECORD_CRUMB: Array<string> = ["ALERT_VIEW_DESCRIPTION"];
+const PAGES_WITHOUT_A_RECORD_CRUMB: Array<string> = [];
 
 interface RecordPage {
   key: string;
@@ -250,6 +264,89 @@ describe("every page of a record names it in the trail", () => {
         last: named[named.length - 1]!.recordName,
       }).toEqual({ kind: kind.viewKey, last: RECORD_NAME });
     }
+  });
+});
+
+/*
+ * A record its project numbers is told apart from others of the same title
+ * by its number, which ModelPage hands the trail with its name: on every
+ * page of an incident, an alert, a scheduled maintenance event and both
+ * kinds of episode the crumb that stands for it reads "INC-18 Manually
+ * declared" - and no other crumb gets the number.
+ */
+const NUMBERED_KINDS: Array<string> = [
+  "INCIDENT_VIEW",
+  "ALERT_VIEW",
+  "SCHEDULED_MAINTENANCE_VIEW",
+  "INCIDENT_EPISODE_VIEW",
+  "ALERT_EPISODE_VIEW",
+];
+
+describe("every page of a numbered record numbers it in the trail", () => {
+  test.each(NUMBERED_KINDS)(
+    "%s and every page under it",
+    (viewKey: string) => {
+      const kind: RecordKind = RECORD_KINDS.find(
+        (candidate: RecordKind): boolean => {
+          return candidate.viewKey === viewKey;
+        },
+      )!;
+      const pages: Array<RecordPage> = pagesOf(kind);
+      expect(pages.length).toBeGreaterThan(2);
+
+      for (const page of pages) {
+        const named: Array<Link> = nameRecordInTrail({
+          links: trailOn(kind, page),
+          recordId: RECORD_ID,
+          recordName: RECORD_NAME,
+          recordNumber: "INC-18",
+        })!;
+
+        const numbered: Array<{
+          title: string;
+          number: string | undefined;
+          name: string | undefined;
+        }> = named
+          .filter((link: Link): boolean => {
+            return Boolean(link.recordNumber);
+          })
+          .map((link: Link) => {
+            return {
+              title: link.title,
+              number: link.recordNumber,
+              name: link.recordName,
+            };
+          });
+
+        expect({ page: page.key, numbered }).toEqual({
+          page: page.key,
+          numbered: [
+            { title: kind.viewTitle, number: "INC-18", name: RECORD_NAME },
+          ],
+        });
+      }
+    },
+  );
+
+  test("an alert's Description names the alert, and its crumb opens it", () => {
+    const kind: RecordKind = RECORD_KINDS.find(
+      (candidate: RecordKind): boolean => {
+        return candidate.viewKey === "ALERT_VIEW";
+      },
+    )!;
+    const trail: Array<Link> = trailOn(kind, {
+      key: "ALERT_VIEW_DESCRIPTION",
+      pattern: (RouteMap["ALERT_VIEW_DESCRIPTION"] as Route).toString(),
+    })!;
+
+    expect(
+      trail.map((link: Link): string => {
+        return link.title;
+      }),
+    ).toEqual(["Project", "Alerts", "View Alert", "Description"]);
+    expect(trail[2]!.to.toString()).toBe(
+      `/dashboard/${PROJECT_ID}/alerts/${RECORD_ID}`,
+    );
   });
 });
 

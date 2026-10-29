@@ -41,7 +41,7 @@ export const RECENT_CONVERSATIONS_SHOWN: number = 3;
 
 /*
  * The start of a conversation: one question. What it is about is said once,
- * by the composer's pill right under it ("This incident · #42 Checkout
+ * by the composer's pill right under it ("This incident · INC-42 Checkout
  * latency above 2s") - a heading that said it again ("What would you like
  * to know about this incident?") was a second line saying the same, and a
  * sentence no language with genders could word for every kind of page.

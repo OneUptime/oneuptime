@@ -1,5 +1,7 @@
 import Icon from "../Icon/Icon";
+import IsolatedText from "../IsolatedText/IsolatedText";
 import UILink from "../Link/Link";
+import { getRecordCrumbName } from "../Page/RecordNameInTrail";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -10,6 +12,23 @@ import React, { FunctionComponent, ReactElement } from "react";
 interface ComponentProps {
   links: Array<Link>;
 }
+
+/*
+ * The crumb that stands for a numbered record (Link.recordNumber): "INC-18
+ * Manually declared". At most a line's worth, like any record's crumb. The
+ * number keeps its whole width and the name gives way, cut short with an
+ * ellipsis at its own end - on a right-to-left page too, where the number
+ * starts the crumb on the right and an English name still reads from its
+ * start. The whole of it on hover.
+ */
+export const BREADCRUMB_NUMBERED_RECORD_CLASS_NAME: string =
+  "inline-flex min-w-0 max-w-xs items-baseline gap-x-1 align-bottom";
+
+export const BREADCRUMB_RECORD_NUMBER_CLASS_NAME: string =
+  "shrink-0 whitespace-nowrap tabular-nums";
+
+export const BREADCRUMB_RECORD_NUMBER_NAME_CLASS_NAME: string =
+  "min-w-0 truncate";
 
 const Breadcrumbs: FunctionComponent<ComponentProps> = ({
   links,
@@ -30,19 +49,47 @@ const Breadcrumbs: FunctionComponent<ComponentProps> = ({
              * The record's name in place of the page's ("View Monitor"),
              * as typed (Link.recordName). Cut short past a line's worth,
              * with the whole of it on hover: an incident's title can be a
-             * sentence.
+             * sentence. A numbered record's number before it, whole.
              */
-            const shownTitle: ReactElement | string = link.recordName ? (
-              <span
-                className="inline-block max-w-xs truncate align-bottom"
-                title={link.recordName}
-                data-testid="breadcrumb-record-name"
-              >
-                {link.recordName}
-              </span>
-            ) : (
-              translatedTitle
-            );
+            let shownTitle: ReactElement | string = translatedTitle;
+
+            if (link.recordNumber) {
+              shownTitle = (
+                <span
+                  className={BREADCRUMB_NUMBERED_RECORD_CLASS_NAME}
+                  title={getRecordCrumbName(link)}
+                  data-testid="breadcrumb-record-name"
+                >
+                  <bdi
+                    className={BREADCRUMB_RECORD_NUMBER_CLASS_NAME}
+                    data-testid="breadcrumb-record-number"
+                  >
+                    {link.recordNumber}
+                  </bdi>
+                  {link.recordName ? (
+                    <>
+                      {" "}
+                      <IsolatedText
+                        className={BREADCRUMB_RECORD_NUMBER_NAME_CLASS_NAME}
+                        text={link.recordName}
+                      />
+                    </>
+                  ) : (
+                    <></>
+                  )}
+                </span>
+              );
+            } else if (link.recordName) {
+              shownTitle = (
+                <span
+                  className="inline-block max-w-xs truncate align-bottom"
+                  title={link.recordName}
+                  data-testid="breadcrumb-record-name"
+                >
+                  {link.recordName}
+                </span>
+              );
+            }
             return (
               <li className="breadcrumb-item" key={i}>
                 {i === 0 && (

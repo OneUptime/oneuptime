@@ -22,6 +22,12 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Project from "Common/Models/DatabaseModels/Project";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
+import {
+  RecordNumberColumns,
+  getNumberedRecordName,
+  getRecordNumber,
+  getRecordNumberColumns,
+} from "Common/Utils/Project/RecordNumber";
 
 /*
  * Pure decision logic for the dashboard command palette. This module is
@@ -703,17 +709,41 @@ export interface PaletteEntitySearchSpec {
   searchFields: Array<string>;
   /** PageMap key of the entity's view page (takes a modelId route param). */
   viewPageMap: PageMap;
+  /**
+   * The columns that number a row, for an entity its project numbers
+   * (incidentNumber and incidentNumberWithPrefix): a result reads "INC-18
+   * Manually declared", as the record's page is headed, so two incidents
+   * of one title are two results that read differently, and "INC-18"
+   * finds it.
+   */
+  numberFields?: RecordNumberColumns | undefined;
   icon: IconProp;
   /** Tailwind color name — matches the NavBar item for the same entity. */
   iconColor: string;
 }
 
+// A numbered entity is found by its number too: "INC-18".
+function getNumberSearchFields(
+  numberFields: RecordNumberColumns | null,
+): Array<string> {
+  return numberFields ? [numberFields.numberWithPrefixColumn] : [];
+}
+
 /*
  * Field lists mirror the searchableFields of the corresponding table
  * components (MonitorTable, IncidentsTable, AlertsTable, StatusPages,
- * OnCallDutyPolicies) — every column below exists on the model class.
+ * OnCallDutyPolicies) — every column below exists on the model class -
+ * and a numbered entity's number with its prefix besides.
  */
 export function getEntitySearchSpecs(): Array<PaletteEntitySearchSpec> {
+  // The columns that number incidents and alerts (Utils/Project/RecordNumber).
+  const incidentNumbers: RecordNumberColumns | null = getRecordNumberColumns(
+    new Incident(),
+  );
+  const alertNumbers: RecordNumberColumns | null = getRecordNumberColumns(
+    new Alert(),
+  );
+
   return [
     {
       id: "monitors",
@@ -726,16 +756,26 @@ export function getEntitySearchSpecs(): Array<PaletteEntitySearchSpec> {
     {
       id: "incidents",
       titleField: "title",
-      searchFields: ["title", "description"],
+      searchFields: [
+        "title",
+        "description",
+        ...getNumberSearchFields(incidentNumbers),
+      ],
       viewPageMap: PageMap.INCIDENT_VIEW,
+      numberFields: incidentNumbers || undefined,
       icon: IconProp.Alert,
       iconColor: "rose",
     },
     {
       id: "alerts",
       titleField: "title",
-      searchFields: ["title", "description"],
+      searchFields: [
+        "title",
+        "description",
+        ...getNumberSearchFields(alertNumbers),
+      ],
       viewPageMap: PageMap.ALERT_VIEW,
+      numberFields: alertNumbers || undefined,
       icon: IconProp.ExclaimationCircle,
       iconColor: "amber",
     },
@@ -775,14 +815,49 @@ export function buildEntitySearchQuery(
   } as unknown as JSONObject;
 }
 
-/** Only the id and the display column — the palette needs nothing else. */
+/**
+ * Only the id and the display column — the palette needs nothing else — and
+ * a numbered entity's number, which its result leads with.
+ */
 export function buildEntitySearchSelect(
   spec: PaletteEntitySearchSpec,
 ): JSONObject {
-  return {
+  const select: JSONObject = {
     _id: true,
     [spec.titleField]: true,
-  } as unknown as JSONObject;
+  };
+
+  if (spec.numberFields) {
+    select[spec.numberFields.numberColumn] = true;
+    select[spec.numberFields.numberWithPrefixColumn] = true;
+  }
+
+  return select;
+}
+
+/**
+ * What one result says: the row's name, after its number for a numbered
+ * entity - "INC-18 Manually declared" - or "" for a row with no name, which
+ * the palette leaves out.
+ */
+export function getEntitySearchResultTitle(
+  spec: PaletteEntitySearchSpec,
+  item: unknown,
+): string {
+  if (!item || typeof item !== "object") {
+    return "";
+  }
+
+  const name: unknown = (item as JSONObject)[spec.titleField];
+
+  if (typeof name !== "string" || !name.trim()) {
+    return "";
+  }
+
+  return getNumberedRecordName({
+    number: getRecordNumber(item, spec.numberFields),
+    name: name,
+  });
 }
 
 export function buildEntitySearchSort(
