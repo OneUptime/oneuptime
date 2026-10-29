@@ -38,7 +38,7 @@ flowchart TB
 - **Le prove sono sempre mascherate.** Un risultato conserva conteggi e al massimo tre campioni mascherati, come `j***@e******.com`, mascherati all'interno dello scanner prima che qualcosa ne esca. Disattiva i campioni e conserva solo i conteggi.
 - **Lo scanner è open source.** Il pattern, il checksum, le parole di contesto e i valori di test di ogni tipo di dati si trovano nel codice sorgente di OneUptime, così puoi leggere esattamente cosa produce un risultato. Lo stesso codice gira sui worker di OneUptime, su una sonda e nella casella **Testalo**.
 - **Funziona con il resto di OneUptime.** Un problema Critico apre un caso di sicurezza sull'archivio, così [Security Operations](/docs/telemetry/security-cases) lo gestisce come qualsiasi altra minaccia. Può generare un avviso che chiama chi è di reperibilità, e invia un'email ai proprietari dell'archivio. Vedi [Integrazioni di Sicurezza dei dati](/docs/data-security/integrations).
-- **OneUptime AI aiuta a correggerlo.** **Spiega** dice al proprietario di un archivio cosa non va e come correggerlo sul suo cloud, e **Correggi con l'IA** apre una pull request nel tuo codice di infrastruttura.
+- **OneUptime AI aiuta a correggerlo.** **Spiega con l'IA** dice al proprietario di un archivio cosa non va e come correggerlo sul suo cloud, e **Correggi con l'IA** apre una pull request nel tuo codice di infrastruttura.
 
 ## Prima di iniziare
 

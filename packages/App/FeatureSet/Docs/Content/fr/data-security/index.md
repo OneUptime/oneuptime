@@ -38,7 +38,7 @@ flowchart TB
 - **Les preuves sont toujours masquées.** Une détection conserve des comptages et au plus trois échantillons masqués, comme `j***@e******.com`, masqués dans le scanner avant que quoi que ce soit n'en sorte. Désactivez les échantillons et elle ne conserve que des comptages.
 - **Le scanner est open source.** Le motif, la somme de contrôle, les mots de contexte et les valeurs de test de chaque type de données se trouvent dans le code source de OneUptime, donc vous pouvez lire exactement ce qui produit une détection. Le même code s'exécute sur les workers de OneUptime, sur une sonde et dans la zone **Tester**.
 - **Elle fonctionne avec le reste de OneUptime.** Un problème Critique ouvre un dossier de sécurité sur le magasin de données, donc [Opérations de sécurité](/docs/telemetry/security-cases) le traite comme toute autre menace. Elle peut déclencher une alerte qui prévient la personne d'astreinte, et elle envoie un e-mail aux propriétaires du magasin de données. Voir [Intégrations de Sécurité des données](/docs/data-security/integrations).
-- **OneUptime AI aide à corriger.** **Expliquer** dit au propriétaire d'un magasin de données ce qui ne va pas et comment le corriger sur son cloud, et **Corriger avec l'IA** ouvre une pull request dans votre code d'infrastructure.
+- **OneUptime AI aide à corriger.** **Expliquer avec l'IA** dit au propriétaire d'un magasin de données ce qui ne va pas et comment le corriger sur son cloud, et **Corriger avec l'IA** ouvre une pull request dans votre code d'infrastructure.
 
 ## Avant de commencer
 

@@ -77,7 +77,7 @@ Consulta [Desencadenantes de workflows](/docs/workflows/triggers) para ver los c
 
 Dos acciones de un problema piden ayuda a OneUptime AI. Ambas envían a OneUptime AI el título y la gravedad del problema, el nombre, el tipo, la región y el ID en la nube del almacén, su sensibilidad y sus tipos de datos, la evidencia, por qué importa la comprobación y la corrección para la nube del almacén, y nunca las muestras de un hallazgo. Ambas se ejecutan bajo los interruptores y los límites de OneUptime AI del proyecto.
 
-- **Explicar** redacta, para el propietario del almacén, qué falla, qué podría pasar y los pasos exactos para corregirlo en su nube. La explicación se guarda en la **Cronología** del problema. Puede pedirla cualquiera que pueda leer Seguridad de datos.
+- **Explicar con IA** redacta, para el propietario del almacén, qué falla, qué podría pasar y los pasos exactos para corregirlo en su nube. La explicación se guarda en la **Cronología** del problema. Puede pedirla cualquiera que pueda leer Seguridad de datos.
 - **Corregir con IA** pide a OneUptime AI que corrija el problema en tu código de infraestructura (Terraform, CloudFormation, Bicep o similares) con el cambio más pequeño que haga que la comprobación se supere, y que abra una pull request. Necesita que el repositorio que contiene el código de infraestructura del almacén esté conectado en **Código**: elígelo en **Repositorio** cuando el proyecto tenga varios. La pull request aparece en **Código** (consulta [Código](/docs/ai/ai-agent)). Pueden pedirla los Security Member y los roles superiores.
 
 ### Preguntar a la IA
@@ -124,7 +124,7 @@ Algunas respuestas se calculan bajo demanda en lugar de guardarse. Cada una es u
 | `/data-store/<id>/scan-now` | **Escanear ahora**: muestrea el contenido del almacén al momento |
 | `/data-store/<id>/check-now` | **Comprobar ahora**: vuelve a leer la configuración del almacén y ejecuta sus comprobaciones |
 | `/data-store-finding/<id>/scrub` | **Depurar** en un hallazgo de telemetría |
-| `/data-security-issue/<id>/explain` | **Explicar** un problema |
+| `/data-security-issue/<id>/explain` | **Explicar con IA** en un problema |
 | `/data-security-issue/<id>/fix-with-ai` | **Corregir con IA** en un problema |
 | `/data-store/<id>/response-actions` | Qué acciones de respuesta admite el almacén ahora, y por qué no |
 | `/data-store/<id>/respond` | **Bloquear el acceso público** o **Revocar el uso compartido** en el almacén, con el problema desde el que se ejecutó |

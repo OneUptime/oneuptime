@@ -77,7 +77,7 @@ Siehe [Workflow-Auslöser](/docs/workflows/triggers) für die Felder, die jeder 
 
 Zwei Aktionen an einem Problem bitten OneUptime AI um Hilfe. Beide senden OneUptime AI Titel und Schweregrad des Problems, Name, Art, Region und Cloud-ID des Datenspeichers, seine Sensibilität und Datentypen, den Beleg, warum die Prüfung wichtig ist, und die Behebung für die Cloud des Datenspeichers - nie die Stichproben eines Funds. Beide laufen unter den Schaltern und Grenzen des Projekts für OneUptime AI.
 
-- **Erklären** schreibt für den Eigentümer des Datenspeichers, was nicht stimmt, was passieren könnte und die genauen Schritte, um es in seiner Cloud zu beheben. Die Erklärung wird in der **Zeitachse** des Problems aufbewahrt. Jeder, der Datensicherheit lesen darf, kann sie anfordern.
+- **Mit KI erklären** schreibt für den Eigentümer des Datenspeichers, was nicht stimmt, was passieren könnte und die genauen Schritte, um es in seiner Cloud zu beheben. Die Erklärung wird in der **Zeitachse** des Problems aufbewahrt. Jeder, der Datensicherheit lesen darf, kann sie anfordern.
 - **Mit KI beheben** bittet OneUptime AI, das Problem in Ihrem Infrastrukturcode zu beheben - Terraform, CloudFormation, Bicep oder Ähnlichem - mit der kleinsten Änderung, die die Prüfung bestehen lässt, und einen Pull Request zu öffnen. Dafür muss das Repository mit dem Infrastrukturcode des Datenspeichers unter **Code** verbunden sein: Wählen Sie es unter **Repository**, wenn das Projekt mehrere hat. Der Pull Request erscheint unter **Code** (siehe [Code](/docs/ai/ai-agent)). Security Members und höher können es anfordern.
 
 ### KI fragen
@@ -124,7 +124,7 @@ Einige Antworten werden auf Anfrage berechnet, statt gespeichert zu werden. Jede
 | `/data-store/<id>/scan-now` | **Jetzt scannen**: nimmt sofort Stichproben vom Inhalt des Datenspeichers |
 | `/data-store/<id>/check-now` | **Jetzt prüfen**: liest die Konfiguration des Datenspeichers erneut und führt seine Prüfungen aus |
 | `/data-store-finding/<id>/scrub` | **Bereinigen** an einem Telemetrie-Fund |
-| `/data-security-issue/<id>/explain` | **Erklären** für ein Problem |
+| `/data-security-issue/<id>/explain` | **Mit KI erklären** an einem Problem |
 | `/data-security-issue/<id>/fix-with-ai` | **Mit KI beheben** an einem Problem |
 | `/data-store/<id>/response-actions` | Welche Reaktionsaktionen am Datenspeicher jetzt möglich sind, und warum nicht |
 | `/data-store/<id>/respond` | **Öffentlichen Zugriff sperren** oder **Freigabe widerrufen** am Datenspeicher, mit dem Problem, aus dem es ausgeführt wurde |

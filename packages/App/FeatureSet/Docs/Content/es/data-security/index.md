@@ -38,7 +38,7 @@ flowchart TB
 - **La evidencia siempre se enmascara.** Un hallazgo guarda recuentos y como máximo tres muestras enmascaradas, como `j***@e******.com`, enmascaradas dentro del escáner antes de que nada salga de él. Desactiva las muestras y solo guarda recuentos.
 - **El escáner es de código abierto.** El patrón, la suma de comprobación, las palabras de contexto y los valores de prueba de cada tipo de datos están en el código fuente de OneUptime, así que puedes leer exactamente qué produce un hallazgo. El mismo código se ejecuta en los workers de OneUptime, en una sonda y en el cuadro **Probarlo**.
 - **Funciona con el resto de OneUptime.** Un problema crítico abre un caso de seguridad sobre el almacén, para que [Operaciones de seguridad](/docs/telemetry/security-cases) lo gestione como cualquier otra amenaza. Puede generar una alerta que avise a quien esté de guardia, y envía un correo a los propietarios del almacén. Consulta [Integraciones de Seguridad de datos](/docs/data-security/integrations).
-- **OneUptime AI ayuda a corregirlo.** **Explicar** le dice al propietario de un almacén qué falla y cómo corregirlo en su nube, y **Corregir con IA** abre una pull request en tu código de infraestructura.
+- **OneUptime AI ayuda a corregirlo.** **Explicar con IA** le dice al propietario de un almacén qué falla y cómo corregirlo en su nube, y **Corregir con IA** abre una pull request en tu código de infraestructura.
 
 ## Antes de empezar
 

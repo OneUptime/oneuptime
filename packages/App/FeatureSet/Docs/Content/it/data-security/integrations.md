@@ -77,7 +77,7 @@ Vedi [Trigger dei workflow](/docs/workflows/triggers) per i campi che passa ogni
 
 Due azioni su un problema chiedono aiuto a OneUptime AI. Entrambe inviano a OneUptime AI il titolo e la gravità del problema, il nome, il tipo, la regione e l'id cloud dell'archivio, la sua sensibilità e i suoi tipi di dati, la prova, perché il controllo è importante e la correzione per il cloud dell'archivio - mai i campioni di un risultato. Entrambe rispettano gli interruttori e i limiti di OneUptime AI del progetto.
 
-- **Spiega** scrive, per il proprietario dell'archivio, cosa non va, cosa potrebbe succedere e i passaggi esatti per correggerlo sul suo cloud. La spiegazione viene conservata nella **Cronologia** del problema. Chiunque possa leggere Sicurezza dei dati può richiederla.
+- **Spiega con l'IA** scrive, per il proprietario dell'archivio, cosa non va, cosa potrebbe succedere e i passaggi esatti per correggerlo sul suo cloud. La spiegazione viene conservata nella **Cronologia** del problema. Chiunque possa leggere Sicurezza dei dati può richiederla.
 - **Correggi con l'IA** chiede a OneUptime AI di correggere il problema nel tuo codice di infrastruttura - Terraform, CloudFormation, Bicep o simili - con la modifica più piccola che fa superare il controllo, e di aprire una pull request. Richiede che il repository che contiene il codice di infrastruttura dell'archivio sia collegato in **Codice**: sceglilo in **Repository** quando il progetto ne ha più di uno. La pull request compare in **Codice** (vedi [Codice](/docs/ai/ai-agent)). Possono richiederla i Security Member e i ruoli superiori.
 
 ### Chiedi all'IA
@@ -124,7 +124,7 @@ Alcune risposte vengono calcolate su richiesta invece di essere conservate. Ognu
 | `/data-store/<id>/scan-now` | **Scansiona ora**: campiona subito il contenuto dell'archivio |
 | `/data-store/<id>/check-now` | **Controlla ora**: rilegge la configurazione dell'archivio ed esegue i suoi controlli |
 | `/data-store-finding/<id>/scrub` | **Ripulisci** su un risultato della telemetria |
-| `/data-security-issue/<id>/explain` | **Spiega** un problema |
+| `/data-security-issue/<id>/explain` | **Spiega con l'IA** su un problema |
 | `/data-security-issue/<id>/fix-with-ai` | **Correggi con l'IA** su un problema |
 | `/data-store/<id>/response-actions` | Quali azioni di risposta l'archivio può eseguire ora, e perché no |
 | `/data-store/<id>/respond` | **Blocca l'accesso pubblico** o **Revoca la condivisione** sull'archivio, con il problema da cui è stata eseguita |

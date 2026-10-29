@@ -77,7 +77,7 @@ See [Workflow Triggers](/docs/workflows/triggers) for the fields each trigger pa
 
 Two actions on an issue ask OneUptime AI for help. Both send OneUptime AI the issue's title and severity, the store's name, kind, region and cloud id, its sensitivity and data types, the evidence, why the check matters and the fix for the store's cloud - never a finding's samples. Both run under the project's OneUptime AI switches and limits.
 
-- **Explain** writes, for the store's owner, what is wrong, what could happen and the exact steps to fix it on their cloud. The explanation is kept on the issue's **Timeline**. Anyone who can read Data Security can ask.
+- **Explain with AI** writes, for the store's owner, what is wrong, what could happen and the exact steps to fix it on their cloud. The explanation is kept on the issue's **Timeline**. Anyone who can read Data Security can ask.
 - **Fix with AI** asks OneUptime AI to fix the issue in your infrastructure code - Terraform, CloudFormation, Bicep or the like - with the smallest change that makes the check pass, and to open a pull request. It needs the repository that holds the store's infrastructure code connected under **Code**: choose it under **Repository** when the project has several. The pull request appears under **Code** (see [Code](/docs/ai/ai-agent)). Security Members and above can ask.
 
 ### Ask AI
@@ -124,10 +124,10 @@ A few answers are worked out on request rather than stored. Each is a `POST`:
 | `/data-store/<id>/scan-now` | **Scan Now**: samples the store's content now |
 | `/data-store/<id>/check-now` | **Check Now**: reads the store's configuration again and runs its checks |
 | `/data-store-finding/<id>/scrub` | **Scrub It** on a telemetry finding |
-| `/data-security-issue/<id>/explain` | **Explain** an issue |
+| `/data-security-issue/<id>/explain` | **Explain with AI** on an issue |
 | `/data-security-issue/<id>/fix-with-ai` | **Fix with AI** on an issue |
 | `/data-store/<id>/response-actions` | Which response actions the store can take now, and why not |
-| `/data-store/<id>/respond` | **Block public access** or **Revoke sharing** on the store, with the issue it was run from |
+| `/data-store/<id>/respond` | **Block Public Access** or **Revoke Sharing** on the store, with the issue it was run from |
 
 The [Terraform provider](/docs/terraform/index) has a resource for each kind of record you create - data stores you add yourself, custom data types, check settings, residency rules, owner and label rules - named after the record, such as `oneuptime_residency_rule`.
 

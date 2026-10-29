@@ -38,7 +38,7 @@ flowchart TB
 - **Belege werden immer maskiert.** Ein Fund behält Zählungen und höchstens drei maskierte Stichproben, etwa `j***@e******.com`, maskiert im Scanner, bevor irgendetwas ihn verlässt. Schalten Sie Stichproben aus, und er behält nur Zählungen.
 - **Der Scanner ist Open Source.** Muster, Prüfsumme, Kontextwörter und Testwerte jedes Datentyps stehen im Quellcode von OneUptime, sodass Sie genau nachlesen können, was einen Fund ausmacht. Derselbe Code läuft auf den Workern von OneUptime, auf einer Sonde und im Feld **Testen**.
 - **Sie arbeitet mit dem Rest von OneUptime zusammen.** Ein kritisches Problem eröffnet einen Sicherheitsfall zum Datenspeicher, sodass [Security Operations](/docs/telemetry/security-cases) ihn wie jede andere Bedrohung bearbeitet. Sie kann eine Warnung auslösen, die alarmiert, wer gerade Bereitschaft hat, und sie schickt den Eigentümern des Datenspeichers eine E-Mail. Siehe [Integrationen der Datensicherheit](/docs/data-security/integrations).
-- **OneUptime AI hilft beim Beheben.** **Erklären** sagt dem Eigentümer eines Datenspeichers, was nicht stimmt und wie er es in seiner Cloud behebt, und **Mit KI beheben** öffnet einen Pull Request in Ihrem Infrastrukturcode.
+- **OneUptime AI hilft beim Beheben.** **Mit KI erklären** sagt dem Eigentümer eines Datenspeichers, was nicht stimmt und wie er es in seiner Cloud behebt, und **Mit KI beheben** öffnet einen Pull Request in Ihrem Infrastrukturcode.
 
 ## Bevor Sie beginnen
 

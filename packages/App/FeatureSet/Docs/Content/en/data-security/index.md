@@ -38,7 +38,7 @@ flowchart TB
 - **Evidence is masked, always.** A finding keeps counts and at most three masked samples, such as `j***@e******.com`, masked inside the scanner before anything leaves it. Turn samples off and it keeps counts only.
 - **The scanner is open source.** Every data type's pattern, checksum, context words and test values are in OneUptime's source code, so you can read exactly what makes a finding. The same code runs on OneUptime's workers, on a probe, and in the **Test It** box.
 - **It works with the rest of OneUptime.** A Critical issue opens a security case on the store, so [Security Operations](/docs/telemetry/security-cases) works it like any other threat. It can raise an alert that pages whoever is on call, and it emails the store's owners. See [Data Security Integrations](/docs/data-security/integrations).
-- **OneUptime AI helps fix it.** **Explain** tells a store's owner what is wrong and how to fix it on their cloud, and **Fix with AI** opens a pull request in your infrastructure code.
+- **OneUptime AI helps fix it.** **Explain with AI** tells a store's owner what is wrong and how to fix it on their cloud, and **Fix with AI** opens a pull request in your infrastructure code.
 
 ## Before you begin
 

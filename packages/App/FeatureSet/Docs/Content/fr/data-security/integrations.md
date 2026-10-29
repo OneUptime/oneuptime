@@ -77,7 +77,7 @@ Voir [Déclencheurs de workflow](/docs/workflows/triggers) pour les champs que t
 
 Deux actions sur un problème demandent de l'aide à OneUptime AI. Toutes deux envoient à OneUptime AI le titre et la gravité du problème, le nom, le type, la région et l'ID cloud du magasin de données, sa sensibilité et ses types de données, la preuve, pourquoi le contrôle est important et la correction pour le cloud du magasin de données - jamais les échantillons d'une détection. Toutes deux s'exécutent selon les interrupteurs et les limites de OneUptime AI du projet.
 
-- **Expliquer** rédige, pour le propriétaire du magasin de données, ce qui ne va pas, ce qui pourrait arriver et les étapes exactes pour le corriger sur son cloud. L'explication est conservée dans la **Chronologie** du problème. Quiconque peut lire Sécurité des données peut la demander.
+- **Expliquer avec l'IA** rédige, pour le propriétaire du magasin de données, ce qui ne va pas, ce qui pourrait arriver et les étapes exactes pour le corriger sur son cloud. L'explication est conservée dans la **Chronologie** du problème. Quiconque peut lire Sécurité des données peut la demander.
 - **Corriger avec l'IA** demande à OneUptime AI de corriger le problème dans votre code d'infrastructure - Terraform, CloudFormation, Bicep ou équivalent - avec la plus petite modification qui fait réussir le contrôle, et d'ouvrir une pull request. Il faut que le dépôt qui contient le code d'infrastructure du magasin de données soit connecté sous **Code** : choisissez-le sous **Dépôt** quand le projet en a plusieurs. La pull request apparaît sous **Code** (voir [Code](/docs/ai/ai-agent)). Les Security Members et les rôles supérieurs peuvent la demander.
 
 ### Demander à l'IA
@@ -124,7 +124,7 @@ Quelques réponses sont calculées à la demande plutôt que stockées. Chacune 
 | `/data-store/<id>/scan-now` | **Analyser maintenant** : échantillonne aussitôt le contenu du magasin de données |
 | `/data-store/<id>/check-now` | **Contrôler maintenant** : relit la configuration du magasin de données et exécute ses contrôles |
 | `/data-store-finding/<id>/scrub` | **Nettoyer** sur une détection de télémétrie |
-| `/data-security-issue/<id>/explain` | **Expliquer** un problème |
+| `/data-security-issue/<id>/explain` | **Expliquer avec l'IA** sur un problème |
 | `/data-security-issue/<id>/fix-with-ai` | **Corriger avec l'IA** sur un problème |
 | `/data-store/<id>/response-actions` | Les actions de réponse que le magasin de données peut effectuer maintenant, et la raison quand il ne le peut pas |
 | `/data-store/<id>/respond` | **Bloquer l'accès public** ou **Révoquer le partage** sur le magasin de données, avec le problème depuis lequel l'action a été lancée |
