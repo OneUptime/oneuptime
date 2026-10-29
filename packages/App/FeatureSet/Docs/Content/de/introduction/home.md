@@ -127,11 +127,19 @@ Zwei Leisten ziehen sich oben über jede Seite.
 
 **Hilfe** öffnet diese Dokumentation (**Dokumentation**) und die Liste **Tastenkürzel** und bietet Support per E-Mail und auf Slack. Auf einem schmalen Bildschirm, etwa einem Telefon, fallen **Suchen**, **KI fragen** und **Hilfe** weg, um Platz zu sparen; die Glocke und Ihr Bild bleiben.
 
+### Seiten und Listen
+
+Über dem Titel jeder Seite zeigt ein Pfad wie *Projekt › Docker › Einstellungen › Eigentümerregeln*, wo die Seite liegt. Jeder Schritt vor dem letzten öffnet seine Seite.
+
+- **Listen halten sich selbst aktuell.** Wird irgendwo ein Vorfall oder eine Warnung erstellt, bestätigt oder behoben, zeigen die Listen der Vorfälle, Warnungen und Episoden das innerhalb von Sekunden, ohne Neuladen. Solange Sie auf einer Liste mitten in etwas sind, etwa mit markierten Zeilen oder einem offenen Dialog, wartet sie und holt alles nach, wenn Sie fertig sind.
+- **Auf dem Telefon klappen die Filter-Chips weg**, hinter **Filter**, sodass die Liste weiter oben beginnt. Die Chips, die Sie gesetzt haben, bleiben sichtbar, mit **Alle löschen**. Drücken Sie **Filter**, um alle Chips zu sehen, und noch einmal, um sie wieder zuzuklappen.
+
 ## Nach einer Seite, einer Einstellung oder einer Aktion suchen
 
 Drücken Sie **Cmd+K** (Mac) oder **Ctrl+K** (Windows und Linux), oder klicken Sie auf das Suchsymbol in der oberen Leiste, und beginnen Sie zu tippen. Die Suche findet:
 
 - **Jede Seite in den Menüs**, unter dem Namen, den das Menü ihr gibt: API-Schlüssel, Gefahrenzone, Bereitschaftspläne, Vorfallsschweregrad, Ihre eigenen Benachrichtigungsmethoden. Jedes Ergebnis sagt, wo es liegt, etwa *Projekteinstellungen › Erweitert*, sodass sich Seiten mit demselben Namen (Benutzerdefinierte Felder in Vorfällen, Warnungen und Monitoren) leicht unterscheiden lassen.
+- **Die Einstellungen auf einer Seite**, unter dem Namen, den ihre Karte oder ihr Schalter zeigt: *SSO für die Anmeldung erzwingen* findet SSO, und *Benachrichtigungskanäle* findet Benachrichtigungseinstellungen. Tippen Sie den Namen auf Englisch oder in Ihrer Sprache.
 - **Aktionen**, nach dem, was Sie tun möchten: Vorfall melden, Monitor erstellen oder Projekt löschen, das die Gefahrenzone öffnet. Eine Aktion, die etwas ändert, wird nur Personen angeboten, die sie ausführen dürfen.
 - **Ihre Monitore, Vorfälle, Warnungen, Statusseiten und Bereitschaftsrichtlinien**, nach Namen.
 
