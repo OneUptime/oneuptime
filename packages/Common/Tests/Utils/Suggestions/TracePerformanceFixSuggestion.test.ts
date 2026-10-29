@@ -973,7 +973,7 @@ describe("the repositories to pick the fix's repository from", () => {
 
   test("the server's refusals say what to do", () => {
     expect(PICK_A_REPOSITORY_FOR_THE_FIX_MESSAGE).toBe(
-      "Pick the repository that holds this code: several repositories are connected, and none could be matched to this trace's service or code.",
+      "Several repositories are connected, and none could be matched to this trace's service or code. Pick the one that holds this code.",
     );
     expect(PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE).toBe(
       "That repository is not one of this project's connected repositories OneUptime AI can work in. Pick another, or connect it in Code.",

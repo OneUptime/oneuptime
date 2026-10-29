@@ -578,8 +578,11 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
       }
 
       // A refresh since the click has read the offer again itself.
+      const isLatestRead: boolean =
+        generation === loadGenerationRef.current && Boolean(latest);
+
       if (
-        generation === loadGenerationRef.current &&
+        isLatestRead &&
         latest &&
         (latest.offer === SuggestionOffer.InProgress ||
           latest.offer === SuggestionOffer.SetUp ||
@@ -587,6 +590,15 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
       ) {
         setPerfFixSuggestion(latest);
       } else {
+        /*
+         * Still offered: the reason stays beside the finding, and the
+         * repositories to pick from are the ones the server lists now - a
+         * picked repository disconnected since the page read them leaves
+         * the list, so it is not picked again.
+         */
+        if (isLatestRead && latest && latest.offer === SuggestionOffer.Act) {
+          setPerfFixSuggestion(latest);
+        }
         setPerfFixError(reason);
       }
     }

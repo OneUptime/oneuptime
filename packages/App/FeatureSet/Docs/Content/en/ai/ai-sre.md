@@ -74,7 +74,7 @@ This happens at most once per incident, under the same switches and limits as a 
 
 ## Talk to OneUptime AI about the incident
 
-The **AI Investigation** card ends with a conversation — **Ask OneUptime AI** — shared by everyone who can see the incident or alert. It is one card whatever happened above it: under a report you ask follow-ups, and when no automatic investigation ran (or it stopped before reporting) the first suggestion is **What is the root cause?**, which has OneUptime AI investigate on demand.
+The **AI Investigation** card ends with a conversation — **Ask OneUptime AI** — shared by everyone who can see the incident or alert. It is one card whatever happened above it: under a report you ask follow-ups, and when no automatic investigation ran (or it stopped before reporting) the first suggestion is **What is the root cause?**, which has OneUptime AI investigate on demand. Its suggestions follow where the incident or alert stands: once it is acknowledged, none offers to acknowledge it, and once it is resolved, they ask how the response went and what would stop it happening again.
 
 - **Ask follow-up questions** — "which pods use the most memory?", "what changed right before this started?", "is anything else affected?". OneUptime AI builds on its report, queries fresh data (and runs read-only kubectl or infrastructure commands where it has access, on the clusters and resources you may view), and cites every claim.
 - **Ask it to act** — "acknowledge this incident", "post a status update saying we're investigating", "page the database on-call", "raise the severity". It uses the same actions as Ask AI and always acts **with your own permissions**, so it can never do more than you could.

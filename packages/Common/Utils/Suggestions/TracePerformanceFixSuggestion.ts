@@ -235,11 +235,13 @@ export const MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES: number = 200;
 /*
  * The server's refusal of a fix the person did not pick a repository for,
  * when several are connected and none was found to hold the trace's code
- * for certain. The trace page asks for the pick first, so people only meet
- * this through the API.
+ * for certain. The trace page asks for the pick first, so people meet this
+ * through the API, or on the page after the second repository was
+ * connected since it read the list - after "Could not start the fix:",
+ * beside the picker the page then shows.
  */
 export const PICK_A_REPOSITORY_FOR_THE_FIX_MESSAGE: string =
-  "Pick the repository that holds this code: several repositories are connected, and none could be matched to this trace's service or code.";
+  "Several repositories are connected, and none could be matched to this trace's service or code. Pick the one that holds this code.";
 
 /*
  * The server's refusal of a pick that is not one of the project's connected

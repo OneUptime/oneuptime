@@ -114,6 +114,7 @@ import CodeRepositorySettings, {
   CODE_REPOSITORY_GITHUB_COMMANDS_TEST_ID,
   CODE_REPOSITORY_MORE_SETTINGS_TEST_ID,
   CODE_REPOSITORY_PRODUCTION_REVIEW_LLM_PROVIDER_TEST_ID,
+  CODE_REPOSITORY_PRODUCTION_REVIEW_LLM_PROVIDER_WARNING_TEST_ID,
   CODE_REPOSITORY_PRODUCTION_REVIEW_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Code/Repository/Settings";
 import {
@@ -2294,7 +2295,7 @@ describe("Production Review LLM Provider: the provider its reviews use", () => {
       CodeRepositorySetting.ProductionReviewLlmProvider,
     );
     expect((props["cardProps"] as { description: string }).description).toBe(
-      "The LLM provider OneUptime AI reads pull requests with in production reviews.",
+      "Which LLM provider a production review uses.",
     );
     expect(folded()).toContainElement(
       document.getElementById(
@@ -2331,15 +2332,34 @@ describe("Production Review LLM Provider: the provider its reviews use", () => {
     expect(shownFor()).toHaveTextContent("Global provider (OneUptime AI)");
   });
 
-  test("a pick: its name; one the project can no longer use says so", async () => {
+  test("a pick: its name; one the project can no longer use says so, and what the reviews use instead", async () => {
     draw();
     await providersRead();
 
     expect(shownFor(PROVIDER_ID)).toHaveTextContent("Azure GPT-5");
+    // A pick that is used needs no line under it.
+    expect(
+      within(shownFor(PROVIDER_ID)).queryByTestId(
+        CODE_REPOSITORY_PRODUCTION_REVIEW_LLM_PROVIDER_WARNING_TEST_ID,
+      ),
+    ).toBeNull();
     cleanup();
     draw();
     await providersRead();
-    expect(shownFor(GONE_PROVIDER_ID)).toHaveTextContent("No longer available");
+
+    const gone: HTMLElement = shownFor(GONE_PROVIDER_ID);
+
+    expect(
+      within(gone).getByTestId("production-review-llm-provider-value"),
+    ).toHaveTextContent(/^No longer available$/);
+    // Under it, as the Edit form's field says it: the default, until another is picked.
+    expect(
+      within(gone).getByTestId(
+        CODE_REPOSITORY_PRODUCTION_REVIEW_LLM_PROVIDER_WARNING_TEST_ID,
+      ),
+    ).toHaveTextContent(
+      "OneUptime AI can no longer use this provider, so it uses the default instead. Pick another one, or clear it.",
+    );
   });
 
   test("a reader who may not read the providers: a pick is one they cannot see, never its id", async () => {

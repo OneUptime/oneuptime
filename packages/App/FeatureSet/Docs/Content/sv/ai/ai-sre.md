@@ -74,7 +74,7 @@ Det sker högst en gång per incident, med samma reglage och gränser som en ny 
 
 ## Prata med OneUptime AI om incidenten
 
-Kortet **AI Investigation** slutar med en konversation, **Ask OneUptime AI**, som delas av alla som kan se incidenten eller larmet. Det är ett enda kort oavsett vad som hände ovanför: under en rapport ställer du följdfrågor, och när ingen automatisk utredning kördes (eller den stoppade före rapporten) är det första förslaget **What is the root cause?**, som får OneUptime AI att utreda på begäran.
+Kortet **AI Investigation** slutar med en konversation, **Ask OneUptime AI**, som delas av alla som kan se incidenten eller larmet. Det är ett enda kort oavsett vad som hände ovanför: under en rapport ställer du följdfrågor, och när ingen automatisk utredning kördes (eller den stoppade före rapporten) är det första förslaget **Vad är rotorsaken?**, som får OneUptime AI att utreda på begäran. Förslagen följer var incidenten eller larmet står: efter bekräftelsen föreslår inget att bekräfta, och efter lösningen frågar de hur insatsen gick och vad som skulle förhindra en upprepning.
 
 - **Ställ följdfrågor**: "vilka pods använder mest minne?", "vad ändrades precis innan det här började?", "är något annat påverkat?". OneUptime AI bygger vidare på sin rapport, hämtar färska data (och kör skrivskyddade kubectl- eller infrastrukturkommandon där den har åtkomst, på de kluster och resurser du får se) och anger källa för varje påstående.
 - **Be den agera**: "kvittera den här incidenten", "publicera en statusuppdatering om att vi utreder", "larma databasjouren", "höj allvarlighetsgraden". Den använder samma åtgärder som Fråga AI och agerar alltid **med dina egna behörigheter**, så den kan aldrig göra mer än du kunde.

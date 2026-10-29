@@ -37007,5 +37007,5 @@
   "OneUptime AI uses the default LLM provider for production reviews, unless you pick another.": "OneUptime AI uses the default LLM provider for production reviews, unless you pick another.",
   "Production Review LLM Provider": "Production Review LLM Provider",
   "Production Review LLM Provider ID": "Production Review LLM Provider ID",
-  "The LLM provider OneUptime AI reads pull requests with in production reviews.": "The LLM provider OneUptime AI reads pull requests with in production reviews."
+  "Which LLM provider a production review uses.": "Which LLM provider a production review uses."
 }

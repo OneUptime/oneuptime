@@ -2676,6 +2676,76 @@ describe("performance fix with AI", () => {
     });
   });
 
+  /*
+   * The pick was disconnected between the page's read and the click: the
+   * reason shows beside the finding, and the list to pick from is the
+   * server's again - the gone repository is no longer offered, and the
+   * fix waits for a new pick.
+   */
+  test("a pick refused because it was disconnected meanwhile: the reason shows, and the list is the server's again", async () => {
+    const REPOSITORIES: Array<JSONObject> = [
+      { id: "51000000-0000-4000-8000-000000000002", name: "billing" },
+      { id: "51000000-0000-4000-8000-000000000001", name: "checkout-api" },
+      { id: "51000000-0000-4000-8000-000000000003", name: "storefront" },
+    ];
+    answerSuggestion(
+      {
+        offer: "Act",
+        finding: nPlusOneFinding(),
+        repositories: REPOSITORIES,
+      },
+      async () => {
+        throw new HTTPErrorResponse(
+          400,
+          {
+            message:
+              "That repository is not one of this project's connected repositories OneUptime AI can work in. Pick another, or connect it in Code.",
+          },
+          {},
+        );
+      },
+      {
+        offer: "Act",
+        finding: nPlusOneFinding(),
+        repositories: [REPOSITORIES[0]!, REPOSITORIES[2]!],
+      },
+    );
+    await renderTrace();
+    const strip: HTMLElement = await suggestionStrip();
+    const openPicker: () => void = (): void => {
+      fireEvent.keyDown(
+        within(
+          within(strip).getByTestId("trace-fix-performance-repository"),
+        ).getByRole("combobox"),
+        { key: "ArrowDown", code: "ArrowDown" },
+      );
+    };
+
+    openPicker();
+    fireEvent.click(screen.getByText("checkout-api"));
+    fireEvent.click(within(strip).getByTestId("trace-fix-performance"));
+
+    expect(
+      await within(strip).findByTestId("trace-fix-performance-error"),
+    ).toHaveTextContent(
+      "That repository is not one of this project's connected repositories",
+    );
+    // Asked again: the gone pick is no longer chosen, and no longer offered.
+    await waitFor(() => {
+      expect(within(strip).getByTestId("trace-fix-performance")).toBeDisabled();
+    });
+    expect(
+      within(
+        within(strip).getByTestId("trace-fix-performance-repository"),
+      ).queryByText("checkout-api"),
+    ).toBeNull();
+    openPicker();
+    expect(screen.queryByText("checkout-api")).toBeNull();
+    expect(screen.getByText("billing")).toBeInTheDocument();
+    expect(screen.getByText("storefront")).toBeInTheDocument();
+    expect(postsTo(CREATE_PATH)).toHaveLength(1);
+  });
+
   test("a list of one repository is no choice: no picker, and the click names none", async () => {
     answerSuggestion({
       offer: "Act",

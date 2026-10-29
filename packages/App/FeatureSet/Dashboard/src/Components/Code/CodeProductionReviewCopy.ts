@@ -453,12 +453,13 @@ export const PRODUCTION_REVIEW_SETTINGS_COPY: {
   contentFieldTitle: translationKey("What the Comment Shows"),
   /*
    * The LLM provider OneUptime AI reads the pull requests with: the card's
-   * line says what it is for, the field's what empty means - the box names
-   * the default it stands for.
+   * line says what it is for, as its neighbours say theirs ("What a
+   * production review posts on a pull request."), the field's what empty
+   * means - the box names the default it stands for.
    */
   providerCardTitle: translationKey("Production Review LLM Provider"),
   providerCardDescription: translationKey(
-    "The LLM provider OneUptime AI reads pull requests with in production reviews.",
+    "Which LLM provider a production review uses.",
   ),
   providerFieldDescription: translationKey(
     "OneUptime AI uses the default LLM provider for production reviews, unless you pick another.",

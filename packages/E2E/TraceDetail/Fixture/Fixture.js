@@ -1531,7 +1531,7 @@ async function handleApi(method, options) {
           400,
           {
             message:
-              "Pick the repository that holds this code: several repositories are connected, and none could be matched to this trace's service or code.",
+              "Several repositories are connected, and none could be matched to this trace's service or code. Pick the one that holds this code.",
           },
           {},
         );

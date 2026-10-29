@@ -4561,7 +4561,7 @@ test.describe("a repository's pull requests, reviewed against production", () =>
     // The link landed on it, with More settings open.
     await expect(provider).toBeInViewport();
     await expect(provider).toContainText(
-      "The LLM provider OneUptime AI reads pull requests with in production reviews.",
+      "Which LLM provider a production review uses.",
     );
     await expect(
       provider.getByTestId("production-review-llm-provider-value"),
@@ -4640,6 +4640,12 @@ test.describe("a repository's pull requests, reviewed against production", () =>
     await expect(
       page.getByTestId("production-review-llm-provider-value"),
     ).toHaveText("No longer available");
+    // And what the reviews use instead, as the Edit form's field says it.
+    await expect(
+      page.getByTestId("production-review-llm-provider-warning"),
+    ).toHaveText(
+      "OneUptime AI can no longer use this provider, so it uses the default instead. Pick another one, or clear it.",
+    );
   });
 
   test("a repository that had picked one opens with it", async ({

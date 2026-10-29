@@ -4562,6 +4562,13 @@ const USUAL_SUGGESTIONS: ReadonlyArray<string> = [
   "Acknowledge this incident",
 ];
 const ROOT_CAUSE_SUGGESTION: string = "What is the root cause?";
+// A resolved incident's, in the places of what to do now and what else it affects.
+const RESOLVED_SUGGESTIONS: ReadonlyArray<string> = [
+  "Prevent a repeat",
+  "What changed just before this?",
+  "Response timeline",
+  "Draft a status update",
+];
 // indigo-600: the page's primary buttons, and OneUptime AI's mark.
 const INDIGO_600: string = "rgb(79, 70, 229)";
 // The font the dashboard ships (views/index.ejs); the fixture does not load it.
@@ -4756,7 +4763,8 @@ test.describe("one AI card: the investigation and the conversation", () => {
   }: {
     page: Page;
   }) => {
-    for (const query of ["", "ai=none"]) {
+    // A new alert (?state=created): nobody has acknowledged it yet.
+    for (const query of ["state=created", "state=created&ai=none"]) {
       await openConversation(page, query, ALERT_PATH);
 
       await expect(investigationCard(page)).toHaveCount(1);
@@ -4850,45 +4858,73 @@ test.describe("one AI card: the investigation and the conversation", () => {
     }> = [
       {
         name: "under a report it offers follow-ups",
-        query: "",
+        query: "state=created",
         description:
           "Ask a follow-up question, or ask it to act. Everyone on this incident sees this conversation.",
         labels: USUAL_SUGGESTIONS,
       },
       {
         name: "with nothing investigated it leads with the root-cause question",
-        query: "ai=none",
+        query: "ai=none&state=created",
         description:
           "Ask a question about this incident, or ask it to act. Everyone on this incident sees this conversation.",
         labels: [ROOT_CAUSE_SUGGESTION, ...USUAL_SUGGESTIONS],
       },
       {
         name: "after a run that stopped it leads with the root-cause question",
-        query: "ai=failed",
+        query: "ai=failed&state=created",
         description:
           "Ask a question about this incident, or ask it to act. Everyone on this incident sees this conversation.",
         labels: [ROOT_CAUSE_SUGGESTION, ...USUAL_SUGGESTIONS],
       },
       {
         name: "while a run is investigating it does not",
-        query: "ai=running",
+        query: "ai=running&state=created",
         description:
           "Ask a question about this incident, or ask it to act. Everyone on this incident sees this conversation.",
         labels: USUAL_SUGGESTIONS,
       },
       {
         name: "while a run is queued it does not",
-        query: "ai=queued",
+        query: "ai=queued&state=created",
         description:
           "Ask a question about this incident, or ask it to act. Everyone on this incident sees this conversation.",
         labels: USUAL_SUGGESTIONS,
       },
       {
         name: "while the report is being written it does not",
-        query: "ai=pending",
+        query: "ai=pending&state=created",
         description:
           "Ask a question about this incident, or ask it to act. Everyone on this incident sees this conversation.",
         labels: USUAL_SUGGESTIONS,
+      },
+      /*
+       * Where the incident stands: one acknowledged is not asked to be
+       * acknowledged again, and a resolved one (the fixture's own) is asked
+       * how the response went and what would stop it coming back.
+       */
+      {
+        name: "an acknowledged incident is not asked to be acknowledged again",
+        query: "state=ongoing",
+        description:
+          "Ask a follow-up question, or ask it to act. Everyone on this incident sees this conversation.",
+        labels: USUAL_SUGGESTIONS.filter((label: string): boolean => {
+          return label !== "Acknowledge this incident";
+        }),
+      },
+      {
+        name: "a resolved incident is asked how the response went and what would stop it coming back",
+        query: "",
+        description:
+          "Ask a follow-up question, or ask it to act. Everyone on this incident sees this conversation.",
+        labels: RESOLVED_SUGGESTIONS,
+      },
+      {
+        name: "a resolved incident with nothing investigated still leads with the root-cause question",
+        query: "ai=none",
+        description:
+          "Ask a question about this incident, or ask it to act. Everyone on this incident sees this conversation.",
+        labels: [ROOT_CAUSE_SUGGESTION, ...RESOLVED_SUGGESTIONS],
       },
     ];
 
@@ -4910,7 +4946,11 @@ test.describe("one AI card: the investigation and the conversation", () => {
     }: {
       page: Page;
     }) => {
-      const section: Locator = await openConversation(page, "ai=none");
+      // A new incident, so its one request to act is offered.
+      const section: Locator = await openConversation(
+        page,
+        "ai=none&state=created",
+      );
       const group: Locator = section.getByRole("group", {
         name: "Suggested questions",
       });
@@ -5022,7 +5062,8 @@ test.describe("one AI card: the investigation and the conversation", () => {
     }: {
       page: Page;
     }) => {
-      await openConversation(page, "");
+      // A new incident: nobody has acknowledged it yet.
+      await openConversation(page, "state=created");
 
       await suggestions(page)
         .filter({ hasText: "Acknowledge this incident" })

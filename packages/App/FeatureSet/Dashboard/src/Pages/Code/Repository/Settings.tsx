@@ -74,7 +74,9 @@ import {
 import {
   RULE_LLM_PROVIDER_FIELD_COPY,
   RuleLlmProviderChoices,
+  RuleLlmProviderPickState,
   getRuleLlmProviderFoldedValue,
+  getRuleLlmProviderPickState,
   getRuleLlmProviderPlaceholder,
 } from "../../../Components/AI/RuleLlmProviderCopy";
 import { readLlmProviderId } from "Common/Types/AI/LlmProviderChoice";
@@ -98,6 +100,10 @@ export const CODE_REPOSITORY_PRODUCTION_REVIEW_TEST_ID: string =
 
 export const CODE_REPOSITORY_PRODUCTION_REVIEW_LLM_PROVIDER_TEST_ID: string =
   "production-review-llm-provider";
+
+// The card's line under a pick the project can no longer use.
+export const CODE_REPOSITORY_PRODUCTION_REVIEW_LLM_PROVIDER_WARNING_TEST_ID: string =
+  "production-review-llm-provider-warning";
 
 /*
  * What the Production Review LLM Provider card shows: the provider picked,
@@ -1093,10 +1099,43 @@ const CodeRepositorySettings: FunctionComponent<
                       );
                     }
 
-                    return (
+                    /*
+                     * A pick the project can no longer use says what the
+                     * reviews do instead, as the Edit form's field does: the
+                     * default, until another is picked.
+                     */
+                    const isUnavailable: boolean =
+                      getRuleLlmProviderPickState({
+                        pickedProviderId: readLlmProviderId(
+                          item.productionReviewLlmProviderId,
+                        ),
+                        choices: llmProviderChoices,
+                      }) === RuleLlmProviderPickState.Unavailable;
+
+                    const value: ReactElement = (
                       <span data-testid="production-review-llm-provider-value">
                         {shown}
                       </span>
+                    );
+
+                    if (!isUnavailable) {
+                      return value;
+                    }
+
+                    return (
+                      <div>
+                        {value}
+                        <p
+                          className="mt-1 text-sm text-amber-700"
+                          data-testid={
+                            CODE_REPOSITORY_PRODUCTION_REVIEW_LLM_PROVIDER_WARNING_TEST_ID
+                          }
+                        >
+                          {translator.translateText(
+                            RULE_LLM_PROVIDER_FIELD_COPY.unavailableWarning,
+                          )}
+                        </p>
+                      </div>
                     );
                   },
                 },

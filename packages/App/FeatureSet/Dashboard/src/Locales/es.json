@@ -20535,8 +20535,8 @@
   "Acknowledge Alert": "Reconocer alerta",
   "Acknowledge Episode": "Reconocer episodio",
   "Acknowledge Incident": "Reconocer incidente",
-  "Acknowledge this alert": "Acknowledge this alert",
-  "Acknowledge this incident": "Acknowledge this incident",
+  "Acknowledge this alert": "Reconocer esta alerta",
+  "Acknowledge this incident": "Reconocer este incidente",
   "Acknowledging alert": "Reconociendo la alerta",
   "Acknowledging incident": "Reconociendo el incidente",
   "Action needed": "Se requiere acción",
@@ -37007,5 +37007,5 @@
   "OneUptime AI uses the default LLM provider for production reviews, unless you pick another.": "OneUptime AI usa el proveedor LLM predeterminado para las revisiones de producción, a menos que elijas otro.",
   "Production Review LLM Provider": "Proveedor de LLM de la revisión de producción",
   "Production Review LLM Provider ID": "ID del proveedor de LLM de la revisión de producción",
-  "The LLM provider OneUptime AI reads pull requests with in production reviews.": "El proveedor de LLM con el que OneUptime AI lee las pull requests en las revisiones de producción."
+  "Which LLM provider a production review uses.": "Qué proveedor de LLM usa una revisión de producción."
 }
