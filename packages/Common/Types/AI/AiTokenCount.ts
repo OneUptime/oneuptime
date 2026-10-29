@@ -1,7 +1,4 @@
-import {
-  LlmCostCatalogUtil,
-  LlmModelPrice,
-} from "../Telemetry/LlmCostCatalog";
+import { LlmCostCatalogUtil, LlmModelPrice } from "../Telemetry/LlmCostCatalog";
 
 /*
  * How OneUptime counts the tokens of its own AI calls (issue #5073): the
@@ -234,7 +231,10 @@ export default class AiTokenCount {
     const inputPrice: number = price.inputPricePerMillionTokensInUSD;
 
     return {
-      read: this.toWeight(price.cacheReadPricePerMillionTokensInUSD, inputPrice),
+      read: this.toWeight(
+        price.cacheReadPricePerMillionTokensInUSD,
+        inputPrice,
+      ),
       write: this.isPrice(price.cacheWritePricePerMillionTokensInUSD)
         ? this.toWeight(price.cacheWritePricePerMillionTokensInUSD, inputPrice)
         : FRESH_TOKEN_WEIGHT,

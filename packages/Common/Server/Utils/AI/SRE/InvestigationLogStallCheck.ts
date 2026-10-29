@@ -42,7 +42,9 @@ export default class InvestigationLogStallCheck {
 
       const searches: InvestigationLogSearches = getInvestigationLogSearches(
         data.citations.map(
-          (citation: AIChatCitation): { toolName: string; rowCount: number } => {
+          (
+            citation: AIChatCitation,
+          ): { toolName: string; rowCount: number } => {
             return {
               toolName: citation.toolName,
               rowCount: citation.rowCount,

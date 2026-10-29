@@ -9,7 +9,10 @@ import { FinishedFixOutcome } from "../../../Utils/Suggestions/CodeFixSuggestion
 import { SuggestionBlocker } from "../../../Utils/Suggestions/SuggestionBlocker";
 import SuggestionOffer from "../../../Utils/Suggestions/SuggestionOffer";
 import {
+  MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES,
   NO_TRACE_PERFORMANCE_FIX_SUGGESTION,
+  PICK_A_REPOSITORY_FOR_THE_FIX_MESSAGE,
+  PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE,
   TRACE_NOT_WORTH_FIXING_MESSAGE,
   TracePerformanceFixOffer,
   TracePerformanceFixSuggestion,
@@ -21,6 +24,7 @@ import {
   isDatabaseFinding,
   isFindingWorthFixing,
   parsePerformanceFinding,
+  parseTracePerformanceFixRepositories,
   parseTracePerformanceFixSuggestion,
   tracePerformanceFixSuggestionToJSON,
 } from "../../../Utils/Suggestions/TracePerformanceFixSuggestion";
@@ -603,6 +607,7 @@ describe("the wire format the trace page reads", () => {
     fixOutcome: null,
     blocker: null,
     aiRunId: null,
+    repositories: [],
   };
 
   test("round-trips through JSON unchanged", () => {
@@ -818,5 +823,160 @@ describe("the wire format the trace page reads", () => {
     expect(parsed?.parentSpanName).toBeUndefined();
     expect(parsed?.httpUrl).toBe("https://inventory.internal/items");
     expect(parsed?.percentOfParent).toBe(75);
+  });
+});
+
+/*
+ * The repositories the trace page offers to pick from, when several are
+ * connected and none was found to hold the trace's code for certain.
+ */
+describe("the repositories to pick the fix's repository from", () => {
+  const ACT: TracePerformanceFixSuggestion = {
+    offer: SuggestionOffer.Act,
+    finding: finding(),
+    findingCount: 1,
+    fixOutcome: null,
+    blocker: null,
+    aiRunId: null,
+    repositories: [
+      { id: "51000000-0000-4000-8000-000000000002", name: "billing" },
+      { id: "51000000-0000-4000-8000-000000000001", name: "checkout-api" },
+    ],
+  };
+
+  function wire(
+    suggestion: TracePerformanceFixSuggestion,
+    repositories?: unknown,
+  ): JSONObject {
+    const json: JSONObject = JSON.parse(
+      JSON.stringify(tracePerformanceFixSuggestionToJSON(suggestion)),
+    ) as JSONObject;
+
+    if (repositories !== undefined) {
+      json["repositories"] = repositories as JSONObject;
+    }
+
+    return json;
+  }
+
+  test("an offer of the fix carries them, in the server's order, through JSON", () => {
+    expect(parseTracePerformanceFixSuggestion(wire(ACT))).toEqual(ACT);
+  });
+
+  test("one repository is no choice: read as none", () => {
+    expect(
+      parseTracePerformanceFixSuggestion(
+        wire(ACT, [
+          { id: "51000000-0000-4000-8000-000000000002", name: "billing" },
+        ]),
+      ).repositories,
+    ).toEqual([]);
+  });
+
+  test("an entry that is not whole is left out, and each repository is listed once", () => {
+    expect(
+      parseTracePerformanceFixSuggestion(
+        wire(ACT, [
+          { id: "51000000-0000-4000-8000-000000000002", name: "billing" },
+          {
+            id: "51000000-0000-4000-8000-000000000002".toUpperCase(),
+            name: "billing again",
+          },
+          { id: "", name: "no id" },
+          { id: "51000000-0000-4000-8000-000000000004", name: "  " },
+          { id: 7, name: "a number" },
+          "checkout-api",
+          null,
+          {
+            id: " 51000000-0000-4000-8000-000000000001 ",
+            name: " checkout-api ",
+          },
+        ]),
+      ).repositories,
+    ).toEqual([
+      { id: "51000000-0000-4000-8000-000000000002", name: "billing" },
+      { id: "51000000-0000-4000-8000-000000000001", name: "checkout-api" },
+    ]);
+  });
+
+  test.each([
+    ["nothing", undefined],
+    ["null", null],
+    ["an object", { id: "x", name: "y" }],
+    ["a string", "billing"],
+  ])("%s is no list", (_name: string, value: unknown) => {
+    const json: JSONObject = wire(ACT);
+    json["repositories"] = value as JSONObject;
+
+    expect(parseTracePerformanceFixSuggestion(json).repositories).toEqual([]);
+  });
+
+  test("at most MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES are read", () => {
+    const many: Array<JSONObject> = [];
+
+    for (
+      let index: number = 0;
+      index < MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES + 50;
+      index++
+    ) {
+      many.push({
+        id: `51000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+        name: `repository-${index}`,
+      });
+    }
+
+    expect(
+      parseTracePerformanceFixSuggestion(wire(ACT, many)).repositories,
+    ).toHaveLength(MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES);
+  });
+
+  test.each([
+    [
+      SuggestionOffer.InProgress,
+      { aiRunId: "70000000-0000-4000-8000-000000000009" },
+    ],
+    [
+      SuggestionOffer.Done,
+      {
+        aiRunId: "70000000-0000-4000-8000-000000000010",
+        fixOutcome: FinishedFixOutcome.Fixed,
+      },
+    ],
+    [SuggestionOffer.SetUp, { blocker: NO_CREDITS }],
+  ])(
+    "an offer that is not the fix (%s) carries none, whatever was sent",
+    (offer: SuggestionOffer, extra: Partial<TracePerformanceFixSuggestion>) => {
+      const other: TracePerformanceFixSuggestion = {
+        ...ACT,
+        ...extra,
+        offer,
+      };
+
+      expect(
+        parseTracePerformanceFixSuggestion(wire(other)).repositories,
+      ).toEqual([]);
+    },
+  );
+
+  test("no suggestion offers none", () => {
+    expect(NO_TRACE_PERFORMANCE_FIX_SUGGESTION.repositories).toEqual([]);
+    expect(
+      parseTracePerformanceFixRepositories([
+        { id: "a", name: "one" },
+        { id: "b", name: "two" },
+      ]),
+    ).toEqual([
+      { id: "a", name: "one" },
+      { id: "b", name: "two" },
+    ]);
+  });
+
+  test("the server's refusals say what to do", () => {
+    expect(PICK_A_REPOSITORY_FOR_THE_FIX_MESSAGE).toBe(
+      "Pick the repository that holds this code: several repositories are connected, and none could be matched to this trace's service or code.",
+    );
+    expect(PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE).toBe(
+      "That repository is not one of this project's connected repositories OneUptime AI can work in. Pick another, or connect it in Code.",
+    );
   });
 });

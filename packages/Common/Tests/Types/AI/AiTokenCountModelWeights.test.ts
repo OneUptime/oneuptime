@@ -38,21 +38,61 @@ function greatestCommonDivisor(a: number, b: number): number {
 describe("a model's cache weights are its own prices", () => {
   test.each([
     // Anthropic: a read at a tenth, a 5-minute write at a quarter more.
-    ["claude-sonnet-4-5", { numerator: 1, denominator: 10 }, { numerator: 5, denominator: 4 }],
-    ["claude-haiku-4-5", { numerator: 1, denominator: 10 }, { numerator: 5, denominator: 4 }],
+    [
+      "claude-sonnet-4-5",
+      { numerator: 1, denominator: 10 },
+      { numerator: 5, denominator: 4 },
+    ],
+    [
+      "claude-haiku-4-5",
+      { numerator: 1, denominator: 10 },
+      { numerator: 5, denominator: 4 },
+    ],
     // The newest Claude models read for less.
-    ["claude-opus-5-5", { numerator: 1, denominator: 20 }, { numerator: 5, denominator: 4 }],
-    ["claude-fable-5-1", { numerator: 1, denominator: 40 }, { numerator: 5, denominator: 4 }],
+    [
+      "claude-opus-5-5",
+      { numerator: 1, denominator: 20 },
+      { numerator: 5, denominator: 4 },
+    ],
+    [
+      "claude-fable-5-1",
+      { numerator: 1, denominator: 40 },
+      { numerator: 5, denominator: 4 },
+    ],
     // OpenAI from GPT-5.6 charges a write a quarter more.
-    ["gpt-5.6-terra", { numerator: 1, denominator: 10 }, { numerator: 5, denominator: 4 }],
-    ["gpt-6.1-sol", { numerator: 1, denominator: 20 }, { numerator: 5, denominator: 4 }],
+    [
+      "gpt-5.6-terra",
+      { numerator: 1, denominator: 10 },
+      { numerator: 5, denominator: 4 },
+    ],
+    [
+      "gpt-6.1-sol",
+      { numerator: 1, denominator: 20 },
+      { numerator: 5, denominator: 4 },
+    ],
     // OpenAI's earlier models: no write charge, a read at the model's share.
-    ["gpt-5.1", { numerator: 1, denominator: 10 }, { numerator: 1, denominator: 1 }],
-    ["gpt-4.1", { numerator: 1, denominator: 4 }, { numerator: 1, denominator: 1 }],
-    ["gpt-4o", { numerator: 1, denominator: 2 }, { numerator: 1, denominator: 1 }],
+    [
+      "gpt-5.1",
+      { numerator: 1, denominator: 10 },
+      { numerator: 1, denominator: 1 },
+    ],
+    [
+      "gpt-4.1",
+      { numerator: 1, denominator: 4 },
+      { numerator: 1, denominator: 1 },
+    ],
+    [
+      "gpt-4o",
+      { numerator: 1, denominator: 2 },
+      { numerator: 1, denominator: 1 },
+    ],
     ["o3", { numerator: 1, denominator: 4 }, { numerator: 1, denominator: 1 }],
     // Amazon Nova writes to its cache for nothing.
-    ["nova-pro", { numerator: 1, denominator: 4 }, { numerator: 0, denominator: 1 }],
+    [
+      "nova-pro",
+      { numerator: 1, denominator: 4 },
+      { numerator: 0, denominator: 1 },
+    ],
   ])(
     "%s: a read counts %p of a token, a write %p",
     (model: string, read: AiTokenWeight, write: AiTokenWeight) => {
@@ -110,9 +150,10 @@ describe("a model's cache weights are its own prices", () => {
       );
       const input: number = entry.inputPricePerMillionTokensInUSD;
 
-      expect({ model: entry.modelPrefix, priced: weights.isModelPriced }).toEqual(
-        { model: entry.modelPrefix, priced: true },
-      );
+      expect({
+        model: entry.modelPrefix,
+        priced: weights.isModelPriced,
+      }).toEqual({ model: entry.modelPrefix, priced: true });
       expect(ratio(weights.read)).toBeCloseTo(
         entry.cacheReadPricePerMillionTokensInUSD / input,
         9,
@@ -149,7 +190,9 @@ describe("a model's cache weights are its own prices", () => {
 
   test("a read never counts more than a fresh token on any listed model", () => {
     for (const entry of LlmModelPricingCatalog) {
-      expect(ratio(AiTokenCount.getCacheWeights(entry.modelPrefix).read)).toBeLessThanOrEqual(1);
+      expect(
+        ratio(AiTokenCount.getCacheWeights(entry.modelPrefix).read),
+      ).toBeLessThanOrEqual(1);
     }
   });
 });

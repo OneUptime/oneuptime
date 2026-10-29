@@ -223,9 +223,9 @@ describe("what a run records, and how it is read back", () => {
   };
 
   test("round-trips", () => {
-    expect(parseInvestigationLogStall(investigationLogStallToJSON(STALL))).toEqual(
-      STALL,
-    );
+    expect(
+      parseInvestigationLogStall(investigationLogStallToJSON(STALL)),
+    ).toEqual(STALL);
 
     const noLogs: InvestigationLogStall = {
       ...STALL,
@@ -269,7 +269,10 @@ describe("what a run records, and how it is read back", () => {
       "OneUptime AI searched the logs 4 times and found nothing about this alert.",
     );
     expect(
-      describeInvestigationLogStall({ ...STALL, logSearchCount: 1 }, "incident"),
+      describeInvestigationLogStall(
+        { ...STALL, logSearchCount: 1 },
+        "incident",
+      ),
     ).toBe(
       "OneUptime AI searched the logs once and found nothing about this incident.",
     );

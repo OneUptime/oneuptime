@@ -18787,7 +18787,11 @@ test.describe("an investigation the logs could not help (?stall=)", () => {
   }: {
     page: Page;
   }) => {
-    const notice: Locator = await openStall(page, INCIDENT_PATH, "stall=nologs");
+    const notice: Locator = await openStall(
+      page,
+      INCIDENT_PATH,
+      "stall=nologs",
+    );
 
     await expect(notice).toContainText("No logs to read");
     await expect(notice).toContainText(
@@ -18910,9 +18914,8 @@ test.describe("an investigation the logs could not help (?stall=)", () => {
     const fit: { pageScrolls: boolean; cardBox: number; links: Array<number> } =
       await page.evaluate(
         (): { pageScrolls: boolean; cardBox: number; links: Array<number> } => {
-          const card: Element | null = document.querySelector(
-            "#ai-investigation",
-          );
+          const card: Element | null =
+            document.querySelector("#ai-investigation");
           const right: number = card ? card.getBoundingClientRect().right : 0;
           return {
             pageScrolls:

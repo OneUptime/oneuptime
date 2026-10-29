@@ -62,7 +62,6 @@ import {
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
-import { fromStoredCodeRepositoryIds } from "../../Types/CodeRepository/CodeRepositoryAllowance";
 import GitHubUtil, {
   GitHubInstallationToken,
 } from "../Utils/CodeRepository/GitHub/GitHub";
@@ -85,6 +84,7 @@ import CodeRepositoryRunnerChoice, {
 import {
   getFirstMonitorName,
   getPerformanceStackTrace,
+  getRunRepositoryAllowance,
 } from "../Utils/AI/CodeFix/CodeFixRunRepository";
 import { CODE_REPOSITORY_RUNNER_TOKEN_REFUSAL } from "../../Types/Runner/CodeRepositoryRunner";
 
@@ -1030,11 +1030,17 @@ export default class AIAgentDataAPI {
 
             const serviceName: string | null = taskContext.serviceName || null;
 
+            /*
+             * Among the repository the person picked when none was found
+             * for certain, as when the run was queued
+             * (getRunRepositoryAllowance); every connected one otherwise.
+             */
             const resolution: RepoResolution | null =
               await CodeRepositoryService.resolveRepositoryForException({
                 projectId: run.projectId,
                 stackTrace: syntheticStackTrace,
                 serviceName,
+                allowance: getRunRepositoryAllowance(run.taskContext),
               });
 
             const repository: CodeRepository | null = resolution
@@ -1246,9 +1252,7 @@ export default class AIAgentDataAPI {
               projectId: run.projectId,
               stackTrace: null,
               serviceName,
-              allowance: fromStoredCodeRepositoryIds(
-                run.taskContext?.allowedCodeRepositoryIds,
-              ),
+              allowance: getRunRepositoryAllowance(run.taskContext),
             });
 
           const repository: CodeRepository | null = resolution

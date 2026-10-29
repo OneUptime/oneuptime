@@ -335,17 +335,15 @@ describe("an endpoint that refuses the field gets the request again without it",
   });
 
   test("an error that is not about the key is answered as it is, with the key left in", async () => {
-    const spy: PostSpy = jest
-      .spyOn(API, "post")
-      .mockResolvedValue(
-        refusal(401, {
-          error: {
-            message: "Incorrect API key provided: sk-test.",
-            type: "invalid_request_error",
-            code: "invalid_api_key",
-          },
-        }),
-      ) as PostSpy;
+    const spy: PostSpy = jest.spyOn(API, "post").mockResolvedValue(
+      refusal(401, {
+        error: {
+          message: "Incorrect API key provided: sk-test.",
+          type: "invalid_request_error",
+          code: "invalid_api_key",
+        },
+      }),
+    ) as PostSpy;
 
     await expect(
       LLMService.getCompletion({
@@ -361,19 +359,17 @@ describe("an endpoint that refuses the field gets the request again without it",
   });
 
   test("a value out of range for another parameter is not read as a refusal of the key", async () => {
-    const spy: PostSpy = jest
-      .spyOn(API, "post")
-      .mockResolvedValue(
-        refusal(400, {
-          error: {
-            message:
-              "Invalid 'temperature': decimal above maximum value. Expected a value <= 2, but got 9 instead.",
-            type: "invalid_request_error",
-            param: "temperature",
-            code: "decimal_above_max_value",
-          },
-        }),
-      ) as PostSpy;
+    const spy: PostSpy = jest.spyOn(API, "post").mockResolvedValue(
+      refusal(400, {
+        error: {
+          message:
+            "Invalid 'temperature': decimal above maximum value. Expected a value <= 2, but got 9 instead.",
+          type: "invalid_request_error",
+          param: "temperature",
+          code: "decimal_above_max_value",
+        },
+      }),
+    ) as PostSpy;
 
     await expect(
       LLMService.getCompletion({

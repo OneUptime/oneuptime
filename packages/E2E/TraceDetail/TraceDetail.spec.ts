@@ -1872,3 +1872,138 @@ test.describe("exceptions of an eBPF trace", () => {
     await screenshot(page, "ebpf-span-pod-exceptions", false);
   });
 });
+
+/*
+ * A repository picker for Fix performance with AI (?repo=pick): several
+ * repositories are connected and none was found to hold the trace's code
+ * for certain, so the strip asks which one holds it - as a telemetry
+ * finding's Fix with AI asks - and the click names the pick.
+ */
+test.describe("a repository to pick before the fix starts (?repo=pick)", () => {
+  function createRequests(state: FixtureState): Array<RecordedApiRequest> {
+    return state.apiRequests.filter((request: RecordedApiRequest) => {
+      return request.url.includes(
+        "/ai-investigation/create-performance-fix-task",
+      );
+    });
+  }
+
+  test("the strip asks which repository holds the code, and the fix starts in the pick", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLoaded(page, "report", "repo=pick");
+
+    const strip: Locator = page.getByTestId("trace-performance-suggestion");
+    const picker: Locator = strip.getByTestId(
+      "trace-fix-performance-repository",
+    );
+    await expect(picker).toContainText("Which repository holds this code?");
+    await expect(picker).toContainText("Pick a repository");
+
+    const button: Locator = strip.getByTestId("trace-fix-performance");
+    await expect(button).toBeDisabled();
+    await screenshot(page, "performance-fix-pick-repository", false);
+
+    await picker.getByRole("combobox").click();
+    // The one open menu: the picker's (other boxes on the page list options too).
+    const menu: Locator = page.locator(".ou-select__menu");
+    await expect(menu.locator(".ou-select__option")).toHaveText([
+      "acme/billing",
+      "acme/checkout-api",
+      "acme/storefront-web-with-a-rather-long-repository-name",
+    ]);
+    await menu
+      .locator(".ou-select__option", { hasText: "acme/checkout-api" })
+      .click();
+
+    await expect(button).toBeEnabled();
+    await button.click();
+
+    await expect(page.getByTestId("trace-fix-performance-progress")).toHaveText(
+      "OneUptime AI is working on a fix. View task progress",
+    );
+    expect(createRequests(await fixture(page))[0]!.body).toEqual({
+      traceId: TRACES["report"],
+      repositoryId: "51000000-0000-4000-8000-000000000001",
+    });
+  });
+
+  test("without a pick nothing is asked", async ({ page }: { page: Page }) => {
+    await openLoaded(page, "report", "repo=pick");
+
+    const button: Locator = page.getByTestId("trace-fix-performance");
+    await expect(button).toBeDisabled();
+    // A disabled button takes no click, even a forced one.
+    await button.click({ force: true });
+
+    expect(createRequests(await fixture(page))).toHaveLength(0);
+    await expect(
+      page.getByTestId("trace-fix-performance-progress"),
+    ).toHaveCount(0);
+  });
+
+  test.describe("on a phone", () => {
+    test.use({ viewport: { width: 390, height: 844 } });
+
+    test("the picker and the fix fit the strip, one under the other", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openLoaded(page, "report", "repo=pick");
+
+      const boxes: {
+        pageScrolls: boolean;
+        strip: { left: number; right: number };
+        picker: { left: number; right: number; bottom: number };
+        button: { left: number; right: number; top: number };
+      } = await page.evaluate(() => {
+        const box: (testId: string) => DOMRect = (testId: string): DOMRect => {
+          return document
+            .querySelector(`[data-testid='${testId}']`)!
+            .getBoundingClientRect();
+        };
+        const strip: DOMRect = box("trace-performance-suggestion");
+        const picker: DOMRect = box("trace-fix-performance-repository");
+        const button: DOMRect = box("trace-fix-performance");
+        return {
+          pageScrolls:
+            document.documentElement.scrollWidth >
+            document.documentElement.clientWidth,
+          strip: { left: strip.left, right: strip.right },
+          picker: {
+            left: picker.left,
+            right: picker.right,
+            bottom: picker.bottom,
+          },
+          button: { left: button.left, right: button.right, top: button.top },
+        };
+      });
+
+      expect(boxes.pageScrolls).toBe(false);
+      expect(boxes.picker.left).toBeGreaterThanOrEqual(boxes.strip.left);
+      expect(boxes.picker.right).toBeLessThanOrEqual(boxes.strip.right + 1);
+      expect(boxes.button.right).toBeLessThanOrEqual(boxes.strip.right + 1);
+      // The button comes under the picker, not squeezed beside it.
+      expect(boxes.button.top).toBeGreaterThanOrEqual(boxes.picker.bottom - 1);
+
+      await page
+        .getByTestId("trace-fix-performance-repository")
+        .getByRole("combobox")
+        .click();
+      await expect(
+        page.locator(".ou-select__menu .ou-select__option", {
+          hasText: "acme/storefront-web-with-a-rather-long-repository-name",
+        }),
+      ).toBeVisible();
+      await page.getByTestId("trace-performance-suggestion").screenshot({
+        path: path.join(
+          SCREENSHOTS,
+          "phone-performance-fix-pick-repository-synthetic.png",
+        ),
+      });
+    });
+  });
+});

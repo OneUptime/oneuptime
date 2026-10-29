@@ -67,7 +67,9 @@ describe("the runners hand the engine their record for the log check", () => {
       .spyOn(LinkedInfrastructureContext, "readForAlert")
       .mockResolvedValue(null);
     jest.spyOn(RecentChangesContext, "read").mockResolvedValue(null);
-    jest.spyOn(AIMemory, "getPriorSimilarIncidentsContext").mockResolvedValue("");
+    jest
+      .spyOn(AIMemory, "getPriorSimilarIncidentsContext")
+      .mockResolvedValue("");
     jest.spyOn(AIInvestigationQueue, "failOrRequeue").mockResolvedValue("noop");
   });
 

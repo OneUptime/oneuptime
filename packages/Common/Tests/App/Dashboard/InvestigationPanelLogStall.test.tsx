@@ -303,9 +303,7 @@ describe("the AI card says when the logs stood in the way", () => {
     ).toBeTruthy();
     // The links are a row of their own, never inside the sentence.
     expect(
-      screen
-        .getByTestId(INVESTIGATION_LOG_STALL_TEST_IDS.actions)
-        .closest("p"),
+      screen.getByTestId(INVESTIGATION_LOG_STALL_TEST_IDS.actions).closest("p"),
     ).toBeNull();
   });
 

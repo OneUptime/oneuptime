@@ -535,59 +535,64 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
    * refusal. Anything else keeps the button and shows the reason beside
    * the finding.
    */
-  const createPerformanceFixTask: () => Promise<void> =
-    async (): Promise<void> => {
-      const generation: number = loadGenerationRef.current;
-      setIsCreatingPerfFixTask(true);
-      setPerfFixError(null);
+  const createPerformanceFixTask: (
+    repositoryId?: string | undefined,
+  ) => Promise<void> = async (
+    repositoryId?: string | undefined,
+  ): Promise<void> => {
+    const generation: number = loadGenerationRef.current;
+    setIsCreatingPerfFixTask(true);
+    setPerfFixError(null);
 
-      try {
-        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-          await API.post<JSONObject>({
-            url: URL.fromString(
-              APP_API_URL.toString() + CREATE_PERFORMANCE_FIX_TASK_PATH,
-            ),
-            data: {
-              traceId: traceId,
-            },
-            headers: ModelAPI.getCommonHeaders(),
-          });
+    try {
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.post<JSONObject>({
+          url: URL.fromString(
+            APP_API_URL.toString() + CREATE_PERFORMANCE_FIX_TASK_PATH,
+          ),
+          data: {
+            traceId: traceId,
+            // The repository the person picked, when the strip asked.
+            ...(repositoryId ? { repositoryId } : {}),
+          },
+          headers: ModelAPI.getCommonHeaders(),
+        });
 
-        if (response instanceof HTTPErrorResponse) {
-          throw response;
-        }
-
-        const aiRunId: string | undefined = (response.data as JSONObject)[
-          "aiRunId"
-        ] as string | undefined;
-
-        setPerfFixRunId(aiRunId || null);
-      } catch (err) {
-        const reason: string = API.getFriendlyMessage(err);
-        let latest: TracePerformanceFixSuggestion | null = null;
-
-        try {
-          latest = await fetchPerfFixSuggestion();
-        } catch {
-          latest = null;
-        }
-
-        // A refresh since the click has read the offer again itself.
-        if (
-          generation === loadGenerationRef.current &&
-          latest &&
-          (latest.offer === SuggestionOffer.InProgress ||
-            latest.offer === SuggestionOffer.SetUp ||
-            latest.offer === SuggestionOffer.Done)
-        ) {
-          setPerfFixSuggestion(latest);
-        } else {
-          setPerfFixError(reason);
-        }
+      if (response instanceof HTTPErrorResponse) {
+        throw response;
       }
 
-      setIsCreatingPerfFixTask(false);
-    };
+      const aiRunId: string | undefined = (response.data as JSONObject)[
+        "aiRunId"
+      ] as string | undefined;
+
+      setPerfFixRunId(aiRunId || null);
+    } catch (err) {
+      const reason: string = API.getFriendlyMessage(err);
+      let latest: TracePerformanceFixSuggestion | null = null;
+
+      try {
+        latest = await fetchPerfFixSuggestion();
+      } catch {
+        latest = null;
+      }
+
+      // A refresh since the click has read the offer again itself.
+      if (
+        generation === loadGenerationRef.current &&
+        latest &&
+        (latest.offer === SuggestionOffer.InProgress ||
+          latest.offer === SuggestionOffer.SetUp ||
+          latest.offer === SuggestionOffer.Done)
+      ) {
+        setPerfFixSuggestion(latest);
+      } else {
+        setPerfFixError(reason);
+      }
+    }
+
+    setIsCreatingPerfFixTask(false);
+  };
 
   const waterfallSpans: Array<WaterfallSpan> = useMemo(() => {
     return toWaterfallSpans(spans);
@@ -1142,8 +1147,8 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                 )}
                 isCreating={isCreatingPerfFixTask}
                 error={perfFixError}
-                onFix={() => {
-                  void createPerformanceFixTask();
+                onFix={(repositoryId?: string | undefined) => {
+                  void createPerformanceFixTask(repositoryId);
                 }}
                 onShowSpans={showPerfFixSpans}
               />

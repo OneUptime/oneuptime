@@ -247,6 +247,7 @@ describe("POST /ai-investigation/performance-fix-suggestion", () => {
       fixOutcome: null,
       blocker: null,
       aiRunId: null,
+      repositories: [],
     });
   });
 
@@ -448,6 +449,74 @@ describe("POST /ai-investigation/create-performance-fix-task", () => {
     );
     expect(enqueue).not.toHaveBeenCalled();
   });
+
+  test("the repository the person picked is handed to the trigger", async () => {
+    jest
+      .spyOn(SpanService, "findBy")
+      .mockResolvedValue(storedSpans(SLOW_CHECKOUT_WITH_N_PLUS_ONE));
+    jest.spyOn(ServiceService, "findOneById").mockResolvedValue(null);
+    const repositoryId: ObjectID = ObjectID.generate();
+    const create: jest.SpyInstance = jest
+      .spyOn(FixPerformanceTaskTrigger, "createPerformanceFixTaskFromTrace")
+      .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
+
+    const call: Call = await post(CREATE_ROUTE, {
+      traceId: TRACE_ID,
+      repositoryId: repositoryId.toString(),
+    });
+
+    expect(call.thrown).toBeUndefined();
+    expect(
+      (
+        create.mock.calls[0]![0] as { repositoryId?: ObjectID }
+      ).repositoryId?.toString(),
+    ).toBe(repositoryId.toString());
+  });
+
+  test("no pick: the trigger is asked without one", async () => {
+    jest
+      .spyOn(SpanService, "findBy")
+      .mockResolvedValue(storedSpans(SLOW_CHECKOUT_WITH_N_PLUS_ONE));
+    jest.spyOn(ServiceService, "findOneById").mockResolvedValue(null);
+    const create: jest.SpyInstance = jest
+      .spyOn(FixPerformanceTaskTrigger, "createPerformanceFixTaskFromTrace")
+      .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
+
+    await post(CREATE_ROUTE, { traceId: TRACE_ID, repositoryId: null });
+
+    expect(
+      (create.mock.calls[0]![0] as { repositoryId?: ObjectID }).repositoryId,
+    ).toBeUndefined();
+  });
+
+  test.each([
+    ["a name", "checkout-api"],
+    ["a number", 7],
+    ["an id that is no uuid", "repo-1"],
+  ])(
+    "a pick that is %s is refused before the trace is read",
+    async (_name: string, repositoryId: string | number) => {
+      const findBy: jest.SpyInstance = jest.spyOn(SpanService, "findBy");
+      jest.spyOn(ServiceService, "findOneById").mockResolvedValue(null);
+      findBy.mockResolvedValue(storedSpans(SLOW_CHECKOUT_WITH_N_PLUS_ONE));
+      findBy.mockClear();
+      const create: jest.SpyInstance = jest.spyOn(
+        FixPerformanceTaskTrigger,
+        "createPerformanceFixTaskFromTrace",
+      );
+
+      const call: Call = await post(CREATE_ROUTE, {
+        traceId: TRACE_ID,
+        repositoryId,
+      });
+
+      expect((call.thrown as Error).message).toBe(
+        "repositoryId must be a repository's ID.",
+      );
+      expect(create).not.toHaveBeenCalled();
+      expect(findBy).not.toHaveBeenCalled();
+    },
+  );
 
   test("a fix for the trace already did its work: refused, pointing at its task", async () => {
     jest

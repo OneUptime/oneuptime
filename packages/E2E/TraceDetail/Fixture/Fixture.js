@@ -41,6 +41,9 @@
  *   ?gate=     a CodeTaskBlockerType (NoAiCredits, RunnerNotOnline,
  *              PlanRequired, ...) - what Code's gate says about the run the
  *              click would queue; none by default
+ *   ?repo=pick several repositories are connected and none was found to
+ *              hold the trace's code for certain: the suggestion lists
+ *              them to pick from, and the create route wants the pick
  *
  * POST /ai-investigation/performance-fix-suggestion is answered by the real
  * span-tree analysis and suggestion rule (Common/Utils/Traces and
@@ -107,6 +110,16 @@ const holdSpans = params.get("hold") === "spans";
 const isAiOn = params.get("ai") !== "off";
 const hasRepository = params.get("repo") !== "none";
 const repositoryGoesAway = params.get("repo") === "gone";
+// ?repo=pick: the repositories a person picks the fix's repository from.
+const isRepositoryPick = params.get("repo") === "pick";
+const PICK_REPOSITORIES = [
+  { id: "51000000-0000-4000-8000-000000000002", name: "acme/billing" },
+  { id: "51000000-0000-4000-8000-000000000001", name: "acme/checkout-api" },
+  {
+    id: "51000000-0000-4000-8000-000000000003",
+    name: "acme/storefront-web-with-a-rather-long-repository-name",
+  },
+];
 // Set once the create route has refused a click for want of a repository.
 let isRepositoryGone = false;
 const isFixRunning = params.get("fix") === "running";
@@ -1471,6 +1484,9 @@ async function handleApi(method, options) {
             : offer.offer === "Done"
               ? FINISHED_FIX_RUN_ID
               : null,
+        // Only the fix itself asks for a pick (FixPerformanceTaskTrigger).
+        repositories:
+          isRepositoryPick && offer.offer === "Act" ? PICK_REPOSITORIES : [],
       }),
     );
   }
@@ -1506,6 +1522,34 @@ async function handleApi(method, options) {
         },
         {},
       );
+    }
+    // The pick, held to the repositories the suggestion listed.
+    if (isRepositoryPick) {
+      const picked = body ? body.repositoryId : undefined;
+      if (!picked) {
+        throw new HTTPErrorResponse(
+          400,
+          {
+            message:
+              "Pick the repository that holds this code: several repositories are connected, and none could be matched to this trace's service or code.",
+          },
+          {},
+        );
+      }
+      if (
+        !PICK_REPOSITORIES.some((repository) => {
+          return repository.id === picked;
+        })
+      ) {
+        throw new HTTPErrorResponse(
+          400,
+          {
+            message:
+              "That repository is not one of this project's connected repositories OneUptime AI can work in. Pick another, or connect it in Code.",
+          },
+          {},
+        );
+      }
     }
     return ok({ aiRunId: AI_RUN_ID });
   }

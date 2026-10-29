@@ -4089,7 +4089,10 @@ function stallCitations(window) {
     logs("checkout"),
     {
       toolName: "log_histogram",
-      queryArguments: { startTime: iso(window.start), endTime: iso(window.end) },
+      queryArguments: {
+        startTime: iso(window.start),
+        endTime: iso(window.end),
+      },
       label: `Log volume by severity, ${iso(window.start)} – ${iso(window.end)}`,
       rowCount: 0,
       durationInMs: 180,

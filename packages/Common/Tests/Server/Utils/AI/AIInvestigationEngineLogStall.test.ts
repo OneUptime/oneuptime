@@ -191,7 +191,9 @@ describe("AIInvestigationEngine.executeRun: an investigation the logs could not 
     expect(stall).toEqual({
       reason: InvestigationLogStallReason.NoLogs,
       logSearchCount: 0,
-      windowStart: new Date(STARTED_AT.getTime() - 60 * 60 * 1000).toISOString(),
+      windowStart: new Date(
+        STARTED_AT.getTime() - 60 * 60 * 1000,
+      ).toISOString(),
       windowEnd: expect.any(String),
     });
     expect(event.resultSummary?.message).toBe(

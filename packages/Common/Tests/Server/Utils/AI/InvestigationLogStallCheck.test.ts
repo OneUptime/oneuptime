@@ -159,7 +159,9 @@ describe("InvestigationLogStallCheck.check", () => {
   });
 
   test("a project with logs it never searched: nothing to say", async () => {
-    expect(await check(INCONCLUSIVE, [citation("query_metrics", 0)])).toBeNull();
+    expect(
+      await check(INCONCLUSIVE, [citation("query_metrics", 0)]),
+    ).toBeNull();
   });
 
   test("the logs could not be read: its own empty searches still speak", async () => {
