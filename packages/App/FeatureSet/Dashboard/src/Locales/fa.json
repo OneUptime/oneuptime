@@ -37069,5 +37069,13 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "رکوردها هنوز آن را دارند، پس نمی‌توان آن را حذف کرد. می‌تواند بایگانی بماند.",
   "{{count}} {{itemsName}} skipped": "{{count}} مورد نادیده گرفته شد ({{itemsName}})",
   "{{count}} {{itemsName}} skipped_one": "{{count}} مورد نادیده گرفته شد ({{itemName}})",
-  "You can change or remove these rules, but not add new ones.": "می‌توانید این قواعد را تغییر دهید یا حذف کنید، اما نمی‌توانید قاعده‌ای اضافه کنید."
+  "You can change or remove these rules, but not add new ones.": "می‌توانید این قواعد را تغییر دهید یا حذف کنید، اما نمی‌توانید قاعده‌ای اضافه کنید.",
+  "Checking this change with a dry run…": "این تغییر با یک اجرای آزمایشی بررسی می‌شود…",
+  "Could not start the dry run: nothing was changed": "اجرای آزمایشی شروع نشد: هیچ چیزی تغییر نکرد",
+  "Dry run": "اجرای آزمایشی",
+  "Dry run again": "اجرای آزمایشی دوباره",
+  "Dry run {{time}}: it could not finish. Nothing was changed.": "اجرای آزمایشی {{time}}: کامل نشد. هیچ چیزی تغییر نکرد.",
+  "Dry run {{time}}: the agent would refuse this change. Nothing was changed.": "اجرای آزمایشی {{time}}: عامل این تغییر را رد می‌کند. هیچ چیزی تغییر نکرد.",
+  "Dry run {{time}}: this change would run. Nothing was changed.": "اجرای آزمایشی {{time}}: این تغییر اجرا می‌شود. هیچ چیزی تغییر نکرد.",
+  "What the agent said": "پاسخ عامل"
 }

@@ -37069,5 +37069,13 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "रिकॉर्ड्स में यह अभी भी है, इसलिए इसे हटाया नहीं जा सकता। यह संग्रहित रह सकता है।",
   "{{count}} {{itemsName}} skipped": "{{count}} {{itemsName}} छोड़े गए",
   "{{count}} {{itemsName}} skipped_one": "{{count}} {{itemName}} छोड़ा गया",
-  "You can change or remove these rules, but not add new ones.": "आप इन नियमों को बदल या हटा सकते हैं, लेकिन नए नहीं जोड़ सकते।"
+  "You can change or remove these rules, but not add new ones.": "आप इन नियमों को बदल या हटा सकते हैं, लेकिन नए नहीं जोड़ सकते।",
+  "Checking this change with a dry run…": "ड्राई रन से इस बदलाव की जाँच की जा रही है…",
+  "Could not start the dry run: nothing was changed": "ड्राई रन शुरू नहीं हो सका: कुछ भी नहीं बदला गया",
+  "Dry run": "ड्राई रन",
+  "Dry run again": "ड्राई रन फिर से करें",
+  "Dry run {{time}}: it could not finish. Nothing was changed.": "ड्राई रन {{time}}: यह पूरा नहीं हो सका। कुछ भी नहीं बदला गया।",
+  "Dry run {{time}}: the agent would refuse this change. Nothing was changed.": "ड्राई रन {{time}}: एजेंट इस बदलाव को अस्वीकार करेगा। कुछ भी नहीं बदला गया।",
+  "Dry run {{time}}: this change would run. Nothing was changed.": "ड्राई रन {{time}}: यह बदलाव चलाया जाएगा। कुछ भी नहीं बदला गया।",
+  "What the agent said": "एजेंट ने क्या कहा"
 }

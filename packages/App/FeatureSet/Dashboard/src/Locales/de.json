@@ -37069,5 +37069,13 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "Datensätze verweisen noch darauf, daher kann es nicht gelöscht werden. Es kann archiviert bleiben.",
   "{{count}} {{itemsName}} skipped": "{{count}} {{itemsName}} übersprungen",
   "{{count}} {{itemsName}} skipped_one": "{{count}} {{itemName}} übersprungen",
-  "You can change or remove these rules, but not add new ones.": "Sie können diese Regeln ändern oder entfernen, aber keine neuen hinzufügen."
+  "You can change or remove these rules, but not add new ones.": "Sie können diese Regeln ändern oder entfernen, aber keine neuen hinzufügen.",
+  "Checking this change with a dry run…": "Diese Änderung wird mit einem Probelauf geprüft…",
+  "Could not start the dry run: nothing was changed": "Der Probelauf konnte nicht gestartet werden: Es wurde nichts geändert",
+  "Dry run": "Probelauf",
+  "Dry run again": "Probelauf wiederholen",
+  "Dry run {{time}}: it could not finish. Nothing was changed.": "Probelauf {{time}}: Er konnte nicht abgeschlossen werden. Es wurde nichts geändert.",
+  "Dry run {{time}}: the agent would refuse this change. Nothing was changed.": "Probelauf {{time}}: Der Agent würde diese Änderung ablehnen. Es wurde nichts geändert.",
+  "Dry run {{time}}: this change would run. Nothing was changed.": "Probelauf {{time}}: Diese Änderung würde ausgeführt. Es wurde nichts geändert.",
+  "What the agent said": "Was der Agent gemeldet hat"
 }

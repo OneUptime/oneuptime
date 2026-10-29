@@ -37069,5 +37069,13 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "Poster har den fortfarande, så den kan inte tas bort. Den kan förbli arkiverad.",
   "{{count}} {{itemsName}} skipped": "{{count}} {{itemsName}} överhoppade",
   "{{count}} {{itemsName}} skipped_one": "{{count}} {{itemName}} överhoppad",
-  "You can change or remove these rules, but not add new ones.": "Du kan ändra eller ta bort de här reglerna, men inte lägga till nya."
+  "You can change or remove these rules, but not add new ones.": "Du kan ändra eller ta bort de här reglerna, men inte lägga till nya.",
+  "Checking this change with a dry run…": "Ändringen kontrolleras med en provkörning…",
+  "Could not start the dry run: nothing was changed": "Provkörningen kunde inte startas: ingenting ändrades",
+  "Dry run": "Provkörning",
+  "Dry run again": "Upprepa provkörning",
+  "Dry run {{time}}: it could not finish. Nothing was changed.": "Provkörning {{time}}: den kunde inte slutföras. Ingenting ändrades.",
+  "Dry run {{time}}: the agent would refuse this change. Nothing was changed.": "Provkörning {{time}}: agenten skulle neka ändringen. Ingenting ändrades.",
+  "Dry run {{time}}: this change would run. Nothing was changed.": "Provkörning {{time}}: ändringen skulle köras. Ingenting ändrades.",
+  "What the agent said": "Vad agenten svarade"
 }

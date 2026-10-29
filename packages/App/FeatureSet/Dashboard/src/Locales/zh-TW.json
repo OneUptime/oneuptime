@@ -37069,5 +37069,13 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "仍有記錄在使用它，因此無法刪除。它可以維持封存。",
   "{{count}} {{itemsName}} skipped": "已略過 {{count}} 個{{itemsName}}",
   "{{count}} {{itemsName}} skipped_one": "已略過 {{count}} 個{{itemName}}",
-  "You can change or remove these rules, but not add new ones.": "您可以變更或移除這些規則，但無法新增規則。"
+  "You can change or remove these rules, but not add new ones.": "您可以變更或移除這些規則，但無法新增規則。",
+  "Checking this change with a dry run…": "正在以試運行檢查此變更…",
+  "Could not start the dry run: nothing was changed": "無法開始試運行：未做任何變更",
+  "Dry run": "試運行",
+  "Dry run again": "重新試運行",
+  "Dry run {{time}}: it could not finish. Nothing was changed.": "試運行（{{time}}）：未能完成。未做任何變更。",
+  "Dry run {{time}}: the agent would refuse this change. Nothing was changed.": "試運行（{{time}}）：代理程式會拒絕此變更。未做任何變更。",
+  "Dry run {{time}}: this change would run. Nothing was changed.": "試運行（{{time}}）：此變更將會執行。未做任何變更。",
+  "What the agent said": "代理程式的回覆"
 }

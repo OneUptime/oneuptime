@@ -269,13 +269,14 @@ OneUptime læser selv en AWS-konto, et Azure-abonnement eller et Google Cloud-pr
 - `cloud target-health RESOURCE`: kun på AWS, hvilke backends en målgruppe eller load balancer regner som sunde, og hvorfor de andre ikke er det.
 - `cloud quota-usage RESOURCE [--limit N]`: kontoens forbrug i forhold til dens grænser for ressourcens tjeneste i ressourcens region.
 - `cloud read-logs RESOURCE [--filter TEXT] [--minutes N] [--limit N]`: ressourcens loglinjer, nyeste først, kun dem, der indeholder `--filter`, når den er angivet (`--minutes` er 60 som standard, op til 1440). Loglinjer kan indeholde kundedata, så denne læsning er slået fra, indtil nogen slår **Lad AI læse denne kontos logs under undersøgelser** til under **Avanceret** i **Lad AI rette problemer**, hvilket gemmes med det samme, uden at der skal køres nogen kommando.
-- `cloud whoami`: den ene læsning, der kører på Cloud-AI-agenten, med den konto, den handler i, om den må ændre noget, og hvilke ændringer. **Test forbindelse**, i menuen **⋯** ved siden af agentens status, kører den.
+- `cloud whoami`: en læsning, der kører på Cloud-AI-agenten, med den konto, den handler i, om den må ændre noget, og hvilke ændringer. **Test forbindelse**, i menuen **⋯** ved siden af agentens status, kører den.
+- `cloud dry-run CHANGE RESOURCE [--flag value]`: den anden læsning, der kører på Cloud-AI-agenten, en ændring skrevet præcis, som den ville køre, og kontrolleret uden at blive foretaget. Agenten kontrollerer den, som den ville før ændringen (sin skriveadgang, de ændringer, den må foretage, kontoen, det krævede tag, ressourcens tilstand og grænserne for en skalering), læser den værdi, den ville erstatte, og stopper før det kald, der ville foretage den. Den svarer, om ændringen ville køre, hvad den ville erstatte, og hvordan den ville blive fortrudt, eller hvorfor den ville blive afvist.
 
-`--limit` er 50 rækker som standard, højst 200. En læsnings svar skæres af ved 64 KB, ved et linjeskift, og en konto tager højst 30 live-læsninger i minuttet.
+`--limit` er 50 rækker som standard, højst 200. En læsnings svar skæres af ved 64 KB, ved et linjeskift, og en konto tager højst 30 live-læsninger i minuttet. Spørg AI, åbnet på en cloudressources side, kører disse læsninger på ressourcens konto.
 
 ## Sådan fungerer rettelser
 
-Rettelser er slået fra, indtil du slår dem til, og det kræver to indstillinger på agenten: `ONEUPTIME_AI_FIXES` sat til en anden tilstand end `off` (se [Hvad AI må gøre, sat af agenten](#hvad-ai-må-gøre-sat-af-agenten)) og `ONEUPTIME_AI_ALLOW_WRITES=true` (se [Skriveadgang på agenten](#skriveadgang-på-agenten)). Den ene alene ændrer intet. En agent, der er ældre end `ONEUPTIME_AI_FIXES`, tager i stedet **Rettelser** fra ressourcens AI-agent-side. Rettelser kræver også, at AI er slået til for projektet (**Aktivér AI** under Projektindstillinger → AI → AI Features), hvilket den er, medmindre nogen har slået den fra.
+Rettelser er slået fra, indtil du slår dem til, og det kræver to indstillinger på agenten: `ONEUPTIME_AI_FIXES` sat til en anden tilstand end `off` (se [Hvad AI må gøre, sat af agenten](#hvad-ai-må-gøre-sat-af-agenten)) og `ONEUPTIME_AI_ALLOW_WRITES=true` (se [Skriveadgang på agenten](#skriveadgang-på-agenten)). Den ene alene ændrer intet. En agent, der er ældre end `ONEUPTIME_AI_FIXES`, tager i stedet **Rettelser** fra ressourcens AI-agent-side. Rettelser kræver også, at AI er slået til for projektet (**Aktivér AI** under Projektindstillinger → AI → AI Features), hvilket den er, medmindre nogen har slået den fra. Slår du den fra, stopper det straks hver kommando, OneUptime AI sender, også næste kommando i en godkendt plan og en tilbagerulning; kun **Test forbindelse**, i menuen **⋯** ved siden af agentens status, kører stadig.
 
 ### Rettelsestilstande
 
@@ -397,6 +398,8 @@ En ændring navngiver én ressource ved dens id, som en læsning gør, og kører
 
 **Aldrig**, heller ikke når et menneske godkender det: sletning eller nedlukning af noget som helst, IAM, sikkerhedsgrupper og firewallregler, hemmeligheder og nøgler, indhold i lager og databaser, instanstyper, snapshots og gendannelser, tømning af en kø, en gruppes minimum eller maksimum og alt, der ikke står i tabellen.
 
+Før nogen godkender en rettelse, der ændrer en cloudkonto, foretager OneUptime en prøvekørsel af hver ændring, den foreslår, og rettelsens kort på hændelsen eller advarslen viser svaret under ændringen: den ville køre, med det kald, den ville foretage, og hvordan den fortrydes; den ville blive afvist, og hvorfor; eller prøvekørslen kunne ikke gennemføres. **Gentag prøvekørsel** kontrollerer igen. En prøvekørsel ændrer intet: agenten stopper før det kald, der ville foretage ændringen, og på AWS må den session af skriverollen, den bruger, kun læse.
+
 ### Listen over tilladte kommandoer
 
 I tilstanden **Automatisk** lader ressourcens **Tilladte kommandoer** på AI-agentens side de mere risikable kommandoer, du nævner, køre uden godkendelse. Listen matches ord for ord mod kommandoen, ikke som tekst:
@@ -477,7 +480,7 @@ Collectorernes README'er har de præcise kommandoer: `pveum`-kommandoerne til et
 Hver kommando er en argumentliste, aldrig en shell-linje, og den samme kommandopolitik (én kopi i OneUptime, en byte-identisk kopi i agenten) afgør dens niveau tre steder:
 
 1. **OneUptime AI's værktøjer.** Undersøgelsesværktøjet afviser alt andet end en Read; rettelsesværktøjerne afviser Denied-kommandoer, anvender tilstanden, listen over tilladte kommandoer og agentens rapporterede skriveadgang og sender en ændring, der kræver et menneske, til godkendelse.
-2. **Når OneUptime sætter den i kø.** Hver kommando kontrolleres igen: en Denied-kommando afvises, en undersøgelse må kun sætte Reads i kø, ressourcen skal tilhøre dette projekt og dens agent være online, kontakten for undersøgelse eller rettelser skal være slået til, jobbet må ikke medbringe loginoplysninger, og en ændring skal passe til agentens rapporterede skriveadgang. Et projekt må højst sætte 240 undersøgelseskommandoer og 30 rettelseskommandoer i kø i timen.
+2. **Når OneUptime sætter den i kø.** Hver kommando kontrolleres igen: **Aktivér AI** skal stadig være slået til (og læses igen, når agenten henter kommandoen), en Denied-kommando afvises, en undersøgelse må kun sætte Reads i kø, ressourcen skal tilhøre dette projekt og dens agent være online, kontakten for undersøgelse eller rettelser skal være slået til, jobbet må ikke medbringe loginoplysninger, og en ændring skal passe til agentens rapporterede skriveadgang. Et projekt må højst sætte 240 undersøgelseskommandoer, 30 rettelseskommandoer og 60 cloudprøvekørsler i kø i timen.
 3. **På agenten, før noget kører.** Agenten afviser et job, der ikke er en AI-kommando til dens egen ressource (den identitet, den registrerede sig med, og dens OneUptime-id), et program, dens ressource ikke kører, en kommando, dens egen politik nægter eller placerer højere end det niveau, OneUptime sendte, alt andet end en Read i en undersøgelse og en ændring, så længe `ONEUPTIME_AI_ALLOW_WRITES` ikke er `true`, eller uden for dens skrivemål.
 
 ### Sådan kører en kommando

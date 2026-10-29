@@ -37069,5 +37069,13 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "Его всё ещё используют записи, поэтому удалить его нельзя. Оно может оставаться в архиве.",
   "{{count}} {{itemsName}} skipped": "Пропущено: {{count}} ({{itemsName}})",
   "{{count}} {{itemsName}} skipped_one": "Пропущено: {{count}} ({{itemName}})",
-  "You can change or remove these rules, but not add new ones.": "Эти правила можно изменить или удалить, но нельзя добавить новые."
+  "You can change or remove these rules, but not add new ones.": "Эти правила можно изменить или удалить, но нельзя добавить новые.",
+  "Checking this change with a dry run…": "Изменение проверяется пробным запуском…",
+  "Could not start the dry run: nothing was changed": "Не удалось начать пробный запуск: ничего не изменено",
+  "Dry run": "Пробный запуск",
+  "Dry run again": "Повторить пробный запуск",
+  "Dry run {{time}}: it could not finish. Nothing was changed.": "Пробный запуск {{time}}: его не удалось завершить. Ничего не изменено.",
+  "Dry run {{time}}: the agent would refuse this change. Nothing was changed.": "Пробный запуск {{time}}: агент отклонил бы это изменение. Ничего не изменено.",
+  "Dry run {{time}}: this change would run. Nothing was changed.": "Пробный запуск {{time}}: это изменение было бы выполнено. Ничего не изменено.",
+  "What the agent said": "Что ответил агент"
 }

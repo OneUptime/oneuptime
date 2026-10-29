@@ -37069,5 +37069,13 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "Ci sono record che lo hanno ancora, quindi non può essere eliminato. Può restare archiviato.",
   "{{count}} {{itemsName}} skipped": "{{itemsName}} saltati: {{count}}",
   "{{count}} {{itemsName}} skipped_one": "{{itemName}} saltato: {{count}}",
-  "You can change or remove these rules, but not add new ones.": "Puoi modificare o rimuovere queste regole, ma non aggiungerne di nuove."
+  "You can change or remove these rules, but not add new ones.": "Puoi modificare o rimuovere queste regole, ma non aggiungerne di nuove.",
+  "Checking this change with a dry run…": "Verifica di questa modifica con una simulazione…",
+  "Could not start the dry run: nothing was changed": "Impossibile avviare la simulazione: non è stato modificato nulla",
+  "Dry run": "Simulazione",
+  "Dry run again": "Ripeti la simulazione",
+  "Dry run {{time}}: it could not finish. Nothing was changed.": "Simulazione {{time}}: non è riuscita a terminare. Non è stato modificato nulla.",
+  "Dry run {{time}}: the agent would refuse this change. Nothing was changed.": "Simulazione {{time}}: l'agente rifiuterebbe questa modifica. Non è stato modificato nulla.",
+  "Dry run {{time}}: this change would run. Nothing was changed.": "Simulazione {{time}}: questa modifica verrebbe eseguita. Non è stato modificato nulla.",
+  "What the agent said": "Cosa ha risposto l'agente"
 }

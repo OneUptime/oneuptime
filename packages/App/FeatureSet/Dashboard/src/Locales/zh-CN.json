@@ -37069,5 +37069,13 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "仍有记录在使用它，因此无法删除。它可以保持归档。",
   "{{count}} {{itemsName}} skipped": "已跳过 {{count}} 个{{itemsName}}",
   "{{count}} {{itemsName}} skipped_one": "已跳过 {{count}} 个{{itemName}}",
-  "You can change or remove these rules, but not add new ones.": "您可以更改或移除这些规则，但无法添加新规则。"
+  "You can change or remove these rules, but not add new ones.": "您可以更改或移除这些规则，但无法添加新规则。",
+  "Checking this change with a dry run…": "正在通过试运行检查此变更…",
+  "Could not start the dry run: nothing was changed": "无法开始试运行：未做任何更改",
+  "Dry run": "试运行",
+  "Dry run again": "重新试运行",
+  "Dry run {{time}}: it could not finish. Nothing was changed.": "试运行（{{time}}）：未能完成。未做任何更改。",
+  "Dry run {{time}}: the agent would refuse this change. Nothing was changed.": "试运行（{{time}}）：智能体会拒绝此变更。未做任何更改。",
+  "Dry run {{time}}: this change would run. Nothing was changed.": "试运行（{{time}}）：此变更将会执行。未做任何更改。",
+  "What the agent said": "智能体的回复"
 }

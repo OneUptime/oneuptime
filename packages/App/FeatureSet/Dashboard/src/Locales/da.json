@@ -37069,5 +37069,13 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "Poster har den stadig, så den kan ikke slettes. Den kan forblive arkiveret.",
   "{{count}} {{itemsName}} skipped": "{{count}} {{itemsName}} sprunget over",
   "{{count}} {{itemsName}} skipped_one": "{{count}} {{itemName}} sprunget over",
-  "You can change or remove these rules, but not add new ones.": "Du kan ændre eller fjerne disse regler, men ikke tilføje nye."
+  "You can change or remove these rules, but not add new ones.": "Du kan ændre eller fjerne disse regler, men ikke tilføje nye.",
+  "Checking this change with a dry run…": "Ændringen kontrolleres med en prøvekørsel…",
+  "Could not start the dry run: nothing was changed": "Prøvekørslen kunne ikke startes: intet blev ændret",
+  "Dry run": "Prøvekørsel",
+  "Dry run again": "Gentag prøvekørsel",
+  "Dry run {{time}}: it could not finish. Nothing was changed.": "Prøvekørsel {{time}}: den kunne ikke gennemføres. Intet blev ændret.",
+  "Dry run {{time}}: the agent would refuse this change. Nothing was changed.": "Prøvekørsel {{time}}: agenten ville afvise ændringen. Intet blev ændret.",
+  "Dry run {{time}}: this change would run. Nothing was changed.": "Prøvekørsel {{time}}: ændringen ville blive udført. Intet blev ændret.",
+  "What the agent said": "Hvad agenten svarede"
 }

@@ -37069,5 +37069,13 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "Records hebben het nog, dus het kan niet worden verwijderd. Het kan gearchiveerd blijven.",
   "{{count}} {{itemsName}} skipped": "{{count}} {{itemsName}} overgeslagen",
   "{{count}} {{itemsName}} skipped_one": "{{count}} {{itemName}} overgeslagen",
-  "You can change or remove these rules, but not add new ones.": "U kunt deze regels wijzigen of verwijderen, maar geen nieuwe toevoegen."
+  "You can change or remove these rules, but not add new ones.": "U kunt deze regels wijzigen of verwijderen, maar geen nieuwe toevoegen.",
+  "Checking this change with a dry run…": "Deze wijziging wordt gecontroleerd met een proefrun…",
+  "Could not start the dry run: nothing was changed": "De proefrun kon niet worden gestart: er is niets gewijzigd",
+  "Dry run": "Proefrun",
+  "Dry run again": "Proefrun herhalen",
+  "Dry run {{time}}: it could not finish. Nothing was changed.": "Proefrun {{time}}: deze kon niet worden voltooid. Er is niets gewijzigd.",
+  "Dry run {{time}}: the agent would refuse this change. Nothing was changed.": "Proefrun {{time}}: de agent zou deze wijziging weigeren. Er is niets gewijzigd.",
+  "Dry run {{time}}: this change would run. Nothing was changed.": "Proefrun {{time}}: deze wijziging zou worden uitgevoerd. Er is niets gewijzigd.",
+  "What the agent said": "Wat de agent antwoordde"
 }

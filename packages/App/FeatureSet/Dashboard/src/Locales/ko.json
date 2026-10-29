@@ -37069,5 +37069,13 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "레코드에서 아직 사용 중이므로 삭제할 수 없습니다. 보관된 상태로 둘 수 있습니다.",
   "{{count}} {{itemsName}} skipped": "{{itemsName}} {{count}}개 건너뜀",
   "{{count}} {{itemsName}} skipped_one": "{{itemName}} {{count}}개 건너뜀",
-  "You can change or remove these rules, but not add new ones.": "이 규칙을 변경하거나 제거할 수는 있지만 새로 추가할 수는 없습니다."
+  "You can change or remove these rules, but not add new ones.": "이 규칙을 변경하거나 제거할 수는 있지만 새로 추가할 수는 없습니다.",
+  "Checking this change with a dry run…": "시험 실행으로 이 변경을 확인하는 중…",
+  "Could not start the dry run: nothing was changed": "시험 실행을 시작할 수 없습니다. 변경된 것은 없습니다",
+  "Dry run": "시험 실행",
+  "Dry run again": "시험 실행 다시 하기",
+  "Dry run {{time}}: it could not finish. Nothing was changed.": "시험 실행({{time}}): 완료하지 못했습니다. 변경된 것은 없습니다.",
+  "Dry run {{time}}: the agent would refuse this change. Nothing was changed.": "시험 실행({{time}}): 에이전트가 이 변경을 거부합니다. 변경된 것은 없습니다.",
+  "Dry run {{time}}: this change would run. Nothing was changed.": "시험 실행({{time}}): 이 변경은 실행됩니다. 변경된 것은 없습니다.",
+  "What the agent said": "에이전트의 응답"
 }

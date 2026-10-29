@@ -37069,5 +37069,13 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "Records still have it, so it can't be deleted. It can stay archived.",
   "{{count}} {{itemsName}} skipped": "{{count}} {{itemsName}} skipped",
   "{{count}} {{itemsName}} skipped_one": "{{count}} {{itemName}} skipped",
-  "You can change or remove these rules, but not add new ones.": "You can change or remove these rules, but not add new ones."
+  "You can change or remove these rules, but not add new ones.": "You can change or remove these rules, but not add new ones.",
+  "Checking this change with a dry run…": "Checking this change with a dry run…",
+  "Could not start the dry run: nothing was changed": "Could not start the dry run: nothing was changed",
+  "Dry run": "Dry run",
+  "Dry run again": "Dry run again",
+  "Dry run {{time}}: it could not finish. Nothing was changed.": "Dry run {{time}}: it could not finish. Nothing was changed.",
+  "Dry run {{time}}: the agent would refuse this change. Nothing was changed.": "Dry run {{time}}: the agent would refuse this change. Nothing was changed.",
+  "Dry run {{time}}: this change would run. Nothing was changed.": "Dry run {{time}}: this change would run. Nothing was changed.",
+  "What the agent said": "What the agent said"
 }

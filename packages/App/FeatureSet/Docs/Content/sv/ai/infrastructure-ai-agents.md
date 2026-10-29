@@ -269,13 +269,14 @@ OneUptime läser själv ett AWS-konto, en Azure-prenumeration eller ett Google C
 - `cloud target-health RESOURCE`: endast på AWS, vilka backends en målgrupp eller lastbalanserare räknar som friska och varför de andra inte är det.
 - `cloud quota-usage RESOURCE [--limit N]`: kontots användning i förhållande till dess gränser för resursens tjänst, i resursens region.
 - `cloud read-logs RESOURCE [--filter TEXT] [--minutes N] [--limit N]`: resursens loggrader, nyast först, bara de som innehåller `--filter` när den anges (`--minutes` 60 som standard, upp till 1440). Loggrader kan innehålla kunddata, så den här läsningen är avslagen tills någon slår på **Låt AI läsa det här kontots loggar under utredningar**, under **Avancerad** i **Låt AI åtgärda problem**, vilket sparas direkt, utan något kommando att köra.
-- `cloud whoami`: den enda läsningen som körs på Moln-AI-agenten, med kontot som den agerar i, om den får ändra något och vilka ändringar. **Testa anslutningen**, i menyn **⋯** bredvid agentens status, kör den.
+- `cloud whoami`: en läsning som körs på Moln-AI-agenten, med kontot som den agerar i, om den får ändra något och vilka ändringar. **Testa anslutningen**, i menyn **⋯** bredvid agentens status, kör den.
+- `cloud dry-run CHANGE RESOURCE [--flag value]`: den andra läsningen som körs på Moln-AI-agenten, en ändring skriven exakt som den skulle köras och kontrollerad utan att göras. Agenten kontrollerar den som den skulle göra före ändringen (sin skrivåtkomst, de ändringar den får göra, kontot, den krävda taggen, resursens tillstånd och gränserna för en skalning), läser värdet den skulle ersätta och stannar före anropet som skulle göra den. Den svarar om ändringen skulle köras, vad den skulle ersätta och hur den skulle ångras, eller varför den skulle nekas.
 
-`--limit` är 50 rader som standard och högst 200. En läsnings svar klipps vid 64 KB, vid en radbrytning, och ett konto tar emot högst 30 läsningar i realtid per minut.
+`--limit` är 50 rader som standard och högst 200. En läsnings svar klipps vid 64 KB, vid en radbrytning, och ett konto tar emot högst 30 läsningar i realtid per minut. Fråga AI, öppnat på en molnresurs sida, kör de här läsningarna på resursens konto.
 
 ## Så fungerar åtgärder
 
-Åtgärder är avslagna tills du slår på dem, och det kräver två inställningar på agenten: `ONEUPTIME_AI_FIXES` satt till ett annat läge än `off` (se [Vad AI får göra, satt av agenten](#vad-ai-får-göra-satt-av-agenten)) och `ONEUPTIME_AI_ALLOW_WRITES=true` (se [Skrivåtkomst på agenten](#skrivåtkomst-på-agenten)). Den ena utan den andra ändrar ingenting. En agent som är äldre än `ONEUPTIME_AI_FIXES` tar i stället **Åtgärder** från resursens AI-agentsida. Åtgärder kräver också att AI är aktiverat för projektet (**Aktivera AI** under Projektinställningar → AI → AI Features), vilket det är om ingen har stängt av det.
+Åtgärder är avslagna tills du slår på dem, och det kräver två inställningar på agenten: `ONEUPTIME_AI_FIXES` satt till ett annat läge än `off` (se [Vad AI får göra, satt av agenten](#vad-ai-får-göra-satt-av-agenten)) och `ONEUPTIME_AI_ALLOW_WRITES=true` (se [Skrivåtkomst på agenten](#skrivåtkomst-på-agenten)). Den ena utan den andra ändrar ingenting. En agent som är äldre än `ONEUPTIME_AI_FIXES` tar i stället **Åtgärder** från resursens AI-agentsida. Åtgärder kräver också att AI är aktiverat för projektet (**Aktivera AI** under Projektinställningar → AI → AI Features), vilket det är om ingen har stängt av det. Stänger du av det stoppas genast varje kommando som OneUptime AI skickar, även nästa kommando i en godkänd plan och en återställning; bara **Testa anslutningen**, i menyn **⋯** bredvid agentens status, körs fortfarande.
 
 ### Åtgärdslägen
 
@@ -397,6 +398,8 @@ En ändring namnger en resurs med dess id, som en läsning gör, och körs bara 
 
 **Aldrig**, inte ens när en människa godkänner det: att ta bort eller avsluta något, IAM, säkerhetsgrupper och brandväggsregler, hemligheter och nycklar, innehåll i lagring och databaser, instanstyper, ögonblicksbilder och återställningar, att tömma en kö, en grupps minimum eller maximum, och allt som inte står i tabellen.
 
+Innan någon godkänner en åtgärd som ändrar ett molnkonto gör OneUptime en provkörning av varje ändring den föreslår, och åtgärdens kort på incidenten eller larmet visar svaret under ändringen: den skulle köras, med anropet den skulle göra och hur den ångras; den skulle nekas, och varför; eller provkörningen kunde inte slutföras. **Upprepa provkörning** kontrollerar igen. En provkörning ändrar ingenting: agenten stannar före anropet som skulle göra ändringen, och på AWS får sessionen av skrivrollen som den använder bara läsa.
+
 ### Listan över tillåtna kommandon
 
 I läget **Automatiskt** låter resursens **Tillåtna kommandon** på AI-agentens sida de mer riskfyllda kommandon som du anger köras utan godkännande. Listan matchas ord för ord mot kommandot, inte som text:
@@ -477,7 +480,7 @@ Collectorernas README-filer har de exakta kommandona: `pveum`-kommandona för en
 Varje kommando är en argumentlista, aldrig en skalrad, och samma kommandopolicy (en kopia i OneUptime, en byteidentisk kopia i agenten) avgör dess nivå på tre ställen:
 
 1. **OneUptime AI:s verktyg.** Utredningsverktyget nekar allt utom en Read; åtgärdsverktygen nekar Denied-kommandon, tillämpar läget, listan över tillåtna kommandon och agentens rapporterade skrivåtkomst, och skickar en ändring som behöver en människa för godkännande.
-2. **När OneUptime köar det.** Varje kommando kontrolleras igen: ett Denied-kommando nekas, en utredning får bara köa Reads, resursen måste tillhöra det här projektet och dess agent vara online, reglaget för utredning eller åtgärder måste vara påslaget, jobbet får inte bära med sig autentiseringsuppgifter, och en ändring måste passa agentens rapporterade skrivåtkomst. Ett projekt får köa högst 240 utredningskommandon och 30 åtgärdskommandon per timme.
+2. **När OneUptime köar det.** Varje kommando kontrolleras igen: **Aktivera AI** måste fortfarande vara påslaget (och läses igen när agenten hämtar kommandot), ett Denied-kommando nekas, en utredning får bara köa Reads, resursen måste tillhöra det här projektet och dess agent vara online, reglaget för utredning eller åtgärder måste vara påslaget, jobbet får inte bära med sig autentiseringsuppgifter, och en ändring måste passa agentens rapporterade skrivåtkomst. Ett projekt får köa högst 240 utredningskommandon, 30 åtgärdskommandon och 60 molnprovkörningar per timme.
 3. **På agenten, innan något körs.** Agenten nekar ett jobb som inte är ett AI-kommando för dess egen resurs (identiteten den registrerade sig med och dess OneUptime-id), ett program som dess resurs inte kör, ett kommando som dess egen policy nekar eller placerar högre än nivån som OneUptime skickade, allt utom en Read i en utredning, och en ändring så länge `ONEUPTIME_AI_ALLOW_WRITES` inte är `true` eller utanför dess skrivmål.
 
 ### Så körs ett kommando

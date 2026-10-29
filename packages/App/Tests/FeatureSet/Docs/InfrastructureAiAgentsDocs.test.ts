@@ -85,6 +85,8 @@ import {
   CLOUD_DEFAULT_EVENT_HOURS,
   CLOUD_DEFAULT_LOG_MINUTES,
   CLOUD_DEFAULT_ROW_LIMIT,
+  CLOUD_DRY_RUN_OPERATION,
+  CLOUD_DRY_RUN_OPERATION_NAME,
   CLOUD_MAX_EVENT_HOURS,
   CLOUD_MAX_LOG_MINUTES,
   CLOUD_MAX_ROW_LIMIT,
@@ -102,6 +104,7 @@ import {
   getCloudUndoCommand,
   getCloudWriteCommandGuide,
   isCloudChangeOperation,
+  isCloudDryRun,
   isCloudOperationAvailable,
   parseCloudCommand,
   parseCloudResourceId,
@@ -1189,7 +1192,12 @@ describe("Infrastructure AI Agents docs", (): void => {
         [
           "Server/Services/RunnerJobService.ts",
           "MAX_AI_RESOURCE_COMMAND_JOBS_PER_PROJECT_PER_HOUR: number = 30",
-          "and 30 fix commands an hour",
+          "240 investigation commands, 30 fix commands and",
+        ],
+        [
+          "Server/Services/RunnerJobService.ts",
+          "MAX_AI_DRY_RUN_RESOURCE_COMMAND_JOBS_PER_PROJECT_PER_HOUR: number = 60",
+          "and 60 cloud dry runs an hour",
         ],
         [
           "Server/Services/ResourceAiAccessService.ts",
@@ -2098,9 +2106,83 @@ describe("Infrastructure AI Agents docs", (): void => {
         getCloudOperation("whoami") as CloudOperationSpec,
       );
 
-      expect(whoami).toContain("the one read that runs on the Cloud AI agent");
+      expect(whoami).toContain("a read that runs on the Cloud AI agent");
       expect(whoami).toContain(
         "**Test connection**, in the **⋯** menu next to the agent's status, runs it.",
+      );
+    });
+
+    it("writes a change's dry run as the catalog reads it: a Read, run on the agent, never in the list of operations", (): void => {
+      const bullet: string =
+        cloud.split("\n").find((line: string): boolean => {
+          return line.startsWith(
+            `- \`cloud ${CLOUD_DRY_RUN_OPERATION_NAME} CHANGE RESOURCE [--flag value]\` — `,
+          );
+        }) || "";
+
+      expect(bullet).toContain(
+        "the other read that runs on the Cloud AI agent: a change, written exactly as it would run, checked without being made.",
+      );
+      expect(bullet).toContain("stops before the call that makes it.");
+      expect(CLOUD_DRY_RUN_OPERATION.runsOn).toBe("agent");
+      // Not an operation of its own, so no list of operations names it twice.
+      expect(
+        CLOUD_OPERATIONS.some((operation: CloudOperationSpec): boolean => {
+          return operation.name === CLOUD_DRY_RUN_OPERATION_NAME;
+        }),
+      ).toBe(false);
+
+      // The page's own change, dry-run: a Read, and the change it carries.
+      const change: string = `cloud scale-out ${CLOUD_EXAMPLE_IDS.aws} --count 4`;
+      const dryRun: string = change.replace(
+        "cloud ",
+        `cloud ${CLOUD_DRY_RUN_OPERATION_NAME} `,
+      );
+      const parsed: CloudCommandParse = parseCloudCommand(
+        "aws",
+        dryRun.split(" "),
+      );
+
+      expect(parsed.ok && isCloudDryRun(parsed.command)).toBe(true);
+      expect(
+        parsed.ok && parsed.command.dryRunOf
+          ? parsed.command.dryRunOf.operation.name
+          : null,
+      ).toBe("scale-out");
+      expect(evaluate(AiResourceType.AwsAccount, dryRun).tier).toBe(
+        ResourceCommandTier.Read,
+      );
+      expect(evaluate(AiResourceType.AwsAccount, change).tier).toBe(
+        ResourceCommandTier.SafeWrite,
+      );
+
+      // A read has nothing to dry-run.
+      expect(
+        parseCloudCommand("aws", [
+          "cloud",
+          CLOUD_DRY_RUN_OPERATION_NAME,
+          "describe",
+          CLOUD_EXAMPLE_IDS.aws,
+        ]).ok,
+      ).toBe(false);
+
+      // The guide the AI is given offers it on every cloud.
+      for (const entry of CLOUD_PROVIDERS) {
+        expect(getCloudReadCommandGuide(entry.catalog)).toContain(
+          `\`cloud ${CLOUD_DRY_RUN_OPERATION_NAME} <change> RESOURCE [--flag value]\``,
+        );
+      }
+    });
+
+    it("says Ask AI on a cloud resource's page reads that resource's account", (): void => {
+      const access: string = readRepoFile(
+        "packages/Common/Server/Utils/AI/Chat/ChatInfrastructureAccess.ts",
+      );
+
+      expect(access).toContain("AIResourceType.CloudResource");
+      expect(access).toContain("buildCloudResourcePageNote");
+      expect(oneLine(cloud)).toContain(
+        "Ask AI, opened on a cloud resource's page, runs these reads on the resource's account.",
       );
     });
 
@@ -2545,6 +2627,35 @@ describe("Infrastructure AI Agents docs", (): void => {
       ).toBe("nothing");
       expect(words).toContain(
         "Before it makes a change, the agent reads the value the change replaces, such as the count before a scale or the version before a roll back, and OneUptime writes the change's undo from that value, so a fix that did not help is put back exactly.",
+      );
+    });
+
+    it("dry-runs each change of a fix before a person approves it, as the runner, the card and the agent do", (): void => {
+      const runner: string = readRepoFile(
+        "packages/Common/Server/Utils/AI/Remediation/RemediationExecutionRunner.ts",
+      );
+      const copy: string = readRepoFile(
+        "packages/App/FeatureSet/Dashboard/src/Components/AutoRemediation/CloudDryRunCopy.ts",
+      );
+      const aws: string = readRepoFile(
+        "agents/ResourceAIAgent/Executors/Cloud/AwsOperations.ts",
+      );
+
+      // Both ways a plan is settled for a person start its dry runs.
+      expect(
+        runner.split("CloudChangeDryRun.startForProposedPlan(").length - 1,
+      ).toBe(2);
+      expect(copy).toContain('dryRunAgain: translationKey("Dry run again"),');
+      // On AWS a dry run's session of the write role writes nothing.
+      expect(aws).toContain(
+        "const writeResources: Array<string> = this.run.dryRun ? [] : requested;",
+      );
+      expect(words).toContain(
+        "Before a person approves a fix that changes a cloud account, OneUptime dry-runs each change it proposes, and the fix's card on the incident or alert shows the answer under the change:",
+      );
+      expect(words).toContain("**Dry run again** checks once more.");
+      expect(words).toContain(
+        "A dry run changes nothing: the agent stops before the call that would make the change, and on AWS the session of the write role it uses may only read.",
       );
     });
 
@@ -3250,6 +3361,70 @@ describe("Infrastructure AI Agents docs", (): void => {
       expect(points).toContain("1. **OneUptime AI's tools.**");
       expect(points).toContain("2. **When OneUptime queues it.**");
       expect(points).toContain("3. **On the agent, before anything runs.**");
+    });
+
+    it("reads Enable AI where every AI command is queued and again where an agent claims one, as the server does", (): void => {
+      const points: string = oneLine(
+        section(page, "### Three enforcement points"),
+      );
+      const enqueue: string = readRepoFile(
+        "packages/Common/Server/Services/RunnerJobService.ts",
+      );
+      const killSwitch: string = readRepoFile(
+        "packages/Common/Server/Utils/AI/AiCommandKillSwitch.ts",
+      );
+
+      expect(points).toContain(
+        "2. **When OneUptime queues it.** Every command is checked again: **Enable AI** must still be on (and is read once more when the agent claims the command), a Denied command is refused,",
+      );
+
+      // Every way an AI command is queued reads the switch...
+      for (const enqueueFunction of [
+        "public async enqueueAiCommand(",
+        "public async enqueueAiKubectlCommand(",
+        "public async enqueueAiResourceCommand(",
+      ]) {
+        const start: number = enqueue.indexOf(enqueueFunction);
+
+        expect({ enqueueFunction, found: start >= 0 }).toEqual({
+          enqueueFunction,
+          found: true,
+        });
+
+        const next: number = enqueue.indexOf("\n  public ", start + 1);
+        const body: string = enqueue.slice(
+          start,
+          next < 0 ? enqueue.length : next,
+        );
+
+        expect({
+          enqueueFunction,
+          reads: body.includes("AiCommandKillSwitch.isAiOff("),
+        }).toEqual({ enqueueFunction, reads: true });
+      }
+
+      // ...and so does every ingress an agent claims one from.
+      for (const ingress of [
+        "packages/App/FeatureSet/Runbook/API/ResourceAiAgentIngress.ts",
+        "packages/App/FeatureSet/Runbook/API/KubernetesAiAgentIngress.ts",
+        "packages/App/FeatureSet/Runbook/API/RunnerIngress.ts",
+      ]) {
+        expect({
+          ingress,
+          reads: readRepoFile(ingress).includes(
+            "AiCommandKillSwitch.getClaimRefusal(",
+          ),
+        }).toEqual({ ingress, reads: true });
+      }
+
+      // Test connection is the one AI command that still runs.
+      expect(killSwitch).toContain("public static isAccessTestJob(");
+      expect(killSwitch).toContain(
+        "AiCommandKillSwitch.isAccessTestJob(data.job)",
+      );
+      expect(oneLine(section(page, "## How fixes work"))).toContain(
+        "Turning it off stops every command OneUptime AI sends at once, an approved plan's next command and a rollback included; only **Test connection**, in the **⋯** menu next to the agent's status, still runs.",
+      );
     });
   });
 

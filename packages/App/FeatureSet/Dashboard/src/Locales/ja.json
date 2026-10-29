@@ -37069,5 +37069,13 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "レコードでまだ使われているため、削除できません。アーカイブしたままにできます。",
   "{{count}} {{itemsName}} skipped": "{{itemsName}}: {{count}} 件スキップ",
   "{{count}} {{itemsName}} skipped_one": "{{itemName}}: {{count}} 件スキップ",
-  "You can change or remove these rules, but not add new ones.": "これらのルールの変更や削除はできますが、新しいルールは追加できません。"
+  "You can change or remove these rules, but not add new ones.": "これらのルールの変更や削除はできますが、新しいルールは追加できません。",
+  "Checking this change with a dry run…": "ドライランでこの変更を確認しています…",
+  "Could not start the dry run: nothing was changed": "ドライランを開始できませんでした。何も変更されていません",
+  "Dry run": "ドライラン",
+  "Dry run again": "ドライランをやり直す",
+  "Dry run {{time}}: it could not finish. Nothing was changed.": "ドライラン（{{time}}）：完了できませんでした。何も変更されていません。",
+  "Dry run {{time}}: the agent would refuse this change. Nothing was changed.": "ドライラン（{{time}}）：エージェントはこの変更を拒否します。何も変更されていません。",
+  "Dry run {{time}}: this change would run. Nothing was changed.": "ドライラン（{{time}}）：この変更は実行されます。何も変更されていません。",
+  "What the agent said": "エージェントの応答"
 }

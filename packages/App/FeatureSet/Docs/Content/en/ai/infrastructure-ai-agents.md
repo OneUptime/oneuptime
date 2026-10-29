@@ -269,13 +269,14 @@ OneUptime reads an AWS account, an Azure subscription or a Google Cloud project 
 - `cloud target-health RESOURCE` — AWS only: which backends a target group or load balancer counts as healthy, and why the others are not.
 - `cloud quota-usage RESOURCE [--limit N]` — the account's usage against its limits for the resource's service, in the resource's region.
 - `cloud read-logs RESOURCE [--filter TEXT] [--minutes N] [--limit N]` — the resource's log lines, newest first, only those containing `--filter` when it is given (`--minutes` 60 by default, up to 1440). Log lines can hold customer data, so this read is off until someone turns on **Let AI read this account's logs during investigations**, under **Advanced** in **Let AI fix problems**, which is saved at once, with no command to run.
-- `cloud whoami` — the one read that runs on the Cloud AI agent: the account it acts in, whether it may change anything and which changes. **Test connection**, in the **⋯** menu next to the agent's status, runs it.
+- `cloud whoami` — a read that runs on the Cloud AI agent: the account it acts in, whether it may change anything and which changes. **Test connection**, in the **⋯** menu next to the agent's status, runs it.
+- `cloud dry-run CHANGE RESOURCE [--flag value]` — the other read that runs on the Cloud AI agent: a change, written exactly as it would run, checked without being made. The agent checks it as it would before making it (its write access, the changes it may make, the account, the required tag, the resource's state and the bounds of a scale), reads the value it would replace and stops before the call that makes it. It answers whether the change would run, what it would replace and how it would be undone, or why it would be refused.
 
-`--limit` is 50 rows by default, 200 at most. A read's answer is cut at 64 KB, at a line, and an account takes at most 30 live reads a minute.
+`--limit` is 50 rows by default, 200 at most. A read's answer is cut at 64 KB, at a line, and an account takes at most 30 live reads a minute. Ask AI, opened on a cloud resource's page, runs these reads on the resource's account.
 
 ## How fixes work
 
-Fixes are off until you turn them on, and that takes two settings on the agent: `ONEUPTIME_AI_FIXES` set to a mode other than `off` (see [What AI may do, set by the agent](#what-ai-may-do-set-by-the-agent)), and `ONEUPTIME_AI_ALLOW_WRITES=true` (see [Write access on the agent](#write-access-on-the-agent)). Either one alone changes nothing. An agent older than `ONEUPTIME_AI_FIXES` takes **Fixes** from the resource's AI agent page instead. Fixes also need AI to be enabled for the project (**Enable AI** under Project Settings → AI → AI Features), which it is unless someone turned it off.
+Fixes are off until you turn them on, and that takes two settings on the agent: `ONEUPTIME_AI_FIXES` set to a mode other than `off` (see [What AI may do, set by the agent](#what-ai-may-do-set-by-the-agent)), and `ONEUPTIME_AI_ALLOW_WRITES=true` (see [Write access on the agent](#write-access-on-the-agent)). Either one alone changes nothing. An agent older than `ONEUPTIME_AI_FIXES` takes **Fixes** from the resource's AI agent page instead. Fixes also need AI to be enabled for the project (**Enable AI** under Project Settings → AI → AI Features), which it is unless someone turned it off. Turning it off stops every command OneUptime AI sends at once, an approved plan's next command and a rollback included; only **Test connection**, in the **⋯** menu next to the agent's status, still runs.
 
 ### Fix modes
 
@@ -397,6 +398,8 @@ A change names one resource by its id, as a read does, and runs only on a resour
 
 **Never**, even when a person approves it: deleting or terminating anything, IAM, security groups and firewall rules, secrets and keys, storage and database contents, instance types, snapshots and restores, purging a queue, a group's minimum or maximum, and anything not in the table.
 
+Before a person approves a fix that changes a cloud account, OneUptime dry-runs each change it proposes, and the fix's card on the incident or alert shows the answer under the change: it would run, with the call it would make and its undo; it would be refused, and why; or the dry run could not finish. **Dry run again** checks once more. A dry run changes nothing: the agent stops before the call that would make the change, and on AWS the session of the write role it uses may only read.
+
 ### The command allowlist
 
 In **Automatic** mode, the resource's **Command allowlist** on the AI agent page lets riskier commands you name run without approval. It is matched word by word against the command, not as text:
@@ -477,7 +480,7 @@ The collectors' READMEs have the exact commands: the `pveum` commands for a Prox
 Every command is an argument list, never a shell line, and the same command policy — one copy in OneUptime, a byte-identical copy in the agent — decides its tier at three points:
 
 1. **OneUptime AI's tools.** The investigation tool refuses anything but a Read; the fix tools refuse Denied commands, apply the mode, the allowlist and the agent's reported write access, and send a change that needs a person for approval.
-2. **When OneUptime queues it.** Every command is checked again: a Denied command is refused, an investigation may only queue Reads, the resource must be this project's and its agent online, the investigation or fix switch must be on, the job may carry no credential, and a change must fit the agent's reported write access. A project may queue at most 240 investigation commands and 30 fix commands an hour.
+2. **When OneUptime queues it.** Every command is checked again: **Enable AI** must still be on (and is read once more when the agent claims the command), a Denied command is refused, an investigation may only queue Reads, the resource must be this project's and its agent online, the investigation or fix switch must be on, the job may carry no credential, and a change must fit the agent's reported write access. A project may queue at most 240 investigation commands, 30 fix commands and 60 cloud dry runs an hour.
 3. **On the agent, before anything runs.** The agent refuses a job that is not an AI command for its own resource (the identity it registered with, and its OneUptime id), a program its resource does not run, a command its own policy denies or ranks higher than the tier OneUptime sent, anything but a Read in an investigation, and a change while `ONEUPTIME_AI_ALLOW_WRITES` is not `true` or outside its write targets.
 
 ### How a command runs
