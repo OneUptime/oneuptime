@@ -67,6 +67,14 @@
  *   - lang=de|ja|fa   the Dashboard's German, Japanese or Persian words
  *   - theme=dark      (read by server.js) the Dashboard's dark mode
  *
+ * The live connection the Dashboard keeps open (Index.tsx), which a list of
+ * incidents or alerts joins to keep itself current (ModelTable/UseLiveRows),
+ * is a fake one the suite speaks for: `window.__fixture.liveSubscriptions`
+ * lists what the lists listen for, `window.__fixture.announce(table,
+ * eventType)` is the server announcing a created, changed or deleted record,
+ * and `window.__fixture.declareIncident(title)` /
+ * `window.__fixture.raiseAlert(title)` add one to the server's rows first.
+ *
  * Every list read is recorded on `window.__fixture.listRequests`, every
  * write on `window.__fixture.updates`, every record created (a row's state
  * move, a new owner) on `window.__fixture.creates`, every delete on
@@ -140,6 +148,7 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
+import Realtime from "Common/UI/Utils/Realtime";
 import UserUtil from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
@@ -1124,6 +1133,82 @@ PermissionUtil.getGlobalPermissions = () => ({
 });
 ProjectUtil.getCurrentProjectId = () => new ObjectID(PROJECT_ID);
 ModelAPI.getCommonHeaders = () => ({ tenantid: PROJECT_ID });
+
+// ------------------------------------------------------------ the live connection
+
+window.__fixture.liveSubscriptions = [];
+
+Realtime.isStarted = () => {
+  return true;
+};
+
+Realtime.listenToModelEvent = (listen, onEvent) => {
+  const subscription = {
+    tableName: new listen.modelType().tableName,
+    eventType: listen.eventType,
+    tenantId: String(listen.tenantId),
+    isStopped: false,
+  };
+
+  window.__fixture.liveSubscriptions.push(subscription);
+
+  /*
+   * The handler stays off the recorded subscription, so the suite can read
+   * the list as plain data.
+   */
+  const announcements = (window.__liveHandlers = window.__liveHandlers || []);
+  announcements.push({ subscription, onEvent });
+
+  return () => {
+    subscription.isStopped = true;
+  };
+};
+
+// The server announcing that a record of a table was created, changed or deleted.
+window.__fixture.announce = (tableName, eventType, id) => {
+  for (const { subscription, onEvent } of window.__liveHandlers || []) {
+    if (
+      !subscription.isStopped &&
+      subscription.tableName === tableName &&
+      subscription.eventType === eventType
+    ) {
+      onEvent(id || "");
+    }
+  }
+};
+
+let declaredByOthers = 0;
+
+// Someone else declares an incident: it is the server's newest.
+window.__fixture.declareIncident = (title) => {
+  declaredByOthers += 1;
+  const record = incident(900 + declaredByOthers, {
+    title,
+    state: IDENTIFIED,
+    severity: CRITICAL,
+    monitors: [],
+    declaredAt: new Date(
+      Date.parse("2026-10-16T05:30:00.000Z") + declaredByOthers * 1000,
+    ).toISOString(),
+  });
+  INCIDENTS.unshift(record);
+  return String(record._id);
+};
+
+// Something raises an alert: it is the server's newest.
+window.__fixture.raiseAlert = (title) => {
+  declaredByOthers += 1;
+  const record = alertRecord(900 + declaredByOthers, {
+    title,
+    state: ALERT_CREATED,
+    severity: HIGH_ALERT,
+    createdAt: new Date(
+      Date.parse("2026-10-16T05:30:00.000Z") + declaredByOthers * 1000,
+    ).toISOString(),
+  });
+  ALERTS.unshift(record);
+  return String(record._id);
+};
 
 // ------------------------------------------------------------ the data API
 

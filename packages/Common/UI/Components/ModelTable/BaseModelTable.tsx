@@ -82,6 +82,7 @@ import Pill from "../Pill/Pill";
 import Table from "../Table/Table";
 import {
   RowClickEventLike,
+  hasTextSelection,
   isNewTabClick,
   isRowOpeningClick,
 } from "../Table/RowClick";
@@ -141,6 +142,8 @@ import useCustomFieldColumns, {
   CustomFieldColumnsResult,
 } from "./useCustomFieldColumns";
 import { getExportKeysFromColumn } from "./ExportFromColumns";
+import { isDialogOrMenuOpen, isLiveRowsHeld } from "./LiveRows";
+import useLiveRows from "./UseLiveRows";
 import {
   getRelationSelectFromColumns,
   getSelectFromColumns,
@@ -521,6 +524,15 @@ export interface BaseTableProps<
   editButtonText?: string | undefined;
   viewButtonText?: string | undefined;
   refreshToggle?: string | undefined;
+  /*
+   * Whether the rows keep themselves current. A list of a table whose
+   * changes the server announces (incidents, alerts, episodes, SLOs, ...)
+   * reads its page again, quietly, whenever one of its records is created,
+   * changed or deleted, so nobody has to press Refresh (LiveRows.ts). Leave
+   * it unset; false keeps the rows as they were loaded, for a list where a
+   * row moving would get in the way of what the page is for.
+   */
+  isLive?: boolean | undefined;
   fetchRequestOptions?: RequestOptions | undefined;
   deleteRequestOptions?: RequestOptions | undefined;
   onItemDeleted?: ((item: TBaseModel) => void) | undefined;
@@ -1761,6 +1773,14 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     Boolean(initialUrlState.view.itemsOnPage),
   );
 
+  /*
+   * Counts the reads of the page, so a read the list made by itself (it
+   * keeps itself current, useLiveRows) that answers after a read the reader
+   * asked for - another page, a search - is dropped rather than put back
+   * over the rows they asked for.
+   */
+  const fetchGenerationRef: MutableRefObject<number> = React.useRef(0);
+
   useEffect(() => {
     // update items on page in localstorage.
     if (itemsOnPage && props.userPreferencesKey) {
@@ -2600,6 +2620,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
      * has rows, instead of an empty page under a "Showing 21-20 of 20".
      */
     stayInRange?: boolean | undefined;
+    /*
+     * A read nobody asked for: the list keeping itself current
+     * (useLiveRows). Quiet, and a read that fails keeps the rows on
+     * screen rather than putting an error where they were - the next change
+     * reads again.
+     */
+    isBackground?: boolean | undefined;
   }) => Promise<void>;
 
   const getFetchSort: () => Sort<TBaseModel> = (): Sort<TBaseModel> => {
@@ -2627,10 +2654,17 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const fetchItems: FetchItemsFunction = async (options?: {
     quiet?: boolean | undefined;
     stayInRange?: boolean | undefined;
+    isBackground?: boolean | undefined;
   }): Promise<void> => {
-    const isQuiet: boolean = Boolean(options?.quiet);
+    const isBackground: boolean = Boolean(options?.isBackground);
+    const isQuiet: boolean = Boolean(options?.quiet) || isBackground;
 
-    setError("");
+    fetchGenerationRef.current += 1;
+    const generation: number = fetchGenerationRef.current;
+
+    if (!isBackground) {
+      setError("");
+    }
 
     if (!isQuiet) {
       setIsLoading(true);
@@ -2691,6 +2725,19 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         return;
       }
 
+      if (isBackground) {
+        /*
+         * The reader moved on while this read was out - another page, a
+         * search, a filter: the read they asked for owns the rows.
+         */
+        if (generation !== fetchGenerationRef.current) {
+          return;
+        }
+
+        // A list that could not be read before reads now: the error goes.
+        setError("");
+      }
+
       setTotalItemsCount(listResult.count);
       setHasMore(listResult.hasMore);
       setData(listResult.data);
@@ -2714,7 +2761,15 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         props.onFetchSuccess(listResult.data, listResult.count);
       }
     } catch (err) {
-      setError(API.getFriendlyMessage(err));
+      if (isBackground) {
+        /*
+         * The rows on screen stay: they were right a moment ago, and the
+         * next change reads again.
+         */
+        Logger.error(API.getFriendlyMessage(err));
+      } else {
+        setError(API.getFriendlyMessage(err));
+      }
     }
 
     if (!isQuiet) {
@@ -3115,6 +3170,32 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     props.refreshToggle,
     rowActionRefreshCount,
   ]);
+
+  /*
+   * The rows keep themselves current: a new incident, an alert a teammate
+   * acknowledged, an episode that was resolved show up without Refresh,
+   * while the reader is not in the middle of something (LiveRows.ts).
+   */
+  useLiveRows({
+    modelType:
+      model instanceof BaseModel
+        ? (props.modelType as { new (): BaseModel })
+        : null,
+    tenantId: ProjectUtil.getCurrentProjectId(),
+    isEnabled: props.isLive !== false,
+    isHeld: (): boolean => {
+      return isLiveRowsHeld({
+        isLoading: isLoading,
+        hasSelection: bulkSelectedItems.length > 0,
+        isReordering: isReordering,
+        isDialogOrMenuOpen: isDialogOrMenuOpen(),
+        hasTextSelection: hasTextSelection(),
+      });
+    },
+    refresh: (): Promise<void> => {
+      return fetchItems({ isBackground: true });
+    },
+  });
 
   type ShouldDisableSortFunction = (
     columnName: keyof TBaseModel | null,
