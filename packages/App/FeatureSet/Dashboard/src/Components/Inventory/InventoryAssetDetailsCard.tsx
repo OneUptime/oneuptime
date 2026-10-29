@@ -27,7 +27,9 @@ import {
   INVENTORY_ASSET_FIELD_LABELS,
   INVENTORY_ASSET_HELP,
   INVENTORY_ASSET_UNKNOWN,
+  NETWORK_DEVICE_CONTROLLER_UNKNOWN,
 } from "./InventoryAssetLabels";
+import { readNetworkDeviceDiscoveredDetails } from "Common/Types/NetworkDevice/NetworkDeviceDiscoveredDetails";
 import useNetworkDeviceAssetDetails, {
   LinkedNetworkDeviceSource,
   NetworkDeviceAssetDetailsReader,
@@ -38,10 +40,7 @@ import useNetworkDeviceRefresh, {
   deviceOfModel,
 } from "../NetworkDevice/useNetworkDeviceRefresh";
 import NetworkDeviceRefreshStatus from "../NetworkDevice/NetworkDeviceRefreshStatus";
-import {
-  REFRESHING_TITLE,
-  REFRESH_TITLE,
-} from "../NetworkDevice/NetworkDeviceRefreshWords";
+import { REFRESH_TITLE } from "../NetworkDevice/NetworkDeviceRefreshWords";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 
 /*
@@ -118,6 +117,16 @@ const InventoryAssetDetailsCard: FunctionComponent<ComponentProps> = (
   const help: (typeof INVENTORY_ASSET_HELP)[keyof typeof INVENTORY_ASSET_HELP] =
     INVENTORY_ASSET_HELP[details.kind];
   const unknownCount: number = details.unknownFields.length;
+  /*
+   * A device the Meraki dashboard describes was asked too: the unknown line
+   * names it beside the poll and the scans.
+   */
+  const unknownLine: { one: string; other: string } =
+    deviceRead.details &&
+    readNetworkDeviceDiscoveredDetails(deviceRead.device?.discoveredDetails)
+      .controller
+      ? NETWORK_DEVICE_CONTROLLER_UNKNOWN
+      : help.unknown;
 
   // The reading most details came from, said once below them.
   const sharedSource: AssetFactSource | undefined = getSharedAssetFactSource(
@@ -146,7 +155,7 @@ const InventoryAssetDetailsCard: FunctionComponent<ComponentProps> = (
     ? [
         <Button
           key="refresh"
-          title={refresh.isRefreshing ? REFRESHING_TITLE : REFRESH_TITLE}
+          title={REFRESH_TITLE}
           icon={IconProp.Refresh}
           buttonStyle={ButtonStyleType.NORMAL}
           isLoading={refresh.isRefreshing}
@@ -240,7 +249,7 @@ const InventoryAssetDetailsCard: FunctionComponent<ComponentProps> = (
 
             {unknownCount > 0 ? (
               <p data-testid="inventory-asset-details-unknown">
-                {translator.translatePlural(help.unknown, unknownCount)}{" "}
+                {translator.translatePlural(unknownLine, unknownCount)}{" "}
                 <a
                   className="font-medium text-indigo-600 hover:text-indigo-800 hover:underline"
                   href={help.docsUrl}

@@ -33728,7 +33728,6 @@
   "The Meraki dashboard API could not be reached.": "دسترسی به API داشبورد Meraki ممکن نشد.",
   "The Meraki dashboard API reports totals, not conversations: it never says who talked to whom. Turn on NetFlow on the MX appliances to see conversations as well.": "API داشبورد Meraki جمع‌ها را گزارش می‌کند، نه گفتگوها را: هرگز نمی‌گوید چه کسی با چه کسی ارتباط داشته است. برای دیدن گفتگوها هم، NetFlow را روی دستگاه‌های MX روشن کنید.",
   "The Meraki networks whose appliances carried the most traffic. Click one to see only its traffic.": "شبکه‌های Meraki که دستگاه‌هایشان بیشترین ترافیک را حمل کرده‌اند. روی یکی کلیک کنید تا فقط ترافیک آن را ببینید.",
-  "The Meraki organizations OneUptime reads traffic from, through the Meraki dashboard API.": "سازمان‌های Meraki که OneUptime ترافیکشان را از راه API داشبورد Meraki می‌خواند.",
   "The access token cannot hold spaces or line breaks. Paste it again.": "توکن دسترسی نمی‌تواند فاصله یا شکست خط داشته باشد. دوباره جای‌گذاری‌اش کنید.",
   "The access token cannot push to any repository.": "توکن دسترسی نمی‌تواند به هیچ مخزنی push کند.",
   "The access token cannot push to this repository, so AI could not work in it.": "توکن دسترسی نمی‌تواند به این مخزن push کند، بنابراین هوش مصنوعی نمی‌توانست در آن کار کند.",
@@ -36832,7 +36831,11 @@
   "The Meraki dashboard": "داشبورد Meraki",
   "The Meraki dashboard has not been read yet. The connection's status is on the network's Traffic page.": "داشبورد Meraki هنوز خوانده نشده است. وضعیت اتصال در صفحه Traffic شبکه است.",
   "The Meraki dashboard is read again within a minute.": "داشبورد Meraki ظرف یک دقیقه دوباره خوانده می‌شود.",
-  "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki.": "{{count}} دستگاه از دستگاه‌های آن در اینجا دستگاه شبکه است: مدل، شماره سریال و فریم‌ور آن‌ها از Meraki می‌آید.",
-  "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki._one": "{{count}} دستگاه از دستگاه‌های آن در اینجا دستگاه شبکه است: مدل، شماره سریال و فریم‌ور آن از Meraki می‌آید.",
-  "Selected: {{name}}": "انتخاب‌شده: {{name}}"
+  "Selected: {{name}}": "انتخاب‌شده: {{name}}",
+  "Fills in the model, serial number and firmware of {{count}} network devices.": "مدل، شماره سریال و فریم‌ور {{count}} دستگاه شبکه را تکمیل می‌کند.",
+  "Fills in the model, serial number and firmware of {{count}} network devices._one": "مدل، شماره سریال و فریم‌ور {{count}} دستگاه شبکه را تکمیل می‌کند.",
+  "Hardware, software and location details from this device's SNMP poll, from discovery and from the Meraki dashboard.": "جزئیات سخت‌افزار، نرم‌افزار و مکان از پرس‌وجوی SNMP این دستگاه، از کشف و از داشبورد Meraki.",
+  "The Meraki organizations OneUptime reads traffic and device details from, through the Meraki dashboard API.": "سازمان‌های Meraki که OneUptime ترافیک و جزئیات دستگاه‌هایشان را از راه API داشبورد Meraki می‌خواند.",
+  "{{count}} details are unknown: neither this device's SNMP poll, the Meraki dashboard nor a discovery scan has found them.": "{{count}} مورد ناشناخته است: نه پرس‌وجوی SNMP این دستگاه، نه داشبورد Meraki و نه هیچ اسکن کشفی آن‌ها را پیدا نکرده است.",
+  "{{count}} details are unknown: neither this device's SNMP poll, the Meraki dashboard nor a discovery scan has found them._one": "{{count}} مورد ناشناخته است: نه پرس‌وجوی SNMP این دستگاه، نه داشبورد Meraki و نه هیچ اسکن کشفی آن را پیدا نکرده است."
 }

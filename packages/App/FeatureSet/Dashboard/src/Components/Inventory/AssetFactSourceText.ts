@@ -1,4 +1,5 @@
 import OneUptimeDate from "Common/Types/Date";
+import { isRightToLeftLanguage } from "Common/Types/ReadingDirection";
 import NetworkControllerProvider, {
   isNetworkControllerProvider,
 } from "Common/Types/NetworkController/NetworkControllerProvider";
@@ -369,10 +370,28 @@ function readerName(
  */
 export const JUST_NOW: string = translationKey("just now");
 
+/*
+ * A time in a right-to-left sentence, set apart in a Unicode isolate (FSI
+ * ... PDI). A time that follows a name written in Latin letters - "خوانده‌شده
+ * از داشبورد Meraki (Acme Retail)، ۴ دقیقه پیش." - otherwise joins the name's
+ * left-to-right run: the browser draws its digit and the comma beside the
+ * name, before the words they belong with. In an isolate the time reads as
+ * one piece where the sentence puts it. A left-to-right language gets the
+ * time as it is.
+ */
+export const FIRST_STRONG_ISOLATE: string = String.fromCharCode(0x2068);
+export const POP_DIRECTIONAL_ISOLATE: string = String.fromCharCode(0x2069);
+
+function isolatedForSentence(time: string, translator: Translator): string {
+  return isRightToLeftLanguage(translator.language)
+    ? `${FIRST_STRONG_ISOLATE}${time}${POP_DIRECTIONAL_ISOLATE}`
+    : time;
+}
+
 /**
  * When a source was read, in the reader's language ("2 hours ago", "vor 2
  * Stunden", "just now") - or undefined when it is not known or does not
- * parse.
+ * parse. Set apart for a right-to-left sentence (isolatedForSentence).
  */
 export function getAssetFactSourceTime(
   readAt: string | undefined,
@@ -392,14 +411,20 @@ export function getAssetFactSourceTime(
   const current: Date = now || OneUptimeDate.getCurrentDate();
 
   if (isJustNow({ date: date, now: current })) {
-    return translator.translateText(JUST_NOW) || JUST_NOW;
+    return isolatedForSentence(
+      translator.translateText(JUST_NOW) || JUST_NOW,
+      translator,
+    );
   }
 
-  return formatRelativeTime({
-    date: date,
-    now: current,
-    language: translator.language,
-  });
+  return isolatedForSentence(
+    formatRelativeTime({
+      date: date,
+      now: current,
+      language: translator.language,
+    }),
+    translator,
+  );
 }
 
 /**

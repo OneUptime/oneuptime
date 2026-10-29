@@ -33728,7 +33728,6 @@
   "The Meraki dashboard API could not be reached.": "L'API della dashboard Meraki non è raggiungibile.",
   "The Meraki dashboard API reports totals, not conversations: it never says who talked to whom. Turn on NetFlow on the MX appliances to see conversations as well.": "L'API della dashboard Meraki riporta totali, non conversazioni: non dice mai chi ha parlato con chi. Attiva NetFlow sulle appliance MX per vedere anche le conversazioni.",
   "The Meraki networks whose appliances carried the most traffic. Click one to see only its traffic.": "Le reti Meraki le cui appliance hanno portato più traffico. Fai clic su una per vedere solo il suo traffico.",
-  "The Meraki organizations OneUptime reads traffic from, through the Meraki dashboard API.": "Le organizzazioni Meraki di cui OneUptime legge il traffico, tramite l'API della dashboard Meraki.",
   "The access token cannot hold spaces or line breaks. Paste it again.": "Il token di accesso non può contenere spazi o a capo. Incollalo di nuovo.",
   "The access token cannot push to any repository.": "Il token di accesso non può inviare modifiche a nessun repository.",
   "The access token cannot push to this repository, so AI could not work in it.": "Il token di accesso non può inviare modifiche a questo repository, quindi l'IA non potrebbe lavorarci.",
@@ -36832,7 +36831,11 @@
   "The Meraki dashboard": "La dashboard Meraki",
   "The Meraki dashboard has not been read yet. The connection's status is on the network's Traffic page.": "La dashboard Meraki non è ancora stata letta. Lo stato della connessione è nella pagina Traffic della rete.",
   "The Meraki dashboard is read again within a minute.": "La dashboard Meraki viene riletta entro un minuto.",
-  "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki.": "{{count}} dei suoi dispositivi sono dispositivi di rete qui: modello, numero di serie e firmware vengono da Meraki.",
-  "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki._one": "{{count}} dei suoi dispositivi è un dispositivo di rete qui: modello, numero di serie e firmware vengono da Meraki.",
-  "Selected: {{name}}": "Selezionato: {{name}}"
+  "Selected: {{name}}": "Selezionato: {{name}}",
+  "Fills in the model, serial number and firmware of {{count}} network devices.": "Completa modello, numero di serie e firmware di {{count}} dispositivi di rete.",
+  "Fills in the model, serial number and firmware of {{count}} network devices._one": "Completa modello, numero di serie e firmware di {{count}} dispositivo di rete.",
+  "Hardware, software and location details from this device's SNMP poll, from discovery and from the Meraki dashboard.": "Dettagli hardware, software e di posizione dal polling SNMP di questo dispositivo, dal rilevamento e dalla dashboard Meraki.",
+  "The Meraki organizations OneUptime reads traffic and device details from, through the Meraki dashboard API.": "Le organizzazioni Meraki di cui OneUptime legge il traffico e i dettagli dei dispositivi, tramite l'API della dashboard Meraki.",
+  "{{count}} details are unknown: neither this device's SNMP poll, the Meraki dashboard nor a discovery scan has found them.": "{{count}} dati sono sconosciuti: né il polling SNMP di questo dispositivo, né la dashboard Meraki, né una scansione di rilevamento li hanno trovati.",
+  "{{count}} details are unknown: neither this device's SNMP poll, the Meraki dashboard nor a discovery scan has found them._one": "{{count}} dato è sconosciuto: né il polling SNMP di questo dispositivo, né la dashboard Meraki, né una scansione di rilevamento l'hanno trovato."
 }

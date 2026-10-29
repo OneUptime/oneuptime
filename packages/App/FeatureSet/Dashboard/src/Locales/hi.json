@@ -33728,7 +33728,6 @@
   "The Meraki dashboard API could not be reached.": "Meraki डैशबोर्ड API तक नहीं पहुँचा जा सका।",
   "The Meraki dashboard API reports totals, not conversations: it never says who talked to whom. Turn on NetFlow on the MX appliances to see conversations as well.": "Meraki डैशबोर्ड API कुल योग बताता है, बातचीत नहीं: यह कभी नहीं बताता कि किसने किससे बात की। बातचीत भी देखने के लिए MX अप्लायंस पर NetFlow चालू करें।",
   "The Meraki networks whose appliances carried the most traffic. Click one to see only its traffic.": "वे Meraki नेटवर्क जिनके अप्लायंस ने सबसे ज़्यादा ट्रैफ़िक ढोया। केवल उसका ट्रैफ़िक देखने के लिए किसी एक पर क्लिक करें।",
-  "The Meraki organizations OneUptime reads traffic from, through the Meraki dashboard API.": "वे Meraki संगठन जिनका ट्रैफ़िक OneUptime Meraki डैशबोर्ड API से पढ़ता है।",
   "The access token cannot hold spaces or line breaks. Paste it again.": "एक्सेस टोकन में स्पेस या लाइन ब्रेक नहीं हो सकते। इसे फिर से पेस्ट करें।",
   "The access token cannot push to any repository.": "एक्सेस टोकन किसी भी रिपॉजिटरी में पुश नहीं कर सकता।",
   "The access token cannot push to this repository, so AI could not work in it.": "एक्सेस टोकन इस रिपॉजिटरी में पुश नहीं कर सकता, इसलिए AI इसमें काम नहीं कर पाएगा।",
@@ -36832,7 +36831,11 @@
   "The Meraki dashboard": "Meraki डैशबोर्ड",
   "The Meraki dashboard has not been read yet. The connection's status is on the network's Traffic page.": "Meraki डैशबोर्ड अभी तक नहीं पढ़ा गया है। कनेक्शन की स्थिति नेटवर्क के Traffic पेज पर है।",
   "The Meraki dashboard is read again within a minute.": "Meraki डैशबोर्ड एक मिनट के भीतर फिर से पढ़ा जाएगा।",
-  "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki.": "इसके {{count}} डिवाइस यहाँ नेटवर्क डिवाइस हैं: उनका मॉडल, सीरियल नंबर और फ़र्मवेयर Meraki से आते हैं।",
-  "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki._one": "इसका {{count}} डिवाइस यहाँ एक नेटवर्क डिवाइस है: उसका मॉडल, सीरियल नंबर और फ़र्मवेयर Meraki से आते हैं।",
-  "Selected: {{name}}": "चयनित: {{name}}"
+  "Selected: {{name}}": "चयनित: {{name}}",
+  "Fills in the model, serial number and firmware of {{count}} network devices.": "{{count}} नेटवर्क डिवाइसों का मॉडल, सीरियल नंबर और फ़र्मवेयर भरता है।",
+  "Fills in the model, serial number and firmware of {{count}} network devices._one": "{{count}} नेटवर्क डिवाइस का मॉडल, सीरियल नंबर और फ़र्मवेयर भरता है।",
+  "Hardware, software and location details from this device's SNMP poll, from discovery and from the Meraki dashboard.": "इस डिवाइस के SNMP पोल, डिस्कवरी और Meraki डैशबोर्ड से मिले हार्डवेयर, सॉफ़्टवेयर और स्थान के विवरण।",
+  "The Meraki organizations OneUptime reads traffic and device details from, through the Meraki dashboard API.": "वे Meraki संगठन जिनका ट्रैफ़िक और डिवाइस विवरण OneUptime Meraki डैशबोर्ड API से पढ़ता है।",
+  "{{count}} details are unknown: neither this device's SNMP poll, the Meraki dashboard nor a discovery scan has found them.": "{{count}} विवरण अज्ञात हैं: न इस डिवाइस के SNMP पोल ने, न Meraki डैशबोर्ड ने और न किसी डिस्कवरी स्कैन ने इन्हें पाया है।",
+  "{{count}} details are unknown: neither this device's SNMP poll, the Meraki dashboard nor a discovery scan has found them._one": "{{count}} विवरण अज्ञात है: न इस डिवाइस के SNMP पोल ने, न Meraki डैशबोर्ड ने और न किसी डिस्कवरी स्कैन ने इसे पाया है।"
 }

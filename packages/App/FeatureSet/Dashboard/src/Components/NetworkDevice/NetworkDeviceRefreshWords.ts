@@ -19,9 +19,14 @@ import {
  * a probe's or a connection's name goes in as it is.
  */
 
-// The button, and what it says while the device is being read again.
+/*
+ * The button. It says Refresh while the device is read again too, turning
+ * and greyed: "Refreshing…" is wider in most languages ("Wird
+ * aktualisiert…"), and on a phone it pushed the button under the card's
+ * title the moment it was pressed. The line under the header says what is
+ * happening.
+ */
 export const REFRESH_TITLE: string = translationKey("Refresh");
-export const REFRESHING_TITLE: string = translationKey("Refreshing…");
 
 // While the readers are at it.
 export const WAITING_FOR_PROBE: string = translationKey(

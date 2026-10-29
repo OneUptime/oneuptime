@@ -33728,7 +33728,6 @@
   "The Meraki dashboard API could not be reached.": "無法連到 Meraki 儀表板 API。",
   "The Meraki dashboard API reports totals, not conversations: it never says who talked to whom. Turn on NetFlow on the MX appliances to see conversations as well.": "Meraki 儀表板 API 只回報總量，不回報對話：它從不說明誰與誰通訊。若也要查看對話，請在 MX 設備上開啟 NetFlow。",
   "The Meraki networks whose appliances carried the most traffic. Click one to see only its traffic.": "設備承載流量最多的 Meraki 網路。點選某個網路即可只看其流量。",
-  "The Meraki organizations OneUptime reads traffic from, through the Meraki dashboard API.": "OneUptime 透過 Meraki 儀表板 API 讀取流量的 Meraki 組織。",
   "The access token cannot hold spaces or line breaks. Paste it again.": "存取權杖不能包含空格或換行。請重新貼上。",
   "The access token cannot push to any repository.": "該存取權杖無法推送到任何儲存庫。",
   "The access token cannot push to this repository, so AI could not work in it.": "該存取權杖無法推送到此儲存庫，因此 AI 無法在其中工作。",
@@ -36832,7 +36831,11 @@
   "The Meraki dashboard": "Meraki 儀表板",
   "The Meraki dashboard has not been read yet. The connection's status is on the network's Traffic page.": "尚未讀取 Meraki 儀表板。連線的狀態在該網路的 Traffic 頁面上。",
   "The Meraki dashboard is read again within a minute.": "將在一分鐘內重新讀取 Meraki 儀表板。",
-  "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki.": "其中 {{count}} 台裝置在此是網路裝置：其型號、序號和韌體來自 Meraki。",
-  "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki._one": "其中 {{count}} 台裝置在此是網路裝置：其型號、序號和韌體來自 Meraki。",
-  "Selected: {{name}}": "已選擇：{{name}}"
+  "Selected: {{name}}": "已選擇：{{name}}",
+  "Fills in the model, serial number and firmware of {{count}} network devices.": "補齊 {{count}} 台網路裝置的型號、序號和韌體。",
+  "Fills in the model, serial number and firmware of {{count}} network devices._one": "補齊 {{count}} 台網路裝置的型號、序號和韌體。",
+  "Hardware, software and location details from this device's SNMP poll, from discovery and from the Meraki dashboard.": "來自此裝置 SNMP 輪詢、探索與 Meraki 儀表板的硬體、軟體和位置詳細資料。",
+  "The Meraki organizations OneUptime reads traffic and device details from, through the Meraki dashboard API.": "OneUptime 透過 Meraki 儀表板 API 讀取流量和裝置詳細資料的 Meraki 組織。",
+  "{{count}} details are unknown: neither this device's SNMP poll, the Meraki dashboard nor a discovery scan has found them.": "{{count}} 項資訊未知：此裝置的 SNMP 輪詢、Meraki 儀表板和探索掃描都未找到。",
+  "{{count}} details are unknown: neither this device's SNMP poll, the Meraki dashboard nor a discovery scan has found them._one": "{{count}} 項資訊未知：此裝置的 SNMP 輪詢、Meraki 儀表板和探索掃描都未找到。"
 }

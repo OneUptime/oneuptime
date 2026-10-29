@@ -815,7 +815,8 @@ test.describe("the Meraki dashboard as a source, and Refresh", () => {
     await expect(status).toHaveAttribute("data-tone", "progress");
     await expect(status).toHaveAttribute("role", "status");
     await expect(button).toBeDisabled();
-    await expect(button).toContainText("Refreshing…");
+    // The same word, greyed and turning: no wider label to jump the header.
+    await expect(button).toHaveText("Refresh");
     await shoot(page, "item-meraki-refreshing-1280-light");
 
     // Its probe and the dashboard have read it again.
@@ -959,5 +960,191 @@ test.describe("the Meraki dashboard as a source, and Refresh", () => {
     ).toBeVisible();
     expect(await overflow(page)).toBeLessThanOrEqual(0);
     await shoot(page, "device-meraki-390-dark");
+  });
+});
+
+/*
+ * Refresh, every way it can go (the UI review): who reads a device again -
+ * its probe alone, the Meraki dashboard alone - a refresh nobody answers in
+ * three minutes, one the server refuses, and the card in Persian, read
+ * right to left. While the readers work, the button is the one thing that
+ * turns: the line under it waits with a still clock.
+ */
+test.describe("Refresh, every way it can go", () => {
+  const ITEM_STATUS: string = "inventory-asset-details-refresh-status";
+  const ITEM_BUTTON: string = "inventory-asset-details-refresh";
+
+  // Whether anything in the element is animated (a spinner turning).
+  async function isTurning(locator: Locator): Promise<boolean> {
+    return await locator.evaluate((element: Element) => {
+      return Array.from(element.querySelectorAll("*")).some(
+        (inner: Element) => {
+          return getComputedStyle(inner).animationName !== "none";
+        },
+      );
+    });
+  }
+
+  test("a switch only its probe polls: its probe reads it again, then it was read again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openItem(page, "?scenario=walked");
+
+    const button: Locator = page.getByTestId(ITEM_BUTTON);
+    const status: Locator = page.getByTestId(ITEM_STATUS);
+
+    await button.click();
+    await expect(status).toHaveText(
+      "Its probe reads it again within a minute.",
+    );
+    await expect(status).toHaveAttribute("data-tone", "progress");
+    // One spinner, the button's: the line waits with a still clock.
+    expect(await isTurning(button)).toBe(true);
+    expect(await isTurning(status)).toBe(false);
+
+    await expect(status).toHaveText("Read again just now.");
+    await expect(button).toBeEnabled();
+    // What its walk read is still said once, below the details.
+    await expect(saidOnce(page)).toHaveText(
+      "Read over SNMP by its probe, 3 minutes ago.",
+    );
+  });
+
+  test("a Meraki access point no probe polls: the Meraki dashboard is read again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openItem(page, "?scenario=meraki&probe=none");
+
+    const status: Locator = page.getByTestId(ITEM_STATUS);
+
+    await page.getByTestId(ITEM_BUTTON).click();
+    await expect(status).toHaveText(
+      "The Meraki dashboard is read again within a minute.",
+    );
+    await expect(status).toHaveText("Read again just now.");
+    await expect(saidOnce(page)).toHaveText(
+      "Read from the Meraki dashboard (Acme Retail), just now.",
+    );
+  });
+
+  test("nobody reads it in three minutes: the card names the probe to check, and Refresh is ready again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.clock.install();
+    await openItem(page, "?scenario=meraki&refresh=late");
+
+    const button: Locator = page.getByTestId(ITEM_BUTTON);
+    const status: Locator = page.getByTestId(ITEM_STATUS);
+
+    await button.click();
+    await expect(status).toHaveAttribute("data-tone", "progress");
+    await expect(button).toBeDisabled();
+
+    await page.clock.fastForward("03:10");
+
+    await expect(status).toHaveText(
+      "Its probe (Branch 12 probe) has not read it yet. Check that the probe is online.",
+    );
+    await expect(status).toHaveAttribute("data-tone", "warning");
+    await expect(button).toBeEnabled();
+    await expect(button).toContainText("Refresh");
+    await shoot(page, "item-meraki-late-1280-light");
+  });
+
+  test("refused: the server's reason, in red, and Refresh ready again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openItem(page, "?scenario=meraki&probe=none&refresh=refused");
+
+    const button: Locator = page.getByTestId(ITEM_BUTTON);
+    const status: Locator = page.getByTestId(ITEM_STATUS);
+
+    await button.click();
+    await expect(status).toHaveText(
+      "The Meraki connection that reads this device is turned off. Turn it on at the foot of the network's Traffic page, then refresh the device.",
+    );
+    await expect(status).toHaveAttribute("role", "alert");
+    await expect(status).toHaveAttribute("data-tone", "error");
+    await expect(button).toBeEnabled();
+    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await shoot(page, "item-meraki-refused-1280-light");
+  });
+
+  test("a Meraki device: its unknown details name the dashboard, and its Inventory card says the dashboard is a source", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openItem(page, "?scenario=meraki");
+    await expect(
+      page.getByTestId("inventory-asset-details-unknown"),
+    ).toContainText(
+      "2 details are unknown: neither this device's SNMP poll, the Meraki dashboard nor a discovery scan has found them.",
+    );
+
+    // A switch Meraki does not describe: the poll and the scans only.
+    await openItem(page, "?scenario=pinged");
+    await expect(
+      page.getByTestId("inventory-asset-details-unknown"),
+    ).toContainText(
+      "neither this device's SNMP poll nor a discovery scan has found them.",
+    );
+    await expect(
+      page.getByTestId("inventory-asset-details-unknown"),
+    ).not.toContainText("Meraki");
+
+    await open(page, "?page=device&scenario=meraki");
+    await expect(
+      page.getByText(
+        "Hardware, software and location details from this device's SNMP poll, from discovery and from the Meraki dashboard.",
+      ),
+    ).toBeVisible();
+  });
+
+  test("in Persian, right to left: the line's icon at its start on the right, and the time where the sentence puts it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openItem(page, "?scenario=meraki&lang=fa");
+
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+
+    // The time is set apart, so its digit stays with its words.
+    const line: string = (await saidOnce(page).textContent()) || "";
+    const isolateStart: number = line.indexOf("\u{2068}");
+    expect(isolateStart).toBeGreaterThan(line.indexOf("Acme Retail"));
+    expect(line.indexOf("\u{2069}")).toBeGreaterThan(isolateStart);
+
+    await page.getByTestId(ITEM_BUTTON).click();
+    const status: Locator = page.getByTestId(ITEM_STATUS);
+    await expect(status).toHaveText(
+      "پراب آن و داشبورد Meraki ظرف یک دقیقه دوباره آن را می‌خوانند.",
+    );
+
+    // Read right to left: the icon opens the line, at its right.
+    const boxes: { icon: number; text: number } = await status.evaluate(
+      (element: Element) => {
+        const icon: DOMRect = element
+          .querySelector("svg")!
+          .getBoundingClientRect();
+        const text: DOMRect = element
+          .querySelector("span")!
+          .getBoundingClientRect();
+        return { icon: icon.left, text: text.right };
+      },
+    );
+    expect(boxes.icon).toBeGreaterThanOrEqual(boxes.text);
+    expect(await staysInside(status, card)).toBe(true);
+    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await shoot(page, "item-meraki-refreshing-1280-fa");
   });
 });

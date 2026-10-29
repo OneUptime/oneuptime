@@ -456,10 +456,56 @@ describe("what a read records", () => {
     };
 
     expect(plan([candidate]).patches).toHaveLength(1);
+    // Its Inventory item is copied once the reading is written.
+    expect(plan([candidate]).refreshedDeviceIds).toEqual([id(2)]);
 
     // Asked before its reading: that reading answered it.
     candidate.refreshRequestedAt = new Date(READ_AT.getTime() - 6 * MINUTE);
     expect(plan([candidate]).patches).toEqual([]);
+    expect(plan([candidate]).refreshedDeviceIds).toEqual([]);
+  });
+
+  test("a refresh asked for a device read for the first time copies its item; a reading written for any other reason does not", () => {
+    // First reading, asked for: copied.
+    expect(
+      plan([
+        {
+          id: id(2),
+          hostname: "10.0.0.2",
+          name: "Branch 1 core",
+          refreshRequestedAt: new Date(READ_AT.getTime() - MINUTE),
+        },
+      ]).refreshedDeviceIds,
+    ).toEqual([id(2)]);
+
+    // A changed reading nobody asked for: written, the mirror's pass copies it.
+    const changed: ControllerInventoryPlan = plan([
+      {
+        id: id(2),
+        hostname: "10.0.0.2",
+        name: "Branch 1 core",
+        discoveredDetails: {
+          controller: storedReading(
+            controllerDevice({ firmware: "switch-15-21" }),
+            new Date(READ_AT.getTime() - 5 * MINUTE),
+          ),
+        },
+      },
+    ]);
+    expect(changed.patches).toHaveLength(1);
+    expect(changed.refreshedDeviceIds).toEqual([]);
+
+    // Asked for, but not described by this list: nothing to copy.
+    expect(
+      plan([
+        {
+          id: id(3),
+          hostname: "10.0.0.77",
+          name: "printer",
+          refreshRequestedAt: new Date(READ_AT.getTime() - MINUTE),
+        },
+      ]).refreshedDeviceIds,
+    ).toEqual([]);
   });
 
   test("another connection's reading is replaced by this one's", () => {
@@ -603,6 +649,74 @@ describe("one read, end to end", () => {
       deviceCount: 3,
       describedDeviceCount: 0,
       writtenDeviceCount: 0,
+    });
+  });
+
+  test("a device someone asked to read again has its Inventory item copied after the merge, once", async () => {
+    const steps: Array<string> = [];
+
+    await NetworkControllerInventory.record({
+      projectId: new ObjectID("11111111-1111-4111-8111-111111111111"),
+      connection: CONNECTION,
+      readAt: READ_AT,
+      devices: LIST,
+      isDeviceListComplete: true,
+      findCandidates: async () => {
+        return [
+          {
+            id: id(1),
+            serialNumber: MX.serial,
+            refreshRequestedAt: new Date(READ_AT.getTime() - MINUTE),
+          },
+          { id: id(2), hostname: "10.0.0.2", name: "Branch 1 core" },
+        ];
+      },
+      merge: async (data: {
+        patches: Array<DiscoveredDetailsMerge>;
+      }): Promise<number> => {
+        steps.push(`merge ${data.patches.length}`);
+        return data.patches.length;
+      },
+      mirror: async (deviceId: ObjectID): Promise<void> => {
+        steps.push(`mirror ${deviceId.toString()}`);
+      },
+    });
+
+    // The reading first, so the copy carries it; only the device asked for.
+    expect(steps).toEqual(["merge 2", `mirror ${id(1)}`]);
+  });
+
+  test("a copy that fails leaves the read as it was: the mirror's pass copies the item later", async () => {
+    const outcome: ControllerInventoryOutcome =
+      await NetworkControllerInventory.record({
+        projectId: new ObjectID("11111111-1111-4111-8111-111111111111"),
+        connection: CONNECTION,
+        readAt: READ_AT,
+        devices: LIST,
+        isDeviceListComplete: true,
+        findCandidates: async () => {
+          return [
+            {
+              id: id(1),
+              serialNumber: MX.serial,
+              refreshRequestedAt: new Date(READ_AT.getTime() - MINUTE),
+            },
+          ];
+        },
+        merge: async (data: {
+          patches: Array<DiscoveredDetailsMerge>;
+        }): Promise<number> => {
+          return data.patches.length;
+        },
+        mirror: async (): Promise<void> => {
+          throw new Error("Postgres is not answering");
+        },
+      });
+
+    expect(outcome).toEqual({
+      deviceCount: 3,
+      describedDeviceCount: 1,
+      writtenDeviceCount: 1,
     });
   });
 

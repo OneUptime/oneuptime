@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import NetworkDeviceRefreshRunner, {
+  CONTROLLER_OFF_REASON,
   MONITOR_BACKED_REASON,
   NO_PROBE_REASON,
   NetworkDeviceRefreshAnswer,
   POLLING_OFF_REASON,
 } from "../../../../Server/Utils/NetworkDevice/NetworkDeviceRefreshRunner";
+import * as SharedRefresh from "../../../../Utils/NetworkDevice/NetworkDeviceRefresh";
 import NetworkControllerConnectionService from "../../../../Server/Services/NetworkControllerConnectionService";
 import NetworkDeviceService from "../../../../Server/Services/NetworkDeviceService";
 import NetworkControllerConnection from "../../../../Models/DatabaseModels/NetworkControllerConnection";
@@ -208,17 +210,42 @@ describe("a device a Meraki connection describes", () => {
     expect(writes[0]!.data).toEqual({ refreshRequestedAt: NOW });
   });
 
-  test("a connection that is off, or gone: refused when nothing else reads it", async () => {
+  test.each<[string, Record<string, unknown>]>([
+    ["monitor-backed", { monitoringMethod: "Monitor" }],
+    ["polled by no probe", { probeId: undefined }],
+    ["with polling off", { isPollingEnabled: false }],
+  ])(
+    "a device %s whose connection is off: refused, naming the connection it was offered Refresh for",
+    async (_: string, overrides: Record<string, unknown>) => {
+      device = probePolledDevice({
+        ...(overrides as never),
+        discoveredDetails: { controller: MERAKI_READING },
+      });
+      connection = null;
+
+      await expect(refresh()).rejects.toThrow(
+        new BadDataException(CONTROLLER_OFF_REASON),
+      );
+      expect(CONTROLLER_OFF_REASON).toContain("turned off");
+      expect(CONTROLLER_OFF_REASON).toContain("Traffic page");
+      expect(writes).toEqual([]);
+      expect(enqueued).toEqual([]);
+    },
+  );
+
+  test("a connection that is off, beside a probe that polls the device: its probe reads it alone", async () => {
     device = probePolledDevice({
-      monitoringMethod: "Monitor",
       discoveredDetails: { controller: MERAKI_READING },
     });
     connection = null;
 
-    await expect(refresh()).rejects.toThrow(
-      new BadDataException(MONITOR_BACKED_REASON),
-    );
-    expect(writes).toEqual([]);
+    const answer: NetworkDeviceRefreshAnswer = await refresh();
+
+    expect(answer).toMatchObject({
+      isProbeReading: true,
+      isControllerReading: false,
+    });
+    expect(enqueued).toEqual([]);
   });
 
   test("a read that cannot be queued: its probe still reads the device", async () => {
@@ -260,6 +287,13 @@ describe("a device nothing reads on its own", () => {
       expect(writes).toEqual([]);
     },
   );
+
+  test("the reasons are the ones the shared module gives the page's fixture", () => {
+    expect(MONITOR_BACKED_REASON).toBe(SharedRefresh.MONITOR_BACKED_REASON);
+    expect(NO_PROBE_REASON).toBe(SharedRefresh.NO_PROBE_REASON);
+    expect(POLLING_OFF_REASON).toBe(SharedRefresh.POLLING_OFF_REASON);
+    expect(CONTROLLER_OFF_REASON).toBe(SharedRefresh.CONTROLLER_OFF_REASON);
+  });
 
   test("a device that is not there is not found", async () => {
     device = null;

@@ -66,6 +66,8 @@ let failBookkeeping: boolean;
 let candidates: Array<ControllerInventoryCandidate>;
 let lookups: Array<ControllerInventoryLookup>;
 let merged: Array<DiscoveredDetailsMerge>;
+// The Inventory items copied after a reading answered a refresh.
+let mirrored: Array<string>;
 
 function rowTime(value: unknown): Date {
   return new Date(Date.parse(`${String(value).replace(" ", "T")}Z`));
@@ -157,6 +159,9 @@ function dependencies(
       merged.push(...data.patches);
       return data.patches.length;
     },
+    mirrorRefreshedDevice: async (deviceId: ObjectID): Promise<void> => {
+      mirrored.push(deviceId.toString());
+    },
     ...overrides,
   };
 }
@@ -203,6 +208,7 @@ beforeEach(() => {
   candidates = [];
   lookups = [];
   merged = [];
+  mirrored = [];
   clock = createTestClock(START);
   setApi();
 
@@ -790,6 +796,9 @@ describe("the devices' details the device list fills in", () => {
     await run();
     expect(merged).toEqual([]);
 
+    // Nobody asked: no item is copied out of turn.
+    expect(mirrored).toEqual([]);
+
     // Someone asks for it to be read again: written at once.
     candidates[0]!.refreshRequestedAt = new Date(
       clock.now().getTime() - MINUTE,
@@ -797,6 +806,8 @@ describe("the devices' details the device list fills in", () => {
     clock.advance(MINUTE);
     await run();
     expect(merged).toHaveLength(1);
+    // And its Inventory item copied with it, as its probe's poll copies it.
+    expect(mirrored).toEqual([SWITCH_DEVICE]);
 
     // And an hour on, whatever happens, so its time stays true.
     candidates = [

@@ -338,7 +338,7 @@ describe("the list", () => {
     ).toBeNull();
   });
 
-  test("a read that listed its devices counts them, and says how many are network devices here, taking their details from Meraki", async () => {
+  test("a read that listed its devices counts them, and says how many network devices here it fills in the details of", async () => {
     connections = [
       connection(FIRST_ID, {
         lastPullResult: {
@@ -371,7 +371,7 @@ describe("the list", () => {
         return note.textContent;
       }),
     ).toContain(
-      "212 of its devices are network devices here: their model, serial number and firmware come from Meraki.",
+      "Fills in the model, serial number and firmware of 212 network devices.",
     );
   });
 
@@ -409,7 +409,7 @@ describe("the list", () => {
     expect(
       within(rows()[0]!).getByTestId("meraki-connection-note"),
     ).toHaveTextContent(
-      "1 of its devices is a network device here: its model, serial number and firmware come from Meraki.",
+      "Fills in the model, serial number and firmware of 1 network device.",
     );
     expect(
       within(rows()[1]!).queryByTestId("meraki-connection-note"),

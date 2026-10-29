@@ -33728,7 +33728,6 @@
   "The Meraki dashboard API could not be reached.": "Meraki 대시보드 API에 연결할 수 없었습니다.",
   "The Meraki dashboard API reports totals, not conversations: it never says who talked to whom. Turn on NetFlow on the MX appliances to see conversations as well.": "Meraki 대시보드 API는 대화가 아니라 합계를 보고합니다: 누가 누구와 통신했는지는 알려 주지 않습니다. 대화도 보려면 MX 어플라이언스에서 NetFlow를 켜세요.",
   "The Meraki networks whose appliances carried the most traffic. Click one to see only its traffic.": "어플라이언스가 가장 많은 트래픽을 나른 Meraki 네트워크. 하나를 클릭하면 그 트래픽만 봅니다.",
-  "The Meraki organizations OneUptime reads traffic from, through the Meraki dashboard API.": "OneUptime이 Meraki 대시보드 API로 트래픽을 읽는 Meraki 조직.",
   "The access token cannot hold spaces or line breaks. Paste it again.": "접근 토큰에는 공백이나 줄바꿈이 들어갈 수 없습니다. 다시 붙여 넣으세요.",
   "The access token cannot push to any repository.": "이 접근 토큰으로 푸시할 수 있는 저장소가 없습니다.",
   "The access token cannot push to this repository, so AI could not work in it.": "이 접근 토큰으로는 이 저장소에 푸시할 수 없어 AI가 이 저장소에서 작업할 수 없습니다.",
@@ -36832,7 +36831,11 @@
   "The Meraki dashboard": "Meraki 대시보드",
   "The Meraki dashboard has not been read yet. The connection's status is on the network's Traffic page.": "Meraki 대시보드를 아직 읽지 않았습니다. 연결 상태는 네트워크의 Traffic 페이지에 있습니다.",
   "The Meraki dashboard is read again within a minute.": "Meraki 대시보드를 1분 안에 다시 읽습니다.",
-  "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki.": "그중 {{count}}대가 여기서 네트워크 디바이스입니다. 모델, 일련번호, 펌웨어는 Meraki에서 가져옵니다.",
-  "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki._one": "그중 {{count}}대가 여기서 네트워크 디바이스입니다. 모델, 일련번호, 펌웨어는 Meraki에서 가져옵니다.",
-  "Selected: {{name}}": "선택됨: {{name}}"
+  "Selected: {{name}}": "선택됨: {{name}}",
+  "Fills in the model, serial number and firmware of {{count}} network devices.": "네트워크 디바이스 {{count}}대의 모델, 일련번호, 펌웨어를 채웁니다.",
+  "Fills in the model, serial number and firmware of {{count}} network devices._one": "네트워크 디바이스 {{count}}대의 모델, 일련번호, 펌웨어를 채웁니다.",
+  "Hardware, software and location details from this device's SNMP poll, from discovery and from the Meraki dashboard.": "이 장치의 SNMP 폴링, 검색, Meraki 대시보드에서 얻은 하드웨어, 소프트웨어, 위치 세부 정보입니다.",
+  "The Meraki organizations OneUptime reads traffic and device details from, through the Meraki dashboard API.": "OneUptime이 Meraki 대시보드 API로 트래픽과 디바이스 세부 정보를 읽는 Meraki 조직.",
+  "{{count}} details are unknown: neither this device's SNMP poll, the Meraki dashboard nor a discovery scan has found them.": "{{count}}개 항목을 알 수 없음: 이 장치의 SNMP 폴링, Meraki 대시보드, 검색 스캔 모두 찾지 못했습니다.",
+  "{{count}} details are unknown: neither this device's SNMP poll, the Meraki dashboard nor a discovery scan has found them._one": "{{count}}개 항목을 알 수 없음: 이 장치의 SNMP 폴링, Meraki 대시보드, 검색 스캔 모두 찾지 못했습니다."
 }

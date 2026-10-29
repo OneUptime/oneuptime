@@ -15,7 +15,6 @@ import { NETWORK_DEVICE_ASSET_FACT_COLUMNS } from "../Inventory/NetworkDeviceAss
 import NetworkDeviceRefreshStatus from "./NetworkDeviceRefreshStatus";
 import {
   NETWORK_DEVICE_REFRESH_COLUMNS,
-  REFRESHING_TITLE,
   REFRESH_TITLE,
 } from "./NetworkDeviceRefreshWords";
 import useNetworkDeviceRefresh, {
@@ -30,6 +29,7 @@ import {
   NetworkDeviceControllerReading,
   NetworkDeviceDiscoverySighting,
   NetworkDeviceOtherMachineSighting,
+  readNetworkDeviceDiscoveredDetails,
 } from "Common/Types/NetworkDevice/NetworkDeviceDiscoveredDetails";
 import {
   AssetFactSource,
@@ -70,6 +70,18 @@ export const NOTHING_READ_YET: string = translationKey(
 // The Meraki network a device is in, under the Meraki row.
 export const CONTROLLER_NETWORK_LINE: string = translationKey(
   "In the {{network}} network.",
+);
+
+/*
+ * Where the card's details come from: the device's own poll and discovery -
+ * and, for a device the Meraki dashboard describes, the dashboard too, which
+ * gives a Meraki box the model, serial number and firmware its poll cannot.
+ */
+export const INVENTORY_CARD_DESCRIPTION: string = translationKey(
+  "Hardware, software and location details from this device's SNMP poll and from discovery.",
+);
+export const INVENTORY_CARD_CONTROLLER_DESCRIPTION: string = translationKey(
+  "Hardware, software and location details from this device's SNMP poll, from discovery and from the Meraki dashboard.",
 );
 
 export interface InventoryUptimeValueProps {
@@ -192,6 +204,10 @@ const DeviceInventoryCard: FunctionComponent<ComponentProps> = (
     },
   });
   const hasRefreshStatus: boolean = Boolean(refresh.error || refresh.answer);
+  const isDescribedByController: boolean = Boolean(
+    device &&
+      readNetworkDeviceDiscoveredDetails(device.discoveredDetails).controller,
+  );
 
   type GetUptimeElementFunction = (item: NetworkDevice) => ReactElement;
 
@@ -375,13 +391,14 @@ const DeviceInventoryCard: FunctionComponent<ComponentProps> = (
       name="Device Inventory"
       cardProps={{
         title: "Inventory",
-        description:
-          "Hardware, software and location details from this device's SNMP poll and from discovery.",
+        description: isDescribedByController
+          ? INVENTORY_CARD_CONTROLLER_DESCRIPTION
+          : INVENTORY_CARD_DESCRIPTION,
         buttons: refresh.canRefresh
           ? [
               <Button
                 key="refresh"
-                title={refresh.isRefreshing ? REFRESHING_TITLE : REFRESH_TITLE}
+                title={REFRESH_TITLE}
                 icon={IconProp.Refresh}
                 buttonStyle={ButtonStyleType.NORMAL}
                 isLoading={refresh.isRefreshing}

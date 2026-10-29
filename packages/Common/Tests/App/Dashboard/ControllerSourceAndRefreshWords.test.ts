@@ -4,8 +4,10 @@ import path from "path";
 import {
   CONTROLLER_READ_TEMPLATE,
   CONTROLLER_READ_UNNAMED_TEMPLATE,
+  FIRST_STRONG_ISOLATE,
   JUST_NOW,
   NAMED_CONTROLLER_SOURCE,
+  POP_DIRECTIONAL_ISOLATE,
   UNNAMED_CONTROLLER_SOURCE,
   getAssetFactDifferenceLine,
   getAssetFactSourceLine,
@@ -23,7 +25,6 @@ import {
   PROBE_LATE,
   PROBE_LATE_UNNAMED,
   READ_AGAIN,
-  REFRESHING_TITLE,
   REFRESH_TITLE,
   RefreshStatusWords,
   WAITING_FOR_BOTH,
@@ -31,7 +32,11 @@ import {
   WAITING_FOR_PROBE,
   getRefreshStatusWords,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/NetworkDeviceRefreshWords";
-import { CONTROLLER_NETWORK_LINE } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceInventoryCard";
+import {
+  CONTROLLER_NETWORK_LINE,
+  INVENTORY_CARD_CONTROLLER_DESCRIPTION,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceInventoryCard";
+import { NETWORK_DEVICE_CONTROLLER_UNKNOWN } from "../../../../App/FeatureSet/Dashboard/src/Components/Inventory/InventoryAssetLabels";
 import {
   DESCRIBED_DEVICES_NOTE,
   DEVICE_COUNT,
@@ -50,6 +55,7 @@ import {
   Translator,
   createTranslator,
 } from "../../../UI/Utils/TranslateTemplate";
+import { isRightToLeftLanguage } from "../../../Types/ReadingDirection";
 
 /*
  * What the cards say about a device's Meraki dashboard as a source of its
@@ -279,11 +285,64 @@ describe("the Meraki dashboard as a source, in words", () => {
         code,
         words: true,
       });
+      // Set apart in an isolate in a right-to-left sentence.
+      const worded: unknown = readLocale(code)[JUST_NOW];
       expect({ code, words }).toEqual({
         code,
-        words: readLocale(code)[JUST_NOW],
+        words: isRightToLeftLanguage(code)
+          ? `${FIRST_STRONG_ISOLATE}${worded}${POP_DIRECTIONAL_ISOLATE}`
+          : worded,
       });
     }
+  });
+
+  /*
+   * A Persian sentence whose time follows a name in Latin letters drew the
+   * time's digit and the comma beside the name ("... داشبورد ۴ ،Meraki
+   * (Acme Retail) دقیقه پیش."): the digit joined the name's left-to-right
+   * run. The time is set apart in an isolate there, and only there.
+   */
+  test("a time in a right-to-left sentence is set apart in an isolate; a left-to-right one is as it was", () => {
+    const persian: Translator = translatorFor("fa");
+    const line: string | undefined = getControllerReadLine(
+      MERAKI,
+      persian,
+      NOW,
+    );
+    const time: string | undefined = getAssetFactSourceTime(
+      MERAKI.readAt,
+      persian,
+      NOW,
+    );
+
+    expect(time?.startsWith(FIRST_STRONG_ISOLATE)).toBe(true);
+    expect(time?.endsWith(POP_DIRECTIONAL_ISOLATE)).toBe(true);
+    // The isolate holds the time alone, after the connection's name.
+    expect(line).toContain(time!);
+    expect(line!.indexOf("Acme Retail")).toBeLessThan(
+      line!.indexOf(FIRST_STRONG_ISOLATE),
+    );
+    expect(line!.split(FIRST_STRONG_ISOLATE)).toHaveLength(2);
+    // The scan's line and a value's source line say their time the same way.
+    expect(getAssetFactSourceLine(MERAKI, persian, NOW)).toContain(time!);
+
+    for (const code of LANGUAGES.filter((language: string) => {
+      return !isRightToLeftLanguage(language);
+    })) {
+      const read: string | undefined = getControllerReadLine(
+        MERAKI,
+        translatorFor(code),
+        NOW,
+      );
+
+      expect({ code, isolated: read?.includes(FIRST_STRONG_ISOLATE) }).toEqual({
+        code,
+        isolated: false,
+      });
+    }
+    expect(getControllerReadLine(MERAKI, english, NOW)).toBe(
+      "Read from the Meraki dashboard (Acme Retail), 20 minutes ago.",
+    );
   });
 });
 
@@ -405,9 +464,11 @@ describe("every new sentence, in every language", () => {
     CONTROLLER_LATE,
     CONTROLLER_NETWORK_LINE,
     REFRESH_TITLE,
-    REFRESHING_TITLE,
     DESCRIBED_DEVICES_NOTE.other,
     DEVICE_COUNT.other,
+    NETWORK_DEVICE_CONTROLLER_UNKNOWN.other,
+    INVENTORY_CARD_CONTROLLER_DESCRIPTION,
+    "The Meraki organizations OneUptime reads traffic and device details from, through the Meraki dashboard API.",
   ];
 
   test.each(LANGUAGES)(
@@ -433,10 +494,41 @@ describe("every new sentence, in every language", () => {
         });
       }
 
-      // The one form of the plural note, worded too.
-      const one: unknown = locale[`${DESCRIBED_DEVICES_NOTE.other}_one`];
-      expect(typeof one).toBe("string");
-      expect(placeholdersOf(one as string)).toEqual(["count"]);
+      // The one forms of the plural sentences, worded too.
+      for (const plural of [
+        DESCRIBED_DEVICES_NOTE,
+        NETWORK_DEVICE_CONTROLLER_UNKNOWN,
+      ]) {
+        const one: unknown = locale[`${plural.other}_one`];
+        expect(typeof one).toBe("string");
+        expect(placeholdersOf(one as string)).toEqual(["count"]);
+      }
     },
   );
+
+  /*
+   * The connection's note says what it does for the devices here, in one
+   * plain sentence: no "network devices here" riddle, and nothing a saved
+   * or polled value would lose ("fills in").
+   */
+  test("the connection's note says what it fills in, for one device and for many", () => {
+    expect(english.translatePlural(DESCRIBED_DEVICES_NOTE, 1)).toBe(
+      "Fills in the model, serial number and firmware of 1 network device.",
+    );
+    expect(english.translatePlural(DESCRIBED_DEVICES_NOTE, 5)).toBe(
+      "Fills in the model, serial number and firmware of 5 network devices.",
+    );
+    expect(translatorFor("de").translatePlural(DESCRIBED_DEVICES_NOTE, 5)).toBe(
+      "Ergänzt Modell, Seriennummer und Firmware von 5 Netzwerkgeräten.",
+    );
+  });
+
+  test("the unknown details of a device the Meraki dashboard describes name the dashboard too", () => {
+    expect(english.translatePlural(NETWORK_DEVICE_CONTROLLER_UNKNOWN, 2)).toBe(
+      "2 details are unknown: neither this device's SNMP poll, the Meraki dashboard nor a discovery scan has found them.",
+    );
+    expect(english.translatePlural(NETWORK_DEVICE_CONTROLLER_UNKNOWN, 1)).toBe(
+      "1 detail is unknown: neither this device's SNMP poll, the Meraki dashboard nor a discovery scan has found it.",
+    );
+  });
 });

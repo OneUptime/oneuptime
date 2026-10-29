@@ -10,7 +10,7 @@ import {
   getNetworkDeviceInventoryAssetDetails,
 } from "Common/Utils/Inventory/InventoryAssetDetails";
 import { TopologyDeviceRoleInput } from "Common/Utils/Monitor/NetworkDeviceRoleCatalog";
-import { useEffect, useState } from "react";
+import { MutableRefObject, useEffect, useRef, useState } from "react";
 import { NETWORK_DEVICE_ASSET_FACT_SELECT } from "./NetworkDeviceAssetSelect";
 import { NETWORK_DEVICE_REFRESH_COLUMNS } from "../NetworkDevice/NetworkDeviceRefreshWords";
 
@@ -29,6 +29,11 @@ import { NETWORK_DEVICE_REFRESH_COLUMNS } from "../NetworkDevice/NetworkDeviceRe
  * The project's device roles are read beside it, so a device the classifier
  * calls a "wirelessAccessPoint" is named as the project names that role, the
  * way the mirror names it. A refused role read just means the built-in names.
+ *
+ * Read again (Refresh follows the device every few seconds), it reads the
+ * device alone - the roles do not change while a device is read again - and
+ * a read that fails keeps what is shown: the device is still there, only its
+ * newest reading did not arrive, and the refresh it follows goes on.
  */
 
 export interface NetworkDeviceAssetDetailsRead {
@@ -121,6 +126,16 @@ const useNetworkDeviceAssetDetails: (
   });
   // Bumped to read the device again without clearing what is shown.
   const [reloadKey, setReloadKey] = useState<number>(0);
+  // The device whose details are shown: a read of it again is quiet.
+  const shownIdRef: MutableRefObject<string> = useRef<string>("");
+  // The project's roles, read with the device's first read.
+  const rolesRef: MutableRefObject<{
+    deviceId: string;
+    roles: Array<TopologyDeviceRoleInput>;
+  } | null> = useRef<{
+    deviceId: string;
+    roles: Array<TopologyDeviceRoleInput>;
+  } | null>(null);
 
   // A new device starts empty; a reload of the same one keeps what it has.
   useEffect(() => {
@@ -134,6 +149,11 @@ const useNetworkDeviceAssetDetails: (
     }
 
     let isCancelled: boolean = false;
+    const isQuiet: boolean = shownIdRef.current === deviceIdString;
+    const knownRoles: Array<TopologyDeviceRoleInput> | undefined =
+      rolesRef.current?.deviceId === deviceIdString
+        ? rolesRef.current.roles
+        : undefined;
 
     const load: () => Promise<void> = async (): Promise<void> => {
       try {
@@ -149,12 +169,15 @@ const useNetworkDeviceAssetDetails: (
               ...NETWORK_DEVICE_REFRESH_COLUMNS,
             },
           }),
-          readProjectRoles(),
+          knownRoles ? Promise.resolve(knownRoles) : readProjectRoles(),
         ]);
 
         if (isCancelled) {
           return;
         }
+
+        rolesRef.current = { deviceId: deviceIdString, roles: roles };
+        shownIdRef.current = device ? deviceIdString : "";
 
         setRead({
           details: device
@@ -164,8 +187,11 @@ const useNetworkDeviceAssetDetails: (
           device: device,
         });
       } catch {
-        // The item's own facts stand in: never less than before.
-        if (!isCancelled) {
+        /*
+         * The item's own facts stand in: never less than before. A read
+         * again that fails keeps the device's own reading on screen.
+         */
+        if (!isCancelled && !isQuiet) {
           setRead({ details: null, isLoading: false });
         }
       }

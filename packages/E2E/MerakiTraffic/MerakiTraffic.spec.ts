@@ -779,11 +779,11 @@ test("a large organization read in part: what is still to come, and why", async 
 
 /*
  * Each read also lists the organization's devices: the connection's row
- * counts them, and says how many are network devices here - whose model,
- * serial number and firmware come from Meraki. A read from before reads
- * counted them says nothing of devices (the first test of the page).
+ * counts them, and says how many network devices here it fills in the
+ * model, serial number and firmware of. A read from before reads counted
+ * them says nothing of devices (the first test of the page).
  */
-test("the organization's devices: counted on the connection's row, and the ones that are network devices here", async ({
+test("the organization's devices: counted on the connection's row, and the network devices here it fills in", async ({
   page,
 }: {
   page: Page;
@@ -797,7 +797,7 @@ test("the organization's devices: counted on the connection's row, and the ones 
   const notes: Locator = row.getByTestId("meraki-connection-note");
   await expect(notes).toHaveCount(1);
   await expect(notes).toHaveText(
-    "5 of its devices are network devices here: their model, serial number and firmware come from Meraki.",
+    "Fills in the model, serial number and firmware of 5 network devices.",
   );
   // Grey: OneUptime did it by itself, nothing to act on.
   await expect(notes).toHaveAttribute("data-tone", "info");
@@ -813,7 +813,7 @@ test("the organization's devices: counted on the connection's row, and the ones 
   await expect(
     page.getByTestId("meraki-connection").getByTestId("meraki-connection-note"),
   ).toHaveText(
-    "1 of its devices is a network device here: its model, serial number and firmware come from Meraki.",
+    "Fills in the model, serial number and firmware of 1 network device.",
   );
 
   // In German.
@@ -821,7 +821,15 @@ test("the organization's devices: counted on the connection's row, and the ones 
   await expect(
     page.getByTestId("meraki-connection").getByTestId("meraki-connection-note"),
   ).toHaveText(
-    "5 seiner Geräte sind hier Netzwerkgeräte: Ihr Modell, ihre Seriennummer und ihre Firmware kommen von Meraki.",
+    "Ergänzt Modell, Seriennummer und Firmware von 5 Netzwerkgeräten.",
+  );
+  // The card says what the connections read: traffic, and device details.
+  await expect(
+    page
+      .getByTestId("meraki-connections")
+      .locator("xpath=ancestor::div[@data-testid='card'][1]"),
+  ).toContainText(
+    "Die Meraki-Organisationen, deren Datenverkehr und Geräteangaben OneUptime über die Meraki-Dashboard-API liest.",
   );
   await screenshot(
     page,

@@ -33728,7 +33728,6 @@
   "The Meraki dashboard API could not be reached.": "De Meraki-dashboard-API was niet bereikbaar.",
   "The Meraki dashboard API reports totals, not conversations: it never says who talked to whom. Turn on NetFlow on the MX appliances to see conversations as well.": "De Meraki-dashboard-API meldt totalen, geen gesprekken: hij zegt nooit wie met wie communiceerde. Schakel NetFlow in op de MX-appliances om ook gesprekken te zien.",
   "The Meraki networks whose appliances carried the most traffic. Click one to see only its traffic.": "De Meraki-netwerken waarvan de appliances het meeste verkeer droegen. Klik op een netwerk om alleen het verkeer ervan te zien.",
-  "The Meraki organizations OneUptime reads traffic from, through the Meraki dashboard API.": "De Meraki-organisaties waarvan OneUptime het verkeer leest, via de Meraki-dashboard-API.",
   "The access token cannot hold spaces or line breaks. Paste it again.": "Het toegangstoken mag geen spaties of regeleinden bevatten. Plak het opnieuw.",
   "The access token cannot push to any repository.": "Het toegangstoken kan naar geen enkele repository pushen.",
   "The access token cannot push to this repository, so AI could not work in it.": "Het toegangstoken kan niet naar deze repository pushen, dus AI zou er niet in kunnen werken.",
@@ -36832,7 +36831,11 @@
   "The Meraki dashboard": "Het Meraki-dashboard",
   "The Meraki dashboard has not been read yet. The connection's status is on the network's Traffic page.": "Het Meraki-dashboard is nog niet gelezen. De status van de koppeling staat op de pagina Traffic van het netwerk.",
   "The Meraki dashboard is read again within a minute.": "Het Meraki-dashboard wordt binnen een minuut opnieuw gelezen.",
-  "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki.": "{{count}} van de apparaten zijn hier netwerkapparaten: model, serienummer en firmware komen van Meraki.",
-  "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki._one": "{{count}} van de apparaten is hier een netwerkapparaat: model, serienummer en firmware komen van Meraki.",
-  "Selected: {{name}}": "Geselecteerd: {{name}}"
+  "Selected: {{name}}": "Geselecteerd: {{name}}",
+  "Fills in the model, serial number and firmware of {{count}} network devices.": "Vult model, serienummer en firmware aan van {{count}} netwerkapparaten.",
+  "Fills in the model, serial number and firmware of {{count}} network devices._one": "Vult model, serienummer en firmware aan van {{count}} netwerkapparaat.",
+  "Hardware, software and location details from this device's SNMP poll, from discovery and from the Meraki dashboard.": "Hardware-, software- en locatiegegevens uit de SNMP-poll van dit apparaat, uit detectie en uit het Meraki-dashboard.",
+  "The Meraki organizations OneUptime reads traffic and device details from, through the Meraki dashboard API.": "De Meraki-organisaties waarvan OneUptime het verkeer en de apparaatgegevens leest, via de Meraki-dashboard-API.",
+  "{{count}} details are unknown: neither this device's SNMP poll, the Meraki dashboard nor a discovery scan has found them.": "{{count}} gegevens zijn onbekend: noch de SNMP-poll van dit apparaat, noch het Meraki-dashboard, noch een detectiescan heeft ze gevonden.",
+  "{{count}} details are unknown: neither this device's SNMP poll, the Meraki dashboard nor a discovery scan has found them._one": "{{count}} gegeven is onbekend: noch de SNMP-poll van dit apparaat, noch het Meraki-dashboard, noch een detectiescan heeft het gevonden."
 }

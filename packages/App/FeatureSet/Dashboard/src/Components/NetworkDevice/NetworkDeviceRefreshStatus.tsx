@@ -12,10 +12,11 @@ import { UseNetworkDeviceRefreshResult } from "./useNetworkDeviceRefresh";
 
 /*
  * One line under a card's header, while a device is read again and once it
- * has been: an arrow turning while its readers are at it, a green tick when
- * it was read, amber when its probe could not reach it or has not read it,
- * red when the refresh could not be asked for. Announced to a screen reader
- * as it changes. Nothing at all before anyone presses Refresh.
+ * has been: a clock while its readers are at it (the Refresh button above
+ * already turns - one spinner is enough), a green tick when it was read,
+ * amber when its probe could not reach it or has not read it, red when the
+ * refresh could not be asked for. Announced to a screen reader as it
+ * changes. Nothing at all before anyone presses Refresh.
  */
 
 export interface ComponentProps {
@@ -31,8 +32,8 @@ const TONE_CLASS_NAMES: Record<RefreshStatusTone, string> = {
   error: "text-red-700",
 };
 
-const TONE_ICONS: Record<RefreshStatusTone, IconProp> = {
-  progress: IconProp.Refresh,
+export const REFRESH_STATUS_ICONS: Record<RefreshStatusTone, IconProp> = {
+  progress: IconProp.Clock,
   done: IconProp.CheckCircle,
   warning: IconProp.ExclaimationCircle,
   error: IconProp.ExclaimationCircle,
@@ -53,7 +54,7 @@ const NetworkDeviceRefreshStatus: FunctionComponent<ComponentProps> = (
         data-tone="error"
       >
         <Icon
-          icon={TONE_ICONS.error}
+          icon={REFRESH_STATUS_ICONS.error}
           size={SizeProp.Small}
           className="mt-0.5 h-4 w-4 flex-none"
         />
@@ -80,11 +81,9 @@ const NetworkDeviceRefreshStatus: FunctionComponent<ComponentProps> = (
       data-tone={words.tone}
     >
       <Icon
-        icon={TONE_ICONS[words.tone]}
+        icon={REFRESH_STATUS_ICONS[words.tone]}
         size={SizeProp.Small}
-        className={`mt-0.5 h-4 w-4 flex-none${
-          words.tone === "progress" ? " motion-safe:animate-spin" : ""
-        }`}
+        className="mt-0.5 h-4 w-4 flex-none"
       />
       <span className="min-w-0 break-words">
         {translator.translateTemplate(words.template, words.values)}

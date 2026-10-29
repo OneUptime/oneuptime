@@ -33728,7 +33728,6 @@
   "The Meraki dashboard API could not be reached.": "Meraki-instrumentpanelens API gick inte att nå.",
   "The Meraki dashboard API reports totals, not conversations: it never says who talked to whom. Turn on NetFlow on the MX appliances to see conversations as well.": "Meraki-instrumentpanelens API rapporterar summor, inte konversationer: det säger aldrig vem som pratade med vem. Slå på NetFlow på MX-appliancerna för att också se konversationer.",
   "The Meraki networks whose appliances carried the most traffic. Click one to see only its traffic.": "De Meraki-nätverk vars appliancer bar mest trafik. Klicka på ett för att bara se dess trafik.",
-  "The Meraki organizations OneUptime reads traffic from, through the Meraki dashboard API.": "De Meraki-organisationer som OneUptime läser trafik från, via Meraki-instrumentpanelens API.",
   "The access token cannot hold spaces or line breaks. Paste it again.": "Åtkomsttoken får inte innehålla mellanslag eller radbrytningar. Klistra in den igen.",
   "The access token cannot push to any repository.": "Åtkomsttoken kan inte pusha till något arkiv.",
   "The access token cannot push to this repository, so AI could not work in it.": "Åtkomsttoken kan inte pusha till det här arkivet, så AI skulle inte kunna arbeta i det.",
@@ -36832,7 +36831,11 @@
   "The Meraki dashboard": "Meraki-instrumentpanelen",
   "The Meraki dashboard has not been read yet. The connection's status is on the network's Traffic page.": "Meraki-instrumentpanelen har inte lästs ännu. Anslutningens status finns på nätverkets Traffic-sida.",
   "The Meraki dashboard is read again within a minute.": "Meraki-instrumentpanelen läses igen inom en minut.",
-  "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki.": "{{count}} av dess enheter är nätverksenheter här: deras modell, serienummer och firmware kommer från Meraki.",
-  "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki._one": "{{count}} av dess enheter är en nätverksenhet här: dess modell, serienummer och firmware kommer från Meraki.",
-  "Selected: {{name}}": "Vald: {{name}}"
+  "Selected: {{name}}": "Vald: {{name}}",
+  "Fills in the model, serial number and firmware of {{count}} network devices.": "Fyller i modell, serienummer och firmware för {{count}} nätverksenheter.",
+  "Fills in the model, serial number and firmware of {{count}} network devices._one": "Fyller i modell, serienummer och firmware för {{count}} nätverksenhet.",
+  "Hardware, software and location details from this device's SNMP poll, from discovery and from the Meraki dashboard.": "Hårdvaru-, programvaru- och platsuppgifter från den här enhetens SNMP-avläsning, från upptäckt och från Meraki-instrumentpanelen.",
+  "The Meraki organizations OneUptime reads traffic and device details from, through the Meraki dashboard API.": "De Meraki-organisationer som OneUptime läser trafik och enhetsuppgifter från, via Meraki-instrumentpanelens API.",
+  "{{count}} details are unknown: neither this device's SNMP poll, the Meraki dashboard nor a discovery scan has found them.": "{{count}} uppgifter är okända: varken den här enhetens SNMP-avläsning, Meraki-instrumentpanelen eller en upptäcktsskanning har hittat dem.",
+  "{{count}} details are unknown: neither this device's SNMP poll, the Meraki dashboard nor a discovery scan has found them._one": "{{count}} uppgift är okänd: varken den här enhetens SNMP-avläsning, Meraki-instrumentpanelen eller en upptäcktsskanning har hittat den."
 }

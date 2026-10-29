@@ -17,6 +17,8 @@ import { normalizeSystemName } from "../../../Utils/NetworkDevice/DeviceNameRule
 import NetworkDeviceService, {
   DiscoveredDetailsMerge,
 } from "../../Services/NetworkDeviceService";
+import logger from "../Logger";
+import { mirrorInventoryRow } from "../Telemetry/InventoryEntityRegistry";
 import { NetworkControllerDevice } from "./NetworkControllerTypes";
 
 /*
@@ -61,6 +63,12 @@ import { NetworkControllerDevice } from "./NetworkControllerTypes";
  * refresh since its reading. A device this connection described before and
  * no longer matches loses the reading - only after a read of the WHOLE list,
  * since a list cut short says nothing about the devices past the cut.
+ *
+ * A device someone asked to read again (Refresh) has its Inventory item
+ * copied as soon as its new reading is written, as its probe's first poll
+ * after the ask copies it: a device only Meraki reads has no poll to do it,
+ * and one its probe polls first would otherwise carry the reading from
+ * before the ask until the mirror's next pass.
  *
  * The planning is pure, so every rule above is tested without a database;
  * `record` does the one read and the merges.
@@ -114,6 +122,11 @@ export interface ControllerInventoryPlan {
   matches: Map<string, ControllerInventoryMatch>;
   // Controller devices that are at least one device here.
   describedDeviceCount: number;
+  /*
+   * The devices whose new reading answers a refresh someone asked for since
+   * their last one: their Inventory items are copied once it is written.
+   */
+  refreshedDeviceIds: Array<string>;
 }
 
 // What the read's lookup asks the database for.
@@ -428,6 +441,29 @@ function isSameReading(
 }
 
 /*
+ * Whether someone asked for the device to be read again (Refresh) since its
+ * stored reading - or at all, when it has none.
+ */
+function isRefreshAskedSince(data: {
+  stored: NetworkDeviceControllerReading | undefined;
+  refreshRequestedAt: unknown;
+}): boolean {
+  const requested: string | undefined = readDiscoveryTime(
+    data.refreshRequestedAt,
+  );
+
+  if (!requested) {
+    return false;
+  }
+
+  const storedAt: number | undefined = data.stored
+    ? getDiscoveredTime(data.stored)
+    : undefined;
+
+  return storedAt === undefined || new Date(requested).getTime() > storedAt;
+}
+
+/*
  * Whether a stored reading still stands without a write: the same reading,
  * read by the same connection less than an hour ago, and nobody has asked
  * for the device to be read again since.
@@ -478,6 +514,7 @@ export function planControllerInventory(data: {
     },
   );
   const patches: Array<DiscoveredDetailsMerge> = [];
+  const refreshed: Array<string> = [];
   const described: Set<string> = new Set<string>();
   const seen: Set<string> = new Set<string>();
 
@@ -540,12 +577,22 @@ export function planControllerInventory(data: {
       deviceId: id,
       set: { [DISCOVERED_DETAILS_CONTROLLER_KEY]: next },
     });
+
+    if (
+      isRefreshAskedSince({
+        stored,
+        refreshRequestedAt: candidate.refreshRequestedAt,
+      })
+    ) {
+      refreshed.push(id);
+    }
   }
 
   return {
     patches,
     matches,
     describedDeviceCount: described.size,
+    refreshedDeviceIds: refreshed,
   };
 }
 
@@ -560,6 +607,11 @@ export type MergeControllerReadingsFunction = (data: {
   projectId: ObjectID;
   patches: Array<DiscoveredDetailsMerge>;
 }) => Promise<number>;
+
+// Copies one network device's Inventory item now (mirrorInventoryRow).
+export type MirrorRefreshedDeviceFunction = (
+  deviceId: ObjectID,
+) => Promise<void>;
 
 export interface ControllerInventoryOutcome {
   // Controller devices listed, and how many of them are devices here.
@@ -583,6 +635,7 @@ export default class NetworkControllerInventory {
     isDeviceListComplete: boolean;
     findCandidates?: FindControllerCandidatesFunction | undefined;
     merge?: MergeControllerReadingsFunction | undefined;
+    mirror?: MirrorRefreshedDeviceFunction | undefined;
   }): Promise<ControllerInventoryOutcome> {
     const lookup: ControllerInventoryLookup = getControllerInventoryLookup(
       data.devices,
@@ -625,6 +678,31 @@ export default class NetworkControllerInventory {
             })
           )({ projectId: data.projectId, patches: plan.patches })
         : 0;
+
+    /*
+     * The devices someone asked to read again: their items are copied now
+     * that the reading is written. Never fatal - the mirror's next pass
+     * copies them regardless.
+     */
+    for (const deviceId of plan.refreshedDeviceIds) {
+      try {
+        await (
+          data.mirror ||
+          (async (id: ObjectID): Promise<void> => {
+            await mirrorInventoryRow({
+              resourceType: "NetworkDevice",
+              resourceId: id,
+            });
+          })
+        )(new ObjectID(deviceId));
+      } catch (error) {
+        logger.error(
+          `Network device ${deviceId}: its Inventory item could not be copied after a refresh: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    }
 
     return {
       deviceCount: data.devices.length,

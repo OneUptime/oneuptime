@@ -5,9 +5,13 @@ import NotFoundException from "../../../Types/Exception/NotFoundException";
 import { NetworkDeviceMonitoringMethodUtil } from "../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import ObjectID from "../../../Types/ObjectID";
 import {
+  CONTROLLER_OFF_REASON,
+  MONITOR_BACKED_REASON,
   NETWORK_DEVICE_REFRESH_POLL_AT,
+  NO_PROBE_REASON,
   NetworkDeviceRefreshAnswer,
   NetworkDeviceRefreshReaders,
+  POLLING_OFF_REASON,
   getNetworkDeviceRefreshReaders,
   isNetworkDeviceRefreshPending,
 } from "../../../Utils/NetworkDevice/NetworkDeviceRefresh";
@@ -38,18 +42,21 @@ import NetworkControllerScheduler from "../NetworkController/NetworkControllerSc
  *
  * A device nothing reads on its own - monitor-backed, without a probe, or
  * with polling off, and no controller describing it - cannot be refreshed,
- * and the answer says why in words the page can show.
+ * and the answer says why in words the page can show. So can a device only
+ * a Meraki connection reads while that connection is turned off: the card
+ * offered Refresh for that connection's reading, so the answer names it.
  */
 
 // The answer's shape is shared with the Dashboard (Utils/NetworkDevice).
 export type { NetworkDeviceRefreshAnswer };
 
-export const MONITOR_BACKED_REASON: string =
-  "This device is checked by its monitor, so nothing polls it: there is nothing to read again. Its details come from discovery scans of its address.";
-export const NO_PROBE_REASON: string =
-  "No probe polls this device yet. Pick the probe that reaches it in the device's Settings, then refresh it.";
-export const POLLING_OFF_REASON: string =
-  "Polling is turned off for this device. Turn it on in the device's Settings to read it again.";
+// The reasons live beside the answer's shape, so a page's fixture can say them.
+export {
+  CONTROLLER_OFF_REASON,
+  MONITOR_BACKED_REASON,
+  NO_PROBE_REASON,
+  POLLING_OFF_REASON,
+};
 
 export interface NetworkDeviceRefreshDependencies {
   now?: Date | undefined;
@@ -59,8 +66,16 @@ export interface NetworkDeviceRefreshDependencies {
 }
 
 export default class NetworkDeviceRefreshRunner {
-  // Why a device cannot be refreshed, in a sentence the page shows.
+  /*
+   * Why a device cannot be refreshed, in a sentence the page shows. A device
+   * a Meraki connection describes was offered Refresh for that reading, so
+   * when nothing else reads it the connection being off is the reason.
+   */
   public static getCannotRefreshReason(device: NetworkDevice): string {
+    if (getNetworkDeviceRefreshReaders(device).controller) {
+      return CONTROLLER_OFF_REASON;
+    }
+
     if (
       NetworkDeviceMonitoringMethodUtil.isMonitorBacked(device.monitoringMethod)
     ) {

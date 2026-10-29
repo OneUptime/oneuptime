@@ -33728,7 +33728,6 @@
   "The Meraki dashboard API could not be reached.": "Meraki ダッシュボード API に到達できませんでした。",
   "The Meraki dashboard API reports totals, not conversations: it never says who talked to whom. Turn on NetFlow on the MX appliances to see conversations as well.": "Meraki ダッシュボード API が報告するのは合計で、会話ではありません: 誰が誰と通信したかは分かりません。会話も見るには、MX アプライアンスで NetFlow をオンにしてください。",
   "The Meraki networks whose appliances carried the most traffic. Click one to see only its traffic.": "アプライアンスが最も多くのトラフィックを運んだ Meraki ネットワーク。クリックすると、そのトラフィックだけを表示します。",
-  "The Meraki organizations OneUptime reads traffic from, through the Meraki dashboard API.": "OneUptime が Meraki ダッシュボード API を通じてトラフィックを読み取る Meraki 組織。",
   "The access token cannot hold spaces or line breaks. Paste it again.": "アクセストークンに空白や改行は含められません。もう一度貼り付けてください。",
   "The access token cannot push to any repository.": "このアクセストークンでプッシュできるリポジトリはありません。",
   "The access token cannot push to this repository, so AI could not work in it.": "このアクセストークンではこのリポジトリにプッシュできないため、AI はここで作業できません。",
@@ -36832,7 +36831,11 @@
   "The Meraki dashboard": "Meraki ダッシュボード",
   "The Meraki dashboard has not been read yet. The connection's status is on the network's Traffic page.": "Meraki ダッシュボードはまだ読み取られていません。接続の状態はネットワークのトラフィックページにあります。",
   "The Meraki dashboard is read again within a minute.": "Meraki ダッシュボードを 1 分以内に再度読み取ります。",
-  "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki.": "そのうち {{count}} 台がここでネットワークデバイスとして登録されています。モデル、シリアル番号、ファームウェアは Meraki から取得します。",
-  "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki._one": "そのうち {{count}} 台がここでネットワークデバイスとして登録されています。モデル、シリアル番号、ファームウェアは Meraki から取得します。",
-  "Selected: {{name}}": "選択中: {{name}}"
+  "Selected: {{name}}": "選択中: {{name}}",
+  "Fills in the model, serial number and firmware of {{count}} network devices.": "{{count}} 台のネットワークデバイスのモデル、シリアル番号、ファームウェアを補完します。",
+  "Fills in the model, serial number and firmware of {{count}} network devices._one": "{{count}} 台のネットワークデバイスのモデル、シリアル番号、ファームウェアを補完します。",
+  "Hardware, software and location details from this device's SNMP poll, from discovery and from the Meraki dashboard.": "このデバイスの SNMP ポーリング、検出、Meraki ダッシュボードによるハードウェア、ソフトウェア、設置場所の詳細。",
+  "The Meraki organizations OneUptime reads traffic and device details from, through the Meraki dashboard API.": "OneUptime が Meraki ダッシュボード API を通じてトラフィックとデバイスの詳細を読み取る Meraki 組織。",
+  "{{count}} details are unknown: neither this device's SNMP poll, the Meraki dashboard nor a discovery scan has found them.": "{{count}} 件の項目が不明です: このデバイスの SNMP ポーリングでも Meraki ダッシュボードでも検出スキャンでも見つかっていません。",
+  "{{count}} details are unknown: neither this device's SNMP poll, the Meraki dashboard nor a discovery scan has found them._one": "{{count}} 件の項目が不明です: このデバイスの SNMP ポーリングでも Meraki ダッシュボードでも検出スキャンでも見つかっていません。"
 }

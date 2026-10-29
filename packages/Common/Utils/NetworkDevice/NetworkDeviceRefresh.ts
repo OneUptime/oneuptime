@@ -51,6 +51,25 @@ export const NETWORK_DEVICE_REFRESH_GIVE_UP_MS: number = 3 * 60 * 1000;
 export const NETWORK_DEVICE_REFRESH_POLL_AT: Date = new Date(0);
 
 /*
+ * Why a device cannot be read again now, as the refresh route refuses it
+ * and the card shows it (NetworkDeviceRefreshRunner.getCannotRefreshReason).
+ * The server's own words, as every refusal the API sends is.
+ */
+export const MONITOR_BACKED_REASON: string =
+  "This device is checked by its monitor, so nothing polls it: there is nothing to read again. Its details come from discovery scans of its address.";
+export const NO_PROBE_REASON: string =
+  "No probe polls this device yet. Pick the probe that reaches it in the device's Settings, then refresh it.";
+export const POLLING_OFF_REASON: string =
+  "Polling is turned off for this device. Turn it on in the device's Settings to read it again.";
+/*
+ * A device only its Meraki connection reads, while that connection is
+ * turned off: the card offered Refresh for the connection's reading, so the
+ * refusal names the connection rather than the probe the device never had.
+ */
+export const CONTROLLER_OFF_REASON: string =
+  "The Meraki connection that reads this device is turned off. Turn it on at the foot of the network's Traffic page, then refresh the device.";
+
+/*
  * What the refresh route answers (POST /network-device/:id/refresh): when the
  * refresh was asked for, on the server's clock, and who reads the device
  * again.

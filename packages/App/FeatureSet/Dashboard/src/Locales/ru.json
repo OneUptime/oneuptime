@@ -33728,7 +33728,6 @@
   "The Meraki dashboard API could not be reached.": "Не удалось связаться с API панели Meraki.",
   "The Meraki dashboard API reports totals, not conversations: it never says who talked to whom. Turn on NetFlow on the MX appliances to see conversations as well.": "API панели Meraki сообщает итоги, а не разговоры: он никогда не говорит, кто с кем общался. Включите NetFlow на устройствах MX, чтобы видеть и разговоры.",
   "The Meraki networks whose appliances carried the most traffic. Click one to see only its traffic.": "Сети Meraki, устройства которых передали больше всего трафика. Нажмите на сеть, чтобы видеть только её трафик.",
-  "The Meraki organizations OneUptime reads traffic from, through the Meraki dashboard API.": "Организации Meraki, трафик которых OneUptime читает через API панели Meraki.",
   "The access token cannot hold spaces or line breaks. Paste it again.": "Токен доступа не может содержать пробелы или переносы строк. Вставьте его снова.",
   "The access token cannot push to any repository.": "Токен доступа не может отправлять изменения ни в один репозиторий.",
   "The access token cannot push to this repository, so AI could not work in it.": "Токен доступа не может отправлять изменения в этот репозиторий, поэтому ИИ не смог бы в нём работать.",
@@ -36832,7 +36831,11 @@
   "The Meraki dashboard": "Панель Meraki",
   "The Meraki dashboard has not been read yet. The connection's status is on the network's Traffic page.": "Панель Meraki ещё не прочитана. Состояние подключения — на странице Traffic этой сети.",
   "The Meraki dashboard is read again within a minute.": "Панель Meraki будет прочитана снова в течение минуты.",
-  "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki.": "Сетевых устройств здесь среди его устройств: {{count}}. Их модель, серийный номер и прошивка берутся из Meraki.",
-  "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki._one": "{{count}} из его устройств — сетевое устройство здесь: его модель, серийный номер и прошивка берутся из Meraki.",
-  "Selected: {{name}}": "Выбрано: {{name}}"
+  "Selected: {{name}}": "Выбрано: {{name}}",
+  "Fills in the model, serial number and firmware of {{count}} network devices.": "Дополняет модель, серийный номер и прошивку сетевых устройств: {{count}}.",
+  "Fills in the model, serial number and firmware of {{count}} network devices._one": "Дополняет модель, серийный номер и прошивку {{count}} сетевого устройства.",
+  "Hardware, software and location details from this device's SNMP poll, from discovery and from the Meraki dashboard.": "Сведения об оборудовании, ПО и расположении из опроса SNMP этого устройства, из обнаружения и из панели Meraki.",
+  "The Meraki organizations OneUptime reads traffic and device details from, through the Meraki dashboard API.": "Организации Meraki, трафик и сведения об устройствах которых OneUptime читает через API панели Meraki.",
+  "{{count}} details are unknown: neither this device's SNMP poll, the Meraki dashboard nor a discovery scan has found them.": "Неизвестных параметров: {{count}}. Их не нашли ни опрос SNMP этого устройства, ни панель Meraki, ни сканирование обнаружения.",
+  "{{count}} details are unknown: neither this device's SNMP poll, the Meraki dashboard nor a discovery scan has found them._one": "{{count}} параметр неизвестен: его не нашли ни опрос SNMP этого устройства, ни панель Meraki, ни сканирование обнаружения."
 }

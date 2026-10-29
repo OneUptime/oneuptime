@@ -490,7 +490,7 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
     <div id={MERAKI_CONNECTIONS_ANCHOR} className="scroll-mt-4">
       <Card
         title="Meraki"
-        description="The Meraki organizations OneUptime reads traffic from, through the Meraki dashboard API."
+        description="The Meraki organizations OneUptime reads traffic and device details from, through the Meraki dashboard API."
         rightElement={
           canCreate ? (
             <Button

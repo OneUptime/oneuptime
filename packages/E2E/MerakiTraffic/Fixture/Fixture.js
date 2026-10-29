@@ -27,7 +27,7 @@
  *   ?role=     owner (default) | member: a project member, who may read
  *              connections but not add, change or read them
  *   ?devices=  counted: the last read listed the organization's 6 devices,
- *              5 of them network devices here | one: 1 of them is | absent
+ *              and filled in 5 network devices here | one: 1 of them | absent
  *              (default): a read from before reads counted devices
  *   ?lang=     de reads the German locale file
  *   ?theme=    dark adds html.dark (handled by server.js)

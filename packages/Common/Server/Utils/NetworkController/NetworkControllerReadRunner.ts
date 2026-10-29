@@ -25,6 +25,7 @@ import NetworkControllerInventory, {
   ControllerInventoryOutcome,
   FindControllerCandidatesFunction,
   MergeControllerReadingsFunction,
+  MirrorRefreshedDeviceFunction,
 } from "./NetworkControllerInventory";
 import NetworkControllerScheduler from "./NetworkControllerScheduler";
 import {
@@ -181,6 +182,7 @@ export interface NetworkControllerReadDependencies {
   // Test seams for the devices' details the device list fills in.
   findControllerCandidates?: FindControllerCandidatesFunction | undefined;
   mergeControllerReadings?: MergeControllerReadingsFunction | undefined;
+  mirrorRefreshedDevice?: MirrorRefreshedDeviceFunction | undefined;
   transport?: NetworkControllerTransport | undefined;
   now?: (() => Date) | undefined;
   sleep?: ((milliseconds: number) => Promise<void>) | undefined;
@@ -401,6 +403,7 @@ export default class NetworkControllerReadRunner {
           isDeviceListComplete: read.isDeviceListComplete,
           findCandidates: dependencies.findControllerCandidates,
           merge: dependencies.mergeControllerReadings,
+          mirror: dependencies.mirrorRefreshedDevice,
         });
       } catch (error) {
         logger.error(

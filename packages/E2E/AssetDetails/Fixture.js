@@ -14,6 +14,7 @@ import DeviceInventoryCard from "../../App/FeatureSet/Dashboard/src/Components/N
 import NetworkDeviceView from "../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/View/Index";
 import JA from "../../App/FeatureSet/Dashboard/src/Locales/ja.json";
 import DE from "../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import FA from "../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceRole from "Common/Models/DatabaseModels/NetworkDeviceRole";
@@ -41,6 +42,10 @@ import {
   InventoryAssetField,
 } from "Common/Utils/Inventory/InventoryAssetDetails";
 import { getNetworkDeviceAssetFacts } from "Common/Utils/NetworkDevice/NetworkDeviceAssetFacts";
+import {
+  CONTROLLER_OFF_REASON,
+  getNetworkDeviceRefreshReaders,
+} from "Common/Utils/NetworkDevice/NetworkDeviceRefresh";
 
 /*
  * The fixture page: the real Asset Details card of an Inventory item, the
@@ -71,12 +76,17 @@ import { getNetworkDeviceAssetFacts } from "Common/Utils/NetworkDevice/NetworkDe
  *               | noread (the device cannot be read: the item's own facts)
  *               | meraki (a Meraki access point its probe pings, which a
  *               Meraki connection describes: Refresh is offered)
- *   ?refresh=   read (default: a refresh is read again by its probe and
- *               the Meraki dashboard) | unreachable (its probe polls it and
- *               cannot reach it)
+ *   ?probe=     none: the meraki scenario's access point has no probe -
+ *               only its Meraki connection reads it
+ *   ?refresh=   read (default: a refresh is read again by its readers - its
+ *               probe, the Meraki dashboard) | unreachable (its probe polls
+ *               it and cannot reach it) | late (nobody reads it again: past
+ *               three minutes the card says who is late) | refused (the
+ *               server refuses the ask: its Meraki connection is off)
  *   ?role=      owner (default) | reader (may read network devices, not
  *               edit them: no Refresh)
- *   ?frame=     the card's width in pixels   ?theme=dark   ?lang=ja|de
+ *   ?frame=     the card's width in pixels   ?theme=dark   ?lang=ja|de|fa
+ *               (Persian is drawn right to left, as the Dashboard draws it)
  */
 
 const params = new URLSearchParams(window.location.search);
@@ -85,9 +95,14 @@ const scenario = params.get("scenario") || "pinged";
 const refreshOutcome = params.get("refresh") || "read";
 const role = params.get("role") || "owner";
 const frameWidth = Number(params.get("frame")) || undefined;
-const language = ["ja", "de"].includes(params.get("lang"))
+const language = ["ja", "de", "fa"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
+const hasProbe = params.get("probe") !== "none";
+
+// Persian reads right to left, as the Dashboard sets it for the reader.
+document.documentElement.dir = language === "fa" ? "rtl" : "ltr";
+document.documentElement.lang = language;
 
 if (params.get("theme") === "dark") {
   document.documentElement.classList.add("dark");
@@ -100,6 +115,7 @@ await i18next.use(initReactI18next).init({
     en: { translation: {} },
     ja: { translation: JA },
     de: { translation: DE },
+    fa: { translation: FA },
   },
   interpolation: { escapeValue: false },
   keySeparator: false,
@@ -184,6 +200,12 @@ const probeReader = {
   type: "probe",
   id: PROBE_ID,
   name: "Frankfurt DC2 probe",
+};
+
+// The probe that polls the device, by scenario: what a late refresh names.
+const PROBE_NAMES = {
+  walked: "London DC1 probe",
+  meraki: "Branch 12 probe",
 };
 
 // The Meraki connection that reads the branch organization.
@@ -281,6 +303,11 @@ const DEVICES = {
     lastSnmpSeenAt: minutesAgo(3),
     lastRebootedAt: new Date(Date.now() - 41 * 24 * 60 * 60 * 1000),
     lastSeenAt: new Date(Date.now() - 3 * 60 * 1000),
+    // Its probe walks it: Refresh is offered, and its probe reads it again.
+    probeId: PROBE_ID,
+    isPollingEnabled: true,
+    lastPolledAt: new Date(FIXTURE_NOW - 3 * 60 * 1000),
+    isReachable: true,
     site: { name: "London DC1" },
     networkDeviceRole: { key: "coreSwitch", name: "Core Switch" },
     discoveredDetails: {
@@ -378,10 +405,14 @@ const DEVICES = {
   meraki: {
     name: "10.20.30.41",
     hostname: "10.20.30.41",
-    probeId: PROBE_ID,
-    isPollingEnabled: true,
-    lastPolledAt: new Date(FIXTURE_NOW - 4 * 60 * 1000),
-    isReachable: true,
+    ...(hasProbe
+      ? {
+          probeId: PROBE_ID,
+          isPollingEnabled: true,
+          lastPolledAt: new Date(FIXTURE_NOW - 4 * 60 * 1000),
+          isReachable: true,
+        }
+      : {}),
     site: { name: "Branch 12" },
     discoveredDetails: { controller: merakiReading(minutesAgo(4)) },
   },
@@ -435,10 +466,17 @@ function readDevice() {
   if (refreshAskedAt !== null) {
     item.refreshRequestedAt = new Date(refreshAskedAt);
 
-    if (Date.now() - refreshAskedAt >= READ_AGAIN_AFTER_MS) {
+    // Late: nobody reads it again.
+    if (
+      refreshOutcome !== "late" &&
+      Date.now() - refreshAskedAt >= READ_AGAIN_AFTER_MS
+    ) {
       const readAt = new Date(refreshAskedAt + 1000);
-      item.lastPolledAt = readAt;
-      item.isReachable = refreshOutcome !== "unreachable";
+
+      if (deviceFields.probeId) {
+        item.lastPolledAt = readAt;
+        item.isReachable = refreshOutcome !== "unreachable";
+      }
 
       if (deviceFields.discoveredDetails?.controller) {
         item.discoveredDetails = {
@@ -579,22 +617,33 @@ API.post = async (options) => {
   const pathname = new URL(url).pathname;
 
   if (pathname === `/api/network-device/${DEVICE_ID}/refresh`) {
-    refreshAskedAt = Date.now();
     state.refreshAsks.push({
       path: pathname,
-      at: new Date(refreshAskedAt).toISOString(),
+      at: new Date(Date.now()).toISOString(),
     });
+
+    // Its Meraki connection is turned off, and nothing else reads it.
+    if (refreshOutcome === "refused") {
+      return new HTTPErrorResponse(400, { message: CONTROLLER_OFF_REASON }, {});
+    }
+
+    refreshAskedAt = Date.now();
+
+    // Who reads it again, as the server works it out from the device.
+    const readers = getNetworkDeviceRefreshReaders(readDevice());
 
     return new HTTPResponse(
       200,
       {
         requestedAt: new Date(refreshAskedAt).toISOString(),
-        isProbeReading: true,
-        probeName: "Branch 12 probe",
-        isControllerReading: Boolean(
-          deviceFields.discoveredDetails?.controller,
-        ),
-        controllerName: merakiConnection.name,
+        isProbeReading: readers.isProbePolled,
+        ...(readers.isProbePolled
+          ? { probeName: PROBE_NAMES[scenario] || probeReader.name }
+          : {}),
+        isControllerReading: Boolean(readers.controller),
+        ...(readers.controller
+          ? { controllerName: merakiConnection.name }
+          : {}),
         wasAlreadyRequested: false,
       },
       {},

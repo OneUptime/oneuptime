@@ -180,6 +180,40 @@ function refreshButton(testId: string): HTMLElement {
   return screen.getByTestId(testId);
 }
 
+// What the Meraki dashboard says about the switch, read by Acme Retail.
+function merakiReading(readAt: string): JSONObject {
+  return {
+    provider: "meraki",
+    readBy: {
+      type: "networkController",
+      id: CONNECTION_ID,
+      name: "Acme Retail",
+    },
+    readAt: readAt,
+    values: {
+      model: "MS225-48LP",
+      serialNumber: "Q2HP-SWCH-0001",
+      firmwareVersion: "switch-16-7",
+      networkName: "Branch 12",
+    },
+  };
+}
+
+// The device reads, of every read the cards made.
+function deviceReads(): number {
+  return getItemMock.mock.calls.length;
+}
+
+// The project's role lists, of every list the cards read.
+function roleLists(): number {
+  return getListMock.mock.calls.filter((call: Array<unknown>): boolean => {
+    return (
+      (call[0] as { modelType?: { name?: string } }).modelType?.name ===
+      "NetworkDeviceRole"
+    );
+  }).length;
+}
+
 function statusOf(testId: string): HTMLElement {
   return screen.getByTestId(testId);
 }
@@ -316,8 +350,22 @@ describe("Inventory's Asset Details card: Refresh", () => {
     });
     expect(statusOf(STATUS)).toHaveAttribute("data-tone", "progress");
     expect(statusOf(STATUS)).toHaveAttribute("role", "status");
-    expect(refreshButton(BUTTON)).toHaveTextContent("Refreshing…");
+    /*
+     * Greyed and turning, under the same word: "Refreshing…" is wider in
+     * most languages, and pushed the button under the title on a phone.
+     */
+    expect(refreshButton(BUTTON)).toHaveTextContent(/^Refresh$/);
     expect(refreshButton(BUTTON)).toBeDisabled();
+    expect(refreshButton(BUTTON).querySelector(".animate-spin")).not.toBeNull();
+    /*
+     * One spinner: the button's. The line under it waits with a still
+     * clock rather than a second turning arrow.
+     */
+    expect(statusOf(STATUS).querySelector(".animate-spin")).toBeNull();
+    expect(
+      statusOf(STATUS).querySelector('[class*="motion-safe:animate-spin"]'),
+    ).toBeNull();
+    expect(statusOf(STATUS).querySelector("svg")).not.toBeNull();
 
     expect(apiPostMock).toHaveBeenCalledTimes(1);
     const call: { url: { toString: () => string }; data: JSONObject } =
@@ -385,6 +433,102 @@ describe("Inventory's Asset Details card: Refresh", () => {
     });
     expect(getItemMock.mock.calls.length).toBe(reads);
     expect(onRefreshed).toHaveBeenCalledTimes(1);
+  });
+
+  test("a read that fails while it follows the device keeps Refresh and the line, and the next read finishes it", async () => {
+    jest.useFakeTimers();
+    const askedAt: string = new Date().toISOString();
+    servePost(probeAnswer(askedAt));
+
+    let served: number = 0;
+    getItemMock.mockImplementation((async () => {
+      served++;
+
+      if (served === 1) {
+        return polledSwitch();
+      }
+
+      if (served === 2) {
+        throw new Error("The network dropped the read.");
+      }
+
+      return polledSwitch({
+        refreshRequestedAt: askedAt,
+        lastPolledAt: new Date(Date.parse(askedAt) + 20 * SECOND),
+      });
+    }) as never);
+
+    render(<InventoryAssetDetailsCard item={mirroredItem()} />);
+
+    await waitFor((): void => {
+      expect(refreshButton(BUTTON)).toBeInTheDocument();
+    });
+
+    fireEvent.click(refreshButton(BUTTON));
+
+    // The read right after the ask failed: the card stays as it was.
+    await waitFor((): void => {
+      expect(served).toBe(2);
+    });
+    await waitFor((): void => {
+      expect(statusOf(STATUS)).toHaveAttribute("data-tone", "progress");
+    });
+    expect(refreshButton(BUTTON)).toBeDisabled();
+    expect(
+      screen.getByTestId("inventory-asset-manufacturer-value"),
+    ).toHaveTextContent("Cisco");
+
+    // It keeps following, and the next read lands the refresh.
+    await act(async (): Promise<void> => {
+      jest.advanceTimersByTime(REFRESH_FOLLOW_INTERVAL_MS);
+    });
+
+    await waitFor((): void => {
+      expect(statusOf(STATUS)).toHaveTextContent("Read again just now.");
+    });
+    expect(refreshButton(BUTTON)).toHaveTextContent("Refresh");
+  });
+
+  test("following the device reads the device alone: the project's roles are read once", async () => {
+    jest.useFakeTimers();
+    const askedAt: string = new Date().toISOString();
+    servePost(probeAnswer(askedAt));
+    serveDevices(
+      polledSwitch(),
+      polledSwitch({ refreshRequestedAt: askedAt }),
+      polledSwitch({ refreshRequestedAt: askedAt }),
+      polledSwitch({ refreshRequestedAt: askedAt }),
+      polledSwitch({
+        refreshRequestedAt: askedAt,
+        lastPolledAt: new Date(Date.parse(askedAt) + 40 * SECOND),
+      }),
+    );
+
+    render(<InventoryAssetDetailsCard item={mirroredItem()} />);
+
+    await waitFor((): void => {
+      expect(refreshButton(BUTTON)).toBeInTheDocument();
+    });
+    expect(roleLists()).toBe(1);
+
+    fireEvent.click(refreshButton(BUTTON));
+
+    await waitFor((): void => {
+      expect(statusOf(STATUS)).toHaveAttribute("data-tone", "progress");
+    });
+
+    for (let tick: number = 0; tick < 3; tick++) {
+      await act(async (): Promise<void> => {
+        jest.advanceTimersByTime(REFRESH_FOLLOW_INTERVAL_MS);
+      });
+    }
+
+    await waitFor((): void => {
+      expect(statusOf(STATUS)).toHaveTextContent("Read again just now.");
+    });
+    // The device four more times; its roles never again.
+    expect(deviceReads()).toBeGreaterThanOrEqual(4);
+    expect(roleLists()).toBe(1);
   });
 
   test("its probe could not reach it: said in amber, the details as last read", async () => {
@@ -464,6 +608,43 @@ describe("Inventory's Asset Details card: Refresh", () => {
     expect(refreshButton(BUTTON)).not.toBeDisabled();
   });
 
+  test("a device the Meraki dashboard describes: its unknown details name the dashboard too", async () => {
+    serveDevices(
+      polledSwitch({
+        vendor: undefined,
+        deviceModel: undefined,
+        discoveredDetails: { controller: merakiReading(ago(20 * MINUTE)) },
+      }),
+    );
+
+    render(<InventoryAssetDetailsCard item={mirroredItem()} />);
+
+    await waitFor((): void => {
+      expect(
+        screen.getByTestId("inventory-asset-details-unknown"),
+      ).toHaveTextContent(
+        "neither this device's SNMP poll, the Meraki dashboard nor a discovery scan has found",
+      );
+    });
+  });
+
+  test("a device the Meraki dashboard does not describe: its unknown details name the poll and the scans", async () => {
+    serveDevices(polledSwitch());
+
+    render(<InventoryAssetDetailsCard item={mirroredItem()} />);
+
+    await waitFor((): void => {
+      expect(
+        screen.getByTestId("inventory-asset-details-unknown"),
+      ).toHaveTextContent(
+        "neither this device's SNMP poll nor a discovery scan has found",
+      );
+    });
+    expect(
+      screen.getByTestId("inventory-asset-details-unknown"),
+    ).not.toHaveTextContent("Meraki");
+  });
+
   test("a refresh asked for before the card opened shows as under way", async () => {
     serveDevices(polledSwitch({ refreshRequestedAt: ago(20 * SECOND) }));
 
@@ -474,7 +655,8 @@ describe("Inventory's Asset Details card: Refresh", () => {
         "Its probe reads it again within a minute.",
       );
     });
-    expect(refreshButton(BUTTON)).toHaveTextContent("Refreshing…");
+    expect(refreshButton(BUTTON)).toHaveTextContent(/^Refresh$/);
+    expect(refreshButton(BUTTON)).toBeDisabled();
     expect(apiPostMock).not.toHaveBeenCalled();
   });
 });
@@ -598,6 +780,37 @@ describe("the device's Inventory card: Refresh, and what Meraki says", () => {
     });
     expect(
       screen.queryByTestId("device-inventory-controller-source"),
+    ).toBeNull();
+    // Its details come from its own poll and discovery, and the card says so.
+    expect(
+      screen.getByText(
+        "Hardware, software and location details from this device's SNMP poll and from discovery.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("a device Meraki describes: the card says its details come from the Meraki dashboard too", async () => {
+    serveDevices(
+      polledSwitch({
+        vendor: undefined,
+        deviceModel: undefined,
+        discoveredDetails: { controller: merakiReading(ago(20 * MINUTE)) },
+      }),
+    );
+
+    render(<DeviceInventoryCard modelId={new ObjectID(DEVICE_ID)} />);
+
+    await waitFor((): void => {
+      expect(
+        screen.getByText(
+          "Hardware, software and location details from this device's SNMP poll, from discovery and from the Meraki dashboard.",
+        ),
+      ).toBeInTheDocument();
+    });
+    expect(
+      screen.queryByText(
+        "Hardware, software and location details from this device's SNMP poll and from discovery.",
+      ),
     ).toBeNull();
   });
 });

@@ -577,7 +577,7 @@ describe("Refresh, as the pages describe it", () => {
 describe("Network Traffic and the device page: the organization's devices", () => {
   it("counts on the connection's row the organization's devices that are network devices here", () => {
     expect(DESCRIBED_DEVICES_NOTE.other).toBe(
-      "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki.",
+      "Fills in the model, serial number and firmware of {{count}} network devices.",
     );
     expect(readRepoFile(MERAKI_CONNECTIONS_CARD)).toContain(
       "DESCRIBED_DEVICES_NOTE",
