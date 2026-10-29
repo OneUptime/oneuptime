@@ -403,3 +403,27 @@ describe("search forgives the way people type", () => {
     expect(screen.getByTestId("command-palette-empty")).toBeInTheDocument();
   });
 });
+
+/*
+ * A setting is found by the name its card or switch shows, not only by the
+ * menu entry of the page that holds it (PageSearchIndex: a page's
+ * settings). Each of these found nothing, or another page, before.
+ */
+describe("a setting is found by the name its card shows", () => {
+  test.each([
+    ["require sso for login", "SSO — Project Settings › Security"],
+    ["monitor groups", "Feature Flags — Project Settings › Advanced"],
+    ["customer support access", "Project — Project Settings › Basic"],
+    ["cancel plan", "Billing — Project Settings › Billing and Invoices"],
+    ["business details", "Billing — Project Settings › Billing and Invoices"],
+    [
+      "notification channels",
+      "Notification Settings — Project Settings › Notifications",
+    ],
+    ["ai context", "AI Features — Project Settings › AI"],
+    ["timezone", "Overview — User Profile › Basic"],
+    ["remind me before shifts", "Calendar Feed — User Settings › Calendar"],
+  ])('"%s" opens %s first', (query: string, row: string) => {
+    expect(rows(query)[0]).toBe(row);
+  });
+});

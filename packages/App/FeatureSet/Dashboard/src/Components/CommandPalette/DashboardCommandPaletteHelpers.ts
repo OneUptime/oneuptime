@@ -203,6 +203,46 @@ const isGateOpen: (
   return true;
 };
 
+/*
+ * The names of a page's settings that are there for this person, as words
+ * Search finds the page by: each as the page writes it (English) and as the
+ * reader's language shows it, lower-cased, each once.
+ */
+export const getPageSettingKeywords: (
+  page: PageSearchPage,
+  availability: PageSearchAvailability,
+  translate: (text: string) => string,
+) => Array<string> = (
+  page: PageSearchPage,
+  availability: PageSearchAvailability,
+  translate: (text: string) => string,
+): Array<string> => {
+  const keywords: Array<string> = [];
+
+  const add: (word: string) => void = (word: string): void => {
+    const lowered: string = word.trim().toLowerCase();
+
+    if (lowered && !keywords.includes(lowered)) {
+      keywords.push(lowered);
+    }
+  };
+
+  for (const setting of page.settings || []) {
+    const name: string = typeof setting === "string" ? setting : setting.name;
+    const gate: PageSearchGate | undefined =
+      typeof setting === "string" ? undefined : setting.gate;
+
+    if (!isGateOpen(gate, availability)) {
+      continue;
+    }
+
+    add(name);
+    add(translate(name));
+  }
+
+  return keywords;
+};
+
 const isActionAllowed: (
   action: PageSearchAction,
   availability: PageSearchAvailability,
@@ -314,7 +354,14 @@ export function buildPageSearchCommandDescriptors(
             id: slugifyPaletteCommandId("page", template + queryString),
             title,
             titleAliases: englishUnlessShown(title, page.title),
-            keywords: page.keywords || [],
+            keywords: [
+              ...(page.keywords || []),
+              ...getPageSettingKeywords(
+                page,
+                input.availability,
+                input.translate,
+              ),
+            ],
             breadcrumb,
             breadcrumbKeywords,
             icon: page.icon || area.icon,
