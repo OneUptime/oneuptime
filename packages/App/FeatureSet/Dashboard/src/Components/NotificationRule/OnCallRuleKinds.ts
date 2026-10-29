@@ -58,13 +58,19 @@ export interface OnCallRuleKindDefinition {
   memberCardDescription: string;
   /*
    * What the card of an archived severity says instead (Common/Utils/
-   * ArchivableValues): the records that keep it still notify the person by
-   * its rules, which can be changed or removed - nobody picks an archived
-   * severity again, so no rule is added for it.
+   * ArchivableValues), beside its Archived tag: the records that keep it
+   * still notify the person by its rules. Where the rules can be changed,
+   * the card adds that they can be changed or removed but not added to
+   * (ARCHIVED_SEVERITY_RULES_EDIT_NOTE): nobody picks an archived severity
+   * again, so no rule is added for it.
    */
   ownArchivedCardDescription: string;
   memberArchivedCardDescription: string;
 }
+
+export const ARCHIVED_SEVERITY_RULES_EDIT_NOTE: string = translationKey(
+  "You can change or remove these rules, but not add new ones.",
+);
 
 const DEFINITIONS: Readonly<
   Record<OnCallRuleKind, Omit<OnCallRuleKindDefinition, "kind" | "ruleType">>
@@ -80,10 +86,10 @@ const DEFINITIONS: Readonly<
       "How {{name}} is notified when an incident of this severity is assigned to them while they are on call.",
     ),
     ownArchivedCardDescription: translationKey(
-      "This severity is archived. Incidents that still have it notify you by these rules: you can change or remove them, but not add new ones.",
+      "How you are notified about incidents that still have this severity.",
     ),
     memberArchivedCardDescription: translationKey(
-      "This severity is archived. Incidents that still have it notify {{name}} by these rules: you can change or remove them, but not add new ones.",
+      "How {{name}} is notified about incidents that still have this severity.",
     ),
   },
   /*
@@ -101,10 +107,10 @@ const DEFINITIONS: Readonly<
       "How {{name}} is notified when an incident episode of this severity is assigned to them while they are on call.",
     ),
     ownArchivedCardDescription: translationKey(
-      "This severity is archived. Incident episodes that still have it notify you by these rules: you can change or remove them, but not add new ones.",
+      "How you are notified about incident episodes that still have this severity.",
     ),
     memberArchivedCardDescription: translationKey(
-      "This severity is archived. Incident episodes that still have it notify {{name}} by these rules: you can change or remove them, but not add new ones.",
+      "How {{name}} is notified about incident episodes that still have this severity.",
     ),
   },
   [OnCallRuleKind.Alerts]: {
@@ -118,10 +124,10 @@ const DEFINITIONS: Readonly<
       "How {{name}} is notified when an alert of this severity is assigned to them while they are on call.",
     ),
     ownArchivedCardDescription: translationKey(
-      "This severity is archived. Alerts that still have it notify you by these rules: you can change or remove them, but not add new ones.",
+      "How you are notified about alerts that still have this severity.",
     ),
     memberArchivedCardDescription: translationKey(
-      "This severity is archived. Alerts that still have it notify {{name}} by these rules: you can change or remove them, but not add new ones.",
+      "How {{name}} is notified about alerts that still have this severity.",
     ),
   },
   [OnCallRuleKind.AlertEpisodes]: {
@@ -135,10 +141,10 @@ const DEFINITIONS: Readonly<
       "How {{name}} is notified when an alert episode of this severity is assigned to them while they are on call.",
     ),
     ownArchivedCardDescription: translationKey(
-      "This severity is archived. Alert episodes that still have it notify you by these rules: you can change or remove them, but not add new ones.",
+      "How you are notified about alert episodes that still have this severity.",
     ),
     memberArchivedCardDescription: translationKey(
-      "This severity is archived. Alert episodes that still have it notify {{name}} by these rules: you can change or remove them, but not add new ones.",
+      "How {{name}} is notified about alert episodes that still have this severity.",
     ),
   },
 };

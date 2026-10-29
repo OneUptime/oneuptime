@@ -95,6 +95,7 @@ import OnCallRulesTable, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/OnCallRulesTable";
 import OnCallRulesTabs from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/OnCallRulesTabs";
 import {
+  ARCHIVED_SEVERITY_RULES_EDIT_NOTE,
   ON_CALL_RULE_KIND_DEFINITIONS,
   OnCallRuleKindDefinition,
   OnCallRuleSeverity,
@@ -215,8 +216,10 @@ const definitionOf: (tabName: string) => OnCallRuleKindDefinition = (
 
 const renderTable: (
   definition: OnCallRuleKindDefinition,
+  options?: { isEditable?: boolean | undefined },
 ) => Promise<void> = async (
   definition: OnCallRuleKindDefinition,
+  options?: { isEditable?: boolean | undefined },
 ): Promise<void> => {
   render(
     <MemoryRouter>
@@ -227,6 +230,7 @@ const renderTable: (
         userPreferencesKeyPrefix="archived-severities-test"
         cardDescription="Live card."
         archivedCardDescription="Archived card."
+        isEditable={options?.isEditable}
       />
     </MemoryRouter>,
   );
@@ -347,9 +351,11 @@ describe.each([
     const archived: CapturedTableProps = lastCards()[2]!;
 
     expect(archived.isCreateable).toBe(false);
-    // Its rules can still be changed and removed.
+    // Its rules can still be changed and removed - and the card says so.
     expect(archived.isEditable).toBe(true);
-    expect(archived.cardProps.description).toBe("Archived card.");
+    expect(archived.cardProps.description).toBe(
+      "Archived card. You can change or remove these rules, but not add new ones.",
+    );
 
     const title: HTMLElement = render(archived.cardProps.title).container;
 
@@ -357,6 +363,29 @@ describe.each([
     expect(
       title.querySelector('[data-testid="archived-tag"]'),
     ).toHaveTextContent("Archived");
+
+    /*
+     * The project's own word, read the way it is written: on a Persian
+     * page "[DONOTUSE] Very critical" keeps its bracket at its start.
+     */
+    const name: Element | null = title.querySelector("bdi");
+
+    expect(name).toHaveTextContent("[DONOTUSE] Very critical");
+    expect(name).toHaveAttribute("dir", "ltr");
+  });
+
+  test("a view that changes nothing says only what the archived rules still do", async () => {
+    await renderTable(definition(), { isEditable: false });
+
+    await waitFor(() => {
+      expect(lastCards()).toHaveLength(3);
+    });
+
+    const archived: CapturedTableProps = lastCards()[2]!;
+
+    expect(archived.isCreateable).toBe(false);
+    expect(archived.isEditable).toBe(false);
+    expect(archived.cardProps.description).toBe("Archived card.");
   });
 
   test("a live card is as it was: Add, its own words, no tag", async () => {
@@ -403,23 +432,45 @@ describe("the words of an archived card, on your own page and an admin's", () =>
       member[definition.tabName] = definition.memberArchivedCardDescription;
     }
 
+    /*
+     * As every card of the page begins - "How you are notified..." - and
+     * without "This severity is archived.", which the Archived tag beside
+     * the title already says.
+     */
     expect(own).toEqual({
       Incidents:
-        "This severity is archived. Incidents that still have it notify you by these rules: you can change or remove them, but not add new ones.",
+        "How you are notified about incidents that still have this severity.",
       "Incident Episodes":
-        "This severity is archived. Incident episodes that still have it notify you by these rules: you can change or remove them, but not add new ones.",
+        "How you are notified about incident episodes that still have this severity.",
       Alerts:
-        "This severity is archived. Alerts that still have it notify you by these rules: you can change or remove them, but not add new ones.",
+        "How you are notified about alerts that still have this severity.",
       "Alert Episodes":
-        "This severity is archived. Alert episodes that still have it notify you by these rules: you can change or remove them, but not add new ones.",
+        "How you are notified about alert episodes that still have this severity.",
     });
 
     for (const [tabName, sentence] of Object.entries(member)) {
       expect({ tabName, sentence }).toEqual({
         tabName,
-        sentence: own[tabName]!.replace("notify you", "notify {{name}}"),
+        sentence: own[tabName]!.replace(
+          "How you are notified",
+          "How {{name}} is notified",
+        ),
       });
     }
+
+    for (const definition of ON_CALL_RULE_KIND_DEFINITIONS) {
+      expect(definition.ownArchivedCardDescription).not.toContain(
+        "is archived",
+      );
+      expect(
+        definition.ownCardDescription.startsWith("How you are notified"),
+      ).toBe(true);
+    }
+
+    // Said once for every tab, where the rules can be changed.
+    expect(ARCHIVED_SEVERITY_RULES_EDIT_NOTE).toBe(
+      "You can change or remove these rules, but not add new ones.",
+    );
   });
 
   test("the page hands each tab's table the archived words, filled in for the member", async () => {
@@ -444,7 +495,7 @@ describe("the words of an archived card, on your own page and an admin's", () =>
     });
 
     expect(lastCards()[2]!.cardProps.description).toBe(
-      "This severity is archived. Incidents that still have it notify Maya by these rules: you can change or remove them, but not add new ones.",
+      "How Maya is notified about incidents that still have this severity. You can change or remove these rules, but not add new ones.",
     );
     expect(lastCards()[0]!.cardProps.description).toBe(
       "How Maya is notified when an incident of this severity is assigned to them while they are on call.",
@@ -469,7 +520,7 @@ describe("the words of an archived card, on your own page and an admin's", () =>
     });
 
     expect(lastCards()[2]!.cardProps.description).toBe(
-      "This severity is archived. Alerts that still have it notify you by these rules: you can change or remove them, but not add new ones.",
+      "How you are notified about alerts that still have this severity. You can change or remove these rules, but not add new ones.",
     );
     expect(lastCards()[2]!.query["ruleType"]).toBe(
       NotificationRuleType.ON_CALL_EXECUTED_ALERT,

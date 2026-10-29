@@ -14,6 +14,10 @@
  *   - page=severities   Incidents > Settings > Incident Severity (default)
  *   - page=states       Incidents > Settings > Incident State
  *   - page=templates    Incidents > Settings > Incident Templates
+ *   - page=on-call-rules  User Settings > On-Call Rules, where an archived
+ *                       severity the person has rules for comes last - also
+ *                       at its own address, which the Archive dialog's "See
+ *                       your on-call rules" opens
  *   - theme=dark        the Dashboard's dark mode
  *   - refuse-archive=1  the server refuses every archive, in its own words
  *   - slow-usage=1      what uses a value takes a second and a half to answer,
@@ -42,10 +46,14 @@ import { initReactI18next } from "react-i18next";
 import IncidentSeveritiesPage from "../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentSeverity";
 import IncidentStatesPage from "../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentState";
 import IncidentTemplatesPage from "../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentTemplates";
+import OnCallRulesPage from "../../../App/FeatureSet/Dashboard/src/Pages/UserSettings/OnCallRules";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Label from "Common/Models/DatabaseModels/Label";
 import UserModel from "Common/Models/DatabaseModels/User";
+import UserEmail from "Common/Models/DatabaseModels/UserEmail";
+import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationRule";
+import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
 import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import FA from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 import Color from "Common/Types/Color";
@@ -209,11 +217,76 @@ const labels = [
   }),
 ];
 
+/*
+ * The signed-in person's own on-call rules (User Settings > On-Call Rules):
+ * their verified email, and a rule for every live severity - and two for
+ * the archived "[DONOTUSE] Very critical", which still page for the
+ * incidents that keep it. No alert severities: the Alerts tab draws none.
+ */
+const OWN_EMAIL_ID = "23000000-0000-4000-8000-000000000001";
+
+function ownEmail() {
+  const record = new UserEmail();
+  record._id = OWN_EMAIL_ID;
+  record.projectId = new ObjectID(PROJECT_ID);
+  record.userId = new ObjectID(USER_ID);
+  record.email = "maya.chen@acme-commerce.example";
+  record.isVerified = true;
+  return record;
+}
+
+function onCallRule(values) {
+  const record = new UserNotificationRule();
+  record._id = values.id;
+  record.projectId = new ObjectID(PROJECT_ID);
+  record.userId = new ObjectID(USER_ID);
+  record.ruleType = NotificationRuleType.ON_CALL_EXECUTED_INCIDENT;
+  record.incidentSeverityId = new ObjectID(values.severityId);
+  record.notifyAfterMinutes = values.notifyAfterMinutes;
+  record.isOptOut = false;
+  record.userEmailId = new ObjectID(OWN_EMAIL_ID);
+  record.userEmail = ownEmail();
+  return record;
+}
+
+const onCallRules = [
+  onCallRule({
+    id: "24000000-0000-4000-8000-000000000001",
+    severityId: IDS.critical,
+    notifyAfterMinutes: 0,
+  }),
+  onCallRule({
+    id: "24000000-0000-4000-8000-000000000002",
+    severityId: IDS.major,
+    notifyAfterMinutes: 0,
+  }),
+  onCallRule({
+    id: "24000000-0000-4000-8000-000000000003",
+    severityId: IDS.minor,
+    notifyAfterMinutes: 0,
+  }),
+  onCallRule({
+    id: "24000000-0000-4000-8000-000000000004",
+    severityId: IDS.veryCritical,
+    notifyAfterMinutes: 0,
+  }),
+  onCallRule({
+    id: "24000000-0000-4000-8000-000000000005",
+    severityId: IDS.veryCritical,
+    notifyAfterMinutes: 10,
+  }),
+];
+
 const RECORDS = {
   IncidentSeverity: severities,
   IncidentState: states,
   Label: labels,
+  UserEmail: [ownEmail()],
+  UserNotificationRule: onCallRules,
 };
+
+// The columns a person's own on-call rules are read by.
+const ID_COLUMNS = ["userId", "incidentSeverityId", "alertSeverityId"];
 
 /*
  * Everybody's own on-call rules for a severity, as the server counts them:
@@ -336,6 +409,18 @@ function matchesQuery(record, query) {
       }
       continue;
     }
+    if (ID_COLUMNS.includes(key)) {
+      if (idOf(record[key]) !== idOf(condition)) {
+        return false;
+      }
+      continue;
+    }
+    if (key === "ruleType") {
+      if (record.ruleType !== condition) {
+        return false;
+      }
+      continue;
+    }
   }
   return true;
 }
@@ -357,7 +442,16 @@ function sortRows(rows, sort) {
 
 User.isMasterAdmin = () => false;
 User.getUserId = () => new ObjectID(USER_ID);
-PermissionUtil.getAllPermissions = () => [Permission.ProjectOwner];
+/*
+ * The project's permissions and the global ones, as the Dashboard joins
+ * them: a person reads their own notification methods by CurrentUser.
+ */
+PermissionUtil.getAllPermissions = () => [
+  Permission.ProjectOwner,
+  Permission.Public,
+  Permission.User,
+  Permission.CurrentUser,
+];
 PermissionUtil.getProjectPermissions = () => ({
   _type: "UserTenantAccessPermission",
   projectId: new ObjectID(PROJECT_ID),
@@ -605,13 +699,24 @@ const PAGES = {
     component: IncidentTemplatesPage,
     trail: ["Incidents", "Settings", "Incident Templates"],
   },
+  "on-call-rules": {
+    component: OnCallRulesPage,
+    trail: ["User Settings", "On-Call Rules"],
+  },
 };
 
+// The On-Call Rules page's own address, as the Archive dialog links to it.
+const ON_CALL_RULES_PATH = "/user-settings/on-call-rules";
+
 function Fixture() {
+  const location = useLocation();
   Navigation.setNavigateHook(useNavigate());
-  Navigation.setLocation(useLocation());
+  Navigation.setLocation(location);
   Navigation.setParams(useParams());
-  const { component: Page, trail } = PAGES[page] || PAGES.severities;
+  const pageName = location.pathname.endsWith(ON_CALL_RULES_PATH)
+    ? "on-call-rules"
+    : page;
+  const { component: Page, trail } = PAGES[pageName] || PAGES.severities;
   return (
     <main className="mx-auto max-w-[1200px] px-4 py-8 sm:px-8">
       <div className="mb-7 text-sm text-gray-500">

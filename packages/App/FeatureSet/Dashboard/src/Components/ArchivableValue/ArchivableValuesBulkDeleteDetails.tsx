@@ -4,6 +4,9 @@ import {
   BULK_DELETE_REFUSED,
   BULK_DELETE_REFUSED_ALREADY_ARCHIVED,
   BULK_DELETE_REFUSED_ARCHIVE_INSTEAD,
+  BULK_DELETE_REFUSED_MORE,
+  BULK_DELETE_REFUSED_NAMES_SHOWN,
+  BULK_DELETE_SKIPS,
   CHECKING_WHAT_USES_THEM,
 } from "./ArchivableValueCopy";
 import { UsageGroups, UsageList } from "./ArchivableValueUsageList";
@@ -19,8 +22,13 @@ import {
 } from "Common/Types/ArchivableValue/ArchivableValueUsage";
 import ObjectID from "Common/Types/ObjectID";
 import { BulkActionConfirmControls } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import { joinSentences } from "Common/UI/Components/DeleteConfirmation/DeleteConsequences";
 import InlineLoadingLine from "Common/UI/Components/Loader/InlineLoadingLine";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  NameListSummary,
+  summarizeNames,
+} from "Common/UI/Utils/ModelDisplayName";
+import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -161,24 +169,26 @@ const ArchivableValuesBulkDeleteDetails: FunctionComponent<ComponentProps> = (
     }),
   );
 
-  const refusedNames: Array<string> = props.items
-    .filter((item: BaseModel): boolean => {
-      const id: ObjectID | null = readId(item);
-
-      return Boolean(id && refused.has(id.toString().toLowerCase()));
-    })
-    .map(readName)
-    .filter((name: string): boolean => {
-      return name.length > 0;
-    });
-
-  const refusedCount: number = props.items.filter(
+  const refusedItems: Array<BaseModel> = props.items.filter(
     (item: BaseModel): boolean => {
       const id: ObjectID | null = readId(item);
 
       return Boolean(id && refused.has(id.toString().toLowerCase()));
     },
-  ).length;
+  );
+
+  const refusedCount: number = refusedItems.length;
+
+  /*
+   * The refused ones by name, the first two of them, and the rest counted:
+   * "Critical, Major and 3 more" - a selection of many labels never turns
+   * the sentence into a list of them.
+   */
+  const refusedNames: NameListSummary = summarizeNames({
+    names: refusedItems.map(readName),
+    totalCount: refusedCount,
+    maxShown: BULK_DELETE_REFUSED_NAMES_SHOWN,
+  });
 
   const deletableCount: number = props.items.length - refusedCount;
   // What goes with the ones it deletes: "Deleted with them" for several.
@@ -193,27 +203,57 @@ const ArchivableValuesBulkDeleteDetails: FunctionComponent<ComponentProps> = (
 
   return (
     <div
-      className="space-y-3 text-sm leading-6 text-gray-700"
+      className="space-y-4 text-sm leading-6 text-gray-600"
       data-testid="archivable-values-bulk-delete-usage"
     >
       {refusedCount > 0 ? (
         <div data-testid="archivable-values-bulk-delete-refused">
           <p className="font-medium text-gray-900">
             {translator.translatePlural(BULK_DELETE_REFUSED, refusedCount, {
-              names: formatNameList(refusedNames, "and", translator),
+              names: composedValue((sentence: Translator): string => {
+                if (refusedNames.shownNames.length === 0) {
+                  return sentence.formatNumber(refusedCount);
+                }
+
+                return formatNameList(
+                  refusedNames.remainingCount > 0
+                    ? [
+                        ...refusedNames.shownNames,
+                        sentence.translatePlural(
+                          BULK_DELETE_REFUSED_MORE,
+                          refusedNames.remainingCount,
+                        ),
+                      ]
+                    : refusedNames.shownNames,
+                  "and",
+                  sentence,
+                );
+              }),
             })}
           </p>
           <UsageList
             items={answer.refusedUsage}
             dataTestId="archivable-values-bulk-delete-refused-by"
           />
-          <p className="mt-2">
-            {translator.translatePlural(
-              props.isArchivedList
-                ? BULK_DELETE_REFUSED_ALREADY_ARCHIVED
-                : BULK_DELETE_REFUSED_ARCHIVE_INSTEAD,
-              refusedCount,
-            )}
+          <p
+            className="mt-2"
+            data-testid="archivable-values-bulk-delete-refused-way-on"
+          >
+            {joinSentences([
+              /*
+               * What the Delete does with them, while it has others to
+               * delete; with nothing else, it is unavailable.
+               */
+              deletableCount > 0
+                ? translator.translatePlural(BULK_DELETE_SKIPS, refusedCount)
+                : "",
+              translator.translatePlural(
+                props.isArchivedList
+                  ? BULK_DELETE_REFUSED_ALREADY_ARCHIVED
+                  : BULK_DELETE_REFUSED_ARCHIVE_INSTEAD,
+                refusedCount,
+              ),
+            ])}
           </p>
         </div>
       ) : (

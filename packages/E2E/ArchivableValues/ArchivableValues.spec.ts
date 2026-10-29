@@ -22,6 +22,10 @@ import path from "path";
 const ROUTE: string =
   "/dashboard/10000000-0000-4000-8000-000000000001/incidents/settings";
 
+// User Settings > On-Call Rules: the page the Archive dialog links to.
+const ON_CALL_RULES_ROUTE: string =
+  "/dashboard/10000000-0000-4000-8000-000000000001/user-settings/on-call-rules";
+
 const SCREENSHOTS: string = path.resolve(
   __dirname,
   "../../../output/playwright/archivable-values-ui",
@@ -645,7 +649,7 @@ test.describe("what really uses a severity", () => {
     );
 
     await expect(people).toHaveText(
-      "11 people have on-call rules for this severity. They stay as they are, so incidents with it still page them. See your on-call rules",
+      "11 people have their own on-call rules for this severity. Those rules stay as they are, so incidents with it still page them. See your on-call rules",
     );
     await expect(dialog(page)).not.toContainText("Notification Rules");
 
@@ -654,12 +658,43 @@ test.describe("what really uses a severity", () => {
       name: "See your on-call rules",
     });
 
-    await expect(link).toHaveAttribute(
-      "href",
-      "/dashboard/10000000-0000-4000-8000-000000000001/user-settings/on-call-rules",
-    );
+    await expect(link).toHaveAttribute("href", ON_CALL_RULES_ROUTE);
 
     await dialogScreenshot(page, "archive-dialog-people-1280-light");
+  });
+
+  test("See your on-call rules opens them in a new tab, and the Archive dialog stays open for its answer", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "?page=severities");
+
+    const menu: Locator = await openRowMenu(page, "Minor");
+    await menu.getByRole("menuitem", { name: "Archive" }).click();
+
+    const link: Locator = dialog(page).getByRole("link", {
+      name: "See your on-call rules",
+    });
+
+    await expect(link).toHaveAttribute("target", "_blank");
+
+    const [rules]: [Page, void] = await Promise.all([
+      page.context().waitForEvent("page"),
+      link.click(),
+    ]);
+
+    await rules.waitForLoadState();
+    expect(new URL(rules.url()).pathname).toBe(ON_CALL_RULES_ROUTE);
+    await expect(
+      rules.getByTestId("on-call-rules-severity-title").first(),
+    ).toBeVisible();
+
+    // The question is still asked where it was, unanswered.
+    await expect(dialog(page)).toContainText("Archive Minor?");
+    expect(await updatesSent(page)).toEqual([]);
+
+    await rules.close();
   });
 
   test("the maintainer's dialog: a severity only people's own rules use has nothing to change, and says so in one sentence", async ({
@@ -673,7 +708,7 @@ test.describe("what really uses a severity", () => {
     await menu.getByRole("menuitem", { name: "Archive" }).click();
 
     await expect(dialog(page)).toContainText(
-      "2 people have on-call rules for this severity. They stay as they are, so incidents with it still page them.",
+      "2 people have their own on-call rules for this severity. Those rules stay as they are, so incidents with it still page them.",
     );
     await expect(dialog(page)).not.toContainText(
       "These keep using it until you change them:",
@@ -803,8 +838,11 @@ test.describe("Bulk Actions > Delete of severities", () => {
     await expect(
       refused.getByTestId("archivable-values-bulk-delete-refused-by"),
     ).toHaveText("•Incidents (12)");
-    await expect(refused).toContainText(
-      "It is left as it is. Archive it instead: nobody can pick it again, and everything that has it keeps it.",
+    // What the Delete does with it - it deletes the others - and the way on.
+    await expect(
+      refused.getByTestId("archivable-values-bulk-delete-refused-way-on"),
+    ).toHaveText(
+      "Delete skips it. Archive it instead: nobody can pick it again, and everything that has it keeps it.",
     );
 
     const changes: Locator = dialog(page).getByTestId(
@@ -831,12 +869,14 @@ test.describe("Bulk Actions > Delete of severities", () => {
     await expect(page.getByTestId("bulk-action-succeeded-count")).toHaveText(
       "2 Incident Severities deleted",
     );
-    await expect(page.getByTestId("bulk-action-failed-count")).toHaveText(
-      "1 Incident Severity not deleted",
+    // Skipped, as the dialog said - not a delete that failed.
+    await expect(page.getByTestId("bulk-action-unchanged-count")).toHaveText(
+      "1 Incident Severity skipped",
     );
-    await expect(page.getByTestId("bulk-action-failed-items")).toContainText(
+    await expect(page.getByTestId("bulk-action-unchanged-items")).toContainText(
       "Critical",
     );
+    await expect(page.getByTestId("bulk-action-failed-count")).toHaveCount(0);
     await expect(dialog(page)).toContainText(
       "Records still have it, so it can't be deleted. Archive it instead.",
     );
@@ -871,6 +911,75 @@ test.describe("Bulk Actions > Delete of severities", () => {
     await expect(
       dialog(page).getByTestId("archivable-values-bulk-delete-changes"),
     ).toHaveCount(0);
+
+    // Its Delete does nothing, so it skips nothing: why, and the way on.
+    await expect(
+      dialog(page).getByTestId("archivable-values-bulk-delete-refused-way-on"),
+    ).toHaveText(
+      "Archive it instead: nobody can pick it again, and everything that has it keeps it.",
+    );
+
+    await dialogScreenshot(page, "bulk-delete-all-refused-1280-light");
+  });
+});
+
+/*
+ * User Settings > On-Call Rules, where the Archive dialog sends people: an
+ * archived severity the person still has rules for comes after the live
+ * ones, marked Archived, says what its rules still do, and offers no Add -
+ * the server refuses a new rule for an archived severity.
+ */
+test.describe("an archived severity on the On-Call Rules page", () => {
+  test("comes last, marked Archived, with its rules and no Add", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(ON_CALL_RULES_ROUTE);
+
+    const titles: Locator = page.getByTestId("on-call-rules-severity-title");
+
+    await expect(titles).toHaveCount(4);
+
+    // The live ones in the project's order, the archived one after them.
+    expect(
+      (await titles.allTextContents()).map((title: string): string => {
+        return title.trim();
+      }),
+    ).toEqual([
+      "Critical",
+      "Major",
+      "Minor",
+      "[DONOTUSE] Very criticalArchived",
+    ]);
+    await expect(titles.last().getByTestId("archived-tag")).toHaveText(
+      "Archived",
+    );
+    await expect(titles.nth(2).getByTestId("archived-tag")).toHaveCount(0);
+
+    const archivedCard: Locator = page
+      .locator('[data-testid="card"]')
+      .filter({ has: page.getByText("[DONOTUSE] Very critical") })
+      .last();
+
+    await expect(archivedCard).toContainText(
+      "How you are notified about incidents that still have this severity. You can change or remove these rules, but not add new ones.",
+    );
+    // Both of its rules, still there to change or remove.
+    await expect(
+      archivedCard.getByRole("button", { name: "Edit" }),
+    ).toHaveCount(2);
+    await expect(archivedCard).toContainText("10 minutes");
+    await expect(
+      archivedCard.getByRole("button", { name: /Add Notification Rule/ }),
+    ).toHaveCount(0);
+
+    // The live ones keep their Add.
+    await expect(
+      page.getByRole("button", { name: /Add Notification Rule/ }),
+    ).toHaveCount(3);
+
+    await screenshot(page, "on-call-rules-archived-1280-light");
   });
 });
 
@@ -908,6 +1017,9 @@ interface LanguageCase {
   link: string;
   // The bulk Delete's line about the refused one.
   refused: string;
+  // The archived severity's card on the On-Call Rules page.
+  archivedTag: string;
+  archivedCard: string;
 }
 
 const LANGUAGES: Array<LanguageCase> = [
@@ -917,19 +1029,24 @@ const LANGUAGES: Array<LanguageCase> = [
     delete: "Löschen",
     bulkActions: "Massenaktionen",
     people:
-      "11 Personen haben Bereitschaftsregeln für diesen Schweregrad. Sie bleiben, wie sie sind, daher alarmieren Vorfälle mit diesem Schweregrad diese Personen weiterhin.",
+      "11 Personen haben eigene Bereitschaftsregeln für diesen Schweregrad. Diese Regeln bleiben, wie sie sind, daher alarmieren Vorfälle mit diesem Schweregrad diese Personen weiterhin.",
     link: "Ihre Bereitschaftsregeln ansehen",
     refused:
       "Critical kann nicht gelöscht werden, solange Folgendes darauf verweist:",
+    archivedTag: "Archiviert",
+    archivedCard:
+      "Wie Sie bei Vorfällen benachrichtigt werden, die diesen Schweregrad noch haben.",
   },
   {
     lang: "fa",
     archive: "بایگانی",
     delete: "حذف",
     bulkActions: "اقدامات گروهی",
-    people: "برای این شدت قواعد آنکال دارند",
+    people: "برای این شدت قواعد آنکال خودشان را دارند",
     link: "قواعد آنکال خود را ببینید",
     refused: "نمی‌توان آن را حذف کرد",
+    archivedTag: "بایگانی‌شده",
+    archivedCard: "که هنوز این شدت را دارند",
   },
 ];
 
@@ -1027,6 +1144,60 @@ for (const language of LANGUAGES) {
           await dialogScreenshot(
             page,
             `bulk-delete-${width}-${theme}-${language.lang}`,
+          );
+        });
+
+        test(`the On-Call Rules page's archived severity at ${width}px`, async ({
+          page,
+        }: {
+          page: Page;
+        }) => {
+          await page.setViewportSize({
+            width: width,
+            height: width === 390 ? 844 : 900,
+          });
+          await page.goto(
+            `${ON_CALL_RULES_ROUTE}?lang=${language.lang}${theme === "dark" ? "&theme=dark" : ""}`,
+          );
+
+          const archivedTitle: Locator = page
+            .getByTestId("on-call-rules-severity-title")
+            .last();
+
+          await expect(archivedTitle).toContainText("[DONOTUSE] Very critical");
+          await expect(archivedTitle).toContainText(language.archivedTag);
+
+          /*
+           * The project's own name reads the way it is written, its
+           * bracket first, on a right-to-left page too.
+           */
+          await expect(archivedTitle.locator("bdi")).toHaveAttribute(
+            "dir",
+            "ltr",
+          );
+
+          // A phone draws no card descriptions; a laptop says what stays.
+          if (width === 1280) {
+            await expect(
+              page
+                .locator('[data-testid="card"]')
+                .filter({ has: archivedTitle })
+                .last(),
+            ).toContainText(language.archivedCard);
+          }
+
+          const overflow: number = await page.evaluate((): number => {
+            return (
+              document.documentElement.scrollWidth -
+              document.documentElement.clientWidth
+            );
+          });
+
+          expect(overflow).toBeLessThanOrEqual(0);
+
+          await screenshot(
+            page,
+            `on-call-rules-archived-${width}-${theme}-${language.lang}`,
           );
         });
       }

@@ -43,7 +43,12 @@ import {
   BulkActionConfirmControls,
   BulkActionOnClickProps,
 } from "../BulkUpdate/BulkUpdateForm";
-import { runBulkAction } from "../BulkUpdate/BulkActionRunner";
+import {
+  BULK_ITEM_CHANGED,
+  BulkItemOutcome,
+  bulkItemUnchanged,
+  runBulkAction,
+} from "../BulkUpdate/BulkActionRunner";
 import { ButtonSize, ButtonStyleType } from "../Button/Button";
 import Card, {
   CardButtonSchema,
@@ -390,9 +395,10 @@ export interface BulkActionProps<T extends BaseModel | AnalyticsBaseModel> {
     | undefined;
   /*
    * Why one selected row is not deleted, when the list already knows the
-   * server would refuse it - records still have a value, say: it is not
-   * sent, and is listed with the reason like a row the server refused.
-   * Only the bulk Delete asks: a row's own Delete says why in its dialog.
+   * server would refuse it - records still have a value, say - and its
+   * dialog said so: it is not sent, and the result lists it as skipped
+   * (BULK_SKIPPED_COUNT), with the reason. Only the bulk Delete asks: a
+   * row's own Delete says why in its dialog.
    */
   getDeleteRefusal?: ((item: T) => string | undefined) | undefined;
   // Once a bulk Delete has run: a page that counts what is left reads again.
@@ -826,6 +832,17 @@ export const BULK_DELETED_COUNT: PluralTemplate = {
 export const BULK_NOT_DELETED_COUNT: PluralTemplate = {
   one: "{{count}} {{itemName}} not deleted",
   other: "{{count}} {{itemsName}} not deleted",
+};
+
+/*
+ * Rows a bulk Delete left out on purpose, as its dialog said it would
+ * (getDeleteRefusal): "1 Incident Severity skipped", beside what was
+ * deleted - its own gray list, so a row it was asked to skip never reads as
+ * a delete that failed.
+ */
+export const BULK_SKIPPED_COUNT: PluralTemplate = {
+  one: "{{count}} {{itemName}} skipped",
+  other: "{{count}} {{itemsName}} skipped",
 };
 
 // A table that names its own verb ("Unlink") for the bulk action.
@@ -4047,6 +4064,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           : {
               succeeded: BULK_DELETED_COUNT,
               failed: BULK_NOT_DELETED_COUNT,
+              unchanged: BULK_SKIPPED_COUNT,
             },
         /*
          * Through the shared runner (runBulkAction): each row its own delete,
@@ -4060,7 +4078,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           await runBulkAction<TBaseModel>({
             actionProps: actionProps,
             concurrency: props.bulkActions?.deleteConcurrency ?? 1,
-            step: async (item: TBaseModel): Promise<void> => {
+            step: async (item: TBaseModel): Promise<BulkItemOutcome> => {
               /*
                * A row the table says can never be deleted is not sent to the
                * server at all: it is listed with the reason, like a row the
@@ -4075,15 +4093,20 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 throw new BadDataException(deleteDisabledReason);
               }
 
-              // One the list knows the server would refuse: not sent either.
+              /*
+               * One the list knows the server would refuse, which its
+               * dialog said it skips: not sent, and listed as skipped.
+               */
               const deleteRefusal: string | undefined =
                 props.bulkActions?.getDeleteRefusal?.(item);
 
               if (deleteRefusal) {
-                throw new BadDataException(deleteRefusal);
+                return bulkItemUnchanged(deleteRefusal);
               }
 
               await props.callbacks.deleteItem(item);
+
+              return BULK_ITEM_CHANGED;
             },
           });
 

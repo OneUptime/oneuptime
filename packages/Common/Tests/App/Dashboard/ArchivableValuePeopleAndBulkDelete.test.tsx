@@ -155,6 +155,9 @@ import {
 const CRITICAL_ID: string = "0193c0de-9999-4999-8999-000000000001";
 const MAJOR_ID: string = "0193c0de-9999-4999-8999-000000000002";
 const MINOR_ID: string = "0193c0de-9999-4999-8999-000000000003";
+const SEV4_ID: string = "0193c0de-9999-4999-8999-000000000004";
+const SEV5_ID: string = "0193c0de-9999-4999-8999-000000000005";
+const SEV6_ID: string = "0193c0de-9999-4999-8999-000000000006";
 
 beforeEach(() => {
   recordedTables.length = 0;
@@ -327,12 +330,19 @@ describe("the Archive dialog says people's own settings apart", () => {
     expect(settings).toHaveTextContent("Incident On-Call Rules (3)");
     expect(settings).not.toHaveTextContent("Notification Rules");
 
-    // People's own rules: how many people, that they stay, and what they keep doing.
+    /*
+     * People's own rules: whose they are, how many people, that those rules
+     * stay, and what they keep doing - each clause with its own subject.
+     */
     expect(
       screen.getByTestId("archivable-value-people-UserNotificationRule"),
     ).toHaveTextContent(
-      "2 people have on-call rules for this severity. They stay as they are, so incidents with it still page them. See your on-call rules",
+      "2 people have their own on-call rules for this severity. Those rules stay as they are, so incidents with it still page them. See your on-call rules",
     );
+    // In the dialog's own prose colour, as the sentence above it.
+    expect(
+      screen.getByTestId("archivable-value-people-UserNotificationRule"),
+    ).not.toHaveClass("text-gray-700");
 
     // The rows nobody recognised are never listed as a count of rules.
     expect(dialogText()).not.toContain("Notification Rules (");
@@ -363,7 +373,7 @@ describe("the Archive dialog says people's own settings apart", () => {
     ).toBeNull();
     expect(screen.queryByTestId("archivable-value-still-used-by")).toBeNull();
     expect(dialogText()).toContain(
-      "2 people have on-call rules for this severity.",
+      "2 people have their own on-call rules for this severity.",
     );
   });
 
@@ -380,7 +390,7 @@ describe("the Archive dialog says people's own settings apart", () => {
 
     await waitFor(() => {
       expect(dialogText()).toContain(
-        "1 person has on-call rules for this severity. They stay as they are, so incidents with it still page them.",
+        "1 person has their own on-call rules for this severity. Those rules stay as they are, so incidents with it still page them.",
       );
     });
   });
@@ -398,7 +408,7 @@ describe("the Archive dialog says people's own settings apart", () => {
 
     await waitFor(() => {
       expect(dialogText()).toContain(
-        "10,000+ people have on-call rules for this severity.",
+        "10,000+ people have their own on-call rules for this severity.",
       );
     });
   });
@@ -419,6 +429,11 @@ describe("the Archive dialog says people's own settings apart", () => {
     );
 
     expect(link).toHaveTextContent("See your on-call rules");
+    /*
+     * In a new tab: the Archive dialog is a question still open, and the
+     * link followed in place would close it unanswered.
+     */
+    expect(link).toHaveAttribute("target", "_blank");
 
     const incidents: Route | null = getOwnSettingsRoute(
       ArchivableValueType.IncidentSeverity,
@@ -459,7 +474,7 @@ describe("the Archive dialog says people's own settings apart", () => {
 
     await waitFor(() => {
       expect(dialogText()).toContain(
-        "3 people have on-call rules for this severity. They stay as they are, so alerts with it still page them.",
+        "3 people have their own on-call rules for this severity. Those rules stay as they are, so alerts with it still page them.",
       );
     });
   });
@@ -490,7 +505,7 @@ describe("the Archive dialog says people's own settings apart", () => {
 
     await waitFor(() => {
       expect(dialogText()).toContain(
-        "4 people are notified about new security cases at this priority and above. That stays as it is. See your notification settings",
+        "4 people are notified about new security cases at this priority and above. Their settings stay as they are. See your notification settings",
       );
     });
   });
@@ -517,7 +532,7 @@ describe("the Archive dialog says people's own settings apart", () => {
 
     await waitFor(() => {
       expect(dialogText()).toContain(
-        "2 people have their own settings that use it. They stay as they are.",
+        "2 people have their own settings that use it. Those settings stay as they are.",
       );
     });
 
@@ -746,8 +761,11 @@ describe("Bulk Actions > Delete of values says what it would do first", () => {
     expect(
       screen.getByTestId("archivable-values-bulk-delete-refused-by"),
     ).toHaveTextContent("Incidents (12)");
-    expect(bulkText()).toContain(
-      "It is left as it is. Archive it instead: nobody can pick it again, and everything that has it keeps it.",
+    // What the Delete does with it - it deletes the others - and the way on.
+    expect(
+      screen.getByTestId("archivable-values-bulk-delete-refused-way-on"),
+    ).toHaveTextContent(
+      "Delete skips it. Archive it instead: nobody can pick it again, and everything that has it keeps it.",
     );
     expect(bulkText()).toContain("Deleting the others also changes these:");
     // Two values go: what goes is deleted with them.
@@ -795,8 +813,10 @@ describe("Bulk Actions > Delete of values says what it would do first", () => {
     expect(
       screen.getByTestId("archivable-values-bulk-delete-refused-by"),
     ).toHaveTextContent("Incidents (40)");
-    expect(bulkText()).toContain(
-      "They are left as they are. Archive them instead: nobody can pick them again, and everything that has them keeps them.",
+    expect(
+      screen.getByTestId("archivable-values-bulk-delete-refused-way-on"),
+    ).toHaveTextContent(
+      "Delete skips them. Archive them instead: nobody can pick them again, and everything that has them keeps them.",
     );
     // Deleting the rest changes nothing: no second list.
     expect(
@@ -823,6 +843,105 @@ describe("Bulk Actions > Delete of values says what it would do first", () => {
     await waitFor(() => {
       expect(held.held).toEqual([true, true]);
     });
+
+    /*
+     * Its Delete does nothing, so it is not said to skip anything: only
+     * why, and the way on - as a row's own refused Delete says it.
+     */
+    expect(
+      screen.getByTestId("archivable-values-bulk-delete-refused-way-on"),
+    ).toHaveTextContent(
+      "Archive it instead: nobody can pick it again, and everything that has it keeps it.",
+    );
+    expect(bulkText()).not.toContain("skips");
+  });
+
+  test("many refused are named two at a time and the rest counted, never a list in the sentence", async () => {
+    const many: Array<IncidentSeverity> = [
+      severity(CRITICAL_ID, "Critical"),
+      severity(MAJOR_ID, "Major"),
+      severity(MINOR_ID, "Minor"),
+      severity(SEV4_ID, "Sev 4"),
+      severity(SEV5_ID, "Sev 5"),
+      severity(SEV6_ID, "Sev 6"),
+    ];
+
+    valuesUsageMock.mockImplementation(
+      async (): Promise<ArchivableValuesUsage> => {
+        return {
+          refusedValueIds: [CRITICAL_ID, MAJOR_ID, MINOR_ID, SEV4_ID, SEV5_ID],
+          refusedUsage: [usageItem({ count: 90 })],
+          usage: [],
+        };
+      },
+    );
+
+    await renderPage(IncidentSeveritiesPage);
+    await drawDetails(controls(), many);
+
+    await waitFor(() => {
+      expect(bulkText()).toContain(
+        "Critical, Major and 3 more can't be deleted while these have them:",
+      );
+    });
+
+    expect(bulkText()).not.toContain("Minor");
+    expect(bulkText()).not.toContain("Sev 5");
+    expect(
+      screen.getByTestId("archivable-values-bulk-delete-refused-way-on"),
+    ).toHaveTextContent("Delete skips them.");
+  });
+
+  test("three refused are all named: 'and 1 more' would take the place of the name", async () => {
+    valuesUsageMock.mockImplementation(
+      async (): Promise<ArchivableValuesUsage> => {
+        return {
+          refusedValueIds: [CRITICAL_ID, MAJOR_ID, MINOR_ID],
+          refusedUsage: [usageItem({ count: 30 })],
+          usage: [],
+        };
+      },
+    );
+
+    await renderPage(IncidentSeveritiesPage);
+    await drawDetails(controls());
+
+    await waitFor(() => {
+      expect(bulkText()).toContain(
+        "Critical, Major and Minor can't be deleted while these have them:",
+      );
+    });
+
+    expect(bulkText()).not.toContain("more");
+  });
+
+  test("its words are in the dialog's own prose colour, its blocks apart", async () => {
+    valuesUsageMock.mockImplementation(
+      async (): Promise<ArchivableValuesUsage> => {
+        return {
+          refusedValueIds: [CRITICAL_ID],
+          refusedUsage: [usageItem({})],
+          usage: [onCallRulesOf(2)],
+        };
+      },
+    );
+
+    await renderPage(IncidentSeveritiesPage);
+    await drawDetails(controls());
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("archivable-values-bulk-delete-usage"),
+      ).toBeInTheDocument();
+    });
+
+    const usage: HTMLElement = screen.getByTestId(
+      "archivable-values-bulk-delete-usage",
+    );
+
+    expect(usage).toHaveClass("text-gray-600");
+    expect(usage).not.toHaveClass("text-gray-700");
+    expect(usage).toHaveClass("space-y-4");
   });
 
   test("with none refused, it says what deleting them changes", async () => {
@@ -972,8 +1091,60 @@ describe("Bulk Actions > Delete of values says what it would do first", () => {
     );
 
     await waitFor(() => {
-      expect(bulkText()).toContain(
-        "It is left as it is, archived: nobody can pick it, and everything that has it keeps it.",
+      expect(
+        screen.getByTestId("archivable-values-bulk-delete-refused-way-on"),
+      ).toHaveTextContent(
+        "It can stay archived: nobody can pick it, and everything that has it keeps it.",
+      );
+    });
+
+    // Already archived: nothing to archive in the run's result either.
+    expect(
+      bulkActionsOf("IncidentSeverity-archived-table").getDeleteRefusal!(
+        severity(CRITICAL_ID, "Critical"),
+      ),
+    ).toBe(
+      "Records still have it, so it can't be deleted. It can stay archived.",
+    );
+  });
+
+  test("the Archived section's bulk Delete of some of them skips the refused, which can stay archived", async () => {
+    countMock.mockImplementation(
+      async (args: { query: Record<string, unknown> }): Promise<number> => {
+        return args.query["isArchived"] === true ? 2 : 5;
+      },
+    );
+    valuesUsageMock.mockImplementation(
+      async (): Promise<ArchivableValuesUsage> => {
+        return {
+          refusedValueIds: [CRITICAL_ID],
+          refusedUsage: [usageItem({})],
+          usage: [],
+        };
+      },
+    );
+
+    await renderPage(IncidentSeveritiesPage);
+
+    await waitFor(() => {
+      expect(
+        recordedTables.some((props: Record<string, unknown>): boolean => {
+          return props["id"] === "IncidentSeverity-archived-table";
+        }),
+      ).toBe(true);
+    });
+
+    await drawDetails(
+      controls(),
+      [severity(CRITICAL_ID, "Critical"), severity(MINOR_ID, "Minor")],
+      "IncidentSeverity-archived-table",
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("archivable-values-bulk-delete-refused-way-on"),
+      ).toHaveTextContent(
+        "Delete skips it. It can stay archived: nobody can pick it, and everything that has it keeps it.",
       );
     });
   });

@@ -11,8 +11,10 @@ import {
 import {
   PERSONAL_USAGE_ITEMS,
   PERSONAL_USAGE_NOTES,
+  PERSONAL_USAGE_NOTE_FALLBACK,
   PersonalUsageNote,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ArchivableValue/ArchivableValueCopy";
+import { PluralTemplate } from "../../../UI/Utils/TranslateTemplate";
 import { getOwnSettingsRoute } from "../../../../App/FeatureSet/Dashboard/src/Components/ArchivableValue/UseArchivableValues";
 import { DataSource } from "typeorm";
 import { beforeAll, describe, expect, test } from "@jest/globals";
@@ -157,16 +159,60 @@ describe("people's own settings that name a value", () => {
 
   test("a severity's note says what its records keep doing: paging people", () => {
     expect(
-      PERSONAL_USAGE_NOTES["IncidentSeverity:UserNotificationRule"]!.sentence
-        .other,
-    ).toBe(
-      "{{count}} people have on-call rules for this severity. They stay as they are, so incidents with it still page them.",
-    );
+      PERSONAL_USAGE_NOTES["IncidentSeverity:UserNotificationRule"]!.sentence,
+    ).toEqual({
+      one: "{{count}} person has their own on-call rules for this severity. Those rules stay as they are, so incidents with it still page them.",
+      other:
+        "{{count}} people have their own on-call rules for this severity. Those rules stay as they are, so incidents with it still page them.",
+    });
     expect(
-      PERSONAL_USAGE_NOTES["AlertSeverity:UserNotificationRule"]!.sentence
-        .other,
-    ).toBe(
-      "{{count}} people have on-call rules for this severity. They stay as they are, so alerts with it still page them.",
-    );
+      PERSONAL_USAGE_NOTES["AlertSeverity:UserNotificationRule"]!.sentence,
+    ).toEqual({
+      one: "{{count}} person has their own on-call rules for this severity. Those rules stay as they are, so alerts with it still page them.",
+      other:
+        "{{count}} people have their own on-call rules for this severity. Those rules stay as they are, so alerts with it still page them.",
+    });
+  });
+
+  /*
+   * The UI review: "They stay as they are, so incidents with it still page
+   * them" read "They" as the people, the sentence before's last subject.
+   * Every note says whose its rules are - the people's own, not the
+   * project's rules the dialog lists above it - and names what stays.
+   */
+  test("every note says the settings are people's own, and names what stays rather than a bare They", () => {
+    const notes: Array<PluralTemplate> = [
+      ...Object.values(PERSONAL_USAGE_NOTES).map(
+        (note: PersonalUsageNote): PluralTemplate => {
+          return note.sentence;
+        },
+      ),
+      PERSONAL_USAGE_NOTE_FALLBACK,
+    ];
+
+    for (const note of notes) {
+      for (const sentence of [note.one, note.other]) {
+        expect({ sentence, bareThey: sentence.includes(". They ") }).toEqual({
+          sentence,
+          bareThey: false,
+        });
+      }
+    }
+
+    for (const key of [
+      "IncidentSeverity:UserNotificationRule",
+      "AlertSeverity:UserNotificationRule",
+    ]) {
+      const note: PersonalUsageNote = PERSONAL_USAGE_NOTES[key]!;
+
+      expect(note.sentence.other).toContain("their own on-call rules");
+      expect(note.sentence.one).toContain("their own on-call rules");
+      expect(note.sentence.other).toContain("Those rules stay as they are");
+    }
+
+    expect(
+      PERSONAL_USAGE_NOTES["SecurityCasePriority:UserNotificationSetting"]!
+        .sentence.other,
+    ).toContain("Their settings stay as they are");
   });
 });

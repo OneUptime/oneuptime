@@ -357,13 +357,16 @@ export interface BulkActionButtonSchema<T extends GenericObject> {
    * The result's words for what happened to each item, when this action has
    * better ones than "succeeded" and "failed": a Delete says "2 Monitors
    * deleted" and "1 Monitor not deleted", which is what the reader is
-   * looking for. Plural templates with {{count}}, {{itemName}} and
-   * {{itemsName}}, as BULK_SUCCEEDED_COUNT.
+   * looking for - and "1 Monitor skipped" for one it left alone on purpose,
+   * where "not changed" (BULK_UNCHANGED_COUNT) would read oddly. Plural
+   * templates with {{count}}, {{itemName}} and {{itemsName}}, as
+   * BULK_SUCCEEDED_COUNT.
    */
   resultLabels?:
     | {
         succeeded: PluralTemplate;
         failed: PluralTemplate;
+        unchanged?: PluralTemplate | undefined;
       }
     | undefined;
   /*
@@ -649,7 +652,7 @@ const BulkUpdateForm: <T extends GenericObject>(
         liveCounts.push({
           key: "unchanged",
           text: translator.translatePlural(
-            BULK_UNCHANGED_COUNT,
+            runningAction?.resultLabels?.unchanged || BULK_UNCHANGED_COUNT,
             unchangedItems.length,
             {
               count: translator.formatNumber(unchangedItems.length),
@@ -840,7 +843,8 @@ const BulkUpdateForm: <T extends GenericObject>(
               />
               <div className="ml-2 text-sm font-medium text-gray-800">
                 {translator.translatePlural(
-                  BULK_UNCHANGED_COUNT,
+                  runningAction?.resultLabels?.unchanged ||
+                    BULK_UNCHANGED_COUNT,
                   unchangedItems.length,
                   {
                     count: translator.formatNumber(unchangedItems.length),

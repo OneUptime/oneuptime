@@ -324,8 +324,11 @@ export const PERSONAL_USAGE_ITEM_FALLBACK: PluralTemplate = {
 
 /*
  * The Archive dialog's sentence about them, after what keeps using the
- * value: they stay as they are, and what they keep doing. Keyed by the kind
- * of value and the table, `<ArchivableValueType>:<tableName>`.
+ * value: whose they are - people's own, not the project's rules the list
+ * above names - that they stay as they are, and what they keep doing. Each
+ * sentence names its subject ("Those rules"), never a bare "They" that
+ * reads as the people. Keyed by the kind of value and the table,
+ * `<ArchivableValueType>:<tableName>`.
  */
 export interface PersonalUsageNote {
   sentence: PluralTemplate;
@@ -336,25 +339,25 @@ export interface PersonalUsageNote {
 export const PERSONAL_USAGE_NOTES: Record<string, PersonalUsageNote> = {
   [`${ArchivableValueType.IncidentSeverity}:UserNotificationRule`]: {
     sentence: {
-      one: "{{count}} person has on-call rules for this severity. They stay as they are, so incidents with it still page them.",
+      one: "{{count}} person has their own on-call rules for this severity. Those rules stay as they are, so incidents with it still page them.",
       other:
-        "{{count}} people have on-call rules for this severity. They stay as they are, so incidents with it still page them.",
+        "{{count}} people have their own on-call rules for this severity. Those rules stay as they are, so incidents with it still page them.",
     },
     linkText: translationKey("See your on-call rules"),
   },
   [`${ArchivableValueType.AlertSeverity}:UserNotificationRule`]: {
     sentence: {
-      one: "{{count}} person has on-call rules for this severity. They stay as they are, so alerts with it still page them.",
+      one: "{{count}} person has their own on-call rules for this severity. Those rules stay as they are, so alerts with it still page them.",
       other:
-        "{{count}} people have on-call rules for this severity. They stay as they are, so alerts with it still page them.",
+        "{{count}} people have their own on-call rules for this severity. Those rules stay as they are, so alerts with it still page them.",
     },
     linkText: translationKey("See your on-call rules"),
   },
   [`${ArchivableValueType.SecurityCasePriority}:UserNotificationSetting`]: {
     sentence: {
-      one: "{{count}} person is notified about new security cases at this priority and above. That stays as it is.",
+      one: "{{count}} person is notified about new security cases at this priority and above. Their settings stay as they are.",
       other:
-        "{{count}} people are notified about new security cases at this priority and above. That stays as it is.",
+        "{{count}} people are notified about new security cases at this priority and above. Their settings stay as they are.",
     },
     linkText: translationKey("See your notification settings"),
   },
@@ -362,9 +365,9 @@ export const PERSONAL_USAGE_NOTES: Record<string, PersonalUsageNote> = {
 
 // The sentence for people's own settings with no words of their own yet.
 export const PERSONAL_USAGE_NOTE_FALLBACK: PluralTemplate = {
-  one: "{{count}} person has their own settings that use it. They stay as they are.",
+  one: "{{count}} person has their own settings that use it. Those settings stay as they are.",
   other:
-    "{{count}} people have their own settings that use it. They stay as they are.",
+    "{{count}} people have their own settings that use it. Those settings stay as they are.",
 };
 
 /*
@@ -375,20 +378,41 @@ export const PERSONAL_USAGE_NOTE_FALLBACK: PluralTemplate = {
 export const CHECKING_WHAT_USES_THEM: string = translationKey(
   "Checking what still uses them…",
 );
-// {{names}}: the values records still have, "Critical and Major".
+/*
+ * {{names}}: the values records still have, "Critical and Major" - two
+ * named at most, the rest counted ("Critical, Major and 3 more"), so a
+ * selection of many labels never turns the sentence into the list.
+ */
 export const BULK_DELETE_REFUSED: PluralTemplate = {
   one: "{{names}} can't be deleted while these have it:",
   other: "{{names}} can't be deleted while these have them:",
 };
+// How many refused values the sentence above names before it counts.
+export const BULK_DELETE_REFUSED_NAMES_SHOWN: number = 2;
+// The rest of them, after the names: "Critical, Major and 3 more".
+export const BULK_DELETE_REFUSED_MORE: PluralTemplate = {
+  one: "{{count}} more",
+  other: "{{count}} more",
+};
+/*
+ * What the dialog's Delete does with them, when it deletes the others: it
+ * leaves them out. Not said when there is nothing else to delete - the
+ * Delete is then unavailable.
+ */
+export const BULK_DELETE_SKIPS: PluralTemplate = {
+  one: "Delete skips it.",
+  other: "Delete skips them.",
+};
+// Then the way on: what a row's own Delete says, for one or several.
 export const BULK_DELETE_REFUSED_ARCHIVE_INSTEAD: PluralTemplate = {
-  one: "It is left as it is. Archive it instead: nobody can pick it again, and everything that has it keeps it.",
+  one: "Archive it instead: nobody can pick it again, and everything that has it keeps it.",
   other:
-    "They are left as they are. Archive them instead: nobody can pick them again, and everything that has them keeps them.",
+    "Archive them instead: nobody can pick them again, and everything that has them keeps them.",
 };
 export const BULK_DELETE_REFUSED_ALREADY_ARCHIVED: PluralTemplate = {
-  one: "It is left as it is, archived: nobody can pick it, and everything that has it keeps it.",
+  one: "It can stay archived: nobody can pick it, and everything that has it keeps it.",
   other:
-    "They are left as they are, archived: nobody can pick them, and everything that has them keeps them.",
+    "They can stay archived: nobody can pick them, and everything that has them keeps them.",
 };
 // What deleting changes: all of them, or the ones left once the refused are.
 export const BULK_DELETE_CHANGES_INTRO: PluralTemplate = {
@@ -399,9 +423,15 @@ export const BULK_DELETE_CHANGES_INTRO_OTHERS: PluralTemplate = {
   one: "Deleting the other one also changes these:",
   other: "Deleting the others also changes these:",
 };
-// Why a value the dialog found in use is not deleted, in the run's result.
+/*
+ * Why a value the dialog found in use is skipped, in the run's result - one
+ * of the live list, and one already archived, which has nothing to archive.
+ */
 export const BULK_DELETE_REFUSAL_REASON: string = translationKey(
   "Records still have it, so it can't be deleted. Archive it instead.",
+);
+export const BULK_DELETE_REFUSAL_REASON_ARCHIVED: string = translationKey(
+  "Records still have it, so it can't be deleted. It can stay archived.",
 );
 
 // The folded Archived section's count, beside its title.
@@ -445,6 +475,7 @@ export const getArchivableValueStrings: () => Array<string> =
       ARCHIVED_COUNT,
       CHECKING_WHAT_USES_THEM,
       BULK_DELETE_REFUSAL_REASON,
+      BULK_DELETE_REFUSAL_REASON_ARCHIVED,
     ]) {
       strings.add(text);
     }
@@ -473,6 +504,8 @@ export const getArchivableValuePluralStrings: () => Array<PluralTemplate> =
       ),
       PERSONAL_USAGE_NOTE_FALLBACK,
       BULK_DELETE_REFUSED,
+      BULK_DELETE_REFUSED_MORE,
+      BULK_DELETE_SKIPS,
       BULK_DELETE_REFUSED_ARCHIVE_INSTEAD,
       BULK_DELETE_REFUSED_ALREADY_ARCHIVED,
       BULK_DELETE_CHANGES_INTRO,

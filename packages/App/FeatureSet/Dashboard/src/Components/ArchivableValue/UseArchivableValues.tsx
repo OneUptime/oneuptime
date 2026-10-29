@@ -6,6 +6,7 @@ import {
   ARCHIVED_COUNT,
   ArchivableValueCopy,
   BULK_DELETE_REFUSAL_REASON,
+  BULK_DELETE_REFUSAL_REASON_ARCHIVED,
   CHECKING_WHAT_USES_IT,
   DELETE_CHANGES_ARCHIVE_INSTEAD,
   DELETE_CHANGES_CANNOT_UNDO,
@@ -573,11 +574,16 @@ const useArchivableValues: <T extends BaseModel>(
           />
         );
       },
+      // Skipped, as the dialog said, with why - and, if live, Archive.
       getDeleteRefusal: (item: T): string | undefined => {
         const id: ObjectID | null = readId(item);
 
         return id && refusedIds.current.has(id.toString().toLowerCase())
-          ? translator.translateText(BULK_DELETE_REFUSAL_REASON)
+          ? translator.translateText(
+              isArchivedList
+                ? BULK_DELETE_REFUSAL_REASON_ARCHIVED
+                : BULK_DELETE_REFUSAL_REASON,
+            )
           : undefined;
       },
       // The counts the page keeps - archived, live - read again.

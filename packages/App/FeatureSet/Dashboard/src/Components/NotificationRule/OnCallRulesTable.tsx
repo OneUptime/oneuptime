@@ -2,9 +2,10 @@ import NotificationMethodView, {
   DeletionImpactModal,
 } from "../NotificationMethods/NotificationMethod";
 import NotifyAfterDropdownOptions from "./NotifyAfterMinutesDropdownOptions";
-import type {
-  OnCallRuleSeverity,
-  SeverityForeignKeyColumn,
+import {
+  ARCHIVED_SEVERITY_RULES_EDIT_NOTE,
+  type OnCallRuleSeverity,
+  type SeverityForeignKeyColumn,
 } from "./OnCallRuleKinds";
 import PushNotificationLevelControl, {
   getPushNotificationLevelCardSelectOptions,
@@ -46,8 +47,10 @@ import { isArchivedValue } from "Common/Utils/ArchivableValues";
 import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import ArchivedTag from "Common/UI/Components/ArchivedTag/ArchivedTag";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { joinSentences } from "Common/UI/Components/DeleteConfirmation/DeleteConsequences";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -372,8 +375,10 @@ export interface ComponentProps {
 
   /*
    * What the card of an archived severity says instead, already translated:
-   * the records that keep it still notify by its rules, which can be changed
-   * or removed but not added to. The card description when left out.
+   * how the records that keep it still notify by its rules. The card adds,
+   * where the rules can be changed, that they can be changed or removed but
+   * not added to (ARCHIVED_SEVERITY_RULES_EDIT_NOTE). The card description
+   * when left out.
    */
   archivedCardDescription?: string | undefined;
 
@@ -494,7 +499,9 @@ const OPT_OUT_LABEL: string = translationKey(
  * project's first), so "<severity> incidents" would read "Critical Incident
  * incidents"; the tab above already says which kind the cards are for, and
  * each card's description says the rest. The name is the project's own word,
- * shown as written rather than looked up as something to translate.
+ * shown as written rather than looked up as something to translate - and
+ * read the way it is written (IsolatedText): "[DONOTUSE] Very critical" on
+ * a Persian page keeps its bracket at its start.
  */
 const SeverityCardTitle: FunctionComponent<{
   severity: OnCallRuleSeverity;
@@ -515,7 +522,7 @@ const SeverityCardTitle: FunctionComponent<{
       ) : (
         <></>
       )}
-      <span>{props.severity.name || ""}</span>
+      <IsolatedText text={props.severity.name || ""} />
       {/* Nobody picks it again; the rules it has still notify. */}
       {isArchivedValue(props.severity) ? <ArchivedTag /> : <></>}
     </span>
@@ -1298,9 +1305,22 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
         isCreateable={isEditable && !isArchivedValue(severity)}
         cardProps={{
           title: <SeverityCardTitle severity={severity} />,
-          description: isArchivedValue(severity)
-            ? props.archivedCardDescription || props.cardDescription
-            : props.cardDescription,
+          /*
+           * An archived one says what its rules still do, and - where they
+           * can be changed - why it has no Add. A view that changes nothing
+           * says only the first.
+           */
+          description:
+            isArchivedValue(severity) && props.archivedCardDescription
+              ? joinSentences([
+                  props.archivedCardDescription,
+                  isEditable
+                    ? translator.translateText(
+                        ARCHIVED_SEVERITY_RULES_EDIT_NOTE,
+                      ) || ARCHIVED_SEVERITY_RULES_EDIT_NOTE
+                    : "",
+                ])
+              : props.cardDescription,
         }}
         noItemsMessage={props.noItemsMessage || DEFAULT_NO_ITEMS_MESSAGE}
         /*

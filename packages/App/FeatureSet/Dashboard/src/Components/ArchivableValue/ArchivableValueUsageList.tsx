@@ -198,9 +198,13 @@ export interface PersonalUsageNotesProps {
 
 /*
  * The Archive dialog's paragraph about people's own settings that name the
- * value - "11 people have on-call rules for this severity. They stay as they
- * are, so incidents with it still page them. See your on-call rules" - one
- * per table, after the settings that keep using it. Nothing for none.
+ * value - "11 people have their own on-call rules for this severity. Those
+ * rules stay as they are, so incidents with it still page them. See your
+ * on-call rules" - one per table, after the settings that keep using it, in
+ * the dialog's own prose colour. Nothing for none.
+ *
+ * The link opens in a new tab: the Archive dialog is a question still being
+ * answered, and following the link in place would close it unanswered.
  */
 export const PersonalUsageNotes: FunctionComponent<PersonalUsageNotesProps> = (
   props: PersonalUsageNotesProps,
@@ -231,7 +235,6 @@ export const PersonalUsageNotes: FunctionComponent<PersonalUsageNotesProps> = (
         return (
           <p
             key={item.tableName}
-            className="text-sm leading-6 text-gray-700"
             data-testid={`archivable-value-people-${item.tableName}`}
           >
             {sentence}
@@ -241,6 +244,7 @@ export const PersonalUsageNotes: FunctionComponent<PersonalUsageNotesProps> = (
                 {getSentenceSeparator(sentence)}
                 <Link
                   to={route}
+                  openInNewTab={true}
                   className="font-medium text-indigo-600 hover:underline"
                   dataTestId={`archivable-value-people-link-${item.tableName}`}
                 >

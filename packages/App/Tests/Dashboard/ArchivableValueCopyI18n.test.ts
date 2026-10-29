@@ -6,6 +6,7 @@ import {
   getServerArchiveLockedReasons,
 } from "../../FeatureSet/Dashboard/src/Components/ArchivableValue/ArchivableValueCopy";
 import {
+  ARCHIVED_SEVERITY_RULES_EDIT_NOTE,
   ON_CALL_RULE_KIND_DEFINITIONS,
   OnCallRuleKindDefinition,
 } from "../../FeatureSet/Dashboard/src/Components/NotificationRule/OnCallRuleKinds";
@@ -115,19 +116,21 @@ const ROLE_PICKER_FILE: string = path.join(
 );
 
 /*
- * What an archived severity's card says on the On-Call Rules page: its
- * records still notify the person by its rules, which can be changed or
- * removed but not added to.
+ * What an archived severity's card says on the On-Call Rules page: how its
+ * records still notify the person by its rules - and, where the rules can
+ * be changed, that they can be changed or removed but not added to.
  */
-const ARCHIVED_CARD_STRINGS: Array<string> =
-  ON_CALL_RULE_KIND_DEFINITIONS.flatMap(
+const ARCHIVED_CARD_STRINGS: Array<string> = [
+  ...ON_CALL_RULE_KIND_DEFINITIONS.flatMap(
     (definition: OnCallRuleKindDefinition): Array<string> => {
       return [
         definition.ownArchivedCardDescription,
         definition.memberArchivedCardDescription,
       ];
     },
-  );
+  ),
+  ARCHIVED_SEVERITY_RULES_EDIT_NOTE,
+];
 
 const STRINGS: Array<string> = [
   ...getArchivableValueStrings(),

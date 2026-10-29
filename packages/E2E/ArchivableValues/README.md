@@ -33,18 +33,26 @@ The suite drives archiving the way a person does:
 - the page and the dialogs at a phone's width, and in dark mode (`?theme=dark`);
 - what really uses a severity (block 28: "What are these 22 Notification
   Rules? I only have two rules."): people's own on-call rules are said apart,
-  by person - "11 people have on-call rules for this severity. They stay as
-  they are, so incidents with it still page them." - with a link to the
-  reader's own On-Call Rules, never as the project's settings; a severity
-  only people's rules use (Minor, the maintainer's dialog) has no list of
-  settings to change; its Delete says "On-call rules of 2 people" go with it;
+  by person - "11 people have their own on-call rules for this severity.
+  Those rules stay as they are, so incidents with it still page them." -
+  with a link to the reader's own On-Call Rules, never as the project's
+  settings; the link opens a new tab and the Archive dialog stays open for
+  its answer; a severity only people's rules use (Minor, the maintainer's
+  dialog) has no list of settings to change; its Delete says "On-call rules
+  of 2 people" go with it;
 - Bulk Actions > Delete of several severities reads what they have once
   (`POST /incident-severity/usage`, recorded on
   `window.__fixture.bulkUsageReads`), holds its Delete meanwhile, names the
-  one incidents have and leaves it out of the run with why, and says what
-  deleting the rest changes;
-- both dialogs in German and Persian (`?lang=de|fa`, right to left), light
-  and dark, at a laptop's and a phone's width.
+  one incidents have and says Delete skips it, says what deleting the rest
+  changes, and lists it as skipped - never as failed - once the rest are
+  deleted; with only that one selected, its Delete stays unavailable;
+- User Settings > On-Call Rules (`?page=on-call-rules`, or its own address,
+  which the Archive dialog links to): the archived "[DONOTUSE] Very
+  critical" comes after the live severities, marked Archived, with both of
+  its rules and no Add, its name read as written on a Persian page;
+- both dialogs and the On-Call Rules page in German and Persian
+  (`?lang=de|fa`, right to left), light and dark, at a laptop's and a
+  phone's width.
 
 Run it from `packages/E2E`:
 

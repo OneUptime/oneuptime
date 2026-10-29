@@ -102,10 +102,13 @@ jest.mock("../../../../UI/Utils/Translation", () => {
 });
 
 import BaseModelTable, {
+  BULK_SKIPPED_COUNT,
   BaseTableCallbacks,
   ComponentProps as BaseModelTableProps,
   ModalTableBulkDefaultActions,
 } from "../../../../UI/Components/ModelTable/BaseModelTable";
+import fs from "fs";
+import path from "path";
 import { BulkActionConfirmControls } from "../../../../UI/Components/BulkUpdate/BulkUpdateForm";
 import TableFilterUrlState from "../../../../UI/Utils/TableFilterUrlState";
 import PermissionGate from "../../../../UI/Utils/PermissionGate";
@@ -121,6 +124,9 @@ type Row = {
   _id: string;
   name: string;
 };
+
+// "{{count}}": nothing between the braces may be a brace, which keeps it linear.
+const SKIPPED_PLACEHOLDER: RegExp = /\{\{[^{}]+\}\}/g;
 
 const ROWS: Array<Row> = [
   { _id: "device-1", name: "core-router-1" },
@@ -1364,7 +1370,11 @@ describe("BaseModelTable bulk Delete", () => {
       });
     });
 
-    test("a row the list knows the server would refuse is not sent, and is listed with why", async () => {
+    /*
+     * Its dialog said the run skips it, so the result lists it as skipped -
+     * its own gray list, with why - never as a delete that failed.
+     */
+    test("a row the list knows the server would refuse is not sent, and is listed as skipped, with why", async () => {
       await startBulkDelete({
         getDeleteRefusal: (item: NetworkDevice): string | undefined => {
           return (item as unknown as Row)._id === "device-1"
@@ -1375,23 +1385,114 @@ describe("BaseModelTable bulk Delete", () => {
       await confirmDelete();
 
       await waitFor(() => {
-        expect(textOf("bulk-action-failed-count")).not.toBe("");
+        expect(textOf("bulk-action-unchanged-count")).not.toBe("");
       });
 
       // Never sent: only the other row reached the delete.
       expect(deletedIds).toEqual(["device-2"]);
-      expect(textOf("bulk-action-failed-count")).toBe(
-        "1 Network Device not deleted",
+      expect(textOf("bulk-action-unchanged-count")).toBe(
+        "1 Network Device skipped",
       );
       expect(textOf("bulk-action-succeeded-count")).toBe(
         "1 Network Device deleted",
       );
-      expect(textOf("bulk-action-failed-items")).toContain("core-router-1");
+      expect(textOf("bulk-action-unchanged-items")).toContain("core-router-1");
       expect(
         screen.getByText(
           "Records still have it, so it can't be deleted. Archive it instead.",
         ),
       ).toBeInTheDocument();
+
+      // Nothing failed.
+      expect(screen.queryByTestId("bulk-action-failed-count")).toBeNull();
+      expect(screen.queryByTestId("bulk-action-failed-items")).toBeNull();
+    });
+
+    test("several skipped are counted in the plural, and a row the table can never delete still fails", async () => {
+      await startBulkDelete({
+        getDeleteRefusal: (): string | undefined => {
+          return "Records still have it, so it can't be deleted. Archive it instead.";
+        },
+      });
+      await confirmDelete();
+
+      await waitFor(() => {
+        expect(textOf("bulk-action-unchanged-count")).toBe(
+          "2 Network Devices skipped",
+        );
+      });
+
+      expect(deletedIds).toEqual([]);
+      expect(screen.queryByTestId("bulk-action-succeeded-count")).toBeNull();
+    });
+
+    test("the skipped words are in English and translated in every Dashboard locale", () => {
+      const directory: string = path.resolve(
+        __dirname,
+        "../../../../../App/FeatureSet/Dashboard/src/Locales",
+      );
+      const read: (language: string) => Record<string, unknown> = (
+        language: string,
+      ): Record<string, unknown> => {
+        return JSON.parse(
+          fs.readFileSync(path.join(directory, `${language}.json`), "utf8"),
+        ) as Record<string, unknown>;
+      };
+
+      const english: Record<string, unknown> = read("en");
+
+      expect(english[BULK_SKIPPED_COUNT.other]).toBe(BULK_SKIPPED_COUNT.other);
+      expect(english[`${BULK_SKIPPED_COUNT.other}_one`]).toBe(
+        BULK_SKIPPED_COUNT.one,
+      );
+
+      const placeholders: (text: string) => Array<string> = (
+        text: string,
+      ): Array<string> => {
+        return (text.match(SKIPPED_PLACEHOLDER) || []).sort();
+      };
+
+      for (const language of [
+        "de",
+        "fr",
+        "es",
+        "it",
+        "pt",
+        "nl",
+        "da",
+        "no",
+        "sv",
+        "ru",
+        "ja",
+        "ko",
+        "zh-CN",
+        "zh-TW",
+        "hi",
+        "fa",
+      ]) {
+        const locale: Record<string, unknown> = read(language);
+
+        for (const [key, englishText] of [
+          [BULK_SKIPPED_COUNT.other, BULK_SKIPPED_COUNT.other],
+          [`${BULK_SKIPPED_COUNT.other}_one`, BULK_SKIPPED_COUNT.one],
+        ] as Array<[string, string]>) {
+          const translated: unknown = locale[key];
+
+          expect({
+            language,
+            key,
+            isText: typeof translated === "string",
+          }).toEqual({ language, key, isText: true });
+          expect({ language, key, same: translated === englishText }).toEqual({
+            language,
+            key,
+            same: false,
+          });
+          expect(placeholders(translated as string)).toEqual(
+            placeholders(englishText),
+          );
+        }
+      }
     });
 
     test("the list hears once that the run is over, after the deletes", async () => {
