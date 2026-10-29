@@ -1,12 +1,8 @@
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import MoreMenu from "../MoreMenu/MoreMenu";
-import MoreMenuItem from "../MoreMenu/MoreMenuItem";
-import {
-  CardMenuExtraItem,
-  CardMenuExtras,
-  useCardMenuExtras,
-} from "./CardMenuExtras";
+import { CardMenuExtras, useCardMenuExtras } from "./CardMenuExtras";
+import { getCardMenuExtraItemElements } from "./CardMenuExtraItems";
 import React, { FunctionComponent, ReactElement, useLayoutEffect } from "react";
 
 export interface ComponentProps {
@@ -59,18 +55,8 @@ const CardMoreMenu: FunctionComponent<ComponentProps> = (
     return addMenu ? addMenu() : undefined;
   }, [addMenu]);
 
-  const extraItems: Array<ReactElement> = (extras?.items || []).map(
-    (item: CardMenuExtraItem): ReactElement => {
-      return (
-        <MoreMenuItem
-          key={`card-extra-${item.key}`}
-          text={item.text}
-          icon={item.icon}
-          onClick={item.onClick}
-          dataTestId={item.dataTestId}
-        />
-      );
-    },
+  const extraItems: Array<ReactElement> = getCardMenuExtraItemElements(
+    extras?.items || [],
   );
 
   return (
