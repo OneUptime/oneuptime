@@ -102,6 +102,8 @@ Monitores, incidentes, alertas, páginas de status, SLOs e muitos outros recurso
 | Capturas de pacotes, e os downloads delas | `Packet Capture` |
 | Casos de segurança e as suas prioridades e status, playbooks e as suas execuções, entidades protegidas, criticidade de entidades, e o risco de uma entidade quando alguém o redefine | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
 | Exceções de regra | `Rule Exception` |
+| Listas de observação | `Watchlist` |
+| Valores da lista de observação | `Watchlist Value` |
 | Tarefas e evidências dos casos de segurança | `Security Case Task`, `Security Case Evidence` |
 | Exportações do registro de auditoria | `Audit Log Export` |
 
