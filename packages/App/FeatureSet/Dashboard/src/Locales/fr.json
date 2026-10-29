@@ -20790,7 +20790,7 @@
   "Expand {{name}}": "Expand {{name}}",
   "Expected effect: {{effect}}": "Effet attendu : {{effect}}",
   "Explain the {{child}} context on this page and inspect its parent {{parent}}. Verify the child identity before attributing findings to it; state any missing namespace or identity information.": "Explain the {{child}} context on this page and inspect its parent {{parent}}. Verify the child identity before attributing findings to it; state any missing namespace or identity information.",
-  "Explain with AI": "Explain with AI",
+  "Explain with AI": "Expliquer avec l'IA",
   "Export": "Export",
   "Extracts structured fields out of an unstructured log line and stores them in the log's {{attributes}} object, so you can search and filter on them. A grok pattern is regex with names: {{example}} means \"match an IPv4 address and store it as client_ip\".": "Extracts structured fields out of an unstructured log line and stores them in the log's {{attributes}} object, so you can search and filter on them. A grok pattern is regex with names: {{example}} means \"match an IPv4 address and store it as client_ip\".",
   "Failed to load entries.": "Failed to load entries.",
@@ -36062,7 +36062,7 @@
   "Every log line the request wrote, in the Logs explorer": "Every log line the request wrote, in the Logs explorer",
   "Every request was turned away": "Every request was turned away",
   "Every span of the request this event happened in": "Every span of the request this event happened in",
-  "Exposure": "Exposure",
+  "Exposure": "Exposition",
   "Find security events in your OneUptime data": "Find security events in your OneUptime data",
   "Fired {{count}} times": "Fired {{count}} times",
   "Fired {{count}} times_one": "Fired once",
@@ -38377,5 +38377,8 @@
   "All data stores": "Tous les magasins de données",
   "Lets Data Security block public access to a data store and revoke its sharing: from its issue, when a person asks, or in a playbook, each run approved by a person unless the playbook says otherwise. The command changes with it.": "Permet à Sécurité des données de bloquer l'accès public à un magasin de données et de révoquer son partage : depuis son problème, à la demande d'une personne, ou dans un playbook, chaque exécution étant approuvée par une personne sauf si le playbook en décide autrement. La commande change en conséquence.",
   "Only data stores that match conditions": "Uniquement les magasins de données qui correspondent aux conditions",
-  "Open (status)": "Ouvert"
+  "Open (status)": "Ouvert",
+  "Number of records it holds": "Nombre d'enregistrements qu'il contient",
+  "Production store": "Magasin de données de production",
+  "Security Operations saw activity on it this week": "Les Opérations de sécurité y ont vu de l'activité cette semaine"
 }

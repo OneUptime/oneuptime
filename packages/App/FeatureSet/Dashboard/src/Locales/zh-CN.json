@@ -20790,7 +20790,7 @@
   "Expand {{name}}": "Expand {{name}}",
   "Expected effect: {{effect}}": "预期效果：{{effect}}",
   "Explain the {{child}} context on this page and inspect its parent {{parent}}. Verify the child identity before attributing findings to it; state any missing namespace or identity information.": "Explain the {{child}} context on this page and inspect its parent {{parent}}. Verify the child identity before attributing findings to it; state any missing namespace or identity information.",
-  "Explain with AI": "Explain with AI",
+  "Explain with AI": "用 AI 解释",
   "Export": "导出",
   "Extracts structured fields out of an unstructured log line and stores them in the log's {{attributes}} object, so you can search and filter on them. A grok pattern is regex with names: {{example}} means \"match an IPv4 address and store it as client_ip\".": "Extracts structured fields out of an unstructured log line and stores them in the log's {{attributes}} object, so you can search and filter on them. A grok pattern is regex with names: {{example}} means \"match an IPv4 address and store it as client_ip\".",
   "Failed to load entries.": "Failed to load entries.",
@@ -36062,7 +36062,7 @@
   "Every log line the request wrote, in the Logs explorer": "Every log line the request wrote, in the Logs explorer",
   "Every request was turned away": "Every request was turned away",
   "Every span of the request this event happened in": "Every span of the request this event happened in",
-  "Exposure": "Exposure",
+  "Exposure": "暴露",
   "Find security events in your OneUptime data": "Find security events in your OneUptime data",
   "Fired {{count}} times": "Fired {{count}} times",
   "Fired {{count}} times_one": "Fired once",
@@ -38377,5 +38377,8 @@
   "All data stores": "所有数据存储",
   "Lets Data Security block public access to a data store and revoke its sharing: from its issue, when a person asks, or in a playbook, each run approved by a person unless the playbook says otherwise. The command changes with it.": "允许数据安全阻止对数据存储的公开访问并撤销其共享：可在其问题中由人员发起，也可在剧本中执行；除非剧本另有规定，每次执行都需由人员批准。命令也会随之变化。",
   "Only data stores that match conditions": "仅符合条件的数据存储",
-  "Open (status)": "未解决"
+  "Open (status)": "未解决",
+  "Number of records it holds": "其中的记录数",
+  "Production store": "生产数据存储",
+  "Security Operations saw activity on it this week": "安全运营本周发现了相关活动"
 }

@@ -36062,7 +36062,7 @@
   "Every log line the request wrote, in the Logs explorer": "Every log line the request wrote, in the Logs explorer",
   "Every request was turned away": "Every request was turned away",
   "Every span of the request this event happened in": "Every span of the request this event happened in",
-  "Exposure": "Exposure",
+  "Exposure": "露出",
   "Find security events in your OneUptime data": "Find security events in your OneUptime data",
   "Fired {{count}} times": "Fired {{count}} times",
   "Fired {{count}} times_one": "Fired once",
@@ -38377,5 +38377,8 @@
   "All data stores": "すべてのデータストア",
   "Lets Data Security block public access to a data store and revoke its sharing: from its issue, when a person asks, or in a playbook, each run approved by a person unless the playbook says otherwise. The command changes with it.": "データセキュリティがデータストアへのパブリックアクセスをブロックし、その共有を取り消せるようにします。問題から担当者が依頼したとき、またはプレイブックの中で実行され、プレイブックで別途指定しない限り、各実行には担当者の承認が必要です。コマンドもこれに合わせて変わります。",
   "Only data stores that match conditions": "条件に一致するデータストアのみ",
-  "Open (status)": "オープン"
+  "Open (status)": "オープン",
+  "Number of records it holds": "保持しているレコード数",
+  "Production store": "本番のデータストア",
+  "Security Operations saw activity on it this week": "今週、セキュリティオペレーションがアクティビティを確認"
 }

@@ -73,12 +73,22 @@ const FACTOR_MEANINGS: Record<string, string> = {
   ),
 };
 
-interface FactorWords {
+// The words of each part the server names in full, so they are translated.
+const FACTOR_TITLES: Record<string, string> = {
+  "Number of records it holds": translationKey("Number of records it holds"),
+  "Security Operations saw activity on it this week": translationKey(
+    "Security Operations saw activity on it this week",
+  ),
+  "Production store": translationKey("Production store"),
+};
+
+export interface FactorWords {
   title: string;
   meaning: string;
 }
 
-const describeFactor: (
+// A part's name and what it means, in the reader's language.
+export const describeFactor: (
   factor: IssueRiskFactor,
   translator: Translator,
 ) => FactorWords = (
@@ -108,9 +118,10 @@ const describeFactor: (
   }
 
   const meaning: string | undefined = FACTOR_MEANINGS[factor.label];
+  const title: string = FACTOR_TITLES[factor.label] || factor.label;
 
   return {
-    title: translator.translateText(factor.label) || factor.label,
+    title: translator.translateText(title) || factor.label,
     meaning: meaning ? translator.translateText(meaning) || meaning : "",
   };
 };

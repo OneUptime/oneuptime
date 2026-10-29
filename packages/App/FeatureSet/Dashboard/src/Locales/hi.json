@@ -20790,7 +20790,7 @@
   "Expand {{name}}": "Expand {{name}}",
   "Expected effect: {{effect}}": "अपेक्षित प्रभाव: {{effect}}",
   "Explain the {{child}} context on this page and inspect its parent {{parent}}. Verify the child identity before attributing findings to it; state any missing namespace or identity information.": "Explain the {{child}} context on this page and inspect its parent {{parent}}. Verify the child identity before attributing findings to it; state any missing namespace or identity information.",
-  "Explain with AI": "Explain with AI",
+  "Explain with AI": "AI से समझाएं",
   "Export": "एक्सपोर्ट",
   "Extracts structured fields out of an unstructured log line and stores them in the log's {{attributes}} object, so you can search and filter on them. A grok pattern is regex with names: {{example}} means \"match an IPv4 address and store it as client_ip\".": "Extracts structured fields out of an unstructured log line and stores them in the log's {{attributes}} object, so you can search and filter on them. A grok pattern is regex with names: {{example}} means \"match an IPv4 address and store it as client_ip\".",
   "Failed to load entries.": "Failed to load entries.",
@@ -36062,7 +36062,7 @@
   "Every log line the request wrote, in the Logs explorer": "Every log line the request wrote, in the Logs explorer",
   "Every request was turned away": "Every request was turned away",
   "Every span of the request this event happened in": "Every span of the request this event happened in",
-  "Exposure": "Exposure",
+  "Exposure": "एक्सपोज़र",
   "Find security events in your OneUptime data": "Find security events in your OneUptime data",
   "Fired {{count}} times": "Fired {{count}} times",
   "Fired {{count}} times_one": "Fired once",
@@ -38377,5 +38377,8 @@
   "All data stores": "सभी डेटा स्टोर",
   "Lets Data Security block public access to a data store and revoke its sharing: from its issue, when a person asks, or in a playbook, each run approved by a person unless the playbook says otherwise. The command changes with it.": "डेटा सुरक्षा को किसी डेटा स्टोर तक सार्वजनिक एक्सेस ब्लॉक करने और उसकी शेयरिंग रद्द करने देता है: उसकी समस्या से, जब कोई व्यक्ति कहे, या किसी प्लेबुक में, जहाँ हर रन को कोई व्यक्ति स्वीकृत करता है, जब तक प्लेबुक कुछ और न कहे। कमांड भी इसके साथ बदलता है।",
   "Only data stores that match conditions": "केवल शर्तों से मेल खाने वाले डेटा स्टोर",
-  "Open (status)": "खुली"
+  "Open (status)": "खुली",
+  "Number of records it holds": "इसमें मौजूद रिकॉर्ड की संख्या",
+  "Production store": "प्रोडक्शन स्टोर",
+  "Security Operations saw activity on it this week": "सुरक्षा संचालन ने इस सप्ताह इस पर गतिविधि देखी"
 }

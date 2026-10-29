@@ -20790,7 +20790,7 @@
   "Expand {{name}}": "Expand {{name}}",
   "Expected effect: {{effect}}": "預期效果：{{effect}}",
   "Explain the {{child}} context on this page and inspect its parent {{parent}}. Verify the child identity before attributing findings to it; state any missing namespace or identity information.": "Explain the {{child}} context on this page and inspect its parent {{parent}}. Verify the child identity before attributing findings to it; state any missing namespace or identity information.",
-  "Explain with AI": "Explain with AI",
+  "Explain with AI": "用 AI 說明",
   "Export": "匯出",
   "Extracts structured fields out of an unstructured log line and stores them in the log's {{attributes}} object, so you can search and filter on them. A grok pattern is regex with names: {{example}} means \"match an IPv4 address and store it as client_ip\".": "Extracts structured fields out of an unstructured log line and stores them in the log's {{attributes}} object, so you can search and filter on them. A grok pattern is regex with names: {{example}} means \"match an IPv4 address and store it as client_ip\".",
   "Failed to load entries.": "Failed to load entries.",
@@ -36062,7 +36062,7 @@
   "Every log line the request wrote, in the Logs explorer": "Every log line the request wrote, in the Logs explorer",
   "Every request was turned away": "Every request was turned away",
   "Every span of the request this event happened in": "Every span of the request this event happened in",
-  "Exposure": "Exposure",
+  "Exposure": "暴露",
   "Find security events in your OneUptime data": "Find security events in your OneUptime data",
   "Fired {{count}} times": "Fired {{count}} times",
   "Fired {{count}} times_one": "Fired once",
@@ -38377,5 +38377,8 @@
   "All data stores": "所有資料儲存區",
   "Lets Data Security block public access to a data store and revoke its sharing: from its issue, when a person asks, or in a playbook, each run approved by a person unless the playbook says otherwise. The command changes with it.": "允許資料安全封鎖對資料儲存區的公開存取並撤銷其共用：可在其問題中由人員發起，也可在劇本中執行；除非劇本另有規定，每次執行都需由人員核准。命令也會隨之變更。",
   "Only data stores that match conditions": "僅符合條件的資料儲存區",
-  "Open (status)": "未解決"
+  "Open (status)": "未解決",
+  "Number of records it holds": "其中的紀錄數",
+  "Production store": "正式環境資料儲存區",
+  "Security Operations saw activity on it this week": "安全營運本週偵測到相關活動"
 }
