@@ -63,9 +63,7 @@ describe("AddNetworkDevicesToIncidentsAndAlerts1808320000000", () => {
     expect(names).toContain(
       "AddNetworkDevicesToIncidentsAndAlerts1808320000000",
     );
-    expect(
-      names.indexOf("AddSecurityWatchlists1808310000000"),
-    ).toBe(
+    expect(names.indexOf("AddSecurityWatchlists1808310000000")).toBe(
       names.indexOf("AddNetworkDevicesToIncidentsAndAlerts1808320000000") - 1,
     );
     expect(new AddNetworkDevicesToIncidentsAndAlerts1808320000000().name).toBe(
