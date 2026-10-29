@@ -118,6 +118,7 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Its episode can resolve.",
     "Its monitor can raise a new alert.",
     // Archiving a state or severity.
+    "People's own on-call rules stay.",
     "Nobody can pick it again.",
     "Alerts keep it.",
     "Archived values are listed apart",

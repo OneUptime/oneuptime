@@ -30,7 +30,21 @@ The suite drives archiving the way a person does:
 - Archive locked on a built-in state, with why on hover (`?page=states`);
 - the Create Incident Template form never offering an archived severity
   (`?page=templates`);
-- the page and the dialogs at a phone's width, and in dark mode (`?theme=dark`).
+- the page and the dialogs at a phone's width, and in dark mode (`?theme=dark`);
+- what really uses a severity (block 28: "What are these 22 Notification
+  Rules? I only have two rules."): people's own on-call rules are said apart,
+  by person - "11 people have on-call rules for this severity. They stay as
+  they are, so incidents with it still page them." - with a link to the
+  reader's own On-Call Rules, never as the project's settings; a severity
+  only people's rules use (Minor, the maintainer's dialog) has no list of
+  settings to change; its Delete says "On-call rules of 2 people" go with it;
+- Bulk Actions > Delete of several severities reads what they have once
+  (`POST /incident-severity/usage`, recorded on
+  `window.__fixture.bulkUsageReads`), holds its Delete meanwhile, names the
+  one incidents have and leaves it out of the run with why, and says what
+  deleting the rest changes;
+- both dialogs in German and Persian (`?lang=de|fa`, right to left), light
+  and dark, at a laptop's and a phone's width.
 
 Run it from `packages/E2E`:
 
