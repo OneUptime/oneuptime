@@ -1095,10 +1095,11 @@ describe("a watchlist's page", () => {
       }),
     ).toEqual(["Name", "Holds", "Values", "Read By", "Description"]);
 
-    const values: { getElement?: (item: unknown) => React.ReactElement } =
-      detail!.modelDetailProps.fields.find((field: { title: string }) => {
-        return field.title === "Values";
-      })!;
+    const values: {
+      getElement?: ((item: unknown) => React.ReactElement) | undefined;
+    } = detail!.modelDetailProps.fields.find((field: { title: string }) => {
+      return field.title === "Values";
+    })!;
     const { container: feedValues } = render(values.getElement!(saved));
     expect(flat(feedValues)).toBe("Follows Feodo Tracker C2");
     expect(

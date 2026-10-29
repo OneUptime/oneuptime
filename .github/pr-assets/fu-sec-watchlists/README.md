@@ -16,3 +16,13 @@ allowed admin addresses) that detection and correlation rules match against.
   threat intel feed.
 
 Dialogs are cropped to the dialog; pages are full-page.
+
+## UI review (`review-*`)
+
+- Drawn by the same fixture's pages through a review harness (the fixture's 1440px wrapper taken off, so widths are
+  production's: `1024` and `768` are beside the side menu), Inter loaded. Pages at 1x, dialogs and the phone at 2x.
+- **Before** (`review-*-before`): this branch as the builder left it (3116962f8a). **After** (`review-*-after`): the UI
+  review - the list fitting its card at 1024 and folding below lg, a list's page with what it is first and its values
+  before Use It in a Rule, a file hash list's own words, an empty list's Import Values, the rule form's missing list on a
+  line of its own, Create Watchlist's Holds placeholder, the common lists two to a row, and Import Values on a phone.
+
