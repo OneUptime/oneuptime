@@ -695,7 +695,10 @@ describe("REGRESSION: someone takes Deane off Responder in the Dashboard", () =>
     try {
       await remove({ userId: ANA_ID, props: memberProps(VALERIA_ID) });
     } finally {
-      PEOPLE[ANA_ID.toString()] = { name: "Ana Ruiz", email: "ana@example.com" };
+      PEOPLE[ANA_ID.toString()] = {
+        name: "Ana Ruiz",
+        email: "ana@example.com",
+      };
     }
 
     expect(onlyFeedRow().feedInfoInMarkdown).toBe(

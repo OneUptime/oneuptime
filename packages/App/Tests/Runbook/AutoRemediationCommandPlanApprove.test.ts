@@ -1147,7 +1147,9 @@ describe("Auto-remediation CommandPlan approve/dismiss routes", () => {
       expect(incidentFeedSpy).toHaveBeenCalledTimes(1);
       const markdown: string = incidentFeedSpy.mock.calls[0]![0]
         .feedInfoInMarkdown as string;
-      expect(markdown).toContain("2 command(s) had ALREADY run");
+      expect(markdown).toContain("2 commands had ALREADY run");
+      // The count in words: never "2 command(s)".
+      expect(markdown).not.toContain("command(s)");
       expect(markdown).toContain("nothing was rolled back");
       // The quiet wording must be nowhere near this message.
       expect(markdown).not.toContain("will not be run");
@@ -1181,7 +1183,7 @@ describe("Auto-remediation CommandPlan approve/dismiss routes", () => {
       expect(result.nextCallCount).toBe(0);
       const markdown: string = incidentFeedSpy.mock.calls[0]![0]
         .feedInfoInMarkdown as string;
-      expect(markdown).toContain("1 command(s) had ALREADY run");
+      expect(markdown).toContain("1 command had ALREADY run");
     });
 
     test("a plan whose commands never ran keeps the quiet wording and does NOT ping the workspace", async () => {

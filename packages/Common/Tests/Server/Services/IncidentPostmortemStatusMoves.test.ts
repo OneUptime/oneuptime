@@ -323,15 +323,19 @@ function statusMoves(): Array<StatusMove> {
 // The incident's "updated" feed items.
 function updatedFeedItems(): Array<string> {
   return feed.mock.calls
-    .map((call: Array<unknown>): {
-      incidentFeedEventType: IncidentFeedEventType;
-      feedInfoInMarkdown: string;
-    } => {
-      return call[0] as {
+    .map(
+      (
+        call: Array<unknown>,
+      ): {
         incidentFeedEventType: IncidentFeedEventType;
         feedInfoInMarkdown: string;
-      };
-    })
+      } => {
+        return call[0] as {
+          incidentFeedEventType: IncidentFeedEventType;
+          feedInfoInMarkdown: string;
+        };
+      },
+    )
     .filter(
       (item: {
         incidentFeedEventType: IncidentFeedEventType;

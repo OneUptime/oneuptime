@@ -46,7 +46,8 @@ const LANGUAGES: Array<string> = [
 ];
 
 const TITLE: string = "Page not found";
-const MESSAGE: string = "Please check the URL in the address bar and try again.";
+const MESSAGE: string =
+  "Please check the URL in the address bar and try again.";
 const GO_HOME: string = "Go Home";
 const CONTACT_SUPPORT: string = "Contact Support";
 
@@ -54,9 +55,7 @@ const STRINGS: Array<string> = [TITLE, MESSAGE, GO_HOME, CONTACT_SUPPORT];
 
 type Locale = Record<string, unknown>;
 
-const readLocale: (language: string) => Locale = (
-  language: string,
-): Locale => {
+const readLocale: (language: string) => Locale = (language: string): Locale => {
   return JSON.parse(
     fs.readFileSync(path.join(LOCALES, `${language}.json`), "utf8"),
   ) as Locale;
@@ -74,29 +73,35 @@ describe("the Dashboard's locale files", () => {
     }
   });
 
-  test.each(LANGUAGES)("translate every one of them in %s", (language) => {
-    const locale: Locale = readLocale(language);
+  test.each(LANGUAGES)(
+    "translate every one of them in %s",
+    (language: string) => {
+      const locale: Locale = readLocale(language);
 
-    for (const key of STRINGS) {
-      const value: unknown = locale[key];
+      for (const key of STRINGS) {
+        const value: unknown = locale[key];
 
-      expect({ key, isString: typeof value === "string" }).toEqual({
-        key,
-        isString: true,
-      });
-      expect({ key, translated: value !== key }).toEqual({
-        key,
-        translated: true,
-      });
-    }
-  });
+        expect({ key, isString: typeof value === "string" }).toEqual({
+          key,
+          isString: true,
+        });
+        expect({ key, translated: value !== key }).toEqual({
+          key,
+          translated: true,
+        });
+      }
+    },
+  );
 
-  test.each(LANGUAGES)("keep the message's full stop in %s", (language) => {
-    const value: string = readLocale(language)[MESSAGE] as string;
+  test.each(LANGUAGES)(
+    "keep the message's full stop in %s",
+    (language: string) => {
+      const value: string = readLocale(language)[MESSAGE] as string;
 
-    // A full stop of the language's own: "。" in Chinese and Japanese, "।" in Hindi.
-    expect(value).toMatch(/[.。।]$/u);
-  });
+      // A full stop of the language's own: "。" in Chinese and Japanese, "।" in Hindi.
+      expect(value).toMatch(/[.。।]$/u);
+    },
+  );
 });
 
 describe("drawn in each language", () => {
@@ -126,28 +131,31 @@ describe("drawn in each language", () => {
     cleanup();
   });
 
-  test.each(LANGUAGES)("in %s, every word is the language's", (language) => {
-    const locale: Locale = readLocale(language);
+  test.each(LANGUAGES)(
+    "in %s, every word is the language's",
+    (language: string) => {
+      const locale: Locale = readLocale(language);
 
-    render(
-      <I18nextProvider i18n={instances[language]!}>
-        <NotFound
-          homeRoute={new Route("/dashboard")}
-          supportEmail={new Email("support@example.com")}
-        />
-      </I18nextProvider>,
-    );
+      render(
+        <I18nextProvider i18n={instances[language]!}>
+          <NotFound
+            homeRoute={new Route("/dashboard")}
+            supportEmail={new Email("support@example.com")}
+          />
+        </I18nextProvider>,
+      );
 
-    expect(
-      screen.getByRole("heading", { name: locale[TITLE] as string }),
-    ).toBeInTheDocument();
-    expect(screen.getByText(locale[MESSAGE] as string)).toBeInTheDocument();
-    expect(screen.getByText(locale[GO_HOME] as string)).toBeInTheDocument();
-    expect(
-      screen.getByText(locale[CONTACT_SUPPORT] as string),
-    ).toBeInTheDocument();
-    expect(screen.queryByText(TITLE)).not.toBeInTheDocument();
-  });
+      expect(
+        screen.getByRole("heading", { name: locale[TITLE] as string }),
+      ).toBeInTheDocument();
+      expect(screen.getByText(locale[MESSAGE] as string)).toBeInTheDocument();
+      expect(screen.getByText(locale[GO_HOME] as string)).toBeInTheDocument();
+      expect(
+        screen.getByText(locale[CONTACT_SUPPORT] as string),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(TITLE)).not.toBeInTheDocument();
+    },
+  );
 });
 
 describe("its layout reads right to left as well as left to right", () => {
@@ -193,8 +201,9 @@ describe("its layout reads right to left as well as left to right", () => {
       />,
     );
 
-    const row: HTMLElement = screen.getByText(GO_HOME).closest("button")!
-      .parentElement!;
+    const row: HTMLElement = screen
+      .getByText(GO_HOME)
+      .closest("button")!.parentElement!;
 
     expect(row).toHaveClass("gap-3");
     expect(row).toHaveClass("[&_button]:md:ml-0");

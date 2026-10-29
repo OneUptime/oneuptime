@@ -20,9 +20,11 @@ import { describe, expect, test } from "@jest/globals";
  * Dashboard's feed draws after the same name.
  */
 
-const VALERIA: string = "[Valeria Mustafaeva](https://oneuptime.example/d/p/users/v) ";
+const VALERIA: string =
+  "[Valeria Mustafaeva](https://oneuptime.example/d/p/users/v) ";
 const DEANE: string = "**[Deane Looi](https://oneuptime.example/d/p/users/d)**";
-const INCIDENT: string = "[Incident INC-18](https://oneuptime.example/d/p/incidents/i)";
+const INCIDENT: string =
+  "[Incident INC-18](https://oneuptime.example/d/p/incidents/i)";
 
 describe("a Slack or Teams message opened by whoever did what it says", () => {
   test("REGRESSION: the screenshot's line reads as one sentence - emoji, name, verb in lower case", () => {
@@ -176,7 +178,10 @@ describe("the Dashboard's feed and the channel read the same sentence", () => {
    */
   test.each<[string, string]>([
     ["a role given", `👤 Added ${DEANE} as **Responder** to ${INCIDENT}.`],
-    ["a role taken off", `👤 Removed ${DEANE} as **Responder** from ${INCIDENT}.`],
+    [
+      "a role taken off",
+      `👤 Removed ${DEANE} as **Responder** from ${INCIDENT}.`,
+    ],
     ["a role taken", `👤 Took the **Responder** role on ${INCIDENT}.`],
     ["a role left", `👤 Left the **Responder** role on ${INCIDENT}.`],
     ["a state change", `✅ Changed **${INCIDENT} State** to **Resolved**`],
