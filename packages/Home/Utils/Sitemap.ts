@@ -5,6 +5,7 @@ import OneUptimeDate from "Common/Types/Date";
 import URL from "Common/Types/API/URL";
 import { getProductCompareSlugs } from "./ProductCompare";
 import { AIR_GAPPED_SHORT_PATHS } from "./AirGapped";
+import { DEMO_SHORT_PATHS } from "./DemoPage";
 import { getPublishedGuides } from "./Integrations/OpenTelemetry/OpenTelemetryGuides";
 import { getOpenTelemetryGuidePath } from "Common/Types/Telemetry/OpenTelemetryGuides";
 import Express, {
@@ -117,6 +118,8 @@ export const REDIRECT_PATHS: Set<string> = new Set<string>([
   "/on-premise",
   // The air-gapped page's short addresses: "/air-gapped", "/airgapped".
   ...AIR_GAPPED_SHORT_PATHS,
+  // The demo page's: "/demo", "/request-demo", "/book-a-demo" and the rest.
+  ...DEMO_SHORT_PATHS,
   "/security",
   "/security-center",
   "/trust-center",
