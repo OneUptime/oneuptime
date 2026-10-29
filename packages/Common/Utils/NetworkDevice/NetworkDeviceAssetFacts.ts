@@ -1,7 +1,10 @@
 import { NetworkTopologyDeviceRole } from "../../Types/Monitor/SnmpMonitor/NetworkTopology";
 import SnmpVendorTemplateUtil from "../../Types/Monitor/SnmpMonitor/SnmpVendorTemplate";
+import { getNetworkControllerProviderTitle } from "../../Types/NetworkController/NetworkControllerProvider";
 import { DeviceNameSource } from "../../Types/NetworkDevice/DeviceNameSource";
 import {
+  NetworkDeviceControllerField,
+  NetworkDeviceControllerReading,
   NetworkDeviceDiscoveredDetails,
   NetworkDeviceDiscoveredField,
   NetworkDeviceDiscoveredValue,
@@ -15,6 +18,7 @@ import {
   AssetFactDifference,
   AssetFactSource,
   AssetFactSourceKind,
+  sourceOfControllerReading,
   sourceOfDiscoveredValue,
 } from "../Inventory/AssetFactSource";
 import { normalizeMac } from "../Monitor/EndpointAttachmentUtil";
@@ -89,6 +93,19 @@ import {
  * been walked (lastSnmpSeenAt), and as saved otherwise; ENTITY-MIB's columns
  * likewise. A device read without its discovered details or its last walk
  * time therefore reads exactly as it did before #5185.
+ *
+ * WHAT ITS CONTROLLER ADDS. A device a network controller manages - a
+ * Meraki switch, access point or appliance in an organization the project
+ * reads - is described by the controller's device list too, recorded whole
+ * as the device's controller reading. A Meraki device implements no
+ * ENTITY-MIB, so its own poll reads no serial number, model or firmware, and
+ * the dashboard knows all three. The controller FILLS IN: its model, serial
+ * number, firmware and maker where neither a saved value nor the device's
+ * own poll has one (a saved value it disagrees with is shown beside it);
+ * its MAC, management address, name and street address where nothing else
+ * gives them; and its product type when nothing it reports says what it is.
+ * Its name never outranks what the device says it is called, and its
+ * address never becomes the hostname.
  *
  * Every fact is either a real value or undefined - never a placeholder - so
  * "unknown" is decided once, by whoever shows it.
@@ -187,6 +204,8 @@ export interface NetworkDeviceFactDetails {
   foundBy?: NetworkDeviceDiscoverySighting | undefined;
   // A scan that found another machine answering at the device's address.
   otherMachine?: NetworkDeviceOtherMachineSighting | undefined;
+  // What the device's network controller says about it (the Meraki dashboard).
+  controller?: NetworkDeviceControllerReading | undefined;
 }
 
 /*
@@ -312,11 +331,81 @@ export interface NetworkDeviceEffectiveInputs {
   netbiosName: NetworkDeviceEffectiveInput;
   // The address the device's probe resolved its DNS name to.
   resolvedIpAddress: NetworkDeviceEffectiveInput;
+  /*
+   * What the device's network controller says about it (the Meraki
+   * dashboard), for the facts nothing else knows: its name there, its
+   * management address and MAC, the street address it is filed under, and
+   * its product type.
+   */
+  controllerName: NetworkDeviceEffectiveInput;
+  controllerIpAddress: NetworkDeviceEffectiveInput;
+  controllerMacAddress: NetworkDeviceEffectiveInput;
+  controllerAddress: NetworkDeviceEffectiveInput;
+  controllerProductType: NetworkDeviceEffectiveInput;
   details: NetworkDeviceDiscoveredDetails;
 }
 
 function isSameValue(left: string, right: string): boolean {
   return left.trim().toLowerCase() === right.trim().toLowerCase();
+}
+
+/*
+ * One value of the device's controller reading, with its source - or nothing
+ * when the controller says nothing about it.
+ */
+function controllerInput(
+  reading: NetworkDeviceControllerReading | undefined,
+  field: NetworkDeviceControllerField,
+): NetworkDeviceEffectiveInput {
+  const value: string | undefined = reading?.values[field];
+
+  return reading && value
+    ? { value: value, source: sourceOfControllerReading(reading) }
+    : {};
+}
+
+/*
+ * A column a poll writes (or a person saved), with what the device's
+ * controller says about the same detail - its model, serial number,
+ * firmware, maker. The controller FILLS IN:
+ *
+ *   - nothing else has a value: the controller's;
+ *   - a value saved on the device: the saved value, which is never replaced,
+ *     and the controller's beside it when the two differ;
+ *   - a value the device's own poll read: the poll's. It is what the box
+ *     says about itself, and both are read every few minutes - "the newer
+ *     wins" between the two would hand the detail back and forth with every
+ *     read wherever they spell it differently ("15.2(7)E" on the box,
+ *     "switch-15-21" in the dashboard). A Meraki device's own poll reads no
+ *     model, serial number or firmware, so for it the dashboard gives them.
+ */
+function withControllerReading(
+  input: NetworkDeviceEffectiveInput,
+  controller: NetworkDeviceEffectiveInput,
+): NetworkDeviceEffectiveInput {
+  if (!controller.value || !controller.source) {
+    return input;
+  }
+
+  if (!input.value) {
+    return controller;
+  }
+
+  if (
+    input.source?.kind === AssetFactSourceKind.Saved &&
+    !input.discoveredDifferent &&
+    !isSameValue(input.value, controller.value)
+  ) {
+    return {
+      ...input,
+      discoveredDifferent: {
+        value: controller.value,
+        source: controller.source,
+      },
+    };
+  }
+
+  return input;
 }
 
 function differenceOf(
@@ -479,6 +568,50 @@ export function getNetworkDeviceEffectiveInputs(
     }
   }
 
+  /*
+   * What the device's controller says (the Meraki dashboard): its maker
+   * is the controller's own, and its model, serial number and firmware are
+   * the box's. A controller reads no SNMP system group, so it fills none of
+   * those.
+   */
+  const controller: NetworkDeviceControllerReading | undefined =
+    details.controller;
+
+  /*
+   * Its MAC, when nothing else gives one; and beside a typed one it differs
+   * from, when no ARP table already does.
+   */
+  const controllerMac: NetworkDeviceEffectiveInput = controllerInput(
+    controller,
+    NetworkDeviceControllerField.MacAddress,
+  );
+
+  if (controllerMac.value && controllerMac.source) {
+    if (!macAddress.value) {
+      macAddress = controllerMac;
+    } else if (
+      macAddress.source?.kind === AssetFactSourceKind.Saved &&
+      !macAddress.discoveredDifferent &&
+      (normalizeMac(macAddress.value) || macAddress.value) !==
+        controllerMac.value
+    ) {
+      macAddress = {
+        ...macAddress,
+        discoveredDifferent: {
+          value: controllerMac.value,
+          source: controllerMac.source,
+        },
+      };
+    }
+  }
+
+  const controllerMaker: NetworkDeviceEffectiveInput = controller
+    ? {
+        value: getNetworkControllerProviderTitle(controller.provider),
+        source: sourceOfControllerReading(controller),
+      }
+    : {};
+
   return {
     sysName: polled(device.sysName, NetworkDeviceDiscoveredField.SystemName),
     sysDescr: polled(
@@ -497,10 +630,19 @@ export function getNetworkDeviceEffectiveInputs(
       device.sysContact,
       NetworkDeviceDiscoveredField.SystemContact,
     ),
-    vendor: polled(device.vendor),
-    deviceModel: polled(device.deviceModel),
-    serialNumber: polled(device.serialNumber),
-    firmwareVersion: polled(device.firmwareVersion),
+    vendor: withControllerReading(polled(device.vendor), controllerMaker),
+    deviceModel: withControllerReading(
+      polled(device.deviceModel),
+      controllerInput(controller, NetworkDeviceControllerField.Model),
+    ),
+    serialNumber: withControllerReading(
+      polled(device.serialNumber),
+      controllerInput(controller, NetworkDeviceControllerField.SerialNumber),
+    ),
+    firmwareVersion: withControllerReading(
+      polled(device.firmwareVersion),
+      controllerInput(controller, NetworkDeviceControllerField.FirmwareVersion),
+    ),
     softwareVersion: polled(device.softwareVersion),
     dnsName: dnsName,
     macAddress: macAddress,
@@ -509,6 +651,26 @@ export function getNetworkDeviceEffectiveInputs(
     ),
     resolvedIpAddress: readDiscoveredOnly(
       details.values[NetworkDeviceDiscoveredField.IpAddress],
+    ),
+    controllerName: controllerInput(
+      controller,
+      NetworkDeviceControllerField.Name,
+    ),
+    controllerIpAddress: controllerInput(
+      controller,
+      NetworkDeviceControllerField.IpAddress,
+    ),
+    controllerMacAddress: controllerInput(
+      controller,
+      NetworkDeviceControllerField.MacAddress,
+    ),
+    controllerAddress: controllerInput(
+      controller,
+      NetworkDeviceControllerField.Address,
+    ),
+    controllerProductType: controllerInput(
+      controller,
+      NetworkDeviceControllerField.ProductType,
     ),
     details: details,
   };
@@ -628,7 +790,12 @@ function getHostnameFact(
   });
 
   if (!choice?.name) {
-    return {};
+    /*
+     * Nothing the device says names it: the name its controller files it
+     * under (the Meraki dashboard's), when it has one. Still never its
+     * address.
+     */
+    return fact(inputs.controllerName.value, inputs.controllerName);
   }
 
   const from: NetworkDeviceFactDetail =
@@ -660,7 +827,12 @@ function getIpAddressFact(
    * A device polled at a DNS name: the address its probe resolved the name
    * to - only ever recorded for that very name, so it is the device's.
    */
-  return fact(inputs.resolvedIpAddress.value, inputs.resolvedIpAddress);
+  if (inputs.resolvedIpAddress.value) {
+    return fact(inputs.resolvedIpAddress.value, inputs.resolvedIpAddress);
+  }
+
+  // Else the management address its controller lists for it.
+  return fact(inputs.controllerIpAddress.value, inputs.controllerIpAddress);
 }
 
 function isSnmpAgentVendor(vendor: string): boolean {
@@ -735,7 +907,7 @@ function getDeviceTypeFact(
     return fact(assignedName, { kind: AssetFactSourceKind.AssignedRole });
   }
 
-  const classified: NetworkTopologyDeviceRole = classifyDeviceRole({
+  let classified: NetworkTopologyDeviceRole = classifyDeviceRole({
     sysDescr: inputs.sysDescr.value,
     sysObjectId: inputs.sysObjectId.value,
     vendor: inputs.vendor.value,
@@ -743,6 +915,21 @@ function getDeviceTypeFact(
     name: readText(device.name),
     sysName: inputs.sysName.value || readText(device.hostname),
   });
+  let classifiedBy: AssetFactSource = { kind: AssetFactSourceKind.Classified };
+
+  /*
+   * Nothing it reports or is called says what it is: what its controller
+   * files it as (a Meraki "switch", "wireless"...), when it says.
+   */
+  const controllerRole: NetworkTopologyDeviceRole | undefined =
+    classified === "unknown"
+      ? getRoleOfControllerProductType(inputs.controllerProductType.value)
+      : undefined;
+
+  if (controllerRole && inputs.controllerProductType.source) {
+    classified = controllerRole;
+    classifiedBy = inputs.controllerProductType.source;
+  }
 
   const assignedKey: string | undefined = readText(
     device.networkDeviceRole?.key,
@@ -754,25 +941,56 @@ function getDeviceTypeFact(
   ).roleLabel;
 
   if (projectLabel) {
-    return fact(projectLabel, {
-      kind: assignedKey
-        ? AssetFactSourceKind.AssignedRole
-        : AssetFactSourceKind.Classified,
-    });
+    return fact(
+      projectLabel,
+      assignedKey ? { kind: AssetFactSourceKind.AssignedRole } : classifiedBy,
+    );
   }
 
   if (classified === "unknown") {
     return {};
   }
 
-  return fact(labelForDeviceRole(classified), {
-    kind: AssetFactSourceKind.Classified,
-  });
+  return fact(labelForDeviceRole(classified), classifiedBy);
 }
 
 /*
- * Where the device says it is (sysLocation), or nothing for a blank or an
- * agent's default.
+ * The role a controller's product type stands for, or undefined for one that
+ * names no network role (a sensor, a Systems Manager endpoint). A Meraki MX
+ * or Z - an "appliance" - is a security appliance, as the classifier draws an
+ * MX; a cellular or campus gateway routes.
+ */
+const ROLE_BY_CONTROLLER_PRODUCT_TYPE: Readonly<
+  Record<string, NetworkTopologyDeviceRole>
+> = {
+  appliance: "firewall",
+  switch: "switch",
+  wireless: "wirelessAccessPoint",
+  wirelessController: "wirelessAccessPoint",
+  camera: "camera",
+  cellularGateway: "router",
+  campusGateway: "router",
+};
+
+export function getRoleOfControllerProductType(
+  productType: string | undefined,
+): NetworkTopologyDeviceRole | undefined {
+  if (
+    !productType ||
+    !Object.prototype.hasOwnProperty.call(
+      ROLE_BY_CONTROLLER_PRODUCT_TYPE,
+      productType,
+    )
+  ) {
+    return undefined;
+  }
+
+  return ROLE_BY_CONTROLLER_PRODUCT_TYPE[productType];
+}
+
+/*
+ * Where the device says it is (sysLocation) - else the street address its
+ * controller files it under - or nothing for a blank or an agent's default.
  */
 function getSystemLocation(
   inputs: NetworkDeviceEffectiveInputs,
@@ -780,7 +998,7 @@ function getSystemLocation(
   const location: string | undefined = inputs.sysLocation.value;
 
   if (!location || PLACEHOLDER_LOCATIONS.has(location.toLowerCase())) {
-    return {};
+    return fact(inputs.controllerAddress.value, inputs.controllerAddress);
   }
 
   return fact(location, inputs.sysLocation);
@@ -862,6 +1080,7 @@ export function getNetworkDeviceFactDetails(
     },
     foundBy: inputs.details.foundBy,
     otherMachine: inputs.details.otherMachine,
+    controller: inputs.details.controller,
   };
 }
 

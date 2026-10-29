@@ -73,8 +73,11 @@ Ein Host oder ein Netzwerkgerät hat eine Karte **Asset-Details**, die beide auf
 
 - Die Fakten eines Hosts stammen aus den Ressourcenattributen seiner Telemetrie: seine IP- und MAC-Adressen, Architektur und Betriebssystem von Haus aus, und seine Seriennummer, Marke, Modell und Firmware, sobald Sie sie aufprägen.
 - Die Fakten eines Netzwerkgeräts stammen aus seiner SNMP-Abfrage, seiner Rolle und seinem Standort. Was seine Abfrage nicht gelesen hat, stammt aus der Erkennung: dem letzten Scan seiner Adresse, der ARP-Tabelle eines Routers oder der DNS-Abfrage seiner Sonde. Ein Gerät ohne ENTITY-MIB, etwa ein Meraki MX, erhält Marke und Modell trotzdem aus seiner Systembeschreibung. Seine IP-Adresse wird nie als sein Hostname angezeigt.
+- Ein Meraki-Gerät übernimmt außerdem, was seine Abfrage leer lässt, aus dem Meraki-Dashboard, darunter seine Seriennummer, sein Modell und seine Firmware, wenn eine [Meraki-Verbindung](/docs/monitor/network-traffic#cisco-meraki-ohne-netflow) seine Organisation liest.
 
 Die Karte zeigt, woher jeder Fakt kam und wann. Die Quelle, die die meisten Fakten teilen, etwa der Collector eines Hosts, die eigene SNMP-Abfrage eines Netzwerkgeräts oder der Erkennungsscan, der es gelesen hat, wird einmal genannt, unter den Fakten. Jede andere Quelle, etwa die ARP-Tabelle eines Routers oder ein am Gerät gespeicherter Wert, wird unter ihrem Fakt genannt. Ein an einem Netzwerkgerät gespeicherter Wert wird nie durch das ersetzt, was die Erkennung liest, und wenn beide sich unterscheiden, zeigt die Karte beide.
+
+Die Karte eines Netzwerkgeräts hat eine Schaltfläche **Aktualisieren** für alle, die Netzwerkgeräte bearbeiten dürfen. Damit wird das Gerät sofort erneut gelesen: Seine Sonde fragt es innerhalb einer Minute ab, und seine Meraki-Verbindung liest die Organisation erneut. Die Karte sagt, wann der neue Lesevorgang eingetroffen ist oder dass die Sonde das Gerät nicht erreichen konnte, und das Element wird vom Gerät kopiert, sobald der Lesevorgang eingetroffen ist.
 
 Dieselben Fakten sind Spalten der Liste **Alle Elemente**, ausgeblendet, bis Sie sie einschalten, und sie gehen in ihren CSV-Export ein. [Export in eine CMDB](/docs/inventory/cmdb-sync#asset-details) listet ihre Schlüssel auf.
 

@@ -100,6 +100,30 @@ export interface NetworkControllerAppliance {
 }
 
 /*
+ * A device of the controller's device list - every product type, not only
+ * the appliances that carry uplinks - as the controller describes it: what a
+ * device in OneUptime that it is takes its missing details from
+ * (NetworkControllerInventory). Every text is cleaned and bounded; a value
+ * the controller did not give is "".
+ */
+export interface NetworkControllerDevice {
+  serial: string;
+  name: string;
+  model: string;
+  // Lowercase, colon-separated, or "".
+  mac: string;
+  // The management (LAN) address, an address literal, or "".
+  lanIp: string;
+  firmware: string;
+  // As the controller names it: "appliance", "switch", "wireless"...
+  productType: string;
+  controllerNetworkId: string;
+  networkName: string;
+  // The street address the controller files it under.
+  address: string;
+}
+
+/*
  * One row a read produced, before the runner gives it the device it
  * belongs to and turns it into the stored JSON (NetworkTrafficUsageRows).
  */
@@ -139,6 +163,13 @@ export interface NetworkControllerReadResult {
   organizationName: string;
   networkCount: number;
   appliances: Array<NetworkControllerAppliance>;
+  /*
+   * Every device of the organization's device list, and whether the list is
+   * whole: one cut short (more devices than a read lists) says nothing about
+   * the devices it left out.
+   */
+  devices: Array<NetworkControllerDevice>;
+  isDeviceListComplete: boolean;
   records: Array<NetworkTrafficUsageRecord>;
   // The windows the records cover, whether or not they hold a row.
   windows: Array<NetworkTrafficUsageWindowKey>;

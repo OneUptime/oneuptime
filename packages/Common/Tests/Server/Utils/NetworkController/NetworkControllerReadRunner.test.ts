@@ -1,4 +1,5 @@
 import NetworkControllerReadRunner, {
+  INVENTORY_NOT_RECORDED_WARNING,
   NETWORK_CONTROLLER_READ_MAX_REQUESTS,
   NetworkControllerReadDependencies,
   NetworkControllerReadOutcome,
@@ -7,6 +8,11 @@ import NetworkControllerReadRunner, {
   StoredWindowFinder,
   reconcilePullState,
 } from "../../../../Server/Utils/NetworkController/NetworkControllerReadRunner";
+import {
+  ControllerInventoryCandidate,
+  ControllerInventoryLookup,
+} from "../../../../Server/Utils/NetworkController/NetworkControllerInventory";
+import { DiscoveredDetailsMerge } from "../../../../Server/Services/NetworkDeviceService";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import NetworkControllerConnection from "../../../../Models/DatabaseModels/NetworkControllerConnection";
 import NetworkControllerConnectionService from "../../../../Server/Services/NetworkControllerConnectionService";
@@ -56,6 +62,12 @@ let clock: TestClock;
 let api: FakeMerakiApi;
 let failInsertAfterRows: number | null;
 let failBookkeeping: boolean;
+// The project's devices the device list is matched against, and what was merged.
+let candidates: Array<ControllerInventoryCandidate>;
+let lookups: Array<ControllerInventoryLookup>;
+let merged: Array<DiscoveredDetailsMerge>;
+// The Inventory items copied after a reading answered a refresh.
+let mirrored: Array<string>;
 
 function rowTime(value: unknown): Date {
   return new Date(Date.parse(`${String(value).replace(" ", "T")}Z`));
@@ -134,6 +146,22 @@ function dependencies(
 
       table.push(...rows);
     },
+    // Postgres, as the device list's details ask it: the project's devices.
+    findControllerCandidates: async (data: {
+      lookup: ControllerInventoryLookup;
+    }): Promise<Array<ControllerInventoryCandidate>> => {
+      lookups.push(data.lookup);
+      return candidates;
+    },
+    mergeControllerReadings: async (data: {
+      patches: Array<DiscoveredDetailsMerge>;
+    }): Promise<number> => {
+      merged.push(...data.patches);
+      return data.patches.length;
+    },
+    mirrorRefreshedDevice: async (deviceId: ObjectID): Promise<void> => {
+      mirrored.push(deviceId.toString());
+    },
     ...overrides,
   };
 }
@@ -177,6 +205,10 @@ beforeEach(() => {
   table = [];
   failInsertAfterRows = null;
   failBookkeeping = false;
+  candidates = [];
+  lookups = [];
+  merged = [];
+  mirrored = [];
   clock = createTestClock(START);
   setApi();
 
@@ -615,6 +647,205 @@ describe("moving the cursors up to the stored windows", () => {
       START.getTime() - STORED_WINDOW_END_LOOKBACK_MS,
     );
     expect(STORED_WINDOW_END_LOOKBACK_MS).toBe(25 * 60 * MINUTE);
+  });
+});
+
+describe("the devices' details the device list fills in", () => {
+  const SWITCH_DEVICE: string = "44444444-4444-4444-8444-444444444444";
+
+  function withSwitchesAndAccessPoints(): void {
+    const organization: ReturnType<typeof buildBranchOrganization> =
+      buildBranchOrganization({ id: "549236", name: "Acme Retail", count: 5 });
+
+    organization.devices = [
+      {
+        serial: "Q2HP-SWCH-0001",
+        name: "Branch 1 core",
+        model: "MS225-48LP",
+        mac: "88:15:44:aa:00:01",
+        networkId: "L_1000",
+        productType: "switch",
+        lanIp: "10.0.0.2",
+        firmware: "switch-16-7",
+        address: "1 Main Street, Springfield",
+      },
+      {
+        serial: "Q2KD-WLAN-0001",
+        name: "Branch 1 lobby AP",
+        model: "MR46",
+        mac: "e0:55:3d:aa:00:01",
+        networkId: "L_1000",
+        productType: "wireless",
+        lanIp: "10.0.0.20",
+        firmware: "wireless-29-7",
+      },
+    ];
+
+    setApi({ organizations: [organization] });
+  }
+
+  test("a read records what Meraki says about the project's devices that are Meraki devices, and counts them", async () => {
+    withSwitchesAndAccessPoints();
+    candidates = [
+      // The MX: its serial number is the appliance's.
+      {
+        id: MX_DEVICE.toString(),
+        name: "branch-1-mx",
+        hostname: "10.0.0.1",
+        serialNumber: "q2xx-aaaa-0000",
+      },
+      // The switch, pinged at its management address and called the same.
+      {
+        id: SWITCH_DEVICE,
+        name: "Branch 1 core",
+        hostname: "10.0.0.2",
+      },
+    ];
+
+    const outcome: NetworkControllerReadOutcome = await run();
+
+    expect(outcome.status).toBe("success");
+    // Every device's serial number, MAC and management address is looked up.
+    expect(lookups).toHaveLength(1);
+    expect(lookups[0]!.serials).toEqual(
+      expect.arrayContaining([
+        "Q2XX-AAAA-0000",
+        "Q2HP-SWCH-0001",
+        "Q2KD-WLAN-0001",
+      ]),
+    );
+    expect(lookups[0]!.addresses).toEqual(["10.0.0.2", "10.0.0.20"]);
+
+    expect(
+      merged.map((patch: DiscoveredDetailsMerge): string => {
+        return patch.deviceId.toString();
+      }),
+    ).toEqual([MX_DEVICE.toString(), SWITCH_DEVICE]);
+
+    const switchReading: JSONObject = (merged[1]!.set as JSONObject)[
+      "controller"
+    ] as JSONObject;
+    expect(switchReading).toEqual({
+      provider: "meraki",
+      readBy: {
+        type: "networkController",
+        id: CONNECTION.toString(),
+        name: "Acme Retail",
+      },
+      readAt: START.toISOString(),
+      values: {
+        name: "Branch 1 core",
+        model: "MS225-48LP",
+        serialNumber: "Q2HP-SWCH-0001",
+        macAddress: "88:15:44:aa:00:01",
+        ipAddress: "10.0.0.2",
+        firmwareVersion: "switch-16-7",
+        productType: "switch",
+        networkName: "Branch 1",
+        address: "1 Main Street, Springfield",
+      },
+    });
+
+    expect(outcome.summary).toMatchObject({
+      deviceCount: 7,
+      describedDeviceCount: 2,
+      // The traffic side is what it was: five appliances, one a device here.
+      applianceCount: 5,
+      matchedDeviceCount: 1,
+      warnings: [],
+    });
+    // The device list is the read's third call, as the appliance list was.
+    expect(outcome.summary?.requestCount).toBe(3 + 34 + 10);
+  });
+
+  test("a device list that cannot be recorded is a warning on a read that otherwise worked", async () => {
+    withSwitchesAndAccessPoints();
+
+    const outcome: NetworkControllerReadOutcome = await run({
+      findControllerCandidates: async () => {
+        throw new Error("Postgres is not answering");
+      },
+    });
+
+    expect(outcome.status).toBe("success");
+    expect(table.length).toBeGreaterThan(0);
+    expect(outcome.summary?.warnings).toEqual([INVENTORY_NOT_RECORDED_WARNING]);
+    // Nothing to count it by: no counts rather than made-up ones.
+    expect(outcome.summary?.deviceCount).toBeUndefined();
+  });
+
+  test("an unchanged reading is written again only after an hour, or when someone asks for the device to be read again", async () => {
+    withSwitchesAndAccessPoints();
+    candidates = [
+      { id: SWITCH_DEVICE, name: "Branch 1 core", hostname: "10.0.0.2" },
+    ];
+
+    await run();
+    expect(merged).toHaveLength(1);
+
+    // Stored, as Postgres would.
+    candidates = [
+      {
+        ...candidates[0]!,
+        discoveredDetails: merged[0]!.set,
+      },
+    ];
+    merged = [];
+
+    clock.advance(5 * MINUTE);
+    await run();
+    expect(merged).toEqual([]);
+
+    // Nobody asked: no item is copied out of turn.
+    expect(mirrored).toEqual([]);
+
+    // Someone asks for it to be read again: written at once.
+    candidates[0]!.refreshRequestedAt = new Date(
+      clock.now().getTime() - MINUTE,
+    );
+    clock.advance(MINUTE);
+    await run();
+    expect(merged).toHaveLength(1);
+    // And its Inventory item copied with it, as its probe's poll copies it.
+    expect(mirrored).toEqual([SWITCH_DEVICE]);
+
+    // And an hour on, whatever happens, so its time stays true.
+    candidates = [
+      {
+        id: SWITCH_DEVICE,
+        name: "Branch 1 core",
+        hostname: "10.0.0.2",
+        discoveredDetails: merged[0]!.set,
+      },
+    ];
+    merged = [];
+    clock.advance(30 * MINUTE);
+    await run();
+    expect(merged).toEqual([]);
+    clock.advance(31 * MINUTE);
+    await run();
+    expect(merged).toHaveLength(1);
+  });
+
+  test("a failed read keeps the last counts", async () => {
+    connection.lastPullResult = {
+      status: "success",
+      organizationName: "Acme Retail",
+      networkCount: 5,
+      applianceCount: 5,
+      deviceCount: 7,
+      describedDeviceCount: 2,
+    };
+    setApi({ apiKey: "the-key-meraki-has-now-0123456789abcdef" });
+
+    const outcome: NetworkControllerReadOutcome = await run();
+
+    expect(outcome.status).toBe("failed");
+    expect(outcome.summary).toMatchObject({
+      deviceCount: 7,
+      describedDeviceCount: 2,
+    });
+    expect(lookups).toEqual([]);
   });
 });
 

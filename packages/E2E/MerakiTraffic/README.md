@@ -38,6 +38,9 @@ Picked with query parameters on the page's address:
   saved connection's new key (`pass` or `auth`).
 - `role=owner|member`: a project owner (the default), or a member, who may read connections but
   not add, change or read them.
+- `devices=counted|one`: the connection's last read listed the organization's 6 devices, 5 of them
+  network devices in OneUptime (or 1), so its row counts them and says so in a grey note. Without
+  it, the read predates device counts and the row says nothing of devices.
 - `source=flows|meraki`, `lang=de`, `theme=dark`.
 
 Every read and write is recorded on `window.__merakiTrafficFixture` (`usageRequests`,

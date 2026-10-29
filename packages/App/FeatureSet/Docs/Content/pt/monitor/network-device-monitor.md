@@ -514,6 +514,10 @@ Um dispositivo só com ping mantém o nome e o endereço que você, ou uma varre
 
 Esses valores ficam ao lado dos campos do próprio dispositivo, nunca gravados neles, e cada varredura, walk de roteador ou consulta que lê um deles de novo o atualiza. A visão geral do dispositivo e o seu item no inventário mostram qual varredura, roteador ou sonda leu cada valor, e quando. Um valor que você salvou no dispositivo nunca é substituído. Quando uma varredura encontra outra máquina no endereço do dispositivo, como uma concessão DHCP que mudou, a visão geral avisa, e nada do que essa varredura leu ali é usado.
 
+Um switch, ponto de acesso ou appliance Meraki não informa por SNMP número de série, modelo nem firmware: o Meraki não implementa ENTITY-MIB. Quando uma [conexão do Meraki](/docs/monitor/network-traffic#cisco-meraki-sem-netflow) lê a organização dele, o dispositivo obtém esses dados, e tudo o mais que a sua consulta deixa vazio, do painel do Meraki, e o cartão **Inventário** dele nomeia a conexão em uma linha **Meraki**.
+
+Para ler um dispositivo de novo agora, clique em **Atualizar** no cartão **Inventário** dele. A sonda o consulta em até um minuto, e a conexão do Meraki lê a organização de novo. O cartão diz quando a nova leitura chegou, ou que a sonda não conseguiu alcançar o dispositivo. **Atualizar** aparece para quem pode editar dispositivos de rede, em um dispositivo que uma sonda consulta ou que uma conexão do Meraki descreve.
+
 ## Descobrir dispositivos com uma varredura de rede
 
 Em vez de adicionar os dispositivos um de cada vez, varra uma faixa de endereços a partir de uma sonda e importe o que responder.
