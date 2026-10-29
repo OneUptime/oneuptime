@@ -403,6 +403,11 @@ jobs:
           # about 40 seconds locally, Chromium only: Metrics > Insights'
           # service cards at 1440, 1280, 1024, 768 and 390 pixels, with long
           # names and in the dark theme): about 19.
+          # Model Tables gained LiveLists.spec.ts and the phone's folded
+          # filter chips on 2026-10-29 (14 tests, about a minute locally: the
+          # incidents and alerts lists reading again as the server announces
+          # a change, and the alerts list's chips at 390, 768 and 1280 pixels,
+          # dark): about 20.
           - group: 4
             workflow_builder_shard: 1/2
             suites: >-
