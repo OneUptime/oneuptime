@@ -139,6 +139,8 @@ export interface ResourceAiLogsFix {
   incidentId: string | null;
   alertId: string | null;
   approvedAt: string | null;
+  // Who approved it (a name, or an email without one); null when nobody did.
+  approvedByName: string | null;
 }
 
 export interface ResourceAiLogs {
@@ -234,6 +236,7 @@ function parseFix(value: unknown): ResourceAiLogsFix | null {
     incidentId: readString(value["incidentId"]),
     alertId: readString(value["alertId"]),
     approvedAt: readString(value["approvedAt"]),
+    approvedByName: readString(value["approvedByName"]),
   };
 }
 

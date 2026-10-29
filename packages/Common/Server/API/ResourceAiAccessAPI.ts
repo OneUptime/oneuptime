@@ -60,6 +60,7 @@ import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBas
 import Incident from "../../Models/DatabaseModels/Incident";
 import ResourceAiAgent from "../../Models/DatabaseModels/ResourceAiAgent";
 import RunnerJob from "../../Models/DatabaseModels/RunnerJob";
+import User from "../../Models/DatabaseModels/User";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import AIRunService from "../Services/AIRunService";
@@ -81,6 +82,7 @@ import ResourceAiAgentService from "../Services/ResourceAiAgentService";
 import RunnerJobService from "../Services/RunnerJobService";
 import VMwareVCenterService from "../Services/VMwareVCenterService";
 import QueryHelper from "../Types/Database/QueryHelper";
+import Select from "../Types/Database/Select";
 import logger from "../Utils/Logger";
 import CallerPermission from "../Utils/Permission/CallerPermission";
 import InvestigationReportSummary from "../Utils/AI/SRE/InvestigationReportSummary";
@@ -1663,18 +1665,35 @@ async function getLogInvestigations(data: {
 
 /*
  * Read as root, so never the rationale: that is read under the caller's
- * props (getLogFixes).
+ * props (getLogFixes). Who approved a fix is read by name and email only,
+ * as the incident's own feed names them.
  */
-const LOG_FIX_SELECT: Record<string, boolean> = {
+const LOG_FIX_SELECT: Select<AutoRemediationSuggestion> = {
   _id: true,
   status: true,
   executionMode: true,
   suggestionType: true,
   createdAt: true,
   approvedAt: true,
+  approvedByUser: {
+    _id: true,
+    name: true,
+    email: true,
+  },
   incidentId: true,
   alertId: true,
 };
+
+// A person as a log row names them: their name, or their email without one.
+function describeApprover(user: User | undefined): string | undefined {
+  const name: string = user?.name?.toString().trim() || "";
+
+  if (name) {
+    return name;
+  }
+
+  return user?.email?.toString().trim() || undefined;
+}
 
 async function getLogFixes(data: {
   projectId: ObjectID;
@@ -1761,6 +1780,7 @@ async function getLogFixes(data: {
           : undefined,
         createdAt: toIsoString(suggestion.createdAt),
         approvedAt: toIsoString(suggestion.approvedAt),
+        approvedByName: describeApprover(suggestion.approvedByUser),
         incidentId: suggestion.incidentId?.toString(),
         alertId: suggestion.alertId?.toString(),
       };

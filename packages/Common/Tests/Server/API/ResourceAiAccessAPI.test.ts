@@ -2593,6 +2593,65 @@ describe("ResourceAiAccessAPI", () => {
       }
     });
 
+    test("fixes: names who approved one, by name or by email without one, and nobody for the rest", async () => {
+      // A Name or an Email column value, as the model holds it.
+      const textOf: (text: string) => { toString: () => string } = (
+        text: string,
+      ): { toString: () => string } => {
+        return {
+          toString: (): string => {
+            return text;
+          },
+        };
+      };
+      const named: ObjectID = ObjectID.generate();
+      const emailOnly: ObjectID = ObjectID.generate();
+      const unapproved: ObjectID = ObjectID.generate();
+
+      suggestionFind.mockImplementation(async () => {
+        return [
+          suggestion(named, 3, {
+            status: "Approved",
+            approvedAt: new Date("2026-09-01T00:00:00.000Z"),
+            approvedByUser: {
+              name: textOf("Maya Chen"),
+              email: textOf("maya@example.com"),
+            },
+          }),
+          suggestion(emailOnly, 2, {
+            status: "Approved",
+            approvedByUser: { email: textOf("sam@example.com") },
+          }),
+          suggestion(unapproved, 1),
+        ];
+      });
+
+      await callRoute(RESOURCE_AI_ACCESS_LOGS_PATH, body(kind.resourceType));
+
+      const logs: ResourceAiLogs = lastResponse() as unknown as ResourceAiLogs;
+      const nameOf: (id: ObjectID) => string | undefined = (
+        id: ObjectID,
+      ): string | undefined => {
+        return logs.fixes.find((fix: { id: string }) => {
+          return fix.id === id.toString();
+        })?.approvedByName;
+      };
+
+      expect(nameOf(named)).toBe("Maya Chen");
+      expect(nameOf(emailOnly)).toBe("sam@example.com");
+      expect(nameOf(unapproved)).toBeUndefined();
+
+      // The root read names the approver, and reads nothing else of theirs.
+      const rootSelect: Record<string, unknown> = (
+        suggestionFind.mock.calls[0]![0] as { select: Record<string, unknown> }
+      ).select;
+      expect(rootSelect["approvedByUser"]).toEqual({
+        _id: true,
+        name: true,
+        email: true,
+      });
+    });
+
     test("counts commands of the last 30 days by kind, leaving the connection tests out", async () => {
       countSpy.mockImplementation(async (args: unknown) => {
         const query: Record<string, unknown> = (

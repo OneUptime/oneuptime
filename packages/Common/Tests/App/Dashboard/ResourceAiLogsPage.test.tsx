@@ -450,6 +450,7 @@ describe("parseResourceAiLogs", () => {
       incidentId: null,
       alertId: ALERT_ID,
       approvedAt: null,
+      approvedByName: null,
     });
   });
 
@@ -699,6 +700,36 @@ describe("the AI Logs page", () => {
     );
     // No KPI tiles: the counts are not rendered.
     expect(screen.queryByText("1717")).not.toBeInTheDocument();
+    // Nobody approved either of them.
+    expect(screen.queryByTestId("ai-logs-fix-approved-by")).toBeNull();
+  });
+
+  test("names who approved a fix, and when, under its reason", async () => {
+    const logs: JSONObject = fullLogs();
+    const fixes: Array<JSONObject> = logs["fixes"] as Array<JSONObject>;
+    fixes[0] = {
+      ...fixes[0]!,
+      status: AutoRemediationSuggestionStatus.Approved,
+      approvedAt: "2026-09-22T09:06:00.000Z",
+      approvedByName: "Maya Chen",
+    };
+    serve(ok(logs));
+    openLogsPage();
+    await findText("Investigations");
+
+    const rows: Array<HTMLElement> = screen.getAllByTestId("ai-logs-fix");
+    const approvedBy: HTMLElement = within(rows[0]!).getByTestId(
+      "ai-logs-fix-approved-by",
+    );
+    expect(approvedBy).toHaveTextContent(/^Approved by Maya Chen/);
+    expect(approvedBy.querySelector("time")).toHaveAttribute(
+      "dateTime",
+      "2026-09-22T09:06:00.000Z",
+    );
+    // The other fix nobody approved names nobody.
+    expect(
+      within(rows[1]!).queryByTestId("ai-logs-fix-approved-by"),
+    ).toBeNull();
   });
 
   test("renders server text as text, never as markup", async () => {
