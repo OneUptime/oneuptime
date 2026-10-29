@@ -402,6 +402,34 @@ describe("ProductionReviewAI.read", () => {
     expect(execute).toHaveBeenCalledTimes(1);
   });
 
+  test("asks with the provider the repository picks, or the project's when none is handed", async () => {
+    const execute: jest.SpyInstance = jest
+      .spyOn(AIService, "executeWithLogging")
+      .mockResolvedValue({ content: '{"points": []}' } as never);
+    const picked: ObjectID = ObjectID.generate();
+
+    await ProductionReviewAI.read({
+      projectId: new ObjectID(PROJECT_ID),
+      aiRunId: RUN_ID,
+      report: fullReport(),
+      diffText: "diff",
+      llmProviderId: picked,
+    });
+    await ProductionReviewAI.read({
+      projectId: new ObjectID(PROJECT_ID),
+      aiRunId: RUN_ID,
+      report: fullReport(),
+      diffText: "diff",
+    });
+
+    expect((execute.mock.calls[0]![0] as AILogRequest).llmProviderId).toBe(
+      picked,
+    );
+    expect(
+      (execute.mock.calls[1]![0] as AILogRequest).llmProviderId,
+    ).toBeUndefined();
+  });
+
   test("an answer that cannot be read leaves no points, and says so", async () => {
     jest
       .spyOn(AIService, "executeWithLogging")

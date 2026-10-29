@@ -524,8 +524,8 @@ const LlmCallRow: FunctionComponent<{ call: LlmCallLog }> = (props: {
       >
         {/*
          * As the AI Logs count a call (AiTokenCount): a token the prompt
-         * cache served counts as a tenth, one written to it as one and a
-         * quarter.
+         * cache served, or took, counts at what the call's model charges
+         * for it next to a fresh token.
          */}
         {call.totalTokens !== undefined
           ? translator.translatePlural(
@@ -534,6 +534,7 @@ const LlmCallRow: FunctionComponent<{ call: LlmCallLog }> = (props: {
                 totalTokens: call.totalTokens,
                 cachedInputTokens: call.cachedInputTokens,
                 cacheCreationTokens: call.cacheCreationTokens,
+                modelName: call.modelName,
               }),
             )
           : ""}

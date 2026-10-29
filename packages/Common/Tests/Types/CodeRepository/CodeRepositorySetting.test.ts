@@ -68,6 +68,7 @@ describe("the places of a repository's settings", () => {
       "pull-requests",
       "trigger-label",
       "production-review-comment",
+      "production-review-llm-provider",
       "commands",
       "branches",
     ]);

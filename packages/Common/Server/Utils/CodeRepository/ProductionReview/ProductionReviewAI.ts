@@ -484,6 +484,11 @@ export default class ProductionReviewAI {
     aiRunId: ObjectID;
     report: ProductionReviewReport;
     diffText: string;
+    /*
+     * The provider the repository picks for its production reviews, when it
+     * is used (LlmProviderChoice); undefined for the project's provider.
+     */
+    llmProviderId?: ObjectID | undefined;
   }): Promise<ProductionReviewAiResult> {
     const facts: ProductionReviewFacts = ProductionReviewAI.buildFacts(
       data.report,
@@ -496,6 +501,7 @@ export default class ProductionReviewAI {
         projectId: data.projectId,
         feature: AI_PRODUCTION_REVIEW_FEATURE,
         aiRunId: data.aiRunId,
+        llmProviderId: data.llmProviderId,
         /*
          * No prompt previews in the AI Logs: they would hold the diff, and
          * the AI Logs are read by every project member.

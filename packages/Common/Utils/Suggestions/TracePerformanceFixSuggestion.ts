@@ -220,6 +220,36 @@ export function getFindingOperationName(finding: PerformanceFinding): string {
   return finding.normalizedSpanName;
 }
 
+// A connected repository the person can ask the fix in.
+export interface TracePerformanceFixRepository {
+  id: string;
+  name: string;
+}
+
+/*
+ * The most repositories the page is offered to pick from: far more than a
+ * project connects, and a bound on what one answer carries.
+ */
+export const MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES: number = 200;
+
+/*
+ * The server's refusal of a fix the person did not pick a repository for,
+ * when several are connected and none was found to hold the trace's code
+ * for certain. The trace page asks for the pick first, so people meet this
+ * through the API, or on the page after the second repository was
+ * connected since it read the list - after "Could not start the fix:",
+ * beside the picker the page then shows.
+ */
+export const PICK_A_REPOSITORY_FOR_THE_FIX_MESSAGE: string =
+  "Several repositories are connected, and none could be matched to this trace's service or code. Pick the one that holds this code.";
+
+/*
+ * The server's refusal of a pick that is not one of the project's connected
+ * repositories AI can work in.
+ */
+export const PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE: string =
+  "That repository is not one of this project's connected repositories OneUptime AI can work in. Pick another, or connect it in Code.";
+
 /*
  * What POST /ai-investigation/performance-fix-suggestion answers, and the
  * trace page reads: the offer, the finding it names, and - when a fix is
@@ -232,6 +262,13 @@ export interface TracePerformanceFixSuggestion
    * offer is InProgress, the one that did its work when it is Done.
    */
   aiRunId: string | null;
+  /*
+   * Act, when several repositories are connected and none was found to
+   * hold the trace's code for certain: the ones the person picks the fix's
+   * repository from, by name (the click names the pick). Empty otherwise -
+   * the fix then works in the repository the trace's facts resolve to.
+   */
+  repositories: Array<TracePerformanceFixRepository>;
 }
 
 export const NO_TRACE_PERFORMANCE_FIX_SUGGESTION: TracePerformanceFixSuggestion =
@@ -242,7 +279,64 @@ export const NO_TRACE_PERFORMANCE_FIX_SUGGESTION: TracePerformanceFixSuggestion 
     fixOutcome: null,
     blocker: null,
     aiRunId: null,
+    repositories: [],
   };
+
+function parseRepository(value: unknown): TracePerformanceFixRepository | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const record: JSONObject = value as JSONObject;
+  const id: unknown = record["id"];
+  const name: unknown = record["name"];
+
+  if (
+    typeof id !== "string" ||
+    !id.trim() ||
+    typeof name !== "string" ||
+    !name.trim()
+  ) {
+    return null;
+  }
+
+  return { id: id.trim(), name: name.trim() };
+}
+
+/*
+ * The repositories off the wire: whole entries only, each once, at most
+ * MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES, in the order the server sent.
+ * One repository is no choice (the fix would work in it anyway), so a list
+ * of fewer than two reads as none.
+ */
+export function parseTracePerformanceFixRepositories(
+  value: unknown,
+): Array<TracePerformanceFixRepository> {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const seen: Set<string> = new Set();
+  const repositories: Array<TracePerformanceFixRepository> = [];
+
+  for (const entry of value as Array<unknown>) {
+    const repository: TracePerformanceFixRepository | null =
+      parseRepository(entry);
+
+    if (!repository || seen.has(repository.id.toLowerCase())) {
+      continue;
+    }
+
+    seen.add(repository.id.toLowerCase());
+    repositories.push(repository);
+
+    if (repositories.length >= MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES) {
+      break;
+    }
+  }
+
+  return repositories.length > 1 ? repositories : [];
+}
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
@@ -430,6 +524,11 @@ export function parseTracePerformanceFixSuggestion(
     fixOutcome,
     blocker,
     aiRunId: linksRun ? aiRunId : null,
+    // A pick is the fix's own step: only an offer of the fix carries one.
+    repositories:
+      offer === SuggestionOffer.Act
+        ? parseTracePerformanceFixRepositories(record["repositories"])
+        : [],
   };
 }
 
@@ -448,5 +547,10 @@ export function tracePerformanceFixSuggestionToJSON(
       ? suggestionBlockerToJSON(suggestion.blocker)
       : null,
     aiRunId: suggestion.aiRunId,
+    repositories: suggestion.repositories.map(
+      (repository: TracePerformanceFixRepository): JSONObject => {
+        return { id: repository.id, name: repository.name };
+      },
+    ),
   };
 }

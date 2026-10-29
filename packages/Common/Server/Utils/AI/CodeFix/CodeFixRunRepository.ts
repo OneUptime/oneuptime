@@ -14,7 +14,10 @@ import CodeFixTaskType, {
   CodeFixTaskTypeHelper,
 } from "../../../../Types/AI/CodeFixTaskType";
 import ObjectID from "../../../../Types/ObjectID";
-import { fromStoredCodeRepositoryIds } from "../../../../Types/CodeRepository/CodeRepositoryAllowance";
+import {
+  CodeRepositoryAllowance,
+  fromStoredCodeRepositoryIds,
+} from "../../../../Types/CodeRepository/CodeRepositoryAllowance";
 
 /*
  * The repository a code-fix run that finds its repository as it works will
@@ -64,6 +67,30 @@ export function getPerformanceStackTrace(
     .join("\n");
 }
 
+/*
+ * The repositories a run may be made in: the one the person who asked for it
+ * picked (CodeFixTaskContext.pickedCodeRepositoryId), when they picked one;
+ * otherwise the ones the auto remediation rules that opened it allow
+ * (allowedCodeRepositoryIds), or every connected one. Read when the run is
+ * queued (resolveForNewRun) and again when it starts (AIAgentDataAPI), so
+ * both resolve the same repository: a pick is the only candidate, and the
+ * resolver's only-repository rule takes it.
+ */
+export function getRunRepositoryAllowance(
+  taskContext: CodeFixTaskContext | null | undefined,
+): CodeRepositoryAllowance {
+  const picked: unknown = taskContext?.pickedCodeRepositoryId;
+
+  if (typeof picked === "string" && ObjectID.isValidUUID(picked)) {
+    return {
+      isEveryRepository: false,
+      repositoryIds: [picked.toLowerCase()],
+    };
+  }
+
+  return fromStoredCodeRepositoryIds(taskContext?.allowedCodeRepositoryIds);
+}
+
 // The first named monitor of a subject: what names its service, if anything.
 export function getFirstMonitorName(
   monitors: Array<{ name?: string | undefined }> | undefined,
@@ -101,9 +128,7 @@ export default class CodeFixRunRepository {
           projectId: data.projectId,
           stackTrace: facts.stackTrace,
           serviceName: facts.serviceName,
-          allowance: fromStoredCodeRepositoryIds(
-            data.taskContext?.allowedCodeRepositoryIds,
-          ),
+          allowance: getRunRepositoryAllowance(data.taskContext),
         });
 
       return resolution ? new ObjectID(resolution.codeRepositoryId) : null;

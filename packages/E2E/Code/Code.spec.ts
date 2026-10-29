@@ -1939,7 +1939,7 @@ test.describe("a repository's settings", () => {
     ]);
     await expect(
       moreSettings(page).getByTestId("folded-section-more"),
-    ).toHaveText("2 more");
+    ).toHaveText("3 more");
     // Nothing folded is in sight: the page is the repository and the fold.
     await expect(commandsSwitch(page)).toBeHidden();
     await expect(page.getByTestId("code-repository-runner")).toBeHidden();
@@ -1965,6 +1965,7 @@ test.describe("a repository's settings", () => {
       "Pull Requests",
       "GitHub Trigger Label",
       "Production Review Comment",
+      "Production Review LLM Provider",
     ]);
     await expect(
       moreSettings(page).getByTestId("folded-section-description"),
@@ -2078,11 +2079,12 @@ test.describe("a repository's settings", () => {
         "true",
       );
     }
+    // Runner, Pull Requests, the label, the comment and the LLM provider.
     const edits: Locator = moreSettings(page).getByRole("button", {
       name: "Edit",
     });
-    await expect(edits).toHaveCount(4);
-    for (let index: number = 0; index < 4; index++) {
+    await expect(edits).toHaveCount(5);
+    for (let index: number = 0; index < 5; index++) {
       await expect(edits.nth(index)).toBeDisabled();
     }
     await expectNoSidewaysScroll(page);
@@ -4532,6 +4534,133 @@ test.describe("a repository's pull requests, reviewed against production", () =>
     await expect(
       moreSettings.getByTestId("folded-section-item").nth(1),
     ).toHaveText("Production Review: Off");
+  });
+
+  /*
+   * Which LLM provider OneUptime AI reads the pull requests with (the
+   * follow-up #5273 listed): a card of its own beside the comment's, the
+   * project's default named until another is picked - the AI rules' own
+   * picker - saved as the provider's id, and said while More settings is
+   * folded.
+   */
+  test("the LLM provider its reviews read with: the project's default, named, until Edit picks another - saved, and said while folded", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(`${SETTINGS}#production-review-llm-provider`);
+    const moreSettings: Locator = page.getByTestId(
+      "code-repository-more-settings",
+    );
+    const provider: Locator = page.getByTestId("card").filter({
+      has: page
+        .getByTestId("card-details-heading")
+        .getByText("Production Review LLM Provider", { exact: true }),
+    });
+
+    // The link landed on it, with More settings open.
+    await expect(provider).toBeInViewport();
+    await expect(provider).toContainText(
+      "Which LLM provider a production review uses.",
+    );
+    await expect(
+      provider.getByTestId("production-review-llm-provider-value"),
+    ).toHaveText("Project default (Azure GPT-4o)");
+    await screenshot(page, testInfo, "code-production-review-llm-provider");
+
+    await provider.getByRole("button", { name: "Edit" }).click();
+    const modal: Locator = page.getByTestId("modal");
+    await expect(modal).toBeVisible();
+    await expect(modal).toContainText(
+      "OneUptime AI uses the default LLM provider for production reviews, unless you pick another.",
+    );
+    // Empty is an answer of its own - the default - not "(Optional)".
+    await expect(modal).not.toContainText("LLM Provider (Optional)");
+    const box: Locator = modal
+      .getByTestId("rule-llm-provider-picker")
+      .getByRole("combobox");
+    await expect(box).toHaveAttribute(
+      "placeholder",
+      "Project default (Azure GPT-4o)",
+    );
+
+    await box.click();
+    const options: Locator = page.getByRole("option");
+    await expect(options).toHaveCount(3);
+    await expect(options.nth(0)).toContainText("Azure GPT-4o");
+    await expect(options.nth(1)).toContainText("Claude Opus");
+    await expect(options.nth(2)).toContainText("OneUptime AI");
+    await screenshot(
+      page,
+      testInfo,
+      "code-production-review-llm-provider-edit",
+    );
+    await page.getByRole("option", { name: /^Claude Opus/ }).click();
+    await modal.getByTestId("modal-footer-submit-button").click();
+    await expect(modal).toBeHidden();
+
+    await expect
+      .poll(async () => {
+        const settings: Array<Record<string, unknown>> = (await recorded(page))
+          .settings;
+        return settings[settings.length - 1];
+      })
+      .toMatchObject({
+        productionReviewLlmProviderId: "9d9d9d9d-0000-4000-8000-000000000003",
+      });
+    await expect(
+      provider.getByTestId("production-review-llm-provider-value"),
+    ).toHaveText("Claude Opus");
+    await expectNoSidewaysScroll(page);
+
+    // Folded again, More settings names the provider picked.
+    await moreSettings.getByRole("button", { name: "More settings" }).click();
+    await expect(moreSettings.getByTestId("folded-section-item")).toContainText(
+      ["Production Review LLM Provider: Claude Opus"],
+    );
+  });
+
+  test("a pick the project can no longer use says so, on the card and while folded", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    // What it checks does not depend on the screen's width.
+    test.skip(isPhone(testInfo), "width-independent");
+    await page.goto(`${SETTINGS}?reviewllm=gone`);
+    const moreSettings: Locator = page.getByTestId(
+      "code-repository-more-settings",
+    );
+
+    await expect(moreSettings.getByTestId("folded-section-item")).toContainText(
+      ["Production Review LLM Provider: No longer available"],
+    );
+
+    await moreSettings.getByRole("button", { name: "More settings" }).click();
+    await expect(
+      page.getByTestId("production-review-llm-provider-value"),
+    ).toHaveText("No longer available");
+    // And what the reviews use instead, as the Edit form's field says it.
+    await expect(
+      page.getByTestId("production-review-llm-provider-warning"),
+    ).toHaveText(
+      "OneUptime AI can no longer use this provider, so it uses the default instead. Pick another one, or clear it.",
+    );
+  });
+
+  test("a repository that had picked one opens with it", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    test.skip(isPhone(testInfo), "width-independent");
+    await page.goto(
+      `${SETTINGS}?reviewllm=opus#production-review-llm-provider`,
+    );
+
+    await expect(
+      page.getByTestId("production-review-llm-provider-value"),
+    ).toHaveText("Claude Opus");
   });
 
   test("a repository connected before production review existed reads as off; the reviews page then says how to ask", async ({

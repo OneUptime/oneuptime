@@ -318,3 +318,54 @@ export function getEventEndDateForCurrentState(
 
   return endDate;
 }
+
+/*
+ * Where an incident or an alert stands now, by its latest dated state:
+ * resolved (a state that counts as resolved - Common/Utils/ResolvedState),
+ * acknowledged (one that counts as acknowledged short of resolved -
+ * Common/Utils/AcknowledgedState), or open. What its page offers follows
+ * it: nothing asks to acknowledge what is acknowledged, or what to do
+ * right now about what is resolved.
+ */
+export enum EventStanding {
+  Open = "Open",
+  Acknowledged = "Acknowledged",
+  Resolved = "Resolved",
+}
+
+/*
+ * Undefined while the event has no dated state to tell by: then nothing
+ * is assumed of it. The latest state is read as getEventEndDateForCurrentState
+ * reads it: by its start, a later entry in the list winning a tie.
+ */
+export function getEventStanding(data: {
+  timelines: Array<EventStateTimelineDate>;
+  acknowledgedStateIds: Array<string>;
+  resolvedStateIds: Array<string>;
+}): EventStanding | undefined {
+  let latest: EventStateTimelineDate | undefined = undefined;
+
+  for (const timeline of data.timelines) {
+    if (!timeline.startsAt) {
+      continue;
+    }
+
+    if (!latest || timeline.startsAt.getTime() >= latest.startsAt!.getTime()) {
+      latest = timeline;
+    }
+  }
+
+  if (!latest || !latest.stateId) {
+    return undefined;
+  }
+
+  if (data.resolvedStateIds.includes(latest.stateId)) {
+    return EventStanding.Resolved;
+  }
+
+  if (data.acknowledgedStateIds.includes(latest.stateId)) {
+    return EventStanding.Acknowledged;
+  }
+
+  return EventStanding.Open;
+}

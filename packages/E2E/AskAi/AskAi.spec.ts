@@ -1987,3 +1987,116 @@ test.describe("with reduced motion", () => {
     ).toBeLessThan(0.4);
   });
 });
+
+/*
+ * Ask AI's questions follow the record on screen (the follow-up #5273
+ * listed): read with the incident's title each time Ask AI opens, a
+ * resolved incident's questions ask how the response went and what would
+ * stop it coming back, not for a status update on what is known so far.
+ */
+test.describe("on a resolved incident", () => {
+  const RESOLVED_SUGGESTIONS: Array<string> = [
+    "Summarize",
+    "Find root cause",
+    "Response timeline",
+    "Prevent a repeat",
+  ];
+
+  test("its questions are a resolved incident's, and one asks it about the incident", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "incident=resolved&run=hold");
+    await openAskAi(page);
+
+    await expect(page.getByTestId("ai-chat-context")).toHaveText(INCIDENT_CHIP);
+    const chips: Locator = page.getByTestId("ai-chat-suggestion");
+    await expect(chips).toHaveText(RESOLVED_SUGGESTIONS);
+    await expect(chips.first()).toHaveAttribute(
+      "title",
+      "Summarize this incident: what happened, how long it lasted, and how it was resolved.",
+    );
+    await expect(
+      chips.filter({ hasText: "Response timeline" }),
+    ).toHaveAttribute(
+      "title",
+      "How long did this incident take to acknowledge and to resolve, and where did the response slow down?",
+    );
+    await screenshot(page, "start-resolved-incident-1280");
+
+    await chips.filter({ hasText: "Prevent a repeat" }).click();
+
+    await expect(page.getByTestId("ai-chat-live")).toBeVisible();
+    expect((await state(page)).sent).toEqual([
+      expect.objectContaining({
+        content:
+          "What would stop this incident from happening again? Base it on its root cause and on similar past incidents.",
+        // Where it stands stays in the browser: the server reads the incident.
+        pageContext: {
+          type: "Incident",
+          entityId: INCIDENT_ID,
+          entityTitle: "#42 Checkout latency above 2s",
+        },
+      }),
+    ]);
+  });
+
+  test("an open incident keeps the incident's own questions, its state read all the same", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "incident=open");
+    await openAskAi(page);
+
+    await expect(page.getByTestId("ai-chat-context")).toHaveText(INCIDENT_CHIP);
+    await expect(page.getByTestId("ai-chat-suggestion")).toHaveText(
+      INCIDENT_SUGGESTIONS,
+    );
+  });
+
+  test("in German, the resolved incident's questions are German", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "incident=resolved&lang=de");
+    await openAskAi(page);
+
+    await expect(page.getByTestId("ai-chat-suggestion")).toHaveText([
+      "Zusammenfassen",
+      "Grundursache finden",
+      "Ablauf der Reaktion",
+      "Wiederholung verhindern",
+    ]);
+    await expect(
+      page
+        .getByTestId("ai-chat-suggestion")
+        .filter({ hasText: "Wiederholung verhindern" }),
+    ).toHaveAttribute(
+      "title",
+      "Was würde verhindern, dass dieser Vorfall erneut auftritt? Stütze dich auf seine Grundursache und auf ähnliche frühere Vorfälle.",
+    );
+    await screenshot(page, "start-resolved-incident-1280-de");
+  });
+
+  test.describe("on a phone", () => {
+    test.use({ viewport: { width: 390, height: 844 } });
+
+    test("its questions fit, in German and in Persian", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      for (const lang of ["de", "fa"]) {
+        await load(page, `incident=resolved&lang=${lang}`);
+        await openAskAi(page);
+
+        await expect(page.getByTestId("ai-chat-suggestion")).toHaveCount(4);
+        await expectNoSidewaysScroll(page);
+        await screenshot(page, `start-resolved-incident-390-${lang}`);
+      }
+    });
+  });
+});

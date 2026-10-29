@@ -162,6 +162,7 @@ jest.mock(
 
 import { AIInvestigationStage } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/AIInvestigationStatus";
 import InvestigationConversation from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationConversation/InvestigationConversation";
+import { EventStanding } from "../../../../App/FeatureSet/Dashboard/src/Utils/EventDuration";
 import {
   THREAD_FOLD_ABOVE_LENGTH,
   THREAD_PERMISSION_MODE_STORAGE_KEY,
@@ -328,12 +329,14 @@ function renderConversation(data?: {
   subjectType?: "incident" | "alert";
   subjectId?: ObjectID;
   stage?: AIInvestigationStage;
+  standing?: EventStanding;
 }): ReturnType<typeof render> {
   return render(
     <InvestigationConversation
       subjectType={data?.subjectType || "incident"}
       subjectId={data?.subjectId || INCIDENT_ID}
       investigationStage={data?.stage}
+      standing={data?.standing}
     />,
   );
 }
@@ -1374,6 +1377,78 @@ describe("InvestigationConversation — what it suggests", () => {
       ]);
     },
   );
+
+  /*
+   * Where the incident stands, as its page reads it: nothing offers to
+   * acknowledge what is acknowledged, and a resolved one is asked how the
+   * response went and what would stop it coming back.
+   */
+  test("an acknowledged incident: no request to acknowledge it again", async () => {
+    routeResponses({});
+
+    renderConversation({
+      stage: "reported",
+      standing: EventStanding.Acknowledged,
+    });
+    await flush();
+
+    expect(chipLabels()).toEqual([
+      "What should I do right now?",
+      "What changed just before this?",
+      "Is anything else affected?",
+      "Draft a status update",
+    ]);
+  });
+
+  test("a resolved incident: how the response went and what would stop it coming back, each asked in one click", async () => {
+    routeResponses({});
+
+    renderConversation({ stage: "reported", standing: EventStanding.Resolved });
+    await flush();
+
+    expect(chipLabels()).toEqual([
+      "Prevent a repeat",
+      "What changed just before this?",
+      "Response timeline",
+      "Draft a status update",
+    ]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Prevent a repeat" }));
+    await flush();
+
+    expect(
+      requests("/ai-investigation/conversation/send-message")[0]!.data[
+        "content"
+      ],
+    ).toBe(
+      "What would stop this incident from happening again? Base it on its root cause and on similar past incidents.",
+    );
+  });
+
+  test("the incident resolved while the card is open: its suggestions follow", async () => {
+    routeResponses({});
+
+    const view: ReturnType<typeof render> = renderConversation({
+      stage: "reported",
+      standing: EventStanding.Open,
+    });
+    await flush();
+
+    expect(chipLabels()).toContain("Acknowledge this incident");
+
+    view.rerender(
+      <InvestigationConversation
+        subjectType="incident"
+        subjectId={INCIDENT_ID}
+        investigationStage="reported"
+        standing={EventStanding.Resolved}
+      />,
+    );
+    await flush();
+
+    expect(chipLabels()).not.toContain("Acknowledge this incident");
+    expect(chipLabels()[0]).toBe("Prevent a repeat");
+  });
 
   test("waits for the card to know before it suggests anything", async () => {
     routeResponses({});

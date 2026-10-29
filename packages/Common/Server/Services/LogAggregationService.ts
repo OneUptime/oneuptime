@@ -1732,6 +1732,54 @@ export class LogAggregationService {
   }
 
   /**
+   * Whether any log reached OneUptime for the project in the window - what
+   * an AI investigation that could not tell the cause, and found no log
+   * line, asks to tell "no logs at all" from "none about this"
+   * (Utils/AI/InvestigationLogStall). The first row the scan finds, by the
+   * sort key's project and time, and nothing more; bounded like the AI
+   * section's other unattended reads. The window is half-open.
+   */
+  @CaptureSpan()
+  public static async hasLogsInWindow(request: {
+    projectId: ObjectID;
+    startTime: Date;
+    endTime: Date;
+  }): Promise<boolean> {
+    const rows: Array<JSONObject> = await LogAggregationService.runQuery(
+      LogAggregationService.buildHasLogsInWindowStatement(request),
+    );
+
+    return rows.length > 0;
+  }
+
+  public static buildHasLogsInWindowStatement(request: {
+    projectId: ObjectID;
+    startTime: Date;
+    endTime: Date;
+  }): Statement {
+    const statement: Statement = SQL`SELECT 1 AS found FROM ${LogAggregationService.TABLE_NAME}`;
+
+    statement.append(
+      SQL` WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: request.projectId,
+      }} AND time >= ${{
+        type: TableColumnType.Date,
+        value: request.startTime,
+      }} AND time < ${{
+        type: TableColumnType.Date,
+        value: request.endTime,
+      }}`,
+    );
+
+    statement.append(LogAggregationService.RETENTION_FILTER);
+    statement.append(SQL` LIMIT 1`);
+    statement.append(LogAggregationService.logInsightQuerySettings());
+
+    return statement;
+  }
+
+  /**
    * Every service's logs over a window - all of them, the ones at Error or
    * Fatal severity, and the ones that carried a trace id - busiest first:
    * the first read of the Logs product's AI section, once an hour, for the
