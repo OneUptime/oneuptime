@@ -567,6 +567,30 @@ describe("on a phone", () => {
     ).toBeInTheDocument();
   });
 
+  // A numbered record's crumb: its number first, as the heading says it.
+  test("a trail that ends in a numbered record shows its number, then its name", async () => {
+    await renderAt(
+      "/admin/settings/backups",
+      <PageTrailEndContext.Provider
+        value={{
+          title: "View Incident",
+          recordName: "Manually declared",
+          recordNumber: "INC-18",
+          to: new Route("/admin/settings/backups"),
+        }}
+      >
+        {settingsMenu()}
+      </PageTrailEndContext.Provider>,
+    );
+
+    expect(
+      screen.getByRole("heading", {
+        level: 3,
+        name: "INC-18 Manually declared",
+      }),
+    ).toBeInTheDocument();
+  });
+
   test("outside a Page, a page no entry is for still says Navigation", async () => {
     await renderAt("/admin/settings/backups", settingsMenu());
 
