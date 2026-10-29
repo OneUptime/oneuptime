@@ -18,7 +18,7 @@ An incident is the record your team works from when something breaks: what is af
 - **Three seeded states** — **Identified**, **Acknowledged** and **Resolved** are created for every new project. You can add your own; the three seeded ones can be renamed and recolored but never deleted.
 - **Three seeded severities** — **Critical Incident**, **Major Incident** and **Minor Incident**. Severity is a label with a color and an order — it carries no behavior of its own.
 - **Five ways in** — the **Declare Incident** wizard, **Create from Template**, a monitor criteria rule, `POST /api/incident`, or a [form](/docs/forms/index) that anyone with its link can fill in.
-- **Numbered per project** — every incident gets an incident number from a per-project counter, shown with your project's prefix: `INC-42` in a new project, or `#42` with no prefix.
+- **Numbered per project** — every incident gets an incident number from a per-project counter, shown with your project's prefix: `INC-42` in a new project, or `#42` with no prefix. The number comes before the incident's title on its pages, in the browser tab, in search and in the dialogs about it, so incidents that share a title are told apart.
 - **Two kinds of notes** — private notes (internal notes) for your team, public notes for status page subscribers.
 - **Alerts link to incidents** — link the alerts that are part of an incident, or declare an incident straight from alerts — from an alerts list or from an alert's own page — and acknowledge them as you do. See [Linked Alerts](/docs/incidents/linked-alerts).
 - **Settings live under Incidents, not Project Settings** — states, severities, templates, custom fields and the rule engines are all at **Incidents → Settings** and **Incidents → Rules**.

@@ -133,6 +133,7 @@ Acima do título de cada página, uma trilha como *Projeto › Docker › Config
 
 - **As listas se mantêm atualizadas sozinhas.** Quando um incidente ou alerta é criado, reconhecido ou resolvido em qualquer lugar, as listas de incidentes, alertas e episódios o mostram em segundos, sem recarregar. Enquanto você está no meio de algo em uma lista, como linhas marcadas ou uma caixa de diálogo aberta, ela espera e se atualiza quando você termina.
 - **No celular, os chips de filtro se recolhem** atrás de **Filtro**, para que a lista comece mais acima. Os chips que você definiu continuam à vista, com **Limpar tudo**. Toque em **Filtro** para ver todos os chips, e de novo para recolhê-los.
+- **As páginas de um incidente começam pelo número dele.** O título, o passo dele na trilha e a aba do navegador mostram `INC-42 Checkout is down`, assim como as caixas de diálogo que o nomeiam, para que incidentes com o mesmo título se distingam. Alertas, eventos de manutenção programada e episódios fazem o mesmo.
 
 ## Pesquisar uma página, uma configuração ou uma ação
 
@@ -141,7 +142,7 @@ Pressione **Cmd+K** (Mac) ou **Ctrl+K** (Windows e Linux), ou clique no ícone d
 - **Todas as páginas dos menus**, pelo nome que o menu dá a elas: Chaves de API, Zona de perigo, Agendamentos de plantão, Severidade do incidente, seus próprios Métodos de notificação. Cada resultado diz onde fica, por exemplo *Configurações do projeto › Avançado*, para que páginas com o mesmo nome (Campos personalizados em Incidentes, Alertas e Monitores) sejam fáceis de distinguir.
 - **As configurações de uma página**, pelo nome que o cartão ou o botão delas mostra: *Exigir SSO para login* encontra SSO, e *Canais de notificação* encontra Configurações de notificação. Digite o nome em inglês ou no seu idioma.
 - **Ações**, pelo que você quer fazer: Declarar incidente, Criar monitor ou Delete Project, que abre a Zona de perigo. Uma ação que muda algo só é oferecida a quem tem permissão para fazê-la.
-- **Seus monitores, incidentes, alertas, páginas de status e políticas de plantão**, pelo nome.
+- **Seus monitores, incidentes, alertas, páginas de status e políticas de plantão**, pelo nome, e incidentes e alertas também pelo número, como `INC-42`. Cada resultado de incidente ou alerta começa pelo número dele, para que dois com o mesmo título se distingam.
 
 A pesquisa lê o que você digita do jeito que você quer dizer:
 

@@ -133,6 +133,7 @@ Ovanför varje sidas rubrik visar ett spår som *Projekt › Docker › Inställ
 
 - **Listor håller sig själva aktuella.** När en incident eller ett larm skapas, kvitteras eller löses någonstans visar listorna över incidenter, larm och episoder det inom några sekunder, utan omladdning. Medan du är mitt i något på en lista, till exempel med rader markerade eller en dialogruta öppen, väntar den och kommer i kapp när du är klar.
 - **På en telefon fälls filterchippen ihop** bakom **Filter**, så att listan börjar högre upp. Chippen du har satt syns fortfarande, med **Rensa alla**. Tryck på **Filter** för att se alla chipp, och igen för att fälla ihop dem.
+- **En incidents sidor börjar med dess nummer.** Rubriken, dess steg i spåret och webbläsarfliken visar `INC-42 Checkout is down`, och det gör även dialogrutorna som nämner den, så att incidenter med samma titel går att skilja åt. Larm, schemalagda underhållshändelser och episoder gör likadant.
 
 ## Sök efter en sida, en inställning eller en åtgärd
 
@@ -141,7 +142,7 @@ Tryck på **Cmd+K** (Mac) eller **Ctrl+K** (Windows och Linux), eller klicka på
 - **Varje sida i menyerna**, under namnet som menyn ger den: API-nycklar, Farozon, Jourscheman, Incidentallvar, dina egna Aviseringsmetoder. Varje resultat säger var det finns, till exempel *Projektinställningar › Avancerad*, så att sidor med samma namn (Anpassade fält under Incidenter, Larm och Monitorer) är lätta att skilja åt.
 - **Inställningarna på en sida**, under namnet som deras kort eller reglage visar: *Kräv SSO för inloggning* hittar SSO, och *Aviseringskanaler* hittar Aviseringsinställningar. Skriv namnet på engelska eller på ditt eget språk.
 - **Åtgärder**, efter vad du vill göra: Deklarera incident, Skapa monitor eller Delete Project, som öppnar Farozon. En åtgärd som ändrar något erbjuds bara den som får utföra den.
-- **Dina monitorer, incidenter, larm, statussidor och jourpolicyer**, efter namn.
+- **Dina monitorer, incidenter, larm, statussidor och jourpolicyer**, efter namn, och incidenter och larm även efter nummer, som `INC-42`. Varje resultat för en incident eller ett larm börjar med dess nummer, så att två med samma titel går att skilja åt.
 
 Sökningen läser det du skriver som du menar det:
 
