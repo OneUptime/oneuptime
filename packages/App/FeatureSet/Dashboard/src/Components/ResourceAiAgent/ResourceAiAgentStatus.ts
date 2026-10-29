@@ -129,6 +129,16 @@ export function getResourceAiAgentReadyText(
 export function getResourceAiAgentNotInstalledText(
   descriptor: ResourceAiAgentDescriptor,
 ): string {
+  /*
+   * A cloud account is read live without an agent; its Cloud AI agent runs
+   * in the account and starts from one command in the cloud's own shell.
+   */
+  if (descriptor.isCloudAccount) {
+    return translateTemplate(
+      "OneUptime AI can read this account but can't change it. One command in the cloud's own shell starts the agent, which connects on its own.",
+    );
+  }
+
   return translateTemplate(
     "Install the {{agent}} — it runs next to this {{noun}}, read-only by default, with the key its telemetry agent already uses. This page updates within a minute.",
     {
@@ -234,6 +244,15 @@ export const RESOURCE_AI_SETTINGS_SET_BY_TEXT: Readonly<
     "Chosen on this page. You can set them where the {{agent}} runs instead (ONEUPTIME_AI_INVESTIGATION and ONEUPTIME_AI_FIXES), so they follow the agent.",
   ),
 };
+
+/*
+ * A Cloud AI agent's line above the rows: its setup command writes both
+ * settings (ONEUPTIME_AI_INVESTIGATION and ONEUPTIME_AI_FIXES), and Change
+ * shows that command again - there is no configuration to edit by hand.
+ */
+export const RESOURCE_AI_CLOUD_SETTINGS_SET_BY_TEXT: string = translationKey(
+  "Set by the {{agent}}'s setup command. Change shows it again with other choices; this page follows.",
+);
 
 // The "Needs attention" step for investigation the agent keeps off.
 export const RESOURCE_AGENT_SET_INVESTIGATION_STEP_TEXT: string =
@@ -426,6 +445,14 @@ export function getResourceAiAgentStateSentence(
             );
       }
 
+      // A Cloud AI agent runs in the account itself.
+      if (descriptor.isCloudAccount) {
+        return translateTemplate(
+          "The {{agent}} is running in this {{noun}}.",
+          getAgentAndNoun(descriptor),
+        );
+      }
+
       return translateTemplate(
         "The {{agent}} is running next to this {{noun}}.",
         getAgentAndNoun(descriptor),
@@ -472,10 +499,14 @@ export function getResourceAiAgentCardCommand(
 /*
  * What the agent may change, from the posture it reports: "Read-only",
  * "Can change: web, api" (ONEUPTIME_AI_WRITE_TARGETS) or "Can change any
- * target" (writes on, no target list). Null without a posture.
+ * target" (writes on, no target list). Null without a posture. A Cloud AI
+ * agent's targets are its own account's resources (only those carrying its
+ * required tag when it has one), never "any target": it says "Can make
+ * changes", or names the tag.
  */
 export function describeResourceAiAgentWriteAccess(
   posture: ResourceAiAgentPosture | null | undefined,
+  descriptor?: ResourceAiAgentDescriptor | undefined,
 ): string | null {
   if (!posture) {
     return null;
@@ -491,11 +522,23 @@ export function describeResourceAiAgentWriteAccess(
       })
     : [];
 
-  return targets.length === 0
-    ? translateTemplate("Can change any target")
-    : translateTemplate("Can change: {{targets}}", {
-        targets: targets.join(", "),
-      });
+  if (targets.length > 0) {
+    return translateTemplate("Can change: {{targets}}", {
+      targets: targets.join(", "),
+    });
+  }
+
+  if (descriptor?.isCloudAccount) {
+    const requiredTag: unknown = posture.details?.["requiredTag"];
+
+    return typeof requiredTag === "string" && requiredTag.trim()
+      ? translateTemplate("Changes only resources tagged {{tag}}", {
+          tag: requiredTag.trim(),
+        })
+      : translateTemplate("Can make changes");
+  }
+
+  return translateTemplate("Can change any target");
 }
 
 /*
@@ -575,6 +618,7 @@ export function getResourceAiAgentMeta(
 
   const writeAccess: string | null = describeResourceAiAgentWriteAccess(
     agent.posture,
+    descriptor,
   );
 
   if (writeAccess) {

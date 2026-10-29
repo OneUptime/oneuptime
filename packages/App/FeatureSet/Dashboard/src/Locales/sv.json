@@ -36460,7 +36460,7 @@
   "for {{count}} hosts_one": "för {{count}} värd",
   "for {{count}} users": "för {{count}} användare",
   "for {{count}} users_one": "för {{count}} användare",
-  "live reads of the account": "läsningar av kontot i realtid",
+  "live reads": "läsningar i realtid",
   "restart services, start and reboot instances, scale out and in, roll back a deployment and set concurrency": "starta om tjänster, starta och starta om instanser, skala ut och in, rulla tillbaka en distribution och ställa in samtidighetsgränser",
   "riskier changes such as scaling in, rebooting an instance or rolling back a service": "mer riskfyllda ändringar som att skala in, starta om en instans eller rulla tillbaka en tjänst",
   "scaling in, rebooting an instance or rolling back a service": "att skala in, starta om en instans eller rulla tillbaka en tjänst",
@@ -37111,5 +37111,9 @@
   "Dry run {{time}}: it could not finish. Nothing was changed.": "Provkörning {{time}}: den kunde inte slutföras. Ingenting ändrades.",
   "Dry run {{time}}: the agent would refuse this change. Nothing was changed.": "Provkörning {{time}}: agenten skulle neka ändringen. Ingenting ändrades.",
   "Dry run {{time}}: this change would run. Nothing was changed.": "Provkörning {{time}}: ändringen skulle köras. Ingenting ändrades.",
-  "What the agent said": "Vad agenten svarade"
+  "What the agent said": "Vad agenten svarade",
+  "Changes only resources tagged {{tag}}": "Ändrar bara resurser som är taggade med {{tag}}",
+  "Set by the {{agent}}'s setup command. Change shows it again with other choices; this page follows.": "Anges av installationskommandot för {{agent}}. Ändra visar det igen med andra val; den här sidan följer med.",
+  "The {{agent}} is running in this {{noun}}.": "{{agent}} körs i den här resursen ({{noun}}).",
+  "Can make changes": "Kan göra ändringar"
 }

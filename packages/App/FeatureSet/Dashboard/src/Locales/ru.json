@@ -36460,7 +36460,7 @@
   "for {{count}} hosts_one": "для {{count}} хоста",
   "for {{count}} users": "для пользователей: {{count}}",
   "for {{count}} users_one": "для {{count}} пользователя",
-  "live reads of the account": "запросы на чтение к аккаунту в реальном времени",
+  "live reads": "запросы на чтение в реальном времени",
   "restart services, start and reboot instances, scale out and in, roll back a deployment and set concurrency": "перезапускать сервисы, запускать и перезагружать экземпляры, увеличивать и уменьшать число экземпляров, откатывать развёртывание и задавать лимит параллелизма",
   "riskier changes such as scaling in, rebooting an instance or rolling back a service": "более рискованные изменения, такие как уменьшение числа экземпляров, перезагрузка экземпляра или откат сервиса",
   "scaling in, rebooting an instance or rolling back a service": "уменьшение числа экземпляров, перезагрузка экземпляра или откат сервиса",
@@ -37111,5 +37111,9 @@
   "Dry run {{time}}: it could not finish. Nothing was changed.": "Пробный запуск {{time}}: его не удалось завершить. Ничего не изменено.",
   "Dry run {{time}}: the agent would refuse this change. Nothing was changed.": "Пробный запуск {{time}}: агент отклонил бы это изменение. Ничего не изменено.",
   "Dry run {{time}}: this change would run. Nothing was changed.": "Пробный запуск {{time}}: это изменение было бы выполнено. Ничего не изменено.",
-  "What the agent said": "Что ответил агент"
+  "What the agent said": "Что ответил агент",
+  "Changes only resources tagged {{tag}}": "Изменяет только ресурсы с тегом {{tag}}",
+  "Set by the {{agent}}'s setup command. Change shows it again with other choices; this page follows.": "Задано командой установки, с которой запущен {{agent}}. «Изменить» снова показывает её с другими вариантами — эта страница следует за ними.",
+  "The {{agent}} is running in this {{noun}}.": "{{agent}} работает в этом ресурсе ({{noun}}).",
+  "Can make changes": "Может вносить изменения"
 }

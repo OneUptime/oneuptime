@@ -148,7 +148,8 @@ const CloudAiAgentCard: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
-        <div>
+        {/* The button lines up with the sentence: no dialog footer margin. */}
+        <div className="[&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
           <Button
             title="Let AI fix problems"
             icon={IconProp.Automation}

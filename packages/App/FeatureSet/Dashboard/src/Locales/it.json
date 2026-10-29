@@ -36460,7 +36460,7 @@
   "for {{count}} hosts_one": "per {{count}} host",
   "for {{count}} users": "per {{count}} utenti",
   "for {{count}} users_one": "per {{count}} utente",
-  "live reads of the account": "letture in tempo reale dell'account",
+  "live reads": "letture in tempo reale",
   "restart services, start and reboot instances, scale out and in, roll back a deployment and set concurrency": "riavviare servizi, avviare e riavviare istanze, aumentare e ridurre la capacità, eseguire il rollback di un deployment e impostare la concorrenza",
   "riskier changes such as scaling in, rebooting an instance or rolling back a service": "modifiche più rischiose come ridurre la capacità, riavviare un'istanza o eseguire il rollback di un servizio",
   "scaling in, rebooting an instance or rolling back a service": "ridurre la capacità, riavviare un'istanza o eseguire il rollback di un servizio",
@@ -37111,5 +37111,9 @@
   "Dry run {{time}}: it could not finish. Nothing was changed.": "Simulazione {{time}}: non è riuscita a terminare. Non è stato modificato nulla.",
   "Dry run {{time}}: the agent would refuse this change. Nothing was changed.": "Simulazione {{time}}: l'agente rifiuterebbe questa modifica. Non è stato modificato nulla.",
   "Dry run {{time}}: this change would run. Nothing was changed.": "Simulazione {{time}}: questa modifica verrebbe eseguita. Non è stato modificato nulla.",
-  "What the agent said": "Cosa ha risposto l'agente"
+  "What the agent said": "Cosa ha risposto l'agente",
+  "Changes only resources tagged {{tag}}": "Modifica solo le risorse con il tag {{tag}}",
+  "Set by the {{agent}}'s setup command. Change shows it again with other choices; this page follows.": "Impostato dal comando di configurazione dell'{{agent}}. Cambia lo mostra di nuovo con altre scelte; questa pagina si adegua.",
+  "The {{agent}} is running in this {{noun}}.": "L'{{agent}} è in esecuzione in questa risorsa ({{noun}}).",
+  "Can make changes": "Può apportare modifiche"
 }

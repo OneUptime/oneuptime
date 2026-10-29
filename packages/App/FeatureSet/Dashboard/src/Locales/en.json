@@ -36460,7 +36460,7 @@
   "for {{count}} hosts_one": "for {{count}} host",
   "for {{count}} users": "for {{count}} users",
   "for {{count}} users_one": "for {{count}} user",
-  "live reads of the account": "live reads of the account",
+  "live reads": "live reads",
   "restart services, start and reboot instances, scale out and in, roll back a deployment and set concurrency": "restart services, start and reboot instances, scale out and in, roll back a deployment and set concurrency",
   "riskier changes such as scaling in, rebooting an instance or rolling back a service": "riskier changes such as scaling in, rebooting an instance or rolling back a service",
   "scaling in, rebooting an instance or rolling back a service": "scaling in, rebooting an instance or rolling back a service",
@@ -37111,5 +37111,9 @@
   "Dry run {{time}}: it could not finish. Nothing was changed.": "Dry run {{time}}: it could not finish. Nothing was changed.",
   "Dry run {{time}}: the agent would refuse this change. Nothing was changed.": "Dry run {{time}}: the agent would refuse this change. Nothing was changed.",
   "Dry run {{time}}: this change would run. Nothing was changed.": "Dry run {{time}}: this change would run. Nothing was changed.",
-  "What the agent said": "What the agent said"
+  "What the agent said": "What the agent said",
+  "Changes only resources tagged {{tag}}": "Changes only resources tagged {{tag}}",
+  "Set by the {{agent}}'s setup command. Change shows it again with other choices; this page follows.": "Set by the {{agent}}'s setup command. Change shows it again with other choices; this page follows.",
+  "The {{agent}} is running in this {{noun}}.": "The {{agent}} is running in this {{noun}}.",
+  "Can make changes": "Can make changes"
 }

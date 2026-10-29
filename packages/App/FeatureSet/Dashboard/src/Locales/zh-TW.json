@@ -36460,7 +36460,7 @@
   "for {{count}} hosts_one": "涉及 {{count}} 台主機",
   "for {{count}} users": "涉及 {{count}} 個使用者",
   "for {{count}} users_one": "涉及 {{count}} 個使用者",
-  "live reads of the account": "對帳戶的即時讀取",
+  "live reads": "即時讀取",
   "restart services, start and reboot instances, scale out and in, roll back a deployment and set concurrency": "重新啟動服務、啟動及重新開機執行個體、擴展及縮減規模、回復部署，以及設定並行數",
   "riskier changes such as scaling in, rebooting an instance or rolling back a service": "縮減規模、重新開機執行個體或回復服務等風險較高的變更",
   "scaling in, rebooting an instance or rolling back a service": "縮減規模、重新開機執行個體或回復服務",
@@ -37111,5 +37111,9 @@
   "Dry run {{time}}: it could not finish. Nothing was changed.": "試運行（{{time}}）：未能完成。未做任何變更。",
   "Dry run {{time}}: the agent would refuse this change. Nothing was changed.": "試運行（{{time}}）：代理程式會拒絕此變更。未做任何變更。",
   "Dry run {{time}}: this change would run. Nothing was changed.": "試運行（{{time}}）：此變更將會執行。未做任何變更。",
-  "What the agent said": "代理程式的回覆"
+  "What the agent said": "代理程式的回覆",
+  "Changes only resources tagged {{tag}}": "僅變更帶有 {{tag}} 標籤的資源",
+  "Set by the {{agent}}'s setup command. Change shows it again with other choices; this page follows.": "由 {{agent}} 的設定命令決定。點選「變更」可用其他選項再次顯示該命令；此頁面會隨之更新。",
+  "The {{agent}} is running in this {{noun}}.": "{{agent}} 正在此{{noun}}中執行。",
+  "Can make changes": "可進行變更"
 }

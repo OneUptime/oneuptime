@@ -26,6 +26,7 @@ import {
 import {
   RESOURCE_AGENT_SET_INVESTIGATION_STEP_TEXT,
   RESOURCE_AI_AGENT_STATUS_POLL_INTERVAL_MS,
+  RESOURCE_AI_CLOUD_SETTINGS_SET_BY_TEXT,
   RESOURCE_AI_SETTINGS_SET_BY_TEXT,
   getResourceAiAgentInstallInvestigationText,
   getResourceAiAgentNotInstalledText,
@@ -3204,6 +3205,86 @@ describe("every resource type", () => {
       fireEvent.click(screen.getByTestId("ai-agent-cloud-set-up"));
 
       expect(await findTestId("cloud-ai-agent-setup")).toBeInTheDocument();
+    },
+  );
+
+  /*
+   * A Cloud AI agent once it runs: in the account (not next to it), set by
+   * its setup command - which Change shows again - and able to make
+   * changes, never "any target".
+   */
+  test.each(CLOUD_AI_RESOURCE_TYPES)(
+    "%s: a running Cloud AI agent is in the account, set by its setup command, and Change shows that command",
+    async (type: AiResourceType) => {
+      const descriptor: ResourceAiAgentDescriptor =
+        getResourceAiAgentDescriptor(type);
+      serve(
+        makeStatus({
+          resourceType: type,
+          aiSettingsSource: "agent_configuration",
+          aiRemediationMode: ResourceAiRemediationMode.RequireApproval,
+          gaps: [],
+          isRemediationReady: true,
+          agent: makeAgent({
+            posture: makePosture({ resourceType: type, allowWrites: true }),
+          }),
+        }),
+      );
+      openAgentPage(descriptor, cloudAccountOf(type));
+
+      expect(await findTestId("ai-agent-sentence")).toHaveTextContent(
+        `The Cloud AI agent is running in this ${descriptor.noun}.`,
+      );
+      expect(await findText(/Can make changes/)).toBeInTheDocument();
+      expect(screen.queryByText(/Can change any target/)).toBeNull();
+
+      const line: HTMLElement = await findTestId("ai-access-set-by");
+      expect(line).toHaveAttribute("data-set-by-agent", "true");
+      expect(line).toHaveTextContent(
+        RESOURCE_AI_CLOUD_SETTINGS_SET_BY_TEXT.replace(
+          "{{agent}}",
+          descriptor.agentName,
+        ),
+      );
+      expect(line).not.toHaveTextContent("ONEUPTIME_AI_INVESTIGATION");
+
+      // Change is the setup command again, never a .env to edit.
+      fireEvent.click(await findTestId("ai-access-change-button"));
+      expect(await findTestId("cloud-ai-agent-setup")).toBeInTheDocument();
+      expect(screen.queryByTestId("agent-ai-settings-dialog")).toBeNull();
+    },
+  );
+
+  test.each(CLOUD_AI_RESOURCE_TYPES)(
+    "%s: with no agent yet the card says it once, and fixes that are off point at Change's command",
+    async (type: AiResourceType) => {
+      const descriptor: ResourceAiAgentDescriptor =
+        getResourceAiAgentDescriptor(type);
+      grant(ADMIN_PERMISSIONS);
+      serve({
+        ...notInstalledStatus(),
+        resourceType: type,
+        isInvestigationReady: true,
+        gaps: [
+          {
+            ...gap("ai_agent_not_connected"),
+            blocksInvestigation: false,
+          },
+        ],
+      });
+      openAgentPage(descriptor, cloudAccountOf(type));
+
+      expect(await findTestId("ai-agent-sentence")).toHaveTextContent(
+        "OneUptime AI can read this account but can't change it. One command in the cloud's own shell starts the agent, which connects on its own.",
+      );
+      // Said once, and no compose install for a cloud account.
+      expect(
+        screen.getAllByText(/OneUptime AI can read this account/),
+      ).toHaveLength(1);
+      expect(screen.queryByText(/Install the Cloud AI agent/)).toBeNull();
+      expect(await findTestId("ai-access-fixes-off-hint")).toHaveTextContent(
+        "Want AI to propose fixes? Click Change to get the command that turns them on in the agent.",
+      );
     },
   );
 

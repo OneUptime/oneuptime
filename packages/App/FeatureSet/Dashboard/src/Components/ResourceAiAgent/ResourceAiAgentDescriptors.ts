@@ -136,7 +136,7 @@ const CLOUD_ACCOUNT_DESCRIPTOR_COPY: Omit<
     "The small container in your cloud account that makes one change at a time from a fixed catalog for OneUptime AI, with a role of its own.",
   ),
   investigateTitle: translationKey("Investigate with live reads"),
-  readOnlyCommandsPhrase: translationKey("live reads of the account"),
+  readOnlyCommandsPhrase: translationKey("live reads"),
   commandsCardTitle: translationKey("cloud operations"),
   toolVersionLabel: null,
   identityColumn: null,

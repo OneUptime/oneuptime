@@ -36460,7 +36460,7 @@
   "for {{count}} hosts_one": "voor {{count}} host",
   "for {{count}} users": "voor {{count}} gebruikers",
   "for {{count}} users_one": "voor {{count}} gebruiker",
-  "live reads of the account": "live leesbewerkingen op het account",
+  "live reads": "live leesbewerkingen",
   "restart services, start and reboot instances, scale out and in, roll back a deployment and set concurrency": "services herstarten, instanties starten en opnieuw opstarten, uit- en inschalen, een deployment terugdraaien en gelijktijdigheid instellen",
   "riskier changes such as scaling in, rebooting an instance or rolling back a service": "riskantere wijzigingen zoals het inschalen, het opnieuw opstarten van een instantie of het terugdraaien van een service",
   "scaling in, rebooting an instance or rolling back a service": "het inschalen, het opnieuw opstarten van een instantie of het terugdraaien van een service",
@@ -37111,5 +37111,9 @@
   "Dry run {{time}}: it could not finish. Nothing was changed.": "Proefrun {{time}}: deze kon niet worden voltooid. Er is niets gewijzigd.",
   "Dry run {{time}}: the agent would refuse this change. Nothing was changed.": "Proefrun {{time}}: de agent zou deze wijziging weigeren. Er is niets gewijzigd.",
   "Dry run {{time}}: this change would run. Nothing was changed.": "Proefrun {{time}}: deze wijziging zou worden uitgevoerd. Er is niets gewijzigd.",
-  "What the agent said": "Wat de agent antwoordde"
+  "What the agent said": "Wat de agent antwoordde",
+  "Changes only resources tagged {{tag}}": "Wijzigt alleen resources met de tag {{tag}}",
+  "Set by the {{agent}}'s setup command. Change shows it again with other choices; this page follows.": "Ingesteld door de installatieopdracht van de {{agent}}. Wijzigen toont die opnieuw met andere keuzes; deze pagina volgt.",
+  "The {{agent}} is running in this {{noun}}.": "De {{agent}} draait in deze resource ({{noun}}).",
+  "Can make changes": "Kan wijzigingen aanbrengen"
 }

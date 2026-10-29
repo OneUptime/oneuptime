@@ -14,6 +14,7 @@ import {
   RESOURCE_AI_ASK_PROJECT_ADMIN_TEXT,
   ResourceAccessTestResult,
   ResourceAiAgentCardCommand,
+  RESOURCE_AI_CLOUD_SETTINGS_SET_BY_TEXT,
   RESOURCE_AI_SETTINGS_SET_BY_TEXT,
   ResourceAiAgentGapAction,
   ResourceAiAgentMeta,
@@ -1497,14 +1498,10 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
               isInvestigationEnabled={status.isAiInvestigationEnabled}
             />
           ) : command === "install" && cloudProvider ? (
-            <div className="space-y-3" data-testid="ai-agent-cloud-setup">
-              <p className="text-sm text-gray-700">
-                {translator.translateText(
-                  translationKey(
-                    "OneUptime AI can read this account but can't change it. One command in the cloud's own shell starts the agent, which connects on its own.",
-                  ),
-                )}
-              </p>
+            <div
+              className="[&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0"
+              data-testid="ai-agent-cloud-setup"
+            >
               <Button
                 title="Let AI fix problems"
                 icon={IconProp.Automation}
@@ -1780,7 +1777,9 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
         {isSetByAgent || canMoveSettingsToAgent ? (
           <AiAccessSetBy
             text={translator.translateTemplate(
-              RESOURCE_AI_SETTINGS_SET_BY_TEXT[aiSettingsSource],
+              descriptor.isCloudAccount && isSetByAgent
+                ? RESOURCE_AI_CLOUD_SETTINGS_SET_BY_TEXT
+                : RESOURCE_AI_SETTINGS_SET_BY_TEXT[aiSettingsSource],
               { agent: translatableTerm(descriptor.agentName) },
             )}
             isSetByAgent={isSetByAgent}
@@ -1822,7 +1821,7 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
             {remediationMode === ResourceAiRemediationMode.Disabled ? (
               <AiAccessHint
                 text={
-                  isSetByAgent
+                  isSetByAgent || descriptor.isCloudAccount
                     ? AI_FIXES_OFF_AGENT_SET_HINT
                     : getAiFixesOffHint(
                         settingsGate.isAllowed &&

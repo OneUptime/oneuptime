@@ -36460,7 +36460,7 @@
   "for {{count}} hosts_one": "{{count}} होस्ट के लिए",
   "for {{count}} users": "{{count}} उपयोगकर्ताओं के लिए",
   "for {{count}} users_one": "{{count}} उपयोगकर्ता के लिए",
-  "live reads of the account": "खाते की लाइव रीडिंग",
+  "live reads": "लाइव रीडिंग",
   "restart services, start and reboot instances, scale out and in, roll back a deployment and set concurrency": "सर्विस को फिर से शुरू करना, इंस्टेंस को शुरू और रीबूट करना, scale out और scale in करना, डिप्लॉयमेंट को रोलबैक करना और समवर्तीता सेट करना",
   "riskier changes such as scaling in, rebooting an instance or rolling back a service": "scale in करने, किसी इंस्टेंस को रीबूट करने या किसी सर्विस को रोलबैक करने जैसे अधिक जोखिम वाले बदलाव",
   "scaling in, rebooting an instance or rolling back a service": "scale in करने, किसी इंस्टेंस को रीबूट करने या किसी सर्विस को रोलबैक करने",
@@ -37111,5 +37111,9 @@
   "Dry run {{time}}: it could not finish. Nothing was changed.": "ड्राई रन {{time}}: यह पूरा नहीं हो सका। कुछ भी नहीं बदला गया।",
   "Dry run {{time}}: the agent would refuse this change. Nothing was changed.": "ड्राई रन {{time}}: एजेंट इस बदलाव को अस्वीकार करेगा। कुछ भी नहीं बदला गया।",
   "Dry run {{time}}: this change would run. Nothing was changed.": "ड्राई रन {{time}}: यह बदलाव चलाया जाएगा। कुछ भी नहीं बदला गया।",
-  "What the agent said": "एजेंट ने क्या कहा"
+  "What the agent said": "एजेंट ने क्या कहा",
+  "Changes only resources tagged {{tag}}": "केवल {{tag}} टैग वाले संसाधन बदलता है",
+  "Set by the {{agent}}'s setup command. Change shows it again with other choices; this page follows.": "{{agent}} के सेटअप कमांड से सेट। बदलें उसे दूसरे विकल्पों के साथ फिर से दिखाता है; यह पेज उसी के अनुसार चलता है।",
+  "The {{agent}} is running in this {{noun}}.": "{{agent}} इस {{noun}} में चल रहा है।",
+  "Can make changes": "बदलाव कर सकता है"
 }

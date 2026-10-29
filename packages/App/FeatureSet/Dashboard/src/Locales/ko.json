@@ -36460,7 +36460,7 @@
   "for {{count}} hosts_one": "호스트 {{count}}개",
   "for {{count}} users": "사용자 {{count}}명",
   "for {{count}} users_one": "사용자 {{count}}명",
-  "live reads of the account": "계정 실시간 읽기 작업",
+  "live reads": "실시간 읽기 작업",
   "restart services, start and reboot instances, scale out and in, roll back a deployment and set concurrency": "서비스 재시작, 인스턴스 시작 및 재부팅, 스케일 아웃 및 스케일 인, 배포 롤백, 동시성 설정",
   "riskier changes such as scaling in, rebooting an instance or rolling back a service": "스케일 인, 인스턴스 재부팅 또는 서비스 롤백 같은 위험도가 높은 변경",
   "scaling in, rebooting an instance or rolling back a service": "스케일 인, 인스턴스 재부팅 또는 서비스 롤백",
@@ -37111,5 +37111,9 @@
   "Dry run {{time}}: it could not finish. Nothing was changed.": "시험 실행({{time}}): 완료하지 못했습니다. 변경된 것은 없습니다.",
   "Dry run {{time}}: the agent would refuse this change. Nothing was changed.": "시험 실행({{time}}): 에이전트가 이 변경을 거부합니다. 변경된 것은 없습니다.",
   "Dry run {{time}}: this change would run. Nothing was changed.": "시험 실행({{time}}): 이 변경은 실행됩니다. 변경된 것은 없습니다.",
-  "What the agent said": "에이전트의 응답"
+  "What the agent said": "에이전트의 응답",
+  "Changes only resources tagged {{tag}}": "{{tag}} 태그가 있는 리소스만 변경",
+  "Set by the {{agent}}'s setup command. Change shows it again with other choices; this page follows.": "{{agent}}의 설정 명령으로 설정됨. 변경을 누르면 다른 선택으로 명령을 다시 보여 줍니다. 이 페이지는 그 설정을 따릅니다.",
+  "The {{agent}} is running in this {{noun}}.": "{{agent}}가 이 {{noun}}에서 실행 중입니다.",
+  "Can make changes": "변경 가능"
 }

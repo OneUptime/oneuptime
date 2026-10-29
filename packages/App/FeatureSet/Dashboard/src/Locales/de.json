@@ -36460,7 +36460,7 @@
   "for {{count}} hosts_one": "für {{count}} Host",
   "for {{count}} users": "für {{count}} Benutzer",
   "for {{count}} users_one": "für {{count}} Benutzer",
-  "live reads of the account": "Live-Abfragen des Kontos",
+  "live reads": "Live-Abfragen",
   "restart services, start and reboot instances, scale out and in, roll back a deployment and set concurrency": "Dienste neu starten, Instanzen starten und neu starten, horizontal hoch- und herunterskalieren, ein Deployment zurückrollen und die Gleichzeitigkeit festlegen",
   "riskier changes such as scaling in, rebooting an instance or rolling back a service": "riskantere Änderungen wie das Herunterskalieren, das Neustarten einer Instanz oder das Zurückrollen eines Dienstes",
   "scaling in, rebooting an instance or rolling back a service": "das Herunterskalieren, das Neustarten einer Instanz oder das Zurückrollen eines Dienstes",
@@ -37111,5 +37111,9 @@
   "Dry run {{time}}: it could not finish. Nothing was changed.": "Probelauf {{time}}: Er konnte nicht abgeschlossen werden. Es wurde nichts geändert.",
   "Dry run {{time}}: the agent would refuse this change. Nothing was changed.": "Probelauf {{time}}: Der Agent würde diese Änderung ablehnen. Es wurde nichts geändert.",
   "Dry run {{time}}: this change would run. Nothing was changed.": "Probelauf {{time}}: Diese Änderung würde ausgeführt. Es wurde nichts geändert.",
-  "What the agent said": "Was der Agent gemeldet hat"
+  "What the agent said": "Was der Agent gemeldet hat",
+  "Changes only resources tagged {{tag}}": "Ändert nur Ressourcen mit dem Tag {{tag}}",
+  "Set by the {{agent}}'s setup command. Change shows it again with other choices; this page follows.": "Der {{agent}} übernimmt dies aus seinem Einrichtungsbefehl. Ändern zeigt den Befehl mit anderen Optionen erneut an; diese Seite folgt.",
+  "The {{agent}} is running in this {{noun}}.": "Der {{agent}} läuft in diesem {{noun}}.",
+  "Can make changes": "Kann Änderungen vornehmen"
 }

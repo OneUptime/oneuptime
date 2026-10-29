@@ -36460,7 +36460,7 @@
   "for {{count}} hosts_one": "para {{count}} host",
   "for {{count}} users": "para {{count}} usuários",
   "for {{count}} users_one": "para {{count}} usuário",
-  "live reads of the account": "leituras em tempo real da conta",
+  "live reads": "leituras em tempo real",
   "restart services, start and reboot instances, scale out and in, roll back a deployment and set concurrency": "reiniciar serviços, iniciar e reiniciar instâncias, aumentar e reduzir a escala, reverter uma implantação e definir a simultaneidade",
   "riskier changes such as scaling in, rebooting an instance or rolling back a service": "alterações mais arriscadas como reduzir a escala, reiniciar uma instância ou reverter um serviço",
   "scaling in, rebooting an instance or rolling back a service": "reduzir a escala, reiniciar uma instância ou reverter um serviço",
@@ -37111,5 +37111,9 @@
   "Dry run {{time}}: it could not finish. Nothing was changed.": "Simulação {{time}}: não foi possível concluí-la. Nada foi alterado.",
   "Dry run {{time}}: the agent would refuse this change. Nothing was changed.": "Simulação {{time}}: o agente recusaria esta alteração. Nada foi alterado.",
   "Dry run {{time}}: this change would run. Nothing was changed.": "Simulação {{time}}: esta alteração seria executada. Nada foi alterado.",
-  "What the agent said": "O que o agente respondeu"
+  "What the agent said": "O que o agente respondeu",
+  "Changes only resources tagged {{tag}}": "Altera apenas recursos com a tag {{tag}}",
+  "Set by the {{agent}}'s setup command. Change shows it again with other choices; this page follows.": "Definido pelo comando de configuração do {{agent}}. Alterar mostra-o novamente com outras opções; esta página acompanha.",
+  "The {{agent}} is running in this {{noun}}.": "O {{agent}} está em execução neste recurso ({{noun}}).",
+  "Can make changes": "Pode fazer alterações"
 }

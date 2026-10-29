@@ -13,6 +13,7 @@ import {
   RESOURCE_AI_CHOICE_GAP_CODES,
   RESOURCE_AI_REFUSED_REGISTRATION_WARNING_WINDOW_MS,
   RESOURCE_AGENT_SET_INVESTIGATION_STEP_TEXT,
+  RESOURCE_AI_CLOUD_SETTINGS_SET_BY_TEXT,
   RESOURCE_AI_SETTINGS_SET_BY_TEXT,
   ResourceAccessTestResult,
   ResourceAiAgentMeta,
@@ -78,6 +79,7 @@ import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
 import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
   ALL_AI_RESOURCE_TYPES,
+  CLOUD_AI_RESOURCE_TYPES,
   isCloudAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 import {
@@ -235,6 +237,20 @@ describe("settings the agent sets", () => {
       expect(text).toContain("ONEUPTIME_AI_INVESTIGATION");
       expect(text).toContain("ONEUPTIME_AI_FIXES");
     }
+  });
+
+  /*
+   * A Cloud AI agent's settings come from its setup command, which writes
+   * both variables itself: its line names the command and the Change
+   * button that shows it again, never variables to edit by hand.
+   */
+  test("a Cloud AI agent's line names its setup command and Change, not variables", () => {
+    expect(RESOURCE_AI_CLOUD_SETTINGS_SET_BY_TEXT).toBe(
+      "Set by the {{agent}}'s setup command. Change shows it again with other choices; this page follows.",
+    );
+    expect(RESOURCE_AI_CLOUD_SETTINGS_SET_BY_TEXT).not.toContain(
+      "ONEUPTIME_AI_",
+    );
   });
 
   test("investigation off, set by the agent: the step points where it runs and offers the lines", () => {
@@ -663,7 +679,11 @@ describe("why an offline agent is offline", () => {
 });
 
 describe("the card's sentence", () => {
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(
+    ALL_AI_RESOURCE_TYPES.filter((type: AiResourceType): boolean => {
+      return !isCloudAiResourceType(type);
+    }),
+  )(
     "%s: names the agent and the resource in every state",
     (type: AiResourceType) => {
       const descriptor: ResourceAiAgentDescriptor =
@@ -687,6 +707,41 @@ describe("the card's sentence", () => {
       expect(getResourceAiAgentNotInstalledText(descriptor)).toContain(
         "read-only by default",
       );
+    },
+  );
+
+  /*
+   * A Cloud AI agent runs in the account itself, and nothing is installed
+   * next to a cloud account: one command in the cloud's own shell starts
+   * it. Its page used to say both, one sentence under the other.
+   */
+  test.each(CLOUD_AI_RESOURCE_TYPES)(
+    "%s: the Cloud AI agent runs in the account, and one command starts it",
+    (type: AiResourceType) => {
+      const descriptor: ResourceAiAgentDescriptor =
+        getResourceAiAgentDescriptor(type);
+      const connected: string = getResourceAiAgentStateSentence(
+        makeStatus({ resourceType: type }),
+        descriptor,
+        NOW,
+      );
+      const notInstalled: string = getResourceAiAgentStateSentence(
+        makeStatus({ resourceType: type, agent: null }),
+        descriptor,
+        NOW,
+      );
+
+      expect(connected).toBe(
+        `The Cloud AI agent is running in this ${descriptor.noun}.`,
+      );
+      expect(notInstalled).toBe(getResourceAiAgentNotInstalledText(descriptor));
+      expect(notInstalled).toBe(
+        "OneUptime AI can read this account but can't change it. One command in the cloud's own shell starts the agent, which connects on its own.",
+      );
+      for (const sentence of [connected, notInstalled]) {
+        expect(sentence).not.toContain("next to");
+        expect(sentence).not.toContain("Install the");
+      }
     },
   );
 
@@ -884,6 +939,68 @@ describe("the meta line", () => {
       ),
     ).toBe("Can change: web-*, api");
   });
+
+  /*
+   * A Cloud AI agent with writes on changes its own account's resources
+   * (only the tagged ones when it requires a tag), never "any target".
+   */
+  test.each(CLOUD_AI_RESOURCE_TYPES)(
+    "%s: what the Cloud AI agent may change, from its posture",
+    (type: AiResourceType) => {
+      const descriptor: ResourceAiAgentDescriptor =
+        getResourceAiAgentDescriptor(type);
+
+      expect(
+        describeResourceAiAgentWriteAccess(
+          makePosture({ resourceType: type }),
+          descriptor,
+        ),
+      ).toBe("Read-only");
+      expect(
+        describeResourceAiAgentWriteAccess(
+          makePosture({
+            resourceType: type,
+            allowWrites: true,
+            details: { requiredTag: null },
+          }),
+          descriptor,
+        ),
+      ).toBe("Can make changes");
+      expect(
+        describeResourceAiAgentWriteAccess(
+          makePosture({
+            resourceType: type,
+            allowWrites: true,
+            details: { requiredTag: " oneuptime-ai=allow " },
+          }),
+          descriptor,
+        ),
+      ).toBe("Changes only resources tagged oneuptime-ai=allow");
+      // Targets it was given are still named, as for every agent.
+      expect(
+        describeResourceAiAgentWriteAccess(
+          makePosture({
+            resourceType: type,
+            allowWrites: true,
+            writeTargets: ["*checkout*"],
+          }),
+          descriptor,
+        ),
+      ).toBe("Can change: *checkout*");
+      // And the meta line says it.
+      expect(
+        getResourceAiAgentMetaParts(
+          makeStatus({
+            resourceType: type,
+            agent: makeAgent({
+              posture: makePosture({ resourceType: type, allowWrites: true }),
+            }),
+          }),
+          descriptor,
+        ),
+      ).toContain("Can make changes");
+    },
+  );
 
   test.each([
     [AiResourceType.DockerHost, "27.3.1", {}, "Docker 27.3.1"],

@@ -36460,7 +36460,7 @@
   "for {{count}} hosts_one": "{{count}} 台のホスト",
   "for {{count}} users": "{{count}} 人のユーザー",
   "for {{count}} users_one": "{{count}} 人のユーザー",
-  "live reads of the account": "アカウントのリアルタイム読み取り",
+  "live reads": "リアルタイム読み取り",
   "restart services, start and reboot instances, scale out and in, roll back a deployment and set concurrency": "サービスの再起動、インスタンスの開始と再起動、スケールアウトとスケールイン、デプロイのロールバック、同時実行数の設定",
   "riskier changes such as scaling in, rebooting an instance or rolling back a service": "スケールイン、インスタンスの再起動、サービスのロールバックなどのリスクの高い変更",
   "scaling in, rebooting an instance or rolling back a service": "スケールイン、インスタンスの再起動、サービスのロールバック",
@@ -37111,5 +37111,9 @@
   "Dry run {{time}}: it could not finish. Nothing was changed.": "ドライラン（{{time}}）：完了できませんでした。何も変更されていません。",
   "Dry run {{time}}: the agent would refuse this change. Nothing was changed.": "ドライラン（{{time}}）：エージェントはこの変更を拒否します。何も変更されていません。",
   "Dry run {{time}}: this change would run. Nothing was changed.": "ドライラン（{{time}}）：この変更は実行されます。何も変更されていません。",
-  "What the agent said": "エージェントの応答"
+  "What the agent said": "エージェントの応答",
+  "Changes only resources tagged {{tag}}": "{{tag}} のタグが付いたリソースのみ変更",
+  "Set by the {{agent}}'s setup command. Change shows it again with other choices; this page follows.": "{{agent}} のセットアップコマンドで指定されています。「変更」で別の選択肢のコマンドを再表示できます。このページはそれに従います。",
+  "The {{agent}} is running in this {{noun}}.": "{{agent}} はこの{{noun}}の中で実行中です。",
+  "Can make changes": "変更を実行可能"
 }
