@@ -37050,5 +37050,11 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "Records still have it, so it can't be deleted. It can stay archived.",
   "{{count}} {{itemsName}} skipped": "{{count}} {{itemsName}} skipped",
   "{{count}} {{itemsName}} skipped_one": "{{count}} {{itemName}} skipped",
-  "You can change or remove these rules, but not add new ones.": "You can change or remove these rules, but not add new ones."
+  "You can change or remove these rules, but not add new ones.": "You can change or remove these rules, but not add new ones.",
+  "OneUptime AI read the facts below and the diff, with {{provider}}.": "OneUptime AI read the facts below and the diff, with {{provider}}.",
+  "The daily AI spend limit stops this repository's LLM provider for production reviews, so {{provider}}, the project's default, read this review.": "The daily AI spend limit stops this repository's LLM provider for production reviews, so {{provider}}, the project's default, read this review.",
+  "This repository's LLM provider for production reviews is no longer available, and there is no other to use.": "This repository's LLM provider for production reviews is no longer available, and there is no other to use.",
+  "This repository's LLM provider for production reviews is no longer available, so {{provider}}, the global LLM provider, read this review.": "This repository's LLM provider for production reviews is no longer available, so {{provider}}, the global LLM provider, read this review.",
+  "This repository's LLM provider for production reviews is no longer available, so {{provider}}, the project's default, read this review.": "This repository's LLM provider for production reviews is no longer available, so {{provider}}, the project's default, read this review.",
+  "This repository's LLM provider for production reviews runs on AI credits, which are used up, so {{provider}}, the project's default, read this review.": "This repository's LLM provider for production reviews runs on AI credits, which are used up, so {{provider}}, the project's default, read this review."
 }

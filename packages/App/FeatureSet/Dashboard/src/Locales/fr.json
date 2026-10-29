@@ -37050,5 +37050,11 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "Des enregistrements l'utilisent encore : impossible de le supprimer. Il peut rester archivé.",
   "{{count}} {{itemsName}} skipped": "{{itemsName}} ignorés : {{count}}",
   "{{count}} {{itemsName}} skipped_one": "{{itemName}} ignoré : {{count}}",
-  "You can change or remove these rules, but not add new ones.": "Vous pouvez modifier ou supprimer ces règles, mais pas en ajouter."
+  "You can change or remove these rules, but not add new ones.": "Vous pouvez modifier ou supprimer ces règles, mais pas en ajouter.",
+  "OneUptime AI read the facts below and the diff, with {{provider}}.": "OneUptime AI a lu les faits ci-dessous et le diff, avec {{provider}}.",
+  "The daily AI spend limit stops this repository's LLM provider for production reviews, so {{provider}}, the project's default, read this review.": "La limite quotidienne de dépenses IA bloque le fournisseur LLM de ce dépôt pour les revues de production : {{provider}}, celui par défaut du projet, a donc lu cette revue.",
+  "This repository's LLM provider for production reviews is no longer available, and there is no other to use.": "Le fournisseur LLM de ce dépôt pour les revues de production n'est plus disponible, et il n'y en a pas d'autre à utiliser.",
+  "This repository's LLM provider for production reviews is no longer available, so {{provider}}, the global LLM provider, read this review.": "Le fournisseur LLM de ce dépôt pour les revues de production n'est plus disponible : {{provider}}, le fournisseur LLM global, a donc lu cette revue.",
+  "This repository's LLM provider for production reviews is no longer available, so {{provider}}, the project's default, read this review.": "Le fournisseur LLM de ce dépôt pour les revues de production n'est plus disponible : {{provider}}, celui par défaut du projet, a donc lu cette revue.",
+  "This repository's LLM provider for production reviews runs on AI credits, which are used up, so {{provider}}, the project's default, read this review.": "Le fournisseur LLM de ce dépôt pour les revues de production fonctionne avec des crédits IA, qui sont épuisés : {{provider}}, celui par défaut du projet, a donc lu cette revue."
 }

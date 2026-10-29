@@ -37050,5 +37050,11 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "Poster har den fortfarande, så den kan inte tas bort. Den kan förbli arkiverad.",
   "{{count}} {{itemsName}} skipped": "{{count}} {{itemsName}} överhoppade",
   "{{count}} {{itemsName}} skipped_one": "{{count}} {{itemName}} överhoppad",
-  "You can change or remove these rules, but not add new ones.": "Du kan ändra eller ta bort de här reglerna, men inte lägga till nya."
+  "You can change or remove these rules, but not add new ones.": "Du kan ändra eller ta bort de här reglerna, men inte lägga till nya.",
+  "OneUptime AI read the facts below and the diff, with {{provider}}.": "OneUptime AI har läst fakta nedan och diffen med {{provider}}.",
+  "The daily AI spend limit stops this repository's LLM provider for production reviews, so {{provider}}, the project's default, read this review.": "Den dagliga gränsen för AI-kostnad stoppar det här arkivets LLM-leverantör för produktionsgranskningar, så {{provider}}, projektets standard, har läst den här granskningen.",
+  "This repository's LLM provider for production reviews is no longer available, and there is no other to use.": "Det här arkivets LLM-leverantör för produktionsgranskningar är inte längre tillgänglig, och det finns ingen annan att använda.",
+  "This repository's LLM provider for production reviews is no longer available, so {{provider}}, the global LLM provider, read this review.": "Det här arkivets LLM-leverantör för produktionsgranskningar är inte längre tillgänglig, så {{provider}}, den globala LLM-leverantören, har läst den här granskningen.",
+  "This repository's LLM provider for production reviews is no longer available, so {{provider}}, the project's default, read this review.": "Det här arkivets LLM-leverantör för produktionsgranskningar är inte längre tillgänglig, så {{provider}}, projektets standard, har läst den här granskningen.",
+  "This repository's LLM provider for production reviews runs on AI credits, which are used up, so {{provider}}, the project's default, read this review.": "Det här arkivets LLM-leverantör för produktionsgranskningar drivs med AI-krediter, som är slut, så {{provider}}, projektets standard, har läst den här granskningen."
 }

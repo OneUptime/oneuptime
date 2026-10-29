@@ -37050,5 +37050,11 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "Records hebben het nog, dus het kan niet worden verwijderd. Het kan gearchiveerd blijven.",
   "{{count}} {{itemsName}} skipped": "{{count}} {{itemsName}} overgeslagen",
   "{{count}} {{itemsName}} skipped_one": "{{count}} {{itemName}} overgeslagen",
-  "You can change or remove these rules, but not add new ones.": "U kunt deze regels wijzigen of verwijderen, maar geen nieuwe toevoegen."
+  "You can change or remove these rules, but not add new ones.": "U kunt deze regels wijzigen of verwijderen, maar geen nieuwe toevoegen.",
+  "OneUptime AI read the facts below and the diff, with {{provider}}.": "OneUptime AI heeft de feiten hieronder en de diff gelezen, met {{provider}}.",
+  "The daily AI spend limit stops this repository's LLM provider for production reviews, so {{provider}}, the project's default, read this review.": "De dagelijkse AI-uitgavenlimiet stopt de LLM-provider van deze repository voor productiebeoordelingen, dus heeft {{provider}}, de standaard van het project, deze beoordeling gelezen.",
+  "This repository's LLM provider for production reviews is no longer available, and there is no other to use.": "De LLM-provider van deze repository voor productiebeoordelingen is niet meer beschikbaar, en er is geen andere om te gebruiken.",
+  "This repository's LLM provider for production reviews is no longer available, so {{provider}}, the global LLM provider, read this review.": "De LLM-provider van deze repository voor productiebeoordelingen is niet meer beschikbaar, dus heeft {{provider}}, de globale LLM-provider, deze beoordeling gelezen.",
+  "This repository's LLM provider for production reviews is no longer available, so {{provider}}, the project's default, read this review.": "De LLM-provider van deze repository voor productiebeoordelingen is niet meer beschikbaar, dus heeft {{provider}}, de standaard van het project, deze beoordeling gelezen.",
+  "This repository's LLM provider for production reviews runs on AI credits, which are used up, so {{provider}}, the project's default, read this review.": "De LLM-provider van deze repository voor productiebeoordelingen draait op AI-tegoeden, en die zijn op, dus heeft {{provider}}, de standaard van het project, deze beoordeling gelezen."
 }

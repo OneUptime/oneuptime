@@ -37050,5 +37050,11 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "Poster har den fortsatt, så den kan ikke slettes. Den kan forbli arkivert.",
   "{{count}} {{itemsName}} skipped": "{{count}} {{itemsName}} hoppet over",
   "{{count}} {{itemsName}} skipped_one": "{{count}} {{itemName}} hoppet over",
-  "You can change or remove these rules, but not add new ones.": "Du kan endre eller fjerne disse reglene, men ikke legge til nye."
+  "You can change or remove these rules, but not add new ones.": "Du kan endre eller fjerne disse reglene, men ikke legge til nye.",
+  "OneUptime AI read the facts below and the diff, with {{provider}}.": "OneUptime AI har lest fakta nedenfor og diffen med {{provider}}.",
+  "The daily AI spend limit stops this repository's LLM provider for production reviews, so {{provider}}, the project's default, read this review.": "Den daglige grensen for AI-forbruk stopper dette kodelagerets LLM-leverandør for produksjonsgjennomganger, så {{provider}}, prosjektets standard, har lest denne gjennomgangen.",
+  "This repository's LLM provider for production reviews is no longer available, and there is no other to use.": "Dette kodelagerets LLM-leverandør for produksjonsgjennomganger er ikke lenger tilgjengelig, og det finnes ingen annen å bruke.",
+  "This repository's LLM provider for production reviews is no longer available, so {{provider}}, the global LLM provider, read this review.": "Dette kodelagerets LLM-leverandør for produksjonsgjennomganger er ikke lenger tilgjengelig, så {{provider}}, den globale LLM-leverandøren, har lest denne gjennomgangen.",
+  "This repository's LLM provider for production reviews is no longer available, so {{provider}}, the project's default, read this review.": "Dette kodelagerets LLM-leverandør for produksjonsgjennomganger er ikke lenger tilgjengelig, så {{provider}}, prosjektets standard, har lest denne gjennomgangen.",
+  "This repository's LLM provider for production reviews runs on AI credits, which are used up, so {{provider}}, the project's default, read this review.": "Dette kodelagerets LLM-leverandør for produksjonsgjennomganger går på AI-kreditter, som er brukt opp, så {{provider}}, prosjektets standard, har lest denne gjennomgangen."
 }

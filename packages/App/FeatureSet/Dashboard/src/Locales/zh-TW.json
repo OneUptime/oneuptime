@@ -37050,5 +37050,11 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "仍有記錄在使用它，因此無法刪除。它可以維持封存。",
   "{{count}} {{itemsName}} skipped": "已略過 {{count}} 個{{itemsName}}",
   "{{count}} {{itemsName}} skipped_one": "已略過 {{count}} 個{{itemName}}",
-  "You can change or remove these rules, but not add new ones.": "您可以變更或移除這些規則，但無法新增規則。"
+  "You can change or remove these rules, but not add new ones.": "您可以變更或移除這些規則，但無法新增規則。",
+  "OneUptime AI read the facts below and the diff, with {{provider}}.": "OneUptime AI 已使用 {{provider}} 讀取下方的事實和差異。",
+  "The daily AI spend limit stops this repository's LLM provider for production reviews, so {{provider}}, the project's default, read this review.": "每日 AI 支出限制已停止此儲存庫用於正式環境審查的 LLM 供應商，因此由專案的預設供應商 {{provider}} 讀取了此審查。",
+  "This repository's LLM provider for production reviews is no longer available, and there is no other to use.": "此儲存庫用於正式環境審查的 LLM 供應商已無法使用，且沒有其他可用的供應商。",
+  "This repository's LLM provider for production reviews is no longer available, so {{provider}}, the global LLM provider, read this review.": "此儲存庫用於正式環境審查的 LLM 供應商已無法使用，因此由全域 LLM 供應商 {{provider}} 讀取了此審查。",
+  "This repository's LLM provider for production reviews is no longer available, so {{provider}}, the project's default, read this review.": "此儲存庫用於正式環境審查的 LLM 供應商已無法使用，因此由專案的預設供應商 {{provider}} 讀取了此審查。",
+  "This repository's LLM provider for production reviews runs on AI credits, which are used up, so {{provider}}, the project's default, read this review.": "此儲存庫用於正式環境審查的 LLM 供應商依靠 AI 點數執行，而點數已用完，因此由專案的預設供應商 {{provider}} 讀取了此審查。"
 }

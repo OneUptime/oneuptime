@@ -23,7 +23,10 @@ import AIService from "../../../../../Server/Services/AIService";
 import LlmProviderChoice, {
   RuleLlmProviderChoice,
 } from "../../../../../Server/Utils/AI/LlmProviderChoice";
-import { LlmProviderSource } from "../../../../../Types/AI/LlmProviderChoice";
+import {
+  LlmProviderFallbackReason,
+  LlmProviderSource,
+} from "../../../../../Types/AI/LlmProviderChoice";
 import CodeRepositoryService from "../../../../../Server/Services/CodeRepositoryService";
 import AIRun from "../../../../../Models/DatabaseModels/AIRun";
 import CodeRepository from "../../../../../Models/DatabaseModels/CodeRepository";
@@ -766,6 +769,144 @@ describe("ProductionReviewRunner", () => {
 
       expect(decide).not.toHaveBeenCalled();
       expect(aiRead).not.toHaveBeenCalled();
+      expect(finished().outcome!.productionReview!.llmProvider).toBeUndefined();
+    });
+
+    /*
+     * The review's page says which provider read it when the repository
+     * picks one - and, when the pick could not be used, which provider read
+     * it instead and why (the follow-up #5398 left: the page said nothing).
+     * The pull request's comment never names a provider.
+     */
+    test("a pick that was used is kept on the review, never in the comment", async () => {
+      repository.productionReviewLlmProviderId = PICKED_PROVIDER_ID;
+      jest.spyOn(LlmProviderChoice, "decideIfPicked").mockResolvedValue({
+        ...choiceOf(PICKED_PROVIDER_ID),
+        activity: {
+          source: LlmProviderSource.RulePick,
+          providerName: "Azure GPT-5",
+        },
+      });
+
+      await ProductionReviewRunner.review(claimedRun());
+
+      expect(finished().outcome!.productionReview!.llmProvider).toEqual({
+        source: LlmProviderSource.RulePick,
+        providerName: "Azure GPT-5",
+      });
+      expect(postedBody()).not.toContain("Azure GPT-5");
+    });
+
+    test.each([
+      [
+        LlmProviderFallbackReason.Unavailable,
+        LlmProviderSource.ProjectDefault,
+        "Team OpenAI",
+      ],
+      [
+        LlmProviderFallbackReason.Unavailable,
+        LlmProviderSource.Global,
+        "OneUptime AI",
+      ],
+      [
+        LlmProviderFallbackReason.CreditsUsedUp,
+        LlmProviderSource.ProjectDefault,
+        "Team OpenAI",
+      ],
+      [
+        LlmProviderFallbackReason.SpendLimitReached,
+        LlmProviderSource.ProjectDefault,
+        "Team OpenAI",
+      ],
+    ] as Array<[LlmProviderFallbackReason, LlmProviderSource, string]>)(
+      "a pick that fell back (%s) says which provider read it instead (%s)",
+      async (
+        fallbackReason: LlmProviderFallbackReason,
+        source: LlmProviderSource,
+        providerName: string,
+      ) => {
+        repository.productionReviewLlmProviderId = PICKED_PROVIDER_ID;
+        jest.spyOn(LlmProviderChoice, "decideIfPicked").mockResolvedValue({
+          ...choiceOf(undefined),
+          source,
+          fallbackReason,
+          pickedProviderId: PICKED_PROVIDER_ID.toString(),
+          activity: { source, providerName, fallbackReason },
+        });
+
+        await ProductionReviewRunner.review(claimedRun());
+
+        expect(finished().outcome!.productionReview!.llmProvider).toEqual({
+          source,
+          providerName,
+          fallbackReason,
+        });
+        expect(postedBody()).not.toContain(providerName);
+      },
+    );
+
+    test("a pick with nothing to fall back to says so, with no provider", async () => {
+      repository.productionReviewLlmProviderId = PICKED_PROVIDER_ID;
+      jest.spyOn(LlmProviderChoice, "decideIfPicked").mockResolvedValue({
+        ...choiceOf(undefined),
+        fallbackReason: LlmProviderFallbackReason.Unavailable,
+        pickedProviderId: PICKED_PROVIDER_ID.toString(),
+        activity: { fallbackReason: LlmProviderFallbackReason.Unavailable },
+      });
+
+      await ProductionReviewRunner.review(claimedRun());
+
+      expect(finished().outcome!.productionReview!.llmProvider).toEqual({
+        fallbackReason: LlmProviderFallbackReason.Unavailable,
+      });
+    });
+
+    test("no pick puts no provider on the review", async () => {
+      await ProductionReviewRunner.review(claimedRun());
+
+      expect(finished().outcome!.productionReview!.llmProvider).toBeUndefined();
+    });
+
+    test("a read that is kept keeps the provider that made it", async () => {
+      repository.productionReviewLlmProviderId = PICKED_PROVIDER_ID;
+      jest.spyOn(LlmProviderChoice, "decideIfPicked").mockResolvedValue({
+        ...choiceOf(PICKED_PROVIDER_ID),
+        activity: {
+          source: LlmProviderSource.RulePick,
+          providerName: "Azure GPT-5",
+        },
+      });
+
+      await ProductionReviewRunner.review(claimedRun());
+      const hash: string = finished().update["aiInputHash"] as string;
+
+      aiRead.mockClear();
+      finish.mockClear();
+
+      await ProductionReviewRunner.review(
+        claimedRun(
+          { aiInputHash: hash, commentId: 6000 },
+          {
+            summary: "",
+            filesChanged: [],
+            productionReview: fullReport({
+              points: [{ text: "Kept from the last read." }],
+              llmProvider: {
+                source: LlmProviderSource.ProjectDefault,
+                providerName: "Team OpenAI",
+                fallbackReason: LlmProviderFallbackReason.CreditsUsedUp,
+              },
+            }),
+          },
+        ),
+      );
+
+      expect(aiRead).not.toHaveBeenCalled();
+      expect(finished().outcome!.productionReview!.llmProvider).toEqual({
+        source: LlmProviderSource.ProjectDefault,
+        providerName: "Team OpenAI",
+        fallbackReason: LlmProviderFallbackReason.CreditsUsedUp,
+      });
     });
   });
 

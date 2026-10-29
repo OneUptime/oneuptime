@@ -2,6 +2,11 @@ import {
   CodeTaskOriginJSON,
   CodeTaskOriginType,
 } from "Common/Types/AI/CodeTask";
+import {
+  LlmProviderActivity,
+  LlmProviderFallbackReason,
+  LlmProviderSource,
+} from "Common/Types/AI/LlmProviderChoice";
 import { env } from "Common/UI/Config";
 import {
   PRODUCTION_REVIEW_WINDOWS,
@@ -386,6 +391,103 @@ export const PRODUCTION_REVIEW_AI_NOTES: Record<
     "OneUptime AI could not read this review this time. The facts below are complete.",
   ),
 };
+
+/*
+ * Which LLM provider read the review, when the repository picks one for its
+ * production reviews (Production Review LLM Provider, under More settings):
+ * the pick, named where What to watch says OneUptime AI read the facts -
+ * or, when the pick could not be used, a warning that says which provider
+ * read the review instead, and why. The reasons are the AI rules'
+ * (Types/AI/LlmProviderChoice), in the repository's words for its pick.
+ */
+export const PRODUCTION_REVIEW_PROVIDER_COPY: {
+  readWith: string;
+  unavailableToProjectDefault: string;
+  unavailableToGlobal: string;
+  unavailableToNone: string;
+  creditsUsedUp: string;
+  spendLimitReached: string;
+} = {
+  readWith: translationKey(
+    "OneUptime AI read the facts below and the diff, with {{provider}}.",
+  ),
+  unavailableToProjectDefault: translationKey(
+    "This repository's LLM provider for production reviews is no longer available, so {{provider}}, the project's default, read this review.",
+  ),
+  unavailableToGlobal: translationKey(
+    "This repository's LLM provider for production reviews is no longer available, so {{provider}}, the global LLM provider, read this review.",
+  ),
+  unavailableToNone: translationKey(
+    "This repository's LLM provider for production reviews is no longer available, and there is no other to use.",
+  ),
+  creditsUsedUp: translationKey(
+    "This repository's LLM provider for production reviews runs on AI credits, which are used up, so {{provider}}, the project's default, read this review.",
+  ),
+  spendLimitReached: translationKey(
+    "The daily AI spend limit stops this repository's LLM provider for production reviews, so {{provider}}, the project's default, read this review.",
+  ),
+};
+
+export interface ProductionReviewProviderLine {
+  // The sentence, with its {{provider}} slot.
+  template: string;
+  // The provider that read the review: "" when there was none to use.
+  providerName: string;
+  // The repository's pick was not used.
+  isWarning: boolean;
+}
+
+/*
+ * The line the review's page says of its LLM provider, or null when the
+ * repository picks none - the project's default provider read it, as every
+ * review's did before a repository could pick one, so there is nothing new
+ * to say.
+ */
+export function getProductionReviewProviderLine(
+  activity: LlmProviderActivity | null | undefined,
+): ProductionReviewProviderLine | null {
+  if (!activity) {
+    return null;
+  }
+
+  const providerName: string = activity.providerName || "";
+  const copy: typeof PRODUCTION_REVIEW_PROVIDER_COPY =
+    PRODUCTION_REVIEW_PROVIDER_COPY;
+
+  if (!activity.source || !providerName) {
+    return {
+      template: copy.unavailableToNone,
+      providerName: "",
+      isWarning: true,
+    };
+  }
+
+  switch (activity.fallbackReason) {
+    case LlmProviderFallbackReason.Unavailable:
+      return {
+        template:
+          activity.source === LlmProviderSource.Global
+            ? copy.unavailableToGlobal
+            : copy.unavailableToProjectDefault,
+        providerName,
+        isWarning: true,
+      };
+    case LlmProviderFallbackReason.CreditsUsedUp:
+      return {
+        template: copy.creditsUsedUp,
+        providerName,
+        isWarning: true,
+      };
+    case LlmProviderFallbackReason.SpendLimitReached:
+      return {
+        template: copy.spendLimitReached,
+        providerName,
+        isWarning: true,
+      };
+    default:
+      return { template: copy.readWith, providerName, isWarning: false };
+  }
+}
 
 /*
  * The repository's choice of what a pull request's comment shows: the

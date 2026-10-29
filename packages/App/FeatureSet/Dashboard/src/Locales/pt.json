@@ -37050,5 +37050,11 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "Há registros que ainda o têm, por isso não é possível excluí-lo. Pode continuar arquivado.",
   "{{count}} {{itemsName}} skipped": "{{itemsName}} ignorados: {{count}}",
   "{{count}} {{itemsName}} skipped_one": "{{itemName}} ignorado: {{count}}",
-  "You can change or remove these rules, but not add new ones.": "Você pode alterar ou remover estas regras, mas não adicionar novas."
+  "You can change or remove these rules, but not add new ones.": "Você pode alterar ou remover estas regras, mas não adicionar novas.",
+  "OneUptime AI read the facts below and the diff, with {{provider}}.": "O OneUptime AI leu os fatos abaixo e o diff, com {{provider}}.",
+  "The daily AI spend limit stops this repository's LLM provider for production reviews, so {{provider}}, the project's default, read this review.": "O limite diário de gastos de IA bloqueia o provedor de LLM deste repositório para as revisões de produção, então {{provider}}, o padrão do projeto, leu esta revisão.",
+  "This repository's LLM provider for production reviews is no longer available, and there is no other to use.": "O provedor de LLM deste repositório para as revisões de produção não está mais disponível, e não há outro para usar.",
+  "This repository's LLM provider for production reviews is no longer available, so {{provider}}, the global LLM provider, read this review.": "O provedor de LLM deste repositório para as revisões de produção não está mais disponível, então {{provider}}, o provedor de LLM global, leu esta revisão.",
+  "This repository's LLM provider for production reviews is no longer available, so {{provider}}, the project's default, read this review.": "O provedor de LLM deste repositório para as revisões de produção não está mais disponível, então {{provider}}, o padrão do projeto, leu esta revisão.",
+  "This repository's LLM provider for production reviews runs on AI credits, which are used up, so {{provider}}, the project's default, read this review.": "O provedor de LLM deste repositório para as revisões de produção funciona com créditos de IA, que acabaram, então {{provider}}, o padrão do projeto, leu esta revisão."
 }

@@ -37050,5 +37050,11 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "레코드에서 아직 사용 중이므로 삭제할 수 없습니다. 보관된 상태로 둘 수 있습니다.",
   "{{count}} {{itemsName}} skipped": "{{itemsName}} {{count}}개 건너뜀",
   "{{count}} {{itemsName}} skipped_one": "{{itemName}} {{count}}개 건너뜀",
-  "You can change or remove these rules, but not add new ones.": "이 규칙을 변경하거나 제거할 수는 있지만 새로 추가할 수는 없습니다."
+  "You can change or remove these rules, but not add new ones.": "이 규칙을 변경하거나 제거할 수는 있지만 새로 추가할 수는 없습니다.",
+  "OneUptime AI read the facts below and the diff, with {{provider}}.": "OneUptime AI가 {{provider}}을(를) 사용해 아래 사실과 diff를 읽었습니다.",
+  "The daily AI spend limit stops this repository's LLM provider for production reviews, so {{provider}}, the project's default, read this review.": "일일 AI 지출 한도로 이 저장소의 프로덕션 리뷰 LLM 제공자가 중지되어, 프로젝트의 기본 제공자인 {{provider}}이(가) 이 리뷰를 읽었습니다.",
+  "This repository's LLM provider for production reviews is no longer available, and there is no other to use.": "이 저장소의 프로덕션 리뷰 LLM 제공자를 더 이상 사용할 수 없고, 사용할 다른 제공자도 없습니다.",
+  "This repository's LLM provider for production reviews is no longer available, so {{provider}}, the global LLM provider, read this review.": "이 저장소의 프로덕션 리뷰 LLM 제공자를 더 이상 사용할 수 없어, 글로벌 LLM 제공자인 {{provider}}이(가) 이 리뷰를 읽었습니다.",
+  "This repository's LLM provider for production reviews is no longer available, so {{provider}}, the project's default, read this review.": "이 저장소의 프로덕션 리뷰 LLM 제공자를 더 이상 사용할 수 없어, 프로젝트의 기본 제공자인 {{provider}}이(가) 이 리뷰를 읽었습니다.",
+  "This repository's LLM provider for production reviews runs on AI credits, which are used up, so {{provider}}, the project's default, read this review.": "이 저장소의 프로덕션 리뷰 LLM 제공자는 AI 크레딧으로 실행되는데 모두 소진되어, 프로젝트의 기본 제공자인 {{provider}}이(가) 이 리뷰를 읽었습니다."
 }

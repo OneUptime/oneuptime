@@ -37050,5 +37050,11 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "رکوردها هنوز آن را دارند، پس نمی‌توان آن را حذف کرد. می‌تواند بایگانی بماند.",
   "{{count}} {{itemsName}} skipped": "{{count}} مورد نادیده گرفته شد ({{itemsName}})",
   "{{count}} {{itemsName}} skipped_one": "{{count}} مورد نادیده گرفته شد ({{itemName}})",
-  "You can change or remove these rules, but not add new ones.": "می‌توانید این قواعد را تغییر دهید یا حذف کنید، اما نمی‌توانید قاعده‌ای اضافه کنید."
+  "You can change or remove these rules, but not add new ones.": "می‌توانید این قواعد را تغییر دهید یا حذف کنید، اما نمی‌توانید قاعده‌ای اضافه کنید.",
+  "OneUptime AI read the facts below and the diff, with {{provider}}.": "OneUptime AI واقعیت‌های زیر و diff را با {{provider}} خواند.",
+  "The daily AI spend limit stops this repository's LLM provider for production reviews, so {{provider}}, the project's default, read this review.": "محدودیت روزانهٔ هزینهٔ هوش مصنوعی ارائه‌دهنده LLM این مخزن برای بازبینی‌های عملیاتی را متوقف می‌کند، پس {{provider}}، ارائه‌دهنده پیش‌فرض پروژه، این بازبینی را خواند.",
+  "This repository's LLM provider for production reviews is no longer available, and there is no other to use.": "ارائه‌دهنده LLM این مخزن برای بازبینی‌های عملیاتی دیگر در دسترس نیست و ارائه‌دهنده دیگری هم برای استفاده نیست.",
+  "This repository's LLM provider for production reviews is no longer available, so {{provider}}, the global LLM provider, read this review.": "ارائه‌دهنده LLM این مخزن برای بازبینی‌های عملیاتی دیگر در دسترس نیست، پس {{provider}}، ارائه‌دهنده سراسری LLM، این بازبینی را خواند.",
+  "This repository's LLM provider for production reviews is no longer available, so {{provider}}, the project's default, read this review.": "ارائه‌دهنده LLM این مخزن برای بازبینی‌های عملیاتی دیگر در دسترس نیست، پس {{provider}}، ارائه‌دهنده پیش‌فرض پروژه، این بازبینی را خواند.",
+  "This repository's LLM provider for production reviews runs on AI credits, which are used up, so {{provider}}, the project's default, read this review.": "ارائه‌دهنده LLM این مخزن برای بازبینی‌های عملیاتی با اعتبار هوش مصنوعی کار می‌کند و این اعتبار تمام شده است، پس {{provider}}، ارائه‌دهنده پیش‌فرض پروژه، این بازبینی را خواند."
 }

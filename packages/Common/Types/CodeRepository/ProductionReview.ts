@@ -23,6 +23,8 @@
  * Pure, with no server or React imports.
  */
 
+import { LlmProviderActivity } from "../AI/LlmProviderChoice";
+
 /*
  * What a pull request's comment shows, a repository's choice
  * (CodeRepository.productionReviewPullRequestContent). Unset is Review.
@@ -257,6 +259,17 @@ export interface ProductionReviewReport {
   // What OneUptime AI says to watch; empty without an AI read.
   points: Array<ProductionReviewPointJSON>;
   aiNote?: ProductionReviewAiNote | undefined;
+  /*
+   * The LLM provider OneUptime AI read the review with, when the
+   * repository picks one for its production reviews
+   * (CodeRepository.productionReviewLlmProviderId): the pick, or the
+   * provider it fell back to and why the pick could not be used - for the
+   * review's page in Code; the pull request's comment never names it.
+   * Unset when the repository picks none (the project's default provider,
+   * else the global one, read it, as every review's did before a
+   * repository could pick) and when no read was made.
+   */
+  llmProvider?: LlmProviderActivity | undefined;
   // The parts that could not be read this time.
   unreadSections: Array<ProductionReviewSection>;
   // What the pull request's comment shows.

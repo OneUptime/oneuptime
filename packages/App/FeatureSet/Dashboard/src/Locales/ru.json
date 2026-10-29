@@ -37050,5 +37050,11 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "Его всё ещё используют записи, поэтому удалить его нельзя. Оно может оставаться в архиве.",
   "{{count}} {{itemsName}} skipped": "Пропущено: {{count}} ({{itemsName}})",
   "{{count}} {{itemsName}} skipped_one": "Пропущено: {{count}} ({{itemName}})",
-  "You can change or remove these rules, but not add new ones.": "Эти правила можно изменить или удалить, но нельзя добавить новые."
+  "You can change or remove these rules, but not add new ones.": "Эти правила можно изменить или удалить, но нельзя добавить новые.",
+  "OneUptime AI read the facts below and the diff, with {{provider}}.": "OneUptime AI прочитал факты ниже и диф с помощью {{provider}}.",
+  "The daily AI spend limit stops this repository's LLM provider for production reviews, so {{provider}}, the project's default, read this review.": "Дневной лимит расходов на ИИ останавливает LLM-провайдер этого репозитория для проверок по продакшену, поэтому эту проверку прочитал {{provider}} — провайдер проекта по умолчанию.",
+  "This repository's LLM provider for production reviews is no longer available, and there is no other to use.": "LLM-провайдер этого репозитория для проверок по продакшену больше недоступен, а другого нет.",
+  "This repository's LLM provider for production reviews is no longer available, so {{provider}}, the global LLM provider, read this review.": "LLM-провайдер этого репозитория для проверок по продакшену больше недоступен, поэтому эту проверку прочитал {{provider}} — глобальный LLM-провайдер.",
+  "This repository's LLM provider for production reviews is no longer available, so {{provider}}, the project's default, read this review.": "LLM-провайдер этого репозитория для проверок по продакшену больше недоступен, поэтому эту проверку прочитал {{provider}} — провайдер проекта по умолчанию.",
+  "This repository's LLM provider for production reviews runs on AI credits, which are used up, so {{provider}}, the project's default, read this review.": "LLM-провайдер этого репозитория для проверок по продакшену работает на кредитах ИИ, а они закончились, поэтому эту проверку прочитал {{provider}} — провайдер проекта по умолчанию."
 }

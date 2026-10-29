@@ -6,9 +6,11 @@ import {
   PRODUCTION_REVIEW_SECTION_LABELS,
   PRODUCTION_REVIEW_SPANS_LAST_HOUR,
   PRODUCTION_REVIEW_WHERE_LABELS,
+  ProductionReviewProviderLine,
   formatReviewDuration,
   formatReviewPercent,
   getProductionReviewNothingSentence,
+  getProductionReviewProviderLine,
   getProfileKindLabel,
   splitCodeNameAtBreaks,
   splitPointText,
@@ -310,6 +312,44 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
     });
   };
 
+  const providerLine: ProductionReviewProviderLine | null =
+    getProductionReviewProviderLine(report.llmProvider);
+
+  /*
+   * The LLM provider that read the review, when the repository picks one:
+   * named where What to watch says OneUptime AI read the facts - or, when
+   * the pick could not be used, a warning that says which provider read it
+   * instead and why, wherever the review says what AI did.
+   */
+  const renderProviderLine: (
+    line: ProductionReviewProviderLine,
+    place: "after-list" | "after-line" | "alone",
+  ) => ReactElement = (
+    line: ProductionReviewProviderLine,
+    place: "after-list" | "after-line" | "alone",
+  ): ReactElement => {
+    const placeClassName: string =
+      place === "after-list"
+        ? "mt-2 text-xs"
+        : place === "after-line"
+          ? "mt-1.5 text-xs"
+          : "text-sm";
+
+    return (
+      <p
+        data-testid="production-review-llm-provider"
+        data-llm-provider={line.isWarning ? "fell-back" : "picked"}
+        className={`${placeClassName} [overflow-wrap:anywhere] ${
+          line.isWarning ? "text-amber-700" : "text-gray-500"
+        }`}
+      >
+        {translator.translateTemplate(line.template, {
+          provider: line.providerName,
+        })}
+      </p>
+    );
+  };
+
   const renderPoints: () => ReactElement = (): ReactElement => {
     if (report.points.length > 0) {
       return (
@@ -352,27 +392,55 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
               },
             )}
           </ul>
-          <p className="mt-2 text-xs text-gray-500">
-            {text(PRODUCTION_REVIEW_COPY.pointsBy)}
-          </p>
+          {providerLine && !providerLine.isWarning ? (
+            renderProviderLine(providerLine, "after-list")
+          ) : (
+            <p className="mt-2 text-xs text-gray-500">
+              {text(PRODUCTION_REVIEW_COPY.pointsBy)}
+            </p>
+          )}
+          {providerLine?.isWarning ? (
+            renderProviderLine(providerLine, "after-line")
+          ) : (
+            <></>
+          )}
         </section>
       );
     }
 
-    if (report.aiNote) {
+    /*
+     * No points: why, when the review says - and a pick that could not be
+     * used, even when the read had nothing to say.
+     */
+    const fellBack: ProductionReviewProviderLine | null =
+      providerLine?.isWarning ? providerLine : null;
+
+    if (report.aiNote || fellBack) {
       return (
         <div
           data-testid="production-review-ai-note"
-          data-ai-note={report.aiNote.code}
+          {...(report.aiNote ? { "data-ai-note": report.aiNote.code } : {})}
           className="flex items-start gap-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600 sm:px-5"
         >
           <Icon
             icon={IconProp.Sparkles}
             className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
           />
-          <p className="min-w-0">
-            {text(PRODUCTION_REVIEW_AI_NOTES[report.aiNote.code])}
-          </p>
+          <div className="min-w-0">
+            {report.aiNote ? (
+              <p>{text(PRODUCTION_REVIEW_AI_NOTES[report.aiNote.code])}</p>
+            ) : (
+              <></>
+            )}
+            {fellBack ? (
+              renderProviderLine(
+                fellBack,
+                report.aiNote ? "after-line" : "alone",
+              )
+            ) : (
+              <></>
+            )}
+          </div>
         </div>
       );
     }

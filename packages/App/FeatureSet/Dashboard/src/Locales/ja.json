@@ -37050,5 +37050,11 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "レコードでまだ使われているため、削除できません。アーカイブしたままにできます。",
   "{{count}} {{itemsName}} skipped": "{{itemsName}}: {{count}} 件スキップ",
   "{{count}} {{itemsName}} skipped_one": "{{itemName}}: {{count}} 件スキップ",
-  "You can change or remove these rules, but not add new ones.": "これらのルールの変更や削除はできますが、新しいルールは追加できません。"
+  "You can change or remove these rules, but not add new ones.": "これらのルールの変更や削除はできますが、新しいルールは追加できません。",
+  "OneUptime AI read the facts below and the diff, with {{provider}}.": "OneUptime AI が {{provider}} で下の事実と差分を読みました。",
+  "The daily AI spend limit stops this repository's LLM provider for production reviews, so {{provider}}, the project's default, read this review.": "1 日あたりの AI の支出上限により、このリポジトリの本番レビュー用 LLM プロバイダーが停止されているため、{{provider}} (プロジェクトのデフォルト) がこのレビューを読みました。",
+  "This repository's LLM provider for production reviews is no longer available, and there is no other to use.": "このリポジトリの本番レビュー用 LLM プロバイダーは使用できなくなりました。ほかに使えるプロバイダーはありません。",
+  "This repository's LLM provider for production reviews is no longer available, so {{provider}}, the global LLM provider, read this review.": "このリポジトリの本番レビュー用 LLM プロバイダーが使用できなくなったため、{{provider}} (グローバル LLM プロバイダー) がこのレビューを読みました。",
+  "This repository's LLM provider for production reviews is no longer available, so {{provider}}, the project's default, read this review.": "このリポジトリの本番レビュー用 LLM プロバイダーが使用できなくなったため、{{provider}} (プロジェクトのデフォルト) がこのレビューを読みました。",
+  "This repository's LLM provider for production reviews runs on AI credits, which are used up, so {{provider}}, the project's default, read this review.": "このリポジトリの本番レビュー用 LLM プロバイダーは AI クレジットで動作し、そのクレジットを使い切ったため、{{provider}} (プロジェクトのデフォルト) がこのレビューを読みました。"
 }

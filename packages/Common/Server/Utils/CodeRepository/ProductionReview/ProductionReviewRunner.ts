@@ -431,11 +431,19 @@ export default class ProductionReviewRunner {
       diffText,
     });
 
+    const previous: ProductionReviewReport | undefined =
+      data.run.taskOutcome?.productionReview;
     const previousPoints: Array<ProductionReviewPointJSON> =
-      data.run.taskOutcome?.productionReview?.points || [];
+      previous?.points || [];
 
     if (inputHash === data.review.aiInputHash && previousPoints.length > 0) {
       data.report.points = previousPoints;
+
+      // The read they came from, and the provider that made it.
+      if (previous?.llmProvider) {
+        data.report.llmProvider = previous.llmProvider;
+      }
+
       return;
     }
 
@@ -466,6 +474,15 @@ export default class ProductionReviewRunner {
         projectId,
         pickedProviderId: data.pickedLlmProviderId,
       });
+
+    /*
+     * Which provider reads it, when the repository picks one: the pick, or
+     * the provider it falls back to and why - which the review's page says,
+     * a pick that could not be used as a warning. With no pick, nothing.
+     */
+    if (llmProviderChoice.activity) {
+      data.report.llmProvider = llmProviderChoice.activity;
+    }
 
     const result: ProductionReviewAiResult = await ProductionReviewAI.read({
       projectId,

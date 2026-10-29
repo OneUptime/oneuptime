@@ -31,6 +31,11 @@ import {
 } from "../../../Types/AI/CodeTask";
 import Route from "../../../Types/API/Route";
 import {
+  LlmProviderActivity,
+  LlmProviderFallbackReason,
+  LlmProviderSource,
+} from "../../../Types/AI/LlmProviderChoice";
+import {
   ProductionReviewAiNoteCode,
   ProductionReviewOperationMatch,
   ProductionReviewPosting,
@@ -43,6 +48,7 @@ import Link from "../../../Types/Link";
 import Navigation from "../../../UI/Utils/Navigation";
 import { createTranslator } from "../../../UI/Utils/TranslateTemplate";
 import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
+import germanLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
 
@@ -107,6 +113,10 @@ import CodeProductionReview, {
 import CodeProductionReviewTask, {
   getLatestProductionReview,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeProductionReviewTask";
+import {
+  PRODUCTION_REVIEW_PROVIDER_COPY,
+  getProductionReviewProviderLine,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeProductionReviewCopy";
 import { CodeTaskResponse } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeApi";
 import { CodeTaskRow } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeTaskList";
 import { getCodeTaskTrail } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeTaskTrail";
@@ -133,6 +143,9 @@ const COMMENT_URL: string =
   "https://github.com/acme/checkout-api/pull/42#issuecomment-1001";
 
 const translation: i18n = createInstance();
+
+// A class that puts a gap above an element: mt-1, mt-1.5, mt-[9px]...
+const TOP_MARGIN: RegExp = /(^|\s)mt-/;
 
 beforeAll(async () => {
   Element.prototype.scrollIntoView = (): void => {};
@@ -1730,5 +1743,286 @@ describe("a review's row, trail and the repository's menu", () => {
       "Repository",
       "Production Reviews",
     ]);
+  });
+});
+
+/*
+ * Which LLM provider read the review, when the repository picks one for its
+ * production reviews (the follow-up #5398 left: the page did not say when
+ * the pick was not used and the default ran instead). The pick, named where
+ * What to watch says OneUptime AI read the facts; a pick that could not be
+ * used, a warning saying which provider read it instead and why - wherever
+ * the review says what AI did. No pick: nothing new.
+ */
+describe("the LLM provider that read the review", () => {
+  beforeEach(() => {
+    goTo(`/dashboard/${PROJECT_ID}/code/tasks/${TASK_ID}`);
+  });
+
+  test("the repository's pick, when it was used, is named under What to watch", () => {
+    drawReview(
+      report({
+        llmProvider: {
+          source: LlmProviderSource.RulePick,
+          providerName: "Azure GPT-5",
+        },
+      }),
+    );
+
+    const points: HTMLElement = screen.getByTestId("production-review-points");
+    const line: HTMLElement = within(points).getByTestId(
+      "production-review-llm-provider",
+    );
+
+    expect(line).toHaveTextContent(
+      "OneUptime AI read the facts below and the diff, with Azure GPT-5.",
+    );
+    expect(line).toHaveAttribute("data-llm-provider", "picked");
+    expect(line).toHaveClass("text-gray-500");
+    // It says what the plain line says, with the provider: never both.
+    expect(points).not.toHaveTextContent(
+      "OneUptime AI read the facts below and the diff.",
+    );
+  });
+
+  test.each([
+    [
+      "deleted: the project's default read it",
+      {
+        source: LlmProviderSource.ProjectDefault,
+        providerName: "Team OpenAI",
+        fallbackReason: LlmProviderFallbackReason.Unavailable,
+      },
+      "This repository's LLM provider for production reviews is no longer available, so Team OpenAI, the project's default, read this review.",
+    ],
+    [
+      "deleted, no default: the global provider read it",
+      {
+        source: LlmProviderSource.Global,
+        providerName: "OneUptime AI",
+        fallbackReason: LlmProviderFallbackReason.Unavailable,
+      },
+      "This repository's LLM provider for production reviews is no longer available, so OneUptime AI, the global LLM provider, read this review.",
+    ],
+    [
+      "AI credits used up",
+      {
+        source: LlmProviderSource.ProjectDefault,
+        providerName: "Team OpenAI",
+        fallbackReason: LlmProviderFallbackReason.CreditsUsedUp,
+      },
+      "This repository's LLM provider for production reviews runs on AI credits, which are used up, so Team OpenAI, the project's default, read this review.",
+    ],
+    [
+      "the daily AI spend limit",
+      {
+        source: LlmProviderSource.ProjectDefault,
+        providerName: "Team OpenAI",
+        fallbackReason: LlmProviderFallbackReason.SpendLimitReached,
+      },
+      "The daily AI spend limit stops this repository's LLM provider for production reviews, so Team OpenAI, the project's default, read this review.",
+    ],
+  ] as Array<[string, LlmProviderActivity, string]>)(
+    "a pick that could not be used says which provider read it instead, and why: %s",
+    (_label: string, activity: LlmProviderActivity, sentence: string) => {
+      drawReview(report({ llmProvider: activity }));
+
+      const points: HTMLElement = screen.getByTestId(
+        "production-review-points",
+      );
+      const line: HTMLElement = within(points).getByTestId(
+        "production-review-llm-provider",
+      );
+
+      expect(line).toHaveTextContent(sentence);
+      expect(line).toHaveAttribute("data-llm-provider", "fell-back");
+      expect(line).toHaveClass("text-amber-700");
+      // Under the plain line, which still says what AI read.
+      expect(points).toHaveTextContent(
+        "OneUptime AI read the facts below and the diff.",
+      );
+    },
+  );
+
+  test("a pick with nothing to fall back to says so, and names no provider", () => {
+    drawReview(
+      report({
+        points: [],
+        aiNote: { code: ProductionReviewAiNoteCode.Failed },
+        llmProvider: { fallbackReason: LlmProviderFallbackReason.Unavailable },
+      }),
+    );
+
+    const note: HTMLElement = screen.getByTestId("production-review-ai-note");
+
+    expect(note).toHaveTextContent(
+      "OneUptime AI could not read this review this time. The facts below are complete.",
+    );
+    expect(
+      within(note).getByTestId("production-review-llm-provider"),
+    ).toHaveTextContent(
+      "This repository's LLM provider for production reviews is no longer available, and there is no other to use.",
+    );
+  });
+
+  test("a read that had nothing to watch still says when the pick was not used", () => {
+    drawReview(
+      report({
+        points: [],
+        llmProvider: {
+          source: LlmProviderSource.ProjectDefault,
+          providerName: "Team OpenAI",
+          fallbackReason: LlmProviderFallbackReason.Unavailable,
+        },
+      }),
+    );
+
+    const note: HTMLElement = screen.getByTestId("production-review-ai-note");
+
+    expect(note).not.toHaveAttribute("data-ai-note");
+    const line: HTMLElement = within(note).getByTestId(
+      "production-review-llm-provider",
+    );
+    expect(line).toHaveTextContent(
+      "This repository's LLM provider for production reviews is no longer available, so Team OpenAI, the project's default, read this review.",
+    );
+    // Alone in its box: the box's own size, and no gap above it.
+    expect(line).toHaveClass("text-sm");
+    expect(line.className).not.toMatch(TOP_MARGIN);
+  });
+
+  test("a pick that was used says nothing when the read had nothing to watch", () => {
+    drawReview(
+      report({
+        points: [],
+        llmProvider: {
+          source: LlmProviderSource.RulePick,
+          providerName: "Azure GPT-5",
+        },
+      }),
+    );
+
+    expect(screen.queryByTestId("production-review-ai-note")).toBeNull();
+    expect(screen.queryByTestId("production-review-llm-provider")).toBeNull();
+  });
+
+  test("no pick: nothing new - the plain line, and no provider named", () => {
+    drawReview(report());
+
+    expect(screen.queryByTestId("production-review-llm-provider")).toBeNull();
+    expect(screen.getByTestId("production-review-points")).toHaveTextContent(
+      "OneUptime AI read the facts below and the diff.",
+    );
+  });
+
+  test("a provider's name is drawn as text, never as markup", () => {
+    drawReview(
+      report({
+        llmProvider: {
+          source: LlmProviderSource.RulePick,
+          providerName: "<b>GPT</b> {{provider}}",
+        },
+      }),
+    );
+
+    const line: HTMLElement = screen.getByTestId(
+      "production-review-llm-provider",
+    );
+
+    expect(line.querySelector("b")).toBeNull();
+    expect(line).toHaveTextContent(
+      "OneUptime AI read the facts below and the diff, with <b>GPT</b> {{provider}}.",
+    );
+  });
+
+  test("in German the line is German, and the provider keeps the name the project gave it", async () => {
+    const german: i18n = createInstance();
+
+    await german.use(initReactI18next).init({
+      lng: "de",
+      fallbackLng: "en",
+      resources: {
+        en: { translation: englishLocale },
+        de: { translation: germanLocale },
+      },
+      interpolation: { escapeValue: false },
+    });
+
+    render(
+      <I18nextProvider i18n={german}>
+        <CodeProductionReview
+          report={report({
+            llmProvider: {
+              source: LlmProviderSource.ProjectDefault,
+              providerName: "Team OpenAI",
+              fallbackReason: LlmProviderFallbackReason.CreditsUsedUp,
+            },
+          })}
+        />
+      </I18nextProvider>,
+    );
+
+    expect(
+      screen.getByTestId("production-review-llm-provider"),
+    ).toHaveTextContent(
+      "Der LLM-Anbieter dieses Repositorys für Produktionsprüfungen läuft mit KI-Guthaben, das aufgebraucht ist, daher hat Team OpenAI, der Standard-Anbieter des Projekts, diese Prüfung gelesen.",
+    );
+  });
+
+  test("getProductionReviewProviderLine: one sentence per outcome, a warning whenever the pick was not used", () => {
+    expect(getProductionReviewProviderLine(undefined)).toBeNull();
+    expect(getProductionReviewProviderLine(null)).toBeNull();
+    expect(
+      getProductionReviewProviderLine({
+        source: LlmProviderSource.RulePick,
+        providerName: "Azure GPT-5",
+      }),
+    ).toEqual({
+      template: PRODUCTION_REVIEW_PROVIDER_COPY.readWith,
+      providerName: "Azure GPT-5",
+      isWarning: false,
+    });
+    expect(
+      getProductionReviewProviderLine({
+        source: LlmProviderSource.ProjectDefault,
+        providerName: "Team OpenAI",
+        fallbackReason: LlmProviderFallbackReason.Unavailable,
+      }),
+    ).toEqual({
+      template: PRODUCTION_REVIEW_PROVIDER_COPY.unavailableToProjectDefault,
+      providerName: "Team OpenAI",
+      isWarning: true,
+    });
+    expect(
+      getProductionReviewProviderLine({
+        source: LlmProviderSource.Global,
+        providerName: "OneUptime AI",
+        fallbackReason: LlmProviderFallbackReason.Unavailable,
+      })!.template,
+    ).toBe(PRODUCTION_REVIEW_PROVIDER_COPY.unavailableToGlobal);
+    expect(
+      getProductionReviewProviderLine({
+        fallbackReason: LlmProviderFallbackReason.Unavailable,
+      }),
+    ).toEqual({
+      template: PRODUCTION_REVIEW_PROVIDER_COPY.unavailableToNone,
+      providerName: "",
+      isWarning: true,
+    });
+
+    // Every sentence is one key the locales word, with the slot it fills.
+    const sentences: Array<string> = Object.values(
+      PRODUCTION_REVIEW_PROVIDER_COPY,
+    );
+
+    expect(new Set(sentences).size).toBe(sentences.length);
+    for (const sentence of sentences) {
+      expect((englishLocale as Record<string, string>)[sentence]).toBe(
+        sentence,
+      );
+      expect(sentence.includes("{{provider}}")).toBe(
+        sentence !== PRODUCTION_REVIEW_PROVIDER_COPY.unavailableToNone,
+      );
+    }
   });
 });

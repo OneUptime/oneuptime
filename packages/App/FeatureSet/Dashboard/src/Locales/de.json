@@ -37050,5 +37050,11 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "Datensätze verweisen noch darauf, daher kann es nicht gelöscht werden. Es kann archiviert bleiben.",
   "{{count}} {{itemsName}} skipped": "{{count}} {{itemsName}} übersprungen",
   "{{count}} {{itemsName}} skipped_one": "{{count}} {{itemName}} übersprungen",
-  "You can change or remove these rules, but not add new ones.": "Sie können diese Regeln ändern oder entfernen, aber keine neuen hinzufügen."
+  "You can change or remove these rules, but not add new ones.": "Sie können diese Regeln ändern oder entfernen, aber keine neuen hinzufügen.",
+  "OneUptime AI read the facts below and the diff, with {{provider}}.": "OneUptime AI hat die Fakten unten und den Diff mit {{provider}} gelesen.",
+  "The daily AI spend limit stops this repository's LLM provider for production reviews, so {{provider}}, the project's default, read this review.": "Das tägliche KI-Ausgabenlimit stoppt den LLM-Anbieter dieses Repositorys für Produktionsprüfungen, daher hat {{provider}}, der Standard-Anbieter des Projekts, diese Prüfung gelesen.",
+  "This repository's LLM provider for production reviews is no longer available, and there is no other to use.": "Der LLM-Anbieter dieses Repositorys für Produktionsprüfungen ist nicht mehr verfügbar, und es gibt keinen anderen.",
+  "This repository's LLM provider for production reviews is no longer available, so {{provider}}, the global LLM provider, read this review.": "Der LLM-Anbieter dieses Repositorys für Produktionsprüfungen ist nicht mehr verfügbar, daher hat {{provider}}, der globale LLM-Anbieter, diese Prüfung gelesen.",
+  "This repository's LLM provider for production reviews is no longer available, so {{provider}}, the project's default, read this review.": "Der LLM-Anbieter dieses Repositorys für Produktionsprüfungen ist nicht mehr verfügbar, daher hat {{provider}}, der Standard-Anbieter des Projekts, diese Prüfung gelesen.",
+  "This repository's LLM provider for production reviews runs on AI credits, which are used up, so {{provider}}, the project's default, read this review.": "Der LLM-Anbieter dieses Repositorys für Produktionsprüfungen läuft mit KI-Guthaben, das aufgebraucht ist, daher hat {{provider}}, der Standard-Anbieter des Projekts, diese Prüfung gelesen."
 }

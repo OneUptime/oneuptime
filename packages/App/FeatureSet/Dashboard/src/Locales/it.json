@@ -37050,5 +37050,11 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "Ci sono record che lo hanno ancora, quindi non può essere eliminato. Può restare archiviato.",
   "{{count}} {{itemsName}} skipped": "{{itemsName}} saltati: {{count}}",
   "{{count}} {{itemsName}} skipped_one": "{{itemName}} saltato: {{count}}",
-  "You can change or remove these rules, but not add new ones.": "Puoi modificare o rimuovere queste regole, ma non aggiungerne di nuove."
+  "You can change or remove these rules, but not add new ones.": "Puoi modificare o rimuovere queste regole, ma non aggiungerne di nuove.",
+  "OneUptime AI read the facts below and the diff, with {{provider}}.": "OneUptime AI ha letto i fatti qui sotto e il diff, con {{provider}}.",
+  "The daily AI spend limit stops this repository's LLM provider for production reviews, so {{provider}}, the project's default, read this review.": "Il limite giornaliero di spesa IA blocca il fornitore LLM di questo repository per le revisioni di produzione, quindi {{provider}}, quello predefinito del progetto, ha letto questa revisione.",
+  "This repository's LLM provider for production reviews is no longer available, and there is no other to use.": "Il fornitore LLM di questo repository per le revisioni di produzione non è più disponibile, e non ce n'è un altro da usare.",
+  "This repository's LLM provider for production reviews is no longer available, so {{provider}}, the global LLM provider, read this review.": "Il fornitore LLM di questo repository per le revisioni di produzione non è più disponibile, quindi {{provider}}, il fornitore LLM globale, ha letto questa revisione.",
+  "This repository's LLM provider for production reviews is no longer available, so {{provider}}, the project's default, read this review.": "Il fornitore LLM di questo repository per le revisioni di produzione non è più disponibile, quindi {{provider}}, quello predefinito del progetto, ha letto questa revisione.",
+  "This repository's LLM provider for production reviews runs on AI credits, which are used up, so {{provider}}, the project's default, read this review.": "Il fornitore LLM di questo repository per le revisioni di produzione funziona con crediti IA, che sono esauriti, quindi {{provider}}, quello predefinito del progetto, ha letto questa revisione."
 }

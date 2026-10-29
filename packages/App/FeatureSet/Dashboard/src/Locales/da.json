@@ -37050,5 +37050,11 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "Poster har den stadig, så den kan ikke slettes. Den kan forblive arkiveret.",
   "{{count}} {{itemsName}} skipped": "{{count}} {{itemsName}} sprunget over",
   "{{count}} {{itemsName}} skipped_one": "{{count}} {{itemName}} sprunget over",
-  "You can change or remove these rules, but not add new ones.": "Du kan ændre eller fjerne disse regler, men ikke tilføje nye."
+  "You can change or remove these rules, but not add new ones.": "Du kan ændre eller fjerne disse regler, men ikke tilføje nye.",
+  "OneUptime AI read the facts below and the diff, with {{provider}}.": "OneUptime AI har læst fakta nedenfor og diffen med {{provider}}.",
+  "The daily AI spend limit stops this repository's LLM provider for production reviews, so {{provider}}, the project's default, read this review.": "Den daglige AI-forbrugsgrænse stopper dette repositoriums LLM-udbyder til produktionsgennemgange, så {{provider}}, projektets standard, har læst denne gennemgang.",
+  "This repository's LLM provider for production reviews is no longer available, and there is no other to use.": "Dette repositoriums LLM-udbyder til produktionsgennemgange er ikke længere tilgængelig, og der er ingen anden at bruge.",
+  "This repository's LLM provider for production reviews is no longer available, so {{provider}}, the global LLM provider, read this review.": "Dette repositoriums LLM-udbyder til produktionsgennemgange er ikke længere tilgængelig, så {{provider}}, den globale LLM-udbyder, har læst denne gennemgang.",
+  "This repository's LLM provider for production reviews is no longer available, so {{provider}}, the project's default, read this review.": "Dette repositoriums LLM-udbyder til produktionsgennemgange er ikke længere tilgængelig, så {{provider}}, projektets standard, har læst denne gennemgang.",
+  "This repository's LLM provider for production reviews runs on AI credits, which are used up, so {{provider}}, the project's default, read this review.": "Dette repositoriums LLM-udbyder til produktionsgennemgange kører på AI-kreditter, som er brugt op, så {{provider}}, projektets standard, har læst denne gennemgang."
 }

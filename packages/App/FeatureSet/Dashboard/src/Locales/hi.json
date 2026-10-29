@@ -37050,5 +37050,11 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "रिकॉर्ड्स में यह अभी भी है, इसलिए इसे हटाया नहीं जा सकता। यह संग्रहित रह सकता है।",
   "{{count}} {{itemsName}} skipped": "{{count}} {{itemsName}} छोड़े गए",
   "{{count}} {{itemsName}} skipped_one": "{{count}} {{itemName}} छोड़ा गया",
-  "You can change or remove these rules, but not add new ones.": "आप इन नियमों को बदल या हटा सकते हैं, लेकिन नए नहीं जोड़ सकते।"
+  "You can change or remove these rules, but not add new ones.": "आप इन नियमों को बदल या हटा सकते हैं, लेकिन नए नहीं जोड़ सकते।",
+  "OneUptime AI read the facts below and the diff, with {{provider}}.": "OneUptime AI ने {{provider}} से नीचे दिए तथ्य और diff पढ़े।",
+  "The daily AI spend limit stops this repository's LLM provider for production reviews, so {{provider}}, the project's default, read this review.": "दैनिक AI खर्च सीमा इस रिपॉजिटरी के प्रोडक्शन समीक्षा वाले LLM प्रदाता को रोकती है, इसलिए प्रोजेक्ट के डिफ़ॉल्ट प्रदाता {{provider}} ने यह समीक्षा पढ़ी।",
+  "This repository's LLM provider for production reviews is no longer available, and there is no other to use.": "इस रिपॉजिटरी का प्रोडक्शन समीक्षा वाला LLM प्रदाता अब उपलब्ध नहीं है, और उपयोग के लिए कोई दूसरा नहीं है।",
+  "This repository's LLM provider for production reviews is no longer available, so {{provider}}, the global LLM provider, read this review.": "इस रिपॉजिटरी का प्रोडक्शन समीक्षा वाला LLM प्रदाता अब उपलब्ध नहीं है, इसलिए वैश्विक LLM प्रदाता {{provider}} ने यह समीक्षा पढ़ी।",
+  "This repository's LLM provider for production reviews is no longer available, so {{provider}}, the project's default, read this review.": "इस रिपॉजिटरी का प्रोडक्शन समीक्षा वाला LLM प्रदाता अब उपलब्ध नहीं है, इसलिए प्रोजेक्ट के डिफ़ॉल्ट प्रदाता {{provider}} ने यह समीक्षा पढ़ी।",
+  "This repository's LLM provider for production reviews runs on AI credits, which are used up, so {{provider}}, the project's default, read this review.": "इस रिपॉजिटरी का प्रोडक्शन समीक्षा वाला LLM प्रदाता AI क्रेडिट पर चलता है, और वे खत्म हो गए हैं, इसलिए प्रोजेक्ट के डिफ़ॉल्ट प्रदाता {{provider}} ने यह समीक्षा पढ़ी।"
 }
