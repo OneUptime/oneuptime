@@ -37038,7 +37038,7 @@
   "Couldn't load the open cases.": "オープン中のケースを読み込めませんでした。",
   "Couldn't run": "実行できませんでした",
   "Delete Hunt": "ハントを削除",
-  "Delete the hunt {{name}}? Its search and schedule are deleted. Events it found and kept on cases stay on them.": "ハント {{name}} を削除しますか? 検索とスケジュールは削除されます。このハントが見つけてケースに保管されたイベントはそのまま残ります。",
+  "Delete the hunt {{name}}? Its search and schedule are deleted. Events it found and kept on cases stay on them.": "ハント {{name}} を削除しますか？検索とスケジュールは削除されます。このハントが見つけてケースに保管されたイベントはそのまま残ります。",
   "Each run searches the events that arrived since the run before, and tells the people you choose when it finds something.": "各実行は前回の実行以降に届いたイベントを検索し、何かを見つけると選んだユーザーに通知します。",
   "Edit Hunt": "ハントを編集",
   "Enter a name for the hunt.": "ハントの名前を入力してください。",
