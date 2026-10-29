@@ -7,7 +7,7 @@ import {
   TABLE_VALUE_GIVE_FLOOR_IN_PX,
 } from "../TableLayout";
 import GenericObject from "../../../../Types/GenericObject";
-import { JSONObject } from "../../../../Types/JSON";
+import { JSONObject, JSONValue } from "../../../../Types/JSON";
 
 /*
  * A table's columns, as wide as the person reading it wants them.
@@ -49,7 +49,23 @@ import { JSONObject } from "../../../../Types/JSON";
 // A column's id -> how wide a person made it, in CSS pixels, its padding in.
 export type ColumnWidths = Readonly<Record<string, number>>;
 
-export const EMPTY_COLUMN_WIDTHS: ColumnWidths = Object.freeze({});
+/*
+ * A record keyed by columns' ids that inherits nothing. An id is whatever a
+ * table's columns are called - a log attribute's key, a query's column in
+ * the admin's query console - so "constructor" or "__proto__" is a column
+ * like any other: never a function every object has, read as a width, nor
+ * the setter of the record's prototype.
+ */
+export const createColumnIdRecord: <V>() => Record<string, V> = <V>(): Record<
+  string,
+  V
+> => {
+  return Object.create(null) as Record<string, V>;
+};
+
+export const EMPTY_COLUMN_WIDTHS: ColumnWidths = Object.freeze(
+  createColumnIdRecord<number>(),
+);
 
 /*
  * How a column's values may be cut short when a person narrows it - the
@@ -174,13 +190,13 @@ export const getTableColumnIds: <T extends GenericObject>(
     return slugify(column.title || "") || "column";
   });
 
-  const baseIdCounts: Record<string, number> = {};
+  const baseIdCounts: Record<string, number> = createColumnIdRecord<number>();
 
   for (const baseId of baseIds) {
     baseIdCounts[baseId] = (baseIdCounts[baseId] || 0) + 1;
   }
 
-  const usedIds: Record<string, number> = {};
+  const usedIds: Record<string, number> = createColumnIdRecord<number>();
 
   return columns.map((column: Column<T>, index: number): string => {
     const baseId: string = baseIds[index] as string;
@@ -428,7 +444,7 @@ export const readColumnWidths: (value: unknown) => ColumnWidths = (
     return EMPTY_COLUMN_WIDTHS;
   }
 
-  const widths: Record<string, number> = {};
+  const widths: Record<string, number> = createColumnIdRecord<number>();
   let count: number = 0;
 
   for (const [id, width] of Object.entries(value as Record<string, unknown>)) {
@@ -487,7 +503,10 @@ export const withColumnWidth: (data: {
     return data.widths;
   }
 
-  const next: Record<string, number> = { ...data.widths };
+  const next: Record<string, number> = Object.assign(
+    createColumnIdRecord<number>(),
+    data.widths,
+  );
 
   delete next[data.columnId];
 
@@ -514,7 +533,7 @@ export const withColumnWidth: (data: {
     }),
   ].slice(0, MAX_REMEMBERED_COLUMN_WIDTHS);
 
-  const trimmed: Record<string, number> = {};
+  const trimmed: Record<string, number> = createColumnIdRecord<number>();
 
   for (const id of kept) {
     trimmed[id] = next[id] as number;
@@ -524,16 +543,16 @@ export const withColumnWidth: (data: {
 };
 
 // The widths a table stores: nothing when it has none.
-export const toColumnWidthsJSON: (
+export const toColumnWidthsJSON: (widths: ColumnWidths) => JSONObject | null = (
   widths: ColumnWidths,
-) => JSONObject | null = (widths: ColumnWidths): JSONObject | null => {
+): JSONObject | null => {
   const ids: Array<string> = Object.keys(widths);
 
   if (ids.length === 0) {
     return null;
   }
 
-  const json: JSONObject = {};
+  const json: JSONObject = createColumnIdRecord<JSONValue>();
 
   for (const id of ids) {
     json[id] = widths[id] as number;

@@ -68,9 +68,7 @@ const makeColumn: MakeColumnFunction = (
   return { title: "Value", type: type, ...(extra || {}) };
 };
 
-const measured: (
-  data: Partial<ColumnContentWidths>,
-) => ColumnContentWidths = (
+const measured: (data: Partial<ColumnContentWidths>) => ColumnContentWidths = (
   data: Partial<ColumnContentWidths>,
 ): ColumnContentWidths => {
   return {
@@ -85,9 +83,10 @@ const measured: (
 describe("which columns a person may size", () => {
   test("every column but the row's actions", () => {
     for (const type of Object.values(FieldType)) {
-      expect([type, isColumnResizable(makeColumn(type as FieldType))]).toEqual(
-        [type, type !== FieldType.Actions],
-      );
+      expect([type, isColumnResizable(makeColumn(type as FieldType))]).toEqual([
+        type,
+        type !== FieldType.Actions,
+      ]);
     }
   });
 
@@ -132,7 +131,10 @@ describe("how a column's values may be cut short", () => {
 
   test("a column of prose wraps; the row's first column is its name; any other is a line of text", () => {
     expect(
-      getColumnWidthKind(makeColumn(FieldType.Text, { wrapContent: true }), true),
+      getColumnWidthKind(
+        makeColumn(FieldType.Text, { wrapContent: true }),
+        true,
+      ),
     ).toBe(ColumnWidthKind.Prose);
     expect(getColumnWidthKind(makeColumn(FieldType.Text), true)).toBe(
       ColumnWidthKind.Name,
@@ -217,7 +219,10 @@ describe("the least a column may be", () => {
   test("a date or a number is never cut: its widest value is a floor, however wide", () => {
     expect(
       getColumnWidthFloor({
-        measured: measured({ widestValueWidth: 300, headerMinContentWidth: 40 }),
+        measured: measured({
+          widestValueWidth: 300,
+          headerMinContentWidth: 40,
+        }),
         kind: ColumnWidthKind.Whole,
       }),
     ).toBe(324);
@@ -576,7 +581,11 @@ describe("keeping one column's width", () => {
       }),
     ).toEqual({ name: 200 });
     expect(
-      withColumnWidth({ widths: { status: 150 }, columnId: "status", width: null }),
+      withColumnWidth({
+        widths: { status: 150 },
+        columnId: "status",
+        width: null,
+      }),
     ).toBe(EMPTY_COLUMN_WIDTHS);
   });
 
@@ -641,6 +650,89 @@ describe("the widths a table stores", () => {
   });
 });
 
+describe("a column named like what every object has", () => {
+  /*
+   * A column's id is whatever its table calls it - a log attribute's key, a
+   * column of a query in the admin's query console - so these are columns
+   * like any other.
+   */
+  const OBJECT_NAMES: Array<string> = [
+    "constructor",
+    "toString",
+    "valueOf",
+    "hasOwnProperty",
+    "__proto__",
+  ];
+
+  test("has no width until a person gives it one", () => {
+    for (const id of OBJECT_NAMES) {
+      expect(EMPTY_COLUMN_WIDTHS[id]).toBeUndefined();
+      expect(readColumnWidths({ name: 200 })[id]).toBeUndefined();
+    }
+
+    expect(hasDrawnColumnWidths(EMPTY_COLUMN_WIDTHS, OBJECT_NAMES)).toBe(false);
+    expect(
+      withColumnWidth({
+        widths: EMPTY_COLUMN_WIDTHS,
+        columnId: "constructor",
+        width: null,
+      }),
+    ).toBe(EMPTY_COLUMN_WIDTHS);
+  });
+
+  test("keeps the width a person gives it, and reads it back from the browser", () => {
+    let widths: ColumnWidths = EMPTY_COLUMN_WIDTHS;
+
+    OBJECT_NAMES.forEach((id: string, index: number) => {
+      widths = withColumnWidth({
+        widths: widths,
+        columnId: id,
+        width: 200 + index * 10,
+      });
+    });
+
+    OBJECT_NAMES.forEach((id: string, index: number) => {
+      expect(widths[id]).toBe(200 + index * 10);
+      expect(Object.keys(widths)).toContain(id);
+    });
+
+    const stored: string = JSON.stringify(toColumnWidthsJSON(widths));
+    const readBack: ColumnWidths = readColumnWidths(JSON.parse(stored));
+
+    OBJECT_NAMES.forEach((id: string, index: number) => {
+      expect(readBack[id]).toBe(200 + index * 10);
+    });
+
+    expect(
+      withColumnWidth({ widths: readBack, columnId: "__proto__", width: null })[
+        "__proto__"
+      ],
+    ).toBeUndefined();
+  });
+
+  test("never reaches the prototype of any other object", () => {
+    readColumnWidths(JSON.parse('{"__proto__": {"polluted": 1}, "name": 200}'));
+    withColumnWidth({
+      widths: EMPTY_COLUMN_WIDTHS,
+      columnId: "__proto__",
+      width: 300,
+    });
+
+    expect(({} as Record<string, unknown>)["polluted"]).toBeUndefined();
+    expect(Object.getPrototypeOf({})).toBe(Object.prototype);
+  });
+
+  test("is told apart from another of its name as any column is", () => {
+    expect(
+      getTableColumnIds([
+        makeColumn(FieldType.Text, { key: "constructor", title: "First" }),
+        makeColumn(FieldType.Text, { key: "constructor", title: "Second" }),
+        makeColumn(FieldType.Text, { key: "toString" }),
+      ]),
+    ).toEqual(["constructor:first", "constructor:second", "toString"]);
+  });
+});
+
 describe("where a table's widths are remembered", () => {
   test("one entry per person and per table", () => {
     expect(
@@ -651,14 +743,23 @@ describe("where a table's widths are remembered", () => {
     ).toBe("8a3b0c3e-0000-4000-8000-000000000001.incidents-table");
 
     expect(
-      getColumnWidthsPreferenceKey({ tableKey: "incidents-table", personId: "a" }),
+      getColumnWidthsPreferenceKey({
+        tableKey: "incidents-table",
+        personId: "a",
+      }),
     ).not.toBe(
-      getColumnWidthsPreferenceKey({ tableKey: "incidents-table", personId: "b" }),
+      getColumnWidthsPreferenceKey({
+        tableKey: "incidents-table",
+        personId: "b",
+      }),
     );
     expect(
       getColumnWidthsPreferenceKey({ tableKey: "alerts-table", personId: "a" }),
     ).not.toBe(
-      getColumnWidthsPreferenceKey({ tableKey: "incidents-table", personId: "a" }),
+      getColumnWidthsPreferenceKey({
+        tableKey: "incidents-table",
+        personId: "a",
+      }),
     );
   });
 
