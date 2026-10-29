@@ -269,6 +269,13 @@ describe("which columns record a person doing something", () => {
        */
       "rootCauseSuggestionReviewed",
       /*
+       * SecurityHunt.scheduledByUserId: who a scheduled hunt's runs read
+       * as - whoever last set its schedule, changed its search or saved its
+       * schedule as it was. The hunt service stamps it from the caller once
+       * the change has passed its checks; no request chooses it.
+       */
+      "scheduled",
+      /*
        * WorkflowLog.startedByUserId: who ran a workflow by hand from its
        * Builder (Run Workflow or Run just this step), which is what lets a
        * run of a workflow that is off go ahead as a test run. OneUptime

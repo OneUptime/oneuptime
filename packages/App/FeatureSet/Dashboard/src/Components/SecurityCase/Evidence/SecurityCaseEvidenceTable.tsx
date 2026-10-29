@@ -218,30 +218,6 @@ const SecurityCaseEvidenceTable: FunctionComponent<ComponentProps> = (
         }}
         actionButtons={[
           {
-            title: VIEW_EVENT,
-            icon: IconProp.Bookmark,
-            buttonStyleType: ButtonStyleType.NORMAL,
-            isVisible: (item: SecurityCaseEvidence): boolean => {
-              return Boolean(readEventEvidence(item));
-            },
-            onClick: (
-              item: SecurityCaseEvidence,
-              onCompleteAction: () => void,
-            ): void => {
-              const snapshot: SecurityCaseEventSnapshot | null =
-                readEventEvidence(item);
-
-              if (snapshot) {
-                setViewing({
-                  snapshot,
-                  keptAt: item.createdAt ? new Date(item.createdAt) : undefined,
-                });
-              }
-
-              onCompleteAction();
-            },
-          },
-          {
             title: SECURITY_CASE_EVIDENCE_COPY.download,
             icon: IconProp.Download,
             buttonStyleType: ButtonStyleType.NORMAL,
@@ -273,6 +249,31 @@ const SecurityCaseEvidenceTable: FunctionComponent<ComponentProps> = (
               if (link) {
                 Navigation.navigate(URL.fromString(link), {
                   openInNewTab: true,
+                });
+              }
+
+              onCompleteAction();
+            },
+          },
+          // An event kept on the case: its snapshot, in the event's panel.
+          {
+            title: VIEW_EVENT,
+            icon: IconProp.Bookmark,
+            buttonStyleType: ButtonStyleType.NORMAL,
+            isVisible: (item: SecurityCaseEvidence): boolean => {
+              return Boolean(readEventEvidence(item));
+            },
+            onClick: (
+              item: SecurityCaseEvidence,
+              onCompleteAction: () => void,
+            ): void => {
+              const snapshot: SecurityCaseEventSnapshot | null =
+                readEventEvidence(item);
+
+              if (snapshot) {
+                setViewing({
+                  snapshot,
+                  keptAt: item.createdAt ? new Date(item.createdAt) : undefined,
                 });
               }
 

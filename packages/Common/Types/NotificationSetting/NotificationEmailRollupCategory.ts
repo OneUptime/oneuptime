@@ -268,6 +268,7 @@ export const ROLLUP_CATEGORY_ORDER: ReadonlyArray<RollupCategory> = [
   RollupCategory.AlertEpisodes,
   RollupCategory.IncomingCalls,
   RollupCategory.SecurityCases,
+  RollupCategory.SecurityHunts,
   RollupCategory.Slos,
   RollupCategory.Monitors,
   RollupCategory.ScheduledMaintenance,

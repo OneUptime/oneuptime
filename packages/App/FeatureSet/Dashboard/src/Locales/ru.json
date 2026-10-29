@@ -37067,7 +37067,7 @@
   "This event was not found. It may be past its retention, or one you cannot read.": "Это событие не найдено. Возможно, истёк срок его хранения или у вас нет доступа к нему.",
   "This hunt was not found. It may have been deleted.": "Этот поиск угроз не найден. Возможно, он был удалён.",
   "Type a search or pick a filter first: a hunt saves the search on screen.": "Сначала введите запрос или выберите фильтр: поиск угроз сохраняет запрос, который на экране.",
-  "View Event": "Посмотреть событие",
+  "View Event": "Просмотр события",
   "What to look for, as you type it on Events: words in a message, fields such as user:alice or host:web-01, and attributes such as @threat.matched:true.": "Что искать — так, как вы вводите это на странице «События»: слова из сообщения, поля, например user:alice или host:web-01, и атрибуты, например @threat.matched:true.",
   "Who is told when a run finds events, each as their notification settings say. Only people who can read security events are told.": "Кого уведомлять, когда запуск находит события, — каждого согласно его настройкам уведомлений. Уведомляются только те, кто может читать события безопасности.",
   "Why it matters, and what to do when it finds something": "Почему это важно и что делать, когда он что-то найдёт",
