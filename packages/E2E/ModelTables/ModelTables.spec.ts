@@ -1023,7 +1023,7 @@ test.describe("the Alerts list of the screenshot", () => {
     const button: Box = await box(filter);
     expect(folded.height).toBeLessThanOrEqual(button.height + 1);
 
-    // The whole of the first alert's card is on the first screen.
+    // The first alert's card starts on the first screen, its number and title in sight.
     const foldedCard: Box = await box(firstCard);
     expect(foldedCard.y + 120).toBeLessThan(900);
     expect(await sidewaysScroll(page)).toBe(0);
