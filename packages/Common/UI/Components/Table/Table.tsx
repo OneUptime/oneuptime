@@ -34,17 +34,47 @@ import {
   TABLE_SCROLL_BOX_CLASS_NAME,
   getTableFooterClassName,
 } from "./TableLayout";
-import useTableScrollState, { TableScrollState } from "./useTableScrollState";
+import useTableScrollState, {
+  TableScrollState,
+  TableScrollStateHold,
+  isTableOverflowing,
+} from "./useTableScrollState";
 import {
   DrawnTableColumns,
   TABLE_FOLDED_COLUMNS_BELOW_WIDTH_IN_PX,
   getDrawnTableColumns,
 } from "./FoldedColumns";
+import Column from "./Types/Column";
 import Columns from "./Types/Columns";
+import {
+  COLUMN_WIDTHS_SCOPE_ATTRIBUTE,
+  ColumnWidths,
+  getColumnWidthsScope,
+  getSizedColumnsCss,
+  getTableColumnIds,
+  hasDrawnColumnWidths,
+  isColumnResizable,
+} from "./ColumnResize/ColumnWidths";
+import useColumnWidths, {
+  UseColumnWidthsResult,
+} from "./ColumnResize/useColumnWidths";
+import { useColumnWidthsValue } from "./ColumnResize/ColumnWidthsStore";
+import SizedColumnsStyle, {
+  SizedColumn,
+} from "./ColumnResize/SizedColumnsStyle";
+import FieldType from "../Types/FieldType";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import GenericObject from "../../../Types/GenericObject";
 import IconProp from "../../../Types/Icon/IconProp";
-import React, { ReactElement, useEffect, useRef, useState } from "react";
+import React, {
+  ReactElement,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { DragDropContext, DropResult } from "react-beautiful-dnd";
 
 export interface BulkActionProps<T extends GenericObject> {
@@ -186,6 +216,20 @@ export interface ComponentProps<T extends GenericObject> {
    * the rows contain data that should not be downloaded as a file).
    */
   disableBulkCsvExport?: boolean | undefined;
+
+  /*
+   * Where the widths a person gives this table's columns are remembered,
+   * per person (ColumnResize/useColumnWidths): the same for every page that
+   * draws this table. Defaults to the table's id; a ModelTable hands its
+   * userPreferencesKey.
+   */
+  columnWidthsKey?: string | undefined;
+  /*
+   * No column's edge can be dragged: the table keeps its own widths. For a
+   * table whose layout a page depends on; any one column says so with
+   * Column.disableResize instead.
+   */
+  disableColumnResize?: boolean | undefined;
 }
 
 type TableFunction = <T extends GenericObject>(
@@ -305,6 +349,110 @@ const Table: TableFunction = <T extends GenericObject>(
     getDrawnTableColumns<T>(props.columns, isBelowLargeScreen);
 
   /*
+   * ---------------------------------------------------------------------
+   * Columns as wide as a person makes them (ColumnResize)
+   * ---------------------------------------------------------------------
+   *
+   * Each column's edge in the header row can be dragged; a column a person
+   * sized keeps its width (one width on its header cell), the others share
+   * the room as the table always shared it. Widths are kept by the column's
+   * id - over every column the table has, so one left out below a large
+   * screen or switched off keeps its width for when it is back - per
+   * person and per table. A phone draws no header row, so nothing to size.
+   */
+  const isColumnResizeOn: boolean = !props.disableColumnResize;
+
+  const columnIdByColumn: Map<Column<T>, string> = useMemo(() => {
+    const ids: Array<string> = getTableColumnIds<T>(props.columns);
+    const map: Map<Column<T>, string> = new Map();
+
+    props.columns.forEach((column: Column<T>, index: number) => {
+      map.set(column, ids[index] as string);
+    });
+
+    return map;
+  }, [props.columns]);
+
+  const columnWidths: UseColumnWidthsResult = useColumnWidths({
+    tableKey: isColumnResizeOn ? props.columnWidthsKey || props.id : null,
+  });
+
+  const drawnColumnIds: Array<string> = drawnColumns.map(
+    (column: Column<T>): string => {
+      return columnIdByColumn.get(column) || "";
+    },
+  );
+
+  const resizableDrawnColumnIds: Array<string> = drawnColumns
+    .filter((column: Column<T>): boolean => {
+      return isColumnResizable(column);
+    })
+    .map((column: Column<T>): string => {
+      return columnIdByColumn.get(column) || "";
+    });
+
+  const hasActionsColumn: boolean = drawnColumns.some(
+    (column: Column<T>): boolean => {
+      return column.type === FieldType.Actions;
+    },
+  );
+
+  /*
+   * Where a table with no Actions column leaves the room its sized columns
+   * do not take (TableLayout's end filler). Read alone, and only by a table
+   * with no Actions column, so a width kept never draws the rows again
+   * (ColumnWidthsStore): the header row reads the widths itself, and the
+   * rules for the sized columns are drawn on their own (SizedColumnsStyle).
+   */
+  const isAnyDrawnColumnSizedWithoutActions: boolean = useColumnWidthsValue(
+    columnWidths.store,
+    (widths: ColumnWidths): boolean => {
+      return (
+        !hasActionsColumn &&
+        hasDrawnColumnWidths(widths, resizableDrawnColumnIds)
+      );
+    },
+  );
+
+  const hasEndFiller: boolean =
+    isColumnResizeOn && !isMobile && isAnyDrawnColumnSizedWithoutActions;
+
+  // The cells a row draws before its columns: a grip, then a select box.
+  const leadingCellCount: number =
+    (props.enableDragAndDrop ? 1 : 0) + (isBulkActionsEnabled ? 1 : 0);
+
+  // Each column a person may size, and its place among its row's cells.
+  const resizableColumns: Array<SizedColumn> = [];
+
+  drawnColumns.forEach((column: Column<T>, index: number) => {
+    if (isColumnResizable(column)) {
+      resizableColumns.push({
+        id: drawnColumnIds[index] || "",
+        cellNumber: leadingCellCount + index + 1,
+      });
+    }
+  });
+
+  // The table's name in the rules its sized columns are drawn by.
+  const columnWidthsScope: string = getColumnWidthsScope(useId());
+
+  /*
+   * The rule for the column being dragged, written straight onto the page
+   * while it is - in a style of its own that React never draws into.
+   */
+  const dragStyleRef: React.RefObject<HTMLStyleElement> =
+    useRef<HTMLStyleElement>(null);
+
+  /*
+   * While an edge is dragged the table's give-way readings wait
+   * (useTableScrollState), and run once it is let go.
+   */
+  const scrollStateHold: TableScrollStateHold = {
+    isHeldRef: useRef<boolean>(false),
+    remeasureRef: useRef<(() => void) | null>(null),
+  };
+
+  /*
    * Whether the rows are wider than the card (they scroll sideways, and the
    * Actions column sticks at the right edge), and whether the header row
    * can stick under the page's top bar (TableLayout).
@@ -314,7 +462,87 @@ const Table: TableFunction = <T extends GenericObject>(
     tableRef: tableElementRef,
     // A new page of rows can hold longer names in as many rows.
     watch: [isMobile, props.data, drawnColumns.length],
+    hold: scrollStateHold,
   });
+
+  const onColumnResizeStart: (
+    columnId: string,
+    headerCell: HTMLTableCellElement,
+  ) => void = (_columnId: string, headerCell: HTMLTableCellElement): void => {
+    scrollStateHold.isHeldRef.current = true;
+
+    /*
+     * The column's values may now use whatever width it is given: lifted
+     * at once, its rule written straight onto the page, with no row drawn
+     * again for it.
+     */
+    if (dragStyleRef.current) {
+      dragStyleRef.current.textContent = getSizedColumnsCss({
+        scope: columnWidthsScope,
+        cellNumbers: [headerCell.cellIndex + 1],
+      });
+    }
+  };
+
+  const isTableWiderThanBox: () => boolean = (): boolean => {
+    const table: HTMLTableElement | null = tableElementRef.current;
+    const box: HTMLDivElement | null = scrollBoxRef.current;
+
+    if (!table || !box) {
+      return false;
+    }
+
+    return isTableOverflowing({
+      tableWidth: table.getBoundingClientRect().width,
+      boxWidth: box.getBoundingClientRect().width,
+    });
+  };
+
+  /*
+   * A column dragged wider than the card makes the rows scroll sideways at
+   * once - their box scrolls, the Actions column stuck at its edge - rather
+   * than run past the card until the edge is let go; and without drawing a
+   * row again, which on a long list would stall the drag. The table reads
+   * itself as ever once the edge is let go.
+   */
+  const onColumnResizeMove: () => void = (): void => {
+    const box: HTMLDivElement | null = scrollBoxRef.current;
+
+    if (box && !scrollState.isOverflowing && isTableWiderThanBox()) {
+      box.style.setProperty("overflow-x", "auto");
+    }
+  };
+
+  const onColumnResizeEnd: () => void = (): void => {
+    scrollStateHold.isHeldRef.current = false;
+
+    // A width kept has its rule among the sized columns' now.
+    if (dragStyleRef.current) {
+      dragStyleRef.current.textContent = "";
+    }
+
+    // Read again once the kept width is drawn.
+    window.requestAnimationFrame(() => {
+      scrollStateHold.remeasureRef.current?.();
+
+      /*
+       * The box's sideways scroll is the table's own again: kept by its
+       * class from here on when the rows are wider than the card
+       * (overflow-x-auto, below), gone when they fit.
+       */
+      if (!isTableWiderThanBox()) {
+        scrollBoxRef.current?.style.removeProperty("overflow-x");
+      }
+    });
+  };
+
+  // The rows scroll by the box's class now: the drag's own scroll is let go.
+  useLayoutEffect(() => {
+    if (scrollState.isOverflowing && !scrollStateHold.isHeldRef.current) {
+      scrollBoxRef.current?.style.removeProperty("overflow-x");
+    }
+  }, [scrollState.isOverflowing]);
+
 
   /*
    * A refetch with rows already on screen (pagination, sort, refresh - the
@@ -492,6 +720,7 @@ const Table: TableFunction = <T extends GenericObject>(
           itemsOnPage={props.itemsOnPage}
           isMobile={isMobile}
           isOverflowing={scrollState.isOverflowing}
+          hasEndFiller={hasEndFiller}
         />
       );
     }
@@ -527,6 +756,7 @@ const Table: TableFunction = <T extends GenericObject>(
         dragColumnWidths={dragColumnWidths}
         isBulkActionsEnabled={isBulkActionsEnabled}
         isOverflowing={scrollState.isOverflowing}
+        hasEndFiller={hasEndFiller}
         onItemSelected={(item: T) => {
           // set bulk selected items.
           setBulkSelectedItems([...bulkSelectedItems, item]);
@@ -735,7 +965,27 @@ const Table: TableFunction = <T extends GenericObject>(
               </div>
             ) : (
               // Desktop view: render as table
-              <table ref={tableElementRef} className={TABLE_CLASS_NAME}>
+              <>
+              {isColumnResizeOn ? (
+                <>
+                  <SizedColumnsStyle
+                    store={columnWidths.store}
+                    scope={columnWidthsScope}
+                    columns={resizableColumns}
+                  />
+                  <style
+                    ref={dragStyleRef}
+                    data-column-resize-drag-style={columnWidthsScope}
+                  />
+                </>
+              ) : (
+                <></>
+              )}
+              <table
+                ref={tableElementRef}
+                className={TABLE_CLASS_NAME}
+                {...{ [COLUMN_WIDTHS_SCOPE_ATTRIBUTE]: columnWidthsScope }}
+              >
                 <TableHeader
                   id={`${props.id}-header`}
                   columns={drawnColumns}
@@ -746,6 +996,32 @@ const Table: TableFunction = <T extends GenericObject>(
                   isBulkActionsEnabled={isBulkActionsEnabled}
                   isSticky={scrollState.canStickHeader}
                   isOverflowing={scrollState.isOverflowing}
+                  columnResize={
+                    isColumnResizeOn
+                      ? {
+                          getColumnId: (column: Column<T>) => {
+                            return columnIdByColumn.get(column);
+                          },
+                          store: columnWidths.store,
+                          onWidthChange: (
+                            columnId: string,
+                            width: number | null,
+                          ) => {
+                            columnWidths.setColumnWidth(
+                              columnId,
+                              width,
+                              drawnColumnIds,
+                            );
+                          },
+                          onResizeStart: onColumnResizeStart,
+                          onResizeMove: onColumnResizeMove,
+                          onResizeEnd: onColumnResizeEnd,
+                          onReset: columnWidths.resetColumnWidths,
+                          ownerId: columnWidthsScope,
+                        }
+                      : undefined
+                  }
+                  hasEndFiller={hasEndFiller}
                   onAllItemsDeselected={() => {
                     setIsAllItemsSelected(false);
                     props.onBulkClearAllItems?.();
@@ -761,6 +1037,7 @@ const Table: TableFunction = <T extends GenericObject>(
                 />
                 {isEmptyResult ? <></> : getTablebody()}
               </table>
+              </>
             )}
           </div>
         </div>

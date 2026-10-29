@@ -1,6 +1,7 @@
 import Button, { ButtonStyleType } from "../Button/Button";
 import Icon from "../Icon/Icon";
 import { CardSurface, CardSurfaceContext } from "../Card/CardSurface";
+import { CardMenuExtrasContext } from "../Card/CardMenuExtras";
 import { DetailValueContext } from "../Detail/DetailValueContext";
 import { TableCellContext } from "../Table/TableCellContext";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -270,14 +271,17 @@ const SideOver: FunctionComponent<ComponentProps> = (
                  * never a section of the card it was opened from, nor is
                  * what it draws a value of the detail card it was opened
                  * from (DetailValueContext), nor a cell of the table it was
-                 * opened from (TableCellContext).
+                 * opened from (TableCellContext), nor are its options that
+                 * card's (CardMenuExtrasContext).
                  */}
                 <CardSurfaceContext.Provider value={CardSurface.Page}>
-                  <DetailValueContext.Provider value={false}>
-                    <TableCellContext.Provider value={false}>
-                      {props.children}
-                    </TableCellContext.Provider>
-                  </DetailValueContext.Provider>
+                  <CardMenuExtrasContext.Provider value={null}>
+                    <DetailValueContext.Provider value={false}>
+                      <TableCellContext.Provider value={false}>
+                        {props.children}
+                      </TableCellContext.Provider>
+                    </DetailValueContext.Provider>
+                  </CardMenuExtrasContext.Provider>
                 </CardSurfaceContext.Provider>
               </div>
             </div>

@@ -4,6 +4,7 @@ import Column from "./Types/Column";
 import { getTableCellClassName } from "./CellClassName";
 import {
   TABLE_DRAG_HANDLE_CELL_CLASS_NAME,
+  TABLE_END_FILLER_BODY_CELL_CLASS_NAME,
   TABLE_MOBILE_ROW_CLASS_NAME,
   TABLE_ROW_RULE_CLASS_NAME,
   TABLE_SELECT_CELL_CLASS_NAME,
@@ -12,6 +13,7 @@ import {
   getTableCellPaddingClassName,
 } from "./TableLayout";
 import Columns from "./Types/Columns";
+import { COLUMN_MEASURE_SKIP_ATTRIBUTE } from "./ColumnResize/ColumnWidthMeasure";
 import GenericObject from "../../../Types/GenericObject";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
@@ -39,6 +41,8 @@ export interface ComponentProps<T extends GenericObject> {
    * header's Actions cell above it already does.
    */
   isOverflowing?: boolean | undefined;
+  // A cell after the columns, as the header draws one (TableLayout).
+  hasEndFiller?: boolean | undefined;
 }
 
 type TableSkeletonRowsFunction = <T extends GenericObject>(
@@ -109,7 +113,16 @@ const TableSkeletonRows: TableSkeletonRowsFunction = <T extends GenericObject>(
     (props.enableDragAndDrop ? 1 : 0) + (props.isBulkActionsEnabled ? 1 : 0);
 
   return (
-    <tbody data-testid="table-skeleton-loader" role="status" aria-live="polite">
+    <tbody
+      data-testid="table-skeleton-loader"
+      role="status"
+      aria-live="polite"
+      /*
+       * Placeholders say nothing of the values: a column's edge reads its
+       * widths from the rows that land, never from these.
+       */
+      {...{ [COLUMN_MEASURE_SKIP_ATTRIBUTE]: "true" }}
+    >
       {rowIndexes.map((rowIndex: number) => {
         const isLastRow: boolean = rowIndex === rowIndexes.length - 1;
         const ruleClassName: string = isLastRow
@@ -201,6 +214,12 @@ const TableSkeletonRows: TableSkeletonRowsFunction = <T extends GenericObject>(
                 </td>
               );
             })}
+            {props.hasEndFiller && (
+              <td
+                aria-hidden="true"
+                className={`${TABLE_END_FILLER_BODY_CELL_CLASS_NAME}${ruleClassName}`}
+              />
+            )}
           </tr>
         );
       })}

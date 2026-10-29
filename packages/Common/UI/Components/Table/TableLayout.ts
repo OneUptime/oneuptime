@@ -252,6 +252,37 @@ export const TABLE_STUCK_END_SHADOW_RIGHT_TO_LEFT_CLASS_NAME: string =
 export const TABLE_STUCK_END_CELL_CLASS_NAME: string = `border-l border-gray-200 shadow-[-8px_0_12px_-10px_rgba(15,23,42,0.18)] ${TABLE_STUCK_END_SHADOW_RIGHT_TO_LEFT_CLASS_NAME}`;
 
 /*
+ * The cell at the end of each row of a table whose columns a person sized
+ * (Table/ColumnResize) and that has no Actions column. A table that fits
+ * its card gives the room its columns leave to the ones with no width of
+ * their own first - this empty one among them, when every column is sized
+ * - so a column made narrower is that narrow, the spare room left at the
+ * row's end. Without it the room went back to the sized columns, and
+ * narrowing the last of them did nothing. The header's keeps the band's
+ * look, a row's the hairline under it.
+ */
+export const TABLE_END_FILLER_HEADER_CELL_CLASS_NAME: string =
+  "border-y border-gray-200 bg-gray-50 p-0 align-middle";
+
+export const TABLE_END_FILLER_BODY_CELL_CLASS_NAME: string = "p-0";
+
+// The filler's test id, for the suites that count a row's cells.
+export const TABLE_END_FILLER_TEST_ID: string = "table-end-filler";
+
+/*
+ * Reset column widths, at the header row's end - in the Actions column's
+ * header, or the filler's - for a table whose card has no ⋯ to keep it in
+ * (a table drawn outside a card, or in one with no options): a quiet icon
+ * button, there only while a column is sized.
+ */
+export const TABLE_RESET_COLUMN_WIDTHS_BUTTON_CLASS_NAME: string =
+  "inline-flex h-6 w-6 flex-none items-center justify-center rounded text-gray-400 transition-colors duration-150 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+
+// The filler's header holds it with the room a cell's end has.
+export const TABLE_END_FILLER_CONTENT_CLASS_NAME: string =
+  "flex items-center justify-end py-1.5 pl-3 pr-6";
+
+/*
  * The 30px row button and ⋯ sit centred on the row's 24px line: 3px above
  * and below it are taken back, so a row of one line is 48px tall with or
  * without its buttons. leading-none: the ⋯'s box would otherwise add the
