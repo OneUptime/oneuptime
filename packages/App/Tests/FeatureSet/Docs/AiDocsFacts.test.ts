@@ -268,6 +268,57 @@ describe("Ask AI", () => {
     );
   });
 
+  /*
+   * The questions follow where the record on screen stands (the follow-up
+   * #5273 listed): the read that names the chip also reads the record's
+   * state, each time Ask AI opens (useAiChat's resolveEntity), and the
+   * states named here are the ones PageEntityState gives questions of
+   * their own.
+   */
+  it("says the questions follow where the record stands, read each time Ask AI opens", () => {
+    const context: string = flat(
+      dashboardSource("Components/AIChat/PageContext.ts"),
+    );
+    const states: string = dashboardSource(
+      "Components/AIChat/PageEntityState.ts",
+    );
+    const hook: string = dashboardSource("Components/AIChat/useAiChat.ts");
+    const said: string = flat(englishSection(ASK_AI, "## Page context"));
+
+    expect(hook).toContain("PageContextUtil.resolveEntity(detected)");
+    for (const stateRead of [
+      "currentIncidentState: { isResolvedState: true }",
+      "currentAlertState: { isResolvedState: true }",
+      "currentMonitorStatus: { isOperationalState: true }",
+      "currentScheduledMaintenanceState: { isScheduledState: true,",
+    ]) {
+      expect(context).toContain(stateRead);
+    }
+    for (const [state, title] of [
+      ["Incident && state === PageEntityState.Resolved", "Prevent a repeat"],
+      ["Alert && state === PageEntityState.Resolved", "Was it real?"],
+      [
+        "Monitor && state === PageEntityState.NotOperational",
+        "Why not operational?",
+      ],
+      [
+        "ScheduledMaintenanceEvent && state === PageEntityState.Upcoming",
+        "Healthy before it starts?",
+      ],
+      [
+        "ScheduledMaintenanceEvent && state === PageEntityState.Ended",
+        "Back to normal?",
+      ],
+    ]) {
+      expect(flat(states)).toContain(state);
+      expect(states).toContain(`title: "${title}"`);
+    }
+
+    expect(said).toContain(
+      "On an incident, an alert, a monitor or a scheduled maintenance event, the questions also follow where that record stands, read each time Ask AI opens on it. A resolved incident asks how the response went and what would stop it happening again, a resolved alert whether it was a real problem and how often alerts like it fire, and a monitor that is not operational asks why. A maintenance event that has not started asks whether its monitors are healthy before it does, and one that has ended whether they are back to normal.",
+    );
+  });
+
   it("asks before it acts by default, and names the modes as the picker does", () => {
     const picker: string = dashboardSource(
       "Components/AIChat/PermissionModePicker.tsx",

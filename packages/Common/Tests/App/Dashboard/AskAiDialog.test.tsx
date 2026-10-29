@@ -1575,3 +1575,235 @@ describe("closing Ask AI loses nothing", () => {
     expect(screen.getByText(QUESTION)).toBeInTheDocument();
   });
 });
+
+// ---- the questions follow the record ---------------------------------------------
+
+/*
+ * Ask AI's questions follow the record on screen (the follow-up #5273
+ * listed): the read that fetches the incident's title for the pill also
+ * reads where it stands, each time Ask AI opens, and a resolved incident is
+ * asked how the response went and what would stop it coming back.
+ */
+describe("the questions follow the incident on screen", () => {
+  const OWN_QUESTIONS: Array<string> = [
+    "Summarize",
+    "Find root cause",
+    "What changed?",
+    "Draft status update",
+  ];
+  const RESOLVED_QUESTIONS: Array<string> = [
+    "Summarize",
+    "Find root cause",
+    "Response timeline",
+    "Prevent a repeat",
+  ];
+
+  function incidentRead(isResolvedState?: boolean): JSONObject {
+    return {
+      title: "Checkout latency above 2s",
+      incidentNumber: 42,
+      ...(isResolvedState === undefined
+        ? {}
+        : { currentIncidentState: { isResolvedState: isResolvedState } }),
+    };
+  }
+
+  function answerIncidentWith(
+    read: (select: JSONObject) => Promise<unknown>,
+  ): void {
+    getItemMock.mockImplementation(
+      async (request: { modelType: unknown; select: JSONObject }) => {
+        const table: string = tableNameOf(request.modelType);
+
+        if (table === "Incident") {
+          return read(request.select);
+        }
+
+        if (table === "AIRun") {
+          return server.run;
+        }
+
+        return null;
+      },
+    );
+  }
+
+  function incidentReads(): Array<JSONObject> {
+    return getItemMock.mock.calls
+      .map(
+        (call: Array<unknown>): { modelType: unknown; select: JSONObject } => {
+          return call[0] as { modelType: unknown; select: JSONObject };
+        },
+      )
+      .filter((request: { modelType: unknown }): boolean => {
+        return tableNameOf(request.modelType) === "Incident";
+      })
+      .map((request: { select: JSONObject }): JSONObject => {
+        return request.select;
+      });
+  }
+
+  function suggestionTitles(): Array<string> {
+    return within(screen.getByTestId("ai-chat-suggestions"))
+      .getAllByRole("button")
+      .map((button: HTMLElement): string => {
+        return button.textContent || "";
+      });
+  }
+
+  async function settleRead(): Promise<void> {
+    for (let tick: number = 0; tick < 4; tick++) {
+      await settle();
+    }
+  }
+
+  test("a resolved incident is asked how the response went and what would stop it coming back", async () => {
+    answerIncidentWith(async () => {
+      return incidentRead(true);
+    });
+    await renderAt();
+    await toggle();
+    await settleRead();
+
+    expect(suggestionTitles()).toEqual(RESOLVED_QUESTIONS);
+    expect(screen.getByRole("button", { name: "Summarize" })).toHaveAttribute(
+      "title",
+      "Summarize this incident: what happened, how long it lasted, and how it was resolved.",
+    );
+    // One read, the incident's state with its title.
+    expect(incidentReads()).toEqual([
+      {
+        title: true,
+        incidentNumber: true,
+        currentIncidentState: { isResolvedState: true },
+      },
+    ]);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Prevent a repeat" }));
+    });
+    await settle();
+
+    expect(sentRequests("/ai-chat/send-message")[0]!.data).toEqual(
+      expect.objectContaining({
+        content:
+          "What would stop this incident from happening again? Base it on its root cause and on similar past incidents.",
+        // Where it stands stays in the browser: the server reads the incident.
+        pageContext: {
+          type: AIChatPageContextType.Incident,
+          entityId: INCIDENT_ID,
+          entityTitle: "#42 Checkout latency above 2s",
+        },
+      }),
+    );
+  });
+
+  test("an open incident keeps the incident's own questions", async () => {
+    answerIncidentWith(async () => {
+      return incidentRead(false);
+    });
+    await renderAt();
+    await toggle();
+    await settleRead();
+
+    expect(suggestionTitles()).toEqual(OWN_QUESTIONS);
+    expect(screen.getByTestId("ai-chat-context")).toHaveTextContent(
+      "This incident · #42 Checkout latency above 2s",
+    );
+  });
+
+  test("read again each time Ask AI opens: what it knew stays while it reads, then the questions follow the incident", async () => {
+    answerIncidentWith(async () => {
+      return incidentRead(true);
+    });
+    await renderAt();
+    await toggle();
+    await settleRead();
+    expect(suggestionTitles()).toEqual(RESOLVED_QUESTIONS);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    });
+    expect(dialog()).toBeNull();
+
+    // Reopened meanwhile, and read slowly this time.
+    let answer: (value: unknown) => void = (): void => {
+      return undefined;
+    };
+    answerIncidentWith((): Promise<unknown> => {
+      return new Promise((resolve: (value: unknown) => void): void => {
+        answer = resolve;
+      });
+    });
+
+    await toggle();
+    await settleRead();
+
+    // Read again, and until it answers, what the last read said stays.
+    expect(incidentReads()).toHaveLength(2);
+    expect(suggestionTitles()).toEqual(RESOLVED_QUESTIONS);
+    expect(screen.getByTestId("ai-chat-context")).toHaveTextContent(
+      "This incident · #42 Checkout latency above 2s",
+    );
+
+    await act(async () => {
+      answer(incidentRead(false));
+    });
+    await settleRead();
+
+    expect(suggestionTitles()).toEqual(OWN_QUESTIONS);
+    expect(screen.getByTestId("ai-chat-context")).toHaveTextContent(
+      "This incident · #42 Checkout latency above 2s",
+    );
+  });
+
+  test("an incident whose state the person may not read keeps its title and its own questions", async () => {
+    answerIncidentWith(async (select: JSONObject) => {
+      if (select["currentIncidentState"]) {
+        throw new Error("You do not have permission to read Incident State");
+      }
+
+      return incidentRead();
+    });
+    await renderAt();
+    await toggle();
+    await settleRead();
+
+    expect(screen.getByTestId("ai-chat-context")).toHaveTextContent(
+      "This incident · #42 Checkout latency above 2s",
+    );
+    expect(suggestionTitles()).toEqual(OWN_QUESTIONS);
+    // Read again without the state, as before the state was read.
+    expect(incidentReads()).toEqual([
+      {
+        title: true,
+        incidentNumber: true,
+        currentIncidentState: { isResolvedState: true },
+      },
+      { title: true, incidentNumber: true },
+    ]);
+  });
+
+  test("on another page, nothing read about the incident is carried over", async () => {
+    answerIncidentWith(async () => {
+      return incidentRead(true);
+    });
+    await renderAt();
+    await toggle();
+    await settleRead();
+    expect(suggestionTitles()).toEqual(RESOLVED_QUESTIONS);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    });
+    await act(async () => {
+      navigate(homePath());
+    });
+    await settle();
+    await toggle();
+    await settleRead();
+
+    expect(screen.queryByTestId("ai-chat-context")).not.toBeInTheDocument();
+    expect(suggestionTitles()).not.toContain("Prevent a repeat");
+  });
+});

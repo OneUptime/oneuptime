@@ -69,6 +69,7 @@ import AIConversationMessage from "Common/Models/DatabaseModels/AIConversationMe
 import AIRun from "Common/Models/DatabaseModels/AIRun";
 import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import AIChatMessageRole from "Common/Types/AI/AIChatMessageRole";
@@ -118,6 +119,8 @@ const aiKind = ["off", "noProvider"].includes(params.get("ai"))
 const failKind = ["send", "conversations"].includes(params.get("fail"))
   ? params.get("fail")
   : "";
+// Where the incident under the dialog stands: open (the default) or resolved.
+const isIncidentResolved = params.get("incident") === "resolved";
 
 // ---- who is signed in -------------------------------------------------------
 
@@ -702,6 +705,14 @@ ModelAPI.getItem = async (options) => {
       id: new ObjectID(INCIDENT_ID),
       title: "Checkout latency above 2s",
       incidentNumber: 42,
+      // Its state, when the read asks for it, as the API answers.
+      ...(options.select?.currentIncidentState
+        ? {
+            currentIncidentState: Object.assign(new IncidentState(), {
+              isResolvedState: isIncidentResolved,
+            }),
+          }
+        : {}),
     });
   }
 
