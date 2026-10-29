@@ -159,6 +159,36 @@ describe("a guide's entry", () => {
     }
   });
 
+  test("is drawn by its official logo where its brand lets a company's website show it, and by its initials where not", () => {
+    const withoutLogo: Array<string> = slugsOf(
+      OPEN_TELEMETRY_GUIDES.filter(
+        (guide: OpenTelemetryGuideEntry): boolean => {
+          return guide.logo === undefined;
+        },
+      ),
+    );
+
+    /*
+     * Nothing to draw: no logo set the registry takes from has the mark
+     * (Micronaut, Echo, Fiber, Axum), or plain JavaScript in the browser,
+     * which has no brand. Asked not to: Laravel licenses its logo for
+     * commercial use, Symfony allows its logo only in writing, and the
+     * Linux Foundation asks the same before gRPC's logo appears on a
+     * company's website. A logo added for any of them needs that brand's
+     * permission first: the registry's README names each brand's rules.
+     */
+    expect(withoutLogo).toEqual([
+      "browser",
+      "micronaut",
+      "echo",
+      "fiber",
+      "grpc",
+      "laravel",
+      "symfony",
+      "axum",
+    ]);
+  });
+
   test("belongs to a language group the index lists", () => {
     const languages: Array<string> = OPEN_TELEMETRY_GUIDE_LANGUAGE_GROUPS.map(
       (group: OpenTelemetryGuideLanguageGroup): string => {
@@ -214,8 +244,11 @@ describe("the language groups", () => {
       "ts",
     ]);
     expect(termsOf(OpenTelemetryGuideLanguage.Go)).toEqual(["golang"]);
-    // Ruby on Rails is RoR to many; Elixir runs on Erlang's VM, the BEAM.
-    expect(termsOf(OpenTelemetryGuideLanguage.Ruby)).toEqual(["ror"]);
+    /*
+     * Elixir runs on Erlang's VM, the BEAM. RoR names Rails alone, so it is
+     * the Rails guide's own term, not the Ruby group's.
+     */
+    expect(termsOf(OpenTelemetryGuideLanguage.Ruby)).toEqual([]);
     expect(termsOf(OpenTelemetryGuideLanguage.Php)).toEqual([]);
     expect(termsOf(OpenTelemetryGuideLanguage.Rust)).toEqual(["rustlang"]);
     expect(termsOf(OpenTelemetryGuideLanguage.Elixir)).toEqual([
@@ -411,8 +444,9 @@ describe("the guides the product pages feature", () => {
     );
     /*
      * Two full rows of six: a guide of every language with guides, each
-     * with its brand's logo (the language's own guide where its frameworks
-     * have none in the registry), and Next.js.
+     * with its brand's logo - the framework most of its people use (Rails,
+     * Phoenix), or the language's own guide where that framework has no
+     * logo the registry may show (Laravel, Axum) - and Next.js.
      */
     expect(slugsOf(featured)).toEqual([
       "nodejs",
@@ -423,10 +457,10 @@ describe("the guides the product pages feature", () => {
       "ktor",
       "aspnet-core",
       "go",
-      "ruby",
+      "rails",
       "php",
       "rust",
-      "elixir",
+      "phoenix",
     ]);
   });
 

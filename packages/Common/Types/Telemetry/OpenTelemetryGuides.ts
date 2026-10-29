@@ -143,7 +143,6 @@ export const OPEN_TELEMETRY_GUIDE_LANGUAGE_GROUPS: ReadonlyArray<OpenTelemetryGu
       description:
         "Rails, Sinatra, Sidekiq workers and any other Ruby program.",
       logo: ProviderLogo.Ruby,
-      searchTerms: ["ror"],
     },
     {
       language: OpenTelemetryGuideLanguage.Php,
@@ -450,6 +449,7 @@ export const OPEN_TELEMETRY_GUIDES: ReadonlyArray<OpenTelemetryGuideEntry> = [
     name: "Gin",
     language: OpenTelemetryGuideLanguage.Go,
     kind: "framework",
+    logo: ProviderLogo.Gin,
     telemetryGuideLanguage: "go",
   },
   {
@@ -469,7 +469,11 @@ export const OPEN_TELEMETRY_GUIDES: ReadonlyArray<OpenTelemetryGuideEntry> = [
     telemetryGuideLanguage: "go",
   },
   {
-    // gRPC services and clients in Go.
+    /*
+     * gRPC services and clients in Go. No logo: the Linux Foundation, gRPC's
+     * home, asks for written permission before its projects' logos appear
+     * on a company's website beside its products, so the initials stand in.
+     */
     slug: "grpc",
     name: "gRPC",
     language: OpenTelemetryGuideLanguage.Go,
@@ -485,21 +489,23 @@ export const OPEN_TELEMETRY_GUIDES: ReadonlyArray<OpenTelemetryGuideEntry> = [
     logo: ProviderLogo.Ruby,
     telemetryGuideLanguage: "ruby",
     isLanguageGuide: true,
-    isFeatured: true,
   },
   {
+    // Ruby's framework: the guide the product pages feature for Ruby.
     slug: "rails",
     name: "Ruby on Rails",
     language: OpenTelemetryGuideLanguage.Ruby,
     kind: "framework",
+    logo: ProviderLogo.Rails,
     telemetryGuideLanguage: "ruby",
+    isFeatured: true,
   },
   {
-    // No logo set the registry draws from has Sinatra's: its initials stand in.
     slug: "sinatra",
     name: "Sinatra",
     language: OpenTelemetryGuideLanguage.Ruby,
     kind: "framework",
+    logo: ProviderLogo.Sinatra,
     telemetryGuideLanguage: "ruby",
   },
   {
@@ -508,6 +514,7 @@ export const OPEN_TELEMETRY_GUIDES: ReadonlyArray<OpenTelemetryGuideEntry> = [
     name: "Sidekiq",
     language: OpenTelemetryGuideLanguage.Ruby,
     kind: "worker",
+    logo: ProviderLogo.Sidekiq,
     telemetryGuideLanguage: "ruby",
   },
   {
@@ -522,6 +529,11 @@ export const OPEN_TELEMETRY_GUIDES: ReadonlyArray<OpenTelemetryGuideEntry> = [
     isFeatured: true,
   },
   {
+    /*
+     * No logo: Laravel's trademark policy asks for a licence to use its logo
+     * commercially, and Symfony's for written permission to use its logo at
+     * all, so their initials stand in.
+     */
     slug: "laravel",
     name: "Laravel",
     language: OpenTelemetryGuideLanguage.Php,
@@ -540,6 +552,7 @@ export const OPEN_TELEMETRY_GUIDES: ReadonlyArray<OpenTelemetryGuideEntry> = [
     name: "Slim",
     language: OpenTelemetryGuideLanguage.Php,
     kind: "framework",
+    logo: ProviderLogo.Slim,
     telemetryGuideLanguage: "php",
   },
   {
@@ -554,6 +567,7 @@ export const OPEN_TELEMETRY_GUIDES: ReadonlyArray<OpenTelemetryGuideEntry> = [
     isFeatured: true,
   },
   {
+    // No logo set the registry draws from has Axum's: its initials stand in.
     slug: "axum",
     name: "Axum",
     language: OpenTelemetryGuideLanguage.Rust,
@@ -565,6 +579,7 @@ export const OPEN_TELEMETRY_GUIDES: ReadonlyArray<OpenTelemetryGuideEntry> = [
     name: "Actix Web",
     language: OpenTelemetryGuideLanguage.Rust,
     kind: "framework",
+    logo: ProviderLogo.ActixWeb,
     telemetryGuideLanguage: "rust",
   },
   {
@@ -576,14 +591,16 @@ export const OPEN_TELEMETRY_GUIDES: ReadonlyArray<OpenTelemetryGuideEntry> = [
     logo: ProviderLogo.Elixir,
     telemetryGuideLanguage: "elixir",
     isLanguageGuide: true,
-    isFeatured: true,
   },
   {
+    // Elixir's framework: the guide the product pages feature for Elixir.
     slug: "phoenix",
     name: "Phoenix",
     language: OpenTelemetryGuideLanguage.Elixir,
     kind: "framework",
+    logo: ProviderLogo.Phoenix,
     telemetryGuideLanguage: "elixir",
+    isFeatured: true,
   },
 ];
 

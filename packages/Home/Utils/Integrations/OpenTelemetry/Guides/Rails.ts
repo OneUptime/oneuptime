@@ -351,6 +351,8 @@ export const RailsGuide: OpenTelemetryGuide = {
     "Rails 7.1 and later: spans named after routes, Active Record and Active Job beneath them, Rails.logger with trace IDs.",
   searchTerms: [
     "ruby on rails",
+    // Rails to many who type it: RoR finds this guide, not every Ruby one.
+    "ror",
     "actionpack",
     "activerecord",
     "activejob",
