@@ -1,6 +1,6 @@
 # Rischio delle entità (avvisi basati sul rischio)
 
-Un singolo rilevamento dice raramente molto. Una raffica di accessi falliti, un primo sudo su un host e un accesso da un nuovo paese meritano ciascuno un'occhiata; lo stesso account in tutti e tre in una settimana merita un caso. Il rischio delle entità somma ciò che le tue regole di rilevamento, la tua intelligence sulle minacce, i tuoi prodotti collegati e Data Security trovano su ogni utente, host, indirizzo IP e archivio di dati, elenca per primi i più a rischio e apre un caso su quello il cui rischio raggiunge la soglia del progetto.
+Un singolo rilevamento dice raramente molto. Una raffica di accessi falliti, un primo sudo su un host e un accesso da un nuovo paese meritano ciascuno un'occhiata; lo stesso account in tutti e tre in una settimana merita un caso. Il rischio delle entità somma ciò che le tue regole di rilevamento, la tua intelligence sulle minacce, i tuoi prodotti collegati e Sicurezza dei dati trovano su ogni utente, host, indirizzo IP e archivio dati, elenca per primi i più a rischio e apre un caso su quello il cui rischio raggiunge la soglia del progetto.
 
 :::cards
 - [Come si conta un punteggio](#come-si-conta-un-punteggio): Punti in base alla gravità, e ogni fonte una volta a settimana.
@@ -24,7 +24,7 @@ flowchart TB
     score -->|"Alla<br/>soglia"| case["Si apre un caso,<br/>o il caso aperto<br/>ne assorbe il rischio"]
 ```
 
-Apri **Prodotti → Security Events → Rischio delle entità**: ogni utente, host, indirizzo IP e archivio di dati con un rischio ora, i più a rischio per primi, con il suo livello, quanto conta, cosa l'ha trovato e quando. Ognuno si apre su una pagina propria. **Entità più a rischio**, nella panoramica, mostra la parte alta di questo elenco, e **Cerca un'entità**, sotto di esso, cerca qualsiasi valore in 30 giorni di eventi, anche un dominio o un hash di file.
+Apri **Prodotti → Security Events → Rischio delle entità**: ogni utente, host, indirizzo IP e archivio dati con un rischio ora, i più a rischio per primi, con il suo livello, quanto conta, cosa l'ha trovato e quando. Ognuno si apre su una pagina propria. **Entità più a rischio**, nella panoramica, mostra la parte alta di questo elenco, e **Cerca un'entità**, sotto di esso, cerca qualsiasi valore in 30 giorni di eventi, anche un dominio o un hash di file.
 
 ## Prima di iniziare
 
@@ -34,7 +34,7 @@ Apri **Prodotti → Security Events → Rischio delle entità**: ogni utente, ho
 
 ## Come si conta un punteggio
 
-Ogni rilevamento aggiunge punti di rischio all'utente, host, indirizzo IP o archivio di dati a cui si riferisce:
+Ogni rilevamento aggiunge punti di rischio all'utente, host, indirizzo IP o archivio dati a cui si riferisce:
 
 | Un rilevamento di gravità | Aggiunge |
 | --- | --- |
@@ -44,8 +44,8 @@ Ogni rilevamento aggiunge punti di rischio all'utente, host, indirizzo IP o arch
 | Critica | 75 punti |
 
 - Un rilevamento informativo non aggiunge nulla, e un rilevamento di gravità sconosciuta conta come Media.
-- I punti di una regola di rilevamento vanno al valore per cui raggruppa. Una corrispondenza di intelligence sulle minacce aggiunge all'indirizzo IP indicato dall'indicatore. L'avviso di un prodotto collegato aggiunge all'utente e all'host che nomina, altrimenti al suo indirizzo IP. Un problema di Data Security aggiunge all'archivio di dati in cui è stato trovato.
-- Ogni fonte conta una volta. Una regola di rilevamento, un feed di intelligence sulle minacce, la regola di un prodotto collegato o un controllo di Data Security conta una volta in 7 giorni, con il massimo che ha aggiunto, per quante volte scatti: una regola rumorosa non può far sembrare un'entità peggiore di tre regole diverse.
+- I punti di una regola di rilevamento vanno al valore per cui raggruppa. Una corrispondenza di intelligence sulle minacce aggiunge all'indirizzo IP indicato dall'indicatore. L'avviso di un prodotto collegato aggiunge all'utente e all'host che nomina, altrimenti al suo indirizzo IP. Un problema di Sicurezza dei dati aggiunge all'archivio dati in cui è stato trovato.
+- Ogni fonte conta una volta. Una regola di rilevamento, un feed di intelligence sulle minacce, la regola di un prodotto collegato o un controllo di Sicurezza dei dati conta una volta in 7 giorni, con il massimo che ha aggiunto, per quante volte scatti: una regola rumorosa non può far sembrare un'entità peggiore di tre regole diverse.
 - Una fonte che non ha trovato nulla per 7 giorni smette di contare, e il punteggio scende. I punteggi vengono controllati ogni 15 minuti, così un punteggio scende puntuale anche senza un nuovo rilevamento.
 
 Il punteggio di un'entità è la somma delle sue fonti, pesata per la sua criticità. L'attacco di prova di **Invia un attacco di prova**, e un caso che qualcuno apre a mano, non aggiungono rischio.
@@ -82,7 +82,7 @@ Alcune entità contano più di altre: un domain controller, l'account di un diri
 | Alta | ×1.5 |
 | Estrema | ×2 |
 
-Una voce è un valore o un modello con `*`, senza distinzione tra maiuscole e minuscole: `dc-*` indica ogni domain controller, e `*@contractors.example` ogni collaboratore esterno. **Tipo** la limita a utenti, host, indirizzi IP o archivi di dati; vuoto li comprende tutti. Quando più voci nominano un'entità, conta la più specifica: un valore scritto per intero prima di un modello, e un modello più lungo prima di uno più corto. Una modifica raggiunge il punteggio di ogni entità in pochi minuti. Data Security aggiunge da sé gli archivi di dati che ritiene sensibili, quelli riservati come Alta e quelli con restrizioni come Estrema; se modifichi una di queste voci diventa tua, e Data Security non la tocca più.
+Una voce è un valore o un modello con `*`, senza distinzione tra maiuscole e minuscole: `dc-*` indica ogni domain controller, e `*@contractors.example` ogni collaboratore esterno. **Tipo** la limita a utenti, host, indirizzi IP o archivi dati; vuoto li comprende tutti. Quando più voci nominano un'entità, conta la più specifica: un valore scritto per intero prima di un modello, e un modello più lungo prima di uno più corto. Una modifica raggiunge il punteggio di ogni entità in pochi minuti. Sicurezza dei dati aggiunge da sé gli archivi dati che ritiene sensibili, quelli di livello Confidenziale come Alta e quelli di livello Ristretto come Estrema; se modifichi una di queste voci diventa tua, e Sicurezza dei dati non la tocca più.
 
 ## La pagina di un'entità
 
