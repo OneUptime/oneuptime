@@ -407,23 +407,87 @@ describe("search forgives the way people type", () => {
 /*
  * A setting is found by the name its card or switch shows, not only by the
  * menu entry of the page that holds it (PageSearchIndex: a page's
- * settings). Each of these found nothing, or another page, before.
+ * settings). Each of these found nothing, or another page, before. The
+ * result is the setting itself, by that name, and says the page it is on:
+ * a row called "Billing" for "cancel plan" never said why it was found.
  */
 describe("a setting is found by the name its card shows", () => {
   test.each([
-    ["require sso for login", "SSO — Project Settings › Security"],
-    ["monitor groups", "Feature Flags — Project Settings › Advanced"],
-    ["customer support access", "Project — Project Settings › Basic"],
-    ["cancel plan", "Billing — Project Settings › Billing and Invoices"],
-    ["business details", "Billing — Project Settings › Billing and Invoices"],
+    [
+      "require sso for login",
+      "Require SSO for Login — Project Settings › Security › SSO",
+    ],
+    [
+      "monitor groups",
+      "Monitor Groups — Project Settings › Advanced › Feature Flags",
+    ],
+    [
+      "customer support access",
+      "Customer Support Access — Project Settings › Basic › Project",
+    ],
+    [
+      "cancel plan",
+      "Cancel Plan — Project Settings › Billing and Invoices › Billing",
+    ],
+    [
+      "business details",
+      "Business Details / Billing Address — Project Settings › Billing and Invoices › Billing",
+    ],
     [
       "notification channels",
-      "Notification Settings — Project Settings › Notifications",
+      "Notification Channels — Project Settings › Notifications › Notification Settings",
     ],
-    ["ai context", "AI Features — Project Settings › AI"],
-    ["timezone", "Overview — User Profile › Basic"],
-    ["remind me before shifts", "Calendar Feed — User Settings › Calendar"],
-  ])('"%s" opens %s first', (query: string, row: string) => {
+    ["ai context", "AI context — Project Settings › AI › AI Features"],
+    [
+      "daily ai spend limit",
+      "Daily AI Spend Limit (USD) — Project Settings › AI › AI Features",
+    ],
+    ["timezone", "Timezone — User Profile › Basic › Overview"],
+    ["time zone", "Timezone — User Profile › Basic › Overview"],
+    [
+      "remind me before shifts",
+      "Remind me before shifts — User Settings › Calendar › Calendar Feed",
+    ],
+  ])('"%s" lists %s first', (query: string, row: string) => {
     expect(rows(query)[0]).toBe(row);
+  });
+
+  test("a setting is listed among the pages, by how well it matches", () => {
+    /*
+     * The SSO page, then its three cards that hold the word, then the pages
+     * that only hold it inside a keyword ("processors"): a group of their
+     * own would have drawn every page above every setting.
+     */
+    expect(rows("sso").slice(0, 6)).toEqual([
+      "SSO — Project Settings › Security",
+      "SSO Settings — Project Settings › Security › SSO",
+      "Test Single Sign On (SSO) — Project Settings › Security › SSO",
+      "Require SSO for Login — Project Settings › Security › SSO",
+      "Pipelines — Logs › Log Settings",
+      "Pipelines — Traces › Trace Settings",
+    ]);
+  });
+
+  test("a setting never comes before the page it is on", () => {
+    /*
+     * "saml" is a word for the SSO page and the name of its SAML card;
+     * "single sign-on" is a word for the page and in its Test Single Sign
+     * On (SSO) card's name. The page first, its card right after it.
+     */
+    expect(rows("saml").slice(0, 2)).toEqual([
+      "SSO — Project Settings › Security",
+      "SAML — Project Settings › Security › SSO",
+    ]);
+    expect(rows("single sign-on").slice(0, 2)).toEqual([
+      "SSO — Project Settings › Security",
+      "Test Single Sign On (SSO) — Project Settings › Security › SSO",
+    ]);
+  });
+
+  test("a page whose own name matches as well comes before a setting", () => {
+    expect(rows("billing").slice(0, 2)).toEqual([
+      "Billing — Project Settings › Billing and Invoices",
+      "Business Details / Billing Address — Project Settings › Billing and Invoices › Billing",
+    ]);
   });
 });

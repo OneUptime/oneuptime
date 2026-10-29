@@ -42,11 +42,14 @@ import EntitySource from "Common/Types/Telemetry/EntitySource";
  * for a page ("pager", "rota", "2fa"): lowercase English, never shown.
  *
  * A settings page also lists its settings: the names its cards and switches
- * show ("Require SSO for Login", "Monitor Groups", "Cancel Plan"). Searching
- * for one, in English or in the reader's language, finds the page it is on,
- * so a setting is found by the name it goes by, not only by the menu entry
- * of the page that holds it (SettingsFoundByName in App's tests holds every
- * settings page to it).
+ * show ("Require SSO for Login", "Monitor Groups", "Cancel Plan"). Each is a
+ * result of its own, found by that name in English or in the reader's
+ * language, which says the page it is on ("Project Settings > Security >
+ * SSO") and opens it - at the setting's card where it waits folded under
+ * the page's More settings. So a setting is found by the name it goes by,
+ * not only by the menu entry of the page that holds it, and the result says
+ * what was found (SettingsFoundByName in App's tests holds every settings
+ * page to it).
  *
  * Kept free of React and of Common/UI so the App tests can read it.
  */
@@ -93,6 +96,12 @@ export interface PageSearchAction {
 export interface PageSearchSetting {
   name: string;
   gate?: PageSearchGate | undefined;
+  /*
+   * Its card's place on the page, for a card folded under the page's More
+   * settings: the result opens the fold there (as PageSearchAction.anchor),
+   * so it never lands on a page with the setting it was for hidden.
+   */
+  anchor?: string | undefined;
 }
 
 export interface PageSearchPage {
@@ -103,7 +112,8 @@ export interface PageSearchPage {
   keywords?: Array<string> | undefined;
   /*
    * The settings the page holds, by the names their cards and switches show:
-   * each finds the page (see the note at the top).
+   * each is a result of its own that opens the page (see the note at the
+   * top).
    */
   settings?: Array<string | PageSearchSetting> | undefined;
   // A query string the menu's link carries, with its "?".
@@ -493,7 +503,14 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             ],
             settings: [
               "Telemetry Data Retention",
-              "Retention by Telemetry Type",
+              /*
+               * Folded under the page's More settings: the result opens the
+               * fold at its card (TelemetryRetentionFold's place for it).
+               */
+              {
+                name: "Retention by Telemetry Type",
+                anchor: "retention-by-telemetry-type",
+              },
             ],
           },
         ],
@@ -590,9 +607,13 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             settings: [
               "Enable AI",
               "AI context",
-              "Daily limits",
-              "Daily AI Token Limit",
-              "Daily AI Spend Limit (USD)",
+              /*
+               * Folded under the page's More settings: each opens the fold
+               * at the Daily limits card (PROJECT_AI_DAILY_LIMITS_CARD_KEY).
+               */
+              { name: "Daily limits", anchor: "DailyLimits" },
+              { name: "Daily AI Token Limit", anchor: "DailyLimits" },
+              { name: "Daily AI Spend Limit (USD)", anchor: "DailyLimits" },
             ],
           },
           {
@@ -3357,13 +3378,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.USER_PROFILE_OVERVIEW,
             title: "Overview",
             icon: IconProp.Info,
-            keywords: [
-              "my profile",
-              "profile",
-              "my name",
-              "my email",
-              "time zone",
-            ],
+            keywords: ["my profile", "profile", "my name", "my email"],
             settings: ["Basic Info", "Full Name", "Timezone"],
           },
           {

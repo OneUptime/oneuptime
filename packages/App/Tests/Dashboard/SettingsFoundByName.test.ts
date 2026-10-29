@@ -1,12 +1,15 @@
 import {
   buildPageSearchCommandDescriptors,
   BuildPageSearchCommandsInput,
+  getOfferedPageSettings,
+  getPageSearchCommandRanking,
   getPageSearchIndexEntries,
-  getPageSettingKeywords,
   PageSearchAvailability,
   PageSearchCommandDescriptor,
   PageSearchIndexEntry,
 } from "../../FeatureSet/Dashboard/src/Components/CommandPalette/DashboardCommandPaletteHelpers";
+import { PROJECT_AI_DAILY_LIMITS_CARD_KEY } from "../../FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
+import { RETENTION_BY_TELEMETRY_TYPE_PLACE } from "../../FeatureSet/Dashboard/src/Components/TelemetryResource/TelemetryRetentionFold";
 import {
   getPageSearchAreas,
   PageSearchArea,
@@ -35,10 +38,14 @@ import ts from "typescript";
  * details", "notification channels" (that one found the Slack pages), "ai
  * context" (the MCP pages), "timezone" (the on-call Schedule Timeline). A
  * settings page now lists its settings (PageSearchPage.settings), and each
- * finds its page, in English and in the reader's language.
+ * is a result of its own, named as its card names it, that says the page it
+ * is on and opens it - in English and in the reader's language.
  *
  * Held here:
- *   - every setting the index lists finds its own page first;
+ *   - every setting the index lists is a result that opens its own page,
+ *     among the first three for its name, and never before its page;
+ *   - a setting folded under its page's More settings opens the fold at its
+ *     card;
  *   - what people searched for and found nothing (the list above) lands
  *     where the setting is;
  *   - a setting there only on OneUptime Cloud is offered only there;
@@ -118,6 +125,8 @@ const toCommands: (
         breadcrumbKeywords: descriptor.breadcrumbKeywords,
         category: descriptor.isAction ? "Actions" : "Pages",
         isSearchOnly: true,
+        // As the palette ranks them.
+        ...getPageSearchCommandRanking(descriptor),
         onSelect: (): void => {},
       };
     },
@@ -300,7 +309,248 @@ describe("what people searched for, and found nothing, lands where the setting i
       "notification channels",
       commands,
     );
-    expect(found[0]!.title).toBe("Notification Settings");
+    // The setting itself, on the page it is on.
+    expect(found[0]!.title).toBe("Notification Channels");
+    expect(found[0]!.breadcrumb).toEqual([
+      "Project Settings",
+      "Notifications",
+      "Notification Settings",
+    ]);
+    expect(pageKeyOf(found[0]!)).toBe(PageMap.SETTINGS_NOTIFICATION_SETTINGS);
+  });
+});
+
+/*
+ * A row called "Billing" for "cancel plan" never said why it was found: a
+ * setting is a result of its own, by the name its card shows, under the
+ * page it is on, and opens that page.
+ */
+describe("each setting is a result of its own", () => {
+  const descriptors: Array<PageSearchCommandDescriptor> = build();
+
+  const settingRows: Array<PageSearchCommandDescriptor> = descriptors.filter(
+    (descriptor: PageSearchCommandDescriptor): boolean => {
+      return descriptor.isSetting;
+    },
+  );
+
+  test("one for every setting the index lists, and only those", () => {
+    const listed: number = ENTRIES_WITH_SETTINGS.reduce(
+      (count: number, entry: PageSearchIndexEntry): number => {
+        return count + getOfferedPageSettings(entry.page, ALL_ON).length;
+      },
+      0,
+    );
+
+    expect(settingRows.length).toBe(listed);
+    expect(settingRows.length).toBeGreaterThanOrEqual(65);
+
+    for (const row of settingRows) {
+      expect(row.isAction).toBe(false);
+    }
+  });
+
+  test("each has an id of its own, kept across languages", () => {
+    const ids: Array<string> = settingRows.map(
+      (row: PageSearchCommandDescriptor): string => {
+        return row.id;
+      },
+    );
+
+    expect(new Set(ids).size).toBe(ids.length);
+
+    const german: Array<string> = build({
+      translate: (text: string): string => {
+        return `[de] ${text}`;
+      },
+    })
+      .filter((descriptor: PageSearchCommandDescriptor): boolean => {
+        return descriptor.isSetting;
+      })
+      .map((descriptor: PageSearchCommandDescriptor): string => {
+        return descriptor.id;
+      });
+
+    expect(german).toEqual(ids);
+  });
+
+  test.each(
+    ENTRIES_WITH_SETTINGS.flatMap(
+      (entry: PageSearchIndexEntry): Array<[string, PageSearchIndexEntry]> => {
+        return getOfferedPageSettings(entry.page, ALL_ON).map(
+          (setting: PageSearchSetting): [string, PageSearchIndexEntry] => {
+            return [setting.name, entry];
+          },
+        );
+      },
+    ),
+  )(
+    "%s is named as its card names it, under the page it is on, which it opens",
+    (name: string, entry: PageSearchIndexEntry) => {
+      const page: PageSearchCommandDescriptor | undefined = descriptors.find(
+        (descriptor: PageSearchCommandDescriptor): boolean => {
+          return (
+            !descriptor.isSetting &&
+            !descriptor.isAction &&
+            descriptor.routePath.split("#")[0] ===
+              TEMPLATE(entry.page.page).replace(":projectId", "project-a")
+          );
+        },
+      );
+      const row: PageSearchCommandDescriptor | undefined = settingRows.find(
+        (candidate: PageSearchCommandDescriptor): boolean => {
+          return (
+            candidate.title === name &&
+            candidate.onPageId === page?.id &&
+            Boolean(page)
+          );
+        },
+      );
+
+      expect(page).toBeDefined();
+      expect(row).toBeDefined();
+      // Where it lives: the page's own breadcrumb, then the page.
+      expect(row!.breadcrumb).toEqual(
+        page!.breadcrumb[page!.breadcrumb.length - 1] === page!.title
+          ? page!.breadcrumb
+          : [...page!.breadcrumb, page!.title],
+      );
+      expect(row!.routePath.split("#")[0]).toBe(page!.routePath);
+      expect(row!.icon).toBe(page!.icon);
+    },
+  );
+
+  test("between equally good matches a page comes first, and a setting never before its page", () => {
+    const sso: PageSearchCommandDescriptor | undefined = descriptors.find(
+      (descriptor: PageSearchCommandDescriptor): boolean => {
+        return !descriptor.isSetting && descriptor.title === "SSO";
+      },
+    );
+    const saml: PageSearchCommandDescriptor | undefined = settingRows.find(
+      (row: PageSearchCommandDescriptor): boolean => {
+        return row.title === "SAML";
+      },
+    );
+
+    expect(getPageSearchCommandRanking(sso!)).toEqual({ searchPriority: 1 });
+    expect(getPageSearchCommandRanking(saml!)).toEqual({
+      searchPriority: 0.5,
+      onPageCommandId: sso!.id,
+    });
+
+    const commands: Array<PaletteCommand> = toCommands(descriptors);
+
+    /*
+     * "saml" is a word for the SSO page and its SAML card's name; "single
+     * sign-on" a word for the page and in its test card's name. The page
+     * first, then the card.
+     */
+    expect(
+      results("saml", commands)
+        .slice(0, 2)
+        .map((command: PaletteCommand): string => {
+          return command.title;
+        }),
+    ).toEqual(["SSO", "SAML"]);
+    expect(
+      results("single sign-on", commands)
+        .slice(0, 2)
+        .map((command: PaletteCommand): string => {
+          return command.title;
+        }),
+    ).toEqual(["SSO", "Test Single Sign On (SSO)"]);
+  });
+
+  test("a setting never repeats the name of the page it is on", () => {
+    for (const entry of ENTRIES_WITH_SETTINGS) {
+      for (const setting of entry.page.settings || []) {
+        expect(settingName(setting).trim().toLowerCase()).not.toBe(
+          entry.page.title.trim().toLowerCase(),
+        );
+      }
+    }
+  });
+});
+
+/*
+ * A setting that waits folded under its page's More settings: a result that
+ * opened the page at its top landed on the page with the setting it was for
+ * hidden. It opens the page at the setting's card, where the fold opens by
+ * itself (AdvancedPageSection), as the project's own mail servers and
+ * Twilio accounts do.
+ */
+describe("a folded setting opens its fold at its card", () => {
+  // In the order the index lists them.
+  const FOLDED: Array<{ name: string; pageKey: string; place: string }> = [
+    {
+      name: "Retention by Telemetry Type",
+      pageKey: PageMap.SETTINGS_TELEMETRY_SETTINGS,
+      place: RETENTION_BY_TELEMETRY_TYPE_PLACE,
+    },
+    {
+      name: "Daily limits",
+      pageKey: PageMap.SETTINGS_AI_FEATURES,
+      place: PROJECT_AI_DAILY_LIMITS_CARD_KEY,
+    },
+    {
+      name: "Daily AI Token Limit",
+      pageKey: PageMap.SETTINGS_AI_FEATURES,
+      place: PROJECT_AI_DAILY_LIMITS_CARD_KEY,
+    },
+    {
+      name: "Daily AI Spend Limit (USD)",
+      pageKey: PageMap.SETTINGS_AI_FEATURES,
+      place: PROJECT_AI_DAILY_LIMITS_CARD_KEY,
+    },
+  ];
+
+  test.each(FOLDED)(
+    "$name opens its page at its card",
+    (folded: { name: string; pageKey: string; place: string }) => {
+      const row: PageSearchCommandDescriptor | undefined = build().find(
+        (descriptor: PageSearchCommandDescriptor): boolean => {
+          return descriptor.isSetting && descriptor.title === folded.name;
+        },
+      );
+
+      expect(row?.routePath).toBe(
+        `${TEMPLATE(folded.pageKey).replace(":projectId", "project-a")}#${folded.place}`,
+      );
+    },
+  );
+
+  test("only those carry a place, and each place is its card's", () => {
+    const anchored: Array<string> = ENTRIES_WITH_SETTINGS.flatMap(
+      (entry: PageSearchIndexEntry): Array<string> => {
+        return (entry.page.settings || [])
+          .filter((setting: string | PageSearchSetting): boolean => {
+            return typeof setting !== "string" && Boolean(setting.anchor);
+          })
+          .map((setting: string | PageSearchSetting): string => {
+            return settingName(setting);
+          });
+      },
+    );
+
+    expect(anchored).toEqual(
+      FOLDED.map((folded: { name: string }): string => {
+        return folded.name;
+      }),
+    );
+    expect([
+      PROJECT_AI_DAILY_LIMITS_CARD_KEY,
+      RETENTION_BY_TELEMETRY_TYPE_PLACE,
+    ]).toEqual(["DailyLimits", "retention-by-telemetry-type"]);
+  });
+
+  test("a setting in sight opens its page as it is", () => {
+    const row: PageSearchCommandDescriptor | undefined = build().find(
+      (descriptor: PageSearchCommandDescriptor): boolean => {
+        return descriptor.isSetting && descriptor.title === "Cancel Plan";
+      },
+    );
+
+    expect(row?.routePath).toBe("/dashboard/project-a/settings_billing");
   });
 });
 
@@ -311,26 +561,30 @@ describe("a setting there only on OneUptime Cloud is offered only there", () => 
     },
   )!.page;
 
+  const offeredNames: (
+    page: PageSearchPage,
+    availability: PageSearchAvailability,
+  ) => Array<string> = (
+    page: PageSearchPage,
+    availability: PageSearchAvailability,
+  ): Array<string> => {
+    return getOfferedPageSettings(page, availability).map(
+      (setting: PageSearchSetting): string => {
+        return setting.name;
+      },
+    );
+  };
+
   test("Customer Support Access finds the Project page on OneUptime Cloud", () => {
-    expect(
-      getPageSettingKeywords(project, ALL_ON, (text: string): string => {
-        return text;
-      }),
-    ).toContain("customer support access");
+    expect(offeredNames(project, ALL_ON)).toContain("Customer Support Access");
   });
 
   test("and nothing where the card is not drawn", () => {
-    const keywords: Array<string> = getPageSettingKeywords(
-      project,
-      SELF_HOSTED,
-      (text: string): string => {
-        return text;
-      },
-    );
+    const names: Array<string> = offeredNames(project, SELF_HOSTED);
 
-    expect(keywords).not.toContain("customer support access");
+    expect(names).not.toContain("Customer Support Access");
     // The project's own details are everywhere.
-    expect(keywords).toContain("project details");
+    expect(names).toContain("Project Details");
 
     const commands: Array<PaletteCommand> = toCommands(
       build({ availability: SELF_HOSTED }),
@@ -352,22 +606,14 @@ describe("a setting there only on OneUptime Cloud is offered only there", () => 
         return entry.page.page === PageMap.SETTINGS_NOTIFICATION_SETTINGS;
       },
     )!.page;
-    const identity: (text: string) => string = (text: string): string => {
-      return text;
-    };
-
-    expect(
-      getPageSettingKeywords(notificationSettings, ALL_ON, identity),
-    ).toEqual(
-      expect.arrayContaining([
-        "notification channels",
-        "current balance",
-        "auto recharge",
-      ]),
-    );
-    expect(
-      getPageSettingKeywords(notificationSettings, SELF_HOSTED, identity),
-    ).toEqual(["notification channels"]);
+    expect(offeredNames(notificationSettings, ALL_ON)).toEqual([
+      "Notification Channels",
+      "Current Balance",
+      "Auto Recharge",
+    ]);
+    expect(offeredNames(notificationSettings, SELF_HOSTED)).toEqual([
+      "Notification Channels",
+    ]);
   });
 });
 
@@ -402,28 +648,30 @@ describe("in the reader's language", () => {
     },
   );
 
-  test("a setting's words are each listed once, the English first", () => {
-    const sso: PageSearchPage = ENTRIES.find(
-      (entry: PageSearchIndexEntry): boolean => {
-        return entry.page.page === PageMap.SETTINGS_SSO;
+  test("a setting reads in German, and its English name is searched as its name", () => {
+    const germanRows: Array<PageSearchCommandDescriptor> = build({
+      translate: translate,
+    }).filter((descriptor: PageSearchCommandDescriptor): boolean => {
+      return descriptor.isSetting;
+    });
+
+    const requireSso: PageSearchCommandDescriptor | undefined = germanRows.find(
+      (row: PageSearchCommandDescriptor): boolean => {
+        return row.titleAliases.includes("Require SSO for Login");
       },
-    )!.page;
-    const keywords: Array<string> = getPageSettingKeywords(
-      sso,
-      ALL_ON,
-      translate,
     );
 
-    expect(keywords.indexOf("require sso for login")).toBeLessThan(
-      keywords.indexOf("sso für die anmeldung erzwingen"),
+    expect(requireSso?.title).toBe("SSO für die Anmeldung erzwingen");
+    expect(requireSso?.titleAliases).toEqual(["Require SSO for Login"]);
+
+    // "SAML" reads the same in German: no second name for it.
+    const saml: PageSearchCommandDescriptor | undefined = germanRows.find(
+      (row: PageSearchCommandDescriptor): boolean => {
+        return row.title === "SAML";
+      },
     );
-    expect(new Set(keywords).size).toBe(keywords.length);
-    // "SAML" reads the same in German: once.
-    expect(
-      keywords.filter((keyword: string): boolean => {
-        return keyword === "saml";
-      }),
-    ).toHaveLength(1);
+
+    expect(saml?.titleAliases).toEqual([]);
   });
 });
 

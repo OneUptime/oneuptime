@@ -6,6 +6,7 @@ import {
   PageSearchPage,
   PageSearchPermission,
   PageSearchSection,
+  PageSearchSetting,
 } from "./PageSearchIndex";
 import MultiSearch from "Common/Types/BaseDatabase/MultiSearch";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -38,17 +39,21 @@ export const PALETTE_ENTITY_SEARCH_LIMIT: number = 5;
 
 /*
  * Between two equally good search matches: a product first, then a page (or
- * an action done on one, such as Delete Project), then the palette's own
- * actions and quick links. "pager" opens On-Call Duty, then On-Call
- * Policies, then My On-Call Policies.
+ * an action done on one, such as Delete Project), then a setting on a page,
+ * then the palette's own actions and quick links. "pager" opens On-Call
+ * Duty, then On-Call Policies, then My On-Call Policies; "monitor groups"
+ * opens the Monitor Groups page, then the Feature Flags switch that turns
+ * them on.
  */
 export const PALETTE_SEARCH_PRIORITY: {
   product: number;
   page: number;
+  setting: number;
   action: number;
 } = {
   product: 2,
   page: 1,
+  setting: 0.5,
   action: 0,
 };
 
@@ -161,6 +166,16 @@ export interface PageSearchCommandDescriptor {
   areaId: string;
   // A thing done on a page ("Delete Project") rather than the page itself.
   isAction: boolean;
+  /*
+   * A setting on a page ("Require SSO for Login" on SSO), named as its card
+   * or switch names it, rather than the page itself.
+   */
+  isSetting: boolean;
+  /*
+   * A setting's: the id of its page's own result, which it never comes
+   * before (PaletteCommand.onPageCommandId).
+   */
+  onPageId?: string | undefined;
 }
 
 export interface BuildPageSearchCommandsInput {
@@ -203,46 +218,6 @@ const isGateOpen: (
   return true;
 };
 
-/*
- * The names of a page's settings that are there for this person, as words
- * Search finds the page by: each as the page writes it (English) and as the
- * reader's language shows it, lower-cased, each once.
- */
-export const getPageSettingKeywords: (
-  page: PageSearchPage,
-  availability: PageSearchAvailability,
-  translate: (text: string) => string,
-) => Array<string> = (
-  page: PageSearchPage,
-  availability: PageSearchAvailability,
-  translate: (text: string) => string,
-): Array<string> => {
-  const keywords: Array<string> = [];
-
-  const add: (word: string) => void = (word: string): void => {
-    const lowered: string = word.trim().toLowerCase();
-
-    if (lowered && !keywords.includes(lowered)) {
-      keywords.push(lowered);
-    }
-  };
-
-  for (const setting of page.settings || []) {
-    const name: string = typeof setting === "string" ? setting : setting.name;
-    const gate: PageSearchGate | undefined =
-      typeof setting === "string" ? undefined : setting.gate;
-
-    if (!isGateOpen(gate, availability)) {
-      continue;
-    }
-
-    add(name);
-    add(translate(name));
-  }
-
-  return keywords;
-};
-
 const isActionAllowed: (
   action: PageSearchAction,
   availability: PageSearchAvailability,
@@ -273,6 +248,31 @@ const englishUnlessShown: (shown: string, english: string) => Array<string> = (
   english: string,
 ): Array<string> => {
   return isSameName(shown, english) ? [] : [english];
+};
+
+/*
+ * The settings of a page that are there for this person, each as its card
+ * or switch names it, in the order the page lists them: Customer Support
+ * Access only where billing is on, as its card is. A setting that would
+ * only repeat its page's own name is the page's result already.
+ */
+export const getOfferedPageSettings: (
+  page: PageSearchPage,
+  availability: PageSearchAvailability,
+) => Array<PageSearchSetting> = (
+  page: PageSearchPage,
+  availability: PageSearchAvailability,
+): Array<PageSearchSetting> => {
+  return (page.settings || [])
+    .map((setting: string | PageSearchSetting): PageSearchSetting => {
+      return typeof setting === "string" ? { name: setting } : setting;
+    })
+    .filter((setting: PageSearchSetting): boolean => {
+      return (
+        isGateOpen(setting.gate, availability) &&
+        !isSameName(setting.name, page.title)
+      );
+    });
 };
 
 /*
@@ -349,19 +349,20 @@ export function buildPageSearchCommandDescriptors(
           },
         );
 
+        /*
+         * The page's own result: its row here, or the product's where the
+         * products menu lists the page as a product.
+         */
+        const pageCommandId: string = isListedProduct
+          ? slugifyPaletteCommandId("nav", template)
+          : slugifyPaletteCommandId("page", template + queryString);
+
         if (!isListedProduct) {
           descriptors.push({
-            id: slugifyPaletteCommandId("page", template + queryString),
+            id: pageCommandId,
             title,
             titleAliases: englishUnlessShown(title, page.title),
-            keywords: [
-              ...(page.keywords || []),
-              ...getPageSettingKeywords(
-                page,
-                input.availability,
-                input.translate,
-              ),
-            ],
+            keywords: page.keywords || [],
             breadcrumb,
             breadcrumbKeywords,
             icon: page.icon || area.icon,
@@ -369,8 +370,21 @@ export function buildPageSearchCommandDescriptors(
             routePath,
             areaId: area.id,
             isAction: false,
+            isSetting: false,
           });
         }
+
+        /*
+         * An action, or a setting, names the page it is on: Delete Project
+         * is under "Project Settings > Danger Zone", Require SSO for Login
+         * under "Project Settings > Security > SSO".
+         */
+        const onPageBreadcrumb: Array<string> = isSameName(
+          breadcrumb[breadcrumb.length - 1] || "",
+          title,
+        )
+          ? breadcrumb
+          : [...breadcrumb, title];
 
         for (const action of page.actions || []) {
           if (!isActionAllowed(action, input.availability)) {
@@ -379,23 +393,12 @@ export function buildPageSearchCommandDescriptors(
 
           const actionTitle: string = input.translate(action.title);
 
-          /*
-           * An action names the page it is done on: Delete Project is under
-           * "Project Settings > Danger Zone".
-           */
-          const actionBreadcrumb: Array<string> = isSameName(
-            breadcrumb[breadcrumb.length - 1] || "",
-            title,
-          )
-            ? breadcrumb
-            : [...breadcrumb, title];
-
           descriptors.push({
             id: slugifyPaletteCommandId("page-action", action.id),
             title: actionTitle,
             titleAliases: englishUnlessShown(actionTitle, action.title),
             keywords: action.keywords || [],
-            breadcrumb: actionBreadcrumb,
+            breadcrumb: onPageBreadcrumb,
             breadcrumbKeywords: [...breadcrumbKeywords, page.title],
             icon: action.icon || page.icon || area.icon,
             iconColor: area.iconColor,
@@ -408,6 +411,42 @@ export function buildPageSearchCommandDescriptors(
               : routePath,
             areaId: area.id,
             isAction: true,
+            isSetting: false,
+          });
+        }
+
+        /*
+         * Each setting a result of its own, named as its card or switch
+         * names it: "cancel plan" finds Cancel Plan, under "Project
+         * Settings > Billing and Invoices > Billing", rather than a row
+         * called Billing that never says why it was found.
+         */
+        for (const setting of getOfferedPageSettings(
+          page,
+          input.availability,
+        )) {
+          const settingTitle: string = input.translate(setting.name);
+
+          descriptors.push({
+            id: slugifyPaletteCommandId(
+              "page-setting",
+              `${template}${queryString} ${setting.name}`,
+            ),
+            title: settingTitle,
+            titleAliases: englishUnlessShown(settingTitle, setting.name),
+            keywords: [],
+            breadcrumb: onPageBreadcrumb,
+            breadcrumbKeywords: [...breadcrumbKeywords, page.title],
+            icon: page.icon || area.icon,
+            iconColor: area.iconColor,
+            // At its card, where it waits folded under More settings.
+            routePath: setting.anchor
+              ? `${routePath}#${setting.anchor}`
+              : routePath,
+            areaId: area.id,
+            isAction: false,
+            isSetting: true,
+            onPageId: pageCommandId,
           });
         }
       }
@@ -416,6 +455,32 @@ export function buildPageSearchCommandDescriptors(
 
   return descriptors;
 }
+
+/*
+ * How a result of the page index ranks against the rest, as Search reads
+ * it: between equally good matches a page before a setting on a page, and
+ * a setting never before the page it is on. The palette and the tests that
+ * search the index both read it here.
+ */
+export interface PageSearchCommandRanking {
+  searchPriority: number;
+  onPageCommandId?: string | undefined;
+}
+
+export const getPageSearchCommandRanking: (
+  descriptor: PageSearchCommandDescriptor,
+) => PageSearchCommandRanking = (
+  descriptor: PageSearchCommandDescriptor,
+): PageSearchCommandRanking => {
+  if (!descriptor.isSetting) {
+    return { searchPriority: PALETTE_SEARCH_PRIORITY.page };
+  }
+
+  return {
+    searchPriority: PALETTE_SEARCH_PRIORITY.setting,
+    onPageCommandId: descriptor.onPageId,
+  };
+};
 
 export interface PageSearchIndexEntry {
   area: PageSearchArea;
