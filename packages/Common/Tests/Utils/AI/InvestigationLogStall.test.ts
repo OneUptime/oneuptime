@@ -83,12 +83,14 @@ describe("the log searches an investigation ran", () => {
 
 describe("whether the logs stood in the way", () => {
   // Every combination of what decides it.
-  const cases: Array<{
+  interface StallCase {
     isInconclusive: boolean;
     searches: InvestigationLogSearches;
     hasLogs: boolean | null;
     expected: InvestigationLogStallReason | null;
-  }> = [];
+  }
+
+  const cases: Array<StallCase> = [];
 
   for (const isInconclusive of [true, false]) {
     for (const searches of [
@@ -114,7 +116,7 @@ describe("whether the logs stood in the way", () => {
 
   test.each(cases)(
     "inconclusive=$isInconclusive, searches=$searches, hasLogs=$hasLogs: $expected",
-    ({ isInconclusive, searches, hasLogs, expected }) => {
+    ({ isInconclusive, searches, hasLogs, expected }: StallCase) => {
       expect(
         decideInvestigationLogStall({ isInconclusive, searches, hasLogs }),
       ).toBe(expected);
