@@ -61,13 +61,13 @@ const BLOCKABLE_KINDS: ReadonlyArray<DataStoreKind> = [
 const SHAREABLE_KINDS: ReadonlyArray<DataStoreKind> = [
   DataStoreKind.AwsRdsSnapshot,
   DataStoreKind.AwsRdsInstance,
-  DataStoreKind.AwsAuroraCluster,
+  DataStoreKind.AwsRdsCluster,
   DataStoreKind.AwsDocumentDbCluster,
 ];
 
 // The kinds whose snapshots are cluster snapshots (DescribeDBClusterSnapshots).
 const CLUSTER_KINDS: ReadonlyArray<DataStoreKind> = [
-  DataStoreKind.AwsAuroraCluster,
+  DataStoreKind.AwsRdsCluster,
   DataStoreKind.AwsDocumentDbCluster,
 ];
 
