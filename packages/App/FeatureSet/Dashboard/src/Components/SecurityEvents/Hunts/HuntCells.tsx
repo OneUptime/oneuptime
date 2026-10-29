@@ -28,6 +28,7 @@ import {
   readSecurityHuntFilters,
 } from "Common/Types/SecurityEvent/SecurityHunt";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import { useAreTableColumnsFolded } from "Common/UI/Components/Table/TableCellContext";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -99,13 +100,87 @@ export const HuntSearchLine: FunctionComponent<{
 };
 
 /*
+ * The Schedule and Last Found columns in one line, under a hunt's name
+ * where the list folds them away (below lg): how often it runs, and what
+ * its last run found - in red when it could not be made.
+ */
+export const HuntFoldedFacts: FunctionComponent<HuntCellProps> = (
+  props: HuntCellProps,
+): ReactElement => {
+  const translator: Translator = useTranslator();
+  const hunt: SecurityHunt = props.hunt;
+  const schedule: SecurityHuntSchedule =
+    hunt.schedule || SecurityHuntSchedule.NotScheduled;
+  const label: string = SCHEDULE_LABELS[schedule] || schedule;
+  const state: HuntRunState = getHuntRunState(hunt);
+  const separator: ReactElement = <span aria-hidden="true">·</span>;
+
+  let found: ReactElement = <></>;
+
+  if (state === HuntRunState.Failed) {
+    found = (
+      <>
+        {separator}
+        <span className="font-medium text-red-700">
+          {translator.translateText(COULD_NOT_RUN) || COULD_NOT_RUN}
+        </span>
+      </>
+    );
+  } else if (state === HuntRunState.Found && hunt.lastFoundAt) {
+    found = (
+      <>
+        {separator}
+        <span className="tabular-nums">
+          {translator.translatePlural(
+            FOUND_EVENT_COUNT,
+            hunt.lastFoundEventCount || 0,
+          )}
+        </span>
+        {separator}
+        <RelativeTime date={hunt.lastFoundAt} className="whitespace-nowrap" />
+      </>
+    );
+  } else if (state === HuntRunState.NothingFound) {
+    found = (
+      <>
+        {separator}
+        <span>
+          {translator.translateText(NOTHING_FOUND_YET) || NOTHING_FOUND_YET}
+        </span>
+      </>
+    );
+  } else if (state === HuntRunState.NotRunYet) {
+    found = (
+      <>
+        {separator}
+        <span>{translator.translateText(NOT_RUN_YET) || NOT_RUN_YET}</span>
+      </>
+    );
+  }
+
+  return (
+    <span
+      className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-gray-600"
+      data-testid={HUNTS_TEST_IDS.nameFacts}
+      data-state={state}
+    >
+      <span>{translator.translateText(label) || label}</span>
+      {found}
+    </span>
+  );
+};
+
+/*
  * The list's Hunt column: the hunt's name, its search under it, and what it
- * is for in two lines at most. A long name wraps between its words.
+ * is for in two lines at most. A long name wraps between its words. Below
+ * lg, where the list folds its other columns away, how often it runs and
+ * what it last found come under them (HuntFoldedFacts).
  */
 export const HuntNameCell: FunctionComponent<HuntCellProps> = (
   props: HuntCellProps,
 ): ReactElement => {
   const hunt: SecurityHunt = props.hunt;
+  const areColumnsFolded: boolean = useAreTableColumnsFolded();
 
   return (
     <div className="grid min-w-0 grid-cols-1 gap-0.5">
@@ -123,6 +198,7 @@ export const HuntNameCell: FunctionComponent<HuntCellProps> = (
       ) : (
         <></>
       )}
+      {areColumnsFolded ? <HuntFoldedFacts hunt={hunt} /> : <></>}
     </div>
   );
 };

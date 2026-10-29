@@ -231,21 +231,22 @@ const HuntsMenu: FunctionComponent<ComponentProps> = (
           modelType={SecurityHunt}
           name="security-events-save-as-hunt"
           title={SAVE_AS_HUNT}
+          // The modal draws its description in a <p>: spans, laid out as blocks.
           description={
-            <div className="space-y-3">
-              <p>
+            <span className="block">
+              <span className="block">
                 {translator.translateText(SAVE_AS_HUNT_DESCRIPTION) ||
                   SAVE_AS_HUNT_DESCRIPTION}
-              </p>
-              <div
-                className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2"
+              </span>
+              <span
+                className="mt-3 block rounded-md border border-gray-200 bg-gray-50 px-3 py-2"
                 data-testid={HUNTS_TEST_IDS.saveSummary}
               >
-                <p className="text-xs font-medium text-gray-500">
+                <span className="block text-xs font-medium text-gray-500">
                   {translator.translateText(SAVES_THIS_SEARCH) ||
                     SAVES_THIS_SEARCH}
-                </p>
-                <div className="mt-1 flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
+                </span>
+                <span className="mt-1 flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
                   <HuntSearchLine
                     searchQuery={toSave.searchQuery}
                     filters={toSave.filters}
@@ -254,9 +255,9 @@ const HuntsMenu: FunctionComponent<ComponentProps> = (
                     {translator.translateText(toSave.timeRange) ||
                       toSave.timeRange}
                   </span>
-                </div>
-              </div>
-            </div>
+                </span>
+              </span>
+            </span>
           }
           submitButtonText={SAVE_HUNT}
           onClose={() => {

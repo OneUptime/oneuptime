@@ -244,6 +244,7 @@ export const KEPT_EVENT_NOTE: string = translationKey(
 export const HUNTS_TEST_IDS: {
   table: string;
   nameCell: string;
+  nameFacts: string;
   searchLine: string;
   scheduleCell: string;
   lastFoundCell: string;
@@ -268,6 +269,7 @@ export const HUNTS_TEST_IDS: {
 } = {
   table: "security-hunts-table",
   nameCell: "security-hunt-name",
+  nameFacts: "security-hunt-name-facts",
   searchLine: "security-hunt-search",
   scheduleCell: "security-hunt-schedule",
   lastFoundCell: "security-hunt-last-found",

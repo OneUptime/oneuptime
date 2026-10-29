@@ -318,7 +318,7 @@ const HuntHeader: FunctionComponent<ComponentProps> = (
             <></>
           )}
           {runState === HuntRunState.Failed ? (
-            <p
+            <div
               className="flex items-start gap-1.5 text-xs text-red-700"
               role="alert"
               data-testid={HUNTS_TEST_IDS.lastFound}
@@ -335,7 +335,7 @@ const HuntHeader: FunctionComponent<ComponentProps> = (
                     "",
                 })}
               </span>
-            </p>
+            </div>
           ) : (
             <></>
           )}
