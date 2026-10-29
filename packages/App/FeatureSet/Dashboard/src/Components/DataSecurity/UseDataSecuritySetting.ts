@@ -48,7 +48,6 @@ export const DATA_SECURITY_SETTING_SELECT: Select<DataSecuritySetting> = {
   contentScanIntervalInHours: true,
   allowedValues: true,
   disabledDataTypeIds: true,
-  useAiForAmbiguousFields: true,
 };
 
 export async function readDataSecuritySetting(

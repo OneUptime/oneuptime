@@ -464,23 +464,6 @@ export default class DataSecuritySetting extends BaseModel {
   })
   public disabledDataTypeIds?: Array<string> = undefined;
 
-  @ColumnAccessControl(editableColumnAccess)
-  @TableColumn({
-    type: TableColumnType.Boolean,
-    required: true,
-    canReadOnRelationQuery: true,
-    title: "Ask AI About Ambiguous Fields",
-    description: "Ask the project's OneUptime AI model to classify fields whose names and values stay ambiguous, from the name and masked samples only.",
-    defaultValue: false,
-    isDefaultValueColumn: true,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    nullable: false,
-    default: false,
-  })
-  public useAiForAmbiguousFields?: boolean = undefined;
-
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
     manyToOneRelationColumn: "createdByUserId",

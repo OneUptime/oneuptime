@@ -147,7 +147,6 @@ export class Service extends ProjectReferencesService<Model> {
       contentScanIntervalInHours: true,
       allowedValues: true,
       disabledDataTypeIds: true,
-      useAiForAmbiguousFields: true,
     };
   }
 }

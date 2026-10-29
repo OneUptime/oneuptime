@@ -720,10 +720,7 @@ describe("Set Up Data Security", () => {
           ? "Alert Severity"
           : (match[1] as string);
       },
-    ).filter((title: string): boolean => {
-      // Read nowhere yet: no scan asks the AI about a field.
-      return title !== "Ask AI About Ambiguous Fields";
-    });
+    );
 
     expect(
       settings.map((row: Array<string>): string => {

@@ -340,14 +340,6 @@ const READ_SWITCHES: Array<ScanningSwitch> = [
     ),
     dataTestId: "data-security-keep-masked-samples",
   },
-  {
-    column: "useAiForAmbiguousFields",
-    title: translationKey("Ask AI about ambiguous fields"),
-    description: translationKey(
-      "OneUptime AI classifies fields whose names and values stay unclear, from the name and masked samples only.",
-    ),
-    dataTestId: "data-security-ask-ai",
-  },
 ];
 
 const OPEN_CASES_SWITCH: ScanningSwitch = {

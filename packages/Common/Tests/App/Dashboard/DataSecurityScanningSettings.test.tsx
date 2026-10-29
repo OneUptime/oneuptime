@@ -117,7 +117,6 @@ const DEFAULTS: Record<string, unknown> = {
   openCasesForCriticalIssues: true,
   raiseAlertsForCriticalIssues: false,
   notifyOwners: true,
-  useAiForAmbiguousFields: false,
   maxObjectsPerScan: 2000,
   maxBytesPerObject: 65536,
   maxBytesPerScan: 52428800,
@@ -321,7 +320,6 @@ describe("Data Security > Settings > Scanning", () => {
       "data-security-scan-content",
       "data-security-scan-telemetry",
       "data-security-keep-masked-samples",
-      "data-security-ask-ai",
     ]) {
       expect(within(reads).getByTestId(`${testId}-row`)).toBeInTheDocument();
     }
