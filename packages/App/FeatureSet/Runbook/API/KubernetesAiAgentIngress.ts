@@ -6,6 +6,7 @@ import KubernetesAiAgentService, {
 } from "Common/Server/Services/KubernetesAiAgentService";
 import KubernetesAiAgentJobService from "Common/Server/Services/KubernetesAiAgentJobService";
 import RunnerJobService from "Common/Server/Services/RunnerJobService";
+import AiCommandKillSwitch from "Common/Server/Utils/AI/AiCommandKillSwitch";
 import TelemetryIngest, {
   TelemetryRequest,
 } from "Common/Server/Middleware/TelemetryIngest";
@@ -246,8 +247,16 @@ export default class KubernetesAiAgentIngressAPI {
         return Response.sendJsonObjectResponse(req, res, { job: null });
       }
 
+      /*
+       * Enable AI, read as the job leaves OneUptime: a job enqueued before
+       * the project turned AI off is failed, never run (AiCommandKillSwitch).
+       */
       const refusal: string | null =
-        KubernetesAiAgentIngressAPI.getClaimRefusal({ job, agent });
+        KubernetesAiAgentIngressAPI.getClaimRefusal({ job, agent }) ||
+        (await AiCommandKillSwitch.getClaimRefusal({
+          job,
+          projectId: agent.projectId,
+        }));
 
       if (refusal) {
         /*

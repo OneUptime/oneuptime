@@ -23,7 +23,10 @@
  *     read-logs) run on the OneUptime server through the account's existing
  *     read-only connection, so they work without the agent;
  *   - `whoami` runs on the agent: the account it acts in and the operations
- *     its role allows, for "Test connection".
+ *     its role allows, for "Test connection";
+ *   - `dry-run <change>` runs on the agent too: it checks one change the way
+ *     the agent would make it and reads the value it would replace, then
+ *     stops before the call that makes it (see CLOUD_DRY_RUN_OPERATION).
  *
  * The grammar is as strict as the db catalog's, so a flag or value the
  * policy refuses can never hide inside one it allows:
@@ -1750,6 +1753,57 @@ export const CLOUD_CHANGE_OPERATION_NAMES: ReadonlyArray<string> =
     return operation.name;
   });
 
+/*
+ * A DRY RUN of one change: `cloud dry-run <change> RESOURCE [--flag value]`,
+ * the change written exactly as it would run.
+ *
+ * The Cloud AI agent checks the change the way it would before making it -
+ * the changes it may make (ONEUPTIME_AI_CLOUD_OPERATIONS), its write scope
+ * (ONEUPTIME_AI_ALLOW_WRITES, the write and protected targets), the account
+ * and the required tag, the resource's state and the bounds of a scale -
+ * reads the value the change would replace, and stops before the ONE call
+ * that makes it. Its output starts with the dry run's verdict
+ * (formatCloudDryRunVerdict) and, when the change would run, the value it
+ * would replace (formatCloudReplacedValue), then says what would change and
+ * how it would be undone. On AWS the dry run reads with a session of the
+ * write role whose session policy holds the change's reads only, so it
+ * cannot write even by mistake.
+ *
+ * It is a Read - it changes nothing - so an investigation may run it, and
+ * OneUptime runs it for a person about to approve a fix. It runs on the
+ * agent, never on the server: only the agent knows its settings and holds
+ * the role. An agent older than dry runs refuses the command, as its
+ * catalog knows no dry-run operation, so a dry run is never mistaken for
+ * the change it checks.
+ *
+ * Not in CLOUD_OPERATIONS: it is no operation of its own on any kind of
+ * resource, and every list of the catalog's operations (the guides, the
+ * setup command's permissions, the docs) stays the list of what the agent
+ * can do.
+ */
+export const CLOUD_DRY_RUN_OPERATION_NAME: string = "dry-run";
+
+export const CLOUD_DRY_RUN_OPERATION: CloudOperationSpec = {
+  name: CLOUD_DRY_RUN_OPERATION_NAME,
+  aliases: [],
+  runsOn: "agent",
+  summary:
+    "checks one change the way the agent would make it and reads the value it would replace, without making it",
+  takesResource: true,
+  kinds: [],
+  flags: [],
+  undo: null,
+  undoNote: "a dry run changes nothing",
+};
+
+// Whether a parsed command is a dry run (of the change it carries).
+export function isCloudDryRun(command: ParsedCloudCommand): boolean {
+  return (
+    command.operation.name === CLOUD_DRY_RUN_OPERATION_NAME &&
+    Boolean(command.dryRunOf)
+  );
+}
+
 // A change: something the agent runs that is not a read.
 export function isCloudChangeOperation(operation: CloudOperationSpec): boolean {
   return operation.kinds.some((kind: CloudOperationKindSpec): boolean => {
@@ -1846,6 +1900,12 @@ export interface ParsedCloudCommand {
   flags: Record<string, CloudParamValue>;
   // The canonical argv WITHOUT the program: operation, resource, flags in catalog order.
   canonicalArgs: Array<string>;
+  /*
+   * A dry run only: the change it checks, read by the same grammar. The dry
+   * run itself is CLOUD_DRY_RUN_OPERATION, a Read: nothing that does not
+   * know dry runs can take it for the change.
+   */
+  dryRunOf?: ParsedCloudCommand | undefined;
 }
 
 export type CloudCommandParse =
@@ -2194,6 +2254,10 @@ export function parseCloudCommand(
     );
   }
 
+  if (operationWord === CLOUD_DRY_RUN_OPERATION_NAME) {
+    return parseCloudDryRun(provider, words);
+  }
+
   const operation: CloudOperationSpec | null = getCloudOperation(operationWord);
 
   if (!operation) {
@@ -2252,6 +2316,14 @@ export function parseCloudCommand(
       );
 
       if (!flag) {
+        if (rawName === CLOUD_DRY_RUN_OPERATION_NAME) {
+          return refuse(
+            isCloudChangeOperation(operation)
+              ? `a dry run is a command of its own: write "cloud ${CLOUD_DRY_RUN_OPERATION_NAME} ${operation.name} RESOURCE ...", the change exactly as it would run, without --${CLOUD_DRY_RUN_OPERATION_NAME}`
+              : `cloud ${operation.name} changes nothing, so it has nothing to dry-run: run it without --${CLOUD_DRY_RUN_OPERATION_NAME}`,
+          );
+        }
+
         if (
           [
             "region",
@@ -2439,6 +2511,86 @@ export function parseCloudCommand(
   };
 }
 
+/*
+ * `cloud dry-run <change> RESOURCE [--flag value]...`: the change after
+ * "dry-run" read by the same grammar (so it is refused for every reason
+ * the change would be), then wrapped as CLOUD_DRY_RUN_OPERATION, a Read
+ * whose canonical argv is "dry-run" and the change's own.
+ */
+function parseCloudDryRun(
+  provider: CloudCatalogProvider,
+  words: Array<string>,
+): CloudCommandParse {
+  const changeWord: string | undefined = words[2];
+  const usage: string = `"${CLOUD_PROGRAM} ${CLOUD_DRY_RUN_OPERATION_NAME} <change> RESOURCE [--flag value]", the change exactly as it would run`;
+
+  if (changeWord === undefined || changeWord === "") {
+    return refuse(
+      `name the change to check: ${usage}; the changes on ${CLOUD_CATALOG_PROVIDER_NAMES[provider]} are ${CLOUD_OPERATIONS.filter(
+        (operation: CloudOperationSpec): boolean => {
+          return (
+            isCloudChangeOperation(operation) &&
+            isCloudOperationAvailable(operation, provider)
+          );
+        },
+      )
+        .map((operation: CloudOperationSpec): string => {
+          return operation.name;
+        })
+        .join(", ")}`,
+    );
+  }
+
+  if (changeWord === CLOUD_DRY_RUN_OPERATION_NAME) {
+    return refuse(
+      `a dry run checks one change, never another dry run: ${usage}`,
+    );
+  }
+
+  if (changeWord.startsWith("-")) {
+    return refuse(
+      `the change comes right after "${CLOUD_DRY_RUN_OPERATION_NAME}", before any flag (got ${quoteCloudWord(changeWord)}): ${usage}`,
+    );
+  }
+
+  const change: CloudCommandParse = parseCloudCommand(provider, [
+    CLOUD_PROGRAM,
+    ...words.slice(2),
+  ]);
+
+  if (!change.ok) {
+    return refuse(`the dry run's change is refused: ${change.errorMessage}`);
+  }
+
+  const changed: ParsedCloudCommand = change.command;
+
+  if (!isCloudChangeOperation(changed.operation) || !changed.resource) {
+    return refuse(
+      `cloud ${changed.operation.name} changes nothing, so it has nothing to dry-run: run it as it is`,
+    );
+  }
+
+  return {
+    ok: true,
+    command: {
+      operation: CLOUD_DRY_RUN_OPERATION,
+      provider,
+      resource: changed.resource,
+      kindSpec: {
+        provider,
+        kind: changed.kindSpec.kind,
+        tier: ResourceCommandTier.Read,
+        requiresHuman: false,
+        apiCall: `no call that changes anything: the agent stops before ${changed.kindSpec.apiCall}`,
+        permissions: changed.kindSpec.permissions,
+      },
+      flags: { ...changed.flags },
+      canonicalArgs: [CLOUD_DRY_RUN_OPERATION_NAME, ...changed.canonicalArgs],
+      dryRunOf: changed,
+    },
+  };
+}
+
 // An Integer flag's value, or its default when it was not given.
 export function getCloudIntegerFlag(
   command: ParsedCloudCommand,
@@ -2550,6 +2702,79 @@ export function readCloudReplacedValue(
   }
 
   return values;
+}
+
+/*
+ * The line a dry run's output starts with: its verdict. would-run when the
+ * agent found nothing that would stop the change (the replaced-value line
+ * follows it), would-be-refused when something would (the reason follows).
+ * Only the FIRST line is read, as for the replaced value.
+ */
+export const CLOUD_DRY_RUN_PREFIX: string = "oneuptime-dry-run: ";
+
+export type CloudDryRunVerdict = "would-run" | "would-be-refused";
+
+const CLOUD_DRY_RUN_VERDICTS: ReadonlyArray<CloudDryRunVerdict> = [
+  "would-run",
+  "would-be-refused",
+];
+
+// The verdict line (the agent writes it).
+export function formatCloudDryRunVerdict(verdict: CloudDryRunVerdict): string {
+  return `${CLOUD_DRY_RUN_PREFIX}${JSON.stringify({ verdict })}`;
+}
+
+/*
+ * A dry run's verdict, from its output's first line; null when the output
+ * is not a dry run's or cannot be read. Reads with indexOf, never a regex
+ * over the output.
+ */
+export function readCloudDryRunVerdict(
+  output: unknown,
+): CloudDryRunVerdict | null {
+  if (typeof output !== "string" || !output.startsWith(CLOUD_DRY_RUN_PREFIX)) {
+    return null;
+  }
+
+  const end: number = output.indexOf("\n");
+  const line: string = output
+    .slice(CLOUD_DRY_RUN_PREFIX.length, end < 0 ? output.length : end)
+    .trimEnd();
+
+  if (line.length > MAX_REPLACED_VALUE_LINE_LENGTH) {
+    return null;
+  }
+
+  let parsed: unknown;
+
+  try {
+    parsed = JSON.parse(line);
+  } catch {
+    return null;
+  }
+
+  const verdict: unknown =
+    parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)["verdict"]
+      : undefined;
+
+  return CLOUD_DRY_RUN_VERDICTS.includes(verdict as CloudDryRunVerdict)
+    ? (verdict as CloudDryRunVerdict)
+    : null;
+}
+
+/*
+ * The output of a dry run without its verdict line: what is left starts
+ * with the replaced-value line when the change would run.
+ */
+export function withoutCloudDryRunVerdict(output: string): string {
+  if (!output.startsWith(CLOUD_DRY_RUN_PREFIX)) {
+    return output;
+  }
+
+  const end: number = output.indexOf("\n");
+
+  return end < 0 ? "" : output.slice(end + 1);
 }
 
 export type CloudUndoResult =
@@ -2698,6 +2923,7 @@ export function getCloudReadCommandGuide(
       return operationBullet(operation, provider);
     }),
     "- The reads run on OneUptime through the account's read-only connection and are live; whoami asks the Cloud AI agent.",
+    `- \`cloud ${CLOUD_DRY_RUN_OPERATION_NAME} <change> RESOURCE [--flag value]\`: ${CLOUD_DRY_RUN_OPERATION.summary}. It asks the Cloud AI agent and changes nothing: it says whether the change would run, the value it would replace and how it would be undone.`,
   ].join("\n");
 }
 
@@ -2755,6 +2981,7 @@ export function getCloudWriteCommandGuide(
 
   lines.push(
     "- Each change names exactly one resource the account's inventory lists. The agent reads the value it replaces first and reports it, so a failed fix rolls back exactly.",
+    `- Before you propose or make a change, check it with \`cloud ${CLOUD_DRY_RUN_OPERATION_NAME} <change> RESOURCE [--flag value]\`, a read that changes nothing: the agent says whether it would run, the value it would replace and how it would be undone.`,
     "- Never, even with approval: deleting or terminating anything, IAM, security groups and firewall rules, secrets and keys, storage and database contents, instance types, snapshots and restores, purging a queue, a group's minimum or maximum, and anything not listed here.",
   );
 

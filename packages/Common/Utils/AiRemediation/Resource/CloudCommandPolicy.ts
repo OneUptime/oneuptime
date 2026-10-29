@@ -12,7 +12,9 @@
  * read as exactly one catalog operation on one resource is Denied, with a
  * reason that names what IS available.
  *
- * Tiers come from the catalog, per kind of resource: every read is Read;
+ * Tiers come from the catalog, per kind of resource: every read is Read,
+ * and so is a dry run of a change (`cloud dry-run <change> ...`), which
+ * changes nothing;
  * restart-service on an ECS service, start-instance and scale-out are
  * SafeWrite; the rest are RiskyWrite, and fail-over-database, stop-instance
  * and redrive-queue always ask a person (requiresHuman). A change's target
@@ -87,6 +89,13 @@ function describeSubject(command: ParsedCloudCommand): string {
 function describeTier(command: ParsedCloudCommand): string {
   const spec: CloudOperationKindSpec = command.kindSpec;
   const name: string = `cloud ${command.operation.name}`;
+
+  // A dry run reads; what it reads about is the change it checks.
+  if (command.dryRunOf) {
+    return `${name} ${command.dryRunOf.operation.name} changes nothing: the Cloud AI agent checks that change on ${describeSubject(
+      command.dryRunOf,
+    )} as it would make it and reads the value it would replace, then stops before ${command.dryRunOf.kindSpec.apiCall}`;
+  }
 
   switch (spec.tier) {
     case ResourceCommandTier.Read:

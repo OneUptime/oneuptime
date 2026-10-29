@@ -80,6 +80,9 @@ import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import ExternalMcpServer from "../../Models/DatabaseModels/ExternalMcpServer";
 import ExternalMcpServerService from "../Services/ExternalMcpServerService";
 import McpRemediationRunner from "../Utils/AI/Remediation/McpRemediationRunner";
+import CloudChangeDryRun, {
+  getCloudChangesToDryRun,
+} from "../Utils/AutoRemediation/CloudChangeDryRun";
 import {
   ExternalMcpToolCall,
   ExternalMcpToolCallPlan,
@@ -1400,6 +1403,86 @@ router.post(
         suggestionId: suggestion.id!.toString(),
         status: AutoRemediationSuggestionStatus.Approved,
         runbookExecutionId: execution.id!.toString(),
+      });
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+/*
+ * Check again: dry-run the cloud changes of a fix that waits for approval
+ * (CloudChangeDryRun), as OneUptime did when the fix was proposed. The
+ * answers land on the plan's steps, which the Remediation card polls.
+ *
+ * Asked by someone who could approve the fix: the dry run is a job sent to
+ * the account's Cloud AI agent, so the same bar as approving holds -
+ * executing runbooks, and an edit of every resource the plan changes. It
+ * changes nothing, and runs in the background (a change's dry run waits
+ * for its agent), so the route answers at once: what it started, or 400
+ * with why it would not.
+ */
+router.post(
+  "/auto-remediation/dry-run",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+
+      const suggestionId: ObjectID = await findAccessibleSuggestion(req, props);
+
+      const suggestion: AutoRemediationSuggestion =
+        await loadSuggestionAsRoot(suggestionId);
+
+      if (
+        suggestion.status !== AutoRemediationSuggestionStatus.Suggested ||
+        suggestion.suggestionType !== AutoRemediationSuggestionType.CommandPlan
+      ) {
+        throw new BadDataException(
+          "Only a fix that waits for approval can be checked with a dry run.",
+        );
+      }
+
+      if (!suggestion.projectId) {
+        throw new BadDataException("This suggestion has no project.");
+      }
+
+      assertCanExecuteRunbooks(props, suggestion.projectId);
+
+      const plan: AiRemediationCommandPlan | null =
+        AiRemediationCommandPlanUtil.parse(suggestion.commandPlan);
+
+      if (getCloudChangesToDryRun(plan).length === 0) {
+        throw new BadDataException(
+          "This fix changes no cloud account, so there is nothing to dry-run.",
+        );
+      }
+
+      await assertApproverMayChangeResources({
+        plan: plan!,
+        props,
+        projectId: suggestion.projectId,
+      });
+
+      // In the background: the answers land on the plan's steps.
+      CloudChangeDryRun.dryRunSuggestion({ suggestionId }).catch(
+        (error: unknown) => {
+          logger.error(
+            `AutoRemediationAPI: the dry run of suggestion ${suggestionId.toString()} failed: ${error}`,
+          );
+        },
+      );
+
+      Response.sendJsonObjectResponse(req, res, {
+        suggestionId: suggestionId.toString(),
+        started: true,
+        changes: getCloudChangesToDryRun(plan).length,
       });
       return;
     } catch (err) {

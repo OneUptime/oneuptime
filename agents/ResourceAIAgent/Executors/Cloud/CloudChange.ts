@@ -91,6 +91,20 @@ export class CloudNotRunError extends Error {
   }
 }
 
+/*
+ * A dry run reached the change's call and stopped there: nothing was sent.
+ * It carries the value the change would have replaced.
+ */
+export class CloudDryRunStop extends Error {
+  public readonly replaced: Record<string, string>;
+
+  public constructor(replaced: Record<string, string>) {
+    super("The dry run stopped before the change's call, so nothing was sent.");
+    this.name = "CloudDryRunStop";
+    this.replaced = { ...replaced };
+  }
+}
+
 // The change call failed after it was (or may have been) sent.
 export class CloudChangeError extends Error {
   // The cloud answered with an error (exit code 1).
@@ -156,22 +170,29 @@ export function kindName(
   return known ? known.displayName : "resource";
 }
 
-// One command being run: its budget, its reads and its one change.
+/*
+ * One command being run: its budget, its reads and its one change. A dry
+ * run (dryRun) makes the same reads and checks, and stops at the change
+ * call with CloudDryRunStop instead of sending it.
+ */
 export class CloudCommandRun {
   // The value the change replaces, set right before the change call.
   public replaced: Record<string, string> | null = null;
   public changeStarted: boolean = false;
   public readonly startedAtMs: number;
   public readonly deadlineMs: number;
+  public readonly dryRun: boolean;
 
   public constructor(
     public readonly runtime: CloudRuntime,
     public readonly command: ParsedCloudCommand,
     public readonly settings: CloudAgentSettings,
     public readonly timeoutInMs: number,
+    options: { dryRun?: boolean | undefined } = {},
   ) {
     this.startedAtMs = runtime.nowMs();
     this.deadlineMs = this.startedAtMs + timeoutInMs - CLOUD_RUN_HEADROOM_MS;
+    this.dryRun = options.dryRun === true;
   }
 
   public get provider(): CloudCatalogProvider {
@@ -262,13 +283,19 @@ export class CloudCommandRun {
   /*
    * THE change call. `replaced` is what it replaces (the output's first
    * line). A connection that never opened changed nothing (not run); an
-   * error answer or no answer did, or may have.
+   * error answer or no answer did, or may have. A dry run stops here,
+   * before the call: CloudDryRunStop, and changeStarted stays false.
    */
   public async change<T>(
     replaced: Record<string, string>,
     call: () => Promise<T>,
   ): Promise<T> {
     this.replaced = { ...replaced };
+
+    if (this.dryRun) {
+      throw new CloudDryRunStop(replaced);
+    }
+
     this.changeStarted = true;
 
     try {

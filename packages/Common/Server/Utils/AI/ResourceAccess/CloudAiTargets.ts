@@ -15,6 +15,13 @@ import {
   readCloudReplacedValue,
 } from "../../../../Utils/AiRemediation/Resource/CloudOperationCatalog";
 import {
+  getCloudDryRunCommandText,
+  readCloudDryRunChange,
+} from "../../../../Utils/AiRemediation/CloudChangeDryRunPlan";
+
+// Where a fix's dry runs read a plan (pure, shared with the Dashboard).
+export { getCloudDryRunCommandText, readCloudDryRunChange };
+import {
   renderResourceDisplayCommand,
   tokenizeResourceCommand,
 } from "../../../../Utils/AiRemediation/Resource/ResourceCommandPolicyCore";
@@ -283,7 +290,9 @@ export default class CloudAiTargets {
   /*
    * Whether a cloud change may name its resource: a read never needs to
    * (and whoami names none); a change's resource must be in the account's
-   * inventory. Lookup failures propagate: every caller fails closed.
+   * inventory, and so must the resource of the change a dry run checks - a
+   * dry run of a change OneUptime would never send would say nothing true.
+   * Lookup failures propagate: every caller fails closed.
    */
   public static async checkChange(data: {
     projectId: ObjectID;
@@ -293,7 +302,23 @@ export default class CloudAiTargets {
     command: string;
   }): Promise<CloudChangeTargetCheck> {
     if (data.tier === ResourceCommandTier.Read) {
-      return { refusal: null, target: null };
+      const dryRunChange: {
+        command: string;
+        tier: ResourceCommandTier;
+      } | null = readCloudDryRunChange({
+        resourceType: data.resourceType,
+        command: data.command,
+      });
+
+      if (!dryRunChange || dryRunChange.tier === ResourceCommandTier.Read) {
+        return { refusal: null, target: null };
+      }
+
+      return CloudAiTargets.checkChange({
+        ...data,
+        tier: dryRunChange.tier,
+        command: dryRunChange.command,
+      });
     }
 
     const provider: CloudCatalogProvider | null = getCloudCatalogProvider(

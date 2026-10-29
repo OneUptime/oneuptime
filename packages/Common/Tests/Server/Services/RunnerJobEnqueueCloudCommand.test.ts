@@ -24,6 +24,15 @@ import {
 } from "../../../Types/ResourceAiAgent/ResourceAiAccess";
 import RunnerJobOrigin from "../../../Types/Runbook/RunnerJobOrigin";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import AiCommandKillSwitch from "../../../Server/Utils/AI/AiCommandKillSwitch";
+
+/*
+ * Enable AI is on throughout: what turning it off does to these paths is
+ * AiCommandKillSwitch's own suite (AiCommandKillSwitch.test.ts).
+ */
+beforeEach(() => {
+  jest.spyOn(AiCommandKillSwitch, "isAiOff").mockResolvedValue(false);
+});
 
 /*
  * RunnerJobService.enqueueAiResourceCommand for a cloud account: every

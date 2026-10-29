@@ -133,6 +133,7 @@ import FeedMarkdown, {
   mdText,
 } from "../../../../Utils/Markdown/FeedMarkdown";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import CloudChangeDryRun from "../../AutoRemediation/CloudChangeDryRun";
 
 /*
  * Auto-remediation — the AI command run (auto-remediation Phase 3).
@@ -1701,6 +1702,12 @@ export default class RemediationExecutionRunner {
       return;
     }
 
+    // A cloud change is dry-run for the person who approves it.
+    CloudChangeDryRun.startForProposedPlan({
+      suggestionId: suggestion.id!,
+      plan: proposedPlan,
+    });
+
     await this.postFeedItem({
       suggestion,
       markdown: describeProposedPlanForFeed({
@@ -1837,6 +1844,12 @@ export default class RemediationExecutionRunner {
       );
       return;
     }
+
+    // A cloud change is dry-run for the person who approves it.
+    CloudChangeDryRun.startForProposedPlan({
+      suggestionId: suggestion.id!,
+      plan,
+    });
 
     await this.postFeedItem({
       suggestion,

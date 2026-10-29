@@ -559,9 +559,12 @@ class AwsChange {
   /*
    * The client this change signs with: the write role assumed for it, with
    * a session policy allowing its changes on writeResources only (none:
-   * its reads alone), or the base credentials.
+   * its reads alone), or the base credentials. A dry run's session allows
+   * the reads alone, whatever the change would write: it cannot write even
+   * by mistake.
    */
-  private async client(writeResources: Array<string>): Promise<AwsClient> {
+  private async client(requested: Array<string>): Promise<AwsClient> {
+    const writeResources: Array<string> = this.run.dryRun ? [] : requested;
     const key: string = writeResources.join(" ");
     const known: AwsClient | undefined = this.clients.get(key);
 
@@ -593,7 +596,9 @@ class AwsChange {
             base,
             roleArn,
             sessionName: buildRoleSessionName(
-              this.command.operation.name,
+              this.run.dryRun
+                ? `dry-run-${this.command.operation.name}`
+                : this.command.operation.name,
               options.randomId(),
             ),
             policy,
@@ -612,7 +617,9 @@ class AwsChange {
 
       credentials = assumed.credentials;
       identityName = `the write role session ${assumed.assumedRoleArn}`;
-      this.actingAs = `${assumed.assumedRoleArn} (the write role, with a session policy for this change alone)`;
+      this.actingAs = this.run.dryRun
+        ? `${assumed.assumedRoleArn} (the write role, with a session policy that only reads: a dry run)`
+        : `${assumed.assumedRoleArn} (the write role, with a session policy for this change alone)`;
     } else {
       const identity: AwsCallerIdentity = await this.run.read(
         "who the agent is (STS GetCallerIdentity)",

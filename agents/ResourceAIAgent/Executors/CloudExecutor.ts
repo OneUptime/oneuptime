@@ -32,6 +32,7 @@ import {
   CloudChangeError,
   CloudChangeOutcome,
   CloudCommandRun,
+  CloudDryRunStop,
   CloudNotRunError,
   CloudRuntime,
   showCloudId,
@@ -62,10 +63,12 @@ import {
   CloudCommandParse,
   CloudUndoResult,
   ParsedCloudCommand,
+  formatCloudDryRunVerdict,
   formatCloudReplacedValue,
   getCloudCatalogProvider,
   getCloudUndoCommand,
   isCloudChangeOperation,
+  isCloudDryRun,
   parseCloudCommand,
 } from "../Common/Utils/AiRemediation/Resource/CloudOperationCatalog";
 import {
@@ -103,6 +106,14 @@ import {
  *     starts with formatCloudReplacedValue(...) — the line the server
  *     reads back to build the change's exact undo — then says what changed,
  *     the call it made, and how to undo it.
+ *   - A dry run (`cloud dry-run <change> ...`, a Read) checks the change
+ *     the way prepare() and run() would - the write switch and scope, the
+ *     enabled changes, the account, the required tag, the resource's state
+ *     and the bounds - and makes the reads before it, then stops at the
+ *     change call (CloudCommandRun's dryRun). Its output starts with the
+ *     verdict (formatCloudDryRunVerdict): would-run, followed by the value
+ *     the change would replace, or would-be-refused, followed by why. On
+ *     AWS its session of the write role only reads.
  *   - Output is redacted with the policy copy's redactor and capped at
  *     MAX_RESOURCE_AGENT_OUTPUT_BYTES.
  *
@@ -213,6 +224,48 @@ export function describeCloudUndo(
   }
 
   return reason ? `Nothing to undo: ${sentence(reason)}` : "Nothing to undo.";
+}
+
+/*
+ * A refusal says ", so nothing was changed" when it stops a change; a dry
+ * run's answer says that once, up front, so its reason drops the phrase.
+ */
+const NOTHING_CHANGED_PHRASE: string = ", so nothing was changed";
+
+export function withoutNothingChanged(reason: string): string {
+  return reason.split(NOTHING_CHANGED_PHRASE).join("");
+}
+
+// How each key of a replaced value reads in a sentence.
+const REPLACED_VALUE_WORDS: Readonly<Record<string, string>> = {
+  count: "count",
+  version: "version",
+  value: "limit",
+  state: "state",
+  primary: "primary",
+};
+
+/*
+ * ", replacing count 2 and version web:41" for a dry run's sentence, or ""
+ * when the change replaces nothing it reports (a restart, a reboot).
+ */
+export function describeReplacedValue(
+  replaced: Record<string, string>,
+): string {
+  const parts: Array<string> = Object.keys(replaced)
+    .sort()
+    .filter((key: string): boolean => {
+      return typeof replaced[key] === "string" && replaced[key] !== "";
+    })
+    .map((key: string): string => {
+      return `${REPLACED_VALUE_WORDS[key] || key} ${replaced[key]}`;
+    });
+
+  if (parts.length === 0) {
+    return "";
+  }
+
+  return `, replacing ${parts.join(" and ")}`;
 }
 
 export default class CloudExecutor implements ResourceExecutor {
@@ -515,6 +568,10 @@ export default class CloudExecutor implements ResourceExecutor {
   // ---- run -------------------------------------------------------------------------------
 
   private async run(call: CloudCall): Promise<ExecResult> {
+    if (isCloudDryRun(call.command)) {
+      return this.dryRun(call);
+    }
+
     const run: CloudCommandRun = new CloudCommandRun(
       this.runtime,
       call.command,
@@ -547,6 +604,170 @@ export default class CloudExecutor implements ResourceExecutor {
       });
     } catch (err: unknown) {
       return this.describeFailure(call, run, err);
+    }
+  }
+
+  // ---- Dry run --------------------------------------------------------------------------
+
+  /*
+   * A dry run of one change: every check the change would meet here, and
+   * the reads it makes first, but never the call that makes it. A verdict
+   * either way is a dry run that worked (exit code 0); a read it could not
+   * make is a dry run that could not answer (no exit code, no output).
+   */
+  private async dryRun(call: CloudCall): Promise<ExecResult> {
+    const change: ParsedCloudCommand | undefined = call.command.dryRunOf;
+
+    if (!change || !change.resource) {
+      return {
+        success: false,
+        output: "",
+        errorMessage: this.redact(
+          call,
+          `${refusalPrefix(call.resourceType)}: the dry run names no change to check.`,
+        ),
+      };
+    }
+
+    const changeCommand: string = renderResourceDisplayCommand([
+      CLOUD_PROGRAM,
+      ...change.canonicalArgs.map((word: string, index: number): string => {
+        return index === 1 ? showCloudId(change.provider, word) : word;
+      }),
+    ]);
+    const refused: (reason: string) => ExecResult = (
+      reason: string,
+    ): ExecResult => {
+      return this.finish(call, {
+        success: true,
+        exitCode: 0,
+        lines: [
+          formatCloudDryRunVerdict("would-be-refused"),
+          `Dry run: nothing was changed. ${changeCommand} would be refused: ${sentence(
+            withoutNothingChanged(reason),
+          )}`,
+        ],
+      });
+    };
+
+    // 1. The write switch and the write scope, as the guard reads them for the change.
+    const scopeRefusal: string | null = this.describeDryRunWriteRefusal(
+      call,
+      change,
+    );
+
+    if (scopeRefusal) {
+      return refused(scopeRefusal);
+    }
+
+    // 2. The agent's own settings for the change: enabled, the tag, the role, the account.
+    const problem: string | null = this.describeChangeProblem({
+      command: change,
+      settings: call.settings,
+      accountId: call.accountId,
+    });
+
+    if (problem) {
+      return refused(problem);
+    }
+
+    // 3. The reads before the change, stopping at its call.
+    const run: CloudCommandRun = new CloudCommandRun(
+      this.runtime,
+      change,
+      call.settings,
+      call.timeoutInMs,
+      { dryRun: true },
+    );
+    const changeCall: CloudCall = { ...call, command: change };
+
+    try {
+      await this.verifyGcpProject(run, changeCall);
+      await this.change(run, changeCall);
+    } catch (err: unknown) {
+      if (err instanceof CloudDryRunStop) {
+        return this.finish(call, {
+          success: true,
+          exitCode: 0,
+          lines: [
+            formatCloudDryRunVerdict("would-run"),
+            formatCloudReplacedValue(err.replaced),
+            `Dry run: nothing was changed. ${changeCommand} would run${describeReplacedValue(
+              err.replaced,
+            )}.`,
+            `It would make ${change.kindSpec.apiCall}, and nothing else.`,
+            describeCloudUndo(change, err.replaced),
+          ],
+        });
+      }
+
+      if (err instanceof CloudNotRunError && err.isRefusal) {
+        return refused(err.message);
+      }
+
+      const message: string =
+        err instanceof Error ? err.message : describeCloudError(err);
+
+      return {
+        success: false,
+        output: "",
+        errorMessage: this.redact(
+          call,
+          `The dry run of ${changeCommand} could not be finished, and nothing was changed: ${sentence(message)}`,
+        ),
+      };
+    }
+
+    // A change that returned without reaching its call: never claim it would run.
+    return {
+      success: false,
+      output: "",
+      errorMessage: this.redact(
+        call,
+        `The dry run of ${changeCommand} did not reach the change's call, so it cannot say whether the change would run. Nothing was changed.`,
+      ),
+    };
+  }
+
+  /*
+   * Why the write switch or the write scope would refuse the change a dry
+   * run checks, or null: the same rule the guard applies to the change
+   * itself (PrepareGuard.describeWriteRefusal), on the change's own policy
+   * reading.
+   */
+  private describeDryRunWriteRefusal(
+    call: CloudCall,
+    change: ParsedCloudCommand,
+  ): string | null {
+    const policy: GuardPolicy =
+      this.options.guardPolicy || DEFAULT_GUARD_POLICY;
+
+    try {
+      const result: ResourceCommandPolicyResult = policy.evaluateArgv({
+        resourceType: call.resourceType,
+        argv: [CLOUD_PROGRAM, ...change.canonicalArgs],
+      });
+
+      if (result.tier === ResourceCommandTier.Denied) {
+        return result.reason || "its command policy denies the change";
+      }
+
+      if (result.tier === ResourceCommandTier.Read) {
+        return "its command policy reads the change as changing nothing, so there is nothing to dry-run";
+      }
+
+      return PrepareGuard.describeWriteRefusal({
+        config: this.options.config,
+        result,
+        protectedTargets: mergeTargets(
+          this.options.config.protectedTargets,
+          this.getProtectedTargets(),
+        ),
+        policy,
+        resourceType: call.resourceType,
+      });
+    } catch {
+      return "its write scope could not be checked for the change";
     }
   }
 

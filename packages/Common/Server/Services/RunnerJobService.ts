@@ -10,7 +10,10 @@ import RunbookStepType, {
   isPayloadCarryingStepType,
   isRunnerExecutedStepType,
 } from "../../Types/Runbook/RunbookStepType";
-import { AI_COMMAND_STEP_TYPES } from "../../Types/AutoRemediation/AiRemediationCommandPlan";
+import {
+  AI_COMMAND_STEP_TYPES,
+  DRY_RUN_COMMAND_STEP_ID_PREFIX,
+} from "../../Types/AutoRemediation/AiRemediationCommandPlan";
 import CommandPolicy from "../../Utils/AiRemediation/CommandPolicy";
 import KubectlPolicy, {
   KubectlPolicyResult,
@@ -61,6 +64,7 @@ import AiResourceType, {
 import CloudAiTargets, {
   CloudChangeTargetCheck,
 } from "../Utils/AI/ResourceAccess/CloudAiTargets";
+import { readCloudDryRunChange } from "../../Utils/AiRemediation/CloudChangeDryRunPlan";
 import {
   ResourceAiAgentPosture,
   ResourceAiRemediationMode,
@@ -90,6 +94,9 @@ import {
   canGlobalRunnersRunStepType,
 } from "../../Types/Runner/GlobalRunnerWork";
 import ProjectLimitLock from "../Utils/Database/ProjectLimitLock";
+import AiCommandKillSwitch, {
+  AI_COMMANDS_OFF_ENQUEUE_MESSAGE,
+} from "../Utils/AI/AiCommandKillSwitch";
 import { EntityManager } from "typeorm";
 
 // The advisory lock every global Runner claim takes (claimNextGlobalJob).
@@ -137,6 +144,14 @@ export const MAX_AI_INVESTIGATION_RESOURCE_COMMAND_JOBS_PER_PROJECT_PER_HOUR: nu
 export const MAX_AI_RESOURCE_COMMAND_JOBS_PER_PROJECT_PER_HOUR: number = 30;
 
 /*
+ * The dry runs OneUptime asks for before a person approves a fix
+ * (DRY_RUN_COMMAND_STEP_ID_PREFIX) have a brake of their own: they change
+ * nothing, so they never spend the brake real fixes need, and an hour of
+ * proposals and "Check again" clicks is still bounded.
+ */
+export const MAX_AI_DRY_RUN_RESOURCE_COMMAND_JOBS_PER_PROJECT_PER_HOUR: number = 60;
+
+/*
  * Why enqueueAiResourceCommand refused a command, for callers that act on
  * the reason (the remediation tools tell "the agent is read-only" from "the
  * resource's fixes were turned off" from "this hour's budget is spent"):
@@ -154,8 +169,10 @@ export const MAX_AI_RESOURCE_COMMAND_JOBS_PER_PROJECT_PER_HOUR: number = 30;
  * write_scope:      the agent's own posture rules the write out.
  * target_not_in_inventory: a cloud change names a resource the account's
  *                   inventory does not list.
+ * ai_disabled:      Enable AI is off for the project (AiCommandKillSwitch).
  */
 export type ResourceCommandEnqueueRefusalCode =
+  | "ai_disabled"
   | "invalid_request"
   | "policy_denied"
   | "not_read_only"
@@ -840,6 +857,14 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
+     * Enable AI, read now: a plan approved before the project turned AI
+     * off, or its next command, never reaches a Runner (AiCommandKillSwitch).
+     */
+    if (await AiCommandKillSwitch.isAiOff(data.projectId)) {
+      throw new BadDataException(AI_COMMANDS_OFF_ENQUEUE_MESSAGE);
+    }
+
+    /*
      * The target must be one of this project's Runners, and never a
      * kubernetes-agent Runner. That Runner exists to run policy-tiered
      * kubectl with its own ServiceAccount: the claim path serves it kubectl
@@ -1062,6 +1087,14 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException(
         `An investigation may only run read-only kubectl commands; "${policy.displayCommand}" would change the cluster (${policy.tier}).`,
       );
+    }
+
+    /*
+     * Enable AI, read now (AiCommandKillSwitch). Test access is exempt: a
+     * person checks a cluster's access with it before turning AI on.
+     */
+    if (!isAccessTest && (await AiCommandKillSwitch.isAiOff(data.projectId))) {
+      throw new BadDataException(AI_COMMANDS_OFF_ENQUEUE_MESSAGE);
     }
 
     /*
@@ -1388,7 +1421,8 @@ export class Service extends DatabaseService<Model> {
    *     job belongs to (the access test alone has none, and is a read);
    *  2. the resource command policy, re-run whatever the tool layer
    *     checked: Denied never enqueues, and an investigation-origin job must
-   *     be Read tier — an investigation can never write;
+   *     be Read tier — an investigation can never write; then Enable AI,
+   *     the project's kill switch, read now (AiCommandKillSwitch);
    *  3. the project's hourly brake for resource commands (investigations
    *     and remediation counted apart, on ResourceCommand rows only);
    *  4. the resource must be this project's;
@@ -1535,10 +1569,48 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
+    /*
+     * 2b. Enable AI, read now (AiCommandKillSwitch): a plan approved before
+     * the project turned AI off, its next command or its rollback never
+     * reaches the agent. Test connection is exempt: a person checks an
+     * agent with it before turning AI on.
+     */
+    if (!isAccessTest && (await AiCommandKillSwitch.isAiOff(data.projectId))) {
+      throw new ResourceCommandEnqueueRefusedException(
+        "ai_disabled",
+        AI_COMMANDS_OFF_ENQUEUE_MESSAGE,
+      );
+    }
+
+    /*
+     * 2c. A dry run OneUptime asks for before a fix is approved (its step id
+     * says so) must be exactly that: a fix's job that reads, checking one
+     * change. Its brake is its own, so the step id is never trusted alone.
+     */
+    const isPlanDryRun: boolean = data.stepId.startsWith(
+      DRY_RUN_COMMAND_STEP_ID_PREFIX,
+    );
+
+    if (
+      isPlanDryRun &&
+      (data.origin !== RunnerJobOrigin.AiRemediation ||
+        policy.tier !== ResourceCommandTier.Read ||
+        !readCloudDryRunChange({
+          resourceType: data.resourceType,
+          command: policy.displayCommand,
+        }))
+    ) {
+      throw new ResourceCommandEnqueueRefusedException(
+        "invalid_request",
+        `A fix's dry run checks one change and changes nothing; "${policy.displayCommand}" is not a dry run of a change.`,
+      );
+    }
+
     // 3. The hourly brake, on resource commands only.
     if (!isAccessTest) {
-      const hourlyCap: number =
-        data.origin === RunnerJobOrigin.AiInvestigation
+      const hourlyCap: number = isPlanDryRun
+        ? MAX_AI_DRY_RUN_RESOURCE_COMMAND_JOBS_PER_PROJECT_PER_HOUR
+        : data.origin === RunnerJobOrigin.AiInvestigation
           ? MAX_AI_INVESTIGATION_RESOURCE_COMMAND_JOBS_PER_PROJECT_PER_HOUR
           : MAX_AI_RESOURCE_COMMAND_JOBS_PER_PROJECT_PER_HOUR;
 
@@ -1554,6 +1626,19 @@ export class Service extends DatabaseService<Model> {
             ...(data.origin === RunnerJobOrigin.AiInvestigation
               ? { aiRunId: QueryHelper.notNull() }
               : {}),
+            /*
+             * A fix's dry runs count apart from its changes: each against
+             * its own brake.
+             */
+            ...(data.origin === RunnerJobOrigin.AiRemediation
+              ? {
+                  stepId: isPlanDryRun
+                    ? QueryHelper.startsWith(DRY_RUN_COMMAND_STEP_ID_PREFIX)
+                    : QueryHelper.notWildcard(
+                        `${DRY_RUN_COMMAND_STEP_ID_PREFIX}*`,
+                      ),
+                }
+              : {}),
           },
           props: { isRoot: true },
         })
@@ -1562,9 +1647,11 @@ export class Service extends DatabaseService<Model> {
       if (jobsInLastHour >= hourlyCap) {
         throw new ResourceCommandEnqueueRefusedException(
           "hourly_limit",
-          data.origin === RunnerJobOrigin.AiInvestigation
-            ? `This project has run ${jobsInLastHour} AI investigation commands on its infrastructure in the last hour, which is its limit (${hourlyCap}). No further infrastructure commands can run this hour.`
-            : `This project has run ${jobsInLastHour} AI remediation commands on its infrastructure in the last hour, which is its limit (${hourlyCap}). No further AI commands can run on its infrastructure this hour.`,
+          isPlanDryRun
+            ? `This project has run ${jobsInLastHour} dry runs of proposed fixes on its infrastructure in the last hour, which is its limit (${hourlyCap}). No further dry runs can run this hour; the fixes themselves are not held back.`
+            : data.origin === RunnerJobOrigin.AiInvestigation
+              ? `This project has run ${jobsInLastHour} AI investigation commands on its infrastructure in the last hour, which is its limit (${hourlyCap}). No further infrastructure commands can run this hour.`
+              : `This project has run ${jobsInLastHour} AI remediation commands on its infrastructure in the last hour, which is its limit (${hourlyCap}). No further AI commands can run on its infrastructure this hour.`,
         );
       }
     }
@@ -1652,11 +1739,12 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-    // 9. A cloud change names a resource of the account's own inventory.
-    if (
-      isCloudAiResourceType(data.resourceType) &&
-      policy.tier !== ResourceCommandTier.Read
-    ) {
+    /*
+     * 9. A cloud change names a resource of the account's own inventory,
+     * and so does the change a dry run checks (CloudAiTargets.checkChange
+     * answers a plain read at once, without a lookup).
+     */
+    if (isCloudAiResourceType(data.resourceType)) {
       const inventory: CloudChangeTargetCheck =
         await CloudAiTargets.checkChange({
           projectId: data.projectId,
