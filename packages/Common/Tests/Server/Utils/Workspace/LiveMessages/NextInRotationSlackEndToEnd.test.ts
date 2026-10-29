@@ -295,13 +295,27 @@ describe("nobody is next in the Primary cover rotation", () => {
         return (post.notification || "").includes("paged nobody");
       });
 
+    /*
+     * Nobody at Level 2 to wait for: the run paged Level 3 at once, so the
+     * alarm says so, and asks for the policy to be fixed - not for somebody
+     * to be paged (OnCallEmptyLevel).
+     */
     expect(alarms).toHaveLength(1);
     expect(alarms[0]!.notification).toBe(
-      "PolicyX paged nobody at Level 2 of 3 for Incident INC-8",
+      "PolicyX paged nobody at Level 2 of 3 for Incident INC-8, so Platform (Level 3 of 3) was paged at once",
     );
     expect(alarms[0]!.text).toContain(
-      "(nobody was next in the Primary cover rotation)",
+      "(nobody was next in the Primary cover rotation), so Platform (Level 3 of 3) was paged at once. Fix the policy so this level pages someone.",
     );
+  });
+
+  test("Level 3 is paged the same minute Level 2 found nobody next: one escalation, not two", async () => {
+    await declareAndPage();
+    await world.escalate();
+    await world.settle();
+
+    expect(slack.runMessage()).toContain("Jane");
+    expect(slack.runMessage()).toContain("Platform (Level 3 of 3)");
   });
 
   test("the incident's feed says nobody was next - not that nobody was on call", async () => {

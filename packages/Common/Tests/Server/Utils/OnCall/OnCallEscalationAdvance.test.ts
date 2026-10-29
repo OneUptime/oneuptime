@@ -11,10 +11,12 @@ import OnCallDutyPolicyExecutionLogService from "../../../../Server/Services/OnC
 import OnCallDutyPolicyExecutionLogTimelineService from "../../../../Server/Services/OnCallDutyPolicyExecutionLogTimelineService";
 import logger from "../../../../Server/Utils/Logger";
 import OnCallEscalationAdvance, {
+  ON_CALL_POLICY_RUN_MOVE_ON_FAILED_MESSAGE,
   ON_CALL_POLICY_RUN_NOBODY_NOTIFIED_MESSAGE,
   OnCallEscalationAdvanceKind,
   OnCallEscalationAdvanceResult,
 } from "../../../../Server/Utils/OnCall/OnCallEscalationAdvance";
+import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
 import ObjectID from "../../../../Types/ObjectID";
 import OnCallDutyExecutionLogTimelineStatus from "../../../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import {
@@ -563,7 +565,7 @@ describe("who was reached, and who passed it on", () => {
   });
 });
 
-describe("whether a rule's outcome moves the run on at once", () => {
+describe("whether every target of a rule passed it on - the rule then says nothing of itself", () => {
   const passer: OnCallPagingOutcome["notPaged"][number] = {
     reason: OnCallNotPagedReason.PassedOn,
     userId: ANA,
@@ -577,39 +579,29 @@ describe("whether a rule's outcome moves the run on at once", () => {
     userId: BOB,
   };
 
-  test("only people who passed it on: yes, and every target passed it on", () => {
-    const only: OnCallPagingOutcome = {
-      paged: [],
-      notPaged: [passer],
-      hadScheduleGap: false,
-    };
-
-    expect(OnCallDutyPolicyEscalationRuleServiceClass.movesOnAtOnce(only)).toBe(
-      true,
-    );
+  test("only people who passed it on: yes", () => {
     expect(
-      OnCallDutyPolicyEscalationRuleServiceClass.isEveryTargetPassedOn(only),
+      OnCallDutyPolicyEscalationRuleServiceClass.isEveryTargetPassedOn({
+        paged: [],
+        notPaged: [passer],
+        hadScheduleGap: false,
+      }),
     ).toBe(true);
   });
 
-  test("a passer and somebody away: yes - nobody on it to wait for - but not every target passed it on", () => {
-    const mixed: OnCallPagingOutcome = {
-      paged: [],
-      notPaged: [passer, away],
-      hadScheduleGap: false,
-    };
-
+  test("a passer and somebody away: no - the level's own line says it paged nobody", () => {
     expect(
-      OnCallDutyPolicyEscalationRuleServiceClass.movesOnAtOnce(mixed),
-    ).toBe(true);
-    expect(
-      OnCallDutyPolicyEscalationRuleServiceClass.isEveryTargetPassedOn(mixed),
+      OnCallDutyPolicyEscalationRuleServiceClass.isEveryTargetPassedOn({
+        paged: [],
+        notPaged: [passer, away],
+        hadScheduleGap: false,
+      }),
     ).toBe(false);
   });
 
   test("somebody paged: no", () => {
     expect(
-      OnCallDutyPolicyEscalationRuleServiceClass.movesOnAtOnce({
+      OnCallDutyPolicyEscalationRuleServiceClass.isEveryTargetPassedOn({
         paged: [
           {
             userId: BOB,
@@ -624,39 +616,393 @@ describe("whether a rule's outcome moves the run on at once", () => {
     ).toBe(false);
   });
 
-  test("a schedule with nobody on call yet: no - it is tried again in a minute", () => {
+  test("nobody named at all: no", () => {
     expect(
-      OnCallDutyPolicyEscalationRuleServiceClass.movesOnAtOnce({
-        paged: [],
-        notPaged: [passer],
-        hadScheduleGap: true,
-      }),
-    ).toBe(false);
-  });
-
-  test("nobody paged for other reasons only: no - as before", () => {
-    expect(
-      OnCallDutyPolicyEscalationRuleServiceClass.movesOnAtOnce({
-        paged: [],
-        notPaged: [away],
-        hadScheduleGap: false,
-      }),
-    ).toBe(false);
-    expect(
-      OnCallDutyPolicyEscalationRuleServiceClass.movesOnAtOnce({
+      OnCallDutyPolicyEscalationRuleServiceClass.isEveryTargetPassedOn({
         paged: [],
         notPaged: [],
         hadScheduleGap: false,
       }),
     ).toBe(false);
   });
+});
 
-  test("no outcome at all: no", () => {
-    expect(
-      OnCallDutyPolicyEscalationRuleServiceClass.movesOnAtOnce(undefined),
-    ).toBe(false);
-    expect(OnCallDutyPolicyEscalationRuleServiceClass.movesOnAtOnce(null)).toBe(
-      false,
+/*
+ * A PASS THAT REACHED NOBODY IS NOT GONE ROUND AGAIN. Every rule started
+ * here and moved past reached nobody; whether the rule the run was on did
+ * is the caller's to say (isCurrentRuleEmpty).
+ */
+describe("a pass that reached nobody", () => {
+  const empty: OnCallRuleExecutionOutcome = outcome({ movesOnAtOnce: true });
+  const pagedBob: OnCallRuleExecutionOutcome = outcome({
+    paged: [
+      {
+        userId: BOB,
+        coveringForUserId: null,
+        teamId: null,
+        scheduleId: null,
+      },
+    ],
+  });
+
+  function startedOrders(): Array<number> {
+    return startSpy.mock.calls.map((call: Array<unknown>): number => {
+      return rules.find((rule: OnCallDutyPolicyEscalationRule) => {
+        return rule.id!.toString() === String(call[0]);
+      })!.order!;
+    });
+  }
+
+  function repeatWrites(): Array<unknown> {
+    return updateSpy.mock.calls
+      .map((call: Array<unknown>) => {
+        return (call[0] as { data: Record<string, unknown> }).data[
+          "onCallPolicyExecutionRepeatCount"
+        ];
+      })
+      .filter((value: unknown): boolean => {
+        return value !== undefined;
+      });
+  }
+
+  test("is not repeated: a run that moved on at once from its first level, with every level empty, ends after the last - repeats or not", async () => {
+    startSpy.mockResolvedValue(empty);
+
+    const result: OnCallEscalationAdvanceResult =
+      await OnCallEscalationAdvance.advance({
+        run: runOn(1, { pass: 1, repeats: 2 }),
+        now: NOW,
+        isCurrentRuleEmpty: true,
+      });
+
+    expect(startedOrders()).toEqual([2, 3]);
+    expect(repeatWrites()).toEqual([]);
+    expect(result).toEqual({
+      kind: OnCallEscalationAdvanceKind.Ended,
+      pagedUserIds: [],
+      endedWithStatus: OnCallDutyPolicyStatus.CompletedWithNoNotifications,
+      endedWithMessage: ON_CALL_POLICY_RUN_NOBODY_NOTIFIED_MESSAGE,
+    });
+  });
+
+  test("a repeat whose every level is empty ends the run after one round, not after every repeat", async () => {
+    // Bob was reached on rule 3, whose wait ran out; then nobody is on call.
+    lines = [line(BOB, OnCallDutyExecutionLogTimelineStatus.NotificationSent)];
+    startSpy.mockResolvedValue(empty);
+
+    const result: OnCallEscalationAdvanceResult = await advance(
+      runOn(3, { pass: 1, repeats: 3 }),
     );
+
+    expect(startedOrders()).toEqual([1, 2, 3]);
+    expect(repeatWrites()).toEqual([2]);
+    expect(result.kind).toBe(OnCallEscalationAdvanceKind.Ended);
+    // Bob was paged, earlier in the run: nobody acknowledged.
+    expect(result.endedWithStatus).toBe(OnCallDutyPolicyStatus.Completed);
+    expect(result.endedWithMessage).toBe(
+      ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE,
+    );
+  });
+
+  test("a pass whose level the run is on reached somebody is repeated, though every other level of it is empty", async () => {
+    startSpy
+      .mockResolvedValueOnce(empty)
+      .mockResolvedValueOnce(empty)
+      .mockResolvedValueOnce(pagedBob);
+
+    const result: OnCallEscalationAdvanceResult = await advance(
+      runOn(1, { pass: 1, repeats: 1 }),
+    );
+
+    expect(startedOrders()).toEqual([2, 3, 1]);
+    expect(repeatWrites()).toEqual([2]);
+    expect(result.kind).toBe(OnCallEscalationAdvanceKind.PolicyStartedAgain);
+    expect(result.rule?.order).toBe(1);
+    expect(result.pagedUserIds).toEqual([BOB]);
+  });
+
+  test("a run that moved on at once from a later level - a page again starts there - may repeat, to reach the levels before it", async () => {
+    startSpy.mockResolvedValueOnce(empty).mockResolvedValueOnce(pagedBob);
+
+    const result: OnCallEscalationAdvanceResult =
+      await OnCallEscalationAdvance.advance({
+        run: runOn(2, { pass: 1, repeats: 1 }),
+        now: NOW,
+        isCurrentRuleEmpty: true,
+      });
+
+    expect(startedOrders()).toEqual([3, 1]);
+    expect(result.kind).toBe(OnCallEscalationAdvanceKind.PolicyStartedAgain);
+    expect(result.pagedUserIds).toEqual([BOB]);
+  });
+
+  test("...and that repeat, all of it empty, ends the run", async () => {
+    startSpy.mockResolvedValue(empty);
+
+    const result: OnCallEscalationAdvanceResult =
+      await OnCallEscalationAdvance.advance({
+        run: runOn(2, { pass: 1, repeats: 5 }),
+        now: NOW,
+        isCurrentRuleEmpty: true,
+      });
+
+    expect(startedOrders()).toEqual([3, 1, 2, 3]);
+    expect(repeatWrites()).toEqual([2]);
+    expect(result.endedWithStatus).toBe(
+      OnCallDutyPolicyStatus.CompletedWithNoNotifications,
+    );
+  });
+
+  test("a level that reached somebody in the middle of the pass holds the run there, as every level did", async () => {
+    startSpy.mockResolvedValueOnce(pagedBob);
+
+    const result: OnCallEscalationAdvanceResult =
+      await OnCallEscalationAdvance.advance({
+        run: runOn(1, { pass: 1, repeats: 1 }),
+        now: NOW,
+        isCurrentRuleEmpty: true,
+      });
+
+    expect(startedOrders()).toEqual([2]);
+    expect(result).toEqual({
+      kind: OnCallEscalationAdvanceKind.RuleStarted,
+      rule: { id: rules[1]!.id, order: 2, name: "Level 2" },
+      pagedUserIds: [BOB],
+    });
+  });
+});
+
+describe("moving on at once from the rule a run starts with", () => {
+  function storedRun(
+    status: OnCallDutyPolicyStatus = OnCallDutyPolicyStatus.Executing,
+  ): OnCallDutyPolicyExecutionLog {
+    const run: OnCallDutyPolicyExecutionLog = runOn(1, {
+      pass: 1,
+      repeats: 1,
+    });
+    run.status = status;
+    run.lastEscalationRuleExecutedAt = NOW;
+    return run;
+  }
+
+  test("reads the run again and moves it on from that rule, claiming from what starting the rule wrote", async () => {
+    const findSpy: SpyInstance<
+      typeof OnCallDutyPolicyExecutionLogService.findOneById
+    > = jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")
+      .mockResolvedValue(storedRun() as never);
+
+    const result: OnCallEscalationAdvanceResult | null =
+      await OnCallEscalationAdvance.moveOnAtOnce({ runId: RUN });
+
+    expect(findSpy.mock.calls[0]![0]).toMatchObject({
+      id: RUN,
+      props: { isRoot: true },
+    });
+    // Everything the worker reads of a run, to move it on.
+    expect(findSpy.mock.calls[0]![0].select).toMatchObject({
+      lastEscalationRuleExecutedAt: true,
+      lastExecutedEscalationRuleOrder: true,
+      onCallPolicyExecutionRepeatCount: true,
+      userNotificationEventType: true,
+      triggeredByIncidentId: true,
+      triggeredByAlertId: true,
+      triggeredByAlertEpisodeId: true,
+      triggeredByIncidentEpisodeId: true,
+      onCallDutyPolicy: {
+        repeatPolicyIfNoOneAcknowledges: true,
+        repeatPolicyIfNoOneAcknowledgesNoOfTimes: true,
+      },
+    });
+    expect(
+      claimSpy.mock.calls[0]![0].previousLastEscalationRuleExecutedAt,
+    ).toEqual(NOW);
+    expect(startSpy.mock.calls[0]![0]).toEqual(rules[1]!.id);
+    expect(result?.kind).toBe(OnCallEscalationAdvanceKind.RuleStarted);
+  });
+
+  test("it moves on as from a rule that reached nobody: with every level empty, the run ends without repeating", async () => {
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")
+      .mockResolvedValue(storedRun() as never);
+    startSpy.mockResolvedValue(outcome({ movesOnAtOnce: true }));
+
+    const result: OnCallEscalationAdvanceResult | null =
+      await OnCallEscalationAdvance.moveOnAtOnce({ runId: RUN });
+
+    expect(startSpy).toHaveBeenCalledTimes(2);
+    expect(result?.endedWithStatus).toBe(
+      OnCallDutyPolicyStatus.CompletedWithNoNotifications,
+    );
+  });
+
+  test.each([
+    OnCallDutyPolicyStatus.Completed,
+    OnCallDutyPolicyStatus.CompletedWithNoNotifications,
+    OnCallDutyPolicyStatus.Error,
+    OnCallDutyPolicyStatus.Started,
+  ])(
+    "a run that is %s is left as it is",
+    async (status: OnCallDutyPolicyStatus) => {
+      jest
+        .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")
+        .mockResolvedValue(storedRun(status) as never);
+
+      expect(
+        await OnCallEscalationAdvance.moveOnAtOnce({ runId: RUN }),
+      ).toBeNull();
+      expect(claimSpy).not.toHaveBeenCalled();
+      expect(startSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a run that is gone is left", async () => {
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")
+      .mockResolvedValue(null as never);
+
+    expect(
+      await OnCallEscalationAdvance.moveOnAtOnce({ runId: RUN }),
+    ).toBeNull();
+    expect(startSpy).not.toHaveBeenCalled();
+  });
+
+  test("a move that fails ends the run with an error that says why - and never throws", async () => {
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")
+      .mockResolvedValue(storedRun() as never);
+    startSpy.mockImplementation((async () => {
+      throw new Error("The SMS provider is down.");
+    }) as never);
+
+    expect(
+      await OnCallEscalationAdvance.moveOnAtOnce({ runId: RUN }),
+    ).toBeNull();
+
+    expect(updateSpy).toHaveBeenLastCalledWith({
+      id: RUN,
+      data: {
+        status: OnCallDutyPolicyStatus.Error,
+        statusMessage: "The SMS provider is down.",
+      },
+      props: { isRoot: true },
+    });
+    expect(errors.join("\n")).toContain(
+      "on at once from a rule that paged nobody",
+    );
+  });
+
+  test("an error with no words of its own ends the run in the worker's words", async () => {
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")
+      .mockImplementation((async () => {
+        throw new Error("");
+      }) as never);
+
+    await OnCallEscalationAdvance.moveOnAtOnce({ runId: RUN });
+
+    expect(updateSpy.mock.calls[0]![0].data).toEqual({
+      status: OnCallDutyPolicyStatus.Error,
+      statusMessage: ON_CALL_POLICY_RUN_MOVE_ON_FAILED_MESSAGE,
+    });
+    expect(ON_CALL_POLICY_RUN_MOVE_ON_FAILED_MESSAGE).toBe(
+      "Error occurred while executing the on-call policy.",
+    );
+  });
+
+  test("when even saying so fails, it is logged and still does not throw", async () => {
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")
+      .mockImplementation((async () => {
+        throw new Error("connection reset");
+      }) as never);
+    updateSpy.mockImplementation((async () => {
+      throw new Error("still down");
+    }) as never);
+
+    await expect(
+      OnCallEscalationAdvance.moveOnAtOnce({ runId: RUN }),
+    ).resolves.toBeNull();
+    expect(errors.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe("how a run that went through every rule ends", () => {
+  test.each([
+    [OnCallDutyExecutionLogTimelineStatus.Skipped],
+    [OnCallDutyExecutionLogTimelineStatus.Error],
+  ])(
+    "a person whose line says %s was not notified: with nobody else, the run paged nobody",
+    async (status: OnCallDutyExecutionLogTimelineStatus) => {
+      lines = [line(ANA, status), line(BOB, status)];
+
+      const result: OnCallEscalationAdvanceResult = await advance(runOn(3));
+
+      expect(result.endedWithStatus).toBe(
+        OnCallDutyPolicyStatus.CompletedWithNoNotifications,
+      );
+      expect(result.endedWithMessage).toBe(
+        ON_CALL_POLICY_RUN_NOBODY_NOTIFIED_MESSAGE,
+      );
+    },
+  );
+
+  test.each([
+    [OnCallDutyExecutionLogTimelineStatus.NotificationSent],
+    [OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged],
+    [OnCallDutyExecutionLogTimelineStatus.Executing],
+    [OnCallDutyExecutionLogTimelineStatus.Started],
+  ])(
+    "a page that went out - %s - notified somebody: nobody acknowledged",
+    async (status: OnCallDutyExecutionLogTimelineStatus) => {
+      lines = [
+        line(ANA, OnCallDutyExecutionLogTimelineStatus.Skipped),
+        line(BOB, status),
+      ];
+
+      const result: OnCallEscalationAdvanceResult = await advance(runOn(3));
+
+      expect(result.endedWithStatus).toBe(OnCallDutyPolicyStatus.Completed);
+      expect(result.endedWithMessage).toBe(
+        ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE,
+      );
+    },
+  );
+
+  test("a run that paged nobody says who can put it right: the policy's owners", () => {
+    expect(ON_CALL_POLICY_RUN_NOBODY_NOTIFIED_MESSAGE).toBe(
+      "Execution completed, but no one was notified: no escalation rule of this policy had anybody to page. This policy's owners should add responders to its escalation rules, or check who is on call in its schedules.",
+    );
+  });
+
+  test("the people it reads are a run's lines about a person, at most a project's worth", async () => {
+    const findSpy: SpyInstance<
+      typeof OnCallDutyPolicyExecutionLogTimelineService.findBy
+    > = jest
+      .spyOn(OnCallDutyPolicyExecutionLogTimelineService, "findBy")
+      .mockResolvedValue([] as never);
+
+    await advance(runOn(3));
+
+    const read: Record<string, unknown> = findSpy.mock.calls.find(
+      (call: Array<unknown>): boolean => {
+        return (
+          (call[0] as { select?: Record<string, unknown> }).select?.[
+            "status"
+          ] === true
+        );
+      },
+    )![0] as unknown as Record<string, unknown>;
+
+    expect(
+      (read["query"] as Record<string, unknown>)[
+        "onCallDutyPolicyExecutionLogId"
+      ],
+    ).toEqual(RUN);
+    expect(read["select"]).toEqual({
+      alertSentToUserId: true,
+      status: true,
+    });
+    expect(read["limit"]).toBe(LIMIT_PER_PROJECT);
   });
 });

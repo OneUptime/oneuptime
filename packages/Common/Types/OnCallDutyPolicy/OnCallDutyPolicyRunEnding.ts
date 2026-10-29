@@ -43,6 +43,40 @@ export function isOnCallPolicyRunEverybodyPassedOnMessage(
   );
 }
 
+/*
+ * A RUN THAT PAGED NOBODY AT ALL: no escalation rule of its policy had
+ * anybody it could page - no responders, empty teams, nobody on call,
+ * everybody away, gone or unreachable. Such a run stops as soon as it has
+ * gone through its rules, since every rule that pages nobody is passed at
+ * once (OnCallEmptyLevel), and it ends as "Completed - No One Notified".
+ *
+ * Its message says who can put it right: the people who look after the
+ * policy - its owners, who are also the ones emailed about a page that
+ * could not be delivered. The record's feed says the second sentence alone
+ * after its own (OnCallFeedText): "went through every escalation rule and
+ * paged nobody" is the first.
+ */
+export const ON_CALL_POLICY_RUN_NOBODY_NOTIFIED_FIX: string =
+  "This policy's owners should add responders to its escalation rules, or check who is on call in its schedules.";
+
+export const ON_CALL_POLICY_RUN_NOBODY_NOTIFIED_MESSAGE: string = `Execution completed, but no one was notified: no escalation rule of this policy had anybody to page. ${ON_CALL_POLICY_RUN_NOBODY_NOTIFIED_FIX}`;
+
+// The same ending as runs wrote it before it said who can put it right.
+export const LEGACY_ON_CALL_POLICY_RUN_NOBODY_NOTIFIED_MESSAGE: string =
+  "Execution completed, but no one was notified. Every escalation rule in this policy reached no one - usually because the on-call schedules it targets had nobody on call.";
+
+// Whether a run ended having paged nobody at all - in either words.
+export function isOnCallPolicyRunNobodyNotifiedMessage(
+  message: string | undefined | null,
+): boolean {
+  const trimmed: string = (message || "").trim();
+
+  return (
+    trimmed === ON_CALL_POLICY_RUN_NOBODY_NOTIFIED_MESSAGE ||
+    trimmed === LEGACY_ON_CALL_POLICY_RUN_NOBODY_NOTIFIED_MESSAGE
+  );
+}
+
 // How the message of a run that stopped because its record was handled starts.
 export const ON_CALL_POLICY_RUN_RECORD_HANDLED_MESSAGE_START: string =
   "Execution completed because ";

@@ -56,6 +56,22 @@ import { getOnCallPassOnLevelLabel } from "../../../../Types/OnCallDutyPolicy/On
  * reached, it could not run, the policy was archived under it). Somebody
  * acknowledging is loud already: the record's state change says who.
  *
+ * A LEVEL WITH NOBODY TO PAGE is passed at once (OnCallEmptyLevel): the run
+ * pages the next level the same moment, and the message says so - in its
+ * list, and in the alarm about the first such level, which asks for the
+ * policy to be fixed rather than for somebody to be paged:
+ *
+ *   • Level 1 of 2: nobody to page, so Level 2 of 2 was paged at once
+ *
+ *   ⚠️ PolicyX paged nobody at Level 1 of 2 for Alert #12 (the rule has
+ *   nobody to page), so Level 2 of 2 was paged at once. Fix the policy so
+ *   this level pages someone.
+ *
+ * The alarm is raised only where the level is passed after the run's
+ * message was first posted - a later level, after an earlier one waited:
+ * a message posted after the level says it in its list already, and its
+ * first post raises no alarm on top of itself (OnCallPolicyRunMessage).
+ *
  * This file only turns a run into words - Markdown that Slack and Microsoft
  * Teams render the same way, and the plain text a notification shows of it
  * - so it can be read and tested on its own. Every name in it (the
@@ -216,6 +232,12 @@ export interface OnCallPolicyRunNotPaged {
   teamName?: string | undefined;
   // The escalation rule that had nobody to page at all.
   rule?: OnCallPolicyRunRule | undefined;
+  /*
+   * About that rule: the level the run moved on to at once, since nobody
+   * was there to wait for (OnCallEmptyLevel). Unset after the last level,
+   * and for a run that waited the rule out.
+   */
+  movedOnTo?: OnCallPolicyRunRule | undefined;
   // Why, as a phrase: "not a member of this project".
   reason: string;
   /*
@@ -294,11 +316,6 @@ export interface OnCallPolicyRun {
    * started: the moment the next step names ("by 5:28 PM").
    */
   nextStepAt?: Date | undefined;
-  /*
-   * Nobody was on call in the current rule's schedules yet, and the run
-   * tries the rule again in a minute rather than moving on.
-   */
-  retryingCurrentRule?: boolean | undefined;
   // Which pass this is (0 is the first), and how many repeats the policy allows.
   repeatNumber: number;
   repeatsAllowed: number;
@@ -313,6 +330,11 @@ export interface OnCallPolicyRun {
         rule: OnCallPolicyRunRule;
         // Text, or Markdown that holds a moment ("Ana: away until <time>").
         reasons: Array<string | MarkdownText>;
+        /*
+         * The level the run moved on to at once from it (OnCallEmptyLevel).
+         * Unset after the last level, and for a run that waited it out.
+         */
+        movedOnTo?: OnCallPolicyRunRule | undefined;
       }
     | undefined;
 }
@@ -595,18 +617,39 @@ export default class OnCallPolicyRunMessageView {
         run.firstRuleThatReachedNobody.rule,
         run.ruleCount,
       );
+      const why: MarkdownText =
+        reasons.length > 0
+          ? mdText` (${FeedMarkdown.join(reasons, "; ")})`
+          : FeedMarkdown.empty();
+      const movedOnTo: OnCallPolicyRunRule | undefined =
+        run.firstRuleThatReachedNobody.movedOnTo;
 
       /*
        * The policy and the rule first: earlier rules may have paged people,
        * so "Nobody was paged for Incident INC-8" would not be true. Why, in
        * brackets: the reasons themselves read "NB User 2: not a member ...".
+       *
+       * A level passed at once (OnCallEmptyLevel) held nobody up: the next
+       * level was paged that moment, so what is left to do is to fix the
+       * policy, not to page somebody.
        */
-      alarms.push({
-        key: ON_CALL_RUN_ALARM_NOBODY_PAGED_AT_A_RULE,
-        markdown:
-          mdText`⚠️ ${policy} paged nobody at ${rule} for ${record}${reasons.length > 0 ? mdText` (${FeedMarkdown.join(reasons, "; ")})` : FeedMarkdown.empty()}. If nobody is on it yet, page someone or fix the policy.`.toString(),
-        text: `${run.policyName} paged nobody at ${rule} for ${run.recordLabel}`,
-      });
+      if (movedOnTo) {
+        const next: string = this.getRuleLabel(movedOnTo, run.ruleCount);
+
+        alarms.push({
+          key: ON_CALL_RUN_ALARM_NOBODY_PAGED_AT_A_RULE,
+          markdown:
+            mdText`⚠️ ${policy} paged nobody at ${rule} for ${record}${why}, so ${next} was paged at once. Fix the policy so this level pages someone.`.toString(),
+          text: `${run.policyName} paged nobody at ${rule} for ${run.recordLabel}, so ${next} was paged at once`,
+        });
+      } else {
+        alarms.push({
+          key: ON_CALL_RUN_ALARM_NOBODY_PAGED_AT_A_RULE,
+          markdown:
+            mdText`⚠️ ${policy} paged nobody at ${rule} for ${record}${why}. If nobody is on it yet, page someone or fix the policy.`.toString(),
+          text: `${run.policyName} paged nobody at ${rule} for ${run.recordLabel}`,
+        });
+      }
     }
 
     switch (run.outcome) {
@@ -823,11 +866,6 @@ export default class OnCallPolicyRunMessageView {
           : mdText`, repeat ${run.repeatNumber}`;
     }
 
-    // Nobody was on call in its schedules yet: the rule is tried again soon.
-    if (run.retryingCurrentRule) {
-      return mdText`${where}${repeat}: nobody is on call yet, trying again ${this.getWhen(run)}.`;
-    }
-
     return mdText`${where}${repeat}: ${this.getNextStep(run)}`;
   }
 
@@ -946,8 +984,16 @@ export default class OnCallPolicyRunMessageView {
       return mdText`Team **${entry.teamName}** has no members`;
     }
 
+    /*
+     * A level with nobody to page, and - when the run did not wait for it -
+     * the level it paged at once instead (OnCallEmptyLevel).
+     */
     if (entry.rule) {
-      return mdText`${this.getRuleLabel(entry.rule, ruleCount)}: ${entry.reason}`;
+      const level: string = this.getRuleLabel(entry.rule, ruleCount);
+
+      return entry.movedOnTo
+        ? mdText`${level}: ${entry.reason}, so ${this.getRuleLabel(entry.movedOnTo, ruleCount)} was paged at once`
+        : mdText`${level}: ${entry.reason}`;
     }
 
     return mdText`${this.capitalize(entry.reason)}`;
