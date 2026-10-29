@@ -7,6 +7,7 @@ import {
   test,
 } from "@jest/globals";
 import { act, cleanup, renderHook } from "@testing-library/react";
+import { Mock } from "jest-mock";
 
 /*
  * useLiveRows: a list reads its page again when the server announces a
@@ -114,8 +115,10 @@ const setVisibility: (state: DocumentVisibilityState) => void = (
   });
 };
 
+type RefreshFunction = () => Promise<void>;
+
 interface Harness {
-  refresh: jest.Mock<() => Promise<void>>;
+  refresh: Mock<RefreshFunction>;
   setHeld: (held: boolean) => void;
   rerender: (options?: Partial<UseLiveRowsOptions>) => void;
   unmount: () => void;
@@ -124,9 +127,11 @@ interface Harness {
 const mount: (options?: Partial<UseLiveRowsOptions>) => Harness = (
   options?: Partial<UseLiveRowsOptions>,
 ): Harness => {
-  const refresh: jest.Mock<() => Promise<void>> = jest.fn((): Promise<void> => {
-    return Promise.resolve();
-  });
+  const refresh: Mock<RefreshFunction> = jest.fn<RefreshFunction>(
+    (): Promise<void> => {
+      return Promise.resolve();
+    },
+  );
   let held: boolean = false;
 
   const build: (
@@ -305,9 +310,11 @@ describe("when the list reads again", () => {
 
   test("it reads with the latest page the table would read", async () => {
     const harness: Harness = mount();
-    const later: jest.Mock<() => Promise<void>> = jest.fn((): Promise<void> => {
-      return Promise.resolve();
-    });
+    const later: Mock<RefreshFunction> = jest.fn<RefreshFunction>(
+      (): Promise<void> => {
+        return Promise.resolve();
+      },
+    );
 
     harness.rerender({ refresh: later });
     announce("Update");
