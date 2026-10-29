@@ -105,6 +105,7 @@ Les moniteurs, les incidents, les alertes, les pages de statut, les SLO et bien 
 | Listes de surveillance | `Watchlist` |
 | Valeurs de liste de surveillance | `Watchlist Value` |
 | Tâches et preuves des dossiers de sécurité | `Security Case Task`, `Security Case Evidence` |
+| Magasins de données et leurs détections, et les problèmes, paramètres, paramètres des contrôles, types de données personnalisés et règles de résidence de Sécurité des données | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
 | Exports du journal d'audit | `Audit Log Export` |
 
 Un administrateur qui ajoute ou retire une méthode de notification ou une règle d'astreinte personnelle sur le compte de quelqu'un d'autre est aussi enregistré, sans l'adresse ni le numéro lui-même.
