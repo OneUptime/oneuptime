@@ -250,6 +250,11 @@ describe("from md up", () => {
         "Severity",
         "Title",
       ]);
+      // Clear all ends the row, after the chips, as it always has.
+      expect(screen.queryByTestId("facet-filter-bar-phone-line")).toBeNull();
+      expect(bar().lastElementChild).toBe(
+        screen.getByTestId("facet-filter-bar-clear-all"),
+      );
     },
   );
 });
@@ -341,6 +346,65 @@ describe("on a phone", () => {
     await user.click(screen.getByTestId("facet-filter-bar-clear-all"));
 
     expect(harness.onClearAll).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * At the end of the row, Clear all wrapped onto a line of its own under a
+   * chip a filter had made wide: three lines for one filter. On a phone it
+   * sits on Filter's line - before the chips, as the keyboard meets it - and
+   * the chips that hold a filter come on the line under them.
+   */
+  test("Clear all sits on Filter's line, before the chips, folded and open", async () => {
+    const user: UserEventController = userEvent.setup();
+    setWindowWidth(PHONE);
+    renderBar();
+
+    const line: HTMLElement = screen.getByTestId("facet-filter-bar-phone-line");
+    const clearAll: HTMLElement = screen.getByTestId(
+      "facet-filter-bar-clear-all",
+    );
+
+    // The row's first child: Filter, then Clear all, a line of their own.
+    expect(bar().firstElementChild).toBe(line);
+    expect(Array.from(line.children)).toEqual([toggle(), clearAll]);
+    expect(classesOf(line)).toEqual(
+      expect.arrayContaining(["flex", "w-full", "items-center"]),
+    );
+    // Pushed to the line's far end, away from Filter.
+    expect(classesOf(clearAll)).toContain("ml-auto");
+    // Never folded away.
+    expect(hiddenByFold(bar())).not.toContain(line);
+
+    // Tab meets Filter, then Clear all, then the chips.
+    const buttons: Array<HTMLElement> = screen.getAllByRole("button");
+    expect(buttons.indexOf(toggle())).toBe(0);
+    expect(buttons.indexOf(clearAll)).toBe(1);
+
+    await user.click(toggle());
+
+    expect(bar().firstElementChild).toBe(line);
+    expect(Array.from(line.children)).toEqual([toggle(), clearAll]);
+  });
+
+  test("with nothing set, Filter stands alone, so a line that is not a chip sits beside it", () => {
+    setWindowWidth(PHONE);
+    render(
+      <FacetFilterBar activeCount={0}>
+        <FilterChipDropdown
+          label="Severity"
+          options={[{ value: "critical", label: "Critical" }]}
+          value={null}
+          onChange={(): void => {}}
+        />
+        <span data-testid="row-count" role="status">
+          60 rules
+        </span>
+      </FacetFilterBar>,
+    );
+
+    expect(screen.queryByTestId("facet-filter-bar-phone-line")).toBeNull();
+    expect(bar().firstElementChild).toBe(toggle());
+    expect(hiddenByFold(bar())).not.toContain(screen.getByTestId("row-count"));
   });
 
   test("with nothing set, the folded row is Filter alone, with no count", () => {

@@ -60,9 +60,9 @@ export interface ComponentProps {
  * the search, Saved Views and Create: the first alert started at the foot
  * of the screen someone paged at night opens first. Folded, the row is
  * "Filter" and the chips that hold a filter, so what the list is filtered
- * by is still in sight, with "Clear all"; pressing "Filter" draws every
- * chip, and pressing it again folds them. Wider screens draw every chip,
- * as before.
+ * by is still in sight, with "Clear all" on Filter's line; pressing
+ * "Filter" draws every chip, and pressing it again folds them. Wider
+ * screens draw every chip, as before.
  */
 const FacetFilterBar: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -89,6 +89,45 @@ const FacetFilterBar: FunctionComponent<ComponentProps> = (
     </>
   );
 
+  // On a phone, "Filter" opens the chips and folds them again.
+  const toggle: ReactElement = (
+    <button
+      type="button"
+      className={TOGGLE_CLASS_NAME}
+      aria-expanded={isOpenOnPhone}
+      aria-controls={barId}
+      // "Filter 2": its words and its count, not run together.
+      aria-label={
+        props.activeCount > 0
+          ? `${filterText} ${props.activeCount}`
+          : filterText
+      }
+      onClick={() => {
+        setIsOpenOnPhone(!isOpenOnPhone);
+      }}
+      data-testid="facet-filter-bar-toggle"
+    >
+      {label}
+      <Icon
+        icon={isOpenOnPhone ? IconProp.ChevronUp : IconProp.ChevronDown}
+        className="h-3 w-3"
+      />
+    </button>
+  );
+
+  // Empties every chip, once one holds a value.
+  const clearAll: ReactElement | null = props.onClearAll ? (
+    <button
+      type="button"
+      onClick={props.onClearAll}
+      data-testid="facet-filter-bar-clear-all"
+      className="ml-auto inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-200/60 hover:text-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+    >
+      <Icon icon={IconProp.Close} className="h-3 w-3" />
+      {translator.translateText("Clear all")}
+    </button>
+  ) : null;
+
   return (
     <div
       id={barId}
@@ -105,28 +144,22 @@ const FacetFilterBar: FunctionComponent<ComponentProps> = (
       }
     >
       {isPhone ? (
-        <button
-          type="button"
-          className={TOGGLE_CLASS_NAME}
-          aria-expanded={isOpenOnPhone}
-          aria-controls={barId}
-          // "Filter 2": its words and its count, not run together.
-          aria-label={
-            props.activeCount > 0
-              ? `${filterText} ${props.activeCount}`
-              : filterText
-          }
-          onClick={() => {
-            setIsOpenOnPhone(!isOpenOnPhone);
-          }}
-          data-testid="facet-filter-bar-toggle"
-        >
-          {label}
-          <Icon
-            icon={isOpenOnPhone ? IconProp.ChevronUp : IconProp.ChevronDown}
-            className="h-3 w-3"
-          />
-        </button>
+        props.onClearAll ? (
+          /*
+           * "Clear all" beside "Filter" on a phone, on a line of their own:
+           * at the end of the row it wrapped onto a line by itself under a
+           * chip a filter had made wide, a third line for one filter.
+           */
+          <div
+            className="flex w-full items-center gap-2"
+            data-testid="facet-filter-bar-phone-line"
+          >
+            {toggle}
+            {clearAll}
+          </div>
+        ) : (
+          toggle
+        )
       ) : (
         <span className={LABEL_CLASS_NAME} data-testid="facet-filter-bar-label">
           {label}
@@ -135,17 +168,7 @@ const FacetFilterBar: FunctionComponent<ComponentProps> = (
 
       {props.children}
 
-      {props.onClearAll && (
-        <button
-          type="button"
-          onClick={props.onClearAll}
-          data-testid="facet-filter-bar-clear-all"
-          className="ml-auto inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-200/60 hover:text-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-        >
-          <Icon icon={IconProp.Close} className="h-3 w-3" />
-          {translator.translateText("Clear all")}
-        </button>
-      )}
+      {!isPhone && clearAll}
     </div>
   );
 };

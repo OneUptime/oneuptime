@@ -1078,7 +1078,30 @@ test.describe("the Alerts list of the screenshot", () => {
 
     expect(await drawnChips(bar)).toEqual([`Monitor · ${FIRST_MONITOR}`]);
     await expect(bar.getByTestId("facet-filter-bar-count")).toHaveText("1");
-    await expect(bar.getByTestId("facet-filter-bar-clear-all")).toBeVisible();
+    const clearAll: Locator = bar.getByTestId("facet-filter-bar-clear-all");
+    await expect(clearAll).toBeVisible();
+
+    /*
+     * Clear all sits on Filter's line, at its far end, and the chip that
+     * holds the filter on the line under them: two lines, not three. At the
+     * row's end it wrapped onto a line of its own under the chip.
+     */
+    const filterBox: Box = await box(filter);
+    const clearBox: Box = await box(clearAll);
+    const chipBox: Box = await box(
+      bar.locator('[data-filter-chip-set="true"]').first(),
+    );
+    expect(
+      Math.abs(
+        clearBox.y + clearBox.height / 2 - (filterBox.y + filterBox.height / 2),
+      ),
+    ).toBeLessThan(2);
+    expect(clearBox.x).toBeGreaterThan(filterBox.x + filterBox.width);
+    expect(clearBox.x + clearBox.width).toBeLessThanOrEqual(390);
+    expect(chipBox.y).toBeGreaterThanOrEqual(filterBox.y + filterBox.height);
+    expect((await box(bar)).height).toBeLessThan(
+      filterBox.height + chipBox.height + 20,
+    );
     expect(await sidewaysScroll(page)).toBe(0);
     await screenshot(page, "alerts-filters-folded-filtered-390");
 
