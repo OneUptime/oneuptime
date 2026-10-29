@@ -102,6 +102,8 @@ flowchart TB
 | Захваты пакетов и их скачивания | `Packet Capture` |
 | Кейсы безопасности с их приоритетами и статусами, плейбуки и их запуски, защищённые сущности, критичность сущностей, а также риск сущности, когда его сбрасывают | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
 | Исключения правил | `Rule Exception` |
+| Списки отслеживания | `Watchlist` |
+| Значения списков отслеживания | `Watchlist Value` |
 | Задачи и доказательства кейсов безопасности | `Security Case Task`, `Security Case Evidence` |
 | Экспорты журнала аудита | `Audit Log Export` |
 

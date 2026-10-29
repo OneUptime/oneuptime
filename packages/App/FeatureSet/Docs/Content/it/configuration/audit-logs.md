@@ -102,6 +102,8 @@ Monitor, incidenti, avvisi, pagine di stato, SLO e molte altre risorse hanno anc
 | Catture dei pacchetti, e i loro download | `Packet Capture` |
 | Casi di sicurezza con le loro priorità e i loro stati, playbook e le loro esecuzioni, entità protette, criticità delle entità, e il rischio di un'entità quando qualcuno lo azzera | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
 | Eccezioni delle regole | `Rule Exception` |
+| Elenchi di controllo | `Watchlist` |
+| Valori dell'elenco di controllo | `Watchlist Value` |
 | Attività e prove dei casi di sicurezza | `Security Case Task`, `Security Case Evidence` |
 | Esportazioni del registro di audit | `Audit Log Export` |
 

@@ -48,6 +48,13 @@ export interface PaletteCommand {
    */
   isSearchOnly?: boolean | undefined;
   /**
+   * The id of the command for the page this one is on: a setting found by
+   * the name its card shows ("SAML", on Settings > SSO). When the page is
+   * listed too, this comes right after it, never before it: "saml" and
+   * "single sign-on" open SSO first, then its SAML card.
+   */
+  onPageCommandId?: string | undefined;
+  /**
    * Breaks a tie between two commands that match a search equally well:
    * the higher goes first (0 when left out). The Dashboard puts its products
    * above its pages, and pages above actions and quick links, so "pager"

@@ -8,6 +8,7 @@ import {
 import TableRow from "./TableRow";
 import Columns from "./Types/Columns";
 import GenericObject from "../../../Types/GenericObject";
+import { getRecordIdText } from "../ObjectID/RecordIdText";
 import useTranslator from "../../Utils/UseTranslator";
 import { Translator } from "../../Utils/TranslateTemplate";
 import React, { ReactElement } from "react";
@@ -65,6 +66,39 @@ type TableBodyFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ) => ReactElement;
 
+/*
+ * The ids of the rows on the page, in order - the keys that keep each row
+ * its own (see getRowKey below). Null where the table names no id field, or
+ * a row has no id, or two rows share one: keyed by position then.
+ */
+export const getUniqueRowIds: <T extends GenericObject>(
+  data: Array<T>,
+  idField: keyof T | undefined,
+) => Array<string> | null = <T extends GenericObject>(
+  data: Array<T>,
+  idField: keyof T | undefined,
+): Array<string> | null => {
+  if (idField === undefined) {
+    return null;
+  }
+
+  const ids: Array<string> = [];
+  const seen: Set<string> = new Set();
+
+  for (const item of data) {
+    const id: string = getRecordIdText(item?.[idField]);
+
+    if (!id || seen.has(id)) {
+      return null;
+    }
+
+    seen.add(id);
+    ids.push(id);
+  }
+
+  return ids;
+};
+
 const TableBody: TableBodyFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
@@ -73,11 +107,22 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
   type GetBodyFunction = (provided?: DroppableProvided) => ReactElement;
 
   /*
-   * A row's React key: its id when the list can be dragged. Rows that move
-   * must keep their identity - keyed by position, React would hand a moved
-   * row's state (an open menu, a focused grip) to whichever row lands in
-   * its old place.
+   * A row's React key: its record's id. Rows that move must keep their
+   * identity - keyed by position, React would hand a moved row's state (an
+   * open menu, a focused grip, a focused View button, labels opened) to
+   * whichever row lands in its old place. Rows move when they are dragged,
+   * and also when a list that keeps itself current (ModelTable/UseLiveRows)
+   * reads a new incident in above them: keyed by position, the View the
+   * keyboard was on became the next incident's, and Enter opened that one.
+   *
+   * Keyed by position still where the rows have no ids, or share one: React
+   * needs each key once.
    */
+  const rowIds: Array<string> | null = getUniqueRowIds(
+    props.data,
+    props.dragDropIdField,
+  );
+
   const getRowKey: (item: T, index: number) => string | number = (
     item: T,
     index: number,
@@ -90,7 +135,7 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
       }
     }
 
-    return index;
+    return rowIds?.[index] ?? index;
   };
 
   const getDragProps: (index: number) => {
