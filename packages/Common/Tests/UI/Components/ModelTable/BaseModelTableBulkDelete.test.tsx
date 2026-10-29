@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom";
 import {
+  act,
   cleanup,
   configure,
   fireEvent,
@@ -105,6 +106,7 @@ import BaseModelTable, {
   ComponentProps as BaseModelTableProps,
   ModalTableBulkDefaultActions,
 } from "../../../../UI/Components/ModelTable/BaseModelTable";
+import { BulkActionConfirmControls } from "../../../../UI/Components/BulkUpdate/BulkUpdateForm";
 import TableFilterUrlState from "../../../../UI/Utils/TableFilterUrlState";
 import PermissionGate from "../../../../UI/Utils/PermissionGate";
 import FieldType from "../../../../UI/Components/Types/FieldType";
@@ -144,6 +146,14 @@ const NETWORK_DEVICE_CONSEQUENCE: string =
 
 type TableOptions = {
   isDeleteable?: boolean | undefined;
+  deleteConfirmationDetails?:
+    | ((
+        items: Array<NetworkDevice>,
+        controls: BulkActionConfirmControls,
+      ) => React.ReactElement | undefined)
+    | undefined;
+  getDeleteRefusal?: ((item: NetworkDevice) => string | undefined) | undefined;
+  onDeleteEnd?: (() => void) | undefined;
   bulkActionButtons?: Array<unknown> | undefined;
   deleteConfirmationWarning?: string | undefined;
   deleteVerb?: string | undefined;
@@ -235,6 +245,13 @@ describe("BaseModelTable bulk Delete", () => {
         ...(options.deleteConcurrency !== undefined
           ? { deleteConcurrency: options.deleteConcurrency }
           : {}),
+        ...(options.deleteConfirmationDetails
+          ? { deleteConfirmationDetails: options.deleteConfirmationDetails }
+          : {}),
+        ...(options.getDeleteRefusal
+          ? { getDeleteRefusal: options.getDeleteRefusal }
+          : {}),
+        ...(options.onDeleteEnd ? { onDeleteEnd: options.onDeleteEnd } : {}),
       },
     } as unknown as BaseModelTableProps<NetworkDevice>;
   };
@@ -1249,6 +1266,184 @@ describe("BaseModelTable bulk Delete", () => {
       expect(confirmationText().trim()).toBe(
         "Are you sure you want to delete 2 network devices? This action cannot be undone.",
       );
+    });
+  });
+
+  /*
+   * A list can say more in the bulk Delete's dialog than one sentence: what
+   * deleting the selected rows would change, read when the dialog opens (a
+   * value's uses - UseArchivableValues), holding Delete while it reads; and
+   * leave rows out of the run it already knows the server would refuse,
+   * with why. And it hears when the run ends, to read its own counts again.
+   */
+  describe("a list's own words, refusals and end", () => {
+    // Details that hold Delete until released.
+    let releaseDelete: (isHeld: boolean) => void = (): void => {};
+
+    const Details: React.FunctionComponent<{
+      items: Array<NetworkDevice>;
+      controls: BulkActionConfirmControls;
+    }> = (props: {
+      items: Array<NetworkDevice>;
+      controls: BulkActionConfirmControls;
+    }): React.ReactElement => {
+      React.useEffect(() => {
+        props.controls.setIsSubmitHeld(true);
+        releaseDelete = props.controls.setIsSubmitHeld;
+      }, []);
+
+      return (
+        <p data-testid="list-delete-details">
+          {`Deleting ${props.items.length} also removes their links.`}
+        </p>
+      );
+    };
+
+    const withDetails: (
+      items: Array<NetworkDevice>,
+      controls: BulkActionConfirmControls,
+    ) => React.ReactElement = (
+      items: Array<NetworkDevice>,
+      controls: BulkActionConfirmControls,
+    ): React.ReactElement => {
+      return <Details items={items} controls={controls} />;
+    };
+
+    const deleteButton: () => HTMLButtonElement | undefined = ():
+      | HTMLButtonElement
+      | undefined => {
+      return Array.from(
+        document.querySelectorAll<HTMLButtonElement>(
+          '[data-testid="modal-footer"] button',
+        ),
+      ).find((button: HTMLButtonElement) => {
+        return (button.textContent || "").trim() === "Delete";
+      });
+    };
+
+    test("its details are drawn after the names, and hold Delete until they let it go", async () => {
+      await startBulkDelete({ deleteConfirmationDetails: withDetails });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("list-delete-details")).toBeInTheDocument();
+      });
+
+      expect(screen.getByTestId("list-delete-details")).toHaveTextContent(
+        "Deleting 2 also removes their links.",
+      );
+
+      // After the names of the rows: under the question, never inside it.
+      expect(confirmationText()).not.toContain("removes their links");
+      expect(
+        screen
+          .getByTestId("delete-confirmation-items")
+          .compareDocumentPosition(screen.getByTestId("list-delete-details")) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+
+      await waitFor(() => {
+        expect(deleteButton()).toBeDisabled();
+      });
+
+      // Nothing is deleted while it is held.
+      fireEvent.click(deleteButton()!);
+      expect(deletedIds).toEqual([]);
+
+      act(() => {
+        releaseDelete(false);
+      });
+
+      await waitFor(() => {
+        expect(deleteButton()).toBeEnabled();
+      });
+
+      await confirmDelete();
+
+      await waitFor(() => {
+        expect(deletedIds.sort()).toEqual(["device-1", "device-2"]);
+      });
+    });
+
+    test("a row the list knows the server would refuse is not sent, and is listed with why", async () => {
+      await startBulkDelete({
+        getDeleteRefusal: (item: NetworkDevice): string | undefined => {
+          return (item as unknown as Row)._id === "device-1"
+            ? "Records still have it, so it can't be deleted. Archive it instead."
+            : undefined;
+        },
+      });
+      await confirmDelete();
+
+      await waitFor(() => {
+        expect(textOf("bulk-action-failed-count")).not.toBe("");
+      });
+
+      // Never sent: only the other row reached the delete.
+      expect(deletedIds).toEqual(["device-2"]);
+      expect(textOf("bulk-action-failed-count")).toBe(
+        "1 Network Device not deleted",
+      );
+      expect(textOf("bulk-action-succeeded-count")).toBe(
+        "1 Network Device deleted",
+      );
+      expect(textOf("bulk-action-failed-items")).toContain("core-router-1");
+      expect(
+        screen.getByText(
+          "Records still have it, so it can't be deleted. Archive it instead.",
+        ),
+      ).toBeInTheDocument();
+    });
+
+    test("the list hears once that the run is over, after the deletes", async () => {
+      const ended: Array<Array<string>> = [];
+
+      await startBulkDelete({
+        onDeleteEnd: (): void => {
+          ended.push([...deletedIds].sort());
+        },
+      });
+
+      expect(ended).toEqual([]);
+
+      await confirmDelete();
+
+      await waitFor(() => {
+        expect(ended).toEqual([["device-1", "device-2"]]);
+      });
+    });
+
+    test("a row's own Delete never asks the bulk refusal: its dialog says why itself", async () => {
+      const asked: Array<string> = [];
+
+      const { container } = renderTable({
+        getDeleteRefusal: (item: NetworkDevice): string | undefined => {
+          asked.push(String((item as unknown as Row)._id));
+          return "Refused";
+        },
+      });
+
+      await waitFor(() => {
+        expect(
+          container.querySelectorAll('[data-testid="row-actions-more-button"]')
+            .length,
+        ).toBe(ROWS.length);
+      });
+
+      fireEvent.click(
+        container.querySelector<HTMLElement>(
+          '[data-testid="row-actions-more-button"]',
+        )!,
+      );
+
+      // The row's ⋯ menu still offers Delete, unlocked: its dialog says why.
+      await waitFor(() => {
+        expect(findMenuItem("Delete")).toBeDefined();
+      });
+      expect(findMenuItem("Delete")).not.toHaveAttribute(
+        "aria-disabled",
+        "true",
+      );
+      expect(asked).toEqual([]);
     });
   });
 });

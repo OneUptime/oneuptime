@@ -155,7 +155,11 @@ const ArchivableValuesBulkDeleteDetails: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
-  const refused: Set<string> = new Set<string>(answer.refusedValueIds);
+  const refused: Set<string> = new Set<string>(
+    answer.refusedValueIds.map((id: string): string => {
+      return id.toLowerCase();
+    }),
+  );
 
   const refusedNames: Array<string> = props.items
     .filter((item: BaseModel): boolean => {
