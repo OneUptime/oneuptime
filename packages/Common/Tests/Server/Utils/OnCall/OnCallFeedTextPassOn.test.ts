@@ -34,13 +34,13 @@ const POLICY: MarkdownText = FeedMarkdown.link(
 );
 const ANA: MarkdownText = FeedMarkdown.link(
   "Ana Lopez",
-  "https://oneuptime.com/dashboard/p/settings/users/a",
+  "https://oneuptime.com/dashboard/p/users/a",
 );
 
 const POLICY_MD: string =
   "**[Payments](https://oneuptime.com/dashboard/p/on-call-duty/policies/x)**";
 const ANA_MD: string =
-  "**[Ana Lopez](https://oneuptime.com/dashboard/p/settings/users/a)**";
+  "**[Ana Lopez](https://oneuptime.com/dashboard/p/users/a)**";
 
 const STOPPED: string =
   "everybody it paged escalated it, and nobody was left to page.";
@@ -142,13 +142,13 @@ describe("a page escalated, on a direct page", () => {
         pager: {
           startedByUser: FeedMarkdown.link(
             "Simon Lee",
-            "https://oneuptime.com/dashboard/p/settings/users/s",
+            "https://oneuptime.com/dashboard/p/users/s",
           ),
         },
         recipient: ANA,
       }),
     ).toBe(
-      `${ANA_MD} escalated the page from **[Simon Lee](https://oneuptime.com/dashboard/p/settings/users/s)**.`,
+      `${ANA_MD} escalated the page from **[Simon Lee](https://oneuptime.com/dashboard/p/users/s)**.`,
     );
   });
 });
@@ -232,13 +232,13 @@ describe("a run everybody escalated", () => {
         pager: {
           startedByUser: FeedMarkdown.link(
             "Simon Lee",
-            "https://oneuptime.com/dashboard/p/settings/users/s",
+            "https://oneuptime.com/dashboard/p/users/s",
           ),
         },
         statusMessage: ON_CALL_POLICY_RUN_EVERYBODY_PASSED_ON_MESSAGE,
       }),
     ).toBe(
-      `The page from **[Simon Lee](https://oneuptime.com/dashboard/p/settings/users/s)** stopped: ${STOPPED}`,
+      `The page from **[Simon Lee](https://oneuptime.com/dashboard/p/users/s)** stopped: ${STOPPED}`,
     );
   });
 

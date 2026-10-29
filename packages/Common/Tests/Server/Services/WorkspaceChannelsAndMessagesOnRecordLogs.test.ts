@@ -586,7 +586,7 @@ describe("WorkspaceNotificationRuleService.logSendResponses", () => {
             messageBlocks: [markdown("API is offline")],
           },
         ],
-        notifyUserId: NOTIFIED,
+        authorUserId: NOTIFIED,
       });
 
       expect(

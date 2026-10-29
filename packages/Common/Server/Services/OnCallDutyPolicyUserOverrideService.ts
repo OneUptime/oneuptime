@@ -326,7 +326,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
         userId: createdItem.createdByUserId! || undefined,
         workspaceNotification: {
           sendWorkspaceNotification: true,
-          notifyUserId: createdItem.createdByUserId! || undefined,
+          leadWithAuthor: true,
         },
       });
     }
@@ -601,7 +601,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
           userId: deleteByUserId || undefined,
           workspaceNotification: {
             sendWorkspaceNotification: true,
-            notifyUserId: deleteByUserId || undefined,
+            leadWithAuthor: true,
           },
         });
       }

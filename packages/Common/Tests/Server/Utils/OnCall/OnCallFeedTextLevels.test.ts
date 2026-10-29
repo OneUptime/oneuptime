@@ -26,13 +26,13 @@ const POLICY: MarkdownText = FeedMarkdown.link(
 );
 const NITIN: MarkdownText = FeedMarkdown.link(
   "Nitin Kumar",
-  "https://oneuptime.com/dashboard/p/settings/users/n",
+  "https://oneuptime.com/dashboard/p/users/n",
 );
 
 const POLICY_MD: string =
   "**[Payments primary](https://oneuptime.com/dashboard/p/on-call-duty/policies/x)**";
 const NITIN_MD: string =
-  "**[Nitin Kumar](https://oneuptime.com/dashboard/p/settings/users/n)**";
+  "**[Nitin Kumar](https://oneuptime.com/dashboard/p/users/n)**";
 
 function paged(
   rule: {

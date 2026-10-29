@@ -469,6 +469,101 @@ describe("WorkspaceUtil.getMessageBlocksByMarkdown", () => {
   });
 });
 
+/*
+ * The emoji an entry opens with stays first, then whoever did it, then the
+ * sentence with its verb in lower case - as every line in a channel starts,
+ * and as the Dashboard's feed reads the same sentence after the same name
+ * (Utils/Markdown/FeedLead). Messages used to read "Jane Doe 👤 Added
+ * Deane Looi as Responder ...": the name, the emoji, then a sentence with
+ * a capital of its own.
+ */
+describe("WorkspaceUtil.getMessageBlocksByMarkdown: the sentence the author leads", () => {
+  const ROLE_LINE: string =
+    "👤 Added **[Deane Looi](https://oneuptime.example/users/d)** as **Responder** to [Incident INC-18](https://oneuptime.example/i).";
+
+  test("REGRESSION: a person's line reads as one sentence in Slack and Teams", async () => {
+    const blocks: Array<MessageBlocksByWorkspaceType> =
+      await WorkspaceUtil.getMessageBlocksByMarkdown({
+        projectId: projectId,
+        userId: userId,
+        markdown: ROLE_LINE,
+      });
+
+    for (const workspaceType of [
+      WorkspaceType.Slack,
+      WorkspaceType.MicrosoftTeams,
+    ]) {
+      expect(textFor(blocks, workspaceType)).toBe(
+        "👤 **Jane Doe** (jane@example.com) added **[Deane Looi](https://oneuptime.example/users/d)** as **Responder** to [Incident INC-18](https://oneuptime.example/i).",
+      );
+    }
+  });
+
+  test("a person who connected their chat account leads it by that name", async () => {
+    mockUserAuths({
+      [WorkspaceType.Slack]: userAuth({ workspaceUserId: "U123" }),
+      [WorkspaceType.MicrosoftTeams]: userAuth({
+        workspaceUserId: "aad-1",
+        miscData: { displayName: "Jane Teams" },
+      }),
+    });
+    jest.spyOn(SlackUtil, "getUsernameFromUserId").mockResolvedValue("jane");
+
+    const blocks: Array<MessageBlocksByWorkspaceType> =
+      await WorkspaceUtil.getMessageBlocksByMarkdown({
+        projectId: projectId,
+        userId: userId,
+        markdown: "📄 posted **private note** for this [Incident INC-18](x):",
+      });
+
+    expect(textFor(blocks, WorkspaceType.Slack)).toBe(
+      "📄 @jane posted **private note** for this [Incident INC-18](x):",
+    );
+    expect(textFor(blocks, WorkspaceType.MicrosoftTeams)).toBe(
+      "📄 @Jane Teams posted **private note** for this [Incident INC-18](x):",
+    );
+  });
+
+  test("a project API key leads it as one", async () => {
+    const blocks: Array<MessageBlocksByWorkspaceType> =
+      await WorkspaceUtil.getMessageBlocksByMarkdown({
+        projectId: projectId,
+        userId: undefined,
+        apiKeyName: "Jira Automation",
+        markdown: ROLE_LINE,
+      });
+
+    expect(textFor(blocks, WorkspaceType.Slack)).toBe(
+      "👤 Jira Automation (API key) added **[Deane Looi](https://oneuptime.example/users/d)** as **Responder** to [Incident INC-18](https://oneuptime.example/i).",
+    );
+  });
+
+  test("a message that is no sentence written to follow a name keeps the name in front, as before", async () => {
+    const blocks: Array<MessageBlocksByWorkspaceType> =
+      await WorkspaceUtil.getMessageBlocksByMarkdown({
+        projectId: projectId,
+        userId: userId,
+        markdown: "**[Alert ALR-3](x)** added to episode: Checkout is slow",
+      });
+
+    expect(textFor(blocks, WorkspaceType.Slack)).toBe(
+      "**Jane Doe** (jane@example.com) **[Alert ALR-3](x)** added to episode: Checkout is slow",
+    );
+  });
+
+  test("with nobody to lead it, the line is posted as it reads", async () => {
+    const blocks: Array<MessageBlocksByWorkspaceType> =
+      await WorkspaceUtil.getMessageBlocksByMarkdown({
+        projectId: projectId,
+        userId: undefined,
+        markdown: ROLE_LINE,
+      });
+
+    expect(textFor(blocks, WorkspaceType.Slack)).toBe(ROLE_LINE);
+    expect(textFor(blocks, WorkspaceType.MicrosoftTeams)).toBe(ROLE_LINE);
+  });
+});
+
 describe("WorkspaceUtil.getUserStringForWorkspace", () => {
   test("never throws, whatever fails", async () => {
     getUserAuthSpy.mockRejectedValue(new Error("boom"));

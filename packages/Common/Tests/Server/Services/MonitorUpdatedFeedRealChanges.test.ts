@@ -12,6 +12,8 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import Dictionary from "../../../Types/Dictionary";
 import ObjectID from "../../../Types/ObjectID";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { getFeedEntryText } from "../../../UI/Components/Feed/FeedEntryText";
+import { leadWithAuthorMarkdown } from "../../../Utils/Markdown/FeedLead";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import {
   afterEach,
@@ -504,8 +506,10 @@ describe("each real change adds its own line, once", () => {
       unknown
     >;
 
+    // Opening with them: the entry's author leads the message.
     expect(item["workspaceNotification"]).toEqual({
       sendWorkspaceNotification: true,
+      leadWithAuthor: true,
     });
     expect(String(item["userId"])).toBe(USER_ID.toString());
     expect(String(item["projectId"])).toBe(PROJECT_ID.toString());
@@ -617,6 +621,55 @@ describe("the read before the write", () => {
   });
 });
 
+describe("who the entry says made the change", () => {
+  /*
+   * The entry is a sentence written to follow the name of whoever made the
+   * change: the feed puts their name in front of it, and so do the
+   * project's Slack and Teams channels. It once read "Monitor Checkout API
+   * was updated." after the name: "Valeria Mustafaeva Monitor Checkout API
+   * was updated."
+   */
+  test("a person's change: 'Valeria Mustafaeva updated Monitor Checkout API EU.', in the feed and in the channels", async () => {
+    await runUpdate({ name: "Checkout API EU" });
+
+    const markdown: string = onlyFeedItem();
+    const head: string = `Monitor **[Checkout API EU](${MONITOR_LINK})**.`;
+
+    expect(markdown.startsWith(`✏️ Updated ${head}`)).toBe(true);
+    expect(markdown).not.toContain("was updated");
+
+    expect(
+      getFeedEntryText({ markdown: markdown, actorName: "Valeria Mustafaeva" })
+        .lead,
+    ).toBe(`updated ${head}`);
+    expect(
+      leadWithAuthorMarkdown({
+        authorMarkdown: "[Valeria Mustafaeva](https://oneuptime.example/v) ",
+        markdown: markdown,
+      }).startsWith(
+        `✏️ [Valeria Mustafaeva](https://oneuptime.example/v) updated ${head}`,
+      ),
+    ).toBe(true);
+  });
+
+  test("a change nobody made by hand - OneUptime's own write - still reads 'Monitor Checkout API EU was updated.'", async () => {
+    await runUpdate(
+      { name: "Checkout API EU" },
+      { props: { isRoot: true, tenantId: PROJECT_ID } },
+    );
+
+    const markdown: string = onlyFeedItem();
+
+    expect(
+      markdown.startsWith(
+        `Monitor **[Checkout API EU](${MONITOR_LINK}) was updated.**`,
+      ),
+    ).toBe(true);
+    // Nobody to follow: the feed draws it as it is written.
+    expect(getFeedEntryText({ markdown: markdown }).lead).toBeUndefined();
+  });
+});
+
 describe("the feed lines themselves", () => {
   test("quote the name inertly, in the item's link and in its line", async () => {
     await runUpdate({ name: "[Reset](https://evil.example) <b>api</b>" });
@@ -625,7 +678,7 @@ describe("the feed lines themselves", () => {
 
     // Inside the link's own text everything that acts in a link is escaped.
     expect(markdown).toContain(
-      `Monitor **[\\[Reset\\]\\(https://evil.example\\) \\<b>api\\</b>](${MONITOR_LINK}) was updated.**`,
+      `✏️ Updated Monitor **[\\[Reset\\]\\(https://evil.example\\) \\<b>api\\</b>](${MONITOR_LINK})**.`,
     );
     // In the line, as a value: it reads as typed and links nowhere.
     expect(markdown).toContain(

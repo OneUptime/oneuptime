@@ -103,7 +103,7 @@ const LABEL_TIER_ONE: string = "55555555-5555-4555-8555-555555555555";
 
 const DASHBOARD_URL: string = "https://oneuptime.test/dashboard";
 const SLO_LINK: string = `${DASHBOARD_URL}/${PROJECT_ID.toString()}/slos/${SLO_ID.toString()}`;
-const USER_LINK: string = `${DASHBOARD_URL}/${PROJECT_ID.toString()}/settings/users/${USER_ID.toString()}`;
+const USER_LINK: string = `${DASHBOARD_URL}/${PROJECT_ID.toString()}/users/${USER_ID.toString()}`;
 const POSTED_AT: Date = new Date("2026-09-15T10:00:00.000Z");
 
 interface FeedCall {

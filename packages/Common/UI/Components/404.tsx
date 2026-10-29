@@ -26,8 +26,12 @@ const NotFound: FunctionComponent<ComponentProps> = (
             <p className="text-4xl  tracking-tight text-indigo-600 sm:text-5xl">
               404
             </p>
-            <div className="sm:ml-6">
-              <div className="sm:border-l sm:border-gray-200 sm:pl-6">
+            {/*
+             * Logical sides (ms, ps, border-s), so the line between the
+             * number and the words stays between them right to left too.
+             */}
+            <div className="sm:ms-6">
+              <div className="sm:border-s sm:border-gray-200 sm:ps-6">
                 <h1 className="text-4xl  tracking-tight text-gray-900 sm:text-5xl">
                   {translator.translateText("Page not found")}
                 </h1>
@@ -37,7 +41,12 @@ const NotFound: FunctionComponent<ComponentProps> = (
                   )}
                 </p>
               </div>
-              <div className="mt-10 flex space-x-3 sm:border-l sm:border-transparent sm:pl-6">
+              {/*
+               * The gap spaces the buttons either way round; a Button's own
+               * md:ml-3 (a dialog footer's) would indent the first one and
+               * double the gap right to left.
+               */}
+              <div className="mt-10 flex flex-wrap gap-3 sm:border-s sm:border-transparent sm:ps-6 [&_button]:md:ml-0">
                 <Button
                   title="Go Home"
                   buttonStyle={ButtonStyleType.PRIMARY}

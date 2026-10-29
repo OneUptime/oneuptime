@@ -18,10 +18,11 @@ import ProjectReferencesService from "./ProjectReferencesService";
 import IncidentFeed, {
   IncidentFeedEventType,
 } from "../../Models/DatabaseModels/IncidentFeed";
-import WorkspaceNotificationRuleService, {
-  MessageBlocksByWorkspaceType,
-  WorkspaceChannelToSkip,
-} from "./WorkspaceNotificationRuleService";
+import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
+import FeedWorkspaceNotificationUtil, {
+  FeedWorkspaceAuthor,
+  FeedWorkspaceNotification,
+} from "../Utils/Feed/FeedWorkspaceNotification";
 import { applyIncidentRelatedRecordPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import {
@@ -118,21 +119,11 @@ export class Service extends ProjectReferencesService<IncidentFeed> {
      * names it as its author. Ignored when the item has a user.
      */
     apiKeyActor?: FeedApiKeyActor | undefined;
-    // send notifificatin to slack and teams. This is optional
-    workspaceNotification?:
-      | {
-          notifyUserId?: ObjectID | undefined; // this is oneuptime user id.
-          sendWorkspaceNotification: boolean;
-          appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
-          // Not posted in this channel: the note came from a message there.
-          exceptChannel?: WorkspaceChannelToSkip | undefined;
-          /*
-           * What the post's phone or desktop notification says, when the
-           * start of the post does not say enough (WorkspacePayload text).
-           */
-          notificationText?: string | undefined;
-        }
-      | undefined;
+    /*
+     * Posted to Slack and Microsoft Teams too (FeedWorkspaceNotification),
+     * opening with the person - or the API key - the item names.
+     */
+    workspaceNotification?: FeedWorkspaceNotification | undefined;
   }): Promise<void> {
     try {
       logger.debug("IncidentFeedService.createIncidentFeedItem", {
@@ -224,6 +215,12 @@ export class Service extends ProjectReferencesService<IncidentFeed> {
             incidentId: data.incidentId,
             feedInfoInMarkdown: data.feedInfoInMarkdown,
             workspaceNotification: data.workspaceNotification,
+            author: FeedWorkspaceNotificationUtil.getAuthor({
+              workspaceNotification: data.workspaceNotification,
+              userId: data.userId,
+              apiKeyActor: data.apiKeyActor,
+              savedFromChatMessage: data.savedFromChatMessage,
+            }),
           });
         }
       } catch (e) {
@@ -252,20 +249,18 @@ export class Service extends ProjectReferencesService<IncidentFeed> {
     }
   }
 
+  /*
+   * Posts an entry to the record's Slack and Microsoft Teams channels,
+   * opening with the author the entry names (FeedWorkspaceNotification).
+   */
   @CaptureSpan()
   public async sendWorkspaceNotification(data: {
     projectId: ObjectID;
     incidentId: ObjectID;
     feedInfoInMarkdown: string;
-    workspaceNotification: {
-      notifyUserId?: ObjectID | undefined; // this is oneuptime user id.
-      sendWorkspaceNotification: boolean;
-      appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
-      // Not posted in this channel: the note came from a message there.
-      exceptChannel?: WorkspaceChannelToSkip | undefined;
-      // What the post's notification says, when the caller words it.
-      notificationText?: string | undefined;
-    };
+    workspaceNotification: FeedWorkspaceNotification;
+    // Who the message opens with (FeedWorkspaceNotificationUtil.getAuthor).
+    author?: FeedWorkspaceAuthor | undefined;
   }): Promise<void> {
     return await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification(
       {
@@ -275,7 +270,11 @@ export class Service extends ProjectReferencesService<IncidentFeed> {
         },
         feedInfoInMarkdown: data.feedInfoInMarkdown,
         notificationText: data.workspaceNotification.notificationText,
-        workspaceNotification: data.workspaceNotification,
+        workspaceNotification:
+          FeedWorkspaceNotificationUtil.toWorkspaceNotification({
+            workspaceNotification: data.workspaceNotification,
+            author: data.author,
+          }),
       },
     );
   }

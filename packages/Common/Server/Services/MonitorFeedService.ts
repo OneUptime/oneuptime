@@ -9,9 +9,11 @@ import ProjectReferencesService from "./ProjectReferencesService";
 import MonitorFeed, {
   MonitorFeedEventType,
 } from "../../Models/DatabaseModels/MonitorFeed";
-import WorkspaceNotificationRuleService, {
-  MessageBlocksByWorkspaceType,
-} from "./WorkspaceNotificationRuleService";
+import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
+import FeedWorkspaceNotificationUtil, {
+  FeedWorkspaceAuthor,
+  FeedWorkspaceNotification,
+} from "../Utils/Feed/FeedWorkspaceNotification";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends ProjectReferencesService<MonitorFeed> {
@@ -44,14 +46,8 @@ export class Service extends ProjectReferencesService<MonitorFeed> {
     displayColor?: Color | undefined;
     userId?: ObjectID | undefined;
     postedAt?: Date | undefined;
-    // send notifificatin to slack and teams. This is optional
-    workspaceNotification?:
-      | {
-          notifyUserId?: ObjectID | undefined; // this is oneuptime user id.
-          sendWorkspaceNotification: boolean;
-          appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
-        }
-      | undefined;
+    // Posted to Slack and Microsoft Teams too (FeedWorkspaceNotification).
+    workspaceNotification?: FeedWorkspaceNotification | undefined;
   }): Promise<void> {
     try {
       logger.debug("MonitorFeedService.createMonitorFeedItem", {
@@ -130,6 +126,10 @@ export class Service extends ProjectReferencesService<MonitorFeed> {
             monitorId: data.monitorId,
             feedInfoInMarkdown: data.feedInfoInMarkdown,
             workspaceNotification: data.workspaceNotification,
+            author: FeedWorkspaceNotificationUtil.getAuthor({
+              workspaceNotification: data.workspaceNotification,
+              userId: data.userId,
+            }),
           });
         }
       } catch (e) {
@@ -158,16 +158,18 @@ export class Service extends ProjectReferencesService<MonitorFeed> {
     }
   }
 
+  /*
+   * Posts an entry to the record's Slack and Microsoft Teams channels,
+   * opening with the author the entry names (FeedWorkspaceNotification).
+   */
   @CaptureSpan()
   public async sendWorkspaceNotification(data: {
     projectId: ObjectID;
     monitorId: ObjectID;
     feedInfoInMarkdown: string;
-    workspaceNotification: {
-      notifyUserId?: ObjectID | undefined; // this is oneuptime user id.
-      sendWorkspaceNotification: boolean;
-      appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
-    };
+    workspaceNotification: FeedWorkspaceNotification;
+    // Who the message opens with (FeedWorkspaceNotificationUtil.getAuthor).
+    author?: FeedWorkspaceAuthor | undefined;
   }): Promise<void> {
     return await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification(
       {
@@ -176,7 +178,12 @@ export class Service extends ProjectReferencesService<MonitorFeed> {
           monitorId: data.monitorId,
         },
         feedInfoInMarkdown: data.feedInfoInMarkdown,
-        workspaceNotification: data.workspaceNotification,
+        notificationText: data.workspaceNotification.notificationText,
+        workspaceNotification:
+          FeedWorkspaceNotificationUtil.toWorkspaceNotification({
+            workspaceNotification: data.workspaceNotification,
+            author: data.author,
+          }),
       },
     );
   }
