@@ -229,7 +229,7 @@ Para publicar em um canal, adicione uma regra em **Produtos → Security Events 
 | Prioridade do caso de segurança | Uma das prioridades de caso do projeto, como Crítico ou High |
 | Título do caso de segurança, Descrição do caso de segurança | Um texto que o título ou a descrição do caso contém, com que começa ou com que termina |
 | Status do caso de segurança | Um dos status de caso do projeto, como Novo ou Fechado |
-| Origem do caso de segurança | Detection Rule, Threat Intel, Connected Product, Risco de entidades, Data Security ou Manual |
+| Origem do caso de segurança | Detection Rule, Threat Intel, Connected Product, Risco de entidades, Segurança de dados ou Manual |
 | Rótulos do caso de segurança | Os rótulos do caso |
 
 Cada notificação, exceto a de uma tarefa, é publicada nos canais de todas as regras a que o caso corresponde naquele momento. Uma regra em que **Prioridade do caso de segurança** contém qualquer um de **Crítico** e **Alto** publica os casos High e Crítico assim que abrem, e um caso Medium quando ele sobe para High. Um caso de segurança nunca ganha um canal próprio.
@@ -268,7 +268,7 @@ Um playbook desabilitado não roda nem sozinho nem manualmente.
 | Investigação | Look up entity activity | Conta os eventos de segurança de cada entidade em uma janela recente, e registra isso no caso |
 | Investigação | Preserve the evidence | Guarda as gravações de sessão das requisições por trás do caso, e registra no caso seus traces e exceções |
 | Notificação | Email people | Envia por e-mail a usuários e equipes um resumo do caso, com um link para ele |
-| Notificação | Notify data store owners | Envia por e-mail aos responsáveis por cada armazenamento de dados do caso um link para ele |
+| Notificação | Notify data store owners | Envia por e-mail aos proprietários de cada repositório de dados de que o caso trata um link para o caso |
 | Notificação | Post to Slack | Publica um resumo do caso em um canal do Slack |
 | Notificação | Post to Microsoft Teams | Publica um resumo do caso em um canal do Microsoft Teams |
 | Notificação | Post a status page announcement | Publica um aviso que você escreveu nas páginas de status que escolher |
@@ -281,6 +281,8 @@ Um playbook desabilitado não roda nem sozinho nem manualmente.
 | Contenção | Unsuspend the user in Okta | Cancela no Okta a suspensão do usuário de que o caso trata |
 | Contenção | Lift containment in CrowdStrike | Retira do host de que o caso trata a contenção de rede do CrowdStrike Falcon |
 | Contenção | Release the device in Microsoft Defender | Libera do isolamento no Microsoft Defender for Endpoint o host de que o caso trata |
+| Contenção | Bloquear o acesso público a repositórios de dados | Bloqueia o acesso público a cada bucket ou conta de armazenamento de que o caso trata, pela conexão de nuvem dele |
+| Contenção | Revogar o compartilhamento do repositório de dados | Para de compartilhar fora das suas contas os snapshots de cada banco de dados de que o caso trata, pela conexão de nuvem dele |
 | Automação | Send a webhook | Envia o caso como JSON para uma URL |
 | Automação | Run a workflow | Inicia um fluxo de trabalho do OneUptime com o caso como entrada |
 | Automação | Run a runbook | Inicia um dos seus runbooks do OneUptime com o caso como entrada |
@@ -288,7 +290,7 @@ Um playbook desabilitado não roda nem sozinho nem manualmente.
 
 Um playbook tem no máximo 25 etapas. Elas rodam em ordem, cada uma depois que a anterior termina. Cada etapa também pode:
 
-- **Requer aprovação**: parar a execução antes da etapa até que alguém a aprove no caso. As quatro etapas que cortam o acesso de alguém sempre param a execução, a menos que um Security Admin desative essa opção. **Run a runbook** e **Post a status page announcement** começam com a aprovação ativada, porque um executa comandos nos seus sistemas e o outro fala com os seus clientes; quem adiciona a etapa pode desativá-la.
+- **Requer aprovação**: parar a execução antes da etapa até que alguém a aprove no caso. As quatro etapas que cortam o acesso de alguém sempre param a execução, a menos que um Security Admin desative essa opção. **Run a runbook**, **Post a status page announcement** e as duas etapas de repositório de dados começam com a aprovação ativada, porque executam comandos nos seus sistemas, falam com os seus clientes ou mudam as configurações de uma nuvem; quem adiciona a etapa pode desativá-la.
 - **Somente se houver correspondência de inteligência de ameaças**: pular a etapa, a menos que uma etapa **Verificar as entidades na inteligência de ameaças** anterior da mesma execução tenha encontrado um indicador conhecido.
 - **Continuar se falhar**: rodar a próxima etapa mesmo que esta falhe. Desativado, uma etapa com falha interrompe a execução.
 
@@ -303,20 +305,23 @@ Quatro etapas agem pelo restante do OneUptime, e não por um produto conectado:
 
 ### Contenção
 
-As etapas de contenção agem por meio de uma [conexão de eventos de segurança](/docs/telemetry/security-events#conecte-um-produto-de-segurança) com o produto, que precisa de mais do que acesso de leitura:
+As etapas de contenção agem por meio de uma conexão que precisa de mais do que acesso de leitura: uma [conexão de eventos de segurança](/docs/telemetry/security-events#conecte-um-produto-de-segurança) com o produto, ou a [conexão de nuvem](/docs/telemetry/cloud-accounts) do repositório de dados:
 
 | Etapa | Conexão | Precisa de |
 | --- | --- | --- |
 | Suspend the user in Okta, End the user's Okta sessions, Unsuspend the user in Okta | Okta System Log | Um token de API com permissão para gerenciar usuários |
 | Contain the host in CrowdStrike, Lift containment in CrowdStrike | CrowdStrike Falcon | Um cliente de API com o escopo Hosts de gravação |
 | Isolate the device in Microsoft Defender, Release the device in Microsoft Defender | Microsoft Defender XDR | Um app com a permissão Machine.Isolate |
+| Bloquear o acesso público a repositórios de dados, Revogar o compartilhamento do repositório de dados | A conexão de nuvem do repositório | **Resposta de segurança de dados** ativada, e o comando de configuração dela executado de novo |
 
-Uma etapa de contenção age só nos usuários ou hosts de que o caso trata, nunca em todos os que ele cita:
+Uma etapa de usuário ou de host age só nos usuários ou hosts de que o caso trata, nunca em todos os que ele cita:
 
 - O valor pelo qual uma detecção do caso é agrupada, como a conta pela qual uma regra de viagem impossível agrupa, ou o host que o alerta de um produto conectado cita.
 - Um usuário ou host do caso que a sua inteligência de ameaças conhece como indicador.
 
 Um caso agrupado por um endereço, como um ataque de força bruta contra a sua VPN, não trata de nenhum dos dois: as etapas de contenção dele são puladas, e a conta tentada e o gateway atingido ficam intactos. Uma etapa age em no máximo 10 usuários ou hosts. Ela encontra cada um no produto pelo nome, e informa na execução o que fez com cada um: feito, já feito, não encontrado, recusado ou protegido.
+
+As duas etapas de repositório de dados agem nos repositórios de dados de que o caso trata, no máximo 10: os dos problemas da Segurança de dados que ele recebeu, e qualquer um pelo qual uma detecção o agrupou. Elas deixam intacto um repositório marcado como **Público por design**, mudam como um repositório é compartilhado mas nunca os dados dele, e informam na execução o que fizeram com cada repositório (veja [Fechar uma exposição](/docs/data-security/integrations#fechar-uma-exposição)).
 
 #### Entidades protegidas
 

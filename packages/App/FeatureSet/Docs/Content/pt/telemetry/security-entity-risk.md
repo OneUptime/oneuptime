@@ -1,6 +1,6 @@
 # Risco de entidades (alertas baseados em risco)
 
-Uma descoberta isolada raramente diz muito. Uma rajada de logins com falha, um primeiro sudo num host e um login a partir de um país novo merecem, cada um, uma olhada; a mesma conta nos três numa semana merece um caso. O risco de entidades soma o que as suas regras de detecção, a sua inteligência de ameaças, os seus produtos conectados e o Data Security encontram sobre cada usuário, host, endereço IP e armazenamento de dados, lista primeiro os de maior risco e abre um caso sobre aquele cujo risco atinge o limite do projeto.
+Uma descoberta isolada raramente diz muito. Uma rajada de logins com falha, um primeiro sudo num host e um login a partir de um país novo merecem, cada um, uma olhada; a mesma conta nos três numa semana merece um caso. O risco de entidades soma o que as suas regras de detecção, a sua inteligência de ameaças, os seus produtos conectados e a Segurança de dados encontram sobre cada usuário, host, endereço IP e repositório de dados, lista primeiro os de maior risco e abre um caso sobre aquele cujo risco atinge o limite do projeto.
 
 :::cards
 - [Como uma pontuação é contada](#como-uma-pontuação-é-contada): Pontos pela gravidade, e cada fonte uma vez por semana.
@@ -24,7 +24,7 @@ flowchart TB
     score -->|"No<br/>limite"| case["Um caso é aberto,<br/>ou o caso aberto<br/>assume o risco"]
 ```
 
-Abra **Produtos → Security Events → Risco de entidades**: cada usuário, host, endereço IP e armazenamento de dados com risco agora, primeiro os de maior risco, com o seu nível, quanto importa, o que o encontrou e quando. Cada um abre numa página própria. **Entidades de maior risco**, na visão geral, mostra o topo desta lista, e **Pesquisar uma entidade**, abaixo dela, procura qualquer valor em 30 dias de eventos, também um domínio ou um hash de arquivo.
+Abra **Produtos → Security Events → Risco de entidades**: cada usuário, host, endereço IP e repositório de dados com risco agora, primeiro os de maior risco, com o seu nível, quanto importa, o que o encontrou e quando. Cada um abre numa página própria. **Entidades de maior risco**, na visão geral, mostra o topo desta lista, e **Pesquisar uma entidade**, abaixo dela, procura qualquer valor em 30 dias de eventos, também um domínio ou um hash de arquivo.
 
 ## Antes de começar
 
@@ -34,7 +34,7 @@ Abra **Produtos → Security Events → Risco de entidades**: cada usuário, hos
 
 ## Como uma pontuação é contada
 
-Cada descoberta soma pontos de risco ao usuário, host, endereço IP ou armazenamento de dados a que se refere:
+Cada descoberta soma pontos de risco ao usuário, host, endereço IP ou repositório de dados a que se refere:
 
 | Uma descoberta de gravidade | Soma |
 | --- | --- |
@@ -44,8 +44,8 @@ Cada descoberta soma pontos de risco ao usuário, host, endereço IP ou armazena
 | Crítica | 75 pontos |
 
 - Uma descoberta informativa não soma nada, e uma descoberta de gravidade desconhecida conta como Média.
-- Os pontos de uma regra de detecção vão para o valor pelo qual ela agrupa. Uma correspondência de inteligência de ameaças soma ao endereço IP que o indicador nomeia. O alerta de um produto conectado soma ao usuário e ao host que ele nomeia, ou senão ao seu endereço IP. Um problema do Data Security soma ao armazenamento de dados em que foi encontrado.
-- Cada fonte conta uma vez. Uma regra de detecção, um feed de inteligência de ameaças, a regra de um produto conectado ou uma verificação do Data Security conta uma vez em 7 dias, com o máximo que somou, por mais que dispare: uma regra barulhenta não pode fazer uma entidade parecer pior do que três regras diferentes.
+- Os pontos de uma regra de detecção vão para o valor pelo qual ela agrupa. Uma correspondência de inteligência de ameaças soma ao endereço IP que o indicador nomeia. O alerta de um produto conectado soma ao usuário e ao host que ele nomeia, ou senão ao seu endereço IP. Um problema da Segurança de dados soma ao repositório de dados em que foi encontrado.
+- Cada fonte conta uma vez. Uma regra de detecção, um feed de inteligência de ameaças, a regra de um produto conectado ou uma verificação da Segurança de dados conta uma vez em 7 dias, com o máximo que somou, por mais que dispare: uma regra barulhenta não pode fazer uma entidade parecer pior do que três regras diferentes.
 - Uma fonte que não encontrou nada em 7 dias deixa de contar, e a pontuação cai. As pontuações são verificadas a cada 15 minutos, então uma pontuação cai na hora certa sem uma nova descoberta.
 
 A pontuação de uma entidade é a soma das suas fontes, ponderada pela sua criticidade. O ataque de teste de **Enviar um ataque de teste**, e um caso que alguém abre à mão, não somam risco.
@@ -82,7 +82,7 @@ Algumas entidades importam mais do que outras: um controlador de domínio, a con
 | Alta | ×1.5 |
 | Extrema | ×2 |
 
-Uma entrada é um valor ou um padrão com `*`, sem diferenciar maiúsculas: `dc-*` nomeia cada controlador de domínio, e `*@contractors.example` cada terceirizado. **Tipo** a restringe a usuários, hosts, endereços IP ou armazenamentos de dados; vazio corresponde a todos. Quando várias entradas nomeiam uma entidade, conta a mais específica: um valor escrito por extenso antes de um padrão, e um padrão mais longo antes de um mais curto. Uma alteração chega à pontuação de cada entidade em minutos. O Data Security inclui por conta própria os armazenamentos de dados que considera sensíveis, os confidenciais como Alta e os restritos como Extrema; altere uma dessas entradas e ela passa a ser sua, e o Data Security não mexe mais nela.
+Uma entrada é um valor ou um padrão com `*`, sem diferenciar maiúsculas: `dc-*` nomeia cada controlador de domínio, e `*@contractors.example` cada terceirizado. **Tipo** a restringe a usuários, hosts, endereços IP ou repositórios de dados; vazio corresponde a todos. Quando várias entradas nomeiam uma entidade, conta a mais específica: um valor escrito por extenso antes de um padrão, e um padrão mais longo antes de um mais curto. Uma alteração chega à pontuação de cada entidade em minutos. A Segurança de dados inclui por conta própria os repositórios de dados que considera sensíveis, os Confidenciais como Alta e os Restritos como Extrema; altere uma dessas entradas e ela passa a ser sua, e a Segurança de dados não mexe mais nela.
 
 ## A página de uma entidade
 
