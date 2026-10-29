@@ -662,11 +662,13 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
         fieldName={"key"}
         title={"Reset Runner Key"}
         description={
-          <p className="mt-2">
-            {translator.translateText(
-              "Resetting the secret key will generate a new key. The secret is used to authenticate this Runner's requests. This Runner will stop connecting until the new key is configured on it, so re-run the setup command on its host afterwards.",
-            )}
-          </p>
+          /*
+           * Words alone, as every other key's Reset says them: the card
+           * draws and translates its description itself, under its title
+           * like any card's. A paragraph handed in sat inside the card's
+           * own (React's validateDOMNesting warning), 8px further down.
+           */
+          "Resetting the secret key will generate a new key. The secret is used to authenticate this Runner's requests. This Runner will stop connecting until the new key is configured on it, so re-run the setup command on its host afterwards."
         }
         modelId={modelId}
       />

@@ -488,3 +488,55 @@ describe("the Project Default card on a Runner's page", () => {
     expect(writes).toEqual([]);
   });
 });
+
+/*
+ * Reset Runner Key, at the foot of the page: its description is the card's
+ * own - a sentence under its title, as every other key's Reset has it. It
+ * was a paragraph handed into the card's paragraph, which React warned of
+ * on every Runner's page (validateDOMNesting) and which sat 8px lower than
+ * any other card's description.
+ */
+describe("Reset Runner Key on a Runner's page", () => {
+  const RESET_DESCRIPTION: string =
+    "Resetting the secret key will generate a new key. The secret is used to authenticate this Runner's requests. This Runner will stop connecting until the new key is configured on it, so re-run the setup command on its host afterwards.";
+
+  function nestingWarnings(calls: Array<Array<unknown>>): Array<string> {
+    return calls
+      .map((args: Array<unknown>): string => {
+        return args
+          .map((value: unknown): string => {
+            return String(value);
+          })
+          .join(" ");
+      })
+      .filter((line: string): boolean => {
+        return line.includes("validateDOMNesting");
+      });
+  }
+
+  test("says what a reset does in the card's own description, and the page logs no nesting warning", async () => {
+    const consoleError: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(console, "error")
+      .mockImplementation((): void => {
+        // Read below.
+      });
+
+    await openRunnerView(OFFICE_ID);
+
+    const resetCard: HTMLElement = (
+      await screen.findByText("Reset Runner Key", { selector: "h2" }, WAIT)
+    ).closest('[data-testid="card"]') as HTMLElement;
+    const description: HTMLElement =
+      within(resetCard).getByTestId("card-description");
+
+    // The sentence itself is the description: a paragraph holding words.
+    expect(description.tagName).toBe("P");
+    expect(description).toHaveTextContent(RESET_DESCRIPTION);
+    expect(description.querySelector("p, div")).toBeNull();
+    expect(description).not.toHaveClass("mt-2");
+
+    expect(
+      nestingWarnings(consoleError.mock.calls as Array<Array<unknown>>),
+    ).toEqual([]);
+  });
+});
