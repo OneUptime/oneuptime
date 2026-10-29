@@ -294,6 +294,7 @@ describe.each(ENTITY_KINDS)(
           databaseServerIds: [],
           storageArrayIds: [],
           cloudResourceIds: [],
+          networkDeviceIds: [],
         });
 
       // Linked by hand (Monitor > Overview > Linked Resources): nothing here.

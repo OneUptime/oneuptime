@@ -41,6 +41,8 @@ import { JSONObject } from "../JSON";
 // The kinds of resource OneUptime AI may link an incident or alert to.
 export enum AiAffectedResourceKind {
   Host = "Host",
+  // A router, switch, firewall or access point (issue #5341).
+  NetworkDevice = "NetworkDevice",
   DockerHost = "DockerHost",
   PodmanHost = "PodmanHost",
   KubernetesCluster = "KubernetesCluster",
@@ -60,6 +62,7 @@ export enum AiAffectedResourceKind {
 // The list of an Incident (and of an Alert) a kind of resource goes in.
 export type AiAffectedResourceRelation =
   | "hosts"
+  | "networkDevices"
   | "dockerHosts"
   | "podmanHosts"
   | "kubernetesClusters"
@@ -99,6 +102,16 @@ export const AI_AFFECTED_RESOURCE_KINDS: ReadonlyArray<AiAffectedResourceKindInf
       relation: "hosts",
       noun: "host",
       isFixedByOneUptimeAi: true,
+    },
+    /*
+     * Linked for its owners, its page's Incidents and Alerts tabs and the
+     * investigation's context: no AI agent acts on a network device yet.
+     */
+    {
+      kind: AiAffectedResourceKind.NetworkDevice,
+      relation: "networkDevices",
+      noun: "network device",
+      isFixedByOneUptimeAi: false,
     },
     {
       kind: AiAffectedResourceKind.KubernetesCluster,
@@ -191,8 +204,6 @@ export const AI_RESOURCE_TYPES_NOT_LINKABLE: Readonly<
 > = {
   [AIResourceType.ServerlessFunction]:
     "An incident or alert has no list of serverless functions.",
-  [AIResourceType.NetworkDevice]:
-    "An incident or alert has no list of network devices.",
 };
 
 // The most resources one call links: the most an investigation reaches.

@@ -11,6 +11,7 @@ import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import Service from "Common/Models/DatabaseModels/Service";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
@@ -30,6 +31,7 @@ import PodmanHostElement from "../PodmanHost/PodmanHost";
 import HostElement from "../Host/Host";
 import KubernetesClusterElement from "../KubernetesCluster/KubernetesCluster";
 import MonitorElement from "../Monitor/Monitor";
+import NetworkDeviceElement from "../NetworkDevice/NetworkDeviceElement";
 import NetworkSiteElement from "../NetworkSite/NetworkSiteElement";
 import ServiceElement from "../Service/ServiceElement";
 import SloElement from "../Slo/SloElement";
@@ -54,6 +56,7 @@ import SloElement from "../Slo/SloElement";
 type ResourceItem =
   | { _key: string; type: "Monitor"; model: Monitor }
   | { _key: string; type: "Host"; model: Host }
+  | { _key: string; type: "NetworkDevice"; model: NetworkDevice }
   | { _key: string; type: "KubernetesCluster"; model: KubernetesCluster }
   | { _key: string; type: "DockerHost"; model: DockerHost }
   | { _key: string; type: "PodmanHost"; model: PodmanHost }
@@ -76,6 +79,7 @@ type ResourceItem =
 export interface ComponentProps {
   monitors?: Array<Monitor> | undefined;
   hosts?: Array<Host> | undefined;
+  networkDevices?: Array<NetworkDevice> | undefined;
   kubernetesClusters?: Array<KubernetesCluster> | undefined;
   dockerHosts?: Array<DockerHost> | undefined;
   podmanHosts?: Array<PodmanHost> | undefined;
@@ -111,6 +115,15 @@ const AffectedResourcesCell: FunctionComponent<ComponentProps> = (
       _key: `Host:${host._id ? String(host._id) : Math.random()}`,
       type: "Host",
       model: host,
+    });
+  }
+  for (const networkDevice of props.networkDevices || []) {
+    items.push({
+      _key: `NetworkDevice:${
+        networkDevice._id ? String(networkDevice._id) : Math.random()
+      }`,
+      type: "NetworkDevice",
+      model: networkDevice,
     });
   }
   for (const cluster of props.kubernetesClusters || []) {
@@ -251,6 +264,15 @@ const AffectedResourcesCell: FunctionComponent<ComponentProps> = (
           return (
             <HostElement
               host={item.model}
+              showIcon={true}
+              onNavigateComplete={props.onNavigateComplete}
+            />
+          );
+        }
+        if (item.type === "NetworkDevice") {
+          return (
+            <NetworkDeviceElement
+              networkDevice={item.model}
               showIcon={true}
               onNavigateComplete={props.onNavigateComplete}
             />

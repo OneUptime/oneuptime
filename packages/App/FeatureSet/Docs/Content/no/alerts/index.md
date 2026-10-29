@@ -43,7 +43,7 @@ Utløs et varsel når teamet ditt bør se på noe før noen utenfor merker det, 
 ## Hvor varsler kommer fra
 
 - **Kriteriene til en monitor.** Under **Handlinger** for et kriterium slår du på **Når filtre samsvarer, opprett et varsel.** og fyller ut varselet det oppretter: **Varseltittel** og **Alvorlighetsgrad**, deretter, hver for seg sammenfoldet, **Beskrivelse**, **Eierskap og etiketter**, **Vakt** og **Flere felt**, som inneholder **Løs varsel automatisk**, **Privat varsel** og **Utbedringsnotater**. Et kriterium holder ett åpent varsel om gangen, ett per serie på en monitor som grupperer etter et felt, og **Løs varsel automatisk** løser det når kriteriet slutter å samsvare. Se [Opprett en monitor](/docs/monitor/create-monitor) og [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating).
-- **Manuelt.** Klikk på **Opprett varsel** i varsellisten, eller på fanen **Varsler** for en monitor, en vert eller en annen ressurs, som velger den ressursen for deg. Se [Opprett et varsel manuelt](#opprett-et-varsel-manuelt).
+- **Manuelt.** Klikk på **Opprett varsel** i varsellisten, eller på fanen **Varsler** for en monitor, en vert, en nettverksenhet eller en annen ressurs, som velger den ressursen for deg. Se [Opprett et varsel manuelt](#opprett-et-varsel-manuelt).
 - **Forbruksraten til en SLO.** En forbruksrateregel kan opprette et varsel når en SLO bruker feilbudsjettet sitt for raskt. Se [Forbruksratevarsler og -hendelser](/docs/slo/burn-rate-alerts).
 - **Nettverkslokasjoner og sikkerhetshendelser.** En nettverkslokasjon som er satt til å varsle når den er usunn, åpner et varsel når den samlede helsestatusen ikke lenger er operativ, og deteksjonsreglene dine for sikkerhetshendelser åpner også varsler. Se [Nettverkslokasjoner (samlet helsestatus og oppetid)](/docs/monitor/network-sites) og [Sikkerhetshendelser (SIEM)](/docs/telemetry/security-events).
 - **En tilkalling.** `/oneuptime page` i Slack eller Microsoft Teams åpner et varsel med meldingen din som tittel og tilkaller personene du nevner. Tilkallingsblokkene i en arbeidsflyt gjør det samme med tittelen og meldingen du gir dem. Se [Tilkall noen fra Slack](/docs/workspace-connections/slack#tilkall-noen-fra-slack) og [Paging](/docs/workflows/components#paging).
@@ -81,7 +81,7 @@ Fyll ut **Tittel**, og velg en **Varselsalvor**; begge er påkrevd. Legg til en 
 
 ### Velg hva det berører, og hvem som tilkalles
 
-Klikk på **Neste** for å komme til **Ressurser og vakt**. Velg **Overvåking** det gjelder, og eventuelle **Andre berørte ressurser**, som verter, Kubernetes-klynger eller tjenester. Under **Vaktpolicy** velger du policyene som skal kjøre når varselet opprettes.
+Klikk på **Neste** for å komme til **Ressurser og vakt**. Velg **Overvåking** det gjelder, og eventuelle **Andre berørte ressurser**, som verter, nettverksenheter, Kubernetes-klynger eller tjenester. Under **Vaktpolicy** velger du policyene som skal kjøre når varselet opprettes.
 
 ### Opprett det
 

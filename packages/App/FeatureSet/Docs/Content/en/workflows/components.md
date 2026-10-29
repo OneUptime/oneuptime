@@ -388,6 +388,12 @@ These components act as a Project Admin of the workflow's project: what a Projec
 
 The incident records the template it was declared from in `createdIncidentTemplateId`. That column is OneUptime's to set: a step that sends it in **JSON Object** is refused, and its run log points you to **Incident Template**. A template from another project, or one that was deleted, takes the step's **Error** output, and on a plan that doesn't include incident templates the step is refused with the plan it needs. See [How a template gets applied](/docs/incidents/settings#how-a-template-gets-applied).
 
+### Linking the resources it is about
+
+**Create One Incident** and **Create One Alert** have an **Affected Resources** setting: the hosts, network devices, clusters, databases or services the record is about, by name, address or ID, separated by commas — typed in, or taken from an earlier step, such as the host an alert from another tool names. Each entry is looked for in every kind of resource the record can hold, as a whole value and in any case: by name, a network device also by the address it is polled at or its DNS name, a host by the name its agent reports or one of its IP addresses, and a cloud resource by its provider's ID. Every resource an entry matches is linked, beside what **JSON Object** and the template already link, up to 50 of them from the first 25 entries.
+
+An entry that matches nothing does not stop the step: the record is still created, and the run log says what each entry linked and which matched nothing. Archived resources are not linked. Monitors are not looked up: name them in **JSON Object** (`monitors` on an incident, `monitorId` on an alert), because linking a monitor to an incident pauses its monitoring.
+
 ## Working with records
 
 Every field on a data component is keyed on the record's own **column** names — the same names the API uses, not the labels on the dashboard form. The ID column is `_id`. The `id` spelling is accepted as an alias anywhere you can type a column name, but `_id` is what a record gives back, so that's what to read on the way out:

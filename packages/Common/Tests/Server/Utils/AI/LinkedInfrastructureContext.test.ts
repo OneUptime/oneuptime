@@ -55,6 +55,7 @@ const HOST_A: string = "33333333-3333-4333-8333-333333333333";
 const DOCKER_A: string = "44444444-4444-4444-8444-444444444444";
 const OTHER_HOST: string = "55555555-5555-4555-8555-555555555555";
 const SERVICE_ID: string = "66666666-6666-4666-8666-666666666666";
+const ROUTER_ID: string = "99999999-9999-4999-8999-999999999999";
 const OPEN_STATE: ObjectID = new ObjectID(
   "77777777-7777-4777-8777-777777777777",
 );
@@ -245,6 +246,64 @@ describe("which resources", () => {
         name: "checkout-api",
       },
     ]);
+  });
+
+  /*
+   * Issue #5341: an incident on a router is about the router, and its
+   * investigation reads the alerts on it as it reads a host's.
+   */
+  test("a network device is infrastructure, right after the hosts", () => {
+    expect(
+      LinkedInfrastructureContext.keepInfrastructure([
+        linked(LinkedAffectedResourceType.Service, SERVICE_ID, "checkout-api"),
+        linked(
+          LinkedAffectedResourceType.NetworkDevice,
+          ROUTER_ID,
+          "WAN-RTR-01",
+        ),
+        linked(LinkedAffectedResourceType.Host, HOST_A, "web-1"),
+      ]).map((resource: LinkedAffectedResource): string => {
+        return resource.type;
+      }),
+    ).toEqual([
+      LinkedAffectedResourceType.Host,
+      LinkedAffectedResourceType.NetworkDevice,
+      LinkedAffectedResourceType.Service,
+    ]);
+  });
+
+  test("a router's alerts are read through the alert's network devices, and the router is named with the id the tools take", async () => {
+    resources = [
+      linked(LinkedAffectedResourceType.NetworkDevice, ROUTER_ID, "WAN-RTR-01"),
+    ];
+
+    const result: LinkedInfrastructure = await readIncident();
+
+    expect(result.resources).toEqual([
+      {
+        type: LinkedAffectedResourceType.NetworkDevice,
+        id: ROUTER_ID,
+        name: "WAN-RTR-01",
+      },
+    ]);
+    expect(alertReads).toHaveLength(2);
+
+    for (const read of alertReads) {
+      const query: JSONObject = read.query as unknown as JSONObject;
+
+      expect(
+        (query["networkDevices"] as Array<ObjectID>).map(
+          (id: ObjectID): string => {
+            return id.toString();
+          },
+        ),
+      ).toEqual([ROUTER_ID]);
+      expect(query["projectId"]).toBe(PROJECT_ID);
+    }
+
+    expect(LinkedInfrastructureContext.buildContextSection(result)).toContain(
+      `- Network device "WAN-RTR-01" (resourceType: NetworkDevice, resourceId: ${ROUTER_ID})`,
+    );
   });
 
   test(`at most ${MAX_LINKED_RESOURCES} resources`, () => {

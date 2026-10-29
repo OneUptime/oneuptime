@@ -22,6 +22,7 @@ import { UserEvent } from "@testing-library/user-event/dist/types/setup/setup";
 import React, { ReactElement } from "react";
 import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { searchThroughGetList } from "./AffectedResourceSearchFake";
 
 /*
  * A scheduled maintenance template asks for its affected resources the way
@@ -88,6 +89,25 @@ jest.mock("../../../UI/Utils/User", () => {
 const getListMock: MockFunction = getJestMockFunction();
 const createOrUpdateMock: MockFunction = getJestMockFunction();
 const recordedCards: Array<Record<string, unknown>> = [];
+
+/*
+ * The picker asks one route for every kind (POST /affected-resources/search).
+ * It is answered from this suite's getList store, kind by kind, as the
+ * server reads each kind (AffectedResourceSearchFake).
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/AffectedResources/AffectedResourceSearchApi",
+  () => {
+    return {
+      __esModule: true,
+      searchAffectedResources: (query: unknown): Promise<unknown> => {
+        return searchThroughGetList((args: unknown) => {
+          return getListMock(args) as never;
+        })(query as never);
+      },
+    };
+  },
+);
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {

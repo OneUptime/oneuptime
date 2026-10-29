@@ -17,6 +17,9 @@ import {
 import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseModel";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 import { applyTenantColumn, logUnknownColumns } from "./ModelArguments";
+import { linkAffectedResourcesFromSetting } from "./AffectedResourcesArgument";
+import { AFFECTED_RESOURCES_ARGUMENT_ID } from "../../../../../Types/Workflow/AffectedResourcesSetting";
+import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import logComponentError from "./LogComponentError";
 import { assertIdsAreResolved } from "./UnresolvedIdReference";
 
@@ -139,6 +142,28 @@ export default class CreateOneBaseModel<
         this.modelService.modelType,
       ) as TBaseModel;
 
+      // A Project Admin of the project, never root. See getStepProps.
+      const props: DatabaseCommonInteractionProps =
+        await this.getStepProps(options);
+
+      /*
+       * Create One Incident's and Create One Alert's Affected Resources: the
+       * names, addresses or IDs it holds, looked up as the step and added to
+       * the record's lists (AffectedResourcesArgument). A name that matches
+       * nothing is said in the run log; it never fails the step.
+       */
+      await linkAffectedResourcesFromSetting({
+        record: data,
+        tableName: this.modelService.getModel().tableName || undefined,
+        value: args[AFFECTED_RESOURCES_ARGUMENT_ID],
+        projectId: options.projectId,
+        props: props,
+        templateId: templateId,
+        log: (message: string): void => {
+          options.log(message);
+        },
+      });
+
       /*
        * Declared from the template by the record's own service, as the step
        * - it applies the template the way the server applies one anywhere,
@@ -148,13 +173,11 @@ export default class CreateOneBaseModel<
         ? await this.modelService.createFromTemplate({
             templateId: templateId,
             data: data,
-            // A Project Admin of the project, never root. See getStepProps.
-            props: await this.getStepProps(options),
+            props: props,
           })
         : ((await this.modelService.create({
             data: data,
-            // A Project Admin of the project, never root. See getStepProps.
-            props: await this.getStepProps(options),
+            props: props,
           })) as TBaseModel);
 
       return {

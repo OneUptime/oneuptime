@@ -65,6 +65,7 @@ import Host from "../../../Models/DatabaseModels/Host";
 import IoTFleet from "../../../Models/DatabaseModels/IoTFleet";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
+import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import NetworkSite from "../../../Models/DatabaseModels/NetworkSite";
 import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
@@ -386,6 +387,7 @@ describe("AffectedResourcesDisplay: category headings", () => {
     <AffectedResourcesDisplay
       monitors={[buildMonitor(1, "api.acme.com")]}
       hosts={[named(Host, id("c", 1), "web-01")]}
+      networkDevices={[named(NetworkDevice, id("b", 1), "WAN-RTR-01")]}
       kubernetesClusters={[
         named(KubernetesCluster, id("e", 1), "prod-eks-eu-west-1"),
       ]}
@@ -417,6 +419,8 @@ describe("AffectedResourcesDisplay: category headings", () => {
   const CATEGORIES: Array<[string, string, string]> = [
     ["Monitors", "bg-blue-50", "text-blue-600"],
     ["Hosts", "bg-emerald-50", "text-emerald-600"],
+    // Issue #5341: the routers and switches an incident is about.
+    ["Network Devices", "bg-yellow-50", "text-yellow-600"],
     ["Kubernetes Clusters", "bg-indigo-50", "text-indigo-600"],
     ["Docker Hosts", "bg-sky-50", "text-sky-600"],
     ["Podman Hosts", "bg-violet-50", "text-violet-600"],
@@ -535,8 +539,17 @@ describe("AffectedResourcesDisplay: category headings", () => {
   test("the resources are indented under the label, past the icon tile", () => {
     render(<AffectedResourcesDisplay monitors={MONITORS} columns={1} />);
 
-    // The tile is h-6 w-6 and the header row has gap-2: 24px + 8px = pl-8.
-    expect(screen.getByRole("list")).toHaveClass("pl-8");
+    /*
+     * The tile is h-6 w-6 and the header row has gap-2: 24px + 8px = 8.
+     * From the start of the line, so a right-to-left page lines the names
+     * up under the label too, not under the icon.
+     */
+    expect(screen.getByRole("list")).toHaveClass("ps-8");
+    expect(screen.getByRole("list")).not.toHaveClass("pl-8");
+    for (const item of screen.getAllByRole("listitem")) {
+      expect(item).toHaveClass("-ms-2");
+      expect(item).not.toHaveClass("-ml-2");
+    }
     expect(screen.getByRole("heading", { level: 3 }).parentElement).toHaveClass(
       "flex",
       "items-center",
@@ -744,11 +757,15 @@ describe("AffectedResourcesDisplay: rows", () => {
       .getByTitle(LONG_MONITOR_NAME)
       .closest("li")!;
 
-    // Pulled left by its own padding so the name lines up with the label...
-    expect(row).toHaveClass("-ml-2", "px-2");
-    // ...but not past the right edge, where the dividers and counts end.
+    /*
+     * Pulled toward the start by its own padding so the name lines up with
+     * the label (the left in English, the right in Persian)...
+     */
+    expect(row).toHaveClass("-ms-2", "px-2");
+    // ...but not past the far edge, where the dividers and counts end.
     expect(row).not.toHaveClass("-mx-2");
-    expect(row).not.toHaveClass("-mr-2");
+    expect(row).not.toHaveClass("-me-2");
+    expect(row).not.toHaveClass("-ml-2");
   });
 
   test("the old chevron is gone: the whole row says it is a link", () => {
@@ -853,9 +870,9 @@ describe("AffectedResourcesDisplay: Show more", () => {
       name: "Show 3 more",
     });
 
-    // ml-6 plus its own px-2 puts its text on the names' pl-8 line.
+    // ms-6 plus its own px-2 puts its text on the names' ps-8 line.
     expect(toggle).toHaveClass(
-      "ml-6",
+      "ms-6",
       "px-2",
       "inline-flex",
       "text-xs",
@@ -912,7 +929,7 @@ describe("AffectedResourcesDisplay: Show more", () => {
     );
     // Lined up with the names, and a div: the icon renders a <div> of its own.
     expect(note.tagName).toBe("DIV");
-    expect(note).toHaveClass("ml-8", "text-amber-700");
+    expect(note).toHaveClass("ms-8", "text-amber-700");
     // The count still covers every item.
     expect(
       screen.getByTestId("affected-resource-category-count"),
@@ -1138,6 +1155,102 @@ describe("AffectedResourcesDisplay databases", () => {
 
     expect(screen.queryByText("Databases")).toBeNull();
     expect(screen.queryByText("MySQL orders:3306")).toBeNull();
+    expect(headingNames()).toEqual(["Monitors 2"]);
+  });
+});
+
+/*
+ * Issue #5341: incidents and alerts hold network devices, so the card and
+ * the tables' cell list the routers and switches a record is about, each
+ * linking to its own page.
+ */
+describe("AffectedResourcesDisplay network devices", () => {
+  const ROUTER_ID: string = id("b", 9);
+
+  const buildDevice: (deviceId: string, name: string) => NetworkDevice = (
+    deviceId: string,
+    name: string,
+  ): NetworkDevice => {
+    return named(NetworkDevice, deviceId, name);
+  };
+
+  test("attached devices get their own section, right after the hosts", () => {
+    render(
+      <AffectedResourcesDisplay
+        monitors={MONITORS}
+        hosts={[named(Host, id("c", 1), "web-01")]}
+        networkDevices={[
+          buildDevice(ROUTER_ID, "WAN-RTR-01"),
+          buildDevice(id("b", 8), "core-sw-01"),
+        ]}
+      />,
+    );
+
+    expect(headingNames()).toEqual([
+      "Monitors 2",
+      "Hosts 1",
+      "Network Devices 2",
+    ]);
+
+    const grid: HTMLElement = screen.getByTestId("affected-resources-grid");
+    expect(within(grid).getByText("WAN-RTR-01")).toBeInTheDocument();
+    expect(within(grid).getByText("core-sw-01")).toBeInTheDocument();
+  });
+
+  test("a device links to its own page", () => {
+    render(
+      <AffectedResourcesDisplay
+        networkDevices={[buildDevice(ROUTER_ID, "WAN-RTR-01")]}
+      />,
+    );
+
+    const link: HTMLElement | null = screen
+      .getByText("WAN-RTR-01")
+      .closest("a");
+    expect(link).not.toBeNull();
+    expect(link!.getAttribute("href")).toContain(
+      `/network-devices/${ROUTER_ID}`,
+    );
+  });
+
+  test("devices alone are not the empty state", () => {
+    render(
+      <AffectedResourcesDisplay
+        networkDevices={[buildDevice(ROUTER_ID, "WAN-RTR-01")]}
+        emptyMessage="Nothing hit."
+      />,
+    );
+
+    expect(screen.queryByText("Nothing hit.")).toBeNull();
+    expect(headingNames()).toEqual(["Network Devices 1"]);
+  });
+
+  test("the table cell lists a device beside the other resources, linking to its page", () => {
+    render(
+      <AffectedResourcesCell
+        services={SERVICES}
+        networkDevices={[buildDevice(ROUTER_ID, "WAN-RTR-01")]}
+      />,
+    );
+
+    expect(screen.getByText("checkout-api")).toBeInTheDocument();
+    const device: HTMLElement = screen.getByText("WAN-RTR-01");
+    expect(device.closest("a")!.getAttribute("href")).toContain(
+      `/network-devices/${ROUTER_ID}`,
+    );
+  });
+
+  test("hideNetworkDevices drops the section", () => {
+    render(
+      <AffectedResourcesDisplay
+        monitors={MONITORS}
+        networkDevices={[buildDevice(ROUTER_ID, "WAN-RTR-01")]}
+        hideNetworkDevices={true}
+      />,
+    );
+
+    expect(screen.queryByText("Network Devices")).toBeNull();
+    expect(screen.queryByText("WAN-RTR-01")).toBeNull();
     expect(headingNames()).toEqual(["Monitors 2"]);
   });
 });

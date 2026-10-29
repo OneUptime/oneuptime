@@ -9,6 +9,7 @@ import AffectedResourceLinks, {
 import { ToolContext } from "../../../../Server/Utils/AI/Toolbox/ToolTypes";
 import HostService from "../../../../Server/Services/HostService";
 import KubernetesClusterService from "../../../../Server/Services/KubernetesClusterService";
+import NetworkDeviceService from "../../../../Server/Services/NetworkDeviceService";
 import ServiceService from "../../../../Server/Services/ServiceService";
 import StorageArrayService from "../../../../Server/Services/StorageArrayService";
 import Alert from "../../../../Models/DatabaseModels/Alert";
@@ -16,6 +17,7 @@ import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/Datab
 import Host from "../../../../Models/DatabaseModels/Host";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import KubernetesCluster from "../../../../Models/DatabaseModels/KubernetesCluster";
+import NetworkDevice from "../../../../Models/DatabaseModels/NetworkDevice";
 import Service from "../../../../Models/DatabaseModels/Service";
 import StorageArray from "../../../../Models/DatabaseModels/StorageArray";
 import AIChatPageContextType, {
@@ -56,6 +58,7 @@ const OTHER_HOST_ID: string = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbc";
 const CLUSTER_ID: string = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 const SERVICE_ID: string = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
 const HELD_HOST_ID: string = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
+const ROUTER_ID: string = "ffffffff-ffff-4fff-8fff-ffffffffffff";
 
 const HOST_PAGE: AIChatPageContext = {
   type: AIChatPageContextType.Resource,
@@ -117,6 +120,31 @@ describe("which resources a call asks to link", () => {
 
     expect(requested).toEqual({
       refs: [{ kind: AiAffectedResourceKind.Host, id: HOST_ID }],
+      problems: [],
+      isFromPage: true,
+      isNamedByCall: false,
+    });
+  });
+
+  /*
+   * Issue #5341: a router's page used to be about nothing an incident could
+   * hold, so an incident Ask AI declared there linked nothing.
+   */
+  test("declared from a network device's page without naming any: that device", () => {
+    const requested: RequestedAffectedResources =
+      AffectedResourceLinks.getRequested({
+        args: { title: "BGP session down" },
+        ctx: context({
+          type: AIChatPageContextType.Resource,
+          resourceType: AIResourceType.NetworkDevice,
+          entityId: ROUTER_ID,
+          entityTitle: "WAN-RTR-01",
+        }),
+        defaultsToPage: true,
+      });
+
+    expect(requested).toEqual({
+      refs: [{ kind: AiAffectedResourceKind.NetworkDevice, id: ROUTER_ID }],
       problems: [],
       isFromPage: true,
       isNamedByCall: false,
@@ -319,6 +347,36 @@ describe("which of them are linked: each read as the person, in the project", ()
     });
   });
 
+  test("a network device is read through its own service, as the person, in the project", async () => {
+    const ctx: ToolContext = context();
+    const devices: jest.SpyInstance = jest
+      .spyOn(NetworkDeviceService, "findBy")
+      .mockResolvedValue([
+        row(NetworkDevice, ROUTER_ID, "WAN-RTR-01"),
+      ] as never);
+
+    const result: {
+      linked: Array<LinkedAffectedResource>;
+      notLinked: Array<string>;
+    } = await AffectedResourceLinks.resolve({
+      refs: [{ kind: AiAffectedResourceKind.NetworkDevice, id: ROUTER_ID }],
+      ctx,
+    });
+
+    const read: { query: JSONObject; props: unknown } = devices.mock
+      .calls[0]![0] as { query: JSONObject; props: unknown };
+
+    expect(read.props).toBe(ctx.props);
+    expect(read.query["projectId"]).toBe(PROJECT_ID);
+    expect(idsInQuery(read.query)).toEqual([ROUTER_ID]);
+    expect(result).toEqual({
+      linked: [
+        linked(AiAffectedResourceKind.NetworkDevice, ROUTER_ID, "WAN-RTR-01"),
+      ],
+      notLinked: [],
+    });
+  });
+
   test("a kind no ID was asked for is never read", async () => {
     const hosts: jest.SpyInstance = jest
       .spyOn(HostService, "findBy")
@@ -474,6 +532,18 @@ describe("the lists written", () => {
     expect(incident.dockerHosts).toBeUndefined();
     expect(incident.services).toBeUndefined();
     expect(incident.monitors).toBeUndefined();
+  });
+
+  test("a network device goes in the record's network devices list", () => {
+    for (const record of [new Incident(), new Alert()]) {
+      AffectedResourceLinks.setOnRecord(record, [
+        linked(AiAffectedResourceKind.NetworkDevice, ROUTER_ID, "WAN-RTR-01"),
+      ]);
+
+      expect(record.networkDevices![0]).toBeInstanceOf(NetworkDevice);
+      expect(record.networkDevices![0]!.id!.toString()).toBe(ROUTER_ID);
+      expect(record.hosts).toBeUndefined();
+    }
   });
 
   test("an alert takes the same lists", () => {
@@ -665,6 +735,22 @@ describe("the words", () => {
         linked(AiAffectedResourceKind.DatabaseServer, CLUSTER_ID, "pg-main"),
       ]),
     ).toBe('host "test01", database server "pg-main"');
+  });
+
+  test("a network device is named by its kind and its name", () => {
+    expect(
+      describeLinkedResource(
+        linked(AiAffectedResourceKind.NetworkDevice, ROUTER_ID, "WAN-RTR-01"),
+      ),
+    ).toBe('network device "WAN-RTR-01"');
+  });
+
+  test("a network device is linked, never fixed: no agent runs on a router", () => {
+    expect(
+      AffectedResourceLinks.hasFixableResource([
+        linked(AiAffectedResourceKind.NetworkDevice, ROUTER_ID, "WAN-RTR-01"),
+      ]),
+    ).toBe(false);
   });
 
   test("a fix acts on clusters and resources with an AI agent, not on services", () => {

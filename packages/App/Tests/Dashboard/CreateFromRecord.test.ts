@@ -57,6 +57,8 @@ const ALL_CREATED: Array<CreatedRecordKind> = Object.values(
 const INCIDENT_AND_ALERT_RESOURCES: Array<CreateFromRecordKind> = [
   CreateFromRecordKind.Monitor,
   CreateFromRecordKind.Host,
+  // Issue #5341: declared from a router's page, the router comes picked.
+  CreateFromRecordKind.NetworkDevice,
   CreateFromRecordKind.KubernetesCluster,
   CreateFromRecordKind.DockerHost,
   CreateFromRecordKind.PodmanHost,

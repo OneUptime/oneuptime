@@ -59,6 +59,7 @@ import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Service from "Common/Models/DatabaseModels/Service";
@@ -1384,7 +1385,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 field: { hosts: true },
                 title: "Other Affected Resources",
                 description:
-                  "Search and attach hosts, clusters, container hosts, databases, or services affected by this alert.",
+                  "Search and attach the hosts, network devices, clusters, databases, cloud resources or services this alert affects.",
                 fieldType: FormFieldSchemaType.CustomComponent,
                 required: false,
                 getCustomElement: (
@@ -1394,6 +1395,9 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   return (
                     <AffectedResourcesPicker
                       hosts={values.hosts as Array<Host>}
+                      networkDevices={
+                        values.networkDevices as Array<NetworkDevice>
+                      }
                       kubernetesClusters={
                         values.kubernetesClusters as Array<KubernetesCluster>
                       }
@@ -1422,6 +1426,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       services={values.services as Array<Service>}
                       resourceTypes={[
                         "Host",
+                        "NetworkDevice",
                         "KubernetesCluster",
                         "DockerHost",
                         "PodmanHost",
@@ -1435,6 +1440,8 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         "CloudResource",
                         "Service",
                       ]}
+                      monitorFieldTitle="Monitor"
+                      ariaLabelledby={elementProps.ariaLabelledby}
                       onChange={(payload: unknown) => {
                         elementProps.onChange?.(payload);
                       }}
@@ -1452,6 +1459,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       setNewFormValues({
                         ...currentValues,
                         hosts: payload.hosts,
+                        networkDevices: payload.networkDevices,
                         kubernetesClusters: payload.kubernetesClusters,
                         dockerHosts: payload.dockerHosts,
                         podmanHosts: payload.podmanHosts,
@@ -1473,6 +1481,15 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                * Hidden registrations so ModelForm.getSelectFields includes
                * kubernetesClusters/dockerHosts/services.
                */
+              {
+                field: { networkDevices: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
               {
                 field: { kubernetesClusters: true },
                 title: "",
@@ -1604,6 +1621,10 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       name: true,
                       _id: true,
                     },
+                    networkDevices: {
+                      name: true,
+                      _id: true,
+                    },
                     kubernetesClusters: {
                       name: true,
                       _id: true,
@@ -1671,6 +1692,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       <AffectedResourcesDisplay
                         monitors={item.monitor ? [item.monitor] : []}
                         hosts={item.hosts || []}
+                        networkDevices={item.networkDevices || []}
                         kubernetesClusters={item.kubernetesClusters || []}
                         dockerHosts={item.dockerHosts || []}
                         podmanHosts={item.podmanHosts || []}
