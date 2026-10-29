@@ -35,7 +35,8 @@ export const DATA_SECURITY_ISSUE_MENU: Array<IssueViewMenuSection> = [
       {
         page: PageMap.DATA_SECURITY_ISSUE_VIEW_TIMELINE,
         title: "Timeline",
-        icon: IconProp.Timeline,
+        // A feed of what happened, drawn as every product's Feed is.
+        icon: IconProp.List,
       },
     ],
   },

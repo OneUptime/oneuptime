@@ -889,7 +889,9 @@ export const DataSecurityRoutePath: Dictionary<string> = {
   [PageMap.DATA_SECURITY_SETTINGS_RESIDENCY]: "settings/residency",
   [PageMap.DATA_SECURITY_SETTINGS_SCANNING]: "settings/scanning",
   [PageMap.DATA_SECURITY_SETTINGS_OWNER_RULES]: "settings/owner-rules",
+  [PageMap.DATA_SECURITY_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
   [PageMap.DATA_SECURITY_SETTINGS_LABEL_RULES]: "settings/label-rules",
+  [PageMap.DATA_SECURITY_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.DATA_SECURITY_DOCUMENTATION]: "documentation",
 };
 
@@ -7423,9 +7425,21 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.DATA_SECURITY_SETTINGS_OWNER_RULE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_SETTINGS_OWNER_RULE_VIEW]
+    }`,
+  ),
+
   [PageMap.DATA_SECURITY_SETTINGS_LABEL_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-security/${
       DataSecurityRoutePath[PageMap.DATA_SECURITY_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_SETTINGS_LABEL_RULE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_SETTINGS_LABEL_RULE_VIEW]
     }`,
   ),
 

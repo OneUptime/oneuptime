@@ -75,7 +75,7 @@ import CardGrid from "Common/UI/Components/Card/CardGrid";
 import CardMoreMenu from "Common/UI/Components/Card/CardMoreMenu";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
-import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
+import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import API from "Common/UI/Utils/API/API";

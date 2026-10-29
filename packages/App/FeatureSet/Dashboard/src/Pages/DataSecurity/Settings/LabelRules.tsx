@@ -5,6 +5,7 @@ import {
   getLabelRuleActionFields,
   getLabelRuleFormSteps,
 } from "../../../Utils/Form/ResourceRuleForm";
+import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import LabelRuleTable from "Common/UI/Components/LabelRule/LabelRuleTable";
@@ -33,6 +34,12 @@ const DataStoreLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
       listRoute={RuleViewPageUtil.getListRoute(
         PageMap.DATA_SECURITY_SETTINGS_LABEL_RULES,
       )}
+      getRuleViewRoute={(rule: DataStoreLabelRule): Route => {
+        return RuleViewPageUtil.getRuleViewRoute(
+          PageMap.DATA_SECURITY_SETTINGS_LABEL_RULE_VIEW,
+          rule,
+        );
+      }}
       id="data-store-label-rules-table"
       name="Settings > Data Store Label Rules"
       userPreferencesKey="data-store-label-rules-table"

@@ -924,6 +924,11 @@ const azureStorageAccountKeyDetector: DataTypeDetector = {
  * (sv=2022-11-02), the token's other fields, and a signature (sig=) that is
  * an HMAC-SHA256 - 32 bytes - in URL-encoded base64. The whole query is the
  * value; sig is always written last.
+ *
+ * Bounded on text anyone may write: the fields between sv= and &sig= are at
+ * most 400 characters, so a run of sv=...&sig= without a signature is read
+ * in time in line with the text, the scanner's 4 MiB window too
+ * (SecretDetectorPatternTiming.test.ts).
  */
 const AZURE_SAS_TOKEN_PATTERN: RegExp =
   /(?<![A-Za-z0-9_])sv=20[1-9][0-9]-[01][0-9]-[0-3][0-9][A-Za-z0-9%&=:._~-]{0,400}?&sig=[A-Za-z0-9%+/]{30,128}={0,2}(?![A-Za-z0-9%+/=])/g;
@@ -1784,6 +1789,11 @@ const passwordInUrlDetector: DataTypeDetector = {
  * ("config.password = options.password;") is no connection string. The
  * value may be bare, in quotes or in ODBC's braces ({...}). Medium alone,
  * High next to the string's other keys (Server=, Database=, User Id=).
+ *
+ * Bounded on text anyone may write: the look ahead reads at most 160
+ * characters to the next ";" and the value at most 128, so a run of
+ * Pwd='= is read in time in line with the text
+ * (SecretDetectorPatternTiming.test.ts).
  */
 const CONNECTION_STRING_PASSWORD_PATTERN: RegExp =
   /(?<![A-Za-z0-9_.$>-])(?:password|pwd)(?:(?<=;[ \t]{0,4}(?:password|pwd))|(?=[ \t]{0,2}=[^;\r\n]{1,160};[ \t]{0,4}[A-Za-z][A-Za-z0-9 _.-]{0,40}=))[ \t]{0,2}=[ \t]{0,2}(\{[^}\r\n]{1,128}\}|"[^"\r\n]{1,128}"|'[^'\r\n]{1,128}'|[^\s;"'{}][^\s;"']{0,127})(?![^\s;"'])/gi;
@@ -1965,6 +1975,10 @@ const authorizationBearerDetector: DataTypeDetector = {
  * Medium on its own: the key's name is all the context it has, and it
  * says "a secret" without saying whose. A provider's key assigned this way
  * is also found, at High, by its own detector, which wins.
+ *
+ * Bounded on text anyone may write: the name before the key word is at most
+ * 32 characters, so a run like Y-Y-Y- (a start at every letter) is read in
+ * time in line with the text (SecretDetectorPatternTiming.test.ts).
  */
 const GENERIC_SECRET_PATTERN: RegExp =
   /(?<![A-Za-z0-9])[A-Za-z0-9_.-]{0,32}?(?:pass(?:word|wd|phrase)|pwd|secret|api[_.-]?key|(?:access|auth|refresh|private)[_.-]?token)(?:[_.-](?:key|token|value|string|[0-9])|key|token|value|[0-9])?\\?["']?[ \t]{0,4}(?:=>|:=|=|:)[ \t]{0,4}\\?["']?([!#$%*+./0-9:=?@A-Z^_a-z|~-]{8,128})(?![!#$%*+./0-9:=?@A-Z^_a-z|~([\u00a0-\uffff-]|[ \t]{1,4}=)/gi;

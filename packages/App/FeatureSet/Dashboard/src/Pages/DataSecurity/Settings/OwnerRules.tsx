@@ -5,6 +5,7 @@ import {
   getOwnerRuleActionFields,
   getOwnerRuleFormSteps,
 } from "../../../Utils/Form/ResourceRuleForm";
+import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import RuleTable from "Common/UI/Components/RuleRun/RuleTable";
@@ -33,6 +34,12 @@ const DataStoreOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
       listRoute={RuleViewPageUtil.getListRoute(
         PageMap.DATA_SECURITY_SETTINGS_OWNER_RULES,
       )}
+      getRuleViewRoute={(rule: DataStoreOwnerRule): Route => {
+        return RuleViewPageUtil.getRuleViewRoute(
+          PageMap.DATA_SECURITY_SETTINGS_OWNER_RULE_VIEW,
+          rule,
+        );
+      }}
       id="data-store-owner-rules-table"
       name="Settings > Data Store Owner Rules"
       userPreferencesKey="data-store-owner-rules-table"

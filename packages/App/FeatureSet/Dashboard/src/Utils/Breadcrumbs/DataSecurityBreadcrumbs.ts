@@ -198,8 +198,16 @@ export function getDataSecurityBreadcrumbs(
       ["Project", "Data Security", "Settings", "Owner Rules"],
     ),
     ...BuildBreadcrumbLinksByTitles(
+      PageMap.DATA_SECURITY_SETTINGS_OWNER_RULE_VIEW,
+      ["Project", "Data Security", "Settings", "Owner Rules", "View Rule"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
       PageMap.DATA_SECURITY_SETTINGS_LABEL_RULES,
       ["Project", "Data Security", "Settings", "Label Rules"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.DATA_SECURITY_SETTINGS_LABEL_RULE_VIEW,
+      ["Project", "Data Security", "Settings", "Label Rules", "View Rule"],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.DATA_SECURITY_DOCUMENTATION, [
       "Project",

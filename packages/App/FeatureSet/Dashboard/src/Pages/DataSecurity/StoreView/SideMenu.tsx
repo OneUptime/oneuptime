@@ -92,7 +92,7 @@ const DataStoreViewSideMenu: FunctionComponent<ComponentProps> = (
             title: "Timeline",
             to: routeOf(PageMap.DATA_SECURITY_STORE_VIEW_TIMELINE),
           }}
-          icon={IconProp.Timeline}
+          icon={IconProp.List}
         />
       </SideMenuSection>
 

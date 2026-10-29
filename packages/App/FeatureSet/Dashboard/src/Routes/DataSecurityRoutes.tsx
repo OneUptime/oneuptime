@@ -4,6 +4,8 @@ import DataStoreViewLayout from "../Pages/DataSecurity/StoreView/Layout";
 import DataSecurityIssueViewLayout from "../Pages/DataSecurity/IssueView/Layout";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { DataSecurityRoutePath, RouteUtil } from "../Utils/RouteMap";
+import DataStoreLabelRule from "Common/Models/DatabaseModels/DataStoreLabelRule";
+import DataStoreOwnerRule from "Common/Models/DatabaseModels/DataStoreOwnerRule";
 import Route from "Common/Types/API/Route";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Route as PageRoute, Routes } from "react-router-dom";
@@ -232,6 +234,24 @@ const DataSecurityRoutes: FunctionComponent<ComponentProps> = (
         />
         <PageRoute
           path={
+            DataSecurityRoutePath[
+              PageMap.DATA_SECURITY_SETTINGS_OWNER_RULE_VIEW
+            ] || ""
+          }
+          element={
+            <DataSecurityOwnerRulesPage
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.DATA_SECURITY_SETTINGS_OWNER_RULE_VIEW
+                ] as Route
+              }
+              ruleViewModelType={DataStoreOwnerRule}
+            />
+          }
+        />
+        <PageRoute
+          path={
             DataSecurityRoutePath[PageMap.DATA_SECURITY_SETTINGS_LABEL_RULES] ||
             ""
           }
@@ -241,6 +261,24 @@ const DataSecurityRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.DATA_SECURITY_SETTINGS_LABEL_RULES] as Route
               }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            DataSecurityRoutePath[
+              PageMap.DATA_SECURITY_SETTINGS_LABEL_RULE_VIEW
+            ] || ""
+          }
+          element={
+            <DataSecurityLabelRulesPage
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.DATA_SECURITY_SETTINGS_LABEL_RULE_VIEW
+                ] as Route
+              }
+              ruleViewModelType={DataStoreLabelRule}
             />
           }
         />
