@@ -1,4 +1,4 @@
-import { AddNetworkDevicesToIncidentsAndAlerts1808310000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808310000000-AddNetworkDevicesToIncidentsAndAlerts";
+import { AddNetworkDevicesToIncidentsAndAlerts1808320000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808320000000-AddNetworkDevicesToIncidentsAndAlerts";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -41,7 +41,7 @@ async function record(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
   const migration: MigrationInterface =
-    new AddNetworkDevicesToIncidentsAndAlerts1808310000000();
+    new AddNetworkDevicesToIncidentsAndAlerts1808320000000();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -52,7 +52,7 @@ async function record(direction: "up" | "down"): Promise<Array<string>> {
   return steps;
 }
 
-describe("AddNetworkDevicesToIncidentsAndAlerts1808310000000", () => {
+describe("AddNetworkDevicesToIncidentsAndAlerts1808320000000", () => {
   test("is registered last, after the migration it was numbered to follow", () => {
     const names: Array<string> = SchemaMigrations.map(
       (migration: { name: string }): string => {
@@ -61,15 +61,15 @@ describe("AddNetworkDevicesToIncidentsAndAlerts1808310000000", () => {
     );
 
     expect(names).toContain(
-      "AddNetworkDevicesToIncidentsAndAlerts1808310000000",
+      "AddNetworkDevicesToIncidentsAndAlerts1808320000000",
     );
     expect(
-      names.indexOf("AddNetworkDeviceRefreshRequestedAt1808300000000"),
+      names.indexOf("AddSecurityWatchlists1808310000000"),
     ).toBe(
-      names.indexOf("AddNetworkDevicesToIncidentsAndAlerts1808310000000") - 1,
+      names.indexOf("AddNetworkDevicesToIncidentsAndAlerts1808320000000") - 1,
     );
-    expect(new AddNetworkDevicesToIncidentsAndAlerts1808310000000().name).toBe(
-      "AddNetworkDevicesToIncidentsAndAlerts1808310000000",
+    expect(new AddNetworkDevicesToIncidentsAndAlerts1808320000000().name).toBe(
+      "AddNetworkDevicesToIncidentsAndAlerts1808320000000",
     );
   });
 

@@ -218,7 +218,8 @@ import { AddSecurityCaseResponseTargetsTasksAndEvidence1808240000000 } from "./1
 import { AddSecurityCaseNextTargetCheckIndex1808250000000 } from "./1808250000000-AddSecurityCaseNextTargetCheckIndex";
 import { AddNetworkAddressNames1808260000000 } from "./1808260000000-AddNetworkAddressNames";
 import { AddNetworkDeviceRefreshRequestedAt1808300000000 } from "./1808300000000-AddNetworkDeviceRefreshRequestedAt";
-import { AddNetworkDevicesToIncidentsAndAlerts1808310000000 } from "./1808310000000-AddNetworkDevicesToIncidentsAndAlerts";
+import { AddSecurityWatchlists1808310000000 } from "./1808310000000-AddSecurityWatchlists";
+import { AddNetworkDevicesToIncidentsAndAlerts1808320000000 } from "./1808320000000-AddNetworkDevicesToIncidentsAndAlerts";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1639,5 +1640,6 @@ export default [
   AddSecurityCaseNextTargetCheckIndex1808250000000,
   AddNetworkAddressNames1808260000000,
   AddNetworkDeviceRefreshRequestedAt1808300000000,
-  AddNetworkDevicesToIncidentsAndAlerts1808310000000,
+  AddSecurityWatchlists1808310000000,
+  AddNetworkDevicesToIncidentsAndAlerts1808320000000,
 ];

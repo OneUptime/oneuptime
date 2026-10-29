@@ -41,6 +41,7 @@ Apri **Prodotti → Security Events**, sotto **Osservabilità**. Il suo menu ha 
 | **Correla** | Eventi | Un grafo degli eventi che condividono un host, un utente o un indirizzo IP |
 | **Regole di rilevamento** | Detections | Regole Sigma che girano secondo una pianificazione e aprono casi |
 | **Eccezioni delle regole** | Detections | Ciò che le tue regole saltano di proposito, come uno scanner o un test pianificato, ognuno con chi l'ha aggiunto e perché |
+| **Elenchi di controllo** | Detections | Gli elenchi con cui le tue regole confrontano gli eventi, come utenti VIP, host critici, hash di file malevoli noti e gli indirizzi da cui gli amministratori possono accedere |
 | **Libreria di regole** | Detections | Regole di rilevamento pronte da aggiungere, ognuna con gli eventi che legge e se arrivano, con quelle consigliate segnalate |
 | **Threat Intel** | Detections | Feed STIX/TAXII di indicatori malevoli noti |
 | **Copertura ATT&CK** | Detections | Le tecniche MITRE ATT&CK coperte dalle tue regole |
@@ -300,7 +301,7 @@ OneUptime esegue il nucleo booleano di Sigma:
 
 - Le selezioni sono mappe di campi (ogni campo deve corrispondere; una lista di valori corrisponde a uno qualsiasi) o liste di parole chiave, che corrispondono in qualsiasi punto del messaggio.
 - Le condizioni combinano le selezioni con `and`, `or`, `not` e parentesi, oppure con `1 of selection_*`, `all of selection_*`, `any of them` e `all of them`.
-- Modificatori di campo: `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists` e `windash`. Il testo si confronta senza distinguere maiuscole e minuscole, a meno che tu non aggiunga `cased`.
+- Modificatori di campo: `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists`, `windash` e `expand`, che legge un [elenco di controllo](#elenchi-di-controllo). Il testo si confronta senza distinguere maiuscole e minuscole, a meno che tu non aggiunga `cased`.
 - Un campo è un campo tipizzato (`principalUser`), una grafia Sigma comune di uno di essi (`CommandLine`, `src_ip`, `Hostname`) o qualsiasi chiave di attributo, scritta come nell'evento (`threat.matched`).
 - `Image` e `CommandLine` leggono il processo di cui parla l'evento, quello avviato nell'avvio di un processo (`processPath`, `processCommandLine`), e `ParentImage` e `ParentCommandLine` il processo che lo ha avviato (`parentProcessPath`, `parentProcessCommandLine`). `principalProcess` è il processo che ha agito, che in un avvio è il processo padre.
 - `level` imposta la gravità: `informational`, `low`, `medium`, `high` o `critical`, e `medium` se manca. Gli ID ATT&CK in `tags` (`attack.t1110`, `attack.ta0006`) compilano i campi MITRE della risultanza.
@@ -436,6 +437,32 @@ Un'eccezione è qualcosa che una regola salta perché te lo aspetti, come uno sc
 - Gli eventi saltati vengono tolti prima che la regola conti qualcosa, quindi non contano mai per la sua **Soglia di corrispondenze** e non aprono casi, avvisi, incidenti né risultanze. Le eccezioni valgono per ogni esecuzione della regola, correlazioni comprese, e per **Esegui su eventi passati**, ma mai per un attacco di prova, che verifica che gli eventi arrivino.
 - Una regola ha al massimo 100 eccezioni. Chi può modificare le regole di rilevamento le aggiunge, le cambia e le rimuove, ogni ruolo Security può leggerle, e ogni modifica resta nel registro di audit del progetto.
 
+### Elenchi di controllo
+
+Un elenco di controllo è un elenco che il tuo team gestisce una volta sola e che ogni regola può leggere, come utenti VIP, host critici, hash di file malevoli noti o gli indirizzi da cui gli amministratori possono accedere. Ogni elenco si trova in **Prodotti → Security Events → Rilevamenti → Elenchi di controllo**: creane uno lì con **Crea: Elenco di controllo**, che chiede il suo nome e cosa contiene, oppure aggiungine uno comune da **Inizia con un elenco comune**. La pagina di un elenco mostra i suoi valori, e **Usalo in una regola** dà una selezione che legge l'elenco, da copiare in una regola.
+
+Una regola legge un elenco con `expand` e il nome dell'elenco tra due segni `%`. Questa regola scatta quando un amministratore accede da un indirizzo che non è nell'elenco consentito:
+
+```yaml title="admin-sign-in-from-outside.yml"
+title: Admin sign-in from outside the allowed addresses
+detection:
+  admin_sign_in:
+    className: Authentication
+    principalUser|expand: '%admins%'
+  allowed:
+    principalIp|expand: '%admin_addresses%'
+  condition: admin_sign_in and not allowed
+level: high
+```
+
+- Un elenco contiene utenti, host, indirizzi IP, hash di file, domini, URL, processi o altri valori, scelti alla sua creazione. Un valore corrisponde senza badare a maiuscole e minuscole, e `*` sta per qualunque sequenza di caratteri: `svc-*` corrisponde a ogni account di servizio. Un elenco di indirizzi IP accetta anche intervalli, come `10.20.0.0/16`, e un elenco di hash di file accetta hash MD5, SHA-1, SHA-256 e SHA-512.
+- Aggiungi i valori uno alla volta con **Aggiungi: Valore**, o molti insieme con **Importa valori**: incollali, oppure scegli un file `.txt` o `.csv`, un valore per riga, con una nota facoltativa dopo una virgola. **Aggiungi all'elenco** tiene i valori già presenti, e **Sostituisci l'elenco** rimuove quelli che l'importazione non contiene.
+- Invece di gestire valori, un elenco di indirizzi IP, hash di file, domini o URL può seguire un feed di threat intel: i suoi valori sono allora gli indicatori attivi del feed del tipo dell'elenco, aggiornati man mano che il feed viene letto.
+- `expand` si usa da solo, perché sono i valori dell'elenco a dire come corrispondono. Un campo che contiene più valori, come `observables`, corrisponde quando uno di essi è nell'elenco. **Letto da** nomina le regole che leggono ogni elenco, e sotto lo YAML di una regola il suo modulo nomina gli elenchi che la regola legge.
+- Una regola nomina un elenco senza badare a maiuscole e minuscole. Una regola che nomina un elenco che il progetto non ha viene rifiutata al salvataggio, e un elenco letto da regole non può essere rinominato né eliminato finché una regola lo legge.
+- Una modifica a un elenco raggiunge ogni regola che lo legge alla prossima esecuzione della regola. Anche le regole di correlazione e **Esegui su eventi passati** leggono gli elenchi.
+- Un elenco contiene al massimo 5.000 valori, di cui al massimo 100 con `*` e 100 intervalli, e un progetto ha al massimo 200 elenchi: per un elenco più lungo, segui un feed di threat intel. Chi può creare, modificare o eliminare le regole di rilevamento può fare lo stesso con gli elenchi, e chi può modificare le regole di rilevamento aggiunge, cambia e rimuove i loro valori. Ogni ruolo Security può leggerli, e ogni modifica resta nel registro di audit del progetto.
+
 ### Esegui su eventi passati
 
 **Esegui su eventi passati** mostra cosa avrebbe trovato una regola se fosse stata in esecuzione, senza aprire, inviare o scrivere nulla. Si trova nella riga di una regola, per la regola così come è salvata, e sotto **Regola Sigma (YAML)** nel modulo della regola, per la regola così come è lì, prima che tu la salvi. Scegli **Ultime 24 ore**, **Ultimi 7 giorni** o **Ultimi 30 giorni**.
@@ -504,6 +531,14 @@ Aggiungi un'eccezione invece di spegnere la regola: **Aggiungi eccezione** nella
 
 :::details Un'eccezione non salta ciò che dovrebbe
 Controlla il suo **Stato** in **Eccezioni delle regole**: un'eccezione nello stato **Scaduto** non salta nulla, e una finestra temporale salta solo gli eventi tra i suoi due orari. Un'entità viene cercata come chi ha agito, come chi ha subito l'azione e tra gli `observables` dell'evento; per saltare un valore di un altro campo, aggiungi un'eccezione **Un valore** che nomini quel campo. Senza `*`, un valore deve essere uguale all'intero campo: `svc-*` salta `svc-backup`, e `svc-` no.
+:::
+
+:::details Una regola che legge un elenco di controllo non corrisponde
+Apri l'elenco e controlla i suoi valori: un valore senza `*` deve essere uguale all'intero campo, senza badare a maiuscole e minuscole, e un elenco che segue un feed di threat intel contiene solo gli indicatori attivi del feed del suo tipo. Controlla che la regola legga il campo che i tuoi eventi riempiono: **Usalo in una regola** parte dal campo in cui di solito si trova un elenco del suo tipo. Una modifica a un elenco raggiunge una regola alla sua prossima esecuzione.
+:::
+
+:::details Un elenco di controllo non si può rinominare né eliminare
+Alcune regole lo leggono ancora per nome, e il messaggio le nomina. Cambia il nome in quelle regole, o togli l'elenco da esse, poi rinominalo o eliminalo.
 :::
 
 :::details Eseguire una regola su eventi passati non trova nulla

@@ -358,6 +358,23 @@ export default class SecurityCaseApi {
     return parseDetectionRetrohuntResult(body);
   }
 
+  /*
+   * Values from a file or a paste put on a watchlist the team keeps (POST
+   * /security-watchlist/import): added to what it holds, or replacing it.
+   * Answers what it did - the counts, and the lines it left out.
+   */
+  public static async importWatchlistValues(data: {
+    watchlistId: ObjectID;
+    text: string;
+    mode: string;
+  }): Promise<JSONObject> {
+    return await post("/security-watchlist/import", {
+      securityWatchlistId: data.watchlistId.toString(),
+      text: data.text,
+      mode: data.mode,
+    });
+  }
+
   // Releases one target a containment step contained, with the step's undo.
   public static async undoTarget(data: {
     runId: ObjectID;

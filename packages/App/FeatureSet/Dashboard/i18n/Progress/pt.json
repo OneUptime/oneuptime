@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 36812,
+    "keys": 36929,
     "untranslated": 13357
   },
   "sameAsEnglish": [
@@ -123,6 +123,7 @@
     "Tokens",
     "Total",
     "Total:",
+    "URLs",
     "UTC",
     "Uplinks",
     "VLAN",

@@ -69,6 +69,9 @@
  *            rule that would not have fired, one that would have fired more
  *            than a person can look at, or YAML the run refuses.
  *            (RuleExceptionsFixture.js lays the rules' exceptions out.)
+ *   Watchlists are laid out by WatchlistsFixture.js: four lists, one
+ *            following a feed and one with no values yet, a rule (off) that
+ *            reads two of them, and Import Values' answers.
  *   ?targets= on: the priorities carry a new project's response targets,
  *            and every case the due times they gave it. Left out, a project
  *            from before response targets. (CaseWorkFixture.js lays the
@@ -111,6 +114,8 @@ import SecurityCaseDeletePage from "../../../App/FeatureSet/Dashboard/src/Pages/
 import RuleLibraryPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/RuleLibrary";
 import DetectionRulesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/DetectionRules";
 import SecurityRuleExceptionsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/RuleExceptions";
+import SecurityWatchlistsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Watchlists";
+import SecurityWatchlistViewPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/WatchlistView";
 import ThreatIntelPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/ThreatIntel";
 import AttackCoveragePage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/AttackCoverage";
 import SecurityPlaybooksPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Playbooks";
@@ -139,6 +144,7 @@ import {
 } from "./ConnectionsFixture";
 import { createCaseContextFixture } from "./CaseContextFixture";
 import { TARGET_SCENARIOS, createCaseWorkFixture } from "./CaseWorkFixture";
+import { createWatchlistsFixture } from "./WatchlistsFixture";
 import SecurityCaseEvidence from "Common/Models/DatabaseModels/SecurityCaseEvidence";
 import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
 import {
@@ -519,6 +525,8 @@ const ID = {
   exception: (n) => uuid("2c000000", n),
   task: (n) => uuid("2d000000", n),
   evidence: (n) => uuid("2e000000", n),
+  watchlist: (n) => uuid("2f000000", n),
+  watchlistValue: (n) => uuid("3a000000", n),
 };
 
 let rowCounter = 9000;
@@ -2136,6 +2144,22 @@ if (hasEveryFreeList) {
 }
 
 /*
+ * ---------------------------------------------------------------------------
+ * Watchlists: the lists the rules read, one of them following the Feodo
+ * Tracker list above (WatchlistsFixture.js lays them out)
+ * ---------------------------------------------------------------------------
+ */
+const watchlists = createWatchlistsFixture({
+  insert,
+  table,
+  ID,
+  ago,
+  people,
+  isEmpty,
+});
+watchlists.seed();
+
+/*
  * The indicators the feeds hold, as the ThreatIntelIndicator table lists
  * them (AnalyticsModelAPI below): newest first.
  */
@@ -2850,6 +2874,9 @@ function withRelations(modelName, record) {
   if (modelName === tableName(DetectionRuleException)) {
     return ruleExceptions.withRelations(record);
   }
+  if (watchlists.isWatchlistTable(modelName)) {
+    return watchlists.withRelations(modelName, record);
+  }
   if (caseWork.isCaseWorkTable(modelName)) {
     return caseWork.withRelations(modelName, record);
   }
@@ -2988,7 +3015,9 @@ ModelAPI.createOrUpdate = async (options) => {
     record.createdByUserId = people.maya._id;
   }
   caseWork.onCreate(modelName, record);
+  watchlists.onCreate(modelName, record);
   tables.get(modelName)?.records.push(record);
+  watchlists.afterWrite(modelName);
   return new HTTPResponse(
     200,
     BaseModel.toJSON(make(options.modelType, record), options.modelType),
@@ -3031,7 +3060,8 @@ ModelAPI.deleteItem = async (options) => {
   fixture.deletes.push({ modelName, id: options.id?.toString() });
   if (
     isEntityRiskTable(options.modelType) ||
-    caseWork.isCaseWorkTable(modelName)
+    caseWork.isCaseWorkTable(modelName) ||
+    watchlists.isWatchlistTable(modelName)
   ) {
     const records = table(options.modelType);
     const index = records.findIndex((item) => {
@@ -3040,6 +3070,7 @@ ModelAPI.deleteItem = async (options) => {
     if (index >= 0) {
       records.splice(index, 1);
     }
+    watchlists.afterWrite(modelName);
   }
 };
 
@@ -3599,6 +3630,12 @@ async function handleApi(method, options) {
   if (method === "POST" && path.endsWith("/detection-rule/draft-with-ai")) {
     return draftRule(options.data);
   }
+  if (method === "POST" && path.endsWith("/security-watchlist/import")) {
+    const answer = watchlists.importValues(options.data);
+    return answer.status === 200
+      ? new HTTPResponse(200, answer.body, {})
+      : new HTTPErrorResponse(answer.status, answer.body, {});
+  }
   if (method === "POST" && path.endsWith("/detection-rule/retrohunt")) {
     const answer = ruleExceptions.retrohunt(options.data);
     return answer.status === 200
@@ -3731,6 +3768,8 @@ const PAGES = [
   [PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW, SecurityEntityRiskViewPage],
   [PageMap.SECURITY_EVENTS_DETECTION_RULES, DetectionRulesPage],
   [PageMap.SECURITY_EVENTS_RULE_EXCEPTIONS, SecurityRuleExceptionsPage],
+  [PageMap.SECURITY_EVENTS_WATCHLISTS, SecurityWatchlistsPage],
+  [PageMap.SECURITY_EVENTS_WATCHLIST_VIEW, SecurityWatchlistViewPage],
   [PageMap.SECURITY_EVENTS_RULE_LIBRARY, RuleLibraryPage],
   [PageMap.SECURITY_EVENTS_THREAT_INTEL, ThreatIntelPage],
   [PageMap.SECURITY_EVENTS_ATTACK_COVERAGE, AttackCoveragePage],

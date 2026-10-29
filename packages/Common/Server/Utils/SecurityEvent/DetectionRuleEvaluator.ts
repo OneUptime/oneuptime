@@ -93,6 +93,9 @@ import DetectionRuleExceptions, {
   buildDetectionRuleExceptionsFilter,
 } from "./DetectionRuleExceptions";
 import SecurityEntityRiskRecorder from "./EntityRisk/SecurityEntityRiskRecorder";
+import SecurityWatchlists, {
+  SecurityWatchlistReader,
+} from "./Watchlists/SecurityWatchlists";
 import { riskFindingsForRuleMatches } from "./EntityRisk/SecurityEntityRiskFindings";
 import {
   SecurityEntity,
@@ -308,6 +311,13 @@ export default class DetectionRuleEvaluator {
       now: OneUptimeDate.getCurrentDate(),
     });
 
+    /*
+     * The watchlists the turn's rules read, each read once for the turn
+     * however many rules name it (SecurityWatchlists).
+     */
+    const watchlists: SecurityWatchlistReader =
+      SecurityWatchlists.readerFor(projectId);
+
     for (const rule of dueRules) {
       if (!lease.hasTimeLeft()) {
         return;
@@ -316,6 +326,7 @@ export default class DetectionRuleEvaluator {
       await this.evaluateRuleRecordingFailure(
         rule,
         exceptionsByRule.get(rule.id?.toString() || "") || [],
+        watchlists,
       );
 
       if (!(await lease.keep())) {
@@ -328,9 +339,10 @@ export default class DetectionRuleEvaluator {
   private static async evaluateRuleRecordingFailure(
     rule: DetectionRule,
     exceptions: Array<DetectionRuleExceptionShape>,
+    watchlists: SecurityWatchlistReader,
   ): Promise<void> {
     try {
-      await this.evaluateRule(rule, { exceptions });
+      await this.evaluateRule(rule, { exceptions, watchlists });
     } catch (error) {
       logger.error(
         `DetectionRuleEvaluator: error evaluating rule ${rule.id?.toString()}:`,
@@ -371,6 +383,10 @@ export default class DetectionRuleEvaluator {
    * (`exceptions`, or read here when the caller hands none over) skip the
    * events they name before anything is counted. A setup test reads none:
    * it checks that the pipeline works, and an exception must not hide it.
+   *
+   * The watchlists the rule names are read (through `watchlists`, the
+   * turn's reader, or a reader of its own) and bound to it before it is
+   * compiled; a list the project no longer has is the run's error.
    */
   @CaptureSpan()
   public static async evaluateRule(
@@ -378,6 +394,7 @@ export default class DetectionRuleEvaluator {
     options: {
       setupTest?: DetectionRuleSetupTest | undefined;
       exceptions?: Array<DetectionRuleExceptionShape> | undefined;
+      watchlists?: SecurityWatchlistReader | undefined;
     } = {},
   ): Promise<DetectionRuleEvaluationResult> {
     if (!rule.id || !rule.projectId || !rule.sigmaRuleYaml) {
@@ -385,8 +402,9 @@ export default class DetectionRuleEvaluator {
     }
 
     const setupTest: DetectionRuleSetupTest | undefined = options.setupTest;
-    const definition: DetectionRuleDefinition =
-      await this.loadRuleDefinition(rule);
+    const definition: DetectionRuleDefinition = await (
+      options.watchlists || SecurityWatchlists.readerFor(rule.projectId)
+    ).bind(await this.loadRuleDefinition(rule));
     // What the findings, alerts and cases are written as: the rule, or the correlation.
     const parsedRule: SigmaRule = detectionRuleHeader(definition);
 

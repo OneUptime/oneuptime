@@ -77,7 +77,9 @@ const SHARED_RECORD_QUERIES: Dictionary<Dictionary<unknown>> = {
  * servers whose tools OneUptime AI uses for an investigation or an auto
  * remediation rule, signed in with what the server holds, the security
  * tool connection a threat-intel feed reads Google SecOps's indicators
- * through, with the connection's key, and the LLM provider an AI rule picks
+ * through, with the connection's key, the threat intel feed a watchlist
+ * follows, which signs in to its TAXII server with a token or a password,
+ * and the LLM provider an AI rule picks
  * for what it starts, with the provider's API key.
  *
  * Their records are read as a whole table - no label or owner narrows a
@@ -100,6 +102,7 @@ const CREDENTIAL_SETTINGS: Array<string> = [
   "ProjectCallSMSConfig",
   "ProjectSMTPConfig",
   "SecurityEventConnection",
+  "ThreatIntelFeed",
   "VideoCallConnection",
 ];
 
@@ -141,7 +144,8 @@ const CREDENTIAL_SETTINGS: Array<string> = [
  * them, and the reference check answers a record that is not the project's.
  * The settings that hold credentials (SMTP, call and SMS, credentials, SNMP
  * credentials, video call providers, API keys, outside MCP servers,
- * security tool connections, LLM providers, Git server connections) are
+ * security tool connections, threat intel feeds, LLM providers, Git server
+ * connections) are
  * read as a whole table
  * too, and a write names one only when its caller may read that table
  * (CREDENTIAL_SETTINGS, isHeldToTableRead) - never through a workflow's

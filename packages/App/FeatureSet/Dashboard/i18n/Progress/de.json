@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 36812,
+    "keys": 36929,
     "untranslated": 4041
   },
   "sameAsEnglish": [
@@ -507,6 +507,7 @@
     "Twilio Account SID",
     "Twilio Auth Token",
     "UID",
+    "URLs",
     "USD",
     "UTC",
     "Uganda",
