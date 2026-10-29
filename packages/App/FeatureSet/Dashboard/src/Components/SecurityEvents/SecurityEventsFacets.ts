@@ -4,9 +4,6 @@ import AggregateBy from "Common/Types/BaseDatabase/AggregateBy";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
-import Includes from "Common/Types/BaseDatabase/Includes";
-import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
-import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import Query from "Common/Types/BaseDatabase/Query";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OcsfSeverity from "Common/Types/SecurityEvent/OcsfSeverity";
@@ -15,11 +12,11 @@ import {
   FacetValue,
 } from "Common/UI/Components/TelemetryViewer/types";
 import {
-  FACET_EXCLUDE_KEY_PREFIX,
-  getBaseFacetKey,
-  isExcludeFacetKey,
-  toExcludeFacetKey,
-} from "Common/UI/Components/TelemetryViewer/FacetSelection";
+  SECURITY_EVENT_SOURCE_FACET_KEY,
+  getSecurityEventAttributeKey,
+  getSecurityEventBaseFacetKey,
+  isSecurityEventAttributeFacetKey,
+} from "Common/Utils/SecurityEvent/SecurityEventSearch";
 import { encodeRouteQueryParamValue } from "../../Utils/TelemetryTabScope";
 import { SECURITY_EVENT_VOLUME_COLORS } from "./SecurityEventVolume";
 
@@ -41,53 +38,22 @@ import { SECURITY_EVENT_VOLUME_COLORS } from "./SecurityEventVolume";
  */
 
 /*
- * Chips for arbitrary source attributes are keyed `attributes.<key>`, the
- * same grammar the logs, traces and exceptions explorers use, so the shared
- * sidebar and chip row need no special case for them.
+ * How a chip is keyed and compiled - `attributes.<key>` for a source
+ * attribute, `!` before the key for an excluded value - is Common's
+ * (Utils/SecurityEvent/SecurityEventSearch), shared with a hunt's scheduled
+ * run on the server, and re-exported here for the page and its tests.
  */
-export const SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX: string = "attributes.";
-
-/*
- * A chip the sidebar's "exclude" action created, marked on the KEY rather
- * than the value: `!severityName` / `!attributes.threat.matched`.
- *
- * On the key because a value is data — a hostname, a rule name, a flattened
- * attribute — and any marker put on it could be part of a real value. No
- * column name or attribute key starts with `!`, so the marker is
- * unambiguous, and it survives the `[[key, value], ...]` URL grammar the
- * other explorers already use without a second param.
- *
- * The marker is the shared facet sidebar's (FacetSelection), which reads it
- * to draw an excluded value as excluded and to know which chip a click on
- * it takes off.
- */
-export const SECURITY_EVENT_EXCLUDE_FACET_PREFIX: string =
-  FACET_EXCLUDE_KEY_PREFIX;
-
-export function isSecurityEventExcludeFacetKey(facetKey: string): boolean {
-  return isExcludeFacetKey(facetKey);
-}
-
-export function toSecurityEventExcludeFacetKey(facetKey: string): string {
-  return toExcludeFacetKey(facetKey);
-}
-
-/** The plain facet key an include-or-exclude key stands for. */
-export function getSecurityEventBaseFacetKey(facetKey: string): string {
-  return getBaseFacetKey(facetKey);
-}
-
-export function isSecurityEventAttributeFacetKey(facetKey: string): boolean {
-  return getSecurityEventBaseFacetKey(facetKey).startsWith(
-    SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX,
-  );
-}
-
-export function getSecurityEventAttributeKey(facetKey: string): string {
-  return getSecurityEventBaseFacetKey(facetKey).substring(
-    SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX.length,
-  );
-}
+export {
+  SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX,
+  SECURITY_EVENT_EXCLUDE_FACET_PREFIX,
+  SECURITY_EVENT_SOURCE_FACET_KEY,
+  applySecurityEventFacetFiltersToQuery,
+  getSecurityEventAttributeKey,
+  getSecurityEventBaseFacetKey,
+  isSecurityEventAttributeFacetKey,
+  isSecurityEventExcludeFacetKey,
+  toSecurityEventExcludeFacetKey,
+} from "Common/Utils/SecurityEvent/SecurityEventSearch";
 
 export interface SecurityEventFacetDefinition {
   /** The SecurityEvent column the facet groups and filters on. */
@@ -116,8 +82,6 @@ export interface SecurityEventFacetDefinition {
  * `ruleId` (unique per row / opaque). Each of those is still filterable from
  * the search bar.
  */
-export const SECURITY_EVENT_SOURCE_FACET_KEY: string = "primaryEntityId";
-
 export const SECURITY_EVENT_FACETS: ReadonlyArray<SecurityEventFacetDefinition> =
   [
     {
@@ -421,94 +385,6 @@ export function buildSecurityEventFacetValues(data: {
       return a.value.localeCompare(b.value);
     })
     .slice(0, data.limit ?? SECURITY_EVENT_FACET_VALUE_LIMIT);
-}
-
-function compileFacetSelection(
-  values: Array<string>,
-  isExcluded: boolean,
-): unknown {
-  if (isExcluded) {
-    return values.length === 1
-      ? new NotEqual(values[0]!)
-      : new IncludesNone(values);
-  }
-
-  /*
-   * A single value compiles to a bare string so ClickHouse gets the plain
-   * equality — and with it the column's Set / bloom skip index. More than
-   * one becomes an `Includes`, which is an `IN`.
-   */
-  return values.length === 1 ? values[0]! : new Includes(values);
-}
-
-/*
- * Compile the sidebar's selections into the list query.
- *
- * Attribute chips land in `attributes[<key>]`. Their values come from the
- * data — an attribute copied off a row, a facet value clicked — so they are
- * compiled as equality, which is both exact and the fast
- * `attributes['k'] = 'v'` map-subscript path.
- *
- * Exclusions are written FIRST so that an include on the same column wins:
- * holding both is a transient state the sidebar cannot reach on purpose,
- * and a list narrowed to a value is a more useful reading of the two chips
- * than one that excludes what it also requires and returns nothing.
- */
-export function applySecurityEventFacetFiltersToQuery(data: {
-  query: Query<SecurityEvent>;
-  filters: Map<string, Set<string>>;
-}): Query<SecurityEvent> {
-  const query: Query<SecurityEvent> = { ...data.query };
-  const attributes: Record<string, unknown> = {
-    ...(((query as Record<string, unknown>)["attributes"] as Record<
-      string,
-      unknown
-    >) || {}),
-  };
-
-  const entries: Array<[string, Set<string>]> = Array.from(
-    data.filters.entries(),
-  ).sort((a: [string, Set<string>], b: [string, Set<string>]): number => {
-    const aExcluded: number = isSecurityEventExcludeFacetKey(a[0]) ? 0 : 1;
-    const bExcluded: number = isSecurityEventExcludeFacetKey(b[0]) ? 0 : 1;
-
-    return aExcluded - bExcluded;
-  });
-
-  for (const [facetKey, valueSet] of entries) {
-    const values: Array<string> = Array.from(valueSet).filter(
-      (value: string): boolean => {
-        return value.length > 0;
-      },
-    );
-
-    if (values.length === 0) {
-      continue;
-    }
-
-    const isExcluded: boolean = isSecurityEventExcludeFacetKey(facetKey);
-    const compiled: unknown = compileFacetSelection(values, isExcluded);
-
-    if (isSecurityEventAttributeFacetKey(facetKey)) {
-      const attributeKey: string = getSecurityEventAttributeKey(facetKey);
-
-      if (attributeKey.length === 0) {
-        continue;
-      }
-
-      attributes[attributeKey] = compiled;
-      continue;
-    }
-
-    (query as Record<string, unknown>)[getSecurityEventBaseFacetKey(facetKey)] =
-      compiled;
-  }
-
-  if (Object.keys(attributes).length > 0) {
-    (query as Record<string, unknown>)["attributes"] = attributes;
-  }
-
-  return query;
 }
 
 /*
