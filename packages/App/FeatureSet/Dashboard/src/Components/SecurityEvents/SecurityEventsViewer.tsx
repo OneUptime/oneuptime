@@ -1206,14 +1206,12 @@ const SecurityEventsViewer: FunctionComponent<ComponentProps> = (
           />
         }
         toolbarTrailingActions={
-          <>
-            <SecurityEventAttributeColumnPicker
-              attributeKeys={pickerAttributeKeys}
-              isLoading={attributesLoading}
-              selectedKeys={attributeColumnKeys}
-              onChange={updateAttributeColumnKeys}
-            />
-          </>
+          <SecurityEventAttributeColumnPicker
+            attributeKeys={pickerAttributeKeys}
+            isLoading={attributesLoading}
+            selectedKeys={attributeColumnKeys}
+            onChange={updateAttributeColumnKeys}
+          />
         }
         // Facets
         showFacetSidebar={true}

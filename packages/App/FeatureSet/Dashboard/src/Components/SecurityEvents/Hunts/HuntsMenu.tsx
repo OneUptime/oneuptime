@@ -284,16 +284,21 @@ const HuntsMenu: FunctionComponent<ComponentProps> = (
               Navigation.navigate(getHuntViewRoute(created._id.toString()));
             }
           }}
+          /*
+           * The modal's own: it hands the form these, in place of any its
+           * form props carry - so the person saving it is in Notify as a
+           * schedule is chosen.
+           */
+          initialValues={getNewHuntInitialValues({
+            userId: UserUtil.getUserId(),
+            timeRange: toSave.timeRange,
+          })}
           formProps={{
             name: "security-events-save-as-hunt-form",
             modelType: SecurityHunt,
             id: "security-events-save-as-hunt-form",
             formType: FormType.Create,
             fields: getSaveAsHuntFormFields({ translator }),
-            initialValues: getNewHuntInitialValues({
-              userId: UserUtil.getUserId(),
-              timeRange: toSave.timeRange,
-            }),
           }}
         />
       ) : (

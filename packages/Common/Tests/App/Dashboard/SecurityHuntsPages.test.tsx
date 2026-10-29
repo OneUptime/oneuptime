@@ -115,6 +115,8 @@ type CapturedFormModal = {
   onClose?: () => void;
   onSuccess?: (item: unknown) => void;
   onBeforeCreate?: (item: unknown) => Promise<unknown>;
+  // What the modal hands its form to start with, in place of the form props'.
+  initialValues?: Record<string, unknown>;
   formProps: {
     formType: unknown;
     steps?: Array<{ id: string }>;
@@ -949,7 +951,9 @@ describe("the Events toolbar's Hunts list", () => {
     expect(save.title).toBe("Save as Hunt");
     expect(save.submitButtonText).toBe("Save Hunt");
     expect(save.formProps.formType).toBe(FormType.Create);
-    expect(save.formProps.initialValues).toEqual({
+    // The modal's own, which it hands the form; never the form props', which it replaces.
+    expect(save.formProps.initialValues).toBeUndefined();
+    expect(save.initialValues).toEqual({
       schedule: SecurityHuntSchedule.NotScheduled,
       timeRange: TimeRange.PAST_ONE_DAY,
       notifyUsers: [MAYA],
