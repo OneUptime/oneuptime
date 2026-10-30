@@ -861,9 +861,9 @@ describe("BigQuery datasets", () => {
 
 describe("service account addresses", () => {
   test("an address on gserviceaccount.com or a domain under it is a service account's, in any case", () => {
-    expect(
-      isServiceAccountEmail("etl@acme-prod.iam.gserviceaccount.com"),
-    ).toBe(true);
+    expect(isServiceAccountEmail("etl@acme-prod.iam.gserviceaccount.com")).toBe(
+      true,
+    );
     expect(isServiceAccountEmail("acme-prod@appspot.gserviceaccount.com")).toBe(
       true,
     );
@@ -871,7 +871,9 @@ describe("service account addresses", () => {
       isServiceAccountEmail("123-compute@developer.gserviceaccount.com"),
     ).toBe(true);
     expect(isServiceAccountEmail("robot@gserviceaccount.com")).toBe(true);
-    expect(isServiceAccountEmail("ETL@ACME.IAM.GSERVICEACCOUNT.COM")).toBe(true);
+    expect(isServiceAccountEmail("ETL@ACME.IAM.GSERVICEACCOUNT.COM")).toBe(
+      true,
+    );
   });
 
   test("a domain that only ends in the same letters, or an address with no domain, is a person's", () => {

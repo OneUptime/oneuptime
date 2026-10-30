@@ -241,12 +241,14 @@ describe("DataStoreLabelRuleEngineService", () => {
       },
     };
     getJestSpyOn(DataStoreService, "getRepository").mockReturnValue(builder);
-    findDetails = getJestSpyOn(DataStoreService, "findOneById").mockResolvedValue(
-      data.details === undefined ? details() : data.details,
-    );
-    findRules = getJestSpyOn(DataStoreLabelRuleService, "findBy").mockResolvedValue(
-      data.rules || [],
-    );
+    findDetails = getJestSpyOn(
+      DataStoreService,
+      "findOneById",
+    ).mockResolvedValue(data.details === undefined ? details() : data.details);
+    findRules = getJestSpyOn(
+      DataStoreLabelRuleService,
+      "findBy",
+    ).mockResolvedValue(data.rules || []);
   }
 
   async function run(
@@ -290,7 +292,11 @@ describe("DataStoreLabelRuleEngineService", () => {
     expect(findBy.props.isRoot).toBe(true);
 
     expect(writes).toEqual([
-      { relation: "labels", of: STORE_ID.toString(), ids: [LABEL_A.toString()] },
+      {
+        relation: "labels",
+        of: STORE_ID.toString(),
+        ids: [LABEL_A.toString()],
+      },
     ]);
     // Synced in memory, so the owner engine that runs next can match on it.
     expect(
@@ -317,9 +323,9 @@ describe("DataStoreLabelRuleEngineService", () => {
     ).resolves.toEqual(RuleApplicationResultUtil.updated(1));
 
     arrange();
-    await expect(run([labelRule({ cloudTagPattern: "^env=" })])).resolves.toEqual(
-      RuleApplicationResultUtil.updated(1),
-    );
+    await expect(
+      run([labelRule({ cloudTagPattern: "^env=" })]),
+    ).resolves.toEqual(RuleApplicationResultUtil.updated(1));
   });
 
   test("Cloud Tag Pattern never matches a store whose tags say otherwise, or that has none", async () => {
@@ -440,9 +446,9 @@ describe("DataStoreLabelRuleEngineService", () => {
     await expect(run([labelRule({ namePattern: "([" })])).resolves.toEqual(
       RuleApplicationResultUtil.noMatch(),
     );
-    await expect(
-      run([labelRule({ cloudTagPattern: "([" })]),
-    ).resolves.toEqual(RuleApplicationResultUtil.noMatch());
+    await expect(run([labelRule({ cloudTagPattern: "([" })])).resolves.toEqual(
+      RuleApplicationResultUtil.noMatch(),
+    );
   });
 
   test("a store deleted before its turn is no match", async () => {
@@ -500,9 +506,10 @@ describe("DataStoreOwnerRuleEngineService", () => {
       assignedTeamIds?: Array<ObjectID>;
     } = {},
   ): void {
-    findRules = getJestSpyOn(DataStoreOwnerRuleService, "findBy").mockResolvedValue(
-      data.rules || [],
-    );
+    findRules = getJestSpyOn(
+      DataStoreOwnerRuleService,
+      "findBy",
+    ).mockResolvedValue(data.rules || []);
     getJestSpyOn(DataStoreService, "findOneById").mockResolvedValue(
       data.details === undefined ? details() : data.details,
     );
@@ -601,7 +608,9 @@ describe("DataStoreOwnerRuleEngineService", () => {
       DataStoreFeedEventType.OwnerRuleExecuted,
     );
     expect(item.feedInfoInMarkdown).toContain("by 1 owner rule.");
-    expect(item.moreInformationInMarkdown).toContain("Payments owns its stores");
+    expect(item.moreInformationInMarkdown).toContain(
+      "Payments owns its stores",
+    );
   });
 
   test("an owner rule with Notify Owners off adds its owners silently", async () => {
@@ -628,7 +637,10 @@ describe("DataStoreOwnerRuleEngineService", () => {
     arrange();
 
     await expect(
-      run([ownerRule({ notifyOwners: false }), ownerRule({ notifyOwners: true })]),
+      run([
+        ownerRule({ notifyOwners: false }),
+        ownerRule({ notifyOwners: true }),
+      ]),
     ).resolves.toEqual(RuleApplicationResultUtil.updated(2));
 
     expect(createOwnerUser).toHaveBeenCalledTimes(1);

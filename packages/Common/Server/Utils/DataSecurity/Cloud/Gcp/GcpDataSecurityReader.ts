@@ -979,9 +979,7 @@ function datasetAccessMember(
 
   if (user) {
     return readMember(
-      isServiceAccountEmail(user)
-        ? `serviceAccount:${user}`
-        : `user:${user}`,
+      isServiceAccountEmail(user) ? `serviceAccount:${user}` : `user:${user}`,
     );
   }
 
