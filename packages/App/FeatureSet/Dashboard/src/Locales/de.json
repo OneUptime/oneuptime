@@ -38856,5 +38856,16 @@
   "AI tasks work in this exception's repository, so starting one takes permission to edit it.": "KI-Aufgaben arbeiten im Repository dieser Ausnahme, daher erfordert das Starten einer Aufgabe die Berechtigung, es zu bearbeiten.",
   "Checking for tasks that are already running.": "Es wird geprüft, ob bereits Aufgaben laufen.",
   "Finish the setup checklist above to start AI tasks.": "Schließen Sie die Einrichtungs-Checkliste oben ab, um KI-Aufgaben zu starten.",
-  "Reopen and unarchive this exception to start AI tasks.": "Öffnen Sie diese Ausnahme wieder und heben Sie die Archivierung auf, um KI-Aufgaben zu starten."
+  "Reopen and unarchive this exception to start AI tasks.": "Öffnen Sie diese Ausnahme wieder und heben Sie die Archivierung auf, um KI-Aufgaben zu starten.",
+  "High priority": "Hohe Priorität",
+  "Low priority": "Niedrige Priorität",
+  "Medium priority": "Mittlere Priorität",
+  "No exceptions were first seen or came back in the last {{hours}} hours.": "In den letzten {{hours}} Stunden wurde keine Ausnahme zum ersten Mal gesehen, und keine kam zurück.",
+  "OneUptime AI did not return a summary. Please try again.": "OneUptime AI hat keine Zusammenfassung geliefert. Bitte versuchen Sie es erneut.",
+  "OneUptime AI sums up the exceptions first seen in the last {{hours}} hours, and the ones that came back after they were resolved, and says which to look at first.": "OneUptime AI fasst die Ausnahmen zusammen, die in den letzten {{hours}} Stunden zum ersten Mal gesehen wurden, und die, die nach ihrer Behebung zurückkamen, und sagt, welche Sie zuerst ansehen sollten.",
+  "Summarize again": "Erneut zusammenfassen",
+  "Summarize with OneUptime AI": "Mit OneUptime AI zusammenfassen",
+  "Summarizing…": "Wird zusammengefasst…",
+  "What's new": "Was ist neu",
+  "Written by OneUptime AI {{time}}, from the exceptions first seen or back in the last {{hours}} hours.": "Geschrieben von OneUptime AI {{time}}, aus den Ausnahmen, die in den letzten {{hours}} Stunden zum ersten Mal gesehen wurden oder zurückkamen."
 }

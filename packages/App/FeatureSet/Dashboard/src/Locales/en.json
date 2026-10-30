@@ -38856,5 +38856,16 @@
   "AI tasks work in this exception's repository, so starting one takes permission to edit it.": "AI tasks work in this exception's repository, so starting one takes permission to edit it.",
   "Checking for tasks that are already running.": "Checking for tasks that are already running.",
   "Finish the setup checklist above to start AI tasks.": "Finish the setup checklist above to start AI tasks.",
-  "Reopen and unarchive this exception to start AI tasks.": "Reopen and unarchive this exception to start AI tasks."
+  "Reopen and unarchive this exception to start AI tasks.": "Reopen and unarchive this exception to start AI tasks.",
+  "High priority": "High priority",
+  "Low priority": "Low priority",
+  "Medium priority": "Medium priority",
+  "No exceptions were first seen or came back in the last {{hours}} hours.": "No exceptions were first seen or came back in the last {{hours}} hours.",
+  "OneUptime AI did not return a summary. Please try again.": "OneUptime AI did not return a summary. Please try again.",
+  "OneUptime AI sums up the exceptions first seen in the last {{hours}} hours, and the ones that came back after they were resolved, and says which to look at first.": "OneUptime AI sums up the exceptions first seen in the last {{hours}} hours, and the ones that came back after they were resolved, and says which to look at first.",
+  "Summarize again": "Summarize again",
+  "Summarize with OneUptime AI": "Summarize with OneUptime AI",
+  "Summarizing…": "Summarizing…",
+  "What's new": "What's new",
+  "Written by OneUptime AI {{time}}, from the exceptions first seen or back in the last {{hours}} hours.": "Written by OneUptime AI {{time}}, from the exceptions first seen or back in the last {{hours}} hours."
 }

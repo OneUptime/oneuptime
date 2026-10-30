@@ -183,6 +183,8 @@ En **Más campos** una regla elige los repositorios de código, los servidores M
 
 La pestaña **Análisis** cuenta sus excepciones **Sin resolver**, **Resuelto** y **Archivado** y su tasa de resolución, y enumera las excepciones más frecuentes, los servicios a los que afectan y las vistas más recientemente.
 
+**Novedades**, en la parte superior de la pestaña, pide a OneUptime AI, con **Resumir con OneUptime AI**, que resuma las excepciones vistas por primera vez en las últimas 24 horas y las que volvieron después de resolverse: unas frases sobre todas, luego cada una en una línea, la más urgente primero, con un enlace a la excepción. Se escribe cuando lo pide y no se guarda, usa los créditos de IA del proyecto y no se ofrece mientras **Habilitar IA** está desactivado.
+
 ## Solución de problemas
 
 :::details Una excepción que acabo de lanzar no está en la lista

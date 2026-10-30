@@ -183,6 +183,8 @@ Unter **Weitere Felder** wählt eine Regel die Code-Repositories, die MCP-Server
 
 Der Tab **Einblicke** zählt Ihre Ausnahmen unter **Nicht behoben**, **Behoben** und **Archiviert** sowie Ihre Behebungsquote und listet die häufigsten Ausnahmen, die Dienste, die sie betreffen, und die zuletzt gesehenen.
 
+**Was ist neu** oben im Tab lässt OneUptime AI mit **Mit OneUptime AI zusammenfassen** die Ausnahmen zusammenfassen, die in den letzten 24 Stunden zum ersten Mal gesehen wurden, und die, die nach ihrer Behebung zurückkamen: ein paar Sätze über alle, dann jede in einer Zeile, die dringendste zuerst, mit einem Link zur Ausnahme. Die Zusammenfassung wird geschrieben, wenn Sie darum bitten, und nicht gespeichert, nutzt die KI-Guthaben des Projekts und wird nicht angeboten, solange **KI aktivieren** aus ist.
+
 ## Fehlerbehebung
 
 :::details Eine Ausnahme, die ich gerade ausgelöst habe, fehlt in der Liste
