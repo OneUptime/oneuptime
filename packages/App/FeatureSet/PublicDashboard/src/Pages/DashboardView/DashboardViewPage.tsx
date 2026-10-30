@@ -66,6 +66,33 @@ export interface ComponentProps {
   onLoadComplete?: (() => void) | undefined;
 }
 
+/*
+ * An image the public dashboard API sends ({ file: base64, fileType }) as a
+ * data: URL, or null when there is none - the API sends null for an image
+ * the dashboard does not have, or that is not a file of its own project.
+ */
+export const getImageDataUrl: (value: unknown) => string | null = (
+  value: unknown,
+): string | null => {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const image: JSONObject = value as JSONObject;
+  const file: unknown = image["file"];
+
+  if (typeof file !== "string" || !file) {
+    return null;
+  }
+
+  const fileType: string =
+    typeof image["fileType"] === "string" && image["fileType"]
+      ? (image["fileType"] as string)
+      : "image/png";
+
+  return `data:${fileType};base64,${file}`;
+};
+
 const DashboardViewPage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -105,6 +132,8 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
   const [dashboardTotalWidth, setDashboardTotalWidth] = useState<number>(0);
   const [dashboardName, setDashboardName] = useState<string>("");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  // The logo made for the dark theme, drawn instead while the page is dark.
+  const [darkThemeLogoUrl, setDarkThemeLogoUrl] = useState<string | null>(null);
   const [pageDescription, setPageDescription] = useState<string>("");
   const [metricTypes, setMetricTypes] = useState<Array<MetricType>>([]);
 
@@ -168,15 +197,9 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
       );
       setPageDescription((response.data["pageDescription"] as string) || "");
 
-      // Extract logo data
-      const logoData: JSONObject | null =
-        (response.data["logoFile"] as JSONObject) || null;
-      if (logoData && logoData["file"]) {
-        const fileData: string = logoData["file"] as string;
-        const fileType: string =
-          (logoData["fileType"] as string) || "image/png";
-        setLogoUrl(`data:${fileType};base64,${fileData}`);
-      }
+      // The logos, as data: URLs.
+      setLogoUrl(getImageDataUrl(response.data["logoFile"]));
+      setDarkThemeLogoUrl(getImageDataUrl(response.data["darkThemeLogoFile"]));
 
       /*
        * The dashboard's own default time range and auto-refresh, for a
@@ -336,13 +359,31 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
             {/* Logo + Title + Description */}
             <div className="flex min-w-0 flex-1 basis-72 items-center gap-3 sm:gap-4">
-              {logoUrl && (
-                <LogoPlate className="flex-shrink-0">
-                  <img
-                    src={logoUrl}
-                    alt={dashboardName}
-                    className="h-8 w-auto object-contain"
-                  />
+              {/*
+               * The logo, or while the page is dark the logo made for the
+               * dark theme (LogoPlate). A dashboard with only a dark theme
+               * logo shows it on the dark page and nothing on the light one.
+               */}
+              {(logoUrl || darkThemeLogoUrl) && (
+                <LogoPlate
+                  className="flex-shrink-0"
+                  darkLogo={
+                    darkThemeLogoUrl ? (
+                      <img
+                        src={darkThemeLogoUrl}
+                        alt={dashboardName}
+                        className="h-8 w-auto object-contain"
+                      />
+                    ) : undefined
+                  }
+                >
+                  {logoUrl ? (
+                    <img
+                      src={logoUrl}
+                      alt={dashboardName}
+                      className="h-8 w-auto object-contain"
+                    />
+                  ) : undefined}
                 </LogoPlate>
               )}
               <div className="min-w-0">

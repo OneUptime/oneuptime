@@ -38929,5 +38929,7 @@
   "A correlation reads several events together over its timespan, so it runs on its interval.": "En korrelation læser flere hændelser sammen over sit tidsrum, så den kører efter sit interval.",
   "It counts different values, so it runs on its interval: clear Distinct Count Field to run it in real time.": "Den tæller forskellige værdier, så den kører efter sit interval: ryd \"Felt til unik optælling\" for at køre den i realtid.",
   "It uses a regular expression (|re), which only runs on a schedule: use contains, startswith or endswith to run it in real time.": "Den bruger et regulært udtryk (|re), som kun kører efter en tidsplan: brug contains, startswith eller endswith for at køre den i realtid.",
-  "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.": "Den venter på et antal match, så den kører efter sit interval: sæt \"Grænse for antal match\" til 1 for at køre den i realtid."
+  "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.": "Den venter på et antal match, så den kører efter sit interval: sæt \"Grænse for antal match\" til 1 for at køre den i realtid.",
+  "Shown in your public dashboard's header.": "Vises i headeren på dit offentlige dashboard.",
+  "Shown instead of the logo where your public dashboard is dark. Without one, the logo is shown on a light backdrop there.": "Vises i stedet for logoet, hvor dit offentlige dashboard er mørkt. Uden et vises logoet der på en lys baggrund."
 }

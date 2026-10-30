@@ -38929,5 +38929,7 @@
   "A correlation reads several events together over its timespan, so it runs on its interval.": "Uma correlação lê vários eventos juntos ao longo do seu período, então é executada no seu intervalo.",
   "It counts different values, so it runs on its interval: clear Distinct Count Field to run it in real time.": "Ela conta valores diferentes, então é executada no seu intervalo: limpe \"Campo de contagem distinta\" para executá-la em tempo real.",
   "It uses a regular expression (|re), which only runs on a schedule: use contains, startswith or endswith to run it in real time.": "Ela usa uma expressão regular (|re), que só é executada de forma agendada: use contains, startswith ou endswith para executá-la em tempo real.",
-  "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.": "Ela espera um número de correspondências, então é executada no seu intervalo: defina \"Limite de correspondências\" como 1 para executá-la em tempo real."
+  "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.": "Ela espera um número de correspondências, então é executada no seu intervalo: defina \"Limite de correspondências\" como 1 para executá-la em tempo real.",
+  "Shown in your public dashboard's header.": "Aparece no cabeçalho do seu painel público.",
+  "Shown instead of the logo where your public dashboard is dark. Without one, the logo is shown on a light backdrop there.": "Aparece no lugar do logotipo onde seu painel público é escuro. Sem ele, o logotipo aparece ali sobre um fundo claro."
 }

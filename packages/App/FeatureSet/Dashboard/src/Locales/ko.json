@@ -38929,5 +38929,7 @@
   "A correlation reads several events together over its timespan, so it runs on its interval.": "상관 규칙은 기간 동안 여러 이벤트를 함께 읽으므로 평가 간격에 따라 실행됩니다.",
   "It counts different values, so it runs on its interval: clear Distinct Count Field to run it in real time.": "서로 다른 값을 세므로 평가 간격에 따라 실행됩니다. 실시간으로 실행하려면 \"고유 개수 필드\"를 비우세요.",
   "It uses a regular expression (|re), which only runs on a schedule: use contains, startswith or endswith to run it in real time.": "정규 표현식(|re)은 일정에 따라서만 실행되므로 평가 간격에 따라 실행됩니다. 실시간으로 실행하려면 contains, startswith 또는 endswith를 사용하세요.",
-  "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.": "일치 횟수를 기다리므로 평가 간격에 따라 실행됩니다. 실시간으로 실행하려면 \"일치 횟수 임계값\"을 1로 설정하세요."
+  "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.": "일치 횟수를 기다리므로 평가 간격에 따라 실행됩니다. 실시간으로 실행하려면 \"일치 횟수 임계값\"을 1로 설정하세요.",
+  "Shown in your public dashboard's header.": "공개 대시보드의 헤더에 표시됩니다.",
+  "Shown instead of the logo where your public dashboard is dark. Without one, the logo is shown on a light backdrop there.": "공개 대시보드가 어두운 곳에서 로고 대신 표시됩니다. 없으면 그곳에서는 로고가 밝은 배경 위에 표시됩니다."
 }

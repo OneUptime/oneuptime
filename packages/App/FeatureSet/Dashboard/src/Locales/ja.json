@@ -38929,5 +38929,7 @@
   "A correlation reads several events together over its timespan, so it runs on its interval.": "相関ルールはその期間内の複数のイベントをまとめて読むため、評価間隔ごとに実行されます。",
   "It counts different values, so it runs on its interval: clear Distinct Count Field to run it in real time.": "異なる値を数えるため、評価間隔ごとに実行されます。リアルタイムで実行するには「ユニーク数を数えるフィールド」を空にしてください。",
   "It uses a regular expression (|re), which only runs on a schedule: use contains, startswith or endswith to run it in real time.": "正規表現 (|re) はスケジュール実行でしか使えないため、評価間隔ごとに実行されます。リアルタイムで実行するには contains、startswith、endswith を使ってください。",
-  "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.": "一致件数を待つため、評価間隔ごとに実行されます。リアルタイムで実行するには「一致件数のしきい値」を 1 にしてください。"
+  "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.": "一致件数を待つため、評価間隔ごとに実行されます。リアルタイムで実行するには「一致件数のしきい値」を 1 にしてください。",
+  "Shown in your public dashboard's header.": "公開ダッシュボードのヘッダーに表示されます。",
+  "Shown instead of the logo where your public dashboard is dark. Without one, the logo is shown on a light backdrop there.": "公開ダッシュボードが暗い場所で、ロゴの代わりに表示されます。ない場合、そこではロゴが明るい背景の上に表示されます。"
 }

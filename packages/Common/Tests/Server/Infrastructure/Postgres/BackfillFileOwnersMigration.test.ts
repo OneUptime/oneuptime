@@ -59,6 +59,8 @@ const FILE_REFERENCES_ADDED_LATER: Array<string> = [
   '{"table":"PacketCapture","fileIdColumn":"fileId","owner":null}',
   // A status page's dark theme logo is uploaded with the page's project.
   '{"table":"StatusPage","fileIdColumn":"darkThemeLogoFileId","owner":null}',
+  // So is a public dashboard's, with the dashboard's project.
+  '{"table":"Dashboard","fileIdColumn":"darkThemeLogoFileId","owner":null}',
   /*
    * A file kept as evidence on a security case is uploaded with the case's
    * project, and only that project's files are taken
