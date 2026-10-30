@@ -37288,5 +37288,7 @@
   "Review now": "अभी समीक्षा करें",
   "The Runner signs in with its secret key. After a reset it stops connecting until you re-run the setup command on its host.": "Runner अपनी सीक्रेट कुंजी से साइन इन करता है। रीसेट के बाद यह तब तक कनेक्ट नहीं होता जब तक आप इसके होस्ट पर सेटअप कमांड फिर से न चलाएँ।",
   "Enter the number of a pull request, such as 12.": "किसी पुल रिक्वेस्ट का नंबर दर्ज करें, जैसे 12।",
-  "Enter the number of a merge request, such as 12.": "किसी मर्ज रिक्वेस्ट का नंबर दर्ज करें, जैसे 12।"
+  "Enter the number of a merge request, such as 12.": "किसी मर्ज रिक्वेस्ट का नंबर दर्ज करें, जैसे 12।",
+  "The {{plan}} plan": "{{plan}} प्लान",
+  "You do not have permission to page on-call policies.": "आपको ऑन-कॉल नीतियों से पेज करने की अनुमति नहीं है।"
 }

@@ -37288,5 +37288,7 @@
   "Review now": "Revisar ahora",
   "The Runner signs in with its secret key. After a reset it stops connecting until you re-run the setup command on its host.": "El Runner inicia sesión con su clave secreta. Tras restablecerla, deja de conectarse hasta que vuelvas a ejecutar el comando de configuración en su host.",
   "Enter the number of a pull request, such as 12.": "Introduce el número de una pull request, por ejemplo 12.",
-  "Enter the number of a merge request, such as 12.": "Introduce el número de un merge request, por ejemplo 12."
+  "Enter the number of a merge request, such as 12.": "Introduce el número de un merge request, por ejemplo 12.",
+  "The {{plan}} plan": "El plan {{plan}}",
+  "You do not have permission to page on-call policies.": "No tienes permiso para avisar mediante las políticas de guardia."
 }

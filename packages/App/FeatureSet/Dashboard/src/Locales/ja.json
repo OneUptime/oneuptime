@@ -37288,5 +37288,7 @@
   "Review now": "今すぐレビュー",
   "The Runner signs in with its secret key. After a reset it stops connecting until you re-run the setup command on its host.": "Runner はシークレットキーでサインインします。リセットすると、ホスト上でセットアップコマンドを再実行するまで接続できなくなります。",
   "Enter the number of a pull request, such as 12.": "プルリクエストの番号を入力してください（例: 12）。",
-  "Enter the number of a merge request, such as 12.": "マージリクエストの番号を入力してください（例: 12）。"
+  "Enter the number of a merge request, such as 12.": "マージリクエストの番号を入力してください（例: 12）。",
+  "The {{plan}} plan": "{{plan}} プラン",
+  "You do not have permission to page on-call policies.": "オンコールポリシーで呼び出す権限がありません。"
 }

@@ -37288,5 +37288,7 @@
   "Review now": "Gå gjennom nå",
   "The Runner signs in with its secret key. After a reset it stops connecting until you re-run the setup command on its host.": "Runneren logger inn med den hemmelige nøkkelen sin. Etter en tilbakestilling slutter den å koble til til du kjører oppsettkommandoen på verten på nytt.",
   "Enter the number of a pull request, such as 12.": "Skriv inn nummeret på en pull-forespørsel, for eksempel 12.",
-  "Enter the number of a merge request, such as 12.": "Skriv inn nummeret på en merge request, for eksempel 12."
+  "Enter the number of a merge request, such as 12.": "Skriv inn nummeret på en merge request, for eksempel 12.",
+  "The {{plan}} plan": "Abonnementet {{plan}}",
+  "You do not have permission to page on-call policies.": "Du har ikke tillatelse til å tilkalle via vaktretningslinjer."
 }

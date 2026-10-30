@@ -37288,5 +37288,7 @@
   "Review now": "지금 검토",
   "The Runner signs in with its secret key. After a reset it stops connecting until you re-run the setup command on its host.": "Runner는 비밀 키로 로그인합니다. 재설정하면 호스트에서 설치 명령을 다시 실행할 때까지 연결하지 않습니다.",
   "Enter the number of a pull request, such as 12.": "풀 리퀘스트 번호를 입력하세요(예: 12).",
-  "Enter the number of a merge request, such as 12.": "머지 리퀘스트 번호를 입력하세요(예: 12)."
+  "Enter the number of a merge request, such as 12.": "머지 리퀘스트 번호를 입력하세요(예: 12).",
+  "The {{plan}} plan": "{{plan}} 요금제",
+  "You do not have permission to page on-call policies.": "온콜 정책으로 호출할 권한이 없습니다."
 }

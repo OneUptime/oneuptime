@@ -37288,5 +37288,7 @@
   "Review now": "Проверить сейчас",
   "The Runner signs in with its secret key. After a reset it stops connecting until you re-run the setup command on its host.": "Runner входит со своим секретным ключом. После сброса он перестаёт подключаться, пока вы снова не выполните команду установки на его хосте.",
   "Enter the number of a pull request, such as 12.": "Введите номер запроса на слияние, например 12.",
-  "Enter the number of a merge request, such as 12.": "Введите номер запроса на слияние, например 12."
+  "Enter the number of a merge request, such as 12.": "Введите номер запроса на слияние, например 12.",
+  "The {{plan}} plan": "Тариф {{plan}}",
+  "You do not have permission to page on-call policies.": "У вас нет прав на вызов по политикам дежурств."
 }

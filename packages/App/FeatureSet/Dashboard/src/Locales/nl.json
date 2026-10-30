@@ -37288,5 +37288,7 @@
   "Review now": "Nu beoordelen",
   "The Runner signs in with its secret key. After a reset it stops connecting until you re-run the setup command on its host.": "De Runner meldt zich aan met zijn geheime sleutel. Na een reset maakt hij geen verbinding meer tot je de installatieopdracht opnieuw uitvoert op de host.",
   "Enter the number of a pull request, such as 12.": "Voer het nummer van een pull request in, bijvoorbeeld 12.",
-  "Enter the number of a merge request, such as 12.": "Voer het nummer van een merge request in, bijvoorbeeld 12."
+  "Enter the number of a merge request, such as 12.": "Voer het nummer van een merge request in, bijvoorbeeld 12.",
+  "The {{plan}} plan": "Het {{plan}}-abonnement",
+  "You do not have permission to page on-call policies.": "U hebt geen toestemming om via bereikbaarheidsbeleid op te roepen."
 }

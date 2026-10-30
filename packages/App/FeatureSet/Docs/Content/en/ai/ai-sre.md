@@ -411,9 +411,9 @@ When the incident is linked to no cluster and no infrastructure resource at all,
 
 An incident or alert on-call rule can let OneUptime AI take the page first. Set the rule's **When should this rule page?** to **After OneUptime AI tries**, under **More fields**. When OneUptime AI may fix what a matching incident or alert is about, the rule's policies wait while AI investigates, fixes and checks its fix, for at most the time set in **Wait for OneUptime AI for up to (minutes)**: 10 minutes by default, from 1 to 30. If AI's fix is verified, OneUptime AI resolves the record and nobody is paged.
 
-The rule pages right away instead, and the record's feed says why, when a person created the record, it has the project's highest severity, 3 or more other alerts and incidents opened in the 5 minutes before it, OneUptime AI may not investigate it or fix it automatically, no monitor is linked to it, or no linked Kubernetes cluster or resource has an AI agent set to **Automatic** or **Bypass approval**.
+The rule pages right away instead, and the record's feed says why, when a person created the record, it has the project's highest severity, 3 or more other alerts and incidents opened in the 5 minutes before it, the project is on a plan below Growth (nobody could see a held page there), OneUptime AI may not investigate it or fix it automatically, no monitor is linked to it, or no linked Kubernetes cluster or resource has an AI agent set to **Automatic** or **Bypass approval**.
 
-While AI holds a page, the **AI Investigation** card says when paging starts, with **Page now** for anyone who wants a person on it at once. Every minute, OneUptime checks each page AI holds, and starts paging at once, saying why, when:
+While AI holds a page, the **AI Investigation** card says when paging starts, with **Page now** for anyone who wants a person on it at once; it is locked, saying why, for anyone who may not page on-call policies. Every minute, OneUptime checks each page AI holds, and starts paging at once, saying why, when:
 
 - the investigation does not start, waits for an AI rule, or does not finish;
 - AI finds no fix it may run on its own, or its fix needs a person's approval;

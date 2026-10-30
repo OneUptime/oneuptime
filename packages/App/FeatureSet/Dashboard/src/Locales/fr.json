@@ -37288,5 +37288,7 @@
   "Review now": "Relire maintenant",
   "The Runner signs in with its secret key. After a reset it stops connecting until you re-run the setup command on its host.": "Le Runner se connecte avec sa clé secrète. Après une réinitialisation, il ne se connecte plus tant que vous n'avez pas relancé la commande d'installation sur son hôte.",
   "Enter the number of a pull request, such as 12.": "Saisissez le numéro d'une demande de tirage, par exemple 12.",
-  "Enter the number of a merge request, such as 12.": "Saisissez le numéro d'une demande de fusion, par exemple 12."
+  "Enter the number of a merge request, such as 12.": "Saisissez le numéro d'une demande de fusion, par exemple 12.",
+  "The {{plan}} plan": "Le forfait {{plan}}",
+  "You do not have permission to page on-call policies.": "Vous n'avez pas l'autorisation d'alerter via les politiques d'astreinte."
 }
