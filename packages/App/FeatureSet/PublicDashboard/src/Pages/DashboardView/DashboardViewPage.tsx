@@ -54,9 +54,7 @@ import {
   PUBLIC_AUTO_REFRESH_MENU_TEST_ID,
 } from "./DashboardToolbarCopy";
 import {
-  PUBLIC_DASHBOARD_BOARD_MIN_WIDTH_IN_PX,
   PUBLIC_DASHBOARD_BOARD_TEST_ID,
-  PUBLIC_DASHBOARD_FRAME_CLASS_NAME,
   PUBLIC_DASHBOARD_FRAME_TEST_ID,
   PUBLIC_DASHBOARD_HEADER_TEST_ID,
   PUBLIC_DASHBOARD_PAGE_TEST_ID,
@@ -100,7 +98,7 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
   > | null> = useRef<ReturnType<typeof setInterval> | null>(null);
   const [refreshTick, setRefreshTick] = useState<number>(0);
 
-  // The board itself: as wide as the page, and never under 1000px.
+  // The board itself: as wide as the page.
   const boardRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
 
@@ -307,12 +305,10 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
    * (Common/UI/Styles/Theme.css), the ones the dashboard your team sees is
    * drawn on, so each is right in the light theme and the dark one.
    *
-   * The page is the width of the screen. Only the board keeps the width its
-   * twelve columns are laid out for (PUBLIC_DASHBOARD_BOARD_MIN_WIDTH_IN_PX),
-   * and on a narrower screen - a phone - it scrolls sideways inside its own
-   * frame. The whole page used to be 1000px wide, so on a phone the
-   * toolbar - auto-refresh, theme, full screen - sat past the right edge,
-   * and the header and footer scrolled away with the board.
+   * The page is the width of the screen, and so is the board: it lays its
+   * widgets out in that width (DashboardViewLayout), on a phone one under
+   * another. The board used to keep 1000px in a frame that scrolled
+   * sideways, so a phone showed half of each row of widgets.
    */
   return (
     <div
@@ -552,21 +548,16 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
       </div>
 
       {/*
-       * Dashboard Canvas: the board in a frame of its own, which scrolls it
-       * sideways where the screen is narrower than the board, and is what
+       * Dashboard Canvas: the board in a frame of its own, which is what
        * Full Screen shows.
        */}
       <div
         ref={dashboardCanvasRef}
-        className={`mt-3 ${PUBLIC_DASHBOARD_FRAME_CLASS_NAME}`}
+        className="mt-3"
         style={{ background: "var(--ou-surface-primary, #ffffff)" }}
         data-testid={PUBLIC_DASHBOARD_FRAME_TEST_ID}
       >
-        <div
-          ref={boardRef}
-          style={{ minWidth: `${PUBLIC_DASHBOARD_BOARD_MIN_WIDTH_IN_PX}px` }}
-          data-testid={PUBLIC_DASHBOARD_BOARD_TEST_ID}
-        >
+        <div ref={boardRef} data-testid={PUBLIC_DASHBOARD_BOARD_TEST_ID}>
           <DashboardCanvas
             dashboardViewConfig={dashboardViewConfig}
             onDashboardViewConfigChange={(_config: DashboardViewConfig) => {
