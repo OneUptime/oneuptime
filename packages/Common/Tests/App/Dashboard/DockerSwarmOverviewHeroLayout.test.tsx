@@ -321,11 +321,11 @@ describe("the Docker Swarm Overview's hero", () => {
   });
 
   test("an agent with this release's files: the plain chip, under the top row too", async () => {
-    const { topRow } = await renderOverview("0.161.1");
+    const { topRow } = await renderOverview("0.161.2");
 
     expect(screen.queryByTestId("agent-version-outdated")).toBeNull();
     const chip: HTMLElement = screen.getByTestId("agent-version-chip");
-    expect(chip).toHaveTextContent("Agent 0.161.1");
+    expect(chip).toHaveTextContent("Agent 0.161.2");
     expect(topRow.contains(chip)).toBe(false);
   });
 });

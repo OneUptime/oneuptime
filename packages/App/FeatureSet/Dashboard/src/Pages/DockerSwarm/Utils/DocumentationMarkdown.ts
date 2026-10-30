@@ -53,7 +53,24 @@ export const DOCKER_SWARM_EXAMPLE_CLUSTER_NAME: string = "my-swarm";
 // What the compose file falls back to when .env sets no cluster name.
 export const DOCKER_SWARM_DEFAULT_CLUSTER_NAME: string = "docker-swarm";
 
-export const DOCKER_SWARM_DEFAULT_API_VERSION: string = "1.44";
+/*
+ * The Docker Engine API version the collector and the inventory poller speak
+ * unless told otherwise: none. docker-compose.yml passes an empty
+ * DOCKER_API_VERSION, so the collector negotiates the version with the
+ * daemon and the poller asks for the daemon's own version, and every Engine
+ * from 20.10 on works. It used to be 1.44, which Engine 20.10 to 24 refuse
+ * as "too new".
+ */
+export const DOCKER_SWARM_DEFAULT_API_VERSION: string = "";
+
+/*
+ * Prints the node's name into the .env of a Docker Compose install - the
+ * daemon's name is the node's hostname, the name `docker node ls` shows.
+ * The collector stamps it on the node's container metrics and logs as
+ * docker.swarm.node.name; install.sh writes it itself.
+ */
+export const DOCKER_SWARM_NODE_NAME_COMMAND: string =
+  "echo \"DOCKER_SWARM_NODE_NAME=$(docker info --format '{{.Name}}')\" >> .env";
 export const DOCKER_SWARM_DEFAULT_INVENTORY_INTERVAL_SECONDS: string = "300";
 
 export function getDockerSwarmAgentFileUrl(fileName: string): string {
@@ -281,6 +298,10 @@ They are the files in the [DockerSwarmAgent directory](${DOCKER_SWARM_AGENT_DIRE
 
 ${notes.join("\n\n")}
 
+Add this node's name to it. The collector puts it on the node's container metrics, and a Docker Swarm monitor's **Node Name** filter matches it:
+
+${codeBlock("bash", DOCKER_SWARM_NODE_NAME_COMMAND)}
+
 Then start it:
 
 ${codeBlock("bash", "docker compose up -d")}`,
@@ -339,12 +360,17 @@ ${codeBlock(
 | \`ONEUPTIME_URL\` | Yes | Your OneUptime instance URL (e.g. \`${data.oneuptimeUrl}\`) |
 | \`ONEUPTIME_SERVICE_TOKEN\` | Yes | The telemetry ingestion key from step 1 |
 | \`DOCKER_SWARM_CLUSTER_NAME\` | Yes | The cluster's name in OneUptime, and its join key: stamped on every signal as the \`docker.swarm.cluster.name\` resource attribute. Defaults to \`${DOCKER_SWARM_DEFAULT_CLUSTER_NAME}\` |
+| \`DOCKER_SWARM_NODE_NAME\` | No | This node's name, stamped on its containers' metrics and logs as \`docker.swarm.node.name\` — what a Docker Swarm monitor's **Node Name** filter matches. ${
+          script
+            ? "The install script sets it to the node's hostname, the name `docker node ls` shows"
+            : `Set it to the node's hostname, the name \`docker node ls\` shows: \`${DOCKER_SWARM_NODE_NAME_COMMAND}\``
+        }. Empty: no node name is stamped |
 | \`DOCKER_INVENTORY_INTERVAL_SECONDS\` | No | How often the poller refreshes the inventory snapshot (default \`${DOCKER_SWARM_DEFAULT_INVENTORY_INTERVAL_SECONDS}\`) |
-| \`DOCKER_API_VERSION\` | No | Docker Engine API version the collector and the inventory poller speak (default \`${DOCKER_SWARM_DEFAULT_API_VERSION}\`; see Troubleshooting) |
+| \`DOCKER_API_VERSION\` | No | Docker Engine API version the collector and the inventory poller speak. Empty by default: they use the daemon's own, so any Docker Engine from 20.10 on works. Set it only to pin a version (see Troubleshooting) |
 
 ${
   script
-    ? `The install script writes the first three to ${envFile}. Add or change any of them there, then run \`docker compose up -d\` in \`${DOCKER_SWARM_AGENT_INSTALL_DIR}\` to recreate the containers with the new values.`
+    ? `The install script writes the first four to ${envFile}. Add or change any of them there, then run \`docker compose up -d\` in \`${DOCKER_SWARM_AGENT_INSTALL_DIR}\` to recreate the containers with the new values.`
     : `Set them in ${envFile}, then run \`docker compose up -d\` to recreate the containers with the new values.`
 }`,
     },
@@ -370,7 +396,7 @@ ${
         "A collector, an inventory poller and the AI agent, in one compose file on a manager node.",
       markdown: `The agent is three containers, all defined in its docker-compose.yml:
 
-1. **Collector** (\`${DOCKER_SWARM_COLLECTOR_CONTAINER_NAME}\`) — the stock \`otel/opentelemetry-collector-contrib\` image with a tuned config. It scrapes \`docker_stats\` for per-container CPU and memory, tails container logs, and tails the inventory snapshot file — stamping everything with \`docker.swarm.cluster.name\` before shipping it to OneUptime over OTLP.
+1. **Collector** (\`${DOCKER_SWARM_COLLECTOR_CONTAINER_NAME}\`) — the stock \`otel/opentelemetry-collector-contrib\` image with a tuned config. It scrapes \`docker_stats\` for per-container CPU and memory, tails container logs, and tails the inventory snapshot file — stamping everything with \`docker.swarm.cluster.name\`, and each task's metrics with its service and node, before shipping it to OneUptime over OTLP.
 2. **Inventory poller** (\`${DOCKER_SWARM_INVENTORY_CONTAINER_NAME}\`) — a small \`alpine\` + \`curl\` + \`jq\` sidecar that every 5 minutes walks the Swarm manager API (\`/nodes\`, \`/services\`, \`/tasks\`, \`/networks\`, \`/secrets\`, \`/configs\`, \`/volumes\`) and derives stacks from the \`com.docker.stack.namespace\` service label, writing one JSON line per object for the collector to forward.
 3. **OneUptime AI agent** (\`${DOCKER_SWARM_AI_AGENT_CONTAINER_NAME}\`) — runs the commands OneUptime AI asks for; see **The OneUptime AI agent** above.`,
     },
@@ -407,7 +433,7 @@ ${codeBlock("bash", "docker compose down")}`,
 | Container CPU / memory / pids / uptime | \`docker_stats\` receiver | the Metrics tab |
 | Container stdout/stderr logs | \`filelog\` receiver | the Logs tab |
 
-The agent deliberately stamps **only** \`docker.swarm.cluster.name\` (not \`host.name\` or \`container.runtime\`), so OneUptime attributes the telemetry to this swarm cluster rather than registering each node as a standalone Host or Docker Host.`,
+Each task's metrics carry its container (\`container.name\`, \`container.image.name\`, and \`container.runtime=docker\`, which the \`docker_stats\` receiver adds), its service (\`docker.swarm.service.name\`) and its node (\`docker.swarm.node.id\`, and \`docker.swarm.node.name\` from \`DOCKER_SWARM_NODE_NAME\`). The agent stamps \`docker.swarm.cluster.name\` on everything and never \`host.name\`, so OneUptime attributes the telemetry to this swarm cluster rather than registering each node as a standalone Host or Docker Host.`,
     },
   ];
 }
@@ -451,13 +477,17 @@ Error response from daemon: client version 1.44 is too new.
 Maximum supported API version is 1.41`,
 )}
 
-The daemon refuses a client newer than its own maximum, the collector exits with it, and the container restart-loops. Find the daemon's maximum:
+The daemon refuses a client newer than its own maximum, the collector exits with it, and the container restart-loops. The collector pins a version only when \`DOCKER_API_VERSION\` names one, and older agent files pinned \`1.44\`, which Docker Engine 20.10 to 24 refuse. ${
+        isScript(data)
+          ? "Run the install script again: it downloads the current files, which leave the version empty."
+          : "Download the agent's files again (step 2), which leave the version empty."
+      } Then take any \`DOCKER_API_VERSION=\` line with a version out of ${envFile}, or set it empty — \`DOCKER_API_VERSION=\` — and run \`docker compose up -d\` in ${getAgentFolderName(data)}, on every node the collector runs on. The collector then negotiates the version with the daemon.
+
+To pin a version anyway, use no more than the daemon's maximum, such as \`DOCKER_API_VERSION=1.41\`:
 
 ${codeBlock("bash", "docker version --format '{{ .Server.APIVersion }}'")}
 
-Then add \`DOCKER_API_VERSION=1.41\` (or the value you got) to ${envFile} and run \`docker compose up -d\` in ${getAgentFolderName(data)}, on every node the collector runs on. Newer daemons still serve older API versions, so the setting keeps working after you upgrade Docker.
-
-Rather not look the number up? Put \`DOCKER_API_VERSION=\` (empty) in ${envFile} instead, and the collector negotiates the version with the daemon.`,
+Newer daemons still serve older API versions, so a pinned version keeps working after you upgrade Docker.`,
     },
     {
       title: "Cluster appears under the wrong name",
