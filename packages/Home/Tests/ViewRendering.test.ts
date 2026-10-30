@@ -1147,6 +1147,8 @@ describe("security-events.ejs", () => {
     ).toEqual(
       new Set([
         SecurityEventConnectorProvider.OktaSystemLog,
+        SecurityEventConnectorProvider.MicrosoftEntraId,
+        SecurityEventConnectorProvider.GoogleWorkspace,
         SecurityEventConnectorProvider.CrowdStrikeFalcon,
         SecurityEventConnectorProvider.MicrosoftDefenderXdr,
       ]),
@@ -1182,7 +1184,7 @@ describe("security-events.ejs", () => {
 
     expect(html).toContain("with approval on by default");
     expect(html).toContain(
-      "Containment beyond Okta, CrowdStrike and Microsoft Defender",
+      "Containment beyond Okta, Microsoft Entra ID, Google Workspace, CrowdStrike and Microsoft Defender",
     );
   });
 });
