@@ -42,10 +42,9 @@ Ovanför listan räknar rutorna **Mottagare**, **Klar**, **Behöver konfigureras
 | --- | --- |
 | **Mottagare** | Personen, med e-postadress. |
 | **Status** | **Klar**, **Onåbar**, eller hur många luckor personen har. |
-| **Team** | Teamen som larmar personen via en eskaleringsregel. |
 | **Kanaler** | Ett segment per kanal: ifyllt för en verifierad metod, ihåligt för en som inte är verifierad än. |
 | **Coverage** | Hur många allvarlighetsgrader som har en regel, på varje flik, av alla. |
-| **Reached via** | Hur policyerna når personen: `Direct`, `Team`, `Schedule` eller `Override`. |
+| **Reached via** | Hur policyerna når personen: varje team som larmar personen via en eskaleringsregel, med sitt namn, eller **Direct**, **Schema** eller **Åsidosättning**. |
 
 **Coverage** på en rad visar personens aviseringsmetoder, varför hen har sin status och ett rutnät över varje allvarlighetsgrad med eller utan regel. Tratten filtrerar listan efter **Mottagare**, **Status**, **Team** eller **Reached via**. Svaret kan vara en minut gammalt: **Uppdatera** avgör det på nytt.
 

@@ -267,15 +267,26 @@ export function formatShiftInstant(
 /*
  * Compact human duration from a raw seconds count, e.g. "24h", "8h 30m",
  * "5d 12h", "45m".
+ *
+ * Counted to the nearest minute. A rotation's turns are a second apart (the
+ * next turn starts one second after the last ends, Layer.ts), so a weekly
+ * turn runs a week less one second: cut down to the whole hour it read
+ * "6d 23h" on every row of a weekly rotation, beside two times a week
+ * apart. Under a minute still reads "1m", never "0m".
  */
 export function formatDurationFromSeconds(totalSeconds: number): string {
   if (totalSeconds <= 0) {
     return "0m";
   }
 
-  const days: number = Math.floor(totalSeconds / 86400);
-  const hours: number = Math.floor((totalSeconds % 86400) / 3600);
-  const minutes: number = Math.floor((totalSeconds % 3600) / 60);
+  const roundedSeconds: number = Math.max(
+    60,
+    Math.round(totalSeconds / 60) * 60,
+  );
+
+  const days: number = Math.floor(roundedSeconds / 86400);
+  const hours: number = Math.floor((roundedSeconds % 86400) / 3600);
+  const minutes: number = Math.floor((roundedSeconds % 3600) / 60);
 
   if (days > 0) {
     return hours > 0 ? `${days}d ${hours}h` : `${days}d`;

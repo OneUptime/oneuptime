@@ -229,7 +229,7 @@ Pour publier dans un canal, ajoutez une règle sous **Produits → Événements 
 | Priorité du dossier de sécurité | L'une des priorités de dossier du projet, comme Critique ou Élevé |
 | Titre du dossier de sécurité, Description du dossier de sécurité | Un texte que le titre ou la description du dossier contient, par lequel il commence ou par lequel il se termine |
 | Statut du dossier de sécurité | L'un des statuts de dossier du projet, comme Nouveau ou Fermé |
-| Source du dossier de sécurité | Règle de détection, Threat Intel, Connected Product, Risque des entités ou Manuel |
+| Source du dossier de sécurité | Règle de détection, Threat Intel, Connected Product, Risque des entités, Sécurité des données ou Manuel |
 | Étiquettes du dossier de sécurité | Les étiquettes du dossier |
 
 Chaque notification, sauf celle d'une tâche, est publiée dans les canaux de toutes les règles auxquelles le dossier correspond à ce moment-là. Une règle où **Priorité du dossier de sécurité** contient l'une des valeurs **Critique** et **Élevé** publie les dossiers Élevé et Critique dès leur ouverture, et un dossier Medium quand il monte à Élevé. Un dossier de sécurité n'a jamais de canal à lui.
@@ -268,6 +268,7 @@ Un playbook désactivé ne s'exécute ni de lui-même ni à la main.
 | Investigation | Look up entity activity | Compte les événements de sécurité de chaque entité sur une fenêtre récente, et consigne le résultat sur le dossier |
 | Investigation | Preserve the evidence | Conserve les enregistrements de session des requêtes derrière le dossier, et consigne leurs traces et exceptions sur le dossier |
 | Notification | Email people | Envoie par e-mail à des utilisateurs et des équipes un résumé du dossier, avec un lien vers celui-ci |
+| Notification | Notify data store owners | Envoie par e-mail aux propriétaires de chaque magasin de données concerné par le dossier un lien vers celui-ci |
 | Notification | Post to Slack | Publie un résumé du dossier dans un canal Slack |
 | Notification | Post to Microsoft Teams | Publie un résumé du dossier dans un canal Microsoft Teams |
 | Notification | Post a status page announcement | Publie une annonce que vous avez rédigée sur les pages de statut de votre choix |
@@ -280,6 +281,8 @@ Un playbook désactivé ne s'exécute ni de lui-même ni à la main.
 | Confinement | Unsuspend the user in Okta | Lève dans Okta la suspension de l'utilisateur sur lequel porte le dossier |
 | Confinement | Lift containment in CrowdStrike | Lève le confinement réseau appliqué par CrowdStrike Falcon à l'hôte sur lequel porte le dossier |
 | Confinement | Release the device in Microsoft Defender | Libère de l'isolement dans Microsoft Defender for Endpoint l'hôte sur lequel porte le dossier |
+| Confinement | Bloquer l'accès public aux magasins de données | Bloque l'accès public à chaque bucket ou compte de stockage sur lequel porte le dossier, via sa connexion cloud |
+| Confinement | Révoquer le partage des magasins de données | Cesse de partager hors de vos comptes les instantanés de chaque base de données sur laquelle porte le dossier, via sa connexion cloud |
 | Automatisation | Send a webhook | Envoie le dossier en JSON à une URL |
 | Automatisation | Run a workflow | Lance un flux de travail OneUptime avec le dossier en entrée |
 | Automatisation | Run a runbook | Lance l'un de vos runbooks OneUptime avec le dossier en entrée |
@@ -287,7 +290,7 @@ Un playbook désactivé ne s'exécute ni de lui-même ni à la main.
 
 Un playbook compte au plus 25 étapes. Elles s'exécutent dans l'ordre, chacune une fois la précédente terminée. Chaque étape peut aussi :
 
-- **Approbation requise** : arrêter l'exécution avant l'étape jusqu'à ce que quelqu'un l'approuve sur le dossier. Les quatre étapes qui coupent l'accès à quelqu'un s'arrêtent toujours ainsi, sauf si un Security Admin désactive ce réglage. **Run a runbook** et **Post a status page announcement** commencent avec ce réglage activé, car l'une exécute des commandes sur vos systèmes et l'autre s'adresse à vos clients ; la personne qui ajoute l'étape peut le désactiver.
+- **Approbation requise** : arrêter l'exécution avant l'étape jusqu'à ce que quelqu'un l'approuve sur le dossier. Les quatre étapes qui coupent l'accès à quelqu'un s'arrêtent toujours ainsi, sauf si un Security Admin désactive ce réglage. **Run a runbook**, **Post a status page announcement** et les deux étapes de magasin de données commencent avec ce réglage activé, car elles exécutent des commandes sur vos systèmes, s'adressent à vos clients ou modifient les paramètres d'un cloud ; la personne qui ajoute l'étape peut le désactiver.
 - **Seulement si le renseignement sur les menaces correspond** : sauter l'étape, sauf si une étape **Vérifier les entités dans le renseignement sur les menaces** antérieure de la même exécution a trouvé un indicateur connu.
 - **Continuer en cas d'échec** : exécuter l'étape suivante même si celle-ci échoue. Sans ce réglage, une étape en échec arrête l'exécution.
 
@@ -302,20 +305,23 @@ Quatre étapes agissent par le reste de OneUptime plutôt que par un produit con
 
 ### Confinement
 
-Les étapes de confinement agissent via une [connexion d'événements de sécurité](/docs/telemetry/security-events#connecter-un-produit-de-sécurité) au produit, et cette connexion a besoin de plus qu'un accès en lecture :
+Les étapes de confinement agissent via une connexion qui a besoin de plus qu'un accès en lecture : une [connexion d'événements de sécurité](/docs/telemetry/security-events#connecter-un-produit-de-sécurité) au produit, ou la [connexion cloud](/docs/telemetry/cloud-accounts) du magasin de données :
 
 | Étape | Connexion | Ce qu'il faut |
 | --- | --- | --- |
 | Suspend the user in Okta, End the user's Okta sessions, Unsuspend the user in Okta | Okta System Log | Un jeton d'API autorisé à gérer les utilisateurs |
 | Contain the host in CrowdStrike, Lift containment in CrowdStrike | CrowdStrike Falcon | Un client API avec le scope Hosts en écriture |
 | Isolate the device in Microsoft Defender, Release the device in Microsoft Defender | Microsoft Defender XDR | Une application avec l'autorisation Machine.Isolate |
+| Bloquer l'accès public aux magasins de données, Révoquer le partage des magasins de données | La connexion cloud du magasin de données | **Réponse de sécurité des données** activé, et sa commande de configuration exécutée à nouveau |
 
-Une étape de confinement n'agit que sur les utilisateurs ou hôtes sur lesquels porte le dossier, jamais sur tous ceux que le dossier nomme :
+Une étape portant sur un utilisateur ou un hôte n'agit que sur les utilisateurs ou hôtes sur lesquels porte le dossier, jamais sur tous ceux que le dossier nomme :
 
 - La valeur selon laquelle une détection du dossier est regroupée, comme le compte selon lequel regroupe une règle de voyage impossible, ou l'hôte que nomme l'alerte d'un produit connecté.
 - Un utilisateur ou un hôte du dossier que votre renseignement sur les menaces connaît comme indicateur.
 
 Un dossier regroupé selon une adresse, comme une attaque par force brute contre votre VPN, ne porte sur aucun des deux : ses étapes de confinement sont sautées, et le compte qu'elle visait et la passerelle qu'elle a atteinte ne sont pas touchés. Une étape agit sur au plus 10 utilisateurs ou hôtes. Elle retrouve chacun dans le produit par son nom, et indique sur l'exécution ce qu'elle a fait de chacun : fait, déjà fait, introuvable, refusé ou protégé.
+
+Les deux étapes de magasin de données agissent sur les magasins de données sur lesquels porte le dossier, 10 au plus : ceux des problèmes de Sécurité des données qu'il a reçus, et tout magasin de données selon lequel une détection l'a regroupé. Elles ne touchent pas à un magasin de données marqué **Public par conception**, modifient la façon dont un magasin de données est partagé mais jamais ses données, et indiquent sur l'exécution ce qu'elles ont fait de chaque magasin de données (voir [Fermer une exposition](/docs/data-security/integrations#fermer-une-exposition)).
 
 #### Entités protégées
 

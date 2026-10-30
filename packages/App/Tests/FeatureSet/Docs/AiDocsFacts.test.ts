@@ -938,8 +938,9 @@ describe("Code", () => {
     const exceptionTasks: string = dashboardSource(
       "Utils/ExceptionAIAssistance.ts",
     );
-    const investigation: string = dashboardSource(
-      "Components/AI/InvestigationPanel.tsx",
+    // The investigation's fix in the code is the AI card's Remediation step's.
+    const remediationStep: string = dashboardSource(
+      "Components/AutoRemediation/RemediationStepCopy.ts",
     );
     // The trace's button is drawn by its finding strip, beside the finding.
     const trace: string = dashboardSource(
@@ -957,7 +958,9 @@ describe("Code", () => {
       expect(exceptionTasks).toContain(`startActionName: "${name}"`);
     }
 
-    expect(investigation).toContain('title="Open Fix PR from this analysis"');
+    expect(remediationStep).toContain(
+      'openPullRequest: translationKey("Open fix pull request"),',
+    );
     expect(trace).toContain('"Fix performance with AI"');
     expect(telemetry).toContain('translationKey("Improve Logging")');
     expect(telemetry).toContain('translationKey("Improve Tracing")');
@@ -975,7 +978,7 @@ describe("Code", () => {
         "Fix with AI",
         "Generate Regression Test",
         "Improve Error Handling",
-        "Open Fix PR from this analysis",
+        "Open fix pull request",
         "Fix performance with AI",
         "Improve Logging",
         "Improve Tracing",
@@ -1028,8 +1031,8 @@ describe("Code", () => {
     const telemetry: string = flat(
       dashboardSource("Components/AI/TelemetryImprovementCard.tsx"),
     );
-    const investigation: string = flat(
-      dashboardSource("Components/AI/InvestigationPanel.tsx"),
+    const remediationStep: string = flat(
+      dashboardSource("Components/AutoRemediation/RemediationStep.tsx"),
     );
     const traceExplorer: string = flat(
       dashboardSource("Components/Traces/TraceExplorer.tsx"),
@@ -1044,9 +1047,12 @@ describe("Code", () => {
       '{isAiOffered ? ( <SideMenuSection title="Resolve">',
     );
     expect(assistance).toContain("if (!isAiOffered) {");
-    // AI off: the investigation's fix action and the trace's suggestion too.
-    expect(investigation).toContain(
-      "isCodeFixRecommended && (isAiOffered || Boolean(fixTaskRunId));",
+    /*
+     * AI off: the investigation's fix in the code - the Remediation step
+     * asks nothing about it - and the trace's suggestion too.
+     */
+    expect(remediationStep).toContain(
+      "const isCodeFixRecommended: boolean = Boolean(props.codeFix?.isRecommended) && isAiOnNow !== false;",
     );
     expect(traceExplorer).toContain("if (!isAiOfferedForSelectedProject()) {");
     // Improve Logging / Tracing: AI on and a repository, never a setup link.
@@ -1987,9 +1993,11 @@ describe("MCP Server", () => {
      * Postmortem Status, the 28th, came with the Postmortems list; Security
      * Case Priority and Security Case Status with Security Events > Settings;
      * Security Case Task and Security Case Evidence with a case's Tasks and
-     * Evidence pages.
+     * Evidence pages; Data Security's ten records - its stores, their
+     * findings and access, flows, issues, scans, settings, check settings,
+     * custom data types and residency rules - with the product.
      */
-    expect(records()).toHaveLength(32);
+    expect(records()).toHaveLength(42);
     expect(namesIn(0)).toEqual(records());
     // Every database model with MCP on gets all six tools.
     for (const tool of [

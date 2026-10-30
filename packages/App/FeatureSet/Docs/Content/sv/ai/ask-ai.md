@@ -32,12 +32,12 @@ I läget **Skrivskyddad** erbjuds modellen aldrig åtgärderna, så samtalet bar
 | --- | --- |
 | Vilken sida som helst | Klicka på **Fråga AI** i sidhuvudet, eller tryck `Ctrl` + `I` (`Cmd` + `I` på en Mac). Medan du skriver i en textruta eller en redigerare förblir tangenterna redigerarens kortkommando för kursiv. |
 | Kommandopaletten | Tryck `Ctrl` + `K` (`Cmd` + `K` på en Mac) och välj **Fråga AI**. |
-| Ett felmönster i loggarna, eller ett diagrams fynd | Klicka på **Explain with AI**: Fråga AI öppnas med bevisen som en fråga du kan redigera innan du skickar den. |
+| Ett felmönster i loggarna, eller ett diagrams fynd | Klicka på **Förklara med AI**: Fråga AI öppnas med bevisen som en fråga du kan redigera innan du skickar den. |
 | Produktmenyn | Öppna **Produkter → AI → Chat**. Fråga AI öppnas över sidan du var på. Varje samtal har en egen adress, så du kan bokmärka det och komma tillbaka till det. |
 
 Fråga AI öppnas mitt på skärmen, över sidan du var på, och på en telefon fyller den hela skärmen. Tryck på `Esc`, eller klicka bredvid, för att gå tillbaka till sidan. Samtalet stannar där du lämnade det: öppna Fråga AI igen för att fortsätta. Stänger du den medan den fortfarande svarar säger en påminnelse i hörnet när svaret är klart, och öppnar det.
 
-På en incident eller ett larm har kortet **AI Investigation** ett eget samtal, **Ask OneUptime AI**, som delas av alla som kan se incidenten eller larmet: se [Prata med OneUptime AI om incidenten](/docs/ai/ai-sre#prata-med-oneuptime-ai-om-incidenten).
+På en incident eller ett larm har kortet **OneUptime AI** ett eget samtal, **Ask OneUptime AI**, som delas av alla som kan se incidenten eller larmet: se [Prata med OneUptime AI om incidenten](/docs/ai/ai-sre#prata-med-oneuptime-ai-om-incidenten).
 
 ## Vad den kan se
 

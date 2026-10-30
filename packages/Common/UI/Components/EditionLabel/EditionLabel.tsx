@@ -46,6 +46,17 @@ import {
   translationKey,
 } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import UpdateStatusLoader, {
+  getUpgradeGuideUrl,
+} from "../../Utils/UpdateStatus";
+import {
+  UPDATE_STATUS_PILL_COPY,
+  describeUpdateStatus,
+} from "../UpdateStatus/UpdateStatusPill";
+import UpdateStatusUtil, {
+  UpdateState,
+  UpdateStatus,
+} from "../../../Types/UpdateCheck/UpdateStatus";
 
 /*
  * The edition pill and its dialog. This component only READS the license
@@ -205,6 +216,12 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   const [isUpdateAvailable, setIsUpdateAvailable] = useState<boolean>(false);
   const [isUpdateCheckDisabled, setIsUpdateCheckDisabled] =
     useState<boolean>(false);
+  /*
+   * Whether a published security advisory affects this version, as the
+   * footer read it (GET /global-config/update-status, master admins only).
+   * Null until the dialog opens on a page whose footer read it.
+   */
+  const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
   /*
    * True when the validated license was issued for evaluation/testing rather
    * than production. Purely informational — it drives the evaluation notice in
@@ -1121,6 +1138,13 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   const openDialog: () => void = () => {
     setIsDialogOpen(true);
 
+    /*
+     * What the footer already read about this installation's security
+     * advisories, when it did: the version card then says what the footer's
+     * "Security update" pill says. No request of its own.
+     */
+    setUpdateStatus(UpdateStatusLoader.peek());
+
     void fetchGlobalConfig();
   };
 
@@ -1246,6 +1270,19 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
         : "text-[11px] text-indigo-500 group-hover:text-indigo-600";
 
   /*
+   * A published security advisory affects the version this installation
+   * runs, as the footer read it: the card says so in red, as the footer's
+   * "Security update" pill does, and always offers the upgrade guide - a
+   * security fix earns the interruption a routine release does not.
+   */
+  const securityStatus: UpdateStatus | null =
+    updateStatus &&
+    UpdateStatusUtil.isSecurityState(updateStatus.state) &&
+    updateStatus.advisories.length > 0
+      ? updateStatus
+      : null;
+
+  /*
    * Rendered in both the enterprise and the community branch of the modal:
    * the version and update state belong to the installation, not the license.
    */
@@ -1253,7 +1290,11 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     <section
       aria-labelledby="edition-version-heading"
       className={`overflow-hidden rounded-xl border ${
-        isUpdateAvailable ? "border-amber-200" : "border-gray-200"
+        securityStatus
+          ? "border-red-200"
+          : isUpdateAvailable
+            ? "border-amber-200"
+            : "border-gray-200"
       } bg-white`}
     >
       <div className="flex items-center justify-between gap-4 p-5">
@@ -1281,84 +1322,128 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
             </p>
           )}
         </div>
-        {(isUpdateAvailable || isUpToDate) && (
+        {securityStatus ? (
           <span
-            className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-              isUpdateAvailable
-                ? "bg-amber-100 text-amber-800"
-                : "bg-emerald-50 text-emerald-700"
-            }`}
+            data-testid="edition-security-update-chip"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-red-100 px-2.5 py-1 text-xs font-medium text-red-800"
           >
-            {/*
-             * Colour comes from className only — see the note on
-             * the seat advisory icon below.
-             */}
             <Icon
-              icon={
-                isUpdateAvailable
-                  ? IconProp.ArrowCircleUp
-                  : IconProp.CheckCircle
-              }
-              className={`h-3.5 w-3.5 shrink-0 ${
-                isUpdateAvailable ? "text-amber-700" : "text-emerald-600"
-              }`}
+              icon={IconProp.ShieldExclamation}
+              className="h-3.5 w-3.5 shrink-0 text-red-700"
             />
             {translator.translateText(
-              isUpdateAvailable ? "Update available" : "Up to date",
+              securityStatus.state === UpdateState.SecurityUpdate
+                ? UPDATE_STATUS_PILL_COPY.securityUpdate
+                : UPDATE_STATUS_PILL_COPY.securityAdvisory,
             )}
           </span>
+        ) : (
+          (isUpdateAvailable || isUpToDate) && (
+            <span
+              className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+                isUpdateAvailable
+                  ? "bg-amber-100 text-amber-800"
+                  : "bg-emerald-50 text-emerald-700"
+              }`}
+            >
+              {/*
+               * Colour comes from className only — see the note on
+               * the seat advisory icon below.
+               */}
+              <Icon
+                icon={
+                  isUpdateAvailable
+                    ? IconProp.ArrowCircleUp
+                    : IconProp.CheckCircle
+                }
+                className={`h-3.5 w-3.5 shrink-0 ${
+                  isUpdateAvailable ? "text-amber-700" : "text-emerald-600"
+                }`}
+              />
+              {translator.translateText(
+                isUpdateAvailable ? "Update available" : "Up to date",
+              )}
+            </span>
+          )
         )}
       </div>
 
-      {isUpdateAvailable && (
+      {securityStatus ? (
         <div
           role="status"
-          className="border-t border-amber-200 bg-amber-50 px-5 py-4"
+          data-testid="edition-security-update"
+          className="border-t border-red-200 bg-red-50 px-5 py-4"
         >
-          <h5 className="text-sm font-semibold text-amber-900">
-            {translator.translateTemplate(
-              isMajorUpgrade
-                ? "OneUptime v{{version}} is a major upgrade"
-                : "OneUptime v{{version}} is available",
-              { version: latestVersion },
-            )}
-          </h5>
-          <p className="mt-1 text-xs leading-relaxed text-amber-800">
-            {updateAdvisoryText}
+          <p className="text-xs leading-relaxed text-red-800">
+            {describeUpdateStatus(securityStatus, translator)}
           </p>
-          {/*
-           * Only a major upgrade gets a call to action. Minor and patch
-           * releases are routine — a button on every one of them trains
-           * administrators to dismiss the banner, and there is nothing to read
-           * before taking them. A major has breaking changes and must be
-           * applied one major at a time, so it earns the interruption.
-           */}
-          {isMajorUpgrade && (
-            <div className="mt-3">
-              <a
-                href={UPGRADE_GUIDE_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                /*
-                 * Indigo, not amber: the seat advisory directly
-                 * below is an amber panel with an indigo primary
-                 * button, and two different accent colours for
-                 * the same role would read as two conventions.
-                 */
-                className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2"
-              >
-                {translator.translateText("Read the upgrade guide")}
-                <Icon
-                  icon={IconProp.ExternalLink}
-                  className="h-3 w-3 shrink-0 text-white"
-                />
-              </a>
-            </div>
-          )}
+          <div className="mt-3">
+            <a
+              href={getUpgradeGuideUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
+              // Indigo, as every primary button of this dialog.
+              className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2"
+            >
+              {translator.translateText("Read the upgrade guide")}
+              <Icon
+                icon={IconProp.ExternalLink}
+                className="h-3 w-3 shrink-0 text-white"
+              />
+            </a>
+          </div>
         </div>
+      ) : (
+        isUpdateAvailable && (
+          <div
+            role="status"
+            className="border-t border-amber-200 bg-amber-50 px-5 py-4"
+          >
+            <h5 className="text-sm font-semibold text-amber-900">
+              {translator.translateTemplate(
+                isMajorUpgrade
+                  ? "OneUptime v{{version}} is a major upgrade"
+                  : "OneUptime v{{version}} is available",
+                { version: latestVersion },
+              )}
+            </h5>
+            <p className="mt-1 text-xs leading-relaxed text-amber-800">
+              {updateAdvisoryText}
+            </p>
+            {/*
+             * Only a major upgrade gets a call to action. Minor and patch
+             * releases are routine — a button on every one of them trains
+             * administrators to dismiss the banner, and there is nothing to read
+             * before taking them. A major has breaking changes and must be
+             * applied one major at a time, so it earns the interruption.
+             */}
+            {isMajorUpgrade && (
+              <div className="mt-3">
+                <a
+                  href={UPGRADE_GUIDE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  /*
+                   * Indigo, not amber: the seat advisory directly
+                   * below is an amber panel with an indigo primary
+                   * button, and two different accent colours for
+                   * the same role would read as two conventions.
+                   */
+                  className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2"
+                >
+                  {translator.translateText("Read the upgrade guide")}
+                  <Icon
+                    icon={IconProp.ExternalLink}
+                    className="h-3 w-3 shrink-0 text-white"
+                  />
+                </a>
+              </div>
+            )}
+          </div>
+        )
       )}
 
-      {!isUpdateAvailable && updateFooterText && (
+      {!securityStatus && !isUpdateAvailable && updateFooterText && (
         <div className="border-t border-gray-100 px-5 py-3">
           <p className="text-xs text-gray-500">{updateFooterText}</p>
         </div>

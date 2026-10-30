@@ -3,7 +3,8 @@ import fs from "fs";
 import path from "path";
 
 /*
- * The incident's and alert's Remediation card in the dark theme.
+ * The Remediation step of the incident's and alert's AI card (block 43) in
+ * the dark theme.
  *
  * The dashboard's dark theme does not come from Tailwind's dark: variants.
  * Theme.css re-colours the light utility classes under html.dark, one rule
@@ -11,13 +12,14 @@ import path from "path";
  * A class it has no rule for keeps its light colour in the dark theme and
  * nothing fails, which is how a light wash ends up on a dark card.
  *
- * The card says what auto-remediation did with tinted tone marks, a rule
+ * The step says what auto-remediation did with tinted tone marks, a rule
  * beside a blocked path's "why" and "what to do", hairlines between the
- * lines, links and a status pill shared with the AI Investigation card.
- * These read the card's sources (RemediationSuggestionCard and every module
- * it imports from Components/AutoRemediation and Components/AI, followed
- * transitively) and hold every colour class to what Theme.css actually
- * remaps. Rendering is covered in Common/Tests/App/Dashboard/Remediation*.
+ * lines, links, the fix in the code, and the numbered mark and status pill
+ * it shares with the card's investigation step. These read the step's
+ * sources (RemediationStep and every module it imports from
+ * Components/AutoRemediation and Components/AI, followed transitively) and
+ * hold every colour class to what Theme.css actually remaps. Rendering is
+ * covered in Common/Tests/App/Dashboard/Remediation*.
  */
 
 const COMPONENTS_DIR: string = path.join(
@@ -39,7 +41,7 @@ const CARD_DIRS: Array<string> = [
 const ENTRY_FILE: string = path.join(
   COMPONENTS_DIR,
   "AutoRemediation",
-  "RemediationSuggestionCard.tsx",
+  "RemediationStep.tsx",
 );
 
 const THEME_CSS_PATH: string = path.join(
@@ -161,7 +163,7 @@ const KNOWN_EXCEPTIONS: Record<string, Array<string>> = {
    * a mid-grey mark, as visible on the dark pill as on the light one.
    */
   "bg-gray-400": [
-    "AutoRemediation/RemediationSuggestionCard.tsx",
+    "AutoRemediation/RemediationStep.tsx",
     "AutoRemediation/McpToolCallList.tsx",
   ],
 };
@@ -221,28 +223,46 @@ function tokensIn(code: string): Array<string> {
   );
 }
 
-describe("the Remediation card in the dark theme", () => {
-  test("the walk starts at the card and reaches every part of it", () => {
+describe("the Remediation step in the dark theme", () => {
+  test("the walk starts at the step and reaches every part of it", () => {
     const modules: Map<string, string> = getCardModules();
 
-    expect(Array.from(modules.keys()).sort()).toEqual([
-      /*
-       * What the card tells the page's AI card - whether fixing did
-       * anything - and whether it leaves saying so to that card's one
-       * line. A rule and its words, no colours.
-       */
-      "AI/AiOffSummaryData.ts",
-      "AI/AiOffSummaryWords.ts",
-      // The links' arrow, glued to their last word (#5273). No colours.
-      "AI/ArrowGluedText.tsx",
-      "AI/InvestigationStatusBadge.tsx",
-      // A fix through MCP servers: its changes, in order.
-      "AutoRemediation/McpToolCallList.tsx",
-      "AutoRemediation/RemediationDecisionLines.ts",
-      "AutoRemediation/RemediationDecisionList.tsx",
-      "AutoRemediation/RemediationDecisionStatusBadge.tsx",
-      "AutoRemediation/RemediationSuggestionCard.tsx",
-    ]);
+    expect(Array.from(modules.keys()).sort()).toEqual(
+      expect.arrayContaining([
+        /*
+         * What the step tells the AI card - whether fixing did anything -
+         * and whether it leaves saying so to that card's one line. A rule
+         * and its words, no colours.
+         */
+        "AI/AiOffSummaryData.ts",
+        "AI/AiOffSummaryWords.ts",
+        // The step's numbered mark, title and pill (block 43).
+        "AI/AiCardStep.tsx",
+        // The links' arrow, glued to their last word (#5273). No colours.
+        "AI/ArrowGluedText.tsx",
+        "AI/InvestigationNotice.tsx",
+        "AI/InvestigationStatusBadge.tsx",
+        /*
+         * A cloud change's dry run before approval, under the change: the
+         * note and its words (#5367).
+         */
+        "AutoRemediation/CloudDryRunCopy.ts",
+        "AutoRemediation/CloudDryRunNote.tsx",
+        // A fix through MCP servers: its changes, in order.
+        "AutoRemediation/McpToolCallList.tsx",
+        // The fix in the code the investigation recommends.
+        "AutoRemediation/RemediationCodeFix.tsx",
+        "AutoRemediation/RemediationDecisionLines.ts",
+        "AutoRemediation/RemediationDecisionList.tsx",
+        "AutoRemediation/RemediationStep.tsx",
+        "AutoRemediation/RemediationStepCopy.ts",
+        "AutoRemediation/RemediationStepStatus.ts",
+      ]),
+    );
+    // The card it was, gone with its file.
+    expect(modules.has("AutoRemediation/RemediationSuggestionCard.tsx")).toBe(
+      false,
+    );
   });
 
   test("no module uses dark: variants or builds a colour class from a template", () => {
@@ -295,6 +315,8 @@ describe("the Remediation card in the dark theme", () => {
         "bg-gray-50",
         "text-gray-700",
         "ring-gray-200",
+        // The step's numbered mark while it waits, or is off.
+        "ring-gray-300",
       ]),
     );
     expect(unmapped).toEqual([]);

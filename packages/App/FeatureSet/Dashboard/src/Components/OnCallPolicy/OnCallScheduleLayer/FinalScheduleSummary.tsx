@@ -41,6 +41,19 @@ const SHORT_GAP_SECONDS: number = 60;
 // How many full-size gap warnings to list before collapsing the rest into a count.
 const MAX_SHOWN_GAPS: number = 3;
 
+/*
+ * The small label over each part - "On call right now", "Up next",
+ * "Upcoming hand-offs" - in the reading's own case. They were upper case
+ * and letter-spaced, as no other label in the product is any more (a stat
+ * tile's name has no capitals or tracking either), and grey-400 on white,
+ * too pale to read.
+ */
+export const SECTION_LABEL_CLASS_NAME: string =
+  "flex items-center gap-1.5 text-xs font-semibold";
+
+export const UPCOMING_HAND_OFFS_LIST_CLASS_NAME: string =
+  "divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white";
+
 export interface ComponentProps {
   /*
    * Coverage shifts of the combined schedule (already override-applied),
@@ -294,7 +307,7 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
     if (!current) {
       return (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-amber-700">
+          <div className={`${SECTION_LABEL_CLASS_NAME} text-amber-700`}>
             <Icon icon={IconProp.Alert} className="h-3.5 w-3.5" />
             {translator.translateText("On call right now")}
           </div>
@@ -310,7 +323,7 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
 
     return (
       <div className="rounded-xl border border-indigo-200 bg-indigo-50/60 p-4">
-        <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-indigo-700">
+        <div className={`${SECTION_LABEL_CLASS_NAME} text-indigo-700`}>
           <span className="relative flex h-2 w-2">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-75" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-indigo-500" />
@@ -344,7 +357,7 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
     if (!next) {
       return (
         <div className="rounded-xl border border-gray-200 bg-white p-4">
-          <div className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+          <div className={`${SECTION_LABEL_CLASS_NAME} text-gray-500`}>
             {translator.translateText("Up next")}
           </div>
           <div className="mt-2 text-sm text-gray-500">
@@ -358,7 +371,7 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
 
     return (
       <div className="rounded-xl border border-gray-200 bg-white p-4">
-        <div className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+        <div className={`${SECTION_LABEL_CLASS_NAME} text-gray-500`}>
           {translator.translateText("Up next")}
         </div>
         <div className="mt-2.5 flex items-center gap-3">
@@ -518,15 +531,23 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
   const getUpcomingList: () => ReactElement = (): ReactElement => {
     return (
       <div>
-        <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+        <div className={`mb-2 ${SECTION_LABEL_CLASS_NAME} text-gray-500`}>
           {translator.translateText("Upcoming hand-offs")}
         </div>
-        <ol className="space-y-2">
+        {/*
+         * One list in one frame, its hand-offs ruled off by hairlines: six
+         * framed boxes in a column read as six cards, each as loud as the
+         * "on call right now" one above them.
+         */}
+        <ol
+          className={UPCOMING_HAND_OFFS_LIST_CLASS_NAME}
+          data-testid="upcoming-hand-offs"
+        >
           {upcoming.map((shift: OnCallShift, index: number) => {
             return (
               <li
                 key={`upcoming-${index}`}
-                className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2.5"
+                className="flex items-center gap-3 px-3 py-2.5"
               >
                 {getAvatar(shift.userId, "h-7 w-7 text-[10px]")}
                 <div className="flex min-w-0 flex-1 flex-col">

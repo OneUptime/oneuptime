@@ -57,6 +57,7 @@ import HeldPermissionsUtil from "../../Types/HeldPermissions";
 import { FindWhereProperty } from "../../Types/BaseDatabase/Query";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Text from "../../Types/Text";
+import { applyManualResolutionChange } from "../../Utils/Exceptions/ExceptionIssueState";
 
 /*
  * Hard cap on the fingerprint NOT IN list handed to the ClickHouse count
@@ -170,6 +171,15 @@ export class Service extends ProjectReferencesService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     await super.onBeforeUpdate(updateBy);
+
+    /*
+     * Resolving or reopening clears the Regressed mark, and a resolve keeps
+     * a release to wait for only when it names one (Resolve in next
+     * release). See applyManualResolutionChange.
+     */
+    applyManualResolutionChange(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
 
     updateBy.query = await this.addExceptionScope(
       updateBy.query,

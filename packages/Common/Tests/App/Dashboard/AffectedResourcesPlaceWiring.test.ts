@@ -5,13 +5,14 @@ import ts from "typescript";
 import { AFFECTED_RESOURCES_PLACE_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationDecisionLines";
 
 /*
- * The Remediation card of an incident or alert linked to nothing says "add
+ * The Remediation step of an incident or alert linked to nothing says "add
  * what it is about under Affected Resources", with a button that takes the
  * reader there (#5293). The button looks the place up by its id, so each
- * page that draws the Remediation card must give its Affected Resources
- * card that id - or the button would do nothing, quietly. Read through the
- * TypeScript AST: the cardProps of the CardModelDetail named "Affected
- * Resources" carry `id: AFFECTED_RESOURCES_PLACE_ID`.
+ * page that draws the AI card - whose second step is Remediation (block 43)
+ * - must give its Affected Resources card that id, or the button would do
+ * nothing, quietly. Read through the TypeScript AST: the cardProps of the
+ * CardModelDetail named "Affected Resources" carry
+ * `id: AFFECTED_RESOURCES_PLACE_ID`.
  */
 
 const DASHBOARD_PAGES: string = path.resolve(
@@ -63,15 +64,18 @@ function attributesOf(
   return found;
 }
 
-describe("every page with the Remediation card gives its Affected Resources card the place id", () => {
+describe("every page with the AI card's Remediation step gives its Affected Resources card the place id", () => {
   test.each(PAGES_WITH_THE_REMEDIATION_CARD)("%s", (page: string) => {
     const source: string = fs.readFileSync(
       path.join(DASHBOARD_PAGES, page),
       "utf8",
     );
 
-    // The page draws the Remediation card the line is on.
-    expect(source).toContain("<RemediationSuggestionCard");
+    // The page draws the AI card, whose Remediation step the line is on.
+    expect(source).toContain("<InvestigationPanel");
+    // The step lives only inside the card now, never as a card of its own.
+    expect(source).not.toContain("<RemediationStep");
+    expect(source).not.toContain("RemediationSuggestionCard");
 
     const affectedResources: Array<Record<string, string>> = attributesOf(
       source,
@@ -87,7 +91,7 @@ describe("every page with the Remediation card gives its Affected Resources card
     );
   });
 
-  test("the scan knows every page that draws the Remediation card", () => {
+  test("the scan knows every page that draws the AI card and its Remediation step", () => {
     const drawing: Array<string> = [];
 
     const walk: (directory: string) => void = (directory: string): void => {
@@ -98,7 +102,8 @@ describe("every page with the Remediation card gives its Affected Resources card
           walk(full);
         } else if (
           entry.name.endsWith(".tsx") &&
-          fs.readFileSync(full, "utf8").includes("<RemediationSuggestionCard")
+          (fs.readFileSync(full, "utf8").includes("<InvestigationPanel") ||
+            fs.readFileSync(full, "utf8").includes("<RemediationStep"))
         ) {
           drawing.push(path.relative(DASHBOARD_PAGES, full));
         }

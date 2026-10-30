@@ -39,6 +39,7 @@ import useTableScrollState, {
   TableScrollStateHold,
   isTableOverflowing,
 } from "./useTableScrollState";
+import { revealFromStickyEnd } from "./TableStickyEndFocus";
 import {
   DrawnTableColumns,
   TABLE_FOLDED_COLUMNS_BELOW_WIDTH_IN_PX,
@@ -547,6 +548,32 @@ const Table: TableFunction = <T extends GenericObject>(
     });
   };
 
+  /*
+   * What the keyboard moves to in a cell is never left under the stuck
+   * Actions column: once the browser has scrolled it as far as the box's
+   * edge - under the column - the rows scroll on until it is clear
+   * (TableStickyEndFocus). Read again on the next frame, after any scroll
+   * the browser makes once the focus has moved.
+   */
+  const onScrollBoxFocus: (event: React.FocusEvent<HTMLDivElement>) => void = (
+    event: React.FocusEvent<HTMLDivElement>,
+  ): void => {
+    const box: HTMLDivElement | null = scrollBoxRef.current;
+    const target: Element = event.target;
+
+    if (!box || !scrollState.isOverflowing) {
+      return;
+    }
+
+    revealFromStickyEnd({ box: box, target: target });
+
+    window.requestAnimationFrame(() => {
+      if (document.activeElement === target) {
+        revealFromStickyEnd({ box: box, target: target });
+      }
+    });
+  };
+
   // The rows scroll by the box's class now: the drag's own scroll is let go.
   useLayoutEffect(() => {
     if (scrollState.isOverflowing && !scrollStateHold.isHeldRef.current) {
@@ -945,6 +972,7 @@ const Table: TableFunction = <T extends GenericObject>(
           ref={scrollBoxRef}
           data-testid="table-scroll"
           data-overflowing={scrollState.isOverflowing ? "true" : "false"}
+          onFocus={onScrollBoxFocus}
           className={[
             TABLE_SCROLL_BOX_CLASS_NAME,
             scrollState.isOverflowing ? "overflow-x-auto" : "",

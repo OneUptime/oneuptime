@@ -143,6 +143,14 @@ OneUptime: Critical Incident INC-42 in Acme Prod is still not resolved:
 Checkout API is down. Ack or escalate: https://oneuptime.com/l/XJlaZRsd
 ```
 
+Cuando alguien te avisa desde Slack o Microsoft Teams, el SMS dice quién avisó a quién después de `OneUptime:`, y esas palabras tampoco se cortan nunca:
+
+```text
+OneUptime: Alice Kim paged Platform about Critical Incident INC-42
+in Acme Prod: Checkout API is down.
+Ack or escalate: https://oneuptime.com/l/XJlaZRsd
+```
+
 Un solo carácter fuera del alfabeto sencillo de los SMS hace que todo el mensaje salga en partes de 70 caracteres. Por eso las comillas tipográficas y las rayas se escriben como `"`, `'` y `-`, `…` como `...`, y letras como `ç` y `ł` pierden sus acentos; los emojis se omiten. Un título en otra escritura, como japonés o ruso, se envía tal como está escrito y ocupa dos partes o más.
 
 Los demás SMS que te envía OneUptime, por ejemplo sobre un cambio en un incidente del que eres propietario o el inicio de tu turno de guardia, también empiezan con `OneUptime:` y terminan con `Turn off in User Settings > Notification Settings.`, una frase que se omite cuando así el mensaje cabe en una parte.

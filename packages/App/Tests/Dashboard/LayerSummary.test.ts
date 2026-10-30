@@ -1,4 +1,6 @@
 import {
+  formatDurationFromSeconds,
+  formatShiftDuration,
   summarizeRotation,
   summarizeRestriction,
   summarizeHandOff,
@@ -175,5 +177,59 @@ describe("LayerSummary.summarizeHandOff / summarizeStartsAt", () => {
     expect(summarizeStartsAt(new Date(2025, 0, 6, 9, 0, 0))).toContain(
       "Starts",
     );
+  });
+});
+
+/*
+ * A rotation's turns are a second apart: the next turn starts one second
+ * after the last one ends (Layer.ts). A weekly turn therefore runs a week
+ * less one second, and cut down to the whole hour its length read "6d 23h"
+ * on every hand-off of a weekly rotation - beside two times exactly a week
+ * apart. Lengths are counted to the nearest minute.
+ */
+describe("LayerSummary durations, to the nearest minute", () => {
+  const WEEK: number = 7 * 24 * 60 * 60;
+  const DAY: number = 24 * 60 * 60;
+
+  test("a weekly turn, a second short of a week, is 7d", () => {
+    expect(formatDurationFromSeconds(WEEK - 1)).toBe("7d");
+    expect(formatDurationFromSeconds(WEEK)).toBe("7d");
+
+    const start: Date = new Date("2026-11-10T09:00:01.000Z");
+    const end: Date = new Date("2026-11-17T09:00:00.000Z");
+    expect(formatShiftDuration(start, end)).toBe("7d");
+  });
+
+  test("a daily turn, a second short of a day, is 1d", () => {
+    expect(formatDurationFromSeconds(DAY - 1)).toBe("1d");
+    expect(
+      formatShiftDuration(
+        new Date("2026-11-10T09:00:01.000Z"),
+        new Date("2026-11-11T09:00:00.000Z"),
+      ),
+    ).toBe("1d");
+  });
+
+  test("hours and minutes keep their shape", () => {
+    expect(formatDurationFromSeconds(DAY + 6 * 3600)).toBe("1d 6h");
+    expect(formatDurationFromSeconds(DAY + 6 * 3600 - 1)).toBe("1d 6h");
+    expect(formatDurationFromSeconds(8 * 3600 + 30 * 60)).toBe("8h 30m");
+    expect(formatDurationFromSeconds(8 * 3600 + 30 * 60 - 1)).toBe("8h 30m");
+    expect(formatDurationFromSeconds(3 * 3600)).toBe("3h");
+    expect(formatDurationFromSeconds(45 * 60)).toBe("45m");
+    expect(formatDurationFromSeconds(45 * 60 - 1)).toBe("45m");
+  });
+
+  test("to the nearest minute, so half a minute or more counts up", () => {
+    expect(formatDurationFromSeconds(30 * 60 + 29)).toBe("30m");
+    expect(formatDurationFromSeconds(30 * 60 + 30)).toBe("31m");
+    expect(formatDurationFromSeconds(90)).toBe("2m");
+  });
+
+  test("under a minute is 1m; only no time at all is 0m", () => {
+    expect(formatDurationFromSeconds(1)).toBe("1m");
+    expect(formatDurationFromSeconds(29)).toBe("1m");
+    expect(formatDurationFromSeconds(0)).toBe("0m");
+    expect(formatDurationFromSeconds(-5)).toBe("0m");
   });
 });

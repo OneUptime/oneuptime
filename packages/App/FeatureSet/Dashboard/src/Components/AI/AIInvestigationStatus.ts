@@ -6,6 +6,14 @@ import AIRunStatus from "Common/Types/AI/AIRunStatus";
 export const AI_INVESTIGATION_PANEL_ID: string = "ai-investigation";
 
 /*
+ * Announced on the window when something on the page asks to read the
+ * whole report ("View full report" in the event header): the AI card folds
+ * a finished investigation to its summary, and opens it on this.
+ */
+export const AI_INVESTIGATION_OPEN_REPORT_EVENT: string =
+  "oneuptime:ai-investigation-open-report";
+
+/*
  * A responder's verdict on the report, from the payload's raw
  * `run.humanVerdict`. Only the two values the server writes count; anything
  * else (an API replica that knows a value this build does not) reads as no
@@ -121,6 +129,9 @@ export const scrollToAIInvestigationPanel: () => void = (): void => {
   if (!investigationPanel) {
     return;
   }
+
+  // The card opens its folded report, then the page goes to it.
+  window.dispatchEvent(new Event(AI_INVESTIGATION_OPEN_REPORT_EVENT));
 
   const prefersReducedMotion: boolean =
     typeof window.matchMedia === "function" &&

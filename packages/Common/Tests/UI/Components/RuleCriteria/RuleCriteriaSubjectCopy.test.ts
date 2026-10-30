@@ -28,7 +28,7 @@ describe("RULE_CRITERIA_SUBJECT_COPY", () => {
     expect(Object.keys(RULE_CRITERIA_SUBJECT_COPY).sort()).toEqual(
       [...SUBJECTS].sort(),
     );
-    expect(SUBJECTS.length).toBe(31);
+    expect(SUBJECTS.length).toBe(32);
   });
 
   test.each(SUBJECTS)(

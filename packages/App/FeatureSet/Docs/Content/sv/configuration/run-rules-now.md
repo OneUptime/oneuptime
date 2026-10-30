@@ -14,7 +14,7 @@ flowchart TB
 
 ## Vilka regler kan köras
 
-- **Etikettregler** och **Ägarregler**, för varje resurs som har dem: monitorer, incidenter, incidentepisoder, larm, larmepisoder, planerade underhållshändelser, statussidor, tjänster, värdar, Kubernetes-kluster, Docker-värdar, Docker Swarm-kluster, Podman-värdar, Proxmox-kluster, VMware vCenter, Ceph-kluster, lagringsmatriser, databaser, köer, IoT-flottor, serverlösa funktioner, molnresurser, RUM-applikationer, instrumentpaneler, jourpolicyer, jourscheman, policyer för inkommande samtal, arbetsflöden, runbooks, nätverksenheter och SLO:er.
+- **Etikettregler** och **Ägarregler**, för varje resurs som har dem: monitorer, incidenter, incidentepisoder, larm, larmepisoder, planerade underhållshändelser, statussidor, tjänster, värdar, Kubernetes-kluster, Docker-värdar, Docker Swarm-kluster, Podman-värdar, Proxmox-kluster, VMware vCenter, Ceph-kluster, lagringsmatriser, databaser, datalager, köer, IoT-flottor, serverlösa funktioner, molnresurser, RUM-applikationer, instrumentpaneler, jourpolicyer, jourscheman, policyer för inkommande samtal, arbetsflöden, runbooks, nätverksenheter och SLO:er.
 - **Sekretessregler**, för incidenter, larm, incidentepisoder och larmepisoder.
 - **Monitorregler** på en statussida. De synkroniserar redan om sidan varje gång en regel sparas; att köra en synkroniserar den direkt.
 - **Monitorregler** på en SLO. De synkroniserar redan om SLO:n varje gång en regel sparas; att köra en synkroniserar SLO:ns monitorer direkt. Se [Monitorer och monitorregler](/docs/slo/monitor-rules).

@@ -108,6 +108,8 @@ const READS_AI_CONTEXT: Record<string, string> = {
     "an incident's postmortem draft (its note drafts read none)",
   "Utils/AI/IncidentEpisodeAIContextBuilder.ts":
     "an episode's postmortem draft",
+  "API/DataSecurityAPI.ts":
+    "Explain on a Data Security issue: the steps to fix the team's own store, on its own systems",
 };
 
 // The files that write one it deliberately leaves out, and why.
