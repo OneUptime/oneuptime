@@ -8,7 +8,14 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import fs from "fs";
 import { createInstance, i18n } from "i18next";
 import path from "path";
@@ -34,6 +41,12 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * Root spans and on Server makes. The REAL sidebar and chips then draw them
  * under an i18next instance per language, built from the Dashboard's own
  * locale files the way Utils/i18n.ts builds the Dashboard's.
+ *
+ * What each Span Type choice is used to be an English paragraph under the
+ * title in every language. It is behind an (i) beside the title now, and on
+ * each option: the (i) is named in the reader's language, and each choice's
+ * sentence reads in the language's own words under the choice's name, which
+ * stays as written ("Entry spans"), as the translated docs quote it.
  */
 
 const viewerProbe: MockFunction = getJestMockFunction();
@@ -137,6 +150,10 @@ jest.mock(
 import TracesViewer from "../../../../App/FeatureSet/Dashboard/src/Components/Traces/TracesViewer";
 import ObjectID from "../../../Types/ObjectID";
 import { RESOURCE_FACET_CATALOG_KEYS } from "../../../Types/Telemetry/ResourceFacetCatalog";
+import {
+  TRACE_SPAN_TYPE_OPTIONS,
+  TraceSpanTypeOption,
+} from "../../../Types/Telemetry/TraceSpanType";
 import TelemetryActiveFilterChips from "../../../UI/Components/TelemetryViewer/components/TelemetryActiveFilterChips";
 import TelemetryFacetSidebar from "../../../UI/Components/TelemetryViewer/components/TelemetryFacetSidebar";
 import {
@@ -512,5 +529,161 @@ describe("the two filters in Japanese and Spanish", () => {
       expect.arrayContaining([SPAN_TYPE, SPAN_KIND]),
     );
     expect(chipKeys()).toEqual(expect.arrayContaining([SPAN_TYPE, SPAN_KIND]));
+  });
+});
+
+// The paragraph every language used to show, in English, under Span Type.
+const OLD_SPAN_TYPE_HELP: string =
+  "Entry spans: where a request or message enters a service. Root spans: where a trace starts. All spans: every operation, including database calls and internal steps.";
+
+// The real explorer's Span Type facet, a count for each of its choices.
+const renderSpanTypeInLanguage: (language: string) => void = (
+  language: string,
+): void => {
+  render(
+    <I18nextProvider i18n={INSTANCES[language] as i18n}>
+      <TelemetryFacetSidebar
+        facetData={{
+          spanType: [
+            { value: "entry", count: 40 },
+            { value: "root", count: 2 },
+            { value: "all", count: 900 },
+          ],
+        }}
+        facetConfigs={[configTitled(SPAN_TYPE)]}
+        isLoading={false}
+        activeFilters={[]}
+        onIncludeFilter={jest.fn()}
+        onRemoveFilter={jest.fn()}
+      />
+    </I18nextProvider>,
+  );
+};
+
+// "About Span Type" as the language words it, the facet's name in it.
+const aboutSpanType: (language: string) => string = (
+  language: string,
+): string => {
+  return drawn(language, "About {{label}}").replace(
+    "{{label}}",
+    drawn(language, SPAN_TYPE),
+  );
+};
+
+// Each choice's name as written, and its sentence as the language words it.
+const choicesIn: (language: string) => Array<[string, string]> = (
+  language: string,
+): Array<[string, string]> => {
+  return TRACE_SPAN_TYPE_OPTIONS.map(
+    (option: TraceSpanTypeOption): [string, string] => {
+      return [option.label, drawn(language, option.description)];
+    },
+  );
+};
+
+describe("what each Span Type choice is", () => {
+  test("the real explorer hands its sidebar each choice's sentence, and no paragraph", () => {
+    const config: FacetConfig = configTitled(SPAN_TYPE);
+
+    expect(config.valueDescriptionMap).toEqual({
+      entry: "Where a request or message enters a service.",
+      root: "Where a trace starts.",
+      all: "Every operation, including database calls and internal steps.",
+    });
+    expect(config.description).toBeUndefined();
+  });
+
+  test("each sentence is a key of the Dashboard's locales; each choice's name is not, and reads as written", () => {
+    for (const option of TRACE_SPAN_TYPE_OPTIONS) {
+      expect(ENGLISH[option.description]).toBe(option.description);
+      expect({ name: option.label, isKey: option.label in ENGLISH }).toEqual({
+        name: option.label,
+        isKey: false,
+      });
+    }
+  });
+
+  test.each(
+    LANGUAGES.filter((language: string): boolean => {
+      return language !== "en";
+    }),
+  )("%s words every sentence in its own words", (language: string) => {
+    for (const option of TRACE_SPAN_TYPE_OPTIONS) {
+      const value: unknown = (LOCALES[language] as Locale)[option.description];
+
+      expect(typeof value).toBe("string");
+      expect({
+        language,
+        sentence: option.description,
+        isEnglish: value === option.description,
+        isBlank: String(value).trim() === "",
+      }).toEqual({
+        language,
+        sentence: option.description,
+        isEnglish: false,
+        isBlank: false,
+      });
+    }
+  });
+});
+
+describe.each(LANGUAGES)("the Span Type in %s", (language: string) => {
+  test("shows its title and its three options, with no paragraph between them", () => {
+    renderSpanTypeInLanguage(language);
+
+    expect(sectionTitles()).toEqual([drawn(language, SPAN_TYPE)]);
+    expect(screen.queryByText(OLD_SPAN_TYPE_HELP)).toBeNull();
+    expect(document.querySelectorAll("p")).toHaveLength(0);
+    expect(
+      screen.getAllByRole("radio").map((radio: HTMLElement): string => {
+        return radio.textContent || "";
+      }),
+    ).toEqual(["Entry spans", "Root spans", "All spans"]);
+  });
+
+  test("its (i) is named in the language, and lists each choice as written with its sentence in the language's words", async () => {
+    renderSpanTypeInLanguage(language);
+
+    const button: HTMLElement = screen.getByRole("button", {
+      name: aboutSpanType(language),
+    });
+
+    // A screen reader hears the same, whether or not the tooltip shows.
+    expect(button).toHaveAccessibleDescription(
+      choicesIn(language)
+        .map((choice: [string, string]): string => {
+          return `${choice[0]}: ${choice[1]}`;
+        })
+        .join(" "),
+    );
+
+    fireEvent.mouseEnter(button);
+    await act(async () => {
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, 250);
+      });
+    });
+
+    const tooltip: HTMLElement = screen.getByRole("tooltip");
+    expect(
+      Array.from(tooltip.querySelectorAll("dt")).map(
+        (term: Element): [string, string] => {
+          return [
+            term.textContent || "",
+            term.nextElementSibling?.textContent || "",
+          ];
+        },
+      ),
+    ).toEqual(choicesIn(language));
+  });
+
+  test("each option is described in the language's words", () => {
+    renderSpanTypeInLanguage(language);
+
+    for (const [name, sentence] of choicesIn(language)) {
+      expect(
+        screen.getByRole("radio", { name: name }),
+      ).toHaveAccessibleDescription(sentence);
+    }
   });
 });

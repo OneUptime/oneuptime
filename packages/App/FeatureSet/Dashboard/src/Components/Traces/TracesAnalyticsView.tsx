@@ -37,12 +37,17 @@ import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnW
 import OneUptimeDate from "Common/Types/Date";
 import { formatTickTime, formatTooltipLabel } from "./TraceTimeFormat";
 import {
-  TRACE_SPAN_TYPE_HELP,
   TRACE_SPAN_TYPE_OPTIONS,
   TraceSpanType,
   TraceSpanTypeOption,
+  getTraceSpanTypeDescriptions,
   parseTraceSpanType,
 } from "Common/Types/Telemetry/TraceSpanType";
+import {
+  FacetHelp,
+  buildFacetHelp,
+} from "Common/UI/Components/TelemetryViewer/FacetHelp";
+import FacetHelpButton from "Common/UI/Components/TelemetryViewer/components/FacetHelpButton";
 import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
 import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
 import {
@@ -129,6 +134,23 @@ export interface TracesAnalyticsViewProps {
   spanType?: TraceSpanType | undefined;
   onSpanTypeChange?: ((spanType: TraceSpanType) => void) | undefined;
 }
+
+/*
+ * What each Span Type choice is, for the (i) beside its select: the
+ * sentences the sidebar's Span Type says (Types/Telemetry/TraceSpanType),
+ * each under its choice's name, in the reader's language.
+ */
+const SPAN_TYPE_HELP: FacetHelp | undefined = buildFacetHelp({
+  valueDescriptionMap: getTraceSpanTypeDescriptions(),
+  values: [],
+  valueDisplayMap: Object.fromEntries(
+    TRACE_SPAN_TYPE_OPTIONS.map(
+      (option: TraceSpanTypeOption): [string, string] => {
+        return [option.value, option.label];
+      },
+    ),
+  ),
+});
 
 export const TRACES_ANALYTICS_TIMESERIES_TEST_ID: string =
   "traces-analytics-timeseries";
@@ -609,23 +631,39 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
     value: string | number,
     onChange: (val: string) => void,
     options: Array<{ value: string | number; label: string }>,
-    help?: string | undefined,
+    help?: FacetHelp | undefined,
   ) => ReactElement = (
     label: string,
     value: string | number,
     onChange: (val: string) => void,
     options: Array<{ value: string | number; label: string }>,
-    help?: string | undefined,
+    help?: FacetHelp | undefined,
   ): ReactElement => {
     return (
       <div className="flex items-center">
-        <span className="mr-2 text-[11px] font-medium uppercase tracking-wider text-gray-400">
+        <span
+          className={`${help ? "mr-0.5" : "mr-2"} text-[11px] font-medium uppercase tracking-wider text-gray-400`}
+        >
           {label}
         </span>
+        {/*
+         * What the choices mean, as the sidebar's (i) beside the same
+         * choice says it there. It opens below the control, over the chart
+         * rather than over the controls beside it.
+         */}
+        {help ? (
+          <FacetHelpButton
+            title={label}
+            help={help}
+            placement="bottom"
+            className="mr-1"
+          />
+        ) : (
+          <></>
+        )}
         <select
           className="appearance-none rounded-md border border-gray-200 bg-white px-2.5 py-1.5 pr-7 text-xs font-medium text-gray-700 shadow-sm transition-all hover:border-gray-300 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
           aria-label={label}
-          title={help}
           value={value}
           onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
             onChange(e.target.value);
@@ -673,7 +711,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                   return { value: option.value, label: option.label };
                 },
               ),
-              TRACE_SPAN_TYPE_HELP,
+              SPAN_TYPE_HELP,
             )}
 
             <div className="h-4 w-px bg-gray-200" />

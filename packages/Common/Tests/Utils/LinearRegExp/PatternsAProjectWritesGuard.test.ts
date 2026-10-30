@@ -194,6 +194,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
  */
 const LISTED_PATTERN_ARGUMENTS: ReadonlyArray<ListedFile> = [
   {
+    file: "packages/Common/Server/Utils/DataSecurity/DataSecurityChangeSignals.ts",
+    count: 1,
+    builtFrom:
+      "nothing: DataStoreChangeMatcher's own match method, handed a cloud change",
+  },
+  {
     file: "packages/Common/Types/StatusPage/SubscriberNotificationTemplateCompiler.ts",
     count: 1,
     builtFrom:
@@ -210,6 +216,18 @@ const LISTED_PATTERN_ARGUMENTS: ReadonlyArray<ListedFile> = [
     count: 1,
     builtFrom:
       "nothing: a command palette provider's own search, handed what was typed",
+  },
+  {
+    file: "packages/Common/Utils/DataSecurity/CustomDataTypeDetector.ts",
+    count: 1,
+    builtFrom:
+      "nothing: the linear-time matcher's own matchAll, built by getLinearRegExp from a custom data type's pattern",
+  },
+  {
+    file: "packages/Common/Utils/DataSecurity/TextScanner.ts",
+    count: 1,
+    builtFrom:
+      "the built-in detectors' patterns, each a pattern literal of Utils/DataSecurity/Detectors that DetectorCatalog holds to bounded quantifiers",
   },
   {
     file: "packages/Common/Utils/Markdown/MarkdownDataUrls.ts",

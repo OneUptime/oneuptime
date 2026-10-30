@@ -1,4 +1,5 @@
 import SecurityEventConnectorProvider from "./Connectors/SecurityEventConnectorProvider";
+import { DATA_SECURITY_SIGNAL_PRODUCT_NAME } from "./DataSecuritySignal";
 import {
   SecurityEventConnectorDefinition,
   getSecurityEventConnectorDefinition,
@@ -66,6 +67,11 @@ export enum DetectionRuleDataKind {
   NetworkFlows = "network-flows",
   OneUptimeAuditLog = "oneuptime-audit-log",
   SessionReplays = "session-replays",
+  /*
+   * Changes to the data stores Data Security finds sensitive, as it writes
+   * them (DataSecuritySignal), recognized by their product.
+   */
+  DataSecurity = "data-security",
 }
 
 export const DETECTION_RULE_DATA_KINDS_IN_ORDER: ReadonlyArray<DetectionRuleDataKind> =
@@ -88,6 +94,7 @@ export const DETECTION_RULE_DATA_KINDS_IN_ORDER: ReadonlyArray<DetectionRuleData
     DetectionRuleDataKind.NetworkFlows,
     DetectionRuleDataKind.OneUptimeAuditLog,
     DetectionRuleDataKind.SessionReplays,
+    DetectionRuleDataKind.DataSecurity,
   ];
 
 /*
@@ -281,6 +288,12 @@ export const DETECTION_RULE_DATA_KINDS: ReadonlyArray<DetectionRuleDataKindDefin
       classNames: [],
       vendorNames: [],
       productNames: telemetryProduct(SecurityTelemetrySourceKind.RumSessions),
+    },
+    {
+      kind: DetectionRuleDataKind.DataSecurity,
+      classNames: [],
+      vendorNames: [],
+      productNames: [DATA_SECURITY_SIGNAL_PRODUCT_NAME],
     },
   ];
 

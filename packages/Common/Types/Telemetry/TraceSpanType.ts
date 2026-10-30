@@ -9,6 +9,10 @@ import type Dictionary from "../Dictionary";
  *   Root spans: where a trace starts (Span.isRootSpan).
  *   All spans: every operation, database calls and internal steps included.
  *
+ * Each choice says so in one sentence (TRACE_SPAN_TYPE_OPTIONS' description),
+ * behind the (i) beside the choice's title and on its own option - never as
+ * a paragraph under the title, which pushed the options down the sidebar.
+ *
  * Entry spans are the default because both others mislead: a service behind a
  * gateway or a queue never owns a trace root, so a root-only list hides every
  * request it served, and a list of every span is mostly database calls,
@@ -33,10 +37,32 @@ export const DEFAULT_TRACE_SPAN_TYPE: TraceSpanType = TraceSpanType.Entry;
 export const TRACE_SPAN_TYPE_URL_PARAM: string = "spanType";
 export const LEGACY_ROOT_ONLY_URL_PARAM: string = "rootOnly";
 
+/*
+ * Marks an English sentence as a key of the Dashboard's locales - the same
+ * marker as Common/UI/Utils/TranslateTemplate's translationKey, kept here so
+ * this file stays free of the UI. It returns the text unchanged.
+ *
+ * The Dashboard's locale extractor reads this file for what it marks and
+ * nothing else (a "keys" root of its SOURCE_ROOTS,
+ * App/FeatureSet/Dashboard/scripts/i18n/ExtractStrings.ts): what each span
+ * type is reads in the reader's language, while the choices' names read
+ * "Entry spans", "Root spans" and "All spans" in every language, as the
+ * translated docs quote them.
+ */
+const translationKey: (text: string) => string = (text: string): string => {
+  return text;
+};
+
 export interface TraceSpanTypeOption {
   value: TraceSpanType;
+  // The choice's name, drawn as written in every language.
   label: string;
-  // What the spans are, in a few plain words.
+  /*
+   * What the spans are, as one plain sentence (English, a locale key). The
+   * Span Type choice never spells it out under its title: the (i) beside the
+   * title lists each choice's, and each choice says its own on hover and
+   * keyboard focus, in the reader's language.
+   */
   description: string;
 }
 
@@ -45,26 +71,35 @@ export const TRACE_SPAN_TYPE_OPTIONS: ReadonlyArray<TraceSpanTypeOption> = [
   {
     value: TraceSpanType.Entry,
     label: "Entry spans",
-    description: "where a request or message enters a service",
+    description: translationKey("Where a request or message enters a service."),
   },
   {
     value: TraceSpanType.Root,
     label: "Root spans",
-    description: "where a trace starts",
+    description: translationKey("Where a trace starts."),
   },
   {
     value: TraceSpanType.All,
     label: "All spans",
-    description: "every operation, including database calls and internal steps",
+    description: translationKey(
+      "Every operation, including database calls and internal steps.",
+    ),
   },
 ];
 
-// The one line of help the Span Type choice carries.
-export const TRACE_SPAN_TYPE_HELP: string = TRACE_SPAN_TYPE_OPTIONS.map(
-  (option: TraceSpanTypeOption): string => {
-    return `${option.label}: ${option.description}.`;
-  },
-).join(" ");
+/*
+ * Each choice's sentence, by value: the Span Type choice's
+ * valueDescriptionMap (UI/Components/TelemetryViewer FacetConfig).
+ */
+export function getTraceSpanTypeDescriptions(): Record<string, string> {
+  return Object.fromEntries(
+    TRACE_SPAN_TYPE_OPTIONS.map(
+      (option: TraceSpanTypeOption): [string, string] => {
+        return [option.value, option.description];
+      },
+    ),
+  );
+}
 
 export function parseTraceSpanType(value: unknown): TraceSpanType | null {
   if (typeof value !== "string") {

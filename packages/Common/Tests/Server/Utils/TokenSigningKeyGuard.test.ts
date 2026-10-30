@@ -66,6 +66,8 @@ const STORED_DATA_USES: Record<string, string> = {
     "keys the Redis names of session replay targets, so they are no directory of users",
   "packages/App/FeatureSet/Notification/Services/SMTPOAuthService.ts":
     "keys the Redis names of cached SMTP OAuth tokens, so Redis holds no client secret",
+  "packages/Common/Server/Utils/DataSecurity/DataSecurityRunner.ts":
+    "keys the stored Data Security fingerprints of a project's sensitive values, so they compare only within the project and reveal no value",
 };
 
 /*

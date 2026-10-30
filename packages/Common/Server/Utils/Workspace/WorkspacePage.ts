@@ -25,11 +25,13 @@ import OnCallDutyPolicyScheduleService from "../../Services/OnCallDutyPolicySche
 import OnCallDutyPolicyService from "../../Services/OnCallDutyPolicyService";
 import OnCallPageService, {
   OnCallPagedPerson,
+  OnCallPageNewAlert,
   OnCallPageRecordType,
   OnCallPageResult,
   OnCallPageStartedPolicy,
   OnCallPageTargets,
 } from "../../Services/OnCallPageService";
+import { toOnCallPersonPageMessage } from "../../../Types/OnCallDutyPolicy/OnCallPersonPage";
 import TeamMemberService from "../../Services/TeamMemberService";
 import TeamService from "../../Services/TeamService";
 import UserService from "../../Services/UserService";
@@ -45,6 +47,10 @@ import { WHAT_TO_DO_WHEN_NOBODY_WAS_REACHED } from "./LiveMessages/OnCallPolicyR
 import { WorkspaceAnswer } from "./WorkspaceActionAnswers";
 import WorkspaceActionAuthorization from "./WorkspaceActionAuthorization";
 import WorkspaceCommands, { WorkspaceCommandName } from "./WorkspaceCommands";
+import WorkspacePageAbout, {
+  WorkspacePageRecord,
+  WorkspacePageSubject,
+} from "./WorkspacePageAbout";
 import WorkspacePageTextReader, {
   WorkspacePageGroup,
   WorkspacePagePerson,
@@ -58,13 +64,22 @@ import WorkspacePageTextReader, {
  *
  *   /oneuptime page @nawaz The checkout API is throwing 500s
  *
- * pages Nawaz at once, about a new alert whose title is the message - as a
- * workflow's Page step does (OnCallPageService, the one call that pages):
- * through his own on-call rules (call, SMS, push, email), until somebody
- * acknowledges the alert. The channel the command was run in shows the
- * page as one message, edited as it goes - who was paged and how, who
- * acknowledged - with the alarm when nobody does (OnCallPolicyRunMessage,
- * a page request place).
+ * pages Nawaz at once - as a workflow's Page step does (OnCallPageService,
+ * the one call that pages): through his own on-call rules (call, SMS, push,
+ * email), until somebody acknowledges. WHERE IT IS ASKED FOR DECIDES WHAT
+ * IT IS ABOUT (WorkspacePageAbout, one rule for both chats): in an
+ * incident's or an alert's own channel, that incident or alert - nothing
+ * new is made, the message is optional and goes with the page as its
+ * message, and the page goes on until somebody it paged answers it
+ * (OnCallPersonPage) -
+ *
+ *   /oneuptime page @nawaz           (in #inc-42: Nawaz, about INC-42)
+ *
+ * - and anywhere else, something new: a new alert whose title is the
+ * message, said so in the form and in the answer. The channel the command
+ * was run in shows the page as one message, edited as it goes - who was
+ * paged and how, who acknowledged - with the alarm when nobody does
+ * (OnCallPolicyRunMessage, a page request place).
  *
  * A Slack user group or a Microsoft Teams tag OneUptime keeps equal to
  * whoever is on call (WorkspaceUserGroup, customer feedback #3) is paged
@@ -79,12 +94,15 @@ import WorkspacePageTextReader, {
  * schedule or a policy is paged: by picking it, never by a name that only
  * happened to start the message.
  *
- * Who may page: whoever may start an on-call run and create an alert in the
- * project, as the member their chat account is connected to - the
- * permissions a page asks of a workflow's caller too (assertMayPage). A
- * person @mentioned is paged as the OneUptime member their chat account is
- * connected to, or whose email address the chat has for them; somebody
- * OneUptime cannot tell is never guessed at - the form opens, and says so.
+ * Who may page: whoever may start an on-call run in the project, as the
+ * member their chat account is connected to, and - for a page about
+ * something new - create the alert it is about: the permissions a page asks
+ * of a workflow's caller too (assertMayPage). In a record's own channel a
+ * page creates nothing, and asks what the incident's own Page Someone asks:
+ * an on-call run, and reading that record. A person @mentioned is paged as
+ * the OneUptime member their chat account is connected to, or whose email
+ * address the chat has for them; somebody OneUptime cannot tell is never
+ * guessed at - the form opens, and says so.
  */
 
 // The kinds of thing a page names, as a form's choice spells them.
@@ -226,6 +244,15 @@ export const WORKSPACE_PAGE_MAX_TITLE_LENGTH: number = 500;
 export const WORKSPACE_PAGE_ACTION: string = "page people";
 
 /*
+ * What a refusal of a page about something new says it is about: the alert
+ * such a page creates. Somebody who may page in an incident's own channel,
+ * where nothing is created, may still not page here - "You do not have
+ * permission to page people" alone would not be true for them.
+ */
+export const WORKSPACE_PAGE_NEW_ALERT_ACTION: string =
+  "page people here, where a page creates an alert";
+
+/*
  * What the Page someone form says, in Slack's modal and Microsoft Teams'
  * card alike: the same form in both chats, in the same words.
  */
@@ -236,6 +263,7 @@ export const WORKSPACE_PAGE_FORM_TEXT: {
   whoHint: string;
   messageLabel: string;
   messagePlaceholder: string;
+  // A page about something new: the message is its alert's title.
   messageHint: string;
   submit: string;
   pickWho: string;
@@ -264,25 +292,48 @@ const WHITE_SPACE_RUN: RegExp = /\s+/g;
 
 export default class WorkspacePage {
   /*
-   * May the member page: start an on-call run, and create the alert a page
-   * about something new is. Throws NotAuthorizedException, worded for the
-   * chat, when they may not - before a form is shown, so nobody fills one in
-   * for nothing. A page of people, teams or schedules asks one more thing
-   * when it is made (OnCallPageService): access to every on-call policy.
+   * May the member page what `about` says the page is about
+   * (WorkspacePageAbout): start an on-call run, and - for a page about
+   * something new, which creates an alert - create that alert. A page about
+   * the open incident or alert of its own channel creates nothing, so it
+   * asks no more than the incident's own Page Someone does: the record is
+   * read as the member when `about` is read. Left out, `about` is something
+   * new. Throws NotAuthorizedException, worded for the chat, when they may
+   * not - before a form is shown, so nobody fills one in for nothing. A page
+   * of people, teams or schedules asks one more thing when it is made
+   * (OnCallPageService): access to every on-call policy.
    */
   @CaptureSpan()
   public static async assertMayPage(
+    props: DatabaseCommonInteractionProps,
+    about?: WorkspacePageSubject | undefined,
+  ): Promise<void> {
+    await WorkspacePage.assertMayStartPage(props);
+
+    if (about?.record) {
+      return;
+    }
+
+    await WorkspaceActionAuthorization.assertCanCreate({
+      props: props,
+      modelType: Alert,
+      action: WORKSPACE_PAGE_NEW_ALERT_ACTION,
+    });
+  }
+
+  /*
+   * May the member start an on-call run: what every page asks, whatever it
+   * is about - asked first, before what it is about is read, so somebody
+   * who may page nothing is told that, and nothing else. Throws as
+   * assertMayPage does.
+   */
+  @CaptureSpan()
+  public static async assertMayStartPage(
     props: DatabaseCommonInteractionProps,
   ): Promise<void> {
     await WorkspaceActionAuthorization.assertCanCreate({
       props: props,
       modelType: OnCallDutyPolicyExecutionLog,
-      action: WORKSPACE_PAGE_ACTION,
-    });
-
-    await WorkspaceActionAuthorization.assertCanCreate({
-      props: props,
-      modelType: Alert,
       action: WORKSPACE_PAGE_ACTION,
     });
   }
@@ -593,14 +644,66 @@ export default class WorkspacePage {
     text: WorkspacePageText;
     people: WorkspacePagePeople;
     groups: WorkspacePageGroups;
+    // What the page is about: something new when left out.
+    about?: WorkspacePageSubject | undefined;
   }): boolean {
     return (
       data.people.people.length + data.groups.paged.length > 0 &&
       data.people.notTold.length === 0 &&
       data.groups.notPaged.length === 0 &&
       data.text.unknownNames.length === 0 &&
-      data.text.message.length > 0
+      (data.text.message.length > 0 ||
+        !WorkspacePage.isMessageRequired(data.about))
     );
+  }
+
+  /*
+   * Whether a page needs a message: one about something new does - it is
+   * the title of its alert, what the people paged are told. One about an
+   * incident or an alert does not: the record says what it is about, and a
+   * message is what the person paging adds to it.
+   */
+  public static isMessageRequired(
+    about: WorkspacePageSubject | undefined,
+  ): boolean {
+    return !about?.record;
+  }
+
+  /*
+   * What the form says under its message: where it goes - "The people you
+   * page see it with Incident INC-18."; "The people you page get this as the
+   * title of a new alert."; and, in the channel of an incident that is
+   * resolved, why the page is about something new: "Incident INC-18 is
+   * resolved, so the people you page get this as the title of a new
+   * alert." Whether it is needed is the field's own to say: Slack writes
+   * "(optional)" after an optional field's label, and Microsoft Teams marks
+   * a required one with "*" - "Optional." here said it twice.
+   */
+  public static getMessageHint(
+    about: WorkspacePageSubject | undefined,
+  ): string {
+    if (about?.record) {
+      return `The people you page see it with ${about.record.name.label}.`;
+    }
+
+    if (about?.resolvedRecord) {
+      return `${about.resolvedRecord.label} is resolved, so the people you page get this as the title of a new alert.`;
+    }
+
+    return WORKSPACE_PAGE_FORM_TEXT.messageHint;
+  }
+
+  /*
+   * What a form about an incident or an alert is told when the record was
+   * resolved after it opened: there is nothing left to page about, and its
+   * message - optional there - is no new alert's title.
+   */
+  public static getResolvedSinceMessage(
+    about: WorkspacePageSubject | undefined,
+  ): string {
+    const label: string = about?.resolvedRecord?.label || "It";
+
+    return `${label} was resolved after the form opened, so nobody was paged.`;
   }
 
   /*
@@ -1093,6 +1196,11 @@ export default class WorkspacePage {
   public static getFormProblems(data: {
     values: Array<string>;
     message: string;
+    /*
+     * Whether the page needs a message (isMessageRequired): one about
+     * something new does. Needed when left out.
+     */
+    isMessageRequired?: boolean | undefined;
   }): { who?: string | undefined; message?: string | undefined } | null {
     const problems: { who?: string; message?: string } = {};
     const count: number = WorkspacePage.countTargets(
@@ -1105,7 +1213,7 @@ export default class WorkspacePage {
       problems.who = WORKSPACE_PAGE_FORM_TEXT.pickFewer;
     }
 
-    if (!data.message.trim()) {
+    if (data.isMessageRequired !== false && !data.message.trim()) {
       problems.message = WORKSPACE_PAGE_FORM_TEXT.writeMessage;
     }
 
@@ -1113,12 +1221,14 @@ export default class WorkspacePage {
   }
 
   /*
-   * THE PAGE. Pages `targets` about a new alert whose title is the message,
-   * as the member (`props`), through OnCallPageService - and has its runs
-   * shown where it was asked for (`place`): the place is kept for the
-   * alert, and the run of the people it paged is brought up to date there
-   * now (OnCallPolicyRunMessage). The run of a policy it started follows
-   * there as soon as it starts.
+   * THE PAGE. Pages `targets`, as the member (`props`), through
+   * OnCallPageService, about what `about` says (WorkspacePageAbout): the
+   * open incident or alert of the channel it was asked in, with the message
+   * as the page's own, or something new - a new alert whose title is the
+   * message. Its runs are shown where it was asked for (`place`): the place
+   * is kept for the record, and the run of the people it paged is brought
+   * up to date there now (OnCallPolicyRunMessage). The run of a policy it
+   * started follows there as soon as it starts.
    *
    * Hands back what came of it, and what to tell the person who paged when
    * the place does not show it. Throws what OnCallPageService throws - a
@@ -1131,35 +1241,38 @@ export default class WorkspacePage {
     workspaceType: WorkspaceType;
     targets: OnCallPageTargets;
     message: string;
+    // What the page is about: something new when left out.
+    about?: WorkspacePageSubject | undefined;
     place?: WorkspacePagePlace | undefined;
   }): Promise<WorkspacePageOutcome> {
-    const title: string = WorkspacePage.getTitle(data.message);
-    const fullMessage: string = data.message.trim();
-
-    // Who paged, as the alert says where it came from.
-    const pagerName: string = data.props.userId
-      ? (await WorkspacePage.getUserNames([data.props.userId])).get(
-          data.props.userId.toString().toLowerCase(),
-        ) || ""
-      : "";
+    const record: WorkspacePageRecord | null = data.about?.record || null;
 
     const result: OnCallPageResult = await OnCallPageService.page({
       projectId: data.projectId,
       targets: data.targets,
-      about: {
-        newAlert: {
-          title: title,
-          // The message as typed, when the title is not all of it.
-          ...(fullMessage !== title ? { description: fullMessage } : {}),
-          rootCause: (pagerName
-            ? mdText`Created by **${pagerName}** from ${WorkspacePage.getWorkspaceName(data.workspaceType)} to page people.`
-            : mdText`Created from ${WorkspacePage.getWorkspaceName(data.workspaceType)} to page people.`
-          ).toString(),
-        },
-      },
+      about: record
+        ? {
+            ...WorkspacePageAbout.getRecordAbout(record),
+            // The page's own message: the record says what it is about.
+            ...(data.message.trim()
+              ? { message: toOnCallPersonPageMessage(data.message) }
+              : {}),
+          }
+        : {
+            newAlert: await WorkspacePage.getNewAlert({
+              props: data.props,
+              workspaceType: data.workspaceType,
+              message: data.message,
+            }),
+          },
       props: data.props,
       maxWaitForRecordInMs: WORKSPACE_PAGE_MAX_WAIT_FOR_RECORD_IN_MS,
     });
+
+    // What the answer quotes: the alert's title, or the page's message.
+    const title: string = record
+      ? toOnCallPersonPageMessage(data.message)
+      : WorkspacePage.getTitle(data.message);
 
     let isShownAtPlace: boolean = false;
 
@@ -1250,18 +1363,11 @@ export default class WorkspacePage {
       data.isShownAtPlace && result.paged.length > 0;
 
     if (result.paged.length > 0 && !isPeopleShown) {
-      const names: Array<string> = result.paged.map(
-        (person: OnCallPagedPerson): string => {
-          return person.name;
-        },
-      );
+      const who: { markdown: MarkdownText; text: string } =
+        WorkspacePage.getPagedWho(result.paged);
 
-      lines.push(
-        mdText`📟 Paged ${WorkspacePage.joinBoldNames(names)} about ${record}${about}`,
-      );
-      textParts.push(
-        `Paged ${WorkspacePage.joinNames(names)} about ${result.record.label}`,
-      );
+      lines.push(mdText`📟 Paged ${who.markdown} about ${record}${about}`);
+      textParts.push(`Paged ${who.text} about ${result.record.label}`);
     }
 
     if (result.startedPolicies.length > 0) {
@@ -1315,7 +1421,7 @@ export default class WorkspacePage {
       result.directPageExecutionLogId
     ) {
       lines.push(
-        mdText`${ProductBrandingText.getProductName()} can't post in this conversation, so the page's progress isn't shown here. Follow it on the alert.`,
+        mdText`${ProductBrandingText.getProductName()} can't post in this conversation, so the page's progress isn't shown here. Follow it on the ${result.record.type === OnCallPageRecordType.Incident ? "incident" : "alert"}.`,
       );
     } else if (data.canBeShownAtPlace && result.startedPolicies.length > 0) {
       lines.push(
@@ -1328,6 +1434,61 @@ export default class WorkspacePage {
     return {
       markdown: FeedMarkdown.join(lines, "\n\n").toString(),
       text: textParts.join(". "),
+    };
+  }
+
+  /*
+   * Who a page paged, as the person who paged named them - a team first,
+   * then its people: "**Platform** (Nawaz and Sam) and **Alex**". People
+   * paged as members of the same team are named together, after it, in the
+   * order they were paged; somebody named on their own is named alone.
+   */
+  public static getPagedWho(paged: Array<OnCallPagedPerson>): {
+    markdown: MarkdownText;
+    text: string;
+  } {
+    const entries: Array<{ team: string | null; names: Array<string> }> = [];
+
+    for (const person of paged) {
+      const team: string | null = (person.teamName || "").trim() || null;
+      const entry: { team: string | null; names: Array<string> } | undefined =
+        team
+          ? entries.find(
+              (candidate: { team: string | null; names: Array<string> }) => {
+                return candidate.team === team;
+              },
+            )
+          : undefined;
+
+      if (entry) {
+        entry.names.push(person.name);
+      } else {
+        entries.push({ team: team, names: [person.name] });
+      }
+    }
+
+    const markdown: Array<MarkdownText> = entries.map(
+      (entry: { team: string | null; names: Array<string> }): MarkdownText => {
+        return entry.team
+          ? mdText`**${entry.team}** (${WorkspacePage.joinNames(entry.names)})`
+          : WorkspacePage.joinBoldNames(entry.names);
+      },
+    );
+
+    const text: Array<string> = entries.map(
+      (entry: { team: string | null; names: Array<string> }): string => {
+        return entry.team
+          ? `${entry.team} (${WorkspacePage.joinNames(entry.names)})`
+          : WorkspacePage.joinNames(entry.names);
+      },
+    );
+
+    return {
+      markdown:
+        markdown.length <= 1
+          ? markdown[0] || FeedMarkdown.empty()
+          : mdText`${FeedMarkdown.join(markdown.slice(0, -1), ", ")} and ${markdown[markdown.length - 1]!}`,
+      text: WorkspacePage.joinNames(text),
     };
   }
 
@@ -1376,6 +1537,38 @@ export default class WorkspacePage {
     }
 
     return `${productName} can't page @${data.group.name}: it isn't connected to an on-call schedule you can see. ${pickBelow}`;
+  }
+
+  /*
+   * The alert a page about something new creates: the message on one line
+   * as its title, the whole message as its description when the title is
+   * not all of it, and where it came from as its root cause - who paged,
+   * from which chat.
+   */
+  private static async getNewAlert(data: {
+    props: DatabaseCommonInteractionProps;
+    workspaceType: WorkspaceType;
+    message: string;
+  }): Promise<OnCallPageNewAlert> {
+    const title: string = WorkspacePage.getTitle(data.message);
+    const fullMessage: string = data.message.trim();
+
+    // Who paged, as the alert says where it came from.
+    const pagerName: string = data.props.userId
+      ? (await WorkspacePage.getUserNames([data.props.userId])).get(
+          data.props.userId.toString().toLowerCase(),
+        ) || ""
+      : "";
+
+    return {
+      title: title,
+      // The message as typed, when the title is not all of it.
+      ...(fullMessage !== title ? { description: fullMessage } : {}),
+      rootCause: (pagerName
+        ? mdText`Created by **${pagerName}** from ${WorkspacePage.getWorkspaceName(data.workspaceType)} to page people.`
+        : mdText`Created from ${WorkspacePage.getWorkspaceName(data.workspaceType)} to page people.`
+      ).toString(),
+    };
   }
 
   // The page's title: the message on one line, cut to what an alert holds.

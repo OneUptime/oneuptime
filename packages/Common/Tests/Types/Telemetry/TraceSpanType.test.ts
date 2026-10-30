@@ -1,10 +1,10 @@
 import { describe, expect, test } from "@jest/globals";
 import Dictionary from "../../../Types/Dictionary";
 import TelemetrySavedViewState from "../../../Types/Telemetry/TelemetrySavedViewState";
+import * as TraceSpanTypeModule from "../../../Types/Telemetry/TraceSpanType";
 import {
   DEFAULT_TRACE_SPAN_TYPE,
   LEGACY_ROOT_ONLY_URL_PARAM,
-  TRACE_SPAN_TYPE_HELP,
   TRACE_SPAN_TYPE_OPTIONS,
   TRACE_SPAN_TYPE_URL_PARAM,
   TraceSpanType,
@@ -12,6 +12,7 @@ import {
   buildTraceSpanTypeFacetValues,
   buildTraceSpanTypeUrlParams,
   getTraceSpanTypeChartTitle,
+  getTraceSpanTypeDescriptions,
   getTraceSpanTypeItemLabel,
   getTraceSpanTypeLabel,
   getTraceSpanTypeQuery,
@@ -96,9 +97,63 @@ describe("the choice", () => {
     }
   });
 
-  test("one plain-language line of help names all three", () => {
-    expect(TRACE_SPAN_TYPE_HELP).toBe(
-      "Entry spans: where a request or message enters a service. Root spans: where a trace starts. All spans: every operation, including database calls and internal steps.",
+  test("each choice says what its spans are in one plain sentence", () => {
+    expect(
+      TRACE_SPAN_TYPE_OPTIONS.map((option: TraceSpanTypeOption) => {
+        return [option.label, option.description];
+      }),
+    ).toEqual([
+      ["Entry spans", "Where a request or message enters a service."],
+      ["Root spans", "Where a trace starts."],
+      [
+        "All spans",
+        "Every operation, including database calls and internal steps.",
+      ],
+    ]);
+  });
+
+  test("each sentence stands on its own: a capital, one full stop at its end, short enough for a tooltip line or two", () => {
+    const capital: RegExp = /^[A-Z]/;
+
+    for (const option of TRACE_SPAN_TYPE_OPTIONS) {
+      const sentence: string = option.description;
+
+      expect({ sentence, starts: capital.test(sentence) }).toEqual({
+        sentence,
+        starts: true,
+      });
+      expect(sentence.endsWith(".")).toBe(true);
+      // One sentence: no full stop before its end.
+      expect(sentence.slice(0, -1)).not.toContain(".");
+      expect(sentence).toBe(sentence.trim());
+      expect(sentence.length).toBeLessThanOrEqual(80);
+      // Not the choice's name again: it says what the name does not.
+      expect(sentence.toLowerCase()).not.toContain(option.label.toLowerCase());
+    }
+  });
+
+  test("the choice's sentences by value, as its valueDescriptionMap takes them", () => {
+    const descriptions: Record<string, string> = getTraceSpanTypeDescriptions();
+
+    expect(Object.keys(descriptions)).toEqual(["entry", "root", "all"]);
+    for (const option of TRACE_SPAN_TYPE_OPTIONS) {
+      expect(descriptions[option.value]).toBe(option.description);
+    }
+
+    // A fresh map each time: a caller may not change the next one's.
+    descriptions["entry"] = "changed";
+    expect(getTraceSpanTypeDescriptions()["entry"]).toBe(
+      "Where a request or message enters a service.",
+    );
+  });
+
+  test("REGRESSION: no one-paragraph help is left to draw under the choice's title", () => {
+    /*
+     * TRACE_SPAN_TYPE_HELP joined the three into one paragraph, which the
+     * sidebar drew between the title and the options.
+     */
+    expect(Object.keys(TraceSpanTypeModule)).not.toContain(
+      "TRACE_SPAN_TYPE_HELP",
     );
   });
 

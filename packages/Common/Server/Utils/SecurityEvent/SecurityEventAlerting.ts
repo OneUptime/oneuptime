@@ -40,12 +40,29 @@ export interface AlertableMatch {
   rootCause: string;
 }
 
+/*
+ * What a match has now, for a source that links its own record to the
+ * alert or incident: the one it opened (isNew), or the one already open
+ * for its fingerprint. A create that failed has none.
+ */
+export interface DedupedRecordOutcome {
+  fingerprint: string;
+  recordId: ObjectID;
+  isNew: boolean;
+}
+
+export type DedupedRecordOutcomeHandler = (
+  outcome: DedupedRecordOutcome,
+) => void;
+
 export async function openDedupedAlerts(data: {
   projectId: ObjectID;
   alertSeverityId: ObjectID;
   matches: Array<AlertableMatch>;
   // Prefix for create-failure log lines, e.g. "DetectionRuleEvaluator: rule <id>".
   logLabel: string;
+  // Told the alert each match has now, opened or already open.
+  onOutcome?: DedupedRecordOutcomeHandler | undefined;
 }): Promise<number> {
   const fingerprints: Array<string> = data.matches.map(
     (match: AlertableMatch): string => {
@@ -87,6 +104,20 @@ export async function openDedupedAlerts(data: {
 
   for (const match of data.matches) {
     if (openFingerprints.has(match.fingerprint)) {
+      const open: Alert | undefined = openAlerts.find(
+        (alert: Alert): boolean => {
+          return alert.seriesFingerprint === match.fingerprint;
+        },
+      );
+
+      if (open?.id) {
+        data.onOutcome?.({
+          fingerprint: match.fingerprint,
+          recordId: open.id,
+          isNew: false,
+        });
+      }
+
       continue;
     }
 
@@ -100,13 +131,21 @@ export async function openDedupedAlerts(data: {
     alert.rootCause = match.rootCause;
 
     try {
-      await AlertService.create({
+      const opened: Alert = await AlertService.create({
         data: alert,
         props: {
           isRoot: true,
         },
       });
       created++;
+
+      if (opened?.id) {
+        data.onOutcome?.({
+          fingerprint: match.fingerprint,
+          recordId: opened.id,
+          isNew: true,
+        });
+      }
     } catch (error) {
       logger.error(`${data.logLabel}: failed creating alert:`);
       logger.error(error);
@@ -128,6 +167,8 @@ export async function openDedupedIncidents(data: {
   incidentSeverityId: ObjectID;
   matches: Array<AlertableMatch>;
   logLabel: string;
+  // Told the incident each match has now, declared or already open.
+  onOutcome?: DedupedRecordOutcomeHandler | undefined;
 }): Promise<number> {
   const fingerprints: Array<string> = data.matches.map(
     (match: AlertableMatch): string => {
@@ -171,6 +212,20 @@ export async function openDedupedIncidents(data: {
 
   for (const match of data.matches) {
     if (openFingerprints.has(match.fingerprint)) {
+      const open: Incident | undefined = openIncidents.find(
+        (incident: Incident): boolean => {
+          return incident.seriesFingerprint === match.fingerprint;
+        },
+      );
+
+      if (open?.id) {
+        data.onOutcome?.({
+          fingerprint: match.fingerprint,
+          recordId: open.id,
+          isNew: false,
+        });
+      }
+
       continue;
     }
 
@@ -184,13 +239,21 @@ export async function openDedupedIncidents(data: {
     incident.rootCause = match.rootCause;
 
     try {
-      await IncidentService.create({
+      const declared: Incident = await IncidentService.create({
         data: incident,
         props: {
           isRoot: true,
         },
       });
       created++;
+
+      if (declared?.id) {
+        data.onOutcome?.({
+          fingerprint: match.fingerprint,
+          recordId: declared.id,
+          isNew: true,
+        });
+      }
     } catch (error) {
       logger.error(`${data.logLabel}: failed creating incident:`);
       logger.error(error);

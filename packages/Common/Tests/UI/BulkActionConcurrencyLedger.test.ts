@@ -131,6 +131,13 @@ const LEDGER: Record<string, Array<Choice>> = {
         why: "Link to Incident: every link is made to the same incident, whose own follow-ons each link runs.",
       },
     ],
+  "packages/App/FeatureSet/Dashboard/src/Components/DataSecurity/IssueListActions.tsx":
+    [
+      {
+        expression: SEVERAL,
+        why: "Mark Resolved, Accept Risk and Not an Issue on Data Security issues: each is an update of its own issue, written to that issue's own timeline, and nothing the issues share is checked or recomputed.",
+      },
+    ],
   "packages/App/FeatureSet/Dashboard/src/Components/EpisodeMembers/BulkAddToEpisodeActions.tsx":
     [
       {

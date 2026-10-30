@@ -30,6 +30,8 @@ export enum DetectionRuleLibraryCategory {
   Network = "Network",
   Web = "Web",
   Kubernetes = "Kubernetes",
+  // Changes to the stores Data Security finds sensitive (DataSecuritySignal).
+  DataSecurity = "Data security",
 }
 
 export const DETECTION_RULE_LIBRARY_CATEGORIES: ReadonlyArray<DetectionRuleLibraryCategory> =
@@ -40,6 +42,7 @@ export const DETECTION_RULE_LIBRARY_CATEGORIES: ReadonlyArray<DetectionRuleLibra
     DetectionRuleLibraryCategory.Network,
     DetectionRuleLibraryCategory.Web,
     DetectionRuleLibraryCategory.Kubernetes,
+    DetectionRuleLibraryCategory.DataSecurity,
   ];
 
 export interface DetectionRuleLibraryEntry {
@@ -2431,6 +2434,136 @@ tags:
 detection:
   selection:
     oneuptime.signal: user-in-two-countries
+  condition: selection
+`,
+    },
+
+    /*
+     * Data security: a change to a bucket or database Data Security found
+     * Confidential or Restricted data in, as it writes one into Security
+     * Events (Server/Utils/DataSecurity/DataSecurityChangeSignals) - the
+     * cloud's own operation, under oneuptime.cloud.operation, and the
+     * store under oneuptime.data_store.*. Each groups on the store, so its
+     * case is the store's, and the store's risk and criticality count.
+     * Only a change that went through counts: a refused one opened nothing.
+     */
+    {
+      id: "7c8121cd-87ff-4e1c-bd5e-b1c3ab130737",
+      title: "A sensitive bucket was made public",
+      description:
+        "The policy or ACL of a bucket Data Security found sensitive data in was changed, or its public access block removed: the changes that open a bucket to the internet.",
+      category: DetectionRuleLibraryCategory.DataSecurity,
+      dataSource: "AWS changes to the stores Data Security finds sensitive",
+      dataKind: DetectionRuleDataKind.DataSecurity,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "oneuptime.data_store.entity",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: A sensitive bucket was made public
+id: 7c8121cd-87ff-4e1c-bd5e-b1c3ab130737
+description: The policy or ACL of a bucket that holds sensitive data changed, or its public access block was removed.
+level: high
+tags:
+  - attack.collection
+  - attack.t1530
+detection:
+  selection:
+    oneuptime.signal: data-security.store-change
+    oneuptime.cloud.operation:
+      - s3:PutBucketPolicy
+      - s3:PutBucketAcl
+      - s3:DeletePublicAccessBlock
+    statusName: Success
+  condition: selection
+`,
+    },
+    {
+      id: "281a4d7b-8fe9-4b78-b847-33b464cabe01",
+      title: "A snapshot of a sensitive database was shared",
+      description:
+        "Who may restore a snapshot of a database Data Security found sensitive data in was changed, or the snapshot was copied: a whole copy of the data, on its way to another account.",
+      category: DetectionRuleLibraryCategory.DataSecurity,
+      dataSource: "AWS changes to the stores Data Security finds sensitive",
+      dataKind: DetectionRuleDataKind.DataSecurity,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "oneuptime.data_store.entity",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: A snapshot of a sensitive database was shared
+id: 281a4d7b-8fe9-4b78-b847-33b464cabe01
+description: A snapshot of a database that holds sensitive data was shared or copied.
+level: high
+tags:
+  - attack.exfiltration
+  - attack.t1537
+detection:
+  selection:
+    oneuptime.signal: data-security.store-change
+    oneuptime.cloud.operation:
+      - rds:ModifyDBSnapshotAttribute
+      - rds:ModifyDBClusterSnapshotAttribute
+      - rds:CopyDBSnapshot
+    statusName: Success
+  condition: selection
+`,
+    },
+    {
+      id: "f2dd0b9c-be85-4199-aa1a-ef64a520f887",
+      title: "Protection was removed from a sensitive store",
+      description:
+        "A store Data Security found sensitive data in had its encryption removed, or its versioning or access logging turned off: its data is easier to read, destroy or take without a trace.",
+      category: DetectionRuleLibraryCategory.DataSecurity,
+      dataSource: "AWS changes to the stores Data Security finds sensitive",
+      dataKind: DetectionRuleDataKind.DataSecurity,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "oneuptime.data_store.entity",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Protection was removed from a sensitive store
+id: f2dd0b9c-be85-4199-aa1a-ef64a520f887
+description: A store that holds sensitive data lost its encryption, its versioning or its access logging.
+level: medium
+tags:
+  - attack.defense_impairment
+  - attack.t1600
+  - attack.t1685
+  - attack.impact
+  - attack.t1490
+detection:
+  selection:
+    oneuptime.signal: data-security.store-change
+    oneuptime.cloud.operation:
+      - s3:DeleteBucketEncryption
+      - s3:PutBucketVersioning
+      - s3:PutBucketLogging
+    oneuptime.data_store.protection_removed:
+      - encryption
+      - versioning
+      - access-logging
+    statusName: Success
+  condition: selection
+`,
+    },
+    {
+      id: "6a40541c-7d7f-4463-af86-8efdf6c9be9c",
+      title: "A sensitive database was exported",
+      description:
+        "A snapshot of a database Data Security found sensitive data in was exported to an S3 bucket, where it can be read without the database.",
+      category: DetectionRuleLibraryCategory.DataSecurity,
+      dataSource: "AWS changes to the stores Data Security finds sensitive",
+      dataKind: DetectionRuleDataKind.DataSecurity,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "oneuptime.data_store.entity",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: A sensitive database was exported
+id: 6a40541c-7d7f-4463-af86-8efdf6c9be9c
+description: A database that holds sensitive data was exported to a bucket.
+level: high
+tags:
+  - attack.exfiltration
+  - attack.t1537
+detection:
+  selection:
+    oneuptime.signal: data-security.store-change
+    oneuptime.cloud.operation: rds:StartExportTask
+    statusName: Success
   condition: selection
 `,
     },

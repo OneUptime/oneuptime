@@ -46,7 +46,7 @@ flowchart TB
 - **手动。** 在警报列表中，或在监视器、主机、网络设备或其他资源的 **警报** 选项卡上点击 **创建警报**，后者会为你选好该资源。参见 [手动创建警报](#手动创建警报)。
 - **SLO 的消耗率。** 当 SLO 过快地花掉其错误预算时，消耗率规则可以创建警报。参见 [消耗率警报与事件](/docs/slo/burn-rate-alerts)。
 - **网络站点和安全事件。** 设置为在不健康时发出警报的网络站点，会在其汇总状态不再正常运行时打开一个警报；你的安全检测规则也会打开警报。参见 [网络站点(健康汇总与正常运行时间)](/docs/monitor/network-sites) 和 [安全事件(SIEM)](/docs/telemetry/security-events)。
-- **呼叫。** Slack 或 Microsoft Teams 中的 `/oneuptime page` 会打开一个以你的消息为标题的警报，并呼叫你点名的人。工作流的呼叫块会用你提供的标题和消息做同样的事。参见 [从 Slack 呼叫他人](/docs/workspace-connections/slack#从-slack-呼叫他人) 和 [Paging](/docs/workflows/components#paging)。
+- **呼叫。** Slack 或 Microsoft Teams 中的 `/oneuptime page`，在事件或警报的专属频道之外的任何地方，会打开一个以你的消息为标题的警报，并呼叫你点名的人。工作流的呼叫块会用你提供的标题和消息做同样的事。参见 [从 Slack 呼叫他人](/docs/workspace-connections/slack#从-slack-呼叫他人) 和 [Paging](/docs/workflows/components#paging)。
 - **API、Terraform 和工作流。** 警报是一种普通资源：`/api/alert`、Terraform 资源 `oneuptime_alert`，以及工作流的 **Create One Alert** 步骤。
 
 ## 警报在仪表板中的位置

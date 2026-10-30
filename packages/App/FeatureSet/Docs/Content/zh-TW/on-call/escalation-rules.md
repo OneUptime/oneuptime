@@ -143,6 +143,14 @@ OneUptime: Critical Incident INC-42 in Acme Prod is still not resolved:
 Checkout API is down. Ack or escalate: https://oneuptime.com/l/XJlaZRsd
 ```
 
+當有人從 Slack 或 Microsoft Teams 呼叫您時，簡訊會在 `OneUptime:` 之後寫明誰呼叫了誰，這幾個字也永遠不會被截斷：
+
+```text
+OneUptime: Alice Kim paged Platform about Critical Incident INC-42
+in Acme Prod: Checkout API is down.
+Ack or escalate: https://oneuptime.com/l/XJlaZRsd
+```
+
 只要有一個字元不在簡訊的基本字元集中，整則訊息就會按每段 70 個字元傳送。因此，彎引號和破折號會寫成 `"` 、 `'` 和 `-` ， `…` 寫成 `...` ，像 `ç` 和 `ł` 這樣的字母會去掉重音符號；表情符號會被省略。以其他文字（例如日文或俄文）撰寫的標題會照原樣傳送，占用兩段或更多。
 
 OneUptime 傳給你的其他簡訊，例如你作為擁有者的事件有所變更，或你的待命班次開始時的簡訊，也以 `OneUptime:` 開頭，以 `Turn off in User Settings > Notification Settings.` 結尾；如果去掉這句話才能放進一段，這句話就會被省略。

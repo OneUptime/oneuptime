@@ -131,7 +131,7 @@ Fliken **Insikter** visar vad dina tjänster har loggat i ett tidsintervall, och
 | **Top errors** | De olika meddelanden som loggats med allvarlighetsgraden Error eller Fatal, de vanligaste först. |
 | **Sources reporting logs** | Volymen och felsignalen för varje tjänst, värd eller annan källa. |
 
-Välj ett av de vanligaste felen för att se vad som hände runt det: när det inträffade, vad dess förekomster har gemensamt, var det inträffar, spåren som bär det och dess senaste rader. **Open matching logs** öppnar dem i **Tittare**, och **Explain with AI** öppnar [Fråga AI](/docs/ai/ask-ai) med felet och dess bevis som en prompt du kan redigera.
+Välj ett av de vanligaste felen för att se vad som hände runt det: när det inträffade, vad dess förekomster har gemensamt, var det inträffar, spåren som bär det och dess senaste rader. **Open matching logs** öppnar dem i **Tittare**, och **Förklara med AI** öppnar [Fråga AI](/docs/ai/ask-ai) med felet och dess bevis som en prompt du kan redigera.
 
 ## Hitta och åtgärda felloggar, saknade och brusiga loggar med AI
 

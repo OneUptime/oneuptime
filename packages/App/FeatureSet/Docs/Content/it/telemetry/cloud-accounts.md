@@ -7,6 +7,7 @@ Collega un account AWS, una sottoscrizione Azure o un progetto Google Cloud dall
 - [Microsoft Azure](#microsoft-azure): Un'app con il ruolo Monitoring Reader.
 - [Google Cloud](#google-cloud): Un account di servizio con quattro ruoli di sola lettura.
 - [Cosa legge OneUptime](#cosa-legge-oneuptime): Risorse, metriche, modifiche ed eventi di stato, con quale frequenza e quanto costa.
+- [Sicurezza dei dati](#sicurezza-dei-dati): Cosa permette di leggere la connessione a Sicurezza dei dati, e cosa aggiunge al comando ogni livello.
 - [Consenti all'IA di correggere i problemi](#consenti-allia-di-correggere-i-problemi): Un comando in più, e OneUptime AI può correggere ciò che trova.
 :::
 
@@ -21,7 +22,7 @@ flowchart TB
     ou --> chg["Modifiche ed<br/>eventi di stato"]
 ```
 
-- **L'accesso può solo leggere.** Il comando crea un accesso che legge le tue risorse e la loro configurazione, le loro metriche, cosa è cambiato e gli eventi di stato del tuo provider, e nient'altro: le azioni elencate sotto su AWS, il ruolo **Monitoring Reader** su Azure e quattro ruoli di lettura su Google Cloud. OneUptime non legge mai dati o segreti con esso, tranne righe di log se lasci che l'IA legga i log di un account. Eliminalo per togliere l'accesso a OneUptime.
+- **L'accesso può solo leggere.** Il comando crea un accesso che legge le tue risorse e la loro configurazione, le loro metriche, cosa è cambiato e gli eventi di stato del tuo provider, e nient'altro: le azioni elencate sotto su AWS, il ruolo **Monitoring Reader** su Azure e quattro ruoli di lettura su Google Cloud. OneUptime non legge mai dati o segreti con esso, tranne righe di log se lasci che l'IA legga i log di un account, e campioni di contenuto se li attivi per [Sicurezza dei dati](#sicurezza-dei-dati). Eliminalo per togliere l'accesso a OneUptime.
 - **OneUptime legge secondo una pianificazione.** Ogni 5 minuti per Azure e Google Cloud, e ogni 10 minuti per AWS, a meno che tu non scelga un altro intervallo quando colleghi. Ogni lettura registra anche cosa è cambiato dalla precedente, e ogni 30 minuti una lettura elenca di nuovo ogni risorsa.
 - **Ogni risorsa ha una pagina propria.** Le risorse compaiono in **Cloud → Tutte le risorse** con le metriche principali, i proprietari e le etichette. La pagina di una risorsa elencata mostra anche le sue **Risorse connesse** (dove viene eseguita, cosa le invia traffico), i suoi endpoint, tag e impostazioni, e i suoi **Incidenti**, **Avvisi** e **Modifiche**.
 - **Ogni account ha una pagina propria.** Gli account compaiono in **Cloud → Account** con le loro risorse per tipo e regione, le loro **Modifiche** e una **Topologia** di come si incastrano le loro risorse.
@@ -181,6 +182,62 @@ for ROLE in roles/monitoring.viewer roles/cloudasset.viewer roles/logging.viewer
 ```
 
 La connessione di un'organizzazione legge fino a 50 dei suoi progetti, a meno che tu non ne elenchi alcuni in **Progetti**.
+
+## Sicurezza dei dati
+
+La stessa connessione può permettere a [Sicurezza dei dati](/docs/data-security/index) di leggere gli archivi dati dell'account: i suoi bucket, database e data warehouse. In **Altri campi**, **Sicurezza dei dati** è **Disattivato** finché non scegli diversamente, e il comando che mostra il modulo cambia di conseguenza:
+
+| Sicurezza dei dati | Cosa può leggere Sicurezza dei dati | Cosa aggiunge il comando |
+| --- | --- | --- |
+| **Disattivato** | Nessuno degli archivi dell'account | Nulla |
+| **Solo configurazione** | Chi può raggiungere ogni archivio, e come è cifrato, sottoposto a backup e registrato nei log. Mai i dati. | Su AWS, una seconda policy inline, `OneUptimeDataSecurity`, di azioni di lettura. Su Azure e Google Cloud, nulla: **Monitoring Reader** e **Cloud Asset Viewer** la leggono già. |
+| **Configurazione e campioni di contenuto** | Tutto questo, più campioni di oggetti e righe, per trovarvi dati sensibili | Su AWS, la stessa policy con `s3:ListBucket`, `s3:GetObject` e `kms:Decrypt` solo tramite S3. Su Azure, **Storage Blob Data Reader**. Su Google Cloud, `roles/storage.objectViewer`, `roles/bigquery.dataViewer` e la BigQuery API. |
+
+Su AWS, il comando del ruolo aggiunge la policy con una riga in più. Al livello del contenuto, è questa:
+
+```bash
+aws iam put-role-policy --role-name "$ROLE" --policy-name OneUptimeDataSecurity --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["s3:ListAllMyBuckets","s3:GetBucketLocation","s3:GetBucketPolicyStatus","s3:GetBucketPublicAccessBlock","s3:GetAccountPublicAccessBlock","s3:GetBucketAcl","s3:GetBucketPolicy","s3:GetEncryptionConfiguration","s3:GetBucketVersioning","s3:GetBucketLogging","s3:GetBucketOwnershipControls","s3:GetReplicationConfiguration","s3:GetBucketTagging","rds:DescribeDBInstances","rds:DescribeDBClusters","rds:DescribeDBSnapshots","rds:DescribeDBSnapshotAttributes","rds:DescribeDBClusterSnapshots","rds:DescribeDBClusterSnapshotAttributes","dynamodb:ListTables","dynamodb:DescribeTable","dynamodb:DescribeContinuousBackups","redshift:DescribeClusters","redshift:DescribeLoggingStatus","es:ListDomainNames","es:DescribeDomains","elasticache:DescribeReplicationGroups","elasticfilesystem:DescribeFileSystems","kms:ListAliases"],"Resource":"*"},{"Effect":"Allow","Action":["s3:ListBucket"],"Resource":"arn:aws:s3:::*"},{"Effect":"Allow","Action":["s3:GetObject"],"Resource":"arn:aws:s3:::*/*"},{"Effect":"Allow","Action":["kms:Decrypt"],"Resource":"*","Condition":{"StringLike":{"kms:ViaService":"s3.*.amazonaws.com"}}}]}'
+```
+
+IAM limita le policy inline proprie di un utente a 2.048 caratteri in tutto, quindi con una **Chiave di accesso** la policy va su un gruppo, `OneUptimeDataSecurity`, a cui viene aggiunto l'utente:
+
+```bash
+aws iam create-user --user-name OneUptimeReadOnly > /dev/null 2>&1 || true
+aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeNatGateways","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:DescribeLoadBalancers","elasticloadbalancing:DescribeLoadBalancerAttributes","elasticloadbalancing:DescribeTargetGroups","elasticloadbalancing:DescribeTargetGroupAttributes","elasticloadbalancing:DescribeTargetHealth","elasticloadbalancing:DescribeTags","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","cloudtrail:LookupEvents","health:DescribeEvents","health:DescribeEventDetails","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis","arn:aws:apigateway:*::/restapis/*","arn:aws:apigateway:*::/apis","arn:aws:apigateway:*::/apis/*"]}]}'
+aws iam create-group --group-name OneUptimeDataSecurity > /dev/null 2>&1 || true
+aws iam put-group-policy --group-name OneUptimeDataSecurity --policy-name OneUptimeDataSecurity --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["s3:ListAllMyBuckets","s3:GetBucketLocation","s3:GetBucketPolicyStatus","s3:GetBucketPublicAccessBlock","s3:GetAccountPublicAccessBlock","s3:GetBucketAcl","s3:GetBucketPolicy","s3:GetEncryptionConfiguration","s3:GetBucketVersioning","s3:GetBucketLogging","s3:GetBucketOwnershipControls","s3:GetReplicationConfiguration","s3:GetBucketTagging","rds:DescribeDBInstances","rds:DescribeDBClusters","rds:DescribeDBSnapshots","rds:DescribeDBSnapshotAttributes","rds:DescribeDBClusterSnapshots","rds:DescribeDBClusterSnapshotAttributes","dynamodb:ListTables","dynamodb:DescribeTable","dynamodb:DescribeContinuousBackups","redshift:DescribeClusters","redshift:DescribeLoggingStatus","es:ListDomainNames","es:DescribeDomains","elasticache:DescribeReplicationGroups","elasticfilesystem:DescribeFileSystems","kms:ListAliases"],"Resource":"*"},{"Effect":"Allow","Action":["s3:ListBucket"],"Resource":"arn:aws:s3:::*"},{"Effect":"Allow","Action":["s3:GetObject"],"Resource":"arn:aws:s3:::*/*"},{"Effect":"Allow","Action":["kms:Decrypt"],"Resource":"*","Condition":{"StringLike":{"kms:ViaService":"s3.*.amazonaws.com"}}}]}'
+aws iam add-user-to-group --user-name OneUptimeReadOnly --group-name OneUptimeDataSecurity
+aws iam create-access-key --user-name OneUptimeReadOnly
+```
+
+Su Azure, il livello del contenuto aggiunge **Storage Blob Data Reader** sullo stesso ambito di **Monitoring Reader**:
+
+```bash
+SCOPE="/subscriptions/$(az account show --query id --output tsv)"
+OUT=$(az ad sp create-for-rbac --name OneUptimeReadOnly --role "Monitoring Reader" --scopes "$SCOPE")
+APP=$(echo "$OUT" | jq -r .appId)
+az role assignment create --assignee "$APP" --role "Storage Blob Data Reader" --scope "$SCOPE" > /dev/null
+END=$(az ad app credential list --id "$APP" --query "max([].endDateTime)" --output tsv)
+echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'
+```
+
+Su Google Cloud, aggiunge i due ruoli e attiva `bigquery.googleapis.com`:
+
+```bash
+PROJECT_ID=$(gcloud config get-value project)
+gcloud services enable monitoring.googleapis.com cloudasset.googleapis.com logging.googleapis.com cloudresourcemanager.googleapis.com servicehealth.googleapis.com bigquery.googleapis.com
+gcloud iam service-accounts create oneuptime-read-only --display-name "OneUptime (read only)" > /dev/null 2>&1 || true
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/monitoring.viewer --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/cloudasset.viewer --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/logging.viewer --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/servicehealth.viewer --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/storage.objectViewer --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/bigquery.dataViewer --condition=None > /dev/null
+gcloud iam service-accounts keys create oneuptime-key.json --iam-account "oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com"
+cat oneuptime-key.json && rm oneuptime-key.json
+```
+
+Il comando di un livello inferiore sostituisce la policy AWS con quella del livello inferiore. **Disattivato** non aggiunge nulla, quindi lascia ciò che ha concesso un comando precedente finché non lo elimini: la policy `OneUptimeDataSecurity` su AWS, con `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeDataSecurity`, e i ruoli del livello del contenuto su Azure e Google Cloud. In ogni caso Sicurezza dei dati smette subito di leggere: legge solo ciò che indica il livello della connessione. [Configurare Sicurezza dei dati](/docs/data-security/setup) elenca ogni azione della policy, e cosa conserva Sicurezza dei dati di ciò che legge.
 
 ## Cosa legge OneUptime
 

@@ -32,7 +32,7 @@ En mode **Lecture seule**, les actions ne sont jamais proposées au modèle : la
 | --- | --- |
 | N'importe quelle page | Cliquez sur **Demander à l'IA** dans l'en-tête, ou appuyez sur `Ctrl` + `I` (`Cmd` + `I` sur un Mac). Pendant que vous tapez dans un champ de texte ou un éditeur, ces touches restent le raccourci italique de l'éditeur. |
 | La palette de commandes | Appuyez sur `Ctrl` + `K` (`Cmd` + `K` sur un Mac) et choisissez **Demander à l'IA**. |
-| Un motif d'erreur des logs, ou les constats d'un graphique | Cliquez sur **Explain with AI** : Demander à l'IA s'ouvre avec les éléments comme une question que vous pouvez modifier avant de l'envoyer. |
+| Un motif d'erreur des logs, ou les constats d'un graphique | Cliquez sur **Expliquer avec l'IA** : Demander à l'IA s'ouvre avec les éléments comme une question que vous pouvez modifier avant de l'envoyer. |
 | Le menu des produits | Ouvrez **Produits → AI → Chat**. Demander à l'IA s'ouvre par-dessus la page où vous étiez. Chaque conversation a sa propre adresse : vous pouvez la mettre en favori et y revenir. |
 
 Demander à l'IA s'ouvre au milieu de l'écran, par-dessus la page où vous étiez, et occupe tout l'écran sur un téléphone. Appuyez sur `Esc`, ou cliquez à côté, pour revenir à la page. La conversation reste où vous l'avez laissée : rouvrez Demander à l'IA pour la poursuivre. Si vous le fermez pendant qu'il répond encore, un rappel dans le coin indique quand la réponse est prête, et l'ouvre.
