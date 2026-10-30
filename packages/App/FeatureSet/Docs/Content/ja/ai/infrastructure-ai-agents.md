@@ -148,9 +148,9 @@ AWS アカウント、Azure サブスクリプション、Google Cloud プロジ
 
 | クラウド | 実行する場所 | コマンドが作成するもの |
 | -------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| AWS アカウント | AWS CloudShell | ECS Fargate タスクを一つ実行する CloudFormation スタック `oneuptime-ai-agent`。そのタスク ロールが引き受けられるのは書き込みロール `OneUptimeAiAgentWrite` だけで、このロールが有効にした変更の権限を持ちます。 |
-| Azure サブスクリプション | Azure Cloud Shell | リソース グループ `oneuptime-ai-agent` 内の Container App `oneuptime-ai-agent`。そのマネージド ID は、有効にした変更の権限を持つカスタム ロールをサブスクリプションに対して持ちます。 |
-| Google Cloud プロジェクト | Google Cloud Shell | CPU を常に割り当てた Cloud Run サービス `oneuptime-ai-agent`。サービス アカウント `oneuptime-ai-agent` として動作し、このサービス アカウントは有効にした変更の権限を持つカスタム ロールをプロジェクトに対して持ちます。 |
+| AWS アカウント | AWS CloudShell | ECS Fargate タスクを一つ実行する CloudFormation スタック `oneuptime-ai-agent`。そのタスク ロールが引き受けられるのは書き込みロール `OneUptimeAiAgentWrite` だけで、このロールが有効にした変更の権限を持ちます。接続に使うキーは Secrets Manager に保管され、それを読むのは ECS だけです。 |
+| Azure サブスクリプション | Azure Cloud Shell | リソース グループ `oneuptime-ai-agent` 内の Container App `oneuptime-ai-agent`。そのマネージド ID は、有効にした変更の権限を持つカスタム ロールをサブスクリプションに対して持ちます。接続に使うキーは Container Apps のシークレットとして保管されます。 |
+| Google Cloud プロジェクト | Google Cloud Shell | CPU を常に割り当てた Cloud Run サービス `oneuptime-ai-agent`。サービス アカウント `oneuptime-ai-agent` として動作し、このサービス アカウントは有効にした変更の権限を持つカスタム ロールをプロジェクトに対して持ちます。接続に使うキーは Secret Manager に保管され、それを読めるのはこのサービス アカウントだけです。 |
 
 コマンドは、書き出された対象のアカウントでのみ機能します。AWS では別のアカウントにサインインしたシェルでは何も作成せず、Azure と Google Cloud のコマンドは呼び出しのたびにサブスクリプションまたはプロジェクトを指定します。コマンドは `ONEUPTIME_AI_INVESTIGATION=true`、回答に応じた `ONEUPTIME_AI_FIXES`、`ONEUPTIME_AI_ALLOW_WRITES=true`、そして書き出された対象のアカウントを示す `ONEUPTIME_AI_CLOUD_ACCOUNT_ID` を設定します。エージェントは、クラウドが示す所属アカウントとして登録し、OneUptime にアカウントを追加することは決してありません。コマンドとは別のアカウントで起動すると拒否され、コマンドの対象のアカウントのページにその理由が表示されます。プロジェクトのどの接続も読み取っていないアカウントで起動した場合も拒否され、そのことがログに記録されます。
 

@@ -25,6 +25,10 @@ import {
   CloudAiAgentFixesMode,
   CloudAiAgentSetupOptions,
   GCP_CLOUD_AI_AGENT_ENV_FILE,
+  GCP_CLOUD_AI_AGENT_KEY_FILE,
+  GCP_CLOUD_AI_AGENT_KEY_FILE_END,
+  GCP_CLOUD_AI_AGENT_SECRET_NAME,
+  GCP_SECRET_ACCESSOR_ROLE,
   describeCloudAiAgentSetupProblem,
   getAwsCloudAiAgentSetupCommand,
   getAwsCloudAiAgentTemplate,
@@ -195,6 +199,15 @@ function environmentOf(
   return environment;
 }
 
+// The same, without the key: what a service's own variables hold.
+function plainEnvironmentOf(
+  options: CloudAiAgentSetupOptions,
+): Record<string, string> {
+  const environment: Record<string, string> = environmentOf(options);
+  delete environment[CLOUD_AI_AGENT_INGESTION_KEY_ENV];
+  return environment;
+}
+
 // The lines of a heredoc that starts with this line.
 function heredocBody(command: string, opening: string): Array<string> {
   const lines: Array<string> = command.split("\n");
@@ -309,6 +322,10 @@ gcloud() {
     "run deploy $GCP_SERVICE")
       cp "$ENV_FILE" "$CAPTURED/env.yaml"
       return "$FAKE_DEPLOY_EXIT" ;;
+    "secrets create $GCP_SECRET")
+      if [ "$FAKE_EXISTS" = 1 ]; then echo "ALREADY_EXISTS" >&2; return 1; fi ;;
+    "secrets versions add")
+      cat > "$CAPTURED/secret.txt" ;;
   esac
   return 0
 }
@@ -334,6 +351,8 @@ interface ShellRun {
   // The AWS template and the Google Cloud variables as the deploy read them.
   template: string | null;
   envFile: string | null;
+  // What Google Cloud's secret version was added with, byte for byte.
+  secret: string | null;
 }
 
 const ROLE_ID: string = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
@@ -374,6 +393,7 @@ function run(command: string, scenario: Scenario = {}): ShellRun {
         TEMPLATE_FILE: AWS_CLOUD_AI_AGENT_TEMPLATE_FILE,
         ENV_FILE: GCP_CLOUD_AI_AGENT_ENV_FILE,
         GCP_SERVICE: GCP_CLOUD_AI_AGENT_SERVICE_NAME,
+        GCP_SECRET: GCP_CLOUD_AI_AGENT_SECRET_NAME,
         FAKE_ACCOUNT: scenario.account ?? AWS_ACCOUNT,
         FAKE_VPC: scenario.vpc ?? "vpc-0123456789abcdef0",
         FAKE_SUBNETS: scenario.subnets ?? "subnet-1\tsubnet-2\tsubnet-3",
@@ -411,6 +431,7 @@ function run(command: string, scenario: Scenario = {}): ShellRun {
     files: fs.readdirSync(work).sort(),
     template: read(path.join(captured, "template.json")),
     envFile: read(path.join(captured, "env.yaml")),
+    secret: read(path.join(captured, "secret.txt")),
   };
 }
 
@@ -956,7 +977,7 @@ describe("the agent's environment", () => {
 // ---- AWS ------------------------------------------------------------------------
 
 describe("AWS: the template", () => {
-  test("creates exactly the named resources: the cluster, its log group, the roles, the security group, the task and the service", () => {
+  test("creates exactly the named resources: the cluster, its log group, the key's secret, the roles, the security group, the task and the service", () => {
     const resources: Json = template(AWS).Resources;
 
     expect(
@@ -966,6 +987,7 @@ describe("AWS: the template", () => {
     ).toEqual([
       ["Cluster", "AWS::ECS::Cluster"],
       ["LogGroup", "AWS::Logs::LogGroup"],
+      ["IngestionKeySecret", "AWS::SecretsManager::Secret"],
       ["ExecutionRole", "AWS::IAM::Role"],
       ["TaskRole", "AWS::IAM::Role"],
       ["WriteRole", "AWS::IAM::Role"],
@@ -1014,6 +1036,52 @@ describe("AWS: the template", () => {
     expect(getAwsCloudAiAgentTemplate(AWS)).not.toContain(KEY);
   });
 
+  /*
+   * The key the agent registers with is a Secrets Manager secret made from
+   * the parameter, never one of the task's variables: those are shown to
+   * anyone who may describe the task definition (ReadOnlyAccess), and the
+   * key registers agents and sends telemetry for the whole OneUptime
+   * project. ECS reads it as the task starts, with the execution role, and
+   * nothing else may.
+   */
+  test("the key is a secret made from its parameter, with no name of its own to collide on", () => {
+    const secret: Json = template(AWS).Resources.IngestionKeySecret;
+
+    expect(secret.Properties).toEqual({
+      Description:
+        "The telemetry ingestion key the OneUptime Cloud AI agent registers with.",
+      SecretString: { Ref: "IngestionKey" },
+    });
+    // A deleted stack's secret waits out its recovery window: a fixed name would block the next stack.
+    expect(secret.Properties.Name).toBeUndefined();
+    expect(getAwsCloudAiAgentTemplate(AWS)).not.toContain(KEY);
+  });
+
+  test("ECS pulls the image, writes the logs and reads the key with a role of its own, and only that key", () => {
+    const role: Json = template(AWS).Resources.ExecutionRole.Properties;
+
+    expect(role.Policies).toEqual([
+      {
+        PolicyName: "ReadTheIngestionKey",
+        PolicyDocument: {
+          Version: "2012-10-17",
+          Statement: [
+            {
+              Effect: "Allow",
+              Action: "secretsmanager:GetSecretValue",
+              Resource: { Ref: "IngestionKeySecret" },
+            },
+          ],
+        },
+      },
+    ]);
+
+    // The agent's own roles never read it: only ECS does, before the agent starts.
+    const resources: Json = template(AWS).Resources;
+    expect(JSON.stringify(resources.TaskRole)).not.toContain("secretsmanager");
+    expect(JSON.stringify(resources.WriteRole)).not.toContain("secretsmanager");
+  });
+
   test("ECS pulls the image and writes the logs with a role of its own", () => {
     const role: Json = template(AWS).Resources.ExecutionRole.Properties;
 
@@ -1033,7 +1101,6 @@ describe("AWS: the template", () => {
           "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
       },
     ]);
-    expect(role.Policies).toBeUndefined();
   });
 
   test("the task role is this account's ECS tasks' only, and may only assume the write role", () => {
@@ -1232,7 +1299,7 @@ describe("AWS: the template", () => {
     });
   });
 
-  test("the task's environment is the agent's, with the key from its parameter and the write role's own ARN", () => {
+  test("the task's environment is the agent's, the key from its secret and the write role's own ARN", () => {
     const options: CloudAiAgentSetupOptions = {
       ...AWS,
       fixesMode: "Automatic",
@@ -1245,12 +1312,11 @@ describe("AWS: the template", () => {
         .ContainerDefinitions[0];
 
     expect(container.Environment).toEqual(
-      getCloudAiAgentEnvironment(options).map(
-        (variable: CloudAiAgentEnvironmentVariable): Json => {
-          if (variable.name === CLOUD_AI_AGENT_INGESTION_KEY_ENV) {
-            return { Name: variable.name, Value: { Ref: "IngestionKey" } };
-          }
-
+      getCloudAiAgentEnvironment(options)
+        .filter((variable: CloudAiAgentEnvironmentVariable): boolean => {
+          return variable.name !== CLOUD_AI_AGENT_INGESTION_KEY_ENV;
+        })
+        .map((variable: CloudAiAgentEnvironmentVariable): Json => {
           if (variable.name === RESOURCE_AI_AWS_WRITE_ROLE_ARN_ENV) {
             return {
               Name: variable.name,
@@ -1259,9 +1325,24 @@ describe("AWS: the template", () => {
           }
 
           return { Name: variable.name, Value: variable.value };
+        }),
+    );
+    // The key is the one secret, from Secrets Manager, never a variable.
+    expect(container.Secrets).toEqual([
+      {
+        Name: CLOUD_AI_AGENT_INGESTION_KEY_ENV,
+        ValueFrom: { Ref: "IngestionKeySecret" },
+      },
+    ]);
+    expect(
+      getCloudAiAgentEnvironment(options).filter(
+        (variable: CloudAiAgentEnvironmentVariable): boolean => {
+          return variable.isSecret;
         },
       ),
-    );
+    ).toEqual([
+      { name: CLOUD_AI_AGENT_INGESTION_KEY_ENV, value: KEY, isSecret: true },
+    ]);
   });
 
   test("one agent, always on, reaching out through a public IP in the default subnets", () => {
@@ -1793,11 +1874,12 @@ describe("Azure: the command", () => {
 // ---- Google Cloud ---------------------------------------------------------------
 
 describe("Google Cloud: the APIs", () => {
-  test("Cloud Run, IAM and Resource Manager always, and the changes' own", () => {
+  test("Cloud Run, IAM, Resource Manager and Secret Manager always, and the changes' own", () => {
     expect(getGcpCloudAiAgentServices()).toEqual([
       "run.googleapis.com",
       "iam.googleapis.com",
       "cloudresourcemanager.googleapis.com",
+      "secretmanager.googleapis.com",
       "sqladmin.googleapis.com",
       "compute.googleapis.com",
     ]);
@@ -1805,17 +1887,20 @@ describe("Google Cloud: the APIs", () => {
       "run.googleapis.com",
       "iam.googleapis.com",
       "cloudresourcemanager.googleapis.com",
+      "secretmanager.googleapis.com",
     ]);
     expect(getGcpCloudAiAgentServices(["start-instance"])).toEqual([
       "run.googleapis.com",
       "iam.googleapis.com",
       "cloudresourcemanager.googleapis.com",
+      "secretmanager.googleapis.com",
       "compute.googleapis.com",
     ]);
     expect(getGcpCloudAiAgentServices(["fail-over-database"])).toEqual([
       "run.googleapis.com",
       "iam.googleapis.com",
       "cloudresourcemanager.googleapis.com",
+      "secretmanager.googleapis.com",
       "sqladmin.googleapis.com",
     ]);
   });
@@ -1851,7 +1936,7 @@ describe("Google Cloud: the command", () => {
     }
   });
 
-  test("a first run turns on the APIs, makes the role, the service account and its binding, then deploys the service", () => {
+  test("a first run turns on the APIs, makes the role, the service account and its binding, keeps the key in a secret only it may read, then deploys the service", () => {
     const shell: ShellRun = run(getGcpCloudAiAgentSetupCommand(GCP));
     const role: Array<string> = callsTo(
       shell,
@@ -1876,8 +1961,38 @@ describe("Google Cloud: the command", () => {
       "gcloud iam roles create",
       "gcloud iam service-accounts create",
       `gcloud projects add-iam-policy-binding ${GCP_PROJECT}`,
+      `gcloud secrets create ${GCP_CLOUD_AI_AGENT_SECRET_NAME}`,
+      "gcloud secrets versions add",
+      `gcloud secrets add-iam-policy-binding ${GCP_CLOUD_AI_AGENT_SECRET_NAME}`,
       `gcloud run deploy ${GCP_CLOUD_AI_AGENT_SERVICE_NAME}`,
     ]);
+
+    // The key: a new version of the secret, which only the agent's service account may read.
+    const secretBinding: Array<string> = callsTo(
+      shell,
+      "gcloud",
+      "secrets",
+      "add-iam-policy-binding",
+    )[0]!;
+    expect(
+      callsTo(shell, "gcloud", "secrets", "versions", "add")[0]!.slice(4, 5),
+    ).toEqual([GCP_CLOUD_AI_AGENT_SECRET_NAME]);
+    expect(callsTo(shell, "gcloud", "secrets", "versions", "add")[0]).toContain(
+      "--data-file=-",
+    );
+    expect(
+      flag(
+        callsTo(shell, "gcloud", "secrets", "create")[0]!,
+        "--replication-policy",
+      ),
+    ).toBe("automatic");
+    expect(flag(secretBinding, "--member")).toBe(
+      `serviceAccount:${GCP_CLOUD_AI_AGENT_SERVICE_ACCOUNT_ID}@${GCP_PROJECT}.iam.gserviceaccount.com`,
+    );
+    expect(flag(secretBinding, "--role")).toBe(GCP_SECRET_ACCESSOR_ROLE);
+    expect(GCP_SECRET_ACCESSOR_ROLE).toBe("roles/secretmanager.secretAccessor");
+    expect(secretBinding).toContain("--condition=None");
+    expect(shell.secret).toBe(KEY);
     expect(role[4]).toBe(GCP_CLOUD_AI_AGENT_ROLE_ID);
     expect(
       callsTo(shell, "gcloud", "iam", "service-accounts", "create")[0]![4],
@@ -1925,6 +2040,10 @@ describe("Google Cloud: the command", () => {
     );
     expect(flag(deploy, "--env-vars-file")).toBe(GCP_CLOUD_AI_AGENT_ENV_FILE);
     expect(deploy).not.toContain("--set-env-vars");
+    // The key reaches the service from its secret, never as a variable of the service's.
+    expect(flag(deploy, "--set-secrets")).toBe(
+      `${CLOUD_AI_AGENT_INGESTION_KEY_ENV}=${GCP_CLOUD_AI_AGENT_SECRET_NAME}:latest`,
+    );
     expect(deploy).toContain("--quiet");
   });
 
@@ -1943,24 +2062,64 @@ describe("Google Cloud: the command", () => {
     for (const deployExit of [0, 1]) {
       const shell: ShellRun = run(command, { deployExit });
 
+      // Every variable but the key, which is the secret's.
       expect(yaml.load(shell.envFile as string)).toEqual(
-        environmentOf(options),
+        plainEnvironmentOf(options),
       );
+      expect(shell.secret).toBe(KEY);
+      // Both files are gone, whatever the deploy did.
       expect(shell.files).toEqual([]);
       expect(shell.output.includes(CLOUD_AI_AGENT_STARTED_MESSAGE)).toBe(
         deployExit === 0,
       );
     }
 
-    // The key is in the file, never on a command line.
+    // The key is in its own file, never on a command line, never a variable.
     expect(
       shellLines(command).filter((line: string): boolean => {
         return line.includes(KEY);
       }),
     ).toEqual([]);
     expect(
-      heredocBody(command, `cat > ${GCP_CLOUD_AI_AGENT_ENV_FILE} <<'ENV'`),
-    ).toContain(`${CLOUD_AI_AGENT_INGESTION_KEY_ENV}: "${KEY}"`);
+      heredocBody(
+        command,
+        `cat > ${GCP_CLOUD_AI_AGENT_KEY_FILE} <<'${GCP_CLOUD_AI_AGENT_KEY_FILE_END}'`,
+      ),
+    ).toEqual([KEY]);
+    expect(
+      heredocBody(command, `cat > ${GCP_CLOUD_AI_AGENT_ENV_FILE} <<'ENV'`).join(
+        "\n",
+      ),
+    ).not.toContain(KEY);
+    // The file the key was written to is removed the line after it was read.
+    const lines: Array<string> = shellLines(command);
+    const read: number = lines.findIndex((line: string): boolean => {
+      return line.includes("gcloud secrets versions add");
+    });
+    expect(lines[read + 1]).toBe(`rm ${GCP_CLOUD_AI_AGENT_KEY_FILE}`);
+  });
+
+  test("the key file's last line can never be a key, so no key ends it early", () => {
+    // A space: no key may hold one.
+    expect(GCP_CLOUD_AI_AGENT_KEY_FILE_END).toContain(" ");
+    expect(() => {
+      return getGcpCloudAiAgentSetupCommand({
+        ...GCP,
+        ingestionKey: GCP_CLOUD_AI_AGENT_KEY_FILE_END,
+      });
+    }).toThrow(BadDataException);
+  });
+
+  test("running it again adds a new version of the key to the secret it made the first time", () => {
+    const again: ShellRun = run(getGcpCloudAiAgentSetupCommand(GCP), {
+      exists: true,
+    });
+
+    expect(callsTo(again, "gcloud", "secrets", "versions", "add")).toHaveLength(
+      1,
+    );
+    expect(again.secret).toBe(KEY);
+    expect(again.output).toEqual([CLOUD_AI_AGENT_STARTED_MESSAGE]);
   });
 
   test("running it again updates the role to exactly these permissions and moves the service to a new revision", () => {
@@ -2361,7 +2520,10 @@ describe("quoting", () => {
       }
 
       if (options.provider === CloudProvider.GCP) {
-        expect(yaml.load(shell.envFile as string)).toEqual(expected);
+        expect(yaml.load(shell.envFile as string)).toEqual(
+          plainEnvironmentOf(hostile),
+        );
+        expect(shell.secret).toBe(HOSTILE.ingestionKey);
       }
 
       expect(shell.output).toEqual([CLOUD_AI_AGENT_STARTED_MESSAGE]);
@@ -2406,10 +2568,23 @@ describe("quoting", () => {
     ).toHaveLength(1);
     expect(
       heredocBody(gcp, `cat > ${GCP_CLOUD_AI_AGENT_ENV_FILE} <<'ENV'`),
-    ).toHaveLength(getCloudAiAgentEnvironment({ ...GCP, ...HOSTILE }).length);
+    ).toHaveLength(
+      getCloudAiAgentEnvironment({ ...GCP, ...HOSTILE }).length - 1,
+    );
     expect(
       gcp.split("\n").filter((line: string): boolean => {
         return line === "ENV";
+      }),
+    ).toHaveLength(1);
+    expect(
+      heredocBody(
+        gcp,
+        `cat > ${GCP_CLOUD_AI_AGENT_KEY_FILE} <<'${GCP_CLOUD_AI_AGENT_KEY_FILE_END}'`,
+      ),
+    ).toEqual([HOSTILE.ingestionKey]);
+    expect(
+      gcp.split("\n").filter((line: string): boolean => {
+        return line === GCP_CLOUD_AI_AGENT_KEY_FILE_END;
       }),
     ).toHaveLength(1);
   });

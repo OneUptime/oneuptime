@@ -28,8 +28,10 @@ import {
  *     About $45 a month.
  *
  * A month is the 730 hours the clouds' own calculators count. The agent's
- * logs and its requests to OneUptime (one every few seconds) are left out:
- * they fit the clouds' free allowances or cost cents.
+ * logs, its requests to OneUptime (one every few seconds) and the secret
+ * that holds its key (Secrets Manager's $0.40 a month on AWS; Secret
+ * Manager's free tier on Google Cloud; a Container Apps secret is free)
+ * are left out: they fit the clouds' free allowances or cost cents.
  *
  * Shown in the setup dialog before the command, in whole dollars.
  */

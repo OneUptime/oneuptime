@@ -148,9 +148,9 @@ AWS 帳戶、Azure 訂用帳戶或 Google Cloud 專案旁邊沒有可供代理�
 
 | 雲端 | 在何處執行 | 指令建立的內容 |
 | -------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| AWS 帳戶 | AWS CloudShell | 一個 CloudFormation 堆疊 `oneuptime-ai-agent`，它執行一個 ECS Fargate 任務。其任務角色只能擔任寫入角色 `OneUptimeAiAgentWrite`，該角色具有已開啟變更的權限。 |
-| Azure 訂用帳戶 | Azure Cloud Shell | 資源群組 `oneuptime-ai-agent` 中的一個 Container App `oneuptime-ai-agent`。其受控識別在訂用帳戶上具有一個自訂角色，含已開啟變更的權限。 |
-| Google Cloud 專案 | Google Cloud Shell | 一個一律分配 CPU 的 Cloud Run 服務 `oneuptime-ai-agent`，以服務帳戶 `oneuptime-ai-agent` 的身分執行，該服務帳戶在專案上具有一個自訂角色，含已開啟變更的權限。 |
+| AWS 帳戶 | AWS CloudShell | 一個 CloudFormation 堆疊 `oneuptime-ai-agent`，它執行一個 ECS Fargate 任務。其任務角色只能擔任寫入角色 `OneUptimeAiAgentWrite`，該角色具有已開啟變更的權限。它連線時使用的金鑰保存在 Secrets Manager 中，只有 ECS 會讀取。 |
+| Azure 訂用帳戶 | Azure Cloud Shell | 資源群組 `oneuptime-ai-agent` 中的一個 Container App `oneuptime-ai-agent`。其受控識別在訂用帳戶上具有一個自訂角色，含已開啟變更的權限。它連線時使用的金鑰保存為 Container Apps 祕密。 |
+| Google Cloud 專案 | Google Cloud Shell | 一個一律分配 CPU 的 Cloud Run 服務 `oneuptime-ai-agent`，以服務帳戶 `oneuptime-ai-agent` 的身分執行，該服務帳戶在專案上具有一個自訂角色，含已開啟變更的權限。它連線時使用的金鑰保存在 Secret Manager 中，只有該服務帳戶可以讀取。 |
 
 該指令只在為其撰寫的帳戶中有效：在 AWS 上，如果 Shell 登入的是另一個帳戶，它不會建立任何內容；Azure 和 Google Cloud 的指令則會在每次呼叫時指明其訂用帳戶或專案。它會設定 `ONEUPTIME_AI_INVESTIGATION=true`、依您的回答設定 `ONEUPTIME_AI_FIXES`、設定 `ONEUPTIME_AI_ALLOW_WRITES=true`，並將 `ONEUPTIME_AI_CLOUD_ACCOUNT_ID` 設為為其撰寫指令的帳戶。代理程式依其雲端所回報的所在帳戶註冊，從不向 OneUptime 新增帳戶：如果在與其指令不同的帳戶中啟動，它會被拒絕，為其撰寫指令的帳戶會在其頁面上說明原因；如果在專案的任何連線都不讀取的帳戶中啟動，它同樣會被拒絕，其日誌會說明這一點。
 

@@ -148,9 +148,9 @@ AWS 账户、Azure 订阅或 Google Cloud 项目旁边没有可供代理依附�
 
 | 云 | 在何处运行 | 命令创建的内容 |
 | -------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| AWS 账户 | AWS CloudShell | 一个 CloudFormation 堆栈 `oneuptime-ai-agent`，它运行一个 ECS Fargate 任务。其任务角色只能代入写入角色 `OneUptimeAiAgentWrite`，该角色持有已开启更改的权限。 |
-| Azure 订阅 | Azure Cloud Shell | 资源组 `oneuptime-ai-agent` 中的一个 Container App `oneuptime-ai-agent`。其托管标识在订阅上持有一个自定义角色，具有已开启更改的权限。 |
-| Google Cloud 项目 | Google Cloud Shell | 一个始终分配 CPU 的 Cloud Run 服务 `oneuptime-ai-agent`，以服务账号 `oneuptime-ai-agent` 的身份运行，该服务账号在项目上持有一个自定义角色，具有已开启更改的权限。 |
+| AWS 账户 | AWS CloudShell | 一个 CloudFormation 堆栈 `oneuptime-ai-agent`，它运行一个 ECS Fargate 任务。其任务角色只能代入写入角色 `OneUptimeAiAgentWrite`，该角色持有已开启更改的权限。它连接时使用的密钥保存在 Secrets Manager 中，只有 ECS 会读取。 |
+| Azure 订阅 | Azure Cloud Shell | 资源组 `oneuptime-ai-agent` 中的一个 Container App `oneuptime-ai-agent`。其托管标识在订阅上持有一个自定义角色，具有已开启更改的权限。它连接时使用的密钥保存为 Container Apps 机密。 |
+| Google Cloud 项目 | Google Cloud Shell | 一个始终分配 CPU 的 Cloud Run 服务 `oneuptime-ai-agent`，以服务账号 `oneuptime-ai-agent` 的身份运行，该服务账号在项目上持有一个自定义角色，具有已开启更改的权限。它连接时使用的密钥保存在 Secret Manager 中，只有该服务账号可以读取。 |
 
 该命令只在为其编写的账户中有效：在 AWS 上，如果 Shell 登录的是另一个账户，它不会创建任何内容；Azure 和 Google Cloud 的命令则会在每次调用时指明其订阅或项目。它会设置 `ONEUPTIME_AI_INVESTIGATION=true`、根据您的回答设置 `ONEUPTIME_AI_FIXES`、设置 `ONEUPTIME_AI_ALLOW_WRITES=true`，并将 `ONEUPTIME_AI_CLOUD_ACCOUNT_ID` 设为为其编写命令的账户。代理按其云所报告的所在账户注册，从不向 OneUptime 添加账户：如果在与其命令不同的账户中启动，它会被拒绝，为其编写命令的账户会在其页面上说明原因；如果在项目的任何连接都不读取的账户中启动，它同样会被拒绝，其日志会说明这一点。
 

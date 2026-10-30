@@ -148,9 +148,9 @@ AWS 계정, Azure 구독 또는 Google Cloud 프로젝트에는 에이전트를 
 
 | 클라우드 | 실행할 곳 | 명령이 만드는 것 |
 | -------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| AWS 계정 | AWS CloudShell | ECS Fargate 태스크 하나를 실행하는 CloudFormation 스택 `oneuptime-ai-agent`. 태스크 역할은 쓰기 역할 `OneUptimeAiAgentWrite` 만 맡을 수 있으며, 이 역할이 켜진 변경의 권한을 가집니다. |
-| Azure 구독 | Azure Cloud Shell | 리소스 그룹 `oneuptime-ai-agent` 의 Container App `oneuptime-ai-agent`. 그 관리 ID는 구독에 대해 켜진 변경의 권한을 가진 사용자 지정 역할을 가집니다. |
-| Google Cloud 프로젝트 | Google Cloud Shell | CPU가 항상 할당된 Cloud Run 서비스 `oneuptime-ai-agent`. 서비스 계정 `oneuptime-ai-agent` 로 실행되며, 이 서비스 계정은 프로젝트에 대해 켜진 변경의 권한을 가진 사용자 지정 역할을 가집니다. |
+| AWS 계정 | AWS CloudShell | ECS Fargate 태스크 하나를 실행하는 CloudFormation 스택 `oneuptime-ai-agent`. 태스크 역할은 쓰기 역할 `OneUptimeAiAgentWrite` 만 맡을 수 있으며, 이 역할이 켜진 변경의 권한을 가집니다. 연결에 쓰는 키는 Secrets Manager 에 보관되며, ECS만 읽습니다. |
+| Azure 구독 | Azure Cloud Shell | 리소스 그룹 `oneuptime-ai-agent` 의 Container App `oneuptime-ai-agent`. 그 관리 ID는 구독에 대해 켜진 변경의 권한을 가진 사용자 지정 역할을 가집니다. 연결에 쓰는 키는 Container Apps 시크릿으로 보관됩니다. |
+| Google Cloud 프로젝트 | Google Cloud Shell | CPU가 항상 할당된 Cloud Run 서비스 `oneuptime-ai-agent`. 서비스 계정 `oneuptime-ai-agent` 로 실행되며, 이 서비스 계정은 프로젝트에 대해 켜진 변경의 권한을 가진 사용자 지정 역할을 가집니다. 연결에 쓰는 키는 Secret Manager 에 보관되며, 그 서비스 계정만 읽을 수 있습니다. |
 
 명령은 작성된 대상 계정에서만 작동합니다. AWS에서는 다른 계정에 로그인한 셸에서 아무것도 만들지 않으며, Azure와 Google Cloud 명령은 호출할 때마다 구독이나 프로젝트를 지정합니다. 명령은 `ONEUPTIME_AI_INVESTIGATION=true`, 답에 따른 `ONEUPTIME_AI_FIXES`, `ONEUPTIME_AI_ALLOW_WRITES=true`, 그리고 작성된 대상 계정을 가리키는 `ONEUPTIME_AI_CLOUD_ACCOUNT_ID` 를 설정합니다. 에이전트는 클라우드가 알려 주는 소속 계정으로 등록하며 OneUptime에 계정을 추가하는 일은 절대 없습니다. 명령과 다른 계정에서 시작하면 거부되며, 명령의 대상 계정 페이지에 그 이유가 표시됩니다. 프로젝트의 어떤 연결도 읽지 않는 계정에서 시작해도 거부되며, 로그에 그렇게 기록됩니다.
 

@@ -1774,6 +1774,38 @@ describe("Infrastructure AI Agents docs", (): void => {
       expect(template).toContain('"RequiresCompatibilities":["FARGATE"]');
       expect(template).toContain('"PolicyName":"AssumeTheWriteRole"');
       expect(template).toContain(`role/${AWS_CLOUD_AI_AGENT_WRITE_ROLE_NAME}`);
+
+      /*
+       * The key the agent connects with is a secret of each cloud's, as the
+       * table says: Secrets Manager read by ECS, a Container Apps secret,
+       * Secret Manager read by the service account - never a variable.
+       */
+      expect(rows["aws"]![2]).toContain(
+        "The key it connects with is kept in Secrets Manager, which only ECS reads.",
+      );
+      expect(rows["azure"]![2]).toContain(
+        "The key it connects with is a Container Apps secret.",
+      );
+      expect(rows["gcp"]![2]).toContain(
+        "The key it connects with is kept in Secret Manager, which only that service account may read.",
+      );
+      expect(template).toContain('"Type":"AWS::SecretsManager::Secret"');
+      expect(template).toContain(
+        '"Secrets":[{"Name":"ONEUPTIME_TELEMETRY_INGESTION_KEY","ValueFrom":{"Ref":"IngestionKeySecret"}}]',
+      );
+      expect(template).toContain('"Action":"secretsmanager:GetSecretValue"');
+      expect(
+        getCloudAiAgentSetupCommand(
+          cloudSetupOptions(CloudProvider.Azure, "azure"),
+        ),
+      ).toContain("ONEUPTIME_TELEMETRY_INGESTION_KEY=secretref:ingestion-key");
+      expect(
+        getCloudAiAgentSetupCommand(
+          cloudSetupOptions(CloudProvider.GCP, "gcp"),
+        ),
+      ).toContain(
+        "--set-secrets ONEUPTIME_TELEMETRY_INGESTION_KEY=oneuptime-ai-agent-key:latest",
+      );
       // Google Cloud: CPU always allocated.
       expect(
         getCloudAiAgentSetupCommand(

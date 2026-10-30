@@ -67,13 +67,22 @@ import {
  *     holds the operations' permissions - changes only on resources that
  *     carry the required tag, when one is set - and the agent assumes it
  *     once per job with a session policy for that job's one action on its
- *     one resource.
+ *     one resource. The ingestion key is kept in Secrets Manager, read by
+ *     ECS when the task starts.
  *   - Azure (Cloud Shell): a custom role from the operations, a Container
  *     App with a system-assigned identity holding that role on the
  *     subscription, and the ingestion key as a Container Apps secret.
  *   - Google Cloud (Cloud Shell): a custom role from the operations, a
- *     service account holding it on the project, and a Cloud Run service
- *     with CPU always allocated running as that service account.
+ *     service account holding it on the project, the ingestion key in
+ *     Secret Manager (only that service account may read it), and a Cloud
+ *     Run service with CPU always allocated running as that service
+ *     account.
+ *
+ * On every cloud the key is a secret of the platform's, never a plain
+ * variable: a task definition's or a Cloud Run service's variables are
+ * shown to anyone who may describe them (AWS ReadOnlyAccess, Google
+ * Cloud's Viewer), and the key registers agents and sends telemetry for
+ * the whole OneUptime project.
  *
  * Azure and Google Cloud have no general tag condition, so there the agent
  * checks the required tag (or label) itself, as it does everywhere.
@@ -200,10 +209,23 @@ export const CLOUD_AI_AGENT_INGESTION_KEY_ENV: string =
 export const CLOUD_AI_AGENT_HEALTH_HOST_ENV: string =
   "ONEUPTIME_AI_AGENT_HEALTH_HOST";
 
-// What the commands write in the shell's directory, and the secret's name.
+// What the commands write in the shell's directory, and the secrets' names.
 export const AWS_CLOUD_AI_AGENT_TEMPLATE_FILE: string = `${CLOUD_AI_AGENT_NAME}.json`;
 export const GCP_CLOUD_AI_AGENT_ENV_FILE: string = `${CLOUD_AI_AGENT_NAME}.env.yaml`;
+export const GCP_CLOUD_AI_AGENT_KEY_FILE: string = `${CLOUD_AI_AGENT_NAME}.key`;
 export const AZURE_CLOUD_AI_AGENT_SECRET_NAME: string = "ingestion-key";
+export const GCP_CLOUD_AI_AGENT_SECRET_NAME: string = `${CLOUD_AI_AGENT_NAME}-key`;
+
+/*
+ * The line that ends the key file's here-document in the Google Cloud
+ * command: it holds a space, which no key may (KEY_CHARACTERS), so no key
+ * can end the document early.
+ */
+export const GCP_CLOUD_AI_AGENT_KEY_FILE_END: string = "KEY ENDS";
+
+// What lets the Google Cloud agent's service account read its one secret.
+export const GCP_SECRET_ACCESSOR_ROLE: string =
+  "roles/secretmanager.secretAccessor";
 
 // How long the agent's AWS logs are kept: long enough to read what went wrong.
 export const AWS_CLOUD_AI_AGENT_LOG_RETENTION_DAYS: number = 7;
@@ -954,13 +976,17 @@ function getAwsWritePolicy(setup: CloudAiAgentSetup): TemplateValue {
 }
 
 function getAwsTemplate(setup: CloudAiAgentSetup): TemplateValue {
-  const containerEnvironment: Array<TemplateValue> = environmentOf(setup).map(
-    (variable: CloudAiAgentEnvironmentVariable): TemplateValue => {
-      // The key is a parameter, never in the template; the ARN is the role's own.
-      if (variable.name === CLOUD_AI_AGENT_INGESTION_KEY_ENV) {
-        return { Name: variable.name, Value: { Ref: "IngestionKey" } };
-      }
-
+  /*
+   * The key is a parameter, never in the template, and reaches the task
+   * from Secrets Manager (Secrets), never as one of its variables: those
+   * are shown to anyone who may describe the task definition. The write
+   * role's ARN is the role's own.
+   */
+  const containerEnvironment: Array<TemplateValue> = environmentOf(setup)
+    .filter((variable: CloudAiAgentEnvironmentVariable): boolean => {
+      return !variable.isSecret;
+    })
+    .map((variable: CloudAiAgentEnvironmentVariable): TemplateValue => {
       if (variable.name === RESOURCE_AI_AWS_WRITE_ROLE_ARN_ENV) {
         return {
           Name: variable.name,
@@ -969,8 +995,14 @@ function getAwsTemplate(setup: CloudAiAgentSetup): TemplateValue {
       }
 
       return { Name: variable.name, Value: variable.value };
-    },
-  );
+    });
+  const containerSecrets: Array<TemplateValue> = environmentOf(setup)
+    .filter((variable: CloudAiAgentEnvironmentVariable): boolean => {
+      return variable.isSecret;
+    })
+    .map((variable: CloudAiAgentEnvironmentVariable): TemplateValue => {
+      return { Name: variable.name, ValueFrom: { Ref: "IngestionKeySecret" } };
+    });
 
   const size: CloudAiAgentSize = CLOUD_AI_AGENT_SIZES[CloudProvider.AWS];
   const ecsTasks: TemplateValue = { Service: "ecs-tasks.amazonaws.com" };
@@ -1010,7 +1042,16 @@ function getAwsTemplate(setup: CloudAiAgentSetup): TemplateValue {
           RetentionInDays: AWS_CLOUD_AI_AGENT_LOG_RETENTION_DAYS,
         },
       },
-      // What ECS pulls the image and writes the logs with.
+      // The key the agent registers with, which only ECS reads, as the task starts.
+      IngestionKeySecret: {
+        Type: "AWS::SecretsManager::Secret",
+        Properties: {
+          Description:
+            "The telemetry ingestion key the OneUptime Cloud AI agent registers with.",
+          SecretString: { Ref: "IngestionKey" },
+        },
+      },
+      // What ECS pulls the image, writes the logs and reads the key with.
       ExecutionRole: {
         Type: "AWS::IAM::Role",
         Properties: {
@@ -1027,6 +1068,21 @@ function getAwsTemplate(setup: CloudAiAgentSetup): TemplateValue {
           ManagedPolicyArns: [
             {
               "Fn::Sub": `arn:${CFN_PARTITION}:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy`,
+            },
+          ],
+          Policies: [
+            {
+              PolicyName: "ReadTheIngestionKey",
+              PolicyDocument: {
+                Version: "2012-10-17",
+                Statement: [
+                  {
+                    Effect: "Allow",
+                    Action: "secretsmanager:GetSecretValue",
+                    Resource: { Ref: "IngestionKeySecret" },
+                  },
+                ],
+              },
             },
           ],
         },
@@ -1134,6 +1190,7 @@ function getAwsTemplate(setup: CloudAiAgentSetup): TemplateValue {
               Image: setup.image,
               Essential: true,
               Environment: containerEnvironment,
+              Secrets: containerSecrets,
               LogConfiguration: {
                 LogDriver: "awslogs",
                 Options: {
@@ -1350,7 +1407,8 @@ const GCP_PERMISSION_APIS: Readonly<Record<string, string>> = {
 /*
  * The APIs the Google Cloud command turns on: Cloud Run (the agent runs on
  * it), IAM and Resource Manager (the role, the service account and its
- * binding), and those of the operations turned on.
+ * binding), Secret Manager (the key), and those of the operations turned
+ * on.
  */
 export function getGcpCloudAiAgentServices(
   enabledOperations?: Array<string> | undefined,
@@ -1359,6 +1417,7 @@ export function getGcpCloudAiAgentServices(
     "run.googleapis.com",
     "iam.googleapis.com",
     "cloudresourcemanager.googleapis.com",
+    "secretmanager.googleapis.com",
   ];
 
   for (const permission of getCloudAiAgentRolePermissions(
@@ -1380,10 +1439,13 @@ export function getGcpCloudAiAgentServices(
  * Google Cloud, in Cloud Shell, in the project the command was written for
  * (every call names it): the APIs, the role (created, or updated to
  * exactly these permissions), the service account (created when it is not
- * there) and its binding, then the service, which `gcloud run deploy`
- * creates or moves to a new revision with exactly these variables. They go
- * through a file the shell does not expand, removed after the deploy: the
- * key is one of them.
+ * there) and its binding, the key as a new version of a Secret Manager
+ * secret only that service account may read, then the service, which
+ * `gcloud run deploy` creates or moves to a new revision with exactly
+ * these variables and the key from the secret. The variables and the key
+ * go through files the shell does not expand, each removed once read: the
+ * key is never on a command line, and never one of the service's
+ * variables, which anyone who may view the service reads.
  */
 export function getGcpCloudAiAgentSetupCommand(
   options: CloudAiAgentSetupOptions,
@@ -1402,6 +1464,17 @@ function writeGcpCommand(setup: CloudAiAgentSetup): string {
     '--permissions "$PERMISSIONS" --stage GA --quiet',
   ].join(" ");
 
+  const secret: string = GCP_CLOUD_AI_AGENT_SECRET_NAME;
+  const variables: Array<CloudAiAgentEnvironmentVariable> =
+    environmentOf(setup);
+  const secrets: Array<string> = variables
+    .filter((variable: CloudAiAgentEnvironmentVariable): boolean => {
+      return variable.isSecret;
+    })
+    .map((variable: CloudAiAgentEnvironmentVariable): string => {
+      return `${variable.name}=${secret}:latest`;
+    });
+
   return [
     `PROJECT_ID=${setup.accountId}`,
     `PERMISSIONS=${shellQuote(getCloudAiAgentRolePermissions(CloudProvider.GCP, setup.operations).join(","))}`,
@@ -1409,19 +1482,29 @@ function writeGcpCommand(setup: CloudAiAgentSetup): string {
     `gcloud iam roles create ${GCP_CLOUD_AI_AGENT_ROLE_ID} ${project} ${role} > /dev/null 2>&1 || gcloud iam roles update ${GCP_CLOUD_AI_AGENT_ROLE_ID} ${project} ${role} > /dev/null`,
     `gcloud iam service-accounts create ${GCP_CLOUD_AI_AGENT_SERVICE_ACCOUNT_ID} ${project} --display-name ${shellQuote("OneUptime Cloud AI agent")} > /dev/null 2>&1 || true`,
     `gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:${member}" --role "projects/$PROJECT_ID/roles/${GCP_CLOUD_AI_AGENT_ROLE_ID}" --condition=None > /dev/null`,
+    // The key: a secret only the agent's service account may read.
+    `cat > ${GCP_CLOUD_AI_AGENT_KEY_FILE} <<'${GCP_CLOUD_AI_AGENT_KEY_FILE_END}'`,
+    setup.ingestionKey,
+    GCP_CLOUD_AI_AGENT_KEY_FILE_END,
+    `gcloud secrets create ${secret} ${project} --replication-policy automatic > /dev/null 2>&1 || true`,
+    `tr -d '\\n' < ${GCP_CLOUD_AI_AGENT_KEY_FILE} | gcloud secrets versions add ${secret} ${project} --data-file=- > /dev/null`,
+    `rm ${GCP_CLOUD_AI_AGENT_KEY_FILE}`,
+    `gcloud secrets add-iam-policy-binding ${secret} ${project} --member "serviceAccount:${member}" --role ${GCP_SECRET_ACCESSOR_ROLE} --condition=None > /dev/null`,
     `cat > ${GCP_CLOUD_AI_AGENT_ENV_FILE} <<'ENV'`,
-    ...environmentOf(setup).map(
-      (variable: CloudAiAgentEnvironmentVariable): string => {
+    ...variables
+      .filter((variable: CloudAiAgentEnvironmentVariable): boolean => {
+        return !variable.isSecret;
+      })
+      .map((variable: CloudAiAgentEnvironmentVariable): string => {
         return `${variable.name}: ${JSON.stringify(variable.value)}`;
-      },
-    ),
+      }),
     "ENV",
     [
       `gcloud run deploy ${GCP_CLOUD_AI_AGENT_SERVICE_NAME} ${project} --region ${setup.region as string}`,
       `--image ${setup.image} --service-account "${member}"`,
       `--no-cpu-throttling --min-instances 1 --max-instances 1 --cpu ${size.vcpu} --memory ${size.memoryGiB * 1024}Mi`,
       `--no-allow-unauthenticated --ingress internal --port ${RESOURCE_AI_AGENT_DEFAULT_HEALTH_PORT}`,
-      `--env-vars-file ${GCP_CLOUD_AI_AGENT_ENV_FILE} --quiet && echo "${CLOUD_AI_AGENT_STARTED_MESSAGE}"`,
+      `--env-vars-file ${GCP_CLOUD_AI_AGENT_ENV_FILE} --set-secrets ${secrets.join(",")} --quiet && echo "${CLOUD_AI_AGENT_STARTED_MESSAGE}"`,
     ].join(" "),
     `rm ${GCP_CLOUD_AI_AGENT_ENV_FILE}`,
   ].join("\n");
