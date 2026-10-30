@@ -38956,6 +38956,8 @@
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: सुलझाया गया अपवाद फिर से आया",
   "{{monitorName}}: exceptions spiked": "{{monitorName}}: अपवादों में उछाल",
   "Distinct users this exception happened to in this time range": "इस समय सीमा में जिन अलग-अलग उपयोगकर्ताओं के साथ यह एक्सेप्शन हुआ",
+  "Pick who to page.": "चुनें कि किसे पेज करना है।",
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "चुनें कि यह वर्कफ़्लो किसे पेज करे। आप इसे बाद में बिल्डर में इसके पेज चरण में बदल सकते हैं।",
   "{{count}} events in this time range": "इस समय सीमा में {{count}} इवेंट",
   "{{count}} events in this time range_one": "इस समय सीमा में {{count}} इवेंट",
   "{{number}} users": "{{number}} उपयोगकर्ता",

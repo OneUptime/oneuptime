@@ -555,6 +555,25 @@ const KNOWN_CALL_SITES: Array<CallSite> = [
    * the issue page shows above its fix.
    */
   { file: "Common/Server/API/DataSecurityAPI.ts", delivery: "throw" },
+  /*
+   * An exception's explanation (#5419) and What's new on Exceptions (#5427):
+   * the person waits on the request, read as them, and a refusal is the
+   * message the exception's page or the Exceptions page shows in place of
+   * the AI's words.
+   */
+  {
+    file: "Common/Server/Utils/AI/TelemetryAi/ExceptionExplanation.ts",
+    delivery: "throw",
+  },
+  {
+    file: "Common/Server/Utils/AI/TelemetryAi/ExceptionDigest.ts",
+    delivery: "throw",
+  },
+  // Which similar exceptions are the same bug: the person asked, and waits.
+  {
+    file: "Common/Server/Utils/AI/TelemetryAi/ExceptionDuplicateCheck.ts",
+    delivery: "throw",
+  },
   { file: "Common/Server/API/ScheduledMaintenanceAPI.ts", delivery: "throw" },
   { file: "Common/Server/Services/IncidentService.ts", delivery: "throw" },
 ];

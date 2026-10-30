@@ -41,6 +41,11 @@ export default interface MonitorStepStorageArrayMonitor {
   // StorageArray.name — the `storage.array.name` resource attribute.
   arrayIdentifier: string;
   /*
+   * The resource's id. Bound on every write and read by the worker, so a
+   * rename keeps the monitor on its resource (InfrastructureResourceBinding).
+   */
+  resourceId?: string | undefined;
+  /*
    * The platform of the array when the monitor was configured
    * (StorageArray.storageSystem). Picks the metric catalog and templates in
    * the form, and the label a hardware filter reads at evaluation

@@ -51,11 +51,11 @@ Incidenten sparar rapportens nummer i sina anpassade fält, som `huntressReportI
 :::steps
 ### Skapa arbetsflödet
 
-Öppna **Arbetsflöden** och klicka på **Skapa arbetsflöde**. Under **Eller börja från en mall** väljer du kategorin **Huntress**, väljer **Open an incident for each Huntress incident report**, klickar på **Använd den här mallen** och skapar arbetsflödet. Det öppnas i **Byggare**, avstängt.
+Öppna **Arbetsflöden** och klicka på **Skapa arbetsflöde**. Under **Eller börja från en mall** väljer du kategorin **Huntress**, väljer **Open an incident for each Huntress incident report** och klickar på **Använd den här mallen**.
 
 ### Välj vem som larmas
 
-Klicka på steget **Page an On-Call Policy**, välj de **Jourpolicyer** som ska larmas och spara steget.
+Dialogen frågar sedan vem som ska larmas: under **Who to page for high and critical reports** väljer du de jourpolicyer som ska larmas, eller ingen för att inte larma någon, och klickar på **Skapa arbetsflöde**. Arbetsflödet öppnas i **Byggare**, avstängt. För att senare ändra vem det larmar klickar du på dess steg **Page an On-Call Policy** och ändrar dess **Jourpolicyer**.
 
 ### Lägg till en webhook-slutpunkt i Huntress
 
@@ -79,7 +79,7 @@ Slå på **Aktiverad** högst upp i **Byggare**. Öppna slutpunktens meny (⋯) 
 
 ## Vad arbetsflödet gör
 
-Mallen tar en väg för varje **Event**, med en **Switch / Case** efter utlösaren:
+Efter utlösaren gör **Incident From Another Tool** det som varje **Event** ber om, utifrån rapportens nummer:
 
 | Event | Vad arbetsflödet gör |
 | --- | --- |
@@ -87,7 +87,7 @@ Mallen tar en väg för varje **Event**, med en **Switch / Case** efter utlösar
 | `comment-added` | Hittar rapportens incident och lägger till kommentaren på den som en privat anteckning. |
 | `closed` | Hittar rapportens incident och löser den, om den inte redan är löst. Orsaken står på dess tidslinje: Huntress stängde rapporten. |
 
-Det är ett arbetsflöde som alla andra, så du kan ändra vad det gör: larma bara för kritiska rapporter genom att ändra vad **If / Else** efter **Create One Incident** jämför, posta varje rapport i en chattkanal med ett Slack- eller Microsoft Teams-steg, eller skicka varje organisation till sin egen jourpolicy med en **Switch / Case** på **Organization**. Varje körning listas bland arbetsflödets körningar, med vad varje steg gjorde.
+Det är ett arbetsflöde som alla andra, så du kan ändra vad det gör: larma bara för kritiska rapporter genom att ändra vad **If / Else** efter **Incident From Another Tool** jämför, posta varje rapport i en chattkanal med ett Slack- eller Microsoft Teams-steg, eller skicka varje organisation till sin egen jourpolicy med en **Switch / Case** på **Organization**. Varje körning listas bland arbetsflödets körningar, med vad varje steg gjorde.
 
 ### Allvarlighetsgrader
 
@@ -174,7 +174,7 @@ Arbetsflödet har tagits bort eller arkiverats, dess utlösare är inte längre 
 :::
 
 :::details Ingen incident öppnades
-Öppna arbetsflödets körningar och rapportens körning. Om **Create One Incident** misslyckades för att incidentallvarlighetsgraden är tom har projektet inga incidentallvarlighetsgrader: lägg till en under **Incidenter → Inställningar → Incidentallvar**.
+Öppna arbetsflödets körningar och rapportens körning. Om **Incident From Another Tool** misslyckades med `This project has no incident severities to put the incident at.` lägger du till en under **Incidenter → Inställningar → Incidentallvar**.
 :::
 
 :::details Ingen larmades

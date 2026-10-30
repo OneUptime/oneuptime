@@ -38956,6 +38956,8 @@
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: 해결된 예외가 다시 발생",
   "{{monitorName}}: exceptions spiked": "{{monitorName}}: 예외 급증",
   "Distinct users this exception happened to in this time range": "이 기간에 이 예외가 발생한 서로 다른 사용자",
+  "Pick who to page.": "호출할 대상을 선택하세요.",
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "이 워크플로가 호출할 대상을 선택하세요. 나중에 빌더의 호출 단계에서 변경할 수 있습니다.",
   "{{count}} events in this time range": "이 기간의 이벤트 {{count}}개",
   "{{count}} events in this time range_one": "이 기간의 이벤트 {{count}}개",
   "{{number}} users": "사용자 {{number}}명",

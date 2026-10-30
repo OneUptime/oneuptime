@@ -133,7 +133,7 @@ Jeder Workflow behält seine eigene Kopie. Wenn Sie das Client-Secret ersetzen, 
 4. Klicken Sie auf **Arbeitsablauf erstellen**. Jeder Workflow wird ausgeschaltet angelegt: Schalten Sie oben in seinem **Editor** **Aktiviert** ein.
 :::
 
-Beginnen Sie mit **Create a Dynamics 365 case when an incident is declared**, oder für Warnungen mit **Create a Dynamics 365 case when an alert is created**: Jede andere Vorlage von OneUptime zu Dynamics 365 derselben Art findet den Fall über die Verknüpfung, die diese schreibt. Schalten Sie sie ein, melden Sie einen Testvorfall oder legen Sie eine Testwarnung an, und öffnen Sie **Protokolle → Ausführungen** des Workflows. Der letzte Schritt der Ausführung sollte `✅ Opened Dynamics 365 case CAS-01001-X1Y2Z3 for INC-42, linked as oneuptime-incident-<id>.` lauten.
+Beginnen Sie mit **Create a Dynamics 365 case when an incident is declared**, oder für Warnungen mit **Create a Dynamics 365 case when an alert is created**: Jede andere Vorlage von OneUptime zu Dynamics 365 derselben Art findet den Fall über die Verknüpfung, die diese schreibt. Schalten Sie sie ein, melden Sie einen Testvorfall oder legen Sie eine Testwarnung an, und öffnen Sie **Protokolle → Ausführungen** des Workflows. Die Ausführung sollte mit **Ausgeführt** enden, und der **Response Body** ihres letzten Schritts, `create-case-1`, enthält die `ticketnumber` des neuen Falls, etwa `CAS-01001-X1Y2Z3`.
 
 ### Die Vorlagen von Dynamics 365 zu OneUptime verbinden
 
@@ -156,11 +156,11 @@ Legen Sie in [Power Automate](https://make.powerautomate.com) einen **Automated 
 
 | Vorlage | Change type | Table name | Select columns | Body |
 | --- | --- | --- | --- | --- |
-| Einen Vorfall melden / eine Warnung anlegen, wenn ein Fall angelegt wird | Added | Cases | | `{"incidentid": "<Case>"}` |
-| Den Vorfall / die Warnung beheben, wenn ihr Fall gelöst wird | Modified | Cases | `statecode,statuscode` | `{"incidentid": "<Case>"}` |
-| Fallnotizen als private Notizen zum Vorfall / zur Warnung hinzufügen | Added | Notes | | `{"annotationid": "<Note>"}` |
+| Einen Vorfall melden / eine Warnung anlegen, wenn ein Fall angelegt wird | Added | Cases | | `{"PrimaryEntityId": "<Case>"}` |
+| Den Vorfall / die Warnung beheben, wenn ihr Fall gelöst wird | Modified | Cases | `statecode,statuscode` | `{"PrimaryEntityId": "<Case>"}` |
+| Fallnotizen als private Notizen zum Vorfall / zur Warnung hinzufügen | Added | Notes | | `{"PrimaryEntityId": "<Note>"}` |
 
-Um nur manche Fälle zu senden, nutzen Sie **Filter rows** des Triggers, etwa `prioritycode eq 1` nur für Fälle mit hoher Priorität. Sie können auch die gesamte Ausgabe des Triggers senden: Die Vorlagen lesen die ID der Zeile und ihre `SdkMessage` auf dieselbe Weise daraus.
+Um nur manche Fälle zu senden, nutzen Sie **Filter rows** des Triggers, etwa `prioritycode eq 1` nur für Fälle mit hoher Priorität. Der Text nennt die Zeile als `PrimaryEntityId`, wie es ein Dataverse-Webhook tut: Die Vorlagen lesen die Zeile selbst aus Dynamics 365 zurück.
 @tab Dataverse webhook
 Registrieren Sie die URL mit dem [Plug-in Registration Tool](https://learn.microsoft.com/en-us/power-apps/developer/data-platform/register-web-hook): **Register New WebHook**, mit der Authentifizierung **HttpHeader** und einem eigenen Header; die URL selbst ist das Geheimnis. Registrieren Sie dann für jedes Ereignis unten einen Schritt darauf, mit **Event Pipeline Stage of Execution** auf **PostOperation** und **Execution Mode** auf **Asynchronous**.
 
@@ -181,12 +181,12 @@ Bevor Sie sich auf einen der beiden verlassen:
 
 ### Prüfen, ob es funktioniert
 
-Jede Vorlage endet mit einem **Log**-Schritt, der sagt, was passiert ist, der letzte Schritt einer Ausführung in **Protokolle → Ausführungen** ist also die Stelle, an der Sie nachsehen:
+Die **Schritte** jeder Ausführung sagen, was die Vorlage getan hat, öffnen Sie also die Ausführung in **Protokolle → Ausführungen** und sehen Sie nach, wie sie geendet hat:
 
-- `✅` — sie hat ihre Aufgabe erledigt und nennt den Fall, den Vorfall oder die Warnung.
-- `ℹ️` — sie hat das Ereignis absichtlich übersprungen und sagt, warum: Der Fall ist mit keinem Datensatz dieser Art verknüpft, die Notiz kam von der anderen Seite, der Datensatz ist privat, oder dem neuen Status ist kein Fallstatus zugeordnet.
-- `❌` — ein Aufruf ist fehlgeschlagen. Bei einem Dynamics-365-Aufruf enthält die Zeile die Antwort von Dynamics 365.
-- `⚠️` — eine Vorlage, die aus einem Fall einen Datensatz anlegt, hat ihn angelegt, aber Dynamics 365 hat die Verknüpfung nicht angenommen, die anderen Vorlagen finden ihn also noch nicht. Tippen Sie die Verknüpfung von Hand in die Spalte des Falls.
+- **Ausgeführt**: Sie hat ihre Aufgabe erledigt, und ihr letzter Schritt nennt den Fall, den Vorfall oder die Warnung.
+- **Ausgeführt**, mit dem Schritt **Check With JavaScript** auf **No**: Sie hat das Ereignis absichtlich übersprungen, und der Schritt sagt, warum: Der Fall ist mit keinem Datensatz dieser Art verknüpft, die Notiz kam von der anderen Seite, der Datensatz ist privat, oder der neue Status schließt den Fall nicht.
+- **Fehler**: Ein Schritt ist fehlgeschlagen, und sein Eintrag unter **Schritte** sagt, warum. Bei einem Dynamics-365-Aufruf enthält er die Antwort von Dynamics 365.
+- **Fehler** bei `link-case-1`: Eine Vorlage, die aus einem Fall einen Datensatz anlegt, hat ihn angelegt, aber Dynamics 365 hat die Verknüpfung nicht angenommen, die anderen Vorlagen finden ihn also noch nicht. Tippen Sie die Verknüpfung von Hand in die Spalte des Falls.
 
 Bleibt eine Ausführung beim ersten Dynamics-365-Schritt mit `Could not get an OAuth 2.0 access token for {{local.variables.dynamicsAccessToken}}` stehen, sind die Anmeldeeinstellungen falsch, und die Meldung zitiert die Antwort von Microsoft Entra ID. Siehe [Was die Vorlagen abfragen](#was-die-vorlagen-abfragen).
 
@@ -221,7 +221,7 @@ Behalten Sie die Markierungen, wenn Sie die Vorlagen bearbeiten. Es sind die Kon
 
 ### Ändern, was eine Vorlage tut
 
-Öffnen Sie den **Editor** des Workflows und klicken Sie auf den Baustein, den Sie ändern möchten. Die Einstellungen, die Sie am ehesten brauchen, sind Konstanten nahe dem Anfang eines Skripts, im **JavaScript Code** eines **Run Custom JavaScript**-Bausteins, direkt unter dem gemeinsamen Hilfsblock. Die Versionen für Vorfälle und Warnungen haben dieselben Konstanten in denselben Bausteinen.
+Öffnen Sie den **Editor** des Workflows und klicken Sie auf den Baustein, den Sie ändern möchten. Die Einstellungen, die Sie am ehesten brauchen, sind Konstanten nahe dem Anfang eines Skripts, im **JavaScript Code** eines **Check With JavaScript**-Bausteins, direkt unter dem gemeinsamen Hilfsblock. Die Versionen für Vorfälle und Warnungen haben dieselben Konstanten in denselben Bausteinen.
 
 | Konstante | Vorlage und Baustein | Was sie steuert |
 | --- | --- | --- |
@@ -230,11 +230,11 @@ Behalten Sie die Markierungen, wenn Sie die Vorlagen bearbeiten. Es sind die Kon
 | `CASE_ORIGIN`, `CASE_TYPE` | Einen Dynamics-365-Fall anlegen — `prepare-case-1` | `caseorigincode` (`3`, Web) und `casetypecode` (`2`, Problem) des neuen Falls. Um eine andere Spalte zu setzen, fügen Sie sie im selben Skript unter ihrem logischen Namen zu `CASE` hinzu. |
 | `MAX_TITLE_LENGTH`, `MAX_DESCRIPTION_LENGTH` | Einen Dynamics-365-Fall anlegen — `prepare-case-1` | Die eigenen Grenzen der Tabelle Case, 200 und 2000 Zeichen. Die Beschreibung behält die Verknüpfung zurück zu OneUptime, wie viel auch gekürzt wird. Erhöhen Sie sie, wenn Ihre Tabelle Case mehr erlaubt. |
 | `RESOLVED_CASE_STATUS` | Den Dynamics-365-Fall beheben — `plan-case-1` | Der Status, mit dem ein behobener Datensatz seinen Fall schließt: `5` ist Problem Solved, `1000` Information Provided. |
-| `STATE_TO_CASE_STATUS` | Den Dynamics-365-Fall beheben — `plan-case-1` | Bewegt den Fall, wenn der Datensatz einen anderen Status erreicht, nach dem Namen des Status: `{ Acknowledged: 4 }` bewegt ihn auf Researching, wenn der Vorfall bestätigt wird. Die aktiven Status von Dynamics 365 sind `1` In Progress, `2` On Hold, `3` Waiting for Details und `4` Researching. Ein hier aufgeführter behobener Status schließt den Fall mit dem Status, den er nennt. |
+| `STATE_TO_CASE_STATUS` | Den Dynamics-365-Fall beheben — `plan-case-1` | Schließt den Fall bei einem eigenen behobenen Status mit einem anderen gelösten Fallstatus, nach dem Namen des Status: `{ Closed: 1000 }` schließt ihn als Information Provided. Nur das Beheben des Datensatzes ändert seinen Fall: Ein aktiver Status wie Researching wird nie gesetzt. |
 | `PRIORITY_RANK` | Aus einem Dynamics-365-Fall anlegen — `prepare-incident-1`, `prepare-alert-1` | Ordnet eine Fallpriorität (`1` High, `2` Normal, `3` Low) `0` (Ihrem schwersten Schweregrad), `1` oder `2` (Ihrem leichtesten) zu. Nicht aufgeführte Prioritäten landen in der Mitte. Mit den zwei Schweregraden für Warnungen, die ein neues Projekt hat, wird Normal zu Low, es sei denn, Sie ändern `2: 1` zu `2: 0`. |
 | `ONLY_PRIORITIES` | Aus einem Dynamics-365-Fall anlegen — `prepare-incident-1`, `prepare-alert-1` | Leer nimmt jeden Fall, den der Flow oder Webhook sendet. `[1]` legt nur für Fälle mit hoher Priorität Datensätze an. |
 | `CASE_STATUS_TO_STATE`, `CASE_STATE_TO_STATE_FLAG` | Beheben, wenn der Dynamics-365-Fall gelöst wird — `decide-state-1` | Ein Fallstatus, mit Namen, zu einem OneUptime-Status, etwa `{ Researching: 'Acknowledged' }`. Sonst entscheidet der Zustand des Falls: Resolved behebt den Datensatz. Fügen Sie `2: 'isResolvedState'` hinzu, um ihn auch zu beheben, wenn sein Fall abgebrochen wird. |
-| `MESSAGES` | Jede Vorlage von Dynamics 365 zu OneUptime — `read-event-1` | Die Ereignisse, auf die die Vorlage reagiert. Fügen Sie der Liste der Notizvorlage `'Update'` hinzu, um auch bearbeitete Notizen zu kopieren: Jede Bearbeitung wird zu einer neuen Notiz. |
+| `MESSAGES` | Jede Vorlage von Dynamics 365 zu OneUptime — `read-event-1`, oder `prepare-incident-1` und `prepare-alert-1` | Die Ereignisse, auf die die Vorlage reagiert. Fügen Sie der Liste der Notizvorlage `'Update'` hinzu, um auch bearbeitete Notizen zu kopieren: Jede Bearbeitung wird zu einer neuen Notiz. |
 | `MAX_NOTE_LENGTH` | Die Notizvorlagen — `build-note-1`, `read-note-1` | Die längste Notiz, die jede schreibt: 100.000 Zeichen nach Dynamics 365, die eigene Grenze einer Notiz, und 30.000 nach OneUptime. |
 
 Als Schlüssel verwendete Status- und Statusnamen müssen genau so geschrieben sein, wie sie heißen, mit Groß- und Kleinschreibung. Halten Sie `{{` aus dem Code heraus: Ein Skript wird vor der Ausführung wie jede andere Einstellung ausgefüllt, zwei öffnende geschweifte Klammern hintereinander würden also als Verweis gelesen.
@@ -242,7 +242,7 @@ Als Schlüssel verwendete Status- und Statusnamen müssen genau so geschrieben s
 ### Einschränkungen
 
 - **Die kommerzielle Cloud von Microsoft.** Die Token-URL ist `login.microsoftonline.com`. Für die Clouds US Government (GCC High, DoD) oder China öffnen Sie `dynamicsAccessToken`, nutzen **Einstellungen bearbeiten** und ändern die Token-URL auf den Anmeldehost Ihrer Cloud, etwa `login.microsoftonline.us`.
-- **Dynamics 365 kann das Lösen eines Falls ablehnen.** Ihre Customer-Service-Einstellungen können verhindern, dass ein Fall gelöst wird, solange er offene Aktivitäten oder offene untergeordnete Fälle hat, und eine Geschäftsregel oder ein Plug-in kann es ebenfalls ablehnen. Die Ausführung endet mit `❌ Dynamics 365 did not resolve the case`, mit dem Grund von Dynamics 365, und der Fall bleibt, wie er war.
+- **Dynamics 365 kann das Lösen eines Falls ablehnen.** Ihre Customer-Service-Einstellungen können verhindern, dass ein Fall gelöst wird, solange er offene Aktivitäten oder offene untergeordnete Fälle hat, und eine Geschäftsregel oder ein Plug-in kann es ebenfalls ablehnen. Die Ausführung schlägt bei `close-case-1` fehl, mit dem Grund von Dynamics 365, und der Fall bleibt, wie er war.
 - **Datensätze und Fälle bewegen sich nie rückwärts.** Das Wiedereröffnen eines Falls ändert nichts in OneUptime, und ein behobener Datensatz wird nie wieder geöffnet. Ein bereits gelöster oder abgebrochener Fall wird nie wieder geöffnet, um erneut geschlossen zu werden.
 - **Notizen und Beschreibungen sind einfacher Text.** Eine im Rich-Text-Editor von Dynamics 365 geschriebene Notiz kommt in OneUptime als der Text an, den sie zeigt, ebenso eine im Editor geschriebene oder aus einer E-Mail übernommene Fallbeschreibung: Absätze und Zeilenumbrüche bleiben, Formatierung, Bilder und die eigenen Stile der E-Mail fallen weg. Eine OneUptime-Notiz kommt in Dynamics 365 als ihre rohen Zeichen an, Markdown eingeschlossen. Text aus Dynamics 365, also Titel und Beschreibung eines Falls, eine Notiz, die Namen von Status, Prioritäten, Kunden und Personen, liest sich genau so, wie er geschrieben wurde: Ein darin getipptes Bild, ein Link, HTML, ein Diagramm oder eine Chat-Erwähnung wie `<!channel>` erscheint als seine Zeichen und bewirkt nichts, weil hinter dem Zeichen, das es auslösen würde, ein unsichtbarer Wortverbinder steht. Eine Kopie des Textes behält den Verbinder. Ein Workflow behält die Skripte, mit denen er angelegt wurde, einer aus einer älteren Version einer Vorlage schreibt Text also so wie diese Version: Legen Sie ihn erneut aus seiner Vorlage an, um dies zu bekommen. Anhänge bleiben in Dynamics 365; die Notiz in OneUptime nennt die Datei.
 - **Bearbeitete Notizen werden nicht kopiert**, nur neue, es sei denn, Sie fügen `'Update'` zu `MESSAGES` hinzu.

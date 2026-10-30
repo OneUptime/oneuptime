@@ -38956,6 +38956,8 @@
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: یک استثنای برطرف‌شده برگشت",
   "{{monitorName}}: exceptions spiked": "{{monitorName}}: جهش استثناها",
   "Distinct users this exception happened to in this time range": "کاربران متمایزی که این استثنا در این بازه برایشان رخ داد",
+  "Pick who to page.": "انتخاب کنید چه کسی فراخوانده شود.",
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "انتخاب کنید این گردش کاری چه کسی را فرا بخواند. می‌توانید بعداً در مرحلهٔ فراخوانی آن در سازنده تغییرش دهید.",
   "{{count}} events in this time range": "{{count}} رویداد در این بازه",
   "{{count}} events in this time range_one": "{{count}} رویداد در این بازه",
   "{{number}} users": "{{number}} کاربر",

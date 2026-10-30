@@ -111,7 +111,7 @@ flowchart TB
 ```
 
 > [!TIP]
-> Het sjabloon **Forward new incidents to another system** bouwt dezelfde workflow voor je. Je vindt het onder **Incidenten** als je een workflow maakt.
+> Het sjabloon **Forward new incidents to another system** bouwt deze workflow voor je, zonder het Log-blok: zonder iets op **Error** laat een verzoek dat mislukt de uitvoering mislukken, en de **Stappen** van de uitvoering zeggen waarom. Je vindt het onder **Incidenten** als je een workflow maakt.
 
 :::steps
 ### De workflow maken

@@ -166,7 +166,8 @@ describe("API component metadata — headers are treated as secret", () => {
         });
       });
 
-    expect(componentsWithHeaders.length).toBe(5);
+    // Get, Post, Put, Patch, Delete and Get By ID.
+    expect(componentsWithHeaders.length).toBe(6);
 
     for (const component of componentsWithHeaders) {
       const headerArgument: Argument = component.arguments.find(

@@ -44,6 +44,12 @@ import {
 } from "Common/Types/Workflow/WorkflowArchive";
 import { WORKFLOW_PROJECT_BLOCKED_BEFORE_RUN_MESSAGE } from "Common/Types/Workflow/WorkflowProjectBlocked";
 import {
+  UnhandledStepFailure,
+  getUnhandledStepFailureLogLine,
+  isUnhandledStepFailure,
+  readUnhandledStepFailures,
+} from "Common/Types/Workflow/UnhandledStepFailure";
+import {
   getChildWorkflowTurnedOffMessage,
   getWorkflowTestRunLogLine,
 } from "Common/Types/Workflow/WorkflowEnabled";
@@ -420,6 +426,13 @@ export default class RunWorkflow {
    */
   private isRunFailureOnAStep: boolean = false;
   /*
+   * The steps that left by their Error output with nothing connected to it
+   * (Types/Workflow/UnhandledStepFailure). The run carries on with whatever
+   * else is pending, as it always did, and ends as failed rather than as a
+   * success. Kept across a Sleep step in the run's resume data.
+   */
+  private unhandledStepFailures: Array<UnhandledStepFailure> = [];
+  /*
    * An OAuth token whose expiry is unknown is fetched once per run: a token
    * fetched at or after this moment is reused by later steps, one fetched
    * before it is not. A resumed run is a new RunWorkflow, so it fetches again.
@@ -651,6 +664,11 @@ export default class RunWorkflow {
           componentReturnValues:
             (persisted["componentReturnValues"] as JSONObject) || {},
         };
+
+        // A step that failed unhandled before the run slept still fails it.
+        this.unhandledStepFailures = readUnhandledStepFailures(
+          persisted["unhandledStepFailures"],
+        );
 
         /*
          * If the workflow was archived or disabled while it was waiting,
@@ -1067,6 +1085,23 @@ export default class RunWorkflow {
         const nodesToBeExecuted: Array<string> | undefined =
           stackItem.outPorts[portToBeExecuted.id];
 
+        /*
+         * The step failed, and nothing in the workflow handles it: the run
+         * fails (Types/Workflow/UnhandledStepFailure). What else is pending
+         * still runs, as it did before.
+         */
+        if (
+          isUnhandledStepFailure({
+            portId: portToBeExecuted.id,
+            connectedComponentIds: nodesToBeExecuted,
+          })
+        ) {
+          this.unhandledStepFailures.push({
+            componentId: stackItem.node.id,
+            title: stackItem.node.metadata?.title || stackItem.node.metadataId,
+          });
+        }
+
         if (nodesToBeExecuted && nodesToBeExecuted.length > 0) {
           nodesToBeExecuted.forEach((item: string) => {
             // if its not in the stack, then add it to execution stack.
@@ -1102,13 +1137,26 @@ export default class RunWorkflow {
         }
       }
 
+      /*
+       * A step that failed with nothing connected to its Error output fails
+       * the run, said once, at the end of its log.
+       */
+      const hasUnhandledFailure: boolean =
+        this.unhandledStepFailures.length > 0;
+
+      if (hasUnhandledFailure) {
+        this.log(getUnhandledStepFailureLogLine(this.unhandledStepFailures));
+      }
+
       // collect logs and update status.
       this.cleanLogs(variables);
       // update workflow log.
       await WorkflowLogService.updateColumnsByIdWithoutHooks({
         id: runProps.workflowLogId,
         data: {
-          workflowStatus: WorkflowStatus.Success,
+          workflowStatus: hasUnhandledFailure
+            ? WorkflowStatus.Error
+            : WorkflowStatus.Success,
           logs: this.logs.join("\n"),
           stepTrace: this.stepTrace as any,
           completedAt: OneUptimeDate.getCurrentDate(),
@@ -1210,6 +1258,7 @@ export default class RunWorkflow {
       pendingStack: params.pendingStack,
       executedComponents: params.executedComponents,
       componentReturnValues: params.componentReturnValues,
+      unhandledStepFailures: this.unhandledStepFailures,
     } as unknown as JSONObject;
 
     await WorkflowLogService.updateColumnsByIdWithoutHooks({

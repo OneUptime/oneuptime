@@ -38956,6 +38956,8 @@
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: en løst undtagelse kom tilbage",
   "{{monitorName}}: exceptions spiked": "{{monitorName}}: undtagelser toppede",
   "Distinct users this exception happened to in this time range": "Forskellige brugere, som denne undtagelse ramte i dette tidsrum",
+  "Pick who to page.": "Vælg, hvem der skal kaldes op.",
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "Vælg, hvem denne arbejdsgang kalder op. Du kan ændre det senere i dens opkaldstrin i Bygger.",
   "{{count}} events in this time range": "{{count}} hændelser i dette tidsrum",
   "{{count}} events in this time range_one": "{{count}} hændelse i dette tidsrum",
   "{{number}} users": "{{number}} brugere",

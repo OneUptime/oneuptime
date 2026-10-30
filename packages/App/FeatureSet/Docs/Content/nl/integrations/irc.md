@@ -84,7 +84,7 @@ Begin met het sjabloon, dat de hele workflow voor je bouwt, of vanaf nul.
 3. Houd de naam **Notify IRC on new incident** of wijzig hem, en klik op **Volgende**.
 4. Vul **IRC Server** en **IRC Channel** in en klik op **Workflow maken**.
 
-De workflow opent in de **Bouwer** met drie stappen: **On Create Incident**; **Send Message to IRC**, die het nummer, de titel, de ernst en de status van het incident in twee regels post; en een **Logboek**-stap op zijn uitgang **Fout**, die vastlegt waarom een bericht niet is afgeleverd. De server en het kanaal worden opgeslagen als de variabelen `ircServer` en `ircChannel` van de workflow. Heb je in de vorige stap wachtwoorden opgeslagen, klik dan op **Send Message to IRC**, open **Meer velden** en kies elke variabele met de knop **{ }** van de instelling.
+De workflow opent in de **Bouwer** met twee stappen: **On Create Incident** en **Send Message to IRC**, die het nummer, de titel, de ernst en de status van het incident in twee regels post. Een bericht dat niet wordt afgeleverd, laat de uitvoering mislukken, en het logboek van de uitvoering zegt waarom. De server en het kanaal worden opgeslagen als de variabelen `ircServer` en `ircChannel` van de workflow. Heb je in de vorige stap wachtwoorden opgeslagen, klik dan op **Send Message to IRC**, open **Meer velden** en kies elke variabele met de knop **{ }** van de instelling.
 @tab Vanaf nul
 1. Open **Workflows**, klik op **Workflow maken**, kies **Vanaf nul beginnen**, geef de workflow een naam en klik op **Workflow maken**.
 2. Klik in de **Bouwer** op **Kies wat deze workflow start** en kies **On Create Incident** onder **Populair**. Klik op de trigger en kies in **Fields to pass on** de velden van het incident die je bericht toont, bijvoorbeeld de titel.

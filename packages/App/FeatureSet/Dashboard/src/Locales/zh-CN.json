@@ -38956,6 +38956,8 @@
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}：已解决的异常再次出现",
   "{{monitorName}}: exceptions spiked": "{{monitorName}}：异常激增",
   "Distinct users this exception happened to in this time range": "此时间范围内遇到此异常的不同用户数",
+  "Pick who to page.": "请选择要呼叫的人。",
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "请选择此工作流要呼叫的人。你可以稍后在生成器的呼叫步骤中更改。",
   "{{count}} events in this time range": "此时间范围内 {{count}} 个事件",
   "{{count}} events in this time range_one": "此时间范围内 {{count}} 个事件",
   "{{number}} users": "{{number}} 位用户",

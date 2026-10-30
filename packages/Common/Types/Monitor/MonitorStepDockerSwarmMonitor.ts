@@ -54,6 +54,11 @@ export interface DockerSwarmResourceFilters {
 
 export default interface MonitorStepDockerSwarmMonitor {
   clusterIdentifier: string;
+  /*
+   * The resource's id. Bound on every write and read by the worker, so a
+   * rename keeps the monitor on its resource (InfrastructureResourceBinding).
+   */
+  resourceId?: string | undefined;
   resourceFilters: DockerSwarmResourceFilters;
   metricViewConfig: MetricsViewConfig;
   rollingTime: RollingTime;
