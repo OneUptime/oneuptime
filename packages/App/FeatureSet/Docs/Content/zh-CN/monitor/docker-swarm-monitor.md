@@ -11,7 +11,7 @@ Docker Swarm 监视器监控 Swarm 集群中服务任务背后的容器，在任
 
 ## 工作原理
 
-OneUptime Docker Swarm 代理运行在一个管理节点上。它的 Collector 每 30 秒从该节点的 Docker 守护进程读取容器统计信息，并给每批数据打上集群名称 `docker.swarm.cluster.name`。旁边一个小型清单轮询器每 5 分钟从 Swarm API 读取集群的节点、服务和任务。第一批数据会把集群注册到 OneUptime 中。
+OneUptime Docker Swarm 代理运行在一个管理节点上。它的 Collector 每 30 秒从该节点的 Docker 守护进程读取容器统计信息，给每批数据打上集群名称 `docker.swarm.cluster.name`，并给每个任务的指标打上其服务和节点。旁边一个小型清单轮询器每 5 分钟从 Swarm API 读取集群的节点、服务和任务。第一批数据会把集群注册到 OneUptime 中。
 
 Collector 只能看到它所在节点上的容器。要获取每个节点的指标，请在每个节点上以相同的 `DOCKER_SWARM_CLUSTER_NAME` 运行 Collector。
 
@@ -77,18 +77,18 @@ flowchart TB
 
 | 字段 | 选项卡 | 作用 |
 | --- | --- | --- |
-| **Docker Swarm Cluster** | 全部 | 必填。把每个查询限定在 `resource.docker.swarm.cluster.name`。这是代理打上的唯一资源属性，所以监视器不会添加 `container.runtime` 或 `host.name` 过滤器。 |
-| **服务名称** | Custom Metric、高级 | 可选。与 `docker.swarm.service.name` 完全匹配，例如 `web`。 |
-| **节点名称** | Custom Metric、高级 | 可选。与 `docker.swarm.node.name` 完全匹配，例如 `swarm-node-1`。 |
+| **Docker Swarm Cluster** | 全部 | 必填。把每个查询限定在 `resource.docker.swarm.cluster.name`。任务的指标和 Docker 主机的指标一样带有 `container.runtime=docker`，而代理从不打上 `host.name`，所以监视器对这两者都不过滤。 |
+| **服务名称** | Custom Metric、高级 | 可选。与 `resource.docker.swarm.service.name` 完全匹配，即 `docker service ls` 显示的服务名称，例如 `web`（在栈中为 `<stack>_web`）。 |
+| **节点名称** | Custom Metric、高级 | 可选。与 `resource.docker.swarm.node.name` 完全匹配，即 `docker node ls` 显示的节点主机名，例如 `swarm-node-1`。该节点上的代理根据 `DOCKER_SWARM_NODE_NAME` 打上它。 |
 | **容器名称** | Custom Metric、高级 | 可选。与 `resource.container.name` 完全匹配。任务的容器命名为 `<service>.<slot>.<taskid>`，例如 `web.1.abc123`。 |
-| **容器镜像** | Custom Metric、高级 | 可选。与 `resource.container.image.name` 完全匹配，例如 `nginx:latest`。 |
+| **容器镜像** | Custom Metric、高级 | 可选。匹配 `resource.container.image.name`，无论是否带有 Swarm 为镜像固定的摘要：`nginx:latest` 也会匹配 `nginx:latest@sha256:…`，你输入的摘要会被忽略，不带标签的名称表示 `:latest`。 |
 | **Docker Swarm Metric** | Custom Metric | [目录](#收集的指标) 中的一个指标。 |
 | **聚合** | Custom Metric | 样本的合并方式：**平均值**、**最大值**、**最小值**、**总和** 或 **计数**。初始值为该指标通常的聚合方式。 |
 | **时间范围** | 全部 | 查询读取的滚动窗口，从 **Past 1 Minute** 到 **Past 365 Days**。新监视器从 **Past 1 Minute** 开始；模板会设置自己的值。 |
 | **选择指标** | 高级 | 查询构建器：**指标**、**Aggregate by**、**Filter by attributes**、**分组依据**，以及用于组合查询的 **添加指标** 和 **添加公式**。 |
 
-> [!WARNING]
-> 随附的代理目前还不会设置 `docker.swarm.service.name` 或 `docker.swarm.node.name`，所以填写了 **服务名称** 或 **节点名称** 的监视器找不到数据。请改为按 **容器镜像** 缩小范围，或按 `resource.container.name` 分组。
+> [!NOTE]
+> **服务名称** 和 **节点名称** 需要 0.161.2 及以后版本的代理文件：更旧的版本既不发送服务，也不发送节点。请在运行代理的每个节点上 [升级代理](/docs/telemetry/docker-swarm#升级代理)。
 
 ## 现成的警报模板
 
@@ -143,7 +143,7 @@ flowchart TB
 | `container.pids.count` | 计数 | 任务容器内的任务数：cgroup pids 控制器既统计进程也统计线程。突然上升可能意味着 fork 炸弹或线程泄漏。 |
 | `container.uptime` | 秒 | 任务容器已运行的时间。被重新调度或重启的任务会从 0 开始一个新容器。 |
 
-每个序列都把容器的身份作为资源属性携带：`resource.container.name`（`<service>.<slot>.<taskid>`）、`resource.container.image.name` 和 `resource.docker.swarm.cluster.name`。
+每个序列都把容器的身份作为资源属性携带：`resource.container.name`（`<service>.<slot>.<taskid>`）、`resource.container.image.name`、`resource.docker.swarm.service.name`、`resource.docker.swarm.node.id`、`resource.docker.swarm.node.name`（当代理知道节点名称时）和 `resource.docker.swarm.cluster.name`。
 
 ## 监控条件
 
@@ -186,7 +186,7 @@ Collector 读取的是它所在节点的 Docker 守护进程，所以只能看�
 :::
 
 :::details 按服务或节点过滤的监视器找不到数据
-**服务名称** 和 **节点名称** 匹配的是 `docker.swarm.service.name` 和 `docker.swarm.node.name`，而随附的代理不会设置它们。清空这两项并按 **容器镜像** 缩小范围，或按 `resource.container.name` 分组。
+**服务名称** 和 **节点名称** 匹配的是 `resource.docker.swarm.service.name` 和 `resource.docker.swarm.node.name`，代理从其文件的 0.161.2 版本起才会发送它们：请 [升级代理](/docs/telemetry/docker-swarm#升级代理)。节点名称来自每个节点 `.env` 中的 `DOCKER_SWARM_NODE_NAME`，由安装脚本写入；在以其他方式设置的节点上，请把它添加到那里。
 :::
 
 :::details 所有任务都显示为一个序列

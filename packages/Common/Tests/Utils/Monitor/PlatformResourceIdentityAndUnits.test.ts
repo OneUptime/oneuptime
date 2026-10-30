@@ -1073,8 +1073,8 @@ describe("PlatformResourceIdentity.dockerSwarm", () => {
   const taskAttributes: JSONObject = {
     "resource.container.name": "web.1.x7k2m9p4q1",
     "resource.container.image.name": "nginx:1.25",
-    "docker.swarm.node.name": "worker-1",
-    "docker.swarm.service.name": "web",
+    "resource.docker.swarm.node.name": "worker-1",
+    "resource.docker.swarm.service.name": "web",
   };
 
   test("maps the prefixed container keys and the swarm keys", () => {
@@ -1097,6 +1097,34 @@ describe("PlatformResourceIdentity.dockerSwarm", () => {
         "container.image.name": "nginx:1.25",
       }),
       {},
+    );
+  });
+
+  /*
+   * The Swarm agent copies the task's service label and stamps its node's
+   * name onto the RESOURCE of the task's metrics
+   * (agents/DockerSwarmAgent/otel-collector-config.yaml), so ingest stores
+   * them `resource.`-prefixed; the bare keys are on no stored row.
+   */
+  test("the bare swarm keys are not where the agent puts the service and node", () => {
+    expectSameIdentity(
+      PlatformResourceIdentity.dockerSwarm({
+        "docker.swarm.node.name": "worker-1",
+        "docker.swarm.service.name": "web",
+      }),
+      {},
+    );
+  });
+
+  test("a series grouped by the bare swarm keys still names its service and node, mirrored", () => {
+    expectSameIdentity(
+      PlatformResourceIdentity.dockerSwarm(
+        PlatformResourceIdentity.withBothAttributeSpellings({
+          "docker.swarm.node.name": "worker-1",
+          "docker.swarm.service.name": "web",
+        }),
+      ),
+      { nodeName: "worker-1", serviceName: "web" },
     );
   });
 

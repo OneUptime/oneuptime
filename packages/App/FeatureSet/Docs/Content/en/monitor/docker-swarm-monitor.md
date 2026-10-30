@@ -11,7 +11,7 @@ A Docker Swarm monitor watches the containers behind a Swarm cluster's service t
 
 ## How it works
 
-The OneUptime Docker Swarm Agent runs on a manager node. Its collector reads container stats from that node's Docker daemon every 30 seconds and stamps every batch with the cluster's name, `docker.swarm.cluster.name`. A small inventory poller beside it reads the cluster's nodes, services and tasks from the Swarm API every 5 minutes. The first data registers the cluster in OneUptime.
+The OneUptime Docker Swarm Agent runs on a manager node. Its collector reads container stats from that node's Docker daemon every 30 seconds, stamps every batch with the cluster's name, `docker.swarm.cluster.name`, and each task's metrics with its service and node. A small inventory poller beside it reads the cluster's nodes, services and tasks from the Swarm API every 5 minutes. The first data registers the cluster in OneUptime.
 
 The collector only sees containers on the node it runs on. For metrics from every node, run the collector on each node with the same `DOCKER_SWARM_CLUSTER_NAME`.
 
@@ -77,18 +77,18 @@ Click **Create Monitor**. OneUptime opens the monitor's page and evaluates it ev
 
 | Field | Tab | What it does |
 | --- | --- | --- |
-| **Docker Swarm Cluster** | All | Required. Scopes every query to `resource.docker.swarm.cluster.name`. This is the only resource attribute the agent stamps, so the monitor adds no `container.runtime` or `host.name` filter. |
-| **Service Name** | Custom Metric, Advanced | Optional. Exact match on `docker.swarm.service.name`, for example `web`. |
-| **Node Name** | Custom Metric, Advanced | Optional. Exact match on `docker.swarm.node.name`, for example `swarm-node-1`. |
+| **Docker Swarm Cluster** | All | Required. Scopes every query to `resource.docker.swarm.cluster.name`. A task's metrics carry `container.runtime=docker` as a Docker host's do, and the agent never stamps `host.name`, so the monitor filters on neither. |
+| **Service Name** | Custom Metric, Advanced | Optional. Exact match on `resource.docker.swarm.service.name`, the service as `docker service ls` names it, for example `web` (`<stack>_web` in a stack). |
+| **Node Name** | Custom Metric, Advanced | Optional. Exact match on `resource.docker.swarm.node.name`, the node's hostname as `docker node ls` shows it, for example `swarm-node-1`. The agent on that node stamps it from `DOCKER_SWARM_NODE_NAME`. |
 | **Container Name** | Custom Metric, Advanced | Optional. Exact match on `resource.container.name`. A task's container is named `<service>.<slot>.<taskid>`, for example `web.1.abc123`. |
-| **Container Image** | Custom Metric, Advanced | Optional. Exact match on `resource.container.image.name`, for example `nginx:latest`. |
+| **Container Image** | Custom Metric, Advanced | Optional. Matches `resource.container.image.name` with or without the digest Swarm pins to the image: `nginx:latest` also matches `nginx:latest@sha256:…`, a digest you type is left out, and a name without a tag means `:latest`. |
 | **Docker Swarm Metric** | Custom Metric | One metric from the [catalog](#collected-metrics). |
 | **Aggregation** | Custom Metric | How samples are combined: **Average**, **Maximum**, **Minimum**, **Sum** or **Count**. Starts at the metric's usual aggregation. |
 | **Time Range** | All | The rolling window the query reads, from **Past 1 Minute** to **Past 365 Days**. A new monitor starts at **Past 1 Minute**; templates set their own. |
 | **Select Metrics** | Advanced | The query builder: **Metric**, **Aggregate by**, **Filter by attributes**, **Group by**, plus **Add Metric** and **Add Formula** to combine queries. |
 
-> [!WARNING]
-> The shipped agent does not set `docker.swarm.service.name` or `docker.swarm.node.name` yet, so a monitor with **Service Name** or **Node Name** filled in finds no data. Narrow by **Container Image** instead, or group by `resource.container.name`.
+> [!NOTE]
+> **Service Name** and **Node Name** need the agent's files from version 0.161.2 on: older ones send neither the service nor the node. [Upgrade the agent](/docs/telemetry/docker-swarm#upgrading-the-agent) on every node it runs on.
 
 ## Pre-built Alert Templates
 
@@ -143,7 +143,7 @@ The agent's collector uses the OpenTelemetry `docker_stats` receiver, so the met
 | `container.pids.count` | count | Tasks inside a task's container: the cgroup pids controller counts threads as well as processes. A sudden rise can mean a fork bomb or a thread leak. |
 | `container.uptime` | seconds | How long a task's container has been running. A rescheduled or restarted task starts a new container at 0. |
 
-Each series carries the container's identity as resource attributes: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name` and `resource.docker.swarm.cluster.name`.
+Each series carries the container's identity as resource attributes: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name`, `resource.docker.swarm.service.name`, `resource.docker.swarm.node.id`, `resource.docker.swarm.node.name` (when the agent knows the node's name) and `resource.docker.swarm.cluster.name`.
 
 ## Monitoring criteria
 
@@ -186,7 +186,7 @@ The collector reads the Docker daemon of the node it runs on, so it only sees th
 :::
 
 :::details A monitor filtered by service or node finds no data
-**Service Name** and **Node Name** match `docker.swarm.service.name` and `docker.swarm.node.name`, which the shipped agent does not set. Clear them and narrow by **Container Image**, or group by `resource.container.name`.
+**Service Name** and **Node Name** match `resource.docker.swarm.service.name` and `resource.docker.swarm.node.name`, which the agent sends from version 0.161.2 of its files on: [upgrade it](/docs/telemetry/docker-swarm#upgrading-the-agent). The node's name comes from `DOCKER_SWARM_NODE_NAME` in each node's `.env`, which the install script writes; on a node set up another way, add it there.
 :::
 
 :::details Every task shows as one series

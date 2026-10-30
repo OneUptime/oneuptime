@@ -11,7 +11,7 @@ En Docker Swarm-monitor overvåger containerne bag en Swarm-klynges tjenesteopga
 
 ## Sådan virker det
 
-OneUptimes Docker Swarm-agent kører på en managernode. Dens collector læser containerstatistik fra nodens Docker-dæmon hvert 30. sekund og stempler hver batch med klyngens navn, `docker.swarm.cluster.name`. En lille inventarpoller ved siden af læser klyngens noder, tjenester og opgaver fra Swarm-API'et hvert 5. minut. De første data registrerer klyngen i OneUptime.
+OneUptimes Docker Swarm-agent kører på en managernode. Dens collector læser containerstatistik fra nodens Docker-dæmon hvert 30. sekund, stempler hver batch med klyngens navn, `docker.swarm.cluster.name`, og hver opgaves metrikker med dens tjeneste og node. En lille inventarpoller ved siden af læser klyngens noder, tjenester og opgaver fra Swarm-API'et hvert 5. minut. De første data registrerer klyngen i OneUptime.
 
 Collectoren ser kun containere på den node, den kører på. For at få metrikker fra hver node skal du køre collectoren på hver node med det samme `DOCKER_SWARM_CLUSTER_NAME`.
 
@@ -77,18 +77,18 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 
 | Felt | Fane | Hvad det gør |
 | --- | --- | --- |
-| **Docker Swarm Cluster** | Alle | Påkrævet. Afgrænser hver forespørgsel til `resource.docker.swarm.cluster.name`. Det er den eneste ressourceattribut, agenten stempler, så monitoren tilføjer intet filter på `container.runtime` eller `host.name`. |
-| **Tjenestenavn** | Custom Metric, Avanceret | Valgfri. Præcis match på `docker.swarm.service.name`, f.eks. `web`. |
-| **Nodenavn** | Custom Metric, Avanceret | Valgfri. Præcis match på `docker.swarm.node.name`, f.eks. `swarm-node-1`. |
+| **Docker Swarm Cluster** | Alle | Påkrævet. Afgrænser hver forespørgsel til `resource.docker.swarm.cluster.name`. En opgaves metrikker bærer `container.runtime=docker` ligesom en Docker-værts, og agenten stempler aldrig `host.name`, så monitoren filtrerer på ingen af dem. |
+| **Tjenestenavn** | Custom Metric, Avanceret | Valgfri. Præcis match på `resource.docker.swarm.service.name`, tjenesten, som `docker service ls` navngiver den, f.eks. `web` (`<stack>_web` i en stack). |
+| **Nodenavn** | Custom Metric, Avanceret | Valgfri. Præcis match på `resource.docker.swarm.node.name`, nodens værtsnavn, som `docker node ls` viser det, f.eks. `swarm-node-1`. Agenten på den node stempler det fra `DOCKER_SWARM_NODE_NAME`. |
 | **Containernavn** | Custom Metric, Avanceret | Valgfri. Præcis match på `resource.container.name`. En opgaves container hedder `<service>.<slot>.<taskid>`, f.eks. `web.1.abc123`. |
-| **Container-image** | Custom Metric, Avanceret | Valgfri. Præcis match på `resource.container.image.name`, f.eks. `nginx:latest`. |
+| **Container-image** | Custom Metric, Avanceret | Valgfri. Matcher `resource.container.image.name` med eller uden det digest, Swarm fastlåser til imaget: `nginx:latest` matcher også `nginx:latest@sha256:…`, et digest, du skriver, udelades, og et navn uden tag betyder `:latest`. |
 | **Docker Swarm Metric** | Custom Metric | Én metrik fra [kataloget](#indsamlede-metrikker). |
 | **Aggregering** | Custom Metric | Hvordan målinger kombineres: **Gennemsnit**, **Maksimum**, **Minimum**, **Sum** eller **Antal**. Starter ved metrikkens sædvanlige aggregering. |
 | **Tidsinterval** | Alle | Det glidende vindue, forespørgslen læser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter ved **Past 1 Minute**; skabeloner angiver deres eget. |
 | **Vælg målinger** | Avanceret | Forespørgselsbyggeren: **Metrik**, **Aggregate by**, **Filter by attributes**, **Gruppér efter** samt **Tilføj metrik** og **Tilføj formel** til at kombinere forespørgsler. |
 
-> [!WARNING]
-> Den medfølgende agent angiver endnu ikke `docker.swarm.service.name` eller `docker.swarm.node.name`, så en monitor med **Tjenestenavn** eller **Nodenavn** udfyldt finder ingen data. Indsnævr i stedet med **Container-image**, eller gruppér efter `resource.container.name`.
+> [!NOTE]
+> **Tjenestenavn** og **Nodenavn** kræver agentens filer fra version 0.161.2 og frem: ældre filer sender hverken tjenesten eller noden. [Opgradér agenten](/docs/telemetry/docker-swarm#opgradering-af-agenten) på hver node, den kører på.
 
 ## Færdige advarselsskabeloner
 
@@ -143,7 +143,7 @@ Agentens collector bruger OpenTelemetry-modtageren `docker_stats`, så metrikker
 | `container.pids.count` | antal | Opgaver i en tasks container: cgroup-pids-controlleren tæller både tråde og processer. En pludselig stigning kan betyde en fork-bombe eller en trådlækage. |
 | `container.uptime` | sekunder | Hvor længe en opgaves container har kørt. En opgave, der planlægges om eller genstartes, starter en ny container på 0. |
 
-Hver serie bærer containerens identitet som ressourceattributter: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name` og `resource.docker.swarm.cluster.name`.
+Hver serie bærer containerens identitet som ressourceattributter: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name`, `resource.docker.swarm.service.name`, `resource.docker.swarm.node.id`, `resource.docker.swarm.node.name` (når agenten kender nodens navn) og `resource.docker.swarm.cluster.name`.
 
 ## Overvågningskriterier
 
@@ -186,7 +186,7 @@ Collectoren læser Docker-dæmonen på den node, den kører på, så den ser kun
 :::
 
 :::details En monitor filtreret efter tjeneste eller node finder ingen data
-**Tjenestenavn** og **Nodenavn** matcher `docker.swarm.service.name` og `docker.swarm.node.name`, som den medfølgende agent ikke angiver. Ryd dem, og indsnævr med **Container-image**, eller gruppér efter `resource.container.name`.
+**Tjenestenavn** og **Nodenavn** matcher `resource.docker.swarm.service.name` og `resource.docker.swarm.node.name`, som agenten sender fra version 0.161.2 af sine filer og frem: [opgradér den](/docs/telemetry/docker-swarm#opgradering-af-agenten). Nodens navn kommer fra `DOCKER_SWARM_NODE_NAME` i hver nodes `.env`, som installationsscriptet skriver; på en node, der er sat op på en anden måde, skal du tilføje det der.
 :::
 
 :::details Hver opgave vises som én serie

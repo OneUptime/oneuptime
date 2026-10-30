@@ -14,8 +14,12 @@
  *   Error response from daemon: client version 1.44 is too new.
  *   Maximum supported API version is 1.41
  *
- * So the version is the DOCKER_API_VERSION environment variable, defaulting to
- * 1.44 (the behaviour the agents have always shipped).
+ * So the version is the DOCKER_API_VERSION environment variable, and it is
+ * EMPTY by default: empty makes the receiver negotiate the version with the
+ * daemon, which works from Docker Engine 20.10 on. The agents used to default
+ * it to 1.44 - the literal they had always shipped - which kept exactly that
+ * restart loop for every Engine from 20.10 to 24, the versions the docs list
+ * as supported, until someone found the variable.
  *
  * BEHAVIOUR VERIFIED AGAINST otel/opentelemetry-collector-contrib:0.154.0 and a
  * real daemon (max API 1.54, min 1.40), and again against 0.161.0 (whose Docker
@@ -43,22 +47,19 @@
  *      operators who do not want to look their maximum up, so the docs describe
  *      it and these tests keep it reachable.
  *
- *   3. Because empty is meaningful, the pass-throughs use `${VAR-default}` and
- *      NOT `${VAR:-default}`. Compose's and the shell's `:-` replace an empty
- *      value with the default and would swallow the escape hatch; `-` only
- *      fills in when the variable is absent entirely. A test pins that
- *      distinction so it does not get "tidied" back.
+ *   3. So empty is the default everywhere the agents ship it: the images'
+ *      ENV, the compose files (`${DOCKER_API_VERSION:-}`), and the Swarm
+ *      inventory poller. A version is pinned only when someone sets one.
  *
- * The config keeps a plain `${env:DOCKER_API_VERSION}` rather than
- * `${env:DOCKER_API_VERSION:-1.44}`: confmap applies a `:-` default only when
- * the variable is UNSET, so it would not catch an empty value anyway, and the
- * unset case already degrades to auto-negotiation, which is the safer of the
- * two outcomes.
+ * The config keeps a plain `${env:DOCKER_API_VERSION}`, with no `:-` default:
+ * unset expands to empty too, which is the same negotiation.
  *
- * The receiver is not the only client of that API. Each agent's
- * inventory-snapshot.sh polls the same daemon over curl. Those scripts are
- * exercised by RUNNING their resolution logic under `sh` rather than by
- * pattern-matching the source, so the assertions are about behaviour.
+ * The receiver is not the only client of that API. The Swarm agent's
+ * inventory-snapshot.sh polls the same daemon over curl. Its resolution logic
+ * is exercised by RUNNING it under `sh` rather than by pattern-matching the
+ * source, so the assertions are about behaviour. (The Docker and Podman
+ * agents had pollers too, which their images never ran; they are gone, see
+ * ContainerAgentConfigs.test.js.)
  */
 
 const fs = require("fs");
@@ -96,19 +97,25 @@ const INVENTORY_SIDECAR_SERVICE = "oneuptime-docker-swarm-inventory";
 /** Exactly this string — not a literal, and not a `:-` default (see header). */
 const API_VERSION_PLACEHOLDER = "${env:DOCKER_API_VERSION}";
 
-/** The default every shipped copy has to agree on. */
-const API_VERSION_DEFAULT = "1.44";
+/**
+ * The default every shipped copy has to agree on: none. Empty negotiates the
+ * version with the daemon.
+ */
+const API_VERSION_DEFAULT = "";
 
-const VERSION_LITERAL = /^\d+\.\d+$/;
-const DOCKERFILE_ENV_LINE = /^ENV DOCKER_API_VERSION=(\S+)$/;
+/** The version the agents pinned before, which Docker Engine 20.10 to 24 refuse. */
+const OLD_PINNED_DEFAULT = "1.44";
+
+const DOCKERFILE_ENV_LINE = /^ENV DOCKER_API_VERSION=(\S*)$/;
 
 /**
- * `${DOCKER_API_VERSION-1.44}` — a hyphen with NO colon. The colon form would
- * replace an explicitly empty value with the default and defeat the documented
- * auto-negotiate escape hatch.
+ * `${DOCKER_API_VERSION:-}`: the variable when the user sets it (in .env or
+ * the shell), else empty, so the collector negotiates.
  */
-const COMPOSE_PASS_THROUGH =
-  /^DOCKER_API_VERSION=\$\{DOCKER_API_VERSION-(\d+\.\d+)\}$/;
+const COMPOSE_PASS_THROUGH = "DOCKER_API_VERSION=${DOCKER_API_VERSION:-}";
+
+/** The agents with an inventory poller of their own, which runs. */
+const POLLER_AGENTS = ["DockerSwarmAgent"];
 
 function readRepoFile(file) {
   return fs.readFileSync(path.join(REPO_ROOT, file), "utf8");
@@ -171,9 +178,12 @@ function readComposeEntry(agent, serviceName) {
   return entries.length === 1 ? entries[0] : null;
 }
 
-/** The `-` default inside the collector service's compose pass-through, or null. */
+/**
+ * The value the collector service gets when nothing sets the variable: the
+ * pass-through's `:-` default, or null when the entry is not a pass-through.
+ */
 function readComposeDefault(agent) {
-  const match = COMPOSE_PASS_THROUGH.exec(
+  const match = /^DOCKER_API_VERSION=\$\{DOCKER_API_VERSION:?-([^}]*)\}$/.exec(
     readComposeEntry(agent, COLLECTOR_SERVICE[agent]) || "",
   );
 
@@ -262,7 +272,7 @@ function findDockerStatsConfigs() {
   return found.sort();
 }
 
-describe.each(AGENTS)("%s Docker API version pin", (agent) => {
+describe.each(AGENTS)("%s Docker API version", (agent) => {
   /*
    * A version literal here is the exact state that restart-loops the collector
    * on an older Engine, and it is also the state `otelcol validate` accepts
@@ -272,69 +282,61 @@ describe.each(AGENTS)("%s Docker API version pin", (agent) => {
     expect(readApiVersion(agent)).toBe(API_VERSION_PLACEHOLDER);
   });
 
-  test("docker-compose.yml passes DOCKER_API_VERSION through with a version default", () => {
-    expect(readComposeEntry(agent, COLLECTOR_SERVICE[agent])).toEqual(
-      expect.stringMatching(COMPOSE_PASS_THROUGH),
-    );
-  });
-
   /*
-   * `${VAR:-default}` would replace an explicitly empty value with 1.44 and
-   * silently swallow the documented auto-negotiate escape hatch. Only `${VAR-…}`
-   * distinguishes "absent" from "deliberately empty".
+   * The regression: `${DOCKER_API_VERSION-1.44}` gave every install that did
+   * not set the variable a pinned 1.44, which Engine 20.10 to 24 refuse.
    */
-  test("the compose pass-through defaults on unset only, so an explicit empty value survives", () => {
-    const entry = readComposeEntry(agent, COLLECTOR_SERVICE[agent]);
-
-    expect(entry).not.toContain(":-");
-    expect(entry).toBe(
-      `DOCKER_API_VERSION=\${DOCKER_API_VERSION-${API_VERSION_DEFAULT}}`,
+  test("docker-compose.yml passes DOCKER_API_VERSION through, empty unless it is set, so the collector negotiates", () => {
+    expect(readComposeEntry(agent, COLLECTOR_SERVICE[agent])).toBe(
+      COMPOSE_PASS_THROUGH,
     );
+    expect(readComposeDefault(agent)).toBe(API_VERSION_DEFAULT);
   });
 });
 
-describe.each(AGENTS)("%s inventory poller resolves its API base", (agent) => {
-  test("with DOCKER_API_VERSION unset it falls back to the shared default", () => {
-    expect(resolvePollerApiBase(agent, undefined)).toBe(
-      `http://localhost/v${API_VERSION_DEFAULT}`,
-    );
-  });
+describe.each(POLLER_AGENTS)(
+  "%s inventory poller resolves its API base",
+  (agent) => {
+    /*
+     * curl has no version negotiation, so the poller answers an empty version by
+     * dropping the /v<version> prefix. The Docker API serves those unversioned
+     * paths at the daemon's own version — the same outcome the collector reaches
+     * by negotiating, which is the point: both clients of the socket move
+     * together, and neither is refused by an older daemon.
+     */
+    test("with DOCKER_API_VERSION unset it asks for the daemon's own version", () => {
+      expect(resolvePollerApiBase(agent, undefined)).toBe("http://localhost");
+    });
 
-  /*
-   * curl has no version negotiation, so the poller answers the empty-string
-   * escape hatch by dropping the /v<version> prefix. The Docker API serves those
-   * unversioned paths at the daemon's own latest version — the same outcome the
-   * collector reaches by negotiating, which is the point: both clients of the
-   * socket have to move together.
-   */
-  test("with DOCKER_API_VERSION explicitly empty it drops the version prefix", () => {
-    expect(resolvePollerApiBase(agent, "")).toBe("http://localhost");
-  });
+    test("with DOCKER_API_VERSION explicitly empty it drops the version prefix", () => {
+      expect(resolvePollerApiBase(agent, "")).toBe("http://localhost");
+    });
 
-  test("an explicit version is used verbatim", () => {
-    expect(resolvePollerApiBase(agent, "1.41")).toBe("http://localhost/v1.41");
-  });
+    test("an explicit version is used verbatim", () => {
+      expect(resolvePollerApiBase(agent, "1.41")).toBe(
+        "http://localhost/v1.41",
+      );
+    });
 
-  test("the script parses under sh -n", () => {
-    expect(() => {
-      return execFileSync("sh", [
-        "-n",
-        path.join(REPO_ROOT, "agents", agent, "inventory-snapshot.sh"),
-      ]);
-    }).not.toThrow();
-  });
-});
+    test("the script parses under sh -n", () => {
+      expect(() => {
+        return execFileSync("sh", [
+          "-n",
+          path.join(REPO_ROOT, "agents", agent, "inventory-snapshot.sh"),
+        ]);
+      }).not.toThrow();
+    });
+  },
+);
 
 describe.each(IMAGE_AGENTS)("%s image default", (agent) => {
   /*
    * `docker run` without `-e DOCKER_API_VERSION` gets whatever the image's ENV
    * says, which is why the default is baked into the Dockerfile and not only
-   * into compose. A literal, not another `${…}`: this is the end of the chain.
+   * into compose. Empty, the end of the chain: the receiver negotiates.
    */
-  test("Dockerfile.tpl sets ENV DOCKER_API_VERSION to a version literal", () => {
-    expect(readImageDefault(agent)).toEqual(
-      expect.stringMatching(VERSION_LITERAL),
-    );
+  test("Dockerfile.tpl sets ENV DOCKER_API_VERSION, empty", () => {
+    expect(readImageDefault(agent)).toBe(API_VERSION_DEFAULT);
   });
 
   test("the image default and the compose default are the same version", () => {
@@ -350,10 +352,10 @@ describe("DockerSwarmAgent inventory sidecar", () => {
    * The one poller that actually runs, and it runs in its own container, so the
    * collector service's pass-through does not reach it.
    */
-  test("docker-compose.yml passes DOCKER_API_VERSION through to the sidecar with the shared default", () => {
+  test("docker-compose.yml passes DOCKER_API_VERSION through to the sidecar, empty unless it is set", () => {
     expect(
       readComposeEntry("DockerSwarmAgent", INVENTORY_SIDECAR_SERVICE),
-    ).toBe(`DOCKER_API_VERSION=\${DOCKER_API_VERSION-${API_VERSION_DEFAULT}}`);
+    ).toBe(COMPOSE_PASS_THROUGH);
   });
 
   test("the sidecar and the collector get byte-identical entries", () => {
@@ -365,13 +367,11 @@ describe("DockerSwarmAgent inventory sidecar", () => {
   });
 });
 
-describe("the pin is identical everywhere it ships", () => {
+describe("the default is identical everywhere it ships", () => {
   function pinOf(agent) {
     return {
       placeholder: readApiVersion(agent),
       composeDefault: readComposeDefault(agent),
-      pollerUnset: resolvePollerApiBase(agent, undefined),
-      pollerEmpty: resolvePollerApiBase(agent, ""),
     };
   }
 
@@ -386,12 +386,39 @@ describe("the pin is identical everywhere it ships", () => {
     },
   );
 
-  test(`and the default they share is ${API_VERSION_DEFAULT}`, () => {
-    expect(readComposeDefault("DockerAgent")).toBe(API_VERSION_DEFAULT);
-    expect(readImageDefault("DockerAgent")).toBe(API_VERSION_DEFAULT);
-    expect(resolvePollerApiBase("DockerAgent", undefined)).toBe(
-      `http://localhost/v${API_VERSION_DEFAULT}`,
-    );
+  test("and the default they share is empty: negotiated, never the 1.44 older daemons refuse", () => {
+    for (const agent of AGENTS) {
+      expect(readComposeDefault(agent)).toBe(API_VERSION_DEFAULT);
+    }
+    for (const agent of IMAGE_AGENTS) {
+      expect(readImageDefault(agent)).toBe(API_VERSION_DEFAULT);
+    }
+    for (const agent of POLLER_AGENTS) {
+      expect(resolvePollerApiBase(agent, undefined)).toBe("http://localhost");
+    }
+
+    for (const file of [
+      ...AGENTS.map((agent) => {
+        return `agents/${agent}/docker-compose.yml`;
+      }),
+      ...IMAGE_AGENTS.map((agent) => {
+        return `agents/${agent}/Dockerfile.tpl`;
+      }),
+      ...POLLER_AGENTS.map((agent) => {
+        return `agents/${agent}/inventory-snapshot.sh`;
+      }),
+    ]) {
+      const text = readRepoFile(file);
+      const pins = [
+        `DOCKER_API_VERSION-${OLD_PINNED_DEFAULT}`,
+        `DOCKER_API_VERSION:-${OLD_PINNED_DEFAULT}`,
+        `DOCKER_API_VERSION=${OLD_PINNED_DEFAULT}`,
+      ].filter((pin) => {
+        return text.includes(pin);
+      });
+
+      expect({ file, pins }).toEqual({ file, pins: [] });
+    }
   });
 
   /*
@@ -434,7 +461,7 @@ describe("the shipped explanation matches the measured behaviour", () => {
     ...IMAGE_AGENTS.map((agent) => {
       return `agents/${agent}/Dockerfile.tpl`;
     }),
-    ...AGENTS.map((agent) => {
+    ...POLLER_AGENTS.map((agent) => {
       return `agents/${agent}/inventory-snapshot.sh`;
     }),
     "packages/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md",
@@ -461,8 +488,8 @@ describe("the shipped explanation matches the measured behaviour", () => {
   );
 
   /*
-   * The escape hatch only helps if an operator can find it. It is the answer for
-   * anyone who cannot or does not want to read their daemon's maximum.
+   * An operator has to be able to find out that the agent negotiates unless
+   * DOCKER_API_VERSION is set, and that empty is that default.
    */
   test.each([
     "agents/DockerAgent/README.md",
@@ -471,7 +498,7 @@ describe("the shipped explanation matches the measured behaviour", () => {
     "packages/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md",
     "packages/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md",
     "packages/App/FeatureSet/Docs/Content/en/telemetry/docker-swarm.md",
-  ])("%s documents the empty-value auto-negotiate escape hatch", (file) => {
+  ])("%s documents that the empty default negotiates", (file) => {
     const text = readRepoFile(file);
 
     expect(text).toMatch(/DOCKER_API_VERSION/);
