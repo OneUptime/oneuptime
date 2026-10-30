@@ -951,31 +951,15 @@ export function getAutomaticRemediation(
 /*
  * The project's "Fix new incidents automatically" and "Fix new alerts
  * automatically" in one line, under the cluster's fix mode: a cluster set to
- * fix things fixes nothing new while the project's switch is off. Off by
- * default, and turned on - with its rules - on each AI settings page, not
- * here: it is the project's choice, not the cluster's.
+ * fix things fixes nothing new while the project's switch is off. The line,
+ * its words and its links are shared with every resource's AI agent page
+ * (Components/AiAccess/AutomaticRemediationLine), so both read alike.
  */
-export const AUTOMATIC_REMEDIATION_LINE: string = translationKey(
-  "Automatic fixes for new incidents in this project: {{incidents}} · alerts: {{alerts}}",
-);
-
-export function getAutomaticRemediationLine(
-  settings: KubernetesAiAutomaticRemediationSettings,
-): string {
-  return translateTemplate(AUTOMATIC_REMEDIATION_LINE, {
-    incidents: translatableTerm(settings.incidents ? OPT_IN_ON : OPT_IN_OFF),
-    alerts: translatableTerm(settings.alerts ? OPT_IN_ON : OPT_IN_OFF),
-  });
-}
-
-// Where each switch is turned on, linked from the line while it is off.
-export const AUTOMATIC_REMEDIATION_SETTINGS_LINKS: {
-  incidents: string;
-  alerts: string;
-} = {
-  incidents: translationKey("Incident AI settings"),
-  alerts: translationKey("Alert AI settings"),
-};
+export {
+  AUTOMATIC_REMEDIATION_LINE,
+  AUTOMATIC_REMEDIATION_SETTINGS_LINKS,
+  getAutomaticRemediationLine,
+} from "../../../Components/AiAccess/AutomaticRemediationLine";
 
 // The flags a one-click "Turn on" writes: only the ones that are off.
 export function getAutomaticInvestigationTurnOnChanges(

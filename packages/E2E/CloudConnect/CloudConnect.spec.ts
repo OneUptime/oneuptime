@@ -2226,6 +2226,62 @@ test.describe("OneUptime AI on a cloud account", () => {
     await shoot(page, "account-ai-logs");
   });
 
+  test("the project's automatic fixes: said under the question and under the page's fixes, with a link to each switch that is off", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // A new project fixes nothing new on its own: both switches are off.
+    await openAccounts(page, `${ACCOUNTS_PATH}/${AWS_ACCOUNT}?state=connected`);
+    await openSetup(page);
+
+    const inDialog: Locator = setupDialog(page).getByTestId(
+      "cloud-ai-agent-setup-automatic-remediation",
+    );
+    await expect(inDialog).toContainText(
+      "Automatic fixes for new incidents in this project: Off · alerts: Off",
+    );
+    await expect(
+      inDialog.getByRole("link", { name: "Incident AI settings" }),
+    ).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/incidents/ai/settings`);
+    await expect(
+      inDialog.getByRole("link", { name: "Alert AI settings" }),
+    ).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/alerts/ai/settings`);
+    await expectNoSidewaysScroll(page);
+    await shoot(page, "account-ai-setup-automatic-fixes-off");
+
+    // The AI agent page says it under the fixes, as a cluster's does.
+    await page.goto(`${AI_AGENT_PATH}?state=connected&ai=connected`);
+    const onPage: Locator = page.getByTestId("ai-access-automatic-remediation");
+    await expect(onPage).toContainText(
+      "Automatic fixes for new incidents in this project: Off · alerts: Off",
+    );
+    await expect(onPage.getByRole("link")).toHaveCount(2);
+    await expectNoSidewaysScroll(page);
+    await shoot(page, "account-ai-agent-automatic-fixes-off");
+
+    // With both on, the dialog has nothing to say, and the page nowhere to send you.
+    await page.goto(
+      `${ACCOUNTS_PATH}/${AWS_ACCOUNT}?state=connected&fixing=on`,
+    );
+    await openSetup(page);
+    await expect(
+      setupDialog(page).getByTestId(
+        "cloud-ai-agent-setup-automatic-remediation",
+      ),
+    ).toHaveCount(0);
+
+    await page.goto(`${AI_AGENT_PATH}?state=connected&ai=connected&fixing=on`);
+    await expect(
+      page.getByTestId("ai-access-automatic-remediation"),
+    ).toContainText(
+      "Automatic fixes for new incidents in this project: On · alerts: On",
+    );
+    await expect(
+      page.getByTestId("ai-access-automatic-remediation").getByRole("link"),
+    ).toHaveCount(0);
+  });
+
   test("dark and German: the card and the dialog read in German, and fit", async ({
     page,
   }: {

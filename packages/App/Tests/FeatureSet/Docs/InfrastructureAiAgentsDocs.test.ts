@@ -3463,6 +3463,48 @@ describe("Infrastructure AI Agents docs", (): void => {
         "Turning it off stops every command OneUptime AI sends at once, an approved plan's next command and a rollback included; only **Test connection**, in the **⋯** menu next to the agent's status, still runs.",
       );
     });
+
+    /*
+     * The project's own switches: off by default, so a resource whose
+     * fixes are on fixes nothing new until one is on. The status carries
+     * them, the page draws them under the fixes with a link to each one
+     * that is off, and the cloud account's setup dialog says so under its
+     * question - what the docs say.
+     */
+    it("says the project's automatic fixing switches gate every resource's fixes, and where the page shows them", (): void => {
+      expect(oneLine(section(page, "## How fixes work"))).toContain(
+        "Two project switches decide whether anything new is fixed at all: **Fix new incidents automatically** (on **Incidents → AI → Settings**) and **Fix new alerts automatically** (on **Alerts → AI → Settings**) start off, and until one is on, nothing new of that kind is fixed. The **Fixes** row of the **AI agent** page says where both stand, with a link to each one that is off.",
+      );
+
+      const service: string = oneLine(
+        readRepoFile(
+          "packages/Common/Server/Services/ResourceAiAccessService.ts",
+        ),
+      );
+      expect(service).toContain(
+        "...(gates.automaticRemediation ? { automaticRemediation: { incidents: gates.automaticRemediation.incidents === true, alerts: gates.automaticRemediation.alerts === true, }, } : {}),",
+      );
+
+      const resourcePage: string = readRepoFile(
+        "packages/App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentPage.tsx",
+      );
+      expect(resourcePage).toContain(
+        'data-testid="ai-access-automatic-remediation"',
+      );
+      expect(resourcePage).toContain("PageMap.INCIDENTS_SETTINGS_AI");
+      expect(resourcePage).toContain("PageMap.ALERTS_SETTINGS_AI");
+
+      // The switches the docs name are the ones the project's AI pages draw.
+      const projectModel: string = readRepoFile(
+        "packages/Common/Models/DatabaseModels/Project.ts",
+      );
+      expect(projectModel).toContain(
+        "public enableAutomaticIncidentRemediation?: boolean = undefined;",
+      );
+      expect(projectModel).toContain(
+        "public enableAutomaticAlertRemediation?: boolean = undefined;",
+      );
+    });
   });
 
   describe("troubleshooting", (): void => {

@@ -34,6 +34,7 @@ import {
   getResourceAiAgentStatusPill,
   getResourceAiAttention,
   getResourceAiRefusedRegistrationWarning,
+  getResourceAutomaticRemediation,
   parseResourceAccessTestResult,
   parseResourceAiAccessStatus,
   shouldShowResourceWriteAccessCommands,
@@ -118,6 +119,12 @@ import {
 } from "../AiAccess/AiAccessRow";
 import AgentAiSettingsModal from "../AiAccess/AgentAiSettingsModal";
 import { AgentAiSettingsInstructions } from "../AiAccess/AgentAiSettingsInstructions";
+import {
+  AUTOMATIC_REMEDIATION_SETTINGS_LINKS,
+  AutomaticRemediationSettings,
+  getAutomaticRemediationLine,
+  isAnyAutomaticRemediationOff,
+} from "../AiAccess/AutomaticRemediationLine";
 import CloudAiAgentSetupModal from "../Cloud/CloudAiAgentSetupModal";
 import {
   getCloudAiAgentLogsCommand,
@@ -1179,6 +1186,9 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
   const hasAgent: boolean = agent !== null;
   const remediationMode: ResourceAiRemediationMode =
     readResourceRemediationMode(status.aiRemediationMode);
+  // The project's automatic fixing switches, drawn under the fixes.
+  const automaticRemediation: AutomaticRemediationSettings | null =
+    getResourceAutomaticRemediation(status);
   const allowlistInEffect: Array<string> = getResourceAllowlistInEffect(
     status.aiCommandAllowlist,
   );
@@ -1818,6 +1828,40 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
             sentence={RESOURCE_REMEDIATION_MODE_SUMMARIES[remediationMode]}
             dataTestId="ai-access-fixes"
           >
+            {/*
+             * Whether the project fixes new incidents and alerts at all:
+             * the resource's fixes act on nothing new while both of the
+             * project's switches are off (the default), so the line says
+             * where to turn each one on - the line a cluster's page draws.
+             */}
+            {automaticRemediation ? (
+              <div
+                className="flex flex-col gap-2 rounded-lg border border-gray-200 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
+                data-testid="ai-access-automatic-remediation"
+              >
+                <p className="text-xs leading-5 text-gray-600">
+                  {getAutomaticRemediationLine(automaticRemediation)}
+                </p>
+                {isAnyAutomaticRemediationOff(automaticRemediation) ? (
+                  <div className="flex flex-wrap gap-3">
+                    {automaticRemediation.incidents
+                      ? null
+                      : renderSettingsLink(
+                          PageMap.INCIDENTS_SETTINGS_AI,
+                          AUTOMATIC_REMEDIATION_SETTINGS_LINKS.incidents,
+                        )}
+                    {automaticRemediation.alerts
+                      ? null
+                      : renderSettingsLink(
+                          PageMap.ALERTS_SETTINGS_AI,
+                          AUTOMATIC_REMEDIATION_SETTINGS_LINKS.alerts,
+                        )}
+                  </div>
+                ) : (
+                  <></>
+                )}
+              </div>
+            ) : null}
             {remediationMode === ResourceAiRemediationMode.Disabled ? (
               <AiAccessHint
                 text={

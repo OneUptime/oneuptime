@@ -16,8 +16,19 @@ import { ResourceAiAgentDescriptor } from "../ResourceAiAgent/ResourceAiAgentDes
 import {
   RESOURCE_AI_ACCESS_STATUS_ROUTE,
   getResourceAiAccessRequestBody,
+  getResourceAutomaticRemediation,
   parseResourceAiAccessStatus,
 } from "../ResourceAiAgent/ResourceAiAgentStatus";
+import {
+  AUTOMATIC_REMEDIATION_SETTINGS_LINKS,
+  AutomaticRemediationSettings,
+  getAutomaticRemediationLine,
+  isAnyAutomaticRemediationOff,
+} from "../AiAccess/AutomaticRemediationLine";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
+import Link from "Common/UI/Components/Link/Link";
 import useAiAgentAccessStatus, {
   AiAgentAccessStatusRead,
 } from "../AiAccess/useAiAgentAccessStatus";
@@ -222,6 +233,14 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
     });
   const status: ResourceAiAccessStatus | null = read.status || props.status;
   const isConnected: boolean = Boolean(status?.agent?.isOnline);
+  /*
+   * The project's own switches: the agent's answer below decides how a fix
+   * runs, but the project fixes new incidents and alerts only while these
+   * are on - off by default - so the question says so when one is off.
+   */
+  const automaticRemediation: AutomaticRemediationSettings | null = status
+    ? getResourceAutomaticRemediation(status)
+    : null;
 
   const shell: string =
     translator.translateText(CLOUD_SHELL_NAMES[props.provider]) ||
@@ -351,6 +370,50 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
               }}
             />
           </div>
+          {automaticRemediation &&
+          isAnyAutomaticRemediationOff(automaticRemediation) ? (
+            <div
+              className="mt-3 flex flex-col gap-2 rounded-lg border border-gray-200 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
+              data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-automatic-remediation`}
+            >
+              <p className="text-xs leading-5 text-gray-600">
+                {getAutomaticRemediationLine(automaticRemediation)}
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {(["incidents", "alerts"] as const)
+                  .filter((kind: "incidents" | "alerts"): boolean => {
+                    return !automaticRemediation[kind];
+                  })
+                  .map((kind: "incidents" | "alerts"): ReactElement => {
+                    return (
+                      <Link
+                        key={kind}
+                        to={RouteUtil.populateRouteParams(
+                          RouteMap[
+                            kind === "incidents"
+                              ? PageMap.INCIDENTS_SETTINGS_AI
+                              : PageMap.ALERTS_SETTINGS_AI
+                          ] as Route,
+                        )}
+                        className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800"
+                      >
+                        <span>
+                          {translator.translateText(
+                            AUTOMATIC_REMEDIATION_SETTINGS_LINKS[kind],
+                          )}
+                        </span>
+                        <Icon
+                          icon={IconProp.ArrowRight}
+                          className="h-3.5 w-3.5"
+                        />
+                      </Link>
+                    );
+                  })}
+              </div>
+            </div>
+          ) : (
+            <></>
+          )}
         </div>
 
         <div className="space-y-2">

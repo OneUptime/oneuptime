@@ -524,6 +524,19 @@ export interface ResourceAiAgentSummary {
  * Computed from current configuration every time it is asked for — a
  * readiness check, not a recorded decision.
  */
+/*
+ * The project's "Fix new incidents automatically" and "Fix new alerts
+ * automatically" switches, as a resource's AI agent page shows them under
+ * its fixes: a resource whose fixes are on still fixes nothing new while
+ * both are off (they are off by default, for new projects too). The
+ * project's, never the resource's, and never a gap: a fix a person starts
+ * by hand still runs. The same line a Kubernetes cluster's page draws.
+ */
+export interface ResourceAiAutomaticRemediationSettings {
+  incidents: boolean;
+  alerts: boolean;
+}
+
 export interface ResourceAiAccessStatus {
   resourceType: AiResourceType;
   resourceId: string;
@@ -554,6 +567,12 @@ export interface ResourceAiAccessStatus {
   isInvestigationReady: boolean;
   // True only when remediation is enabled AND every remediation gap is absent.
   isRemediationReady: boolean;
+  /*
+   * The project's automatic fixing switches (see
+   * ResourceAiAutomaticRemediationSettings); absent from an older server,
+   * or when the project's settings could not be read.
+   */
+  automaticRemediation?: ResourceAiAutomaticRemediationSettings | undefined;
 }
 
 /*

@@ -38,6 +38,10 @@ import {
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import { ADD_AI_CREDITS_STEP } from "../ProjectBalance/ProjectBalanceCopy";
+import {
+  AutomaticRemediationSettings,
+  readAutomaticRemediation,
+} from "../AiAccess/AutomaticRemediationLine";
 
 /*
  * What a resource's AI agent page (ResourceAiAgentPage) and its AI Insights
@@ -308,6 +312,17 @@ export function parseResourceAiAccessStatus(
     isInvestigationReady: value["isInvestigationReady"] === true,
     isRemediationReady: value["isRemediationReady"] === true,
   };
+}
+
+/*
+ * The project's automatic fixing switches the status carries, or null from
+ * a server older than them: a resource whose fixes are on fixes nothing new
+ * while both are off, and its page says so under its fixes.
+ */
+export function getResourceAutomaticRemediation(
+  status: ResourceAiAccessStatus,
+): AutomaticRemediationSettings | null {
+  return readAutomaticRemediation(status.automaticRemediation);
 }
 
 /*

@@ -64,7 +64,10 @@ import {
   getResourceAiAgentWriteDisclosure,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentInstall";
 import { getResourceAccessTestPermissionRequirement } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAccessPermissions";
-import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
+import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import RouteMap, {
+  RouteUtil,
+} from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
 import Project from "../../../Models/DatabaseModels/Project";
@@ -1710,6 +1713,114 @@ describe("What AI may do", () => {
     expect(card).not.toHaveTextContent("only investigates");
     expect(card).not.toHaveTextContent("No — AI investigates");
     expect(card).not.toHaveTextContent("Yes — read-only");
+  });
+
+  /*
+   * The project's "Fix new incidents automatically" and "Fix new alerts
+   * automatically": with both off - the default - a resource whose fixes
+   * are on fixes nothing new. The fixes row says so in the line a
+   * cluster's page draws, with a link to each switch that is off.
+   */
+  test("the project's automatic fixing switches, under the fixes, with a link to each one off", async () => {
+    serve(
+      makeStatus({
+        aiRemediationMode: ResourceAiRemediationMode.RequireApproval,
+        automaticRemediation: { incidents: false, alerts: true },
+      }),
+    );
+    openAgentPage();
+
+    const line: HTMLElement = await findTestId(
+      "ai-access-automatic-remediation",
+    );
+
+    expect(line).toHaveTextContent(
+      "Automatic fixes for new incidents in this project: Off · alerts: On",
+    );
+    expect(
+      within(screen.getByTestId("ai-access-fixes")).getByTestId(
+        "ai-access-automatic-remediation",
+      ),
+    ).toBe(line);
+
+    const links: Array<HTMLElement> = within(line).getAllByRole("link");
+
+    expect(
+      links.map((link: HTMLElement): string => {
+        return link.textContent || "";
+      }),
+    ).toEqual(["Incident AI settings"]);
+    expect(links[0]).toHaveAttribute(
+      "href",
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.INCIDENTS_SETTINGS_AI] as Route,
+      ).toString(),
+    );
+  });
+
+  test("both switches off: both links", async () => {
+    serve(
+      makeStatus({
+        aiRemediationMode: ResourceAiRemediationMode.Automatic,
+        automaticRemediation: { incidents: false, alerts: false },
+      }),
+    );
+    openAgentPage();
+
+    const line: HTMLElement = await findTestId(
+      "ai-access-automatic-remediation",
+    );
+
+    expect(line).toHaveTextContent(
+      "Automatic fixes for new incidents in this project: Off · alerts: Off",
+    );
+    expect(
+      within(line)
+        .getAllByRole("link")
+        .map((link: HTMLElement): string => {
+          return link.getAttribute("href") || "";
+        }),
+    ).toEqual([
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.INCIDENTS_SETTINGS_AI] as Route,
+      ).toString(),
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.ALERTS_SETTINGS_AI] as Route,
+      ).toString(),
+    ]);
+  });
+
+  test("both switches on: the line, and nothing to follow", async () => {
+    serve(
+      makeStatus({
+        aiRemediationMode: ResourceAiRemediationMode.RequireApproval,
+        automaticRemediation: { incidents: true, alerts: true },
+      }),
+    );
+    openAgentPage();
+
+    const line: HTMLElement = await findTestId(
+      "ai-access-automatic-remediation",
+    );
+
+    expect(line).toHaveTextContent(
+      "Automatic fixes for new incidents in this project: On · alerts: On",
+    );
+    expect(within(line).queryAllByRole("link")).toHaveLength(0);
+  });
+
+  test("a server older than the switches, or one that sends them unreadable: no line", async () => {
+    serve(
+      makeStatus({
+        aiRemediationMode: ResourceAiRemediationMode.RequireApproval,
+      }),
+    );
+    openAgentPage();
+    await findTestId("ai-access-fixes");
+
+    expect(
+      screen.queryByTestId("ai-access-automatic-remediation"),
+    ).not.toBeInTheDocument();
   });
 
   test("a member on fixes Off is told who may turn them on, not to click Change", async () => {

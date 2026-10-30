@@ -125,6 +125,13 @@ const awsWay = params.get("aws") || "role";
 const aiState = ["connected", "offline", "fail"].includes(params.get("ai"))
   ? params.get("ai")
   : "none";
+/*
+ * The project's "Fix new incidents automatically" and "Fix new alerts
+ * automatically" (?fixing=on turns both on; off by default, as for a new
+ * project): the status carries them, and the AI agent page and the setup
+ * dialog say so while one is off.
+ */
+const fixingState = params.get("fixing") === "on" ? "on" : "off";
 const language = ["ja", "de", "fa"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
@@ -1168,6 +1175,10 @@ function aiStatus(resourceId) {
     gaps: [],
     isInvestigationReady: true,
     isRemediationReady: false,
+    automaticRemediation: {
+      incidents: fixingState === "on",
+      alerts: fixingState === "on",
+    },
   };
 
   if (state.ai === "connected" && found) {

@@ -761,6 +761,19 @@ export class ResourceAiAccessServiceClass {
       isRemediationReady:
         remediationMode !== ResourceAiRemediationMode.Disabled &&
         !blocksRemediation,
+      /*
+       * Whether the project fixes new incidents and alerts at all: with
+       * both off - the default - a resource whose fixes are on fixes
+       * nothing new, and its page says so (as a cluster's does).
+       */
+      ...(gates.automaticRemediation
+        ? {
+            automaticRemediation: {
+              incidents: gates.automaticRemediation.incidents === true,
+              alerts: gates.automaticRemediation.alerts === true,
+            },
+          }
+        : {}),
     };
   }
 
