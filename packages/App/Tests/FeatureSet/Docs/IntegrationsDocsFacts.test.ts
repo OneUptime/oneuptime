@@ -2482,7 +2482,11 @@ describe("Microsoft Dynamics 365", () => {
           "Resolve the alert when its Dynamics 365 case is resolved",
         ],
       },
-      MESSAGES: { blocks: ["read-event-1"], templates: fromCases },
+      // The create-from-case templates read the event beside the case, in prepare-*-1.
+      MESSAGES: {
+        blocks: ["read-event-1", "prepare-incident-1", "prepare-alert-1"],
+        templates: fromCases,
+      },
       MAX_NOTE_LENGTH: {
         blocks: ["build-note-1", "read-note-1"],
         templates: [
@@ -2610,26 +2614,52 @@ describe("Microsoft Dynamics 365", () => {
     expect(page).toContain("starts with `Synced from Dynamics 365`");
   });
 
-  it("quotes the lines the templates' runs log as the scripts write them", () => {
-    const create: string = argumentsText(
-      templateNamed(
-        DYNAMICS_TEMPLATES,
-        "Create a Dynamics 365 case when an incident is declared",
-      ),
+  /*
+   * The templates have no Log step any more: a run that did its job ends
+   * Executed on its Dynamics 365 call, whose Response Body names the case,
+   * and one Dynamics 365 refuses fails at that call, with its reason.
+   */
+  it("says where a run shows the new case and Dynamics 365's refusals, and quotes the skips as the scripts write them", () => {
+    const createTemplate: WorkflowTemplate = templateNamed(
+      DYNAMICS_TEMPLATES,
+      "Create a Dynamics 365 case when an incident is declared",
     );
-    const resolve: string = argumentsText(
-      templateNamed(
-        DYNAMICS_TEMPLATES,
-        "Resolve the Dynamics 365 case when the incident is resolved",
-      ),
+    const resolveTemplate: WorkflowTemplate = templateNamed(
+      DYNAMICS_TEMPLATES,
+      "Resolve the Dynamics 365 case when the incident is resolved",
     );
+    const resolve: string = argumentsText(resolveTemplate);
+    const lastOf: (template: WorkflowTemplate) => TemplateNode = (
+      template: WorkflowTemplate,
+    ): TemplateNode => {
+      return nodesOf(template)[nodesOf(template).length - 1] as TemplateNode;
+    };
+    const createCase: TemplateNode = lastOf(createTemplate);
+    const closeCase: TemplateNode = lastOf(resolveTemplate);
 
-    expect(create).toContain("✅ Opened Dynamics 365 case ");
-    expect(page).toContain(
-      "`✅ Opened Dynamics 365 case CAS-01001-X1Y2Z3 for INC-42, linked as oneuptime-incident-<id>.`",
+    expect([createCase.componentId, createCase.metadataId]).toEqual([
+      "create-case-1",
+      ComponentID.ApiPost,
+    ]);
+    // The new case comes back, its number with it.
+    expect(String(createCase.args?.["url"])).toContain(
+      "$select=incidentid,ticketnumber,title",
     );
-    expect(resolve).toContain("❌ Dynamics 365 did not resolve the case");
-    expect(page).toContain("`❌ Dynamics 365 did not resolve the case`");
+    expect(JSON.stringify(createCase.args?.["request-headers"])).toContain(
+      "return=representation",
+    );
+    expect(page).toContain(
+      `The run should end ${bold("Executed")}, and the ${bold("Response Body")} of its last step, \`create-case-1\`, holds the new case's \`ticketnumber\`, such as \`CAS-01001-X1Y2Z3\`.`,
+    );
+    expect([closeCase.componentId, closeCase.metadataId]).toEqual([
+      "close-case-1",
+      ComponentID.ApiPost,
+    ]);
+    expect(String(closeCase.args?.["url"])).toContain("/CloseIncident");
+    expect(page).toContain(
+      "The run fails at `close-case-1`, with Dynamics 365's reason, and the case stays as it was.",
+    );
+    expect(page).not.toContain("✅");
     expect(resolve).toContain(
       "More than one Dynamics 365 case holds the link ",
     );

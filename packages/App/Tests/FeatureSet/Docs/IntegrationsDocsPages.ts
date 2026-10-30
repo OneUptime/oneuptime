@@ -263,10 +263,12 @@ export const STEP_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
   [DYNAMICS]: [
     "If / Else",
     "Yes",
+    "No",
     "JavaScript Code",
     "Run Custom JavaScript",
+    "Check With JavaScript",
+    "Response Body",
     "Webhook",
-    "Log",
     "On Create Incident",
     "Fields to pass on",
     "API Post (JSON)",
