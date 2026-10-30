@@ -21,6 +21,7 @@ import CodeTaskGate, {
   getRepositoryNotReachableMessage,
 } from "../Utils/AI/CodeTask/CodeTaskGate";
 import CodeHostAccess, {
+  CODE_HOST_REPOSITORY_SELECT,
   CodeHostConnectionState,
   CodeHostConnectionSummary,
   CodeHostReader,
@@ -61,7 +62,6 @@ import ProductionReviewQueue from "../Utils/CodeRepository/ProductionReview/Prod
 import ProductionReviewAsk, {
   getPullRequestNumberRefusedMessage,
 } from "../Utils/CodeRepository/ProductionReview/ProductionReviewAsk";
-import { CODE_HOST_REPOSITORY_SELECT } from "../Utils/CodeRepository/CodeHost/CodeHostAccess";
 import CodeRepositoryService from "../Services/CodeRepositoryService";
 import {
   CODE_TASK_LIMITS,

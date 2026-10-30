@@ -153,6 +153,8 @@ When no service maps to the repository, the task runs without production telemet
 
 OneUptime holds what your code does in production, so it can review a pull request with what no one reading the diff can see. Turn on **Review Pull Requests Against Production**, under **More settings** on a repository's **Settings** page in Code, and each pull request someone with write access opens or pushes to gets one comment saying what production shows of the code it changes. The comment is edited in place on every push, and the repository's **Production Reviews** page in Code keeps each review, with **Review again**.
 
+It works in GitHub, GitLab, Forgejo and Gitea repositories. GitHub tells OneUptime when a pull request opens or changes; a GitLab, Forgejo or Gitea repository is read every minute, through its access token, for the pull requests that changed. On GitLab every word of it is GitLab's: a merge request, and the switch is **Review Merge Requests Against Production**.
+
 | It reads | Of the code the pull request changes |
 | --- | --- |
 | **Exceptions** | The exceptions thrown in the changed lines, functions and files in the last 7 days, new and unhandled ones marked. |
@@ -161,14 +163,17 @@ OneUptime holds what your code does in production, so it can review a pull reque
 | **Incidents** | The services' incidents of the last 30 days that are still open, or whose root cause or postmortem names the changed code. Never a private incident. |
 | **Deploys** | The services' deploys of the last 7 days that OneUptime suspects of a regression. |
 
-When production says something, OneUptime AI reads it beside the diff and adds **What to watch**: a few short points, each resting on the facts. It reads with the project's default LLM provider, unless **Production Review LLM Provider**, under **More settings** on the repository's **Settings** page, picks another of the project's providers or a global one. It runs only while AI is on for the project, at most 10 times a day for a pull request and 100 for a repository, and is metered like every AI call; the facts are read every time without it. When production shows nothing about the change, OneUptime posts nothing.
+When production says something, OneUptime AI reads it beside the diff and adds **What to watch**: a few short points, each resting on the facts. It reads with the project's default LLM provider, unless **Production Review LLM Provider**, under **More settings** on the repository's **Settings** page, picks another of the project's providers or a global one. It runs only while AI is on for the project, at most 10 times a day for a pull request and 100 for a repository, and is metered like every AI call; the facts are read every time without it. When production shows nothing about the change, OneUptime posts no comment.
 
 - **Aggregates only.** The comment holds counts, durations and the names of code: never an exception's message, a log line, an incident's title or personal data.
 - **Public repositories get a link.** Anyone can read a public repository's pull requests, so there the comment only links to the review in OneUptime, which only the project's members can open. **Production Review Comment**, under **More settings** on the repository's **Settings** page, can post **Only a link to the review** everywhere, or **The review, even on a public repository**.
-- **Outside contributors cannot start one.** A pull request is reviewed on its own only when its author, and whoever pushed to it, can write to the repository. One from anyone else - an outside contributor, a fork, a bot - is reviewed when someone with write access comments `@oneuptime production review` on it, or presses **Review again** in Code.
+- **Outside contributors cannot start one.** A pull request is reviewed on its own only when its author, and whoever pushed to it, can write to the repository; on GitLab, Forgejo and Gitea, only one from a branch of the repository itself. One from anyone else - an outside contributor, a fork, a bot - is reviewed when someone with write access asks for it: **Review a pull request**, on the repository's **Production Reviews** page, takes its number, and on GitHub a comment of `@oneuptime production review` on it does the same. **Review again**, on a review's page, asks again.
+- **The token comments.** On GitLab, Forgejo and Gitea the comment is posted with the repository's access token, as its account. A Forgejo or Gitea token needs write access to issues for that. When the server refuses the comment - a token without it, or a locked discussion - the review is kept in Code only, and its page says so.
 - **Read only.** A review clones nothing and runs nothing of the pull request. Its diff and title are data to OneUptime AI, never instructions: the AI has no tools, and what it writes is placed in the comment as text.
 
-The switch is on for the repositories the GitHub App connects from now on. A repository connected before it existed keeps it off until you turn it on.
+On GitHub, each review also adds a check to the pull request's latest commit, **OneUptime production review**, titled **Something in production is worth a look** or, when production shows nothing, **Nothing in production runs through these changes**, with the review or its link. It never fails a pull request: it ends neutral or successful, so no branch rule waits on it. It needs the GitHub App's **Checks** permission with **Read & write** (see [Set the permissions](/docs/self-hosted/github-integration#set-the-permissions)); without it, the comment is all a review posts.
+
+The switch is on for the repositories connected from now on, through the GitHub App or a GitLab, Forgejo or Gitea connection. A repository connected before it existed keeps it off until you turn it on.
 
 ## Verification before the pull request
 
@@ -212,12 +217,12 @@ Open **Repositories** in Code's side menu and click **Connect repositories**: Co
 
 | Where the code is | How it connects | What AI does there |
 | --- | --- | --- |
-| **GitHub** | The OneUptime GitHub App, installed on the repositories it picks. | Everything on this page, with commands from GitHub (see [GitHub App](/docs/ai/github-app)) and [production reviews](#production-review-of-pull-requests). |
-| **GitLab**, on GitLab.com or your own | An access token: a personal, group or project token with the `api` and `write_repository` scopes, and at least the Developer role. | Tasks and fixes, each change in a merge request; the branch picker; the code a stack trace or a profile runs through; whether a fix merged, and what production showed once it shipped. |
-| **Forgejo or Gitea**, on Codeberg or your own | An access token with read and write access to repositories, and read access to the user. | The same as on GitLab, each change in a pull request. |
+| **GitHub** | The OneUptime GitHub App, installed on the repositories it picks. | Everything on this page, with commands from GitHub (see [GitHub App](/docs/ai/github-app)) and a check on each [production review](#production-review-of-pull-requests). |
+| **GitLab**, on GitLab.com or your own | An access token: a personal, group or project token with the `api` and `write_repository` scopes, and at least the Developer role. | Tasks and fixes, each change in a merge request; [production reviews](#production-review-of-pull-requests); the branch picker; the code a stack trace or a profile runs through; a deploy's commits; whether a fix merged, and what production showed once it shipped. |
+| **Forgejo or Gitea**, on Codeberg or your own | An access token with read and write access to repositories and issues, and read access to the user. | The same as on GitLab, each change in a pull request. |
 | **Any Git server**, over HTTPS | The address you clone the repository with, a username, and a password or access token that can read the repository and push to it. | AI clones the repository and pushes each change to a new branch, and its reply says which: you open the pull request. On Bitbucket and Azure DevOps it links to where you open it. |
 
-Commands from comments and production reviews need the GitHub App, so they work in GitHub repositories only, for now, and the repository's **Settings** say so.
+Commands from comments need the GitHub App, so they work in GitHub repositories only, for now, and the repository's **Settings** say so. A Git server has no pull requests, so it has no production review either.
 
 For GitLab, Forgejo or Gitea, enter the server's address (GitLab.com and Codeberg are filled in) and the token, then pick the repositories to connect: the list offers only those the token can push to, and connecting more later can reuse the token. OneUptime checks every token with its server before it keeps it, keeps it encrypted and never shows it again. The repository's **Settings** show its server, the account and the token's last characters, with **Replace access token**. When the server refuses a token that expired or was revoked, its repositories show **Token refused** and AI stops working in them, until replacing the token connects every repository that uses it again. On a GitLab repository the settings say merge requests, as GitLab does: **Merge Requests**, **AI Fix Merge Requests** and **Max Open Fix Merge Requests**.
 

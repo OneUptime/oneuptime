@@ -37101,5 +37101,6 @@
   "What a production review posts on a merge request.": "正式環境審查在合併請求中發布的內容。",
   "When someone with write access opens or updates a merge request, OneUptime comments with what production shows of the code it changes.": "當擁有寫入權限的人建立或更新合併請求時，OneUptime 會留言說明正式環境中與所改程式碼相關的資料。",
   "{{host}} did not let the access token comment on this merge request, so this review is only here.": "{{host}} 不允許存取權杖在此合併請求中留言，因此此審查只在這裡。",
-  "{{host}} did not let the access token comment on this pull request, so this review is only here.": "{{host}} 不允許存取權杖在此拉取請求中留言，因此此審查只在這裡。"
+  "{{host}} did not let the access token comment on this pull request, so this review is only here.": "{{host}} 不允許存取權杖在此拉取請求中留言，因此此審查只在這裡。",
+  "Review now": "立即審查"
 }

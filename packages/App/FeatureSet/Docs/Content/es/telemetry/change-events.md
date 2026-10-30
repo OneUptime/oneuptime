@@ -118,7 +118,7 @@ OneUptime también comprueba cada despliegue por su cuenta, se avise a alguien o
 
 Un pull request de corrección que OneUptime AI abrió se comprueba de la misma forma: en cuanto un despliegue registrado contiene su commit, OneUptime vigila allí aquello para lo que era la corrección - la excepción, la operación que hizo más rápida, el monitor detrás del incidente o la alerta, la telemetría que añade - e indica si la corrección funcionó (consulta [Correcciones de código automáticas](/docs/ai/ai-sre#correcciones-de-código-automáticas)). La corrección desplegada solo se lee en la versión del despliegue cuando la propia telemetría del servicio indica esa versión, y si no, desde 10 minutos después del despliegue, cuando las instancias antiguas ya se han detenido.
 
-En una investigación y en [Preguntar a la IA](/docs/ai/ask-ai), `recent_changes` lista los cambios de cualquier intervalo, y `get_change_details` muestra lo que publicó un despliegue: los commits desde el despliegue anterior del servicio, sus autores, los pull requests y los archivos que tocaron. Para eso hacen falta el commit en el cambio y un repositorio conectado a través de la [GitHub App](/docs/ai/github-app).
+En una investigación y en [Preguntar a la IA](/docs/ai/ask-ai), `recent_changes` lista los cambios de cualquier intervalo, y `get_change_details` muestra lo que publicó un despliegue: los commits desde el despliegue anterior del servicio, sus autores, los pull requests y los archivos que tocaron. Para eso hacen falta el commit en el cambio y su repositorio conectado en Código: a través de la [GitHub App](/docs/ai/github-app), o de una conexión de GitLab, Forgejo o Gitea (consulta [Conectar un repositorio](/docs/ai/ai-agent#conectar-un-repositorio)).
 
 ## Referencia
 

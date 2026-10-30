@@ -87,7 +87,7 @@ Hvad Spørg AI kan gøre, når en tilstand tillader det:
 - Skrive en intern note på en hændelse eller en advarsel. Interne noter vises aldrig på en statusside.
 - Offentliggøre en statusopdatering på en hændelse. Det er en særskilt handling, fordi den giver statussidens abonnenter besked.
 - Kalde en vagtpolitik ud, køre en runbook eller starte en AI-undersøgelse af en hændelse eller advarsel.
-- Foreslå en kodeændring: committe til en ny branch i et forbundet repository og åbne en pull request. Den skriver aldrig til standardbranchen eller en beskyttet branch, så en person stadig merger ændringen.
+- Foreslå en kodeændring: committe til en ny branch i et repository på GitHub, GitLab, Forgejo eller Gitea og åbne en pull request (en merge request på GitLab). Den skriver aldrig til standardbranchen eller en beskyttet branch, så en person stadig merger ændringen.
 
 Bed om en hændelse, når brugere er berørt, og om en advarsel, når noget først kræver dit teams opmærksomhed, fx en værts hukommelse, der bliver ved med at stige. Begge oprettes én gang og overvåger intet: For at blive advaret, hver gang en værts hukommelse kommer over 75 %, skal du oprette en [værts-monitor](/docs/monitor/host-monitor#færdige-advarselsskabeloner) ud fra dens hukommelsesskabelon med 75 % som tærskel. Spørg AI kan ikke oprette monitorer. Bliver den bedt om en, siger den det, tjekker den aktuelle værdi og tilbyder at oprette en advarsel, hvis den allerede er over.
 

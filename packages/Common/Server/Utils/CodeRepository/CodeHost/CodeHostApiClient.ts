@@ -161,11 +161,7 @@ export default class CodeHostApiClient {
       const status: number = response.statusCode;
 
       if (status >= 200 && status < 300) {
-        if (
-          !data.isText &&
-          response.bodyJson === undefined &&
-          status !== 204
-        ) {
+        if (!data.isText && response.bodyJson === undefined && status !== 204) {
           throw new CodeHostHttpError({
             kind: CodeHostHttpErrorKind.BadResponse,
             statusCode: status,

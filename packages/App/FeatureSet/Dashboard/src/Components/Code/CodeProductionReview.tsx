@@ -1000,8 +1000,7 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
                   PRODUCTION_REVIEW_COPY.aggregatesOnlyHost,
                   {
                     host:
-                      props.hostName ||
-                      CodeHost.getFacts(props.provider).name,
+                      props.hostName || CodeHost.getFacts(props.provider).name,
                   },
                 )}
           </p>

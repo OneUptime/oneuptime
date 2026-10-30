@@ -37101,5 +37101,6 @@
   "What a production review posts on a merge request.": "生产审查在合并请求中发布的内容。",
   "When someone with write access opens or updates a merge request, OneUptime comments with what production shows of the code it changes.": "当拥有写权限的人创建或更新合并请求时，OneUptime 会评论生产环境中与所改代码相关的数据。",
   "{{host}} did not let the access token comment on this merge request, so this review is only here.": "{{host}} 不允许访问令牌在此合并请求中评论，因此此审查只在这里。",
-  "{{host}} did not let the access token comment on this pull request, so this review is only here.": "{{host}} 不允许访问令牌在此拉取请求中评论，因此此审查只在这里。"
+  "{{host}} did not let the access token comment on this pull request, so this review is only here.": "{{host}} 不允许访问令牌在此拉取请求中评论，因此此审查只在这里。",
+  "Review now": "立即审查"
 }

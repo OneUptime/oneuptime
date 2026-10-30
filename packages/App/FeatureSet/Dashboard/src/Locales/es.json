@@ -37101,5 +37101,6 @@
   "What a production review posts on a merge request.": "Lo que una revisión de producción publica en un merge request.",
   "When someone with write access opens or updates a merge request, OneUptime comments with what production shows of the code it changes.": "Cuando alguien con acceso de escritura abre o actualiza un merge request, OneUptime comenta lo que producción muestra del código que cambia.",
   "{{host}} did not let the access token comment on this merge request, so this review is only here.": "{{host}} no dejó que el token de acceso comentara en este merge request, así que esta revisión solo está aquí.",
-  "{{host}} did not let the access token comment on this pull request, so this review is only here.": "{{host}} no dejó que el token de acceso comentara en esta pull request, así que esta revisión solo está aquí."
+  "{{host}} did not let the access token comment on this pull request, so this review is only here.": "{{host}} no dejó que el token de acceso comentara en esta pull request, así que esta revisión solo está aquí.",
+  "Review now": "Revisar ahora"
 }

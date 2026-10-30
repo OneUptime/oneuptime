@@ -37101,5 +37101,6 @@
   "What a production review posts on a merge request.": "प्रोडक्शन समीक्षा मर्ज रिक्वेस्ट पर क्या पोस्ट करती है।",
   "When someone with write access opens or updates a merge request, OneUptime comments with what production shows of the code it changes.": "जब लिखने की अनुमति वाला कोई व्यक्ति मर्ज रिक्वेस्ट खोलता या अपडेट करता है, तो OneUptime टिप्पणी में बताता है कि प्रोडक्शन बदले गए कोड के बारे में क्या दिखाता है।",
   "{{host}} did not let the access token comment on this merge request, so this review is only here.": "{{host}} ने एक्सेस टोकन को इस मर्ज रिक्वेस्ट पर टिप्पणी नहीं करने दी, इसलिए यह समीक्षा केवल यहाँ है।",
-  "{{host}} did not let the access token comment on this pull request, so this review is only here.": "{{host}} ने एक्सेस टोकन को इस पुल रिक्वेस्ट पर टिप्पणी नहीं करने दी, इसलिए यह समीक्षा केवल यहाँ है।"
+  "{{host}} did not let the access token comment on this pull request, so this review is only here.": "{{host}} ने एक्सेस टोकन को इस पुल रिक्वेस्ट पर टिप्पणी नहीं करने दी, इसलिए यह समीक्षा केवल यहाँ है।",
+  "Review now": "अभी समीक्षा करें"
 }

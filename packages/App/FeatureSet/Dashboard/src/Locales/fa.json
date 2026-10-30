@@ -37101,5 +37101,6 @@
   "What a production review posts on a merge request.": "آنچه بازبینی عملیاتی روی Merge Request منتشر می‌کند.",
   "When someone with write access opens or updates a merge request, OneUptime comments with what production shows of the code it changes.": "وقتی کسی با دسترسی نوشتن یک Merge Request باز یا به‌روز می‌کند، OneUptime آنچه محیط عملیاتی از کد تغییریافته نشان می‌دهد را در یک دیدگاه می‌نویسد.",
   "{{host}} did not let the access token comment on this merge request, so this review is only here.": "{{host}} اجازه نداد توکن دسترسی روی این Merge Request دیدگاه بنویسد، پس این بازبینی فقط اینجاست.",
-  "{{host}} did not let the access token comment on this pull request, so this review is only here.": "{{host}} اجازه نداد توکن دسترسی روی این Pull Request دیدگاه بنویسد، پس این بازبینی فقط اینجاست."
+  "{{host}} did not let the access token comment on this pull request, so this review is only here.": "{{host}} اجازه نداد توکن دسترسی روی این Pull Request دیدگاه بنویسد، پس این بازبینی فقط اینجاست.",
+  "Review now": "اکنون بازبینی کنید"
 }

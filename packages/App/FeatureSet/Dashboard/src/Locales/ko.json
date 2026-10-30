@@ -37101,5 +37101,6 @@
   "What a production review posts on a merge request.": "프로덕션 리뷰가 머지 리퀘스트에 게시하는 내용입니다.",
   "When someone with write access opens or updates a merge request, OneUptime comments with what production shows of the code it changes.": "쓰기 권한이 있는 사람이 머지 리퀘스트를 열거나 업데이트하면, OneUptime이 변경된 코드에 대해 프로덕션이 보여 주는 내용을 댓글로 남깁니다.",
   "{{host}} did not let the access token comment on this merge request, so this review is only here.": "{{host}}이(가) 접근 토큰이 이 머지 리퀘스트에 댓글을 남기도록 허용하지 않아, 이 리뷰는 여기에만 있습니다.",
-  "{{host}} did not let the access token comment on this pull request, so this review is only here.": "{{host}}이(가) 접근 토큰이 이 풀 리퀘스트에 댓글을 남기도록 허용하지 않아, 이 리뷰는 여기에만 있습니다."
+  "{{host}} did not let the access token comment on this pull request, so this review is only here.": "{{host}}이(가) 접근 토큰이 이 풀 리퀘스트에 댓글을 남기도록 허용하지 않아, 이 리뷰는 여기에만 있습니다.",
+  "Review now": "지금 검토"
 }

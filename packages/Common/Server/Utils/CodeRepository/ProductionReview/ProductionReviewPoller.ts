@@ -50,9 +50,9 @@ import ObjectID from "../../../../Types/ObjectID";
  *     token whose account only writes, the branch rule above is the rule.
  *
  * Anyone else's pull request - an outside contributor's, a fork's, a bot's
- * - is reviewed when someone who may ask AI in the repository presses
- * Review again in Code. Nothing is said on a pull request that is not
- * reviewed.
+ * - is reviewed when someone who may ask AI in the repository asks for it
+ * in Code: Review a pull request, by its number (ProductionReviewAsk), or
+ * Review again. Nothing is said on a pull request that is not reviewed.
  *
  * Where a repository's poll got to is kept in the cache. Each poll reads
  * from a little before it (two servers' clocks differ), and after an outage
@@ -510,10 +510,7 @@ export default class ProductionReviewPoller {
         };
       })
       .sort(
-        (
-          first: { polledAt: number },
-          second: { polledAt: number },
-        ): number => {
+        (first: { polledAt: number }, second: { polledAt: number }): number => {
           return first.polledAt - second.polledAt;
         },
       )

@@ -37101,5 +37101,6 @@
   "What a production review posts on a merge request.": "Hvad en produktionsgennemgang slår op på en merge request.",
   "When someone with write access opens or updates a merge request, OneUptime comments with what production shows of the code it changes.": "Når en person med skriveadgang åbner eller opdaterer en merge request, kommenterer OneUptime med det, produktion viser om den ændrede kode.",
   "{{host}} did not let the access token comment on this merge request, so this review is only here.": "{{host}} lod ikke adgangstokenet kommentere på denne merge request, så denne gennemgang findes kun her.",
-  "{{host}} did not let the access token comment on this pull request, so this review is only here.": "{{host}} lod ikke adgangstokenet kommentere på denne pull request, så denne gennemgang findes kun her."
+  "{{host}} did not let the access token comment on this pull request, so this review is only here.": "{{host}} lod ikke adgangstokenet kommentere på denne pull request, så denne gennemgang findes kun her.",
+  "Review now": "Gennemgå nu"
 }

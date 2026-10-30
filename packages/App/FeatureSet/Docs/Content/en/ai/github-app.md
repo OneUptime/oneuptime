@@ -150,7 +150,7 @@ In your GitHub App's **Permissions & events** settings, subscribe to:
 | **Pull request review** | a mention in the body of a submitted review |
 | **Pull request review comment** | a mention in an inline comment on the diff |
 
-Under **Repository permissions**, **Issues** must be **Read & write**: GitHub sends a pull request's conversation comments through the issues API, so this is what lets the app comment on pull requests too.
+Under **Repository permissions**, **Issues** must be **Read & write**: GitHub sends a pull request's conversation comments through the issues API, so this is what lets the app comment on pull requests too. **Checks** with **Read & write** lets each production review add a check to the pull request's latest commit; without it, the comment is all a review posts.
 
 ## Prompt injection: what is and is not protected
 

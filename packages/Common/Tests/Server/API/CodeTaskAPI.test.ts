@@ -34,7 +34,6 @@ import {
   CodeTaskListKind,
 } from "../../../Server/API/CodeTaskAPI";
 import ProductionReviewAsk from "../../../Server/Utils/CodeRepository/ProductionReview/ProductionReviewAsk";
-import CodeHostAccess from "../../../Server/Utils/CodeRepository/CodeHost/CodeHostAccess";
 import ProductionReviewQueue, {
   ProductionReviewRequest,
 } from "../../../Server/Utils/CodeRepository/ProductionReview/ProductionReviewQueue";
@@ -72,7 +71,7 @@ import {
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import CodeRepositoryType from "../../../Types/CodeRepository/CodeRepositoryType";
-import {
+import CodeHostAccess, {
   CodeHostConnectionState,
   CodeHostConnectionSummary,
 } from "../../../Server/Utils/CodeRepository/CodeHost/CodeHostAccess";

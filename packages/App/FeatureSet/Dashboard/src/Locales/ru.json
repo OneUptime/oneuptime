@@ -37101,5 +37101,6 @@
   "What a production review posts on a merge request.": "Что проверка по продакшену публикует в запросе на слияние.",
   "When someone with write access opens or updates a merge request, OneUptime comments with what production shows of the code it changes.": "Когда человек с правом записи открывает или обновляет запрос на слияние, OneUptime пишет комментарий о том, что продакшен показывает об изменённом коде.",
   "{{host}} did not let the access token comment on this merge request, so this review is only here.": "{{host}} не разрешил токену доступа комментировать этот запрос на слияние, поэтому эта проверка есть только здесь.",
-  "{{host}} did not let the access token comment on this pull request, so this review is only here.": "{{host}} не разрешил токену доступа комментировать этот запрос на слияние, поэтому эта проверка есть только здесь."
+  "{{host}} did not let the access token comment on this pull request, so this review is only here.": "{{host}} не разрешил токену доступа комментировать этот запрос на слияние, поэтому эта проверка есть только здесь.",
+  "Review now": "Проверить сейчас"
 }

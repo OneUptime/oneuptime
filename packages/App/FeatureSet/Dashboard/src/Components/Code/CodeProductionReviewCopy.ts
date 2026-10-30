@@ -341,10 +341,12 @@ export const PRODUCTION_REVIEW_ASK_COPY: {
   numberDescription: translationKey(
     "Any of this repository's open pull requests, from a fork or anyone else too.",
   ),
-  submit: translationKey("Review"),
+  /*
+   * "Review now", not "Review": several languages word a bare Review as
+   * View (Network traffic's Review is), and this one starts a review.
+   */
+  submit: translationKey("Review now"),
 };
-
-
 
 /*
  * What a list row says a review found, part by part: "2 exceptions",
@@ -1037,9 +1039,7 @@ export const PRODUCTION_REVIEW_MERGE_REQUEST_COPY: Record<string, string> = {
   [PRODUCTION_REVIEW_COPY.notConnectedHost]: translationKey(
     "This repository's connection to {{host}} does not work now, so its merge requests cannot be reviewed again.",
   ),
-  [PRODUCTION_REVIEW_ASK_COPY.button]: translationKey(
-    "Review a merge request",
-  ),
+  [PRODUCTION_REVIEW_ASK_COPY.button]: translationKey("Review a merge request"),
   [PRODUCTION_REVIEW_ASK_COPY.numberTitle]: translationKey(
     "Merge request number",
   ),

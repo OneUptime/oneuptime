@@ -554,7 +554,8 @@ export default class CodeHostAccess {
     return {
       repositoryId: repository.id!.toString(),
       type,
-      webUrl: repository.repositoryUrl?.toString() || `${hostUrl}/${owner}/${name}`,
+      webUrl:
+        repository.repositoryUrl?.toString() || `${hostUrl}/${owner}/${name}`,
       accountLogin: connection.accountLogin || null,
       hostProduct: connection.hostProduct || null,
       gitLab:

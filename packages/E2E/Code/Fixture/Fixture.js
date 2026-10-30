@@ -45,9 +45,14 @@
  *                       with merge request !12, status-widgets on Forgejo
  *                       (codeberg.org) and infra-scripts on a Git server only
  *                       a Runner of the project's own reaches (10.0.4.12),
- *                       whose task pushed a branch; token=refused: GitLab
- *                       refused billing-service's access token;
- *                       gitrunner=none: infra-scripts picks no Runner
+ *                       whose task pushed a branch. billing-service's merge
+ *                       request !15 is reviewed against production and its
+ *                       review posted on GitLab; status-widgets' pull
+ *                       request #7 too, but Forgejo would not let the token
+ *                       comment, so its review is in Code only.
+ *                       token=refused: GitLab refused billing-service's
+ *                       access token; gitrunner=none: infra-scripts picks
+ *                       no Runner
  *
  * The connect dialog's server (/code-repository-connection, Common/Server/
  * API/CodeRepositoryConnectionAPI) answers too: the project's connections,
@@ -121,6 +126,11 @@
  * Running to a new review, one stage each time the page reads it, as a
  * request's turn is; the tasks lists leave the reviews out, as the server
  * does, and a list read with kind productionReviews answers only them.
+ * Review a pull request asks for one by its number, as the server's
+ * ProductionReviewAsk does: one a review already has is reviewed again;
+ * checkout-api's #64, billing-service's !18 and status-widgets' #9 - each
+ * from a fork - get a review of their own; checkout-api's #39 is closed;
+ * the host knows no other number.
  *
  * What the pages send is recorded on window.__fixture: `creates`,
  * `replies`, `retries`, `stops`, `settings` (each repository update),
@@ -128,8 +138,9 @@
  * GitHub's), `branchReads` (each read of a repository's branches, with what
  * was searched), `lists` (each task list read, by its scope),
  * `reviewLists` (each production reviews list read, by its repository) and
- * `reviewAgains` (each Review again, by its task), so the spec checks what
- * was sent, not only what was drawn.
+ * `reviewAgains` (each Review again, by its task) and `reviewAsks` (each
+ * Review a pull request, by its repository and the number sent), so the
+ * spec checks what was sent, not only what was drawn.
  */
 import "Common/UI/Styles/Theme.css";
 import React from "react";
@@ -289,6 +300,7 @@ window.__fixture = {
   lists: [],
   reviewLists: [],
   reviewAgains: [],
+  reviewAsks: [],
   // The connect dialog: each listing read, connect, Git connect and token replaced.
   connectReads: [],
   connects: [],
@@ -549,6 +561,11 @@ function isOnGitHub(repository) {
   );
 }
 
+// Every host but a Git server has pull (merge) requests to review.
+function hasPullRequests(repository) {
+  return repository.provider !== CodeRepositoryType.Git;
+}
+
 /*
  * Each repository's branches on GitHub, its main branch among them. With
  * branches=many, checkout-api has 140: more than one read of them holds.
@@ -603,10 +620,12 @@ for (const repository of repositories) {
     // The Runner AI works in it on: none picked, a global Runner.
     runnerId: null,
     /*
-     * Connected through the GitHub App from now on: reviewed against
-     * production. Only GitHub's are: production reviews are the App's.
+     * Connected from now on - through the GitHub App, or a GitLab, Forgejo
+     * or Gitea connection: reviewed against production. A Git server has
+     * no pull requests to review.
      */
-    isProductionReviewEnabled: repository.isConnected && isOnGitHub(repository),
+    isProductionReviewEnabled:
+      repository.isConnected && hasPullRequests(repository),
     // Never chosen: the review, or a link on a public repository.
     productionReviewPullRequestContent: null,
     // None picked: the project's default LLM provider reads its reviews.
@@ -1407,11 +1426,13 @@ function reviewTurn(data) {
   });
 }
 
-function reviewOutcome(report) {
+function reviewOutcome(report, summary) {
   return {
-    summary: report.exceptions.length
-      ? "Production review: 2 exceptions, 2 operations, 1 hot function, 2 incidents and 1 suspect deploy in or around the changed code."
-      : "Nothing in production runs through this pull request's changes.",
+    summary:
+      summary ||
+      (report.exceptions.length
+        ? "Production review: 2 exceptions, 2 operations, 1 hot function, 2 incidents and 1 suspect deploy in or around the changed code."
+        : "Nothing in production runs through this pull request's changes."),
     filesChanged: [],
     productionReview: report,
   };
@@ -1559,8 +1580,335 @@ if (
   }
 }
 
+// ---- hosts=1: production reviews off GitHub -------------------------------
+
+/*
+ * As ProductionReviewPoller finds them, every minute: billing-service's
+ * merge request !15, reviewed and its review posted on GitLab, and
+ * status-widgets' pull request #7, whose review Forgejo would not let the
+ * access token post (a token without write access to issues) - so it is in
+ * Code only.
+ */
+const HOST_REVIEW_IDS = {
+  gitlab: "40000000-0000-4000-8000-0000000000f4",
+  forgejo: "40000000-0000-4000-8000-0000000000f5",
+};
+
+// Where a host keeps a repository's pull (merge) request.
+function pullRequestUrlOf(repository, number) {
+  if (repository.provider === CodeRepositoryType.GitLab) {
+    return `${repository.repositoryUrl}/-/merge_requests/${number}`;
+  }
+  if (repository.provider === CodeRepositoryType.Forgejo) {
+    return `${repository.repositoryUrl}/pulls/${number}`;
+  }
+  return `https://github.com/${repository.organizationName}/${repository.repositoryName}/pull/${number}`;
+}
+
+/*
+ * What a review is of, as the server stamps it: GitLab's merge request
+ * "!15", Forgejo's and Gitea's pull request "#7", GitHub's "#42".
+ */
+function reviewOriginOf(repository, number) {
+  const isGitLab = repository.provider === CodeRepositoryType.GitLab;
+  return {
+    type: isGitLab
+      ? CodeTaskOriginType.GitLabMergeRequest
+      : isOnGitHub(repository)
+        ? CodeTaskOriginType.GitHubPullRequest
+        : CodeTaskOriginType.CodeHostPullRequest,
+    label: `${isGitLab ? "!" : "#"}${number}`,
+    url: pullRequestUrlOf(repository, number),
+  };
+}
+
+// billing-service's !15: the line it changes threw this week.
+function billingReport(reviewedAt, headSha) {
+  return {
+    pullRequest: {
+      number: 15,
+      title: "Charge VAT on reverse-charge invoices",
+      url: "https://gitlab.com/acme/billing-service/-/merge_requests/15",
+      authorLogin: "grace",
+      headSha,
+      baseRefName: "main",
+      isFromFork: false,
+      isAuthorTrusted: true,
+    },
+    reviewedAt,
+    trigger: ProductionReviewTrigger.PullRequestChanged,
+    changedFileCount: 2,
+    codeFileCount: 2,
+    services: [
+      {
+        id: REVIEW_RECORD_IDS.service,
+        name: "billing-api",
+        requestCount: 4210,
+        p99Ms: 320,
+      },
+    ],
+    exceptions: [
+      {
+        exceptionId: REVIEW_RECORD_IDS.exception,
+        type: "LedgerMismatchError",
+        serviceId: REVIEW_RECORD_IDS.service,
+        serviceName: "billing-api",
+        path: "src/invoices/vat.ts",
+        line: 41,
+        functionName: "applyVat",
+        where: ProductionReviewWhere.ChangedLine,
+        occurrences: 38,
+        isWindowCount: true,
+        firstSeenAt: minutesAgo(60 * 50),
+        lastSeenAt: minutesAgo(25),
+        isUnhandled: false,
+        isNew: false,
+      },
+    ],
+    operations: [
+      {
+        name: "POST /api/invoices",
+        serviceId: REVIEW_RECORD_IDS.service,
+        serviceName: "billing-api",
+        path: "src/invoices/vat.ts",
+        matchedBy: ProductionReviewOperationMatch.Route,
+        requestCount: 4100,
+        errorCount: 12,
+        p95Ms: 280,
+      },
+    ],
+    hotFunctions: [],
+    incidents: { total: 0, open: 0, items: [] },
+    suspectDeploys: [],
+    points: [
+      {
+        text: "`applyVat()` threw `LedgerMismatchError` 38 times this week, at the line this change edits. Check that a reverse-charge invoice still balances in the ledger.",
+      },
+    ],
+    unreadSections: [],
+    posting: ProductionReviewPosting.Review,
+    isPublicRepository: false,
+    commentUrl:
+      "https://gitlab.com/acme/billing-service/-/merge_requests/15#note_2001",
+  };
+}
+
+/*
+ * status-widgets' #7: something worth a look, but Forgejo would not let
+ * the access token comment - nothing was posted (ProductionReviewRunner).
+ */
+function widgetsReport(reviewedAt, headSha) {
+  return {
+    pullRequest: {
+      number: 7,
+      title: "Show the incident banner on every widget",
+      url: "https://codeberg.org/acme/status-widgets/pulls/7",
+      authorLogin: "ada",
+      headSha,
+      baseRefName: "main",
+      isFromFork: false,
+      isAuthorTrusted: true,
+    },
+    reviewedAt,
+    trigger: ProductionReviewTrigger.PullRequestChanged,
+    changedFileCount: 3,
+    codeFileCount: 2,
+    services: [
+      {
+        id: REVIEW_RECORD_IDS.worker,
+        name: "status-widgets",
+        requestCount: 52000,
+        p99Ms: 90,
+      },
+    ],
+    exceptions: [],
+    operations: [
+      {
+        name: "GET /widgets/:id",
+        serviceId: REVIEW_RECORD_IDS.worker,
+        serviceName: "status-widgets",
+        path: "src/widgets/render.ts",
+        matchedBy: ProductionReviewOperationMatch.Route,
+        requestCount: 52000,
+        errorCount: 0,
+        p95Ms: 45,
+      },
+    ],
+    hotFunctions: [],
+    incidents: { total: 0, open: 0, items: [] },
+    suspectDeploys: [],
+    points: [
+      {
+        text: "`GET /widgets/:id` serves 52,000 requests an hour, and the banner's extra read runs on every one of them.",
+      },
+    ],
+    unreadSections: [],
+    posting: ProductionReviewPosting.None,
+    isPublicRepository: false,
+    isCommentRefused: true,
+  };
+}
+
+const BILLING_REVIEW_SUMMARY =
+  "Production review: 1 exception and 1 operation in or around the changed code.";
+const WIDGETS_REVIEW_SUMMARY =
+  "Production review: 1 operation in or around the changed code.";
+
+if (hasOtherHosts && params.get("reviews") !== "none") {
+  tasks.push(
+    {
+      id: HOST_REVIEW_IDS.gitlab,
+      repositoryId: REPOSITORY_IDS.billing,
+      kind: "review",
+      title: "Charge VAT on reverse-charge invoices",
+      turns: [
+        reviewTurn({
+          runId: HOST_REVIEW_IDS.gitlab,
+          status: AIRunStatus.Completed,
+          createdAt: minutesAgo(60 * 2),
+          startedAt: minutesAgo(9),
+          completedAt: minutesAgo(8),
+          outcome: reviewOutcome(
+            billingReport(minutesAgo(8), REVIEW_SHAS.first),
+            BILLING_REVIEW_SUMMARY,
+          ),
+        }),
+      ],
+      origin: {
+        type: CodeTaskOriginType.GitLabMergeRequest,
+        label: "!15",
+        url: "https://gitlab.com/acme/billing-service/-/merge_requests/15",
+      },
+      nextReview: (reviewedAt) => {
+        return reviewOutcome(
+          billingReport(reviewedAt, REVIEW_SHAS.next),
+          BILLING_REVIEW_SUMMARY,
+        );
+      },
+    },
+    {
+      id: HOST_REVIEW_IDS.forgejo,
+      repositoryId: REPOSITORY_IDS.widgets,
+      kind: "review",
+      title: "Show the incident banner on every widget",
+      turns: [
+        reviewTurn({
+          runId: HOST_REVIEW_IDS.forgejo,
+          status: AIRunStatus.Completed,
+          createdAt: minutesAgo(60 * 4),
+          startedAt: minutesAgo(31),
+          completedAt: minutesAgo(30),
+          outcome: reviewOutcome(
+            widgetsReport(minutesAgo(30), REVIEW_SHAS.first),
+            WIDGETS_REVIEW_SUMMARY,
+          ),
+        }),
+      ],
+      origin: {
+        type: CodeTaskOriginType.CodeHostPullRequest,
+        label: "#7",
+        url: "https://codeberg.org/acme/status-widgets/pulls/7",
+      },
+      nextReview: (reviewedAt) => {
+        return reviewOutcome(
+          widgetsReport(reviewedAt, REVIEW_SHAS.next),
+          WIDGETS_REVIEW_SUMMARY,
+        );
+      },
+    },
+  );
+}
+
+/*
+ * The open pull (merge) requests each host holds that no review has yet,
+ * as Review a pull request finds them by number: each from a fork, so
+ * never reviewed on its own - and checkout-api's #39, which is closed.
+ */
+const ASKABLE_PULL_REQUESTS = {
+  [REPOSITORY_IDS.checkout]: {
+    64: {
+      title: "Accept Apple Pay at checkout",
+      authorLogin: "lin",
+      isFromFork: true,
+    },
+    39: {
+      title: "Drop the legacy coupon table",
+      authorLogin: "grace",
+      isFromFork: false,
+      isClosed: true,
+    },
+  },
+  [REPOSITORY_IDS.billing]: {
+    18: {
+      title: "Export invoices as CSV",
+      authorLogin: "sam",
+      isFromFork: true,
+    },
+  },
+  [REPOSITORY_IDS.widgets]: {
+    9: {
+      title: "A dark theme for the uptime bar",
+      authorLogin: "kim",
+      isFromFork: true,
+    },
+  },
+};
+
+/*
+ * A pull request reviewed because someone asked for it: from a fork, its
+ * author cannot write to the repository, and its code changes nothing
+ * production runs yet - so nothing is posted on it.
+ */
+function askedReport(repository, number, pullRequest, reviewedAt) {
+  return {
+    pullRequest: {
+      number,
+      title: pullRequest.title,
+      url: pullRequestUrlOf(repository, number),
+      authorLogin: pullRequest.authorLogin,
+      headSha: REVIEW_SHAS.next,
+      baseRefName: repository.mainBranchName,
+      isFromFork: pullRequest.isFromFork,
+      isAuthorTrusted: false,
+    },
+    reviewedAt,
+    trigger: ProductionReviewTrigger.OneUptime,
+    changedFileCount: 2,
+    codeFileCount: 1,
+    services: [],
+    exceptions: [],
+    operations: [],
+    hotFunctions: [],
+    incidents: { total: 0, open: 0, items: [] },
+    suspectDeploys: [],
+    points: [],
+    unreadSections: [],
+    posting: ProductionReviewPosting.None,
+  };
+}
+
 function isReview(task) {
   return task.kind === "review";
+}
+
+/*
+ * A review asked for (again): queued now, unless one is already on its
+ * way - and one waiting for its minute moves on from now.
+ */
+function askReview(task) {
+  const latest = task.turns[task.turns.length - 1];
+  if (
+    latest.status !== AIRunStatus.Queued &&
+    latest.status !== AIRunStatus.Running
+  ) {
+    latest.status = AIRunStatus.Queued;
+    latest.stageAt = Date.now();
+    latest.completedAt = undefined;
+    return;
+  }
+  if (!latest.stageAt) {
+    latest.stageAt = Date.now();
+  }
 }
 
 /*
@@ -1592,6 +1940,11 @@ function advanceReview(task, current) {
   current.status = AIRunStatus.Completed;
   current.completedAt = new Date().toISOString();
   current.errorMessage = undefined;
+  // A review of its own: GitLab's, Forgejo's, and one asked for by number.
+  if (task.nextReview) {
+    current.outcome = task.nextReview(current.completedAt);
+    return;
+  }
   const report =
     task.id === REVIEW_IDS.nothing
       ? nothingReport(current.completedAt)
@@ -2618,16 +2971,99 @@ async function answer(path, body) {
         BLOCKER_MESSAGES[CodeTaskBlockerType.RepositoryNotConnected],
       );
     }
-    const latest = task.turns[task.turns.length - 1];
-    if (
-      latest.status !== AIRunStatus.Queued &&
-      latest.status !== AIRunStatus.Running
-    ) {
-      latest.status = AIRunStatus.Queued;
-      latest.stageAt = Date.now();
-      latest.completedAt = undefined;
-    }
+    askReview(task);
     return new HTTPResponse(200, { taskId: task.id }, {});
+  }
+
+  /*
+   * Review a pull request: one of the repository's pull (merge) requests,
+   * by its number, reviewed now - as the server's ProductionReviewAsk asks
+   * it, for those who may ask AI in the repository, on a host with pull
+   * requests, while it is reached. One a review already has is reviewed
+   * again; one the host holds gets a review of its own; a closed one, or a
+   * number the host does not know, is refused in the host's words.
+   */
+  if (path.startsWith("/review-pull-request/")) {
+    const repositoryId = path.substring("/review-pull-request/".length);
+    window.__fixture.reviewAsks.push({ repositoryId, number: body.number });
+    const repository = repositories.find((item) => {
+      return item.id === repositoryId;
+    });
+    if (!repository) {
+      return refused(
+        404,
+        "Repository not found, or you do not have access to it.",
+      );
+    }
+    if (!CAN_ASK) {
+      return refused(
+        403,
+        "Asking for a production review takes permission to edit the repository - ask a project admin for it.",
+      );
+    }
+    const isGitLab = repository.provider === CodeRepositoryType.GitLab;
+    const term = isGitLab ? "merge request" : "pull request";
+    const mark = isGitLab ? "!" : "#";
+    const number = ProductionReviewUtil.readPullRequestNumber(body.number);
+    if (number === null) {
+      return refused(400, `Enter the number of a ${term}, such as ${mark}12.`);
+    }
+    if (!hasPullRequests(repository)) {
+      return refused(
+        400,
+        "A Git server has no pull requests for OneUptime to review. Production reviews work in GitHub, GitLab, Forgejo and Gitea repositories.",
+      );
+    }
+    if (!repository.isConnected) {
+      return refused(
+        400,
+        isOnGitHub(repository)
+          ? "This repository is no longer connected to the project through the GitHub App."
+          : `This repository's connection to ${repository.provider} no longer works - its access token was refused, or the connection is gone - so it was not reviewed.`,
+      );
+    }
+    const label = `${mark}${number}`;
+    const reviewed = tasks.find((task) => {
+      return (
+        isReview(task) &&
+        task.repositoryId === repository.id &&
+        task.origin.label === label
+      );
+    });
+    if (reviewed) {
+      askReview(reviewed);
+      return new HTTPResponse(200, { taskId: reviewed.id }, {});
+    }
+    const pullRequest = (ASKABLE_PULL_REQUESTS[repository.id] || {})[number];
+    if (!pullRequest) {
+      return refused(400, `There is no ${term} ${label} in this repository.`);
+    }
+    if (pullRequest.isClosed) {
+      return refused(400, `The ${term} is closed, so it was not reviewed.`);
+    }
+    const runId = newRunId();
+    tasks.push({
+      id: runId,
+      repositoryId: repository.id,
+      kind: "review",
+      title: pullRequest.title,
+      turns: [
+        reviewTurn({
+          runId,
+          status: AIRunStatus.Queued,
+          createdAt: new Date().toISOString(),
+          userId: ADA_ID,
+          stageAt: Date.now(),
+        }),
+      ],
+      origin: reviewOriginOf(repository, number),
+      nextReview: (reviewedAt) => {
+        return reviewOutcome(
+          askedReport(repository, number, pullRequest, reviewedAt),
+        );
+      },
+    });
+    return new HTTPResponse(200, { taskId: runId }, {});
   }
 
   if (path.startsWith("/stop/")) {
@@ -2830,7 +3266,8 @@ function addConnectedRepository(data) {
     buildCommand: null,
     testCommand: null,
     runnerId: null,
-    isProductionReviewEnabled: false,
+    // On as it connects, as CodeRepositoryConnector turns it on.
+    isProductionReviewEnabled: data.provider !== CodeRepositoryType.Git,
     productionReviewPullRequestContent: null,
   };
   return id;

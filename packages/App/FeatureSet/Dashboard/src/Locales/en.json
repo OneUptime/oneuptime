@@ -37101,5 +37101,6 @@
   "What a production review posts on a merge request.": "What a production review posts on a merge request.",
   "When someone with write access opens or updates a merge request, OneUptime comments with what production shows of the code it changes.": "When someone with write access opens or updates a merge request, OneUptime comments with what production shows of the code it changes.",
   "{{host}} did not let the access token comment on this merge request, so this review is only here.": "{{host}} did not let the access token comment on this merge request, so this review is only here.",
-  "{{host}} did not let the access token comment on this pull request, so this review is only here.": "{{host}} did not let the access token comment on this pull request, so this review is only here."
+  "{{host}} did not let the access token comment on this pull request, so this review is only here.": "{{host}} did not let the access token comment on this pull request, so this review is only here.",
+  "Review now": "Review now"
 }

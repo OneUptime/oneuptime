@@ -37101,5 +37101,6 @@
   "What a production review posts on a merge request.": "本番レビューがマージリクエストに投稿する内容です。",
   "When someone with write access opens or updates a merge request, OneUptime comments with what production shows of the code it changes.": "書き込み権限のある人がマージリクエストを作成または更新すると、変更されたコードについて本番環境が示す情報を OneUptime がコメントします。",
   "{{host}} did not let the access token comment on this merge request, so this review is only here.": "{{host}} がアクセストークンによるこのマージリクエストへのコメントを許可しなかったため、このレビューはここにだけあります。",
-  "{{host}} did not let the access token comment on this pull request, so this review is only here.": "{{host}} がアクセストークンによるこのプルリクエストへのコメントを許可しなかったため、このレビューはここにだけあります。"
+  "{{host}} did not let the access token comment on this pull request, so this review is only here.": "{{host}} がアクセストークンによるこのプルリクエストへのコメントを許可しなかったため、このレビューはここにだけあります。",
+  "Review now": "今すぐレビュー"
 }
