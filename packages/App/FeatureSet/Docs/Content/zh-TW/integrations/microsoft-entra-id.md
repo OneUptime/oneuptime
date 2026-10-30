@@ -44,7 +44,8 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 
 1. 前往 **API permissions → Add a permission → Microsoft Graph → Application permissions**，選擇 `AuditLog.Read.All`，然後選擇 **Add permissions**。Microsoft 文件說明登入清單還可能需要 `Directory.Read.All`：如果授予同意後登入仍以 `403` 被拒絕，請新增它。
 2. 對於 Microsoft 365 稽核日誌，新增第二項權限：**Add a permission → Office 365 Management APIs → Application permissions**，然後選擇 `ActivityFeed.Read`。
-3. 為你的租用戶選擇 **Grant admin consent for**，並確認。每項權限的狀態都必須顯示為 **Granted**：沒有同意時，每次讀取都會以 `403` 被拒絕。
+3. 若要讓劇本停用、啟用和登出使用者（請參閱 [圍堵](/docs/telemetry/security-cases#圍堵)），請以同樣方式新增 `User.Read.All`、`User.EnableDisableAccount.All` 和 `User.RevokeSessions.All`。Microsoft 只允許同時具有 Privileged Authentication Administrator 角色的應用程式變更管理員的帳戶。
+4. 為你的租用戶選擇 **Grant admin consent for**，並確認。每項權限的狀態都必須顯示為 **Granted**：沒有同意時，每次讀取都會以 `403` 被拒絕。
 
 ### 建立用戶端密碼
 

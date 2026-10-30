@@ -2,6 +2,7 @@ import AIRun from "../../../Models/DatabaseModels/AIRun";
 import Runbook from "../../../Models/DatabaseModels/Runbook";
 import RumSessionPin from "../../../Models/DatabaseModels/RumSessionPin";
 import SecurityCase from "../../../Models/DatabaseModels/SecurityCase";
+import SecurityDetection from "../../../Models/DatabaseModels/SecurityDetection";
 import { SecurityCaseFeedEventType } from "../../../Models/DatabaseModels/SecurityCaseFeed";
 import SecurityCaseNote from "../../../Models/DatabaseModels/SecurityCaseNote";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
@@ -21,6 +22,7 @@ import {
   SecurityEntityType,
   mergeSecurityEntities,
 } from "../../../Types/SecurityCase/SecurityEntity";
+import { SecurityCaseEventsAddResult } from "../../../Types/SecurityCase/SecurityCaseEventEvidence";
 import { SecurityPlaybookStepStatus } from "../../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import {
   PostStatusPageAnnouncementConfig,
@@ -43,7 +45,9 @@ import { SecurityCaseTemplateValues } from "../../../Utils/SecurityCase/Security
 import AIService from "../../Services/AIService";
 import RumSessionPinService from "../../Services/RumSessionPinService";
 import RunbookService from "../../Services/RunbookService";
+import SecurityCaseEvidenceService from "../../Services/SecurityCaseEvidenceService";
 import SecurityCaseNoteService from "../../Services/SecurityCaseNoteService";
+import SecurityDetectionService from "../../Services/SecurityDetectionService";
 import SecurityProtectedEntityService from "../../Services/SecurityProtectedEntityService";
 import StatusPageAnnouncementService from "../../Services/StatusPageAnnouncementService";
 import StatusPageService from "../../Services/StatusPageService";
@@ -57,6 +61,7 @@ import RunbookStarter, {
   RunbookStartResult,
 } from "../Runbook/RunbookStarter";
 import SecurityCaseEvidence, {
+  MAX_EVIDENCE_DETECTIONS,
   MAX_FIXED_EXCEPTIONS,
   MAX_PINNED_SESSIONS,
   SecurityCaseEvidenceLinks,
@@ -81,9 +86,11 @@ import type {
  *   - Run a runbook: one of the project's runbooks, started with the case as
  *     its inputs (buildRunbookInputs) - to block the address an attack came
  *     from, stop a process, cordon a node: whatever its steps do.
- *   - Preserve the evidence: the session replays of the requests behind the
- *     case are pinned, so they outlive their retention, and a note on the
- *     case lists the traces, replays and exceptions those requests link to.
+ *   - Preserve the evidence: the events behind the case's detections are
+ *     kept on its Evidence page (SecurityCaseEvidenceKind.Event) and the
+ *     session replays of the requests behind it are pinned, so both outlive
+ *     their retention, and a note on the case lists the traces, replays and
+ *     exceptions those requests link to.
  *   - Post a status page announcement: what the playbook's author wrote, on
  *     the pages they chose. Nothing of the case goes on a public page.
  *   - Fix the code with AI: a fix run for each exception the case's requests
@@ -554,10 +561,89 @@ export default class SecurityPlaybookResponseSteps {
 
   // ---------- Preserve the evidence ----------
 
+  /*
+   * The events behind the case's detections, kept on its Evidence page as
+   * OneUptime read them (SecurityCaseEvidenceService.addEvents): the finding
+   * a rule wrote, the alert a connected product raised. One kept already is
+   * left as it was, so a playbook that runs again keeps nothing twice. A
+   * read that fails is said, never the step's failure: the requests'
+   * evidence is still worth keeping.
+   */
+  public static async keepDetectionEvents(
+    context: PlaybookStepContext,
+  ): Promise<{ kept: number; error?: string | undefined }> {
+    try {
+      const detections: Array<SecurityDetection> =
+        await SecurityDetectionService.findBy({
+          query: {
+            projectId: context.projectId,
+            securityCaseId: context.securityCase.id!,
+          },
+          select: {
+            eventUid: true,
+            firstSeenAt: true,
+            lastSeenAt: true,
+          },
+          skip: 0,
+          limit: MAX_EVIDENCE_DETECTIONS,
+          props: ROOT,
+        });
+
+      const seen: Set<string> = new Set<string>();
+      const events: Array<{ eventUid: string; time: Date }> = [];
+
+      for (const detection of detections) {
+        const eventUid: string = (detection.eventUid || "").trim();
+        const time: Date | undefined =
+          detection.lastSeenAt || detection.firstSeenAt;
+
+        if (!eventUid || !time || seen.has(eventUid)) {
+          continue;
+        }
+
+        seen.add(eventUid);
+        events.push({ eventUid, time: new Date(time) });
+      }
+
+      if (events.length === 0) {
+        return { kept: 0 };
+      }
+
+      const result: SecurityCaseEventsAddResult =
+        await SecurityCaseEvidenceService.addEvents({
+          projectId: context.projectId,
+          securityCaseId: context.securityCase.id!,
+          events,
+          hunt: null,
+          props: ROOT,
+        });
+
+      return { kept: result.added.length };
+    } catch (error) {
+      logger.error(
+        `Security playbook: the detection events of case ${context.securityCase.caseNumberWithPrefix || ""} could not be kept: ${errorMessage(error)}`,
+      );
+
+      return {
+        kept: 0,
+        error: `The events behind the case's detections could not be kept: ${errorMessage(error)}`,
+      };
+    }
+  }
+
   public static async preserveEvidence(
     context: PlaybookStepContext,
   ): Promise<PlaybookStepOutcome> {
     const securityCase: SecurityCase = context.securityCase;
+    const events: { kept: number; error?: string | undefined } =
+      await this.keepDetectionEvents(context);
+    const keptEvents: MarkdownText =
+      events.kept > 0
+        ? mdText`Kept ${plural(events.kept, "event", "events")} behind the case's detections on its Evidence page. `
+        : FeedMarkdown.empty();
+    const eventsError: MarkdownText | undefined = events.error
+      ? mdText`${events.error}`
+      : undefined;
     const requests: Array<SecurityCaseRequestEvidence> =
       await SecurityCaseEvidence.findRequests({
         projectId: context.projectId,
@@ -565,9 +651,13 @@ export default class SecurityPlaybookResponseSteps {
       });
 
     if (requests.length === 0) {
-      return skipped(
-        mdText`None of the case's events happened in a request OneUptime traced, so there is no trace, session replay or exception to keep.`,
-      );
+      const nothingToKeep: MarkdownText = mdText`None of the case's events happened in a request OneUptime traced, so there is no trace, session replay or exception to keep.`;
+
+      return events.kept > 0
+        ? succeeded(mdText`${keptEvents}${nothingToKeep}`, {
+            detailsInMarkdown: eventsError,
+          })
+        : skipped(nothingToKeep, { detailsInMarkdown: eventsError });
     }
 
     const window: SecurityCaseEvidenceWindow = getEvidenceWindow(securityCase);
@@ -663,10 +753,14 @@ export default class SecurityPlaybookResponseSteps {
       },
     ).length;
 
+    const retention: MarkdownText = mdText`Logs and traces cannot be held longer than the project keeps telemetry; the note links to them while they last.`;
+
     return succeeded(
-      mdText`Kept ${plural(pinnedCount, "session replay", "session replays")}, and noted ${plural(traceCount, "trace", "traces")} and ${plural(exceptions.length, "exception", "exceptions")} on the case.`,
+      mdText`${keptEvents}Kept ${plural(pinnedCount, "session replay", "session replays")}, and noted ${plural(traceCount, "trace", "traces")} and ${plural(exceptions.length, "exception", "exceptions")} on the case.`,
       {
-        detailsInMarkdown: mdText`Logs and traces cannot be held longer than the project keeps telemetry; the note links to them while they last.`,
+        detailsInMarkdown: eventsError
+          ? FeedMarkdown.join([eventsError, retention], " ")
+          : retention,
       },
     );
   }

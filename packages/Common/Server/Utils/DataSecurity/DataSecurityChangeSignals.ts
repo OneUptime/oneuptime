@@ -7,6 +7,7 @@ import OTelIngestService, {
   TelemetryServiceMetadata,
 } from "../../Services/OpenTelemetryIngestService";
 import SecurityEventService from "../../Services/SecurityEventService";
+import RealTimeDetections from "../SecurityEvent/RealTime/RealTimeDetections";
 import { getClickhouseDatabaseName } from "../AnalyticsDatabase/ClusterConfig";
 import { getQuerySettings } from "../AnalyticsDatabase/QuerySettingsHelper";
 import { SQL, Statement } from "../AnalyticsDatabase/Statement";
@@ -656,16 +657,21 @@ export async function storeDataSecurityEvents(data: {
     projectRetentionInDays: serviceMetadata.projectRetentionInDays,
   });
 
-  await SecurityEventService.insertJsonRows(
-    events.map((normalized: NormalizedSecurityEvent): JSONObject => {
+  const rows: Array<JSONObject> = events.map(
+    (normalized: NormalizedSecurityEvent): JSONObject => {
       return buildSecurityEventDbRow({
         normalized,
         projectId: data.projectId,
         serviceMetadata,
         retentionDays,
       });
-    }),
+    },
   );
+
+  await SecurityEventService.insertJsonRows(rows);
+
+  // Checked against the project's real-time detection rules as they land.
+  await RealTimeDetections.screen({ projectId: data.projectId, rows });
 
   return events;
 }

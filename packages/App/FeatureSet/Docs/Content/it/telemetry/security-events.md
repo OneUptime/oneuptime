@@ -313,7 +313,7 @@ Le cacce hanno la stessa API REST del resto di OneUptime, in `/security-hunt`, e
 
 ## Regole di rilevamento
 
-Una regola di rilevamento è una regola [Sigma](https://sigmahq.io/), un formato YAML aperto per descrivere attività sospette, che OneUptime esegue secondo una pianificazione sui tuoi eventi. Quando corrisponde, apre un [caso](/docs/telemetry/security-cases) o si aggiunge a uno già aperto, apre un avviso, facoltativamente un incidente, e scrive un Detection Finding negli eventi. La **Libreria di regole** offre regole pronte da cui partire.
+Una regola di rilevamento è una regola [Sigma](https://sigmahq.io/), un formato YAML aperto per descrivere attività sospette, che OneUptime esegue secondo una pianificazione sui tuoi eventi, o su ogni evento appena arriva. Quando corrisponde, apre un [caso](/docs/telemetry/security-cases) o si aggiunge a uno già aperto, apre un avviso, facoltativamente un incidente, e scrive un Detection Finding negli eventi. La **Libreria di regole** offre regole pronte da cui partire.
 
 ```mermaid title="Come scatta una regola di rilevamento"
 flowchart TB
@@ -332,7 +332,7 @@ flowchart TB
 3. Il **Nome** si compila dal `title` della regola: scrivici sopra per chiamarla in un altro modo. Una nuova regola gira; **Abilitato** è nel suo modulo di modifica.
 4. In **In caso di corrispondenza**, lascia attivo **Apri un caso in caso di corrispondenza** per raggruppare le sue corrispondenze in casi, in base al valore per cui raggruppa la regola.
 5. In **Avvisi e incidenti**, scegli cos'altro genera una corrispondenza: **Crea un avviso** (predefinito), **Dichiara un incidente**, **Entrambi** o **Nessuno dei due**, con una **Gravità avviso** o una **Gravità incidente** facoltativa.
-6. **Altri campi** contiene la **Descrizione**, **Scrivi un Detection Finding in caso di corrispondenza** (attivo) e il modo in cui si contano le corrispondenze; vedi [Impostazioni di valutazione](#impostazioni-di-valutazione).
+6. **Altri campi** contiene la **Descrizione**, **Scrivi un Detection Finding in caso di corrispondenza** (attivo), **Esegui in tempo reale** (disattivo) e il modo in cui si contano le corrispondenze; vedi [Impostazioni di valutazione](#impostazioni-di-valutazione).
 :::
 
 Una prima regola, che corrisponde agli accessi falliti da fuori `10.x.x.x`:
@@ -428,6 +428,7 @@ detection:
 | Campo | Cosa fa |
 | --- | --- |
 | **Intervallo di valutazione (minuti)** | Ogni quanto gira la regola: minuti interi, da 1 a 1440. Il modulo di una nuova regola parte da 5. |
+| **Esegui in tempo reale** | Disattivo su una nuova regola. Se attivo, la regola controlla ogni evento appena arriva invece che a ogni intervallo; vedi [Regole in tempo reale](#regole-in-tempo-reale). |
 | **Campo di raggruppamento** | Facoltativo. Le corrispondenze che condividono il valore di questo campo, come `principalHost`, vengono contate, avvisate e deduplicate insieme: un avviso per host invece di centinaia. |
 | **Campo di conteggio distinto** | Facoltativo. Conta i valori diversi di questo campo invece degli eventi corrispondenti. I valori vuoti non contano. |
 | **Soglia di corrispondenze** | Un gruppo scatta solo quando il suo conteggio raggiunge questo numero in un'esecuzione: da 1 a 1000000, e 1 scatta a qualsiasi corrispondenza. |
@@ -450,6 +451,16 @@ OneUptime controlla ogni minuto quali regole abilitate hanno superato il loro in
 - Dopo un'interruzione, come un worker fermo o una regola riattivata, l'esecuzione successiva copre l'intera interruzione, fino alle ultime 24 ore.
 - Un evento che arriva con più di due minuti di ritardo, quando un'esecuzione ha già coperto il suo orario, viene salvato ed è ricercabile, ma quella regola non lo legge mai.
 - Ogni gruppo che raggiunge la soglia diventa un Detection Finding, fino a 10.000 per esecuzione. Avvisi, incidenti e casi si aprono per i 100 con i conteggi più alti; gli altri condividono un caso sulla regola, e l'**Ultimo errore** della regola dice quanti gruppi hanno corrisposto.
+
+### Regole in tempo reale
+
+Una regola che scatta su un solo evento può girare in tempo reale invece che al suo intervallo: attiva **Esegui in tempo reale**, in **Altri campi** del passo **In caso di corrispondenza**. Ogni evento che OneUptime riceve, da qualsiasi fonte, viene allora controllato con la regola appena arriva, e una corrispondenza apre il suo caso, il suo avviso e il suo risultato in pochi secondi.
+
+- È adatta a una regola con una **Soglia di corrispondenze** di 1, senza **Campo di conteggio distinto** e senza il modificatore `re`. Una correlazione conta gli eventi insieme, quindi gira al suo intervallo. Il modulo dice cosa cambiare quando una regola non è adatta.
+- Un progetto esegue al massimo 50 regole in tempo reale, perché ogni evento viene controllato con ciascuna.
+- In **Regole di rilevamento**, lo **Stato** di una regola in tempo reale dice **Tempo reale**, e così la sua colonna dell'intervallo. Un controllo che non riesce compare nel suo **Ultimo errore**, come per un'esecuzione.
+- Una volta attivata, la regola legge prima ciò che è arrivato dalla sua ultima esecuzione, così nulla resta tra la pianificazione e il tempo reale. Disattivata, torna al suo intervallo, da due minuti prima.
+- Eccezioni ed elenchi di controllo si applicano come a qualsiasi regola, e **Esegui su eventi passati** la legge come qualsiasi altra.
 
 ### Gravità
 
@@ -573,6 +584,10 @@ Controlla la chiave in `x-oneuptime-token` e il percorso, `/security-events/v1/i
 
 :::details Una regola non corrisponde mai
 Controlla il suo **Stato**: con **Disabilitato** la regola non viene eseguita, e con **Esecuzione non riuscita**, **Visualizza errore** nella sua riga mostra il motivo. Apri un evento che ti aspettavi corrispondesse e confrontalo con la regola, campo per campo: un valore semplice deve essere uguale all'intero campo, quindi usa `contains` o `*` per una parte. Un attributo si nomina come nell'evento (`threat.matched`, non `attributes.threat.matched`). Con una soglia maggiore di 1, le corrispondenze devono cadere in una sola esecuzione.
+:::
+
+:::details Esegui in tempo reale non si attiva
+La regola conta corrispondenze, conta valori distinti, legge un'espressione regolare o è una correlazione, e il modulo dice quale: imposta **Soglia di corrispondenze** a 1, svuota **Campo di conteggio distinto**, oppure usa `contains`, `startswith` o `endswith` al posto di `re`. Un progetto esegue al massimo 50 regole in tempo reale: disattivalo prima su un'altra regola.
 :::
 
 :::details Una regola ha corrisposto, ma non si è aperto nessun avviso

@@ -43,6 +43,7 @@ import {
   clampStepResultText,
   readStepResults,
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookStepResult";
+import { evaluateSecurityPlaybookStepCondition } from "../../../Types/SecurityPlaybook/SecurityPlaybookStepCondition";
 import FeedMarkdown, {
   MarkdownText,
 } from "../../../Utils/Markdown/FeedMarkdown";
@@ -86,6 +87,13 @@ export function getStepTitle(step: SecurityPlaybookStep): string {
  * again, so a person's Cancel stops it at the next step boundary; every
  * status it writes afterwards is a compare-and-set from Running, so a
  * cancellation is never written over.
+ *
+ * A step that waits on an earlier step's result (runIf) runs only when that
+ * step ended with it, and is skipped before it does anything else - asks
+ * for an approval, picks a target - saying which result it waited on
+ * (evaluateSecurityPlaybookStepCondition). That is how a playbook branches:
+ * contain only what threat intel knows is bad, and leave a task to check
+ * the rest.
  *
  * A step marked "needs approval" - and every containment step a Security
  * Admin did not let run without it - stops the run in Waiting for Approval
@@ -299,6 +307,34 @@ export default class SecurityPlaybookEngine {
       const definition: SecurityPlaybookActionDefinition | undefined =
         getSecurityPlaybookAction(step.action);
 
+      // A step that waits on an earlier step's result runs only on that result.
+      const condition: { holds: boolean; reason?: string | undefined } =
+        evaluateSecurityPlaybookStepCondition({
+          condition: step.runIf,
+          index,
+          steps,
+          results,
+        });
+
+      if (!condition.holds) {
+        results[index] = {
+          ...results[index]!,
+          status: SecurityPlaybookStepStatus.Skipped,
+          completedAt: OneUptimeDate.getCurrentDate().toISOString(),
+          message: clampStepResultText(
+            condition.reason || "Skipped: its condition did not hold.",
+          ),
+        };
+
+        await this.saveProgress({
+          runId,
+          results,
+          currentStepIndex: index + 1,
+          threatIntelMatched,
+        });
+        continue;
+      }
+
       if (step.onlyIfThreatIntelMatched && !threatIntelMatched) {
         results[index] = {
           ...results[index]!,
@@ -506,6 +542,7 @@ export default class SecurityPlaybookEngine {
         message: clampStepResultText(summaryText || undefined),
         error: clampStepResultText(outcome.error),
         ...(outcome.targets ? { targets: outcome.targets } : {}),
+        ...(outcome.found !== undefined ? { found: outcome.found } : {}),
       };
 
       await this.saveProgress({

@@ -313,7 +313,7 @@ Hunts have the same REST API as the rest of OneUptime, under `/security-hunt`, a
 
 ## Detection rules
 
-A detection rule is a [Sigma](https://sigmahq.io/) rule, an open YAML format for describing suspicious activity, that OneUptime runs on a schedule against your events. When it matches, it opens or joins a [case](/docs/telemetry/security-cases), opens an alert, optionally an incident, and writes a Detection Finding back into the events. The **Rule Library** has ready-made rules to start from.
+A detection rule is a [Sigma](https://sigmahq.io/) rule, an open YAML format for describing suspicious activity, that OneUptime runs on a schedule against your events, or on each event as it arrives. When it matches, it opens or joins a [case](/docs/telemetry/security-cases), opens an alert, optionally an incident, and writes a Detection Finding back into the events. The **Rule Library** has ready-made rules to start from.
 
 ```mermaid title="How a detection rule fires"
 flowchart TB
@@ -332,7 +332,7 @@ flowchart TB
 3. The **Name** fills in from the rule's `title`: type over it to call the rule something else. A new rule runs; **Enabled** is on its edit form.
 4. In **On Match**, keep **Open a Case on Match** on to group its matches into cases, by the value the rule groups by.
 5. Under **Alerts and Incidents**, choose what else a match raises: **Create an alert** (the default), **Declare an incident**, **Both** or **Neither**, with an optional **Alert Severity** or **Incident Severity**.
-6. **More fields** holds the **Description**, **Write Detection Finding on Match** (on) and how matches are counted; see [Evaluation settings](#evaluation-settings).
+6. **More fields** holds the **Description**, **Write Detection Finding on Match** (on), **Run in Real Time** (off) and how matches are counted; see [Evaluation settings](#evaluation-settings).
 :::
 
 A first rule, which matches failed logons from outside `10.x.x.x`:
@@ -428,6 +428,7 @@ detection:
 | Field | What it does |
 | --- | --- |
 | **Evaluation Interval (Minutes)** | How often the rule runs: whole minutes, 1 to 1440. A new rule's form starts at 5. |
+| **Run in Real Time** | Off on a new rule. On, the rule checks each event as it arrives instead of every interval; see [Real-time rules](#real-time-rules). |
 | **Group By Field** | Optional. Matches that share this field's value, such as `principalHost`, are counted, alerted and deduplicated together: one alert per host instead of hundreds. |
 | **Distinct Count Field** | Optional. Count the different values of this field instead of the matching events. Empty values are not counted. |
 | **Match Count Threshold** | A group fires only when its count reaches this number within one run: 1 to 1000000, and 1 fires on any match. |
@@ -450,6 +451,16 @@ OneUptime checks every minute for enabled rules whose interval has passed since 
 - After a gap, such as a worker outage or a rule turned back on, the next run covers the whole gap, up to the last 24 hours.
 - An event that arrives more than two minutes late, once a run has covered its time, is stored and searchable, but that rule never reads it.
 - Every group that reaches the threshold becomes a Detection Finding, up to 10,000 a run. Alerts, incidents and cases open for the 100 with the highest counts; the rest share one case about the rule, and the rule's **Last Error** says how many groups matched.
+
+### Real-time rules
+
+A rule that fires on one event can run in real time instead of on its interval: turn on **Run in Real Time**, under **More fields** on the **On Match** step. Every event OneUptime receives, from every source, is then checked against the rule as it arrives, and a match opens its case, alert and finding within seconds.
+
+- It fits a rule with a **Match Count Threshold** of 1, no **Distinct Count Field** and no `re` modifier. A correlation counts events together, so it runs on its interval. The form says what to change when a rule does not fit.
+- A project runs at most 50 rules in real time, since every event is checked against each.
+- In **Detection Rules**, a real-time rule's **Status** says **Real time**, and so does its interval column. A check that fails shows in its **Last Error**, as a run's does.
+- Turned on, the rule first reads what arrived since its last run, so nothing falls between its schedule and real time. Turned off, it goes back to its interval, from two minutes before.
+- Exceptions and watchlists apply to it as to any rule, and **Run on Past Events** reads it like any other.
 
 ### Severity
 
@@ -573,6 +584,10 @@ Check the key in `x-oneuptime-token` and the path, `/security-events/v1/ingest`.
 
 :::details A rule never matches
 Check its **Status**: a **Disabled** rule does not run, and when it reads **Run failed**, **View Error** in its row shows why. Open an event you expected to match and compare it with the rule, field by field: a plain value must equal the whole field, so use `contains` or `*` for part of one. An attribute is named as it is in the event (`threat.matched`, not `attributes.threat.matched`). With a threshold above 1, the matches must fall in one run.
+:::
+
+:::details Run in Real Time can't be turned on
+The rule counts matches, counts distinct values, reads a regular expression or is a correlation, and the form says which: set **Match Count Threshold** to 1, clear **Distinct Count Field**, or use `contains`, `startswith` or `endswith` in place of `re`. A project runs at most 50 rules in real time: turn it off on another rule first.
 :::
 
 :::details A rule matched, but no alert opened

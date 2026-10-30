@@ -43,7 +43,8 @@ Anslutningen loggar in med ett tjänstkontos nyckel och [domänomfattande delege
 ### Tillåt domänomfattande delegering
 
 1. I [Googles administratörskonsol](https://admin.google.com) öppnar du som superadministratör **Security → Access and data control → API controls → Manage domain-wide delegation** och väljer **Add new**.
-2. Ange tjänstkontots **Unique ID** som **Client ID**, och `https://www.googleapis.com/auth/admin.reports.audit.readonly` som enda **OAuth scope**. Välj **Authorize**. Det kan ta några minuter innan Google tillämpar det.
+2. Ange tjänstkontots **Unique ID** som **Client ID**, och `https://www.googleapis.com/auth/admin.reports.audit.readonly` som **OAuth scope**. Välj **Authorize**. Det kan ta några minuter innan Google tillämpar det.
+3. Om playbooks ska kunna stänga av, häva avstängning av och logga ut användare (se [Begränsning](/docs/telemetry/security-cases#begränsning)) lägger du till `https://www.googleapis.com/auth/admin.directory.user` och `https://www.googleapis.com/auth/admin.directory.user.security` i samma klients omfång, åtskilda med kommatecken. Administratören som anslutningen agerar som måste då vara en som hanterar de användarna.
 
 ### Lägg till anslutningen i OneUptime
 

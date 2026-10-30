@@ -1212,10 +1212,15 @@ const PROFILE_CRITERIA: Array<{
   },
 ];
 
+/*
+ * The conditions the form offers, by the names it shows them under: the
+ * comparisons and the anomaly conditions show their own values, and a
+ * metric's Is Empty and Is Not Empty show as Has No Data and Has Data.
+ */
 function offeredConditions(checkOn: CheckOn): Array<string> {
   return CriteriaFilterUtil.getFilterTypeOptionsByCheckOn(checkOn).map(
-    (option: { value: unknown }): string => {
-      return String(option.value);
+    (option: { label: unknown }): string => {
+      return String(option.label);
     },
   );
 }
@@ -2026,7 +2031,19 @@ describe("the Exceptions monitor", () => {
     );
     const conflict: string = upsert.slice(upsert.indexOf("DO UPDATE SET"));
 
-    expect(conflict).toContain('"isResolved" = false,');
+    /*
+     * A resolved row stays resolved only while STAYS_RESOLVED_SQL holds, so
+     * an occurrence after it was resolved reopens it. Since #5416 a late copy
+     * of an older occurrence does not, nor, for an exception resolved in the
+     * next release, one from the release it was resolved after.
+     */
+    expect(conflict).toContain('"isResolved" = ${STAYS_RESOLVED_SQL},');
+    expect(upsert).toContain(
+      'export const STAYS_RESOLVED_SQL: string = `("TelemetryException"."isResolved" AND NOT ${REOPENS_RESOLVED_EXCEPTION_SQL})`;',
+    );
+    expect(upsert).toContain(
+      'OR EXCLUDED."lastSeenAt" > "TelemetryException"."markedAsResolvedAt"',
+    );
     expect(conflict).not.toContain('"isArchived" = false');
     expect(EXCEPTIONS).toContain(
       "When a resolved exception occurs again, it is un-resolved automatically and counted again.",

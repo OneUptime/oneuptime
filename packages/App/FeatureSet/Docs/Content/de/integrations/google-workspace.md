@@ -43,7 +43,8 @@ Die Verbindung meldet sich mit dem Schlüssel eines Dienstkontos und der [domain
 ### Die domainweite Delegierung erlauben
 
 1. Öffnen Sie in der [Google Admin-Konsole](https://admin.google.com) als Super-Administrator **Security → Access and data control → API controls → Manage domain-wide delegation** und wählen Sie **Add new**.
-2. Geben Sie die **Unique ID** des Dienstkontos als **Client ID** ein und `https://www.googleapis.com/auth/admin.reports.audit.readonly` als einzigen **OAuth scope**. Wählen Sie **Authorize**. Google kann einige Minuten brauchen, um sie anzuwenden.
+2. Geben Sie die **Unique ID** des Dienstkontos als **Client ID** ein und `https://www.googleapis.com/auth/admin.reports.audit.readonly` als **OAuth scope**. Wählen Sie **Authorize**. Google kann einige Minuten brauchen, um sie anzuwenden.
+3. Damit Playbooks Benutzer sperren, entsperren und abmelden können (siehe [Eindämmung](/docs/telemetry/security-cases#eindämmung)), fügen Sie den Bereichen desselben Clients `https://www.googleapis.com/auth/admin.directory.user` und `https://www.googleapis.com/auth/admin.directory.user.security` hinzu, durch Kommas getrennt. Der Administrator, als der die Verbindung handelt, muss dann einer sein, der diese Benutzer verwaltet.
 
 ### Die Verbindung in OneUptime hinzufügen
 

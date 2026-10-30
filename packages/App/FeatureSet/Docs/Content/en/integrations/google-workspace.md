@@ -43,7 +43,8 @@ The connection signs in with a service account's key and [domain-wide delegation
 ### Allow domain-wide delegation
 
 1. In the [Google Admin console](https://admin.google.com), as a super administrator, open **Security → Access and data control → API controls → Manage domain-wide delegation**, and select **Add new**.
-2. Enter the service account's **Unique ID** as the **Client ID**, and `https://www.googleapis.com/auth/admin.reports.audit.readonly` as the only **OAuth scope**. Select **Authorize**. Google can take a few minutes to apply it.
+2. Enter the service account's **Unique ID** as the **Client ID**, and `https://www.googleapis.com/auth/admin.reports.audit.readonly` as the **OAuth scope**. Select **Authorize**. Google can take a few minutes to apply it.
+3. To let playbooks suspend, unsuspend and sign out users (see [Containment](/docs/telemetry/security-cases#containment)), add `https://www.googleapis.com/auth/admin.directory.user` and `https://www.googleapis.com/auth/admin.directory.user.security` to the same client's scopes, separated by commas. The administrator the connection acts as must then be one who manages those users.
 
 ### Add the connection in OneUptime
 

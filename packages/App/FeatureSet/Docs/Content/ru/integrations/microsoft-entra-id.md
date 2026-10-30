@@ -44,7 +44,8 @@ flowchart TB
 
 1. Перейдите в **API permissions → Add a permission → Microsoft Graph → Application permissions**, выберите `AuditLog.Read.All` и нажмите **Add permissions**. Microsoft указывает, что список входов может также требовать `Directory.Read.All`: добавьте его, если после предоставления согласия входы отклоняются с кодом `403`.
 2. Для журнала аудита Microsoft 365 добавьте второе разрешение: **Add a permission → Office 365 Management APIs → Application permissions**, затем `ActivityFeed.Read`.
-3. Выберите **Grant admin consent for** для своего тенанта и подтвердите. Состояние каждого разрешения должно быть **Granted**: без согласия каждое чтение отклоняется с кодом `403`.
+3. Чтобы плейбуки могли отключать, включать пользователей и завершать их сеансы (см. [Сдерживание](/docs/telemetry/security-cases#сдерживание)), так же добавьте `User.Read.All`, `User.EnableDisableAccount.All` и `User.RevokeSessions.All`. Учётную запись администратора Microsoft позволяет менять только приложению, у которого есть ещё и роль Privileged Authentication Administrator.
+4. Выберите **Grant admin consent for** для своего тенанта и подтвердите. Состояние каждого разрешения должно быть **Granted**: без согласия каждое чтение отклоняется с кодом `403`.
 
 ### Создайте секрет клиента
 

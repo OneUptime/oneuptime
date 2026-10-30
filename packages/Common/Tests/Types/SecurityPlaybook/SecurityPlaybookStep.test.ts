@@ -23,10 +23,21 @@ import {
 import {
   DefenderIsolationType,
   SECURITY_PLAYBOOK_MAX_STEPS,
+  SECURITY_PLAYBOOK_MAX_TASKS_PER_STEP,
+  SECURITY_PLAYBOOK_TASK_MAX_LENGTH,
   SecurityPlaybookStep,
+  assertSecurityPlaybookStepConditions,
   doesStepNeedApproval,
+  getStepsWaitingOn,
   parseSecurityPlaybookSteps,
+  readTaskLines,
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookStep";
+import { SecurityPlaybookStepOutcome } from "../../../Types/SecurityPlaybook/SecurityPlaybookStepCondition";
+import {
+  SECURITY_PLAYBOOK_TEMPLATE_DEFINITIONS,
+  SecurityPlaybookTemplateDefinition,
+  getSecurityPlaybookTemplateDefinition,
+} from "../../../Types/SecurityPlaybook/SecurityPlaybookTemplates";
 import { describe, expect, test } from "@jest/globals";
 
 const USER_ID: string = ObjectID.generate().toString();
@@ -133,6 +144,14 @@ describe("the undo actions", () => {
       [
         SecurityPlaybookActionType.ReleaseDefenderDevice,
         SecurityPlaybookActionType.IsolateDefenderDevice,
+      ],
+      [
+        SecurityPlaybookActionType.EnableEntraIdUser,
+        SecurityPlaybookActionType.DisableEntraIdUser,
+      ],
+      [
+        SecurityPlaybookActionType.UnsuspendGoogleWorkspaceUser,
+        SecurityPlaybookActionType.SuspendGoogleWorkspaceUser,
       ],
     ]);
 
@@ -787,5 +806,442 @@ describe("the steps that respond through OneUptime", () => {
     expect(
       getSecurityPlaybookAction(SecurityPlaybookActionType.FixWithAi)?.category,
     ).toBe(SecurityPlaybookActionCategory.Automate);
+  });
+});
+
+/*
+ * BRANCHING ON SAVE: a step's condition is read with the step, and the
+ * list is held to the branching rule as a whole.
+ */
+describe("a step that waits on an earlier step's result", () => {
+  function steps(
+    ...list: Array<Record<string, unknown>>
+  ): Array<SecurityPlaybookStep> {
+    return parseSecurityPlaybookSteps(list);
+  }
+
+  const CHECK: Record<string, unknown> = step(
+    SecurityPlaybookActionType.CheckThreatIntel,
+    {},
+    { id: "check" },
+  );
+  const NOTE: Record<string, unknown> = step(
+    SecurityPlaybookActionType.AddCaseNote,
+    { note: "n" },
+    { id: "note" },
+  );
+
+  function waitingOn(
+    stepId: string,
+    outcome: string,
+    extra: Record<string, unknown> = {},
+  ): Record<string, unknown> {
+    return step(
+      SecurityPlaybookActionType.SuspendOktaUser,
+      { connectionId: OTHER_ID },
+      { id: "suspend", runIf: { stepId, outcome }, ...extra },
+    );
+  }
+
+  test("keeps the step it waits on and the result, and nothing for a step that always runs", () => {
+    const parsed: Array<SecurityPlaybookStep> = steps(
+      CHECK,
+      waitingOn("check", "Found"),
+      { ...NOTE, id: "plain", runIf: null },
+    );
+
+    expect(parsed[1]!.runIf).toEqual({
+      stepId: "check",
+      outcome: SecurityPlaybookStepOutcome.Found,
+    });
+    expect(parsed[0]!.runIf).toBeUndefined();
+    expect("runIf" in parsed[2]!).toBe(false);
+    // A condition read from the JSON text a step list is posted as, too.
+    expect(
+      parseSecurityPlaybookSteps(
+        JSON.stringify([CHECK, waitingOn("check", "Found Nothing")]),
+      )[1]!.runIf,
+    ).toEqual({
+      stepId: "check",
+      outcome: SecurityPlaybookStepOutcome.FoundNothing,
+    });
+  });
+
+  test("refuses a condition that does not read, naming the step - never dropped into a step that always runs", () => {
+    expect(() => {
+      steps(CHECK, waitingOn("check", "Matched"));
+    }).toThrow(
+      "Step 2 (Suspend the user in Okta): choose which result of the earlier step it runs after.",
+    );
+    expect(() => {
+      steps(CHECK, waitingOn("", "Found"));
+    }).toThrow(
+      "Step 2 (Suspend the user in Okta): choose the earlier step it runs after.",
+    );
+  });
+
+  test("an if and an else on one check pass the branching rule", () => {
+    expect(() => {
+      assertSecurityPlaybookStepConditions(
+        steps(CHECK, waitingOn("check", "Found"), {
+          ...NOTE,
+          runIf: { stepId: "check", outcome: "Found Nothing" },
+        }),
+      );
+    }).not.toThrow();
+  });
+
+  test("a step may wait only on a step before it", () => {
+    expect(() => {
+      assertSecurityPlaybookStepConditions(
+        steps(waitingOn("check", "Found"), CHECK),
+      );
+    }).toThrow(
+      "Step 1 (Suspend the user in Okta): it runs after step 2, which comes after it. Move it below step 2, or choose again when it runs.",
+    );
+
+    expect(() => {
+      assertSecurityPlaybookStepConditions(
+        steps(CHECK, waitingOn("suspend", "Succeeded")),
+      );
+    }).toThrow(
+      "Step 2 (Suspend the user in Okta): a step cannot run after its own result. Choose an earlier step.",
+    );
+
+    expect(() => {
+      assertSecurityPlaybookStepConditions(
+        steps(CHECK, waitingOn("deleted", "Succeeded")),
+      );
+    }).toThrow(
+      "Step 2 (Suspend the user in Okta): the step it runs after is no longer in the playbook. Choose again when it runs.",
+    );
+  });
+
+  test("a step waits on a failure only of a step that carries on past one", () => {
+    expect(() => {
+      assertSecurityPlaybookStepConditions(
+        steps(NOTE, waitingOn("note", "Failed")),
+      );
+    }).toThrow(
+      "Step 2 (Suspend the user in Okta): it runs only if step 1 (Add a note) fails, but a failed step 1 stops the run. Turn on Carry On If It Fails for step 1, or choose again when this step runs.",
+    );
+
+    expect(() => {
+      assertSecurityPlaybookStepConditions(
+        steps(
+          { ...NOTE, continueOnFailure: true },
+          waitingOn("note", "Failed"),
+        ),
+      );
+    }).not.toThrow();
+  });
+
+  test("a step waits on a result the earlier step can have", () => {
+    // A note finds nothing.
+    expect(() => {
+      assertSecurityPlaybookStepConditions(
+        steps(NOTE, waitingOn("note", "Found")),
+      );
+    }).toThrow(
+      "Step 2 (Suspend the user in Okta): step 1 (Add a note) does not look anything up, so it can only succeed or fail. Choose one of those.",
+    );
+
+    // A check finds or finds nothing: it does not just succeed.
+    expect(() => {
+      assertSecurityPlaybookStepConditions(
+        steps(CHECK, waitingOn("check", "Succeeded")),
+      );
+    }).toThrow(
+      "Step 2 (Suspend the user in Okta): step 1 (Check entities against threat intel) looks something up, so it finds something or finds nothing. Choose one of those.",
+    );
+  });
+
+  test("the steps waiting on a step are the later ones that name it", () => {
+    const parsed: Array<SecurityPlaybookStep> = steps(
+      CHECK,
+      waitingOn("check", "Found"),
+      { ...NOTE, runIf: { stepId: "check", outcome: "Found Nothing" } },
+      step(SecurityPlaybookActionType.AddCaseNote, { note: "x" }),
+    );
+
+    expect(
+      getStepsWaitingOn(parsed, "check").map(
+        (waiting: { index: number }): number => {
+          return waiting.index;
+        },
+      ),
+    ).toEqual([1, 2]);
+    expect(getStepsWaitingOn(parsed, "suspend")).toEqual([]);
+  });
+
+  test("a step saved before branching keeps its legacy threat intel switch beside no condition", () => {
+    const parsed: Array<SecurityPlaybookStep> = steps(CHECK, {
+      ...waitingOn("check", "Found"),
+      runIf: undefined,
+      onlyIfThreatIntelMatched: true,
+    });
+
+    expect(parsed[1]!.onlyIfThreatIntelMatched).toBe(true);
+    expect(parsed[1]!.runIf).toBeUndefined();
+    expect(() => {
+      assertSecurityPlaybookStepConditions(parsed);
+    }).not.toThrow();
+  });
+});
+
+describe("Add tasks", () => {
+  test("keeps the tasks one a line, trimmed, without empty lines or the same task twice", () => {
+    expect(
+      parseOne(SecurityPlaybookActionType.AddCaseTasks, {
+        tasks:
+          "  Confirm the sign-in  \n\nReset the password\nConfirm the sign-in\n",
+        assigneeUserId: USER_ID,
+      }).config,
+    ).toEqual({
+      tasks: ["Confirm the sign-in", "Reset the password"],
+      assigneeUserId: USER_ID,
+    });
+
+    // A list, as the API may send it.
+    expect(
+      parseOne(SecurityPlaybookActionType.AddCaseTasks, {
+        tasks: ["Check the device", " ", 42, "Check the device"],
+      }).config,
+    ).toEqual({ tasks: ["Check the device"] });
+  });
+
+  test("leaves out an assignee that is not an id: the tasks are for whoever works the case", () => {
+    expect(
+      parseOne(SecurityPlaybookActionType.AddCaseTasks, {
+        tasks: "Check the device",
+        assigneeUserId: "alice",
+      }).config,
+    ).toEqual({ tasks: ["Check the device"] });
+  });
+
+  test("needs a task, at most the limit, each within a line's length", () => {
+    expectRejected(
+      SecurityPlaybookActionType.AddCaseTasks,
+      { tasks: " \n " },
+      /Step 1 \(Add tasks\): write at least one task\./,
+    );
+
+    const many: Array<string> = [];
+
+    for (
+      let index: number = 0;
+      index <= SECURITY_PLAYBOOK_MAX_TASKS_PER_STEP;
+      index++
+    ) {
+      many.push(`Task ${index + 1}`);
+    }
+
+    expectRejected(
+      SecurityPlaybookActionType.AddCaseTasks,
+      { tasks: many.join("\n") },
+      new RegExp(
+        `a step adds at most ${SECURITY_PLAYBOOK_MAX_TASKS_PER_STEP} tasks; this one has ${SECURITY_PLAYBOOK_MAX_TASKS_PER_STEP + 1}`,
+      ),
+    );
+    expect(
+      parseOne(SecurityPlaybookActionType.AddCaseTasks, {
+        tasks: many.slice(0, SECURITY_PLAYBOOK_MAX_TASKS_PER_STEP).join("\n"),
+      }).config["tasks"],
+    ).toHaveLength(SECURITY_PLAYBOOK_MAX_TASKS_PER_STEP);
+
+    expectRejected(
+      SecurityPlaybookActionType.AddCaseTasks,
+      { tasks: "x".repeat(SECURITY_PLAYBOOK_TASK_MAX_LENGTH + 1) },
+      new RegExp(
+        `a task can be at most ${SECURITY_PLAYBOOK_TASK_MAX_LENGTH} characters`,
+      ),
+    );
+    expect(SECURITY_PLAYBOOK_MAX_TASKS_PER_STEP).toBe(20);
+    expect(SECURITY_PLAYBOOK_TASK_MAX_LENGTH).toBe(500);
+  });
+
+  test("reads lines from text or a list, and nothing from anything else", () => {
+    expect(readTaskLines("a\r\nb\n a ")).toEqual(["a", "b"]);
+    expect(readTaskLines(["a", "a", "b"])).toEqual(["a", "b"]);
+    expect(readTaskLines(undefined)).toEqual([]);
+    expect(readTaskLines(7)).toEqual([]);
+  });
+
+  test("is a Case step that stays inside OneUptime and needs no approval", () => {
+    const definition: SecurityPlaybookActionDefinition | undefined =
+      getSecurityPlaybookAction(SecurityPlaybookActionType.AddCaseTasks);
+
+    expect(definition?.category).toBe(SecurityPlaybookActionCategory.Case);
+    expect(definition?.isDisruptive).toBe(false);
+    expect(doesActionNeedApprovalByDefault(definition)).toBe(false);
+  });
+});
+
+describe("containment in Microsoft Entra ID and Google Workspace", () => {
+  const ENTRA: Array<SecurityPlaybookActionType> = [
+    SecurityPlaybookActionType.DisableEntraIdUser,
+    SecurityPlaybookActionType.SignOutEntraIdUser,
+    SecurityPlaybookActionType.EnableEntraIdUser,
+  ];
+  const WORKSPACE: Array<SecurityPlaybookActionType> = [
+    SecurityPlaybookActionType.SuspendGoogleWorkspaceUser,
+    SecurityPlaybookActionType.SignOutGoogleWorkspaceUser,
+    SecurityPlaybookActionType.UnsuspendGoogleWorkspaceUser,
+  ];
+
+  test("each acts on the case's users through a connection of its product", () => {
+    for (const [actions, provider] of [
+      [ENTRA, SecurityEventConnectorProvider.MicrosoftEntraId],
+      [WORKSPACE, SecurityEventConnectorProvider.GoogleWorkspace],
+    ] as Array<
+      [Array<SecurityPlaybookActionType>, SecurityEventConnectorProvider]
+    >) {
+      for (const action of actions) {
+        expect(getSecurityPlaybookAction(action)).toMatchObject({
+          category: SecurityPlaybookActionCategory.Contain,
+          connectionProvider: provider,
+          entityType: SecurityEntityType.User,
+        });
+        expect(actsOnSecurityEntities(getSecurityPlaybookAction(action))).toBe(
+          true,
+        );
+        expect(
+          parseOne(action, { connectionId: ` ${OTHER_ID} `, extra: 1 }).config,
+        ).toEqual({ connectionId: OTHER_ID });
+        expectRejected(action, {}, /choose the connection to act through/);
+      }
+    }
+  });
+
+  test("disabling, suspending and signing out cut someone off, so they wait for approval; enabling and unsuspending undo them", () => {
+    for (const action of [
+      SecurityPlaybookActionType.DisableEntraIdUser,
+      SecurityPlaybookActionType.SignOutEntraIdUser,
+      SecurityPlaybookActionType.SuspendGoogleWorkspaceUser,
+      SecurityPlaybookActionType.SignOutGoogleWorkspaceUser,
+    ]) {
+      expect(getSecurityPlaybookAction(action)?.isDisruptive).toBe(true);
+      expect(
+        parseOne(action, { connectionId: OTHER_ID }).requiresApproval,
+      ).toBe(true);
+    }
+
+    expect(
+      getSecurityPlaybookUndoAction(
+        SecurityPlaybookActionType.DisableEntraIdUser,
+      )?.type,
+    ).toBe(SecurityPlaybookActionType.EnableEntraIdUser);
+    expect(
+      getSecurityPlaybookUndoAction(
+        SecurityPlaybookActionType.SuspendGoogleWorkspaceUser,
+      )?.type,
+    ).toBe(SecurityPlaybookActionType.UnsuspendGoogleWorkspaceUser);
+    // A session that was ended stays ended.
+    expect(
+      getSecurityPlaybookUndoAction(
+        SecurityPlaybookActionType.SignOutEntraIdUser,
+      ),
+    ).toBeUndefined();
+    expect(
+      getSecurityPlaybookUndoAction(
+        SecurityPlaybookActionType.SignOutGoogleWorkspaceUser,
+      ),
+    ).toBeUndefined();
+  });
+
+  test("the picker lists them with the other containment steps, the steps that cut someone off before their undos", () => {
+    const contain: Array<SecurityPlaybookActionType> =
+      SECURITY_PLAYBOOK_ACTIONS.filter(
+        (action: SecurityPlaybookActionDefinition): boolean => {
+          return Boolean(action.connectionProvider);
+        },
+      ).map(
+        (
+          action: SecurityPlaybookActionDefinition,
+        ): SecurityPlaybookActionType => {
+          return action.type;
+        },
+      );
+    const firstUndo: number = contain.findIndex(
+      (type: SecurityPlaybookActionType): boolean => {
+        return Boolean(getSecurityPlaybookAction(type)?.undoes);
+      },
+    );
+
+    expect(
+      contain.slice(0, firstUndo).every((type: SecurityPlaybookActionType) => {
+        return getSecurityPlaybookAction(type)?.isDisruptive;
+      }),
+    ).toBe(true);
+    expect(
+      contain.slice(firstUndo).every((type: SecurityPlaybookActionType) => {
+        return Boolean(getSecurityPlaybookAction(type)?.undoes);
+      }),
+    ).toBe(true);
+  });
+});
+
+describe("the playbook templates", () => {
+  test("every template's steps pass the branching rule", () => {
+    for (const template of SECURITY_PLAYBOOK_TEMPLATE_DEFINITIONS) {
+      const built: Array<SecurityPlaybookStep> = parseSecurityPlaybookSteps(
+        template.getSteps({
+          priorityId: (): string => {
+            return OTHER_ID;
+          },
+          statusId: (): string => {
+            return OTHER_ID;
+          },
+        }),
+      );
+
+      expect(() => {
+        assertSecurityPlaybookStepConditions(built);
+      }).not.toThrow();
+    }
+  });
+
+  test("Escalate Known-Bad Indicators raises the case only on its threat intel check's match", () => {
+    const template: SecurityPlaybookTemplateDefinition | undefined =
+      getSecurityPlaybookTemplateDefinition("known-bad");
+    const built: Array<SecurityPlaybookStep> = template!.getSteps({
+      priorityId: (): string => {
+        return OTHER_ID;
+      },
+      statusId: (): string => {
+        return OTHER_ID;
+      },
+    });
+
+    expect(
+      built.map((item: SecurityPlaybookStep) => {
+        return item.action;
+      }),
+    ).toEqual([
+      SecurityPlaybookActionType.CheckThreatIntel,
+      SecurityPlaybookActionType.SetCasePriority,
+      SecurityPlaybookActionType.SetCaseStatus,
+    ]);
+
+    for (const later of built.slice(1)) {
+      expect(later.runIf).toEqual({
+        stepId: built[0]!.id,
+        outcome: SecurityPlaybookStepOutcome.Found,
+      });
+      expect(later.onlyIfThreatIntelMatched).toBe(false);
+    }
+
+    // Each build is a playbook of its own: new ids, the branch pointing at its own check.
+    const again: Array<SecurityPlaybookStep> = template!.getSteps({
+      priorityId: (): string => {
+        return OTHER_ID;
+      },
+      statusId: (): string => {
+        return OTHER_ID;
+      },
+    });
+
+    expect(again[0]!.id).not.toBe(built[0]!.id);
+    expect(again[1]!.runIf?.stepId).toBe(again[0]!.id);
   });
 });
