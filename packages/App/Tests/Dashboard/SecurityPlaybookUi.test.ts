@@ -564,10 +564,22 @@ describe("approval and undo in the editor and on a run", () => {
         SecurityPlaybookActionType.UnsuspendOktaUser,
         SecurityPlaybookActionType.LiftCrowdStrikeContainment,
         SecurityPlaybookActionType.ReleaseDefenderDevice,
+        SecurityPlaybookActionType.EnableEntraIdUser,
+        SecurityPlaybookActionType.UnsuspendGoogleWorkspaceUser,
       ].map((action: SecurityPlaybookActionType): string | undefined => {
         return UNDO_BUTTON_TITLES[action];
       }),
-    ).toEqual(["Unsuspend", "Lift Containment", "Release"]);
+    ).toEqual(["Unsuspend", "Lift Containment", "Release", "Enable", "Unsuspend"]);
+  });
+
+  test("every undo action has a button: a contained target can always be released", () => {
+    for (const definition of SECURITY_PLAYBOOK_ACTIONS) {
+      if (definition.undoes) {
+        expect([definition.type, Boolean(UNDO_BUTTON_TITLES[definition.type])]).toEqual(
+          [definition.type, true],
+        );
+      }
+    }
   });
 });
 
@@ -613,6 +625,28 @@ describe("a step's one-line summary", () => {
         connectionId: ID_A,
       }),
     ).toBe("Through Okta production");
+    // Entra ID and Workspace act through their connections, as Okta does.
+    expect(
+      summary(SecurityPlaybookActionType.DisableEntraIdUser, {
+        connectionId: ID_A,
+      }),
+    ).toBe("Through Okta production");
+    expect(
+      summary(SecurityPlaybookActionType.SignOutGoogleWorkspaceUser, {
+        connectionId: ID_B,
+      }),
+    ).toBe("Through a removed connection");
+    expect(
+      summary(SecurityPlaybookActionType.AddCaseTasks, {
+        tasks: ["Confirm the sign-in", "Reset the password"],
+        assigneeUserId: ID_A,
+      }),
+    ).toBe("2 tasks for a person");
+    expect(
+      summary(SecurityPlaybookActionType.AddCaseTasks, {
+        tasks: ["Confirm the sign-in"],
+      }),
+    ).toBe("1 task");
     expect(
       summary(SecurityPlaybookActionType.PageOnCall, { onCallPolicyId: ID_C }),
     ).toBe("Security on-call");
@@ -714,7 +748,7 @@ describe("a step's one-line summary", () => {
     ).toBe("On Acme Status, notifying subscribers");
     expect(
       responseSummary(SecurityPlaybookActionType.PreserveEvidence, {}),
-    ).toBe("Keeps session replays, notes traces and exceptions");
+    ).toBe("Keeps events and session replays, notes traces and exceptions");
     expect(responseSummary(SecurityPlaybookActionType.FixWithAi, {})).toBe(
       "A pull request for each exception the case's requests threw",
     );

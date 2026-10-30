@@ -132,8 +132,52 @@ describe("GoogleWorkspaceClient - acting as the administrator", () => {
       "unauthorized_client",
     );
     expect(error.message).toContain("token request failed (HTTP 401)");
-    expect(error.message).toContain("no domain-wide delegation");
+    expect(error.message).toContain(
+      "no domain-wide delegation for the admin.reports.audit.readonly scope",
+    );
     expect(error.message).not.toContain("PRIVATE KEY");
+  });
+
+  /*
+   * A playbook's containment step mints its token through this client for
+   * the Directory API's user scope (GoogleWorkspaceResponseClient): the
+   * assertion asks for that scope alone, and a delegation that lacks it is
+   * named by it.
+   */
+  test("a client for another scope asks for that scope alone, and a refusal names it", async () => {
+    const scope: string = "https://www.googleapis.com/auth/admin.directory.user";
+    const api: FakeWorkspaceApi = createFakeWorkspaceApi({});
+
+    await new GoogleWorkspaceClient({
+      serviceAccountJson: FAKE_SERVICE_ACCOUNT_JSON,
+      adminEmail: FAKE_ADMIN_EMAIL,
+      transport: api.transport,
+      requestTimeoutInMs: 15000,
+      scope,
+    }).getAccessToken();
+
+    expect(api.assertions[0]!["scope"]).toBe(scope);
+    expect(api.assertions[0]!["sub"]).toBe(FAKE_ADMIN_EMAIL);
+
+    const refused: FakeWorkspaceApi = createFakeWorkspaceApi({
+      tokenFailure: {
+        statusCode: 401,
+        body: { error: "unauthorized_client" },
+      },
+    });
+    const error: Error = await caught(
+      new GoogleWorkspaceClient({
+        serviceAccountJson: FAKE_SERVICE_ACCOUNT_JSON,
+        adminEmail: FAKE_ADMIN_EMAIL,
+        transport: refused.transport,
+        requestTimeoutInMs: 15000,
+        scope,
+      }).getAccessToken(),
+    );
+
+    expect(error.message).toContain(
+      "no domain-wide delegation for the admin.directory.user scope.",
+    );
   });
 
   test("an administrator Google does not know is named as such", async () => {

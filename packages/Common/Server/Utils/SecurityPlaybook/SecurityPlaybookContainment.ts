@@ -429,11 +429,9 @@ export default class SecurityPlaybookContainment {
     values: Array<string>;
     transport: ConnectorTransport;
   }): Promise<Map<string, ContainmentTargetOutcome>> {
-    const outcomes: Map<string, ContainmentTargetOutcome> = new Map();
-    let client: GoogleWorkspaceResponseClient;
-
-    try {
-      client = new GoogleWorkspaceResponseClient({
+    // A key that no longer reads fails each target with the reason, on its first request.
+    const client: GoogleWorkspaceResponseClient =
+      new GoogleWorkspaceResponseClient({
         serviceAccountJson: readSettingString(
           data.settings.secrets,
           "serviceAccountJson",
@@ -441,17 +439,7 @@ export default class SecurityPlaybookContainment {
         adminEmail: readSettingString(data.settings.config, "adminEmail"),
         transport: data.transport,
       });
-    } catch (error) {
-      // The connection's key no longer reads: every target fails the same way.
-      for (const value of data.values) {
-        outcomes.set(value, {
-          state: SecurityPlaybookTargetState.Failed,
-          detail: errorMessage(error),
-        });
-      }
-
-      return outcomes;
-    }
+    const outcomes: Map<string, ContainmentTargetOutcome> = new Map();
 
     for (const value of data.values) {
       try {

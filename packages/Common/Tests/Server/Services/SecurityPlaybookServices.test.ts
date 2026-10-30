@@ -115,6 +115,7 @@ function userTarget(
 
 type HookCaller<TModel extends DatabaseBaseModel> = {
   checkCreateBeforeReferences: (createBy: CreateBy<TModel>) => Promise<void>;
+  checkUpdateBeforeReferences: (updateBy: UpdateBy<TModel>) => Promise<void>;
   onBeforeCreate: (createBy: CreateBy<TModel>) => Promise<OnCreate<TModel>>;
   onBeforeUpdate: (updateBy: UpdateBy<TModel>) => Promise<OnUpdate<TModel>>;
 };
@@ -203,6 +204,103 @@ describe("SecurityPlaybookService", () => {
       `Security Case Status:${TEST_STATUS_IDS[SecurityCaseStage.Contained]}`,
       `Security Case Priority:${TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Critical]}`,
     ]);
+  });
+
+  test("names the person an Add tasks step hands its tasks to, for the project check", () => {
+    const references: Array<ProjectScopedReference> =
+      SecurityPlaybookServiceType.getStepReferences([
+        {
+          action: SecurityPlaybookActionType.AddCaseTasks,
+          config: {
+            tasks: ["Confirm the sign-in"],
+            assigneeUserId: OTHER_USER_ID.toString(),
+          },
+        },
+        {
+          action: SecurityPlaybookActionType.DisableEntraIdUser,
+          config: { connectionId: OTHER_CONNECTION_ID },
+        },
+      ]);
+
+    expect(
+      references.map((reference: ProjectScopedReference) => {
+        return `${reference.modelName}:${String(reference.id)}`;
+      }),
+    ).toEqual([
+      `User:${OTHER_USER_ID.toString()}`,
+      `Security Event Connection:${OTHER_CONNECTION_ID}`,
+    ]);
+  });
+
+  test("keeps a step's condition and holds the list to the branching rule, on create and on update", async () => {
+    const branching: SecurityPlaybook = new SecurityPlaybook();
+    branching.projectId = PROJECT_ID;
+    branching.name = "Contain or hand over";
+    branching.steps = [
+      { id: "check", action: SecurityPlaybookActionType.CheckThreatIntel },
+      {
+        id: "note",
+        action: SecurityPlaybookActionType.AddCaseNote,
+        config: { note: "Nothing known-bad: check by hand." },
+        runIf: { stepId: "check", outcome: "Found Nothing" },
+      },
+    ] as unknown as JSONArray;
+
+    await service.checkCreateBeforeReferences({
+      data: branching,
+      props: { isRoot: true },
+    });
+
+    expect(
+      (branching.steps as unknown as Array<SecurityPlaybookStep>)[1]!.runIf,
+    ).toEqual({ stepId: "check", outcome: "Found Nothing" });
+
+    // Waiting on a step after it.
+    const backwards: SecurityPlaybook = new SecurityPlaybook();
+    backwards.name = "Backwards";
+    backwards.steps = [
+      {
+        id: "note",
+        action: SecurityPlaybookActionType.AddCaseNote,
+        config: { note: "n" },
+        runIf: { stepId: "check", outcome: "Found" },
+      },
+      { id: "check", action: SecurityPlaybookActionType.CheckThreatIntel },
+    ] as unknown as JSONArray;
+
+    await expect(
+      service.checkCreateBeforeReferences({
+        data: backwards,
+        props: { isRoot: true },
+      }),
+    ).rejects.toThrow(
+      "Step 1 (Add a note): it runs after step 2, which comes after it. Move it below step 2, or choose again when it runs.",
+    );
+
+    // An update is held to it too: a failure the step it waits on never carries on past.
+    await expect(
+      service.checkUpdateBeforeReferences({
+        query: { _id: PLAYBOOK_ID },
+        data: {
+          steps: [
+            {
+              id: "note",
+              action: SecurityPlaybookActionType.AddCaseNote,
+              config: { note: "n" },
+            },
+            {
+              id: "slack",
+              action: SecurityPlaybookActionType.PostToSlack,
+              config: { channelName: "soc" },
+              runIf: { stepId: "note", outcome: "Failed" },
+            },
+          ],
+        } as never,
+        props: { isRoot: true },
+      }),
+    ).rejects.toThrow(
+      "Step 2 (Post to Slack): it runs only if step 1 (Add a note) fails, but a failed step 1 stops the run.",
+    );
   });
 
   test("reads rule id lists the way they are stored or posted", () => {

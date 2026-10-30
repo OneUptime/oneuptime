@@ -290,7 +290,7 @@ export function summarizeSecurityPlaybookStep(
     case SecurityPlaybookActionType.PreserveEvidence:
       return (
         translator.translateText(
-          "Keeps session replays, notes traces and exceptions",
+          "Keeps events and session replays, notes traces and exceptions",
         ) || ""
       );
     case SecurityPlaybookActionType.PostStatusPageAnnouncement: {

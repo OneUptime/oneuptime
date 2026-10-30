@@ -11,6 +11,7 @@ import Runbook from "../../../../Models/DatabaseModels/Runbook";
 import RunbookExecution from "../../../../Models/DatabaseModels/RunbookExecution";
 import RumSessionPin from "../../../../Models/DatabaseModels/RumSessionPin";
 import SecurityCase from "../../../../Models/DatabaseModels/SecurityCase";
+import SecurityDetection from "../../../../Models/DatabaseModels/SecurityDetection";
 import { SecurityCaseFeedEventType } from "../../../../Models/DatabaseModels/SecurityCaseFeed";
 import SecurityCaseNote from "../../../../Models/DatabaseModels/SecurityCaseNote";
 import StatusPage from "../../../../Models/DatabaseModels/StatusPage";
@@ -19,7 +20,9 @@ import TelemetryException from "../../../../Models/DatabaseModels/TelemetryExcep
 import AIService from "../../../../Server/Services/AIService";
 import RumSessionPinService from "../../../../Server/Services/RumSessionPinService";
 import RunbookService from "../../../../Server/Services/RunbookService";
+import SecurityCaseEvidenceService from "../../../../Server/Services/SecurityCaseEvidenceService";
 import SecurityCaseNoteService from "../../../../Server/Services/SecurityCaseNoteService";
+import SecurityDetectionService from "../../../../Server/Services/SecurityDetectionService";
 import SecurityProtectedEntityService from "../../../../Server/Services/SecurityProtectedEntityService";
 import StatusPageAnnouncementService from "../../../../Server/Services/StatusPageAnnouncementService";
 import StatusPageService from "../../../../Server/Services/StatusPageService";
@@ -475,6 +478,11 @@ describe("Preserve the evidence", () => {
     pins = [];
     notes = [];
 
+    // A case with no detection whose event could be kept, unless a test says otherwise.
+    jest
+      .spyOn(SecurityDetectionService, "findBy")
+      .mockResolvedValue([] as never);
+
     jest
       .spyOn(RumSessionPinService, "create")
       .mockImplementation((async (args: { data: RumSessionPin }) => {
@@ -591,6 +599,133 @@ describe("Preserve the evidence", () => {
     expect(outcome.status).toBe(SecurityPlaybookStepStatus.Succeeded);
     expect(outcome.summary.toString()).toContain("Kept 0 session replays");
     expect(notes[0]!.note).toContain("· could not be kept");
+  });
+
+  // The detections' events, kept on the case's Evidence page past their retention.
+  function detection(
+    eventUid: string | undefined,
+    lastSeenAt: string | undefined,
+  ): SecurityDetection {
+    const model: SecurityDetection = new SecurityDetection();
+
+    if (eventUid !== undefined) {
+      model.eventUid = eventUid;
+    }
+
+    if (lastSeenAt) {
+      model.lastSeenAt = new Date(lastSeenAt);
+    }
+
+    return model;
+  }
+
+  test("keeps the events behind the case's detections on its Evidence page, each once, as OneUptime", async () => {
+    const findBy: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(SecurityDetectionService, "findBy")
+      .mockResolvedValue([
+        detection("finding-1", "2026-10-30T09:00:00.000Z"),
+        detection("finding-1", "2026-10-30T09:05:00.000Z"),
+        detection("finding-2", "2026-10-30T09:10:00.000Z"),
+        // No event behind it, or no time to find it by: nothing to keep.
+        detection(undefined, "2026-10-30T09:10:00.000Z"),
+        detection("finding-3", undefined),
+      ] as never);
+    const addEvents: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(SecurityCaseEvidenceService, "addEvents")
+      .mockResolvedValue({
+        added: ["finding-1", "finding-2"],
+        alreadyOnCase: [],
+        notFound: [],
+      } as never);
+    jest.spyOn(SecurityCaseEvidence, "findRequests").mockResolvedValue([]);
+
+    const outcome: PlaybookStepOutcome = await SecurityPlaybookActions.execute(
+      context(SecurityPlaybookActionType.PreserveEvidence, {}),
+    );
+
+    expect(
+      (findBy.mock.calls[0]![0] as { query: JSONObject }).query,
+    ).toEqual({ projectId: PROJECT_ID, securityCaseId: CASE_ID });
+
+    const sent: {
+      projectId: ObjectID;
+      securityCaseId: ObjectID;
+      events: Array<{ eventUid: string; time: Date }>;
+      hunt: unknown;
+      props: JSONObject;
+    } = addEvents.mock.calls[0]![0] as never;
+
+    expect(sent.projectId).toEqual(PROJECT_ID);
+    expect(sent.securityCaseId).toEqual(CASE_ID);
+    expect(sent.hunt).toBeNull();
+    expect(sent.props).toEqual({ isRoot: true });
+    expect(
+      sent.events.map((event: { eventUid: string; time: Date }): string => {
+        return `${event.eventUid} ${event.time.toISOString()}`;
+      }),
+    ).toEqual([
+      "finding-1 2026-10-30T09:00:00.000Z",
+      "finding-2 2026-10-30T09:10:00.000Z",
+    ]);
+
+    // With no request behind the case, the events are what it kept.
+    expect(outcome.status).toBe(SecurityPlaybookStepStatus.Succeeded);
+    expect(outcome.summary.toString()).toBe(
+      "Kept 2 events behind the case's detections on its Evidence page. None of the case's events happened in a request OneUptime traced, so there is no trace, session replay or exception to keep.",
+    );
+  });
+
+  test("events the case keeps already are not kept twice, and with nothing else to keep the step is skipped", async () => {
+    jest
+      .spyOn(SecurityDetectionService, "findBy")
+      .mockResolvedValue([
+        detection("finding-1", "2026-10-30T09:00:00.000Z"),
+      ] as never);
+    jest.spyOn(SecurityCaseEvidenceService, "addEvents").mockResolvedValue({
+      added: [],
+      alreadyOnCase: ["finding-1"],
+      notFound: [],
+    } as never);
+    jest.spyOn(SecurityCaseEvidence, "findRequests").mockResolvedValue([]);
+
+    const outcome: PlaybookStepOutcome = await SecurityPlaybookActions.execute(
+      context(SecurityPlaybookActionType.PreserveEvidence, {}),
+    );
+
+    expect(outcome.status).toBe(SecurityPlaybookStepStatus.Skipped);
+    expect(outcome.summary.toString()).not.toContain("Evidence page");
+  });
+
+  test("events that could not be kept are said, and the requests' evidence is still kept", async () => {
+    jest
+      .spyOn(SecurityDetectionService, "findBy")
+      .mockResolvedValue([
+        detection("finding-1", "2026-10-30T09:00:00.000Z"),
+      ] as never);
+    jest
+      .spyOn(SecurityCaseEvidenceService, "addEvents")
+      .mockRejectedValue(new Error("ClickHouse is unavailable") as never);
+    jest
+      .spyOn(SecurityCaseEvidence, "findRequests")
+      .mockResolvedValue([request({ traceId: TRACE_ID })]);
+    jest.spyOn(SecurityCaseEvidence, "findSessionReplays").mockResolvedValue([]);
+    jest.spyOn(SecurityCaseEvidence, "findExceptions").mockResolvedValue([]);
+
+    const outcome: PlaybookStepOutcome = await SecurityPlaybookActions.execute(
+      context(SecurityPlaybookActionType.PreserveEvidence, {}),
+    );
+
+    expect(outcome.status).toBe(SecurityPlaybookStepStatus.Succeeded);
+    expect(outcome.summary.toString()).toBe(
+      "Kept 0 session replays, and noted 1 trace and 0 exceptions on the case.",
+    );
+    expect(outcome.detailsInMarkdown?.toString()).toContain(
+      "The events behind the case's detections could not be kept: ClickHouse is unavailable",
+    );
+    expect(outcome.detailsInMarkdown?.toString()).toContain(
+      "Logs and traces cannot be held longer than the project keeps telemetry",
+    );
+    expect(notes).toHaveLength(1);
   });
 });
 
