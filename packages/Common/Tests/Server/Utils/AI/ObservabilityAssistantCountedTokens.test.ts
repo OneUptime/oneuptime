@@ -21,7 +21,14 @@ import { afterEach, describe, expect, test } from "@jest/globals";
  * (AiTokenCount), the way the AI Logs and the daily limits do: the issue's
  * calls, which read the system prompt and the tools from the cache, count a
  * fraction of the tokens they sent.
+ *
+ * A cached token counts at the call's model's own prices (the cost catalog,
+ * Types/Telemetry/LlmCostCatalog): MODEL_NAME reads from its cache for $0.10
+ * a million tokens and writes to it for $2.50, against $2 for a fresh one -
+ * a twentieth, and one and a quarter.
  */
+
+const MODEL_NAME: string = "claude-sonnet-5-5";
 
 afterEach(() => {
   jest.restoreAllMocks();
@@ -47,7 +54,7 @@ function response(data: {
     llmLog: {
       ...data.tokens,
       llmProviderName: "Anthropic",
-      modelName: "claude-sonnet-5-5",
+      modelName: MODEL_NAME,
     },
   } as unknown as AILogResponse;
 }
@@ -118,11 +125,14 @@ describe("an investigation's tokens are counted by what they cost", () => {
     );
 
     expect(result.llmCallCount).toBe(3);
-    // 29,281 + 9,908 + 14,124 - not 85,325.
-    expect(result.totalTokens).toBe(29_281 + 9_908 + 14_124);
+    /*
+     * 3,463 fresh + 20,654 written (25,818), then 7,842 and 12,058 fresh +
+     * 20,654 read (1,033 each): 29,281 + 8,875 + 13,091 - not 85,325.
+     */
+    expect(result.totalTokens).toBe(29_281 + 8_875 + 13_091);
     expect(result.totalTokens).toBe(
       ISSUE_CALLS.reduce((sum: number, call: CallTokens) => {
-        return sum + AiTokenCount.count(call);
+        return sum + AiTokenCount.count({ ...call, modelName: MODEL_NAME });
       }, 0),
     );
   });
@@ -139,7 +149,7 @@ describe("an investigation's tokens are counted by what they cost", () => {
         .map((step: ObservabilityAssistantStep) => {
           return step.totalTokens;
         }),
-    ).toEqual([29_281, 9_908, 14_124]);
+    ).toEqual([29_281, 8_875, 13_091]);
   });
 
   test("a call that used no cache counts every token, as before", async () => {
