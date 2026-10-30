@@ -192,6 +192,10 @@ describe("the Logo card: the logo, and the logo for the dark theme", () => {
   test("its dialog takes the logo, then the dark theme logo: images, neither required", async () => {
     await renderPage();
 
+    // Named as its button is, not "Edit Dashboard".
+    expect(propsOf(LOGO_CARD)["editButtonText"]).toBe("Edit Logo");
+    expect(propsOf(LOGO_CARD)["editModalTitle"]).toBe("Edit Logo");
+
     const fields: Array<FieldShape> = formFieldsOf(LOGO_CARD);
 
     expect(columnsOf(fields)).toEqual(["logoFile", "darkThemeLogoFile"]);

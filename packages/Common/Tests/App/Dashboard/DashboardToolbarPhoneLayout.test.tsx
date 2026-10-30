@@ -16,6 +16,7 @@ import DashboardTextComponentUtil from "../../../Utils/Dashboard/Components/Dash
 import DefaultDashboardSize from "../../../Types/Dashboard/DashboardSize";
 import DashboardToolbar, {
   DASHBOARD_TOOLBAR_CONTROLS_TEST_ID,
+  DASHBOARD_TOOLBAR_END_TEST_ID,
   DASHBOARD_TOOLBAR_ROW_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Toolbar/DashboardToolbar";
 
@@ -25,11 +26,14 @@ import DashboardToolbar, {
  * wide, so on a phone the time range, the auto-refresh and the ⋯ menu sat
  * past the right edge of the screen. Now the row wraps:
  *
- * - the controls sit beside the dashboard's name while the name keeps 15rem
- *   (sm:basis-60), and wrap under it, at the row's end, where they do not;
- * - on a phone (below sm) the name and the ⋯ menu share the first line -
- *   the name takes what the menu leaves (basis-0) - and the controls have
- *   a line of their own, from its start (max-sm:order-last max-sm:w-full);
+ * - the controls and the ⋯ menu, in one box at the row's end, sit beside
+ *   the dashboard's name while the name keeps 15rem (sm:basis-60), and wrap
+ *   under it together, at the row's end, where they do not - the ⋯ menu
+ *   never left on a line of its own;
+ * - on a phone (below sm) that box is display: contents, so the name and
+ *   the ⋯ menu share the first line - the name takes what the menu leaves
+ *   (basis-0) - and the controls have a line of their own, from its start
+ *   (max-sm:order-last max-sm:w-full);
  * - the rule between the variables and the time range is not drawn on a
  *   phone, where it would hang at the end of a wrapped line.
  *
@@ -95,6 +99,14 @@ function row(): HTMLElement {
   return screen.getByTestId(DASHBOARD_TOOLBAR_ROW_TEST_ID);
 }
 
+// A class that applies from sm up, or the phone's display: contents.
+const SMALL_SCREEN_UP_OR_CONTENTS: RegExp = /^(?:sm:|max-sm:contents$)/;
+
+// The box at the row's end: the controls, then the ⋯ menu.
+function end(): HTMLElement {
+  return screen.getByTestId(DASHBOARD_TOOLBAR_END_TEST_ID);
+}
+
 function classesOf(element: Element): Array<string> {
   return element.className.split(/\s+/).filter(Boolean);
 }
@@ -122,14 +134,42 @@ describe("the toolbar's main row at a phone's width", () => {
     );
     const more: HTMLElement = screen.getByLabelText("More dashboard options");
 
-    expect(children).toHaveLength(3);
+    expect(children).toHaveLength(2);
     expect(
       within(children[0] as HTMLElement).getByText("Production wall screen"),
     ).toBeInTheDocument();
-    expect(children[1]).toBe(controls);
-    expect(children[2]!.contains(more)).toBe(true);
+    expect(children[1]).toBe(end());
+
+    // The controls first, the menu last, in one box.
+    const ends: Array<Element> = Array.from(end().children);
+
+    expect(ends).toHaveLength(2);
+    expect(ends[0]).toBe(controls);
+    expect(ends[1]!.contains(more)).toBe(true);
     // The menu is not one of the controls: on a phone it stays by the name.
     expect(controls.contains(more)).toBe(false);
+  });
+
+  test("the controls and the ⋯ menu wrap together beside the name; on a phone their box gives way so each is a part of the row", () => {
+    render(toolbar({}));
+
+    expect(classesOf(end())).toEqual(
+      expect.arrayContaining([
+        "max-sm:contents",
+        "sm:ms-auto",
+        "sm:flex",
+        "sm:flex-wrap",
+        "sm:items-center",
+        "sm:justify-end",
+      ]),
+    );
+    // Nothing of it applies on a phone but display: contents.
+    for (const name of classesOf(end())) {
+      expect([name, SMALL_SCREEN_UP_OR_CONTENTS.test(name)]).toEqual([
+        name,
+        true,
+      ]);
+    }
   });
 
   test("the name keeps 15rem beside the controls, and on a phone takes what the ⋯ menu leaves", () => {
@@ -155,7 +195,6 @@ describe("the toolbar's main row at a phone's width", () => {
         "flex-wrap",
         "max-sm:order-last",
         "max-sm:w-full",
-        "sm:ms-auto",
         "sm:justify-end",
       ]),
     );
@@ -167,7 +206,7 @@ describe("the toolbar's main row at a phone's width", () => {
   test("the ⋯ menu never shrinks", () => {
     render(toolbar({}));
 
-    expect(classesOf(row().children[2]!)).toContain("shrink-0");
+    expect(classesOf(end().children[1]!)).toContain("shrink-0");
   });
 
   test("the rule between the variables and the time range is not drawn on a phone", () => {
@@ -190,8 +229,10 @@ describe("the toolbar's main row at a phone's width", () => {
     expect(
       screen.queryByTestId(DASHBOARD_TOOLBAR_CONTROLS_TEST_ID),
     ).not.toBeInTheDocument();
-    expect(row().children).toHaveLength(2);
-    expect(screen.getByLabelText("More dashboard options")).toBeInTheDocument();
+    expect(end().children).toHaveLength(1);
+    expect(
+      end().contains(screen.getByLabelText("More dashboard options")),
+    ).toBe(true);
   });
 });
 

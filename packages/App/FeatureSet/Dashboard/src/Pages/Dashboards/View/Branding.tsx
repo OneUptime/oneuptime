@@ -93,6 +93,8 @@ const DashboardBranding: FunctionComponent<
         }}
         isEditable={true}
         editButtonText={"Edit Logo"}
+        // Named as its button is: it edited "Dashboard" as a whole before.
+        editModalTitle={"Edit Logo"}
         formFields={[
           {
             field: {
