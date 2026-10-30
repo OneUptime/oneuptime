@@ -511,6 +511,8 @@ Jede Konfiguration folgt derselben Form: Receiver für das, was gelesen wird, di
 
 Unter Linux liest der Collector `/proc` und `/sys`. Ein Collector in einem Container muss die des Hosts einhängen und `HOST_PROC` und `HOST_SYS` setzen (siehe [In einem Docker-Container](#in-einem-docker-container)); eine native Installation braucht nichts davon.
 
+Die Konfigurationen oben lassen im Scraper `filesystem` die Dateisysteme aus, die konstruktionsbedingt voll sind oder keine Daten enthalten (`exclude_fs_types`): snap-Pakete (`squashfs`) und andere schreibgeschützte Images, CDs und DVDs, `/dev` unter macOS (`devfs`) und die Maps des Automounters (`autofs`). Die vollen zeigen 100 % belegt, solange sie eingehängt sind, sodass die Vorlage High Filesystem Usage für sie auslösen und sich nie erholen würde: Behalten Sie den Ausschluss in einer eigenen Konfiguration bei. Ein schreibgeschütztes Image mit einem gewöhnlichen Dateisystem, etwa eine eingehängte `.dmg`, zeigt ebenfalls voll; lassen Sie seinen Einhängepunkt mit `exclude_mount_points` aus.
+
 ### Logdateien
 
 Verfolgen Sie jede Logdatei auf der Festplatte mit einem Receiver `filelog` und fügen Sie ihn der Pipeline `logs` hinzu:

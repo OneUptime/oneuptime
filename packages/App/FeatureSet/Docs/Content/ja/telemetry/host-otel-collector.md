@@ -511,6 +511,8 @@ Get-WinEvent -LogName Application -MaxEvents 20 | Where-Object ProviderName -eq 
 
 Linux では、Collector は `/proc` と `/sys` を読み取ります。コンテナ内の Collector はホストのものをマウントし、`HOST_PROC` と `HOST_SYS` を設定する必要があります ([Docker コンテナ内で](#docker-コンテナ内で) を参照)。ネイティブインストールでは何も必要ありません。
 
+上の設定は、設計上いっぱいのファイルシステムやデータを持たないファイルシステムを `filesystem` スクレイパーから除外しています (`exclude_fs_types`)。snap パッケージ (`squashfs`) などの読み取り専用イメージ、CD や DVD、macOS の `/dev` (`devfs`)、オートマウンターのマップ (`autofs`) です。いっぱいのものはマウントされている間ずっと 100% 使用中と読み取られるため、除外しないと High Filesystem Usage テンプレートがそれらで発火し、回復しません。独自の設定でもこの除外を残してください。通常のファイルシステムを持つ読み取り専用イメージ (マウントした `.dmg` など) もいっぱいと読み取られるため、そのマウントポイントは `exclude_mount_points` で除外してください。
+
 ### ファイルログ
 
 ディスク上の任意のログファイルを `filelog` レシーバーで追跡し、`logs` パイプラインに追加します:

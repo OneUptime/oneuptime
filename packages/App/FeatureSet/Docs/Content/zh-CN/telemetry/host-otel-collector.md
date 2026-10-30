@@ -511,6 +511,8 @@ Get-WinEvent -LogName Application -MaxEvents 20 | Where-Object ProviderName -eq 
 
 在 Linux 上，Collector 读取 `/proc` 和 `/sys`。容器中的 Collector 必须挂载主机的这两个目录并设置 `HOST_PROC` 和 `HOST_SYS`（见 [在 Docker 容器中](#在-docker-容器中)）；原生安装则什么都不需要。
 
+上面的配置把按设计就是满的或不存放数据的文件系统排除在 `filesystem` 抓取器之外（`exclude_fs_types`）：snap 软件包（`squashfs`）和其他只读镜像、CD 和 DVD、macOS 的 `/dev`（`devfs`）以及自动挂载器的映射（`autofs`）。满的那些只要处于挂载状态就一直显示 100% 已用，所以 High Filesystem Usage 模板会在它们上面触发且永远不会恢复：在你自己的配置中也请保留这项排除。带有普通文件系统的只读镜像（例如已挂载的 `.dmg`）同样显示为满；请用 `exclude_mount_points` 排除它的挂载点。
+
 ### 文件日志
 
 使用 `filelog` 接收器跟踪磁盘上的任何日志文件，并将其添加到 `logs` 管道：

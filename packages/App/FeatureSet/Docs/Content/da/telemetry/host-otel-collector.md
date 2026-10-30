@@ -511,6 +511,8 @@ Hver konfiguration følger samme form: receivers til det, der skal læses, proce
 
 På Linux læser collectoren `/proc` og `/sys`. En collector i en container skal montere værtens og sætte `HOST_PROC` og `HOST_SYS` (se [I en Docker-container](#i-en-docker-container)); en native installation behøver intet.
 
+Konfigurationerne ovenfor udelader de filsystemer fra scraperen `filesystem`, der er fulde med vilje eller ikke rummer data (`exclude_fs_types`): snap-pakker (`squashfs`) og andre skrivebeskyttede images, cd'er og dvd'er, macOS' `/dev` (`devfs`) og automounterens maps (`autofs`). De fulde viser 100 % brugt, så længe de er monteret, så skabelonen High Filesystem Usage ville udløses på dem og aldrig komme sig: behold udeladelsen i en konfiguration, du selv skriver. Et skrivebeskyttet image med et almindeligt filsystem, såsom en monteret `.dmg`, viser også fuldt; udelad dets monteringspunkt med `exclude_mount_points`.
+
 ### Fillogs
 
 Følg en hvilken som helst logfil på disken med en `filelog`-receiver, og tilføj den til `logs`-pipelinen:

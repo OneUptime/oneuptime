@@ -511,6 +511,8 @@ Elke configuratie heeft dezelfde vorm: receivers voor wat er gelezen wordt, de p
 
 Op Linux leest de collector `/proc` en `/sys`. Een collector in een container moet die van de host mounten en `HOST_PROC` en `HOST_SYS` instellen (zie [In een Docker-container](#in-een-docker-container)); een native installatie heeft niets nodig.
 
+De configuraties hierboven laten de bestandssystemen die bewust vol zijn of geen gegevens bevatten buiten de scraper `filesystem` (`exclude_fs_types`): snap-pakketten (`squashfs`) en andere alleen-lezen images, cd's en dvd's, `/dev` op macOS (`devfs`) en de maps van de automounter (`autofs`). De volle staan op 100% gebruikt zolang ze gemount zijn, dus het sjabloon High Filesystem Usage zou erop afgaan en nooit herstellen: houd de uitsluiting aan in een eigen configuratie. Een alleen-lezen image met een gewoon bestandssysteem, zoals een gemounte `.dmg`, staat ook vol; laat het mountpoint ervan weg met `exclude_mount_points`.
+
 ### Bestandslogs
 
 Volg elk logbestand op schijf met een `filelog`-receiver en voeg die toe aan de `logs`-pipeline:

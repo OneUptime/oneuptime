@@ -511,6 +511,8 @@ Todas as configurações seguem o mesmo formato: receivers para o que ler, os pr
 
 No Linux, o coletor lê `/proc` e `/sys`. Um coletor em um contêiner precisa montar os do host e definir `HOST_PROC` e `HOST_SYS` (veja [Em um contêiner Docker](#em-um-contêiner-docker)); uma instalação nativa não precisa de nada.
 
+As configurações acima deixam de fora do scraper `filesystem` os sistemas de arquivos que estão cheios por design ou que não guardam dados (`exclude_fs_types`): pacotes snap (`squashfs`) e outras imagens somente leitura, CDs e DVDs, o `/dev` do macOS (`devfs`) e os mapas do automounter (`autofs`). Os cheios aparecem 100% usados enquanto estiverem montados, então o modelo High Filesystem Usage dispararia neles e nunca se recuperaria: mantenha a exclusão em uma configuração sua. Uma imagem somente leitura com um sistema de arquivos comum, como um `.dmg` montado, também aparece cheia; deixe o ponto de montagem dela de fora com `exclude_mount_points`.
+
 ### Logs de arquivos
 
 Acompanhe qualquer arquivo de log no disco com um receiver `filelog` e adicione-o ao pipeline `logs`:

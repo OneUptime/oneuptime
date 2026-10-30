@@ -511,6 +511,8 @@ Varje konfiguration har samma form: receivers för det som ska läsas, processor
 
 På Linux läser collectorn `/proc` och `/sys`. En collector i en container måste montera värdens och sätta `HOST_PROC` och `HOST_SYS` (se [I en Docker-container](#i-en-docker-container)); en inbyggd installation behöver ingenting.
 
+Konfigurationerna ovan utelämnar filsystemen som är fulla med avsikt eller saknar data från skraparen `filesystem` (`exclude_fs_types`): snap-paket (`squashfs`) och andra skrivskyddade avbilder, cd- och dvd-skivor, `/dev` på macOS (`devfs`) och automonterarens kartor (`autofs`). De fulla visar 100 % använt så länge de är monterade, så mallen High Filesystem Usage skulle utlösas för dem och aldrig återhämta sig: behåll undantaget i en egen konfiguration. En skrivskyddad avbild med ett vanligt filsystem, till exempel en monterad `.dmg`, visar också fullt; utelämna dess monteringspunkt med `exclude_mount_points`.
+
 ### Filloggar
 
 Följ vilken loggfil som helst på disken med en `filelog`-receiver, och lägg till den i `logs`-pipelinen:

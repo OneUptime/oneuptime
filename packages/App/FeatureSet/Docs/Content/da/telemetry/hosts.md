@@ -32,7 +32,7 @@ Hver vært kører én konfiguration, valgt i denne rækkefølge:
 | Den første af **Collector-konfigurationer**, der gælder for den | En konfiguration gælder, når den er til værtens system og, hvis den nævner etiketter, værten har en af dem. |
 | OneUptimes standard for dens system | Ingen konfiguration gælder. |
 
-OneUptimes standard læser CPU, hukommelse, diske, filsystemer, netværk og processer på alle systemer; journalen og systemd-enheder på Linux, hvor værten har dem; hændelseslogfilerne System, Application og Security og Windows-tjenester på Windows; og installations- og Wi-Fi-logfilerne i `/var/log` på macOS. Den følger OneUptimes udgivelser, så en vært på standarden får OneUptimes forbedringer af den.
+OneUptimes standard læser CPU, hukommelse, diske, filsystemer, netværk og processer på alle systemer; journalen og systemd-enheder på Linux, hvor værten har dem; hændelseslogfilerne System, Application og Security og Windows-tjenester på Windows; og installations- og Wi-Fi-logfilerne i `/var/log` på macOS. Den udelader de filsystemer, der er fulde med vilje, som snap-pakker og `/dev` på macOS, så de aldrig får skabelonen High Filesystem Usage til at blive ved med at udløses. Den følger OneUptimes udgivelser, så en vært på standarden får OneUptimes forbedringer af den.
 
 ## Før du starter
 

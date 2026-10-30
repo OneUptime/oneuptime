@@ -113,7 +113,7 @@ Un criterio scatta solo quando la condizione vale per ogni minuto della sua fine
 - **Host Stopped Reporting** scatta quando dall'host non arriva nulla per dieci minuti: la macchina è giù o irraggiungibile, oppure il suo collector si è fermato, ha perso la connessione a OneUptime o si è visto revocare il token. Si risolve quando i dati tornano ad arrivare. Quando i dati smettono di arrivare, gli altri modelli non hanno nulla da confrontare e mantengono il loro ultimo stato, quindi è questo il modello che ve lo segnala.
 - **CPU** è il tempo occupato (`user` più `system`), lo stesso valore mostrato nei grafici della **Panoramica** dell'host. Attesa I/O e steal sono esclusi.
 - **Memoria** esclude i buffer e la cache delle pagine, quindi un host occupato soprattutto dalla cache non la fa scattare.
-- **Filesystem** apre un incidente per ogni mount. I pseudo-filesystem in sola lettura, come i mount snap `squashfs` o `devfs` di macOS, sono sempre pieni al 100%; escludeteli nello scraper `filesystem` del collector.
+- **Filesystem** apre un incidente per ogni mount. I pseudo-filesystem in sola lettura, come i mount snap `squashfs` o `devfs` di macOS, sono sempre pieni al 100%: le configurazioni del collector di OneUptime li lasciano fuori dallo scraper `filesystem` con `exclude_fs_types`, e una configurazione vostra ha bisogno dello stesso.
 - **Media di carico** è una lunghezza grezza della coda di esecuzione, non divisa per il numero di core: 4 è saturazione su un host a 2 core e routine su uno a 32 core, quindi alzatela sugli host grandi.
 - **Numero di processi** confronta il singolo stato di processo più grande (`running`, `sleeping`, …), non il totale dell'host, quindi non corrisponderà a un elenco dei processi. Lo scraper dei processi comunica solo su Linux.
 
@@ -212,7 +212,7 @@ Il monitor limita ogni query a `resource.host.name` uguale all'host che avete sc
 :::
 
 :::details High Filesystem Usage scatta per un mount sempre pieno
-I pseudo-filesystem in sola lettura, come i mount loop snap `squashfs` sotto `/snap` o `devfs` di macOS, sono pieni al 100% per progettazione e non si riprendono mai. Escludeteli dallo scraper `filesystem` del collector.
+I pseudo-filesystem in sola lettura, come i mount loop snap `squashfs` sotto `/snap` o `devfs` di macOS, sono pieni al 100% per progettazione e non si riprendono mai. Le configurazioni che OneUptime esegue e distribuisce li lasciano fuori con `exclude_fs_types`; una configurazione vostra, o una Configurazione del collector creata prima che lo facessero, ha bisogno dello stesso: copiatelo da [Metriche dell'host](/docs/telemetry/host-otel-collector#metriche-dellhost). Lasciate fuori un altro mount sempre pieno, come un `.dmg` montato, con `exclude_mount_points`.
 :::
 
 ## Passaggi successivi
