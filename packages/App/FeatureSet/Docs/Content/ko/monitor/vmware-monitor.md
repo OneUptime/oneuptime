@@ -130,11 +130,11 @@ OneUptime은 흔한 VMware 문제를 위한 템플릿 24개를 제공하며, **Q
 | Cluster Host Not Effective | 클러스터 | 심각 | `vcenter.cluster.host.count` 를 `effective = false` 로 필터링, `resource.vcenter.cluster.name` 별 Max | 0 초과: 호스트가 유지 관리 모드이거나, 연결이 끊겼거나, 응답하지 않아 클러스터가 설계보다 적은 용량으로 동작함 | 다시 0 |
 | Datacenter Hosts Unhealthy | 데이터센터 | 심각 | `vcenter.datacenter.host.count` 를 `status = red` 로 필터링, `resource.vcenter.datacenter.name` 별 Max | 0 초과: 호스트에 심각 경보가 있음(하드웨어 센서, 끊긴 스토리지 경로, HA 에이전트 오류 등) | 다시 0 |
 | Datacenter Hosts Degraded | 데이터센터 | Warning | `vcenter.datacenter.host.count` 를 `status = yellow` 로 필터링, 데이터센터별 Max | 0 초과: 호스트에 경고 경보가 있음 | 다시 0 |
-| Datacenter Hosts Powered Off | 데이터센터 | Warning | `vcenter.datacenter.host.count` 를 `power_state = off` 로 필터링, 데이터센터별 Max | 0 초과: 호스트의 전원이 꺼짐(충돌, 전원 상실, DPM에 의한 대기) | 다시 0 |
+| Datacenter Hosts Not Responding | 데이터센터 | 심각 | `vcenter.datacenter.host.count` 를 `power_state = unknown` 로 필터링, 데이터센터별 Max | 0 초과: vCenter가 호스트와의 연결을 잃음(충돌, 전원 또는 관리 네트워크 상실, 연결 해제). 일부러 전원을 끈 호스트나 DPM에 의한 대기 호스트는 세지 않음 | 다시 0 |
 | Datacenter VMs Unhealthy | 데이터센터 | Warning | `vcenter.datacenter.vm.count` 를 `status = red` 로 필터링, 데이터센터별 Max | 0 초과: VM에 심각 경보가 있음(실패한 HA 재시작, 잃어버린 데이터스토어, 끊긴 Tools 하트비트 등) | 다시 0 |
 | Datacenter Clusters Unhealthy | 데이터센터 | 심각 | `vcenter.datacenter.cluster.count` 를 `status = red` 로 필터링, 데이터센터별 Max | 0 초과: 클러스터에 심각 경보가 있음(HA 장애 조치 리소스 부족, HA 선출 실패, 심각한 vSAN 상태 검사 등) | 다시 0 |
-| vSAN Latency High | vSAN | Warning | `vcenter.cluster.vsan.latency.avg`, 클러스터별 Avg | 20 000 µs (20 ms) 초과: vSAN 데이터스토어의 모든 VM에서 스토리지가 느려짐. vSAN이 없는 클러스터에서는 조용함 | 18 000 µs 이하 |
-| vSAN Congestion | vSAN | Warning | `vcenter.cluster.vsan.congestions`, 클러스터별 Max | 0 초과: 디스크 그룹이 따라가지 못해 vSAN이 클라이언트의 I/O를 늦춤 | 다시 0 |
+| vSAN Latency High | vSAN | Warning | `vcenter.cluster.vsan.latency.avg`, 클러스터별 Avg, **최근 15분** | 20 000 µs (20 ms) 초과: vSAN 데이터스토어의 모든 VM에서 스토리지가 느려짐. vSAN이 없는 클러스터에서는 조용함 | 18 000 µs 이하 |
+| vSAN Congestion | vSAN | Warning | `vcenter.cluster.vsan.congestions`, 클러스터별 Max, **최근 15분** | 0 초과: 디스크 그룹이 따라가지 못해 vSAN이 클라이언트의 I/O를 늦춤 | 다시 0 |
 | Resource Pool Memory Swapped | 클러스터 | Warning | `vcenter.resource_pool.memory.swapped`, `resource.vcenter.resource_pool.inventory_path` 별 Max | 0 초과: 풀의 VM이 호스트 스왑에서 메모리를 얻음. 대개 풀의 메모리 제한이나 공유가 너무 낮기 때문 | 다시 0 |
 
 **심각도** 는 선택기가 보여 주는 레이블입니다. 템플릿이 만드는 인시던트와 알림은 프로젝트에서 가장 심각한 인시던트 및 알림 심각도로 시작하며, 기준에서 바꿀 수 있습니다.

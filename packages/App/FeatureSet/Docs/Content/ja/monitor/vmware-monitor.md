@@ -130,11 +130,11 @@ OneUptime には VMware のよくある問題向けに 24 個のテンプレー�
 | Cluster Host Not Effective | クラスター | 重大 | `vcenter.cluster.host.count` を `effective = false` に絞り込み、`resource.vcenter.cluster.name` ごとに Max | 0 を超える: ホストがメンテナンスモード、切断、応答なしのいずれかで、クラスターが想定より少ない容量で動いている | 0 に戻る |
 | Datacenter Hosts Unhealthy | データセンター | 重大 | `vcenter.datacenter.host.count` を `status = red` に絞り込み、`resource.vcenter.datacenter.name` ごとに Max | 0 を超える: ホストに重大なアラームがある (ハードウェアセンサー、ストレージパスの喪失、HA エージェントのエラーなど) | 0 に戻る |
 | Datacenter Hosts Degraded | データセンター | 警告 | `vcenter.datacenter.host.count` を `status = yellow` に絞り込み、データセンターごとに Max | 0 を超える: ホストに警告のアラームがある | 0 に戻る |
-| Datacenter Hosts Powered Off | データセンター | 警告 | `vcenter.datacenter.host.count` を `power_state = off` に絞り込み、データセンターごとに Max | 0 を超える: ホストの電源が切れている (クラッシュ、電源の喪失、DPM によるスタンバイ) | 0 に戻る |
+| Datacenter Hosts Not Responding | データセンター | 重大 | `vcenter.datacenter.host.count` を `power_state = unknown` に絞り込み、データセンターごとに Max | 0 を超える: vCenter がホストとの接続を失った (クラッシュ、電源や管理ネットワークの喪失、切断)。意図的に電源を切ったホストや DPM によるスタンバイ中のホストは数えない | 0 に戻る |
 | Datacenter VMs Unhealthy | データセンター | 警告 | `vcenter.datacenter.vm.count` を `status = red` に絞り込み、データセンターごとに Max | 0 を超える: VM に重大なアラームがある (HA の再起動の失敗、データストアの喪失、Tools のハートビートの喪失など) | 0 に戻る |
 | Datacenter Clusters Unhealthy | データセンター | 重大 | `vcenter.datacenter.cluster.count` を `status = red` に絞り込み、データセンターごとに Max | 0 を超える: クラスターに重大なアラームがある (HA フェイルオーバーのリソース不足、HA 選出の失敗、vSAN の重大なヘルスチェックなど) | 0 に戻る |
-| vSAN Latency High | vSAN | 警告 | `vcenter.cluster.vsan.latency.avg`、クラスターごとに Avg | 20 000 µs (20 ms) を超える: vSAN データストア上のすべての VM でストレージが遅くなる。vSAN のないクラスターでは発火しない | 18 000 µs 以下 |
-| vSAN Congestion | vSAN | 警告 | `vcenter.cluster.vsan.congestions`、クラスターごとに Max | 0 を超える: ディスクグループが追いつかず、vSAN がクライアントの I/O を遅くしている | 0 に戻る |
+| vSAN Latency High | vSAN | 警告 | `vcenter.cluster.vsan.latency.avg`、クラスターごとに Avg、**過去 15 分** | 20 000 µs (20 ms) を超える: vSAN データストア上のすべての VM でストレージが遅くなる。vSAN のないクラスターでは発火しない | 18 000 µs 以下 |
+| vSAN Congestion | vSAN | 警告 | `vcenter.cluster.vsan.congestions`、クラスターごとに Max、**過去 15 分** | 0 を超える: ディスクグループが追いつかず、vSAN がクライアントの I/O を遅くしている | 0 に戻る |
 | Resource Pool Memory Swapped | クラスター | 警告 | `vcenter.resource_pool.memory.swapped`、`resource.vcenter.resource_pool.inventory_path` ごとに Max | 0 を超える: プールの VM がホストのスワップからメモリを得ている。たいていはプールのメモリの制限やシェアが低すぎるため | 0 に戻る |
 
 **重大度** はピッカーが表示するラベルです。テンプレートが作成するインシデントとアラートは、プロジェクトで最も重大なインシデントとアラートの重大度から始まります。条件の中で変更してください。
