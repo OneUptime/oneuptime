@@ -820,7 +820,9 @@ describe("containment in Microsoft Entra ID", () => {
     expect(stateOf(outcome, "bob@contoso.com")).toBe(
       SecurityPlaybookTargetState.AlreadyDone,
     );
-    expect(stateOf(outcome, "ghost")).toBe(SecurityPlaybookTargetState.NotFound);
+    expect(stateOf(outcome, "ghost")).toBe(
+      SecurityPlaybookTargetState.NotFound,
+    );
     expect(outcome.detailsInMarkdown?.toString()).toContain(
       "`ghost`: not found in Microsoft Entra ID",
     );

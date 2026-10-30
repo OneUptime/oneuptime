@@ -1,7 +1,4 @@
-import SigmaRule, {
-  SigmaFieldRequirement,
-  SigmaSelection,
-} from "./SigmaRule";
+import SigmaRule, { SigmaFieldRequirement, SigmaSelection } from "./SigmaRule";
 import { DetectionRuleDefinition } from "./SigmaCorrelation";
 
 /*

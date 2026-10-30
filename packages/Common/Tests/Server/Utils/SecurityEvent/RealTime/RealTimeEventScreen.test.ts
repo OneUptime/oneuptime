@@ -127,9 +127,9 @@ describe("plain values, whatever the case", () => {
     expect(screen("  sel:\n    message|endswith: ssh2\n  condition: sel")).toBe(
       "yes",
     );
-    expect(
-      screen("  sel:\n    message|endswith: ssh3\n  condition: sel"),
-    ).toBe("no");
+    expect(screen("  sel:\n    message|endswith: ssh3\n  condition: sel")).toBe(
+      "no",
+    );
     expect(
       screen("  sel:\n    message|contains: accepted\n  condition: sel"),
     ).toBe("no");
@@ -155,11 +155,9 @@ describe("plain values, whatever the case", () => {
       screen("  sel:\n    principalHost: 'web\\*'\n  condition: sel"),
     ).toBe("no");
     // LIKE's own % and _ are text in a Sigma value.
-    expect(
-      screen(
-        "  sel:\n    principalUser: 'a_ice'\n  condition: sel",
-      ),
-    ).toBe("no");
+    expect(screen("  sel:\n    principalUser: 'a_ice'\n  condition: sel")).toBe(
+      "no",
+    );
     expect(
       screen(
         "  sel:\n    principalUser|contains: '%'\n  condition: sel",
@@ -283,9 +281,9 @@ describe("numbers, addresses, lists and presence", () => {
     expect(
       screen("  sel:\n    src.country|exists: true\n  condition: sel"),
     ).toBe("yes");
-    expect(
-      screen("  sel:\n    src.city|exists: true\n  condition: sel"),
-    ).toBe("no");
+    expect(screen("  sel:\n    src.city|exists: true\n  condition: sel")).toBe(
+      "no",
+    );
     expect(screen("  sel:\n    src.city: null\n  condition: sel")).toBe("yes");
     expect(screen("  sel:\n    targetUser: null\n  condition: sel")).toBe(
       "yes",
@@ -296,9 +294,7 @@ describe("numbers, addresses, lists and presence", () => {
   });
 
   test("an attribute's own text is read; one that is not text is the database's", () => {
-    expect(screen("  sel:\n    src.country: nl\n  condition: sel")).toBe(
-      "yes",
-    );
+    expect(screen("  sel:\n    src.country: nl\n  condition: sel")).toBe("yes");
     expect(screen("  sel:\n    event.count: 3\n  condition: sel")).toBe(
       "maybe",
     );
@@ -307,9 +303,9 @@ describe("numbers, addresses, lists and presence", () => {
   });
 
   test("keywords match the message, any of them", () => {
-    expect(screen("  keywords:\n    - nothing\n    - SSH2\n  condition: keywords")).toBe(
-      "yes",
-    );
+    expect(
+      screen("  keywords:\n    - nothing\n    - SSH2\n  condition: keywords"),
+    ).toBe("yes");
     expect(screen("  keywords:\n    - nothing\n  condition: keywords")).toBe(
       "no",
     );
@@ -369,7 +365,10 @@ describe("what the screen leaves to the database", () => {
       screen("  sel:\n    principalUser: bob\n  condition: sel", accented),
     ).toBe("maybe");
     expect(
-      screen("  sel:\n    principalUser|cased: José\n  condition: sel", accented),
+      screen(
+        "  sel:\n    principalUser|cased: José\n  condition: sel",
+        accented,
+      ),
     ).toBe("yes");
     // A ? over text outside ASCII is the database's, compared exactly or not.
     expect(
@@ -393,9 +392,9 @@ describe("what the screen leaves to the database", () => {
       message: "x".repeat(REAL_TIME_SCREEN_TEXT_LIMIT + 1),
     });
 
-    expect(screen("  sel:\n    message|contains: evil\n  condition: sel", long)).toBe(
-      "maybe",
-    );
+    expect(
+      screen("  sel:\n    message|contains: evil\n  condition: sel", long),
+    ).toBe("maybe");
     expect(REAL_TIME_SCREEN_TEXT_LIMIT).toBe(65536);
   });
 
@@ -442,9 +441,11 @@ describe("the wildcard matcher", () => {
     ];
 
     for (const [text, pattern, expected] of cases) {
-      expect([text, pattern, matchesWildcard(text, readSigmaPattern(pattern))]).toEqual(
-        [text, pattern, expected],
-      );
+      expect([
+        text,
+        pattern,
+        matchesWildcard(text, readSigmaPattern(pattern)),
+      ]).toEqual([text, pattern, expected]);
     }
   });
 

@@ -298,6 +298,11 @@ const role = params.get("role") === "viewer" ? "viewer" : "owner";
  */
 const hasEveryFreeList = !isEmpty && params.get("lists") === "all";
 /*
+ * ?realtime=1: one of the team's own rules checks each event as it arrives
+ * (Run in Real Time), on no interval.
+ */
+const hasRealTimeRule = !isEmpty && params.get("realtime") === "1";
+/*
  * ?ai=off: the project's Enable AI is off. Every AI part of Security reads
  * it (useAiOffered) and draws nothing; the AI settings page says AI is off.
  */
@@ -2063,6 +2068,40 @@ if (!isEmpty) {
     shouldCreateCase: true,
     lastEvaluatedAt: ago(9 * MINUTE),
     createdAt: ago(5 * DAY),
+  });
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * A rule of the team's own that runs in real time (?realtime=1): it fires on
+ * one event, so it checks each as it arrives, and its Status and Interval say
+ * Real time.
+ * ---------------------------------------------------------------------------
+ */
+const REAL_TIME_RULE_YAML = `title: Break-glass account signed in
+level: critical
+detection:
+  selection:
+    className: Authentication
+    statusName: Success
+    principalUser|startswith: breakglass
+  condition: selection
+`;
+
+if (hasRealTimeRule) {
+  insert(DetectionRule, {
+    _id: ID.rule(32),
+    name: "Break-glass account signed in",
+    description:
+      "A break-glass account signed in: checked as each event arrives.",
+    sigmaRuleYaml: REAL_TIME_RULE_YAML,
+    isEnabled: true,
+    isRealTime: true,
+    evaluationIntervalInMinutes: 5,
+    matchCountThreshold: 1,
+    shouldCreateCase: true,
+    lastMatchAt: hasHistory ? ago(2 * DAY) : undefined,
+    createdAt: ago(2 * DAY),
   });
 }
 

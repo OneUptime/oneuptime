@@ -433,8 +433,7 @@ export function getStepMoveBlock(data: {
 }): string | undefined {
   const { steps, index, direction, translator } = data;
   const step: SecurityPlaybookStep | undefined = steps[index];
-  const neighbour: SecurityPlaybookStep | undefined =
-    steps[index + direction];
+  const neighbour: SecurityPlaybookStep | undefined = steps[index + direction];
 
   if (!step || !neighbour) {
     return undefined;

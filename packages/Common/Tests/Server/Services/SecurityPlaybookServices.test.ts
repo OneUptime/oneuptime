@@ -297,6 +297,8 @@ describe("SecurityPlaybookService", () => {
           ],
         } as never,
         props: { isRoot: true },
+        limit: 1,
+        skip: 0,
       }),
     ).rejects.toThrow(
       "Step 2 (Post to Slack): it runs only if step 1 (Add a note) fails, but a failed step 1 stops the run.",

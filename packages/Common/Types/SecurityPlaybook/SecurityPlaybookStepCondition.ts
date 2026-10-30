@@ -108,7 +108,10 @@ export function getSecurityPlaybookStepOutcomes(step: {
   const outcomes: Array<SecurityPlaybookStepOutcome> = getSecurityPlaybookFinds(
     step.action,
   )
-    ? [SecurityPlaybookStepOutcome.Found, SecurityPlaybookStepOutcome.FoundNothing]
+    ? [
+        SecurityPlaybookStepOutcome.Found,
+        SecurityPlaybookStepOutcome.FoundNothing,
+      ]
     : [SecurityPlaybookStepOutcome.Succeeded];
 
   if (step.continueOnFailure) {
@@ -167,7 +170,10 @@ export function readSecurityPlaybookStepCondition(
     typeof record["stepId"] === "string" ? record["stepId"].trim() : "";
   const outcome: JSONValue | undefined = record["outcome"];
 
-  if (!stepId && (outcome === undefined || outcome === null || outcome === "")) {
+  if (
+    !stepId &&
+    (outcome === undefined || outcome === null || outcome === "")
+  ) {
     return undefined;
   }
 
@@ -247,8 +253,7 @@ export function evaluateSecurityPlaybookStepCondition(data: {
   if (waitedOn < 0 || waitedOn >= data.index) {
     return {
       holds: false,
-      reason:
-        "Skipped: the step it runs after is not before it in this run.",
+      reason: "Skipped: the step it runs after is not before it in this run.",
     };
   }
 

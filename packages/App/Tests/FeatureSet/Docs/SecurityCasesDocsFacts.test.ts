@@ -88,7 +88,6 @@ import {
   getSecurityPlaybookStepOutcomes,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookStepCondition";
 import { SECURITY_PLAYBOOK_TEMPLATE_DEFINITIONS } from "Common/Types/SecurityPlaybook/SecurityPlaybookTemplates";
-import { SecurityPlaybookStep } from "Common/Types/SecurityPlaybook/SecurityPlaybookStep";
 import { MAX_NOTIFIED_DATA_STORES } from "Common/Server/Utils/SecurityPlaybook/SecurityPlaybookDataStoreOwners";
 import Permission from "Common/Types/Permission";
 import OcsfSeverity from "Common/Types/SecurityEvent/OcsfSeverity";
@@ -134,6 +133,7 @@ import {
 import SecurityPlaybookRunStatus from "Common/Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import {
   SECURITY_PLAYBOOK_MAX_STEPS,
+  SecurityPlaybookStep,
   TURN_OFF_CONTAINMENT_APPROVAL_PERMISSIONS,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookStep";
 import { matchesProtectedEntityPattern } from "Common/Types/SecurityPlaybook/SecurityProtectedEntity";

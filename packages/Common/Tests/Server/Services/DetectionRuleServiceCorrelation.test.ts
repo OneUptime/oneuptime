@@ -227,9 +227,7 @@ detection:
     const hold: Spy = getJestSpyOn(
       DetectionRuleService,
       "findRowsAndHoldUpdateToThem",
-    ).mockResolvedValue([
-      storedRule(RULE_ID.toString(), FAILED),
-    ] as never);
+    ).mockResolvedValue([storedRule(RULE_ID.toString(), FAILED)] as never);
     const findAllBy: Spy = getJestSpyOn(DetectionRuleService, "findAllBy");
 
     const result: OnUpdate<DetectionRule> = await service.onBeforeUpdate(

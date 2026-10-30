@@ -16360,7 +16360,7 @@
   "Sigma Rule (YAML)": "Sigma 規則（YAML）",
   "Sigma detection rules evaluated against security events. Matches create alerts and detection findings.": "針對安全事件評估的 Sigma 偵測規則。符合時會建立警示和偵測發現。",
   "Sigma rule YAML — title, logsource, detection and condition.": "Sigma 規則 YAML — title、logsource、detection 和 condition。",
-  "Sigma rules run on a schedule against your security events. A matching rule can raise an alert and open a case.": "Sigma 規則依排程針對你的安全事件執行。相符的規則可以發出警示並建立案件。",
+  "Sigma rules run on a schedule, or on each event as it arrives, against your security events. A matching rule can raise an alert and open a case.": "Sigma 規則依排程或在每個事件到達時針對你的安全事件執行。相符的規則可以發出警示並建立案件。",
   "Sign in with OneUptime.": "Sign in with OneUptime.",
   "Sign in without a password using your fingerprint, face, screen lock, or a compatible security key.": "Sign in without a password using your fingerprint, face, screen lock, or a compatible security key.",
   "Sign on URL": "Sign on URL",

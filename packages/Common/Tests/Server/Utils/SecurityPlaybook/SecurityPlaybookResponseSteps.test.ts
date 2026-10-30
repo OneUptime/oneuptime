@@ -643,9 +643,10 @@ describe("Preserve the evidence", () => {
       context(SecurityPlaybookActionType.PreserveEvidence, {}),
     );
 
-    expect(
-      (findBy.mock.calls[0]![0] as { query: JSONObject }).query,
-    ).toEqual({ projectId: PROJECT_ID, securityCaseId: CASE_ID });
+    expect((findBy.mock.calls[0]![0] as { query: JSONObject }).query).toEqual({
+      projectId: PROJECT_ID,
+      securityCaseId: CASE_ID,
+    });
 
     const sent: {
       projectId: ObjectID;
@@ -708,7 +709,9 @@ describe("Preserve the evidence", () => {
     jest
       .spyOn(SecurityCaseEvidence, "findRequests")
       .mockResolvedValue([request({ traceId: TRACE_ID })]);
-    jest.spyOn(SecurityCaseEvidence, "findSessionReplays").mockResolvedValue([]);
+    jest
+      .spyOn(SecurityCaseEvidence, "findSessionReplays")
+      .mockResolvedValue([]);
     jest.spyOn(SecurityCaseEvidence, "findExceptions").mockResolvedValue([]);
 
     const outcome: PlaybookStepOutcome = await SecurityPlaybookActions.execute(

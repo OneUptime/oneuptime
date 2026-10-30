@@ -928,7 +928,10 @@ describe("a step that waits on an earlier step's result", () => {
 
     expect(() => {
       assertSecurityPlaybookStepConditions(
-        steps({ ...NOTE, continueOnFailure: true }, waitingOn("note", "Failed")),
+        steps(
+          { ...NOTE, continueOnFailure: true },
+          waitingOn("note", "Failed"),
+        ),
       );
     }).not.toThrow();
   });
@@ -990,7 +993,8 @@ describe("Add tasks", () => {
   test("keeps the tasks one a line, trimmed, without empty lines or the same task twice", () => {
     expect(
       parseOne(SecurityPlaybookActionType.AddCaseTasks, {
-        tasks: "  Confirm the sign-in  \n\nReset the password\nConfirm the sign-in\n",
+        tasks:
+          "  Confirm the sign-in  \n\nReset the password\nConfirm the sign-in\n",
         assigneeUserId: USER_ID,
       }).config,
     ).toEqual({
@@ -1024,7 +1028,11 @@ describe("Add tasks", () => {
 
     const many: Array<string> = [];
 
-    for (let index: number = 0; index <= SECURITY_PLAYBOOK_MAX_TASKS_PER_STEP; index++) {
+    for (
+      let index: number = 0;
+      index <= SECURITY_PLAYBOOK_MAX_TASKS_PER_STEP;
+      index++
+    ) {
       many.push(`Task ${index + 1}`);
     }
 
@@ -1085,7 +1093,9 @@ describe("containment in Microsoft Entra ID and Google Workspace", () => {
     for (const [actions, provider] of [
       [ENTRA, SecurityEventConnectorProvider.MicrosoftEntraId],
       [WORKSPACE, SecurityEventConnectorProvider.GoogleWorkspace],
-    ] as Array<[Array<SecurityPlaybookActionType>, SecurityEventConnectorProvider]>) {
+    ] as Array<
+      [Array<SecurityPlaybookActionType>, SecurityEventConnectorProvider]
+    >) {
       for (const action of actions) {
         expect(getSecurityPlaybookAction(action)).toMatchObject({
           category: SecurityPlaybookActionCategory.Contain,
@@ -1111,14 +1121,15 @@ describe("containment in Microsoft Entra ID and Google Workspace", () => {
       SecurityPlaybookActionType.SignOutGoogleWorkspaceUser,
     ]) {
       expect(getSecurityPlaybookAction(action)?.isDisruptive).toBe(true);
-      expect(parseOne(action, { connectionId: OTHER_ID }).requiresApproval).toBe(
-        true,
-      );
+      expect(
+        parseOne(action, { connectionId: OTHER_ID }).requiresApproval,
+      ).toBe(true);
     }
 
     expect(
-      getSecurityPlaybookUndoAction(SecurityPlaybookActionType.DisableEntraIdUser)
-        ?.type,
+      getSecurityPlaybookUndoAction(
+        SecurityPlaybookActionType.DisableEntraIdUser,
+      )?.type,
     ).toBe(SecurityPlaybookActionType.EnableEntraIdUser);
     expect(
       getSecurityPlaybookUndoAction(
@@ -1127,7 +1138,9 @@ describe("containment in Microsoft Entra ID and Google Workspace", () => {
     ).toBe(SecurityPlaybookActionType.UnsuspendGoogleWorkspaceUser);
     // A session that was ended stays ended.
     expect(
-      getSecurityPlaybookUndoAction(SecurityPlaybookActionType.SignOutEntraIdUser),
+      getSecurityPlaybookUndoAction(
+        SecurityPlaybookActionType.SignOutEntraIdUser,
+      ),
     ).toBeUndefined();
     expect(
       getSecurityPlaybookUndoAction(
@@ -1137,13 +1150,18 @@ describe("containment in Microsoft Entra ID and Google Workspace", () => {
   });
 
   test("the picker lists them with the other containment steps, the steps that cut someone off before their undos", () => {
-    const contain: Array<SecurityPlaybookActionType> = SECURITY_PLAYBOOK_ACTIONS.filter(
-      (action: SecurityPlaybookActionDefinition): boolean => {
-        return Boolean(action.connectionProvider);
-      },
-    ).map((action: SecurityPlaybookActionDefinition): SecurityPlaybookActionType => {
-      return action.type;
-    });
+    const contain: Array<SecurityPlaybookActionType> =
+      SECURITY_PLAYBOOK_ACTIONS.filter(
+        (action: SecurityPlaybookActionDefinition): boolean => {
+          return Boolean(action.connectionProvider);
+        },
+      ).map(
+        (
+          action: SecurityPlaybookActionDefinition,
+        ): SecurityPlaybookActionType => {
+          return action.type;
+        },
+      );
     const firstUndo: number = contain.findIndex(
       (type: SecurityPlaybookActionType): boolean => {
         return Boolean(getSecurityPlaybookAction(type)?.undoes);
@@ -1195,9 +1213,11 @@ describe("the playbook templates", () => {
       },
     });
 
-    expect(built.map((item: SecurityPlaybookStep) => {
-      return item.action;
-    })).toEqual([
+    expect(
+      built.map((item: SecurityPlaybookStep) => {
+        return item.action;
+      }),
+    ).toEqual([
       SecurityPlaybookActionType.CheckThreatIntel,
       SecurityPlaybookActionType.SetCasePriority,
       SecurityPlaybookActionType.SetCaseStatus,

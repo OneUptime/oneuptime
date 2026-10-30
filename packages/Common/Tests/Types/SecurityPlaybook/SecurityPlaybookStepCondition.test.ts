@@ -68,9 +68,10 @@ describe("the results a later step can wait on", () => {
 
   test("only the steps that look something up say what they find", () => {
     for (const action of SECURITY_PLAYBOOK_ACTIONS) {
-      expect([action.type, Boolean(getSecurityPlaybookFinds(action.type))]).toEqual(
-        [action.type, LOOKS_SOMETHING_UP.includes(action.type)],
-      );
+      expect([
+        action.type,
+        Boolean(getSecurityPlaybookFinds(action.type)),
+      ]).toEqual([action.type, LOOKS_SOMETHING_UP.includes(action.type)]);
     }
 
     expect(getSecurityPlaybookFinds(undefined)).toBeUndefined();
@@ -183,7 +184,10 @@ describe("readSecurityPlaybookStepCondition", () => {
       ["after step 1", /when it runs is not something a playbook can read/],
       [["step-1"], /when it runs is not something a playbook can read/],
       [{ outcome: "Found" }, /choose the earlier step it runs after/],
-      [{ stepId: "x".repeat(101), outcome: "Found" }, /choose the earlier step/],
+      [
+        { stepId: "x".repeat(101), outcome: "Found" },
+        /choose the earlier step/,
+      ],
       [{ stepId: "step-1" }, /choose which result of the earlier step/],
       [
         { stepId: "step-1", outcome: "Matched" },
@@ -218,7 +222,10 @@ describe("doesStepResultMeetOutcome", () => {
           { status },
           SecurityPlaybookStepOutcome.Succeeded,
         ),
-        doesStepResultMeetOutcome({ status }, SecurityPlaybookStepOutcome.Failed),
+        doesStepResultMeetOutcome(
+          { status },
+          SecurityPlaybookStepOutcome.Failed,
+        ),
       ]).toEqual([
         status,
         status === SecurityPlaybookStepStatus.Succeeded,
@@ -281,10 +288,13 @@ describe("evaluateSecurityPlaybookStepCondition", () => {
 
   test("holds on the result it waits on", () => {
     expect(
-      evaluate({ stepId: "check", outcome: SecurityPlaybookStepOutcome.Found }, [
-        { status: SecurityPlaybookStepStatus.Succeeded, found: true },
-        { status: SecurityPlaybookStepStatus.Succeeded },
-      ]),
+      evaluate(
+        { stepId: "check", outcome: SecurityPlaybookStepOutcome.Found },
+        [
+          { status: SecurityPlaybookStepStatus.Succeeded, found: true },
+          { status: SecurityPlaybookStepStatus.Succeeded },
+        ],
+      ),
     ).toEqual({ holds: true });
   });
 
@@ -311,7 +321,9 @@ describe("evaluateSecurityPlaybookStepCondition", () => {
           { status: SecurityPlaybookStepStatus.Succeeded },
         ],
       ).reason,
-    ).toBe("Skipped: it runs only if step 2 (Suspend the user in Okta) failed.");
+    ).toBe(
+      "Skipped: it runs only if step 2 (Suspend the user in Okta) failed.",
+    );
   });
 
   test("a step it waits on that never ended - skipped, rejected, pending, gone from the results - is no result", () => {
@@ -343,14 +355,11 @@ describe("evaluateSecurityPlaybookStepCondition", () => {
 
     for (const stepId of ["note", "deleted-step"]) {
       expect(
-        evaluate(
-          { stepId, outcome: SecurityPlaybookStepOutcome.Succeeded },
-          [
-            { status: SecurityPlaybookStepStatus.Succeeded, found: true },
-            { status: SecurityPlaybookStepStatus.Succeeded },
-            { status: SecurityPlaybookStepStatus.Succeeded },
-          ],
-        ),
+        evaluate({ stepId, outcome: SecurityPlaybookStepOutcome.Succeeded }, [
+          { status: SecurityPlaybookStepStatus.Succeeded, found: true },
+          { status: SecurityPlaybookStepStatus.Succeeded },
+          { status: SecurityPlaybookStepStatus.Succeeded },
+        ]),
       ).toEqual({ holds: false, reason });
     }
 

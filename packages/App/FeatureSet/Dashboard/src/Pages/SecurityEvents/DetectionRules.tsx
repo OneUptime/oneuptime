@@ -264,7 +264,7 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
         cardProps={{
           title: "Detection Rules",
           description:
-            "Sigma rules run on a schedule against your security events. A matching rule can raise an alert and open a case.",
+            "Sigma rules run on a schedule, or on each event as it arrives, against your security events. A matching rule can raise an alert and open a case.",
         }}
         helpContent={{
           title: DetectionRulesGuide.guideTitle,

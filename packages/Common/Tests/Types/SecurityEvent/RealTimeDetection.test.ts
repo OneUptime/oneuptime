@@ -66,7 +66,9 @@ describe("getRealTimeDetectionProblem", () => {
       }),
     ).toBeNull();
     // Thresholds and fields left out are the defaults: one match, no distinct count.
-    expect(getRealTimeDetectionProblem({ definition: parse(SINGLE) })).toBeNull();
+    expect(
+      getRealTimeDetectionProblem({ definition: parse(SINGLE) }),
+    ).toBeNull();
     expect(
       getRealTimeDetectionProblem({
         definition: parse(SINGLE),
@@ -92,9 +94,9 @@ describe("getRealTimeDetectionProblem", () => {
         distinctCountField: "principalUser",
       }),
     ).toBe(REAL_TIME_DISTINCT_COUNT_PROBLEM);
-    expect(
-      getRealTimeDetectionProblem({ definition: parse(WITH_REGEX) }),
-    ).toBe(REAL_TIME_REGULAR_EXPRESSION_PROBLEM);
+    expect(getRealTimeDetectionProblem({ definition: parse(WITH_REGEX) })).toBe(
+      REAL_TIME_REGULAR_EXPRESSION_PROBLEM,
+    );
 
     expect(REAL_TIME_THRESHOLD_PROBLEM).toContain(
       "set Match Count Threshold to 1",

@@ -145,7 +145,8 @@ describe("GoogleWorkspaceClient - acting as the administrator", () => {
    * named by it.
    */
   test("a client for another scope asks for that scope alone, and a refusal names it", async () => {
-    const scope: string = "https://www.googleapis.com/auth/admin.directory.user";
+    const scope: string =
+      "https://www.googleapis.com/auth/admin.directory.user";
     const api: FakeWorkspaceApi = createFakeWorkspaceApi({});
 
     await new GoogleWorkspaceClient({

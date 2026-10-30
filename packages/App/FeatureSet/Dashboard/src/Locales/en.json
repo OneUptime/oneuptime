@@ -16360,7 +16360,7 @@
   "Sigma Rule (YAML)": "Sigma Rule (YAML)",
   "Sigma detection rules evaluated against security events. Matches create alerts and detection findings.": "Sigma detection rules evaluated against security events. Matches create alerts and detection findings.",
   "Sigma rule YAML — title, logsource, detection and condition.": "Sigma rule YAML — title, logsource, detection and condition.",
-  "Sigma rules run on a schedule against your security events. A matching rule can raise an alert and open a case.": "Sigma rules run on a schedule against your security events. A matching rule can raise an alert and open a case.",
+  "Sigma rules run on a schedule, or on each event as it arrives, against your security events. A matching rule can raise an alert and open a case.": "Sigma rules run on a schedule, or on each event as it arrives, against your security events. A matching rule can raise an alert and open a case.",
   "Sign in with OneUptime.": "Sign in with OneUptime.",
   "Sign in without a password using your fingerprint, face, screen lock, or a compatible security key.": "Sign in without a password using your fingerprint, face, screen lock, or a compatible security key.",
   "Sign on URL": "Sign on URL",

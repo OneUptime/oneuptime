@@ -157,10 +157,7 @@ describe("a playbook's steps, with a branch", () => {
   });
 
   test("a step saved with the legacy threat intel switch still says so", () => {
-    renderEditor([
-      CHECK,
-      { ...SLACK, onlyIfThreatIntelMatched: true },
-    ]);
+    renderEditor([CHECK, { ...SLACK, onlyIfThreatIntelMatched: true }]);
 
     expect(
       screen.getByTestId("security-playbook-step-1-run-if"),
@@ -267,9 +264,7 @@ describe("a playbook's steps, with a branch", () => {
     });
 
     await act(async () => {
-      fireEvent.click(
-        within(dialog).getByTestId("modal-footer-submit-button"),
-      );
+      fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
     });
 
     await waitFor(() => {

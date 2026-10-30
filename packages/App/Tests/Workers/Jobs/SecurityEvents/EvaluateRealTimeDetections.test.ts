@@ -20,7 +20,7 @@ jest.mock(
   () => {
     const actual: Record<string, unknown> = jest.requireActual(
       "Common/Server/Utils/SecurityEvent/RealTime/RealTimeDetectionJob",
-    );
+    ) as Record<string, unknown>;
 
     return {
       __esModule: true,

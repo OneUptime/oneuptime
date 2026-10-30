@@ -16360,7 +16360,7 @@
   "Sigma Rule (YAML)": "قاعده Sigma (YAML)",
   "Sigma detection rules evaluated against security events. Matches create alerts and detection findings.": "قواعد تشخیص Sigma که روی رویدادهای امنیتی ارزیابی می‌شوند. تطبیق‌ها هشدار و یافته تشخیص می‌سازند.",
   "Sigma rule YAML — title, logsource, detection and condition.": "YAML قاعده Sigma — title، logsource، detection و condition.",
-  "Sigma rules run on a schedule against your security events. A matching rule can raise an alert and open a case.": "قواعد Sigma طبق زمان‌بندی روی رویدادهای امنیتی شما اجرا می‌شوند. قاعده منطبق می‌تواند هشدار ایجاد کند و پرونده باز کند.",
+  "Sigma rules run on a schedule, or on each event as it arrives, against your security events. A matching rule can raise an alert and open a case.": "قواعد Sigma طبق زمان‌بندی، یا روی هر رویداد به‌محض رسیدنش، روی رویدادهای امنیتی شما اجرا می‌شوند. قاعده منطبق می‌تواند هشدار ایجاد کند و پرونده باز کند.",
   "Sign in with OneUptime.": "Sign in with OneUptime.",
   "Sign in without a password using your fingerprint, face, screen lock, or a compatible security key.": "Sign in without a password using your fingerprint, face, screen lock, or a compatible security key.",
   "Sign on URL": "Sign on URL",

@@ -569,15 +569,22 @@ describe("approval and undo in the editor and on a run", () => {
       ].map((action: SecurityPlaybookActionType): string | undefined => {
         return UNDO_BUTTON_TITLES[action];
       }),
-    ).toEqual(["Unsuspend", "Lift Containment", "Release", "Enable", "Unsuspend"]);
+    ).toEqual([
+      "Unsuspend",
+      "Lift Containment",
+      "Release",
+      "Enable",
+      "Unsuspend",
+    ]);
   });
 
   test("every undo action has a button: a contained target can always be released", () => {
     for (const definition of SECURITY_PLAYBOOK_ACTIONS) {
       if (definition.undoes) {
-        expect([definition.type, Boolean(UNDO_BUTTON_TITLES[definition.type])]).toEqual(
-          [definition.type, true],
-        );
+        expect([
+          definition.type,
+          Boolean(UNDO_BUTTON_TITLES[definition.type]),
+        ]).toEqual([definition.type, true]);
       }
     }
   });

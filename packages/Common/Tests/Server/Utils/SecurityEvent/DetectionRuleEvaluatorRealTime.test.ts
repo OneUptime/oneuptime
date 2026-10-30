@@ -173,9 +173,10 @@ beforeEach(() => {
     detectionsAdded: 1,
     detectionsRepeated: 0,
   } as never);
-  recordRisk = getJestSpyOn(SecurityEntityRiskRecorder, "record").mockResolvedValue(
-    { entitiesUpdated: 1, riskCasesRaised: 0 } as never,
-  );
+  recordRisk = getJestSpyOn(
+    SecurityEntityRiskRecorder,
+    "record",
+  ).mockResolvedValue({ entitiesUpdated: 1, riskCasesRaised: 0 } as never);
 });
 
 afterEach(() => {
@@ -255,7 +256,9 @@ describe("a real-time run", () => {
       DetectionRuleEvaluator.evaluateRule(rule(CORRELATION), {
         realTime: { restrictTo: restriction(), startTime: START, endTime: END },
       }),
-    ).rejects.toThrow("A correlation runs on its interval, never in real time.");
+    ).rejects.toThrow(
+      "A correlation runs on its interval, never in real time.",
+    );
     expect(findDetectionMatches).not.toHaveBeenCalled();
   });
 

@@ -24,6 +24,7 @@ import {
   SIGMA_CORRELATION_MIN_TEMPORAL_RULES,
   SIGMA_UNSUPPORTED_CORRELATION_TYPES,
 } from "Common/Types/SecurityEvent/SigmaCorrelation";
+import { DETECTION_REAL_TIME_RULES_MAX } from "Common/Types/SecurityEvent/RealTimeDetection";
 import {
   SIGMA_DEFAULT_LEVEL,
   SIGMA_LEVEL_TO_OCSF_SEVERITY,
@@ -584,6 +585,10 @@ const evaluationMarkdown: string = `
 #### When a rule runs
 
 OneUptime checks every minute for enabled rules that are due. A rule is due once its **Evaluation Interval** has passed since its last run — any whole number of minutes from ${DETECTION_EVALUATION_INTERVAL_MIN_IN_MINUTES} to ${DETECTION_EVALUATION_INTERVAL_MAX_IN_MINUTES}. A newly created or enabled rule runs within a minute.
+
+#### Rules that run in real time
+
+A rule that fires on one event - a **Match Count Threshold** of 1, no **Distinct Count Field**, no \`re\` modifier, not a correlation - can run in real time instead: turn on **Run in Real Time** under **More fields** on the **On Match** step. Every event OneUptime receives, from every source, is then checked against the rule as it arrives, and a match opens its case, alert and finding within seconds. Its **Status** says **Real time**, and it runs on no interval. Turned on, it first reads what arrived since its last run; turned off, it goes back to its interval. A project runs at most ${DETECTION_REAL_TIME_RULES_MAX} rules in real time.
 
 #### Which events each run sees
 

@@ -27,6 +27,7 @@ import { SecurityPlaybookStepStatus } from "../../../../Types/SecurityPlaybook/S
 import { parseSecurityPlaybookSteps } from "../../../../Types/SecurityPlaybook/SecurityPlaybookStep";
 import { testPriorityId } from "../../../Helpers/SecurityCaseValues";
 import { stubSecurityCaseValues } from "../../../Helpers/SecurityCaseValuesStub";
+import { getJestSpyOn } from "../../../Spy";
 
 /*
  * Add tasks seeds the case's checklist - one task a line, handed to a
@@ -62,9 +63,7 @@ function context(
   securityCase.entities = entities as unknown as JSONArray;
 
   // The step as the server saves it, so its config is the clean one.
-  const [step] = parseSecurityPlaybookSteps([
-    { id: "s1", action, config },
-  ]);
+  const [step] = parseSecurityPlaybookSteps([{ id: "s1", action, config }]);
 
   return {
     projectId: PROJECT_ID,
@@ -228,7 +227,10 @@ describe("Add tasks", () => {
   });
 
   test("a playbook that runs again for every new detection adds nothing it added before", async () => {
-    existingTitles = ["Confirm the sign-in with the user", "Reset the password"];
+    existingTitles = [
+      "Confirm the sign-in with the user",
+      "Reset the password",
+    ];
 
     const outcome: PlaybookStepOutcome = await SecurityPlaybookActions.execute(
       context(SecurityPlaybookActionType.AddCaseTasks, {
@@ -237,7 +239,9 @@ describe("Add tasks", () => {
     );
 
     expect(outcome.status).toBe(SecurityPlaybookStepStatus.Skipped);
-    expect(outcome.summary.toString()).toBe("The case has these tasks already.");
+    expect(outcome.summary.toString()).toBe(
+      "The case has these tasks already.",
+    );
     expect(created).toEqual([]);
   });
 });
@@ -291,9 +295,10 @@ describe("what the steps that look something up found", () => {
   });
 
   test("Look up entity activity found activity, or found none", async () => {
-    const activity: jest.SpiedFunction<
-      typeof SecurityEventService.findObservableActivity
-    > = jest.spyOn(SecurityEventService, "findObservableActivity");
+    const activity: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+      SecurityEventService,
+      "findObservableActivity",
+    );
 
     activity.mockResolvedValueOnce([
       {

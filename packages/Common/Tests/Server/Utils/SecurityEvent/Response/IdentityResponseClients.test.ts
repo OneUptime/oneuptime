@@ -162,8 +162,9 @@ describe("MicrosoftEntraIdResponseClient", () => {
       users: { "alice@contoso.com": ALICE },
     });
 
-    const user: EntraIdUser | null =
-      await entraClient(api).findUser(" alice@contoso.com ");
+    const user: EntraIdUser | null = await entraClient(api).findUser(
+      " alice@contoso.com ",
+    );
 
     expect(user).toEqual({
       id: ALICE["id"],
@@ -381,7 +382,9 @@ describe("MicrosoftEntraIdResponseClient", () => {
 
     expect(() => {
       return entraClient(api, "china");
-    }).toThrow('The connection\'s Microsoft cloud "china" is not one OneUptime knows.');
+    }).toThrow(
+      'The connection\'s Microsoft cloud "china" is not one OneUptime knows.',
+    );
   });
 });
 
@@ -501,7 +504,9 @@ describe("GoogleWorkspaceResponseClient", () => {
       `${GOOGLE_WORKSPACE_DIRECTORY_USERS_URL}/bob%40example.com?projection=basic`,
     );
     expect(new URL(lookup.url).origin).toBe("https://admin.googleapis.com");
-    expect(lookup.headers?.["Authorization"]).toBe(`Bearer ${WORKSPACE_TOKEN}-1`);
+    expect(lookup.headers?.["Authorization"]).toBe(
+      `Bearer ${WORKSPACE_TOKEN}-1`,
+    );
   });
 
   test("a user Workspace does not know is no user", async () => {
@@ -624,7 +629,9 @@ describe("GoogleWorkspaceResponseClient", () => {
       }),
     );
 
-    expect(error.message).toContain("Google Workspace suspend failed (HTTP 403)");
+    expect(error.message).toContain(
+      "Google Workspace suspend failed (HTTP 403)",
+    );
     expect(error.message).toContain(
       `The administrator ${FAKE_ADMIN_EMAIL} the connection acts as must be one who manages this user.`,
     );

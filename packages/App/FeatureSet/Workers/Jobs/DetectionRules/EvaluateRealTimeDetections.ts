@@ -1,11 +1,13 @@
 import JobDictionary from "../../Utils/JobDictionary";
 import { QueueJob } from "Common/Server/Infrastructure/Queue";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import { REAL_TIME_DETECTION_JOB } from "Common/Server/Utils/SecurityEvent/RealTime/RealTimeDetections";
+import {
+  REAL_TIME_DETECTION_JOB,
+  RealTimeJobData,
+} from "Common/Server/Utils/SecurityEvent/RealTime/RealTimeJobs";
 import RealTimeDetectionJob, {
   readRealTimeJobData,
 } from "Common/Server/Utils/SecurityEvent/RealTime/RealTimeDetectionJob";
-import { RealTimeJobData } from "Common/Server/Utils/SecurityEvent/RealTime/RealTimeDetections";
 
 /*
  * One real-time detection rule's confirmation, queued by every path that
@@ -26,6 +28,9 @@ export async function evaluateRealTimeDetection(job?: QueueJob): Promise<void> {
   await RealTimeDetectionJob.evaluate(data);
 }
 
-JobDictionary.setJobFunction(REAL_TIME_DETECTION_JOB, evaluateRealTimeDetection);
+JobDictionary.setJobFunction(
+  REAL_TIME_DETECTION_JOB,
+  evaluateRealTimeDetection,
+);
 // A count and one rule's query over a few hundred events.
 JobDictionary.setTimeoutInMs(REAL_TIME_DETECTION_JOB, 5 * 60 * 1000);
