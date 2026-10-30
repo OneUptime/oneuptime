@@ -12,6 +12,12 @@ import AutoRemediationVerificationStatus from "Common/Types/AutoRemediation/Auto
 import AutoRemediationSuggestionType from "Common/Types/AutoRemediation/AutoRemediationSuggestionType";
 import { isProjectRunbookPick } from "Common/Types/AutoRemediation/AutoRemediationFix";
 import {
+  AutoRemediationDecisionEntry,
+  AutoRemediationDecisionReason,
+} from "Common/Types/AutoRemediation/AutoRemediationDecision";
+import Alert from "Common/Models/DatabaseModels/Alert";
+import Incident from "Common/Models/DatabaseModels/Incident";
+import {
   AiRemediationCommand,
   AiRemediationCommandExecutionState,
   AiRemediationCommandExecutionStatus,
@@ -35,12 +41,10 @@ import {
   isAiResourceType,
   isCloudAiResourceType,
 } from "Common/Types/ResourceAiAgent/AiResourceType";
-import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
-import Card from "Common/UI/Components/Card/Card";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -53,20 +57,54 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
+import {
+  InvestigationCodeFixSuggestion,
+  parseInvestigationCodeFixSuggestion,
+} from "Common/Utils/Suggestions/InvestigationCodeFixSuggestion";
+import SuggestionOffer from "Common/Utils/Suggestions/SuggestionOffer";
+import useAiOffered from "../../Utils/UseAiOffered";
+import AiCardStep from "../AI/AiCardStep";
+import InvestigationNotice, { noticeFailedIcon } from "../AI/InvestigationNotice";
+import { InvestigationStatusIndicator } from "../AI/InvestigationStatusBadge";
+import { AIInvestigationStage } from "../AI/AIInvestigationStatus";
+import useAiLaneSwitchStates, {
+  AiLaneSwitchRead,
+} from "../AI/useAiLaneSwitchStates";
+import RemediationCodeFix from "./RemediationCodeFix";
+import {
+  REMEDIATION_STEP_NOT_TRIED,
+  REMEDIATION_STEP_STATUS_LABEL,
+  REMEDIATION_STEP_TITLE,
+  REMEDIATION_STEP_WAITING,
+  REMEDIATION_TRY_AGAIN_BUTTON,
+  REMEDIATION_TRY_AGAIN_FAILED,
+  REMEDIATION_TRY_AGAIN_HINT,
+} from "./RemediationStepCopy";
+import {
+  canOfferRemediationTryAgain,
+  getRemediationFixFacts,
+  getRemediationStepStatus,
+  isRemediationWaitingForInvestigation,
+  RemediationFixFacts,
+  RemediationStepStatus,
+  RemediationStepTone,
+} from "./RemediationStepStatus";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import RemediationDecisionList from "./RemediationDecisionList";
 import McpToolCallList, { MCP_TOOL_CALL_LIST_COPY } from "./McpToolCallList";
 import {
   getRemediationDecisionLines,
-  getRemediationDecisionStatus,
   pickRemediationDecision,
-  REMEDIATION_DECISION_CARD_DESCRIPTION,
   RemediationDecision,
   RemediationDecisionLine,
-  RemediationDecisionStatus,
+  RemediationDecisionSignal,
+  RemediationSwitchesNow,
 } from "./RemediationDecisionLines";
-import RemediationDecisionStatusBadge from "./RemediationDecisionStatusBadge";
 import CloudDryRunNote from "./CloudDryRunNote";
 import {
   CLOUD_DRY_RUN_COPY,
@@ -94,22 +132,41 @@ import React, {
 export interface ComponentProps {
   incidentId?: ObjectID | undefined;
   alertId?: ObjectID | undefined;
-  hideIfEmpty?: boolean | undefined;
   /*
-   * What the card read, for the page's AI card (RemediationFoldState,
+   * Where the record's AI investigation stands (the step above): fixing is
+   * decided once it is done, so while it runs, the step says it waits.
+   */
+  investigationStage: AIInvestigationStage;
+  /*
+   * The record is resolved now: OneUptime AI does not try to fix it again,
+   * so Try again is not offered.
+   */
+  isRecordResolved?: boolean | undefined;
+  /*
+   * The investigation recommends a fix in the code: the step reads what
+   * came of it (InvestigationCodeFixSuggestion) and offers to open it.
+   */
+  codeFix?: RemediationStepCodeFix | undefined;
+  /*
+   * What the step read, for the AI card (RemediationFoldState,
    * AiOffSummaryData): still reading, fixing did something or has
    * something to say, or it did nothing because it was off - and why.
    * Called on every change, and afresh for every incident or alert.
    */
   onFoldStateChange?: ((state: RemediationFoldState) => void) | undefined;
   /*
-   * How the page's AI card is drawn. While it is the one-line "AI
-   * investigation is off" summary - or is still deciding whether it is -
-   * that line says why nothing was fixed too, so a card that would only
-   * say so is not drawn. A fix to show, or anything else to say, is drawn
-   * as always.
+   * How the AI card is drawn. While it is the one-line "AI investigation is
+   * off" summary - or is still deciding whether it is - that line says
+   * why nothing was fixed too, so the step draws nothing. It stays mounted
+   * all the same: what it reads is what the card folds by.
    */
   aiCardFold?: AiCardFold | undefined;
+}
+
+export interface RemediationStepCodeFix {
+  isRecommended: boolean;
+  // The investigation whose report a pull request is opened from.
+  investigationRunId: string | null;
 }
 
 interface StatusVisual {
@@ -781,22 +838,16 @@ function CommandGitOpsNote(props: {
   return (
     <div className="mt-2" data-testid="remediation-command-gitops">
       {gitOps ? (
-        <div
-          className={`rounded border px-2 py-1.5 text-xs ${
-            gitOps.putsBack
-              ? "border-amber-200 bg-amber-50 text-amber-800"
-              : "border-gray-200 bg-white text-gray-600"
-          }`}
-        >
+        <p className="break-words text-xs leading-5 text-gray-600">
           {gitOps.putsBack ? (
-            <span className="mr-1 font-medium">
+            <span className="me-1 font-medium text-amber-700">
               {translator.translateText("Temporary fix")}
             </span>
           ) : (
             <></>
           )}
           {gitOps.summary}
-        </div>
+        </p>
       ) : (
         <></>
       )}
@@ -836,7 +887,7 @@ function CloudCommandNote(props: {
   return (
     <div className="mt-2 space-y-1" data-testid="remediation-command-cloud">
       {command.managedAsCode ? (
-        <div className="rounded border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs text-amber-800">
+        <div className="text-xs leading-5 text-amber-700">
           {translator.translateTemplate(
             "Declared as code by {{owner}}: the next apply may put the old value back, so change the code too.",
             { owner: command.managedAsCode },
@@ -921,7 +972,38 @@ export function getActionErrorTitle(
   return translationKey("Could not save your action");
 }
 
-const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
+// How each step status's tone is marked: with the investigation's marks.
+const STEP_TONE_INDICATOR: Record<
+  RemediationStepTone,
+  InvestigationStatusIndicator
+> = {
+  checking: "checking",
+  waiting: "waiting",
+  live: "live",
+  attention: "attention",
+  done: "done",
+  failed: "failed",
+  idle: "idle",
+};
+
+// How often the fix in the code is read again while it is being written.
+const CODE_FIX_POLL_INTERVAL_MS: number = 15 * 1000;
+
+/*
+ * THE REMEDIATION STEP OF THE AI CARD (block 43): step 2, under the
+ * investigation - what OneUptime AI is doing to fix the incident or alert,
+ * or why it is not. It was a card of its own, far down the page under the
+ * telemetry, and easy to miss entirely: "Up there, it should show the
+ * remediation card."
+ *
+ * It says, in this order: what OneUptime AI decided for each way it fixes
+ * (the decision's lines - with what to do and where, when something stood
+ * in the way), the fixes it proposed or ran (with Approve & Run where they
+ * wait for approval), the fix in the code the investigation recommends, and
+ * - when nothing was fixed and the record is open - Try again, which decides
+ * again with the project's settings of now.
+ */
+const RemediationStep: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
@@ -936,13 +1018,14 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
   /*
    * The stage of the decision as last read. An evaluated decision does not
    * change - approving or dismissing a suggestion does not touch it - so it
-   * is read again only while remediation still waits for the investigation.
+   * is read again only while remediation still waits for the investigation,
+   * or after Try again wrote a new one.
    */
   const decisionStageRef: React.MutableRefObject<AutoRemediationDecisionStage | null> =
     useRef<AutoRemediationDecisionStage | null>(null);
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
   /*
-   * The incident or alert what the card holds was read for: the card can
+   * The incident or alert what the step holds was read for: the card can
    * stay on the page while it moves to the next one, and what it tells the
    * AI card is only ever about the one on the page.
    */
@@ -958,6 +1041,13 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
   const [expandedIds, setExpandedIds] = useState<Set<string>>(
     new Set<string>(),
   );
+  // Try again: in flight, and what the server said when it refused.
+  const [isTryingAgain, setIsTryingAgain] = useState<boolean>(false);
+  const [tryAgainError, setTryAgainError] = useState<string>("");
+  // The fix in the code the investigation recommends, once read.
+  const [codeFixSuggestion, setCodeFixSuggestion] =
+    useState<InvestigationCodeFixSuggestion | null>(null);
+  const [codeFixSubjectKey, setCodeFixSubjectKey] = useState<string>("");
   /*
    * An approve/dismiss is in flight — from the click until the reload that
    * shows its outcome has landed. It is both the single-submit guard and
@@ -965,132 +1055,248 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
    */
   const isActionInFlightRef: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
+  const isTryAgainInFlightRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
 
   const incidentIdString: string | undefined = props.incidentId?.toString();
   const alertIdString: string | undefined = props.alertId?.toString();
   const subjectIdString: string = incidentIdString || alertIdString || "";
+  const signal: RemediationDecisionSignal = incidentIdString
+    ? "incident"
+    : "alert";
   const currentSubjectIdRef: React.MutableRefObject<string> =
     useRef<string>(subjectIdString);
   currentSubjectIdRef.current = subjectIdString;
 
-  const load: (options?: { isActionReload?: boolean }) => Promise<void> =
-    useCallback(
-      async (options?: { isActionReload?: boolean }): Promise<void> => {
-        /*
-         * Don't clobber the list while an approve/dismiss is in flight —
-         * except for that action's own reload, which is what ends it.
-         */
-        if (isActionInFlightRef.current && !options?.isActionReload) {
+  const isCodeFixRecommended: boolean = Boolean(props.codeFix?.isRecommended);
+  const codeFixKey: string = `${subjectIdString}:${
+    props.codeFix?.investigationRunId || ""
+  }`;
+
+  /*
+   * Each record starts from nothing: a refusal or a Try again of the record
+   * before never shows on the next one.
+   */
+  useEffect(() => {
+    setTryAgainError("");
+    setIsTryingAgain(false);
+    isTryAgainInFlightRef.current = false;
+  }, [subjectIdString]);
+
+  const load: (options?: {
+    isActionReload?: boolean;
+    isDecisionRead?: boolean;
+  }) => Promise<void> = useCallback(
+    async (options?: {
+      isActionReload?: boolean;
+      isDecisionRead?: boolean;
+    }): Promise<void> => {
+      /*
+       * Don't clobber the list while an approve/dismiss is in flight —
+       * except for that action's own reload, which is what ends it.
+       */
+      if (isActionInFlightRef.current && !options?.isActionReload) {
+        return;
+      }
+      const requestedSubjectId: string =
+        incidentIdString || alertIdString || "";
+      try {
+        const query: Record<string, ObjectID> = {};
+        if (incidentIdString) {
+          query["incidentId"] = new ObjectID(incidentIdString);
+        } else if (alertIdString) {
+          query["alertId"] = new ObjectID(alertIdString);
+        } else {
+          // Nothing to read for: nothing to show, and nothing to wait on.
+          setLoadedSubjectId("");
+          setIsLoaded(true);
           return;
         }
-        const requestedSubjectId: string =
-          incidentIdString || alertIdString || "";
-        try {
-          const query: Record<string, ObjectID> = {};
-          if (incidentIdString) {
-            query["incidentId"] = new ObjectID(incidentIdString);
-          } else if (alertIdString) {
-            query["alertId"] = new ObjectID(alertIdString);
-          } else {
-            // Nothing to read for: nothing to show, and nothing to wait on.
-            setLoadedSubjectId("");
-            setIsLoaded(true);
-            return;
-          }
 
-          /*
-           * The decisions are read beside the suggestions, and a failed
-           * read of them (an older server, say) only leaves them out.
-           */
-          const shouldReadDecision: boolean =
-            !options?.isActionReload &&
-            decisionStageRef.current !== AutoRemediationDecisionStage.Evaluated;
+        /*
+         * The decisions are read beside the suggestions, and a failed
+         * read of them (an older server, say) only leaves them out.
+         */
+        const shouldReadDecision: boolean =
+          options?.isDecisionRead === true ||
+          (!options?.isActionReload &&
+            decisionStageRef.current !==
+              AutoRemediationDecisionStage.Evaluated);
 
-          const [result, decisionRows]: [
-            ListResult<AutoRemediationSuggestion>,
-            ListResult<AutoRemediationDecision> | null,
-          ] = await Promise.all([
-            ModelAPI.getList<AutoRemediationSuggestion>({
-              modelType: AutoRemediationSuggestion,
-              query,
-              limit: 10,
-              skip: 0,
-              select: {
-                _id: true,
-                status: true,
-                ruleNameSnapshot: true,
-                // No rule: the project's own pick, named as it is (not "Rule: ...").
-                autoRemediationRuleId: true,
-                runbookNameSnapshot: true,
-                rationaleMarkdown: true,
-                runbookId: true,
-                runbookExecutionId: true,
-                suggestionType: true,
-                commandPlan: true,
-                mcpToolCallPlan: true,
-                verificationStatus: true,
-                verificationNote: true,
-                kubernetesClusterId: true,
-                resourceType: true,
-                resourceId: true,
-                createdAt: true,
-              },
-              sort: {
-                createdAt: SortOrder.Descending,
-              },
-            }),
-            shouldReadDecision
-              ? ModelAPI.getList<AutoRemediationDecision>({
-                  modelType: AutoRemediationDecision,
-                  query,
-                  limit: 5,
-                  skip: 0,
-                  select: {
-                    _id: true,
-                    stage: true,
-                    entries: true,
-                    createdAt: true,
-                  },
-                  sort: {
-                    createdAt: SortOrder.Descending,
-                  },
-                }).catch((): null => {
-                  return null;
-                })
-              : Promise.resolve(null),
-          ]);
+        const [result, decisionRows]: [
+          ListResult<AutoRemediationSuggestion>,
+          ListResult<AutoRemediationDecision> | null,
+        ] = await Promise.all([
+          ModelAPI.getList<AutoRemediationSuggestion>({
+            modelType: AutoRemediationSuggestion,
+            query,
+            limit: 10,
+            skip: 0,
+            select: {
+              _id: true,
+              status: true,
+              ruleNameSnapshot: true,
+              // No rule: the project's own pick, named as it is (not "Rule: ...").
+              autoRemediationRuleId: true,
+              runbookNameSnapshot: true,
+              rationaleMarkdown: true,
+              runbookId: true,
+              runbookExecutionId: true,
+              suggestionType: true,
+              commandPlan: true,
+              mcpToolCallPlan: true,
+              verificationStatus: true,
+              verificationNote: true,
+              kubernetesClusterId: true,
+              resourceType: true,
+              resourceId: true,
+              createdAt: true,
+            },
+            sort: {
+              createdAt: SortOrder.Descending,
+            },
+          }),
+          shouldReadDecision
+            ? ModelAPI.getList<AutoRemediationDecision>({
+                modelType: AutoRemediationDecision,
+                query,
+                limit: 5,
+                skip: 0,
+                select: {
+                  _id: true,
+                  stage: true,
+                  entries: true,
+                  createdAt: true,
+                },
+                sort: {
+                  createdAt: SortOrder.Descending,
+                },
+              }).catch((): null => {
+                return null;
+              })
+            : Promise.resolve(null),
+        ]);
 
-          // An answer for the incident or alert the page has moved on from.
-          if (currentSubjectIdRef.current !== requestedSubjectId) {
-            return;
-          }
+        // An answer for the incident or alert the page has moved on from.
+        if (currentSubjectIdRef.current !== requestedSubjectId) {
+          return;
+        }
 
-          setSuggestions(result.data);
-          if (decisionRows) {
-            const picked: RemediationDecision | null = pickRemediationDecision(
-              decisionRows.data,
-            );
-            decisionStageRef.current = picked?.stage || null;
-            setDecision(picked);
-          }
+        setSuggestions(result.data);
+        if (decisionRows) {
+          const picked: RemediationDecision | null = pickRemediationDecision(
+            decisionRows.data,
+          );
+          decisionStageRef.current = picked?.stage || null;
+          setDecision(picked);
+        }
+        setLoadedSubjectId(requestedSubjectId);
+        setIsLoaded(true);
+      } catch {
+        // Best-effort step — a failed refresh keeps the previous state.
+        if (currentSubjectIdRef.current === requestedSubjectId) {
           setLoadedSubjectId(requestedSubjectId);
           setIsLoaded(true);
-        } catch {
-          // Best-effort card — a failed refresh keeps the previous state.
-          if (currentSubjectIdRef.current === requestedSubjectId) {
-            setLoadedSubjectId(requestedSubjectId);
-            setIsLoaded(true);
-          }
         }
-      },
-      [incidentIdString, alertIdString],
-    );
+      }
+    },
+    [incidentIdString, alertIdString],
+  );
 
   useEffect(() => {
     load().catch(() => {
       // handled inside load
     });
   }, [load]);
+
+  /*
+   * While the investigation runs, remediation waits for it. The moment it
+   * is done, the decision that follows is read: the step moves on from
+   * "Waiting" without a reload.
+   */
+  const previousStageRef: React.MutableRefObject<AIInvestigationStage> =
+    useRef<AIInvestigationStage>(props.investigationStage);
+  useEffect(() => {
+    const previous: AIInvestigationStage = previousStageRef.current;
+    previousStageRef.current = props.investigationStage;
+
+    if (previous === "underway" && props.investigationStage !== "underway") {
+      load({ isDecisionRead: true }).catch(() => {
+        // handled inside load
+      });
+    }
+  }, [props.investigationStage, load]);
+
+  /*
+   * The fix in the code the investigation recommends: read when it does,
+   * and again while it is being written. A failed read says nothing.
+   */
+  const loadCodeFix: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      const requestedKey: string = codeFixKey;
+
+      if (!isCodeFixRecommended || !subjectIdString) {
+        setCodeFixSuggestion(null);
+        setCodeFixSubjectKey(requestedKey);
+        return;
+      }
+
+      try {
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.post<JSONObject>({
+            url: URL.fromString(
+              APP_API_URL.toString() + "/ai-investigation/code-fix-suggestion",
+            ),
+            data: { subjectType: signal, subjectId: subjectIdString },
+            headers: ModelAPI.getCommonHeaders(),
+          });
+
+        if (response instanceof HTTPErrorResponse) {
+          throw response;
+        }
+
+        if (`${currentSubjectIdRef.current}` !== subjectIdString) {
+          return;
+        }
+
+        setCodeFixSuggestion(
+          parseInvestigationCodeFixSuggestion(response.data),
+        );
+        setCodeFixSubjectKey(requestedKey);
+      } catch {
+        if (`${currentSubjectIdRef.current}` === subjectIdString) {
+          setCodeFixSuggestion(null);
+          setCodeFixSubjectKey(requestedKey);
+        }
+      }
+    }, [codeFixKey, isCodeFixRecommended, signal, subjectIdString]);
+
+  useEffect(() => {
+    loadCodeFix().catch(() => {
+      // handled inside loadCodeFix
+    });
+  }, [loadCodeFix]);
+
+  const codeFix: InvestigationCodeFixSuggestion | null =
+    codeFixSubjectKey === codeFixKey ? codeFixSuggestion : null;
+  const isCodeFixInProgress: boolean =
+    codeFix?.offer === SuggestionOffer.InProgress;
+
+  useEffect(() => {
+    if (!isCodeFixInProgress) {
+      return;
+    }
+
+    const interval: ReturnType<typeof setInterval> = setInterval(() => {
+      loadCodeFix().catch(() => {
+        // handled inside loadCodeFix
+      });
+    }, CODE_FIX_POLL_INTERVAL_MS);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [isCodeFixInProgress, loadCodeFix]);
 
   // Poll while an AI plan is still in flight so the pick lands live.
   const hasPlanning: boolean =
@@ -1244,18 +1450,89 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
     }
   };
 
+  /*
+   * Try again: OneUptime AI decides again, now, with the project's settings
+   * of now (POST /auto-remediation/try-again). The new decision - and any
+   * fix it started - is read at once; a refusal says why, in the reader's
+   * language.
+   */
+  const tryAgain: () => Promise<void> = async (): Promise<void> => {
+    if (isTryAgainInFlightRef.current || !subjectIdString) {
+      return;
+    }
+
+    const requestedSubjectId: string = subjectIdString;
+    isTryAgainInFlightRef.current = true;
+    setIsTryingAgain(true);
+    setTryAgainError("");
+
+    let refusal: string = "";
+
+    try {
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.post<JSONObject>({
+          url: URL.fromString(
+            APP_API_URL.toString() + "/auto-remediation/try-again",
+          ),
+          data: incidentIdString
+            ? { incidentId: incidentIdString }
+            : { alertId: alertIdString || "" },
+          headers: ModelAPI.getCommonHeaders(),
+        });
+
+      if (response instanceof HTTPErrorResponse) {
+        throw response;
+      }
+    } catch (err) {
+      refusal = API.getFriendlyMessage(err) || REMEDIATION_TRY_AGAIN_FAILED;
+    }
+
+    try {
+      await load({ isDecisionRead: true });
+      await loadCodeFix();
+    } finally {
+      if (currentSubjectIdRef.current === requestedSubjectId) {
+        setTryAgainError(refusal);
+        setIsTryingAgain(false);
+      }
+      isTryAgainInFlightRef.current = false;
+    }
+  };
+
+  /*
+   * The project's switches as they are now: a decision that found fixing,
+   * or AI, off says so in the past tense once it is on again - with Try
+   * again as the next step. The fixing switch is read only for such a
+   * decision; Enable AI comes with the selected project.
+   */
+  const isRemediationOffEntry: boolean = Boolean(
+    decision?.entries.some((entry: AutoRemediationDecisionEntry): boolean => {
+      return entry.reason === AutoRemediationDecisionReason.RemediationOff;
+    }),
+  );
+  const laneSwitches: AiLaneSwitchRead = useAiLaneSwitchStates({
+    subjectType: signal,
+    isEnabled: isRemediationOffEntry,
+  });
+  const isAiOn: boolean = useAiOffered();
+  const switchesNow: RemediationSwitchesNow = {
+    isAiOn,
+    isFixingOn: laneSwitches.states.fix,
+  };
+
   const decisionLines: Array<RemediationDecisionLine> = decision
     ? getRemediationDecisionLines({
         decision,
-        signal: incidentIdString ? "incident" : "alert",
+        signal,
         translator,
+        switchesNow,
       })
     : [];
 
   /*
    * What the page's AI card needs to know to fold into one line: whether
    * fixing did anything with this incident or alert, or why not. Still
-   * reading until what the card holds was read for this one. Told once per
+   * reading until what the step holds was read for this one. Told once per
    * change, and afresh for each incident or alert.
    */
   const foldState: RemediationFoldState = getRemediationFoldState({
@@ -1298,12 +1575,475 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
     onFoldStateChangeRef.current?.(foldState);
   });
 
-  if (!isLoaded && props.hideIfEmpty) {
-    return <Fragment />;
-  }
+  // One fix, flat: its title and pills, why, its commands, and its actions.
+  const renderSuggestion: (
+    suggestion: AutoRemediationSuggestion,
+  ) => ReactElement = (suggestion: AutoRemediationSuggestion): ReactElement => {
+    const suggestionId: string = suggestion.id?.toString() || "";
+    const status: AutoRemediationSuggestionStatus =
+      (suggestion.status as AutoRemediationSuggestionStatus) ||
+      AutoRemediationSuggestionStatus.Planning;
+    const isBusy: boolean = busySuggestionId === suggestionId;
+    const isExpanded: boolean = expandedIds.has(suggestionId);
+    const isCommandPlan: boolean =
+      suggestion.suggestionType === AutoRemediationSuggestionType.CommandPlan;
+    const isMcpFix: boolean =
+      suggestion.suggestionType === AutoRemediationSuggestionType.McpToolCalls;
+    const plan: AiRemediationCommandPlan | null = isCommandPlan
+      ? AiRemediationCommandPlanUtil.parse(suggestion.commandPlan || null)
+      : null;
+    const mcpPlan: ExternalMcpToolCallPlan | null = isMcpFix
+      ? ExternalMcpToolCallPlanUtil.parse(suggestion.mcpToolCallPlan || null)
+      : null;
+    /*
+     * A plan waiting for approval that holds an SSH command can no longer
+     * be approved: the step says so in place of "Approve & Run", and leaves
+     * Dismiss.
+     */
+    const isUnapprovablePlan: boolean =
+      status === AutoRemediationSuggestionStatus.Suggested &&
+      hasRemovedSshCommand(plan);
+    // A fix that changes a cloud account can be dry-run first.
+    const dryRunTitle: string | null = isUnapprovablePlan
+      ? null
+      : getCloudDryRunButtonTitle({ status, plan });
+    const runbookTitle: string =
+      suggestion.runbookNameSnapshot ||
+      (translator.translateText(
+        status === AutoRemediationSuggestionStatus.Planning
+          ? "Picking the best runbook…"
+          : "No runbook",
+      ) as string);
+    const isClusterFix: boolean = Boolean(
+      suggestion.kubernetesClusterId ||
+        plan?.commands.some((command: AiRemediationCommand) => {
+          return command.stepType === RunbookStepType.Kubectl;
+        }),
+    );
+    // A resource round, or a plan of commands on a resource's AI agent.
+    const isResourceFix: boolean =
+      !isClusterFix &&
+      Boolean(
+        suggestion.resourceId ||
+          plan?.commands.some((command: AiRemediationCommand) => {
+            return command.stepType === RunbookStepType.ResourceCommand;
+          }),
+      );
+    const title: string = isMcpFix
+      ? (translator.translateText("AI fix through MCP servers") as string)
+      : isCommandPlan
+        ? (translator.translateText(
+            isClusterFix
+              ? "AI kubectl fix"
+              : isResourceFix
+                ? "AI infrastructure fix"
+                : "AI Command Plan",
+          ) as string)
+        : runbookTitle;
+    let sourceLabel: string = translator.translateTemplate("Rule: {{name}}", {
+      name:
+        suggestion.ruleNameSnapshot ||
+        (translator.translateText("Unknown") as string),
+    });
 
-  // The AI card's one line says why nothing was fixed.
+    if (isProjectRunbookPick(suggestion)) {
+      /*
+       * The project's own pick, made while no rule is set up: it is
+       * OneUptime AI's, and no rule's.
+       */
+      sourceLabel = translator.translateText("OneUptime AI") as string;
+    } else if (suggestion.kubernetesClusterId) {
+      sourceLabel =
+        suggestion.ruleNameSnapshot ||
+        (translator.translateText("AI remediation for cluster") as string);
+    } else if (suggestion.resourceId) {
+      sourceLabel =
+        suggestion.ruleNameSnapshot ||
+        (translator.translateText("AI remediation") as string);
+    }
+
+    return (
+      <div
+        key={suggestionId}
+        data-testid="remediation-fix"
+        data-status={status}
+        className="py-5 last:pb-0"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex min-w-0 flex-col">
+            <span className="break-words text-sm font-medium text-gray-900">
+              {title}
+            </span>
+            <span className="break-words text-xs text-gray-500">
+              {sourceLabel}
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusPill
+              status={status}
+              isCommandPlan={isCommandPlan || isMcpFix}
+              isUnapprovable={isUnapprovablePlan}
+            />
+            {suggestion.verificationStatus ? (
+              <VerificationPill
+                status={
+                  suggestion.verificationStatus as AutoRemediationVerificationStatus
+                }
+              />
+            ) : (
+              <></>
+            )}
+          </div>
+        </div>
+
+        {suggestion.verificationNote ? (
+          <div className="mt-2 text-xs text-gray-500">
+            {suggestion.verificationNote}
+          </div>
+        ) : (
+          <></>
+        )}
+
+        {suggestion.rationaleMarkdown ? (
+          <div className="mt-3">
+            <button
+              type="button"
+              className="rounded text-xs font-medium text-indigo-600 hover:text-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              aria-expanded={isExpanded}
+              onClick={() => {
+                toggleExpanded(suggestionId);
+              }}
+            >
+              {translator.translateText(
+                isExpanded ? "Hide reasoning" : "Show reasoning",
+              )}
+            </button>
+            {isExpanded ? (
+              <div className="mt-2 text-sm text-gray-700">
+                <MarkdownViewer
+                  text={suggestion.rationaleMarkdown}
+                  safeMode={true}
+                />
+              </div>
+            ) : (
+              <></>
+            )}
+          </div>
+        ) : (
+          <></>
+        )}
+
+        {plan ? (
+          <div className="mt-3">
+            <ol className="flex flex-col gap-4">
+              {plan.commands.map(
+                (command: AiRemediationCommand): ReactElement => {
+                  const commandKey: string = `${suggestionId}:command:${command.sequence}`;
+                  const isOutputExpanded: boolean =
+                    expandedIds.has(commandKey);
+                  const commandPillKind: CommandApprovalPillKind | null =
+                    getCommandApprovalPillKind(command, status);
+                  /*
+                   * Nothing in a plan that can't be approved waits for an
+                   * approval: only its SSH command's "no longer runs" is
+                   * said.
+                   */
+                  const approvalPillKind: CommandApprovalPillKind | null =
+                    isUnapprovablePlan &&
+                    commandPillKind === CommandApprovalPillKind.NeedsApproval
+                      ? null
+                      : commandPillKind;
+
+                  return (
+                    <li
+                      key={commandKey}
+                      data-testid="remediation-command"
+                      className="border-l-2 border-gray-200 pl-3"
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-medium text-gray-500">
+                          {command.sequence}.
+                        </span>
+                        <span className="break-words text-xs font-medium text-gray-900">
+                          {getCommandTargetLabel(command, translator)}
+                        </span>
+                        <span className="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200">
+                          {getCommandStepLabel(command)}
+                        </span>
+                        {command.kubectlTier ? (
+                          <KubectlTierPill tier={command.kubectlTier} />
+                        ) : command.stepType ===
+                            RunbookStepType.ResourceCommand &&
+                          command.resourceCommandTier ? (
+                          <ResourceCommandTierPill
+                            tier={command.resourceCommandTier}
+                          />
+                        ) : (
+                          <></>
+                        )}
+                        {approvalPillKind ? (
+                          <CommandApprovalPill kind={approvalPillKind} />
+                        ) : (
+                          <></>
+                        )}
+                        {command.execution ? (
+                          <CommandExecutionPill
+                            status={command.execution.status}
+                          />
+                        ) : (
+                          <></>
+                        )}
+                      </div>
+
+                      <pre className="mt-2 overflow-x-auto rounded-md bg-gray-50 px-3 py-2 font-mono text-xs text-gray-800">
+                        {command.command}
+                      </pre>
+
+                      <div className="mt-2 text-xs text-gray-600">
+                        {command.rationale}
+                      </div>
+                      <div className="mt-1 text-xs text-gray-500">
+                        {translator.translateTemplate(
+                          "Expected effect: {{effect}}",
+                          { effect: command.expectedEffect },
+                        )}
+                      </div>
+
+                      <CommandGitOpsNote command={command} />
+
+                      <CloudCommandNote command={command} />
+
+                      {command.rollbackCommand ? (
+                        <div className="mt-1 text-xs text-gray-500">
+                          <TranslatedSentence
+                            template="Rollback: {{command}}"
+                            slots={{
+                              command: (
+                                <span className="font-mono text-gray-700">
+                                  {command.rollbackCommand}
+                                </span>
+                              ),
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <></>
+                      )}
+
+                      {command.execution ? (
+                        <CommandExecutionDetails
+                          execution={command.execution}
+                          isOutputExpanded={isOutputExpanded}
+                          onToggleOutput={() => {
+                            toggleExpanded(commandKey);
+                          }}
+                        />
+                      ) : (
+                        <></>
+                      )}
+
+                      {/*
+                       * The undo's own outcome, when the rollback arm ran
+                       * (or skipped) it for this command: "Rollback status"
+                       * below the plan says how the rollback as a whole
+                       * ended, this says what happened to each undo.
+                       */}
+                      {command.rollbackExecution ? (
+                        <div
+                          className="mt-2 border-l-2 border-gray-200 pl-2"
+                          data-testid="remediation-rollback-outcome"
+                        >
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-xs font-medium text-gray-700">
+                              {translator.translateText("Rollback result")}
+                            </span>
+                            <CommandExecutionPill
+                              status={command.rollbackExecution.status}
+                            />
+                          </div>
+                          {command.rollbackExecution.status ===
+                            AiRemediationCommandExecutionStatus.Skipped &&
+                          !command.rollbackExecution.errorMessage ? (
+                            <div className="mt-1 text-xs text-gray-500">
+                              {translator.translateText(
+                                "The undo did not run — undo this change by hand if it is still needed.",
+                              )}
+                            </div>
+                          ) : (
+                            <></>
+                          )}
+                          <CommandExecutionDetails
+                            execution={command.rollbackExecution}
+                            isOutputExpanded={expandedIds.has(
+                              `${commandKey}:rollback`,
+                            )}
+                            onToggleOutput={() => {
+                              toggleExpanded(`${commandKey}:rollback`);
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <></>
+                      )}
+                    </li>
+                  );
+                },
+              )}
+            </ol>
+            {plan.executionStatus ? (
+              <div className="mt-3 text-xs text-gray-500">
+                {translator.translateTemplate("Plan execution: {{status}}", {
+                  status: translator.translateText(
+                    PLAN_EXECUTION_LABELS[plan.executionStatus] ||
+                      plan.executionStatus,
+                  ) as string,
+                })}
+              </div>
+            ) : (
+              <></>
+            )}
+            {plan.rollbackStatus ? (
+              <div className="mt-1 text-xs text-gray-500">
+                {translator.translateTemplate("Rollback status: {{status}}", {
+                  status: translator.translateText(
+                    ROLLBACK_STATUS_LABELS[plan.rollbackStatus] ||
+                      plan.rollbackStatus,
+                  ) as string,
+                })}
+              </div>
+            ) : (
+              <></>
+            )}
+          </div>
+        ) : (
+          <></>
+        )}
+
+        {mcpPlan ? (
+          <McpToolCallList plan={mcpPlan} suggestionId={suggestionId} />
+        ) : (
+          <></>
+        )}
+
+        {((isCommandPlan && !plan) || (isMcpFix && !mcpPlan)) &&
+        status !== AutoRemediationSuggestionStatus.Planning ? (
+          <div className="mt-3 text-xs text-gray-500">
+            {translator.translateText(
+              isMcpFix
+                ? MCP_TOOL_CALL_LIST_COPY.notShown
+                : "The command plan could not be displayed.",
+            )}
+          </div>
+        ) : (
+          <></>
+        )}
+
+        {isUnapprovablePlan ? (
+          <p
+            className="mt-3 text-xs text-gray-600"
+            data-testid="remediation-removed-ssh-note"
+          >
+            {translator.translateText(REMOVED_SSH_PLAN_NOTE)}
+          </p>
+        ) : (
+          <></>
+        )}
+
+        <div className="mt-3 flex flex-wrap items-center gap-2 [&>button]:ml-0 [&>button]:md:ml-0">
+          {status === AutoRemediationSuggestionStatus.Suggested &&
+          !isUnapprovablePlan ? (
+            <Button
+              title="Approve & Run"
+              icon={IconProp.Check}
+              buttonStyle={ButtonStyleType.SUCCESS_OUTLINE}
+              buttonSize={ButtonSize.Small}
+              disabled={isBusy}
+              isLoading={isBusy && busyAction === "approve"}
+              dataTestId="remediation-approve-button"
+              onClick={() => {
+                performAction(suggestion, "approve").catch(() => {
+                  // handled inside performAction
+                });
+              }}
+            />
+          ) : (
+            <></>
+          )}
+
+          {dryRunTitle ? (
+            <Button
+              title={dryRunTitle}
+              icon={IconProp.Search}
+              buttonStyle={ButtonStyleType.OUTLINE}
+              buttonSize={ButtonSize.Small}
+              disabled={
+                isBusy ||
+                isCloudDryRunInFlight(plan, OneUptimeDate.getCurrentDate())
+              }
+              isLoading={isBusy && busyAction === "dry-run"}
+              dataTestId="remediation-dry-run-button"
+              onClick={() => {
+                performAction(suggestion, "dry-run").catch(() => {
+                  // handled inside performAction
+                });
+              }}
+            />
+          ) : (
+            <></>
+          )}
+
+          {status === AutoRemediationSuggestionStatus.Suggested ||
+          status === AutoRemediationSuggestionStatus.Planning ? (
+            <Button
+              title="Dismiss"
+              icon={IconProp.Close}
+              buttonStyle={ButtonStyleType.HOVER_DANGER_OUTLINE}
+              buttonSize={ButtonSize.Small}
+              disabled={isBusy}
+              onClick={() => {
+                performAction(suggestion, "dismiss").catch(() => {
+                  // handled inside performAction
+                });
+              }}
+            />
+          ) : (
+            <></>
+          )}
+
+          {!isCommandPlan &&
+          (status === AutoRemediationSuggestionStatus.Approved ||
+            status === AutoRemediationSuggestionStatus.AutoExecuted) &&
+          suggestion.runbookId &&
+          suggestion.runbookExecutionId ? (
+            <Button
+              title="View Execution"
+              icon={IconProp.List}
+              buttonStyle={ButtonStyleType.OUTLINE}
+              buttonSize={ButtonSize.Small}
+              onClick={() => {
+                Navigation.navigate(
+                  RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.RUNBOOK_VIEW_EXECUTION] as Route,
+                    {
+                      modelId: suggestion.runbookId!,
+                      subModelId: suggestion.runbookExecutionId!.toString(),
+                    },
+                  ),
+                );
+              }}
+            />
+          ) : (
+            <></>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // The AI card is one line that says why nothing was fixed, or deciding.
   if (
+    props.aiCardFold === "folded" ||
+    props.aiCardFold === "checking" ||
     isRemediationFoldedIntoAiCard({
       state: foldState,
       aiCardFold: props.aiCardFold,
@@ -1312,551 +2052,210 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
     return <Fragment />;
   }
 
-  // Nothing to show: no suggestion, and no decision (an older signal).
-  if (suggestions.length === 0 && decisionLines.length === 0) {
-    return <Fragment />;
-  }
-
-  const hasSuggestions: boolean = suggestions.length > 0;
+  const isLoadedForSubject: boolean =
+    isLoaded && loadedSubjectId === subjectIdString;
+  const fixes: Array<RemediationFixFacts> = suggestions.map(
+    (suggestion: AutoRemediationSuggestion): RemediationFixFacts => {
+      return getRemediationFixFacts(suggestion);
+    },
+  );
+  const isWaiting: boolean =
+    isLoadedForSubject &&
+    isRemediationWaitingForInvestigation({
+      decision,
+      investigationStage: props.investigationStage,
+    });
+  const stepStatus: RemediationStepStatus = getRemediationStepStatus({
+    isLoaded: isLoadedForSubject,
+    decision,
+    lines: decisionLines,
+    fixes,
+    investigationStage: props.investigationStage,
+    codeFix,
+    isOffByChoice: foldState.kind === "off",
+  });
+  const updateGate: PermissionGateResult = PermissionGate.check(
+    incidentIdString ? new Incident() : new Alert(),
+    ModelAction.Update,
+  );
+  const isTryAgainOffered: boolean =
+    updateGate.isAllowed &&
+    canOfferRemediationTryAgain({
+      isLoaded: isLoadedForSubject,
+      isRecordResolved: Boolean(props.isRecordResolved),
+      decision,
+      lines: decisionLines,
+      fixes,
+      investigationStage: props.investigationStage,
+      codeFix,
+      switchesNow,
+    });
 
   /*
-   * The header's pill sums up the decision while the decision is all the
-   * card says. Once there are fixes, each carries a pill of its own that
-   * follows it (waiting, approved, verified), and a pill drawn from the
-   * decision - written once, when the signal was evaluated - would sit
-   * above them saying something older.
+   * While remediation waits for the investigation, its one line says so.
+   * Written down (WaitingForInvestigation) or not yet: fixing is decided
+   * once the investigation is done, whether it is on or off.
    */
-  const decisionStatus: RemediationDecisionStatus | null = hasSuggestions
-    ? null
-    : getRemediationDecisionStatus(decisionLines);
+  const waitingLines: Array<RemediationDecisionLine> = isWaiting
+    ? [
+        {
+          key: "waiting-for-investigation",
+          tone: "waiting",
+          text: translator.translateText(
+            REMEDIATION_STEP_WAITING[signal],
+          ) as string,
+          links: [],
+        },
+      ]
+    : [];
+  const linesToDraw: Array<RemediationDecisionLine> = isWaiting
+    ? waitingLines
+    : decisionLines;
+  const isNotTried: boolean =
+    isLoadedForSubject &&
+    !isWaiting &&
+    !decision &&
+    suggestions.length === 0;
 
   return (
-    <Card
-      title="Remediation"
-      description={
-        hasSuggestions
-          ? getRemediationCardDescription(suggestions)
-          : REMEDIATION_DECISION_CARD_DESCRIPTION
-      }
-      rightElement={
-        decisionStatus ? (
-          <RemediationDecisionStatusBadge status={decisionStatus} />
-        ) : undefined
-      }
+    <AiCardStep
+      number={2}
+      title={REMEDIATION_STEP_TITLE}
+      status={{
+        text: stepStatus.text,
+        indicator: STEP_TONE_INDICATOR[stepStatus.tone],
+      }}
+      statusLabel={REMEDIATION_STEP_STATUS_LABEL}
+      isLast={true}
+      testId="ai-card-step-remediation"
     >
-      <div className="flex flex-col gap-4">
-        {actionError ? (
-          <Alert
-            type={AlertType.DANGER}
-            strongTitle={getActionErrorTitle(
-              failedAction,
-              suggestions.find(
-                (suggestion: AutoRemediationSuggestion): boolean => {
-                  return suggestion.id?.toString() === failedSuggestionId;
-                },
-              )?.status as AutoRemediationSuggestionStatus | undefined,
-            )}
-            title={actionError}
-            dataTestId="remediation-action-error"
-          />
-        ) : (
-          <></>
-        )}
-
-        <RemediationDecisionList
-          lines={decisionLines}
-          showHeading={hasSuggestions}
-        />
-
-        {suggestions.map(
-          (suggestion: AutoRemediationSuggestion): ReactElement => {
-            const suggestionId: string = suggestion.id?.toString() || "";
-            const status: AutoRemediationSuggestionStatus =
-              (suggestion.status as AutoRemediationSuggestionStatus) ||
-              AutoRemediationSuggestionStatus.Planning;
-            const isBusy: boolean = busySuggestionId === suggestionId;
-            const isExpanded: boolean = expandedIds.has(suggestionId);
-            const isCommandPlan: boolean =
-              suggestion.suggestionType ===
-              AutoRemediationSuggestionType.CommandPlan;
-            const isMcpFix: boolean =
-              suggestion.suggestionType ===
-              AutoRemediationSuggestionType.McpToolCalls;
-            const plan: AiRemediationCommandPlan | null = isCommandPlan
-              ? AiRemediationCommandPlanUtil.parse(
-                  suggestion.commandPlan || null,
-                )
-              : null;
-            const mcpPlan: ExternalMcpToolCallPlan | null = isMcpFix
-              ? ExternalMcpToolCallPlanUtil.parse(
-                  suggestion.mcpToolCallPlan || null,
-                )
-              : null;
-            /*
-             * A plan waiting for approval that holds an SSH command can no
-             * longer be approved: the card says so in place of "Approve &
-             * Run", and leaves Dismiss.
-             */
-            const isUnapprovablePlan: boolean =
-              status === AutoRemediationSuggestionStatus.Suggested &&
-              hasRemovedSshCommand(plan);
-            // A fix that changes a cloud account can be dry-run first.
-            const dryRunTitle: string | null = isUnapprovablePlan
-              ? null
-              : getCloudDryRunButtonTitle({ status, plan });
-            const runbookTitle: string =
-              suggestion.runbookNameSnapshot ||
-              (translator.translateText(
-                status === AutoRemediationSuggestionStatus.Planning
-                  ? "Picking the best runbook…"
-                  : "No runbook",
-              ) as string);
-            const isClusterFix: boolean = Boolean(
-              suggestion.kubernetesClusterId ||
-                plan?.commands.some((command: AiRemediationCommand) => {
-                  return command.stepType === RunbookStepType.Kubectl;
-                }),
-            );
-            // A resource round, or a plan of commands on a resource's AI agent.
-            const isResourceFix: boolean =
-              !isClusterFix &&
-              Boolean(
-                suggestion.resourceId ||
-                  plan?.commands.some((command: AiRemediationCommand) => {
-                    return command.stepType === RunbookStepType.ResourceCommand;
-                  }),
-              );
-            const title: string = isMcpFix
-              ? (translator.translateText(
-                  "AI fix through MCP servers",
-                ) as string)
-              : isCommandPlan
-                ? (translator.translateText(
-                    isClusterFix
-                      ? "AI kubectl fix"
-                      : isResourceFix
-                        ? "AI infrastructure fix"
-                        : "AI Command Plan",
-                  ) as string)
-                : runbookTitle;
-            let sourceLabel: string = translator.translateTemplate(
-              "Rule: {{name}}",
-              {
-                name:
-                  suggestion.ruleNameSnapshot ||
-                  (translator.translateText("Unknown") as string),
+      {actionError ? (
+        <InvestigationNotice
+          role="alert"
+          testId="remediation-action-error"
+          indicator={noticeFailedIcon}
+          title={getActionErrorTitle(
+            failedAction,
+            suggestions.find(
+              (suggestion: AutoRemediationSuggestion): boolean => {
+                return suggestion.id?.toString() === failedSuggestionId;
               },
-            );
+            )?.status as AutoRemediationSuggestionStatus | undefined,
+          )}
+          onDismiss={() => {
+            setActionError("");
+          }}
+        >
+          {translator.translateText(actionError)}
+        </InvestigationNotice>
+      ) : (
+        <></>
+      )}
 
-            if (isProjectRunbookPick(suggestion)) {
-              /*
-               * The project's own pick, made while no rule is set up: it is
-               * OneUptime AI's, and no rule's.
-               */
-              sourceLabel = translator.translateText("OneUptime AI") as string;
-            } else if (suggestion.kubernetesClusterId) {
-              sourceLabel =
-                suggestion.ruleNameSnapshot ||
-                (translator.translateText(
-                  "AI remediation for cluster",
-                ) as string);
-            } else if (suggestion.resourceId) {
-              sourceLabel =
-                suggestion.ruleNameSnapshot ||
-                (translator.translateText("AI remediation") as string);
-            }
+      {!isLoadedForSubject ? (
+        <p
+          data-testid="remediation-step-checking"
+          className="text-sm leading-6 text-gray-500"
+        >
+          {translator.translateText(
+            "Checking what OneUptime AI did to fix this…",
+          )}
+        </p>
+      ) : (
+        <></>
+      )}
 
-            return (
-              <div
-                key={suggestionId}
-                className="rounded-md border border-gray-200 p-4"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium text-gray-900">
-                      {title}
-                    </span>
-                    <span className="text-xs text-gray-500">{sourceLabel}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <StatusPill
-                      status={status}
-                      isCommandPlan={isCommandPlan || isMcpFix}
-                      isUnapprovable={isUnapprovablePlan}
-                    />
-                    {suggestion.verificationStatus ? (
-                      <VerificationPill
-                        status={
-                          suggestion.verificationStatus as AutoRemediationVerificationStatus
-                        }
-                      />
-                    ) : (
-                      <></>
-                    )}
-                  </div>
-                </div>
+      <RemediationDecisionList lines={linesToDraw} />
 
-                {suggestion.verificationNote ? (
-                  <div className="mt-2 text-xs text-gray-500">
-                    {suggestion.verificationNote}
-                  </div>
-                ) : (
-                  <></>
-                )}
+      {isNotTried ? (
+        <p
+          data-testid="remediation-step-not-tried"
+          className="text-sm leading-6 text-gray-600"
+        >
+          {translator.translateText(REMEDIATION_STEP_NOT_TRIED[signal])}
+        </p>
+      ) : (
+        <></>
+      )}
 
-                {suggestion.rationaleMarkdown ? (
-                  <div className="mt-3">
-                    <button
-                      type="button"
-                      className="text-xs font-medium text-indigo-600 hover:text-indigo-500"
-                      onClick={() => {
-                        toggleExpanded(suggestionId);
-                      }}
-                    >
-                      {translator.translateText(
-                        isExpanded ? "Hide reasoning" : "Show reasoning",
-                      )}
-                    </button>
-                    {isExpanded ? (
-                      <div className="mt-2 text-sm text-gray-700">
-                        <MarkdownViewer
-                          text={suggestion.rationaleMarkdown}
-                          safeMode={true}
-                        />
-                      </div>
-                    ) : (
-                      <></>
-                    )}
-                  </div>
-                ) : (
-                  <></>
-                )}
+      {suggestions.length > 0 ? (
+        <div
+          data-testid="remediation-fixes"
+          className="divide-y divide-gray-200 border-t border-gray-200"
+        >
+          {suggestions.map(
+            (suggestion: AutoRemediationSuggestion): ReactElement => {
+              return renderSuggestion(suggestion);
+            },
+          )}
+        </div>
+      ) : (
+        <></>
+      )}
 
-                {plan ? (
-                  <div className="mt-3">
-                    <ol className="flex flex-col gap-3">
-                      {plan.commands.map(
-                        (command: AiRemediationCommand): ReactElement => {
-                          const commandKey: string = `${suggestionId}:command:${command.sequence}`;
-                          const isOutputExpanded: boolean =
-                            expandedIds.has(commandKey);
-                          const commandPillKind: CommandApprovalPillKind | null =
-                            getCommandApprovalPillKind(command, status);
-                          /*
-                           * Nothing in a plan that can't be approved waits
-                           * for an approval: only its SSH command's "no
-                           * longer runs" is said.
-                           */
-                          const approvalPillKind: CommandApprovalPillKind | null =
-                            isUnapprovablePlan &&
-                            commandPillKind ===
-                              CommandApprovalPillKind.NeedsApproval
-                              ? null
-                              : commandPillKind;
+      {codeFix && codeFix.offer !== SuggestionOffer.None ? (
+        <RemediationCodeFix
+          signal={signal}
+          subjectId={subjectIdString}
+          investigationRunId={props.codeFix?.investigationRunId || null}
+          suggestion={codeFix}
+          onChanged={() => {
+            loadCodeFix().catch(() => {
+              // handled inside loadCodeFix
+            });
+          }}
+        />
+      ) : (
+        <></>
+      )}
 
-                          return (
-                            <li
-                              key={commandKey}
-                              className="rounded-md border border-gray-100 bg-gray-50 p-3"
-                            >
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span className="text-xs font-medium text-gray-500">
-                                  {command.sequence}.
-                                </span>
-                                <span className="text-xs font-medium text-gray-900">
-                                  {getCommandTargetLabel(command, translator)}
-                                </span>
-                                <span className="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200">
-                                  {getCommandStepLabel(command)}
-                                </span>
-                                {command.kubectlTier ? (
-                                  <KubectlTierPill tier={command.kubectlTier} />
-                                ) : command.stepType ===
-                                    RunbookStepType.ResourceCommand &&
-                                  command.resourceCommandTier ? (
-                                  <ResourceCommandTierPill
-                                    tier={command.resourceCommandTier}
-                                  />
-                                ) : (
-                                  <></>
-                                )}
-                                {approvalPillKind ? (
-                                  <CommandApprovalPill
-                                    kind={approvalPillKind}
-                                  />
-                                ) : (
-                                  <></>
-                                )}
-                                {command.execution ? (
-                                  <CommandExecutionPill
-                                    status={command.execution.status}
-                                  />
-                                ) : (
-                                  <></>
-                                )}
-                              </div>
+      {isTryAgainOffered ? (
+        <div
+          data-testid="remediation-try-again"
+          className="flex flex-wrap items-center gap-x-4 gap-y-2"
+        >
+          <div className="flex-none [&>button]:ml-0 [&>button]:md:ml-0">
+            <Button
+              title={REMEDIATION_TRY_AGAIN_BUTTON}
+              icon={IconProp.Refresh}
+              buttonStyle={ButtonStyleType.NORMAL}
+              buttonSize={ButtonSize.Small}
+              isLoading={isTryingAgain}
+              disabled={isTryingAgain}
+              dataTestId="remediation-try-again-button"
+              onClick={() => {
+                tryAgain().catch(() => {
+                  // handled inside tryAgain
+                });
+              }}
+            />
+          </div>
+          <p className="min-w-0 flex-[1_1_14rem] text-xs leading-5 text-gray-500">
+            {translator.translateText(REMEDIATION_TRY_AGAIN_HINT[signal])}
+          </p>
+        </div>
+      ) : (
+        <></>
+      )}
 
-                              <pre className="mt-2 overflow-x-auto rounded border border-gray-200 bg-white px-3 py-2 font-mono text-xs text-gray-800">
-                                {command.command}
-                              </pre>
-
-                              <div className="mt-2 text-xs text-gray-600">
-                                {command.rationale}
-                              </div>
-                              <div className="mt-1 text-xs text-gray-500">
-                                {translator.translateTemplate(
-                                  "Expected effect: {{effect}}",
-                                  { effect: command.expectedEffect },
-                                )}
-                              </div>
-
-                              <CommandGitOpsNote command={command} />
-
-                              <CloudCommandNote command={command} />
-
-                              {command.rollbackCommand ? (
-                                <div className="mt-1 text-xs text-gray-500">
-                                  <TranslatedSentence
-                                    template="Rollback: {{command}}"
-                                    slots={{
-                                      command: (
-                                        <span className="font-mono text-gray-700">
-                                          {command.rollbackCommand}
-                                        </span>
-                                      ),
-                                    }}
-                                  />
-                                </div>
-                              ) : (
-                                <></>
-                              )}
-
-                              {command.execution ? (
-                                <CommandExecutionDetails
-                                  execution={command.execution}
-                                  isOutputExpanded={isOutputExpanded}
-                                  onToggleOutput={() => {
-                                    toggleExpanded(commandKey);
-                                  }}
-                                />
-                              ) : (
-                                <></>
-                              )}
-
-                              {/*
-                               * The undo's own outcome, when the rollback
-                               * arm ran (or skipped) it for this command:
-                               * "Rollback status" below the plan says how
-                               * the rollback as a whole ended, this says
-                               * what happened to each undo.
-                               */}
-                              {command.rollbackExecution ? (
-                                <div
-                                  className="mt-2 rounded border border-gray-200 bg-white px-2 py-1.5"
-                                  data-testid="remediation-rollback-outcome"
-                                >
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <span className="text-xs font-medium text-gray-700">
-                                      {translator.translateText(
-                                        "Rollback result",
-                                      )}
-                                    </span>
-                                    <CommandExecutionPill
-                                      status={command.rollbackExecution.status}
-                                    />
-                                  </div>
-                                  {command.rollbackExecution.status ===
-                                    AiRemediationCommandExecutionStatus.Skipped &&
-                                  !command.rollbackExecution.errorMessage ? (
-                                    <div className="mt-1 text-xs text-gray-500">
-                                      {translator.translateText(
-                                        "The undo did not run — undo this change by hand if it is still needed.",
-                                      )}
-                                    </div>
-                                  ) : (
-                                    <></>
-                                  )}
-                                  <CommandExecutionDetails
-                                    execution={command.rollbackExecution}
-                                    isOutputExpanded={expandedIds.has(
-                                      `${commandKey}:rollback`,
-                                    )}
-                                    onToggleOutput={() => {
-                                      toggleExpanded(`${commandKey}:rollback`);
-                                    }}
-                                  />
-                                </div>
-                              ) : (
-                                <></>
-                              )}
-                            </li>
-                          );
-                        },
-                      )}
-                    </ol>
-                    {plan.executionStatus ? (
-                      <div className="mt-2 text-xs text-gray-500">
-                        {translator.translateTemplate(
-                          "Plan execution: {{status}}",
-                          {
-                            status: translator.translateText(
-                              PLAN_EXECUTION_LABELS[plan.executionStatus] ||
-                                plan.executionStatus,
-                            ) as string,
-                          },
-                        )}
-                      </div>
-                    ) : (
-                      <></>
-                    )}
-                    {plan.rollbackStatus ? (
-                      <div className="mt-1 text-xs text-gray-500">
-                        {translator.translateTemplate(
-                          "Rollback status: {{status}}",
-                          {
-                            status: translator.translateText(
-                              ROLLBACK_STATUS_LABELS[plan.rollbackStatus] ||
-                                plan.rollbackStatus,
-                            ) as string,
-                          },
-                        )}
-                      </div>
-                    ) : (
-                      <></>
-                    )}
-                  </div>
-                ) : (
-                  <></>
-                )}
-
-                {mcpPlan ? (
-                  <McpToolCallList plan={mcpPlan} suggestionId={suggestionId} />
-                ) : (
-                  <></>
-                )}
-
-                {((isCommandPlan && !plan) || (isMcpFix && !mcpPlan)) &&
-                status !== AutoRemediationSuggestionStatus.Planning ? (
-                  <div className="mt-3 text-xs text-gray-500">
-                    {translator.translateText(
-                      isMcpFix
-                        ? MCP_TOOL_CALL_LIST_COPY.notShown
-                        : "The command plan could not be displayed.",
-                    )}
-                  </div>
-                ) : (
-                  <></>
-                )}
-
-                {isUnapprovablePlan ? (
-                  <p
-                    className="mt-3 text-xs text-gray-600"
-                    data-testid="remediation-removed-ssh-note"
-                  >
-                    {translator.translateText(REMOVED_SSH_PLAN_NOTE)}
-                  </p>
-                ) : (
-                  <></>
-                )}
-
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  {status === AutoRemediationSuggestionStatus.Suggested &&
-                  !isUnapprovablePlan ? (
-                    <Button
-                      title="Approve & Run"
-                      icon={IconProp.Check}
-                      buttonStyle={ButtonStyleType.SUCCESS_OUTLINE}
-                      buttonSize={ButtonSize.Small}
-                      disabled={isBusy}
-                      isLoading={isBusy && busyAction === "approve"}
-                      dataTestId="remediation-approve-button"
-                      onClick={() => {
-                        performAction(suggestion, "approve").catch(() => {
-                          // handled inside performAction
-                        });
-                      }}
-                    />
-                  ) : (
-                    <></>
-                  )}
-
-                  {dryRunTitle ? (
-                    <Button
-                      title={dryRunTitle}
-                      icon={IconProp.Search}
-                      buttonStyle={ButtonStyleType.OUTLINE}
-                      buttonSize={ButtonSize.Small}
-                      disabled={
-                        isBusy ||
-                        isCloudDryRunInFlight(
-                          plan,
-                          OneUptimeDate.getCurrentDate(),
-                        )
-                      }
-                      isLoading={isBusy && busyAction === "dry-run"}
-                      dataTestId="remediation-dry-run-button"
-                      onClick={() => {
-                        performAction(suggestion, "dry-run").catch(() => {
-                          // handled inside performAction
-                        });
-                      }}
-                    />
-                  ) : (
-                    <></>
-                  )}
-
-                  {status === AutoRemediationSuggestionStatus.Suggested ||
-                  status === AutoRemediationSuggestionStatus.Planning ? (
-                    <Button
-                      title="Dismiss"
-                      icon={IconProp.Close}
-                      buttonStyle={ButtonStyleType.HOVER_DANGER_OUTLINE}
-                      buttonSize={ButtonSize.Small}
-                      disabled={isBusy}
-                      onClick={() => {
-                        performAction(suggestion, "dismiss").catch(() => {
-                          // handled inside performAction
-                        });
-                      }}
-                    />
-                  ) : (
-                    <></>
-                  )}
-
-                  {!isCommandPlan &&
-                  (status === AutoRemediationSuggestionStatus.Approved ||
-                    status === AutoRemediationSuggestionStatus.AutoExecuted) &&
-                  suggestion.runbookId &&
-                  suggestion.runbookExecutionId ? (
-                    <Button
-                      title="View Execution"
-                      icon={IconProp.List}
-                      buttonStyle={ButtonStyleType.OUTLINE}
-                      buttonSize={ButtonSize.Small}
-                      onClick={() => {
-                        Navigation.navigate(
-                          RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.RUNBOOK_VIEW_EXECUTION] as Route,
-                            {
-                              modelId: suggestion.runbookId!,
-                              subModelId:
-                                suggestion.runbookExecutionId!.toString(),
-                            },
-                          ),
-                        );
-                      }}
-                    />
-                  ) : (
-                    <></>
-                  )}
-                </div>
-              </div>
-            );
-          },
-        )}
-      </div>
-    </Card>
+      {tryAgainError ? (
+        <InvestigationNotice
+          role="alert"
+          testId="remediation-try-again-error"
+          indicator={noticeFailedIcon}
+          title={REMEDIATION_TRY_AGAIN_FAILED}
+          onDismiss={() => {
+            setTryAgainError("");
+          }}
+        >
+          {translator.translateText(tryAgainError)}
+        </InvestigationNotice>
+      ) : (
+        <></>
+      )}
+    </AiCardStep>
   );
+
 };
 
-export default RemediationSuggestionCard;
+export default RemediationStep;

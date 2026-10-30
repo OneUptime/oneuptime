@@ -1,5 +1,6 @@
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import { REMEDIATION_STEP_WAITING } from "./RemediationStepCopy";
 import Route from "Common/Types/API/Route";
 import {
   AutoRemediationDecisionEntry,
@@ -225,10 +226,6 @@ const LINK_RESOURCE_AI_PAGE: string = translationKey("Open its AI agent page");
 const LINK_INCIDENT_RULES: string = translationKey("Incident AI rules");
 const LINK_ALERT_RULES: string = translationKey("Alert AI rules");
 const LINK_AI_FEATURES: string = translationKey("AI settings");
-const LINK_INCIDENT_AI_SETTINGS: string = translationKey(
-  "Incident AI settings",
-);
-const LINK_ALERT_AI_SETTINGS: string = translationKey("Alert AI settings");
 const LINK_LLM_PROVIDERS: string = translationKey("LLM providers");
 const LINK_MONITOR: string = translationKey("Link {{monitorName}}");
 const GO_TO_AFFECTED_RESOURCES: string = translationKey(
@@ -329,17 +326,6 @@ function rulesLink(
   return link(
     translator,
     signal === "incident" ? LINK_INCIDENT_RULES : LINK_ALERT_RULES,
-    routeTo(getAiSettingsPage(signal)),
-  );
-}
-
-function aiSettingsLink(
-  translator: Translator,
-  signal: RemediationDecisionSignal,
-): Array<RemediationDecisionLink> {
-  return link(
-    translator,
-    signal === "incident" ? LINK_INCIDENT_AI_SETTINGS : LINK_ALERT_AI_SETTINGS,
     routeTo(getAiSettingsPage(signal)),
   );
 }
@@ -469,23 +455,42 @@ export const SILENT_REASONS: ReadonlyArray<AutoRemediationDecisionReason> = [
   AutoRemediationDecisionReason.ResourceSkippedForClusterRound,
 ];
 
+/*
+ * The project's switches as they are now, when the step could read them:
+ * true or false, or undefined while unknown. A decision is written once,
+ * with the switches of that moment (block 43): a line that says a switch
+ * was off says it is on now when it is - with Try again as the next step -
+ * rather than asking the reader to turn on what is on.
+ */
+export interface RemediationSwitchesNow {
+  // Enable AI.
+  isAiOn?: boolean | undefined;
+  // "Fix new incidents automatically" (or alerts), for the record's kind.
+  isFixingOn?: boolean | undefined;
+}
+
+// The link to turn the record kind's fixing switch on, where it is.
+export const TURN_ON_FIXING_LINKS: Record<RemediationDecisionSignal, string> = {
+  incident: translationKey("Turn on for incidents"),
+  alert: translationKey("Turn on for alerts"),
+};
+
 export function getRemediationDecisionLines(input: {
   decision: RemediationDecision;
   signal: RemediationDecisionSignal;
   translator: Translator;
+  switchesNow?: RemediationSwitchesNow | undefined;
 }): Array<RemediationDecisionLine> {
   const { decision, signal, translator } = input;
   const signalTerm: TranslatableTerm = getSignalTerm(signal);
+  const switchesNow: RemediationSwitchesNow = input.switchesNow || {};
 
   if (decision.stage === AutoRemediationDecisionStage.WaitingForInvestigation) {
     return [
       {
         key: "waiting-for-investigation",
         tone: "waiting",
-        text: translator.translateTemplate(
-          "Auto-remediation runs once OneUptime AI has finished investigating this {{signal}}, so it can act on the root cause analysis.",
-          { signal: signalTerm },
-        ),
+        text: translateText(translator, REMEDIATION_STEP_WAITING[signal]),
         links: [],
       },
     ];
@@ -539,6 +544,24 @@ export function getRemediationDecisionLines(input: {
     switch (entry.reason) {
       // --- Project ---
       case AutoRemediationDecisionReason.EnableAiOff:
+        if (switchesNow.isAiOn === true) {
+          // Turned on since: decided again with Try again, not turned on.
+          lines.push({
+            key,
+            tone: "attention",
+            text:
+              signal === "incident"
+                ? translator.translateTemplate(
+                    "Enable AI was off when OneUptime AI checked this incident. It is on now.",
+                  )
+                : translator.translateTemplate(
+                    "Enable AI was off when OneUptime AI checked this alert. It is on now.",
+                  ),
+            links: [],
+          });
+          return;
+        }
+
         lines.push({
           key,
           tone: "attention",
@@ -553,6 +576,28 @@ export function getRemediationDecisionLines(input: {
         });
         return;
       case AutoRemediationDecisionReason.RemediationOff:
+        if (switchesNow.isFixingOn === true) {
+          /*
+           * Block 43: the switch was turned on after the record came in,
+           * and nothing reaches back on its own. It is on now - Try again
+           * fixes this one.
+           */
+          lines.push({
+            key,
+            tone: "attention",
+            text:
+              signal === "incident"
+                ? translator.translateTemplate(
+                    '"Fix new incidents automatically" was off when OneUptime AI checked this incident. It is on now.',
+                  )
+                : translator.translateTemplate(
+                    '"Fix new alerts automatically" was off when OneUptime AI checked this alert. It is on now.',
+                  ),
+            links: [],
+          });
+          return;
+        }
+
         // A choice, not a fault: fixing starts off until a project turns it on.
         lines.push({
           key,
@@ -565,7 +610,11 @@ export function getRemediationDecisionLines(input: {
               : translator.translateTemplate(
                   '"Fix new alerts automatically" is off for this project, so OneUptime AI did not try to fix this alert.',
                 ),
-          links: aiSettingsLink(translator, signal),
+          links: link(
+            translator,
+            TURN_ON_FIXING_LINKS[signal],
+            routeTo(getAiSettingsPage(signal)),
+          ),
         });
         return;
       case AutoRemediationDecisionReason.SuggestionLimitReached:

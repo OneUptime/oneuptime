@@ -30,6 +30,11 @@ export interface ComponentProps {
   // English, translated here like a Pill's text.
   text: string;
   indicator: InvestigationStatusIndicator;
+  /*
+   * English, the pill's name for screen readers. The AI card's two steps
+   * each have one ("Investigation status", "Remediation status").
+   */
+  ariaLabel?: string | undefined;
 }
 
 const ICON_CLASS_NAME: string = "h-3.5 w-3.5 flex-shrink-0";
@@ -116,7 +121,9 @@ const InvestigationStatusBadge: FunctionComponent<ComponentProps> = (
 
   return (
     <div
-      aria-label={translator.translateText("Investigation status")}
+      aria-label={translator.translateText(
+        props.ariaLabel || "Investigation status",
+      )}
       data-indicator={props.indicator}
       className={STATUS_BADGE_CLASS_NAME}
     >
