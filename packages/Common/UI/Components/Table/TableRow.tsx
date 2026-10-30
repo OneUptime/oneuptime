@@ -32,6 +32,7 @@ import {
   TABLE_STUCK_END_CELL_CLASS_NAME,
   getTableCellPaddingClassName,
 } from "./TableLayout";
+import { TABLE_STICKY_END_ATTRIBUTE } from "./TableStickyEndFocus";
 import TableEmptyValue, { isDashPlaceholder } from "./TableEmptyValue";
 import { showFullValueWhenCutShort } from "./FullValueTitle";
 import Columns from "./Types/Columns";
@@ -648,6 +649,13 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                 <td
                   key={i}
                   className={`${className}${stickyClassName}`}
+                  /*
+                   * The stuck Actions cell, which a focused cell is kept
+                   * clear of (TableStickyEndFocus).
+                   */
+                  {...(isActions
+                    ? { [TABLE_STICKY_END_ATTRIBUTE]: "true" }
+                    : {})}
                   style={getLockedCellStyle()}
                   onClick={() => {
                     if (column.tooltipText) {
