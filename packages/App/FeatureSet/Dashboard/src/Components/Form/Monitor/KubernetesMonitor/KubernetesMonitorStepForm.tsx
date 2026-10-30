@@ -55,15 +55,12 @@ import AddResourceModal from "../../../ResourceOnboarding/AddResourceModal";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Navigation from "Common/UI/Utils/Navigation";
 
-export type KubernetesFormMode = "quick" | "custom" | "advanced";
-
 export interface ComponentProps {
   monitorStepKubernetesMonitor: MonitorStepKubernetesMonitor;
   onChange: (
     monitorStepKubernetesMonitor: MonitorStepKubernetesMonitor,
   ) => void;
   onMonitorCriteriaChange?: ((criteria: MonitorCriteria) => void) | undefined;
-  onModeChange?: ((mode: KubernetesFormMode) => void) | undefined;
   initialTemplateId?: string | undefined;
   initialClusterId?: string | undefined;
   // These IDs are needed to build proper criteria from templates
