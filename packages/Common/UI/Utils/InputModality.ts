@@ -44,10 +44,15 @@ const onPointerDown: () => void = (): void => {
 
 /*
  * Starts listening, once per page. Captured, so a handler that stops its
- * event from spreading cannot hide the press.
+ * event from spreading cannot hide the press. Only on a document that can
+ * be listened to: a test without a DOM may stand a bare one in.
  */
 export const listenForInputModality: () => void = (): void => {
-  if (isListening || typeof document === "undefined") {
+  if (
+    isListening ||
+    typeof document === "undefined" ||
+    typeof document.addEventListener !== "function"
+  ) {
     return;
   }
 
