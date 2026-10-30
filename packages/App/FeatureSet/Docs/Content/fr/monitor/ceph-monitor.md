@@ -175,7 +175,7 @@ L'agent interroge chaque démon mgr toutes les 30 secondes et conserve les label
 | `ceph_healthcheck_slow_ops` | nombre | Opérations lentes des OSD et des moniteurs signalées par le check `SLOW_OPS`. |
 | `ceph_daemon_health_metrics` | nombre | Métriques de santé par démon, identifiées par `type` (par exemple `SLOW_OPS`) et `ceph_daemon`. |
 | `ceph_mon_quorum_status` | nombre | 1 quand le moniteur est dans le quorum, par `ceph_daemon` (par exemple `mon.a`). |
-| `ceph_mon_metadata` | nombre | Métadonnées du moniteur, toujours 1. Additionnez-les pour compter les moniteurs. |
+| `ceph_mon_metadata` | nombre | Métadonnées du moniteur, toujours 1 tant que le moniteur remonte des données. Une somme additionne chaque collecte d'une minute : elle ne compte pas les moniteurs. |
 | `ceph_cluster_total_bytes` | octets | Capacité brute totale. |
 | `ceph_cluster_total_used_bytes` | octets | Capacité brute utilisée. |
 
@@ -190,7 +190,7 @@ L'agent interroge chaque démon mgr toutes les 30 secondes et conserve les label
 | `ceph_osd_stat_bytes` | octets | Capacité brute du périphérique de l'OSD. |
 | `ceph_osd_stat_bytes_used` | octets | Octets bruts utilisés sur l'OSD. Comparez au total pour repérer des OSD inégalement remplis ou presque pleins. |
 | `ceph_osd_numpg` | nombre | Placement groups sur l'OSD. |
-| `ceph_osd_metadata` | nombre | Métadonnées de l'OSD (nom d'hôte, classe de périphérique, version), toujours 1. Additionnez-les pour compter les OSD. |
+| `ceph_osd_metadata` | nombre | Métadonnées de l'OSD (nom d'hôte, classe de périphérique, version), toujours 1 tant que l'OSD remonte des données. Une somme additionne chaque collecte d'une minute : elle ne compte pas les OSD. |
 
 ### Métriques des pools
 
@@ -207,7 +207,7 @@ L'agent interroge chaque démon mgr toutes les 30 secondes et conserve les label
 
 ### Métriques des placement groups
 
-Chaque série `ceph_pg_*` est par pool, avec le label `pool_id` ; additionnez sur les pools pour un total à l'échelle du cluster.
+Chaque série `ceph_pg_*` est par pool, avec le label `pool_id`. Une somme additionne chaque collecte d'une minute et chaque pool : comparez donc pool par pool, regroupé par `pool_id`, comme le font les modèles de PG.
 
 | Métrique | Unité | Description |
 | --- | --- | --- |

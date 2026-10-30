@@ -175,7 +175,7 @@ El agente consulta cada daemon mgr cada 30 segundos y conserva las etiquetas pro
 | `ceph_healthcheck_slow_ops` | recuento | Operaciones lentas de OSD y monitores que informa el check `SLOW_OPS`. |
 | `ceph_daemon_health_metrics` | recuento | Métricas de salud por daemon, identificadas por `type` (por ejemplo `SLOW_OPS`) y `ceph_daemon`. |
 | `ceph_mon_quorum_status` | recuento | 1 cuando el monitor está en el quórum, por `ceph_daemon` (por ejemplo `mon.a`). |
-| `ceph_mon_metadata` | recuento | Metadatos del monitor, siempre 1. Súmalos para contar los monitores. |
+| `ceph_mon_metadata` | recuento | Metadatos del monitor, siempre 1 mientras el monitor informa. Una suma añade cada recogida de un minuto, así que no cuenta monitores. |
 | `ceph_cluster_total_bytes` | bytes | Capacidad bruta total. |
 | `ceph_cluster_total_used_bytes` | bytes | Capacidad bruta en uso. |
 
@@ -190,7 +190,7 @@ El agente consulta cada daemon mgr cada 30 segundos y conserva las etiquetas pro
 | `ceph_osd_stat_bytes` | bytes | Capacidad bruta del dispositivo del OSD. |
 | `ceph_osd_stat_bytes_used` | bytes | Bytes brutos usados en el OSD. Compáralo con el total para detectar OSD desequilibrados o casi llenos. |
 | `ceph_osd_numpg` | recuento | Placement groups en el OSD. |
-| `ceph_osd_metadata` | recuento | Metadatos del OSD (nombre de host, clase de dispositivo, versión), siempre 1. Súmalos para contar los OSD. |
+| `ceph_osd_metadata` | recuento | Metadatos del OSD (nombre de host, clase de dispositivo, versión), siempre 1 mientras el OSD informa. Una suma añade cada recogida de un minuto, así que no cuenta OSD. |
 
 ### Métricas de pools
 
@@ -207,7 +207,7 @@ El agente consulta cada daemon mgr cada 30 segundos y conserva las etiquetas pro
 
 ### Métricas de placement groups
 
-Cada serie `ceph_pg_*` es por pool, con la etiqueta `pool_id`; suma entre pools para obtener un recuento de todo el clúster.
+Cada serie `ceph_pg_*` es por pool, con la etiqueta `pool_id`. Una suma añade cada recogida de un minuto y cada pool, así que compara pool por pool, agrupando por `pool_id`, como hacen las plantillas de PG.
 
 | Métrica | Unidad | Descripción |
 | --- | --- | --- |

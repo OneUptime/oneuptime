@@ -162,7 +162,7 @@ L'agent interroge prometheus-pve-exporter toutes les 30 secondes avec les collec
 
 | Métrique | Unité | Description |
 | --- | --- | --- |
-| `pve_node_info` | count | Métadonnées du nœud, toujours 1. Additionnez-la pour compter les nœuds qui remontent des données. |
+| `pve_node_info` | count | Métadonnées du nœud, toujours 1 tant que le nœud remonte des données. Une somme additionne chaque collecte d'une minute : elle ne compte pas les nœuds. |
 | `pve_cpu_usage_ratio` | ratio | CPU utilisé, en ratio de 0 à 1 du CPU disponible. |
 | `pve_cpu_usage_limit` | cores | CPU disponible, en cœurs. Pour un invité, ses vCPU. |
 | `pve_memory_usage_bytes` | bytes | Mémoire utilisée. |
@@ -187,7 +187,7 @@ Les séries de CPU et de mémoire sont aussi remontées pour chaque invité, sur
 | --- | --- | --- |
 | `pve_disk_usage_bytes` | bytes | Octets utilisés sur le disque ou le stockage. Pour un invité QEMU, vaut 0 sauf si l'agent invité QEMU est installé. |
 | `pve_disk_size_bytes` | bytes | Taille totale du disque ou du stockage. |
-| `pve_storage_info` | count | Métadonnées du stockage, toujours 1. Additionnez-la pour compter les volumes de stockage. |
+| `pve_storage_info` | count | Métadonnées du stockage, toujours 1 tant qu'il existe. Une somme additionne chaque collecte d'une minute : elle ne compte pas les volumes. |
 
 ### HA
 

@@ -162,7 +162,7 @@ Agenten hämtar data från prometheus-pve-exporter var 30:e sekund med både klu
 
 | Mätvärde | Enhet | Beskrivning |
 | --- | --- | --- |
-| `pve_node_info` | antal | Nodmetadata, alltid 1. Summera den för att räkna de noder som rapporterar. |
+| `pve_node_info` | antal | Nodmetadata, alltid 1 medan noden rapporterar. En summa lägger ihop varje skrapning under en minut, så den räknar inte noder. |
 | `pve_cpu_usage_ratio` | kvot | CPU som används som en kvot på 0–1 av den tillgängliga CPU:n. |
 | `pve_cpu_usage_limit` | kärnor | Tillgänglig CPU, i kärnor. För en gäst dess vCPU:er. |
 | `pve_memory_usage_bytes` | byte | Minne som används. |
@@ -187,7 +187,7 @@ CPU- och minnesserierna rapporteras också för varje gäst, på id:na `qemu/*` 
 | --- | --- | --- |
 | `pve_disk_usage_bytes` | byte | Använda byte på disken eller lagringen. För en QEMU-gäst visar den 0 om inte QEMU-gästagenten är installerad. |
 | `pve_disk_size_bytes` | byte | Total storlek på disken eller lagringen. |
-| `pve_storage_info` | antal | Lagringsmetadata, alltid 1. Summera den för att räkna lagringsvolymer. |
+| `pve_storage_info` | antal | Lagringsmetadata, alltid 1 medan lagringen finns. En summa lägger ihop varje skrapning under en minut, så den räknar inte volymer. |
 
 ### HA
 

@@ -175,7 +175,7 @@ L'agente interroga ogni daemon mgr ogni 30 secondi e mantiene le etichette di Ce
 | `ceph_healthcheck_slow_ops` | conteggio | Operazioni lente di OSD e monitor segnalate dal check `SLOW_OPS`. |
 | `ceph_daemon_health_metrics` | conteggio | Metriche di stato per daemon, identificate da `type` (per esempio `SLOW_OPS`) e `ceph_daemon`. |
 | `ceph_mon_quorum_status` | conteggio | 1 quando il monitor è nel quorum, per `ceph_daemon` (per esempio `mon.a`). |
-| `ceph_mon_metadata` | conteggio | Metadati del monitor, sempre 1. Sommali per contare i monitor. |
+| `ceph_mon_metadata` | conteggio | Metadati del monitor, sempre 1 finché il monitor comunica. Una somma addiziona ogni raccolta di un minuto, quindi non conta i monitor. |
 | `ceph_cluster_total_bytes` | byte | Capacità grezza totale. |
 | `ceph_cluster_total_used_bytes` | byte | Capacità grezza in uso. |
 
@@ -190,7 +190,7 @@ L'agente interroga ogni daemon mgr ogni 30 secondi e mantiene le etichette di Ce
 | `ceph_osd_stat_bytes` | byte | Capacità grezza del dispositivo dell'OSD. |
 | `ceph_osd_stat_bytes_used` | byte | Byte grezzi usati sull'OSD. Confrontali con il totale per individuare OSD sbilanciati o quasi pieni. |
 | `ceph_osd_numpg` | conteggio | Placement group sull'OSD. |
-| `ceph_osd_metadata` | conteggio | Metadati dell'OSD (nome host, classe del dispositivo, versione), sempre 1. Sommali per contare gli OSD. |
+| `ceph_osd_metadata` | conteggio | Metadati dell'OSD (nome host, classe del dispositivo, versione), sempre 1 finché l'OSD comunica. Una somma addiziona ogni raccolta di un minuto, quindi non conta gli OSD. |
 
 ### Metriche dei pool
 
@@ -207,7 +207,7 @@ L'agente interroga ogni daemon mgr ogni 30 secondi e mantiene le etichette di Ce
 
 ### Metriche dei placement group
 
-Ogni serie `ceph_pg_*` è per pool, con l'etichetta `pool_id`; somma sui pool per un conteggio dell'intero cluster.
+Ogni serie `ceph_pg_*` è per pool, con l'etichetta `pool_id`. Una somma addiziona ogni raccolta di un minuto e ogni pool, quindi confronta pool per pool, raggruppando per `pool_id`, come fanno i modelli dei PG.
 
 | Metrica | Unità | Descrizione |
 | --- | --- | --- |

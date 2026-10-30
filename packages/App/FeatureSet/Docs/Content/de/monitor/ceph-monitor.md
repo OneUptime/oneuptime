@@ -175,7 +175,7 @@ Der Agent fragt alle 30 Sekunden jeden mgr-Daemon ab und behält die Labels von 
 | `ceph_healthcheck_slow_ops` | Anzahl | Langsame OSD- und Monitor-Operationen, die der Check `SLOW_OPS` meldet. |
 | `ceph_daemon_health_metrics` | Anzahl | Zustandsmetriken pro Daemon, mit `type` (zum Beispiel `SLOW_OPS`) und `ceph_daemon`. |
 | `ceph_mon_quorum_status` | Anzahl | 1, wenn der Monitor im Quorum ist, pro `ceph_daemon` (zum Beispiel `mon.a`). |
-| `ceph_mon_metadata` | Anzahl | Metadaten des Monitors, immer 1. Summieren Sie sie, um Monitore zu zählen. |
+| `ceph_mon_metadata` | Anzahl | Metadaten des Monitors, immer 1, solange der Monitor meldet. Eine Summe addiert jeden Scrape einer Minute, zählt also keine Monitore. |
 | `ceph_cluster_total_bytes` | Bytes | Gesamte Rohkapazität. |
 | `ceph_cluster_total_used_bytes` | Bytes | Belegte Rohkapazität. |
 
@@ -190,7 +190,7 @@ Der Agent fragt alle 30 Sekunden jeden mgr-Daemon ab und behält die Labels von 
 | `ceph_osd_stat_bytes` | Bytes | Rohkapazität des OSD-Geräts. |
 | `ceph_osd_stat_bytes_used` | Bytes | Belegte Roh-Bytes auf dem OSD. Mit der Gesamtmenge vergleichen, um ungleich gefüllte oder fast volle OSDs zu erkennen. |
 | `ceph_osd_numpg` | Anzahl | Placement Groups auf dem OSD. |
-| `ceph_osd_metadata` | Anzahl | Metadaten des OSD (Hostname, Geräteklasse, Version), immer 1. Summieren Sie sie, um OSDs zu zählen. |
+| `ceph_osd_metadata` | Anzahl | Metadaten des OSD (Hostname, Geräteklasse, Version), immer 1, solange das OSD meldet. Eine Summe addiert jeden Scrape einer Minute, zählt also keine OSDs. |
 
 ### Pool-Metriken
 
@@ -207,7 +207,7 @@ Der Agent fragt alle 30 Sekunden jeden mgr-Daemon ab und behält die Labels von 
 
 ### Placement-Group-Metriken
 
-Jede `ceph_pg_*`-Serie gibt es pro Pool, mit dem Label `pool_id`; summieren Sie über die Pools für einen clusterweiten Wert.
+Jede `ceph_pg_*`-Serie gibt es pro Pool, mit dem Label `pool_id`. Eine Summe addiert jeden Scrape einer Minute und jeden Pool; vergleichen Sie daher Pool für Pool, gruppiert nach `pool_id`, wie es die PG-Vorlagen tun.
 
 | Metrik | Einheit | Beschreibung |
 | --- | --- | --- |

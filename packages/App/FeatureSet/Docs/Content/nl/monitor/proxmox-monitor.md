@@ -162,7 +162,7 @@ De agent leest prometheus-pve-exporter elke 30 seconden uit met zowel de cluster
 
 | Metriek | Eenheid | Beschrijving |
 | --- | --- | --- |
-| `pve_node_info` | aantal | Nodemetadata, altijd 1. Tel ze op om de nodes te tellen die rapporteren. |
+| `pve_node_info` | aantal | Nodemetadata, altijd 1 zolang de node rapporteert. Een som telt elke scrape van een minuut op, dus telt geen nodes. |
 | `pve_cpu_usage_ratio` | verhouding | Gebruikte CPU als verhouding van 0–1 van de beschikbare CPU. |
 | `pve_cpu_usage_limit` | kernen | Beschikbare CPU, in kernen. Voor een gast zijn vCPU's. |
 | `pve_memory_usage_bytes` | bytes | Geheugen in gebruik. |
@@ -187,7 +187,7 @@ De CPU- en geheugenreeksen worden ook voor elke gast gerapporteerd, op id's `qem
 | --- | --- | --- |
 | `pve_disk_usage_bytes` | bytes | Gebruikte bytes op de schijf of opslag. Voor een QEMU-gast staat dit op 0, tenzij de QEMU-gastagent is geïnstalleerd. |
 | `pve_disk_size_bytes` | bytes | Totale grootte van de schijf of opslag. |
-| `pve_storage_info` | aantal | Opslagmetadata, altijd 1. Tel ze op om de opslagvolumes te tellen. |
+| `pve_storage_info` | aantal | Opslagmetadata, altijd 1 zolang de opslag bestaat. Een som telt elke scrape van een minuut op, dus telt geen volumes. |
 
 ### HA
 

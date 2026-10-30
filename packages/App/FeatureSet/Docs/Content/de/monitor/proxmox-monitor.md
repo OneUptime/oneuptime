@@ -162,7 +162,7 @@ Der Agent fragt prometheus-pve-exporter alle 30 Sekunden mit den Cluster- und de
 
 | Metrik | Einheit | Beschreibung |
 | --- | --- | --- |
-| `pve_node_info` | count | Metadaten des Knotens, immer 1. Summieren Sie sie, um die meldenden Knoten zu zählen. |
+| `pve_node_info` | count | Metadaten des Knotens, immer 1, solange der Knoten meldet. Eine Summe addiert jeden Scrape einer Minute, zählt also keine Knoten. |
 | `pve_cpu_usage_ratio` | ratio | Genutzte CPU als Verhältnis von 0–1 zur verfügbaren CPU. |
 | `pve_cpu_usage_limit` | cores | Verfügbare CPU, in Kernen. Bei einem Gast seine vCPUs. |
 | `pve_memory_usage_bytes` | bytes | Belegter Arbeitsspeicher. |
@@ -187,7 +187,7 @@ Die CPU- und Speicherreihen werden auch für jeden Gast gemeldet, unter den IDs 
 | --- | --- | --- |
 | `pve_disk_usage_bytes` | bytes | Auf der Festplatte oder dem Speicher belegte Bytes. Bei einem QEMU-Gast liest sie 0, sofern der QEMU-Gastagent nicht installiert ist. |
 | `pve_disk_size_bytes` | bytes | Gesamtgröße der Festplatte oder des Speichers. |
-| `pve_storage_info` | count | Metadaten des Speichers, immer 1. Summieren Sie sie, um die Speicher-Volumes zu zählen. |
+| `pve_storage_info` | count | Metadaten des Speichers, immer 1, solange der Speicher existiert. Eine Summe addiert jeden Scrape einer Minute, zählt also keine Volumes. |
 
 ### HA
 

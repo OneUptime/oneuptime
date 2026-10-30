@@ -175,7 +175,7 @@ Agenten henter fra hver mgr-daemon hvert 30. sekund og beholder Cephs egne etike
 | `ceph_healthcheck_slow_ops` | antall | Trege OSD- og monitoroperasjoner som checken `SLOW_OPS` rapporterer. |
 | `ceph_daemon_health_metrics` | antall | Helsemetrikker per daemon, med `type` (for eksempel `SLOW_OPS`) og `ceph_daemon`. |
 | `ceph_mon_quorum_status` | antall | 1 når monitoren er i quorum, per `ceph_daemon` (for eksempel `mon.a`). |
-| `ceph_mon_metadata` | antall | Monitorens metadata, alltid 1. Summer dem for å telle monitorer. |
+| `ceph_mon_metadata` | antall | Monitorens metadata, alltid 1 mens monitoren rapporterer. En sum legger sammen hver skraping i et minutt, så den teller ikke monitorer. |
 | `ceph_cluster_total_bytes` | byte | Samlet rå kapasitet. |
 | `ceph_cluster_total_used_bytes` | byte | Rå kapasitet i bruk. |
 
@@ -190,7 +190,7 @@ Agenten henter fra hver mgr-daemon hvert 30. sekund og beholder Cephs egne etike
 | `ceph_osd_stat_bytes` | byte | Rå kapasitet for OSD-ens enhet. |
 | `ceph_osd_stat_bytes_used` | byte | Rå byte brukt på OSD-en. Sammenlign med totalen for å finne skjevt fylte eller nesten fulle OSD-er. |
 | `ceph_osd_numpg` | antall | Placement groups på OSD-en. |
-| `ceph_osd_metadata` | antall | OSD-ens metadata (vertsnavn, enhetsklasse, versjon), alltid 1. Summer dem for å telle OSD-er. |
+| `ceph_osd_metadata` | antall | OSD-ens metadata (vertsnavn, enhetsklasse, versjon), alltid 1 mens OSD-en rapporterer. En sum legger sammen hver skraping i et minutt, så den teller ikke OSD-er. |
 
 ### Poolmetrikker
 
@@ -207,7 +207,7 @@ Agenten henter fra hver mgr-daemon hvert 30. sekund og beholder Cephs egne etike
 
 ### Metrikker for placement groups
 
-Hver `ceph_pg_*`-serie er per pool, med etiketten `pool_id`; summer på tvers av pooler for et tall for hele klyngen.
+Hver `ceph_pg_*`-serie er per pool, med etiketten `pool_id`. En sum legger sammen både hver skraping i et minutt og hver pool, så sammenlign pool for pool, gruppert etter `pool_id`, slik PG-malene gjør.
 
 | Metrikk | Enhet | Beskrivelse |
 | --- | --- | --- |

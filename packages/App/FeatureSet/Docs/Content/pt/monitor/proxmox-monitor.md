@@ -162,7 +162,7 @@ O agente consulta o prometheus-pve-exporter a cada 30 segundos com os coletores 
 
 | Métrica | Unidade | Descrição |
 | --- | --- | --- |
-| `pve_node_info` | count | Metadados do nó, sempre 1. Some para contar os nós que estão informando. |
+| `pve_node_info` | count | Metadados do nó, sempre 1 enquanto o nó informa. Uma soma junta cada coleta de um minuto, então não conta nós. |
 | `pve_cpu_usage_ratio` | ratio | CPU em uso como razão de 0 a 1 da CPU disponível. |
 | `pve_cpu_usage_limit` | cores | CPU disponível, em núcleos. Para um convidado, suas vCPUs. |
 | `pve_memory_usage_bytes` | bytes | Memória em uso. |
@@ -187,7 +187,7 @@ As séries de CPU e memória também são informadas para cada convidado, nos id
 | --- | --- | --- |
 | `pve_disk_usage_bytes` | bytes | Bytes usados no disco ou no armazenamento. Para um convidado QEMU, marca 0 a menos que o agente convidado do QEMU esteja instalado. |
 | `pve_disk_size_bytes` | bytes | Tamanho total do disco ou do armazenamento. |
-| `pve_storage_info` | count | Metadados do armazenamento, sempre 1. Some para contar os volumes de armazenamento. |
+| `pve_storage_info` | count | Metadados do armazenamento, sempre 1 enquanto ele existe. Uma soma junta cada coleta de um minuto, então não conta volumes. |
 
 ### HA
 

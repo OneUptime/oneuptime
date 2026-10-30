@@ -162,7 +162,7 @@ The agent scrapes prometheus-pve-exporter every 30 seconds with both the cluster
 
 | Metric | Unit | Description |
 | --- | --- | --- |
-| `pve_node_info` | count | Node metadata, always 1. Sum it to count the nodes reporting. |
+| `pve_node_info` | count | Node metadata, always 1 while the node reports. A Sum adds every scrape in a minute, so it does not count nodes. |
 | `pve_cpu_usage_ratio` | ratio | CPU in use as a 0–1 ratio of the CPU available. |
 | `pve_cpu_usage_limit` | cores | CPU available, in cores. For a guest, its vCPUs. |
 | `pve_memory_usage_bytes` | bytes | Memory in use. |
@@ -187,7 +187,7 @@ The CPU and memory series are also reported for each guest, on `qemu/*` and `lxc
 | --- | --- | --- |
 | `pve_disk_usage_bytes` | bytes | Bytes used on the disk or storage. For a QEMU guest it reads 0 unless the QEMU guest agent is installed. |
 | `pve_disk_size_bytes` | bytes | Total size of the disk or storage. |
-| `pve_storage_info` | count | Storage metadata, always 1. Sum it to count storage volumes. |
+| `pve_storage_info` | count | Storage metadata, always 1 while the storage exists. A Sum adds every scrape in a minute, so it does not count volumes. |
 
 ### HA
 
