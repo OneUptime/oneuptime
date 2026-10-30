@@ -38794,5 +38794,8 @@
   "View task": "タスクを表示",
   "What OneUptime AI found, and what it is doing about it.": "OneUptime AI が見つけたことと、その対処状況です。",
   "Page Message": "Page Message",
-  "Approving runs exactly what is shown, under your name.": "承認すると、表示されている内容がそのままあなたの名前で実行されます。"
+  "Approving runs exactly what is shown, under your name.": "承認すると、表示されている内容がそのままあなたの名前で実行されます。",
+  "Split by": "分割基準",
+  "Top": "上位",
+  "then by": "次に"
 }

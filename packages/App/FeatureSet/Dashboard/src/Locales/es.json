@@ -12572,7 +12572,7 @@
   "Mayotte": "Mayotte",
   "Mbps": "Mbps",
   "Mean (state)": "Media (estado)",
-  "Measure": "Medir",
+  "Measure": "Medida",
   "Measurements": "Mediciones",
   "Median (P50)": "Mediana (P50)",
   "Median (state)": "Mediana (estado)",
@@ -38794,5 +38794,8 @@
   "View task": "Ver tarea",
   "What OneUptime AI found, and what it is doing about it.": "Lo que encontró OneUptime AI y lo que está haciendo al respecto.",
   "Page Message": "Page Message",
-  "Approving runs exactly what is shown, under your name.": "Aprobar ejecuta exactamente lo que se muestra, en tu nombre."
+  "Approving runs exactly what is shown, under your name.": "Aprobar ejecuta exactamente lo que se muestra, en tu nombre.",
+  "Split by": "Dividir por",
+  "Top": "Primeros",
+  "then by": "luego por"
 }
