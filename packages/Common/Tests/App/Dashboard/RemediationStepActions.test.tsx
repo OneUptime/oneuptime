@@ -309,6 +309,88 @@ describe("Try again", () => {
     expect(tryAgainButton()).toBeNull();
   });
 
+  /*
+   * The button is locked while it works, and a new decision that started a
+   * fix takes it away: the keyboard's place fell to the top of the page,
+   * and a screen reader said nothing of what changed. It lands on the
+   * step's title then, from where the new lines are read.
+   */
+  test("once a fix started and Try again is gone, the keyboard is on the step's title", async () => {
+    serve({ suggestions: [], decisions: [LINKED_TO_NOTHING] });
+    postSpy.mockImplementation((async (request: PostRequest) => {
+      if (request.url.toString().includes("/auto-remediation/try-again")) {
+        serve({ suggestions: [proposedFix()], decisions: [PROPOSED] });
+        return new HTTPResponse<JSONObject>(200, { result: "Evaluated" }, {});
+      }
+
+      throw new Error(`unexpected ${request.url.toString()}`);
+    }) as never);
+
+    renderStep();
+    await screen.findByTestId("remediation-try-again");
+    tryAgainButton()!.focus();
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(tryAgainButton()!);
+    });
+    await settle();
+    await screen.findByText("Restart the checkout pods");
+
+    expect(tryAgainButton()).toBeNull();
+    const title: HTMLElement = screen.getByRole("heading", {
+      level: 3,
+      name: "Remediation",
+    });
+    expect(title).toHaveFocus();
+    expect(title).toHaveAttribute("tabindex", "-1");
+  });
+
+  test("a refusal leaves the keyboard on Try again, to press once more", async () => {
+    serve({ suggestions: [], decisions: [LINKED_TO_NOTHING] });
+    postSpy.mockResolvedValue(
+      new HTTPErrorResponse(400, { message: "Busy." }, {}) as never,
+    );
+    jest.spyOn(API, "getFriendlyMessage").mockReturnValue("Busy.");
+
+    renderStep();
+    await screen.findByTestId("remediation-try-again");
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(tryAgainButton()!);
+    });
+    await settle();
+
+    expect(screen.getByTestId("remediation-try-again-error")).toBeVisible();
+    expect(tryAgainButton()).toHaveFocus();
+  });
+
+  test("a reader who moved on meanwhile keeps their place", async () => {
+    serve({ suggestions: [], decisions: [LINKED_TO_NOTHING] });
+    let answer: (value: HTTPResponse<JSONObject>) => void = (): void => {};
+    postSpy.mockImplementation((() => {
+      return new Promise<HTTPResponse<JSONObject>>(
+        (resolve: (value: HTTPResponse<JSONObject>) => void) => {
+          answer = resolve;
+        },
+      );
+    }) as never);
+
+    renderStep();
+    await screen.findByTestId("remediation-try-again");
+    fireEvent.click(tryAgainButton()!);
+
+    // Meanwhile the reader went on to a link of the step.
+    const link: HTMLElement = screen.getAllByRole("link")[0]!;
+    link.focus();
+
+    await act(async (): Promise<void> => {
+      answer(new HTTPResponse<JSONObject>(200, { result: "Evaluated" }, {}));
+    });
+    await settle();
+
+    expect(link).toHaveFocus();
+  });
+
   test("an alert's is the alert's", async () => {
     goTo(`/dashboard/${PROJECT_ID}/alerts/${ALERT_ID.toString()}`);
     serve({ suggestions: [], decisions: [LINKED_TO_NOTHING] });

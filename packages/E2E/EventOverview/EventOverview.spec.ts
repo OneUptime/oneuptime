@@ -19674,6 +19674,11 @@ test.describe("the AI card in two steps: Investigation, then Remediation (block 
     await expect(remediation.getByTestId("remediation-try-again")).toHaveCount(
       0,
     );
+    /*
+     * Try again is gone with the fix it started: the keyboard is on the
+     * step's title, not at the top of the page.
+     */
+    await expect(stepTitle(page, STEP_TITLES_AND_PILLS[1]!)).toBeFocused();
     const requests: Array<RecordedApiRequest> = await apiRequestsTo(
       page,
       "/auto-remediation/try-again",
@@ -19747,9 +19752,10 @@ test.describe("the AI card in two steps: Investigation, then Remediation (block 
     );
 
     await expect(remediation).toHaveAttribute("data-indicator", "attention");
+    // What approving does, over the fix that waits for it.
     await expect(
-      remediation.getByTestId("remediation-fixes-description"),
-    ).toBeVisible();
+      remediation.getByTestId("remediation-approval-note"),
+    ).toHaveText("Approving runs exactly what is shown, under your name.");
     await expect(
       remediation.getByTestId("remediation-approve-button"),
     ).toBeVisible();
@@ -19972,6 +19978,23 @@ test.describe("the AI card in two steps: Investigation, then Remediation (block 
       );
       await expectWhatHappenedSettled(page);
 
+      /*
+       * The AI's answer is English here: it reads left to right, its full
+       * stop at its end, while the step around it reads right to left.
+       */
+      const summary: Locator = foldedReportSummary(page);
+      await expect(summary).toHaveAttribute("dir", "auto");
+      expect(
+        await summary.evaluate((element: Element): string => {
+          return window.getComputedStyle(element).direction;
+        }),
+      ).toBe("ltr");
+      expect(
+        await remediation.evaluate((element: Element): string => {
+          return window.getComputedStyle(element).direction;
+        }),
+      ).toBe("rtl");
+
       // Right to left: each step's mark is at the start, right of its title.
       for (const [step, testId] of [
         [investigation, "ai-card-step-investigation"],
@@ -19995,4 +20018,360 @@ test.describe("the AI card in two steps: Investigation, then Remediation (block 
       );
     });
   }
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * A busy incident's fixes on the Remediation step (?fixes=many), from
+ * block 43's UI review: "Please make the UI of this card better as well,
+ * and make it a lot cleaner."
+ *
+ * A kubectl fix waiting for approval, a fix OneUptime AI made through the
+ * project's MCP servers on its own (one change failed) and a runbook
+ * someone approved, verified fixed. Each fix, and each of its commands,
+ * says where it stands in words with a dot: the step's status is the
+ * card's one pill. One note says what approving does, a refused press says
+ * why under the buttons that were pressed, and nothing scrolls sideways.
+ * ---------------------------------------------------------------------------
+ */
+
+const APPROVAL_NOTE: string =
+  "Approving runs exactly what is shown, under your name.";
+
+// The fix on the step whose name or buttons hold the given words.
+function fixOnStep(page: Page, words: string): Locator {
+  return remediationStep(page)
+    .getByTestId("remediation-fix")
+    .filter({ hasText: words });
+}
+
+/*
+ * What is drawn as a pill inside an element: a shape rounded all round,
+ * wider than it is tall, with a fill or a ring. A fact's dot is round but
+ * not wide; a code chip and a button are not rounded all round.
+ */
+async function pillsIn(locator: Locator): Promise<Array<string>> {
+  return locator.evaluate((root: Element): Array<string> => {
+    const pills: Array<string> = [];
+
+    for (const element of Array.from(root.querySelectorAll("*"))) {
+      const style: CSSStyleDeclaration = window.getComputedStyle(element);
+      const rect: DOMRect = element.getBoundingClientRect();
+
+      if (rect.height === 0 || rect.width <= rect.height * 1.5) {
+        continue;
+      }
+
+      const isRoundAllRound: boolean =
+        parseFloat(style.borderTopLeftRadius) >= rect.height / 2 - 1;
+      const isFilled: boolean =
+        style.backgroundColor !== "rgba(0, 0, 0, 0)" ||
+        style.boxShadow !== "none";
+
+      if (isRoundAllRound && isFilled) {
+        pills.push((element.textContent || "").trim());
+      }
+    }
+
+    return pills;
+  });
+}
+
+async function openManyFixes(page: Page, query: string = ""): Promise<void> {
+  await open(page, INCIDENT_PATH, `fixes=many${query ? `&${query}` : ""}`);
+  await expect(remediationStep(page)).toBeVisible({ timeout: 30000 });
+  await expect(
+    remediationStep(page).getByTestId("remediation-fix"),
+  ).toHaveCount(3, { timeout: 30000 });
+  await expectWhatHappenedSettled(page);
+}
+
+test.describe("a busy incident's fixes on the Remediation step read as lines (?fixes=many)", () => {
+  test("each fix says where it stands in words with a dot, under one note on approving, and the step's status is the one pill", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openManyFixes(page);
+    const remediation: Locator = remediationStep(page);
+
+    await expect(
+      stepPill(remediation, STEP_TITLES_AND_PILLS[1]!.pill),
+    ).toHaveText("Needs your approval");
+    await expect(
+      remediation.getByTestId("remediation-approval-note"),
+    ).toHaveText(APPROVAL_NOTE);
+    await expect(
+      remediation.getByTestId("remediation-approval-note"),
+    ).toHaveCount(1);
+
+    // The kubectl fix that waits: its facts, and no chip that repeats kubectl.
+    const kubectl: Locator = fixOnStep(page, "AI kubectl fix");
+    await expect(kubectl.getByTestId("remediation-fix-status")).toHaveText(
+      "Waiting for approval",
+    );
+    await expect(kubectl.getByTestId("remediation-command-tier")).toHaveText([
+      "safe change",
+      "riskier change",
+    ]);
+    await expect(
+      kubectl.getByTestId("remediation-command-approval"),
+    ).toHaveText(["needs approval", "needs approval"]);
+    await expect(
+      kubectl.getByTestId("remediation-command-program"),
+    ).toHaveCount(0);
+    await expect(
+      kubectl.getByText(
+        "kubectl rollout restart deployment/checkout-api -n checkout",
+        { exact: true },
+      ),
+    ).toBeVisible();
+
+    // The fix through MCP servers: the change that failed is said in red.
+    const mcp: Locator = fixOnStep(page, "AI fix through MCP servers");
+    await expect(mcp.getByTestId("remediation-fix-status")).toHaveText(
+      "Auto-executed",
+    );
+    await expect(
+      mcp.getByTestId("remediation-mcp-tool-call-status"),
+    ).toHaveText(["Done", "Failed"]);
+    await expect(
+      mcp.getByTestId("remediation-mcp-tool-call-status").last(),
+    ).toHaveAttribute("data-alarming", "true");
+    await expect(mcp.getByTestId("remediation-mcp-tool-name")).toHaveText([
+      "set_flag",
+      "post_update",
+    ]);
+
+    // The runbook someone approved, verified fixed.
+    const runbook: Locator = fixOnStep(page, "Restart checkout-api pods");
+    await expect(runbook.getByTestId("remediation-fix-status")).toHaveText(
+      "Approved & started",
+    );
+    await expect(
+      runbook.getByTestId("remediation-fix-verification"),
+    ).toHaveText("Verified fixed");
+    await expect(
+      runbook.getByRole("button", { name: "View Execution" }),
+    ).toBeVisible();
+
+    // No pill in the step's body: the step's status is the card's one pill.
+    expect(
+      await pillsIn(page.getByTestId("ai-card-step-remediation-body")),
+    ).toEqual([]);
+    expect(
+      await pillsIn(page.getByTestId("ai-card-step-remediation-status")),
+    ).toEqual(["Needs your approval"]);
+    expect(await panelsInsideTheCard(page)).toEqual([]);
+    await expectNoErrorStates(page);
+    await page.mouse.move(0, 0);
+    await screenshotElement(remediation, "ai-card-fixes-many-1280");
+  });
+
+  for (const [width, theme] of [
+    [390, "light"],
+    [390, "dark"],
+    [1280, "dark"],
+  ] as Array<[number, string]>) {
+    test(`at ${width}px, ${theme}: the facts wrap as words, the buttons are as wide as their words, nothing scrolls sideways`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width, height: 1000 });
+      await openManyFixes(page, theme === "dark" ? "theme=dark" : "");
+
+      const body: Locator = page.getByTestId("ai-card-step-remediation-body");
+      const bodyBox: Box = await documentBox(body);
+      const approve: Locator = fixOnStep(page, "AI kubectl fix").getByTestId(
+        "remediation-approve-button",
+      );
+      const approveBox: Box = await documentBox(approve);
+      // Below md a Button fills its row; on the step it keeps its words' width.
+      expect(approveBox.width).toBeLessThan(bodyBox.width * 0.6);
+      expect(approveBox.x + approveBox.width).toBeLessThanOrEqual(
+        bodyBox.x + bodyBox.width + 1,
+      );
+
+      for (const fact of await body
+        .locator("[data-testid^='remediation-'][data-alarming]")
+        .all()) {
+        const box: Box = await documentBox(fact);
+        expect(box.x).toBeGreaterThanOrEqual(bodyBox.x - 1);
+        expect(box.x + box.width).toBeLessThanOrEqual(
+          bodyBox.x + bodyBox.width + 1,
+        );
+      }
+
+      expect(await pillsIn(body)).toEqual([]);
+      expect(await panelsInsideTheCard(page)).toEqual([]);
+      await expectNoHorizontalOverflow(page);
+      await page.mouse.move(0, 0);
+      await screenshotElement(
+        remediationStep(page),
+        `ai-card-fixes-many-${width}-${theme}`,
+      );
+    });
+  }
+
+  test("in Persian at 390px: the step reads right to left, and what OneUptime AI wrote in English left to right", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 1000 });
+    await openManyFixes(page, "lang=fa&dir=auto");
+
+    const kubectl: Locator = fixOnStep(page, "prod-eu-west-1");
+    const directionOf: (locator: Locator) => Promise<string> = async (
+      locator: Locator,
+    ): Promise<string> => {
+      return locator.evaluate((element: Element): string => {
+        return window.getComputedStyle(element).direction;
+      });
+    };
+
+    expect(await directionOf(remediationStep(page))).toBe("rtl");
+    // The fix's facts are the reader's words: right to left.
+    expect(
+      await directionOf(kubectl.getByTestId("remediation-fix-status")),
+    ).toBe("rtl");
+    // The AI's English reason for a command reads left to right.
+    expect(
+      await directionOf(
+        kubectl.getByTestId("remediation-command-rationale").first(),
+      ),
+    ).toBe("ltr");
+    // So does the agent's answer, and the verification's note.
+    expect(
+      await directionOf(
+        fixOnStep(page, "Restart checkout-api pods").getByTestId(
+          "remediation-fix-verification-note",
+        ),
+      ),
+    ).toBe("ltr");
+    expect(
+      await pillsIn(page.getByTestId("ai-card-step-remediation-body")),
+    ).toEqual([]);
+    await expectNoHorizontalOverflow(page);
+    await page.mouse.move(0, 0);
+    await screenshotElement(remediationStep(page), "ai-card-fixes-many-fa-390");
+  });
+
+  test("Approve & Run runs the fix: its commands say Succeeded, and nothing waits for approval any more", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openManyFixes(page);
+    const kubectl: Locator = fixOnStep(page, "AI kubectl fix");
+
+    await kubectl.getByTestId("remediation-approve-button").click();
+
+    await expect(kubectl.getByTestId("remediation-fix-status")).toHaveText(
+      "Approved & started",
+    );
+    await expect(
+      kubectl.getByTestId("remediation-command-execution"),
+    ).toHaveText(["Succeeded", "Succeeded"]);
+    await expect(
+      remediationStep(page).getByTestId("remediation-approval-note"),
+    ).toHaveCount(0);
+    await expect(
+      stepPill(remediationStep(page), STEP_TITLES_AND_PILLS[1]!.pill),
+    ).toHaveText("Fixed");
+    const approvals: Array<RecordedApiRequest> = await apiRequestsTo(
+      page,
+      "/auto-remediation/approve",
+    );
+    expect(approvals).toHaveLength(1);
+    expect(approvals[0]?.body).toEqual({
+      suggestionId: uuid("93000000", 2),
+    });
+  });
+
+  test("?fail=approve at 390px: the refusal is said under the buttons that were pressed, in sight", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openManyFixes(page, "fail=approve");
+    const kubectl: Locator = fixOnStep(page, "AI kubectl fix");
+
+    await kubectl.getByTestId("remediation-approve-button").click();
+
+    const refusal: Locator = kubectl.getByTestId("remediation-action-error");
+    await expect(refusal).toContainText(
+      "Could not save your action: the fix was not approved and nothing ran",
+    );
+    await expect(refusal).toContainText(
+      'Fixes were turned off for cluster "prod-eu-west-1" after this fix was proposed.',
+    );
+    await expect(refusal).toHaveAttribute("role", "alert");
+    // Right under the buttons that were pressed, where the reader is looking.
+    const actions: Box = await documentBox(
+      kubectl.getByTestId("remediation-fix-actions"),
+    );
+    const notice: Box = await documentBox(refusal);
+    expect(notice.y).toBeGreaterThanOrEqual(actions.y + actions.height - 1);
+    expect(notice.y - (actions.y + actions.height)).toBeLessThan(40);
+    await expect(refusal).toBeInViewport();
+    await expect(
+      remediationStep(page).getByTestId("remediation-action-error"),
+    ).toHaveCount(1);
+    // The fix still waits.
+    await expect(kubectl.getByTestId("remediation-fix-status")).toHaveText(
+      "Waiting for approval",
+    );
+    expect(await frameLook(refusal)).toEqual(NO_FRAME);
+    await expectNoHorizontalOverflow(page);
+  });
+});
+
+/*
+ * The verdict at the end of an opened report, on the narrowest phone: its
+ * two answers share the row, half each. Side by side at their own width,
+ * they reached 2px past a 320px card.
+ */
+test("the report's verdict fits a 320px phone: its two answers share the row, inside the card", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.setViewportSize({ width: 320, height: 900 });
+  await openTwoSteps(
+    page,
+    "state=created&fixing=off&switches=on",
+    "Needs attention",
+  );
+  await showFullReport(page);
+
+  const group: Locator = investigationStep(page).getByRole("group", {
+    name: VERDICT_QUESTION,
+  });
+  await expect(group).toBeVisible();
+  const groupBox: Box = await documentBox(group);
+  const cardBox: Box = await documentBox(investigationCard(page));
+  expect(groupBox.x).toBeGreaterThanOrEqual(cardBox.x);
+  expect(groupBox.x + groupBox.width).toBeLessThanOrEqual(
+    cardBox.x + cardBox.width - 8,
+  );
+
+  const answers: Array<Box> = await Promise.all(
+    ["Confirmed", "Rejected"].map((name: string): Promise<Box> => {
+      return documentBox(group.getByRole("button", { name }));
+    }),
+  );
+  // Half each, on one line.
+  expect(Math.abs(answers[0]!.width - answers[1]!.width)).toBeLessThanOrEqual(
+    2,
+  );
+  expect(Math.abs(answers[0]!.y - answers[1]!.y)).toBeLessThanOrEqual(1);
+  for (const name of ["Confirmed", "Rejected"]) {
+    expect(await isOverflowing(group.getByRole("button", { name }))).toBe(
+      false,
+    );
+  }
+  await expectNoHorizontalOverflow(page);
 });

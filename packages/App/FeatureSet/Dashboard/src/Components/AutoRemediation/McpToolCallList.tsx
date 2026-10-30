@@ -166,7 +166,10 @@ const McpToolCallList: FunctionComponent<ComponentProps> = (
             )}
 
             {call.errorMessage ? (
-              <div className="mt-2 whitespace-pre-wrap text-xs text-rose-700 [overflow-wrap:anywhere]">
+              <div
+                dir="auto"
+                className="mt-2 whitespace-pre-wrap text-xs text-rose-700 [overflow-wrap:anywhere]"
+              >
                 {call.errorMessage}
               </div>
             ) : (
@@ -200,7 +203,10 @@ const McpToolCallList: FunctionComponent<ComponentProps> = (
                   )}
                 </button>
                 {isAnswerOpen ? (
-                  <pre className="mt-2 max-h-80 overflow-auto whitespace-pre-wrap rounded-md bg-gray-50 px-3 py-2 font-mono text-xs text-gray-800 [overflow-wrap:anywhere]">
+                  <pre
+                    dir="auto"
+                    className="mt-2 max-h-80 overflow-auto whitespace-pre-wrap rounded-md bg-gray-50 px-3 py-2 font-mono text-xs text-gray-800 [overflow-wrap:anywhere]"
+                  >
                     {call.resultText}
                   </pre>
                 ) : (

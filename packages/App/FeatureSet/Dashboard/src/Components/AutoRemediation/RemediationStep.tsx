@@ -720,7 +720,7 @@ function CommandExecutionDetails(props: {
         <></>
       )}
       {props.execution.errorMessage ? (
-        <div className="mt-1 text-xs text-rose-600">
+        <div dir="auto" className="mt-1 text-xs text-rose-600">
           {props.execution.errorMessage}
         </div>
       ) : (
@@ -1733,8 +1733,18 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
           </div>
         </div>
 
+        {/*
+          What OneUptime AI and the agents wrote - the verification's note,
+          the reasoning, each command's why, an error - reads in its own
+          direction (dir="auto"): English on a Persian page kept its full
+          stop at the start of its line.
+        */}
         {suggestion.verificationNote ? (
-          <div className="mt-2 text-xs text-gray-500">
+          <div
+            dir="auto"
+            data-testid="remediation-fix-verification-note"
+            className="mt-2 text-xs text-gray-500"
+          >
             {suggestion.verificationNote}
           </div>
         ) : (
@@ -1756,7 +1766,7 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
               )}
             </button>
             {isExpanded ? (
-              <div className="mt-2 text-sm text-gray-700">
+              <div dir="auto" className="mt-2 text-sm text-gray-700">
                 <MarkdownViewer
                   text={suggestion.rationaleMarkdown}
                   safeMode={true}
@@ -1851,7 +1861,11 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
                         {command.command}
                       </pre>
 
-                      <div className="mt-2 text-xs text-gray-600">
+                      <div
+                        dir="auto"
+                        data-testid="remediation-command-rationale"
+                        className="mt-2 text-xs text-gray-600"
+                      >
                         {command.rationale}
                       </div>
                       <div className="mt-1 text-xs text-gray-500">
@@ -1870,10 +1884,14 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
                           <TranslatedSentence
                             template="Rollback: {{command}}"
                             slots={{
+                              /*
+                               * Code, which reads left to right in every
+                               * language (Theme.css).
+                               */
                               command: (
-                                <span className="font-mono text-gray-700">
+                                <code className="font-mono text-gray-700">
                                   {command.rollbackCommand}
-                                </span>
+                                </code>
                               ),
                             }}
                           />

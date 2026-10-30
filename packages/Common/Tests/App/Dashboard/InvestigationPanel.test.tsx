@@ -1428,6 +1428,32 @@ describe("InvestigationPanel verdict control", () => {
     return screen.queryByRole("group", { name: "Was this analysis correct?" });
   }
 
+  /*
+   * Side by side at their own width, the two answers reached 2px past a
+   * 320px card. On a phone they share the row, half each, and from sm up
+   * they sit at their own width beside the question again.
+   */
+  test("on a phone the two answers share the row; from sm up they keep their own width", async () => {
+    postMock.mockResolvedValue(completedResponse() as never);
+    isReaderOpeningTheReport = true;
+
+    renderPanel();
+    await flush();
+
+    const group: HTMLElement = verdictGroup()!;
+    expect(group).toHaveClass("flex", "w-full", "sm:inline-flex", "sm:w-auto");
+    expect(group.parentElement).toHaveClass("w-full", "sm:w-auto");
+    for (const name of ["Confirmed", "Rejected"]) {
+      const answer: HTMLElement = within(group).getByRole("button", { name });
+      expect(answer).toHaveClass(
+        "min-w-0",
+        "flex-1",
+        "justify-center",
+        "sm:flex-none",
+      );
+    }
+  });
+
   test("offers both verdicts inside one labelled group", async () => {
     postMock.mockResolvedValue(completedResponse() as never);
 
@@ -5482,6 +5508,8 @@ describe("InvestigationPanel folds a finished investigation", () => {
     expect(summary.tagName).toBe("P");
     expect(summary).toHaveTextContent(TLDR);
     expect(summary).toHaveClass("text-base", "font-semibold");
+    // In its own reading direction, as the report's TL;DR is.
+    expect(summary).toHaveAttribute("dir", "auto");
 
     expect(toggle()).toHaveTextContent("Show full report");
     expect(toggle()).toHaveAttribute("aria-expanded", "false");
@@ -5518,6 +5546,7 @@ describe("InvestigationPanel folds a finished investigation", () => {
     expect(summary).toHaveTextContent(REPORT_SUMMARY);
     expect(summary).toHaveClass("text-sm", "text-gray-700");
     expect(summary).not.toHaveClass("font-semibold");
+    expect(summary).toHaveAttribute("dir", "auto");
     // Never as markdown: no chip, no link, nothing the report's viewer drew.
     expect(summary.querySelector("button, a")).toBeNull();
     expect(markdownViewerMock).not.toHaveBeenCalled();

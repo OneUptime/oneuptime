@@ -113,6 +113,7 @@ const CloudDryRunNote: FunctionComponent<ComponentProps> = (
             {translator.translateText(CLOUD_DRY_RUN_COPY.agentSaid)}
           </div>
           <p
+            dir="auto"
             className={`whitespace-pre-line break-words ${
               isRefused ? "text-amber-800" : "text-gray-500"
             }`}

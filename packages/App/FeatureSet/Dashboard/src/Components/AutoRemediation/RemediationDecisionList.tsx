@@ -132,7 +132,13 @@ const RemediationDecisionList: FunctionComponent<ComponentProps> = (
                         <dt className="inline font-medium text-gray-900">
                           {translator.translateText("Why:")}{" "}
                         </dt>
-                        <dd className="inline break-words text-gray-600">
+                        {/*
+                          The agent's own words, in their own direction.
+                        */}
+                        <dd
+                          dir="auto"
+                          className="inline break-words text-gray-600"
+                        >
                           {line.why}
                         </dd>
                       </div>

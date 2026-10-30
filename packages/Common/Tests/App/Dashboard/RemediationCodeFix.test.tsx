@@ -401,6 +401,20 @@ describe("why OneUptime AI did not open it on its own", () => {
         REMEDIATION_CODE_FIX_AUTOMATIC_REASONS[blocker]![signal],
       );
 
+      /*
+       * What to do comes first, right under what happened: Open fix pull
+       * request, then why OneUptime AI did not open it on its own.
+       */
+      const open: HTMLElement = screen.getByTestId("remediation-code-fix-open");
+      expect(
+        screen
+          .getByTestId("remediation-code-fix-text")
+          .compareDocumentPosition(open) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      expect(
+        open.compareDocumentPosition(why) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+
       const settings: HTMLElement | null = screen.queryByTestId(
         "remediation-code-fix-settings",
       );

@@ -199,4 +199,45 @@ describe("AiCardStep", () => {
       });
     }
   });
+
+  /*
+   * A step whose control goes away (Try again, once a fix started) puts the
+   * keyboard on its title: given a ref, the title takes the focus from
+   * script, never from Tab, and draws no ring of its own.
+   */
+  test("its title can take the focus from script when the step asks for it, and only then", () => {
+    const headingRef: React.RefObject<HTMLHeadingElement | null> =
+      React.createRef<HTMLHeadingElement>();
+
+    render(
+      <AiCardStep
+        number={2}
+        title="Remediation"
+        status={{ text: "Fixing…", indicator: "live" }}
+        statusLabel="Remediation status"
+        isLast={true}
+        testId="ai-card-step-remediation"
+        headingRef={headingRef}
+      >
+        <p>What it does.</p>
+      </AiCardStep>,
+    );
+
+    const title: HTMLElement = screen.getByRole("heading", {
+      level: 3,
+      name: "Remediation",
+    });
+    expect(headingRef.current).toBe(title);
+    expect(title).toHaveAttribute("tabindex", "-1");
+    expect(title).toHaveClass("focus:outline-none");
+
+    headingRef.current!.focus();
+    expect(title).toHaveFocus();
+
+    cleanup();
+    renderStep({});
+    expect(
+      screen.getByRole("heading", { level: 3, name: "Investigation" }),
+    ).not.toHaveAttribute("tabindex");
+  });
 });
