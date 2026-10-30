@@ -4,6 +4,7 @@ import Toggle, {
   TOGGLE_HELP_BUTTON_FALLBACK_NAME,
   TOGGLE_HELP_BUTTON_NAME_TEMPLATE,
   TOGGLE_HELP_BUTTON_TEST_ID,
+  TOGGLE_TITLE_LINE_CLASS_NAME,
 } from "../../../UI/Components/Toggle/Toggle";
 import "@testing-library/jest-dom";
 import {
@@ -242,6 +243,60 @@ describe("a switch's help icon, with a mouse and a keyboard", () => {
     expect(
       screen.queryByTestId(`alert-switch-${TOGGLE_HELP_BUTTON_TEST_ID}`),
     ).toBeNull();
+  });
+
+  /*
+   * The keyboard's ring is drawn inside the button's 24px square, around the
+   * question mark: drawn outside it, 2px from the title, it ran into the
+   * title's last letter ("page" under the ring).
+   */
+  test("the keyboard's ring is drawn inside the button, clear of the title", () => {
+    lockedSwitch();
+
+    const tokens: Array<string> = TOGGLE_HELP_BUTTON_CLASS_NAME.split(" ");
+
+    expect(tokens).toEqual(
+      expect.arrayContaining([
+        "focus-visible:ring-2",
+        "focus-visible:ring-inset",
+        "focus-visible:ring-indigo-500",
+      ]),
+    );
+    expect(tokens).not.toContain("focus-visible:ring-offset-1");
+    expect(tokens).not.toContain("focus-visible:ring-offset-2");
+    expect(helpButton()).toHaveClass("focus-visible:ring-inset");
+  });
+
+  /*
+   * On a phone "When filters match, create an alert" filled its line, and
+   * the question mark after it went on to a line of its own. The title's
+   * line wraps "pretty": its last word goes down with the button.
+   */
+  test("a title that wraps takes its last word down with the help button", () => {
+    render(
+      <Toggle
+        title="When filters match, create an alert"
+        value={false}
+        tooltip={HELP_TEXT}
+        dataTestId="alert-switch"
+        onChange={(): void => {}}
+      />,
+    );
+
+    const line: HTMLElement = helpButton("alert-switch").closest(
+      "div",
+    ) as HTMLElement;
+    const title: HTMLElement = screen
+      .getByText("When filters match, create an alert")
+      .closest("label") as HTMLElement;
+
+    // The title and its button share the one line element...
+    expect(line.contains(title)).toBe(true);
+    expect(line.className).toBe(TOGGLE_TITLE_LINE_CLASS_NAME);
+    // ...which wraps "pretty" (text-wrap: pretty).
+    expect(TOGGLE_TITLE_LINE_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining(["text-sm", "leading-6", "text-pretty"]),
+    );
   });
 });
 

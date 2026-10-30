@@ -107,6 +107,11 @@ import {
   SECTION_LABEL_CLASS_NAME,
   UPCOMING_HAND_OFFS_LIST_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/FinalScheduleSummary";
+import { OVERRIDE_PARTY_CAPTION_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/ActiveOverridesCard";
+import LayerRotationSummary, {
+  LAYER_TURNS_LIST_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/LayerRotationSummary";
+import { getLayerPreviewEvents } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/LayerShiftPreview";
 import { SCHEDULE_FINAL_SCHEDULE_DESCRIPTION } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/ScheduleOverviewCopy";
 import OnCallDutyPolicyEscalationRuleSchedule from "../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
 import OnCallDutyPolicyScheduleLayer from "../../../Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
@@ -524,6 +529,58 @@ describe("the labels and the hand-offs", () => {
     }
   });
 
+  /*
+   * The overrides in force are listed in the same card, between the
+   * hand-offs and the grid: "1 user override on this schedule", then each
+   * side of the swap with "Away" or "Covering" under its name. They were
+   * letter-spaced capitals beside labels that no longer are.
+   */
+  test("with an override, the overrides it lists are labelled in the same case: no letter-spaced capitals there either", async () => {
+    answerReads({ overrides: [anOverride()], attachedPolicyIds: [POLICY_ID] });
+
+    renderPreview();
+    const card: HTMLElement = await screen.findByTestId(
+      "active-overrides-card",
+      {},
+      { timeout: 10000 },
+    );
+
+    for (const className of everyClassName()) {
+      for (const shouting of SHOUTING_CLASSES) {
+        expect([className, className.split(" ").includes(shouting)]).toEqual([
+          className,
+          false,
+        ]);
+      }
+    }
+
+    const label: HTMLElement = await screen.findByText(
+      "1 user override on this schedule",
+    );
+    for (const className of SECTION_LABEL_CLASS_NAME.split(" ")) {
+      expect([className, label.classList.contains(className)]).toEqual([
+        className,
+        true,
+      ]);
+    }
+
+    for (const caption of ["Away", "Covering"]) {
+      const element: HTMLElement = Array.from(
+        card.querySelectorAll("div"),
+      ).find((each: HTMLDivElement): boolean => {
+        return each.textContent === caption;
+      }) as HTMLElement;
+
+      expect(element).toBeTruthy();
+      for (const className of OVERRIDE_PARTY_CAPTION_CLASS_NAME.split(" ")) {
+        expect([caption, element.classList.contains(className)]).toEqual([
+          caption,
+          true,
+        ]);
+      }
+    }
+  });
+
   test("the hand-offs are one list in one frame, each ruled off from the next - not a framed box each", async () => {
     answerReads({ overrides: [], attachedPolicyIds: [POLICY_ID] });
 
@@ -628,5 +685,129 @@ describe("the legend and the grid", () => {
         value: width,
       });
     }
+  });
+});
+
+/*
+ * THE LAYER CARD'S OWN "WHO IS ON CALL, AND WHEN".
+ *
+ * On the Layers page each layer's card shows its rotation above the Final
+ * schedule: an "Order" row and its upcoming turns. They were labelled in
+ * letter-spaced capitals ("ORDER", "UPCOMING SHIFTS", "ON CALL NOW") and
+ * each turn was a framed box, one above the Final schedule that no longer
+ * is either - and a weekly turn read "6d 23h" (a rotation's turns are a
+ * second apart). The two read as one schedule now.
+ */
+describe("the layer card's own preview reads like the Final schedule", () => {
+  /*
+   * The weekly rotation, handing off 30 days less 5 hours ago: the turn on
+   * call now is two days in, far from any hand-off (makeLayer's hand-off
+   * falls on the moment of the test).
+   */
+  function makeMidTurnLayer(): OnCallDutyPolicyScheduleLayer {
+    const layer: OnCallDutyPolicyScheduleLayer = makeLayer();
+    const handOff: Date = OneUptimeDate.addRemoveHours(
+      OneUptimeDate.addRemoveDays(OneUptimeDate.getCurrentDate(), -30),
+      5,
+    );
+
+    layer.startsAt = handOff;
+    layer.handOffTime = handOff;
+    return layer;
+  }
+
+  function renderLayerSummary(): void {
+    const layer: OnCallDutyPolicyScheduleLayer = makeMidTurnLayer();
+    const users: Array<OnCallDutyPolicyScheduleLayerUser> =
+      makeLayerUsers()[LAYER_ID]!;
+    const preview: { events: Array<any>; now: Date } = getLayerPreviewEvents({
+      layer: layer,
+      users: users,
+      timezone: "Europe/London",
+      numberOfShifts: 5,
+      overrides: [],
+    });
+
+    render(
+      <LayerRotationSummary
+        layer={layer}
+        users={users}
+        timezone="Europe/London"
+        events={preview.events}
+        now={preview.now}
+        hasLowerPriorityLayer={false}
+      />,
+    );
+  }
+
+  test("no part is labelled in letter-spaced capitals: Order, Upcoming shifts and On call now are in the reading's own case", () => {
+    renderLayerSummary();
+
+    for (const className of everyClassName()) {
+      for (const shouting of SHOUTING_CLASSES) {
+        expect([className, className.split(" ").includes(shouting)]).toEqual([
+          className,
+          false,
+        ]);
+      }
+    }
+
+    for (const label of ["Order", "Upcoming shifts"]) {
+      const element: HTMLElement = screen.getByText(label);
+      for (const className of SECTION_LABEL_CLASS_NAME.split(" ")) {
+        expect([label, element.classList.contains(className)]).toEqual([
+          label,
+          true,
+        ]);
+      }
+    }
+
+    expect(screen.getByText("On call now")).toBeInTheDocument();
+  });
+
+  test("the upcoming turns are one list in one frame, the current one tinted - not a framed box each", () => {
+    renderLayerSummary();
+
+    const list: HTMLElement = screen.getByTestId("layer-upcoming-turns");
+
+    expect(list.tagName).toBe("OL");
+    expect(list.className).toBe(LAYER_TURNS_LIST_CLASS_NAME);
+    // The Final schedule's own frame, clipped to its corners.
+    for (const className of UPCOMING_HAND_OFFS_LIST_CLASS_NAME.split(" ")) {
+      expect([className, list.classList.contains(className)]).toEqual([
+        className,
+        true,
+      ]);
+    }
+    expect(list.classList.contains("overflow-hidden")).toBe(true);
+
+    const rows: Array<Element> = Array.from(list.children);
+
+    expect(rows.length).toBeGreaterThan(1);
+    for (const row of rows) {
+      expect(row.classList.contains("border")).toBe(false);
+      expect(row.classList.contains("rounded-lg")).toBe(false);
+    }
+
+    // The turn on call now is the tinted one.
+    const current: Element = screen
+      .getByText("On call now")
+      .closest("li") as Element;
+
+    expect(current).toBe(rows[0]);
+    expect(current.classList.contains("bg-indigo-50/50")).toBe(true);
+    for (const row of rows.slice(1)) {
+      expect(row.classList.contains("bg-indigo-50/50")).toBe(false);
+    }
+  });
+
+  test("a weekly rotation's turns last 7d, not 6d 23h", () => {
+    renderLayerSummary();
+
+    const text: string = screen.getByTestId("layer-upcoming-turns")
+      .textContent as string;
+
+    expect(text).toContain("7d");
+    expect(text).not.toContain("6d 23h");
   });
 });

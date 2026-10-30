@@ -80,6 +80,17 @@ export const STAT_TILE_BODY_CLASS_NAME: string =
 export const STAT_TILE_TEXT_CLASS_NAME: string = "w-full min-w-0 text-left";
 
 /*
+ * The tile's frame, a plain one's and a pressable one's alike: a column
+ * whose content starts at the top. A row's tiles are as tall as its tallest
+ * (a name on two lines: "Einrichtung / erforderlich"), and a button centres
+ * what it holds - so the pressable tiles' icons and numbers sat lower than
+ * a plain tile's beside them, and lower than those of a tile whose name took
+ * two lines. From the top, every tile's icon and number keep one line.
+ */
+export const STAT_TILE_FRAME_CLASS_NAME: string =
+  "flex w-full flex-col justify-start rounded-xl border bg-white px-4 py-3";
+
+/*
  * Four tiles side by side only where the card has room for four - by the
  * card's width, not the window's. Beside the side menu at 1024 pixels four
  * tiles in a 660-pixel card left each name some 70 pixels: "Responder / s",
@@ -175,8 +186,7 @@ const StatTile: FunctionComponent<ComponentProps> = (
     </div>
   );
 
-  const baseClassName: string =
-    "block w-full rounded-xl border bg-white px-4 py-3";
+  const baseClassName: string = STAT_TILE_FRAME_CLASS_NAME;
 
   if (!props.onClick) {
     return <div className={`${baseClassName} border-gray-200`}>{body}</div>;

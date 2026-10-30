@@ -121,6 +121,7 @@ import OnCallReadinessPage from "../../../../App/FeatureSet/Dashboard/src/Pages/
 import {
   STAT_TILE_BODY_CLASS_NAME,
   STAT_TILE_CONTAINER_CLASS_NAME,
+  STAT_TILE_FRAME_CLASS_NAME,
   STAT_TILE_STACKED_BELOW_WIDTH_IN_REM,
   STAT_TILE_TEXT_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/Readiness/StatTile";
@@ -4138,6 +4139,52 @@ describe("the readiness table, with less to read", () => {
     const tokens: Array<string> = STAT_TILE_TEXT_CLASS_NAME.split(" ");
 
     expect(tokens).toEqual(expect.arrayContaining(["w-full", "min-w-0"]));
+  });
+
+  /*
+   * A row's tiles are as tall as the tallest - a name on two lines
+   * ("Einrichtung / erforderlich") - and a button centres what it holds, so
+   * the tiles that filter the table (buttons) drew their icon and number
+   * lower than the Responders tile (a plain div) beside them. Every tile's
+   * frame is a column whose content starts at the top.
+   */
+  test("every tile, pressable or not, holds its icon and number at its top, so a row's numbers keep one line", async () => {
+    respondWith(summaryJson(ALL_THREE_USERS));
+
+    await renderProjectPage();
+    await screen.findByText("Jane Partial");
+
+    const tiles: Array<Element> = Array.from(
+      screen.getByTestId("stat-tile-grid").children,
+    );
+
+    expect(tiles).toHaveLength(4);
+    // The page's tiles: the count of responders, and three that filter.
+    expect(
+      tiles.map((tile: Element): string => {
+        return tile.tagName;
+      }),
+    ).toEqual(["DIV", "BUTTON", "BUTTON", "BUTTON"]);
+
+    for (const tile of tiles) {
+      for (const token of STAT_TILE_FRAME_CLASS_NAME.split(" ")) {
+        expect([tile.tagName, token, tile.classList.contains(token)]).toEqual([
+          tile.tagName,
+          token,
+          true,
+        ]);
+      }
+    }
+
+    const frame: Array<string> = STAT_TILE_FRAME_CLASS_NAME.split(" ");
+
+    expect(frame).toEqual(
+      expect.arrayContaining(["flex", "flex-col", "justify-start", "w-full"]),
+    );
+    // Not a block (a button centres a block's content), nor centred.
+    expect(frame).not.toContain("block");
+    expect(frame).not.toContain("items-center");
+    expect(frame).not.toContain("justify-center");
   });
 
   /*

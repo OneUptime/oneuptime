@@ -158,10 +158,21 @@ export const TOGGLE_KNOB_ON_RIGHT_TO_LEFT_CLASS: string =
  * that acts on a click or a key never hears it (as InfoTooltip does).
  *
  * 24px square, the row's own line height: the 16px question mark was too
- * small a thing to tap.
+ * small a thing to tap. The keyboard's focus ring is drawn inside the
+ * square, around the question mark (ring-inset): drawn outside it, 2px
+ * from the title, the ring ran into the title's last letter.
  */
 export const TOGGLE_HELP_BUTTON_CLASS_NAME: string =
-  "ml-0.5 inline-flex h-6 w-6 cursor-help items-center justify-center rounded-full align-top text-gray-400 transition-colors duration-150 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+  "ml-0.5 inline-flex h-6 w-6 cursor-help items-center justify-center rounded-full align-top text-gray-400 transition-colors duration-150 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500";
+
+/*
+ * The title's line, which the help button ends. A title that wraps takes
+ * its last word down with the button (text-wrap: pretty), so the button
+ * never sits on a line of its own: on a phone "When filters match, create
+ * an alert" filled its line and left the question mark alone under it.
+ */
+export const TOGGLE_TITLE_LINE_CLASS_NAME: string =
+  "text-sm leading-6 text-pretty";
 
 export const TOGGLE_HELP_BUTTON_TEST_ID: string = "toggle-help";
 
@@ -379,9 +390,10 @@ const Toggle: FunctionComponent<ComponentProps> = (
             {hasTitle || tooltip ? (
               /*
                * Inline, not a flex row: a title that wraps keeps the help
-               * icon after its last word rather than out at the far edge.
+               * icon after its last word rather than out at the far edge
+               * (TOGGLE_TITLE_LINE_CLASS_NAME).
                */
-              <div className="text-sm leading-6">
+              <div className={TOGGLE_TITLE_LINE_CLASS_NAME}>
                 {hasTitle ? (
                   <label
                     id={labelId}

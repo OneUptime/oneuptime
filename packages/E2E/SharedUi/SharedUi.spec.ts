@@ -592,8 +592,14 @@ test.describe("a button that cannot be pressed looks it", () => {
     await page.keyboard.press("Tab");
     await expect(help).toBeFocused();
     await expect(page.getByRole("tooltip")).toHaveText(LOCKED_SWITCH_REASON);
-    // The keyboard's focus is drawn: an indigo ring.
-    expect(await styleOf(help, "box-shadow")).toContain("rgb(99, 102, 241)");
+    // The keyboard's focus is drawn: an indigo ring...
+    const ring: string = await styleOf(help, "box-shadow");
+    expect(ring).toContain("rgb(99, 102, 241)");
+    /*
+     * ...inside the button's own square: drawn outside it, 2px from the
+     * title, the ring ran into the title's last letter.
+     */
+    expect(ring).toContain("inset");
   });
 
   test("a busy link keeps its spinner beside its words", async ({
@@ -730,6 +736,82 @@ test.describe("a locked button or switch says why on a tap", () => {
     expect(
       Math.abs(box!.y + box!.height / 2 - (title!.y + title!.height / 2)),
     ).toBeLessThan(4);
+  });
+
+  /*
+   * "When filters match, create an alert" fills a phone's line, and the
+   * question mark after it went on to a line of its own. The title's line
+   * wraps "pretty" now: its last word goes down with the help icon.
+   */
+  test("a switch whose title wraps keeps its last word beside the help icon, never the icon alone on a line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "section=buttons");
+
+    const reading: {
+      titleLines: number;
+      lastLineMiddle: number;
+      lastLineRight: number;
+      lastLineWords: string;
+      iconMiddle: number;
+      iconLeft: number;
+    } = await page.evaluate(
+      (): {
+        titleLines: number;
+        lastLineMiddle: number;
+        lastLineRight: number;
+        lastLineWords: string;
+        iconMiddle: number;
+        iconLeft: number;
+      } => {
+        const icon: Element = document.querySelector(
+          "[data-testid='help-switch-toggle-help']",
+        ) as Element;
+        const title: Element = Array.from(
+          document.querySelectorAll("label"),
+        ).find((label: Element): boolean => {
+          return label.textContent === "When filters match, create an alert";
+        }) as Element;
+        const text: Text = title.querySelector("span")!.firstChild as Text;
+        const range: Range = document.createRange();
+        range.selectNodeContents(text);
+        // One rect a line (a line's words are one run of text here).
+        const lines: Array<DOMRect> = Array.from(range.getClientRects());
+        const last: DOMRect = lines[lines.length - 1] as DOMRect;
+        // The words on the title's last line.
+        const words: Array<string> = [];
+        const content: string = text.textContent || "";
+        for (let index: number = 0; index < content.length; index++) {
+          const letter: Range = document.createRange();
+          letter.setStart(text, index);
+          letter.setEnd(text, index + 1);
+          const box: DOMRect = letter.getBoundingClientRect();
+          if (Math.abs(box.top - last.top) < 2) {
+            words.push(content[index] as string);
+          }
+        }
+        const iconBox: DOMRect = icon.getBoundingClientRect();
+        return {
+          titleLines: lines.length,
+          lastLineMiddle: last.top + last.height / 2,
+          lastLineRight: last.right,
+          lastLineWords: words.join("").trim(),
+          iconMiddle: iconBox.top + iconBox.height / 2,
+          iconLeft: iconBox.left,
+        };
+      },
+    );
+
+    // At 390 pixels the title takes two lines...
+    expect(reading.titleLines).toBe(2);
+    // ...and the icon ends the second, after a word of the title.
+    expect(reading.lastLineWords.length).toBeGreaterThan(0);
+    expect(Math.abs(reading.iconMiddle - reading.lastLineMiddle)).toBeLessThan(
+      4,
+    );
+    expect(reading.iconLeft).toBeGreaterThanOrEqual(reading.lastLineRight);
   });
 
   test("a tap on a switch's help icon shows what the switch does, and never flips it", async ({
