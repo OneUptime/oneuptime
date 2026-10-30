@@ -38796,5 +38796,22 @@
   "Page Message": "Page Message",
   "Approving runs exactly what is shown, under your name.": "تأیید، دقیقاً همان چیزی را که نشان داده شده، به نام شما اجرا می‌کند.",
   "Has Data": "دارای داده",
-  "Has No Data": "بدون داده"
+  "Has No Data": "بدون داده",
+  "The {{plan}} plan": "طرح {{plan}}",
+  "Tick the responders to remind. Ready ones have nothing to set up.": "پاسخ‌دهندگانی را که باید یادآوری شوند علامت بزنید. آماده‌ها چیزی برای راه‌اندازی ندارند.",
+  "Who is on call and when, with every layer applied.": "چه کسی و چه زمانی آنکال است، با اعمال همه لایه‌ها.",
+  "You do not have permission to page on-call policies.": "مجوز فراخوانی از طریق سیاست‌های آنکال را ندارید.",
+  "First seen in the last 24 hours.": "نخستین بار در ۲۴ ساعت گذشته دیده شد.",
+  "It came back after it was resolved.": "پس از برطرف‌شدن دوباره رخ داد.",
+  "It came back {{time}}, after it was resolved.": "{{time}}، پس از برطرف‌شدن، دوباره رخ داد.",
+  "Marked as Archived At": "زمان بایگانی",
+  "Marked as Resolved At": "زمان برطرف‌شدن",
+  "More ways to resolve": "راه‌های دیگر برای رفع",
+  "No release is recorded for it.": "هیچ نسخه‌ای برای آن ثبت نشده است.",
+  "Occurrences from {{release}} will not reopen it. One from any other release will.": "رخدادهای {{release}} آن را دوباره باز نمی‌کنند. رخدادی از هر نسخهٔ دیگری باز می‌کند.",
+  "Regressed": "بازگشته",
+  "Regressed At": "زمان بازگشت",
+  "Resolve in next release": "رفع در نسخهٔ بعدی",
+  "Resolved in Release After": "برطرف‌شده در نسخهٔ پس از",
+  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "در نسخهٔ بعدی برطرف شد: رخدادهای {{release}} آن را دوباره باز نمی‌کنند."
 }

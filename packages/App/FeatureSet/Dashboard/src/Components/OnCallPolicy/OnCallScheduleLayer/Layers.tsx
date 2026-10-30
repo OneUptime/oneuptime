@@ -3,6 +3,7 @@ import LayerCard from "./LayerCard";
 import { formatWindowSpan } from "./LayerSummary";
 import LayersPreview from "./LayersPreview";
 import SkipLayerUserModal from "./SkipLayerUserModal";
+import { SCHEDULE_FINAL_SCHEDULE_DESCRIPTION } from "./ScheduleOverviewCopy";
 import {
   ScheduleOverrideResolution,
   useScheduleUserOverrides,
@@ -970,17 +971,7 @@ const Layers: FunctionComponent<ComponentProps> = (
       <div className="mt-8">
         <Card
           title={"Final schedule"}
-          description={
-            scheduleTimezone
-              ? translator.translateTemplate(
-                  "Who is on call and when, with every layer applied. Times are in this schedule's timezone, {{timezone}}.",
-                  { timezone: scheduleTimezone },
-                )
-              : translator.translateTemplate(
-                  "Who is on call and when, with every layer applied. Times are in your timezone, {{timezone}}.",
-                  { timezone: OneUptimeDate.getCurrentTimezoneString() },
-                )
-          }
+          description={SCHEDULE_FINAL_SCHEDULE_DESCRIPTION}
         >
           <LayersPreview
             layers={layers}

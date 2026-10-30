@@ -3719,6 +3719,9 @@ const PAGE_NOW: string = "Page now";
 // AiFirstResponderAPI's refusal for someone who may not page on-call policies.
 const PAGE_NOW_REFUSAL: string =
   "You need permission to page on-call policies to page now.";
+// Why Page now is locked for someone the permissions certainly refuse.
+const PAGE_NOW_LOCKED_REASON: string =
+  "You do not have permission to page on-call policies.";
 
 interface HeldRecord {
   kind: "incident" | "alert";
@@ -3796,23 +3799,6 @@ async function afterNextPaint(page: Page): Promise<void> {
       });
     });
   });
-}
-
-// A translucent colour laid over an opaque one, as the browser paints it.
-function paintedOver(top: string, bottom: string): string {
-  const [red, green, blue, alpha]: Array<number> = (
-    top.match(/[\d.]+/g) || []
-  ).map(Number);
-  const under: Array<number> = (bottom.match(/[\d.]+/g) || []).map(Number);
-  const opacity: number = alpha === undefined ? 1 : alpha;
-  const mix: (front: number, back: number) => number = (
-    front: number,
-    back: number,
-  ): number => {
-    return Math.round(front * opacity + back * (1 - opacity));
-  };
-
-  return `rgb(${mix(red || 0, under[0] || 0)}, ${mix(green || 0, under[1] || 0)}, ${mix(blue || 0, under[2] || 0)})`;
 }
 
 test.describe("a page OneUptime AI holds (#5351)", () => {
@@ -4004,7 +3990,13 @@ test.describe("a page OneUptime AI holds (#5351)", () => {
     await screenshotElement(notice, "ai-card-hold-mobile");
   });
 
-  test("in the dark theme the notice takes the dark card's colours, its words readable on it (?theme=dark)", async ({
+  /*
+   * The notice is the card's own words on the card - no wash and no frame
+   * of its own (it was a tinted, bordered box, a card inside the card): in
+   * the dark theme its words and mark are the theme's light ones, read
+   * against the dark card itself.
+   */
+  test("in the dark theme the notice is the card's words on the dark card, readable, with no wash or frame of its own (?theme=dark)", async ({
     page,
   }: {
     page: Page;
@@ -4019,8 +4011,8 @@ test.describe("a page OneUptime AI holds (#5351)", () => {
     ).toHaveText("Completed", { timeout: 30000 });
 
     const look: {
-      wash: string;
-      edge: string;
+      washes: Array<string>;
+      frames: number;
       surface: string;
       mark: string;
       title: string;
@@ -4029,25 +4021,35 @@ test.describe("a page OneUptime AI holds (#5351)", () => {
       (
         element: Element,
       ): {
-        wash: string;
-        edge: string;
+        washes: Array<string>;
+        frames: number;
         surface: string;
         mark: string;
         title: string;
         sentence: string;
       } => {
         const zeroAlpha: RegExp = /rgba\([^)]*,\s*0\)$/;
-        const style: CSSStyleDeclaration = window.getComputedStyle(element);
+        const isClear: (color: string) => boolean = (
+          color: string,
+        ): boolean => {
+          return color === "transparent" || zeroAlpha.test(color);
+        };
+        const outsideButton: Array<Element> = [
+          element,
+          ...Array.from(element.querySelectorAll("*")),
+        ].filter((part: Element): boolean => {
+          return !part.closest("button");
+        });
         const words: Array<Element> = Array.from(element.querySelectorAll("p"));
         let surface: string = "";
         let ancestor: Element | null = element.parentElement;
 
-        // The card's own surface, under the notice's translucent wash.
+        // The card's own surface, the first ground under the notice.
         while (ancestor && !surface) {
           const background: string =
             window.getComputedStyle(ancestor).backgroundColor;
 
-          if (background !== "transparent" && !zeroAlpha.test(background)) {
+          if (!isClear(background)) {
             surface = background;
           }
 
@@ -4055,8 +4057,16 @@ test.describe("a page OneUptime AI holds (#5351)", () => {
         }
 
         return {
-          wash: style.backgroundColor,
-          edge: style.borderTopColor,
+          washes: outsideButton
+            .map((part: Element): string => {
+              return window.getComputedStyle(part).backgroundColor;
+            })
+            .filter((color: string): boolean => {
+              return !isClear(color);
+            }),
+          frames: outsideButton.filter((part: Element): boolean => {
+            return parseFloat(window.getComputedStyle(part).borderTopWidth) > 0;
+          }).length,
           surface: surface,
           mark: window.getComputedStyle(element.querySelector("svg") as Element)
             .color,
@@ -4066,21 +4076,52 @@ test.describe("a page OneUptime AI holds (#5351)", () => {
       },
     );
 
-    // Theme.css's dark indigo wash and edge, not the light ones.
-    expect(look.wash).toBe("rgba(49, 46, 129, 0.35)");
-    expect(look.edge).toBe("rgba(129, 140, 248, 0.45)");
-    // The dark card's surface under it.
+    // No wash and no frame: the card's own ground.
+    expect(look.washes).toEqual([]);
+    expect(look.frames).toBe(0);
     expect(look.surface).toBe("rgb(23, 32, 51)");
-    // Light words, and the light indigo mark.
-    expect(look.title).toBe("rgb(248, 250, 252)");
-    expect(look.sentence).toBe("rgb(226, 232, 240)");
+    // The light indigo mark, and words readable on the dark card.
     expect(look.mark).toBe("rgb(165, 180, 252)");
-
-    const ground: string = paintedOver(look.wash, look.surface);
-    expect(contrastRatio(look.title, ground)).toBeGreaterThanOrEqual(4.5);
-    expect(contrastRatio(look.sentence, ground)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(look.title, look.surface)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(look.sentence, look.surface)).toBeGreaterThanOrEqual(
+      4.5,
+    );
 
     await screenshotElement(notice, "ai-card-hold-dark");
+  });
+
+  /*
+   * Page now takes the permission to page an on-call policy by hand. A
+   * Viewer may read the hold, so is told AI is on it - and pressing Page
+   * now was only ever refused. It is locked for them now, saying why, as
+   * every locked action does; a phone's tap says why too.
+   */
+  test("a Viewer is told AI is on it, with Page now locked, saying why - nothing is sent (?role=viewer)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const notice: Locator = await openHeld(
+      page,
+      INCIDENT_PATH,
+      `${HOLD_QUERY}&role=viewer`,
+    );
+    const pageNow: Locator = notice.getByRole("button", { name: PAGE_NOW });
+
+    await expect(pageNow).toBeDisabled();
+    await notice.getByTestId("ai-hold-page-now-disabled-wrapper").hover();
+    await expect(page.getByRole("tooltip")).toContainText(
+      PAGE_NOW_LOCKED_REASON,
+    );
+    await screenshotElement(notice, "ai-card-hold-viewer");
+
+    expect(
+      await apiRequestsTo(page, "/ai-first-responder/page-now"),
+    ).toHaveLength(0);
+    expect(
+      (await fixture(page)).unhandled,
+      "requests the fixture does not model",
+    ).toEqual([]);
   });
 });
 
@@ -4285,6 +4326,12 @@ const CARD_STATES: ReadonlyArray<CardState> = [
     name: "an investigation waiting for its rule",
     query: "ai=waiting",
     badge: "Waiting",
+  },
+  // A page OneUptime AI holds (#5351): "OneUptime AI is on it", Page now.
+  {
+    name: "a page OneUptime AI holds",
+    query: "state=created&hold=1",
+    badge: "Completed",
   },
 ];
 

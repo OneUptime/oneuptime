@@ -38796,5 +38796,22 @@
   "Page Message": "Page Message",
   "Approving runs exactly what is shown, under your name.": "Подтверждение запускает ровно то, что показано, от вашего имени.",
   "Has Data": "Есть данные",
-  "Has No Data": "Нет данных"
+  "Has No Data": "Нет данных",
+  "The {{plan}} plan": "Тариф {{plan}}",
+  "Tick the responders to remind. Ready ones have nothing to set up.": "Отметьте получателей, которым нужно напомнить. Тем, кто готов, настраивать нечего.",
+  "Who is on call and when, with every layer applied.": "Кто и когда дежурит с учётом всех слоёв.",
+  "You do not have permission to page on-call policies.": "У вас нет прав на вызов по политикам дежурств.",
+  "First seen in the last 24 hours.": "Впервые замечено за последние 24 часа.",
+  "It came back after it was resolved.": "Оно вернулось после устранения.",
+  "It came back {{time}}, after it was resolved.": "Оно вернулось {{time}}, после устранения.",
+  "Marked as Archived At": "Дата архивации",
+  "Marked as Resolved At": "Дата устранения",
+  "More ways to resolve": "Другие способы устранить",
+  "No release is recorded for it.": "Для него не записан релиз.",
+  "Occurrences from {{release}} will not reopen it. One from any other release will.": "Случаи из {{release}} не откроют его снова. Случай из любого другого релиза откроет.",
+  "Regressed": "Регрессия",
+  "Regressed At": "Дата регрессии",
+  "Resolve in next release": "Устранить в следующем релизе",
+  "Resolved in Release After": "Устранено в релизе после",
+  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "Устранено в следующем релизе: случаи из {{release}} не открывают его снова."
 }

@@ -38796,5 +38796,22 @@
   "Page Message": "Page Message",
   "Approving runs exactly what is shown, under your name.": "Aprovar executa exatamente o que é mostrado, em seu nome.",
   "Has Data": "Com dados",
-  "Has No Data": "Sem dados"
+  "Has No Data": "Sem dados",
+  "The {{plan}} plan": "O plano {{plan}}",
+  "Tick the responders to remind. Ready ones have nothing to set up.": "Marque os destinatários a lembrar. Quem está pronto não tem nada a configurar.",
+  "Who is on call and when, with every layer applied.": "Quem está de plantão e quando, com todas as camadas aplicadas.",
+  "You do not have permission to page on-call policies.": "Você não tem permissão para acionar as políticas de plantão.",
+  "First seen in the last 24 hours.": "Vista pela primeira vez nas últimas 24 horas.",
+  "It came back after it was resolved.": "Voltou a ocorrer depois de ser resolvida.",
+  "It came back {{time}}, after it was resolved.": "Voltou a ocorrer {{time}}, depois de ser resolvida.",
+  "Marked as Archived At": "Marcada como arquivada em",
+  "Marked as Resolved At": "Marcada como resolvida em",
+  "More ways to resolve": "Mais formas de resolver",
+  "No release is recorded for it.": "Nenhuma versão está registrada para ela.",
+  "Occurrences from {{release}} will not reopen it. One from any other release will.": "Ocorrências de {{release}} não a reabrirão. Uma de qualquer outra versão sim.",
+  "Regressed": "Regressão",
+  "Regressed At": "Regressão em",
+  "Resolve in next release": "Resolver na próxima versão",
+  "Resolved in Release After": "Resolvida na versão após",
+  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "Resolvida na próxima versão: ocorrências de {{release}} não a reabrem."
 }

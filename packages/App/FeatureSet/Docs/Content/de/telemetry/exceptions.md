@@ -30,7 +30,7 @@ flowchart TB
 ```
 
 - **Eine Ausnahme pro Dienst und Fehler.** Der Fingerabdruck entsteht aus dem Dienst, dem Ausnahmetyp, der Nachricht und dem Stack-Trace. Werte, die sich von Aufruf zu Aufruf ändern, werden vorher entfernt: UUIDs und andere IDs, Zeitstempel, IP- und E-Mail-Adressen sowie Zahlen mit sieben oder mehr Ziffern. `Order id=1042 not found` und `Order id=2077 not found` sind also eine Ausnahme.
-- **Ein neues Vorkommen öffnet eine behobene Ausnahme wieder.** Tritt sie erneut auf, nachdem Sie sie als behoben markiert haben, hat die Korrektur nicht gehalten.
+- **Ein neues Vorkommen öffnet eine behobene Ausnahme wieder.** Tritt sie erneut auf, nachdem Sie sie als behoben markiert haben, hat die Korrektur nicht gehalten, und die Ausnahme wird als **Regression** markiert. Ein Vorkommen von vor der Behebung, das OneUptime erst später erreicht, öffnet sie nicht wieder.
 - **Eine archivierte Ausnahme bleibt archiviert.** Ihre neuen Vorkommen werden weiter gezählt, lösen aber keine Benachrichtigungen mehr aus.
 
 > [!TIP]
@@ -50,7 +50,7 @@ flowchart TB
 
 ### Einen Status wählen
 
-Wechseln Sie zwischen **Nicht behoben**, **Behoben**, **Archiviert** und **Alle**. Das Diagramm über der Liste zeigt, wie viele Vorkommen im Zeitverlauf **Nicht behandelt** und wie viele **Behandelt** waren.
+Wechseln Sie zwischen **Nicht behoben**, **Behoben**, **Archiviert** und **Alle**. Das Diagramm über der Liste zeigt, wie viele Vorkommen im Zeitverlauf **Nicht behandelt** und wie viele **Behandelt** waren. Eine mit **Regression** markierte Zeile ist nach der Behebung wieder aufgetreten, und eine mit **Neu** markierte wurde in den letzten 24 Stunden zum ersten Mal gesehen.
 
 ### Festlegen, was als Problem zählt
 
@@ -86,9 +86,12 @@ Die Schaltflächen oben auf der Seite der Ausnahme, ihre Seite **Einstellungen**
 | Aktion | Wann Sie sie nutzen | Was danach geschieht |
 | --- | --- | --- |
 | **Beheben** | Sie haben die Korrektur bereitgestellt. | Sie verlässt die Liste **Nicht behoben**. Ein neues Vorkommen öffnet sie wieder. |
+| **Im nächsten Release beheben** | Die Korrektur kommt mit Ihrem nächsten Release. | Sie verlässt die Liste **Nicht behoben**. Vorkommen aus dem Release, in dem sie zuletzt gesehen wurde, öffnen sie nicht wieder, ein Vorkommen aus jedem anderen Release schon. |
 | **Wieder öffnen** | Die Korrektur hat nicht gewirkt. | Sie ist wieder ungelöst. |
 | **Archivieren** | Es ist Rauschen, das Sie nicht beheben wollen. | Sie verlässt die Liste. Neue Vorkommen werden gezählt, lösen aber keine Benachrichtigungen mehr aus. |
 | **Aus Archiv entfernen** | Sie wollen wieder davon hören. | Sie steht wieder in der Liste, in die sie gehört. |
+
+**Im nächsten Release beheben** steht im Menü neben **Beheben**, im Menü ⋯ der Zeile, unter **Massenaktionen** und auf **Einstellungen**, sofern die Vorkommen der Ausnahme ihr Release nennen: das Ressourcenattribut `service.version`.
 
 **Einstellungen** zeigt, wer die Ausnahme zuletzt als behoben markiert oder archiviert hat, und wann. Ihre Schaltflächen lauten **Als gelöst markieren** oder **Als ungelöst markieren** und **Archivieren** oder **Aus Archiv entfernen**.
 
@@ -173,7 +176,7 @@ Der Fingerabdruck umfasst die Nachricht und den Stack-Trace. Unterscheiden sie s
 :::
 
 :::details Eine behobene Ausnahme kommt immer wieder
-Ein neues Vorkommen öffnet eine behobene Ausnahme absichtlich wieder: Der Fehler tritt noch auf. Prüfen Sie, ob die Korrektur das Release erreicht hat, das ihn meldet, oder archivieren Sie die Ausnahme, wenn Sie nichts mehr davon hören wollen.
+Ein neues Vorkommen öffnet eine behobene Ausnahme absichtlich wieder: Der Fehler tritt noch auf. Prüfen Sie, ob die Korrektur das Release erreicht hat, das ihn meldet, oder archivieren Sie die Ausnahme, wenn Sie nichts mehr davon hören wollen. Melden alte Pods des Releases sie während eines Rollouts weiter, nutzen Sie stattdessen **Im nächsten Release beheben**.
 :::
 
 ## Nächste Schritte

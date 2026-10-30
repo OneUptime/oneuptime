@@ -472,7 +472,15 @@ const Button: FunctionComponent<ComponentProps> = ({
      */
     if (isInert) {
       return (
-        <Tooltip text={translatedTooltip}>
+        /*
+         * A locked button's reason shows on a press too - a tap, or a click
+         * - and stays until the next one: on a phone nothing hovers, and a
+         * tap showed the reason only until the finger lifted (Chrome sends
+         * mouseleave then), so a locked action never said why. Pressing a
+         * locked button does nothing else. A busy one (isLoading) is not
+         * locked: it is about to answer, so its tooltip stays hover only.
+         */
+        <Tooltip text={translatedTooltip} isShownOnPress={isLocked}>
           <span
             /*
              * The button takes no pointer here (see above), so the

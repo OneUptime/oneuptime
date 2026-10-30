@@ -38796,5 +38796,22 @@
   "Page Message": "Page Message",
   "Approving runs exactly what is shown, under your name.": "Eine Genehmigung führt genau das Gezeigte unter Ihrem Namen aus.",
   "Has Data": "Daten vorhanden",
-  "Has No Data": "Keine Daten"
+  "Has No Data": "Keine Daten",
+  "The {{plan}} plan": "Der Tarif {{plan}}",
+  "Tick the responders to remind. Ready ones have nothing to set up.": "Markieren Sie die Bearbeiter, die erinnert werden sollen. Wer bereit ist, hat nichts einzurichten.",
+  "Who is on call and when, with every layer applied.": "Wer wann Bereitschaft hat, mit allen angewendeten Ebenen.",
+  "You do not have permission to page on-call policies.": "Sie haben keine Berechtigung, über Bereitschaftsrichtlinien zu alarmieren.",
+  "First seen in the last 24 hours.": "In den letzten 24 Stunden zum ersten Mal gesehen.",
+  "It came back after it was resolved.": "Sie ist nach der Behebung erneut aufgetreten.",
+  "It came back {{time}}, after it was resolved.": "Sie ist {{time}} erneut aufgetreten, nachdem sie behoben wurde.",
+  "Marked as Archived At": "Als archiviert markiert am",
+  "Marked as Resolved At": "Als behoben markiert am",
+  "More ways to resolve": "Weitere Möglichkeiten zum Beheben",
+  "No release is recorded for it.": "Für sie ist kein Release erfasst.",
+  "Occurrences from {{release}} will not reopen it. One from any other release will.": "Vorkommen aus {{release}} öffnen sie nicht wieder. Ein Vorkommen aus jedem anderen Release schon.",
+  "Regressed": "Regression",
+  "Regressed At": "Regression am",
+  "Resolve in next release": "Im nächsten Release beheben",
+  "Resolved in Release After": "Behoben im Release nach",
+  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "Im nächsten Release behoben: Vorkommen aus {{release}} öffnen sie nicht wieder."
 }

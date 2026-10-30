@@ -38796,5 +38796,22 @@
   "Page Message": "Page Message",
   "Approving runs exactly what is shown, under your name.": "承認すると、表示されている内容がそのままあなたの名前で実行されます。",
   "Has Data": "データあり",
-  "Has No Data": "データなし"
+  "Has No Data": "データなし",
+  "The {{plan}} plan": "{{plan}} プラン",
+  "Tick the responders to remind. Ready ones have nothing to set up.": "リマインドする対応者にチェックを入れてください。準備完了の対応者には設定することがありません。",
+  "Who is on call and when, with every layer applied.": "すべてのレイヤーを適用した、誰がいつオンコールか。",
+  "You do not have permission to page on-call policies.": "オンコールポリシーで呼び出す権限がありません。",
+  "First seen in the last 24 hours.": "過去 24 時間以内に初めて検出されました。",
+  "It came back after it was resolved.": "解決済みにした後に再発しました。",
+  "It came back {{time}}, after it was resolved.": "解決済みにした後、{{time}}に再発しました。",
+  "Marked as Archived At": "アーカイブ日時",
+  "Marked as Resolved At": "解決済みにした日時",
+  "More ways to resolve": "その他の解決方法",
+  "No release is recorded for it.": "リリースが記録されていません。",
+  "Occurrences from {{release}} will not reopen it. One from any other release will.": "{{release}} からの発生では再オープンされません。ほかのリリースからの発生では再オープンされます。",
+  "Regressed": "再発",
+  "Regressed At": "再発日時",
+  "Resolve in next release": "次のリリースで解決",
+  "Resolved in Release After": "このリリースの次で解決",
+  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "次のリリースで解決済み：{{release}} からの発生では再オープンされません。"
 }

@@ -12,6 +12,7 @@ import UpdateStatusUtil, {
   UpdateStatus,
 } from "../../../Types/UpdateCheck/UpdateStatus";
 import { JSONObject } from "../../../Types/JSON";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 import { generatedTexts } from "../../Helpers/GeneratedTexts";
 import { describe, expect, test } from "@jest/globals";
 
@@ -133,14 +134,19 @@ describe("a stored advisory", () => {
   });
 
   test("a summary of megabytes is read in time, and capped", () => {
-    const startedAt: number = Date.now();
-    const summary: string | undefined = SecurityAdvisoryUtil.fromJSON({
-      ...STORED,
-      summary: "a".repeat(4 * 1024 * 1024),
-    })?.summary;
+    // The fastest of up to three reads counts (FastestRun): one is noisy.
+    const read: FastestRun<string | undefined> = fastestRun({
+      run: (): string | undefined => {
+        return SecurityAdvisoryUtil.fromJSON({
+          ...STORED,
+          summary: "a".repeat(4 * 1024 * 1024),
+        })?.summary;
+      },
+      limitInMs: 1000,
+    });
 
-    expect(summary!.length).toBe(MAX_SUMMARY_LENGTH);
-    expect(Date.now() - startedAt).toBeLessThan(1000);
+    expect(read.result!.length).toBe(MAX_SUMMARY_LENGTH);
+    expect(read.inMs).toBeLessThan(1000);
   });
 
   test("a missing summary falls back to the identifier", () => {

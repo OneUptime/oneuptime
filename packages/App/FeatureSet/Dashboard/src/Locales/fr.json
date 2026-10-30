@@ -38796,5 +38796,22 @@
   "Page Message": "Page Message",
   "Approving runs exactly what is shown, under your name.": "Approuver exécute exactement ce qui est affiché, en votre nom.",
   "Has Data": "Données reçues",
-  "Has No Data": "Aucune donnée"
+  "Has No Data": "Aucune donnée",
+  "The {{plan}} plan": "Le forfait {{plan}}",
+  "Tick the responders to remind. Ready ones have nothing to set up.": "Cochez les intervenants à relancer. Ceux qui sont prêts n'ont rien à configurer.",
+  "Who is on call and when, with every layer applied.": "Qui est d'astreinte et quand, avec toutes les couches appliquées.",
+  "You do not have permission to page on-call policies.": "Vous n'avez pas l'autorisation d'alerter via les politiques d'astreinte.",
+  "First seen in the last 24 hours.": "Vue pour la première fois au cours des dernières 24 heures.",
+  "It came back after it was resolved.": "Elle est revenue après avoir été résolue.",
+  "It came back {{time}}, after it was resolved.": "Elle est revenue {{time}}, après avoir été résolue.",
+  "Marked as Archived At": "Marquée comme archivée le",
+  "Marked as Resolved At": "Marquée comme résolue le",
+  "More ways to resolve": "Autres façons de résoudre",
+  "No release is recorded for it.": "Aucune version n'est enregistrée pour elle.",
+  "Occurrences from {{release}} will not reopen it. One from any other release will.": "Les occurrences de {{release}} ne la rouvriront pas. Une occurrence de toute autre version la rouvrira.",
+  "Regressed": "Régression",
+  "Regressed At": "Régression le",
+  "Resolve in next release": "Résoudre dans la prochaine version",
+  "Resolved in Release After": "Résolue dans la version suivant",
+  "Resolved in the next release: occurrences from {{release}} do not reopen it.": "Résolue dans la prochaine version : les occurrences de {{release}} ne la rouvrent pas."
 }

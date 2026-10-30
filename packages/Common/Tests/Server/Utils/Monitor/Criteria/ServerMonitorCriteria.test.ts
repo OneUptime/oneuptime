@@ -2,6 +2,10 @@ import ServerMonitorCriteria from "../../../../../Server/Utils/Monitor/Criteria/
 import EvaluateOverTime, {
   OverTimeCriteriaValue,
 } from "../../../../../Server/Utils/Monitor/Criteria/EvaluateOverTime";
+import MonitorCriteriaObservationBuilder from "../../../../../Server/Utils/Monitor/MonitorCriteriaObservationBuilder";
+import Monitor from "../../../../../Models/DatabaseModels/Monitor";
+import MonitorStep from "../../../../../Types/Monitor/MonitorStep";
+import { JSONObject } from "../../../../../Types/JSON";
 import BasicInfrastructureMetrics, {
   BasicDiskMetrics,
   LoadMetrics,
@@ -323,17 +327,62 @@ describe("ServerMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     });
 
     /*
-     * With no infrastructure metrics present the CPU value falls back to 0,
-     * so a LessThan-1 check is met while a GreaterThan-1 check is not.
+     * A report without CPU metrics says nothing about the CPU. It used to
+     * read as 0%, so "CPU Usage less than 1" fired on every such report.
      */
-    test("missing metrics fall back to zero usage", async () => {
-      const result: string | null = await evaluate(buildServerResponse({}), {
-        checkOn: CheckOn.CPUUsagePercent,
-        filterType: FilterType.LessThan,
-        value: 1,
-      });
+    test("a report without metrics matches nothing, rather than reading as 0%", async () => {
+      for (const filterType of [FilterType.LessThan, FilterType.GreaterThan]) {
+        const result: string | null = await evaluate(buildServerResponse({}), {
+          checkOn: CheckOn.CPUUsagePercent,
+          filterType: filterType,
+          value: 1,
+        });
 
-      expect(result).toContain(CheckOn.CPUUsagePercent);
+        expect({ filterType, result }).toEqual({ filterType, result: null });
+      }
+    });
+
+    /*
+     * The macOS agent, built without cgo, sent "cpuMetrics": null with
+     * every report. Reading percentUsed of null threw, the report was never
+     * saved, and the server was marked offline although it reported every
+     * 30 seconds.
+     */
+    test("a report whose cpuMetrics is null (the macOS agent) matches nothing and does not throw", async () => {
+      const metrics: BasicInfrastructureMetrics = {
+        ...buildMetrics({ memoryPercentUsed: 40 }),
+        cpuMetrics: null,
+      } as unknown as BasicInfrastructureMetrics;
+
+      for (const checkOn of [
+        CheckOn.CPUUsagePercent,
+        CheckOn.CPUIoWaitPercent,
+      ]) {
+        for (const filterType of [
+          FilterType.LessThan,
+          FilterType.GreaterThan,
+        ]) {
+          const result: string | null = await evaluate(
+            buildServerResponse({ metrics: metrics }),
+            { checkOn: checkOn, filterType: filterType, value: 1 },
+          );
+
+          expect({ checkOn, filterType, result }).toEqual({
+            checkOn,
+            filterType,
+            result: null,
+          });
+        }
+      }
+
+      // The rest of the report is still judged.
+      expect(
+        await evaluate(buildServerResponse({ metrics: metrics }), {
+          checkOn: CheckOn.MemoryUsagePercent,
+          filterType: FilterType.GreaterThan,
+          value: 30,
+        }),
+      ).toContain(CheckOn.MemoryUsagePercent);
     });
 
     /*
@@ -402,6 +451,35 @@ describe("ServerMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
 
       expect(result).toContain(CheckOn.MemoryUsagePercent);
     });
+
+    // The agent sends "memoryMetrics": null when it cannot read memory.
+    test("a report whose memoryMetrics is null matches nothing and does not throw", async () => {
+      const metrics: BasicInfrastructureMetrics = {
+        ...buildMetrics({ cpuPercentUsed: 40 }),
+        memoryMetrics: null,
+      } as unknown as BasicInfrastructureMetrics;
+
+      for (const checkOn of [
+        CheckOn.MemoryUsagePercent,
+        CheckOn.SwapUsagePercent,
+      ]) {
+        for (const filterType of [
+          FilterType.LessThan,
+          FilterType.GreaterThan,
+        ]) {
+          const result: string | null = await evaluate(
+            buildServerResponse({ metrics: metrics }),
+            { checkOn: checkOn, filterType: filterType, value: 1 },
+          );
+
+          expect({ checkOn, filterType, result }).toEqual({
+            checkOn,
+            filterType,
+            result: null,
+          });
+        }
+      }
+    });
   });
 
   describe("SwapUsagePercent", () => {
@@ -460,6 +538,23 @@ describe("ServerMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
 
       expect(result).toBeNull();
     });
+
+    /*
+     * The agent leaves a zero out of the CPU it reports, so CPU metrics
+     * without I/O wait say 0% - unlike a report with no CPU metrics at all.
+     */
+    test("io wait left out of the CPU metrics is a zero the agent did not send", async () => {
+      const result: string | null = await evaluate(
+        buildServerResponse({ metrics: buildMetrics({}) }),
+        {
+          checkOn: CheckOn.CPUIoWaitPercent,
+          filterType: FilterType.LessThan,
+          value: 1,
+        },
+      );
+
+      expect(result).toContain(CheckOn.CPUIoWaitPercent);
+    });
   });
 
   describe("LoadAverage", () => {
@@ -509,17 +604,28 @@ describe("ServerMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
       expect(result).toBeNull();
     });
 
-    test("absent load metrics fall back to zero", async () => {
-      const result: string | null = await evaluate(
-        buildServerResponse({ metrics: buildMetrics({}) }),
-        {
-          checkOn: CheckOn.LoadAverage1Min,
-          filterType: FilterType.LessThan,
-          value: 1,
-        },
-      );
+    /*
+     * An agent that could not read the load average leaves it out. That
+     * says nothing about the load: it used to read as 0, so "Load Average
+     * less than 1" fired on every report.
+     */
+    test("absent load metrics match nothing, rather than reading as 0", async () => {
+      for (const checkOn of [
+        CheckOn.LoadAverage1Min,
+        CheckOn.LoadAverage5Min,
+        CheckOn.LoadAverage15Min,
+      ]) {
+        const result: string | null = await evaluate(
+          buildServerResponse({ metrics: buildMetrics({}) }),
+          {
+            checkOn: checkOn,
+            filterType: FilterType.LessThan,
+            value: 1,
+          },
+        );
 
-      expect(result).toContain(CheckOn.LoadAverage1Min);
+        expect({ checkOn, result }).toEqual({ checkOn, result: null });
+      }
     });
   });
 
@@ -595,41 +701,80 @@ describe("ServerMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     });
 
     /*
-     * When percentUsed is absent the evaluator falls back to percentFree.
+     * Free space is not usage. Without percentUsed the evaluator used to
+     * compare percentFree as the usage, so a disk 65% free read as 65% full.
+     * Usage is 100 - percentFree.
      */
-    test("falls back to percentFree when percentUsed is absent", async () => {
-      const result: string | null = await evaluate(
-        buildServerResponse({
-          metrics: buildMetrics({
-            diskMetrics: [
-              buildDiskMetric({
-                diskPath: "/data",
-                percentUsed: undefined,
-                percentFree: 65,
-              }),
-            ],
-          }),
+    test("reads a disk without percentUsed as 100 - percentFree, never free space as usage", async () => {
+      const response: ServerMonitorResponse = buildServerResponse({
+        metrics: buildMetrics({
+          diskMetrics: [
+            buildDiskMetric({
+              diskPath: "/data",
+              percentUsed: undefined,
+              percentFree: 65,
+            }),
+          ],
         }),
-        {
+      });
+
+      expect(
+        await evaluate(response, {
           checkOn: CheckOn.DiskUsagePercent,
           filterType: FilterType.GreaterThan,
           value: 50,
           serverMonitorOptions: { diskPath: "/data" },
-        },
-      );
+        }),
+      ).toBeNull();
+
+      const result: string | null = await evaluate(response, {
+        checkOn: CheckOn.DiskUsagePercent,
+        filterType: FilterType.LessThan,
+        value: 50,
+        serverMonitorOptions: { diskPath: "/data" },
+      });
 
       expect(result).toContain(CheckOn.DiskUsagePercent);
+      expect(result).toContain("35");
     });
 
     /*
-     * A requested path that matches no reported disk yields a usage of 0.
+     * A path that names no disk the agent reported used to read as 0%
+     * full, silently: "less than 10%" fired, and "more than 90%" never
+     * could. It matches nothing now.
      */
-    test("unmatched disk path yields zero usage", async () => {
+    test("a path that names no reported disk matches nothing, rather than reading as 0%", async () => {
+      for (const filterType of [FilterType.LessThan, FilterType.GreaterThan]) {
+        const result: string | null = await evaluate(
+          buildServerResponse({
+            metrics: buildMetrics({
+              diskMetrics: [
+                buildDiskMetric({ diskPath: "/other", percentUsed: 99 }),
+              ],
+            }),
+          }),
+          {
+            checkOn: CheckOn.DiskUsagePercent,
+            filterType: filterType,
+            value: 10,
+            serverMonitorOptions: { diskPath: "/data" },
+          },
+        );
+
+        expect({ filterType, result }).toEqual({ filterType, result: null });
+      }
+    });
+
+    test("a disk whose usage the agent did not report matches nothing", async () => {
       const result: string | null = await evaluate(
         buildServerResponse({
           metrics: buildMetrics({
             diskMetrics: [
-              buildDiskMetric({ diskPath: "/other", percentUsed: 99 }),
+              {
+                diskPath: "/data",
+                percentUsed: null,
+                percentFree: null,
+              } as unknown as BasicDiskMetrics,
             ],
           }),
         }),
@@ -641,7 +786,123 @@ describe("ServerMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
         },
       );
 
-      expect(result).toContain(CheckOn.DiskUsagePercent);
+      expect(result).toBeNull();
+    });
+
+    // The Windows agent reports its drives as "C:", which people type "C:\".
+    test("C:\\ names the C: drive the Windows agent reports", async () => {
+      for (const typed of ["C:\\", "c:\\", "C:", "c:/", " C:\\ "]) {
+        const result: string | null = await evaluate(
+          buildServerResponse({
+            metrics: buildMetrics({
+              diskMetrics: [
+                buildDiskMetric({ diskPath: "C:", percentUsed: 91 }),
+                buildDiskMetric({ diskPath: "D:", percentUsed: 10 }),
+              ],
+            }),
+          }),
+          {
+            checkOn: CheckOn.DiskUsagePercent,
+            filterType: FilterType.GreaterThan,
+            value: 90,
+            serverMonitorOptions: { diskPath: typed },
+          },
+        );
+
+        expect({ typed, met: Boolean(result) }).toEqual({ typed, met: true });
+      }
+    });
+
+    /*
+     * The form offers device names ("/dev/sda1"), which used to match no
+     * disk: the agent reports each disk by where it is mounted. A device
+     * names the disk on it.
+     */
+    test("a device name names the disk on that device", async () => {
+      const response: ServerMonitorResponse = buildServerResponse({
+        metrics: buildMetrics({
+          diskMetrics: [
+            {
+              ...buildDiskMetric({ diskPath: "/", percentUsed: 30 }),
+              device: "/dev/sda1",
+            },
+            {
+              ...buildDiskMetric({
+                diskPath: "/var/lib/data",
+                percentUsed: 95,
+              }),
+              device: "/dev/sdb1",
+            },
+          ],
+        }),
+      });
+
+      const result: string | null = await evaluate(response, {
+        checkOn: CheckOn.DiskUsagePercent,
+        filterType: FilterType.GreaterThan,
+        value: 90,
+        serverMonitorOptions: { diskPath: "/dev/sdb1" },
+      });
+
+      expect(result).toContain("95");
+      expect(
+        await evaluate(response, {
+          checkOn: CheckOn.DiskUsagePercent,
+          filterType: FilterType.GreaterThan,
+          value: 90,
+          serverMonitorOptions: { diskPath: "/dev/sda1" },
+        }),
+      ).toBeNull();
+    });
+
+    // A mount path wins over a device of the same name.
+    test("a disk mounted at the path is chosen before a device named the same", async () => {
+      expect(
+        ServerMonitorCriteria.findDiskMetric({
+          diskMetrics: [
+            { ...buildDiskMetric({ diskPath: "/srv" }), device: "/data" },
+            { ...buildDiskMetric({ diskPath: "/data" }), device: "/dev/sdb1" },
+          ],
+          diskPath: "/data/",
+        })?.device,
+      ).toBe("/dev/sdb1");
+    });
+
+    test("normalizes a Disk Path the way the criteria and the window compare it", () => {
+      for (const [typed, normalized] of [
+        ["/", "/"],
+        ["", "/"],
+        ["   ", "/"],
+        ["//", "/"],
+        ["/mnt/data/", "/mnt/data"],
+        ["/MNT/Data", "/mnt/data"],
+        ["C:\\", "c:"],
+        ["C:", "c:"],
+        ["\\\\server\\share\\", "//server/share"],
+      ] as Array<[string, string]>) {
+        expect({
+          typed,
+          normalized: ServerMonitorCriteria.normalizeDiskPath(typed),
+        }).toEqual({ typed, normalized });
+      }
+
+      expect(ServerMonitorCriteria.normalizeDiskPath(undefined)).toBe("/");
+    });
+
+    test("writes a Disk Path the way the agent writes the disk's path", () => {
+      for (const [typed, agentPath] of [
+        ["", "/"],
+        ["/", "/"],
+        ["/mnt/data/", "/mnt/data"],
+        ["c:\\", "C:"],
+        ["C:/", "C:"],
+        ["d:", "D:"],
+      ] as Array<[string, string]>) {
+        expect({
+          typed,
+          agentPath: ServerMonitorCriteria.toAgentDiskPath(typed),
+        }).toEqual({ typed, agentPath });
+      }
     });
   });
 
@@ -726,17 +987,74 @@ describe("ServerMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     });
 
     /*
-     * An absent processes array is treated as an empty list, so nothing is
-     * executing and IsNotExecuting is satisfied.
+     * An agent that could not list the processes sends no list (an older
+     * one sent null). That used to read as "nothing is running", so every
+     * "Is Not Executing" criteria fired at once. No list says nothing about
+     * any process; nor does an empty one, since a server always runs some.
      */
-    test("absent processes list satisfies IsNotExecuting", async () => {
-      const result: string | null = await evaluate(buildServerResponse({}), {
-        checkOn: CheckOn.ServerProcessName,
-        filterType: FilterType.IsNotExecuting,
-        value: "nginx",
+    test("a report without a process list matches neither Is Executing nor Is Not Executing", async () => {
+      const checks: Array<{ checkOn: CheckOn; value: string | number }> = [
+        { checkOn: CheckOn.ServerProcessName, value: "nginx" },
+        { checkOn: CheckOn.ServerProcessPID, value: 4321 },
+        { checkOn: CheckOn.ServerProcessCommand, value: "/usr/sbin/nginx" },
+      ];
+
+      for (const processes of [
+        undefined,
+        null as unknown as Array<ServerProcess>,
+        [],
+      ]) {
+        for (const check of checks) {
+          for (const filterType of [
+            FilterType.IsExecuting,
+            FilterType.IsNotExecuting,
+          ]) {
+            const result: string | null = await evaluate(
+              buildServerResponse({ processes: processes }),
+              {
+                checkOn: check.checkOn,
+                filterType: filterType,
+                value: check.value,
+              },
+            );
+
+            expect({ processes, check, filterType, result }).toEqual({
+              processes,
+              check,
+              filterType,
+              result: null,
+            });
+          }
+        }
+      }
+    });
+
+    /*
+     * A process the agent could not read the command line of (a protected
+     * Windows process) is reported with its name and an empty command.
+     */
+    test("a process reported with an empty command is still running by its name", async () => {
+      const response: ServerMonitorResponse = buildServerResponse({
+        processes: [
+          buildProcess({ name: "nginx" }),
+          buildProcess({ pid: 640, name: "lsass.exe", command: "" }),
+        ],
       });
 
-      expect(result).toBe("Process nginx is not executing.");
+      expect(
+        await evaluate(response, {
+          checkOn: CheckOn.ServerProcessName,
+          filterType: FilterType.IsNotExecuting,
+          value: "lsass.exe",
+        }),
+      ).toBeNull();
+      expect(
+        await evaluate(response, {
+          checkOn: CheckOn.ServerProcessName,
+          filterType: FilterType.IsExecuting,
+          value: "LSASS.EXE",
+        }),
+      ).toBe("Process LSASS.EXE is executing.");
     });
 
     /*
@@ -1064,6 +1382,115 @@ describe("ServerMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
       );
     });
 
+    /*
+     * The window is read by the diskPath the agent stores each disk's rows
+     * under, which is an exact match. It used to be read by the path as
+     * typed, so "C:\" (stored "C:"), a trailing slash, a different case or
+     * a device name found no rows and the filter never fired; and an empty
+     * path scoped nothing, mixing every disk's rows into one window.
+     */
+    test("reads a disk's window by the path the agent reports it under, whatever was typed", async () => {
+      const response: ServerMonitorResponse = buildServerResponse({
+        metrics: buildMetrics({
+          diskMetrics: [
+            {
+              ...buildDiskMetric({ diskPath: "/", percentUsed: 40 }),
+              device: "/dev/sda1",
+            },
+            buildDiskMetric({ diskPath: "/mnt/Data", percentUsed: 95 }),
+            buildDiskMetric({ diskPath: "C:", percentUsed: 95 }),
+          ],
+        }),
+      });
+
+      const cases: Array<{ typed: string | undefined; read: string }> = [
+        { typed: "C:\\", read: "C:" },
+        { typed: "c:", read: "C:" },
+        { typed: "/mnt/data/", read: "/mnt/Data" },
+        { typed: "/dev/sda1", read: "/" },
+        { typed: "", read: "/" },
+        { typed: undefined, read: "/" },
+        // Not in this report: written as the agent writes it.
+        { typed: "d:\\", read: "D:" },
+        { typed: "/backup/", read: "/backup" },
+      ];
+
+      for (const entry of cases) {
+        const spy: ReturnType<typeof jest.spyOn> = mockOverTime(usable([95]));
+
+        await evaluate(response, {
+          checkOn: CheckOn.DiskUsagePercent,
+          filterType: FilterType.GreaterThan,
+          value: 90,
+          evaluateOverTime: true,
+          evaluateOverTimeOptions: {
+            timeValueInMinutes: 5,
+            evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+          },
+          ...(entry.typed === undefined
+            ? {}
+            : { serverMonitorOptions: { diskPath: entry.typed } }),
+        });
+
+        expect({
+          typed: entry.typed,
+          read: spy.mock.calls.map((call: Array<unknown>): unknown => {
+            return (call[0] as { miscData: unknown }).miscData;
+          }),
+        }).toEqual({ typed: entry.typed, read: [{ diskPath: entry.read }] });
+
+        spy.mockRestore();
+      }
+    });
+
+    /*
+     * "*" is no disk's path, so a window read for it held nothing: with the
+     * default no-data policy "any disk over 90% for 5 minutes" never fired.
+     * Each disk the agent reported is judged on its own window.
+     */
+    test('judges each disk on its own window for a "*" Disk Path', async () => {
+      const spy: ReturnType<typeof jest.spyOn> = jest
+        .spyOn(EvaluateOverTime, "getOverTimeValueForCriteriaFilter")
+        .mockImplementation(
+          async (data: {
+            miscData?: JSONObject | undefined;
+          }): Promise<OverTimeCriteriaValue> => {
+            return usable(
+              data.miscData?.["diskPath"] === "/data" ? [96, 97] : [10],
+            );
+          },
+        ) as ReturnType<typeof jest.spyOn>;
+
+      const result: string | null = await evaluate(
+        buildServerResponse({
+          metrics: buildMetrics({
+            diskMetrics: [
+              buildDiskMetric({ diskPath: "/", percentUsed: 10 }),
+              buildDiskMetric({ diskPath: "/data", percentUsed: 10 }),
+            ],
+          }),
+        }),
+        {
+          checkOn: CheckOn.DiskUsagePercent,
+          filterType: FilterType.GreaterThan,
+          value: 90,
+          evaluateOverTime: true,
+          evaluateOverTimeOptions: {
+            timeValueInMinutes: 5,
+            evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+          },
+          serverMonitorOptions: { diskPath: "*" },
+        },
+      );
+
+      expect(result).toContain("Disk /data - ");
+      expect(
+        spy.mock.calls.map((call: Array<unknown>): unknown => {
+          return (call[0] as { miscData: unknown }).miscData;
+        }),
+      ).toEqual([{ diskPath: "/" }, { diskPath: "/data" }]);
+    });
+
     test("does not scope a CPU window by a stray disk path", async () => {
       const spy: ReturnType<typeof jest.spyOn> = mockOverTime(usable([70, 80]));
 
@@ -1216,5 +1643,116 @@ describe("ServerMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
 
       expect(result).toBeNull();
     });
+  });
+});
+
+/*
+ * What the evaluation summary says a server criteria saw when it was not met:
+ * the root cause someone reads to find out why nothing fired. It finds the
+ * disk and the processes the way the criteria does.
+ */
+describe("the observation a Server / VM criteria is explained with", () => {
+  function observe(
+    dataToProcess: ServerMonitorResponse,
+    criteriaFilter: CriteriaFilter,
+  ): string | null {
+    return MonitorCriteriaObservationBuilder.describeFilterObservation({
+      monitor: new Monitor(),
+      criteriaFilter: criteriaFilter,
+      dataToProcess: dataToProcess,
+      monitorStep: new MonitorStep(),
+    });
+  }
+
+  const disks: Array<BasicDiskMetrics> = [
+    {
+      ...buildDiskMetric({ diskPath: "/", percentUsed: 40 }),
+      device: "/dev/sda1",
+    },
+    buildDiskMetric({ diskPath: "/data", percentUsed: 85 }),
+  ];
+
+  test("names the disks the agent reported when the Disk Path names none of them", () => {
+    expect(
+      observe(
+        buildServerResponse({ metrics: buildMetrics({ diskMetrics: disks }) }),
+        {
+          checkOn: CheckOn.DiskUsagePercent,
+          filterType: FilterType.GreaterThan,
+          value: 90,
+          serverMonitorOptions: { diskPath: "/backup" },
+        },
+      ),
+    ).toBe(
+      "Disk metrics did not include path /backup: no disk the agent reported is mounted there or is that device. It reported /, /data.",
+    );
+  });
+
+  test("describes the disk a device name or a differently written path names", () => {
+    for (const typed of ["/dev/sda1", "/data/"]) {
+      const observation: string | null = observe(
+        buildServerResponse({ metrics: buildMetrics({ diskMetrics: disks }) }),
+        {
+          checkOn: CheckOn.DiskUsagePercent,
+          filterType: FilterType.GreaterThan,
+          value: 90,
+          serverMonitorOptions: { diskPath: typed },
+        },
+      );
+
+      expect(observation).toContain(`on disk ${typed} was`);
+      expect(observation).toContain(typed === "/data/" ? "85" : "40");
+    }
+  });
+
+  test('describes the fullest disk for a "*" Disk Path', () => {
+    expect(
+      observe(
+        buildServerResponse({ metrics: buildMetrics({ diskMetrics: disks }) }),
+        {
+          checkOn: CheckOn.DiskUsagePercent,
+          filterType: FilterType.GreaterThan,
+          value: 90,
+          serverMonitorOptions: { diskPath: "*" },
+        },
+      ),
+    ).toContain(
+      "of the fullest of the 2 disk(s) the agent reported, /data, was 85",
+    );
+  });
+
+  test("says the CPU metrics were unavailable when the report's are null", () => {
+    expect(
+      observe(
+        buildServerResponse({
+          metrics: {
+            ...buildMetrics({}),
+            cpuMetrics: null,
+          } as unknown as BasicInfrastructureMetrics,
+        }),
+        {
+          checkOn: CheckOn.CPUUsagePercent,
+          filterType: FilterType.GreaterThan,
+          value: 90,
+        },
+      ),
+    ).toBe("CPU usage metrics were unavailable.");
+  });
+
+  test("says the process list was missing rather than that the process was not running", () => {
+    for (const checkOn of [
+      CheckOn.ServerProcessName,
+      CheckOn.ServerProcessPID,
+      CheckOn.ServerProcessCommand,
+    ]) {
+      const observation: string | null = observe(buildServerResponse({}), {
+        checkOn: checkOn,
+        filterType: FilterType.IsNotExecuting,
+        value: "nginx",
+      });
+
+      expect(observation).toContain("The agent's report had no process list");
+      expect(observation).not.toContain("was not running");
+    }
   });
 });

@@ -30,7 +30,7 @@ flowchart TB
 ```
 
 - **Eén uitzondering per service en fout.** De vingerafdruk wordt gemaakt uit de service, het uitzonderingstype, het bericht en de stacktrace. Waarden die per aanroep veranderen, gaan er eerst uit: UUID's en andere ID's, tijdstempels, IP- en e-mailadressen, en getallen van zeven cijfers of meer. Zo zijn `Order id=1042 not found` en `Order id=2077 not found` één uitzondering.
-- **Een nieuw voorval heropent een opgeloste uitzondering.** Gebeurt ze opnieuw nadat u haar oploste, dan hield de oplossing geen stand.
+- **Een nieuw voorval heropent een opgeloste uitzondering.** Gebeurt ze opnieuw nadat u haar oploste, dan hield de oplossing geen stand, en de uitzondering wordt gemarkeerd als **Regressie**. Een voorval van vóór het oplossen dat OneUptime pas later bereikt, heropent haar niet.
 - **Een gearchiveerde uitzondering blijft gearchiveerd.** Haar nieuwe voorvallen worden nog geteld, maar sturen geen meldingen meer.
 
 > [!TIP]
@@ -50,7 +50,7 @@ Ga naar **Producten → Observability → Uitzonderingen**. De badge op het tabb
 
 ### Een status kiezen
 
-Wissel tussen **Niet opgelost**, **Opgelost**, **Gearchiveerd** en **Alle**. De grafiek boven de lijst toont hoeveel voorvallen in de loop van de tijd **Niet-afgehandeld** en hoeveel **Afgehandeld** waren.
+Wissel tussen **Niet opgelost**, **Opgelost**, **Gearchiveerd** en **Alle**. De grafiek boven de lijst toont hoeveel voorvallen in de loop van de tijd **Niet-afgehandeld** en hoeveel **Afgehandeld** waren. Een rij gemarkeerd als **Regressie** kwam terug nadat ze was opgelost, en een rij gemarkeerd als **Nieuw** werd voor het eerst gezien in de afgelopen 24 uur.
 
 ### Kiezen wat als probleem telt
 
@@ -86,9 +86,12 @@ De knoppen bovenaan de pagina van de uitzondering, haar pagina **Instellingen** 
 | Actie | Wanneer u die gebruikt | Wat er daarna gebeurt |
 | --- | --- | --- |
 | **Oplossen** | U hebt de oplossing uitgerold. | Ze verlaat de lijst **Niet opgelost**. Een nieuw voorval heropent haar. |
+| **Oplossen in volgende release** | De oplossing komt in uw volgende release. | Ze verlaat de lijst **Niet opgelost**. Voorvallen uit de release waarin ze het laatst werd gezien, heropenen haar niet, en een voorval uit elke andere release wel. |
 | **Heropenen** | De oplossing werkte niet. | Ze is weer niet opgelost. |
 | **Archiveren** | Het is ruis die u niet wilt verhelpen. | Ze verlaat de lijst. Nieuwe voorvallen worden geteld maar sturen geen meldingen meer. |
 | **Uit archief halen** | U wilt er weer van horen. | Ze staat weer in de lijst waar ze thuishoort. |
+
+**Oplossen in volgende release** staat in het menu naast **Oplossen**, in het menu ⋯ van de rij, onder **Bulkacties** en op **Instellingen**, zolang de voorvallen van de uitzondering hun release noemen: het resource-attribuut `service.version`.
 
 **Instellingen** toont wie de uitzondering het laatst heeft opgelost of gearchiveerd, en wanneer. De knoppen daar heten **Markeren als opgelost** of **Markeren als onopgelost**, en **Archiveren** of **Uit archief halen**.
 
@@ -173,7 +176,7 @@ De vingerafdruk bevat het bericht en de stacktrace. Verschillen die, bijvoorbeel
 :::
 
 :::details Een opgeloste uitzondering komt steeds terug
-Een nieuw voorval heropent een opgeloste uitzondering met opzet: de fout treedt nog steeds op. Controleer of de oplossing de release heeft bereikt die haar meldt, of archiveer de uitzondering als u er niet meer van wilt horen.
+Een nieuw voorval heropent een opgeloste uitzondering met opzet: de fout treedt nog steeds op. Controleer of de oplossing de release heeft bereikt die haar meldt, of archiveer de uitzondering als u er niet meer van wilt horen. Blijven oude pods van de release haar tijdens een uitrol melden, gebruik dan **Oplossen in volgende release**.
 :::
 
 ## Volgende stappen
