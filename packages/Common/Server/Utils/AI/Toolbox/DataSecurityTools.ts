@@ -846,6 +846,7 @@ async function readOneIssue(
         acceptedUntil: true,
         securityCaseId: true,
         alertId: true,
+        incidentId: true,
         dataStoreId: true,
         dataStore: {
           name: true,
@@ -917,6 +918,7 @@ async function readOneIssue(
     acceptedUntil: issue.acceptedUntil || null,
     securityCaseId: issue.securityCaseId?.toString() || "",
     alertId: issue.alertId?.toString() || "",
+    incidentId: issue.incidentId?.toString() || "",
   };
   const serialized: SerializedResult = ToolResultSerializer.serializeRows([
     row,

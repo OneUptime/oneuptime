@@ -508,6 +508,33 @@ describe("query_data_security_issues", () => {
       params: { dataSecurityIssueId: ISSUE_ID.toString() },
     });
   });
+
+  test("one issue says which security case, alert and incident it started, so Ask AI can say where it is being worked", async () => {
+    const securityCaseId: ObjectID = ObjectID.generate();
+    const alertId: ObjectID = ObjectID.generate();
+    const incidentId: ObjectID = ObjectID.generate();
+    const row: DataSecurityIssue = issue();
+    row.securityCaseId = securityCaseId;
+    row.alertId = alertId;
+    row.incidentId = incidentId;
+    const spy: SpyInstance<typeof DataSecurityIssueService.findOneBy> = jest
+      .spyOn(DataSecurityIssueService, "findOneBy")
+      .mockResolvedValue(row as never);
+
+    const result: ToolExecutionResult = await run(QueryDataSecurityIssuesTool, {
+      dataSecurityIssueId: ISSUE_ID.toString(),
+    });
+    const select: JSONObject = (spy.mock.calls[0]![0] as unknown as JSONObject)[
+      "select"
+    ] as JSONObject;
+
+    expect(select["securityCaseId"]).toBe(true);
+    expect(select["alertId"]).toBe(true);
+    expect(select["incidentId"]).toBe(true);
+    expect(result.dataForLlm).toContain(securityCaseId.toString());
+    expect(result.dataForLlm).toContain(alertId.toString());
+    expect(result.dataForLlm).toContain(incidentId.toString());
+  });
 });
 
 describe("query_data_store_access", () => {
