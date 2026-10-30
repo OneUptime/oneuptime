@@ -73,7 +73,7 @@ Open **Data Security**. Stores appear under **Data Stores** as discovery finds t
 
 Every store gets the checks that apply to its kind. A store whose content cannot be sampled is still checked: a public bucket or an unencrypted database is a problem whatever it holds.
 
-A store is archived, with its history, once its source no longer lists it: **Archived Stores**, at the end of Data Security's menu, keeps it. It comes back by itself if its source lists it again.
+A store is archived, with its history, once its source no longer lists it, and its open issues are resolved: **Archived Stores**, at the end of Data Security's menu, keeps it. It comes back by itself if its source lists it again, and an issue whose check still fails opens again.
 
 A store's **Timeline** says what happened to it, and who did it: when it was found or added, each change to its settings and owners, when it was archived or came back, and each exposure closed from an issue or a playbook.
 

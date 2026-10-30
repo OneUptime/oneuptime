@@ -3,6 +3,8 @@ import DataSecurityIssueReconciler, {
   ReconcileStoreInput,
   ReconcileStoreOutput,
 } from "../../../../Server/Utils/DataSecurity/DataSecurityIssueReconciler";
+import { ClosedDataSecurityIssue } from "../../../../Server/Utils/DataSecurity/DataSecurityIssueAlerts";
+import Includes from "../../../../Types/BaseDatabase/Includes";
 import DataSecurityIssueFeedService from "../../../../Server/Services/DataSecurityIssueFeedService";
 import DataSecurityIssueService from "../../../../Server/Services/DataSecurityIssueService";
 import CreateBy from "../../../../Server/Types/Database/CreateBy";
@@ -253,6 +255,113 @@ function reconcile(
 ): Promise<ReconcileStoreOutput> {
   return DataSecurityIssueReconciler.reconcileStore(storeInput(overrides));
 }
+
+describe("resolveIssuesOfArchivedStore", () => {
+  test("resolves the archived store's open issues - read as root, only the open ones - and says why on each Timeline", async () => {
+    const first: DataSecurityIssue = issueOf({
+      checkId: "public-read",
+      status: DataSecurityIssueStatus.Open,
+    });
+    const second: DataSecurityIssue = issueOf({
+      checkId: "access-not-logged",
+      status: DataSecurityIssueStatus.Open,
+    });
+    const findBy: jest.SpyInstance = jest
+      .spyOn(DataSecurityIssueService, "findBy")
+      .mockResolvedValue([first, second] as never);
+
+    const closed: Array<ClosedDataSecurityIssue> =
+      await DataSecurityIssueReconciler.resolveIssuesOfArchivedStore({
+        projectId: PROJECT_ID,
+        dataStoreId: STORE_ID,
+        now: NOW,
+      });
+
+    const query: JSONObject = (
+      findBy.mock.calls[0]![0] as { query: JSONObject }
+    ).query;
+
+    expect(query["projectId"]).toBe(PROJECT_ID);
+    expect(query["dataStoreId"]).toBe(STORE_ID);
+    expect((query["status"] as Includes).values).toEqual([
+      DataSecurityIssueStatus.Open,
+    ]);
+    expect((findBy.mock.calls[0]![0] as { props: JSONObject }).props).toEqual({
+      isRoot: true,
+    });
+    expect(updates()).toEqual([
+      {
+        id: first.id,
+        data: { status: DataSecurityIssueStatus.Resolved, resolvedAt: NOW },
+        props: { isRoot: true },
+      },
+      {
+        id: second.id,
+        data: { status: DataSecurityIssueStatus.Resolved, resolvedAt: NOW },
+        props: { isRoot: true },
+      },
+    ]);
+    expect(feeds()[0]).toEqual({
+      projectId: PROJECT_ID,
+      dataSecurityIssueId: first.id,
+      eventType: DataSecurityIssueFeedEventType.Resolved,
+      displayColor: Gray500,
+      feedInfoInMarkdown:
+        "Resolved: the store was archived, as its source no longer lists it. The issue opens again if the store comes back and its check still fails.",
+    });
+    expect(closed).toEqual([
+      { issueId: first.id, why: "its store was archived" },
+      { issueId: second.id, why: "its store was archived" },
+    ]);
+  });
+
+  test("a store with nothing open: nothing written, nothing closed", async () => {
+    jest
+      .spyOn(DataSecurityIssueService, "findBy")
+      .mockResolvedValue([] as never);
+
+    await expect(
+      DataSecurityIssueReconciler.resolveIssuesOfArchivedStore({
+        projectId: PROJECT_ID,
+        dataStoreId: STORE_ID,
+        now: NOW,
+      }),
+    ).resolves.toEqual([]);
+    expect(updateSpy).not.toHaveBeenCalled();
+    expect(feedSpy).not.toHaveBeenCalled();
+  });
+
+  test("an issue that cannot be resolved is logged and left out; the next is still resolved", async () => {
+    const stuck: DataSecurityIssue = issueOf({
+      checkId: "public-read",
+      status: DataSecurityIssueStatus.Open,
+    });
+    const next: DataSecurityIssue = issueOf({
+      checkId: "no-owner",
+      status: DataSecurityIssueStatus.Open,
+    });
+    jest
+      .spyOn(DataSecurityIssueService, "findBy")
+      .mockResolvedValue([stuck, next] as never);
+    updateSpy
+      .mockRejectedValueOnce(new Error("deadlock detected"))
+      .mockResolvedValueOnce(undefined as never);
+
+    const closed: Array<ClosedDataSecurityIssue> =
+      await DataSecurityIssueReconciler.resolveIssuesOfArchivedStore({
+        projectId: PROJECT_ID,
+        dataStoreId: STORE_ID,
+        now: NOW,
+      });
+
+    expect(closed).toEqual([
+      { issueId: next.id, why: "its store was archived" },
+    ]);
+    expect(errorSpy).toHaveBeenCalledWith(
+      `DataSecurity: could not resolve issue ${stuck.id!.toString()} of archived store ${STORE_ID.toString()}:`,
+    );
+  });
+});
 
 describe("getIssueKey", () => {
   test("is the store and the check, so a store has one issue per check", () => {

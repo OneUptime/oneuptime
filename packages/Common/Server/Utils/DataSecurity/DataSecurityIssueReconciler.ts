@@ -10,6 +10,7 @@ import {
   Red500,
 } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
+import Includes from "../../../Types/BaseDatabase/Includes";
 import OneUptimeDate from "../../../Types/Date";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -52,6 +53,9 @@ import { ClosedDataSecurityIssue } from "./DataSecurityIssueAlerts";
 
 // How stale an open issue's lastDetectedAt may get before it is refreshed.
 const LAST_DETECTED_REFRESH_IN_MINUTES: number = 60;
+
+// The most issues a store has: one per check, and the catalog has 32.
+const MAX_ISSUES_PER_STORE: number = 100;
 
 export interface ReconcileStoreInput {
   projectId: ObjectID;
@@ -416,6 +420,67 @@ export default class DataSecurityIssueReconciler {
         : "its check passes now",
     });
     output.resolvedCount++;
+  }
+
+  /*
+   * A store discovery no longer finds is archived, and its open issues are
+   * resolved with it: the exposure of a store that is gone is no exposure,
+   * and its alert should page nobody. An accepted risk and a person's Not
+   * an issue stay as they are. If the store comes back, its next
+   * evaluation opens again each issue whose check still fails.
+   */
+  public static async resolveIssuesOfArchivedStore(data: {
+    projectId: ObjectID;
+    dataStoreId: ObjectID;
+    now?: Date | undefined;
+  }): Promise<Array<ClosedDataSecurityIssue>> {
+    const now: Date = data.now || OneUptimeDate.getCurrentDate();
+    const issues: Array<DataSecurityIssue> =
+      await DataSecurityIssueService.findBy({
+        query: {
+          projectId: data.projectId,
+          dataStoreId: data.dataStoreId,
+          status: new Includes([DataSecurityIssueStatus.Open]),
+        },
+        select: { _id: true },
+        skip: 0,
+        limit: MAX_ISSUES_PER_STORE,
+        props: { isRoot: true },
+      });
+    const closed: Array<ClosedDataSecurityIssue> = [];
+
+    for (const issue of issues) {
+      if (!issue.id) {
+        continue;
+      }
+
+      try {
+        await DataSecurityIssueService.updateOneById({
+          id: issue.id,
+          data: {
+            status: DataSecurityIssueStatus.Resolved,
+            resolvedAt: now,
+          } as never,
+          props: { isRoot: true },
+        });
+
+        await this.feed(data.projectId, issue.id, {
+          eventType: DataSecurityIssueFeedEventType.Resolved,
+          color: Gray500,
+          markdown:
+            mdText`Resolved: the store was archived, as its source no longer lists it. The issue opens again if the store comes back and its check still fails.`.toString(),
+        });
+
+        closed.push({ issueId: issue.id, why: "its store was archived" });
+      } catch (error) {
+        logger.error(
+          `DataSecurity: could not resolve issue ${issue.id.toString()} of archived store ${data.dataStoreId.toString()}:`,
+        );
+        logger.error(error);
+      }
+    }
+
+    return closed;
   }
 
   private static async feed(

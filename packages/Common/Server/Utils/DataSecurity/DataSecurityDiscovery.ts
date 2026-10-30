@@ -15,6 +15,10 @@ import {
   CloudDataStoreRead,
 } from "./Cloud/DataSecurityCloudTypes";
 import { queueDataSecurityEvaluation } from "./DataSecurityJobs";
+import DataSecurityIssueAlerts, {
+  ClosedDataSecurityIssue,
+} from "./DataSecurityIssueAlerts";
+import DataSecurityIssueReconciler from "./DataSecurityIssueReconciler";
 import logger from "../Logger";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import OneUptimeDate from "../../../Types/Date";
@@ -316,6 +320,34 @@ export default class DataSecurityDiscovery {
     return true;
   }
 
+  /*
+   * An archived store's open issues are resolved, and their alerts with
+   * them (DataSecurityIssueReconciler, DataSecurityIssueAlerts). Best
+   * effort: the store is archived whatever its issues do.
+   */
+  private static async resolveIssuesOf(
+    projectId: ObjectID,
+    dataStoreId: ObjectID,
+  ): Promise<void> {
+    try {
+      const closed: Array<ClosedDataSecurityIssue> =
+        await DataSecurityIssueReconciler.resolveIssuesOfArchivedStore({
+          projectId,
+          dataStoreId,
+        });
+
+      await DataSecurityIssueAlerts.resolveForClosedIssues({
+        projectId,
+        issues: closed,
+      });
+    } catch (error) {
+      logger.error(
+        `DataSecurity: could not resolve the issues of archived store ${dataStoreId.toString()}:`,
+      );
+      logger.error(error);
+    }
+  }
+
   private static async archiveGone(
     projectId: ObjectID,
     existing: Map<string, DataStore>,
@@ -333,9 +365,15 @@ export default class DataSecurityDiscovery {
         !store.isArchived &&
         !covered.has(storeKey)
       ) {
+        // Its issues go with it, so it has none open, and no risk.
         await DataStoreService.updateColumnsByIdWithoutHooks({
           id: store.id,
-          data: { isArchived: true },
+          data: {
+            isArchived: true,
+            openIssueCount: 0,
+            highestIssueSeverity: null,
+            riskScore: 0,
+          } as never,
         });
 
         // Its Timeline says why it left the everyday lists.
@@ -346,6 +384,8 @@ export default class DataSecurityDiscovery {
         }).catch((error: Error) => {
           logger.error(error);
         });
+
+        await this.resolveIssuesOf(projectId, store.id);
       }
     }
   }

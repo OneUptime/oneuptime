@@ -150,7 +150,7 @@ OneUptime opens, updates and resolves issues as the checks run. What a person do
 | Status | How it gets there | What follows |
 | --- | --- | --- |
 | **Open** | Its check fails on the store now. | It counts on the Overview, in the store's summary and in compliance, until the check passes. |
-| **Resolved** | Its check passed on a later run, no longer applies, or was turned off. A person may choose **Mark Resolved** too: the store is checked again at once. | It opens again if the check fails again, and the issue counts how often it reopened. |
+| **Resolved** | Its check passed on a later run, no longer applies or was turned off, or its store was archived. A person may choose **Mark Resolved** too: the store is checked again at once. | It opens again if the check fails again, and the issue counts how often it reopened. |
 | **Accepted** | A person chose **Accept Risk**, with a **Reason** and a date in **Accepted Until**, at most a year away. | It stays closed until that date, then opens again if the check still fails. Accept it again then if the reason still holds. |
 | **Not an issue** | A person chose **Not an Issue**: the finding was wrong. | It stays closed, even while the check fails. **Reopen** puts it back to Open. |
 

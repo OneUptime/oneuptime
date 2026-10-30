@@ -452,6 +452,31 @@ describe("Data Security overview", () => {
     ).toBe(providers.length);
   });
 
+  it("says an archived store's open issues are resolved, as discovery does, and open again when it comes back", () => {
+    const discovery: string = source(`${SERVER}/DataSecurityDiscovery.ts`);
+    const reconciler: string = source(
+      `${SERVER}/DataSecurityIssueReconciler.ts`,
+    );
+    const lifecycle: string = section(
+      english(CHECKS),
+      "## What happens to an issue",
+    );
+
+    expect(discovery).toContain("resolveIssuesOfArchivedStore");
+    expect(discovery).toContain(
+      "DataSecurityIssueAlerts.resolveForClosedIssues",
+    );
+    // Only the open ones: an accepted risk and a person's verdict stay.
+    expect(reconciler).toContain(
+      "status: new Includes([DataSecurityIssueStatus.Open]),",
+    );
+    expect(page).toContain(
+      "once its source no longer lists it, and its open issues are resolved",
+    );
+    expect(page).toContain("and an issue whose check still fails opens again.");
+    expect(lifecycle).toContain("or its store was archived.");
+  });
+
   it("gives the schedule the Workers run", () => {
     const jobs: string = source(
       "App/FeatureSet/Workers/Jobs/DataSecurity/DataSecurityJobs.ts",

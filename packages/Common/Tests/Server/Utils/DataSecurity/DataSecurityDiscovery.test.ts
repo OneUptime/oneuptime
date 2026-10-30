@@ -6,6 +6,8 @@ import {
   CloudDataStoreRead,
 } from "../../../../Server/Utils/DataSecurity/Cloud/DataSecurityCloudTypes";
 import { DATA_SECURITY_EVALUATE_PROJECT_JOB } from "../../../../Server/Utils/DataSecurity/DataSecurityJobs";
+import DataSecurityIssueAlerts from "../../../../Server/Utils/DataSecurity/DataSecurityIssueAlerts";
+import DataSecurityIssueReconciler from "../../../../Server/Utils/DataSecurity/DataSecurityIssueReconciler";
 import Queue from "../../../../Server/Infrastructure/Queue";
 import CloudAccountService from "../../../../Server/Services/CloudAccountService";
 import CloudResourceService from "../../../../Server/Services/CloudResourceService";
@@ -87,6 +89,8 @@ let accessDeleteSpy: jest.SpyInstance;
 let queueSpy: jest.SpyInstance;
 let errorSpy: jest.SpyInstance;
 let archivedFeedSpy: jest.SpyInstance;
+let archivedIssuesSpy: jest.SpyInstance;
+let closedAlertsSpy: jest.SpyInstance;
 let restoredFeedSpy: jest.SpyInstance;
 
 function sameId(left: ObjectID | undefined | null, right: ObjectID): boolean {
@@ -151,6 +155,15 @@ beforeEach(() => {
   restoredFeedSpy = jest
     .spyOn(DataStoreService, "writeRestoredFeed")
     .mockResolvedValue(undefined);
+  // An archived store's open issues, and their alerts, are resolved with it.
+  archivedIssuesSpy = jest
+    .spyOn(DataSecurityIssueReconciler, "resolveIssuesOfArchivedStore")
+    .mockImplementation(async (data: { dataStoreId: ObjectID }) => {
+      return [{ issueId: data.dataStoreId, why: "its store was archived" }];
+    });
+  closedAlertsSpy = jest
+    .spyOn(DataSecurityIssueAlerts, "resolveForClosedIssues")
+    .mockResolvedValue(0);
   updateSpy = jest
     .spyOn(DataStoreService, "updateColumnsByIdWithoutHooks")
     .mockImplementation((async (data: { id: ObjectID; data: JSONObject }) => {
@@ -1037,13 +1050,30 @@ describe("discoverProject: stores found before", () => {
     await discover();
 
     for (const store of [goneBucket, goneServer, goneTraced]) {
-      expect(updatesOf(store)).toEqual([{ isArchived: true }]);
+      // Archived with nothing open on it any more, and no risk.
+      expect(updatesOf(store)).toEqual([
+        {
+          isArchived: true,
+          openIssueCount: 0,
+          highestIssueSeverity: null,
+          riskScore: 0,
+        },
+      ]);
       expect(store.isArchived).toBe(true);
       // Its Timeline says why, by where it was found.
       expect(archivedFeedSpy).toHaveBeenCalledWith({
         projectId: PROJECT_ID,
         dataStoreId: store.id,
         discoveredFrom: store.discoveredFrom,
+      });
+      // Its open issues are resolved, and their alerts with them.
+      expect(archivedIssuesSpy).toHaveBeenCalledWith({
+        projectId: PROJECT_ID,
+        dataStoreId: store.id,
+      });
+      expect(closedAlertsSpy).toHaveBeenCalledWith({
+        projectId: PROJECT_ID,
+        issues: [{ issueId: store.id, why: "its store was archived" }],
       });
     }
 
@@ -1052,8 +1082,38 @@ describe("discoverProject: stores found before", () => {
     }
 
     expect(archivedFeedSpy).toHaveBeenCalledTimes(3);
+    expect(archivedIssuesSpy).toHaveBeenCalledTimes(3);
+    expect(closedAlertsSpy).toHaveBeenCalledTimes(3);
 
     expect(storeTable).toHaveLength(7);
+  });
+
+  test("issues that cannot be resolved are logged; the store is archived all the same, and the next one too", async () => {
+    const first: DataStore = existingStore({
+      storeKey: "cloud:aws:AWS S3 Bucket:arn:aws:s3:::deleted-one",
+      name: "deleted-one",
+      discoveredFrom: "Cloud inventory",
+    });
+    const second: DataStore = existingStore({
+      storeKey: "cloud:aws:AWS S3 Bucket:arn:aws:s3:::deleted-two",
+      name: "deleted-two",
+      discoveredFrom: "Cloud inventory",
+    });
+    archivedIssuesSpy.mockRejectedValueOnce(new Error("Postgres went away"));
+    const errorSpy: jest.SpyInstance = jest
+      .spyOn(logger, "error")
+      .mockImplementation(() => {
+        return undefined as never;
+      });
+
+    await discover();
+
+    expect(first.isArchived).toBe(true);
+    expect(second.isArchived).toBe(true);
+    expect(errorSpy).toHaveBeenCalledWith(
+      `DataSecurity: could not resolve the issues of archived store ${first.id!.toString()}:`,
+    );
+    expect(closedAlertsSpy).toHaveBeenCalledTimes(1);
   });
 
   test("a store that cannot be recorded is logged, and the others are recorded", async () => {
