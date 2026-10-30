@@ -31,6 +31,7 @@ const os = require("os");
 const path = require("path");
 const yaml = require("js-yaml");
 const { spawnSync } = require("child_process");
+const { agentFilesCurlStub } = require("./Utils/AgentFilesCurlStub");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const URL = "https://oneuptime.example.com";
@@ -43,11 +44,13 @@ const TOKEN_SECRET = `s3cr$t'x"y`;
 const AGENTS = {
   proxmox: {
     dir: "ProxmoxAgent",
+    installName: "proxmox-agent",
     installDir: "/opt/oneuptime-proxmox-agent",
     unit: "systemd/oneuptime-proxmox-agent.service",
   },
   ceph: {
     dir: "CephAgent",
+    installName: "ceph-agent",
     installDir: "/opt/oneuptime-ceph-agent",
     unit: "systemd/oneuptime-ceph-agent.service",
   },
@@ -87,8 +90,10 @@ function agentFile(agent, name) {
  * `docker` records every call with the directory it ran in, fails
  * `compose pull` / `compose up` when $STUB_DIR/pull.fail / up.fail exists,
  * and at `compose up` keeps the environment Compose was handed and the
- * collector config it would mount. `curl` serves the agent's files from this
- * checkout, or from $SERVE_DIR when set (a newer upstream). `ceph` answers
+ * collector config it would mount. `curl` serves the agent's files the way
+ * the OneUptime at URL does, at URL/install/<agent>/<file>, from this checkout
+ * or from $SERVE_DIR when set (a newer release); Utils/AgentFilesCurlStub
+ * says how a test makes it an older OneUptime instead. `ceph` answers
  * as an admin node only when $STUB_DIR/ceph.works exists, and writes the
  * keyring `-o` names.
  */
@@ -118,28 +123,18 @@ exit 0
   );
   writeExecutable(
     path.join(bin, "curl"),
-    `#!/usr/bin/env bash
-printf '%s\\n' "$*" >> "$STUB_DIR/curl.log"
-url=""; out=""
-while [ $# -gt 0 ]; do
-  case "$1" in
-    -o) out="$2"; shift 2 ;;
-    -*) shift ;;
-    *) url="$1"; shift ;;
-  esac
-done
-case "$url" in
+    agentFilesCurlStub({
+      installName: AGENTS[agent].installName,
+      agentDirectory: AGENTS[agent].dir,
+      servedDir: agentDir,
+      extraCases: `case "$url" in
   */api2/json/cluster/status)
     [ -f "$STUB_DIR/cluster-status.json" ] || exit 7
     cat > "$STUB_DIR/curl-stdin.txt"
     cat "$STUB_DIR/cluster-status.json"
     exit 0 ;;
-esac
-rel="\${url#https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/${AGENTS[agent].dir}/}"
-served="\${SERVE_DIR:-${agentDir}}"
-[ -f "$served/$rel" ] || exit 22
-cp "$served/$rel" "$out"
-`,
+esac`,
+    }),
   );
   writeExecutable(
     path.join(bin, "ceph"),
@@ -1205,6 +1200,182 @@ describe.each([["proxmox"], ["ceph"]])(
 );
 
 /* ===================================================== the scripts' shape */
+
+/*
+ * Where the files come from. The OneUptime the agent reports to serves the
+ * files of its own release at URL/install/<agent>/<file>, the address its
+ * install command downloaded the script from, so the agent matches it. A
+ * OneUptime older than that answers 404 or its own page: the files then come
+ * from GitHub, as before. Anything else stops the install before it writes
+ * or starts anything.
+ */
+describe.each([["proxmox"], ["ceph"]])(
+  "%s install.sh, where its files come from",
+  (agent) => {
+    const REST =
+      agent === "proxmox"
+        ? ["pve-prod", "192.168.1.10", "", TOKEN_ID, TOKEN_SECRET, "", "n"]
+        : ["ceph-prod", "mon1:9283", "n"];
+    const FRESH = answers(URL, KEY, ...REST);
+    const SERVED = `${URL}/install/${AGENTS[agent].installName}`;
+    const GITHUB = `https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/${AGENTS[agent].dir}`;
+
+    function downloads(dir) {
+      return readIfExists(path.join(dir, "curl.log"))
+        .split("\n")
+        .filter((line) => {
+          return line.includes(" -w ");
+        });
+    }
+
+    function expectInstalledFromCheckout(run) {
+      for (const file of ["docker-compose.yml", "otel-collector-config.yaml"]) {
+        expect(fs.readFileSync(path.join(run.installDir, file), "utf8")).toBe(
+          agentFile(agent, file),
+        );
+      }
+    }
+
+    test("downloads every file from the OneUptime it reports to, never from GitHub", () => {
+      const dir = scratch();
+      const run = install(agent, dir, { input: FRESH });
+
+      expect(run.status).toBe(0);
+      // One request per file, each to the OneUptime.
+      expect(
+        downloads(dir).map((call) => {
+          return call.split(" ").pop();
+        }),
+      ).toEqual([
+        `${SERVED}/docker-compose.yml`,
+        `${SERVED}/otel-collector-config.yaml`,
+      ]);
+      expect(readIfExists(path.join(dir, "curl.log"))).not.toContain(
+        "raw.githubusercontent.com",
+      );
+      expect(run.output).not.toContain("GitHub");
+      expectInstalledFromCheckout(run);
+    });
+
+    test("a URL typed with a trailing slash finds the same files", () => {
+      const dir = scratch();
+      const run = install(agent, dir, {
+        input: answers(`${URL}/`, KEY, ...REST),
+      });
+
+      expect(run.status).toBe(0);
+      expect(downloads(dir).join("\n")).toContain(
+        `${SERVED}/docker-compose.yml`,
+      );
+      expect(downloads(dir).join("\n")).not.toContain(`${URL}//install`);
+    });
+
+    test("the upgrade downloads from the OneUptime its .env names", () => {
+      const dir = scratch();
+      expect(install(agent, dir, { input: FRESH }).status).toBe(0);
+      fs.rmSync(path.join(dir, "curl.log"));
+
+      const upgrade = install(agent, dir);
+
+      expect(upgrade.status).toBe(0);
+      expect(downloads(dir).join("\n")).toContain(
+        `${SERVED}/otel-collector-config.yaml`,
+      );
+      expect(readIfExists(path.join(dir, "curl.log"))).not.toContain(
+        "raw.githubusercontent.com",
+      );
+    });
+
+    test.each([
+      ["answers 404", "404 text/html; charset=utf-8"],
+      [
+        "answers its own page (the Dashboard, at HTTP 200)",
+        "200 text/html; charset=utf-8",
+      ],
+    ])(
+      "a OneUptime older than the script, which %s, gets the files from GitHub, and is told so",
+      (_what, answer) => {
+        const dir = scratch();
+        installStubs(dir, agent);
+        fs.writeFileSync(path.join(dir, "oneuptime.answer"), answer);
+
+        const run = install(agent, dir, { input: FRESH });
+
+        expect(run.status).toBe(0);
+        expect(run.output).toContain(
+          `${URL} does not serve the agent's files: it runs a OneUptime older`,
+        );
+        expect(run.output).toContain(
+          "than this installer. Downloading them from GitHub instead.",
+        );
+        const calls = downloads(dir);
+        // The first file is asked of the OneUptime once, then everything of GitHub.
+        expect(calls[0]).toContain(`${SERVED}/docker-compose.yml`);
+        expect(
+          calls.slice(1).every((call) => {
+            return call.includes(GITHUB);
+          }),
+        ).toBe(true);
+        expect(calls.join("\n")).toContain(
+          `${GITHUB}/otel-collector-config.yaml`,
+        );
+        // No page saved as a file: the files are the real ones.
+        expectInstalledFromCheckout(run);
+        expect(run.docker).toContain("| compose up -d --force-recreate");
+      },
+    );
+
+    test.each([
+      [
+        "a server error",
+        "500 text/plain; charset=utf-8",
+        "answered 500, not the file",
+      ],
+      ["no answer at all", "000", "Error: could not reach"],
+      ["a refusal", "403 text/html", "answered 403, not the file"],
+    ])(
+      "%s from the OneUptime stops the install before it writes or starts anything, and never asks GitHub",
+      (_what, answer, message) => {
+        const dir = scratch();
+        installStubs(dir, agent);
+        fs.writeFileSync(path.join(dir, "oneuptime.answer"), answer);
+
+        const run = install(agent, dir, { input: FRESH });
+
+        expect(run.status).not.toBe(0);
+        expect(run.output).toContain(message);
+        expect(run.output).toContain(`${SERVED}/docker-compose.yml`);
+        expect(readIfExists(path.join(dir, "curl.log"))).not.toContain(
+          "raw.githubusercontent.com",
+        );
+        expect(run.envFile).toBe("");
+        expect(run.docker).not.toContain("compose up");
+        // Nothing half-downloaded is left behind.
+        expect(
+          fs.readdirSync(run.installDir).filter((file) => {
+            return file.includes(".download.");
+          }),
+        ).toEqual([]);
+      },
+    );
+
+    test("GitHub failing too, after an older OneUptime, stops the install", () => {
+      const dir = scratch();
+      installStubs(dir, agent);
+      fs.writeFileSync(path.join(dir, "oneuptime.answer"), "404 text/html");
+      fs.writeFileSync(path.join(dir, "github.answer"), "000");
+
+      const run = install(agent, dir, { input: FRESH });
+
+      expect(run.status).not.toBe(0);
+      expect(run.output).toContain(
+        `Error: could not reach ${GITHUB}/docker-compose.yml`,
+      );
+      expect(run.envFile).toBe("");
+      expect(run.docker).not.toContain("compose up");
+    });
+  },
+);
 
 describe.each([["proxmox"], ["ceph"]])("%s install.sh, statically", (agent) => {
   const script = agentFile(agent, "install.sh");

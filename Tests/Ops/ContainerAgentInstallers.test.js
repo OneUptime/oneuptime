@@ -28,6 +28,7 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const { spawnSync } = require("child_process");
+const { agentFilesCurlStub } = require("./Utils/AgentFilesCurlStub");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const AGENTS_DIR = path.join(REPO_ROOT, "agents");
@@ -58,7 +59,8 @@ function writeExecutable(file, text) {
  * name, and Podman's rootless flag, API socket (and whether it is there)
  * and storage. An unset STUB_* variable makes Podman say nothing, as an
  * older Podman may. `run` saves the arguments of each container it starts.
- * `curl` serves the Swarm agent's files from this checkout.
+ * `curl` serves the Swarm agent's files from this checkout, as the OneUptime
+ * the agent reports to serves them (Utils/AgentFilesCurlStub).
  */
 function installStubs(dir) {
   const bin = path.join(dir, "bin");
@@ -95,19 +97,11 @@ exit 0
   writeExecutable(path.join(bin, "podman"), engine);
   writeExecutable(
     path.join(bin, "curl"),
-    `#!/usr/bin/env bash
-url=""; out=""
-while [ $# -gt 0 ]; do
-  case "$1" in
-    -o) out="$2"; shift 2 ;;
-    -*) shift ;;
-    *) url="$1"; shift ;;
-  esac
-done
-rel="\${url#https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/}"
-[ -f "${SWARM_DIR}/$rel" ] || exit 22
-cp "${SWARM_DIR}/$rel" "$out"
-`,
+    agentFilesCurlStub({
+      installName: "docker-swarm-agent",
+      agentDirectory: "DockerSwarmAgent",
+      servedDir: SWARM_DIR,
+    }),
   );
 
   return bin;
@@ -412,5 +406,162 @@ describe("DockerSwarmAgent install.sh: the node's name", () => {
     expect(
       fs.readFileSync(path.join(SWARM_DIR, "docker-compose.yml"), "utf8"),
     ).toContain("- DOCKER_SWARM_NODE_NAME=${DOCKER_SWARM_NODE_NAME:-}");
+  });
+});
+
+/*
+ * Where the Swarm agent's files come from: the OneUptime it reports to,
+ * which serves the files of its own release at
+ * <ONEUPTIME_URL>/install/docker-swarm-agent/<file>. The install command in
+ * OneUptime sets ONEUPTIME_URL to the reader's own OneUptime, so Enter at the
+ * URL question takes it; without it, Enter takes OneUptime Cloud, as before.
+ */
+describe("DockerSwarmAgent install.sh: where its files come from", () => {
+  const script = path.join(SWARM_DIR, "install.sh");
+
+  /*
+   * The script run in a scratch directory that holds the stubs, their logs
+   * and the install directory, with `oneuptimeAnswer` (Utils/AgentFilesCurlStub)
+   * standing for an older or a failing OneUptime.
+   */
+  function runSwarm({ env = {}, answers, shell = "sh", oneuptimeAnswer }) {
+    const dir = scratch();
+    const bin = installStubs(dir);
+
+    if (oneuptimeAnswer) {
+      fs.writeFileSync(path.join(dir, "oneuptime.answer"), oneuptimeAnswer);
+    }
+
+    const result = spawnSync(shell, [script], {
+      env: {
+        PATH: `${bin}:${process.env.PATH}`,
+        HOME: path.join(dir, "home"),
+        STUB_DIR: dir,
+        INSTALL_DIR: path.join(dir, "agent"),
+        ONEUPTIME_INSTALL_AI_AGENT: "true",
+        ...env,
+      },
+      input: answers,
+      encoding: "utf8",
+    });
+    const log = path.join(dir, "curl.log");
+
+    return {
+      dir,
+      status: result.status,
+      output: `${result.stdout}${result.stderr}`,
+      requested: (fs.existsSync(log) ? fs.readFileSync(log, "utf8") : "")
+        .split("\n")
+        .filter((line) => {
+          return line.includes(" -w ");
+        })
+        .map((line) => {
+          return line.split(" ").pop();
+        }),
+      envLine: (name) => {
+        const line = fs
+          .readFileSync(path.join(dir, "agent", ".env"), "utf8")
+          .split("\n")
+          .find((text) => {
+            return text.startsWith(`${name}=`);
+          });
+
+        return line === undefined ? undefined : line.substring(name.length + 1);
+      },
+    };
+  }
+
+  const FILES = [
+    "docker-compose.yml",
+    "otel-collector-config.yaml",
+    "inventory-snapshot.sh",
+  ];
+
+  test("Enter takes the OneUptime the install command named, and the files come from it", () => {
+    const result = runSwarm({
+      env: { ONEUPTIME_URL: "https://oneuptime.acme.internal" },
+      answers: "\ningest-key\nmy-swarm\n",
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.output).toContain(
+      "OneUptime URL [https://oneuptime.acme.internal]: ",
+    );
+    expect(result.envLine("ONEUPTIME_URL")).toBe(
+      "https://oneuptime.acme.internal",
+    );
+    expect(result.requested).toEqual(
+      FILES.map((file) => {
+        return `https://oneuptime.acme.internal/install/docker-swarm-agent/${file}`;
+      }),
+    );
+    for (const file of FILES) {
+      expect(
+        fs.readFileSync(path.join(result.dir, "agent", file), "utf8"),
+      ).toBe(fs.readFileSync(path.join(SWARM_DIR, file), "utf8"));
+    }
+    expect(result.output).not.toContain("GitHub");
+  });
+
+  test("a URL typed at the question wins over the one the command named", () => {
+    const result = runSwarm({
+      env: { ONEUPTIME_URL: "https://oneuptime.acme.internal" },
+      answers: "http://10.0.0.5:8080/\ningest-key\nmy-swarm\n",
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.envLine("ONEUPTIME_URL")).toBe("http://10.0.0.5:8080/");
+    expect(result.requested[0]).toBe(
+      "http://10.0.0.5:8080/install/docker-swarm-agent/docker-compose.yml",
+    );
+  });
+
+  test("with no URL in the environment, Enter takes OneUptime Cloud, as it always did", () => {
+    const result = runSwarm({ answers: "\ningest-key\nmy-swarm\n" });
+
+    expect(result.status).toBe(0);
+    expect(result.output).toContain("OneUptime URL [https://oneuptime.com]: ");
+    expect(result.envLine("ONEUPTIME_URL")).toBe("https://oneuptime.com");
+    expect(result.requested[0]).toBe(
+      "https://oneuptime.com/install/docker-swarm-agent/docker-compose.yml",
+    );
+  });
+
+  test.each([["sh"], ["bash"]])(
+    "an older OneUptime (404) gets the files from GitHub, under %s",
+    (shell) => {
+      const result = runSwarm({
+        shell,
+        answers: "https://oneuptime.example.com\ningest-key\nmy-swarm\n",
+        oneuptimeAnswer: "404 text/html",
+      });
+
+      expect(result.status).toBe(0);
+      expect(result.output).toContain("Downloading them from GitHub instead.");
+      expect(result.requested.slice(1)).toEqual(
+        FILES.map((file) => {
+          return `https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/${file}`;
+        }),
+      );
+      for (const file of FILES) {
+        expect(
+          fs.readFileSync(path.join(result.dir, "agent", file), "utf8"),
+        ).toBe(fs.readFileSync(path.join(SWARM_DIR, file), "utf8"));
+      }
+    },
+  );
+
+  test("a OneUptime that errors stops the install before .env is written", () => {
+    const result = runSwarm({
+      answers: "https://oneuptime.example.com\ningest-key\nmy-swarm\n",
+      oneuptimeAnswer: "503 text/html",
+    });
+
+    expect(result.status).not.toBe(0);
+    expect(result.output).toContain(
+      "Error: https://oneuptime.example.com/install/docker-swarm-agent/docker-compose.yml answered 503, not the file",
+    );
+    expect(fs.existsSync(path.join(result.dir, "agent", ".env"))).toBe(false);
+    expect(result.requested.join("\n")).not.toContain("githubusercontent");
   });
 });
