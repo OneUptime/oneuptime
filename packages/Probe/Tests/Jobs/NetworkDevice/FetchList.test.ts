@@ -32,6 +32,7 @@ import {
   pollDevices,
 } from "../../../Jobs/NetworkDevice/FetchList";
 import { PROBE_NETWORK_DEVICE_POLL_CONCURRENCY } from "../../../Config";
+import { PROBE_CAPABILITIES } from "../../../Utils/ProbeAPIRequest";
 
 /*
  * The probe's half of device-owned polling:
@@ -209,11 +210,17 @@ describe("fetchAndPollDevices — fetching this probe's due devices", () => {
   test("declares the networkDevicePing, snmpTables and snmpWalk capabilities on the list fetch", async () => {
     await fetchAndPollDevices();
 
-    expect(fetchCalls()[0]!.body["probeCapabilities"]).toEqual([
-      "networkDevicePing",
-      "snmpTables",
-      "snmpWalk",
-    ]);
+    /*
+     * Every capability this build honours, the three network device ones
+     * among them: the probe declares its whole list on each request
+     * (ProbeAPIRequest), so another capability - Data Security's scan
+     * (#5366) - rides along.
+     */
+    const declared: unknown = fetchCalls()[0]!.body["probeCapabilities"];
+    expect(declared).toEqual([...PROBE_CAPABILITIES]);
+    expect(declared).toEqual(
+      expect.arrayContaining(["networkDevicePing", "snmpTables", "snmpWalk"]),
+    );
   });
 
   /*
