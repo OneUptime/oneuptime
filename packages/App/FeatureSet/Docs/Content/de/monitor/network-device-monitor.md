@@ -765,6 +765,8 @@ Um einen stattdessen unter **Monitore** anzulegen:
 
 Ein Netzwerkgerät-Monitor hat kein eigenes Intervall: Er wird jedes Mal ausgewertet, wenn die Abfrageergebnisse des Geräts eintreffen, und jedes Mal, wenn ein Trap vom Gerät eintrifft.
 
+Wenn die Abfragen ausbleiben, wird der Monitor trotzdem ausgewertet. Sobald ein Gerät drei Abfrageintervalle lang, mindestens aber zehn Minuten, nicht abgefragt wurde, werden seine Monitore alle fünf Minuten wie eine Abfrage ausgewertet, die das Gerät nicht erreichen konnte: Ein Kriterium, das auf **SNMP Device Is Online** gleich False passt, etwa **Device unreachable**, löst aus, und der Vorfall nennt den Grund, warum keine Abfrage kam, zum Beispiel dass die Sonde ausgefallen ist oder das Gerät keine Sonde hat. Ein Gerät mit ausgeschalteter Abfrage oder mit der [Überschreibung mit gebundenem Monitor](#die-überschreibung-mit-gebundenem-monitor) bleibt unberührt. Die nächste Abfrage wertet den Monitor wie gewohnt aus.
+
 ### Vorfälle und Warnungen eines Geräts
 
 Ein Vorfall oder eine Warnung kann ein Netzwerkgerät betreffen. Wählen Sie das Gerät unter **Andere betroffene Ressourcen**, wenn Sie einen Vorfall melden oder eine Warnung erstellen, oder lassen Sie es von einem Monitor verknüpfen: Was ein Monitor auslöst, wird mit dem Gerät verknüpft, über das er berichtet – dem Gerät, das ein Netzwerkgerät-Monitor überwacht, dem Gerät, an das der Monitor gebunden ist, und dem Gerät, für das ein Discovery-Import den Monitor angelegt hat.

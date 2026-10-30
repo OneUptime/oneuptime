@@ -153,6 +153,8 @@ flowchart TB
 
 객체별 메트릭을 쓰는 템플릿은 노드, Pod, Deployment, Job, DaemonSet, HPA를 각각 따로 평가합니다. 그래서 비정상 Pod가 여러 개인 클러스터는 클러스터 전체에 하나가 아니라 Pod마다 인시던트를 받습니다.
 
+**High Node CPU Request Commitment** 와 **High Node Memory Request Commitment** 는 스케줄러처럼 끝나지 않은 Pod 의 요청(request)만 셉니다. 클러스터는 Succeeded 또는 Failed 상태인 Pod(끝난 Job 의 Pod 등)의 요청을 Pod 가 삭제될 때까지 계속 보고하지만, 이는 세지 않습니다.
+
 **Cluster Stopped Reporting** 템플릿은 클러스터의 에이전트에서 10분 동안 아무것도 들어오지 않으면 작동합니다. 에이전트가 제거되었거나 계속 충돌하는 경우, API 키가 취소된 경우, OneUptime으로 가는 경로를 잃은 경우, 또는 클러스터의 API 서버가 에이전트에 더 이상 응답하지 않는 경우입니다. 데이터가 돌아오면 해결됩니다. 데이터가 끊기면 다른 템플릿은 비교할 값이 없어 마지막 상태를 그대로 유지하므로, 이를 알려 주는 것은 이 템플릿입니다.
 
 > [!NOTE]

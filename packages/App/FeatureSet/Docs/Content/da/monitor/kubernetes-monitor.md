@@ -153,6 +153,8 @@ Listen under **Hvad der skal advares om** viser disse skabeloner, grupperet efte
 
 Skabeloner på metrikker pr. objekt evaluerer hver node, pod, deployment, job, DaemonSet eller HPA for sig, så en klynge med flere usunde pods får en hændelse pr. pod i stedet for én for hele klyngen.
 
+**High Node CPU Request Commitment** og **High Node Memory Request Commitment** tæller kun requests fra pods, der ikke er færdige, sådan som scheduleren gør. Klyngen bliver ved med at rapportere requests fra en pod, der er Succeeded eller Failed, for eksempel fra et færdigt Job, indtil poden slettes: de tælles ikke med.
+
 **Cluster Stopped Reporting** udløses, når der ikke kommer noget fra klyngens agent i ti minutter: agenten er afinstalleret eller går ned igen og igen, dens API-nøgle er tilbagekaldt, den har mistet sin rute til OneUptime, eller klyngens API-server er holdt op med at svare den. Den løser sig selv, når data kommer tilbage. Når data stopper, har de andre skabeloner intet at sammenligne og beholder deres seneste status, så det er denne skabelon, der giver dig besked.
 
 > [!NOTE]

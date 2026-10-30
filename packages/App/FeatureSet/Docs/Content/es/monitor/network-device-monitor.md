@@ -765,6 +765,8 @@ Para crear uno desde **Monitores**:
 
 Un monitor de dispositivo de red no tiene intervalo propio: se evalúa cada vez que llegan los resultados de sondeo del dispositivo, y cada vez que llega un trap del dispositivo.
 
+Cuando los sondeos se detienen, el monitor se sigue evaluando. Cuando un dispositivo lleva tres intervalos de sondeo, y al menos diez minutos, sin un sondeo, sus monitores se evalúan cada cinco minutos como un sondeo que no pudo alcanzarlo: se dispara un criterio que coincide con **SNMP Device Is Online** en False, como **Device unreachable**, y el incidente dice por qué no llegó ningún sondeo, por ejemplo que la sonda está caída o que el dispositivo no tiene sonda. Un dispositivo con el sondeo desactivado, o con la [anulación con monitor vinculado](#la-anulación-con-monitor-vinculado), se deja tal cual. El siguiente sondeo evalúa el monitor como siempre.
+
 ### Los incidentes y alertas de un dispositivo
 
 Un incidente o una alerta puede tratar de un dispositivo de red. Elige el dispositivo en **Otros recursos afectados** al declarar un incidente o crear una alerta, o deja que lo vincule un monitor: lo que genera un monitor se vincula al dispositivo del que informa — el dispositivo que vigila un monitor de dispositivo de red, el dispositivo vinculado al monitor y el dispositivo para el que una importación de descubrimiento creó el monitor.

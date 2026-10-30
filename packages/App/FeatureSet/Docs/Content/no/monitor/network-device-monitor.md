@@ -765,6 +765,8 @@ For å opprette en fra **Monitorer** i stedet:
 
 En nettverksenhetsmonitor har ikke noe eget intervall: den vurderes hver gang enhetens pollingresultater kommer inn, og hver gang en trap fra enheten kommer inn.
 
+Når pollingen stopper, vurderes monitoren likevel. Når en enhet har gått tre pollingintervaller, og minst ti minutter, uten polling, vurderes monitorene dens hvert femte minutt som en polling som ikke nådde den: et kriterium som treffer at **SNMP Device Is Online** er False, for eksempel **Device unreachable**, utløses, og hendelsen sier hvorfor ingen polling kom, for eksempel at sonden er nede eller at enheten ikke har noen sonde. En enhet med polling slått av, eller med [overstyringen med bundet monitor](#overstyringen-med-bundet-monitor), blir latt være. Neste polling vurderer monitoren som vanlig.
+
 ### En enhets hendelser og varsler
 
 En hendelse eller et varsel kan handle om en nettverksenhet. Velg enheten under **Andre berørte ressurser** når du erklærer en hendelse eller oppretter et varsel, eller la en monitor knytte den til: det en monitor utløser, knyttes til enheten den rapporterer om — enheten en nettverksenhetsmonitor overvåker, enheten monitoren er bundet til, og enheten en discovery-import opprettet monitoren for.

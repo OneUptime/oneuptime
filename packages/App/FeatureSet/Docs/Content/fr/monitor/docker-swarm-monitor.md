@@ -94,6 +94,8 @@ Cliquez sur **Créer un moniteur**. OneUptime ouvre la page du moniteur et l'év
 
 La liste de **Sur quoi alerter** propose cinq modèles. Chacun construit un moniteur complet : une requête, un critère qui se déclenche et un autre qui rétablit. Tous les modèles sauf **Cluster Stopped Reporting** regroupent leur requête par `resource.container.name`, si bien que chaque tâche est jugée séparément et reçoit son propre incident et sa propre alerte, dont la cause racine liste les tâches concernées et leurs valeurs. Les seuils sont des points de départ que vous pouvez modifier.
 
+Ces modèles ne lisent par ailleurs que les tâches de Swarm : un conteneur démarré autrement sur un nœud, dont celui de l'agent lui-même, est laissé de côté. Une requête **Custom Metric** ou **Avancé** lit tous les conteneurs que l'agent signale ; le filtre **Nom du service** la restreint aux tâches d'un service.
+
 Sauf indication contraire dans le tableau, un critère ne se déclenche que si la condition est remplie à chaque minute de sa fenêtre, et il se rétablit 10 % au-delà du seuil pour qu'une valeur qui oscille autour de la limite ne bascule pas sans cesse.
 
 | Modèle | Gravité | Surveille | Se déclenche quand | Se rétablit quand |

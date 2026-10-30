@@ -117,6 +117,10 @@ import ExceptionMonitorMeasureReader, {
   ExceptionMonitorMeasures,
 } from "Common/Server/Utils/Monitor/ExceptionMonitorMeasures";
 import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import NotNull from "Common/Types/BaseDatabase/NotNull";
+import KubernetesFinishedPods, {
+  POD_UID_ATTRIBUTE as FINISHED_POD_UID_ATTRIBUTE,
+} from "Common/Server/Utils/Monitor/KubernetesFinishedPods";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Wildcard from "Common/Types/BaseDatabase/Wildcard";
 import ProfileMonitorResponse, {
@@ -156,6 +160,7 @@ import MonitorStepStorageArrayMonitor, {
 import MonitorStepDockerSwarmMonitor, {
   DockerSwarmResourceFilters,
   MonitorStepDockerSwarmMonitorUtil,
+  SWARM_TASK_SERVICE_ATTRIBUTE,
 } from "Common/Types/Monitor/MonitorStepDockerSwarmMonitor";
 import MonitorStepIoTMonitor, {
   IoTDeviceFilters,
@@ -1990,6 +1995,14 @@ export const monitorKubernetes: MonitorKubernetesFunction = async (data: {
     kubernetesMonitorConfig.metricViewConfig.queryConfigs,
   );
 
+  /*
+   * The cluster's pods that have finished (Succeeded or Failed): their
+   * containers' requests hold nothing on a node any more, but the
+   * k8s_cluster receiver still reports them. Read once, and only for a step
+   * that reads a request metric (KubernetesFinishedPods).
+   */
+  let finishedPodUids: Array<string> | undefined = undefined;
+
   for (const queryConfig of kubernetesMonitorConfig.metricViewConfig
     .queryConfigs) {
     const metricName: string =
@@ -2049,8 +2062,29 @@ export const monitorKubernetes: MonitorKubernetesFunction = async (data: {
       }
     }
 
-    if (Object.keys(attributes).length > 0) {
-      query.attributes = attributes;
+    let queryAttributes: Dictionary<string | IncludesNone> = attributes;
+
+    if (KubernetesFinishedPods.isScopedMetric(metricName)) {
+      if (finishedPodUids === undefined) {
+        finishedPodUids = await KubernetesFinishedPods.readFinishedPodUids({
+          projectId: data.projectId,
+          clusterIdentifier: kubernetesMonitorConfig.clusterIdentifier,
+          namespace: kubernetesMonitorConfig.resourceFilters?.namespace,
+          startAndEndDate: startAndEndDate,
+        });
+      }
+
+      if (finishedPodUids.length > 0) {
+        queryAttributes = {
+          ...attributes,
+          [FINISHED_POD_UID_ATTRIBUTE]: new IncludesNone(finishedPodUids),
+        };
+      }
+    }
+
+    if (Object.keys(queryAttributes).length > 0) {
+      // Built as its own map first: see the Docker Swarm image filter.
+      query.attributes = queryAttributes as Dictionary<string>;
     }
 
     const aggregationType: MetricsAggregationType =
@@ -3447,24 +3481,40 @@ export const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
       }
     }
 
-    if (Object.keys(attributes).length > 0) {
+    /*
+     * Swarm tasks only: a container Swarm runs for a service carries the
+     * service label, and one started any other way on a node (the agent's
+     * own, a `docker run`) does not. A Service Name filter scopes to tasks
+     * already.
+     */
+    const isTasksOnly: boolean = Boolean(
+      dockerSwarmMonitorConfig.resourceFilters?.tasksOnly &&
+        !dockerSwarmMonitorConfig.resourceFilters?.serviceName,
+    );
+
+    if (Object.keys(attributes).length > 0 || isTasksOnly) {
       /*
        * Built apart from the query and handed over as the plain map the
        * other monitors give. Written straight into `query.attributes`, the
        * literal with its Wildcard is checked against Query<Metric>'s
        * recursive attribute type, and TypeScript gives up on that (TS2589:
        * type instantiation is excessively deep). The statement generator
-       * reads a Wildcard map entry as a LIKE match.
+       * reads a Wildcard map entry as a LIKE match, and a NotNull one as
+       * "the attribute is present".
        */
-      const queryAttributes: Dictionary<string | Wildcard<string>> =
-        containerImageGlobs.length > 0
+      const queryAttributes: Dictionary<string | Wildcard<string> | NotNull> = {
+        ...attributes,
+        ...(containerImageGlobs.length > 0
           ? {
-              ...attributes,
               "resource.container.image.name": new Wildcard<string>(
                 containerImageGlobs,
               ),
             }
-          : attributes;
+          : {}),
+        ...(isTasksOnly
+          ? { [SWARM_TASK_SERVICE_ATTRIBUTE]: new NotNull() }
+          : {}),
+      };
 
       query.attributes = queryAttributes as Dictionary<string>;
     }

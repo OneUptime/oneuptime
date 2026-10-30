@@ -94,6 +94,8 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 
 Listen under **Hvad der skal advares om** tilbyder fem skabeloner. Hver bygger en komplet monitor: en forespørgsel, et kriterium, der udløses, og et, der genopretter. Alle skabeloner undtagen **Cluster Stopped Reporting** grupperer deres forespørgsel efter `resource.container.name`, så hver opgave bedømmes for sig og får sin egen hændelse og sin egen advarsel, hvis grundårsag viser de berørte opgaver og deres værdier. Tærsklerne er udgangspunkter, du kan redigere.
 
+Disse skabeloner læser også kun Swarms opgaver: en container, der er startet på anden vis på en node, herunder agentens egen, tælles ikke med. En **Custom Metric**- eller **Avanceret**-forespørgsel læser alle de containere, agenten rapporterer; filteret **Tjenestenavn** indsnævrer den til én tjenestes opgaver.
+
 Medmindre tabellen siger andet, udløses et kriterium kun, når betingelsen gælder i hvert minut af dets vindue, og det genopretter 10 % forbi tærsklen, så en værdi, der svæver ved grænsen, ikke blafrer.
 
 | Skabelon | Alvorlighed | Overvåger | Udløses, når | Genopretter, når |

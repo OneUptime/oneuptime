@@ -153,6 +153,8 @@ La lista de **Sobre qué alertar** enumera estas plantillas, agrupadas por categ
 
 Las plantillas sobre métricas por objeto evalúan cada nodo, pod, deployment, job, DaemonSet o HPA por separado, de modo que un clúster con varios pods en mal estado recibe un incidente por pod en lugar de uno para todo el clúster.
 
+**High Node CPU Request Commitment** y **High Node Memory Request Commitment** solo cuentan las solicitudes (requests) de los pods que no han terminado, como hace el planificador. El clúster sigue informando las solicitudes de un pod en Succeeded o Failed, como el de un Job terminado, hasta que se elimina el pod: esas no se cuentan.
+
 **Cluster Stopped Reporting** se dispara cuando no llega nada del agente del clúster durante diez minutos: el agente se desinstaló o se cae una y otra vez, se revocó su clave de API, perdió su conexión con OneUptime, o el servidor de API del clúster dejó de responderle. Se resuelve cuando vuelven a llegar datos. Cuando los datos dejan de llegar, las demás plantillas no tienen nada que comparar y mantienen su último estado, así que esta es la que le avisa.
 
 > [!NOTE]

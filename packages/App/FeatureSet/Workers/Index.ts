@@ -150,6 +150,7 @@ import "./Jobs/ScheduledMaintenancePublicNote/SendNotificationToSubscribers";
 import "./Jobs/ScheduledMaintenanceStateTimeline/SendNotificationToSubscribers";
 
 import "./Jobs/ServerMonitor/CheckOnlineStatus";
+import "./Jobs/NetworkDeviceMonitor/CheckStalePolls";
 
 // // Certs Routers
 import "./Jobs/StatusPageCerts/StatusPageCerts";

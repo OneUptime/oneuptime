@@ -765,6 +765,8 @@ För att i stället skapa en från **Monitorer**:
 
 En nätverksenhetsmonitor har inget eget intervall: den utvärderas varje gång enhetens avsökningsresultat kommer in, och varje gång en trap från enheten kommer in.
 
+När avsökningarna slutar utvärderas monitorn ändå. När en enhet har gått tre avsökningsintervall, och minst tio minuter, utan avsökning utvärderas dess monitorer var femte minut som en avsökning som inte nådde den: ett kriterium som matchar att **SNMP Device Is Online** är False, till exempel **Device unreachable**, utlöses, och incidenten säger varför ingen avsökning kom, till exempel att sonden är nere eller att enheten saknar sond. En enhet med avsökning avstängd, eller med [åsidosättningen med bunden monitor](#åsidosättningen-med-bunden-monitor), lämnas i fred. Nästa avsökning utvärderar monitorn som vanligt.
+
 ### En enhets incidenter och larm
 
 En incident eller ett larm kan handla om en nätverksenhet. Välj enheten under **Andra påverkade resurser** när du deklarerar en incident eller skapar ett larm, eller låt en monitor länka den: det en monitor utlöser länkas till enheten den rapporterar om — enheten som en nätverksenhetsmonitor övervakar, enheten som monitorn är bunden till och enheten som en discovery-import skapade monitorn för.

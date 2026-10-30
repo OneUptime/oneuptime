@@ -765,6 +765,8 @@ Pour en créer un depuis **Moniteurs** à la place :
 
 Un moniteur Équipement réseau n'a pas d'intervalle propre : il est évalué chaque fois que les résultats d'interrogation de l'équipement arrivent, et chaque fois qu'un trap de l'équipement arrive.
 
+Quand les interrogations s'arrêtent, le moniteur est toujours évalué. Dès qu'un équipement a passé trois intervalles d'interrogation, et au moins dix minutes, sans interrogation, ses moniteurs sont évalués toutes les cinq minutes comme une interrogation qui n'a pas pu le joindre : un critère qui correspond à **SNMP Device Is Online** à False, comme **Device unreachable**, se déclenche, et l'incident indique pourquoi aucune interrogation n'est arrivée, par exemple que la sonde est hors service ou que l'équipement n'a pas de sonde. Un équipement dont l'interrogation est désactivée, ou qui utilise le [remplacement par un moniteur lié](#le-remplacement-par-un-moniteur-lié), n'est pas concerné. L'interrogation suivante évalue le moniteur comme d'habitude.
+
 ### Les incidents et les alertes d'un équipement
 
 Un incident ou une alerte peut concerner un équipement réseau. Choisissez l'équipement sous **Autres ressources affectées** quand vous déclarez un incident ou créez une alerte, ou laissez un moniteur le lier : ce qu'un moniteur déclenche est lié à l'équipement dont il rend compte — l'équipement que surveille un moniteur Équipement réseau, l'équipement lié au moniteur et l'équipement pour lequel un import de découverte a créé le moniteur.

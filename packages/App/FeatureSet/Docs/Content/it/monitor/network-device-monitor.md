@@ -765,6 +765,8 @@ Per crearne uno invece da **Monitor**:
 
 Un monitor del dispositivo di rete non ha un intervallo proprio: viene valutato ogni volta che arrivano i risultati di polling del dispositivo, e ogni volta che arriva un trap dal dispositivo.
 
+Quando i polling si fermano, il monitor viene comunque valutato. Quando un dispositivo resta per tre intervalli di polling, e almeno dieci minuti, senza un polling, i suoi monitor vengono valutati ogni cinque minuti come un polling che non è riuscito a raggiungerlo: scatta un criterio che corrisponde a **SNMP Device Is Online** uguale a False, come **Device unreachable**, e l'incidente dice perché non è arrivato alcun polling, per esempio che la sonda è giù o che il dispositivo non ha una sonda. Un dispositivo con il polling disattivato, o che usa l'[override con monitor associato](#loverride-con-monitor-associato), viene lasciato stare. Il polling successivo valuta il monitor come al solito.
+
 ### Incidenti e avvisi di un dispositivo
 
 Un incidente o un avviso può riguardare un dispositivo di rete. Scegli il dispositivo in **Altre risorse interessate** quando dichiari un incidente o crei un avviso, oppure lascia che lo colleghi un monitor: ciò che un monitor genera viene collegato al dispositivo su cui riferisce — il dispositivo che un monitor del dispositivo di rete sorveglia, il dispositivo associato al monitor e il dispositivo per cui un'importazione di discovery ha creato il monitor.
