@@ -411,6 +411,7 @@ import {
   OnCallPolicyAiHoldOutcome,
 } from "Common/Types/OnCallDutyPolicy/OnCallPolicyAiHold";
 import Permission from "Common/Types/Permission";
+import HeldPermissionsUtil from "Common/Types/HeldPermissions";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import { APP_API_URL } from "Common/UI/Config";
@@ -557,9 +558,14 @@ const publishMode = ["later", "past"].includes(params.get("publish"))
 const failures = new Set(
   (params.get("fail") || "").split(",").filter((value) => value.length > 0),
 );
-const roleMode = ["alert-member", "member", "owner-people", "loading"].includes(
-  params.get("role"),
-)
+const roleMode = [
+  "alert-member",
+  "member",
+  "owner-people",
+  "loading",
+  "view-only-owner",
+  "editor-owner",
+].includes(params.get("role"))
   ? params.get("role")
   : "owner";
 // ?security=: what Incident #1042's Security card is told.
@@ -5332,7 +5338,72 @@ UserUtil.isMasterAdmin = () => roleMode === "owner";
 UserUtil.getUserId = () => people.maya.id;
 UserUtil.getName = () => people.maya.name;
 UserUtil.getEmail = () => people.maya.email;
+
+/*
+ * ?role=view-only-owner / editor-owner: Maya's own permission rows, each
+ * naming the team it is granted on, as the API's response headers leave
+ * them in storage - the maintainer's case (block 33). Incident Response, a
+ * team of hers that owns nothing here, may change every incident (Project
+ * Member); Checkout SRE, which owns incident #1042, may only view (Viewer),
+ * and with editor-owner may change incidents too (Incident Member). With
+ * ?private=1 incident #1042 is private, and only Checkout SRE's permissions
+ * reach it: its page locks what Checkout SRE may not do, saying why.
+ */
+const SNAPSHOT_ROLE_MODES = ["view-only-owner", "editor-owner"];
+const isSnapshotRoleMode = SNAPSHOT_ROLE_MODES.includes(roleMode);
+const INCIDENT_RESPONSE_TEAM_ID = ID.team(5);
+const GLOBAL_PERMISSIONS = [
+  Permission.Public,
+  Permission.User,
+  Permission.CurrentUser,
+];
+function permissionRow(permission, teamId) {
+  return {
+    _type: "UserPermission",
+    permission,
+    labelIds: [],
+    isBlockPermission: false,
+    ...(teamId ? { teamId: new ObjectID(teamId) } : {}),
+  };
+}
+const snapshotRows = isSnapshotRoleMode
+  ? [
+      permissionRow(Permission.CurrentUser),
+      permissionRow(Permission.UnAuthorizedSsoUser),
+      permissionRow(Permission.ProjectUser),
+      permissionRow(Permission.ProjectMember, INCIDENT_RESPONSE_TEAM_ID),
+      permissionRow(Permission.Viewer, ID.team(1)),
+      ...(roleMode === "editor-owner"
+        ? [permissionRow(Permission.IncidentMember, ID.team(1))]
+        : []),
+    ]
+  : [];
+if (isSnapshotRoleMode) {
+  PermissionUtil.getProjectPermissions = () => {
+    return {
+      _type: "UserTenantAccessPermission",
+      projectId: new ObjectID(PROJECT_ID),
+      permissions: snapshotRows,
+    };
+  };
+  PermissionUtil.getGlobalPermissions = () => {
+    return {
+      _type: "UserGlobalAccessPermission",
+      projectIds: [new ObjectID(PROJECT_ID)],
+      globalPermissions: GLOBAL_PERMISSIONS,
+    };
+  };
+}
+
 PermissionUtil.getAllPermissions = () => {
+  if (isSnapshotRoleMode) {
+    return HeldPermissionsUtil.getUnblockedPermissions(
+      HeldPermissionsUtil.fromRows({
+        rows: snapshotRows,
+        globalPermissions: GLOBAL_PERMISSIONS,
+      }),
+    );
+  }
   if (roleMode === "alert-member") {
     return [Permission.AlertMember];
   }
