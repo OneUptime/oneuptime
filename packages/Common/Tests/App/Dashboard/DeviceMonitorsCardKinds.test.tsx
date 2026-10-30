@@ -1,12 +1,25 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
-import { cleanup, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
-import DeviceMonitorsCard from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceMonitorsCard";
+import DeviceMonitorsCard, {
+  getDeviceWebUiMonitorRoute,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceMonitorsCard";
+import Navigation from "../../../UI/Utils/Navigation";
+import {
+  DEVICE_MONITOR_CHECK_QUERY_PARAM,
+  DeviceMonitorCheck,
+} from "../../../Utils/NetworkDevice/DeviceWebUiUtil";
 
 /*
  * A device's "Monitors alerting on this device" card, RENDERED, with the
@@ -154,5 +167,99 @@ describe("the device monitors card says what every monitor it lists does", () =>
     expect(
       screen.getByRole("button", { name: "Create Monitor" }),
     ).toBeVisible();
+  });
+});
+
+/*
+ * "Monitor web UI" (#5281, the follow-up of #5145's device web UI
+ * templates): in the card's header, with monitors listed or none, it opens
+ * Create Monitor on a Website monitor of the device's management page.
+ */
+describe("Monitor web UI", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("the device's link asks Create Monitor for its web UI check", () => {
+    const route: string = getDeviceWebUiMonitorRoute(DEVICE_ID).toString();
+    const query: URLSearchParams = new URLSearchParams(
+      route.slice(route.indexOf("?")),
+    );
+
+    expect(route.startsWith(`/dashboard/${PROJECT_ID}/monitors/create?`)).toBe(
+      true,
+    );
+    expect(query.get("networkDeviceId")).toBe(DEVICE_ID);
+    expect(query.get(DEVICE_MONITOR_CHECK_QUERY_PARAM)).toBe(
+      DeviceMonitorCheck.WebUi,
+    );
+  });
+
+  test.each([
+    ["with monitors listed", [NETWORK_DEVICE_MONITOR]],
+    ["with none", []],
+  ])(
+    "sits in the card's header %s, and opens Create Monitor on it",
+    (_name: string, monitors: Array<Monitor>) => {
+      const navigate: jest.SpiedFunction<typeof Navigation.navigate> = jest
+        .spyOn(Navigation, "navigate")
+        .mockImplementation((): void => {
+          return undefined;
+        });
+
+      renderCard({ monitors: monitors, isMonitorBacked: false });
+
+      const actions: HTMLElement = screen.getByTestId("card-header-actions");
+      const button: HTMLElement = within(actions).getByRole("button", {
+        name: "Monitor web UI",
+      });
+
+      fireEvent.click(button);
+
+      expect(navigate).toHaveBeenCalledTimes(1);
+      expect(navigate.mock.calls[0]![0]!.toString()).toBe(
+        getDeviceWebUiMonitorRoute(DEVICE_ID).toString(),
+      );
+    },
+  );
+
+  test("a device whose status a bound monitor decides is offered it too", () => {
+    renderCard({ monitors: [], isMonitorBacked: true });
+
+    expect(
+      screen.getByRole("button", { name: "Monitor web UI" }),
+    ).toBeVisible();
+    // The way out of no bound monitor stays the empty state's.
+    expect(
+      screen.getByRole("button", { name: "Create Ping Monitor" }),
+    ).toBeVisible();
+  });
+
+  test("a card that names no device offers nothing to monitor", () => {
+    render(
+      <MemoryRouter>
+        <DeviceMonitorsCard monitors={[]} isLoading={false} error="" />
+      </MemoryRouter>,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "Monitor web UI" }),
+    ).toBeNull();
+  });
+
+  test("the device's web UI monitor is listed with the others", () => {
+    renderCard({
+      monitors: [
+        NETWORK_DEVICE_MONITOR,
+        monitor({
+          id: "90000000-0000-4000-8000-000000000005",
+          name: "WB0024KDS03 web UI",
+          monitorType: MonitorType.Website,
+        }),
+      ],
+      isMonitorBacked: false,
+    });
+
+    expect(screen.getByText("WB0024KDS03 web UI")).toBeVisible();
   });
 });

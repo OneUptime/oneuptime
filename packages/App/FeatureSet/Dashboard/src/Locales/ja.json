@@ -38812,12 +38812,12 @@
   "Resolve in next release": "次のリリースで解決",
   "Resolved in Release After": "このリリースの次で解決",
   "Resolved in the next release: occurrences from {{release}} do not reopen it.": "次のリリースで解決済み：{{release}} からの発生では再オープンされません。",
-  "CSV spreadsheet (.csv)": "CSV spreadsheet (.csv)",
-  "Checks that a network device's web UI answers.": "Checks that a network device's web UI answers.",
-  "Checks that the web UI of the {{deviceName}} network device answers.": "Checks that the web UI of the {{deviceName}} network device answers.",
-  "Download this walk": "Download this walk",
-  "Monitor web UI": "Monitor web UI",
-  "Network device web UI": "Network device web UI",
-  "snmpwalk text (.txt)": "snmpwalk text (.txt)",
-  "{{deviceName}} web UI": "{{deviceName}} web UI"
+  "CSV spreadsheet (.csv)": "CSV スプレッドシート (.csv)",
+  "Checks that a network device's web UI answers.": "ネットワークデバイスの Web UI が応答することを確認します。",
+  "Checks that the web UI of the {{deviceName}} network device answers.": "ネットワークデバイス {{deviceName}} の Web UI が応答することを確認します。",
+  "Download this walk": "このウォークをダウンロード",
+  "Monitor web UI": "Web UI を監視",
+  "Network device web UI": "ネットワークデバイスの Web UI",
+  "snmpwalk text (.txt)": "snmpwalk テキスト (.txt)",
+  "{{deviceName}} web UI": "{{deviceName}} の Web UI"
 }

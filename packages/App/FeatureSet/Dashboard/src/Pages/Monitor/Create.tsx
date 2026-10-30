@@ -662,6 +662,59 @@ const MonitorCreate: FunctionComponent<
   };
 
   /*
+   * "Monitor web UI" on a device's Monitors card (DeviceWebUiUtil): a
+   * Website monitor of the device's management page, https on the address
+   * its probe polls, with self-signed certificates allowed - a switch's or
+   * a firewall's management page almost always has one - checked from the
+   * device's own probe, which can reach it where the project's global
+   * probes usually cannot. The form opens on it for the person to read and
+   * change (http, a port, a path) before saving; the criteria are the
+   * Website monitor's usual ones, seeded by the form (seedStep).
+   *
+   * An unreadable device, or one with no address a URL can carry, still
+   * opens a Website monitor, with the URL left to fill in.
+   */
+  const preSeedWebUiMonitorForDevice: (data: {
+    device: NetworkDevice | null;
+  }) => void = (data: { device: NetworkDevice | null }): void => {
+    const deviceName: string = data.device?.name?.trim() || "";
+    const webUiUrl: URL | null = DeviceWebUiUtil.getUrl(
+      data.device?.hostname || "",
+    );
+
+    setSeedStep(
+      webUiUrl
+        ? {
+            monitorType: MonitorType.Website,
+            monitorDestination: webUiUrl,
+            allowSelfSignedCertificates: true,
+          }
+        : undefined,
+    );
+
+    setDeviceProbeIds(
+      data.device?.probeId ? [data.device.probeId.toString()] : null,
+    );
+
+    setInitialValues({
+      name: deviceName
+        ? translator.translateTemplate("{{deviceName}} web UI", {
+            deviceName: deviceName,
+          })
+        : translator.translateTemplate("Network device web UI"),
+      description: deviceName
+        ? translator.translateTemplate(
+            "Checks that the web UI of the {{deviceName}} network device answers.",
+            { deviceName: deviceName },
+          )
+        : translator.translateTemplate(
+            "Checks that a network device's web UI answers.",
+          ),
+      monitorType: MonitorType.Website,
+    });
+  };
+
+  /*
    * "Create Ping Monitor" from a monitor-backed device's Overview or
    * Monitors page — the second shape the Network Device deep link can take.
    *
@@ -783,59 +836,6 @@ const MonitorCreate: FunctionComponent<
     setInitialValues({
       monitorType: MonitorType.ProbeStatus,
       ...(monitorName ? { name: monitorName } : {}),
-    });
-  };
-
-  /*
-   * "Monitor web UI" on a device's Monitors card (DeviceWebUiUtil): a
-   * Website monitor of the device's management page, https on the address
-   * its probe polls, with self-signed certificates allowed - a switch's or
-   * a firewall's management page almost always has one - checked from the
-   * device's own probe, which can reach it where the project's global
-   * probes usually cannot. The form opens on it for the person to read and
-   * change (http, a port, a path) before saving; the criteria are the
-   * Website monitor's usual ones, seeded by the form (seedStep).
-   *
-   * An unreadable device, or one with no address a URL can carry, still
-   * opens a Website monitor, with the URL left to fill in.
-   */
-  const preSeedWebUiMonitorForDevice: (data: {
-    device: NetworkDevice | null;
-  }) => void = (data: { device: NetworkDevice | null }): void => {
-    const deviceName: string = data.device?.name?.trim() || "";
-    const webUiUrl: URL | null = DeviceWebUiUtil.getUrl(
-      data.device?.hostname || "",
-    );
-
-    setSeedStep(
-      webUiUrl
-        ? {
-            monitorType: MonitorType.Website,
-            monitorDestination: webUiUrl,
-            allowSelfSignedCertificates: true,
-          }
-        : undefined,
-    );
-
-    setDeviceProbeIds(
-      data.device?.probeId ? [data.device.probeId.toString()] : null,
-    );
-
-    setInitialValues({
-      name: deviceName
-        ? translator.translateTemplate("{{deviceName}} web UI", {
-            deviceName: deviceName,
-          })
-        : translator.translateTemplate("Network device web UI"),
-      description: deviceName
-        ? translator.translateTemplate(
-            "Checks that the web UI of the {{deviceName}} network device answers.",
-            { deviceName: deviceName },
-          )
-        : translator.translateTemplate(
-            "Checks that a network device's web UI answers.",
-          ),
-      monitorType: MonitorType.Website,
     });
   };
 
