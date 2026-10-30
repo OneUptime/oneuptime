@@ -114,6 +114,8 @@ const READS_AI_CONTEXT: Record<string, string> = {
     "an exception's explanation: what happened in the team's own code, its likely root cause and the fix",
   "Utils/AI/TelemetryAi/ExceptionDigest.ts":
     "What's new on Exceptions: the day's new and regressed exceptions in the team's own services, the most urgent first",
+  "Utils/AI/TelemetryAi/ExceptionDuplicateCheck.ts":
+    "whether an exception's similar exceptions are the same bug in the team's own code",
 };
 
 // The files that write one it deliberately leaves out, and why.
