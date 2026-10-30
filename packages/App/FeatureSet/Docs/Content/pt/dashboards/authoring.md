@@ -91,6 +91,8 @@ A tela é uma grade de doze colunas de largura. Os widgets se encaixam nela, e a
 
 Cada tipo de widget tem um tamanho mínimo, para que o que ele desenha continue legível: um gráfico tem pelo menos seis colunas de largura e três linhas de altura, enquanto um único número cabe em uma célula.
 
+A grade é tão larga quanto a tela. Em uma tela mais estreita, as colunas dela ficam mais estreitas e as linhas mantêm a altura. Em um celular, os widgets aparecem um embaixo do outro, cada um tão largo quanto a tela, na ordem em que estão na grade: linha por linha de cima para baixo e, dentro de uma linha, da esquerda para a direita. Ali um gráfico é desenhado mais alto, para que o traçado dele tenha espaço. Ao editar em um celular, você vê a grade, que rola para os lados.
+
 Para alterar um widget depois, clique nele durante a edição. As configurações dele se abrem de novo, com mais dois botões embaixo:
 
 - **Duplicate Widget** adiciona uma cópia, com as mesmas configurações, no primeiro espaço livre.

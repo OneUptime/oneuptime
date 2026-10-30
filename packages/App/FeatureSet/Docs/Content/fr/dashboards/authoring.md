@@ -91,6 +91,8 @@ Le canevas est une grille de douze colonnes. Les widgets s'y alignent, et la pag
 
 Chaque type de widget a une taille minimale, pour que ce qu'il dessine reste lisible : un graphique fait au moins six colonnes de large et trois lignes de haut, tandis qu'un nombre seul tient dans une cellule.
 
+La grille est aussi large que l'écran. Sur un écran plus étroit, ses colonnes se resserrent et ses lignes gardent leur hauteur. Sur un téléphone, les widgets s'affichent les uns sous les autres, chacun aussi large que l'écran, dans l'ordre où ils se trouvent sur la grille : ligne par ligne depuis le haut, et de gauche à droite dans une ligne. Un graphique y est dessiné plus haut, pour que sa courbe ait de la place. En modification sur un téléphone, vous voyez la grille, qui défile horizontalement.
+
 Pour modifier un widget plus tard, cliquez dessus pendant la modification. Ses paramètres s'ouvrent à nouveau, avec deux boutons de plus en bas :
 
 - **Dupliquer le widget** ajoute une copie, avec les mêmes paramètres, au premier emplacement libre.

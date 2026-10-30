@@ -91,6 +91,8 @@ Het canvas is een raster van twaalf kolommen breed. Widgets klikken erop vast, e
 
 Elk soort widget heeft een kleinste formaat, zodat wat hij tekent leesbaar blijft: een grafiek is minstens zes kolommen breed en drie rijen hoog, terwijl één getal in één cel past.
 
+Het raster is zo breed als het scherm. Op een smaller scherm worden de kolommen smaller en houden de rijen hun hoogte. Op een telefoon staan de widgets onder elkaar, elk zo breed als het scherm, in de volgorde waarin ze op het raster staan: rij voor rij van boven naar beneden, en binnen een rij van links naar rechts. Een grafiek wordt daar hoger getekend, zodat de lijn ruimte heeft. Bewerk je op een telefoon, dan zie je het raster, dat zijwaarts scrolt.
+
 Om een widget later te wijzigen, klik je er tijdens het bewerken op. Zijn instellingen openen opnieuw, met onderaan twee extra knoppen:
 
 - **Duplicate Widget** voegt een kopie toe, met dezelfde instellingen, op de eerste vrije plek.

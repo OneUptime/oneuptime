@@ -155,12 +155,13 @@ På dashbordets side **Merkevare** kan du konfigurere:
 - **Sidetittel**: det som vises i nettleserfanen og øverst på siden.
 - **Sidebeskrivelse**: beskrivelsen som brukes av søkemotorer og forhåndsvisninger i sosiale medier.
 - **Logo**: et bilde som vises i toppen av det offentlige dashbordet.
+- **Logo for mørkt tema**: en logo laget for en mørk bakgrunn, som vises i stedet for logoen overalt der det offentlige dashbordet er mørkt.
 - **Tema**: lyst, mørkt eller slik hver besøkendes enhet er innstilt; se [Tema](#tema).
 - **Favicon**: det lille ikonet i nettleserfanen.
 
-Logoen og faviconet er filer som er lastet opp i dashbordets eget prosjekt, og det sjekkes hver gang et av dem lagres: fra dashbordet, API-et, Terraform eller en arbeidsflyt. En fil som er lastet opp i et annet prosjekt, avvises med de ordene en fil som ikke lenger finnes, får: "The logo's file could not be found. Upload the logo again." eller "The favicon's file could not be found. Upload the favicon again." Det offentlige dashbordet viser bare bilder fra sitt eget prosjekt.
+Logoen, logoen for mørkt tema og faviconet er filer som er lastet opp i dashbordets eget prosjekt, og det sjekkes hver gang et av dem lagres: fra dashbordet, API-et, Terraform eller en arbeidsflyt. En fil som er lastet opp i et annet prosjekt, avvises med de ordene en fil som ikke lenger finnes, får: "The logo's file could not be found. Upload the logo again.", "The dark theme logo's file could not be found. Upload the dark theme logo again." eller "The favicon's file could not be found. Upload the favicon again." Det offentlige dashbordet viser bare bilder fra sitt eget prosjekt.
 
-Sidetittelen og beskrivelsen står også øverst i dashbordets verktøylinje for teamet ditt, i stedet for navnet og beskrivelsen. Logoen, temaet og faviconet gjelder bare for det offentlige dashbordet.
+Sidetittelen og beskrivelsen står også øverst i dashbordets verktøylinje for teamet ditt, i stedet for navnet og beskrivelsen. Logoene, temaet og faviconet gjelder bare for det offentlige dashbordet.
 
 Besøkende ser merkevaren først når de har lov til å se dashbordet. Før passordet er skrevet inn, viser et dashbord som er delt med passord, bare sidetittelen, faviconet og temaet, og søkemotorer og lenkeforhåndsvisninger ser sidetittelen, men ikke sidebeskrivelsen. Et dashbord med en IP-tillatelsesliste viser merkevaren bare til adressene på listen, og søkemotorer og lenkeforhåndsvisninger ser ingenting av den.
 
@@ -174,7 +175,7 @@ Kortet **Tema**, rett under logoen, bestemmer hvordan det offentlige dashbordet 
 | **Mørkt** | Det mørke dashbordet, uansett hvordan enheten deres er innstilt. |
 | **Som hver besøkendes enhet** | Lyst eller mørkt, slik enheten deres er innstilt, og dashbordet skifter med enheten mens det er åpent. |
 
-Uansett hva du velger, lar en sol- eller måneknapp i dashbordets verktøylinje hver besøkende bytte til det lyse eller det mørke dashbordet eller tilbake til temaet du har angitt, og nettleseren deres husker valget for hvert offentlige dashbord på den adressen. På det mørke dashbordet står logoen på en lys bakgrunn, så en logo som er laget for en hvit side, fortsatt synes godt.
+Uansett hva du velger, lar en sol- eller måneknapp i dashbordets verktøylinje hver besøkende bytte til det lyse eller det mørke dashbordet eller tilbake til temaet du har angitt, og nettleseren deres husker valget for hvert offentlige dashbord på den adressen. På det mørke dashbordet vises logoen for mørkt tema i stedet for logoen; uten en står logoen på en lys bakgrunn, så en logo som er laget for en hvit side, fortsatt synes godt.
 
 Et dashbord som lages fra nå av, starter med **Som hver besøkendes enhet**. Gjennom API-et og Terraform heter feltet `theme`, med en av verdiene `Light`, `Dark` eller `System` (**Som hver besøkendes enhet**), skrevet nøyaktig slik; enhver annen verdi avvises. En Terraform-konfigurasjon som ikke angir noe `theme`, får `Light`, så en konfigurasjon som ble skrevet før innstillingen, planlegger aldri en endring på et dashbord den styrer.
 
