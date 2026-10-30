@@ -569,6 +569,11 @@ const KNOWN_CALL_SITES: Array<CallSite> = [
     file: "Common/Server/Utils/AI/TelemetryAi/ExceptionDigest.ts",
     delivery: "throw",
   },
+  // Which similar exceptions are the same bug: the person asked, and waits.
+  {
+    file: "Common/Server/Utils/AI/TelemetryAi/ExceptionDuplicateCheck.ts",
+    delivery: "throw",
+  },
   { file: "Common/Server/API/ScheduledMaintenanceAPI.ts", delivery: "throw" },
   { file: "Common/Server/Services/IncidentService.ts", delivery: "throw" },
 ];
