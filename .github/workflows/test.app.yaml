@@ -299,12 +299,12 @@ jobs:
           # group's suites: its half of Event Overview 16.1 and 16.7 minutes,
           # SNMP Walk 1.2 and 1.3, Traces AI 1.8 and 1.9 - 19.1 and 19.9 in
           # all, under the 22 the groups are kept to, so nothing moved.
-          # EventNumbers.spec.ts joined Event Overview on 2026-10-30 (20
-          # tests, 1.6 minutes locally with the fixture build: the number
+          # EventNumbers.spec.ts joined Event Overview on 2026-10-30 (22
+          # tests, 1.8 minutes locally with the fixture build: the number
           # before the title on every incident, alert, maintenance and
-          # episode page, at four widths, dark, German and Persian). Its file
+          # episode page, at five widths, dark, German and Persian). Its file
           # sorts before EventOverview.spec.ts, so this half runs it and
-          # hands 10 of Event Overview's tests to group 10's half: about a
+          # hands 11 of Event Overview's tests to group 10's half: about a
           # minute more here. Master's run of 12:26 on 2026-10-29 took this
           # group 21.3 minutes (its half of Event Overview 18.0, SNMP Walk
           # 1.3, Traces AI 1.9), so Traces AI moved to group 14: about 20.5.
@@ -803,7 +803,7 @@ jobs:
           # 1280, 1024, 768 and 390 pixels, dark, German and Persian) joined
           # them on 2026-10-28, the lightest group on App Test's run of 10:32
           # that day (15.8 minutes): about 18.5 to 22.
-          # This half of Event Overview took 10 more of its tests on
+          # This half of Event Overview took 11 more of its tests on
           # 2026-10-30, when EventNumbers.spec.ts joined the suite in group
           # 1's half: about half a minute more. Master's runs of 2026-10-29
           # took this group 23.7 minutes (07:13) and 16.8 (12:26: its half of
