@@ -38,6 +38,8 @@ export const DATA_SECURITY_SETTING_SELECT: Select<DataSecuritySetting> = {
   openCasesForCriticalIssues: true,
   raiseAlertsForCriticalIssues: true,
   alertSeverityId: true,
+  declareIncidentsForCriticalIssues: true,
+  incidentSeverityId: true,
   notifyOwners: true,
   maxObjectsPerScan: true,
   maxBytesPerObject: true,

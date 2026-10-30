@@ -38414,5 +38414,9 @@
   "Open (status)": "باز",
   "Number of records it holds": "تعداد رکوردهایی که نگه می‌دارد",
   "Production store": "مخزن تولید",
-  "Security Operations saw activity on it this week": "عملیات امنیتی این هفته فعالیتی روی آن دیده است"
+  "Security Operations saw activity on it this week": "عملیات امنیتی این هفته فعالیتی روی آن دیده است",
+  "Declare Incidents": "اعلام حادثه‌ها",
+  "Declare an incident, which runs your incident process - on-call, status pages and a postmortem - when a Critical issue opens.": "هنگام باز شدن یک مسئله بحرانی، یک حادثه اعلام شود که فرایند رسیدگی به حادثه شما را آغاز می‌کند: آنکال، صفحات وضعیت و گزارش پس از حادثه.",
+  "Declare incidents for Critical issues": "اعلام حادثه برای مسائل بحرانی",
+  "The severity of the incidents declared. The project's most severe while none is picked.": "شدت حادثه‌های اعلام‌شده. تا زمانی که چیزی انتخاب نشده باشد، شدیدترین سطح پروژه."
 }

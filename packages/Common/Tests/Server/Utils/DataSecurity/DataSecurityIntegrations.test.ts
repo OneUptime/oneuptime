@@ -11,6 +11,7 @@ import DataStoreOwnerTeamService from "../../../../Server/Services/DataStoreOwne
 import DataStoreOwnerUserService from "../../../../Server/Services/DataStoreOwnerUserService";
 import DataStoreService from "../../../../Server/Services/DataStoreService";
 import MailService from "../../../../Server/Services/MailService";
+import SecurityDetectionService from "../../../../Server/Services/SecurityDetectionService";
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
 import UserService from "../../../../Server/Services/UserService";
 import logger from "../../../../Server/Utils/Logger";
@@ -18,11 +19,13 @@ import DataSecuritySetting from "../../../../Models/DatabaseModels/DataSecurityS
 import { DataSecurityIssueFeedEventType } from "../../../../Models/DatabaseModels/DataSecurityIssueFeed";
 import DataStoreOwnerTeam from "../../../../Models/DatabaseModels/DataStoreOwnerTeam";
 import DataStoreOwnerUser from "../../../../Models/DatabaseModels/DataStoreOwnerUser";
+import SecurityDetection from "../../../../Models/DatabaseModels/SecurityDetection";
 import TeamMember from "../../../../Models/DatabaseModels/TeamMember";
 import User from "../../../../Models/DatabaseModels/User";
 import URL from "../../../../Types/API/URL";
 import { Blue500, Red500 } from "../../../../Types/BrandColors";
 import Includes from "../../../../Types/BaseDatabase/Includes";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import Email from "../../../../Types/Email";
 import EmailTemplateType from "../../../../Types/Email/EmailTemplateType";
 import { JSONObject } from "../../../../Types/JSON";
@@ -43,10 +46,11 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 /*
  * What happens elsewhere in OneUptime when Data Security opens issues
  * (DataSecurityIntegrations): a Critical issue opens a security case about
- * its store and - when the project asks - raises a deduplicated alert, and
- * every new issue is emailed to the people who own its store. Each is best
- * effort. The case ingest, the alerting, the owner tables and the mail
- * service are stood in for, and recorded.
+ * its store and - when the project asks - raises a deduplicated alert and
+ * declares a deduplicated incident, each linked from the issue, and every
+ * new issue is emailed to the people who own its store. Each is best
+ * effort. The case ingest, the case detections, the alerting, the owner
+ * tables and the mail service are stood in for, and recorded.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -56,6 +60,9 @@ const STORE_A: ObjectID = new ObjectID("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
 const STORE_B: ObjectID = new ObjectID("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb");
 const ALERT_SEVERITY_ID: ObjectID = new ObjectID(
   "99999999-9999-4999-8999-999999999999",
+);
+const INCIDENT_SEVERITY_ID: ObjectID = new ObjectID(
+  "88888888-8888-4888-8888-888888888888",
 );
 const DASHBOARD: string = "https://oneuptime.example.com/dashboard";
 
@@ -71,6 +78,13 @@ let setting: DataSecuritySetting;
 let casesSpy: jest.SpyInstance;
 let severitySpy: jest.SpyInstance;
 let alertsSpy: jest.SpyInstance;
+let incidentSeveritySpy: jest.SpyInstance;
+let incidentsSpy: jest.SpyInstance;
+let detectionsSpy: jest.SpyInstance;
+let detectionRows: Array<SecurityDetection>;
+// The alert and the incident the stand-ins open for each fingerprint.
+let alertIds: Map<string, ObjectID>;
+let incidentIds: Map<string, ObjectID>;
 let feedSpy: jest.SpyInstance;
 let mailSpy: jest.SpyInstance;
 let notifiedSpy: jest.SpyInstance;
@@ -126,10 +140,58 @@ beforeEach(() => {
   severitySpy = jest
     .spyOn(SecurityEventAlerting, "resolveAlertSeverityIdForProject")
     .mockResolvedValue(ALERT_SEVERITY_ID);
+  alertIds = new Map();
+  incidentIds = new Map();
+  detectionRows = [];
   alertsSpy = jest
     .spyOn(SecurityEventAlerting, "openDedupedAlerts")
-    .mockImplementation(async (data: { matches: Array<unknown> }) => {
-      return data.matches.length;
+    .mockImplementation(
+      async (data: {
+        matches: Array<SecurityEventAlerting.AlertableMatch>;
+        onOutcome?: SecurityEventAlerting.DedupedRecordOutcomeHandler | undefined;
+      }) => {
+        for (const match of data.matches) {
+          const alertId: ObjectID = ObjectID.generate();
+
+          alertIds.set(match.fingerprint, alertId);
+          data.onOutcome?.({
+            fingerprint: match.fingerprint,
+            recordId: alertId,
+            isNew: true,
+          });
+        }
+
+        return data.matches.length;
+      },
+    );
+  incidentSeveritySpy = jest
+    .spyOn(SecurityEventAlerting, "resolveIncidentSeverityIdForProject")
+    .mockResolvedValue(INCIDENT_SEVERITY_ID);
+  incidentsSpy = jest
+    .spyOn(SecurityEventAlerting, "openDedupedIncidents")
+    .mockImplementation(
+      async (data: {
+        matches: Array<SecurityEventAlerting.AlertableMatch>;
+        onOutcome?: SecurityEventAlerting.DedupedRecordOutcomeHandler | undefined;
+      }) => {
+        for (const match of data.matches) {
+          const incidentId: ObjectID = ObjectID.generate();
+
+          incidentIds.set(match.fingerprint, incidentId);
+          data.onOutcome?.({
+            fingerprint: match.fingerprint,
+            recordId: incidentId,
+            isNew: true,
+          });
+        }
+
+        return data.matches.length;
+      },
+    );
+  detectionsSpy = jest
+    .spyOn(SecurityDetectionService, "findBy")
+    .mockImplementation(async () => {
+      return detectionRows;
     });
   feedSpy = jest
     .spyOn(DataSecurityIssueFeedService, "createDataSecurityIssueFeedItem")
@@ -577,8 +639,33 @@ describe("onIssuesOpened: alerts", () => {
     ).toMatchObject({
       displayColor: Red500,
       feedInfoInMarkdown:
-        "An alert was raised, so whoever is on call is paged.",
+        "An alert was raised, so whoever is on call is paged. It is resolved once the issue is no longer open.",
     });
+  });
+
+  test("each issue links to the alert raised for it, so its page opens it", async () => {
+    setting.raiseAlertsForCriticalIssues = true;
+    const first: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+    });
+    const second: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+      storeId: STORE_B,
+      storeName: "payments-db",
+    });
+
+    await opened([first, second]);
+
+    for (const issue of [first, second]) {
+      expect(notifiedSpy).toHaveBeenCalledWith({
+        id: issue.issueId,
+        data: {
+          alertId: alertIds.get(
+            `data-security-issue:${issue.issueId.toString()}`,
+          ),
+        },
+      });
+    }
   });
 
   test("the alert severity the project chose is the one asked for", async () => {
@@ -593,14 +680,61 @@ describe("onIssuesOpened: alerts", () => {
     ).toBe(ALERT_SEVERITY_ID);
   });
 
-  test("an alert already open for the issue is not raised again, and no timeline says one was", async () => {
+  test("an alert already open for the issue is not raised again, and no timeline says one was - the issue still links to it", async () => {
+    setting.raiseAlertsForCriticalIssues = true;
+    const issue: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+    });
+    const openAlertId: ObjectID = ObjectID.generate();
+
+    alertsSpy.mockImplementation(
+      async (data: {
+        matches: Array<SecurityEventAlerting.AlertableMatch>;
+        onOutcome?: SecurityEventAlerting.DedupedRecordOutcomeHandler | undefined;
+      }) => {
+        data.onOutcome?.({
+          fingerprint: data.matches[0]!.fingerprint,
+          recordId: openAlertId,
+          isNew: false,
+        });
+
+        return 0;
+      },
+    );
+
+    await opened([issue]);
+
+    expect(alertsSpy).toHaveBeenCalledTimes(1);
+    expect(feedsOf(DataSecurityIssueFeedEventType.AlertRaised)).toEqual([]);
+    expect(notifiedSpy).toHaveBeenCalledWith({
+      id: issue.issueId,
+      data: { alertId: openAlertId },
+    });
+  });
+
+  test("an alert whose create failed links nothing, and no timeline says one was raised", async () => {
     setting.raiseAlertsForCriticalIssues = true;
     alertsSpy.mockResolvedValue(0);
 
     await opened([issueOf({ severity: SecuritySeverity.Critical })]);
 
-    expect(alertsSpy).toHaveBeenCalledTimes(1);
     expect(feedsOf(DataSecurityIssueFeedEventType.AlertRaised)).toEqual([]);
+    expect(notifiedSpy).not.toHaveBeenCalled();
+  });
+
+  test("a link that cannot be written is logged; the alert's note still goes on the timeline", async () => {
+    setting.raiseAlertsForCriticalIssues = true;
+    const issue: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+    });
+    notifiedSpy.mockRejectedValue(new Error("Postgres went away"));
+
+    await opened([issue]);
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      `DataSecurity: could not link issue ${issue.issueId.toString()} to what it started:`,
+    );
+    expect(feedsOf(DataSecurityIssueFeedEventType.AlertRaised)).toHaveLength(1);
   });
 
   test("with no severity to raise it at, no alert is raised", async () => {
@@ -626,6 +760,276 @@ describe("onIssuesOpened: alerts", () => {
       `DataSecurity: could not raise alerts for project ${PROJECT_ID.toString()}:`,
     );
     expect(mails()).toHaveLength(1);
+  });
+});
+
+describe("onIssuesOpened: the issue links to its security case", () => {
+  function detectionOf(
+    issue: OpenedIssueForIntegrations,
+    caseId: ObjectID,
+  ): SecurityDetection {
+    const detection: SecurityDetection = new SecurityDetection();
+    detection.fingerprint = `data-security-issue:${issue.issueId.toString()}`;
+    detection.securityCaseId = caseId;
+    return detection;
+  }
+
+  test("each Critical issue links to the case its detection is in, read newest first", async () => {
+    const first: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+    });
+    const second: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+      storeId: STORE_B,
+      storeName: "payments-db",
+    });
+    const caseNow: ObjectID = ObjectID.generate();
+    const closedCase: ObjectID = ObjectID.generate();
+    const otherCase: ObjectID = ObjectID.generate();
+
+    // The issue opened again after its first case closed: the newer detection wins.
+    detectionRows = [
+      detectionOf(first, caseNow),
+      detectionOf(first, closedCase),
+      detectionOf(second, otherCase),
+    ];
+
+    await opened([first, second]);
+
+    const findBy: {
+      query: JSONObject;
+      sort: JSONObject;
+      props: JSONObject;
+    } = detectionsSpy.mock.calls[0]![0];
+
+    expect(findBy.query["projectId"]).toBe(PROJECT_ID);
+    expect((findBy.query["fingerprint"] as Includes).values).toEqual([
+      `data-security-issue:${first.issueId.toString()}`,
+      `data-security-issue:${second.issueId.toString()}`,
+    ]);
+    expect(findBy.sort).toEqual({ createdAt: SortOrder.Descending });
+    expect(findBy.props).toEqual({ isRoot: true });
+    expect(notifiedSpy).toHaveBeenCalledWith({
+      id: first.issueId,
+      data: { securityCaseId: caseNow },
+    });
+    expect(notifiedSpy).toHaveBeenCalledWith({
+      id: second.issueId,
+      data: { securityCaseId: otherCase },
+    });
+    expect(notifiedSpy).not.toHaveBeenCalledWith({
+      id: first.issueId,
+      data: { securityCaseId: closedCase },
+    });
+  });
+
+  test("an issue whose detection is not found links to no case, and its case note still goes", async () => {
+    const issue: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+    });
+
+    await opened([issue]);
+
+    expect(notifiedSpy).not.toHaveBeenCalled();
+    expect(
+      feedsOf(DataSecurityIssueFeedEventType.SecurityCaseOpened),
+    ).toHaveLength(1);
+  });
+
+  test("a read of the detections that fails is logged, and the case note still goes", async () => {
+    detectionsSpy.mockRejectedValue(new Error("Postgres went away"));
+
+    await opened([issueOf({ severity: SecuritySeverity.Critical })]);
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      `DataSecurity: could not link issues to their security cases in project ${PROJECT_ID.toString()}:`,
+    );
+    expect(
+      feedsOf(DataSecurityIssueFeedEventType.SecurityCaseOpened),
+    ).toHaveLength(1);
+  });
+
+  test("no case, no detection read: with cases off, nothing is linked", async () => {
+    setting.openCasesForCriticalIssues = false;
+
+    await opened([issueOf({ severity: SecuritySeverity.Critical })]);
+
+    expect(detectionsSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("onIssuesOpened: incidents", () => {
+  test("incidents are off unless the project turns them on", async () => {
+    await opened([issueOf({ severity: SecuritySeverity.Critical })]);
+
+    expect(incidentSeveritySpy).not.toHaveBeenCalled();
+    expect(incidentsSpy).not.toHaveBeenCalled();
+  });
+
+  test("a Critical issue declares an incident at the project's Critical severity, deduplicated by issue, and only a Critical one", async () => {
+    setting.declareIncidentsForCriticalIssues = true;
+    const critical: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+    });
+
+    await opened([critical, issueOf({ severity: SecuritySeverity.High })]);
+
+    expect(incidentSeveritySpy).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      explicitSeverityId: undefined,
+      severityLabel: "Critical",
+      isSevere: true,
+    });
+    expect(incidentsSpy).toHaveBeenCalledTimes(1);
+
+    const call: {
+      projectId: ObjectID;
+      incidentSeverityId: ObjectID;
+      matches: Array<SecurityEventAlerting.AlertableMatch>;
+      logLabel: string;
+    } = incidentsSpy.mock.calls[0]![0];
+
+    expect(call.projectId).toBe(PROJECT_ID);
+    expect(call.incidentSeverityId).toBe(INCIDENT_SEVERITY_ID);
+    expect(call.logLabel).toBe(
+      `DataSecurity: project ${PROJECT_ID.toString()}`,
+    );
+    expect(call.matches).toEqual([
+      {
+        fingerprint: `data-security-issue:${critical.issueId.toString()}`,
+        title:
+          "Data Security: Anyone on the internet can read it (customer-exports)",
+        description: `customer-exports holds Restricted data and failed a Data Security check: Anyone on the internet can read it. [Open the issue](${DASHBOARD}/${PROJECT_ID.toString()}/data-security/issues/${critical.issueId.toString()}).`,
+        rootCause:
+          'The Data Security check "public-read" failed on customer-exports.',
+      },
+    ]);
+  });
+
+  test("the issue links to its incident, and its timeline says one was declared", async () => {
+    setting.declareIncidentsForCriticalIssues = true;
+    const issue: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+    });
+
+    await opened([issue]);
+
+    expect(notifiedSpy).toHaveBeenCalledWith({
+      id: issue.issueId,
+      data: {
+        incidentId: incidentIds.get(
+          `data-security-issue:${issue.issueId.toString()}`,
+        ),
+      },
+    });
+    expect(feedsOf(DataSecurityIssueFeedEventType.IncidentDeclared)).toEqual([
+      {
+        projectId: PROJECT_ID,
+        dataSecurityIssueId: issue.issueId,
+        eventType: DataSecurityIssueFeedEventType.IncidentDeclared,
+        displayColor: Red500,
+        feedInfoInMarkdown:
+          "An incident was declared, so your incident process takes over: on-call, workspace channels and status pages.",
+      },
+    ]);
+  });
+
+  test("the incident severity the project chose is the one asked for", async () => {
+    setting.declareIncidentsForCriticalIssues = true;
+    setting.incidentSeverityId = INCIDENT_SEVERITY_ID;
+
+    await opened([issueOf({ severity: SecuritySeverity.Critical })]);
+
+    expect(
+      (
+        incidentSeveritySpy.mock.calls[0]![0] as {
+          explicitSeverityId: ObjectID;
+        }
+      ).explicitSeverityId,
+    ).toBe(INCIDENT_SEVERITY_ID);
+  });
+
+  test("an incident already open for the issue is not declared again: linked, and nothing on the timeline", async () => {
+    setting.declareIncidentsForCriticalIssues = true;
+    const issue: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+    });
+    const openIncidentId: ObjectID = ObjectID.generate();
+
+    incidentsSpy.mockImplementation(
+      async (data: {
+        matches: Array<SecurityEventAlerting.AlertableMatch>;
+        onOutcome?: SecurityEventAlerting.DedupedRecordOutcomeHandler | undefined;
+      }) => {
+        data.onOutcome?.({
+          fingerprint: data.matches[0]!.fingerprint,
+          recordId: openIncidentId,
+          isNew: false,
+        });
+
+        return 0;
+      },
+    );
+
+    await opened([issue]);
+
+    expect(feedsOf(DataSecurityIssueFeedEventType.IncidentDeclared)).toEqual(
+      [],
+    );
+    expect(notifiedSpy).toHaveBeenCalledWith({
+      id: issue.issueId,
+      data: { incidentId: openIncidentId },
+    });
+  });
+
+  test("a project without incident severities declares nothing, and says why in the log", async () => {
+    setting.declareIncidentsForCriticalIssues = true;
+    incidentSeveritySpy.mockResolvedValue(null);
+    const warnSpy: jest.SpyInstance = jest
+      .spyOn(logger, "warn")
+      .mockImplementation(() => {
+        return undefined as never;
+      });
+
+    await opened([issueOf({ severity: SecuritySeverity.Critical })]);
+
+    expect(incidentsSpy).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledWith(
+      `DataSecurity: project ${PROJECT_ID.toString()} has no incident severities; no incident was declared.`,
+    );
+    expect(feedsOf(DataSecurityIssueFeedEventType.IncidentDeclared)).toEqual(
+      [],
+    );
+  });
+
+  test("an incident that cannot be declared is logged, and owner emails still go", async () => {
+    setting.declareIncidentsForCriticalIssues = true;
+    ownedBy(STORE_A, userOf("Alice Owner", "alice@acme.io"));
+    incidentsSpy.mockRejectedValue(new Error("No incident state is created."));
+
+    await opened([issueOf({ severity: SecuritySeverity.Critical })]);
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      `DataSecurity: could not declare incidents for project ${PROJECT_ID.toString()}:`,
+    );
+    expect(mails()).toHaveLength(1);
+  });
+
+  test("alerts and incidents together: one of each per Critical issue, each linked", async () => {
+    setting.raiseAlertsForCriticalIssues = true;
+    setting.declareIncidentsForCriticalIssues = true;
+    const issue: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+    });
+
+    await opened([issue]);
+
+    expect(alertsSpy).toHaveBeenCalledTimes(1);
+    expect(incidentsSpy).toHaveBeenCalledTimes(1);
+    expect(feedsOf(DataSecurityIssueFeedEventType.AlertRaised)).toHaveLength(1);
+    expect(
+      feedsOf(DataSecurityIssueFeedEventType.IncidentDeclared),
+    ).toHaveLength(1);
   });
 });
 
@@ -883,6 +1287,7 @@ describe("onIssuesOpened: the store's owners", () => {
 describe("onIssuesOpened with nothing opened", () => {
   test("does nothing at all", async () => {
     setting.raiseAlertsForCriticalIssues = true;
+    setting.declareIncidentsForCriticalIssues = true;
     ownedBy(STORE_A, userOf("Alice Owner", "alice@acme.io"));
 
     await opened([]);
@@ -890,6 +1295,8 @@ describe("onIssuesOpened with nothing opened", () => {
     expect(casesSpy).not.toHaveBeenCalled();
     expect(severitySpy).not.toHaveBeenCalled();
     expect(alertsSpy).not.toHaveBeenCalled();
+    expect(incidentsSpy).not.toHaveBeenCalled();
+    expect(detectionsSpy).not.toHaveBeenCalled();
     expect(ownerUsersSpy).not.toHaveBeenCalled();
     expect(mailSpy).not.toHaveBeenCalled();
     expect(feedSpy).not.toHaveBeenCalled();

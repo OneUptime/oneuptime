@@ -486,6 +486,7 @@ describe("a failing check with a severity opens an issue", () => {
     expect(feedSpy).not.toHaveBeenCalled();
     expect(output).toEqual({
       opened: [],
+      closed: [],
       resolvedCount: 0,
       openIssueCount: 0,
       highestSeverity: null,
@@ -890,6 +891,7 @@ describe("an accepted issue whose check still fails", () => {
     expect(feedSpy).not.toHaveBeenCalled();
     expect(quiet).toEqual({
       opened: [],
+      closed: [],
       resolvedCount: 0,
       openIssueCount: 0,
       highestSeverity: null,
@@ -1001,6 +1003,7 @@ describe("a check that cannot tell (Unknown)", () => {
     expect(feedSpy).not.toHaveBeenCalled();
     expect(output).toEqual({
       opened: [],
+      closed: [],
       resolvedCount: 0,
       openIssueCount: 1,
       highestSeverity: SecuritySeverity.High,
@@ -1086,6 +1089,7 @@ describe("a passing check", () => {
     ]);
     expect(output).toEqual({
       opened: [],
+      closed: [{ issueId: issue.id, why: "its check passes now" }],
       resolvedCount: 1,
       openIssueCount: 0,
       highestSeverity: null,
@@ -1129,6 +1133,7 @@ describe("a passing check", () => {
     expect(updateSpy).not.toHaveBeenCalled();
     expect(feedSpy).not.toHaveBeenCalled();
     expect(output.resolvedCount).toBe(0);
+    expect(output.closed).toEqual([]);
   });
 
   test("a check that no longer applies resolves its issue as a pass does", async () => {
@@ -1208,6 +1213,9 @@ describe("an issue whose check no longer runs on the store", () => {
       },
     ]);
     expect(output.resolvedCount).toBe(1);
+    expect(output.closed).toEqual([
+      { issueId: issue.id, why: "its check no longer runs on the store" },
+    ]);
   });
 
   test("resolves accepted issues too, and leaves resolved ones and Not an issue alone", async () => {
@@ -1235,6 +1243,11 @@ describe("an issue whose check no longer runs on the store", () => {
       }),
     ).toEqual([accepted.id!.toString()]);
     expect(output.resolvedCount).toBe(1);
+    expect(
+      output.closed.map((closedIssue: { issueId: ObjectID }): string => {
+        return closedIssue.issueId.toString();
+      }),
+    ).toEqual([accepted.id!.toString()]);
   });
 
   test("an issue with no check id is never matched, and never resolved", async () => {
@@ -1310,6 +1323,7 @@ describe("the store's summary", () => {
 
     expect(output).toEqual({
       opened: [],
+      closed: [],
       resolvedCount: 0,
       openIssueCount: 0,
       highestSeverity: null,

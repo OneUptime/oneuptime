@@ -46,7 +46,13 @@ export const getDataSecurityIssueFeedKind: GetDataSecurityIssueFeedKindFunction 
       // A security case opened for it.
       case DataSecurityIssueFeedEventType.SecurityCaseOpened:
         return { icon: IconProp.ShieldExclamation, tone: FeedTone.Warning };
+      // An alert and an incident, each in its product's own icon.
       case DataSecurityIssueFeedEventType.AlertRaised:
+        return { icon: IconProp.ExclaimationCircle, tone: FeedTone.Danger };
+      // Its alert, resolved once the issue was no longer open.
+      case DataSecurityIssueFeedEventType.AlertResolved:
+        return { icon: IconProp.CheckCircle, tone: FeedTone.Success };
+      case DataSecurityIssueFeedEventType.IncidentDeclared:
         return { icon: IconProp.Alert, tone: FeedTone.Danger };
       case DataSecurityIssueFeedEventType.OwnersNotified:
         return SHARED_FEED_ENTRY_KINDS.OwnerNotificationSent;

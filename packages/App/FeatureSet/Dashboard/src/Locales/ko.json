@@ -38414,5 +38414,9 @@
   "Open (status)": "열림",
   "Number of records it holds": "보유한 레코드 수",
   "Production store": "프로덕션 저장소",
-  "Security Operations saw activity on it this week": "이번 주 보안 운영에서 활동이 확인됨"
+  "Security Operations saw activity on it this week": "이번 주 보안 운영에서 활동이 확인됨",
+  "Declare Incidents": "인시던트 선언",
+  "Declare an incident, which runs your incident process - on-call, status pages and a postmortem - when a Critical issue opens.": "심각 이슈가 열리면 인시던트를 선언하여 온콜, 상태 페이지, 포스트모템 등 인시던트 프로세스를 시작합니다.",
+  "Declare incidents for Critical issues": "심각 이슈에 대한 인시던트 선언",
+  "The severity of the incidents declared. The project's most severe while none is picked.": "선언되는 인시던트의 심각도입니다. 아무것도 선택하지 않으면 프로젝트의 최고 심각도가 사용됩니다."
 }

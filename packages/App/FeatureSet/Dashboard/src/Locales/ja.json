@@ -38414,5 +38414,9 @@
   "Open (status)": "オープン",
   "Number of records it holds": "保持しているレコード数",
   "Production store": "本番のデータストア",
-  "Security Operations saw activity on it this week": "今週、セキュリティオペレーションがアクティビティを確認"
+  "Security Operations saw activity on it this week": "今週、セキュリティオペレーションがアクティビティを確認",
+  "Declare Incidents": "インシデントを宣言",
+  "Declare an incident, which runs your incident process - on-call, status pages and a postmortem - when a Critical issue opens.": "重大な問題がオープンしたときにインシデントを宣言し、オンコール、ステータスページ、ポストモーテムといったインシデント対応プロセスを開始します。",
+  "Declare incidents for Critical issues": "重大な問題でインシデントを宣言",
+  "The severity of the incidents declared. The project's most severe while none is picked.": "宣言するインシデントの重大度。何も選択されていない場合は、プロジェクトの最高重大度になります。"
 }

@@ -1,4 +1,5 @@
 import AlertSeverity from "./AlertSeverity";
+import IncidentSeverity from "./IncidentSeverity";
 import Project from "./Project";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -301,6 +302,69 @@ export default class DataSecuritySetting extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public alertSeverityId?: ObjectID = undefined;
+
+  /*
+   * An incident for a Critical issue: off until a project turns it on, for
+   * a breach its incident process should run - on-call, workspace channels,
+   * status pages and a postmortem. Like a detection rule's incidents, it is
+   * never resolved by OneUptime: whoever runs it closes it.
+   */
+  @ColumnAccessControl(editableColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    required: true,
+    canReadOnRelationQuery: true,
+    title: "Declare Incidents",
+    description:
+      "Declare an incident, which runs your incident process, when a Critical issue opens.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public declareIncidentsForCriticalIssues?: boolean = undefined;
+
+  @ColumnAccessControl(editableColumnAccess)
+  @TableColumn({
+    manyToOneRelationColumn: "incidentSeverityId",
+    type: TableColumnType.Entity,
+    modelType: IncidentSeverity,
+    title: "Incident Severity",
+    description: "Relation to the severity of the incidents declared.",
+  })
+  @ManyToOne(
+    () => {
+      return IncidentSeverity;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "incidentSeverityId" })
+  public incidentSeverity?: IncidentSeverity = undefined;
+
+  @ColumnAccessControl(editableColumnAccess)
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Incident Severity ID",
+    description:
+      "The severity of the incidents declared. The project's most severe when empty.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public incidentSeverityId?: ObjectID = undefined;
 
   @ColumnAccessControl(editableColumnAccess)
   @TableColumn({

@@ -1,5 +1,6 @@
 import Alert from "./Alert";
 import DataStore from "./DataStore";
+import Incident from "./Incident";
 import Project from "./Project";
 import SecurityCase from "./SecurityCase";
 import Team from "./Team";
@@ -616,6 +617,45 @@ export default class DataSecurityIssue extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public alertId?: ObjectID = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    manyToOneRelationColumn: "incidentId",
+    type: TableColumnType.Entity,
+    modelType: Incident,
+    title: "Incident",
+    description: "Relation to the incident declared for the issue.",
+  })
+  @ManyToOne(
+    () => {
+      return Incident;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "incidentId" })
+  public incident?: Incident = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "Incident ID",
+    description: "The incident declared for the issue, if any.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public incidentId?: ObjectID = undefined;
 
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({

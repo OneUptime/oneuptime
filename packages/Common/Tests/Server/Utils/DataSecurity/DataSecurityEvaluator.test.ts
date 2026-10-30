@@ -5,6 +5,7 @@ import DataSecurityFlows from "../../../../Server/Utils/DataSecurity/DataSecurit
 import DataSecurityIntegrations, {
   OpenedIssueForIntegrations,
 } from "../../../../Server/Utils/DataSecurity/DataSecurityIntegrations";
+import DataSecurityIssueAlerts from "../../../../Server/Utils/DataSecurity/DataSecurityIssueAlerts";
 import DataSecurityIssueReconciler, {
   ReconcileStoreInput,
   ReconcileStoreOutput,
@@ -110,6 +111,7 @@ let summaries: Map<string, JSONObject>;
 let createdIssues: Array<DataSecurityIssue>;
 let checksSpy: jest.SpyInstance;
 let integrationsSpy: jest.SpyInstance;
+let closedAlertsSpy: jest.SpyInstance;
 let flowsSpy: jest.SpyInstance;
 let findingsSpy: jest.SpyInstance;
 let risksSpy: jest.SpyInstance;
@@ -273,6 +275,9 @@ beforeEach(() => {
   integrationsSpy = jest
     .spyOn(DataSecurityIntegrations, "onIssuesOpened")
     .mockResolvedValue(undefined);
+  closedAlertsSpy = jest
+    .spyOn(DataSecurityIssueAlerts, "resolveForClosedIssues")
+    .mockResolvedValue(0);
   checksSpy = jest.spyOn(CheckCatalog, "evaluateDataStoreChecks");
   errorSpy = jest.spyOn(logger, "error").mockImplementation(() => {
     return undefined as never;
@@ -1529,6 +1534,38 @@ describe("DataSecurityEvaluator.evaluateProject: what it reads", () => {
       }),
     ).toEqual([issue.id!.toString()]);
     expect(resolved[0]!.data["status"]).toBe(DataSecurityIssueStatus.Resolved);
+  });
+
+  test("the issues it resolved have their alerts resolved, once for the project, with why", async () => {
+    const owned: DataStore = storeOf({ name: "billing-db" });
+    const issue: DataSecurityIssue = new DataSecurityIssue(ObjectID.generate());
+    issue.dataStoreId = owned.id!;
+    issue.checkId = "no-owner";
+    issue.status = DataSecurityIssueStatus.Open;
+
+    fixture.stores = [owned];
+    fixture.findings = [findingOf(owned, "email-address")];
+    fixture.ownerUsers = [ownerUserOf(owned)];
+    fixture.issues = [issue];
+
+    await evaluate();
+
+    expect(closedAlertsSpy).toHaveBeenCalledTimes(1);
+    expect(closedAlertsSpy).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      issues: [{ issueId: issue.id, why: "its check passes now" }],
+    });
+  });
+
+  test("nothing resolved, no alert looked for", async () => {
+    const store: DataStore = storeOf({ name: "billing-db" });
+    fixture.stores = [store];
+    fixture.findings = [findingOf(store, "email-address")];
+    fixture.ownerUsers = [ownerUserOf(store)];
+
+    await evaluate();
+
+    expect(closedAlertsSpy).not.toHaveBeenCalled();
   });
 });
 

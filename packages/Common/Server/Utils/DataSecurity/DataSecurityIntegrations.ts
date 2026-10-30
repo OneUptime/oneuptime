@@ -12,17 +12,26 @@ import DataSecurityIssueService from "../../Services/DataSecurityIssueService";
 import MailService from "../../Services/MailService";
 import TeamMemberService from "../../Services/TeamMemberService";
 import UserService from "../../Services/UserService";
+import SecurityDetectionService from "../../Services/SecurityDetectionService";
 import SecurityCaseIngest, {
   SecurityDetectionSignal,
 } from "../SecurityCase/SecurityCaseIngest";
 import {
   AlertableMatch,
+  DedupedRecordOutcome,
   openDedupedAlerts,
+  openDedupedIncidents,
   resolveAlertSeverityIdForProject,
+  resolveIncidentSeverityIdForProject,
 } from "../SecurityEvent/SecurityEventAlerting";
+import { getDataSecurityIssueFingerprint } from "./DataSecurityIssueAlerts";
 import logger from "../Logger";
+import SecurityDetection from "../../../Models/DatabaseModels/SecurityDetection";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import URL from "../../../Types/API/URL";
 import { Blue500, Red500 } from "../../../Types/BrandColors";
+import DataSecurityIssue from "../../../Models/DatabaseModels/DataSecurityIssue";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import EmailTemplateType from "../../../Types/Email/EmailTemplateType";
 import ObjectID from "../../../Types/ObjectID";
@@ -50,9 +59,16 @@ import Markdown, { MarkdownContentType } from "../../Types/Markdown";
  *    issue on the same store joins the same case, and Entity Risk and
  *    playbooks see it like any other entity.
  *  - A Critical issue raises an alert (off by default), which pages
- *    whoever is on call through the alert's own rules.
+ *    whoever is on call through the alert's own rules. The alert ends with
+ *    the issue: it is resolved once the issue is no longer open
+ *    (DataSecurityIssueAlerts).
+ *  - A Critical issue declares an incident (off by default), for a breach
+ *    the project's incident process should run. Whoever runs it closes it.
  *  - Every new issue is emailed to its store's owners (on by default),
  *    with the issue and the data types - never a sample.
+ *
+ * The issue keeps a link to the case, the alert and the incident it
+ * started (securityCaseId, alertId, incidentId), which its page shows.
  *
  * Each is best effort: an issue is already open and on its timeline, so
  * an integration that fails is logged and skipped, never retried into a
@@ -154,6 +170,14 @@ export default class DataSecurityIntegrations {
       );
     }
 
+    if (critical.length > 0 && data.setting.declareIncidentsForCriticalIssues) {
+      await this.declareIncidents(
+        data.projectId,
+        data.setting.incidentSeverityId || undefined,
+        critical,
+      );
+    }
+
     if (data.setting.notifyOwners !== false) {
       await this.notifyOwners(data.projectId, data.issues);
     }
@@ -184,7 +208,7 @@ export default class DataSecurityIntegrations {
         signals.push({
           projectId,
           source: SecurityDetectionSource.DataSecurity,
-          fingerprint: `data-security-issue:${issue.issueId.toString()}`,
+          fingerprint: getDataSecurityIssueFingerprint(issue.issueId),
           title: `${issue.title}: ${issue.dataStoreName}`.slice(0, 480),
           description:
             mdText`Data Security opened a **Critical** issue on ${issue.dataStoreName} (${issue.sensitivity} data): ${issue.title}. [Open the issue](${link.toString()}).`.toString(),
@@ -202,6 +226,7 @@ export default class DataSecurityIntegrations {
       }
 
       await SecurityCaseIngest.recordDetections(signals);
+      await this.linkIssuesToCases(projectId, issues);
 
       for (const issue of issues) {
         await DataSecurityIssueFeedService.createDataSecurityIssueFeedItem({
@@ -248,38 +273,235 @@ export default class DataSecurityIntegrations {
             issue.issueId,
           );
 
-        matches.push({
-          fingerprint: `data-security-issue:${issue.issueId.toString()}`,
-          title: `Data Security: ${issue.title} (${issue.dataStoreName})`,
-          description:
-            mdText`${issue.dataStoreName} holds ${issue.sensitivity} data and failed a Data Security check: ${issue.title}. [Open the issue](${link.toString()}).`.toString(),
-          rootCause:
-            mdText`The Data Security check "${issue.checkId}" failed on ${issue.dataStoreName}.`.toString(),
-        });
+        matches.push(this.matchOf(issue, link));
       }
 
-      const opened: number = await openDedupedAlerts({
+      const outcomes: Array<DedupedRecordOutcome> = [];
+
+      await openDedupedAlerts({
         projectId,
         alertSeverityId: severityId,
         matches,
         logLabel: `DataSecurity: project ${projectId.toString()}`,
+        onOutcome: (outcome: DedupedRecordOutcome): void => {
+          outcomes.push(outcome);
+        },
       });
 
-      if (opened > 0) {
-        for (const issue of issues) {
+      for (const issue of issues) {
+        const outcome: DedupedRecordOutcome | undefined = this.outcomeOf(
+          issue,
+          outcomes,
+        );
+
+        if (!outcome) {
+          continue;
+        }
+
+        await this.linkIssue(issue.issueId, { alertId: outcome.recordId });
+
+        if (outcome.isNew) {
           await DataSecurityIssueFeedService.createDataSecurityIssueFeedItem({
             projectId,
             dataSecurityIssueId: issue.issueId,
             eventType: DataSecurityIssueFeedEventType.AlertRaised,
             displayColor: Red500,
             feedInfoInMarkdown:
-              mdText`An alert was raised, so whoever is on call is paged.`.toString(),
+              mdText`An alert was raised, so whoever is on call is paged. It is resolved once the issue is no longer open.`.toString(),
           });
         }
       }
     } catch (error) {
       logger.error(
         `DataSecurity: could not raise alerts for project ${projectId.toString()}:`,
+      );
+      logger.error(error);
+    }
+  }
+
+  /*
+   * An incident for each Critical issue, for a breach the project's
+   * incident process should run: on-call, workspace channels, status pages
+   * and a postmortem. Deduplicated like the alerts - one open incident per
+   * issue - and never resolved by Data Security.
+   */
+  private static async declareIncidents(
+    projectId: ObjectID,
+    incidentSeverityId: ObjectID | undefined,
+    issues: Array<OpenedIssueForIntegrations>,
+  ): Promise<void> {
+    try {
+      const severityId: ObjectID | null =
+        await resolveIncidentSeverityIdForProject({
+          projectId,
+          explicitSeverityId: incidentSeverityId,
+          severityLabel: "Critical",
+          isSevere: true,
+        });
+
+      if (!severityId) {
+        logger.warn(
+          `DataSecurity: project ${projectId.toString()} has no incident severities; no incident was declared.`,
+        );
+        return;
+      }
+
+      const matches: Array<AlertableMatch> = [];
+
+      for (const issue of issues) {
+        const link: URL =
+          await DataSecurityIssueService.getIssueLinkInDashboard(
+            projectId,
+            issue.issueId,
+          );
+
+        matches.push(this.matchOf(issue, link));
+      }
+
+      const outcomes: Array<DedupedRecordOutcome> = [];
+
+      await openDedupedIncidents({
+        projectId,
+        incidentSeverityId: severityId,
+        matches,
+        logLabel: `DataSecurity: project ${projectId.toString()}`,
+        onOutcome: (outcome: DedupedRecordOutcome): void => {
+          outcomes.push(outcome);
+        },
+      });
+
+      for (const issue of issues) {
+        const outcome: DedupedRecordOutcome | undefined = this.outcomeOf(
+          issue,
+          outcomes,
+        );
+
+        if (!outcome) {
+          continue;
+        }
+
+        await this.linkIssue(issue.issueId, { incidentId: outcome.recordId });
+
+        if (outcome.isNew) {
+          await DataSecurityIssueFeedService.createDataSecurityIssueFeedItem({
+            projectId,
+            dataSecurityIssueId: issue.issueId,
+            eventType: DataSecurityIssueFeedEventType.IncidentDeclared,
+            displayColor: Red500,
+            feedInfoInMarkdown:
+              mdText`An incident was declared, so your incident process takes over: on-call, workspace channels and status pages.`.toString(),
+          });
+        }
+      }
+    } catch (error) {
+      logger.error(
+        `DataSecurity: could not declare incidents for project ${projectId.toString()}:`,
+      );
+      logger.error(error);
+    }
+  }
+
+  // What an alert or an incident for an issue says.
+  private static matchOf(
+    issue: OpenedIssueForIntegrations,
+    link: URL,
+  ): AlertableMatch {
+    return {
+      fingerprint: getDataSecurityIssueFingerprint(issue.issueId),
+      title: `Data Security: ${issue.title} (${issue.dataStoreName})`,
+      description:
+        mdText`${issue.dataStoreName} holds ${issue.sensitivity} data and failed a Data Security check: ${issue.title}. [Open the issue](${link.toString()}).`.toString(),
+      rootCause:
+        mdText`The Data Security check "${issue.checkId}" failed on ${issue.dataStoreName}.`.toString(),
+    };
+  }
+
+  private static outcomeOf(
+    issue: OpenedIssueForIntegrations,
+    outcomes: Array<DedupedRecordOutcome>,
+  ): DedupedRecordOutcome | undefined {
+    const fingerprint: string = getDataSecurityIssueFingerprint(issue.issueId);
+
+    return outcomes.find((outcome: DedupedRecordOutcome): boolean => {
+      return outcome.fingerprint === fingerprint;
+    });
+  }
+
+  /*
+   * The case each issue's detection is in now: the newest detection of its
+   * fingerprint - an issue that opens again after its case closed is a
+   * detection of a new case. Best effort: an issue without its link is
+   * still in its case.
+   */
+  private static async linkIssuesToCases(
+    projectId: ObjectID,
+    issues: Array<OpenedIssueForIntegrations>,
+  ): Promise<void> {
+    try {
+      const detections: Array<SecurityDetection> =
+        await SecurityDetectionService.findBy({
+          query: {
+            projectId,
+            fingerprint: new Includes(
+              issues.map((issue: OpenedIssueForIntegrations): string => {
+                return getDataSecurityIssueFingerprint(issue.issueId);
+              }),
+            ),
+          },
+          select: { fingerprint: true, securityCaseId: true },
+          sort: { createdAt: SortOrder.Descending },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: { isRoot: true },
+        });
+      const caseOf: Map<string, ObjectID> = new Map();
+
+      for (const detection of detections) {
+        if (
+          detection.fingerprint &&
+          detection.securityCaseId &&
+          !caseOf.has(detection.fingerprint)
+        ) {
+          caseOf.set(detection.fingerprint, detection.securityCaseId);
+        }
+      }
+
+      for (const issue of issues) {
+        const securityCaseId: ObjectID | undefined = caseOf.get(
+          getDataSecurityIssueFingerprint(issue.issueId),
+        );
+
+        if (securityCaseId) {
+          await this.linkIssue(issue.issueId, { securityCaseId });
+        }
+      }
+    } catch (error) {
+      logger.error(
+        `DataSecurity: could not link issues to their security cases in project ${projectId.toString()}:`,
+      );
+      logger.error(error);
+    }
+  }
+
+  /*
+   * The issue's link to what it started: OneUptime's own columns, no
+   * hooks. Best effort, like the rest: the case, alert or incident is
+   * there whether or not the issue links to it.
+   */
+  private static async linkIssue(
+    issueId: ObjectID,
+    data: Partial<
+      Pick<DataSecurityIssue, "securityCaseId" | "alertId" | "incidentId">
+    >,
+  ): Promise<void> {
+    try {
+      await DataSecurityIssueService.updateColumnsByIdWithoutHooks({
+        id: issueId,
+        data: data as never,
+      });
+    } catch (error) {
+      logger.error(
+        `DataSecurity: could not link issue ${issueId.toString()} to what it started:`,
       );
       logger.error(error);
     }

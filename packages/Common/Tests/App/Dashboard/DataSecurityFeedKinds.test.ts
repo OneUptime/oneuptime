@@ -43,6 +43,23 @@ describe("a Data Security issue's timeline", () => {
     },
   );
 
+  test("an alert and an incident look as their products do in the menu: an alert's circle, an incident's triangle", () => {
+    expect(
+      getDataSecurityIssueFeedKind(DataSecurityIssueFeedEventType.AlertRaised),
+    ).toEqual({ icon: IconProp.ExclaimationCircle, tone: FeedTone.Danger });
+    expect(
+      getDataSecurityIssueFeedKind(
+        DataSecurityIssueFeedEventType.IncidentDeclared,
+      ),
+    ).toEqual({ icon: IconProp.Alert, tone: FeedTone.Danger });
+    // Its alert resolved with it: done, in green.
+    expect(
+      getDataSecurityIssueFeedKind(
+        DataSecurityIssueFeedEventType.AlertResolved,
+      ),
+    ).toEqual({ icon: IconProp.CheckCircle, tone: FeedTone.Success });
+  });
+
   test("a response action takes the colour the server gave it: green when the store changed, grey when it was already so", () => {
     const kind: FeedEntryKind = resolveResourceFeedKind({
       eventType: DataSecurityIssueFeedEventType.ResponseActionTaken,

@@ -216,6 +216,8 @@ Data Security's settings are one set per project, in the **Settings** section of
 | **Open Security Cases** | On | Opens a security case, grouped by store, when a Critical issue opens. |
 | **Raise Alerts** | Off | Raises an alert, which pages whoever is on call, when a Critical issue opens. |
 | **Alert Severity** | Empty | The severity of those alerts. Empty is the project's most severe. |
+| **Declare Incidents** | Off | Declares an incident, which your incident process runs, when a Critical issue opens. |
+| **Incident Severity** | Empty | The severity of those incidents. Empty is the project's most severe. |
 | **Notify Owners** | On | Emails a store's owners when an issue opens on it. |
 | **Objects Per Scan** | 2,000 | The most objects one scan of a bucket reads, from 10 to 50,000. |
 | **Bytes Per Object** | 65,536 (64 KB) | The most bytes read from one object, from 1,024 to 4,194,304. |

@@ -38414,5 +38414,9 @@
   "Open (status)": "Öppen",
   "Number of records it holds": "Antal poster som det innehåller",
   "Production store": "Produktionsdatalager",
-  "Security Operations saw activity on it this week": "Säkerhetsdrift såg aktivitet på det den här veckan"
+  "Security Operations saw activity on it this week": "Säkerhetsdrift såg aktivitet på det den här veckan",
+  "Declare Incidents": "Deklarera incidenter",
+  "Declare an incident, which runs your incident process - on-call, status pages and a postmortem - when a Critical issue opens.": "Deklarera en incident, som startar er incidentprocess - jour, statussidor och en efteranalys -, när ett kritiskt problem öppnas.",
+  "Declare incidents for Critical issues": "Deklarera incidenter för kritiska problem",
+  "The severity of the incidents declared. The project's most severe while none is picked.": "Allvarlighetsgraden för de incidenter som deklareras. Projektets allvarligaste när ingen är vald."
 }

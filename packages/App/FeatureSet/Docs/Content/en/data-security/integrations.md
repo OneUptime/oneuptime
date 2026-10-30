@@ -1,10 +1,11 @@
 # Data Security Integrations
 
-Data Security does not run a pager or a security queue of its own. It hands what it finds to the parts of OneUptime that already do: a Critical issue becomes a security case, it can page whoever is on call, and every new issue is emailed to the store's owners. Workflows, OneUptime AI, the API, Terraform and the MCP server reach everything it keeps.
+Data Security does not run a pager or a security queue of its own. It hands what it finds to the parts of OneUptime that already do: a Critical issue becomes a security case, it can page whoever is on call or declare an incident, and every new issue is emailed to the store's owners. Workflows, OneUptime AI, the API, Terraform and the MCP server reach everything it keeps.
 
 :::cards
 - [Security Operations](#security-operations): A security case for every store with a Critical issue.
 - [Alerts and on-call](#alerts-and-on-call): Page whoever is on call when a Critical issue opens.
+- [Incidents](#incidents): Declare an incident for a breach your incident process should run.
 - [Owners](#owners): Who owns each store, set by hand or by rules, and the email they get.
 - [OneUptime AI](#oneuptime-ai): Explain an issue, open a pull request that fixes it, or ask Ask AI about your data.
 - [Close an exposure](#close-an-exposure): Block public access or stop sharing, from an issue or a playbook.
@@ -17,17 +18,20 @@ flowchart TB
     issue["An issue opens,<br/>or opens again"] --> critical{"Is it Critical?"}
     critical -->|"Yes"| soc["A security case<br/>about the store"]
     critical -->|"Yes, if alerts are on"| alert["An alert that pages<br/>whoever is on call"]
+    critical -->|"Yes, if incidents are on"| incident["An incident your<br/>process runs"]
     issue --> owners["An email to the<br/>store's owners"]
     issue --> flows["Workflows that<br/>watch issues"]
 ```
 
-Each of these runs when an evaluation opens an issue, or opens one again. Each is best effort: the issue is open and on its timeline already, so an integration that fails is logged and skipped, never retried into a second case or a second page. What each one did is written to the issue's **Timeline**.
+Each of these runs when an evaluation opens an issue, or opens one again. Each is best effort: the issue is open and on its timeline already, so an integration that fails is logged and skipped, never retried into a second case or a second page. What each one did is written to the issue's **Timeline**, and the issue's page links to the case, the alert and the incident it started.
 
 | Setting | Default | What it does |
 | --- | --- | --- |
 | **Open Security Cases** | On | A Critical issue opens a security case, grouped by store. |
 | **Raise Alerts** | Off | A Critical issue raises an alert, which pages whoever is on call. |
 | **Alert Severity** | Empty | The severity of those alerts. Empty is the project's most severe. |
+| **Declare Incidents** | Off | A Critical issue declares an incident, which your incident process runs. |
+| **Incident Severity** | Empty | The severity of those incidents. Empty is the project's most severe. |
 | **Notify Owners** | On | Every new issue is emailed to its store's owners. |
 
 ## Security Operations
@@ -44,7 +48,15 @@ From there the case is worked like any other: assigned, noted, closed, and answe
 
 With **Raise Alerts** on, a Critical issue raises an alert, named "Data Security:" and the issue's title and store. The alert pages whoever is on call through its own rules, like any other alert (see [Alerts](/docs/alerts/index) and [On-Call](/docs/on-call/index)). An issue has at most one open alert at a time, however often it is evaluated. **Alert Severity** sets the alert's severity; left empty, it is the project's most severe.
 
+An alert ends with its issue: once the issue is no longer open - its check passes, or a person marks it resolved, accepts its risk or says it is not an issue - the alert is resolved, and the issue's **Timeline** says so. An issue that opens again raises a new alert.
+
 Alerts are off by default because a security case is where most teams want a data security finding first. Turn them on when a public bucket of card numbers should wake someone up.
+
+## Incidents
+
+With **Declare Incidents** on, a Critical issue declares an incident, named like its alert, for a breach your incident process should run: on-call, workspace channels, status pages and a postmortem (see [Incidents](/docs/incidents/index)). An issue has at most one open incident at a time. **Incident Severity** sets the incident's severity; left empty, it is the project's most severe.
+
+Data Security never resolves an incident, even once its issue is resolved: an incident can carry a status page and a postmortem, so whoever runs it closes it. A security case is the other way to an incident: **Declare Incident** on the case opens one linked to it (see [Declare an incident](/docs/telemetry/security-cases#declare-an-incident)).
 
 ## Owners
 

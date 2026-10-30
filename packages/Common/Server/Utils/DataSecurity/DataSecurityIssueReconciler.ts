@@ -27,6 +27,7 @@ import {
 } from "../../../Types/DataSecurity/DataSecurityRisk";
 import { DataStoreExposure } from "../../../Types/DataSecurity/DataStorePosture";
 import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
+import { ClosedDataSecurityIssue } from "./DataSecurityIssueAlerts";
 
 /*
  * KEEPING A STORE'S ISSUES IN STEP WITH ITS CHECKS.
@@ -76,6 +77,8 @@ export interface ReconciledIssue {
 export interface ReconcileStoreOutput {
   // Issues that opened, or opened again, in this evaluation.
   opened: Array<ReconciledIssue>;
+  // Issues it resolved, and why: their alerts are resolved with them.
+  closed: Array<ClosedDataSecurityIssue>;
   resolvedCount: number;
   openIssueCount: number;
   highestSeverity: SecuritySeverity | null;
@@ -116,6 +119,7 @@ export default class DataSecurityIssueReconciler {
 
     const output: ReconcileStoreOutput = {
       opened: [],
+      closed: [],
       resolvedCount: 0,
       openIssueCount: 0,
       highestSeverity: null,
@@ -405,6 +409,12 @@ export default class DataSecurityIssueReconciler {
       ).toString(),
     });
 
+    output.closed.push({
+      issueId: issue.id,
+      why: checkGone
+        ? "its check no longer runs on the store"
+        : "its check passes now",
+    });
     output.resolvedCount++;
   }
 

@@ -38414,5 +38414,9 @@
   "Open (status)": "Открыта",
   "Number of records it holds": "Число записей в нём",
   "Production store": "Продакшен-хранилище",
-  "Security Operations saw activity on it this week": "Security Operations заметил активность по нему на этой неделе"
+  "Security Operations saw activity on it this week": "Security Operations заметил активность по нему на этой неделе",
+  "Declare Incidents": "Объявлять инциденты",
+  "Declare an incident, which runs your incident process - on-call, status pages and a postmortem - when a Critical issue opens.": "Объявлять инцидент, который запускает ваш процесс работы с инцидентами - дежурство, страницы состояния и постмортем, - при появлении критической проблемы.",
+  "Declare incidents for Critical issues": "Объявлять инциденты для критических проблем",
+  "The severity of the incidents declared. The project's most severe while none is picked.": "Серьёзность объявляемых инцидентов. Пока ничего не выбрано, используется наивысшая в проекте."
 }

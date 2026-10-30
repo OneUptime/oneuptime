@@ -11,6 +11,7 @@ import {
 } from "../../../Components/DataSecurity/WordListField";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import DataSecuritySetting from "Common/Models/DatabaseModels/DataSecuritySetting";
+import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Route from "Common/Types/API/Route";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -73,8 +74,9 @@ import React, {
  * defaults when there is none yet: UseDataSecuritySetting).
  *
  *   - What Data Security Reads, and When an Issue Opens: one switch each,
- *     saving the moment it is flipped (ModelSwitchRow); under Raise alerts,
- *     while it is on, the severity of the alerts it raises.
+ *     saving the moment it is flipped (ModelSwitchRow); under Raise alerts
+ *     and Declare incidents, while each is on, the severity of what it
+ *     opens.
  *   - Cloud Accounts: what a scan may read in a cloud account is not set
  *     here but on the account's cloud connection - Off, Configuration only,
  *     or Configuration and content samples - with a way to the connections.
@@ -360,6 +362,15 @@ const RAISE_ALERTS_SWITCH: ScanningSwitch = {
   dataTestId: "data-security-raise-alerts",
 };
 
+const DECLARE_INCIDENTS_SWITCH: ScanningSwitch = {
+  column: "declareIncidentsForCriticalIssues",
+  title: translationKey("Declare incidents for Critical issues"),
+  description: translationKey(
+    "Declare an incident, which runs your incident process - on-call, status pages and a postmortem - when a Critical issue opens.",
+  ),
+  dataTestId: "data-security-declare-incidents",
+};
+
 const NOTIFY_OWNERS_SWITCH: ScanningSwitch = {
   column: "notifyOwners",
   title: translationKey("Notify owners"),
@@ -429,23 +440,101 @@ const SwitchRow: FunctionComponent<SwitchRowProps> = (
 };
 
 /*
- * Under Raise alerts: the severity of the alerts it raises, the project's
- * most severe while none is picked. Saved the moment it is picked. Archived
- * severities are never offered (ArchivedValuePicker); one the settings
- * already have is still shown, marked Archived, so it can be kept or changed.
+ * Under Raise alerts and Declare incidents: the severity of what it opens,
+ * the project's most severe while none is picked. Saved the moment it is
+ * picked. Archived severities are never offered (ArchivedValuePicker); one
+ * the settings already have is still shown, marked Archived, so it can be
+ * kept or changed.
  */
-const AlertSeverityPicker: FunctionComponent<{
+type SeverityColumn = "alertSeverityId" | "incidentSeverityId";
+
+interface SeverityPickerDefinition {
+  column: SeverityColumn;
+  title: string;
+  description: string;
+  dataTestId: string;
+}
+
+const ALERT_SEVERITY_PICKER: SeverityPickerDefinition = {
+  column: "alertSeverityId",
+  title: "Alert Severity",
+  description:
+    "The severity of the alerts raised. The project's most severe while none is picked.",
+  dataTestId: "data-security-alert-severity",
+};
+
+const INCIDENT_SEVERITY_PICKER: SeverityPickerDefinition = {
+  column: "incidentSeverityId",
+  title: "Incident Severity",
+  description:
+    "The severity of the incidents declared. The project's most severe while none is picked.",
+  dataTestId: "data-security-incident-severity",
+};
+
+type SeverityValue = AlertSeverity | IncidentSeverity;
+
+// The project's severities of the kind a picker sets, with the archive switch.
+async function readSeverities(
+  column: SeverityColumn,
+): Promise<Array<SeverityValue>> {
+  const select: {
+    _id: true;
+    name: true;
+    color: true;
+    order: true;
+    isArchived: true;
+  } = {
+    _id: true,
+    name: true,
+    color: true,
+    order: true,
+    isArchived: true,
+  };
+
+  if (column === "incidentSeverityId") {
+    const incidentSeverities: ListResult<IncidentSeverity> =
+      await ModelAPI.getList<IncidentSeverity>({
+        modelType: IncidentSeverity,
+        query: {},
+        limit: 50,
+        skip: 0,
+        select,
+        sort: { order: SortOrder.Ascending },
+      });
+
+    return incidentSeverities.data;
+  }
+
+  const alertSeverities: ListResult<AlertSeverity> =
+    await ModelAPI.getList<AlertSeverity>({
+      modelType: AlertSeverity,
+      query: {},
+      limit: 50,
+      skip: 0,
+      select,
+      sort: { order: SortOrder.Ascending },
+    });
+
+  return alertSeverities.data;
+}
+
+const SeverityPicker: FunctionComponent<{
   setting: DataSecuritySetting;
-}> = (props: { setting: DataSecuritySetting }): ReactElement => {
+  definition: SeverityPickerDefinition;
+}> = (props: {
+  setting: DataSecuritySetting;
+  definition: SeverityPickerDefinition;
+}): ReactElement => {
   const translator: Translator = useTranslator();
-  const labelId: string = `alert-severity-label-${useId()}`;
-  const descriptionId: string = `alert-severity-description-${useId()}`;
+  const definition: SeverityPickerDefinition = props.definition;
+  const labelId: string = `${definition.dataTestId}-label-${useId()}`;
+  const descriptionId: string = `${definition.dataTestId}-description-${useId()}`;
 
   const [options, setOptions] = useState<Array<DropdownOption>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [selectedId, setSelectedId] = useState<string>(
-    props.setting.alertSeverityId?.toString() || "",
+    props.setting[definition.column]?.toString() || "",
   );
   const [saveState, setSaveState] = useState<SaveState>(SaveState.Idle);
 
@@ -455,33 +544,22 @@ const AlertSeverityPicker: FunctionComponent<{
     const load: () => Promise<void> = async (): Promise<void> => {
       try {
         // Read with the archive switch, so archived ones can be told apart.
-        const result: ListResult<AlertSeverity> =
-          await ModelAPI.getList<AlertSeverity>({
-            modelType: AlertSeverity,
-            query: {},
-            limit: 50,
-            skip: 0,
-            select: {
-              _id: true,
-              name: true,
-              color: true,
-              order: true,
-              isArchived: true,
-            },
-            sort: { order: SortOrder.Ascending },
-          });
+        const severities: Array<SeverityValue> = await readSeverities(
+          definition.column,
+        );
 
         if (!isCurrent) {
           return;
         }
 
-        const keptId: string = props.setting.alertSeverityId?.toString() || "";
+        const keptId: string =
+          props.setting[definition.column]?.toString() || "";
 
         setOptions(
-          ArchivedValuePicker.getPickerOptions<AlertSeverity>({
-            values: result.data,
-            options: result.data.map(
-              (severity: AlertSeverity): DropdownOption => {
+          ArchivedValuePicker.getPickerOptions<SeverityValue>({
+            values: severities,
+            options: severities.map(
+              (severity: SeverityValue): DropdownOption => {
                 return {
                   value: severity._id?.toString() || "",
                   label: severity.name || "",
@@ -513,7 +591,7 @@ const AlertSeverityPicker: FunctionComponent<{
 
   const gate: PermissionGateResult = PermissionGate.checkColumnUpdate(
     new DataSecuritySetting(),
-    "alertSeverityId",
+    definition.column,
   );
 
   const save: (value: string) => Promise<void> = async (
@@ -529,7 +607,7 @@ const AlertSeverityPicker: FunctionComponent<{
       await ModelAPI.updateById<DataSecuritySetting>({
         modelType: DataSecuritySetting,
         id: props.setting.id!,
-        data: { alertSeverityId: value || null },
+        data: { [definition.column]: value || null },
       });
 
       setSaveState(SaveState.Saved);
@@ -541,11 +619,11 @@ const AlertSeverityPicker: FunctionComponent<{
   };
 
   return (
-    <div data-testid="data-security-alert-severity">
+    <div data-testid={definition.dataTestId}>
       <FieldLabelElement
-        title="Alert Severity"
+        title={definition.title}
         id={labelId}
-        description="The severity of the alerts raised. The project's most severe while none is picked."
+        description={definition.description}
         descriptionId={descriptionId}
         hideOptionalLabel={true}
       />
@@ -738,7 +816,22 @@ const DataSecurityScanning: FunctionComponent<
           <SwitchRow
             definition={RAISE_ALERTS_SWITCH}
             setting={setting}
-            childrenWhileOn={<AlertSeverityPicker setting={setting} />}
+            childrenWhileOn={
+              <SeverityPicker
+                setting={setting}
+                definition={ALERT_SEVERITY_PICKER}
+              />
+            }
+          />
+          <SwitchRow
+            definition={DECLARE_INCIDENTS_SWITCH}
+            setting={setting}
+            childrenWhileOn={
+              <SeverityPicker
+                setting={setting}
+                definition={INCIDENT_SEVERITY_PICKER}
+              />
+            }
           />
           <SwitchRow definition={NOTIFY_OWNERS_SWITCH} setting={setting} />
         </div>

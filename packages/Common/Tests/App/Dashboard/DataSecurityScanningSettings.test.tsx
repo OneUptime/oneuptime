@@ -31,6 +31,7 @@ import DataSecurityScanning, {
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/DataSecurity/Settings/Scanning";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
+import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DataSecuritySetting from "../../../Models/DatabaseModels/DataSecuritySetting";
 import { DATA_SECURITY_LIMITS } from "../../../Server/Services/DataSecuritySettingService";
@@ -116,6 +117,7 @@ const DEFAULTS: Record<string, unknown> = {
   keepMaskedSamples: true,
   openCasesForCriticalIssues: true,
   raiseAlertsForCriticalIssues: false,
+  declareIncidentsForCriticalIssues: false,
   notifyOwners: true,
   maxObjectsPerScan: 2000,
   maxBytesPerObject: 65536,
@@ -188,6 +190,20 @@ beforeEach(() => {
             (name: string, index: number): BaseModel => {
               const severity: AlertSeverity = new AlertSeverity();
               severity._id = `6e6e6e6e-0000-4000-8000-00000000000${index}`;
+              severity.name = name;
+              severity.order = index + 1;
+              return severity;
+            },
+          );
+
+          return { data: rows, count: rows.length, skip: 0, limit: 50 };
+        }
+
+        if (modelType === IncidentSeverity) {
+          const rows: Array<BaseModel> = ["SEV1", "SEV2"].map(
+            (name: string, index: number): BaseModel => {
+              const severity: IncidentSeverity = new IncidentSeverity();
+              severity._id = `7e7e7e7e-0000-4000-8000-00000000000${index}`;
               severity.name = name;
               severity.order = index + 1;
               return severity;
@@ -324,12 +340,18 @@ describe("Data Security > Settings > Scanning", () => {
       expect(within(reads).getByTestId(`${testId}-row`)).toBeInTheDocument();
     }
 
-    for (const testId of [
+    const issueRows: Array<HTMLElement> = [
       "data-security-open-cases",
       "data-security-raise-alerts",
+      "data-security-declare-incidents",
       "data-security-notify-owners",
-    ]) {
-      expect(within(issues).getByTestId(`${testId}-row`)).toBeInTheDocument();
+    ].map((testId: string): HTMLElement => {
+      return within(issues).getByTestId(`${testId}-row`);
+    });
+
+    // In the order they happen: the case, the page, the incident, the owners.
+    for (let index: number = 1; index < issueRows.length; index++) {
+      expect(isBefore(issueRows[index - 1]!, issueRows[index]!)).toBe(true);
     }
 
     expect(header(fold)).toHaveAttribute("aria-expanded", "false");
@@ -404,6 +426,91 @@ describe("Data Security > Settings > Scanning", () => {
       screen.getByTestId("data-security-raise-alerts-children"),
     ).toContainElement(picker);
     expect(picker).toHaveTextContent("Alert Severity");
+  });
+
+  test("incidents are off until a project turns them on: the switch says what it does", async () => {
+    storeSettings();
+
+    await renderPage();
+
+    const incidents: HTMLElement = screen.getByTestId(
+      "data-security-declare-incidents",
+    );
+
+    expect(incidents).toHaveAttribute("aria-checked", "false");
+    expect(
+      screen.getByTestId("data-security-declare-incidents-row"),
+    ).toHaveTextContent("Declare incidents for Critical issues");
+    expect(
+      screen.getByTestId("data-security-declare-incidents-row"),
+    ).toHaveTextContent(
+      "Declare an incident, which runs your incident process - on-call, status pages and a postmortem - when a Critical issue opens.",
+    );
+    expect(screen.queryByTestId("data-security-incident-severity")).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(incidents);
+    });
+    await settle();
+
+    await waitFor(() => {
+      expect(updates).toEqual([{ declareIncidentsForCriticalIssues: true }]);
+    });
+  });
+
+  test("the incident severity is asked for under Declare incidents, only while it is on, from the project's incident severities", async () => {
+    storeSettings({ declareIncidentsForCriticalIssues: true });
+
+    await renderPage();
+
+    const picker: HTMLElement = screen.getByTestId(
+      "data-security-incident-severity",
+    );
+
+    expect(
+      screen.getByTestId("data-security-declare-incidents-children"),
+    ).toContainElement(picker);
+    expect(picker).toHaveTextContent("Incident Severity");
+    expect(picker).toHaveTextContent(
+      "The severity of the incidents declared. The project's most severe while none is picked.",
+    );
+    // Read from incident severities, never the alert ones.
+    expect(
+      (ModelAPI.getList as unknown as jest.Mock).mock.calls.some(
+        (call: Array<unknown>): boolean => {
+          return (
+            (call[0] as { modelType: unknown }).modelType === IncidentSeverity
+          );
+        },
+      ),
+    ).toBe(true);
+    expect(screen.queryByTestId("data-security-alert-severity")).toBeNull();
+  });
+
+  test("a severity picked is saved to its own column: the incident one to incidentSeverityId", async () => {
+    storeSettings({ declareIncidentsForCriticalIssues: true });
+
+    await renderPage();
+
+    const picker: HTMLElement = screen.getByTestId(
+      "data-security-incident-severity",
+    );
+    const input: HTMLElement = within(picker).getByRole("combobox");
+
+    await act(async () => {
+      fireEvent.keyDown(input, { key: "ArrowDown" });
+    });
+    await settle();
+    await act(async () => {
+      fireEvent.click(await screen.findByText("SEV2"));
+    });
+    await settle();
+
+    await waitFor(() => {
+      expect(updates).toEqual([
+        { incidentSeverityId: "7e7e7e7e-0000-4000-8000-000000000001" },
+      ]);
+    });
   });
 
   test("the cloud accounts card names the three levels and leads to the connections", async () => {

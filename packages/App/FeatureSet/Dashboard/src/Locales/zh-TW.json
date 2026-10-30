@@ -38414,5 +38414,9 @@
   "Open (status)": "未解決",
   "Number of records it holds": "其中的紀錄數",
   "Production store": "正式環境資料儲存區",
-  "Security Operations saw activity on it this week": "安全營運本週偵測到相關活動"
+  "Security Operations saw activity on it this week": "安全營運本週偵測到相關活動",
+  "Declare Incidents": "宣告事件",
+  "Declare an incident, which runs your incident process - on-call, status pages and a postmortem - when a Critical issue opens.": "出現嚴重問題時宣告事件，啟動你的事件處理流程：待命、狀態頁面與事後分析。",
+  "Declare incidents for Critical issues": "為嚴重問題宣告事件",
+  "The severity of the incidents declared. The project's most severe while none is picked.": "所宣告事件的嚴重程度。未選取時使用專案的最高嚴重程度。"
 }

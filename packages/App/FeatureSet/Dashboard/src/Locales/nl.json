@@ -38414,5 +38414,9 @@
   "Open (status)": "Openstaand",
   "Number of records it holds": "Aantal records dat het bevat",
   "Production store": "Productieopslag",
-  "Security Operations saw activity on it this week": "Security Operations zag er deze week activiteit op"
+  "Security Operations saw activity on it this week": "Security Operations zag er deze week activiteit op",
+  "Declare Incidents": "Incidenten melden",
+  "Declare an incident, which runs your incident process - on-call, status pages and a postmortem - when a Critical issue opens.": "Meld een incident, dat uw incidentproces start - bereikbaarheid, statuspagina's en een postmortem -, wanneer een kritiek probleem wordt geopend.",
+  "Declare incidents for Critical issues": "Incidenten melden voor kritieke problemen",
+  "The severity of the incidents declared. The project's most severe while none is picked.": "De ernst van de gemelde incidenten. De ernstigste van het project zolang er geen is gekozen."
 }

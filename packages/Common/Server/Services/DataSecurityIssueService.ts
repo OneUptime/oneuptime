@@ -8,6 +8,9 @@ import { OnUpdate } from "../Types/Database/Hooks";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import { queueDataSecurityEvaluation } from "../Utils/DataSecurity/DataSecurityJobs";
+import DataSecurityIssueAlerts, {
+  ClosedDataSecurityIssue,
+} from "../Utils/DataSecurity/DataSecurityIssueAlerts";
 import URL from "../../Types/API/URL";
 import { Blue500, Gray500, Green500, Yellow500 } from "../../Types/BrandColors";
 import Color from "../../Types/Color";
@@ -37,6 +40,18 @@ import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 // The longest a risk can be accepted for before someone looks again.
 export const MAX_ACCEPTANCE_IN_DAYS: number = 366;
+
+/*
+ * Why an issue a person changed is no longer open, for its alert's
+ * resolution: its alert is resolved with it (DataSecurityIssueAlerts).
+ */
+export const CLOSED_BY_PERSON_WHY: Readonly<
+  Partial<Record<DataSecurityIssueStatus, string>>
+> = {
+  [DataSecurityIssueStatus.Resolved]: "it was marked resolved",
+  [DataSecurityIssueStatus.Accepted]: "its risk was accepted",
+  [DataSecurityIssueStatus.NotAnIssue]: "it was marked not an issue",
+};
 
 interface IssueChange {
   id: string;
@@ -220,9 +235,24 @@ export class Service extends ProjectReferencesService<Model> {
     const status: string | undefined =
       typeof data["status"] === "string" ? data["status"] : undefined;
     const projectIds: Set<string> = new Set();
+    const closedWhy: string | undefined = status
+      ? CLOSED_BY_PERSON_WHY[status as DataSecurityIssueStatus]
+      : undefined;
+    const closedByProject: Map<
+      string,
+      Array<ClosedDataSecurityIssue>
+    > = new Map();
 
     for (const change of changes) {
       projectIds.add(change.projectId);
+
+      if (closedWhy && status !== change.fromStatus) {
+        const closed: Array<ClosedDataSecurityIssue> =
+          closedByProject.get(change.projectId) || [];
+
+        closed.push({ issueId: new ObjectID(change.id), why: closedWhy });
+        closedByProject.set(change.projectId, closed);
+      }
 
       if (status && status !== change.fromStatus) {
         await DataSecurityIssueFeedService.createDataSecurityIssueFeedItem({
@@ -265,6 +295,14 @@ export class Service extends ProjectReferencesService<Model> {
           userId,
         });
       }
+    }
+
+    // An issue no longer open ends its alert: nobody is paged for it.
+    for (const [projectId, closed] of closedByProject) {
+      await DataSecurityIssueAlerts.resolveForClosedIssues({
+        projectId: new ObjectID(projectId),
+        issues: closed,
+      });
     }
 
     // A resolve or re-open asks for the store to be checked again.

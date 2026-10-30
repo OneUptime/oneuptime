@@ -38414,5 +38414,9 @@
   "Open (status)": "未解决",
   "Number of records it holds": "其中的记录数",
   "Production store": "生产数据存储",
-  "Security Operations saw activity on it this week": "安全运营本周发现了相关活动"
+  "Security Operations saw activity on it this week": "安全运营本周发现了相关活动",
+  "Declare Incidents": "声明事件",
+  "Declare an incident, which runs your incident process - on-call, status pages and a postmortem - when a Critical issue opens.": "当出现严重问题时声明事件，启动你的事件处理流程：值班、状态页面和事后分析。",
+  "Declare incidents for Critical issues": "为严重问题声明事件",
+  "The severity of the incidents declared. The project's most severe while none is picked.": "所声明事件的严重程度。未选择时使用项目中最严重的级别。"
 }

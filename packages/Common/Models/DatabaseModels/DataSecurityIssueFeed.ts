@@ -36,6 +36,9 @@ export enum DataSecurityIssueFeedEventType {
   RecheckRequested = "RecheckRequested",
   SecurityCaseOpened = "SecurityCaseOpened",
   AlertRaised = "AlertRaised",
+  // The alert raised for it, resolved once the issue was no longer open.
+  AlertResolved = "AlertResolved",
+  IncidentDeclared = "IncidentDeclared",
   OwnersNotified = "OwnersNotified",
   // OneUptime AI's explanation, or a fix it was asked to open.
   AiExplanation = "AiExplanation",

@@ -227,7 +227,7 @@ export class AddDataSecurity1808400000000 implements MigrationInterface {
       `CREATE UNIQUE INDEX "IDX_80e8b3f8c0b7efc32eda30bdf3" ON "DataSecurityFlow" ("projectId", "flowKey") `,
     );
     await queryRunner.query(
-      `CREATE TABLE "DataSecurityIssue" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "dataStoreId" uuid NOT NULL, "issueKey" character varying(500) NOT NULL, "checkId" character varying(100) NOT NULL, "checkGroup" character varying(100), "title" character varying(500) NOT NULL, "evidence" character varying(500), "severity" character varying(100) NOT NULL, "riskScore" integer NOT NULL DEFAULT '0', "riskFactors" jsonb, "status" character varying(100) NOT NULL DEFAULT 'Open', "dataTypeIds" jsonb, "frameworks" jsonb, "acceptedReason" character varying(500), "acceptedUntil" TIMESTAMP WITH TIME ZONE, "acceptedByUserId" uuid, "assignedToUserId" uuid, "assignedToTeamId" uuid, "securityCaseId" uuid, "alertId" uuid, "firstDetectedAt" TIMESTAMP WITH TIME ZONE, "lastDetectedAt" TIMESTAMP WITH TIME ZONE, "resolvedAt" TIMESTAMP WITH TIME ZONE, "reopenCount" integer NOT NULL DEFAULT '0', "recheckRequestedAt" TIMESTAMP WITH TIME ZONE, "isOwnerNotified" boolean NOT NULL DEFAULT false, CONSTRAINT "PK_b5405275312212088f18cd95040" PRIMARY KEY ("_id"))`,
+      `CREATE TABLE "DataSecurityIssue" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "dataStoreId" uuid NOT NULL, "issueKey" character varying(500) NOT NULL, "checkId" character varying(100) NOT NULL, "checkGroup" character varying(100), "title" character varying(500) NOT NULL, "evidence" character varying(500), "severity" character varying(100) NOT NULL, "riskScore" integer NOT NULL DEFAULT '0', "riskFactors" jsonb, "status" character varying(100) NOT NULL DEFAULT 'Open', "dataTypeIds" jsonb, "frameworks" jsonb, "acceptedReason" character varying(500), "acceptedUntil" TIMESTAMP WITH TIME ZONE, "acceptedByUserId" uuid, "assignedToUserId" uuid, "assignedToTeamId" uuid, "securityCaseId" uuid, "alertId" uuid, "incidentId" uuid, "firstDetectedAt" TIMESTAMP WITH TIME ZONE, "lastDetectedAt" TIMESTAMP WITH TIME ZONE, "resolvedAt" TIMESTAMP WITH TIME ZONE, "reopenCount" integer NOT NULL DEFAULT '0', "recheckRequestedAt" TIMESTAMP WITH TIME ZONE, "isOwnerNotified" boolean NOT NULL DEFAULT false, CONSTRAINT "PK_b5405275312212088f18cd95040" PRIMARY KEY ("_id"))`,
     );
     await queryRunner.query(
       `CREATE INDEX "IDX_53677404a91008b1c31f9761e4" ON "DataSecurityIssue" ("projectId") `,
@@ -255,6 +255,9 @@ export class AddDataSecurity1808400000000 implements MigrationInterface {
     );
     await queryRunner.query(
       `CREATE INDEX "IDX_d9238e6b34871a474b4edffad6" ON "DataSecurityIssue" ("alertId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_ccdfa9e4492c253542f9543e62" ON "DataSecurityIssue" ("incidentId") `,
     );
     await queryRunner.query(
       `CREATE INDEX "IDX_b7c5156798400575b443f4ad89" ON "DataSecurityIssue" ("lastDetectedAt") `,
@@ -308,10 +311,13 @@ export class AddDataSecurity1808400000000 implements MigrationInterface {
       `CREATE UNIQUE INDEX "IDX_58f577578de1f7b5f915065ae1" ON "DataSecurityResidencyRule" ("projectId", "name") `,
     );
     await queryRunner.query(
-      `CREATE TABLE "DataSecuritySetting" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "isConfigurationScanEnabled" boolean NOT NULL DEFAULT true, "isContentScanEnabled" boolean NOT NULL DEFAULT true, "isTelemetryScanEnabled" boolean NOT NULL DEFAULT true, "keepMaskedSamples" boolean NOT NULL DEFAULT true, "openCasesForCriticalIssues" boolean NOT NULL DEFAULT true, "raiseAlertsForCriticalIssues" boolean NOT NULL DEFAULT false, "alertSeverityId" uuid, "notifyOwners" boolean NOT NULL DEFAULT true, "maxObjectsPerScan" integer NOT NULL DEFAULT '2000', "maxBytesPerObject" integer NOT NULL DEFAULT '65536', "maxBytesPerScan" integer NOT NULL DEFAULT '52428800', "maxRowsPerTable" integer NOT NULL DEFAULT '1000', "maxTablesPerScan" integer NOT NULL DEFAULT '200', "telemetrySampleSize" integer NOT NULL DEFAULT '500', "contentScanIntervalInHours" integer NOT NULL DEFAULT '24', "allowedValues" jsonb, "disabledDataTypeIds" jsonb, "createdByUserId" uuid, "deletedByUserId" uuid, CONSTRAINT "PK_019f7d41e8de2d25fde8ded34eb" PRIMARY KEY ("_id"))`,
+      `CREATE TABLE "DataSecuritySetting" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "isConfigurationScanEnabled" boolean NOT NULL DEFAULT true, "isContentScanEnabled" boolean NOT NULL DEFAULT true, "isTelemetryScanEnabled" boolean NOT NULL DEFAULT true, "keepMaskedSamples" boolean NOT NULL DEFAULT true, "openCasesForCriticalIssues" boolean NOT NULL DEFAULT true, "raiseAlertsForCriticalIssues" boolean NOT NULL DEFAULT false, "alertSeverityId" uuid, "declareIncidentsForCriticalIssues" boolean NOT NULL DEFAULT false, "incidentSeverityId" uuid, "notifyOwners" boolean NOT NULL DEFAULT true, "maxObjectsPerScan" integer NOT NULL DEFAULT '2000', "maxBytesPerObject" integer NOT NULL DEFAULT '65536', "maxBytesPerScan" integer NOT NULL DEFAULT '52428800', "maxRowsPerTable" integer NOT NULL DEFAULT '1000', "maxTablesPerScan" integer NOT NULL DEFAULT '200', "telemetrySampleSize" integer NOT NULL DEFAULT '500', "contentScanIntervalInHours" integer NOT NULL DEFAULT '24', "allowedValues" jsonb, "disabledDataTypeIds" jsonb, "createdByUserId" uuid, "deletedByUserId" uuid, CONSTRAINT "PK_019f7d41e8de2d25fde8ded34eb" PRIMARY KEY ("_id"))`,
     );
     await queryRunner.query(
       `CREATE INDEX "IDX_00931318804914c67e4112a7e1" ON "DataSecuritySetting" ("alertSeverityId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_5662eefab1126a1ab06a249931" ON "DataSecuritySetting" ("incidentSeverityId") `,
     );
     await queryRunner.query(
       `CREATE UNIQUE INDEX "IDX_cec723790db5e45f093276c4e8" ON "DataSecuritySetting" ("projectId") `,
@@ -521,6 +527,9 @@ export class AddDataSecurity1808400000000 implements MigrationInterface {
       `ALTER TABLE "DataSecurityIssue" ADD CONSTRAINT "FK_d9238e6b34871a474b4edffad68" FOREIGN KEY ("alertId") REFERENCES "Alert"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
+      `ALTER TABLE "DataSecurityIssue" ADD CONSTRAINT "FK_ccdfa9e4492c253542f9543e62d" FOREIGN KEY ("incidentId") REFERENCES "Incident"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
       `ALTER TABLE "DataSecurityIssueFeed" ADD CONSTRAINT "FK_8b43e35dba0e14480e772c549b9" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
@@ -567,6 +576,9 @@ export class AddDataSecurity1808400000000 implements MigrationInterface {
     );
     await queryRunner.query(
       `ALTER TABLE "DataSecuritySetting" ADD CONSTRAINT "FK_00931318804914c67e4112a7e1b" FOREIGN KEY ("alertSeverityId") REFERENCES "AlertSeverity"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataSecuritySetting" ADD CONSTRAINT "FK_5662eefab1126a1ab06a249931f" FOREIGN KEY ("incidentSeverityId") REFERENCES "IncidentSeverity"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
       `ALTER TABLE "DataSecuritySetting" ADD CONSTRAINT "FK_d68864559a848aef0985ed89537" FOREIGN KEY ("createdByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
@@ -656,6 +668,9 @@ export class AddDataSecurity1808400000000 implements MigrationInterface {
       `ALTER TABLE "DataSecuritySetting" DROP CONSTRAINT "FK_d68864559a848aef0985ed89537"`,
     );
     await queryRunner.query(
+      `ALTER TABLE "DataSecuritySetting" DROP CONSTRAINT "FK_5662eefab1126a1ab06a249931f"`,
+    );
+    await queryRunner.query(
       `ALTER TABLE "DataSecuritySetting" DROP CONSTRAINT "FK_00931318804914c67e4112a7e1b"`,
     );
     await queryRunner.query(
@@ -702,6 +717,9 @@ export class AddDataSecurity1808400000000 implements MigrationInterface {
     );
     await queryRunner.query(
       `ALTER TABLE "DataSecurityIssueFeed" DROP CONSTRAINT "FK_8b43e35dba0e14480e772c549b9"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "DataSecurityIssue" DROP CONSTRAINT "FK_ccdfa9e4492c253542f9543e62d"`,
     );
     await queryRunner.query(
       `ALTER TABLE "DataSecurityIssue" DROP CONSTRAINT "FK_d9238e6b34871a474b4edffad68"`,
@@ -896,6 +914,9 @@ export class AddDataSecurity1808400000000 implements MigrationInterface {
     );
     await queryRunner.query(`DROP TABLE "DataStoreLabel"`);
     await queryRunner.query(
+      `DROP INDEX "public"."IDX_5662eefab1126a1ab06a249931"`,
+    );
+    await queryRunner.query(
       `DROP INDEX "public"."IDX_00931318804914c67e4112a7e1"`,
     );
     await queryRunner.query(
@@ -944,6 +965,9 @@ export class AddDataSecurity1808400000000 implements MigrationInterface {
     );
     await queryRunner.query(
       `DROP INDEX "public"."IDX_b7c5156798400575b443f4ad89"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_ccdfa9e4492c253542f9543e62"`,
     );
     await queryRunner.query(
       `DROP INDEX "public"."IDX_d9238e6b34871a474b4edffad6"`,

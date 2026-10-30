@@ -210,6 +210,12 @@ function source(file: string): string {
 
 const SERVER: string = "Common/Server/Utils/DataSecurity";
 
+// The settings' severity id columns, and the picker each is on the page.
+const SEVERITY_ID_TITLES: Readonly<Record<string, string>> = {
+  "Alert Severity ID": "Alert Severity",
+  "Incident Severity ID": "Incident Severity",
+};
+
 function english(page: string): string {
   return readPage("en", page);
 }
@@ -735,10 +741,8 @@ describe("Set Up Data Security", () => {
         /\n\s+title: "([^"]+)",\n\s+description:\s+"(?!Relation|ID of)/g,
       ),
       (match: RegExpMatchArray): string => {
-        // The severity's id column is the Alert Severity the form shows.
-        return match[1] === "Alert Severity ID"
-          ? "Alert Severity"
-          : (match[1] as string);
+        // A severity's id column is the severity the form shows.
+        return SEVERITY_ID_TITLES[match[1] as string] || (match[1] as string);
       },
     );
 
@@ -1822,6 +1826,52 @@ describe("Data Security Integrations", () => {
     expect(section(page, "## Owners")).toContain(
       '"Data Security: 2 new issues on orders-db"',
     );
+  });
+
+  it("says an alert ends with its issue, for the reasons the code gives, and an incident never does", () => {
+    const alerts: string = section(page, "## Alerts and on-call");
+    const incidents: string = section(page, "## Incidents");
+    const resolver: string = source(`${SERVER}/DataSecurityIssueAlerts.ts`);
+    const reconciler: string = source(
+      `${SERVER}/DataSecurityIssueReconciler.ts`,
+    );
+    const issueService: string = source(
+      "Common/Server/Services/DataSecurityIssueService.ts",
+    );
+    const integrations: string = source(
+      `${SERVER}/DataSecurityIntegrations.ts`,
+    );
+
+    // The check passing, and each of a person's three ways to close it.
+    expect(reconciler).toContain('"its check passes now"');
+    expect(issueService).toContain(
+      '[DataSecurityIssueStatus.Resolved]: "it was marked resolved"',
+    );
+    expect(issueService).toContain(
+      '[DataSecurityIssueStatus.Accepted]: "its risk was accepted"',
+    );
+    expect(issueService).toContain(
+      '[DataSecurityIssueStatus.NotAnIssue]: "it was marked not an issue"',
+    );
+    expect(alerts).toContain(
+      "once the issue is no longer open - its check passes, or a person marks it resolved, accepts its risk or says it is not an issue - the alert is resolved",
+    );
+    expect(resolver).toContain("AlertStateTimelineService.create(");
+    expect(resolver).not.toContain("IncidentStateTimeline");
+
+    // Incidents: deduplicated per issue like the alerts, never resolved.
+    expect(integrations).toContain("await openDedupedIncidents({");
+    expect(integrations).toContain(
+      "data.setting.declareIncidentsForCriticalIssues",
+    );
+    expect(incidents).toContain(
+      "An issue has at most one open incident at a time.",
+    );
+    expect(incidents).toContain("Data Security never resolves an incident");
+    expect(incidents).toContain(
+      "](/docs/telemetry/security-cases#declare-an-incident)",
+    );
+    expect(settingDefault("Declare Incidents")).toBe("false");
   });
 
   it("lists every Data Security record's API path", () => {

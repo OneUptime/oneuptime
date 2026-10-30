@@ -31,6 +31,9 @@ import DataSecurityIssueReconciler, {
   ReconciledIssue,
 } from "./DataSecurityIssueReconciler";
 import { FINDING_FRESHNESS_IN_DAYS } from "./DataSecurityFindingWriter";
+import DataSecurityIssueAlerts, {
+  ClosedDataSecurityIssue,
+} from "./DataSecurityIssueAlerts";
 import logger from "../Logger";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import Select from "../../Types/Database/Select";
@@ -184,6 +187,7 @@ export default class DataSecurityEvaluator {
       await this.readResidencyRules(projectId);
 
     const opened: Array<OpenedIssueForIntegrations> = [];
+    const closed: Array<ClosedDataSecurityIssue> = [];
 
     for (const store of stores) {
       const storeFacts: StoreFacts | undefined = facts.get(
@@ -210,6 +214,8 @@ export default class DataSecurityEvaluator {
         for (const issue of result.output.opened) {
           opened.push(this.forIntegrations(store, issue, result.sensitivity));
         }
+
+        closed.push(...result.output.closed);
       } catch (error) {
         logger.error(
           `DataSecurity: could not evaluate store ${store.id?.toString()}:`,
@@ -223,6 +229,14 @@ export default class DataSecurityEvaluator {
         projectId,
         setting,
         issues: opened,
+      });
+    }
+
+    // An alert ends with its issue: nobody is paged for a closed exposure.
+    if (closed.length > 0) {
+      await DataSecurityIssueAlerts.resolveForClosedIssues({
+        projectId,
+        issues: closed,
       });
     }
   }

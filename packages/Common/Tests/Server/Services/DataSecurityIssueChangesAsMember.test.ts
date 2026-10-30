@@ -5,6 +5,7 @@ import { OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import ColumnWriteRefusedException from "../../../Server/Types/Database/Permissions/ColumnWriteRefusedException";
 import * as DataSecurityJobs from "../../../Server/Utils/DataSecurity/DataSecurityJobs";
+import DataSecurityIssueAlerts from "../../../Server/Utils/DataSecurity/DataSecurityIssueAlerts";
 import logger from "../../../Server/Utils/Logger";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { DataSecurityIssueFeedEventType } from "../../../Models/DatabaseModels/DataSecurityIssueFeed";
@@ -101,6 +102,9 @@ describe("changing a data security issue", () => {
   let evaluationSpy: SpyInstance<
     typeof DataSecurityJobs.queueDataSecurityEvaluation
   >;
+  let closedAlertsSpy: SpyInstance<
+    typeof DataSecurityIssueAlerts.resolveForClosedIssues
+  >;
 
   function stored(column: string): unknown {
     return table.get(ISSUE_ID)?.[column];
@@ -136,6 +140,9 @@ describe("changing a data security issue", () => {
     evaluationSpy = jest
       .spyOn(DataSecurityJobs, "queueDataSecurityEvaluation")
       .mockResolvedValue(undefined);
+    closedAlertsSpy = jest
+      .spyOn(DataSecurityIssueAlerts, "resolveForClosedIssues")
+      .mockResolvedValue(0);
 
     table = useInMemoryTable(service, [
       {
@@ -223,6 +230,83 @@ describe("changing a data security issue", () => {
       );
     },
   );
+
+  test.each([
+    [DataSecurityIssueStatus.Resolved, "it was marked resolved"],
+    [DataSecurityIssueStatus.Accepted, "its risk was accepted"],
+    [DataSecurityIssueStatus.NotAnIssue, "it was marked not an issue"],
+  ])(
+    "an issue a person makes %s is no longer open: its alert is resolved, saying why",
+    async (status: DataSecurityIssueStatus, why: string) => {
+      await change(
+        {
+          status,
+          ...(status === DataSecurityIssueStatus.Accepted
+            ? {
+                acceptedReason: "Known and tracked.",
+                acceptedUntil: inAMonth(),
+              }
+            : {}),
+        },
+        member([Permission.SecurityMember]),
+      );
+
+      expect(closedAlertsSpy).toHaveBeenCalledTimes(1);
+      expect(closedAlertsSpy).toHaveBeenCalledWith({
+        projectId: PROJECT_ID,
+        issues: [{ issueId: new ObjectID(ISSUE_ID), why }],
+      });
+    },
+  );
+
+  test("opening it again, or assigning it, ends no alert", async () => {
+    const owner: DatabaseCommonInteractionProps = member([
+      Permission.ProjectOwner,
+    ]);
+
+    await change({ status: DataSecurityIssueStatus.Open }, owner);
+    await change({ assignedToUserId: owner.userId }, owner);
+
+    expect(closedAlertsSpy).not.toHaveBeenCalled();
+  });
+
+  test("a status it already has ends no alert: accepting an accepted risk again", async () => {
+    const owner: DatabaseCommonInteractionProps = member([
+      Permission.ProjectOwner,
+    ]);
+
+    await change(
+      {
+        status: DataSecurityIssueStatus.Accepted,
+        acceptedReason: "Known.",
+        acceptedUntil: inAMonth(),
+      },
+      owner,
+    );
+    closedAlertsSpy.mockClear();
+    await change(
+      {
+        status: DataSecurityIssueStatus.Accepted,
+        acceptedReason: "Still known.",
+        acceptedUntil: inAMonth(),
+      },
+      owner,
+    );
+
+    expect(closedAlertsSpy).not.toHaveBeenCalled();
+  });
+
+  test("OneUptime's own resolution, as root, leaves the alert to the evaluation that made it", async () => {
+    await change(
+      {
+        status: DataSecurityIssueStatus.Resolved,
+        resolvedAt: OneUptimeDate.getCurrentDate(),
+      },
+      { isRoot: true },
+    );
+
+    expect(closedAlertsSpy).not.toHaveBeenCalled();
+  });
 
   test("opening an accepted issue again clears what the acceptance said, and who made it", async () => {
     const owner: DatabaseCommonInteractionProps = member([

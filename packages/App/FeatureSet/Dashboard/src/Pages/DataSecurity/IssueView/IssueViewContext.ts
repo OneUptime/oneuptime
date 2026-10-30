@@ -53,6 +53,7 @@ export const DATA_SECURITY_ISSUE_VIEW_SELECT: Select<DataSecurityIssue> = {
   assignedToTeam: { name: true },
   securityCaseId: true,
   alertId: true,
+  incidentId: true,
   firstDetectedAt: true,
   lastDetectedAt: true,
   resolvedAt: true,

@@ -46,6 +46,7 @@ import FA from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 import DataSecurityRoutes from "../../../App/FeatureSet/Dashboard/src/Routes/DataSecurityRoutes";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import CloudConnection from "Common/Models/DatabaseModels/CloudConnection";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import DataSecurityCheckSetting from "Common/Models/DatabaseModels/DataSecurityCheckSetting";
@@ -66,6 +67,7 @@ import DataStoreFeed, {
 import DataStoreFinding from "Common/Models/DatabaseModels/DataStoreFinding";
 import DataStoreOwnerTeam from "Common/Models/DatabaseModels/DataStoreOwnerTeam";
 import DataStoreOwnerUser from "Common/Models/DatabaseModels/DataStoreOwnerUser";
+import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 import Project from "Common/Models/DatabaseModels/Project";
 import User from "Common/Models/DatabaseModels/User";
@@ -162,6 +164,10 @@ const ID = {
   flow: (n) => uuid("a0000000", n),
   setting: (n) => uuid("b0000000", n),
   owner: (n) => uuid("c0000000", n),
+  // The security case, alert and incident the Critical issue started.
+  securityCase: (n) => uuid("d0000000", n),
+  alert: (n) => uuid("e0000000", n),
+  incident: (n) => uuid("f0000000", n),
 };
 
 const fixture = {
@@ -453,6 +459,10 @@ table(DataSecurityIssue).push(
     dataTypeIds: ["credit-card-number", "email-address"],
     firstDetectedAt: ago(3 * DAY),
     lastDetectedAt: ago(2 * HOUR),
+    // What the project's settings started for it: a case, an alert, an incident.
+    securityCaseId: new ObjectID(ID.securityCase(1)),
+    alertId: new ObjectID(ID.alert(1)),
+    incidentId: new ObjectID(ID.incident(1)),
   }),
   issue(2, {
     dataStoreId: ID.store(2),
@@ -703,6 +713,40 @@ table(CodeRepository);
 // The label filters of the store lists: the project has no labels.
 table(Label);
 
+// What Settings > Scanning offers under Raise alerts and Declare incidents.
+table(AlertSeverity).push(
+  {
+    _id: uuid("e1000000", 1),
+    projectId,
+    name: "Critical",
+    order: 1,
+    isArchived: false,
+  },
+  {
+    _id: uuid("e1000000", 2),
+    projectId,
+    name: "Major",
+    order: 2,
+    isArchived: false,
+  },
+);
+table(IncidentSeverity).push(
+  {
+    _id: uuid("f1000000", 1),
+    projectId,
+    name: "SEV1",
+    order: 1,
+    isArchived: false,
+  },
+  {
+    _id: uuid("f1000000", 2),
+    projectId,
+    name: "SEV2",
+    order: 2,
+    isArchived: false,
+  },
+);
+
 table(DataSecuritySetting).push({
   _id: ID.setting(1),
   projectId,
@@ -711,7 +755,8 @@ table(DataSecuritySetting).push({
   isTelemetryScanEnabled: true,
   keepMaskedSamples: true,
   openCasesForCriticalIssues: true,
-  raiseAlertsForCriticalIssues: false,
+  raiseAlertsForCriticalIssues: true,
+  declareIncidentsForCriticalIssues: true,
   notifyOwners: true,
   contentScanIntervalInHours: 24,
 });

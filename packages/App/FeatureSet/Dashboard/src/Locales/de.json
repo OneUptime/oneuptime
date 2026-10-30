@@ -38414,5 +38414,9 @@
   "Open (status)": "Offen",
   "Number of records it holds": "Anzahl der Datensätze darin",
   "Production store": "Produktionsdatenspeicher",
-  "Security Operations saw activity on it this week": "Security Operations hat diese Woche Aktivität darauf gesehen"
+  "Security Operations saw activity on it this week": "Security Operations hat diese Woche Aktivität darauf gesehen",
+  "Declare Incidents": "Vorfälle melden",
+  "Declare an incident, which runs your incident process - on-call, status pages and a postmortem - when a Critical issue opens.": "Einen Vorfall melden, der Ihren Vorfallprozess startet - Bereitschaft, Statusseiten und ein Postmortem -, wenn ein kritisches Problem auftritt.",
+  "Declare incidents for Critical issues": "Vorfälle für kritische Probleme melden",
+  "The severity of the incidents declared. The project's most severe while none is picked.": "Der Schweregrad der gemeldeten Vorfälle. Der höchste Schweregrad des Projekts, solange keiner ausgewählt ist."
 }

@@ -112,6 +112,7 @@ const REOPENED_TIMES: PluralTemplate = {
 };
 const OPEN_SECURITY_CASE: string = translationKey("Security case");
 const OPEN_ALERT: string = translationKey("Alert");
+const OPEN_INCIDENT: string = translationKey("Incident");
 const NO_EVIDENCE: string = translationKey(
   "The check failed without recording more detail.",
 );
@@ -501,6 +502,7 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
     "";
   const securityCaseId: string = issue.securityCaseId?.toString() || "";
   const alertId: string = issue.alertId?.toString() || "";
+  const incidentId: string = issue.incidentId?.toString() || "";
 
   return (
     <>
@@ -640,8 +642,22 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
                   { modelId: new ObjectID(alertId) },
                 )}
               >
-                <Icon icon={IconProp.Alert} className="h-4 w-4" />
+                <Icon icon={IconProp.ExclaimationCircle} className="h-4 w-4" />
                 <span>{translator.translateText(OPEN_ALERT)}</span>
+              </AppLink>
+            ) : (
+              <></>
+            )}
+            {incidentId ? (
+              <AppLink
+                className="inline-flex items-center gap-1.5 font-medium text-indigo-600 hover:underline"
+                to={RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.INCIDENT_VIEW] as Route,
+                  { modelId: new ObjectID(incidentId) },
+                )}
+              >
+                <Icon icon={IconProp.Alert} className="h-4 w-4" />
+                <span>{translator.translateText(OPEN_INCIDENT)}</span>
               </AppLink>
             ) : (
               <></>
