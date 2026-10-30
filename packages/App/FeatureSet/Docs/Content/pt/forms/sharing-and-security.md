@@ -71,6 +71,7 @@ Cada solicitação passa por estas verificações, nesta ordem:
 6. Cada resposta precisa estar dentro dos limites de tamanho e se encaixar na pergunta — consulte [Criar um formulário](/docs/forms/building#limites-de-tamanho).
 7. O que as respostas e as configurações formam precisa poder ser criado: um incidente precisa de uma gravidade, um evento de um fim depois do início.
 8. Um envio precisa caber na cota por hora do formulário — consulte [Limites de taxa](#limites-de-taxa).
+9. Os arquivos precisam caber na cota por hora de arquivos do formulário, logo antes de serem guardados.
 
 O logotipo e o favicon de um formulário fazem parte do formulário: eles são enviados dentro da resposta que o abre, em base64, só depois de ela passar pelas quatro primeiras verificações, e nunca a partir de um endereço próprio. Ninguém consegue obtê-los sem o formulário, e nenhum arquivo pode ser obtido pelo id dele por meio de um formulário; os próprios arquivos continuam privados. Um formulário só mostra imagens enviadas no próprio projeto dele: um arquivo de outro projeto é recusado quando o formulário é salvo, e nunca é enviado à página dele.
 
@@ -109,6 +110,7 @@ Abrir um formulário e enviá-lo são limitados por endereço de rede, e o envio
 - **Abrir um formulário** — por formulário a partir de um endereço, e por endereço em todos os formulários, com folga para um escritório inteiro abrir o link ao mesmo tempo. Passando de qualquer um deles, a página mostra "Muitas solicitações. Tente novamente mais tarde." Se o limitador de taxa não puder ser alcançado, os formulários ainda abrem.
 - **Enviar, por endereço** — por formulário a partir de um endereço, e por endereço em todos os formulários. Passando de qualquer um deles, o remetente vê "Muitos relatos enviados da sua rede. Aguarde alguns minutos e tente novamente." Todos atrás de um mesmo endereço — uma rede de escritório, um gateway de VPN — compartilham esses limites, e todo envio conta, mesmo um que depois é recusado por uma resposta errada.
 - **Enviar, por formulário** — quantos registros um formulário pode criar em uma hora, de todos os endereços juntos, então mesmo envios de muitos endereços ao mesmo tempo só podem acionar você um número limitado de vezes por hora. Só conta um envio que passou por todas as outras verificações, logo antes de o registro dele ser criado. Passando desse limite, todos veem "Este formulário está recebendo envios demais no momento. Tente novamente mais tarde." até a janela acabar. **Redefinir link** começa o novo link com uma cota nova.
+- **Arquivos, por formulário** — quantos megabytes de arquivos um formulário pode receber em uma hora, de todos os endereços juntos. Só contam os arquivos de um envio que passou em todas as outras verificações, logo antes de serem guardados. Acima disso, um envio com arquivos é recusado com "Este formulário está recebendo arquivos demais no momento. Tente novamente mais tarde." até a janela terminar; um envio sem arquivos continua passando.
 
 Todo limite responde `429` com um cabeçalho `Retry-After`, em segundos, e a página diz ao remetente quando tentar de novo. As janelas são fixas, não móveis. Cada limite por endereço também conta juntos os endereços de um mesmo /64 IPv6, com dez vezes o seu número. Se o limitador de taxa não puder ser alcançado, os envios são recusados em vez de passarem sem contagem: a API responde `503`, e o remetente vê "Não é possível aceitar envios no momento. Tente novamente em alguns minutos."
 
@@ -124,6 +126,8 @@ Em uma instalação auto-hospedada, estas variáveis de ambiente do app do OneUp
 | `FORM_SUBMIT_RATE_LIMIT_PER_IP_PER_WINDOW` | `30` | Envios a partir de um endereço por janela, em todos os formulários. |
 | `FORM_SUBMIT_RATE_LIMIT_PER_FORM_WINDOW_SECONDS` | `3600` | A janela para o limite por formulário, em segundos. |
 | `FORM_SUBMIT_RATE_LIMIT_PER_FORM_PER_WINDOW` | `60` | Registros que um formulário pode criar por janela, de todos os endereços juntos. |
+| `FORM_SUBMIT_FILE_RATE_LIMIT_WINDOW_SECONDS` | `3600` | A janela do limite de arquivos por formulário, em segundos. |
+| `FORM_SUBMIT_FILE_RATE_LIMIT_MEGABYTES_PER_FORM_PER_WINDOW` | `200` | Megabytes de arquivos que um formulário pode receber por janela, de todos os endereços juntos. |
 
 Cada variável também lê o seu nome antigo, com `INCIDENT_FORM_` na frente em vez de `FORM_` — como `INCIDENT_FORM_SUBMIT_RATE_LIMIT_PER_FORM_PER_WINDOW` —, então uma instalação que ajustou os formulários de incidente mantém os seus limites; o novo nome prevalece quando os dois estão definidos. Nem o `config.env` nem os valores do chart do Helm os repassam: adicione-os você mesmo ao ambiente do contêiner `app` — com `app.extraEnv`, ou o `extraEnv` do chart inteiro, no chart do Helm, ou em um `docker-compose.override.yml` para o Docker Compose. `TRUSTED_PROXY_HOPS` decide qual endereço os limites por endereço contam.
 

@@ -190,7 +190,7 @@ flowchart TB
 
 | `source` | 询问的内容 |
 | --- | --- |
-| `Question` | 表单自己的问题，按 `type` 作答：`Text`、`LongText`、`Markdown`、`Number`、`Dropdown`、`MultiSelectDropdown`、`Boolean`、`Date` 或 `DateTime`。下拉列表会列出其 `dropdownOptions`，每行一个。 |
+| `Question` | 表单自己的问题，按 `type` 作答：`Text`、`LongText`、`Markdown`、`Number`、`Dropdown`、`MultiSelectDropdown`、`Boolean`、`Date`、`DateTime`、`File` 或 `MultipleFiles`。下拉列表会列出其 `dropdownOptions`，每行一个。 |
 | `TargetField` | 表单所创建内容的一个字段，由 `targetField` 指定：事件为 `title`、`description`、`incidentSeverityId`、`monitors`、`labels` 和 `impactStartedAt`；维护事件为 `title`、`description`、`startsAt`、`endsAt`、`monitors`、`statusPages` 和 `labels`。通过选择作答的字段会在 `allowedOptionIds` 中列出其提供的记录。 |
 | `TargetCustomField` | 事件或维护事件的某个自定义字段，由 `customFieldId` 指定。 |
 | `Submitter` | 提交者的 `Name` 或 `Email`，由 `submitterField` 指定。 |
@@ -246,6 +246,8 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
     "skip": 0
   }'
 ```
+
+文件问题的回答就是保存下来的文件，每个文件都带有 `fileId`、`name`、`fileType` 和 `size`。文件本身位于提交所创建的内容上：在其文件自定义字段中，或附加在其私密备注上。
 
 ### 工作流
 

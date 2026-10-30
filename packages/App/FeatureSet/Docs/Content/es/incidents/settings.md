@@ -225,8 +225,27 @@ Las definiciones viven en su propio modelo; los valores viven en el propio incid
 | **Fecha y hora**                        | Una fecha y una hora del día                          | Resolución prevista                                |
 | **Texto largo**                         | Varias líneas de texto sin formato                    | Usuarios o sistemas afectados, información adicional |
 | **Texto enriquecido (Markdown)**        | Texto con formato, en el editor de Markdown con su modo visual | Una solución temporal con enlaces y listas |
+| **Archivo** | Un archivo, soltado sobre el campo o elegido | Una solicitud de cambio firmada, una captura de pantalla |
+| **Varios archivos** | Hasta 10 archivos | Capturas de pantalla, registros y capturas de paquetes |
 
 **Texto largo** y **Texto enriquecido (Markdown)** están disponibles para los campos personalizados de todos los recursos, no solo de los incidentes. Un valor de texto enriquecido se guarda como el Markdown en el que se escribió. No hay tipo de botones de opción ni de grupo de casillas: usa un **Desplegable (selección única)**, un **Desplegable (selección múltiple)** o un **Booleano**.
+
+### Campos de archivo
+
+Un campo **Archivo** guarda un archivo y un campo **Varios archivos**, hasta 10. En la página **Campos personalizados** del incidente, suelta archivos sobre el campo o haz clic en él para elegirlos: **Reemplazar** cambia el archivo de un campo **Archivo** y **Eliminar** quita un archivo. La página muestra cada archivo con su nombre y su tamaño, y un clic sobre él lo descarga. Los campos personalizados de cualquier otro recurso aceptan archivos de la misma manera.
+
+| Qué | Límite |
+| --- | --- |
+| Un archivo | 10 MB |
+| Un campo **Varios archivos** | 10 archivos, 50 MB en total |
+| Tipos de archivo | Archivos PDF, Word, RTF, Excel, PowerPoint y OpenDocument, imágenes (PNG, JPEG, GIF, WebP, BMP, TIFF, AVIF y HEIC), texto plano, archivos Markdown, CSV y JSON, archivos ZIP y capturas de paquetes |
+
+- **Comprobado por lo que contiene.** Un archivo debe contener lo que dice su tipo, así que una página web renombrada como `report.pdf` se rechaza. No se aceptan imágenes SVG, porque pueden llevar scripts.
+- **Solo archivos de tu proyecto.** Un campo solo acepta archivos subidos en el propio proyecto del incidente.
+- **Se descargan, nunca se abren en la página.** Solo quien puede ver el incidente y sus campos personalizados puede descargar sus archivos.
+- **Nombrados, no enlazados, en todo lo demás.** La lista de incidentes y su exportación CSV, el feed, las plantillas de notas y los mensajes a suscriptores muestran un campo de archivo como los nombres de sus archivos. El filtro de la lista pregunta si el campo **Tiene archivos** o está **Sin archivos**. Slack y Microsoft Teams dejan los campos de archivo fuera de los campos personalizados que permiten editar: agrega los archivos en OneUptime.
+- **Se eliminan cuando nada los conserva.** Un archivo que se quita o se reemplaza, y los archivos de un incidente eliminado, se eliminan, salvo que otra cosa, como otro incidente o una plantilla, todavía los conserve.
+- **A través de la API y Terraform.** Sube el archivo con `POST /api/file` en el proyecto del incidente, enviando su `name`, su `fileType` y los bytes en base64 en `file`, y luego asigna al campo el `_id` que devuelve. El campo se lee como los archivos que guarda, cada uno con su `fileId`, `name`, `fileType` y `size`. En Terraform, escribe cada archivo como `{ fileId = oneuptime_file.contract.id }`, para que el plan coincida con lo que el campo devuelve.
 
 ### Obligatorio al crear solo lo comprueba el panel
 
@@ -271,6 +290,8 @@ Cuando un usuario o una clave de API crean o actualizan un incidente, cada valor
 | **Fecha**, **Fecha y hora**                                           | Una fecha, preferiblemente como texto ISO 8601.                |
 | **Desplegable (selección única)**                                     | Una de sus opciones.                                           |
 | **Desplegable (selección múltiple)**                                  | Una lista de sus opciones, o una sola opción por sí sola.      |
+| **Archivo** | El id de un archivo, o `{ "fileId": "<id>" }`, de un archivo subido en el proyecto del incidente. |
+| **Varios archivos** | Una lista de ellos, hasta 10, o uno solo. |
 
 Para un **Desplegable (selección múltiple)**, el rechazo nombra las 10 primeras entradas que no están entre sus opciones, y luego cuántas más hay.
 

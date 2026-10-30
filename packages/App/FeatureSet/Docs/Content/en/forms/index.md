@@ -190,7 +190,7 @@ Each question has an `id` of its own — letters, digits, `-` and `_` — a `sou
 
 | `source` | What it asks |
 | --- | --- |
-| `Question` | A question of the form's own, answered by `type`: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date` or `DateTime`. A dropdown lists its `dropdownOptions`, one per line. |
+| `Question` | A question of the form's own, answered by `type`: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date`, `DateTime`, `File` or `MultipleFiles`. A dropdown lists its `dropdownOptions`, one per line. |
 | `TargetField` | A field of what the form creates, named by `targetField`: `title`, `description`, `incidentSeverityId`, `monitors`, `labels` and `impactStartedAt` for an incident; `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages` and `labels` for a maintenance event. A field answered by choosing lists the records it offers in `allowedOptionIds`. |
 | `TargetCustomField` | One of the incident's or event's custom fields, named by `customFieldId`. |
 | `Submitter` | The submitter's `Name` or `Email`, named by `submitterField`. |
@@ -246,6 +246,8 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
     "skip": 0
   }'
 ```
+
+A file question's answer is the files as they were stored, each with its `fileId`, `name`, `fileType` and `size`. The files themselves are on what the submission created: in its file custom field, or attached to its private note.
 
 ### Workflows
 

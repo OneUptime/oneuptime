@@ -71,6 +71,7 @@ Elk verzoek doorloopt deze controles, in deze volgorde:
 6. Elk antwoord moet binnen de groottelimieten blijven en bij zijn vraag passen — zie [Een formulier bouwen](/docs/forms/building#groottelimieten).
 7. Wat de antwoorden en de instellingen opleveren, moet kunnen worden aangemaakt: een incident heeft een ernstniveau nodig, een gebeurtenis een einde na het begin.
 8. Een inzending moet binnen het uurtegoed van het formulier passen — zie [Snelheidslimieten](#snelheidslimieten).
+9. De bestanden moeten binnen het uurtegoed voor bestanden van het formulier passen, vlak voordat ze worden opgeslagen.
 
 Het logo en het favicon van een formulier horen bij het formulier: ze worden meegestuurd in het antwoord dat het opent, in base64, pas nadat het de eerste vier controles heeft doorstaan, en nooit vanaf een eigen adres. Niemand kan ze zonder het formulier ophalen, en geen enkel bestand kan via een formulier op zijn ID worden opgehaald; de bestanden zelf blijven privé. Een formulier toont alleen afbeeldingen die in zijn eigen project zijn geüpload: een bestand uit een ander project wordt geweigerd als het formulier wordt opgeslagen, en wordt nooit naar de pagina ervan gestuurd.
 
@@ -109,6 +110,7 @@ Een formulier openen en verzenden worden per netwerkadres beperkt, en verzenden 
 - **Een formulier openen** — per formulier vanaf één adres, en per adres over alle formulieren, met ruimte voor een heel kantoor dat de link tegelijk opent. Boven een van beide toont de pagina "Te veel verzoeken. Probeer het later opnieuw." Als de snelheidsbegrenzer niet bereikbaar is, openen formulieren nog steeds.
 - **Verzenden, per adres** — per formulier vanaf één adres, en per adres over alle formulieren. Boven een van beide ziet de inzender "Te veel meldingen vanaf je netwerk. Wacht een paar minuten en probeer het opnieuw." Iedereen achter één adres — een kantoornetwerk, een VPN-gateway — deelt deze limieten, en elke inzending telt, ook een die daarna wordt geweigerd om een verkeerd antwoord.
 - **Verzenden, per formulier** — hoeveel records één formulier in een uur mag aanmaken, vanaf alle adressen samen, zodat zelfs inzendingen vanaf veel adressen tegelijk je maar een beperkt aantal keren per uur kunnen oproepen. Alleen een inzending die elke andere controle doorstond, telt, vlak voordat haar record wordt aangemaakt. Daarboven ziet iedereen "Dit formulier ontvangt op dit moment te veel inzendingen. Probeer het later opnieuw." tot het venster voorbij is. **Link opnieuw instellen** start de nieuwe link met een vers tegoed.
+- **Bestanden, per formulier** — hoeveel megabyte aan bestanden één formulier in een uur mag aannemen, vanaf alle adressen samen. Alleen de bestanden van een inzending die elke andere controle heeft doorstaan tellen, vlak voordat ze worden opgeslagen. Daarboven wordt een inzending met bestanden geweigerd met "Dit formulier ontvangt op dit moment te veel bestanden. Probeer het later opnieuw." tot het venster voorbij is; een inzending zonder bestanden komt nog steeds door.
 
 Elke limiet antwoordt `429` met een header `Retry-After`, in seconden, en de pagina vertelt de inzender wanneer hij het opnieuw kan proberen. De vensters zijn vast, niet glijdend. Elke limiet per adres telt ook de adressen van één IPv6-/64 samen, met tien keer zijn getal. Als de snelheidsbegrenzer niet bereikbaar is, worden inzendingen geweigerd in plaats van ongeteld doorgelaten: de API antwoordt `503`, en de inzender ziet "Inzendingen kunnen op dit moment niet worden geaccepteerd. Probeer het over een paar minuten opnieuw."
 
@@ -124,6 +126,8 @@ Op een zelf gehoste installatie wijzigen deze omgevingsvariabelen van de OneUpti
 | `FORM_SUBMIT_RATE_LIMIT_PER_IP_PER_WINDOW` | `30` | Inzendingen vanaf één adres per venster, over alle formulieren. |
 | `FORM_SUBMIT_RATE_LIMIT_PER_FORM_WINDOW_SECONDS` | `3600` | Het venster voor de limiet per formulier, in seconden. |
 | `FORM_SUBMIT_RATE_LIMIT_PER_FORM_PER_WINDOW` | `60` | Records die één formulier per venster mag aanmaken, vanaf alle adressen samen. |
+| `FORM_SUBMIT_FILE_RATE_LIMIT_WINDOW_SECONDS` | `3600` | Het venster voor de bestandslimiet per formulier, in seconden. |
+| `FORM_SUBMIT_FILE_RATE_LIMIT_MEGABYTES_PER_FORM_PER_WINDOW` | `200` | Megabytes aan bestanden die één formulier per venster mag aannemen, vanaf alle adressen samen. |
 
 Elke variabele leest ook haar oude naam, met `INCIDENT_FORM_` ervoor in plaats van `FORM_` — zoals `INCIDENT_FORM_SUBMIT_RATE_LIMIT_PER_FORM_PER_WINDOW` —, zodat een installatie die incidentformulieren had afgesteld haar limieten houdt; de nieuwe naam wint als beide zijn ingesteld. Noch `config.env` noch de waarden van de Helm-chart geven ze door: voeg ze zelf toe aan de omgeving van de container `app` — met `app.extraEnv`, of de chartbrede `extraEnv`, in de Helm-chart, of in een `docker-compose.override.yml` voor Docker Compose. `TRUSTED_PROXY_HOPS` bepaalt welk adres de limieten per adres tellen.
 

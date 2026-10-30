@@ -225,8 +225,27 @@ Definities staan in een eigen model; de waarden staan op het incident zelf, in d
 | **Datum en tijd**                          | Een datum en een tijdstip                             | Verwachte oplossing                                |
 | **Lange tekst**                            | Meerdere regels platte tekst                          | Getroffen gebruikers of systemen, aanvullende informatie |
 | **Opgemaakte tekst (Markdown)**            | Opgemaakte tekst, in de Markdown-editor met zijn visuele modus | Een workaround met links en lijsten        |
+| **Bestand** | Eén bestand, op het veld neergezet of gekozen | Een ondertekend wijzigingsverzoek, een schermafbeelding |
+| **Meerdere bestanden** | Tot 10 bestanden | Schermafbeeldingen, logs en pakketopnames |
 
 **Lange tekst** en **Opgemaakte tekst (Markdown)** zijn beschikbaar voor de aangepaste velden van elk middel, niet alleen voor incidenten. Een waarde in opgemaakte tekst wordt opgeslagen als de Markdown waarin ze is geschreven. Er is geen type keuzerondjes of groep selectievakjes: gebruik een **Vervolgkeuzelijst (enkele keuze)**, een **Vervolgkeuzelijst (meerdere keuzes)** of een **Booleaans**.
+
+### Bestandsvelden
+
+Een veld **Bestand** bevat één bestand en een veld **Meerdere bestanden** tot 10. Zet op de pagina **Aangepaste velden** van het incident bestanden op het veld neer, of klik erop om ze te kiezen: **Vervangen** wisselt het bestand in een veld **Bestand**, en **Verwijderen** haalt een bestand weg. De pagina toont elk bestand met zijn naam en grootte, en een klik erop downloadt het. De aangepaste velden van elke andere resource nemen bestanden op dezelfde manier aan.
+
+| Wat | Limiet |
+| --- | --- |
+| Eén bestand | 10 MB |
+| Een veld **Meerdere bestanden** | 10 bestanden, samen 50 MB |
+| Soorten bestanden | PDF-, Word-, RTF-, Excel-, PowerPoint- en OpenDocument-bestanden, afbeeldingen (PNG, JPEG, GIF, WebP, BMP, TIFF, AVIF en HEIC), platte tekst, Markdown-, CSV- en JSON-bestanden, ZIP-archieven en pakketopnames |
+
+- **Gecontroleerd op wat het bevat.** Een bestand moet bevatten wat zijn type zegt, dus een webpagina die is hernoemd naar `report.pdf` wordt geweigerd. SVG-afbeeldingen worden niet aangenomen, omdat ze scripts kunnen bevatten.
+- **Alleen bestanden van je project.** Een veld neemt alleen bestanden aan die in het eigen project van het incident zijn geüpload.
+- **Gedownload, nooit in de pagina geopend.** Alleen wie het incident en zijn aangepaste velden mag zien, kan de bestanden ervan downloaden.
+- **Overal elders bij naam, niet als link.** De incidentenlijst en de CSV-export ervan, de feed, notitiesjablonen en berichten aan abonnees tonen een bestandsveld als de namen van zijn bestanden. Het filter van de lijst vraagt of het veld **Heeft bestanden** of **Geen bestanden** heeft. Slack en Microsoft Teams laten bestandsvelden weg uit de aangepaste velden die je er kunt bewerken: voeg bestanden toe in OneUptime.
+- **Verwijderd zodra niets ze meer vasthoudt.** Een bestand dat wordt verwijderd of vervangen, en de bestanden van een verwijderd incident, worden verwijderd, tenzij iets anders, zoals een ander incident of een sjabloon, ze nog vasthoudt.
+- **Via de API en Terraform.** Upload het bestand met `POST /api/file` in het project van het incident, met zijn `name`, zijn `fileType` en de bytes als base64 in `file`, en zet het veld daarna op de `_id` die terugkomt. Het veld leest terug als de bestanden die het bevat, elk met zijn `fileId`, `name`, `fileType` en `size`. Schrijf in Terraform elk bestand als `{ fileId = oneuptime_file.contract.id }`, zodat het plan overeenkomt met wat het veld teruggeeft.
 
 ### Verplicht bij aanmaken wordt alleen door het dashboard gecontroleerd
 
@@ -271,6 +290,8 @@ Als een gebruiker of een API-sleutel een incident aanmaakt of bijwerkt, moet elk
 | **Datum**, **Datum en tijd**                                       | Een datum, bij voorkeur als ISO 8601-tekst.                    |
 | **Vervolgkeuzelijst (enkele keuze)**                               | Een van zijn opties.                                           |
 | **Vervolgkeuzelijst (meerdere keuzes)**                            | Een lijst van zijn opties, of één optie op zichzelf.           |
+| **Bestand** | De id van een bestand, of `{ "fileId": "<id>" }`, van een bestand dat in het project van het incident is geüpload. |
+| **Meerdere bestanden** | Een lijst daarvan, tot 10, of één op zichzelf. |
 
 Bij een **Vervolgkeuzelijst (meerdere keuzes)** noemt de weigering de eerste 10 items die niet bij de opties horen, en daarna hoeveel er nog meer zijn.
 
