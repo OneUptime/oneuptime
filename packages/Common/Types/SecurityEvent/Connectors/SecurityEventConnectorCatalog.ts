@@ -636,9 +636,10 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       icon: IconProp.BuildingOffice,
       logo: ProviderLogo.GoogleWorkspace,
       docsPath: "/docs/integrations/google-workspace",
-      defaultPollIntervalInMinutes: 10,
+      defaultPollIntervalInMinutes: 5,
       supportsAlertingOnlyToggle: false,
-      importedRecordName: "activity",
+      // Drawn plural with an "s": Preview audit events, Read audit events.
+      importedRecordName: "audit event",
       /*
        * Google documents its audit logs as arriving minutes to hours after
        * the activity, by application: each poll re-reads the two hours
