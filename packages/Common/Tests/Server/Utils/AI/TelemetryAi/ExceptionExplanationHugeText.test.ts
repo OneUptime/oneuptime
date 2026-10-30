@@ -21,11 +21,21 @@ import path from "path";
  * HugeTextInLongRunningProcess.test.ts does. Only booleans come back.
  */
 
-const COMMON_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..", "..");
+const COMMON_ROOT: string = path.resolve(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "..",
+  "..",
+);
 
 interface Report {
   regexpOnItsOwn: boolean;
-  results: Record<string, { ok: boolean; checks?: Record<string, boolean>; error?: string }>;
+  results: Record<
+    string,
+    { ok: boolean; checks?: Record<string, boolean>; error?: string }
+  >;
 }
 
 function runUnoptimized(script: string): Report {

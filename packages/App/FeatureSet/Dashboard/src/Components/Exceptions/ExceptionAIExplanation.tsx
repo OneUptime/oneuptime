@@ -50,7 +50,8 @@ import { openAskAi } from "../AIChat/AskAiEvents";
  * message crafted to steer the model can exfiltrate nothing through it.
  */
 
-export const EXPLAIN_ROUTE_PREFIX: string = "/telemetry-exception/ai-explanation";
+export const EXPLAIN_ROUTE_PREFIX: string =
+  "/telemetry-exception/ai-explanation";
 
 const CONFIDENCE_LABELS: Record<ExceptionExplanationConfidence, string> = {
   [ExceptionExplanationConfidence.High]: translationKey("High confidence"),
@@ -70,11 +71,13 @@ const CONFIDENCE_CLASSES: Record<ExceptionExplanationConfidence, string> = {
 const CATEGORY_LABELS: Record<ExceptionExplanationCategory, string> = {
   [ExceptionExplanationCategory.Code]: translationKey("In the code"),
   [ExceptionExplanationCategory.Dependency]: translationKey("In a dependency"),
-  [ExceptionExplanationCategory.Infrastructure]:
-    translationKey("In the infrastructure"),
+  [ExceptionExplanationCategory.Infrastructure]: translationKey(
+    "In the infrastructure",
+  ),
   [ExceptionExplanationCategory.UserInput]: translationKey("Bad input"),
-  [ExceptionExplanationCategory.Configuration]:
-    translationKey("In the configuration"),
+  [ExceptionExplanationCategory.Configuration]: translationKey(
+    "In the configuration",
+  ),
   [ExceptionExplanationCategory.Unknown]: translationKey("Cause unclear"),
 };
 
@@ -194,9 +197,7 @@ const ExceptionAIExplanation: FunctionComponent<ComponentProps> = (
       >
         <div data-testid="exception-ai-explanation-empty">
           <Button
-            title={
-              isExplaining ? "Explaining…" : "Explain with OneUptime AI"
-            }
+            title={isExplaining ? "Explaining…" : "Explain with OneUptime AI"}
             icon={IconProp.Sparkles}
             buttonStyle={ButtonStyleType.PRIMARY}
             buttonSize={ButtonSize.Small}
@@ -209,9 +210,7 @@ const ExceptionAIExplanation: FunctionComponent<ComponentProps> = (
           />
           {isExplaining ? (
             <p className="mt-3 text-xs text-gray-500">
-              {translator.translateText(
-                "This can take up to a minute.",
-              )}
+              {translator.translateText("This can take up to a minute.")}
             </p>
           ) : (
             <></>
@@ -240,7 +239,9 @@ const ExceptionAIExplanation: FunctionComponent<ComponentProps> = (
             data-testid="exception-ai-explanation-confidence"
           >
             <Icon icon={IconProp.Sparkles} className="h-3 w-3" />
-            {translator.translateText(CONFIDENCE_LABELS[explanation.confidence])}
+            {translator.translateText(
+              CONFIDENCE_LABELS[explanation.confidence],
+            )}
           </span>
           <span
             className="inline-flex items-center rounded-full bg-gray-50 px-2.5 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/15"
@@ -297,7 +298,10 @@ const ExceptionAIExplanation: FunctionComponent<ComponentProps> = (
             </h3>
             <ul className="mt-1 space-y-0.5">
               {explanation.suspectFrames.map(
-                (frame: ExceptionExplanationFrame, index: number): ReactElement => {
+                (
+                  frame: ExceptionExplanationFrame,
+                  index: number,
+                ): ReactElement => {
                   return (
                     <li
                       key={`${frame.file}-${index}`}

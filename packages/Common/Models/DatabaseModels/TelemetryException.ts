@@ -1675,7 +1675,8 @@ export default class TelemetryException extends DatabaseBaseModel {
   })
   @TableColumn({
     title: "AI Explanation Generated At",
-    description: "When OneUptime AI last wrote its explanation of this exception.",
+    description:
+      "When OneUptime AI last wrote its explanation of this exception.",
     required: false,
     type: TableColumnType.Date,
     example: "2026-01-01T00:00:00.000Z",

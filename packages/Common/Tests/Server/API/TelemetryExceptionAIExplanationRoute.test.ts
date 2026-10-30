@@ -24,6 +24,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 jest.mock("../../../Server/Utils/Express", () => {
   return {
@@ -96,7 +97,7 @@ describe("POST ai-explanation", () => {
   });
 
   test("explains the exception as the caller, and answers with the explanation and its time", async () => {
-    const explain: jest.SpiedFunction<typeof ExceptionExplainer.explain> = jest
+    const explain: SpyInstance<typeof ExceptionExplainer.explain> = jest
       .spyOn(ExceptionExplainer, "explain")
       .mockResolvedValue({
         explanation: {
@@ -123,14 +124,16 @@ describe("POST ai-explanation", () => {
 
     expect(sent).toHaveLength(1);
     expect(sent[0]!["generatedAt"]).toBe(GENERATED_AT.toISOString());
-    expect(
-      (sent[0]!["explanation"] as JSONObject)["summary"],
-    ).toBe("Checkout fails when the cart is empty.");
+    expect((sent[0]!["explanation"] as JSONObject)["summary"]).toBe(
+      "Checkout fails when the cart is empty.",
+    );
   });
 
   test("a malformed id is refused before anything is read", async () => {
-    const explain: jest.SpiedFunction<typeof ExceptionExplainer.explain> =
-      jest.spyOn(ExceptionExplainer, "explain");
+    const explain: SpyInstance<typeof ExceptionExplainer.explain> = jest.spyOn(
+      ExceptionExplainer,
+      "explain",
+    );
 
     const next: NextFunction = await post("not-an-id");
 

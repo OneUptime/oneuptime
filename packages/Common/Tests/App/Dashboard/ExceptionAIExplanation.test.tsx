@@ -14,6 +14,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { Mock } from "jest-mock";
 import * as React from "react";
 import ExceptionAIExplanation, {
   EXPLAIN_ROUTE_PREFIX,
@@ -45,10 +46,12 @@ interface RequestArgs {
 }
 
 let aiOffered: boolean = true;
-const postMock: jest.Mock<(args: RequestArgs) => Promise<unknown>> = jest.fn();
-const navigateMock: jest.Mock<(route: Route) => void> = jest.fn();
-const openAskAiMock: jest.Mock<(request: { prompt?: string }) => void> =
-  jest.fn();
+const postMock: Mock<(args: RequestArgs) => Promise<unknown>> =
+  jest.fn<(args: RequestArgs) => Promise<unknown>>();
+const navigateMock: Mock<(route: Route) => void> =
+  jest.fn<(route: Route) => void>();
+const openAskAiMock: Mock<(request: { prompt?: string }) => void> =
+  jest.fn<(request: { prompt?: string }) => void>();
 const markdownProps: Array<{ text: string; safeMode?: boolean }> = [];
 
 jest.mock("../../../../App/FeatureSet/Dashboard/src/Utils/UseAiOffered", () => {
@@ -216,9 +219,9 @@ describe("the What happened card", () => {
     expect(
       screen.getByTestId("exception-ai-explanation-root-cause"),
     ).toHaveTextContent("`cart.items` is undefined after the 2.3.2 deploy.");
-    expect(screen.getByTestId("exception-ai-explanation-fix")).toHaveTextContent(
-      "Return early when the cart has no items.",
-    );
+    expect(
+      screen.getByTestId("exception-ai-explanation-fix"),
+    ).toHaveTextContent("Return early when the cart has no items.");
     expect(
       screen.getByTestId("exception-ai-explanation-frames"),
     ).toHaveTextContent("src/cart.ts:42 in checkout");
@@ -243,7 +246,9 @@ describe("the What happened card", () => {
     expect(
       screen.getByTestId("exception-ai-explanation-summary"),
     ).toHaveTextContent("Checkout fails when the cart is empty.");
-    expect(screen.getByText(/^Written by OneUptime AI .+\.$/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/^Written by OneUptime AI .+\.$/),
+    ).toBeInTheDocument();
     expect(postMock).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByTestId("exception-ai-explanation-regenerate"));

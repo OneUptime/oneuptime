@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import ExceptionExplainer, {
   EXCEPTION_EXPLANATION_FEATURE,
   ExceptionExplanationResult,
@@ -126,15 +127,15 @@ beforeEach(() => {
     .spyOn(AIService, "assertProjectAIEnabled")
     .mockResolvedValue(undefined as never);
 
-  jest
-    .spyOn(AIService, "executeWithLogging")
-    .mockImplementation((async (request: AILogRequest) => {
-      aiRequests.push(request);
-      return {
-        content: modelAnswer,
-        llmLog: new LlmLog(),
-      } as AILogResponse;
-    }) as never);
+  jest.spyOn(AIService, "executeWithLogging").mockImplementation((async (
+    request: AILogRequest,
+  ) => {
+    aiRequests.push(request);
+    return {
+      content: modelAnswer,
+      llmLog: new LlmLog(),
+    } as AILogResponse;
+  }) as never);
 
   jest.spyOn(AiContextReader, "read").mockResolvedValue(null as never);
   jest
@@ -155,59 +156,59 @@ beforeEach(() => {
       return [instance];
     }) as never);
 
-  jest
-    .spyOn(SpanService, "findBy")
-    .mockImplementation((async (args: { props: unknown }) => {
-      recordRead("spans", args.props);
-      const span: Span = new Span();
-      span.spanId = SPAN_ID;
-      span.name = "POST /checkout";
-      span.durationUnixNano = 1_500_000_000;
-      return [span];
-    }) as never);
+  jest.spyOn(SpanService, "findBy").mockImplementation((async (args: {
+    props: unknown;
+  }) => {
+    recordRead("spans", args.props);
+    const span: Span = new Span();
+    span.spanId = SPAN_ID;
+    span.name = "POST /checkout";
+    span.durationUnixNano = 1_500_000_000;
+    return [span];
+  }) as never);
 
-  jest
-    .spyOn(SpanService, "findOneBy")
-    .mockImplementation((async (args: { props: unknown }) => {
-      recordRead("exception span", args.props);
-      const span: Span = new Span();
-      span.attributes = {
-        "http.route": "/checkout",
-        "user.email": "priya@example.com",
-      };
-      return span;
-    }) as never);
+  jest.spyOn(SpanService, "findOneBy").mockImplementation((async (args: {
+    props: unknown;
+  }) => {
+    recordRead("exception span", args.props);
+    const span: Span = new Span();
+    span.attributes = {
+      "http.route": "/checkout",
+      "user.email": "priya@example.com",
+    };
+    return span;
+  }) as never);
 
-  jest
-    .spyOn(LogService, "findBy")
-    .mockImplementation((async (args: { props: unknown }) => {
-      recordRead("logs", args.props);
-      const log: Log = new Log();
-      log.body = "cart lookup returned nothing";
-      log.time = new Date("2026-10-30T10:59:59.000Z");
-      return [log];
-    }) as never);
+  jest.spyOn(LogService, "findBy").mockImplementation((async (args: {
+    props: unknown;
+  }) => {
+    recordRead("logs", args.props);
+    const log: Log = new Log();
+    log.body = "cart lookup returned nothing";
+    log.time = new Date("2026-10-30T10:59:59.000Z");
+    return [log];
+  }) as never);
 
-  jest
-    .spyOn(ChangeEventService, "findBy")
-    .mockImplementation((async (args: { props: unknown }) => {
-      recordRead("changes", args.props);
-      const change: ChangeEvent = new ChangeEvent();
-      change.time = new Date("2026-10-30T08:55:00.000Z");
-      change.eventType = "deployment";
-      change.title = "Deploy checkout-api 2.3.2";
-      change.attributes = { "service.version": "2.3.2" };
-      return [change];
-    }) as never);
+  jest.spyOn(ChangeEventService, "findBy").mockImplementation((async (args: {
+    props: unknown;
+  }) => {
+    recordRead("changes", args.props);
+    const change: ChangeEvent = new ChangeEvent();
+    change.time = new Date("2026-10-30T08:55:00.000Z");
+    change.eventType = "deployment";
+    change.title = "Deploy checkout-api 2.3.2";
+    change.attributes = { "service.version": "2.3.2" };
+    return [change];
+  }) as never);
 
-  jest
-    .spyOn(ServiceService, "findOneById")
-    .mockImplementation((async (args: { props: unknown }) => {
-      recordRead("service", args.props);
-      const service: Service = new Service();
-      service.name = "checkout-api";
-      return service;
-    }) as never);
+  jest.spyOn(ServiceService, "findOneById").mockImplementation((async (args: {
+    props: unknown;
+  }) => {
+    recordRead("service", args.props);
+    const service: Service = new Service();
+    service.name = "checkout-api";
+    return service;
+  }) as never);
 });
 
 afterEach(() => {
@@ -360,7 +361,7 @@ describe("explaining an exception", () => {
   });
 
   test("the lock is released whatever happens", async () => {
-    const release: jest.SpiedFunction<typeof Semaphore.release> = jest
+    const release: SpyInstance<typeof Semaphore.release> = jest
       .spyOn(Semaphore, "release")
       .mockResolvedValue(undefined as never);
     modelAnswer = "nothing";

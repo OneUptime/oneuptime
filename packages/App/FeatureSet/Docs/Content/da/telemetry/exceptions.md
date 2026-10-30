@@ -71,7 +71,7 @@ Sidens sidemenu samler det, du gør med en undtagelse:
 
 | Side | Hvad den viser |
 | --- | --- |
-| **Oversigt** | Beskeden, tjenesten, hvor ofte den skete, og hvornår den først og sidst blev set, dens udvikling over tid og dens seneste forekomst: release, miljø, span, spor og brugersession. |
+| **Oversigt** | Beskeden, tjenesten, hvor ofte den skete, og hvornår den først og sidst blev set, dens udvikling over tid og dens seneste forekomst: release, miljø, span, spor og brugersession. Øverst OneUptime AI's forklaring af, hvad der skete, når AI er slået til. |
 | **Stack trace** | Stakkens frames. For browserkode de oprindelige filer og linjer, når du har uploadet [Source maps](/docs/telemetry/source-maps) til releasen. |
 | **Occurrences** | Hver forekomst med dens tidspunkt, dens besked og det spor, den opstod i. |
 | **Context** | Den seneste forekomsts attributter, dens sessionsoptagelse, når der er en, og de trin, der førte til den. |
@@ -110,6 +110,22 @@ Hver undtagelse har en fejlklasse, der siger, hvis problem det er. OneUptime AI 
 | `expected-denial` | En kontrol, der gør sit arbejde, såsom et afvist login. | Nej |
 
 Med **Arkivér forventede undtagelser** slået til i indstillingerne for AI-indsigter arkiveres de undtagelser, som gennemgangen finder at være forventede afvisninger, for dig.
+
+## Forklar den med AI
+
+Øverst på en undtagelses **Oversigt** spørger **Forklar med OneUptime AI** OneUptime AI om, hvad der gik galt. Den læser stack trace, sporet og protokollerne for den seneste forekomst samt tjenestens udrulninger omkring det tidspunkt, hvor undtagelsen begyndte, og svarer på kortet **Hvad der skete**:
+
+| Del | Hvad den siger |
+| --- | --- |
+| **Hvad der skete** | En sætning eller to, hvor sikker OneUptime AI er, og hvor fejlen ligger: koden, en afhængighed, infrastrukturen, ugyldigt input eller konfigurationen. |
+| **Sandsynlig grundårsag** | Årsagen og den frame, det span, den logline eller den udrulning, der viser den. |
+| **Foreslået rettelse** | Hvad der skal ændres. |
+| **Hvor du skal kigge** | De frames i stack trace, du skal åbne først. |
+| **Næste trin** | Højst tre trin til at bekræfte eller rette den. |
+
+Forklaringen gemmes på undtagelsen, så den næste, der åbner den, læser den med det samme, og **Forklar igen** beder om en ny. **Åbn en pull request med rettelsen** åbner undtagelsens side **AI Assistance**, og **Stil et opfølgende spørgsmål** åbner Ask AI om undtagelsen.
+
+ID'er, e-mail- og IP-adresser samt tokens fjernes fra alt, hvad der sendes, og af et spans attributter sendes kun nogle få, såsom dets rute og statuskode. Forklaringen bruger projektets LLM-udbyder og AI-kreditter og tilbydes ikke, mens **Aktivér AI** er slået fra. Alle, der kan læse undtagelsen, kan bede om en.
 
 ## Ret den med AI
 

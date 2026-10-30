@@ -101,7 +101,9 @@ describe("the prompt", () => {
 
     expect(prompt).toContain("## Exception");
     expect(prompt).toContain("Type: TypeError");
-    expect(prompt).toContain("Where: checkout-api (OpenTelemetry), environment production");
+    expect(prompt).toContain(
+      "Where: checkout-api (OpenTelemetry), environment production",
+    );
     expect(prompt).toContain("Occurrences so far: 412");
     expect(prompt).toContain(
       "First seen: 2026-10-30T09:00:00.000Z in release 2.3.1",
@@ -146,7 +148,9 @@ describe("the prompt", () => {
 
     expect(prompt).toContain("## Logs written in that trace");
     expect(prompt).toContain("2026-10-30T11:54:59.000Z Error: cart lookup");
-    expect(prompt).toContain("## Deploys and changes around the time it started");
+    expect(prompt).toContain(
+      "## Deploys and changes around the time it started",
+    );
     expect(prompt).toContain(
       "deployment: Deploy checkout-api, version 2.3.1, commit 0123456789ab",
     );
@@ -318,9 +322,14 @@ describe("reading the answer", () => {
 
   test("an answer with no explanation in it is none", () => {
     expect(
-      parseExceptionExplanationResponse("I cannot help with that.", STACK_TRACE),
+      parseExceptionExplanationResponse(
+        "I cannot help with that.",
+        STACK_TRACE,
+      ),
     ).toBeNull();
-    expect(parseExceptionExplanationResponse("{not json}", STACK_TRACE)).toBeNull();
+    expect(
+      parseExceptionExplanationResponse("{not json}", STACK_TRACE),
+    ).toBeNull();
     expect(
       parseExceptionExplanationResponse('{"rootCause": "x"}', STACK_TRACE),
     ).toBeNull();

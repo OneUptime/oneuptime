@@ -587,7 +587,9 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
           <ExceptionAIExplanation
             telemetryExceptionId={props.telemetryExceptionId}
             aiExplanation={telemetryException.aiExplanation}
-            aiExplanationGeneratedAt={telemetryException.aiExplanationGeneratedAt}
+            aiExplanationGeneratedAt={
+              telemetryException.aiExplanationGeneratedAt
+            }
           />
           <ExceptionOccurrenceTrend
             fingerprint={telemetryException.fingerprint}
