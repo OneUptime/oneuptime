@@ -43,7 +43,8 @@ flowchart TB
 ### Разрешите делегирование на уровне домена
 
 1. В [консоли администратора Google](https://admin.google.com) от имени суперадминистратора откройте **Security → Access and data control → API controls → Manage domain-wide delegation** и выберите **Add new**.
-2. Введите **Unique ID** сервисного аккаунта как **Client ID** и `https://www.googleapis.com/auth/admin.reports.audit.readonly` как единственный **OAuth scope**. Выберите **Authorize**. Google может применять это несколько минут.
+2. Введите **Unique ID** сервисного аккаунта как **Client ID** и `https://www.googleapis.com/auth/admin.reports.audit.readonly` как **OAuth scope**. Выберите **Authorize**. Google может применять это несколько минут.
+3. Чтобы плейбуки могли блокировать и разблокировать пользователей и завершать их сеансы (см. [Сдерживание](/docs/telemetry/security-cases#сдерживание)), добавьте `https://www.googleapis.com/auth/admin.directory.user` и `https://www.googleapis.com/auth/admin.directory.user.security` в области того же клиента через запятую. Администратор, от имени которого действует подключение, должен тогда управлять этими пользователями.
 
 ### Добавьте подключение в OneUptime
 

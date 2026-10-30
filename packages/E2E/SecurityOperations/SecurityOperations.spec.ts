@@ -63,6 +63,10 @@ const RULE_LIBRARY_PATH: string = `${PRODUCT}/rule-library`;
 const ATTACK_COVERAGE_PATH: string = `${PRODUCT}/attack-coverage`;
 const PLAYBOOKS_PATH: string = `${PRODUCT}/playbooks`;
 const CONTAIN_PLAYBOOK_PATH: string = `${PRODUCT}/playbooks/24000000-0000-4000-8000-000000000003`;
+// Escalate Known-Bad Indicators: its two last steps run only when threat intel matched.
+const KNOWN_BAD_PLAYBOOK_PATH: string = `${PRODUCT}/playbooks/24000000-0000-4000-8000-000000000002`;
+// Contain Risky Sign-ins (the fixture's ?branching=1): an if and an else on threat intel.
+const BRANCHING_PLAYBOOK_PATH: string = `${PRODUCT}/playbooks/24000000-0000-4000-8000-000000000005`;
 // The runs held for an approval keep the runs page's old address.
 const RUNS_PATH: string = `${PRODUCT}/playbook-runs`;
 const ALL_RUNS_PATH: string = `${PRODUCT}/playbook-runs/all`;
@@ -87,6 +91,8 @@ const SPRAY_TRIAGE_RUN_ID: string = "29000000-0000-4000-8000-000000000142";
 // The fixture's two correlation rules, beside its six library rules.
 const SEQUENCE_RULE: string = "Spray, then a success";
 const FIRST_SEEN_RULE: string = "Admin console from a new address";
+// The team's rule that runs in real time (the fixture's ?realtime=1).
+const REAL_TIME_RULE: string = "Break-glass account signed in";
 
 // What a single rule counts by, which a correlation says in its YAML instead.
 const COUNTING_FIELDS: ReadonlyArray<RegExp> = [
@@ -197,6 +203,10 @@ interface OpenOptions {
   lang?: "de" | "es" | "fr" | "it" | "pt" | "nl" | "ru" | "ja" | "fa";
   // "custom": the project's own case statuses and priorities.
   values?: "custom";
+  // A rule of the team's own runs in real time (the fixture's ?realtime=1).
+  realtime?: boolean;
+  // A playbook that branches, and its two runs on CASE-139 (the fixture's ?branching=1).
+  branching?: boolean;
   // Case numbers, comma separated, whose every change the server refuses.
   refuse?: string;
   // ATT&CK Coverage's address: the view, and the tactic it opens on.
@@ -340,6 +350,12 @@ async function open(
   }
   if (options.riskiest) {
     params.set("riskiest", options.riskiest);
+  }
+  if (options.realtime) {
+    params.set("realtime", "1");
+  }
+  if (options.branching) {
+    params.set("branching", "1");
   }
   const query: string = params.toString();
   await page.goto(query ? `${pathname}?${query}` : pathname);
@@ -4807,7 +4823,15 @@ test.describe("playbooks", () => {
       isEnabled: true,
       trigger: "Detection Added",
     });
-    expect((created[0]!.data["steps"] as Array<unknown>).length).toBe(3);
+    const steps: Array<{ id: string; runIf?: unknown }> = created[0]!.data[
+      "steps"
+    ] as Array<{ id: string; runIf?: unknown }>;
+    expect(steps.length).toBe(3);
+    // Raising the priority and the status run only when threat intel matched.
+    expect(steps[0]!.runIf).toBeUndefined();
+    for (const later of steps.slice(1)) {
+      expect(later.runIf).toEqual({ stepId: steps[0]!.id, outcome: "Found" });
+    }
   });
 
   test("a template that cannot be added says why in the amber box, and picking it again adds it", async ({
@@ -4905,6 +4929,247 @@ test.describe("playbooks", () => {
   });
 
   /*
+   * A playbook that branches: Escalate Known-Bad Indicators raises the case
+   * only when threat intel found something. Each step that waits says so on
+   * its card, and the editor keeps the branch whole: the step waited on can
+   * neither move below the steps that wait on it nor go, and a step that
+   * waits cannot move above it - each locked item saying why.
+   */
+  test("a step that runs only after another's result says so, and the editor keeps the branch whole", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, KNOWN_BAD_PLAYBOOK_PATH);
+    await expect(page.getByTestId("security-playbook-step-0")).toBeVisible({
+      timeout: 30000,
+    });
+
+    await expect(
+      page.getByTestId("security-playbook-step-0-run-if"),
+    ).toHaveCount(0);
+    for (const index of [1, 2]) {
+      await expect(
+        page.getByTestId(`security-playbook-step-${index}-run-if`),
+      ).toHaveText("Only if step 1 found a known-bad entity");
+    }
+
+    // The step waited on: Move Down and Delete are locked, saying why.
+    await page.getByRole("button", { name: "Step 1 actions" }).click();
+    const moveDown: Locator = page.getByRole("menuitem", { name: "Move Down" });
+    const remove: Locator = page.getByRole("menuitem", { name: "Delete Step" });
+    await expect(moveDown).toHaveAttribute("aria-disabled", "true");
+    await expect(moveDown).toHaveAccessibleDescription(
+      "Step 2 waits on this step's result. Change Run This Step on step 2 first.",
+    );
+    await expect(remove).toHaveAttribute("aria-disabled", "true");
+    await expect(remove).toHaveAccessibleDescription(
+      "Step 2 waits on this step's result. Change Run This Step on step 2 first.",
+    );
+    await screenshot(page, "playbook-branch-locked-desktop", {
+      fullPage: false,
+    });
+    await page.keyboard.press("Escape");
+
+    // A step that waits stays below the step it waits on.
+    await page.getByRole("button", { name: "Step 2 actions" }).click();
+    const moveUp: Locator = page.getByRole("menuitem", { name: "Move Up" });
+    await expect(moveUp).toHaveAttribute("aria-disabled", "true");
+    await expect(moveUp).toHaveAccessibleDescription(
+      "This step waits on step 1's result, so it stays below step 1.",
+    );
+    // ...and can still go: nothing waits on it.
+    await expect(
+      page.getByRole("menuitem", { name: "Delete Step" }),
+    ).not.toHaveAttribute("aria-disabled", "true");
+    await page.keyboard.press("Escape");
+
+    await screenshot(page, "playbook-branch-desktop");
+  });
+
+  /*
+   * Run This Step is the one picker a branch is set with: under More fields
+   * (most steps always run), each result of each step before it a choice,
+   * worded as the step's card words it. Picking Always lets the step run
+   * whatever came before it, and the card's line goes.
+   */
+  test("Run This Step waits under More fields, offers each result of the steps before it, and Always lets a step run whatever came before", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, KNOWN_BAD_PLAYBOOK_PATH);
+    await expect(page.getByTestId("security-playbook-step-2")).toBeVisible({
+      timeout: 30000,
+    });
+    await page.getByRole("button", { name: "Step 3 actions" }).click();
+    await page.getByRole("menuitem", { name: "Edit Step" }).click();
+
+    const dialog: Locator = page.getByRole("dialog").first();
+    await expect(dialog).toBeVisible();
+    // Folded: most steps run always.
+    await expect(
+      dialog.getByRole("combobox", { name: /^Run This Step/ }),
+    ).toHaveCount(0);
+    await dialog.getByRole("button", { name: /More fields/ }).click();
+
+    const runIf: Locator = dialog.getByRole("combobox", {
+      name: /^Run This Step/,
+    });
+    await expect(runIf).toBeVisible();
+    await expect(
+      dialog
+        .locator(".ou-select__single-value")
+        .filter({ hasText: "Only if step 1" }),
+    ).toHaveText(
+      "Only if step 1 (Check entities against threat intel) found a known-bad entity",
+    );
+    await expect(
+      dialog.getByText("Carry On If It Fails").first(),
+    ).toBeVisible();
+    await screenshot(page, "playbook-run-this-step-desktop", {
+      fullPage: false,
+    });
+
+    // Always, then each result of each step before it: two, for a lookup.
+    await runIf.click();
+    await expect(page.locator(".ou-select__option")).toHaveText([
+      "Always",
+      "Only if step 1 (Check entities against threat intel) found a known-bad entity",
+      "Only if step 1 (Check entities against threat intel) found nothing known-bad",
+      "Only if step 2 (Set the priority) succeeded",
+    ]);
+    await page
+      .locator(".ou-select__option", { hasText: "Always" })
+      .first()
+      .click();
+    await expect(dialog.getByTestId("modal-footer-submit-button")).toHaveText(
+      "Save Step",
+    );
+    await dialog.getByTestId("modal-footer-submit-button").click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    // The step runs whatever came before it; step 2 still waits.
+    await expect(
+      page.getByTestId("security-playbook-step-2-run-if"),
+    ).toHaveCount(0);
+    await expect(
+      page.getByTestId("security-playbook-step-1-run-if"),
+    ).toHaveText("Only if step 1 found a known-bad entity");
+    const saved: Array<{ data: Record<string, unknown> }> = await page.evaluate(
+      (): Array<{ data: Record<string, unknown> }> => {
+        return JSON.parse(
+          JSON.stringify(
+            (
+              window as unknown as {
+                __securityOperationsFixture: {
+                  updates: Array<{
+                    modelName: string;
+                    data: Record<string, unknown>;
+                  }>;
+                };
+              }
+            ).__securityOperationsFixture.updates.filter(
+              (update: { modelName: string }): boolean => {
+                return update.modelName === "SecurityPlaybook";
+              },
+            ),
+          ),
+        );
+      },
+    );
+    expect(saved).toHaveLength(1);
+    const steps: Array<{ runIf?: unknown }> = saved[0]!.data["steps"] as Array<{
+      runIf?: unknown;
+    }>;
+    expect(steps[2]!.runIf).toBeUndefined();
+    expect(steps[1]!.runIf).toBeDefined();
+  });
+
+  /*
+   * A run of a playbook that branches (the fixture's ?branching=1): Contain
+   * Risky Sign-ins ran twice on CASE-139. Where threat intel knew nothing of
+   * the user, the run skipped the containment, and each skipped step says
+   * what it waits on in the step card's own words, as a chip in the
+   * reader's language - not the server's English sentence - and claims no
+   * approval it never asked for. Where it knew the user, the else was
+   * skipped, and the user it disabled in Microsoft Entra ID and suspended
+   * in Google Workspace can be given access back: Enable, Unsuspend.
+   */
+  test("a branching playbook's runs say why each skipped step did not run, and offer Enable and Unsuspend", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const user: string = "k.morgan@acme-commerce.example";
+
+    await open(page, BRANCHING_PLAYBOOK_PATH, { branching: true });
+    const runs: Locator = page.getByTestId("security-playbook-run-card");
+    await expect(runs).toHaveCount(2, { timeout: 30000 });
+    for (const run of await runs.all()) {
+      await run.getByTestId("security-playbook-run-steps-toggle").click();
+    }
+
+    // The latest run: threat intel knew the user. Contained; the else skipped.
+    const contained: Locator = runs.first();
+    await expect(
+      contained.getByTestId("security-playbook-run-step-3-run-if"),
+    ).toHaveText("Only if step 1 found nothing known-bad");
+    await expect(
+      contained
+        .getByTestId("security-playbook-run-step-1")
+        .getByTestId(`security-playbook-undo-${user}`),
+    ).toHaveText("Enable");
+    await expect(
+      contained
+        .getByTestId("security-playbook-run-step-2")
+        .getByTestId(`security-playbook-undo-${user}`),
+    ).toHaveText("Unsuspend");
+    // The containment that ran still says it needed an approval.
+    await expect(
+      contained.getByTestId("security-playbook-run-step-1"),
+    ).toContainText("Needs approval");
+
+    // The first run: threat intel knew nothing. No containment, the tasks instead.
+    const quiet: Locator = runs.nth(1);
+    for (const index of [1, 2]) {
+      const row: Locator = quiet.getByTestId(
+        `security-playbook-run-step-${index}`,
+      );
+      await expect(
+        row.getByTestId(`security-playbook-run-step-${index}-run-if`),
+      ).toHaveText("Only if step 1 found a known-bad entity");
+      await expect(row).toContainText("Skipped");
+      await expect(row).not.toContainText("Needs approval");
+    }
+    await expect(
+      quiet.getByTestId("security-playbook-run-step-3"),
+    ).toContainText("Added 2 tasks.");
+    await expect(page.getByText(/Skipped: it runs only if/)).toHaveCount(0);
+    await screenshot(page, "playbook-branch-runs-desktop");
+
+    // In German, the chip says it as the German step card does.
+    await open(page, BRANCHING_PLAYBOOK_PATH, { branching: true, lang: "de" });
+    await expect(runs).toHaveCount(2, { timeout: 30000 });
+    await runs.nth(1).getByTestId("security-playbook-run-steps-toggle").click();
+    await expect(
+      runs.nth(1).getByTestId("security-playbook-run-step-1-run-if"),
+    ).toHaveText(
+      "Nur wenn Schritt 1 eine bekannt bösartige Entität gefunden hat",
+    );
+
+    // On a phone, nothing runs off the side.
+    await open(page, BRANCHING_PLAYBOOK_PATH, { branching: true, width: 390 });
+    await expect(runs).toHaveCount(2, { timeout: 30000 });
+    await runs.nth(1).getByTestId("security-playbook-run-steps-toggle").click();
+    await expect(
+      runs.nth(1).getByTestId("security-playbook-run-step-2-run-if"),
+    ).toBeVisible();
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await screenshot(page, "playbook-branch-runs-phone");
+  });
+
+  /*
    * A step's dialog was titled "Edit Step 4", joined from English pieces,
    * over "Add a note: Write a note on the case: ..." - on every page. It is
    * named by the step's place and what it does, as a run lists its steps,
@@ -4928,7 +5193,7 @@ test.describe("playbooks", () => {
     const dialog: Locator = page.getByRole("dialog").first();
 
     await expect(dialog).toContainText(
-      "Eine Notiz zum Fall schreiben: eine Checkliste",
+      "Eine Notiz zum Fall schreiben: Kontext für",
     );
     await expect(dialog).not.toContainText("Edit Step");
     await expect(dialog).not.toContainText("Write a note on the case");
@@ -6765,6 +7030,106 @@ test.describe("detection rules and threat intel", () => {
 
     expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
     await screenshot(page, "detection-rules-desktop", { fullPage: false });
+  });
+
+  /*
+   * A rule that fires on one event can check each event as it arrives: Run
+   * in Real Time, under More fields on On Match, off on a new rule. A
+   * real-time rule runs on no interval - the form's interval goes, and the
+   * list says Real time where a scheduled rule's Status and Interval read.
+   */
+  test("a rule that runs in real time says Real time in its Status and Interval, and the form offers it under More fields", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, DETECTION_RULES_PATH, { realtime: true });
+    const realTime: Locator = rowNamed(page, REAL_TIME_RULE);
+    await expect(realTime).toBeVisible({ timeout: 30000 });
+
+    await expect(realTime).toContainText("Real time");
+    await expect(realTime.getByTestId("detection-rule-type")).toHaveText(
+      "Single event",
+    );
+    // A scheduled rule's Status says otherwise.
+    await expect(rowNamed(page, SEQUENCE_RULE)).not.toContainText("Real time");
+    await screenshot(page, "detection-rules-real-time-desktop", {
+      fullPage: false,
+    });
+
+    await page
+      .getByRole("button", { name: "Create Detection Rule", exact: true })
+      .click();
+    await dialog(page)
+      .getByRole("textbox", { name: /^Sigma Rule \(YAML\)/ })
+      .fill(SINGLE_RULE_YAML);
+    await dialog(page)
+      .getByRole("button", { name: "Next", exact: true })
+      .click();
+    await dialog(page)
+      .getByRole("button", { name: /More fields/ })
+      .click();
+
+    const toggle: Locator = dialog(page).getByRole("switch", {
+      name: /^Run in Real Time/,
+    });
+    await expect(toggle).toHaveAttribute("aria-checked", "false");
+    await expect(
+      dialog(page)
+        .getByText(/^Evaluation Interval \(Minutes\)/)
+        .first(),
+    ).toBeVisible();
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-checked", "true");
+    // A real-time rule runs on no interval.
+    await expect(
+      dialog(page).getByText(/^Evaluation Interval \(Minutes\)/),
+    ).toHaveCount(0);
+    await screenshot(page, "detection-rule-real-time-form-desktop", {
+      fullPage: false,
+    });
+
+    /*
+     * A threshold above 1 waits for a count of matches: the switch says so,
+     * and what to change, before anything is saved.
+     */
+    const threshold: Locator = dialog(page).getByRole("spinbutton", {
+      name: /^Match Count Threshold/,
+    });
+    const why: Locator = dialog(page).getByText(
+      "It waits for a count of matches, so it runs on its interval: set Match Count Threshold to 1 to run it in real time.",
+    );
+    await threshold.fill("5");
+    await threshold.blur();
+    await expect(why).toBeVisible();
+    await dialog(page).getByTestId("modal-footer-submit-button").click();
+    await expect(why).toBeVisible();
+    expect(
+      (await fixture(page)).creates.filter(
+        (create: { modelName: string }): boolean => {
+          return create.modelName === "DetectionRule";
+        },
+      ),
+    ).toHaveLength(0);
+    await screenshot(page, "detection-rule-real-time-refused-desktop", {
+      fullPage: false,
+    });
+    await threshold.fill("1");
+    await threshold.blur();
+    await expect(why).toHaveCount(0);
+
+    await dialog(page).getByTestId("modal-footer-submit-button").click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    const created: Array<{ data: Record<string, unknown> }> = (
+      await fixture(page)
+    ).creates.filter((create: { modelName: string }): boolean => {
+      return create.modelName === "DetectionRule";
+    });
+    expect(created).toHaveLength(1);
+    expect(created[0]!.data).toMatchObject({
+      name: "Failed sign-in burst",
+      isRealTime: true,
+    });
   });
 
   test("Detection Rules fits a laptop's width: no row scrolls sideways, and Last Match says how long ago", async ({

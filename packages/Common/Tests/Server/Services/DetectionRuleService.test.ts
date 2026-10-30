@@ -6,7 +6,7 @@ import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import { DETECTION_RULE_NAME_MAX_LENGTH } from "../../../Types/SecurityEvent/DetectionRuleName";
-import { describe, expect, test } from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
  * DetectionRuleService parses AND compiles the Sigma rule at save time, so
@@ -49,6 +49,26 @@ type HookCaller = {
 };
 
 const service: HookCaller = DetectionRuleService as unknown as HookCaller;
+
+/*
+ * An update that could stop a real-time rule from running so - a threshold
+ * above 1, a distinct count field - reads the rows it writes to see whether
+ * they run in real time (DetectionRuleServiceRealTime): here, a scheduled one.
+ */
+function givenScheduledRows(): void {
+  const row: DetectionRule = new DetectionRule();
+  row._id = "22222222-2222-4222-8222-222222222222";
+  row.projectId = PROJECT_ID;
+  row.isRealTime = false;
+
+  jest
+    .spyOn(DetectionRuleService, "findRowsAndHoldUpdateToThem")
+    .mockResolvedValue([row] as never);
+}
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
 
 function buildRule(
   options: {
@@ -378,6 +398,8 @@ describe("DetectionRuleService.onBeforeUpdate", () => {
   });
 
   test("an update with a valid matchCountThreshold passes", async () => {
+    givenScheduledRows();
+
     await expect(
       service.onBeforeUpdate(buildUpdateBy({ matchCountThreshold: 42 })),
     ).resolves.toBeDefined();
@@ -421,6 +443,8 @@ describe("DetectionRuleService field-name trimming", () => {
   });
 
   test("update trims field names and collapses whitespace-only to the cleared value", async () => {
+    givenScheduledRows();
+
     const result: OnUpdate<DetectionRule> = await service.onBeforeUpdate(
       buildUpdateBy({
         groupByField: "  ",

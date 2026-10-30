@@ -27,6 +27,7 @@ import SecurityPlaybookRunStatus, {
   SecurityPlaybookStepStatus,
 } from "../../../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import { SecurityPlaybookStep } from "../../../../Types/SecurityPlaybook/SecurityPlaybookStep";
+import { SecurityPlaybookStepOutcome } from "../../../../Types/SecurityPlaybook/SecurityPlaybookStepCondition";
 import {
   SecurityPlaybookApprovalDecision,
   SecurityPlaybookStepResult,
@@ -692,5 +693,335 @@ describe("SecurityPlaybookEngine.executeRun", () => {
 
     expect(executed).toEqual([SecurityPlaybookActionType.CheckThreatIntel]);
     expect(state.status).toBe(SecurityPlaybookRunStatus.Cancelled);
+  });
+});
+
+/*
+ * BRANCHING: a step that waits on an earlier step's result runs only on
+ * that result, and says so when it does not - before it asks for an
+ * approval or picks a target.
+ */
+describe("SecurityPlaybookEngine: a step that waits on an earlier step's result", () => {
+  // A Check Threat Intel step that found something, or found nothing.
+  function checkFound(found: boolean): void {
+    outcomes.push({
+      status: SecurityPlaybookStepStatus.Succeeded,
+      summary: found
+        ? mdText`1 entity is known-bad.`
+        : mdText`None is known-bad.`,
+      found,
+      ...(found ? { threatIntelMatched: true } : {}),
+    });
+  }
+
+  // Check threat intel; on a match suspend the user, else leave a note: an if and an else.
+  function ifElse(): Array<SecurityPlaybookStep> {
+    const check: SecurityPlaybookStep = step(
+      SecurityPlaybookActionType.CheckThreatIntel,
+    );
+
+    return [
+      check,
+      step(SecurityPlaybookActionType.SuspendOktaUser, {
+        ...RUNS_WITHOUT_APPROVAL,
+        runIf: {
+          stepId: check.id,
+          outcome: SecurityPlaybookStepOutcome.Found,
+        },
+      }),
+      step(SecurityPlaybookActionType.AddCaseNote, {
+        runIf: {
+          stepId: check.id,
+          outcome: SecurityPlaybookStepOutcome.FoundNothing,
+        },
+      }),
+    ];
+  }
+
+  test("on a match it runs the if and skips the else, saying which result the else waited on", async () => {
+    checkFound(true);
+    useRun(ifElse());
+
+    await SecurityPlaybookEngine.executeRun(RUN_ID);
+
+    expect(executed).toEqual([
+      SecurityPlaybookActionType.CheckThreatIntel,
+      SecurityPlaybookActionType.SuspendOktaUser,
+    ]);
+    expect(
+      state.stepResults.map((result: SecurityPlaybookStepResult) => {
+        return result.status;
+      }),
+    ).toEqual([
+      SecurityPlaybookStepStatus.Succeeded,
+      SecurityPlaybookStepStatus.Succeeded,
+      SecurityPlaybookStepStatus.Skipped,
+    ]);
+    expect(state.stepResults[2]!.message).toBe(
+      "Skipped: it runs only if step 1 (Check entities against threat intel) found nothing known-bad.",
+    );
+    // What the check found is kept on its result, for the steps after it.
+    expect(state.stepResults[0]!.found).toBe(true);
+    expect(state.status).toBe(SecurityPlaybookRunStatus.Succeeded);
+  });
+
+  test("with nothing found it skips the if and runs the else", async () => {
+    checkFound(false);
+    useRun(ifElse());
+
+    await SecurityPlaybookEngine.executeRun(RUN_ID);
+
+    expect(executed).toEqual([
+      SecurityPlaybookActionType.CheckThreatIntel,
+      SecurityPlaybookActionType.AddCaseNote,
+    ]);
+    expect(state.stepResults[1]!.status).toBe(
+      SecurityPlaybookStepStatus.Skipped,
+    );
+    expect(state.stepResults[1]!.message).toBe(
+      "Skipped: it runs only if step 1 (Check entities against threat intel) found a known-bad entity.",
+    );
+    expect(state.stepResults[0]!.found).toBe(false);
+    // Nothing was picked for a step that did not run.
+    expect(spies.selectTargets).not.toHaveBeenCalled();
+  });
+
+  test("a containment step whose condition does not hold never asks for approval", async () => {
+    checkFound(false);
+
+    const check: SecurityPlaybookStep = step(
+      SecurityPlaybookActionType.CheckThreatIntel,
+    );
+
+    useRun([
+      check,
+      step(SecurityPlaybookActionType.SuspendOktaUser, {
+        requiresApproval: true,
+        runIf: {
+          stepId: check.id,
+          outcome: SecurityPlaybookStepOutcome.Found,
+        },
+      }),
+    ]);
+
+    await SecurityPlaybookEngine.executeRun(RUN_ID);
+
+    expect(state.status).toBe(SecurityPlaybookRunStatus.Succeeded);
+    expect(state.stepResults[1]!.status).toBe(
+      SecurityPlaybookStepStatus.Skipped,
+    );
+    expect(
+      feedItems.some((item: { eventType: string }) => {
+        return item.eventType === SecurityCaseFeedEventType.ApprovalRequested;
+      }),
+    ).toBe(false);
+    expect(
+      spies.enqueue.mock.calls.filter((call: Array<unknown>): boolean => {
+        return call[2] === SECURITY_CASE_NOTIFICATION_JOB;
+      }),
+    ).toEqual([]);
+  });
+
+  test("a containment step whose condition holds still waits for its approval", async () => {
+    checkFound(true);
+
+    const check: SecurityPlaybookStep = step(
+      SecurityPlaybookActionType.CheckThreatIntel,
+    );
+
+    useRun([
+      check,
+      step(SecurityPlaybookActionType.SuspendOktaUser, {
+        requiresApproval: true,
+        runIf: {
+          stepId: check.id,
+          outcome: SecurityPlaybookStepOutcome.Found,
+        },
+      }),
+    ]);
+
+    await SecurityPlaybookEngine.executeRun(RUN_ID);
+
+    expect(state.status).toBe(SecurityPlaybookRunStatus.WaitingForApproval);
+    expect(state.currentStepIndex).toBe(1);
+  });
+
+  test("an approved step after the approval still reads the result it waits on", async () => {
+    const check: SecurityPlaybookStep = step(
+      SecurityPlaybookActionType.CheckThreatIntel,
+    );
+    const steps: Array<SecurityPlaybookStep> = [
+      check,
+      step(SecurityPlaybookActionType.SuspendOktaUser, {
+        requiresApproval: true,
+        runIf: {
+          stepId: check.id,
+          outcome: SecurityPlaybookStepOutcome.Found,
+        },
+      }),
+      step(SecurityPlaybookActionType.AddCaseNote, {
+        runIf: {
+          stepId: check.id,
+          outcome: SecurityPlaybookStepOutcome.FoundNothing,
+        },
+      }),
+    ];
+    const results: Array<SecurityPlaybookStepResult> =
+      buildPendingStepResults(steps);
+
+    // As the run was stored when it stopped: the check found something.
+    results[0] = {
+      ...results[0]!,
+      status: SecurityPlaybookStepStatus.Succeeded,
+      found: true,
+    };
+    results[1]!.approval = {
+      decision: SecurityPlaybookApprovalDecision.Approved,
+      decidedByUserId: "u1",
+      decidedAt: "2026-10-14T09:00:00.000Z",
+    };
+
+    useRun(steps, {
+      stepResults: results,
+      currentStepIndex: 1,
+      threatIntelMatched: true,
+    });
+
+    await SecurityPlaybookEngine.executeRun(RUN_ID);
+
+    expect(executed).toEqual([SecurityPlaybookActionType.SuspendOktaUser]);
+    expect(state.stepResults[2]!.status).toBe(
+      SecurityPlaybookStepStatus.Skipped,
+    );
+    expect(state.status).toBe(SecurityPlaybookRunStatus.Succeeded);
+  });
+
+  test("a step that waits on a failure runs only when the step it waits on failed and carried on", async () => {
+    outcomes.push({
+      status: SecurityPlaybookStepStatus.Failed,
+      summary: FeedMarkdown.empty(),
+      error: "Okta said no",
+    });
+
+    const suspend: SecurityPlaybookStep = step(
+      SecurityPlaybookActionType.SuspendOktaUser,
+      { ...RUNS_WITHOUT_APPROVAL, continueOnFailure: true },
+    );
+
+    useRun([
+      suspend,
+      step(SecurityPlaybookActionType.PostToSlack, {
+        runIf: {
+          stepId: suspend.id,
+          outcome: SecurityPlaybookStepOutcome.Failed,
+        },
+      }),
+      step(SecurityPlaybookActionType.AddCaseNote, {
+        runIf: {
+          stepId: suspend.id,
+          outcome: SecurityPlaybookStepOutcome.Succeeded,
+        },
+      }),
+    ]);
+
+    await SecurityPlaybookEngine.executeRun(RUN_ID);
+
+    expect(executed).toEqual([
+      SecurityPlaybookActionType.SuspendOktaUser,
+      SecurityPlaybookActionType.PostToSlack,
+    ]);
+    expect(state.stepResults[2]!.message).toBe(
+      "Skipped: it runs only if step 1 (Suspend the user in Okta) succeeded.",
+    );
+    expect(state.status).toBe(SecurityPlaybookRunStatus.Succeeded);
+  });
+
+  test("a step that waits on a step that was skipped does not run either", async () => {
+    const check: SecurityPlaybookStep = step(
+      SecurityPlaybookActionType.CheckThreatIntel,
+    );
+    // The check itself waits on a note that never succeeds here: it is skipped.
+    const note: SecurityPlaybookStep = step(
+      SecurityPlaybookActionType.AddCaseNote,
+      { continueOnFailure: true },
+    );
+
+    outcomes.push({
+      status: SecurityPlaybookStepStatus.Failed,
+      summary: FeedMarkdown.empty(),
+      error: "no",
+    });
+
+    useRun([
+      note,
+      {
+        ...check,
+        runIf: {
+          stepId: note.id,
+          outcome: SecurityPlaybookStepOutcome.Succeeded,
+        },
+      },
+      step(SecurityPlaybookActionType.PostToSlack, {
+        runIf: {
+          stepId: check.id,
+          outcome: SecurityPlaybookStepOutcome.FoundNothing,
+        },
+      }),
+    ]);
+
+    await SecurityPlaybookEngine.executeRun(RUN_ID);
+
+    expect(executed).toEqual([SecurityPlaybookActionType.AddCaseNote]);
+    expect(
+      state.stepResults.map((result: SecurityPlaybookStepResult) => {
+        return result.status;
+      }),
+    ).toEqual([
+      SecurityPlaybookStepStatus.Failed,
+      SecurityPlaybookStepStatus.Skipped,
+      SecurityPlaybookStepStatus.Skipped,
+    ]);
+    // Found nothing is a result the check never reached: nothing was looked at.
+    expect(state.stepResults[2]!.message).toContain(
+      "it runs only if step 2 (Check entities against threat intel) found nothing known-bad",
+    );
+  });
+
+  test("a step whose condition names a step that is not before it is skipped, never run", async () => {
+    const later: SecurityPlaybookStep = step(
+      SecurityPlaybookActionType.CheckThreatIntel,
+    );
+
+    useRun([
+      step(SecurityPlaybookActionType.SuspendOktaUser, {
+        ...RUNS_WITHOUT_APPROVAL,
+        runIf: { stepId: later.id, outcome: SecurityPlaybookStepOutcome.Found },
+      }),
+      later,
+      step(SecurityPlaybookActionType.AddCaseNote, {
+        runIf: {
+          stepId: "a-step-that-was-deleted",
+          outcome: SecurityPlaybookStepOutcome.Succeeded,
+        },
+      }),
+    ]);
+
+    await SecurityPlaybookEngine.executeRun(RUN_ID);
+
+    expect(executed).toEqual([SecurityPlaybookActionType.CheckThreatIntel]);
+    expect(state.stepResults[0]!.message).toBe(
+      "Skipped: the step it runs after is not before it in this run.",
+    );
+    expect(state.stepResults[2]!.message).toBe(
+      "Skipped: the step it runs after is not before it in this run.",
+    );
+  });
+
+  test("a step that does not look anything up keeps no found on its result", async () => {
+    useRun([step(SecurityPlaybookActionType.AddCaseNote)]);
+
+    await SecurityPlaybookEngine.executeRun(RUN_ID);
+
+    expect(state.stepResults[0]!.found).toBeUndefined();
   });
 });

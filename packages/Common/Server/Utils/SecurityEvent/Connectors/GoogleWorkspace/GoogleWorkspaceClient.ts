@@ -23,7 +23,10 @@ import { ConnectorTransport } from "../Types";
  *    `sub` naming the administrator, exchanged at the key's token_uri
  *    (developers.google.com/identity/protocols/oauth2/service-account
  *    #delegatingauthority). The scope is the Reports API's read-only audit
- *    scope, nothing more.
+ *    scope, nothing more - unless the caller asks for another: a playbook
+ *    that suspends or signs out a user mints its token for the Directory
+ *    API's user scopes (GoogleWorkspaceResponseClient), which the
+ *    delegation must list too.
  *
  *  - Activities: GET https://admin.googleapis.com/admin/reports/v1/activity/
  *    users/all/applications/{application} (developers.google.com/admin-sdk/
@@ -83,6 +86,8 @@ export interface GoogleWorkspaceClientOptions {
   adminEmail: string;
   transport: ConnectorTransport;
   requestTimeoutInMs: number;
+  // The scope its tokens are minted for: the Reports API's audit scope when left out.
+  scope?: string | undefined;
 }
 
 export interface GoogleWorkspaceActivityPage {
@@ -110,6 +115,7 @@ export default class GoogleWorkspaceClient {
   private privateKey: string;
   private tokenUri: string;
   private adminEmail: string;
+  private scope: string;
   private transport: ConnectorTransport;
   private requestTimeoutInMs: number;
   private cached: { token: string; expiresAtMs: number } | null = null;
@@ -126,6 +132,7 @@ export default class GoogleWorkspaceClient {
     this.privateKey = credentials.privateKey;
     this.tokenUri = credentials.tokenUri;
     this.adminEmail = options.adminEmail;
+    this.scope = options.scope || GOOGLE_WORKSPACE_REPORTS_SCOPE;
     this.transport = options.transport;
     this.requestTimeoutInMs = options.requestTimeoutInMs;
   }
@@ -198,7 +205,7 @@ export default class GoogleWorkspaceClient {
       {
         iss: this.clientEmail,
         sub: this.adminEmail,
-        scope: GOOGLE_WORKSPACE_REPORTS_SCOPE,
+        scope: this.scope,
         aud: this.tokenUri,
         iat: issuedAt,
         exp: issuedAt + TOKEN_LIFETIME_IN_SECONDS,
@@ -227,7 +234,7 @@ export default class GoogleWorkspaceClient {
       );
 
       throw new GoogleWorkspaceHttpError(
-        `${ERROR_PREFIX} token request failed (HTTP ${response.statusCode}): ${GoogleWorkspaceClient.redactErrorBody(response.bodyText, [assertion, this.privateKey])}${GoogleWorkspaceClient.describeTokenFailure(reason, response.bodyJson)}`,
+        `${ERROR_PREFIX} token request failed (HTTP ${response.statusCode}): ${GoogleWorkspaceClient.redactErrorBody(response.bodyText, [assertion, this.privateKey])}${GoogleWorkspaceClient.describeTokenFailure(reason, response.bodyJson, this.scope)}`,
         response.statusCode,
         reason,
       );
@@ -439,13 +446,20 @@ export default class GoogleWorkspaceClient {
   }
 
   // What Google's token error means, by its stable `error` and description.
-  private static describeTokenFailure(reason: string, body: unknown): string {
+  private static describeTokenFailure(
+    reason: string,
+    body: unknown,
+    scope: string,
+  ): string {
     const description: string = isJsonObject(body)
       ? String(body["error_description"] || "").toLowerCase()
       : "";
 
     if (reason === "unauthorized_client" || reason === "access_denied") {
-      return " — Google refused to let the service account act as the administrator: its client ID has no domain-wide delegation for the admin.reports.audit.readonly scope.";
+      // The scope's own name: "admin.reports.audit.readonly".
+      const scopeName: string = scope.split("/").pop() || scope;
+
+      return ` — Google refused to let the service account act as the administrator: its client ID has no domain-wide delegation for the ${scopeName} scope.`;
     }
 
     if (reason === "invalid_grant" && description.includes("email")) {
