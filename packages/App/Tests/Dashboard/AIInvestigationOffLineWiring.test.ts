@@ -127,7 +127,6 @@ describe.each(PAGES)(
       );
       expect(conversation).toContain("fold={slot.fold}");
     });
-
   },
 );
 

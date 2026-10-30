@@ -2157,9 +2157,7 @@ describe("InvestigationPanel code-fix recommendation", () => {
     await flush();
 
     expect(isCodeFixHandedOn()).toBe(false);
-    expect(lastRemediationStepProps().codeFix?.investigationRunId).toBe(
-      RUN_ID,
-    );
+    expect(lastRemediationStepProps().codeFix?.investigationRunId).toBe(RUN_ID);
     expect(screen.queryByText("Act on this investigation")).toBeNull();
     expect(screen.getByText("Was this analysis correct?")).toBeVisible();
     expect(screen.getByRole("button", { name: "Confirmed" })).toBeEnabled();
@@ -4672,9 +4670,10 @@ describe("InvestigationPanel as one flat card", () => {
       screen.getByRole("region", { name: "Investigation summary" }),
     );
     expect(
-      screen.getByTestId("investigation-actions").compareDocumentPosition(
-        screen.getByTestId("remediation-step"),
-      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+      screen
+        .getByTestId("investigation-actions")
+        .compareDocumentPosition(screen.getByTestId("remediation-step")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 
@@ -5335,9 +5334,7 @@ describe("InvestigationPanel conversation slot", () => {
     expect(screen.getByTestId("ai-card-step-investigation")).toContainElement(
       screen.getByTestId("investigation-not-started"),
     );
-    expect(steps.lastElementChild).toBe(
-      screen.getByTestId("remediation-step"),
-    );
+    expect(steps.lastElementChild).toBe(screen.getByTestId("remediation-step"));
   });
 });
 
@@ -5607,9 +5604,9 @@ describe("InvestigationPanel folds a finished investigation", () => {
 
     await tick(SETTLED_POLL_INTERVAL_MS);
 
-    expect(screen.getByTestId("investigation-report-summary")).toHaveTextContent(
-      "A second, different cause.",
-    );
+    expect(
+      screen.getByTestId("investigation-report-summary"),
+    ).toHaveTextContent("A second, different cause.");
     expect(toggle()).toHaveAttribute("aria-expanded", "false");
 
     fireEvent.click(toggle());
@@ -5625,9 +5622,9 @@ describe("InvestigationPanel folds a finished investigation", () => {
       }),
     );
 
-    expect(screen.getByTestId("investigation-report-summary")).toHaveTextContent(
-      "The alert cleared on its own.",
-    );
+    expect(
+      screen.getByTestId("investigation-report-summary"),
+    ).toHaveTextContent("The alert cleared on its own.");
     expect(toggle()).toHaveAttribute("aria-expanded", "false");
   });
 

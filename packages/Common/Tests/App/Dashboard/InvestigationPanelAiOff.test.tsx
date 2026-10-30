@@ -252,9 +252,11 @@ function renderPanel(data: {
 }): Rendered {
   const subjectType: InvestigationSubjectType = data.subjectType || "incident";
 
-  const element: (props: { subjectId: ObjectID }) => React.ReactElement = (
-    props: { subjectId: ObjectID },
-  ): React.ReactElement => {
+  const element: (props: {
+    subjectId: ObjectID;
+  }) => React.ReactElement = (props: {
+    subjectId: ObjectID;
+  }): React.ReactElement => {
     return (
       <InvestigationPanel
         subjectType={subjectType}
@@ -476,7 +478,10 @@ describe.each<[InvestigationSubjectType]>([["incident"], ["alert"]])(
       const props: ReturnType<typeof lastRemediationStepProps> =
         lastRemediationStepProps();
       expect(
-        (subjectType === "incident" ? props.incidentId : props.alertId)?.toString(),
+        (subjectType === "incident"
+          ? props.incidentId
+          : props.alertId
+        )?.toString(),
       ).toBe(SUBJECT_ID.toString());
       expect(
         subjectType === "incident" ? props.alertId : props.incidentId,

@@ -152,9 +152,9 @@ describe("RemediationDecisionList", () => {
     expect(
       screen.queryByText("What auto-remediation did"),
     ).not.toBeInTheDocument();
-    expect(
-      screen.getByTestId("remediation-decision").firstElementChild,
-    ).toBe(screen.getByRole("list"));
+    expect(screen.getByTestId("remediation-decision").firstElementChild).toBe(
+      screen.getByRole("list"),
+    );
   });
 
   test.each(TONES)(

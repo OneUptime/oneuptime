@@ -337,19 +337,22 @@ describe("the card says things in one notice, never in a box", () => {
     ["the Remediation step", "remediation-action-error"],
     ["the Remediation step", "remediation-try-again-error"],
     ["the fix in the code", "remediation-code-fix-error"],
-  ])("what %s could not do is a notice (%s)", (_where: string, testId: string) => {
-    const notice: RegExp = new RegExp(
-      `<InvestigationNotice role="alert" testId="${testId}" indicator=\\{noticeFailedIcon\\} title=`,
-    );
+  ])(
+    "what %s could not do is a notice (%s)",
+    (_where: string, testId: string) => {
+      const notice: RegExp = new RegExp(
+        `<InvestigationNotice role="alert" testId="${testId}" indicator=\\{noticeFailedIcon\\} title=`,
+      );
 
-    expect(
-      [PANEL, REMEDIATION_STEP, REMEDIATION_CODE_FIX].some(
-        (source: string): boolean => {
-          return notice.test(source);
-        },
-      ),
-    ).toBe(true);
-  });
+      expect(
+        [PANEL, REMEDIATION_STEP, REMEDIATION_CODE_FIX].some(
+          (source: string): boolean => {
+            return notice.test(source);
+          },
+        ),
+      ).toBe(true);
+    },
+  );
 
   // "Open Fix PR from this analysis" is the Remediation step's now.
   test("the investigation asks for no fix pull request of its own", () => {

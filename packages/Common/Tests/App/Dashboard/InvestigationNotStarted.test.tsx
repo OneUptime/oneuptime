@@ -1533,9 +1533,7 @@ describe("the not-started state is the card's body", () => {
 
     // The same card and region elements, not a second pair.
     expect(screen.getByTestId("card")).toBe(card);
-    expect(screen.getByRole("region", { name: "OneUptime AI" })).toBe(
-      region,
-    );
+    expect(screen.getByRole("region", { name: "OneUptime AI" })).toBe(region);
     expect(screen.queryByTestId("investigation-not-started")).toBeNull();
     expect(
       screen.getByRole("region", { name: "Live investigation" }),
