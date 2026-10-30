@@ -347,7 +347,10 @@ jobs:
           # about 25 seconds locally: the traces sidebar's Span Type with no
           # paragraph under its title, its (i) on hover, from the keyboard,
           # tapped on a phone and dark, its options' own tooltips, and its
-          # header folding from the chevron): about half a minute more.
+          # header folding from the chevron): about half a minute more. Its
+          # Escape tests joined it later that day (4 tests, about 12 seconds
+          # locally: the help and an option's sentence put away by Escape,
+          # pointed at, reached with Tab and tapped).
           - group: 2
             suites: >-
               test-chart-time-zoom-ui

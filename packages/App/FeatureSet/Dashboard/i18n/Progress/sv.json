@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 38775,
+    "keys": 38799,
     "untranslated": 13392
   },
   "sameAsEnglish": [
@@ -79,6 +79,7 @@
     "Max",
     "Merge request !{{number}}",
     "Merge request {{label}}",
+    "Min",
     "Nav",
     "Normal",
     "Null",

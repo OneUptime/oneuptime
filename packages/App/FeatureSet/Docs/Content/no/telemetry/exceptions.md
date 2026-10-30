@@ -71,7 +71,7 @@ Sidemenyen på siden samler det du gjør med et unntak:
 
 | Side | Hva den viser |
 | --- | --- |
-| **Oversikt** | Meldingen, tjenesten, hvor ofte det skjedde og når det først og sist ble sett, utviklingen over tid, og den siste forekomsten: release, miljø, span, spor og brukerøkt. |
+| **Oversikt** | Meldingen, tjenesten, hvor ofte det skjedde og når det først og sist ble sett, utviklingen over tid, og den siste forekomsten: release, miljø, span, spor og brukerøkt. Øverst OneUptime AIs forklaring av hva som skjedde, når AI er på. |
 | **Stack trace** | Rammene i stakken. For nettleserkode de opprinnelige filene og linjene, når du har lastet opp [Source maps](/docs/telemetry/source-maps) for releasen. |
 | **Occurrences** | Hver forekomst, med tidspunkt, melding og sporet den skjedde i. |
 | **Context** | Attributtene til den siste forekomsten, øktopptaket når det finnes, og trinnene som førte frem til den. |
@@ -110,6 +110,22 @@ Hvert unntak har en feilklasse, som sier hvem sitt problem det er. OneUptime AI 
 | `expected-denial` | En kontroll som gjør jobben sin, som en avvist pålogging. | Nei |
 
 Med **Arkiver forventede unntak** slått på, i innstillingene for AI-innsikt, arkiveres unntak som gjennomgangen finner ut er forventede avvisninger, for deg.
+
+## Forklar det med AI
+
+Øverst på et unntaks **Oversikt** spør **Forklar med OneUptime AI** OneUptime AI om hva som gikk galt. Den leser stack trace, sporet og loggene for den siste forekomsten og tjenestens utrullinger rundt tidspunktet da unntaket begynte, og svarer i kortet **Hva som skjedde**:
+
+| Del | Hva den sier |
+| --- | --- |
+| **Hva som skjedde** | En setning eller to, hvor sikker OneUptime AI er, og hvor feilen ligger: koden, en avhengighet, infrastrukturen, ugyldig inndata eller konfigurasjonen. |
+| **Sannsynlig rotårsak** | Årsaken og rammen, spanet, logglinjen eller utrullingen som viser den. |
+| **Foreslått retting** | Hva som må endres. |
+| **Hvor du bør se** | Rammene i stack trace du bør åpne først. |
+| **Neste steg** | Høyst tre steg for å bekrefte eller rette det. |
+
+Forklaringen lagres på unntaket, så den neste som åpner det leser den med en gang, og **Forklar på nytt** ber om en ny. **Åpne en pull-forespørsel med rettingen** åpner unntakets side **AI Assistance**, og **Still et oppfølgingsspørsmål** åpner Ask AI om unntaket.
+
+ID-er, e-post- og IP-adresser og tokener fjernes fra alt som sendes, og av et spans attributter sendes bare noen få, som ruten og statuskoden. Forklaringen bruker prosjektets LLM-leverandør og AI-kreditter og tilbys ikke mens **Aktiver AI** er av. Alle som kan lese unntaket, kan be om en.
 
 ## Rett det med AI
 

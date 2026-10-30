@@ -71,7 +71,7 @@ O menu lateral da página agrupa o que você faz com uma exceção:
 
 | Página | O que mostra |
 | --- | --- |
-| **Visão geral** | A mensagem, o serviço, quantas vezes ela aconteceu e quando foi vista pela primeira e pela última vez, a tendência ao longo do tempo e a ocorrência mais recente: release, ambiente, span, traço e sessão do usuário. |
+| **Visão geral** | A mensagem, o serviço, quantas vezes ela aconteceu e quando foi vista pela primeira e pela última vez, a tendência ao longo do tempo e a ocorrência mais recente: release, ambiente, span, traço e sessão do usuário. No topo, a explicação da OneUptime AI sobre o que aconteceu, quando a IA está ligada. |
 | **Stack trace** | Os frames da pilha. Para código de navegador, os arquivos e as linhas originais, depois que você enviar os [Source maps](/docs/telemetry/source-maps) da release. |
 | **Occurrences** | Cada ocorrência, com a hora, a mensagem e o traço em que aconteceu. |
 | **Context** | Os atributos da ocorrência mais recente, a gravação da sessão quando houver uma, e as etapas que levaram a ela. |
@@ -110,6 +110,22 @@ Cada exceção tem uma classe de erro, que diz de quem é o problema. O OneUptim
 | `expected-denial` | Uma verificação fazendo seu trabalho, como um login recusado. | Não |
 
 Com **Arquivar exceções esperadas** ativado, nas configurações dos insights de IA, as exceções que a triagem identifica como negações esperadas são arquivadas por você.
+
+## Explicar com IA
+
+No topo da **Visão geral** de uma exceção, **Explicar com OneUptime AI** pergunta à OneUptime AI o que deu errado. Ela lê o stack trace, o traço e os registros da ocorrência mais recente, e os deploys do serviço por volta do momento em que a exceção começou, e responde no cartão **O que aconteceu**:
+
+| Parte | O que diz |
+| --- | --- |
+| **O que aconteceu** | Uma ou duas frases, quão segura a OneUptime AI está e onde está a falha: o código, uma dependência, a infraestrutura, uma entrada inválida ou a configuração. |
+| **Causa raiz provável** | A causa, e o frame, o span, a linha de log ou o deploy que a mostra. |
+| **Correção sugerida** | O que mudar. |
+| **Onde olhar** | Os frames do stack trace a abrir primeiro. |
+| **Próximos passos** | No máximo três passos para confirmá-la ou corrigi-la. |
+
+A explicação fica guardada na exceção, então a próxima pessoa que a abre já a lê, e **Explicar novamente** pede uma nova. **Abrir uma pull request com a correção** abre a página **AI Assistance** da exceção, e **Fazer uma pergunta de acompanhamento** abre o Ask AI sobre a exceção.
+
+IDs, endereços de e-mail e IP e tokens são retirados de tudo o que é enviado, e dos atributos de um span só alguns são enviados, como a rota e o código de status. A explicação usa o provedor de LLM e os créditos de IA do projeto, e não é oferecida enquanto **Habilitar IA** estiver desligado. Qualquer pessoa que possa ler a exceção pode pedir uma.
 
 ## Corrigir com IA
 

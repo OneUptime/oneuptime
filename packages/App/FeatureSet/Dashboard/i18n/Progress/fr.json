@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 38775,
+    "keys": 38799,
     "untranslated": 7720
   },
   "sameAsEnglish": [
@@ -398,6 +398,7 @@
     "Stacks",
     "Standard",
     "Threads",
+    "Top",
     "Total",
     "Trace",
     "Trace {{traceId}}",

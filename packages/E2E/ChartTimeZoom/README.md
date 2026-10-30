@@ -536,7 +536,7 @@ and the explorer's reads follow:
 
 ## Explorers: what each Span Type option is
 
-`SpanTypeHelp.spec.ts` (8 tests, same fixture and command) pins the report "Too long
+`SpanTypeHelp.spec.ts` (12 tests, same fixture and command) pins the report "Too long
 description, have this in a tooltip or something": the Traces sidebar drew "Entry spans:
 where a request or message enters a service. Root spans: ... All spans: ..." as a
 paragraph between the Span Type title and its three options. It covers:
@@ -558,7 +558,12 @@ paragraph between the Span Type title and its three options. It covers:
 - a phone (390 pixels, touch): the (i) is a finger-sized target, a tap shows the help and
   it stays once the finger lifts, above the title (there is no room to its right) so the
   options stay in view, and a second tap puts it away; a tap on an option still chooses
-  it, and nothing it showed stays once the next tap lands elsewhere.
+  it, and nothing it showed stays once the next tap lands elsewhere;
+- Escape (WCAG 1.4.13): the (i)'s help, pointed at, reached with Tab or tapped, and an
+  option's sentence, pointed at or reached with Tab, each goes on Escape with the pointer
+  and the focus left where they were. Nothing else answers that Escape - the section
+  stays open and the chosen option chosen - the help stays away while the pointer rests
+  on the (i), and pointing at it or tapping it again brings it back.
 
 Screenshots: `span-type-1440`, `span-type-help-1440`, `span-type-option-1440`,
 `span-type-help-dark-1440` and `span-type-help-390`.
