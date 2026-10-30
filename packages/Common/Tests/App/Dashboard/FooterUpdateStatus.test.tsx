@@ -322,7 +322,12 @@ describe("the Dashboard's footer", () => {
     expect(
       Array.from(document.querySelectorAll("a[href]")).filter(
         (anchor: Element): boolean => {
-          return (anchor.getAttribute("href") || "").includes("oneuptime.com");
+          // The link's host, a relative link's included: oneuptime.com or below it.
+          const host: string = new URL(
+            anchor.getAttribute("href") || "",
+            "https://dashboard.invalid",
+          ).hostname;
+          return host === "oneuptime.com" || host.endsWith(".oneuptime.com");
         },
       ),
     ).toEqual([]);
