@@ -486,6 +486,14 @@ jobs:
           # Create sends, when it is not asked, at 1280 and 390 pixels, German
           # and Persian dark) joined it the same day, beside Incoming Call
           # Policies and Owners on Create: about 19.
+          # Security Cases and Detections (the five shorter specs on the
+          # Security Operations fixture - CaseWork, ConnectedSignals,
+          # EntityRisk, RuleExceptions and Watchlists - as a suite of its own:
+          # 110 tests, 7.8 minutes on master's run of 2026-10-30, Chromium
+          # only) joined it on 2026-10-30 from group 11, whose run step hit
+          # its 28 minutes on that run with Security Operations taking 26.5 of
+          # them. This group's step took 12.9 to 14.6 minutes on the four runs
+          # before it: about 22.
           - group: 5
             suites: >-
               test-slo-burn-rate-ui
@@ -503,6 +511,7 @@ jobs:
               test-first-on-call-policy-ui
               test-side-by-side-pages-ui
               test-owner-filters-ui
+              test-security-cases-detections-ui
           # Added when group 5 took 25.5 of the job's 30 minutes and groups 1,
           # 3 and 4 23.5 to 24.3 on one run: group 5's last five suites, with
           # Discovery from group 3, Status Page Theme from group 1 and Calendar
@@ -870,6 +879,14 @@ jobs:
           # Evidence): about 20. Hunts.spec.ts left it for a suite of its own,
           # Security Hunts, in group 6 on 2026-10-30, when its UI review grew
           # it to 16 tests and these groups ran 20 to 25 minutes: about 19.5.
+          # That day's master run took this group's step past its 28 minutes
+          # all the same: Security Operations alone took 26.5, its
+          # SecurityOperations.spec.ts 17.3 of them, on a runner slower than
+          # the runs before (this group had taken 19.9 to 27.5 minutes on
+          # them). Its five shorter specs - CaseWork, ConnectedSignals,
+          # EntityRisk, RuleExceptions and Watchlists, 7.8 minutes - left for
+          # a suite of their own, Security Cases and Detections, in group 5:
+          # about 20 at that run's pace.
           - group: 11
             suites: >-
               test-security-operations-ui
@@ -1068,6 +1085,7 @@ jobs:
             output/playwright/security-operations-ui/*.png
             output/playwright/security-operations-ui/test-results
             output/playwright/security-hunts-ui/test-results
+            output/playwright/security-cases-detections-ui/test-results
             output/playwright/status-page-search/test-results
             output/playwright/navigation-search/test-results
             output/playwright/pencil-button/test-results

@@ -540,10 +540,20 @@ dark theme. Its screenshots are named `case-tasks-*` (`case-tasks-empty-*` among
 cd packages/E2E
 npm install
 npm run test-security-operations-ui
+npm run test-security-cases-detections-ui
+npm run test-security-hunts-ui
 ```
 
+The specs run as three suites, in three App Test groups, each on its own server of this fixture:
+`test-security-operations-ui` runs `SecurityOperations.spec.ts` (group 11);
+`test-security-cases-detections-ui` (`playwright.security-cases-detections-ui.config.ts`, group 5)
+runs `CaseWork.spec.ts`, `ConnectedSignals.spec.ts`, `EntityRisk.spec.ts`, `RuleExceptions.spec.ts`
+and `Watchlists.spec.ts`; and `test-security-hunts-ui` (group 6) runs `Hunts.spec.ts`. A new spec
+runs with `test-security-operations-ui` until one of the other two configs lists it.
+
 Playwright reuses a server already listening on port 4234 outside CI. If one from another checkout
-might be running, stop it first or run with `CI=1`.
+might be running, stop it first or run with `CI=1`; `SECURITY_OPERATIONS_FIXTURE_PORT` picks
+another port.
 
 Screenshots (2x) land in `output/playwright/security-operations-ui/`, named `*-synthetic.png`
 because everything in them is fabricated: among them `overview-desktop`, `overview-dark`,
