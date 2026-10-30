@@ -114,7 +114,7 @@ export class SpanCountBaselineService extends AnalyticsDatabaseService<SpanCount
       WHERE projectId = '${projectIdStr}'
         ${serviceIdClause}
         ${statusCodeClause}
-        AND hourOfWeek = ${hour}
+        AND ${MetricBaselineService.hourOfWeekCellFilter(hour)}
         AND day >= today() - INTERVAL ${windowDays} DAY
       GROUP BY day, minuteOfHour
     `;

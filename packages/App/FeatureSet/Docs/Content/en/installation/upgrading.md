@@ -710,6 +710,14 @@ API, SSO, or the Slack and Microsoft Teams apps.
   permissions, and they still run AI code fixes and AI remediation commands.
   A Runner image older than this release still prints "Project Settings >
   Runners" in its log messages; read that as Runbooks → Runners.
+- **Anomaly baselines are read for the right weekday.** The baseline views
+  numbered the week one day off, so every anomaly condition on logs, traces,
+  metrics and SNMP was judged against the next day's history, and conditions
+  never left "Learning" on Sundays. The views are corrected on upgrade, and the
+  history already stored is read under its own weekday, so nothing is lost and
+  nothing has to be learned again. Expect thresholds to shift to each day's own
+  history, and Sunday conditions to start evaluating and firing. No action is
+  needed.
 - **Live updates end with the sign-in that opened them, and ask what every
   request asks.** An open page's live updates - the counters in the header,
   live logs, the AI chat - now stop when its sign-in does: signing out,

@@ -132,6 +132,7 @@ import BackfillFirstPagedAt from "./BackfillFirstPagedAt";
 import AddAuditLogWorkflowColumns from "./AddAuditLogWorkflowColumns";
 import RemoveNotificationSettingsOfFormerMembers from "./RemoveNotificationSettingsOfFormerMembers";
 import NotifyOwnersOfStoppedApiKeysAndScim from "./NotifyOwnersOfStoppedApiKeysAndScim";
+import CorrectBaselineViewHourOfWeek from "./CorrectBaselineViewHourOfWeek";
 import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSeverity";
 import ScheduleRemindersMissedByReminderRuleLookup from "./ScheduleRemindersMissedByReminderRuleLookup";
 import RepairKubernetesDashboardClusterCpuTile from "./RepairKubernetesDashboardClusterCpuTile";
@@ -903,6 +904,17 @@ const DataMigrations: Array<DataMigrationBase> = [
    * requirement, so above the runbook moves.
    */
   new AddIsEntrySpanToSpanTable(),
+  /*
+   * The baseline views numbered the week from mode 1 of toDayOfWeek, which
+   * starts Monday at 0: Monday landed at 232..255 and every other day one
+   * slot early, so each anomaly lookup read the next day's history. Points
+   * the three views at the corrected models' query in place; the readers
+   * accept both encodings, so the stored history is kept. Cluster-aware,
+   * metadata-only and idempotent; a host that has not applied it yet is
+   * logged, not failed. No ordering requirement, so it sits above the runbook
+   * moves, which keep their places right before the last slot.
+   */
+  new CorrectBaselineViewHourOfWeek(),
   /*
    * A runbook step's approval moved to the step it guards ("Require approval
    * before running this step"): every stored runbook's approval after step
