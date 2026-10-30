@@ -71,7 +71,7 @@ Sidans sidomeny samlar det du gör med ett undantag:
 
 | Sida | Vad den visar |
 | --- | --- |
-| **Översikt** | Meddelandet, tjänsten, hur ofta det inträffade och när det sågs första och senaste gången, dess utveckling över tid, och dess senaste förekomst: release, miljö, span, spår och användarsession. |
+| **Översikt** | Meddelandet, tjänsten, hur ofta det inträffade och när det sågs första och senaste gången, dess utveckling över tid, och dess senaste förekomst: release, miljö, span, spår och användarsession. Högst upp OneUptime AI:s förklaring av vad som hände, när AI är på. |
 | **Stack trace** | Stackens ramar. För webbläsarkod de ursprungliga filerna och raderna, när du har laddat upp [Source maps](/docs/telemetry/source-maps) för releasen. |
 | **Occurrences** | Varje förekomst, med tidpunkt, meddelande och spåret där den inträffade. |
 | **Context** | Den senaste förekomstens attribut, dess sessionsinspelning när en spelades in, och stegen som ledde fram till den. |
@@ -110,6 +110,22 @@ Varje undantag har en felklass, som säger vems problem det är. OneUptime AI s�
 | `expected-denial` | En kontroll som gör sitt jobb, till exempel en nekad inloggning. | Nej |
 
 Med **Arkivera förväntade undantag** påslaget, i inställningarna för AI-insikter, arkiveras undantag som genomgången bedömer vara förväntade nekanden åt dig.
+
+## Förklara det med AI
+
+Högst upp på ett undantags **Översikt** frågar **Förklara med OneUptime AI** OneUptime AI vad som gick fel. Den läser stack trace, spåret och loggarna för den senaste förekomsten och tjänstens driftsättningar runt tidpunkten då undantaget började, och svarar i kortet **Vad som hände**:
+
+| Del | Vad den säger |
+| --- | --- |
+| **Vad som hände** | En mening eller två, hur säker OneUptime AI är och var felet ligger: koden, ett beroende, infrastrukturen, felaktig indata eller konfigurationen. |
+| **Trolig rotorsak** | Orsaken och den ram, det span, den loggrad eller den driftsättning som visar den. |
+| **Föreslagen rättelse** | Vad som ska ändras. |
+| **Var du ska titta** | De ramar i stack trace som du ska öppna först. |
+| **Nästa steg** | Högst tre steg för att bekräfta eller rätta det. |
+
+Förklaringen sparas på undantaget, så nästa person som öppnar det läser den direkt, och **Förklara igen** ber om en ny. **Öppna en pull request med rättelsen** öppnar undantagets sida **AI Assistance**, och **Ställ en följdfråga** öppnar Ask AI om undantaget.
+
+ID:n, e-post- och IP-adresser samt tokens tas bort från allt som skickas, och av ett spans attribut skickas bara några få, som dess route och statuskod. Förklaringen använder projektets LLM-leverantör och AI-krediter och erbjuds inte medan **Aktivera AI** är av. Alla som kan läsa undantaget kan be om en.
 
 ## Rätta det med AI
 

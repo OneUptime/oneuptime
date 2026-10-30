@@ -71,7 +71,7 @@ Le menu latéral de la page regroupe ce que vous faites d'une exception :
 
 | Page | Ce qu'elle montre |
 | --- | --- |
-| **Vue d'ensemble** | Le message, le service, combien de fois elle s'est produite et quand elle a été vue la première et la dernière fois, sa tendance dans le temps, et sa dernière occurrence : la version, l'environnement, le span, la trace et la session utilisateur. |
+| **Vue d'ensemble** | Le message, le service, combien de fois elle s'est produite et quand elle a été vue la première et la dernière fois, sa tendance dans le temps, et sa dernière occurrence : la version, l'environnement, le span, la trace et la session utilisateur. En haut, l'explication de OneUptime AI sur ce qui s'est passé, quand l'IA est activée. |
 | **Stack trace** | Les frames de la pile. Pour le code de navigateur, les fichiers et lignes d'origine, une fois que vous avez envoyé les [Source maps](/docs/telemetry/source-maps) de la version. |
 | **Occurrences** | Chaque occurrence, avec son heure, son message et la trace où elle s'est produite. |
 | **Contexte** | Les attributs de la dernière occurrence, son enregistrement de session s'il y en a un, et les étapes qui y ont mené. |
@@ -110,6 +110,22 @@ Chaque exception a une classe d'erreur, qui dit à qui revient le problème. One
 | `expected-denial` | Un contrôle qui fait son travail, comme une connexion refusée. | Non |
 
 Avec **Archiver les exceptions attendues** activé, dans les paramètres des insights IA, les exceptions que le tri identifie comme des refus attendus sont archivées pour vous.
+
+## L'expliquer avec l'IA
+
+En haut de la **Vue d'ensemble** d'une exception, **Expliquer avec OneUptime AI** demande à OneUptime AI ce qui n'a pas fonctionné. Il lit la stack trace, la trace et les journaux de la dernière occurrence, ainsi que les déploiements du service autour du moment où l'exception a commencé, et répond dans la carte **Ce qui s'est passé** :
+
+| Partie | Ce qu'elle dit |
+| --- | --- |
+| **Ce qui s'est passé** | Une ou deux phrases, le degré de certitude de OneUptime AI, et l'endroit où se trouve la faute : le code, une dépendance, l'infrastructure, une entrée invalide ou la configuration. |
+| **Cause racine probable** | La cause, et le frame, le span, la ligne de journal ou le déploiement qui la montre. |
+| **Correctif suggéré** | Ce qu'il faut changer. |
+| **Où regarder** | Les frames de la stack trace à ouvrir en premier. |
+| **Prochaines étapes** | Au plus trois étapes pour la confirmer ou la corriger. |
+
+L'explication est conservée sur l'exception : la personne suivante qui l'ouvre la lit tout de suite, et **Expliquer à nouveau** en demande une nouvelle. **Ouvrir une pull request de correction** ouvre la page **Assistance IA** de l'exception, et **Poser une question complémentaire** ouvre Ask AI sur l'exception.
+
+Les identifiants, les adresses e-mail et IP et les jetons sont retirés de tout ce qui est envoyé, et seuls quelques attributs d'un span sont envoyés, comme sa route et son code de statut. L'explication utilise le fournisseur LLM et les crédits IA du projet, et n'est pas proposée tant que **Activer l'IA** est désactivé. Toute personne qui peut lire l'exception peut en demander une.
 
 ## La corriger avec l'IA
 
