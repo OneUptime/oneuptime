@@ -171,6 +171,7 @@ import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import NetworkInterface from "Common/Models/DatabaseModels/NetworkInterface";
 import TableView from "Common/Models/DatabaseModels/TableView";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Probe, {
@@ -797,6 +798,24 @@ insert(NetworkDevice, {
   probeId: new ObjectID(ID.probe(1)),
   snmpTables: [],
 });
+
+/*
+ * Its monitored ports, which the Network Device monitor's criteria offer a
+ * filter's Interface list (MonitorStep reads the monitored ones, by name
+ * and alias).
+ */
+for (const [interfaceIndex, name, alias] of [
+  [1, "Gi1/0/1", "Uplink to dist-01"],
+  [2, "Gi1/0/2", "Storage array"],
+]) {
+  insert(NetworkInterface, {
+    networkDeviceId: new ObjectID(ID.networkDevice(1)),
+    interfaceIndex,
+    name,
+    alias,
+    isMonitored: true,
+  });
+}
 
 /*
  * The cluster a Kubernetes monitor's criteria step offers (its cluster

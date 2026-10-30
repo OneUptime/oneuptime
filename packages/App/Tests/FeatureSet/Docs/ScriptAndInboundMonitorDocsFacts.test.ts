@@ -4,6 +4,8 @@ import {
   getMonitoringIntervalOptions,
 } from "../../../FeatureSet/Dashboard/src/Utils/MonitorIntervalDropdownOptions";
 import { readPage } from "./DocsContentSupport";
+import { drawnDashboardLabel } from "./DocsDashboardLabels";
+import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import CustomCodeMonitoringCriteria from "Common/Server/Utils/Monitor/Criteria/CustomCodeMonitorCriteria";
 import CompareCriteria from "Common/Server/Utils/Monitor/Criteria/CompareCriteria";
 import {
@@ -2171,6 +2173,58 @@ describe("Incoming Email Monitor", () => {
 describe("External Status Page Monitor", () => {
   const page: string = englishPage(STATUS_PAGE_PAGE);
   const probe: string = readRepoFile(PROBE_STATUS_PAGE_FILE);
+
+  /*
+   * #5281: the summary shows the page's overall status in the words and
+   * colour of its components' statuses - under_maintenance reads Under
+   * Maintenance, the Component Status criteria's own word for it - while
+   * the criteria compare the value as reported.
+   */
+  it("says the summary shows the overall status in words, and the criteria the value", () => {
+    const view: string = readRepoFile(
+      "App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/ExternalStatusPageMonitorView.tsx",
+    );
+    const underMaintenance: DropdownOption | undefined =
+      CriteriaFilterUtil.getDropdownOptionsByCheckOn({
+        checkOn: CheckOn.ExternalStatusPageComponentStatus,
+      }).find((option: DropdownOption): boolean => {
+        return option.value === "under_maintenance";
+      });
+
+    expect(underMaintenance?.label).toBe("Under Maintenance");
+    expect(view).toContain(
+      "ExternalStatusPageComponentStatusDisplayUtil.getOverallDisplay(\n      overallStatus,\n    );",
+    );
+    expect(view).toContain("data-status={overallStatus}");
+    expect(view).toContain("text={overallStatusDisplay.label}");
+    expect(page).toContain(
+      `The monitor's summary shows the overall status in words and colour, as it shows each component's (\`under_maintenance\` reads **${underMaintenance?.label}**), while the criteria compare the value the page reports.`,
+    );
+
+    // In every language, in the words that language's Dashboard draws.
+    for (const language of SUPPORTED_DOCS_LANGUAGE_CODES) {
+      const translated: string = readPage(language, STATUS_PAGE_PAGE);
+      const drawn: string = drawnDashboardLabel(
+        language,
+        underMaintenance?.label || "",
+      );
+      // The paragraph on the overall status: the one that says how it reads.
+      const sentence: string =
+        translated
+          .split("\n")
+          .find((line: string): boolean => {
+            return (
+              line.includes("`under_maintenance`") &&
+              line.includes("`degraded_performance`")
+            );
+          }) || "";
+
+      expect({ language, named: sentence.includes(`**${drawn}**`) }).toEqual({
+        language,
+        named: true,
+      });
+    }
+  });
 
   it("lists the providers the dropdown offers, Auto first as the default", () => {
     const providers: Array<string> = firstCells(

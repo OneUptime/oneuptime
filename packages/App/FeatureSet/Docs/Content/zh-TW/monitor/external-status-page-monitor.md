@@ -135,7 +135,7 @@ flowchart TB
 | **External Status Page Active Incidents** | 狀態頁面上目前進行中的事件數（選擇了元件或群組時，只計算影響範圍內元件的事件） | 等於、不等於以及數值比較 |
 | **External Status Page Response Time (in ms)** | 取得狀態頁面資料所花的時間 | 大於、小於、大於或等於、小於或等於 |
 
-整體狀態就是頁面上寫的內容，因此其值會因供應商而異：Atlassian Statuspage 回報它自己的描述，例如 `All Systems Operational`；OneUptime 狀態頁面回報範圍內元件中最差的狀態，例如 `under_maintenance`；摘要回報 `operational` 或 `degraded_performance`；連線能力檢查回報 `reachable` 或 `unreachable`。選擇了元件或群組時，無論是哪種頁面，它都是其中最差的狀態。這些比較會區分大小寫。若要針對服務中斷發出警示，**External Status Page Active Incidents** 和 **External Status Page Component Status** 通常比較可靠。
+整體狀態就是頁面上寫的內容，因此其值會因供應商而異：Atlassian Statuspage 回報它自己的描述，例如 `All Systems Operational`；OneUptime 狀態頁面回報範圍內元件中最差的狀態，例如 `under_maintenance`；摘要回報 `operational` 或 `degraded_performance`；連線能力檢查回報 `reachable` 或 `unreachable`。選擇了元件或群組時，無論是哪種頁面，它都是其中最差的狀態。這些比較會區分大小寫。監測器摘要會像顯示每個元件的狀態一樣，用文字和顏色顯示整體狀態（`under_maintenance` 顯示為 **Under Maintenance**），而條件比較的是頁面回報的值。若要針對服務中斷發出警示，**External Status Page Active Incidents** 和 **External Status Page Component Status** 通常比較可靠。
 
 對於 RSS 或 Atom 摘要，最近 24 小時內的項目算作進行中的事件：RSS 項目依發布日期，Atom 項目依更新日期。日期在未來的項目要到該日期才計入。
 

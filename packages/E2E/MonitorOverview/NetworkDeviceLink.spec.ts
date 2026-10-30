@@ -135,8 +135,9 @@ async function openCreate(page: Page, query: string): Promise<Locator> {
   return form;
 }
 
+// The monitor's name, by its label: its placeholder is in the page's language.
 function nameInput(form: Locator): Locator {
-  return form.locator("input[placeholder='Monitor Name']");
+  return form.getByRole("textbox", { name: "Name", exact: true });
 }
 
 function next(form: Locator): Locator {
@@ -303,15 +304,18 @@ test.describe("the device's alert pack on a phone", () => {
     await expect(headers.first()).toBeVisible({ timeout: 60000 });
     expect(await headers.count()).toBeGreaterThan(3);
 
-    // Every criteria open, so every filter is drawn.
-    for (const toggle of await headers
-      .locator("button[aria-expanded='false']")
-      .all()) {
-      await toggle.click();
+    /*
+     * Every criteria open, so every filter is drawn: one at a time, the
+     * first still closed, as each one opened leaves the list.
+     */
+    const closed: Locator = headers.locator("button[aria-expanded='false']");
+    for (let opened: number = 0; opened < 20; opened++) {
+      if ((await closed.count()) === 0) {
+        break;
+      }
+      await closed.first().click();
     }
-    await expect(
-      headers.locator("button[aria-expanded='false']"),
-    ).toHaveCount(0);
+    await expect(closed).toHaveCount(0);
 
     const filterTypes: Locator = page.getByRole("combobox", {
       name: "Filter Type",

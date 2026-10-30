@@ -135,7 +135,7 @@ flowchart TB
 | **External Status Page Active Incidents** | 상태 페이지에 보고된 현재 활성 인시던트 수(구성 요소나 그룹을 골랐다면 범위 안 구성 요소에 영향을 주는 것만) | 같음, 같지 않음 및 숫자 비교 |
 | **External Status Page Response Time (in ms)** | 상태 페이지 데이터를 가져오는 데 걸리는 시간 | 보다 큼, 보다 작음, 이상, 이하 |
 
-전체 상태는 페이지에 쓰인 그대로이므로 값은 공급자마다 다릅니다. Atlassian Statuspage는 `All Systems Operational` 같은 자체 설명을, OneUptime 상태 페이지는 `under_maintenance` 같은 범위 내 구성 요소 중 가장 나쁜 상태를, 피드는 `operational` 이나 `degraded_performance` 를, 도달 가능성 검사는 `reachable` 이나 `unreachable` 을 보고합니다. 구성 요소나 그룹을 골랐다면 어느 페이지든 그중 가장 나쁜 상태가 됩니다. 이 비교는 대소문자를 구분합니다. 장애에 대한 알림에는 보통 **External Status Page Active Incidents** 와 **External Status Page Component Status** 가 더 믿을 만합니다.
+전체 상태는 페이지에 쓰인 그대로이므로 값은 공급자마다 다릅니다. Atlassian Statuspage는 `All Systems Operational` 같은 자체 설명을, OneUptime 상태 페이지는 `under_maintenance` 같은 범위 내 구성 요소 중 가장 나쁜 상태를, 피드는 `operational` 이나 `degraded_performance` 를, 도달 가능성 검사는 `reachable` 이나 `unreachable` 을 보고합니다. 구성 요소나 그룹을 골랐다면 어느 페이지든 그중 가장 나쁜 상태가 됩니다. 이 비교는 대소문자를 구분합니다. 모니터 요약은 각 구성 요소의 상태처럼 전체 상태도 단어와 색으로 보여 주지만(`under_maintenance`는 **Under Maintenance** 로 표시됩니다), 기준은 페이지가 보고하는 값을 비교합니다. 장애에 대한 알림에는 보통 **External Status Page Active Incidents** 와 **External Status Page Component Status** 가 더 믿을 만합니다.
 
 RSS나 Atom 피드에서는 최근 24시간의 항목을 활성 인시던트로 셉니다. RSS 항목은 게시 날짜로, Atom 항목은 업데이트 날짜로 판단합니다. 날짜가 미래인 항목은 그 날짜가 될 때까지 세지 않습니다.
 
