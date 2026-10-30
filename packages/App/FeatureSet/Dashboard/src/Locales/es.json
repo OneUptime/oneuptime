@@ -37102,5 +37102,6 @@
   "When someone with write access opens or updates a merge request, OneUptime comments with what production shows of the code it changes.": "Cuando alguien con acceso de escritura abre o actualiza un merge request, OneUptime comenta lo que producción muestra del código que cambia.",
   "{{host}} did not let the access token comment on this merge request, so this review is only here.": "{{host}} no dejó que el token de acceso comentara en este merge request, así que esta revisión solo está aquí.",
   "{{host}} did not let the access token comment on this pull request, so this review is only here.": "{{host}} no dejó que el token de acceso comentara en esta pull request, así que esta revisión solo está aquí.",
-  "Review now": "Revisar ahora"
+  "Review now": "Revisar ahora",
+  "The Runner signs in with its secret key. After a reset it stops connecting until you re-run the setup command on its host.": "El Runner inicia sesión con su clave secreta. Tras restablecerla, deja de conectarse hasta que vuelvas a ejecutar el comando de configuración en su host."
 }

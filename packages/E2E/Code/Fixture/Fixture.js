@@ -1857,14 +1857,17 @@ const ASKABLE_PULL_REQUESTS = {
 /*
  * A pull request reviewed because someone asked for it: from a fork, its
  * author cannot write to the repository, and its code changes nothing
- * production runs yet - so nothing is posted on it.
+ * production runs yet. Asked for, it is posted even so - only a review
+ * that came on its own and found nothing stays quiet
+ * (ProductionReviewRunner).
  */
 function askedReport(repository, number, pullRequest, reviewedAt) {
+  const url = pullRequestUrlOf(repository, number);
   return {
     pullRequest: {
       number,
       title: pullRequest.title,
-      url: pullRequestUrlOf(repository, number),
+      url,
       authorLogin: pullRequest.authorLogin,
       headSha: REVIEW_SHAS.next,
       baseRefName: repository.mainBranchName,
@@ -1883,7 +1886,13 @@ function askedReport(repository, number, pullRequest, reviewedAt) {
     suspectDeploys: [],
     points: [],
     unreadSections: [],
-    posting: ProductionReviewPosting.None,
+    posting: ProductionReviewPosting.Review,
+    isPublicRepository: false,
+    // GitLab keeps a merge request's comments as notes.
+    commentUrl:
+      repository.provider === CodeRepositoryType.GitLab
+        ? `${url}#note_3001`
+        : `${url}#issuecomment-3001`,
   };
 }
 

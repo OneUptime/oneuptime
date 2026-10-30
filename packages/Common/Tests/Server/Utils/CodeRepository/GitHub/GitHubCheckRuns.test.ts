@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import GitHubCheckRuns, {
   CHECK_RUN_SUMMARY_MAX_LENGTH,
   CHECKS_PERMISSION_MISSING_SECONDS,
@@ -46,9 +47,17 @@ const CONTENT: GitHubCheckRunContent = {
 };
 
 let kept: Map<string, string>;
-let mint: jest.SpiedFunction<typeof GitHubUtil.getRepositoryAccessToken>;
-let post: jest.SpiedFunction<typeof API.post>;
-let patch: jest.SpiedFunction<typeof API.patch>;
+let mint: SpyInstance<typeof GitHubUtil.getRepositoryAccessToken>;
+/*
+ * API.post and API.patch are generic: a spy on one is typed as jest.spyOn
+ * types it, with its type parameter at its constraint.
+ */
+let post: SpyInstance<
+  (...args: Parameters<typeof API.post>) => ReturnType<typeof API.post>
+>;
+let patch: SpyInstance<
+  (...args: Parameters<typeof API.patch>) => ReturnType<typeof API.patch>
+>;
 
 function written(id: number): HTTPResponse<JSONObject> {
   return new HTTPResponse<JSONObject>(

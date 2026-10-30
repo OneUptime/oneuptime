@@ -37102,5 +37102,6 @@
   "When someone with write access opens or updates a merge request, OneUptime comments with what production shows of the code it changes.": "書き込み権限のある人がマージリクエストを作成または更新すると、変更されたコードについて本番環境が示す情報を OneUptime がコメントします。",
   "{{host}} did not let the access token comment on this merge request, so this review is only here.": "{{host}} がアクセストークンによるこのマージリクエストへのコメントを許可しなかったため、このレビューはここにだけあります。",
   "{{host}} did not let the access token comment on this pull request, so this review is only here.": "{{host}} がアクセストークンによるこのプルリクエストへのコメントを許可しなかったため、このレビューはここにだけあります。",
-  "Review now": "今すぐレビュー"
+  "Review now": "今すぐレビュー",
+  "The Runner signs in with its secret key. After a reset it stops connecting until you re-run the setup command on its host.": "Runner はシークレットキーでサインインします。リセットすると、ホスト上でセットアップコマンドを再実行するまで接続できなくなります。"
 }

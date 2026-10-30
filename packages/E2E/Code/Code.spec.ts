@@ -9,6 +9,7 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
  * Code in a browser, against the offline fixture (Code/Fixture): its first
@@ -1963,14 +1964,17 @@ test.describe("repositories beyond GitHub: GitLab, Forgejo or Gitea, any Git ser
       "There is no merge request !99 in this repository.",
     );
     await expect(number).toHaveValue("!99");
-    await expect(page).toHaveURL(new RegExp(`${reviewsPath(BILLING)}`));
+    // Still on the reviews page: a refusal opens nothing.
+    await expect(page).toHaveURL(
+      new RegExp(`${escapeRegExp(reviewsPath(BILLING))}(\\?|$)`),
+    );
     await screenshot(page, testInfo, "code-production-review-ask-refused");
 
     // Enter asks too: a merge request from a fork, never reviewed on its own.
     await number.fill("!18");
     await number.press("Enter");
 
-    await expect(page).toHaveURL(new RegExp(`${CODE}/tasks/60000000-`));
+    await expect(page).toHaveURL(/\/code\/tasks\/60000000-/);
     await expect(page.getByTestId("code-task-title")).toHaveText(
       "Export invoices as CSV",
     );
@@ -1991,8 +1995,14 @@ test.describe("repositories beyond GitHub: GitLab, Forgejo or Gitea, any Git ser
       "Nothing in production runs through this merge request's changes",
       { timeout: 30000 },
     );
-    await expect(page.getByTestId("production-review-posting")).toHaveText(
-      "Nothing was posted on the merge request.",
+    // Asked for, it is posted on the merge request even so.
+    const posting: Locator = page.getByTestId("production-review-posting");
+    await expect(posting).toContainText("Posted on the merge request.");
+    await expect(
+      posting.getByTestId("production-review-comment"),
+    ).toHaveAttribute(
+      "href",
+      "https://gitlab.com/acme/billing-service/-/merge_requests/18#note_3001",
     );
     await expect(page.getByTestId("production-review-updates")).toHaveText(
       "Its author cannot write to this repository, so it is reviewed again only when someone with write access asks.",
@@ -4855,7 +4865,7 @@ test.describe("a repository's pull requests, reviewed against production", () =>
     number = dialog.getByTestId("code-production-review-ask-number");
     await number.fill("64");
     await dialog.getByRole("button", { name: "Review now" }).click();
-    await expect(page).toHaveURL(new RegExp(`${CODE}/tasks/60000000-`));
+    await expect(page).toHaveURL(/\/code\/tasks\/60000000-/);
     await expect(page.getByTestId("code-task-title")).toHaveText(
       "Accept Apple Pay at checkout",
     );

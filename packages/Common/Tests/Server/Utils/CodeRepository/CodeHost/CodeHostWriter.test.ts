@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import CodeHostWriters, {
   CodeHostWriter,
   CodeHostWriterGap,
@@ -375,20 +376,21 @@ describe("a GitHub repository's writer", () => {
       organizationName: "acme",
       repositoryName: "checkout",
     });
-    const commit: jest.SpiedFunction<typeof GitHubUtil.commitFilesToBranch> =
-      jest.spyOn(GitHubUtil, "commitFilesToBranch").mockResolvedValue({
+    const commit: SpyInstance<typeof GitHubUtil.commitFilesToBranch> = jest
+      .spyOn(GitHubUtil, "commitFilesToBranch")
+      .mockResolvedValue({
         commitSha: SHA,
         branchName: "feature",
         htmlUrl: `https://github.com/acme/checkout/commit/${SHA}`,
       });
-    const open: jest.SpiedFunction<
-      typeof GitHubUtil.createPullRequestWithToken
-    > = jest.spyOn(GitHubUtil, "createPullRequestWithToken").mockResolvedValue({
-      pullRequestId: 900,
-      pullRequestNumber: 42,
-      state: PullRequestState.Open,
-    } as never);
-    const branch: jest.SpiedFunction<typeof GitHubUtil.createBranch> = jest
+    const open: SpyInstance<typeof GitHubUtil.createPullRequestWithToken> = jest
+      .spyOn(GitHubUtil, "createPullRequestWithToken")
+      .mockResolvedValue({
+        pullRequestId: 900,
+        pullRequestNumber: 42,
+        state: PullRequestState.Open,
+      } as never);
+    const branch: SpyInstance<typeof GitHubUtil.createBranch> = jest
       .spyOn(GitHubUtil, "createBranch")
       .mockResolvedValue(true);
 

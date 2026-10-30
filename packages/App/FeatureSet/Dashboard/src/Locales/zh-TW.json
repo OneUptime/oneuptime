@@ -37102,5 +37102,6 @@
   "When someone with write access opens or updates a merge request, OneUptime comments with what production shows of the code it changes.": "當擁有寫入權限的人建立或更新合併請求時，OneUptime 會留言說明正式環境中與所改程式碼相關的資料。",
   "{{host}} did not let the access token comment on this merge request, so this review is only here.": "{{host}} 不允許存取權杖在此合併請求中留言，因此此審查只在這裡。",
   "{{host}} did not let the access token comment on this pull request, so this review is only here.": "{{host}} 不允許存取權杖在此拉取請求中留言，因此此審查只在這裡。",
-  "Review now": "立即審查"
+  "Review now": "立即審查",
+  "The Runner signs in with its secret key. After a reset it stops connecting until you re-run the setup command on its host.": "Runner 使用其密鑰登入。重設後，在你於其主機上重新執行安裝指令之前，它將無法連線。"
 }

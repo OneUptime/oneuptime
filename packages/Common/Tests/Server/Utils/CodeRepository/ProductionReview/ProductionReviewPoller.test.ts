@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import ProductionReviewPoller, {
   AUTHOR_TRUST_CACHE_SECONDS,
   POLL_FIRST_LOOKBACK_SECONDS,
@@ -532,9 +533,8 @@ describe("ProductionReviewPoller.pollRepository", () => {
   });
 
   test("a repository with Production Review off, or not reached now, is not read", async () => {
-    const openPolled: jest.SpiedFunction<
-      typeof ProductionReviewHosts.openPolled
-    > = jest.spyOn(ProductionReviewHosts, "openPolled").mockResolvedValue(null);
+    const openPolled: SpyInstance<typeof ProductionReviewHosts.openPolled> =
+      jest.spyOn(ProductionReviewHosts, "openPolled").mockResolvedValue(null);
     const off: CodeRepository = repository();
     off.isProductionReviewEnabled = false;
 
@@ -566,7 +566,7 @@ describe("ProductionReviewPoller.pollAll", () => {
       repository(2),
       repository(3),
     ];
-    const findBy: jest.SpiedFunction<typeof CodeRepositoryService.findBy> = jest
+    const findBy: SpyInstance<typeof CodeRepositoryService.findBy> = jest
       .spyOn(CodeRepositoryService, "findBy")
       .mockResolvedValue(repositories);
     jest

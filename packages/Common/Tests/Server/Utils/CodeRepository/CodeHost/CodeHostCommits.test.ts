@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import CodeHostCommits, {
   CodeHostCommitReader,
   RepositoryAddress,
@@ -188,12 +189,10 @@ describe("CodeHostCommits: the same repository, wherever an address is written",
 
 describe("CodeHostCommits: a GitHub repository's commits", () => {
   test("one installation token, minted at the first read, reads every commit of the change", async () => {
-    const mint: jest.SpiedFunction<
-      typeof GitHubUtil.getInstallationAccessToken
-    > = jest
+    const mint: SpyInstance<typeof GitHubUtil.getInstallationAccessToken> = jest
       .spyOn(GitHubUtil, "getInstallationAccessToken")
       .mockResolvedValue({ token: "tok", expiresAt: new Date() });
-    const compare: jest.SpiedFunction<typeof GitHubCommits.compare> = jest
+    const compare: SpyInstance<typeof GitHubCommits.compare> = jest
       .spyOn(GitHubCommits, "compare")
       .mockResolvedValue({
         status: "ahead",

@@ -37102,5 +37102,6 @@
   "When someone with write access opens or updates a merge request, OneUptime comments with what production shows of the code it changes.": "Wanneer iemand met schrijfrechten een merge request opent of bijwerkt, reageert OneUptime met wat productie laat zien van de gewijzigde code.",
   "{{host}} did not let the access token comment on this merge request, so this review is only here.": "{{host}} liet het toegangstoken niet reageren op dit merge request, dus deze beoordeling staat alleen hier.",
   "{{host}} did not let the access token comment on this pull request, so this review is only here.": "{{host}} liet het toegangstoken niet reageren op dit pull request, dus deze beoordeling staat alleen hier.",
-  "Review now": "Nu beoordelen"
+  "Review now": "Nu beoordelen",
+  "The Runner signs in with its secret key. After a reset it stops connecting until you re-run the setup command on its host.": "De Runner meldt zich aan met zijn geheime sleutel. Na een reset maakt hij geen verbinding meer tot je de installatieopdracht opnieuw uitvoert op de host."
 }

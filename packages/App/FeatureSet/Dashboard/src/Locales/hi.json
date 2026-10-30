@@ -37102,5 +37102,6 @@
   "When someone with write access opens or updates a merge request, OneUptime comments with what production shows of the code it changes.": "जब लिखने की अनुमति वाला कोई व्यक्ति मर्ज रिक्वेस्ट खोलता या अपडेट करता है, तो OneUptime टिप्पणी में बताता है कि प्रोडक्शन बदले गए कोड के बारे में क्या दिखाता है।",
   "{{host}} did not let the access token comment on this merge request, so this review is only here.": "{{host}} ने एक्सेस टोकन को इस मर्ज रिक्वेस्ट पर टिप्पणी नहीं करने दी, इसलिए यह समीक्षा केवल यहाँ है।",
   "{{host}} did not let the access token comment on this pull request, so this review is only here.": "{{host}} ने एक्सेस टोकन को इस पुल रिक्वेस्ट पर टिप्पणी नहीं करने दी, इसलिए यह समीक्षा केवल यहाँ है।",
-  "Review now": "अभी समीक्षा करें"
+  "Review now": "अभी समीक्षा करें",
+  "The Runner signs in with its secret key. After a reset it stops connecting until you re-run the setup command on its host.": "Runner अपनी सीक्रेट कुंजी से साइन इन करता है। रीसेट के बाद यह तब तक कनेक्ट नहीं होता जब तक आप इसके होस्ट पर सेटअप कमांड फिर से न चलाएँ।"
 }

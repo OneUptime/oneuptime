@@ -2022,9 +2022,9 @@ describe("the LLM provider that read the review", () => {
 
     expect(new Set(sentences).size).toBe(sentences.length);
     for (const sentence of sentences) {
-      expect((englishLocale as Record<string, string>)[sentence]).toBe(
-        sentence,
-      );
+      expect(
+        (englishLocale as unknown as Record<string, string>)[sentence],
+      ).toBe(sentence);
       expect(sentence.includes("{{provider}}")).toBe(
         sentence !== PRODUCTION_REVIEW_PROVIDER_COPY.unavailableToNone,
       );

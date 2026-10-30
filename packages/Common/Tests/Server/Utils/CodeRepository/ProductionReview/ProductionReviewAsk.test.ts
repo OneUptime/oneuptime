@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import ProductionReviewAsk, {
   PRODUCTION_REVIEW_NO_PULL_REQUESTS_MESSAGE,
   getPullRequestLabel,
@@ -157,11 +158,10 @@ describe("asking for a review of a GitHub pull request", () => {
     jest
       .spyOn(GitHubConversation, "getPullRequestDetails")
       .mockResolvedValue(details({ authorLogin: "dana" }));
-    const canWrite: jest.SpiedFunction<
-      typeof ProductionReviewGitHubTrigger.canWrite
-    > = jest
-      .spyOn(ProductionReviewGitHubTrigger, "canWrite")
-      .mockResolvedValue(true);
+    const canWrite: SpyInstance<typeof ProductionReviewGitHubTrigger.canWrite> =
+      jest
+        .spyOn(ProductionReviewGitHubTrigger, "canWrite")
+        .mockResolvedValue(true);
 
     await ProductionReviewAsk.ask({
       projectId: CONNECTED_PROJECT_ID,
@@ -234,9 +234,8 @@ describe("asking for a review of a GitHub pull request", () => {
     jest
       .spyOn(GitHubInstallationBinding, "getBoundInstallationId")
       .mockResolvedValue("9999");
-    const read: jest.SpiedFunction<
-      typeof GitHubConversation.getPullRequestDetails
-    > = jest.spyOn(GitHubConversation, "getPullRequestDetails");
+    const read: SpyInstance<typeof GitHubConversation.getPullRequestDetails> =
+      jest.spyOn(GitHubConversation, "getPullRequestDetails");
 
     await expect(
       ProductionReviewAsk.ask({

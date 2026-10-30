@@ -498,7 +498,7 @@ describe("the Project Default card on a Runner's page", () => {
  */
 describe("Reset Runner Key on a Runner's page", () => {
   const RESET_DESCRIPTION: string =
-    "Resetting the secret key will generate a new key. The secret is used to authenticate this Runner's requests. This Runner will stop connecting until the new key is configured on it, so re-run the setup command on its host afterwards.";
+    "The Runner signs in with its secret key. After a reset it stops connecting until you re-run the setup command on its host.";
 
   function nestingWarnings(calls: Array<Array<unknown>>): Array<string> {
     return calls

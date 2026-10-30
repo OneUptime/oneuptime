@@ -95,7 +95,9 @@ The suite drives the pages the way a person does, on a laptop and on a phone:
   `?reviews=none`, `?reviewcomment=Link|ReviewEvenIfPublic`,
   `?reviewllm=opus|gone`: a pick of Claude Opus, or of a provider no longer
   there; the project's providers come from POST /ai-chat/providers, Azure
-  GPT-4o its default);
+  GPT-4o its default); Review a pull request beside the list, asking for one
+  by its number (a closed one refused in the dialog, one already reviewed
+  reviewed again, one from a fork reviewed on its own page);
 - the old addresses forwarding with their ids, query strings and hashes, and
   GitHub's way back still saying GitHub connected;
 - repositories beyond GitHub (`?hosts=1`): Connect repositories asking where
@@ -110,12 +112,18 @@ The suite drives the pages the way a person does, on a laptop and on a phone:
   only) and a Git repository's (Branches, the Runner it needs); a refused
   token (`?token=refused`) or no Runner (`?gitrunner=none`) said with its
   fix; GitLab's merge request !12, and a Git repository's pushed branch;
+  production reviews in each host's words - a GitLab repository's
+  Production Reviews and Review a merge request (a number GitLab does not
+  hold kept in the dialog, then the queued review coming in), merge
+  request !15's review posted on GitLab, Forgejo's #7 whose token could not
+  comment, a refused token, a Git server's address - and German and dark
+  mode for them;
 - dark mode (`?theme=dark`: no light surface, and a spinner's arc that keeps
   its own colour) and German (`?lang=de`).
 
 What the pages send is recorded on `window.__fixture` (`creates`, `replies`,
 `retries`, `stops`, `settings`, `deletes`, `navigations`, `branchReads`,
-`lists`, `reviewLists`, `reviewAgains`, and the connect dialog's
+`lists`, `reviewLists`, `reviewAgains`, `reviewAsks`, and the connect dialog's
 `connectReads`, `connects`, `gitConnects` and `tokenReplacements`), so the
 tests check what was sent as
 well as what was drawn. The
