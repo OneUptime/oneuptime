@@ -608,7 +608,9 @@ describe("SecurityEventConnectionsTable", () => {
     renderTable([]);
 
     const props: ModelTableProps<BaseModel> = tableProps();
-    const description: string = props.cardProps?.description || "";
+    // A sentence, never an element: the extractor and the guards read it.
+    expect(typeof props.cardProps?.description).toBe("string");
+    const description: string = props.cardProps?.description as string;
     expect(props.cardProps?.title).toBe("Your security tools");
     expect(description).toBe(
       "Bring in alerts and events from the SIEM, EDR / XDR, cloud security and identity tools you already use, such as Microsoft Sentinel, CrowdStrike Falcon, AWS Security Hub and Microsoft Entra ID.",
