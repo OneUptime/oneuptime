@@ -2,7 +2,7 @@
 
 You build a workflow in its **Builder**: a canvas where you add blocks, connect them and fill in their settings. This page walks through creating a workflow, [adding blocks](#add-blocks), [connecting](#connecting-blocks) and [configuring](#configuring-a-block) them, [passing values between them](#using-values-from-earlier-blocks), and [turning the workflow on](#turning-it-on).
 
-To create a workflow, open **Workflows** and click **Create Workflow**. The **Create a workflow** dialog asks how you want to start, then for a name. A template that needs settings of its own, such as a Slack webhook URL, asks for them in one more step and saves them as workflow variables, so you can change them later without editing the workflow.
+To create a workflow, open **Workflows** and click **Create Workflow**. The **Create a workflow** dialog asks how you want to start, then for a name. A template that needs settings of its own, such as a Slack webhook URL, asks for them in one more step and saves them as workflow variables, so you can change them later without editing the workflow. A template that pages people asks in that step who to page, picked from your project's users, teams, on-call schedules or on-call policies.
 
 Choose how to begin:
 

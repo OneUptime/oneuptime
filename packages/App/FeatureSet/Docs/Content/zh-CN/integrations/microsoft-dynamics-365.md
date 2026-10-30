@@ -133,7 +133,7 @@ Dataverse 中没有类似 Jira 标签的东西，因此案例和 OneUptime 记�
 4. 点击 **创建工作流**。每个工作流创建时都处于关闭状态：在它的 **生成器** 顶部打开 **已启用**。
 :::
 
-先从 **Create a Dynamics 365 case when an incident is declared** 开始，警报则从 **Create a Dynamics 365 case when an alert is created** 开始：同类的其他 OneUptime → Dynamics 365 模板都通过这个模板写入的关联找到案例。启用它，声明一个测试事件或创建一个测试警报，然后打开工作流的 **日志 → 运行记录**。这次运行的最后一步应显示 `✅ Opened Dynamics 365 case CAS-01001-X1Y2Z3 for INC-42, linked as oneuptime-incident-<id>.`
+先从 **Create a Dynamics 365 case when an incident is declared** 开始，警报则从 **Create a Dynamics 365 case when an alert is created** 开始：同类的其他 OneUptime → Dynamics 365 模板都通过这个模板写入的关联找到案例。启用它，声明一个测试事件或创建一个测试警报，然后打开工作流的 **日志 → 运行记录**。这次运行应以 **已执行** 结束，其最后一步 `create-case-1` 的 **Response Body** 中会有新案例的 `ticketnumber`，例如 `CAS-01001-X1Y2Z3`。
 
 ### 连接 Dynamics 365 → OneUptime 模板
 
@@ -156,11 +156,11 @@ Dynamics 365 → OneUptime 模板（3 个事件模板和 3 个警报模板）从
 
 | 模板 | Change type | Table name | Select columns | Body |
 | --- | --- | --- | --- | --- |
-| 创建案例时声明事件 / 创建警报 | Added | Cases | | `{"incidentid": "<Case>"}` |
-| 案例被解决时解决事件 / 警报 | Modified | Cases | `statecode,statuscode` | `{"incidentid": "<Case>"}` |
-| 把案例备注作为私密备注添加到事件 / 警报 | Added | Notes | | `{"annotationid": "<Note>"}` |
+| 创建案例时声明事件 / 创建警报 | Added | Cases | | `{"PrimaryEntityId": "<Case>"}` |
+| 案例被解决时解决事件 / 警报 | Modified | Cases | `statecode,statuscode` | `{"PrimaryEntityId": "<Case>"}` |
+| 把案例备注作为私密备注添加到事件 / 警报 | Added | Notes | | `{"PrimaryEntityId": "<Note>"}` |
 
-如果只想发送部分案例，请使用触发器的 **Filter rows**，例如对高优先级案例使用 `prioritycode eq 1`。你也可以发布触发器的完整输出：模板会以同样的方式从中读取行的 ID 及其 `SdkMessage`。
+如果只想发送部分案例，请使用触发器的 **Filter rows**，例如对高优先级案例使用 `prioritycode eq 1`。正文用 `PrimaryEntityId` 指明这一行，与 Dataverse webhook 的做法相同：模板会从 Dynamics 365 重新读取这一行本身。
 @tab Dataverse webhook
 用 [Plug-in Registration Tool](https://learn.microsoft.com/en-us/power-apps/developer/data-platform/register-web-hook) 注册该 URL：选择 **Register New WebHook**，使用 **HttpHeader** 身份验证和你自己定义的请求头；URL 本身就是密钥。然后为下面的每个事件在它上面注册一个步骤，把 **Event Pipeline Stage of Execution** 设为 **PostOperation**，**Execution Mode** 设为 **Asynchronous**。
 
@@ -181,12 +181,12 @@ Dynamics 365 → OneUptime 模板（3 个事件模板和 3 个警报模板）从
 
 ### 检查是否正常工作
 
-每个模板都以一个说明发生了什么的 **Log** 步骤结束，因此请查看 **日志 → 运行记录** 中这次运行的最后一步：
+每次运行的 **步骤** 都会说明模板做了什么，因此请在 **日志 → 运行记录** 中打开这次运行，看看它是如何结束的：
 
-- `✅` — 完成了它的工作，并给出案例、事件或警报。
-- `ℹ️` — 有意跳过了该事件，并说明原因：案例没有关联到这类记录、备注来自另一边、记录是私密的，或者新状态没有映射到任何案例状态。
-- `❌` — 某个调用失败了。对于 Dynamics 365 调用，这一行包含 Dynamics 365 的回应。
-- `⚠️` — 根据案例创建记录的模板已经创建了记录，但 Dynamics 365 没有接受关联，因此其他模板暂时还找不到它。请手动在案例的列中输入关联。
+- **已执行**：完成了工作，最后一步会给出案例、事件或警报。
+- **已执行**，且 **Check With JavaScript** 步骤走了 **No**：有意跳过了该事件，该步骤会说明原因：案例没有关联到这类记录、备注来自另一边、记录是私密的，或者新状态不会关闭案例。
+- **错误**：某个步骤失败了，它在 **步骤** 中的条目会说明原因。对于 Dynamics 365 调用，其中包含 Dynamics 365 的回应。
+- 在 `link-case-1` 处 **错误**：根据案例创建记录的模板已经创建了记录，但 Dynamics 365 没有接受关联，因此其他模板暂时还找不到它。请手动在案例的列中输入关联。
 
 如果运行在第一个 Dynamics 365 步骤停止，并显示 `Could not get an OAuth 2.0 access token for {{local.variables.dynamicsAccessToken}}`，说明登录设置有误，消息中会引用 Microsoft Entra ID 的回应。参见 [模板需要的设置](#模板需要的设置)。
 
@@ -221,7 +221,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 
 ### 更改模板的行为
 
-打开工作流的 **生成器**，点击你想更改的块。你最可能想改的设置是脚本顶部附近的常量，位于 **Run Custom JavaScript** 块的 **JavaScript Code** 中，就在共享的辅助代码块下面。事件版本和警报版本在相同的块中有相同的常量。
+打开工作流的 **生成器**，点击你想更改的块。你最可能想改的设置是脚本顶部附近的常量，位于 **Check With JavaScript** 块的 **JavaScript Code** 中，就在共享的辅助代码块下面。事件版本和警报版本在相同的块中有相同的常量。
 
 | 常量 | 模板和块 | 控制的内容 |
 | --- | --- | --- |
@@ -230,11 +230,11 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 | `CASE_ORIGIN`, `CASE_TYPE` | Create a Dynamics 365 case — `prepare-case-1` | 新案例的 `caseorigincode`（`3`，Web）和 `casetypecode`（`2`，Problem）。要设置其他任何列，请按逻辑名称把它添加到同一脚本的 `CASE` 中。 |
 | `MAX_TITLE_LENGTH`, `MAX_DESCRIPTION_LENGTH` | Create a Dynamics 365 case — `prepare-case-1` | Case 表自身的限制，200 和 2000 个字符。无论截掉多少，描述都会保留链接回 OneUptime 的关联。如果你的 Case 表允许更多，可以调高它们。 |
 | `RESOLVED_CASE_STATUS` | Resolve the Dynamics 365 case — `plan-case-1` | 已解决的记录关闭其案例时使用的状态：`5` 是 Problem Solved，`1000` 是 Information Provided。 |
-| `STATE_TO_CASE_STATUS` | Resolve the Dynamics 365 case — `plan-case-1` | 当记录进入另一个状态时，按状态名称移动案例：`{ Acknowledged: 4 }` 会在事件被确认时把案例移到 Researching。Dynamics 365 的活动状态有 `1` In Progress、`2` On Hold、`3` Waiting for Details 和 `4` Researching。列在这里的已解决状态会以它指定的状态关闭案例。 |
+| `STATE_TO_CASE_STATUS` | Resolve the Dynamics 365 case — `plan-case-1` | 在你自己的已解决状态下，按状态名称以另一个已解决状态关闭案例：`{ Closed: 1000 }` 会以 Information Provided 关闭它。只有记录被解决时才会更改它的案例：不会设置 Researching 之类的活动状态。 |
 | `PRIORITY_RANK` | Create from a Dynamics 365 case — `prepare-incident-1`、`prepare-alert-1` | 把案例优先级（`1` High、`2` Normal、`3` Low）映射到 `0`（最高的严重程度）、`1` 或 `2`（最低的严重程度）。未列出的优先级落在中间。对于新项目的两种警报严重程度，除非你把 `2: 1` 改为 `2: 0`，否则 Normal 会变成 Low。 |
 | `ONLY_PRIORITIES` | Create from a Dynamics 365 case — `prepare-incident-1`、`prepare-alert-1` | 为空时接受流或 Webhook 发送的每个案例。`[1]` 只为高优先级案例创建记录。 |
 | `CASE_STATUS_TO_STATE`, `CASE_STATE_TO_STATE_FLAG` | Resolve when the Dynamics 365 case is resolved — `decide-state-1` | 按名称把案例状态原因映射到 OneUptime 状态，例如 `{ Researching: 'Acknowledged' }`。否则由案例的状态决定：Resolved 会解决记录。添加 `2: 'isResolvedState'` 可以在案例被取消时也解决记录。 |
-| `MESSAGES` | 每个 Dynamics 365 → OneUptime 模板 — `read-event-1` | 模板会处理的事件。把 `'Update'` 添加到备注模板的列表中，可以同时复制编辑过的备注：每次编辑都会成为一条新备注。 |
+| `MESSAGES` | 每个 Dynamics 365 → OneUptime 模板 — `read-event-1`，或 `prepare-incident-1` 和 `prepare-alert-1` | 模板会处理的事件。把 `'Update'` 添加到备注模板的列表中，可以同时复制编辑过的备注：每次编辑都会成为一条新备注。 |
 | `MAX_NOTE_LENGTH` | 备注模板 — `build-note-1`、`read-note-1` | 每个模板写入的最长备注：写入 Dynamics 365 的为 100,000 个字符，这是备注本身的限制；写入 OneUptime 的为 30,000 个字符。 |
 
 用作键的状态和状态原因名称必须与其名称拼写完全一致，包括大小写。不要在代码中使用 `{{`：脚本在运行前会像其他设置一样被填充，因此连续两个左花括号会被当作引用读取。
@@ -242,7 +242,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 ### 限制
 
 - **仅限 Microsoft 商业云。** 令牌 URL 是 `login.microsoftonline.com`。对于美国政府云（GCC High、DoD）或中国云，请打开 `dynamicsAccessToken`，使用 **编辑设置**，把令牌 URL 改为你所在云的登录主机，例如 `login.microsoftonline.us`。
-- **Dynamics 365 可能会拒绝解决案例。** 你的 Customer Service 设置可能会在案例有未完成的活动或未关闭的子案例时阻止解决它，业务规则或插件也可能拒绝。运行会以 `❌ Dynamics 365 did not resolve the case` 结束并附上 Dynamics 365 给出的原因，案例保持原样。
+- **Dynamics 365 可能会拒绝解决案例。** 你的 Customer Service 设置可能会在案例有未完成的活动或未关闭的子案例时阻止解决它，业务规则或插件也可能拒绝。运行会在 `close-case-1` 失败并附上 Dynamics 365 给出的原因，案例保持原样。
 - **记录和案例都不会往回走。** 重新打开案例不会改变 OneUptime 中的任何内容，已解决的记录也永远不会被重新打开。已经解决或已取消的案例永远不会为了再次关闭而被重新打开。
 - **备注和描述都是纯文本。** 在 Dynamics 365 富文本编辑器中写的备注会以它显示的文本到达 OneUptime，在编辑器中写的或取自电子邮件的案例描述也是如此：段落和换行会保留，而格式、图片和电子邮件自身的样式会丢失。OneUptime 备注会以原始字符到达 Dynamics 365，包括 Markdown 在内。来自 Dynamics 365 的文本（案例的标题和描述、备注，以及状态、优先级、客户和人员的名称）会按原样读取：在其中输入的图片、链接、HTML、图表或聊天提及（例如 `<!channel>`）只会显示为字符，不起任何作用，因为在本会触发它的字符之后会插入一个不可见的 word joiner。复制这段文本时 word joiner 也会被保留。工作流会保留它创建时的脚本，因此用旧版本模板创建的工作流会按那个版本的方式写入文本：要获得这种行为，请从模板重新创建它。附件保留在 Dynamics 365 中；OneUptime 中的备注会给出文件名。
 - **编辑过的备注不会被复制**，只复制新备注，除非你把 `'Update'` 添加到 `MESSAGES` 中。

@@ -129,7 +129,7 @@ Atlassian **서비스 계정**도 쓸 수 있습니다. 조직 관리자가 [adm
 4. **워크플로 생성**을 클릭합니다. 모든 워크플로는 꺼진 상태로 만들어집니다. **빌더** 상단에서 **활성화됨**을 켜세요.
 :::
 
-**Create a Jira issue when an incident is declared**(알림이라면 **Create a Jira issue when an alert is created**)로 시작하세요. 같은 종류의 다른 OneUptime → Jira 템플릿은 모두 이 템플릿이 붙이는 레이블로 이슈를 찾습니다. 템플릿을 켜고, 테스트 인시던트를 선언하거나 테스트 알림을 만든 다음, 워크플로의 **로그 → 실행 기록**을 엽니다. 실행의 마지막 단계에 `✅ Created Jira issue`가 표시되고 새 이슈가 나와야 합니다.
+**Create a Jira issue when an incident is declared**(알림이라면 **Create a Jira issue when an alert is created**)로 시작하세요. 같은 종류의 다른 OneUptime → Jira 템플릿은 모두 이 템플릿이 붙이는 레이블로 이슈를 찾습니다. 템플릿을 켜고, 테스트 인시던트를 선언하거나 테스트 알림을 만든 다음, 워크플로의 **로그 → 실행 기록**을 엽니다. 실행은 **실행됨**으로 끝나야 하며, 마지막 단계 `create-issue-1`의 **Response Body**에 새 이슈가 나옵니다.
 
 각 워크플로는 이 값의 사본을 따로 가집니다. 토큰을 교체할 때는 토큰을 물었던 모든 Jira 워크플로의 **워크플로 변수**에서 `jiraBasicAuthToken`을 업데이트하세요. Jira 주소가 바뀌면 `jiraSiteUrl`과 `jiraBaseUrl`도 같은 방식으로 업데이트하세요.
 
@@ -180,14 +180,14 @@ project = OPS AND issuetype = Alert AND (labels is EMPTY OR labels != oneuptime)
 
 ### 작동하는지 확인하기
 
-모든 템플릿은 무슨 일이 있었는지 알려 주는 **Log** 단계로 끝나므로, **로그 → 실행 기록**에 있는 실행의 마지막 단계를 보면 됩니다:
+각 실행의 **단계**에 템플릿이 한 일이 나오므로, **로그 → 실행 기록**에서 실행을 열고 어떻게 끝났는지 보세요:
 
-- `✅` — 할 일을 마쳤고, 이슈, 인시던트 또는 알림을 알려 줍니다.
-- `ℹ️` — 일부러 이벤트를 건너뛰었고 그 이유를 알려 줍니다. 이슈가 이 종류의 레코드에 연결되지 않았거나, 노트가 Jira에서 왔거나, 레코드가 비공개이거나, 새 상태에 매핑된 Jira 상태가 없는 경우입니다.
-- `❌` — 호출이 실패했습니다. Jira 호출이라면 줄에 Jira의 응답이 포함됩니다.
-- `⚠️` — Jira 이슈에서 레코드를 만드는 템플릿이 레코드를 만들었지만 Jira가 연결 레이블을 받지 않아 다른 템플릿이 아직 찾을 수 없습니다. 레이블을 직접 추가하세요.
+- **실행됨**: 할 일을 마쳤고, 마지막 단계에 이슈, 인시던트 또는 알림이 나옵니다.
+- **실행됨**이고 **Check With JavaScript** 단계가 **No**로 감: 일부러 이벤트를 건너뛰었고, 그 단계가 이유를 알려 줍니다. 이슈가 이 종류의 레코드에 연결되지 않았거나, 노트가 Jira에서 왔거나, 레코드가 비공개이거나, 새 상태에 매핑된 Jira 상태가 없는 경우입니다.
+- **오류**: 단계가 실패했고, **단계**에 있는 그 항목에 이유가 나옵니다. Jira 호출이라면 Jira의 응답도 포함됩니다.
+- `link-issue-1`에서 **오류**: Jira 이슈에서 레코드를 만드는 템플릿이 레코드를 만들었지만 Jira가 연결 레이블을 받지 않아 다른 템플릿이 아직 찾을 수 없습니다. 레이블을 직접 추가하세요.
 
-건너뛴 실행도 **실행됨**으로 끝납니다. 건너뛰기는 정상입니다. 대부분의 Jira 이벤트는 특정 템플릿이 처리할 대상이 아닙니다. [워크플로우 실행 기록](/docs/workflows/runs-and-logs)을 참고하세요.
+건너뛰기는 정상입니다. 대부분의 Jira 이벤트는 특정 템플릿이 처리할 대상이 아닙니다. [워크플로우 실행 기록](/docs/workflows/runs-and-logs)을 참고하세요.
 
 ## 템플릿의 작동 방식
 
@@ -249,7 +249,7 @@ const STATE_TO_JIRA_STATUS = {
 
 ### 템플릿이 하는 일 바꾸기
 
-워크플로의 **빌더**를 열고 바꾸려는 블록을 클릭하세요. 가장 바꾸고 싶을 만한 설정은 스크립트 맨 위의 상수로, **Run Custom JavaScript** 블록의 **JavaScript Code**에서 공유 도우미 블록 바로 아래에 있습니다. 템플릿의 인시던트용과 알림용 버전은 같은 블록에 같은 상수를 둡니다:
+워크플로의 **빌더**를 열고 바꾸려는 블록을 클릭하세요. 가장 바꾸고 싶을 만한 설정은 스크립트 맨 위의 상수로, **Check With JavaScript** 블록의 **JavaScript Code**에서 공유 도우미 블록 바로 아래에 있습니다. 템플릿의 인시던트용과 알림용 버전은 같은 블록에 같은 상수를 둡니다:
 
 | 상수 | 템플릿과 블록 | 제어하는 내용 |
 | --- | --- | --- |
@@ -257,7 +257,7 @@ const STATE_TO_JIRA_STATUS = {
 | `PREFERRED_STATUS`, `NEVER_GUESS` | Move the Jira issue when the incident (or alert) is acknowledged or resolved — `plan-transition-1` | 템플릿이 의미로 판단할 때 선호하는 상태 이름과, `STATE_TO_JIRA_STATUS`에 지정하지 않는 한 고르지 않는 상태 이름. 둘 다 대소문자를 구분하지 않고 상태 이름과 비교하는 정규식입니다. |
 | `SYNC_PRIVATE_INCIDENTS` | 모든 OneUptime → Jira 인시던트용 템플릿 — `prepare-issue-1`, `plan-transition-1` 또는 `build-comment-1` | `false`는 **비공개 인시던트**로 표시된 인시던트를 Jira에 보내지 않습니다. 이슈를 만들지 않고, 그 이슈를 옮기지 않으며, 노트와 편집도 게시하지 않습니다. 그래도 보내려면 `true`로 설정하세요. 템플릿마다 사본이 따로 있으므로, 보내야 하는 모든 템플릿에서 설정하세요. |
 | `SYNC_PRIVATE_ALERTS` | 모든 OneUptime → Jira 알림용 템플릿 — `prepare-issue-1`, `plan-transition-1` 또는 `build-comment-1` | **비공개 경고**로 표시된 알림에 대해 같은 일을 합니다. `false`는 같은 방식으로 Jira에 보내지 않고, `true`는 그래도 보냅니다. 보내야 하는 모든 알림용 템플릿에서 설정하세요. |
-| `JIRA_STATUS_TO_STATE` | Acknowledge or resolve the incident (or alert) when its Jira issue moves — `decide-state-1` | `{ 'In Review': 'Monitoring' }`처럼 Jira 상태 이름을 OneUptime 상태 이름에 매핑합니다. 목록에 없는 상태는 Jira의 상태 범주로 판단합니다. In Progress는 인시던트나 알림을 확인하고, Done은 해결하며, To Do는 아무것에도 매핑되지 않습니다. |
+| `JIRA_STATUS_TO_STATE` | Acknowledge or resolve the incident (or alert) when its Jira issue moves — `read-event-1` | `{ 'In Review': 'Monitoring' }`처럼 Jira 상태 이름을 OneUptime 상태 이름에 매핑합니다. 목록에 없는 상태는 Jira의 상태 범주로 판단합니다. In Progress는 인시던트나 알림을 확인하고, Done은 해결하며, To Do는 아무것에도 매핑되지 않습니다. |
 | `PRIORITY_RANK` | Declare an incident when a Jira issue is created — `prepare-incident-1`; Create an alert when a Jira issue is created — `prepare-alert-1` | 소문자로 쓴 Jira 우선순위를 `0`(가장 높은 심각도), `1` 또는 `2`(가장 낮은 심각도)에 매핑하며, 그 사이의 심각도는 범위에 걸쳐 나눠 배정합니다. 목록에 없는 우선순위는 가운데에 놓입니다. 새 프로젝트에 있는 두 가지 알림 심각도에서는 `0`이 High이고 `1`과 `2`가 모두 Low이므로, `medium: 0`으로 바꾸지 않는 한 Medium은 Low가 됩니다. |
 | `EVENTS` | Add Jira comments to the incident (or alert) as private notes — `read-comment-1` | 노트가 되는 댓글 이벤트. 편집도 복사하려면 `'comment_updated'`를 추가하고(각 편집은 새 노트가 됩니다), Jira 웹훅에서 **Comment updated**도 선택하세요. |
 | `IGNORED_FIELDS` | Add Jira issue changes to the incident (or alert) as private notes — `read-changes-1` | 변경 내용을 노트로 남길 가치가 없는 Jira 필드(소문자). 필드 ID나 이름 중 하나가 목록에 있으면 그 변경은 제외되며, 그래서 `'rank'`가 `customfield_10019` 같은 ID로 오는 사용자 지정 필드 Rank를 잡아냅니다. 상태는 상태 템플릿이 다루므로 목록에 들어 있습니다. |
@@ -271,7 +271,7 @@ const STATE_TO_JIRA_STATUS = {
 ### 제한 사항
 
 - **Jira Cloud 전용.** 템플릿은 Basic 인증으로 Jira Cloud REST API v3를 호출합니다. Data Center에는 v3가 없고 개인용 액세스 토큰을 `Bearer`로 받으므로, 모든 API 블록에 [Jira Data Center](#jira-data-center)의 변경이 필요합니다. `/rest/api/2/...` 경로, Atlassian Document Format 본문 대신 일반 문자열, 그리고 헤더입니다. 가장 많이 바뀌는 것은 `find-issue-1` 블록입니다. Data Center에는 `/search/jql`이 없으므로 대신 `/rest/api/2/search`로 `POST`해야 합니다.
-- **Jira에서 선언된 인시던트는 조용합니다.** 이슈의 텍스트는 고객을 위해 쓴 것이 아니므로, 상태 페이지에서 숨긴 채 상태 페이지 구독자에게 알리지 않고 만들어집니다. 표시하려면 인시던트의 **설정** 페이지에서 **상태 페이지에 표시**를 켜거나([인시던트를 상태 페이지에 표시하지 않기](/docs/incidents/states-and-severities#인시던트를-상태-페이지에-내보내지-않기) 참고), 템플릿의 `create-incident-1` 블록에서 `isVisibleOnStatusPage`와 `shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`를 바꾸세요.
+- **Jira에서 선언된 인시던트는 조용합니다.** 이슈의 텍스트는 고객을 위해 쓴 것이 아니므로, 상태 페이지에서 숨긴 채 상태 페이지 구독자에게 알리지 않고 만들어집니다. 표시하려면 인시던트의 **설정** 페이지에서 **상태 페이지에 표시**를 켜거나([인시던트를 상태 페이지에 표시하지 않기](/docs/incidents/states-and-severities#인시던트를-상태-페이지에-내보내지-않기) 참고), 템플릿의 `incident-from-another-tool-1` 블록에서 **추가 필드** 아래의 **Show On Status Pages**를 켜세요.
 - **비공개 인시던트와 알림은 OneUptime에 머뭅니다.** OneUptime → Jira 템플릿은 이를 건너뛰고, 건너뛸 때마다 **로그 → 실행 기록**에 그 사실이 남습니다. 그래도 보내려면 `SYNC_PRIVATE_INCIDENTS` 또는 `SYNC_PRIVATE_ALERTS`를 `true`로 설정하세요. 나중에 레코드를 비공개로 바꾸면 그때부터 동기화가 멈추지만, Jira에 이미 있는 것은 되돌리지 않습니다. Jira → OneUptime 템플릿은 이를 확인하지 않으므로, 연결된 이슈의 댓글, 편집, 상태 변경은 비공개 레코드에도 계속 도달합니다.
 - **아무것도 뒤로 가지 않습니다.** Jira 이슈를 다시 열어도 OneUptime에서는 아무것도 바뀌지 않으며, To Do 범주의 상태는 어떤 상태에도 매핑되지 않습니다. [순서는 실제 제약입니다](/docs/incidents/states-and-severities#순서는-표시-취향이-아니라-실제-제약입니다)를 참고하세요. 전환 템플릿도 이슈를 앞선 상태 범주로 옮기지 않습니다.
 - **모든 알림에 이슈가 생깁니다.** 비공개 알림을 제외하면, 이슈를 만드는 알림용 템플릿은 모니터가 발생시키는 것까지 포함해 모든 알림에 이슈를 만듭니다. 조건을 추가하는 방법은 [알림의 차이점](#알림의-차이점)에 있습니다.
@@ -286,7 +286,7 @@ const STATE_TO_JIRA_STATUS = {
   curl -H 'Authorization: Basic <the encoded value>' https://your-domain.atlassian.net/rest/api/3/myself
   ```
 
-- **같은 이벤트가 두 번 올 수 있습니다.** Jira는 서버 오류나 시간 초과로 실패한 전송을 다시 시도합니다. OneUptime이 이미 실행을 시작했다면 댓글과 이슈 변경 템플릿은 두 번째 노트를 추가합니다. 레코드를 만드는 템플릿은 두 번째 레코드를 만들지 않습니다. 먼저 Jira에 이슈의 레이블을 묻고, 재시도가 도착할 때쯤이면 첫 실행이 이미 이슈에 레이블을 붙였기 때문입니다. 다만 첫 실행이 레코드를 만들었는데 Jira가 레이블을 거부한 경우에는 도움이 되지 않습니다. 그 실행은 `⚠️` 줄로 끝나므로 레이블을 직접 추가하세요.
+- **같은 이벤트가 두 번 올 수 있습니다.** Jira는 서버 오류나 시간 초과로 실패한 전송을 다시 시도합니다. OneUptime이 이미 실행을 시작했다면 댓글과 이슈 변경 템플릿은 두 번째 노트를 추가합니다. 레코드를 만드는 템플릿은 두 번째 레코드를 만들지 않습니다. 먼저 Jira에 이슈의 레이블을 묻고, 재시도가 도착할 때쯤이면 첫 실행이 이미 이슈에 레이블을 붙였기 때문입니다. 다만 첫 실행이 레코드를 만들었는데 Jira가 레이블을 거부한 경우에는 도움이 되지 않습니다. 그 실행은 `link-issue-1`에서 실패하므로 레이블을 직접 추가하세요.
 
 ## 직접 만들기
 

@@ -38962,5 +38962,7 @@
   "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.": "Le graphique montre combien d'exceptions se sont produites. Il n'est pas tracé pour les nouvelles exceptions, les exceptions revenues ou une hausse par rapport à l'habitude.",
   "{{monitorName}}: a new exception": "{{monitorName}} : une nouvelle exception",
   "{{monitorName}}: a resolved exception came back": "{{monitorName}} : une exception résolue est revenue",
-  "{{monitorName}}: exceptions spiked": "{{monitorName}} : pic d'exceptions"
+  "{{monitorName}}: exceptions spiked": "{{monitorName}} : pic d'exceptions",
+  "Pick who to page.": "Choisissez qui alerter.",
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "Choisissez qui ce flux de travail alerte. Vous pourrez le modifier plus tard dans son étape d'alerte, dans le Constructeur."
 }

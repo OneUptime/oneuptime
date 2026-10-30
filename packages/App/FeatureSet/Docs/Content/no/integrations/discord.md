@@ -16,10 +16,10 @@ flowchart TB
     declared["Hendelse erklært"] --> trigger["On Create Incident"]
     trigger --> step["Send Message<br/>to Discord"]
     step -->|"Success"| channel["Melding i<br/>kanalen din"]
-    step -->|"Error"| log["Log: hvorfor den<br/>ikke ble levert"]
+    step -->|"Error"| failed["Kjøringen<br/>mislykkes og<br/>sier hvorfor"]
 ```
 
-Trinnet poster **Message Text** til webhooken til kanalen. Det tar utgangen **Success** når Discord tar imot meldingen, og utgangen **Error**, med Discords begrunnelse, når Discord avviser den. Malen kobler et trinn **Log** til **Error**, slik at en kjøring som ikke kunne poste, sier hvorfor.
+Trinnet poster **Message Text** til webhooken til kanalen. Det tar utgangen **Success** når Discord tar imot meldingen, og utgangen **Error**, med Discords begrunnelse, når Discord avviser den. Er ingenting koblet til **Error**, som i malen, mislykkes en kjøring som ikke kunne poste, og dens **Trinn** sier hvorfor.
 
 ## Før du begynner
 
@@ -48,7 +48,7 @@ Start fra malen, som bygger hele arbeidsflyten for deg, eller fra bunnen.
 3. Behold navnet **Notify Discord on new incident**, eller endre det, og klikk på **Neste**.
 4. Lim inn URL-en i **Discord Webhook URL**, og klikk på **Opprett arbeidsflyt**.
 
-Arbeidsflyten åpnes i **Bygger** med tre trinn: **On Create Incident**; **Send Message to Discord**, som poster nummeret, tittelen, alvorlighetsgraden og tilstanden til hendelsen; og et trinn **Log** på utgangen **Error**. URL-en lagres som arbeidsflytens hemmelige variabel `discordWebhookUrl`.
+Arbeidsflyten åpnes i **Bygger** med to trinn: **On Create Incident** og **Send Message to Discord**, som poster nummeret, tittelen, alvorlighetsgraden og tilstanden til hendelsen. URL-en lagres som arbeidsflytens hemmelige variabel `discordWebhookUrl`.
 @tab Fra bunnen
 1. Lagre URL-en som en hemmelig global variabel: gå til **Arbeidsflyter → Globale variabler**, klikk på **Opprett Workflow Variabel**, gi den navnet `DISCORD_WEBHOOK_URL`, og klikk på **Neste**. Lim inn URL-en i **Innhold**, slå på **Hemmelighet**, og klikk på **Opprett Workflow Variabel**.
 2. Gå til **Arbeidsflyter**, klikk på **Opprett arbeidsflyt**, velg **Start fra bunnen**, gi arbeidsflyten et navn, og klikk på **Opprett arbeidsflyt**.
@@ -68,7 +68,7 @@ En melding bygget fra bunnen leser feltene til hendelsen med referanser som diss
 
 Slå på **Aktivert** øverst i **Bygger**. Fra nå av postes hver nye hendelse i kanalen.
 
-For å teste uten å åpne en hendelse klikker du på **Kjør arbeidsflyt** og velger en hendelse du allerede har, under **Hendelse**: de nyeste er listet opp, og når du skriver inn nummeret eller en del av tittelen, finner du en annen. Klikk på **Kjør arbeidsflyten manuelt**, og bekreft med **Kjør**. Panelet **Arbeidsflytkjøring** følger kjøringen, og meldingen dukker opp i kanalen. Tar trinnet **Error** i stedet, sier linjen fra trinnet **Log** hvorfor: se [Feilsøking](#feilsøking).
+For å teste uten å åpne en hendelse klikker du på **Kjør arbeidsflyt** og velger en hendelse du allerede har, under **Hendelse**: de nyeste er listet opp, og når du skriver inn nummeret eller en del av tittelen, finner du en annen. Klikk på **Kjør arbeidsflyten manuelt**, og bekreft med **Kjør**. Panelet **Arbeidsflytkjøring** følger kjøringen, og meldingen dukker opp i kanalen. Tar trinnet **Error** i stedet, mislykkes kjøringen, og trinnets oppføring under **Trinn** sier hvorfor: se [Feilsøking](#feilsøking).
 :::
 
 ## Tips
@@ -80,7 +80,7 @@ For å teste uten å åpne en hendelse klikker du på **Kjør arbeidsflyt** og v
 
 ## Feilsøking
 
-Når trinnet tar **Error**, sier kjøringen hvorfor: malens trinn **Log** skriver `❌ Discord could not deliver the incident notification:` og Discords begrunnelse.
+Når trinnet tar **Error**, mislykkes kjøringen, og trinnets oppføring under kjøringens **Trinn** gir Discords begrunnelse.
 
 :::details Discord svarer "Unknown Webhook" eller "Invalid Webhook Token"
 Webhooken er slettet, eller URL-en er kopiert feil. Opprett en ny webhook, og erstatt URL-en: i malens arbeidsflyt variabelen `discordWebhookUrl`, i din egen arbeidsflyt innholdet i `DISCORD_WEBHOOK_URL`.

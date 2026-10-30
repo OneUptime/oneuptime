@@ -2,7 +2,7 @@
 
 Du bygger ett arbetsflöde i dess **Byggare**: en arbetsyta där du lägger till block, kopplar ihop dem och fyller i deras inställningar. Den här sidan visar hur du skapar ett arbetsflöde, [lägger till block](#lägg-till-block), [kopplar ihop](#koppla-ihop-block) och [konfigurerar](#konfigurera-ett-block) dem, [skickar värden mellan dem](#använd-värden-från-tidigare-block) och [slår på arbetsflödet](#slå-på-det).
 
-För att skapa ett arbetsflöde öppnar du **Arbetsflöden** och klickar på **Skapa arbetsflöde**. Dialogrutan **Skapa ett arbetsflöde** frågar först hur du vill börja och sedan efter ett namn. En mall som behöver egna inställningar, som en Slack-webhook-URL, ber om dem i ett extra steg och sparar dem som arbetsflödesvariabler, så att du kan ändra dem senare utan att redigera arbetsflödet.
+För att skapa ett arbetsflöde öppnar du **Arbetsflöden** och klickar på **Skapa arbetsflöde**. Dialogrutan **Skapa ett arbetsflöde** frågar först hur du vill börja och sedan efter ett namn. En mall som behöver egna inställningar, som en Slack-webhook-URL, ber om dem i ett extra steg och sparar dem som arbetsflödesvariabler, så att du kan ändra dem senare utan att redigera arbetsflödet. En mall som larmar personer frågar i samma steg vem som ska larmas, vald bland projektets användare, team, jourscheman eller jourpolicyer.
 
 Välj hur du vill börja:
 

@@ -159,7 +159,11 @@ function templateScripts(): Array<TemplateScript> {
     ) as unknown as { nodes: Array<JSONObject> } | null;
 
     for (const node of spec?.nodes || []) {
-      if (node["metadataId"] !== ComponentID.JavaScriptCode) {
+      // Run Custom JavaScript, and Check With JavaScript, which goes on by Yes or No.
+      if (
+        node["metadataId"] !== ComponentID.JavaScriptCode &&
+        node["metadataId"] !== ComponentID.JavaScriptCheck
+      ) {
         continue;
       }
 

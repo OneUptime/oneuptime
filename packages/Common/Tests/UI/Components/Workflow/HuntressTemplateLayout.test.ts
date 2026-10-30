@@ -1,13 +1,14 @@
 /*
  * The Huntress workflow on the canvas: no step card lies on another.
  *
- * The template, and every workflow a Huntress connection became, are laid
- * out by hand (Templates.ts): three columns under the Switch / Case, one per
- * Huntress event, each step's failure beside it. A card is 16rem wide
- * (WORKFLOW_NODE_WIDTH), wider when its outputs' names need it, as the
- * Switch / Case's do (PortLayout), and cards come out 160 to 210 pixels
- * tall, so rows are DEFAULT_NODE_HEIGHT apart. A step added to one column
- * once landed on a card of the next; this holds every layout to its cards.
+ * The template, and every workflow a Huntress connection became, are one
+ * column (TemplateLayout.layOutTemplateColumn): the trigger, Incident From
+ * Another Tool, and the If / Else and the Page step a connection that pages
+ * has. A card is 16rem wide (WORKFLOW_NODE_WIDTH), wider when its outputs'
+ * names need it (PortLayout), and cards come out 160 to 210 pixels tall,
+ * so rows are TEMPLATE_ROW_HEIGHT apart. This holds every layout a
+ * connection's settings can make to its cards; TemplateLayout.test.ts holds
+ * every template's.
  */
 
 import HuntressSeverity, {

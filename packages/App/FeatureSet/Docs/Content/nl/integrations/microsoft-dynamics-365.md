@@ -133,7 +133,7 @@ Elke workflow houdt een eigen kopie bij. Wanneer je het clientgeheim vervangt, o
 4. Klik op **Workflow maken**. Elke workflow wordt uitgeschakeld aangemaakt: zet **Ingeschakeld** aan bovenaan de **Bouwer** ervan.
 :::
 
-Begin met **Create a Dynamics 365 case when an incident is declared**, of met **Create a Dynamics 365 case when an alert is created** voor waarschuwingen: elk ander sjabloon van OneUptime → Dynamics 365 van dezelfde soort vindt de case via de koppeling die dit sjabloon schrijft. Zet het aan, meld een testincident of maak een testwaarschuwing aan, en open **Logboeken → Uitvoeringen** van de workflow. De laatste stap van de uitvoering hoort `✅ Opened Dynamics 365 case CAS-01001-X1Y2Z3 for INC-42, linked as oneuptime-incident-<id>.` te tonen.
+Begin met **Create a Dynamics 365 case when an incident is declared**, of met **Create a Dynamics 365 case when an alert is created** voor waarschuwingen: elk ander sjabloon van OneUptime → Dynamics 365 van dezelfde soort vindt de case via de koppeling die dit sjabloon schrijft. Zet het aan, meld een testincident of maak een testwaarschuwing aan, en open **Logboeken → Uitvoeringen** van de workflow. De uitvoering hoort te eindigen als **Uitgevoerd**, en de **Response Body** van haar laatste stap, `create-case-1`, bevat het `ticketnumber` van de nieuwe case, zoals `CAS-01001-X1Y2Z3`.
 
 ### De sjablonen van Dynamics 365 → OneUptime koppelen
 
@@ -156,11 +156,11 @@ Maak in [Power Automate](https://make.powerautomate.com) een **Automated cloud f
 
 | Sjabloon | Change type | Table name | Select columns | Body |
 | --- | --- | --- | --- | --- |
-| Een incident melden / een waarschuwing aanmaken wanneer een case wordt aangemaakt | Added | Cases | | `{"incidentid": "<Case>"}` |
-| Het incident / de waarschuwing oplossen wanneer de case wordt opgelost | Modified | Cases | `statecode,statuscode` | `{"incidentid": "<Case>"}` |
-| Casenotities als privénotities aan het incident / de waarschuwing toevoegen | Added | Notes | | `{"annotationid": "<Note>"}` |
+| Een incident melden / een waarschuwing aanmaken wanneer een case wordt aangemaakt | Added | Cases | | `{"PrimaryEntityId": "<Case>"}` |
+| Het incident / de waarschuwing oplossen wanneer de case wordt opgelost | Modified | Cases | `statecode,statuscode` | `{"PrimaryEntityId": "<Case>"}` |
+| Casenotities als privénotities aan het incident / de waarschuwing toevoegen | Added | Notes | | `{"PrimaryEntityId": "<Note>"}` |
 
-Om alleen sommige cases te sturen, gebruik je **Filter rows** van de trigger, zoals `prioritycode eq 1` voor cases met hoge prioriteit. Je kunt ook de hele uitvoer van de trigger posten: de sjablonen lezen de ID van de rij en de `SdkMessage` ervan er op dezelfde manier uit.
+Om alleen sommige cases te sturen, gebruik je **Filter rows** van de trigger, zoals `prioritycode eq 1` voor cases met hoge prioriteit. De body noemt de rij als `PrimaryEntityId`, zoals een Dataverse-webhook doet: de sjablonen lezen de rij zelf terug uit Dynamics 365.
 @tab Dataverse webhook
 Registreer de URL met de [Plug-in Registration Tool](https://learn.microsoft.com/en-us/power-apps/developer/data-platform/register-web-hook): **Register New WebHook**, met **HttpHeader**-authenticatie en een eigen header; de URL zelf is het geheim. Registreer daarna een stap erop voor elke gebeurtenis hieronder, met **Event Pipeline Stage of Execution** op **PostOperation** en **Execution Mode** op **Asynchronous**.
 
@@ -181,12 +181,12 @@ Voordat je op een van beide vertrouwt:
 
 ### Controleren of het werkt
 
-Elk sjabloon eindigt met een **Log**-stap die zegt wat er gebeurde, dus de laatste stap van een uitvoering in **Logboeken → Uitvoeringen** is de plek om te kijken:
+De **Stappen** van elke uitvoering zeggen wat het sjabloon deed, dus open de uitvoering in **Logboeken → Uitvoeringen** en kijk hoe ze eindigde:
 
-- `✅` — het heeft zijn werk gedaan en noemt de case, het incident of de waarschuwing.
-- `ℹ️` — het heeft de gebeurtenis bewust overgeslagen en zegt waarom: de case is niet gekoppeld aan een record van deze soort, de notitie kwam van de andere kant, het record is privé, of de nieuwe status heeft geen bijbehorende casestatus.
-- `❌` — een aanroep is mislukt. Bij een Dynamics 365-aanroep bevat de regel het antwoord van Dynamics 365.
-- `⚠️` — een sjabloon dat een record aanmaakt vanuit een case heeft het aangemaakt, maar Dynamics 365 heeft de koppeling niet geaccepteerd, dus de andere sjablonen kunnen het nog niet vinden. Typ de koppeling met de hand in de kolom van de case.
+- **Uitgevoerd**: het deed zijn werk, en de laatste stap noemt de case, het incident of de waarschuwing.
+- **Uitgevoerd**, met de stap **Check With JavaScript** op **No**: het heeft de gebeurtenis bewust overgeslagen, en de stap zegt waarom: de case is niet gekoppeld aan een record van deze soort, de notitie kwam van de andere kant, het record is privé, of de nieuwe status sluit de case niet.
+- **Fout**: een stap is mislukt, en zijn vermelding in **Stappen** zegt waarom. Bij een Dynamics 365-aanroep staat het antwoord van Dynamics 365 erbij.
+- **Fout** bij `link-case-1`: een sjabloon dat een record aanmaakt vanuit een case heeft het aangemaakt, maar Dynamics 365 heeft de koppeling niet geaccepteerd, dus de andere sjablonen kunnen het nog niet vinden. Typ de koppeling met de hand in de kolom van de case.
 
 Als een uitvoering bij de eerste Dynamics 365-stap stopt met `Could not get an OAuth 2.0 access token for {{local.variables.dynamicsAccessToken}}`, kloppen de aanmeldingsinstellingen niet, en het bericht citeert het antwoord van Microsoft Entra ID. Zie [Wat de sjablonen vragen](#wat-de-sjablonen-vragen).
 
@@ -221,7 +221,7 @@ Laat de markeringen staan wanneer je de sjablonen bewerkt. Het zijn de constante
 
 ### Wijzigen wat een sjabloon doet
 
-Open de **Bouwer** van de workflow en klik op het blok dat je wilt wijzigen. De instellingen die je het waarschijnlijkst wilt aanpassen, zijn constanten bovenaan een script, de **JavaScript Code** van een **Run Custom JavaScript**-blok, net onder het gedeelde hulpblok. De versies voor incidenten en voor waarschuwingen houden dezelfde constanten in dezelfde blokken.
+Open de **Bouwer** van de workflow en klik op het blok dat je wilt wijzigen. De instellingen die je het waarschijnlijkst wilt aanpassen, zijn constanten bovenaan een script, de **JavaScript Code** van een **Check With JavaScript**-blok, net onder het gedeelde hulpblok. De versies voor incidenten en voor waarschuwingen houden dezelfde constanten in dezelfde blokken.
 
 | Constante | Sjabloon en blok | Wat het regelt |
 | --- | --- | --- |
@@ -230,11 +230,11 @@ Open de **Bouwer** van de workflow en klik op het blok dat je wilt wijzigen. De 
 | `CASE_ORIGIN`, `CASE_TYPE` | Een Dynamics 365-case aanmaken — `prepare-case-1` | De `caseorigincode` (`3`, Web) en de `casetypecode` (`2`, Problem) van de nieuwe case. Om een andere kolom in te stellen, voeg je die toe aan `CASE` in hetzelfde script, onder de logische naam ervan. |
 | `MAX_TITLE_LENGTH`, `MAX_DESCRIPTION_LENGTH` | Een Dynamics 365-case aanmaken — `prepare-case-1` | De eigen limieten van de tabel Case, 200 en 2000 tekens. De beschrijving houdt de link terug naar OneUptime, hoeveel er ook wordt afgeknipt. Verhoog ze als je tabel Case meer toestaat. |
 | `RESOLVED_CASE_STATUS` | De Dynamics 365-case oplossen — `plan-case-1` | De status waarmee een opgelost record zijn case sluit: `5` is Problem Solved, `1000` Information Provided. |
-| `STATE_TO_CASE_STATUS` | De Dynamics 365-case oplossen — `plan-case-1` | Zet de case door wanneer het record een andere status bereikt, op naam van de status: `{ Acknowledged: 4 }` zet hem naar Researching wanneer het incident wordt bevestigd. De actieve statussen van Dynamics 365 zijn `1` In Progress, `2` On Hold, `3` Waiting for Details en `4` Researching. Een opgeloste status die hier staat, sluit de case met de status die hij noemt. |
+| `STATE_TO_CASE_STATUS` | De Dynamics 365-case oplossen — `plan-case-1` | Sluit de case met een andere opgeloste status bij een eigen opgeloste status, op naam van de status: `{ Closed: 1000 }` sluit hem als Information Provided. Alleen het oplossen van het record verandert zijn case: een actieve status zoals Researching wordt nooit gezet. |
 | `PRIORITY_RANK` | Aanmaken vanuit een Dynamics 365-case — `prepare-incident-1`, `prepare-alert-1` | Koppelt een caseprioriteit (`1` High, `2` Normal, `3` Low) aan `0` (je zwaarste ernstniveau), `1` of `2` (het lichtste). Prioriteiten die er niet in staan, komen in het midden terecht. Met de twee ernstniveaus voor waarschuwingen die een nieuw project heeft, wordt Normal Low, tenzij je `2: 1` verandert in `2: 0`. |
 | `ONLY_PRIORITIES` | Aanmaken vanuit een Dynamics 365-case — `prepare-incident-1`, `prepare-alert-1` | Leeg neemt hij elke case die de flow of webhook stuurt. `[1]` maakt alleen records aan voor cases met hoge prioriteit. |
 | `CASE_STATUS_TO_STATE`, `CASE_STATE_TO_STATE_FLAG` | Oplossen wanneer de Dynamics 365-case is opgelost — `decide-state-1` | Een casestatus, op naam, naar een OneUptime-status, zoals `{ Researching: 'Acknowledged' }`. Anders beslist de toestand van de case: Resolved lost het record op. Voeg `2: 'isResolvedState'` toe om het ook op te lossen wanneer de case wordt geannuleerd. |
-| `MESSAGES` | Elk sjabloon van Dynamics 365 → OneUptime — `read-event-1` | De gebeurtenissen waarop het sjabloon handelt. Voeg `'Update'` toe aan de lijst van het notitiesjabloon om ook bewerkte notities te kopiëren: elke bewerking wordt een nieuwe notitie. |
+| `MESSAGES` | Elk sjabloon van Dynamics 365 → OneUptime — `read-event-1`, of `prepare-incident-1` en `prepare-alert-1` | De gebeurtenissen waarop het sjabloon handelt. Voeg `'Update'` toe aan de lijst van het notitiesjabloon om ook bewerkte notities te kopiëren: elke bewerking wordt een nieuwe notitie. |
 | `MAX_NOTE_LENGTH` | De notitiesjablonen — `build-note-1`, `read-note-1` | De langste notitie die elk schrijft: 100.000 tekens naar Dynamics 365, de eigen limiet van een notitie, en 30.000 naar OneUptime. |
 
 Status- en statusnamen die als sleutel worden gebruikt, moeten precies zo gespeld zijn als ze heten, hoofdletters inbegrepen. Houd `{{` uit de code: een script wordt vóór het draaien ingevuld zoals elke andere instelling, dus twee openingsaccolades achter elkaar zouden als een verwijzing worden gelezen.
@@ -242,7 +242,7 @@ Status- en statusnamen die als sleutel worden gebruikt, moeten precies zo gespel
 ### Beperkingen
 
 - **De commerciële cloud van Microsoft.** De token-URL is `login.microsoftonline.com`. Voor US Government-clouds (GCC High, DoD) of China open je `dynamicsAccessToken`, gebruik je **Instellingen bewerken** en verander je de token-URL in de aanmeldhost van je cloud, zoals `login.microsoftonline.us`.
-- **Dynamics 365 kan weigeren een case op te lossen.** Je Customer Service-instellingen kunnen voorkomen dat een case wordt opgelost zolang die open activiteiten of open onderliggende cases heeft, en een bedrijfsregel of plug-in kan het ook weigeren. De uitvoering eindigt met `❌ Dynamics 365 did not resolve the case`, met de reden van Dynamics 365, en de case blijft zoals hij was.
+- **Dynamics 365 kan weigeren een case op te lossen.** Je Customer Service-instellingen kunnen voorkomen dat een case wordt opgelost zolang die open activiteiten of open onderliggende cases heeft, en een bedrijfsregel of plug-in kan het ook weigeren. De uitvoering mislukt bij `close-case-1`, met de reden van Dynamics 365, en de case blijft zoals hij was.
 - **Records en cases gaan nooit achteruit.** Een case heropenen verandert niets in OneUptime, en een opgelost record wordt nooit heropend. Een case die al opgelost of geannuleerd is, wordt nooit heropend om opnieuw te worden gesloten.
 - **Notities en beschrijvingen zijn platte tekst.** Een notitie die in de editor voor rijke tekst van Dynamics 365 is geschreven, komt in OneUptime aan als de tekst die ze toont, en dat geldt ook voor een casebeschrijving die in de editor is geschreven of uit een e-mail komt: alinea's en regeleinden blijven, terwijl opmaak, afbeeldingen en de eigen stijlen van de e-mail verdwijnen. Een OneUptime-notitie komt in Dynamics 365 aan als de ruwe tekens, Markdown inbegrepen. Tekst uit Dynamics 365 — de titel en beschrijving van een case, een notitie, de namen van statussen, prioriteiten, klanten en mensen — leest precies zoals hij geschreven is: een afbeelding, een link, HTML, een diagram of een chatvermelding zoals `<!channel>` die erin is getypt, verschijnt als de tekens ervan en doet niets, omdat er een onzichtbare word joiner staat na het teken waarmee het zou beginnen. Een kopie van de tekst behoudt de word joiner. Een workflow houdt de scripts waarmee hij is gemaakt, dus een workflow die vanuit een oudere versie van een sjabloon is gemaakt, schrijft tekst zoals die versie dat deed: maak hem opnieuw vanuit het sjabloon om dit te krijgen. Bijlagen blijven in Dynamics 365; de notitie in OneUptime noemt het bestand.
 - **Bewerkte notities worden niet gekopieerd**, alleen nieuwe, tenzij je `'Update'` toevoegt aan `MESSAGES`.

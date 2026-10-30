@@ -335,6 +335,55 @@ export const getJavaScriptDocumentation: UtilityDocumentationFunction = (
   };
 };
 
+export const getJavaScriptCheckDocumentation: UtilityDocumentationFunction = (
+  context: ComponentDocumentationContext,
+): ComponentDocumentation => {
+  return {
+    summary:
+      "Runs your own JavaScript, then carries on down **Yes** when it returns true, or down **No**.",
+    steps: [
+      "Write the check in **JavaScript Code**: `return true` to carry on down **Yes**, or an object with `proceed: true` and the values later steps need.",
+      "Pass values in through **Arguments**, as JSON. The code reads them as `args`.",
+      "Connect **Yes**, and **No** if anything should run when the check says no.",
+    ],
+    examples: [
+      {
+        title: "Carry on only for a production event",
+        code: "if (args.environment !== 'production') {\n  return { proceed: false, reason: 'Not production, so nothing was sent.' };\n}\nreturn { proceed: true, title: args.title.toUpperCase() };",
+        description: `A later step reads the title with \`${ownReference(
+          context,
+          "returnValue",
+          ["title"],
+        )}\`. The reason is what the run's Steps say when it goes down **No**.`,
+      },
+    ],
+    notes: [
+      {
+        type: ComponentDocumentationNoteType.Tip,
+        text: "Only `true`, or an object whose proceed is `true`, goes down **Yes**. Anything else, a truthy number or text included, goes down **No**.",
+      },
+      {
+        type: ComponentDocumentationNoteType.Warning,
+        text: "Code that throws or runs too long goes down **Error**. With nothing connected there, the run fails.",
+      },
+    ],
+    learnMore: [
+      {
+        title: "What the code can use",
+        paragraphs: [
+          "The same as **Run Custom JavaScript**: `args` holds the **Arguments**, `axios` makes HTTP requests with the same address rules as the API steps, and `console.log` writes to the run's log. The code has 5 seconds to finish.",
+        ],
+      },
+    ],
+    links: [
+      docsLink(
+        "Check With JavaScript guide",
+        WorkflowDocsPaths.javascriptCheck,
+      ),
+    ],
+  };
+};
+
 export const getJsonToTextDocumentation: UtilityDocumentationFunction = (
   context: ComponentDocumentationContext,
 ): ComponentDocumentation => {

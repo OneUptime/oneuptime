@@ -51,11 +51,11 @@ The incident keeps the report's number in its custom fields, as `huntressReportI
 :::steps
 ### Create the workflow
 
-Open **Workflows** and click **Create Workflow**. Under **Or start from a template**, choose **Huntress** as the category, pick **Open an incident for each Huntress incident report**, click **Use this template**, and create the workflow. It opens in the **Builder**, switched off.
+Open **Workflows** and click **Create Workflow**. Under **Or start from a template**, choose **Huntress** as the category, pick **Open an incident for each Huntress incident report**, and click **Use this template**.
 
 ### Pick who to page
 
-Click the **Page an On-Call Policy** step, pick the **On-Call Policies** to page, and save the step.
+The dialog then asks who to page: under **Who to page for high and critical reports**, pick the on-call policies to page, or none to page nobody, and click **Create Workflow**. The workflow opens in the **Builder**, switched off. To change who it pages later, click its **Page an On-Call Policy** step and change its **On-Call Policies**.
 
 ### Add a webhook endpoint in Huntress
 
@@ -79,7 +79,7 @@ Switch **Enabled** on at the top of the **Builder**. In Huntress, open the endpo
 
 ## What the workflow does
 
-The template takes a path for each **Event**, with a **Switch / Case** after the trigger:
+After the trigger, **Incident From Another Tool** does what each **Event** asks, by the report's number:
 
 | Event | What the workflow does |
 | --- | --- |
@@ -87,7 +87,7 @@ The template takes a path for each **Event**, with a **Switch / Case** after the
 | `comment-added` | Finds the report's incident and adds the comment to it as a private note. |
 | `closed` | Finds the report's incident and resolves it, unless it is resolved already. Why is on its timeline: Huntress closed the report. |
 
-It is a workflow like any other, so you can change what it does: page for critical reports only by changing what the **If / Else** after **Create One Incident** compares, post each report to a chat channel with a Slack or Microsoft Teams step, or route each organization to its own on-call policy with a **Switch / Case** on **Organization**. Every run is listed under the workflow's runs, with what each step did.
+It is a workflow like any other, so you can change what it does: page for critical reports only by changing what the **If / Else** after **Incident From Another Tool** compares, post each report to a chat channel with a Slack or Microsoft Teams step, or route each organization to its own on-call policy with a **Switch / Case** on **Organization**. Every run is listed under the workflow's runs, with what each step did.
 
 ### Severities
 
@@ -174,7 +174,7 @@ The workflow was deleted or archived, its trigger is no longer **Huntress Incide
 :::
 
 :::details No incident was opened
-Open the workflow's runs and the run of the report. If **Create One Incident** failed because the incident severity is empty, the project has no incident severities: add one under **Incidents → Settings → Incident Severity**.
+Open the workflow's runs and the run of the report. If **Incident From Another Tool** failed with `This project has no incident severities to put the incident at.`, add one under **Incidents → Settings → Incident Severity**.
 :::
 
 :::details Nobody was paged

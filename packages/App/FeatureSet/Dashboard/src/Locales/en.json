@@ -38962,5 +38962,7 @@
   "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.": "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.",
   "{{monitorName}}: a new exception": "{{monitorName}}: a new exception",
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: a resolved exception came back",
-  "{{monitorName}}: exceptions spiked": "{{monitorName}}: exceptions spiked"
+  "{{monitorName}}: exceptions spiked": "{{monitorName}}: exceptions spiked",
+  "Pick who to page.": "Pick who to page.",
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "Pick who this workflow pages. You can change it later on its Page step in the Builder."
 }

@@ -38962,5 +38962,7 @@
   "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.": "图表显示发生了多少异常。对于新异常、再次出现的异常或高于平常的增长，不会绘制图表。",
   "{{monitorName}}: a new exception": "{{monitorName}}：新异常",
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}：已解决的异常再次出现",
-  "{{monitorName}}: exceptions spiked": "{{monitorName}}：异常激增"
+  "{{monitorName}}: exceptions spiked": "{{monitorName}}：异常激增",
+  "Pick who to page.": "请选择要呼叫的人。",
+  "Pick who this workflow pages. You can change it later on its Page step in the Builder.": "请选择此工作流要呼叫的人。你可以稍后在生成器的呼叫步骤中更改。"
 }

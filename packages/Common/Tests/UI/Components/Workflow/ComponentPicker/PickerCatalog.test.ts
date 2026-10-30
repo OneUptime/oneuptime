@@ -125,12 +125,17 @@ describe("what the picker leads with", () => {
       }),
     ).toEqual([
       "On-Call",
+      // Incidents and alerts for another tool's problems, next to paging.
+      "From Other Tools",
       "AI",
       "API",
       "Telegram",
       "IRC",
       "Mattermost",
+      // If / Else and Switch / Case are popular; Check With JavaScript is not.
+      "Conditions",
       "JSON",
+      "Zabbix",
       "Utils",
     ]);
 
@@ -145,16 +150,21 @@ describe("what the picker leads with", () => {
       "Page a Team",
       "Page Whoever Is On Call",
       "Page an On-Call Policy",
+      "Incident From Another Tool",
+      "Alert From Another Tool",
       "Generate Text with AI",
       "API Put (JSON)",
       "API Patch (JSON)",
       "API Delete (JSON)",
+      "API Get By ID (JSON)",
       "Send Message to Telegram",
       "Send Message to IRC",
       "Send Message to Mattermost",
+      "Check With JavaScript",
       "JSON to Text",
       "Text to JSON",
       "Merge JSON",
+      "Update Zabbix Problem",
       "Execute Workflow",
       "Sleep",
     ]);

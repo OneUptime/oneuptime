@@ -16,10 +16,10 @@ flowchart TB
     fired["Advarsel udløst"] --> trigger["On Create Alert"]
     trigger --> step["Send Message<br/>to Telegram"]
     step -->|"Success"| chat["Besked i<br/>din chat"]
-    step -->|"Error"| log["Log: hvorfor den<br/>ikke blev leveret"]
+    step -->|"Error"| failed["Kørslen mislykkes<br/>og siger hvorfor"]
 ```
 
-Trinnet sender **Message Text** til chatten som din bot via Telegrams Bot API. Det tager sin udgang **Success**, når Telegram tager imod beskeden, og sin udgang **Error**, med Telegrams begrundelse, når Telegram afviser den. Skabelonen forbinder et trin **Log** til **Error**, så en kørsel, der ikke kunne sende, siger hvorfor.
+Trinnet sender **Message Text** til chatten som din bot via Telegrams Bot API. Det tager sin udgang **Success**, når Telegram tager imod beskeden, og sin udgang **Error**, med Telegrams begrundelse, når Telegram afviser den. Er intet forbundet til **Error**, som i skabelonen, mislykkes en kørsel, der ikke kunne sende, og dens **Trin** siger hvorfor.
 
 ## Før du går i gang
 
@@ -53,7 +53,7 @@ Start fra skabelonen, der bygger hele workflowet til advarsler, eller fra bunden
 3. Behold navnet **Notify Telegram on new alert**, eller ændr det, og klik på **Næste**.
 4. Indsæt tokenet i **Telegram Bot Token** og ID'et i **Telegram Chat ID**, og klik på **Opret arbejdsgang**.
 
-Workflowet åbner i **Bygger** med tre trin: **On Create Alert**; **Send Message to Telegram**, der sender advarslens nummer, titel, alvorlighed og tilstand; og et trin **Log** på dets udgang **Error**. Tokenet gemmes som workflowets hemmelige variabel `telegramBotToken` og ID'et som `telegramChatId`.
+Workflowet åbner i **Bygger** med to trin: **On Create Alert** og **Send Message to Telegram**, der sender advarslens nummer, titel, alvorlighed og tilstand. Tokenet gemmes som workflowets hemmelige variabel `telegramBotToken` og ID'et som `telegramChatId`.
 @tab Fra bunden
 1. Gem tokenet som en hemmelig global variabel: gå til **Arbejdsgange → Globale variabler**, klik på **Opret Workflow Variabel**, giv den navnet `TELEGRAM_BOT_TOKEN`, og klik på **Næste**. Indsæt tokenet i **Indhold**, slå **Hemmelighed** til, og klik på **Opret Workflow Variabel**.
 2. Gå til **Arbejdsgange**, klik på **Opret arbejdsgang**, vælg **Start fra bunden**, giv workflowet et navn, og klik på **Opret arbejdsgang**.
@@ -73,7 +73,7 @@ Title: {{local.components.alert-on-create-1.returnValues.model.title}}
 
 Slå **Aktiveret** til øverst i **Bygger**. Fra nu af sendes hver ny advarsel til chatten.
 
-For at teste uden at udløse en advarsel klikker du på **Kør arbejdsgang** og vælger en advarsel, du allerede har, under **Advarsel**: de seneste er vist, og når du skriver dens nummer eller en del af dens titel, finder du en anden. Klik på **Kør arbejdsgang manuelt**, og bekræft med **Kør**. Panelet **Arbejdsgangskørsel** følger kørslen, og beskeden dukker op i chatten. Tager trinnet i stedet **Error**, siger linjen fra trinnet **Log** hvorfor: se [Fejlfinding](#fejlfinding).
+For at teste uden at udløse en advarsel klikker du på **Kør arbejdsgang** og vælger en advarsel, du allerede har, under **Advarsel**: de seneste er vist, og når du skriver dens nummer eller en del af dens titel, finder du en anden. Klik på **Kør arbejdsgang manuelt**, og bekræft med **Kør**. Panelet **Arbejdsgangskørsel** følger kørslen, og beskeden dukker op i chatten. Tager trinnet i stedet **Error**, mislykkes kørslen, og trinnets post under **Trin** siger hvorfor: se [Fejlfinding](#fejlfinding).
 :::
 
 ## Tips
@@ -85,7 +85,7 @@ For at teste uden at udløse en advarsel klikker du på **Kør arbejdsgang** og 
 
 ## Fejlfinding
 
-Når trinnet tager **Error**, siger kørslen hvorfor: skabelonens trin **Log** skriver `❌ Telegram could not deliver the alert notification:`, Telegrams begrundelse og en påmindelse om, at botten skal være i chatten.
+Når trinnet tager **Error**, mislykkes kørslen, og trinnets post under kørslens **Trin** giver Telegrams begrundelse. Botten skal være i chatten, så tjek det først.
 
 :::details Telegram svarer "Bad Request: chat not found"
 **Chat ID** er forkert, eller botten kan ikke se chatten: føj botten til gruppen, gør den til administrator af kanalen, eller bed personen om at starte en chat med botten. En gruppes ID starter med `-`.

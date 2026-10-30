@@ -16,10 +16,10 @@ flowchart TB
     declared["Hændelse erklæret"] --> trigger["On Create Incident"]
     trigger --> step["Send Message<br/>to Discord"]
     step -->|"Success"| channel["Besked i<br/>din kanal"]
-    step -->|"Error"| log["Log: hvorfor den<br/>ikke blev leveret"]
+    step -->|"Error"| failed["Kørslen mislykkes<br/>og siger hvorfor"]
 ```
 
-Trinnet poster **Message Text** til kanalens webhook. Det tager sin udgang **Success**, når Discord tager imod beskeden, og sin udgang **Error**, med Discords begrundelse, når Discord afviser den. Skabelonen forbinder et trin **Log** til **Error**, så en kørsel, der ikke kunne poste, siger hvorfor.
+Trinnet poster **Message Text** til kanalens webhook. Det tager sin udgang **Success**, når Discord tager imod beskeden, og sin udgang **Error**, med Discords begrundelse, når Discord afviser den. Er intet forbundet til **Error**, som i skabelonen, mislykkes en kørsel, der ikke kunne poste, og dens **Trin** siger hvorfor.
 
 ## Før du går i gang
 
@@ -48,7 +48,7 @@ Start fra skabelonen, der bygger hele workflowet for dig, eller fra bunden.
 3. Behold navnet **Notify Discord on new incident**, eller ændr det, og klik på **Næste**.
 4. Indsæt URL'en i **Discord Webhook URL**, og klik på **Opret arbejdsgang**.
 
-Workflowet åbner i **Bygger** med tre trin: **On Create Incident**; **Send Message to Discord**, der poster hændelsens nummer, titel, alvorlighed og tilstand; og et trin **Log** på dets udgang **Error**. URL'en gemmes som workflowets hemmelige variabel `discordWebhookUrl`.
+Workflowet åbner i **Bygger** med to trin: **On Create Incident** og **Send Message to Discord**, der poster hændelsens nummer, titel, alvorlighed og tilstand. URL'en gemmes som workflowets hemmelige variabel `discordWebhookUrl`.
 @tab Fra bunden
 1. Gem URL'en som en hemmelig global variabel: gå til **Arbejdsgange → Globale variabler**, klik på **Opret Workflow Variabel**, giv den navnet `DISCORD_WEBHOOK_URL`, og klik på **Næste**. Indsæt URL'en i **Indhold**, slå **Hemmelighed** til, og klik på **Opret Workflow Variabel**.
 2. Gå til **Arbejdsgange**, klik på **Opret arbejdsgang**, vælg **Start fra bunden**, giv workflowet et navn, og klik på **Opret arbejdsgang**.
@@ -68,7 +68,7 @@ En besked bygget fra bunden læser hændelsens felter med referencer som disse:
 
 Slå **Aktiveret** til øverst i **Bygger**. Fra nu af postes hver ny hændelse i kanalen.
 
-For at teste uden at åbne en hændelse klikker du på **Kør arbejdsgang** og vælger en hændelse, du allerede har, under **Hændelse**: de seneste er vist, og når du skriver dens nummer eller en del af dens titel, finder du en anden. Klik på **Kør arbejdsgang manuelt**, og bekræft med **Kør**. Panelet **Arbejdsgangskørsel** følger kørslen, og beskeden dukker op i kanalen. Tager trinnet i stedet **Error**, siger linjen fra trinnet **Log** hvorfor: se [Fejlfinding](#fejlfinding).
+For at teste uden at åbne en hændelse klikker du på **Kør arbejdsgang** og vælger en hændelse, du allerede har, under **Hændelse**: de seneste er vist, og når du skriver dens nummer eller en del af dens titel, finder du en anden. Klik på **Kør arbejdsgang manuelt**, og bekræft med **Kør**. Panelet **Arbejdsgangskørsel** følger kørslen, og beskeden dukker op i kanalen. Tager trinnet i stedet **Error**, mislykkes kørslen, og trinnets post under **Trin** siger hvorfor: se [Fejlfinding](#fejlfinding).
 :::
 
 ## Tips
@@ -80,7 +80,7 @@ For at teste uden at åbne en hændelse klikker du på **Kør arbejdsgang** og v
 
 ## Fejlfinding
 
-Når trinnet tager **Error**, siger kørslen hvorfor: skabelonens trin **Log** skriver `❌ Discord could not deliver the incident notification:` og Discords begrundelse.
+Når trinnet tager **Error**, mislykkes kørslen, og trinnets post under kørslens **Trin** giver Discords begrundelse.
 
 :::details Discord svarer "Unknown Webhook" eller "Invalid Webhook Token"
 Webhooken er slettet, eller URL'en er kopieret forkert. Opret en ny webhook, og erstat URL'en: i skabelonens workflow variablen `discordWebhookUrl`, i dit eget workflow indholdet af `DISCORD_WEBHOOK_URL`.
