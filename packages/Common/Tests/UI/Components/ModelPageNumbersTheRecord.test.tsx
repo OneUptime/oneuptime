@@ -92,6 +92,8 @@ import {
   PAGE_RECORD_HEADING_CLASS_NAME,
 } from "../../../UI/Components/Page/Page";
 import {
+  BREADCRUMB_ITEM_CLASS_NAME,
+  BREADCRUMB_LINK_CLASS_NAME,
   BREADCRUMB_NUMBERED_RECORD_CLASS_NAME,
   BREADCRUMB_RECORD_NUMBER_CLASS_NAME,
   BREADCRUMB_RECORD_NUMBER_NAME_CLASS_NAME,
@@ -566,7 +568,7 @@ describe("how the number and the title sit together", () => {
 
     const crumb: HTMLElement = screen.getByTestId("breadcrumb-record-name");
     expect(crumb.className).toBe(BREADCRUMB_NUMBERED_RECORD_CLASS_NAME);
-    expect(crumb).toHaveClass("max-w-xs", "inline-flex", "min-w-0");
+    expect(crumb).toHaveClass("max-w-xs", "flex", "min-w-0");
     expect(crumb).toHaveAttribute("title", `INC-18 ${LONG_TITLE}`);
 
     const number: HTMLElement = screen.getByTestId("breadcrumb-record-number");
@@ -577,6 +579,44 @@ describe("how the number and the title sit together", () => {
     expect(name.className).toBe(BREADCRUMB_RECORD_NUMBER_NAME_CLASS_NAME);
     expect(name).toHaveClass("min-w-0", "truncate");
     expect(name).toHaveTextContent(LONG_TITLE);
+  });
+
+  /*
+   * An inline box is never narrower than its words: "INC-1042 Checkout API
+   * p95 latency above 2s" as an inline-flex crumb pushed a 320px page
+   * sideways. The crumb is a box of its own, and the item and the link it
+   * sits in may be narrower than their words, none wider than the trail -
+   * so on a phone the title gives way, not the page (EventNumbers.spec.ts
+   * measures it at 320px).
+   */
+  test("on a phone the crumb gives way to the trail's width, the number still whole", async () => {
+    getItemMock.mockResolvedValue(
+      recordOf(INCIDENT_KIND, { title: LONG_TITLE }),
+    );
+    // Its Owners page: the record's crumb links to its own page.
+    await renderPage(INCIDENT_KIND);
+
+    const crumb: HTMLElement = screen.getByTestId("breadcrumb-record-name");
+    expect(crumb).not.toHaveClass("inline-flex");
+    expect(crumb).not.toHaveClass("align-bottom");
+
+    const item: HTMLElement = crumb.closest("li") as HTMLElement;
+    expect(item.className).toBe(BREADCRUMB_ITEM_CLASS_NAME);
+    expect(item).toHaveClass("min-w-0", "max-w-full");
+
+    const link: HTMLElement = crumb.parentElement as HTMLElement;
+    expect(link.tagName).toBe("A");
+    expect(link.className).toContain(BREADCRUMB_LINK_CLASS_NAME);
+    expect(link).toHaveClass("min-w-0");
+    expect(link.parentElement).toHaveClass("flex", "min-w-0");
+
+    // So is every other crumb's item, the page's own (Owners) among them.
+    const nav: HTMLElement = screen.getByRole("navigation", {
+      name: "Breadcrumb",
+    });
+    for (const listItem of within(nav).getAllByRole("listitem")) {
+      expect(listItem.className).toBe(BREADCRUMB_ITEM_CLASS_NAME);
+    }
   });
 });
 

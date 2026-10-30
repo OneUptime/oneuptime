@@ -728,6 +728,65 @@ test.describe("a long title gives way; the number never does", () => {
 
     await screenshotHeader(page, "sentence-title-390");
   });
+
+  /*
+   * The trail's crumb for the record is as wide as the trail leaves it on a
+   * phone: an inline crumb is never narrower than its words, and
+   * "#1042 Checkout API p95 latency above 2s" pushed a 320px page 35px
+   * sideways (Event Overview's Escalate specs at 320px found it). The
+   * number stays whole and the title is cut short, inside the page's own
+   * margins - numbered or not.
+   */
+  for (const width of [320, 390]) {
+    test(`on a ${width}px phone the trail's crumb gives way inside the page's margins, the number whole`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const numberings: ReadonlyArray<OpenOptions["numbers"] | undefined> = [
+        undefined,
+        "custom",
+        "none",
+      ];
+
+      for (const numbers of numberings) {
+        await open(page, INCIDENT.path, {
+          width,
+          title: "sentence",
+          ...(numbers ? { numbers } : {}),
+        });
+        const at: string = `${numbers || "default"} ${width}px`;
+        const crumb: Locator = page.getByTestId("breadcrumb-record-name");
+
+        // Inside the heading's own margins: the trail is as wide as it.
+        const crumbBox: Box = await boxOf(crumb);
+        const headingBox: Box = await boxOf(heading(page));
+        expect(
+          crumbBox.right,
+          `${at}: the crumb inside the page's margin`,
+        ).toBeLessThanOrEqual(headingBox.right + 0.5);
+        if (numbers === "none") {
+          // The title alone, cut short in its own box.
+          await expect(crumbNumber(page), at).toHaveCount(0);
+          expect(await cutsItself(crumb), `${at}: title cut`).toBe(true);
+        } else {
+          // The title, after the number, cut short.
+          expect(
+            await cutsItself(crumb.locator("bdi").last()),
+            `${at}: title cut`,
+          ).toBe(true);
+          expect(
+            await isDrawnWhole(crumbNumber(page), crumb),
+            `${at}: the crumb's number whole`,
+          ).toBe(true);
+        }
+
+        expect(await pageOverflow(page), `${at}: no sideways scroll`).toBe(0);
+      }
+
+      await screenshotHeader(page, `crumb-${width}`);
+    });
+  }
 });
 
 test.describe("in the dark theme and in other languages", () => {
