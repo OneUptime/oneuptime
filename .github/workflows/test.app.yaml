@@ -340,12 +340,14 @@ jobs:
           # joined them on 2026-10-29, the lightest group: about 19.5. Its UI
           # review grew it to 59 tests (3.3 minutes) on 2026-10-30, which
           # would have taken this group to about 21.5, so it moved to group
-          # 14: about 18.
+          # 14, and on to group 10 the same day: about 18. Master's run of
+          # 09:50 that day, before Data Security reached master, took this
+          # group 25.2 minutes all the same.
           # Chart Time Zoom gained SpanTypeHelp.spec.ts the same day (8 tests,
           # about 25 seconds locally: the traces sidebar's Span Type with no
           # paragraph under its title, its (i) on hover, from the keyboard,
           # tapped on a phone and dark, its options' own tooltips, and its
-          # header folding from the chevron): about 18.5.
+          # header folding from the chevron): about half a minute more.
           - group: 2
             suites: >-
               test-chart-time-zoom-ui
@@ -845,11 +847,27 @@ jobs:
           # Event Overview 13.0, Dashboard Templates 2.0, Network Traffic
           # Names 1.7), so Network Traffic Names moved on to group 14: about
           # 15.5 to 22.
+          # Data Security (3.3 minutes locally with its bundle, 59 tests,
+          # Chromium only: the Overview's riskiest issues, a store's Timeline,
+          # an issue's Fix it from here - asked, run and on both timelines,
+          # with the connection's response off and for a Security Viewer - a
+          # Critical issue's case, alert and incident links, Settings > Scan
+          # Settings' incidents beside alerts, ten pages on a phone, dark,
+          # German and Persian; and its UI review's layout checks: every list
+          # beside the side menu with a busy project in German and Persian,
+          # the day chart's dates on a laptop and a phone, a new project,
+          # failed reads, owners, scans, dialogs and Compliance) moved here
+          # from group 14 on 2026-10-30, the day it reached that group from
+          # group 2. Master's run of 09:50 that day took this group 15.4
+          # minutes and group 14 21.6, and 3.3 minutes locally can be about
+          # 4.5 on a slow runner: about 20 here, where group 14 would have
+          # come to about 26 of its 28.
           - group: 10
             event_overview_shard: 2/2
             suites: >-
               test-event-overview-ui
               test-dashboard-templates-ui
+              test-data-security-ui
           # Security Operations on its own, Chromium only, from 2026-10-25. In
           # group 8 it took 9.8 of that group's 23.4 minutes on master's run of
           # 03:08 that day, and the group took 26.1 and 26.7 minutes on the
@@ -987,18 +1005,10 @@ jobs:
           # both halves of Event Overview, Traces AI (1.9 minutes on that
           # run, Chromium only) from group 1 and Network Traffic Names (1.7,
           # Chromium only) from group 10 joined them: about 15.5.
-          # Data Security (3.3 minutes locally with its bundle, 59 tests,
-          # Chromium only: the Overview's riskiest issues, a store's Timeline,
-          # an issue's Fix it from here - asked, run and on both timelines,
-          # with the connection's response off and for a Security Viewer - a
-          # Critical issue's case, alert and incident links, Settings > Scan
-          # Settings' incidents beside alerts, ten pages on a phone, dark,
-          # German and Persian; and its UI review's layout checks: every list
-          # beside the side menu with a busy project in German and Persian,
-          # the day chart's dates on a laptop and a phone, a new project,
-          # failed reads, owners, scans, dialogs and Compliance) moved here
-          # from group 2 on 2026-10-30, when its UI review grew it from 25
-          # tests: about 19.
+          # Data Security (59 tests, 3.3 minutes locally) joined them from
+          # group 2 on 2026-10-30 and moved on to group 10 the same day: this
+          # group had taken 21.6 minutes on master's run of 09:50 that day,
+          # about 26 with it on a slow runner.
           - group: 14
             suites: >-
               test-value-picker-ui
@@ -1009,7 +1019,6 @@ jobs:
               test-episode-bulk-add-ui
               test-traces-ai-ui
               test-network-traffic-names-ui
-              test-data-security-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
