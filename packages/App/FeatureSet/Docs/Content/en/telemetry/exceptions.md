@@ -129,7 +129,7 @@ The explanation is kept on the exception, so the next person who opens it reads 
 
 IDs, email and IP addresses and tokens are taken out of everything that is sent, and of a span's attributes only a few, such as its route and status code, are sent. The explanation uses the project's LLM provider and AI credits, and is not offered while **Enable AI** is off. Anyone who can read the exception can ask for one.
 
-Below the cards, **Similar exceptions** lists up to five other exceptions that look like this one: the **Same message** once the values are taken out, the **Same code location** in your code, or a **Similar message** with most of the same words. One root cause can land in several exceptions, so **Check with OneUptime AI** says of each whether it is **Likely the same bug**, **A related bug** or **A different bug**, and why. The check uses the project's AI credits and is not offered while **Enable AI** is off.
+Below the cards, **Similar exceptions** lists up to five other exceptions that look like this one: the **Same message** once the values are taken out, the **Same code location** in your code, or a **Similar message** with most of the same words. One root cause can land in several exceptions, so **Check with OneUptime AI** says of each whether it is **Likely the same bug**, **A related bug** or **A different bug**, and why. The check uses the project's AI credits and is not offered while **Enable AI** is off. Its answer is kept until a new occurrence arrives.
 
 ## Fix it with AI
 
@@ -185,7 +185,7 @@ Under **More fields** a rule picks the code repositories, the MCP servers and th
 
 The **Insights** tab counts your **Unresolved**, **Resolved** and **Archived** exceptions and your resolution rate, and lists the most frequent exceptions, the services they affect and the ones seen most recently.
 
-**What's new** at the top of the tab asks OneUptime AI, with **Summarize with OneUptime AI**, to sum up the exceptions first seen in the last 24 hours and the ones that came back after they were resolved: a few sentences over all of them, then each in one line, the most urgent first, linked to the exception. It is written when you ask and not kept, uses the project's AI credits, and is not offered while **Enable AI** is off.
+**What's new** at the top of the tab asks OneUptime AI, with **Summarize with OneUptime AI**, to sum up the exceptions first seen in the last 24 hours and the ones that came back after they were resolved: a few sentences over all of them, then each in one line, the most urgent first, linked to the exception. It is written when you ask and kept until a new occurrence arrives, so asking again spends nothing; it uses the project's AI credits, and is not offered while **Enable AI** is off.
 
 ## Troubleshooting
 

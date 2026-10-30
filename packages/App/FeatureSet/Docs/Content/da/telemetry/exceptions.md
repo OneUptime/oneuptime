@@ -129,7 +129,7 @@ Forklaringen gemmes på undtagelsen, så den næste, der åbner den, læser den 
 
 ID'er, e-mail- og IP-adresser samt tokens fjernes fra alt, hvad der sendes, og af et spans attributter sendes kun nogle få, såsom dets rute og statuskode. Forklaringen bruger projektets LLM-udbyder og AI-kreditter og tilbydes ikke, mens **Aktivér AI** er slået fra. Alle, der kan læse undtagelsen, kan bede om en.
 
-Under kortene viser **Lignende undtagelser** op til fem andre undtagelser, der ligner denne: den **Samme meddelelse**, når værdierne er taget ud, det **Samme sted i koden** i din kode, eller en **Lignende meddelelse** med de fleste af de samme ord. Én årsag kan havne i flere undtagelser, så **Tjek med OneUptime AI** siger om hver, om det er **Sandsynligvis den samme fejl**, **En relateret fejl** eller **En anden fejl**, og hvorfor. Tjekket bruger projektets AI-kreditter og tilbydes ikke, mens **Aktivér AI** er slået fra.
+Under kortene viser **Lignende undtagelser** op til fem andre undtagelser, der ligner denne: den **Samme meddelelse**, når værdierne er taget ud, det **Samme sted i koden** i din kode, eller en **Lignende meddelelse** med de fleste af de samme ord. Én årsag kan havne i flere undtagelser, så **Tjek med OneUptime AI** siger om hver, om det er **Sandsynligvis den samme fejl**, **En relateret fejl** eller **En anden fejl**, og hvorfor. Tjekket bruger projektets AI-kreditter og tilbydes ikke, mens **Aktivér AI** er slået fra. Svaret gemmes til næste forekomst.
 
 ## Ret den med AI
 
@@ -185,7 +185,7 @@ Under **Flere felter** vælger en regel de kodelagre, MCP-servere og den LLM-udb
 
 Fanen **Indsigter** tæller dine undtagelser under **Uløst**, **Løst** og **Arkiveret** og din løsningsrate og viser de hyppigste undtagelser, de tjenester, de rammer, og dem, der senest er set.
 
-**Hvad er nyt** øverst på fanen beder OneUptime AI med **Opsummér med OneUptime AI** om at opsummere de undtagelser, der først blev set inden for de seneste 24 timer, og dem, der kom tilbage, efter de var løst: et par sætninger om dem alle og derefter hver på én linje, den mest presserende først, med et link til undtagelsen. Opsummeringen skrives, når du beder om den, og gemmes ikke, bruger projektets AI-kreditter og tilbydes ikke, mens **Aktivér AI** er slået fra.
+**Hvad er nyt** øverst på fanen beder OneUptime AI med **Opsummér med OneUptime AI** om at opsummere de undtagelser, der først blev set inden for de seneste 24 timer, og dem, der kom tilbage, efter de var løst: et par sætninger om dem alle og derefter hver på én linje, den mest presserende først, med et link til undtagelsen. Opsummeringen skrives, når du beder om den, og gemmes til næste forekomst, så det koster intet at spørge igen; den bruger projektets AI-kreditter og tilbydes ikke, mens **Aktivér AI** er slået fra.
 
 ## Fejlfinding
 
