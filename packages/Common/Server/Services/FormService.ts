@@ -92,6 +92,7 @@ import File from "../../Models/DatabaseModels/File";
 import Model from "../../Models/DatabaseModels/Form";
 import FormSubmission from "../../Models/DatabaseModels/FormSubmission";
 import FormRateLimit from "../Middleware/FormRateLimit";
+import FormFileAllowance from "../Utils/Form/FormFileAllowance";
 import CaptchaUtil from "../Utils/Captcha";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import FileOwnership from "../Utils/File/FileOwnership";
@@ -746,7 +747,7 @@ export class Service extends DatabaseService<Model> {
    * A submission's files, stored (see submitPublicForm): every file of every
    * file question, decoded again from the base64 the answers check read,
    * counted against the form's hourly allowance of files
-   * (FormRateLimit.reserveFormFileBytes) - a 429 or a 503 before anything is
+   * (FormFileAllowance.reserve) - a 429 or a 503 before anything is
    * stored - then written as File rows of the form's project, private and
    * uploaded by nobody. Each answer is then the files as stored
    * (CustomFieldFile): what a file custom field holds, what the submission
@@ -800,7 +801,7 @@ export class Service extends DatabaseService<Model> {
       decoded.set(field.id, files);
     }
 
-    await FormRateLimit.reserveFormFileBytes({
+    await FormFileAllowance.reserve({
       shareKey: data.shareKey,
       bytes: totalBytes,
     });

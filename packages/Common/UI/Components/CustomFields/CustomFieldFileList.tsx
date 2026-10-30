@@ -15,7 +15,8 @@ import React, { FunctionComponent, ReactElement } from "react";
 /*
  * THE FILES A FILE OR MULTIPLE FILES CUSTOM FIELD HOLDS, AS A LIST.
  *
- * One row a file: what kind of file it is, its name and its size, and - where
+ * One row a file: what kind of file it is, its whole name (wrapped, never
+ * cut short) and its size, and - where
  * the reader may download it - the whole row is the download link, opened in
  * a new tab with the session refreshed first (the route authenticates with
  * the session cookie, which lapses with the access token). Where there is no
@@ -185,7 +186,12 @@ const CustomFieldFileList: FunctionComponent<ComponentProps> = (
               icon={getCustomFieldFileIcon(file.fileType)}
               className="h-4 w-4 shrink-0 text-gray-400 group-hover:text-gray-600"
             />
-            <span className="min-w-0 flex-1 truncate font-medium text-gray-800">
+            {/*
+             * The whole name, wrapped where it has to be: two files often
+             * differ only at the end ("-signed.pdf", "-draft.pdf"), which
+             * an ellipsis would hide on a phone.
+             */}
+            <span className="min-w-0 flex-1 break-words font-medium text-gray-800 [overflow-wrap:anywhere]">
               {file.name}
             </span>
             {size ? (

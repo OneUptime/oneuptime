@@ -176,7 +176,7 @@ export const FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE: string =
   "Submissions cannot be accepted right now. Please try again in a few minutes.";
 
 /*
- * The form's hourly allowance of files is used up (reserveFormFileBytes): a
+ * The form's hourly allowance of files is used up (FormFileAllowance): a
  * submission with no file still goes through, so it says what is too much.
  */
 export const FORM_FILES_RATE_LIMIT_MESSAGE: string =
@@ -211,6 +211,18 @@ export class FormCeilingException extends TooManyRequestsException {
 export interface FormFileCeiling {
   windowSeconds: number;
   limitInBytes: number;
+}
+
+// Where a form's allowance of files is counted now (getFileAllowanceCounter).
+export interface FormFileAllowanceCounter {
+  // The form, as its counters are keyed (getFormKey).
+  formKey: string;
+  // The Redis key of this window's count.
+  key: string;
+  ttlSeconds: number;
+  limitInBytes: number;
+  // When this window ends: what a refusal says to wait.
+  secondsUntilWindowEnd: number;
 }
 
 const parsePositiveInt: (rawValue: string | undefined) => number | null = (
@@ -636,83 +648,37 @@ export default class FormRateLimit {
   }
 
   /*
-   * Spend these bytes of the form's hourly allowance of files, or refuse:
-   * 429 (FormCeilingException, with when to come back) when they would take
-   * the window past it - and then they are given back, since nothing was
-   * stored - and 503 when the counter cannot be reached, as the submission
-   * ceiling fails closed. Called by FormService.submitPublicForm for a
-   * submission with files, once it has passed every other check and spent
-   * its place under the submission ceiling, right before its files are
-   * stored.
+   * Where a form's hourly allowance of files is counted, as of now: its
+   * key, keyed on the form (never on a client), the window it lasts and
+   * what it may hold. The counting is FormFileAllowance's
+   * (Server/Utils/Form/FormFileAllowance): this file only counts clients,
+   * through ClientRateLimitCounter.
    */
-  public static async reserveFormFileBytes(data: {
-    shareKey: string | undefined;
-    bytes: number;
-  }): Promise<void> {
-    if (!Number.isFinite(data.bytes) || data.bytes <= 0) {
-      return;
-    }
+  public static getFileAllowanceCounter(
+    shareKey: string | undefined,
+  ): FormFileAllowanceCounter {
+    const formKey: string = FormRateLimit.getFormKey(shareKey);
 
-    const formKey: string = FormRateLimit.getFormKey(data.shareKey);
-    const client: ClientType | null = Redis.getClient();
+    return {
+      formKey: formKey,
+      key: `${KEY_PREFIX}${FormRateLimitBucket.Submit}:fb:${formKey}:${FormRateLimit.getWindowIndex(
+        FILE_CEILING.windowSeconds,
+      )}`,
+      ttlSeconds: FILE_CEILING.windowSeconds * TTL_MULTIPLIER,
+      limitInBytes: FILE_CEILING.limitInBytes,
+      secondsUntilWindowEnd: FormRateLimit.getSecondsUntilWindowEnd(
+        FILE_CEILING.windowSeconds,
+      ),
+    };
+  }
 
-    if (!client || !Redis.isConnected()) {
-      throw new ServiceUnavailableException(
-        FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
-      );
-    }
-
-    const key: string = `${KEY_PREFIX}${FormRateLimitBucket.Submit}:fb:${formKey}:${FormRateLimit.getWindowIndex(
-      FILE_CEILING.windowSeconds,
-    )}`;
-    const bytes: number = Math.ceil(data.bytes);
-
-    let total: number;
-
-    try {
-      total = Number(await client.incrby(key, bytes));
-
-      if (total === bytes) {
-        await client.expire(key, FILE_CEILING.windowSeconds * TTL_MULTIPLIER);
-      }
-    } catch (err) {
-      if (
-        FormRateLimit.shouldLogCounterUnavailable(FormRateLimitBucket.Submit)
-      ) {
-        logger.warn(
-          `FormRateLimit: file ceiling counter failed for form ${formKey}`,
-        );
-        logger.warn(err);
-      }
-
-      throw new ServiceUnavailableException(
-        FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
-      );
-    }
-
-    if (total <= FILE_CEILING.limitInBytes) {
-      return;
-    }
-
-    // Nothing is stored for a refused submission: its bytes are given back.
-    try {
-      await client.decrby(key, bytes);
-    } catch (err) {
-      logger.warn(
-        `FormRateLimit: could not give back the bytes of a refused submission to form ${formKey}`,
-      );
-      logger.warn(err);
-    }
-
-    if (total - bytes <= FILE_CEILING.limitInBytes) {
-      logger.warn(
-        `FormRateLimit: rejected a submission's files to form ${formKey} (file ceiling)`,
-      );
-    }
-
-    throw new FormCeilingException(
-      FormRateLimit.getSecondsUntilWindowEnd(FILE_CEILING.windowSeconds),
-      FORM_FILES_RATE_LIMIT_MESSAGE,
+  /*
+   * Whether the files counter being down should be logged now: once an
+   * interval, as for the submit counters (shouldLogCounterUnavailable).
+   */
+  public static shouldLogFileCounterUnavailable(): boolean {
+    return FormRateLimit.shouldLogCounterUnavailable(
+      FormRateLimitBucket.Submit,
     );
   }
 

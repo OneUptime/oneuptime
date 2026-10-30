@@ -164,6 +164,21 @@ describe("the list of a field's files", () => {
     expect(row).toHaveTextContent("signed-contract.pdf");
   });
 
+  /*
+   * Two files often differ only at the end of their names - "-signed.pdf",
+   * "-draft.pdf" - so the list wraps a long name rather than cut it short.
+   * (A table cell, one line, keeps its ellipsis, with every name on hover.)
+   */
+  test("a long name is shown whole, wrapped, never cut short", () => {
+    render(<CustomFieldFileList files={[SHEET]} />);
+
+    const name: HTMLElement = screen.getByText("inventory.xlsx");
+
+    expect(name.className).toContain("[overflow-wrap:anywhere]");
+    expect(name.className).toContain("min-w-0");
+    expect(name.className).not.toContain("truncate");
+  });
+
   test("a file of no known size shows no size", () => {
     render(<CustomFieldFileList files={[SHEET]} />);
 

@@ -38,6 +38,9 @@ const FORM_PATH: string = `/accounts/form/${FORM_KEY}`;
 const API_ORIGIN: string = "https://oneuptime.acme-commerce.example";
 
 const FILE_FIELD: string = "Signed change request";
+// The fixture's long name for the signed change request (data=long).
+const LONG_SIGNED_NAME: string =
+  "quarterly-capacity-review-for-the-payments-platform-including-the-eu-west-1-and-us-east-2-failover-drill-results-final-v7.pdf";
 const FILES_FIELD: string = "Evidence";
 
 const SCREENSHOTS: string = path.resolve(
@@ -391,6 +394,14 @@ test.describe("a record's file custom fields: the card", () => {
       );
       // The size and the download icon stay in sight at the row's end.
       await expect(row).toContainText("47 KB");
+      // The whole name is there to read, wrapped: never cut short.
+      const name: Locator = row.getByText(LONG_SIGNED_NAME);
+      await expect(name).toBeVisible();
+      expect(
+        await name.evaluate((element: Element): boolean => {
+          return element.scrollWidth <= element.clientWidth + 1;
+        }),
+      ).toBe(true);
 
       await screenshot(page, `card-long-${width}`);
     }

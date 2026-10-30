@@ -8,7 +8,8 @@ import {
 } from "@jest/globals";
 
 /*
- * THE FORM'S HOURLY ALLOWANCE OF FILES (FormRateLimit.reserveFormFileBytes).
+ * THE FORM'S HOURLY ALLOWANCE OF FILES (FormFileAllowance.reserve, counted
+ * where FormRateLimit.getFileAllowanceCounter says).
  *
  * Anyone holding a form's link can send files with a submission. The
  * submission ceiling bounds how many records a link can make; this bounds
@@ -49,6 +50,7 @@ import FormRateLimit, {
   FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
   FormCeilingException,
 } from "../../../Server/Middleware/FormRateLimit";
+import FormFileAllowance from "../../../Server/Utils/Form/FormFileAllowance";
 import ServiceUnavailableException from "../../../Types/Exception/ServiceUnavailableException";
 
 type MockedFn = ReturnType<typeof jest.fn>;
@@ -134,7 +136,7 @@ describe("the allowance", () => {
 
 describe("a submission's files", () => {
   test("that fit are counted, and the count expires after two windows", async () => {
-    await FormRateLimit.reserveFormFileBytes({
+    await FormFileAllowance.reserve({
       shareKey: SHARE_KEY,
       bytes: 15 * MB,
     });
@@ -145,7 +147,7 @@ describe("a submission's files", () => {
 
   test("count up to the allowance exactly", async () => {
     for (let index: number = 0; index < 10; index++) {
-      await FormRateLimit.reserveFormFileBytes({
+      await FormFileAllowance.reserve({
         shareKey: SHARE_KEY,
         bytes: 20 * MB,
       });
@@ -156,14 +158,14 @@ describe("a submission's files", () => {
 
   test("that would go past it are refused with when to come back, and given back", async () => {
     for (let index: number = 0; index < 10; index++) {
-      await FormRateLimit.reserveFormFileBytes({
+      await FormFileAllowance.reserve({
         shareKey: SHARE_KEY,
         bytes: 20 * MB,
       });
     }
 
     const refusal: unknown = await refusalOf(
-      FormRateLimit.reserveFormFileBytes({ shareKey: SHARE_KEY, bytes: 1 }),
+      FormFileAllowance.reserve({ shareKey: SHARE_KEY, bytes: 1 }),
     );
 
     expect(refusal).toBeInstanceOf(FormCeilingException);
@@ -182,14 +184,14 @@ describe("a submission's files", () => {
 
   test("are counted for their own form: another form's allowance is its own", async () => {
     for (let index: number = 0; index < 10; index++) {
-      await FormRateLimit.reserveFormFileBytes({
+      await FormFileAllowance.reserve({
         shareKey: SHARE_KEY,
         bytes: 20 * MB,
       });
     }
 
     await expect(
-      FormRateLimit.reserveFormFileBytes({
+      FormFileAllowance.reserve({
         shareKey: OTHER_SHARE_KEY,
         bytes: 20 * MB,
       }),
@@ -197,18 +199,18 @@ describe("a submission's files", () => {
   });
 
   test("a form's link in any spelling counts against the one allowance", async () => {
-    await FormRateLimit.reserveFormFileBytes({
+    await FormFileAllowance.reserve({
       shareKey: SHARE_KEY.toUpperCase(),
       bytes: 100 * MB,
     });
-    await FormRateLimit.reserveFormFileBytes({
+    await FormFileAllowance.reserve({
       shareKey: ` ${SHARE_KEY} `,
       bytes: 100 * MB,
     });
 
     await expect(
       refusalOf(
-        FormRateLimit.reserveFormFileBytes({ shareKey: SHARE_KEY, bytes: 1 }),
+        FormFileAllowance.reserve({ shareKey: SHARE_KEY, bytes: 1 }),
       ),
     ).resolves.toBeInstanceOf(FormCeilingException);
     expect(counters.values.size).toBe(1);
@@ -216,7 +218,7 @@ describe("a submission's files", () => {
 
   test("no bytes, or a count that is no count, is nothing to reserve", async () => {
     for (const bytes of [0, -5, Number.NaN]) {
-      await FormRateLimit.reserveFormFileBytes({ shareKey: SHARE_KEY, bytes });
+      await FormFileAllowance.reserve({ shareKey: SHARE_KEY, bytes });
     }
 
     expect(counters.values.size).toBe(0);
@@ -228,7 +230,7 @@ describe("when the counter cannot be reached, no file is taken in", () => {
     getClientMock.mockReturnValue(null);
 
     const refusal: unknown = await refusalOf(
-      FormRateLimit.reserveFormFileBytes({ shareKey: SHARE_KEY, bytes: MB }),
+      FormFileAllowance.reserve({ shareKey: SHARE_KEY, bytes: MB }),
     );
 
     expect(refusal).toBeInstanceOf(ServiceUnavailableException);
@@ -240,7 +242,7 @@ describe("when the counter cannot be reached, no file is taken in", () => {
 
     await expect(
       refusalOf(
-        FormRateLimit.reserveFormFileBytes({ shareKey: SHARE_KEY, bytes: MB }),
+        FormFileAllowance.reserve({ shareKey: SHARE_KEY, bytes: MB }),
       ),
     ).resolves.toBeInstanceOf(ServiceUnavailableException);
   });
@@ -250,7 +252,7 @@ describe("when the counter cannot be reached, no file is taken in", () => {
 
     await expect(
       refusalOf(
-        FormRateLimit.reserveFormFileBytes({ shareKey: SHARE_KEY, bytes: MB }),
+        FormFileAllowance.reserve({ shareKey: SHARE_KEY, bytes: MB }),
       ),
     ).resolves.toBeInstanceOf(ServiceUnavailableException);
   });

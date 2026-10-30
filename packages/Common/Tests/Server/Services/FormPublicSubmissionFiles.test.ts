@@ -53,6 +53,7 @@ import FormRateLimit, {
   FormCeilingException,
 } from "../../../Server/Middleware/FormRateLimit";
 import FileService from "../../../Server/Services/FileService";
+import FormFileAllowance from "../../../Server/Utils/Form/FormFileAllowance";
 import FormService, {
   FORM_SUBMIT_FAILED_MESSAGE,
 } from "../../../Server/Services/FormService";
@@ -228,7 +229,7 @@ beforeEach(() => {
     }) as never) as unknown as MockedFn;
 
   reserveFiles = jest
-    .spyOn(FormRateLimit, "reserveFormFileBytes")
+    .spyOn(FormFileAllowance, "reserve")
     .mockImplementation((async () => {
       calls.push("file ceiling");
     }) as never) as unknown as MockedFn;

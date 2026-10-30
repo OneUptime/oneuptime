@@ -73,6 +73,8 @@ const COUNTERS_NOT_KEYED_ON_A_CLIENT: Record<string, string> = {
     "deploys and rollouts recorded per service or workload and hour",
   "packages/Common/Server/Utils/CloudConnection/LiveRead/CloudLiveReadRateLimit.ts":
     "OneUptime AI's live reads per cloud account and minute",
+  "packages/Common/Server/Utils/Form/FormFileAllowance.ts":
+    "megabytes of files a form takes in per hour, every address together",
 };
 
 /*
