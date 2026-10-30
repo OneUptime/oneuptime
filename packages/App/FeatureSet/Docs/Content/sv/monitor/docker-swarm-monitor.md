@@ -11,7 +11,7 @@ En Docker Swarm-monitor övervakar containrarna bakom ett Swarm-klusters tjänst
 
 ## Så fungerar det
 
-OneUptimes Docker Swarm-agent körs på en managernod. Dess insamlare läser containerstatistik från nodens Docker-daemon var 30:e sekund och stämplar varje omgång med klustrets namn, `docker.swarm.cluster.name`. En liten inventeringspoller bredvid läser klustrets noder, tjänster och uppgifter från Swarm-API:t var 5:e minut. De första data registrerar klustret i OneUptime.
+OneUptimes Docker Swarm-agent körs på en managernod. Dess insamlare läser containerstatistik från nodens Docker-daemon var 30:e sekund, stämplar varje omgång med klustrets namn, `docker.swarm.cluster.name`, och varje uppgifts mätvärden med dess tjänst och nod. En liten inventeringspoller bredvid läser klustrets noder, tjänster och uppgifter från Swarm-API:t var 5:e minut. De första data registrerar klustret i OneUptime.
 
 Insamlaren ser bara containrar på den nod den körs på. För mått från varje nod kör du insamlaren på varje nod med samma `DOCKER_SWARM_CLUSTER_NAME`.
 
@@ -77,18 +77,18 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 
 | Fält | Flik | Vad det gör |
 | --- | --- | --- |
-| **Docker Swarm Cluster** | Alla | Krävs. Begränsar varje fråga till `resource.docker.swarm.cluster.name`. Det är det enda resursattribut som agenten stämplar, så monitorn lägger inte till något filter på `container.runtime` eller `host.name`. |
-| **Tjänstenamn** | Custom Metric, Avancerad | Valfritt. Exakt matchning mot `docker.swarm.service.name`, till exempel `web`. |
-| **Nodnamn** | Custom Metric, Avancerad | Valfritt. Exakt matchning mot `docker.swarm.node.name`, till exempel `swarm-node-1`. |
+| **Docker Swarm Cluster** | Alla | Krävs. Begränsar varje fråga till `resource.docker.swarm.cluster.name`. En uppgifts mätvärden bär `container.runtime=docker` precis som en Docker-värds gör, och agenten stämplar aldrig `host.name`, så monitorn filtrerar på ingetdera. |
+| **Tjänstenamn** | Custom Metric, Avancerad | Valfritt. Exakt matchning mot `resource.docker.swarm.service.name`, tjänsten så som `docker service ls` namnger den, till exempel `web` (`<stack>_web` i en stack). |
+| **Nodnamn** | Custom Metric, Avancerad | Valfritt. Exakt matchning mot `resource.docker.swarm.node.name`, nodens värdnamn så som `docker node ls` visar det, till exempel `swarm-node-1`. Agenten på den noden stämplar det från `DOCKER_SWARM_NODE_NAME`. |
 | **Containernamn** | Custom Metric, Avancerad | Valfritt. Exakt matchning mot `resource.container.name`. En uppgifts container heter `<service>.<slot>.<taskid>`, till exempel `web.1.abc123`. |
-| **Container-avbildning** | Custom Metric, Avancerad | Valfritt. Exakt matchning mot `resource.container.image.name`, till exempel `nginx:latest`. |
+| **Container-avbildning** | Custom Metric, Avancerad | Valfritt. Matchar `resource.container.image.name` med eller utan den digest som Swarm låser till avbildningen: `nginx:latest` matchar även `nginx:latest@sha256:…`, en digest som du skriver lämnas utanför, och ett namn utan tagg betyder `:latest`. |
 | **Docker Swarm Metric** | Custom Metric | Ett mätvärde från [katalogen](#insamlade-mätvärden). |
 | **Aggregering** | Custom Metric | Hur mätningar kombineras: **Genomsnitt**, **Maximum**, **Minimum**, **Summa** eller **Antal**. Börjar på mätvärdets vanliga aggregering. |
 | **Tidsintervall** | Alla | Det glidande fönster som frågan läser, från **Past 1 Minute** till **Past 365 Days**. En ny monitor börjar på **Past 1 Minute**; mallar anger sitt eget. |
 | **Välj mått** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregate by**, **Filter by attributes**, **Gruppera efter**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
 
-> [!WARNING]
-> Den medföljande agenten sätter ännu inte `docker.swarm.service.name` eller `docker.swarm.node.name`, så en monitor med **Tjänstenamn** eller **Nodnamn** ifyllt hittar inga data. Begränsa i stället med **Container-avbildning**, eller gruppera efter `resource.container.name`.
+> [!NOTE]
+> **Tjänstenamn** och **Nodnamn** kräver agentens filer från version 0.161.2 och framåt: äldre skickar varken tjänsten eller noden. [Uppgradera agenten](/docs/telemetry/docker-swarm#uppgradera-agenten) på varje nod som den körs på.
 
 ## Färdiga larmmallar
 
@@ -143,7 +143,7 @@ Agentens insamlare använder OpenTelemetry-mottagaren `docker_stats`, så måtte
 | `container.pids.count` | antal | Uppgifter i en tasks container: cgroup-pids-kontrollern räknar trådar såväl som processer. En plötslig ökning kan betyda en fork-bomb eller en trådläcka. |
 | `container.uptime` | sekunder | Hur länge en uppgifts container har körts. En uppgift som schemaläggs om eller startas om börjar en ny container på 0. |
 
-Varje serie bär containerns identitet som resursattribut: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name` och `resource.docker.swarm.cluster.name`.
+Varje serie bär containerns identitet som resursattribut: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name`, `resource.docker.swarm.service.name`, `resource.docker.swarm.node.id`, `resource.docker.swarm.node.name` (när agenten känner till nodens namn) och `resource.docker.swarm.cluster.name`.
 
 ## Övervakningskriterier
 
@@ -186,7 +186,7 @@ Insamlaren läser Docker-daemonen på den nod den körs på, så den ser bara up
 :::
 
 :::details En monitor filtrerad på tjänst eller nod hittar inga data
-**Tjänstenamn** och **Nodnamn** matchar `docker.swarm.service.name` och `docker.swarm.node.name`, som den medföljande agenten inte sätter. Töm dem och begränsa med **Container-avbildning**, eller gruppera efter `resource.container.name`.
+**Tjänstenamn** och **Nodnamn** matchar `resource.docker.swarm.service.name` och `resource.docker.swarm.node.name`, som agenten skickar från version 0.161.2 av sina filer och framåt: [uppgradera den](/docs/telemetry/docker-swarm#uppgradera-agenten). Nodens namn kommer från `DOCKER_SWARM_NODE_NAME` i varje nods `.env`, som installationsskriptet skriver; på en nod som har konfigurerats på annat sätt lägger du till det där.
 :::
 
 :::details Varje uppgift visas som en enda serie

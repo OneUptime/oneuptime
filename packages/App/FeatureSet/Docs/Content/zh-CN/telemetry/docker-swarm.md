@@ -13,7 +13,7 @@ OneUptime Docker Swarm 代理监控 Docker Swarm 集群：它的节点、服务�
 
 代理是三个容器，全部定义在一个 `docker-compose.yml` 中：
 
-1. **Collector**：一个 OpenTelemetry Collector，读取 `docker_stats` 获取每个容器的指标，跟踪容器的日志文件，并跟踪清单快照文件。它为所有数据打上你的集群名称（`docker.swarm.cluster.name`），并通过 OTLP 发送到 OneUptime。
+1. **Collector**：一个 OpenTelemetry Collector，读取 `docker_stats` 获取每个容器的指标，跟踪容器的日志文件，并跟踪清单快照文件。它为所有数据打上你的集群名称（`docker.swarm.cluster.name`），为每个任务的指标打上其服务和节点，并通过 OTLP 发送到 OneUptime。
 2. **清单轮询器**：一个基于 `curl` 和 `jq` 的小型边车容器，每 5 分钟遍历一次 swarm 管理节点的 API（`/nodes`、`/services`、`/tasks`、`/networks`、`/secrets`、`/configs`、`/volumes`），并根据服务标签 `com.docker.stack.namespace` 推断出栈。它为每个对象写入一行 JSON，由 Collector 转发。
 3. **AI 代理**：`oneuptime-docker-swarm-ai-agent`，在 OneUptime AI 调查此集群上的事件或警报时运行它请求的 `docker` 命令。除非你允许修复，否则它是只读的（参见 [AI 代理](#ai-代理)）。
 
@@ -56,7 +56,7 @@ curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/Do
 sh install.sh
 ```
 
-脚本会询问你的 OneUptime URL、摄取密钥和集群名称。它安装到 `/opt/oneuptime-docker-swarm-agent`，写入一个只有所有者能读取的 `.env` 文件，并启动全部三个容器。添加 `--no-ai-agent` 可不安装 AI 代理。
+脚本会询问你的 OneUptime URL、摄取密钥和集群名称。它安装到 `/opt/oneuptime-docker-swarm-agent`，写入一个只有所有者能读取的 `.env` 文件（其中以节点的主机名作为 `DOCKER_SWARM_NODE_NAME`），并启动全部三个容器。添加 `--no-ai-agent` 可不安装 AI 代理。
 @tab Docker Compose
 从 [DockerSwarmAgent 目录](https://github.com/OneUptime/oneuptime/tree/master/agents/DockerSwarmAgent) 下载 `docker-compose.yml`、`otel-collector-config.yaml` 和 `inventory-snapshot.sh` 到管理节点上的一个新文件夹中：
 
@@ -73,6 +73,12 @@ chmod +x inventory-snapshot.sh
 ONEUPTIME_URL=https://oneuptime.com
 ONEUPTIME_SERVICE_TOKEN=your-telemetry-ingestion-key
 DOCKER_SWARM_CLUSTER_NAME=my-swarm
+```
+
+在其中添加节点的名称。Collector 会把它打到该节点的容器指标上：
+
+```bash
+echo "DOCKER_SWARM_NODE_NAME=$(docker info --format '{{.Name}}')" >> .env
 ```
 
 启动代理：
@@ -98,15 +104,16 @@ docker compose logs --tail 50 oneuptime-docker-swarm-agent oneuptime-docker-swar
 
 ## 环境变量
 
-安装脚本会把前三个写入 `/opt/oneuptime-docker-swarm-agent/.env`；Docker Compose 安装则从 `docker-compose.yml` 旁边的 `.env` 中读取它们。在那里添加或更改其中任何一个，然后在该文件夹中运行 `docker compose up -d`。
+安装脚本会把前四个写入 `/opt/oneuptime-docker-swarm-agent/.env`；Docker Compose 安装则从 `docker-compose.yml` 旁边的 `.env` 中读取它们。在那里添加或更改其中任何一个，然后在该文件夹中运行 `docker compose up -d`。
 
 | 变量 | 必需 | 说明 |
 | --- | --- | --- |
 | `ONEUPTIME_URL` | 是 | 你的 OneUptime URL，例如 `https://oneuptime.com` 或你的自托管实例。如果实例只支持 HTTP，请使用 `http://` 及其端口。 |
 | `ONEUPTIME_SERVICE_TOKEN` | 是 | 来自 **项目设置 → 遥测与 APM → 摄取密钥** 的摄取密钥。 |
 | `DOCKER_SWARM_CLUSTER_NAME` | 否 | 集群在 OneUptime 中的名称，也是汇合每个节点数据的键：作为 `docker.swarm.cluster.name` 资源属性打到所有数据上。请保持不变：之后更改它会注册另一个集群。默认为 `docker-swarm`。 |
+| `DOCKER_SWARM_NODE_NAME` | 否 | 节点的名称，作为 `docker.swarm.node.name` 资源属性打到其容器的指标和日志上，[Docker Swarm 监控](/docs/monitor/docker-swarm-monitor#监视器设置) 按它过滤。安装脚本会把它设为节点的主机名，即 `docker node ls` 显示的名称。留空：不打上节点名称。 |
 | `DOCKER_INVENTORY_INTERVAL_SECONDS` | 否 | 清单轮询器拍摄快照的频率，单位为秒。默认为 `300`。 |
-| `DOCKER_API_VERSION` | 否 | Collector 和清单轮询器使用的 Docker Engine API 版本。默认为 `1.44`；留空则与守护进程协商（参见 [故障排除](#故障排查)）。除非你指定一个版本，否则 AI 代理会自行协商。 |
+| `DOCKER_API_VERSION` | 否 | Collector 和清单轮询器使用的 Docker Engine API 版本。默认为空：它们使用守护进程自己的版本，因此从 20.10 起的每个 Docker Engine 都能使用。仅在需要固定某个版本时才设置它（参见 [故障排除](#故障排查)）。除非你指定一个版本，否则 AI 代理会自行协商。 |
 
 AI 代理自己的设置见 [AI 代理](#ai-代理)。
 
@@ -119,9 +126,11 @@ AI 代理自己的设置见 [AI 代理](#ai-代理)。
 | 容器的 CPU、内存、进程数和运行时长 | `docker_stats` 接收器 | **指标** 页面 |
 | 容器的 stdout 和 stderr 日志 | `filelog` 接收器 | **日志** 页面 |
 
+每个任务的指标都带有其容器的身份，由 `docker_stats` 接收器添加（`container.name`、`container.image.name`、`container.id` 和 `container.runtime=docker`）；还带有其服务和所在节点的 ID，由 Collector 从 Swarm 给任务打上的标签中复制（`docker.swarm.service.name` 和 `docker.swarm.node.id`）；以及来自 `DOCKER_SWARM_NODE_NAME` 的节点名称（`docker.swarm.node.name`）。[Docker Swarm 监控](/docs/monitor/docker-swarm-monitor#监视器设置) 按这些属性过滤。
+
 ### 它与 Docker 代理有何不同
 
-[Docker 代理](/docs/telemetry/docker-host) 对单台主机建模，打上 `host.name` 和 `container.runtime=docker`。Docker Swarm 代理有意只打上 `docker.swarm.cluster.name`：这样 OneUptime 会把数据归到 swarm 集群下，而不是把每个节点注册为独立的主机。
+[Docker 代理](/docs/telemetry/docker-host) 对单台主机建模，并为所有数据打上 `host.name`。Docker Swarm 代理有意打上 `docker.swarm.cluster.name`，而从不打上 `host.name`：这样 OneUptime 会把数据归到 swarm 集群下，而不是把每个节点注册为独立的主机。
 
 ## 用项目标签标记集群
 
@@ -225,13 +234,15 @@ Error response from daemon: client version 1.44 is too new.
 Maximum supported API version is 1.41
 ```
 
-守护进程支持的最高 API 版本低于默认的 `1.44`（Docker Engine 20.10 最高为 `1.41`），因此 `docker_stats` 接收器无法启动，容器会不断重启。查出守护进程支持的最高版本：
+守护进程支持的最高 API 版本低于 Collector 请求的版本（Docker Engine 20.10 最高为 `1.41`），因此 `docker_stats` 接收器无法启动，容器会不断重启。除非 `DOCKER_API_VERSION` 指定了版本，否则 Collector 会与守护进程协商版本，而早于 0.161.2 版本的代理文件固定使用 `1.44`。[升级代理](#升级代理)，并在运行代理的每个节点上，从 `.env` 中去掉任何带版本号的 `DOCKER_API_VERSION`（或将其留空，即 `DOCKER_API_VERSION=`）。
+
+如果仍要固定某个版本，请使用不超过守护进程支持的最高版本：
 
 ```bash
 docker version --format '{{ .Server.APIVersion }}'
 ```
 
-在 `.env` 中把 `DOCKER_API_VERSION` 设为该值，并在运行代理的每个节点上运行 `docker compose up -d`。较新的守护进程仍然支持较旧的 API 版本，因此升级 Docker 后该设置仍然有效。或者设置 `DOCKER_API_VERSION=`（留空），让 Collector 与守护进程协商版本，而不是固定一个版本。
+在 `.env` 中把 `DOCKER_API_VERSION` 设为该值，并在运行代理的每个节点上运行 `docker compose up -d`。较新的守护进程仍然支持较旧的 API 版本，因此升级 Docker 后该设置仍然有效。
 :::
 
 :::details 集群以错误的名称出现
