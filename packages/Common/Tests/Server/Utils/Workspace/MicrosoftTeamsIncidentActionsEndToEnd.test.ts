@@ -1220,6 +1220,37 @@ describe("the incident card's menu: each form, as a card, filled in as Simon rea
     });
   });
 
+  test("Page Someone: says the page goes on until one of them answers, then an optional message for the people paged", async () => {
+    const delivery: Delivery = await deliver(press("ViewPageAboutIncident"));
+    const card: JSONObject = cardOf(posted(delivery)[0]);
+    const body: Array<JSONObject> = card["body"] as Array<JSONObject>;
+    const texts: Array<string> = body.map((element: JSONObject): string => {
+      return String(element["text"] || "");
+    });
+
+    expect(texts).toContain(
+      "They are paged about this incident until one of them answers. A schedule pages whoever is on call in it now; a policy pages through its escalation rules.",
+    );
+
+    const message: JSONObject = elementOf(card, "incidentPageMessage");
+
+    expect(message).toMatchObject({
+      type: "Input.Text",
+      label: "Message",
+      isMultiline: true,
+      maxLength: 500,
+    });
+    // Optional: the incident says what the page is about.
+    expect(message["isRequired"]).toBeUndefined();
+    expect(texts[body.indexOf(message) + 1]).toBe(
+      "Optional. The people you page see it with the incident.",
+    );
+    // After the list of who to page.
+    expect(body.indexOf(message)).toBeGreaterThan(
+      body.indexOf(elementOf(card, "incidentPageTargets")),
+    );
+  });
+
   test("Edit Custom Fields: each field as the input its type asks for, a date and time as a day and a time", async () => {
     const delivery: Delivery = await deliver(
       press("ViewEditIncidentCustomFields"),
@@ -1393,6 +1424,41 @@ describe("a form card, submitted: the change as Simon, said in the conversation,
       `📟 Paged **Nawaz Dhandala** about ${recordMarkdown()}`,
     );
     expect(removals(delivery)).toEqual([FORM_CARD_ID]);
+  });
+
+  test("Page Someone with a message: the page about the incident carries it, and the answer quotes it", async () => {
+    const delivery: Delivery = await deliver(
+      press("SubmitPageAboutIncident", {
+        incidentPageTargets: `user:${NAWAZ.toString()}`,
+        incidentPageMessage: "  Can you check the database?\nIt is slow.  ",
+      }),
+    );
+
+    expect(pages).toEqual([
+      {
+        targets: expect.objectContaining({ userIds: [NAWAZ] }),
+        about: {
+          incidentId: INCIDENT_ID,
+          message: "Can you check the database? It is slow.",
+        },
+        props: memberProps,
+      },
+    ]);
+    expect(answerOf(posted(delivery)[0])).toBe(
+      `📟 Paged **Nawaz Dhandala** about ${recordMarkdown()}: “Can you check the database? It is slow.”`,
+    );
+  });
+
+  test("Page Someone with only spaces for a message: paged with none, as from a card sent before it was asked", async () => {
+    await deliver(
+      press("SubmitPageAboutIncident", {
+        incidentPageTargets: `user:${NAWAZ.toString()}`,
+        incidentPageMessage: "   ",
+      }),
+    );
+
+    expect(pages).toHaveLength(1);
+    expect(pages[0]!.about).toEqual({ incidentId: INCIDENT_ID });
   });
 
   test("Page Someone with nobody picked: said; nobody paged; the card stays", async () => {

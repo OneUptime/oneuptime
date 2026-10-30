@@ -96,7 +96,8 @@ export const MICROSOFT_TEAMS_SEVERITY_FIELD: string = "incidentSeverity";
 export const MICROSOFT_TEAMS_ROLE_FIELD: string = "incidentRole";
 export const MICROSOFT_TEAMS_ROLE_PERSON_FIELD: string = "incidentRolePerson";
 export const MICROSOFT_TEAMS_PAGE_FIELD: string = "incidentPageTargets";
-export const MICROSOFT_TEAMS_PAGE_MESSAGE_FIELD: string = "incidentPageMessage";
+export const MICROSOFT_TEAMS_PAGE_ABOUT_INCIDENT_MESSAGE_FIELD: string =
+  "incidentPageMessage";
 
 // A Date and time field's two inputs: its day, and its time.
 const DATE_SUFFIX: string = "__date";
@@ -792,7 +793,7 @@ export default class MicrosoftTeamsIncidentMoreActions {
         const message: Array<JSONObject> = [
           {
             type: "Input.Text",
-            id: MICROSOFT_TEAMS_PAGE_MESSAGE_FIELD,
+            id: MICROSOFT_TEAMS_PAGE_ABOUT_INCIDENT_MESSAGE_FIELD,
             label: WORKSPACE_PAGE_FORM_TEXT.messageLabel,
             placeholder: WORKSPACE_PAGE_FORM_TEXT.messagePlaceholder,
             isMultiline: true,
@@ -845,8 +846,11 @@ export default class MicrosoftTeamsIncidentMoreActions {
     );
     // Optional, and on cards sent before it was asked: none.
     const message: string =
-      typeof data.value[MICROSOFT_TEAMS_PAGE_MESSAGE_FIELD] === "string"
-        ? (data.value[MICROSOFT_TEAMS_PAGE_MESSAGE_FIELD] as string)
+      typeof data.value[MICROSOFT_TEAMS_PAGE_ABOUT_INCIDENT_MESSAGE_FIELD] ===
+      "string"
+        ? (data.value[
+            MICROSOFT_TEAMS_PAGE_ABOUT_INCIDENT_MESSAGE_FIELD
+          ] as string)
         : "";
 
     const problem: string | null =
