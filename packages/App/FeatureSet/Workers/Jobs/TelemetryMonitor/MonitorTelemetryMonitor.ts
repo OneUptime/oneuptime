@@ -3595,7 +3595,15 @@ export const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
     }
 
     if (Object.keys(attributes).length > 0) {
-      query.attributes =
+      /*
+       * Built apart from the query and handed over as the plain map the
+       * other monitors give. Written straight into `query.attributes`, the
+       * literal with its Wildcard is checked against Query<Metric>'s
+       * recursive attribute type, and TypeScript gives up on that (TS2589:
+       * type instantiation is excessively deep). The statement generator
+       * reads a Wildcard map entry as a LIKE match.
+       */
+      const queryAttributes: Dictionary<string | Wildcard<string>> =
         containerImageGlobs.length > 0
           ? {
               ...attributes,
@@ -3604,6 +3612,8 @@ export const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
               ),
             }
           : attributes;
+
+      query.attributes = queryAttributes as Dictionary<string>;
     }
 
     const aggregationType: MetricsAggregationType =
