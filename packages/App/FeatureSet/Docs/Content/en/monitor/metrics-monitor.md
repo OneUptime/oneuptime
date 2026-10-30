@@ -128,6 +128,8 @@ These monitors always evaluate the **Metric Value** — the aggregated value of 
 | **Anomalously High** | above the range expected for this hour of the week |
 | **Anomalously Low** | below that range |
 | **Anomalous** | outside that range, either way |
+| **Has No Data** | missing: the query sent nothing in the window |
+| **Has Data** | present: the query sent something in the window |
 
 The anomaly conditions have no threshold. **When to alert** shows **Sensitivity** — Low, Medium (the default) or High — instead, and the custom criteria a **Baseline Window** too — 14 days (the default), 28, 60 or 90 — and each data point is compared with the same-hour-of-week baseline built from that window. Until that hour of the week has enough history, the criteria is still learning and produces no alerts.
 
