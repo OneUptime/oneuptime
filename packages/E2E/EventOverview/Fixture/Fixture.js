@@ -271,7 +271,9 @@
  *            answers POST /ai-investigation/code-fix-suggestion on the AI
  *            card's Remediation step (block 43). act: a person may open it,
  *            and OneUptime AI did not on its own because "Fix new incidents
- *            automatically" was off; no-repository: no code repository is
+ *            automatically" was off (with ?switches=on, because it opens one
+ *            on its own only when an investigation finishes); no-repository:
+ *            no code repository is
  *            connected; writing: OneUptime AI is writing the pull request;
  *            opened: it opened one. Absent, there is nothing to say. Open
  *            fix pull request (POST /ai-investigation/create-fix-task)
@@ -4504,8 +4506,17 @@ function codeFixSuggestion(body) {
     };
   }
 
+  /*
+   * Why OneUptime AI did not open it on its own, with the settings of now:
+   * fixing off - or, once ?switches=on has it on, that it opens one on its
+   * own only when an investigation finishes.
+   */
   if (codeFixMode === "act") {
-    return { ...nothing, offer: "Act", automaticBlocker: "FixOff" };
+    return {
+      ...nothing,
+      offer: "Act",
+      automaticBlocker: switchesMode === "on" ? "ChangedSince" : "FixOff",
+    };
   }
   if (codeFixMode === "no-repository") {
     return { ...nothing, offer: "SetUp", automaticBlocker: "NoRepository" };

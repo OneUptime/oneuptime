@@ -19821,6 +19821,34 @@ test.describe("the AI card in two steps: Investigation, then Remediation (block 
         expect(await panelsInsideTheCard(page)).toEqual([]);
       });
     }
+
+    /*
+     * Said with the settings of now: once fixing is on, the pull request
+     * was not opened because OneUptime AI opens one on its own only when an
+     * investigation finishes - never "turn on" a switch that is on.
+     */
+    test("codefix=act with fixing on now: why it did not open on its own, and no switch to turn on", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const { remediation } = await openTwoSteps(
+        page,
+        "state=created&fixing=off&switches=on&codefix=act",
+        "Needs attention",
+      );
+
+      const row: Locator = remediation.getByTestId("remediation-code-fix");
+      await expect(row.getByTestId("remediation-code-fix-why")).toHaveText(
+        "OneUptime AI opens one on its own only when an investigation finishes, so open this one yourself.",
+      );
+      await expect(
+        row.getByRole("button", { name: OPEN_FIX_PR, exact: true }),
+      ).toBeEnabled();
+      await expect(
+        remediation.getByRole("link", { name: /^Turn on/ }),
+      ).toHaveCount(0);
+    });
   });
 
   for (const width of [1280, 390]) {
