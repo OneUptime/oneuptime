@@ -44,6 +44,8 @@ import ExceptionDuplicateChecker, {
 } from "../Utils/AI/TelemetryAi/ExceptionDuplicateCheck";
 import SimilarExceptionsReader from "../Utils/Telemetry/SimilarExceptionsReader";
 import { SimilarException } from "../../Types/Telemetry/SimilarExceptions";
+import ExceptionListStatsReader from "../Utils/Telemetry/ExceptionListStatsReader";
+import { ExceptionListStats } from "../../Types/Telemetry/ExceptionListStats";
 
 /*
  * User-facing wording for a code-fix run's status on the exception page —
@@ -224,6 +226,24 @@ export default class TelemetryExceptionAPI extends BaseAPI<
     );
 
     /*
+     * The numbers beside each row of the exceptions list, for one page:
+     * each exception's affected users and its occurrences over the list's
+     * range (ExceptionListStatsReader), read as the caller. No AI, so
+     * anyone who may read the exceptions may ask.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/list-stats`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.getListStats(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
      * Aggregated dashboard summary for the Exceptions overview page.
      * Returns counts, top/recent exceptions, and per-service summaries
      * in a single round-trip with one SQL GROUP BY for service aggregation.
@@ -300,6 +320,55 @@ export default class TelemetryExceptionAPI extends BaseAPI<
 
     return Response.sendJsonObjectResponse(req, res, {
       similar: similar as unknown as JSONArray,
+    });
+  }
+
+  private async getListStats(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const body: JSONObject = (req.body as JSONObject) || {};
+
+    // Refused before anything is read: ids, then the range.
+    const telemetryExceptionIds: Array<ObjectID> =
+      ExceptionListStatsReader.readIds(body["telemetryExceptionIds"]);
+
+    const readTime: (key: string) => Date = (key: string): Date => {
+      const value: unknown = body[key];
+
+      if (typeof value !== "string" || value.length > 64) {
+        throw new BadDataException(`${key} is required`);
+      }
+
+      // An ISO time, as the list sends it.
+      const time: Date = new Date(value);
+
+      if (Number.isNaN(time.getTime())) {
+        throw new BadDataException(`Invalid ${key}`);
+      }
+
+      return time;
+    };
+
+    const startTime: Date = readTime("startTime");
+    const endTime: Date = readTime("endTime");
+    ExceptionListStatsReader.checkRange(startTime, endTime);
+
+    const props: DatabaseCommonInteractionProps =
+      await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+    const stats: ExceptionListStats = await ExceptionListStatsReader.read({
+      telemetryExceptionIds,
+      startTime,
+      endTime,
+      props,
+    });
+
+    return Response.sendJsonObjectResponse(req, res, {
+      stats: stats.items as unknown as JSONArray,
+      bucketSizeInSeconds: stats.bucketSizeInSeconds,
+      startTime: stats.startTime,
+      endTime: stats.endTime,
     });
   }
 
