@@ -144,6 +144,21 @@ interface RdsInstance {
   tags: Record<string, string>;
 }
 
+/*
+ * An address without its trailing slashes, in time linear in its length
+ * (a /\/+$/ replace retries from every slash of a run that does not end
+ * the address).
+ */
+export function withoutTrailingSlashes(value: string): string {
+  let end: number = value.length;
+
+  while (end > 0 && value.charAt(end - 1) === "/") {
+    end--;
+  }
+
+  return value.slice(0, end);
+}
+
 function integerText(value: string | null): number | null {
   return value !== null && WHOLE_NUMBER_PATTERN.test(value)
     ? parseInt(value, 10)
@@ -335,7 +350,7 @@ export default class AwsCloud {
     try {
       response = await send({
         method: "GET",
-        url: `${base.replace(/\/+$/, "")}/task`,
+        url: `${withoutTrailingSlashes(base)}/task`,
         headers: { Accept: "application/json" },
         body: null,
       });

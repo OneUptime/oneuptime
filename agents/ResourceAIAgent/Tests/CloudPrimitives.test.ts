@@ -44,6 +44,7 @@ import {
   parseSqsQueueUrl,
   parseTaskDefinitionArn,
   sqsQueueUrl,
+  withoutTrailingSlashes,
 } from "../Executors/Cloud/AwsOperations";
 import { readVmPowerState } from "../Executors/Cloud/AzureOperations";
 import { shortRevisionName } from "../Executors/Cloud/GcpOperations";
@@ -713,6 +714,44 @@ describe("small readers", () => {
     ]) {
       assert.strictEqual(isPlatformHost(host), false, host);
     }
+  });
+});
+
+/*
+ * The ECS task metadata address the agent asks for its own task, without
+ * its trailing slashes - in time linear in its length, whatever it holds
+ * (a /\/+$/ replace retries from every slash of a run that is not at the
+ * end: about 55,000 slashes before one other character took seconds).
+ */
+describe("an address without its trailing slashes", () => {
+  test("drops every trailing slash and nothing else", () => {
+    assert.strictEqual(
+      withoutTrailingSlashes("http://169.254.170.2/v4/abc"),
+      "http://169.254.170.2/v4/abc",
+    );
+    assert.strictEqual(
+      withoutTrailingSlashes("http://169.254.170.2/v4/abc///"),
+      "http://169.254.170.2/v4/abc",
+    );
+    assert.strictEqual(withoutTrailingSlashes("/a//b/"), "/a//b");
+    assert.strictEqual(withoutTrailingSlashes("///"), "");
+    assert.strictEqual(withoutTrailingSlashes(""), "");
+  });
+
+  test("is linear on its worst case: a long run of slashes that does not end it", () => {
+    const worst: string = `${"/".repeat(400_000)}x/`;
+    let fastest: number = Number.POSITIVE_INFINITY;
+
+    for (let attempt: number = 0; attempt < 3; attempt++) {
+      const startedAt: number = Date.now();
+      assert.strictEqual(
+        withoutTrailingSlashes(worst),
+        `${"/".repeat(400_000)}x`,
+      );
+      fastest = Math.min(fastest, Date.now() - startedAt);
+    }
+
+    assert.ok(fastest < 2_000, `took ${fastest} ms`);
   });
 });
 
