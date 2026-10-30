@@ -168,6 +168,13 @@ const occurrences: Array<OccurrenceFixture> = [
 
   // A fingerprint nobody asked about.
   { fingerprint: "unrelated-fp", userId: "ana", at: HOUR_MS },
+
+  /*
+   * An exception merged into the checkout one: ana again, and eve. Read for
+   * it only when the test says it was merged.
+   */
+  { fingerprint: "checkout-merged-fp", userId: "ana", at: 2 * HOUR_MS },
+  { fingerprint: "checkout-merged-fp", userId: "eve", at: 2 * HOUR_MS + 1 },
 ];
 
 function occurrenceRow(fixture: OccurrenceFixture): JSONObject {
@@ -217,13 +224,20 @@ function group(
   id: string,
   fingerprint: string,
   serviceId: ObjectID,
+  mergedIntoId?: string | undefined,
 ): TelemetryException {
   const exception: TelemetryException = new TelemetryException();
   exception._id = id;
   exception.fingerprint = fingerprint;
   exception.primaryEntityId = serviceId;
+  if (mergedIntoId) {
+    exception.mergedIntoTelemetryExceptionId = new ObjectID(mergedIntoId);
+  }
   return exception;
 }
+
+// The exceptions merged into the ones read; none unless a test says so.
+let mergedMembers: Array<TelemetryException> = [];
 
 async function createTable(
   client: ClickhouseClient,
@@ -324,13 +338,20 @@ integration("the exceptions list's stats against ClickHouse", () => {
   });
 
   beforeEach(() => {
-    findBy
-      .mockReset()
-      .mockResolvedValue([
+    mergedMembers = [];
+    findBy.mockReset().mockImplementation((async (args: {
+      query: Record<string, unknown>;
+    }) => {
+      if ("mergedIntoTelemetryExceptionId" in args.query) {
+        return mergedMembers;
+      }
+
+      return [
         group(CHECKOUT, "checkout-fp", checkoutServiceId),
         group(BILLING, "billing-fp", billingServiceId),
         group(QUIET, "quiet-fp", checkoutServiceId),
-      ] as never);
+      ];
+    }) as never);
     getServiceFilter.mockReset().mockResolvedValue({
       serviceIds: [checkoutServiceId, billingServiceId],
     } as never);
@@ -391,6 +412,26 @@ integration("the exceptions list's stats against ClickHouse", () => {
         return a + b;
       }),
     ).toBe(0);
+  });
+
+  test("an exception merged into another counts there: its occurrences in the trend, a user met in both once", async () => {
+    mergedMembers = [
+      group(
+        "30000000-0000-4000-8000-0000000000c4",
+        "checkout-merged-fp",
+        checkoutServiceId,
+        CHECKOUT,
+      ),
+    ];
+
+    const stats: ExceptionListStats = await read([CHECKOUT]);
+
+    // ana, ben, cy and dee, and eve: ana met both and counts once.
+    expect(stats.items[0]!.affectedUsers).toBe(5);
+    expect(stats.items[0]!.trend[2]).toBe(2);
+    expect(
+      stats.items[0]!.trend.reduce((a: number, b: number) => a + b),
+    ).toBe(9);
   });
 
   test("an exception the caller may not read is not answered for", async () => {

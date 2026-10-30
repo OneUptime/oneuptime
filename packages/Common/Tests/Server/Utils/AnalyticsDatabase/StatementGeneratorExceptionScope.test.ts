@@ -221,4 +221,19 @@ describe("StatementGenerator exceptionScope synthetic key", () => {
       "({p2_t:Identifier}.{p2_c:Identifier}, {p3_t:Identifier}.{p3_c:Identifier}) GLOBAL IN (SELECT traceId, spanId FROM",
     );
   });
+
+  test("an exception others were merged into reads their fingerprints too, still by GLOBAL IN", () => {
+    const statement: Statement = where({
+      exceptionScope: {
+        fingerprint: FINGERPRINT,
+        mergedFingerprints: ["fp-merged"],
+      },
+      projectId: new ObjectID(PROJECT_ID),
+    });
+
+    expect(statement.query.replace(/\s+/g, " ")).toMatch(
+      /GLOBAL IN \(SELECT traceId, spanId FROM \{p\d+:Identifier\} WHERE projectId = \{p\d+:String\} AND fingerprint IN \(\{p\d+:Array\(String\)\}\)\)/,
+    );
+    expect(subqueryParams(statement)).toContainEqual([FINGERPRINT, "fp-merged"]);
+  });
 });

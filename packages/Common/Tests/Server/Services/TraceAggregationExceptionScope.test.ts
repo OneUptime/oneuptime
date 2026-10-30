@@ -138,5 +138,29 @@ describe("TraceAggregationService exceptionScope", () => {
       expect(normalized(statement)).not.toContain("DROP TABLE");
       expect(params(statement)).toContain("'); DROP TABLE Span; --");
     });
+
+    test("an exception others were merged into reads their fingerprints too", () => {
+      const statement: Statement = SQL`SELECT 1 WHERE TRUE`;
+
+      TraceAggregationService.appendExceptionScopeFilter(statement, {
+        projectId: PROJECT_ID,
+        exceptionScope: {
+          fingerprint: FINGERPRINT,
+          mergedFingerprints: ["fp-merged"],
+        },
+      });
+
+      expect(normalized(statement)).toMatch(
+        /WHERE projectId = \{p\d+:String\} AND fingerprint IN \(\{p\d+:Array\(String\)\}\)\)$/,
+      );
+      expect(
+        Object.values(statement.query_params).some((value: unknown) => {
+          return (
+            Array.isArray(value) &&
+            value.join(",") === `${FINGERPRINT},fp-merged`
+          );
+        }),
+      ).toBe(true);
+    });
   });
 });
