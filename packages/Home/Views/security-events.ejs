@@ -30,7 +30,7 @@
               Your security events, where the rest of your data already lives.
             </h1>
             <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
-              POST security events from any source, connect eight security products, or let OneUptime find them in the logs you already send. Every event is normalized to OCSF and stored beside your logs, metrics and traces. Sigma rules, correlations and threat intel find what matters, Security Cases group it by the user, host or address it is about, OneUptime AI triages each new case and cites its evidence, and playbooks respond &mdash; enrich, notify, page on-call, or contain through Okta, CrowdStrike and Microsoft Defender, with approval on by default. Already run a SIEM? Send it what OneUptime finds. Open source.
+              POST security events from any source, connect ten security products, or let OneUptime find them in the logs you already send. Every event is normalized to OCSF and stored beside your logs, metrics and traces. Sigma rules, correlations and threat intel find what matters, Security Cases group it by the user, host or address it is about, OneUptime AI triages each new case and cites its evidence, and playbooks respond &mdash; enrich, notify, page on-call, or contain through Okta, CrowdStrike and Microsoft Defender, with approval on by default. Already run a SIEM? Send it what OneUptime finds. Open source.
             </p>
 
             <div class="mt-10 flex items-center justify-center gap-x-6">
@@ -212,7 +212,7 @@
                 <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-red-600 ring-2 ring-red-600">1</span>
               </div>
               <h3 class="text-base font-semibold text-gray-900 mb-2">Collect</h3>
-              <p class="text-sm text-gray-600 leading-relaxed">POST OCSF, Google SecOps UDM, SecOps alerts or plain JSON with your telemetry ingestion key, connect one of eight security products, or let OneUptime find SSH, sudo, Kubernetes audit, CloudTrail and web-attack events in the logs you already send.</p>
+              <p class="text-sm text-gray-600 leading-relaxed">POST OCSF, Google SecOps UDM, SecOps alerts or plain JSON with your telemetry ingestion key, connect one of ten security products, or let OneUptime find SSH and Windows sign-ins, sudo, cloud audit logs, firewalls' CEF and LEEF, Kubernetes audit and web-attack events in the logs you already send.</p>
             </div>
 
             <!-- Step 2 -->
@@ -290,7 +290,7 @@
                 <span class="text-sm font-semibold text-red-600 uppercase tracking-wide">Ingest</span>
               </div>
               <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">One endpoint. Four dialects. Nothing dropped.</h3>
-              <p class="mt-4 text-lg text-gray-600">Anything that can POST JSON can feed the table &mdash; a SOAR playbook, an EDR webhook, a cloud audit-log forwarder, Fluent Bit. Name the dialect with a query parameter or a header, or send nothing and let OneUptime sniff it per event, so one webhook can mix detection alerts with raw events. Whatever does not map onto a typed column is flattened into dot-notation attribute keys and kept, so you are never choosing between a clean schema and the original payload. And when the data already sits somewhere, you do not have to forward it: managed connectors poll eight security products for you, and Your logs turns the security lines in the logs you already send into events, with nothing to install.</p>
+              <p class="mt-4 text-lg text-gray-600">Anything that can POST JSON can feed the table &mdash; a SOAR playbook, an EDR webhook, a cloud audit-log forwarder, Fluent Bit. Name the dialect with a query parameter or a header, or send nothing and let OneUptime sniff it per event, so one webhook can mix detection alerts with raw events. Whatever does not map onto a typed column is flattened into dot-notation attribute keys and kept, so you are never choosing between a clean schema and the original payload. And when the data already sits somewhere, you do not have to forward it: managed connectors poll ten security products for you, and Your logs turns the security lines in the logs you already send into events, with nothing to install.</p>
               <ul class="mt-6 space-y-3">
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -314,13 +314,13 @@
                   <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
-                  Managed connectors for eight security products
+                  Managed connectors for ten security products
                 </li>
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
-                  SSH, sudo, Kubernetes audit, CloudTrail &amp; web attacks found in your logs
+                  SSH, Windows, cloud audit logs, CEF, LEEF, Kubernetes &amp; web attacks found in your logs
                 </li>
               </ul>
               <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
@@ -378,6 +378,8 @@
                   <span class="rounded-md bg-gray-800 px-2 py-1 text-[10px] text-gray-300">Elastic Security</span>
                   <span class="rounded-md bg-gray-800 px-2 py-1 text-[10px] text-gray-300">AWS Security Hub</span>
                   <span class="rounded-md bg-gray-800 px-2 py-1 text-[10px] text-gray-300">Okta</span>
+                  <span class="rounded-md bg-gray-800 px-2 py-1 text-[10px] text-gray-300">Microsoft Entra ID</span>
+                  <span class="rounded-md bg-gray-800 px-2 py-1 text-[10px] text-gray-300">Google Workspace</span>
                 </div>
                 <div class="border-t border-gray-800 px-5 py-3 flex flex-wrap items-center gap-2" id="sec-send-to-siem">
                   <span class="text-[10px] text-gray-500">And send what it finds to:</span>
@@ -475,14 +477,14 @@
                 <span class="text-sm font-semibold text-red-600 uppercase tracking-wide">Detection Rules</span>
               </div>
               <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Detections as code, written in Sigma</h3>
-              <p class="mt-4 text-lg text-gray-600">Paste a Sigma rule, or start from the Rule Library: 60 ready-made rules for identity, endpoint, cloud, network, web and Kubernetes threats, written for the fields every source is normalized to. The 25 marked Recommended read data most projects already have, and one click adds them. Pick an interval between one minute and 24 hours; OneUptime parses and compiles the rule when you save it, so a broken rule fails in front of the person editing it rather than silently at 3 AM. Field names can be OneUptime columns, common Sigma spellings like <span class="font-mono text-sm text-gray-700">CommandLine</span> or <span class="font-mono text-sm text-gray-700">src_ip</span>, or any flattened key from the original payload. Group By, Distinct Count and a Match Count Threshold turn a rule into &ldquo;ten failed sign-ins from one IP&rdquo; or &ldquo;one IP against five accounts&rdquo;, with one detection per host, user or IP instead of one per event.</p>
+              <p class="mt-4 text-lg text-gray-600">Paste a Sigma rule, or start from the Rule Library: 82 ready-made rules for identity, endpoint, cloud, network, web and Kubernetes threats, written for the fields every source is normalized to. The 25 marked Recommended read data most projects already have, and one click adds them. Pick an interval between one minute and 24 hours; OneUptime parses and compiles the rule when you save it, so a broken rule fails in front of the person editing it rather than silently at 3 AM. Field names can be OneUptime columns, common Sigma spellings like <span class="font-mono text-sm text-gray-700">CommandLine</span> or <span class="font-mono text-sm text-gray-700">src_ip</span>, or any flattened key from the original payload. Group By, Distinct Count and a Match Count Threshold turn a rule into &ldquo;ten failed sign-ins from one IP&rdquo; or &ldquo;one IP against five accounts&rdquo;, with one detection per host, user or IP instead of one per event.</p>
               <p class="mt-4 text-lg text-gray-600">Sigma correlations join rules into what one event cannot show: failed sign-ins followed by a success from the same address, an account given admin rights within an hour of being created, or a sign-in from an address the account never used.</p>
               <ul class="mt-6 space-y-3">
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
-                  60 ready-made rules, 25 recommended to start with
+                  82 ready-made rules, 25 recommended to start with
                 </li>
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1132,7 +1134,7 @@
                   <%- include('./Partials/icons/logs', {iconClass: 'h-6 w-6'}) %>
                 </div>
                 <h3 class="mt-6 text-xl font-semibold text-gray-900">Logs</h3>
-                <p class="mt-4 text-gray-600 leading-relaxed">The same data lake, the same retention settings, the same bill &mdash; so the log line behind a detection is one search away, not one vendor away. Your logs are a source too: their SSH, sudo, Kubernetes audit, CloudTrail and web-attack lines become security events.</p>
+                <p class="mt-4 text-gray-600 leading-relaxed">The same data lake, the same retention settings, the same bill &mdash; so the log line behind a detection is one search away, not one vendor away. Your logs are a source too: their SSH, sudo, Windows, cloud audit, CEF, LEEF, Kubernetes audit and web-attack lines become security events.</p>
                 <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-amber-600">Explore Logs <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5" /></svg></span>
               </div>
             </a>

@@ -59,8 +59,8 @@ const DETECTION_FINDING: number = 2004;
  * https://learn.microsoft.com/entra/identity-platform/reference-error-codes
  */
 export const ENTRA_INTERRUPT_CODES: ReadonlyArray<number> = [
-  50058, 50072, 50074, 50076, 50079, 50097, 50125, 50140, 50158, 50199,
-  81010, 81012, 81014,
+  50058, 50072, 50074, 50076, 50079, 50097, 50125, 50140, 50158, 50199, 81010,
+  81012, 81014,
 ];
 
 /*
@@ -209,7 +209,8 @@ export function readEntraSignIn(
   const outcome: EntraSignInOutcome = readSignInOutcome(signIn);
   const code: number = readSignInErrorCode(signIn);
   const reason: string = text(readValue(signIn, "status.failureReason"));
-  const isServicePrincipal: boolean = log === EntraLog.ServicePrincipalSignInLogs;
+  const isServicePrincipal: boolean =
+    log === EntraLog.ServicePrincipalSignInLogs;
   const user: string = isServicePrincipal
     ? text(signIn["servicePrincipalName"]) || text(signIn["appDisplayName"])
     : text(signIn["userPrincipalName"]) || text(signIn["userDisplayName"]);
@@ -335,8 +336,11 @@ function auditClass(audit: JSONObject): number {
   return ENTITY_MANAGEMENT;
 }
 
-export function readEntraDirectoryAudit(audit: JSONObject): SecurityRecordReading {
-  const activity: string = text(audit["activityDisplayName"]) || "Directory change";
+export function readEntraDirectoryAudit(
+  audit: JSONObject,
+): SecurityRecordReading {
+  const activity: string =
+    text(audit["activityDisplayName"]) || "Directory change";
   const result: string = text(audit["result"]).toLowerCase();
   const actor: string =
     text(readValue(audit, "initiatedBy.user.userPrincipalName")) ||
@@ -347,7 +351,9 @@ export function readEntraDirectoryAudit(audit: JSONObject): SecurityRecordReadin
     text(readValue(audit, "initiatedBy.user.ipAddress")),
   );
   const targets: AuditTargets = readTargets(audit);
-  const isRoleAssignment: boolean = activity.toLowerCase().includes("member to role");
+  const isRoleAssignment: boolean = activity
+    .toLowerCase()
+    .includes("member to role");
   const isPrivileged: boolean =
     isRoleAssignment &&
     PRIVILEGED_ENTRA_ROLES.includes(targets.role.toLowerCase());

@@ -84,7 +84,11 @@ export function collectorMap(
       : Object.fromEntries(data);
   const body: JSONObject = {
     event_id: { qualifiers: 0, id: spec.eventId },
-    provider: { name: spec.provider, guid: "{00000000-0000-0000-0000-000000000000}", event_source: "" },
+    provider: {
+      name: spec.provider,
+      guid: "{00000000-0000-0000-0000-000000000000}",
+      event_source: "",
+    },
     system_time: spec.time || WINDOWS_TIME,
     computer: spec.computer,
     channel: spec.channel,
@@ -184,9 +188,11 @@ export function fluentBitBody(spec: WindowsEventSpec): string {
     Computer: spec.computer,
     UserID: "",
     Message: spec.message || "",
-    StringInserts: (spec.data || []).map(([, value]: [string, string]): string => {
-      return value;
-    }),
+    StringInserts: (spec.data || []).map(
+      ([, value]: [string, string]): string => {
+        return value;
+      },
+    ),
   });
 }
 
@@ -251,31 +257,32 @@ export type WindowsShape =
   | "XML";
 
 // Every shape that names its fields (Fluent Bit names them only for a few events).
-export const NAMED_SHAPES: Array<[WindowsShape, (spec: WindowsEventSpec) => string]> =
+export const NAMED_SHAPES: Array<
+  [WindowsShape, (spec: WindowsEventSpec) => string]
+> = [
   [
-    [
-      "collector map",
-      (spec: WindowsEventSpec): string => {
-        return collectorOtlpBody(spec);
-      },
-    ],
-    [
-      "collector list",
-      (spec: WindowsEventSpec): string => {
-        return collectorOtlpBody(spec, { eventDataFormat: "array" });
-      },
-    ],
-    [
-      "collector without oneof names",
-      (spec: WindowsEventSpec): string => {
-        return collectorOtlpBody(spec, { oneofs: false });
-      },
-    ],
-    ["collector JSON", collectorJsonBody],
-    ["NXLog", nxlogBody],
-    ["Winlogbeat", winlogbeatBody],
-    ["XML", xmlBody],
-  ];
+    "collector map",
+    (spec: WindowsEventSpec): string => {
+      return collectorOtlpBody(spec);
+    },
+  ],
+  [
+    "collector list",
+    (spec: WindowsEventSpec): string => {
+      return collectorOtlpBody(spec, { eventDataFormat: "array" });
+    },
+  ],
+  [
+    "collector without oneof names",
+    (spec: WindowsEventSpec): string => {
+      return collectorOtlpBody(spec, { oneofs: false });
+    },
+  ],
+  ["collector JSON", collectorJsonBody],
+  ["NXLog", nxlogBody],
+  ["Winlogbeat", winlogbeatBody],
+  ["XML", xmlBody],
+];
 
 const SECURITY: string = "Microsoft-Windows-Security-Auditing";
 

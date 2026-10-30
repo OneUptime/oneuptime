@@ -44,9 +44,17 @@ export const DATA_KIND_TITLES: Record<DetectionRuleDataKind, string> = {
   [DetectionRuleDataKind.SignIns]: translationKey("Sign-in events"),
   [DetectionRuleDataKind.AccountChanges]: translationKey("Account changes"),
   [DetectionRuleDataKind.OktaSystemLog]: translationKey("Okta System Log"),
+  [DetectionRuleDataKind.EntraId]: translationKey("Microsoft Entra ID"),
+  [DetectionRuleDataKind.GoogleWorkspace]: translationKey("Google Workspace"),
   [DetectionRuleDataKind.ProcessEvents]: translationKey("Process events"),
+  [DetectionRuleDataKind.WindowsEvents]: translationKey("Windows events"),
   [DetectionRuleDataKind.SudoLogs]: translationKey("sudo logs"),
   [DetectionRuleDataKind.AwsCloudTrail]: translationKey("AWS CloudTrail"),
+  [DetectionRuleDataKind.GoogleCloudAuditLogs]: translationKey(
+    "Google Cloud audit logs",
+  ),
+  [DetectionRuleDataKind.AzureActivityLog]:
+    translationKey("Azure Activity Log"),
   [DetectionRuleDataKind.NetworkActivity]: translationKey("Network activity"),
   [DetectionRuleDataKind.WebRequests]: translationKey("Web requests"),
   [DetectionRuleDataKind.KubernetesAuditLogs]: translationKey(
@@ -76,6 +84,15 @@ export const DATA_KIND_HOW_TO_SEND: Record<DetectionRuleDataKind, string> = {
   [DetectionRuleDataKind.OktaSystemLog]: translationKey(
     "Connect Okta to read its System Log.",
   ),
+  [DetectionRuleDataKind.EntraId]: translationKey(
+    "Connect Microsoft Entra ID, or send its sign-in and audit logs to OneUptime from Azure and find security events in your logs.",
+  ),
+  [DetectionRuleDataKind.GoogleWorkspace]: translationKey(
+    "Connect Google Workspace to read its audit logs.",
+  ),
+  [DetectionRuleDataKind.WindowsEvents]: translationKey(
+    "Send your Windows machines' event logs to OneUptime and find security events in your logs.",
+  ),
   [DetectionRuleDataKind.ProcessEvents]: translationKey(
     "Connect an EDR such as CrowdStrike Falcon or Microsoft Defender XDR. On Linux servers, finding security events in your logs reads the commands run with sudo.",
   ),
@@ -84,6 +101,12 @@ export const DATA_KIND_HOW_TO_SEND: Record<DetectionRuleDataKind, string> = {
   ),
   [DetectionRuleDataKind.AwsCloudTrail]: translationKey(
     "Send CloudTrail to OneUptime as logs and find security events in your logs.",
+  ),
+  [DetectionRuleDataKind.GoogleCloudAuditLogs]: translationKey(
+    "Send your Google Cloud audit logs to OneUptime and find security events in your logs.",
+  ),
+  [DetectionRuleDataKind.AzureActivityLog]: translationKey(
+    "Send your Azure Activity Log to OneUptime through a diagnostic setting and find security events in your logs.",
   ),
   [DetectionRuleDataKind.NetworkActivity]: translationKey(
     "Send firewall, flow log or IDS events to OneUptime, or connect a SIEM that has them.",
@@ -130,9 +153,15 @@ export const DATA_KIND_SEND_PAGE: Record<DetectionRuleDataKind, PageMap> = {
   [DetectionRuleDataKind.SignIns]: PageMap.SECURITY_EVENTS_CONNECTIONS,
   [DetectionRuleDataKind.AccountChanges]: PageMap.SECURITY_EVENTS_CONNECTIONS,
   [DetectionRuleDataKind.OktaSystemLog]: PageMap.SECURITY_EVENTS_CONNECTIONS,
+  [DetectionRuleDataKind.EntraId]: PageMap.SECURITY_EVENTS_CONNECTIONS,
+  [DetectionRuleDataKind.GoogleWorkspace]: PageMap.SECURITY_EVENTS_CONNECTIONS,
   [DetectionRuleDataKind.ProcessEvents]: PageMap.SECURITY_EVENTS_CONNECTIONS,
+  [DetectionRuleDataKind.WindowsEvents]: PageMap.SECURITY_EVENTS_CONNECTIONS,
   [DetectionRuleDataKind.SudoLogs]: PageMap.SECURITY_EVENTS_CONNECTIONS,
   [DetectionRuleDataKind.AwsCloudTrail]: PageMap.SECURITY_EVENTS_CONNECTIONS,
+  [DetectionRuleDataKind.GoogleCloudAuditLogs]:
+    PageMap.SECURITY_EVENTS_CONNECTIONS,
+  [DetectionRuleDataKind.AzureActivityLog]: PageMap.SECURITY_EVENTS_CONNECTIONS,
   [DetectionRuleDataKind.NetworkActivity]:
     PageMap.SECURITY_EVENTS_DOCUMENTATION,
   [DetectionRuleDataKind.WebRequests]: PageMap.SECURITY_EVENTS_CONNECTIONS,

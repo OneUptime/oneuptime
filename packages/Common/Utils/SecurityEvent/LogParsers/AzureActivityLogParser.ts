@@ -11,7 +11,11 @@ import {
   readEntraSignIn,
   readSignInErrorCode,
 } from "../Connectors/EntraIdNormalizer";
-import { flattenPayload, parseEventTime, readValue } from "../NormalizerHelpers";
+import {
+  flattenPayload,
+  parseEventTime,
+  readValue,
+} from "../NormalizerHelpers";
 import { SecurityRecordReading } from "../SecurityRecordReading";
 import {
   MAX_JSON_LINE_LENGTH,
@@ -148,7 +152,9 @@ function callerOf(record: JSONObject): string {
   return (
     text(record["caller"]) ||
     text(claims["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/upn"]) ||
-    text(claims["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]) ||
+    text(
+      claims["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"],
+    ) ||
     text(claims["name"]) ||
     text(claims["appid"])
   );

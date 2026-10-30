@@ -190,7 +190,10 @@ describe("readWindowsEventRecord - what is not a Windows event", () => {
       "<Event><System><EventID>4625</EventID></System></Event>",
     ],
     ["a kvlist that is not a map", '{"kvlistValue":"x"}'],
-    ["a collector map without an id", '{"event_id":{},"provider":{"name":"x"}}'],
+    [
+      "a collector map without an id",
+      '{"event_id":{},"provider":{"name":"x"}}',
+    ],
   ])("%s", (_name: string, body: string) => {
     expect(readWindowsEventRecord(body)).toBeNull();
   });
@@ -219,7 +222,10 @@ describe("readOtlpAnyValue", () => {
         kvlistValue: {
           values: [
             { key: "a", value: { stringValue: "1" } },
-            { key: "b", value: { arrayValue: { values: [{ intValue: "2" }] } } },
+            {
+              key: "b",
+              value: { arrayValue: { values: [{ intValue: "2" }] } },
+            },
           ],
         },
       }),
@@ -274,9 +280,9 @@ describe("readOtlpAnyValue", () => {
 
 describe("decodeXmlText", () => {
   test("decodes the five named entities and numeric ones", () => {
-    expect(decodeXmlText("a &amp; b &lt;c&gt; &quot;d&quot; &apos;e&apos;")).toBe(
-      "a & b <c> \"d\" 'e'",
-    );
+    expect(
+      decodeXmlText("a &amp; b &lt;c&gt; &quot;d&quot; &apos;e&apos;"),
+    ).toBe("a & b <c> \"d\" 'e'");
     expect(decodeXmlText("&#65;&#x42;&#X43;")).toBe("ABC");
   });
 

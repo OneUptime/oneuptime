@@ -2,7 +2,11 @@ import { JSONObject, JSONValue } from "../../../Types/JSON";
 import NormalizedSecurityEvent from "../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import OcsfSeverity from "../../../Types/SecurityEvent/OcsfSeverity";
 import SecurityLogFormat from "../../../Types/SecurityEvent/SecurityLogFormat";
-import { flattenPayload, parseEventTime, readValue } from "../NormalizerHelpers";
+import {
+  flattenPayload,
+  parseEventTime,
+  readValue,
+} from "../NormalizerHelpers";
 import { SecurityRecordReading } from "../SecurityRecordReading";
 import {
   MAX_JSON_LINE_LENGTH,

@@ -255,6 +255,16 @@ describe("each library rule names the kind of event its Sigma reads", () => {
           expect(entry.dataSource).toBe("Okta System Log");
           break;
         case DetectionRuleDataKind.EntraId:
+          /*
+           * The Microsoft 365 audit log comes through the Microsoft Entra ID
+           * connection: its rules read the connection's own reading of it.
+           */
+          if (entry.dataSource.startsWith("Microsoft 365 audit log")) {
+            expect(readsField(entry, "microsoft365.forwardsMail")).toBe(true);
+            expect(entry.dataSource).toContain("Microsoft Entra ID connection");
+            break;
+          }
+
           // Entra ID's own fields, which only its sign-ins and audit logs carry.
           expect(
             readsField(entry, "riskLevelDuringSignIn") ||

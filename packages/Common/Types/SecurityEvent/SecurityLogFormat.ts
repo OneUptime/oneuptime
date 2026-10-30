@@ -49,6 +49,11 @@ export const SECURITY_LOG_FORMAT_GROUPS: ReadonlyArray<SecurityLogFormatGroup> =
     SecurityLogFormatGroup.Applications,
   ];
 
+/*
+ * The formats in SECURITY_LOG_FORMATS are listed group by group, in
+ * SECURITY_LOG_FORMAT_GROUPS' order, so every list of them - the
+ * Connections page's, the Events page's, the docs' - reads the same.
+ */
 export interface SecurityLogFormatDefinition {
   format: SecurityLogFormat;
   group: SecurityLogFormatGroup;
@@ -100,17 +105,6 @@ export const SECURITY_LOG_FORMATS: ReadonlyArray<SecurityLogFormatDefinition> =
       productName: "Windows",
       example:
         '{"EventID":4625,"Channel":"Security","ProviderName":"Microsoft-Windows-Security-Auditing","Computer":"WIN-01","TargetUserName":"alice","LogonType":"3","IpAddress":"203.0.113.7","Status":"0xc000006d","SubStatus":"0xc000006a"}',
-    },
-    {
-      format: SecurityLogFormat.KubernetesAudit,
-      group: SecurityLogFormatGroup.Applications,
-      title: "Kubernetes audit logs",
-      description:
-        "Changes to the cluster, shells opened in pods, secrets read and requests that were refused.",
-      vendorName: "Kubernetes",
-      productName: "Kubernetes audit log",
-      example:
-        '{"apiVersion":"audit.k8s.io/v1","kind":"Event","verb":"create","objectRef":{"resource":"pods","subresource":"exec"}}',
     },
     {
       format: SecurityLogFormat.AwsCloudTrail,
@@ -166,6 +160,17 @@ export const SECURITY_LOG_FORMATS: ReadonlyArray<SecurityLogFormatDefinition> =
       productName: "LEEF",
       example:
         "LEEF:1.0|Zscaler|NSSWeblog|5.7|Blocked|cat=Malicious Content\tsrc=192.0.2.15\tdst=203.0.113.80\tusrName=alice@example.com\taction=Blocked\tsev=9",
+    },
+    {
+      format: SecurityLogFormat.KubernetesAudit,
+      group: SecurityLogFormatGroup.Applications,
+      title: "Kubernetes audit logs",
+      description:
+        "Changes to the cluster, shells opened in pods, secrets read and requests that were refused.",
+      vendorName: "Kubernetes",
+      productName: "Kubernetes audit log",
+      example:
+        '{"apiVersion":"audit.k8s.io/v1","kind":"Event","verb":"create","objectRef":{"resource":"pods","subresource":"exec"}}',
     },
     {
       format: SecurityLogFormat.WebAttack,

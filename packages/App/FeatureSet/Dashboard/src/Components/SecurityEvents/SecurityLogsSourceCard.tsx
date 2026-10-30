@@ -1,11 +1,18 @@
-import { SECURITY_LOG_FORMAT_TEXTS } from "./SecurityConnectionsCopy";
+import {
+  SECURITY_LOG_FORMAT_GROUP_TEXTS,
+  SECURITY_LOG_FORMAT_TEXTS,
+} from "./SecurityConnectionsCopy";
+import SecurityLogLineCheck from "./SecurityLogLineCheck";
 import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import SecurityLogFormat, {
-  SECURITY_LOG_FORMATS,
+  SECURITY_LOG_FORMAT_GROUPS,
   SecurityLogFormatDefinition,
+  SecurityLogFormatGroup,
+  getSecurityLogFormatsInGroup,
+  readLastFoundAtByFormat,
 } from "Common/Types/SecurityEvent/SecurityLogFormat";
 import Card from "Common/UI/Components/Card/Card";
 import {
@@ -35,10 +42,42 @@ export const SECURITY_LOGS_SOURCE_CARD_ID: string = "security-logs-source";
 export const SECURITY_LOG_FORMAT_ICONS: Record<SecurityLogFormat, IconProp> = {
   [SecurityLogFormat.SshSignIn]: IconProp.Terminal,
   [SecurityLogFormat.Sudo]: IconProp.Key,
+  [SecurityLogFormat.WindowsEvents]: IconProp.ComputerDesktop,
   [SecurityLogFormat.KubernetesAudit]: IconProp.Cube,
   [SecurityLogFormat.AwsCloudTrail]: IconProp.Cloud,
+  [SecurityLogFormat.GoogleCloudAudit]: IconProp.DocumentMagnifyingGlass,
+  [SecurityLogFormat.AzureActivity]: IconProp.Identification,
+  [SecurityLogFormat.Cef]: IconProp.ShieldExclamation,
+  [SecurityLogFormat.Leef]: IconProp.ShieldCheck,
   [SecurityLogFormat.WebAttack]: IconProp.Globe,
 };
+
+/*
+ * What a kind of log says of its own health while Your logs is on: how many
+ * the last check found, or when one was last found - so a source that went
+ * quiet, a firewall no longer sending CEF, shows up as one that has not been
+ * found for a day - or that none has been yet.
+ */
+export type SecurityLogFormatHealth =
+  | { kind: "found-now"; count: number }
+  | { kind: "found-before"; at: Date }
+  | { kind: "not-yet" };
+
+export function getSecurityLogFormatHealth(data: {
+  format: SecurityLogFormat;
+  foundByFormat: Record<string, number>;
+  lastFoundAtByFormat: Partial<Record<SecurityLogFormat, Date>>;
+}): SecurityLogFormatHealth {
+  const count: number = data.foundByFormat[data.format] || 0;
+
+  if (count > 0) {
+    return { kind: "found-now", count };
+  }
+
+  const at: Date | undefined = data.lastFoundAtByFormat[data.format];
+
+  return at ? { kind: "found-before", at } : { kind: "not-yet" };
+}
 
 // How many security events the last check found, by log format.
 export function readFoundByFormat(
@@ -173,9 +212,12 @@ export const getYourLogsStatusLines: (data: {
 /*
  * "Your logs": one switch that makes the logs a project already sends
  * OneUptime a security source. A minute after it is on, every new line that
- * is a sign-in, a sudo, a Kubernetes audit record, a CloudTrail record or a
- * web attack becomes a security event - nothing to install, nothing to send
- * twice (Server/Utils/SecurityEvent/LogScan/SecurityLogScanner.ts).
+ * is a sign-in, a sudo, a Windows event, a cloud audit record, a security
+ * product's CEF or LEEF, a Kubernetes audit record or a web attack becomes a
+ * security event - nothing to install, nothing to send twice
+ * (Server/Utils/SecurityEvent/LogScan/SecurityLogScanner.ts). The kinds are
+ * listed by where they come from, each with what the checks last found of
+ * it, and a line can be checked by hand before any arrives.
  *
  * The switch saves when it is flipped. The project has no record until the
  * first time it is turned on, so the first flip creates it; whoever may not
@@ -265,6 +307,62 @@ const SecurityLogsSourceCard: FunctionComponent = (): ReactElement => {
   const foundByFormat: Record<string, number> = readFoundByFormat(
     source?.lastScanResult,
   );
+  const lastFoundAtByFormat: Partial<Record<SecurityLogFormat, Date>> =
+    readLastFoundAtByFormat(source?.lastScanResult);
+
+  const timeAgo: (date: Date) => string = (date: Date): string => {
+    return (
+      formatFeedTimeAgo(
+        new Date(date),
+        getFeedClock({ language: translator.language }),
+      ) || ""
+    );
+  };
+
+  const renderHealth: (format: SecurityLogFormat) => ReactElement = (
+    format: SecurityLogFormat,
+  ): ReactElement => {
+    const health: SecurityLogFormatHealth = getSecurityLogFormatHealth({
+      format,
+      foundByFormat,
+      lastFoundAtByFormat,
+    });
+
+    if (health.kind === "found-now") {
+      return (
+        <p
+          className="mt-1 text-xs font-medium text-emerald-700"
+          data-testid={`security-log-format-health-${format}`}
+        >
+          {translator.translateTemplate("Found in the last check: {{count}}", {
+            count: translator.formatNumber(health.count),
+          })}
+        </p>
+      );
+    }
+
+    if (health.kind === "found-before") {
+      return (
+        <p
+          className="mt-1 text-xs text-gray-600"
+          data-testid={`security-log-format-health-${format}`}
+        >
+          {translator.translateTemplate("Last found {{time}}", {
+            time: timeAgo(health.at),
+          })}
+        </p>
+      );
+    }
+
+    return (
+      <p
+        className="mt-1 text-xs text-gray-400"
+        data-testid={`security-log-format-health-${format}`}
+      >
+        {translator.translateText("None found yet")}
+      </p>
+    );
+  };
 
   const progress: SecurityLogScanProgress = readScanProgress(
     source?.lastScanResult,
@@ -370,51 +468,70 @@ const SecurityLogsSourceCard: FunctionComponent = (): ReactElement => {
           <h3 className="text-sm font-medium text-gray-900">
             {translator.translateText("What OneUptime recognizes")}
           </h3>
-          <ul className="mt-2 grid grid-cols-1 gap-2 sm:gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {SECURITY_LOG_FORMATS.map(
-              (format: SecurityLogFormatDefinition): ReactElement => {
-                const found: number = foundByFormat[format.format] || 0;
+          <div className="mt-2 space-y-4">
+            {SECURITY_LOG_FORMAT_GROUPS.map(
+              (group: SecurityLogFormatGroup): ReactElement => {
+                const headingId: string = `security-log-format-group-${group}-title`;
 
                 return (
-                  <li
-                    key={format.format}
-                    data-testid={`security-log-format-${format.format}`}
-                    className="flex items-start gap-3 rounded-lg border border-gray-200 px-3 py-2.5"
+                  <section
+                    key={group}
+                    aria-labelledby={headingId}
+                    data-testid={`security-log-format-group-${group}`}
                   >
-                    <div className="mt-0.5 flex-shrink-0 text-gray-400">
-                      <Icon
-                        icon={SECURITY_LOG_FORMAT_ICONS[format.format]}
-                        className="h-4 w-4"
-                      />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-900">
-                        {translator.translateText(
-                          SECURITY_LOG_FORMAT_TEXTS[format.format].title,
-                        )}
-                      </p>
-                      <p className="mt-0.5 text-xs text-gray-500 max-sm:hidden">
-                        {translator.translateText(
-                          SECURITY_LOG_FORMAT_TEXTS[format.format].description,
-                        )}
-                      </p>
-                      {isOn && found > 0 ? (
-                        <p className="mt-1 text-xs font-medium text-emerald-700">
-                          {translator.translateTemplate(
-                            "Found in the last check: {{count}}",
-                            { count: translator.formatNumber(found) },
-                          )}
-                        </p>
-                      ) : (
-                        <></>
+                    <h4
+                      id={headingId}
+                      className="text-xs font-medium text-gray-500"
+                    >
+                      {translator.translateText(
+                        SECURITY_LOG_FORMAT_GROUP_TEXTS[group],
                       )}
-                    </div>
-                  </li>
+                    </h4>
+                    <ul className="mt-1.5 grid grid-cols-1 gap-2 sm:gap-3 md:grid-cols-2 xl:grid-cols-3">
+                      {getSecurityLogFormatsInGroup(group).map(
+                        (format: SecurityLogFormatDefinition): ReactElement => {
+                          return (
+                            <li
+                              key={format.format}
+                              data-testid={`security-log-format-${format.format}`}
+                              className="flex items-start gap-3 rounded-lg border border-gray-200 px-3 py-2.5"
+                            >
+                              <div className="mt-0.5 flex-shrink-0 text-gray-400">
+                                <Icon
+                                  icon={
+                                    SECURITY_LOG_FORMAT_ICONS[format.format]
+                                  }
+                                  className="h-4 w-4"
+                                />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium text-gray-900">
+                                  {translator.translateText(
+                                    SECURITY_LOG_FORMAT_TEXTS[format.format]
+                                      .title,
+                                  )}
+                                </p>
+                                <p className="mt-0.5 text-xs text-gray-500 max-sm:hidden">
+                                  {translator.translateText(
+                                    SECURITY_LOG_FORMAT_TEXTS[format.format]
+                                      .description,
+                                  )}
+                                </p>
+                                {isOn ? renderHealth(format.format) : <></>}
+                              </div>
+                            </li>
+                          );
+                        },
+                      )}
+                    </ul>
+                  </section>
                 );
               },
             )}
-          </ul>
+          </div>
         </div>
+
+        <SecurityLogLineCheck icons={SECURITY_LOG_FORMAT_ICONS} />
       </div>
     </Card>
   );

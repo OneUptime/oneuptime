@@ -98,6 +98,8 @@ const JSON_WEB_TOKEN: string = "packages/Common/Server/Utils/JsonWebToken.ts";
 const GOOGLE_ASSERTION_SIGNERS: Array<string> = [
   "packages/Common/Server/Utils/VideoCall/Providers/GoogleMeetClient.ts",
   "packages/Common/Server/Utils/SecurityEvent/Connectors/GoogleSecOps/GoogleSecOpsClient.ts",
+  // The Google Workspace connection, acting as an administrator (domain-wide delegation).
+  "packages/Common/Server/Utils/SecurityEvent/Connectors/GoogleWorkspace/GoogleWorkspaceClient.ts",
   // AI / LLM observability's Google Vertex AI connection (Cloud Monitoring).
   "packages/Common/Server/Utils/LlmObservability/Connectors/GoogleVertexAI/GoogleServiceAccountToken.ts",
 ];

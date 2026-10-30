@@ -244,9 +244,14 @@ describe("SecurityLogParser", () => {
       DEVICE_LINES.zscalerLeefAllowed,
       JSON.stringify(googleAuditEntry("data_access")),
       JSON.stringify(azureActivityExport({ resultType: "Start" })),
-      JSON.stringify(entraExport("NonInteractiveUserSignInLogs", entraSignIn())),
+      JSON.stringify(
+        entraExport("NonInteractiveUserSignInLogs", entraSignIn()),
+      ),
       ...NAMED_SHAPES.map(
-        ([, render]: [WindowsShape, (spec: WindowsEventSpec) => string]): string => {
+        ([, render]: [
+          WindowsShape,
+          (spec: WindowsEventSpec) => string,
+        ]): string => {
           return render(successfulSignIn({ LogonType: "3" }));
         },
       ),
@@ -589,7 +594,10 @@ describe("SECURITY_LOG_PREFILTER holds the structured formats", () => {
       ["iam.googleapis.com", "google.iam.admin.v1.CreateServiceAccountKey"],
       ["storage.googleapis.com", "storage.objects.get"],
       ["login.googleapis.com", "google.login.LoginService.loginFailure"],
-      ["logging.googleapis.com", "google.logging.v2.ConfigServiceV2.DeleteSink"],
+      [
+        "logging.googleapis.com",
+        "google.logging.v2.ConfigServiceV2.DeleteSink",
+      ],
       ["compute.googleapis.com", "google.longrunning.Operations.GetOperation"],
     ];
     let held: number = 0;
@@ -604,14 +612,15 @@ describe("SECURITY_LOG_PREFILTER holds the structured formats", () => {
         ...(random(3) === 0
           ? {
               request: {
-                filter:
-                  "logName:cloudaudit.googleapis.com%2Fdata_access",
+                filter: "logName:cloudaudit.googleapis.com%2Fdata_access",
               },
             }
           : {}),
       });
       const text: string =
-        random(2) === 0 ? JSON.stringify(entry) : JSON.stringify(entry, null, 1);
+        random(2) === 0
+          ? JSON.stringify(entry)
+          : JSON.stringify(entry, null, 1);
 
       if (expectHeld(text)) {
         held++;
@@ -656,7 +665,9 @@ describe("SECURITY_LOG_PREFILTER holds the structured formats", () => {
 
       const value: JSONObject = count === 1 ? batch[0]! : { records: batch };
       const text: string =
-        random(2) === 0 ? JSON.stringify(value) : JSON.stringify(value, null, 1);
+        random(2) === 0
+          ? JSON.stringify(value)
+          : JSON.stringify(value, null, 1);
 
       if (expectHeld(text)) {
         held++;

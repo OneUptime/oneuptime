@@ -219,6 +219,16 @@ const EXPECTED_TILES: Array<ExpectedTile> = [
     docsSlug: "okta",
   },
   {
+    provider: SecurityEventConnectorProvider.MicrosoftEntraId,
+    title: "Microsoft Entra ID",
+    docsSlug: "microsoft-entra-id",
+  },
+  {
+    provider: SecurityEventConnectorProvider.GoogleWorkspace,
+    title: "Google Workspace",
+    docsSlug: "google-workspace",
+  },
+  {
     provider: SecurityEventConnectorProvider.GoogleSecOps,
     title: "Google SecOps",
     docsSlug: "google-secops",

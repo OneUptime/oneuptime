@@ -309,7 +309,11 @@ function parseSpaceSeparatedAttributes(text: string): Record<string, string> {
     }
 
     if (text.charAt(end) === "=") {
-      keys.push({ key: text.slice(index, end), keyStart: index, valueStart: end + 1 });
+      keys.push({
+        key: text.slice(index, end),
+        keyStart: index,
+        valueStart: end + 1,
+      });
       index = end + 1;
       continue;
     }

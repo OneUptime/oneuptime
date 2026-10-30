@@ -540,8 +540,12 @@ function fromShipperJson(body: JSONObject): WindowsEventRecord | null {
     channel: firstText(body, ["Channel", "channel"]),
     computer: firstText(body, ["Computer", "Hostname", "ComputerName"]),
     time: parseEventTime(
-      firstText(body, ["TimeCreated", "EventTime", "@timestamp", "timestamp"]) ||
-        null,
+      firstText(body, [
+        "TimeCreated",
+        "EventTime",
+        "@timestamp",
+        "timestamp",
+      ]) || null,
     ),
     recordId: firstText(body, ["EventRecordID", "RecordNumber"]),
     level: firstText(body, ["Level", "Severity", "LevelText"]),
@@ -636,7 +640,8 @@ export function decodeXmlText(text: string): string {
     if (named !== undefined) {
       output += named;
     } else if (entity.startsWith("&#")) {
-      const isHex: boolean = entity.charAt(2) === "x" || entity.charAt(2) === "X";
+      const isHex: boolean =
+        entity.charAt(2) === "x" || entity.charAt(2) === "X";
       const code: number = parseInt(
         entity.slice(isHex ? 3 : 2, -1),
         isHex ? 16 : 10,
@@ -720,7 +725,12 @@ function xmlAttribute(tagText: string, name: string): string {
 }
 
 // The text of the opening tag <tag ...>, from `from`; "" when absent.
-function xmlOpeningTag(xml: string, tag: string, from: number, until: number): string {
+function xmlOpeningTag(
+  xml: string,
+  tag: string,
+  from: number,
+  until: number,
+): string {
   const open: number = xml.indexOf(`<${tag}`, from);
 
   if (open === -1 || open >= until) {
@@ -859,7 +869,12 @@ function fromXml(xml: string): WindowsEventRecord | null {
     return null;
   }
 
-  const providerTag: string = xmlOpeningTag(xml, "Provider", systemStart, systemEnd);
+  const providerTag: string = xmlOpeningTag(
+    xml,
+    "Provider",
+    systemStart,
+    systemEnd,
+  );
   const provider: string = xmlAttribute(providerTag, "Name");
   const eventId: number = readEventId(
     (xmlElementText(xml, "EventID", systemStart, systemEnd) || "").trim(),
@@ -869,8 +884,18 @@ function fromXml(xml: string): WindowsEventRecord | null {
     return null;
   }
 
-  const timeTag: string = xmlOpeningTag(xml, "TimeCreated", systemStart, systemEnd);
-  const securityTag: string = xmlOpeningTag(xml, "Security", systemStart, systemEnd);
+  const timeTag: string = xmlOpeningTag(
+    xml,
+    "TimeCreated",
+    systemStart,
+    systemEnd,
+  );
+  const securityTag: string = xmlOpeningTag(
+    xml,
+    "Security",
+    systemStart,
+    systemEnd,
+  );
   const data: Record<string, string> = {};
 
   const eventDataStart: number = xml.indexOf("<EventData", systemEnd);
@@ -901,7 +926,9 @@ function fromXml(xml: string): WindowsEventRecord | null {
   return {
     eventId,
     provider,
-    channel: (xmlElementText(xml, "Channel", systemStart, systemEnd) || "").trim(),
+    channel: (
+      xmlElementText(xml, "Channel", systemStart, systemEnd) || ""
+    ).trim(),
     computer: (
       xmlElementText(xml, "Computer", systemStart, systemEnd) || ""
     ).trim(),

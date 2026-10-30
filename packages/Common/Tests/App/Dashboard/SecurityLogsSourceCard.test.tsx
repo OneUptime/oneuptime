@@ -19,6 +19,7 @@ import {
 import * as React from "react";
 import SecurityLogsSourceCard, {
   SECURITY_LOGS_SOURCE_CARD_ID,
+  getSecurityLogFormatHealth,
   readFoundByFormat,
   readScanProgress,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityLogsSourceCard";
@@ -26,7 +27,9 @@ import SecurityLogSource from "../../../Models/DatabaseModels/SecurityLogSource"
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
-import { SECURITY_LOG_FORMATS } from "../../../Types/SecurityEvent/SecurityLogFormat";
+import SecurityLogFormat, {
+  SECURITY_LOG_FORMATS,
+} from "../../../Types/SecurityEvent/SecurityLogFormat";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
@@ -138,10 +141,86 @@ describe("Your logs", () => {
     ).toEqual([
       "SSH sign-ins",
       "sudo",
-      "Kubernetes audit logs",
+      "Windows events",
       "AWS CloudTrail",
+      "Google Cloud audit logs",
+      "Azure activity and Entra ID logs",
+      "CEF",
+      "LEEF",
+      "Kubernetes audit logs",
       "Web attacks",
     ]);
+    // Off, no kind says what was found of it.
+    expect(
+      within(card).queryByTestId("security-log-format-health-cef"),
+    ).toBeNull();
+  });
+
+  test("the kinds are grouped by where they come from, each group under its name", async () => {
+    await renderCard();
+
+    const groups: Array<[string, Array<string>]> = [
+      ["servers", ["ssh-sign-in", "sudo", "windows-events"]],
+      ["cloud", ["aws-cloudtrail", "google-cloud-audit", "azure-activity"]],
+      ["security-devices", ["cef", "leef"]],
+      ["applications", ["kubernetes-audit", "web-attack"]],
+    ];
+
+    expect(
+      groups.map(([group, formats]: [string, Array<string>]) => {
+        const section: HTMLElement = screen.getByTestId(
+          `security-log-format-group-${group}`,
+        );
+
+        return [
+          within(section).getByRole("heading").textContent,
+          formats.every((format: string): boolean => {
+            return section.contains(
+              screen.getByTestId(`security-log-format-${format}`),
+            );
+          }),
+        ];
+      }),
+    ).toEqual([
+      ["Servers", true],
+      ["Cloud", true],
+      ["Security devices", true],
+      ["Applications", true],
+    ]);
+    expect(
+      screen.getByRole("region", { name: "Security devices" }),
+    ).toBeInTheDocument();
+  });
+
+  test("on: each kind says what the last check found of it, when one was last found, or that none has been", async () => {
+    stored = [
+      source({
+        lastScannedAt: new Date(NOW.getTime() - 60_000),
+        lastEventFoundAt: new Date(NOW.getTime() - 60_000),
+        lastScanResult: {
+          logsRead: 400,
+          eventsFound: 2,
+          byFormat: { cef: 2 },
+          lastFoundAtByFormat: {
+            cef: new Date(NOW.getTime() - 60_000).toISOString(),
+            "windows-events": new Date(
+              NOW.getTime() - 26 * 60 * 60_000,
+            ).toISOString(),
+          },
+        },
+      }),
+    ];
+    await renderCard();
+
+    expect(
+      screen.getByTestId("security-log-format-health-cef"),
+    ).toHaveTextContent("Found in the last check: 2");
+    expect(
+      screen.getByTestId("security-log-format-health-windows-events"),
+    ).toHaveTextContent("Last found 1 day ago");
+    expect(
+      screen.getByTestId("security-log-format-health-leef"),
+    ).toHaveTextContent("None found yet");
   });
 
   test("the first flip creates the project's record, on, and says it saved", async () => {
@@ -321,6 +400,34 @@ describe("Your logs", () => {
     await flip();
 
     expect(ModelAPI.create).not.toHaveBeenCalled();
+  });
+});
+
+describe("getSecurityLogFormatHealth", () => {
+  const at: Date = new Date("2026-10-19T08:00:00Z");
+
+  test("what the last check found comes first, then when one was last found, then none yet", () => {
+    expect(
+      getSecurityLogFormatHealth({
+        format: SecurityLogFormat.Cef,
+        foundByFormat: { cef: 3 },
+        lastFoundAtByFormat: { [SecurityLogFormat.Cef]: at },
+      }),
+    ).toEqual({ kind: "found-now", count: 3 });
+    expect(
+      getSecurityLogFormatHealth({
+        format: SecurityLogFormat.Cef,
+        foundByFormat: { leef: 3 },
+        lastFoundAtByFormat: { [SecurityLogFormat.Cef]: at },
+      }),
+    ).toEqual({ kind: "found-before", at });
+    expect(
+      getSecurityLogFormatHealth({
+        format: SecurityLogFormat.Cef,
+        foundByFormat: {},
+        lastFoundAtByFormat: {},
+      }),
+    ).toEqual({ kind: "not-yet" });
   });
 });
 

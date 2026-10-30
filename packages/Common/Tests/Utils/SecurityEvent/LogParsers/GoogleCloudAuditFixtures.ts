@@ -19,7 +19,10 @@ export function googleAuditEntry(
     logName: `projects/acme-prod/logs/cloudaudit.googleapis.com%2F${kind}`,
     resource: {
       type: "service_account",
-      labels: { project_id: "acme-prod", email_id: "app@acme-prod.iam.gserviceaccount.com" },
+      labels: {
+        project_id: "acme-prod",
+        email_id: "app@acme-prod.iam.gserviceaccount.com",
+      },
     },
     timestamp: "2026-10-30T09:58:12.345Z",
     receiveTimestamp: "2026-10-30T09:58:13.001Z",
@@ -36,12 +39,14 @@ export function googleAuditEntry(
       methodName: "google.iam.admin.v1.CreateServiceAccountKey",
       authorizationInfo: [
         {
-          resource: "projects/-/serviceAccounts/app@acme-prod.iam.gserviceaccount.com",
+          resource:
+            "projects/-/serviceAccounts/app@acme-prod.iam.gserviceaccount.com",
           permission: "iam.serviceAccountKeys.create",
           granted: true,
         },
       ],
-      resourceName: "projects/-/serviceAccounts/app@acme-prod.iam.gserviceaccount.com",
+      resourceName:
+        "projects/-/serviceAccounts/app@acme-prod.iam.gserviceaccount.com",
       ...payload,
     },
     ...entry,

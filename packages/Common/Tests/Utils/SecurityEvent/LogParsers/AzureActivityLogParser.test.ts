@@ -149,12 +149,15 @@ describe("AzureActivityLogParser - the Activity Log", () => {
     ).toEqual([]);
   });
 
-  test.each(["ServiceHealth", "ResourceHealth", "Autoscale", "Recommendation", "Alert"])(
-    "a %s record is not a security event",
-    (category: string) => {
-      expect(parse(azureActivityExport({ category }))).toEqual([]);
-    },
-  );
+  test.each([
+    "ServiceHealth",
+    "ResourceHealth",
+    "Autoscale",
+    "Recommendation",
+    "Alert",
+  ])("a %s record is not a security event", (category: string) => {
+    expect(parse(azureActivityExport({ category }))).toEqual([]);
+  });
 });
 
 describe("AzureActivityLogParser - Microsoft Entra ID's logs", () => {
@@ -233,12 +236,13 @@ describe("AzureActivityLogParser - Microsoft Entra ID's logs", () => {
     expect(event.targetResource).toBe("Mail Exporter Pro");
   });
 
-  test.each(["ManagedIdentitySignInLogs", "ProvisioningLogs", "MicrosoftGraphActivityLogs"])(
-    "a %s record is not read",
-    (category: string) => {
-      expect(parse(entraExport(category, entraFailedSignIn()))).toEqual([]);
-    },
-  );
+  test.each([
+    "ManagedIdentitySignInLogs",
+    "ProvisioningLogs",
+    "MicrosoftGraphActivityLogs",
+  ])("a %s record is not read", (category: string) => {
+    expect(parse(entraExport(category, entraFailedSignIn()))).toEqual([]);
+  });
 });
 
 describe("AzureActivityLogParser - Azure's batches", () => {
@@ -254,9 +258,11 @@ describe("AzureActivityLogParser - Azure's batches", () => {
     };
     const events: Array<NormalizedSecurityEvent> = parse(batch);
 
-    expect(events.map((event: NormalizedSecurityEvent): string => {
-      return `${event.productName}:${event.statusName}`;
-    })).toEqual([
+    expect(
+      events.map((event: NormalizedSecurityEvent): string => {
+        return `${event.productName}:${event.statusName}`;
+      }),
+    ).toEqual([
       "Microsoft Entra ID:Failure",
       "Azure Activity Log:Success",
       "Microsoft Entra ID:Failure",
@@ -271,7 +277,9 @@ describe("AzureActivityLogParser - Azure's batches", () => {
       records.push(entraExport("NonInteractiveUserSignInLogs", entraSignIn()));
     }
 
-    records.push(entraExport("NonInteractiveUserSignInLogs", entraFailedSignIn()));
+    records.push(
+      entraExport("NonInteractiveUserSignInLogs", entraFailedSignIn()),
+    );
 
     const line: string = JSON.stringify({ records });
 
@@ -332,7 +340,14 @@ describe("AzureActivityLogParser - helpers", () => {
   });
 
   test("lines that are not Azure records are not read", () => {
-    for (const body of ["", "text", "{}", "[]", '{"category":', '{"records":"x"}']) {
+    for (const body of [
+      "",
+      "text",
+      "{}",
+      "[]",
+      '{"category":',
+      '{"records":"x"}',
+    ]) {
       expect({ body, events: parse(body) }).toEqual({ body, events: [] });
     }
   });

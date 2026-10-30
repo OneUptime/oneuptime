@@ -284,7 +284,9 @@ export default class SecurityLogScanner {
     const previousFoundAt: Partial<Record<SecurityLogFormat, Date>> =
       readLastFoundAtByFormat(previous);
 
-    for (const format of Object.keys(previousFoundAt) as Array<SecurityLogFormat>) {
+    for (const format of Object.keys(
+      previousFoundAt,
+    ) as Array<SecurityLogFormat>) {
       lastFoundAtByFormat[format] = previousFoundAt[format]!.toISOString();
     }
 

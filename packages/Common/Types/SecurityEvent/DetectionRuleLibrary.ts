@@ -651,6 +651,30 @@ detection:
 `,
     },
     {
+      id: "f05db5ba-80cc-4504-a44b-94052681e077",
+      title: "Mail forwarding set up in Microsoft 365",
+      description:
+        "An inbox rule, a mailbox setting or a transport rule now sends mail on to another address: how a taken mailbox keeps leaking after its password is reset.",
+      category: DetectionRuleLibraryCategory.Identity,
+      dataSource: "Microsoft 365 audit log (Microsoft Entra ID connection)",
+      dataKind: DetectionRuleDataKind.EntraId,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "principalUser",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Mail forwarding set up in Microsoft 365
+id: f05db5ba-80cc-4504-a44b-94052681e077
+description: An inbox rule, a mailbox setting or a transport rule sends mail on to another address.
+level: medium
+tags:
+  - attack.collection
+  - attack.t1114.003
+detection:
+  selection:
+    microsoft365.forwardsMail: 'true'
+  condition: selection
+`,
+    },
+    {
       id: "65ae2039-ead2-466f-af67-bd67bcb85a95",
       title: "Suspicious sign-in flagged by Google",
       description:
@@ -758,6 +782,34 @@ detection:
   selection:
     id.applicationName: admin
     event.name: AUTHORIZE_API_CLIENT_ACCESS
+  condition: selection
+`,
+    },
+    {
+      id: "f55f5b08-dbc1-49aa-b58a-cffd44360774",
+      title: "File made public in Google Drive",
+      description:
+        "A Google Drive file was opened to anyone with its link, or published to the web: whoever has the address can read it.",
+      category: DetectionRuleLibraryCategory.Identity,
+      dataSource: "Google Workspace Drive activity",
+      dataKind: DetectionRuleDataKind.GoogleWorkspace,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "principalUser",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: File made public in Google Drive
+id: f55f5b08-dbc1-49aa-b58a-cffd44360774
+description: A Google Drive file was opened to anyone with its link or published to the web.
+level: low
+tags:
+  - attack.exfiltration
+  - attack.t1567
+detection:
+  selection:
+    id.applicationName: drive
+    event.name: change_document_visibility
+    parameters.visibility:
+      - people_with_link
+      - public_on_the_web
   condition: selection
 `,
     },

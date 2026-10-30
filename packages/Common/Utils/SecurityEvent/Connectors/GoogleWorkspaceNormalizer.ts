@@ -6,7 +6,11 @@ import {
   SecurityEventConnectorDefinition,
   getSecurityEventConnectorDefinition,
 } from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
-import { flattenPayload, parseEventTime, readValue } from "../NormalizerHelpers";
+import {
+  flattenPayload,
+  parseEventTime,
+  readValue,
+} from "../NormalizerHelpers";
 import {
   SecurityRecordReading,
   toNormalizedSecurityEvent,
@@ -290,9 +294,7 @@ function signInEvent(context: WorkspaceEventContext): Classified | null {
   if (name === "login_success" || name === "login_failure") {
     const failed: boolean = name === "login_failure";
     const reason: string = prettyWorkspaceName(
-      (parameters["login_failure_type"] || "")
-        .split("login_failure_")
-        .join(""),
+      (parameters["login_failure_type"] || "").split("login_failure_").join(""),
     ).toLowerCase();
 
     return {
@@ -316,7 +318,9 @@ function signInEvent(context: WorkspaceEventContext): Classified | null {
     return {
       classUid: AUTHENTICATION,
       activityName: "Logon",
-      statusName: status.toLowerCase().includes("fail") ? "Failure" : "Challenge",
+      statusName: status.toLowerCase().includes("fail")
+        ? "Failure"
+        : "Challenge",
       severity: OcsfSeverity.Informational,
       message: `Google asked ${who || "someone"} to verify a sign-in${from}${status ? `: ${status}` : ""}`,
       principalUser: who,

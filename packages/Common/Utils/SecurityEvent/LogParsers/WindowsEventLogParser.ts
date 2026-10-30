@@ -11,7 +11,10 @@ import {
   readPort,
   readRemoteIpAddress,
 } from "./SecurityLogLine";
-import { WindowsEventRecord, readWindowsEventRecord } from "./WindowsEventRecord";
+import {
+  WindowsEventRecord,
+  readWindowsEventRecord,
+} from "./WindowsEventRecord";
 
 /*
  * Windows events that matter to a security team, from the Security,
@@ -595,10 +598,10 @@ function sysmonReading(
   },
 ): WindowsEventReading {
   return {
-    statusName: "Success",
     principalHost: event.computer,
     principalUser: event.field("User"),
     ...reading,
+    statusName: reading.statusName || "Success",
   };
 }
 
@@ -704,9 +707,10 @@ const SYSMON_READERS: Record<number, EventReader> = {
     return sysmonReading(event, {
       classUid: PROCESS_ACTIVITY,
       activityName: "Open",
-      severity: fileNameOfPath(target).toLowerCase() === "lsass.exe"
-        ? OcsfSeverity.Medium
-        : OcsfSeverity.Informational,
+      severity:
+        fileNameOfPath(target).toLowerCase() === "lsass.exe"
+          ? OcsfSeverity.Medium
+          : OcsfSeverity.Informational,
       message: `${fileNameOfPath(source) || "A process"} opened ${fileNameOfPath(target) || "another process"} on ${event.computer || "Windows"}${event.field("GrantedAccess") ? ` (access ${event.field("GrantedAccess")})` : ""}`,
       principalUser: event.firstField(["SourceUser", "User"]),
       principalProcess: fileNameOfPath(source),
@@ -726,7 +730,8 @@ const SYSMON_READERS: Record<number, EventReader> = {
   12: (event: WindowsEvent): WindowsEventReading => {
     return sysmonReading(event, {
       classUid: REGISTRY_KEY_ACTIVITY,
-      activityName: event.field("EventType") === "DeleteKey" ? "Delete" : "Create",
+      activityName:
+        event.field("EventType") === "DeleteKey" ? "Delete" : "Create",
       severity: OcsfSeverity.Informational,
       message: `Registry key ${event.field("EventType") === "DeleteKey" ? "deleted" : "created"} on ${event.computer || "Windows"}: ${event.field("TargetObject")}`,
       process: { path: sysmonImage(event) },
@@ -895,7 +900,9 @@ function fileBlocked(event: WindowsEvent, what: string): WindowsEventReading {
 
 // ---------------------------------------------------------------- Defender
 
-function defenderDetection(kind: "found" | "acted" | "failed" | "behavior"): EventReader {
+function defenderDetection(
+  kind: "found" | "acted" | "failed" | "behavior",
+): EventReader {
   return (event: WindowsEvent): WindowsEventReading => {
     const threat: string = event.field("Threat Name");
     const path: string = defenderPath(event.field("Path"));
@@ -956,7 +963,9 @@ function defenderProtection(what: string): EventReader {
   };
 }
 
-function defenderConfigurationChanged(event: WindowsEvent): WindowsEventReading {
+function defenderConfigurationChanged(
+  event: WindowsEvent,
+): WindowsEventReading {
   const setting: string = event.firstField(["New Value", "Feature Name"]);
 
   return {
@@ -992,7 +1001,9 @@ function defenderAttackSurface(kind: "blocked" | "audited"): EventReader {
 
 // ---------------------------------------------------------------- PowerShell
 
-function suspiciousScriptBlock(event: WindowsEvent): WindowsEventReading | null {
+function suspiciousScriptBlock(
+  event: WindowsEvent,
+): WindowsEventReading | null {
   const level: string = event.record.level.trim().toLowerCase();
 
   // PowerShell logs a script block it finds suspicious as a warning (level 3).
@@ -1133,45 +1144,44 @@ export interface WindowsPrefilterGroup {
  * out the logon types never kept - a domain controller's log is mostly
  * those. Every line the parser keeps passes one of these.
  */
-export const WINDOWS_PREFILTER_GROUPS: ReadonlyArray<WindowsPrefilterGroup> =
-  [
-    {
-      requires: WINDOWS_PROVIDERS.securityAuditing.toLowerCase(),
-      anyOf: getWindowsEventIds(WINDOWS_PROVIDERS.securityAuditing).filter(
-        (id: string): boolean => {
-          return id !== "4624";
-        },
-      ),
-    },
-    {
-      requires: WINDOWS_PROVIDERS.securityAuditing.toLowerCase(),
-      anyOf: ["4624"],
-      noneOf: NOISY_LOGON_TYPES.flatMap((logonType: string): Array<string> => {
-        return logonTypeMarkers(logonType);
-      }),
-    },
-    {
-      requires: WINDOWS_PROVIDERS.eventLog.toLowerCase(),
-      anyOf: getWindowsEventIds(WINDOWS_PROVIDERS.eventLog),
-    },
-    {
-      requires: WINDOWS_PROVIDERS.serviceControlManager.toLowerCase(),
-      anyOf: getWindowsEventIds(WINDOWS_PROVIDERS.serviceControlManager),
-    },
-    {
-      // Everything Sysmon records is read but a process ending.
-      requires: WINDOWS_PROVIDERS.sysmon.toLowerCase(),
-      anyOf: [WINDOWS_PROVIDERS.sysmon.toLowerCase()],
-    },
-    {
-      requires: WINDOWS_PROVIDERS.defender.toLowerCase(),
-      anyOf: getWindowsEventIds(WINDOWS_PROVIDERS.defender),
-    },
-    {
-      requires: WINDOWS_PROVIDERS.powerShell.toLowerCase(),
-      anyOf: getWindowsEventIds(WINDOWS_PROVIDERS.powerShell),
-    },
-  ];
+export const WINDOWS_PREFILTER_GROUPS: ReadonlyArray<WindowsPrefilterGroup> = [
+  {
+    requires: WINDOWS_PROVIDERS.securityAuditing.toLowerCase(),
+    anyOf: getWindowsEventIds(WINDOWS_PROVIDERS.securityAuditing).filter(
+      (id: string): boolean => {
+        return id !== "4624";
+      },
+    ),
+  },
+  {
+    requires: WINDOWS_PROVIDERS.securityAuditing.toLowerCase(),
+    anyOf: ["4624"],
+    noneOf: NOISY_LOGON_TYPES.flatMap((logonType: string): Array<string> => {
+      return logonTypeMarkers(logonType);
+    }),
+  },
+  {
+    requires: WINDOWS_PROVIDERS.eventLog.toLowerCase(),
+    anyOf: getWindowsEventIds(WINDOWS_PROVIDERS.eventLog),
+  },
+  {
+    requires: WINDOWS_PROVIDERS.serviceControlManager.toLowerCase(),
+    anyOf: getWindowsEventIds(WINDOWS_PROVIDERS.serviceControlManager),
+  },
+  {
+    // Everything Sysmon records is read but a process ending.
+    requires: WINDOWS_PROVIDERS.sysmon.toLowerCase(),
+    anyOf: [WINDOWS_PROVIDERS.sysmon.toLowerCase()],
+  },
+  {
+    requires: WINDOWS_PROVIDERS.defender.toLowerCase(),
+    anyOf: getWindowsEventIds(WINDOWS_PROVIDERS.defender),
+  },
+  {
+    requires: WINDOWS_PROVIDERS.powerShell.toLowerCase(),
+    anyOf: getWindowsEventIds(WINDOWS_PROVIDERS.powerShell),
+  },
+];
 
 export default class WindowsEventLogParser {
   public static parse(line: SecurityLogLine): Array<NormalizedSecurityEvent> {

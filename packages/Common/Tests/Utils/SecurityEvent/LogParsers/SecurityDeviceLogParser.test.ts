@@ -42,7 +42,6 @@ function only(body: string): NormalizedSecurityEvent {
   return events[0]!;
 }
 
-
 describe("SecurityDeviceLogParser - what becomes a security event", () => {
   test("a threat a firewall found is a Detection Finding naming the device and what it did", () => {
     const event: NormalizedSecurityEvent = only(DEVICE_LINES.paloAltoThreat);
@@ -102,12 +101,15 @@ describe("SecurityDeviceLogParser - what becomes a security event", () => {
     ["FortiGate's accepted traffic", "fortiGateAccept"],
     ["a UniFi client disconnecting", "uniFiClientDisconnected"],
     ["Zscaler's allowed request", "zscalerLeefAllowed"],
-  ])("%s stays a log, and never leaves the database", (_name: string, key: string) => {
-    const line: string = DEVICE_LINES[key as keyof typeof DEVICE_LINES];
+  ])(
+    "%s stays a log, and never leaves the database",
+    (_name: string, key: string) => {
+      const line: string = DEVICE_LINES[key as keyof typeof DEVICE_LINES];
 
-    expect(parse(line)).toEqual([]);
-    expect(matchesSecurityLogPrefilter(line)).toBe(false);
-  });
+      expect(parse(line)).toEqual([]);
+      expect(matchesSecurityLogPrefilter(line)).toBe(false);
+    },
+  );
 
   test("an IPS signature FortiGate dropped is a finding, its signature name kept", () => {
     const event: NormalizedSecurityEvent = only(DEVICE_LINES.fortiGateIps);
@@ -145,7 +147,9 @@ describe("SecurityDeviceLogParser - what becomes a security event", () => {
   });
 
   test("a router's failed sign-in told only in its message is read as one", () => {
-    const event: NormalizedSecurityEvent = only(DEVICE_LINES.mikroTikLoginFailure);
+    const event: NormalizedSecurityEvent = only(
+      DEVICE_LINES.mikroTikLoginFailure,
+    );
 
     expect(event.className).toBe("Authentication");
     expect(event.statusName).toBe("Failure");
@@ -163,7 +167,9 @@ describe("SecurityDeviceLogParser - what becomes a security event", () => {
   });
 
   test("a WAF's blocked attack keeps its request and the product's own id", () => {
-    const event: NormalizedSecurityEvent = only(DEVICE_LINES.impervaSqlInjection);
+    const event: NormalizedSecurityEvent = only(
+      DEVICE_LINES.impervaSqlInjection,
+    );
 
     expect(event.targetResource).toBe("/item?id=1' or 1=1");
     expect(event.eventUid).toBe("cef:Imperva Inc.:SecureSphere:7718");
@@ -171,7 +177,9 @@ describe("SecurityDeviceLogParser - what becomes a security event", () => {
   });
 
   test("an EDR's detection at Medium is a finding about the user and host it names", () => {
-    const event: NormalizedSecurityEvent = only(DEVICE_LINES.crowdStrikeDetection);
+    const event: NormalizedSecurityEvent = only(
+      DEVICE_LINES.crowdStrikeDetection,
+    );
 
     expect(event.className).toBe("Detection Finding");
     expect(event.targetUser).toBe("alice");
@@ -195,14 +203,18 @@ describe("SecurityDeviceLogParser - what becomes a security event", () => {
 
   test("a High rating with a space around it in the header is not read as one", () => {
     expect(
-      parse("CEF:0|Acme|Gateway|1.0|900|Tunnel endpoint unreachable| 8 |dvchost=gw-01"),
+      parse(
+        "CEF:0|Acme|Gateway|1.0|900|Tunnel endpoint unreachable| 8 |dvchost=gw-01",
+      ),
     ).toEqual([]);
   });
 });
 
 describe("SecurityDeviceLogParser - LEEF", () => {
   test("Zscaler's blocked download is a Critical finding about the user", () => {
-    const event: NormalizedSecurityEvent = only(DEVICE_LINES.zscalerLeefBlocked);
+    const event: NormalizedSecurityEvent = only(
+      DEVICE_LINES.zscalerLeefBlocked,
+    );
 
     expect({
       className: event.className,
@@ -267,9 +279,12 @@ describe("SecurityDeviceLogParser - severities, statuses and times", () => {
     ["", OcsfSeverity.Unknown],
     ["urgent", OcsfSeverity.Unknown],
     ["1.5", OcsfSeverity.Unknown],
-  ])("a product severity of %p is %s", (severity: string, expected: OcsfSeverity) => {
-    expect(readDeviceSeverity(severity)).toBe(expected);
-  });
+  ])(
+    "a product severity of %p is %s",
+    (severity: string, expected: OcsfSeverity) => {
+      expect(readDeviceSeverity(severity)).toBe(expected);
+    },
+  );
 
   test.each([
     ["block", "Blocked"],
@@ -321,18 +336,21 @@ describe("SecurityDeviceLogParser - the whole log parser and its prefilter", () 
         "zscalerLeefAllowed",
       ].includes(name);
     }),
-  )("%s passes the prefilter and becomes one event", (_name: string, line: string) => {
-    expect(matchesSecurityLogPrefilter(line)).toBe(true);
+  )(
+    "%s passes the prefilter and becomes one event",
+    (_name: string, line: string) => {
+      expect(matchesSecurityLogPrefilter(line)).toBe(true);
 
-    const events: Array<NormalizedSecurityEvent> = SecurityLogParser.parse(
-      logLine(line),
-    );
+      const events: Array<NormalizedSecurityEvent> = SecurityLogParser.parse(
+        logLine(line),
+      );
 
-    expect(events).toHaveLength(1);
-    expect([SecurityLogFormat.Cef, SecurityLogFormat.Leef]).toContain(
-      events[0]!.attributes[SECURITY_LOG_FORMAT_ATTRIBUTE],
-    );
-  });
+      expect(events).toHaveLength(1);
+      expect([SecurityLogFormat.Cef, SecurityLogFormat.Leef]).toContain(
+        events[0]!.attributes[SECURITY_LOG_FORMAT_ATTRIBUTE],
+      );
+    },
+  );
 
   test("a WAF's CEF record of an attack is one event, not a second for the attack string in it", () => {
     expect(
@@ -368,9 +386,15 @@ describe("SecurityDeviceLogParser - long lines", () => {
   const LENGTH: number = 400000;
   const SHAPES: Array<[string, string]> = [
     ["many threat words", `CEF:0|a|b|c|d|${"attack ".repeat(LENGTH / 7)}|5|`],
-    ["many action words", `CEF:0|a|b|c|d|e|5|act=${"block ".repeat(LENGTH / 6)}`],
+    [
+      "many action words",
+      `CEF:0|a|b|c|d|e|5|act=${"block ".repeat(LENGTH / 6)}`,
+    ],
     ["many pairs", `CEF:0|a|b|c|d|e|5|${"k=v ".repeat(LENGTH / 4)}`],
-    ["a message of sign-in words", `CEF:0|a|b|c|d|e|5|msg=${"log in ".repeat(LENGTH / 7)}`],
+    [
+      "a message of sign-in words",
+      `CEF:0|a|b|c|d|e|5|msg=${"log in ".repeat(LENGTH / 7)}`,
+    ],
     ["LEEF of many parts", `LEEF:2.0|a|b|c|d|^|${"k=v^".repeat(LENGTH / 4)}`],
   ];
 

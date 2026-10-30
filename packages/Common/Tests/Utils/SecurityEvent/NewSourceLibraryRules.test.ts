@@ -27,6 +27,11 @@ import {
   azureActivityExport,
 } from "./Connectors/EntraIdFixtures";
 import { googleWorkspaceActivity } from "./Connectors/GoogleWorkspaceFixtures";
+import { readMicrosoft365Record } from "../../../Utils/SecurityEvent/Connectors/Microsoft365AuditNormalizer";
+import {
+  exchangeCmdlet,
+  outlookInboxRule,
+} from "./Connectors/Microsoft365Fixtures";
 import { googleAuditEntry } from "./LogParsers/GoogleCloudAuditFixtures";
 import { logLine } from "./LogParsers/LogParserFixtures";
 import { sigmaRuleMatchesEvent } from "./LogParsers/SigmaTestMatcher";
@@ -88,6 +93,21 @@ function entraConnection(
       kind === "signIn"
         ? readEntraSignIn(record, EntraLog.SignInLogs)
         : readEntraDirectoryAudit(record),
+    vendorName: "Microsoft",
+    productName: ENTRA_ID_PRODUCT_NAME,
+    raw: record,
+  });
+}
+
+// A Microsoft 365 audit record as the Microsoft Entra ID connection makes it.
+function microsoft365(record: JSONObject): NormalizedSecurityEvent {
+  const reading: ReturnType<typeof readMicrosoft365Record> =
+    readMicrosoft365Record(record, "Audit.Exchange");
+
+  expect(reading).not.toBeNull();
+
+  return toNormalizedSecurityEvent({
+    reading: reading!,
     vendorName: "Microsoft",
     productName: ENTRA_ID_PRODUCT_NAME,
     raw: record,
@@ -178,7 +198,7 @@ const CASES: Array<Case> = [
         (): NormalizedSecurityEvent => {
           return windows(7045, "Service Control Manager", "System", [
             ["ServiceName", "Backup Agent"],
-            ["ImagePath", "\"C:\\Program Files\\Backup\\agent.exe\" -service"],
+            ["ImagePath", '"C:\\Program Files\\Backup\\agent.exe" -service'],
           ]);
         },
       ],
@@ -503,7 +523,9 @@ const CASES: Array<Case> = [
       [
         "a suspicious sign-in",
         (): NormalizedSecurityEvent => {
-          return workspace(googleWorkspaceActivity("login", "suspicious_login"));
+          return workspace(
+            googleWorkspaceActivity("login", "suspicious_login"),
+          );
         },
       ],
       [
@@ -598,6 +620,113 @@ const CASES: Array<Case> = [
         "an app a user authorized for themself",
         (): NormalizedSecurityEvent => {
           return workspace(googleWorkspaceActivity("token", "authorize"));
+        },
+      ],
+    ],
+  },
+  {
+    title: "Mail forwarding set up in Microsoft 365",
+    fires: [
+      [
+        "a mailbox set to forward its mail",
+        (): NormalizedSecurityEvent => {
+          return microsoft365(
+            exchangeCmdlet("Set-Mailbox", {
+              Identity: "bob",
+              ForwardingSmtpAddress: "smtp:collector@fabrikam.example",
+            }),
+          );
+        },
+      ],
+      [
+        "an inbox rule made in Outlook that forwards mail",
+        (): NormalizedSecurityEvent => {
+          return microsoft365(
+            outlookInboxRule(
+              '[{"ActionType":"ForwardToRecipientsAction","Recipients":["collector@fabrikam.example"]}]',
+            ),
+          );
+        },
+      ],
+      [
+        "a transport rule that copies mail to someone unseen",
+        (): NormalizedSecurityEvent => {
+          return microsoft365(
+            exchangeCmdlet("New-TransportRule", {
+              Name: "Archive",
+              BlindCopyTo: "collector@fabrikam.example",
+            }),
+          );
+        },
+      ],
+    ],
+    quiet: [
+      [
+        "an inbox rule that files mail",
+        (): NormalizedSecurityEvent => {
+          return microsoft365(
+            outlookInboxRule('[{"ActionType":"MoveToFolderAction"}]'),
+          );
+        },
+      ],
+      [
+        "a mailbox's forwarding cleared",
+        (): NormalizedSecurityEvent => {
+          return microsoft365(
+            exchangeCmdlet("Set-Mailbox", {
+              Identity: "bob",
+              ForwardingSmtpAddress: "$null",
+            }),
+          );
+        },
+      ],
+    ],
+  },
+  {
+    title: "File made public in Google Drive",
+    fires: [
+      [
+        "a file opened to anyone with its link",
+        (): NormalizedSecurityEvent => {
+          return workspace(
+            googleWorkspaceActivity("drive", "change_document_visibility", [
+              { name: "doc_title", value: "Budget" },
+              { name: "visibility", value: "people_with_link" },
+            ]),
+          );
+        },
+      ],
+      [
+        "a file published to the web",
+        (): NormalizedSecurityEvent => {
+          return workspace(
+            googleWorkspaceActivity("drive", "change_document_visibility", [
+              { name: "visibility", value: "public_on_the_web" },
+            ]),
+          );
+        },
+      ],
+    ],
+    quiet: [
+      [
+        "a file made private again",
+        (): NormalizedSecurityEvent => {
+          return workspace(
+            googleWorkspaceActivity("drive", "change_document_visibility", [
+              { name: "visibility", value: "private" },
+            ]),
+          );
+        },
+      ],
+      [
+        "a file shared with a colleague",
+        (): NormalizedSecurityEvent => {
+          return workspace(
+            googleWorkspaceActivity("drive", "change_user_access", [
+              { name: "owner", value: "alice@example.com" },
+              { name: "target_user", value: "carol@example.com" },
+            ]),
+          );
         },
       ],
     ],

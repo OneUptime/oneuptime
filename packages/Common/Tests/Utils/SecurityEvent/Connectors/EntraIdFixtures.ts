@@ -173,8 +173,11 @@ export function entraExport(
 
   return {
     time: "2026-10-30T09:57:40.0000000Z",
-    resourceId: "/tenants/72f988bf-86f1-41af-91ab-2d7cd011db47/providers/Microsoft.aadiam",
-    operationName: category.endsWith("SignInLogs") ? "Sign-in activity" : "Add member to role",
+    resourceId:
+      "/tenants/72f988bf-86f1-41af-91ab-2d7cd011db47/providers/Microsoft.aadiam",
+    operationName: category.endsWith("SignInLogs")
+      ? "Sign-in activity"
+      : "Add member to role",
     operationVersion: "1.0",
     category,
     tenantId: "72f988bf-86f1-41af-91ab-2d7cd011db47",
@@ -206,7 +209,8 @@ export function azureActivityExport(overrides: JSONObject = {}): JSONObject {
     correlationId: "7e6d5c4b-0000-4000-8000-000000000006",
     identity: {
       authorization: {
-        scope: "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/prod",
+        scope:
+          "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/prod",
         action: "Microsoft.Authorization/roleAssignments/write",
       },
       claims: {
@@ -227,7 +231,8 @@ export function azureActivityApiEvent(overrides: JSONObject = {}): JSONObject {
   return {
     authorization: {
       action: "Microsoft.Insights/diagnosticSettings/delete",
-      scope: "/subscriptions/11111111-2222-3333-4444-555555555555/providers/microsoft.insights/diagnosticSettings/to-siem",
+      scope:
+        "/subscriptions/11111111-2222-3333-4444-555555555555/providers/microsoft.insights/diagnosticSettings/to-siem",
     },
     caller: "mallory@contoso.example",
     category: { value: "Administrative", localizedValue: "Administrative" },

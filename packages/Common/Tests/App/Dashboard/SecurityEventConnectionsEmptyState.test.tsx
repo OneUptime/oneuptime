@@ -100,6 +100,16 @@ const EXPECTED_PRODUCTS: Array<{
     category: "Identity",
   },
   {
+    provider: SecurityEventConnectorProvider.MicrosoftEntraId,
+    title: "Microsoft Entra ID",
+    category: "Identity",
+  },
+  {
+    provider: SecurityEventConnectorProvider.GoogleWorkspace,
+    title: "Google Workspace",
+    category: "Identity",
+  },
+  {
     provider: SecurityEventConnectorProvider.GoogleSecOps,
     title: "Google SecOps",
     category: "SIEM",
@@ -522,12 +532,14 @@ describe("SecurityEventConnectionsEmptyState", () => {
         ).not.toBeInTheDocument();
         expect(root().querySelectorAll("svg")).toHaveLength(
           /*
-           * Badge, Add icon, 8 external-link icons, 2 requirements: the 8
+           * Badge, Add icon, 10 external-link icons, 2 requirements: the 10
            * products are drawn with their logos (images), not icons.
            */
-          1 + 1 + 8 + 2,
+          1 + 1 + 10 + 2,
         );
-        expect(root().querySelectorAll("[data-provider-logo]")).toHaveLength(8);
+        expect(root().querySelectorAll("[data-provider-logo]")).toHaveLength(
+          10,
+        );
       },
     );
   });
@@ -650,10 +662,10 @@ describe("SecurityEventConnectionsEmptyState", () => {
       ).not.toBeInTheDocument();
     });
 
-    test("show all eight products, in catalog order", () => {
+    test("show all ten products, in catalog order", () => {
       renderEmptyState();
 
-      expect(SecurityEventConnectorCatalog).toHaveLength(8);
+      expect(SecurityEventConnectorCatalog).toHaveLength(10);
       expect(tiles()).toHaveLength(EXPECTED_PRODUCTS.length);
       tiles().forEach((tile: HTMLElement, index: number): void => {
         const expected: {
@@ -949,7 +961,7 @@ describe("SecurityEventConnectionsEmptyState", () => {
     });
 
     test.each([true, false])(
-      "the only links are the eight setup guides, one per tile (canCreate: %s)",
+      "the only links are the ten setup guides, one per tile (canCreate: %s)",
       (canCreate: boolean) => {
         renderEmptyState({ canCreate });
 

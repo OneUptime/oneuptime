@@ -273,9 +273,7 @@ describe("parseLeef - limits", () => {
 
   it("skips a key longer than MAX_LEEF_KEY_LENGTH and keeps the pairs around it", () => {
     const longKey: string = "k".repeat(MAX_LEEF_KEY_LENGTH + 1);
-    const parsed: ParsedLeef = parse(
-      `LEEF:1.0|V|P|1|7|a=1\t${longKey}=2\tb=3`,
-    );
+    const parsed: ParsedLeef = parse(`LEEF:1.0|V|P|1|7|a=1\t${longKey}=2\tb=3`);
 
     expect(parsed.attributes).toEqual({ a: "1", b: "3" });
   });
