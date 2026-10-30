@@ -37,9 +37,22 @@ export const getUpdateCheckDocsUrl: () => string = (): string => {
 export default class UpdateStatusLoader {
   private static pending: Promise<UpdateStatus | null> | null = null;
 
+  // The answer this page already has, once a load has brought one.
+  private static loaded: UpdateStatus | null = null;
+
   // Whether this reader may be told: a master admin of a self-hosted installation.
   public static isShownToReader(): boolean {
     return !BILLING_ENABLED && Boolean(UserUtil.isMasterAdmin());
+  }
+
+  /*
+   * The update status this page has already read - the footer reads it on
+   * every page a master admin opens - or null. Never asks the server: for a
+   * component that only adds to what the footer already says (the edition
+   * dialog's version card), and must not add a request of its own.
+   */
+  public static peek(): UpdateStatus | null {
+    return this.isShownToReader() ? this.loaded : null;
   }
 
   public static load(): Promise<UpdateStatus | null> {
@@ -53,6 +66,10 @@ export default class UpdateStatusLoader {
 
       pending
         .then((status: UpdateStatus | null): void => {
+          if (status && this.pending === pending) {
+            this.loaded = status;
+          }
+
           // Ask again next time rather than keep a failure for the page's life.
           if (!status && this.pending === pending) {
             this.pending = null;
@@ -71,6 +88,7 @@ export default class UpdateStatusLoader {
   // Forgets the answer, so the next load asks again.
   public static clear(): void {
     this.pending = null;
+    this.loaded = null;
   }
 
   private static async fetch(): Promise<UpdateStatus | null> {
