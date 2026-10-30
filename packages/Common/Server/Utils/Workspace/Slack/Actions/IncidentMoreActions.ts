@@ -6,6 +6,7 @@ import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorized
 import PaymentRequiredException from "../../../../../Types/Exception/PaymentRequiredException";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
+import { ON_CALL_PERSON_PAGE_MESSAGE_MAX_LENGTH } from "../../../../../Types/OnCallDutyPolicy/OnCallPersonPage";
 import {
   WorkspaceDatePickerBlock,
   WorkspaceDateTimePickerBlock,
@@ -92,6 +93,7 @@ export const SEVERITY_FIELD: string = "incidentSeverity";
 export const ROLE_FIELD: string = "incidentRole";
 export const ROLE_PERSON_FIELD: string = "incidentRolePerson";
 export const PAGE_ABOUT_INCIDENT_FIELD: string = "incidentPageTargets";
+export const PAGE_ABOUT_INCIDENT_MESSAGE_FIELD: string = "incidentPageMessage";
 
 // The longest a Slack text input takes.
 const MAX_TEXT_INPUT_LENGTH: number = 3000;
@@ -805,6 +807,20 @@ export default class SlackIncidentMoreActions {
         .join(" "),
     };
 
+    /*
+     * The page's own message, as `/oneuptime page` in the incident's
+     * channel takes it: optional - the incident says what it is about.
+     */
+    const message: WorkspaceTextAreaBlock = {
+      _type: "WorkspaceTextAreaBlock",
+      label: WORKSPACE_PAGE_FORM_TEXT.messageLabel,
+      blockId: PAGE_ABOUT_INCIDENT_MESSAGE_FIELD,
+      placeholder: WORKSPACE_PAGE_FORM_TEXT.messagePlaceholder,
+      description: WORKSPACE_INCIDENT_FORM_TEXT.pageMessageHint,
+      optional: true,
+      maxLength: ON_CALL_PERSON_PAGE_MESSAGE_MAX_LENGTH,
+    };
+
     await SlackIncidentMoreActions.openForm({
       slackRequest: data.slackRequest,
       modalBlock: {
@@ -814,7 +830,11 @@ export default class SlackIncidentMoreActions {
         cancelButtonTitle: WORKSPACE_INCIDENT_FORM_TEXT.cancel,
         actionId: SlackActionType.SubmitPageAboutIncident,
         actionValue: form.incident.event.id.toString(),
-        blocks: [SlackIncidentMoreActions.heading(form.incident), who],
+        blocks: [
+          SlackIncidentMoreActions.heading(form.incident),
+          who,
+          message,
+        ],
       },
     });
   }
@@ -829,6 +849,10 @@ export default class SlackIncidentMoreActions {
     const picked: Array<string> = SlackIncidentMoreActions.toStrings(
       data.slackRequest.viewValues?.[PAGE_ABOUT_INCIDENT_FIELD],
     );
+    // Optional, and on forms opened before it was asked: none.
+    const pageMessage: unknown =
+      data.slackRequest.viewValues?.[PAGE_ABOUT_INCIDENT_MESSAGE_FIELD];
+    const message: string = typeof pageMessage === "string" ? pageMessage : "";
 
     const problem: string | null =
       WorkspaceIncidentActions.getPageProblem(picked);
@@ -881,6 +905,7 @@ export default class SlackIncidentMoreActions {
             event: authorized.incident.event,
             targets: WorkspacePage.readTargets(picked),
             props: authorized.props,
+            message: message,
           });
         },
       });
@@ -892,7 +917,7 @@ export default class SlackIncidentMoreActions {
     // Who was paged, or why nobody was: always, as a page from chat is.
     await SlackIncidentMoreActions.sendAnswer({
       slackRequest: data.slackRequest,
-      answer: WorkspaceIncidentActions.getPagedAnswer(result),
+      answer: WorkspaceIncidentActions.getPagedAnswer(result, message),
     });
   }
 
