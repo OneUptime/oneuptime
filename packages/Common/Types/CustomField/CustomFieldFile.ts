@@ -99,7 +99,9 @@ export type IsCustomFieldFileTypeFunction = (type: unknown) => boolean;
 export const isCustomFieldFileType: IsCustomFieldFileTypeFunction = (
   type: unknown,
 ): boolean => {
-  return type === CustomFieldType.File || type === CustomFieldType.MultipleFiles;
+  return (
+    type === CustomFieldType.File || type === CustomFieldType.MultipleFiles
+  );
 };
 
 export type IsCustomFieldFileMimeTypeFunction = (fileType: unknown) => boolean;
@@ -297,7 +299,8 @@ export const readCustomFieldFiles: ReadCustomFieldFilesFunction = (
     files.push({
       fileId: fileId,
       name: (record["name"] as string).trim() || fileId,
-      fileType: typeof record["fileType"] === "string" ? record["fileType"] : "",
+      fileType:
+        typeof record["fileType"] === "string" ? record["fileType"] : "",
       size:
         typeof size === "number" && Number.isFinite(size) && size >= 0
           ? Math.floor(size)

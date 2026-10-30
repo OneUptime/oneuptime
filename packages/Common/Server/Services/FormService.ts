@@ -774,8 +774,10 @@ export class Service extends DatabaseService<Model> {
       return { answers: data.answers, files: [] };
     }
 
-    const decoded: Map<string, Array<{ file: FormFileAnswer; bytes: Buffer }>> =
-      new Map();
+    const decoded: Map<
+      string,
+      Array<{ file: FormFileAnswer; bytes: Buffer }>
+    > = new Map();
     let totalBytes: number = 0;
 
     for (const field of fileFields) {

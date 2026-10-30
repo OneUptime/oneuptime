@@ -48,7 +48,11 @@ describe("getMimeTypeLabel", () => {
     for (const type of Object.values(MimeType)) {
       const label: string = getMimeTypeLabel(type);
 
-      expect({ type, label, short: label.length > 0 && label.length <= 5 }).toEqual({
+      expect({
+        type,
+        label,
+        short: label.length > 0 && label.length <= 5,
+      }).toEqual({
         type,
         label,
         short: true,

@@ -190,8 +190,9 @@ describe("readCustomFieldFileReference", () => {
 
 describe("readCustomFieldFileReferences", () => {
   test("reads a list's entries in order", () => {
-    const references: CustomFieldFileReferences =
-      readCustomFieldFileReferences([ID_A, { fileId: ID_B }, { _id: ID_C }]);
+    const references: CustomFieldFileReferences = readCustomFieldFileReferences(
+      [ID_A, { fileId: ID_B }, { _id: ID_C }],
+    );
 
     expect(references.fileIds).toEqual([ID_A, ID_B, ID_C]);
     expect(references.isList).toBe(true);
@@ -201,8 +202,9 @@ describe("readCustomFieldFileReferences", () => {
   });
 
   test("reads one value on its own as a list of one, and says it was not a list", () => {
-    const references: CustomFieldFileReferences =
-      readCustomFieldFileReferences({ fileId: ID_A });
+    const references: CustomFieldFileReferences = readCustomFieldFileReferences(
+      { fileId: ID_A },
+    );
 
     expect(references.fileIds).toEqual([ID_A]);
     expect(references.isList).toBe(false);
@@ -210,13 +212,9 @@ describe("readCustomFieldFileReferences", () => {
   });
 
   test("counts what names no file and what names one twice", () => {
-    const references: CustomFieldFileReferences =
-      readCustomFieldFileReferences([
-        ID_A,
-        "banana",
-        { fileId: ID_A.toUpperCase() },
-        null,
-      ]);
+    const references: CustomFieldFileReferences = readCustomFieldFileReferences(
+      [ID_A, "banana", { fileId: ID_A.toUpperCase() }, null],
+    );
 
     expect(references.fileIds).toEqual([ID_A]);
     expect(references.unreadableCount).toBe(2);
@@ -249,7 +247,12 @@ describe("isCustomFieldFile and readCustomFieldFiles", () => {
 
   test("leaves out what is not a file, and a file listed twice", () => {
     expect(
-      readCustomFieldFiles([FILE_A, "text", { fileId: "x", name: "y" }, FILE_A]),
+      readCustomFieldFiles([
+        FILE_A,
+        "text",
+        { fileId: "x", name: "y" },
+        FILE_A,
+      ]),
     ).toEqual([FILE_A]);
   });
 

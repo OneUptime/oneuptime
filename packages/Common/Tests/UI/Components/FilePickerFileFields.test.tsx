@@ -1,6 +1,7 @@
 import FilePicker from "../../../UI/Components/FilePicker/FilePicker";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { Mock, SpyInstance } from "jest-mock";
 import "@testing-library/jest-dom";
 import {
   act,
@@ -43,7 +44,8 @@ const makeFile: MakeFileFunction = (
   type: string = MimeType.png,
   size: number = 16,
 ): File => {
-  const bytes: Uint8Array = new Uint8Array(size).fill(0x41);
+  // Over its own ArrayBuffer, as a File's parts must be.
+  const bytes: Uint8Array<ArrayBuffer> = new Uint8Array(size).fill(0x41);
   const file: File = new File([bytes], name, { type });
   file.arrayBuffer = async (): Promise<ArrayBuffer> => {
     return bytes.slice().buffer;
@@ -107,7 +109,7 @@ afterEach(() => {
 describe("a picker of several files holds no more than it may", () => {
   test("a drop of more than there is room for adds what fits, and says so", async () => {
     uploadsSucceed();
-    const onChange: jest.Mock = jest.fn();
+    const onChange: Mock = jest.fn();
 
     render(
       <FilePicker
@@ -175,7 +177,7 @@ describe("a picker of several files holds no more than it may", () => {
 
   test("a drop on a full picker adds nothing", async () => {
     uploadsSucceed();
-    const onChange: jest.Mock = jest.fn();
+    const onChange: Mock = jest.fn();
 
     render(
       <FilePicker
@@ -246,7 +248,7 @@ describe("a picker of several files holds no more than it may", () => {
 describe("a file of a kind the field does not take", () => {
   test("is refused, by name", async () => {
     uploadsSucceed();
-    const onChange: jest.Mock = jest.fn();
+    const onChange: Mock = jest.fn();
 
     render(
       <FilePicker
@@ -304,7 +306,7 @@ describe("a file of a kind the field does not take", () => {
 
 describe("files kept in the browser", () => {
   test("are never uploaded: each comes back with its bytes and no id", async () => {
-    const onChange: jest.Mock = jest.fn();
+    const onChange: Mock = jest.fn();
 
     render(
       <FilePicker
@@ -370,7 +372,7 @@ describe("files kept in the browser", () => {
   });
 
   test("a file the browser gives no type is read by its extension", async () => {
-    const onChange: jest.Mock = jest.fn();
+    const onChange: Mock = jest.fn();
 
     render(
       <FilePicker
@@ -391,7 +393,7 @@ describe("files kept in the browser", () => {
   });
 
   test("still hold to the most a field takes", async () => {
-    const onChange: jest.Mock = jest.fn();
+    const onChange: Mock = jest.fn();
 
     render(
       <FilePicker
@@ -441,7 +443,7 @@ describe("a picker of one file", () => {
 
   test("a file dropped on it takes the place of the one it holds", async () => {
     uploadsSucceed();
-    const onChange: jest.Mock = jest.fn();
+    const onChange: Mock = jest.fn();
 
     render(
       <FilePicker
@@ -477,7 +479,7 @@ describe("a picker of one file", () => {
    * prompt, but keeps its input in the page for Replace.
    */
   test("holding a file, shows no empty drop zone, and keeps its chooser for Replace", () => {
-    const click: jest.SpiedFunction<() => void> = jest
+    const click: SpyInstance<() => void> = jest
       .spyOn(HTMLInputElement.prototype, "click")
       .mockImplementation(() => {});
 
@@ -500,9 +502,8 @@ describe("a picker of one file", () => {
         "border-dashed",
       );
 
-      const input: HTMLInputElement | null = container.querySelector(
-        "input[type='file']",
-      );
+      const input: HTMLInputElement | null =
+        container.querySelector("input[type='file']");
 
       expect(input).not.toBeNull();
 
@@ -527,7 +528,9 @@ describe("a picker of one file", () => {
       />,
     );
 
-    await drop(dropZone("picker"), [makeFile("notes.exe", "application/x-msdownload")]);
+    await drop(dropZone("picker"), [
+      makeFile("notes.exe", "application/x-msdownload"),
+    ]);
 
     expect(screen.getByTestId("file-picker-error")).toHaveTextContent(
       '"notes.exe" is not a type of file this field takes.',
@@ -545,9 +548,8 @@ describe("a picker of one file", () => {
       />,
     );
 
-    const input: HTMLInputElement | null = container.querySelector(
-      "input[type='file']",
-    );
+    const input: HTMLInputElement | null =
+      container.querySelector("input[type='file']");
 
     expect(screen.getByTestId("picker").className).toContain("border-dashed");
     expect(
@@ -573,7 +575,7 @@ describe("a picker of one file", () => {
   });
 
   test("Remove empties it and brings the prompt back", () => {
-    const onChange: jest.Mock = jest.fn();
+    const onChange: Mock = jest.fn();
 
     render(
       <FilePicker

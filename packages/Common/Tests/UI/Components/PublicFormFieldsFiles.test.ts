@@ -43,6 +43,7 @@ import { describe, expect, test } from "@jest/globals";
 
 const FORM: PublicForm = {
   name: "Report a Problem",
+  isCaptchaRequired: false,
   fields: [
     {
       id: "title",
@@ -132,6 +133,7 @@ describe("a file question's input", () => {
   test("a Multiple files question the page is told no limit for takes what a Multiple files field holds", () => {
     const fields: Array<Field<JSONObject>> = buildPublicFormFields({
       name: "Form",
+      isCaptchaRequired: false,
       fields: [
         {
           id: "logs",

@@ -74,7 +74,10 @@ import {
   FormFieldSource,
   FormSubmitterField,
 } from "../../../Types/Form/FormField";
-import { encodeBase64, FormFileAnswer } from "../../../Types/Form/FormFileAnswer";
+import {
+  encodeBase64,
+  FormFileAnswer,
+} from "../../../Types/Form/FormFileAnswer";
 import FormTargetType from "../../../Types/Form/FormTargetType";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -244,7 +247,9 @@ afterEach(() => {
 
 type SubmitFunction = (answers: JSONObject) => Promise<unknown>;
 
-const submit: SubmitFunction = async (answers: JSONObject): Promise<unknown> => {
+const submit: SubmitFunction = async (
+  answers: JSONObject,
+): Promise<unknown> => {
   return await FormService.submitPublicForm({
     shareKey: SHARE_KEY,
     request: { data: { answers: answers } },
@@ -410,7 +415,11 @@ describe("the order of things", () => {
       submit({
         ...ANSWERS,
         evidence: [
-          fileOf("receipt.pdf", MimeType.pdf, new TextEncoder().encode("<html>")),
+          fileOf(
+            "receipt.pdf",
+            MimeType.pdf,
+            new TextEncoder().encode("<html>"),
+          ),
         ] as unknown as JSONArray,
       }),
     );

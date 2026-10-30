@@ -79,6 +79,8 @@ describe("every kind of record with custom fields", () => {
   });
 
   test("has a route name of its own, in lower case with dashes", () => {
+    // Lower-case words joined by dashes: "scheduled-maintenance".
+    const ROUTE_NAME: RegExp = /^[a-z]+(-[a-z]+)*$/;
     const names: Array<string> = CUSTOM_FIELD_RECORD_KINDS.map(
       (kind: CustomFieldRecordKind): string => {
         return kind.routeName;
@@ -88,7 +90,7 @@ describe("every kind of record with custom fields", () => {
     expect(new Set(names).size).toBe(names.length);
 
     for (const name of names) {
-      expect(/^[a-z]+(-[a-z]+)*$/.test(name)).toBe(true);
+      expect(ROUTE_NAME.test(name)).toBe(true);
     }
   });
 });

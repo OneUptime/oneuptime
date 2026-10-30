@@ -96,9 +96,11 @@ describe("file fields in the feed", () => {
       Diagrams: [DIAGRAM, CONTRACT],
     });
 
-    expect(changes.map((change: CustomFieldFeedChangeItem) => {
-      return change.name;
-    })).toEqual(["Diagrams"]);
+    expect(
+      changes.map((change: CustomFieldFeedChangeItem) => {
+        return change.name;
+      }),
+    ).toEqual(["Diagrams"]);
     expect(
       CustomFieldFeedChange.toReadableValue({
         customFieldType: CustomFieldType.MultipleFiles,
@@ -108,9 +110,7 @@ describe("file fields in the feed", () => {
   });
 
   test("the same files in another order changed nothing", () => {
-    expect(changesOf({ ...STORED, Diagrams: [ADDENDUM, DIAGRAM] })).toEqual(
-      [],
-    );
+    expect(changesOf({ ...STORED, Diagrams: [ADDENDUM, DIAGRAM] })).toEqual([]);
   });
 
   test("a field emptied is listed as cleared", () => {

@@ -594,9 +594,9 @@ export const packPublicFormAnswers: PackPublicFormAnswersFunction = (data: {
         const files: Array<FormFileAnswer> = toFormFileAnswers(raw);
 
         if (files.length > 0) {
-          answer = (
-            question.type === PublicFormFieldType.File ? files[0] : files
-          ) as unknown as JSONValue;
+          answer = (question.type === PublicFormFieldType.File
+            ? files[0]
+            : files) as unknown as JSONValue;
         }
         break;
       }

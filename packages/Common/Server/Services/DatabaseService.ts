@@ -935,7 +935,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * The statements CustomFieldFiles runs, on this table's own connection.
    */
   private getCustomFieldFileQuery(): CustomFieldFileQuery {
-    return async (sql: string, parameters: Array<unknown>): Promise<unknown> => {
+    return async (
+      sql: string,
+      parameters: Array<unknown>,
+    ): Promise<unknown> => {
       return await this.getRepository().manager.query(sql, parameters);
     };
   }

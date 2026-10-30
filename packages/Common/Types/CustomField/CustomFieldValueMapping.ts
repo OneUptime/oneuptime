@@ -115,9 +115,7 @@ const unionOfFiles: UnionOfFilesFunction = (
 
   return [...files.values()]
     .sort((a: CustomFieldFile, b: CustomFieldFile): number => {
-      return (
-        a.name.localeCompare(b.name) || a.fileId.localeCompare(b.fileId)
-      );
+      return a.name.localeCompare(b.name) || a.fileId.localeCompare(b.fileId);
     })
     .slice(0, CUSTOM_FIELD_MAX_FILES);
 };

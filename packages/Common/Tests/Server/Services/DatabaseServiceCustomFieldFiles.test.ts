@@ -297,10 +297,7 @@ describe("create", () => {
     const service: StatusPageWrites = new StatusPageWrites();
     const repository: FakeRepository = useRepository(service);
 
-    for (const props of [
-      rootProps(),
-      { ...rootProps(), ignoreHooks: true },
-    ]) {
+    for (const props of [rootProps(), { ...rootProps(), ignoreHooks: true }]) {
       const statusPage: StatusPage = new StatusPage();
       statusPage.name = "Status";
       statusPage.customFields = { Contract: FOREIGN_FILE };
@@ -325,7 +322,9 @@ describe("create", () => {
 
     expect(
       statements.filter((sql: string): boolean => {
-        return sql.indexOf('"File"') !== -1 || sql.indexOf("CustomField") !== -1;
+        return (
+          sql.indexOf('"File"') !== -1 || sql.indexOf("CustomField") !== -1
+        );
       }),
     ).toEqual([]);
   });

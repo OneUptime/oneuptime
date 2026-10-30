@@ -125,7 +125,11 @@ function send(port: number, path: string): Promise<HttpResult> {
   );
 }
 
-function stored(fileId: string, name: string, fileType: string): Dictionary<unknown> {
+function stored(
+  fileId: string,
+  name: string,
+  fileType: string,
+): Dictionary<unknown> {
   return { fileId, name, fileType, size: 10 };
 }
 
@@ -194,35 +198,35 @@ describe("downloading a file custom field's file", () => {
       .spyOn(ProjectService, "updateLastActive")
       .mockResolvedValue(undefined as never);
 
-    jest
-      .spyOn(IncidentService, "findOneBy")
-      .mockImplementation((async (data: Dictionary<unknown>) => {
-        incidentReads.push(data);
+    jest.spyOn(IncidentService, "findOneBy").mockImplementation((async (
+      data: Dictionary<unknown>,
+    ) => {
+      incidentReads.push(data);
 
-        if (refuses) {
-          throw new NotAuthorizedException(
-            "You do not have permissions to read Incident.",
-          );
-        }
+      if (refuses) {
+        throw new NotAuthorizedException(
+          "You do not have permissions to read Incident.",
+        );
+      }
 
-        if (!readable) {
-          return null;
-        }
+      if (!readable) {
+        return null;
+      }
 
-        const incident: Incident = new Incident();
-        incident._id = INCIDENT_ID;
-        incident.projectId = new ObjectID(PROJECT_ID);
-        incident.customFields = {
-          Contract: stored(CONTRACT_FILE, "contract.pdf", MimeType.pdf),
-          Photos: [
-            stored(PHOTO_FILE, "rack photo.png", MimeType.png),
-            stored(FOREIGN_FILE, "theirs.pdf", MimeType.pdf),
-          ],
-          // A text field holding something that looks like a file.
-          Notes: stored(TEXT_FIELD_ID, "x.pdf", MimeType.pdf),
-        } as never;
-        return incident;
-      }) as never);
+      const incident: Incident = new Incident();
+      incident._id = INCIDENT_ID;
+      incident.projectId = new ObjectID(PROJECT_ID);
+      incident.customFields = {
+        Contract: stored(CONTRACT_FILE, "contract.pdf", MimeType.pdf),
+        Photos: [
+          stored(PHOTO_FILE, "rack photo.png", MimeType.png),
+          stored(FOREIGN_FILE, "theirs.pdf", MimeType.pdf),
+        ],
+        // A text field holding something that looks like a file.
+        Notes: stored(TEXT_FIELD_ID, "x.pdf", MimeType.pdf),
+      } as never;
+      return incident;
+    }) as never);
 
     jest.spyOn(IncidentService, "getRepository").mockReturnValue({
       manager: {
@@ -242,12 +246,12 @@ describe("downloading a file custom field's file", () => {
       },
     } as never);
 
-    jest
-      .spyOn(FileService, "findOneBy")
-      .mockImplementation((async (data: { query: Dictionary<unknown> }) => {
-        fileReads++;
-        return FILES[String(data.query["_id"])] || null;
-      }) as never);
+    jest.spyOn(FileService, "findOneBy").mockImplementation((async (data: {
+      query: Dictionary<unknown>;
+    }) => {
+      fileReads++;
+      return FILES[String(data.query["_id"])] || null;
+    }) as never);
 
     const app: express.Express = express();
     app.use(CookieParser());
@@ -320,9 +324,9 @@ describe("downloading a file custom field's file", () => {
     await send(port, path(CONTRACT_FILE));
 
     expect(incidentReads).toHaveLength(1);
-    expect(String((incidentReads[0]!["query"] as Dictionary<unknown>)["_id"])).toBe(
-      INCIDENT_ID,
-    );
+    expect(
+      String((incidentReads[0]!["query"] as Dictionary<unknown>)["_id"]),
+    ).toBe(INCIDENT_ID);
     expect(
       String((incidentReads[0]!["query"] as Dictionary<unknown>)["projectId"]),
     ).toBe(PROJECT_ID);
@@ -393,7 +397,9 @@ describe("downloading a file custom field's file", () => {
 
   it("every kind of record is served by its own service", () => {
     expect(
-      CustomFieldFileAPI.getRecordService(getCustomFieldRecordKind("Incident")!),
+      CustomFieldFileAPI.getRecordService(
+        getCustomFieldRecordKind("Incident")!,
+      ),
     ).toBe(IncidentService);
     expect(
       CustomFieldFileAPI.getRecordService(getCustomFieldRecordKind("Alert")!),

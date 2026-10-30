@@ -313,7 +313,8 @@ export const fromCustomFieldFileFormValue: FromCustomFieldFileFormValueFunction 
       references.push({
         fileId: fileId,
         name: typeof named["name"] === "string" ? named["name"] : "",
-        fileType: typeof named["fileType"] === "string" ? named["fileType"] : "",
+        fileType:
+          typeof named["fileType"] === "string" ? named["fileType"] : "",
       });
     }
 

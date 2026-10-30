@@ -502,10 +502,7 @@ export default class CustomFieldFiles {
       ),
     );
 
-    const fieldsByProject: Map<
-      string,
-      Array<CustomFieldFileField>
-    > = new Map();
+    const fieldsByProject: Map<string, Array<CustomFieldFileField>> = new Map();
 
     for (const projectId of projectIds) {
       fieldsByProject.set(
@@ -677,9 +674,7 @@ export default class CustomFieldFiles {
       }
 
       for (const field of fieldsByProject.get(projectId) || []) {
-        for (const file of readCustomFieldFiles(
-          row.customFields[field.name],
-        )) {
+        for (const file of readCustomFieldFiles(row.customFields[field.name])) {
           if (keptIds.has(file.fileId)) {
             continue;
           }
@@ -906,8 +901,8 @@ export default class CustomFieldFiles {
         }
 
         if (relation.isManyToManyOwner && relation.junctionEntityMetadata) {
-          for (const column of relation.junctionEntityMetadata
-            .inverseColumns || []) {
+          for (const column of relation.junctionEntityMetadata.inverseColumns ||
+            []) {
             add(relation.junctionEntityMetadata.tableName, column.databaseName);
           }
         }

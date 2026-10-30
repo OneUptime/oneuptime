@@ -146,8 +146,7 @@ class FakeDatabase {
       const column: string = FakeDatabase.tableAfter(sql, "SELECT DISTINCT ");
       const table: string = FakeDatabase.tableAfter(sql, " FROM ");
       const ids: Array<string> = parameters[0] as Array<string>;
-      const held: Array<string> =
-        this.references.get(table)?.get(column) || [];
+      const held: Array<string> = this.references.get(table)?.get(column) || [];
 
       return ids
         .filter((id: string): boolean => {
@@ -429,7 +428,12 @@ describe("a File field on create", () => {
 
 describe("a Multiple files field on create", () => {
   test("stores the files in the order given", async () => {
-    db.addFile({ n: 1, name: "b.png", fileType: MimeType.png, bytes: PNG_BYTES });
+    db.addFile({
+      n: 1,
+      name: "b.png",
+      fileType: MimeType.png,
+      bytes: PNG_BYTES,
+    });
     db.addFile({ n: 2, name: "a.pdf" });
 
     const prepared: PreparedCustomFieldFiles | null = await create({
@@ -472,9 +476,11 @@ describe("a Multiple files field on create", () => {
     );
 
     expect(
-      ((await create({ Screenshots: ids.slice(0, 10) }))!.customFields![
-        "Screenshots"
-      ] as Array<unknown>).length,
+      (
+        (await create({ Screenshots: ids.slice(0, 10) }))!.customFields![
+          "Screenshots"
+        ] as Array<unknown>
+      ).length,
     ).toBe(10);
   });
 
@@ -526,9 +532,7 @@ describe("an update", () => {
     return await CustomFieldFiles.prepareWrite({
       recordTableName: "Incident",
       customFields: data.written,
-      rows: [
-        { projectId: data.projectId || PROJECT, customFields: data.held },
-      ],
+      rows: [{ projectId: data.projectId || PROJECT, customFields: data.held }],
       query: db.query,
     });
   };
@@ -691,15 +695,17 @@ describe("the files deleted rows let go of", () => {
     db.addFile({ n: 2 });
     db.addFile({ n: 3, projectId: OTHER_PROJECT });
 
-    const released: Map<string, Set<string>> =
-      CustomFieldFiles.getReleasedFileIdsOfDeletedRows([
-        { projectId: PROJECT, customFields: { Contract: stored(1) } },
-        { projectId: PROJECT, customFields: { Screenshots: [stored(2)] } },
-        { projectId: OTHER_PROJECT, customFields: { X: [stored(3)] } },
-        { projectId: PROJECT, customFields: { Summary: fileIdOf(9) } },
-        { projectId: PROJECT, customFields: null },
-        { projectId: null, customFields: { Contract: stored(1) } },
-      ]);
+    const released: Map<
+      string,
+      Set<string>
+    > = CustomFieldFiles.getReleasedFileIdsOfDeletedRows([
+      { projectId: PROJECT, customFields: { Contract: stored(1) } },
+      { projectId: PROJECT, customFields: { Screenshots: [stored(2)] } },
+      { projectId: OTHER_PROJECT, customFields: { X: [stored(3)] } },
+      { projectId: PROJECT, customFields: { Summary: fileIdOf(9) } },
+      { projectId: PROJECT, customFields: null },
+      { projectId: null, customFields: { Contract: stored(1) } },
+    ]);
 
     expect(Array.from(released.get(PROJECT)!).sort()).toEqual(
       [fileIdOf(1), fileIdOf(2)].sort(),
@@ -761,10 +767,7 @@ describe("deleting the files nothing holds", () => {
   test("keeps a file a column points at: a logo, a note's attachment", async () => {
     db.addFile({ n: 1 });
     db.addFile({ n: 2 });
-    db.references.set(
-      "StatusPage",
-      new Map([["logoFileId", [fileIdOf(1)]]]),
-    );
+    db.references.set("StatusPage", new Map([["logoFileId", [fileIdOf(1)]]]));
     db.references.set(
       "IncidentInternalNoteFile",
       new Map([["fileId", [fileIdOf(2)]]]),

@@ -109,7 +109,8 @@ export const readCustomFieldFileEntries: ReadCustomFieldFileEntriesFunction = (
     files.push({
       fileId: fileId || "",
       name: typeof name === "string" && name ? name : fileId || "",
-      fileType: typeof record["fileType"] === "string" ? record["fileType"] : "",
+      fileType:
+        typeof record["fileType"] === "string" ? record["fileType"] : "",
       size: ArrayBuffer.isView(bytes) ? bytes.byteLength : 0,
     });
   }

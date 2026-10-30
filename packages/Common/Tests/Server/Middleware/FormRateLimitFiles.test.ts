@@ -209,9 +209,7 @@ describe("a submission's files", () => {
     });
 
     await expect(
-      refusalOf(
-        FormFileAllowance.reserve({ shareKey: SHARE_KEY, bytes: 1 }),
-      ),
+      refusalOf(FormFileAllowance.reserve({ shareKey: SHARE_KEY, bytes: 1 })),
     ).resolves.toBeInstanceOf(FormCeilingException);
     expect(counters.values.size).toBe(1);
   });
@@ -234,16 +232,16 @@ describe("when the counter cannot be reached, no file is taken in", () => {
     );
 
     expect(refusal).toBeInstanceOf(ServiceUnavailableException);
-    expect((refusal as Error).message).toBe(FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE);
+    expect((refusal as Error).message).toBe(
+      FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
+    );
   });
 
   test("not connected", async () => {
     isConnectedMock.mockReturnValue(false);
 
     await expect(
-      refusalOf(
-        FormFileAllowance.reserve({ shareKey: SHARE_KEY, bytes: MB }),
-      ),
+      refusalOf(FormFileAllowance.reserve({ shareKey: SHARE_KEY, bytes: MB })),
     ).resolves.toBeInstanceOf(ServiceUnavailableException);
   });
 
@@ -251,9 +249,7 @@ describe("when the counter cannot be reached, no file is taken in", () => {
     counters.failing = true;
 
     await expect(
-      refusalOf(
-        FormFileAllowance.reserve({ shareKey: SHARE_KEY, bytes: MB }),
-      ),
+      refusalOf(FormFileAllowance.reserve({ shareKey: SHARE_KEY, bytes: MB })),
     ).resolves.toBeInstanceOf(ServiceUnavailableException);
   });
 });

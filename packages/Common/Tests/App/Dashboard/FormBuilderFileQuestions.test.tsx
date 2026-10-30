@@ -292,7 +292,8 @@ describe("the preview of a file question", () => {
   test("a file chosen in the preview stays in the browser: nothing is uploaded, nothing submitted", async () => {
     await renderPreview([SCREENSHOT]);
 
-    const bytes: Uint8Array = new Uint8Array([
+    // Over its own ArrayBuffer, as a File's parts must be.
+    const bytes: Uint8Array<ArrayBuffer> = new Uint8Array([
       0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
     ]);
     const file: File = new File([bytes], "outage.png", {

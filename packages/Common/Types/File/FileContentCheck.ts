@@ -131,7 +131,10 @@ const HEIC_BRANDS: ReadonlyArray<string> = [
   "msf1",
 ];
 
-type IsHeifFunction = (head: Uint8Array, brands: ReadonlyArray<string>) => boolean;
+type IsHeifFunction = (
+  head: Uint8Array,
+  brands: ReadonlyArray<string>,
+) => boolean;
 
 // A HEIF container: an "ftyp" box first, with one of these major brands.
 const isHeif: IsHeifFunction = (
