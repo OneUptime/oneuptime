@@ -1021,6 +1021,13 @@ jobs:
           # group 2 on 2026-10-30 and moved on to group 10 the same day: this
           # group had taken 21.6 minutes on master's run of 09:50 that day,
           # about 26 with it on a slow runner.
+          # Custom Field Files (26 tests, 1.5 minutes locally with its two
+          # bundles, Chromium only: an incident's File and Multiple files
+          # custom fields on its card and in its Edit dialog - uploads and
+          # their progress, Replace, Remove, a full field, refused kinds and
+          # sizes - and a public form's file questions sent with the answers,
+          # at 1280 and 390 pixels, dark, German and Persian) joined them on
+          # 2026-10-30, the lightest group: about 17.
           - group: 14
             suites: >-
               test-value-picker-ui
@@ -1031,6 +1038,7 @@ jobs:
               test-episode-bulk-add-ui
               test-traces-ai-ui
               test-network-traffic-names-ui
+              test-custom-field-files-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -1129,6 +1137,8 @@ jobs:
             output/playwright/color-picker-ui/*.png
             output/playwright/color-picker-ui/test-results
             output/playwright/custom-field-options-ui/test-results
+            output/playwright/custom-field-files-ui/*.png
+            output/playwright/custom-field-files-ui/test-results
             output/playwright/security-events-empty-states-ui/*.png
             output/playwright/security-events-empty-states-ui/test-results
             output/playwright/security-operations-ui/*.png
