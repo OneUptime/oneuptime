@@ -78,7 +78,7 @@ GitHub के दस्तावेज़ों के अनुसार, **Req
 | Contents | Read and write | रिपॉज़िटरी की फ़ाइलें पढ़ना, और AI फ़िक्स pull request की ब्रांच push करना |
 | Pull requests | Read and write | pull request खोलना और अपडेट करना, और रिव्यू पोस्ट करना |
 | Issues | Read and write | ऐप की टिप्पणियाँ पोस्ट करना — **pull request पर भी**, जिनकी बातचीत GitHub issues API से होकर भेजता है |
-| Checks | Read-only | वैकल्पिक। फ़िक्स pull request का CI नतीजा पढ़ना। इसके बिना उनका CI स्टेटस असत्यापित रहता है |
+| Checks | Read and write | वैकल्पिक। फ़िक्स pull request का CI नतीजा पढ़ना, और हर प्रोडक्शन समीक्षा के साथ एक चेक जोड़ना। Read-only होने पर CI नतीजा पढ़ा जाता है, पर कोई चेक नहीं जुड़ता; इसके बिना फ़िक्स pull request का CI स्टेटस असत्यापित रहता है |
 | Metadata | Read-only | रिपॉज़िटरी का बुनियादी मेटाडेटा (GitHub के लिए ज़रूरी) |
 
 **ऐप को इंटरैक्टिव Issues: Read and write ही बनाता है।** इसके बिना मेंशन मिल तो जाते हैं, पर ऐप जवाब देने की कोशिश करते ही चुपचाप विफल हो जाते हैं — GitHub pull request की बातचीत की टिप्पणियाँ issues API से देता है, इसलिए ऐप का हर जवाब इसी एक अनुमति पर निर्भर है। देखें [GitHub से OneUptime के साथ काम करना](/docs/ai/github-app)।

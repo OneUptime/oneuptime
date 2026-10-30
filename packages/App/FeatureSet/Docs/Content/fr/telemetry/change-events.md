@@ -118,7 +118,7 @@ OneUptime vérifie aussi chaque déploiement de lui-même, que quelqu'un soit al
 
 Une pull request de correctif que OneUptime AI a ouverte est vérifiée de la même façon : dès qu'un déploiement enregistré contient son commit, OneUptime y surveille ce à quoi servait le correctif - l'exception, l'opération qu'il a accélérée, le moniteur derrière l'incident ou l'alerte, la télémétrie qu'il ajoute - et indique si le correctif a fonctionné (voir [Correctifs de code automatiques](/docs/ai/ai-sre#correctifs-de-code-automatiques)). Le correctif déployé n'est lu dans la version du déploiement que lorsque la télémétrie du service signale elle-même cette version, et sinon à partir de 10 minutes après le déploiement, une fois les anciennes instances arrêtées.
 
-Dans une investigation et dans [Demander à l'IA](/docs/ai/ask-ai), `recent_changes` liste les changements sur n'importe quelle période, et `get_change_details` montre ce qu'un déploiement a livré : les commits depuis le déploiement précédent du service, leurs auteurs, les pull requests et les fichiers qu'ils ont modifiés. Il faut pour cela le commit sur le changement et un dépôt connecté via la [GitHub App](/docs/ai/github-app).
+Dans une investigation et dans [Demander à l'IA](/docs/ai/ask-ai), `recent_changes` liste les changements sur n'importe quelle période, et `get_change_details` montre ce qu'un déploiement a livré : les commits depuis le déploiement précédent du service, leurs auteurs, les pull requests et les fichiers qu'ils ont modifiés. Il faut pour cela le commit sur le changement et son dépôt connecté dans Code : via la [GitHub App](/docs/ai/github-app), ou une connexion GitLab, Forgejo ou Gitea (voir [Connecter un dépôt](/docs/ai/ai-agent#connecter-un-dépôt)).
 
 ## Référence
 

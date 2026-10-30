@@ -118,7 +118,7 @@ OneUptime controleert ook zelf elke deploy, of er nu iemand wordt opgeroepen of 
 
 Een pull request met een fix die OneUptime AI opende, wordt op dezelfde manier gecontroleerd: zodra een vastgelegde deploy de commit ervan bevat, houdt OneUptime daar in de gaten waarvoor de fix bedoeld was - de exception, de bewerking die hij sneller maakte, de monitor achter het incident of de melding, de telemetrie die hij toevoegt - en zegt het of de fix heeft gewerkt (zie [Automatische codefixes](/docs/ai/ai-sre#automatische-codefixes)). De uitgerolde fix wordt alleen in de versie van de deploy gelezen wanneer de eigen telemetrie van de service die versie meldt, en anders vanaf 10 minuten na de deploy, wanneer oude instanties zijn gestopt.
 
-In een onderzoek en in [Ask AI](/docs/ai/ask-ai) toont `recent_changes` de wijzigingen in elk tijdvenster, en laat `get_change_details` zien wat een deploy heeft uitgerold: de commits sinds de vorige deploy van de service, hun auteurs, de pull requests en de bestanden die ze hebben gewijzigd. Daarvoor zijn de commit bij de wijziging en een repository nodig die is gekoppeld via de [GitHub App](/docs/ai/github-app).
+In een onderzoek en in [Ask AI](/docs/ai/ask-ai) toont `recent_changes` de wijzigingen in elk tijdvenster, en laat `get_change_details` zien wat een deploy heeft uitgerold: de commits sinds de vorige deploy van de service, hun auteurs, de pull requests en de bestanden die ze hebben gewijzigd. Daarvoor zijn de commit bij de wijziging en de repository ervan nodig, verbonden in Code: via de [GitHub App](/docs/ai/github-app), of een GitLab-, Forgejo- of Gitea-verbinding (zie [Een repository verbinden](/docs/ai/ai-agent#een-repository-verbinden)).
 
 ## Referentie
 

@@ -431,7 +431,7 @@ describe("Products menu sections", () => {
     ]);
   });
 
-  test("regrouping lost no product: all 43 are still listed exactly once", () => {
+  test("regrouping lost no product: all 44 are still listed exactly once", () => {
     openProductsMenu();
 
     const titles: Array<string> = readMenuSections().flatMap(
@@ -440,12 +440,12 @@ describe("Products menu sections", () => {
       },
     );
     /*
-     * 43: Code Repositories became a page of Tasks, Forms (which replaced
-     * Incidents > Settings > Forms) became a product, and Storage Arrays
-     * joined Infrastructure.
+     * 44: Code Repositories became a page of Tasks, Forms (which replaced
+     * Incidents > Settings > Forms) became a product, Storage Arrays
+     * joined Infrastructure, and Data Security joined Observability.
      */
-    expect(titles).toHaveLength(43);
-    expect(new Set(titles).size).toBe(43);
+    expect(titles).toHaveLength(44);
+    expect(new Set(titles).size).toBe(44);
     expect(titles).not.toContain("Code Repositories");
     expect(titles).toContain("Forms");
   });

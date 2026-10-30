@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 37111,
-    "untranslated": 4036
+    "keys": 38685,
+    "untranslated": 4072
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -294,6 +294,7 @@
     "Mayotte",
     "Median",
     "Median (P50)",
+    "Merge Requests",
     "Mesh / VPN",
     "Microsoft Entra ID",
     "Min",

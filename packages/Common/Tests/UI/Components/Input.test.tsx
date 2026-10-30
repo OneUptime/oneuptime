@@ -344,6 +344,19 @@ describe("Input", () => {
     expect(getByTestId(dataTestId)).toBeInTheDocument();
   });
 
+  test("asks a phone for the keyboard its inputMode names, and for none unless asked", () => {
+    const { getByRole, unmount } = render(<Input inputMode="numeric" />);
+    const input: HTMLElement = getByRole("textbox");
+
+    // A number typed as text: the keys of a number, and what is typed kept.
+    expect(input).toHaveAttribute("inputmode", "numeric");
+    expect(input).toHaveAttribute("type", "text");
+
+    unmount();
+    render(<Input />);
+    expect(screen.getByRole("textbox")).not.toHaveAttribute("inputmode");
+  });
+
   test("sets tabIndex", () => {
     const tabIndex: number = 0;
     const { getByRole } = render(<Input {...{ tabIndex }} />);

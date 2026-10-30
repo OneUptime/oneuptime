@@ -9,6 +9,8 @@ import ElasticSecurityConnector from "./ElasticSecurity/ElasticSecurityConnector
 import AwsSecurityHubConnector from "./AwsSecurityHub/AwsSecurityHubConnector";
 import OktaConnector from "./Okta/OktaConnector";
 import GoogleSecOpsConnector from "./GoogleSecOps/GoogleSecOpsConnector";
+import MicrosoftEntraIdConnector from "./MicrosoftEntraId/MicrosoftEntraIdConnector";
+import GoogleWorkspaceConnector from "./GoogleWorkspace/GoogleWorkspaceConnector";
 
 /*
  * One connector instance per provider. Connectors are stateless (every
@@ -24,6 +26,8 @@ export default class SecurityEventConnectorRegistry {
     new ElasticSecurityConnector(),
     new AwsSecurityHubConnector(),
     new OktaConnector(),
+    new MicrosoftEntraIdConnector(),
+    new GoogleWorkspaceConnector(),
     new GoogleSecOpsConnector(),
   ];
 

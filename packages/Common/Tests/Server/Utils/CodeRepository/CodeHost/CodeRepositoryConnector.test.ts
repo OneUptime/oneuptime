@@ -471,6 +471,11 @@ describe("connecting the repositories picked", () => {
         ];
       }),
     ).toEqual([
+      /*
+       * Commands from comments are GitHub's: off. Production review is on,
+       * as it is for a repository the GitHub App connects: Forgejo's pull
+       * requests are reviewed too.
+       */
       [
         "checkout",
         "acme",
@@ -479,7 +484,7 @@ describe("connecting the repositories picked", () => {
         "main",
         `${HOST}/acme/checkout`,
         false,
-        false,
+        true,
         true,
       ],
       [
@@ -490,7 +495,7 @@ describe("connecting the repositories picked", () => {
         "main",
         `${HOST}/acme/billing`,
         false,
-        false,
+        true,
         true,
       ],
     ]);
@@ -712,6 +717,9 @@ describe("connecting a Git repository", () => {
     );
     expect(repositories[0]!.mainBranchName).toBe("trunk");
     expect(repositories[0]!.repositoryHostedAt).toBe(CodeRepositoryType.Git);
+    // A Git server has no pull requests to review, nor commands to answer.
+    expect(repositories[0]!.isProductionReviewEnabled).toBe(false);
+    expect(repositories[0]!.isGitHubCommandsEnabled).toBe(false);
     expect(repositories[0]!.repositoryUrl?.toString()).toBe(
       "https://git.example.com/team/app.git",
     );

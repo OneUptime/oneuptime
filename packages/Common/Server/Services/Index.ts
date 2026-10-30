@@ -401,6 +401,22 @@ import SecurityCaseStatusService from "./SecurityCaseStatusService";
 import SecurityDetectionService from "./SecurityDetectionService";
 import SecurityPlaybookService from "./SecurityPlaybookService";
 import SecurityPlaybookRunService from "./SecurityPlaybookRunService";
+import DataStoreService from "./DataStoreService";
+import DataStoreFindingService from "./DataStoreFindingService";
+import DataStoreAccessService from "./DataStoreAccessService";
+import DataStoreFeedService from "./DataStoreFeedService";
+import DataStoreOwnerUserService from "./DataStoreOwnerUserService";
+import DataStoreOwnerTeamService from "./DataStoreOwnerTeamService";
+import DataStoreOwnerRuleService from "./DataStoreOwnerRuleService";
+import DataStoreLabelRuleService from "./DataStoreLabelRuleService";
+import DataSecurityFlowService from "./DataSecurityFlowService";
+import DataSecurityIssueService from "./DataSecurityIssueService";
+import DataSecurityIssueFeedService from "./DataSecurityIssueFeedService";
+import DataSecurityScanService from "./DataSecurityScanService";
+import DataSecurityCustomDataTypeService from "./DataSecurityCustomDataTypeService";
+import DataSecurityCheckSettingService from "./DataSecurityCheckSettingService";
+import DataSecurityResidencyRuleService from "./DataSecurityResidencyRuleService";
+import DataSecuritySettingService from "./DataSecuritySettingService";
 import SecurityProtectedEntityService from "./SecurityProtectedEntityService";
 import SecurityEntityRiskService from "./SecurityEntityRiskService";
 import SecurityEntityCriticalityService from "./SecurityEntityCriticalityService";
@@ -921,6 +937,24 @@ const services: Array<BaseService> = [
   SecurityDetectionService,
   SecurityPlaybookService,
   SecurityPlaybookRunService,
+
+  // Data Security (DSPM)
+  DataStoreService,
+  DataStoreFindingService,
+  DataStoreAccessService,
+  DataStoreFeedService,
+  DataStoreOwnerUserService,
+  DataStoreOwnerTeamService,
+  DataStoreOwnerRuleService,
+  DataStoreLabelRuleService,
+  DataSecurityFlowService,
+  DataSecurityIssueService,
+  DataSecurityIssueFeedService,
+  DataSecurityScanService,
+  DataSecurityCustomDataTypeService,
+  DataSecurityCheckSettingService,
+  DataSecurityResidencyRuleService,
+  DataSecuritySettingService,
   SecurityProtectedEntityService,
   SecurityEntityRiskService,
   SecurityEntityCriticalityService,

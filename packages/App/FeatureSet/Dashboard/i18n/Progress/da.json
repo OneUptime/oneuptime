@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 37111,
-    "untranslated": 13367
+    "keys": 38685,
+    "untranslated": 13411
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -92,6 +92,7 @@
     "Match",
     "Matrix",
     "Merge request !{{number}}",
+    "Merge request {{label}}",
     "Mexico (+52)",
     "Model",
     "Nav",
@@ -130,6 +131,7 @@
     "Prompt",
     "Pull request",
     "Pull request #{{number}}",
+    "Pull request {{label}}",
     "Pull requests",
     "Reference",
     "Region",

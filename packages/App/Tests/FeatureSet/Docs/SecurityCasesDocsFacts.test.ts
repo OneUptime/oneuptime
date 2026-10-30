@@ -77,6 +77,7 @@ import {
   SECURITY_PLAYBOOK_STALE_RUNNING_MS,
 } from "Common/Server/Utils/SecurityPlaybook/SecurityPlaybookEngine";
 import { CONTAINMENT_ENTITY_LIMIT } from "Common/Server/Utils/SecurityPlaybook/SecurityPlaybookContainment";
+import { MAX_NOTIFIED_DATA_STORES } from "Common/Server/Utils/SecurityPlaybook/SecurityPlaybookDataStoreOwners";
 import Permission from "Common/Types/Permission";
 import OcsfSeverity from "Common/Types/SecurityEvent/OcsfSeverity";
 import SecurityCasePriorityLevel, {
@@ -115,6 +116,7 @@ import {
   SECURITY_PLAYBOOK_ACTIONS,
   SecurityPlaybookActionCategory,
   SecurityPlaybookActionDefinition,
+  SecurityPlaybookActionType,
   getSecurityPlaybookUndoAction,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookAction";
 import SecurityPlaybookRunStatus from "Common/Types/SecurityPlaybook/SecurityPlaybookRunStatus";
@@ -1025,7 +1027,7 @@ describe("Security Cases and Playbooks docs", () => {
     const containment: string = flat(section(page, "Containment"));
 
     expect(containment).toContain(
-      "A Contain step acts only on the users or hosts the case is about, never on every one it names:",
+      "A user or host step acts only on the users or hosts the case is about, never on every one it names:",
     );
     expect(containment).toContain(
       "- The value a detection of the case is grouped on,",
@@ -1036,6 +1038,55 @@ describe("Security Cases and Playbooks docs", () => {
     expect(containment).toContain(
       "says on the run what it did with each one: done, already done, not found, refused, or protected.",
     );
+  });
+
+  it("says the data store steps act through the store's cloud connection, on the case's stores, never on one public by design", () => {
+    const containment: string = flat(section(page, "Containment"));
+    const steps: string = flat(section(page, "Steps"));
+
+    expect(
+      [
+        SecurityPlaybookActionType.BlockDataStorePublicAccess,
+        SecurityPlaybookActionType.RevokeDataStoreSharing,
+      ].map((action: SecurityPlaybookActionType): string | undefined => {
+        return SECURITY_PLAYBOOK_ACTIONS.find(
+          (definition: SecurityPlaybookActionDefinition): boolean => {
+            return definition.type === action;
+          },
+        )?.title;
+      }),
+    ).toEqual([
+      "Block public access to data stores",
+      "Revoke data store sharing",
+    ]);
+    expect(MAX_NOTIFIED_DATA_STORES).toBe(10);
+    expect(containment).toContain(
+      "| Block public access to data stores, Revoke data store sharing | The store's cloud connection | **Data security response** turned on, and its setup command run again |",
+    );
+    expect(containment).toContain(
+      "The two data store steps act on the data stores the case is about, at most 10:",
+    );
+    expect(containment).toContain(
+      "They leave a store marked **Public By Design** alone",
+    );
+    expect(steps).toContain(
+      "**Run a runbook**, **Post a status page announcement** and the two data store steps start with it on",
+    );
+
+    for (const action of [
+      SecurityPlaybookActionType.BlockDataStorePublicAccess,
+      SecurityPlaybookActionType.RevokeDataStoreSharing,
+    ]) {
+      const definition: SecurityPlaybookActionDefinition | undefined =
+        SECURITY_PLAYBOOK_ACTIONS.find(
+          (candidate: SecurityPlaybookActionDefinition): boolean => {
+            return candidate.type === action;
+          },
+        );
+
+      expect(definition?.needsApprovalByDefault).toBe(true);
+      expect(definition?.isDisruptive).toBe(false);
+    }
   });
 
   it("names the protected entities page where the menu puts it, and matches values as the page says", () => {

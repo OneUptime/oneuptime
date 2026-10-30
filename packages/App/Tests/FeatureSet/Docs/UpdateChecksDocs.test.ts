@@ -195,7 +195,9 @@ describe("Update and Security Checks, in English", () => {
 
     expect(notification).toContain("isMasterAdmin: true,");
     expect(notification).toContain("data.adminNotificationEmail");
-    expect(notification).toContain("securityAdvisoriesEmailed: record,");
+    expect(notification).toContain(
+      '(update as Record<string, unknown>)["securityAdvisoriesEmailed"] = record;',
+    );
     expect(english).toContain(
       "Your master admins and the Admin Notification Email (**Settings** > **Emails** in the Admin Dashboard) get one email about each advisory that affects your version, and never a second one.",
     );

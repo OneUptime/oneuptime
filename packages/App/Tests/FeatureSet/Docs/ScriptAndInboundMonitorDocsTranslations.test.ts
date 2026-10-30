@@ -120,9 +120,10 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "Result Value",
   ],
   [SQL_MONITOR]: [
-    // The Database Type dropdown's options.
-    "PostgreSQL",
-    "MySQL",
+    /*
+     * The Database Type dropdown's options. PostgreSQL and MySQL are
+     * Dashboard labels now (a data store's kind), the same in every language.
+     */
     "Microsoft SQL Server",
     // The driver the official probe image ships, by its registered name.
     "ODBC Driver 18",

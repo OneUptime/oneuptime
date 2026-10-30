@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import { JSONObject } from "Common/Types/JSON";
+import NormalizedSecurityEvent from "Common/Types/SecurityEvent/NormalizedSecurityEvent";
 import OcsfSeverity from "Common/Types/SecurityEvent/OcsfSeverity";
 import { SECURITY_EVENT_FACET_KEYS } from "../../FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventsFacets";
 import {
@@ -59,6 +60,79 @@ describe("buildSecurityEventOverviewFields", () => {
 
   test("an event with nothing on it produces no rows rather than a wall of dashes", () => {
     expect(buildSecurityEventOverviewFields(event())).toEqual([]);
+  });
+
+  /*
+   * "Check a log line" on Your logs describes the event a pasted line is
+   * about to become - a NormalizedSecurityEvent, never stored - with the
+   * drawer's own fields, so the two say the same of the same event.
+   */
+  test("an event a log line is about to become reads the same as a stored one", () => {
+    const normalized: NormalizedSecurityEvent = {
+      time: new Date("2026-10-30T12:00:00Z"),
+      eventUid: "",
+      categoryUid: 3,
+      categoryName: "Identity & Access Management",
+      classUid: 3002,
+      className: "Authentication",
+      activityName: "Logon",
+      severityId: 2,
+      severityName: OcsfSeverity.Low,
+      statusName: "Failure",
+      message: "Failed sign-in for alice to WIN-01",
+      vendorName: "Microsoft",
+      productName: "Windows",
+      ruleId: "",
+      ruleName: "",
+      mitreTactics: [],
+      mitreTechniques: [],
+      principalUser: "alice",
+      principalHost: "",
+      principalIp: "203.0.113.7",
+      principalProcess: "",
+      processName: "",
+      processPath: "",
+      processCommandLine: "",
+      parentProcessName: "",
+      parentProcessPath: "",
+      parentProcessCommandLine: "",
+      targetUser: "",
+      targetHost: "WIN-01",
+      targetIp: "",
+      targetPort: 0,
+      targetResource: "",
+      observables: ["alice", "203.0.113.7", "WIN-01"],
+      attributes: {},
+    };
+
+    expect(buildSecurityEventOverviewFields(normalized)).toEqual(
+      buildSecurityEventOverviewFields(
+        event({
+          categoryName: normalized.categoryName,
+          className: normalized.className,
+          activityName: normalized.activityName,
+          statusName: normalized.statusName,
+          message: normalized.message,
+          vendorName: normalized.vendorName,
+          productName: normalized.productName,
+          principalUser: normalized.principalUser,
+          principalIp: normalized.principalIp,
+          targetHost: normalized.targetHost,
+        }),
+      ),
+    );
+    expect(labels(buildSecurityEventOverviewFields(normalized))).toEqual([
+      "Event Class",
+      "Category",
+      "Activity",
+      "Status",
+      "Message",
+      "Vendor",
+      "Product",
+      "Principal User",
+      "Principal IP",
+      "Target Host",
+    ]);
   });
 
   test("whitespace-only values count as unsaid", () => {

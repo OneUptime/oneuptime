@@ -16,6 +16,10 @@ import GitHubCommits, {
   GitHubCommitRange,
 } from "../../../../../Server/Utils/CodeRepository/GitHub/GitHubCommits";
 import * as CodeTools from "../../../../../Server/Utils/AI/Toolbox/CodeTools";
+import CodeHostCommits, {
+  CodeHostCommitReader,
+} from "../../../../../Server/Utils/CodeRepository/CodeHost/CodeHostCommits";
+import CodeRepositoryType from "../../../../../Types/CodeRepository/CodeRepositoryType";
 import {
   GetChangeDetailsTool,
   isPreviousDeployOf,
@@ -324,7 +328,7 @@ describe("get_change_details", () => {
 
     expect(mintToken).not.toHaveBeenCalled();
     expect(result.dataForLlm).toContain(
-      "kind=note | text=No repository connected through the GitHub App that you may read matches this change",
+      "kind=note | text=No repository connected to OneUptime that you may read matches this change",
     );
   });
 
@@ -599,6 +603,232 @@ describe("isPreviousDeployOf", () => {
           repositoryUrl: "https://gitlab.example.com/acme/y",
         },
       ),
+    ).toBe(false);
+  });
+});
+
+/*
+ * A deploy of a GitLab, Forgejo or Gitea repository lists what it shipped
+ * too, read through the repository's connection (CodeHostCommits): GitLab's
+ * merge requests are named as such ("!12"), and Forgejo's and Gitea's
+ * files say which and how, without lines they do not count. A Git server
+ * has no API for commits, and a connection that does not work is said.
+ */
+describe("get_change_details: a deploy of a repository beyond GitHub", () => {
+  const GITLAB_URL: string = "https://gitlab.example.com/acme/backend/checkout";
+  let openReader: SpyInstance<typeof CodeHostCommits.openForRepository>;
+  let reader: CodeHostCommitReader;
+
+  function onHost(
+    type: CodeRepositoryType,
+    repositoryUrl: string,
+    organizationName: string = "acme/backend",
+  ): void {
+    findChanges.mockImplementation((async (data: { limit: number }) => {
+      return data.limit === 1
+        ? [
+            change({
+              attributes: {
+                "vcs.ref.head.revision": HEAD,
+                "vcs.repository.url.full": repositoryUrl,
+                "deployment.environment.name": "production",
+              },
+            }),
+          ]
+        : earlier;
+    }) as never);
+    readable.mockResolvedValue([
+      repository({
+        organizationName,
+        repositoryName: "checkout",
+        repositoryHostedAt: type,
+      }),
+    ] as never);
+  }
+
+  beforeEach(() => {
+    reader = {
+      provider: CodeRepositoryType.GitLab,
+      pullRequestTerm: "merge request",
+      compare: jest.fn(async () => {
+        return {
+          status: "ahead",
+          totalCommits: 1,
+          commits: [
+            {
+              sha: HEAD,
+              message: "Merge branch 'fix' into 'main'",
+              authorName: "Dana",
+              pullRequestNumbers: [12],
+            },
+          ],
+          files: [
+            {
+              path: "src/checkout/total.ts",
+              status: "modified",
+              additions: 3,
+              deletions: 1,
+            },
+          ],
+          isTruncated: false,
+        };
+      }) as never,
+      getCommit: jest.fn(async () => {
+        return {
+          commit: {
+            sha: HEAD,
+            message: "fix: totals",
+            authorName: "Dana",
+            pullRequestNumbers: [],
+          },
+          files: [{ path: "src/a.ts", status: "added" }],
+        };
+      }) as never,
+      listPullRequestsForCommit: jest.fn(async () => {
+        return [
+          {
+            number: 12,
+            title: "Fix totals",
+            url: "https://gitlab.example.com/acme/backend/checkout/-/merge_requests/12",
+          },
+        ];
+      }) as never,
+    };
+    openReader = jest
+      .spyOn(CodeHostCommits, "openForRepository")
+      .mockResolvedValue(reader);
+  });
+
+  test("a GitLab deploy: the commits since the previous one, through its connection, merge requests named !12", async () => {
+    onHost(CodeRepositoryType.GitLab, GITLAB_URL);
+    earlier = [
+      change({
+        _id: ObjectID.generate().toString(),
+        attributes: {
+          "vcs.ref.head.revision": BASE,
+          "vcs.repository.url.full":
+            "git@gitlab.example.com:acme/backend/checkout.git",
+          "deployment.environment.name": "production",
+        },
+      }),
+    ];
+
+    const result: ToolExecutionResult = await run();
+
+    expect(openReader).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      repositoryId: REPOSITORY_ID,
+    });
+    expect(reader.compare).toHaveBeenCalledWith({ base: BASE, head: HEAD });
+    expect(mintToken).not.toHaveBeenCalled();
+    expect(result.dataForLlm).toContain(
+      "- kind=range | repository=acme/backend/checkout | from=1a2b3c4 | commits=1 | status=ahead",
+    );
+    expect(result.dataForLlm).toContain(
+      "- kind=commit | sha=2b3c4d5 | author=Dana | message=Merge branch 'fix' into 'main' | mergeRequests=!12",
+    );
+    expect(result.dataForLlm).toContain(
+      "- kind=file | path=src/checkout/total.ts | status=modified | changes=+3 -1",
+    );
+  });
+
+  test("a first deploy on GitLab lists its commit and the merge requests it came from, as merge requests", async () => {
+    onHost(CodeRepositoryType.GitLab, GITLAB_URL);
+    earlier = [];
+
+    const result: ToolExecutionResult = await run();
+
+    expect(result.dataForLlm).toContain(
+      "- kind=merge_request | number=12 | title=Fix totals",
+    );
+    // Forgejo's and Gitea's files are not counted: no changes are made up.
+    expect(result.dataForLlm).toContain(
+      "- kind=file | path=src/a.ts | status=added",
+    );
+    expect(result.dataForLlm).not.toContain("changes=+");
+  });
+
+  test("a github.com address never matches a repository on another host of the same path", async () => {
+    onHost(
+      CodeRepositoryType.Forgejo,
+      "https://github.com/acme/checkout",
+      "acme",
+    );
+
+    const result: ToolExecutionResult = await run();
+
+    expect(openReader).not.toHaveBeenCalled();
+    expect(result.dataForLlm).toContain(
+      "No repository connected to OneUptime that you may read matches this change",
+    );
+  });
+
+  test("a Git server has no API for commits, and says so", async () => {
+    onHost(CodeRepositoryType.Git, GITLAB_URL);
+
+    const result: ToolExecutionResult = await run();
+
+    expect(openReader).not.toHaveBeenCalled();
+    expect(result.dataForLlm).toContain(
+      "is on a Git server, which has no API OneUptime reads commits through",
+    );
+  });
+
+  test("a connection that does not work now is said, naming the host", async () => {
+    onHost(CodeRepositoryType.GitLab, GITLAB_URL);
+    openReader.mockResolvedValue(null);
+
+    const result: ToolExecutionResult = await run();
+
+    expect(result.dataForLlm).toContain(
+      "is not reached through its GitLab connection now, so the commits it shipped are not listed.",
+    );
+  });
+
+  test("GitLab failing leaves the change described, naming GitLab", async () => {
+    onHost(CodeRepositoryType.GitLab, GITLAB_URL);
+    earlier = [];
+    reader.getCommit = jest.fn(async () => {
+      throw new Error("GitLab answered 502");
+    }) as never;
+
+    const result: ToolExecutionResult = await run();
+
+    expect(result.dataForLlm.split("\n")[0]).toContain("kind=change");
+    expect(result.dataForLlm).toContain(
+      "kind=note | text=The commits this change shipped could not be read from GitLab.",
+    );
+  });
+});
+
+describe("isPreviousDeployOf, on any host", () => {
+  test("the same GitLab repository however its address is written, and not another server's", () => {
+    const current: { commitSha: string; repositoryUrl: string } = {
+      commitSha: HEAD,
+      repositoryUrl: "https://gitlab.example.com/acme/backend/checkout",
+    };
+
+    for (const repositoryUrl of [
+      "git@gitlab.example.com:acme/backend/checkout.git",
+      "https://gitlab.example.com/ACME/backend/checkout.git/",
+      "ssh://git@gitlab.example.com:2222/acme/backend/checkout",
+    ]) {
+      expect(
+        isPreviousDeployOf(current, { commitSha: BASE, repositoryUrl }),
+      ).toBe(true);
+    }
+
+    expect(
+      isPreviousDeployOf(current, {
+        commitSha: BASE,
+        repositoryUrl: "https://gitlab.other.com/acme/backend/checkout",
+      }),
+    ).toBe(false);
+    expect(
+      isPreviousDeployOf(current, {
+        commitSha: BASE,
+        repositoryUrl: "https://gitlab.example.com/acme/backend/billing",
+      }),
     ).toBe(false);
   });
 });

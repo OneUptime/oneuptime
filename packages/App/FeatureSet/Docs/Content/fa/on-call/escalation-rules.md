@@ -143,6 +143,14 @@ OneUptime: Critical Incident INC-42 in Acme Prod is still not resolved:
 Checkout API is down. Ack or escalate: https://oneuptime.com/l/XJlaZRsd
 ```
 
+وقتی کسی شما را از Slack یا Microsoft Teams فرا می‌خواند، پیامک پس از `OneUptime:` می‌گوید چه کسی چه کسی را فراخواند، و این واژه‌ها هم هرگز کوتاه نمی‌شوند:
+
+```text
+OneUptime: Alice Kim paged Platform about Critical Incident INC-42
+in Acme Prod: Checkout API is down.
+Ack or escalate: https://oneuptime.com/l/XJlaZRsd
+```
+
 یک نویسه بیرون از الفبای ساده پیامک کافی است تا کل پیام در بخش‌های ۷۰ نویسه‌ای فرستاده شود. برای همین گیومه‌ها و خط‌تیره‌های تایپوگرافی به صورت `"`، `'` و `-` نوشته می‌شوند، `…` به صورت `...`، و حرف‌هایی مانند `ç` و `ł` نشانه‌های خود را از دست می‌دهند؛ ایموجی‌ها حذف می‌شوند. عنوانی به خطی دیگر، مانند ژاپنی یا روسی، همان‌طور که نوشته شده فرستاده می‌شود و دو بخش یا بیشتر می‌گیرد.
 
 پیامک‌های دیگری که OneUptime برایتان می‌فرستد، مثلاً درباره تغییری در رخدادی که مالک آن هستید یا آغاز نوبت آنکال شما، هم با `OneUptime:` شروع می‌شوند و با `Turn off in User Settings > Notification Settings.` تمام می‌شوند؛ جمله‌ای که هر وقت فقط با حذف آن پیامک در یک بخش جا شود، حذف می‌شود.

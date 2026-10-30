@@ -195,6 +195,7 @@ Poster tar `list`, `get`, `create`, `update`, `delete` och `count`:
 | Planerat underhåll | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |
 | Team och jour | `team`, `on-call-policy` |
 | Säkerhet | `security-case`, `security-case-evidence`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-case-task`, `security-detection`, `security-playbook` |
+| Datasäkerhet | `data-store`, `data-store-finding`, `data-store-access-entry`, `data-flow`, `data-security-issue`, `data-security-scan`, `custom-data-type`, `check-setting`, `residency-rule`, `data-security-setting` |
 | Etiketter | `label` |
 
 Telemetri tar `list`, `create` och `count`:

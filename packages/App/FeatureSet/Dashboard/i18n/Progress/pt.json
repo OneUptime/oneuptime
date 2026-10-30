@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 37111,
-    "untranslated": 13340
+    "keys": 38685,
+    "untranslated": 13376
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -72,6 +72,7 @@
     "Manual",
     "Marketplace",
     "Merge request !{{number}}",
+    "Merge request {{label}}",
     "Monitor",
     "Namespace",
     "Namespaces",
@@ -102,6 +103,7 @@
     "Pull Requests",
     "Pull request",
     "Pull request #{{number}}",
+    "Pull request {{label}}",
     "Pull requests",
     "Purity//FA 6.7.3 · 48 volumes · 12 hosts",
     "Runbook",

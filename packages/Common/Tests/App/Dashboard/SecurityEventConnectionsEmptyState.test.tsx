@@ -52,6 +52,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 
 const ID: string = SECURITY_EVENT_CONNECTIONS_EMPTY_STATE_ID;
 
+// A column count keyed to the window's width (sm:, md:, lg:, xl:, 2xl:).
+const WINDOW_GRID_COLUMNS: RegExp = /(?:^|\s)(?:sm|md|lg|xl|2xl):grid-cols-/;
+
 const DISABLED_REASON: string =
   "You do not have permission to create security event connections.";
 
@@ -97,6 +100,16 @@ const EXPECTED_PRODUCTS: Array<{
   {
     provider: SecurityEventConnectorProvider.OktaSystemLog,
     title: "Okta System Log",
+    category: "Identity",
+  },
+  {
+    provider: SecurityEventConnectorProvider.MicrosoftEntraId,
+    title: "Microsoft Entra ID",
+    category: "Identity",
+  },
+  {
+    provider: SecurityEventConnectorProvider.GoogleWorkspace,
+    title: "Google Workspace",
     category: "Identity",
   },
   {
@@ -522,12 +535,14 @@ describe("SecurityEventConnectionsEmptyState", () => {
         ).not.toBeInTheDocument();
         expect(root().querySelectorAll("svg")).toHaveLength(
           /*
-           * Badge, Add icon, 8 external-link icons, 2 requirements: the 8
+           * Badge, Add icon, 10 external-link icons, 2 requirements: the 10
            * products are drawn with their logos (images), not icons.
            */
-          1 + 1 + 8 + 2,
+          1 + 1 + 10 + 2,
         );
-        expect(root().querySelectorAll("[data-provider-logo]")).toHaveLength(8);
+        expect(root().querySelectorAll("[data-provider-logo]")).toHaveLength(
+          10,
+        );
       },
     );
   });
@@ -650,10 +665,10 @@ describe("SecurityEventConnectionsEmptyState", () => {
       ).not.toBeInTheDocument();
     });
 
-    test("show all eight products, in catalog order", () => {
+    test("show all ten products, in catalog order", () => {
       renderEmptyState();
 
-      expect(SecurityEventConnectorCatalog).toHaveLength(8);
+      expect(SecurityEventConnectorCatalog).toHaveLength(10);
       expect(tiles()).toHaveLength(EXPECTED_PRODUCTS.length);
       tiles().forEach((tile: HTMLElement, index: number): void => {
         const expected: {
@@ -896,12 +911,25 @@ describe("SecurityEventConnectionsEmptyState", () => {
       }
     });
 
-    test("stack on narrow screens and sit side by side from md up", () => {
+    /*
+     * Side by side only where each has 18rem of the card's own width, as
+     * the tiles above take theirs: beside the side menu at a 768 window
+     * the card is about 370px wide, where a window-keyed md:grid-cols-2
+     * squeezed each sentence to a word or two a line. The browser suite
+     * measures them at 1440, 768 and 390.
+     */
+    test("sit side by side only where the card has room for both, never by the window's width", () => {
       renderEmptyState();
 
-      expect(
-        screen.getByRole("list", { name: "What you'll need" }),
-      ).toHaveClass("grid", "grid-cols-1", "md:grid-cols-2");
+      const list: HTMLElement = screen.getByRole("list", {
+        name: "What you'll need",
+      });
+
+      expect(list).toHaveClass(
+        "grid",
+        "grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))]",
+      );
+      expect(list.className).not.toMatch(WINDOW_GRID_COLUMNS);
     });
 
     test("are shown to members who cannot create connections too", () => {
@@ -949,7 +977,7 @@ describe("SecurityEventConnectionsEmptyState", () => {
     });
 
     test.each([true, false])(
-      "the only links are the eight setup guides, one per tile (canCreate: %s)",
+      "the only links are the ten setup guides, one per tile (canCreate: %s)",
       (canCreate: boolean) => {
         renderEmptyState({ canCreate });
 

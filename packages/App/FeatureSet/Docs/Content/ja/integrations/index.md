@@ -58,6 +58,8 @@ Jira や Dynamics 365 のような双方向のインテグレーションは、�
 | [Elastic Security](/docs/integrations/elastic-security) | 双方向 | Elastic Security の検出アラートをセキュリティイベントに取り込み、OneUptime が見つけたものを Elastic Security に送ります。 |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | インバウンド | AWS Security Hub の検出結果をセキュリティイベントに取り込みます。 |
 | [Okta System Log](/docs/integrations/okta) | インバウンド | Okta のサインイン、アカウントの変更、脅威の検出をセキュリティイベントに取り込みます。 |
+| [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) | インバウンド | Microsoft Entra ID のサインインとディレクトリの変更、Microsoft 365 監査ログをセキュリティイベントに取り込みます。 |
+| [Google Workspace](/docs/integrations/google-workspace) | インバウンド | Google Workspace のサインイン、管理者による変更、Google 自身の検出をセキュリティイベントに取り込みます。 |
 
 ### チケットと IT サービス管理
 

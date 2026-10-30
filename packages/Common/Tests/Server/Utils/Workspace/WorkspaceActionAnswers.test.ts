@@ -1145,6 +1145,109 @@ describe("a press that comes too late says who got there first, and when", () =>
   });
 });
 
+/*
+ * ACKNOWLEDGE PRESSED BY SOMEBODY A PERSON'S PAGE PAGED INTO THE RECORD (UI
+ * review of block 31). Jane pages Platform from INC-2's channel; Simon had
+ * acknowledged INC-2 an hour before; Nitin presses Acknowledge Incident
+ * there. That answers Nitin's page (OnCallPersonPageAnswer), and the answer
+ * says so first - what his press did - then who is on the incident.
+ */
+describe("a late Acknowledge that answered the presser's own page", () => {
+  test("says the page was acknowledged and paging stopped, then who acknowledged the incident and when", async () => {
+    jest
+      .spyOn(IncidentStateTimelineService, "findBy")
+      .mockResolvedValue([
+        incidentRow(CREATED, "2026-10-08T17:58:00.000Z"),
+        incidentRow(ACKNOWLEDGED, "2026-10-08T18:07:00.000Z", SIMON),
+      ]);
+
+    expect(
+      await WorkspaceActionAnswers.getAlreadyAnswer({
+        event: incident(ACKNOWLEDGED),
+        press: WorkspaceLatePress.Acknowledge,
+        answeredPageCount: 1,
+      }),
+    ).toEqual({
+      markdown: `✅ You acknowledged the page for **[Incident INC-2](${INCIDENT_LINK})**, so paging stopped. **Simon Lee** acknowledged the incident at {{TIME(2026-10-08T18:07:00Z)}}.`,
+      text: "You acknowledged the page for Incident INC-2, so paging stopped",
+    });
+  });
+
+  test("an acknowledgement nobody made by hand says when; none to read says nothing more", async () => {
+    const findBy: jest.SpyInstance = jest
+      .spyOn(IncidentStateTimelineService, "findBy")
+      .mockResolvedValue([
+        incidentRow(ACKNOWLEDGED, "2026-10-08T18:07:00.000Z"),
+      ]);
+
+    expect(
+      (
+        await WorkspaceActionAnswers.getAlreadyAnswer({
+          event: incident(ACKNOWLEDGED),
+          press: WorkspaceLatePress.Acknowledge,
+          answeredPageCount: 2,
+        })
+      ).markdown,
+    ).toBe(
+      `✅ You acknowledged the page for **[Incident INC-2](${INCIDENT_LINK})**, so paging stopped. The incident was acknowledged at {{TIME(2026-10-08T18:07:00Z)}}.`,
+    );
+
+    findBy.mockResolvedValue([]);
+
+    expect(
+      (
+        await WorkspaceActionAnswers.getAlreadyAnswer({
+          event: incident(ACKNOWLEDGED),
+          press: WorkspaceLatePress.Acknowledge,
+          answeredPageCount: 1,
+        })
+      ).markdown,
+    ).toBe(
+      `✅ You acknowledged the page for **[Incident INC-2](${INCIDENT_LINK})**, so paging stopped.`,
+    );
+  });
+
+  test("no page answered: who got there first, as ever", async () => {
+    jest
+      .spyOn(IncidentStateTimelineService, "findBy")
+      .mockResolvedValue([
+        incidentRow(ACKNOWLEDGED, "2026-10-08T18:07:00.000Z", SIMON),
+      ]);
+
+    expect(
+      (
+        await WorkspaceActionAnswers.getAlreadyAnswer({
+          event: incident(ACKNOWLEDGED),
+          press: WorkspaceLatePress.Acknowledge,
+          answeredPageCount: 0,
+        })
+      ).markdown,
+    ).toBe(
+      `✅ **[Incident INC-2](${INCIDENT_LINK})** was already acknowledged by **Simon Lee** at {{TIME(2026-10-08T18:07:00Z)}}.`,
+    );
+  });
+
+  test("a record that is resolved is answered as resolved: resolving it ended its pages", async () => {
+    jest
+      .spyOn(IncidentStateTimelineService, "findBy")
+      .mockResolvedValue([
+        incidentRow(RESOLVED, "2026-10-08T18:20:00.000Z", SIMON),
+      ]);
+
+    expect(
+      (
+        await WorkspaceActionAnswers.getAlreadyAnswer({
+          event: incident(RESOLVED),
+          press: WorkspaceLatePress.Acknowledge,
+          answeredPageCount: 1,
+        })
+      ).markdown,
+    ).toBe(
+      `✅ **[Incident INC-2](${INCIDENT_LINK})** was already resolved by **Simon Lee** at {{TIME(2026-10-08T18:20:00Z)}}.`,
+    );
+  });
+});
+
 describe("a press finished once the account is connected", () => {
   test.each([
     [WorkspacePendingActionKind.Acknowledge, "acknowledged"],

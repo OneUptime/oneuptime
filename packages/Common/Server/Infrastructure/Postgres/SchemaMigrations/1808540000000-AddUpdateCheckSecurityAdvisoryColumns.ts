@@ -17,10 +17,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Nullable columns added to the one-row GlobalConfig table: no index, no
  * foreign key, nothing to backfill.
  */
-export class AddUpdateCheckSecurityAdvisoryColumns1808510000000
+export class AddUpdateCheckSecurityAdvisoryColumns1808540000000
   implements MigrationInterface
 {
-  public name: string = "AddUpdateCheckSecurityAdvisoryColumns1808510000000";
+  public name: string = "AddUpdateCheckSecurityAdvisoryColumns1808540000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

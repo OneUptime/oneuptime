@@ -31,6 +31,11 @@ import ProbeCapability from "Common/Types/Probe/ProbeCapability";
  * declares this, and settles an older probe's walks with a sentence saying
  * to update it.
  *
+ * "dataSecurityScan": the probe scans the databases Data Security assigns
+ * it (Jobs/DataSecurity/ScanDatabases), reading each one's connection
+ * string from the environment variable the store names. The server hands
+ * data-security work only to a probe that declares this.
+ *
  * Add to this list only when the code that honours the new capability
  * ships in the same build.
  */
@@ -38,6 +43,7 @@ export const PROBE_CAPABILITIES: Array<string> = [
   ProbeCapability.NetworkDevicePing,
   ProbeCapability.SnmpTables,
   ProbeCapability.SnmpWalk,
+  ProbeCapability.DataSecurityScan,
 ];
 
 export default class ProbeAPIRequest {

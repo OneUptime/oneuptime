@@ -1,4 +1,4 @@
-import { AddUpdateCheckSecurityAdvisoryColumns1808510000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808510000000-AddUpdateCheckSecurityAdvisoryColumns";
+import { AddUpdateCheckSecurityAdvisoryColumns1808540000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808540000000-AddUpdateCheckSecurityAdvisoryColumns";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { QueryRunner } from "typeorm";
 import { describe, expect, test } from "@jest/globals";
@@ -11,7 +11,7 @@ import { describe, expect, test } from "@jest/globals";
  * waits on nothing; no index, no foreign key, nothing to backfill.
  */
 
-const NAME: string = "AddUpdateCheckSecurityAdvisoryColumns1808510000000";
+const NAME: string = "AddUpdateCheckSecurityAdvisoryColumns1808540000000";
 
 const runMigration: (
   direction: "up" | "down",
@@ -27,7 +27,7 @@ const runMigration: (
     },
   } as unknown as QueryRunner;
 
-  await new AddUpdateCheckSecurityAdvisoryColumns1808510000000()[direction](
+  await new AddUpdateCheckSecurityAdvisoryColumns1808540000000()[direction](
     runner,
   );
 
@@ -72,9 +72,12 @@ describe(NAME, () => {
 
     expect(names).toContain(NAME);
     expect(names.indexOf(NAME)).toBeGreaterThan(
-      names.indexOf("AddCloudAccountFeed1808480000000"),
+      names.indexOf("AddOnCallPageMessage1808510000000"),
     );
-    expect(new AddUpdateCheckSecurityAdvisoryColumns1808510000000().name).toBe(
+    expect(names.indexOf("AddOnCallPageMessage1808510000000")).toBeGreaterThan(
+      -1,
+    );
+    expect(new AddUpdateCheckSecurityAdvisoryColumns1808540000000().name).toBe(
       NAME,
     );
   });

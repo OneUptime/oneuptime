@@ -131,7 +131,7 @@ Het tabblad **Inzichten** toont wat uw services in een tijdsbereik gelogd hebben
 | **Top errors** | De afzonderlijke berichten die met ernst Error of Fatal zijn gelogd, de meest voorkomende eerst. |
 | **Sources reporting logs** | Het volume en het foutsignaal van elke service, host of andere bron. |
 
-Selecteer een topfout om te zien wat er rond die fout gebeurde: wanneer hij optrad, wat de voorvallen gemeen hebben, waar hij optreedt, de traces die hem dragen en de nieuwste regels. **Open matching logs** opent ze in de **Kijker**, en **Explain with AI** opent [AI vragen](/docs/ai/ask-ai) met de fout en het bewijs als prompt die u kunt aanpassen.
+Selecteer een topfout om te zien wat er rond die fout gebeurde: wanneer hij optrad, wat de voorvallen gemeen hebben, waar hij optreedt, de traces die hem dragen en de nieuwste regels. **Open matching logs** opent ze in de **Kijker**, en **Uitleggen met AI** opent [AI vragen](/docs/ai/ask-ai) met de fout en het bewijs als prompt die u kunt aanpassen.
 
 ## Fout-, ontbrekende en luidruchtige logs vinden en oplossen met AI
 
