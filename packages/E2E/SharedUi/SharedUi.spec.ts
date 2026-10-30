@@ -1659,3 +1659,254 @@ test.describe("radios and checkboxes in the dark theme are the theme's own", () 
     await screenshot(page, "choices-dark-390");
   });
 });
+
+/*
+ * A RULE'S CONDITIONS, LAID OUT BY THEIR OWN WIDTH (RuleCriteriaRowLayout).
+ *
+ * A condition's row - "If [Incident Title] [Does not match pattern]
+ * [^staging-]" - went onto one line at the window's 1024px, so in a dialog
+ * beside its steps (478px of conditions at any window) the reminder rule's
+ * Match step squeezed its pickers to "Lab..." and "H..." (#5282). Each row
+ * now reads the width of its list of conditions: on a phone the word and
+ * the remove button take a line over full-width pickers; beside a dialog's
+ * steps one picker a line; in a dialog with no steps the field and the
+ * operator side by side over the value; on a page one line. The gallery
+ * draws the builder at each of those widths (?section=rules), with the
+ * longest operator there is.
+ */
+interface ConditionCell {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+  width: number;
+}
+
+interface ConditionRow {
+  connector: ConditionCell;
+  field: ConditionCell;
+  operator: ConditionCell;
+  value: ConditionCell;
+  remove: ConditionCell;
+  // Each picker's chosen value cut short ("Does not match patt...").
+  cutWords: Array<string>;
+}
+
+// Every condition of one gallery entry, read in one go once drawn.
+async function readConditions(
+  page: Page,
+  name: string,
+): Promise<Array<ConditionRow>> {
+  const entry: Locator = page.getByTestId(`rules-${name}`);
+
+  await expect(entry.getByTestId("rule-criteria-row-1")).toBeVisible();
+
+  return await entry.evaluate((element: Element): Array<ConditionRow> => {
+    const read: (cell: Element) => ConditionCell = (
+      cell: Element,
+    ): ConditionCell => {
+      const box: DOMRect = cell.getBoundingClientRect();
+      return {
+        left: Math.round(box.left),
+        right: Math.round(box.right),
+        top: Math.round(box.top),
+        bottom: Math.round(box.bottom),
+        width: Math.round(box.width),
+      };
+    };
+
+    return Array.from(
+      element.querySelectorAll("[data-testid^='rule-criteria-row-']"),
+    ).map((row: Element): ConditionRow => {
+      const cells: Array<Element> = Array.from(row.children);
+
+      return {
+        connector: read(cells[0] as Element),
+        field: read(cells[1] as Element),
+        operator: read(cells[2] as Element),
+        value: read(cells[3] as Element),
+        remove: read(cells[4] as Element),
+        /*
+         * A picker's value is cut where its words are wider than the box
+         * that shows them. Its scrollWidth does not say so (it reads the
+         * box's own width, ellipsis or not): the words are measured by
+         * their own text.
+         */
+        cutWords: Array.from(row.querySelectorAll(".ou-select__single-value"))
+          .filter((value: Element): boolean => {
+            const words: Range = document.createRange();
+            words.selectNodeContents(value.firstChild || value);
+            return words.getBoundingClientRect().width > value.clientWidth + 1;
+          })
+          .map((value: Element): string => {
+            return value.textContent || "";
+          }),
+      };
+    });
+  });
+}
+
+test.describe("a rule's conditions at every width", () => {
+  test("on a phone: the word and the remove button on a line, then the field, the operator and the value at the row's full width", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "section=rules");
+
+    for (const row of await readConditions(page, "phone")) {
+      expect(row.remove.top).toBe(row.connector.top);
+      expect(row.field.top).toBeGreaterThanOrEqual(row.connector.bottom);
+      expect(row.operator.top).toBeGreaterThanOrEqual(row.field.bottom);
+      expect(row.value.top).toBeGreaterThanOrEqual(row.operator.bottom);
+      // The pickers start where the word does, and take the row's width.
+      expect(row.field.left).toBe(row.connector.left);
+      expect(row.field.width).toBe(row.operator.width);
+      expect(row.field.width).toBe(row.value.width);
+      expect(row.field.right).toBe(row.remove.right);
+      expect(row.cutWords).toEqual([]);
+    }
+  });
+
+  test("in a dialog beside its steps: one picker a line, after the word, the remove button at the first line's end - the Match step's 'Lab...' and 'H...' whole", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "section=rules");
+
+    for (const row of await readConditions(page, "dialog")) {
+      expect(row.field.top).toBe(row.connector.top);
+      expect(row.remove.top).toBe(row.connector.top);
+      expect(row.field.left).toBeGreaterThan(row.connector.right);
+      expect(row.remove.left).toBeGreaterThan(row.field.right);
+      expect(row.operator.top).toBeGreaterThanOrEqual(row.field.bottom);
+      expect(row.value.top).toBeGreaterThanOrEqual(row.operator.bottom);
+      expect(row.operator.left).toBe(row.field.left);
+      expect(row.value.left).toBe(row.field.left);
+      // Wide enough for the longest operator, whole.
+      expect(row.operator.width).toBeGreaterThanOrEqual(240);
+      expect(row.cutWords).toEqual([]);
+    }
+  });
+
+  test("in a dialog with no steps: the field and the operator side by side, the value under both", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "section=rules");
+
+    for (const row of await readConditions(page, "wide-dialog")) {
+      expect(row.field.top).toBe(row.connector.top);
+      expect(row.operator.top).toBe(row.connector.top);
+      expect(row.remove.top).toBe(row.connector.top);
+      expect(row.operator.left).toBeGreaterThan(row.field.right);
+      expect(row.value.top).toBeGreaterThanOrEqual(row.field.bottom);
+      // From the field's start to the operator's end.
+      expect(row.value.left).toBe(row.field.left);
+      expect(row.value.right).toBe(row.operator.right);
+      expect(row.cutWords).toEqual([]);
+    }
+  });
+
+  test("on a page: one line - the word, the field, the operator, the value and the remove button", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "section=rules");
+
+    for (const row of await readConditions(page, "page")) {
+      for (const cell of [row.field, row.operator, row.value, row.remove]) {
+        expect(cell.top).toBe(row.connector.top);
+      }
+      expect(row.field.left).toBeGreaterThan(row.connector.right);
+      expect(row.operator.left).toBeGreaterThan(row.field.right);
+      expect(row.value.left).toBeGreaterThan(row.operator.right);
+      expect(row.remove.left).toBeGreaterThan(row.value.right);
+      expect(row.cutWords).toEqual([]);
+    }
+
+    await screenshot(page, "rule-conditions-every-width-1280");
+  });
+
+  test("the layout follows the room, not the window: at 1280 every width draws its own", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "section=rules");
+
+    const lines: Array<number> = [];
+
+    for (const name of ["phone", "dialog", "wide-dialog", "page"]) {
+      const row: ConditionRow = (await readConditions(page, name))[0]!;
+      const tops: Set<number> = new Set<number>(
+        [row.field, row.operator, row.value].map(
+          (cell: ConditionCell): number => {
+            return cell.top;
+          },
+        ),
+      );
+      lines.push(tops.size);
+    }
+
+    // Three lines of pickers, three, two, one.
+    expect(lines).toEqual([3, 3, 2, 1]);
+  });
+
+  test("on a 390px phone every entry is a phone's: nothing past the screen", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await open(page, "section=rules");
+
+    for (const name of ["phone", "dialog", "wide-dialog", "page"]) {
+      for (const row of await readConditions(page, name)) {
+        expect(row.remove.top).toBe(row.connector.top);
+        expect(row.field.top).toBeGreaterThanOrEqual(row.connector.bottom);
+        expect(row.cutWords).toEqual([]);
+      }
+    }
+
+    expect(await horizontalOverflow(page)).toBe(0);
+    await screenshot(page, "rule-conditions-390");
+  });
+
+  test("right to left the word is at the right and the remove button at the left (?lang=fa)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "section=rules&lang=fa");
+
+    for (const row of (await readConditions(page, "dialog")).concat(
+      await readConditions(page, "page"),
+    )) {
+      expect(row.connector.left).toBeGreaterThan(row.field.right);
+      expect(row.remove.right).toBeLessThan(row.field.left);
+      expect(row.cutWords).toEqual([]);
+    }
+
+    // Beside a dialog's steps, one picker a line there too.
+    for (const row of await readConditions(page, "dialog")) {
+      expect(row.operator.top).toBeGreaterThanOrEqual(row.field.bottom);
+      expect(row.operator.right).toBe(row.field.right);
+    }
+
+    await screenshot(page, "rule-conditions-fa-1280");
+  });
+
+  test("in the dark theme (?theme=dark)", async ({ page }: { page: Page }) => {
+    await open(page, "section=rules&theme=dark");
+
+    for (const row of await readConditions(page, "dialog")) {
+      expect(row.cutWords).toEqual([]);
+    }
+
+    await screenshot(page, "rule-conditions-dark-1280");
+  });
+});
