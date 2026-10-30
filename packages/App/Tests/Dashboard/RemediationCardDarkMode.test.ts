@@ -242,6 +242,12 @@ describe("the Remediation step in the dark theme", () => {
         "AI/ArrowGluedText.tsx",
         "AI/InvestigationNotice.tsx",
         "AI/InvestigationStatusBadge.tsx",
+        /*
+         * A cloud change's dry run before approval, under the change: the
+         * note and its words (#5367).
+         */
+        "AutoRemediation/CloudDryRunCopy.ts",
+        "AutoRemediation/CloudDryRunNote.tsx",
         // A fix through MCP servers: its changes, in order.
         "AutoRemediation/McpToolCallList.tsx",
         // The fix in the code the investigation recommends.

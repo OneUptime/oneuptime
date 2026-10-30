@@ -1905,7 +1905,7 @@ describe("Settings > Risk Scoring", () => {
       { label: "High (×1.5)", value: "High" },
       { label: "Low (×0.5)", value: "Low" },
     ]);
-    // Only the kinds risk is kept for.
+    // Only the kinds risk is kept for: the data stores Data Security weighs too.
     expect(
       fields[2]!.dropdownOptions!.map((option: { value: string }) => {
         return option.value;
@@ -1914,6 +1914,7 @@ describe("Settings > Risk Scoring", () => {
       SecurityEntityType.User,
       SecurityEntityType.Host,
       SecurityEntityType.IpAddress,
+      SecurityEntityType.DataStore,
     ]);
   });
 });

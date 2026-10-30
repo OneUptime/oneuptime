@@ -78,7 +78,7 @@ sequenceDiagram
 | Contents | Read and write | 讀取儲存庫檔案，並推送 AI 修正 pull request 的分支 |
 | Pull requests | Read and write | 建立和更新 pull request，並發布審查 |
 | Issues | Read and write | 發布應用程式的留言——**包括在 pull request 上**，GitHub 透過 issues API 處理 pull request 的對話 |
-| Checks | Read-only | 選用。讀取修正 pull request 的 CI 結果。沒有它，這些 pull request 的 CI 狀態會維持未驗證 |
+| Checks | Read and write | 選用。讀取修正 pull request 的 CI 結果，並為每次正式環境審查新增一個檢查。設為 Read-only 時會讀取 CI 結果，但不新增檢查；沒有它，修正 pull request 的 CI 狀態會維持未驗證 |
 | Metadata | Read-only | 儲存庫的基本中繼資料（GitHub 要求） |
 
 **讓應用程式具備互動能力的是 Issues: Read and write。** 沒有它，提及會被接收，但應用程式嘗試回覆時會無聲失敗——GitHub 透過 issues API 提供 pull request 對話中的留言，因此應用程式寫出的每一則回覆都取決於這一項權限。請參閱 [在 GitHub 中使用 OneUptime](/docs/ai/github-app)。

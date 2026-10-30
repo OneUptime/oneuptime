@@ -2077,7 +2077,10 @@ describe("notification settings", () => {
       }
     }
 
-    // The two shift reminders and the five security case events start on by push too, and they alone.
+    /*
+     * The two shift reminders, the five security case events and a hunt's
+     * finds start on by push too, and they alone.
+     */
     const byPush: Array<string> = Array.from(push).map(
       (type: string): string => {
         return labels[type] as string;
@@ -2093,13 +2096,14 @@ describe("notification settings", () => {
         "Playbook step waiting for my approval",
         "Security case response target",
         "Security case task assigned to me",
+        "Hunt found security events",
       ].sort(),
     );
     expect(settings).toContain(
       "and by push too: **Before my on-call shift starts**, **My upcoming on-call shift is reassigned**",
     );
     expect(settings).toContain(
-      "| **Security** | By push too: **New security case** (High and Critical cases), **Security case assigned to me**, **Playbook step waiting for my approval**, **Security case response target**, **Security case task assigned to me** | None |",
+      "| **Security** | By push too: **New security case** (High and Critical cases), **Security case assigned to me**, **Playbook step waiting for my approval**, **Security case response target**, **Security case task assigned to me**, **Hunt found security events** | None |",
     );
   });
 

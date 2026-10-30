@@ -37,6 +37,7 @@ export const RULE_LIBRARY_CATEGORY_TITLES: Record<
   [DetectionRuleLibraryCategory.Network]: translationKey("Network"),
   [DetectionRuleLibraryCategory.Web]: translationKey("Web"),
   [DetectionRuleLibraryCategory.Kubernetes]: translationKey("Kubernetes"),
+  [DetectionRuleLibraryCategory.DataSecurity]: translationKey("Data security"),
 };
 
 // What each kind of event is called, in the Data column and a rule's details.
@@ -58,13 +59,17 @@ export const DATA_KIND_TITLES: Record<DetectionRuleDataKind, string> = {
     "OneUptime audit log",
   ),
   [DetectionRuleDataKind.SessionReplays]: translationKey("Session replays"),
+  [DetectionRuleDataKind.DataSecurity]: translationKey(
+    "Changes to sensitive data stores",
+  ),
 };
 
 /*
  * How to start sending a kind of event, for a rule whose events do not
  * arrive yet, and where that is done: Connections - a product to connect,
  * or "Your logs" on it - or, for network events, which come from a
- * firewall or a SIEM, the Setup Guide.
+ * firewall or a SIEM, the Setup Guide; for Data Security's, which come
+ * from a cloud account it reads, connecting one.
  */
 export const DATA_KIND_HOW_TO_SEND: Record<DetectionRuleDataKind, string> = {
   [DetectionRuleDataKind.SignIns]: translationKey(
@@ -106,6 +111,9 @@ export const DATA_KIND_HOW_TO_SEND: Record<DetectionRuleDataKind, string> = {
   [DetectionRuleDataKind.SessionReplays]: translationKey(
     "Record session replays of signed-in users and find security events in your session replays.",
   ),
+  [DetectionRuleDataKind.DataSecurity]: translationKey(
+    "Connect an AWS account with Data Security on: changes to the stores it finds sensitive arrive as security events.",
+  ),
 };
 
 /*
@@ -143,16 +151,25 @@ export const DATA_KIND_SEND_PAGE: Record<DetectionRuleDataKind, PageMap> = {
   [DetectionRuleDataKind.OneUptimeAuditLog]:
     PageMap.SECURITY_EVENTS_CONNECTIONS,
   [DetectionRuleDataKind.SessionReplays]: PageMap.SECURITY_EVENTS_CONNECTIONS,
+  [DetectionRuleDataKind.DataSecurity]: PageMap.CLOUD_CONNECT,
 };
 
 export const GO_TO_CONNECTIONS: string = translationKey("Go to Connections");
 export const OPEN_SETUP_GUIDE: string = translationKey("Open the Setup Guide");
+export const CONNECT_A_CLOUD_ACCOUNT: string = translationKey(
+  "Connect a cloud account",
+);
 
 // The link under a rule whose events do not arrive yet.
 export function getDataKindSendLinkText(kind: DetectionRuleDataKind): string {
-  return DATA_KIND_SEND_PAGE[kind] === PageMap.SECURITY_EVENTS_DOCUMENTATION
-    ? OPEN_SETUP_GUIDE
-    : GO_TO_CONNECTIONS;
+  switch (DATA_KIND_SEND_PAGE[kind]) {
+    case PageMap.SECURITY_EVENTS_DOCUMENTATION:
+      return OPEN_SETUP_GUIDE;
+    case PageMap.CLOUD_CONNECT:
+      return CONNECT_A_CLOUD_ACCOUNT;
+    default:
+      return GO_TO_CONNECTIONS;
+  }
 }
 
 // Whether the project sends what a rule reads, in a word, and in a sentence.

@@ -99,6 +99,15 @@ export interface EmailPeopleConfig {
   message?: string | undefined;
 }
 
+/*
+ * Who is emailed is the case's to say: the owners of each data store it
+ * names. A message of the playbook's own leads the email.
+ */
+export interface NotifyDataStoreOwnersConfig {
+  // Markdown with {{case.*}} placeholders; a note of the case and the store when empty.
+  message?: string | undefined;
+}
+
 export interface PostToChannelConfig {
   channelName: string;
   /*
@@ -363,6 +372,18 @@ export function normalizeSecurityPlaybookStepConfig(
       return { userIds, teamIds, ...(message ? { message } : {}) };
     }
 
+    case SecurityPlaybookActionType.NotifyDataStoreOwners: {
+      const message: string = readText(rawConfig, "message");
+
+      if (message.length > SECURITY_PLAYBOOK_NOTE_MAX_LENGTH) {
+        throw new BadDataException(
+          `${label}: the message is longer than ${SECURITY_PLAYBOOK_NOTE_MAX_LENGTH} characters.`,
+        );
+      }
+
+      return message ? { message } : {};
+    }
+
     case SecurityPlaybookActionType.PostToSlack:
     case SecurityPlaybookActionType.PostToMicrosoftTeams: {
       const channelName: string = readText(rawConfig, "channelName").replace(
@@ -541,6 +562,8 @@ export function normalizeSecurityPlaybookStepConfig(
     // Nothing to set: each reads what it acts on from the case.
     case SecurityPlaybookActionType.PreserveEvidence:
     case SecurityPlaybookActionType.FixWithAi:
+    case SecurityPlaybookActionType.BlockDataStorePublicAccess:
+    case SecurityPlaybookActionType.RevokeDataStoreSharing:
       return {};
   }
 }

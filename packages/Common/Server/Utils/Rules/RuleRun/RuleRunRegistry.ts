@@ -27,6 +27,11 @@ import Dashboard from "../../../../Models/DatabaseModels/Dashboard";
 import DashboardLabelRule from "../../../../Models/DatabaseModels/DashboardLabelRule";
 import DashboardOwnerRule from "../../../../Models/DatabaseModels/DashboardOwnerRule";
 import DashboardOwnerTeam from "../../../../Models/DatabaseModels/DashboardOwnerTeam";
+import DataStore from "../../../../Models/DatabaseModels/DataStore";
+import DataStoreLabelRule from "../../../../Models/DatabaseModels/DataStoreLabelRule";
+import DataStoreOwnerRule from "../../../../Models/DatabaseModels/DataStoreOwnerRule";
+import DataStoreOwnerTeam from "../../../../Models/DatabaseModels/DataStoreOwnerTeam";
+import DataStoreOwnerUser from "../../../../Models/DatabaseModels/DataStoreOwnerUser";
 import DashboardOwnerUser from "../../../../Models/DatabaseModels/DashboardOwnerUser";
 import DatabaseServer from "../../../../Models/DatabaseModels/DatabaseServer";
 import DatabaseServerLabelRule from "../../../../Models/DatabaseModels/DatabaseServerLabelRule";
@@ -191,6 +196,11 @@ import DashboardLabelRuleService from "../../../Services/DashboardLabelRuleServi
 import DashboardOwnerRuleEngineService from "../../../Services/DashboardOwnerRuleEngineService";
 import DashboardOwnerRuleService from "../../../Services/DashboardOwnerRuleService";
 import DashboardService from "../../../Services/DashboardService";
+import DataStoreLabelRuleEngineService from "../../../Services/DataStoreLabelRuleEngineService";
+import DataStoreLabelRuleService from "../../../Services/DataStoreLabelRuleService";
+import DataStoreOwnerRuleEngineService from "../../../Services/DataStoreOwnerRuleEngineService";
+import DataStoreOwnerRuleService from "../../../Services/DataStoreOwnerRuleService";
+import DataStoreService from "../../../Services/DataStoreService";
 import DatabaseServerLabelRuleEngineService from "../../../Services/DatabaseServerLabelRuleEngineService";
 import DatabaseServerLabelRuleService from "../../../Services/DatabaseServerLabelRuleService";
 import DatabaseServerOwnerRuleEngineService from "../../../Services/DatabaseServerOwnerRuleEngineService";
@@ -469,6 +479,21 @@ const RULE_RUN_DEFINITIONS: Record<ResourceRuleRunType, RuleRunDefinition> = {
     resourceService: DashboardService,
     engine: DashboardOwnerRuleEngineService,
     ownerModelTypes: [DashboardOwnerUser, DashboardOwnerTeam],
+  }),
+  [RuleRunType.DataStoreLabelRule]: defineRuleRun({
+    ruleModelType: DataStoreLabelRule,
+    resourceModelType: DataStore,
+    ruleService: DataStoreLabelRuleService,
+    resourceService: DataStoreService,
+    engine: DataStoreLabelRuleEngineService,
+  }),
+  [RuleRunType.DataStoreOwnerRule]: defineRuleRun({
+    ruleModelType: DataStoreOwnerRule,
+    resourceModelType: DataStore,
+    ruleService: DataStoreOwnerRuleService,
+    resourceService: DataStoreService,
+    engine: DataStoreOwnerRuleEngineService,
+    ownerModelTypes: [DataStoreOwnerUser, DataStoreOwnerTeam],
   }),
   [RuleRunType.DatabaseServerLabelRule]: defineRuleRun({
     ruleModelType: DatabaseServerLabelRule,

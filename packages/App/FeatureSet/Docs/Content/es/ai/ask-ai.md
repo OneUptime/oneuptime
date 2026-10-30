@@ -32,7 +32,7 @@ En el modo **Solo lectura** las acciones nunca se ofrecen al modelo, así que la
 | --- | --- |
 | Cualquier página | Haz clic en **Preguntar a la IA** en la cabecera, o pulsa `Ctrl` + `I` (`Cmd` + `I` en un Mac). Mientras escribes en un cuadro de texto o un editor, esas teclas siguen siendo el atajo de cursiva del editor. |
 | La paleta de comandos | Pulsa `Ctrl` + `K` (`Cmd` + `K` en un Mac) y elige **Preguntar a la IA**. |
-| Un patrón de error de los logs, o los hallazgos de un gráfico | Haz clic en **Explain with AI**: Preguntar a la IA se abre con las pruebas como una pregunta que puedes editar antes de enviarla. |
+| Un patrón de error de los logs, o los hallazgos de un gráfico | Haz clic en **Explicar con IA**: Preguntar a la IA se abre con las pruebas como una pregunta que puedes editar antes de enviarla. |
 | El menú de productos | Abre **Productos → IA → Chat**. Preguntar a la IA se abre sobre la página en la que estabas. Cada conversación tiene su propia dirección, así que puedes guardarla en marcadores y volver a ella. |
 
 Preguntar a la IA se abre en el centro de la pantalla, sobre la página en la que estabas, y en un teléfono ocupa toda la pantalla. Pulsa `Esc`, o haz clic fuera de ella, para volver a la página. La conversación sigue donde la dejaste: vuelve a abrir Preguntar a la IA para continuar. Si la cierras mientras aún responde, un aviso en la esquina te dice cuándo está lista la respuesta, y la abre.
@@ -87,7 +87,7 @@ Lo que Preguntar a la IA puede hacer cuando un modo lo permite:
 - Publicar una nota interna en un incidente o una alerta. Las notas internas nunca aparecen en una página de estado.
 - Publicar una actualización de estado pública en un incidente. Es una acción aparte, porque avisa a los suscriptores de la página de estado.
 - Avisar a una política de guardia, ejecutar un runbook o iniciar una investigación de IA de un incidente o una alerta.
-- Proponer un cambio de código: hacer commit en una rama nueva de un repositorio conectado y abrir una pull request. Nunca escribe en la rama predeterminada ni en una protegida, así que una persona sigue fusionando el cambio.
+- Proponer un cambio de código: hacer commit en una rama nueva de un repositorio en GitHub, GitLab, Forgejo o Gitea y abrir una pull request (un merge request en GitLab). Nunca escribe en la rama predeterminada ni en una protegida, así que una persona sigue fusionando el cambio.
 
 Pide un incidente cuando los usuarios se ven afectados, y una alerta cuando algo necesita antes la atención de tu equipo, como la memoria de un host que no deja de subir. Ambos se crean una vez y no vigilan nada: para recibir una alerta cada vez que la memoria de un host supere el 75 %, crea un [monitor de host](/docs/monitor/host-monitor#plantillas-de-alerta-listas-para-usar) a partir de su plantilla de memoria, con el 75 % como umbral. Preguntar a la IA no puede crear monitores. Si se lo pides, te lo dice, comprueba el valor actual y se ofrece a crear una alerta si ya lo supera.
 

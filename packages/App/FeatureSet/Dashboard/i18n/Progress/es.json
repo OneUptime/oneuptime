@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 37111,
-    "untranslated": 3045
+    "keys": 38646,
+    "untranslated": 3091
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -231,6 +231,7 @@
     "Mayotte",
     "Mbps",
     "Merge request !{{number}}",
+    "Merge request {{label}}",
     "Mesh / VPN",
     "Microsoft Entra ID",
     "Mistral",
@@ -289,6 +290,7 @@
     "Puerto Rico",
     "Pull request",
     "Pull request #{{number}}",
+    "Pull request {{label}}",
     "Pull requests",
     "Push",
     "Push: ",

@@ -56,6 +56,7 @@ export const SECURITY_CASE_DISPLAY_TERMS: ReadonlyArray<string> = [
   translationKey("Connected Product"),
   translationKey("Manual"),
   translationKey("Entity Risk"),
+  translationKey("Data Security"),
   // SecurityEntityType
   translationKey("User"),
   translationKey("Host"),
@@ -64,6 +65,7 @@ export const SECURITY_CASE_DISPLAY_TERMS: ReadonlyArray<string> = [
   translationKey("URL"),
   translationKey("File Hash"),
   translationKey("Process"),
+  translationKey("Data Store"),
   translationKey("Other"),
   // SecurityPlaybookTrigger
   translationKey("Case Opened"),

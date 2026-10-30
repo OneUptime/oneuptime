@@ -167,6 +167,14 @@ export const CODE_TASK_ORIGIN_SENTENCES: Record<CodeTaskOriginType, string> = {
   [CodeTaskOriginType.GitHubPullRequest]: translationKey(
     "Started from GitHub pull request {{label}}",
   ),
+  // A production review of a GitLab merge request ("!12").
+  [CodeTaskOriginType.GitLabMergeRequest]: translationKey(
+    "Started from GitLab merge request {{label}}",
+  ),
+  // A production review of a Forgejo or Gitea pull request ("#12").
+  [CodeTaskOriginType.CodeHostPullRequest]: translationKey(
+    "Started from pull request {{label}}",
+  ),
   [CodeTaskOriginType.Unknown]: translationKey("OneUptime started this task"),
 };
 

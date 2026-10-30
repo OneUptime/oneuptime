@@ -460,6 +460,26 @@ function openMoreSettings(): void {
 }
 
 // What the folded header names, in order: every name, set or not.
+/*
+ * What More settings lists, folded, on GitLab - in its word - and on
+ * Forgejo or Gitea: production reviews too, never GitHub's commands.
+ */
+const GITLAB_FOLDED_NAMES: Array<string> = [
+  "Production Review: Off",
+  "Runner",
+  "Merge Requests",
+  "Production Review Comment",
+  "Production Review LLM Provider",
+];
+
+const FORGEJO_FOLDED_NAMES: Array<string> = [
+  "Production Review: Off",
+  "Runner",
+  "Pull Requests",
+  "Production Review Comment",
+  "Production Review LLM Provider",
+];
+
 function foldedNames(): Array<string> {
   return within(folded())
     .queryAllByTestId("folded-section-item")
@@ -2456,18 +2476,18 @@ describe("Production Review LLM Provider: the provider its reviews use", () => {
     }
   });
 
-  test("off GitHub, where nothing reviews pull requests against production, it is not drawn", async () => {
+  test("drawn on every host with pull requests to review - not a Git server's, which has none", async () => {
     // Forgejo is Gitea's type too: one client reads both.
     for (const host of [
+      CodeRepositoryType.GitHub,
       CodeRepositoryType.GitLab,
       CodeRepositoryType.Forgejo,
-      CodeRepositoryType.Git,
     ]) {
-      expect(getRepositorySettingsFor(host)).not.toContain(
+      expect(getRepositorySettingsFor(host)).toContain(
         CodeRepositorySetting.ProductionReviewLlmProvider,
       );
     }
-    expect(getRepositorySettingsFor(CodeRepositoryType.GitHub)).toContain(
+    expect(getRepositorySettingsFor(CodeRepositoryType.Git)).not.toContain(
       CodeRepositorySetting.ProductionReviewLlmProvider,
     );
   });
@@ -2534,22 +2554,21 @@ describe("a repository off GitHub: only what its host has", () => {
     })!;
   }
 
-  test("GitLab: the Runner and Merge Requests, and nothing of GitHub's", async () => {
+  test("GitLab: production reviews, the Runner and Merge Requests, and nothing of GitHub's", async () => {
     hostedOn("GitLab");
     draw();
     await hostRead();
 
-    for (const gone of [
-      "github-commands",
-      "production-review",
-      "trigger-label",
-      "production-review-comment",
-      "branches",
-    ]) {
+    for (const gone of ["github-commands", "trigger-label", "branches"]) {
       expect(document.getElementById(gone)).toBeNull();
     }
 
-    for (const kept of ["runner", "pull-requests"]) {
+    for (const kept of [
+      "production-review",
+      "runner",
+      "pull-requests",
+      "production-review-comment",
+    ]) {
       expect(folded()).toContainElement(document.getElementById(kept));
     }
 
@@ -2557,11 +2576,17 @@ describe("a repository off GitHub: only what its host has", () => {
       screen.queryByRole("switch", { name: "Respond to GitHub Commands" }),
     ).toBeNull();
     // In GitLab's word, as its tasks and the request box say it.
-    expect(foldedNames()).toEqual(["Runner", "Merge Requests"]);
+    expect(foldedNames()).toEqual(GITLAB_FOLDED_NAMES);
 
     openMoreSettings();
     expect(folded()).toHaveTextContent(
-      "Where AI works, and where its merge requests open.",
+      "Production reviews, where AI works, and where its merge requests open.",
+    );
+    expect(folded()).toHaveTextContent(
+      "Review Merge Requests Against Production",
+    );
+    expect(folded()).toHaveTextContent(
+      "When someone with write access opens or updates a merge request, OneUptime comments with what production shows of the code it changes.",
     );
     expect(folded()).not.toHaveTextContent("pull request");
   });
@@ -2716,10 +2741,13 @@ describe("a repository off GitHub: only what its host has", () => {
 
     expect(isMergeRequestHost("GitLab")).toBe(true);
     expect(getRepositoryMoreSettingsDescription("Forgejo")).toBe(
-      "Where AI works, and where its pull requests open.",
+      "Production reviews, where AI works, and where its pull requests open.",
     );
     expect(getRepositoryMoreSettingsDescription("GitLab")).toBe(
-      "Where AI works, and where its merge requests open.",
+      "Production reviews, where AI works, and where its merge requests open.",
+    );
+    expect(getRepositoryMoreSettingsDescription("Git")).toBe(
+      "Where AI works, and the branch it starts from.",
     );
   });
 
@@ -2781,13 +2809,21 @@ describe("a repository off GitHub: only what its host has", () => {
     );
   });
 
-  test("Forgejo or Gitea: the same as GitLab - Pull Requests, no GitHub switches", async () => {
+  test("Forgejo or Gitea: the same as GitLab - production reviews and Pull Requests, no GitHub switches", async () => {
     hostedOn("Forgejo");
     draw();
     await hostRead();
 
-    expect(document.getElementById("production-review")).toBeNull();
+    expect(document.getElementById("github-commands")).toBeNull();
+    expect(folded()).toContainElement(
+      document.getElementById("production-review"),
+    );
     expect(folded()).toContainElement(document.getElementById("pull-requests"));
-    expect(foldedNames()).toEqual(["Runner", "Pull Requests"]);
+    expect(foldedNames()).toEqual(FORGEJO_FOLDED_NAMES);
+
+    openMoreSettings();
+    expect(folded()).toHaveTextContent(
+      "Review Pull Requests Against Production",
+    );
   });
 });

@@ -214,6 +214,7 @@ const SERVICES_TRUSTING_SERVER_WRITES: Array<string> = [
   "CallLogService.ts",
   "CephClusterFeedService.ts",
   "CloudResourceFeedService.ts",
+  "DataStoreFeedService.ts",
   "DatabaseServerFeedService.ts",
   "DockerHostFeedService.ts",
   "DockerSwarmClusterFeedService.ts",

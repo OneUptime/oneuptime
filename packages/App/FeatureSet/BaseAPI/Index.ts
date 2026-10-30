@@ -657,6 +657,51 @@ import SecurityProtectedEntityService, {
 import SecurityEntityRiskService, {
   Service as SecurityEntityRiskServiceType,
 } from "Common/Server/Services/SecurityEntityRiskService";
+import DataStoreFindingService, {
+  Service as DataStoreFindingServiceType,
+} from "Common/Server/Services/DataStoreFindingService";
+import DataStoreAccessService, {
+  Service as DataStoreAccessServiceType,
+} from "Common/Server/Services/DataStoreAccessService";
+import DataStoreFeedService, {
+  Service as DataStoreFeedServiceType,
+} from "Common/Server/Services/DataStoreFeedService";
+import DataStoreOwnerUserService, {
+  Service as DataStoreOwnerUserServiceType,
+} from "Common/Server/Services/DataStoreOwnerUserService";
+import DataStoreOwnerTeamService, {
+  Service as DataStoreOwnerTeamServiceType,
+} from "Common/Server/Services/DataStoreOwnerTeamService";
+import DataStoreOwnerRuleService, {
+  Service as DataStoreOwnerRuleServiceType,
+} from "Common/Server/Services/DataStoreOwnerRuleService";
+import DataStoreLabelRuleService, {
+  Service as DataStoreLabelRuleServiceType,
+} from "Common/Server/Services/DataStoreLabelRuleService";
+import DataSecurityFlowService, {
+  Service as DataSecurityFlowServiceType,
+} from "Common/Server/Services/DataSecurityFlowService";
+import DataSecurityIssueService, {
+  Service as DataSecurityIssueServiceType,
+} from "Common/Server/Services/DataSecurityIssueService";
+import DataSecurityIssueFeedService, {
+  Service as DataSecurityIssueFeedServiceType,
+} from "Common/Server/Services/DataSecurityIssueFeedService";
+import DataSecurityScanService, {
+  Service as DataSecurityScanServiceType,
+} from "Common/Server/Services/DataSecurityScanService";
+import DataSecurityCustomDataTypeService, {
+  Service as DataSecurityCustomDataTypeServiceType,
+} from "Common/Server/Services/DataSecurityCustomDataTypeService";
+import DataSecurityCheckSettingService, {
+  Service as DataSecurityCheckSettingServiceType,
+} from "Common/Server/Services/DataSecurityCheckSettingService";
+import DataSecurityResidencyRuleService, {
+  Service as DataSecurityResidencyRuleServiceType,
+} from "Common/Server/Services/DataSecurityResidencyRuleService";
+import DataSecuritySettingService, {
+  Service as DataSecuritySettingServiceType,
+} from "Common/Server/Services/DataSecuritySettingService";
 import SecurityEntityCriticalityService, {
   Service as SecurityEntityCriticalityServiceType,
 } from "Common/Server/Services/SecurityEntityCriticalityService";
@@ -1687,6 +1732,22 @@ import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityProtectedEntity from "Common/Models/DatabaseModels/SecurityProtectedEntity";
 import SecurityEntityRisk from "Common/Models/DatabaseModels/SecurityEntityRisk";
+import DataSecurityAPI from "Common/Server/API/DataSecurityAPI";
+import DataStoreFinding from "Common/Models/DatabaseModels/DataStoreFinding";
+import DataStoreAccess from "Common/Models/DatabaseModels/DataStoreAccess";
+import DataStoreFeed from "Common/Models/DatabaseModels/DataStoreFeed";
+import DataStoreOwnerUser from "Common/Models/DatabaseModels/DataStoreOwnerUser";
+import DataStoreOwnerTeam from "Common/Models/DatabaseModels/DataStoreOwnerTeam";
+import DataStoreOwnerRule from "Common/Models/DatabaseModels/DataStoreOwnerRule";
+import DataStoreLabelRule from "Common/Models/DatabaseModels/DataStoreLabelRule";
+import DataSecurityFlow from "Common/Models/DatabaseModels/DataSecurityFlow";
+import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
+import DataSecurityIssueFeed from "Common/Models/DatabaseModels/DataSecurityIssueFeed";
+import DataSecurityScan from "Common/Models/DatabaseModels/DataSecurityScan";
+import DataSecurityCustomDataType from "Common/Models/DatabaseModels/DataSecurityCustomDataType";
+import DataSecurityCheckSetting from "Common/Models/DatabaseModels/DataSecurityCheckSetting";
+import DataSecurityResidencyRule from "Common/Models/DatabaseModels/DataSecurityResidencyRule";
+import DataSecuritySetting from "Common/Models/DatabaseModels/DataSecuritySetting";
 import SecurityEntityCriticality from "Common/Models/DatabaseModels/SecurityEntityCriticality";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
@@ -4212,6 +4273,143 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<SecurityProtectedEntity, SecurityProtectedEntityServiceType>(
         SecurityProtectedEntity,
         SecurityProtectedEntityService,
+      ).getRouter(),
+    );
+
+    /*
+     * Data Security (DSPM): stores and what was found in them, who can
+     * reach them, where their data goes, issues, scans, and the project's
+     * own data types, checks, residency rules, owners and settings.
+     */
+    // Data stores' CRUD, with the Overview, compliance and action routes.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new DataSecurityAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataStoreFinding, DataStoreFindingServiceType>(
+        DataStoreFinding,
+        DataStoreFindingService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataStoreAccess, DataStoreAccessServiceType>(
+        DataStoreAccess,
+        DataStoreAccessService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataStoreFeed, DataStoreFeedServiceType>(
+        DataStoreFeed,
+        DataStoreFeedService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataStoreOwnerUser, DataStoreOwnerUserServiceType>(
+        DataStoreOwnerUser,
+        DataStoreOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataStoreOwnerTeam, DataStoreOwnerTeamServiceType>(
+        DataStoreOwnerTeam,
+        DataStoreOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataStoreOwnerRule, DataStoreOwnerRuleServiceType>(
+        DataStoreOwnerRule,
+        DataStoreOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataStoreLabelRule, DataStoreLabelRuleServiceType>(
+        DataStoreLabelRule,
+        DataStoreLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataSecurityFlow, DataSecurityFlowServiceType>(
+        DataSecurityFlow,
+        DataSecurityFlowService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataSecurityIssue, DataSecurityIssueServiceType>(
+        DataSecurityIssue,
+        DataSecurityIssueService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataSecurityIssueFeed, DataSecurityIssueFeedServiceType>(
+        DataSecurityIssueFeed,
+        DataSecurityIssueFeedService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataSecurityScan, DataSecurityScanServiceType>(
+        DataSecurityScan,
+        DataSecurityScanService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        DataSecurityCustomDataType,
+        DataSecurityCustomDataTypeServiceType
+      >(
+        DataSecurityCustomDataType,
+        DataSecurityCustomDataTypeService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        DataSecurityCheckSetting,
+        DataSecurityCheckSettingServiceType
+      >(DataSecurityCheckSetting, DataSecurityCheckSettingService).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        DataSecurityResidencyRule,
+        DataSecurityResidencyRuleServiceType
+      >(
+        DataSecurityResidencyRule,
+        DataSecurityResidencyRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataSecuritySetting, DataSecuritySettingServiceType>(
+        DataSecuritySetting,
+        DataSecuritySettingService,
       ).getRouter(),
     );
 

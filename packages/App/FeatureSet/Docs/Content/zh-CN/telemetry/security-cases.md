@@ -229,7 +229,7 @@ OneUptime 会就案例上的五件事通知相关人员。无需任何人做任�
 | 安全案例优先级 | 项目的某个案例优先级，例如严重或 High |
 | 安全案例标题、安全案例描述 | 案例标题或描述中包含的文本，或其开头、结尾的文本 |
 | 安全案例状态 | 项目的某个案例状态，例如新增或已关闭 |
-| 安全案例来源 | Detection Rule、Threat Intel、Connected Product、实体风险 或 Manual |
+| 安全案例来源 | Detection Rule、Threat Intel、Connected Product、实体风险、数据安全或 Manual |
 | 安全案例标签 | 案例的标签 |
 
 除任务通知外，每种通知都会发布到案例当时所匹配的每条规则的频道。一条 **安全案例优先级** 包含 **严重** 和 **高** 中任意一项的规则，会在 High 和 Critical 案例打开时发布它们，并在 Medium 案例提升到 High 时发布它。安全案例永远不会拥有专属频道。
@@ -268,6 +268,7 @@ OneUptime 会就案例上的五件事通知相关人员。无需任何人做任�
 | 调查 | Look up entity activity | 统计每个实体在最近一段时间内的安全事件，并记录到案例上 |
 | 调查 | Preserve the evidence | 保留案例背后请求的会话回放，并把它们的追踪和异常记录到案例上 |
 | 通知 | Email people | 通过电子邮件向用户和团队发送案例摘要及其链接 |
+| 通知 | Notify data store owners | 通过电子邮件向案例涉及的每个数据存储的所有者发送案例链接 |
 | 通知 | Post to Slack | 把案例摘要发布到某个 Slack 频道 |
 | 通知 | Post to Microsoft Teams | 把案例摘要发布到某个 Microsoft Teams 频道 |
 | 通知 | Post a status page announcement | 把你撰写的公告发布到你选择的状态页 |
@@ -280,6 +281,8 @@ OneUptime 会就案例上的五件事通知相关人员。无需任何人做任�
 | 遏制 | Unsuspend the user in Okta | 在 Okta 中取消暂停案例涉及的用户 |
 | 遏制 | Lift containment in CrowdStrike | 解除 CrowdStrike Falcon 对案例涉及的主机施加的网络遏制 |
 | 遏制 | Release the device in Microsoft Defender | 在 Microsoft Defender for Endpoint 中将案例涉及的主机解除隔离 |
+| 遏制 | 阻止对数据存储的公开访问 | 通过其云连接，阻止对案例涉及的每个存储桶或存储账户的公开访问 |
+| 遏制 | 撤销数据存储共享 | 通过其云连接，停止在你的账户之外共享案例涉及的每个数据库的快照 |
 | 自动化 | Send a webhook | 把案例以 JSON 格式 POST 到某个 URL |
 | 自动化 | Run a workflow | 以案例作为输入，启动一个 OneUptime 工作流 |
 | 自动化 | Run a runbook | 以案例作为输入，启动你的某个 OneUptime 运行手册 |
@@ -287,7 +290,7 @@ OneUptime 会就案例上的五件事通知相关人员。无需任何人做任�
 
 一个剧本最多有 25 个步骤。它们按顺序运行，每个步骤在前一个完成后才开始。每个步骤还可以设置：
 
-- **需要批准**：在运行到该步骤之前暂停，直到有人在案例上批准它。切断某人访问的四个步骤始终如此，除非 Security Admin 将其关闭。**Run a runbook** 和 **Post a status page announcement** 默认开启批准，因为前者会在你的系统上执行命令，后者会面向你的客户发布内容；添加该步骤的人可以将其关闭。
+- **需要批准**：在运行到该步骤之前暂停，直到有人在案例上批准它。切断某人访问的四个步骤始终如此，除非 Security Admin 将其关闭。**Run a runbook**、**Post a status page announcement** 和两个数据存储步骤默认开启批准，因为它们会在你的系统上执行命令、面向你的客户发布内容或更改云的设置；添加该步骤的人可以将其关闭。
 - **仅在威胁情报匹配时**：除非本次运行中之前的 **用威胁情报检查实体** 步骤发现了已知指标，否则跳过该步骤。
 - **失败时继续**：即使该步骤失败，也继续运行下一个步骤。关闭此项时，失败的步骤会停止本次运行。
 
@@ -302,20 +305,23 @@ OneUptime 会就案例上的五件事通知相关人员。无需任何人做任�
 
 ### 遏制
 
-遏制类步骤通过与该产品的 [安全事件连接](/docs/telemetry/security-events#连接安全产品) 执行操作，这个连接需要的不只是读取权限：
+遏制类步骤通过一个需要的不只是读取权限的连接执行操作：与该产品的 [安全事件连接](/docs/telemetry/security-events#连接安全产品)，或数据存储的 [云连接](/docs/telemetry/cloud-accounts)：
 
 | 步骤 | 连接 | 所需权限 |
 | --- | --- | --- |
 | Suspend the user in Okta、End the user's Okta sessions、Unsuspend the user in Okta | Okta System Log | 一个有权管理用户的 API 令牌 |
 | Contain the host in CrowdStrike、Lift containment in CrowdStrike | CrowdStrike Falcon | 一个具有 Hosts 写入范围的 API 客户端 |
 | Isolate the device in Microsoft Defender、Release the device in Microsoft Defender | Microsoft Defender XDR | 一个具有 Machine.Isolate 权限的应用 |
+| 阻止对数据存储的公开访问、撤销数据存储共享 | 数据存储的云连接 | 已开启 **数据安全响应**，并重新运行其设置命令 |
 
-遏制类步骤只作用于案例涉及的用户或主机，绝不会作用于案例提到的所有用户或主机：
+用户或主机类步骤只作用于案例涉及的用户或主机，绝不会作用于案例提到的所有用户或主机：
 
 - 案例中某个检测分组所依据的值，例如“不可能的旅行”规则分组所依据的账户，或已连接产品的警报中提到的主机。
 - 案例中被你的威胁情报列为指标的用户或主机。
 
 按地址分组的案例，例如针对你的 VPN 的暴力破解，并不涉及以上任何一种：它的遏制类步骤会被跳过，它尝试过的账户和它攻击的网关都不会被触及。一个步骤最多作用于 10 个用户或主机。它会按名称在产品中查找每一个，并在运行上说明对每一个做了什么：已完成、早已完成、未找到、被拒绝或受保护。
+
+两个数据存储步骤作用于案例涉及的数据存储，最多 10 个：案例所并入的数据安全问题的数据存储，以及检测据以对案例分组的任何数据存储。它们不会触及标记为 **有意公开** 的数据存储，只更改数据存储的共享方式而绝不更改其数据，并在运行上说明对每个数据存储做了什么（参见 [消除暴露](/docs/data-security/integrations#消除暴露)）。
 
 #### 受保护的实体
 

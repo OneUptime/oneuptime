@@ -10,9 +10,12 @@ import Alert from "../../../../Models/DatabaseModels/Alert";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import TelemetryException from "../../../../Models/DatabaseModels/TelemetryException";
 import CodeFixTaskContext, {
+  CodeHostPullRequestTaskContext,
+  getCodeHostPullRequestTaskContext,
   getGitHubTaskContext,
   GitHubTaskContext,
 } from "../../../../Types/AI/CodeFixTaskContext";
+import CodeRepositoryType from "../../../../Types/CodeRepository/CodeRepositoryType";
 import CodeFixTaskType, {
   CodeFixTaskTypeHelper,
 } from "../../../../Types/AI/CodeFixTaskType";
@@ -249,6 +252,29 @@ export default class CodeTaskOrigin {
           : CodeTaskOriginType.GitHubIssue,
         label: `#${number}`,
         url: `https://github.com/${encodeURIComponent(github.organizationName)}/${encodeURIComponent(github.repositoryName)}/${isPullRequest ? "pull" : "issues"}/${number}`,
+      };
+    }
+
+    /*
+     * A pull request on GitLab ("!12", a merge request) or on Forgejo or
+     * Gitea ("#12"): what its production review is of, linked to its page
+     * when the task knows it.
+     */
+    const onOtherHost: CodeHostPullRequestTaskContext | null =
+      getCodeHostPullRequestTaskContext(data.taskContext);
+
+    if (onOtherHost) {
+      const isGitLab: boolean =
+        onOtherHost.provider === CodeRepositoryType.GitLab;
+
+      return {
+        type: isGitLab
+          ? CodeTaskOriginType.GitLabMergeRequest
+          : CodeTaskOriginType.CodeHostPullRequest,
+        label: `${isGitLab ? "!" : "#"}${onOtherHost.pullRequestNumber}`,
+        ...(onOtherHost.pullRequestUrl
+          ? { url: onOtherHost.pullRequestUrl }
+          : {}),
       };
     }
 

@@ -32,7 +32,7 @@ I läget **Skrivskyddad** erbjuds modellen aldrig åtgärderna, så samtalet bar
 | --- | --- |
 | Vilken sida som helst | Klicka på **Fråga AI** i sidhuvudet, eller tryck `Ctrl` + `I` (`Cmd` + `I` på en Mac). Medan du skriver i en textruta eller en redigerare förblir tangenterna redigerarens kortkommando för kursiv. |
 | Kommandopaletten | Tryck `Ctrl` + `K` (`Cmd` + `K` på en Mac) och välj **Fråga AI**. |
-| Ett felmönster i loggarna, eller ett diagrams fynd | Klicka på **Explain with AI**: Fråga AI öppnas med bevisen som en fråga du kan redigera innan du skickar den. |
+| Ett felmönster i loggarna, eller ett diagrams fynd | Klicka på **Förklara med AI**: Fråga AI öppnas med bevisen som en fråga du kan redigera innan du skickar den. |
 | Produktmenyn | Öppna **Produkter → AI → Chat**. Fråga AI öppnas över sidan du var på. Varje samtal har en egen adress, så du kan bokmärka det och komma tillbaka till det. |
 
 Fråga AI öppnas mitt på skärmen, över sidan du var på, och på en telefon fyller den hela skärmen. Tryck på `Esc`, eller klicka bredvid, för att gå tillbaka till sidan. Samtalet stannar där du lämnade det: öppna Fråga AI igen för att fortsätta. Stänger du den medan den fortfarande svarar säger en påminnelse i hörnet när svaret är klart, och öppnar det.
@@ -87,7 +87,7 @@ Vad Fråga AI kan göra när ett läge tillåter det:
 - Lägga en intern anteckning på en incident eller ett larm. Interna anteckningar visas aldrig på en statussida.
 - Publicera en offentlig statusuppdatering på en incident. Det är en separat åtgärd, eftersom den meddelar statussidans prenumeranter.
 - Larma en jourpolicy, köra en runbook eller starta en AI-undersökning av en incident eller larm.
-- Föreslå en kodändring: committa till en ny gren i ett anslutet repositorium och öppna en pull request. Den skriver aldrig till standardgrenen eller en skyddad gren, så en människa slår fortfarande ihop ändringen.
+- Föreslå en kodändring: committa till en ny gren i ett repositorium på GitHub, GitLab, Forgejo eller Gitea och öppna en pull request (en merge request på GitLab). Den skriver aldrig till standardgrenen eller en skyddad gren, så en människa slår fortfarande ihop ändringen.
 
 Be om en incident när användare påverkas, och om ett larm när något först behöver ditt teams uppmärksamhet, till exempel en värds minne som bara stiger. Båda skapas en gång och övervakar ingenting: för att larmas varje gång en värds minne går över 75 %, skapar du en [värdmonitor](/docs/monitor/host-monitor#färdiga-larmmallar) från dess minnesmall, med 75 % som tröskel. Fråga AI kan inte skapa monitorer. Ombedd om en säger den det, kontrollerar det aktuella värdet och erbjuder sig att skapa ett larm om det redan är över.
 

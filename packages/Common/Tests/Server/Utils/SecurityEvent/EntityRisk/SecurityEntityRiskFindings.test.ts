@@ -2,6 +2,7 @@ import {
   IMPORTED_ALERT_RISK_LIMIT,
   SecurityRiskFinding,
   importedAlertRiskEntities,
+  riskFindingsForDataSecurityIssues,
   riskFindingsForImportedAlerts,
   riskFindingsForIndicatorMatches,
   riskFindingsForRuleMatches,
@@ -19,6 +20,7 @@ import OcsfSeverity, {
 import SigmaRule from "../../../../../Types/SecurityEvent/SigmaRule";
 import SecurityDetectionSource from "../../../../../Types/SecurityCase/SecurityDetectionSource";
 import { SecurityEntityType } from "../../../../../Types/SecurityCase/SecurityEntity";
+import SecuritySeverity from "../../../../../Types/SecuritySeverity";
 import SigmaRuleParser from "../../../../../Utils/SecurityEvent/Sigma/SigmaRuleParser";
 import { describe, expect, test } from "@jest/globals";
 
@@ -186,6 +188,22 @@ describe("a detection rule's matches", () => {
     expect(byShape[0]!.entities).toEqual([
       { type: SecurityEntityType.IpAddress, value: "192.0.2.10" },
     ]);
+  });
+
+  test("a group on a data store adds to the store, typed by its name", () => {
+    const store: string =
+      "data-store:cloud:aws:AWS S3 Bucket:arn:aws:s3:::orders-exports";
+    const findings: Array<SecurityRiskFinding> = riskFindingsForRuleMatches({
+      rule: rule({ groupByField: "oneuptime.data_store.entity" }),
+      parsedRule: sigma("high"),
+      matchedGroups: [group({ groupValue: store })],
+      seenAt: SEEN_AT,
+    });
+
+    expect(findings[0]!.entities).toEqual([
+      { type: SecurityEntityType.DataStore, value: store },
+    ]);
+    expect(findings[0]!.points).toBe(50);
   });
 
   test("a correlation's group adds to each value it groups by, typed by each field", () => {
@@ -487,6 +505,102 @@ describe("a connected product's imported alerts", () => {
         connection: new SecurityEventConnection(),
         productName: "CrowdStrike Falcon",
         events: [event()],
+      }),
+    ).toEqual([]);
+  });
+});
+
+describe("Data Security's issues", () => {
+  const STORE_KEY: string =
+    "cloud:aws:AWS S3 Bucket:arn:aws:s3:::orders-exports";
+
+  test("each issue adds its severity's points to the store it was found on, each check a source of its own", () => {
+    const findings: Array<SecurityRiskFinding> =
+      riskFindingsForDataSecurityIssues({
+        projectId: PROJECT_ID,
+        issues: [
+          {
+            checkId: "public-read-sensitive",
+            title: "Anyone can read it, and it holds card numbers",
+            severity: SecuritySeverity.Critical,
+            dataStoreKey: STORE_KEY,
+            seenAt: SEEN_AT,
+          },
+          {
+            checkId: "Logging-Off",
+            title: "Nobody records who reads it",
+            severity: SecuritySeverity.Medium,
+            dataStoreKey: STORE_KEY,
+            seenAt: SEEN_AT,
+          },
+        ],
+      });
+
+    expect(
+      findings.map((finding: SecurityRiskFinding) => {
+        return {
+          source: finding.source,
+          sourceKey: finding.sourceKey,
+          sourceName: finding.sourceName,
+          severity: finding.severity,
+          points: finding.points,
+          entities: finding.entities,
+          seenAt: finding.seenAt,
+        };
+      }),
+    ).toEqual([
+      {
+        source: SecurityDetectionSource.DataSecurity,
+        sourceKey: "data-security:public-read-sensitive",
+        sourceName: "Anyone can read it, and it holds card numbers",
+        severity: OcsfSeverity.Critical,
+        points: 75,
+        entities: [
+          {
+            type: SecurityEntityType.DataStore,
+            value: `data-store:${STORE_KEY}`,
+          },
+        ],
+        seenAt: SEEN_AT,
+      },
+      {
+        source: SecurityDetectionSource.DataSecurity,
+        sourceKey: "data-security:logging-off",
+        sourceName: "Nobody records who reads it",
+        severity: OcsfSeverity.Medium,
+        points: 25,
+        entities: [
+          {
+            type: SecurityEntityType.DataStore,
+            value: `data-store:${STORE_KEY}`,
+          },
+        ],
+        seenAt: SEEN_AT,
+      },
+    ]);
+    expect(findings[0]!.projectId).toBe(PROJECT_ID);
+  });
+
+  test("an issue without a check or a store names nothing, and adds nothing", () => {
+    expect(
+      riskFindingsForDataSecurityIssues({
+        projectId: PROJECT_ID,
+        issues: [
+          {
+            checkId: "",
+            title: "No check",
+            severity: SecuritySeverity.High,
+            dataStoreKey: STORE_KEY,
+            seenAt: SEEN_AT,
+          },
+          {
+            checkId: "public-read-sensitive",
+            title: "No store",
+            severity: SecuritySeverity.High,
+            dataStoreKey: "  ",
+            seenAt: SEEN_AT,
+          },
+        ],
       }),
     ).toEqual([]);
   });

@@ -585,13 +585,20 @@ describe("each host's words and marks", () => {
     ).toBe("{{count}} offener Merge Request");
   });
 
-  test("every host but GitHub says what works on GitHub only", () => {
+  test("every host but GitHub says what works on GitHub only: commands from comments", () => {
     for (const note of Object.values(CODE_HOST_GITHUB_ONLY_NOTE)) {
       expect(note).toContain("GitHub repositories only");
+      // Production reviews are every host's with pull requests now.
+      expect(note).not.toContain("production reviews work");
       expect((englishLocale as unknown as Record<string, string>)[note]).toBe(
         note,
       );
     }
+
+    // A Git server has no pull requests, so no production review either.
+    expect(CODE_HOST_GITHUB_ONLY_NOTE[CodeRepositoryType.Git]).toContain(
+      "so there is no production review",
+    );
   });
 });
 
@@ -1176,7 +1183,7 @@ describe("a repository's connection, in its settings", () => {
       "Zugriffstoken, endet auf …ab12",
     ]);
     expect(screen.getByTestId("code-repository-github-only")).toHaveTextContent(
-      "Befehle aus GitLab-Kommentaren und Produktionsprüfungen funktionieren vorerst nur in GitHub-Repositorys.",
+      "Befehle aus GitLab-Kommentaren funktionieren vorerst nur in GitHub-Repositorys.",
     );
   });
 
@@ -1767,8 +1774,8 @@ describe("a repository's menu, on its host", () => {
     });
   }
 
-  test("off GitHub, Production Reviews leaves the menu once the host is read", async () => {
-    hostedAt(CodeRepositoryType.GitLab);
+  test("on a Git server, which has no pull requests, Production Reviews leaves the menu once the host is read", async () => {
+    hostedAt(CodeRepositoryType.Git);
 
     draw(<CodeRepositorySideMenu modelId={new ObjectID(REPOSITORY_ID)} />);
 
@@ -1784,7 +1791,25 @@ describe("a repository's menu, on its host", () => {
     );
   });
 
-  test("on GitHub - or when the read fails - it stays, as it always was", async () => {
+  test("on GitHub, GitLab, Forgejo and Gitea - or when the read fails - it stays", async () => {
+    for (const provider of [
+      CodeRepositoryType.GitHub,
+      CodeRepositoryType.GitLab,
+      CodeRepositoryType.Forgejo,
+    ]) {
+      hostedAt(provider);
+
+      draw(<CodeRepositorySideMenu modelId={new ObjectID(REPOSITORY_ID)} />);
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(menuTitles()).toContain("Production Reviews");
+
+      cleanup();
+      jest.restoreAllMocks();
+    }
+
     hostedAt(CodeRepositoryType.GitHub);
 
     draw(<CodeRepositorySideMenu modelId={new ObjectID(REPOSITORY_ID)} />);

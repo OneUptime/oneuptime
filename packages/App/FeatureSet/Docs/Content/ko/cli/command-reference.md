@@ -195,6 +195,7 @@ oneuptime <resource> count [--query <json>] [-o <format>]
 | 예약된 유지 관리 | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |
 | 팀과 온콜 | `team`, `on-call-policy` |
 | 보안 | `security-case`, `security-case-evidence`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-case-task`, `security-detection`, `security-playbook` |
+| 데이터 보안 | `data-store`, `data-store-finding`, `data-store-access-entry`, `data-flow`, `data-security-issue`, `data-security-scan`, `custom-data-type`, `check-setting`, `residency-rule`, `data-security-setting` |
 | 레이블 | `label` |
 
 텔레메트리는 `list`, `create`, `count`를 받습니다.
