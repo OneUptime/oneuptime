@@ -471,6 +471,107 @@ describe("a picker of one file", () => {
     expect(screen.getByText("new.png")).toBeInTheDocument();
   });
 
+  /*
+   * react-dropzone's open() clicks the picker's file input, and does
+   * nothing when there is none: a picker of one holding its file draws no
+   * prompt, but keeps its input in the page for Replace.
+   */
+  test("holding a file, shows no empty drop zone, and keeps its chooser for Replace", () => {
+    const click: jest.SpiedFunction<() => void> = jest
+      .spyOn(HTMLInputElement.prototype, "click")
+      .mockImplementation(() => {});
+
+    try {
+      const { container } = render(
+        <FilePicker
+          mimeTypes={[MimeType.png]}
+          placeholder="Upload a file"
+          initialValue={heldFile(
+            "contract.png",
+            "aaaaaaaa-0000-4000-8000-000000000001",
+          )}
+          dataTestId="picker"
+        />,
+      );
+
+      // The drop zone is out of sight: no dashed box with nothing in it.
+      expect(screen.getByTestId("picker").className).toBe("sr-only");
+      expect(screen.getByTestId("picker").className).not.toContain(
+        "border-dashed",
+      );
+
+      const input: HTMLInputElement | null = container.querySelector(
+        "input[type='file']",
+      );
+
+      expect(input).not.toBeNull();
+
+      fireEvent.click(screen.getByText("Replace"));
+
+      expect(click).toHaveBeenCalledTimes(1);
+      expect(click.mock.contexts[0]).toBe(input);
+    } finally {
+      click.mockRestore();
+    }
+  });
+
+  test("a file chosen with Replace that it does not take is refused under the file", async () => {
+    render(
+      <FilePicker
+        mimeTypes={[MimeType.png]}
+        initialValue={heldFile(
+          "contract.png",
+          "aaaaaaaa-0000-4000-8000-000000000001",
+        )}
+        dataTestId="picker"
+      />,
+    );
+
+    await drop(dropZone("picker"), [makeFile("notes.exe", "application/x-msdownload")]);
+
+    expect(screen.getByTestId("file-picker-error")).toHaveTextContent(
+      '"notes.exe" is not a type of file this field takes.',
+    );
+    // It still holds the file it had.
+    expect(screen.getByText("contract.png")).toBeInTheDocument();
+  });
+
+  test("an empty picker of one shows its prompt, whose label opens the chooser", () => {
+    const { container } = render(
+      <FilePicker
+        mimeTypes={[MimeType.png]}
+        placeholder="Upload a file"
+        dataTestId="picker"
+      />,
+    );
+
+    const input: HTMLInputElement | null = container.querySelector(
+      "input[type='file']",
+    );
+
+    expect(screen.getByTestId("picker").className).toContain("border-dashed");
+    expect(
+      (screen.getByText("Upload a file").closest("label") as HTMLLabelElement)
+        .htmlFor,
+    ).toBe(input!.id);
+  });
+
+  test("a full picker of several has no chooser to open", () => {
+    const { container } = render(
+      <FilePicker
+        isMultiFilePicker={true}
+        maxFiles={1}
+        mimeTypes={[MimeType.png]}
+        initialValue={[
+          heldFile("a.png", "aaaaaaaa-0000-4000-8000-000000000001"),
+        ]}
+      />,
+    );
+
+    expect(screen.getByTestId("file-picker-full")).toBeInTheDocument();
+    expect(container.querySelector("input[type='file']")).toBeNull();
+  });
+
   test("Remove empties it and brings the prompt back", () => {
     const onChange: jest.Mock = jest.fn();
 

@@ -565,10 +565,14 @@ const FilePicker: FunctionComponent<ComponentProps> = (
       return (
         <div
           key={key}
-          className="flex w-full items-center justify-between gap-4 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm"
+          className="flex w-full flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm"
         >
-          {/* A long name wraps in its row rather than push its buttons off. */}
-          <div className="flex min-w-0 items-start gap-3 text-left">
+          {/*
+           * A long name wraps in its row rather than push its buttons off;
+           * where the row is too narrow for both - a phone - the buttons
+           * move under the name, which keeps the row's width.
+           */}
+          <div className="flex min-w-0 flex-1 basis-48 items-start gap-3 text-left">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded border border-gray-200 bg-gray-50">
               <Icon icon={IconProp.File} className="text-gray-500" />
             </div>
@@ -584,7 +588,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
               )}
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="ms-auto flex shrink-0 items-center gap-2">
             {/*
              * A picker of one file shows no drop zone while it holds one:
              * Replace opens the file chooser at once.
@@ -624,6 +628,18 @@ const FilePicker: FunctionComponent<ComponentProps> = (
   // A picker of several files that holds as many as it may.
   const isFull: boolean = maxFiles !== null && filesModel.length >= maxFiles;
 
+  // The prompt to choose or drop files: an empty picker, or one of several.
+  const showsPrompt: boolean =
+    !isFull && (filesModel.length === 0 || Boolean(props.isMultiFilePicker));
+
+  /*
+   * A picker of one that holds its file shows the file alone: no empty drop
+   * zone above it. Its file chooser stays in the page, out of sight, for
+   * Replace to open - react-dropzone's open() clicks the input, and does
+   * nothing when there is none.
+   */
+  const isCollapsed: boolean = !isFull && !showsPrompt;
+
   return (
     <div className="space-y-4 w-full">
       <div
@@ -632,7 +648,11 @@ const FilePicker: FunctionComponent<ComponentProps> = (
           props.onFocus?.();
         }}
         data-testid={props.dataTestId}
-        className={`flex w-full justify-center rounded-md border-2 border-dashed px-6 py-8 transition ${props.readOnly ? "cursor-not-allowed bg-gray-50 border-gray-200" : "bg-white border-gray-300"} ${hasActiveUploads ? "ring-1 ring-indigo-200" : ""} ${isDragActive ? "border-indigo-400" : ""}`}
+        className={
+          isCollapsed
+            ? "sr-only"
+            : `flex w-full justify-center rounded-md border-2 border-dashed px-6 py-8 transition ${props.readOnly ? "cursor-not-allowed bg-gray-50 border-gray-200" : "bg-white border-gray-300"} ${hasActiveUploads ? "ring-1 ring-indigo-200" : ""} ${isDragActive ? "border-indigo-400" : ""}`
+        }
       >
         <div
           {...getRootProps({
@@ -641,6 +661,22 @@ const FilePicker: FunctionComponent<ComponentProps> = (
             "aria-busy": hasActiveUploads || isLoading,
           })}
         >
+          {/*
+           * The file chooser, whenever the picker can take a file: the
+           * prompt's label opens it, and so does Replace.
+           */}
+          {!isFull && (
+            <input
+              tabIndex={props.tabIndex}
+              {...(getInputProps() as any)}
+              id={inputId}
+              name="file-upload"
+              type="file"
+              aria-labelledby={props.ariaLabelledby}
+              aria-describedby={props.ariaDescribedby}
+              className="sr-only"
+            />
+          )}
           {isFull && (
             <>
               <p
@@ -658,7 +694,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
               )}
             </>
           )}
-          {!isFull && (filesModel.length === 0 || props.isMultiFilePicker) && (
+          {showsPrompt && (
             <>
               <div className="flex flex-col items-center space-y-2">
                 <svg
@@ -676,7 +712,10 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                   ></path>
                 </svg>
                 <div className="flex flex-col items-center text-sm text-gray-600 space-y-1">
-                  <label className="relative cursor-pointer rounded-md bg-white px-4 py-2 font-medium text-indigo-600 hover:text-indigo-500">
+                  <label
+                    htmlFor={inputId}
+                    className="relative cursor-pointer rounded-md bg-white px-4 py-2 font-medium text-indigo-600 hover:text-indigo-500"
+                  >
                     <span>
                       {translator.translateText(
                         props.placeholder
@@ -686,16 +725,6 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                             : "Upload files",
                       )}
                     </span>
-                    <input
-                      tabIndex={props.tabIndex}
-                      {...(getInputProps() as any)}
-                      id={inputId}
-                      name="file-upload"
-                      type="file"
-                      aria-labelledby={props.ariaLabelledby}
-                      aria-describedby={props.ariaDescribedby}
-                      className="sr-only"
-                    />
                   </label>
                   <p className="text-gray-500">
                     {translator.translateText(
@@ -819,6 +848,19 @@ const FilePicker: FunctionComponent<ComponentProps> = (
           </p>
           <div className="flex flex-wrap gap-4">{getThumbs()}</div>
         </div>
+      )}
+      {/*
+       * A picker of one holding its file has no prompt to say why a file
+       * chosen with Replace was refused: it says so here, under the file.
+       */}
+      {isCollapsed && error && (
+        <p
+          className="text-xs text-red-500 font-medium text-left"
+          role="alert"
+          data-testid="file-picker-error"
+        >
+          {error}
+        </p>
       )}
       {props.error && (
         <p data-testid="error-message" className="text-sm text-red-400">

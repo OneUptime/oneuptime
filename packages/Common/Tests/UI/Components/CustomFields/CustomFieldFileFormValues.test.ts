@@ -132,6 +132,15 @@ describe("buildCustomFieldFormFields: a file field's input", () => {
     expect(files!.maxFiles).toBe(CUSTOM_FIELD_MAX_FILES);
   });
 
+  test("is found by its field's name, as the record's card finds its files", () => {
+    const [file, files]: Array<Field<JSONObject>> = buildCustomFieldFormFields({
+      definitions: [FILE_FIELD, FILES_FIELD],
+    });
+
+    expect(file!.dataTestId).toBe(`custom-field-picker-${FILE_FIELD.name}`);
+    expect(files!.dataTestId).toBe(`custom-field-picker-${FILES_FIELD.name}`);
+  });
+
   test("a field of another kind is no picker", () => {
     const [text]: Array<Field<JSONObject>> = buildCustomFieldFormFields({
       definitions: [{ name: "Owner", customFieldType: CustomFieldType.Text }],
@@ -139,6 +148,7 @@ describe("buildCustomFieldFormFields: a file field's input", () => {
 
     expect(text!.fileTypes).toBeUndefined();
     expect(text!.fileHint).toBeUndefined();
+    expect(text!.dataTestId).toBeUndefined();
   });
 });
 

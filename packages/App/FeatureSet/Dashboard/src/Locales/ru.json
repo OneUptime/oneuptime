@@ -17991,7 +17991,7 @@
   "Uploaded files": "Загруженные файлы",
   "Uploaded image": "Uploaded image",
   "Uploading failed for good, so recording stopped.": "Выгрузка окончательно не удалась, поэтому запись остановлена.",
-  "Uploading files": "Uploading files",
+  "Uploading files": "Загрузка файлов",
   "Uploading started; the buffered pre-roll was flushed.": "Выгрузка началась; буферизованная запись перед событием отправлена.",
   "Uploading stopped for good on this page.": "На этой странице выгрузка остановлена окончательно.",
   "Uploading stopped for good: the server rejected this recorder outright.": "Выгрузка остановлена окончательно: сервер полностью отклонил этот рекордер.",

@@ -17991,7 +17991,7 @@
   "Uploaded files": "Fichiers téléversés",
   "Uploaded image": "Uploaded image",
   "Uploading failed for good, so recording stopped.": "L'envoi a échoué définitivement, l'enregistrement s'est donc arrêté.",
-  "Uploading files": "Uploading files",
+  "Uploading files": "Envoi des fichiers en cours",
   "Uploading started; the buffered pre-roll was flushed.": "L'envoi a commencé ; le pré-enregistrement en tampon a été vidé.",
   "Uploading stopped for good on this page.": "L'envoi s'est arrêté définitivement sur cette page.",
   "Uploading stopped for good: the server rejected this recorder outright.": "L'envoi s'est arrêté définitivement : le serveur a rejeté cet enregistreur d'emblée.",

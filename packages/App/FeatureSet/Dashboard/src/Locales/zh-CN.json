@@ -17991,7 +17991,7 @@
   "Uploaded files": "已上传的文件",
   "Uploaded image": "Uploaded image",
   "Uploading failed for good, so recording stopped.": "上传彻底失败，因此录制已停止。",
-  "Uploading files": "Uploading files",
+  "Uploading files": "正在上传文件",
   "Uploading started; the buffered pre-roll was flushed.": "已开始上传；缓冲的前置录制内容已全部发送。",
   "Uploading stopped for good on this page.": "此页面的上传已彻底停止。",
   "Uploading stopped for good: the server rejected this recorder outright.": "上传已彻底停止：服务器直接拒绝了此录制器。",

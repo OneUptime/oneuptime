@@ -500,6 +500,8 @@ export const buildCustomFieldFormFields: BuildCustomFieldFormFieldsFunction =
             isMultiple:
               definition.customFieldType === CustomFieldType.MultipleFiles,
           });
+          // The picker, by its field's name: the card lists its files as custom-field-files-<name>.
+          field.dataTestId = `custom-field-picker-${definition.name}`;
         }
 
         /*
