@@ -73,6 +73,23 @@ interface DockerTemplateCase {
 
 const DOCKER_TEMPLATES: Array<DockerTemplateCase> = [
   {
+    id: "docker-host-stopped-reporting",
+    category: "Availability",
+    severity: "Critical",
+    /*
+     * The heartbeat: the agent's own container reports this every 30s, so
+     * the count is never 0 while the agent runs, and the `< 0` criteria can
+     * only fire through its no-data policy.
+     */
+    metricName: "container.memory.percent",
+    metricAlias: "samples_received",
+    aggregation: MetricsAggregationType.Count,
+    rollingTime: RollingTime.Past10Minutes,
+    offlineFilterType: FilterType.LessThan,
+    onlineFilterType: FilterType.GreaterThanOrEqualTo,
+    threshold: 0,
+  },
+  {
     id: "docker-high-cpu",
     category: "Resource",
     severity: "Warning",
@@ -224,6 +241,7 @@ describe("DockerAlertTemplates", () => {
   test("getDockerAlertTemplatesByCategory partitions the catalog by category", () => {
     const all: Array<DockerAlertTemplate> = getAllDockerAlertTemplates();
     const categories: Array<DockerAlertTemplateCategory> = [
+      "Availability",
       "Container",
       "Resource",
       "Host",

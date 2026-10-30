@@ -3,7 +3,9 @@ import MonitorStep from "./MonitorStep";
 import MonitorCriteria from "./MonitorCriteria";
 import MonitorCriteriaInstance from "./MonitorCriteriaInstance";
 import {
+  STOPPED_REPORTING_METRIC_ALIAS,
   buildHealthyCriteriaInstance,
+  buildStoppedReportingCriteriaInstances,
   buildUnhealthyCriteriaInstance,
 } from "./Recommendation/RecommendationCriteriaBuilder";
 import { FilterType, EvaluateOverTimeType } from "./CriteriaFilter";
@@ -11,7 +13,11 @@ import MonitorStepDockerMonitor from "./MonitorStepDockerMonitor";
 import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
 
-export type DockerAlertTemplateCategory = "Container" | "Resource" | "Host";
+export type DockerAlertTemplateCategory =
+  | "Availability"
+  | "Container"
+  | "Resource"
+  | "Host";
 
 export type DockerAlertTemplateSeverity = "Critical" | "Warning";
 
@@ -364,6 +370,53 @@ export function buildDockerDeltaMonitorConfig(args: {
 }
 
 // --- Template Definitions ---
+
+const hostStoppedReportingTemplate: DockerAlertTemplate = {
+  id: "docker-host-stopped-reporting",
+  name: "Host Stopped Reporting",
+  summary: "The Docker host sends no container metrics for 10 minutes.",
+  description:
+    "Alert when the Docker host sends no container metrics for ten minutes: the host is down, or the Docker agent stopped, lost its route to OneUptime or had its token revoked. A host with no other containers still reports, because the agent runs as a container itself and reports its own.",
+  category: "Availability",
+  severity: "Critical",
+  getMonitorStep: (args: DockerAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = STOPPED_REPORTING_METRIC_ALIAS;
+
+    return buildDockerMonitorStep({
+      dockerMonitor: buildDockerMonitorConfig({
+        hostIdentifier: args.hostIdentifier,
+        /*
+         * The heartbeat. docker_stats reports RUNNING containers only, so a
+         * host with nothing else running would look silent - except that
+         * the agent itself runs as a container (`oneuptime-docker-agent`,
+         * DockerAgent/docker-compose.yml, also under its systemd unit,
+         * which runs `docker compose up`) and the receiver excludes no
+         * image, so its own container.memory.percent arrives every 30s for
+         * as long as the agent runs. Ungrouped and counted: only a window
+         * with no row from any container is the breach.
+         */
+        metricName: "container.memory.percent",
+        metricAlias,
+        rollingTime: RollingTime.Past10Minutes,
+        aggregationType: MetricsAggregationType.Count,
+      }),
+      ...buildStoppedReportingCriteriaInstances({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        resourceNoun: "Docker host",
+        incidentTitle: `[Docker] Host Stopped Reporting${dockerTitleSuffix(args)}`,
+        incidentDescription: `OneUptime has received no container metrics from this Docker host for ten minutes, so its other monitors have nothing to evaluate either. Check, in order: whether the host is up, whether the \`oneuptime-docker-agent\` container is running and what its logs say (\`docker logs oneuptime-docker-agent\`), and whether the host can reach OneUptime with the agent's token. The incident resolves on its own once metrics arrive again.`,
+        criteriaName: "Host Stopped Reporting - No data for 10 minutes",
+        criteriaDescription:
+          "Triggers when the Docker host sends no container metrics for the whole ten-minute window.",
+      }),
+    });
+  },
+};
 
 const highCpuTemplate: DockerAlertTemplate = {
   id: "docker-high-cpu",
@@ -734,6 +787,7 @@ const containerUptimeTemplate: DockerAlertTemplate = {
 
 export function getAllDockerAlertTemplates(): Array<DockerAlertTemplate> {
   return [
+    hostStoppedReportingTemplate,
     highCpuTemplate,
     highMemoryTemplate,
     containerRestartLoopTemplate,
@@ -759,4 +813,13 @@ export function getDockerAlertTemplateById(
   return getAllDockerAlertTemplates().find((template: DockerAlertTemplate) => {
     return template.id === id;
   });
+}
+
+/*
+ * The template a NEW Docker monitor starts on: the host going silent. It is
+ * the one template that still speaks when every other one has stopped being
+ * evaluated, and it has no threshold to tune.
+ */
+export function getDockerDefaultAlertTemplateId(): string {
+  return hostStoppedReportingTemplate.id;
 }

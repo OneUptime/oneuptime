@@ -3,7 +3,9 @@ import MonitorStep from "./MonitorStep";
 import MonitorCriteria from "./MonitorCriteria";
 import MonitorCriteriaInstance from "./MonitorCriteriaInstance";
 import {
+  STOPPED_REPORTING_METRIC_ALIAS,
   buildHealthyCriteriaInstance,
+  buildStoppedReportingCriteriaInstances,
   buildUnhealthyCriteriaInstance,
 } from "./Recommendation/RecommendationCriteriaBuilder";
 import { FilterType, EvaluateOverTimeType } from "./CriteriaFilter";
@@ -14,6 +16,7 @@ import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
 
 export type KubernetesAlertTemplateCategory =
+  | "Availability"
   | "Workload"
   | "Node"
   | "ControlPlane"
@@ -363,6 +366,54 @@ export function buildKubernetesRatioMonitorConfig(args: {
 }
 
 // --- Template Definitions ---
+
+const clusterStoppedReportingTemplate: KubernetesAlertTemplate = {
+  id: "k8s-cluster-stopped-reporting",
+  name: "Cluster Stopped Reporting",
+  summary: "The cluster's agent sends no data for 10 minutes.",
+  // See etcdNoLeaderTemplate for why no backticks.
+  description:
+    "Alert when the cluster's agent sends no data for ten minutes: the agent was uninstalled or keeps crashing, its API key was revoked, it lost its route to OneUptime, or the cluster's API server stopped answering it. Reads k8s.node.condition_ready, which the agent's cluster receiver reports for every node every 30 seconds while it runs. Without this, every other template simply stops being evaluated when the data stops.",
+  category: "Availability",
+  severity: "Critical",
+  getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = STOPPED_REPORTING_METRIC_ALIAS;
+
+    return buildKubernetesMonitorStep({
+      kubernetesMonitor: buildKubernetesMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        /*
+         * The heartbeat. The k8s_cluster receiver (the agent's Deployment,
+         * configmap-deployment.yaml, collection_interval 30s) reports the
+         * Ready condition of EVERY node on every scrape whatever its value
+         * (True 1, False 0, Unknown -1), and a cluster always has a node,
+         * so this series is never empty while the agent runs. Ungrouped
+         * and counted: the whole cluster is one series, and only a window
+         * with no row at all is the breach.
+         */
+        metricName: "k8s.node.condition_ready",
+        metricAlias,
+        resourceScope: KubernetesResourceScope.Cluster,
+        rollingTime: RollingTime.Past10Minutes,
+        aggregationType: MetricsAggregationType.Count,
+      }),
+      ...buildStoppedReportingCriteriaInstances({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        resourceNoun: "Kubernetes cluster",
+        incidentTitle: `[K8s] Cluster Stopped Reporting - ${args.monitorName}`,
+        incidentDescription: `OneUptime has received no data from this cluster's agent for ten minutes, so the cluster's other monitors have nothing to evaluate either. Check, in order: whether the agent's pods are running and what their logs say (\`kubectl get pods\` in the namespace the agent was installed in), whether its API key is still valid, and whether the cluster can reach OneUptime. The incident resolves on its own once data arrives again.`,
+        criteriaName: "Cluster Stopped Reporting - No data for 10 minutes",
+        criteriaDescription:
+          "Triggers when the cluster's agent sends no node readiness data for the whole ten-minute window.",
+      }),
+    });
+  },
+};
 
 const crashLoopBackOffTemplate: KubernetesAlertTemplate = {
   id: "k8s-crashloopbackoff",
@@ -1520,6 +1571,7 @@ const podCpuLimitSaturationTemplate: KubernetesAlertTemplate = {
 
 export function getAllKubernetesAlertTemplates(): Array<KubernetesAlertTemplate> {
   return [
+    clusterStoppedReportingTemplate,
     crashLoopBackOffTemplate,
     podPendingTemplate,
     nodeNotReadyTemplate,
@@ -1558,4 +1610,13 @@ export function getKubernetesAlertTemplateById(
       return template.id === id;
     },
   );
+}
+
+/*
+ * The template a NEW Kubernetes monitor starts on: the cluster going silent.
+ * It is the one template that still speaks when every other one has stopped
+ * being evaluated, and it has no threshold to tune.
+ */
+export function getKubernetesDefaultAlertTemplateId(): string {
+  return clusterStoppedReportingTemplate.id;
 }

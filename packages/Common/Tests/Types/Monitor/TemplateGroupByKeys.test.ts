@@ -56,6 +56,11 @@ import ObjectID from "../../../Types/ObjectID";
  *
  * Each table is exhaustive both ways — a new template with no row here fails
  * loudly, which forces the group-by decision to be made deliberately.
+ *
+ * The one deliberate exception on every type is its Stopped Reporting
+ * template: a heartbeat over the WHOLE host, ungrouped on purpose. Grouped,
+ * a host that went silent would simply have no series left to evaluate, and
+ * the template could never fire (there is no absent-container injector).
  */
 
 interface GroupByExpectation {
@@ -66,7 +71,15 @@ interface GroupByExpectation {
 
 const CONTAINER_NAME_ATTRIBUTE: string = "resource.container.name";
 
+// The heartbeat templates, ungrouped on purpose (see above).
+const STOPPED_REPORTING_TEMPLATE_IDS: Array<string> = [
+  "docker-host-stopped-reporting",
+  "podman-host-stopped-reporting",
+  "host-stopped-reporting",
+];
+
 const EXPECTED_DOCKER_GROUP_BY: Array<GroupByExpectation> = [
+  { id: "docker-host-stopped-reporting", groupByAttributeKeys: [] },
   { id: "docker-high-cpu", groupByAttributeKeys: [CONTAINER_NAME_ATTRIBUTE] },
   {
     id: "docker-high-memory",
@@ -96,6 +109,7 @@ const EXPECTED_DOCKER_GROUP_BY: Array<GroupByExpectation> = [
  * deltas a counter, so there was no threshold that would have made it work.
  */
 const EXPECTED_PODMAN_GROUP_BY: Array<GroupByExpectation> = [
+  { id: "podman-host-stopped-reporting", groupByAttributeKeys: [] },
   { id: "podman-high-cpu", groupByAttributeKeys: [CONTAINER_NAME_ATTRIBUTE] },
   {
     id: "podman-high-memory",
@@ -114,6 +128,7 @@ const EXPECTED_PODMAN_GROUP_BY: Array<GroupByExpectation> = [
 
 const EXPECTED_HOST_GROUP_BY: Array<GroupByExpectation> = [
   // Host-scalar: one series per host, nothing to fan out over.
+  { id: "host-stopped-reporting", groupByAttributeKeys: [] },
   { id: "host-high-cpu", groupByAttributeKeys: [] },
   { id: "host-high-memory", groupByAttributeKeys: [] },
   { id: "host-high-load-average", groupByAttributeKeys: [] },
@@ -274,9 +289,13 @@ describe("Alert template group-by keys", () => {
    * mount, so both MUST be grouped. Asserted separately from the tables so a
    * bulk edit that blanks every expectation still fails.
    */
-  test("every Docker and Podman template is grouped, and by a resource-prefixed key", () => {
+  test("every Docker and Podman container template is grouped, and by a resource-prefixed key", () => {
     const containerTemplates: Array<DockerAlertTemplate | PodmanAlertTemplate> =
-      [...DOCKER_TEMPLATES, ...PODMAN_TEMPLATES];
+      [...DOCKER_TEMPLATES, ...PODMAN_TEMPLATES].filter(
+        (template: DockerAlertTemplate | PodmanAlertTemplate): boolean => {
+          return !STOPPED_REPORTING_TEMPLATE_IDS.includes(template.id);
+        },
+      );
 
     expect(containerTemplates.length).toBeGreaterThan(0);
 

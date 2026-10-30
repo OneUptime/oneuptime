@@ -353,6 +353,74 @@ export interface HealthyCriteriaArgs {
   treatNoDataAsZero?: boolean | undefined;
 }
 
+/*
+ * "<Resource> Stopped Reporting": the criteria pair of a heartbeat template.
+ *
+ * The infrastructure monitors read what an agent or a receiver sends. When
+ * it stops sending - the agent was stopped or removed, the machine it runs
+ * on went down, its token was revoked, the network to OneUptime broke, or
+ * the system it reads stopped answering - nothing arrives, and a threshold
+ * criteria has nothing to compare: it neither fires nor recovers, so the
+ * monitor silently keeps whatever status it last had. These templates make
+ * the silence itself the breach.
+ *
+ * The query each template pairs this with is a Count of one series the
+ * resource ALWAYS sends while it reports (chosen per type, and documented
+ * at the template), UNGROUPED, so the whole resource is one series and an
+ * empty window is "nothing arrived at all". The firing comparison
+ * (`< 0`) is unreachable on purpose - a Count is never negative - so the
+ * criteria only ever fires through its Trigger no-data policy. Recovery is
+ * "data again" (`>= 0`) on the sustained default, the same pair as
+ * DatabaseAlertTemplates' Engine Metrics Stopped.
+ */
+export const STOPPED_REPORTING_METRIC_ALIAS: string = "samples_received";
+
+export interface StoppedReportingCriteriaArgs {
+  onlineMonitorStatusId: ObjectID;
+  offlineMonitorStatusId: ObjectID;
+  incidentSeverityId: ObjectID;
+  alertSeverityId: ObjectID;
+  monitorName: string;
+  // The query alias the criteria compare.
+  metricAlias: string;
+  resourceNoun: string;
+  incidentTitle: string;
+  incidentDescription: string;
+  criteriaName: string;
+  criteriaDescription: string;
+}
+
+export function buildStoppedReportingCriteriaInstances(
+  args: StoppedReportingCriteriaArgs,
+): {
+  offlineCriteriaInstance: MonitorCriteriaInstance;
+  onlineCriteriaInstance: MonitorCriteriaInstance;
+} {
+  return {
+    offlineCriteriaInstance: buildUnhealthyCriteriaInstance({
+      offlineMonitorStatusId: args.offlineMonitorStatusId,
+      incidentSeverityId: args.incidentSeverityId,
+      alertSeverityId: args.alertSeverityId,
+      monitorName: args.monitorName,
+      metricAlias: args.metricAlias,
+      filterType: FilterType.LessThan,
+      value: 0,
+      incidentTitle: args.incidentTitle,
+      incidentDescription: args.incidentDescription,
+      criteriaName: args.criteriaName,
+      criteriaDescription: args.criteriaDescription,
+      resourceNoun: args.resourceNoun,
+      triggerOnNoData: true,
+    }),
+    onlineCriteriaInstance: buildHealthyCriteriaInstance({
+      onlineMonitorStatusId: args.onlineMonitorStatusId,
+      metricAlias: args.metricAlias,
+      filterType: FilterType.GreaterThanOrEqualTo,
+      value: 0,
+    }),
+  };
+}
+
 export function buildHealthyCriteriaInstance(
   args: HealthyCriteriaArgs,
 ): MonitorCriteriaInstance {

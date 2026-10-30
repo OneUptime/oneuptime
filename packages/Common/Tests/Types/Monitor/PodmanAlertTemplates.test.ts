@@ -39,6 +39,19 @@ interface PodmanTemplateCase {
 
 const PODMAN_TEMPLATES: Array<PodmanTemplateCase> = [
   {
+    id: "podman-host-stopped-reporting",
+    category: "Availability",
+    severity: "Critical",
+    // The agent's own container reports it every 30s; see the template.
+    metricName: "container.memory.percent",
+    metricAlias: "samples_received",
+    aggregation: MetricsAggregationType.Count,
+    rollingTime: RollingTime.Past10Minutes,
+    offlineFilterType: FilterType.LessThan,
+    onlineFilterType: FilterType.GreaterThanOrEqualTo,
+    threshold: 0,
+  },
+  {
     id: "podman-high-cpu",
     category: "Resource",
     severity: "Warning",
@@ -159,6 +172,7 @@ describe("PodmanAlertTemplates", () => {
   test("getPodmanAlertTemplatesByCategory partitions the catalog by category", () => {
     const all: Array<PodmanAlertTemplate> = getAllPodmanAlertTemplates();
     const categories: Array<PodmanAlertTemplateCategory> = [
+      "Availability",
       "Container",
       "Resource",
       "Host",
