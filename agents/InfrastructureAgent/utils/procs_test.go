@@ -2,16 +2,20 @@ package utils
 
 import (
 	"bufio"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math"
 	"os"
 	"os/exec"
+	"strings"
 	"testing"
 	"time"
 
 	"oneuptime-infrastructure-agent/model"
 
+	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/process"
 )
 
@@ -230,5 +234,116 @@ func TestGetServerProcessesForgetsExitedProcesses(t *testing.T) {
 	}
 	if _, kept := processCPUReadings[int32(os.Getpid())]; !kept {
 		t.Fatalf("this process's reading was not kept for the next collection")
+	}
+}
+
+// fakeProcess is a process the tests list in place of the real ones: what it
+// returns for each reading, and the errors of the readings that fail.
+type fakeProcess struct {
+	pid        int32
+	name       string
+	nameErr    error
+	cmdline    string
+	cmdlineErr error
+}
+
+func (p fakeProcess) PID() int32                      { return p.pid }
+func (p fakeProcess) Name() (string, error)           { return p.name, p.nameErr }
+func (p fakeProcess) Cmdline() (string, error)        { return p.cmdline, p.cmdlineErr }
+func (p fakeProcess) CreateTime() (int64, error)      { return 1700000000000, nil }
+func (p fakeProcess) MemoryPercent() (float32, error) { return 0.5, nil }
+func (p fakeProcess) Status() ([]string, error)       { return []string{"running"}, nil }
+func (p fakeProcess) NumThreads() (int32, error)      { return 4, nil }
+func (p fakeProcess) Username() (string, error)       { return "SYSTEM", nil }
+
+func (p fakeProcess) Times() (*cpu.TimesStat, error) {
+	return &cpu.TimesStat{User: 1, System: 1}, nil
+}
+
+func (p fakeProcess) MemoryInfo() (*process.MemoryInfoStat, error) {
+	return &process.MemoryInfoStat{RSS: 1024}, nil
+}
+
+// accessDenied is what Windows answers when the agent asks for the command
+// line of a protected process, administrator or not.
+var accessDenied = errors.New("Access is denied.")
+
+// listingProcesses makes listProcesses return processes and err until the test
+// ends.
+func listingProcesses(t *testing.T, processes []runningProcess, err error) {
+	t.Helper()
+	previous := listProcesses
+	listProcesses = func() ([]runningProcess, error) {
+		return processes, err
+	}
+	t.Cleanup(func() {
+		listProcesses = previous
+	})
+}
+
+// The regression: a process whose command line could not be read was left out
+// of the report, so lsass.exe, csrss.exe and the other protected Windows
+// processes read as not executing. Such a process is reported by its name. A
+// process whose name cannot be read is still left out: nothing can find it.
+func TestGetServerProcessesKeepsAProcessWhoseCommandLineCannotBeRead(t *testing.T) {
+	resetProcessCPUReadings()
+	listingProcesses(t, []runningProcess{
+		fakeProcess{pid: 4321, name: "nginx", cmdline: "nginx: master process /usr/sbin/nginx"},
+		fakeProcess{pid: 640, name: "lsass.exe", cmdlineErr: accessDenied},
+		fakeProcess{pid: 8, nameErr: accessDenied, cmdlineErr: accessDenied},
+	}, nil)
+
+	processes := GetServerProcesses()
+
+	if len(processes) != 2 {
+		t.Fatalf("reported %d processes, want nginx and lsass.exe: %+v", len(processes), processes)
+	}
+	protected := listedProcess(t, processes, 640)
+	if protected.Name != "lsass.exe" || protected.Command != "" {
+		t.Errorf("the protected process was reported as %+v, want its name and no command", *protected)
+	}
+	if protected.Threads != 4 || protected.Username != "SYSTEM" {
+		t.Errorf("the protected process lost what could be read of it: %+v", *protected)
+	}
+	if nginx := listedProcess(t, processes, 4321); nginx.Command != "nginx: master process /usr/sbin/nginx" {
+		t.Errorf("nginx's command = %q", nginx.Command)
+	}
+}
+
+// When no process can be read, the report carries no process list - not an
+// empty one, which says that nothing runs and set off every "Is Not
+// Executing" criteria.
+func TestGetServerProcessesReportsNoListWhenTheProcessesCannotBeRead(t *testing.T) {
+	cases := []struct {
+		name      string
+		processes []runningProcess
+		err       error
+	}{
+		{name: "listing fails", err: errors.New("could not read /proc")},
+		{name: "nothing listed", processes: []runningProcess{}},
+		{name: "no process can be named", processes: []runningProcess{
+			fakeProcess{pid: 1, nameErr: accessDenied},
+			fakeProcess{pid: 2, nameErr: accessDenied},
+		}},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			resetProcessCPUReadings()
+			listingProcesses(t, c.processes, c.err)
+
+			processes := GetServerProcesses()
+			if processes != nil {
+				t.Fatalf("got %+v, want no process list", processes)
+			}
+
+			body, err := json.Marshal(model.ServerMonitorReport{Processes: processes})
+			if err != nil {
+				t.Fatalf("marshal: %v", err)
+			}
+			if strings.Contains(string(body), `"processes"`) {
+				t.Errorf("the report %s has a process list although no process was read", body)
+			}
+		})
 	}
 }
