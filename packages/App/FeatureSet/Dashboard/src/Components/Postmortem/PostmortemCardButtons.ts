@@ -4,11 +4,18 @@ import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import PermissionGate, {
   ModelAction,
   PermissionCheckableModel,
+  PermissionGateOptions,
 } from "Common/UI/Utils/PermissionGate";
 
 export interface PostmortemCardButtonsOptions {
   // The incident or episode the postmortem is written on.
   model: PermissionCheckableModel;
+  /*
+   * On a private record's page, what the reader holds on it
+   * (PrivateRecordScope): the buttons then lock, as the card's Edit does,
+   * for a reader whose teams that own it may not change it.
+   */
+  privateRecordOptions?: PermissionGateOptions | undefined;
   // Whether the project has a postmortem template to apply.
   hasTemplates: boolean;
   /*
@@ -69,6 +76,7 @@ export function getPostmortemCardButtons(
         button,
         options.model,
         ModelAction.Update,
+        options.privateRecordOptions,
       );
     })
     .filter((button: CardButtonSchema | null): button is CardButtonSchema => {

@@ -20,7 +20,9 @@ import PrivateRecordParts from "../../../Types/PrivateRecord/PrivateRecordParts"
  *
  *   1. the four view layouts wrap their pages in the provider;
  *   2. every PermissionGate check of a change of a part of a private kind,
- *      named by `new Model()`, passes options from the private record scope
+ *      named by `new Model()` - or by `cond ? new A() : new B()`, each
+ *      branch a gate of its own (the AI card's Try again on an incident
+ *      or an alert slipped through as one) - passes options from the private record scope
  *      - or its file is listed below with why it needs none (a list's bulk
  *      action, a create page: no record's page, and the server holds each
  *      record to the rule);
@@ -165,7 +167,35 @@ interface Gate {
   asksWithTheScope: boolean;
 }
 
-// Every PermissionGate call naming its model with `new Model()`.
+/*
+ * The models a gate's model argument names: `new Model()`, or each branch of
+ * `cond ? new A() : new B()` (nested conditionals too). Anything else - a
+ * variable - names none the sweep can read.
+ */
+function modelsNamedBy(argument: ts.Expression | undefined): Array<string> {
+  if (!argument) {
+    return [];
+  }
+
+  if (ts.isParenthesizedExpression(argument)) {
+    return modelsNamedBy(argument.expression);
+  }
+
+  if (ts.isNewExpression(argument) && ts.isIdentifier(argument.expression)) {
+    return [argument.expression.text];
+  }
+
+  if (ts.isConditionalExpression(argument)) {
+    return [
+      ...modelsNamedBy(argument.whenTrue),
+      ...modelsNamedBy(argument.whenFalse),
+    ];
+  }
+
+  return [];
+}
+
+// Every PermissionGate call naming its model (modelsNamedBy).
 function gatesIn(file: string, text: string): Array<Gate> {
   const sourceFile: ts.SourceFile = parse(file, text);
   const gates: Array<Gate> = [];
@@ -188,14 +218,9 @@ function gatesIn(file: string, text: string): Array<Gate> {
       return;
     }
 
-    const modelArgument: ts.Expression | undefined =
-      node.arguments[shape.model];
+    const models: Array<string> = modelsNamedBy(node.arguments[shape.model]);
 
-    if (
-      !modelArgument ||
-      !ts.isNewExpression(modelArgument) ||
-      !ts.isIdentifier(modelArgument.expression)
-    ) {
+    if (models.length === 0) {
       return;
     }
 
@@ -211,16 +236,18 @@ function gatesIn(file: string, text: string): Array<Gate> {
       })
       .join(" ");
 
-    gates.push({
-      file: file,
-      line:
-        sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile))
-          .line + 1,
-      method: method,
-      model: modelArgument.expression.text,
-      action: action,
-      asksWithTheScope: FROM_THE_SCOPE.test(optionsText),
-    });
+    for (const model of models) {
+      gates.push({
+        file: file,
+        line:
+          sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile))
+            .line + 1,
+        method: method,
+        model: model,
+        action: action,
+        asksWithTheScope: FROM_THE_SCOPE.test(optionsText),
+      });
+    }
   });
 
   return gates;
@@ -287,8 +314,26 @@ describe("every gate on a change of a private record or a part of one", () => {
         "Pages/Incidents/View/Alerts.tsx",
         "Pages/Alerts/View/Incidents.tsx",
         "Components/AI/CallSummary/CallSummarySection.tsx",
+        // Named by a conditional: an incident's or an alert's Try again.
+        "Components/AutoRemediation/RemediationStep.tsx",
+        // The AI card's request to have OneUptime AI acknowledge it.
+        "Pages/Incidents/View/Index.tsx",
+        "Pages/Alerts/View/Index.tsx",
       ]),
     );
+  });
+
+  test("reads both models of a gate named by a conditional", () => {
+    const gates: Array<Gate> = gatesIn(
+      "Example.tsx",
+      "PermissionGate.check(isIncident ? new Incident() : (new Alert()), ModelAction.Update, privateRecordOptions);",
+    );
+
+    expect(
+      gates.map((gate: Gate): string => {
+        return `${gate.model} ${gate.action} ${gate.asksWithTheScope}`;
+      }),
+    ).toEqual(["Incident Update true", "Alert Update true"]);
   });
 
   test("asks with the private record scope, or its file says why not", () => {
@@ -301,6 +346,33 @@ describe("every gate on a change of a private record or a part of one", () => {
     });
 
     expect(unasked).toEqual([]);
+  });
+
+  /*
+   * Gates the sweep cannot read, since their model is handed in: a page of
+   * a private record that builds them through a helper hands the helper its
+   * scope. The episode Postmortem's Apply Template and Generate with AI
+   * stayed offered beside a locked Edit Postmortem before they did.
+   */
+  test("a private record's page hands its scope to the helpers that build its gates", () => {
+    const code: string = read("Pages/Incidents/EpisodeView/Postmortem.tsx")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    expect(code).toContain(
+      "buttons: getPostmortemCardButtons({ model: new IncidentEpisode(), privateRecordOptions: privateRecordOptions,",
+    );
+    expect(code).toContain(
+      "const privateRecordOptions: PermissionGateOptions | undefined = usePrivateRecordGateOptions(PRIVATE_RECORD_EPISODE);",
+    );
+    expect(
+      read("Components/Postmortem/PostmortemCardButtons.ts").replace(
+        /\s+/g,
+        " ",
+      ),
+    ).toContain(
+      "options.model, ModelAction.Update, options.privateRecordOptions, );",
+    );
   });
 
   test("the files listed as asking without the scope still ask so, and say why", () => {

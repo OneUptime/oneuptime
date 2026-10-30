@@ -378,9 +378,11 @@ test.describe("a private incident a view-only team of the reader's owns (?privat
   /*
    * OneUptime AI acts within the asker's permissions, so the AI card's
    * conversation does not offer to have it acknowledge an incident the
-   * reader may not: it would only refuse. The questions are all there.
+   * reader may not: it would only refuse. The questions are all there. Nor
+   * is Remediation's Try again offered, which changes the incident: the
+   * server answers it "You do not have permission to change this incident".
    */
-  test("Ask OneUptime AI offers its questions, and no request to acknowledge it", async ({
+  test("the AI card asks OneUptime AI nothing the reader may not do: its questions, but no acknowledging and no Try again", async ({
     page,
   }: {
     page: Page;
@@ -393,6 +395,9 @@ test.describe("a private incident a view-only team of the reader's owns (?privat
       "Is anything else affected?",
       "Draft a status update",
     ]);
+    // The Remediation step is drawn, saying nothing was tried.
+    await expect(page.getByLabel("Remediation status")).toHaveText("Not tried");
+    await expect(page.getByTestId("remediation-try-again")).toHaveCount(0);
   });
 
   test("its owners are read, and nobody is offered as one to add", async ({
@@ -425,10 +430,13 @@ test.describe("a private incident a view-only team of the reader's owns (?privat
     }
     await expect(whatHappenedEdit(page)).toBeEnabled();
 
-    // OneUptime AI may be asked to acknowledge it.
+    // OneUptime AI may be asked to acknowledge it, and to try fixing it again.
     await expect(
       suggestions(page).filter({ hasText: "Acknowledge this incident" }),
     ).toHaveCount(1);
+    await expect(
+      page.getByTestId("remediation-try-again-button"),
+    ).toBeEnabled();
 
     // A private note goes on it, and a locked Add Public Note says to use one.
     await card(page, "Incident Feed")
