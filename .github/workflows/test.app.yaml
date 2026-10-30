@@ -336,6 +336,11 @@ jobs:
           # (0.8) moved to group 13 on 2026-10-27, when that run took this group
           # 20.9 minutes: about 18. Every group has Firefox since the groups run
           # in the Playwright image.
+          # Chart Time Zoom gained SpanTypeHelp.spec.ts on 2026-10-30 (7 tests,
+          # about 20 seconds locally: the traces sidebar's Span Type with no
+          # paragraph under its title, its (i) on hover, from the keyboard,
+          # tapped on a phone and dark, its options' own tooltips, and its
+          # header folding from the chevron): about 18.5.
           - group: 2
             suites: >-
               test-chart-time-zoom-ui
