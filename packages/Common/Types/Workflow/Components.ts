@@ -6,6 +6,9 @@ import AIComponents from "./Components/AI";
 import ConditionComponents from "./Components/Condition";
 import DiscordComponents from "./Components/Discord";
 import EmailComponents from "./Components/Email";
+import FromAnotherToolComponents, {
+  FROM_OTHER_TOOLS_COMPONENT_CATEGORY,
+} from "./Components/FromAnotherTool";
 import HuntressComponents, {
   HUNTRESS_COMPONENT_CATEGORY,
 } from "./Components/Huntress";
@@ -13,6 +16,7 @@ import IncomingEmailComponents from "./Components/IncomingEmail";
 import IRCComponents from "./Components/IRC";
 import JsonComponents from "./Components/JSON";
 import JavaScriptComponents from "./Components/JavaScript";
+import JavaScriptCheckComponents from "./Components/JavaScriptCheck";
 import LogComponents from "./Components/Log";
 import ManualComponents from "./Components/Manual";
 import MattermostComponents from "./Components/Mattermost";
@@ -30,6 +34,7 @@ import WorkflowComponents from "./Components/Workflow";
 
 const components: Array<ComponentMetadata> = [
   ...OnCallComponents,
+  ...FromAnotherToolComponents,
   ...AIComponents,
   ...LogComponents,
   ...APIComponents,
@@ -41,6 +46,7 @@ const components: Array<ComponentMetadata> = [
   ...MattermostComponents,
   ...ConditionComponents,
   ...SwitchComponents,
+  ...JavaScriptCheckComponents,
   ...JsonComponents,
   ...JavaScriptComponents,
   ...EmailComponents,
@@ -65,6 +71,17 @@ export const Categories: Array<ComponentCategory> = [
     description:
       "Page people, a team, whoever is on call, or an on-call policy.",
     icon: IconProp.Call,
+  },
+  /*
+   * Second: an alert from another tool becomes an incident or an alert
+   * here, and is resolved there when the tool says it is over - what the
+   * monitoring templates do.
+   */
+  {
+    name: FROM_OTHER_TOOLS_COMPONENT_CATEGORY,
+    description:
+      "Open, acknowledge and resolve incidents and alerts for problems in your other tools.",
+    icon: IconProp.Integrations,
   },
   {
     name: "AI",

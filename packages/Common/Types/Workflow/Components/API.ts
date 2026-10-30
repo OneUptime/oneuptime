@@ -1,5 +1,6 @@
 import IconProp from "../../Icon/IconProp";
 import ComponentID from "../ComponentID";
+import { API_GET_BY_ID_PLACEHOLDER } from "./ApiGetById";
 import ComponentMetadata, {
   ComponentInputType,
   ComponentType,
@@ -487,6 +488,104 @@ const components: Array<ComponentMetadata> = [
         title: "Error",
         description:
           "Runs when the request fails or the server answers with an error status.",
+        id: "error",
+      },
+    ],
+  },
+  /*
+   * One item by an ID from somewhere else, such as a webhook: the ID goes
+   * into the address only when it is a plain ID (Components/ApiGetById).
+   */
+  {
+    id: ComponentID.ApiGetById,
+    title: "API Get By ID (JSON)",
+    category: "API",
+    description:
+      "Get one item from an API by an ID from an earlier step, placed in the address safely.",
+    iconProp: IconProp.Globe,
+    componentType: ComponentType.Component,
+    arguments: [
+      {
+        id: "url",
+        name: "URL",
+        description: `The item's address, with ${API_GET_BY_ID_PLACEHOLDER} where its ID goes.`,
+        type: ComponentInputType.URL,
+        required: true,
+        placeholder: `https://api.yourcompany.com/items/${API_GET_BY_ID_PLACEHOLDER}`,
+      },
+      {
+        id: "id",
+        name: "ID",
+        description:
+          "The item's ID, usually from an earlier step. Only letters, digits, dashes and underscores are sent.",
+        type: ComponentInputType.Text,
+        required: true,
+        placeholder: "OPS-12",
+      },
+      {
+        id: "request-headers",
+        name: "Request Headers",
+        description: "Request headers to send.",
+        type: ComponentInputType.StringDictionary,
+        required: false,
+        isAdvanced: true,
+        // As API Get's: an Authorization header is kept out of the run's log.
+        isSensitive: true,
+        placeholder:
+          'Example: {"header1": "value1", "header2": "value2", ....}',
+      },
+    ],
+    returnValues: [
+      {
+        id: "error",
+        name: "Error",
+        description: "Error, if there is any.",
+        type: ComponentInputType.Text,
+        required: false,
+      },
+      {
+        id: "response-status",
+        name: "Response Status",
+        description:
+          "The HTTP status code the server answered with, 200 for example.",
+        type: ComponentInputType.Number,
+        required: false,
+      },
+      {
+        id: "response-headers",
+        name: "Response Headers",
+        description: "The headers the server answered with, by header name.",
+        type: ComponentInputType.StringDictionary,
+        required: false,
+      },
+      {
+        id: "response-body",
+        name: "Response Body",
+        description:
+          "The body the server answered with. A JSON body can be read field by field.",
+        type: ComponentInputType.JSON,
+        required: false,
+      },
+    ],
+    inPorts: [
+      {
+        title: "In",
+        description:
+          "Please connect components to this port for this component to work.",
+        id: "in",
+      },
+    ],
+    outPorts: [
+      {
+        title: "Success",
+        description:
+          "Runs when the server answers with a success status (2xx).",
+        id: "success",
+      },
+      {
+        title: "Error",
+        description:
+          "Runs when the ID is not an ID, the request fails or the server answers with an error status.",
         id: "error",
       },
     ],

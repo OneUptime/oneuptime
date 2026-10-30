@@ -190,6 +190,26 @@ const PAGE_KEYWORDS: ReadonlyArray<string> = [
   "opsgenie",
 ];
 
+const FROM_OTHER_TOOL_KEYWORDS: ReadonlyArray<string> = [
+  "external",
+  "outside",
+  "integration",
+  "inbound",
+  "sync",
+  "open",
+  "resolve",
+  "acknowledge",
+  "recovery",
+  "firing",
+  "zabbix",
+  "grafana",
+  "alertmanager",
+  "prometheus",
+  "nagios",
+  "datadog",
+  "huntress",
+];
+
 export const COMPONENT_KEYWORDS: Readonly<
   Record<string, ReadonlyArray<string>>
 > = {
@@ -213,6 +233,12 @@ export const COMPONENT_KEYWORDS: Readonly<
     "duty",
   ],
   [ComponentID.Log]: ["print", "console", "debug", "output", "write"],
+  /*
+   * What people bringing another tool's alerts in call it, and the tools
+   * they bring them from.
+   */
+  [ComponentID.IncidentFromAnotherTool]: [...FROM_OTHER_TOOL_KEYWORDS],
+  [ComponentID.AlertFromAnotherTool]: [...FROM_OTHER_TOOL_KEYWORDS],
   [ComponentID.IfElse]: [
     "condition",
     "conditional",
@@ -240,6 +266,15 @@ export const COMPONENT_KEYWORDS: Readonly<
     "several",
   ],
   [ComponentID.ApiGet]: [...HTTP_KEYWORDS, "fetch", "read", "download"],
+  [ComponentID.ApiGetById]: [
+    ...HTTP_KEYWORDS,
+    "fetch",
+    "read",
+    "lookup",
+    "item",
+    "record",
+    "key",
+  ],
   [ComponentID.ApiPost]: [...HTTP_KEYWORDS, "webhook", "send", "submit"],
   [ComponentID.ApiPut]: [...HTTP_KEYWORDS, "replace"],
   [ComponentID.ApiPatch]: [...HTTP_KEYWORDS, "modify"],
@@ -277,6 +312,19 @@ export const COMPONENT_KEYWORDS: Readonly<
     "function",
     "transform",
     "program",
+  ],
+  // A check: what If / Else is found by, and what Run Custom JavaScript is.
+  [ComponentID.JavaScriptCheck]: [
+    "code",
+    "script",
+    "js",
+    "javascript",
+    "condition",
+    "conditional",
+    "branch",
+    "check",
+    "filter",
+    "decide",
   ],
   [ComponentID.JsonToText]: ["stringify", "serialize", "convert", "string"],
   [ComponentID.TextToJson]: ["parse", "deserialize", "convert", "string"],

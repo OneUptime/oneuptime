@@ -74,6 +74,8 @@ export const WorkflowDocsPaths: {
   readonly mattermost: string;
   readonly email: string;
   readonly customCode: string;
+  readonly javascriptCheck: string;
+  readonly fromOtherTools: string;
   readonly json: string;
   readonly conditions: string;
   readonly switchCase: string;
@@ -108,6 +110,8 @@ export const WorkflowDocsPaths: {
   mattermost: "/workflows/components#mattermost",
   email: "/workflows/components#email",
   customCode: "/workflows/components#custom-code",
+  javascriptCheck: "/workflows/components#check-with-javascript",
+  fromOtherTools: "/workflows/components#incidents-and-alerts-from-other-tools",
   json: "/workflows/components#json",
   conditions: "/workflows/components#conditions",
   switchCase: "/workflows/components#switch-case",

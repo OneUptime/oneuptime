@@ -92,3 +92,59 @@ export const getApiPatchDocumentation: APIDocumentationFunction =
   getAPIDocumentation("PATCH");
 export const getApiDeleteDocumentation: APIDocumentationFunction =
   getAPIDocumentation("DELETE");
+
+/*
+ * API Get By ID: API Get's help, less what it does the same, and how the ID
+ * goes in (Types/Workflow/Components/ApiGetById).
+ */
+export const getApiGetByIdDocumentation: APIDocumentationFunction = (
+  context: ComponentDocumentationContext,
+): ComponentDocumentation => {
+  return {
+    summary:
+      "Gets one item from an API by an ID from an earlier step, and passes the response to the next steps.",
+    steps: [
+      "Enter the item's address in **URL**, with `{id}` where its ID goes.",
+      "Put the ID in **ID**, usually a value from an earlier step, such as an issue key a webhook sent.",
+      "Connect **Success** for an answer in the 2xx range, and **Error** for anything else.",
+    ],
+    examples: [
+      {
+        title: "Read a Jira issue named by a webhook",
+        fields: [
+          {
+            name: "URL",
+            value:
+              "https://your-company.atlassian.net/rest/api/3/issue/{id}?fields=labels",
+          },
+          {
+            name: "ID",
+            value:
+              "{{local.components.webhook-1.returnValues.request-body.issue.key}}",
+          },
+        ],
+        description: `A later step reads the issue's labels with \`${ownReference(
+          context,
+          "response-body",
+          ["fields", "labels"],
+        )}\`.`,
+      },
+    ],
+    notes: [
+      {
+        type: ComponentDocumentationNoteType.Warning,
+        text: "Only an ID made of letters, digits, dashes and underscores is sent. Anything else, such as text with a slash, goes down **Error** before any request is made.",
+      },
+    ],
+    learnMore: [
+      {
+        title: "Why not API Get",
+        paragraphs: [
+          "An ID that came from another tool is outside text. Put into an address as it is, a value such as `x/../users` would ask for something else, with your token. This step sends only a plain ID, and percent-encodes it all the same.",
+          "Otherwise it is **API Get (JSON)**: the same address rules, no redirects, and the same return values.",
+        ],
+      },
+    ],
+    links: [docsLink("API step guide", WorkflowDocsPaths.api)],
+  };
+};
