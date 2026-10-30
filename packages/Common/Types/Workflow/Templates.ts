@@ -1937,21 +1937,22 @@ return {
   );
 };
 
-type JiraLinkingEventArgumentsFunction = (before?: JSONObject) => string;
+type JiraLinkingEventArgumentsFunction = (fromJira?: JSONObject) => string;
 
 /*
  * The arguments of a script that reads a Jira event and links its issue:
- * whatever else the script needs, then the workflow's Jira Site URL, the
- * site the link goes to, then the request body. The body goes last, as
- * everywhere text Jira users wrote is quoted into an argument, and it
- * arrives as JSON text the script reads.
+ * the workflow's Jira Site URL, the site the link goes to, then what the
+ * script reads from Jira - the issue as Jira has it now, for a script that
+ * reads it (fromJira), and the request body last. Text Jira users wrote
+ * comes after everything else in an argument, as everywhere it is quoted
+ * into one, and it arrives as JSON text the script reads.
  */
 const jiraLinkingEventArguments: JiraLinkingEventArgumentsFunction = (
-  before?: JSONObject,
+  fromJira?: JSONObject,
 ): string => {
   return jsonText({
-    ...(before || {}),
     jiraSiteUrl: "{{local.variables.jiraSiteUrl}}",
+    ...(fromJira || {}),
     payload: "{{local.components.webhook-1.returnValues.request-body}}",
   });
 };

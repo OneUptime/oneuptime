@@ -30,6 +30,15 @@
  *     an alert really is different: it has no public notes and never
  *     reaches a status page.
  *
+ * They were made simple (the maintainer: "4-5 components max"): each is
+ * three to five steps, in one column. A script is a Check With JavaScript,
+ * which goes on by Yes or ends the run by No with its reason; a step that
+ * fails with nothing on its Error output fails the run, and says why in its
+ * Steps entry, where a Log on every output used to; and Incident or Alert
+ * From Another Tool writes the record, by the issue's key or the record's
+ * id, where a find step, an If / Else and a create step did. That they do
+ * what the old ones did is JiraTemplateEquivalence's.
+ *
  * The scripts are only read here. Running them is another suite's job.
  */
 
@@ -56,10 +65,6 @@ import ComponentMetadata, {
 } from "../../../Types/Workflow/Component";
 import ComponentID from "../../../Types/Workflow/ComponentID";
 import {
-  ConditionOperator,
-  ConditionValueType,
-} from "../../../Types/Workflow/Components/Condition";
-import {
   ParsedReferencePath,
   ReferenceRootType,
   TemplateExpression,
@@ -72,23 +77,13 @@ import {
 import { replaceTemplatePlaceholders } from "../../../Utils/TemplatePlaceholders";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
-import {
-  DEFAULT_LIMIT,
-  LIMIT_PER_PROJECT,
-} from "../../../Types/Database/LimitMax";
 import { loadComponentsAndCategories } from "../../../UI/Components/Workflow/Utils";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertInternalNote from "../../../Models/DatabaseModels/AlertInternalNote";
-import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
-import AlertState from "../../../Models/DatabaseModels/AlertState";
-import AlertStateTimeline from "../../../Models/DatabaseModels/AlertStateTimeline";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentInternalNote from "../../../Models/DatabaseModels/IncidentInternalNote";
 import IncidentPublicNote from "../../../Models/DatabaseModels/IncidentPublicNote";
-import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
-import IncidentState from "../../../Models/DatabaseModels/IncidentState";
-import IncidentStateTimeline from "../../../Models/DatabaseModels/IncidentStateTimeline";
 import { describe, expect, test } from "@jest/globals";
 import { isTemplateScriptStep } from "./JiraTemplateFixtures";
 
@@ -115,11 +110,8 @@ interface KindStepIds {
   onCreate: string;
   onUpdate: string;
   prepareRecord: string;
-  /** The create-from-issue template's first If / Else. */
-  decideCreate: string;
-  createRecord: string;
-  findRecord: string;
-  findRecordFailed: string;
+  // Incident or Alert From Another Tool, which writes the record.
+  fromAnotherTool: string;
 }
 
 /*
@@ -141,17 +133,13 @@ interface RecordKind {
   severityIdColumn: string;
   stateRelation: string;
   stateIdColumn: string;
-  /** The column a note or a state-timeline row names its record by. */
+  /** The column a note names its record by. */
   idColumn: string;
-  /** The column a state-timeline row names its new state by. */
-  timelineStateColumn: string;
   /** Where the record's page lives, under /dashboard/<project id>/. */
   dashboardPath: string;
   /** An incident is declared; an alert is created. */
   created: string;
   model: { new (): BaseModel };
-  /** What a record made from a Jira issue is given beyond the essentials. */
-  quietCreateFields: JSONObject;
   /** The edits the edit-comment template posts. */
   editListenOn: JSONObject;
   templates: KindTemplateIds;
@@ -169,15 +157,9 @@ const INCIDENT: RecordKind = {
   stateRelation: "currentIncidentState",
   stateIdColumn: "currentIncidentStateId",
   idColumn: "incidentId",
-  timelineStateColumn: "incidentStateId",
   dashboardPath: "incidents",
   created: "declared",
   model: Incident,
-  // An issue's text was not written for customers, so it stays off status pages.
-  quietCreateFields: {
-    isVisibleOnStatusPage: false,
-    shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: false,
-  },
   /*
    * Severity is listed under its id and its relation: the dashboard's edit
    * form sends the relation, and Listen On compares keys exactly.
@@ -205,10 +187,7 @@ const INCIDENT: RecordKind = {
     onCreate: "incident-on-create-1",
     onUpdate: "incident-on-update-1",
     prepareRecord: "prepare-incident-1",
-    decideCreate: "if-declare-1",
-    createRecord: "create-incident-1",
-    findRecord: "find-incident-1",
-    findRecordFailed: "log-find-incident-failed",
+    fromAnotherTool: "incident-from-another-tool-1",
   },
 };
 
@@ -223,12 +202,9 @@ const ALERT: RecordKind = {
   stateRelation: "currentAlertState",
   stateIdColumn: "currentAlertStateId",
   idColumn: "alertId",
-  timelineStateColumn: "alertStateId",
   dashboardPath: "alerts",
   created: "created",
   model: Alert,
-  // An alert never reaches a status page, so there is nothing to keep it off.
-  quietCreateFields: {},
   editListenOn: {
     title: true,
     description: true,
@@ -252,10 +228,7 @@ const ALERT: RecordKind = {
     onCreate: "alert-on-create-1",
     onUpdate: "alert-on-update-1",
     prepareRecord: "prepare-alert-1",
-    decideCreate: "if-create-1",
-    createRecord: "create-alert-1",
-    findRecord: "find-alert-1",
-    findRecordFailed: "log-find-alert-failed",
+    fromAnotherTool: "alert-from-another-tool-1",
   },
 };
 
@@ -407,6 +380,7 @@ const AUTHORIZATION: string = `Basic ${variableReference("jiraBasicAuthToken")}`
 
 const API_METADATA_IDS: Array<string> = [
   ComponentID.ApiGet,
+  ComponentID.ApiGetById,
   ComponentID.ApiPost,
   ComponentID.ApiPut,
   ComponentID.ApiPatch,
@@ -434,6 +408,10 @@ const REMOVED_SEARCH: RegExp = /\/rest\/api\/3\/search(?!\/jql)/;
 
 const DATABASE_WRITE_METADATA_ID: RegExp =
   /-(create|update|delete)-(one|many)$/;
+
+// Incident or Alert From Another Tool: the step that writes a record from Jira.
+const FROM_ANOTHER_TOOL_METADATA_ID: RegExp =
+  /^(incident|alert)-from-another-tool$/;
 
 const PUBLIC_NOTE_WRITE_METADATA_ID: RegExp = /-public-note-create-/;
 
@@ -699,14 +677,19 @@ const isLogNode: NodePredicate = (node: TemplateNodeSpec): boolean => {
   return node.metadataId === ComponentID.Log;
 };
 
-/** A step backed by a OneUptime database model: its triggers, lookups and writes. */
+const isRecordStep: NodePredicate = (node: TemplateNodeSpec): boolean => {
+  return FROM_ANOTHER_TOOL_METADATA_ID.test(node.metadataId);
+};
+
+/** A step backed by a OneUptime database model: its triggers and lookups. */
 const isDatabaseNode: NodePredicate = (node: TemplateNodeSpec): boolean => {
   return (
     node.metadataId !== ComponentID.Webhook &&
     !isApiNode(node) &&
     !isScriptNode(node) &&
     !isIfElseNode(node) &&
-    !isLogNode(node)
+    !isLogNode(node) &&
+    !isRecordStep(node)
   );
 };
 
@@ -716,7 +699,11 @@ const isDatabaseWrite: NodePredicate = (node: TemplateNodeSpec): boolean => {
 
 /** A call that changes something in Jira. Searching and reading do not. */
 const isJiraWrite: NodePredicate = (node: TemplateNodeSpec): boolean => {
-  if (!isApiNode(node) || node.metadataId === ComponentID.ApiGet) {
+  if (
+    !isApiNode(node) ||
+    node.metadataId === ComponentID.ApiGet ||
+    node.metadataId === ComponentID.ApiGetById
+  ) {
     return false;
   }
 
@@ -865,21 +852,6 @@ const scriptOutput: ScriptOutputFunction = (
   return componentReturnValueReference(scriptId, "returnValue", [field]);
 };
 
-type ProceedConditionFunction = (scriptId: string) => JSONObject;
-
-/** The If / Else every Jira template uses to act on a script's decision. */
-const proceedCondition: ProceedConditionFunction = (
-  scriptId: string,
-): JSONObject => {
-  return {
-    "input-1-type": ConditionValueType.Boolean,
-    "input-1": scriptOutput(scriptId, "proceed"),
-    operator: ConditionOperator.EqualTo,
-    "input-2-type": ConditionValueType.Boolean,
-    "input-2": true,
-  };
-};
-
 /*
  * The same registry the builder loads: static components plus one set per
  * database model. Only argument metadata is read from it here — which
@@ -991,19 +963,20 @@ const helperRegex: HelperRegexFunction = (name: string): RegExp => {
 };
 
 /*
- * Fields a Jira-reading script only ever returns after checking them: an
- * issue key that matched ISSUE_KEY, an incident or alert id that matched UUID
- * or was read off a OneUptime record, and the ids of OneUptime rows the
- * script chose. Anything else such a script returns may carry text from Jira.
+ * Fields a Jira-reading script only ever returns after checking them, or
+ * writes itself: an issue key that matched ISSUE_KEY, an incident or alert
+ * id that matched UUID, where among the project's severities the record goes
+ * (one of three places the script names), and what happened to it (one of
+ * the record step's words, or a state named in the script's own map).
+ * Anything else such a script returns may carry text from Jira.
  */
 const CHECKED_SCRIPT_FIELDS: Array<string> = [
   "proceed",
   "issueKey",
   "incidentId",
   "alertId",
-  "stateId",
-  "incidentSeverityId",
-  "alertSeverityId",
+  "severity",
+  "whatHappened",
 ];
 
 type IsFromJiraFunction = (templateId: string, reference: Reference) => boolean;
@@ -1097,7 +1070,10 @@ type CommentGraphFunction = (
   triggerMetadataId: string,
 ) => ExpectedGraph;
 
-/** The OneUptime -> Jira comment templates share one shape. */
+/*
+ * The OneUptime -> Jira comment templates share one shape: the search for
+ * the issue, the comment the script writes, and the post.
+ */
 const commentGraph: CommentGraphFunction = (
   triggerId: string,
   triggerMetadataId: string,
@@ -1106,25 +1082,13 @@ const commentGraph: CommentGraphFunction = (
     nodes: {
       [triggerId]: triggerMetadataId,
       "find-issue-1": ComponentID.ApiPost,
-      "log-find-failed": ComponentID.Log,
-      "build-comment-1": ComponentID.JavaScriptCode,
-      "log-build-failed": ComponentID.Log,
-      "if-post-1": ComponentID.IfElse,
-      "log-skipped": ComponentID.Log,
+      "build-comment-1": ComponentID.JavaScriptCheck,
       "post-comment-1": ComponentID.ApiPost,
-      "log-posted": ComponentID.Log,
-      "log-post-failed": ComponentID.Log,
     },
     edges: [
       `${triggerId}:success->find-issue-1`,
       "find-issue-1:success->build-comment-1",
-      "find-issue-1:error->log-find-failed",
-      "build-comment-1:success->if-post-1",
-      "build-comment-1:error->log-build-failed",
-      "if-post-1:yes->post-comment-1",
-      "if-post-1:no->log-skipped",
-      "post-comment-1:success->log-posted",
-      "post-comment-1:error->log-post-failed",
+      "build-comment-1:yes->post-comment-1",
     ],
   };
 };
@@ -1135,52 +1099,31 @@ const expectedGraphs: KindEntriesFunction<ExpectedGraph> = (
   const r: string = kind.noun;
   const ids: KindTemplateIds = kind.templates;
   const steps: KindStepIds = kind.steps;
+  const record: string = `${r}-from-another-tool`;
 
   const graphs: Record<string, ExpectedGraph> = {
     [ids.createIssue]: {
       nodes: {
         [steps.onCreate]: `${r}-on-create`,
-        "prepare-issue-1": ComponentID.JavaScriptCode,
-        "log-prepare-failed": ComponentID.Log,
-        "if-create-1": ComponentID.IfElse,
-        "log-skipped": ComponentID.Log,
+        "prepare-issue-1": ComponentID.JavaScriptCheck,
         "create-issue-1": ComponentID.ApiPost,
-        "log-created": ComponentID.Log,
-        "log-create-failed": ComponentID.Log,
       },
       edges: [
         `${steps.onCreate}:success->prepare-issue-1`,
-        "prepare-issue-1:success->if-create-1",
-        "prepare-issue-1:error->log-prepare-failed",
-        "if-create-1:yes->create-issue-1",
-        "if-create-1:no->log-skipped",
-        "create-issue-1:success->log-created",
-        "create-issue-1:error->log-create-failed",
+        "prepare-issue-1:yes->create-issue-1",
       ],
     },
     [ids.transitionIssue]: {
       nodes: {
         [steps.onUpdate]: `${r}-on-update`,
         "find-issue-1": ComponentID.ApiPost,
-        "log-find-failed": ComponentID.Log,
-        "plan-transition-1": ComponentID.JavaScriptCode,
-        "log-plan-failed": ComponentID.Log,
-        "if-transition-1": ComponentID.IfElse,
-        "log-skipped": ComponentID.Log,
+        "plan-transition-1": ComponentID.JavaScriptCheck,
         "transition-issue-1": ComponentID.ApiPost,
-        "log-transitioned": ComponentID.Log,
-        "log-transition-failed": ComponentID.Log,
       },
       edges: [
         `${steps.onUpdate}:success->find-issue-1`,
         "find-issue-1:success->plan-transition-1",
-        "find-issue-1:error->log-find-failed",
-        "plan-transition-1:success->if-transition-1",
-        "plan-transition-1:error->log-plan-failed",
-        "if-transition-1:yes->transition-issue-1",
-        "if-transition-1:no->log-skipped",
-        "transition-issue-1:success->log-transitioned",
-        "transition-issue-1:error->log-transition-failed",
+        "plan-transition-1:yes->transition-issue-1",
       ],
     },
     [ids.privateNoteToComment]: commentGraph(
@@ -1191,149 +1134,51 @@ const expectedGraphs: KindEntriesFunction<ExpectedGraph> = (
     [ids.createFromIssue]: {
       nodes: {
         "webhook-1": ComponentID.Webhook,
-        "find-severities-1": `${r}-severity-find-many`,
-        "log-severities-failed": ComponentID.Log,
-        [steps.prepareRecord]: ComponentID.JavaScriptCode,
-        "log-prepare-failed": ComponentID.Log,
-        [steps.decideCreate]: ComponentID.IfElse,
-        "log-skipped": ComponentID.Log,
-        "get-issue-1": ComponentID.ApiGet,
-        "log-get-issue-failed": ComponentID.Log,
-        "confirm-unlinked-1": ComponentID.JavaScriptCode,
-        "log-confirm-failed": ComponentID.Log,
-        "if-unlinked-1": ComponentID.IfElse,
-        "log-already-linked": ComponentID.Log,
-        [steps.createRecord]: `${r}-create-one`,
-        "log-create-failed": ComponentID.Log,
+        "get-issue-1": ComponentID.ApiGetById,
+        [steps.prepareRecord]: ComponentID.JavaScriptCheck,
+        [steps.fromAnotherTool]: record,
         "link-issue-1": ComponentID.ApiPut,
-        "log-linked": ComponentID.Log,
-        "log-link-failed": ComponentID.Log,
       },
       edges: [
-        "webhook-1:out->find-severities-1",
-        `find-severities-1:success->${steps.prepareRecord}`,
-        "find-severities-1:error->log-severities-failed",
-        `${steps.prepareRecord}:success->${steps.decideCreate}`,
-        `${steps.prepareRecord}:error->log-prepare-failed`,
-        `${steps.decideCreate}:yes->get-issue-1`,
-        `${steps.decideCreate}:no->log-skipped`,
-        "get-issue-1:success->confirm-unlinked-1",
-        "get-issue-1:error->log-get-issue-failed",
-        "confirm-unlinked-1:success->if-unlinked-1",
-        "confirm-unlinked-1:error->log-confirm-failed",
-        `if-unlinked-1:yes->${steps.createRecord}`,
-        "if-unlinked-1:no->log-already-linked",
-        `${steps.createRecord}:success->link-issue-1`,
-        `${steps.createRecord}:error->log-create-failed`,
-        "link-issue-1:success->log-linked",
-        "link-issue-1:error->log-link-failed",
+        "webhook-1:out->get-issue-1",
+        `get-issue-1:success->${steps.prepareRecord}`,
+        `${steps.prepareRecord}:yes->${steps.fromAnotherTool}`,
+        `${steps.fromAnotherTool}:opened->link-issue-1`,
       ],
     },
     [ids.statusToState]: {
       nodes: {
         "webhook-1": ComponentID.Webhook,
-        "read-event-1": ComponentID.JavaScriptCode,
-        "log-read-failed": ComponentID.Log,
-        "if-status-changed-1": ComponentID.IfElse,
-        "log-ignored": ComponentID.Log,
-        [steps.findRecord]: `${r}-find-one`,
-        [steps.findRecordFailed]: ComponentID.Log,
-        "find-states-1": `${r}-state-find-many`,
-        "log-find-states-failed": ComponentID.Log,
-        "decide-state-1": ComponentID.JavaScriptCode,
-        "log-decide-failed": ComponentID.Log,
-        "if-change-1": ComponentID.IfElse,
-        "log-unchanged": ComponentID.Log,
-        "change-state-1": `${r}-state-timeline-create-one`,
-        "log-changed": ComponentID.Log,
-        "log-change-failed": ComponentID.Log,
+        "read-event-1": ComponentID.JavaScriptCheck,
+        [steps.fromAnotherTool]: record,
       },
       edges: [
         "webhook-1:out->read-event-1",
-        "read-event-1:success->if-status-changed-1",
-        "read-event-1:error->log-read-failed",
-        `if-status-changed-1:yes->${steps.findRecord}`,
-        "if-status-changed-1:no->log-ignored",
-        `${steps.findRecord}:success->find-states-1`,
-        `${steps.findRecord}:error->${steps.findRecordFailed}`,
-        "find-states-1:success->decide-state-1",
-        "find-states-1:error->log-find-states-failed",
-        "decide-state-1:success->if-change-1",
-        "decide-state-1:error->log-decide-failed",
-        "if-change-1:yes->change-state-1",
-        "if-change-1:no->log-unchanged",
-        "change-state-1:success->log-changed",
-        "change-state-1:error->log-change-failed",
+        `read-event-1:yes->${steps.fromAnotherTool}`,
       ],
     },
     [ids.commentToNote]: {
       nodes: {
         "webhook-1": ComponentID.Webhook,
-        "read-comment-1": ComponentID.JavaScriptCode,
-        "log-read-failed": ComponentID.Log,
-        "if-comment-1": ComponentID.IfElse,
-        "log-ignored": ComponentID.Log,
-        "get-issue-1": ComponentID.ApiGet,
-        "log-get-issue-failed": ComponentID.Log,
-        "find-link-1": ComponentID.JavaScriptCode,
-        "log-find-link-failed": ComponentID.Log,
-        "if-linked-1": ComponentID.IfElse,
-        "log-not-linked": ComponentID.Log,
-        [steps.findRecord]: `${r}-find-one`,
-        [steps.findRecordFailed]: ComponentID.Log,
-        "if-found-1": ComponentID.IfElse,
-        "log-not-found": ComponentID.Log,
-        "create-note-1": `${r}-internal-note-create-one`,
-        "log-noted": ComponentID.Log,
-        "log-note-failed": ComponentID.Log,
+        "get-issue-1": ComponentID.ApiGetById,
+        "read-comment-1": ComponentID.JavaScriptCheck,
+        [steps.fromAnotherTool]: record,
       },
       edges: [
-        "webhook-1:out->read-comment-1",
-        "read-comment-1:success->if-comment-1",
-        "read-comment-1:error->log-read-failed",
-        "if-comment-1:yes->get-issue-1",
-        "if-comment-1:no->log-ignored",
-        "get-issue-1:success->find-link-1",
-        "get-issue-1:error->log-get-issue-failed",
-        "find-link-1:success->if-linked-1",
-        "find-link-1:error->log-find-link-failed",
-        `if-linked-1:yes->${steps.findRecord}`,
-        "if-linked-1:no->log-not-linked",
-        `${steps.findRecord}:success->if-found-1`,
-        `${steps.findRecord}:error->${steps.findRecordFailed}`,
-        "if-found-1:yes->create-note-1",
-        "if-found-1:no->log-not-found",
-        "create-note-1:success->log-noted",
-        "create-note-1:error->log-note-failed",
+        "webhook-1:out->get-issue-1",
+        "get-issue-1:success->read-comment-1",
+        `read-comment-1:yes->${steps.fromAnotherTool}`,
       ],
     },
     [ids.issueChangesToNote]: {
       nodes: {
         "webhook-1": ComponentID.Webhook,
-        "read-changes-1": ComponentID.JavaScriptCode,
-        "log-read-failed": ComponentID.Log,
-        "if-changed-1": ComponentID.IfElse,
-        "log-ignored": ComponentID.Log,
-        [steps.findRecord]: `${r}-find-one`,
-        [steps.findRecordFailed]: ComponentID.Log,
-        "if-found-1": ComponentID.IfElse,
-        "log-not-found": ComponentID.Log,
-        "create-note-1": `${r}-internal-note-create-one`,
-        "log-noted": ComponentID.Log,
-        "log-note-failed": ComponentID.Log,
+        "read-changes-1": ComponentID.JavaScriptCheck,
+        [steps.fromAnotherTool]: record,
       },
       edges: [
         "webhook-1:out->read-changes-1",
-        "read-changes-1:success->if-changed-1",
-        "read-changes-1:error->log-read-failed",
-        `if-changed-1:yes->${steps.findRecord}`,
-        "if-changed-1:no->log-ignored",
-        `${steps.findRecord}:success->if-found-1`,
-        `${steps.findRecord}:error->${steps.findRecordFailed}`,
-        "if-found-1:yes->create-note-1",
-        "if-found-1:no->log-not-found",
-        "create-note-1:success->log-noted",
-        "create-note-1:error->log-note-failed",
+        `read-changes-1:yes->${steps.fromAnotherTool}`,
       ],
     },
   };
@@ -1370,6 +1215,20 @@ const COMMENT_CALL: JiraCall = {
   url: `${REST}/issue/${scriptOutput("build-comment-1", "issueKey")}/comment`,
 };
 
+// The issue a webhook names, read with its labels: which say whether it is linked, and to what.
+const ISSUE_LABELS_CALL: JiraCall = {
+  componentId: "get-issue-1",
+  metadataId: ComponentID.ApiGetById,
+  url: `${REST}/issue/{id}?fields=labels`,
+};
+
+// What API Get By ID reads the issue by: the key the webhook's issue has.
+const WEBHOOK_ISSUE_KEY: string = componentReturnValueReference(
+  "webhook-1",
+  "request-body",
+  ["issue", "key"],
+);
+
 /** Every call each template makes to Jira, in graph order. */
 const expectedJiraCalls: KindEntriesFunction<Array<JiraCall>> = (
   kind: RecordKind,
@@ -1394,11 +1253,8 @@ const expectedJiraCalls: KindEntriesFunction<Array<JiraCall>> = (
       },
     ],
     [ids.createFromIssue]: [
-      {
-        componentId: "get-issue-1",
-        metadataId: ComponentID.ApiGet,
-        url: `${REST}/issue/${scriptOutput(prepare, "issueKey")}?fields=labels`,
-      },
+      // By the key the webhook names: API Get By ID puts a plain id alone in {id}.
+      ISSUE_LABELS_CALL,
       {
         componentId: "link-issue-1",
         metadataId: ComponentID.ApiPut,
@@ -1406,13 +1262,7 @@ const expectedJiraCalls: KindEntriesFunction<Array<JiraCall>> = (
       },
     ],
     [ids.statusToState]: [],
-    [ids.commentToNote]: [
-      {
-        componentId: "get-issue-1",
-        metadataId: ComponentID.ApiGet,
-        url: `${REST}/issue/${scriptOutput("read-comment-1", "issueKey")}?fields=labels`,
-      },
-    ],
+    [ids.commentToNote]: [ISSUE_LABELS_CALL],
     [ids.issueChangesToNote]: [],
   };
 
@@ -1524,18 +1374,24 @@ const expectedTriggers: KindEntriesFunction<ExpectedTrigger> = (
 const EXPECTED_TRIGGERS: Record<string, ExpectedTrigger> =
   perKind(expectedTriggers);
 
-/** What each template writes to OneUptime. */
-const expectedDatabaseWrites: KindEntriesFunction<Array<string>> = (
+/*
+ * What each template writes to OneUptime, and how: Incident or Alert From
+ * Another Tool, told what happened - a record opened for a new issue, a
+ * state change, a note. No step writes a record any other way.
+ */
+const expectedRecordWrites: KindEntriesFunction<Array<string>> = (
   kind: RecordKind,
 ): Record<string, Array<string>> => {
   const r: string = kind.noun;
   const ids: KindTemplateIds = kind.templates;
 
   const writes: Record<string, Array<string>> = {
-    [ids.createFromIssue]: [`${r}-create-one`],
-    [ids.statusToState]: [`${r}-state-timeline-create-one`],
-    [ids.commentToNote]: [`${r}-internal-note-create-one`],
-    [ids.issueChangesToNote]: [`${r}-internal-note-create-one`],
+    [ids.createFromIssue]: [`${r}-from-another-tool open`],
+    [ids.statusToState]: [
+      `${r}-from-another-tool ${scriptOutput("read-event-1", "whatHappened")}`,
+    ],
+    [ids.commentToNote]: [`${r}-from-another-tool note`],
+    [ids.issueChangesToNote]: [`${r}-from-another-tool note`],
   };
 
   for (const templateId of outboundIds(kind)) {
@@ -1545,8 +1401,8 @@ const expectedDatabaseWrites: KindEntriesFunction<Array<string>> = (
   return writes;
 };
 
-const EXPECTED_DATABASE_WRITES: Record<string, Array<string>> = perKind(
-  expectedDatabaseWrites,
+const EXPECTED_RECORD_WRITES: Record<string, Array<string>> = perKind(
+  expectedRecordWrites,
 );
 
 interface WebhookSetup {
@@ -1763,25 +1619,25 @@ type RouteToRecordFunction = (kind: RecordKind) => string;
 
 /*
  * The only route from the create-from-issue template's webhook to the record
- * it creates: the event script says go, then Jira is asked for the issue's
- * labels as they are now, and a second script checks those.
+ * it creates: Jira is asked for the issue the webhook names, with its labels
+ * as they are now, and the script reads the event and Jira's answer and
+ * says go.
  */
 const routeToRecord: RouteToRecordFunction = (kind: RecordKind): string => {
   return [
     "webhook-1:out",
-    "find-severities-1:success",
-    `${kind.steps.prepareRecord}:success`,
-    `${kind.steps.decideCreate}:yes`,
     "get-issue-1:success",
-    "confirm-unlinked-1:success",
-    "if-unlinked-1:yes",
-    kind.steps.createRecord,
+    `${kind.steps.prepareRecord}:yes`,
+    kind.steps.fromAnotherTool,
   ].join("->");
 };
 
+type JiraSideCheckFunction = (kind: RecordKind) => string;
+
 /** The Jira-side check every route to a write in a create-from-issue template passes through. */
-const JIRA_SIDE_CHECK: string =
-  "->get-issue-1:success->confirm-unlinked-1:success->if-unlinked-1:yes->";
+const jiraSideCheck: JiraSideCheckFunction = (kind: RecordKind): string => {
+  return `->get-issue-1:success->${kind.steps.prepareRecord}:yes->`;
+};
 
 /** Jira Service Management's mark for a comment the customer must not see. */
 const INTERNAL_COMMENT_PROPERTIES: Array<JSONObject> = [
@@ -1872,60 +1728,20 @@ const recordReads: RecordReadsFunction = (
         stateName,
       ],
     },
-    {
-      templateId: kind.templates.createFromIssue,
-      scriptId: kind.steps.prepareRecord,
-      argumentKey: "severities",
-      fields: ["_id", "name", "order"],
-    },
-    {
-      templateId: kind.templates.statusToState,
-      scriptId: "decide-state-1",
-      argumentKey: r,
-      fields: [
-        "_id",
-        kind.numberField,
-        stateName,
-        `${kind.stateRelation}.order`,
-      ],
-    },
-    {
-      templateId: kind.templates.statusToState,
-      scriptId: "decide-state-1",
-      argumentKey: "states",
-      fields: [
-        "_id",
-        "name",
-        "order",
-        "isAcknowledgedState",
-        "isResolvedState",
-      ],
-    },
   ];
 };
 
 const RECORD_READS: Array<RecordRead> = KINDS.flatMap(recordReads);
 
+// The database steps the Jira templates have: the OneUptime -> Jira templates' triggers.
 const MODEL_BY_METADATA_ID: Record<string, { new (): BaseModel }> = {
   "incident-on-create": Incident,
   "incident-on-update": Incident,
-  "incident-find-one": Incident,
-  "incident-create-one": Incident,
   "incident-internal-note-on-create": IncidentInternalNote,
-  "incident-internal-note-create-one": IncidentInternalNote,
   "incident-public-note-on-create": IncidentPublicNote,
-  "incident-severity-find-many": IncidentSeverity,
-  "incident-state-find-many": IncidentState,
-  "incident-state-timeline-create-one": IncidentStateTimeline,
   "alert-on-create": Alert,
   "alert-on-update": Alert,
-  "alert-find-one": Alert,
-  "alert-create-one": Alert,
   "alert-internal-note-on-create": AlertInternalNote,
-  "alert-internal-note-create-one": AlertInternalNote,
-  "alert-severity-find-many": AlertSeverity,
-  "alert-state-find-many": AlertState,
-  "alert-state-timeline-create-one": AlertStateTimeline,
 };
 
 /** The template fields shown to a user, compared across kinds as text. */
@@ -2034,8 +1850,9 @@ const canBeEdited: CanBeEditedFunction = (
 type UngatedNodesFunction = (templateId: string) => Array<string>;
 
 /*
- * The steps a run can reach from the trigger without passing an If / Else's
- * Yes port — what runs whatever the event turns out to be.
+ * The steps a run can reach from the trigger without passing a check's Yes
+ * port - a Check With JavaScript's, or an If / Else's - which is what runs
+ * whatever the event turns out to be.
  */
 const ungatedNodes: UngatedNodesFunction = (
   templateId: string,
@@ -2047,14 +1864,17 @@ const ungatedNodes: UngatedNodesFunction = (
 
   while (queue.length > 0) {
     const current: string = queue.shift() as string;
-    const currentIsIfElse: boolean = isIfElseNode(nodeOf(templateId, current));
+    const currentNode: TemplateNodeSpec = nodeOf(templateId, current);
+    const currentIsCheck: boolean =
+      isIfElseNode(currentNode) ||
+      currentNode.metadataId === ComponentID.JavaScriptCheck;
 
     for (const edge of spec.edges) {
       if (edge.fromComponentId !== current) {
         continue;
       }
 
-      if (currentIsIfElse && edge.fromPort === "yes") {
+      if (currentIsCheck && edge.fromPort === "yes") {
         continue;
       }
 
@@ -2806,11 +2626,26 @@ describe("calls to Jira", () => {
    */
   test("the only thing substituted into a URL after the site is an issue key a script checked", () => {
     let checked: number = 0;
+    let readById: number = 0;
 
     for (const { templateId, node } of jiraNodes(isApiNode)) {
       const references: Array<Reference> = referencesIn(textArg(node, "url"));
 
       expect(references[0]?.raw).toBe(BASE_URL);
+
+      /*
+       * API Get By ID puts its ID into the URL's {id} itself, and only a
+       * plain one - letters, digits, "-" and "_" - so nothing in a key the
+       * webhook sent can steer the URL. The script after it checks the key
+       * against ISSUE_KEY before anything is written.
+       */
+      if (node.metadataId === ComponentID.ApiGetById) {
+        expect(references).toHaveLength(1);
+        expect(textArg(node, "url")).toContain("/issue/{id}?");
+        expect(node.args?.["id"]).toBe(WEBHOOK_ISSUE_KEY);
+        readById++;
+        continue;
+      }
 
       for (const reference of references.slice(1)) {
         const source: TemplateNodeSpec = nodeOf(
@@ -2837,8 +2672,13 @@ describe("calls to Jira", () => {
       }
     }
 
-    // Seven calls in the incident set, and six in the alert set.
-    expect(checked).toBe(13);
+    /*
+     * Five calls in the incident set - a transition, three comments and the
+     * link - and four in the alert set; and the issue the two webhook
+     * templates that link it read first, in each set.
+     */
+    expect(checked).toBe(9);
+    expect(readById).toBe(4);
   });
 
   test("a script checks the issue key itself, or takes it from linkedIssue", () => {
@@ -2860,7 +2700,6 @@ describe("calls to Jira", () => {
             "takes it from linkedIssue",
           [`${ids.createFromIssue} ${kind.steps.prepareRecord}`]:
             "tests the key",
-          [`${ids.createFromIssue} confirm-unlinked-1`]: "tests the key",
           [`${ids.commentToNote} read-comment-1`]: "tests the key",
           [`${ids.statusToState} read-event-1`]: "tests the key",
           [`${ids.issueChangesToNote} read-changes-1`]: "tests the key",
@@ -3178,7 +3017,7 @@ describe("request bodies and other JSON arguments", () => {
       }
     }
 
-    expect(checked).toBeGreaterThan(40);
+    expect(checked).toBeGreaterThan(25);
   });
 
   test("every Atlassian Document Format body is a doc of single-text paragraphs", () => {
@@ -3444,8 +3283,8 @@ describe("request bodies and other JSON arguments", () => {
             { add: JIRA_LINK_LABEL },
             {
               add: `${kind.labelPrefix}${componentReturnValueReference(
-                kind.steps.createRecord,
-                "model",
+                kind.steps.fromAnotherTool,
+                "record",
                 ["_id"],
               )}`,
             },
@@ -3583,16 +3422,8 @@ describe("text from Jira at substitution", () => {
       ).toBe(true);
       expect(fromJiraAt(create, scriptOutput(prepare, "title"))).toBe(true);
       expect(fromJiraAt(create, scriptOutput(prepare, "issueKey"))).toBe(false);
-      // The severity id the script chose is a OneUptime row's, not Jira text.
-      expect(
-        fromJiraAt(create, scriptOutput(prepare, kind.severityIdColumn)),
-      ).toBe(false);
-      expect(
-        fromJiraAt(
-          create,
-          componentReturnValueReference("find-severities-1", "models"),
-        ),
-      ).toBe(false);
+      // Where among the project's severities the record goes is the script's word, not Jira text.
+      expect(fromJiraAt(create, scriptOutput(prepare, "severity"))).toBe(false);
 
       for (const templateId of [kind.templates.commentToNote, create]) {
         expect(
@@ -3604,11 +3435,13 @@ describe("text from Jira at substitution", () => {
       }
 
       // A script that read Jira's answer returns Jira text, bar what it checked.
+      expect(fromJiraAt(create, scriptOutput(prepare, "reason"))).toBe(true);
+      expect(fromJiraAt(create, scriptOutput(prepare, "proceed"))).toBe(false);
       expect(
-        fromJiraAt(create, scriptOutput("confirm-unlinked-1", "reason")),
-      ).toBe(true);
-      expect(
-        fromJiraAt(create, scriptOutput("confirm-unlinked-1", "proceed")),
+        fromJiraAt(
+          kind.templates.statusToState,
+          scriptOutput("read-event-1", "whatHappened"),
+        ),
       ).toBe(false);
       expect(
         fromJiraAt(
@@ -3645,11 +3478,8 @@ describe("Jira template scripts", () => {
             return `${templateId} build-comment-1`;
           }),
           `${ids.createFromIssue} ${kind.steps.prepareRecord}`,
-          `${ids.createFromIssue} confirm-unlinked-1`,
           `${ids.statusToState} read-event-1`,
-          `${ids.statusToState} decide-state-1`,
           `${ids.commentToNote} read-comment-1`,
-          `${ids.commentToNote} find-link-1`,
           `${ids.issueChangesToNote} read-changes-1`,
         ];
       }),
@@ -4023,13 +3853,14 @@ describe("Jira template scripts", () => {
         );
       }
 
+      // Why the record moved, on its timeline: the record step's Note, as no Reason is given.
       expect(
-        jsonArg(nodeOf(kind.templates.statusToState, "change-state-1"), "json")[
-          "rootCause"
+        nodeOf(kind.templates.statusToState, kind.steps.fromAnotherTool).args?.[
+          "note"
         ],
-      ).toBe(scriptOutput("decide-state-1", "rootCause"));
+      ).toBe(scriptOutput("read-event-1", "reason"));
       expect(
-        scriptBody(scriptCode(kind.templates.statusToState, "decide-state-1")),
+        scriptBody(scriptCode(kind.templates.statusToState, "read-event-1")),
       ).toContain("defuse(FROM_JIRA + ");
 
       for (const [templateId, scriptId] of [
@@ -4037,7 +3868,7 @@ describe("Jira template scripts", () => {
         [kind.templates.issueChangesToNote, "read-changes-1"],
       ] as Array<[string, string]>) {
         expect(
-          jsonArg(nodeOf(templateId, "create-note-1"), "json")["note"],
+          nodeOf(templateId, kind.steps.fromAnotherTool).args?.["note"],
         ).toBe(scriptOutput(scriptId, "note"));
         expect(scriptBody(scriptCode(templateId, scriptId))).toContain(
           "defuse(FROM_JIRA + ",
@@ -4086,9 +3917,10 @@ describe("Jira template scripts", () => {
         );
       }
 
+      // A comment's webhook carries no labels: they are read off the issue as Jira has it.
       expect(
-        scriptBody(scriptCode(kind.templates.commentToNote, "find-link-1")),
-      ).toContain(`${r}IdFromLabels(issue.fields && issue.fields.labels)`);
+        scriptBody(scriptCode(kind.templates.commentToNote, "read-comment-1")),
+      ).toContain(`${r}IdFromLabels(current.fields && current.fields.labels)`);
     },
   );
 
@@ -4114,21 +3946,23 @@ describe("Jira template scripts", () => {
 
   /*
    * A record made from Jira already has an issue. The create-from-issue
-   * template records the key in customFields.jiraIssueKey, and the create
-   * template reads that same key — through a select that has to ask for
-   * customFields.
+   * template keeps the key in customFields.jiraIssueKey - the custom field
+   * Incident or Alert From Another Tool keeps the outside ID in - and the
+   * create template reads that same key, through a select that has to ask
+   * for customFields.
    */
   test.each(KINDS)(
     "$noun: the create template skips a $noun made from Jira, by the key it was made with",
     (kind: RecordKind) => {
-      const created: JSONObject = jsonArg(
-        nodeOf(kind.templates.createFromIssue, kind.steps.createRecord),
-        "json",
+      const record: TemplateNodeSpec = nodeOf(
+        kind.templates.createFromIssue,
+        kind.steps.fromAnotherTool,
       );
 
-      expect(created["customFields"]).toEqual({
-        jiraIssueKey: scriptOutput(kind.steps.prepareRecord, "issueKey"),
-      });
+      expect(record.args?.["outside-id-field"]).toBe("jiraIssueKey");
+      expect(record.args?.["outside-id"]).toBe(
+        scriptOutput(kind.steps.prepareRecord, "issueKey"),
+      );
       expect(
         scriptBody(scriptCode(kind.templates.createIssue, "prepare-issue-1")),
       ).toContain("asText(customFields.jiraIssueKey)");
@@ -4140,207 +3974,67 @@ describe("Jira template scripts", () => {
 });
 
 describe("Jira template branching", () => {
-  test("every script is followed by an If / Else on its own proceed flag", () => {
+  /*
+   * A script is a Check With JavaScript: it goes on by Yes when it says to,
+   * and ends the run by No, its reason in the step's Steps entry, where a
+   * script and an If / Else on its proceed flag used to.
+   */
+  test("every script is a Check With JavaScript that goes on by Yes into exactly one step, and by nothing else", () => {
     for (const { templateId, node } of jiraNodes(isScriptNode)) {
-      const next: Array<string> = targetsOf(
-        templateId,
-        node.componentId,
-        "success",
-      );
+      const at: string = `${templateId} ${node.componentId}`;
 
-      expect({
-        at: `${templateId} ${node.componentId}`,
-        next: next.length,
-      }).toEqual({
-        at: `${templateId} ${node.componentId}`,
-        next: 1,
+      expect({ at: at, metadataId: node.metadataId }).toEqual({
+        at: at,
+        metadataId: ComponentID.JavaScriptCheck,
       });
-
-      const decision: TemplateNodeSpec = nodeOf(templateId, next[0] as string);
-
       expect({
-        at: `${templateId} ${decision.componentId}`,
-        metadataId: decision.metadataId,
-        args: decision.args,
-      }).toEqual({
-        at: `${templateId} ${decision.componentId}`,
-        metadataId: ComponentID.IfElse,
-        args: proceedCondition(node.componentId),
-      });
+        at: at,
+        ports: specOf(templateId)
+          .edges.filter((edge: TemplateEdgeSpec) => {
+            return edge.fromComponentId === node.componentId;
+          })
+          .map((edge: TemplateEdgeSpec) => {
+            return edge.fromPort;
+          }),
+      }).toEqual({ at: at, ports: ["yes"] });
     }
   });
 
-  /*
-   * Find One answers "nothing matched" on its Success port with a null model,
-   * so the found check is the one If / Else that does not act on a script. It
-   * compares the id OneUptime returned with the one the label named, which is
-   * what stops a label naming another project's record from being written to.
-   */
-  test("the only other If / Else is the found-record check before a note is written", () => {
-    const others: Array<string> = [];
-
-    for (const { templateId, node } of jiraNodes(isIfElseNode)) {
-      const isProceedCheck: boolean = jiraNodes(isScriptNode).some(
-        ({ templateId: scriptTemplateId, node: script }: JiraNode) => {
-          return (
-            scriptTemplateId === templateId &&
-            targetsOf(templateId, script.componentId, "success").includes(
-              node.componentId,
-            )
-          );
-        },
-      );
-
-      if (!isProceedCheck) {
-        others.push(`${templateId} ${node.componentId}`);
-      }
-    }
-
-    expect(others).toEqual(
-      KINDS.flatMap((kind: RecordKind) => {
-        return [
-          `${kind.templates.commentToNote} if-found-1`,
-          `${kind.templates.issueChangesToNote} if-found-1`,
-        ];
+  test("no Jira template has an If / Else or a Log: the scripts decide, and each step's Steps entry says what it did", () => {
+    expect(
+      jiraNodes((node: TemplateNodeSpec): boolean => {
+        return isIfElseNode(node) || isLogNode(node);
+      }).map(({ templateId, node }: JiraNode): string => {
+        return `${templateId} ${node.componentId}`;
       }),
-    );
-
-    for (const kind of KINDS) {
-      const find: string = kind.steps.findRecord;
-
-      for (const [templateId, linkingScriptId] of [
-        [kind.templates.commentToNote, "find-link-1"],
-        [kind.templates.issueChangesToNote, "read-changes-1"],
-      ] as Array<[string, string]>) {
-        expect(nodeOf(templateId, "if-found-1").args).toEqual({
-          "input-1-type": ConditionValueType.Text,
-          "input-1": componentReturnValueReference(find, "model", ["_id"]),
-          operator: ConditionOperator.EqualTo,
-          "input-2-type": ConditionValueType.Text,
-          "input-2": scriptOutput(linkingScriptId, `${kind.noun}Id`),
-        });
-        expect(targetsOf(templateId, find, "success")).toEqual(["if-found-1"]);
-        expect(targetsOf(templateId, "if-found-1", "yes")).toEqual([
-          "create-note-1",
-        ]);
-        expect(
-          isLogNode(
-            nodeOf(
-              templateId,
-              targetsOf(templateId, "if-found-1", "no")[0] as string,
-            ),
-          ),
-        ).toBe(true);
-      }
-    }
-  });
-
-  test("a skipped run logs the script's reason", () => {
-    for (const { templateId, node } of jiraNodes(isScriptNode)) {
-      const decision: string = targetsOf(
-        templateId,
-        node.componentId,
-        "success",
-      )[0] as string;
-      const skipped: Array<string> = targetsOf(templateId, decision, "no");
-
-      expect(skipped).toHaveLength(1);
-
-      const log: TemplateNodeSpec = nodeOf(templateId, skipped[0] as string);
-
-      expect({
-        at: `${templateId} ${log.componentId}`,
-        isLog: isLogNode(log),
-        value: log.args?.["value"],
-      }).toEqual({
-        at: `${templateId} ${log.componentId}`,
-        isLog: true,
-        value: `ℹ️ ${scriptOutput(node.componentId, "reason")}`,
-      });
-    }
-  });
-
-  test("a failed script logs the script's error", () => {
-    for (const { templateId, node } of jiraNodes(isScriptNode)) {
-      const failed: Array<string> = targetsOf(
-        templateId,
-        node.componentId,
-        "error",
-      );
-
-      expect(failed).toHaveLength(1);
-
-      const log: TemplateNodeSpec = nodeOf(templateId, failed[0] as string);
-
-      expect(isLogNode(log)).toBe(true);
-      expect(textArg(log, "value")).toContain(
-        componentReturnValueReference(node.componentId, "error"),
-      );
-    }
+    ).toEqual([]);
   });
 
   /*
-   * For a Jira error body the API step's `error` is only "Server Error." —
-   * what went wrong is in the response body, so a failure log needs both.
+   * A step that fails with nothing connected to its Error output fails the
+   * run, and its Steps entry says why (UnhandledStepFailure): a script that
+   * throws, a Jira call Jira refuses - the API steps' Steps entry shows what
+   * Jira said - and a record the record step could not write.
    */
-  test("a failed Jira call logs the error and what Jira said", () => {
-    for (const { templateId, node } of jiraNodes(isApiNode)) {
-      const failed: Array<string> = targetsOf(
-        templateId,
-        node.componentId,
-        "error",
-      );
-
-      expect(failed).toHaveLength(1);
-
-      const log: TemplateNodeSpec = nodeOf(templateId, failed[0] as string);
-      const value: string = textArg(log, "value");
-
-      expect(isLogNode(log)).toBe(true);
-      expect(value).toContain(
-        componentReturnValueReference(node.componentId, "error"),
-      );
-      expect(value).toContain(
-        componentReturnValueReference(node.componentId, "response-body"),
-      );
-    }
-  });
-
-  /*
-   * A database step that fails returns nothing on its Error port — the error
-   * goes to the run log — so its failure log can only point there.
-   */
-  test("a failed database step's log points at the run log instead of quoting the step", () => {
-    for (const { templateId, node } of jiraNodes(
-      (candidate: TemplateNodeSpec) => {
-        return (
-          isDatabaseNode(candidate) &&
-          candidate.componentType !== ComponentType.Trigger
-        );
-      },
-    )) {
-      const failed: Array<string> = targetsOf(
-        templateId,
-        node.componentId,
-        "error",
-      );
-
-      expect(failed).toHaveLength(1);
-
-      const log: TemplateNodeSpec = nodeOf(templateId, failed[0] as string);
-      const value: string = textArg(log, "value");
-
-      expect(isLogNode(log)).toBe(true);
-      expect(value).toContain("run log");
-      expect(value).not.toContain(`local.components.${node.componentId}.`);
-    }
+  test("nothing is connected to any step's Error output: a failure fails the run", () => {
+    expect(
+      JIRA_TEMPLATE_IDS.flatMap((templateId: string): Array<string> => {
+        return specOf(templateId)
+          .edges.filter((edge: TemplateEdgeSpec) => {
+            return edge.fromPort === "error";
+          })
+          .map((edge: TemplateEdgeSpec) => {
+            return `${templateId} ${edge.fromComponentId}`;
+          });
+      }),
+    ).toEqual([]);
   });
 
   /*
    * What runs regardless of the event can read, but must not change either
-   * side: every write to Jira or to OneUptime waits behind an If / Else.
+   * side: every write to Jira or to OneUptime waits behind a script's Yes.
    */
-  test("nothing writes to Jira or OneUptime before an If / Else says yes", () => {
+  test("nothing writes to Jira or OneUptime before a script says yes", () => {
     const writes: Array<string> = [];
     const ungatedWrites: Array<string> = [];
 
@@ -4348,7 +4042,11 @@ describe("Jira template branching", () => {
       const ungated: Array<string> = ungatedNodes(templateId);
 
       for (const node of specOf(templateId).nodes) {
-        if (!isJiraWrite(node) && !isDatabaseWrite(node)) {
+        if (
+          !isJiraWrite(node) &&
+          !isDatabaseWrite(node) &&
+          !isRecordStep(node)
+        ) {
           continue;
         }
 
@@ -4413,21 +4111,19 @@ describe("Jira webhook templates", () => {
   });
 
   /*
-   * Anyone who has the URL can post to a webhook. So before anything talks to
-   * Jira or the database, a script reads the event and decides. The one
-   * exception is the create-from-issue template's read of this project's
-   * severities, which does not depend on the payload and which the script
-   * needs to choose one.
+   * Anyone who has the URL can post to a webhook. So before anything is
+   * written to Jira or OneUptime, a script reads the event and decides. Two
+   * templates read the issue the event names from Jira first, by its key -
+   * API Get By ID takes a plain one alone, so nothing else the event holds
+   * reaches the URL - because the event alone cannot say whether the issue
+   * is linked: a comment's webhook carries no labels, and anyone can write
+   * an issue_created event.
    */
-  test("nothing touches Jira or the database before a script has read the event, but the severity read", () => {
+  test("nothing is written before a script has read the event: before it, at most the issue the event names is read", () => {
     const ungated: Record<string, Array<string>> = {};
 
     for (const templateId of JIRA_TO_ONEUPTIME_TEMPLATE_IDS) {
-      ungated[templateId] = ungatedNodes(templateId).filter(
-        (componentId: string) => {
-          return !isLogNode(nodeOf(templateId, componentId));
-        },
-      );
+      ungated[templateId] = ungatedNodes(templateId);
     }
 
     expect(ungated).toEqual(
@@ -4435,63 +4131,57 @@ describe("Jira webhook templates", () => {
         return {
           [kind.templates.createFromIssue]: [
             "webhook-1",
-            "find-severities-1",
+            "get-issue-1",
             kind.steps.prepareRecord,
-            kind.steps.decideCreate,
           ],
-          [kind.templates.statusToState]: [
-            "webhook-1",
-            "read-event-1",
-            "if-status-changed-1",
-          ],
+          [kind.templates.statusToState]: ["webhook-1", "read-event-1"],
           [kind.templates.commentToNote]: [
             "webhook-1",
+            "get-issue-1",
             "read-comment-1",
-            "if-comment-1",
           ],
-          [kind.templates.issueChangesToNote]: [
-            "webhook-1",
-            "read-changes-1",
-            "if-changed-1",
-          ],
+          [kind.templates.issueChangesToNote]: ["webhook-1", "read-changes-1"],
         };
       }),
     );
   });
 
-  test("the first step after the webhook reads the event, but the create-from-issue template's severity read", () => {
+  test("the first step after the webhook reads the event, or the issue the event names, for a script that reads both", () => {
     for (const templateId of JIRA_TO_ONEUPTIME_TEMPLATE_IDS) {
       const kind: RecordKind = kindOf(templateId);
       const first: TemplateNodeSpec = nodeOf(
         templateId,
         targetsOf(templateId, "webhook-1", "out")[0] as string,
       );
+      const readsTheIssueFirst: boolean =
+        templateId === kind.templates.createFromIssue ||
+        templateId === kind.templates.commentToNote;
 
-      if (templateId !== kind.templates.createFromIssue) {
+      if (!readsTheIssueFirst) {
         expect({ templateId: templateId, first: first.metadataId }).toEqual({
           templateId: templateId,
-          first: ComponentID.JavaScriptCode,
+          first: ComponentID.JavaScriptCheck,
         });
         continue;
       }
 
-      expect(first.metadataId).toBe(`${kind.noun}-severity-find-many`);
-      expect(referencesIn(argumentText(first.args))).toEqual([]);
+      expect(first.metadataId).toBe(ComponentID.ApiGetById);
+      expect(first.args?.["id"]).toBe(WEBHOOK_ISSUE_KEY);
       expect(
         nodeOf(
           templateId,
           targetsOf(templateId, first.componentId, "success")[0] as string,
         ).metadataId,
-      ).toBe(ComponentID.JavaScriptCode);
+      ).toBe(ComponentID.JavaScriptCheck);
     }
   });
 
   /*
    * A whole-argument reference to the request body hands the script the
    * parsed object itself, so no Jira text is substituted into JSON text at
-   * all. A script that needs something besides the event quotes the body
-   * last: the create-from-issue script takes the severities, and every
-   * script that links to the issue the workflow's Jira Site URL.
+   * all. A script that needs something besides the event names the
+   * workflow's Jira Site URL first, then what came from Jira - the issue as
+   * Jira has it, then the request body - so Jira text is filled in last.
    */
   test.each(KINDS)(
     "$noun: the event script is handed the webhook body whole, or quoted last",
@@ -4499,6 +4189,10 @@ describe("Jira webhook templates", () => {
       const body: string = componentReturnValueReference(
         "webhook-1",
         "request-body",
+      );
+      const issue: string = componentReturnValueReference(
+        "get-issue-1",
+        "response-body",
       );
       const site: string = variableReference("jiraSiteUrl");
 
@@ -4508,31 +4202,29 @@ describe("Jira webhook templates", () => {
         ],
       ).toBe(body);
 
+      expect(
+        jsonArg(
+          nodeOf(kind.templates.issueChangesToNote, "read-changes-1"),
+          "arguments",
+        ),
+      ).toEqual({ jiraSiteUrl: site, payload: body });
+
       for (const [templateId, scriptId] of [
         [kind.templates.commentToNote, "read-comment-1"],
-        [kind.templates.issueChangesToNote, "read-changes-1"],
+        [kind.templates.createFromIssue, kind.steps.prepareRecord],
       ] as Array<[string, string]>) {
-        expect(jsonArg(nodeOf(templateId, scriptId), "arguments")).toEqual({
+        const args: JSONObject = jsonArg(
+          nodeOf(templateId, scriptId),
+          "arguments",
+        );
+
+        expect(Object.keys(args)).toEqual(["jiraSiteUrl", "issue", "payload"]);
+        expect(args).toEqual({
           jiraSiteUrl: site,
+          issue: issue,
           payload: body,
         });
-        expect(
-          Object.keys(jsonArg(nodeOf(templateId, scriptId), "arguments")),
-        ).toEqual(["jiraSiteUrl", "payload"]);
       }
-
-      const createArguments: JSONObject = jsonArg(
-        nodeOf(kind.templates.createFromIssue, kind.steps.prepareRecord),
-        "arguments",
-      );
-
-      expect(Object.keys(createArguments)).toEqual([
-        "severities",
-        "jiraSiteUrl",
-        "payload",
-      ]);
-      expect(createArguments["jiraSiteUrl"]).toBe(site);
-      expect(createArguments["payload"]).toBe(body);
     },
   );
 });
@@ -4541,7 +4233,7 @@ describe.each(KINDS)(
   "the $noun create-from-issue template's check with Jira",
   (kind: RecordKind) => {
     const templateId: string = kind.templates.createFromIssue;
-    const create: string = kind.steps.createRecord;
+    const record: string = kind.steps.fromAnotherTool;
 
     /*
      * Anyone holding the workflow's URL can post an issue_created event for
@@ -4550,7 +4242,7 @@ describe.each(KINDS)(
      * the only route to the record runs through Jira's own answer.
      */
     test("the only route from the webhook to the record runs through Jira's answer and its check", () => {
-      expect(routesBetween(templateId, "webhook-1", create)).toEqual([
+      expect(routesBetween(templateId, "webhook-1", record)).toEqual([
         routeToRecord(kind),
       ]);
     });
@@ -4558,13 +4250,13 @@ describe.each(KINDS)(
     test("every write the template makes, to either side, is behind that check", () => {
       const writes: Array<string> = specOf(templateId)
         .nodes.filter((node: TemplateNodeSpec) => {
-          return isJiraWrite(node) || isDatabaseWrite(node);
+          return isJiraWrite(node) || isRecordStep(node);
         })
         .map((node: TemplateNodeSpec) => {
           return node.componentId;
         });
 
-      expect(writes).toEqual([create, "link-issue-1"]);
+      expect(writes).toEqual([record, "link-issue-1"]);
 
       for (const write of writes) {
         const routes: Array<string> = routesBetween(
@@ -4579,31 +4271,31 @@ describe.each(KINDS)(
           expect({
             write: write,
             route: route,
-            checked: route.includes(JIRA_SIDE_CHECK),
+            checked: `${route}->`.includes(jiraSideCheck(kind)),
           }).toEqual({ write: write, route: route, checked: true });
         }
       }
 
+      // The issue is labelled only for a record that was opened: not for one it already had.
       expect(routesBetween(templateId, "webhook-1", "link-issue-1")).toEqual([
-        `${routeToRecord(kind)}:success->link-issue-1`,
+        `${routeToRecord(kind)}:opened->link-issue-1`,
       ]);
     });
 
     /*
      * Removing any one step of the check must cut the webhook off from the
-     * record — the same claim as the single route above, said the way a later
+     * record - the same claim as the single route above, said the way a later
      * edit that adds a shortcut edge would break it.
      */
     test("taking out any step of the check leaves no way to the record", () => {
       const spec: TemplateSpec = specOf(templateId);
       const reachesWrites: Record<string, boolean> = {};
 
-      // The step off the route is the control: without it the walk proves nothing.
+      // The step after the record is the control: without it the walk proves nothing.
       for (const removed of [
-        "log-skipped",
+        "link-issue-1",
         "get-issue-1",
-        "confirm-unlinked-1",
-        "if-unlinked-1",
+        kind.steps.prepareRecord,
       ]) {
         const reached: Set<string> = new Set(["webhook-1"]);
         const queue: Array<string> = ["webhook-1"];
@@ -4623,25 +4315,22 @@ describe.each(KINDS)(
           }
         }
 
-        reachesWrites[removed] =
-          reached.has(create) || reached.has("link-issue-1");
+        reachesWrites[removed] = reached.has(record);
       }
 
       expect(reachesWrites).toEqual({
-        "log-skipped": true,
+        "link-issue-1": true,
         "get-issue-1": false,
-        "confirm-unlinked-1": false,
-        "if-unlinked-1": false,
+        [kind.steps.prepareRecord]: false,
       });
     });
 
-    test("the check asks Jira for the labels of the issue the event script checked", () => {
+    test("the check asks Jira for the labels of the issue the event names", () => {
       const get: TemplateNodeSpec = nodeOf(templateId, "get-issue-1");
 
-      expect(get.metadataId).toBe(ComponentID.ApiGet);
-      expect(textArg(get, "url")).toBe(
-        `${REST}/issue/${scriptOutput(kind.steps.prepareRecord, "issueKey")}?fields=labels`,
-      );
+      expect(get.metadataId).toBe(ComponentID.ApiGetById);
+      expect(get.args?.["id"]).toBe(WEBHOOK_ISSUE_KEY);
+      expect(textArg(get, "url")).toBe(`${REST}/issue/{id}?fields=labels`);
       expect(get.args?.["request-headers"]).toEqual({
         Authorization: AUTHORIZATION,
       });
@@ -4649,78 +4338,54 @@ describe.each(KINDS)(
     });
 
     /*
-     * The script reads Jira's answer and nothing else — not the webhook, whose
-     * labels are the ones being doubted — and only says go once the answer
-     * names a real issue that carries no link label of either kind.
+     * The script reads the event, then Jira's answer - the webhook's own
+     * labels are the ones being doubted - and only says go once the answer
+     * names a real issue that carries no link label of either kind. This was
+     * a script of its own, confirm-unlinked-1.
      */
-    test("the check reads only Jira's answer, and proceeds only for a real, unlinked issue", () => {
-      const confirm: TemplateNodeSpec = nodeOf(
-        templateId,
-        "confirm-unlinked-1",
+    test("the check reads Jira's answer, and proceeds only for a real, unlinked issue", () => {
+      const body: string = scriptBody(
+        scriptCode(templateId, kind.steps.prepareRecord),
       );
-      const body: string = scriptBody(textArg(confirm, "code"));
 
-      expect(jsonArg(confirm, "arguments")).toEqual({
-        issue: componentReturnValueReference("get-issue-1", "response-body"),
-      });
-      expect(body).toContain("const issue = readJson(args.issue) || {};");
-      expect(body).toContain("const issueKey = asText(issue.key);");
+      expect(body).toContain("const current = readJson(args.issue) || {};");
 
+      const eventLabelsChecked: number = indexOrFail(
+        body,
+        "if (isLinked(fields.labels)) {\n  return skip(",
+      );
       const keyChecked: number = indexOrFail(
         body,
-        "if (!ISSUE_KEY.test(issueKey)) return skip(",
+        "if (!ISSUE_KEY.test(asText(current.key))) return skip(",
       );
       const labelsChecked: number = indexOrFail(
         body,
-        "if (isLinked(issue.fields && issue.fields.labels)) {\n  return skip(",
+        "if (isLinked(current.fields && current.fields.labels)) {\n  return skip(",
       );
       const proceeds: number = indexOrFail(body, "proceed: true");
 
+      expect(eventLabelsChecked).toBeLessThan(keyChecked);
       expect(keyChecked).toBeLessThan(labelsChecked);
       expect(labelsChecked).toBeLessThan(proceeds);
       expect(body.split("proceed: true")).toHaveLength(2);
-
-      // The same helper decides "linked" on both sides of the check.
-      expect(
-        scriptBody(scriptCode(templateId, kind.steps.prepareRecord)),
-      ).toContain("if (isLinked(fields.labels)) {");
-      expect(nodeOf(templateId, "if-unlinked-1").args).toEqual(
-        proceedCondition("confirm-unlinked-1"),
-      );
     });
 
     /*
-     * A check that cannot be made is a no: an issue Jira will not return, a
-     * script that throws, or labels that say the issue is linked all end in a
-     * log and nothing else.
+     * A check that cannot be made is a no: an issue Jira will not return
+     * fails the run at get-issue-1, and a script that throws, or labels that
+     * say the issue is linked, end it at the script. Nothing comes after.
      */
-    test("when Jira cannot be asked, or says the issue is linked, the run ends in a log", () => {
+    test("when Jira cannot be asked, or says the issue is linked, the run ends there", () => {
       for (const [from, port] of [
         ["get-issue-1", "error"],
-        ["confirm-unlinked-1", "error"],
-        ["if-unlinked-1", "no"],
+        [kind.steps.prepareRecord, "error"],
+        [kind.steps.prepareRecord, "no"],
       ] as Array<[string, string]>) {
-        const next: Array<string> = targetsOf(templateId, from, port);
-
-        expect(next).toHaveLength(1);
-
-        const log: TemplateNodeSpec = nodeOf(templateId, next[0] as string);
-
         expect({
           at: `${from}:${port}`,
-          isLog: isLogNode(log),
-          leadsOn: specOf(templateId).edges.some((edge: TemplateEdgeSpec) => {
-            return edge.fromComponentId === log.componentId;
-          }),
-        }).toEqual({ at: `${from}:${port}`, isLog: true, leadsOn: false });
+          next: targetsOf(templateId, from, port),
+        }).toEqual({ at: `${from}:${port}`, next: [] });
       }
-
-      expect(textArg(nodeOf(templateId, "log-already-linked"), "value")).toBe(
-        `ℹ️ ${scriptOutput("confirm-unlinked-1", "reason")}`,
-      );
-      expect(
-        textArg(nodeOf(templateId, "log-get-issue-failed"), "value"),
-      ).toContain(`no ${kind.noun} was ${kind.created}`);
     });
   },
 );
@@ -4934,167 +4599,119 @@ describe("Jira template triggers", () => {
   );
 });
 
+/*
+ * What the Jira templates write to OneUptime, all of it through Incident or
+ * Alert From Another Tool: an incident or alert opened for a new issue, by
+ * its key; a state change, moving a record only ever forward; a private
+ * note. It keeps the issue's key in the record's custom field, keeps an
+ * incident off status pages, moves a record only forward - which settles
+ * the echo when the other direction already moved the issue - and writes
+ * nothing to a record of another project (FromAnotherTool.test.ts).
+ */
 describe("what the Jira templates write to OneUptime", () => {
-  /*
-   * Notes from Jira are private notes: a Jira comment was not written for a
-   * status page. And nothing is ever updated or deleted.
-   */
-  test("each template creates only the records it documents, and never updates or deletes", () => {
+  test("each template writes only what it documents, through Incident or Alert From Another Tool, and writes no record any other way", () => {
     const writes: Record<string, Array<string>> = {};
 
     for (const templateId of JIRA_TEMPLATE_IDS) {
+      expect(specOf(templateId).nodes.filter(isDatabaseWrite)).toEqual([]);
+
       writes[templateId] = specOf(templateId)
-        .nodes.filter(isDatabaseWrite)
+        .nodes.filter(isRecordStep)
         .map((node: TemplateNodeSpec) => {
-          return node.metadataId;
+          return `${node.metadataId} ${String(node.args?.["what-happened"])}`;
         });
     }
 
-    expect(writes).toEqual(EXPECTED_DATABASE_WRITES);
-  });
-
-  /*
-   * A state change is a new timeline row, not an edit to the record: the
-   * timeline is what records it, notifies, and refuses to move a record
-   * backwards. Writing the current-state column would skip all three.
-   */
-  test("no Jira template sets a record's state directly", () => {
-    const stateColumns: Array<string> = KINDS.map((kind: RecordKind) => {
-      return kind.stateIdColumn;
-    });
-
-    for (const { templateId, node } of jiraNodes(isDatabaseWrite)) {
-      expect(DATABASE_WRITE_METADATA_ID.exec(node.metadataId)?.[1]).toBe(
-        "create",
-      );
-      expect({
-        at: `${templateId} ${node.componentId}`,
-        setsState: Object.keys(jsonArg(node, "json")).some((key: string) => {
-          return stateColumns.includes(key);
-        }),
-      }).toEqual({ at: `${templateId} ${node.componentId}`, setsState: false });
-    }
+    expect(writes).toEqual(EXPECTED_RECORD_WRITES);
   });
 
   /*
    * The issue key is what stops the create template filing the record back
-   * into Jira as a second issue. A Jira issue's text was not written for a
-   * status page, so an incident is kept off them; an alert never reaches one.
+   * into Jira as a second issue: the record step keeps it as the outside ID,
+   * in customFields.jiraIssueKey. The title, the description and where the
+   * record goes among the project's severities are the script's, each a
+   * setting of its own.
    */
   test.each(KINDS)(
-    "$noun: a $noun made from Jira remembers its issue, and stays off status pages",
+    "$noun: a $noun made from Jira remembers its issue",
     (kind: RecordKind) => {
       const prepare: string = kind.steps.prepareRecord;
-      const created: JSONObject = jsonArg(
-        nodeOf(kind.templates.createFromIssue, kind.steps.createRecord),
-        "json",
-      );
 
-      expect(created).toEqual({
-        [kind.severityIdColumn]: scriptOutput(prepare, kind.severityIdColumn),
-        customFields: {
-          jiraIssueKey: scriptOutput(prepare, "issueKey"),
-        },
-        ...kind.quietCreateFields,
+      expect(
+        nodeOf(kind.templates.createFromIssue, kind.steps.fromAnotherTool).args,
+      ).toEqual({
+        "what-happened": "open",
+        "outside-id": scriptOutput(prepare, "issueKey"),
+        "outside-id-field": "jiraIssueKey",
         title: scriptOutput(prepare, "title"),
         description: scriptOutput(prepare, "description"),
+        severity: scriptOutput(prepare, "severity"),
       });
-    },
-  );
-
-  test("an alert made from Jira carries no status-page fields, which only an incident has", () => {
-    const created: JSONObject = jsonArg(
-      nodeOf(ALERT.templates.createFromIssue, ALERT.steps.createRecord),
-      "json",
-    );
-
-    expect(Object.keys(created)).toEqual([
-      "alertSeverityId",
-      "customFields",
-      "title",
-      "description",
-    ]);
-
-    // The incident's quiet fields are incident columns: an alert has nowhere to put them.
-    expect(Object.keys(INCIDENT.quietCreateFields).length).toBeGreaterThan(0);
-
-    for (const column of Object.keys(INCIDENT.quietCreateFields)) {
-      expect({
-        column: column,
-        onIncident: new Incident().hasColumn(column),
-        onAlert: new Alert().hasColumn(column),
-      }).toEqual({ column: column, onIncident: true, onAlert: false });
-    }
-  });
-
-  test.each(KINDS)(
-    "$noun: the title and description of a $noun made from Jira, written in Jira, come last",
-    (kind: RecordKind) => {
-      const text: string = textArg(
-        nodeOf(kind.templates.createFromIssue, kind.steps.createRecord),
-        "json",
-      );
-
-      expect(Object.keys(JSON.parse(text) as JSONObject).slice(-2)).toEqual([
-        "title",
-        "description",
-      ]);
-      expect(
-        referencesIn(text)
-          .slice(-2)
-          .map((reference: Reference) => {
-            return reference.raw;
-          }),
-      ).toEqual([
-        scriptOutput(kind.steps.prepareRecord, "title"),
-        scriptOutput(kind.steps.prepareRecord, "description"),
-      ]);
     },
   );
 
   /*
-   * The script decides from the record OneUptime returned, and only ever
-   * forward: an earlier or equal state is a skip. That is also what settles
-   * the echo when the other direction already moved the issue.
+   * An alert never reaches a status page, and an incident is kept off them
+   * by the record step itself, so the two are given the same settings.
+   */
+  test("an alert made from Jira is given what an incident is", () => {
+    expect(
+      asAlertValue(
+        nodeOf(
+          INCIDENT.templates.createFromIssue,
+          INCIDENT.steps.fromAnotherTool,
+        ).args as JSONValue,
+      ),
+    ).toEqual(
+      nodeOf(ALERT.templates.createFromIssue, ALERT.steps.fromAnotherTool).args,
+    );
+  });
+
+  /*
+   * The text Jira users wrote is each a setting of its own, the whole of
+   * it: nothing else is substituted beside it.
    */
   test.each(KINDS)(
-    "$noun: a state change is a timeline row for the $noun OneUptime found, moving forward only",
+    "$noun: the title and description of a $noun made from Jira, written in Jira, are each a setting alone",
     (kind: RecordKind) => {
-      const r: string = kind.noun;
-      const templateId: string = kind.templates.statusToState;
-      const decide: string = scriptBody(
-        scriptCode(templateId, "decide-state-1"),
+      const record: TemplateNodeSpec = nodeOf(
+        kind.templates.createFromIssue,
+        kind.steps.fromAnotherTool,
       );
 
-      expect(jsonArg(nodeOf(templateId, "change-state-1"), "json")).toEqual({
-        [kind.idColumn]: scriptOutput("decide-state-1", `${r}Id`),
-        [kind.timelineStateColumn]: scriptOutput("decide-state-1", "stateId"),
-        rootCause: scriptOutput("decide-state-1", "rootCause"),
-      });
-      expect(decide).toContain(`${r}Id: asText(${r}._id)`);
-      expect(decide).toContain("stateId: asText(target._id)");
-      expect(decide).toContain(
-        "if (Number(target.order) <= Number(current.order))",
-      );
+      for (const setting of ["title", "description"]) {
+        expect(wholeReference(record.args?.[setting])).toBe(
+          scriptOutput(kind.steps.prepareRecord, setting),
+        );
+      }
     },
   );
 
   test.each(KINDS)(
-    "$noun: a note from Jira is a private note on the $noun OneUptime found, not the one Jira named",
+    "$noun: a state change moves the $noun the issue's label names, as read-event-1 says, saying why",
+    (kind: RecordKind) => {
+      const r: string = kind.noun;
+
+      expect(
+        nodeOf(kind.templates.statusToState, kind.steps.fromAnotherTool).args,
+      ).toEqual({
+        "what-happened": scriptOutput("read-event-1", "whatHappened"),
+        "record-id": scriptOutput("read-event-1", `${r}Id`),
+        note: scriptOutput("read-event-1", "reason"),
+      });
+    },
+  );
+
+  test.each(KINDS)(
+    "$noun: a note from Jira is a private note on the $noun the issue's label names",
     (kind: RecordKind) => {
       for (const [templateId, scriptId] of [
         [kind.templates.commentToNote, "read-comment-1"],
         [kind.templates.issueChangesToNote, "read-changes-1"],
       ] as Array<[string, string]>) {
-        const note: TemplateNodeSpec = nodeOf(templateId, "create-note-1");
-
-        expect(note.metadataId).toBe(`${kind.noun}-internal-note-create-one`);
-        expect(jsonArg(note, "json")).toEqual({
-          [kind.idColumn]: componentReturnValueReference(
-            kind.steps.findRecord,
-            "model",
-            ["_id"],
-          ),
+        expect(nodeOf(templateId, kind.steps.fromAnotherTool).args).toEqual({
+          "what-happened": "note",
+          "record-id": scriptOutput(scriptId, `${kind.noun}Id`),
           note: scriptOutput(scriptId, "note"),
         });
       }
@@ -5110,24 +4727,18 @@ describe("what the Jira templates write to OneUptime", () => {
   });
 
   test.each(KINDS)(
-    "$noun: a $noun is looked up by an id a script took from the issue's label",
+    "$noun: a $noun is named by an id a script took from the issue's label",
     (kind: RecordKind) => {
       const r: string = kind.noun;
 
       for (const [templateId, scriptId] of [
         [kind.templates.statusToState, "read-event-1"],
-        [kind.templates.commentToNote, "find-link-1"],
+        [kind.templates.commentToNote, "read-comment-1"],
         [kind.templates.issueChangesToNote, "read-changes-1"],
       ] as Array<[string, string]>) {
-        const lookupNode: TemplateNodeSpec = nodeOf(
-          templateId,
-          kind.steps.findRecord,
-        );
-
-        expect(lookupNode.metadataId).toBe(`${r}-find-one`);
-        expect(lookupNode.args?.["query"]).toEqual({
-          _id: scriptOutput(scriptId, `${r}Id`),
-        });
+        expect(
+          nodeOf(templateId, kind.steps.fromAnotherTool).args?.["record-id"],
+        ).toBe(scriptOutput(scriptId, `${r}Id`));
 
         const body: string = scriptBody(scriptCode(templateId, scriptId));
 
@@ -5138,45 +4749,12 @@ describe("what the Jira templates write to OneUptime", () => {
   );
 
   /*
-   * The query argument is required and cannot be left empty, and without a
-   * limit Find Many returns ten rows — a project with more severities or
-   * states than that would have some silently left out.
+   * A select naming a column the model does not have throws at run time.
+   * Relations in a select are followed into the related model.
    */
-  test("a Find Many asks for every row, with a limit above the default", () => {
-    const findMany: Array<JiraNode> = jiraNodes((node: TemplateNodeSpec) => {
-      return node.metadataId.endsWith("-find-many");
-    });
-
-    // Severities and states, for each kind.
-    expect(findMany).toHaveLength(KINDS.length * 2);
-
-    for (const { templateId, node } of findMany) {
-      const query: JSONValue | undefined = node.args?.["query"];
-      const limit: JSONValue | undefined = node.args?.["limit"];
-
-      expect({
-        at: `${templateId} ${node.componentId}`,
-        query: query,
-        limitIsWhole: Number.isInteger(limit),
-        aboveDefault: typeof limit === "number" && limit > DEFAULT_LIMIT,
-        withinCap: typeof limit === "number" && limit <= LIMIT_PER_PROJECT,
-      }).toEqual({
-        at: `${templateId} ${node.componentId}`,
-        query: { _id: { _type: "NotNull", value: null } },
-        limitIsWhole: true,
-        aboveDefault: true,
-        withinCap: true,
-      });
-    }
-  });
-
-  /*
-   * A select naming a column the model does not have throws at run time, and
-   * a create naming one drops it or throws. Relations in a select are
-   * followed into the related model.
-   */
-  test("every column a Jira template selects, listens on, queries or writes exists", () => {
+  test("every column a Jira template selects, listens on or queries exists", () => {
     const missing: Array<string> = [];
+    let checked: number = 0;
 
     for (const { templateId, node } of jiraNodes(isDatabaseNode)) {
       const modelType: { new (): BaseModel } = lookup(
@@ -5185,6 +4763,8 @@ describe("what the Jira templates write to OneUptime", () => {
       );
       const model: BaseModel = new modelType();
       const at: string = `${templateId} ${node.componentId}`;
+
+      checked++;
 
       for (const [argumentId, followRelations] of [
         ["select", true],
@@ -5204,20 +4784,11 @@ describe("what the Jira templates write to OneUptime", () => {
           );
         }
       }
-
-      if (typeof node.args?.["json"] === "string") {
-        missing.push(
-          ...missingColumns(
-            model,
-            jsonArg(node, "json"),
-            false,
-            `${at} json: `,
-          ),
-        );
-      }
     }
 
     expect(missing).toEqual([]);
+    // The OneUptime -> Jira templates' triggers.
+    expect(checked).toBe(ONEUPTIME_TO_JIRA_TEMPLATE_IDS.length);
   });
 });
 
@@ -5317,7 +4888,6 @@ describe("the incident and alert sets side by side", () => {
     expect(differences).toEqual([
       // An alert never reaches a status page, so there is nothing to keep it off.
       `${ALERT.templates.createFromIssue} workflowDescription`,
-      `${ALERT.templates.createFromIssue} ${ALERT.steps.createRecord}.json`,
     ]);
   });
 
@@ -5360,28 +4930,22 @@ describe("the incident and alert sets side by side", () => {
     for (const kind of KINDS) {
       const templateId: string = kind.templates.createFromIssue;
 
-      for (const scriptId of [kind.steps.prepareRecord, "confirm-unlinked-1"]) {
-        const code: string = scriptCode(templateId, scriptId);
-        const isLinked: string = helperDefinition(
-          helperBlock(code),
-          "isLinked",
-        );
+      const code: string = scriptCode(templateId, kind.steps.prepareRecord);
+      const isLinked: string = helperDefinition(helperBlock(code), "isLinked");
 
-        expect(helperBlock(code)).toContain(
-          `\n${LINKED_LABEL_PREFIXES_DECLARATION}\n`,
-        );
-        expect(isLinked).toContain("text === LINK_LABEL");
-        expect(isLinked).toContain(
-          "LINKED_LABEL_PREFIXES.some((prefix) => text.indexOf(prefix) === 0)",
-        );
-      }
+      expect(helperBlock(code)).toContain(
+        `\n${LINKED_LABEL_PREFIXES_DECLARATION}\n`,
+      );
+      expect(isLinked).toContain("text === LINK_LABEL");
+      expect(isLinked).toContain(
+        "LINKED_LABEL_PREFIXES.some((prefix) => text.indexOf(prefix) === 0)",
+      );
 
-      expect(
-        scriptBody(scriptCode(templateId, kind.steps.prepareRecord)),
-      ).toContain("if (isLinked(fields.labels)) {");
-      expect(
-        scriptBody(scriptCode(templateId, "confirm-unlinked-1")),
-      ).toContain("if (isLinked(issue.fields && issue.fields.labels)) {");
+      // By the webhook's labels, and by the labels Jira says the issue has now.
+      expect(scriptBody(code)).toContain("if (isLinked(fields.labels)) {");
+      expect(scriptBody(code)).toContain(
+        "if (isLinked(current.fields && current.fields.labels)) {",
+      );
     }
 
     // The declaration lists exactly the two prefixes, as the exports spell them.

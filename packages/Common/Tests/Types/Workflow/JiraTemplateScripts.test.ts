@@ -4512,7 +4512,7 @@ const scriptStepsOf: ScriptStepsOfFunction = (
     {
       templateId: kind.templates.createRecord,
       componentId: kind.prepareRecordStep,
-      argumentNames: ["issue", "jiraSiteUrl", "payload"],
+      argumentNames: ["jiraSiteUrl", "issue", "payload"],
     },
     {
       templateId: kind.templates.statusToState,
@@ -4522,7 +4522,7 @@ const scriptStepsOf: ScriptStepsOfFunction = (
     {
       templateId: kind.templates.commentToNote,
       componentId: "read-comment-1",
-      argumentNames: ["issue", "jiraSiteUrl", "payload"],
+      argumentNames: ["jiraSiteUrl", "issue", "payload"],
     },
     {
       templateId: kind.templates.changesToNote,
