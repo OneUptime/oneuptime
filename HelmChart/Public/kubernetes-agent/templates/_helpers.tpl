@@ -1435,3 +1435,64 @@ Usage:
 {{- end -}}
 {{- toJson (dict "scheme" $scheme "target" $target "path" $path) -}}
 {{- end -}}
+
+{{/*
+Whether the control-plane scrape has anything to scrape: controlPlane.enabled
+and at least one component with endpoints. A component with none (etcd, the
+scheduler and the controller manager by default: they answer on the
+control-plane nodes, which the pod cannot guess) gets no job, and a
+prometheus receiver with no job at all refuses to start, so the receiver is
+only added when this is "true".
+
+Usage: {{- if eq (include "kubernetes-agent.controlPlaneScrapes" .) "true" }}
+*/}}
+{{- define "kubernetes-agent.controlPlaneScrapes" -}}
+{{- $cp := .Values.controlPlane | default dict -}}
+{{- $any := false -}}
+{{- if $cp.enabled -}}
+{{- range $component := list "etcd" "apiServer" "scheduler" "controllerManager" -}}
+{{- if (get $cp $component | default dict).endpoints -}}
+{{- $any = true -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- $any -}}
+{{- end -}}
+
+{{/*
+The scheme of a control-plane component's scrape job. The job reads every
+endpoint in its list, and one job has one scheme: http when every endpoint
+says http:// (etcd's plain metrics port), https otherwise, a bare host:port
+included, since the components serve HTTPS. The scheme used to be https
+whatever the endpoint said, so http://...:2381 failed every scrape. A list
+that mixes the two is refused while the chart renders, naming the setting.
+
+Takes a dict: `endpoints`, and `setting`, the values key they came from.
+Usage: {{ include "kubernetes-agent.controlPlaneScheme" (dict "endpoints" .endpoints "setting" "controlPlane.etcd.endpoints") }}
+*/}}
+{{- define "kubernetes-agent.controlPlaneScheme" -}}
+{{- $http := 0 -}}
+{{- range .endpoints -}}
+{{- if regexMatch "(?i)^http://" (toString .) -}}
+{{- $http = add1 $http -}}
+{{- end -}}
+{{- end -}}
+{{- if eq $http 0 -}}
+https
+{{- else if eq $http (len .endpoints) -}}
+http
+{{- else -}}
+{{- fail (printf "%s mixes http:// and https:// endpoints. A component is scraped by one job, with one scheme: list its endpoints with the same one." .setting) -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+A control-plane endpoint as a scrape target: host:port, without the scheme
+(the job's scheme says it) and without the path (every component serves
+/metrics, the job's metrics_path).
+
+Usage: {{ include "kubernetes-agent.controlPlaneTarget" . | quote }}
+*/}}
+{{- define "kubernetes-agent.controlPlaneTarget" -}}
+{{- regexFind "^[^/]*" (regexReplaceAll "(?i)^https?://" (toString . | trim) "") -}}
+{{- end -}}

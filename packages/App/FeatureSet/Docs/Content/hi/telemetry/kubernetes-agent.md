@@ -452,16 +452,7 @@ Windows नोड पूल वाले क्लस्टर पर `daemonset
 
 ### कंट्रोल प्लेन निगरानी चालू करें
 
-क्लस्टर का **कंट्रोल प्लेन** पेज etcd, API सर्वर, शेड्यूलर और कंट्रोलर मैनेजर के चार्ट दिखाता है। जब `controlPlane.enabled` का मान `true` होता है, तो एजेंट चारों को स्क्रैप करता है:
-
-```bash
-helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent \
-  --reset-then-reuse-values \
-  --set controlPlane.enabled=true
-```
-
-हर घटक को उसकी अपनी सूची के पतों पर स्क्रैप किया जाता है: `controlPlane.etcd.endpoints`, `controlPlane.apiServer.endpoints`, `controlPlane.scheduler.endpoints` और `controlPlane.controllerManager.endpoints`। स्क्रैप एजेंट के पॉड में चलता है, जिसका कोई होस्ट नेटवर्क नहीं है, इसलिए डिफ़ॉल्ट (`https://localhost:<port>/metrics`) उसी पॉड की ओर इंगित करते हैं: हर सूची को ऐसे पते पर सेट करें जिस तक पॉड पहुँच सके। किसी भी क्लस्टर के भीतर API सर्वर `https://kubernetes.default.svc:443/metrics` पर जवाब देता है:
+क्लस्टर का **कंट्रोल प्लेन** पेज etcd, API सर्वर, शेड्यूलर और कंट्रोलर मैनेजर के चार्ट दिखाता है। `controlPlane.enabled` चालू करें, और एजेंट API सर्वर को वहाँ पढ़ता है जहाँ वह किसी भी क्लस्टर के भीतर जवाब देता है, `https://kubernetes.default.svc:443/metrics`, अपने सेवा खाते के टोकन के साथ:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -471,12 +462,31 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set "controlPlane.apiServer.endpoints={https://kubernetes.default.svc:443/metrics}"
 ```
 
-`controlPlane.enabled` चारों स्क्रैप एक साथ चालू करता है। जहाँ कोई घटक अपने एंडपॉइंट पर नहीं पहुँचा जा सकता (प्रबंधित क्लस्टर पर etcd, शेड्यूलर और कंट्रोलर मैनेजर, या उनके `localhost` डिफ़ॉल्ट पर), वहाँ उसका स्क्रैप हर अंतराल पर विफल होता है: कलेक्टर एक स्क्रैप त्रुटि लॉग करता है और लक्ष्य को डाउन बताता है, और कुछ नहीं बदलता।
+यह पता `controlPlane.apiServer.endpoints` के लिए चार्ट का डिफ़ॉल्ट है; इसे साथ में सेट करने से वह रिलीज़ भी बदल जाती है जिसने किसी पुराने चार्ट का `localhost` डिफ़ॉल्ट रखा था।
 
-एजेंट सिर्फ़ HTTPS पर स्क्रैप करता है, सेवा खाते के टोकन के साथ और बिना क्लाइंट प्रमाणपत्र के। इसलिए:
+etcd, शेड्यूलर और कंट्रोलर मैनेजर कंट्रोल-प्लेन नोड पर चलते हैं, और स्क्रैप एजेंट के पॉड में चलता है, जिसका कोई होस्ट नेटवर्क नहीं है: वहाँ `localhost` वही पॉड है। इसलिए `controlPlane.etcd.endpoints`, `controlPlane.scheduler.endpoints` और `controlPlane.controllerManager.endpoints` तब तक खाली रहते हैं जब तक आप हर नोड का पता न डालें, और बिना एंडपॉइंट वाले घटक को स्क्रैप नहीं किया जाता:
 
-- **etcd** को एक ऐसा HTTPS मेट्रिक्स पता चाहिए जो क्लाइंट प्रमाणपत्र न माँगे। etcd के सामान्य मेट्रिक्स पोर्ट पहुँच से बाहर हैं: `2381` पर साधारण HTTP (kubeadm का `--listen-metrics-urls`) HTTPS के रूप में स्क्रैप होकर विफल होता है, और `2379` को क्लाइंट प्रमाणपत्र चाहिए।
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reset-then-reuse-values \
+  --set controlPlane.enabled=true \
+  --set "controlPlane.scheduler.endpoints={https://10.0.0.10:10259/metrics}" \
+  --set "controlPlane.controllerManager.endpoints={https://10.0.0.10:10257/metrics}" \
+  --set "controlPlane.etcd.endpoints={http://10.0.0.10:2381/metrics}"
+```
+
+हर एंडपॉइंट को सेवा खाते के टोकन के साथ HTTPS पर स्क्रैप किया जाता है, जब तक वह `http://` से शुरू न हो; तब उसे साधारण HTTP पर स्क्रैप किया जाता है। किसी घटक के सभी एंडपॉइंट एक ही स्कीम रखते हैं। जहाँ कोई घटक अपने एंडपॉइंट पर नहीं पहुँचा जा सकता, वहाँ उसका स्क्रैप हर अंतराल पर विफल होता है: कलेक्टर एक स्क्रैप त्रुटि लॉग करता है और लक्ष्य को डाउन बताता है, और कुछ नहीं बदलता।
+
 - **शेड्यूलर** (`10259`) और **कंट्रोलर मैनेजर** (`10257`) HTTPS परोसते हैं और टोकन स्वीकार करते हैं, पर kubeadm उन्हें कंट्रोल-प्लेन नोड पर `127.0.0.1` से बाँधता है: उन्हें ऐसा `--bind-address` चाहिए जिस तक एजेंट का पॉड पहुँच सके।
+- **etcd** अपने मेट्रिक्स `2381` पर साधारण HTTP में देता है (kubeadm का `--listen-metrics-urls`, जो नोड का पता जोड़ने तक `127.0.0.1` से बँधा रहता है), जैसा ऊपर है। इसका क्लाइंट पोर्ट, `2379`, HTTPS परोसता है और क्लाइंट प्रमाणपत्र माँगता है: एक प्रमाणपत्र एजेंट के नेमस्पेस में किसी Secret में `ca.crt`, `tls.crt` और `tls.key` कुंजियों के तहत रखें, और उस Secret का नाम `controlPlane.etcd.clientCertSecret` में दें। kubeadm के कंट्रोल-प्लेन नोड पर हेल्थ-चेक क्लाइंट का प्रमाणपत्र काम करता है:
+
+```bash
+kubectl -n oneuptime-agent create secret generic etcd-client-cert \
+  --from-file=ca.crt=/etc/kubernetes/pki/etcd/ca.crt \
+  --from-file=tls.crt=/etc/kubernetes/pki/etcd/healthcheck-client.crt \
+  --from-file=tls.key=/etc/kubernetes/pki/etcd/healthcheck-client.key
+```
 
 प्रबंधित Kubernetes सेवाएँ (EKS, GKE, AKS) etcd, शेड्यूलर या कंट्रोलर मैनेजर उजागर नहीं करतीं, इसलिए वहाँ वे टैब खाली रहते हैं। जब तक किसी टैब के मेट्रिक्स न आएँ, **कंट्रोल प्लेन** पेज उसके चार्ट की जगह दिखाता है कि क्या सेट करना है, कॉपी करने के लिए कमांड के साथ।
 
@@ -823,7 +833,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set logs.enabled=false
 ```
 
-यह सिर्फ़ पॉड लॉग रोकता है। नोड, पॉड और कंटेनर मेट्रिक्स आते रहते हैं, और उन पर बने मॉनिटर (OOM kill, CPU थ्रॉटलिंग, PVC में कम डिस्क) काम करते रहते हैं: नोड कलेक्टर बना रहता है, बस `/var/log/pods` पढ़ना बंद करता है। यही बात `logs.mode: api` और `logs.mode: disabled` पर भी लागू है।
+यह सिर्फ़ पॉड लॉग रोकता है। नोड, पॉड और कंटेनर मेट्रिक्स आते रहते हैं, और उन पर बने मॉनिटर (क्रैश लूप, तैयार न हुए नोड, अपनी सीमा पर अटके पॉड, भरी हुई नोड डिस्क) काम करते रहते हैं: नोड कलेक्टर बना रहता है, बस `/var/log/pods` पढ़ना बंद करता है। यही बात `logs.mode: api` और `logs.mode: disabled` पर भी लागू है।
 
 ### eBPF ऑटो-इंस्ट्रुमेंटेशन घटाएँ
 
@@ -877,7 +887,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 कार्डिनैलिटी, यानी अलग-अलग सीरीज़ की संख्या, आवृत्ति जितनी ही मायने रखती है, क्योंकि हर सीरीज़ अलग से सहेजी और बिल की जाती है।
 
-- cAdvisor जानबूझकर अलाउलिस्टेड है। cAdvisor रिसीवर (डिफ़ॉल्ट रूप से चालू) सैकड़ों मेट्रिक्स भेज सकता है; चार्ट सिर्फ़ वे कुछ आगे भेजता है जिनका मॉनिटर उपयोग करते हैं (`cadvisor.metricsAllowlist`)। सूची छोटी रखें: हर प्रविष्टि हर कंटेनर के लिए रखी जाती है, इसलिए एक और मेट्रिक क्लस्टर के कंटेनरों की संख्या से गुणा होता है। kube-state-metrics डिफ़ॉल्ट रूप से बंद है; अगर आप इसे चालू करते हैं (`kubeStateMetrics.enabled=true`), तो इसकी `kubeStateMetrics.metricsAllowlist` उसी तरह काम करती है।
+- cAdvisor जानबूझकर अलाउलिस्टेड है। cAdvisor रिसीवर (डिफ़ॉल्ट रूप से चालू) सैकड़ों मेट्रिक्स भेज सकता है; चार्ट सिर्फ़ `cadvisor.metricsAllowlist` में दिए CPU थ्रॉटलिंग और OOM kill काउंटर आगे भेजता है, आपके अपने चार्ट और मेट्रिक मॉनिटर के लिए: कोई बिल्ट-इन टेम्पलेट इन्हें नहीं पढ़ता। सूची छोटी रखें: हर प्रविष्टि हर कंटेनर के लिए रखी जाती है, इसलिए एक और मेट्रिक क्लस्टर के कंटेनरों की संख्या से गुणा होता है। kube-state-metrics डिफ़ॉल्ट रूप से बंद है; अगर आप इसे चालू करते हैं (`kubeStateMetrics.enabled=true`), तो इसकी `kubeStateMetrics.metricsAllowlist` उसी तरह काम करती है, और हर प्रविष्टि को किसी मेट्रिक के पूरे नाम से मेल खाना चाहिए।
 - प्रति-PVC वॉल्यूम मेट्रिक्स (`kubeletstats.volumeMetrics.enabled`, डिफ़ॉल्ट रूप से चालू) हर पॉड के हर PVC की एक सीरीज़ भेजते हैं: ज़्यादातर क्लस्टर के लिए ठीक, पर हज़ारों PVC वाले स्टेटफ़ुल वर्कलोड (Kafka, डेटाबेस) पर बहुत ज़्यादा। अगर आप PVC डिस्क स्पेस नहीं देखते, तो वहाँ उन्हें `--set kubeletstats.volumeMetrics.enabled=false` से बंद करें।
 - सैचुरेशन मेट्रिक्स (`kubeletstats.utilizationMetrics.enabled`, डिफ़ॉल्ट रूप से चालू) "request या limit का %" वाले 8 व्युत्पन्न परिवार जोड़ते हैं। इनके लिए कोई अतिरिक्त स्क्रैप नहीं चाहिए, पर अगर आप limit के मुकाबले CPU और मेमोरी वाले मॉनिटर उपयोग नहीं करते, तो इन्हें `--set kubeletstats.utilizationMetrics.enabled=false` से हटाएँ।
 - नाम के आधार पर मेट्रिक्स `filters.metrics.exclude` से हटाएँ, जो हर रिसीवर पर लागू होता है, उन सबके लिए जिन्हें रिसीवर अलाउलिस्ट नहीं कह सकतीं ([नाम के आधार पर मेट्रिक्स शामिल करना या बाहर रखना](#नाम-के-आधार-पर-मेट्रिक्स-शामिल-करना-या-बाहर-रखना) देखें):
@@ -977,7 +987,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 ज़रूरत के अनुसार और कसें: `minSeverity` को `ERROR` तक बढ़ाएँ, किसी नेमस्पेस नियम के दायरों में `metrics` जोड़ें, या अगर आप पहले से OpenTelemetry SDK से ट्रेस भेजते हैं तो `ebpf.enabled=false` सेट करें।
 
 > [!CAUTION]
-> ध्यान दें कि आप क्या काट रहे हैं। कुछ मॉनिटर खास सिग्नल पर निर्भर हैं: `cadvisor` बंद करने से OOM-kill और CPU-थ्रॉटलिंग मॉनिटर हट जाते हैं, `kubeletstats.volumeMetrics` बंद करने से PVC कम-डिस्क मॉनिटर हट जाता है, और लॉग बंद करने से लॉग-आधारित अलर्ट हट जाते हैं। `sampling.traces.percentage` कोई मॉनिटर नहीं हटाता पर स्पैन-आधारित मॉनिटर (`Span Count` पर **ट्रेस**, `Exception Count` पर **अपवाद**) घटा देता है, इसलिए उनकी सीमाएँ फिर से ट्यून करें। वे सिग्नल घटाएँ जिन पर आप कार्रवाई नहीं करते, वे नहीं जिन्हें कोई मॉनिटर देख रहा है।
+> ध्यान दें कि आप क्या काट रहे हैं। कुछ मॉनिटर खास सिग्नल पर निर्भर हैं: `kubeletstats.utilizationMetrics` बंद करने से वे दो टेम्पलेट चुप हो जाते हैं जो पॉड को उनके कंटेनर की सीमाओं से मापते हैं, लॉग बंद करने से लॉग-आधारित अलर्ट हट जाते हैं, और `cadvisor` या `kubeletstats.volumeMetrics` बंद करने से थ्रॉटलिंग, OOM-kill और PVC की वे सीरीज़ हट जाती हैं जिन्हें आपके अपने चार्ट और मेट्रिक मॉनिटर पढ़ सकते हैं। `sampling.traces.percentage` कोई मॉनिटर नहीं हटाता पर स्पैन-आधारित मॉनिटर (`Span Count` पर **ट्रेस**, `Exception Count` पर **अपवाद**) घटा देता है, इसलिए उनकी सीमाएँ फिर से ट्यून करें। वे सिग्नल घटाएँ जिन पर आप कार्रवाई नहीं करते, वे नहीं जिन्हें कोई मॉनिटर देख रहा है।
 
 ### असर मापें
 
@@ -1073,7 +1083,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 ## अगले कदम
 
 :::cards
-- [Kubernetes मॉनिटर](/docs/monitor/kubernetes-monitor): क्रैश लूप, OOM kill, CPU थ्रॉटलिंग और भरी हुई डिस्क पर अलर्ट करें।
+- [Kubernetes मॉनिटर](/docs/monitor/kubernetes-monitor): क्रैश लूप, तैयार न हुए नोड, अपनी सीमा पर अटके पॉड और भरी हुई नोड डिस्क पर अलर्ट करें।
 - [Kubernetes लागत ऑब्ज़र्वेबिलिटी](/docs/telemetry/kubernetes-cost): देखें कि हर वर्कलोड की लागत कितनी है, और कौन-से request घटाने हैं।
 - [डेटाबेस](/docs/telemetry/databases): क्लस्टर के डेटाबेस वर्कलोड खोजे जाते हैं और उन्हें अपने पेज मिलते हैं।
 - [होस्ट OpenTelemetry कलेक्टर](/docs/telemetry/host-otel-collector): Kubernetes के बाहर की Linux, macOS और Windows मशीनों की निगरानी करें।

@@ -13,6 +13,7 @@ import {
   PROXMOX_AI_AGENT_CONTAINER,
   PROXMOX_CONNECT_METHODS,
   PROXMOX_EXAMPLE_CLUSTER_NAME,
+  PROXMOX_EXAMPLE_NODES,
   PROXMOX_EXPORTER_CONTAINER,
   PROXMOX_NATIVE_PUSH_PATH,
   PROXMOX_PUSH_HOST_PLACEHOLDER,
@@ -510,6 +511,7 @@ describe.each(AGENT_METHODS)(
         "No metrics appearing",
         "The exporter returns 401 or 595 errors",
         "Only node metrics, no guest metrics",
+        "Guest Down or Replication Failing misses some guests",
         "Cluster appears under the wrong name",
       ]);
     });
@@ -535,7 +537,7 @@ describe.each(AGENT_METHODS)(
       ).toContain(
         codeBlock(
           "bash",
-          `docker run --rm --network container:${PROXMOX_EXPORTER_CONTAINER} curlimages/curl -s "http://localhost:9221/pve?target=<PVE_HOST>&cluster=1&node=1" | head`,
+          `docker run --rm --network container:${PROXMOX_EXPORTER_CONTAINER} curlimages/curl -s "http://localhost:9221/pve?target=<PVE_HOST>&cluster=1&node=0" | head`,
         ),
       );
     });
@@ -788,6 +790,7 @@ describe("the install script", () => {
       "**Proxmox VE API host**",
       "**Bundled prometheus-pve-exporter**",
       "**API token**",
+      "**Every node's address**",
       "**OneUptime AI agent**",
     ]) {
       expect(install).toContain(prompt);
@@ -872,6 +875,7 @@ describe("the Docker Compose install", () => {
         `ONEUPTIME_TELEMETRY_INGESTION_KEY=${KEY}`,
         `PROXMOX_CLUSTER_NAME=${PROXMOX_EXAMPLE_CLUSTER_NAME}`,
         "PVE_HOST=192.168.1.10",
+        `PVE_NODES=${PROXMOX_EXAMPLE_NODES}`,
         `PVE_API_TOKEN_ID=${PROXMOX_TOKEN_ID}`,
         "PVE_API_TOKEN_SECRET=your-token-secret",
         "COMPOSE_PROFILES=pve-exporter",
@@ -1213,15 +1217,110 @@ describe("drift guards against agents/ProxmoxAgent", () => {
     const config: Record<string, any> = yaml.load(
       PROXMOX_AGENT_COLLECTOR_CONFIG,
     ) as Record<string, any>;
-    const job: Record<string, any> =
-      config["receivers"]["prometheus"]["config"]["scrape_configs"][0];
-    expect(job["metrics_path"]).toBe("/pve");
-    expect(job["scrape_interval"]).toBe("30s");
-    expect(job["params"]["cluster"]).toEqual(["1"]);
-    expect(job["params"]["node"]).toEqual(["1"]);
+    const jobs: Array<Record<string, any>> =
+      config["receivers"]["prometheus"]["config"]["scrape_configs"];
+    for (const job of jobs) {
+      expect(job["metrics_path"]).toBe("/pve");
+      expect(job["scrape_interval"]).toBe("30s");
+    }
+    expect(
+      jobs.map((job: Record<string, any>): string => {
+        return job["job_name"];
+      }),
+    ).toEqual(["oneuptime-proxmox", "oneuptime-proxmox-nodes"]);
     expect(config["service"]["pipelines"]["metrics"]["processors"]).toContain(
       "transform/pve-identity",
     );
+
+    const collected: string = topicTitled(
+      guideFor("install-script").advanced,
+      "What the agent collects",
+    ).markdown;
+    expect(collected).toContain(
+      "The agent scrapes the exporter every 30 seconds: its cluster collectors once, at `PVE_HOST`, and its node collectors once for each node in `PVE_NODES`.",
+    );
+    expect(collected).toContain("| **Start-on-boot** | `pve_onboot_status`");
+  });
+
+  /*
+   * pve-exporter's node collectors (start-on-boot, replication, the
+   * subscription) read only the node whose API answers the scrape, the
+   * `local` one in cluster/status. The agent used to scrape one target with
+   * cluster=1&node=1, so on a cluster Guest Down (fail-closed on
+   * pve_onboot_status) and Replication Failing never saw the guests and
+   * jobs of any other node.
+   */
+  describe("every node is read, not just PVE_HOST", () => {
+    const config: Record<string, any> = yaml.load(
+      PROXMOX_AGENT_COLLECTOR_CONFIG,
+    ) as Record<string, any>;
+    const jobs: Array<Record<string, any>> =
+      config["receivers"]["prometheus"]["config"]["scrape_configs"];
+    const clusterJob: Record<string, any> = jobs[0]!;
+    const nodesJob: Record<string, any> = jobs[1]!;
+
+    test("the cluster collectors once, at PVE_HOST, with the node collectors off", () => {
+      expect(clusterJob["params"]).toEqual({
+        target: ["${env:PVE_HOST}"],
+        cluster: ["1"],
+        node: ["0"],
+      });
+      expect(clusterJob["static_configs"]).toEqual([
+        { targets: ["${env:PVE_EXPORTER_URL}"] },
+      ]);
+    });
+
+    test("the node collectors once per node in PVE_NODES, with the cluster collectors off", () => {
+      expect(nodesJob["params"]).toEqual({ cluster: ["0"], node: ["1"] });
+      // The whole value, so the collector reads PVE_NODES as a YAML list.
+      expect(nodesJob["static_configs"]).toEqual([
+        { targets: "${env:PVE_NODES}" },
+      ]);
+      expect(nodesJob["relabel_configs"]).toEqual([
+        { source_labels: ["__address__"], target_label: "__param_target" },
+        { source_labels: ["__param_target"], target_label: "instance" },
+        {
+          target_label: "__address__",
+          replacement: "${env:PVE_EXPORTER_URL}",
+        },
+      ]);
+    });
+
+    test("the collector gets PVE_NODES, and PVE_HOST alone when it is unset", () => {
+      expect(composeVariables(PROXMOX_AGENT_CONTAINER).get("PVE_NODES")).toBe(
+        "[${PVE_HOST:-localhost",
+      );
+      expect(readAgentFile("docker-compose.yml")).toContain(
+        "      - PVE_NODES=${PVE_NODES:-[${PVE_HOST:-localhost}]}\n",
+      );
+    });
+
+    test("install.sh asks for every node, offers the cluster's own list, and writes a list", () => {
+      const script: string = readAgentFile("install.sh");
+      expect(script).toContain(
+        'read -rp "Every node\'s API address, comma-separated [${DISCOVERED_NODES:-$PVE_HOST}]: " PVE_NODES',
+      );
+      expect(script).toContain('"https://$host/api2/json/cluster/status"');
+      expect(script).toContain('*) PVE_NODES="[$PVE_NODES]" ;;');
+    });
+
+    test("the guide names PVE_NODES wherever it sets the agent up", () => {
+      for (const method of AGENT_METHODS) {
+        const guide: SetupGuideContent = guideFor(method);
+        expect(envTableRows(guide).get("PVE_NODES")?.description).toContain(
+          `comma-separated in square brackets, e.g. \`${PROXMOX_EXAMPLE_NODES}\`. Defaults to \`PVE_HOST\` alone`,
+        );
+        expect(
+          topicTitled(
+            guide.troubleshooting,
+            "Guest Down or Replication Failing misses some guests",
+          ).markdown,
+        ).toContain(`\`PVE_NODES=${PROXMOX_EXAMPLE_NODES}\``);
+      }
+      expect(installStep(guideFor("docker-compose"))).toContain(
+        "Set `PVE_NODES` to every node's own address, in square brackets, never a virtual IP.",
+      );
+    });
   });
 
   test("the environment table documents exactly what the collector and the bundled exporter read", () => {
@@ -1272,7 +1371,7 @@ describe("drift guards against agents/ProxmoxAgent", () => {
       .map((line: string): string => {
         return line.split("=")[0]!;
       });
-    expect(names.length).toBe(7);
+    expect(names.length).toBe(8);
     for (const name of names) {
       expect(readable.has(name)).toBe(true);
     }

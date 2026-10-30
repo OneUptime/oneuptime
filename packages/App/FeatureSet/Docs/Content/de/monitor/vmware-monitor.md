@@ -48,19 +48,19 @@ Klicken Sie unter **Monitortyp** auf **Weitere Monitortypen** und wählen Sie **
 
 ### Das vCenter wählen
 
-Wählen Sie unter **Konfiguration des VMware-Monitors** das vCenter aus **vCenter**. Jedes vCenter, das Daten gesendet hat oder das Sie ohne Agent verbunden haben, steht in der Liste.
+Wählen Sie unter **Konfiguration des VMware-Monitors** das vCenter aus **vCenter**. Jedes vCenter, das Daten gesendet hat oder das Sie ohne Agent verbunden haben, steht in der Liste. Nach der Auswahl zeigt eine Zeile unter dem Feld, ob Daten ankommen. **vCenter hinzufügen** öffnet die Seite der vCenter, auf der Sie eines verbinden.
 
 ### Festlegen, was überwacht wird
 
-Wählen Sie einen der drei Tabs:
+Ein neuer Monitor beginnt mit **vCenter Stopped Reporting** unter **Worüber benachrichtigt wird**. So überwachen Sie etwas anderes:
 
-- **Quick Setup** - klicken Sie auf eine [Vorlage](#fertige-warnungsvorlagen). Sie setzt die Metrik, die Attributfilter, die Aggregation, den Zeitbereich, die Gruppierung und die Schwellenwerte und ersetzt die Kriterien unten durch ihre eigenen. Den **Zeitbereich** können Sie weiterhin ändern.
-- **Custom Metric** - wählen Sie eine Metrik aus **VMware-Metrik** und legen Sie dann **Aggregation** und **Zeitbereich** fest. Das Formular gruppiert sie nach dem Objekt, das sie beschreibt, sodass jeder Host, jede VM und jeder Datenspeicher einzeln beurteilt wird, und die [Filter](#monitor-einstellungen) schränken sie auf ein Rechenzentrum, einen Cluster, einen Host, eine VM, einen Datenspeicher oder einen Ressourcenpool ein.
-- **Erweitert** - bauen Sie Abfragen und Formeln selbst unter **Metriken auswählen**, mit Filtern auf Attribute wie `disk_state`, `power_state` oder `status`. Verwenden Sie **Gruppieren nach** mit einem [Identitätsattribut](#identitätsattribute), um jedes Objekt einzeln zu beurteilen.
+- **Ändern** - wählen Sie eine andere [Vorlage](#fertige-warnungsvorlagen). Sie setzt die Metrik, die Attributfilter, die Aggregation, den Zeitbereich, die Gruppierung und die Schwellenwerte und ersetzt die Kriterien unten durch ihre eigenen. Den **Zeitbereich** können Sie weiterhin ändern.
+- **Custom Metric** (unter **Weitere Felder**) - wählen Sie eine Metrik aus **VMware-Metrik** und legen Sie dann **Aggregation** und **Zeitbereich** fest. Das Formular gruppiert sie nach dem Objekt, das sie beschreibt, sodass jeder Host, jede VM und jeder Datenspeicher einzeln beurteilt wird, und die [Filter](#monitor-einstellungen) schränken sie auf ein Rechenzentrum, einen Cluster, einen Host, eine VM, einen Datenspeicher oder einen Ressourcenpool ein.
+- **Erweitert** (unter **Weitere Felder**) - bauen Sie Abfragen und Formeln selbst unter **Metriken auswählen**, mit Filtern auf Attribute wie `disk_state`, `power_state` oder `status`. Verwenden Sie **Gruppieren nach** mit einem [Identitätsattribut](#identitätsattribute), um jedes Objekt einzeln zu beurteilen.
 
 ### Die Kriterien prüfen
 
-Öffnen Sie jedes Kriterium unter **Monitor-Kriterien** und prüfen Sie **Metrik**, **Aggregation**, **Bedingung** und **Schwellenwert**. Eine Vorlage füllt diese aus. Mit **Custom Metric** oder **Erweitert** beginnt der Monitor mit den [Standardkriterien](#standardkriterien), die nur bemerken, dass eine Metrik auf null fällt, setzen Sie also Ihren eigenen Schwellenwert.
+Öffnen Sie jedes Kriterium unter **Monitor-Kriterien** und prüfen Sie **Metrik**, **Aggregation**, **Bedingung** und **Schwellenwert**. Eine Vorlage füllt diese aus. Mit **Custom Metric** oder **Erweitert** beginnt der Monitor mit den [Standardkriterien](#standardkriterien), die nur bemerken, dass die Metrik keine Daten sendet, setzen Sie also Ihren eigenen Schwellenwert.
 
 ### Den Monitor erstellen
 
@@ -106,7 +106,7 @@ In Monitorfiltern und Gruppierungsschlüsseln beginnen Ressourcenattribute mit `
 
 ## Fertige Warnungsvorlagen
 
-OneUptime liefert 24 Vorlagen für häufige VMware-Probleme, und **Quick Setup** bietet alle an. Jede baut einen vollständigen Monitor: die Metrikabfrage, ihre Attributfilter, eine Gruppierung nach dem eigenen Identitätsattribut des Objekts, ein Kriterium, das auslöst, und eines, das sich erholt. Schwellenwerte sind Ausgangspunkte, die Sie bearbeiten können.
+OneUptime liefert 24 Vorlagen für häufige VMware-Probleme, und die Liste unter **Worüber benachrichtigt wird** bietet alle an. Jede baut einen vollständigen Monitor: die Metrikabfrage, ihre Attributfilter, eine Gruppierung nach dem eigenen Identitätsattribut des Objekts, ein Kriterium, das auslöst, und eines, das sich erholt. Schwellenwerte sind Ausgangspunkte, die Sie bearbeiten können.
 
 Vorlagen lesen die letzten 5 Minuten, sofern die Tabelle nichts anderes sagt. Ein Kriterium löst nur aus, wenn die Bedingung für jede Minute seines Fensters gilt, und ein Schwellenwertkriterium erholt sich erst 10 % jenseits seines Schwellenwerts, sodass ein Wert, der um die Linie pendelt, nicht flattert.
 
@@ -130,11 +130,11 @@ Vorlagen lesen die letzten 5 Minuten, sofern die Tabelle nichts anderes sagt. Ei
 | Cluster Host Not Effective | Cluster | Kritisch | `vcenter.cluster.host.count` gefiltert auf `effective = false`, Max pro `resource.vcenter.cluster.name` | Über 0: Ein Host ist im Wartungsmodus, getrennt oder reagiert nicht, sodass der Cluster mit weniger Kapazität läuft, als er ausgelegt ist | Bei 0 |
 | Datacenter Hosts Unhealthy | Rechenzentrum | Kritisch | `vcenter.datacenter.host.count` gefiltert auf `status = red`, Max pro `resource.vcenter.datacenter.name` | Über 0: Ein Host hat einen kritischen Alarm, etwa einen Hardwaresensor, einen verlorenen Speicherpfad oder einen Fehler des HA-Agenten | Bei 0 |
 | Datacenter Hosts Degraded | Rechenzentrum | Warnung | `vcenter.datacenter.host.count` gefiltert auf `status = yellow`, Max pro Rechenzentrum | Über 0: Ein Host hat einen Warnalarm | Bei 0 |
-| Datacenter Hosts Powered Off | Rechenzentrum | Warnung | `vcenter.datacenter.host.count` gefiltert auf `power_state = off`, Max pro Rechenzentrum | Über 0: Ein Host ist ausgeschaltet - er ist abgestürzt, hat keinen Strom mehr oder wurde von DPM in den Standby versetzt | Bei 0 |
+| Datacenter Hosts Not Responding | Rechenzentrum | Kritisch | `vcenter.datacenter.host.count` gefiltert auf `power_state = unknown`, Max pro Rechenzentrum | Über 0: vCenter hat den Kontakt zu einem Host verloren - er ist abgestürzt, hat Strom oder sein Verwaltungsnetz verloren oder wurde getrennt. Ein absichtlich ausgeschalteter oder von DPM in den Standby versetzter Host zählt nicht | Bei 0 |
 | Datacenter VMs Unhealthy | Rechenzentrum | Warnung | `vcenter.datacenter.vm.count` gefiltert auf `status = red`, Max pro Rechenzentrum | Über 0: Eine VM hat einen kritischen Alarm, etwa einen fehlgeschlagenen HA-Neustart, einen verlorenen Datenspeicher oder einen verlorenen Tools-Heartbeat | Bei 0 |
 | Datacenter Clusters Unhealthy | Rechenzentrum | Kritisch | `vcenter.datacenter.cluster.count` gefiltert auf `status = red`, Max pro Rechenzentrum | Über 0: Ein Cluster hat einen kritischen Alarm, etwa zu wenige HA-Failover-Ressourcen, eine fehlgeschlagene HA-Wahl oder eine kritische vSAN-Integritätsprüfung | Bei 0 |
-| vSAN Latency High | vSAN | Warnung | `vcenter.cluster.vsan.latency.avg`, Avg pro Cluster | Über 20 000 µs (20 ms): Der Speicher wird für jede VM auf dem vSAN-Datenspeicher langsamer. Auf Clustern ohne vSAN still | Bei 18 000 µs oder darunter |
-| vSAN Congestion | vSAN | Warnung | `vcenter.cluster.vsan.congestions`, Max pro Cluster | Über 0: Eine Datenträgergruppe kommt nicht hinterher, und vSAN bremst die E/A ihrer Clients | Bei 0 |
+| vSAN Latency High | vSAN | Warnung | `vcenter.cluster.vsan.latency.avg`, Avg pro Cluster, **letzte 15 Minuten** | Über 20 000 µs (20 ms): Der Speicher wird für jede VM auf dem vSAN-Datenspeicher langsamer. Auf Clustern ohne vSAN still | Bei 18 000 µs oder darunter |
+| vSAN Congestion | vSAN | Warnung | `vcenter.cluster.vsan.congestions`, Max pro Cluster, **letzte 15 Minuten** | Über 0: Eine Datenträgergruppe kommt nicht hinterher, und vSAN bremst die E/A ihrer Clients | Bei 0 |
 | Resource Pool Memory Swapped | Cluster | Warnung | `vcenter.resource_pool.memory.swapped`, Max pro `resource.vcenter.resource_pool.inventory_path` | Über 0: Die VMs des Pools beziehen Arbeitsspeicher aus dem Host-Swap, meist weil das Speicherlimit oder die Anteile des Pools zu niedrig sind | Bei 0 |
 
 **Schweregrad** ist die Bezeichnung, die die Auswahl zeigt. Der Vorfall und die Warnung, die eine Vorlage erstellt, beginnen beim schwersten Vorfall- und Warnungsschweregrad Ihres Projekts; ändern Sie sie im Kriterium.

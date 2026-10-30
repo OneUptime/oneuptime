@@ -57,19 +57,19 @@ Klik på **Flere monitortyper** under **Monitortype**, og vælg **Ceph** under *
 
 ### Vælg klyngen
 
-Vælg klyngen i **Ceph-klynge** under **Ceph Monitor Configuration**. Alle klynger, der har sendt data, står på listen.
+Vælg klyngen i **Ceph-klynge** under **Ceph Monitor Configuration**. Alle klynger, der har sendt data, står på listen. Når du har valgt, viser en linje under feltet, om der kommer data. **Tilføj Ceph-klynge** åbner opsætningstrin med dine nøgler udfyldt, som venter på de første data.
 
 ### Vælg, hvad der skal overvåges
 
-Vælg en af de tre faner:
+En ny monitor starter med **Cluster Stopped Reporting** under **Hvad der skal advares om**. Sådan overvåger du noget andet:
 
-- **Quick Setup** — klik på en [skabelon](#færdige-alarmskabeloner). Den indstiller metrikker, filtre, aggregering, tidsinterval og tærskler og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
-- **Custom Metric** — vælg én metrik i **Ceph Metric**, og indstil derefter **Aggregering** og **Tidsinterval**. **OSD** og **Pool ID** indsnævrer den til én dæmon eller pool.
-- **Avanceret** — byg selv forespørgsler og formler under **Vælg målinger**, for eksempel et forhold for brugt kapacitet ud fra `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Brug **Gruppér efter** `ceph_daemon` eller `pool_id` for at vurdere hver dæmon eller pool for sig.
+- **Skift** — vælg en anden [skabelon](#færdige-alarmskabeloner). Den indstiller metrikker, filtre, aggregering, tidsinterval og tærskler og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
+- **Custom Metric** (under **Flere felter**) — vælg én metrik i **Ceph Metric**, og indstil derefter **Aggregering** og **Tidsinterval**. **OSD** og **Pool ID** indsnævrer den til én dæmon eller pool.
+- **Avanceret** (under **Flere felter**) — byg selv forespørgsler og formler under **Vælg målinger**, for eksempel et forhold for brugt kapacitet ud fra `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Brug **Gruppér efter** `ceph_daemon` eller `pool_id` for at vurdere hver dæmon eller pool for sig.
 
 ### Tjek kriterierne
 
-Åbn hvert kriterium under **Monitorkriterier**, og tjek **Metrik**, **Aggregering**, **Betingelse** og **Tærskel**. En skabelon udfylder dem. Med **Custom Metric** eller **Avanceret** starter monitoren med [standardkriterierne](#standardkriterier), der kun opdager, at en metrik falder til nul, så sæt din egen tærskel.
+Åbn hvert kriterium under **Monitorkriterier**, og tjek **Metrik**, **Aggregering**, **Betingelse** og **Tærskel**. En skabelon udfylder dem. Med **Custom Metric** eller **Avanceret** starter monitoren med [standardkriterierne](#standardkriterier), der kun opdager, at metrikken ikke sender data, så sæt din egen tærskel.
 
 ### Opret monitoren
 
@@ -99,7 +99,7 @@ Pools dataserier har kun labelen `pool_id`: Poolens navn findes kun på `ceph_po
 
 ## Færdige alarmskabeloner
 
-**Quick Setup** tilbyder 24 skabeloner, der dækker en tavs klynge, klyngens tilstand, OSD'er, placement groups og kapacitet. Hver bygger en komplet monitor — forespørgsler, labelfiltre, en gruppering, et kriterium, der udløser, og et, der genopretter. Tærsklerne er udgangspunkter, du kan redigere.
+Listen under **Hvad der skal advares om** tilbyder 24 skabeloner, der dækker en tavs klynge, klyngens tilstand, OSD'er, placement groups og kapacitet. Hver bygger en komplet monitor — forespørgsler, labelfiltre, en gruppering, et kriterium, der udløser, og et, der genopretter. Tærsklerne er udgangspunkter, du kan redigere.
 
 Skabeloner læser de seneste 5 minutter, medmindre tabellen siger andet. Et kriterium udløses kun, når betingelsen gælder i hvert minut af dets vindue, og et tærskelkriterium genopretter først 10 % forbi sin tærskel, så en værdi, der svinger omkring grænsen, ikke blafrer. **Alvorlighed** er den label, vælgeren viser; hændelsen og advarslen, en skabelon opretter, starter med projektets højeste hændelses- og advarselsalvorlighed.
 
@@ -175,7 +175,7 @@ Agenten henter fra hver mgr-dæmon hvert 30. sekund og beholder Cephs egne label
 | `ceph_healthcheck_slow_ops` | antal | Langsomme OSD- og monitoroperationer, som checket `SLOW_OPS` rapporterer. |
 | `ceph_daemon_health_metrics` | antal | Tilstandsmetrikker pr. dæmon med `type` (for eksempel `SLOW_OPS`) og `ceph_daemon`. |
 | `ceph_mon_quorum_status` | antal | 1, når monitoren er i quorum, pr. `ceph_daemon` (for eksempel `mon.a`). |
-| `ceph_mon_metadata` | antal | Monitorens metadata, altid 1. Læg dem sammen for at tælle monitorer. |
+| `ceph_mon_metadata` | antal | Monitorens metadata, altid 1, mens monitoren rapporterer. En sum lægger hver scrape i et minut sammen, så den tæller ikke monitorer. |
 | `ceph_cluster_total_bytes` | bytes | Samlet rå kapacitet. |
 | `ceph_cluster_total_used_bytes` | bytes | Rå kapacitet i brug. |
 
@@ -190,7 +190,7 @@ Agenten henter fra hver mgr-dæmon hvert 30. sekund og beholder Cephs egne label
 | `ceph_osd_stat_bytes` | bytes | Rå kapacitet for OSD'ens enhed. |
 | `ceph_osd_stat_bytes_used` | bytes | Rå bytes brugt på OSD'en. Sammenlign med totalen for at finde skævt fyldte eller næsten fulde OSD'er. |
 | `ceph_osd_numpg` | antal | Placement groups på OSD'en. |
-| `ceph_osd_metadata` | antal | OSD'ens metadata (værtsnavn, enhedsklasse, version), altid 1. Læg dem sammen for at tælle OSD'er. |
+| `ceph_osd_metadata` | antal | OSD'ens metadata (værtsnavn, enhedsklasse, version), altid 1, mens OSD'en rapporterer. En sum lægger hver scrape i et minut sammen, så den tæller ikke OSD'er. |
 
 ### Poolmetrikker
 
@@ -207,7 +207,7 @@ Agenten henter fra hver mgr-dæmon hvert 30. sekund og beholder Cephs egne label
 
 ### Metrikker for placement groups
 
-Hver `ceph_pg_*`-serie er pr. pool, med labelen `pool_id`; læg sammen på tværs af pools for et tal for hele klyngen.
+Hver `ceph_pg_*`-serie er pr. pool, med labelen `pool_id`. En sum lægger både hver scrape i et minut og hver pool sammen, så sammenlign pool for pool, grupperet efter `pool_id`, som PG-skabelonerne gør.
 
 | Metrik | Enhed | Beskrivelse |
 | --- | --- | --- |

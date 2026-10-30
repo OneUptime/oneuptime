@@ -39,14 +39,14 @@ Os modelos **HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up
 
 ## Antes de começar
 
-- Docker Engine 20.10 ou posterior com o plugin Docker Compose v2, em uma máquina que consiga alcançar a API do Proxmox VE na porta 8006.
+- Docker Engine 20.10 ou posterior com o plugin Docker Compose v2, em uma máquina que consiga alcançar a API do Proxmox VE de cada nó na porta 8006.
 - Um shell root em qualquer nó do Proxmox VE, ou a interface web do Proxmox, para criar um token de API.
 - Uma chave de ingestão. Crie uma em **Configurações do projeto → Telemetria e APM → Chaves de ingestão** e copie o valor.
 - HTTPS de saída dessa máquina para a sua URL do OneUptime.
 
 ### Onde executar o agente
 
-O agente consulta a API do Proxmox VE pela rede, então não precisa ficar em um nó do cluster, e não deveria: execute-o em uma máquina que sobreviva à falha de um nó (uma pequena VM de monitoramento em hardware separado, um host de gerenciamento), ou aponte `PVE_HOST` para um IP virtual ou um nome DNS round-robin em vez do endereço de um único nó. Se o alvo de API do agente for o nó que acabou de cair, o seu monitoramento cai junto. A única exceção é o pipeline opcional de logs do journald, que precisa ser executado em um nó do Proxmox VE (veja [Envie os logs de serviço do Proxmox](#opcional-envie-os-logs-de-serviço-do-proxmox)).
+O agente consulta a API do Proxmox VE pela rede, então não precisa ficar em um nó do cluster, e não deveria: execute-o em uma máquina que sobreviva à falha de um nó (uma pequena VM de monitoramento em hardware separado, um host de gerenciamento), ou aponte `PVE_HOST` para um IP virtual ou um nome DNS round-robin em vez do endereço de um único nó. Se o alvo de API do agente for o nó que acabou de cair, o seu monitoramento cai junto. `PVE_NODES` é diferente: lista cada nó no próprio endereço, nunca um IP virtual (veja [O que o agente coleta](#o-que-o-agente-coleta)). A única exceção é o pipeline opcional de logs do journald, que precisa ser executado em um nó do Proxmox VE (veja [Envie os logs de serviço do Proxmox](#opcional-envie-os-logs-de-serviço-do-proxmox)).
 
 ## Instale o agente
 
@@ -87,7 +87,7 @@ curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/Pr
 bash install.sh
 ```
 
-O script pede a sua URL do OneUptime, a chave de ingestão, um nome para o cluster, o host da API do Proxmox VE, se deve executar o exportador incluído, e o ID e o segredo do token — e se o [agente de IA](#agente-de-ia) pode aplicar correções e, nesse caso, um token próprio para ele e os convidados que ele nunca pode alterar. Ele instala em `/opt/oneuptime-proxmox-agent`, grava um arquivo `.env` com permissão `0600` e inicia o agente com o Docker Compose. Executar o script de novo reutiliza tudo o que está nesse `.env` em vez de perguntar de novo, e é assim que você [atualiza o agente](#atualizando-o-agente).
+O script pede a sua URL do OneUptime, a chave de ingestão, um nome para o cluster, o host da API do Proxmox VE, se deve executar o exportador incluído, o ID e o segredo do token, e o endereço de cada nó (ele oferece a lista do próprio cluster assim que tem o token) — e se o [agente de IA](#agente-de-ia) pode aplicar correções e, nesse caso, um token próprio para ele e os convidados que ele nunca pode alterar. Ele instala em `/opt/oneuptime-proxmox-agent`, grava um arquivo `.env` com permissão `0600` e inicia o agente com o Docker Compose. Executar o script de novo reutiliza tudo o que está nesse `.env` em vez de perguntar de novo, e é assim que você [atualiza o agente](#atualizando-o-agente).
 @tab Docker Compose
 Baixe `docker-compose.yml` e `otel-collector-config.yaml` do [diretório ProxmoxAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent) para uma pasta nova:
 
@@ -104,12 +104,13 @@ ONEUPTIME_URL=YOUR_ONEUPTIME_URL
 ONEUPTIME_TELEMETRY_INGESTION_KEY=YOUR_TELEMETRY_INGESTION_TOKEN
 PROXMOX_CLUSTER_NAME=my-proxmox-cluster
 PVE_HOST=192.168.1.10
+PVE_NODES=[192.168.1.10,192.168.1.11,192.168.1.12]
 PVE_API_TOKEN_ID=monitoring@pam!oneuptime
 PVE_API_TOKEN_SECRET=your-token-secret
 COMPOSE_PROFILES=pve-exporter
 ```
 
-`COMPOSE_PROFILES=pve-exporter` também inicia o exportador incluído. Inicie o agente:
+`PVE_NODES` lista cada nó no próprio endereço, entre colchetes, e `COMPOSE_PROFILES=pve-exporter` também inicia o exportador incluído. Inicie o agente:
 
 ```bash
 docker compose up -d
@@ -149,7 +150,8 @@ O script de instalação grava estes valores em `/opt/oneuptime-proxmox-agent/.e
 | `ONEUPTIME_URL` | Sim | A sua URL do OneUptime, como `https://oneuptime.com` ou a sua instância auto-hospedada. Use `http://` e a porta dela se a instância for só HTTP. |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Sim | A chave de ingestão de **Configurações do projeto → Telemetria e APM → Chaves de ingestão**. |
 | `PROXMOX_CLUSTER_NAME` | Sim | O nome do cluster no OneUptime, marcado em cada métrica como o atributo de recurso `proxmox.cluster.name`. Mantenha-o estável: mudá-lo depois registra um segundo cluster. O padrão é `proxmox-cluster`. |
-| `PVE_HOST` | Sim | O host da API do Proxmox VE (qualquer nó do cluster) que o exportador e o agente de IA consultam, como `192.168.1.10`. |
+| `PVE_HOST` | Sim | O host da API do Proxmox VE de onde o exportador lê o cluster e que o agente de IA consulta: qualquer nó, ou um IP virtual que alterna entre eles, como `192.168.1.10`. |
+| `PVE_NODES` | Em um cluster | O endereço de API próprio de cada nó, separado por vírgulas e entre colchetes, como `[192.168.1.10,192.168.1.11,192.168.1.12]`. O exportador lê a inicialização no boot, a replicação e a assinatura só do nó que ele consulta, então cada nó é consultado por vez. O padrão é só `PVE_HOST`, o que basta para um único nó. |
 | `PVE_EXPORTER_URL` | Não | O endereço (`host:port`, sem esquema) do prometheus-pve-exporter. O padrão é o exportador incluído, `pve-exporter:9221`. |
 | `PVE_API_TOKEN_ID` | Exportador incluído ou agente de IA | O ID completo do token de API do Proxmox, como `monitoring@pam!oneuptime`. O agente de IA lê a API com ele, a menos que tenha um token próprio (`ONEUPTIME_AI_PVE_API_TOKEN_ID` / `ONEUPTIME_AI_PVE_API_TOKEN_SECRET`). |
 | `PVE_API_TOKEN_SECRET` | Exportador incluído ou agente de IA | O segredo do token de API do Proxmox. |
@@ -158,7 +160,7 @@ O script de instalação grava estes valores em `/opt/oneuptime-proxmox-agent/.e
 
 ## O que o agente coleta
 
-O coletor coleta o exportador a cada 30 segundos com os coletores de cluster e de nó dele ativados, o que também cobre os coletores `backup-info` (nível de cluster) e `replication` (nível de nó) do exportador, ativados por padrão. Cada série carrega um rótulo `id` que identifica o recurso: `node/<name>`, `qemu/<vmid>`, `lxc/<vmid>` ou `storage/<node>/<storage>`.
+O coletor coleta o exportador a cada 30 segundos: os coletores de cluster dele uma vez, em `PVE_HOST`, e os coletores de nó dele uma vez para cada nó em `PVE_NODES`. Qualquer nó responde aos coletores de cluster, entre eles o `backup-info`, ativado por padrão, pelo cluster inteiro. Os coletores de nó (`config`, para a inicialização no boot, e `replication`) leem só o nó que o exportador consulta, então um nó que falte em `PVE_NODES` não envia nem as marcações de inicialização no boot dos convidados dele, de que o **Guest Down** precisa, nem os jobs de replicação dele. Cada série carrega um rótulo `id` que identifica o recurso: `node/<name>`, `qemu/<vmid>`, `lxc/<vmid>` ou `storage/<node>/<storage>`.
 
 | Categoria | Métricas |
 | --- | --- |
@@ -167,7 +169,8 @@ O coletor coleta o exportador a cada 30 segundos com os coletores de cluster e d
 | Convidado (VM ou LXC) | `pve_guest_info`, e séries de CPU, memória e rede nos IDs `qemu/*` e `lxc/*` (`pve_network_receive_bytes`, `pve_network_transmit_bytes`) |
 | Armazenamento | `pve_disk_usage_bytes`, `pve_disk_size_bytes`, `pve_storage_info` |
 | HA | `pve_ha_state` |
-| Cobertura de backups | `pve_not_backed_up_total` (os convidados que nenhum job de backup cobre; uma série de nível de cluster, sem rótulo `id`) e `pve_not_backed_up_info` (uma série por convidado não coberto, com o `id` dele). Coberto significa que pelo menos um job seleciona o convidado: se os backups foram executados recentemente ou tiveram sucesso não é exposto pelo exportador. |
+| Cobertura de backups | `pve_not_backed_up_total` (os convidados que nenhum job de backup cobre; uma série de nível de cluster, `id` `cluster/<name>`) e `pve_not_backed_up_info` (uma série por convidado não coberto, com o `id` dele). Coberto significa que pelo menos um job seleciona o convidado: se os backups foram executados recentemente ou tiveram sucesso não é exposto pelo exportador. |
+| Inicialização no boot | `pve_onboot_status`, uma série por convidado: 1 quando o convidado está configurado para iniciar no boot. O **Guest Down** só alerta para esses convidados. |
 | Replicação | `pve_replication_failed_syncs`, `pve_replication_duration_seconds`, `pve_replication_last_sync_timestamp_seconds`, `pve_replication_last_try_timestamp_seconds`, `pve_replication_next_sync_timestamp_seconds`, `pve_replication_info`, por job de replicação de armazenamento. O rótulo `id` delas é o ID do job (como `100-0`), não um recurso. |
 
 Os critérios de monitores e os filtros de atributos comparam por igualdade, não por prefixo, então o processor `transform/pve-identity` do coletor também divide `id` em três atributos. Os modelos de alerta do Proxmox embutidos filtram por eles, então mantenha o processor se personalizar a configuração:
@@ -297,7 +300,7 @@ sudo systemctl enable --now oneuptime-proxmox-agent
 
 O agente informa como **Versão do agente** a versão do coletor que os arquivos dele fixam. Quando ela é mais antiga que a versão que esta versão do OneUptime fixa, um sinal de aviso aparece ao lado dela na **Visão geral** do cluster. Selecione-o para ver estes comandos. Um agente instalado antes de os arquivos dele informarem uma versão não mostra nenhuma até ser atualizado dessa forma.
 
-A imagem do coletor está fixada em `docker-compose.yml`, e a configuração dele é um arquivo ao lado, então só baixar as imagens não faz o agente avançar. Execute `install.sh` de novo: ele reutiliza todos os valores do seu `.env` atual (nada é perguntado de novo), renova `docker-compose.yml` e `otel-collector-config.yaml` (um arquivo que você editou é guardado como `<file>.bak.<timestamp>`), baixa as imagens e recria o agente para que o coletor leia a nova configuração.
+A imagem do coletor está fixada em `docker-compose.yml`, e a configuração dele é um arquivo ao lado, então só baixar as imagens não faz o agente avançar. Execute `install.sh` de novo: ele reutiliza todos os valores do seu `.env` atual (nada é perguntado de novo), renova `docker-compose.yml` e `otel-collector-config.yaml` (um arquivo que você editou é guardado como `<file>.bak.<timestamp>`), baixa as imagens e recria o agente para que o coletor leia a nova configuração. Um `.env` de antes do `PVE_NODES` continua lendo só o `PVE_HOST`, e o script indica os nós que você deve acrescentar.
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/install.sh -o install.sh
@@ -359,6 +362,10 @@ O token de API está errado ou não tem as permissões necessárias. Verifique o
 
 :::details Só métricas de nó, nenhuma métrica de convidado
 As séries de convidados (IDs `qemu/*` e `lxc/*`) vêm do coletor de cluster do exportador, que a configuração incluída ativa com o parâmetro de coleta `cluster=1`. Se você personalizou `otel-collector-config.yaml`, coloque de volta o parâmetro `cluster: ["1"]`.
+:::
+
+:::details Guest Down ou Replication Failing nunca dispara para alguns convidados
+As marcações de inicialização no boot e os jobs de replicação deles vêm do nó em que eles rodam, e o agente lê só os nós em `PVE_NODES`. Liste ali o endereço próprio de cada nó, como `PVE_NODES=[192.168.1.10,192.168.1.11,192.168.1.12]`, e execute `docker compose up -d`. Se o coletor parar de iniciar depois que você o editar, a lista perdeu os colchetes. O script de diagnóstico verifica cada nó da lista.
 :::
 
 :::details As métricas chegam ao cluster errado

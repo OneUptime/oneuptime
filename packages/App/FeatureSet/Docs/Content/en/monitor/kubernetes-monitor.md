@@ -23,7 +23,7 @@ flowchart TB
 ## Before you begin
 
 - The OneUptime Kubernetes agent running in the cluster. See [Install the Kubernetes Agent](/docs/monitor/kubernetes-agent); the cluster appears under **Kubernetes** a few minutes after the install.
-- For the control-plane templates (**etcd No Leader**, **API Server Request Saturation**, **Scheduler Backlog**): the agent's control-plane scrape, `controlPlane.enabled`. Managed clusters (EKS, GKE, AKS) do not expose these endpoints, so those monitors never receive data there.
+- For the control-plane templates (**etcd No Leader**, **API Server Request Saturation**, **Scheduler Backlog**): the agent's control-plane scrape, `controlPlane.enabled`, which reads the API server out of the box; etcd and the scheduler also need their endpoints listed (see [Enable control plane monitoring](/docs/telemetry/kubernetes-agent#enable-control-plane-monitoring)). Managed clusters (EKS, GKE, AKS) do not expose these endpoints, so those monitors never receive data there.
 
 ## Create a Kubernetes monitor
 
@@ -34,15 +34,15 @@ Go to **Monitors** and click **Create Monitor**. Under **More monitor types**, p
 
 ### Pick the cluster
 
-Select it in **Kubernetes Cluster**. The list holds every cluster the agent has reported from.
+Select it in **Kubernetes Cluster**. The list holds every cluster the agent has reported from. Once picked, a line under the field says whether data is arriving. **Add Kubernetes Cluster** opens setup steps with your keys filled in, which wait for the first data.
 
 ### Choose what to watch
 
-Use one of the three tabs:
+A new monitor starts on **Cluster Stopped Reporting**, under **What to alert on**; **Change** picks another template. **Custom Metric** and **Advanced** are under **More fields**:
 
-| Tab | What you choose |
+| Where | What you choose |
 | --- | --- |
-| **Quick Setup** | A [pre-built alert template](#pre-built-alert-templates). It fills in the metric, scope, time range and criteria; you can still change the **Time Range**. |
+| **What to alert on** | A [pre-built alert template](#pre-built-alert-templates). It fills in the metric, scope, time range and criteria; you can still change the **Time Range**. |
 | **Custom Metric** | One metric from the [metric catalog](#metric-catalog), then its **Resource Scope**, filters, **Aggregation** (Average, Maximum, Minimum, Sum or Count) and **Time Range**. |
 | **Advanced** | The **Resource Scope**, filters and **Time Range**, and your own metric queries and formulas under **Select Metrics**, with a live chart of the result. |
 
@@ -128,7 +128,7 @@ Each sample is compared with a same-hour-of-week baseline built from the **Basel
 
 ## Pre-built alert templates
 
-The **Quick Setup** tab lists these templates, grouped by category. Each one fills in two criteria: one that marks the monitor offline and opens an incident and an alert when the condition holds, and one that brings it back online when it clears.
+The **What to alert on** list holds these templates, grouped by category. Each one fills in two criteria: one that marks the monitor offline and opens an incident and an alert when the condition holds, and one that brings it back online when it clears.
 
 | Template | Category | Fires when | Severity |
 | --- | --- | --- | --- |
@@ -177,7 +177,7 @@ Clusters register themselves from the agent's data, under the `clusterName` the 
 :::
 
 :::details A control-plane template never fires
-**etcd No Leader**, **API Server Request Saturation** and **Scheduler Backlog** read metrics that only the agent's control-plane scrape collects. Turn on `controlPlane.enabled` in the agent's Helm values; it is off by default. Managed clusters (EKS, GKE, AKS) do not expose these endpoints, so on them these monitors never receive data.
+**etcd No Leader**, **API Server Request Saturation** and **Scheduler Backlog** read metrics that only the agent's control-plane scrape collects. Turn on `controlPlane.enabled` in the agent's Helm values; it is off by default. That reads the API server. etcd and the scheduler run on the control-plane nodes, so **etcd No Leader** and **Scheduler Backlog** also need `controlPlane.etcd.endpoints` and `controlPlane.scheduler.endpoints` set to addresses the agent's pod can reach (see [Enable control plane monitoring](/docs/telemetry/kubernetes-agent#enable-control-plane-monitoring)). Managed clusters (EKS, GKE, AKS) do not expose these endpoints, so on them these monitors never receive data.
 :::
 
 :::details A CPU threshold never fires

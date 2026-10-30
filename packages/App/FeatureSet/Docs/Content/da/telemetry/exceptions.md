@@ -129,6 +129,8 @@ Forklaringen gemmes på undtagelsen, så den næste, der åbner den, læser den 
 
 ID'er, e-mail- og IP-adresser samt tokens fjernes fra alt, hvad der sendes, og af et spans attributter sendes kun nogle få, såsom dets rute og statuskode. Forklaringen bruger projektets LLM-udbyder og AI-kreditter og tilbydes ikke, mens **Aktivér AI** er slået fra. Alle, der kan læse undtagelsen, kan bede om en.
 
+Under kortene viser **Lignende undtagelser** op til fem andre undtagelser, der ligner denne: den **Samme meddelelse**, når værdierne er taget ud, det **Samme sted i koden** i din kode, eller en **Lignende meddelelse** med de fleste af de samme ord. Én årsag kan havne i flere undtagelser, så **Tjek med OneUptime AI** siger om hver, om det er **Sandsynligvis den samme fejl**, **En relateret fejl** eller **En anden fejl**, og hvorfor. Tjekket bruger projektets AI-kreditter og tilbydes ikke, mens **Aktivér AI** er slået fra.
+
 ## Ret den med AI
 
 Siden **AI Assistance** tilbyder tre opgaver. Hver kører som en AI-opgave, der åbner en pull request i dit kodelager:

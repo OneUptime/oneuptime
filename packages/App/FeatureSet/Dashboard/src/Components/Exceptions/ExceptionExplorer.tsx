@@ -55,6 +55,7 @@ import ExceptionOccurrenceAttributes from "./ExceptionOccurrenceAttributes";
 import ExceptionLogs from "./ExceptionLogs";
 import ExceptionAIAssistance from "./ExceptionAIAssistance";
 import ExceptionAIExplanation from "./ExceptionAIExplanation";
+import ExceptionSimilar from "./ExceptionSimilar";
 import ExceptionAssignee from "./ExceptionAssignee";
 import { ExceptionAssignmentWrite } from "../../Utils/ExceptionAssignment";
 import ExceptionSettings from "./ExceptionSettings";
@@ -663,6 +664,12 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
               ]}
             />
           </CardGrid>
+          {/*
+           * Other exception groups that look like this one, and whether
+           * OneUptime AI thinks they are the same bug; shown only when
+           * there are some.
+           */}
+          <ExceptionSimilar telemetryExceptionId={props.telemetryExceptionId} />
         </>
       )}
 

@@ -48,19 +48,19 @@ Em **Tipo de monitor**, clique em **Mais tipos de monitor** e escolha **VMware**
 
 ### Escolher o vCenter
 
-Em **VMware Monitor Configuration**, escolha o vCenter em **vCenter**. Todo vCenter que enviou dados, ou que você conectou sem agente, está na lista.
+Em **VMware Monitor Configuration**, escolha o vCenter em **vCenter**. Todo vCenter que enviou dados, ou que você conectou sem agente, está na lista. Depois da escolha, uma linha abaixo do campo diz se estão chegando dados. **Adicionar vCenter** abre a página de vCenters, onde você conecta um.
 
 ### Escolher o que observar
 
-Escolha uma das três abas:
+Um monitor novo começa com **vCenter Stopped Reporting**, em **Sobre o que alertar**. Para vigiar outra coisa:
 
-- **Quick Setup** - clique em um [modelo](#modelos-de-alerta-prontos). Ele define a métrica, os filtros de atributos, a agregação, o intervalo de tempo, o agrupamento e os limites, e substitui os critérios abaixo pelos seus. Você ainda pode mudar o **Intervalo de tempo**.
-- **Custom Metric** - escolha uma métrica em **VMware Metric** e depois defina **Agregação** e **Intervalo de tempo**. O formulário a agrupa pelo objeto que ela descreve, então cada host, VM ou datastore é avaliado separadamente, e os [filtros](#configurações-do-monitor) a restringem a um datacenter, cluster, host, VM, datastore ou resource pool.
-- **Avançado** - monte você mesmo consultas e fórmulas em **Selecionar Métricas**, com filtros em atributos como `disk_state`, `power_state` ou `status`. Use **Agrupar por** com um [atributo de identidade](#atributos-de-identidade) para avaliar cada objeto separadamente.
+- **Alterar** - escolha outro [modelo](#modelos-de-alerta-prontos). Ele define a métrica, os filtros de atributos, a agregação, o intervalo de tempo, o agrupamento e os limites, e substitui os critérios abaixo pelos seus. Você ainda pode mudar o **Intervalo de tempo**.
+- **Custom Metric** (em **Mais campos**) - escolha uma métrica em **VMware Metric** e depois defina **Agregação** e **Intervalo de tempo**. O formulário a agrupa pelo objeto que ela descreve, então cada host, VM ou datastore é avaliado separadamente, e os [filtros](#configurações-do-monitor) a restringem a um datacenter, cluster, host, VM, datastore ou resource pool.
+- **Avançado** (em **Mais campos**) - monte você mesmo consultas e fórmulas em **Selecionar Métricas**, com filtros em atributos como `disk_state`, `power_state` ou `status`. Use **Agrupar por** com um [atributo de identidade](#atributos-de-identidade) para avaliar cada objeto separadamente.
 
 ### Conferir os critérios
 
-Abra cada critério em **Critérios do monitor** e confira **Métrica**, **Agregação**, **Condição** e **Limite**. Um modelo os preenche. Com **Custom Metric** ou **Avançado**, o monitor começa com os [critérios padrão](#critérios-padrão), que só percebem uma métrica caindo para zero, então defina o seu próprio limite.
+Abra cada critério em **Critérios do monitor** e confira **Métrica**, **Agregação**, **Condição** e **Limite**. Um modelo os preenche. Com **Custom Metric** ou **Avançado**, o monitor começa com os [critérios padrão](#critérios-padrão), que só percebem uma métrica que não envia dados, então defina o seu próprio limite.
 
 ### Criar o monitor
 
@@ -106,7 +106,7 @@ Nos filtros do monitor e nas chaves de agrupamento, os atributos de recurso come
 
 ## Modelos de alerta prontos
 
-O OneUptime traz 24 modelos para problemas comuns de VMware, e o **Quick Setup** oferece todos eles. Cada um monta um monitor completo: a consulta da métrica, os seus filtros de atributos, um agrupamento pelo atributo de identidade do próprio objeto, um critério que dispara e outro que recupera. Os limites são pontos de partida que você pode editar.
+O OneUptime traz 24 modelos para problemas comuns de VMware, e a lista de **Sobre o que alertar** oferece todos eles. Cada um monta um monitor completo: a consulta da métrica, os seus filtros de atributos, um agrupamento pelo atributo de identidade do próprio objeto, um critério que dispara e outro que recupera. Os limites são pontos de partida que você pode editar.
 
 Os modelos leem os últimos 5 minutos, a menos que a tabela diga outra coisa. Um critério só dispara quando a condição vale em cada minuto da sua janela, e um critério de limite se recupera 10 % além do seu limite, então um valor que oscila na linha não fica alternando.
 
@@ -130,11 +130,11 @@ Os modelos leem os últimos 5 minutos, a menos que a tabela diga outra coisa. Um
 | Cluster Host Not Effective | Cluster | Crítico | `vcenter.cluster.host.count` filtrada para `effective = false`, Max por `resource.vcenter.cluster.name` | Acima de 0: um host está em modo de manutenção, desconectado ou sem resposta, então o cluster roda com menos capacidade do que foi dimensionado | Em 0 |
 | Datacenter Hosts Unhealthy | Datacenter | Crítico | `vcenter.datacenter.host.count` filtrada para `status = red`, Max por `resource.vcenter.datacenter.name` | Acima de 0: um host tem um alarme crítico, como um sensor de hardware, um caminho de armazenamento perdido ou um erro do agente de HA | Em 0 |
 | Datacenter Hosts Degraded | Datacenter | Warning | `vcenter.datacenter.host.count` filtrada para `status = yellow`, Max por datacenter | Acima de 0: um host tem um alarme de aviso | Em 0 |
-| Datacenter Hosts Powered Off | Datacenter | Warning | `vcenter.datacenter.host.count` filtrada para `power_state = off`, Max por datacenter | Acima de 0: um host está desligado - travou, perdeu energia ou foi colocado em standby pelo DPM | Em 0 |
+| Datacenter Hosts Not Responding | Datacenter | Crítico | `vcenter.datacenter.host.count` filtrada para `power_state = unknown`, Max por datacenter | Acima de 0: o vCenter perdeu o contato com um host - travou, perdeu energia ou a rede de gerenciamento, ou foi desconectado. Um host desligado de propósito ou colocado em standby pelo DPM não conta | Em 0 |
 | Datacenter VMs Unhealthy | Datacenter | Warning | `vcenter.datacenter.vm.count` filtrada para `status = red`, Max por datacenter | Acima de 0: uma VM tem um alarme crítico, como uma reinicialização de HA que falhou, um datastore perdido ou um heartbeat do Tools perdido | Em 0 |
 | Datacenter Clusters Unhealthy | Datacenter | Crítico | `vcenter.datacenter.cluster.count` filtrada para `status = red`, Max por datacenter | Acima de 0: um cluster tem um alarme crítico, como recursos de failover de HA insuficientes, uma eleição de HA que falhou ou uma verificação de integridade do vSAN crítica | Em 0 |
-| vSAN Latency High | vSAN | Warning | `vcenter.cluster.vsan.latency.avg`, Avg por cluster | Acima de 20 000 µs (20 ms): o armazenamento fica lento para cada VM no datastore vSAN. Silencioso em clusters sem vSAN | Em 18 000 µs ou menos |
-| vSAN Congestion | vSAN | Warning | `vcenter.cluster.vsan.congestions`, Max por cluster | Acima de 0: um grupo de discos não dá conta, e o vSAN desacelera a E/S dos seus clientes | Em 0 |
+| vSAN Latency High | vSAN | Warning | `vcenter.cluster.vsan.latency.avg`, Avg por cluster, **últimos 15 minutos** | Acima de 20 000 µs (20 ms): o armazenamento fica lento para cada VM no datastore vSAN. Silencioso em clusters sem vSAN | Em 18 000 µs ou menos |
+| vSAN Congestion | vSAN | Warning | `vcenter.cluster.vsan.congestions`, Max por cluster, **últimos 15 minutos** | Acima de 0: um grupo de discos não dá conta, e o vSAN desacelera a E/S dos seus clientes | Em 0 |
 | Resource Pool Memory Swapped | Cluster | Warning | `vcenter.resource_pool.memory.swapped`, Max por `resource.vcenter.resource_pool.inventory_path` | Acima de 0: as VMs do pool tiram memória do swap do host, geralmente porque o limite ou as shares de memória do pool estão baixos demais | Em 0 |
 
 **Gravidade** é o rótulo que o seletor mostra. O incidente e o alerta que um modelo cria começam na gravidade de incidente e de alerta mais alta do seu projeto; altere-as no critério.

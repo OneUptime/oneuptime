@@ -32,7 +32,7 @@ Cada host executa uma configuração, escolhida nesta ordem:
 | A primeira das **Configurações do coletor** que se aplica a ele | Uma configuração se aplica quando é para o sistema do host e, se nomeia rótulos, o host tem um deles. |
 | O padrão do OneUptime para o sistema dele | Nenhuma configuração se aplica. |
 
-O padrão do OneUptime lê CPU, memória, discos, sistemas de arquivos, rede e processos em qualquer sistema; o journal e as unidades do systemd no Linux, onde o host os tem; os logs de eventos System, Application e Security e os serviços do Windows no Windows; e os logs de instalação e de Wi-Fi em `/var/log` no macOS. Ele acompanha as versões do OneUptime, então um host no padrão recebe as melhorias que o OneUptime fizer nele.
+O padrão do OneUptime lê CPU, memória, discos, sistemas de arquivos, rede e processos em qualquer sistema; o journal e as unidades do systemd no Linux, onde o host os tem; os logs de eventos System, Application e Security e os serviços do Windows no Windows; e os logs de instalação e de Wi-Fi em `/var/log` no macOS. Ele deixa de fora os sistemas de arquivos que estão cheios por design, como os pacotes snap e o `/dev` do macOS, para que nunca mantenham o modelo High Filesystem Usage disparado. Ele acompanha as versões do OneUptime, então um host no padrão recebe as melhorias que o OneUptime fizer nele.
 
 ## Antes de começar
 

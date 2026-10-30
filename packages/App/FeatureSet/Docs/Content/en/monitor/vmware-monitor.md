@@ -48,19 +48,19 @@ Under **Monitor Type**, click **More monitor types** and pick **VMware** under *
 
 ### Choose the vCenter
 
-Under **VMware Monitor Configuration**, pick the vCenter from **vCenter**. Every vCenter that has sent data, or that you connected without an agent, is in the list.
+Under **VMware Monitor Configuration**, pick the vCenter from **vCenter**. Every vCenter that has sent data, or that you connected without an agent, is in the list. Once picked, a line under the field says whether data is arriving. **Add vCenter** opens the vCenters page, where you connect one.
 
 ### Choose what to watch
 
-Pick one of the three tabs:
+A new monitor starts on **vCenter Stopped Reporting**, under **What to alert on**. To watch something else:
 
-- **Quick Setup** - click a [template](#pre-built-alert-templates). It sets the metric, the attribute filters, the aggregation, the time range, the group-by and the thresholds, and replaces the criteria below with its own. You can still change the **Time Range**.
-- **Custom Metric** - pick one metric from **VMware Metric**, then set **Aggregation** and **Time Range**. The form groups it by the object it describes, so each host, VM or datastore is judged on its own, and the [filters](#monitor-settings) narrow it to one datacenter, cluster, host, VM, datastore or resource pool.
-- **Advanced** - build queries and formulas yourself under **Select Metrics**, with filters on attributes such as `disk_state`, `power_state` or `status`. Use **Group by** an [identity attribute](#identity-attributes) to judge each object on its own.
+- **Change** - pick another [template](#pre-built-alert-templates). It sets the metric, the attribute filters, the aggregation, the time range, the group-by and the thresholds, and replaces the criteria below with its own. You can still change the **Time Range**.
+- **Custom Metric** (under **More fields**) - pick one metric from **VMware Metric**, then set **Aggregation** and **Time Range**. The form groups it by the object it describes, so each host, VM or datastore is judged on its own, and the [filters](#monitor-settings) narrow it to one datacenter, cluster, host, VM, datastore or resource pool.
+- **Advanced** (under **More fields**) - build queries and formulas yourself under **Select Metrics**, with filters on attributes such as `disk_state`, `power_state` or `status`. Use **Group by** an [identity attribute](#identity-attributes) to judge each object on its own.
 
 ### Check the criteria
 
-Open each criteria under **Monitor Criteria** and check its **Metric**, **Aggregation**, **Condition** and **Threshold**. A template fills these in. With **Custom Metric** or **Advanced**, the monitor starts with the [default criteria](#default-criteria), which only notice a metric dropping to zero, so set your own threshold.
+Open each criteria under **Monitor Criteria** and check its **Metric**, **Aggregation**, **Condition** and **Threshold**. A template fills these in. With **Custom Metric** or **Advanced**, the monitor starts with the [default criteria](#default-criteria), which only notice the metric sending no data, so set your own threshold.
 
 ### Create the monitor
 
@@ -106,7 +106,7 @@ In monitor filters and group-by keys, resource attributes start with `resource.`
 
 ## Pre-built Alert Templates
 
-OneUptime ships 24 templates for common VMware problems, and **Quick Setup** offers all of them. Each builds a complete monitor: the metric query, its attribute filters, a group-by on the object's own identity attribute, a criteria that fires and one that recovers. Thresholds are starting points you can edit.
+OneUptime ships 24 templates for common VMware problems, and the **What to alert on** list offers all of them. Each builds a complete monitor: the metric query, its attribute filters, a group-by on the object's own identity attribute, a criteria that fires and one that recovers. Thresholds are starting points you can edit.
 
 Templates read the past 5 minutes unless the table says otherwise. A criteria fires only when the condition holds for every minute of its window, and a threshold criteria recovers 10% past its threshold, so a value hovering at the line does not flap.
 
@@ -130,11 +130,11 @@ Templates read the past 5 minutes unless the table says otherwise. A criteria fi
 | Cluster Host Not Effective | Cluster | Critical | `vcenter.cluster.host.count` filtered to `effective = false`, Max per `resource.vcenter.cluster.name` | Above 0: a host is in maintenance mode, disconnected or unresponsive, so the cluster runs with less capacity than it was sized for | At 0 |
 | Datacenter Hosts Unhealthy | Datacenter | Critical | `vcenter.datacenter.host.count` filtered to `status = red`, Max per `resource.vcenter.datacenter.name` | Above 0: a host has a critical alarm, such as a hardware sensor, a lost storage path or an HA agent error | At 0 |
 | Datacenter Hosts Degraded | Datacenter | Warning | `vcenter.datacenter.host.count` filtered to `status = yellow`, Max per datacenter | Above 0: a host has a warning alarm | At 0 |
-| Datacenter Hosts Powered Off | Datacenter | Warning | `vcenter.datacenter.host.count` filtered to `power_state = off`, Max per datacenter | Above 0: a host is powered off - it crashed, lost power, or was put on standby by DPM | At 0 |
+| Datacenter Hosts Not Responding | Datacenter | Critical | `vcenter.datacenter.host.count` filtered to `power_state = unknown`, Max per datacenter | Above 0: vCenter has lost contact with a host - it crashed, lost power or its management network, or was disconnected. A host powered off on purpose, or put in standby by DPM, does not count | At 0 |
 | Datacenter VMs Unhealthy | Datacenter | Warning | `vcenter.datacenter.vm.count` filtered to `status = red`, Max per datacenter | Above 0: a VM has a critical alarm, such as a failed HA restart, a lost datastore or a lost Tools heartbeat | At 0 |
 | Datacenter Clusters Unhealthy | Datacenter | Critical | `vcenter.datacenter.cluster.count` filtered to `status = red`, Max per datacenter | Above 0: a cluster has a critical alarm, such as too few HA failover resources, a failed HA election or a critical vSAN health check | At 0 |
-| vSAN Latency High | vSAN | Warning | `vcenter.cluster.vsan.latency.avg`, Avg per cluster | Above 20 000 µs (20 ms): storage slows down for every VM on the vSAN datastore. Silent on clusters without vSAN | At or below 18 000 µs |
-| vSAN Congestion | vSAN | Warning | `vcenter.cluster.vsan.congestions`, Max per cluster | Above 0: a disk group cannot keep up, and vSAN slows down the I/O of its clients | At 0 |
+| vSAN Latency High | vSAN | Warning | `vcenter.cluster.vsan.latency.avg`, Avg per cluster, **past 15 minutes** | Above 20 000 µs (20 ms): storage slows down for every VM on the vSAN datastore. Silent on clusters without vSAN | At or below 18 000 µs |
+| vSAN Congestion | vSAN | Warning | `vcenter.cluster.vsan.congestions`, Max per cluster, **past 15 minutes** | Above 0: a disk group cannot keep up, and vSAN slows down the I/O of its clients | At 0 |
 | Resource Pool Memory Swapped | Cluster | Warning | `vcenter.resource_pool.memory.swapped`, Max per `resource.vcenter.resource_pool.inventory_path` | Above 0: the pool's VMs take memory from host swap, usually because the pool's memory limit or shares are too low | At 0 |
 
 **Severity** is the label the picker shows. The incident and alert a template creates start on your project's most severe incident and alert severity; change them in the criteria.

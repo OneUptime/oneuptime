@@ -32,7 +32,7 @@ Varje värd kör en konfiguration, vald i den här ordningen:
 | Den första av **Insamlarkonfigurationer** som gäller för den | En konfiguration gäller när den är för värdens system och, om den nämner etiketter, värden har någon av dem. |
 | OneUptimes standard för dess system | Ingen konfiguration gäller. |
 
-OneUptimes standard läser processor, minne, diskar, filsystem, nätverk och processer på alla system; journalen och systemd-enheter på Linux, där värden har dem; händelseloggarna System, Application och Security och Windows-tjänster på Windows; och installations- och wifi-loggarna i `/var/log` på macOS. Den följer OneUptimes versioner, så en värd på standarden får OneUptimes förbättringar av den.
+OneUptimes standard läser processor, minne, diskar, filsystem, nätverk och processer på alla system; journalen och systemd-enheter på Linux, där värden har dem; händelseloggarna System, Application och Security och Windows-tjänster på Windows; och installations- och wifi-loggarna i `/var/log` på macOS. Den utelämnar filsystemen som är fulla med avsikt, som snap-paket och `/dev` på macOS, så att de aldrig får mallen High Filesystem Usage att fortsätta utlösas. Den följer OneUptimes versioner, så en värd på standarden får OneUptimes förbättringar av den.
 
 ## Innan du börjar
 

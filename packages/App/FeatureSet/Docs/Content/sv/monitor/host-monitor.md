@@ -61,19 +61,19 @@ Klicka på **Fler monitortyper** under **Monitortyp** och välj **Värd** under 
 
 ### Välj värden
 
-Välj maskinen i **Värd** under **Host Monitor Configuration**. Varje värd som har skickat data finns i listan.
+Välj maskinen i **Värd** under **Host Monitor Configuration**. Varje värd som har skickat data finns i listan. När du har valt visar en rad under fältet om data kommer in. **Lägg till värd** öppnar installationssteg med dina nycklar ifyllda, som väntar tills data kommer in.
 
 ### Välj vad som ska övervakas
 
-Välj en av de tre flikarna:
+En ny monitor börjar med **Host Stopped Reporting** under **Vad som ska larmas om**. Så här övervakar du något annat:
 
-- **Quick Setup** – klicka på en [mall](#färdiga-larmmallar). Den anger mätvärdet, aggregeringen, tidsintervallet och trösklarna och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
-- **Custom Metric** – välj ett mätvärde i **Host Metric** och ange sedan **Aggregering** och **Tidsintervall**.
-- **Avancerad** – bygg frågor och formler själv under **Välj mått**, till exempel ett filter på `state` eller en gruppering efter `mountpoint`.
+- **Ändra** – välj en annan [mall](#färdiga-larmmallar). Den anger mätvärdet, aggregeringen, tidsintervallet och trösklarna och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
+- **Custom Metric** (under **Fler fält**) – välj ett mätvärde i **Host Metric** och ange sedan **Aggregering** och **Tidsintervall**.
+- **Avancerad** (under **Fler fält**) – bygg frågor och formler själv under **Välj mått**, till exempel ett filter på `state` eller en gruppering efter `mountpoint`.
 
 ### Kontrollera kriterierna
 
-Öppna varje kriterium under **Monitorkriterier** och kontrollera dess **Mätvärde**, **Aggregering**, **Villkor** och **Tröskel**. En mall fyller i dem. Med **Custom Metric** eller **Avancerad** börjar monitorn med [standardkriterierna](#standardkriterier), som bara märker att ett mätvärde sjunker till noll, så ange din egen tröskel.
+Öppna varje kriterium under **Monitorkriterier** och kontrollera dess **Mätvärde**, **Aggregering**, **Villkor** och **Tröskel**. En mall fyller i dem. Med **Custom Metric** eller **Avancerad** börjar monitorn med [standardkriterierna](#standardkriterier), som bara märker att ett mätvärde inte skickar data, så ange din egen tröskel.
 
 ### Skapa monitorn
 
@@ -95,7 +95,7 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 
 ## Färdiga larmmallar
 
-**Quick Setup** erbjuder sex mallar. Varje mall bygger en komplett monitor: en fråga, ett kriterium som utlöses och ett som återställer. Trösklarna är utgångspunkter som du kan redigera.
+Listan under **Vad som ska larmas om** erbjuder sex mallar. Varje mall bygger en komplett monitor: en fråga, ett kriterium som utlöses och ett som återställer. Trösklarna är utgångspunkter som du kan redigera.
 
 Ett kriterium utlöses bara när villkoret gäller varje minut i fönstret, och det återställs 10 % förbi tröskeln, så att ett värde som pendlar vid gränsen inte fladdrar.
 
@@ -113,13 +113,13 @@ Ett kriterium utlöses bara när villkoret gäller varje minut i fönstret, och 
 - **Host Stopped Reporting** utlöses när ingenting kommer från värden på tio minuter: maskinen är nere eller onåbar, eller dess collector har stoppat, tappat sin väg till OneUptime eller fått sin token återkallad. Den återställs när data kommer tillbaka. När data upphör har de andra mallarna inget att jämföra och behåller sin senaste status, så det är den här mallen som säger till.
 - **CPU** är upptagen tid (`user` plus `system`), samma siffra som värdens **Översikt** visar i diagram. Iowait och steal är utelämnade.
 - **Minne** utesluter buffertar och sidcache, så att en värd som mest innehåller cache inte utlöser den.
-- **Filsystem** öppnar en incident per montering. Skrivskyddade pseudofilsystem, som snap-monteringar av typen `squashfs` eller `devfs` på macOS, är alltid 100 % fulla; uteslut dem i collectorns skrapa `filesystem`.
+- **Filsystem** öppnar en incident per montering. Skrivskyddade pseudofilsystem, som snap-monteringar av typen `squashfs` eller `devfs` på macOS, är alltid 100 % fulla: OneUptimes collector-konfigurationer utelämnar dem från skrapan `filesystem` med `exclude_fs_types`, och en egen konfiguration behöver detsamma.
 - **Belastningsmedelvärde** är en rå längd på körkön, inte delad med antalet kärnor: 4 är mättnad på en värd med 2 kärnor och rutin på en med 32, så höj den på stora värdar.
 - **Antal processer** jämför det största enskilda processtillståndet (`running`, `sleeping`, …), inte värdens totala antal, så det stämmer inte med en processlista. Processkrapan rapporterar bara på Linux.
 
 ## Insamlade mätvärden
 
-Listan **Host Metric** erbjuder de här mätvärdena. Var och ett bär `resource.host.name`, vilket är hur monitorn begränsar sina frågor till en värd.
+Listan **Host Metric** erbjuder de här mätvärdena. Var och ett bär `resource.host.name`, vilket är hur monitorn begränsar sina frågor till en värd. Valt där räknar CPU tillståndet `user`, minnes- och filsystemsanvändning tillståndet `used`, och filsystem och processer ger en serie per monteringspunkt och status.
 
 > [!IMPORTANT]
 > Utnyttjandemåtten är en kvot från 0 till 1, inte en procentsats: använd `0.8` för 80 % i en tröskel på det råa mätvärdet. Mallarna räknar om till procent med en formel, så deras trösklar är 80, 85 och 90.
@@ -212,7 +212,7 @@ Monitorn begränsar varje fråga med `resource.host.name` lika med värden du va
 :::
 
 :::details High Filesystem Usage utlöses för en montering som alltid är full
-Skrivskyddade pseudofilsystem, som snap-loopmonteringar av typen `squashfs` under `/snap` eller `devfs` på macOS, är 100 % fulla med avsikt och återhämtar sig aldrig. Uteslut dem från collectorns skrapa `filesystem`.
+Skrivskyddade pseudofilsystem, som snap-loopmonteringar av typen `squashfs` under `/snap` eller `devfs` på macOS, är 100 % fulla med avsikt och återhämtar sig aldrig. Konfigurationerna som OneUptime kör och delar ut utelämnar dem med `exclude_fs_types`; en egen konfiguration, eller en Insamlarkonfiguration som skapades innan de gjorde det, behöver detsamma: kopiera det från [Värdmätvärden](/docs/telemetry/host-otel-collector#värdmätvärden). Utelämna en annan montering som alltid är full, till exempel en monterad `.dmg`, med `exclude_mount_points`.
 :::
 
 ## Nästa steg

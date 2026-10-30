@@ -215,16 +215,22 @@ const ExceptionSummary: FunctionComponent<ComponentProps> = (
     {
       label: "First seen",
       value:
-        formatRelativeTime(props.exception.firstSeenAt) ||
-        translator.translateText("Not recorded"),
+        formatRelativeTime(
+          props.exception.firstSeenAt,
+          new Date(),
+          translator.language,
+        ) || translator.translateText("Not recorded"),
       detail: getReleaseDetail(props.exception.firstSeenInRelease),
       title: getAbsoluteTime(props.exception.firstSeenAt),
     },
     {
       label: "Last seen",
       value:
-        formatRelativeTime(props.exception.lastSeenAt) ||
-        translator.translateText("Not recorded"),
+        formatRelativeTime(
+          props.exception.lastSeenAt,
+          new Date(),
+          translator.language,
+        ) || translator.translateText("Not recorded"),
       detail: getReleaseDetail(props.exception.lastSeenInRelease),
       title: getAbsoluteTime(props.exception.lastSeenAt),
     },
