@@ -65,7 +65,7 @@ Gør formularen færdig, og gem. Monitoren vises under **Monitorer**, og dens st
 | --- | --- | --- |
 | Klynge | Hele klyngen | — |
 | Navnerum | Ressourcer i et navnerum | **Navnerum** |
-| Arbejdsbyrde | En deployment, statefulset, daemonset, job eller cronjob | **Navnerum**, **Arbejdsbelastningsnavn** |
+| Arbejdsbyrde | En deployment, statefulset, daemonset, job eller cronjob | **Navnerum**, **Arbejdsbelastningstype**, **Arbejdsbelastningsnavn** |
 | Node | En node i klyngen | **Nodenavn** |
 | Pod | En pod | **Navnerum**, **Pod-navn** |
 
@@ -112,7 +112,7 @@ Disse monitorer evaluerer altid **Metric Value** – værdien af den konfigurere
 
 ### Betingelser
 
-Statiske tærskler sammenlignes med den **Tærskel**, du angiver: **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** og **Lig med**.
+Statiske tærskler sammenlignes med den **Tærskel**, du angiver: **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** og **Lig med**. **Har ingen data** passer, når forespørgslen intet sendte i vinduet, og **Har data**, når den sendte noget.
 
 Anomalidetektion mod en baseline kræver ingen tærskel. Vælg en af disse betingelser, så viser formularen i stedet **Følsomhed** og **Baseline-vindue**:
 

@@ -93,6 +93,16 @@ const METRIC_BACKED_MONITOR_TYPES: Array<MonitorType> = [
  * already had a pair each and are excluded here so the "this used to be
  * broken" assertions stay honest about which types they are describing.
  */
+/*
+ * Every metric-backed type but Metrics: an agent scrapes their data on a
+ * schedule, so their out-of-the-box criteria ask whether data arrives at
+ * all (Has Data / Has No Data) instead of comparing the value with 0.
+ */
+const INFRASTRUCTURE_MONITOR_TYPES: Array<MonitorType> =
+  METRIC_BACKED_MONITOR_TYPES.filter((monitorType: MonitorType) => {
+    return monitorType !== MonitorType.Metrics;
+  });
+
 const NEWLY_SEEDED_MONITOR_TYPES: Array<MonitorType> = [
   MonitorType.Docker,
   MonitorType.Host,
@@ -355,7 +365,35 @@ describe("Default criteria for metric-backed and profile monitors", () => {
   });
 
   describe("metric-backed monitor types", () => {
-    test.each(METRIC_BACKED_MONITOR_TYPES)(
+    test.each(INFRASTRUCTURE_MONITOR_TYPES)(
+      "%s offline: the first query has no data for the whole window",
+      (monitorType: MonitorType) => {
+        const filter: CriteriaFilter = onlyFilterOf(offlineFor(monitorType));
+
+        expect(filter.checkOn).toBe(CheckOn.MetricValue);
+        expect(filter.filterType).toBe(FilterType.IsEmpty);
+        expect(filter.value).toBeUndefined();
+        expect(filter.metricMonitorOptions?.metricAggregationType).toBe(
+          EvaluateOverTimeType.AnyValue,
+        );
+      },
+    );
+
+    test.each(INFRASTRUCTURE_MONITOR_TYPES)(
+      "%s online: the first query has data, whatever its value",
+      (monitorType: MonitorType) => {
+        const filter: CriteriaFilter = onlyFilterOf(onlineFor(monitorType)!);
+
+        expect(filter.checkOn).toBe(CheckOn.MetricValue);
+        expect(filter.filterType).toBe(FilterType.IsNotEmpty);
+        expect(filter.value).toBeUndefined();
+        expect(filter.metricMonitorOptions?.metricAggregationType).toBe(
+          EvaluateOverTimeType.AnyValue,
+        );
+      },
+    );
+
+    test.each([MonitorType.Metrics])(
       "%s offline: metric value equal to zero",
       (monitorType: MonitorType) => {
         const filter: CriteriaFilter = onlyFilterOf(offlineFor(monitorType));
@@ -369,7 +407,7 @@ describe("Default criteria for metric-backed and profile monitors", () => {
       },
     );
 
-    test.each(METRIC_BACKED_MONITOR_TYPES)(
+    test.each([MonitorType.Metrics])(
       "%s online: metric value greater than zero",
       (monitorType: MonitorType) => {
         const filter: CriteriaFilter = onlyFilterOf(onlineFor(monitorType)!);
@@ -448,21 +486,29 @@ describe("Default criteria for metric-backed and profile monitors", () => {
     );
 
     /*
-     * Metrics and Kubernetes had this exact pair before the change. The rest
-     * were given the same one rather than a per-type invention, so assert
-     * they are actually identical apart from the generated ids.
+     * One pair for every infrastructure type rather than a per-type
+     * invention, so assert they are identical apart from the generated ids.
      */
-    test.each(METRIC_BACKED_MONITOR_TYPES)(
-      "%s seeds the same filters Metrics does",
+    test.each(INFRASTRUCTURE_MONITOR_TYPES)(
+      "%s seeds the same filters Host does",
       (monitorType: MonitorType) => {
         expect(onlyFilterOf(offlineFor(monitorType, ["cpu"]))).toEqual(
-          onlyFilterOf(offlineFor(MonitorType.Metrics, ["cpu"])),
+          onlyFilterOf(offlineFor(MonitorType.Host, ["cpu"])),
         );
         expect(onlyFilterOf(onlineFor(monitorType, ["cpu"])!)).toEqual(
-          onlyFilterOf(onlineFor(MonitorType.Metrics, ["cpu"])!),
+          onlyFilterOf(onlineFor(MonitorType.Host, ["cpu"])!),
         );
       },
     );
+
+    test("Metrics keeps its value pair: 0 is offline, above 0 is online", () => {
+      expect(onlyFilterOf(offlineFor(MonitorType.Metrics)).filterType).toBe(
+        FilterType.EqualTo,
+      );
+      expect(onlyFilterOf(onlineFor(MonitorType.Metrics)!).filterType).toBe(
+        FilterType.GreaterThan,
+      );
+    });
   });
 
   describe("Profiles monitors", () => {
@@ -538,7 +584,9 @@ describe("Default criteria for metric-backed and profile monitors", () => {
         const incident: CriteriaIncident = instance.data!.incidents[0]!;
         expect(incident.title).toBe(`${MONITOR_NAME} is offline`);
         expect(incident.description).toBe(
-          `${MONITOR_NAME} is currently offline.`,
+          MonitorTypeHelper.isInfrastructureMonitor(monitorType)
+            ? `${MONITOR_NAME} has sent no data for the whole evaluation window.`
+            : `${MONITOR_NAME} is currently offline.`,
         );
         expect(incident.incidentSeverityId).toBe(INCIDENT_SEVERITY_ID);
         expect(incident.autoResolveIncident).toBe(true);
@@ -547,7 +595,11 @@ describe("Default criteria for metric-backed and profile monitors", () => {
         expect(instance.data!.alerts).toHaveLength(1);
         const alert: CriteriaAlert = instance.data!.alerts[0]!;
         expect(alert.title).toBe(`${MONITOR_NAME} is offline`);
-        expect(alert.description).toBe(`${MONITOR_NAME} is currently offline.`);
+        expect(alert.description).toBe(
+          MonitorTypeHelper.isInfrastructureMonitor(monitorType)
+            ? `${MONITOR_NAME} has sent no data for the whole evaluation window.`
+            : `${MONITOR_NAME} is currently offline.`,
+        );
         expect(alert.alertSeverityId).toBe(ALERT_SEVERITY_ID);
         expect(alert.autoResolveAlert).toBe(true);
         expect(alert.onCallPolicyIds).toEqual([]);
@@ -576,12 +628,18 @@ describe("Default criteria for metric-backed and profile monitors", () => {
         const online: MonitorCriteriaInstance = onlineFor(monitorType)!;
 
         expect(offline.data!.name).toBe(`Check if ${MONITOR_NAME} is offline`);
+        const isInfrastructure: boolean =
+          MonitorTypeHelper.isInfrastructureMonitor(monitorType);
         expect(offline.data!.description).toBe(
-          `This criteria checks if the ${MONITOR_NAME} is offline`,
+          isInfrastructure
+            ? `This criteria checks if the ${MONITOR_NAME} has stopped sending data.`
+            : `This criteria checks if the ${MONITOR_NAME} is offline`,
         );
         expect(online.data!.name).toBe(`Check if ${MONITOR_NAME} is online`);
         expect(online.data!.description).toBe(
-          `This criteria checks if the ${MONITOR_NAME} is online`,
+          isInfrastructure
+            ? `This criteria checks if the ${MONITOR_NAME} is sending data.`
+            : `This criteria checks if the ${MONITOR_NAME} is online`,
         );
       },
     );
@@ -605,10 +663,14 @@ describe("Default criteria for metric-backed and profile monitors", () => {
     test.each(NEWLY_SEEDED_MONITOR_TYPES)(
       "%s: mutating one seeded criteria does not touch the next",
       (monitorType: MonitorType) => {
+        const seededValue: unknown =
+          offlineFor(monitorType).data!.filters[0]!.value;
         const first: MonitorCriteriaInstance = offlineFor(monitorType);
         first.data!.filters[0]!.value = 999;
 
-        expect(offlineFor(monitorType).data!.filters[0]!.value).toBe(0);
+        expect(offlineFor(monitorType).data!.filters[0]!.value).toBe(
+          seededValue,
+        );
       },
     );
 
@@ -644,7 +706,7 @@ describe("Default criteria for metric-backed and profile monitors", () => {
    * seeded filters through those same evaluators and show them deciding.
    */
   describe("the seeded filters actually fire in the evaluator that reads them", () => {
-    test.each(METRIC_BACKED_MONITOR_TYPES)(
+    test.each([MonitorType.Metrics])(
       "%s online criteria matches a metric reporting above zero",
       async (monitorType: MonitorType) => {
         const result: string | null = await evaluateMetric({
@@ -657,7 +719,7 @@ describe("Default criteria for metric-backed and profile monitors", () => {
       },
     );
 
-    test.each(METRIC_BACKED_MONITOR_TYPES)(
+    test.each([MonitorType.Metrics])(
       "%s online criteria does not match a metric sitting at zero",
       async (monitorType: MonitorType) => {
         expect(
@@ -669,7 +731,7 @@ describe("Default criteria for metric-backed and profile monitors", () => {
       },
     );
 
-    test.each(METRIC_BACKED_MONITOR_TYPES)(
+    test.each([MonitorType.Metrics])(
       "%s offline criteria matches a metric sitting at zero",
       async (monitorType: MonitorType) => {
         const result: string | null = await evaluateMetric({
@@ -682,7 +744,7 @@ describe("Default criteria for metric-backed and profile monitors", () => {
       },
     );
 
-    test.each(METRIC_BACKED_MONITOR_TYPES)(
+    test.each([MonitorType.Metrics])(
       "%s offline criteria does not match a metric reporting above zero",
       async (monitorType: MonitorType) => {
         expect(
@@ -700,9 +762,64 @@ describe("Default criteria for metric-backed and profile monitors", () => {
      * every other EvaluateOverTimeType collapses to "all samples must
      * breach" in this evaluator, and the two read very differently.
      */
-    test("AnyValue means a single zero sample trips the offline rule", async () => {
+    /*
+     * An infrastructure monitor asks whether its agent sends anything: a
+     * value of 0 - no restarts, an idle CPU - is data, so it is online,
+     * and only a window with no data at all is offline.
+     */
+    test.each(INFRASTRUCTURE_MONITOR_TYPES)(
+      "%s online criteria matches a metric sitting at zero",
+      async (monitorType: MonitorType) => {
+        const result: string | null = await evaluateMetric({
+          criteriaFilter: onlyFilterOf(onlineFor(monitorType, ["cpu"])!),
+          sampleValues: [0, 0],
+        });
+
+        expect(result).toBeTruthy();
+        expect(result).toContain("sent 2 values in the evaluation window");
+      },
+    );
+
+    test.each(INFRASTRUCTURE_MONITOR_TYPES)(
+      "%s offline criteria does not match a metric sitting at zero",
+      async (monitorType: MonitorType) => {
+        expect(
+          await evaluateMetric({
+            criteriaFilter: onlyFilterOf(offlineFor(monitorType, ["cpu"])),
+            sampleValues: [0],
+          }),
+        ).toBeNull();
+      },
+    );
+
+    test.each(INFRASTRUCTURE_MONITOR_TYPES)(
+      "%s offline criteria matches a window with no data at all",
+      async (monitorType: MonitorType) => {
+        const result: string | null = await evaluateMetric({
+          criteriaFilter: onlyFilterOf(offlineFor(monitorType, ["cpu"])),
+          sampleValues: [],
+        });
+
+        expect(result).toBeTruthy();
+        expect(result).toContain("No data received");
+      },
+    );
+
+    test.each(INFRASTRUCTURE_MONITOR_TYPES)(
+      "%s online criteria does not match a window with no data",
+      async (monitorType: MonitorType) => {
+        expect(
+          await evaluateMetric({
+            criteriaFilter: onlyFilterOf(onlineFor(monitorType, ["cpu"])!),
+            sampleValues: [],
+          }),
+        ).toBeNull();
+      },
+    );
+
+    test("AnyValue means a single zero sample trips the Metrics offline rule", async () => {
       const result: string | null = await evaluateMetric({
-        criteriaFilter: onlyFilterOf(offlineFor(MonitorType.Docker, ["cpu"])),
+        criteriaFilter: onlyFilterOf(offlineFor(MonitorType.Metrics, ["cpu"])),
         sampleValues: [12, 0, 30],
       });
 
@@ -812,7 +929,7 @@ describe("Default criteria for metric-backed and profile monitors", () => {
      * and offline is stored first, which is what makes a container that dips
      * to zero for one sample read as offline rather than online.
      */
-    test.each(METRIC_BACKED_MONITOR_TYPES)(
+    test.each([MonitorType.Metrics])(
       "%s: a mixed window matches both criteria, so ordering decides",
       async (monitorType: MonitorType) => {
         const sampleValues: Array<number> = [12, 0, 30];
@@ -828,6 +945,30 @@ describe("Default criteria for metric-backed and profile monitors", () => {
 
         expect(online).toBeTruthy();
         expect(offline).toBeTruthy();
+      },
+    );
+
+    /*
+     * An infrastructure monitor's pair never overlaps: a window has data or
+     * it has none. A dip to zero is data, so it reads as online.
+     */
+    test.each(INFRASTRUCTURE_MONITOR_TYPES)(
+      "%s: a window with a zero in it is online and not offline - the pair never overlaps",
+      async (monitorType: MonitorType) => {
+        const sampleValues: Array<number> = [12, 0, 30];
+
+        expect(
+          await evaluateMetric({
+            criteriaFilter: onlyFilterOf(onlineFor(monitorType, ["cpu"])!),
+            sampleValues,
+          }),
+        ).toBeTruthy();
+        expect(
+          await evaluateMetric({
+            criteriaFilter: onlyFilterOf(offlineFor(monitorType, ["cpu"])),
+            sampleValues,
+          }),
+        ).toBeNull();
       },
     );
 
@@ -910,7 +1051,7 @@ describe("Default criteria for metric-backed and profile monitors", () => {
       expect(unnamed).toEqual([MonitorType.Manual]);
     });
 
-    test.each([MonitorType.Metrics, MonitorType.Kubernetes])(
+    test.each([MonitorType.Metrics])(
       "%s keeps the exact defaults it already shipped",
       (monitorType: MonitorType) => {
         expect(onlyFilterOf(offlineFor(monitorType, ["cpu"]))).toEqual({

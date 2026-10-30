@@ -65,7 +65,7 @@ Conclua o formulário e salve. O monitor aparece em **Monitores**, e seu status 
 | --- | --- | --- |
 | Cluster | O cluster inteiro | — |
 | Namespace | Os recursos de um namespace | **Namespace** |
-| Carga de trabalho | Um deployment, statefulset, daemonset, job ou cronjob | **Namespace**, **Nome da Carga de Trabalho** |
+| Carga de trabalho | Um deployment, statefulset, daemonset, job ou cronjob | **Namespace**, **Tipo de Carga de Trabalho**, **Nome da Carga de Trabalho** |
 | Nó | Um nó do cluster | **Nome do nó** |
 | Pod | Um pod | **Namespace**, **Nome do Pod** |
 
@@ -112,7 +112,7 @@ Esses monitores sempre avaliam o **Metric Value** – o valor da consulta de mé
 
 ### Condições
 
-Limites estáticos são comparados com o **Limite** que você informa: **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** e **Igual a**.
+Limites estáticos são comparados com o **Limite** que você informa: **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** e **Igual a**. **Sem dados** corresponde quando a consulta não retornou nada na janela, e **Com dados** quando retornou algo.
 
 A detecção de anomalias por linha de base não precisa de limite. Escolha uma destas condições, e o formulário mostra **Sensibilidade** e **Janela de linha de base** no lugar:
 

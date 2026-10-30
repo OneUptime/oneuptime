@@ -65,7 +65,7 @@ Fullfør skjemaet og lagre. Monitoren vises under **Monitorer**, og statusen fø
 | --- | --- | --- |
 | Klynge | Hele klyngen | — |
 | Navnerom | Ressurser i et navnerom | **Navnerom** |
-| Arbeidsbelastning | En deployment, statefulset, daemonset, job eller cronjob | **Navnerom**, **Arbeidslastnavn** |
+| Arbeidsbelastning | En deployment, statefulset, daemonset, job eller cronjob | **Navnerom**, **Arbeidslasttype**, **Arbeidslastnavn** |
 | Node | En node i klyngen | **Nodenavn** |
 | Pod | En pod | **Navnerom**, **Pod-navn** |
 
@@ -112,7 +112,7 @@ Disse monitorene evaluerer alltid **Metric Value** – verdien av den konfigurer
 
 ### Betingelser
 
-Statiske terskler sammenlignes med **Terskel** du angir: **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** og **Lik**.
+Statiske terskler sammenlignes med **Terskel** du angir: **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** og **Lik**. **Ingen data** stemmer når spørringen ikke ga noe i vinduet, og **Har data** når den ga noe.
 
 Avviksdeteksjon mot en grunnlinje trenger ingen terskel. Velg en av disse betingelsene, så viser skjemaet i stedet **Følsomhet** og **Grunnlinjevindu**:
 

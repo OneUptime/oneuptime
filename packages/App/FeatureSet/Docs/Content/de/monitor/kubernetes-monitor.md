@@ -65,7 +65,7 @@ Füllen Sie das Formular fertig aus und speichern Sie. Der Monitor erscheint unt
 | --- | --- | --- |
 | Cluster | Den gesamten Cluster | — |
 | Namespace | Ressourcen in einem Namespace | **Namespace** |
-| Workload | Ein Deployment, StatefulSet, DaemonSet, einen Job oder CronJob | **Namespace**, **Workload-Name** |
+| Workload | Ein Deployment, StatefulSet, DaemonSet, einen Job oder CronJob | **Namespace**, **Workload-Art**, **Workload-Name** |
 | Knoten | Einen Knoten des Clusters | **Knotenname** |
 | Pod | Einen Pod | **Namespace**, **Pod-Name** |
 
@@ -112,7 +112,7 @@ Diese Monitore werten immer den **Metric Value** aus – den Wert der konfigurie
 
 ### Bedingungen
 
-Statische Schwellenwerte werden mit dem **Schwellenwert** verglichen, den Sie eingeben: **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** und **Gleich**.
+Statische Schwellenwerte werden mit dem **Schwellenwert** verglichen, den Sie eingeben: **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** und **Gleich**. **Keine Daten** trifft zu, wenn die Abfrage im Zeitfenster nichts lieferte, **Daten vorhanden**, wenn sie etwas lieferte.
 
 Die Anomalieerkennung anhand einer Baseline braucht keinen Schwellenwert. Wählen Sie eine dieser Bedingungen, und das Formular zeigt stattdessen **Empfindlichkeit** und **Baseline-Fenster**:
 

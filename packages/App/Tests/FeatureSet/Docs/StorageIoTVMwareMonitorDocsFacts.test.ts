@@ -621,28 +621,28 @@ describe("the criteria of these monitors", () => {
 
       expect(criteria.data!.monitorCriteriaInstanceArray).toHaveLength(2);
       expect(offline.data!.name).toBe("Check if Acme is offline");
-      expect(primary(offline).filterType).toBe(FilterType.EqualTo);
-      expect(Number(primary(offline).value)).toBe(0);
+      expect(primary(offline).filterType).toBe(FilterType.IsEmpty);
+      expect(primary(offline).value).toBeUndefined();
       expect(primary(offline).metricMonitorOptions?.metricAggregationType).toBe(
         EvaluateOverTimeType.AnyValue,
       );
       expect(offline.data!.incidents[0]!.title).toBe("Acme is offline");
       expect(offline.data!.incidents[0]!.autoResolveIncident).toBe(true);
       expect(online.data!.name).toBe("Check if Acme is online");
-      expect(primary(online).filterType).toBe(FilterType.GreaterThan);
-      expect(Number(primary(online).value)).toBe(0);
+      expect(primary(online).filterType).toBe(FilterType.IsNotEmpty);
+      expect(primary(online).value).toBeUndefined();
 
       expect(tableBody(sectionOf(page, "### Default criteria"))).toEqual([
         [
           "1",
           "Check if _monitor name_ is offline",
-          "Any value of the first query is `0`",
+          "The first query has no data for the whole window",
           'Marks the monitor **Offline** and declares the incident "_monitor name_ is offline", which resolves itself when the monitor recovers.',
         ],
         [
           "2",
           "Check if _monitor name_ is online",
-          "Any value is above `0`",
+          "The first query has data",
           "Marks the monitor **Operational**.",
         ],
       ]);
@@ -895,7 +895,12 @@ describe("the IoT Device page against the form, the catalog and the inventory", 
     );
   });
 
-  it("a custom metric is not grouped, and starts on the Device scope", () => {
+  /*
+   * Regression: picking a metric used to set Resource Scope = Device, an
+   * exact match on an `iot.scope` attribute nothing stamps - so every
+   * custom-metric monitor read no data at all.
+   */
+  it("a custom metric is not grouped, and sets no scope", () => {
     const handler: string = form.slice(
       form.indexOf("const handleCustomMetricSelection"),
       form.indexOf("const renderFleetDropdown"),
@@ -903,32 +908,26 @@ describe("the IoT Device page against the form, the catalog and the inventory", 
 
     expect(handler).toContain("buildIoTMonitorConfig({");
     expect(handler).not.toContain("groupByAttributeKey");
-    expect(handler).toContain("scope: metric.defaultResourceScope,");
-
-    for (const metric of getAllIoTMetrics()) {
-      expect(metric.defaultResourceScope).toBe("device");
-    }
+    expect(handler).not.toContain("scope:");
 
     expect(englishPage(IOT)).toContain(
       "A custom metric is not grouped: it judges the fleet as a whole.",
     );
-    expect(englishPage(IOT)).toContain(
-      "Picking a metric sets it to **Device**.",
-    );
+    expect(englishPage(IOT)).not.toContain("iot.scope");
+    expect(englishPage(IOT)).not.toContain("**Resource Scope**");
   });
 
-  it("names the filters as the form draws them, and the worker applies all three", () => {
+  it("names the filters as the form draws them, and the worker applies both", () => {
     for (const title of [
       'title="IoT Fleet"',
-      'title="Resource Scope"',
       'title="Device ID"',
       'title="Device Type"',
       'title="IoT Metric"',
-      '{ label: "Device", value: IoTResourceScope.Device }',
-      '{ label: "Fleet", value: IoTResourceScope.Fleet }',
     ]) {
       expect(form).toContain(title);
     }
+
+    expect(form).not.toContain('title="Resource Scope"');
 
     const worker: string = source(
       "packages/App/FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor.ts",
@@ -938,10 +937,12 @@ describe("the IoT Device page against the form, the catalog and the inventory", 
       'attributes["resource.iot.fleet.name"] = iotMonitorConfig.fleetIdentifier;',
       'attributes["device.id"] = resourceFilters.deviceId;',
       'attributes["iot.device.type"] = resourceFilters.deviceType;',
-      'attributes["iot.scope"] = resourceFilters.scope;',
     ]) {
       expect(worker).toContain(assignment);
     }
+
+    // A saved scope is read and ignored: nothing stamps `iot.scope`.
+    expect(worker).not.toContain('attributes["iot.scope"]');
 
     expect(englishPage(IOT)).toContain(
       "The filters work together: with a **Device ID** and a **Device Type**, a device of another type matches nothing.",

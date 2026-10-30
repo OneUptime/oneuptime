@@ -65,7 +65,7 @@ Terminez le formulaire et enregistrez. Le moniteur apparaît sous **Moniteurs**,
 | --- | --- | --- |
 | Cluster | Le cluster entier | — |
 | Espace de noms | Les ressources d'un espace de noms | **Espace de noms** |
-| Charge de travail | Un deployment, statefulset, daemonset, job ou cronjob | **Espace de noms**, **Nom de la charge de travail** |
+| Charge de travail | Un deployment, statefulset, daemonset, job ou cronjob | **Espace de noms**, **Type de charge de travail**, **Nom de la charge de travail** |
 | Nœud | Un nœud du cluster | **Nom du nœud** |
 | Pod | Un pod | **Espace de noms**, **Nom du pod** |
 
@@ -112,7 +112,7 @@ Ces moniteurs évaluent toujours la **Metric Value** – la valeur de la requêt
 
 ### Conditions
 
-Les seuils statiques sont comparés au **Seuil** que vous saisissez : **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** et **Égal à**.
+Les seuils statiques sont comparés au **Seuil** que vous saisissez : **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** et **Égal à**. **Aucune donnée** est vraie quand la requête n'a rien renvoyé dans la fenêtre, **Données reçues** quand elle a renvoyé quelque chose.
 
 La détection d'anomalies par rapport à une référence n'a pas besoin de seuil. Choisissez l'une de ces conditions, et le formulaire affiche **Sensibilité** et **Fenêtre de référence** à la place :
 
