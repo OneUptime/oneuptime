@@ -331,7 +331,7 @@ test.describe("an incident's row", () => {
       "Change Severity",
     );
     await expect(dialog).toContainText(
-      `Pick the new severity for ${INCIDENT_TITLE}.`,
+      `Pick the new severity for ${INCIDENT_NUMBER} ${INCIDENT_TITLE}.`,
     );
     // Nothing is picked as it opens, as a case's Change Priority.
     await expect(dialog.locator(".ou-select__placeholder")).toHaveText(
@@ -415,7 +415,7 @@ test.describe("an incident's row", () => {
 
     await expect(dialog.getByTestId("modal-title")).toHaveText("Add Owner");
     await expect(dialog).toContainText(
-      `Pick the people and teams to add as owners of ${INCIDENT_TITLE}. Its existing owners are kept.`,
+      `Pick the people and teams to add as owners of ${INCIDENT_NUMBER} ${INCIDENT_TITLE}. Its existing owners are kept.`,
     );
     // The people and teams picker, empty: nobody is added until picked.
     await expect(dialog.getByTestId("people-picker-add-button")).toBeVisible();
