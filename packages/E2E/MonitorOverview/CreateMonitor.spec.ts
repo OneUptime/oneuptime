@@ -1453,7 +1453,7 @@ test.describe("Quick Setup's alert templates", () => {
     await expect(page.getByTestId("alert-template-picked-name")).toHaveText(
       "Node Not Ready",
     );
-    await expect(criteriaName).toContainText("Node NotReady");
+    await expect(criteriaName).toContainText("Node Not Ready");
   });
 
   test("fits a phone: one row a line, and the folded template uses the screen's width", async ({
