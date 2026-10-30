@@ -129,6 +129,8 @@ La explicación se guarda en la excepción, así que la siguiente persona que la
 
 Los ID, las direcciones de correo e IP y los tokens se quitan de todo lo que se envía, y de los atributos de un span solo se envían unos pocos, como su ruta y su código de estado. La explicación usa el proveedor de LLM y los créditos de IA del proyecto, y no se ofrece mientras **Habilitar IA** esté desactivado. Cualquiera que pueda leer la excepción puede pedir una.
 
+Debajo de las tarjetas, **Excepciones similares** enumera hasta cinco excepciones más que se parecen a esta: el **Mismo mensaje** una vez quitados los valores, la **Misma ubicación en el código** de su código, o un **Mensaje similar** con la mayoría de las mismas palabras. Una misma causa puede acabar en varias excepciones, así que **Comprobar con OneUptime AI** dice de cada una si es **Probablemente el mismo error**, **Un error relacionado** o **Un error distinto**, y por qué. La comprobación usa los créditos de IA del proyecto y no se ofrece mientras **Habilitar IA** está desactivado.
+
 ## Corregirla con IA
 
 La página **Asistencia de IA** ofrece tres tareas. Cada una se ejecuta como una tarea de IA que abre un pull request en su repositorio de código:
