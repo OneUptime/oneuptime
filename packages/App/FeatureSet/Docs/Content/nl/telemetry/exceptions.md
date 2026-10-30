@@ -129,7 +129,7 @@ De uitleg wordt bij de uitzondering bewaard, zodat de volgende die haar opent he
 
 ID's, e-mail- en IP-adressen en tokens worden verwijderd uit alles wat wordt verstuurd, en van de attributen van een span worden er maar een paar verstuurd, zoals de route en de statuscode. De uitleg gebruikt de LLM-provider en de AI-tegoeden van het project en wordt niet aangeboden zolang **AI inschakelen** uit staat. Iedereen die de uitzondering mag lezen, kan er een vragen.
 
-Onder de kaarten toont **Vergelijkbare uitzonderingen** tot vijf andere uitzonderingen die op deze lijken: het **Zelfde bericht** zodra de waarden eruit zijn, de **Zelfde plek in de code** in uw code, of een **Vergelijkbaar bericht** met grotendeels dezelfde woorden. Eén oorzaak kan in meerdere uitzonderingen terechtkomen, dus **Controleren met OneUptime AI** zegt van elke of het **Waarschijnlijk dezelfde bug**, **Een verwante bug** of **Een andere bug** is, en waarom. De controle gebruikt de AI-tegoeden van het project en wordt niet aangeboden zolang **AI inschakelen** uit staat.
+Onder de kaarten toont **Vergelijkbare uitzonderingen** tot vijf andere uitzonderingen die op deze lijken: het **Zelfde bericht** zodra de waarden eruit zijn, de **Zelfde plek in de code** in uw code, of een **Vergelijkbaar bericht** met grotendeels dezelfde woorden. Eén oorzaak kan in meerdere uitzonderingen terechtkomen, dus **Controleren met OneUptime AI** zegt van elke of het **Waarschijnlijk dezelfde bug**, **Een verwante bug** of **Een andere bug** is, en waarom. De controle gebruikt de AI-tegoeden van het project en wordt niet aangeboden zolang **AI inschakelen** uit staat. Het antwoord wordt bewaard tot de volgende keer dat er een uitzondering optreedt.
 
 ## Verhelpen met AI
 
@@ -185,7 +185,7 @@ Onder **Meer velden** kiest een regel de coderepositories, de MCP-servers en de 
 
 Het tabblad **Inzichten** telt uw uitzonderingen onder **Niet opgelost**, **Opgelost** en **Gearchiveerd** en uw oplospercentage, en toont de vaakst voorkomende uitzonderingen, de services die ze treffen en de uitzonderingen die het laatst gezien zijn.
 
-**Wat is er nieuw** bovenaan het tabblad vraagt OneUptime AI, met **Samenvatten met OneUptime AI**, de uitzonderingen samen te vatten die in de laatste 24 uur voor het eerst gezien zijn en de uitzonderingen die terugkwamen nadat ze opgelost waren: een paar zinnen over allemaal, daarna elk in één regel, de dringendste eerst, met een link naar de uitzondering. De samenvatting wordt geschreven wanneer u erom vraagt en niet bewaard, gebruikt de AI-tegoeden van het project en wordt niet aangeboden zolang **AI inschakelen** uit staat.
+**Wat is er nieuw** bovenaan het tabblad vraagt OneUptime AI, met **Samenvatten met OneUptime AI**, de uitzonderingen samen te vatten die in de laatste 24 uur voor het eerst gezien zijn en de uitzonderingen die terugkwamen nadat ze opgelost waren: een paar zinnen over allemaal, daarna elk in één regel, de dringendste eerst, met een link naar de uitzondering. De samenvatting wordt geschreven wanneer u erom vraagt en bewaard tot de volgende keer dat er een uitzondering optreedt, dus opnieuw vragen kost niets; hij gebruikt de AI-tegoeden van het project en wordt niet aangeboden zolang **AI inschakelen** uit staat.
 
 ## Problemen oplossen
 

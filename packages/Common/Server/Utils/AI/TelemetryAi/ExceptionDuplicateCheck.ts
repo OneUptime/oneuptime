@@ -5,8 +5,11 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import {
   DuplicateVerdict,
+  readDuplicateVerdicts,
   SimilarException,
 } from "../../../../Types/Telemetry/SimilarExceptions";
+import { JSONArray, JSONObject } from "../../../../Types/JSON";
+import AiAnswerCache from "./AiAnswerCache";
 import AIService, {
   AILogRequest,
   AILogResponse,
@@ -40,6 +43,10 @@ import {
 
 export const EXCEPTION_DUPLICATE_CHECK_FEATURE: string =
   "ExceptionDuplicateCheck";
+export const EXCEPTION_DUPLICATE_CHECK_CACHE_NAMESPACE: string =
+  "exception-ai-duplicate-check";
+// A week: whether two exceptions are the same bug does not change daily.
+export const EXCEPTION_DUPLICATE_CHECK_CACHE_SECONDS: number = 7 * 24 * 60 * 60;
 
 export interface ExceptionDuplicateCheckResult {
   similar: Array<SimilarException>;
@@ -88,6 +95,39 @@ export default class ExceptionDuplicateChecker {
     // After the person's own reads: see ExceptionDigester.
     await AIService.assertProjectAIEnabled(projectId);
 
+    /*
+     * The same exception and the same similar ones, with the same counts,
+     * as the last check: the same verdicts, kept (AiAnswerCache) -
+     * checking again spends nothing until a new occurrence arrives.
+     */
+    const cacheKey: string = ExceptionDuplicateChecker.getCacheKey(found);
+    const cached: JSONObject | null = await AiAnswerCache.get(
+      EXCEPTION_DUPLICATE_CHECK_CACHE_NAMESPACE,
+      cacheKey,
+    );
+
+    if (cached) {
+      const ids: Set<string> = new Set<string>(
+        similar.map((entry: SimilarException): string => {
+          return entry.telemetryExceptionId;
+        }),
+      );
+      const generatedAt: Date = new Date(String(cached["generatedAt"] || ""));
+
+      return {
+        similar,
+        // Only about the exceptions listed now.
+        verdicts: readDuplicateVerdicts(cached["verdicts"]).filter(
+          (verdict: DuplicateVerdict): boolean => {
+            return ids.has(verdict.telemetryExceptionId);
+          },
+        ),
+        generatedAt: Number.isNaN(generatedAt.getTime())
+          ? OneUptimeDate.getCurrentDate()
+          : generatedAt,
+      };
+    }
+
     const candidates: Array<DuplicateCheckException> = found.similar.map(
       (entry: { exception: TelemetryException }): DuplicateCheckException => {
         return toCheckException(entry.exception);
@@ -135,10 +175,47 @@ export default class ExceptionDuplicateChecker {
       );
     }
 
+    const generatedAt: Date = OneUptimeDate.getCurrentDate();
+
+    await AiAnswerCache.set({
+      namespace: EXCEPTION_DUPLICATE_CHECK_CACHE_NAMESPACE,
+      key: cacheKey,
+      value: {
+        verdicts: verdicts as unknown as JSONArray,
+        generatedAt: generatedAt.toISOString(),
+      },
+      expiresInSeconds: EXCEPTION_DUPLICATE_CHECK_CACHE_SECONDS,
+    });
+
     return {
       similar,
       verdicts,
-      generatedAt: OneUptimeDate.getCurrentDate(),
+      generatedAt,
     };
+  }
+
+  /*
+   * What a check is written from: the exception and each similar one,
+   * with their occurrence counts and states.
+   */
+  public static getCacheKey(found: SimilarExceptionsWithEvidence): string {
+    const describe: (exception: TelemetryException) => string = (
+      exception: TelemetryException,
+    ): string => {
+      return [
+        exception.id?.toString() || "",
+        String(exception.occuranceCount || 0),
+        exception.isResolved ? "resolved" : "",
+        exception.isArchived ? "archived" : "",
+      ].join("|");
+    };
+
+    return AiAnswerCache.key([
+      found.target.projectId?.toString() || "",
+      describe(found.target),
+      ...found.similar.map((entry: { exception: TelemetryException }) => {
+        return describe(entry.exception);
+      }),
+    ]);
   }
 }
