@@ -9,8 +9,8 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  *
  * The status page's Branding page says the same of a status page
  * (StatusPageBrandingCopy); the line a dashboard with no dark theme logo
- * shows, and the dark theme logo's title and placeholder, are the status
- * page's own words, already in every language.
+ * shows, the dark theme logo's title, and both logos' placeholders, are the
+ * status page's own words, already in every language.
  *
  * Kept free of React so the page and App/Tests read these exact strings.
  * A new sentence is wrapped in translationKey() so npm run i18n:extract
@@ -23,6 +23,8 @@ export const DashboardBrandingCopy: {
   darkThemeLogoDescription: string;
   // The card's line while the dashboard has no dark theme logo.
   noDarkThemeLogo: string;
+  // The logo's, in the edit dialog: in the words its dark sibling's is.
+  logoPlaceholder: string;
   darkThemeLogoTitle: string;
   darkThemeLogoPlaceholder: string;
 } = {
@@ -33,6 +35,7 @@ export const DashboardBrandingCopy: {
   noDarkThemeLogo: translationKey(
     "None. The logo is shown on a light backdrop.",
   ),
+  logoPlaceholder: translationKey("Upload logo"),
   darkThemeLogoTitle: translationKey("Dark Theme Logo"),
   darkThemeLogoPlaceholder: translationKey("Upload logo for the dark theme"),
 };

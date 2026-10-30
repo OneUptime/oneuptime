@@ -217,6 +217,8 @@ describe("the Logo card: the logo, and the logo for the dark theme", () => {
 
     expect(logo.title).toBe("Logo");
     expect(logo.description).toBe(DashboardBrandingCopy.logoDescription);
+    // As its dark sibling's reads: not "Upload Logo." beside it.
+    expect(logo.placeholder).toBe("Upload logo");
 
     expect(darkLogo.title).toBe("Dark Theme Logo");
     expect(darkLogo.placeholder).toBe("Upload logo for the dark theme");
@@ -258,6 +260,7 @@ describe("the Logo card: the logo, and the logo for the dark theme", () => {
     expect(DashboardBrandingCopy.darkThemeLogoPlaceholder).toBe(
       "Upload logo for the dark theme",
     );
+    expect(DashboardBrandingCopy.logoPlaceholder).toBe("Upload logo");
   });
 });
 

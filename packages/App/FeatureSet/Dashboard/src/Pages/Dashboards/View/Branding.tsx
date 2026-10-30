@@ -103,7 +103,7 @@ const DashboardBranding: FunctionComponent<
             title: "Logo",
             fieldType: FormFieldSchemaType.ImageFile,
             required: false,
-            placeholder: "Upload Logo.",
+            placeholder: DashboardBrandingCopy.logoPlaceholder,
             description: DashboardBrandingCopy.logoDescription,
             hideColumnDescription: true,
           },
