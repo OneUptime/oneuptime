@@ -25,6 +25,12 @@ interface ComponentProps {
  * the trail leaves it and no wider: an inline box is never narrower than its
  * text, and "INC-1042 Checkout API p95 latency above 2s" pushed a 320px
  * page sideways.
+ *
+ * On a phone the crumb is the number alone: "Project > Incidents >
+ * INC-1042". The page's heading, right under the trail, names the record
+ * whole there, and the name cut short on a line of its own was a second,
+ * shorter copy of it. A screen reader still hears the name with the number
+ * (sr-only), as it does from 640px up, where the crumb shows both.
  */
 export const BREADCRUMB_NUMBERED_RECORD_CLASS_NAME: string =
   "flex min-w-0 max-w-xs items-baseline";
@@ -32,8 +38,12 @@ export const BREADCRUMB_NUMBERED_RECORD_CLASS_NAME: string =
 export const BREADCRUMB_RECORD_NUMBER_CLASS_NAME: string =
   "shrink-0 whitespace-nowrap";
 
+// The space between the number and the name: a flex row draws no other.
+export const BREADCRUMB_RECORD_NUMBER_SEPARATOR_CLASS_NAME: string =
+  "max-sm:sr-only";
+
 export const BREADCRUMB_RECORD_NUMBER_NAME_CLASS_NAME: string =
-  "min-w-0 truncate";
+  "min-w-0 truncate max-sm:sr-only";
 
 // Any other record's crumb: its name, cut short the same way.
 export const BREADCRUMB_RECORD_NAME_CLASS_NAME: string =
@@ -88,10 +98,17 @@ const Breadcrumbs: FunctionComponent<ComponentProps> = ({
                   </bdi>
                   {link.recordName ? (
                     <>
-                      {"\u00a0"}
+                      <span
+                        className={
+                          BREADCRUMB_RECORD_NUMBER_SEPARATOR_CLASS_NAME
+                        }
+                      >
+                        {"\u00a0"}
+                      </span>
                       <IsolatedText
                         className={BREADCRUMB_RECORD_NUMBER_NAME_CLASS_NAME}
                         text={link.recordName}
+                        dataTestId="breadcrumb-record-number-name"
                       />
                     </>
                   ) : (

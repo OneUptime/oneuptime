@@ -97,27 +97,35 @@ export const PAGE_HEADER_RIGHT_TEST_ID: string = "page-header-right";
 
 /*
  * A numbered record's heading (recordHeading): the number, then the name.
- * The number is never cut or wrapped, and never parted from the name: a
- * no-break space holds it to the name's first word. It keeps its place at
- * the start of the line - on the right on a right-to-left page.
+ * The number is never cut or wrapped, and keeps its place at the start of
+ * the first line - on the right on a right-to-left page.
  *
  * The name gives way. On a phone the two run on as one sentence, two lines
- * at most. From 640px up the heading is one line: the number keeps its
+ * at most, the name's first word beside the number. Only when the number
+ * and that word are together wider than the screen does the name start on
+ * the next line, whole: a no-break space between them made the line break
+ * inside the word instead ("CHECKOUT-INC-1042 Che" / "ckout API ..." at
+ * 320px). From 640px up the heading is one line: the number keeps its
  * whole width and the name is cut short with an ellipsis at its own end,
  * so an English name on a Persian page still reads from its start (a cut
- * across the whole line would take the name's start away there). The
- * whole heading on hover.
+ * across the whole line would take the name's start away there). There
+ * the heading is a flex row, which draws no space between its items, so
+ * its gap is that space: a quarter of an em, a word space of the heading's
+ * font. The whole heading on hover.
  */
 export const PAGE_RECORD_HEADING_CLASS_NAME: string =
-  "line-clamp-2 break-words [overflow-wrap:anywhere] text-xl font-semibold leading-7 text-gray-900 sm:flex sm:min-w-0 sm:items-baseline sm:line-clamp-none sm:tracking-tight";
+  "line-clamp-2 break-words [overflow-wrap:anywhere] text-xl font-semibold leading-7 text-gray-900 sm:flex sm:min-w-0 sm:items-baseline sm:gap-x-[0.25em] sm:line-clamp-none sm:tracking-tight";
 
 export const PAGE_RECORD_NUMBER_CLASS_NAME: string =
   "whitespace-nowrap text-gray-500 sm:shrink-0";
 
 export const PAGE_RECORD_NAME_CLASS_NAME: string = "sm:min-w-0 sm:truncate";
 
-// Between the number and the name: a space no line may break at.
-export const PAGE_RECORD_HEADING_SEPARATOR: string = "\u00a0";
+/*
+ * Between the number and the name: a plain space, the one place a phone's
+ * line may break before the name - never inside one of its words.
+ */
+export const PAGE_RECORD_HEADING_SEPARATOR: string = " ";
 
 export const PAGE_RECORD_HEADING_TEST_IDS: {
   heading: string;

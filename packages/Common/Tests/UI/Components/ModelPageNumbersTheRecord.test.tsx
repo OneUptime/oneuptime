@@ -97,6 +97,7 @@ import {
   BREADCRUMB_NUMBERED_RECORD_CLASS_NAME,
   BREADCRUMB_RECORD_NUMBER_CLASS_NAME,
   BREADCRUMB_RECORD_NUMBER_NAME_CLASS_NAME,
+  BREADCRUMB_RECORD_NUMBER_SEPARATOR_CLASS_NAME,
 } from "../../../UI/Components/Breadcrumbs/Breadcrumbs";
 import { announceModelHeaderChanged } from "../../../UI/Components/Page/ModelHeaderEvents";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -116,7 +117,7 @@ const RECORD_ID: string = "65f00000-0000-4000-8000-00000000bbbb";
 
 const TITLE: string = "Manually declared";
 
-// A run of white space, the heading's no-break space among it.
+// A run of white space, the crumb's no-break space among it.
 const WHITE_SPACE_RUN: RegExp = /\s+/g;
 
 // What a piece of the page says, its white space as one space each.
@@ -496,7 +497,7 @@ describe("how the number and the title sit together", () => {
   const LONG_TITLE: string =
     "Checkout API p95 latency above 2s for EU customers after release 2026.09.14-2 started with a smaller database connection pool than production needs";
 
-  test("one heading: the number, a no-break space, then the title", async () => {
+  test("one heading: the number, a space, then the title", async () => {
     getItemMock.mockResolvedValue(recordOf(INCIDENT_KIND, {}));
     await renderPage(INCIDENT_KIND);
 
@@ -505,12 +506,28 @@ describe("how the number and the title sit together", () => {
     expect(nodes[0]).toBe(
       screen.getByTestId(PAGE_RECORD_HEADING_TEST_IDS.number),
     );
-    // The number is never wrapped away from the title's first word.
+    /*
+     * A plain space: the one place a phone's line may break before the
+     * title, when the number and its first word do not fit together - a
+     * no-break space there broke the word itself ("Che" / "ckout").
+     */
+    expect(nodes[1]!.nodeType).toBe(Node.TEXT_NODE);
     expect(nodes[1]!.textContent).toBe(PAGE_RECORD_HEADING_SEPARATOR);
-    expect(PAGE_RECORD_HEADING_SEPARATOR).toBe("\u00a0");
+    expect(PAGE_RECORD_HEADING_SEPARATOR).toBe(" ");
     expect(nodes[2]).toBe(
       screen.getByTestId(PAGE_RECORD_HEADING_TEST_IDS.name),
     );
+    // Copied or read aloud, the heading has an ordinary space.
+    expect(heading().textContent).toBe(`INC-18 ${TITLE}`);
+  });
+
+  test("from 640px the heading is a flex row, which draws no space between its items: its gap is that space", async () => {
+    getItemMock.mockResolvedValue(recordOf(INCIDENT_KIND, {}));
+    await renderPage(INCIDENT_KIND);
+
+    expect(heading()).toHaveClass("sm:flex", "sm:gap-x-[0.25em]");
+    // No gap on a phone, where the space itself sits between them.
+    expect(heading().className.split(" ")).not.toContain("gap-x-[0.25em]");
   });
 
   test("the number is never cut or wrapped; the title gives way, two lines on a phone and one from 640px", async () => {
@@ -617,6 +634,60 @@ describe("how the number and the title sit together", () => {
     for (const listItem of within(nav).getAllByRole("listitem")) {
       expect(listItem.className).toBe(BREADCRUMB_ITEM_CLASS_NAME);
     }
+  });
+
+  /*
+   * The heading right under the trail names the record whole, so on a
+   * phone the crumb is its number alone - "Project > Incidents > INC-18 >
+   * Owners" - not a second copy of the title cut short on a line of its
+   * own. The title and the space before it are still there for a screen
+   * reader (sr-only), and drawn from 640px up.
+   */
+  test("on a phone the crumb is the number alone; a screen reader still hears the title", async () => {
+    getItemMock.mockResolvedValue(
+      recordOf(INCIDENT_KIND, { title: LONG_TITLE }),
+    );
+    await renderPage(INCIDENT_KIND);
+
+    const crumb: HTMLElement = screen.getByTestId("breadcrumb-record-name");
+    const number: HTMLElement = screen.getByTestId("breadcrumb-record-number");
+    const name: HTMLElement = screen.getByTestId(
+      "breadcrumb-record-number-name",
+    );
+
+    expect(BREADCRUMB_RECORD_NUMBER_NAME_CLASS_NAME.split(" ")).toContain(
+      "max-sm:sr-only",
+    );
+    expect(name).toHaveClass("max-sm:sr-only", "min-w-0", "truncate");
+    expect(name).toHaveTextContent(LONG_TITLE);
+
+    // The space before the title goes with it.
+    const separator: HTMLElement = name.previousElementSibling as HTMLElement;
+    expect(separator.className).toBe(
+      BREADCRUMB_RECORD_NUMBER_SEPARATOR_CLASS_NAME,
+    );
+    expect(separator).toHaveClass("max-sm:sr-only");
+    expect(separator.textContent).toBe("\u{a0}");
+
+    // The number is drawn at every width.
+    expect(number.className).not.toContain("sr-only");
+    expect(crumb.className).not.toContain("sr-only");
+
+    // The link is named by the number and the title, at every width.
+    expect(textOf(crumb.closest("a") as HTMLElement)).toBe(
+      `INC-18 ${LONG_TITLE}`,
+    );
+    expect(crumb).toHaveAttribute("title", `INC-18 ${LONG_TITLE}`);
+  });
+
+  test("a crumb with a number and no title draws the number alone, at every width", async () => {
+    getItemMock.mockResolvedValue(recordOf(INCIDENT_KIND, { title: "" }));
+    await renderPage(INCIDENT_KIND);
+
+    expect(screen.getByTestId("breadcrumb-record-number")).toHaveTextContent(
+      "INC-18",
+    );
+    expect(screen.queryByTestId("breadcrumb-record-number-name")).toBeNull();
   });
 });
 

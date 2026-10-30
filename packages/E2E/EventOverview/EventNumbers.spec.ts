@@ -21,10 +21,11 @@ import path from "path";
  * without prefixes (#1042), as a new project (INC-1042), with long prefixes
  * of the project's own (CHECKOUT-INC-1042), a record numbered before numbers
  * carried their prefix (bare: #1042) and one with no number at all (none).
- * The number is never cut or wrapped away from the title; a long title
- * (?title=sentence) gives way instead - one line from 640px, two on a
- * phone - at 1280, 1024, 768 and 390 pixels, in the dark theme, in German
- * and in Persian read right to left (?dir=auto).
+ * The number is never cut, and never breaks a word of the title; a long
+ * title (?title=sentence) gives way instead - one line from 640px, two on
+ * a phone - at 1280, 1024, 768, 390 and 320 pixels, in the dark theme, in
+ * German and in Persian read right to left (?dir=auto). On a phone the
+ * trail's crumb for the record is its number alone.
  *
  * The clock is pinned and the network fenced; afterEach fails a test on an
  * uncaught page error or on anything the fixture does not model.
@@ -52,7 +53,7 @@ const PRODUCTION_FONT_CSS: string =
 // The heading's line: text-xl leading-7.
 const HEADING_LINE_HEIGHT: number = 28;
 
-// A run of white space, the no-break space between number and title among it.
+// A run of white space, the crumb's no-break space among it.
 const WHITE_SPACE_RUN: RegExp = /\s+/g;
 
 // The numbers of an rgb()/rgba() colour.
@@ -290,6 +291,50 @@ function trail(page: Page): Locator {
 
 function crumbNumber(page: Page): Locator {
   return page.getByTestId("breadcrumb-record-number");
+}
+
+// The title in a numbered record's crumb, after its number.
+function crumbTitle(page: Page): Locator {
+  return page.getByTestId("breadcrumb-record-number-name");
+}
+
+// Kept for a screen reader only (sr-only): out of the flow, a pixel at most.
+async function isScreenReaderOnly(locator: Locator): Promise<boolean> {
+  return locator.evaluate((element: Element): boolean => {
+    const rect: DOMRect = element.getBoundingClientRect();
+    return (
+      window.getComputedStyle(element).position === "absolute" &&
+      rect.width <= 1 &&
+      rect.height <= 1
+    );
+  });
+}
+
+/*
+ * The lines a trail's crumbs sit on: its items' vertical middles, those
+ * within a few pixels of each other on one line (items-center).
+ */
+async function trailLines(page: Page): Promise<number> {
+  const middles: Array<number> = await trail(page)
+    .getByRole("listitem")
+    .evaluateAll((items: Array<Element>): Array<number> => {
+      return items.map((item: Element): number => {
+        const rect: DOMRect = item.getBoundingClientRect();
+        return rect.top + rect.height / 2;
+      });
+    });
+
+  let lines: number = 0;
+  let lineMiddle: number = Number.NEGATIVE_INFINITY;
+
+  for (const middle of middles) {
+    if (Math.abs(middle - lineMiddle) > 8) {
+      lines++;
+      lineMiddle = middle;
+    }
+  }
+
+  return lines;
 }
 
 async function trailTexts(page: Page): Promise<Array<string>> {
@@ -730,15 +775,17 @@ test.describe("a long title gives way; the number never does", () => {
   });
 
   /*
-   * The trail's crumb for the record is as wide as the trail leaves it on a
-   * phone: an inline crumb is never narrower than its words, and
-   * "#1042 Checkout API p95 latency above 2s" pushed a 320px page 35px
-   * sideways (Event Overview's Escalate specs at 320px found it). The
-   * number stays whole and the title is cut short, inside the page's own
-   * margins - numbered or not.
+   * The trail's crumb for the record on a phone. A numbered record's is its
+   * number alone: the heading right under the trail names the record whole,
+   * and its title cut short on a line of its own was a second, shorter copy
+   * of it. The title stays for a screen reader. A record without a number
+   * keeps its title, cut short inside the page's own margins: an inline
+   * crumb is never narrower than its words, and "#1042 Checkout API p95
+   * latency above 2s" pushed a 320px page 35px sideways (Event Overview's
+   * Escalate specs at 320px found it).
    */
   for (const width of [320, 390]) {
-    test(`on a ${width}px phone the trail's crumb gives way inside the page's margins, the number whole`, async ({
+    test(`on a ${width}px phone the trail's crumb is the record's number, inside the page's margins`, async ({
       page,
     }: {
       page: Page;
@@ -770,15 +817,33 @@ test.describe("a long title gives way; the number never does", () => {
           await expect(crumbNumber(page), at).toHaveCount(0);
           expect(await cutsItself(crumb), `${at}: title cut`).toBe(true);
         } else {
-          // The title, after the number, cut short.
-          expect(
-            await cutsItself(crumb.locator("bdi").last()),
-            `${at}: title cut`,
-          ).toBe(true);
+          const number: string =
+            numbers === "custom"
+              ? INCIDENT.numbers.custom
+              : INCIDENT.numbers.default;
+
+          // The number, whole, is all the crumb draws.
           expect(
             await isDrawnWhole(crumbNumber(page), crumb),
             `${at}: the crumb's number whole`,
           ).toBe(true);
+          expect(
+            Math.abs(crumbBox.width - (await boxOf(crumbNumber(page))).width),
+            `${at}: the number alone`,
+          ).toBeLessThanOrEqual(1);
+          expect(
+            await isScreenReaderOnly(crumbTitle(page)),
+            `${at}: the title for a screen reader only`,
+          ).toBe(true);
+          // Read whole all the same: the number, then the title.
+          await expect(crumb, at).toHaveText(
+            `${number} ${INCIDENT.sentenceTitle}`,
+          );
+        }
+
+        if (width === 390 && !numbers) {
+          // "Project > Incidents > #1042": the whole trail on one line.
+          expect(await trailLines(page), `${at}: one line of trail`).toBe(1);
         }
 
         expect(await pageOverflow(page), `${at}: no sideways scroll`).toBe(0);
@@ -787,6 +852,64 @@ test.describe("a long title gives way; the number never does", () => {
       await screenshotHeader(page, `crumb-${width}`);
     });
   }
+
+  /*
+   * The number and the title's first word share the first line when they
+   * fit. When they do not - a long prefix of the project's own on a 320px
+   * phone - the title starts on the next line, whole: a no-break space
+   * between them made the line break inside the word ("CHECKOUT-INC-1042
+   * Che" / "ckout API ...").
+   */
+  test("on a 320px phone a long prefix never breaks the title's first word: the title starts on the next line, whole", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT.path, { width: 320, numbers: "custom" });
+
+    const box: Box = await boxOf(heading(page));
+    const number: Box = await boxOf(headingNumber(page));
+
+    expect(await headingLines(page), "two lines").toBe(2);
+    expect(Math.abs(number.x - box.x), "number at the start").toBeLessThan(1);
+    expect(number.y - box.y, "number on the first line").toBeLessThan(
+      HEADING_LINE_HEIGHT / 2,
+    );
+    expect(await isDrawnWhole(headingNumber(page), heading(page))).toBe(true);
+
+    // "Checkout": on one line, the second, at its start.
+    const firstWord: { tops: Array<number>; left: number } = await headingName(
+      page,
+    ).evaluate((element: Element): { tops: Array<number>; left: number } => {
+      const range: Range = document.createRange();
+      const text: Node = element.firstChild!;
+      range.setStart(text, 0);
+      range.setEnd(text, "Checkout".length);
+      const rects: Array<DOMRect> = Array.from(range.getClientRects());
+      return {
+        tops: rects.map((rect: DOMRect): number => {
+          return Math.round(rect.top);
+        }),
+        left: Math.min(
+          ...rects.map((rect: DOMRect): number => {
+            return rect.left;
+          }),
+        ),
+      };
+    });
+    expect(new Set(firstWord.tops).size, "the word on one line").toBe(1);
+    expect(
+      firstWord.tops[0]! - box.y,
+      "the title on the second line",
+    ).toBeGreaterThanOrEqual(HEADING_LINE_HEIGHT / 2);
+    expect(
+      Math.abs(firstWord.left - box.x),
+      "at the line's start",
+    ).toBeLessThanOrEqual(1);
+    expect(await pageOverflow(page), "no sideways scroll").toBe(0);
+
+    await screenshotHeader(page, "long-prefix-320");
+  });
 });
 
 test.describe("in the dark theme and in other languages", () => {
@@ -928,10 +1051,13 @@ test.describe("in the dark theme and in other languages", () => {
 
       // The crumb: the number on the right of the title, whole.
       const crumbNumberBox: Box = await boxOf(crumbNumber(page));
-      const crumbName: Box = await boxOf(
-        page.getByTestId("breadcrumb-record-name").locator("bdi").nth(1),
-      );
-      expect(crumbName.right).toBeLessThanOrEqual(crumbNumberBox.x + 0.5);
+      if (width === 1280) {
+        const crumbName: Box = await boxOf(crumbTitle(page));
+        expect(crumbName.right).toBeLessThanOrEqual(crumbNumberBox.x + 0.5);
+      } else {
+        // On a phone the crumb is the number alone.
+        expect(await isScreenReaderOnly(crumbTitle(page))).toBe(true);
+      }
       expect(
         await isDrawnWhole(
           crumbNumber(page),
