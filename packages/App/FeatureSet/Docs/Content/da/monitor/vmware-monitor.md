@@ -48,19 +48,19 @@ Klik under **Monitortype** på **Flere monitortyper**, og vælg **VMware** under
 
 ### Vælg vCenteret
 
-Vælg under **VMware Monitor Configuration** vCenteret i **vCenter**. Hvert vCenter, der har sendt data, eller som du har forbundet uden en agent, står på listen.
+Vælg under **VMware Monitor Configuration** vCenteret i **vCenter**. Hvert vCenter, der har sendt data, eller som du har forbundet uden en agent, står på listen. Når du har valgt, viser en linje under feltet, om der kommer data. **Tilføj vCenter** åbner siden med vCentre, hvor du forbinder et.
 
 ### Vælg, hvad der skal overvåges
 
-Vælg en af de tre faner:
+En ny monitor starter med **vCenter Stopped Reporting** under **Hvad der skal advares om**. Sådan overvåger du noget andet:
 
-- **Quick Setup** - klik på en [skabelon](#færdige-advarselsskabeloner). Den sætter metrikken, attributfiltrene, aggregeringen, tidsintervallet, grupperingen og tærsklerne og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
-- **Custom Metric** - vælg én metrik i **VMware Metric**, og sæt derefter **Aggregering** og **Tidsinterval**. Formularen grupperer den efter det objekt, den beskriver, så hver vært, VM eller datastore bedømmes for sig, og [filtrene](#monitorindstillinger) indsnævrer den til ét datacenter, én klynge, én vært, én VM, én datastore eller én ressourcepulje.
-- **Avanceret** - byg selv forespørgsler og formler under **Vælg målinger**, med filtre på attributter som `disk_state`, `power_state` eller `status`. Brug **Gruppér efter** med en [identitetsattribut](#identitetsattributter) for at bedømme hvert objekt for sig.
+- **Skift** - vælg en anden [skabelon](#færdige-advarselsskabeloner). Den sætter metrikken, attributfiltrene, aggregeringen, tidsintervallet, grupperingen og tærsklerne og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
+- **Custom Metric** (under **Flere felter**) - vælg én metrik i **VMware Metric**, og sæt derefter **Aggregering** og **Tidsinterval**. Formularen grupperer den efter det objekt, den beskriver, så hver vært, VM eller datastore bedømmes for sig, og [filtrene](#monitorindstillinger) indsnævrer den til ét datacenter, én klynge, én vært, én VM, én datastore eller én ressourcepulje.
+- **Avanceret** (under **Flere felter**) - byg selv forespørgsler og formler under **Vælg målinger**, med filtre på attributter som `disk_state`, `power_state` eller `status`. Brug **Gruppér efter** med en [identitetsattribut](#identitetsattributter) for at bedømme hvert objekt for sig.
 
 ### Tjek kriterierne
 
-Åbn hvert kriterium under **Monitorkriterier**, og tjek dets **Metrik**, **Aggregering**, **Betingelse** og **Tærskel**. En skabelon udfylder dem. Med **Custom Metric** eller **Avanceret** starter monitoren med [standardkriterierne](#standardkriterier), som kun opdager, at en metrik falder til nul, så sæt din egen tærskel.
+Åbn hvert kriterium under **Monitorkriterier**, og tjek dets **Metrik**, **Aggregering**, **Betingelse** og **Tærskel**. En skabelon udfylder dem. Med **Custom Metric** eller **Avanceret** starter monitoren med [standardkriterierne](#standardkriterier), som kun opdager, at metrikken ikke sender data, så sæt din egen tærskel.
 
 ### Opret monitoren
 
@@ -106,7 +106,7 @@ I monitorfiltre og grupperingsnøgler begynder ressourceattributter med `resourc
 
 ## Færdige advarselsskabeloner
 
-OneUptime leverer 24 skabeloner til almindelige VMware-problemer, og **Quick Setup** tilbyder dem alle. Hver bygger en komplet monitor: metrikforespørgslen, dens attributfiltre, en gruppering på objektets egen identitetsattribut, et kriterium, der udløser, og et, der genopretter. Tærskler er udgangspunkter, du kan redigere.
+OneUptime leverer 24 skabeloner til almindelige VMware-problemer, og listen under **Hvad der skal advares om** tilbyder dem alle. Hver bygger en komplet monitor: metrikforespørgslen, dens attributfiltre, en gruppering på objektets egen identitetsattribut, et kriterium, der udløser, og et, der genopretter. Tærskler er udgangspunkter, du kan redigere.
 
 Skabeloner læser de seneste 5 minutter, medmindre tabellen siger andet. Et kriterium udløser kun, når betingelsen gælder for hvert minut i dets vindue, og et tærskelkriterium genopretter 10 % forbi sin tærskel, så en værdi, der svinger omkring linjen, ikke skifter frem og tilbage.
 

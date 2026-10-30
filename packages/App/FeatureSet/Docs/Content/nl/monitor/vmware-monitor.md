@@ -48,19 +48,19 @@ Klik onder **Monitortype** op **Meer monitortypen** en kies **VMware** onder **I
 
 ### Het vCenter kiezen
 
-Kies onder **VMware Monitor Configuration** het vCenter uit **vCenter**. Elk vCenter dat gegevens heeft gestuurd, of dat je zonder agent hebt gekoppeld, staat in de lijst.
+Kies onder **VMware Monitor Configuration** het vCenter uit **vCenter**. Elk vCenter dat gegevens heeft gestuurd, of dat je zonder agent hebt gekoppeld, staat in de lijst. Na de keuze toont een regel onder het veld of er gegevens binnenkomen. **vCenter toevoegen** opent de pagina met vCenters, waar je er een koppelt.
 
 ### Kiezen wat je in de gaten houdt
 
-Kies een van de drie tabbladen:
+Een nieuwe monitor begint met **vCenter Stopped Reporting**, onder **Waarover te waarschuwen**. Om iets anders te bewaken:
 
-- **Quick Setup** - klik op een [template](#kant-en-klare-waarschuwingstemplates). Dat stelt de metriek, de attribuutfilters, de aggregatie, het tijdsbereik, de groepering en de drempels in, en vervangt de criteria hieronder door de eigen criteria. Het **Tijdsbereik** kun je nog steeds aanpassen.
-- **Custom Metric** - kies één metriek uit **VMware Metric** en stel daarna **Aggregatie** en **Tijdsbereik** in. Het formulier groepeert haar op het object dat ze beschrijft, zodat elke host, VM of datastore afzonderlijk wordt beoordeeld, en de [filters](#monitorinstellingen) beperken haar tot één datacenter, cluster, host, VM, datastore of resourcepool.
-- **Geavanceerd** - bouw zelf queries en formules onder **Selecteer metrieken**, met filters op attributen zoals `disk_state`, `power_state` of `status`. Gebruik **Groeperen op** met een [identiteitsattribuut](#identiteitsattributen) om elk object afzonderlijk te beoordelen.
+- **Wijzigen** - kies een andere [template](#kant-en-klare-waarschuwingstemplates). Dat stelt de metriek, de attribuutfilters, de aggregatie, het tijdsbereik, de groepering en de drempels in, en vervangt de criteria hieronder door de eigen criteria. Het **Tijdsbereik** kun je nog steeds aanpassen.
+- **Custom Metric** (onder **Meer velden**) - kies één metriek uit **VMware Metric** en stel daarna **Aggregatie** en **Tijdsbereik** in. Het formulier groepeert haar op het object dat ze beschrijft, zodat elke host, VM of datastore afzonderlijk wordt beoordeeld, en de [filters](#monitorinstellingen) beperken haar tot één datacenter, cluster, host, VM, datastore of resourcepool.
+- **Geavanceerd** (onder **Meer velden**) - bouw zelf queries en formules onder **Selecteer metrieken**, met filters op attributen zoals `disk_state`, `power_state` of `status`. Gebruik **Groeperen op** met een [identiteitsattribuut](#identiteitsattributen) om elk object afzonderlijk te beoordelen.
 
 ### De criteria controleren
 
-Open elk criterium onder **Monitorcriteria** en controleer de **Metriek**, de **Aggregatie**, de **Voorwaarde** en de **Drempel**. Een template vult die in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen merken dat een metriek naar nul zakt, dus stel je eigen drempel in.
+Open elk criterium onder **Monitorcriteria** en controleer de **Metriek**, de **Aggregatie**, de **Voorwaarde** en de **Drempel**. Een template vult die in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen merken dat de metriek geen gegevens stuurt, dus stel je eigen drempel in.
 
 ### De monitor maken
 
@@ -106,7 +106,7 @@ In monitorfilters en groeperingssleutels beginnen resource-attributen met `resou
 
 ## Kant-en-klare waarschuwingstemplates
 
-OneUptime levert 24 templates voor veelvoorkomende VMware-problemen, en **Quick Setup** biedt ze allemaal aan. Elk template bouwt een volledige monitor: de metriekquery, de attribuutfilters, een groepering op het eigen identiteitsattribuut van het object, een criterium dat afgaat en een dat herstelt. Drempels zijn startpunten die je kunt aanpassen.
+OneUptime levert 24 templates voor veelvoorkomende VMware-problemen, en de lijst onder **Waarover te waarschuwen** biedt ze allemaal aan. Elk template bouwt een volledige monitor: de metriekquery, de attribuutfilters, een groepering op het eigen identiteitsattribuut van het object, een criterium dat afgaat en een dat herstelt. Drempels zijn startpunten die je kunt aanpassen.
 
 Templates lezen de laatste 5 minuten, tenzij de tabel iets anders zegt. Een criterium gaat alleen af als de voorwaarde geldt voor elke minuut van zijn venster, en een drempelcriterium herstelt 10 % voorbij zijn drempel, zodat een waarde die rond de lijn schommelt niet heen en weer springt.
 

@@ -47,19 +47,19 @@ Klik under **Monitortype** på **Flere monitortyper**, og vælg **Lagerarray** u
 
 ### Vælg arrayet
 
-Vælg under **Storage Array Monitor Configuration** arrayet i **Lagerarray**. Hvert array, der har sendt data, står på listen. Dets platform afgør, hvilke metrikker og skabeloner formularen tilbyder.
+Vælg under **Storage Array Monitor Configuration** arrayet i **Lagerarray**. Hvert array, der har sendt data, står på listen. Dets platform afgør, hvilke metrikker og skabeloner formularen tilbyder. Når du har valgt, viser en linje under feltet, om der kommer data. **Tilføj lagerarray** åbner opsætningstrin med dine nøgler udfyldt, som venter på de første data.
 
 ### Vælg, hvad der skal overvåges
 
-Vælg en af de tre faner:
+En ny monitor starter med **Array Stopped Reporting** under **Hvad der skal advares om**. Sådan overvåger du noget andet:
 
-- **Quick Setup** - klik på en [skabelon](#færdige-advarselsskabeloner). Den sætter metrikken, labelfiltrene, aggregeringen, tidsintervallet og tærsklerne og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
-- **Custom Metric** - vælg én metrik i **Storage Array Metric**, og sæt derefter **Aggregering** og **Tidsinterval**. [Filtrene](#monitorindstillinger) indsnævrer den til ét volumen, én vært, én pod, én komponent, ét filsystem eller én bucket.
-- **Avanceret** - byg selv forespørgsler og formler under **Vælg målinger**, for eksempel den brugte kapacitet som `purefa_array_space_bytes` filtreret til `space=capacity` minus den samme metrik filtreret til `space=empty`. Brug **Gruppér efter** med et objekts label for at bedømme hvert objekt for sig.
+- **Skift** - vælg en anden [skabelon](#færdige-advarselsskabeloner). Den sætter metrikken, labelfiltrene, aggregeringen, tidsintervallet og tærsklerne og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
+- **Custom Metric** (under **Flere felter**) - vælg én metrik i **Storage Array Metric**, og sæt derefter **Aggregering** og **Tidsinterval**. [Filtrene](#monitorindstillinger) indsnævrer den til ét volumen, én vært, én pod, én komponent, ét filsystem eller én bucket.
+- **Avanceret** (under **Flere felter**) - byg selv forespørgsler og formler under **Vælg målinger**, for eksempel den brugte kapacitet som `purefa_array_space_bytes` filtreret til `space=capacity` minus den samme metrik filtreret til `space=empty`. Brug **Gruppér efter** med et objekts label for at bedømme hvert objekt for sig.
 
 ### Tjek kriterierne
 
-Åbn hvert kriterium under **Monitorkriterier**, og tjek dets **Metrik**, **Aggregering**, **Betingelse** og **Tærskel**. En skabelon udfylder dem. Med **Custom Metric** eller **Avanceret** starter monitoren med [standardkriterierne](#standardkriterier), som kun opdager, at en metrik falder til nul, så sæt din egen tærskel.
+Åbn hvert kriterium under **Monitorkriterier**, og tjek dets **Metrik**, **Aggregering**, **Betingelse** og **Tærskel**. En skabelon udfylder dem. Med **Custom Metric** eller **Avanceret** starter monitoren med [standardkriterierne](#standardkriterier), som kun opdager, at metrikken ikke sender data, så sæt din egen tærskel.
 
 ### Opret monitoren
 
@@ -109,7 +109,7 @@ I monitorfiltre og grupperingsnøgler begynder agentens attributter med `resourc
 
 ## Færdige advarselsskabeloner
 
-OneUptime leverer 20 skabeloner — 12 til FlashArray og 8 til FlashBlade — og **Quick Setup** tilbyder dem til arrayets platform. Hver bygger en komplet monitor: metrikforespørgslen, dens labelfiltre, en gruppering på objektets egen label, et kriterium, der udløser, og et, der genopretter. Tærskler er udgangspunkter, du kan redigere.
+OneUptime leverer 20 skabeloner — 12 til FlashArray og 8 til FlashBlade — og listen under **Hvad der skal advares om** tilbyder dem til arrayets platform. Hver bygger en komplet monitor: metrikforespørgslen, dens labelfiltre, en gruppering på objektets egen label, et kriterium, der udløser, og et, der genopretter. Tærskler er udgangspunkter, du kan redigere.
 
 Et kriterium udløser kun, når betingelsen gælder for **hver** værdi i dets vindue. En monitor, der udløste på en tærskel for kapacitet, latens, forsinkelse eller forhold, genopretter først 10 % forbi den, så en værdi, der svinger omkring tærsklen, ikke skifter frem og tilbage; skabelonerne for advarsler og hardware genopretter, så snart tilstanden forsvinder.
 

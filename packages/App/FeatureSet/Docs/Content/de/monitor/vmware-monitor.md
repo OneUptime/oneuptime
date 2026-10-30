@@ -48,19 +48,19 @@ Klicken Sie unter **Monitortyp** auf **Weitere Monitortypen** und wählen Sie **
 
 ### Das vCenter wählen
 
-Wählen Sie unter **Konfiguration des VMware-Monitors** das vCenter aus **vCenter**. Jedes vCenter, das Daten gesendet hat oder das Sie ohne Agent verbunden haben, steht in der Liste.
+Wählen Sie unter **Konfiguration des VMware-Monitors** das vCenter aus **vCenter**. Jedes vCenter, das Daten gesendet hat oder das Sie ohne Agent verbunden haben, steht in der Liste. Nach der Auswahl zeigt eine Zeile unter dem Feld, ob Daten ankommen. **vCenter hinzufügen** öffnet die Seite der vCenter, auf der Sie eines verbinden.
 
 ### Festlegen, was überwacht wird
 
-Wählen Sie einen der drei Tabs:
+Ein neuer Monitor beginnt mit **vCenter Stopped Reporting** unter **Worüber benachrichtigt wird**. So überwachen Sie etwas anderes:
 
-- **Quick Setup** - klicken Sie auf eine [Vorlage](#fertige-warnungsvorlagen). Sie setzt die Metrik, die Attributfilter, die Aggregation, den Zeitbereich, die Gruppierung und die Schwellenwerte und ersetzt die Kriterien unten durch ihre eigenen. Den **Zeitbereich** können Sie weiterhin ändern.
-- **Custom Metric** - wählen Sie eine Metrik aus **VMware-Metrik** und legen Sie dann **Aggregation** und **Zeitbereich** fest. Das Formular gruppiert sie nach dem Objekt, das sie beschreibt, sodass jeder Host, jede VM und jeder Datenspeicher einzeln beurteilt wird, und die [Filter](#monitor-einstellungen) schränken sie auf ein Rechenzentrum, einen Cluster, einen Host, eine VM, einen Datenspeicher oder einen Ressourcenpool ein.
-- **Erweitert** - bauen Sie Abfragen und Formeln selbst unter **Metriken auswählen**, mit Filtern auf Attribute wie `disk_state`, `power_state` oder `status`. Verwenden Sie **Gruppieren nach** mit einem [Identitätsattribut](#identitätsattribute), um jedes Objekt einzeln zu beurteilen.
+- **Ändern** - wählen Sie eine andere [Vorlage](#fertige-warnungsvorlagen). Sie setzt die Metrik, die Attributfilter, die Aggregation, den Zeitbereich, die Gruppierung und die Schwellenwerte und ersetzt die Kriterien unten durch ihre eigenen. Den **Zeitbereich** können Sie weiterhin ändern.
+- **Custom Metric** (unter **Weitere Felder**) - wählen Sie eine Metrik aus **VMware-Metrik** und legen Sie dann **Aggregation** und **Zeitbereich** fest. Das Formular gruppiert sie nach dem Objekt, das sie beschreibt, sodass jeder Host, jede VM und jeder Datenspeicher einzeln beurteilt wird, und die [Filter](#monitor-einstellungen) schränken sie auf ein Rechenzentrum, einen Cluster, einen Host, eine VM, einen Datenspeicher oder einen Ressourcenpool ein.
+- **Erweitert** (unter **Weitere Felder**) - bauen Sie Abfragen und Formeln selbst unter **Metriken auswählen**, mit Filtern auf Attribute wie `disk_state`, `power_state` oder `status`. Verwenden Sie **Gruppieren nach** mit einem [Identitätsattribut](#identitätsattribute), um jedes Objekt einzeln zu beurteilen.
 
 ### Die Kriterien prüfen
 
-Öffnen Sie jedes Kriterium unter **Monitor-Kriterien** und prüfen Sie **Metrik**, **Aggregation**, **Bedingung** und **Schwellenwert**. Eine Vorlage füllt diese aus. Mit **Custom Metric** oder **Erweitert** beginnt der Monitor mit den [Standardkriterien](#standardkriterien), die nur bemerken, dass eine Metrik auf null fällt, setzen Sie also Ihren eigenen Schwellenwert.
+Öffnen Sie jedes Kriterium unter **Monitor-Kriterien** und prüfen Sie **Metrik**, **Aggregation**, **Bedingung** und **Schwellenwert**. Eine Vorlage füllt diese aus. Mit **Custom Metric** oder **Erweitert** beginnt der Monitor mit den [Standardkriterien](#standardkriterien), die nur bemerken, dass die Metrik keine Daten sendet, setzen Sie also Ihren eigenen Schwellenwert.
 
 ### Den Monitor erstellen
 
@@ -106,7 +106,7 @@ In Monitorfiltern und Gruppierungsschlüsseln beginnen Ressourcenattribute mit `
 
 ## Fertige Warnungsvorlagen
 
-OneUptime liefert 24 Vorlagen für häufige VMware-Probleme, und **Quick Setup** bietet alle an. Jede baut einen vollständigen Monitor: die Metrikabfrage, ihre Attributfilter, eine Gruppierung nach dem eigenen Identitätsattribut des Objekts, ein Kriterium, das auslöst, und eines, das sich erholt. Schwellenwerte sind Ausgangspunkte, die Sie bearbeiten können.
+OneUptime liefert 24 Vorlagen für häufige VMware-Probleme, und die Liste unter **Worüber benachrichtigt wird** bietet alle an. Jede baut einen vollständigen Monitor: die Metrikabfrage, ihre Attributfilter, eine Gruppierung nach dem eigenen Identitätsattribut des Objekts, ein Kriterium, das auslöst, und eines, das sich erholt. Schwellenwerte sind Ausgangspunkte, die Sie bearbeiten können.
 
 Vorlagen lesen die letzten 5 Minuten, sofern die Tabelle nichts anderes sagt. Ein Kriterium löst nur aus, wenn die Bedingung für jede Minute seines Fensters gilt, und ein Schwellenwertkriterium erholt sich erst 10 % jenseits seines Schwellenwerts, sodass ein Wert, der um die Linie pendelt, nicht flattert.
 

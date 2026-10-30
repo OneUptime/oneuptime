@@ -34,15 +34,15 @@ Vaya a **Monitores** y haga clic en **Crear monitor**. En **Más tipos de monito
 
 ### Elegir el clúster
 
-Selecciónelo en **Clúster de Kubernetes**. La lista contiene cada clúster desde el que ha informado el agente.
+Selecciónelo en **Clúster de Kubernetes**. La lista contiene cada clúster desde el que ha informado el agente. Una vez elegido, una línea bajo el campo indica si llegan datos. **Añadir clúster de Kubernetes** abre los pasos de configuración con sus claves ya rellenadas, que esperan los primeros datos.
 
 ### Elegir qué vigilar
 
-Use una de las tres pestañas:
+Un monitor nuevo empieza con **Cluster Stopped Reporting**, en **Sobre qué alertar**; **Cambiar** elige otra plantilla. **Custom Metric** y **Avanzado** están en **Más campos**:
 
-| Pestaña | Qué elige |
+| Dónde | Qué elige |
 | --- | --- |
-| **Quick Setup** | Una [plantilla de alerta lista para usar](#plantillas-de-alerta-listas-para-usar). Rellena la métrica, el ámbito, el intervalo de tiempo y los criterios; aún puede cambiar el **Intervalo de tiempo**. |
+| **Sobre qué alertar** | Una [plantilla de alerta lista para usar](#plantillas-de-alerta-listas-para-usar). Rellena la métrica, el ámbito, el intervalo de tiempo y los criterios; aún puede cambiar el **Intervalo de tiempo**. |
 | **Custom Metric** | Una métrica del [catálogo de métricas](#catálogo-de-métricas) y luego su **Ámbito del recurso**, filtros, **Agregación** (Promedio, Máximo, Mínimo, Suma o Recuento) e **Intervalo de tiempo**. |
 | **Avanzado** | El **Ámbito del recurso**, los filtros y el **Intervalo de tiempo**, y sus propias consultas de métricas y fórmulas en **Seleccionar métricas**, con un gráfico en vivo del resultado. |
 
@@ -128,7 +128,7 @@ Cada muestra se compara con una referencia de la misma hora de la semana constru
 
 ## Plantillas de alerta listas para usar
 
-La pestaña **Quick Setup** enumera estas plantillas, agrupadas por categoría. Cada una rellena dos criterios: uno que marca el monitor como sin conexión y abre un incidente y una alerta mientras se cumple la condición, y otro que lo vuelve a poner en línea cuando deja de cumplirse.
+La lista de **Sobre qué alertar** enumera estas plantillas, agrupadas por categoría. Cada una rellena dos criterios: uno que marca el monitor como sin conexión y abre un incidente y una alerta mientras se cumple la condición, y otro que lo vuelve a poner en línea cuando deja de cumplirse.
 
 | Plantilla | Categoría | Se dispara cuando | Gravedad |
 | --- | --- | --- | --- |

@@ -48,19 +48,19 @@ Klikk på **Flere monitortyper** under **Monitortype**, og velg **Proxmox** unde
 
 ### Velg klyngen
 
-Velg klyngen i **Proxmox-klynge** under **Proxmox Monitor Configuration**. Hver klynge som har sendt data, står i listen.
+Velg klyngen i **Proxmox-klynge** under **Proxmox Monitor Configuration**. Hver klynge som har sendt data, står i listen. Når du har valgt, viser en linje under feltet om det kommer data. **Legg til Proxmox-klynge** åpner oppsettstrinn med nøklene dine fylt inn, som venter på de første dataene.
 
 ### Velg hva som skal overvåkes
 
-Velg en av de tre fanene:
+En ny monitor starter med **Cluster Stopped Reporting** under **Hva det skal varsles om**. Slik overvåker du noe annet:
 
-- **Quick Setup** – klikk på en [mal](#ferdige-varslingsmaler). Den angir metrikkene, filtrene, aggregeringen, tidsintervallet og tersklene, og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
-- **Custom Metric** – velg én metrikk i **Proxmox Metric**, og angi deretter **Aggregering** og **Tidsintervall**. [Filtrene](#monitorinnstillinger) snevrer den inn til én type ressurs eller til én ressurs.
-- **Avansert** – bygg spørringer og formler selv under **Velg målinger**, for eksempel en minneprosent fra `pve_memory_usage_bytes / pve_memory_size_bytes`. Bruk **Grupper etter** `id` for å vurdere hver ressurs for seg.
+- **Endre** – velg en annen [mal](#ferdige-varslingsmaler). Den angir metrikkene, filtrene, aggregeringen, tidsintervallet og tersklene, og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
+- **Custom Metric** (under **Flere felt**) – velg én metrikk i **Proxmox Metric**, og angi deretter **Aggregering** og **Tidsintervall**. [Filtrene](#monitorinnstillinger) snevrer den inn til én type ressurs eller til én ressurs.
+- **Avansert** (under **Flere felt**) – bygg spørringer og formler selv under **Velg målinger**, for eksempel en minneprosent fra `pve_memory_usage_bytes / pve_memory_size_bytes`. Bruk **Grupper etter** `id` for å vurdere hver ressurs for seg.
 
 ### Kontroller kriteriene
 
-Åpne hvert kriterium under **Monitorkriterier** og kontroller **Metrikk**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller inn disse. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare merker at en metrikk faller til null, så angi din egen terskel.
+Åpne hvert kriterium under **Monitorkriterier** og kontroller **Metrikk**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller inn disse. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare merker at metrikken ikke sender data, så angi din egen terskel.
 
 ### Opprett monitoren
 
@@ -109,7 +109,7 @@ Filtrer på `pve.scope` eller `pve.type` for én type ressurs, på `pve.id` elle
 
 ## Ferdige varslingsmaler
 
-**Quick Setup** tilbyr 12 maler. Hver bygger en komplett monitor – spørringer, attributtfiltre, en gruppering, et kriterium som utløses, og et som gjenoppretter. De fleste grupperer etter `id`, så hver node, gjest, hvert volum eller hver jobb får sin egen hendelse og sitt eget varsel. Tersklene er utgangspunkter du kan redigere.
+Listen under **Hva det skal varsles om** tilbyr 12 maler. Hver bygger en komplett monitor – spørringer, attributtfiltre, en gruppering, et kriterium som utløses, og et som gjenoppretter. De fleste grupperer etter `id`, så hver node, gjest, hvert volum eller hver jobb får sin egen hendelse og sitt eget varsel. Tersklene er utgangspunkter du kan redigere.
 
 Malene leser de siste 5 minuttene med mindre tabellen sier noe annet. Et kriterium utløses bare når betingelsen gjelder i hvert minutt av vinduet, og et terskelkriterium gjenoppretter 10 % forbi terskelen, slik at en verdi som svever ved grensen, ikke blafrer.
 

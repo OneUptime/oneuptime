@@ -48,19 +48,19 @@ En **Tipo de monitor**, haga clic en **Más tipos de monitor** y elija **VMware*
 
 ### Elegir el vCenter
 
-En **Configuración del monitor de VMware**, elija el vCenter en **vCenter**. Cada vCenter que ha enviado datos, o que conectó sin agente, está en la lista.
+En **Configuración del monitor de VMware**, elija el vCenter en **vCenter**. Cada vCenter que ha enviado datos, o que conectó sin agente, está en la lista. Una vez elegido, una línea bajo el campo indica si llegan datos. **Añadir vCenter** abre la página de vCenters, donde conecta uno.
 
 ### Elegir qué vigilar
 
-Elija una de las tres pestañas:
+Un monitor nuevo empieza con **vCenter Stopped Reporting**, en **Sobre qué alertar**. Para vigilar otra cosa:
 
-- **Quick Setup** - haga clic en una [plantilla](#plantillas-de-alerta-predefinidas). Establece la métrica, los filtros de atributos, la agregación, el intervalo de tiempo, la agrupación y los umbrales, y sustituye los criterios de abajo por los suyos. Aún puede cambiar el **Intervalo de tiempo**.
-- **Custom Metric** - elija una métrica en **Métrica de VMware** y luego establezca **Agregación** e **Intervalo de tiempo**. El formulario la agrupa por el objeto que describe, así que cada host, VM o almacén de datos se juzga por separado, y los [filtros](#configuración-del-monitor) la acotan a un centro de datos, clúster, host, VM, almacén de datos o pool de recursos.
-- **Avanzado** - construya usted mismo consultas y fórmulas en **Seleccionar métricas**, con filtros sobre atributos como `disk_state`, `power_state` o `status`. Use **Agrupar por** con un [atributo de identidad](#atributos-de-identidad) para juzgar cada objeto por separado.
+- **Cambiar** - elija otra [plantilla](#plantillas-de-alerta-predefinidas). Establece la métrica, los filtros de atributos, la agregación, el intervalo de tiempo, la agrupación y los umbrales, y sustituye los criterios de abajo por los suyos. Aún puede cambiar el **Intervalo de tiempo**.
+- **Custom Metric** (en **Más campos**) - elija una métrica en **Métrica de VMware** y luego establezca **Agregación** e **Intervalo de tiempo**. El formulario la agrupa por el objeto que describe, así que cada host, VM o almacén de datos se juzga por separado, y los [filtros](#configuración-del-monitor) la acotan a un centro de datos, clúster, host, VM, almacén de datos o pool de recursos.
+- **Avanzado** (en **Más campos**) - construya usted mismo consultas y fórmulas en **Seleccionar métricas**, con filtros sobre atributos como `disk_state`, `power_state` o `status`. Use **Agrupar por** con un [atributo de identidad](#atributos-de-identidad) para juzgar cada objeto por separado.
 
 ### Revisar los criterios
 
-Abra cada criterio en **Criterios del monitor** y revise su **Métrica**, **Agregación**, **Condición** y **Umbral**. Una plantilla los rellena. Con **Custom Metric** o **Avanzado**, el monitor empieza con los [criterios predeterminados](#criterios-predeterminados), que solo detectan una métrica que cae a cero, así que establezca su propio umbral.
+Abra cada criterio en **Criterios del monitor** y revise su **Métrica**, **Agregación**, **Condición** y **Umbral**. Una plantilla los rellena. Con **Custom Metric** o **Avanzado**, el monitor empieza con los [criterios predeterminados](#criterios-predeterminados), que solo detectan una métrica que no envía datos, así que establezca su propio umbral.
 
 ### Crear el monitor
 
@@ -106,7 +106,7 @@ En los filtros del monitor y en las claves de agrupación, los atributos de recu
 
 ## Plantillas de alerta predefinidas
 
-OneUptime incluye 24 plantillas para problemas comunes de VMware, y **Quick Setup** las ofrece todas. Cada una construye un monitor completo: la consulta de la métrica, sus filtros de atributos, una agrupación por el atributo de identidad propio del objeto, un criterio que dispara y otro que recupera. Los umbrales son puntos de partida que puede editar.
+OneUptime incluye 24 plantillas para problemas comunes de VMware, y la lista de **Sobre qué alertar** las ofrece todas. Cada una construye un monitor completo: la consulta de la métrica, sus filtros de atributos, una agrupación por el atributo de identidad propio del objeto, un criterio que dispara y otro que recupera. Los umbrales son puntos de partida que puede editar.
 
 Las plantillas leen los últimos 5 minutos salvo que la tabla diga otra cosa. Un criterio solo dispara cuando la condición se cumple en cada minuto de su ventana, y un criterio de umbral se recupera un 10 % más allá de su umbral, así que un valor que oscila en la línea no parpadea.
 

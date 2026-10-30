@@ -48,19 +48,19 @@ Klik onder **Monitortype** op **Meer monitortypen** en kies **Proxmox** onder **
 
 ### Het cluster kiezen
 
-Kies onder **Proxmox Monitor Configuration** het cluster in **Proxmox-cluster**. Elk cluster dat gegevens heeft verstuurd, staat in de lijst.
+Kies onder **Proxmox Monitor Configuration** het cluster in **Proxmox-cluster**. Elk cluster dat gegevens heeft verstuurd, staat in de lijst. Na de keuze toont een regel onder het veld of er gegevens binnenkomen. **Proxmox-cluster toevoegen** opent installatiestappen met uw sleutels al ingevuld, die op de eerste gegevens wachten.
 
 ### Kiezen wat u bewaakt
 
-Kies een van de drie tabbladen:
+Een nieuwe monitor begint met **Cluster Stopped Reporting**, onder **Waarover te waarschuwen**. Om iets anders te bewaken:
 
-- **Quick Setup** – klik op een [sjabloon](#kant-en-klare-waarschuwingssjablonen). Het stelt de metrieken, filters, de aggregatie, het tijdsbereik en de drempels in, en vervangt de criteria hieronder door die van het sjabloon. Het **Tijdsbereik** kunt u nog wijzigen.
-- **Custom Metric** – kies één metriek in **Proxmox Metric** en stel dan **Aggregatie** en **Tijdsbereik** in. De [filters](#monitorinstellingen) beperken hem tot een soort resource of tot één resource.
-- **Geavanceerd** – bouw zelf query's en formules onder **Selecteer metrieken**, bijvoorbeeld een geheugenpercentage uit `pve_memory_usage_bytes / pve_memory_size_bytes`. Gebruik **Groeperen op** `id` om elke resource afzonderlijk te beoordelen.
+- **Wijzigen** – kies een ander [sjabloon](#kant-en-klare-waarschuwingssjablonen). Het stelt de metrieken, filters, de aggregatie, het tijdsbereik en de drempels in, en vervangt de criteria hieronder door die van het sjabloon. Het **Tijdsbereik** kunt u nog wijzigen.
+- **Custom Metric** (onder **Meer velden**) – kies één metriek in **Proxmox Metric** en stel dan **Aggregatie** en **Tijdsbereik** in. De [filters](#monitorinstellingen) beperken hem tot een soort resource of tot één resource.
+- **Geavanceerd** (onder **Meer velden**) – bouw zelf query's en formules onder **Selecteer metrieken**, bijvoorbeeld een geheugenpercentage uit `pve_memory_usage_bytes / pve_memory_size_bytes`. Gebruik **Groeperen op** `id` om elke resource afzonderlijk te beoordelen.
 
 ### De criteria controleren
 
-Open elk criterium onder **Monitorcriteria** en controleer de **Metriek**, **Aggregatie**, **Voorwaarde** en **Drempel**. Een sjabloon vult deze in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen opmerken dat een metriek naar nul zakt; stel daarom uw eigen drempel in.
+Open elk criterium onder **Monitorcriteria** en controleer de **Metriek**, **Aggregatie**, **Voorwaarde** en **Drempel**. Een sjabloon vult deze in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen opmerken dat de metriek geen gegevens stuurt; stel daarom uw eigen drempel in.
 
 ### De monitor maken
 
@@ -109,7 +109,7 @@ Filter op `pve.scope` of `pve.type` voor één soort resource, op `pve.id` of `i
 
 ## Kant-en-klare waarschuwingssjablonen
 
-**Quick Setup** biedt 12 sjablonen. Elk bouwt een complete monitor – query's, attribuutfilters, een groepering, een criterium dat afgaat en een dat herstelt. De meeste groeperen op `id`, zodat elke node, gast, elk volume of elke taak een eigen incident en een eigen waarschuwing krijgt. De drempels zijn uitgangspunten die u kunt aanpassen.
+De lijst onder **Waarover te waarschuwen** biedt 12 sjablonen. Elk bouwt een complete monitor – query's, attribuutfilters, een groepering, een criterium dat afgaat en een dat herstelt. De meeste groeperen op `id`, zodat elke node, gast, elk volume of elke taak een eigen incident en een eigen waarschuwing krijgt. De drempels zijn uitgangspunten die u kunt aanpassen.
 
 Sjablonen lezen de laatste 5 minuten, tenzij de tabel iets anders zegt. Een criterium gaat alleen af als de voorwaarde elke minuut van zijn venster geldt, en een drempelcriterium herstelt 10% voorbij zijn drempel, zodat een waarde die rond de grens schommelt niet heen en weer springt.
 

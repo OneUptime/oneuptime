@@ -48,19 +48,19 @@ In **Tipo di monitor**, fai clic su **Altri tipi di monitor** e scegli **VMware*
 
 ### Scegliere il vCenter
 
-In **VMware Monitor Configuration**, scegli il vCenter da **vCenter**. Ogni vCenter che ha inviato dati, o che hai collegato senza agente, è nell'elenco.
+In **VMware Monitor Configuration**, scegli il vCenter da **vCenter**. Ogni vCenter che ha inviato dati, o che hai collegato senza agente, è nell'elenco. Una volta scelto, una riga sotto il campo dice se arrivano dati. **Aggiungi vCenter** apre la pagina dei vCenter, dove ne colleghi uno.
 
 ### Scegliere cosa osservare
 
-Scegli una delle tre schede:
+Un nuovo monitor parte da **vCenter Stopped Reporting**, in **Su cosa avvisare**. Per controllare altro:
 
-- **Quick Setup** - fai clic su un [modello](#modelli-di-avviso-predefiniti). Imposta la metrica, i filtri sugli attributi, l'aggregazione, l'intervallo di tempo, il raggruppamento e le soglie, e sostituisce i criteri qui sotto con i propri. Puoi comunque cambiare l'**Intervallo di tempo**.
-- **Custom Metric** - scegli una metrica da **VMware Metric**, poi imposta **Aggregazione** e **Intervallo di tempo**. Il modulo la raggruppa per l'oggetto che descrive, così ogni host, VM o datastore viene valutato separatamente, e i [filtri](#impostazioni-del-monitor) la restringono a un datacenter, un cluster, un host, una VM, un datastore o un resource pool.
-- **Avanzato** - costruisci tu query e formule in **Seleziona metriche**, con filtri su attributi come `disk_state`, `power_state` o `status`. Usa **Raggruppa per** con un [attributo di identità](#attributi-di-identità) per valutare ogni oggetto separatamente.
+- **Cambia** - scegli un altro [modello](#modelli-di-avviso-predefiniti). Imposta la metrica, i filtri sugli attributi, l'aggregazione, l'intervallo di tempo, il raggruppamento e le soglie, e sostituisce i criteri qui sotto con i propri. Puoi comunque cambiare l'**Intervallo di tempo**.
+- **Custom Metric** (in **Altri campi**) - scegli una metrica da **VMware Metric**, poi imposta **Aggregazione** e **Intervallo di tempo**. Il modulo la raggruppa per l'oggetto che descrive, così ogni host, VM o datastore viene valutato separatamente, e i [filtri](#impostazioni-del-monitor) la restringono a un datacenter, un cluster, un host, una VM, un datastore o un resource pool.
+- **Avanzato** (in **Altri campi**) - costruisci tu query e formule in **Seleziona metriche**, con filtri su attributi come `disk_state`, `power_state` o `status`. Usa **Raggruppa per** con un [attributo di identità](#attributi-di-identità) per valutare ogni oggetto separatamente.
 
 ### Controllare i criteri
 
-Apri ogni criterio in **Criteri del monitor** e controlla **Metrica**, **Aggregazione**, **Condizione** e **Soglia**. Un modello li compila. Con **Custom Metric** o **Avanzato**, il monitor parte con i [criteri predefiniti](#criteri-predefiniti), che notano solo una metrica che scende a zero, quindi imposta la tua soglia.
+Apri ogni criterio in **Criteri del monitor** e controlla **Metrica**, **Aggregazione**, **Condizione** e **Soglia**. Un modello li compila. Con **Custom Metric** o **Avanzato**, il monitor parte con i [criteri predefiniti](#criteri-predefiniti), che notano solo una metrica che non invia dati, quindi imposta la tua soglia.
 
 ### Creare il monitor
 
@@ -106,7 +106,7 @@ Nei filtri del monitor e nelle chiavi di raggruppamento, gli attributi di risors
 
 ## Modelli di avviso predefiniti
 
-OneUptime fornisce 24 modelli per i problemi VMware più comuni, e **Quick Setup** li offre tutti. Ognuno costruisce un monitor completo: la query della metrica, i suoi filtri sugli attributi, un raggruppamento sull'attributo di identità proprio dell'oggetto, un criterio che scatta e uno che rientra. Le soglie sono punti di partenza che puoi modificare.
+OneUptime fornisce 24 modelli per i problemi VMware più comuni, e l'elenco di **Su cosa avvisare** li offre tutti. Ognuno costruisce un monitor completo: la query della metrica, i suoi filtri sugli attributi, un raggruppamento sull'attributo di identità proprio dell'oggetto, un criterio che scatta e uno che rientra. Le soglie sono punti di partenza che puoi modificare.
 
 I modelli leggono gli ultimi 5 minuti, salvo diversa indicazione nella tabella. Un criterio scatta solo quando la condizione vale per ogni minuto della sua finestra, e un criterio di soglia rientra il 10 % oltre la sua soglia, così un valore che oscila attorno alla linea non va avanti e indietro.
 

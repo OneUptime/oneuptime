@@ -57,19 +57,19 @@ Klik på **Flere monitortyper** under **Monitortype**, og vælg **Ceph** under *
 
 ### Vælg klyngen
 
-Vælg klyngen i **Ceph-klynge** under **Ceph Monitor Configuration**. Alle klynger, der har sendt data, står på listen.
+Vælg klyngen i **Ceph-klynge** under **Ceph Monitor Configuration**. Alle klynger, der har sendt data, står på listen. Når du har valgt, viser en linje under feltet, om der kommer data. **Tilføj Ceph-klynge** åbner opsætningstrin med dine nøgler udfyldt, som venter på de første data.
 
 ### Vælg, hvad der skal overvåges
 
-Vælg en af de tre faner:
+En ny monitor starter med **Cluster Stopped Reporting** under **Hvad der skal advares om**. Sådan overvåger du noget andet:
 
-- **Quick Setup** — klik på en [skabelon](#færdige-alarmskabeloner). Den indstiller metrikker, filtre, aggregering, tidsinterval og tærskler og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
-- **Custom Metric** — vælg én metrik i **Ceph Metric**, og indstil derefter **Aggregering** og **Tidsinterval**. **OSD** og **Pool ID** indsnævrer den til én dæmon eller pool.
-- **Avanceret** — byg selv forespørgsler og formler under **Vælg målinger**, for eksempel et forhold for brugt kapacitet ud fra `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Brug **Gruppér efter** `ceph_daemon` eller `pool_id` for at vurdere hver dæmon eller pool for sig.
+- **Skift** — vælg en anden [skabelon](#færdige-alarmskabeloner). Den indstiller metrikker, filtre, aggregering, tidsinterval og tærskler og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
+- **Custom Metric** (under **Flere felter**) — vælg én metrik i **Ceph Metric**, og indstil derefter **Aggregering** og **Tidsinterval**. **OSD** og **Pool ID** indsnævrer den til én dæmon eller pool.
+- **Avanceret** (under **Flere felter**) — byg selv forespørgsler og formler under **Vælg målinger**, for eksempel et forhold for brugt kapacitet ud fra `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Brug **Gruppér efter** `ceph_daemon` eller `pool_id` for at vurdere hver dæmon eller pool for sig.
 
 ### Tjek kriterierne
 
-Åbn hvert kriterium under **Monitorkriterier**, og tjek **Metrik**, **Aggregering**, **Betingelse** og **Tærskel**. En skabelon udfylder dem. Med **Custom Metric** eller **Avanceret** starter monitoren med [standardkriterierne](#standardkriterier), der kun opdager, at en metrik falder til nul, så sæt din egen tærskel.
+Åbn hvert kriterium under **Monitorkriterier**, og tjek **Metrik**, **Aggregering**, **Betingelse** og **Tærskel**. En skabelon udfylder dem. Med **Custom Metric** eller **Avanceret** starter monitoren med [standardkriterierne](#standardkriterier), der kun opdager, at metrikken ikke sender data, så sæt din egen tærskel.
 
 ### Opret monitoren
 
@@ -99,7 +99,7 @@ Pools dataserier har kun labelen `pool_id`: Poolens navn findes kun på `ceph_po
 
 ## Færdige alarmskabeloner
 
-**Quick Setup** tilbyder 24 skabeloner, der dækker en tavs klynge, klyngens tilstand, OSD'er, placement groups og kapacitet. Hver bygger en komplet monitor — forespørgsler, labelfiltre, en gruppering, et kriterium, der udløser, og et, der genopretter. Tærsklerne er udgangspunkter, du kan redigere.
+Listen under **Hvad der skal advares om** tilbyder 24 skabeloner, der dækker en tavs klynge, klyngens tilstand, OSD'er, placement groups og kapacitet. Hver bygger en komplet monitor — forespørgsler, labelfiltre, en gruppering, et kriterium, der udløser, og et, der genopretter. Tærsklerne er udgangspunkter, du kan redigere.
 
 Skabeloner læser de seneste 5 minutter, medmindre tabellen siger andet. Et kriterium udløses kun, når betingelsen gælder i hvert minut af dets vindue, og et tærskelkriterium genopretter først 10 % forbi sin tærskel, så en værdi, der svinger omkring grænsen, ikke blafrer. **Alvorlighed** er den label, vælgeren viser; hændelsen og advarslen, en skabelon opretter, starter med projektets højeste hændelses- og advarselsalvorlighed.
 

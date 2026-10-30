@@ -50,19 +50,19 @@ Klicken Sie unter **Monitortyp** auf **Weitere Monitortypen** und wählen Sie **
 
 ### Die Flotte wählen
 
-Wählen Sie unter **IoT-Monitor-Konfiguration** die Flotte aus **IoT-Flotte**. Jede Flotte, die Daten gesendet hat, steht in der Liste.
+Wählen Sie unter **IoT-Monitor-Konfiguration** die Flotte aus **IoT-Flotte**. Jede Flotte, die Daten gesendet hat, steht in der Liste. Nach der Auswahl zeigt eine Zeile unter dem Feld, ob Daten ankommen. **IoT-Flotte hinzufügen** öffnet Einrichtungsschritte mit Ihren bereits eingetragenen Schlüsseln, die auf die ersten Daten warten.
 
 ### Festlegen, was überwacht wird
 
-Wählen Sie einen der drei Tabs:
+Ein neuer Monitor beginnt mit **Device Offline** unter **Worüber benachrichtigt wird**. So überwachen Sie etwas anderes:
 
-- **Quick Setup** - klicken Sie auf eine [Vorlage](#fertige-warnungsvorlagen). Sie setzt die Metrik, die Aggregation, den Zeitbereich, eine Gruppierung nach `device.id` und die Schwellenwerte und ersetzt die Kriterien unten durch ihre eigenen. Den **Zeitbereich** können Sie weiterhin ändern.
-- **Custom Metric** - wählen Sie eine Metrik aus **IoT-Metrik** und legen Sie dann **Aggregation** und **Zeitbereich** fest. Die [Filter](#monitor-einstellungen) schränken sie auf ein Gerät oder einen Gerätetyp ein. Eine eigene Metrik wird nicht gruppiert: Sie beurteilt die Flotte als Ganzes.
-- **Erweitert** - bauen Sie Abfragen und Formeln selbst unter **Metriken auswählen**, auch über eigene Metriknamen, zum Beispiel den belegten Speicher als Prozentsatz der Speichergröße eines Geräts. Verwenden Sie **Gruppieren nach** `device.id`, um jedes Gerät einzeln zu beurteilen.
+- **Ändern** - wählen Sie eine andere [Vorlage](#fertige-warnungsvorlagen). Sie setzt die Metrik, die Aggregation, den Zeitbereich, eine Gruppierung nach `device.id` und die Schwellenwerte und ersetzt die Kriterien unten durch ihre eigenen. Den **Zeitbereich** können Sie weiterhin ändern.
+- **Custom Metric** (unter **Weitere Felder**) - wählen Sie eine Metrik aus **IoT-Metrik** und legen Sie dann **Aggregation** und **Zeitbereich** fest. Die [Filter](#monitor-einstellungen) schränken sie auf ein Gerät oder einen Gerätetyp ein. Eine eigene Metrik wird nicht gruppiert: Sie beurteilt die Flotte als Ganzes.
+- **Erweitert** (unter **Weitere Felder**) - bauen Sie Abfragen und Formeln selbst unter **Metriken auswählen**, auch über eigene Metriknamen, zum Beispiel den belegten Speicher als Prozentsatz der Speichergröße eines Geräts. Verwenden Sie **Gruppieren nach** `device.id`, um jedes Gerät einzeln zu beurteilen.
 
 ### Die Kriterien prüfen
 
-Öffnen Sie jedes Kriterium unter **Monitor-Kriterien** und prüfen Sie **Metrikvariable auswählen**, **Aggregation**, **Bedingung** und **Schwellenwert**. Eine Vorlage füllt diese aus. Mit **Custom Metric** oder **Erweitert** beginnt der Monitor mit den [Standardkriterien](#standardkriterien), die nur bemerken, dass eine Metrik auf null fällt, setzen Sie also Ihren eigenen Schwellenwert.
+Öffnen Sie jedes Kriterium unter **Monitor-Kriterien** und prüfen Sie **Metrikvariable auswählen**, **Aggregation**, **Bedingung** und **Schwellenwert**. Eine Vorlage füllt diese aus. Mit **Custom Metric** oder **Erweitert** beginnt der Monitor mit den [Standardkriterien](#standardkriterien), die nur bemerken, dass die Metrik keine Daten sendet, setzen Sie also Ihren eigenen Schwellenwert.
 
 ### Den Monitor erstellen
 
@@ -88,7 +88,7 @@ Die Filter wirken zusammen: Mit einer **Geräte-ID** und einem **Gerätetyp** pa
 
 ## Fertige Warnungsvorlagen
 
-**Quick Setup** bietet 5 Vorlagen. Jede baut einen vollständigen Monitor: die Metrikabfrage, eine Gruppierung nach `device.id`, ein Kriterium, das auslöst, und eines, das sich erholt. Schwellenwerte sind Ausgangspunkte, die Sie bearbeiten können.
+Die Liste unter **Worüber benachrichtigt wird** bietet 5 Vorlagen. Jede baut einen vollständigen Monitor: die Metrikabfrage, eine Gruppierung nach `device.id`, ein Kriterium, das auslöst, und eines, das sich erholt. Schwellenwerte sind Ausgangspunkte, die Sie bearbeiten können.
 
 Ein Kriterium löst nur aus, wenn die Bedingung für jede Minute seines Fensters gilt - außer **Device Offline**, das beim ersten Messwert unter 1 auslöst. Ein Schwellenwertkriterium erholt sich erst 10 % jenseits seines Schwellenwerts, sodass ein Wert, der um die Linie pendelt, nicht flattert.
 

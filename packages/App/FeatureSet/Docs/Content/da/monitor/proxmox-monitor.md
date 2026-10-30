@@ -48,19 +48,19 @@ Klik under **Monitortype** på **Flere monitortyper**, og vælg **Proxmox** unde
 
 ### Vælg klyngen
 
-Vælg klyngen i **Proxmox-klynge** under **Proxmox Monitor Configuration**. Hver klynge, der har sendt data, er på listen.
+Vælg klyngen i **Proxmox-klynge** under **Proxmox Monitor Configuration**. Hver klynge, der har sendt data, er på listen. Når du har valgt, viser en linje under feltet, om der kommer data. **Tilføj Proxmox-klynge** åbner opsætningstrin med dine nøgler udfyldt, som venter på de første data.
 
 ### Vælg, hvad der skal overvåges
 
-Vælg en af de tre faner:
+En ny monitor starter med **Cluster Stopped Reporting** under **Hvad der skal advares om**. Sådan overvåger du noget andet:
 
-- **Quick Setup** – klik på en [skabelon](#færdige-advarselsskabeloner). Den angiver metrikkerne, filtrene, aggregeringen, tidsintervallet og tærsklerne og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
-- **Custom Metric** – vælg én metrik i **Proxmox Metric**, og angiv derefter **Aggregering** og **Tidsinterval**. [Filtrene](#monitorindstillinger) indsnævrer den til en slags ressource eller til én ressource.
-- **Avanceret** – byg selv forespørgsler og formler under **Vælg målinger**, f.eks. en hukommelsesprocent ud fra `pve_memory_usage_bytes / pve_memory_size_bytes`. Brug **Gruppér efter** `id` for at bedømme hver ressource for sig.
+- **Skift** – vælg en anden [skabelon](#færdige-advarselsskabeloner). Den angiver metrikkerne, filtrene, aggregeringen, tidsintervallet og tærsklerne og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
+- **Custom Metric** (under **Flere felter**) – vælg én metrik i **Proxmox Metric**, og angiv derefter **Aggregering** og **Tidsinterval**. [Filtrene](#monitorindstillinger) indsnævrer den til en slags ressource eller til én ressource.
+- **Avanceret** (under **Flere felter**) – byg selv forespørgsler og formler under **Vælg målinger**, f.eks. en hukommelsesprocent ud fra `pve_memory_usage_bytes / pve_memory_size_bytes`. Brug **Gruppér efter** `id` for at bedømme hver ressource for sig.
 
 ### Kontrollér kriterierne
 
-Åbn hvert kriterium under **Monitorkriterier**, og kontrollér dets **Metrik**, **Aggregering**, **Betingelse** og **Tærskel**. En skabelon udfylder dem. Med **Custom Metric** eller **Avanceret** starter monitoren med [standardkriterierne](#standardkriterier), som kun bemærker, at en metrik falder til nul, så angiv din egen tærskel.
+Åbn hvert kriterium under **Monitorkriterier**, og kontrollér dets **Metrik**, **Aggregering**, **Betingelse** og **Tærskel**. En skabelon udfylder dem. Med **Custom Metric** eller **Avanceret** starter monitoren med [standardkriterierne](#standardkriterier), som kun bemærker, at metrikken ikke sender data, så angiv din egen tærskel.
 
 ### Opret monitoren
 
@@ -109,7 +109,7 @@ Filtrér på `pve.scope` eller `pve.type` for én slags ressource, på `pve.id` 
 
 ## Færdige advarselsskabeloner
 
-**Quick Setup** tilbyder 12 skabeloner. Hver bygger en komplet monitor – forespørgsler, attributfiltre, en gruppering, et kriterium, der udløses, og et, der genopretter. De fleste grupperer efter `id`, så hver node, gæst, volumen eller hvert job får sin egen hændelse og sin egen advarsel. Tærsklerne er udgangspunkter, du kan redigere.
+Listen under **Hvad der skal advares om** tilbyder 12 skabeloner. Hver bygger en komplet monitor – forespørgsler, attributfiltre, en gruppering, et kriterium, der udløses, og et, der genopretter. De fleste grupperer efter `id`, så hver node, gæst, volumen eller hvert job får sin egen hændelse og sin egen advarsel. Tærsklerne er udgangspunkter, du kan redigere.
 
 Skabeloner læser de seneste 5 minutter, medmindre tabellen siger andet. Et kriterium udløses kun, når betingelsen gælder i hvert minut af dets vindue, og et tærskelkriterium genopretter 10 % forbi sin tærskel, så en værdi, der svæver ved grænsen, ikke blafrer.
 

@@ -34,15 +34,15 @@ Ga naar **Monitoren** en klik op **Monitor maken**. Kies onder **Meer monitortyp
 
 ### Het cluster kiezen
 
-Selecteer het in **Kubernetes-cluster**. De lijst bevat elk cluster waaruit de agent heeft gerapporteerd.
+Selecteer het in **Kubernetes-cluster**. De lijst bevat elk cluster waaruit de agent heeft gerapporteerd. Na de keuze toont een regel onder het veld of er gegevens binnenkomen. **Kubernetes-cluster toevoegen** opent installatiestappen met uw sleutels al ingevuld, die op de eerste gegevens wachten.
 
 ### Kiezen wat u bewaakt
 
-Gebruik een van de drie tabbladen:
+Een nieuwe monitor begint met **Cluster Stopped Reporting**, onder **Waarover te waarschuwen**; **Wijzigen** kiest een ander sjabloon. **Custom Metric** en **Geavanceerd** staan onder **Meer velden**:
 
-| Tabblad | Wat u kiest |
+| Waar | Wat u kiest |
 | --- | --- |
-| **Quick Setup** | Een [kant-en-klaar waarschuwingssjabloon](#kant-en-klare-waarschuwingssjablonen). Het vult de metriek, het bereik, het tijdsbereik en de criteria in; het **Tijdsbereik** kunt u nog wijzigen. |
+| **Waarover te waarschuwen** | Een [kant-en-klaar waarschuwingssjabloon](#kant-en-klare-waarschuwingssjablonen). Het vult de metriek, het bereik, het tijdsbereik en de criteria in; het **Tijdsbereik** kunt u nog wijzigen. |
 | **Custom Metric** | Eén metriek uit de [metriekcatalogus](#metriekcatalogus), dan het **Resourcebereik**, de filters, de **Aggregatie** (Gemiddelde, Maximum, Minimum, Som of Aantal) en het **Tijdsbereik**. |
 | **Geavanceerd** | Het **Resourcebereik**, de filters en het **Tijdsbereik**, plus uw eigen metriekquery's en formules onder **Selecteer metrieken**, met een live grafiek van het resultaat. |
 
@@ -128,7 +128,7 @@ Elke meting wordt vergeleken met een baseline voor hetzelfde uur van de week, op
 
 ## Kant-en-klare waarschuwingssjablonen
 
-Het tabblad **Quick Setup** toont deze sjablonen, gegroepeerd per categorie. Elk vult twee criteria in: één die de monitor offline markeert en een incident en een waarschuwing opent zolang de voorwaarde geldt, en één die hem weer online zet als ze niet meer geldt.
+De lijst onder **Waarover te waarschuwen** toont deze sjablonen, gegroepeerd per categorie. Elk vult twee criteria in: één die de monitor offline markeert en een incident en een waarschuwing opent zolang de voorwaarde geldt, en één die hem weer online zet als ze niet meer geldt.
 
 | Sjabloon | Categorie | Gaat af als | Ernst |
 | --- | --- | --- | --- |

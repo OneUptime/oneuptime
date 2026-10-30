@@ -48,19 +48,19 @@ Em **Tipo de monitor**, clique em **Mais tipos de monitor** e escolha **Proxmox*
 
 ### Escolher o cluster
 
-Em **Proxmox Monitor Configuration**, escolha o cluster em **Cluster Proxmox**. Todo cluster que enviou dados está na lista.
+Em **Proxmox Monitor Configuration**, escolha o cluster em **Cluster Proxmox**. Todo cluster que enviou dados está na lista. Depois da escolha, uma linha abaixo do campo diz se estão chegando dados. **Adicionar cluster Proxmox** abre passos de configuração com as suas chaves já preenchidas, que esperam os primeiros dados.
 
 ### Escolher o que monitorar
 
-Escolha uma das três abas:
+Um monitor novo começa com **Cluster Stopped Reporting**, em **Sobre o que alertar**. Para vigiar outra coisa:
 
-- **Quick Setup** – clique em um [modelo](#modelos-de-alerta-prontos). Ele define as métricas, os filtros, a agregação, o intervalo de tempo e os limites, e substitui os critérios abaixo pelos dele. Você ainda pode mudar o **Intervalo de tempo**.
-- **Custom Metric** – escolha uma métrica em **Proxmox Metric** e depois defina **Agregação** e **Intervalo de tempo**. Os [filtros](#configurações-do-monitor) a restringem a um tipo de recurso ou a um único recurso.
-- **Avançado** – monte você mesmo consultas e fórmulas em **Selecionar Métricas**, por exemplo uma porcentagem de memória a partir de `pve_memory_usage_bytes / pve_memory_size_bytes`. Use **Agrupar por** `id` para avaliar cada recurso separadamente.
+- **Alterar** – escolha outro [modelo](#modelos-de-alerta-prontos). Ele define as métricas, os filtros, a agregação, o intervalo de tempo e os limites, e substitui os critérios abaixo pelos dele. Você ainda pode mudar o **Intervalo de tempo**.
+- **Custom Metric** (em **Mais campos**) – escolha uma métrica em **Proxmox Metric** e depois defina **Agregação** e **Intervalo de tempo**. Os [filtros](#configurações-do-monitor) a restringem a um tipo de recurso ou a um único recurso.
+- **Avançado** (em **Mais campos**) – monte você mesmo consultas e fórmulas em **Selecionar Métricas**, por exemplo uma porcentagem de memória a partir de `pve_memory_usage_bytes / pve_memory_size_bytes`. Use **Agrupar por** `id` para avaliar cada recurso separadamente.
 
 ### Revisar os critérios
 
-Abra cada critério em **Critérios do monitor** e confira sua **Métrica**, **Agregação**, **Condição** e **Limite**. Um modelo os preenche. Com **Custom Metric** ou **Avançado**, o monitor começa com os [critérios padrão](#critérios-padrão), que só percebem uma métrica caindo para zero, então defina o seu próprio limite.
+Abra cada critério em **Critérios do monitor** e confira sua **Métrica**, **Agregação**, **Condição** e **Limite**. Um modelo os preenche. Com **Custom Metric** ou **Avançado**, o monitor começa com os [critérios padrão](#critérios-padrão), que só percebem uma métrica que não envia dados, então defina o seu próprio limite.
 
 ### Criar o monitor
 
@@ -109,7 +109,7 @@ Filtre por `pve.scope` ou `pve.type` para um tipo de recurso, por `pve.id` ou `i
 
 ## Modelos de alerta prontos
 
-**Quick Setup** oferece 12 modelos. Cada um monta um monitor completo – consultas, filtros de atributos, um agrupamento, um critério que dispara e outro que se recupera. A maioria agrupa por `id`, então cada nó, convidado, volume ou job recebe seu próprio incidente e seu próprio alerta. Os limites são pontos de partida que você pode editar.
+A lista de **Sobre o que alertar** oferece 12 modelos. Cada um monta um monitor completo – consultas, filtros de atributos, um agrupamento, um critério que dispara e outro que se recupera. A maioria agrupa por `id`, então cada nó, convidado, volume ou job recebe seu próprio incidente e seu próprio alerta. Os limites são pontos de partida que você pode editar.
 
 Os modelos leem os últimos 5 minutos, salvo indicação contrária na tabela. Um critério só dispara quando a condição vale em todos os minutos da sua janela, e um critério de limite se recupera 10% além do seu limite para que um valor oscilando na linha não fique mudando de estado.
 
