@@ -37290,5 +37290,7 @@
   "Enter the number of a pull request, such as 12.": "풀 리퀘스트 번호를 입력하세요(예: 12).",
   "Enter the number of a merge request, such as 12.": "머지 리퀘스트 번호를 입력하세요(예: 12).",
   "The {{plan}} plan": "{{plan}} 요금제",
-  "You do not have permission to page on-call policies.": "온콜 정책으로 호출할 권한이 없습니다."
+  "You do not have permission to page on-call policies.": "온콜 정책으로 호출할 권한이 없습니다.",
+  "Tick the responders to remind. Ready ones have nothing to set up.": "알림을 보낼 대응자를 선택하세요. 준비된 대응자는 설정할 것이 없습니다.",
+  "Who is on call and when, with every layer applied.": "모든 레이어를 적용한 당번 담당자와 시간입니다."
 }

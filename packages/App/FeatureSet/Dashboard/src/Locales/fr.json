@@ -37290,5 +37290,7 @@
   "Enter the number of a pull request, such as 12.": "Saisissez le numéro d'une demande de tirage, par exemple 12.",
   "Enter the number of a merge request, such as 12.": "Saisissez le numéro d'une demande de fusion, par exemple 12.",
   "The {{plan}} plan": "Le forfait {{plan}}",
-  "You do not have permission to page on-call policies.": "Vous n'avez pas l'autorisation d'alerter via les politiques d'astreinte."
+  "You do not have permission to page on-call policies.": "Vous n'avez pas l'autorisation d'alerter via les politiques d'astreinte.",
+  "Tick the responders to remind. Ready ones have nothing to set up.": "Cochez les intervenants à relancer. Ceux qui sont prêts n'ont rien à configurer.",
+  "Who is on call and when, with every layer applied.": "Qui est d'astreinte et quand, avec toutes les couches appliquées."
 }

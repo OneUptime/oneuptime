@@ -37290,5 +37290,7 @@
   "Enter the number of a pull request, such as 12.": "Введите номер запроса на слияние, например 12.",
   "Enter the number of a merge request, such as 12.": "Введите номер запроса на слияние, например 12.",
   "The {{plan}} plan": "Тариф {{plan}}",
-  "You do not have permission to page on-call policies.": "У вас нет прав на вызов по политикам дежурств."
+  "You do not have permission to page on-call policies.": "У вас нет прав на вызов по политикам дежурств.",
+  "Tick the responders to remind. Ready ones have nothing to set up.": "Отметьте получателей, которым нужно напомнить. Тем, кто готов, настраивать нечего.",
+  "Who is on call and when, with every layer applied.": "Кто и когда дежурит с учётом всех слоёв."
 }

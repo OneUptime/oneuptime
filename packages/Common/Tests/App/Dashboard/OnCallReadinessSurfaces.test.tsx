@@ -125,6 +125,7 @@ import { JSONArray, JSONObject } from "../../../Types/JSON";
 import NotificationRuleType from "../../../Types/NotificationRule/NotificationRuleType";
 import ObjectID from "../../../Types/ObjectID";
 import Navigation from "../../../UI/Utils/Navigation";
+import TableColumnsToCsv from "../../../UI/Utils/TableColumnsToCsv";
 import type { SpyInstance } from "jest-mock";
 
 const POLICY_ID: ObjectID = new ObjectID(
@@ -1929,7 +1930,7 @@ describe("On-call readiness page", () => {
       await screen.findByText("Zed Unreachable");
 
       const tiles: HTMLElement | null = container.querySelector(
-        "div.mb-6.grid",
+        '[data-testid="stat-tile-grid"]',
       ) as HTMLElement | null;
 
       if (!tiles) {
@@ -2775,7 +2776,7 @@ describe("On-call readiness page", () => {
       await screen.findByText("Ada Ready");
 
       const tiles: HTMLElement | null = container.querySelector(
-        "div.mb-6.grid",
+        '[data-testid="stat-tile-grid"]',
       ) as HTMLElement | null;
 
       if (!tiles) {
@@ -2795,7 +2796,7 @@ describe("On-call readiness page", () => {
       await screen.findByText("Zed Unreachable");
 
       const tiles: HTMLElement | null = container.querySelector(
-        "div.mb-6.grid",
+        '[data-testid="stat-tile-grid"]',
       ) as HTMLElement | null;
 
       if (!tiles) {
@@ -2935,7 +2936,7 @@ describe("On-call readiness page", () => {
       filterToUnreachable();
 
       const tiles: HTMLElement | null = container.querySelector(
-        "div.mb-6.grid",
+        '[data-testid="stat-tile-grid"]',
       ) as HTMLElement | null;
 
       if (!tiles) {
@@ -3317,9 +3318,10 @@ describe("On-call readiness page", () => {
   });
 
   /*
-   * The teams column - the same fact the filter reads, rendered.
+   * The teams that page a responder - the same fact the filter reads,
+   * rendered in their "Reached via" (there is no Teams column of its own).
    */
-  describe("the teams column", () => {
+  describe("the teams in Reached via", () => {
     test("a responder's teams are named in their row", async () => {
       respondWith(summaryJson([TWO_TEAM_USER]));
 
@@ -3335,10 +3337,10 @@ describe("On-call readiness page", () => {
 
     /*
      * A responder reached directly or through a schedule has no team involved at
-     * all, so an empty cell is not a gap to be fixed. It renders as a dash rather
-     * than as "None", which would read like something is missing.
+     * all: their Reached via says how they are paged, and nothing in the row
+     * reads as a team that is missing - no "None", and no empty Teams cell.
      */
-    test("a responder no team pages renders a dash, not an accusation", async () => {
+    test("a responder no team pages is named by how they are paged, not by a missing team", async () => {
       respondWith(summaryJson([UNREACHABLE_USER]));
 
       await renderProjectPage();
@@ -3347,7 +3349,14 @@ describe("On-call readiness page", () => {
 
       const row: HTMLElement = tableRowFor("Zed Unreachable");
 
-      expect(within(row).getByText("—")).toBeInTheDocument();
+      expect(
+        within(row)
+          .getAllByTestId("reached-via-part")
+          .map((part: HTMLElement): string => {
+            return part.textContent || "";
+          }),
+      ).toEqual(["Direct"]);
+      expect(within(row).queryByText("None")).toBeNull();
     });
   });
 
@@ -3852,6 +3861,201 @@ describe("no unmasked identifier reaches the DOM", () => {
 
     for (const raw of ALL_RAW_IDENTIFIERS) {
       expect(href).not.toContain(raw);
+    }
+  });
+});
+
+/*
+ * LESS TO READ ON THE READINESS PAGE (#4972, #5282: "the readiness density").
+ *
+ * A responder's teams were a column of their own, and "Reached via" beside
+ * it said "Team" again: with Coverage next to them the table ran past its
+ * card at 1280 pixels beside the side menu, the last of it under the stuck
+ * Coverage buttons. Now "Reached via" names the teams that page a responder
+ * in place of the word Team, and shows on a phone's card too; the hint over
+ * the table is one short line; the tiles' names wrap rather than being cut,
+ * four a row only where the card has room for four.
+ */
+describe("the readiness table, with less to read", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  test("the columns: Responder, Status, Channels, Coverage, Reached via - no Teams column", async () => {
+    respondWith(summaryJson([TWO_TEAM_USER, PARTIAL_USER]));
+
+    await renderProjectPage();
+    await screen.findByText("Ravi Twoteams");
+
+    const headers: Array<string> = within(
+      tableRowFor("Ravi Twoteams").closest("table") as HTMLElement,
+    )
+      .getAllByRole("columnheader")
+      .map((header: HTMLElement): string => {
+        return (header.textContent || "").trim();
+      })
+      .filter((text: string): boolean => {
+        return text.length > 0;
+      });
+
+    expect(headers).not.toContain("Teams");
+    expect(headers).toEqual(
+      expect.arrayContaining([
+        "Responder",
+        "Status",
+        "Channels",
+        "Coverage",
+        "Reached via",
+      ]),
+    );
+  });
+
+  test("a responder two teams page reads as those teams, by name, where the word Team was", async () => {
+    respondWith(summaryJson([TWO_TEAM_USER]));
+
+    await renderProjectPage();
+    await screen.findByText("Ravi Twoteams");
+
+    const parts: Array<string> = within(tableRowFor("Ravi Twoteams"))
+      .getAllByTestId("reached-via-part")
+      .map((part: HTMLElement): string => {
+        return part.textContent || "";
+      });
+
+    expect(parts).toEqual(["Platform", "Payments"]);
+    // Each says it is a team, under the pointer.
+    for (const part of within(tableRowFor("Ravi Twoteams")).getAllByTestId(
+      "reached-via-part",
+    )) {
+      expect(part).toHaveAttribute("title", "Team");
+    }
+  });
+
+  test("every other source keeps its word: a schedule, an override, directly", async () => {
+    respondWith(summaryJson([PARTIAL_USER, UNREACHABLE_USER]));
+
+    await renderProjectPage();
+    await screen.findByText("Jane Partial");
+
+    expect(
+      within(tableRowFor("Jane Partial"))
+        .getAllByTestId("reached-via-part")
+        .map((part: HTMLElement): string => {
+          return part.textContent || "";
+        }),
+    ).toEqual(["Schedule", "Override"]);
+    expect(
+      within(tableRowFor("Zed Unreachable"))
+        .getAllByTestId("reached-via-part")
+        .map((part: HTMLElement): string => {
+          return part.textContent || "";
+        }),
+    ).toEqual(["Direct"]);
+  });
+
+  test("a responder reached by a team the payload does not name still says Team", async () => {
+    respondWith(
+      summaryJson([{ ...READY_USER, teams: [], reachedVia: ["Team"] }]),
+    );
+
+    await renderProjectPage();
+    await screen.findByText("Ada Ready");
+
+    expect(
+      within(tableRowFor("Ada Ready"))
+        .getAllByTestId("reached-via-part")
+        .map((part: HTMLElement): string => {
+          return part.textContent || "";
+        }),
+    ).toEqual(["Team"]);
+  });
+
+  test("the hint over the table is one short line", async () => {
+    respondWith(summaryJson(ALL_THREE_USERS));
+
+    await renderProjectPage();
+    await screen.findByText("Jane Partial");
+
+    expect(
+      screen.getByText(
+        "Tick the responders to remind. Ready ones have nothing to set up.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Responders who are already ready cannot be selected/),
+    ).toBeNull();
+  });
+
+  test("the tiles sit in a grid of two that takes four only where its card has room (by the card's width, not the window's)", async () => {
+    respondWith(summaryJson(ALL_THREE_USERS));
+
+    await renderProjectPage();
+    await screen.findByText("Jane Partial");
+
+    const grid: HTMLElement = screen.getByTestId("stat-tile-grid");
+
+    expect(grid.className).toContain("grid-cols-2");
+    expect(grid.className).toContain(
+      "[@container(min-width:45rem)]:grid-cols-4",
+    );
+    expect(grid.className).not.toContain("lg:grid-cols-4");
+    expect(grid.parentElement!.className).toContain(
+      "[container-type:inline-size]",
+    );
+  });
+
+  test("a tile's name wraps rather than being cut short", async () => {
+    respondWith(summaryJson(ALL_THREE_USERS));
+
+    await renderProjectPage();
+    await screen.findByText("Jane Partial");
+
+    const label: HTMLElement = within(
+      screen.getByTestId("stat-tile-grid"),
+    ).getByText("Needs setup");
+
+    expect(label.className).not.toContain("truncate");
+    expect(label.className).toContain("break-words");
+  });
+
+  /*
+   * The CSV keeps what the Teams column carried: a responder's teams are in
+   * their Reached via, after the source that names them.
+   */
+  test("the CSV has no Teams column and names the teams in Reached via", async () => {
+    const downloads: Array<{ csv: string; filename: string }> = [];
+    const downloadSpy: SpyInstance = jest
+      .spyOn(TableColumnsToCsv, "downloadCsv")
+      .mockImplementation((data: { csv: string; filename: string }): void => {
+        downloads.push(data);
+      }) as unknown as SpyInstance;
+
+    try {
+      respondWith(summaryJson([TWO_TEAM_USER, UNREACHABLE_USER]));
+
+      await renderProjectPage();
+      await screen.findByText("Ravi Twoteams");
+
+      selectResponder("Ravi Twoteams");
+      selectResponder("Zed Unreachable");
+      runBulkAction("Export CSV");
+
+      await waitFor(() => {
+        expect(downloads).toHaveLength(1);
+      });
+
+      const lines: Array<string> = downloads[0]!.csv.split("\n");
+
+      expect(lines[0]).toContain("Reached via");
+      expect(lines[0]).not.toContain("Teams");
+      expect(downloads[0]!.csv).toContain("Team (Platform, Payments)");
+      expect(
+        lines.find((line: string): boolean => {
+          return line.includes("Zed Unreachable");
+        }),
+      ).toContain("Direct");
+    } finally {
+      downloadSpy.mockRestore();
     }
   });
 });

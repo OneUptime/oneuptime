@@ -299,7 +299,8 @@ const Toggle: FunctionComponent<ComponentProps> = (
     ? translator.translateTemplate(TOGGLE_HELP_BUTTON_NAME_TEMPLATE, {
         label: translatableTerm(helpSubject),
       })
-    : translator.translateText(TOGGLE_HELP_BUTTON_FALLBACK_NAME);
+    : translator.translateText(TOGGLE_HELP_BUTTON_FALLBACK_NAME) ||
+      TOGGLE_HELP_BUTTON_FALLBACK_NAME;
 
   if (props.error) {
     describedBy.push(errorId);

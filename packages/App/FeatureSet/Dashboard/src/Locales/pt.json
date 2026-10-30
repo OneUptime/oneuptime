@@ -37290,5 +37290,7 @@
   "Enter the number of a pull request, such as 12.": "Insira o número de um pull request, por exemplo 12.",
   "Enter the number of a merge request, such as 12.": "Insira o número de um merge request, por exemplo 12.",
   "The {{plan}} plan": "O plano {{plan}}",
-  "You do not have permission to page on-call policies.": "Você não tem permissão para acionar as políticas de plantão."
+  "You do not have permission to page on-call policies.": "Você não tem permissão para acionar as políticas de plantão.",
+  "Tick the responders to remind. Ready ones have nothing to set up.": "Marque os destinatários a lembrar. Quem está pronto não tem nada a configurar.",
+  "Who is on call and when, with every layer applied.": "Quem está de plantão e quando, com todas as camadas aplicadas."
 }

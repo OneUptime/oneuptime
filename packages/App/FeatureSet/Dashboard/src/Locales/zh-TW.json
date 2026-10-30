@@ -37290,5 +37290,7 @@
   "Enter the number of a pull request, such as 12.": "輸入拉取請求的編號，例如 12。",
   "Enter the number of a merge request, such as 12.": "輸入合併請求的編號，例如 12。",
   "The {{plan}} plan": "{{plan}} 方案",
-  "You do not have permission to page on-call policies.": "您沒有透過待命策略呼叫的權限。"
+  "You do not have permission to page on-call policies.": "您沒有透過待命策略呼叫的權限。",
+  "Tick the responders to remind. Ready ones have nothing to set up.": "勾選要提醒的回應者。已就緒的回應者無需設定。",
+  "Who is on call and when, with every layer applied.": "套用所有層後誰在何時待命。"
 }

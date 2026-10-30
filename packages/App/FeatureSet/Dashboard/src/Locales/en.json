@@ -37290,5 +37290,7 @@
   "Enter the number of a pull request, such as 12.": "Enter the number of a pull request, such as 12.",
   "Enter the number of a merge request, such as 12.": "Enter the number of a merge request, such as 12.",
   "The {{plan}} plan": "The {{plan}} plan",
-  "You do not have permission to page on-call policies.": "You do not have permission to page on-call policies."
+  "You do not have permission to page on-call policies.": "You do not have permission to page on-call policies.",
+  "Tick the responders to remind. Ready ones have nothing to set up.": "Tick the responders to remind. Ready ones have nothing to set up.",
+  "Who is on call and when, with every layer applied.": "Who is on call and when, with every layer applied."
 }

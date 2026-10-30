@@ -37290,5 +37290,7 @@
   "Enter the number of a pull request, such as 12.": "プルリクエストの番号を入力してください（例: 12）。",
   "Enter the number of a merge request, such as 12.": "マージリクエストの番号を入力してください（例: 12）。",
   "The {{plan}} plan": "{{plan}} プラン",
-  "You do not have permission to page on-call policies.": "オンコールポリシーで呼び出す権限がありません。"
+  "You do not have permission to page on-call policies.": "オンコールポリシーで呼び出す権限がありません。",
+  "Tick the responders to remind. Ready ones have nothing to set up.": "リマインドする対応者にチェックを入れてください。準備完了の対応者には設定することがありません。",
+  "Who is on call and when, with every layer applied.": "すべてのレイヤーを適用した、誰がいつオンコールか。"
 }

@@ -2,7 +2,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 
 /*
  * The single metric tile used across the on-call policy surfaces.
@@ -50,6 +50,43 @@ export interface ComponentProps {
   /** Only meaningful with onClick. The accessible name for the button. */
   ariaLabel?: string | undefined;
 }
+
+export const STAT_TILE_LABEL_CLASS_NAME: string =
+  "break-words text-xs leading-snug text-gray-500";
+
+/*
+ * Four tiles side by side only where the card has room for four - by the
+ * card's width, not the window's. Beside the side menu at 1024 pixels four
+ * tiles in a 660-pixel card left each name some 70 pixels: "Responder / s",
+ * "Unreachabl / e". Two a row there, as on a phone.
+ */
+export const STAT_TILE_GRID_CONTAINER_CLASS_NAME: string =
+  "[container-type:inline-size]";
+
+export const STAT_TILE_GRID_CLASS_NAME: string =
+  "grid grid-cols-2 gap-3 [@container(min-width:45rem)]:grid-cols-4";
+
+export interface StatTileGridProps {
+  children: ReactNode;
+  // Under the grid; the tiles' own row of a card keeps 24px.
+  className?: string | undefined;
+}
+
+export const StatTileGrid: FunctionComponent<StatTileGridProps> = (
+  props: StatTileGridProps,
+): ReactElement => {
+  return (
+    <div
+      className={`${STAT_TILE_GRID_CONTAINER_CLASS_NAME} ${
+        props.className ?? "mb-6"
+      }`}
+    >
+      <div className={STAT_TILE_GRID_CLASS_NAME} data-testid="stat-tile-grid">
+        {props.children}
+      </div>
+    </div>
+  );
+};
 
 interface ToneClassNames {
   iconWrapperClassName: string;
@@ -101,7 +138,12 @@ const StatTile: FunctionComponent<ComponentProps> = (
         >
           {props.value}
         </div>
-        <div className="truncate text-xs text-gray-500">{label}</div>
+        {/*
+         * Its name wraps onto a second line rather than being cut short:
+         * two tiles side by side on a phone read "Respond...", "Needs se..."
+         * and "Unreacha..." (and German's longer words lost more).
+         */}
+        <div className={STAT_TILE_LABEL_CLASS_NAME}>{label}</div>
       </div>
     </>
   );

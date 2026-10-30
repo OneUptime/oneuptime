@@ -37290,5 +37290,7 @@
   "Enter the number of a pull request, such as 12.": "Skriv inn nummeret på en pull-forespørsel, for eksempel 12.",
   "Enter the number of a merge request, such as 12.": "Skriv inn nummeret på en merge request, for eksempel 12.",
   "The {{plan}} plan": "Abonnementet {{plan}}",
-  "You do not have permission to page on-call policies.": "Du har ikke tillatelse til å tilkalle via vaktretningslinjer."
+  "You do not have permission to page on-call policies.": "Du har ikke tillatelse til å tilkalle via vaktretningslinjer.",
+  "Tick the responders to remind. Ready ones have nothing to set up.": "Kryss av mottakerne som skal påminnes. De som er klare, har ingenting å sette opp.",
+  "Who is on call and when, with every layer applied.": "Hvem som har vakt og når, med alle lag brukt."
 }
