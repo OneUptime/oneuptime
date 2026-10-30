@@ -183,6 +183,8 @@ Onder **Meer velden** kiest een regel de coderepositories, de MCP-servers en de 
 
 Het tabblad **Inzichten** telt uw uitzonderingen onder **Niet opgelost**, **Opgelost** en **Gearchiveerd** en uw oplospercentage, en toont de vaakst voorkomende uitzonderingen, de services die ze treffen en de uitzonderingen die het laatst gezien zijn.
 
+**Wat is er nieuw** bovenaan het tabblad vraagt OneUptime AI, met **Samenvatten met OneUptime AI**, de uitzonderingen samen te vatten die in de laatste 24 uur voor het eerst gezien zijn en de uitzonderingen die terugkwamen nadat ze opgelost waren: een paar zinnen over allemaal, daarna elk in één regel, de dringendste eerst, met een link naar de uitzondering. De samenvatting wordt geschreven wanneer u erom vraagt en niet bewaard, gebruikt de AI-tegoeden van het project en wordt niet aangeboden zolang **AI inschakelen** uit staat.
+
 ## Problemen oplossen
 
 :::details Een uitzondering die ik net gooide, staat niet in de lijst

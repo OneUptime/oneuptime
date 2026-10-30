@@ -183,6 +183,8 @@ In **Altri campi** una regola sceglie i repository di codice, i server MCP e il 
 
 La scheda **Informazioni** conta le vostre eccezioni **Non risolto**, **Risolto** e **Archiviato** e il vostro tasso di risoluzione, ed elenca le eccezioni più frequenti, i servizi che colpiscono e quelle viste più di recente.
 
+**Novità**, in cima alla scheda, chiede a OneUptime AI, con **Riepiloga con OneUptime AI**, di riassumere le eccezioni viste per la prima volta nelle ultime 24 ore e quelle tornate dopo essere state risolte: qualche frase su tutte, poi ciascuna in una riga, la più urgente per prima, con un link all'eccezione. Il riepilogo viene scritto quando lo chiedete e non viene conservato, usa i crediti IA del progetto e non viene offerto finché **Abilita IA** è disattivato.
+
 ## Risoluzione dei problemi
 
 :::details Un'eccezione appena sollevata non è nell'elenco

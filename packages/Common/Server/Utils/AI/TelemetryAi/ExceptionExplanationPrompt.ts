@@ -362,7 +362,7 @@ export function buildExceptionExplanationPrompt(
  * fenced block, or the outermost braces. Found with indexOf, never a regular
  * expression over the answer.
  */
-function extractJsonObject(content: string): unknown {
+export function extractJsonObject(content: string): unknown {
   const text: string = content.slice(0, MAX_RESPONSE_LENGTH).trim();
   const candidates: Array<string> = [text];
 

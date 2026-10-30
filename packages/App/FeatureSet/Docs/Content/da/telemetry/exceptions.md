@@ -183,6 +183,8 @@ Under **Flere felter** vælger en regel de kodelagre, MCP-servere og den LLM-udb
 
 Fanen **Indsigter** tæller dine undtagelser under **Uløst**, **Løst** og **Arkiveret** og din løsningsrate og viser de hyppigste undtagelser, de tjenester, de rammer, og dem, der senest er set.
 
+**Hvad er nyt** øverst på fanen beder OneUptime AI med **Opsummér med OneUptime AI** om at opsummere de undtagelser, der først blev set inden for de seneste 24 timer, og dem, der kom tilbage, efter de var løst: et par sætninger om dem alle og derefter hver på én linje, den mest presserende først, med et link til undtagelsen. Opsummeringen skrives, når du beder om den, og gemmes ikke, bruger projektets AI-kreditter og tilbydes ikke, mens **Aktivér AI** er slået fra.
+
 ## Fejlfinding
 
 :::details En undtagelse, jeg lige har kastet, er ikke i listen

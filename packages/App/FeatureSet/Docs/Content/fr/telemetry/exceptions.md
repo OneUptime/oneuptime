@@ -183,6 +183,8 @@ Sous **Plus de champs**, une règle choisit les dépôts de code, les serveurs M
 
 L'onglet **Analyses** compte vos exceptions **Non résolu**, **Résolu** et **Archivé** ainsi que votre taux de résolution, et liste les exceptions les plus fréquentes, les services qu'elles touchent et les plus récemment vues.
 
+**Quoi de neuf**, en haut de l'onglet, demande à OneUptime AI, avec **Résumer avec OneUptime AI**, de résumer les exceptions vues pour la première fois dans les dernières 24 heures et celles revenues après avoir été résolues : quelques phrases sur l'ensemble, puis chacune en une ligne, la plus urgente d'abord, avec un lien vers l'exception. Le résumé est écrit quand vous le demandez et n'est pas conservé, utilise les crédits d'IA du projet et n'est pas proposé tant que **Activer l'IA** est désactivé.
+
 ## Dépannage
 
 :::details Une exception que je viens de lever n'est pas dans la liste

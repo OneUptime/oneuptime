@@ -183,6 +183,8 @@ Em **Mais campos** uma regra escolhe os repositórios de código, os servidores 
 
 A aba **Insights** conta suas exceções **Não resolvido**, **Resolvido** e **Arquivado** e sua taxa de resolução, e lista as exceções mais frequentes, os serviços que elas afetam e as vistas mais recentemente.
 
+**Novidades**, no topo da aba, pede à OneUptime AI, com **Resumir com a OneUptime AI**, que resuma as exceções vistas pela primeira vez nas últimas 24 horas e as que voltaram depois de resolvidas: algumas frases sobre todas, depois cada uma em uma linha, a mais urgente primeiro, com um link para a exceção. O resumo é escrito quando você pede e não é guardado, usa os créditos de IA do projeto e não é oferecido enquanto **Habilitar IA** está desligado.
+
 ## Solução de problemas
 
 :::details Uma exceção que acabei de lançar não está na lista

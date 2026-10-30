@@ -183,6 +183,8 @@ Under **Flere felt** velger en regel kodelagrene, MCP-serverne og LLM-leverandø
 
 Fanen **Innsikt** teller unntakene dine under **Uløst**, **Løst** og **Arkivert** og løsningsraten din, og viser de vanligste unntakene, tjenestene de rammer og de som sist ble sett.
 
+**Hva er nytt** øverst i fanen ber OneUptime AI med **Oppsummer med OneUptime AI** om å oppsummere unntakene som først ble sett de siste 24 timene, og de som kom tilbake etter at de var løst: noen setninger om alle, deretter hvert på én linje, det mest presserende først, med en lenke til unntaket. Oppsummeringen skrives når du ber om den, og lagres ikke, bruker prosjektets AI-kreditter og tilbys ikke mens **Aktiver AI** er av.
+
 ## Feilsøking
 
 :::details Et unntak jeg nettopp kastet, er ikke i listen

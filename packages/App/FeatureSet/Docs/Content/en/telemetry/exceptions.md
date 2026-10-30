@@ -183,6 +183,8 @@ Under **More fields** a rule picks the code repositories, the MCP servers and th
 
 The **Insights** tab counts your **Unresolved**, **Resolved** and **Archived** exceptions and your resolution rate, and lists the most frequent exceptions, the services they affect and the ones seen most recently.
 
+**What's new** at the top of the tab asks OneUptime AI, with **Summarize with OneUptime AI**, to sum up the exceptions first seen in the last 24 hours and the ones that came back after they were resolved: a few sentences over all of them, then each in one line, the most urgent first, linked to the exception. It is written when you ask and not kept, uses the project's AI credits, and is not offered while **Enable AI** is off.
+
 ## Troubleshooting
 
 :::details An exception I just threw is not in the list
