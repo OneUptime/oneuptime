@@ -209,6 +209,18 @@ const AI_INVESTIGATION_ROUTES: Array<HumanOnlyRoute> = [
   },
   {
     /*
+     * The fix in the code that the Remediation step of an incident's or
+     * alert's AI card offers (#5413), read under the person's own access
+     * to the record.
+     */
+    uri: "/ai-investigation/code-fix-suggestion",
+    params: {},
+    body: { subjectType: "incident", subjectId: SUBJECT_ID.toString() },
+    notAUserMessage: USER_SESSION_REQUIRED,
+    firstRead: "incidentRead",
+  },
+  {
+    /*
      * What the trace page offers: the project's AI switch is read first, so
      * a project with AI off pays for no span read.
      */
@@ -339,6 +351,14 @@ const AUTO_REMEDIATION_ROUTES: Array<HumanOnlyRoute> = [
     body: { suggestionId: SUGGESTION_ID.toString() },
     notAUserMessage: USER_SESSION_REQUIRED,
     firstRead: "suggestionRead",
+  },
+  {
+    // Try again on the Remediation step (#5413): for whoever may change the record.
+    uri: "/auto-remediation/try-again",
+    params: {},
+    body: { incidentId: SUBJECT_ID.toString() },
+    notAUserMessage: USER_SESSION_REQUIRED,
+    firstRead: "incidentRead",
   },
 ];
 
