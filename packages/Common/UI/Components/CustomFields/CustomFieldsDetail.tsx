@@ -3,7 +3,9 @@ import ModelAPI, { ListResult } from "../../Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
+  PermissionGateOptions,
 } from "../../Utils/PermissionGate";
+import { usePrivateRecordGateOptions } from "../../Utils/PrivateRecordScope";
 import { ButtonStyleType } from "../Button/Button";
 import Card, { CardButtonSchema, CardHeaderLayout } from "../Card/Card";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
@@ -93,6 +95,13 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  /*
+   * On a private incident, alert or episode's page, what the reader holds
+   * on it: its custom fields are changed only by a team of theirs that owns
+   * it (PrivateRecordScope).
+   */
+  const privateRecordOptions: PermissionGateOptions | undefined =
+    usePrivateRecordGateOptions(new props.modelType());
   const [schemaList, setSchemaList] = useState<Array<BaseModel>>([]);
   /*
    * Read failures and write failures are kept apart because hideIfEmpty
@@ -346,6 +355,7 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
   const updateGate: PermissionGateResult = PermissionGate.check(
     new props.modelType(),
     ModelAction.Update,
+    privateRecordOptions,
   );
 
   const showEditButton: boolean =

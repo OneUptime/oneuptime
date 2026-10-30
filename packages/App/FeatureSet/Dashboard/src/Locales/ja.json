@@ -38687,5 +38687,14 @@
   "The riskiest open issues, scored from 0 to 100.": "リスクが最も高いオープンな問題 (0～100 でスコア化)。",
   "What its tags and scans cannot always tell. Each changes what its checks find.": "タグやスキャンだけでは判断できない情報です。それぞれの設定によってチェックの結果が変わります。",
   "Whether samples of its content are read to find sensitive data, and what the scans skip.": "機密データを見つけるためにコンテンツのサンプルを読み取るかどうかと、スキャンでスキップする対象。",
-  "{{confidence}} confidence": "信頼度: {{confidence}}"
+  "{{confidence}} confidence": "信頼度: {{confidence}}",
+  "This incident is private, so it is changed only with the permissions of the teams that own it, and {{team}}, your team that owns it, may not do this.": "このインシデントは非公開のため、所有するチームの権限でのみ変更でき、所有するあなたのチーム{{team}}にはこの操作が許可されていません。",
+  "This incident is private, so it is changed only with the permissions of the teams that own it, and {{teams}}, your teams that own it, may not do this.": "このインシデントは非公開のため、所有するチームの権限でのみ変更でき、所有するあなたのチーム{{teams}}にはこの操作が許可されていません。",
+  "This incident is private, so it is changed only with the permissions of the teams that own it, and your teams that own it may not do this.": "このインシデントは非公開のため、所有するチームの権限でのみ変更でき、所有するあなたのチームにはこの操作が許可されていません。",
+  "This alert is private, so it is changed only with the permissions of the teams that own it, and {{team}}, your team that owns it, may not do this.": "このアラートは非公開のため、所有するチームの権限でのみ変更でき、所有するあなたのチーム{{team}}にはこの操作が許可されていません。",
+  "This alert is private, so it is changed only with the permissions of the teams that own it, and {{teams}}, your teams that own it, may not do this.": "このアラートは非公開のため、所有するチームの権限でのみ変更でき、所有するあなたのチーム{{teams}}にはこの操作が許可されていません。",
+  "This alert is private, so it is changed only with the permissions of the teams that own it, and your teams that own it may not do this.": "このアラートは非公開のため、所有するチームの権限でのみ変更でき、所有するあなたのチームにはこの操作が許可されていません。",
+  "This episode is private, so it is changed only with the permissions of the teams that own it, and {{team}}, your team that owns it, may not do this.": "このエピソードは非公開のため、所有するチームの権限でのみ変更でき、所有するあなたのチーム{{team}}にはこの操作が許可されていません。",
+  "This episode is private, so it is changed only with the permissions of the teams that own it, and {{teams}}, your teams that own it, may not do this.": "このエピソードは非公開のため、所有するチームの権限でのみ変更でき、所有するあなたのチーム{{teams}}にはこの操作が許可されていません。",
+  "This episode is private, so it is changed only with the permissions of the teams that own it, and your teams that own it may not do this.": "このエピソードは非公開のため、所有するチームの権限でのみ変更でき、所有するあなたのチームにはこの操作が許可されていません。"
 }

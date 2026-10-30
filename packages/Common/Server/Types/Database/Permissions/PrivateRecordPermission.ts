@@ -21,6 +21,7 @@ import {
   combineWithPrivacyClause,
   shouldBypassRecordPrivacy,
 } from "../../../Utils/PrivacyFilterUtil";
+import { ALSO_PART_OF } from "../../../../Types/PrivateRecord/PrivateRecordParts";
 import { FindOperator, Raw } from "typeorm";
 
 /*
@@ -101,19 +102,12 @@ export interface PrivateRecordColumn {
 }
 
 /*
- * THE PRIVATE RECORDS A PART NAMES BESIDE THE ONE IT IS READ THROUGH, by
- * the part's table and the keys that name them: an episode's member row is
- * read through its alert (or incident) and is as much a part of its
- * episode; an incident's link to an alert is read through the incident and
- * is as much a part of the alert. A write of such a row changes both, and
- * is held to both (getPrivateRecordColumns). PrivateRecordParts.test lists
- * every model naming two.
+ * The private records a part names beside the one it is read through - an
+ * episode's member row its episode, an incident's link to an alert the
+ * alert - by the part's table and the keys naming them. One list, shared
+ * with the dashboard (Types/PrivateRecord/PrivateRecordParts).
  */
-export const ALSO_PART_OF: Readonly<Record<string, ReadonlyArray<string>>> = {
-  AlertEpisodeMember: ["alertEpisodeId"],
-  IncidentEpisodeMember: ["incidentEpisodeId"],
-  IncidentAlert: ["alertId"],
-};
+export { ALSO_PART_OF };
 
 /*
  * WHAT A CALLER'S PERMISSION FOR ONE OPERATION REACHES OF THE PRIVATE
@@ -452,8 +446,7 @@ export default class PrivateRecordPermission {
         if (
           !team.labelIds.some((held: ObjectID): boolean => {
             return (
-              held.toString().toLowerCase() ===
-              labelId.toString().toLowerCase()
+              held.toString().toLowerCase() === labelId.toString().toLowerCase()
             );
           })
         ) {
@@ -497,12 +490,14 @@ export default class PrivateRecordPermission {
   }): string | null {
     const kind: PrivateRecordKind = data.kind;
 
-    const parameter: (prefix: string, value: string | Array<string>) => string =
-      (prefix: string, value: string | Array<string>): string => {
-        const name: string = `${prefix}_${Text.generateRandomText(10)}`;
-        data.parameters[name] = value;
-        return name;
-      };
+    const parameter: (
+      prefix: string,
+      value: string | Array<string>,
+    ) => string = (prefix: string, value: string | Array<string>): string => {
+      const name: string = `${prefix}_${Text.generateRandomText(10)}`;
+      data.parameters[name] = value;
+      return name;
+    };
 
     const owned: Array<string> = [];
 
@@ -631,7 +626,9 @@ export default class PrivateRecordPermission {
       return false;
     }
 
-    if (PrivateRecordPermission.getPrivateRecordColumns(modelType).length === 0) {
+    if (
+      PrivateRecordPermission.getPrivateRecordColumns(modelType).length === 0
+    ) {
       return false;
     }
 

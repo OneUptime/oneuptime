@@ -1,4 +1,5 @@
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { usePrivateRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -24,7 +25,10 @@ import {
   getAnchoredPopupTriggerProps,
 } from "Common/UI/Types/UseAnchoredFieldPopup";
 import API from "Common/UI/Utils/API/API";
-import { PermissionGateResult } from "Common/UI/Utils/PermissionGate";
+import {
+  PermissionGateOptions,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -264,7 +268,17 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
   };
 
   // Locked, with why, for a reader who may add neither people nor teams.
-  const addGate: PermissionGateResult = getAddOwnersGate(target);
+  /*
+   * On a private record's page, adding owners takes the permission of a
+   * team of the reader's that owns it (PrivateRecordScope).
+   */
+  const privateRecordOptions: PermissionGateOptions | undefined =
+    usePrivateRecordGateOptions(new props.ownerUserModelType());
+
+  const addGate: PermissionGateResult = getAddOwnersGate(
+    target,
+    privateRecordOptions,
+  );
 
   const loadOwners: () => Promise<void> =
     useCallback(async (): Promise<void> => {

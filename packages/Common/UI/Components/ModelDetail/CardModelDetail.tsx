@@ -2,7 +2,9 @@ import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
+  PermissionGateOptions,
 } from "../../Utils/PermissionGate";
+import { usePrivateRecordGateOptions } from "../../Utils/PrivateRecordScope";
 import Navigation from "../../Utils/Navigation";
 import { ButtonStyleType } from "../Button/Button";
 import Card, {
@@ -107,6 +109,14 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
   const [item, setItem] = useState<TBaseModel | null>(null);
   const [refresher, setRefresher] = useState<boolean>(false);
   const model: TBaseModel = new props.modelDetailProps.modelType();
+
+  /*
+   * On a private incident, alert or episode's page, what the reader holds
+   * on it: the record's Edit is offered only when a team of theirs that owns
+   * it may change it (PrivateRecordScope).
+   */
+  const privateRecordOptions: PermissionGateOptions | undefined =
+    usePrivateRecordGateOptions(model);
   const editTitle: string = translateNamedAction(translator, {
     template: "Edit {{itemName}}",
     itemName: model.singularName || "",
@@ -166,8 +176,12 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
      * too, naming what would open it (PermissionGate.checkFormUpdate).
      */
     const updateGate: PermissionGateResult = props.formFields
-      ? PermissionGate.checkFormUpdate(model, props.formFields)
-      : PermissionGate.check(model, ModelAction.Update);
+      ? PermissionGate.checkFormUpdate(
+          model,
+          props.formFields,
+          privateRecordOptions,
+        )
+      : PermissionGate.check(model, ModelAction.Update, privateRecordOptions);
 
     let cardButtons: Array<CardButtonSchema | ReactElement> = [];
 
@@ -257,6 +271,7 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
      * render of the page, which looks again too.
      */
   }, [
+    privateRecordOptions,
     props.refresher,
     props.isEditable,
     props.editButtonText,

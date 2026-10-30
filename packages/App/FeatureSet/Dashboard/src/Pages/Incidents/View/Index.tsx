@@ -42,7 +42,11 @@ import React, {
   useState,
 } from "react";
 import { canWriteNoteColumn } from "../../../Components/EventNotes/EventNotesUtil";
-import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateOptions,
+} from "Common/UI/Utils/PermissionGate";
+import { usePrivateRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope";
 import User from "Common/UI/Utils/User";
 import Card from "Common/UI/Components/Card/Card";
 import { TimeRangeZoomProvider } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
@@ -228,12 +232,22 @@ function getJoinVideoCallActions(
   return action ? [action] : [];
 }
 
+// What the incident's gates ask about.
+const PRIVATE_RECORD_INCIDENT: Incident = new Incident();
+
 const IncidentView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const modelIdString: string = modelId.toString();
+  /*
+   * What the reader holds on this incident when it is private: its changes -
+   * sending its notifications again, giving its roles - are offered only
+   * when a team of theirs that owns it may make them (PrivateRecordScope).
+   */
+  const privateRecordOptions: PermissionGateOptions | undefined =
+    usePrivateRecordGateOptions(PRIVATE_RECORD_INCIDENT);
   /*
    * The AI card folds into one line - "AI investigation is off", and why -
    * when OneUptime AI neither investigated nor fixed this incident because
@@ -791,13 +805,16 @@ const IncidentView: FunctionComponent<
    */
   const incidentModelForPermissions: Incident = new Incident();
   const canSendCreatedNotificationAgain: boolean =
-    PermissionGate.check(incidentModelForPermissions, ModelAction.Update)
-      .isAllowed &&
+    PermissionGate.check(
+      incidentModelForPermissions,
+      ModelAction.Update,
+      privateRecordOptions,
+    ).isAllowed &&
     canWriteNoteColumn({
       model: incidentModelForPermissions,
       column: "subscriberNotificationStatusOnIncidentCreated",
       action: "update",
-      held: PermissionGate.getHeldPermissions(),
+      held: PermissionGate.getHeldPermissions(privateRecordOptions),
       isMasterAdmin: User.isMasterAdmin(),
     });
 
@@ -1038,6 +1055,7 @@ const IncidentView: FunctionComponent<
   const mayAssignRoles: boolean = PermissionGate.check(
     new IncidentMember(),
     ModelAction.Create,
+    privateRecordOptions,
   ).isAllowed;
   const commanderFact: EventStatusFact | null = getCommanderFact({
     holding: primaryRole,

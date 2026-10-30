@@ -692,9 +692,20 @@ describe("incident-only layout", () => {
       "const [rolesRefreshToken, setRolesRefreshToken] = useState<number>(0);",
     );
     expect(view).toContain(
-      "const primaryRole: PrimaryRoleHolding | null = getPrimaryRoleHolding(currentRolesSnapshot); const mayAssignRoles: boolean = PermissionGate.check( new IncidentMember(), ModelAction.Create, ).isAllowed; const commanderFact: EventStatusFact | null = getCommanderFact({ holding: primaryRole, onAssign: isResolved || !primaryRole || !mayAssignRoles ? undefined : async (person: PeoplePickerOption): Promise<void> => { const incidentId: string = modelIdString; await assignIncidentRole({ incidentId: new ObjectID(incidentId), userId: new ObjectID(person.id), roleId: new ObjectID(primaryRole.role.id), });",
+      "const primaryRole: PrimaryRoleHolding | null = getPrimaryRoleHolding(currentRolesSnapshot); const mayAssignRoles: boolean = PermissionGate.check( new IncidentMember(), ModelAction.Create, privateRecordOptions, ).isAllowed; const commanderFact: EventStatusFact | null = getCommanderFact({ holding: primaryRole, onAssign: isResolved || !primaryRole || !mayAssignRoles ? undefined : async (person: PeoplePickerOption): Promise<void> => { const incidentId: string = modelIdString; await assignIncidentRole({ incidentId: new ObjectID(incidentId), userId: new ObjectID(person.id), roleId: new ObjectID(primaryRole.role.id), });",
     );
     expect(view).toContain("withRoleGiven({");
+    /*
+     * A private incident's roles are given only with the permissions of the
+     * teams that own it: asked with what the reader holds on it, the header
+     * offers Assign only when one of those may (PrivateRecordScope).
+     */
+    expect(view).toContain(
+      "const privateRecordOptions: PermissionGateOptions | undefined = usePrivateRecordGateOptions(PRIVATE_RECORD_INCIDENT);",
+    );
+    expect(view).toContain(
+      "const PRIVATE_RECORD_INCIDENT: Incident = new Incident();",
+    );
     expect(view).toContain(
       "setRolesRefreshToken((token: number): number => { return token + 1; }); refreshFeed(); },",
     );

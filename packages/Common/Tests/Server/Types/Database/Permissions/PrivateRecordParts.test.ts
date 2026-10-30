@@ -8,6 +8,16 @@ import PrivateRecordPermission, {
   PrivateRecordKind,
 } from "../../../../../Server/Types/Database/Permissions/PrivateRecordPermission";
 import AllModelTypes from "../../../../../Models/DatabaseModels/Index";
+import UserPermissionUtil from "../../../../../Server/Utils/UserPermission/UserPermission";
+import { PRIVATE_RECORD_BYPASS_PERMISSIONS } from "../../../../../Server/Utils/PrivacyFilterUtil";
+import SharedPrivateRecordParts, {
+  ALSO_PART_OF as SHARED_ALSO_PART_OF,
+  PRIVATE_RECORD_TABLES,
+} from "../../../../../Types/PrivateRecord/PrivateRecordParts";
+import PrivateRecordHeld from "../../../../../Types/PrivateRecord/PrivateRecordHeld";
+import { ColumnAccessControl } from "../../../../../Types/BaseDatabase/AccessControl";
+import Dictionary from "../../../../../Types/Dictionary";
+import Permission from "../../../../../Types/Permission";
 import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { TableColumnMetadata } from "../../../../../Types/Database/TableColumn";
 import TableColumnType from "../../../../../Types/Database/TableColumnType";
@@ -158,14 +168,10 @@ describe("the kinds of private record", () => {
 
       // The owner rows name a person, and a team, by these columns.
       expect(
-        new pair!.ownerUserService.modelType().getTableColumnMetadata(
-          "userId",
-        ),
+        new pair!.ownerUserService.modelType().getTableColumnMetadata("userId"),
       ).toBeDefined();
       expect(
-        new pair!.ownerTeamService.modelType().getTableColumnMetadata(
-          "teamId",
-        ),
+        new pair!.ownerTeamService.modelType().getTableColumnMetadata("teamId"),
       ).toBeDefined();
     },
   );
@@ -174,7 +180,8 @@ describe("the kinds of private record", () => {
     "$tableName names the table its model keeps its labels in",
     (kind: PrivateRecordKind) => {
       const modelType: { new (): BaseModel } = modelOfTable(kind.tableName);
-      const labelsColumn: string | null = new modelType().getAccessControlColumn();
+      const labelsColumn: string | null =
+        new modelType().getAccessControlColumn();
 
       expect(labelsColumn).toBe("labels");
 
@@ -196,32 +203,34 @@ describe("the kinds of private record", () => {
 });
 
 describe("every part of a private record", () => {
-  const parts: Array<{ modelType: { new (): BaseModel }; column: PrivateRecordColumn }> =
-    AllModelTypes.map((modelType: { new (): BaseModel }) => {
-      return {
-        modelType: modelType,
-        column: PrivateRecordPermission.getPrivateRecordColumn(modelType),
-      };
-    })
-      .filter(
-        (entry: {
-          modelType: { new (): BaseModel };
-          column: PrivateRecordColumn | null;
-        }): boolean => {
-          return Boolean(entry.column && !entry.column.isRecord);
-        },
-      )
-      .map(
-        (entry: {
-          modelType: { new (): BaseModel };
-          column: PrivateRecordColumn | null;
-        }) => {
-          return {
-            modelType: entry.modelType,
-            column: entry.column!,
-          };
-        },
-      );
+  const parts: Array<{
+    modelType: { new (): BaseModel };
+    column: PrivateRecordColumn;
+  }> = AllModelTypes.map((modelType: { new (): BaseModel }) => {
+    return {
+      modelType: modelType,
+      column: PrivateRecordPermission.getPrivateRecordColumn(modelType),
+    };
+  })
+    .filter(
+      (entry: {
+        modelType: { new (): BaseModel };
+        column: PrivateRecordColumn | null;
+      }): boolean => {
+        return Boolean(entry.column && !entry.column.isRecord);
+      },
+    )
+    .map(
+      (entry: {
+        modelType: { new (): BaseModel };
+        column: PrivateRecordColumn | null;
+      }) => {
+        return {
+          modelType: entry.modelType,
+          column: entry.column!,
+        };
+      },
+    );
 
   test("is listed, with the kind and the key it is a part of one by", () => {
     const found: Record<string, { kind: string; key: string }> = {};
@@ -236,7 +245,11 @@ describe("every part of a private record", () => {
     expect(found).toEqual(PARTS);
   });
 
-  test.each(Object.keys(PARTS).map((name: string) => [name]))(
+  test.each(
+    Object.keys(PARTS).map((name: string) => {
+      return [name];
+    }),
+  )(
     "%s is read through its record by a key column of its own",
     (name: string) => {
       const modelType: { new (): BaseModel } = AllModelTypes.find(
@@ -255,7 +268,11 @@ describe("every part of a private record", () => {
     },
   );
 
-  test.each(Object.keys(PARTS).map((name: string) => [name]))(
+  test.each(
+    Object.keys(PARTS).map((name: string) => {
+      return [name];
+    }),
+  )(
     "%s's service reads it only through its record's privacy filter",
     (name: string) => {
       const kind: string = PARTS[name]!.kind;
@@ -319,7 +336,8 @@ const NAMES_BUT_IS_NO_PART: Record<string, string> = {
   AIConversation: "a person's own conversation with OneUptime AI about it",
   Alert: "a private kind itself; its episode is OneUptime's to write",
   AutoRemediationDecision: "OneUptime AI's own decision, written by OneUptime",
-  AutoRemediationSuggestion: "OneUptime AI's own suggestion, written by OneUptime",
+  AutoRemediationSuggestion:
+    "OneUptime AI's own suggestion, written by OneUptime",
   CallLog: "a log of a call OneUptime made",
   DataSecurityIssue: "a Data Security issue, which may point at one",
   EmailLog: "a log of an email OneUptime sent",
@@ -366,7 +384,11 @@ describe("a part that names a second private record", () => {
     expect(listed).toEqual(ALSO_PARTS);
   });
 
-  test.each(Object.keys(ALSO_PARTS).map((name: string) => [name]))(
+  test.each(
+    Object.keys(ALSO_PARTS).map((name: string) => {
+      return [name];
+    }),
+  )(
     "%s's service reads it through both records' privacy filters",
     (name: string) => {
       const source: string = fs.readFileSync(
@@ -463,5 +485,120 @@ describe("every model that names a private record", () => {
       ).toBe(true);
       expect(PARTS[name]).toBeUndefined();
     }
+  });
+});
+
+/*
+ * THE DASHBOARD READS THE SAME RULE. On a private incident's, alert's or
+ * episode's page, every gate that asks about the record or a part of it
+ * asks with what the reader holds on the record (PrivateRecordScope): the
+ * shared PrivateRecordParts says which models are parts of which kind, and
+ * PrivateRecordHeld what a reader holds on one. Both must say what the
+ * server's rule says, model by model - or a page offers a change the server
+ * refuses, or locks one it allows.
+ */
+describe("the dashboard's reading of the rule", () => {
+  test("names the kinds the rule names, in its order", () => {
+    expect([...PRIVATE_RECORD_TABLES]).toEqual(
+      PRIVATE_RECORD_KINDS.map((kind: PrivateRecordKind): string => {
+        return kind.tableName;
+      }),
+    );
+  });
+
+  test("is the rule's own list of second parts", () => {
+    expect(SHARED_ALSO_PART_OF).toBe(ALSO_PART_OF);
+  });
+
+  test("finds every model a part of exactly the kinds the rule holds its writes to", () => {
+    const disagreeing: Array<string> = [];
+
+    for (const modelType of AllModelTypes) {
+      const server: Array<string> = Array.from(
+        new Set<string>(
+          PrivateRecordPermission.getPrivateRecordColumns(modelType).map(
+            (column: PrivateRecordColumn): string => {
+              return column.kind.tableName;
+            },
+          ),
+        ),
+      ).sort();
+      const dashboard: Array<string> = SharedPrivateRecordParts.getKindsOf(
+        new modelType(),
+      ).sort();
+
+      if (server.join(",") !== dashboard.join(",")) {
+        disagreeing.push(
+          `${modelName(modelType)}: server [${server.join(", ")}], dashboard [${dashboard.join(", ")}]`,
+        );
+      }
+    }
+
+    expect(disagreeing).toEqual([]);
+  });
+
+  test("lets act on every private record exactly the roles the server lets see them all", () => {
+    expect([...PrivateRecordHeld.ACTING_ON_EVERY_PRIVATE_RECORD]).toEqual([
+      ...PRIVATE_RECORD_BYPASS_PERMISSIONS,
+    ]);
+  });
+
+  /*
+   * What a reader holds on a private record keeps the rows no team grants -
+   * the defaults every member holds (UserPermissionUtil
+   * .TEAMLESS_PERMISSIONS) and every signed-in user's global permissions -
+   * which the server's reach leaves out: harmless only while none of them
+   * writes anything of a private record, at its table or at a column.
+   */
+  test("keeps only rows no team grants that write nothing of a private record", () => {
+    const teamless: Set<string> = new Set<string>(
+      [
+        ...UserPermissionUtil.TEAMLESS_PERMISSIONS,
+        Permission.Public,
+        Permission.User,
+        Permission.CurrentUser,
+      ].map(String),
+    );
+    const writes: Array<string> = [];
+
+    for (const modelType of AllModelTypes) {
+      if (
+        PrivateRecordPermission.getPrivateRecordColumns(modelType).length === 0
+      ) {
+        continue;
+      }
+
+      const model: BaseModel = new modelType();
+      const tableWrites: Array<[string, Array<Permission>]> = [
+        ["create", model.createRecordPermissions || []],
+        ["update", model.updateRecordPermissions || []],
+        ["delete", model.deleteRecordPermissions || []],
+      ];
+
+      for (const [operation, permissions] of tableWrites) {
+        for (const permission of permissions) {
+          if (teamless.has(String(permission))) {
+            writes.push(`${modelName(modelType)} ${operation}: ${permission}`);
+          }
+        }
+      }
+
+      const columns: Dictionary<ColumnAccessControl> =
+        model.getColumnAccessControlForAllColumns();
+
+      for (const [column, access] of Object.entries(columns)) {
+        for (const operation of ["create", "update"] as const) {
+          for (const permission of access[operation] || []) {
+            if (teamless.has(String(permission))) {
+              writes.push(
+                `${modelName(modelType)}.${column} ${operation}: ${permission}`,
+              );
+            }
+          }
+        }
+      }
+    }
+
+    expect(writes).toEqual([]);
   });
 });

@@ -16,7 +16,9 @@ import { HeldPermissions } from "Common/Types/HeldPermissions";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
+  PermissionGateOptions,
 } from "Common/UI/Utils/PermissionGate";
+import { usePrivateRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import User from "Common/UI/Utils/User";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -101,12 +103,17 @@ export interface NoteCreateGate {
  * arrived (or nothing could grant it), not offered at all. The same gate the
  * Notes page's composer and the feed's "Add ... Note" use.
  */
-export function getNoteCreateGate(modelType: {
-  new (): BaseModel;
-}): NoteCreateGate {
+export function getNoteCreateGate(
+  modelType: {
+    new (): BaseModel;
+  },
+  // The page's private record scope, when it is open on one.
+  options?: PermissionGateOptions | undefined,
+): NoteCreateGate {
   const result: PermissionGateResult = PermissionGate.check(
     new modelType(),
     ModelAction.Create,
+    options,
   );
 
   if (result.isAllowed) {
@@ -129,6 +136,8 @@ export function getNoteCreateGate(modelType: {
 export function getNoteKindCreateGate(
   kind: EventNoteKind<BaseModel>,
   translator?: Translator | undefined,
+  // The page's private record scope, when it is open on one.
+  options?: PermissionGateOptions | undefined,
 ): NoteCreateGate {
   if (kind.isPrivateEvent && kind.visibility === "public") {
     return {
@@ -138,7 +147,7 @@ export function getNoteKindCreateGate(
     };
   }
 
-  return getNoteCreateGate(kind.modelType);
+  return getNoteCreateGate(kind.modelType, options);
 }
 
 /*
@@ -177,8 +186,15 @@ function EventNoteComposer<TNote extends BaseModel>(
   }, [kind.modelType]);
 
   const isPublic: boolean = kind.visibility === "public";
-  // What the viewer holds, blocks included.
-  const heldPermissions: HeldPermissions = PermissionGate.getHeldPermissions();
+  /*
+   * What the viewer holds, blocks included - on a private record's page,
+   * what they hold on the record: its notes are posted only by a team of
+   * theirs that owns it (PrivateRecordScope).
+   */
+  const privateRecordOptions: PermissionGateOptions | undefined =
+    usePrivateRecordGateOptions(model);
+  const heldPermissions: HeldPermissions =
+    PermissionGate.getHeldPermissions(privateRecordOptions);
   const isMasterAdmin: boolean = User.isMasterAdmin();
 
   const canWrite: (column: string) => boolean = (column: string): boolean => {
@@ -197,6 +213,7 @@ function EventNoteComposer<TNote extends BaseModel>(
   const createGate: PermissionGateResult = PermissionGate.check(
     model,
     ModelAction.Create,
+    privateRecordOptions,
   );
 
   /*

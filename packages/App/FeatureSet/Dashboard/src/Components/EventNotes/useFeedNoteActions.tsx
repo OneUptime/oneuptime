@@ -2,6 +2,8 @@ import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBa
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { PermissionGateOptions } from "Common/UI/Utils/PermissionGate";
+import { usePrivateRecordGate } from "Common/UI/Utils/PrivateRecordScope";
 import React, { ReactElement, useEffect, useState } from "react";
 import { getNoteKindCreateGate, NoteCreateGate } from "./EventNoteComposer";
 import EventNoteComposerDialog, {
@@ -51,6 +53,13 @@ export default function useFeedNoteActions(
   options: FeedNoteActionsOptions,
 ): FeedNoteActions {
   const translator: Translator = useTranslator();
+  /*
+   * On a private record's page, its notes are written only by a team of the
+   * reader's that owns it (PrivateRecordScope).
+   */
+  const privateRecordGate: (
+    model: BaseModel,
+  ) => PermissionGateOptions | undefined = usePrivateRecordGate();
   const [openDialog, setOpenDialog] = useState<OpenDialog | null>(null);
 
   // Every kind of note on a feed is on the same event.
@@ -80,7 +89,11 @@ export default function useFeedNoteActions(
   const menuItems: Array<ReactElement> = [];
 
   for (const entry of kinds) {
-    const gate: NoteCreateGate = getNoteKindCreateGate(entry.kind, translator);
+    const gate: NoteCreateGate = getNoteKindCreateGate(
+      entry.kind,
+      translator,
+      privateRecordGate(new entry.kind.modelType()),
+    );
 
     if (!gate.isShown) {
       continue;
