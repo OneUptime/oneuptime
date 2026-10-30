@@ -3197,11 +3197,12 @@ return { proceed: true, caseColumns: CASE, link: CASE[linkColumn] };
 };
 
 /*
- * OneUptime -> Dynamics 365: what the record's new state means for its case.
- * A resolved record closes the case, which Dataverse does with the
- * CloseIncident action: it records a case resolution, as resolving by hand
- * does, where writing statecode would not. Any other state moves the case to
- * an active status only when STATE_TO_CASE_STATUS names one.
+ * OneUptime -> Dynamics 365: a resolved record closes its case, which
+ * Dataverse does with the CloseIncident action: it records a case
+ * resolution, as resolving by hand does, where writing statecode would not.
+ * It closes with RESOLVED_CASE_STATUS (Problem Solved), or with the resolved
+ * status STATE_TO_CASE_STATUS names for a resolved state of the project's
+ * own. Any other state leaves the case as it is.
  */
 const dynamicsPlanCaseScript: DynamicsKindScriptFunction = (
   kind: TemplateRecordKind,

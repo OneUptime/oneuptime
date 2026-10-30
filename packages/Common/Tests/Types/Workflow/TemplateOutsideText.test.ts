@@ -66,6 +66,7 @@ import {
   ONEUPTIME_SYNCED_FROM_DYNAMICS_MARKER,
   ONEUPTIME_SYNCED_FROM_JIRA_MARKER,
   ONEUPTIME_SYNCED_FROM_ZABBIX_MARKER,
+  JIRA_LINK_LABEL,
   ZabbixEventKind,
   getTemplateGraphSpec,
   getWorkflowTemplates,
@@ -91,25 +92,23 @@ import {
   formattedKey,
   noteRow,
   runDynamicsScript,
+  webhookContext,
 } from "./DynamicsTemplateFixtures";
 import {
   ALERT_ID,
-  ALERT_SEVERITIES,
-  ALERT_STATES,
   INCIDENT_ID,
-  INCIDENT_SEVERITIES,
-  INCIDENT_STATES,
   JIRA_ISSUE_KEY,
   JIRA_SITE,
   alertLabel,
-  alertModel,
   changelogItem,
   incidentLabel,
-  incidentModel,
+  isTemplateScriptStep,
   jiraCommentEvent,
   jiraIssueCreatedEvent,
+  jiraIssueLabelsResponse,
   jiraIssueUpdatedEvent,
   jiraLinkingEventArgs,
+  jiraStatus,
   jiraUser,
   quoted,
   runJiraScript,
@@ -176,12 +175,8 @@ interface RecordKind {
   noun: string;
   Created: string;
   id: string;
-  idKey: string;
   // The label a linked issue carries, and the value a linked case's link column holds.
   link: string;
-  severities: Array<JSONObject>;
-  states: Array<JSONObject>;
-  record: JSONObject;
   jira: {
     createRecord: string;
     prepare: string;
@@ -203,11 +198,7 @@ const INCIDENT: RecordKind = {
   noun: "incident",
   Created: "Declared",
   id: INCIDENT_ID,
-  idKey: "incidentId",
   link: incidentLabel(),
-  severities: INCIDENT_SEVERITIES,
-  states: INCIDENT_STATES,
-  record: incidentModel(),
   jira: {
     createRecord: "jira-declare-incident-from-issue",
     prepare: "prepare-incident-1",
@@ -228,11 +219,7 @@ const ALERT: RecordKind = {
   noun: "alert",
   Created: "Created",
   id: ALERT_ID,
-  idKey: "alertId",
   link: alertLabel(),
-  severities: ALERT_SEVERITIES,
-  states: ALERT_STATES,
-  record: alertModel(),
   jira: {
     createRecord: "jira-create-alert-from-issue",
     prepare: "prepare-alert-1",
@@ -263,7 +250,7 @@ const KINDS: Array<[string, RecordKind]> = [
  * no longer name it).
  */
 
-// create-*-from-issue: a Jira issue_created webhook, as the request body.
+// create-*-from-issue: Jira's answer for an unlinked issue, then the issue_created webhook.
 async function recordFromIssue(
   kind: RecordKind,
   event: JSONObject,
@@ -273,7 +260,7 @@ async function recordFromIssue(
     templateId: kind.jira.createRecord,
     componentId: kind.jira.prepare,
     args: {
-      severities: quoted(kind.severities),
+      issue: quoted(jiraIssueLabelsResponse([])),
       ...jiraLinkingEventArgs(event, site),
     },
   });
@@ -285,30 +272,44 @@ interface JiraStatusChange {
   jiraStatusCategory?: string | undefined;
 }
 
-// status-to-*-state: read-event-1's output for a linked issue that moved.
+/*
+ * status-to-*-state: read-event-1, for a linked issue that moved to a
+ * status, by the person Jira names - or nobody. Its reason is what the
+ * record's timeline says the change was for.
+ */
 async function causeFromIssue(
   kind: RecordKind,
   change: JiraStatusChange,
 ): Promise<JSONObject> {
+  const event: JSONObject = jiraIssueUpdatedEvent({
+    labels: [kind.link],
+    items: [
+      changelogItem({
+        field: "status",
+        fromString: "To Do",
+        toString: change.jiraStatus,
+      }),
+    ],
+    status: jiraStatus({
+      name: change.jiraStatus,
+      categoryKey: change.jiraStatusCategory || "done",
+      id: "10002",
+    }),
+    user: jiraUser(change.changedBy),
+  });
+
+  if (!change.changedBy) {
+    delete event["user"];
+  }
+
   return await runJiraScript({
     templateId: kind.jira.statusToState,
-    componentId: "decide-state-1",
-    args: {
-      [kind.noun]: quoted(kind.record),
-      states: quoted(kind.states),
-      event: quoted({
-        proceed: true,
-        [kind.idKey]: kind.id,
-        issueKey: JIRA_ISSUE_KEY,
-        jiraStatus: change.jiraStatus,
-        jiraStatusCategory: change.jiraStatusCategory || "done",
-        changedBy: change.changedBy,
-      }),
-    },
+    componentId: "read-event-1",
+    args: event,
   });
 }
 
-// comment-to-*-private-note: a Jira comment_created webhook.
+// comment-to-*-private-note: Jira's answer for the linked issue, then the comment_created webhook.
 async function noteFromComment(
   kind: RecordKind,
   event: JSONObject,
@@ -317,7 +318,10 @@ async function noteFromComment(
   return await runJiraScript({
     templateId: kind.jira.commentToNote,
     componentId: "read-comment-1",
-    args: jiraLinkingEventArgs(event, site),
+    args: {
+      issue: quoted(jiraIssueLabelsResponse([JIRA_LINK_LABEL, kind.link])),
+      ...jiraLinkingEventArgs(event, site),
+    },
   });
 }
 
@@ -346,7 +350,7 @@ async function noteFromChanges(
   });
 }
 
-// create-*-from-case: the case as the Web API returned it.
+// create-*-from-case: the request Dataverse sent, and the case as the Web API returned it.
 async function recordFromCase(
   kind: RecordKind,
   row: JSONObject,
@@ -355,9 +359,9 @@ async function recordFromCase(
     templateId: kind.dynamics.createRecord,
     componentId: kind.dynamics.prepare,
     args: {
-      severities: quoted(kind.severities),
       dynamicsUrl: DYNAMICS_URL,
       linkColumn: LINK_COLUMN,
+      payload: quoted(webhookContext({ messageName: "Create" })),
       case: quoted(row),
     },
   });
@@ -369,30 +373,32 @@ interface CaseStatusChange {
   changedBy: string;
 }
 
-// case-status-to-*-state: find-link-1's output for a resolved case.
+/*
+ * case-status-to-*-state: decide-state-1, for a resolved case linked to the
+ * record, in a status and changed by the person Dataverse names - or
+ * nobody. Its reason is what the record's timeline says the change was for.
+ */
 async function causeFromCase(
   kind: RecordKind,
   change: CaseStatusChange,
 ): Promise<JSONObject> {
+  const row: JSONObject = caseRow({
+    link: kind.link,
+    statuscode: 5,
+    ticketnumber: change.caseNumber,
+    modifiedBy: change.changedBy,
+  });
+
+  row[formattedKey("statuscode")] = change.caseStatusText;
+
+  if (!change.changedBy) {
+    delete row[formattedKey("_modifiedby_value")];
+  }
+
   return await runDynamicsScript({
     templateId: kind.dynamics.statusToState,
     componentId: "decide-state-1",
-    args: {
-      [kind.noun]: quoted(kind.record),
-      states: quoted(kind.states),
-      link: quoted({
-        proceed: true,
-        [kind.idKey]: kind.id,
-        caseId: CASE_ID,
-        caseNumber: change.caseNumber,
-        caseState: 1,
-        caseStateName: "Resolved",
-        caseStatus: 5,
-        caseStatusName: change.caseStatusText,
-        caseStatusText: change.caseStatusText,
-        changedBy: change.changedBy,
-      }),
-    },
+    args: { linkColumn: LINK_COLUMN, case: quoted(row) },
   });
 }
 
@@ -602,7 +608,7 @@ function integrationScripts(): Array<ScriptStep> {
     ) as unknown as { nodes: Array<JSONObject> } | null;
 
     for (const node of spec?.nodes || []) {
-      if (node["metadataId"] === ComponentID.JavaScriptCode) {
+      if (isTemplateScriptStep(node["metadataId"])) {
         steps.push({
           templateId: template.id,
           componentId: String(node["componentId"]),
@@ -638,17 +644,16 @@ describe("the helpers every Jira, Dynamics 365 and Zabbix script starts with", (
 
     /*
      * 17 Jira templates, 13 Dynamics 365 ones and 6 Zabbix ones, each with
-     * one script or more: eight for each kind of Zabbix record, three in the
-     * template Zabbix sends its problems to and five in the two that call
-     * Zabbix.
+     * one script, but the four Dynamics 365 ones that read which case or
+     * note a request names before reading it, which have two.
      */
     expect(templates.size).toBe(36);
-    expect(scripts).toHaveLength(60);
+    expect(scripts).toHaveLength(40);
     expect(
       scripts.filter((script: ScriptStep): boolean => {
         return script.templateId.startsWith("zabbix-");
       }),
-    ).toHaveLength(16);
+    ).toHaveLength(6);
   });
 
   test("every script carries the very same placing helpers, in its helper block", () => {
@@ -967,13 +972,19 @@ describe.each([
  * scripts. Text is placed with asWritten and checked below; everything else
  * is data that each script checks before it returns it.
  */
+/*
+ * The column is what the record step is given it for: Incident or Alert
+ * From Another Tool writes the title and description of the record it
+ * opens, a private note (note), and why a state changed (reason, or note
+ * for a step given no reason: the note is then the reason).
+ */
 const PLACED_OUTPUTS: Array<string> = [
   "jira-declare-incident-from-issue prepare-incident-1 title -> title",
   "jira-declare-incident-from-issue prepare-incident-1 description -> description",
   "jira-create-alert-from-issue prepare-alert-1 title -> title",
   "jira-create-alert-from-issue prepare-alert-1 description -> description",
-  "jira-status-to-incident-state decide-state-1 rootCause -> rootCause",
-  "jira-status-to-alert-state decide-state-1 rootCause -> rootCause",
+  "jira-status-to-incident-state read-event-1 reason -> note",
+  "jira-status-to-alert-state read-event-1 reason -> note",
   "jira-comment-to-incident-private-note read-comment-1 note -> note",
   "jira-comment-to-alert-private-note read-comment-1 note -> note",
   "jira-issue-changes-to-incident-private-note read-changes-1 note -> note",
@@ -982,35 +993,31 @@ const PLACED_OUTPUTS: Array<string> = [
   "dynamics-declare-incident-from-case prepare-incident-1 description -> description",
   "dynamics-create-alert-from-case prepare-alert-1 title -> title",
   "dynamics-create-alert-from-case prepare-alert-1 description -> description",
-  "dynamics-case-status-to-incident-state decide-state-1 rootCause -> rootCause",
-  "dynamics-case-status-to-alert-state decide-state-1 rootCause -> rootCause",
+  "dynamics-case-status-to-incident-state decide-state-1 reason -> note",
+  "dynamics-case-status-to-alert-state decide-state-1 reason -> note",
   "dynamics-case-note-to-incident-private-note read-note-1 note -> note",
   "dynamics-case-note-to-alert-private-note read-note-1 note -> note",
   "zabbix-declare-incident-from-problem read-event-1 title -> title",
   "zabbix-declare-incident-from-problem read-event-1 description -> description",
   "zabbix-declare-incident-from-problem read-event-1 note -> note",
-  "zabbix-declare-incident-from-problem decide-state-1 rootCause -> rootCause",
-  "zabbix-declare-incident-from-problem decide-state-2 rootCause -> rootCause",
+  "zabbix-declare-incident-from-problem read-event-1 reason -> reason",
   "zabbix-create-alert-from-problem read-event-1 title -> title",
   "zabbix-create-alert-from-problem read-event-1 description -> description",
   "zabbix-create-alert-from-problem read-event-1 note -> note",
-  "zabbix-create-alert-from-problem decide-state-1 rootCause -> rootCause",
-  "zabbix-create-alert-from-problem decide-state-2 rootCause -> rootCause",
+  "zabbix-create-alert-from-problem read-event-1 reason -> reason",
 ];
 
 const DATA_OUTPUTS: Record<string, string> = {
-  "incidentSeverityId -> incidentSeverityId":
-    "the id of one of the project's own severities",
-  "alertSeverityId -> alertSeverityId":
-    "the id of one of the project's own severities",
+  "severity -> severity":
+    "a place among the project's own severities, or a severity's name, which the record step picks one of the project's own by",
   "issueKey -> customFields.jiraIssueKey": "a key that matched ISSUE_KEY",
   "caseId -> customFields.dynamicsCaseId": "a Dataverse id, read by guidOf",
   "caseNumber -> customFields.dynamicsCaseNumber":
     "the case number, kept as it is as the custom field's value",
-  "incidentId -> incidentId": "an id read off a label or a link column",
-  "alertId -> alertId": "an id read off a label or a link column",
-  "stateId -> incidentStateId": "the id of one of the project's own states",
-  "stateId -> alertStateId": "the id of one of the project's own states",
+  "incidentId -> record": "an id read off a label or a link column",
+  "alertId -> record": "an id read off a label or a link column",
+  "whatHappened -> whatHappened":
+    "one of the record step's own words, or a state's name a script maps to",
   "eventId -> customFields.zabbixEventId":
     "a Zabbix event ID, which the read step takes as digits only",
 };
@@ -1024,26 +1031,42 @@ const DATA_OUTPUTS: Record<string, string> = {
  */
 const HUNTRESS_TRIGGER: string = `${HUNTRESS_INCIDENT_TEMPLATE_ID} ${HUNTRESS_TRIGGER_COMPONENT_ID}`;
 
+// The note is a comment's text, and why the incident is resolved when the report closes.
 const TRIGGER_PLACED_OUTPUTS: Array<string> = [
   `${HUNTRESS_TRIGGER} incident-title -> title`,
   `${HUNTRESS_TRIGGER} incident-description -> description`,
   `${HUNTRESS_TRIGGER} note -> note`,
-  `${HUNTRESS_TRIGGER} note -> rootCause`,
 ];
 
 const TRIGGER_DATA_OUTPUTS: Record<string, string> = {
-  [`${HUNTRESS_TRIGGER} incident-severity-id -> incidentSeverityId`]:
+  [`${HUNTRESS_TRIGGER} incident-severity-id -> severity`]:
     "the id of one of the project's own severities, which the trigger picks",
-  [`${HUNTRESS_TRIGGER} organization-label-id -> labels._id`]:
+  [`${HUNTRESS_TRIGGER} organization-label-id -> labels`]:
     "the id of the project's label the trigger finds or makes",
   [`${HUNTRESS_TRIGGER} report-id -> customFields.huntressReportId`]:
     "the report's number, which the payload reader takes as digits only",
+  [`${HUNTRESS_TRIGGER} event -> whatHappened`]:
+    "the event the trigger read, one of the record step's own words",
 };
 
 // A reference to another step's output: its component and the path of the value.
 const STEP_OUTPUT_REFERENCE: RegExp =
   /\{\{local\.components\.([A-Za-z0-9-]+)\.returnValues\.([A-Za-z0-9_.-]+)\}\}/g;
 const DATABASE_WRITE: RegExp = /-(create|update)-(one|many)$/;
+// Incident or Alert From Another Tool: the step that writes a record from another tool.
+const RECORD_FROM_ANOTHER_TOOL: RegExp = /-from-another-tool$/;
+
+// What each of its settings writes, as these tests name it.
+const FROM_ANOTHER_TOOL_COLUMNS: Record<string, string> = {
+  "what-happened": "whatHappened",
+  "record-id": "record",
+  title: "title",
+  description: "description",
+  severity: "severity",
+  note: "note",
+  reason: "reason",
+  labels: "labels",
+};
 
 interface WrittenOutput {
   templateId: string;
@@ -1086,11 +1109,56 @@ function writtenOutputs(): Array<WrittenOutput> {
     ) as unknown as { nodes: Array<JSONObject> } | null;
 
     for (const node of spec?.nodes || []) {
-      if (!DATABASE_WRITE.test(String(node["metadataId"]))) {
-        continue;
+      const args: JSONObject = (node["args"] as JSONObject | undefined) || {};
+      const references: Array<[string, string, string]> = [];
+
+      if (RECORD_FROM_ANOTHER_TOOL.test(String(node["metadataId"]))) {
+        for (const [key, argument] of Object.entries(args)) {
+          if (key === "outside-id-field") {
+            continue;
+          }
+
+          if (key === "outside-id") {
+            outputsWrittenInto(
+              argument as JSONValue,
+              `customFields.${String(args["outside-id-field"])}`,
+              references,
+            );
+            continue;
+          }
+
+          if (key === "custom-fields") {
+            // An object of custom fields, or the same written as JSON.
+            outputsWrittenInto(
+              typeof argument === "string"
+                ? (JSON.parse(argument) as JSONValue)
+                : (argument as JSONValue),
+              "customFields",
+              references,
+            );
+            continue;
+          }
+
+          outputsWrittenInto(
+            argument as JSONValue,
+            FROM_ANOTHER_TOOL_COLUMNS[key] || key,
+            references,
+          );
+        }
       }
 
-      const references: Array<[string, string, string]> = [];
+      if (!DATABASE_WRITE.test(String(node["metadataId"]))) {
+        for (const [component, output, column] of references) {
+          written.push({
+            templateId: template.id,
+            component: component,
+            output: output,
+            column: column,
+          });
+        }
+
+        continue;
+      }
 
       for (const [key, argument] of Object.entries(
         (node["args"] as JSONObject | undefined) || {},
@@ -1499,7 +1567,7 @@ describe.each(KINDS)(
       async (_case: string, change: JiraStatusChange, cause: string) => {
         const result: JSONObject = await causeFromIssue(kind, change);
 
-        expect(result["rootCause"]).toBe(
+        expect(result["reason"]).toBe(
           `${ONEUPTIME_SYNCED_FROM_JIRA_MARKER}: ${cause}`,
         );
       },
@@ -1602,7 +1670,7 @@ describe.each(KINDS)(
         changedBy: "<!channel>",
       });
 
-      expect(result["rootCause"]).toBe(
+      expect(result["reason"]).toBe(
         `${ONEUPTIME_SYNCED_FROM_JIRA_MARKER}: issue OPS-17 moved to [Done]${J}(https://evil.example) by <${J}!channel>.`,
       );
     });
@@ -1731,7 +1799,7 @@ describe.each(KINDS)(
       async (_case: string, change: CaseStatusChange, cause: string) => {
         const result: JSONObject = await causeFromCase(kind, change);
 
-        expect(result["rootCause"]).toBe(
+        expect(result["reason"]).toBe(
           `${ONEUPTIME_SYNCED_FROM_DYNAMICS_MARKER}: ${cause}`,
         );
       },
@@ -1803,7 +1871,7 @@ describe.each(KINDS)(
         changedBy: "<@U0123ABC>",
       });
 
-      expect(result["rootCause"]).toBe(
+      expect(result["reason"]).toBe(
         `${ONEUPTIME_SYNCED_FROM_DYNAMICS_MARKER}: case !${J}[c]${J}(https://tracker.example/c.png) is <${J}b>Problem Solved<${J}/b>, changed by <${J}@U0123ABC>.`,
       );
     });
@@ -1845,34 +1913,29 @@ async function readZabbixEvent(
     templateId: kind.zabbix,
     componentId: "read-event-1",
     args: {
-      severities: quoted(kind.severities),
       zabbixUrl: ZABBIX_URL,
       payload: quoted(body),
     },
   });
 }
 
-// decide-state-2 of a Zabbix template, for an update that acknowledged the problem.
+/*
+ * read-event-1 of a Zabbix template, for an update that acknowledged the
+ * problem: its reason is what the record's timeline says it was for.
+ */
 async function causeFromZabbix(
   kind: RecordKind,
   user: string,
 ): Promise<JSONObject> {
-  return await runZabbixScript({
-    templateId: kind.zabbix,
-    componentId: "decide-state-2",
-    args: {
-      [kind.noun]: quoted(kind.record),
-      states: quoted(kind.states),
-      zabbixUrl: ZABBIX_URL,
-      event: quoted({
-        kind: "update",
-        eventId: ZABBIX_EVENT_ID,
-        triggerId: ZABBIX_TRIGGER_ID,
-        target: "acknowledged",
-        user: user,
-      }),
-    },
-  });
+  return await readZabbixEvent(
+    kind,
+    zabbixPostedBody({
+      kind: ZabbixEventKind.Update,
+      updateAction: "acknowledged",
+      updateMessage: "",
+      updateUser: user,
+    }),
+  );
 }
 
 /*
@@ -1955,7 +2018,7 @@ async function writtenWithOutsideMarkup(): Promise<Array<Written>> {
 
     written.push({
       name: `${kind.noun} state change from a Jira status`,
-      text: textOf(cause, "rootCause"),
+      text: textOf(cause, "reason"),
       asTyped: `${ONEUPTIME_SYNCED_FROM_JIRA_MARKER}: issue OPS-17 moved to ${typedLine} by ${typedLine}.`,
       ownLinks: [],
     });
@@ -1999,7 +2062,7 @@ async function writtenWithOutsideMarkup(): Promise<Array<Written>> {
 
     written.push({
       name: `${kind.noun} state change from a Dynamics 365 case`,
-      text: textOf(caseCause, "rootCause"),
+      text: textOf(caseCause, "reason"),
       asTyped: `${ONEUPTIME_SYNCED_FROM_DYNAMICS_MARKER}: case ${typedLine} is ${typedLine}, changed by ${typedLine}.`,
       ownLinks: [],
     });
@@ -2089,7 +2152,7 @@ async function writtenWithOutsideMarkup(): Promise<Array<Written>> {
 
     written.push({
       name: `${kind.noun} state change from a Zabbix acknowledgment`,
-      text: textOf(acknowledged, "rootCause"),
+      text: textOf(acknowledged, "reason"),
       asTyped: `${ONEUPTIME_SYNCED_FROM_ZABBIX_MARKER}: ${typedLine} acknowledged ${PROBLEM_LINK}.`,
       ownLinks: [PROBLEM_URL],
     });
@@ -2570,10 +2633,10 @@ describe("time", () => {
         textOf(issue, "description"),
         textOf(comment, "note"),
         textOf(changes, "note"),
-        textOf(cause, "rootCause"),
+        textOf(cause, "reason"),
         textOf(record, "title"),
         textOf(record, "description"),
-        textOf(caseCause, "rootCause"),
+        textOf(caseCause, "reason"),
       ]) {
         // A value cut short ends in "…", which a "<" before it starts nothing with.
         expect(text).not.toMatch(MARKUP_START);

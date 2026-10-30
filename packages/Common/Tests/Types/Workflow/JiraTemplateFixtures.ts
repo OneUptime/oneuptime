@@ -745,12 +745,29 @@ export const alertNoteModel: AlertNoteModelFunction = (
 
 /* ------------------------------- Scripts ------------------------------- */
 
+export type IsTemplateScriptStepFunction = (metadataId: unknown) => boolean;
+
+// A step that runs a script: Run Custom JavaScript, or Check With JavaScript.
+export const isTemplateScriptStep: IsTemplateScriptStepFunction = (
+  metadataId: unknown,
+): boolean => {
+  return (
+    metadataId === ComponentID.JavaScriptCode ||
+    metadataId === ComponentID.JavaScriptCheck
+  );
+};
+
 export type ScriptOfFunction = (
   templateId: string,
   componentId: string,
 ) => string;
 
-/** The JavaScript a template ships for one of its steps. */
+/*
+ * The JavaScript a template ships for one of its steps: a Run Custom
+ * JavaScript step's, or a Check With JavaScript step's, which goes on by
+ * Yes when its script says to and by No, with the script's reason, when it
+ * does not.
+ */
 export const scriptOf: ScriptOfFunction = (
   templateId: string,
   componentId: string,
@@ -763,7 +780,7 @@ export const scriptOf: ScriptOfFunction = (
     (candidate: JSONObject) => {
       return (
         candidate["componentId"] === componentId &&
-        candidate["metadataId"] === ComponentID.JavaScriptCode
+        isTemplateScriptStep(candidate["metadataId"])
       );
     },
   );

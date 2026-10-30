@@ -40,6 +40,7 @@ import {
   OAuth2ClientAuthenticationMethod,
   OAuth2GrantType,
 } from "../../../Types/Workflow/WorkflowVariableOAuth";
+import { isTemplateScriptStep } from "./JiraTemplateFixtures";
 
 /* ------------------------------- The graph ------------------------------- */
 
@@ -153,7 +154,7 @@ type ScriptsOfFunction = (templateId: string) => Array<NodeSpec>;
 
 const scriptsOf: ScriptsOfFunction = (templateId: string): Array<NodeSpec> => {
   return specOf(templateId).nodes.filter((node: NodeSpec) => {
-    return node.metadataId === ComponentID.JavaScriptCode;
+    return isTemplateScriptStep(node.metadataId);
   });
 };
 

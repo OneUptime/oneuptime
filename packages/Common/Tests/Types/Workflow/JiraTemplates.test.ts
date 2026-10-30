@@ -90,6 +90,7 @@ import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "../../../Models/DatabaseModels/IncidentStateTimeline";
 import { describe, expect, test } from "@jest/globals";
+import { isTemplateScriptStep } from "./JiraTemplateFixtures";
 
 /* ------------------------------ The kinds ------------------------------ */
 
@@ -687,7 +688,7 @@ const isApiNode: NodePredicate = (node: TemplateNodeSpec): boolean => {
 };
 
 const isScriptNode: NodePredicate = (node: TemplateNodeSpec): boolean => {
-  return node.metadataId === ComponentID.JavaScriptCode;
+  return isTemplateScriptStep(node.metadataId);
 };
 
 const isIfElseNode: NodePredicate = (node: TemplateNodeSpec): boolean => {

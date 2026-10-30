@@ -46,6 +46,7 @@ import { decodeHtmlEntities } from "../../Helpers/HtmlText";
 import { renderAsDashboard } from "../../Utils/Markdown/DashboardMarkdownRenderer";
 import {
   JIRA_ISSUE_KEY,
+  isTemplateScriptStep,
   runJiraScript,
   scriptOf,
 } from "./JiraTemplateFixtures";
@@ -113,7 +114,7 @@ function jiraScripts(): Array<ScriptStep> {
 
   for (const template of jiraTemplates()) {
     for (const node of nodesOf(template.id)) {
-      if (node["metadataId"] === ComponentID.JavaScriptCode) {
+      if (isTemplateScriptStep(node["metadataId"])) {
         steps.push({
           templateId: template.id,
           componentId: String(node["componentId"]),
@@ -705,8 +706,8 @@ describe("the templates that link a Jira issue", () => {
     const declaration: string = `\nconst SITE_SETTING = /${JIRA_SITE_URL_PATTERN.source}/${JIRA_SITE_URL_PATTERN.flags};\n`;
     const scripts: Array<ScriptStep> = jiraScripts();
 
-    // 17 templates, 23 scripts: every one starts with the same helper block.
-    expect(scripts).toHaveLength(23);
+    // 17 templates, a script each: every one starts with the same helper block.
+    expect(scripts).toHaveLength(17);
 
     for (const step of scripts) {
       const code: string = scriptOf(step.templateId, step.componentId);

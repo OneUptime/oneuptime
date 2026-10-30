@@ -34,6 +34,10 @@
 
 import { describe, expect, jest, test } from "@jest/globals";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
+import {
+  SeverityChoice,
+  pickSeverityIndex,
+} from "../../../Types/Workflow/Components/FromAnotherTool";
 import ComponentID from "../../../Types/Workflow/ComponentID";
 import {
   JIRA_ALERT_LABEL_PREFIX,
@@ -48,37 +52,26 @@ import {
 } from "../../../Types/Workflow/Templates";
 import {
   ACKNOWLEDGED_STATE,
-  ACKNOWLEDGED_STATE_ID,
   ALERT_ACKNOWLEDGED_STATE,
-  ALERT_ACKNOWLEDGED_STATE_ID,
   ALERT_CREATED_STATE,
   ALERT_ID,
   ALERT_RESOLVED_STATE,
-  ALERT_RESOLVED_STATE_ID,
   ALERT_SEVERITIES,
-  ALERT_STATES,
   CREATED_STATE,
-  CRITICAL_SEVERITY_ID,
   DONE,
   EMPTY_JIRA_SEARCH,
-  HIGH_ALERT_SEVERITY_ID,
   INCIDENT_ID,
   INCIDENT_SEVERITIES,
-  INCIDENT_STATES,
   IN_PROGRESS,
   IncidentModelProps,
   JIRA_ISSUE_KEY,
   JIRA_SITE,
   JiraIssueProps,
-  LOW_ALERT_SEVERITY_ID,
-  MAJOR_SEVERITY_ID,
-  MINOR_SEVERITY_ID,
   OTHER_ALERT_ID,
   OTHER_INCIDENT_ID,
   PROJECT_ID,
   RESOLVED_CHANGELOG,
   RESOLVED_STATE,
-  RESOLVED_STATE_ID,
   STARTED_CHANGELOG,
   TO_DO,
   TRANSITIONS_FROM_TO_DO,
@@ -97,6 +90,7 @@ import {
   jiraStatus,
   jiraTransition,
   jiraUser,
+  isTemplateScriptStep,
   noteModel,
   quoted,
   runJiraScript,
@@ -334,12 +328,12 @@ interface KindSteps {
   /** The private-note template, and for incidents the public-note one. */
   noteComments: Array<NoteTemplateCase>;
   updateComment: RunStepFunction;
+  // Reads the issue as Jira has it now too: the second look confirm-unlinked-1 took.
   prepareRecord: RunStepFunction;
-  confirmUnlinked: RunStepFunction;
+  // Says what the status means for the record: what decide-state-1 did.
   readEvent: RunStepFunction;
-  decideState: RunStepFunction;
+  // Reads the link off the issue as Jira has it now: what find-link-1 did.
   readComment: RunStepFunction;
-  findLink: RunStepFunction;
   readChanges: RunStepFunction;
 }
 
@@ -375,11 +369,8 @@ const stepsOf: KindStepsFunction = (
     noteComments: noteComments,
     updateComment: step(templates.update, "build-comment-1"),
     prepareRecord: step(templates.createRecord, prepareRecordStep),
-    confirmUnlinked: step(templates.createRecord, "confirm-unlinked-1"),
     readEvent: step(templates.statusToState, "read-event-1"),
-    decideState: step(templates.statusToState, "decide-state-1"),
-    readComment: linkingEventStep(templates.commentToNote, "read-comment-1"),
-    findLink: step(templates.commentToNote, "find-link-1"),
+    readComment: step(templates.commentToNote, "read-comment-1"),
     readChanges: linkingEventStep(templates.changesToNote, "read-changes-1"),
   };
 };
@@ -427,7 +418,6 @@ interface RecordKind {
   numberField: string;
   severityRelation: string;
   stateRelation: string;
-  severityIdKey: string;
   dashboardPath: string;
   prepareRecordStep: string;
   syncPrivateName: string;
@@ -435,19 +425,12 @@ interface RecordKind {
   createdState: JSONObject;
   acknowledgedState: JSONObject;
   resolvedState: JSONObject;
-  acknowledgedStateId: string;
-  resolvedStateId: string;
-  /** The project's default states, in the order find-many returns them. */
-  states: Array<JSONObject>;
   /** The project's default severities, deliberately out of order. */
   severities: Array<JSONObject>;
   mostSevereName: string;
-  mostSevereId: string;
   leastSevereName: string;
   /** What each Jira priority lands on among the default severities. */
   priorities: Array<PriorityMapping>;
-  /** The severity ids the High, Medium and Low priorities land on. */
-  highMediumLowIds: Array<string>;
   model: RecordModelFunction;
   note: RecordNoteFunction;
   /** What the record and note fixtures hold, as the scripts quote them. */
@@ -509,7 +492,6 @@ const INCIDENT: RecordKind = {
   numberField: "incidentNumberWithPrefix",
   severityRelation: "incidentSeverity",
   stateRelation: "currentIncidentState",
-  severityIdKey: "incidentSeverityId",
   dashboardPath: "incidents",
   prepareRecordStep: "prepare-incident-1",
   syncPrivateName: "SYNC_PRIVATE_INCIDENTS",
@@ -517,12 +499,8 @@ const INCIDENT: RecordKind = {
   createdState: CREATED_STATE,
   acknowledgedState: ACKNOWLEDGED_STATE,
   resolvedState: RESOLVED_STATE,
-  acknowledgedStateId: ACKNOWLEDGED_STATE_ID,
-  resolvedStateId: RESOLVED_STATE_ID,
-  states: INCIDENT_STATES,
   severities: INCIDENT_SEVERITIES,
   mostSevereName: "Critical Incident",
-  mostSevereId: CRITICAL_SEVERITY_ID,
   leastSevereName: "Minor Incident",
   priorities: [
     { priority: "Highest", severity: "Critical Incident" },
@@ -539,11 +517,6 @@ const INCIDENT: RecordKind = {
     // Not listed, or no priority at all: the middle of the range.
     { priority: "P2 - Urgent-ish", severity: "Major Incident" },
     { priority: null, severity: "Major Incident" },
-  ],
-  highMediumLowIds: [
-    CRITICAL_SEVERITY_ID,
-    MAJOR_SEVERITY_ID,
-    MINOR_SEVERITY_ID,
   ],
   model: incidentModel,
   note: incidentNote,
@@ -572,7 +545,6 @@ const ALERT: RecordKind = {
   numberField: "alertNumberWithPrefix",
   severityRelation: "alertSeverity",
   stateRelation: "currentAlertState",
-  severityIdKey: "alertSeverityId",
   dashboardPath: "alerts",
   prepareRecordStep: "prepare-alert-1",
   syncPrivateName: "SYNC_PRIVATE_ALERTS",
@@ -580,12 +552,8 @@ const ALERT: RecordKind = {
   createdState: ALERT_CREATED_STATE,
   acknowledgedState: ALERT_ACKNOWLEDGED_STATE,
   resolvedState: ALERT_RESOLVED_STATE,
-  acknowledgedStateId: ALERT_ACKNOWLEDGED_STATE_ID,
-  resolvedStateId: ALERT_RESOLVED_STATE_ID,
-  states: ALERT_STATES,
   severities: ALERT_SEVERITIES,
   mostSevereName: "High",
-  mostSevereId: HIGH_ALERT_SEVERITY_ID,
   leastSevereName: "Low",
   /*
    * Two severities have no middle: rank 1 of 0 to 2 lands halfway between
@@ -606,11 +574,6 @@ const ALERT: RecordKind = {
     { priority: "Trivial", severity: "Low" },
     { priority: "P2 - Urgent-ish", severity: "Low" },
     { priority: null, severity: "Low" },
-  ],
-  highMediumLowIds: [
-    HIGH_ALERT_SEVERITY_ID,
-    LOW_ALERT_SEVERITY_ID,
-    LOW_ALERT_SEVERITY_ID,
   ],
   model: alertModel,
   note: alertNote,
@@ -790,13 +753,6 @@ const ADVERSARIAL_TEXT: string = `Leak ${SECRET_REFERENCE} and {{{{local.compone
 /** Keys the runtime leaves as literal braces when a step never produced them. */
 const UNRESOLVED_SEARCH: string =
   "{{local.components.find-issue-1.returnValues.response-body}}";
-const UNRESOLVED_STATES: string =
-  "{{local.components.find-states-1.returnValues.models}}";
-
-const unresolvedRecord: KindTextFunction = (kind: RecordKind): string => {
-  return `{{local.components.find-${kind.noun}-1.returnValues.model}}`;
-};
-
 const IN_REVIEW: JSONObject = jiraStatus({
   name: "In Review",
   categoryKey: "indeterminate",
@@ -818,20 +774,6 @@ const MONITORING_STATE: JSONObject = {
   isCreatedState: false,
   isAcknowledgedState: false,
   isResolvedState: false,
-};
-
-type StatesWithMonitoringFunction = (kind: RecordKind) => Array<JSONObject>;
-
-/** A project that added a Monitoring state between Acknowledged and Resolved. */
-const statesWithMonitoring: StatesWithMonitoringFunction = (
-  kind: RecordKind,
-): Array<JSONObject> => {
-  return [
-    { ...kind.resolvedState, order: 4 },
-    MONITORING_STATE,
-    kind.createdState,
-    kind.acknowledgedState,
-  ];
 };
 
 /*
@@ -2749,24 +2691,26 @@ for (const kind of KINDS) {
 type RecordArgsFunction = (
   kind: RecordKind,
   payload: JSONValue,
-  severities?: JSONValue,
+  issue?: JSONValue,
   site?: string | null,
 ) => JSONObject;
 
 /*
- * The Jira payload goes last, as it does in the template, after the
- * workflow's Jira Site URL as the create wizard stored it (JIRA_SITE). A
- * site of null leaves the setting out.
+ * What the create step is handed, in the template's order: the issue as
+ * Jira has it now (get-issue-1's response, unlinked unless a test says
+ * otherwise), the workflow's Jira Site URL as the create wizard stored it
+ * (JIRA_SITE), and the Jira payload last. A site of null leaves the setting
+ * out.
  */
 const recordArgs: RecordArgsFunction = (
   kind: RecordKind,
   payload: JSONValue,
-  severities?: JSONValue,
+  issue?: JSONValue,
   site: string | null = JIRA_SITE,
 ): JSONObject => {
   const args: JSONObject = {
-    severities: asArgument(
-      severities === undefined ? kind.severities : severities,
+    issue: asArgument(
+      issue === undefined ? jiraIssueLabelsResponse([]) : issue,
     ),
   };
 
@@ -2797,27 +2741,78 @@ const severityList: SeverityListFunction = (
   );
 };
 
-type ChosenSeverityFunction = (
+type ChosenPlaceFunction = (
   kind: RecordKind,
   priority: string | null,
-  severities?: JSONValue,
   editCode?: EditCodeFunction | undefined,
 ) => Promise<string>;
 
-/** The severity name an issue with this priority becomes an incident or alert with. */
-const chosenSeverity: ChosenSeverityFunction = async (
+/*
+ * Where among the project's severities an issue with this priority puts its
+ * record: the place the script names, which Incident or Alert From Another
+ * Tool takes as most severe, middle or least severe.
+ */
+const chosenPlace: ChosenPlaceFunction = async (
   kind: RecordKind,
   priority: string | null,
-  severities?: JSONValue,
   editCode?: EditCodeFunction | undefined,
 ): Promise<string> => {
   const result: JSONObject = await kind.steps.prepareRecord(
-    recordArgs(kind, jiraIssueCreatedEvent({ priority: priority }), severities),
+    recordArgs(kind, jiraIssueCreatedEvent({ priority: priority })),
     editCode,
   );
 
-  return textOf(result, "severityName");
+  return textOf(result, "severity");
 };
+
+type SeverityAtFunction = (
+  place: string,
+  severities: Array<JSONObject>,
+) => string;
+
+/*
+ * The severity a place lands on, as Incident or Alert From Another Tool
+ * picks it (pickSeverityIndex): among the project's severities by their
+ * order, most severe first.
+ */
+const severityAt: SeverityAtFunction = (
+  place: string,
+  severities: Array<JSONObject>,
+): string => {
+  const ordered: Array<{ id: string; name: string }> = [...severities]
+    .sort((a: JSONObject, b: JSONObject): number => {
+      return Number(a["order"]) - Number(b["order"]);
+    })
+    .map((severity: JSONObject): { id: string; name: string } => {
+      return { id: String(severity["_id"]), name: String(severity["name"]) };
+    });
+  const choice: SeverityChoice = pickSeverityIndex({
+    given: place,
+    severities: ordered,
+  });
+
+  expect(choice.namedBy).toBe("position");
+
+  return ordered[choice.index]?.name as string;
+};
+
+// Where each priority puts a record among the project's severities.
+const PRIORITY_PLACES: Array<{ priority: string | null; place: string }> = [
+  { priority: "Highest", place: "most severe" },
+  { priority: "High", place: "most severe" },
+  { priority: "Blocker", place: "most severe" },
+  { priority: "Critical", place: "most severe" },
+  { priority: "HIGHEST", place: "most severe" },
+  { priority: "Medium", place: "middle" },
+  { priority: "Major", place: "middle" },
+  { priority: "Low", place: "least severe" },
+  { priority: "Lowest", place: "least severe" },
+  { priority: "Minor", place: "least severe" },
+  { priority: "Trivial", place: "least severe" },
+  // Not listed, or no priority at all: the middle of the range.
+  { priority: "P2 - Urgent-ish", place: "middle" },
+  { priority: null, place: "middle" },
+];
 
 for (const kind of KINDS) {
   const prepareRecord: RunStepFunction = kind.steps.prepareRecord;
@@ -2831,8 +2826,7 @@ for (const kind of KINDS) {
       expect(result).toEqual({
         proceed: true,
         issueKey: JIRA_ISSUE_KEY,
-        severityName: kind.mostSevereName,
-        [kind.severityIdKey]: kind.mostSevereId,
+        severity: "most severe",
         title: "Checkout API returns 502 for EU customers",
         description: `${kind.Created} from Jira issue ${ISSUE_LINK}.\nPriority: High\nReported by: Priya Patel\n\nCustomers in *eu-west-1* see 502s at checkout.\nStarted around 09:40 UTC.`,
       });
@@ -2903,80 +2897,42 @@ for (const kind of KINDS) {
       }
     });
 
-    test(`maps Jira priorities onto the default ${kind.severities.length} ${kind.noun} severities`, async () => {
-      for (const mapping of kind.priorities) {
+    test("names where the priority puts the record among the project's severities", async () => {
+      for (const mapping of PRIORITY_PLACES) {
         expect({
           priority: mapping.priority,
-          severity: await chosenSeverity(kind, mapping.priority),
+          place: await chosenPlace(kind, mapping.priority),
         }).toEqual(mapping);
       }
     });
 
-    test("hands on the chosen severity's id", async () => {
-      const ids: Array<string> = [];
-
-      for (const priority of ["High", "Medium", "Low"]) {
-        const result: JSONObject = await prepareRecord(
-          recordArgs(kind, jiraIssueCreatedEvent({ priority: priority })),
-        );
-        ids.push(textOf(result, kind.severityIdKey));
-      }
-
-      expect(ids).toEqual(kind.highMediumLowIds);
-    });
-
-    test("spreads the priorities across five severities", async () => {
-      expect(await chosenSeverity(kind, "High", severityList(5))).toBe("SEV1");
-      expect(await chosenSeverity(kind, "Medium", severityList(5))).toBe(
-        "SEV3",
-      );
-      expect(await chosenSeverity(kind, "Low", severityList(5))).toBe("SEV5");
-    });
-
-    test("spreads the priorities across two severities", async () => {
-      expect(await chosenSeverity(kind, "High", severityList(2))).toBe("SEV1");
-      expect(await chosenSeverity(kind, "Medium", severityList(2))).toBe(
-        "SEV2",
-      );
-      expect(await chosenSeverity(kind, "Low", severityList(2))).toBe("SEV2");
-    });
-
-    test("maps every priority to the only severity there is", async () => {
-      for (const priority of ["Highest", "Medium", "Lowest", null]) {
-        expect(await chosenSeverity(kind, priority, severityList(1))).toBe(
-          "SEV1",
-        );
-      }
-    });
-
-    test("orders severities by their order field, not by how find-many returns them", async () => {
-      const reversed: Array<JSONObject> = [...severityList(5)].reverse();
-
-      expect(await chosenSeverity(kind, "Highest", reversed)).toBe("SEV1");
-      expect(await chosenSeverity(kind, "Lowest", reversed)).toBe("SEV5");
-    });
-
-    test("ignores severity rows without an id", async () => {
-      expect(
-        await chosenSeverity(kind, "Highest", [
-          { name: "Ghost", order: 0 },
-          ...kind.severities,
-        ]),
-      ).toBe(kind.mostSevereName);
-    });
-
-    test(`makes no ${kind.noun} when the project has no severities to choose from`, async () => {
-      for (const severities of [
-        [],
-        "null",
-        "{{local.components.find-severities-1.returnValues.models}}",
-      ]) {
-        expectSkipped(
-          await prepareRecord(
-            recordArgs(kind, jiraIssueCreatedEvent(), severities as JSONValue),
+    /*
+     * Incident or Alert From Another Tool takes the place among the
+     * project's own severities, as the script used to pick a severity
+     * itself: the same severity for each priority as before.
+     */
+    test(`each place lands on the severity the priority always did among the default ${kind.severities.length} ${kind.noun} severities`, async () => {
+      for (const mapping of kind.priorities) {
+        expect({
+          priority: mapping.priority,
+          severity: severityAt(
+            await chosenPlace(kind, mapping.priority),
+            kind.severities,
           ),
-          `This project has no ${kind.noun} severities to choose from.`,
-        );
+        }).toEqual(mapping);
+      }
+    });
+
+    test("the places spread across five, two and one severities as the priorities did", async () => {
+      expect(severityAt("most severe", severityList(5))).toBe("SEV1");
+      expect(severityAt("middle", severityList(5))).toBe("SEV3");
+      expect(severityAt("least severe", severityList(5))).toBe("SEV5");
+      expect(severityAt("most severe", severityList(2))).toBe("SEV1");
+      expect(severityAt("middle", severityList(2))).toBe("SEV2");
+      expect(severityAt("least severe", severityList(2))).toBe("SEV2");
+
+      for (const place of ["most severe", "middle", "least severe"]) {
+        expect(severityAt(place, severityList(1))).toBe("SEV1");
       }
     });
 
@@ -3111,13 +3067,8 @@ for (const kind of KINDS) {
 
     test("PRIORITY_RANK can be edited to move a priority", async () => {
       expect(
-        await chosenSeverity(
-          kind,
-          "High",
-          kind.severities,
-          replaceInCode("high: 0,", "high: 2,"),
-        ),
-      ).toBe(kind.leastSevereName);
+        await chosenPlace(kind, "High", replaceInCode("high: 0,", "high: 2,")),
+      ).toBe("least severe");
     });
 
     test("PRIORITY_RANK can be extended, and ranks outside 0 to 2 are clamped", async () => {
@@ -3126,42 +3077,44 @@ for (const kind of KINDS) {
         "trivial: 2, p1: 0, sev0: -5, sev9: 9 }",
       );
 
-      expect(
-        await chosenSeverity(kind, "P1", kind.severities, addPriorities),
-      ).toBe(kind.mostSevereName);
-      expect(
-        await chosenSeverity(kind, "SEV0", kind.severities, addPriorities),
-      ).toBe(kind.mostSevereName);
-      expect(
-        await chosenSeverity(kind, "SEV9", kind.severities, addPriorities),
-      ).toBe(kind.leastSevereName);
+      expect(await chosenPlace(kind, "P1", addPriorities)).toBe("most severe");
+      expect(await chosenPlace(kind, "SEV0", addPriorities)).toBe(
+        "most severe",
+      );
+      expect(await chosenPlace(kind, "SEV9", addPriorities)).toBe(
+        "least severe",
+      );
     });
   });
 }
 
-type ConfirmArgsFunction = (issue: JSONValue) => JSONObject;
-
-/* get-issue-1's response body, quoted into the arguments as JSON text. */
-const confirmArgs: ConfirmArgsFunction = (issue: JSONValue): JSONObject => {
-  return { issue: asArgument(issue) };
-};
-
 /*
- * The create template's second look, at the issue as Jira has it. The
- * webhook's own labels were already checked by the prepare step, but anyone
- * with the workflow's URL can write a webhook, and a delivery Jira retries
- * arrives after the first one labelled the issue.
+ * The create step's second look, at the issue as Jira has it now
+ * (get-issue-1, which API Get By ID reads by the key the webhook named).
+ * The webhook's own labels are checked first, but anyone with the
+ * workflow's URL can write a webhook, and a delivery Jira retries arrives
+ * after the first one labelled the issue. This was a step of its own,
+ * confirm-unlinked-1, and is now the same script's.
  */
 for (const kind of KINDS) {
-  const confirmUnlinked: RunStepFunction = kind.steps.confirmUnlinked;
+  const prepareRecord: RunStepFunction = kind.steps.prepareRecord;
 
-  describe(`confirm-unlinked-1 in ${kind.templates.createRecord} makes no ${kind.noun} of an issue Jira says is linked`, () => {
-    test("lets an unlabelled issue through, under the key Jira returned", async () => {
-      const result: JSONObject = await confirmUnlinked(
-        confirmArgs(jiraIssueLabelsResponse([])),
+  type AsJiraHasItFunction = (issue: JSONValue) => Promise<JSONObject>;
+
+  // A new issue, unlabelled in the webhook, with Jira's own answer for it.
+  const asJiraHasIt: AsJiraHasItFunction = async (
+    issue: JSONValue,
+  ): Promise<JSONObject> => {
+    return await prepareRecord(
+      recordArgs(kind, jiraIssueCreatedEvent({ labels: [] }), issue),
+    );
+  };
+
+  describe(`${kind.prepareRecordStep} in ${kind.templates.createRecord} makes no ${kind.noun} of an issue Jira says is linked`, () => {
+    test("lets an unlabelled issue through", async () => {
+      expect((await asJiraHasIt(jiraIssueLabelsResponse([])))["proceed"]).toBe(
+        true,
       );
-
-      expect(result).toEqual({ proceed: true, issueKey: JIRA_ISSUE_KEY });
     });
 
     test("lets an issue through whose labels only look like the link labels", async () => {
@@ -3173,16 +3126,14 @@ for (const kind of KINDS) {
 
       for (const labels of labelSets) {
         expect(
-          await confirmUnlinked(confirmArgs(jiraIssueLabelsResponse(labels))),
-        ).toEqual({ proceed: true, issueKey: JIRA_ISSUE_KEY });
+          (await asJiraHasIt(jiraIssueLabelsResponse(labels)))["proceed"],
+        ).toBe(true);
       }
     });
 
     test("makes nothing of an issue carrying the link labels", async () => {
       expectSkipped(
-        await confirmUnlinked(
-          confirmArgs(jiraIssueLabelsResponse(kind.linkLabels)),
-        ),
+        await asJiraHasIt(jiraIssueLabelsResponse(kind.linkLabels)),
         alreadyLinkedReason(kind),
       );
     });
@@ -3190,9 +3141,7 @@ for (const kind of KINDS) {
     test("makes nothing of an issue carrying just the bare oneuptime label, in any case", async () => {
       for (const label of [JIRA_LINK_LABEL, "ONEUPTIME", "OneUptime"]) {
         expectSkipped(
-          await confirmUnlinked(
-            confirmArgs(jiraIssueLabelsResponse(["backend", label])),
-          ),
+          await asJiraHasIt(jiraIssueLabelsResponse(["backend", label])),
           alreadyLinkedReason(kind),
         );
       }
@@ -3210,7 +3159,7 @@ for (const kind of KINDS) {
 
       for (const label of labels) {
         expectSkipped(
-          await confirmUnlinked(confirmArgs(jiraIssueLabelsResponse([label]))),
+          await asJiraHasIt(jiraIssueLabelsResponse([label])),
           alreadyLinkedReason(kind),
         );
       }
@@ -3218,18 +3167,17 @@ for (const kind of KINDS) {
 
     test("goes by Jira's labels, not the webhook's", async () => {
       // A forged event for an issue OneUptime filed: the event claims no labels, Jira says otherwise.
-      const event: JSONObject = jiraIssueCreatedEvent({ labels: [] });
-      const prepared: JSONObject = await kind.steps.prepareRecord(
-        recordArgs(kind, event),
-      );
-
-      expect(prepared["proceed"]).toBe(true);
       expectSkipped(
-        await confirmUnlinked(
-          confirmArgs(jiraIssueLabelsResponse(kind.linkLabels)),
-        ),
+        await asJiraHasIt(jiraIssueLabelsResponse(kind.linkLabels)),
         alreadyLinkedReason(kind),
       );
+      expect(
+        (
+          await prepareRecord(
+            recordArgs(kind, jiraIssueCreatedEvent({ labels: [] })),
+          )
+        )["proceed"],
+      ).toBe(true);
     });
 
     test("treats a response without labels as unlabelled", async () => {
@@ -3242,10 +3190,7 @@ for (const kind of KINDS) {
       ];
 
       for (const issue of responses) {
-        expect(await confirmUnlinked(confirmArgs(issue))).toEqual({
-          proceed: true,
-          issueKey: JIRA_ISSUE_KEY,
-        });
+        expect((await asJiraHasIt(issue))["proceed"]).toBe(true);
       }
     });
 
@@ -3269,19 +3214,19 @@ for (const kind of KINDS) {
       ];
 
       for (const issue of responses) {
-        expectSkipped(
-          await confirmUnlinked(confirmArgs(issue)),
-          notReturnedReason(kind),
-        );
+        expectSkipped(await asJiraHasIt(issue), notReturnedReason(kind));
       }
     });
 
     test("reads the response whether it arrives as JSON text or as an object", async () => {
       const response: JSONObject = jiraIssueLabelsResponse(kind.linkLabels);
 
-      expect(await confirmUnlinked({ issue: response })).toEqual(
-        await confirmUnlinked(confirmArgs(response)),
-      );
+      expect(
+        await prepareRecord({
+          ...recordArgs(kind, jiraIssueCreatedEvent({ labels: [] })),
+          issue: response,
+        }),
+      ).toEqual(await asJiraHasIt(response));
     });
   });
 }
@@ -3291,7 +3236,7 @@ for (const kind of KINDS) {
   const idKey: string = `${kind.noun}Id`;
 
   describe(`read-event-1 in ${kind.templates.statusToState} keeps only status changes on linked issues`, () => {
-    test("reads a resolved issue, whose status item comes after the resolution", async () => {
+    test(`resolves the ${kind.noun} when the issue reaches a Done status, whose status item comes after the resolution`, async () => {
       const result: JSONObject = await readEvent(
         linkedUpdate(kind, RESOLVED_CHANGELOG, { status: DONE }),
       );
@@ -3300,13 +3245,18 @@ for (const kind of KINDS) {
         proceed: true,
         [idKey]: kind.id,
         issueKey: JIRA_ISSUE_KEY,
-        jiraStatus: "Done",
-        jiraStatusCategory: "done",
-        changedBy: "Priya Patel",
+        whatHappened: "resolve",
+        reason: "Synced from Jira: issue OPS-17 moved to Done by Priya Patel.",
       });
+      // The note templates skip text carrying this marker.
+      expect(
+        textOf(result, "reason").startsWith(
+          `${ONEUPTIME_SYNCED_FROM_JIRA_MARKER}: `,
+        ),
+      ).toBe(true);
     });
 
-    test("reads work starting on an issue", async () => {
+    test(`acknowledges the ${kind.noun} when work starts on the issue`, async () => {
       const result: JSONObject = await readEvent(
         linkedUpdate(kind, STARTED_CHANGELOG, {
           status: IN_PROGRESS,
@@ -3318,10 +3268,49 @@ for (const kind of KINDS) {
         proceed: true,
         [idKey]: kind.id,
         issueKey: JIRA_ISSUE_KEY,
-        jiraStatus: "In Progress",
-        jiraStatusCategory: "indeterminate",
-        changedBy: "Marco Rossi",
+        whatHappened: "acknowledge",
+        reason:
+          "Synced from Jira: issue OPS-17 moved to In Progress by Marco Rossi.",
       });
+    });
+
+    /*
+     * Never backwards: To Do is not a state a record goes back to. That
+     * an acknowledged or resolved record is not moved again, or back, is
+     * Incident or Alert From Another Tool's (FromAnotherTool.test.ts).
+     */
+    test("does nothing when the issue moves back to To Do", async () => {
+      expectSkipped(
+        await readEvent(
+          linkedUpdate(kind, STARTED_CHANGELOG, { status: TO_DO }),
+        ),
+        "Jira issue OPS-17 moved to To Do, which does not map to a OneUptime state.",
+      );
+    });
+
+    test("a status named in JIRA_STATUS_TO_STATE moves the record to that state, over its category", async () => {
+      const result: JSONObject = await readEvent(
+        linkedUpdate(kind, RESOLVED_CHANGELOG, { status: DONE }),
+        replaceInCode(
+          "const JIRA_STATUS_TO_STATE = {};",
+          "const JIRA_STATUS_TO_STATE = { Done: 'Monitoring' };",
+        ),
+      );
+
+      // Done would otherwise resolve the record; the name asks for Monitoring instead.
+      expect(result["whatHappened"]).toBe("state: Monitoring");
+    });
+
+    test("a status named in JIRA_STATUS_TO_STATE needs no category", async () => {
+      const result: JSONObject = await readEvent(
+        linkedUpdate(kind, STARTED_CHANGELOG, { status: IN_REVIEW }),
+        replaceInCode(
+          "const JIRA_STATUS_TO_STATE = {};",
+          "const JIRA_STATUS_TO_STATE = { 'In Review': 'Verifying' };",
+        ),
+      );
+
+      expect(result["whatHappened"]).toBe("state: Verifying");
     });
 
     test("recognises a status item that only names the field, capitalised", async () => {
@@ -3410,11 +3399,12 @@ for (const kind of KINDS) {
     });
 
     test("reads a link label in any case and hands the id on lowercased", async () => {
-      // Labels are lowercased before matching, so the id always reaches find-one as stored.
+      // Labels are lowercased before matching, so the id always reaches the record step as stored.
       const result: JSONObject = await readEvent(
         jiraIssueUpdatedEvent({
           items: STARTED_CHANGELOG,
           labels: [`${kind.mixedCaseLabelPrefix}${kind.id.toUpperCase()}`],
+          status: IN_PROGRESS,
         }),
       );
 
@@ -3430,6 +3420,7 @@ for (const kind of KINDS) {
             kind.labelOf(kind.otherId),
             kind.label,
           ],
+          status: IN_PROGRESS,
         }),
       );
 
@@ -3447,15 +3438,39 @@ for (const kind of KINDS) {
       );
     });
 
-    test("leaves changedBy empty when the event names no user", async () => {
+    test("leaves the actor out of the reason when Jira named none", async () => {
       const result: JSONObject = await readEvent(
-        omit(linkedUpdate(kind, STARTED_CHANGELOG, { status: IN_PROGRESS }), [
+        omit(linkedUpdate(kind, RESOLVED_CHANGELOG, { status: DONE }), [
           "user",
         ]),
       );
 
-      expect(result["proceed"]).toBe(true);
-      expect(result["changedBy"]).toBe("");
+      expect(result["reason"]).toBe(
+        "Synced from Jira: issue OPS-17 moved to Done.",
+      );
+    });
+
+    test("caps the reason at 1000 characters and defuses double braces in it", async () => {
+      const longName: JSONObject = await readEvent(
+        linkedUpdate(kind, RESOLVED_CHANGELOG, {
+          status: DONE,
+          user: jiraUser("c".repeat(2000)),
+        }),
+      );
+      const braces: JSONObject = await readEvent(
+        linkedUpdate(kind, RESOLVED_CHANGELOG, {
+          status: jiraStatus({
+            name: SECRET_REFERENCE,
+            categoryKey: "done",
+            id: "10002",
+          }),
+          user: jiraUser(SECRET_REFERENCE),
+        }),
+      );
+
+      expect(textOf(longName, "reason")).toHaveLength(1000);
+      expect(textOf(braces, "reason")).toContain(DEFUSED_SECRET_REFERENCE);
+      expect(textOf(braces, "reason")).not.toContain("{{");
     });
 
     test("reads a body that arrived as JSON text", async () => {
@@ -3471,281 +3486,56 @@ for (const kind of KINDS) {
   });
 }
 
-interface StatusEventProps {
-  jiraStatus?: string | undefined;
-  jiraStatusCategory?: string | undefined;
-  changedBy?: string | undefined;
-}
-
-type StatusEventFunction = (
-  kind: RecordKind,
-  props?: StatusEventProps | undefined,
-) => JSONObject;
-
-/** What read-event-1 hands on: Done, moved by Priya Patel, unless told otherwise. */
-const statusEvent: StatusEventFunction = (
-  kind: RecordKind,
-  props?: StatusEventProps | undefined,
-): JSONObject => {
-  return {
-    proceed: true,
-    [`${kind.noun}Id`]: kind.id,
-    issueKey: JIRA_ISSUE_KEY,
-    jiraStatus: props?.jiraStatus === undefined ? "Done" : props.jiraStatus,
-    jiraStatusCategory:
-      props?.jiraStatusCategory === undefined
-        ? "done"
-        : props.jiraStatusCategory,
-    changedBy: props?.changedBy === undefined ? "Priya Patel" : props.changedBy,
-  };
-};
-
-type KindEventFunction = (kind: RecordKind) => JSONObject;
-
-const inProgressEvent: KindEventFunction = (kind: RecordKind): JSONObject => {
-  return statusEvent(kind, {
-    jiraStatus: "In Progress",
-    jiraStatusCategory: "indeterminate",
-  });
-};
-
-type DecideArgsFunction = (
+type CommentArgsFunction = (
   kind: RecordKind,
   event: JSONValue,
-  record?: JSONValue,
-  states?: JSONValue,
+  issue?: JSONValue,
+  site?: string | null,
 ) => JSONObject;
 
-const decideArgs: DecideArgsFunction = (
+/*
+ * What read-comment-1 is handed, in the template's order: the issue as Jira
+ * has it now (get-issue-1's response, linked to the kind's record unless a
+ * test says otherwise), the workflow's Jira Site URL, and the comment event.
+ */
+const commentArgs: CommentArgsFunction = (
   kind: RecordKind,
   event: JSONValue,
-  record?: JSONValue,
-  states?: JSONValue,
+  issue?: JSONValue,
+  site: string | null = JIRA_SITE,
 ): JSONObject => {
   return {
-    [kind.noun]: asArgument(record === undefined ? kind.model() : record),
-    states: asArgument(states === undefined ? kind.states : states),
-    event: asArgument(event),
+    issue: asArgument(
+      issue === undefined ? jiraIssueLabelsResponse(kind.linkLabels) : issue,
+    ),
+    ...jiraLinkingEventArgs(event, site),
   };
 };
-
-for (const kind of KINDS) {
-  const decideState: RunStepFunction = kind.steps.decideState;
-
-  describe(`decide-state-1 maps the Jira status onto an ${kind.noun} state`, () => {
-    test(`resolves the ${kind.noun} when the issue reaches a Done status`, async () => {
-      const result: JSONObject = await decideState(
-        decideArgs(kind, statusEvent(kind)),
-      );
-
-      expect(result).toEqual({
-        proceed: true,
-        [`${kind.noun}Id`]: kind.id,
-        stateId: kind.resolvedStateId,
-        stateName: "Resolved",
-        rootCause:
-          "Synced from Jira: issue OPS-17 moved to Done by Priya Patel.",
-      });
-      // The note templates skip text carrying this marker.
-      expect(
-        textOf(result, "rootCause").startsWith(
-          `${ONEUPTIME_SYNCED_FROM_JIRA_MARKER}: `,
-        ),
-      ).toBe(true);
-    });
-
-    test(`acknowledges the ${kind.noun} when work starts on the issue`, async () => {
-      const result: JSONObject = await decideState(
-        decideArgs(kind, inProgressEvent(kind)),
-      );
-
-      expect(result["stateId"]).toBe(kind.acknowledgedStateId);
-      expect(result["rootCause"]).toBe(
-        "Synced from Jira: issue OPS-17 moved to In Progress by Priya Patel.",
-      );
-    });
-
-    test("does nothing when the issue moves back to To Do", async () => {
-      expectSkipped(
-        await decideState(
-          decideArgs(
-            kind,
-            statusEvent(kind, {
-              jiraStatus: "To Do",
-              jiraStatusCategory: "new",
-            }),
-          ),
-        ),
-        "Jira issue OPS-17 moved to To Do, which does not map to a OneUptime state.",
-      );
-    });
-
-    test(`does not move the ${kind.noun} to the state it is already in`, async () => {
-      expectSkipped(
-        await decideState(
-          decideArgs(
-            kind,
-            inProgressEvent(kind),
-            kind.model({ state: kind.acknowledgedState }),
-          ),
-        ),
-        `${kind.number} is already Acknowledged, so Jira issue OPS-17 moving to In Progress changes nothing.`,
-      );
-    });
-
-    test(`never moves the ${kind.noun} backwards`, async () => {
-      expectSkipped(
-        await decideState(
-          decideArgs(
-            kind,
-            inProgressEvent(kind),
-            kind.model({ state: kind.resolvedState }),
-          ),
-        ),
-        `${kind.number} is already Resolved, so Jira issue OPS-17 moving to In Progress changes nothing.`,
-      );
-    });
-
-    test("settles the echo of a transition OneUptime made itself", async () => {
-      // The OneUptime-to-Jira template moved the issue to Done because the record resolved.
-      expectSkipped(
-        await decideState(
-          decideArgs(
-            kind,
-            statusEvent(kind),
-            kind.model({ state: kind.resolvedState }),
-          ),
-        ),
-        `${kind.number} is already Resolved, so Jira issue OPS-17 moving to Done changes nothing.`,
-      );
-    });
-
-    test(`skips, naming the id, when no ${kind.noun} was found`, async () => {
-      for (const record of ["null", unresolvedRecord(kind)]) {
-        expectSkipped(
-          await decideState(decideArgs(kind, statusEvent(kind), record)),
-          `No ${kind.noun} with id ${kind.id} exists in this project.`,
-        );
-      }
-    });
-
-    test(`skips when the ${kind.noun}'s states could not be read`, async () => {
-      for (const states of ["null", UNRESOLVED_STATES, []]) {
-        expectSkipped(
-          await decideState(
-            decideArgs(
-              kind,
-              statusEvent(kind),
-              kind.model(),
-              states as JSONValue,
-            ),
-          ),
-          "Jira issue OPS-17 moved to Done, which does not map to a OneUptime state.",
-        );
-      }
-    });
-
-    test("finds the state by its flag whatever order the states arrive in", async () => {
-      for (const states of [
-        kind.states,
-        [...kind.states].reverse(),
-        statesWithMonitoring(kind),
-      ]) {
-        const result: JSONObject = await decideState(
-          decideArgs(kind, inProgressEvent(kind), kind.model(), states),
-        );
-
-        expect(result["stateId"]).toBe(kind.acknowledgedStateId);
-      }
-    });
-
-    test("a status named in JIRA_STATUS_TO_STATE wins over its category", async () => {
-      const result: JSONObject = await decideState(
-        decideArgs(
-          kind,
-          statusEvent(kind),
-          kind.model(),
-          statesWithMonitoring(kind),
-        ),
-        replaceInCode(
-          "const JIRA_STATUS_TO_STATE = {};",
-          "const JIRA_STATUS_TO_STATE = { Done: 'monitoring' };",
-        ),
-      );
-
-      // Done would otherwise resolve the record; the name asks for Monitoring instead.
-      expect(result["stateId"]).toBe(MONITORING_STATE_ID);
-      expect(result["stateName"]).toBe("Monitoring");
-    });
-
-    test("a status named in JIRA_STATUS_TO_STATE does not fall back to its category", async () => {
-      expectSkipped(
-        await decideState(
-          decideArgs(
-            kind,
-            statusEvent(kind, {
-              jiraStatus: "In Review",
-              jiraStatusCategory: "indeterminate",
-            }),
-          ),
-          replaceInCode(
-            "const JIRA_STATUS_TO_STATE = {};",
-            "const JIRA_STATUS_TO_STATE = { 'In Review': 'Verifying' };",
-          ),
-        ),
-        "Jira issue OPS-17 moved to In Review, which does not map to a OneUptime state.",
-      );
-    });
-
-    test("leaves the actor out of the root cause when Jira named none", async () => {
-      const result: JSONObject = await decideState(
-        decideArgs(kind, statusEvent(kind, { changedBy: "" })),
-      );
-
-      expect(result["rootCause"]).toBe(
-        "Synced from Jira: issue OPS-17 moved to Done.",
-      );
-    });
-
-    test("caps the root cause at 1000 characters and defuses double braces in it", async () => {
-      const longName: JSONObject = await decideState(
-        decideArgs(kind, statusEvent(kind, { changedBy: "c".repeat(2000) })),
-      );
-      const braces: JSONObject = await decideState(
-        decideArgs(
-          kind,
-          statusEvent(kind, {
-            jiraStatus: SECRET_REFERENCE,
-            changedBy: SECRET_REFERENCE,
-          }),
-        ),
-      );
-
-      expect(textOf(longName, "rootCause")).toHaveLength(1000);
-      expect(textOf(braces, "rootCause")).toContain(DEFUSED_SECRET_REFERENCE);
-      expect(textOf(braces, "rootCause")).not.toContain("{{");
-    });
-
-    test("accepts read-event-1's real output", async () => {
-      const event: JSONObject = await kind.steps.readEvent(
-        linkedUpdate(kind, RESOLVED_CHANGELOG, { status: DONE }),
-      );
-      const result: JSONObject = await decideState(decideArgs(kind, event));
-
-      expect(result["stateId"]).toBe(kind.resolvedStateId);
-    });
-  });
-}
 
 for (const kind of KINDS) {
   const readComment: RunStepFunction = kind.steps.readComment;
+  const idKey: string = `${kind.noun}Id`;
+
+  type CommentFunction = (
+    event: JSONValue,
+    editCode?: EditCodeFunction | undefined,
+  ) => Promise<JSONObject>;
+
+  // A comment on the issue linked to the kind's record.
+  const onLinkedIssue: CommentFunction = async (
+    event: JSONValue,
+    editCode?: EditCodeFunction | undefined,
+  ): Promise<JSONObject> => {
+    return await readComment(commentArgs(kind, event), editCode);
+  };
 
   describe(`read-comment-1 in ${kind.templates.commentToNote} turns a Jira comment into the text of a note`, () => {
-    test("writes the note under a heading naming the author and linking the issue", async () => {
-      const result: JSONObject = await readComment(jiraCommentEvent());
+    test(`writes the note under a heading naming the author and linking the issue, for the ${kind.noun} the issue is linked to`, async () => {
+      const result: JSONObject = await onLinkedIssue(jiraCommentEvent());
 
       expect(result).toEqual({
         proceed: true,
+        [idKey]: kind.id,
         issueKey: JIRA_ISSUE_KEY,
         note: `Synced from Jira: Marco Rossi commented on ${ISSUE_LINK}.\n\nRolled back the *eu-west-1* deploy. Watching the error rate.`,
       });
@@ -3759,7 +3549,7 @@ for (const kind of KINDS) {
 
     test("ignores an edited comment by default", async () => {
       expectSkipped(
-        await readComment(
+        await onLinkedIssue(
           jiraCommentEvent({ webhookEvent: "comment_updated" }),
         ),
         "Ignored a comment_updated event: this workflow only handles comment_created.",
@@ -3772,14 +3562,14 @@ for (const kind of KINDS) {
         "const EVENTS = ['comment_created', 'comment_updated'];",
       );
 
-      const updated: JSONObject = await readComment(
+      const updated: JSONObject = await onLinkedIssue(
         jiraCommentEvent({ webhookEvent: "comment_updated" }),
         addUpdates,
       );
 
       expect(updated["proceed"]).toBe(true);
       expectSkipped(
-        await readComment(
+        await onLinkedIssue(
           jiraCommentEvent({ webhookEvent: "comment_deleted" }),
           addUpdates,
         ),
@@ -3796,7 +3586,7 @@ for (const kind of KINDS) {
 
       for (const body of bodies) {
         expectSkipped(
-          await readComment(jiraCommentEvent({ body: body })),
+          await onLinkedIssue(jiraCommentEvent({ body: body })),
           "This comment was posted by OneUptime, so it was not copied back.",
         );
       }
@@ -3805,14 +3595,14 @@ for (const kind of KINDS) {
     test("skips an empty comment", async () => {
       for (const body of ["", "  \n\t ", null]) {
         expectSkipped(
-          await readComment(jiraCommentEvent({ body: body as JSONValue })),
+          await onLinkedIssue(jiraCommentEvent({ body: body as JSONValue })),
           "The comment on Jira issue OPS-17 is empty.",
         );
       }
     });
 
     test("flattens a comment in Atlassian Document Format to text", async () => {
-      const result: JSONObject = await readComment(
+      const result: JSONObject = await onLinkedIssue(
         jiraCommentEvent({ body: ADF_TEXT }),
       );
 
@@ -3821,7 +3611,7 @@ for (const kind of KINDS) {
 
     test("says Someone commented when the comment has no author", async () => {
       const event: JSONObject = jiraCommentEvent();
-      const result: JSONObject = await readComment({
+      const result: JSONObject = await onLinkedIssue({
         ...event,
         comment: omit(event["comment"] as JSONObject, ["author"]),
       });
@@ -3834,7 +3624,7 @@ for (const kind of KINDS) {
     });
 
     test("defuses double braces in the comment and its author's name", async () => {
-      const result: JSONObject = await readComment(
+      const result: JSONObject = await onLinkedIssue(
         jiraCommentEvent({
           body: `Here it is: ${SECRET_REFERENCE}`,
           author: jiraUser(SECRET_REFERENCE),
@@ -3847,7 +3637,7 @@ for (const kind of KINDS) {
     });
 
     test("caps the note at 30000 characters", async () => {
-      const result: JSONObject = await readComment(
+      const result: JSONObject = await onLinkedIssue(
         jiraCommentEvent({ body: "b".repeat(40000) }),
       );
 
@@ -3856,17 +3646,17 @@ for (const kind of KINDS) {
 
     test("skips a comment whose issue key is not a Jira key", async () => {
       expectSkipped(
-        await readComment(jiraCommentEvent({ issueKey: "../../myself" })),
+        await onLinkedIssue(jiraCommentEvent({ issueKey: "../../myself" })),
         NO_ISSUE_KEY_REASON,
       );
     });
 
     test("ignores a request that is not a Jira event", async () => {
-      expectSkipped(await readComment({}), NOT_A_JIRA_EVENT_REASON);
+      expectSkipped(await onLinkedIssue({}), NOT_A_JIRA_EVENT_REASON);
     });
 
     test("keeps the comment's author on one line", async () => {
-      const result: JSONObject = await readComment(
+      const result: JSONObject = await onLinkedIssue(
         withComment(jiraCommentEvent(), { author: jiraUser("Marco\nRossi\t") }),
       );
 
@@ -3877,53 +3667,25 @@ for (const kind of KINDS) {
       ).toBe(true);
     });
   });
-}
 
-/* What read-comment-1 hands on when it proceeds. */
-const COMMENT_STEP_OUTPUT: JSONObject = {
-  proceed: true,
-  issueKey: JIRA_ISSUE_KEY,
-  note: `Synced from Jira: Marco Rossi commented on ${ISSUE_LINK}.\n\nRolled back.`,
-};
-
-type FindLinkArgsFunction = (
-  issue: JSONValue,
-  comment?: JSONValue,
-) => JSONObject;
-
-const findLinkArgs: FindLinkArgsFunction = (
-  issue: JSONValue,
-  comment?: JSONValue,
-): JSONObject => {
-  return {
-    comment: asArgument(comment === undefined ? COMMENT_STEP_OUTPUT : comment),
-    issue: asArgument(issue),
-  };
-};
-
-for (const kind of KINDS) {
-  const findLink: RunStepFunction = kind.steps.findLink;
-  const linked: JSONObject = { proceed: true, [`${kind.noun}Id`]: kind.id };
-
-  describe(`find-link-1 in ${kind.templates.commentToNote} reads the ${kind.noun} id off the issue's labels`, () => {
-    test(`finds the ${kind.noun} from the issue's link label`, async () => {
-      const result: JSONObject = await findLink(
-        findLinkArgs(jiraIssueLabelsResponse(kind.linkLabels)),
-      );
-
-      expect(result).toEqual(linked);
-    });
-
+  /*
+   * Comment webhooks carry the issue's summary and status but not its
+   * labels, so the link is read off the issue as Jira has it now. This was
+   * a step of its own, find-link-1, and is now read-comment-1's.
+   */
+  describe(`read-comment-1 in ${kind.templates.commentToNote} reads the ${kind.noun} id off the issue's labels`, () => {
     test("hands the id on lowercased", async () => {
-      const result: JSONObject = await findLink(
-        findLinkArgs(
+      const result: JSONObject = await readComment(
+        commentArgs(
+          kind,
+          jiraCommentEvent(),
           jiraIssueLabelsResponse([
             `${kind.labelPrefix.toUpperCase()}${kind.id.toUpperCase()}`,
           ]),
         ),
       );
 
-      expect(result[`${kind.noun}Id`]).toBe(kind.id);
+      expect(result[idKey]).toBe(kind.id);
     });
 
     test("skips, naming the issue, when no label links it", async () => {
@@ -3935,7 +3697,13 @@ for (const kind of KINDS) {
 
       for (const labels of labelSets) {
         expectSkipped(
-          await findLink(findLinkArgs(jiraIssueLabelsResponse(labels))),
+          await readComment(
+            commentArgs(
+              kind,
+              jiraCommentEvent(),
+              jiraIssueLabelsResponse(labels),
+            ),
+          ),
           notLinkedReason(kind),
         );
       }
@@ -3950,20 +3718,25 @@ for (const kind of KINDS) {
 
       for (const issue of responses) {
         expectSkipped(
-          await findLink(findLinkArgs(issue)),
+          await readComment(commentArgs(kind, jiraCommentEvent(), issue)),
           notLinkedReason(kind),
         );
       }
     });
 
-    test("accepts read-comment-1's real output", async () => {
-      const comment: JSONObject =
-        await kind.steps.readComment(jiraCommentEvent());
-      const result: JSONObject = await findLink(
-        findLinkArgs(jiraIssueLabelsResponse(kind.linkLabels), comment),
-      );
+    test("goes by Jira's labels, not the webhook's", async () => {
+      // A comment event that claims the issue's labels is not taken at its word.
+      const event: JSONObject = jiraCommentEvent();
+      const claiming: JSONObject = withIssueFields(event, {
+        labels: kind.linkLabels,
+      });
 
-      expect(result).toEqual(linked);
+      expectSkipped(
+        await readComment(
+          commentArgs(kind, claiming, jiraIssueLabelsResponse([])),
+        ),
+        notLinkedReason(kind),
+      );
     });
   });
 }
@@ -4272,11 +4045,15 @@ for (const pair of CROSS_KINDS) {
       }
     });
 
-    test(`confirm-unlinked-1 in ${kind.templates.createRecord} makes no ${kind.noun} of an issue Jira says is linked to an ${other.noun}`, async () => {
+    test(`${kind.prepareRecordStep} in ${kind.templates.createRecord} makes no ${kind.noun} of an issue Jira says is linked to an ${other.noun}`, async () => {
       for (const labels of otherLabelSets) {
         expectSkipped(
-          await kind.steps.confirmUnlinked(
-            confirmArgs(jiraIssueLabelsResponse(labels)),
+          await kind.steps.prepareRecord(
+            recordArgs(
+              kind,
+              jiraIssueCreatedEvent({ labels: [] }),
+              jiraIssueLabelsResponse(labels),
+            ),
           ),
           alreadyLinkedReason(kind),
         );
@@ -4296,10 +4073,14 @@ for (const pair of CROSS_KINDS) {
       );
     });
 
-    test(`find-link-1 in ${kind.templates.commentToNote} says the ${other.noun}'s issue is not linked to an ${kind.noun}`, async () => {
+    test(`read-comment-1 in ${kind.templates.commentToNote} says the ${other.noun}'s issue is not linked to an ${kind.noun}`, async () => {
       expectSkipped(
-        await kind.steps.findLink(
-          findLinkArgs(jiraIssueLabelsResponse(other.linkLabels)),
+        await kind.steps.readComment(
+          commentArgs(
+            kind,
+            jiraCommentEvent(),
+            jiraIssueLabelsResponse(other.linkLabels),
+          ),
         ),
         notLinkedReason(kind),
       );
@@ -4352,8 +4133,12 @@ for (const pair of CROSS_KINDS) {
             status: IN_PROGRESS,
           }),
         ),
-        await kind.steps.findLink(
-          findLinkArgs(jiraIssueLabelsResponse(labels)),
+        await kind.steps.readComment(
+          commentArgs(
+            kind,
+            jiraCommentEvent(),
+            jiraIssueLabelsResponse(labels),
+          ),
         ),
         await kind.steps.readChanges(
           jiraIssueUpdatedEvent({ items: [PRIORITY_RAISED], labels: labels }),
@@ -4372,6 +4157,20 @@ for (const pair of CROSS_KINDS) {
 /* ------------------------------ Alerts only ------------------------------ */
 
 type AlertSeverityForFunction = (priority: string | null) => Promise<string>;
+
+// What prepare-alert-1 is handed: Jira's answer for an unlinked issue, the site, then the event.
+const alertRecordArgs: (payload: JSONValue, issue?: JSONValue) => JSONObject = (
+  payload: JSONValue,
+  issue?: JSONValue,
+): JSONObject => {
+  return {
+    issue: quoted(
+      (issue === undefined ? jiraIssueLabelsResponse([]) : issue) as JSONValue,
+    ),
+    jiraSiteUrl: JIRA_SITE,
+    payload: quoted(payload),
+  };
+};
 
 /*
  * The tests above build their expectations from KINDS. These spell the alert
@@ -4508,16 +4307,14 @@ describe("the alert scripts speak of alerts", () => {
 
   test("prepare-alert-1 hands on only what an alert is created with", async () => {
     // No status-page fields: an alert never reaches a status page.
-    const result: JSONObject = await ALERT.steps.prepareRecord({
-      severities: quoted(ALERT_SEVERITIES),
-      payload: quoted(jiraIssueCreatedEvent()),
-    });
+    const result: JSONObject = await ALERT.steps.prepareRecord(
+      alertRecordArgs(jiraIssueCreatedEvent()),
+    );
 
     expect(result).toEqual({
       proceed: true,
       issueKey: JIRA_ISSUE_KEY,
-      severityName: "High",
-      alertSeverityId: HIGH_ALERT_SEVERITY_ID,
+      severity: "most severe",
       title: "Checkout API returns 502 for EU customers",
       description: `Created from Jira issue ${ISSUE_LINK}.\nPriority: High\nReported by: Priya Patel\n\nCustomers in *eu-west-1* see 502s at checkout.\nStarted around 09:40 UTC.`,
     });
@@ -4525,25 +4322,22 @@ describe("the alert scripts speak of alerts", () => {
 
   test("prepare-alert-1 sends Medium, and every priority it does not know, to Low", async () => {
     /*
-     * With the two default alert severities there is no middle one: rank 1
-     * lands halfway and rounds to the less severe. An incident project's
-     * three severities would give Medium the middle one instead.
+     * With the two default alert severities there is no middle one: the
+     * middle place lands halfway and rounds to the less severe. An incident
+     * project's three severities would give Medium the middle one instead.
      */
     const severityFor: AlertSeverityForFunction = async (
       priority: string | null,
     ): Promise<string> => {
-      const result: JSONObject = await ALERT.steps.prepareRecord({
-        severities: quoted(ALERT_SEVERITIES),
-        payload: quoted(jiraIssueCreatedEvent({ priority: priority })),
-      });
+      const result: JSONObject = await ALERT.steps.prepareRecord(
+        alertRecordArgs(jiraIssueCreatedEvent({ priority: priority })),
+      );
 
-      return `${textOf(result, "severityName")} ${textOf(result, "alertSeverityId")}`;
+      return severityAt(textOf(result, "severity"), ALERT_SEVERITIES);
     };
 
     for (const priority of ["Highest", "High", "Blocker", "Critical"]) {
-      expect(await severityFor(priority)).toBe(
-        `High ${HIGH_ALERT_SEVERITY_ID}`,
-      );
+      expect(await severityFor(priority)).toBe("High");
     }
 
     for (const priority of [
@@ -4554,37 +4348,35 @@ describe("the alert scripts speak of alerts", () => {
       "Low",
       "Lowest",
     ]) {
-      expect(await severityFor(priority)).toBe(`Low ${LOW_ALERT_SEVERITY_ID}`);
+      expect(await severityFor(priority)).toBe("Low");
     }
   });
 
-  test("prepare-alert-1 and confirm-unlinked-1 say no alert was created", async () => {
+  test("prepare-alert-1 says no alert was created, by the webhook's labels or Jira's", async () => {
     expectSkipped(
-      await ALERT.steps.prepareRecord({
-        severities: quoted(ALERT_SEVERITIES),
-        payload: quoted(
+      await ALERT.steps.prepareRecord(
+        alertRecordArgs(
           jiraIssueCreatedEvent({
             labels: [JIRA_LINK_LABEL, `oneuptime-alert-${ALERT_ID}`],
           }),
         ),
-      }),
+      ),
+      "Jira issue OPS-17 is already linked to OneUptime, so no alert was created.",
+    );
+    expectSkipped(
+      await ALERT.steps.prepareRecord(
+        alertRecordArgs(
+          jiraIssueCreatedEvent(),
+          jiraIssueLabelsResponse([`oneuptime-alert-${ALERT_ID}`]),
+        ),
+      ),
       "Jira issue OPS-17 is already linked to OneUptime, so no alert was created.",
     );
     expectSkipped(
       await ALERT.steps.prepareRecord({
-        severities: "[]",
-        payload: quoted(jiraIssueCreatedEvent()),
+        ...alertRecordArgs(jiraIssueCreatedEvent()),
+        issue: "null",
       }),
-      "This project has no alert severities to choose from.",
-    );
-    expectSkipped(
-      await ALERT.steps.confirmUnlinked({
-        issue: quoted(jiraIssueLabelsResponse([`oneuptime-alert-${ALERT_ID}`])),
-      }),
-      "Jira issue OPS-17 is already linked to OneUptime, so no alert was created.",
-    );
-    expectSkipped(
-      await ALERT.steps.confirmUnlinked({ issue: "null" }),
       "Jira did not return the issue, so no alert was created.",
     );
   });
@@ -4607,13 +4399,21 @@ describe("the alert scripts speak of alerts", () => {
       proceed: true,
       alertId: ALERT_ID,
       issueKey: JIRA_ISSUE_KEY,
-      jiraStatus: "In Progress",
-      jiraStatusCategory: "indeterminate",
-      changedBy: "Priya Patel",
+      whatHappened: "acknowledge",
+      reason:
+        "Synced from Jira: issue OPS-17 moved to In Progress by Priya Patel.",
     });
     expect(
-      await ALERT.steps.findLink(findLinkArgs(jiraIssueLabelsResponse(labels))),
-    ).toEqual({ proceed: true, alertId: ALERT_ID });
+      (
+        await ALERT.steps.readComment(
+          commentArgs(
+            ALERT,
+            jiraCommentEvent(),
+            jiraIssueLabelsResponse(labels),
+          ),
+        )
+      )["alertId"],
+    ).toBe(ALERT_ID);
     expect(
       (
         await ALERT.steps.readChanges(
@@ -4634,7 +4434,9 @@ describe("the alert scripts speak of alerts", () => {
       reason,
     );
     expectSkipped(
-      await ALERT.steps.findLink(findLinkArgs(jiraIssueLabelsResponse([]))),
+      await ALERT.steps.readComment(
+        commentArgs(ALERT, jiraCommentEvent(), jiraIssueLabelsResponse([])),
+      ),
       reason,
     );
     expectSkipped(
@@ -4645,45 +4447,22 @@ describe("the alert scripts speak of alerts", () => {
     );
   });
 
-  test("decide-state-1 resolves the alert, or names the alert it could not find", async () => {
-    const event: JSONObject = {
-      proceed: true,
-      alertId: ALERT_ID,
-      issueKey: JIRA_ISSUE_KEY,
-      jiraStatus: "Done",
-      jiraStatusCategory: "done",
-      changedBy: "Priya Patel",
-    };
-
+  test("read-event-1 resolves the alert when its issue reaches Done", async () => {
     expect(
-      await ALERT.steps.decideState({
-        alert: quoted(alertModel()),
-        states: quoted(ALERT_STATES),
-        event: quoted(event),
-      }),
+      await ALERT.steps.readEvent(
+        jiraIssueUpdatedEvent({
+          items: RESOLVED_CHANGELOG,
+          labels: [JIRA_LINK_LABEL, `oneuptime-alert-${ALERT_ID}`],
+          status: DONE,
+        }),
+      ),
     ).toEqual({
       proceed: true,
       alertId: ALERT_ID,
-      stateId: ALERT_RESOLVED_STATE_ID,
-      stateName: "Resolved",
-      rootCause: "Synced from Jira: issue OPS-17 moved to Done by Priya Patel.",
+      issueKey: JIRA_ISSUE_KEY,
+      whatHappened: "resolve",
+      reason: "Synced from Jira: issue OPS-17 moved to Done by Priya Patel.",
     });
-    expectSkipped(
-      await ALERT.steps.decideState({
-        alert: "null",
-        states: quoted(ALERT_STATES),
-        event: quoted(event),
-      }),
-      `No alert with id ${ALERT_ID} exists in this project.`,
-    );
-    expectSkipped(
-      await ALERT.steps.decideState({
-        alert: quoted(alertModel({ state: ALERT_RESOLVED_STATE })),
-        states: quoted(ALERT_STATES),
-        event: quoted(event),
-      }),
-      "ALT-7 is already Resolved, so Jira issue OPS-17 moving to Done changes nothing.",
-    );
   });
 });
 
@@ -4733,12 +4512,7 @@ const scriptStepsOf: ScriptStepsOfFunction = (
     {
       templateId: kind.templates.createRecord,
       componentId: kind.prepareRecordStep,
-      argumentNames: ["severities", "jiraSiteUrl", "payload"],
-    },
-    {
-      templateId: kind.templates.createRecord,
-      componentId: "confirm-unlinked-1",
-      argumentNames: ["issue"],
+      argumentNames: ["issue", "jiraSiteUrl", "payload"],
     },
     {
       templateId: kind.templates.statusToState,
@@ -4746,19 +4520,9 @@ const scriptStepsOf: ScriptStepsOfFunction = (
       argumentNames: [],
     },
     {
-      templateId: kind.templates.statusToState,
-      componentId: "decide-state-1",
-      argumentNames: [kind.noun, "states", "event"],
-    },
-    {
       templateId: kind.templates.commentToNote,
       componentId: "read-comment-1",
-      argumentNames: ["jiraSiteUrl", "payload"],
-    },
-    {
-      templateId: kind.templates.commentToNote,
-      componentId: "find-link-1",
-      argumentNames: ["comment", "issue"],
+      argumentNames: ["issue", "jiraSiteUrl", "payload"],
     },
     {
       templateId: kind.templates.changesToNote,
@@ -4882,7 +4646,7 @@ describe("every Jira script", () => {
       ).nodes;
 
       for (const node of nodes) {
-        if (node["metadataId"] !== ComponentID.JavaScriptCode) {
+        if (!isTemplateScriptStep(node["metadataId"])) {
           continue;
         }
 
@@ -5017,9 +4781,13 @@ const adversarialProceeding: AdversarialCasesFunction = (
     },
     {
       templateId: kind.templates.createRecord,
-      componentId: "confirm-unlinked-1",
+      componentId: kind.prepareRecordStep,
       // Labels are free text anyone who can edit the issue writes.
-      args: confirmArgs(jiraIssueLabelsResponse([ADVERSARIAL_TEXT, "backend"])),
+      args: recordArgs(
+        kind,
+        jiraIssueCreatedEvent({ labels: [] }),
+        jiraIssueLabelsResponse([ADVERSARIAL_TEXT, "backend"]),
+      ),
     },
     {
       templateId: kind.templates.statusToState,
@@ -5033,32 +4801,15 @@ const adversarialProceeding: AdversarialCasesFunction = (
       }),
     },
     {
-      templateId: kind.templates.statusToState,
-      componentId: "decide-state-1",
-      args: decideArgs(
-        kind,
-        statusEvent(kind, {
-          jiraStatus: ADVERSARIAL_TEXT,
-          changedBy: ADVERSARIAL_TEXT,
-        }),
-      ),
-    },
-    {
       templateId: kind.templates.commentToNote,
       componentId: "read-comment-1",
-      args: jiraLinkingEventArgs(
+      args: commentArgs(
+        kind,
         jiraCommentEvent({
           body: ADVERSARIAL_TEXT,
           author: jiraUser(ADVERSARIAL_TEXT),
         }),
-      ),
-    },
-    {
-      templateId: kind.templates.commentToNote,
-      componentId: "find-link-1",
-      args: findLinkArgs(
         jiraIssueLabelsResponse([ADVERSARIAL_TEXT, ...kind.linkLabels]),
-        { ...COMMENT_STEP_OUTPUT, note: ADVERSARIAL_TEXT },
       ),
     },
     {
@@ -5134,16 +4885,18 @@ for (const kind of KINDS) {
         },
         {
           templateId: kind.templates.createRecord,
-          componentId: "confirm-unlinked-1",
-          args: confirmArgs({
+          componentId: kind.prepareRecordStep,
+          args: recordArgs(kind, jiraIssueCreatedEvent({ labels: [] }), {
             ...jiraIssueLabelsResponse(kind.linkLabels),
             key: ADVERSARIAL_TEXT,
           }),
         },
         {
           templateId: kind.templates.createRecord,
-          componentId: "confirm-unlinked-1",
-          args: confirmArgs(
+          componentId: kind.prepareRecordStep,
+          args: recordArgs(
+            kind,
+            jiraIssueCreatedEvent({ labels: [] }),
             jiraIssueLabelsResponse([ADVERSARIAL_TEXT, ...kind.linkLabels]),
           ),
         },
@@ -5158,7 +4911,8 @@ for (const kind of KINDS) {
         {
           templateId: kind.templates.commentToNote,
           componentId: "read-comment-1",
-          args: jiraLinkingEventArgs(
+          args: commentArgs(
+            kind,
             jiraCommentEvent({ webhookEvent: ADVERSARIAL_TEXT }),
           ),
         },
@@ -5288,21 +5042,17 @@ for (const kind of KINDS) {
       }
     });
 
-    test("from a hostile status change carried all the way through the status template", async () => {
-      // read-event-1's output is what decide-state-1 quotes; its skip reason must be clean too.
+    test("from a hostile status change that maps to no state", async () => {
+      // The skip names the status, which a Jira admin named.
       const event: JSONObject = await kind.steps.readEvent(
         linkedUpdate(kind, STARTED_CHANGELOG, {
           status: jiraStatus({ name: ADVERSARIAL_TEXT, categoryKey: "new" }),
           user: jiraUser(ADVERSARIAL_TEXT),
         }),
       );
-      const decision: JSONObject = await kind.steps.decideState(
-        decideArgs(kind, event),
-      );
 
+      expect(event["proceed"]).toBe(false);
       expect(stringsWithBraces(event)).toEqual([]);
-      expect(decision["proceed"]).toBe(false);
-      expect(stringsWithBraces(decision)).toEqual([]);
     });
   });
 }
