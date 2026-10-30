@@ -118,6 +118,8 @@ Et kriterium utløser bare når betingelsen gjelder for hvert minutt i vinduet -
 
 En registrert enhet beholdes også som offline i flåtens inventar, mens en uregistrert fjernes etter 15 minutter med stillhet. Deteksjon av stillhet krever regelen **Treat As Zero** for manglende data på kriteriet for `iot_device_up`, som Device Offline-monitorer opprettet fra malen har. En Device Offline-monitor som ble opprettet før enhetsregistrering fantes, må få den satt manuelt eller opprettes på nytt fra malen.
 
+**Device Offline** vurderer hver enhet ut fra den siste målingen, så en enhet som meldte seg nede og deretter oppe igjen, er oppe ved neste kontroll. En Device Offline-monitor som forblir frakoblet til målingen om nede er 30 minutter gammel, ble opprettet før malen gjorde dette: velg malen på nytt under **Hva det skal varsles om** for å oppdatere den.
+
 > [!NOTE]
 > En uregistrert enhet som blir taus uten en Last Will eller en gatewayrapport, slutter bare å sende data, og en monitor som grupperer per enhet, kan ikke peke den ut. Registrer enhetene dine, eller gi en kritisk enhet sin egen monitor (**Custom Metric**, med dens **Device ID**), og sett **Hvis ingen data** til **Utløser**. Deteksjon av stillhet krever også at minst én annen enhet i flåten fortsatt rapporterer: en flåte som blir helt mørk, for eksempel under et gatewaybrudd, sender ut én hendelse for monitoren, ikke én per enhet.
 

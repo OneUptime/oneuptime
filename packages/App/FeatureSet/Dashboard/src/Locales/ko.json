@@ -8466,7 +8466,7 @@
   "CPU per pod": "CPU per pod",
   "CPU usage percent (pve_cpu_usage_ratio × 100), broken down per guest.": "CPU usage percent (pve_cpu_usage_ratio × 100), broken down per guest.",
   "CPU usage percent (pve_cpu_usage_ratio × 100), broken down per node.": "CPU usage percent (pve_cpu_usage_ratio × 100), broken down per node.",
-  "CPU utilization as a ratio `0`–`1` (OneUptime stores it as a percentage)": "CPU utilization as a ratio `0`–`1` (OneUptime stores it as a percentage)",
+  "CPU utilization as a ratio `0`–`1` (the device inventory shows it as a percentage)": "`0`–`1` 비율로 나타낸 CPU 사용률(디바이스 인벤토리는 이를 백분율로 표시합니다)",
   "CPU, CPU ready, memory (incl. ballooning / swapping), disk and network for this virtual machine over the selected time range. CPU and I/O series exist only while the VM is powered on.": "선택한 기간 동안 이 가상 머신의 CPU, CPU ready, 메모리(벌루닝/스와핑 포함), 디스크, 네트워크입니다. CPU 및 I/O 시리즈는 VM의 전원이 켜져 있을 때만 있습니다.",
   "CPU, CPU ready, memory, ballooning and swapping across all virtual machines. CPU series exist only for powered-on VMs.": "모든 가상 머신의 CPU, CPU ready, 메모리, 벌루닝, 스와핑입니다. CPU 시리즈는 전원이 켜진 VM에만 있습니다.",
   "CPU, memory and disk latency across every ESXi host managed by this vCenter.": "이 vCenter가 관리하는 모든 ESXi 호스트의 CPU, 메모리, 디스크 지연 시간입니다.",

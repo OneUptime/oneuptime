@@ -780,7 +780,10 @@ describe("the MQTT option works against the real MQTT ingest", () => {
           '{"iot_temperature_celsius":21.5}',
         ),
       ),
-    ).toEqual({ iot_temperature_celsius: 21.5 });
+    ).toEqual({
+      iot_temperature_celsius: 21.5,
+      [MQTT_DEVICE_UP_METRIC_NAME]: 1,
+    });
 
     // A single value, bare or wrapped.
     expect(table).toContain('a bare number (`23.4`) or `{"value":23.4}`');
@@ -789,13 +792,21 @@ describe("the MQTT option works against the real MQTT ingest", () => {
         pointsOf(
           publish(`${EXAMPLE_TOPIC}/metrics/iot_temperature_celsius`, payload),
         ),
-      ).toEqual({ iot_temperature_celsius: 23.4 });
+      ).toEqual({
+        iot_temperature_celsius: 23.4,
+        [MQTT_DEVICE_UP_METRIC_NAME]: 1,
+      });
     }
 
     // The status topic, and the alternatives the Last Will topic lists.
     const lastWill: string =
       topicTitled(guide.advanced, "Detect offline devices with a Last Will")
         ?.markdown || "";
+
+    // A reading publish implies the device is up, and the guide says so.
+    expect(lastWill).toContain(
+      "Any reading the device publishes counts as up too",
+    );
     for (const [payload, up] of [
       ["online", 1],
       ["offline", 0],

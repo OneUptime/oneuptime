@@ -118,6 +118,8 @@ A criteria fires only when the condition holds for every minute of its window - 
 
 A registered device is also kept in the fleet's inventory as offline, where an unregistered one is removed after 15 minutes of silence. Silence detection needs the **Treat As Zero** no-data policy on the `iot_device_up` criteria, which Device Offline monitors created from the template have. A Device Offline monitor created before device registration existed needs it set by hand, or must be created again from the template.
 
+**Device Offline** judges each device on its latest reading, so a device that reported down and then up again is up at the next check. A Device Offline monitor that stays offline until the down reading is 30 minutes old was created before the template did this: pick the template again under **What to alert on** to update it.
+
 > [!NOTE]
 > An unregistered device that goes silent, without a Last Will or a gateway report, only stops sending data, and a monitor grouped per device cannot single it out. Register your devices, or give a critical device a monitor of its own (**Custom Metric**, with its **Device ID**) and set **If No Data** to **Trigger**. Silence detection also needs at least one other device of the fleet still reporting: a fleet that goes completely dark, during a gateway outage for example, raises one incident for the monitor, not one per device.
 

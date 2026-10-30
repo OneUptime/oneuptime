@@ -164,7 +164,9 @@ import MonitorStepDockerSwarmMonitor, {
 } from "Common/Types/Monitor/MonitorStepDockerSwarmMonitor";
 import MonitorStepIoTMonitor, {
   IoTDeviceFilters,
+  MonitorStepIoTMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepIoTMonitor";
+import { escapeWildcards } from "Common/Types/BaseDatabase/WildcardPattern";
 import { getKubernetesMetricByMetricName } from "Common/Types/Monitor/KubernetesMetricCatalog";
 import { getProxmoxMetricByMetricName } from "Common/Types/Monitor/ProxmoxMetricCatalog";
 import { getVMwareMetricByMetricName } from "Common/Types/Monitor/VMwareMetricCatalog";
@@ -3250,7 +3252,28 @@ export const monitorIoT: MonitorIoTFunction = async (data: {
     }
 
     if (Object.keys(attributes).length > 0) {
-      query.attributes = attributes;
+      /*
+       * The fleet matches whatever its case: a fleet is found and created
+       * by name case aside (IoTFleetService), and a device publishing into
+       * "warehouse" lands in the fleet named "Warehouse" - but its readings
+       * keep the case it used, so an exact match left them out of the
+       * monitor, and the device was then added back as silent and alerted
+       * on. A Wildcard of the escaped name is a case-insensitive exact
+       * match. Built as its own map: see the Docker Swarm image filter.
+       */
+      const fleetName: string = (
+        attributes["resource.iot.fleet.name"] || ""
+      ).trim();
+      const queryAttributes: Dictionary<string | Wildcard<string>> = fleetName
+        ? {
+            ...attributes,
+            "resource.iot.fleet.name": new Wildcard<string>([
+              escapeWildcards(fleetName),
+            ]),
+          }
+        : attributes;
+
+      query.attributes = queryAttributes as Dictionary<string>;
     }
 
     const aggregationType: MetricsAggregationType =
@@ -3310,6 +3333,14 @@ export const monitorIoT: MonitorIoTFunction = async (data: {
         })
       : undefined;
 
+  // Each device on its latest reading (MonitorStepIoTMonitor.judgeLatestReading).
+  if (seriesBreakdown && iotMonitorConfig.judgeLatestReading) {
+    seriesBreakdown =
+      MonitorStepIoTMonitorUtil.keepLatestReadings<MetricSeriesResult>(
+        seriesBreakdown,
+      );
+  }
+
   /*
    * Seed synthetic "no data" series for REGISTERED devices that went
    * silent, so a per-device-grouped IoT monitor detects an individual
@@ -3323,7 +3354,14 @@ export const monitorIoT: MonitorIoTFunction = async (data: {
   if (
     iotMonitorConfig.fleetIdentifier &&
     !iotMonitorConfig.resourceFilters?.deviceId &&
-    !iotMonitorConfig.resourceFilters?.deviceType
+    !iotMonitorConfig.resourceFilters?.deviceType &&
+    /*
+     * A read cut at its row limit (a large fleet) holds only the newest
+     * part of the window: a registered device whose readings fell outside
+     * it is not silent, and seeding it as absent opened a false Device
+     * Offline for it. Silence is judged only on a whole read.
+     */
+    !dataCompleteFrom
   ) {
     seriesBreakdown = await injectExpectedAbsentIoTDeviceSeries({
       monitorStep: data.monitorStep,
