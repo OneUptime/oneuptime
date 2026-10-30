@@ -26,6 +26,19 @@ export const KUBERNETES_AGENT_HELM_REPO_URL: string =
 export const KUBERNETES_EXAMPLE_CLUSTER_NAME: string = "my-cluster";
 
 /*
+ * Example control-plane addresses: a control-plane node's own, since the
+ * agent's pod has no host network (its localhost is the pod itself). etcd's
+ * is kubeadm's plain metrics port; the scheduler and the controller manager
+ * serve HTTPS.
+ */
+export const KUBERNETES_EXAMPLE_ETCD_ENDPOINT: string =
+  "http://10.0.0.10:2381/metrics";
+export const KUBERNETES_EXAMPLE_SCHEDULER_ENDPOINT: string =
+  "https://10.0.0.10:10259/metrics";
+export const KUBERNETES_EXAMPLE_CONTROLLER_MANAGER_ENDPOINT: string =
+  "https://10.0.0.10:10257/metrics";
+
+/*
  * Where the cluster runs. The chart only distinguishes three presets
  * (KubernetesAgentPreset); the guide offers the managed services by name
  * because that is how people know their cluster, and because connecting
@@ -511,6 +524,21 @@ ${codeBlock("bash", getKubernetesAgentUpgradeCommand(["--set logs.mode=api"]))}`
       summary:
         "API server, scheduler, controller manager and etcd metrics on self-managed clusters.",
       markdown: `${codeBlock("bash", getKubernetesAgentUpgradeCommand(["--set controlPlane.enabled=true"]))}
+
+That reads the API server, where it answers inside the cluster. etcd, the scheduler and the controller manager answer on the control-plane nodes, which the agent's pod cannot guess, so it reads them once you list each node's address:
+
+${codeBlock(
+  "bash",
+  getKubernetesAgentUpgradeCommand([
+    "--set controlPlane.enabled=true",
+    `--set "controlPlane.scheduler.endpoints={${KUBERNETES_EXAMPLE_SCHEDULER_ENDPOINT}}"`,
+    `--set "controlPlane.controllerManager.endpoints={${KUBERNETES_EXAMPLE_CONTROLLER_MANAGER_ENDPOINT}}"`,
+    `--set "controlPlane.etcd.endpoints={${KUBERNETES_EXAMPLE_ETCD_ENDPOINT}}"`,
+  ]),
+)}
+
+- **The scheduler and the controller manager** serve HTTPS and accept the agent's token, but kubeadm binds them to \`127.0.0.1\`: give them a \`--bind-address\` the agent's pod can reach.
+- **etcd** serves its metrics in plain HTTP on kubeadm's \`--listen-metrics-urls\` (port 2381, bound to \`127.0.0.1\` until you add the node's address), as above. Or scrape its HTTPS client port, 2379, with the client certificate it asks for: put \`ca.crt\`, \`tls.crt\` and \`tls.key\` in a Secret in \`${KUBERNETES_AGENT_HELM_NAMESPACE}\` and name it in \`controlPlane.etcd.clientCertSecret\`.
 
 Only for self-managed clusters: managed services (EKS, GKE, AKS) do not expose their control plane metrics.`,
     });

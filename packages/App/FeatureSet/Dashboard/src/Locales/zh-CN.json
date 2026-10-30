@@ -38579,6 +38579,8 @@
   "The Runner signs in with its secret key. After a reset it stops connecting until you re-run the setup command on its host.": "Runner 使用其密钥登录。重置后，在你于其主机上重新运行安装命令之前，它将无法连接。",
   "Enter the number of a pull request, such as 12.": "输入拉取请求的编号，例如 12。",
   "Enter the number of a merge request, such as 12.": "输入合并请求的编号，例如 12。",
+  "Guest Down or Replication Failing misses some guests": "Guest Down or Replication Failing misses some guests",
+  "Turn on {{enabled}} and point {{endpoints}} at etcd on the control-plane nodes: http:// for its plain metrics port, or its HTTPS client port with {{secret}} naming a Secret that holds the client certificate etcd asks for. Managed clusters such as EKS, GKE and AKS don't expose etcd.": "开启 {{enabled}}，并将 {{endpoints}} 指向控制平面节点上的 etcd：明文指标端口使用 http://；使用 HTTPS 客户端端口时，在 {{secret}} 中填写存放 etcd 所需客户端证书的 Secret。EKS、GKE 和 AKS 等托管集群不公开 etcd。",
   "{{matches}} of {{sampled}}": "{{matches}} / {{sampled}}",
   "{{minutes}} min {{seconds}} s": "{{minutes}} min {{seconds}} s",
   "{{on}} of {{total}} on": "{{total}} 个中已开启 {{on}} 个",

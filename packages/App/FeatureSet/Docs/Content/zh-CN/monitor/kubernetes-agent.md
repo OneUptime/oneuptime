@@ -60,8 +60,8 @@ helm repo update
 把 URL 替换为你的 OneUptime URL，并把两个占位符替换为你的摄取密钥和集群的名称：
 
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent \
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
   --create-namespace \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
@@ -73,7 +73,7 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
 ### 检查 Pod 是否在运行
 
 ```bash
-kubectl get pods -n oneuptime-kubernetes-agent
+kubectl get pods -n oneuptime-agent
 ```
 
 每个 Pod 都应在一两分钟内进入 `Running` 状态。
@@ -100,16 +100,16 @@ GKE Autopilot 和 EKS Fargate 也会拒绝 eBPF 插桩和性能分析所需的�
 :::tabs
 @tab Standard
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --create-namespace \
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod
 ```
 @tab GKE Autopilot
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --create-namespace \
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-gke-autopilot \
@@ -117,8 +117,8 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
 ```
 @tab EKS Fargate
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --create-namespace \
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-eks-fargate \
@@ -131,8 +131,8 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
 你在安装时传入的标签会附加到集群上，以及此代理报告的服务和主机上。`--set oneuptime.labels.<key>=<value>` 会成为名为 `<key>:<value>` 的项目标签：
 
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent \
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
   --create-namespace \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
@@ -156,8 +156,8 @@ clusterName: prod
 ```
 
 ```bash
-helm install oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --create-namespace \
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
   -f values.yaml
 ```
 
@@ -182,8 +182,8 @@ Windows 节点上从不运行代理 Pod。关于这些节点及其 Pod 的集群
 要同时采集 Windows 节点上 Pod 的日志，请开启混合模式：
 
 ```bash
-helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --reset-then-reuse-values \
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set logs.windowsPods.enabled=true
 ```
 
@@ -240,8 +240,8 @@ OBI 还会让跟踪跨越一次调用延续下去：当 Pod A 通过 HTTP 或 gR
 - **其他任何日志行** 都会原样采集，不带关联，除非你同时设置 `ebpf.logEnricher.plainText=true`。此时 OBI 会在该行末尾追加 ` trace_id=… span_id=…`，节点采集器会把这些 ID 移到日志记录上并从该行中去除，因此 OneUptime 显示的就是你的应用写下的原样。容器日志文件中的该行(即 `kubectl logs` 打印的内容)仍保留附加内容。
 
 ```bash
-helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --reset-then-reuse-values \
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set ebpf.logToTraceCorrelation=true
 ```
 
@@ -310,8 +310,8 @@ ebpf:
 要检查 OBI 是否在运行并能看到流量：
 
 ```bash
-kubectl get pods -n oneuptime-kubernetes-agent -l component=ebpf-instrument
-kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=200
+kubectl get pods -n oneuptime-agent -l component=ebpf-instrument
+kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 ```
 
 ## 持续 CPU 性能分析
@@ -338,14 +338,14 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 | 选项 | 默认值 | 添加的内容 |
 | --- | --- | --- |
 | `hostMetrics.enabled` | 开启 | 每个节点来自 `/proc` 和 `/sys` 的操作系统指标：磁盘 I/O 队列、文件系统 inode、网络接口错误、分页和平均负载。在节点采集器中运行，不需要额外的 Pod。 |
-| `kubeletstats.utilizationMetrics.enabled` | 开启 | 容器和 Pod 的 CPU 与内存占其 request 和 limit 的百分比，CPU 和内存饱和监视器读取这些数据。对于没有 request 或 limit 的 Pod 始终为 0。 |
-| `kubeletstats.volumeMetrics.enabled` | 开启 | 每个 PVC 的可用空间和总空间(`k8s.volume.available`、`k8s.volume.capacity`)，PVC Low Disk Space 监视器读取这些数据。每个 Pod 的每个 PVC 一个序列。 |
+| `kubeletstats.utilizationMetrics.enabled` | 开启 | 容器和 Pod 的 CPU 与内存占其 request 和 limit 的百分比，Pod CPU Saturating Container Limit 和 Pod Memory Saturating Container Limit 模板读取这些数据。没有 limit（或 request）的容器没有这些序列，Pod 只有在其每个容器都设置了时才有。 |
+| `kubeletstats.volumeMetrics.enabled` | 开启 | 每个 PVC 的可用空间和总空间(`k8s.volume.available`、`k8s.volume.capacity`)，供你自己的图表和指标监视器使用：没有内置模板读取它们。每个 Pod 的每个 PVC 一个序列。 |
 | `cadvisor.enabled` | 开启 | 来自每个 kubelet 的 `/metrics/cadvisor` 的 CPU 节流和 OOM 终止：`container_cpu_cfs_throttled_seconds_total`、`container_cpu_cfs_periods_total` 和 `container_oom_events_total`，没有其他内容。 |
 | `kubeStateMetrics.enabled` | 关闭 | 来自 kube-state-metrics 的 Pod 阶段(Pending、Terminating)、无法调度的 Pod、容器等待原因(CrashLoopBackOff、ImagePullBackOff)和资源配额使用情况。`kubeStateMetrics.mode: bundled`(默认)会为你运行一个小型 kube-state-metrics；`external` 则读取你已在运行的实例，位于 `kubeStateMetrics.endpoint`。 |
 | `auditLogs.enabled` | 关闭 | Kubernetes 审计日志 `/var/log/kubernetes/audit.log`：对 API 的每个请求，由谁发出、针对什么。仅限自管理集群：托管集群(EKS、GKE、AKS、DOKS)会把它发送给云服务商。 |
 | `csi.enabled` | 关闭 | 来自带有 `app=csi-driver` 或 `app.kubernetes.io/component=csi-driver` 标签的 Pod 的 CSI 存储驱动指标：卷挂接和分离时间、预配失败、IOPS。 |
 | `coreDns.enabled` | 关闭 | `:9153/metrics` 上的 CoreDNS 指标：查询速率、延迟、缓存命中和错误。 |
-| `controlPlane.enabled` | 关闭 | etcd、API 服务器、调度器和控制器管理器。仅限自管理集群：托管集群不暴露这些组件。 |
+| `controlPlane.enabled` | 关闭 | API 服务器（在其集群内地址上），以及 etcd、调度器和控制器管理器（在你列出的端点上）（[启用控制平面监控](/docs/telemetry/kubernetes-agent#启用控制平面监控)）。仅限自管理集群：托管集群不暴露这些组件。 |
 | `cost.enabled` | 关闭 | 每个工作负载的成本。请参阅 [Kubernetes 成本可观测性](/docs/telemetry/kubernetes-cost)。 |
 
 ## 常用选项
@@ -376,8 +376,8 @@ Chart 的 [`values.yaml`](https://github.com/OneUptime/oneuptime/blob/master/Hel
 
 ```bash
 helm repo update
-helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent \
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
   --reset-then-reuse-values
 ```
 
@@ -385,9 +385,9 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 
 ```bash
 helm repo update
-helm get values oneuptime-agent --namespace oneuptime-kubernetes-agent -o yaml > values.yaml && \
-  helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent -f values.yaml
+helm get values kubernetes-agent --namespace oneuptime-agent -o yaml > values.yaml && \
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent -f values.yaml
 ```
 
 不要使用 `--reuse-values` 升级：它还会保留你升级前那个 Chart 的默认值，因此新 Chart 的默认值(包括其 eBPF 镜像)永远不会生效。当某个发布使用旧 Chart 的默认值运行时，Helm 在安装或升级后打印的说明会以一条警告和修复它的命令结尾。
@@ -398,8 +398,8 @@ helm get values oneuptime-agent --namespace oneuptime-kubernetes-agent -o yaml >
 ## 卸载
 
 ```bash
-helm uninstall oneuptime-agent --namespace oneuptime-kubernetes-agent
-kubectl delete namespace oneuptime-kubernetes-agent
+helm uninstall kubernetes-agent --namespace oneuptime-agent
+kubectl delete namespace oneuptime-agent
 ```
 
 ## 故障排查
@@ -409,7 +409,7 @@ kubectl delete namespace oneuptime-kubernetes-agent
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
-  | bash -s -- -n oneuptime-kubernetes-agent
+  | bash -s -- -n oneuptime-agent
 ```
 
 常见原因(尤其是在重新安装之后)是摄取密钥错误或已被吊销：OneUptime 拒绝它，采集器会丢弃每一批数据，而它的 Pod 仍处于 `Running` 状态。
@@ -420,8 +420,8 @@ curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChar
 
 ```bash
 helm repo update
-helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent \
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
   --reset-then-reuse-values \
   --set preset=gke-autopilot
 ```
@@ -437,8 +437,8 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 检查代理的 Pod 及其日志：
 
 ```bash
-kubectl get pods -n oneuptime-kubernetes-agent
-kubectl logs -n oneuptime-kubernetes-agent -l app.kubernetes.io/part-of=oneuptime --tail=200
+kubectl get pods -n oneuptime-agent
+kubectl logs -n oneuptime-agent -l app.kubernetes.io/part-of=oneuptime --tail=200
 ```
 
 在 `api` 模式下，日志跟随器会在 `/healthz`(端口 13133)上返回其导出的状态：用 `kubectl port-forward` 访问它。
@@ -448,7 +448,7 @@ kubectl logs -n oneuptime-kubernetes-agent -l app.kubernetes.io/part-of=oneuptim
 查看 OBI 的日志：
 
 ```bash
-kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=200
+kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 ```
 
 - **内核太旧，或没有 BTF。** OBI 需要带 BTF 的 Linux 5.8 或更高版本；在节点上用 `uname -r` 检查。如果无法升级内核，请用 `--set ebpf.enabled=false` 关闭 eBPF。
@@ -468,7 +468,7 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 把命名空间分配到多个发布中，每个发布都用自己的命名空间规则安装：
 
 ```bash
-helm install oneuptime-agent-ns-a oneuptime/kubernetes-agent \
+helm install kubernetes-agent-ns-a oneuptime/kubernetes-agent \
   --set preset=gke-autopilot \
   --set-json 'namespaceFilters.rules=[{"action":"include","namespaces":["app-a","app-b"],"scopes":["podLogs"]}]' \
   ...

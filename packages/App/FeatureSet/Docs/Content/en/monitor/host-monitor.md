@@ -113,7 +113,7 @@ A criteria fires only when the condition holds for every minute of its window, a
 - **Host Stopped Reporting** fires when nothing arrives from the host for ten minutes: the machine is down or unreachable, or its collector stopped, lost its route to OneUptime or had its token revoked. It resolves when data comes back. When data stops, the other templates have nothing to compare and keep their last status, so this is the one that tells you.
 - **CPU** is busy time (`user` plus `system`), the same figure the host's **Overview** charts. Iowait and steal are left out.
 - **Memory** excludes buffers and page cache, so a host that is mostly cache does not trip it.
-- **Filesystem** opens one incident per mount. Read-only pseudo-filesystems, such as snap `squashfs` mounts or macOS `devfs`, are always 100% full; exclude them in the collector's `filesystem` scraper.
+- **Filesystem** opens one incident per mount. Read-only pseudo-filesystems, such as snap `squashfs` mounts or macOS `devfs`, are always 100% full: OneUptime's collector configs leave them out of the `filesystem` scraper with `exclude_fs_types`, and a config of your own needs the same.
 - **Load average** is a raw run-queue length, not divided by the number of cores: 4 is saturation on a 2-core host and routine on a 32-core one, so raise it on large hosts.
 - **Process count** compares the largest single process state (`running`, `sleeping`, …), not the host's total, so it will not match a process listing. The processes scraper reports on Linux only.
 
@@ -212,7 +212,7 @@ The monitor scopes every query with `resource.host.name` equal to the host you p
 :::
 
 :::details High Filesystem Usage fires for a mount that is always full
-Read-only pseudo-filesystems, such as snap `squashfs` loop mounts under `/snap` or macOS `devfs`, are 100% full by design and never recover. Exclude them from the collector's `filesystem` scraper.
+Read-only pseudo-filesystems, such as snap `squashfs` loop mounts under `/snap` or macOS `devfs`, are 100% full by design and never recover. The configs OneUptime runs and hands out leave them out with `exclude_fs_types`; a config of your own, or a Collector Config made before they did, needs the same: copy it from [Host metrics](/docs/telemetry/host-otel-collector#host-metrics). Leave out another always-full mount, such as a mounted `.dmg`, with `exclude_mount_points`.
 :::
 
 ## Next steps

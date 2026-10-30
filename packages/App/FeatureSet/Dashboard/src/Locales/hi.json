@@ -38579,6 +38579,8 @@
   "The Runner signs in with its secret key. After a reset it stops connecting until you re-run the setup command on its host.": "Runner अपनी सीक्रेट कुंजी से साइन इन करता है। रीसेट के बाद यह तब तक कनेक्ट नहीं होता जब तक आप इसके होस्ट पर सेटअप कमांड फिर से न चलाएँ।",
   "Enter the number of a pull request, such as 12.": "किसी पुल रिक्वेस्ट का नंबर दर्ज करें, जैसे 12।",
   "Enter the number of a merge request, such as 12.": "किसी मर्ज रिक्वेस्ट का नंबर दर्ज करें, जैसे 12।",
+  "Guest Down or Replication Failing misses some guests": "Guest Down or Replication Failing misses some guests",
+  "Turn on {{enabled}} and point {{endpoints}} at etcd on the control-plane nodes: http:// for its plain metrics port, or its HTTPS client port with {{secret}} naming a Secret that holds the client certificate etcd asks for. Managed clusters such as EKS, GKE and AKS don't expose etcd.": "{{enabled}} चालू करें और {{endpoints}} को कंट्रोल-प्लेन नोड्स पर etcd की ओर इंगित करें: इसके सादे मीट्रिक पोर्ट के लिए http://, या इसका HTTPS क्लाइंट पोर्ट, जिसमें {{secret}} उस Secret का नाम बताए जिसमें etcd का माँगा गया क्लाइंट प्रमाणपत्र हो। EKS, GKE और AKS जैसे प्रबंधित क्लस्टर etcd को उपलब्ध नहीं कराते।",
   "{{matches}} of {{sampled}}": "{{sampled}} में से {{matches}}",
   "{{minutes}} min {{seconds}} s": "{{minutes}} min {{seconds}} s",
   "{{on}} of {{total}} on": "{{total}} में से {{on}} चालू",

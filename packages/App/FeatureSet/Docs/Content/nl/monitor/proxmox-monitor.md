@@ -11,7 +11,7 @@ Een Proxmox-monitor bewaakt één Proxmox VE-cluster – de nodes, VM's en LXC-c
 
 ## Hoe het werkt
 
-De OneUptime-Proxmox-agent draait op een machine die de Proxmox VE-API kan bereiken. Elke 30 seconden leest hij prometheus-pve-exporter uit met de cluster- en nodecollectors, labelt hij elke reeks met de resource die ze beschrijft, en stuurt hij de metrieken via OTLP naar OneUptime, voorzien van de naam van het cluster, `proxmox.cluster.name`. De eerste gegevens registreren het cluster. Proxmox VE 9 en later kan metrieken in plaats daarvan zelf pushen, zonder iets te installeren; zie [de native push](#de-native-push-van-proxmox-ve).
+De OneUptime-Proxmox-agent draait op een machine die de Proxmox VE-API kan bereiken. Elke 30 seconden leest hij de clustercollectors van prometheus-pve-exporter één keer uit en zijn nodecollectors één keer voor elke node, labelt hij elke reeks met de resource die ze beschrijft, en stuurt hij de metrieken via OTLP naar OneUptime, voorzien van de naam van het cluster, `proxmox.cluster.name`. De eerste gegevens registreren het cluster. Proxmox VE 9 en later kan metrieken in plaats daarvan zelf pushen, zonder iets te installeren; zie [de native push](#de-native-push-van-proxmox-ve).
 
 Een Proxmox-monitor is aan één cluster gebonden. Elke minuut voert hij zijn query uit over de metrieken van dat cluster en vergelijkt hij het resultaat met zijn criteria.
 
@@ -148,7 +148,7 @@ Proxmox VE 9 en later kan metrieken pushen via zijn ingebouwde OpenTelemetry-met
 
 ## Verzamelde metrieken
 
-De agent leest prometheus-pve-exporter elke 30 seconden uit met zowel de cluster- als de nodecollectors, wat ook de collectors `backup-info` en `replication` van de exporter dekt (beide standaard aan).
+De agent leest prometheus-pve-exporter elke 30 seconden uit: zijn clustercollectors één keer, op `PVE_HOST`, en zijn nodecollectors één keer voor elke node in `PVE_NODES`, omdat die alleen de node lezen die de exporter bevraagt. De nodecollectors zijn `config` (starten bij opstarten) en `replication`; de collectors `backup-info` (cluster) en `replication` van de exporter staan beide standaard aan.
 
 ### Beschikbaarheid
 
@@ -206,7 +206,7 @@ Uit de collector `backup-info` van de exporter, op clusterniveau. Ze rapporteren
 
 ### Replicatie
 
-Uit de collector `replication` van de exporter, op nodeniveau. De reeksen bestaan alleen als het cluster replicatietaken heeft, en dragen de taak-id in `id`:
+Uit de collector `replication` van de exporter, op nodeniveau, gelezen van elke node in `PVE_NODES`. De reeksen bestaan alleen als het cluster replicatietaken heeft, en dragen de taak-id in `id`:
 
 | Metriek | Eenheid | Beschrijving |
 | --- | --- | --- |
@@ -266,7 +266,7 @@ Bij de native push van Proxmox VE ziet een node die uit het cluster is gehaald e
 :::
 
 :::details Back-up- of replicatiemetrieken ontbreken
-`pve_not_backed_up_*` komt uit de collector `backup-info` van de exporter en `pve_replication_*` uit zijn collector `replication`. Beide staan standaard aan en worden gedekt door de uitleesparameters `cluster=1` en `node=1` van de meegeleverde configuratie. Als u uw eigen exporter draait, controleer dan of u ze niet hebt uitgezet. `pve_replication_*` bestaat alleen als het cluster opslagreplicatietaken heeft.
+`pve_not_backed_up_*` komt uit de collector `backup-info` van de exporter en `pve_replication_*` uit zijn collector `replication`. Beide staan standaard aan en worden gedekt door de meegeleverde configuratie: `cluster=1` één keer, en `node=1` voor elke node in `PVE_NODES`. Een node die in `PVE_NODES` ontbreekt, stuurt geen replicatietaken, en zijn gasten geen vlaggen voor starten bij opstarten, dus **Guest Down** gaat voor hen nooit af. Als u uw eigen exporter draait, controleer dan of u ze niet hebt uitgezet. `pve_replication_*` bestaat alleen als het cluster opslagreplicatietaken heeft.
 :::
 
 :::details Tellers zoals pve_network_receive_bytes groeien alleen maar

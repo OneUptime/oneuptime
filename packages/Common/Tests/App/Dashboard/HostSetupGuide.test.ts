@@ -33,6 +33,12 @@ import {
   getSetupGuideMarkdown,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
 import ExceptionCode from "../../../Types/Exception/ExceptionCode";
+import {
+  HOST_COLLECTOR_EXCLUDED_FILESYSTEM_TYPES,
+  HOST_COLLECTOR_FILESYSTEM_EXCLUSION,
+  getHostCollectorDefaultConfig,
+} from "../../../Utils/HostCollector/HostCollectorDefaultConfig";
+import { HostCollectorOsType } from "../../../Types/HostCollector/HostCollector";
 
 /*
  * The host guide asks how the OpenTelemetry Collector gets onto the host,
@@ -512,6 +518,36 @@ describe("the shared collector config", () => {
         "processes",
       ].sort(),
     );
+  });
+
+  /*
+   * Snap packages, CD and ISO images and macOS's /dev are 100% used for as
+   * long as they are mounted. The guide's config used to measure them, so
+   * High Filesystem Usage fired on them on every such host and never
+   * recovered. The guide hands out the exclusion OneUptime's own default
+   * config carries, word for word.
+   */
+  test("leaves the file systems that are full by design out, as OneUptime's default does", () => {
+    const filesystem: YamlMap =
+      config["receivers"]["hostmetrics"]["scrapers"]["filesystem"];
+
+    expect(filesystem["exclude_fs_types"]).toEqual({
+      fs_types: [...HOST_COLLECTOR_EXCLUDED_FILESYSTEM_TYPES],
+      match_type: "strict",
+    });
+    expect(filesystem["exclude_fs_types"]["fs_types"]).toEqual(
+      expect.arrayContaining(["squashfs", "devfs", "iso9660", "CDFS", "UDF"]),
+    );
+    expect(
+      getHostCollectorConfig({ oneuptimeUrl: URL, apiKey: KEY }),
+    ).toContain(`      filesystem:\n${HOST_COLLECTOR_FILESYSTEM_EXCLUSION}\n`);
+    expect(getHostCollectorDefaultConfig(HostCollectorOsType.Linux)).toContain(
+      `      filesystem:\n${HOST_COLLECTOR_FILESYSTEM_EXCLUSION}\n`,
+    );
+    // Every mount it does read keeps its utilization for the template.
+    expect(
+      filesystem["metrics"]["system.filesystem.utilization"]["enabled"],
+    ).toBe(true);
   });
 
   test("turns on the logical CPU count the Hosts list caches", () => {

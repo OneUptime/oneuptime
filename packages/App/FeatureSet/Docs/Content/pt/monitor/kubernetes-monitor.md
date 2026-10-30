@@ -23,7 +23,7 @@ flowchart TB
 ## Antes de começar
 
 - O agente de Kubernetes do OneUptime em execução no cluster. Consulte [Agente Kubernetes (instalação via Helm)](/docs/monitor/kubernetes-agent); o cluster aparece em **Kubernetes** alguns minutos depois da instalação.
-- Para os modelos do plano de controle (**etcd No Leader**, **API Server Request Saturation**, **Scheduler Backlog**): a coleta do plano de controle pelo agente, `controlPlane.enabled`. Clusters gerenciados (EKS, GKE, AKS) não expõem esses endpoints, então esses monitores nunca recebem dados neles.
+- Para os modelos do plano de controle (**etcd No Leader**, **API Server Request Saturation**, **Scheduler Backlog**): a coleta do plano de controle pelo agente, `controlPlane.enabled`, que lê o API server de imediato; o etcd e o scheduler também precisam ter os endpoints deles listados (veja [Ative o monitoramento do plano de controle](/docs/telemetry/kubernetes-agent#ative-o-monitoramento-do-plano-de-controle)). Clusters gerenciados (EKS, GKE, AKS) não expõem esses endpoints, então esses monitores nunca recebem dados neles.
 
 ## Criar um monitor de Kubernetes
 
@@ -177,7 +177,7 @@ Os clusters se registram sozinhos a partir dos dados do agente, com o `clusterNa
 :::
 
 :::details Um modelo do plano de controle nunca dispara
-**etcd No Leader**, **API Server Request Saturation** e **Scheduler Backlog** leem métricas que só a coleta do plano de controle pelo agente obtém. Ative `controlPlane.enabled` nos valores do Helm do agente; ela vem desativada por padrão. Clusters gerenciados (EKS, GKE, AKS) não expõem esses endpoints, então neles esses monitores nunca recebem dados.
+**etcd No Leader**, **API Server Request Saturation** e **Scheduler Backlog** leem métricas que só a coleta do plano de controle pelo agente obtém. Ative `controlPlane.enabled` nos valores do Helm do agente; ela vem desativada por padrão. Isso lê o API server. O etcd e o scheduler rodam nos nós do plano de controle, então **etcd No Leader** e **Scheduler Backlog** também precisam de `controlPlane.etcd.endpoints` e `controlPlane.scheduler.endpoints` definidos com endereços que o pod do agente consiga alcançar (veja [Ative o monitoramento do plano de controle](/docs/telemetry/kubernetes-agent#ative-o-monitoramento-do-plano-de-controle)). Clusters gerenciados (EKS, GKE, AKS) não expõem esses endpoints, então neles esses monitores nunca recebem dados.
 :::
 
 :::details Um limite de CPU nunca dispara

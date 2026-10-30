@@ -11,7 +11,7 @@ Proxmox 监视器监控一个 Proxmox VE 集群（它的节点、虚拟机和 LX
 
 ## 工作原理
 
-OneUptime Proxmox 代理运行在一台能访问 Proxmox VE API 的机器上。它每 30 秒使用集群和节点收集器抓取 prometheus-pve-exporter，给每个序列标上它所描述的资源，并把指标通过 OTLP 发送到 OneUptime，同时打上集群名称 `proxmox.cluster.name`。第一批数据会注册该集群。Proxmox VE 9 及更高版本也可以改为原生推送指标，无需安装任何东西；参见 [原生推送](#proxmox-ve-原生推送)。
+OneUptime Proxmox 代理运行在一台能访问 Proxmox VE API 的机器上。它每 30 秒抓取一次 prometheus-pve-exporter 的集群收集器，并对每个节点各抓取一次其节点收集器，给每个序列标上它所描述的资源，并把指标通过 OTLP 发送到 OneUptime，同时打上集群名称 `proxmox.cluster.name`。第一批数据会注册该集群。Proxmox VE 9 及更高版本也可以改为原生推送指标，无需安装任何东西；参见 [原生推送](#proxmox-ve-原生推送)。
 
 Proxmox 监视器绑定到一个集群。它每分钟对这个集群的指标运行查询，并把结果与条件进行比较。
 
@@ -148,7 +148,7 @@ Proxmox VE 9 及更高版本可以通过内置的 OpenTelemetry 指标服务器�
 
 ## 收集的指标
 
-代理每 30 秒使用集群和节点两类收集器抓取 prometheus-pve-exporter，这也覆盖了导出器的 `backup-info` 和 `replication` 收集器（两者默认都开启）。
+代理每 30 秒抓取 prometheus-pve-exporter：其集群收集器在 `PVE_HOST` 上抓取一次，其节点收集器对 `PVE_NODES` 中的每个节点各抓取一次，因为节点收集器只读取导出器所询问的节点。节点收集器是 `config`（开机自启）和 `replication`；导出器的 `backup-info`（集群）和 `replication` 收集器默认都开启。
 
 ### 可用性
 
@@ -206,7 +206,7 @@ CPU 和内存序列也会针对每个来宾报告，使用 `qemu/*` 和 `lxc/*` 
 
 ### 复制
 
-来自导出器的节点级 `replication` 收集器。只有当集群有复制作业时这些序列才存在，并在 `id` 中携带作业 ID：
+来自导出器的节点级 `replication` 收集器，从 `PVE_NODES` 中的每个节点读取。只有当集群有复制作业时这些序列才存在，并在 `id` 中携带作业 ID：
 
 | 指标 | 单位 | 说明 |
 | --- | --- | --- |
@@ -266,7 +266,7 @@ CPU 和内存序列也会针对每个来宾报告，使用 `qemu/*` 和 `lxc/*` 
 :::
 
 :::details 缺少备份或复制指标
-`pve_not_backed_up_*` 来自导出器的 `backup-info` 收集器，`pve_replication_*` 来自它的 `replication` 收集器。两者默认都开启，并由随附配置的抓取参数 `cluster=1` 和 `node=1` 覆盖。如果你运行自己的导出器，请检查没有关闭它们。只有当集群有存储复制作业时，`pve_replication_*` 才存在。
+`pve_not_backed_up_*` 来自导出器的 `backup-info` 收集器，`pve_replication_*` 来自它的 `replication` 收集器。两者默认都开启，并由随附配置覆盖：`cluster=1` 抓取一次，`node=1` 对 `PVE_NODES` 中的每个节点各抓取一次。`PVE_NODES` 中缺少的节点不会发送复制作业，其客户机也不会发送开机自启标志，因此 **Guest Down** 对它们从不触发。如果你运行自己的导出器，请检查没有关闭它们。只有当集群有存储复制作业时，`pve_replication_*` 才存在。
 :::
 
 :::details 像 pve_network_receive_bytes 这样的计数器只增不减

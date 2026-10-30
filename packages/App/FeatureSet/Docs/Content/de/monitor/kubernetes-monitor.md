@@ -23,7 +23,7 @@ flowchart TB
 ## Bevor Sie beginnen
 
 - Der OneUptime-Kubernetes-Agent läuft im Cluster. Siehe [Kubernetes-Agent (Helm-Installation)](/docs/monitor/kubernetes-agent); der Cluster erscheint wenige Minuten nach der Installation unter **Kubernetes**.
-- Für die Vorlagen der Steuerungsebene (**etcd No Leader**, **API Server Request Saturation**, **Scheduler Backlog**): die Erfassung der Steuerungsebene durch den Agent, `controlPlane.enabled`. Verwaltete Cluster (EKS, GKE, AKS) stellen diese Endpunkte nicht bereit, daher erhalten diese Monitore dort nie Daten.
+- Für die Vorlagen der Steuerungsebene (**etcd No Leader**, **API Server Request Saturation**, **Scheduler Backlog**): die Erfassung der Steuerungsebene durch den Agent, `controlPlane.enabled`, die den API-Server ohne Weiteres liest; etcd und der Scheduler brauchen zusätzlich ihre eingetragenen Endpunkte (siehe [Control-Plane-Überwachung aktivieren](/docs/telemetry/kubernetes-agent#control-plane-überwachung-aktivieren)). Verwaltete Cluster (EKS, GKE, AKS) stellen diese Endpunkte nicht bereit, daher erhalten diese Monitore dort nie Daten.
 
 ## Einen Kubernetes-Monitor erstellen
 
@@ -177,7 +177,7 @@ Cluster registrieren sich selbst aus den Daten des Agents, unter dem `clusterNam
 :::
 
 :::details Eine Vorlage der Steuerungsebene löst nie aus
-**etcd No Leader**, **API Server Request Saturation** und **Scheduler Backlog** lesen Metriken, die nur die Erfassung der Steuerungsebene durch den Agent sammelt. Schalten Sie `controlPlane.enabled` in den Helm-Werten des Agents ein; standardmäßig ist sie aus. Verwaltete Cluster (EKS, GKE, AKS) stellen diese Endpunkte nicht bereit, daher erhalten diese Monitore dort nie Daten.
+**etcd No Leader**, **API Server Request Saturation** und **Scheduler Backlog** lesen Metriken, die nur die Erfassung der Steuerungsebene durch den Agent sammelt. Schalten Sie `controlPlane.enabled` in den Helm-Werten des Agents ein; standardmäßig ist sie aus. Damit wird der API-Server gelesen. etcd und der Scheduler laufen auf den Control-Plane-Knoten, daher brauchen **etcd No Leader** und **Scheduler Backlog** zusätzlich `controlPlane.etcd.endpoints` und `controlPlane.scheduler.endpoints`, gesetzt auf Adressen, die der Pod des Agents erreicht (siehe [Control-Plane-Überwachung aktivieren](/docs/telemetry/kubernetes-agent#control-plane-überwachung-aktivieren)). Verwaltete Cluster (EKS, GKE, AKS) stellen diese Endpunkte nicht bereit, daher erhalten diese Monitore dort nie Daten.
 :::
 
 :::details Ein CPU-Schwellenwert löst nie aus

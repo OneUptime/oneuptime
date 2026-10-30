@@ -119,6 +119,7 @@ exit 0
   writeExecutable(
     path.join(bin, "curl"),
     `#!/usr/bin/env bash
+printf '%s\\n' "$*" >> "$STUB_DIR/curl.log"
 url=""; out=""
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -127,6 +128,13 @@ while [ $# -gt 0 ]; do
     *) url="$1"; shift ;;
   esac
 done
+case "$url" in
+  */api2/json/cluster/status)
+    [ -f "$STUB_DIR/cluster-status.json" ] || exit 7
+    cat > "$STUB_DIR/curl-stdin.txt"
+    cat "$STUB_DIR/cluster-status.json"
+    exit 0 ;;
+esac
 rel="\${url#https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/${AGENTS[agent].dir}/}"
 served="\${SERVE_DIR:-${agentDir}}"
 [ -f "$served/$rel" ] || exit 22
@@ -373,7 +381,7 @@ function serviceEnvironment(config, service) {
 
 describe("agents/ProxmoxAgent/install.sh", () => {
   // URL, key, cluster name, API host, bundled exporter, token id and
-  // secret, no fixes.
+  // secret, the nodes offered, no fixes.
   const FRESH_BUNDLED = answers(
     URL,
     KEY,
@@ -382,6 +390,7 @@ describe("agents/ProxmoxAgent/install.sh", () => {
     "",
     TOKEN_ID,
     TOKEN_SECRET,
+    "",
     "n",
   );
 
@@ -396,6 +405,8 @@ describe("agents/ProxmoxAgent/install.sh", () => {
       // Unquoted, Compose would cut it at " #".
       PROXMOX_CLUSTER_NAME: "'pve prod #1'",
       PVE_HOST: "'192.168.1.10'",
+      // Enter took PVE_HOST alone: the API (the stub) did not answer.
+      PVE_NODES: "'[192.168.1.10]'",
       PVE_PORT: "''",
       PVE_EXPORTER_URL: "'pve-exporter:9221'",
       PVE_API_TOKEN_ID: `'${TOKEN_ID}'`,
@@ -426,8 +437,8 @@ describe("agents/ProxmoxAgent/install.sh", () => {
   test("your own exporter: its address, no profile, and the AI agent's token question", () => {
     const dir = scratch();
     const run = install("proxmox", dir, {
-      // ... no bundled exporter, its address, no token for the AI agent,
-      // no fixes.
+      // ... no bundled exporter, its address, the nodes, no token for the
+      // AI agent, no fixes.
       input: answers(
         URL,
         KEY,
@@ -435,6 +446,7 @@ describe("agents/ProxmoxAgent/install.sh", () => {
         "192.168.1.10",
         "n",
         "10.0.0.5:9221",
+        "192.168.1.10, 192.168.1.11",
         "",
         "n",
       ),
@@ -443,6 +455,8 @@ describe("agents/ProxmoxAgent/install.sh", () => {
     expect(run.status).toBe(0);
     expect(envLines(run.envFile)).toMatchObject({
       PVE_EXPORTER_URL: "'10.0.0.5:9221'",
+      // A bare list is wrapped, so the collector reads a YAML list.
+      PVE_NODES: "'[192.168.1.10, 192.168.1.11]'",
       COMPOSE_PROFILES: "''",
       PVE_API_TOKEN_ID: "''",
       PVE_API_TOKEN_SECRET: "''",
@@ -462,6 +476,7 @@ describe("agents/ProxmoxAgent/install.sh", () => {
         "",
         TOKEN_ID,
         TOKEN_SECRET,
+        "",
         "y",
         "oneuptime-ai@pve!fixes",
         "fixes-secret",
@@ -538,6 +553,8 @@ describe("agents/ProxmoxAgent/install.sh", () => {
       ONEUPTIME_TELEMETRY_INGESTION_KEY: KEY,
       PROXMOX_CLUSTER_NAME: "pve-prod",
       PVE_HOST: "192.168.1.10",
+      // An .env from before PVE_NODES keeps reading PVE_HOST alone.
+      PVE_NODES: "[192.168.1.10]",
       PVE_PORT: "",
       PVE_EXPORTER_URL: "10.0.0.5:9221",
       PVE_API_TOKEN_ID: TOKEN_ID,
@@ -555,6 +572,13 @@ describe("agents/ProxmoxAgent/install.sh", () => {
       ONEUPTIME_AI_AGENT_RESOURCE_NAME: "",
       LOG_LEVEL: "debug",
     });
+    // ... and is told how to add the other nodes.
+    expect(run.output).toContain(
+      `NOTE: ${path.join(run.installDir, ".env")} had no PVE_NODES, so the agent reads start-on-boot (Guest Down),`,
+    );
+    expect(run.output).toContain(
+      "node's own address there, e.g. PVE_NODES=[<node1>,<node2>,...], then:",
+    );
   });
 
   test("an exported variable still overrides the .env on a re-run, and is written back", () => {
@@ -613,6 +637,7 @@ describe("agents/ProxmoxAgent/install.sh", () => {
         "",
         TOKEN_ID,
         TOKEN_SECRET,
+        "",
         "y",
         "",
         "",
@@ -640,6 +665,178 @@ describe("agents/ProxmoxAgent/install.sh", () => {
     const older = install("proxmox", dir);
     expect(older.status).toBe(0);
     expect(envLines(older.envFile).ONEUPTIME_AI_ALLOW_WRITES).toBe("false");
+  });
+
+  /*
+   * pve-exporter reads start-on-boot (what Guest Down needs), replication
+   * and the subscription only for the node it queries, so the collector
+   * queries every node in PVE_NODES. With a token the script lists the
+   * cluster's nodes through the API and offers them: Enter takes them.
+   */
+  describe("every node's address", () => {
+    const CLUSTER_STATUS = JSON.stringify({
+      data: [
+        {
+          type: "cluster",
+          id: "cluster",
+          name: "pve-prod",
+          nodes: 3,
+          quorate: 1,
+          version: 3,
+        },
+        {
+          type: "node",
+          id: "node/pve1",
+          name: "pve1",
+          ip: "10.0.0.11",
+          local: 1,
+          online: 1,
+          nodeid: 1,
+          level: "",
+        },
+        {
+          ip: "10.0.0.12",
+          level: "",
+          type: "node",
+          name: "pve2",
+          id: "node/pve2",
+          online: 1,
+          local: 0,
+          nodeid: 2,
+        },
+        {
+          type: "node",
+          id: "node/pve3",
+          name: "pve3",
+          ip: "10.0.0.13",
+          local: 0,
+          online: 0,
+          nodeid: 3,
+          level: "",
+        },
+      ],
+    });
+
+    test("offers the cluster's nodes from the API, and Enter takes them", () => {
+      const dir = scratch();
+      fs.writeFileSync(path.join(dir, "cluster-status.json"), CLUSTER_STATUS);
+      const run = install("proxmox", dir, { input: FRESH_BUNDLED });
+
+      expect(run.status).toBe(0);
+      // (read -p prints its prompt to a terminal only, so the offer itself
+      // is not in the output here: Enter taking it is what shows.)
+      expect(run.output).toContain(
+        "node it asks, so the agent asks every node at its own address (not a virtual IP).",
+      );
+      expect(envLines(run.envFile).PVE_NODES).toBe(
+        "'[10.0.0.11,10.0.0.12,10.0.0.13]'",
+      );
+    });
+
+    test("asks the API at PVE_HOST with the token on stdin, never on curl's command line", () => {
+      const dir = scratch();
+      fs.writeFileSync(path.join(dir, "cluster-status.json"), CLUSTER_STATUS);
+      expect(install("proxmox", dir, { input: FRESH_BUNDLED }).status).toBe(0);
+
+      const calls = readIfExists(path.join(dir, "curl.log"));
+      expect(calls).toContain(
+        "https://192.168.1.10:8006/api2/json/cluster/status",
+      );
+      expect(calls).not.toContain(TOKEN_SECRET);
+      expect(readIfExists(path.join(dir, "curl-stdin.txt"))).toBe(
+        `Authorization: PVEAPIToken=${TOKEN_ID}=${TOKEN_SECRET}\n`,
+      );
+      // Proxmox's certificate is self-signed unless PVE_VERIFY_SSL says not.
+      expect(calls).toMatch(/ -k .*\/api2\/json\/cluster\/status/);
+    });
+
+    test("a typed list replaces the offer, and is wrapped in square brackets", () => {
+      const dir = scratch();
+      fs.writeFileSync(path.join(dir, "cluster-status.json"), CLUSTER_STATUS);
+      const run = install("proxmox", dir, {
+        input: answers(
+          URL,
+          KEY,
+          "pve-prod",
+          "192.168.1.10",
+          "",
+          TOKEN_ID,
+          TOKEN_SECRET,
+          "pve1.example.com,pve2.example.com",
+          "n",
+        ),
+      });
+
+      expect(run.status).toBe(0);
+      expect(composeReadAll(run.envFile).PVE_NODES).toBe(
+        "[pve1.example.com,pve2.example.com]",
+      );
+    });
+
+    test("an exported list is kept as it is, and nothing is asked", () => {
+      const dir = scratch();
+      const run = install("proxmox", dir, {
+        env: { PVE_NODES: "[10.0.0.21,10.0.0.22]" },
+        input: answers(
+          URL,
+          KEY,
+          "pve-prod",
+          "192.168.1.10",
+          "",
+          TOKEN_ID,
+          TOKEN_SECRET,
+          "n",
+        ),
+      });
+
+      expect(run.status).toBe(0);
+      expect(run.output).not.toContain("Every node's API address");
+      expect(composeReadAll(run.envFile).PVE_NODES).toBe(
+        "[10.0.0.21,10.0.0.22]",
+      );
+    });
+
+    test("a re-run keeps the list without asking", () => {
+      const dir = scratch();
+      fs.writeFileSync(path.join(dir, "cluster-status.json"), CLUSTER_STATUS);
+      const first = install("proxmox", dir, { input: FRESH_BUNDLED });
+      expect(first.status).toBe(0);
+
+      const second = install("proxmox", dir);
+      expect(second.status).toBe(0);
+      expect(second.envFile).toBe(first.envFile);
+      expect(second.output).not.toContain("had no PVE_NODES");
+    });
+
+    test("an upgrade from an .env without PVE_NODES names the nodes the API lists", () => {
+      const dir = scratch();
+      fs.writeFileSync(path.join(dir, "cluster-status.json"), CLUSTER_STATUS);
+      const installDir = path.join(dir, "agent");
+      fs.mkdirSync(installDir);
+      fs.writeFileSync(
+        path.join(installDir, ".env"),
+        [
+          `ONEUPTIME_URL=${URL}`,
+          `ONEUPTIME_TELEMETRY_INGESTION_KEY=${KEY}`,
+          "PROXMOX_CLUSTER_NAME=pve-prod",
+          "PVE_HOST=192.168.1.10",
+          `PVE_API_TOKEN_ID=${TOKEN_ID}`,
+          "PVE_API_TOKEN_SECRET=0d1e2f3a-4b5c-6d7e-8f90-a1b2c3d4e5f6",
+          "COMPOSE_PROFILES=pve-exporter",
+          "",
+        ].join("\n"),
+      );
+
+      const run = install("proxmox", dir);
+
+      expect(run.status).toBe(0);
+      // It keeps reading what it read before...
+      expect(composeReadAll(run.envFile).PVE_NODES).toBe("[192.168.1.10]");
+      // ... and says which nodes to add.
+      expect(run.output).toContain(
+        "node's own address there, e.g. PVE_NODES=[10.0.0.11,10.0.0.12,10.0.0.13], then:",
+      );
+    });
   });
 
   test("reads the bundled exporter's token secret without echo", () => {
@@ -833,7 +1030,7 @@ describe.each([["proxmox"], ["ceph"]])(
     // The answers after the OneUptime URL and key.
     const REST =
       agent === "proxmox"
-        ? ["pve-prod", "192.168.1.10", "", TOKEN_ID, TOKEN_SECRET, "n"]
+        ? ["pve-prod", "192.168.1.10", "", TOKEN_ID, TOKEN_SECRET, "", "n"]
         : ["ceph-prod", "mon1:9283", "n"];
     const FRESH = answers(URL, KEY, ...REST);
 
@@ -1120,6 +1317,7 @@ describe("the .env the installers write, as the real Docker Compose reads it (re
           "",
           TOKEN_ID,
           TOKEN_SECRET,
+          "192.168.1.10,192.168.1.11",
           "n",
         ),
       });
@@ -1138,6 +1336,8 @@ describe("the .env the installers write, as the real Docker Compose reads it (re
         ONEUPTIME_TELEMETRY_INGESTION_KEY: KEY,
         PROXMOX_CLUSTER_NAME: "pve prod #1",
         PVE_HOST: "192.168.1.10",
+        // The YAML list the collector's node scrape reads.
+        PVE_NODES: "[192.168.1.10,192.168.1.11]",
         PVE_EXPORTER_URL: "pve-exporter:9221",
       });
       expect(serviceEnvironment(config, "pve-exporter")).toMatchObject({
@@ -1155,6 +1355,42 @@ describe("the .env the installers write, as the real Docker Compose reads it (re
     },
   );
 
+  /*
+   * An .env written by hand, or before PVE_NODES existed, has no node list:
+   * the collector then reads the node collectors from PVE_HOST alone, as
+   * it did before - through Compose's nested default.
+   */
+  maybe(
+    "Proxmox: with no PVE_NODES in .env, the collector's node list is PVE_HOST alone",
+    () => {
+      const installDir = scratch();
+      for (const file of ["docker-compose.yml", "otel-collector-config.yaml"]) {
+        fs.copyFileSync(
+          path.join(REPO_ROOT, "agents", "ProxmoxAgent", file),
+          path.join(installDir, file),
+        );
+      }
+      fs.writeFileSync(
+        path.join(installDir, ".env"),
+        [
+          `ONEUPTIME_URL=${URL}`,
+          `ONEUPTIME_TELEMETRY_INGESTION_KEY=${KEY}`,
+          "PVE_HOST=192.168.1.10",
+          "COMPOSE_PROFILES=pve-exporter",
+          "",
+        ].join("\n"),
+      );
+
+      const config = realComposeConfig(installDir);
+      expect(
+        serviceEnvironment(config, "oneuptime-proxmox-agent"),
+      ).toMatchObject({
+        PVE_HOST: "192.168.1.10",
+        PVE_NODES: "[192.168.1.10]",
+      });
+    },
+  );
+
   maybe("Proxmox: your own exporter starts no bundled one", () => {
     const dir = scratch();
     const run = install("proxmox", dir, {
@@ -1165,6 +1401,7 @@ describe("the .env the installers write, as the real Docker Compose reads it (re
         "192.168.1.10",
         "n",
         "10.0.0.5:9221",
+        "",
         "",
         "n",
       ),

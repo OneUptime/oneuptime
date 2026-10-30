@@ -32,7 +32,7 @@ Chaque hôte exécute une seule configuration, choisie dans cet ordre :
 | La première des **Configurations du collecteur** qui s'applique à lui | Une configuration s'applique quand elle est pour le système de l'hôte et, si elle nomme des étiquettes, que l'hôte en porte une. |
 | La configuration par défaut de OneUptime pour son système | Aucune configuration ne s'applique. |
 
-La configuration par défaut de OneUptime lit le processeur, la mémoire, les disques, les systèmes de fichiers, le réseau et les processus sur tout système ; le journal et les unités systemd sous Linux, là où l'hôte en a ; les journaux d'événements System, Application et Security et les services Windows sous Windows ; et les logs d'installation et Wi-Fi de `/var/log` sous macOS. Elle suit les versions de OneUptime, si bien qu'un hôte sur la configuration par défaut profite des améliorations que OneUptime y apporte.
+La configuration par défaut de OneUptime lit le processeur, la mémoire, les disques, les systèmes de fichiers, le réseau et les processus sur tout système ; le journal et les unités systemd sous Linux, là où l'hôte en a ; les journaux d'événements System, Application et Security et les services Windows sous Windows ; et les logs d'installation et Wi-Fi de `/var/log` sous macOS. Elle laisse de côté les systèmes de fichiers pleins par conception, comme les paquets snap et le `/dev` de macOS, afin qu'ils ne maintiennent jamais le modèle High Filesystem Usage déclenché. Elle suit les versions de OneUptime, si bien qu'un hôte sur la configuration par défaut profite des améliorations que OneUptime y apporte.
 
 ## Avant de commencer
 
