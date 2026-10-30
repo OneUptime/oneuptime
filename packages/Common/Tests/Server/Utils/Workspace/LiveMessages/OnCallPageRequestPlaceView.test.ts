@@ -79,7 +79,7 @@ describe("where the page was asked from: what it is about, under the first line"
     ).split("\n\n");
 
     expect(lines[0]).toBe(
-      `✅ **Nawaz Dhandala** acknowledged ${RECORD}, so paging stopped`,
+      `✅ **Nawaz Dhandala** acknowledged the page for ${RECORD}, so paging stopped`,
     );
     expect(lines[1]).toBe(`“${TITLE}”`);
   });
@@ -96,7 +96,7 @@ describe("where the page was asked from: what it is about, under the first line"
         }),
         { recordTitle: TITLE },
       ),
-    ).toBe(`Nawaz Dhandala acknowledged Alert AL-12: ${TITLE}`);
+    ).toBe(`Nawaz Dhandala acknowledged the page for Alert AL-12: ${TITLE}`);
   });
 
   test("a policy's run started for the page says it the same way", () => {

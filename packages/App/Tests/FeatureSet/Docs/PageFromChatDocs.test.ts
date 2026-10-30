@@ -1,6 +1,9 @@
 import Alert from "Common/Models/DatabaseModels/Alert";
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
-import { ON_CALL_DIRECT_PAGE_NOT_ALLOWED_MESSAGE } from "Common/Server/Services/OnCallPageService";
+import {
+  ON_CALL_DIRECT_PAGE_NOT_ALLOWED_MESSAGE,
+  OnCallPageRecordType,
+} from "Common/Server/Services/OnCallPageService";
 import slugify from "Common/Server/Types/MarkdownSlugify";
 import MicrosoftTeamsPage from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsPage";
 import SlackPageActions from "Common/Server/Utils/Workspace/Slack/Actions/Page";
@@ -15,10 +18,16 @@ import WorkspacePage, {
   WorkspacePageFormPrefill,
   WorkspacePageTargetKind,
 } from "Common/Server/Utils/Workspace/WorkspacePage";
+import WorkspacePageAbout, {
+  WORKSPACE_PAGE_NEW_ALERT_SUBJECT,
+  WorkspacePageSubject,
+} from "Common/Server/Utils/Workspace/WorkspacePageAbout";
+import { WorkspaceEventType } from "Common/Server/Utils/Workspace/WorkspaceMemberActions";
 import WorkspacePageTextReader, {
   WorkspacePageGroup,
   WorkspacePageText,
 } from "Common/Server/Utils/Workspace/WorkspacePageText";
+import { isOnCallPersonPage } from "Common/Types/OnCallDutyPolicy/OnCallPersonPage";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -150,6 +159,32 @@ function boldRoleTitles(text: string): Array<string> {
       return roles.has(title);
     });
 }
+
+// What a page in an incident's own channel is about: that incident.
+const INCIDENT_CHANNEL: WorkspacePageSubject = {
+  record: {
+    type: OnCallPageRecordType.Incident,
+    event: {
+      type: WorkspaceEventType.Incident,
+      id: ObjectID.generate(),
+      projectId: ObjectID.generate(),
+      currentStateId: undefined,
+      number: 42,
+      numberWithPrefix: "INC-42",
+    },
+    name: { label: "Incident INC-42", link: null },
+    title: "Checkout is down",
+  },
+};
+
+// A page in the channel of an incident that is resolved: something new.
+const RESOLVED_INCIDENT_CHANNEL: WorkspacePageSubject = {
+  record: null,
+  resolvedRecord: { label: "Incident INC-42", link: null },
+};
+
+const SLACK_IN_CHANNEL: string = "In an incident's or an alert's own channel";
+const ANYWHERE_ELSE: string = "Anywhere else";
 
 const RUN_ROLES: Array<string> = roleTitles(
   new OnCallDutyPolicyExecutionLog().getCreatePermissions(),
@@ -470,8 +505,159 @@ describe("the form a page opens, by the name it is drawn with", () => {
   });
 });
 
+describe("what a page is about, by where it is asked for, as the chats decide it", () => {
+  test.each([
+    { name: "Slack", markdown: SLACK_PAGE, heading: SLACK_HEADING },
+    { name: "Microsoft Teams", markdown: TEAMS_PAGE, heading: TEAMS_HEADING },
+  ])(
+    "$name: the two places, each a bullet of the section, in the order the rule reads them",
+    (page: { markdown: string; heading: string }) => {
+      const text: string = section(page.markdown, `## ${page.heading}`);
+      const inChannel: string = bullet(text, SLACK_IN_CHANNEL);
+      const elsewhere: string = bullet(text, ANYWHERE_ELSE);
+
+      expect(text.indexOf(inChannel)).toBeLessThan(text.indexOf(elsewhere));
+      expect(inChannel).toContain(
+        "the page is about that incident or alert, and nothing new is created.",
+      );
+      expect(elsewhere).toContain(
+        "the channel of an incident or alert that is resolved, OneUptime creates an alert whose title is your message",
+      );
+    },
+  );
+
+  test("in an incident's own channel nothing new is made and no message is needed: `/oneuptime page @nawaz` pages at once", () => {
+    const inChannel: string = bullet(
+      section(SLACK_PAGE, `## ${SLACK_HEADING}`),
+      SLACK_IN_CHANNEL,
+    );
+
+    expect(inChannel).toContain(
+      "A message is optional there: `/oneuptime page @nawaz` is enough.",
+    );
+
+    const read: WorkspacePageText = WorkspacePageTextReader.read(
+      SlackCommandParser.getPageTokens("page <@U0123ABCD|nawaz>"),
+    );
+    const people: { people: Array<never>; notTold: Array<never> } = {
+      people: [
+        { userId: ObjectID.generate(), name: "Nawaz" } as never,
+      ] as Array<never>,
+      notTold: [],
+    };
+
+    expect(read.message).toBe("");
+    expect(WorkspacePage.isMessageRequired(INCIDENT_CHANNEL)).toBe(false);
+    expect(
+      WorkspacePage.isReadyToPage({
+        text: read,
+        people: people,
+        groups: { paged: [], notPaged: [] },
+        about: INCIDENT_CHANNEL,
+      }),
+    ).toBe(true);
+
+    // Anywhere else, the message is the new alert's title: the form opens.
+    for (const about of [
+      WORKSPACE_PAGE_NEW_ALERT_SUBJECT,
+      RESOLVED_INCIDENT_CHANNEL,
+    ]) {
+      expect(WorkspacePage.isMessageRequired(about)).toBe(true);
+      expect(
+        WorkspacePage.isReadyToPage({
+          text: read,
+          people: people,
+          groups: { paged: [], notPaged: [] },
+          about: about,
+        }),
+      ).toBe(false);
+    }
+  });
+
+  test("Microsoft Teams: `@OneUptime page @Nawaz Dhandala` names Nawaz, with no message - enough in an incident's own channel", () => {
+    expect(
+      bullet(section(TEAMS_PAGE, `## ${TEAMS_HEADING}`), SLACK_IN_CHANNEL),
+    ).toContain(
+      "A message is optional there: `@OneUptime page @Nawaz Dhandala` is enough.",
+    );
+
+    const activity: JSONObject = {
+      text: "<at>OneUptime</at> page <at>Nawaz Dhandala</at>",
+      recipient: { id: "28:oneuptime-bot" },
+      entities: [
+        {
+          type: "mention",
+          text: "<at>OneUptime</at>",
+          mentioned: { id: "28:oneuptime-bot", name: "OneUptime" },
+        },
+        {
+          type: "mention",
+          text: "<at>Nawaz Dhandala</at>",
+          mentioned: { id: "29:nawaz", name: "Nawaz Dhandala" },
+        },
+      ],
+    };
+
+    expect(
+      WorkspacePageTextReader.read(MicrosoftTeamsPage.getPageTokens(activity)),
+    ).toEqual({
+      people: [{ workspaceUserId: "29:nawaz", name: "Nawaz Dhandala" }],
+      groups: [],
+      unknownNames: [],
+      message: "",
+    });
+  });
+
+  test("anywhere else the page says it is about a new alert, in the form and in the answer only you see, before anyone is paged", () => {
+    expect(
+      bullet(section(SLACK_PAGE, `## ${SLACK_HEADING}`), ANYWHERE_ELSE),
+    ).toContain(
+      "The form says so, and so does the answer only you see before anyone is paged.",
+    );
+
+    expect(
+      SlackPageActions.getPagingAnswer(
+        ["Nawaz Dhandala"],
+        WORKSPACE_PAGE_NEW_ALERT_SUBJECT,
+      ).text,
+    ).toBe("Paging Nawaz Dhandala about a new alert…");
+    expect(WorkspacePage.getMessageHint(WORKSPACE_PAGE_NEW_ALERT_SUBJECT)).toBe(
+      "The people you page get this as the title of a new alert.",
+    );
+    // A resolved incident's channel says why.
+    expect(WorkspacePage.getMessageHint(RESOLVED_INCIDENT_CHANNEL)).toBe(
+      "Incident INC-42 is resolved, so the people you page get this as the title of a new alert.",
+    );
+
+    // In the incident's own channel, the incident instead.
+    expect(WorkspacePageAbout.getAboutWords(INCIDENT_CHANNEL)).toBe(
+      "about Incident INC-42",
+    );
+  });
+
+  test("the people paged are paged until one of them answers: a page a person asks for, which somebody else's acknowledgement does not end", () => {
+    for (const page of [SLACK_PAGE, TEAMS_PAGE]) {
+      const heading: string =
+        page === SLACK_PAGE ? SLACK_HEADING : TEAMS_HEADING;
+
+      expect(
+        bullet(section(page, `## ${heading}`), SLACK_IN_CHANNEL),
+      ).toContain(
+        "The people you page are paged until one of them answers, from the page or by acknowledging the incident or alert; somebody else acknowledging it does not stop the page, and resolving it does.",
+      );
+    }
+
+    // A page asked for from a chat is a person's: no policy, no workflow.
+    expect(isOnCallPersonPage({ triggeredByUserId: ObjectID.generate() })).toBe(
+      true,
+    );
+  });
+});
+
 describe("who may page, as the models and the page's own check hold it", () => {
-  test("a page asks to start an on-call run and to create an alert - nothing else, before anything is shown", async () => {
+  function askedFor(
+    about: WorkspacePageSubject | undefined,
+  ): Promise<Array<string>> {
     const asked: Array<string> = [];
 
     jest
@@ -486,25 +672,71 @@ describe("who may page, as the models and the page's own check hold it", () => {
         },
       );
 
-    await WorkspacePage.assertMayPage({
-      userId: ObjectID.generate(),
-      tenantId: ObjectID.generate(),
-    } as DatabaseCommonInteractionProps);
+    return WorkspacePage.assertMayPage(
+      {
+        userId: ObjectID.generate(),
+        tenantId: ObjectID.generate(),
+      } as DatabaseCommonInteractionProps,
+      about,
+    ).then((): Array<string> => {
+      return asked;
+    });
+  }
 
-    expect(asked).toEqual([OnCallDutyPolicyExecutionLog.name, Alert.name]);
+  test("a page about something new asks to start an on-call run and to create an alert - nothing else, before anything is shown", async () => {
+    for (const about of [
+      undefined,
+      WORKSPACE_PAGE_NEW_ALERT_SUBJECT,
+      RESOLVED_INCIDENT_CHANNEL,
+    ]) {
+      jest.restoreAllMocks();
+
+      expect(await askedFor(about)).toEqual([
+        OnCallDutyPolicyExecutionLog.name,
+        Alert.name,
+      ]);
+    }
+  });
+
+  test("a page in an incident's own channel creates nothing: it asks to start an on-call run, and nothing else", async () => {
+    expect(await askedFor(INCIDENT_CHANNEL)).toEqual([
+      OnCallDutyPolicyExecutionLog.name,
+    ]);
   });
 
   test.each([
     { name: "Slack", markdown: SLACK_PAGE, heading: SLACK_HEADING },
     { name: "Microsoft Teams", markdown: TEAMS_PAGE, heading: TEAMS_HEADING },
   ])(
-    "$name names exactly the roles that hold both, then a pair that does together",
+    "$name names exactly the roles that may start a run in a record's own channel, then elsewhere the roles that hold both, and a pair that does together",
     (page: { markdown: string; heading: string }) => {
       const line: string = bullet(
         section(page.markdown, `## ${page.heading}`),
         "Who may page.",
       );
-      const [both, pair] = line.split(", or ") as [string, string];
+      const elsewhereAt: number = line.indexOf(
+        "Anywhere else the page creates an alert, so it also takes permission to create one:",
+      );
+
+      expect(elsewhereAt).toBeGreaterThan(0);
+
+      const inChannel: string = line.slice(0, elsewhereAt);
+      const elsewhere: string = line.slice(elsewhereAt);
+
+      // In a record's own channel: each role that may start a run.
+      expect(inChannel).toContain(
+        "In an incident's or an alert's own channel, anyone who may execute an on-call policy (",
+      );
+      expect(inChannel).toContain("and read that incident or alert.");
+      expect(boldRoleTitles(inChannel).sort()).toEqual([...RUN_ROLES].sort());
+
+      for (const title of permissionTitles(
+        new OnCallDutyPolicyExecutionLog().getCreatePermissions(),
+      )) {
+        expect(inChannel).toContain(`**${title}**`);
+      }
+
+      const [both, pair] = elsewhere.split(", or ") as [string, string];
 
       // Each role that may both start a run and create an alert.
       expect(boldRoleTitles(both).sort()).toEqual(
@@ -528,7 +760,7 @@ describe("who may page, as the models and the page's own check hold it", () => {
         ),
         ...permissionTitles(new Alert().getCreatePermissions()),
       ]) {
-        expect(line).toContain(`**${title}**`);
+        expect(elsewhere).toContain(`**${title}**`);
       }
 
       // A direct page asks more, in the service's own words.
