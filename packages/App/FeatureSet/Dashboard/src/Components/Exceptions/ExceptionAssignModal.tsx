@@ -2,7 +2,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Modal from "Common/UI/Components/Modal/Modal";
 import PeoplePicker from "Common/UI/Components/PeoplePicker/PeoplePicker";
 import { PeoplePickerValue } from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import {
@@ -55,7 +55,7 @@ const ExceptionAssignModal: FunctionComponent<ComponentProps> = (
           kinds={ASSIGNEE_KINDS}
           value={value}
           isSinglePick={true}
-          addButtonText="Pick someone"
+          addButtonText={translationKey("Pick someone")}
           searchPlaceholder="Search people and teams"
           whenNobodyPicked={{ text: "Unassigned", icon: IconProp.User }}
           dataTestId="exception-assign-modal-picker"

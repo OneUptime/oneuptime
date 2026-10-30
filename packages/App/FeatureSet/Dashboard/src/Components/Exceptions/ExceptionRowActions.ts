@@ -377,8 +377,9 @@ export const getExceptionBulkActions: () => Array<
  * would - one request each - leaving one already there alone, saying so.
  */
 
-export const EXCEPTION_ASSIGN_TO_ME_TITLE: string = "Assign to me";
-export const EXCEPTION_ASSIGN_TITLE: string = "Assign to…";
+export const EXCEPTION_ASSIGN_TO_ME_TITLE: string =
+  translationKey("Assign to me");
+export const EXCEPTION_ASSIGN_TITLE: string = translationKey("Assign to…");
 
 export const EXCEPTION_ASSIGN_RESULT_LABELS: {
   succeeded: PluralTemplate;

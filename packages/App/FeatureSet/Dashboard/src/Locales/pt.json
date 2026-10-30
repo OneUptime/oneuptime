@@ -38837,5 +38837,17 @@
   "This can take up to a minute.": "Isso pode levar até um minuto.",
   "Where to look": "Onde olhar",
   "Written by OneUptime AI {{time}}.": "Escrita por OneUptime AI {{time}}.",
-  "Written by OneUptime AI.": "Escrita por OneUptime AI."
+  "Written by OneUptime AI.": "Escrita por OneUptime AI.",
+  "Already assigned there.": "Já está atribuída assim.",
+  "Assign {{count}} exceptions": "Atribuir {{count}} exceções",
+  "Assign {{count}} exceptions_one": "Atribuir {{count}} exceção",
+  "Assigned to me": "Atribuídas a mim",
+  "Most events": "Mais eventos",
+  "Not assigned to anyone.": "Não está atribuída a ninguém.",
+  "Pick one person or one team. Pick nobody to unassign them.": "Escolha uma pessoa ou uma equipe. Não escolha ninguém para remover a atribuição.",
+  "Search people and teams": "Pesquisar pessoas e equipes",
+  "Sort: {{order}}": "Ordem: {{order}}",
+  "Assign to me": "Atribuir a mim",
+  "Assign to…": "Atribuir a…",
+  "Pick someone": "Escolher alguém"
 }

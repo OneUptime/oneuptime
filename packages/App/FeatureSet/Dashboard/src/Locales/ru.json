@@ -38837,5 +38837,17 @@
   "This can take up to a minute.": "Это может занять до минуты.",
   "Where to look": "Куда смотреть",
   "Written by OneUptime AI {{time}}.": "Написано OneUptime AI {{time}}.",
-  "Written by OneUptime AI.": "Написано OneUptime AI."
+  "Written by OneUptime AI.": "Написано OneUptime AI.",
+  "Already assigned there.": "Уже назначено так.",
+  "Assign {{count}} exceptions": "Назначить исключения: {{count}}",
+  "Assign {{count}} exceptions_one": "Назначить {{count}} исключение",
+  "Assigned to me": "Назначенные мне",
+  "Most events": "Больше всего событий",
+  "Not assigned to anyone.": "Ни на кого не назначено.",
+  "Pick one person or one team. Pick nobody to unassign them.": "Выберите одного человека или одну команду. Не выбирайте никого, чтобы снять назначение.",
+  "Search people and teams": "Искать людей и команды",
+  "Sort: {{order}}": "Сортировка: {{order}}",
+  "Assign to me": "Назначить мне",
+  "Assign to…": "Назначить…",
+  "Pick someone": "Выбрать человека"
 }

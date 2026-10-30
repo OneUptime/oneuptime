@@ -38837,5 +38837,17 @@
   "This can take up to a minute.": "Det kan tage op til et minut.",
   "Where to look": "Hvor du skal kigge",
   "Written by OneUptime AI {{time}}.": "Skrevet af OneUptime AI {{time}}.",
-  "Written by OneUptime AI.": "Skrevet af OneUptime AI."
+  "Written by OneUptime AI.": "Skrevet af OneUptime AI.",
+  "Already assigned there.": "Allerede tildelt sådan.",
+  "Assign {{count}} exceptions": "Tildel {{count}} undtagelser",
+  "Assign {{count}} exceptions_one": "Tildel {{count}} undtagelse",
+  "Assigned to me": "Tildelt til mig",
+  "Most events": "Flest hændelser",
+  "Not assigned to anyone.": "Ikke tildelt nogen.",
+  "Pick one person or one team. Pick nobody to unassign them.": "Vælg én person eller ét team. Vælg ingen for at fjerne tildelingen.",
+  "Search people and teams": "Søg efter personer og teams",
+  "Sort: {{order}}": "Sortering: {{order}}",
+  "Assign to me": "Tildel til mig",
+  "Assign to…": "Tildel til…",
+  "Pick someone": "Vælg en person"
 }

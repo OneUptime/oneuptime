@@ -38837,5 +38837,17 @@
   "This can take up to a minute.": "इसमें एक मिनट तक लग सकता है।",
   "Where to look": "कहाँ देखें",
   "Written by OneUptime AI {{time}}.": "OneUptime AI ने {{time}} लिखा।",
-  "Written by OneUptime AI.": "OneUptime AI ने लिखा।"
+  "Written by OneUptime AI.": "OneUptime AI ने लिखा।",
+  "Already assigned there.": "पहले से वहीं असाइन है।",
+  "Assign {{count}} exceptions": "{{count}} अपवाद असाइन करें",
+  "Assign {{count}} exceptions_one": "{{count}} अपवाद असाइन करें",
+  "Assigned to me": "मुझे असाइन किए गए",
+  "Most events": "सबसे ज़्यादा इवेंट",
+  "Not assigned to anyone.": "किसी को असाइन नहीं है।",
+  "Pick one person or one team. Pick nobody to unassign them.": "एक व्यक्ति या एक टीम चुनें। असाइनमेंट हटाने के लिए किसी को न चुनें।",
+  "Search people and teams": "लोग और टीमें खोजें",
+  "Sort: {{order}}": "क्रम: {{order}}",
+  "Assign to me": "मुझे असाइन करें",
+  "Assign to…": "इसे असाइन करें…",
+  "Pick someone": "किसी को चुनें"
 }

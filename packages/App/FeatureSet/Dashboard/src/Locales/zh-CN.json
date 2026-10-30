@@ -38837,5 +38837,17 @@
   "This can take up to a minute.": "这最多可能需要一分钟。",
   "Where to look": "排查位置",
   "Written by OneUptime AI {{time}}.": "由 OneUptime AI 于{{time}}撰写。",
-  "Written by OneUptime AI.": "由 OneUptime AI 撰写。"
+  "Written by OneUptime AI.": "由 OneUptime AI 撰写。",
+  "Already assigned there.": "已是该分配。",
+  "Assign {{count}} exceptions": "分配 {{count}} 个异常",
+  "Assign {{count}} exceptions_one": "分配 {{count}} 个异常",
+  "Assigned to me": "分配给我的",
+  "Most events": "事件最多",
+  "Not assigned to anyone.": "未分配给任何人。",
+  "Pick one person or one team. Pick nobody to unassign them.": "请选择一个人或一个团队。不选择任何人则取消分配。",
+  "Search people and teams": "搜索人员和团队",
+  "Sort: {{order}}": "排序：{{order}}",
+  "Assign to me": "分配给我",
+  "Assign to…": "分配给…",
+  "Pick someone": "选择人员"
 }

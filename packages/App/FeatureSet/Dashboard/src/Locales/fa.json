@@ -38837,5 +38837,17 @@
   "This can take up to a minute.": "این کار ممکن است تا یک دقیقه طول بکشد.",
   "Where to look": "کجا را ببینید",
   "Written by OneUptime AI {{time}}.": "نوشته‌شده توسط OneUptime AI، {{time}}.",
-  "Written by OneUptime AI.": "نوشته‌شده توسط OneUptime AI."
+  "Written by OneUptime AI.": "نوشته‌شده توسط OneUptime AI.",
+  "Already assigned there.": "از قبل به همان واگذار شده است.",
+  "Assign {{count}} exceptions": "واگذاری {{count}} استثنا",
+  "Assign {{count}} exceptions_one": "واگذاری {{count}} استثنا",
+  "Assigned to me": "واگذارشده به من",
+  "Most events": "بیشترین رویداد",
+  "Not assigned to anyone.": "به کسی واگذار نشده است.",
+  "Pick one person or one team. Pick nobody to unassign them.": "یک نفر یا یک تیم را انتخاب کنید. برای لغو واگذاری، کسی را انتخاب نکنید.",
+  "Search people and teams": "جست‌وجوی افراد و تیم‌ها",
+  "Sort: {{order}}": "مرتب‌سازی: {{order}}",
+  "Assign to me": "واگذاری به من",
+  "Assign to…": "واگذاری به…",
+  "Pick someone": "انتخاب یک نفر"
 }

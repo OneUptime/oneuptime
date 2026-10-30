@@ -179,7 +179,11 @@ import {
 } from "../../Utils/ExceptionsEntityChipDisplay";
 import { LockedEntityKeyDisplayMap } from "../../Utils/LockedEntityKeyChips";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 const DEFAULT_PAGE_SIZE: number = 50;
 
@@ -609,6 +613,8 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         pageSize: props.limit || DEFAULT_PAGE_SIZE,
         status: null,
         classScope: null,
+        assignedToMe: false,
+        sort: DEFAULT_EXCEPTION_LIST_SORT,
       };
     }
 
@@ -2427,7 +2433,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   const sortMenu: ReactElement = (
     <MoreMenu
       text={translator.translateTemplate("Sort: {{order}}", {
-        order: translator.translateText(EXCEPTION_LIST_SORT_LABELS[sort]),
+        order: translatableTerm(EXCEPTION_LIST_SORT_LABELS[sort]),
       })}
       menuIcon={IconProp.ArrowUpDown}
       dataTestId="exceptions-sort"
@@ -2469,22 +2475,21 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
    * exception's page offers them; the list and its chart are read again
    * after each.
    */
-  const exceptionRowActions: Array<ActionButtonSchema<TelemetryException>> =
-    [
-      ...getExceptionRowActions({
-        onChanged: (): void => {
-          void fetchExceptions();
-          void fetchHistogram();
-        },
-      }),
-      // Assign to me, when it is not the reader's already.
-      ...getExceptionAssignmentRowActions({
-        currentUserId: UserUtil.getUserId(),
-        onChanged: (): void => {
-          void fetchExceptions();
-        },
-      }),
-    ];
+  const exceptionRowActions: Array<ActionButtonSchema<TelemetryException>> = [
+    ...getExceptionRowActions({
+      onChanged: (): void => {
+        void fetchExceptions();
+        void fetchHistogram();
+      },
+    }),
+    // Assign to me, when it is not the reader's already.
+    ...getExceptionAssignmentRowActions({
+      currentUserId: UserUtil.getUserId(),
+      onChanged: (): void => {
+        void fetchExceptions();
+      },
+    }),
+  ];
 
   /*
    * The same four on the rows a person ticks (Bulk Actions), the list and

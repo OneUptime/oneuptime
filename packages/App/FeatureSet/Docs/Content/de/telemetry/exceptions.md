@@ -58,7 +58,7 @@ Wechseln Sie zwischen **Nicht behoben**, **Behoben**, **Archiviert** und **Alle*
 
 ### Suchen und filtern
 
-Geben Sie eine Abfrage wie `type:TypeError env:production` ein, siehe [Suchsyntax](/docs/telemetry/search-syntax#ausnahmen), oder klicken Sie auf einen Wert in der Seitenleiste **Filter**: einen Dienst, einen Host oder eine andere Ressource, einen **Ausnahmetyp**, eine **Umgebung** oder eine **Fehlerklasse**.
+Geben Sie eine Abfrage wie `type:TypeError env:production` ein, siehe [Suchsyntax](/docs/telemetry/search-syntax#ausnahmen), oder klicken Sie auf einen Wert in der Seitenleiste **Filter**: einen Dienst, einen Host oder eine andere Ressource, einen **Ausnahmetyp**, eine **Umgebung** oder eine **Fehlerklasse**. **Mir zugewiesen** zeigt nur die Ihnen zugewiesenen Ausnahmen, und das Sortiermenü ordnet die Liste nach **Zuletzt gesehen**, **Zuerst gesehen** oder **Meiste Ereignisse**.
 
 ### Eine Ausnahme öffnen
 
@@ -96,6 +96,8 @@ Die Schaltflächen oben auf der Seite der Ausnahme, ihre Seite **Einstellungen**
 **Einstellungen** zeigt, wer die Ausnahme zuletzt als behoben markiert oder archiviert hat, und wann. Ihre Schaltflächen lauten **Als gelöst markieren** oder **Als ungelöst markieren** und **Archivieren** oder **Aus Archiv entfernen**.
 
 Um mehrere auf einmal zu ändern, haken Sie ihre Zeilen in der Liste an, oder das Kästchen über den Zeilen für alle Ausnahmen auf der Seite, und nutzen Sie dieselben Aktionen unter **Massenaktionen**. Das Ergebnis zeigt, welche Ausnahmen geändert wurden, welche unverändert blieben und warum.
+
+**Zuweisen** im Kopf der Ausnahme gibt sie einer Person oder einem Team, und wer die Auswahl entfernt, hebt die Zuweisung auf. Jede Zeile zeigt, wem sie gehört, ihr Menü ⋯ bietet **Mir zuweisen**, und **Zuweisen an…** unter **Massenaktionen** weist mehrere auf einmal zu.
 
 ## Fehlerklassen
 

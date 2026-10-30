@@ -2124,6 +2124,48 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     expect(card).toContain("safeMode={true}");
   });
 
+  /*
+   * Who owns an exception, and the list's order: the header's Assign, a
+   * row's Assign to me, Bulk Actions' Assign to…, Assigned to me and the
+   * sort menu, with their words as the Dashboard draws them.
+   */
+  it("assigns an exception to a person or a team, filters to your own, and sorts the list", () => {
+    const viewer: string = readDashboardSource(
+      "Components/Exceptions/ExceptionsViewer.tsx",
+    );
+    const actions: string = readDashboardSource(
+      "Components/Exceptions/ExceptionRowActions.ts",
+    );
+    const assignee: string = readDashboardSource(
+      "Components/Exceptions/ExceptionAssignee.tsx",
+    );
+    const assignment: string = readDashboardSource(
+      "Utils/ExceptionAssignment.ts",
+    );
+    const triage: string = section(page, "## Resolve, reopen and archive");
+
+    // The header's picker: one person or one team.
+    expect(assignee).toContain('addButtonText="Assign"');
+    expect(assignee).toContain("isSinglePick={true}");
+    expect(assignee).toContain("PeoplePickerKind.User,");
+    expect(assignee).toContain("PeoplePickerKind.Team,");
+    expect(actions).toContain('translationKey("Assign to me")');
+    expect(actions).toContain('translationKey("Assign to…")');
+    expect(triage).toContain(
+      "**Assign** in the exception's header gives it to one person or one team, and removing them unassigns it. Each row shows who owns it, its ⋯ menu offers **Assign to me**, and **Assign to…** under **Bulk Actions** assigns several at once.",
+    );
+
+    // Assigned to me and the sort menu, beside the lenses.
+    expect(viewer).toContain('{translator.translateText("Assigned to me")}');
+    expect(viewer).toContain("q.assignToUserId = UserUtil.getUserId();");
+    for (const label of ['"Last seen"', '"First seen"', '"Most events"']) {
+      expect(assignment).toContain(label);
+    }
+    expect(page).toContain(
+      "**Assigned to me** shows only the exceptions assigned to you, and the sort menu orders the list by **Last seen**, **First seen** or **Most events**.",
+    );
+  });
+
   it("names the five error classes, which ones Issues keeps, and the class an untriaged exception has", () => {
     const rows: Array<Array<string>> = tableRows(
       section(page, "## Error classes"),

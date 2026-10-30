@@ -38837,5 +38837,17 @@
   "This can take up to a minute.": "Dit kan tot een minuut duren.",
   "Where to look": "Waar te kijken",
   "Written by OneUptime AI {{time}}.": "Geschreven door OneUptime AI {{time}}.",
-  "Written by OneUptime AI.": "Geschreven door OneUptime AI."
+  "Written by OneUptime AI.": "Geschreven door OneUptime AI.",
+  "Already assigned there.": "Al zo toegewezen.",
+  "Assign {{count}} exceptions": "{{count}} uitzonderingen toewijzen",
+  "Assign {{count}} exceptions_one": "{{count}} uitzondering toewijzen",
+  "Assigned to me": "Aan mij toegewezen",
+  "Most events": "Meeste gebeurtenissen",
+  "Not assigned to anyone.": "Aan niemand toegewezen.",
+  "Pick one person or one team. Pick nobody to unassign them.": "Kies één persoon of één team. Kies niemand om de toewijzing op te heffen.",
+  "Search people and teams": "Personen en teams zoeken",
+  "Sort: {{order}}": "Sortering: {{order}}",
+  "Assign to me": "Aan mij toewijzen",
+  "Assign to…": "Toewijzen aan…",
+  "Pick someone": "Iemand kiezen"
 }

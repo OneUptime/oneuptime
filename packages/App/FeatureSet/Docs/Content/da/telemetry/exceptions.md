@@ -58,7 +58,7 @@ Skift mellem **Uløst**, **Løst**, **Arkiveret** og **Alle**. Diagrammet over l
 
 ### Søg og filtrér
 
-Skriv en forespørgsel som `type:TypeError env:production`, se [Søgesyntaks](/docs/telemetry/search-syntax#undtagelser), eller klik på en værdi i sidepanelet **Filtre**: en tjeneste, en vært eller en anden ressource, en **Undtagelsestype**, et **Miljø** eller en **Error Class**.
+Skriv en forespørgsel som `type:TypeError env:production`, se [Søgesyntaks](/docs/telemetry/search-syntax#undtagelser), eller klik på en værdi i sidepanelet **Filtre**: en tjeneste, en vært eller en anden ressource, en **Undtagelsestype**, et **Miljø** eller en **Error Class**. **Tildelt til mig** viser kun de undtagelser, der er tildelt dig, og sorteringsmenuen ordner listen efter **Sidst set**, **Først set** eller **Flest hændelser**.
 
 ### Åbn en undtagelse
 
@@ -96,6 +96,8 @@ Knapperne øverst på undtagelsens side, dens side **Indstillinger** og menuen �
 **Indstillinger** viser, hvem der sidst løste eller arkiverede undtagelsen, og hvornår. Dens knapper hedder **Marker som løst** eller **Marker som uafklaret** og **Arkiver** eller **Fjern fra arkiv**.
 
 For at ændre flere på én gang markerer du deres rækker i listen, eller feltet over rækkerne for alle undtagelser på siden, og bruger de samme handlinger under **Massehandlinger**. Resultatet viser, hvilke undtagelser der blev ændret, hvilke der blev ladt være, og hvorfor.
+
+**Tildel** i undtagelsens overskrift giver den til én person eller ét team, og fjerner du valget, ophæves tildelingen. Hver række viser, hvem den tilhører, dens menu ⋯ tilbyder **Tildel til mig**, og **Tildel til…** under **Massehandlinger** tildeler flere på én gang.
 
 ## Fejlklasser
 
