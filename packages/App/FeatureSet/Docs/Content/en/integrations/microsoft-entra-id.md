@@ -44,7 +44,8 @@ The connection signs in with the [OAuth 2.0 client credentials flow](https://lea
 
 1. Go to **API permissions → Add a permission → Microsoft Graph → Application permissions**, pick `AuditLog.Read.All`, and select **Add permissions**. Microsoft documents that its sign-in list can also ask for `Directory.Read.All`: add it if sign-ins are refused with `403` once consent is granted.
 2. For the Microsoft 365 audit log, add a second permission: **Add a permission → Office 365 Management APIs → Application permissions**, then `ActivityFeed.Read`.
-3. Select **Grant admin consent for** your tenant, and confirm. Each permission's status must read **Granted**: without consent, every read is refused with `403`.
+3. To let playbooks disable, enable and sign out users (see [Containment](/docs/telemetry/security-cases#containment)), add `User.Read.All`, `User.EnableDisableAccount.All` and `User.RevokeSessions.All` the same way. Microsoft lets only an app that also holds the Privileged Authentication Administrator role change an administrator's account.
+4. Select **Grant admin consent for** your tenant, and confirm. Each permission's status must read **Granted**: without consent, every read is refused with `403`.
 
 ### Create a client secret
 

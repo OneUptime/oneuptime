@@ -313,7 +313,7 @@ Hunts har den samme REST API som resten af OneUptime, under `/security-hunt`, og
 
 ## Detektionsregler
 
-En detektionsregel er en [Sigma](https://sigmahq.io/)-regel, et åbent YAML-format til at beskrive mistænkelig aktivitet, som OneUptime kører efter en tidsplan mod dine begivenheder. Når den matcher, åbner den en [sag](/docs/telemetry/security-cases) eller føjer matchet til en åben sag, åbner en advarsel, eventuelt en hændelse, og skriver et Detection Finding tilbage i begivenhederne. **Regelbibliotek** har færdige regler at starte fra.
+En detektionsregel er en [Sigma](https://sigmahq.io/)-regel, et åbent YAML-format til at beskrive mistænkelig aktivitet, som OneUptime kører efter en tidsplan mod dine begivenheder eller på hver begivenhed, så snart den ankommer. Når den matcher, åbner den en [sag](/docs/telemetry/security-cases) eller føjer matchet til en åben sag, åbner en advarsel, eventuelt en hændelse, og skriver et Detection Finding tilbage i begivenhederne. **Regelbibliotek** har færdige regler at starte fra.
 
 ```mermaid title="Sådan udløses en detektionsregel"
 flowchart TB
@@ -332,7 +332,7 @@ flowchart TB
 3. **Navn** udfyldes med regelens `title`: skriv ovenpå for at kalde reglen noget andet. En ny regel kører; **Aktiveret** står i dens redigeringsformular.
 4. Lad **Åbn en sag ved match** være slået til under **Ved match** for at samle regelens match i sager efter den værdi, reglen grupperer efter.
 5. Vælg under **Advarsler og hændelser**, hvad et match ellers udløser: **Opret en advarsel** (standard), **Erklær en hændelse**, **Begge** eller **Ingen af dem**, med en valgfri **Advarselsalvor** eller **Hændelsesalvor**.
-6. **Flere felter** rummer **Beskrivelse**, **Skriv Detection Finding ved match** (til) og hvordan match tælles; se [Evalueringsindstillinger](#evalueringsindstillinger).
+6. **Flere felter** rummer **Beskrivelse**, **Skriv Detection Finding ved match** (til), **Kør i realtid** (fra) og hvordan match tælles; se [Evalueringsindstillinger](#evalueringsindstillinger).
 :::
 
 En første regel, der matcher mislykkede logins uden for `10.x.x.x`:
@@ -428,6 +428,7 @@ detection:
 | Felt | Hvad det gør |
 | --- | --- |
 | **Evalueringsinterval (minutter)** | Hvor ofte reglen kører: hele minutter, 1 til 1440. Formularen for en ny regel starter på 5. |
+| **Kør i realtid** | Slået fra på en ny regel. Slået til tjekker reglen hver begivenhed, når den ankommer, i stedet for ved hvert interval; se [Realtidsregler](#realtidsregler). |
 | **Grupperingsfelt** | Valgfrit. Match, der deler dette felts værdi, f.eks. `principalHost`, tælles, advares og dedupliceres samlet: én advarsel pr. vært i stedet for hundredvis. |
 | **Felt til unik optælling** | Valgfrit. Tæl de forskellige værdier af dette felt i stedet for de matchende begivenheder. Tomme værdier tælles ikke. |
 | **Grænse for antal match** | En gruppe udløses kun, når dens optælling når dette tal inden for én kørsel: 1 til 1000000, og 1 udløses ved ethvert match. |
@@ -450,6 +451,16 @@ OneUptime tjekker hvert minut for aktiverede regler, hvis interval er gået side
 - Efter et hul, f.eks. et worker-nedbrud eller en regel, der er slået til igen, dækker den næste kørsel hele hullet, op til de seneste 24 timer.
 - En begivenhed, der ankommer mere end to minutter for sent, efter at en kørsel har dækket dens tidspunkt, gemmes og kan søges, men den regel læser den aldrig.
 - Hver gruppe, der når tærsklen, bliver et Detection Finding, op til 10.000 pr. kørsel. Advarsler, hændelser og sager åbnes for de 100 med de højeste optællinger; resten deler én sag om reglen, og reglens **Seneste fejl** fortæller, hvor mange grupper der matchede.
+
+### Realtidsregler
+
+En regel, der udløses af én begivenhed, kan køre i realtid i stedet for efter sit interval: Slå **Kør i realtid** til under **Flere felter** i trinnet **Ved match**. Hver begivenhed, OneUptime modtager, fra enhver kilde, tjekkes så mod reglen, når den ankommer, og et match åbner sin sag, sin advarsel og sit fund inden for sekunder.
+
+- Det passer til en regel med en **Grænse for antal match** på 1, uden **Felt til unik optælling** og uden modifikatoren `re`. En korrelation tæller begivenheder sammen og kører derfor efter sit interval. Formularen fortæller, hvad der skal ændres, når en regel ikke passer.
+- Et projekt kører højst 50 regler i realtid, da hver begivenhed tjekkes mod hver enkelt.
+- I **Detektionsregler** viser en realtidsregels **Status** **Realtid**, og det gør dens intervalkolonne også. Et tjek, der mislykkes, vises under **Seneste fejl**, ligesom for en kørsel.
+- Når den slås til, læser reglen først, hvad der er ankommet siden dens seneste kørsel, så intet falder mellem tidsplanen og realtid. Når den slås fra, går den tilbage til sit interval, fra to minutter før.
+- Undtagelser og overvågningslister gælder for den som for enhver regel, og **Kør på tidligere hændelser** læser den som enhver anden.
 
 ### Alvorlighed
 
@@ -573,6 +584,10 @@ Tjek nøglen i `x-oneuptime-token` og stien, `/security-events/v1/ingest`. Tjek 
 
 :::details En regel matcher aldrig
 Tjek dens **Status**: med **Deaktiveret** kører reglen ikke, og med **Kørsel mislykkedes** viser **Vis fejl** i dens række hvorfor. Åbn en begivenhed, du forventede ville matche, og sammenlign den med reglen felt for felt: en almindelig værdi skal være lig med hele feltet, så brug `contains` eller `*` til en del af et felt. En attribut navngives som i begivenheden (`threat.matched`, ikke `attributes.threat.matched`). Med en tærskel over 1 skal matchene falde inden for én kørsel.
+:::
+
+:::details Kør i realtid kan ikke slås til
+Reglen tæller match, tæller unikke værdier, læser et regulært udtryk eller er en korrelation, og formularen fortæller hvilket: sæt **Grænse for antal match** til 1, ryd **Felt til unik optælling**, eller brug `contains`, `startswith` eller `endswith` i stedet for `re`. Et projekt kører højst 50 regler i realtid: slå det fra på en anden regel først.
 :::
 
 :::details En regel matchede, men ingen advarsel blev åbnet

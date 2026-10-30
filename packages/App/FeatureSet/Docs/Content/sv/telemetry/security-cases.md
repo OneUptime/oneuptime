@@ -104,8 +104,8 @@ Varje sida behåller ärendets sidhuvud överst: nummer, prioritet, status och t
 - **Detektioner**: det som löste ut och öppnade ärendet eller lades till i det, hur ofta, och den senaste händelsen som träffade.
 - **Entiteter**: användarna, värdarna och adresserna som ärendet handlar om, med deras aktivitet i alla dina säkerhetshändelser under de senaste 7 dagarna. Var och en öppnas i **Korrelera**.
 - **Kopplade signaler**: de värdar, kluster, tjänster och medlemmar som ärendet nämner, som OneUptime känner dem, och vad som hände på var och en kring dess detekteringar: deras loggar, spår och mätvärden, vad som är öppet på dem och vad som ändrades. Se [Kopplade signaler](/docs/telemetry/security-connected-signals).
-- **Bevis**: filerna, länkarna och säkerhetshändelserna som sparas i ärendet, var och en med vem som lade till den och när. Med **Lägg till fil** laddar du upp en fil på upp till 10 MB, och SHA-256 för det som laddades upp sparas, så att den som laddar ner den senare kan kontrollera att det är det som sparades; med **Lägg till länk** pekar du på bevis som sparas någon annanstans. Bara en Security Admin kan ta bort bevis, och ärendets **Tidslinje** visar vad som lades till och togs bort. En säkerhetshändelse sparas här som den var, med **Lägg till i ärende** under **Händelser** eller på en [hunts](/docs/telemetry/security-events#hunts) sida, och **Visa händelse** öppnar den.
-- **Uppgifter**: vad som måste göras i ärendet, vem som gör det och om det är gjort. Lägg till en uppgift som en rad, ge den till någon och bocka av den när den är klar. Den som får uppgiften får veta det, om inte personen tog den själv, och menyn visar bredvid **Uppgifter** hur många uppgifter som är öppna.
+- **Bevis**: filerna, länkarna och säkerhetshändelserna som sparas i ärendet, var och en med vem som lade till den och när. Med **Lägg till fil** laddar du upp en fil på upp till 10 MB, och SHA-256 för det som laddades upp sparas, så att den som laddar ner den senare kan kontrollera att det är det som sparades; med **Lägg till länk** pekar du på bevis som sparas någon annanstans. Bara en Security Admin kan ta bort bevis, och ärendets **Tidslinje** visar vad som lades till och togs bort. En säkerhetshändelse sparas här som den var, med **Lägg till i ärende** under **Händelser** eller på en [hunts](/docs/telemetry/security-events#hunts) sida, och **Visa händelse** öppnar den. En playbooks steg **Preserve the evidence** sparar också här händelserna bakom ärendets detektioner.
+- **Uppgifter**: vad som måste göras i ärendet, vem som gör det och om det är gjort. Lägg till en uppgift som en rad, ge den till någon och bocka av den när den är klar. Den som får uppgiften får veta det, om inte personen tog den själv, och menyn visar bredvid **Uppgifter** hur många uppgifter som är öppna. En playbooks steg **Lägg till uppgifter** lägger också till uppgifter och hoppar över dem som ärendet redan har.
 - **Playbooks**: vad varje playbook gjorde i ärendet, steg för steg, och stegen som väntar på godkännande. Medan körningar väntar visar menyn hur många bredvid **Playbooks**.
 - **Privata anteckningar**: vad teamet skrev om ärendet.
 - **Granskningsloggar**: varje ändring av ärendet, och vem som gjorde den. Se [Granskningsloggar](/docs/configuration/audit-logs).
@@ -262,11 +262,12 @@ En inaktiverad playbook körs varken av sig själv eller manuellt.
 | Ärende | Assign the case | Ger ärendet till en person, ett team eller båda |
 | Ärende | Set the priority | Höjer eller sänker ärendets prioritet |
 | Ärende | Set the status | Flyttar ärendet till en annan av projektets statusar, med den bedömning du väljer när den statusen stänger det |
-| Ärende | Add a note | Skriver en anteckning i ärendet, till exempel en checklista för analytikern |
+| Ärende | Add a note | Skriver en anteckning i ärendet, till exempel kontext för analytikern |
 | Ärende | Add labels | Märker ärendet med etiketter |
+| Ärende | Add tasks | Lägger till uppgifter i ärendets checklista, för en person eller för den som arbetar med ärendet |
 | Utredning | Check entities against threat intel | Slår upp varje entitet i dina hotunderrättelser och kan höja prioriteten vid en träff |
 | Utredning | Look up entity activity | Räknar varje entitets säkerhetshändelser under ett fönster bakåt i tiden och antecknar resultatet i ärendet |
-| Utredning | Preserve the evidence | Behåller sessionsinspelningarna av förfrågningarna bakom ärendet och antecknar deras spår och undantag i ärendet |
+| Utredning | Preserve the evidence | Behåller händelserna bakom ärendets detektioner och sessionsinspelningarna av dess förfrågningar och antecknar deras spår och undantag i ärendet |
 | Avisering | Email people | Mejlar användare och team en sammanfattning av ärendet, med en länk till det |
 | Avisering | Notify data store owners | Mejlar ägarna till varje datalager som ärendet gäller, med en länk till ärendet |
 | Avisering | Post to Slack | Postar en sammanfattning av ärendet i en Slack-kanal |
@@ -278,9 +279,15 @@ En inaktiverad playbook körs varken av sig själv eller manuellt.
 | Begränsning | End the user's Okta sessions | Loggar ut användaren som ärendet handlar om från Okta och återkallar användarens tokens |
 | Begränsning | Contain the host in CrowdStrike | Isolerar värden som ärendet handlar om från nätverket med CrowdStrike Falcon |
 | Begränsning | Isolate the device in Microsoft Defender | Isolerar värden som ärendet handlar om med Microsoft Defender for Endpoint |
+| Begränsning | Disable the user in Microsoft Entra ID | Inaktiverar i Microsoft Entra ID kontot för användaren som ärendet handlar om |
+| Begränsning | Sign the user out of Microsoft Entra ID | Loggar ut användaren som ärendet handlar om från Microsoft Entra ID överallt och återkallar användarens uppdateringstoken |
+| Begränsning | Suspend the user in Google Workspace | Stänger av användaren som ärendet handlar om i Google Workspace |
+| Begränsning | Sign the user out of Google Workspace | Loggar ut användaren som ärendet handlar om från Google Workspace i alla webbläsare och på alla enheter |
 | Begränsning | Unsuspend the user in Okta | Återaktiverar användaren som ärendet handlar om i Okta |
 | Begränsning | Lift containment in CrowdStrike | Häver CrowdStrike Falcons nätverksisolering av värden som ärendet handlar om |
 | Begränsning | Release the device in Microsoft Defender | Frigör värden som ärendet handlar om från isoleringen i Microsoft Defender for Endpoint |
+| Begränsning | Enable the user in Microsoft Entra ID | Aktiverar kontot för användaren som ärendet handlar om i Microsoft Entra ID igen |
+| Begränsning | Unsuspend the user in Google Workspace | Häver i Google Workspace avstängningen av användaren som ärendet handlar om |
 | Begränsning | Blockera offentlig åtkomst till datalager | Blockerar offentlig åtkomst till varje bucket eller lagringskonto som ärendet handlar om, via dess molnanslutning |
 | Begränsning | Återkalla delning av datalager | Slutar dela ögonblicksbilderna av varje databas som ärendet handlar om utanför dina konton, via dess molnanslutning |
 | Automatisering | Send a webhook | Postar ärendet som JSON till en URL |
@@ -290,16 +297,28 @@ En inaktiverad playbook körs varken av sig själv eller manuellt.
 
 En playbook har högst 25 steg. De körs i ordning, vart och ett när det föregående är klart. Varje steg har också de här inställningarna:
 
-- **Kräver godkännande**: stoppar körningen före steget tills någon godkänner det i ärendet. För de fyra stegen som stänger ute någon är den alltid påslagen, om inte en Security Admin slår av den. **Run a runbook**, **Post a status page announcement** och de två datalagerstegen börjar med godkännande påslaget, eftersom de kör kommandon på era system, vänder sig till era kunder eller ändrar ett molns inställningar; den som lägger till steget kan slå av det.
-- **Bara vid träff i hotinformation**: hoppar över steget om inte ett tidigare steg **Kontrollera entiteter mot hotinformation** i körningen hittade en känd indikator.
-- **Fortsätt om det misslyckas**: kör nästa steg även om det här misslyckas. Är den avstängd stoppar ett misslyckat steg körningen.
+- **Kräver godkännande**: stoppar körningen före steget tills någon godkänner det i ärendet. För de åtta stegen som stänger ute någon är den alltid påslagen, om inte en Security Admin slår av den. **Run a runbook**, **Post a status page announcement** och de två datalagerstegen börjar med godkännande påslaget, eftersom de kör kommandon på era system, vänder sig till era kunder eller ändrar ett molns inställningar; den som lägger till steget kan slå av det.
+- **Kör det här steget**: **Alltid**, eller bara efter ett resultat av ett steg före det, till exempel att **Kontrollera entiteter mot hotinformation** hittar en känd skadlig entitet; se [Förgrena efter ett stegs resultat](#förgrena-efter-ett-stegs-resultat).
+- **Fortsätt om det misslyckas**: kör nästa steg även om det här misslyckas. Är den avstängd stoppar ett misslyckat steg körningen. Den finns under **Fler fält**, tillsammans med **Kör det här steget**.
+
+### Förgrena efter ett stegs resultat
+
+**Kör det här steget** låter ett steg vänta på hur ett steg före det slutade. Varje steg före det erbjuder sina resultat:
+
+| Ett steg före det | Dess resultat |
+| --- | --- |
+| Kontrollera entiteter mot hotinformation | Hittade en känd skadlig entitet, eller hittade inget känt skadligt |
+| Slå upp entitetsaktivitet | Hittade aktivitet, eller hittade ingen aktivitet |
+| Alla andra steg | Lyckades, och misslyckades när det har **Fortsätt om det misslyckas** påslaget |
+
+Två steg som väntar på motsatta resultat av samma steg är ett om och ett annars: stäng bara av en användare när hotinformationen känner till hen, och lägg annars till en uppgift om att bekräfta inloggningen med hen. När steget som det väntas på slutar på ett annat sätt hoppas det väntande steget över, och körningen anger varför under det; detsamma gäller ett steg som väntar på ett steg som hoppades över. Ett stegs kort visar vad det väntar på, och ett steg som ett annat väntar på kan inte flyttas under det eller tas bort förrän det andra körs på ett annat sätt. Mallen **Eskalera kända skadliga indikatorer** höjer ett ärendes prioritet och status bara vid träff i hotinformation, och ett steg som sparades med den gamla brytaren för hotinformation behåller den som **Bara om en tidigare kontroll mot hotinformation hittade en känd skadlig entitet**.
 
 ### Agera genom OneUptime
 
 Fyra steg agerar genom resten av OneUptime i stället för genom en ansluten produkt:
 
 - **Run a runbook** startar en av dina [runbooks](/docs/runbooks/index) med ärendet som indata, som ett Bash-steg läser som miljövariabler (se [Anropa webhooken](/docs/runbooks/triggers#anropa-webhooken)). `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` och `ONEUPTIME_INPUT_HOST` är adressen, användaren och värden som ärendet gäller, valda enligt samma regel som för ett begränsningssteg, och tomma när det inte gäller någon. `ONEUPTIME_INPUT_IPS`, `ONEUPTIME_INPUT_USERS` och `ONEUPTIME_INPUT_HOSTS` listar som JSON alla som ärendet nämner, och `ONEUPTIME_INPUT_CASE_NUMBER`, `ONEUPTIME_INPUT_CASE_TITLE` och `ONEUPTIME_INPUT_CASE_URL` anger vilket ärende det är. En skyddad användare eller värd finns aldrig bland dem. Runbookens körning visar att den startades av **Security playbook** för ärendet.
-- **Preserve the evidence** behåller sessionsinspelningarna av förfrågningarna bakom ärendet längre än deras lagringstid och skriver en anteckning i ärendet som länkar till varje förfrågans spår, varje inspelning och varje undantag. Loggar och spår kan inte sparas längre än projektet sparar telemetri, så exportera det du behöver innan dess.
+- **Preserve the evidence** sparar den senaste händelsen för var och en av ärendets detektioner, upp till 100, som den är nu, på ärendets sida **Bevis**, behåller sessionsinspelningarna av förfrågningarna bakom ärendet längre än deras lagringstid och skriver en anteckning i ärendet som länkar till varje förfrågans spår, varje inspelning och varje undantag. Loggar och spår kan inte sparas längre än projektet sparar telemetri, så exportera det du behöver innan dess.
 - **Post a status page announcement** publicerar det du skrev, som du skrev det, på de statussidor du väljer. Inget från ärendet läggs till. Deras prenumeranter meddelas bara när **Avisera prenumeranter** är påslaget.
 - **Fix the code with AI** ber OneUptime AI om en pull request som åtgärdar varje undantag som ärendets förfrågningar orsakade, upp till tre. Steget kräver att OneUptime AI är påslaget, ett repository med koden som är anslutet via GitHub-appen och en runner. Utan dem hoppas steget över och säger vad som saknas.
 
@@ -312,6 +331,8 @@ Begränsningsstegen agerar via en anslutning som behöver mer än läsbehörighe
 | Suspend the user in Okta, End the user's Okta sessions, Unsuspend the user in Okta | Okta System Log | En API-token som får hantera användare |
 | Contain the host in CrowdStrike, Lift containment in CrowdStrike | CrowdStrike Falcon | En API-klient med skrivbehörighet i scopet Hosts |
 | Isolate the device in Microsoft Defender, Release the device in Microsoft Defender | Microsoft Defender XDR | En app med behörigheten Machine.Isolate |
+| Disable the user in Microsoft Entra ID, Sign the user out of Microsoft Entra ID, Enable the user in Microsoft Entra ID | Microsoft Entra ID | En app med programbehörigheterna User.Read.All, User.EnableDisableAccount.All och User.RevokeSessions.All |
+| Suspend the user in Google Workspace, Sign the user out of Google Workspace, Unsuspend the user in Google Workspace | Google Workspace | Domänomfattande delegering med omfången admin.directory.user och admin.directory.user.security, för en administratör som hanterar användaren |
 | Blockera offentlig åtkomst till datalager, Återkalla delning av datalager | Datalagrets molnanslutning | **Datasäkerhetsrespons** påslaget, och dess installationskommando kört igen |
 
 Ett steg för användare eller värdar agerar bara på de användare eller värdar som ärendet handlar om, aldrig på alla som det nämner:
@@ -319,7 +340,7 @@ Ett steg för användare eller värdar agerar bara på de användare eller värd
 - Värdet som en detektion i ärendet grupperas efter, till exempel kontot som en regel för omöjliga resor grupperar efter, eller värden som ett larm från en ansluten produkt nämner.
 - En användare eller värd i ärendet som dina hotunderrättelser känner till som en indikator.
 
-Ett ärende som grupperas efter en adress, till exempel en brute force-attack mot ditt VPN, handlar om ingetdera: dess begränsningssteg hoppas över, och kontot som attacken prövade och gatewayen som den träffade lämnas i fred. Ett steg agerar på högst 10 användare eller värdar. Det letar upp var och en i produkten efter namn och skriver i körningen vad det gjorde med var och en: klart, redan klart, hittades inte, nekades eller skyddad.
+Ett ärende som grupperas efter en adress, till exempel en brute force-attack mot ditt VPN, handlar om ingetdera: dess begränsningssteg hoppas över, och kontot som attacken prövade och gatewayen som den träffade lämnas i fred. Ett steg agerar på högst 10 användare eller värdar. Det letar upp var och en i produkten efter namn och skriver i körningen vad det gjorde med var och en: klart, redan klart, hittades inte, nekades eller skyddad. Microsoft Entra ID hittar en användare efter inloggningsnamn eller e-postadress och ändrar en administratörs konto bara för en app som också har rollen Privileged Authentication Administrator; Google Workspace hittar användaren efter primär adress eller alias.
 
 De två datalagerstegen agerar på de datalager som ärendet handlar om, högst 10: de som hör till de datasäkerhetsproblem som det har tagit in, och alla som en detektion grupperade det efter. De lämnar ett datalager som är markerat **Offentlig avsiktligt** i fred, ändrar hur ett datalager delas men aldrig dess data, och skriver i körningen vad de gjorde med varje datalager (se [Stäng en exponering](/docs/data-security/integrations#stäng-en-exponering)).
 
@@ -329,11 +350,11 @@ De två datalagerstegen agerar på de datalager som ärendet handlar om, högst 
 
 #### Godkännande
 
-De fyra stegen som stänger ute någon väntar på godkännande. Bara en Security Admin kan slå av **Kräver godkännande** för ett av dem, och OneUptime registrerar vem som gjorde det. Godkännandet listar användarna eller värdarna som steget skulle agera på under **Agera på**, alla förbockade: avmarkera dem som steget ska lämna i fred. Skyddade finns inte med bland alternativen. Den som startade en körning kan inte godkänna dess steg: det gör någon annan, men den som startade körningen kan fortfarande avvisa steget.
+De åtta stegen som stänger ute någon väntar på godkännande. Bara en Security Admin kan slå av **Kräver godkännande** för ett av dem, och OneUptime registrerar vem som gjorde det. Godkännandet listar användarna eller värdarna som steget skulle agera på under **Agera på**, alla förbockade: avmarkera dem som steget ska lämna i fred. Skyddade finns inte med bland alternativen. Den som startade en körning kan inte godkänna dess steg: det gör någon annan, men den som startade körningen kan fortfarande avvisa steget.
 
 #### Ångra
 
-Ångringsstegen agerar på de användare eller värdar som ärendet handlar om, precis som stegen de ångrar. När körningen har stannat har en begränsad användare eller värd också en egen knapp på sitt steg: **Häv avstängning**, **Häv begränsning** eller **Frigör**. En avslutad Okta-session kan inte ångras. Varje ångring sparas på ärendets tidslinje och i projektets granskningslogg.
+Ångringsstegen agerar på de användare eller värdar som ärendet handlar om, precis som stegen de ångrar. När körningen har stannat har en begränsad användare eller värd också en egen knapp på sitt steg: **Häv avstängning**, **Häv begränsning**, **Frigör** eller **Aktivera**. En utloggning kan inte ångras. Varje ångring sparas på ärendets tidslinje och i projektets granskningslogg.
 
 ### Meddelanden
 
@@ -417,6 +438,10 @@ Kontrollera att den är aktiverad, att dess inställning **Utlösare** passar (C
 
 :::details Ett begränsningssteg hoppades över
 Ärendet handlar inte om någon användare eller värd, utan till exempel bara om en adress, eller så är alla användare och värdar som det handlar om skyddade. Öppna körningen i ärendet: steget anger vilket.
+:::
+
+:::details Ett steg som bara körs efter ett annat hoppades över
+Steget som det väntar på slutade på ett annat sätt eller hoppades själv över: det hittade till exempel inget känt skadligt där steget väntar på en känd skadlig entitet. Öppna körningen i ärendet: det överhoppade steget anger vilket steg det väntade på och vilket resultat. Om du vill ändra det redigerar du steget och öppnar **Fler fält**.
 :::
 
 :::details En status eller prioritet går inte att ta bort eller arkivera

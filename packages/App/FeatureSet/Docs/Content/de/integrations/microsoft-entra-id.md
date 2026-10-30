@@ -44,7 +44,8 @@ Die Verbindung meldet sich mit dem [OAuth-2.0-Fluss für Clientanmeldeinformatio
 
 1. Gehen Sie zu **API permissions → Add a permission → Microsoft Graph → Application permissions**, wählen Sie `AuditLog.Read.All` und wählen Sie **Add permissions**. Microsoft dokumentiert, dass seine Liste der Anmeldungen auch `Directory.Read.All` verlangen kann: Fügen Sie sie hinzu, wenn Anmeldungen nach erteilter Zustimmung mit `403` abgelehnt werden.
 2. Für das Microsoft 365-Audit-Protokoll fügen Sie eine zweite Berechtigung hinzu: **Add a permission → Office 365 Management APIs → Application permissions**, dann `ActivityFeed.Read`.
-3. Wählen Sie **Grant admin consent for** Ihren Mandanten und bestätigen Sie. Der Status jeder Berechtigung muss **Granted** lauten: Ohne Zustimmung wird jedes Lesen mit `403` abgelehnt.
+3. Damit Playbooks Benutzer deaktivieren, aktivieren und abmelden können (siehe [Eindämmung](/docs/telemetry/security-cases#eindämmung)), fügen Sie auf dieselbe Weise `User.Read.All`, `User.EnableDisableAccount.All` und `User.RevokeSessions.All` hinzu. Das Konto eines Administrators lässt Microsoft nur von einer App ändern, die zusätzlich die Rolle Privileged Authentication Administrator hat.
+4. Wählen Sie **Grant admin consent for** Ihren Mandanten und bestätigen Sie. Der Status jeder Berechtigung muss **Granted** lauten: Ohne Zustimmung wird jedes Lesen mit `403` abgelehnt.
 
 ### Einen geheimen Clientschlüssel anlegen
 
