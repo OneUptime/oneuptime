@@ -64,6 +64,7 @@ Dokumentasjonen er organisert som sidefeltet, i ni deler. Velg den delen du tren
 - [Sky](/docs/telemetry/cloud-environments): Observer ECS, Cloud Run, Azure Container Apps og andre administrerte plattformer.
 - [AI-observerbarhet](/docs/telemetry/ai-llm-observability): Følg samtalene til AI-en din, og få beskjed når den svarer dårlig.
 - [Sikkerhet](/docs/telemetry/security-events): Samle inn sikkerhetshendelser og trusseletterretning.
+- [Datasikkerhet](/docs/data-security/index): Finn de sensitive dataene i bucketene, databasene og telemetrien din, og rett hvordan de oppbevares.
 - [Real User Monitoring](/docs/rum/index): Mål hva ekte brukere opplever, med Core Web Vitals og øktavspilling.
 - [Dashbord](/docs/dashboards/index): Bygg dashbord av metrikkene, loggene og monitorene dine.
 - [Inventar](/docs/inventory/overview): Se hver tjeneste, vert og enhet OneUptime kjenner til.

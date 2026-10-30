@@ -143,6 +143,14 @@ OneUptime: Critical Incident INC-42 in Acme Prod is still not resolved:
 Checkout API is down. Ack or escalate: https://oneuptime.com/l/XJlaZRsd
 ```
 
+Когда вас вызывают из Slack или Microsoft Teams, SMS после `OneUptime:` говорит, кто кого вызвал, и эти слова тоже никогда не обрезаются:
+
+```text
+OneUptime: Alice Kim paged Platform about Critical Incident INC-42
+in Acme Prod: Checkout API is down.
+Ack or escalate: https://oneuptime.com/l/XJlaZRsd
+```
+
 Один символ вне простого алфавита SMS заставляет всё сообщение уйти частями по 70 символов. Поэтому типографские кавычки и тире записываются как `"`, `'` и `-`, `…` — как `...`, а буквы вроде `ç` и `ł` теряют диакритические знаки; эмодзи опускаются. Заголовок на другой письменности, например на японском или русском, отправляется как написан и занимает две части или больше.
 
 Другие SMS, которые вам отправляет OneUptime, например об изменении инцидента, владельцем которого вы являетесь, или о начале вашей смены дежурства, тоже начинаются с `OneUptime:` и заканчиваются на `Turn off in User Settings > Notification Settings.` — эту фразу опускают, когда именно без неё SMS умещается в одну часть.

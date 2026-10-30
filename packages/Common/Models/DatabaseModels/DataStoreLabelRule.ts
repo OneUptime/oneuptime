@@ -1,0 +1,608 @@
+import Label from "./Label";
+import Project from "./Project";
+import User from "./User";
+import RuleBaseModel from "./DatabaseBaseModel/RuleBaseModel";
+import Route from "../../Types/API/Route";
+import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
+import ColumnLength from "../../Types/Database/ColumnLength";
+import ColumnType from "../../Types/Database/ColumnType";
+import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
+import EnableDocumentation from "../../Types/Database/EnableDocumentation";
+import EnableWorkflow from "../../Types/Database/EnableWorkflow";
+import TableColumn from "../../Types/Database/TableColumn";
+import TableColumnType from "../../Types/Database/TableColumnType";
+import TableMetadata from "../../Types/Database/TableMetadata";
+import TenantColumn from "../../Types/Database/TenantColumn";
+import IconProp from "../../Types/Icon/IconProp";
+import ObjectID from "../../Types/ObjectID";
+import Permission from "../../Types/Permission";
+import {
+  Column,
+  Entity,
+  Index,
+  JoinColumn,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
+} from "typeorm";
+
+@EnableDocumentation()
+@TenantColumn("projectId")
+@TableAccessControl({
+  create: [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.SecurityAdmin,
+    Permission.SecurityMember,
+    Permission.CreateDataStoreLabelRule,
+  ],
+  read: [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.SecurityAdmin,
+    Permission.SecurityMember,
+    Permission.SecurityViewer,
+    Permission.ReadDataStoreLabelRule,
+  ],
+  delete: [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.SecurityAdmin,
+    Permission.SecurityMember,
+    Permission.DeleteDataStoreLabelRule,
+  ],
+  update: [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.SecurityAdmin,
+    Permission.SecurityMember,
+    Permission.EditDataStoreLabelRule,
+  ],
+})
+@CrudApiEndpoint(new Route("/data-store-label-rule"))
+@Entity({
+  name: "DataStoreLabelRule",
+})
+@EnableWorkflow({
+  create: true,
+  delete: true,
+  update: true,
+  read: true,
+})
+@TableMetadata({
+  tableName: "DataStoreLabelRule",
+  singularName: "Data Store Label Rule",
+  pluralName: "Data Store Label Rules",
+  icon: IconProp.Tag,
+  tableDescription:
+    "Rules for automatically attaching labels to data stores when matching resources are created.",
+})
+export default class DataStoreLabelRule extends RuleBaseModel {
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.CreateDataStoreLabelRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
+      Permission.ReadDataStoreLabelRule,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "projectId",
+    type: TableColumnType.Entity,
+    modelType: Project,
+    title: "Project",
+    description: "Relation to Project Resource in which this object belongs",
+  })
+  @ManyToOne(
+    () => {
+      return Project;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "projectId" })
+  public project?: Project = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.CreateDataStoreLabelRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
+      Permission.ReadDataStoreLabelRule,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: true,
+    canReadOnRelationQuery: true,
+    title: "Project ID",
+    description: "ID of your OneUptime Project in which this object belongs",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: false,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public projectId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.CreateDataStoreLabelRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
+      Permission.ReadDataStoreLabelRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.EditDataStoreLabelRule,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    required: true,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Name",
+    description: "Name of this rule",
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public name?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.CreateDataStoreLabelRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
+      Permission.ReadDataStoreLabelRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.EditDataStoreLabelRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Description",
+    description: "Description of this rule",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public description?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.CreateDataStoreLabelRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
+      Permission.ReadDataStoreLabelRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.EditDataStoreLabelRule,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Is Enabled",
+    description: "Whether this rule is enabled",
+    defaultValue: true,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
+  })
+  public isEnabled?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.CreateDataStoreLabelRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
+      Permission.ReadDataStoreLabelRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.EditDataStoreLabelRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Label,
+    title: "Match Labels",
+    description:
+      "Only trigger for resources that already have at least one of these labels. Leave empty to match regardless of labels.",
+  })
+  @ManyToMany(
+    () => {
+      return Label;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "DataStoreLabelRuleMatchLabel",
+    inverseJoinColumn: {
+      name: "labelId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "dataStoreLabelRuleId",
+      referencedColumnName: "_id",
+    },
+  })
+  public matchLabels?: Array<Label> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.CreateDataStoreLabelRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
+      Permission.ReadDataStoreLabelRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.EditDataStoreLabelRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Name Regex Pattern",
+    description:
+      "Regex (case-insensitive) matched against the resource name. Leave empty to match any name.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    nullable: true,
+    length: ColumnLength.LongText,
+  })
+  public nameRegexPattern?: string = undefined;
+
+  /*
+   * Cloud tags are what a cloud account's people already sort stores by
+   * (team, env, service), so this is how a rule says "every store tagged
+   * team=payments". Matched against each tag of the resource written as
+   * key=value (both rule engines).
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.CreateDataStoreLabelRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
+      Permission.ReadDataStoreLabelRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.EditDataStoreLabelRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Cloud Tag Pattern",
+    description:
+      "Regex (case-insensitive) matched against each of the store's cloud tags, written key=value: ^team=payments$ matches every store tagged team=payments, ^env= every store with an env tag. Leave empty to match any tags.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    nullable: true,
+    length: ColumnLength.LongText,
+  })
+  public cloudTagPattern?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.CreateDataStoreLabelRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
+      Permission.ReadDataStoreLabelRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.EditDataStoreLabelRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Description Regex Pattern",
+    description:
+      "Regex (case-insensitive) matched against the resource description. Leave empty to match any description.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    nullable: true,
+    length: ColumnLength.LongText,
+  })
+  public descriptionRegexPattern?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.CreateDataStoreLabelRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
+      Permission.ReadDataStoreLabelRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.EditDataStoreLabelRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Label,
+    title: "Labels to Add",
+    description:
+      "Labels to attach to the resource when this rule matches. Already-attached labels are not duplicated.",
+  })
+  @ManyToMany(
+    () => {
+      return Label;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "DataStoreLabelRuleAddLabel",
+    inverseJoinColumn: {
+      name: "labelId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "dataStoreLabelRuleId",
+      referencedColumnName: "_id",
+    },
+  })
+  public labelsToAdd?: Array<Label> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.CreateDataStoreLabelRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
+      Permission.ReadDataStoreLabelRule,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "createdByUserId",
+    type: TableColumnType.Entity,
+    modelType: User,
+    title: "Created by User",
+    description:
+      "Relation to User who created this object (if this object was created by a User)",
+  })
+  @ManyToOne(
+    () => {
+      return User;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "createdByUserId" })
+  public createdByUser?: User = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.CreateDataStoreLabelRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
+      Permission.ReadDataStoreLabelRule,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Created by User ID",
+    description:
+      "User ID who created this object (if this object was created by a User)",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public createdByUserId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "deletedByUserId",
+    type: TableColumnType.Entity,
+    title: "Deleted by User",
+    modelType: User,
+    description:
+      "Relation to User who deleted this object (if this object was deleted by a User)",
+  })
+  @ManyToOne(
+    () => {
+      return User;
+    },
+    {
+      cascade: false,
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "deletedByUserId" })
+  public deletedByUser?: User = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Deleted by User ID",
+    description:
+      "User ID who deleted this object (if this object was deleted by a User)",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public deletedByUserId?: ObjectID = undefined;
+}

@@ -66,6 +66,8 @@ const STORED_DATA_USES: Record<string, string> = {
     "keys the Redis names of session replay targets, so they are no directory of users",
   "packages/App/FeatureSet/Notification/Services/SMTPOAuthService.ts":
     "keys the Redis names of cached SMTP OAuth tokens, so Redis holds no client secret",
+  "packages/Common/Server/Utils/DataSecurity/DataSecurityRunner.ts":
+    "keys the stored Data Security fingerprints of a project's sensitive values, so they compare only within the project and reveal no value",
 };
 
 /*
@@ -98,6 +100,8 @@ const JSON_WEB_TOKEN: string = "packages/Common/Server/Utils/JsonWebToken.ts";
 const GOOGLE_ASSERTION_SIGNERS: Array<string> = [
   "packages/Common/Server/Utils/VideoCall/Providers/GoogleMeetClient.ts",
   "packages/Common/Server/Utils/SecurityEvent/Connectors/GoogleSecOps/GoogleSecOpsClient.ts",
+  // The Google Workspace connection, acting as an administrator (domain-wide delegation).
+  "packages/Common/Server/Utils/SecurityEvent/Connectors/GoogleWorkspace/GoogleWorkspaceClient.ts",
   // AI / LLM observability's Google Vertex AI connection (Cloud Monitoring).
   "packages/Common/Server/Utils/LlmObservability/Connectors/GoogleVertexAI/GoogleServiceAccountToken.ts",
 ];

@@ -58,8 +58,13 @@ Die Karte **Ihre Protokolle** oben auf **Verbindungen** braucht keine Installati
 | --- | --- |
 | SSH-Anmeldungen | Fehlgeschlagene und erfolgreiche SSH-Anmeldungen aus dem Auth-Log, Journal oder Syslog eines Servers |
 | sudo | Befehle, die als anderer Benutzer laufen, falsche sudo-Passwörter und Personen, die sudo nicht verwenden dürfen |
-| Kubernetes-Audit-Logs | Änderungen am Cluster, in Pods geöffnete Shells, gelesene Secrets und abgelehnte Anfragen |
+| Windows-Ereignisse | Anmeldungen, neue Prozesse, geänderte Konten und Gruppen, installierte Dienste und gelöschte Protokolle aus Windows, Sysmon und Microsoft Defender |
 | AWS CloudTrail | Anmeldungen an der Konsole, Änderungen in Ihren AWS-Konten und Aufrufe, die AWS abgelehnt hat |
+| Google Cloud-Audit-Logs | Änderungen in Ihren Google Cloud-Projekten, von Google abgelehnte Aufrufe und mit Google Cloud geteilte Anmeldungen in Google Workspace |
+| Azure-Aktivitäts- und Entra-ID-Logs | Änderungen in Ihren Azure-Abonnements, Warnungen von Defender for Cloud sowie Anmeldungen und Verzeichnisänderungen in Microsoft Entra ID |
+| CEF | Bedrohungen, blockierte Verbindungen und Anmeldungen von Firewalls, IDS, WAFs und anderen Sicherheitsprodukten, die Common Event Format senden |
+| LEEF | Dasselbe von Produkten, die Log Event Extended Format senden, wie viele es für IBM QRadar tun |
+| Kubernetes-Audit-Logs | Änderungen am Cluster, in Pods geöffnete Shells, gelesene Secrets und abgelehnte Anfragen |
 | Webangriffe | Anfragen im Zugriffslog eines Webservers, die SQL-Injection, Path Traversal oder Log4Shell versuchen |
 
 Ihre Logs bleiben, wie sie sind. Nur die Zeilen, die für die Sicherheit zählen, werden zu Ereignissen: nie jede Seite, die ein Webserver ausgeliefert hat, oder jeder Lesezugriff auf eine API.
@@ -83,7 +88,7 @@ Meist ist der Fall schon offen, bevor die Schaltfläche antwortet; holt die Rege
 :::
 
 :::details Aus meinen Logs kommt kein Sicherheitsereignis
-Prüfen Sie, ob **Sicherheitsereignisse in Ihren Protokollen finden** eingeschaltet ist und die Karte **Ihre Protokolle** anzeigt, wann zuletzt geprüft wurde. Nur die Arten von Zeilen aus der Tabelle oben werden zu Ereignissen: Ein Server, der keine SSH-, sudo-, Audit-, CloudTrail- oder Zugriffslogs sendet, hat nichts zu finden.
+Prüfen Sie, ob **Sicherheitsereignisse in Ihren Protokollen finden** eingeschaltet ist und die Karte **Ihre Protokolle** anzeigt, wann zuletzt geprüft wurde. Nur die Arten von Zeilen aus der Tabelle oben werden zu Ereignissen: Ein Server, der keine SSH-, sudo-, Windows-, Audit-, CEF-, LEEF- oder Zugriffslogs sendet, hat nichts zu finden. Fügen Sie eine seiner Zeilen in **Eine Protokollzeile prüfen** auf **Ihre Protokolle** ein, um zu sehen, ob OneUptime sie liest.
 :::
 
 :::details Übersicht sagt, das letzte Sicherheitsereignis kam vor Tagen

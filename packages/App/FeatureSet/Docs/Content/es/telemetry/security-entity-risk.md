@@ -1,6 +1,6 @@
 # Riesgo de entidades (alertas basadas en el riesgo)
 
-Un hallazgo aislado rara vez dice mucho. Una ráfaga de inicios de sesión fallidos, un primer sudo en un host y un inicio de sesión desde un país nuevo merecen cada uno un vistazo; la misma cuenta en los tres en una semana merece un caso. El riesgo de entidades suma lo que sus reglas de detección, su inteligencia de amenazas y sus productos conectados encuentran sobre cada usuario, host y dirección IP, muestra primero los de mayor riesgo y abre un caso sobre aquel cuyo riesgo alcanza el umbral del proyecto.
+Un hallazgo aislado rara vez dice mucho. Una ráfaga de inicios de sesión fallidos, un primer sudo en un host y un inicio de sesión desde un país nuevo merecen cada uno un vistazo; la misma cuenta en los tres en una semana merece un caso. El riesgo de entidades suma lo que sus reglas de detección, su inteligencia de amenazas, sus productos conectados y Seguridad de datos encuentran sobre cada usuario, host, dirección IP y almacén de datos, muestra primero los de mayor riesgo y abre un caso sobre aquel cuyo riesgo alcanza el umbral del proyecto.
 
 :::cards
 - [Cómo se cuenta una puntuación](#cómo-se-cuenta-una-puntuación): Puntos según la gravedad, y cada fuente una vez por semana.
@@ -24,7 +24,7 @@ flowchart TB
     score -->|"En el<br/>umbral"| case["Se abre un caso,<br/>o el caso abierto<br/>asume el riesgo"]
 ```
 
-Abra **Productos → Eventos de seguridad → Riesgo de entidades**: cada usuario, host y dirección IP con riesgo ahora, primero los de mayor riesgo, con su nivel, cuánto importa, qué lo encontró y cuándo. Cada uno se abre en una página propia. **Entidades de mayor riesgo**, en la vista general, muestra el principio de esta lista, y **Buscar una entidad**, debajo de ella, busca cualquier valor en 30 días de eventos, también un dominio o un hash de archivo.
+Abra **Productos → Eventos de seguridad → Riesgo de entidades**: cada usuario, host, dirección IP y almacén de datos con riesgo ahora, primero los de mayor riesgo, con su nivel, cuánto importa, qué lo encontró y cuándo. Cada uno se abre en una página propia. **Entidades de mayor riesgo**, en la vista general, muestra el principio de esta lista, y **Buscar una entidad**, debajo de ella, busca cualquier valor en 30 días de eventos, también un dominio o un hash de archivo.
 
 ## Antes de empezar
 
@@ -34,7 +34,7 @@ Abra **Productos → Eventos de seguridad → Riesgo de entidades**: cada usuari
 
 ## Cómo se cuenta una puntuación
 
-Cada hallazgo suma puntos de riesgo al usuario, host o dirección IP al que se refiere:
+Cada hallazgo suma puntos de riesgo al usuario, host, dirección IP o almacén de datos al que se refiere:
 
 | Un hallazgo de gravedad | Suma |
 | --- | --- |
@@ -44,8 +44,8 @@ Cada hallazgo suma puntos de riesgo al usuario, host o dirección IP al que se r
 | Crítica | 75 puntos |
 
 - Un hallazgo informativo no suma nada, y un hallazgo de gravedad desconocida cuenta como Media.
-- Los puntos de una regla de detección van al valor por el que agrupa. Una coincidencia de inteligencia de amenazas suma a la dirección IP que nombra el indicador. La alerta de un producto conectado suma al usuario y al host que nombra, o si no, a su dirección IP.
-- Cada fuente cuenta una vez. Una regla de detección, un feed de inteligencia de amenazas o la regla de un producto conectado cuenta una vez en 7 días, con lo máximo que sumó, por mucho que se dispare: una regla ruidosa no puede hacer que una entidad parezca peor que tres reglas distintas.
+- Los puntos de una regla de detección van al valor por el que agrupa. Una coincidencia de inteligencia de amenazas suma a la dirección IP que nombra el indicador. La alerta de un producto conectado suma al usuario y al host que nombra, o si no, a su dirección IP. Un problema de Seguridad de datos suma al almacén de datos en el que se encontró.
+- Cada fuente cuenta una vez. Una regla de detección, un feed de inteligencia de amenazas, la regla de un producto conectado o una comprobación de Seguridad de datos cuenta una vez en 7 días, con lo máximo que sumó, por mucho que se dispare: una regla ruidosa no puede hacer que una entidad parezca peor que tres reglas distintas.
 - Una fuente que no ha encontrado nada en 7 días deja de contar, y la puntuación baja. Las puntuaciones se revisan cada 15 minutos, así que una puntuación baja a tiempo sin un nuevo hallazgo.
 
 La puntuación de una entidad es la suma de sus fuentes, ponderada por su criticidad. El ataque de prueba de **Enviar un ataque de prueba**, y un caso que alguien abre a mano, no suman riesgo.
@@ -82,7 +82,7 @@ Algunas entidades importan más que otras: un controlador de dominio, la cuenta 
 | Alta | ×1.5 |
 | Extrema | ×2 |
 
-Una entrada es un valor o un patrón con `*`, sin importar mayúsculas: `dc-*` nombra cada controlador de dominio, y `*@contractors.example` a cada contratista. **Tipo** la limita a usuarios, hosts o direcciones IP; vacío coincide con todos. Cuando varias entradas nombran una entidad, cuenta la más específica: un valor escrito completo antes que un patrón, y un patrón más largo antes que uno más corto. Un cambio llega a la puntuación de cada entidad en minutos.
+Una entrada es un valor o un patrón con `*`, sin importar mayúsculas: `dc-*` nombra cada controlador de dominio, y `*@contractors.example` a cada contratista. **Tipo** la limita a usuarios, hosts, direcciones IP o almacenes de datos; vacío coincide con todos. Cuando varias entradas nombran una entidad, cuenta la más específica: un valor escrito completo antes que un patrón, y un patrón más largo antes que uno más corto. Un cambio llega a la puntuación de cada entidad en minutos. Seguridad de datos añade por sí misma los almacenes de datos que considera sensibles, los confidenciales como Alta y los restringidos como Extrema; si cambia una de esas entradas, pasa a ser suya y Seguridad de datos no la toca.
 
 ## La página de una entidad
 

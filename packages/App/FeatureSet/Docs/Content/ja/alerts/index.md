@@ -46,7 +46,7 @@ flowchart TB
 - **手動。** アラート一覧、またはモニター、ホスト、ネットワークデバイス、その他のリソースの **アラート** タブで **アラートを作成** をクリックします。後者ではそのリソースが自動で選択されます。[アラートを手動で作成する](#アラートを手動で作成する) を参照してください。
 - **SLO のバーンレート。** バーンレートルールは、SLO がエラーバジェットを速く消費しすぎたときにアラートを作成できます。[バーンレートアラートとインシデント](/docs/slo/burn-rate-alerts) を参照してください。
 - **ネットワークサイトとセキュリティイベント。** 異常時にアラートを出すよう設定したネットワークサイトは、集約が稼働中でなくなるとアラートを開きます。セキュリティイベントの検出ルールもアラートを開きます。[ネットワークサイト (ヘルスの集約と稼働率)](/docs/monitor/network-sites) と [セキュリティイベント (SIEM)](/docs/telemetry/security-events) を参照してください。
-- **呼び出し。** Slack または Microsoft Teams の `/oneuptime page` は、メッセージをタイトルにしたアラートを開き、指名した人を呼び出します。ワークフローの呼び出しブロックも、渡したタイトルとメッセージで同じことを行います。[Slack から誰かを呼び出す](/docs/workspace-connections/slack#slack-から誰かを呼び出す) と [Paging](/docs/workflows/components#paging) を参照してください。
+- **呼び出し。** Slack または Microsoft Teams の `/oneuptime page` は、インシデントやアラートの専用のチャネル以外の場所では、メッセージをタイトルにしたアラートを開き、指名した人を呼び出します。ワークフローの呼び出しブロックも、渡したタイトルとメッセージで同じことを行います。[Slack から誰かを呼び出す](/docs/workspace-connections/slack#slack-から誰かを呼び出す) と [Paging](/docs/workflows/components#paging) を参照してください。
 - **API、Terraform、ワークフロー。** アラートは通常のリソースです。`/api/alert`、Terraform リソース `oneuptime_alert`、そしてワークフローの **Create One Alert** ステップがあります。
 
 ## ダッシュボードでのアラートの場所

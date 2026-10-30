@@ -63,6 +63,7 @@ import WorkspacePage, {
   WORKSPACE_PAGE_MAX_WAIT_FOR_RECORD_IN_MS,
 } from "./WorkspacePage";
 import { MAX_ON_CALL_DIRECT_PAGE_TARGETS } from "../../../Types/OnCallDutyPolicy/OnCallDirectPage";
+import { toOnCallPersonPageMessage } from "../../../Types/OnCallDutyPolicy/OnCallPersonPage";
 
 /*
  * ACTING ON AN INCIDENT FROM SLACK OR MICROSOFT TEAMS.
@@ -148,6 +149,7 @@ export const WORKSPACE_INCIDENT_FORM_TEXT: {
   personPlaceholder: string;
   pageTitle: string;
   pageHint: string;
+  pageMessageHint: string;
   customFieldsTitle: string;
   customFieldsHint: string;
   save: string;
@@ -164,8 +166,19 @@ export const WORKSPACE_INCIDENT_FORM_TEXT: {
   personLabel: "Person",
   personPlaceholder: "Select a person",
   pageTitle: "Page Someone",
+  /*
+   * A page a person asks for goes on until one of the people it paged
+   * answers it (OnCallPersonPage): somebody else acknowledging the incident
+   * does not stop it.
+   */
   pageHint:
-    "They are paged about this incident until somebody acknowledges it. A schedule pages whoever is on call in it now; a policy pages through its escalation rules.",
+    "They are paged about this incident until one of them answers. A schedule pages whoever is on call in it now; a policy pages through its escalation rules.",
+  /*
+   * The page's own message: the incident says what the page is about.
+   * Optional, as the field itself says (Slack's "(optional)", no "*" in
+   * Microsoft Teams).
+   */
+  pageMessageHint: "The people you page see it with the incident.",
   customFieldsTitle: "Edit Custom Fields",
   customFieldsHint: "Leave a field empty to clear it.",
   save: "Save",
@@ -1151,16 +1164,21 @@ export default class WorkspaceIncidentActions {
     event: WorkspaceEventRecord;
     targets: OnCallPageTargets;
     props: DatabaseCommonInteractionProps;
+    // What the person paging wrote to the people paged: the page's message.
+    message?: string | undefined;
   }): Promise<OnCallPageResult> {
     if (WorkspacePage.countTargets(data.targets) === 0) {
       throw new BadDataException("Pick who to page.");
     }
+
+    const message: string = toOnCallPersonPageMessage(data.message);
 
     return await OnCallPageService.page({
       projectId: data.event.projectId,
       targets: data.targets,
       about: {
         incidentId: data.event.id,
+        ...(message ? { message: message } : {}),
       },
       props: data.props,
       maxWaitForRecordInMs: WORKSPACE_PAGE_MAX_WAIT_FOR_RECORD_IN_MS,
@@ -1188,11 +1206,17 @@ export default class WorkspaceIncidentActions {
     return null;
   }
 
-  // What a page about the incident came to, for whoever paged.
-  public static getPagedAnswer(result: OnCallPageResult): WorkspaceAnswer {
+  /*
+   * What a page about the incident came to, for whoever paged - quoting the
+   * message they wrote, when they wrote one.
+   */
+  public static getPagedAnswer(
+    result: OnCallPageResult,
+    message?: string | undefined,
+  ): WorkspaceAnswer {
     return WorkspacePage.getPagedAnswer({
       result: result,
-      message: "",
+      message: toOnCallPersonPageMessage(message),
       isShownAtPlace: false,
       canBeShownAtPlace: false,
     });
