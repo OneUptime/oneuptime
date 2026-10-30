@@ -2112,6 +2112,7 @@ ${FeedMarkdown.asMarkdown("p95 over 2s")}
     to: ObjectID;
     name: string;
     isFirst: boolean;
+    by?: ObjectID | undefined;
   }): Promise<void> {
     jest.spyOn(AlertService, "updateOneBy").mockResolvedValue(1 as never);
     jest
@@ -2153,6 +2154,10 @@ ${FeedMarkdown.asMarkdown("p95 over 2s")}
     created.alertId = ALERT_ID;
     created.alertStateId = data.to;
     created.startsAt = new Date();
+
+    if (data.by) {
+      created.createdByUserId = data.by;
+    }
 
     const before: AlertStateTimeline | null = data.isFirst
       ? null

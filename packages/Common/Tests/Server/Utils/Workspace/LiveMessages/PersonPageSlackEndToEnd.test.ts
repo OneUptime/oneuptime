@@ -6,7 +6,14 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import UserOnCallLog from "../../../../../Models/DatabaseModels/UserOnCallLog";
+import User from "../../../../../Models/DatabaseModels/User";
+import OnCallDutyPolicyExecutionLogTimeline from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
+import UserOnCallLogService from "../../../../../Server/Services/UserOnCallLogService";
+import UserService from "../../../../../Server/Services/UserService";
+import OnCallPersonPageAnswer from "../../../../../Server/Utils/OnCall/OnCallPersonPageAnswer";
 import HTTPResponse from "../../../../../Types/API/HTTPResponse";
+import ObjectID from "../../../../../Types/ObjectID";
 import { JSONObject } from "../../../../../Types/JSON";
 import { ON_CALL_DIRECT_PAGE_ACKNOWLEDGE_WAIT_IN_MINUTES } from "../../../../../Types/OnCallDutyPolicy/OnCallDirectPage";
 import { isOnCallPersonPage } from "../../../../../Types/OnCallDutyPolicy/OnCallPersonPage";
@@ -17,6 +24,7 @@ import QuietChannelsWorld, {
   DASHBOARD,
   INCIDENT_ID,
   JANE,
+  NB_USER_2,
   NITIN,
   PAGING_WORKFLOW_ID,
   PROJECT_ID,
@@ -264,7 +272,9 @@ describe("a person's page that nobody it paged answers", () => {
     await janePagesPlatform();
 
     expect(
-      await world.directPageTick(ON_CALL_DIRECT_PAGE_ACKNOWLEDGE_WAIT_IN_MINUTES),
+      await world.directPageTick(
+        ON_CALL_DIRECT_PAGE_ACKNOWLEDGE_WAIT_IN_MINUTES,
+      ),
     ).toBe(true);
     expect(world.run!.status).toBe(OnCallDutyPolicyStatus.Completed);
 
@@ -286,7 +296,9 @@ describe("a person's page that nobody it paged answers", () => {
     await janePagesPlatform();
 
     expect(
-      await world.directPageTick(ON_CALL_DIRECT_PAGE_ACKNOWLEDGE_WAIT_IN_MINUTES),
+      await world.directPageTick(
+        ON_CALL_DIRECT_PAGE_ACKNOWLEDGE_WAIT_IN_MINUTES,
+      ),
     ).toBe(true);
 
     expect(alarms()).toHaveLength(1);
@@ -312,6 +324,148 @@ describe("a person's page that nobody it paged answers", () => {
 
     expect(lines(pageMessageNow())[0]).toBe(told);
     expect(alarms()).toHaveLength(1);
+  });
+});
+
+describe("acknowledging INC-8 itself answers the page, for whoever it paged", () => {
+  let logReads: Array<Record<string, unknown>>;
+  let logUpdates: Array<{ id: ObjectID; data: Partial<UserOnCallLog> }>;
+
+  /*
+   * Each person's page still going out to them, as UserOnCallLog holds it:
+   * the world keeps the run and its lines for each person; their pages are
+   * read from those.
+   */
+  function openPagesOf(userId: ObjectID): Array<UserOnCallLog> {
+    if (world.run!.acknowledgedAt) {
+      return [];
+    }
+
+    return world.steps
+      .filter((step: OnCallDutyPolicyExecutionLogTimeline): boolean => {
+        return step.alertSentToUserId?.toString() === userId.toString();
+      })
+      .map((step: OnCallDutyPolicyExecutionLogTimeline): UserOnCallLog => {
+        const log: UserOnCallLog = new UserOnCallLog();
+        log.id = ObjectID.generate();
+        log.onCallDutyPolicyExecutionLogId = world.run!.id!;
+        log.onCallDutyPolicyExecutionLogTimelineId = step.id!;
+        log.triggeredByIncidentId = INCIDENT_ID;
+        log.onCallDutyPolicyExecutionLog = world.run!;
+        return log;
+      });
+  }
+
+  beforeEach(async () => {
+    logReads = [];
+    logUpdates = [];
+
+    jest
+      .spyOn(UserOnCallLogService, "findBy")
+      .mockImplementation((async (data: {
+        query: Record<string, unknown>;
+      }): Promise<Array<UserOnCallLog>> => {
+        logReads.push(data.query);
+        return openPagesOf(data.query["userId"] as ObjectID);
+      }) as never);
+    jest
+      .spyOn(UserOnCallLogService, "updateOneById")
+      .mockImplementation((async (data: {
+        id: ObjectID;
+        data: Partial<UserOnCallLog>;
+      }): Promise<number> => {
+        logUpdates.push(data);
+        return 1;
+      }) as never);
+    jest.spyOn(UserService, "findOneById").mockImplementation((async (data: {
+      id: ObjectID;
+    }): Promise<User> => {
+      const person: User = new User();
+      person.id = data.id;
+      person.name = (
+        data.id.toString() === NITIN.toString() ? "Nitin" : "NB User 2"
+      ) as never;
+      return person;
+    }) as never);
+
+    await janePagesPlatform();
+  });
+
+  test("Nitin, paged by Jane, acknowledges INC-8 from its channel: his page is answered - it stops, and the page's message says so", async () => {
+    world.recordAcknowledged = true;
+    world.recordStateName = "Acknowledged";
+
+    await world.incidentState({
+      to: STATE_ACKNOWLEDGED,
+      name: "Acknowledged",
+      isFirst: false,
+      by: NITIN,
+    });
+    await world.settle();
+
+    // His own pages about INC-8, still going out to him.
+    expect(logReads).toEqual([
+      expect.objectContaining({
+        projectId: PROJECT_ID,
+        userId: NITIN,
+        triggeredByIncidentId: INCIDENT_ID,
+      }),
+    ]);
+    expect(logUpdates).toHaveLength(1);
+    expect(logUpdates[0]!.data.acknowledgedByUserId).toEqual(NITIN);
+
+    expect(world.run!.acknowledgedByUserId!.toString()).toBe(NITIN.toString());
+    expect(world.run!.status).toBe(OnCallDutyPolicyStatus.Completed);
+    expect(lines(pageMessageNow()).slice(0, 2)).toEqual([
+      `✅ *Nitin* acknowledged ${INCIDENT_IN_SLACK}, so paging stopped`,
+      `“${MESSAGE}”`,
+    ]);
+    expect(alarms()).toEqual([]);
+  });
+
+  test("somebody the page did not page acknowledges INC-8: nothing of the page is answered - it goes on", async () => {
+    world.recordAcknowledged = true;
+    world.recordStateName = "Acknowledged";
+
+    await world.incidentState({
+      to: STATE_ACKNOWLEDGED,
+      name: "Acknowledged",
+      isFirst: false,
+      by: NB_USER_2,
+    });
+    await world.settle();
+
+    expect(logUpdates).toEqual([]);
+    expect(world.run!.acknowledgedAt).toBeUndefined();
+    expect(world.run!.status).toBe(OnCallDutyPolicyStatus.Executing);
+    expect(lines(pageMessageNow())[0]).toBe(
+      `📟 *Jane Doe* is paging for ${INCIDENT_IN_SLACK}`,
+    );
+  });
+
+  test("an alert's state timeline answers its person's pages the same way: whoever moved it, as acknowledged", async () => {
+    const answer: jest.SpiedFunction<
+      typeof OnCallPersonPageAnswer.onRecordStateChanged
+    > = jest
+      .spyOn(OnCallPersonPageAnswer, "onRecordStateChanged")
+      .mockResolvedValue(0);
+
+    await world.alertState({
+      to: STATE_ACKNOWLEDGED,
+      name: "Acknowledged",
+      isFirst: false,
+      by: NITIN,
+    });
+
+    expect(answer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: "alert",
+        projectId: PROJECT_ID,
+        changedByUserId: NITIN,
+        isAcknowledged: true,
+        isResolved: false,
+      }),
+    );
   });
 });
 
