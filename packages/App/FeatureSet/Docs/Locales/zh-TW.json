@@ -428,6 +428,8 @@
     "Elastic Security": "Elastic Security",
     "AWS Security Hub": "AWS Security Hub",
     "Okta System Log": "Okta 系統日誌",
+    "Microsoft Entra ID": "Microsoft Entra ID",
+    "Google Workspace": "Google Workspace",
     "Global SSO": "全域 SSO",
     "Import and Export Label Rules": "匯入和匯出標籤規則",
     "Run Rules on Existing Resources": "對現有資源執行規則"

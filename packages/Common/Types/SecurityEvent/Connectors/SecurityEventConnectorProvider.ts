@@ -19,6 +19,8 @@ enum SecurityEventConnectorProvider {
   AwsSecurityHub = "aws-security-hub",
   OktaSystemLog = "okta",
   GoogleSecOps = "google-secops",
+  MicrosoftEntraId = "microsoft-entra-id",
+  GoogleWorkspace = "google-workspace",
 }
 
 export default SecurityEventConnectorProvider;
@@ -32,6 +34,8 @@ export const AllSecurityEventConnectorProviders: Array<SecurityEventConnectorPro
     SecurityEventConnectorProvider.ElasticSecurity,
     SecurityEventConnectorProvider.AwsSecurityHub,
     SecurityEventConnectorProvider.OktaSystemLog,
+    SecurityEventConnectorProvider.MicrosoftEntraId,
+    SecurityEventConnectorProvider.GoogleWorkspace,
     SecurityEventConnectorProvider.GoogleSecOps,
   ];
 

@@ -218,6 +218,9 @@ export const PROVIDER_LOGO_FILE_LOADERS: Readonly<
   "google-vertex-ai.svg": () => {
     return import("../../Images/ProviderLogos/google-vertex-ai.svg");
   },
+  "google-workspace.svg": () => {
+    return import("../../Images/ProviderLogos/google-workspace.svg");
+  },
   "grafana.svg": () => {
     return import("../../Images/ProviderLogos/grafana.svg");
   },
@@ -265,6 +268,9 @@ export const PROVIDER_LOGO_FILE_LOADERS: Readonly<
   },
   "microsoft-defender.svg": () => {
     return import("../../Images/ProviderLogos/microsoft-defender.svg");
+  },
+  "microsoft-entra-id.svg": () => {
+    return import("../../Images/ProviderLogos/microsoft-entra-id.svg");
   },
   "microsoft-sentinel.svg": () => {
     return import("../../Images/ProviderLogos/microsoft-sentinel.svg");

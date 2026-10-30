@@ -178,7 +178,22 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 
 ### अपने लॉग में सुरक्षा इवेंट खोजें
 
-**कनेक्शन** के ऊपर **आपके लॉग** कार्ड उन लॉग को स्रोत बनाता है जो आप पहले से OneUptime को भेजते हैं। **अपने लॉग में सुरक्षा इवेंट खोजें** चालू होने पर प्रोजेक्ट के नए लॉग हर मिनट पढ़े जाते हैं, और उनमें हर SSH साइन-इन, sudo कमांड, Kubernetes ऑडिट रिकॉर्ड, AWS CloudTrail बदलाव और वेब हमला एक सुरक्षा इवेंट के रूप में सहेजा जाता है। हर प्रकार में क्या आता है, यह [सुरक्षा के साथ शुरुआत](/docs/telemetry/security-getting-started#अपने-लॉग-में-सुरक्षा-इवेंट-खोजें) में देखें।
+**कनेक्शन** के ऊपर **आपके लॉग** कार्ड उन लॉग को स्रोत बनाता है जो आप पहले से OneUptime को भेजते हैं। **अपने लॉग में सुरक्षा इवेंट खोजें** चालू होने पर प्रोजेक्ट के नए लॉग हर मिनट पढ़े जाते हैं, और उनमें हर SSH या Windows साइन-इन, sudo कमांड, किसी क्लाउड का ऑडिट रिकॉर्ड, किसी सुरक्षा उत्पाद का CEF या LEEF रिकॉर्ड, Kubernetes ऑडिट रिकॉर्ड और वेब हमला एक सुरक्षा इवेंट के रूप में सहेजा जाता है। हर प्रकार में क्या आता है, यह [सुरक्षा के साथ शुरुआत](/docs/telemetry/security-getting-started#अपने-लॉग-में-सुरक्षा-इवेंट-खोजें) में देखें।
+
+हर प्रकार साधारण लॉग के रूप में OneUptime तक पहुंचता है:
+
+| प्रकार | कहां से भेजें |
+| --- | --- |
+| SSH साइन-इन, sudo | किसी Linux मशीन का journal या ऑथ लॉग, [OpenTelemetry Collector](/docs/telemetry/host-otel-collector) के साथ |
+| Windows इवेंट | मशीन पर कलेक्टर का `windowseventlog` रिसीवर, या ऐसा फ़ॉरवर्डर जो हर इवेंट को JSON के रूप में लिखता है, जैसे NXLog या Winlogbeat |
+| AWS CloudTrail | CloudWatch Logs को दिया गया ट्रेल, जिसे कलेक्टर का `awscloudwatch` रिसीवर पढ़ता है |
+| Google Cloud ऑडिट लॉग | Pub/Sub तक जाने वाला लॉग सिंक, जिसे कलेक्टर का `googlecloudpubsub` रिसीवर `encoding: raw_text` के साथ पढ़ता है |
+| Azure गतिविधि और Entra ID लॉग | Event Hub में स्ट्रीम करने वाली डायग्नोस्टिक सेटिंग, जिसे कलेक्टर का `azureeventhub` रिसीवर `format: raw` के साथ पढ़ता है |
+| CEF, LEEF | उत्पाद का syslog, जिसे [rsyslog](/docs/telemetry/syslog) आगे भेजता है |
+| Kubernetes ऑडिट लॉग | API सर्वर की ऑडिट लॉग फ़ाइल, जिसे कलेक्टर का `filelog` रिसीवर पढ़ता है |
+| वेब हमले | किसी वेब सर्वर का एक्सेस लॉग, जिसे कलेक्टर का `filelog` रिसीवर पढ़ता है |
+
+**आपके लॉग** पर हर प्रकार बताता है कि वह आखिरी बार कब मिला, और **एक लॉग लाइन जाँचें** दिखाता है कि आपकी पेस्ट की गई लाइन क्या बनती है, कोई लाइन आने से पहले ही।
 
 ### किसी सुरक्षा उत्पाद को कनेक्ट करें
 
@@ -194,6 +209,8 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | Elastic Security | पहचान अलर्ट, Detection Findings के रूप में | [Elastic Security](/docs/integrations/elastic-security) |
 | AWS Security Hub | Findings, Detection और Compliance Findings के रूप में | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | साइन-इन, MFA, खाते और नीति के इवेंट | [Okta System Log](/docs/integrations/okta) |
+| Microsoft Entra ID | साइन-इन और डायरेक्टरी बदलाव, और Microsoft 365 ऑडिट लॉग से मेल फ़ॉरवर्डिंग, शेयरिंग और फ़िशिंग के निर्णय | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
+| Google Workspace | साइन-इन, Google की अपनी पहचानें, एडमिन बदलाव और ऐप को दी गई पहुंच, और Drive में शेयरिंग | [Google Workspace](/docs/integrations/google-workspace) |
 
 - उत्पाद के अपने जो अलर्ट **Open Cases From** के स्तर पर या उससे ऊपर हैं (डिफ़ॉल्ट रूप से **उच्च और ऊपर**, जब तक आप कोई दूसरा स्तर या **कभी नहीं** न चुनें), वे [केस](/docs/telemetry/security-cases) खोलते हैं, जो उस उपयोगकर्ता, होस्ट या पते के हिसाब से समूहित होते हैं जिसके बारे में वे हैं।
 - कनेक्शन रिकॉर्ड को उस समय के हिसाब से पढ़ता है जब उत्पाद ने उन्हें बनाया, न कि उस गतिविधि के समय से जिसका वे वर्णन करते हैं। हर घंटे चलने वाला SIEM नियम जिन इवेंट से मेल खाता है, उनके बहुत बाद पहचान बनाता है, और वे फिर भी इम्पोर्ट होती हैं।
