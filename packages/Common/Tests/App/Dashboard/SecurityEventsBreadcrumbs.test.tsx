@@ -358,6 +358,25 @@ describe("each crumb opens what its name says", () => {
     ]);
   });
 
+  // A hunt's page sits under Hunts, as an entity's sits under Entity Risk.
+  test("on a hunt's page, Hunts opens the list, and Events the section's first page", () => {
+    const trail: Array<[string, string]> = trailOf(
+      PageMap.SECURITY_EVENTS_HUNT_VIEW,
+    );
+
+    expect(trail.slice(1, 4)).toEqual([
+      ["Security Events", routeFor(PageMap.SECURITY_EVENTS_OVERVIEW)],
+      ["Events", routeFor(PageMap.SECURITY_EVENTS)],
+      ["Hunts", routeFor(PageMap.SECURITY_EVENTS_HUNTS)],
+    ]);
+    // Named "Hunt" until the hunt is read, then by its name (nameRecordInTrail).
+    expect(trail[4]![0]).toBe("Hunt");
+    expect(trailOf(PageMap.SECURITY_EVENTS_HUNTS)[3]).toEqual([
+      "Hunts",
+      routeFor(PageMap.SECURITY_EVENTS_HUNTS),
+    ]);
+  });
+
   /*
    * Workspace's entries depend on what the project has connected, so its
    * crumb opens the page every project can open: Slack and Microsoft Teams

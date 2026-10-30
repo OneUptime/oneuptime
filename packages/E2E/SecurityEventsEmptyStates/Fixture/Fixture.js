@@ -79,6 +79,7 @@ import { DEFAULT_SECURITY_CASE_PRIORITIES } from "Common/Utils/SecurityCase/Secu
 import { DEFAULT_SECURITY_CASE_STATUSES } from "Common/Utils/SecurityCase/SecurityCaseStatuses";
 import SecurityEventConnection from "Common/Models/DatabaseModels/SecurityEventConnection";
 import SecurityEventDestination from "Common/Models/DatabaseModels/SecurityEventDestination";
+import SecurityHunt from "Common/Models/DatabaseModels/SecurityHunt";
 import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
 import SecurityTelemetrySource from "Common/Models/DatabaseModels/SecurityTelemetrySource";
 import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
@@ -352,6 +353,8 @@ const MODEL_TABLES = [
   tableName(WorkspaceProjectAuthToken),
   tableName(SecurityCasePriority),
   tableName(SecurityCaseStatus),
+  // The Events toolbar's Hunts list: a new project has saved no hunt yet.
+  tableName(SecurityHunt),
 ];
 
 /*

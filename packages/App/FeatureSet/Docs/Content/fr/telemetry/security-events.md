@@ -5,6 +5,7 @@ OneUptime conserve les événements de sécurité à côté de vos journaux, tra
 :::cards
 - [Envoyer des événements](#envoyer-des-événements-de-sécurité): Un POST HTTPS, une sortie Fluent Bit ou une connexion à un produit de sécurité.
 - [Rechercher et corréler](#explorer-les-événements-de-sécurité): L'explorateur d'événements et le graphe de corrélation.
+- [Chasses](#chasses): Des recherches enregistrées qui s'exécutent selon une planification et préviennent des personnes quand elles trouvent quelque chose.
 - [Règles de détection](#règles-de-détection): Des règles Sigma qui ouvrent des dossiers et des alertes.
 - [Moniteurs](#moniteurs-dévénements-de-sécurité): Des comptages sur une fenêtre glissante, avec un statut qui se rétablit.
 :::
@@ -36,6 +37,7 @@ Ouvrez **Produits → Événements de sécurité**, sous **Observabilité**. Son
 | **Dossiers fermés** | Dossiers de sécurité | Les dossiers fermés avec un verdict, les plus récents en premier |
 | **Tous les dossiers** | Dossiers de sécurité | Chaque dossier, ouvert ou fermé |
 | **Événements** | Événements | Rechercher et filtrer tous les événements, et en ouvrir un pour voir tous ses champs |
+| **Chasses** | Événements | Des recherches enregistrées depuis Événements, rouvertes en un clic ou exécutées selon une planification qui prévient des personnes quand elles trouvent quelque chose |
 | **Campaigns** | Événements | Chaque adresse qui a envoyé des requêtes d'attaque, et si l'une de ses requêtes est passée |
 | **Risque des entités** | Événements | Chaque utilisateur, hôte et adresse, noté selon ce qui a été trouvé à son sujet cette semaine, les plus à risque d'abord |
 | **Corréler** | Événements | Un graphe des événements qui partagent un hôte, un utilisateur ou une adresse IP |
@@ -252,6 +254,45 @@ Un événement lu dans une ligne de journal écrite au sein d'une requête trac�
 ### Corréler
 
 **Corréler** dessine les événements autour d'un hôte, d'un utilisateur ou d'une adresse IP : leurs classes d'événements autour de ce que vous avez cherché, marquées par leur pire gravité, et les autres valeurs vues dans les mêmes événements sur l'anneau extérieur. Cliquez sur une classe pour lister ses événements, ou sur une valeur pour corréler ensuite sur elle. Chaque observable du panneau d'un événement dans **Événements** ouvre **Corréler** sur lui.
+
+## Chasses
+
+Une chasse est une recherche sur vos événements de sécurité enregistrée sous un nom : le texte de la barre de recherche, les filtres de la barre latérale et jusqu'où elle remonte. Rouvrez-la en un clic, exécutez-la selon une planification qui prévient des personnes quand elle trouve quelque chose, et conservez sur un dossier les événements qu'elle trouve.
+
+### Enregistrer une recherche comme chasse
+
+Sur **Événements**, recherchez et filtrez jusqu'à ce que la liste montre ce que vous cherchez, puis ouvrez **Chasses** dans la barre d'outils et choisissez **Enregistrer comme chasse**. Nommez-la, choisissez si elle s'exécute selon une planification, et sa page s'ouvre. **Événements → Chasses** liste les chasses du projet, chacune avec sa recherche, sa fréquence, qui elle prévient et ce que sa dernière exécution a trouvé ; **Créer : Chasse** y prend la recherche telle que vous la taperiez sur **Événements**. Un projet conserve jusqu'à 200 chasses.
+
+La page d'une chasse est sa recherche, ouverte dans l'explorateur des événements. Modifiez-y la recherche ou les filtres, et l'en-tête de la chasse propose **Enregistrer les modifications** et **Annuler les modifications**. **Modifier** change son nom, sa recherche, jusqu'où elle remonte, sa planification et qui elle prévient, et **Supprimer la chasse** se trouve dans son menu. À partir de Security Member, on peut enregistrer, modifier et supprimer des chasses, et un Security Viewer peut les ouvrir.
+
+### Exécuter une chasse selon une planification
+
+| Planification | S'exécute |
+| --- | --- |
+| **Non planifiée** | Seulement quand vous l'ouvrez |
+| **Chaque heure**, **Toutes les 6 heures**, **Chaque jour**, **Chaque semaine** | D'elle-même, à cette fréquence |
+
+Une chasse planifiée prévient les personnes et les équipes que vous choisissez sous **Notifier** : au moins une, et 50 au plus en tout. Chaque exécution :
+
+- lit les événements dont l'heure suit l'exécution précédente, jusqu'à il y a deux minutes, si bien que chaque événement est parcouru une fois. La première exécution lit à partir du moment où la planification a été définie ou la recherche modifiée pour la dernière fois, et après une panne une exécution rattrape au plus un jour de plus que son intervalle.
+- compte les événements que sa recherche y trouve, exactement comme **Événements** les listerait, en ne lisant que ce que peut lire la personne sous laquelle elle s'exécute.
+- quand elle trouve des événements, prévient les personnes que la chasse nomme, et les membres des équipes qu'elle nomme, qui peuvent lire les chasses et les événements de sécurité.
+
+Une exécution n'ouvre aucun dossier et ne déclenche aucune alerte : écrivez ce qui doit ouvrir des dossiers comme une [règle de détection](#règles-de-détection). Une exécution dont la recherche prend trop de temps, ou qui ne peut pas lire les événements, en donne la raison sur la chasse et est retentée dans l'heure, à partir de là où elle s'est arrêtée.
+
+Une chasse planifiée s'exécute sous la personne qui a défini sa planification, modifié sa recherche ou l'a enregistrée avec **Modifier** en dernier. Une clé d'API ne peut pas définir de planification. Quand cette personne quitte le projet ou ne peut plus lire les événements de sécurité, la chasse le signale : ouvrez **Modifier** et enregistrez-la pour qu'elle s'exécute sous votre nom.
+
+### Qui est prévenu
+
+La notification **Une chasse a trouvé des événements de sécurité** nomme la chasse et sa recherche, le nombre d'événements trouvés par son exécution et la fenêtre qu'elle a lue, et renvoie vers la page de la chasse sur ces événements ; aucun mot d'un événement n'y figure. Tout le monde la reçoit par e-mail et push, et choisit ses canaux sous **Paramètres utilisateur → Paramètres de notification**. Comme les autres e-mails de routine, elle peut être retenue dans un [récapitulatif d'e-mails](/docs/emails/notification-rollup).
+
+### Conserver des événements sur un dossier
+
+Sélectionnez des événements sur **Événements** ou sur la page d'une chasse et choisissez **Actions groupées → Ajouter au dossier**, ou ouvrez un événement et choisissez **Ajouter au dossier**. Choisissez un dossier ouvert par son numéro ou son titre. Jusqu'à 100 événements à la fois.
+
+OneUptime relit chaque événement en votre nom et le conserve tel qu'il était sur la page **Preuves** du dossier, si bien que le dossier le montre encore une fois la durée de conservation de l'événement dépassée. Un événement que vous ne pouvez pas lire n'est pas conservé, et un événement que le dossier conserve déjà est laissé tel quel. Un événement trouvé par une chasse nomme la chasse, et **Voir l'événement** l'ouvre tel qu'il a été conservé.
+
+Les chasses ont la même API REST que le reste de OneUptime, sous `/security-hunt`, et `POST /security-case-evidence/add-events` conserve des événements sur un dossier. Voir la [référence de l'API](/docs/api-reference/api-reference).
 
 ## Règles de détection
 

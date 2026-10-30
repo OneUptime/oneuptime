@@ -516,6 +516,15 @@ jobs:
           # Detail Cards (2.7 minutes on 14.0.93's gate run) moved to group 13 on
           # 2026-10-27, when that run took this group 22.0 minutes and #5249 grew
           # Maintenance Calendar after: about 19.5.
+          # Security Hunts (Hunts.spec.ts on the Security Operations fixture,
+          # a suite of its own: 16 tests, about a minute locally with its
+          # bundle, Chromium only: the Hunts list, on a phone and empty, the
+          # Events toolbar's Hunts list and Save as Hunt, a hunt's page, its
+          # changed-search notice on a phone and in Persian, a failed run and
+          # Delete Hunt, and Add to Case from a hunt and from an event's
+          # panel) joined it on 2026-10-30 from group 11, where Security
+          # Operations is the longest suite, when this group ran about 18
+          # minutes: about 20.5.
           - group: 6
             suites: >-
               test-discovery-ui
@@ -525,6 +534,7 @@ jobs:
               test-maintenance-calendar-ui
               test-infrastructure-first-run-ui
               test-postmortem-rules-ui
+              test-security-hunts-ui
           # The Profiler (about 2 minutes with its bundle: a laptop and a
           # phone) and LLM Connect (about 2 minutes with its bundle: AI /
           # LLM's Connect and Usage at desktop and phone width), both
@@ -837,7 +847,14 @@ jobs:
           # seconds locally: the list and its common lists, Create Watchlist,
           # a list's page, Add Value, Import Values, a list that follows a
           # feed, the line under a rule's YAML, a phone, a new project, a
-          # Security Viewer, German and Persian): about 19.5.
+          # Security Viewer, German and Persian): about 19.5. It gained
+          # Hunts.spec.ts on 2026-10-29 (13 tests, about 40 seconds locally:
+          # the Hunts list, on a phone and empty, the Events toolbar's Hunts
+          # list and Save as Hunt, a hunt's page and its header, a failed
+          # run and Delete Hunt, Persian, and Add to Case onto a case's
+          # Evidence): about 20. Hunts.spec.ts left it for a suite of its own,
+          # Security Hunts, in group 6 on 2026-10-30, when its UI review grew
+          # it to 16 tests and these groups ran 20 to 25 minutes: about 19.5.
           - group: 11
             suites: >-
               test-security-operations-ui
@@ -1028,6 +1045,7 @@ jobs:
             output/playwright/security-events-empty-states-ui/test-results
             output/playwright/security-operations-ui/*.png
             output/playwright/security-operations-ui/test-results
+            output/playwright/security-hunts-ui/test-results
             output/playwright/status-page-search/test-results
             output/playwright/navigation-search/test-results
             output/playwright/pencil-button/test-results

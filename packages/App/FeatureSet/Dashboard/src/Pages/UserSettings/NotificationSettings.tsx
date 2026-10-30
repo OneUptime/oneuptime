@@ -456,6 +456,11 @@ const EVENT_LIBRARY: Record<
       label: "Security case task assigned to me",
       description: "A task on a security case is assigned to you.",
     },
+  [NotificationSettingEventType.SEND_SECURITY_HUNT_FOUND_NOTIFICATION]: {
+    label: "Hunt found security events",
+    description:
+      "A scheduled hunt that names you, or a team you are on, finds security events.",
+  },
 
   [NotificationSettingEventType.SEND_INCOMING_CALL_MISSED_OWNER_NOTIFICATION]: {
     label: "Missed call",
@@ -1160,6 +1165,14 @@ const security: Array<SectionDef> = [
       NotificationSettingEventType.SEND_SECURITY_CASE_TARGET_NOTIFICATION,
       NotificationSettingEventType.SEND_SECURITY_CASE_TASK_ASSIGNED_NOTIFICATION,
     ],
+  ),
+  // Keys of their own, so the card says them in the reader's language.
+  buildSection(
+    translationKey("Hunts"),
+    translationKey(
+      "Notify me when a scheduled hunt that names me, or a team I am on, finds security events.",
+    ),
+    [NotificationSettingEventType.SEND_SECURITY_HUNT_FOUND_NOTIFICATION],
   ),
 ];
 

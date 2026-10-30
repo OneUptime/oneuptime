@@ -25,6 +25,8 @@ import SecurityEventsDetectionRulesPage from "../Pages/SecurityEvents/DetectionR
 import SecurityEventsRuleExceptionsPage from "../Pages/SecurityEvents/RuleExceptions";
 import SecurityWatchlistsPage from "../Pages/SecurityEvents/Watchlists";
 import SecurityWatchlistViewPage from "../Pages/SecurityEvents/WatchlistView";
+import SecurityHuntsPage from "../Pages/SecurityEvents/Hunts";
+import SecurityHuntViewPage from "../Pages/SecurityEvents/HuntView";
 import SecurityEventsDocumentationPage from "../Pages/SecurityEvents/Documentation";
 import SecurityEventsConnectionsPage from "../Pages/SecurityEvents/Connections";
 import SecurityEventsThreatIntelPage from "../Pages/SecurityEvents/ThreatIntel";
@@ -114,6 +116,27 @@ const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
             );
           },
         )}
+        <PageRoute
+          path={SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_HUNTS] || ""}
+          element={
+            <SecurityHuntsPage
+              {...props}
+              pageRoute={RouteMap[PageMap.SECURITY_EVENTS_HUNTS] as Route}
+            />
+          }
+        />
+        {/* One hunt's page, under Hunts in the menu: its search, opened. */}
+        <PageRoute
+          path={
+            SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_HUNT_VIEW] || ""
+          }
+          element={
+            <SecurityHuntViewPage
+              {...props}
+              pageRoute={RouteMap[PageMap.SECURITY_EVENTS_HUNT_VIEW] as Route}
+            />
+          }
+        />
         <PageRoute
           path={
             SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_CAMPAIGNS] || ""

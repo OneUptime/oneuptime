@@ -13,7 +13,9 @@ import IconProp from "Common/Types/Icon/IconProp";
  *                    Open Cases, Assigned to Me, Unassigned, Closed Cases
  *                    and All Cases
  *   Events           every security event, who is riskiest and how they
- *                    connect: Events, Campaigns (who is attacking, and
+ *                    connect: Events, Hunts (searches over them saved to
+ *                    open again, or run on a schedule that tells people
+ *                    what they find), Campaigns (who is attacking, and
  *                    whether any of it got through), Entity Risk (every
  *                    user, host and address scored by everything found
  *                    about it, and a lookup for any value) and Correlate
@@ -71,7 +73,7 @@ export interface SecurityEventsMenuItem {
   /*
    * The pages opened from this entry's page, inside the menu's layout, that
    * light it: an entity's page lights Entity Risk, a watchlist's page
-   * Watchlists.
+   * Watchlists, a hunt's page Hunts.
    */
   detailPages?: Array<PageMap> | undefined;
 }
@@ -137,6 +139,19 @@ export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
         page: PageMap.SECURITY_EVENTS,
         title: "Events",
         icon: IconProp.List,
+      },
+      {
+        /*
+         * The searches the team asks again and again, saved from Events:
+         * each opens its search in one click, and a scheduled one tells the
+         * people it names when it finds something
+         * (Types/SecurityEvent/SecurityHunt). A hunt's own page - its search,
+         * opened on the Events explorer - lights this entry.
+         */
+        page: PageMap.SECURITY_EVENTS_HUNTS,
+        title: "Hunts",
+        icon: IconProp.ViewfinderCircle,
+        detailPages: [PageMap.SECURITY_EVENTS_HUNT_VIEW],
       },
       {
         /*
