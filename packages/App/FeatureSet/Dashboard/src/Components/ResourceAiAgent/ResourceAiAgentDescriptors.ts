@@ -137,7 +137,11 @@ const CLOUD_ACCOUNT_DESCRIPTOR_COPY: Omit<
   ),
   investigateTitle: translationKey("Investigate with live reads"),
   readOnlyCommandsPhrase: translationKey("live reads"),
-  commandsCardTitle: translationKey("cloud operations"),
+  /*
+   * Not a command-line tool's name, as docker or govc is on the other
+   * resources: the agent's catalog of operations, named in words.
+   */
+  commandsCardTitle: translationKey("Cloud operations"),
   toolVersionLabel: null,
   identityColumn: null,
   writeExamples: translationKey(

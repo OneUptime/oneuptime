@@ -37224,5 +37224,14 @@
   "What happened to this account in OneUptime: its Cloud AI agent connecting or being reset, and every change to what OneUptime AI may do here.": "OneUptime में इस खाते के साथ जो हुआ: इसके क्लाउड AI एजेंट का कनेक्ट होना या रीसेट होना, और OneUptime AI यहाँ क्या कर सकता है उसमें हर बदलाव।",
   "Cloud Account Updated": "क्लाउड खाता अपडेट किया गया",
   "Cloud Account Created": "क्लाउड खाता बनाया गया",
-  "Dry run of a fix (read-only)": "सुधार का ड्राई रन (केवल पढ़ने के लिए)"
+  "Dry run of a fix (read-only)": "सुधार का ड्राई रन (केवल पढ़ने के लिए)",
+  "Cloud operations": "क्लाउड ऑपरेशन",
+  "Run it as someone who may create roles in this account.": "इसे ऐसे व्यक्ति के रूप में चलाएँ जो इस अकाउंट में भूमिकाएं बना सकता हो।",
+  "The agent connects to your project with this key. Pick an existing key or create a new one: the command below uses it.": "एजेंट इस कुंजी से आपके प्रोजेक्ट से कनेक्ट होता है। कोई मौजूदा कुंजी चुनें या नई बनाएँ: नीचे दी गई कमांड इसी का उपयोग करती है।",
+  "This project doesn't fix new incidents or alerts automatically.": "यह प्रोजेक्ट नई घटनाओं या अलर्ट को अपने आप ठीक नहीं करता।",
+  "This project fixes new alerts automatically, but not new incidents.": "यह प्रोजेक्ट नए अलर्ट को अपने आप ठीक करता है, लेकिन नई घटनाओं को नहीं।",
+  "This project fixes new incidents and alerts automatically.": "यह प्रोजेक्ट नई घटनाओं और अलर्ट को अपने आप ठीक करता है।",
+  "This project fixes new incidents automatically, but not new alerts.": "यह प्रोजेक्ट नई घटनाओं को अपने आप ठीक करता है, लेकिन नए अलर्ट को नहीं।",
+  "Turn on for alerts": "अलर्ट के लिए चालू करें",
+  "Turn on for incidents": "घटनाओं के लिए चालू करें"
 }

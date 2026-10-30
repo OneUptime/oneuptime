@@ -37224,5 +37224,14 @@
   "What happened to this account in OneUptime: its Cloud AI agent connecting or being reset, and every change to what OneUptime AI may do here.": "OneUptime에서 이 계정에 일어난 일입니다. 클라우드 AI 에이전트의 연결이나 재설정, 그리고 OneUptime AI가 여기서 할 수 있는 일에 대한 모든 변경입니다.",
   "Cloud Account Updated": "클라우드 계정 업데이트됨",
   "Cloud Account Created": "클라우드 계정 생성됨",
-  "Dry run of a fix (read-only)": "수정 시험 실행 (읽기 전용)"
+  "Dry run of a fix (read-only)": "수정 시험 실행 (읽기 전용)",
+  "Cloud operations": "클라우드 작업",
+  "Run it as someone who may create roles in this account.": "이 계정에서 역할을 만들 수 있는 사용자로 실행하세요.",
+  "The agent connects to your project with this key. Pick an existing key or create a new one: the command below uses it.": "에이전트는 이 키로 프로젝트에 연결합니다. 기존 키를 선택하거나 새로 만드세요. 아래 명령이 이 키를 사용합니다.",
+  "This project doesn't fix new incidents or alerts automatically.": "이 프로젝트는 새 인시던트와 경고를 자동으로 수정하지 않습니다.",
+  "This project fixes new alerts automatically, but not new incidents.": "이 프로젝트는 새 경고는 자동으로 수정하지만 새 인시던트는 수정하지 않습니다.",
+  "This project fixes new incidents and alerts automatically.": "이 프로젝트는 새 인시던트와 경고를 자동으로 수정합니다.",
+  "This project fixes new incidents automatically, but not new alerts.": "이 프로젝트는 새 인시던트는 자동으로 수정하지만 새 경고는 수정하지 않습니다.",
+  "Turn on for alerts": "경고에 대해 켜기",
+  "Turn on for incidents": "인시던트에 대해 켜기"
 }

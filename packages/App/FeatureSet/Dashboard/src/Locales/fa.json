@@ -37224,5 +37224,14 @@
   "What happened to this account in OneUptime: its Cloud AI agent connecting or being reset, and every change to what OneUptime AI may do here.": "آنچه در OneUptime برای این حساب رخ داده است: وصل شدن یا بازنشانی عامل هوش مصنوعی ابری آن، و هر تغییر در آنچه OneUptime AI مجاز است اینجا انجام دهد.",
   "Cloud Account Updated": "حساب ابری به‌روزرسانی شد",
   "Cloud Account Created": "حساب ابری ساخته شد",
-  "Dry run of a fix (read-only)": "اجرای آزمایشی یک اصلاح (فقط‌خواندنی)"
+  "Dry run of a fix (read-only)": "اجرای آزمایشی یک اصلاح (فقط‌خواندنی)",
+  "Cloud operations": "عملیات ابری",
+  "Run it as someone who may create roles in this account.": "آن را با کاربری اجرا کنید که اجازه ساختن نقش در این حساب را دارد.",
+  "The agent connects to your project with this key. Pick an existing key or create a new one: the command below uses it.": "عامل با این کلید به پروژه شما وصل می‌شود. یک کلید موجود را انتخاب کنید یا کلید تازه‌ای بسازید: فرمان زیر از آن استفاده می‌کند.",
+  "This project doesn't fix new incidents or alerts automatically.": "این پروژه حوادث و هشدارهای تازه را خودکار اصلاح نمی‌کند.",
+  "This project fixes new alerts automatically, but not new incidents.": "این پروژه هشدارهای تازه را خودکار اصلاح می‌کند، اما حوادث تازه را نه.",
+  "This project fixes new incidents and alerts automatically.": "این پروژه حوادث و هشدارهای تازه را خودکار اصلاح می‌کند.",
+  "This project fixes new incidents automatically, but not new alerts.": "این پروژه حوادث تازه را خودکار اصلاح می‌کند، اما هشدارهای تازه را نه.",
+  "Turn on for alerts": "روشن کردن برای هشدارها",
+  "Turn on for incidents": "روشن کردن برای حوادث"
 }

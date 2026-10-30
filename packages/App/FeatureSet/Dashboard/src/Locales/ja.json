@@ -37224,5 +37224,14 @@
   "What happened to this account in OneUptime: its Cloud AI agent connecting or being reset, and every change to what OneUptime AI may do here.": "OneUptime でこのアカウントに起きたこと。クラウド AI エージェントの接続やリセット、OneUptime AI がここで行えることへの変更のすべてです。",
   "Cloud Account Updated": "クラウドアカウント更新済み",
   "Cloud Account Created": "クラウドアカウント作成済み",
-  "Dry run of a fix (read-only)": "修正のドライラン（読み取り専用）"
+  "Dry run of a fix (read-only)": "修正のドライラン（読み取り専用）",
+  "Cloud operations": "クラウド操作",
+  "Run it as someone who may create roles in this account.": "このアカウントでロールを作成できるユーザーとして実行してください。",
+  "The agent connects to your project with this key. Pick an existing key or create a new one: the command below uses it.": "エージェントはこのキーでプロジェクトに接続します。既存のキーを選択するか、新しいキーを作成してください。下のコマンドはこのキーを使います。",
+  "This project doesn't fix new incidents or alerts automatically.": "このプロジェクトは、新しいインシデントやアラートを自動的に修正しません。",
+  "This project fixes new alerts automatically, but not new incidents.": "このプロジェクトは、新しいアラートを自動的に修正しますが、新しいインシデントは修正しません。",
+  "This project fixes new incidents and alerts automatically.": "このプロジェクトは、新しいインシデントとアラートを自動的に修正します。",
+  "This project fixes new incidents automatically, but not new alerts.": "このプロジェクトは、新しいインシデントを自動的に修正しますが、新しいアラートは修正しません。",
+  "Turn on for alerts": "アラート用にオンにする",
+  "Turn on for incidents": "インシデント用にオンにする"
 }

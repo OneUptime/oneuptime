@@ -37224,5 +37224,14 @@
   "What happened to this account in OneUptime: its Cloud AI agent connecting or being reset, and every change to what OneUptime AI may do here.": "Hvad der er sket med denne konto i OneUptime: dens Cloud-AI-agent, der opretter forbindelse eller nulstilles, og hver ændring af, hvad OneUptime AI må gøre her.",
   "Cloud Account Updated": "Cloud-konto opdateret",
   "Cloud Account Created": "Cloud-konto oprettet",
-  "Dry run of a fix (read-only)": "Prøvekørsel af en rettelse (kun læsning)"
+  "Dry run of a fix (read-only)": "Prøvekørsel af en rettelse (kun læsning)",
+  "Cloud operations": "Cloudoperationer",
+  "Run it as someone who may create roles in this account.": "Kør den som en, der må oprette roller i denne konto.",
+  "The agent connects to your project with this key. Pick an existing key or create a new one: the command below uses it.": "Agenten opretter forbindelse til dit projekt med denne nøgle. Vælg en eksisterende nøgle, eller opret en ny: kommandoen nedenfor bruger den.",
+  "This project doesn't fix new incidents or alerts automatically.": "Dette projekt retter ikke nye hændelser eller advarsler automatisk.",
+  "This project fixes new alerts automatically, but not new incidents.": "Dette projekt retter nye advarsler automatisk, men ikke nye hændelser.",
+  "This project fixes new incidents and alerts automatically.": "Dette projekt retter nye hændelser og advarsler automatisk.",
+  "This project fixes new incidents automatically, but not new alerts.": "Dette projekt retter nye hændelser automatisk, men ikke nye advarsler.",
+  "Turn on for alerts": "Slå til for advarsler",
+  "Turn on for incidents": "Slå til for hændelser"
 }

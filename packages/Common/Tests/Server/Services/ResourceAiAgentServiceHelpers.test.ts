@@ -1188,3 +1188,63 @@ describe("identity helpers", () => {
     ).toBeNull();
   });
 });
+
+/*
+ * A feed item about what AI may do on a resource ends with how to change
+ * it. An agent a person runs is changed where it runs (its .env); a Cloud
+ * AI agent is started by its setup command, which the account's AI agent
+ * page writes again under Change - so its items send the reader there,
+ * never to variables on a container nobody edits by hand.
+ */
+describe("how a feed item says the agent's AI settings change", () => {
+  test("an agent a person runs: the two variables, where it runs", () => {
+    for (const type of ALL_AI_RESOURCE_TYPES.filter(
+      (candidate: AiResourceType): boolean => {
+        return !isCloudAiResourceType(candidate);
+      },
+    )) {
+      const noun: string = describeResourceInSentence(type);
+      const change: string =
+        ResourceAiAgentServiceClass.describeHowAgentAiSettingsChange({
+          resourceType: type,
+          noun,
+        });
+
+      expect(change).toBe(
+        `Change it with ONEUPTIME_AI_INVESTIGATION and ONEUPTIME_AI_FIXES where the agent runs; the ${noun}'s AI agent page shows how.`,
+      );
+      expect(
+        ResourceAiAgentServiceClass.describeWhereAgentAiSettingsAreSet({
+          resourceType: type,
+          noun,
+        }),
+      ).toBe(
+        `Set with **ONEUPTIME_AI_INVESTIGATION** and **ONEUPTIME_AI_FIXES** where the agent runs. The ${noun}'s AI agent page shows them, with how to change them.`,
+      );
+    }
+  });
+
+  test("a Cloud AI agent: its setup command again, from Change on the account's AI agent page", () => {
+    for (const type of CLOUD_AI_RESOURCE_TYPES) {
+      const noun: string = describeResourceInSentence(type);
+      const change: string =
+        ResourceAiAgentServiceClass.describeHowAgentAiSettingsChange({
+          resourceType: type,
+          noun,
+        });
+      const where: string =
+        ResourceAiAgentServiceClass.describeWhereAgentAiSettingsAreSet({
+          resourceType: type,
+          noun,
+        });
+
+      expect(change).toBe(
+        `To change it, run the agent's setup command again with other choices: Change on the ${noun}'s AI agent page shows it.`,
+      );
+      expect(change).not.toContain("where the agent runs");
+      expect(where).toBe(
+        `Set by the agent's setup command, with **ONEUPTIME_AI_INVESTIGATION** and **ONEUPTIME_AI_FIXES**. To change them, run it again with other choices: Change on the ${noun}'s AI agent page shows it.`,
+      );
+    }
+  });
+});

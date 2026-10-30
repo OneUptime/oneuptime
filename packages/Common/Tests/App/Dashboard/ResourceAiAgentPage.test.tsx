@@ -960,6 +960,25 @@ describe("the page heading", () => {
     expect(screen.getByTestId("ai-agent-page-heading")).toBeInTheDocument();
     expect(screen.queryByText("Docker AI agent")).not.toBeInTheDocument();
   });
+
+  /*
+   * A first read that failed is not the end of the page: Refresh? reads the
+   * status again, and the page appears once it answers.
+   */
+  test("a first read that failed offers Refresh?, which reads the status again", async () => {
+    postSpy.mockImplementation(failStatusRequest);
+    openAgentPage();
+
+    const retry: HTMLElement = await findTestId("refresh-button");
+    expect(postsTo(STATUS_ROUTE)).toHaveLength(1);
+
+    serve(makeStatus());
+    fireEvent.click(retry);
+
+    expect(await findText("Docker AI agent")).toBeInTheDocument();
+    expect(postsTo(STATUS_ROUTE)).toHaveLength(2);
+    expect(screen.queryByText("Network Error")).not.toBeInTheDocument();
+  });
 });
 
 describe("status polling", () => {
@@ -1735,7 +1754,7 @@ describe("What AI may do", () => {
     );
 
     expect(line).toHaveTextContent(
-      "Automatic fixes for new incidents in this project: Off · alerts: On",
+      "This project fixes new alerts automatically, but not new incidents.",
     );
     expect(
       within(screen.getByTestId("ai-access-fixes")).getByTestId(
@@ -1749,7 +1768,7 @@ describe("What AI may do", () => {
       links.map((link: HTMLElement): string => {
         return link.textContent || "";
       }),
-    ).toEqual(["Incident AI settings"]);
+    ).toEqual(["Turn on for incidents"]);
     expect(links[0]).toHaveAttribute(
       "href",
       RouteUtil.populateRouteParams(
@@ -1772,7 +1791,7 @@ describe("What AI may do", () => {
     );
 
     expect(line).toHaveTextContent(
-      "Automatic fixes for new incidents in this project: Off · alerts: Off",
+      "This project doesn't fix new incidents or alerts automatically.",
     );
     expect(
       within(line)
@@ -1804,9 +1823,30 @@ describe("What AI may do", () => {
     );
 
     expect(line).toHaveTextContent(
-      "Automatic fixes for new incidents in this project: On · alerts: On",
+      "This project fixes new incidents and alerts automatically.",
     );
     expect(within(line).queryAllByRole("link")).toHaveLength(0);
+  });
+
+  /*
+   * With the resource's own fixes off, the project's switches change
+   * nothing there yet: the hint that turns the fixes on is the one next
+   * step, so the line waits until they are on.
+   */
+  test("the resource's fixes off: no line about the project's switches, only the hint that turns the fixes on", async () => {
+    serve(
+      makeStatus({
+        aiRemediationMode: ResourceAiRemediationMode.Disabled,
+        automaticRemediation: { incidents: false, alerts: false },
+      }),
+    );
+    openAgentPage();
+    await findTestId("ai-access-fixes");
+
+    expect(
+      screen.queryByTestId("ai-access-automatic-remediation"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("ai-access-fixes-off-hint")).toBeInTheDocument();
   });
 
   test("a server older than the switches, or one that sends them unreadable: no line", async () => {
@@ -3396,6 +3436,13 @@ describe("every resource type", () => {
       expect(await findTestId("ai-access-fixes-off-hint")).toHaveTextContent(
         "Want AI to propose fixes? Click Change to get the command that turns them on in the agent.",
       );
+      // Nothing is installed by hand: a command sets the agent up.
+      expect(screen.getByTestId("ai-agent-status")).toHaveTextContent(
+        "Not set up",
+      );
+      expect(screen.getByTestId("ai-agent-status")).not.toHaveTextContent(
+        "Not installed",
+      );
     },
   );
 
@@ -3491,11 +3538,14 @@ describe("every resource type", () => {
       openAgentPage(descriptor);
 
       await expectNoAgentActions();
+      // A cloud account's agent is set up by a command, never installed.
       expect(
         within(await agentCardHeader(descriptor)).getByTestId(
           "ai-agent-status",
         ),
-      ).toHaveTextContent("Not installed");
+      ).toHaveTextContent(
+        descriptor.isCloudAccount ? "Not set up" : "Not installed",
+      );
     },
   );
 

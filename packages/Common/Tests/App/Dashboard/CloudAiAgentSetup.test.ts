@@ -6,6 +6,7 @@ import {
   getCloudAccountAiResourceType,
   getCloudAiAgentFixesMode,
   getCloudAiAgentLogsCommand,
+  getCloudAiAgentReportedChoices,
   getCloudAiAgentSetupOptions,
   getDefaultCloudAiAgentSetupChoices,
   getProtectedTargetsProblem,
@@ -21,8 +22,10 @@ import {
   getCloudAiAgentSetupCommand,
 } from "../../../Types/CloudConnection/CloudAiAgentSetupCommands";
 import AiResourceType from "../../../Types/ResourceAiAgent/AiResourceType";
+import { getCloudAiAgentOwnTargets } from "../../../Types/ResourceAiAgent/CloudAiAgentNames";
 import {
   CLOUD_AI_DEFAULT_REQUIRED_TAG,
+  ResourceAiAgentPosture,
   ResourceAiRemediationMode,
 } from "../../../Types/ResourceAiAgent/ResourceAiAccess";
 import { describe, expect, test } from "@jest/globals";
@@ -116,6 +119,166 @@ describe("the one question", () => {
     ).toBe("BypassApproval");
     expect(CLOUD_AI_AGENT_ASK_FIRST_TITLE).toBe("Ask me first");
     expect(CLOUD_AI_AGENT_FIX_SAFE_TITLE).toBe("Fix safe problems on its own");
+  });
+});
+
+/*
+ * Change on a connected agent opens the dialog on what the agent reports it
+ * runs with - the changes turned on, the tag it requires and the resources
+ * a person protected - so running the command again keeps every earlier
+ * choice. Starting from the defaults instead would have turned back on a
+ * change someone turned off, and dropped a protected resource or the tag.
+ */
+describe("opened for an agent that connected", () => {
+  const AWS_ACCOUNT: string = "123456789012";
+
+  function posture(
+    overrides: Partial<ResourceAiAgentPosture> = {},
+  ): ResourceAiAgentPosture {
+    return {
+      resourceType: AiResourceType.AwsAccount,
+      resourceIdentifier: AWS_ACCOUNT,
+      allowWrites: true,
+      writeTargets: [],
+      protectedTargets: [],
+      reachable: true,
+      details: {
+        cloudProvider: "aws",
+        cloudAccountId: AWS_ACCOUNT,
+        enabledOperations: "restart-service,scale-out,start-instance",
+        requiredTag: "oneuptime-ai=allow",
+      },
+      ...overrides,
+    };
+  }
+
+  test("starts from the changes, the tag and the protected resources it reports", () => {
+    const choices: CloudAiAgentSetupChoices =
+      getDefaultCloudAiAgentSetupChoices({
+        provider: CloudProvider.AWS,
+        currentMode: ResourceAiRemediationMode.Automatic,
+        accountId: AWS_ACCOUNT,
+        posture: posture({
+          protectedTargets: [
+            "*prod-db*",
+            "arn:aws:rds:us-east-1:123456789012:db:orders",
+            ...getCloudAiAgentOwnTargets({
+              provider: "aws",
+              accountId: AWS_ACCOUNT,
+            }),
+            // What it found of itself where it runs.
+            "arn:aws:ecs:us-east-1:123456789012:task/oneuptime-ai-agent/0f3c9a2b",
+          ],
+        }),
+      });
+
+    expect(choices).toEqual({
+      fixSafeProblemsAlone: true,
+      bypassApproval: false,
+      // In the catalog's order, whatever order it reported them in.
+      enabledOperations: ["restart-service", "start-instance", "scale-out"],
+      protectedTargetsText:
+        "*prod-db*\narn:aws:rds:us-east-1:123456789012:db:orders",
+      onlyTaggedResources: true,
+    });
+
+    // And the command it writes keeps all of it.
+    const written: CloudAiAgentSetupOptions = options(
+      CloudProvider.AWS,
+      choices,
+    );
+    expect(written.enabledOperations).toEqual([
+      "restart-service",
+      "start-instance",
+      "scale-out",
+    ]);
+    expect(written.protectedTargets).toEqual([
+      "*prod-db*",
+      "arn:aws:rds:us-east-1:123456789012:db:orders",
+    ]);
+    expect(written.requiredTag).toBe(CLOUD_AI_DEFAULT_REQUIRED_TAG);
+    expect(written.fixesMode).toBe("Automatic");
+  });
+
+  test("never lists the agent's own stack, roles, service or task as a person's", () => {
+    for (const provider of Object.values(CloudProvider)) {
+      const accountId: string =
+        provider === CloudProvider.AWS
+          ? AWS_ACCOUNT
+          : provider === CloudProvider.Azure
+            ? "00000000-0000-0000-0000-0000000000ab"
+            : "my-project";
+
+      expect(
+        getCloudAiAgentReportedChoices({
+          provider,
+          accountId,
+          posture: posture({
+            protectedTargets: [
+              ...getCloudAiAgentOwnTargets({
+                provider: provider as string as "aws" | "azure" | "gcp",
+                accountId,
+              }),
+              "//run.googleapis.com/projects/my-project/locations/us-central1/services/oneuptime-ai-agent",
+              "arn:aws:iam::123456789012:role/OneUptimeAiAgentWrite",
+            ],
+          }),
+        }).protectedTargetsText,
+      ).toBe("");
+    }
+  });
+
+  test("a change the agent does not report stays off; one this cloud lacks is ignored", () => {
+    const reported: Partial<CloudAiAgentSetupChoices> =
+      getCloudAiAgentReportedChoices({
+        provider: CloudProvider.AWS,
+        accountId: AWS_ACCOUNT,
+        posture: posture({
+          details: {
+            enabledOperations: " scale-out , drop-database,restart-service",
+            requiredTag: null,
+          },
+        }),
+      });
+
+    expect(reported.enabledOperations).toEqual([
+      "restart-service",
+      "scale-out",
+    ]);
+    // No tag reported: it changes resources whatever their tags.
+    expect(reported.onlyTaggedResources).toBe(false);
+  });
+
+  test("what the agent does not report keeps its default", () => {
+    // No agent yet: the defaults.
+    expect(
+      getCloudAiAgentReportedChoices({
+        provider: CloudProvider.AWS,
+        accountId: AWS_ACCOUNT,
+        posture: null,
+      }),
+    ).toEqual({});
+
+    // An agent that names no change, or none of this cloud's: every change.
+    for (const details of [
+      {},
+      { enabledOperations: "" },
+      { enabledOperations: "drop-database" },
+      { enabledOperations: 3 },
+    ]) {
+      const choices: CloudAiAgentSetupChoices =
+        getDefaultCloudAiAgentSetupChoices({
+          provider: CloudProvider.AWS,
+          accountId: AWS_ACCOUNT,
+          posture: posture({ details }),
+        });
+
+      expect(choices.enabledOperations).toEqual(
+        getCloudAiAgentChangeOperations(CloudProvider.AWS),
+      );
+      expect(choices.onlyTaggedResources).toBe(false);
+      expect(choices.protectedTargetsText).toBe("");
+    }
   });
 });
 

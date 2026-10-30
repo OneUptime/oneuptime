@@ -17,8 +17,8 @@ export interface ComponentProps {
 
 /*
  * A cloud account's pages: what it holds first (its Overview, its
- * Resources and how they fit together), then what OneUptime AI may do and
- * did in it, what changed in it - in the cloud (Changes) and in OneUptime
+ * Resources and how they fit together), then what OneUptime AI did and may
+ * do in it, what changed in it - in the cloud (Changes) and in OneUptime
  * (Feed: its Cloud AI agent, and who changed what AI may do) - its own
  * settings, its API pages and, last, deleting it.
  */
@@ -61,20 +61,11 @@ const CloudAccountSideMenu: FunctionComponent<ComponentProps> = (
       </SideMenuSection>
 
       {/*
-       * What OneUptime AI may do in the account (its Cloud AI agent) and
-       * everything it did there.
+       * Everything OneUptime AI did in the account, and what it may do there
+       * (its Cloud AI agent) - in the order every other resource's AI
+       * section lists them: what AI did first, its agent last.
        */}
       <SideMenuSection title="AI">
-        <SideMenuItem
-          link={{
-            title: "AI agent",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_AI_AGENT] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Automation}
-        />
         <SideMenuItem
           link={{
             title: "Logs",
@@ -84,6 +75,16 @@ const CloudAccountSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.QueueList}
+        />
+        <SideMenuItem
+          link={{
+            title: "AI agent",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_AI_AGENT] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Automation}
         />
       </SideMenuSection>
 

@@ -343,8 +343,9 @@ test("every resource type a resource AI agent serves is wired here", () => {
 
 /*
  * AWS accounts, Azure subscriptions and Google Cloud projects are one model
- * (CloudAccount) with one view. Its AI section holds "AI agent" and "Logs":
- * a cloud account has no AI Insights page of its own.
+ * (CloudAccount) with one view. Its AI section holds "Logs" and "AI agent",
+ * in the order every other resource's lists them: a cloud account has no
+ * AI Insights page of its own.
  */
 describe("a cloud account", () => {
   function accountRoute(page: PageMap): string {
@@ -374,7 +375,7 @@ describe("a cloud account", () => {
     },
   );
 
-  test('the side menu\'s AI section holds "AI agent" and "Logs", each with an icon', async () => {
+  test('the side menu\'s AI section holds "Logs" and "AI agent", each with an icon, in every resource\'s order', async () => {
     goTo(accountRoute(PageMap.CLOUD_ACCOUNT_VIEW));
     await renderMenu(<CloudAccountSideMenu modelId={MODEL_ID} />);
 
@@ -384,13 +385,22 @@ describe("a cloud account", () => {
       }),
     ).toHaveLength(1);
     expect(linksIn("AI")).toEqual([
+      { title: "Logs", href: accountRoute(PageMap.CLOUD_ACCOUNT_VIEW_AI_LOGS) },
       {
         title: "AI agent",
         href: accountRoute(PageMap.CLOUD_ACCOUNT_VIEW_AI_AGENT),
       },
-      { title: "Logs", href: accountRoute(PageMap.CLOUD_ACCOUNT_VIEW_AI_LOGS) },
     ]);
     expect(iconCountIn("AI")).toBe(2);
+    cleanup();
+
+    // The same order as a resource that has every AI page, Insights aside.
+    await renderResourceMenu(CASES[0]!);
+    expect(
+      titlesOf(linksIn("AI")).filter((title: string): boolean => {
+        return title !== "Insights";
+      }),
+    ).toEqual(["Logs", "AI agent"]);
   });
 });
 

@@ -2069,6 +2069,17 @@ test.describe("OneUptime AI on a cloud account", () => {
       "cloud-ai-agent-setup-connection",
     );
     await expect(connection).toContainText("Waiting for the agent to connect.");
+    // A live status, as Add Host's last step: read out when it changes.
+    await expect(connection).toHaveAttribute("role", "status");
+    await expect(connection).toHaveAttribute("data-state", "waiting");
+    // While it waits: where to look when it does not connect, in the same shell.
+    const logs: Locator = setupDialog(page).getByTestId(
+      "cloud-ai-agent-setup-logs-command",
+    );
+    await expect(logs).toContainText("Its logs, when it does not connect:");
+    await expect(logs).toContainText(
+      "aws logs tail /oneuptime/oneuptime-ai-agent --since 30m",
+    );
     const footerButton: Locator = dialog(page).getByTestId(
       "modal-footer-close-button",
     );
@@ -2085,6 +2096,9 @@ test.describe("OneUptime AI on a cloud account", () => {
 
     // The dialog asks every five seconds: nothing to paste or press.
     await expect(connection).toContainText("Connected.", { timeout: 12000 });
+    await expect(connection).toHaveAttribute("data-state", "connected");
+    // Nothing left to troubleshoot.
+    await expect(logs).toHaveCount(0);
     await expect(footerButton).toHaveText("Done");
     await footerButton.click();
     await expect(dialog(page)).toHaveCount(0);
@@ -2154,6 +2168,15 @@ test.describe("OneUptime AI on a cloud account", () => {
     await expect(page.getByTestId("ai-access-fixes-off-hint")).toHaveText(
       "Want AI to propose fixes? Click Change to get the command that turns them on in the agent.",
     );
+    // Nothing is installed by hand: its agent is set up by a command.
+    await expect(page.getByTestId("ai-agent-status")).toHaveText("Not set up");
+    /*
+     * The project's own switches change nothing while the account's fixes
+     * are off: the hint above is the one next step, so no line about them.
+     */
+    await expect(
+      page.getByTestId("ai-access-automatic-remediation"),
+    ).toHaveCount(0);
 
     await page.getByTestId("ai-agent-cloud-set-up").click();
     await expect(setupDialog(page)).toBeVisible();
@@ -2255,14 +2278,24 @@ test.describe("OneUptime AI on a cloud account", () => {
       "cloud-ai-agent-setup-automatic-remediation",
     );
     await expect(inDialog).toContainText(
-      "Automatic fixes for new incidents in this project: Off · alerts: Off",
+      "This project doesn't fix new incidents or alerts automatically.",
     );
     await expect(
-      inDialog.getByRole("link", { name: "Incident AI settings" }),
+      inDialog.getByRole("link", { name: "Turn on for incidents" }),
     ).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/incidents/ai/settings`);
     await expect(
-      inDialog.getByRole("link", { name: "Alert AI settings" }),
+      inDialog.getByRole("link", { name: "Turn on for alerts" }),
     ).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/alerts/ai/settings`);
+    // Under the question it is about, before the steps.
+    const question: Box = await boxOf(
+      setupDialog(page).getByRole("radiogroup", { name: "How far may AI go?" }),
+    );
+    const note: Box = await boxOf(inDialog);
+    const firstStep: Box = await boxOf(
+      setupDialog(page).getByTestId("setup-guide-step-1"),
+    );
+    expect(note.y).toBeGreaterThan(question.y + question.height - 1);
+    expect(firstStep.y).toBeGreaterThan(note.y + note.height - 1);
     await expectNoSidewaysScroll(page);
     await shoot(page, "account-ai-setup-automatic-fixes-off");
 
@@ -2270,9 +2303,15 @@ test.describe("OneUptime AI on a cloud account", () => {
     await page.goto(`${AI_AGENT_PATH}?state=connected&ai=connected`);
     const onPage: Locator = page.getByTestId("ai-access-automatic-remediation");
     await expect(onPage).toContainText(
-      "Automatic fixes for new incidents in this project: Off · alerts: Off",
+      "This project doesn't fix new incidents or alerts automatically.",
     );
     await expect(onPage.getByRole("link")).toHaveCount(2);
+    // Inside the Fixes row it is about.
+    await expect(
+      page
+        .getByTestId("ai-access-fixes")
+        .getByTestId("ai-access-automatic-remediation"),
+    ).toHaveCount(1);
     await expectNoSidewaysScroll(page);
     await shoot(page, "account-ai-agent-automatic-fixes-off");
 
@@ -2291,7 +2330,7 @@ test.describe("OneUptime AI on a cloud account", () => {
     await expect(
       page.getByTestId("ai-access-automatic-remediation"),
     ).toContainText(
-      "Automatic fixes for new incidents in this project: On · alerts: On",
+      "This project fixes new incidents and alerts automatically.",
     );
     await expect(
       page.getByTestId("ai-access-automatic-remediation").getByRole("link"),
@@ -2347,12 +2386,26 @@ test.describe("OneUptime AI on a cloud account", () => {
 
     // Right to left: an answer's dot is on its right, before its words.
     const askFirst: Locator = setupDialog(page).getByTestId(
-      "cloud-ai-agent-setup-ask-first",
+      "setup-guide-option-ask-first",
     );
-    const dot: Box = await boxOf(askFirst.locator(":scope > span").first());
-    const words: Box = await boxOf(askFirst.locator(":scope > span").last());
+    const dot: Box = await boxOf(
+      askFirst.locator('[aria-hidden="true"]').first(),
+    );
+    const words: Box = await boxOf(
+      askFirst.getByText(wordIn(PERSIAN, "Ask me first"), { exact: true }),
+    );
     expect(dot.x).toBeGreaterThan(words.x + words.width - 1);
-    await expect(askFirst).toContainText(wordIn(PERSIAN, "Ask me first"));
+    // The steps run down the right: a step's number is right of its title.
+    const firstStep: Locator =
+      setupDialog(page).getByTestId("setup-guide-step-1");
+    const number: Box = await boxOf(
+      firstStep.locator('[aria-hidden="true"]').first(),
+    );
+    const title: Box = await boxOf(firstStep.getByRole("heading"));
+    expect(number.x).toBeGreaterThan(title.x + title.width - 1);
+    await expect(firstStep).toContainText(
+      wordIn(PERSIAN, "Choose an ingestion key"),
+    );
     await expectNoSidewaysScroll(page);
     await shoot(page, "account-ai-setup-fa");
   });
@@ -2449,6 +2502,159 @@ test.describe("OneUptime AI on a cloud account", () => {
     );
     await expectNoSidewaysScroll(page);
     await shoot(page, "account-feed-fa");
+  });
+
+  test("Let AI fix problems reads as a guide: the question, then three numbered steps - the key, the command, the wait", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAccounts(page, `${ACCOUNTS_PATH}/${AWS_ACCOUNT}?state=connected`);
+    await openSetup(page);
+
+    // The question first, as Add Host's "What does the host run?".
+    const question: Locator = setupDialog(page).getByRole("radiogroup", {
+      name: "How far may AI go?",
+    });
+    await expect(question.getByRole("radio")).toHaveCount(2);
+
+    const steps: Locator = setupDialog(page)
+      .getByTestId("setup-guide-steps")
+      .locator(":scope > li");
+    await expect(steps).toHaveCount(3);
+    await expect(steps.nth(0).getByRole("heading")).toHaveText(
+      "Step 1: Choose an ingestion key",
+    );
+    await expect(steps.nth(1).getByRole("heading")).toHaveText(
+      "Step 2: Run this in AWS CloudShell",
+    );
+    await expect(steps.nth(2).getByRole("heading")).toHaveText(
+      "Step 3: Wait for it to connect",
+    );
+
+    // 1: the key, said what it is for, and picked.
+    await expect(steps.nth(0)).toContainText(
+      "The agent connects to your project with this key. Pick an existing key or create a new one: the command below uses it.",
+    );
+    await expect(
+      steps.nth(0).getByTestId("cloud-ai-agent-setup-key"),
+    ).toContainText("Cloud AI agent key");
+    // 2: the command, who may run it, and what it costs.
+    await expect(steps.nth(1)).toContainText(
+      "Run it as someone who may create roles in this account.",
+    );
+    await expect(
+      steps.nth(1).getByTestId("cloud-ai-agent-setup-command"),
+    ).toContainText("aws cloudformation deploy");
+    await expect(
+      steps.nth(1).getByTestId("cloud-ai-agent-setup-cost"),
+    ).toContainText("a month at list prices");
+    // 3: the wait, live, and its logs.
+    await expect(
+      steps.nth(2).getByTestId("cloud-ai-agent-setup-connection"),
+    ).toHaveAttribute("data-state", "waiting");
+    await expect(
+      steps.nth(2).getByTestId("cloud-ai-agent-setup-logs-command"),
+    ).toBeVisible();
+
+    // The rest under More fields, after the steps.
+    const more: Box = await boxOf(
+      setupDialog(page).getByRole("button", { name: "More fields" }),
+    );
+    const lastStep: Box = await boxOf(steps.nth(2));
+    expect(more.y).toBeGreaterThan(lastStep.y + lastStep.height - 1);
+
+    await expectNoSidewaysScroll(page);
+    await shoot(page, "account-ai-setup-steps");
+  });
+
+  test("Change on a connected agent opens on what it runs with: its changes, its tag and the resources a person protected", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.skip(!isDesktop(), "What it starts from: a desktop's.");
+
+    await openAccounts(
+      page,
+      `${AI_AGENT_PATH}?state=connected&ai=connected&agentsettings=custom`,
+    );
+    await page.getByTestId("ai-access-change-button").click();
+    await expect(setupDialog(page)).toBeVisible();
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-command"),
+    ).toBeVisible();
+    await setupDialog(page)
+      .getByRole("button", { name: "More fields" })
+      .click();
+
+    // The three changes the agent reports, and none of the others.
+    for (const operation of [
+      "restart-service",
+      "start-instance",
+      "scale-out",
+    ]) {
+      await expect(
+        setupDialog(page).getByTestId(
+          `cloud-ai-agent-setup-operation-${operation}`,
+        ),
+      ).toBeChecked();
+    }
+    for (const operation of [
+      "scale-in",
+      "reboot-instance",
+      "roll-back-service",
+      "set-concurrency",
+      "fail-over-database",
+      "stop-instance",
+      "redrive-queue",
+    ]) {
+      await expect(
+        setupDialog(page).getByTestId(
+          `cloud-ai-agent-setup-operation-${operation}`,
+        ),
+      ).not.toBeChecked();
+    }
+    // The tag it requires, and what a person protected - not its own stack, roles or task.
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-tagged"),
+    ).toBeChecked();
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-protected"),
+    ).toHaveValue("*prod-db*\narn:aws:rds:us-east-1:123456789012:db:orders");
+
+    // So the command it writes keeps them all.
+    await expect(setupDialog(page)).toContainText(
+      "ONEUPTIME_AI_CLOUD_OPERATIONS=restart-service,start-instance,scale-out",
+    );
+    await expect(setupDialog(page)).toContainText(
+      "ONEUPTIME_AI_CLOUD_REQUIRED_TAG=oneuptime-ai=allow",
+    );
+    await expect(setupDialog(page)).toContainText(
+      "ONEUPTIME_AI_PROTECTED_TARGETS=*prod-db*,arn:aws:rds:us-east-1:123456789012:db:orders",
+    );
+    await shoot(page, "account-ai-change-keeps-choices");
+  });
+
+  test("an AI agent page whose status read fails offers to read it again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.skip(!isDesktop(), "One read: a desktop's.");
+
+    await openAccounts(page, `${AI_AGENT_PATH}?state=connected&ai=fail`);
+
+    const retry: Locator = page.getByTestId("refresh-button");
+    await expect(retry).toBeVisible();
+    const statusReads: () => Promise<number> = async (): Promise<number> => {
+      return (await aiPosts(page)).filter((post: AiPost): boolean => {
+        return post.route === "/resource-ai-access/status";
+      }).length;
+    };
+    const before: number = await statusReads();
+    await retry.click();
+    await expect.poll(statusReads).toBeGreaterThan(before);
   });
 
   test("a status read that fails: the card still offers the way in", async ({

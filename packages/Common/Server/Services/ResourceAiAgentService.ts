@@ -3069,6 +3069,39 @@ export class Service extends DatabaseService<Model> {
       : "to anything but its protected targets";
   }
 
+  /*
+   * How the agent's AI settings change, at the end of a feed item that says
+   * what they are now: where the agent runs (its .env) for an agent a person
+   * runs, or its setup command for a Cloud AI agent - which that command
+   * started in the account, with these settings, and which the account's AI
+   * agent page writes again under Change.
+   */
+  public static describeHowAgentAiSettingsChange(data: {
+    resourceType: AiResourceType;
+    noun: string;
+  }): string {
+    if (isCloudAiResourceType(data.resourceType)) {
+      return `To change it, run the agent's setup command again with other choices: Change on the ${data.noun}'s AI agent page shows it.`;
+    }
+
+    return `Change it with ${AI_INVESTIGATION_ENV} and ${AI_FIXES_ENV} where the agent runs; the ${data.noun}'s AI agent page shows how.`;
+  }
+
+  /*
+   * Where the agent's configuration set what AI may do, under a feed item
+   * that says what moved: the same split, in Markdown.
+   */
+  public static describeWhereAgentAiSettingsAreSet(data: {
+    resourceType: AiResourceType;
+    noun: string;
+  }): string {
+    if (isCloudAiResourceType(data.resourceType)) {
+      return mdText`Set by the agent's setup command, with **${AI_INVESTIGATION_ENV}** and **${AI_FIXES_ENV}**. To change them, run it again with other choices: Change on the ${data.noun}'s AI agent page shows it.`.toString();
+    }
+
+    return mdText`Set with **${AI_INVESTIGATION_ENV}** and **${AI_FIXES_ENV}** where the agent runs. The ${data.noun}'s AI agent page shows them, with how to change them.`.toString();
+  }
+
   // The first successful registration of a resource's agent. Best-effort.
   private async writeConnectedFeedItem(data: {
     resource: ResourceAiAgentResource;
@@ -3105,7 +3138,10 @@ export class Service extends DatabaseService<Model> {
           AGENT_AI_FIXES_LABELS[
             parseResourceAiRemediationMode(data.resource.aiRemediationMode)
           ]
-        }. Change it with ${AI_INVESTIGATION_ENV} and ${AI_FIXES_ENV} where the agent runs; the ${noun}'s AI agent page shows how.`,
+        }. ${Service.describeHowAgentAiSettingsChange({
+          resourceType: data.resource.resourceType,
+          noun,
+        })}`,
       );
     } else {
       sentences.push(
@@ -3188,7 +3224,10 @@ export class Service extends DatabaseService<Model> {
       } changed what AI may do on this ${noun}: ${FeedMarkdown.join(changes, "; ")}.`.toString(),
       moreInformationInMarkdown:
         data.applied.source === "agent_configuration"
-          ? mdText`Set with **${AI_INVESTIGATION_ENV}** and **${AI_FIXES_ENV}** where the agent runs. The ${noun}'s AI agent page shows them, with how to change them.`.toString()
+          ? Service.describeWhereAgentAiSettingsAreSet({
+              resourceType: data.resource.resourceType,
+              noun,
+            })
           : mdText`Neither **${AI_INVESTIGATION_ENV}** nor **${AI_FIXES_ENV}** is set where the agent runs, so its defaults apply: investigation on, and fixes Ask for approval when it may change things (${RESOURCE_AI_ALLOW_WRITES_ENV}=true), else Off. Set them to choose; the ${noun}'s AI agent page shows how.`.toString(),
     });
   }

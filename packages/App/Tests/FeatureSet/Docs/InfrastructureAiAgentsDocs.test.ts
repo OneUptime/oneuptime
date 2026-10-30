@@ -3520,11 +3520,16 @@ describe("Infrastructure AI Agents docs", (): void => {
       const resourcePage: string = readRepoFile(
         "packages/App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentPage.tsx",
       );
-      expect(resourcePage).toContain(
-        'data-testid="ai-access-automatic-remediation"',
+      // The page draws the shared note, which links each switch's page.
+      const note: string = readRepoFile(
+        "packages/App/FeatureSet/Dashboard/src/Components/AiAccess/AutomaticRemediationNote.tsx",
       );
-      expect(resourcePage).toContain("PageMap.INCIDENTS_SETTINGS_AI");
-      expect(resourcePage).toContain("PageMap.ALERTS_SETTINGS_AI");
+      expect(resourcePage).toContain("<AutomaticRemediationNote");
+      expect(resourcePage).toContain(
+        'dataTestId="ai-access-automatic-remediation"',
+      );
+      expect(note).toContain("PageMap.INCIDENTS_SETTINGS_AI");
+      expect(note).toContain("PageMap.ALERTS_SETTINGS_AI");
 
       // The switches the docs name are the ones the project's AI pages draw.
       const projectModel: string = readRepoFile(

@@ -37224,5 +37224,14 @@
   "What happened to this account in OneUptime: its Cloud AI agent connecting or being reset, and every change to what OneUptime AI may do here.": "Wat er in OneUptime met dit account is gebeurd: de Cloud-AI-agent die verbinding maakt of opnieuw wordt ingesteld, en elke wijziging in wat OneUptime AI hier mag doen.",
   "Cloud Account Updated": "Cloud-account bijgewerkt",
   "Cloud Account Created": "Cloud-account aangemaakt",
-  "Dry run of a fix (read-only)": "Proefrun van een herstel (alleen-lezen)"
+  "Dry run of a fix (read-only)": "Proefrun van een herstel (alleen-lezen)",
+  "Cloud operations": "Cloudbewerkingen",
+  "Run it as someone who may create roles in this account.": "Voer hem uit als iemand die in dit account rollen mag aanmaken.",
+  "The agent connects to your project with this key. Pick an existing key or create a new one: the command below uses it.": "De agent maakt met deze sleutel verbinding met uw project. Kies een bestaande sleutel of maak een nieuwe: de opdracht hieronder gebruikt hem.",
+  "This project doesn't fix new incidents or alerts automatically.": "Dit project herstelt nieuwe incidenten en waarschuwingen niet automatisch.",
+  "This project fixes new alerts automatically, but not new incidents.": "Dit project herstelt nieuwe waarschuwingen automatisch, maar geen nieuwe incidenten.",
+  "This project fixes new incidents and alerts automatically.": "Dit project herstelt nieuwe incidenten en waarschuwingen automatisch.",
+  "This project fixes new incidents automatically, but not new alerts.": "Dit project herstelt nieuwe incidenten automatisch, maar geen nieuwe waarschuwingen.",
+  "Turn on for alerts": "Inschakelen voor waarschuwingen",
+  "Turn on for incidents": "Inschakelen voor incidenten"
 }

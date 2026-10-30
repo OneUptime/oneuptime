@@ -1,9 +1,11 @@
 import {
-  AUTOMATIC_REMEDIATION_LINE,
+  AUTOMATIC_REMEDIATION_SENTENCES,
   AUTOMATIC_REMEDIATION_SETTINGS_LINKS,
   getAutomaticRemediationLine,
+  getAutomaticRemediationSentence,
   isAnyAutomaticRemediationOff,
   readAutomaticRemediation,
+  shouldShowAutomaticRemediationLine,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AiAccess/AutomaticRemediationLine";
 import * as ClusterStatus from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAiAgentStatus";
 import { getResourceAutomaticRemediation } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentStatus";
@@ -61,34 +63,62 @@ function resourceStatus(
 }
 
 describe("the automatic fixing line", () => {
-  test("names both switches, in the reader's words", () => {
-    expect(AUTOMATIC_REMEDIATION_LINE).toBe(
-      "Automatic fixes for new incidents in this project: {{incidents}} · alerts: {{alerts}}",
-    );
+  /*
+   * One whole sentence for each pair of switches, in the words the
+   * switches use ("Fix new incidents automatically"), so a locale words
+   * each one its own way - never "Off · alerts: On" pieced together.
+   */
+  test("says in one sentence which of new incidents and alerts the project fixes automatically", () => {
+    expect(AUTOMATIC_REMEDIATION_SENTENCES).toEqual({
+      both: "This project fixes new incidents and alerts automatically.",
+      incidentsOnly:
+        "This project fixes new incidents automatically, but not new alerts.",
+      alertsOnly:
+        "This project fixes new alerts automatically, but not new incidents.",
+      neither:
+        "This project doesn't fix new incidents or alerts automatically.",
+    });
     expect(
       getAutomaticRemediationLine({ incidents: false, alerts: false }),
-    ).toBe(
-      "Automatic fixes for new incidents in this project: Off · alerts: Off",
-    );
+    ).toBe("This project doesn't fix new incidents or alerts automatically.");
     expect(
       getAutomaticRemediationLine({ incidents: true, alerts: false }),
     ).toBe(
-      "Automatic fixes for new incidents in this project: On · alerts: Off",
+      "This project fixes new incidents automatically, but not new alerts.",
     );
     expect(
       getAutomaticRemediationLine({ incidents: false, alerts: true }),
     ).toBe(
-      "Automatic fixes for new incidents in this project: Off · alerts: On",
+      "This project fixes new alerts automatically, but not new incidents.",
     );
     expect(getAutomaticRemediationLine({ incidents: true, alerts: true })).toBe(
-      "Automatic fixes for new incidents in this project: On · alerts: On",
+      "This project fixes new incidents and alerts automatically.",
     );
   });
 
-  test("links each switch's own AI settings page while it is off", () => {
+  test("each pair of switches has its own sentence: four, none repeated", () => {
+    const sentences: Array<string> = [
+      getAutomaticRemediationSentence({ incidents: true, alerts: true }),
+      getAutomaticRemediationSentence({ incidents: true, alerts: false }),
+      getAutomaticRemediationSentence({ incidents: false, alerts: true }),
+      getAutomaticRemediationSentence({ incidents: false, alerts: false }),
+    ];
+
+    expect(new Set(sentences).size).toBe(4);
+    expect([...sentences].sort()).toEqual(
+      Object.values(AUTOMATIC_REMEDIATION_SENTENCES).sort(),
+    );
+    // Whole sentences: nothing is filled in after translation.
+    for (const sentence of sentences) {
+      expect(sentence).not.toContain("{{");
+      expect(sentence.endsWith(".")).toBe(true);
+    }
+  });
+
+  test("links each switch that is off with a Turn on that says which", () => {
     expect(AUTOMATIC_REMEDIATION_SETTINGS_LINKS).toEqual({
-      incidents: "Incident AI settings",
-      alerts: "Alert AI settings",
+      incidents: "Turn on for incidents",
+      alerts: "Turn on for alerts",
     });
     expect(
       isAnyAutomaticRemediationOff({ incidents: true, alerts: true }),
@@ -126,6 +156,28 @@ describe("the automatic fixing line", () => {
     ).toEqual({ incidents: true, alerts: true });
   });
 
+  test("an AI agent page draws it only while the cluster's or resource's own fixes are on", () => {
+    const settings: { incidents: boolean; alerts: boolean } = {
+      incidents: false,
+      alerts: false,
+    };
+
+    expect(
+      shouldShowAutomaticRemediationLine({ settings, areFixesOn: true }),
+    ).toBe(true);
+    // Fixes off: the project's switches change nothing there yet.
+    expect(
+      shouldShowAutomaticRemediationLine({ settings, areFixesOn: false }),
+    ).toBe(false);
+    // Nothing readable: no line rather than a guess.
+    expect(
+      shouldShowAutomaticRemediationLine({
+        settings: null,
+        areFixesOn: true,
+      }),
+    ).toBe(false);
+  });
+
   test("a resource's status carries it, a cloud account's included", () => {
     expect(
       getResourceAutomaticRemediation(
@@ -139,8 +191,8 @@ describe("the automatic fixing line", () => {
 
   test("the cluster's page and every resource's draw the same line, from one module", () => {
     // The cluster module hands on the shared one, so the words cannot drift.
-    expect(ClusterStatus.AUTOMATIC_REMEDIATION_LINE).toBe(
-      AUTOMATIC_REMEDIATION_LINE,
+    expect(ClusterStatus.AUTOMATIC_REMEDIATION_SENTENCES).toBe(
+      AUTOMATIC_REMEDIATION_SENTENCES,
     );
     expect(ClusterStatus.AUTOMATIC_REMEDIATION_SETTINGS_LINKS).toBe(
       AUTOMATIC_REMEDIATION_SETTINGS_LINKS,
@@ -154,14 +206,21 @@ describe("the automatic fixing line", () => {
     );
     const clusterPage: string = read("Pages/Kubernetes/View/AI/Agent.tsx");
 
+    const note: string = read(
+      "Components/AiAccess/AutomaticRemediationNote.tsx",
+    );
+
+    // One component draws the sentence and its links for every page.
     for (const page of [resourcePage, clusterPage]) {
-      expect(page).toContain('data-testid="ai-access-automatic-remediation"');
-      expect(page).toContain(
-        "getAutomaticRemediationLine(automaticRemediation)",
-      );
-      expect(page).toContain("PageMap.INCIDENTS_SETTINGS_AI");
-      expect(page).toContain("PageMap.ALERTS_SETTINGS_AI");
+      expect(page).toContain("<AutomaticRemediationNote");
+      expect(page).toContain('dataTestId="ai-access-automatic-remediation"');
+      expect(page).toContain("shouldShowAutomaticRemediationLine({");
+      expect(page).not.toContain("AUTOMATIC_REMEDIATION_SETTINGS_LINKS.");
     }
+    expect(note).toContain("incidents: PageMap.INCIDENTS_SETTINGS_AI");
+    expect(note).toContain("alerts: PageMap.ALERTS_SETTINGS_AI");
+    expect(note).toContain("AUTOMATIC_REMEDIATION_SETTINGS_LINKS[kind]");
+    expect(note).toContain("getAutomaticRemediationSentence(props.settings)");
   });
 
   test("the cloud account's setup dialog says it under its question when a switch is off", () => {
@@ -171,11 +230,9 @@ describe("the automatic fixing line", () => {
     expect(dialog).toContain(
       "isAnyAutomaticRemediationOff(automaticRemediation)",
     );
+    expect(dialog).toContain("<AutomaticRemediationNote");
     expect(dialog).toContain(
-      "getAutomaticRemediationLine(automaticRemediation)",
-    );
-    expect(dialog).toContain(
-      "data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-automatic-remediation`}",
+      "dataTestId={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-automatic-remediation`}",
     );
   });
 });

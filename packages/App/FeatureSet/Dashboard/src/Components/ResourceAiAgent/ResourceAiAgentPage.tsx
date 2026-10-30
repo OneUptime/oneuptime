@@ -120,11 +120,10 @@ import {
 import AgentAiSettingsModal from "../AiAccess/AgentAiSettingsModal";
 import { AgentAiSettingsInstructions } from "../AiAccess/AgentAiSettingsInstructions";
 import {
-  AUTOMATIC_REMEDIATION_SETTINGS_LINKS,
   AutomaticRemediationSettings,
-  getAutomaticRemediationLine,
-  isAnyAutomaticRemediationOff,
+  shouldShowAutomaticRemediationLine,
 } from "../AiAccess/AutomaticRemediationLine";
+import AutomaticRemediationNote from "../AiAccess/AutomaticRemediationNote";
 import CloudAiAgentSetupModal from "../Cloud/CloudAiAgentSetupModal";
 import {
   getCloudAiAgentLogsCommand,
@@ -1136,7 +1135,10 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
     return (
       <Fragment>
         {heading}
-        <ErrorMessage message={error || "Could not load the AI agent."} />
+        <ErrorMessage
+          message={error || "Could not load the AI agent."}
+          onRefreshClick={refresh}
+        />
       </Fragment>
     );
   }
@@ -1161,7 +1163,10 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
   );
 
   const agent: ResourceAiAgentSummary | null = status.agent;
-  const pill: ResourceAiAgentStatusPill = getResourceAiAgentStatusPill(status);
+  const pill: ResourceAiAgentStatusPill = getResourceAiAgentStatusPill(
+    status,
+    descriptor,
+  );
   const command: ResourceAiAgentCardCommand =
     getResourceAiAgentCardCommand(status);
   const meta: ResourceAiAgentMeta = getResourceAiAgentMeta(status, descriptor);
@@ -1832,35 +1837,20 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
              * Whether the project fixes new incidents and alerts at all:
              * the resource's fixes act on nothing new while both of the
              * project's switches are off (the default), so the line says
-             * where to turn each one on - the line a cluster's page draws.
+             * so, with a link to turn each one on - the line a cluster's
+             * page draws. Only while the resource's own fixes are on: with
+             * them off, the hint below is the one next step.
              */}
-            {automaticRemediation ? (
-              <div
-                className="flex flex-col gap-2 rounded-lg border border-gray-200 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
-                data-testid="ai-access-automatic-remediation"
-              >
-                <p className="text-xs leading-5 text-gray-600">
-                  {getAutomaticRemediationLine(automaticRemediation)}
-                </p>
-                {isAnyAutomaticRemediationOff(automaticRemediation) ? (
-                  <div className="flex flex-wrap gap-3">
-                    {automaticRemediation.incidents
-                      ? null
-                      : renderSettingsLink(
-                          PageMap.INCIDENTS_SETTINGS_AI,
-                          AUTOMATIC_REMEDIATION_SETTINGS_LINKS.incidents,
-                        )}
-                    {automaticRemediation.alerts
-                      ? null
-                      : renderSettingsLink(
-                          PageMap.ALERTS_SETTINGS_AI,
-                          AUTOMATIC_REMEDIATION_SETTINGS_LINKS.alerts,
-                        )}
-                  </div>
-                ) : (
-                  <></>
-                )}
-              </div>
+            {automaticRemediation &&
+            shouldShowAutomaticRemediationLine({
+              settings: automaticRemediation,
+              areFixesOn:
+                remediationMode !== ResourceAiRemediationMode.Disabled,
+            }) ? (
+              <AutomaticRemediationNote
+                settings={automaticRemediation}
+                dataTestId="ai-access-automatic-remediation"
+              />
             ) : null}
             {remediationMode === ResourceAiRemediationMode.Disabled ? (
               <AiAccessHint

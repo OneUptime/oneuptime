@@ -956,7 +956,7 @@ export function getAutomaticRemediation(
  * (Components/AiAccess/AutomaticRemediationLine), so both read alike.
  */
 export {
-  AUTOMATIC_REMEDIATION_LINE,
+  AUTOMATIC_REMEDIATION_SENTENCES,
   AUTOMATIC_REMEDIATION_SETTINGS_LINKS,
   getAutomaticRemediationLine,
 } from "../../../Components/AiAccess/AutomaticRemediationLine";

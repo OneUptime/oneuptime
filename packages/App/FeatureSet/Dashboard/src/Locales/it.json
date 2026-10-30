@@ -37224,5 +37224,14 @@
   "What happened to this account in OneUptime: its Cloud AI agent connecting or being reset, and every change to what OneUptime AI may do here.": "Ciò che è successo a questo account in OneUptime: il suo agente IA cloud che si connette o viene reimpostato, e ogni modifica a ciò che OneUptime AI può fare qui.",
   "Cloud Account Updated": "Account cloud aggiornato",
   "Cloud Account Created": "Account cloud creato",
-  "Dry run of a fix (read-only)": "Simulazione di una correzione (sola lettura)"
+  "Dry run of a fix (read-only)": "Simulazione di una correzione (sola lettura)",
+  "Cloud operations": "Operazioni cloud",
+  "Run it as someone who may create roles in this account.": "Eseguilo come qualcuno che può creare ruoli in questo account.",
+  "The agent connects to your project with this key. Pick an existing key or create a new one: the command below uses it.": "L'agente si connette al tuo progetto con questa chiave. Scegli una chiave esistente o creane una nuova: il comando qui sotto la usa.",
+  "This project doesn't fix new incidents or alerts automatically.": "Questo progetto non corregge automaticamente i nuovi incidenti né i nuovi avvisi.",
+  "This project fixes new alerts automatically, but not new incidents.": "Questo progetto corregge automaticamente i nuovi avvisi, ma non i nuovi incidenti.",
+  "This project fixes new incidents and alerts automatically.": "Questo progetto corregge automaticamente i nuovi incidenti e i nuovi avvisi.",
+  "This project fixes new incidents automatically, but not new alerts.": "Questo progetto corregge automaticamente i nuovi incidenti, ma non i nuovi avvisi.",
+  "Turn on for alerts": "Attiva per gli avvisi",
+  "Turn on for incidents": "Attiva per gli incidenti"
 }

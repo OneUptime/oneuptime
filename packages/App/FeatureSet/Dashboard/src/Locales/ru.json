@@ -37224,5 +37224,14 @@
   "What happened to this account in OneUptime: its Cloud AI agent connecting or being reset, and every change to what OneUptime AI may do here.": "Что происходило с этой учётной записью в OneUptime: подключение или сброс её ИИ-агента облака и каждое изменение того, что OneUptime AI может здесь делать.",
   "Cloud Account Updated": "Облачная учётная запись обновлена",
   "Cloud Account Created": "Облачная учётная запись создана",
-  "Dry run of a fix (read-only)": "Пробный запуск исправления (только чтение)"
+  "Dry run of a fix (read-only)": "Пробный запуск исправления (только чтение)",
+  "Cloud operations": "Облачные операции",
+  "Run it as someone who may create roles in this account.": "Выполните её от имени пользователя, которому разрешено создавать роли в этом аккаунте.",
+  "The agent connects to your project with this key. Pick an existing key or create a new one: the command below uses it.": "Агент подключается к вашему проекту с этим ключом. Выберите существующий ключ или создайте новый: команда ниже использует его.",
+  "This project doesn't fix new incidents or alerts automatically.": "Этот проект не исправляет новые инциденты и оповещения автоматически.",
+  "This project fixes new alerts automatically, but not new incidents.": "Этот проект автоматически исправляет новые оповещения, но не новые инциденты.",
+  "This project fixes new incidents and alerts automatically.": "Этот проект автоматически исправляет новые инциденты и оповещения.",
+  "This project fixes new incidents automatically, but not new alerts.": "Этот проект автоматически исправляет новые инциденты, но не новые оповещения.",
+  "Turn on for alerts": "Включить для оповещений",
+  "Turn on for incidents": "Включить для инцидентов"
 }

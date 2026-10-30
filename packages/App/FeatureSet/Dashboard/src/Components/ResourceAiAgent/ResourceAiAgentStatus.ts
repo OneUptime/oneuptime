@@ -366,14 +366,22 @@ export interface ResourceAiAgentStatusPill {
   tone: ResourceAiAgentStatusTone;
 }
 
+/*
+ * A cloud account's agent is never installed by hand: its setup command
+ * starts it in the account (Let AI fix problems), so with none connected
+ * the pill says "Not set up", in the words of that dialog.
+ */
 export function getResourceAiAgentStatusPill(
   status: ResourceAiAccessStatus,
+  descriptor?: Pick<ResourceAiAgentDescriptor, "isCloudAccount"> | undefined,
 ): ResourceAiAgentStatusPill {
   switch (getResourceAiAgentCardState(status)) {
     case "connected":
       return { text: translationKey("Connected"), tone: "success" };
     case "not_installed":
-      return { text: translationKey("Not installed"), tone: "neutral" };
+      return descriptor?.isCloudAccount
+        ? { text: translationKey("Not set up"), tone: "neutral" }
+        : { text: translationKey("Not installed"), tone: "neutral" };
     case "offline":
     default:
       return { text: translationKey("Offline"), tone: "danger" };

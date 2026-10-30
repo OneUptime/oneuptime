@@ -129,9 +129,10 @@ describe("a cloud account's menu", () => {
       { title: "Resources", href: `${ACCOUNT_PATH}/resources` },
       { title: "Topology", href: `${ACCOUNT_PATH}/topology` },
     ]);
+    // What AI did first, its agent last, as every resource's AI section.
     expect(linksIn("AI")).toEqual([
-      { title: "AI agent", href: `${ACCOUNT_PATH}/ai/agent` },
       { title: "Logs", href: `${ACCOUNT_PATH}/ai/logs` },
+      { title: "AI agent", href: `${ACCOUNT_PATH}/ai/agent` },
     ]);
     /*
      * What changed in the cloud (Changes), then what happened to the

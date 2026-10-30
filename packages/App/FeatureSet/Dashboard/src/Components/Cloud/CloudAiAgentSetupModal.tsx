@@ -11,6 +11,7 @@ import {
   getCloudAiAgentSetupOptions,
   getDefaultCloudAiAgentSetupChoices,
   getProtectedTargetsProblem,
+  parseProtectedTargets,
 } from "./CloudAiAgentSetup";
 import { ResourceAiAgentDescriptor } from "../ResourceAiAgent/ResourceAiAgentDescriptors";
 import {
@@ -20,20 +21,19 @@ import {
   parseResourceAiAccessStatus,
 } from "../ResourceAiAgent/ResourceAiAgentStatus";
 import {
-  AUTOMATIC_REMEDIATION_SETTINGS_LINKS,
   AutomaticRemediationSettings,
-  getAutomaticRemediationLine,
   isAnyAutomaticRemediationOff,
 } from "../AiAccess/AutomaticRemediationLine";
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import Route from "Common/Types/API/Route";
-import Link from "Common/UI/Components/Link/Link";
+import AutomaticRemediationNote from "../AiAccess/AutomaticRemediationNote";
 import useAiAgentAccessStatus, {
   AiAgentAccessStatusRead,
 } from "../AiAccess/useAiAgentAccessStatus";
 import IngestionKeySelector from "../Telemetry/IngestionKeySelector";
 import { getSetupGuideOneUptimeUrl } from "../SetupGuide/SetupGuide";
+import SetupGuideOptionPicker from "../SetupGuide/SetupGuideOptionPicker";
+import SetupGuideSteps, {
+  SetupGuideStepView,
+} from "../SetupGuide/SetupGuideSteps";
 import CloudAccount from "Common/Models/DatabaseModels/CloudAccount";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
@@ -59,7 +59,11 @@ import {
 } from "Common/Types/ResourceAiAgent/ResourceAiAccess";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
-import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
+import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
+import {
+  FOLDED_SECTION_ON,
+  FoldedSectionItem,
+} from "Common/UI/Components/FoldedSection/FoldedSectionItem";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -72,23 +76,33 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useId,
   useState,
 } from "react";
 
 /*
- * "Let AI fix problems" on a cloud account: one question — how far may AI
- * go — and one command for the cloud's own shell, which creates the Cloud
- * AI agent's role and starts the agent. Nothing is pasted back: the agent
- * connects on its own, and the dialog says Connected when it does. Every
- * other setting has a safe default and is folded under More fields.
+ * "Let AI fix problems" on a cloud account, laid out as every "connect
+ * this" guide in the product is (Add Host, the agents' setup guides): the
+ * guide's one question on top - how far may AI go - then numbered steps:
+ * choose the key the agent connects with, run one command in the cloud's
+ * own shell (it creates the Cloud AI agent's role and starts the agent),
+ * and wait for it to connect. Nothing is pasted back: the agent connects
+ * on its own, and the last step says Connected when it does. Every other
+ * setting has a safe default and is folded under More fields.
  *
  * Changing how far AI may go is running the updated command: the agent's
  * own settings decide, as for every AI agent, and the final say stays in
- * the customer's cloud. The one setting OneUptime keeps — reading the
- * account's logs during investigations — is saved here directly.
+ * the customer's cloud. Opened for an agent that connected (Change), the
+ * dialog starts from what the agent reports it runs with, so the command
+ * keeps every earlier choice. The one setting OneUptime keeps - reading
+ * the account's logs during investigations - is saved here directly.
  */
 
 export const CLOUD_AI_AGENT_SETUP_TEST_ID: string = "cloud-ai-agent-setup";
+
+// The question's two answers, as the option picker keys them.
+const ASK_FIRST: string = "ask-first";
+const FIX_SAFE: string = "fix-safe";
 
 export interface ComponentProps {
   descriptor: ResourceAiAgentDescriptor;
@@ -104,88 +118,53 @@ export interface ComponentProps {
   onSaved?: (() => void) | undefined;
 }
 
-interface ChoiceCardProps {
-  title: string;
-  description: string;
-  isSelected: boolean;
-  onSelect: () => void;
-  dataTestId: string;
-}
-
-const ChoiceCard: FunctionComponent<ChoiceCardProps> = (
-  props: ChoiceCardProps,
-): ReactElement => {
-  const translator: Translator = useTranslator();
-
-  return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={props.isSelected}
-      onClick={props.onSelect}
-      data-testid={props.dataTestId}
-      className={`flex w-full items-start gap-3 rounded-lg border px-4 py-3 text-left transition-colors ${
-        props.isSelected
-          ? "border-indigo-500 bg-indigo-50/60 ring-1 ring-indigo-500"
-          : "border-gray-200 bg-white hover:bg-gray-50"
-      }`}
-    >
-      <span
-        className={`mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full border ${
-          props.isSelected ? "border-indigo-600" : "border-gray-300"
-        }`}
-      >
-        {props.isSelected ? (
-          <span className="h-2 w-2 rounded-full bg-indigo-600" />
-        ) : (
-          <></>
-        )}
-      </span>
-      <span className="min-w-0">
-        <span className="block text-sm font-medium text-gray-900">
-          {translator.translateText(props.title)}
-        </span>
-        <span className="mt-0.5 block text-sm text-gray-600">
-          {translator.translateText(props.description)}
-        </span>
-      </span>
-    </button>
-  );
-};
-
 interface CheckRowProps {
   label: string;
   isChecked: boolean;
   onChange: (value: boolean) => void;
   isDisabled?: boolean | undefined;
   dataTestId: string;
+  // A line under the label, read with it (aria-describedby).
+  description?: string | undefined;
   children?: ReactElement | undefined;
 }
 
 const CheckRow: FunctionComponent<CheckRowProps> = (
   props: CheckRowProps,
 ): ReactElement => {
+  const descriptionId: string = `${props.dataTestId}-description-${useId()}`;
+
   return (
-    <label
-      className={`flex items-start gap-2 text-sm ${
-        props.isDisabled ? "text-gray-400" : "text-gray-800"
-      }`}
-    >
-      <input
-        type="checkbox"
-        className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-        checked={props.isChecked}
-        disabled={props.isDisabled}
-        data-testid={props.dataTestId}
-        onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-          props.onChange(event.target.checked);
-        }}
-      />
-      <span className="min-w-0">
-        {props.label}
-        {props.children}
-      </span>
-    </label>
+    <div>
+      <label
+        className={`flex items-start gap-2 text-sm ${
+          props.isDisabled ? "text-gray-400" : "text-gray-800"
+        }`}
+      >
+        <input
+          type="checkbox"
+          className="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+          checked={props.isChecked}
+          disabled={props.isDisabled}
+          data-testid={props.dataTestId}
+          aria-describedby={props.description ? descriptionId : undefined}
+          onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+            props.onChange(event.target.checked);
+          }}
+        />
+        <span className="min-w-0">
+          {props.label}
+          {props.children}
+        </span>
+      </label>
+      {props.description ? (
+        <p id={descriptionId} className="mt-0.5 ps-6 text-xs text-gray-500">
+          {props.description}
+        </p>
+      ) : (
+        <></>
+      )}
+    </div>
   );
 };
 
@@ -193,12 +172,14 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const [choices, setChoices] = useState<CloudAiAgentSetupChoices>(
-    getDefaultCloudAiAgentSetupChoices({
+  const [choices, setChoices] = useState<CloudAiAgentSetupChoices>(() => {
+    return getDefaultCloudAiAgentSetupChoices({
       provider: props.provider,
       currentMode: props.status?.aiRemediationMode,
-    }),
-  );
+      posture: props.status?.agent?.posture,
+      accountId: props.accountId,
+    });
+  });
   const [ingestionKey, setIngestionKey] =
     useState<TelemetryIngestionKey | null>(null);
   const [isAiLogReadEnabled, setIsAiLogReadEnabled] = useState<boolean>(
@@ -328,95 +309,71 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
     ? []
     : getCloudAiAgentEnvironment(options);
 
-  return (
-    <Modal
-      title="Let AI fix problems"
-      description={translator.translateTemplate(
-        "Run one command in {{shell}} to let OneUptime AI fix problems here: it creates the agent's role and starts the agent, which connects on its own.",
-        { shell },
-      )}
-      modalWidth={ModalWidth.Medium}
-      onClose={props.onClose}
-      closeButtonText={isConnected ? "Done" : "Close"}
-    >
-      <div className="space-y-6" data-testid={CLOUD_AI_AGENT_SETUP_TEST_ID}>
-        <div>
-          <p className="text-sm font-medium text-gray-900">
-            {translator.translateText(translationKey("How far may AI go?"))}
-          </p>
-          <div
-            className="mt-2 space-y-2"
-            role="radiogroup"
-            aria-label={translator.translateText(
-              translationKey("How far may AI go?"),
-            )}
-          >
-            <ChoiceCard
-              title={CLOUD_AI_AGENT_ASK_FIRST_TITLE}
-              description={CLOUD_AI_AGENT_ASK_FIRST_DESCRIPTION}
-              isSelected={!choices.fixSafeProblemsAlone}
-              dataTestId={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-ask-first`}
-              onSelect={() => {
-                update({ fixSafeProblemsAlone: false, bypassApproval: false });
-              }}
-            />
-            <ChoiceCard
-              title={CLOUD_AI_AGENT_FIX_SAFE_TITLE}
-              description={CLOUD_AI_AGENT_FIX_SAFE_DESCRIPTION}
-              isSelected={choices.fixSafeProblemsAlone}
-              dataTestId={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-fix-safe`}
-              onSelect={() => {
-                update({ fixSafeProblemsAlone: true });
-              }}
-            />
-          </div>
-          {automaticRemediation &&
-          isAnyAutomaticRemediationOff(automaticRemediation) ? (
-            <div
-              className="mt-3 flex flex-col gap-2 rounded-lg border border-gray-200 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
-              data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-automatic-remediation`}
-            >
-              <p className="text-xs leading-5 text-gray-600">
-                {getAutomaticRemediationLine(automaticRemediation)}
-              </p>
-              <div className="flex flex-wrap gap-3">
-                {(["incidents", "alerts"] as const)
-                  .filter((kind: "incidents" | "alerts"): boolean => {
-                    return !automaticRemediation[kind];
-                  })
-                  .map((kind: "incidents" | "alerts"): ReactElement => {
-                    return (
-                      <Link
-                        key={kind}
-                        to={RouteUtil.populateRouteParams(
-                          RouteMap[
-                            kind === "incidents"
-                              ? PageMap.INCIDENTS_SETTINGS_AI
-                              : PageMap.ALERTS_SETTINGS_AI
-                          ] as Route,
-                        )}
-                        className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800"
-                      >
-                        <span>
-                          {translator.translateText(
-                            AUTOMATIC_REMEDIATION_SETTINGS_LINKS[kind],
-                          )}
-                        </span>
-                        <Icon
-                          icon={IconProp.ArrowRight}
-                          className="h-3.5 w-3.5"
-                        />
-                      </Link>
-                    );
-                  })}
-              </div>
-            </div>
-          ) : (
-            <></>
-          )}
-        </div>
+  /*
+   * What More fields holds, as its folded line lists it - and what of it is
+   * in force, with its value ("Changes: 3 of 10", "Tag: oneuptime-ai=allow"),
+   * so the choices an agent was set up with (Change opens on them) show
+   * without opening the fold.
+   */
+  const protectedCount: number = parseProtectedTargets(
+    choices.protectedTargetsText,
+  ).length;
+  const moreFieldsItems: Array<FoldedSectionItem> = [
+    {
+      key: "changes",
+      title: "Changes",
+      isSet: choices.enabledOperations.length < everyChange.length,
+      value: translator.translateTemplate("{{count}} of {{total}}", {
+        count: translator.formatNumber(choices.enabledOperations.length),
+        total: translator.formatNumber(everyChange.length),
+      }),
+    },
+    {
+      key: "protected",
+      title: "Resources AI must never change",
+      isSet: protectedCount > 0,
+      value: translator.formatNumber(protectedCount),
+    },
+    {
+      key: "tag",
+      title: "Tag",
+      isSet: choices.onlyTaggedResources,
+      value: CLOUD_AI_DEFAULT_REQUIRED_TAG,
+    },
+    {
+      key: "bypass",
+      title: "Bypass approval",
+      isSet: choices.bypassApproval,
+      value: FOLDED_SECTION_ON,
+      translateValue: true,
+    },
+    {
+      key: "logs",
+      title: "Log lines",
+      isSet: isAiLogReadEnabled,
+      value: FOLDED_SECTION_ON,
+      translateValue: true,
+    },
+    {
+      key: "elsewhere",
+      title: "Run the agent somewhere else",
+      isSet: false,
+    },
+  ];
 
-        <div className="space-y-2">
+  const steps: Array<SetupGuideStepView> = [
+    {
+      title:
+        translator.translateText(translationKey("Choose an ingestion key")) ||
+        "Choose an ingestion key",
+      description:
+        translator.translateText(
+          translationKey(
+            "The agent connects to your project with this key. Pick an existing key or create a new one: the command below uses it.",
+          ),
+        ) || undefined,
+      content: (
+        <div data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-key`}>
           <IngestionKeySelector
             endpointLabel={translationKey("OneUptime URL")}
             endpointValue={oneuptimeUrl}
@@ -428,11 +385,18 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
             }}
           />
         </div>
-
+      ),
+    },
+    {
+      title: translator.translateTemplate("Run this in {{shell}}", { shell }),
+      description:
+        translator.translateText(
+          translationKey(
+            "Run it as someone who may create roles in this account.",
+          ),
+        ) || undefined,
+      content: (
         <div className="space-y-2">
-          <p className="text-sm font-medium text-gray-900">
-            {translator.translateTemplate("Run this in {{shell}}", { shell })}
-          </p>
           {command ? (
             <div data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-command`}>
               <CodeBlock language="bash" code={command} />
@@ -455,46 +419,157 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
             )}
           </p>
         </div>
-
-        <div
-          className={`flex items-start gap-3 rounded-lg border px-4 py-3 ${
-            isConnected
-              ? "border-emerald-200 bg-emerald-50"
-              : "border-gray-200 bg-gray-50"
-          }`}
-          data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-connection`}
-        >
-          <Icon
-            icon={isConnected ? IconProp.CheckCircle : IconProp.Clock}
-            className={`mt-0.5 h-4 w-4 flex-shrink-0 ${
-              isConnected ? "text-emerald-600" : "text-gray-500"
-            }`}
-          />
-          <p
-            className={`text-sm ${
-              isConnected ? "text-emerald-900" : "text-gray-700"
-            }`}
-          >
-            {isConnected
-              ? translator.translateText(
+      ),
+    },
+    {
+      title:
+        translator.translateText(translationKey("Wait for it to connect")) ||
+        "Wait for it to connect",
+      content: (
+        <div className="space-y-3">
+          {isConnected ? (
+            <div
+              className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3"
+              role="status"
+              aria-live="polite"
+              data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-connection`}
+              data-state="connected"
+            >
+              <Icon
+                icon={IconProp.CheckCircle}
+                className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-600"
+              />
+              <p className="text-sm text-emerald-900">
+                {translator.translateText(
                   translationKey(
                     "Connected. Running the command again with other choices updates the agent.",
                   ),
-                )
-              : translator.translateText(
+                )}
+              </p>
+            </div>
+          ) : (
+            <div
+              className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
+              role="status"
+              aria-live="polite"
+              data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-connection`}
+              data-state="waiting"
+            >
+              <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
+                {/* The dot's own indigo: a mid-tone reads the same in the dark theme. */}
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-500 opacity-75 motion-reduce:animate-none" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-indigo-500" />
+              </span>
+              <p className="text-sm text-gray-700">
+                {translator.translateText(
                   translationKey(
                     "Waiting for the agent to connect. It connects within a few minutes of the command finishing.",
                   ),
                 )}
-          </p>
+              </p>
+            </div>
+          )}
+
+          {/*
+           * Where to look when it does not connect, while it has not: the
+           * log of the agent the command started, in the same shell.
+           */}
+          {isConnected ? (
+            <></>
+          ) : (
+            <div
+              className="space-y-1"
+              data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-logs-command`}
+            >
+              <p className="text-xs text-gray-500">
+                {translator.translateText(
+                  translationKey("Its logs, when it does not connect:"),
+                )}
+              </p>
+              <CodeBlock
+                language="bash"
+                code={getCloudAiAgentLogsCommand(props.provider)}
+              />
+            </div>
+          )}
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <Modal
+      title="Let AI fix problems"
+      description={translator.translateTemplate(
+        "Run one command in {{shell}} to let OneUptime AI fix problems here: it creates the agent's role and starts the agent, which connects on its own.",
+        { shell },
+      )}
+      modalWidth={ModalWidth.Medium}
+      onClose={props.onClose}
+      closeButtonText={isConnected ? "Done" : "Close"}
+    >
+      <div className="space-y-6" data-testid={CLOUD_AI_AGENT_SETUP_TEST_ID}>
+        {/*
+         * The guide's one question, above its steps, as "What does the
+         * host run?" sits above Add Host's: the command is written from
+         * the answer. The project's own automatic fixing switches go under
+         * it while one is off.
+         */}
+        <div data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-question`}>
+          <SetupGuideOptionPicker
+            label={
+              translator.translateText(translationKey("How far may AI go?")) ||
+              "How far may AI go?"
+            }
+            options={[
+              {
+                key: ASK_FIRST,
+                label:
+                  translator.translateText(CLOUD_AI_AGENT_ASK_FIRST_TITLE) ||
+                  CLOUD_AI_AGENT_ASK_FIRST_TITLE,
+                description:
+                  translator.translateText(
+                    CLOUD_AI_AGENT_ASK_FIRST_DESCRIPTION,
+                  ) || CLOUD_AI_AGENT_ASK_FIRST_DESCRIPTION,
+              },
+              {
+                key: FIX_SAFE,
+                label:
+                  translator.translateText(CLOUD_AI_AGENT_FIX_SAFE_TITLE) ||
+                  CLOUD_AI_AGENT_FIX_SAFE_TITLE,
+                description:
+                  translator.translateText(
+                    CLOUD_AI_AGENT_FIX_SAFE_DESCRIPTION,
+                  ) || CLOUD_AI_AGENT_FIX_SAFE_DESCRIPTION,
+              },
+            ]}
+            selectedKey={choices.fixSafeProblemsAlone ? FIX_SAFE : ASK_FIRST}
+            onSelect={(key: string) => {
+              if (key === FIX_SAFE) {
+                update({ fixSafeProblemsAlone: true });
+                return;
+              }
+
+              update({ fixSafeProblemsAlone: false, bypassApproval: false });
+            }}
+            note={
+              automaticRemediation &&
+              isAnyAutomaticRemediationOff(automaticRemediation) ? (
+                <AutomaticRemediationNote
+                  settings={automaticRemediation}
+                  dataTestId={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-automatic-remediation`}
+                />
+              ) : undefined
+            }
+          />
         </div>
 
-        <CollapsibleSection
+        <SetupGuideSteps steps={steps} />
+
+        <FoldedSection
           title={MORE_FIELDS_SECTION_TITLE}
-          defaultCollapsed={true}
-          collapsedDescription={translationKey(
-            "Which changes AI may make, resources it must never change, a required tag, reading logs, and running the agent somewhere else.",
-          )}
+          items={moreFieldsItems}
+          dataTestId={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-more-fields`}
         >
           <div className="space-y-5">
             <div className="space-y-2">
@@ -601,6 +676,13 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
                     ),
                   ) || ""
                 }
+                description={
+                  translator.translateText(
+                    translationKey(
+                      "Off by default: log lines can hold customer data. Saved at once, with no command to run.",
+                    ),
+                  ) || undefined
+                }
                 isChecked={isAiLogReadEnabled}
                 isDisabled={isSavingLogs}
                 dataTestId={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-logs`}
@@ -610,15 +692,10 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
                   });
                 }}
               />
-              <p className="pl-6 text-xs text-gray-500">
-                {translator.translateText(
-                  translationKey(
-                    "Off by default: log lines can hold customer data. Saved at once, with no command to run.",
-                  ),
-                )}
-              </p>
               {logsError ? (
-                <p className="pl-6 text-xs text-rose-600">{logsError}</p>
+                <p className="ps-6 text-xs text-rose-600" role="alert">
+                  {logsError}
+                </p>
               ) : (
                 <></>
               )}
@@ -650,18 +727,9 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
               ) : (
                 <></>
               )}
-              <p className="text-xs text-gray-600">
-                {translator.translateText(
-                  translationKey("Its logs, when it does not connect:"),
-                )}
-              </p>
-              <CodeBlock
-                language="bash"
-                code={getCloudAiAgentLogsCommand(props.provider)}
-              />
             </div>
           </div>
-        </CollapsibleSection>
+        </FoldedSection>
       </div>
     </Modal>
   );

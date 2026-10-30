@@ -37224,5 +37224,14 @@
   "What happened to this account in OneUptime: its Cloud AI agent connecting or being reset, and every change to what OneUptime AI may do here.": "Vad som har hänt med det här kontot i OneUptime: Moln-AI-agenten som ansluter eller återställs, och varje ändring av vad OneUptime AI får göra här.",
   "Cloud Account Updated": "Molnkonto uppdaterat",
   "Cloud Account Created": "Molnkonto skapat",
-  "Dry run of a fix (read-only)": "Provkörning av en åtgärd (endast läsning)"
+  "Dry run of a fix (read-only)": "Provkörning av en åtgärd (endast läsning)",
+  "Cloud operations": "Molnoperationer",
+  "Run it as someone who may create roles in this account.": "Kör det som någon som får skapa roller i det här kontot.",
+  "The agent connects to your project with this key. Pick an existing key or create a new one: the command below uses it.": "Agenten ansluter till ditt projekt med den här nyckeln. Välj en befintlig nyckel eller skapa en ny: kommandot nedan använder den.",
+  "This project doesn't fix new incidents or alerts automatically.": "Det här projektet åtgärdar inte nya incidenter eller larm automatiskt.",
+  "This project fixes new alerts automatically, but not new incidents.": "Det här projektet åtgärdar nya larm automatiskt, men inte nya incidenter.",
+  "This project fixes new incidents and alerts automatically.": "Det här projektet åtgärdar nya incidenter och larm automatiskt.",
+  "This project fixes new incidents automatically, but not new alerts.": "Det här projektet åtgärdar nya incidenter automatiskt, men inte nya larm.",
+  "Turn on for alerts": "Slå på för larm",
+  "Turn on for incidents": "Slå på för incidenter"
 }

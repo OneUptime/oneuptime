@@ -111,6 +111,9 @@ import { setPageLanguage } from "Common/UI/Utils/PageLanguage";
  *               for approval)
  *               | offline (it connected once and stopped reporting)
  *               | fail (every status read fails)
+ *   ?agentsettings=custom  the connected agent reports three changes, the
+ *               tag it requires and two protected resources (Change opens
+ *               the dialog on them)
  *
  * window.__cloudConnectFixture.connectAgent() makes the agent connect, as
  * it does a few minutes after the setup command finished. The page says
@@ -132,6 +135,15 @@ const aiState = ["connected", "offline", "fail"].includes(params.get("ai"))
  * dialog say so while one is off.
  */
 const fixingState = params.get("fixing") === "on" ? "on" : "off";
+/*
+ * What the connected agent reports it runs with (?agentsettings=custom):
+ * three changes of the AWS catalog, the tag it requires, and two resources
+ * a person protected, beside the agent's own stack, roles and task - so
+ * Change opens the dialog on them. Every change, no tag and nothing
+ * protected otherwise, as the setup command's defaults start it.
+ */
+const agentSettingsState =
+  params.get("agentsettings") === "custom" ? "custom" : "default";
 const language = ["ja", "de", "fa"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
@@ -1137,14 +1149,30 @@ function aiAgentSummary(found, type, isOnline) {
       agentVersion: "1.0.0",
       allowWrites: true,
       writeTargets: [],
-      protectedTargets: [],
+      protectedTargets:
+        agentSettingsState === "custom"
+          ? [
+              "*prod-db*",
+              `arn:aws:rds:us-east-1:${found.accountId}:db:orders`,
+              `arn:aws*:ecs:*:${found.accountId}:service/oneuptime-ai-agent/*`,
+              `arn:aws*:ecs:*:${found.accountId}:cluster/oneuptime-ai-agent`,
+              `arn:aws*:iam::${found.accountId}:role/OneUptimeAiAgentTask`,
+              `arn:aws*:iam::${found.accountId}:role/OneUptimeAiAgentWrite`,
+              `arn:aws*:cloudformation:*:${found.accountId}:stack/oneuptime-ai-agent/*`,
+              `arn:aws:ecs:us-east-1:${found.accountId}:task/oneuptime-ai-agent/0f3c9a2b`,
+            ]
+          : [],
       toolVersion: "AWS",
       reachable: true,
       details: {
         cloudProvider: found.provider,
         cloudAccountId: found.accountId,
-        enabledOperations: AWS_OPERATIONS.join(","),
-        requiredTag: null,
+        enabledOperations:
+          agentSettingsState === "custom"
+            ? "restart-service,scale-out,start-instance"
+            : AWS_OPERATIONS.join(","),
+        requiredTag:
+          agentSettingsState === "custom" ? "oneuptime-ai=allow" : null,
         awsWriteRoleArn: `arn:aws:iam::${found.accountId}:role/OneUptimeCloudAiAgentWrite`,
         awsPrincipalArn: `arn:aws:sts::${found.accountId}:assumed-role/OneUptimeCloudAiAgent/agent`,
         awsRegion: "us-east-1",
@@ -1295,7 +1323,7 @@ const ACCOUNT_FEED = [
     cloudAccountId: AWS_ACCOUNT_ID,
     cloudAccountFeedEventType: "CloudAccountUpdated",
     feedInfoInMarkdown:
-      "The Cloud AI agent connected. What AI may do here follows the agent's configuration: investigation on, fixes Ask for approval. Change it with ONEUPTIME_AI_INVESTIGATION and ONEUPTIME_AI_FIXES where the agent runs; the AWS account's AI agent page shows how.",
+      "🤖 The Cloud AI agent connected (can make changes to anything but its protected targets). What AI may do here follows the agent's configuration: investigation on, fixes Ask for approval. To change it, run the agent's setup command again with other choices: Change on the AWS account's AI agent page shows it.",
     moreInformationInMarkdown:
       "**Agent**: Cloud AI agent (b0000000-0000-4000-8000-000000000001)\n\n**Identity**: `123456789012`",
     displayColor: new Color("#10b981"),

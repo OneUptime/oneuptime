@@ -37224,5 +37224,14 @@
   "What happened to this account in OneUptime: its Cloud AI agent connecting or being reset, and every change to what OneUptime AI may do here.": "這個帳戶在 OneUptime 中發生過的事情：它的雲端 AI 代理程式的連線或重設，以及對 OneUptime AI 在這裡可以做什麼的每一次變更。",
   "Cloud Account Updated": "雲端帳戶已更新",
   "Cloud Account Created": "雲端帳戶已建立",
-  "Dry run of a fix (read-only)": "修正的試運行（唯讀）"
+  "Dry run of a fix (read-only)": "修正的試運行（唯讀）",
+  "Cloud operations": "雲端操作",
+  "Run it as someone who may create roles in this account.": "請以可在此帳戶中建立角色的使用者身分執行。",
+  "The agent connects to your project with this key. Pick an existing key or create a new one: the command below uses it.": "代理程式會使用此金鑰連線到您的專案。請選擇現有金鑰或建立新金鑰：下方的指令會使用它。",
+  "This project doesn't fix new incidents or alerts automatically.": "此專案不會自動修正新事件或新警示。",
+  "This project fixes new alerts automatically, but not new incidents.": "此專案會自動修正新警示，但不會修正新事件。",
+  "This project fixes new incidents and alerts automatically.": "此專案會自動修正新事件與新警示。",
+  "This project fixes new incidents automatically, but not new alerts.": "此專案會自動修正新事件，但不會修正新警示。",
+  "Turn on for alerts": "為警示開啟",
+  "Turn on for incidents": "為事件開啟"
 }

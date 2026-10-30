@@ -589,6 +589,33 @@ describe("the agent card's state", () => {
     });
   });
 
+  /*
+   * A cloud account's agent is never installed by hand: Let AI fix
+   * problems writes the command that starts it, so with none connected its
+   * pill says "Not set up". Every other resource's says "Not installed".
+   */
+  test("a cloud account with no agent is Not set up; every other resource Not installed", () => {
+    for (const descriptor of Object.values(RESOURCE_AI_AGENT_DESCRIPTORS)) {
+      expect(
+        getResourceAiAgentStatusPill(makeStatus({ agent: null }), descriptor),
+      ).toEqual({
+        text: descriptor.isCloudAccount ? "Not set up" : "Not installed",
+        tone: "neutral",
+      });
+      // Connected or offline reads the same for every resource.
+      expect(getResourceAiAgentStatusPill(makeStatus(), descriptor).text).toBe(
+        "Connected",
+      );
+    }
+    expect(
+      Object.values(RESOURCE_AI_AGENT_DESCRIPTORS).filter(
+        (descriptor: ResourceAiAgentDescriptor): boolean => {
+          return descriptor.isCloudAccount;
+        },
+      ),
+    ).toHaveLength(3);
+  });
+
   test("an online agent that cannot reach the resource is still connected, but unreachable", () => {
     const status: ResourceAiAccessStatus = makeStatus({
       agent: makeAgent({

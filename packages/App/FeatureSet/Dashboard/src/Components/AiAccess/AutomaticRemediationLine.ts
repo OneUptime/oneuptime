@@ -1,21 +1,26 @@
 import {
-  translatableTerm,
-  translateTemplate,
+  translateText,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The project's "Fix new incidents automatically" and "Fix new alerts
- * automatically" switches in one line, under the fixes of an AI agent page
- * - a Kubernetes cluster's, or any resource's (a Docker host, a host, a
- * cloud account, ...): a cluster or resource set to fix things fixes
+ * automatically" switches in one sentence, under the fixes of an AI agent
+ * page - a Kubernetes cluster's, or any resource's (a Docker host, a host,
+ * a cloud account, ...) - and under the question of a cloud account's Let
+ * AI fix problems dialog: a cluster or resource set to fix things fixes
  * nothing new while the project's switch is off. Both are off by default,
- * for new projects too, and they are turned on - with their rules - on each
- * signal type's AI settings page, not on the agent page: they are the
+ * for new projects too, and they are turned on - with their rules - on
+ * each signal type's AI settings page, not on the agent page: they are the
  * project's choice, not the resource's.
  *
+ * One whole sentence for each pair of switches, in the words the switches
+ * themselves use, so a locale words each one its own way; and a "Turn on"
+ * link for each switch that is off, to the page that holds it.
+ *
  * Import-clean (Common's translation helpers only), so the suites read it
- * without a browser, and both agent pages draw the same words.
+ * without a browser, and every page draws the same words
+ * (AutomaticRemediationNote draws them).
  */
 
 export interface AutomaticRemediationSettings {
@@ -23,29 +28,64 @@ export interface AutomaticRemediationSettings {
   alerts: boolean;
 }
 
-const SWITCH_ON: string = translationKey("On");
-const SWITCH_OFF: string = translationKey("Off");
+export const AUTOMATIC_REMEDIATION_SENTENCES: {
+  both: string;
+  incidentsOnly: string;
+  alertsOnly: string;
+  neither: string;
+} = {
+  both: translationKey(
+    "This project fixes new incidents and alerts automatically.",
+  ),
+  incidentsOnly: translationKey(
+    "This project fixes new incidents automatically, but not new alerts.",
+  ),
+  alertsOnly: translationKey(
+    "This project fixes new alerts automatically, but not new incidents.",
+  ),
+  neither: translationKey(
+    "This project doesn't fix new incidents or alerts automatically.",
+  ),
+};
 
-export const AUTOMATIC_REMEDIATION_LINE: string = translationKey(
-  "Automatic fixes for new incidents in this project: {{incidents}} · alerts: {{alerts}}",
-);
+// The English sentence (a translation key) for these switches.
+export function getAutomaticRemediationSentence(
+  settings: AutomaticRemediationSettings,
+): string {
+  if (settings.incidents && settings.alerts) {
+    return AUTOMATIC_REMEDIATION_SENTENCES.both;
+  }
 
+  if (settings.incidents) {
+    return AUTOMATIC_REMEDIATION_SENTENCES.incidentsOnly;
+  }
+
+  if (settings.alerts) {
+    return AUTOMATIC_REMEDIATION_SENTENCES.alertsOnly;
+  }
+
+  return AUTOMATIC_REMEDIATION_SENTENCES.neither;
+}
+
+// The sentence in the reader's language.
 export function getAutomaticRemediationLine(
   settings: AutomaticRemediationSettings,
 ): string {
-  return translateTemplate(AUTOMATIC_REMEDIATION_LINE, {
-    incidents: translatableTerm(settings.incidents ? SWITCH_ON : SWITCH_OFF),
-    alerts: translatableTerm(settings.alerts ? SWITCH_ON : SWITCH_OFF),
-  });
+  const sentence: string = getAutomaticRemediationSentence(settings);
+
+  return translateText(sentence) || sentence;
 }
 
-// Where each switch is turned on, linked from the line while it is off.
+/*
+ * The link to each switch while it is off: it opens the signal's AI
+ * settings page, where the switch is turned on.
+ */
 export const AUTOMATIC_REMEDIATION_SETTINGS_LINKS: {
   incidents: string;
   alerts: string;
 } = {
-  incidents: translationKey("Incident AI settings"),
-  alerts: translationKey("Alert AI settings"),
+  incidents: translationKey("Turn on for incidents"),
+  alerts: translationKey("Turn on for alerts"),
 };
 
 /*
@@ -81,4 +121,17 @@ export function isAnyAutomaticRemediationOff(
   settings: AutomaticRemediationSettings,
 ): boolean {
   return !settings.incidents || !settings.alerts;
+}
+
+/*
+ * Whether an AI agent page draws the line under its fixes: only while the
+ * cluster's or resource's own fixes are on. With them off, the project's
+ * switches change nothing there yet, and the page's one next step is the
+ * hint that turns the fixes on.
+ */
+export function shouldShowAutomaticRemediationLine(data: {
+  settings: AutomaticRemediationSettings | null;
+  areFixesOn: boolean;
+}): boolean {
+  return Boolean(data.settings) && data.areFixesOn;
 }

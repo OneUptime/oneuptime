@@ -12,12 +12,18 @@ import AiResourceType, {
 } from "Common/Types/ResourceAiAgent/AiResourceType";
 import {
   AWS_CLOUD_AI_AGENT_LOG_GROUP_NAME,
+  AWS_CLOUD_AI_AGENT_TASK_ROLE_NAME,
+  AWS_CLOUD_AI_AGENT_WRITE_ROLE_NAME,
   AZURE_CLOUD_AI_AGENT_APP_NAME,
   AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP,
+  CLOUD_AI_AGENT_NAME,
+  CloudAiAgentProvider,
   GCP_CLOUD_AI_AGENT_SERVICE_NAME,
+  getCloudAiAgentOwnTargets,
 } from "Common/Types/ResourceAiAgent/CloudAiAgentNames";
 import {
   CLOUD_AI_DEFAULT_REQUIRED_TAG,
+  ResourceAiAgentPosture,
   ResourceAiRemediationMode,
   parseResourceAiRemediationMode,
 } from "Common/Types/ResourceAiAgent/ResourceAiAccess";
@@ -92,13 +98,122 @@ export function readCloudProvider(value: unknown): CloudProvider | null {
 }
 
 /*
+ * Whether a protected target the agent reports is one of its own - its
+ * stack, cluster, service, roles, resource group or service account, by
+ * the names its setup command gives them, or what it found of itself where
+ * it runs (its task, its revision) - rather than one a person listed.
+ */
+const CLOUD_AI_AGENT_OWN_NAMES: ReadonlyArray<string> = [
+  CLOUD_AI_AGENT_NAME,
+  AWS_CLOUD_AI_AGENT_TASK_ROLE_NAME,
+  AWS_CLOUD_AI_AGENT_WRITE_ROLE_NAME,
+].map((name: string): string => {
+  return name.toLowerCase();
+});
+
+function isCloudAiAgentOwnTarget(data: {
+  pattern: string;
+  ownTargets: Array<string>;
+}): boolean {
+  const pattern: string = data.pattern.toLowerCase();
+
+  return (
+    data.ownTargets.includes(pattern) ||
+    CLOUD_AI_AGENT_OWN_NAMES.some((name: string): boolean => {
+      return pattern.includes(name);
+    })
+  );
+}
+
+/*
+ * What the account's agent runs with now, as it reports itself with every
+ * heartbeat (its posture): the changes turned on, whether it changes only
+ * tagged resources, and the resources a person listed for it never to
+ * change. Change opens the dialog on these, so running the command again
+ * keeps every choice made before and changes only what the reader changes
+ * here: starting from the defaults would turn back on a change someone
+ * turned off, and drop a protected resource or the tag, without a word.
+ * What the posture does not say keeps its default.
+ */
+export function getCloudAiAgentReportedChoices(data: {
+  provider: CloudProvider;
+  accountId: string;
+  posture: ResourceAiAgentPosture | null | undefined;
+}): Partial<
+  Pick<
+    CloudAiAgentSetupChoices,
+    "enabledOperations" | "onlyTaggedResources" | "protectedTargetsText"
+  >
+> {
+  const posture: ResourceAiAgentPosture | null | undefined = data.posture;
+
+  if (!posture) {
+    return {};
+  }
+
+  const details: Record<string, string | number | boolean | null> =
+    posture.details || {};
+  const choices: Partial<
+    Pick<
+      CloudAiAgentSetupChoices,
+      "enabledOperations" | "onlyTaggedResources" | "protectedTargetsText"
+    >
+  > = {};
+
+  const reportedOperations: unknown = details["enabledOperations"];
+
+  if (typeof reportedOperations === "string") {
+    const names: Array<string> = reportedOperations
+      .split(",")
+      .map((name: string): string => {
+        return name.trim();
+      });
+    const enabled: Array<string> = getCloudAiAgentChangeOperations(
+      data.provider,
+    ).filter((operation: string): boolean => {
+      return names.includes(operation);
+    });
+
+    if (enabled.length > 0) {
+      choices.enabledOperations = enabled;
+    }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(details, "requiredTag")) {
+    const tag: unknown = details["requiredTag"];
+
+    choices.onlyTaggedResources = typeof tag === "string" && tag.trim() !== "";
+  }
+
+  const ownTargets: Array<string> = getCloudAiAgentOwnTargets({
+    provider: data.provider as string as CloudAiAgentProvider,
+    accountId: data.accountId,
+  }).map((target: string): string => {
+    return target.toLowerCase();
+  });
+
+  choices.protectedTargetsText = (posture.protectedTargets || [])
+    .filter((pattern: string): boolean => {
+      return !isCloudAiAgentOwnTarget({ pattern, ownTargets });
+    })
+    .join("\n");
+
+  return choices;
+}
+
+/*
  * The dialog's starting point: what the account's agent runs with now
- * when it has one (its mode), the defaults otherwise. A mode of Off reads
- * as "Ask me first": opening the dialog is asking for fixes.
+ * when it has one (its mode, and the choices its posture reports), the
+ * defaults otherwise. A mode of Off reads as "Ask me first": opening the
+ * dialog is asking for fixes.
  */
 export function getDefaultCloudAiAgentSetupChoices(data: {
   provider: CloudProvider;
   currentMode?: unknown;
+  // The account's agent as it reports itself, when one has connected.
+  posture?: ResourceAiAgentPosture | null | undefined;
+  // The cloud's own id of the account, to tell the agent's own targets.
+  accountId?: string | undefined;
 }): CloudAiAgentSetupChoices {
   const mode: ResourceAiRemediationMode = parseResourceAiRemediationMode(
     data.currentMode,
@@ -112,6 +227,11 @@ export function getDefaultCloudAiAgentSetupChoices(data: {
     enabledOperations: getCloudAiAgentChangeOperations(data.provider),
     protectedTargetsText: "",
     onlyTaggedResources: false,
+    ...getCloudAiAgentReportedChoices({
+      provider: data.provider,
+      accountId: data.accountId || "",
+      posture: data.posture,
+    }),
   };
 }
 

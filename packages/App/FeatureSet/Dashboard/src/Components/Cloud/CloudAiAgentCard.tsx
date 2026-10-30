@@ -9,6 +9,7 @@ import {
   RESOURCE_AI_ACCESS_STATUS_ROUTE,
   ResourceAiAttention,
   getResourceAiAccessRequestBody,
+  getResourceAiAgentPageSubtitle,
   getResourceAiAttention,
   parseResourceAiAccessStatus,
 } from "../ResourceAiAgent/ResourceAiAgentStatus";
@@ -35,6 +36,8 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  * problems". Once an agent connected, it is the AI agent card every
  * resource an AI agent serves has — connected or not, how far AI may go,
  * and anything that needs attention — with its link to the AI agent page.
+ * Both carry the same title and description, so the card reads as one card
+ * whose body changes, not two different cards.
  */
 
 export const CLOUD_AI_AGENT_CARD_TEST_ID: string = "cloud-ai-agent-card";
@@ -98,7 +101,7 @@ const CloudAiAgentCard: FunctionComponent<ComponentProps> = (
   return (
     <Card
       title="AI agent"
-      description="Let OneUptime AI fix problems in this account, not only read about them."
+      description={getResourceAiAgentPageSubtitle(descriptor)}
     >
       <div className="space-y-4" data-testid={CLOUD_AI_AGENT_CARD_TEST_ID}>
         {read.isLoading ? (

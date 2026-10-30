@@ -37224,5 +37224,14 @@
   "What happened to this account in OneUptime: its Cloud AI agent connecting or being reset, and every change to what OneUptime AI may do here.": "Hva som har skjedd med denne kontoen i OneUptime: Sky-AI-agenten som kobler til eller tilbakestilles, og hver endring i hva OneUptime AI kan gjøre her.",
   "Cloud Account Updated": "Skykonto oppdatert",
   "Cloud Account Created": "Skykonto opprettet",
-  "Dry run of a fix (read-only)": "Prøvekjøring av en rettelse (kun lesing)"
+  "Dry run of a fix (read-only)": "Prøvekjøring av en rettelse (kun lesing)",
+  "Cloud operations": "Skyoperasjoner",
+  "Run it as someone who may create roles in this account.": "Kjør den som en som har lov til å opprette roller i denne kontoen.",
+  "The agent connects to your project with this key. Pick an existing key or create a new one: the command below uses it.": "Agenten kobler til prosjektet ditt med denne nøkkelen. Velg en eksisterende nøkkel eller lag en ny: kommandoen nedenfor bruker den.",
+  "This project doesn't fix new incidents or alerts automatically.": "Dette prosjektet retter ikke nye hendelser eller varsler automatisk.",
+  "This project fixes new alerts automatically, but not new incidents.": "Dette prosjektet retter nye varsler automatisk, men ikke nye hendelser.",
+  "This project fixes new incidents and alerts automatically.": "Dette prosjektet retter nye hendelser og varsler automatisk.",
+  "This project fixes new incidents automatically, but not new alerts.": "Dette prosjektet retter nye hendelser automatisk, men ikke nye varsler.",
+  "Turn on for alerts": "Slå på for varsler",
+  "Turn on for incidents": "Slå på for hendelser"
 }
