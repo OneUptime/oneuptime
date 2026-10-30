@@ -51,19 +51,19 @@ Klicken Sie unter **Monitortyp** auf **Weitere Monitortypen** und wählen Sie **
 
 ### Den Cluster wählen
 
-Wählen Sie unter **Docker-Swarm-Monitor-Konfiguration** den Cluster aus **Docker-Swarm-Cluster**. Jeder Cluster, der Daten gesendet hat, steht in der Liste.
+Wählen Sie unter **Docker-Swarm-Monitor-Konfiguration** den Cluster aus **Docker-Swarm-Cluster**. Jeder Cluster, der Daten gesendet hat, steht in der Liste. Nach der Auswahl zeigt eine Zeile unter dem Feld, ob Daten ankommen. **Docker-Swarm-Cluster hinzufügen** öffnet Einrichtungsschritte mit Ihren bereits eingetragenen Schlüsseln, die auf die ersten Daten warten.
 
 ### Festlegen, was überwacht wird
 
-Wählen Sie einen der drei Tabs:
+Ein neuer Monitor beginnt mit **Cluster Stopped Reporting** unter **Worüber benachrichtigt wird**. So überwachen Sie etwas anderes:
 
-- **Quick Setup** – klicken Sie auf eine [Vorlage](#fertige-warnungsvorlagen). Sie legt Metrik, Aggregation, Zeitbereich und Schwellenwerte fest und ersetzt die Kriterien weiter unten durch ihre eigenen. Den **Zeitbereich** können Sie weiterhin ändern.
-- **Custom Metric** – wählen Sie eine Metrik unter **Docker-Swarm-Metrik** und legen Sie dann **Aggregation** und **Zeitbereich** fest. Die [Filter](#monitor-einstellungen) grenzen sie auf bestimmte Tasks ein.
-- **Erweitert** – bauen Sie unter **Metriken auswählen** selbst Abfragen und Formeln. Verwenden Sie **Gruppieren nach** `resource.container.name`, um jeden Task einzeln zu beurteilen.
+- **Ändern** – wählen Sie eine andere [Vorlage](#fertige-warnungsvorlagen). Sie legt Metrik, Aggregation, Zeitbereich und Schwellenwerte fest und ersetzt die Kriterien weiter unten durch ihre eigenen. Den **Zeitbereich** können Sie weiterhin ändern.
+- **Custom Metric** (unter **Weitere Felder**) – wählen Sie eine Metrik unter **Docker-Swarm-Metrik** und legen Sie dann **Aggregation** und **Zeitbereich** fest. Die [Filter](#monitor-einstellungen) grenzen sie auf bestimmte Tasks ein.
+- **Erweitert** (unter **Weitere Felder**) – bauen Sie unter **Metriken auswählen** selbst Abfragen und Formeln. Verwenden Sie **Gruppieren nach** `resource.container.name`, um jeden Task einzeln zu beurteilen.
 
 ### Die Kriterien prüfen
 
-Öffnen Sie unter **Monitor-Kriterien** jedes Kriterium und prüfen Sie seine **Metrik**, **Aggregation**, **Bedingung** und seinen **Schwellenwert**. Eine Vorlage füllt diese aus. Mit **Custom Metric** oder **Erweitert** beginnt der Monitor mit den [Standardkriterien](#standardkriterien), die nur bemerken, wenn eine Metrik auf null fällt; legen Sie daher Ihren eigenen Schwellenwert fest.
+Öffnen Sie unter **Monitor-Kriterien** jedes Kriterium und prüfen Sie seine **Metrik**, **Aggregation**, **Bedingung** und seinen **Schwellenwert**. Eine Vorlage füllt diese aus. Mit **Custom Metric** oder **Erweitert** beginnt der Monitor mit den [Standardkriterien](#standardkriterien), die nur bemerken, wenn die Metrik keine Daten sendet; legen Sie daher Ihren eigenen Schwellenwert fest.
 
 ### Den Monitor erstellen
 
@@ -92,7 +92,7 @@ Klicken Sie auf **Monitor erstellen**. OneUptime öffnet die Seite des Monitors 
 
 ## Fertige Warnungsvorlagen
 
-**Quick Setup** bietet fünf Vorlagen. Jede baut einen vollständigen Monitor: eine Abfrage, ein Kriterium, das auslöst, und eines, das wiederherstellt. Jede Vorlage außer **Cluster Stopped Reporting** gruppiert ihre Abfrage nach `resource.container.name`, sodass jeder Task einzeln beurteilt wird und seinen eigenen Vorfall und seine eigene Warnung erhält, deren Ursache die betroffenen Tasks und ihre Werte auflistet. Die Schwellenwerte sind Ausgangswerte, die Sie anpassen können.
+Die Liste unter **Worüber benachrichtigt wird** bietet fünf Vorlagen. Jede baut einen vollständigen Monitor: eine Abfrage, ein Kriterium, das auslöst, und eines, das wiederherstellt. Jede Vorlage außer **Cluster Stopped Reporting** gruppiert ihre Abfrage nach `resource.container.name`, sodass jeder Task einzeln beurteilt wird und seinen eigenen Vorfall und seine eigene Warnung erhält, deren Ursache die betroffenen Tasks und ihre Werte auflistet. Die Schwellenwerte sind Ausgangswerte, die Sie anpassen können.
 
 Sofern die Tabelle nichts anderes sagt, löst ein Kriterium nur aus, wenn die Bedingung in jeder Minute seines Zeitfensters gilt, und es wird 10 % jenseits des Schwellenwerts wiederhergestellt, damit ein Wert, der um die Grenze pendelt, nicht hin- und herspringt.
 

@@ -50,19 +50,19 @@ Klik onder **Monitortype** op **Meer monitortypen** en kies **IoT-apparaat** ond
 
 ### De vloot kiezen
 
-Kies onder **IoT Monitor Configuration** de vloot uit **IoT Fleet**. Elke vloot die gegevens heeft gestuurd, staat in de lijst.
+Kies onder **IoT Monitor Configuration** de vloot uit **IoT Fleet**. Elke vloot die gegevens heeft gestuurd, staat in de lijst. Na de keuze toont een regel onder het veld of er gegevens binnenkomen. **IoT-vloot toevoegen** opent installatiestappen met je sleutels al ingevuld, die op de eerste gegevens wachten.
 
 ### Kiezen wat je in de gaten houdt
 
-Kies een van de drie tabbladen:
+Een nieuwe monitor begint met **Device Offline**, onder **Waarover te waarschuwen**. Om iets anders te bewaken:
 
-- **Quick Setup** - klik op een [template](#kant-en-klare-waarschuwingstemplates). Dat stelt de metriek, de aggregatie, het tijdsbereik, een groepering op `device.id` en de drempels in, en vervangt de criteria hieronder door de eigen criteria. Het **Tijdsbereik** kun je nog steeds aanpassen.
-- **Custom Metric** - kies één metriek uit **IoT Metric** en stel daarna **Aggregatie** en **Tijdsbereik** in. De [filters](#monitorinstellingen) beperken haar tot één apparaat of één apparaattype. Een eigen metriek wordt niet gegroepeerd: ze beoordeelt de vloot als geheel.
-- **Geavanceerd** - bouw zelf queries en formules onder **Selecteer metrieken**, ook over eigen metrieknamen, bijvoorbeeld het gebruikte geheugen als percentage van de geheugengrootte van een apparaat. Gebruik **Groeperen op** `device.id` om elk apparaat afzonderlijk te beoordelen.
+- **Wijzigen** - kies een andere [template](#kant-en-klare-waarschuwingstemplates). Dat stelt de metriek, de aggregatie, het tijdsbereik, een groepering op `device.id` en de drempels in, en vervangt de criteria hieronder door de eigen criteria. Het **Tijdsbereik** kun je nog steeds aanpassen.
+- **Custom Metric** (onder **Meer velden**) - kies één metriek uit **IoT Metric** en stel daarna **Aggregatie** en **Tijdsbereik** in. De [filters](#monitorinstellingen) beperken haar tot één apparaat of één apparaattype. Een eigen metriek wordt niet gegroepeerd: ze beoordeelt de vloot als geheel.
+- **Geavanceerd** (onder **Meer velden**) - bouw zelf queries en formules onder **Selecteer metrieken**, ook over eigen metrieknamen, bijvoorbeeld het gebruikte geheugen als percentage van de geheugengrootte van een apparaat. Gebruik **Groeperen op** `device.id` om elk apparaat afzonderlijk te beoordelen.
 
 ### De criteria controleren
 
-Open elk criterium onder **Monitorcriteria** en controleer de **Select Metric Variable**, de **Aggregatie**, de **Voorwaarde** en de **Drempel**. Een template vult die in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen merken dat een metriek naar nul zakt, dus stel je eigen drempel in.
+Open elk criterium onder **Monitorcriteria** en controleer de **Select Metric Variable**, de **Aggregatie**, de **Voorwaarde** en de **Drempel**. Een template vult die in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen merken dat de metriek geen gegevens stuurt, dus stel je eigen drempel in.
 
 ### De monitor maken
 
@@ -88,7 +88,7 @@ De filters werken samen: met een **Device ID** en een **Device Type** komt een a
 
 ## Kant-en-klare waarschuwingstemplates
 
-**Quick Setup** biedt 5 templates. Elk template bouwt een volledige monitor: de metriekquery, een groepering op `device.id`, een criterium dat afgaat en een dat herstelt. Drempels zijn startpunten die je kunt aanpassen.
+De lijst onder **Waarover te waarschuwen** biedt 5 templates. Elk template bouwt een volledige monitor: de metriekquery, een groepering op `device.id`, een criterium dat afgaat en een dat herstelt. Drempels zijn startpunten die je kunt aanpassen.
 
 Een criterium gaat alleen af als de voorwaarde geldt voor elke minuut van zijn venster - behalve **Device Offline**, dat afgaat bij de eerste meting onder 1. Een drempelcriterium herstelt 10 % voorbij zijn drempel, zodat een waarde die rond de lijn schommelt niet heen en weer springt.
 

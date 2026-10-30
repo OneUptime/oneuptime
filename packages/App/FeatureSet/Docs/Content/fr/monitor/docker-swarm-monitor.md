@@ -51,19 +51,19 @@ Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisis
 
 ### Choisir le cluster
 
-Sous **Configuration du moniteur Docker Swarm**, choisissez le cluster dans **Cluster Docker Swarm**. Chaque cluster qui a envoyé des données figure dans la liste.
+Sous **Configuration du moniteur Docker Swarm**, choisissez le cluster dans **Cluster Docker Swarm**. Chaque cluster qui a envoyé des données figure dans la liste. Une fois le choix fait, une ligne sous le champ indique si des données arrivent. **Ajouter un cluster Docker Swarm** ouvre des étapes de configuration avec vos clés déjà renseignées, qui attendent les premières données.
 
 ### Choisir ce qu'il faut surveiller
 
-Choisissez l'un des trois onglets :
+Un nouveau moniteur démarre sur **Cluster Stopped Reporting**, sous **Sur quoi alerter**. Pour surveiller autre chose :
 
-- **Quick Setup** – cliquez sur un [modèle](#modèles-dalerte-prêts-à-lemploi). Il définit la métrique, l'agrégation, la plage temporelle et les seuils, et remplace les critères plus bas par les siens. Vous pouvez toujours changer la **Plage temporelle**.
-- **Custom Metric** – choisissez une métrique dans **Métrique Docker Swarm**, puis définissez l'**Agrégation** et la **Plage temporelle**. Les [filtres](#paramètres-du-moniteur) la restreignent à certaines tâches.
-- **Avancé** – construisez vous-même des requêtes et des formules sous **Sélectionner les métriques**. Utilisez **Regrouper par** `resource.container.name` pour juger chaque tâche séparément.
+- **Modifier** – choisissez un autre [modèle](#modèles-dalerte-prêts-à-lemploi). Il définit la métrique, l'agrégation, la plage temporelle et les seuils, et remplace les critères plus bas par les siens. Vous pouvez toujours changer la **Plage temporelle**.
+- **Custom Metric** (sous **Plus de champs**) – choisissez une métrique dans **Métrique Docker Swarm**, puis définissez l'**Agrégation** et la **Plage temporelle**. Les [filtres](#paramètres-du-moniteur) la restreignent à certaines tâches.
+- **Avancé** (sous **Plus de champs**) – construisez vous-même des requêtes et des formules sous **Sélectionner les métriques**. Utilisez **Regrouper par** `resource.container.name` pour juger chaque tâche séparément.
 
 ### Vérifier les critères
 
-Ouvrez chaque critère sous **Critères du moniteur** et vérifiez sa **Métrique**, son **Agrégation**, sa **Condition** et son **Seuil**. Un modèle les remplit. Avec **Custom Metric** ou **Avancé**, le moniteur commence avec les [critères par défaut](#critères-par-défaut), qui ne remarquent qu'une métrique tombant à zéro ; définissez donc votre propre seuil.
+Ouvrez chaque critère sous **Critères du moniteur** et vérifiez sa **Métrique**, son **Agrégation**, sa **Condition** et son **Seuil**. Un modèle les remplit. Avec **Custom Metric** ou **Avancé**, le moniteur commence avec les [critères par défaut](#critères-par-défaut), qui ne remarquent qu'une métrique qui n'envoie plus de données ; définissez donc votre propre seuil.
 
 ### Créer le moniteur
 
@@ -92,7 +92,7 @@ Cliquez sur **Créer un moniteur**. OneUptime ouvre la page du moniteur et l'év
 
 ## Modèles d'alerte prêts à l'emploi
 
-**Quick Setup** propose cinq modèles. Chacun construit un moniteur complet : une requête, un critère qui se déclenche et un autre qui rétablit. Tous les modèles sauf **Cluster Stopped Reporting** regroupent leur requête par `resource.container.name`, si bien que chaque tâche est jugée séparément et reçoit son propre incident et sa propre alerte, dont la cause racine liste les tâches concernées et leurs valeurs. Les seuils sont des points de départ que vous pouvez modifier.
+La liste de **Sur quoi alerter** propose cinq modèles. Chacun construit un moniteur complet : une requête, un critère qui se déclenche et un autre qui rétablit. Tous les modèles sauf **Cluster Stopped Reporting** regroupent leur requête par `resource.container.name`, si bien que chaque tâche est jugée séparément et reçoit son propre incident et sa propre alerte, dont la cause racine liste les tâches concernées et leurs valeurs. Les seuils sont des points de départ que vous pouvez modifier.
 
 Sauf indication contraire dans le tableau, un critère ne se déclenche que si la condition est remplie à chaque minute de sa fenêtre, et il se rétablit 10 % au-delà du seuil pour qu'une valeur qui oscille autour de la limite ne bascule pas sans cesse.
 

@@ -48,19 +48,19 @@ Klikk på **Flere monitortyper** under **Monitortype**, og velg **VMware** under
 
 ### Velg vCenteret
 
-Velg vCenteret i **vCenter** under **VMware Monitor Configuration**. Hvert vCenter som har sendt data, eller som du har koblet til uten en agent, står i listen.
+Velg vCenteret i **vCenter** under **VMware Monitor Configuration**. Hvert vCenter som har sendt data, eller som du har koblet til uten en agent, står i listen. Når du har valgt, viser en linje under feltet om det kommer data. **Legg til vCenter** åpner siden med vCentere, der du kobler til et.
 
 ### Velg hva som skal overvåkes
 
-Velg en av de tre fanene:
+En ny monitor starter med **vCenter Stopped Reporting** under **Hva det skal varsles om**. Slik overvåker du noe annet:
 
-- **Quick Setup** - klikk på en [mal](#ferdige-varslingsmaler). Den setter metrikken, attributtfiltrene, aggregeringen, tidsintervallet, grupperingen og tersklene og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
-- **Custom Metric** - velg én metrikk i **VMware Metric**, og sett deretter **Aggregering** og **Tidsintervall**. Skjemaet grupperer den etter objektet den beskriver, så hver vert, VM eller datastore vurderes for seg, og [filtrene](#monitorinnstillinger) snevrer den inn til ett datasenter, én klynge, én vert, én VM, én datastore eller én ressurspool.
-- **Avansert** - bygg spørringer og formler selv under **Velg målinger**, med filtre på attributter som `disk_state`, `power_state` eller `status`. Bruk **Grupper etter** med et [identitetsattributt](#identitetsattributter) for å vurdere hvert objekt for seg.
+- **Endre** - velg en annen [mal](#ferdige-varslingsmaler). Den setter metrikken, attributtfiltrene, aggregeringen, tidsintervallet, grupperingen og tersklene og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
+- **Custom Metric** (under **Flere felt**) - velg én metrikk i **VMware Metric**, og sett deretter **Aggregering** og **Tidsintervall**. Skjemaet grupperer den etter objektet den beskriver, så hver vert, VM eller datastore vurderes for seg, og [filtrene](#monitorinnstillinger) snevrer den inn til ett datasenter, én klynge, én vert, én VM, én datastore eller én ressurspool.
+- **Avansert** (under **Flere felt**) - bygg spørringer og formler selv under **Velg målinger**, med filtre på attributter som `disk_state`, `power_state` eller `status`. Bruk **Grupper etter** med et [identitetsattributt](#identitetsattributter) for å vurdere hvert objekt for seg.
 
 ### Sjekk kriteriene
 
-Åpne hvert kriterium under **Monitorkriterier**, og sjekk **Metrikk**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller dem ut. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare oppdager at en metrikk faller til null, så sett din egen terskel.
+Åpne hvert kriterium under **Monitorkriterier**, og sjekk **Metrikk**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller dem ut. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare oppdager at metrikken ikke sender data, så sett din egen terskel.
 
 ### Opprett monitoren
 
@@ -106,7 +106,7 @@ I monitorfiltre og grupperingsnøkler begynner ressursattributter med `resource.
 
 ## Ferdige varslingsmaler
 
-OneUptime leverer 24 maler for vanlige VMware-problemer, og **Quick Setup** tilbyr alle. Hver bygger en komplett monitor: metrikkspørringen, attributtfiltrene, en gruppering på objektets eget identitetsattributt, et kriterium som utløser og et som gjenoppretter. Terskler er utgangspunkter du kan redigere.
+OneUptime leverer 24 maler for vanlige VMware-problemer, og listen under **Hva det skal varsles om** tilbyr alle. Hver bygger en komplett monitor: metrikkspørringen, attributtfiltrene, en gruppering på objektets eget identitetsattributt, et kriterium som utløser og et som gjenoppretter. Terskler er utgangspunkter du kan redigere.
 
 Malene leser de siste 5 minuttene, med mindre tabellen sier noe annet. Et kriterium utløser bare når betingelsen gjelder for hvert minutt i vinduet, og et terskelkriterium gjenoppretter 10 % forbi terskelen, så en verdi som svinger rundt linjen, ikke skifter fram og tilbake.
 

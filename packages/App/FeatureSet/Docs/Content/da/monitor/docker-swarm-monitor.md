@@ -51,19 +51,19 @@ Klik under **Monitortype** på **Flere monitortyper**, og vælg **Docker Swarm**
 
 ### Vælg klyngen
 
-Vælg klyngen i **Docker Swarm Cluster** under **Docker Swarm Monitor Configuration**. Hver klynge, der har sendt data, er på listen.
+Vælg klyngen i **Docker Swarm Cluster** under **Docker Swarm Monitor Configuration**. Hver klynge, der har sendt data, er på listen. Når du har valgt, viser en linje under feltet, om der kommer data. **Tilføj Docker Swarm-klynge** åbner opsætningstrin med dine nøgler udfyldt, som venter på de første data.
 
 ### Vælg, hvad der skal overvåges
 
-Vælg en af de tre faner:
+En ny monitor starter med **Cluster Stopped Reporting** under **Hvad der skal advares om**. Sådan overvåger du noget andet:
 
-- **Quick Setup** – klik på en [skabelon](#færdige-advarselsskabeloner). Den angiver metrikken, aggregeringen, tidsintervallet og tærsklerne og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
-- **Custom Metric** – vælg én metrik i **Docker Swarm Metric**, og angiv derefter **Aggregering** og **Tidsinterval**. [Filtrene](#monitorindstillinger) indsnævrer den til bestemte opgaver.
-- **Avanceret** – byg selv forespørgsler og formler under **Vælg målinger**. Brug **Gruppér efter** `resource.container.name` for at bedømme hver opgave for sig.
+- **Skift** – vælg en anden [skabelon](#færdige-advarselsskabeloner). Den angiver metrikken, aggregeringen, tidsintervallet og tærsklerne og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
+- **Custom Metric** (under **Flere felter**) – vælg én metrik i **Docker Swarm Metric**, og angiv derefter **Aggregering** og **Tidsinterval**. [Filtrene](#monitorindstillinger) indsnævrer den til bestemte opgaver.
+- **Avanceret** (under **Flere felter**) – byg selv forespørgsler og formler under **Vælg målinger**. Brug **Gruppér efter** `resource.container.name` for at bedømme hver opgave for sig.
 
 ### Kontrollér kriterierne
 
-Åbn hvert kriterium under **Monitorkriterier**, og kontrollér dets **Metrik**, **Aggregering**, **Betingelse** og **Tærskel**. En skabelon udfylder dem. Med **Custom Metric** eller **Avanceret** starter monitoren med [standardkriterierne](#standardkriterier), som kun bemærker, at en metrik falder til nul, så angiv din egen tærskel.
+Åbn hvert kriterium under **Monitorkriterier**, og kontrollér dets **Metrik**, **Aggregering**, **Betingelse** og **Tærskel**. En skabelon udfylder dem. Med **Custom Metric** eller **Avanceret** starter monitoren med [standardkriterierne](#standardkriterier), som kun bemærker, at metrikken ikke sender data, så angiv din egen tærskel.
 
 ### Opret monitoren
 
@@ -92,7 +92,7 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 
 ## Færdige advarselsskabeloner
 
-**Quick Setup** tilbyder fem skabeloner. Hver bygger en komplet monitor: en forespørgsel, et kriterium, der udløses, og et, der genopretter. Alle skabeloner undtagen **Cluster Stopped Reporting** grupperer deres forespørgsel efter `resource.container.name`, så hver opgave bedømmes for sig og får sin egen hændelse og sin egen advarsel, hvis grundårsag viser de berørte opgaver og deres værdier. Tærsklerne er udgangspunkter, du kan redigere.
+Listen under **Hvad der skal advares om** tilbyder fem skabeloner. Hver bygger en komplet monitor: en forespørgsel, et kriterium, der udløses, og et, der genopretter. Alle skabeloner undtagen **Cluster Stopped Reporting** grupperer deres forespørgsel efter `resource.container.name`, så hver opgave bedømmes for sig og får sin egen hændelse og sin egen advarsel, hvis grundårsag viser de berørte opgaver og deres værdier. Tærsklerne er udgangspunkter, du kan redigere.
 
 Medmindre tabellen siger andet, udløses et kriterium kun, når betingelsen gælder i hvert minut af dets vindue, og det genopretter 10 % forbi tærsklen, så en værdi, der svæver ved grænsen, ikke blafrer.
 

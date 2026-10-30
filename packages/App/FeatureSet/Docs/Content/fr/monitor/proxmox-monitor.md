@@ -48,19 +48,19 @@ Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisis
 
 ### Choisir le cluster
 
-Sous **Proxmox Monitor Configuration**, choisissez le cluster dans **Cluster Proxmox**. Chaque cluster qui a envoyé des données figure dans la liste.
+Sous **Proxmox Monitor Configuration**, choisissez le cluster dans **Cluster Proxmox**. Chaque cluster qui a envoyé des données figure dans la liste. Une fois le choix fait, une ligne sous le champ indique si des données arrivent. **Ajouter un cluster Proxmox** ouvre des étapes de configuration avec vos clés déjà renseignées, qui attendent les premières données.
 
 ### Choisir ce qu'il faut surveiller
 
-Choisissez l'un des trois onglets :
+Un nouveau moniteur démarre sur **Cluster Stopped Reporting**, sous **Sur quoi alerter**. Pour surveiller autre chose :
 
-- **Quick Setup** – cliquez sur un [modèle](#modèles-dalerte-prêts-à-lemploi). Il définit les métriques, les filtres, l'agrégation, la plage temporelle et les seuils, et remplace les critères plus bas par les siens. Vous pouvez toujours changer la **Plage temporelle**.
-- **Custom Metric** – choisissez une métrique dans **Proxmox Metric**, puis définissez l'**Agrégation** et la **Plage temporelle**. Les [filtres](#paramètres-du-moniteur) la restreignent à un type de ressource ou à une seule ressource.
-- **Avancé** – construisez vous-même des requêtes et des formules sous **Sélectionner les métriques**, par exemple un pourcentage de mémoire à partir de `pve_memory_usage_bytes / pve_memory_size_bytes`. Utilisez **Regrouper par** `id` pour juger chaque ressource séparément.
+- **Modifier** – choisissez un autre [modèle](#modèles-dalerte-prêts-à-lemploi). Il définit les métriques, les filtres, l'agrégation, la plage temporelle et les seuils, et remplace les critères plus bas par les siens. Vous pouvez toujours changer la **Plage temporelle**.
+- **Custom Metric** (sous **Plus de champs**) – choisissez une métrique dans **Proxmox Metric**, puis définissez l'**Agrégation** et la **Plage temporelle**. Les [filtres](#paramètres-du-moniteur) la restreignent à un type de ressource ou à une seule ressource.
+- **Avancé** (sous **Plus de champs**) – construisez vous-même des requêtes et des formules sous **Sélectionner les métriques**, par exemple un pourcentage de mémoire à partir de `pve_memory_usage_bytes / pve_memory_size_bytes`. Utilisez **Regrouper par** `id` pour juger chaque ressource séparément.
 
 ### Vérifier les critères
 
-Ouvrez chaque critère sous **Critères du moniteur** et vérifiez sa **Métrique**, son **Agrégation**, sa **Condition** et son **Seuil**. Un modèle les remplit. Avec **Custom Metric** ou **Avancé**, le moniteur commence avec les [critères par défaut](#critères-par-défaut), qui ne remarquent qu'une métrique tombant à zéro ; définissez donc votre propre seuil.
+Ouvrez chaque critère sous **Critères du moniteur** et vérifiez sa **Métrique**, son **Agrégation**, sa **Condition** et son **Seuil**. Un modèle les remplit. Avec **Custom Metric** ou **Avancé**, le moniteur commence avec les [critères par défaut](#critères-par-défaut), qui ne remarquent qu'une métrique qui n'envoie plus de données ; définissez donc votre propre seuil.
 
 ### Créer le moniteur
 
@@ -109,7 +109,7 @@ Filtrez sur `pve.scope` ou `pve.type` pour un type de ressource, sur `pve.id` ou
 
 ## Modèles d'alerte prêts à l'emploi
 
-**Quick Setup** propose 12 modèles. Chacun construit un moniteur complet – requêtes, filtres d'attributs, un regroupement, un critère qui se déclenche et un autre qui rétablit. La plupart regroupent par `id`, si bien que chaque nœud, invité, volume ou tâche reçoit son propre incident et sa propre alerte. Les seuils sont des points de départ que vous pouvez modifier.
+La liste de **Sur quoi alerter** propose 12 modèles. Chacun construit un moniteur complet – requêtes, filtres d'attributs, un regroupement, un critère qui se déclenche et un autre qui rétablit. La plupart regroupent par `id`, si bien que chaque nœud, invité, volume ou tâche reçoit son propre incident et sa propre alerte. Les seuils sont des points de départ que vous pouvez modifier.
 
 Les modèles lisent les 5 dernières minutes, sauf indication contraire dans le tableau. Un critère ne se déclenche que si la condition est remplie à chaque minute de sa fenêtre, et un critère à seuil se rétablit 10 % au-delà de son seuil pour qu'une valeur qui oscille autour de la limite ne bascule pas sans cesse.
 

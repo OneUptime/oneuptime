@@ -15,6 +15,8 @@ import {
 import {
   DockerAlertTemplate,
   getAllDockerAlertTemplates,
+  getDockerAlertTemplateById,
+  getDockerDefaultAlertTemplateId,
 } from "Common/Types/Monitor/DockerAlertTemplates";
 import {
   DockerMetricDefinition,
@@ -23,6 +25,8 @@ import {
 import {
   DockerSwarmAlertTemplate,
   getAllDockerSwarmAlertTemplates,
+  getDockerSwarmAlertTemplateById,
+  getDockerSwarmDefaultAlertTemplateId,
 } from "Common/Types/Monitor/DockerSwarmAlertTemplates";
 import {
   DockerSwarmMetricDefinition,
@@ -31,6 +35,8 @@ import {
 import {
   HostAlertTemplate,
   getAllHostAlertTemplates,
+  getHostAlertTemplateById,
+  getHostDefaultAlertTemplateId,
 } from "Common/Types/Monitor/HostAlertTemplates";
 import {
   HostMetricDefinition,
@@ -61,6 +67,8 @@ import MonitorType, {
 import {
   PodmanAlertTemplate,
   getAllPodmanAlertTemplates,
+  getPodmanAlertTemplateById,
+  getPodmanDefaultAlertTemplateId,
 } from "Common/Types/Monitor/PodmanAlertTemplates";
 import {
   PodmanMetricDefinition,
@@ -69,6 +77,8 @@ import {
 import {
   ProxmoxAlertTemplate,
   getAllProxmoxAlertTemplates,
+  getProxmoxAlertTemplateById,
+  getProxmoxDefaultAlertTemplateId,
 } from "Common/Types/Monitor/ProxmoxAlertTemplates";
 import {
   ProxmoxMetricDefinition,
@@ -83,9 +93,16 @@ import RollingTime from "Common/Types/RollingTime/RollingTime";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import { KUBERNETES_TEMPLATE_CATEGORIES } from "../../../FeatureSet/Dashboard/src/Components/Form/Monitor/AlertTemplatePicker/AlertTemplateCategories";
 import {
+  ALERT_TEMPLATE_CHANGE,
   ALERT_TEMPLATE_TIME_RANGE,
   AlertTemplateCategory,
 } from "../../../FeatureSet/Dashboard/src/Components/Form/Monitor/AlertTemplatePicker/AlertTemplateGroups";
+import {
+  INFRASTRUCTURE_ALERT_SECTION_TITLE,
+  INFRASTRUCTURE_CUSTOM_METRIC_TAB,
+  INFRASTRUCTURE_QUERY_BUILDER_TAB,
+} from "../../../FeatureSet/Dashboard/src/Components/Form/Monitor/InfrastructureMonitorSetup/InfrastructureMonitorSetupText";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import fs from "fs";
 import path from "path";
 
@@ -754,8 +771,12 @@ function describeTemplateTable(data: {
         `(#pre-built-alert-templates): ${capitalized} ready-made alerts`,
       );
       expect(
-        lead.includes(`**Quick Setup** offers ${word} templates.`) ||
-          lead.includes(`**Quick Setup** offers ${count} templates.`),
+        lead.includes(
+          `The **${INFRASTRUCTURE_ALERT_SECTION_TITLE}** list offers ${word} templates.`,
+        ) ||
+          lead.includes(
+            `The **${INFRASTRUCTURE_ALERT_SECTION_TITLE}** list offers ${count} templates.`,
+          ),
       ).toBe(true);
     });
   });
@@ -1445,6 +1466,13 @@ interface CreateFacts {
   resourceField: string;
   metricField: string;
   searchWord: string | null;
+  // The alert a new monitor starts on, and how the form asks for it.
+  defaultTemplateName: string;
+  defaultTemplateCall: string;
+  // The resource field's Add button, and the file its title comes from.
+  addTitle: string;
+  addTitleReference: string;
+  addTitleFile: string | null;
 }
 
 const CREATE_FACTS: Array<CreateFacts> = [
@@ -1457,6 +1485,13 @@ const CREATE_FACTS: Array<CreateFacts> = [
     resourceField: "Docker Host",
     metricField: "Docker Metric",
     searchWord: "docker",
+    defaultTemplateName: getDockerAlertTemplateById(
+      getDockerDefaultAlertTemplateId(),
+    )!.name,
+    defaultTemplateCall: "getDockerDefaultAlertTemplateId()",
+    addTitle: "Add Docker Host",
+    addTitleReference: "title: DOCKER_HOST_ONBOARDING.addTitle,",
+    addTitleFile: "Components/Docker/DockerHostOnboarding.tsx",
   },
   {
     page: HOST,
@@ -1467,6 +1502,13 @@ const CREATE_FACTS: Array<CreateFacts> = [
     resourceField: "Host",
     metricField: "Host Metric",
     searchWord: null,
+    defaultTemplateName: getHostAlertTemplateById(
+      getHostDefaultAlertTemplateId(),
+    )!.name,
+    defaultTemplateCall: "getHostDefaultAlertTemplateId()",
+    addTitle: "Add Host",
+    addTitleReference: 'title: "Add Host",',
+    addTitleFile: null,
   },
   {
     page: PODMAN,
@@ -1477,6 +1519,13 @@ const CREATE_FACTS: Array<CreateFacts> = [
     resourceField: "Podman Host",
     metricField: "Podman Metric",
     searchWord: "podman",
+    defaultTemplateName: getPodmanAlertTemplateById(
+      getPodmanDefaultAlertTemplateId(),
+    )!.name,
+    defaultTemplateCall: "getPodmanDefaultAlertTemplateId()",
+    addTitle: "Add Podman Host",
+    addTitleReference: "title: PODMAN_HOST_ONBOARDING.addTitle,",
+    addTitleFile: "Components/Podman/PodmanHostOnboarding.tsx",
   },
   {
     page: PROXMOX,
@@ -1487,6 +1536,13 @@ const CREATE_FACTS: Array<CreateFacts> = [
     resourceField: "Proxmox Cluster",
     metricField: "Proxmox Metric",
     searchWord: "proxmox",
+    defaultTemplateName: getProxmoxAlertTemplateById(
+      getProxmoxDefaultAlertTemplateId(),
+    )!.name,
+    defaultTemplateCall: "getProxmoxDefaultAlertTemplateId()",
+    addTitle: "Add Proxmox Cluster",
+    addTitleReference: "title: PROXMOX_CLUSTER_ONBOARDING.addTitle,",
+    addTitleFile: "Components/Proxmox/ProxmoxClusterOnboarding.tsx",
   },
   {
     page: SWARM,
@@ -1497,6 +1553,13 @@ const CREATE_FACTS: Array<CreateFacts> = [
     resourceField: "Docker Swarm Cluster",
     metricField: "Docker Swarm Metric",
     searchWord: "swarm",
+    defaultTemplateName: getDockerSwarmAlertTemplateById(
+      getDockerSwarmDefaultAlertTemplateId(),
+    )!.name,
+    defaultTemplateCall: "getDockerSwarmDefaultAlertTemplateId()",
+    addTitle: "Add Docker Swarm Cluster",
+    addTitleReference: "title: DOCKER_SWARM_CLUSTER_ONBOARDING.addTitle,",
+    addTitleFile: "Components/DockerSwarm/DockerSwarmClusterOnboarding.tsx",
   },
 ];
 
@@ -1536,9 +1599,12 @@ describe("creating a telemetry-backed infrastructure monitor", () => {
   );
 
   it.each(CREATE_FACTS)(
-    "$page names the form's configuration card, resource field, metric field and tabs",
+    "$page names the form's configuration card, resource field and metric field, the alert a new monitor starts on, and what More fields holds",
     (facts: CreateFacts) => {
       const form: string = source(`${FORMS}/${facts.form}`);
+      const setup: string = source(
+        `${FORMS}/InfrastructureMonitorSetup/InfrastructureMonitorSetup.tsx`,
+      );
       const page: string = englishPage(facts.page);
 
       expect(monitorStepForm).toContain(`title="${facts.configurationTitle}"`);
@@ -1548,14 +1614,47 @@ describe("creating a telemetry-backed infrastructure monitor", () => {
       expect(form).toContain(`title="${facts.metricField}"`);
       expect(page).toContain(`| **${facts.metricField}** | Custom Metric |`);
 
-      const tabs: Array<string> = Array.from(
-        form.matchAll(/name: "([^"]+)",\n\s+children: render/g),
-      ).map((match: RegExpMatchArray): string => {
-        return match[1] as string;
-      });
+      // The resource field: whether data is arriving, and its Add button.
+      expect(form).toContain("<InfrastructureResourceField");
+      expect(page).toContain(
+        "Once picked, a line under the field says whether data is arriving.",
+      );
+      expect(form).toContain(facts.addTitleReference);
+      if (facts.addTitleFile) {
+        expect(source(`${DASHBOARD_SRC}/${facts.addTitleFile}`)).toContain(
+          `addTitle: translationKey("${facts.addTitle}"),`,
+        );
+      }
+      expect(page).toContain(
+        `**${facts.addTitle}** opens setup steps with your keys filled in, which wait for the first data.`,
+      );
 
-      expect(tabs).toEqual(["Quick Setup", "Custom Metric", "Advanced"]);
-      expect(page).toContain("Pick one of the three tabs:");
+      // A new monitor starts on the type's default alert; Change picks another.
+      expect(form).toContain(facts.defaultTemplateCall);
+      expect(page).toContain(
+        `A new monitor starts on **${facts.defaultTemplateName}**, under **${INFRASTRUCTURE_ALERT_SECTION_TITLE}**. To watch something else:`,
+      );
+      expect(page).toContain(
+        `- **${ALERT_TEMPLATE_CHANGE}** — pick another [template](#pre-built-alert-templates).`,
+      );
+
+      // Templates first; a metric of your own and the query builder under More fields.
+      expect(form).toContain("<InfrastructureMonitorSetup");
+      for (const slot of [
+        "alertTemplates={",
+        "customMetric={",
+        "queryBuilder={",
+      ]) {
+        expect(form).toContain(slot);
+      }
+      expect(setup).toContain("title={MORE_FIELDS_SECTION_TITLE}");
+      expect(page).toContain(
+        `- **${INFRASTRUCTURE_CUSTOM_METRIC_TAB}** (under **${MORE_FIELDS_SECTION_TITLE}**) — pick one metric from **${facts.metricField}**`,
+      );
+      expect(page).toContain(
+        `- **${INFRASTRUCTURE_QUERY_BUILDER_TAB}** (under **${MORE_FIELDS_SECTION_TITLE}**) — build queries and formulas yourself`,
+      );
+      expect(page).not.toContain("Quick Setup");
     },
   );
 

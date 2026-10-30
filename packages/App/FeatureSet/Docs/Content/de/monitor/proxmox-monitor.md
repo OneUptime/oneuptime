@@ -48,19 +48,19 @@ Klicken Sie unter **Monitortyp** auf **Weitere Monitortypen** und wählen Sie **
 
 ### Den Cluster wählen
 
-Wählen Sie unter **Proxmox-Monitor-Konfiguration** den Cluster aus **Proxmox-Cluster**. Jeder Cluster, der Daten gesendet hat, steht in der Liste.
+Wählen Sie unter **Proxmox-Monitor-Konfiguration** den Cluster aus **Proxmox-Cluster**. Jeder Cluster, der Daten gesendet hat, steht in der Liste. Nach der Auswahl zeigt eine Zeile unter dem Feld, ob Daten ankommen. **Proxmox-Cluster hinzufügen** öffnet Einrichtungsschritte mit Ihren bereits eingetragenen Schlüsseln, die auf die ersten Daten warten.
 
 ### Festlegen, was überwacht wird
 
-Wählen Sie einen der drei Tabs:
+Ein neuer Monitor beginnt mit **Cluster Stopped Reporting** unter **Worüber benachrichtigt wird**. So überwachen Sie etwas anderes:
 
-- **Quick Setup** – klicken Sie auf eine [Vorlage](#fertige-warnungsvorlagen). Sie legt Metriken, Filter, Aggregation, Zeitbereich und Schwellenwerte fest und ersetzt die Kriterien weiter unten durch ihre eigenen. Den **Zeitbereich** können Sie weiterhin ändern.
-- **Custom Metric** – wählen Sie eine Metrik unter **Proxmox-Metrik** und legen Sie dann **Aggregation** und **Zeitbereich** fest. Die [Filter](#monitor-einstellungen) grenzen sie auf eine Art von Ressource oder auf eine einzelne Ressource ein.
-- **Erweitert** – bauen Sie unter **Metriken auswählen** selbst Abfragen und Formeln, zum Beispiel einen Speicherprozentsatz aus `pve_memory_usage_bytes / pve_memory_size_bytes`. Verwenden Sie **Gruppieren nach** `id`, um jede Ressource einzeln zu beurteilen.
+- **Ändern** – wählen Sie eine andere [Vorlage](#fertige-warnungsvorlagen). Sie legt Metriken, Filter, Aggregation, Zeitbereich und Schwellenwerte fest und ersetzt die Kriterien weiter unten durch ihre eigenen. Den **Zeitbereich** können Sie weiterhin ändern.
+- **Custom Metric** (unter **Weitere Felder**) – wählen Sie eine Metrik unter **Proxmox-Metrik** und legen Sie dann **Aggregation** und **Zeitbereich** fest. Die [Filter](#monitor-einstellungen) grenzen sie auf eine Art von Ressource oder auf eine einzelne Ressource ein.
+- **Erweitert** (unter **Weitere Felder**) – bauen Sie unter **Metriken auswählen** selbst Abfragen und Formeln, zum Beispiel einen Speicherprozentsatz aus `pve_memory_usage_bytes / pve_memory_size_bytes`. Verwenden Sie **Gruppieren nach** `id`, um jede Ressource einzeln zu beurteilen.
 
 ### Die Kriterien prüfen
 
-Öffnen Sie unter **Monitor-Kriterien** jedes Kriterium und prüfen Sie seine **Metrik**, **Aggregation**, **Bedingung** und seinen **Schwellenwert**. Eine Vorlage füllt diese aus. Mit **Custom Metric** oder **Erweitert** beginnt der Monitor mit den [Standardkriterien](#standardkriterien), die nur bemerken, wenn eine Metrik auf null fällt; legen Sie daher Ihren eigenen Schwellenwert fest.
+Öffnen Sie unter **Monitor-Kriterien** jedes Kriterium und prüfen Sie seine **Metrik**, **Aggregation**, **Bedingung** und seinen **Schwellenwert**. Eine Vorlage füllt diese aus. Mit **Custom Metric** oder **Erweitert** beginnt der Monitor mit den [Standardkriterien](#standardkriterien), die nur bemerken, wenn die Metrik keine Daten sendet; legen Sie daher Ihren eigenen Schwellenwert fest.
 
 ### Den Monitor erstellen
 
@@ -109,7 +109,7 @@ Filtern Sie nach `pve.scope` oder `pve.type` für eine Art von Ressource, nach `
 
 ## Fertige Warnungsvorlagen
 
-**Quick Setup** bietet 12 Vorlagen. Jede baut einen vollständigen Monitor – Abfragen, Attributfilter, eine Gruppierung, ein Kriterium, das auslöst, und eines, das wiederherstellt. Die meisten gruppieren nach `id`, sodass jeder Knoten, Gast, jedes Volume und jeder Job einen eigenen Vorfall und eine eigene Warnung erhält. Die Schwellenwerte sind Ausgangswerte, die Sie anpassen können.
+Die Liste unter **Worüber benachrichtigt wird** bietet 12 Vorlagen. Jede baut einen vollständigen Monitor – Abfragen, Attributfilter, eine Gruppierung, ein Kriterium, das auslöst, und eines, das wiederherstellt. Die meisten gruppieren nach `id`, sodass jeder Knoten, Gast, jedes Volume und jeder Job einen eigenen Vorfall und eine eigene Warnung erhält. Die Schwellenwerte sind Ausgangswerte, die Sie anpassen können.
 
 Vorlagen lesen die letzten 5 Minuten, sofern die Tabelle nichts anderes sagt. Ein Kriterium löst nur aus, wenn die Bedingung in jeder Minute seines Zeitfensters gilt, und ein Schwellenwert-Kriterium wird 10 % jenseits seines Schwellenwerts wiederhergestellt, damit ein Wert, der um die Grenze pendelt, nicht hin- und herspringt.
 

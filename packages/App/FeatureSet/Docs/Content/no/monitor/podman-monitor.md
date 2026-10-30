@@ -48,19 +48,19 @@ Klikk på **Flere monitortyper** under **Monitortype**, og velg **Podman Contain
 
 ### Velg verten
 
-Velg verten i **Podman-vert** under **Podman Monitor Configuration**. Hver vert som har sendt data, står i listen.
+Velg verten i **Podman-vert** under **Podman Monitor Configuration**. Hver vert som har sendt data, står i listen. Når du har valgt, viser en linje under feltet om det kommer data. **Legg til Podman-vert** åpner oppsettstrinn med nøklene dine fylt inn, som venter på de første dataene.
 
 ### Velg hva som skal overvåkes
 
-Velg en av de tre fanene:
+En ny monitor starter med **Host Stopped Reporting** under **Hva det skal varsles om**. Slik overvåker du noe annet:
 
-- **Quick Setup** – klikk på en [mal](#ferdige-varslingsmaler). Den angir metrikken, aggregeringen, tidsintervallet og tersklene, og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
-- **Custom Metric** – velg én metrikk i **Podman Metric**, og angi deretter **Aggregering** og **Tidsintervall**. **Containernavn** og **Container-bilde** snevrer den inn til bestemte containere.
-- **Avansert** – bygg spørringer og formler selv under **Velg målinger**. Bruk **Grupper etter** `resource.container.name` for å vurdere hver container for seg.
+- **Endre** – velg en annen [mal](#ferdige-varslingsmaler). Den angir metrikken, aggregeringen, tidsintervallet og tersklene, og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
+- **Custom Metric** (under **Flere felt**) – velg én metrikk i **Podman Metric**, og angi deretter **Aggregering** og **Tidsintervall**. **Containernavn** og **Container-bilde** snevrer den inn til bestemte containere.
+- **Avansert** (under **Flere felt**) – bygg spørringer og formler selv under **Velg målinger**. Bruk **Grupper etter** `resource.container.name` for å vurdere hver container for seg.
 
 ### Kontroller kriteriene
 
-Åpne hvert kriterium under **Monitorkriterier** og kontroller **Metrikk**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller inn disse. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare merker at en metrikk faller til null, så angi din egen terskel.
+Åpne hvert kriterium under **Monitorkriterier** og kontroller **Metrikk**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller inn disse. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare merker at metrikken ikke sender data, så angi din egen terskel.
 
 ### Opprett monitoren
 
@@ -84,7 +84,7 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 
 ## Ferdige varslingsmaler
 
-**Quick Setup** tilbyr seks maler. Hver bygger en komplett monitor: en spørring, et kriterium som utløses, og et som gjenoppretter. Alle maler unntatt **Host Stopped Reporting** grupperer spørringen sin etter `resource.container.name`, så hver container vurderes for seg og får sin egen hendelse og sitt eget varsel. Tersklene er utgangspunkter du kan redigere.
+Listen under **Hva det skal varsles om** tilbyr seks maler. Hver bygger en komplett monitor: en spørring, et kriterium som utløses, og et som gjenoppretter. Alle maler unntatt **Host Stopped Reporting** grupperer spørringen sin etter `resource.container.name`, så hver container vurderes for seg og får sin egen hendelse og sitt eget varsel. Tersklene er utgangspunkter du kan redigere.
 
 Et kriterium utløses bare når betingelsen gjelder i hvert minutt av vinduet, og det gjenoppretter 10 % forbi terskelen, slik at en verdi som svever ved grensen, ikke blafrer.
 

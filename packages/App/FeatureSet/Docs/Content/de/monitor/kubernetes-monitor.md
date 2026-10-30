@@ -34,15 +34,15 @@ Gehen Sie zu **Monitore** und klicken Sie auf **Monitor erstellen**. Wählen Sie
 
 ### Den Cluster wählen
 
-Wählen Sie ihn unter **Kubernetes-Cluster**. Die Liste enthält jeden Cluster, aus dem der Agent gemeldet hat.
+Wählen Sie ihn unter **Kubernetes-Cluster**. Die Liste enthält jeden Cluster, aus dem der Agent gemeldet hat. Nach der Auswahl zeigt eine Zeile unter dem Feld, ob Daten ankommen. **Kubernetes-Cluster hinzufügen** öffnet Einrichtungsschritte mit Ihren bereits eingetragenen Schlüsseln, die auf die ersten Daten warten.
 
 ### Festlegen, was überwacht wird
 
-Verwenden Sie einen der drei Tabs:
+Ein neuer Monitor beginnt mit **Cluster Stopped Reporting** unter **Worüber benachrichtigt wird**; **Ändern** wählt eine andere Vorlage. **Custom Metric** und **Erweitert** liegen unter **Weitere Felder**:
 
-| Tab | Was Sie wählen |
+| Wo | Was Sie wählen |
 | --- | --- |
-| **Quick Setup** | Eine [fertige Warnungsvorlage](#fertige-warnungsvorlagen). Sie füllt Metrik, Bereich, Zeitbereich und Kriterien aus; den **Zeitbereich** können Sie weiterhin ändern. |
+| **Worüber benachrichtigt wird** | Eine [fertige Warnungsvorlage](#fertige-warnungsvorlagen). Sie füllt Metrik, Bereich, Zeitbereich und Kriterien aus; den **Zeitbereich** können Sie weiterhin ändern. |
 | **Custom Metric** | Eine Metrik aus dem [Metrikkatalog](#metrikkatalog), dann ihren **Ressourcenbereich**, Filter, **Aggregation** (Durchschnitt, Maximum, Minimum, Summe oder Anzahl) und **Zeitbereich**. |
 | **Erweitert** | Den **Ressourcenbereich**, Filter und **Zeitbereich** sowie unter **Metriken auswählen** Ihre eigenen Metrikabfragen und Formeln, mit einem Live-Diagramm des Ergebnisses. |
 
@@ -128,7 +128,7 @@ Jeder Messwert wird mit einer Baseline derselben Stunde der Woche verglichen, di
 
 ## Fertige Warnungsvorlagen
 
-Der Tab **Quick Setup** listet diese Vorlagen auf, gruppiert nach Kategorie. Jede füllt zwei Kriterien aus: eines, das den Monitor als offline markiert und einen Vorfall und eine Warnung auslöst, solange die Bedingung gilt, und eines, das ihn wieder online setzt, wenn sie nicht mehr gilt.
+Unter **Worüber benachrichtigt wird** stehen diese Vorlagen, gruppiert nach Kategorie. Jede füllt zwei Kriterien aus: eines, das den Monitor als offline markiert und einen Vorfall und eine Warnung auslöst, solange die Bedingung gilt, und eines, das ihn wieder online setzt, wenn sie nicht mehr gilt.
 
 | Vorlage | Kategorie | Löst aus, wenn | Schweregrad |
 | --- | --- | --- | --- |

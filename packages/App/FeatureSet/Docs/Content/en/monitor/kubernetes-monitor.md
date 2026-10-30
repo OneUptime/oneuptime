@@ -34,15 +34,15 @@ Go to **Monitors** and click **Create Monitor**. Under **More monitor types**, p
 
 ### Pick the cluster
 
-Select it in **Kubernetes Cluster**. The list holds every cluster the agent has reported from.
+Select it in **Kubernetes Cluster**. The list holds every cluster the agent has reported from. Once picked, a line under the field says whether data is arriving. **Add Kubernetes Cluster** opens setup steps with your keys filled in, which wait for the first data.
 
 ### Choose what to watch
 
-Use one of the three tabs:
+A new monitor starts on **Cluster Stopped Reporting**, under **What to alert on**; **Change** picks another template. **Custom Metric** and **Advanced** are under **More fields**:
 
-| Tab | What you choose |
+| Where | What you choose |
 | --- | --- |
-| **Quick Setup** | A [pre-built alert template](#pre-built-alert-templates). It fills in the metric, scope, time range and criteria; you can still change the **Time Range**. |
+| **What to alert on** | A [pre-built alert template](#pre-built-alert-templates). It fills in the metric, scope, time range and criteria; you can still change the **Time Range**. |
 | **Custom Metric** | One metric from the [metric catalog](#metric-catalog), then its **Resource Scope**, filters, **Aggregation** (Average, Maximum, Minimum, Sum or Count) and **Time Range**. |
 | **Advanced** | The **Resource Scope**, filters and **Time Range**, and your own metric queries and formulas under **Select Metrics**, with a live chart of the result. |
 
@@ -128,7 +128,7 @@ Each sample is compared with a same-hour-of-week baseline built from the **Basel
 
 ## Pre-built alert templates
 
-The **Quick Setup** tab lists these templates, grouped by category. Each one fills in two criteria: one that marks the monitor offline and opens an incident and an alert when the condition holds, and one that brings it back online when it clears.
+The **What to alert on** list holds these templates, grouped by category. Each one fills in two criteria: one that marks the monitor offline and opens an incident and an alert when the condition holds, and one that brings it back online when it clears.
 
 | Template | Category | Fires when | Severity |
 | --- | --- | --- | --- |

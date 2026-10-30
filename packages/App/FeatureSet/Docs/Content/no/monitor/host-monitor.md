@@ -61,19 +61,19 @@ Klikk på **Flere monitortyper** under **Monitortype**, og velg **Vert** under *
 
 ### Velg verten
 
-Velg maskinen i **Vert** under **Host Monitor Configuration**. Hver vert som har sendt data, står i listen.
+Velg maskinen i **Vert** under **Host Monitor Configuration**. Hver vert som har sendt data, står i listen. Når du har valgt, viser en linje under feltet om det kommer data. **Legg til vert** åpner oppsettstrinn med nøklene dine fylt inn, som venter på de første dataene.
 
 ### Velg hva som skal overvåkes
 
-Velg en av de tre fanene:
+En ny monitor starter med **Host Stopped Reporting** under **Hva det skal varsles om**. Slik overvåker du noe annet:
 
-- **Quick Setup** – klikk på en [mal](#ferdige-varslingsmaler). Den angir metrikken, aggregeringen, tidsintervallet og tersklene, og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
-- **Custom Metric** – velg én metrikk i **Host Metric**, og angi deretter **Aggregering** og **Tidsintervall**.
-- **Avansert** – bygg spørringer og formler selv under **Velg målinger**, for eksempel et filter på `state` eller en gruppering etter `mountpoint`.
+- **Endre** – velg en annen [mal](#ferdige-varslingsmaler). Den angir metrikken, aggregeringen, tidsintervallet og tersklene, og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
+- **Custom Metric** (under **Flere felt**) – velg én metrikk i **Host Metric**, og angi deretter **Aggregering** og **Tidsintervall**.
+- **Avansert** (under **Flere felt**) – bygg spørringer og formler selv under **Velg målinger**, for eksempel et filter på `state` eller en gruppering etter `mountpoint`.
 
 ### Kontroller kriteriene
 
-Åpne hvert kriterium under **Monitorkriterier** og kontroller **Metrikk**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller inn disse. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare merker at en metrikk faller til null, så angi din egen terskel.
+Åpne hvert kriterium under **Monitorkriterier** og kontroller **Metrikk**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller inn disse. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare merker at metrikken ikke sender data, så angi din egen terskel.
 
 ### Opprett monitoren
 
@@ -95,7 +95,7 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 
 ## Ferdige varslingsmaler
 
-**Quick Setup** tilbyr seks maler. Hver bygger en komplett monitor: en spørring, et kriterium som utløses, og et som gjenoppretter. Tersklene er utgangspunkter du kan redigere.
+Listen under **Hva det skal varsles om** tilbyr seks maler. Hver bygger en komplett monitor: en spørring, et kriterium som utløses, og et som gjenoppretter. Tersklene er utgangspunkter du kan redigere.
 
 Et kriterium utløses bare når betingelsen gjelder i hvert minutt av vinduet, og det gjenoppretter 10 % forbi terskelen, slik at en verdi som svever ved grensen, ikke blafrer.
 
@@ -119,7 +119,7 @@ Et kriterium utløses bare når betingelsen gjelder i hvert minutt av vinduet, o
 
 ## Innsamlede metrikker
 
-Listen **Host Metric** tilbyr disse metrikkene. Hver bærer `resource.host.name`, som er måten monitoren avgrenser spørringene sine til én vert på.
+Listen **Host Metric** tilbyr disse metrikkene. Hver bærer `resource.host.name`, som er måten monitoren avgrenser spørringene sine til én vert på. Valgt der teller CPU tilstanden `user`, minne- og filsystembruk tilstanden `used`, og filsystemer og prosesser gir én serie per monteringspunkt og status.
 
 > [!IMPORTANT]
 > Utnyttelsesmetrikkene er et forhold fra 0 til 1, ikke en prosent: bruk `0.8` for 80 % i en terskel på den rå metrikken. Malene regner om til prosent med en formel, så tersklene deres er 80, 85 og 90.

@@ -57,19 +57,19 @@ Em **Tipo de monitor**, clique em **Mais tipos de monitor** e escolha **Ceph** e
 
 ### Escolher o cluster
 
-Em **Ceph Monitor Configuration**, escolha o cluster em **Cluster Ceph**. Todo cluster que já enviou dados está na lista.
+Em **Ceph Monitor Configuration**, escolha o cluster em **Cluster Ceph**. Todo cluster que já enviou dados está na lista. Depois da escolha, uma linha abaixo do campo diz se estão chegando dados. **Adicionar cluster Ceph** abre passos de configuração com as suas chaves já preenchidas, que esperam os primeiros dados.
 
 ### Escolher o que acompanhar
 
-Escolha uma das três abas:
+Um monitor novo começa com **Cluster Stopped Reporting**, em **Sobre o que alertar**. Para vigiar outra coisa:
 
-- **Quick Setup** — clique em um [modelo](#modelos-de-alerta-prontos). Ele define as métricas, os filtros, a agregação, o intervalo de tempo e os limites, e substitui os critérios abaixo pelos seus. Você ainda pode mudar o **Intervalo de tempo**.
-- **Custom Metric** — escolha uma métrica em **Ceph Metric** e depois defina **Agregação** e **Intervalo de tempo**. **OSD** e **Pool ID** restringem a um daemon ou a um pool.
-- **Avançado** — monte você mesmo consultas e fórmulas em **Selecionar Métricas**, por exemplo uma razão de capacidade usada a partir de `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Use **Agrupar por** `ceph_daemon` ou `pool_id` para avaliar cada daemon ou pool separadamente.
+- **Alterar** — escolha outro [modelo](#modelos-de-alerta-prontos). Ele define as métricas, os filtros, a agregação, o intervalo de tempo e os limites, e substitui os critérios abaixo pelos seus. Você ainda pode mudar o **Intervalo de tempo**.
+- **Custom Metric** (em **Mais campos**) — escolha uma métrica em **Ceph Metric** e depois defina **Agregação** e **Intervalo de tempo**. **OSD** e **Pool ID** restringem a um daemon ou a um pool.
+- **Avançado** (em **Mais campos**) — monte você mesmo consultas e fórmulas em **Selecionar Métricas**, por exemplo uma razão de capacidade usada a partir de `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Use **Agrupar por** `ceph_daemon` ou `pool_id` para avaliar cada daemon ou pool separadamente.
 
 ### Conferir os critérios
 
-Abra cada critério em **Critérios do monitor** e confira **Métrica**, **Agregação**, **Condição** e **Limite**. Um modelo preenche esses campos. Com **Custom Metric** ou **Avançado**, o monitor começa com os [critérios padrão](#critérios-padrão), que só percebem uma métrica caindo para zero, então defina seu próprio limite.
+Abra cada critério em **Critérios do monitor** e confira **Métrica**, **Agregação**, **Condição** e **Limite**. Um modelo preenche esses campos. Com **Custom Metric** ou **Avançado**, o monitor começa com os [critérios padrão](#critérios-padrão), que só percebem uma métrica que não envia dados, então defina seu próprio limite.
 
 ### Criar o monitor
 
@@ -99,7 +99,7 @@ As séries de dados dos pools têm só o rótulo `pool_id`: o nome do pool exist
 
 ## Modelos de alerta prontos
 
-**Quick Setup** oferece 24 modelos que cobrem um cluster silencioso, a saúde do cluster, os OSDs, os placement groups e a capacidade. Cada um monta um monitor completo — consultas, filtros de rótulos, um agrupamento, um critério que dispara e outro que recupera. Os limites são pontos de partida que você pode editar.
+A lista de **Sobre o que alertar** oferece 24 modelos que cobrem um cluster silencioso, a saúde do cluster, os OSDs, os placement groups e a capacidade. Cada um monta um monitor completo — consultas, filtros de rótulos, um agrupamento, um critério que dispara e outro que recupera. Os limites são pontos de partida que você pode editar.
 
 Os modelos leem os últimos 5 minutos, a menos que a tabela diga outra coisa. Um critério só dispara quando a condição vale em todos os minutos da sua janela, e um critério com limite recupera 10% além do limite, para que um valor que oscila na linha não fique alternando. **Gravidade** é o rótulo que o seletor mostra; o incidente e o alerta criados por um modelo começam com a gravidade de incidente e de alerta mais alta do seu projeto.
 

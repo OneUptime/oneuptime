@@ -12,7 +12,13 @@ import {
 import {
   IoTAlertTemplate,
   getAllIoTAlertTemplates,
+  getIoTAlertTemplateById,
+  getIoTDefaultAlertTemplateId,
 } from "Common/Types/Monitor/IotAlertTemplates";
+import {
+  getStorageArrayAlertTemplateById,
+  getStorageArrayDefaultAlertTemplateId,
+} from "Common/Types/Monitor/StorageArrayAlertTemplates";
 import {
   IoTMetricDefinition,
   getAllIoTMetrics,
@@ -32,12 +38,24 @@ import { getStorageArrayMetric } from "Common/Types/Monitor/StorageArrayMetricCa
 import {
   VMwareAlertTemplate,
   getAllVMwareAlertTemplates,
+  getVMwareAlertTemplateById,
+  getVMwareDefaultAlertTemplateId,
 } from "Common/Types/Monitor/VMwareAlertTemplates";
 import ObjectID from "Common/Types/ObjectID";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import { DEFAULT_VMWARE_COLLECTION_INTERVAL_IN_MINUTES } from "Common/Utils/VMware/VMwareCollectionSettings";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
-import { ALERT_TEMPLATE_TIME_RANGE } from "../../../FeatureSet/Dashboard/src/Components/Form/Monitor/AlertTemplatePicker/AlertTemplateGroups";
+import {
+  ALERT_TEMPLATE_CHANGE,
+  ALERT_TEMPLATE_TIME_RANGE,
+} from "../../../FeatureSet/Dashboard/src/Components/Form/Monitor/AlertTemplatePicker/AlertTemplateGroups";
+import {
+  INFRASTRUCTURE_ADD_VCENTER,
+  INFRASTRUCTURE_ALERT_SECTION_TITLE,
+  INFRASTRUCTURE_CUSTOM_METRIC_TAB,
+  INFRASTRUCTURE_QUERY_BUILDER_TAB,
+} from "../../../FeatureSet/Dashboard/src/Components/Form/Monitor/InfrastructureMonitorSetup/InfrastructureMonitorSetupText";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import fs from "fs";
 import path from "path";
 
@@ -75,7 +93,19 @@ const TABLE_DELIMITER_ROW: RegExp = /^\|\s*:?-/;
 const INLINE_CODE: RegExp = /`([^`\n]+)`/;
 const AGGREGATION_LABEL: RegExp =
   /\{ label: "([^"]+)", value: MetricsAggregationType\.\w+ \}/g;
-const TAB_NAME: RegExp = /name: "([^"]+)",\n\s+children: render/g;
+/*
+ * The setup every infrastructure form draws: what a new monitor starts on,
+ * and what its resource field's Add button opens.
+ */
+interface SetupFacts {
+  defaultTemplateName: string;
+  // How the form asks for its default template.
+  defaultTemplateCall: string;
+  addTitle: string;
+  // Where the form's Add button title comes from, and that file's label.
+  addTitleSource: { file: string; reference: string } | null;
+  addOpens: string;
+}
 
 const IDS: {
   onlineMonitorStatusId: ObjectID;
@@ -308,16 +338,52 @@ describe("creating a storage array, IoT device or VMware monitor", () => {
     },
   );
 
+  const SETUP_FACTS: Record<string, SetupFacts> = {
+    [STORAGE]: {
+      // No array picked yet: FlashArray's, with the platform left open.
+      defaultTemplateName: getStorageArrayAlertTemplateById(
+        getStorageArrayDefaultAlertTemplateId(),
+      )!.name,
+      defaultTemplateCall: "getStorageArrayDefaultAlertTemplateId(",
+      addTitle: "Add Storage Array",
+      addTitleSource: {
+        file: `${DASHBOARD_SRC}/Components/StorageArray/StorageArrayOnboarding.tsx`,
+        reference: "STORAGE_ARRAY_ONBOARDING.addTitle",
+      },
+      addOpens: "opens setup steps with your keys filled in, which wait for the first data.",
+    },
+    [IOT]: {
+      defaultTemplateName: getIoTAlertTemplateById(
+        getIoTDefaultAlertTemplateId(),
+      )!.name,
+      defaultTemplateCall: "getIoTDefaultAlertTemplateId()",
+      addTitle: "Add IoT Fleet",
+      addTitleSource: {
+        file: `${DASHBOARD_SRC}/Components/IoT/IoTFleetOnboarding.tsx`,
+        reference: "IOT_FLEET_ONBOARDING.addTitle",
+      },
+      addOpens: "opens setup steps with your keys filled in, which wait for the first data.",
+    },
+    [VMWARE]: {
+      defaultTemplateName: getVMwareAlertTemplateById(
+        getVMwareDefaultAlertTemplateId(),
+      )!.name,
+      defaultTemplateCall: "getVMwareDefaultAlertTemplateId()",
+      addTitle: INFRASTRUCTURE_ADD_VCENTER,
+      addTitleSource: null,
+      addOpens: "opens the vCenters page, where you connect one.",
+    },
+  };
+
   it.each(CREATE_FACTS)(
-    "$page names the configuration card, resource field, metric field and tabs as the form draws them",
+    "$page names the configuration card, resource field and metric field, the alert a new monitor starts on, and what More fields holds, as the form draws them",
     (facts: CreateFacts) => {
       const form: string = source(`${FORMS}/${facts.form}`);
-      const page: string = englishPage(facts.page);
-      const tabs: Array<string> = Array.from(form.matchAll(TAB_NAME)).map(
-        (match: RegExpMatchArray): string => {
-          return match[1] as string;
-        },
+      const setup: string = source(
+        `${FORMS}/InfrastructureMonitorSetup/InfrastructureMonitorSetup.tsx`,
       );
+      const page: string = englishPage(facts.page);
+      const setupFacts: SetupFacts = SETUP_FACTS[facts.page] as SetupFacts;
 
       expect(monitorStepForm).toContain(`title="${facts.configurationTitle}"`);
       expect(page).toContain(`Under **${facts.configurationTitle}**, pick the`);
@@ -325,8 +391,50 @@ describe("creating a storage array, IoT device or VMware monitor", () => {
       expect(page).toContain(`from **${facts.resourceField}**.`);
       expect(form).toContain(`title="${facts.metricField}"`);
       expect(page).toContain(`| **${facts.metricField}** | Custom Metric |`);
-      expect(tabs).toEqual(["Quick Setup", "Custom Metric", "Advanced"]);
-      expect(page).toContain("Pick one of the three tabs:");
+
+      // The resource field: whether data is arriving, and its Add button.
+      expect(form).toContain("<InfrastructureResourceField");
+      expect(page).toContain(
+        "Once picked, a line under the field says whether data is arriving.",
+      );
+      if (setupFacts.addTitleSource) {
+        expect(form).toContain(`title: ${setupFacts.addTitleSource.reference},`);
+        expect(source(setupFacts.addTitleSource.file)).toContain(
+          `addTitle: translationKey("${setupFacts.addTitle}"),`,
+        );
+      } else {
+        expect(form).toContain("title: INFRASTRUCTURE_ADD_VCENTER,");
+      }
+      expect(page).toContain(
+        `**${setupFacts.addTitle}** ${setupFacts.addOpens}`,
+      );
+
+      // A new monitor starts on the type's default alert; Change picks another.
+      expect(form).toContain(setupFacts.defaultTemplateCall);
+      expect(page).toContain(
+        `A new monitor starts on **${setupFacts.defaultTemplateName}**, under **${INFRASTRUCTURE_ALERT_SECTION_TITLE}**. To watch something else:`,
+      );
+      expect(page).toContain(
+        `- **${ALERT_TEMPLATE_CHANGE}** - pick another [template](#pre-built-alert-templates).`,
+      );
+
+      // Templates first; a metric of your own and the query builder under More fields.
+      expect(form).toContain("<InfrastructureMonitorSetup");
+      for (const slot of [
+        "alertTemplates={",
+        "customMetric={",
+        "queryBuilder={",
+      ]) {
+        expect(form).toContain(slot);
+      }
+      expect(setup).toContain("title={MORE_FIELDS_SECTION_TITLE}");
+      expect(page).toContain(
+        `- **${INFRASTRUCTURE_CUSTOM_METRIC_TAB}** (under **${MORE_FIELDS_SECTION_TITLE}**) - pick one metric from **${facts.metricField}**`,
+      );
+      expect(page).toContain(
+        `- **${INFRASTRUCTURE_QUERY_BUILDER_TAB}** (under **${MORE_FIELDS_SECTION_TITLE}**) - build queries and formulas yourself`,
+      );
+      expect(page).not.toContain("Quick Setup");
       expect(form).toContain('title="Time Range"');
       expect(form).toContain('title="Select Metrics"');
       // A picked template's Time Range, under the template the list folds into.
@@ -766,7 +874,7 @@ describe("the IoT Device templates", () => {
       }),
     );
     expect(englishPage(IOT)).toContain(
-      `**Quick Setup** offers ${templates.length} templates.`,
+      `The **${INFRASTRUCTURE_ALERT_SECTION_TITLE}** list offers ${templates.length} templates.`,
     );
   });
 

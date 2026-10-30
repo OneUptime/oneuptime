@@ -48,19 +48,19 @@ Klik onder **Monitortype** op **Meer monitortypen** en kies **Docker Container**
 
 ### De host kiezen
 
-Kies onder **Docker-monitorconfiguratie** de host in **Docker-host**. Elke host die gegevens heeft verstuurd, staat in de lijst.
+Kies onder **Docker-monitorconfiguratie** de host in **Docker-host**. Elke host die gegevens heeft verstuurd, staat in de lijst. Na de keuze toont een regel onder het veld of er gegevens binnenkomen. **Docker-host toevoegen** opent installatiestappen met uw sleutels al ingevuld, die op de eerste gegevens wachten.
 
 ### Kiezen wat u bewaakt
 
-Kies een van de drie tabbladen:
+Een nieuwe monitor begint met **Host Stopped Reporting**, onder **Waarover te waarschuwen**. Om iets anders te bewaken:
 
-- **Quick Setup** – klik op een [sjabloon](#kant-en-klare-waarschuwingssjablonen). Het stelt de metriek, de aggregatie, het tijdsbereik en de drempels in, en vervangt de criteria hieronder door die van het sjabloon. Het **Tijdsbereik** kunt u nog wijzigen.
-- **Custom Metric** – kies één metriek in **Docker-metriek** en stel dan **Aggregatie** en **Tijdsbereik** in. **Containernaam** en **Container-image** beperken hem tot bepaalde containers.
-- **Geavanceerd** – bouw zelf query's en formules onder **Selecteer metrieken**. Gebruik **Groeperen op** `resource.container.name` om elke container afzonderlijk te beoordelen.
+- **Wijzigen** – kies een ander [sjabloon](#kant-en-klare-waarschuwingssjablonen). Het stelt de metriek, de aggregatie, het tijdsbereik en de drempels in, en vervangt de criteria hieronder door die van het sjabloon. Het **Tijdsbereik** kunt u nog wijzigen.
+- **Custom Metric** (onder **Meer velden**) – kies één metriek in **Docker-metriek** en stel dan **Aggregatie** en **Tijdsbereik** in. **Containernaam** en **Container-image** beperken hem tot bepaalde containers.
+- **Geavanceerd** (onder **Meer velden**) – bouw zelf query's en formules onder **Selecteer metrieken**. Gebruik **Groeperen op** `resource.container.name` om elke container afzonderlijk te beoordelen.
 
 ### De criteria controleren
 
-Open elk criterium onder **Monitorcriteria** en controleer de **Metriek**, **Aggregatie**, **Voorwaarde** en **Drempel**. Een sjabloon vult deze in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen opmerken dat een metriek naar nul zakt; stel daarom uw eigen drempel in.
+Open elk criterium onder **Monitorcriteria** en controleer de **Metriek**, **Aggregatie**, **Voorwaarde** en **Drempel**. Een sjabloon vult deze in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen opmerken dat de metriek geen gegevens stuurt; stel daarom uw eigen drempel in.
 
 ### De monitor maken
 
@@ -84,7 +84,7 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en evalueert
 
 ## Kant-en-klare waarschuwingssjablonen
 
-**Quick Setup** biedt zeven sjablonen. Elk bouwt een complete monitor: een query, een criterium dat afgaat en een dat herstelt. Elk sjabloon behalve **Host Stopped Reporting** groepeert zijn query op `resource.container.name`, zodat elke container afzonderlijk wordt beoordeeld, een drukke container geen andere verbergt, en elke container over de drempel een eigen incident en een eigen waarschuwing krijgt. De drempels zijn uitgangspunten die u kunt aanpassen.
+De lijst onder **Waarover te waarschuwen** biedt zeven sjablonen. Elk bouwt een complete monitor: een query, een criterium dat afgaat en een dat herstelt. Elk sjabloon behalve **Host Stopped Reporting** groepeert zijn query op `resource.container.name`, zodat elke container afzonderlijk wordt beoordeeld, een drukke container geen andere verbergt, en elke container over de drempel een eigen incident en een eigen waarschuwing krijgt. De drempels zijn uitgangspunten die u kunt aanpassen.
 
 Tenzij de tabel iets anders zegt, gaat een criterium alleen af als de voorwaarde elke minuut van zijn venster geldt, en herstelt het 10% voorbij de drempel, zodat een waarde die rond de grens schommelt niet heen en weer springt.
 

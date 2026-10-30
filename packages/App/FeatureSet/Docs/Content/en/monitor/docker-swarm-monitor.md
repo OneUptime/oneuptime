@@ -51,19 +51,19 @@ Under **Monitor Type**, click **More monitor types** and pick **Docker Swarm** u
 
 ### Choose the cluster
 
-Under **Docker Swarm Monitor Configuration**, pick the cluster from **Docker Swarm Cluster**. Every cluster that has sent data is in the list.
+Under **Docker Swarm Monitor Configuration**, pick the cluster from **Docker Swarm Cluster**. Every cluster that has sent data is in the list. Once picked, a line under the field says whether data is arriving. **Add Docker Swarm Cluster** opens setup steps with your keys filled in, which wait for the first data.
 
 ### Choose what to watch
 
-Pick one of the three tabs:
+A new monitor starts on **Cluster Stopped Reporting**, under **What to alert on**. To watch something else:
 
-- **Quick Setup** — click a [template](#pre-built-alert-templates). It sets the metric, aggregation, time range and thresholds, and replaces the criteria below with its own. You can still change the **Time Range**.
-- **Custom Metric** — pick one metric from **Docker Swarm Metric**, then set **Aggregation** and **Time Range**. The [filters](#monitor-settings) narrow it to some tasks.
-- **Advanced** — build queries and formulas yourself under **Select Metrics**. Use **Group by** `resource.container.name` to judge each task on its own.
+- **Change** — pick another [template](#pre-built-alert-templates). It sets the metric, aggregation, time range and thresholds, and replaces the criteria below with its own. You can still change the **Time Range**.
+- **Custom Metric** (under **More fields**) — pick one metric from **Docker Swarm Metric**, then set **Aggregation** and **Time Range**. The [filters](#monitor-settings) narrow it to some tasks.
+- **Advanced** (under **More fields**) — build queries and formulas yourself under **Select Metrics**. Use **Group by** `resource.container.name` to judge each task on its own.
 
 ### Check the criteria
 
-Open each criteria under **Monitor Criteria** and check its **Metric**, **Aggregation**, **Condition** and **Threshold**. A template fills these in. With **Custom Metric** or **Advanced**, the monitor starts with the [default criteria](#default-criteria), which only notice a metric dropping to zero, so set your own threshold.
+Open each criteria under **Monitor Criteria** and check its **Metric**, **Aggregation**, **Condition** and **Threshold**. A template fills these in. With **Custom Metric** or **Advanced**, the monitor starts with the [default criteria](#default-criteria), which only notice the metric sending no data, so set your own threshold.
 
 ### Create the monitor
 
@@ -92,7 +92,7 @@ Click **Create Monitor**. OneUptime opens the monitor's page and evaluates it ev
 
 ## Pre-built Alert Templates
 
-**Quick Setup** offers five templates. Each builds a complete monitor: a query, a criteria that fires and one that recovers. Every template but **Cluster Stopped Reporting** groups its query by `resource.container.name`, so every task is judged on its own and gets its own incident and alert, whose root cause lists the affected tasks and their values. Thresholds are starting points you can edit.
+The **What to alert on** list offers five templates. Each builds a complete monitor: a query, a criteria that fires and one that recovers. Every template but **Cluster Stopped Reporting** groups its query by `resource.container.name`, so every task is judged on its own and gets its own incident and alert, whose root cause lists the affected tasks and their values. Thresholds are starting points you can edit.
 
 Unless the table says otherwise, a criteria fires only when the condition holds for every minute of its window, and recovers 10% past the threshold so a value hovering at the line does not flap.
 

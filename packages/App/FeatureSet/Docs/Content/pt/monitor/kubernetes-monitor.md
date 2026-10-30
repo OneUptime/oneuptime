@@ -34,15 +34,15 @@ Acesse **Monitores** e clique em **Criar monitor**. Em **Mais tipos de monitor**
 
 ### Escolher o cluster
 
-Selecione-o em **Cluster Kubernetes**. A lista contém todo cluster a partir do qual o agente informou.
+Selecione-o em **Cluster Kubernetes**. A lista contém todo cluster a partir do qual o agente informou. Depois da escolha, uma linha abaixo do campo diz se estão chegando dados. **Adicionar cluster Kubernetes** abre passos de configuração com as suas chaves já preenchidas, que esperam os primeiros dados.
 
 ### Escolher o que monitorar
 
-Use uma das três abas:
+Um monitor novo começa com **Cluster Stopped Reporting**, em **Sobre o que alertar**; **Alterar** escolhe outro modelo. **Custom Metric** e **Avançado** ficam em **Mais campos**:
 
-| Aba | O que você escolhe |
+| Onde | O que você escolhe |
 | --- | --- |
-| **Quick Setup** | Um [modelo de alerta pronto](#modelos-de-alerta-prontos). Ele preenche a métrica, o escopo, o intervalo de tempo e os critérios; você ainda pode mudar o **Intervalo de tempo**. |
+| **Sobre o que alertar** | Um [modelo de alerta pronto](#modelos-de-alerta-prontos). Ele preenche a métrica, o escopo, o intervalo de tempo e os critérios; você ainda pode mudar o **Intervalo de tempo**. |
 | **Custom Metric** | Uma métrica do [catálogo de métricas](#catálogo-de-métricas) e depois seu **Escopo do recurso**, filtros, **Agregação** (Média, Máximo, Mínimo, Soma ou Contagem) e **Intervalo de tempo**. |
 | **Avançado** | O **Escopo do recurso**, os filtros e o **Intervalo de tempo**, além das suas próprias consultas de métricas e fórmulas em **Selecionar Métricas**, com um gráfico ao vivo do resultado. |
 
@@ -128,7 +128,7 @@ Cada amostra é comparada com uma linha de base da mesma hora da semana constru�
 
 ## Modelos de alerta prontos
 
-A aba **Quick Setup** lista estes modelos, agrupados por categoria. Cada um preenche dois critérios: um que marca o monitor como offline e abre um incidente e um alerta enquanto a condição vale, e outro que o traz de volta para online quando ela deixa de valer.
+A lista de **Sobre o que alertar** traz estes modelos, agrupados por categoria. Cada um preenche dois critérios: um que marca o monitor como offline e abre um incidente e um alerta enquanto a condição vale, e outro que o traz de volta para online quando ela deixa de valer.
 
 | Modelo | Categoria | Dispara quando | Gravidade |
 | --- | --- | --- | --- |

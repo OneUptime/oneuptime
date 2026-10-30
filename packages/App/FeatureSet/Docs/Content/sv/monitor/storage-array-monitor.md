@@ -47,19 +47,19 @@ Klicka på **Fler monitortyper** under **Monitortyp** och välj **Lagringsarray*
 
 ### Välj arrayen
 
-Välj arrayen i **Lagringsarray** under **Storage Array Monitor Configuration**. Varje array som har skickat data finns i listan. Plattformen avgör vilka mätvärden och mallar formuläret erbjuder.
+Välj arrayen i **Lagringsarray** under **Storage Array Monitor Configuration**. Varje array som har skickat data finns i listan. Plattformen avgör vilka mätvärden och mallar formuläret erbjuder. När du har valt visar en rad under fältet om data kommer in. **Lägg till lagringsarray** öppnar installationssteg med dina nycklar ifyllda, som väntar tills data kommer in.
 
 ### Välj vad som ska bevakas
 
-Välj en av de tre flikarna:
+En ny monitor börjar med **Array Stopped Reporting** under **Vad som ska larmas om**. Så här övervakar du något annat:
 
-- **Quick Setup** - klicka på en [mall](#färdiga-larmmallar). Den sätter mätvärdet, etikettfiltren, aggregeringen, tidsintervallet och tröskelvärdena och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
-- **Custom Metric** - välj ett mätvärde i **Storage Array Metric** och sätt sedan **Aggregering** och **Tidsintervall**. [Filtren](#monitorinställningar) begränsar det till en volym, en värd, en podd, en komponent, ett filsystem eller en bucket.
-- **Avancerad** - bygg frågor och formler själv under **Välj mått**, till exempel använd kapacitet som `purefa_array_space_bytes` filtrerat till `space=capacity` minus samma mätvärde filtrerat till `space=empty`. Använd **Gruppera efter** med ett objekts etikett för att bedöma varje objekt för sig.
+- **Ändra** - välj en annan [mall](#färdiga-larmmallar). Den sätter mätvärdet, etikettfiltren, aggregeringen, tidsintervallet och tröskelvärdena och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
+- **Custom Metric** (under **Fler fält**) - välj ett mätvärde i **Storage Array Metric** och sätt sedan **Aggregering** och **Tidsintervall**. [Filtren](#monitorinställningar) begränsar det till en volym, en värd, en podd, en komponent, ett filsystem eller en bucket.
+- **Avancerad** (under **Fler fält**) - bygg frågor och formler själv under **Välj mått**, till exempel använd kapacitet som `purefa_array_space_bytes` filtrerat till `space=capacity` minus samma mätvärde filtrerat till `space=empty`. Använd **Gruppera efter** med ett objekts etikett för att bedöma varje objekt för sig.
 
 ### Kontrollera kriterierna
 
-Öppna varje kriterium under **Monitorkriterier** och kontrollera dess **Mätvärde**, **Aggregering**, **Villkor** och **Tröskel**. En mall fyller i dem. Med **Custom Metric** eller **Avancerad** startar monitorn med [standardkriterierna](#standardkriterier), som bara märker att ett mätvärde sjunker till noll, så sätt ditt eget tröskelvärde.
+Öppna varje kriterium under **Monitorkriterier** och kontrollera dess **Mätvärde**, **Aggregering**, **Villkor** och **Tröskel**. En mall fyller i dem. Med **Custom Metric** eller **Avancerad** startar monitorn med [standardkriterierna](#standardkriterier), som bara märker att ett mätvärde inte skickar data, så sätt ditt eget tröskelvärde.
 
 ### Skapa monitorn
 
@@ -109,7 +109,7 @@ I monitorfilter och grupperingsnycklar börjar agentens attribut med `resource.`
 
 ## Färdiga larmmallar
 
-OneUptime levererar 20 mallar — 12 för FlashArray och 8 för FlashBlade — och **Quick Setup** erbjuder dem för arrayens plattform. Var och en bygger en komplett monitor: mätvärdesfrågan, etikettfiltren, en gruppering på objektets egen etikett, ett kriterium som utlöser och ett som återhämtar. Tröskelvärdena är utgångspunkter som du kan redigera.
+OneUptime levererar 20 mallar — 12 för FlashArray och 8 för FlashBlade — och listan under **Vad som ska larmas om** erbjuder dem för arrayens plattform. Var och en bygger en komplett monitor: mätvärdesfrågan, etikettfiltren, en gruppering på objektets egen etikett, ett kriterium som utlöser och ett som återhämtar. Tröskelvärdena är utgångspunkter som du kan redigera.
 
 Ett kriterium utlöser bara när villkoret gäller för **varje** värde i fönstret. En monitor som utlöstes på ett tröskelvärde för kapacitet, latens, eftersläpning eller kvot återhämtar sig först 10 % förbi det, så ett värde som pendlar kring tröskeln inte växlar fram och tillbaka; mallarna för larm och hårdvara återhämtar sig så snart tillståndet försvinner.
 

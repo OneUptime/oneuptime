@@ -61,19 +61,19 @@ Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisis
 
 ### Choisir l'hôte
 
-Sous **Configuration du moniteur d'hôte**, choisissez la machine dans **Hôte**. Chaque hôte qui a envoyé des données figure dans la liste.
+Sous **Configuration du moniteur d'hôte**, choisissez la machine dans **Hôte**. Chaque hôte qui a envoyé des données figure dans la liste. Une fois le choix fait, une ligne sous le champ indique si des données arrivent. **Ajouter un hôte** ouvre des étapes de configuration avec vos clés déjà renseignées, qui attendent les premières données.
 
 ### Choisir ce qu'il faut surveiller
 
-Choisissez l'un des trois onglets :
+Un nouveau moniteur démarre sur **Host Stopped Reporting**, sous **Sur quoi alerter**. Pour surveiller autre chose :
 
-- **Quick Setup** – cliquez sur un [modèle](#modèles-dalerte-prêts-à-lemploi). Il définit la métrique, l'agrégation, la plage temporelle et les seuils, et remplace les critères plus bas par les siens. Vous pouvez toujours changer la **Plage temporelle**.
-- **Custom Metric** – choisissez une métrique dans **Métrique d'hôte**, puis définissez l'**Agrégation** et la **Plage temporelle**.
-- **Avancé** – construisez vous-même des requêtes et des formules sous **Sélectionner les métriques**, par exemple un filtre sur `state` ou un regroupement par `mountpoint`.
+- **Modifier** – choisissez un autre [modèle](#modèles-dalerte-prêts-à-lemploi). Il définit la métrique, l'agrégation, la plage temporelle et les seuils, et remplace les critères plus bas par les siens. Vous pouvez toujours changer la **Plage temporelle**.
+- **Custom Metric** (sous **Plus de champs**) – choisissez une métrique dans **Métrique d'hôte**, puis définissez l'**Agrégation** et la **Plage temporelle**.
+- **Avancé** (sous **Plus de champs**) – construisez vous-même des requêtes et des formules sous **Sélectionner les métriques**, par exemple un filtre sur `state` ou un regroupement par `mountpoint`.
 
 ### Vérifier les critères
 
-Ouvrez chaque critère sous **Critères du moniteur** et vérifiez sa **Métrique**, son **Agrégation**, sa **Condition** et son **Seuil**. Un modèle les remplit. Avec **Custom Metric** ou **Avancé**, le moniteur commence avec les [critères par défaut](#critères-par-défaut), qui ne remarquent qu'une métrique tombant à zéro ; définissez donc votre propre seuil.
+Ouvrez chaque critère sous **Critères du moniteur** et vérifiez sa **Métrique**, son **Agrégation**, sa **Condition** et son **Seuil**. Un modèle les remplit. Avec **Custom Metric** ou **Avancé**, le moniteur commence avec les [critères par défaut](#critères-par-défaut), qui ne remarquent qu'une métrique qui n'envoie plus de données ; définissez donc votre propre seuil.
 
 ### Créer le moniteur
 
@@ -95,7 +95,7 @@ Cliquez sur **Créer un moniteur**. OneUptime ouvre la page du moniteur et l'év
 
 ## Modèles d'alerte prêts à l'emploi
 
-**Quick Setup** propose six modèles. Chacun construit un moniteur complet : une requête, un critère qui se déclenche et un autre qui rétablit. Les seuils sont des points de départ que vous pouvez modifier.
+La liste de **Sur quoi alerter** propose six modèles. Chacun construit un moniteur complet : une requête, un critère qui se déclenche et un autre qui rétablit. Les seuils sont des points de départ que vous pouvez modifier.
 
 Un critère ne se déclenche que si la condition est remplie à chaque minute de sa fenêtre, et il se rétablit 10 % au-delà du seuil pour qu'une valeur qui oscille autour de la limite ne bascule pas sans cesse.
 
@@ -119,7 +119,7 @@ Un critère ne se déclenche que si la condition est remplie à chaque minute de
 
 ## Métriques collectées
 
-La liste **Métrique d'hôte** propose ces métriques. Chacune porte `resource.host.name`, par lequel le moniteur limite ses requêtes à un hôte.
+La liste **Métrique d'hôte** propose ces métriques. Chacune porte `resource.host.name`, par lequel le moniteur limite ses requêtes à un hôte. Choisi là, le CPU compte l'état `user`, l'utilisation de la mémoire et des systèmes de fichiers l'état `used`, et les systèmes de fichiers et les processus donnent une série par point de montage et par statut.
 
 > [!IMPORTANT]
 > Les métriques d'utilisation sont un ratio de 0 à 1, pas un pourcentage : utilisez `0.8` pour 80 % dans un seuil sur la métrique brute. Les modèles convertissent en pourcentage avec une formule, si bien que leurs seuils indiquent 80, 85 et 90.
