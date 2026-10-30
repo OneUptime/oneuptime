@@ -58,6 +58,8 @@ Begin bovenaan de tabel: hoe hoger een manier staat, hoe minder er te onderhoude
 | [Elastic Security](/docs/integrations/elastic-security) | Beide | Brengt detectie-alerts van Elastic Security naar Beveiligingsgebeurtenissen, en stuurt er wat OneUptime vindt naartoe. |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | Inkomend | Brengt bevindingen van AWS Security Hub naar Beveiligingsgebeurtenissen. |
 | [Okta System Log](/docs/integrations/okta) | Inkomend | Brengt aanmeldingen, accountwijzigingen en dreigingsdetecties van Okta naar Beveiligingsgebeurtenissen. |
+| [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) | Inkomend | Brengt aanmeldingen en directorywijzigingen van Microsoft Entra ID, en het Microsoft 365-auditlogboek, naar Beveiligingsgebeurtenissen. |
+| [Google Workspace](/docs/integrations/google-workspace) | Inkomend | Brengt aanmeldingen, beheerderswijzigingen en detecties van Google Workspace naar Beveiligingsgebeurtenissen. |
 
 ### Ticketing en IT-servicemanagement
 

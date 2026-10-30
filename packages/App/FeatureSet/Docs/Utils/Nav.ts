@@ -1293,6 +1293,14 @@ const DocsNav: NavGroup[] = [
         url: "/docs/integrations/okta",
       },
       {
+        title: "Microsoft Entra ID",
+        url: "/docs/integrations/microsoft-entra-id",
+      },
+      {
+        title: "Google Workspace",
+        url: "/docs/integrations/google-workspace",
+      },
+      {
         title: "GitHub",
         url: "/docs/integrations/github",
       },
