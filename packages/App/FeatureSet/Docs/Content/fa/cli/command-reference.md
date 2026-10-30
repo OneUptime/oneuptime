@@ -195,6 +195,7 @@ oneuptime <resource> count [--query <json>] [-o <format>]
 | نگهداری زمان‌بندی‌شده | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |
 | تیم‌ها و کشیک | `team`, `on-call-policy` |
 | امنیت | `security-case`, `security-case-evidence`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-case-task`, `security-detection`, `security-playbook` |
+| امنیت داده | `data-store`, `data-store-finding`, `data-store-access-entry`, `data-flow`, `data-security-issue`, `data-security-scan`, `custom-data-type`, `check-setting`, `residency-rule`, `data-security-setting` |
 | برچسب‌ها | `label` |
 
 تله‌متری `list`، `create` و `count` را می‌پذیرد:

@@ -3,8 +3,11 @@ import {
   SecurityEntity,
   SecurityEntityType,
   entitiesFromObservables,
+  getDataStoreEntityValue,
+  getDataStoreKeyOfEntityValue,
   getSecurityEntityIcon,
   inferSecurityEntityType,
+  isDataStoreEntityValue,
   isIpAddress,
   mergeSecurityEntities,
   securityEntityTypeForField,
@@ -45,6 +48,61 @@ describe("inferSecurityEntityType", () => {
     expect(inferSecurityEntityType("abcdef0123")).toBe(
       SecurityEntityType.Other,
     );
+  });
+
+  /*
+   * A store's key holds whatever its cloud names it by: read by its shape
+   * alone, a Google Cloud resource name after the prefix is a URL, and a
+   * traced database's user@host a sign-in name.
+   */
+  test.each([
+    "data-store:cloud:aws:AWS S3 Bucket:arn:aws:s3:::orders-exports",
+    "data-store://storage.googleapis.com/projects/_/buckets/exports",
+    "data-store:traced:mysql:admin@db.example.com",
+    "  DATA-STORE:database:5f0c2a4e-0000-4000-8000-000000000001  ",
+  ])("%s is a data store, whatever its key looks like", (value: string) => {
+    expect(inferSecurityEntityType(value)).toBe(SecurityEntityType.DataStore);
+  });
+
+  test("the prefix alone, or a store's key without it, is no data store", () => {
+    expect(inferSecurityEntityType("data-store:")).toBe(
+      SecurityEntityType.Other,
+    );
+    expect(isDataStoreEntityValue("data-store:   ")).toBe(false);
+    expect(isDataStoreEntityValue(null)).toBe(false);
+    expect(
+      inferSecurityEntityType("cloud:aws:AWS S3 Bucket:arn:aws:s3:::orders"),
+    ).not.toBe(SecurityEntityType.DataStore);
+  });
+});
+
+describe("a data store's entity value", () => {
+  test("is the prefix and the store's key, and gives the key back", () => {
+    const value: string = getDataStoreEntityValue(
+      " cloud:aws:AWS S3 Bucket:arn:aws:s3:::orders ",
+    );
+
+    expect(value).toBe(
+      "data-store:cloud:aws:AWS S3 Bucket:arn:aws:s3:::orders",
+    );
+    expect(isDataStoreEntityValue(value)).toBe(true);
+    expect(getDataStoreKeyOfEntityValue(value)).toBe(
+      "cloud:aws:AWS S3 Bucket:arn:aws:s3:::orders",
+    );
+    expect(getDataStoreKeyOfEntityValue("alice@acme.com")).toBe("");
+  });
+
+  test("is typed as a store when it arrives untyped, as an observable or a stored entry", () => {
+    const value: string = getDataStoreEntityValue(
+      "cloud:gcp:Google Cloud Storage Bucket://storage.googleapis.com/projects/_/buckets/exports",
+    );
+
+    expect(entitiesFromObservables([value])).toEqual([
+      { type: SecurityEntityType.DataStore, value },
+    ]);
+    expect(
+      mergeSecurityEntities([{ type: "Bucket" as SecurityEntityType, value }]),
+    ).toEqual([{ type: SecurityEntityType.DataStore, value }]);
   });
 });
 

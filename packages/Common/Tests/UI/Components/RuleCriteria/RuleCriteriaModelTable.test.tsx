@@ -360,9 +360,10 @@ More details stay here.
      * The AI rules forms (investigation rules and auto remediation rules made
      * one: Match, Investigate, Fix - for incidents and alerts, and for each
      * telemetry lane in TelemetryAiRulesTable) have no help panel, nor has
-     * the postmortem rules form (Match, then Draft).
+     * the postmortem rules form (Match, then Draft), nor have Data
+     * Security's label and owner rules for data stores.
      */
-    expect(staticRuleFormFiles).toHaveLength(72);
+    expect(staticRuleFormFiles).toHaveLength(74);
     expect(helpFormFiles).toHaveLength(62);
     // 68, and the five episode rule help texts that now have the heading too.
     expect(helpMarkdown).toHaveLength(73);

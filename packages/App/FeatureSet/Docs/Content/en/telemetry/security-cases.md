@@ -229,7 +229,7 @@ To post to a channel, add a rule under **Products → Security Events → Worksp
 | Security Case Priority | One of the project's case priorities, such as Critical or High |
 | Security Case Title, Security Case Description | Text the case's title or description contains, starts with or ends with |
 | Security Case Status | One of the project's case statuses, such as New or Closed |
-| Security Case Source | Detection Rule, Threat Intel, Connected Product, Entity Risk or Manual |
+| Security Case Source | Detection Rule, Threat Intel, Connected Product, Entity Risk, Data Security or Manual |
 | Security Case Labels | The case's labels |
 
 Each notification but a task's is posted to the channels of every rule the case matches at that moment. A rule with **Security Case Priority** contains any of **Critical** and **High** posts High and Critical cases as they open, and a Medium case when it rises to High. A security case never gets a channel of its own.
@@ -268,6 +268,7 @@ A disabled playbook runs neither by itself nor by hand.
 | Investigate | Look up entity activity | Counts each entity's security events over a recent window, and notes it on the case |
 | Investigate | Preserve the evidence | Keeps the session replays of the requests behind the case, and notes their traces and exceptions on the case |
 | Notify | Email people | Emails users and teams a summary of the case, with a link to it |
+| Notify | Notify data store owners | Emails the owners of each data store the case is about, with a link to the case |
 | Notify | Post to Slack | Posts a summary of the case to a Slack channel |
 | Notify | Post to Microsoft Teams | Posts a summary of the case to a Microsoft Teams channel |
 | Notify | Post a status page announcement | Posts an announcement you wrote on the status pages you choose |
@@ -280,6 +281,8 @@ A disabled playbook runs neither by itself nor by hand.
 | Contain | Unsuspend the user in Okta | Unsuspends the user the case is about in Okta |
 | Contain | Lift containment in CrowdStrike | Lifts CrowdStrike Falcon's network containment from the host the case is about |
 | Contain | Release the device in Microsoft Defender | Releases the host the case is about from isolation in Microsoft Defender for Endpoint |
+| Contain | Block public access to data stores | Blocks public access to each bucket or storage account the case is about, through its cloud connection |
+| Contain | Revoke data store sharing | Stops sharing the snapshots of each database the case is about outside your accounts, through its cloud connection |
 | Automate | Send a webhook | Posts the case as JSON to a URL |
 | Automate | Run a workflow | Starts a OneUptime workflow with the case as its input |
 | Automate | Run a runbook | Starts one of your OneUptime runbooks with the case as its inputs |
@@ -287,7 +290,7 @@ A disabled playbook runs neither by itself nor by hand.
 
 A playbook has at most 25 steps. They run in order, each once the one before it is done. Every step can also:
 
-- **Needs Approval**: stop the run before the step until someone approves it on the case. The four steps that cut someone off always do, unless a Security Admin turns it off. **Run a runbook** and **Post a status page announcement** start with it on, since one runs commands on your systems and the other speaks to your customers; whoever adds the step can turn it off.
+- **Needs Approval**: stop the run before the step until someone approves it on the case. The four steps that cut someone off always do, unless a Security Admin turns it off. **Run a runbook**, **Post a status page announcement** and the two data store steps start with it on, since they run commands on your systems, speak to your customers or change a cloud's settings; whoever adds the step can turn it off.
 - **Only If Threat Intel Matched**: skip the step unless an earlier **Check entities against threat intel** step of the run found a known indicator.
 - **Carry On If It Fails**: run the next step even if this one fails. Off, a failed step stops the run.
 
@@ -302,20 +305,23 @@ Four steps act through the rest of OneUptime rather than a connected product:
 
 ### Containment
 
-The Contain steps act through a [security event connection](/docs/telemetry/security-events#connect-a-security-product) to the product, which needs more than read access:
+The Contain steps act through a connection that needs more than read access: a [security event connection](/docs/telemetry/security-events#connect-a-security-product) to the product, or the data store's [cloud connection](/docs/telemetry/cloud-accounts):
 
 | Step | Connection | Needs |
 | --- | --- | --- |
 | Suspend the user in Okta, End the user's Okta sessions, Unsuspend the user in Okta | Okta System Log | An API token allowed to manage users |
 | Contain the host in CrowdStrike, Lift containment in CrowdStrike | CrowdStrike Falcon | An API client with the Hosts write scope |
 | Isolate the device in Microsoft Defender, Release the device in Microsoft Defender | Microsoft Defender XDR | An app with the Machine.Isolate permission |
+| Block public access to data stores, Revoke data store sharing | The store's cloud connection | **Data security response** turned on, and its setup command run again |
 
-A Contain step acts only on the users or hosts the case is about, never on every one it names:
+A user or host step acts only on the users or hosts the case is about, never on every one it names:
 
 - The value a detection of the case is grouped on, such as the account an impossible-travel rule groups by, or the host a connected product's alert names.
 - A user or host of the case that your threat intelligence knows as an indicator.
 
 A case grouped on an address, such as a brute force against your VPN, is about neither: its Contain steps are skipped, and the account it tried and the gateway it hit are left alone. A step acts on at most 10 users or hosts. It finds each in the product by name, and says on the run what it did with each one: done, already done, not found, refused, or protected.
+
+The two data store steps act on the data stores the case is about, at most 10: those of the Data Security issues it took in, and any a detection grouped it on. They leave a store marked **Public By Design** alone, change how a store is shared but never its data, and say on the run what they did with each store (see [Close an exposure](/docs/data-security/integrations#close-an-exposure)).
 
 #### Protected entities
 

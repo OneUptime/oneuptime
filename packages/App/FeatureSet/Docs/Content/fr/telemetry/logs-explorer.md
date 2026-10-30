@@ -131,7 +131,7 @@ L'onglet **Analyses** montre ce que vos services ont journalisé sur une plage d
 | **Top errors** | Les messages distincts journalisés avec la gravité Error ou Fatal, les plus fréquents d'abord. |
 | **Sources reporting logs** | Le volume et le signal d'erreur de chaque service, hôte ou autre source. |
 
-Sélectionnez une erreur principale pour voir ce qui se passait autour : quand elle s'est produite, ce que ses occurrences ont en commun, où elle se produit, les traces qui la portent et ses lignes les plus récentes. **Ouvrir les journaux correspondants** les ouvre dans le **Lecteur**, et **Explain with AI** ouvre [Ask AI](/docs/ai/ask-ai) avec l'erreur et ses éléments de preuve comme invite modifiable.
+Sélectionnez une erreur principale pour voir ce qui se passait autour : quand elle s'est produite, ce que ses occurrences ont en commun, où elle se produit, les traces qui la portent et ses lignes les plus récentes. **Ouvrir les journaux correspondants** les ouvre dans le **Lecteur**, et **Expliquer avec l'IA** ouvre [Ask AI](/docs/ai/ask-ai) avec l'erreur et ses éléments de preuve comme invite modifiable.
 
 ## Trouver et corriger avec l'IA les journaux d'erreur, manquants ou bruyants
 

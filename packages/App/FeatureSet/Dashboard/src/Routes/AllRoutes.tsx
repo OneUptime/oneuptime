@@ -1,6 +1,7 @@
 // Observability
 export { default as LogsRoutes } from "./LogsRoutes";
 export { default as SecurityEventsRoutes } from "./SecurityEventsRoutes";
+export { default as DataSecurityRoutes } from "./DataSecurityRoutes";
 export { default as MetricsRoutes } from "./MetricsRoutes";
 export { default as TracesRoutes } from "./TracesRoutes";
 export { default as ExceptionsRoutes } from "./ExceptionsRoutes";

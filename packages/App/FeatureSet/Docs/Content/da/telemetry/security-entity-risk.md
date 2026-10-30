@@ -1,6 +1,6 @@
 # Entitetsrisiko (risikobaseret alarmering)
 
-Et enkelt fund siger sjældent meget. En byge af mislykkede logins, en første sudo på en vært og et login fra et nyt land er hver især et blik værd; den samme konto i alle tre inden for en uge er en sag værd. Entitetsrisiko lægger sammen, hvad dine detektionsregler, din trusselsintelligens og dine forbundne produkter finder om hver bruger, vært og IP-adresse, viser de mest risikable først og åbner en sag om den, hvis risiko når projektets tærskel.
+Et enkelt fund siger sjældent meget. En byge af mislykkede logins, en første sudo på en vært og et login fra et nyt land er hver især et blik værd; den samme konto i alle tre inden for en uge er en sag værd. Entitetsrisiko lægger sammen, hvad dine detektionsregler, din trusselsintelligens, dine forbundne produkter og Data Security finder om hver bruger, vært, IP-adresse og hvert datalager, viser de mest risikable først og åbner en sag om den, hvis risiko når projektets tærskel.
 
 :::cards
 - [Sådan tælles en score](#sådan-tælles-en-score): Point efter alvorlighed, og hver kilde én gang om ugen.
@@ -24,7 +24,7 @@ flowchart TB
     score -->|"Ved<br/>tærsklen"| case["En sag åbnes, eller<br/>den åbne sag tager<br/>risikoen ind"]
 ```
 
-Åbn **Produkter → Security Events → Entitetsrisiko**: hver bruger, vært og IP-adresse med risiko lige nu, de mest risikable først, med niveau, hvor meget den betyder, hvad der fandt den og hvornår. Hver af dem åbner på sin egen side. **Mest risikable entiteter** på oversigten viser toppen af denne liste, og **Slå en entitet op** under den slår enhver værdi op på tværs af 30 dages begivenheder, også et domæne eller en fil-hash.
+Åbn **Produkter → Security Events → Entitetsrisiko**: hver bruger, vært, IP-adresse og hvert datalager med risiko lige nu, de mest risikable først, med niveau, hvor meget den betyder, hvad der fandt den og hvornår. Hver af dem åbner på sin egen side. **Mest risikable entiteter** på oversigten viser toppen af denne liste, og **Slå en entitet op** under den slår enhver værdi op på tværs af 30 dages begivenheder, også et domæne eller en fil-hash.
 
 ## Før du begynder
 
@@ -34,7 +34,7 @@ flowchart TB
 
 ## Sådan tælles en score
 
-Hvert fund giver risikopoint til den bruger, vært eller IP-adresse, det handler om:
+Hvert fund giver risikopoint til den bruger, vært, IP-adresse eller det datalager, det handler om:
 
 | Et fund med alvorlighed | Giver |
 | --- | --- |
@@ -44,8 +44,8 @@ Hvert fund giver risikopoint til den bruger, vært eller IP-adresse, det handler
 | Kritisk | 75 point |
 
 - Et informativt fund giver intet, og et fund med ukendt alvorlighed tæller som Mellem.
-- En detektionsregels point går til den værdi, den grupperer efter. Et match i trusselsintelligens tæller for den IP-adresse, indikatoren nævner. Et forbundet produkts alarm tæller for den bruger og den vært, den nævner, ellers for dens IP-adresse.
-- Hver kilde tæller én gang. En detektionsregel, et trusselsintelligens-feed eller et forbundet produkts regel tæller én gang på 7 dage, med det højeste, den lagde til, uanset hvor tit den udløses: én støjende regel kan aldrig få en entitet til at se værre ud end tre forskellige.
+- En detektionsregels point går til den værdi, den grupperer efter. Et match i trusselsintelligens tæller for den IP-adresse, indikatoren nævner. Et forbundet produkts alarm tæller for den bruger og den vært, den nævner, ellers for dens IP-adresse. Et problem fra Data Security tæller for det datalager, det blev fundet i.
+- Hver kilde tæller én gang. En detektionsregel, et trusselsintelligens-feed, et forbundet produkts regel eller en kontrol fra Data Security tæller én gang på 7 dage, med det højeste, den lagde til, uanset hvor tit den udløses: én støjende regel kan aldrig få en entitet til at se værre ud end tre forskellige.
 - En kilde, der ikke har fundet noget i 7 dage, holder op med at tælle, og scoren falder. Scorerne tjekkes hvert 15. minut, så en score falder til tiden uden et nyt fund.
 
 En entitets score er summen af dens kilder, vægtet efter dens kritikalitet. Testangrebet fra **Send et testangreb**, og en sag, som nogen åbner i hånden, tilføjer ingen risiko.
@@ -82,7 +82,7 @@ Nogle entiteter betyder mere end andre: en domænecontroller, en leders konto, e
 | Høj | ×1.5 |
 | Ekstrem | ×2 |
 
-En post er en værdi eller et `*`-mønster, uanset store og små bogstaver: `dc-*` navngiver hver domænecontroller, og `*@contractors.example` hver ekstern konsulent. **Type** begrænser den til brugere, værter eller IP-adresser; tom passer på dem alle. Når flere poster nævner en entitet, tæller den mest specifikke: en udskrevet værdi før et mønster, og et længere mønster før et kortere. En ændring når hver entitets score inden for få minutter.
+En post er en værdi eller et `*`-mønster, uanset store og små bogstaver: `dc-*` navngiver hver domænecontroller, og `*@contractors.example` hver ekstern konsulent. **Type** begrænser den til brugere, værter, IP-adresser eller datalagre; tom passer på dem alle. Når flere poster nævner en entitet, tæller den mest specifikke: en udskrevet værdi før et mønster, og et længere mønster før et kortere. En ændring når hver entitets score inden for få minutter. Data Security opretter selv poster for de datalagre, den finder følsomme, fortrolige som Høj og begrænsede som Ekstrem; ændrer du en af dem, er den din, og Data Security lader den være.
 
 ## En entitets side
 
