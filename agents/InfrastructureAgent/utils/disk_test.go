@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math"
 	"oneuptime-infrastructure-agent/model"
 	"reflect"
 	"strings"
@@ -642,6 +643,89 @@ func TestListDiskMetricsSkipsPartitionsWithoutAMountpoint(t *testing.T) {
 	}
 	if want := []string{"C:"}; !reflect.DeepEqual(usagePaths, want) {
 		t.Errorf("usage called for %q, want only %q", usagePaths, want)
+	}
+}
+
+// A disk's usage is what df says: the space used out of the space that can be
+// used. An ext4 disk keeps 5% back for root, which is neither used nor
+// available, so the used-over-total reported before said 95% of a disk df
+// called full, and the two never agreed.
+func TestGetDiskMetricsCountsUsageAsDfDoes(t *testing.T) {
+	diskInstallStubs(t, diskStubs{
+		usage: func(path string) (*disk.UsageStat, error) {
+			// 100 bytes: 60 used, 30 available, 10 reserved for root. df: 67%.
+			return &disk.UsageStat{Path: path, Total: 100, Used: 60, Free: 30, UsedPercent: 60.0 / 90.0 * 100}, nil
+		},
+	})
+
+	metrics, err := GetDiskMetrics("/")
+	if err != nil {
+		t.Fatalf("GetDiskMetrics: %v", err)
+	}
+	if math.Abs(metrics.PercentUsed-200.0/3) > 1e-9 || math.Abs(metrics.PercentFree-100.0/3) > 1e-9 {
+		t.Errorf("usage = %v%% used, %v%% free; want df's 66.67%% and 33.33%%", metrics.PercentUsed, metrics.PercentFree)
+	}
+	if metrics.Total != 100 || metrics.Used != 60 || metrics.Free != 30 {
+		t.Errorf("sizes = %+v, want gopsutil's own", *metrics)
+	}
+}
+
+// gopsutil's Windows UsedPercent divides by the drive's size, so a drive of
+// size 0 gives NaN - and json.Marshal fails on a NaN, which would have lost
+// the whole report.
+func TestGetDiskMetricsOfAnEmptyDriveMarshals(t *testing.T) {
+	diskInstallStubs(t, diskStubs{
+		usage: func(path string) (*disk.UsageStat, error) {
+			return &disk.UsageStat{Path: path, UsedPercent: math.NaN()}, nil
+		},
+	})
+
+	metrics, err := GetDiskMetrics("Z:")
+	if err != nil {
+		t.Fatalf("GetDiskMetrics: %v", err)
+	}
+	if metrics.PercentUsed != 0 || metrics.PercentFree != 0 {
+		t.Errorf("usage = %v%% used, %v%% free; want 0 and 0", metrics.PercentUsed, metrics.PercentFree)
+	}
+	if _, err := json.Marshal(metrics); err != nil {
+		t.Errorf("the drive's metrics cannot be sent: %v", err)
+	}
+}
+
+// Read-only images are always full, and /dev and the automounter's maps hold
+// no files: "Disk Path *" alerted on every snap a server had. They are not
+// reported. Everything that can fill up is.
+func TestListDiskMetricsLeavesOutFileSystemsThatAreAlwaysFull(t *testing.T) {
+	diskCaptureLogs(t)
+	var usagePaths []string
+	diskInstallStubs(t, diskStubs{
+		partitions: diskPartitionsReturning([]disk.PartitionStat{
+			{Mountpoint: "/", Device: "/dev/sda1", Fstype: "ext4"},
+			{Mountpoint: "/snap/core22/1380", Device: "/dev/loop0", Fstype: "squashfs"},
+			{Mountpoint: "/media/cdrom", Device: "/dev/sr0", Fstype: "iso9660"},
+			{Mountpoint: "/run", Device: "tmpfs", Fstype: "tmpfs"},
+			{Mountpoint: "/dev", Device: "devfs", Fstype: "devfs"},
+			{Mountpoint: "/System/Volumes/Data/home", Device: "map auto_home", Fstype: "autofs"},
+			{Mountpoint: "/Volumes/Install", Device: "/dev/disk4s1", Fstype: "cd9660"},
+			{Mountpoint: "D:", Device: "D:", Fstype: "CDFS"},
+			{Mountpoint: "E:", Device: "E:", Fstype: "UDF"},
+			{Mountpoint: "/proc", Device: "procfs", Fstype: "procfs"},
+			{Mountpoint: "/dev/fd", Device: "fdescfs", Fstype: "fdescfs"},
+			{Mountpoint: "/compat/linux/proc", Device: "linprocfs", Fstype: "linprocfs"},
+			windowsDrive("C:"),
+		}, nil),
+		usage: func(path string) (*disk.UsageStat, error) {
+			usagePaths = append(usagePaths, path)
+			return diskUsageOf(100, 40)(path)
+		},
+	})
+
+	want := []string{"/", "/run", "C:"}
+	if got := diskPaths(ListDiskMetrics()); !reflect.DeepEqual(got, want) {
+		t.Fatalf("reported disks = %v, want %v", got, want)
+	}
+	if !reflect.DeepEqual(usagePaths, want) {
+		t.Errorf("usage read for %v, want only %v", usagePaths, want)
 	}
 }
 

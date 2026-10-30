@@ -49,6 +49,31 @@ var diskProblems = newDiskProblemLog(diskProblemRepeatInterval)
 // CPU times) there without cgo.
 const ioCountersNotImplemented = "not implemented yet"
 
+// alwaysFullFilesystems are the file systems a disk usage alert has nothing
+// to say about, by type: read-only images, which are always 100% full, and
+// the file systems of /dev and the automounter, which hold no files of their
+// own. "Disk Path *" alerted on every snap a server had. Linux's tmpfs and
+// overlay are not among them: they can fill up, and the partitions the agent
+// lists on Linux leave them out already.
+var alwaysFullFilesystems = map[string]bool{
+	"squashfs":  true, // snaps (Linux)
+	"iso9660":   true, // ISO images and CDs (Linux)
+	"cd9660":    true, // the same on macOS and BSD
+	"cdfs":      true, // the same on Windows
+	"udf":       true, // DVDs, and the ISO images Windows mounts
+	"devfs":     true, // /dev (macOS, BSD)
+	"fdescfs":   true, // /dev/fd (BSD)
+	"procfs":    true, // /proc (BSD)
+	"linprocfs": true, // /proc for Linux programs (FreeBSD)
+	"autofs":    true, // automounter maps, such as /System/Volumes/Data/home (macOS)
+}
+
+// isAlwaysFull says whether a partition's file system is one of
+// alwaysFullFilesystems.
+func isAlwaysFull(fstype string) bool {
+	return alwaysFullFilesystems[strings.ToLower(strings.TrimSpace(fstype))]
+}
+
 // GetDiskMetrics retrieves disk metrics for a given path
 func GetDiskMetrics(path string) (*model.BasicDiskMetrics, error) {
 	usageStat, err := diskUsage(path)
@@ -58,10 +83,18 @@ func GetDiskMetrics(path string) (*model.BasicDiskMetrics, error) {
 	if usageStat == nil {
 		return nil, errors.New("no usage statistics returned")
 	}
+
+	// Usage as df counts it, and gopsutil's UsedPercent: the space used, out
+	// of the space that can be used - used plus what is still available.
+	// Total also counts the blocks the file system keeps back for root (5% of
+	// an ext4 disk), so used over total, which was reported before, said 95%
+	// of a disk df said was full. UsedPercent itself is not read: on a
+	// Windows drive of size 0 it is NaN, which json.Marshal refuses - and
+	// with it the whole report.
 	var percentUsed, percentFree float64
-	if usageStat.Total != 0 {
-		percentUsed = float64(usageStat.Used) / float64(usageStat.Total) * 100
-		percentFree = float64(usageStat.Free) / float64(usageStat.Total) * 100
+	if usable := usageStat.Used + usageStat.Free; usable != 0 {
+		percentUsed = float64(usageStat.Used) / float64(usable) * 100
+		percentFree = 100 - percentUsed
 	}
 
 	metrics := &model.BasicDiskMetrics{
@@ -147,6 +180,9 @@ func ListDiskMetrics() []*model.BasicDiskMetrics {
 	var usageFailures []string
 	for _, partition := range partitions {
 		if partition.Mountpoint == "" {
+			continue
+		}
+		if isAlwaysFull(partition.Fstype) {
 			continue
 		}
 
