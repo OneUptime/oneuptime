@@ -53,7 +53,7 @@ Wenn Sie einem Projekt beitreten, sind diese Ereignisse per E-Mail eingeschaltet
 | **Statusseiten** | Keine | **Statusseite erstellt**, **Statusseiten-Ankündigung veröffentlicht**, **Als Eigentümer der Statusseite hinzugefügt** |
 | **Geplante Wartung** | **Wartungserinnerung** | **Wartungsereignis erstellt**, **Wartungsstatus geändert**, **Wartungsnotiz veröffentlicht**, **Als Eigentümer der Wartung hinzugefügt** |
 | **Bereitschaft** | **Ihr Bereitschaftsdienst beginnt**, **Sie sind als Nächstes im Bereitschaftsdienst**, **Ihr Bereitschaftsdienst endet**, **Zur Bereitschaftsdienst-Richtlinie hinzugefügt**, **Aus Bereitschaftsrichtlinie entfernt**, **Verpasster Anruf**, und zusätzlich per Push: **Bevor meine Bereitschaftsschicht beginnt**, **Meine bevorstehende Bereitschaftsschicht wird neu zugewiesen** | Keine |
-| **Sicherheit** | Zusätzlich per Push: **Neuer Sicherheitsfall** (Fälle mit Priorität Hoch und Kritisch), **Mir zugewiesener Sicherheitsfall**, **Playbook-Schritt wartet auf meine Genehmigung**, **Reaktionsziel eines Sicherheitsfalls**, **Mir zugewiesene Aufgabe eines Sicherheitsfalls** | Keine |
+| **Sicherheit** | Zusätzlich per Push: **Neuer Sicherheitsfall** (Fälle mit Priorität Hoch und Kritisch), **Mir zugewiesener Sicherheitsfall**, **Playbook-Schritt wartet auf meine Genehmigung**, **Reaktionsziel eines Sicherheitsfalls**, **Mir zugewiesene Aufgabe eines Sicherheitsfalls**, **Bedrohungssuche hat Sicherheitsereignisse gefunden** | Keine |
 
 > [!IMPORTANT]
 > **Überwachungsstatus geändert** beginnt ausgeschaltet. Um zu erfahren, wenn eine Überwachung, die Ihnen gehört, ausfällt oder wieder läuft, schalten Sie es auf dem Tab **Überwachung** ein.
