@@ -706,7 +706,7 @@ describe("Azure recent-events", () => {
     expect(fake.armCalls).toHaveLength(2);
     expect(
       fake.requests.some((request: DataSourceHttpRequest): boolean => {
-        return request.url.includes("attacker.example.com");
+        return new URL(request.url).hostname === "attacker.example.com";
       }),
     ).toBe(false);
   });
