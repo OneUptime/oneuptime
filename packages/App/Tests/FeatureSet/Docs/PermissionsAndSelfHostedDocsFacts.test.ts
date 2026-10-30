@@ -2264,6 +2264,29 @@ describe("Architecture, against the compose file and the chart", () => {
       "Once a day, the app asks GitHub's API (`api.github.com`) whether a newer release is out.",
     );
 
+    /*
+     * The same check reads OneUptime's published security advisories from
+     * the same host, on a self-hosted installation, and tells master admins
+     * when one affects the version it runs.
+     */
+    const advisoriesDefault: string = textBetween(
+      textBetween(
+        readSource("environmentConfig"),
+        'process.env["SECURITY_ADVISORIES_CHECK_URL"] ||',
+        ")",
+      ),
+      '"',
+      '"',
+    );
+
+    expect(new URL(advisoriesDefault).host).toBe("api.github.com");
+    expect(readSource("updateCheckJob")).toContain(
+      "GitHubUpdateCheck.fetchPublishedSecurityAdvisories(",
+    );
+    expect(items[0]).toContain(
+      "It also reads the security advisories OneUptime published, so your master admins are told when one affects the version you run ([Update and Security Checks](/docs/self-hosted/update-checks)).",
+    );
+
     // The chart value and the Docker Compose variable the item names.
     expect(chartValue("updateCheck.disabled")).toBe(false);
     expect(readSource("chartHelpers")).toContain(
