@@ -1,0 +1,48 @@
+# controlPlane.etcd.clientCertSecret: the Secret with the client certificate
+# etcd's client port (2379) asks for over HTTPS. The cluster collector mounts
+# it read-only at /etc/oneuptime/etcd-client-cert, where the etcd scrape job
+# reads ca.crt, tls.crt and tls.key (control-plane_test.yaml pins the job).
+# Before, the chart had no way to give the etcd scrape a client certificate,
+# so etcd's HTTPS port could not be scraped at all.
+suite: the etcd client certificate is mounted where the etcd scrape reads it
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+tests:
+  - it: mounts that Secret, read-only, where the etcd job reads it
+    template: templates/deployment.yaml
+    set:
+      clusterName: prod-us
+      controlPlane.enabled: true
+      controlPlane.etcd.endpoints:
+        - https://10.0.0.10:2379
+      controlPlane.etcd.clientCertSecret: etcd-client-cert
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: etcd-client-cert
+            secret:
+              secretName: etcd-client-cert
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: etcd-client-cert
+            mountPath: /etc/oneuptime/etcd-client-cert
+            readOnly: true
+
+  - it: mounts no Secret while control-plane monitoring is off
+    template: templates/deployment.yaml
+    set:
+      clusterName: prod-us
+      controlPlane.etcd.clientCertSecret: etcd-client-cert
+    asserts:
+      - notContains:
+          path: spec.template.spec.volumes
+          content:
+            name: etcd-client-cert
+            secret:
+              secretName: etcd-client-cert
+      - lengthEqual:
+          path: spec.template.spec.volumes
+          count: 1

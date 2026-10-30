@@ -113,7 +113,7 @@ Un criterio solo se dispara cuando la condición se cumple en cada minuto de su 
 - **Host Stopped Reporting** se dispara cuando no llega nada del host durante diez minutos: la máquina está caída o inaccesible, o su colector se detuvo, perdió su conexión con OneUptime o le revocaron el token. Se resuelve cuando vuelven a llegar datos. Cuando los datos dejan de llegar, las demás plantillas no tienen nada que comparar y mantienen su último estado, así que esta es la que le avisa.
 - **CPU** es el tiempo ocupado (`user` más `system`), la misma cifra que grafica la **Vista general** del host. La espera de E/S y el steal quedan fuera.
 - **Memoria** excluye los búferes y la caché de páginas, así que un host lleno sobre todo de caché no la dispara.
-- **Sistema de archivos** abre un incidente por montaje. Los pseudo sistemas de archivos de solo lectura, como los montajes snap `squashfs` o `devfs` de macOS, siempre están llenos al 100 %; exclúyalos en el scraper `filesystem` del colector.
+- **Sistema de archivos** abre un incidente por montaje. Los pseudo sistemas de archivos de solo lectura, como los montajes snap `squashfs` o `devfs` de macOS, siempre están llenos al 100 %: las configuraciones de colector de OneUptime los dejan fuera del scraper `filesystem` con `exclude_fs_types`, y una configuración propia necesita lo mismo.
 - **Promedio de carga** es una longitud bruta de la cola de ejecución, no dividida por el número de núcleos: 4 es saturación en un host de 2 núcleos y rutina en uno de 32, así que súbalo en hosts grandes.
 - **Número de procesos** compara el estado de proceso individual más grande (`running`, `sleeping`, …), no el total del host, así que no coincidirá con una lista de procesos. El scraper de procesos solo informa en Linux.
 
@@ -212,7 +212,7 @@ El monitor limita cada consulta con `resource.host.name` igual al host que eligi
 :::
 
 :::details High Filesystem Usage se dispara por un montaje que siempre está lleno
-Los pseudo sistemas de archivos de solo lectura, como los montajes en bucle snap `squashfs` bajo `/snap` o `devfs` de macOS, están llenos al 100 % por diseño y nunca se recuperan. Exclúyalos del scraper `filesystem` del colector.
+Los pseudo sistemas de archivos de solo lectura, como los montajes en bucle snap `squashfs` bajo `/snap` o `devfs` de macOS, están llenos al 100 % por diseño y nunca se recuperan. Las configuraciones que OneUptime ejecuta y proporciona los dejan fuera con `exclude_fs_types`; una configuración propia, o una Configuración del recolector creada antes de que lo hicieran, necesita lo mismo: cópielo de [Métricas del host](/docs/telemetry/host-otel-collector#métricas-del-host). Deje fuera otro montaje siempre lleno, como un `.dmg` montado, con `exclude_mount_points`.
 :::
 
 ## Próximos pasos

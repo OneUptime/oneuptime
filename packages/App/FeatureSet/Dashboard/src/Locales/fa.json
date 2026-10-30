@@ -38579,6 +38579,8 @@
   "The Runner signs in with its secret key. After a reset it stops connecting until you re-run the setup command on its host.": "Runner با کلید مخفی خودش وارد می‌شود. پس از بازنشانی، تا وقتی دستور راه‌اندازی را روی میزبانش دوباره اجرا نکنید وصل نمی‌شود.",
   "Enter the number of a pull request, such as 12.": "شماره یک Pull Request را وارد کنید، برای نمونه ۱۲.",
   "Enter the number of a merge request, such as 12.": "شماره یک Merge Request را وارد کنید، برای نمونه ۱۲.",
+  "Guest Down or Replication Failing misses some guests": "Guest Down or Replication Failing misses some guests",
+  "Turn on {{enabled}} and point {{endpoints}} at etcd on the control-plane nodes: http:// for its plain metrics port, or its HTTPS client port with {{secret}} naming a Secret that holds the client certificate etcd asks for. Managed clusters such as EKS, GKE and AKS don't expose etcd.": "{{enabled}} را روشن کنید و {{endpoints}} را روی etcd در گره‌های control plane بگذارید: http:// برای پورت متریک رمزنگاری‌نشده آن، یا پورت کلاینت HTTPS آن، همراه با {{secret}} که نام Secretی را می‌دهد که گواهی کلاینت مورد نیاز etcd را دارد. خوشه‌های مدیریت‌شده مانند EKS، GKE و AKS دسترسی به etcd را فراهم نمی‌کنند.",
   "{{matches}} of {{sampled}}": "{{matches}} از {{sampled}}",
   "{{minutes}} min {{seconds}} s": "{{minutes}} min {{seconds}} s",
   "{{on}} of {{total}} on": "{{on}} از {{total}} روشن",

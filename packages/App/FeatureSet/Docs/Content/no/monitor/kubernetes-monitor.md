@@ -23,7 +23,7 @@ flowchart TB
 ## Før du begynner
 
 - OneUptimes Kubernetes-agent kjører i klyngen. Se [Kubernetes-agent (Helm-installasjon)](/docs/monitor/kubernetes-agent); klyngen vises under **Kubernetes** noen minutter etter installasjonen.
-- For kontrollplanmalene (**etcd No Leader**, **API Server Request Saturation**, **Scheduler Backlog**): agentens innsamling fra kontrollplanet, `controlPlane.enabled`. Administrerte klynger (EKS, GKE, AKS) eksponerer ikke disse endepunktene, så der mottar de monitorene aldri data.
+- For kontrollplanmalene (**etcd No Leader**, **API Server Request Saturation**, **Scheduler Backlog**): agentens innsamling fra kontrollplanet, `controlPlane.enabled`, som leser API-serveren uten videre; etcd og scheduleren trenger i tillegg at endepunktene deres er oppgitt (se [Aktiver overvåking av kontrollplanet](/docs/telemetry/kubernetes-agent#aktiver-overvåking-av-kontrollplanet)). Administrerte klynger (EKS, GKE, AKS) eksponerer ikke disse endepunktene, så der mottar de monitorene aldri data.
 
 ## Opprett en Kubernetes-monitor
 
@@ -177,7 +177,7 @@ Klynger registrerer seg selv fra agentens data, under det `clusterName` agenten 
 :::
 
 :::details En kontrollplanmal utløses aldri
-**etcd No Leader**, **API Server Request Saturation** og **Scheduler Backlog** leser metrikker som bare agentens innsamling fra kontrollplanet henter. Slå på `controlPlane.enabled` i agentens Helm-verdier; den er av som standard. Administrerte klynger (EKS, GKE, AKS) eksponerer ikke disse endepunktene, så på dem mottar disse monitorene aldri data.
+**etcd No Leader**, **API Server Request Saturation** og **Scheduler Backlog** leser metrikker som bare agentens innsamling fra kontrollplanet henter. Slå på `controlPlane.enabled` i agentens Helm-verdier; den er av som standard. Det leser API-serveren. etcd og scheduleren kjører på kontrollplannodene, så **etcd No Leader** og **Scheduler Backlog** trenger også `controlPlane.etcd.endpoints` og `controlPlane.scheduler.endpoints` satt til adresser agentens pod kan nå (se [Aktiver overvåking av kontrollplanet](/docs/telemetry/kubernetes-agent#aktiver-overvåking-av-kontrollplanet)). Administrerte klynger (EKS, GKE, AKS) eksponerer ikke disse endepunktene, så på dem mottar disse monitorene aldri data.
 :::
 
 :::details En CPU-terskel utløses aldri

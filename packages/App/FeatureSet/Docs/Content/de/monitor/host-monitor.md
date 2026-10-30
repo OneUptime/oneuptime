@@ -113,7 +113,7 @@ Ein Kriterium löst nur aus, wenn die Bedingung in jeder Minute seines Zeitfenst
 - **Host Stopped Reporting** löst aus, wenn zehn Minuten lang nichts vom Host eintrifft: Der Rechner ist ausgefallen oder nicht erreichbar, oder sein Collector läuft nicht mehr, hat die Verbindung zu OneUptime verloren oder sein Token wurde widerrufen. Sobald wieder Daten eintreffen, wird sie aufgelöst. Bleiben die Daten aus, haben die anderen Vorlagen nichts zu vergleichen und behalten ihren letzten Status, daher ist es diese Vorlage, die Ihnen das meldet.
 - **CPU** ist die Belegtzeit (`user` plus `system`), derselbe Wert, den die **Übersicht** des Hosts in Diagrammen zeigt. I/O-Wartezeit und Steal sind nicht enthalten.
 - **Arbeitsspeicher** schließt Puffer und Seitencache aus, sodass ein Host, der überwiegend Cache enthält, sie nicht auslöst.
-- **Dateisystem** löst einen Vorfall pro Mount aus. Schreibgeschützte Pseudo-Dateisysteme wie snap-Mounts vom Typ `squashfs` oder `devfs` unter macOS sind immer zu 100 % voll; schließen Sie sie im Scraper `filesystem` des Collectors aus.
+- **Dateisystem** löst einen Vorfall pro Mount aus. Schreibgeschützte Pseudo-Dateisysteme wie snap-Mounts vom Typ `squashfs` oder `devfs` unter macOS sind immer zu 100 % voll: Die Collector-Konfigurationen von OneUptime lassen sie mit `exclude_fs_types` im Scraper `filesystem` aus, und eine eigene Konfiguration braucht dasselbe.
 - **Lastdurchschnitt** ist eine rohe Länge der Ausführungswarteschlange, nicht durch die Anzahl der Kerne geteilt: 4 ist auf einem Host mit 2 Kernen Sättigung und auf einem mit 32 Kernen Routine; erhöhen Sie ihn daher auf großen Hosts.
 - **Prozessanzahl** vergleicht den größten einzelnen Prozesszustand (`running`, `sleeping`, …), nicht die Gesamtzahl des Hosts, und stimmt daher nicht mit einer Prozessliste überein. Der Scraper für Prozesse meldet nur unter Linux.
 
@@ -212,7 +212,7 @@ Der Monitor beschränkt jede Abfrage auf `resource.host.name` gleich dem Host, d
 :::
 
 :::details High Filesystem Usage löst für ein Mount aus, das immer voll ist
-Schreibgeschützte Pseudo-Dateisysteme wie snap-Loop-Mounts vom Typ `squashfs` unter `/snap` oder `devfs` unter macOS sind konstruktionsbedingt zu 100 % voll und erholen sich nie. Schließen Sie sie im Scraper `filesystem` des Collectors aus.
+Schreibgeschützte Pseudo-Dateisysteme wie snap-Loop-Mounts vom Typ `squashfs` unter `/snap` oder `devfs` unter macOS sind konstruktionsbedingt zu 100 % voll und erholen sich nie. Die Konfigurationen, die OneUptime ausführt und ausgibt, lassen sie mit `exclude_fs_types` aus; eine eigene Konfiguration oder eine Collector-Konfiguration, die vorher entstanden ist, braucht dasselbe: Übernehmen Sie es aus [Host-Metriken](/docs/telemetry/host-otel-collector#host-metriken). Lassen Sie ein anderes Mount, das immer voll ist, etwa eine eingehängte `.dmg`, mit `exclude_mount_points` aus.
 :::
 
 ## Nächste Schritte

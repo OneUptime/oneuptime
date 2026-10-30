@@ -23,7 +23,7 @@ flowchart TB
 ## پیش از شروع
 
 - عامل Kubernetes در OneUptime در خوشه اجرا شود. [عامل Kubernetes (نصب با Helm)](/docs/monitor/kubernetes-agent) را ببینید؛ چند دقیقه پس از نصب، خوشه زیر **Kubernetes** پدیدار می‌شود.
-- برای الگوهای Control Plane (**etcd No Leader**، **API Server Request Saturation**، **Scheduler Backlog**): جمع‌آوری Control Plane توسط عامل، یعنی `controlPlane.enabled`. خوشه‌های مدیریت‌شده (EKS، GKE، AKS) این نقطه‌های پایانی را در دسترس نمی‌گذارند، پس آنجا این مانیتورها هرگز داده‌ای نمی‌گیرند.
+- برای الگوهای Control Plane (**etcd No Leader**، **API Server Request Saturation**، **Scheduler Backlog**): جمع‌آوری Control Plane توسط عامل، یعنی `controlPlane.enabled`، که سرور API را بی‌درنگ می‌خواند؛ etcd و زمان‌بند به فهرست شدن نقطه‌های پایانی‌شان هم نیاز دارند (نگاه کنید به [روشن کردن پایش Control Plane](/docs/telemetry/kubernetes-agent#روشن-کردن-پایش-control-plane)). خوشه‌های مدیریت‌شده (EKS، GKE، AKS) این نقطه‌های پایانی را در دسترس نمی‌گذارند، پس آنجا این مانیتورها هرگز داده‌ای نمی‌گیرند.
 
 ## ساخت یک مانیتور Kubernetes
 
@@ -177,7 +177,7 @@ flowchart TB
 :::
 
 :::details یک الگوی Control Plane هرگز فعال نمی‌شود
-**etcd No Leader**، **API Server Request Saturation** و **Scheduler Backlog** متریک‌هایی را می‌خوانند که فقط جمع‌آوری Control Plane توسط عامل گرد می‌آورد. `controlPlane.enabled` را در مقدارهای Helm عامل روشن کنید؛ به‌طور پیش‌فرض خاموش است. خوشه‌های مدیریت‌شده (EKS، GKE، AKS) این نقطه‌های پایانی را در دسترس نمی‌گذارند، پس روی آن‌ها این مانیتورها هرگز داده‌ای نمی‌گیرند.
+**etcd No Leader**، **API Server Request Saturation** و **Scheduler Backlog** متریک‌هایی را می‌خوانند که فقط جمع‌آوری Control Plane توسط عامل گرد می‌آورد. `controlPlane.enabled` را در مقدارهای Helm عامل روشن کنید؛ به‌طور پیش‌فرض خاموش است. این کار سرور API را می‌خواند. etcd و زمان‌بند روی گره‌های control plane اجرا می‌شوند، پس **etcd No Leader** و **Scheduler Backlog** به `controlPlane.etcd.endpoints` و `controlPlane.scheduler.endpoints` هم نیاز دارند که روی نشانی‌هایی تنظیم شده باشند که پاد عامل بتواند به آن‌ها برسد (نگاه کنید به [روشن کردن پایش Control Plane](/docs/telemetry/kubernetes-agent#روشن-کردن-پایش-control-plane)). خوشه‌های مدیریت‌شده (EKS، GKE، AKS) این نقطه‌های پایانی را در دسترس نمی‌گذارند، پس روی آن‌ها این مانیتورها هرگز داده‌ای نمی‌گیرند.
 :::
 
 :::details یک آستانه CPU هرگز فعال نمی‌شود
