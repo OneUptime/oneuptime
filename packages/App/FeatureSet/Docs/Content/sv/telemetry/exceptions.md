@@ -52,6 +52,8 @@ Gå till **Produkter → Observerbarhet → Undantag**. Märket på fliken **Und
 
 Växla mellan **Olöst**, **Löst**, **Arkiverad** och **Alla**. Diagrammet ovanför listan visar hur många förekomster som var **Ohanterad** och hur många som var **Hanterad** över tid. En rad markerad **Regression** kom tillbaka efter att den lösts, och en markerad **Ny** sågs första gången under de senaste 24 timmarna.
 
+Varje rad visar också hur många användare undantaget drabbade under den valda perioden, och ett litet diagram över dess förekomster under perioden. En förekomst anger sin användare med attributet `user.id`, `enduser.id` eller `enduser.pseudo.id`, på undantagshändelsen, dess span eller loggpost eller dess resurs; förekomster som inte anger någon användare räknas inte.
+
 ### Välj vad som räknas som ett problem
 
 **Problem**, som är standard, döljer användarfel och förväntade nekanden, så att listan visar det som behöver rättas. **User errors** visar bara dem, och **Alla** visar alla undantag.

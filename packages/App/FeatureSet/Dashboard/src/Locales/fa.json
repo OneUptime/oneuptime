@@ -38954,5 +38954,10 @@
   "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.": "نمودار نشان می‌دهد چند استثنا رخ داده است. برای استثناهای تازه، استثناهای برگشته یا افزایش بیش از معمول رسم نمی‌شود.",
   "{{monitorName}}: a new exception": "{{monitorName}}: یک استثنای تازه",
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: یک استثنای برطرف‌شده برگشت",
-  "{{monitorName}}: exceptions spiked": "{{monitorName}}: جهش استثناها"
+  "{{monitorName}}: exceptions spiked": "{{monitorName}}: جهش استثناها",
+  "Distinct users this exception happened to in this time range": "کاربران متمایزی که این استثنا در این بازه برایشان رخ داد",
+  "{{count}} events in this time range": "{{count}} رویداد در این بازه",
+  "{{count}} events in this time range_one": "{{count}} رویداد در این بازه",
+  "{{number}} users": "{{number}} کاربر",
+  "{{number}} users_one": "{{number}} کاربر"
 }

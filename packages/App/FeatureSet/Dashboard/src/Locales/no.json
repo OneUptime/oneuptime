@@ -38954,5 +38954,10 @@
   "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.": "Diagrammet viser hvor mange unntak som skjedde. Det tegnes ikke for nye unntak, unntak som kom tilbake eller en økning over det vanlige.",
   "{{monitorName}}: a new exception": "{{monitorName}}: et nytt unntak",
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: et løst unntak kom tilbake",
-  "{{monitorName}}: exceptions spiked": "{{monitorName}}: unntakene toppet seg"
+  "{{monitorName}}: exceptions spiked": "{{monitorName}}: unntakene toppet seg",
+  "Distinct users this exception happened to in this time range": "Ulike brukere som dette unntaket rammet i dette tidsrommet",
+  "{{count}} events in this time range": "{{count}} hendelser i dette tidsrommet",
+  "{{count}} events in this time range_one": "{{count}} hendelse i dette tidsrommet",
+  "{{number}} users": "{{number}} brukere",
+  "{{number}} users_one": "{{number}} bruker"
 }

@@ -38954,5 +38954,10 @@
   "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.": "Le graphique montre combien d'exceptions se sont produites. Il n'est pas tracé pour les nouvelles exceptions, les exceptions revenues ou une hausse par rapport à l'habitude.",
   "{{monitorName}}: a new exception": "{{monitorName}} : une nouvelle exception",
   "{{monitorName}}: a resolved exception came back": "{{monitorName}} : une exception résolue est revenue",
-  "{{monitorName}}: exceptions spiked": "{{monitorName}} : pic d'exceptions"
+  "{{monitorName}}: exceptions spiked": "{{monitorName}} : pic d'exceptions",
+  "Distinct users this exception happened to in this time range": "Utilisateurs distincts touchés par cette exception sur cette période",
+  "{{count}} events in this time range": "{{count}} événements sur cette période",
+  "{{count}} events in this time range_one": "{{count}} événement sur cette période",
+  "{{number}} users": "{{number}} utilisateurs",
+  "{{number}} users_one": "{{number}} utilisateur"
 }

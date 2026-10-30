@@ -15,7 +15,10 @@ import {
   getExceptionTrendBucketSizeInSeconds,
   MAX_EXCEPTION_LIST_STATS_IDS,
 } from "../../../Types/Telemetry/ExceptionListStats";
-import { DbJSONResponse, Results } from "../../Services/AnalyticsDatabaseService";
+import {
+  DbJSONResponse,
+  Results,
+} from "../../Services/AnalyticsDatabaseService";
 import ExceptionInstanceService from "../../Services/ExceptionInstanceService";
 import TelemetryExceptionService from "../../Services/TelemetryExceptionService";
 import QueryHelper from "../../Types/Database/QueryHelper";
@@ -397,12 +400,16 @@ export default class ExceptionListStatsReader {
     }
 
     // In the order asked, each exception the caller may read, once.
+    const answered: Set<string> = new Set<string>();
+
     for (const requestedId of requestedIds) {
       const id: string = requestedId.toString().toLowerCase();
 
-      if (!exceptionById.has(id)) {
+      if (!exceptionById.has(id) || answered.has(id)) {
         continue;
       }
+
+      answered.add(id);
 
       const item: ExceptionListStatsItem = {
         telemetryExceptionId: exceptionById.get(id)!.id!.toString(),

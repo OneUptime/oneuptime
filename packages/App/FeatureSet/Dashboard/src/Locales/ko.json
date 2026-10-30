@@ -38954,5 +38954,10 @@
   "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.": "차트는 발생한 예외 수를 보여 줍니다. 새 예외, 다시 발생한 예외, 평소보다 증가에는 그려지지 않습니다.",
   "{{monitorName}}: a new exception": "{{monitorName}}: 새 예외",
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: 해결된 예외가 다시 발생",
-  "{{monitorName}}: exceptions spiked": "{{monitorName}}: 예외 급증"
+  "{{monitorName}}: exceptions spiked": "{{monitorName}}: 예외 급증",
+  "Distinct users this exception happened to in this time range": "이 기간에 이 예외가 발생한 서로 다른 사용자",
+  "{{count}} events in this time range": "이 기간의 이벤트 {{count}}개",
+  "{{count}} events in this time range_one": "이 기간의 이벤트 {{count}}개",
+  "{{number}} users": "사용자 {{number}}명",
+  "{{number}} users_one": "사용자 {{number}}명"
 }

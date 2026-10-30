@@ -38954,5 +38954,10 @@
   "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.": "चार्ट दिखाता है कि कितने अपवाद हुए। नए अपवादों, फिर से आए अपवादों या सामान्य से ज़्यादा बढ़त के लिए यह नहीं बनाया जाता।",
   "{{monitorName}}: a new exception": "{{monitorName}}: एक नया अपवाद",
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: सुलझाया गया अपवाद फिर से आया",
-  "{{monitorName}}: exceptions spiked": "{{monitorName}}: अपवादों में उछाल"
+  "{{monitorName}}: exceptions spiked": "{{monitorName}}: अपवादों में उछाल",
+  "Distinct users this exception happened to in this time range": "इस समय सीमा में जिन अलग-अलग उपयोगकर्ताओं के साथ यह एक्सेप्शन हुआ",
+  "{{count}} events in this time range": "इस समय सीमा में {{count}} इवेंट",
+  "{{count}} events in this time range_one": "इस समय सीमा में {{count}} इवेंट",
+  "{{number}} users": "{{number}} उपयोगकर्ता",
+  "{{number}} users_one": "{{number}} उपयोगकर्ता"
 }

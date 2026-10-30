@@ -38954,5 +38954,10 @@
   "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.": "图表显示发生了多少异常。对于新异常、再次出现的异常或高于平常的增长，不会绘制图表。",
   "{{monitorName}}: a new exception": "{{monitorName}}：新异常",
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}：已解决的异常再次出现",
-  "{{monitorName}}: exceptions spiked": "{{monitorName}}：异常激增"
+  "{{monitorName}}: exceptions spiked": "{{monitorName}}：异常激增",
+  "Distinct users this exception happened to in this time range": "此时间范围内遇到此异常的不同用户数",
+  "{{count}} events in this time range": "此时间范围内 {{count}} 个事件",
+  "{{count}} events in this time range_one": "此时间范围内 {{count}} 个事件",
+  "{{number}} users": "{{number}} 位用户",
+  "{{number}} users_one": "{{number}} 位用户"
 }

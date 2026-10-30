@@ -38954,5 +38954,10 @@
   "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.": "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.",
   "{{monitorName}}: a new exception": "{{monitorName}}: a new exception",
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: a resolved exception came back",
-  "{{monitorName}}: exceptions spiked": "{{monitorName}}: exceptions spiked"
+  "{{monitorName}}: exceptions spiked": "{{monitorName}}: exceptions spiked",
+  "Distinct users this exception happened to in this time range": "Distinct users this exception happened to in this time range",
+  "{{count}} events in this time range": "{{count}} events in this time range",
+  "{{count}} events in this time range_one": "{{count}} event in this time range",
+  "{{number}} users": "{{number}} users",
+  "{{number}} users_one": "{{number}} user"
 }

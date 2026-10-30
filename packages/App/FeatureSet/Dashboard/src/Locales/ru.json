@@ -38954,5 +38954,10 @@
   "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.": "График показывает, сколько исключений произошло. Для новых исключений, вернувшихся исключений и роста выше обычного он не строится.",
   "{{monitorName}}: a new exception": "{{monitorName}}: новое исключение",
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: устранённое исключение вернулось",
-  "{{monitorName}}: exceptions spiked": "{{monitorName}}: всплеск исключений"
+  "{{monitorName}}: exceptions spiked": "{{monitorName}}: всплеск исключений",
+  "Distinct users this exception happened to in this time range": "Разные пользователи, у которых это исключение возникло за этот период",
+  "{{count}} events in this time range": "Событий за этот период: {{count}}",
+  "{{count}} events in this time range_one": "{{count}} событие за этот период",
+  "{{number}} users": "Пользователей: {{number}}",
+  "{{number}} users_one": "{{number}} пользователь"
 }

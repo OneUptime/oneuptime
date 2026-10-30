@@ -38954,5 +38954,10 @@
   "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back or a rise over the usual.": "De grafiek toont hoeveel uitzonderingen er zijn opgetreden. Voor nieuwe uitzonderingen, teruggekomen uitzonderingen of een stijging boven het gewone wordt hij niet getekend.",
   "{{monitorName}}: a new exception": "{{monitorName}}: een nieuwe uitzondering",
   "{{monitorName}}: a resolved exception came back": "{{monitorName}}: een opgeloste uitzondering is terug",
-  "{{monitorName}}: exceptions spiked": "{{monitorName}}: uitzonderingen piekten"
+  "{{monitorName}}: exceptions spiked": "{{monitorName}}: uitzonderingen piekten",
+  "Distinct users this exception happened to in this time range": "Verschillende gebruikers bij wie deze exceptie in deze periode optrad",
+  "{{count}} events in this time range": "{{count}} gebeurtenissen in deze periode",
+  "{{count}} events in this time range_one": "{{count}} gebeurtenis in deze periode",
+  "{{number}} users": "{{number}} gebruikers",
+  "{{number}} users_one": "{{number}} gebruiker"
 }
