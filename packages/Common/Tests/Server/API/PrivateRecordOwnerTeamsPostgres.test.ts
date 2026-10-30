@@ -424,14 +424,12 @@ describePostgres(
           return isOwnedByTeam(incident, team);
         });
 
-      const isRead: boolean = teams.some(
-        (team: "team1" | "team2"): boolean => {
-          return (
-            config[team].grant !== "none" &&
-            scopeReaches(config[team].grant, team, incident)
-          );
-        },
-      );
+      const isRead: boolean = teams.some((team: "team1" | "team2"): boolean => {
+        return (
+          config[team].grant !== "none" &&
+          scopeReaches(config[team].grant, team, incident)
+        );
+      });
 
       return isSeenByPrivacy && isRead;
     };
@@ -1132,10 +1130,9 @@ describePostgres(
         CustomFieldMappingService,
         "applyMappingsToUpdate",
       ).mockResolvedValue(undefined as never);
-      getJestSpyOn(
-        StatusPageOverviewCache,
-        "forgetProjects",
-      ).mockResolvedValue(undefined as never);
+      getJestSpyOn(StatusPageOverviewCache, "forgetProjects").mockResolvedValue(
+        undefined as never,
+      );
       // A deleted incident's metrics are tombstoned in ClickHouse, not here.
       getJestSpyOn(
         MutableMetricService,
@@ -1235,49 +1232,48 @@ describePostgres(
     });
 
     // The maintainer's exact teams: Team 2 views, Team 1 may change.
-    const TEAM_1_GRANTS: Array<{ name: string; rows: Array<PermissionRow> }> =
-      [
-        {
-          name: "Project Member over the whole project",
-          rows: [{ permission: Permission.ProjectMember }],
-        },
-        {
-          name: "Incident Member over the whole project",
-          rows: [{ permission: Permission.IncidentMember }],
-        },
-        {
-          name: "Incident Member scoped to Owned",
-          rows: [
-            {
-              permission: Permission.IncidentMember,
-              scope: PermissionScope.Owned,
-            },
-          ],
-        },
-        {
-          name: "Incident Member limited to the incident's label",
-          rows: [
-            {
-              permission: Permission.IncidentMember,
-              labelIds: [productionLabelId],
-            },
-          ],
-        },
-        {
-          name: "Edit, delete and create on every operational resource",
-          rows: [
-            { permission: Permission.ReadAllOperationalResources },
-            { permission: Permission.EditAllOperationalResources },
-            { permission: Permission.DeleteAllOperationalResources },
-            { permission: Permission.CreateAllOperationalResources },
-            { permission: Permission.CreateIncidentInternalNote },
-            { permission: Permission.EditIncidentInternalNote },
-            { permission: Permission.CreateIncidentOwnerTeam },
-            { permission: Permission.CreateIncidentOwnerUser },
-            { permission: Permission.CreateIncidentStateTimeline },
-          ],
-        },
-      ];
+    const TEAM_1_GRANTS: Array<{ name: string; rows: Array<PermissionRow> }> = [
+      {
+        name: "Project Member over the whole project",
+        rows: [{ permission: Permission.ProjectMember }],
+      },
+      {
+        name: "Incident Member over the whole project",
+        rows: [{ permission: Permission.IncidentMember }],
+      },
+      {
+        name: "Incident Member scoped to Owned",
+        rows: [
+          {
+            permission: Permission.IncidentMember,
+            scope: PermissionScope.Owned,
+          },
+        ],
+      },
+      {
+        name: "Incident Member limited to the incident's label",
+        rows: [
+          {
+            permission: Permission.IncidentMember,
+            labelIds: [productionLabelId],
+          },
+        ],
+      },
+      {
+        name: "Edit, delete and create on every operational resource",
+        rows: [
+          { permission: Permission.ReadAllOperationalResources },
+          { permission: Permission.EditAllOperationalResources },
+          { permission: Permission.DeleteAllOperationalResources },
+          { permission: Permission.CreateAllOperationalResources },
+          { permission: Permission.CreateIncidentInternalNote },
+          { permission: Permission.EditIncidentInternalNote },
+          { permission: Permission.CreateIncidentOwnerTeam },
+          { permission: Permission.CreateIncidentOwnerUser },
+          { permission: Permission.CreateIncidentStateTimeline },
+        ],
+      },
+    ];
 
     describe.each(TEAM_1_GRANTS)(
       "the maintainer's case (block 33), with Team 1 given $name",
@@ -1459,7 +1455,8 @@ describePostgres(
               action: "acknowledge this incident",
               resources: [
                 {
-                  service: IncidentService as unknown as DatabaseService<BaseModel>,
+                  service:
+                    IncidentService as unknown as DatabaseService<BaseModel>,
                   id: inc17.id,
                 },
               ],
@@ -1472,74 +1469,75 @@ describePostgres(
     );
 
     describe("the permission matrix: every pair of grants, on one team or two, every incident, every write", () => {
-      test.each(CONFIGS.map((config: Config) => [describeConfig(config), config]))(
-        "%s",
-        async (_name: string, config: Config) => {
-          await applyConfig(config);
+      test.each(
+        CONFIGS.map((config: Config): [string, Config] => {
+          return [describeConfig(config), config];
+        }),
+      )("%s", async (_name: string, config: Config) => {
+        await applyConfig(config);
 
-          const mismatches: Array<string> = [];
+        const mismatches: Array<string> = [];
 
-          // What the member reads: the incidents list.
-          const list: Outcome = await send({
-            uri: "/incident/get-list",
-            body: { query: {}, select: { _id: true }, limit: 50 },
-          });
+        // What the member reads: the incidents list.
+        const list: Outcome = await send({
+          uri: "/incident/get-list",
+          body: { query: {}, select: { _id: true }, limit: 50 },
+        });
 
-          const expectedReadIds: Array<string> = INCIDENTS.filter(
-            (incident: IncidentFixture): boolean => {
-              return canSee(config, incident);
-            },
-          )
-            .map((incident: IncidentFixture): string => {
-              return incident.id.toString();
+        const expectedReadIds: Array<string> = INCIDENTS.filter(
+          (incident: IncidentFixture): boolean => {
+            return canSee(config, incident);
+          },
+        )
+          .map((incident: IncidentFixture): string => {
+            return incident.id.toString();
+          })
+          .sort();
+
+        if (list.error) {
+          // A member who may read no incident at all is refused the list.
+          if (expectedReadIds.length > 0) {
+            mismatches.push(`read: refused (${String(list.error)})`);
+          }
+        } else if (
+          JSON.stringify(list.ids) !== JSON.stringify(expectedReadIds)
+        ) {
+          mismatches.push(
+            `read: ${INCIDENTS.filter((incident: IncidentFixture) => {
+              return list.ids!.includes(incident.id.toString());
             })
-            .sort();
-
-          if (list.error) {
-            // A member who may read no incident at all is refused the list.
-            if (expectedReadIds.length > 0) {
-              mismatches.push(`read: refused (${String(list.error)})`);
-            }
-          } else if (
-            JSON.stringify(list.ids) !== JSON.stringify(expectedReadIds)
-          ) {
-            mismatches.push(
-              `read: ${INCIDENTS.filter((incident: IncidentFixture) => {
-                return list.ids!.includes(incident.id.toString());
+              .map((incident: IncidentFixture) => {
+                return incident.key;
               })
-                .map((incident: IncidentFixture) => {
-                  return incident.key;
-                })
-                .join(" | ")}`,
-            );
-          }
+              .join(" | ")}`,
+          );
+        }
 
-          for (const write of WRITES) {
-            for (const incident of INCIDENTS) {
-              const expected: boolean = canWrite(config, incident);
-              const startedAt: number = Date.now();
-              const actual: boolean = await tryWrite(write, incident);
+        for (const write of WRITES) {
+          for (const incident of INCIDENTS) {
+            const expected: boolean = canWrite(config, incident);
+            const startedAt: number = Date.now();
+            const actual: boolean = await tryWrite(write, incident);
+            // eslint-disable-next-line no-console
+            console.log("TIMING", write, actual, Date.now() - startedAt);
+
+            if (expected !== actual) {
+              mismatches.push(
+                `${write} on "${incident.key}": expected ${expected ? "made" : "refused"}, was ${actual ? "made" : "refused"}`,
+              );
+            }
+
+            if (actual) {
+              const seededAt: number = Date.now();
+              await seedIncidents();
               // eslint-disable-next-line no-console
-              console.log("TIMING", write, actual, Date.now() - startedAt);
-
-              if (expected !== actual) {
-                mismatches.push(
-                  `${write} on "${incident.key}": expected ${expected ? "made" : "refused"}, was ${actual ? "made" : "refused"}`,
-                );
-              }
-
-              if (actual) {
-                const seededAt: number = Date.now();
-                await seedIncidents();
-                // eslint-disable-next-line no-console
-                console.log("TIMING seed", Date.now() - seededAt);
-              }
+              console.log("TIMING seed", Date.now() - seededAt);
             }
           }
+        }
 
-          expect(mismatches).toEqual([]);
-        },
-      );
+        expect(mismatches).toEqual([]);
+      });
     });
 
     describe("who acts on every private incident", () => {
@@ -1652,7 +1650,9 @@ describePostgres(
 
         const membersOwn: IncidentFixture = INCIDENTS.find(
           (incident: IncidentFixture) => {
-            return incident.key === "private, the member's and Team 2's, labelled";
+            return (
+              incident.key === "private, the member's and Team 2's, labelled"
+            );
           },
         )!;
 

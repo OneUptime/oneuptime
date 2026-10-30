@@ -22,6 +22,7 @@ import Permission, { UserPermission } from "../../../../../Types/Permission";
 import UserType from "../../../../../Types/UserType";
 import { ON_HIGHEST_PLAN } from "../../../TestingUtils/RequestPlan";
 import { describe, expect, jest, test } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import { FindOperator } from "typeorm";
 
 /*
@@ -219,8 +220,7 @@ describe("what one operation's rows reach of the private records (getReachOfRows
   test("the person's own records, always", () => {
     expect(reachOf([]).userId?.toString()).toBe(MEMBER_ID.toString());
     expect(
-      PrivateRecordPermission.getReachOfRows({ rows: [], userId: null })
-        .userId,
+      PrivateRecordPermission.getReachOfRows({ rows: [], userId: null }).userId,
     ).toBeNull();
   });
 
@@ -304,20 +304,15 @@ describe("what one operation's rows reach of the private records (getReachOfRows
       }),
       row(Permission.EditProjectIncident, {
         teamId: TEAM_1,
-        labelIds: [
-          new ObjectID(PRODUCTION.toString().toUpperCase()),
-          STAGING,
-        ],
+        labelIds: [new ObjectID(PRODUCTION.toString().toUpperCase()), STAGING],
       }),
     ]);
 
     expect(reach.labelledTeams).toHaveLength(1);
     expect(
-      reach.labelledTeams[0]!.labelIds
-        .map((id: ObjectID) => {
-          return id.toString().toLowerCase();
-        })
-        .sort(),
+      reach.labelledTeams[0]!.labelIds.map((id: ObjectID) => {
+        return id.toString().toLowerCase();
+      }).sort(),
     ).toEqual(
       [PRODUCTION.toString(), STAGING.toString()]
         .map((id: string) => {
@@ -398,9 +393,7 @@ describe("what an operation reaches, read off the caller's rows (getReach)", () 
       DatabaseRequestType.Read,
     );
 
-    expect(sortedTeams(read.teamIds)).toEqual(
-      sortedTeams([TEAM_1, TEAM_2]),
-    );
+    expect(sortedTeams(read.teamIds)).toEqual(sortedTeams([TEAM_1, TEAM_2]));
   });
 
   test("a part's own permission decides: a note's create, not the incident's edit", () => {
@@ -486,9 +479,7 @@ describe("the SQL a write is held to", () => {
     );
     expect(sql).toContain(`pot."deletedAt" IS NULL`);
     // A labelled team: owned by it AND carrying one of its labels.
-    expect(sql).toContain(
-      `"IncidentOwnerTeam" plt WHERE plt."teamId" = :`,
-    );
+    expect(sql).toContain(`"IncidentOwnerTeam" plt WHERE plt."teamId" = :`);
     expect(sql).toContain(
       `SELECT pl."incidentId" FROM "IncidentLabel" pl WHERE pl."labelId" IN (:...`,
     );
@@ -695,12 +686,13 @@ describe("where the rule narrows (narrows)", () => {
 
 describe("the record rule's step (addPrivateRecordScopeToQuery)", () => {
   test("an incident's update keeps to the incidents it reaches, by their id, beside the caller's own filter", () => {
-    const query: Query<Incident> = PrivateRecordPermission.addPrivateRecordScopeToQuery(
-      Incident,
-      { _id: INCIDENT_ID } as Query<Incident>,
-      maintainersMember,
-      DatabaseRequestType.Update,
-    );
+    const query: Query<Incident> =
+      PrivateRecordPermission.addPrivateRecordScopeToQuery(
+        Incident,
+        { _id: INCIDENT_ID } as Query<Incident>,
+        maintainersMember,
+        DatabaseRequestType.Update,
+      );
 
     const value: unknown = (query as Record<string, unknown>)["_id"];
     expect(value).toBeInstanceOf(FindOperator);
@@ -738,12 +730,13 @@ describe("the record rule's step (addPrivateRecordScopeToQuery)", () => {
   });
 
   test("a read and a bypassing caller's write are left as they are", () => {
-    const read: Query<Incident> = PrivateRecordPermission.addPrivateRecordScopeToQuery(
-      Incident,
-      { _id: INCIDENT_ID } as Query<Incident>,
-      maintainersMember,
-      DatabaseRequestType.Read,
-    );
+    const read: Query<Incident> =
+      PrivateRecordPermission.addPrivateRecordScopeToQuery(
+        Incident,
+        { _id: INCIDENT_ID } as Query<Incident>,
+        maintainersMember,
+        DatabaseRequestType.Read,
+      );
     expect(read).toEqual({ _id: INCIDENT_ID });
 
     const asAdmin: Query<Incident> =
@@ -764,7 +757,7 @@ describe("the record rule's step (addPrivateRecordScopeToQuery)", () => {
 
 describe("the parents a create puts a part under (getUnreachableParentIds)", () => {
   test("asks, as OneUptime, which named private parents the part's create does not reach", async () => {
-    const findIdsInProject: jest.Mock<
+    const findIdsInProject: Mock<
       (data: {
         modelType: { new (): BaseModel };
         ids: Array<string>;
@@ -804,7 +797,7 @@ describe("the parents a create puts a part under (getUnreachableParentIds)", () 
   });
 
   test("asks nothing of a caller who acts on every private record, or of a parent that cannot be private", async () => {
-    const findIdsInProject: jest.Mock<() => Promise<Array<string>>> = jest.fn(
+    const findIdsInProject: Mock<() => Promise<Array<string>>> = jest.fn(
       async () => {
         return [INCIDENT_ID];
       },
@@ -874,6 +867,5 @@ describe("the parents a create puts a part under (getUnreachableParentIds)", () 
         type: DatabaseRequestType.Delete,
       }),
     ).toBeNull();
-
   });
 });
