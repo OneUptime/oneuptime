@@ -33,12 +33,25 @@ export enum DetectionRuleDataKind {
   AccountChanges = "account-changes",
   // Okta's System Log, read by Okta's own event types.
   OktaSystemLog = "okta-system-log",
+  /*
+   * Microsoft Entra ID's sign-ins and directory changes: its connection,
+   * or Azure's export of them in "Your logs".
+   */
+  EntraId = "entra-id",
+  // Google Workspace's audit logs, which its connection reads.
+  GoogleWorkspace = "google-workspace",
   // Processes started, with their command lines: an EDR, Sysmon, auditd, sudo.
   ProcessEvents = "process-events",
+  // Windows' own events (Security, System, Sysmon, Defender), which "Your logs" reads.
+  WindowsEvents = "windows-events",
   // sudo's log lines, which "Your logs" reads.
   SudoLogs = "sudo-logs",
   // AWS CloudTrail records, which "Your logs" reads.
   AwsCloudTrail = "aws-cloudtrail",
+  // Google Cloud's audit logs, which "Your logs" reads.
+  GoogleCloudAuditLogs = "google-cloud-audit-logs",
+  // The Azure Activity Log, which "Your logs" reads.
+  AzureActivityLog = "azure-activity-log",
   // Connections between hosts: firewalls, flow logs, IDS (OCSF Network Activity).
   NetworkActivity = "network-activity",
   // Requests to web servers (OCSF HTTP Activity), as "Your logs" reads access logs.
@@ -66,9 +79,14 @@ export const DETECTION_RULE_DATA_KINDS_IN_ORDER: ReadonlyArray<DetectionRuleData
     DetectionRuleDataKind.SignIns,
     DetectionRuleDataKind.AccountChanges,
     DetectionRuleDataKind.OktaSystemLog,
+    DetectionRuleDataKind.EntraId,
+    DetectionRuleDataKind.GoogleWorkspace,
     DetectionRuleDataKind.ProcessEvents,
+    DetectionRuleDataKind.WindowsEvents,
     DetectionRuleDataKind.SudoLogs,
     DetectionRuleDataKind.AwsCloudTrail,
+    DetectionRuleDataKind.GoogleCloudAuditLogs,
+    DetectionRuleDataKind.AzureActivityLog,
     DetectionRuleDataKind.NetworkActivity,
     DetectionRuleDataKind.WebRequests,
     DetectionRuleDataKind.KubernetesAuditLogs,
@@ -132,6 +150,18 @@ function connectorStamp(provider: SecurityEventConnectorProvider): {
 const OKTA: { vendorNames: Array<string>; productNames: Array<string> } =
   connectorStamp(SecurityEventConnectorProvider.OktaSystemLog);
 
+/*
+ * Entra ID's records carry its connection's product whichever way they
+ * came (EntraIdNormalizer), so the connection's stamp names both.
+ */
+const ENTRA_ID: { vendorNames: Array<string>; productNames: Array<string> } =
+  connectorStamp(SecurityEventConnectorProvider.MicrosoftEntraId);
+
+const GOOGLE_WORKSPACE: {
+  vendorNames: Array<string>;
+  productNames: Array<string>;
+} = connectorStamp(SecurityEventConnectorProvider.GoogleWorkspace);
+
 export const DETECTION_RULE_DATA_KINDS: ReadonlyArray<DetectionRuleDataKindDefinition> =
   [
     {
@@ -157,11 +187,36 @@ export const DETECTION_RULE_DATA_KINDS: ReadonlyArray<DetectionRuleDataKindDefin
       productNames: OKTA.productNames,
     },
     {
+      // By product alone: "Microsoft" is every Microsoft product's vendor.
+      kind: DetectionRuleDataKind.EntraId,
+      classNames: [],
+      vendorNames: [],
+      productNames: ENTRA_ID.productNames,
+    },
+    {
+      // By product alone: "Google" is every Google product's vendor.
+      kind: DetectionRuleDataKind.GoogleWorkspace,
+      classNames: [],
+      vendorNames: [],
+      productNames: GOOGLE_WORKSPACE.productNames,
+    },
+    {
       // sudo's commands are process events too (SudoLogParser).
       kind: DetectionRuleDataKind.ProcessEvents,
       classNames: ["Process Activity"],
       vendorNames: [],
       productNames: [],
+    },
+    {
+      /*
+       * Windows events as "Your logs" reads them, Sysmon's and Defender's
+       * included: the rules read Windows' own fields (EventID,
+       * TargetUserName), which another source's copy may not keep.
+       */
+      kind: DetectionRuleDataKind.WindowsEvents,
+      classNames: [],
+      vendorNames: [],
+      productNames: logFormatProduct(SecurityLogFormat.WindowsEvents),
     },
     {
       kind: DetectionRuleDataKind.SudoLogs,
@@ -179,6 +234,18 @@ export const DETECTION_RULE_DATA_KINDS: ReadonlyArray<DetectionRuleDataKindDefin
       classNames: [],
       vendorNames: [],
       productNames: logFormatProduct(SecurityLogFormat.AwsCloudTrail),
+    },
+    {
+      kind: DetectionRuleDataKind.GoogleCloudAuditLogs,
+      classNames: [],
+      vendorNames: [],
+      productNames: logFormatProduct(SecurityLogFormat.GoogleCloudAudit),
+    },
+    {
+      kind: DetectionRuleDataKind.AzureActivityLog,
+      classNames: [],
+      vendorNames: [],
+      productNames: logFormatProduct(SecurityLogFormat.AzureActivity),
     },
     {
       kind: DetectionRuleDataKind.NetworkActivity,

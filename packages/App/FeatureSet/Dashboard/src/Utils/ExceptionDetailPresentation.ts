@@ -435,9 +435,44 @@ export interface ExceptionTriageState {
 }
 
 export interface ExceptionTriageAction {
-  id: "resolve" | "unresolve" | "archive" | "unarchive";
+  id:
+    | "resolve"
+    | "resolve-next-release"
+    | "unresolve"
+    | "archive"
+    | "unarchive";
   label: string;
   nextState: ExceptionTriageState;
+  /*
+   * Resolve in next release: the release the exception is resolved after.
+   * Its occurrences do not reopen the exception; another release's do.
+   */
+  release?: string | undefined;
+}
+
+/*
+ * Resolve in next release, for an unresolved exception whose occurrences
+ * name a release: the fix ships in the release after the one it was last
+ * seen in, so the pods still running that one during a rollout do not
+ * reopen it. Null when it is resolved already, or no release is known.
+ */
+export function getResolveInNextReleaseAction(
+  state: ExceptionTriageState & {
+    lastSeenInRelease?: string | undefined | null;
+  },
+): ExceptionTriageAction | null {
+  const release: string = (state.lastSeenInRelease || "").trim();
+
+  if (state.isResolved || !release) {
+    return null;
+  }
+
+  return {
+    id: "resolve-next-release",
+    label: "Resolve in next release",
+    nextState: { isResolved: true, isArchived: state.isArchived },
+    release: release,
+  };
 }
 
 /*

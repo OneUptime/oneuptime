@@ -54,6 +54,17 @@ const INCIDENT_VIEW: string = readSource(
 );
 const ALERT_VIEW: string = readSource("Pages", "Alerts", "View", "Index.tsx");
 const PANEL: string = readSource("Components", "AI", "InvestigationPanel.tsx");
+const AI_CARD_STEP: string = readSource("Components", "AI", "AiCardStep.tsx");
+const REMEDIATION_STEP: string = readSource(
+  "Components",
+  "AutoRemediation",
+  "RemediationStep.tsx",
+);
+const REMEDIATION_CODE_FIX: string = readSource(
+  "Components",
+  "AutoRemediation",
+  "RemediationCodeFix.tsx",
+);
 const NOT_STARTED: string = readSource(
   "Components",
   "AI",
@@ -165,9 +176,22 @@ describe("the panel draws the one card", () => {
     expect(count(PANEL, /return \( <Card /g)).toBe(1);
   });
 
-  test("the card is titled once and its pill is drawn once", () => {
-    expect(count(PANEL, /title="AI Investigation"/g)).toBe(1);
-    expect(count(PANEL, /<InvestigationStatusBadge /g)).toBe(1);
+  /*
+   * Block 43: two steps in the one card, Investigation then Remediation,
+   * each with its own pill on its title's line - so both read at a glance.
+   */
+  test("the card is titled once, and each of its two steps draws its pill once", () => {
+    expect(count(PANEL, /title=\{AI_CARD_TITLE\}/g)).toBe(1);
+    expect(count(PANEL, /<InvestigationStatusBadge /g)).toBe(0);
+    expect(count(PANEL, /<AiCardStep /g)).toBe(1);
+    expect(PANEL).toContain("<AiCardStep number={1}");
+    expect(count(REMEDIATION_STEP, /<AiCardStep /g)).toBe(1);
+    expect(REMEDIATION_STEP).toContain("<AiCardStep number={2}");
+    expect(count(AI_CARD_STEP, /<InvestigationStatusBadge /g)).toBe(1);
+    // A step is part of the card: never a card of its own.
+    expect(AI_CARD_STEP).not.toMatch(CARD_IMPORT);
+    expect(REMEDIATION_STEP).not.toMatch(CARD_IMPORT);
+    expect(count(REMEDIATION_STEP, CARD_ELEMENT)).toBe(0);
     /*
      * The default header keeps the pill on the title's line at the card's
      * right edge, a phone included; the "inline" layout that once did it is
@@ -309,14 +333,31 @@ describe("the card says things in one notice, never in a box", () => {
   });
 
   test.each([
-    ["Fix task created", "investigation-fix-task-created"],
-    ["Could not create the fix task", "investigation-fix-task-error"],
-    ["Could not save your verdict", "investigation-verdict-error"],
-  ])("'%s' is a notice", (title: string, testId: string) => {
-    const notice: RegExp = new RegExp(
-      `<InvestigationNotice role="alert" testId="${testId}" indicator=\\{notice(Done|Failed)Icon\\} title="${title}"`,
-    );
+    ["the investigation", "investigation-verdict-error"],
+    ["the Remediation step", "remediation-action-error"],
+    ["the Remediation step", "remediation-try-again-error"],
+    ["the fix in the code", "remediation-code-fix-error"],
+  ])(
+    "what %s could not do is a notice (%s)",
+    (_where: string, testId: string) => {
+      const notice: RegExp = new RegExp(
+        `<InvestigationNotice role="alert" testId="${testId}" indicator=\\{noticeFailedIcon\\} title=`,
+      );
 
-    expect(PANEL).toMatch(notice);
+      expect(
+        [PANEL, REMEDIATION_STEP, REMEDIATION_CODE_FIX].some(
+          (source: string): boolean => {
+            return notice.test(source);
+          },
+        ),
+      ).toBe(true);
+    },
+  );
+
+  // "Open Fix PR from this analysis" is the Remediation step's now.
+  test("the investigation asks for no fix pull request of its own", () => {
+    expect(PANEL).not.toContain("/ai-investigation/create-fix-task");
+    expect(PANEL).not.toContain("Open Fix PR from this analysis");
+    expect(REMEDIATION_CODE_FIX).toContain("/ai-investigation/create-fix-task");
   });
 });

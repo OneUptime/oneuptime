@@ -301,6 +301,29 @@ export class MonitorTypeHelper {
   }
 
   /*
+   * The metric-backed types that watch one resource an agent reports on -
+   * Host, Kubernetes, Docker, Podman, Docker Swarm, Proxmox, VMware, Ceph,
+   * Storage Array, IoT Device: every metric-backed type but Metrics.
+   *
+   * Their data is scraped on a schedule, so a window with no data at all
+   * means the agent (or the resource) stopped sending, never "all is
+   * well", and a value of 0 - no restarts, an idle CPU - is still data.
+   * Their out-of-the-box criteria say whether data arrives
+   * (MonitorCriteriaInstance), and silence leaves their status and open
+   * incidents as they were (MonitorResourceUtil.isSilentInfrastructureWindow).
+   * A Metrics monitor's metric can be one an app sends only when something
+   * happens, so its silence keeps its old meaning.
+   */
+  public static isInfrastructureMonitor(
+    monitorType: MonitorType | undefined,
+  ): boolean {
+    return (
+      this.isMetricBackedMonitor(monitorType) &&
+      monitorType !== MonitorType.Metrics
+    );
+  }
+
+  /*
    * The monitor types the telemetry worker evaluates on its own schedule:
    * the telemetry signals with evaluators of their own, and every
    * metric-backed type.

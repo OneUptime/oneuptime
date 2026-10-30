@@ -106,7 +106,7 @@ Each run is held to budgets the server enforces: at most **40 LLM calls** and **
 | An exception's **AI Assistance** page | **Fix with AI** | Fixes the bug behind the exception. |
 | An exception's **AI Assistance** page | **Generate Regression Test** | Adds a test that reproduces the exception and fails until the bug is fixed. |
 | An exception's **AI Assistance** page | **Improve Error Handling** | For an expected error, such as invalid input: takes user data out of the message, validates the input earlier and marks the error as handled, without changing behaviour. |
-| An incident's or alert's **AI Investigation** card | **Open Fix PR from this analysis** | Fixes the root cause the investigation posted (see [Automatic code fixes from investigations](#automatic-code-fixes-from-investigations)). |
+| The **Remediation** step of an incident's or alert's **OneUptime AI** card | **Open fix pull request** | Fixes the root cause the investigation posted (see [Automatic code fixes from investigations](#automatic-code-fixes-from-investigations)). |
 | A trace worth fixing | **Fix performance with AI** | Fixes the slow pattern the button names, such as an N+1 query or calls that could run in parallel. |
 | A service's **Logs** page | **Improve Logging** | Makes the service's logs structured, at the right severity and tied to its traces, without changing behaviour. |
 | A service's **Traces** page | **Improve Tracing** | Adds spans and attributes where the service's tracing is missing, without changing behaviour. |
@@ -135,7 +135,7 @@ OneUptime holds what your code does in production, so a fix does not have to wor
 | --- | --- |
 | **Fix with AI** on an exception | How often it is thrown now and since which release, the logs and the trace of an occurrence. |
 | **Fix performance with AI** | How busy and how slow the operation is across all of its traces, not only the one analyzed. It changes nothing when the operation is no longer slow. |
-| **Open Fix PR from this analysis**, and fixes opened automatically from investigations | The deploys before the incident, its errors, logs and slow operations, and whether the cause struck before. |
+| **Open fix pull request**, and fixes opened automatically from investigations | The deploys before the incident, its errors, logs and slow operations, and whether the cause struck before. |
 | `@oneuptime review` from GitHub | What production says about the changed code (see [Reviews with production context](/docs/ai/github-app#reviews-with-production-context)). |
 
 The pull request's description says what the agent queried and what it showed. Other tasks, such as regression tests and logging or tracing improvements, do not query production.
@@ -305,7 +305,7 @@ Any way of running the container works (Docker Compose, Kubernetes and so on), a
 
 ## Automatic code fixes from investigations
 
-When an [AI investigation](/docs/ai/ai-sre) posts a root cause analysis on an incident or an alert, and its careful classification recommends a change to the code, the investigation card offers **Open Fix PR from this analysis**: a fix task whose whole context is the posted analysis. The button is hidden when the remedy is operational, infrastructure-only, external, an expected denial, a user error, or inconclusive. Eligible fixes happen without the click while **Fix new incidents automatically** is on, on **Incidents → AI → Settings** (and **Fix new alerts automatically** on **Alerts → AI → Settings**). Fixing starts off, for new projects too. With no AI rule every eligible fix opens; with rules, only one for what a rule matches, when the rule has **Fix pull requests** on (a new rule does), in the code repositories it names.
+When an [AI investigation](/docs/ai/ai-sre) posts a root cause analysis on an incident or an alert, and its careful classification recommends a change to the code, the **Remediation** step of its **OneUptime AI** card offers **Open fix pull request**: a fix task whose whole context is the posted analysis. It is not offered when the remedy is operational, infrastructure-only, external, an expected denial, a user error, or inconclusive. Eligible fixes happen without the click while **Fix new incidents automatically** is on, on **Incidents → AI → Settings** (and **Fix new alerts automatically** on **Alerts → AI → Settings**). Fixing starts off, for new projects too. With no AI rule every eligible fix opens; with rules, only one for what a rule matches, when the rule has **Fix pull requests** on (a new rule does), in the code repositories it names.
 
 While fixing is on, an investigation that ends with a confident, evidenced root cause that a code change can fix queues the same fix task the button creates. The decision is a constrained classification the server checks, never a pattern matched against the analysis's text: only a positive code-fix verdict opens a pull request. Missing evidence, a remedy outside the code and a failed classification all end in doing nothing.
 

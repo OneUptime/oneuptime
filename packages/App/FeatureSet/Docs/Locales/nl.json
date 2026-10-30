@@ -304,6 +304,7 @@
     "SendGrid Inbound Email": "SendGrid inkomende e-mail",
     "Private Network Access": "Toegang tot privénetwerk",
     "Behind a VPN or Firewall": "Achter een VPN of firewall",
+    "Update and Security Checks": "Update- en beveiligingscontroles",
     "Architecture": "Architectuur",
     "Enterprise Edition": "Enterprise Edition",
     "Inventory Overview": "Inventaris – Overzicht",
@@ -428,6 +429,8 @@
     "Elastic Security": "Elastic Security",
     "AWS Security Hub": "AWS Security Hub",
     "Okta System Log": "Okta-systeemlogboek",
+    "Microsoft Entra ID": "Microsoft Entra ID",
+    "Google Workspace": "Google Workspace",
     "Global SSO": "Globale SSO",
     "Import and Export Label Rules": "Labelregels importeren en exporteren",
     "Run Rules on Existing Resources": "Regels uitvoeren op bestaande resources"

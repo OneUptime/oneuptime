@@ -20,7 +20,7 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
   };
 });
 
-import RemediationSuggestionCard from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationSuggestionCard";
+import RemediationStep from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStep";
 import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import {
   DEFAULT_RUNBOOK_PICK_NAME,
@@ -68,7 +68,9 @@ async function renderCard(row: AutoRemediationSuggestion): Promise<void> {
       return { data: [row], count: 1, skip: 0, limit: 10 };
     },
   );
-  render(<RemediationSuggestionCard incidentId={INCIDENT_ID} />);
+  render(
+    <RemediationStep investigationStage="reported" incidentId={INCIDENT_ID} />,
+  );
   await screen.findByText("Restart checkout");
 }
 

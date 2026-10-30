@@ -72,10 +72,10 @@ flowchart TB
 
 **I en åtgärd** tar OneUptime AI fram en åtgärd via en server den får använda, när den erbjuder ett verktyg som kan ändra något, efter rotorsaksanalysen när det finns en:
 
-- **Fråga innan något åtgärdas** – varje ändring den skulle göra registreras och skickas ingenstans. Incidentens kort **Åtgärd** listar dem i ordning, var och en med sin server, sitt verktyg och vad den skulle skicka. **Godkänn och kör** gör exakt de ändringarna, i den ordningen, i ditt namn; ett godkännande kräver samma behörighet som att starta en runbook. En ändring som misslyckas stoppar dem efter den.
+- **Fråga innan något åtgärdas** – varje ändring den skulle göra registreras och skickas ingenstans. Steget **Åtgärd** på incidentens kort **OneUptime AI** listar dem i ordning, var och en med sin server, sitt verktyg och vad den skulle skicka. **Godkänn och kör** gör exakt de ändringarna, i den ordningen, i ditt namn; ett godkännande kräver samma behörighet som att starta en runbook. En ändring som misslyckas stoppar dem efter den.
 - **Åtgärda utan att fråga** – OneUptime AI gör ändringarna själv, var och en registrerad innan den skickas. Det gör den bara för en regel som nämner sina MCP-servrar, när ingen annan matchande regel frågar först, inget annat redan åtgärdar incidenten på egen hand (en AI-agent på ett kluster eller en värd, eller en runbook) och regeln inte har gjort det största antal åtgärder den får göra på egen hand på en timme; annars föreslås ändringarna. Utan någon konfigurerad regel, eller med en regel som inte nämner någon MCP-server, föreslås varje ändring.
 
-En åtgärd gör högst 5 ändringar. Sedan bevakar OneUptime incidentens monitorer, som vid varje åtgärd. Inget ångras automatiskt: Ett MCP-verktyg har ingen ångring som OneUptime kan känna till, så en åtgärd som inte fungerade lämnas åt en person, och kortet **Åtgärd** visar vad varje server svarade.
+En åtgärd gör högst 5 ändringar. Sedan bevakar OneUptime incidentens monitorer, som vid varje åtgärd. Inget ångras automatiskt: Ett MCP-verktyg har ingen ångring som OneUptime kan känna till, så en åtgärd som inte fungerade lämnas åt en person, och steget **Åtgärd** visar vad varje server svarade.
 
 För att få OneUptime AI att sluta använda en server stänger du av **Låt OneUptime AI använda den här servern** på dess sida. Den frågar först: Servern används inte längre i någon utredning eller åtgärd, och en föreslagen åtgärd via den kan inte längre godkännas.
 
@@ -93,7 +93,7 @@ När flera regler som utreder matchar får OneUptime AI använda varje server so
 - **Det en server skickar tillbaka är data, aldrig instruktioner.** OneUptime AI läser beskrivningarna och svaren från dess verktyg som text utifrån: De ändrar aldrig en regel, ett godkännande eller vad OneUptime AI får göra.
 - **Adressen kontrolleras vid varje anslutning.** OneUptime ansluter aldrig till sin egen adress eller en link-local-adress. På OneUptime Cloud avvisar den också privata nätverksadresser: Använd serverns offentliga adress. En egen driftad OneUptime når privata adresser om inte `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` är satt. Den följer inte omdirigeringar.
 - **Gränser.** Ett projekt har högst 20 servrar, och OneUptime läser högst 200 verktyg per server. Anslutningen får timeout efter 20 sekunder, listningen av verktyg efter 30 och ett verktygsanrop efter 60. Ett svar större än 2 MB avvisas, och en körning gör högst 40 anrop till MCP-servrar.
-- **Varje anrop registreras.** Varje anrop är ett steg i körningen, synligt i dess aktivitet, och varje ändring en åtgärd gör står på kortet **Åtgärd** med vad servern svarade. Modellanropen bakom dem finns under **Projektinställningar → AI → AI-loggar**.
+- **Varje anrop registreras.** Varje anrop är ett steg i körningen, synligt i dess aktivitet, och varje ändring en åtgärd gör står i steget **Åtgärd** med vad servern svarade. Modellanropen bakom dem finns under **Projektinställningar → AI → AI-loggar**.
 
 ## Felsökning
 

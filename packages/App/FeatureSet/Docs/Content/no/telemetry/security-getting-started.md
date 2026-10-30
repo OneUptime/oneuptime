@@ -58,8 +58,13 @@ Kortet **Loggene dine**, øverst på **Tilkoblinger**, trenger ingen installasjo
 | --- | --- |
 | SSH-pålogginger | Mislykkede og vellykkede SSH-pålogginger fra en servers auth-logg, journal eller syslog |
 | sudo | Kommandoer kjørt som en annen bruker, feil sudo-passord og personer som ikke får bruke sudo |
-| Kubernetes-revisjonslogger | Endringer i klyngen, skall åpnet i pods, leste hemmeligheter og avviste forespørsler |
+| Windows-hendelser | Pålogginger, nye prosesser, endrede kontoer og grupper, installerte tjenester og tømte logger fra Windows, Sysmon og Microsoft Defender |
 | AWS CloudTrail | Pålogginger til konsollen, endringer i AWS-kontoene dine og kall som AWS avviste |
+| Google Cloud-revisjonslogger | Endringer i Google Cloud-prosjektene dine, kall som Google avviste, og pålogginger i Google Workspace som deles med Google Cloud |
+| Azure-aktivitetslogger og Entra ID-logger | Endringer i Azure-abonnementene dine, varsler fra Defender for Cloud, og pålogginger og katalogendringer i Microsoft Entra ID |
+| CEF | Trusler, blokkerte tilkoblinger og pålogginger fra brannmurer, IDS, WAF-er og andre sikkerhetsprodukter som sender Common Event Format |
+| LEEF | Det samme fra produkter som sender Log Event Extended Format, slik mange gjør for IBM QRadar |
+| Kubernetes-revisjonslogger | Endringer i klyngen, skall åpnet i pods, leste hemmeligheter og avviste forespørsler |
 | Webangrep | Forespørsler i en webservers tilgangslogg som prøver SQL-injeksjon, path traversal eller Log4Shell |
 
 Loggene dine forblir som de er. Bare linjene som betyr noe for sikkerheten, blir hendelser: aldri hver side en webserver har levert, eller hver lesing av et API.
@@ -83,7 +88,7 @@ Saken åpnes som regel før knappen svarer; når regelen fortsatt henger etter, 
 :::
 
 :::details Det kommer ingen sikkerhetshendelse fra loggene mine
-Sjekk at **Finn sikkerhetshendelser i loggene dine** er slått på, og at kortet **Loggene dine** viser når det sist ble sjekket. Bare typene linjer i tabellen over blir hendelser: En server som ikke sender SSH-, sudo-, revisjons-, CloudTrail- eller tilgangslogger, har ingenting å finne.
+Sjekk at **Finn sikkerhetshendelser i loggene dine** er slått på, og at kortet **Loggene dine** viser når det sist ble sjekket. Bare typene linjer i tabellen over blir hendelser: En server som ikke sender SSH-, sudo-, Windows-, revisjons-, CEF-, LEEF- eller tilgangslogger, har ingenting å finne. Lim inn en av linjene i **Sjekk en logglinje** på **Loggene dine** for å se om OneUptime leser den.
 :::
 
 :::details Oversikt sier at den siste sikkerhetshendelsen kom for dager siden

@@ -1,4 +1,5 @@
 import { formatShiftInstant } from "./LayerSummary";
+import { SECTION_LABEL_CLASS_NAME } from "./FinalScheduleSummary";
 import { getUserAvatarStyle, getUserInitials } from "./LayerUserColors";
 import {
   OverrideScopeKind,
@@ -48,6 +49,14 @@ export interface ComponentProps {
  * survive the cut are always the ones that matter now.
  */
 export const MAX_SHOWN_OVERRIDE_ROWS: number = 4;
+
+/*
+ * The words under each side's name, "Away" and "Covering", in the reading's
+ * own case like every label of the Final schedule around this card
+ * (SECTION_LABEL_CLASS_NAME): they were letter-spaced capitals.
+ */
+export const OVERRIDE_PARTY_CAPTION_CLASS_NAME: string =
+  "text-[11px] font-medium";
 
 const ActiveOverridesCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -114,7 +123,7 @@ const ActiveOverridesCard: FunctionComponent<ComponentProps> = (
             {data.name}
           </div>
           <div
-            className={`text-[11px] font-medium uppercase tracking-wide ${data.captionClassName}`}
+            className={`${OVERRIDE_PARTY_CAPTION_CLASS_NAME} ${data.captionClassName}`}
           >
             {translator.translateText(data.caption)}
           </div>
@@ -137,7 +146,7 @@ const ActiveOverridesCard: FunctionComponent<ComponentProps> = (
             userId: row.originalUserId,
             name: row.originalName,
             caption: "Away",
-            captionClassName: "text-gray-400",
+            captionClassName: "text-gray-500",
           })}
 
           <Icon
@@ -208,7 +217,7 @@ const ActiveOverridesCard: FunctionComponent<ComponentProps> = (
       data-testid="active-overrides-card"
       className="rounded-xl border border-indigo-200 bg-indigo-50/40 p-4"
     >
-      <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-indigo-700">
+      <div className={`${SECTION_LABEL_CLASS_NAME} text-indigo-700`}>
         <Icon icon={IconProp.ArrowUturnRight} className="h-3.5 w-3.5" />
         {translator.translatePlural(
           {

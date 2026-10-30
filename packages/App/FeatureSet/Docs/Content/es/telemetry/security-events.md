@@ -178,7 +178,22 @@ La página **Guía de configuración**, en **Conexiones**, tiene estos fragmento
 
 ### Encontrar eventos de seguridad en sus registros
 
-La tarjeta **Tus registros**, en la parte superior de **Conexiones**, convierte en un origen los registros que ya envía a OneUptime. Con **Encontrar eventos de seguridad en tus registros** activado, los registros nuevos del proyecto se leen cada minuto, y cada inicio de sesión SSH, comando sudo, entrada de auditoría de Kubernetes, cambio de AWS CloudTrail y ataque web que contengan se guarda como evento de seguridad. Consulte [Primeros pasos con la seguridad](/docs/telemetry/security-getting-started#encontrar-eventos-de-seguridad-en-sus-registros) para saber qué cubre cada tipo.
+La tarjeta **Tus registros**, en la parte superior de **Conexiones**, convierte en un origen los registros que ya envía a OneUptime. Con **Encontrar eventos de seguridad en tus registros** activado, los registros nuevos del proyecto se leen cada minuto, y cada inicio de sesión SSH o de Windows, comando sudo, registro de auditoría de una nube, registro CEF o LEEF de un producto de seguridad, entrada de auditoría de Kubernetes y ataque web que contengan se guarda como evento de seguridad. Consulte [Primeros pasos con la seguridad](/docs/telemetry/security-getting-started#encontrar-eventos-de-seguridad-en-sus-registros) para saber qué cubre cada tipo.
+
+Cada tipo llega a OneUptime como registros normales:
+
+| Tipo | Se envía desde |
+| --- | --- |
+| Inicios de sesión SSH, sudo | El journal o el registro de autenticación de una máquina Linux, con el [OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
+| Eventos de Windows | El receptor `windowseventlog` del recolector en la máquina, o un reenviador que escribe cada evento como JSON, como NXLog o Winlogbeat |
+| AWS CloudTrail | Un trail entregado a CloudWatch Logs, leído por el receptor `awscloudwatch` del recolector |
+| Registros de auditoría de Google Cloud | Un sink de registros hacia Pub/Sub, leído por el receptor `googlecloudpubsub` del recolector con `encoding: raw_text` |
+| Registros de actividad de Azure y de Entra ID | Una configuración de diagnóstico que transmite a un Event Hub, leída por el receptor `azureeventhub` del recolector con `format: raw` |
+| CEF, LEEF | El syslog del producto, retransmitido por [rsyslog](/docs/telemetry/syslog) |
+| Registros de auditoría de Kubernetes | El archivo de registro de auditoría del servidor de API, leído por el receptor `filelog` del recolector |
+| Ataques web | El registro de acceso de un servidor web, leído por el receptor `filelog` del recolector |
+
+En **Tus registros**, cada tipo indica cuándo se encontró por última vez, y **Comprobar una línea de registro** muestra en qué se convierte una línea que pegue, antes de que llegue ninguna.
 
 ### Conectar un producto de seguridad
 
@@ -194,6 +209,8 @@ La tarjeta **Tus registros**, en la parte superior de **Conexiones**, convierte 
 | Elastic Security | Alertas de detección, como Detection Findings | [Elastic Security](/docs/integrations/elastic-security) |
 | AWS Security Hub | Findings, como Detection y Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | Eventos de inicio de sesión, MFA, cuentas y políticas | [Okta System Log](/docs/integrations/okta) |
+| Microsoft Entra ID | Inicios de sesión y cambios de directorio, y del registro de auditoría de Microsoft 365, el reenvío de correo, el uso compartido y los veredictos de phishing | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
+| Google Workspace | Inicios de sesión, las detecciones propias de Google, los cambios de administración y los accesos concedidos a aplicaciones, y el uso compartido en Drive | [Google Workspace](/docs/integrations/google-workspace) |
 
 - Las alertas propias del producto con un nivel igual o superior a **Open Cases From** (**Alta y superior** salvo que elijas otro nivel, o **Nunca**) abren [casos](/docs/telemetry/security-cases), agrupadas por el usuario, host o dirección de los que tratan.
 - Una conexión lee los registros según el momento en que el producto los creó, no según el momento de la actividad que describen. Una regla de SIEM que se ejecuta cada hora crea detecciones mucho después de los eventos que coincidieron, y aun así se importan.

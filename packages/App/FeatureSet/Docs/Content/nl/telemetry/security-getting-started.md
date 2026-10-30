@@ -58,8 +58,13 @@ De kaart **Uw logboeken**, boven aan **Verbindingen**, hoeft niet geïnstalleerd
 | --- | --- |
 | SSH-aanmeldingen | Mislukte en geslaagde SSH-aanmeldingen uit het authenticatielog, de journal of de syslog van een server |
 | sudo | Opdrachten die als een andere gebruiker draaien, verkeerde sudo-wachtwoorden en mensen die sudo niet mogen gebruiken |
-| Kubernetes-auditlogs | Wijzigingen aan het cluster, shells die in pods worden geopend, gelezen secrets en geweigerde verzoeken |
+| Windows-gebeurtenissen | Aanmeldingen, nieuwe processen, gewijzigde accounts en groepen, geïnstalleerde services en gewiste logboeken, uit Windows, Sysmon en Microsoft Defender |
 | AWS CloudTrail | Aanmeldingen bij de console, wijzigingen in uw AWS-accounts en aanroepen die AWS weigerde |
+| Google Cloud-auditlogs | Wijzigingen in uw Google Cloud-projecten, aanroepen die Google weigerde en aanmeldingen bij Google Workspace die met Google Cloud worden gedeeld |
+| Azure-activiteitslogs en Entra ID-logs | Wijzigingen in uw Azure-abonnementen, waarschuwingen van Defender for Cloud, en aanmeldingen en directorywijzigingen van Microsoft Entra ID |
+| CEF | Bedreigingen, geblokkeerde verbindingen en aanmeldingen van firewalls, IDS, WAF's en andere beveiligingsproducten die Common Event Format sturen |
+| LEEF | Hetzelfde van producten die Log Event Extended Format sturen, zoals veel producten voor IBM QRadar doen |
+| Kubernetes-auditlogs | Wijzigingen aan het cluster, shells die in pods worden geopend, gelezen secrets en geweigerde verzoeken |
 | Webaanvallen | Verzoeken in het toegangslog van een webserver die SQL-injectie, path traversal of Log4Shell proberen |
 
 Uw logs blijven zoals ze zijn. Alleen de regels die voor beveiliging tellen, worden gebeurtenissen: nooit elke pagina die een webserver heeft geleverd, of elke leesactie op een API.
@@ -83,7 +88,7 @@ Meestal is de zaak al open voordat de knop antwoordt; loopt de regel nog achter,
 :::
 
 :::details Uit mijn logs komt geen beveiligingsgebeurtenis
-Controleer of **Beveiligingsgebeurtenissen in uw logboeken vinden** aanstaat en of de kaart **Uw logboeken** laat zien wanneer er voor het laatst is gecontroleerd. Alleen de soorten regels uit de tabel hierboven worden gebeurtenissen: een server die geen SSH-, sudo-, audit-, CloudTrail- of toegangslogs stuurt, heeft niets te vinden.
+Controleer of **Beveiligingsgebeurtenissen in uw logboeken vinden** aanstaat en of de kaart **Uw logboeken** laat zien wanneer er voor het laatst is gecontroleerd. Alleen de soorten regels uit de tabel hierboven worden gebeurtenissen: een server die geen SSH-, sudo-, Windows-, audit-, CEF-, LEEF- of toegangslogs stuurt, heeft niets te vinden. Plak een van zijn regels in **Een logboekregel controleren**, op **Uw logboeken**, om te zien of OneUptime hem leest.
 :::
 
 :::details Overzicht zegt dat de laatste beveiligingsgebeurtenis dagen geleden binnenkwam

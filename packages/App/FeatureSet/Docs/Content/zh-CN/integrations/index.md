@@ -58,6 +58,8 @@ flowchart TB
 | [Elastic Security](/docs/integrations/elastic-security) | 双向 | 把 Elastic Security 检测警报导入安全事件，并把 OneUptime 的发现发送给 Elastic Security。 |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | 入站 | 把 AWS Security Hub 发现结果导入安全事件。 |
 | [Okta System Log](/docs/integrations/okta) | 入站 | 把 Okta 登录、账户变更和威胁检测导入安全事件。 |
+| [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) | 入站 | 把 Microsoft Entra ID 登录和目录变更以及 Microsoft 365 审计日志导入安全事件。 |
+| [Google Workspace](/docs/integrations/google-workspace) | 入站 | 把 Google Workspace 登录、管理员变更和 Google 自身的检测导入安全事件。 |
 
 ### 工单与 IT 服务管理
 

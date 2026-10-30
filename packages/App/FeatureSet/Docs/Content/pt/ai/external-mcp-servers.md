@@ -72,10 +72,10 @@ flowchart TB
 
 **Numa correção**, quando um servidor que ele pode usar oferece uma ferramenta que pode alterar algo, o OneUptime AI elabora uma correção por meio dele, depois da análise de causa raiz quando houver uma:
 
-- **Perguntar antes de corrigir** — cada alteração que ele faria é registrada e não é enviada a lugar nenhum. O cartão **Remediação** do incidente as lista em ordem, cada uma com o seu servidor, a sua ferramenta e o que enviaria. **Aprovar e executar** faz exatamente essas alterações, nessa ordem, em seu nome; aprovar exige a mesma permissão que iniciar um runbook. Uma alteração que falha interrompe as seguintes.
+- **Perguntar antes de corrigir** — cada alteração que ele faria é registrada e não é enviada a lugar nenhum. A etapa **Remediação** do cartão **OneUptime AI** do incidente as lista em ordem, cada uma com o seu servidor, a sua ferramenta e o que enviaria. **Aprovar e executar** faz exatamente essas alterações, nessa ordem, em seu nome; aprovar exige a mesma permissão que iniciar um runbook. Uma alteração que falha interrompe as seguintes.
 - **Corrigir sem perguntar** — o OneUptime AI faz as alterações sozinho, cada uma registrada antes de ser enviada. Ele só faz isso para uma regra que nomeia os seus servidores MCP, quando nenhuma outra regra correspondente pergunta antes, nada mais já está corrigindo o incidente por conta própria (um agente de IA num cluster ou host, ou um runbook) e a regra não fez o máximo de correções que pode fazer sozinha em uma hora; caso contrário, as alterações são propostas. Sem nenhuma regra configurada, ou com uma regra que não nomeia nenhum servidor MCP, toda alteração é proposta.
 
-Uma correção faz no máximo 5 alterações. Depois o OneUptime observa os monitores do incidente, como em toda correção. Nada é desfeito automaticamente: uma ferramenta MCP não tem um desfazer que o OneUptime possa conhecer, então uma correção que não funcionou fica para uma pessoa, e o cartão **Remediação** mostra o que cada servidor respondeu.
+Uma correção faz no máximo 5 alterações. Depois o OneUptime observa os monitores do incidente, como em toda correção. Nada é desfeito automaticamente: uma ferramenta MCP não tem um desfazer que o OneUptime possa conhecer, então uma correção que não funcionou fica para uma pessoa, e a etapa **Remediação** mostra o que cada servidor respondeu.
 
 Para o OneUptime AI deixar de usar um servidor, desative **Permitir que o OneUptime AI use este servidor** na página dele. Ele pergunta antes: o servidor deixa de ser usado em qualquer investigação ou correção, e uma correção proposta por meio dele não pode mais ser aprovada.
 
@@ -93,7 +93,7 @@ Quando várias regras que investigam correspondem, o OneUptime AI pode usar cada
 - **O que um servidor devolve são dados, nunca instruções.** O OneUptime AI lê as descrições e as respostas das ferramentas dele como texto de fora do OneUptime: elas nunca mudam uma regra, uma aprovação ou o que o OneUptime AI pode fazer.
 - **O endereço é verificado a cada conexão.** O OneUptime nunca se conecta ao próprio endereço nem a um endereço link-local. No OneUptime Cloud ele também recusa endereços de rede privada: use o endereço público do servidor. Um OneUptime auto-hospedado alcança endereços privados, a menos que `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` esteja definido. Ele não segue redirecionamentos.
 - **Limites.** Um projeto tem no máximo 20 servidores, e o OneUptime lê no máximo 200 ferramentas de cada um. A conexão expira após 20 segundos, a listagem das ferramentas após 30 e uma chamada de ferramenta após 60. Uma resposta maior que 2 MB é recusada, e uma execução faz no máximo 40 chamadas a servidores MCP.
-- **Cada chamada é registrada.** Cada chamada é uma etapa da execução, mostrada na atividade dela, e cada alteração que uma correção faz aparece no cartão **Remediação** com o que o servidor respondeu. As chamadas ao modelo por trás delas estão em **Configurações do projeto → IA → Registros de IA**.
+- **Cada chamada é registrada.** Cada chamada é uma etapa da execução, mostrada na atividade dela, e cada alteração que uma correção faz aparece na etapa **Remediação** com o que o servidor respondeu. As chamadas ao modelo por trás delas estão em **Configurações do projeto → IA → Registros de IA**.
 
 ## Solução de problemas
 

@@ -304,6 +304,7 @@
     "SendGrid Inbound Email": "SendGrid 受信メール",
     "Private Network Access": "プライベートネットワークへのアクセス",
     "Behind a VPN or Firewall": "VPN またはファイアウォールの内側",
+    "Update and Security Checks": "アップデートとセキュリティの確認",
     "Architecture": "アーキテクチャ",
     "Enterprise Edition": "エンタープライズ版",
     "Inventory Overview": "インベントリの概要",
@@ -428,6 +429,8 @@
     "Elastic Security": "Elastic Security",
     "AWS Security Hub": "AWS Security Hub",
     "Okta System Log": "Okta システムログ",
+    "Microsoft Entra ID": "Microsoft Entra ID",
+    "Google Workspace": "Google Workspace",
     "Global SSO": "グローバル SSO",
     "Import and Export Label Rules": "ラベルルールのインポートとエクスポート",
     "Run Rules on Existing Resources": "既存のリソースに対してルールを実行する"

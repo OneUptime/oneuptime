@@ -2149,6 +2149,12 @@
                         "string",
                         "null"
                     ]
+                },
+                "securityAdvisoriesUrl": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
                 }
             },
             "additionalProperties": false
