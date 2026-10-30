@@ -416,7 +416,6 @@
   "\"{{fileName}}\" is not a type of file this field takes.": "«{{fileName}}» از نوع فایلی نیست که این فیلد می‌پذیرد.",
   "These files are not a type this field takes: {{fileNames}}.": "این فایل‌ها از نوعی نیستند که این فیلد می‌پذیرد: {{fileNames}}.",
   "Add one file at a time.": "هر بار یک فایل اضافه کنید.",
-  "This field holds up to {{count}} files.": "این فیلد حداکثر {{count}} فایل می‌پذیرد.",
   "This field holds up to {{count}} files. Remove one to add another.": "این فیلد حداکثر {{count}} فایل می‌پذیرد. برای افزودن فایل دیگر، یکی را حذف کنید.",
   "markdownCallouts": {
     "caution": "احتیاط",

@@ -38788,7 +38788,6 @@
   "{{count}} files_one": "{{count}} 个文件",
   "Replace": "替换",
   "Add one file at a time.": "请一次添加一个文件。",
-  "This field holds up to {{count}} files.": "此字段最多可包含 {{count}} 个文件。",
   "This field holds up to {{count}} files. Remove one to add another.": "此字段最多可包含 {{count}} 个文件。请先移除一个，再添加其他文件。",
   "\"{{fileName}}\" is not a type of file this field takes.": "“{{fileName}}”不是此字段接受的文件类型。",
   "These files are not a type this field takes: {{fileNames}}.": "以下文件不是此字段接受的类型：{{fileNames}}。",

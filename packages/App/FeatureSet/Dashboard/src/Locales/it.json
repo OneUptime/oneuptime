@@ -38788,7 +38788,6 @@
   "{{count}} files_one": "{{count}} file",
   "Replace": "Sostituisci",
   "Add one file at a time.": "Aggiungi un file alla volta.",
-  "This field holds up to {{count}} files.": "Questo campo contiene al massimo {{count}} file.",
   "This field holds up to {{count}} files. Remove one to add another.": "Questo campo contiene al massimo {{count}} file. Rimuovine uno per aggiungerne un altro.",
   "\"{{fileName}}\" is not a type of file this field takes.": "\"{{fileName}}\" non è un tipo di file accettato da questo campo.",
   "These files are not a type this field takes: {{fileNames}}.": "Questi file non sono di un tipo accettato da questo campo: {{fileNames}}.",

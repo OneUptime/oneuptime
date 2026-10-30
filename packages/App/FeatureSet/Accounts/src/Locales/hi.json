@@ -416,7 +416,6 @@
   "\"{{fileName}}\" is not a type of file this field takes.": "\"{{fileName}}\" ऐसी फ़ाइल नहीं है जिसे यह फ़ील्ड स्वीकार करता है।",
   "These files are not a type this field takes: {{fileNames}}.": "ये फ़ाइलें ऐसे प्रकार की नहीं हैं जिसे यह फ़ील्ड स्वीकार करता है: {{fileNames}}।",
   "Add one file at a time.": "एक बार में एक फ़ाइल जोड़ें।",
-  "This field holds up to {{count}} files.": "इस फ़ील्ड में अधिकतम {{count}} फ़ाइलें रखी जा सकती हैं।",
   "This field holds up to {{count}} files. Remove one to add another.": "इस फ़ील्ड में अधिकतम {{count}} फ़ाइलें रखी जा सकती हैं। दूसरी जोड़ने के लिए एक हटाएं।",
   "markdownCallouts": {
     "caution": "सावधानी",

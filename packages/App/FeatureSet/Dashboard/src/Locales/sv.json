@@ -38788,7 +38788,6 @@
   "{{count}} files_one": "{{count}} fil",
   "Replace": "Ersätt",
   "Add one file at a time.": "Lägg till en fil i taget.",
-  "This field holds up to {{count}} files.": "Det här fältet rymmer upp till {{count}} filer.",
   "This field holds up to {{count}} files. Remove one to add another.": "Det här fältet rymmer upp till {{count}} filer. Ta bort en för att lägga till en annan.",
   "\"{{fileName}}\" is not a type of file this field takes.": "\"{{fileName}}\" är inte en filtyp som det här fältet tar emot.",
   "These files are not a type this field takes: {{fileNames}}.": "De här filerna har en typ som det här fältet inte tar emot: {{fileNames}}.",

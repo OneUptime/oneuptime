@@ -416,7 +416,6 @@
   "\"{{fileName}}\" is not a type of file this field takes.": "「{{fileName}}」は、このフィールドで受け付けていない種類のファイルです。",
   "These files are not a type this field takes: {{fileNames}}.": "次のファイルは、このフィールドで受け付けていない種類です: {{fileNames}}。",
   "Add one file at a time.": "ファイルは 1 つずつ追加してください。",
-  "This field holds up to {{count}} files.": "このフィールドに入れられるファイルは最大 {{count}} 個です。",
   "This field holds up to {{count}} files. Remove one to add another.": "このフィールドに入れられるファイルは最大 {{count}} 個です。別のファイルを追加するには、1 つ削除してください。",
   "markdownCallouts": {
     "caution": "注意",

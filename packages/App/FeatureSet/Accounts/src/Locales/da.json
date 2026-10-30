@@ -416,7 +416,6 @@
   "\"{{fileName}}\" is not a type of file this field takes.": "\"{{fileName}}\" er ikke en filtype, som dette felt accepterer.",
   "These files are not a type this field takes: {{fileNames}}.": "Disse filer har en type, som dette felt ikke accepterer: {{fileNames}}.",
   "Add one file at a time.": "Tilføj én fil ad gangen.",
-  "This field holds up to {{count}} files.": "Dette felt kan indeholde op til {{count}} filer.",
   "This field holds up to {{count}} files. Remove one to add another.": "Dette felt kan indeholde op til {{count}} filer. Fjern en for at tilføje en anden.",
   "markdownCallouts": {
     "caution": "Forsigtig",

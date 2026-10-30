@@ -38788,7 +38788,6 @@
   "{{count}} files_one": "{{count}} 個檔案",
   "Replace": "取代",
   "Add one file at a time.": "請一次新增一個檔案。",
-  "This field holds up to {{count}} files.": "此欄位最多可包含 {{count}} 個檔案。",
   "This field holds up to {{count}} files. Remove one to add another.": "此欄位最多可包含 {{count}} 個檔案。請先移除一個，再新增其他檔案。",
   "\"{{fileName}}\" is not a type of file this field takes.": "「{{fileName}}」不是此欄位接受的檔案類型。",
   "These files are not a type this field takes: {{fileNames}}.": "以下檔案不是此欄位接受的類型：{{fileNames}}。",

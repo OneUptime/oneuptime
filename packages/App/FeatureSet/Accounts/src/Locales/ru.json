@@ -416,7 +416,6 @@
   "\"{{fileName}}\" is not a type of file this field takes.": "Это поле не принимает файлы такого типа, как «{{fileName}}».",
   "These files are not a type this field takes: {{fileNames}}.": "Это поле не принимает файлы такого типа: {{fileNames}}.",
   "Add one file at a time.": "Добавляйте по одному файлу.",
-  "This field holds up to {{count}} files.": "Максимум файлов в этом поле: {{count}}.",
   "This field holds up to {{count}} files. Remove one to add another.": "Максимум файлов в этом поле: {{count}}. Удалите один, чтобы добавить другой.",
   "markdownCallouts": {
     "caution": "Осторожно",

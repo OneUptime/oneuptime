@@ -519,7 +519,6 @@ const FILE_PICKER_SENTENCES: Array<string> = [
   '"{{fileName}}" is not a type of file this field takes.',
   "These files are not a type this field takes: {{fileNames}}.",
   "Add one file at a time.",
-  "This field holds up to {{count}} files.",
   "This field holds up to {{count}} files. Remove one to add another.",
 ];
 

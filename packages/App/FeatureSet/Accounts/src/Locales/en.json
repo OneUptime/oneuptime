@@ -416,7 +416,6 @@
   "\"{{fileName}}\" is not a type of file this field takes.": "\"{{fileName}}\" is not a type of file this field takes.",
   "These files are not a type this field takes: {{fileNames}}.": "These files are not a type this field takes: {{fileNames}}.",
   "Add one file at a time.": "Add one file at a time.",
-  "This field holds up to {{count}} files.": "This field holds up to {{count}} files.",
   "This field holds up to {{count}} files. Remove one to add another.": "This field holds up to {{count}} files. Remove one to add another.",
   "markdownCallouts": {
     "caution": "Caution",

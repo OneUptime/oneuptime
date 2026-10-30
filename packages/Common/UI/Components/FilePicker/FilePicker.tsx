@@ -421,12 +421,14 @@ const FilePicker: FunctionComponent<ComponentProps> = (
 
         const oversizedFiles: Array<string> = [];
 
-        // What room a picker of several files has left.
+        /*
+         * What room a picker of several files has left. A drop of more than
+         * fits adds what fits, and the picker - full - says how many it holds.
+         */
         const room: number | null =
           maxFiles === null ? null : Math.max(0, maxFiles - filesModel.length);
         const filesToAdd: Array<File> =
           room === null ? acceptedFiles : acceptedFiles.slice(0, room);
-        const leftOut: number = acceptedFiles.length - filesToAdd.length;
 
         for (const acceptedFile of filesToAdd) {
           if (acceptedFile.size > maxFileSizeBytes) {
@@ -497,13 +499,6 @@ const FilePicker: FunctionComponent<ComponentProps> = (
 
         if (oversizedFiles.length > 0) {
           setError(buildFileSizeError(oversizedFiles));
-        } else if (leftOut > 0 && maxFiles !== null) {
-          setError(
-            translator.translateTemplate(
-              "This field holds up to {{count}} files.",
-              { count: maxFiles },
-            ),
-          );
         }
 
         if (filesResult.length > 0) {
@@ -640,12 +635,21 @@ const FilePicker: FunctionComponent<ComponentProps> = (
           })}
         >
           {isFull && (
-            <p className="text-sm text-gray-600" data-testid="file-picker-full">
-              {translator.translateTemplate(
-                "This field holds up to {{count}} files. Remove one to add another.",
-                { count: maxFiles || 0 },
+            <>
+              <p
+                className="text-sm text-gray-600"
+                data-testid="file-picker-full"
+              >
+                {translator.translateTemplate(
+                  "This field holds up to {{count}} files. Remove one to add another.",
+                  { count: maxFiles || 0 },
+                )}
+              </p>
+              {/* A file dropped on it anyway, of a kind it does not take. */}
+              {error && (
+                <p className="text-xs text-red-500 font-medium">{error}</p>
               )}
-            </p>
+            </>
           )}
           {!isFull && (filesModel.length === 0 || props.isMultiFilePicker) && (
             <>

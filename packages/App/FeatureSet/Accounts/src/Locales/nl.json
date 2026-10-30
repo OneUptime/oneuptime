@@ -416,7 +416,6 @@
   "\"{{fileName}}\" is not a type of file this field takes.": "\"{{fileName}}\" is geen bestandstype dat dit veld accepteert.",
   "These files are not a type this field takes: {{fileNames}}.": "Deze bestanden hebben een type dat dit veld niet accepteert: {{fileNames}}.",
   "Add one file at a time.": "Voeg één bestand tegelijk toe.",
-  "This field holds up to {{count}} files.": "Dit veld bevat maximaal {{count}} bestanden.",
   "This field holds up to {{count}} files. Remove one to add another.": "Dit veld bevat maximaal {{count}} bestanden. Verwijder er een om een ander toe te voegen.",
   "markdownCallouts": {
     "caution": "Let op",
