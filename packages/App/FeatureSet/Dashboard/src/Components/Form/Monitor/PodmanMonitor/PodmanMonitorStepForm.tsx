@@ -83,7 +83,6 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
   const [startAndEndTime, setStartAndEndTime] =
     React.useState<InBetween<Date> | null>(null);
 
-
   /*
    * The template a saved step was made from shows picked; a new step starts
    * on the type's default alert once drawn.
@@ -133,11 +132,11 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
     useInfrastructureResources<PodmanHost>({
       modelType: PodmanHost,
       select: {
-          _id: true,
-          lastSeenAt: true,
-          name: true,
-          hostIdentifier: true,
-        },
+        _id: true,
+        lastSeenAt: true,
+        name: true,
+        hostIdentifier: true,
+      },
       toOption: (host: PodmanHost): DropdownOption => {
         return {
           label: host.name || host.hostIdentifier || "Unknown",
@@ -171,15 +170,14 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   }, []);
 
-  const applyTemplate: (template: PodmanAlertTemplate, hostIdentifier: string) => void = (
+  const applyTemplate: (
     template: PodmanAlertTemplate,
     hostIdentifier: string,
-  ): void => {
+  ) => void = (template: PodmanAlertTemplate, hostIdentifier: string): void => {
     templateAppliedWithoutResourceRef.current = !hostIdentifier;
     setSelectedTemplateId(template.id);
     // The template replaces the metric the Custom Metric tab picked.
     setSelectedMetricId(undefined);
-
 
     const onlineMonitorStatusId: ObjectID =
       props.onlineMonitorStatusId || ObjectID.generate();
@@ -224,21 +222,26 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    const template: PodmanAlertTemplate | undefined = getPodmanAlertTemplateById(
-      getPodmanDefaultAlertTemplateId(),
-    );
+    const template: PodmanAlertTemplate | undefined =
+      getPodmanAlertTemplateById(getPodmanDefaultAlertTemplateId());
 
     if (template) {
       applyTemplate(template, monitorStepPodmanMonitor.hostIdentifier);
     }
   }, []);
 
-  const changeResource: (hostIdentifier: string) => void = (hostIdentifier: string): void => {
+  const changeResource: (hostIdentifier: string) => void = (
+    hostIdentifier: string,
+  ): void => {
     const template: PodmanAlertTemplate | undefined = selectedTemplateId
       ? getPodmanAlertTemplateById(selectedTemplateId)
       : undefined;
 
-    if (template && templateAppliedWithoutResourceRef.current && hostIdentifier) {
+    if (
+      template &&
+      templateAppliedWithoutResourceRef.current &&
+      hostIdentifier
+    ) {
       applyTemplate(template, hostIdentifier);
       return;
     }
@@ -316,9 +319,7 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
                 onClose={input.onClose}
                 onConnected={(record: BaseModel) => {
                   input.onConnected(
-                    String(
-                      (record as PodmanHost).hostIdentifier || "",
-                    ),
+                    String((record as PodmanHost).hostIdentifier || ""),
                   );
                 }}
               />
@@ -568,7 +569,6 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
       </div>
     );
   };
-
 
   return (
     <InfrastructureMonitorSetup

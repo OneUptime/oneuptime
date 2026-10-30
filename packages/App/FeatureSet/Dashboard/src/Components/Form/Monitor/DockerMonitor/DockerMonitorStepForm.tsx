@@ -83,7 +83,6 @@ const DockerMonitorStepForm: FunctionComponent<ComponentProps> = (
   const [startAndEndTime, setStartAndEndTime] =
     React.useState<InBetween<Date> | null>(null);
 
-
   /*
    * The template a saved step was made from shows picked; a new step starts
    * on the type's default alert once drawn.
@@ -133,11 +132,11 @@ const DockerMonitorStepForm: FunctionComponent<ComponentProps> = (
     useInfrastructureResources<DockerHost>({
       modelType: DockerHost,
       select: {
-          _id: true,
-          lastSeenAt: true,
-          name: true,
-          hostIdentifier: true,
-        },
+        _id: true,
+        lastSeenAt: true,
+        name: true,
+        hostIdentifier: true,
+      },
       toOption: (host: DockerHost): DropdownOption => {
         return {
           label: host.name || host.hostIdentifier || "Unknown",
@@ -171,15 +170,14 @@ const DockerMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   }, []);
 
-  const applyTemplate: (template: DockerAlertTemplate, hostIdentifier: string) => void = (
+  const applyTemplate: (
     template: DockerAlertTemplate,
     hostIdentifier: string,
-  ): void => {
+  ) => void = (template: DockerAlertTemplate, hostIdentifier: string): void => {
     templateAppliedWithoutResourceRef.current = !hostIdentifier;
     setSelectedTemplateId(template.id);
     // The template replaces the metric the Custom Metric tab picked.
     setSelectedMetricId(undefined);
-
 
     const onlineMonitorStatusId: ObjectID =
       props.onlineMonitorStatusId || ObjectID.generate();
@@ -224,21 +222,26 @@ const DockerMonitorStepForm: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    const template: DockerAlertTemplate | undefined = getDockerAlertTemplateById(
-      getDockerDefaultAlertTemplateId(),
-    );
+    const template: DockerAlertTemplate | undefined =
+      getDockerAlertTemplateById(getDockerDefaultAlertTemplateId());
 
     if (template) {
       applyTemplate(template, monitorStepDockerMonitor.hostIdentifier);
     }
   }, []);
 
-  const changeResource: (hostIdentifier: string) => void = (hostIdentifier: string): void => {
+  const changeResource: (hostIdentifier: string) => void = (
+    hostIdentifier: string,
+  ): void => {
     const template: DockerAlertTemplate | undefined = selectedTemplateId
       ? getDockerAlertTemplateById(selectedTemplateId)
       : undefined;
 
-    if (template && templateAppliedWithoutResourceRef.current && hostIdentifier) {
+    if (
+      template &&
+      templateAppliedWithoutResourceRef.current &&
+      hostIdentifier
+    ) {
       applyTemplate(template, hostIdentifier);
       return;
     }
@@ -316,9 +319,7 @@ const DockerMonitorStepForm: FunctionComponent<ComponentProps> = (
                 onClose={input.onClose}
                 onConnected={(record: BaseModel) => {
                   input.onConnected(
-                    String(
-                      (record as DockerHost).hostIdentifier || "",
-                    ),
+                    String((record as DockerHost).hostIdentifier || ""),
                   );
                 }}
               />
@@ -568,7 +569,6 @@ const DockerMonitorStepForm: FunctionComponent<ComponentProps> = (
       </div>
     );
   };
-
 
   return (
     <InfrastructureMonitorSetup

@@ -22,9 +22,7 @@ export interface InfrastructureResources<T extends BaseModel> {
   reload: () => Promise<Array<T>>;
 }
 
-export default function useInfrastructureResources<
-  T extends BaseModel,
->(input: {
+export default function useInfrastructureResources<T extends BaseModel>(input: {
   modelType: { new (): T };
   select: Select<T>;
   // The option's value is what the monitor stores and the worker filters on.

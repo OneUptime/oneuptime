@@ -207,11 +207,11 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
     useInfrastructureResources<StorageArray>({
       modelType: StorageArray,
       select: {
-          _id: true,
-          lastSeenAt: true,
-          name: true,
-          storageSystem: true,
-        },
+        _id: true,
+        lastSeenAt: true,
+        name: true,
+        storageSystem: true,
+      },
       toOption: (storageArray: StorageArray): DropdownOption => {
         return {
           label: storageArray.name || "Unknown",
@@ -239,11 +239,14 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
     string | undefined
   >(() => {
     return findTemplateIdForMetricsView<StorageArrayAlertTemplate>({
-      templates: getStorageArrayAlertTemplatesForSystem(monitorStepStorageArrayMonitor.storageSystem),
+      templates: getStorageArrayAlertTemplatesForSystem(
+        monitorStepStorageArrayMonitor.storageSystem,
+      ),
       getMetricsViewConfig: (template: StorageArrayAlertTemplate) => {
         return MonitorStep.getMetricsViewConfig(
           template.getMonitorStep({
-            arrayIdentifier: monitorStepStorageArrayMonitor.arrayIdentifier || "",
+            arrayIdentifier:
+              monitorStepStorageArrayMonitor.arrayIdentifier || "",
             onlineMonitorStatusId: ObjectID.generate(),
             offlineMonitorStatusId: ObjectID.generate(),
             defaultIncidentSeverityId: ObjectID.generate(),
@@ -258,7 +261,8 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
 
   const [initialWay] = React.useState<InfrastructureWatchWay>(() => {
     return getInitialWatchWay({
-      queryCount: monitorStepStorageArrayMonitor.metricViewConfig.queryConfigs.length,
+      queryCount:
+        monitorStepStorageArrayMonitor.metricViewConfig.queryConfigs.length,
       isTemplatePicked: Boolean(selectedTemplateId),
     });
   });
@@ -286,7 +290,6 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
     storageSystemByArray[monitorStepStorageArrayMonitor.arrayIdentifier] ||
     undefined;
 
-
   useEffect(() => {
     if (rollingTime === monitorStepStorageArrayMonitor.rollingTime) {
       return;
@@ -309,7 +312,10 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   }, []);
 
-  const applyTemplate: (template: StorageArrayAlertTemplate, arrayIdentifier: string) => void = (
+  const applyTemplate: (
+    template: StorageArrayAlertTemplate,
+    arrayIdentifier: string,
+  ) => void = (
     template: StorageArrayAlertTemplate,
     arrayIdentifier: string,
   ): void => {
@@ -317,7 +323,6 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
     setSelectedTemplateId(template.id);
     // The template replaces the metric the Custom Metric tab picked.
     setSelectedMetricId(undefined);
-
 
     const onlineMonitorStatusId: ObjectID =
       props.onlineMonitorStatusId || ObjectID.generate();
@@ -352,33 +357,42 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
     }
   };
 
-  const handleTemplateSelection: (template: StorageArrayAlertTemplate) => void = (
+  const handleTemplateSelection: (
     template: StorageArrayAlertTemplate,
-  ): void => {
+  ) => void = (template: StorageArrayAlertTemplate): void => {
     applyTemplate(template, monitorStepStorageArrayMonitor.arrayIdentifier);
   };
 
   // A new monitor starts on the alert most people want first.
   useEffect(() => {
-    if (monitorStepStorageArrayMonitor.metricViewConfig.queryConfigs.length > 0) {
+    if (
+      monitorStepStorageArrayMonitor.metricViewConfig.queryConfigs.length > 0
+    ) {
       return;
     }
 
-    const template: StorageArrayAlertTemplate | undefined = getStorageArrayAlertTemplateById(
-      getStorageArrayDefaultAlertTemplateId(storageSystem),
-    );
+    const template: StorageArrayAlertTemplate | undefined =
+      getStorageArrayAlertTemplateById(
+        getStorageArrayDefaultAlertTemplateId(storageSystem),
+      );
 
     if (template) {
       applyTemplate(template, monitorStepStorageArrayMonitor.arrayIdentifier);
     }
   }, []);
 
-  const changeResource: (arrayIdentifier: string) => void = (arrayIdentifier: string): void => {
+  const changeResource: (arrayIdentifier: string) => void = (
+    arrayIdentifier: string,
+  ): void => {
     const template: StorageArrayAlertTemplate | undefined = selectedTemplateId
       ? getStorageArrayAlertTemplateById(selectedTemplateId)
       : undefined;
 
-    if (template && templateAppliedWithoutResourceRef.current && arrayIdentifier) {
+    if (
+      template &&
+      templateAppliedWithoutResourceRef.current &&
+      arrayIdentifier
+    ) {
       applyTemplate(template, arrayIdentifier);
       return;
     }
@@ -485,9 +499,7 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
                 onClose={input.onClose}
                 onConnected={(record: BaseModel) => {
                   input.onConnected(
-                    String(
-                      (record as StorageArray).name || "",
-                    ),
+                    String((record as StorageArray).name || ""),
                   );
                 }}
               />
@@ -731,7 +743,6 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
       </div>
     );
   };
-
 
   return (
     <InfrastructureMonitorSetup

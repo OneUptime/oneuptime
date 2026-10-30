@@ -126,7 +126,6 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
     Navigation.getQueryStringByName("clusterId") ||
     undefined;
 
-
   const [rollingTime, setRollingTime] = React.useState<RollingTime | null>(
     null,
   );
@@ -137,7 +136,6 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
 
   const [startAndEndTime, setStartAndEndTime] =
     React.useState<InBetween<Date> | null>(null);
-
 
   /*
    * The template a saved step was made from shows picked; a new step starts
@@ -156,7 +154,8 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
       getMetricsViewConfig: (template: KubernetesAlertTemplate) => {
         return MonitorStep.getMetricsViewConfig(
           template.getMonitorStep({
-            clusterIdentifier: monitorStepKubernetesMonitor.clusterIdentifier || "",
+            clusterIdentifier:
+              monitorStepKubernetesMonitor.clusterIdentifier || "",
             onlineMonitorStatusId: ObjectID.generate(),
             offlineMonitorStatusId: ObjectID.generate(),
             defaultIncidentSeverityId: ObjectID.generate(),
@@ -171,7 +170,8 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
 
   const [initialWay] = React.useState<InfrastructureWatchWay>(() => {
     return getInitialWatchWay({
-      queryCount: monitorStepKubernetesMonitor.metricViewConfig.queryConfigs.length,
+      queryCount:
+        monitorStepKubernetesMonitor.metricViewConfig.queryConfigs.length,
       isTemplatePicked: Boolean(selectedTemplateId),
     });
   });
@@ -196,11 +196,11 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
     useInfrastructureResources<KubernetesCluster>({
       modelType: KubernetesCluster,
       select: {
-          _id: true,
-          lastSeenAt: true,
-          name: true,
-          clusterIdentifier: true,
-        },
+        _id: true,
+        lastSeenAt: true,
+        name: true,
+        clusterIdentifier: true,
+      },
       toOption: (cluster: KubernetesCluster): DropdownOption => {
         return {
           label: cluster.name || cluster.clusterIdentifier || "Unknown",
@@ -265,7 +265,10 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   }, []);
 
-  const applyTemplate: (template: KubernetesAlertTemplate, clusterIdentifier: string) => void = (
+  const applyTemplate: (
+    template: KubernetesAlertTemplate,
+    clusterIdentifier: string,
+  ) => void = (
     template: KubernetesAlertTemplate,
     clusterIdentifier: string,
   ): void => {
@@ -331,21 +334,26 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    const template: KubernetesAlertTemplate | undefined = getKubernetesAlertTemplateById(
-      getKubernetesDefaultAlertTemplateId(),
-    );
+    const template: KubernetesAlertTemplate | undefined =
+      getKubernetesAlertTemplateById(getKubernetesDefaultAlertTemplateId());
 
     if (template) {
       applyTemplate(template, monitorStepKubernetesMonitor.clusterIdentifier);
     }
   }, []);
 
-  const changeResource: (clusterIdentifier: string) => void = (clusterIdentifier: string): void => {
+  const changeResource: (clusterIdentifier: string) => void = (
+    clusterIdentifier: string,
+  ): void => {
     const template: KubernetesAlertTemplate | undefined = selectedTemplateId
       ? getKubernetesAlertTemplateById(selectedTemplateId)
       : undefined;
 
-    if (template && templateAppliedWithoutResourceRef.current && clusterIdentifier) {
+    if (
+      template &&
+      templateAppliedWithoutResourceRef.current &&
+      clusterIdentifier
+    ) {
       applyTemplate(template, clusterIdentifier);
       return;
     }
@@ -835,7 +843,6 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
       </div>
     );
   };
-
 
   return (
     <InfrastructureMonitorSetup

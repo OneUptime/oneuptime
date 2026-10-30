@@ -178,7 +178,6 @@ const VMwareMonitorStepForm: FunctionComponent<ComponentProps> = (
   const [startAndEndTime, setStartAndEndTime] =
     React.useState<InBetween<Date> | null>(null);
 
-
   /*
    * The template a saved step was made from shows picked; a new step starts
    * on the type's default alert once drawn.
@@ -228,10 +227,10 @@ const VMwareMonitorStepForm: FunctionComponent<ComponentProps> = (
     useInfrastructureResources<VMwareVCenter>({
       modelType: VMwareVCenter,
       select: {
-          _id: true,
-          lastSeenAt: true,
-          name: true,
-        },
+        _id: true,
+        lastSeenAt: true,
+        name: true,
+      },
       toOption: (vcenter: VMwareVCenter): DropdownOption => {
         return {
           label: vcenter.name || "Unknown",
@@ -265,7 +264,10 @@ const VMwareMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   }, []);
 
-  const applyTemplate: (template: VMwareAlertTemplate, vcenterIdentifier: string) => void = (
+  const applyTemplate: (
+    template: VMwareAlertTemplate,
+    vcenterIdentifier: string,
+  ) => void = (
     template: VMwareAlertTemplate,
     vcenterIdentifier: string,
   ): void => {
@@ -273,7 +275,6 @@ const VMwareMonitorStepForm: FunctionComponent<ComponentProps> = (
     setSelectedTemplateId(template.id);
     // The template replaces the metric the Custom Metric tab picked.
     setSelectedMetricId(undefined);
-
 
     const onlineMonitorStatusId: ObjectID =
       props.onlineMonitorStatusId || ObjectID.generate();
@@ -318,21 +319,26 @@ const VMwareMonitorStepForm: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    const template: VMwareAlertTemplate | undefined = getVMwareAlertTemplateById(
-      getVMwareDefaultAlertTemplateId(),
-    );
+    const template: VMwareAlertTemplate | undefined =
+      getVMwareAlertTemplateById(getVMwareDefaultAlertTemplateId());
 
     if (template) {
       applyTemplate(template, monitorStepVMwareMonitor.vcenterIdentifier);
     }
   }, []);
 
-  const changeResource: (vcenterIdentifier: string) => void = (vcenterIdentifier: string): void => {
+  const changeResource: (vcenterIdentifier: string) => void = (
+    vcenterIdentifier: string,
+  ): void => {
     const template: VMwareAlertTemplate | undefined = selectedTemplateId
       ? getVMwareAlertTemplateById(selectedTemplateId)
       : undefined;
 
-    if (template && templateAppliedWithoutResourceRef.current && vcenterIdentifier) {
+    if (
+      template &&
+      templateAppliedWithoutResourceRef.current &&
+      vcenterIdentifier
+    ) {
       applyTemplate(template, vcenterIdentifier);
       return;
     }
@@ -657,7 +663,6 @@ const VMwareMonitorStepForm: FunctionComponent<ComponentProps> = (
       </div>
     );
   };
-
 
   return (
     <InfrastructureMonitorSetup

@@ -121,8 +121,7 @@ export function getMetricsViewSignature(
       const filterData: Record<string, unknown> = (query.metricQueryData
         ?.filterData || {}) as unknown as Record<string, unknown>;
       const attributes: Record<string, unknown> =
-        (filterData["attributes"] as Record<string, unknown> | undefined) ||
-        {};
+        (filterData["attributes"] as Record<string, unknown> | undefined) || {};
 
       return JSON.stringify([
         query.metricAliasData?.metricVariable || "",

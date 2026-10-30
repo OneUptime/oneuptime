@@ -28,16 +28,46 @@ import { MonitorStepVMwareMonitorUtil } from "../../../Types/Monitor/MonitorStep
 import { MonitorStepCephMonitorUtil } from "../../../Types/Monitor/MonitorStepCephMonitor";
 import { MonitorStepStorageArrayMonitorUtil } from "../../../Types/Monitor/MonitorStepStorageArrayMonitor";
 import { MonitorStepIoTMonitorUtil } from "../../../Types/Monitor/MonitorStepIoTMonitor";
-import { getAllHostAlertTemplates } from "../../../Types/Monitor/HostAlertTemplates";
-import { getAllDockerAlertTemplates } from "../../../Types/Monitor/DockerAlertTemplates";
-import { getAllPodmanAlertTemplates } from "../../../Types/Monitor/PodmanAlertTemplates";
-import { getAllDockerSwarmAlertTemplates } from "../../../Types/Monitor/DockerSwarmAlertTemplates";
-import { getAllKubernetesAlertTemplates } from "../../../Types/Monitor/KubernetesAlertTemplates";
-import { getAllProxmoxAlertTemplates } from "../../../Types/Monitor/ProxmoxAlertTemplates";
-import { getAllVMwareAlertTemplates } from "../../../Types/Monitor/VMwareAlertTemplates";
-import { getAllCephAlertTemplates } from "../../../Types/Monitor/CephAlertTemplates";
-import { getStorageArrayAlertTemplatesForSystem } from "../../../Types/Monitor/StorageArrayAlertTemplates";
-import { getAllIoTAlertTemplates } from "../../../Types/Monitor/IotAlertTemplates";
+import {
+  getAllHostAlertTemplates,
+  getHostDefaultAlertTemplateId,
+} from "../../../Types/Monitor/HostAlertTemplates";
+import {
+  getAllDockerAlertTemplates,
+  getDockerDefaultAlertTemplateId,
+} from "../../../Types/Monitor/DockerAlertTemplates";
+import {
+  getAllPodmanAlertTemplates,
+  getPodmanDefaultAlertTemplateId,
+} from "../../../Types/Monitor/PodmanAlertTemplates";
+import {
+  getAllDockerSwarmAlertTemplates,
+  getDockerSwarmDefaultAlertTemplateId,
+} from "../../../Types/Monitor/DockerSwarmAlertTemplates";
+import {
+  getAllKubernetesAlertTemplates,
+  getKubernetesDefaultAlertTemplateId,
+} from "../../../Types/Monitor/KubernetesAlertTemplates";
+import {
+  getAllProxmoxAlertTemplates,
+  getProxmoxDefaultAlertTemplateId,
+} from "../../../Types/Monitor/ProxmoxAlertTemplates";
+import {
+  getAllVMwareAlertTemplates,
+  getVMwareDefaultAlertTemplateId,
+} from "../../../Types/Monitor/VMwareAlertTemplates";
+import {
+  getAllCephAlertTemplates,
+  getCephDefaultAlertTemplateId,
+} from "../../../Types/Monitor/CephAlertTemplates";
+import {
+  getStorageArrayAlertTemplatesForSystem,
+  getStorageArrayDefaultAlertTemplateId,
+} from "../../../Types/Monitor/StorageArrayAlertTemplates";
+import {
+  getAllIoTAlertTemplates,
+  getIoTDefaultAlertTemplateId,
+} from "../../../Types/Monitor/IotAlertTemplates";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -100,6 +130,8 @@ interface Template {
 interface FormCase {
   name: string;
   templates: Array<Template>;
+  // The template a new monitor of the type starts on.
+  defaultTemplateId: string;
   render: (onChange: MockFunction, onCriteria: MockFunction) => void;
 }
 
@@ -107,6 +139,7 @@ const FORM_CASES: Array<FormCase> = [
   {
     name: "Host",
     templates: getAllHostAlertTemplates(),
+    defaultTemplateId: getHostDefaultAlertTemplateId(),
     render: (onChange: MockFunction, onCriteria: MockFunction): void => {
       render(
         <HostMonitorStepForm
@@ -120,6 +153,7 @@ const FORM_CASES: Array<FormCase> = [
   {
     name: "Docker",
     templates: getAllDockerAlertTemplates(),
+    defaultTemplateId: getDockerDefaultAlertTemplateId(),
     render: (onChange: MockFunction, onCriteria: MockFunction): void => {
       render(
         <DockerMonitorStepForm
@@ -133,6 +167,7 @@ const FORM_CASES: Array<FormCase> = [
   {
     name: "Podman",
     templates: getAllPodmanAlertTemplates(),
+    defaultTemplateId: getPodmanDefaultAlertTemplateId(),
     render: (onChange: MockFunction, onCriteria: MockFunction): void => {
       render(
         <PodmanMonitorStepForm
@@ -146,6 +181,7 @@ const FORM_CASES: Array<FormCase> = [
   {
     name: "Docker Swarm",
     templates: getAllDockerSwarmAlertTemplates(),
+    defaultTemplateId: getDockerSwarmDefaultAlertTemplateId(),
     render: (onChange: MockFunction, onCriteria: MockFunction): void => {
       render(
         <DockerSwarmMonitorStepForm
@@ -159,6 +195,7 @@ const FORM_CASES: Array<FormCase> = [
   {
     name: "Kubernetes",
     templates: getAllKubernetesAlertTemplates(),
+    defaultTemplateId: getKubernetesDefaultAlertTemplateId(),
     render: (onChange: MockFunction, onCriteria: MockFunction): void => {
       render(
         <KubernetesMonitorStepForm
@@ -172,6 +209,7 @@ const FORM_CASES: Array<FormCase> = [
   {
     name: "Proxmox",
     templates: getAllProxmoxAlertTemplates(),
+    defaultTemplateId: getProxmoxDefaultAlertTemplateId(),
     render: (onChange: MockFunction, onCriteria: MockFunction): void => {
       render(
         <ProxmoxMonitorStepForm
@@ -185,6 +223,7 @@ const FORM_CASES: Array<FormCase> = [
   {
     name: "VMware",
     templates: getAllVMwareAlertTemplates(),
+    defaultTemplateId: getVMwareDefaultAlertTemplateId(),
     render: (onChange: MockFunction, onCriteria: MockFunction): void => {
       render(
         <VMwareMonitorStepForm
@@ -198,6 +237,7 @@ const FORM_CASES: Array<FormCase> = [
   {
     name: "Ceph",
     templates: getAllCephAlertTemplates(),
+    defaultTemplateId: getCephDefaultAlertTemplateId(),
     render: (onChange: MockFunction, onCriteria: MockFunction): void => {
       render(
         <CephMonitorStepForm
@@ -211,6 +251,7 @@ const FORM_CASES: Array<FormCase> = [
   {
     name: "Storage Array",
     templates: getStorageArrayAlertTemplatesForSystem(undefined),
+    defaultTemplateId: getStorageArrayDefaultAlertTemplateId(undefined),
     render: (onChange: MockFunction, onCriteria: MockFunction): void => {
       render(
         <StorageArrayMonitorStepForm
@@ -224,6 +265,7 @@ const FORM_CASES: Array<FormCase> = [
   {
     name: "IoT",
     templates: getAllIoTAlertTemplates(),
+    defaultTemplateId: getIoTDefaultAlertTemplateId(),
     render: (onChange: MockFunction, onCriteria: MockFunction): void => {
       render(
         <IoTMonitorStepForm
@@ -253,50 +295,102 @@ async function settle(): Promise<void> {
   });
 }
 
-describe("Quick Setup on an infrastructure monitor's criteria step", () => {
-  test.each(FORM_CASES)(
-    "$name opens on Quick Setup with every template and no panel yet",
-    async (formCase: FormCase) => {
-      formCase.render(getJestMockFunction(), getJestMockFunction());
-      await settle();
+/*
+ * More fields: Custom Metric and Advanced, folded under the alert
+ * templates. Opened, the Custom Metric tab shows first.
+ */
+async function openMoreFields(): Promise<void> {
+  const header: HTMLElement = within(
+    screen.getByTestId("infrastructure-monitor-setup"),
+  ).getByTestId("folded-section-header");
 
-      expect(
-        screen.getByRole("tab", { name: "Quick Setup" }),
-      ).toBeInTheDocument();
-      expect(
-        within(
-          screen.getByRole("radiogroup", { name: "Alert templates" }),
-        ).getAllByRole("radio"),
-      ).toHaveLength(formCase.templates.length);
-      expect(
-        screen.queryByTestId("alert-template-configuration"),
-      ).not.toBeInTheDocument();
-    },
+  if (header.getAttribute("aria-expanded") !== "true") {
+    fireEvent.click(header);
+    await settle();
+  }
+}
+
+function moreFieldsIsOpen(): boolean {
+  return (
+    within(screen.getByTestId("infrastructure-monitor-setup"))
+      .getByTestId("folded-section-header")
+      .getAttribute("aria-expanded") === "true"
   );
+}
 
+// Change, so the picked template unfolds into the whole list again.
+async function unfoldTemplates(): Promise<void> {
+  if (screen.queryByTestId("alert-template-change")) {
+    fireEvent.click(screen.getByTestId("alert-template-change"));
+    await settle();
+  }
+}
+
+function otherThanDefault(formCase: FormCase): Template {
+  return formCase.templates.find((template: Template) => {
+    return template.id !== formCase.defaultTemplateId;
+  })!;
+}
+
+describe("an infrastructure monitor's setup starts on its default alert", () => {
   test.each(FORM_CASES)(
-    "$name: a pick fills in the monitor and its criteria, then the list folds into the template, its Time Range under it",
+    "$name opens on its default alert, folded, with More fields closed",
     async (formCase: FormCase) => {
       const onChange: MockFunction = getJestMockFunction();
       const onCriteria: MockFunction = getJestMockFunction();
       formCase.render(onChange, onCriteria);
       await settle();
 
-      const template: Template = formCase.templates[0]!;
+      // The default built the monitor's query and its criteria.
+      expect(onChange).toHaveBeenCalled();
+      expect(onCriteria).toHaveBeenCalledTimes(1);
+      expect(
+        (onCriteria.mock.calls[0]![0] as MonitorCriteria).data
+          ?.monitorCriteriaInstanceArray.length,
+      ).toBeGreaterThan(0);
 
+      expect(screen.getByTestId("alert-template-picked")).toHaveAttribute(
+        "data-alert-template-id",
+        formCase.defaultTemplateId,
+      );
+      expect(
+        screen.getByTestId("alert-template-configuration"),
+      ).toBeInTheDocument();
+
+      // The do-it-yourself ways wait, folded (mounted, out of sight).
+      expect(moreFieldsIsOpen()).toBe(false);
+      expect(
+        within(screen.getByTestId("infrastructure-monitor-setup"))
+          .getByTestId("folded-section-body")
+          .className,
+      ).toContain("invisible");
+
+      // Every template is one Change away.
+      await unfoldTemplates();
+      expect(
+        within(
+          screen.getByRole("radiogroup", { name: "Alert templates" }),
+        ).getAllByRole("radio"),
+      ).toHaveLength(formCase.templates.length);
+    },
+  );
+
+  test.each(FORM_CASES)(
+    "$name: another pick fills in the monitor and its criteria, then the list folds into it, its Time Range under it",
+    async (formCase: FormCase) => {
+      const onChange: MockFunction = getJestMockFunction();
+      const onCriteria: MockFunction = getJestMockFunction();
+      formCase.render(onChange, onCriteria);
+      await settle();
+
+      const template: Template = otherThanDefault(formCase);
+
+      await unfoldTemplates();
       fireEvent.click(screen.getByTestId(`alert-template-${template.id}`));
       await settle();
 
       // The template built the monitor's query config and its criteria.
-      expect(onChange).toHaveBeenCalled();
-      expect(onCriteria).toHaveBeenCalledTimes(1);
-
-      const criteria: MonitorCriteria = onCriteria.mock
-        .calls[0]![0] as MonitorCriteria;
-
-      expect(
-        criteria.data?.monitorCriteriaInstanceArray.length,
-      ).toBeGreaterThan(0);
+      expect(onCriteria).toHaveBeenCalledTimes(2);
 
       // The list is folded into the picked template.
       expect(screen.queryByRole("radiogroup")).not.toBeInTheDocument();
@@ -333,44 +427,6 @@ describe("Quick Setup on an infrastructure monitor's criteria step", () => {
   );
 
   test.each(FORM_CASES)(
-    "$name: Change, then another template: the form folds into that one instead",
-    async (formCase: FormCase) => {
-      const onCriteria: MockFunction = getJestMockFunction();
-      formCase.render(getJestMockFunction(), onCriteria);
-      await settle();
-
-      const first: Template = formCase.templates[0]!;
-      const second: Template = formCase.templates[1]!;
-
-      fireEvent.click(screen.getByTestId(`alert-template-${first.id}`));
-      await settle();
-      fireEvent.click(screen.getByTestId("alert-template-change"));
-      await settle();
-
-      // The list again, the first still the picked one.
-      expect(screen.getByTestId(`alert-template-${first.id}`)).toHaveAttribute(
-        "aria-checked",
-        "true",
-      );
-      expect(
-        screen.queryByTestId("alert-template-configuration"),
-      ).not.toBeInTheDocument();
-
-      fireEvent.click(screen.getByTestId(`alert-template-${second.id}`));
-      await settle();
-
-      expect(onCriteria).toHaveBeenCalledTimes(2);
-      expect(screen.getByTestId("alert-template-picked")).toHaveAttribute(
-        "data-alert-template-id",
-        second.id,
-      );
-      expect(
-        screen.getAllByTestId("alert-template-configuration"),
-      ).toHaveLength(1);
-    },
-  );
-
-  test.each(FORM_CASES)(
     "$name: Change, then the same template: the criteria are not rebuilt",
     async (formCase: FormCase) => {
       const onChange: MockFunction = getJestMockFunction();
@@ -378,34 +434,35 @@ describe("Quick Setup on an infrastructure monitor's criteria step", () => {
       formCase.render(onChange, onCriteria);
       await settle();
 
-      const template: Template = formCase.templates[0]!;
+      const changesAfterTheDefault: number = onChange.mock.calls.length;
 
-      fireEvent.click(screen.getByTestId(`alert-template-${template.id}`));
-      await settle();
+      await unfoldTemplates();
+      expect(
+        screen.getByTestId(`alert-template-${formCase.defaultTemplateId}`),
+      ).toHaveAttribute("aria-checked", "true");
 
-      const changesAfterThePick: number = onChange.mock.calls.length;
-
-      fireEvent.click(screen.getByTestId("alert-template-change"));
-      await settle();
-      fireEvent.click(screen.getByTestId(`alert-template-${template.id}`));
+      fireEvent.click(
+        screen.getByTestId(`alert-template-${formCase.defaultTemplateId}`),
+      );
       await settle();
 
       // Whatever was changed in the criteria since the pick is kept.
       expect(onCriteria).toHaveBeenCalledTimes(1);
-      expect(onChange).toHaveBeenCalledTimes(changesAfterThePick);
+      expect(onChange).toHaveBeenCalledTimes(changesAfterTheDefault);
       expect(screen.getByTestId("alert-template-picked")).toHaveAttribute(
         "data-alert-template-id",
-        template.id,
+        formCase.defaultTemplateId,
       );
     },
   );
 });
 
 /*
- * The Custom Metric tab's metric picker: the first combobox on that tab
- * (the resource picker sits above the tabs).
+ * The Custom Metric tab's metric picker, under More fields: the first
+ * combobox of its panel.
  */
 async function pickFirstCustomMetric(): Promise<void> {
+  await openMoreFields();
   fireEvent.click(screen.getByRole("tab", { name: "Custom Metric" }));
   await settle();
 
@@ -419,17 +476,13 @@ async function pickFirstCustomMetric(): Promise<void> {
   await settle();
 }
 
-describe("the Time Range reads the same on every tab", () => {
+describe("the Time Range reads the same in every way", () => {
   test.each(FORM_CASES)(
-    "$name: Custom Metric's Time Range says what Quick Setup's does",
+    "$name: Custom Metric's Time Range says what the template's does",
     async (formCase: FormCase) => {
       formCase.render(getJestMockFunction(), getJestMockFunction());
       await settle();
 
-      fireEvent.click(
-        screen.getByTestId(`alert-template-${formCase.templates[0]!.id}`),
-      );
-      await settle();
       expect(
         within(screen.getByTestId("alert-template-configuration")).getByText(
           "How far back each check looks.",
@@ -444,9 +497,6 @@ describe("the Time Range reads the same on every tab", () => {
       expect(
         within(panel).getByText("How far back each check looks."),
       ).toBeInTheDocument();
-      expect(
-        within(panel).queryByText(/^Select the time range for the/),
-      ).not.toBeInTheDocument();
     },
   );
 });
@@ -459,22 +509,16 @@ function customMetricFieldsShown(): boolean {
 
 describe("a template and a custom metric each replace the other's pick", () => {
   test.each(FORM_CASES)(
-    "$name: a metric picked on Custom Metric unfolds Quick Setup, with no template checked",
+    "$name: a metric of your own unfolds the templates with none checked, and starts on the out-of-the-box criteria",
     async (formCase: FormCase) => {
-      formCase.render(getJestMockFunction(), getJestMockFunction());
+      const onCriteria: MockFunction = getJestMockFunction();
+      formCase.render(getJestMockFunction(), onCriteria);
       await settle();
 
-      const template: Template = formCase.templates[0]!;
-
-      fireEvent.click(screen.getByTestId(`alert-template-${template.id}`));
-      await settle();
       expect(screen.getByTestId("alert-template-picked")).toBeInTheDocument();
 
       await pickFirstCustomMetric();
       expect(customMetricFieldsShown()).toBe(true);
-
-      fireEvent.click(screen.getByRole("tab", { name: "Quick Setup" }));
-      await settle();
 
       expect(
         screen.queryByTestId("alert-template-picked"),
@@ -488,6 +532,23 @@ describe("a template and a custom metric each replace the other's pick", () => {
       for (const row of rows) {
         expect(row).toHaveAttribute("aria-checked", "false");
       }
+
+      /*
+       * Regression: the template's criteria were kept, and judged the new
+       * metric by the template's threshold under the template's incident.
+       */
+      const criteria: MonitorCriteria = onCriteria.mock.calls[
+        onCriteria.mock.calls.length - 1
+      ]![0] as MonitorCriteria;
+      const names: Array<string> = (
+        criteria.data?.monitorCriteriaInstanceArray || []
+      ).map((instance: { data?: { name?: string } }): string => {
+        return instance.data?.name || "";
+      });
+
+      expect(names).toHaveLength(2);
+      expect(names[0]).toMatch(/^Check if .* is offline$/);
+      expect(names[1]).toMatch(/^Check if .* is online$/);
     },
   );
 
@@ -500,8 +561,6 @@ describe("a template and a custom metric each replace the other's pick", () => {
       await pickFirstCustomMetric();
       expect(customMetricFieldsShown()).toBe(true);
 
-      fireEvent.click(screen.getByRole("tab", { name: "Quick Setup" }));
-      await settle();
       fireEvent.click(
         screen.getByTestId(`alert-template-${formCase.templates[0]!.id}`),
       );
@@ -531,6 +590,8 @@ describe("the picked template's Time Range", () => {
     );
     await settle();
 
+    fireEvent.click(screen.getByTestId("alert-template-change"));
+    await settle();
     fireEvent.click(screen.getByTestId("alert-template-k8s-high-cpu"));
     await settle();
     onChange.mockClear();

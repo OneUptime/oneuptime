@@ -83,7 +83,6 @@ const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
   const [startAndEndTime, setStartAndEndTime] =
     React.useState<InBetween<Date> | null>(null);
 
-
   /*
    * The template a saved step was made from shows picked; a new step starts
    * on the type's default alert once drawn.
@@ -133,10 +132,10 @@ const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
     useInfrastructureResources<CephCluster>({
       modelType: CephCluster,
       select: {
-          _id: true,
-          lastSeenAt: true,
-          name: true,
-        },
+        _id: true,
+        lastSeenAt: true,
+        name: true,
+      },
       toOption: (cluster: CephCluster): DropdownOption => {
         return {
           label: cluster.name || "Unknown",
@@ -170,7 +169,10 @@ const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   }, []);
 
-  const applyTemplate: (template: CephAlertTemplate, clusterIdentifier: string) => void = (
+  const applyTemplate: (
+    template: CephAlertTemplate,
+    clusterIdentifier: string,
+  ) => void = (
     template: CephAlertTemplate,
     clusterIdentifier: string,
   ): void => {
@@ -178,7 +180,6 @@ const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
     setSelectedTemplateId(template.id);
     // The template replaces the metric the Custom Metric tab picked.
     setSelectedMetricId(undefined);
-
 
     const onlineMonitorStatusId: ObjectID =
       props.onlineMonitorStatusId || ObjectID.generate();
@@ -232,12 +233,18 @@ const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
     }
   }, []);
 
-  const changeResource: (clusterIdentifier: string) => void = (clusterIdentifier: string): void => {
+  const changeResource: (clusterIdentifier: string) => void = (
+    clusterIdentifier: string,
+  ): void => {
     const template: CephAlertTemplate | undefined = selectedTemplateId
       ? getCephAlertTemplateById(selectedTemplateId)
       : undefined;
 
-    if (template && templateAppliedWithoutResourceRef.current && clusterIdentifier) {
+    if (
+      template &&
+      templateAppliedWithoutResourceRef.current &&
+      clusterIdentifier
+    ) {
       applyTemplate(template, clusterIdentifier);
       return;
     }
@@ -314,11 +321,7 @@ const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
                 onboarding={CEPH_CLUSTER_ONBOARDING}
                 onClose={input.onClose}
                 onConnected={(record: BaseModel) => {
-                  input.onConnected(
-                    String(
-                      (record as CephCluster).name || "",
-                    ),
-                  );
+                  input.onConnected(String((record as CephCluster).name || ""));
                 }}
               />
             );
@@ -574,7 +577,6 @@ const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
       </div>
     );
   };
-
 
   return (
     <InfrastructureMonitorSetup

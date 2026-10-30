@@ -97,7 +97,6 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
   const [startAndEndTime, setStartAndEndTime] =
     React.useState<InBetween<Date> | null>(null);
 
-
   /*
    * The template a saved step was made from shows picked; a new step starts
    * on the type's default alert once drawn.
@@ -110,7 +109,8 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
       getMetricsViewConfig: (template: ProxmoxAlertTemplate) => {
         return MonitorStep.getMetricsViewConfig(
           template.getMonitorStep({
-            clusterIdentifier: monitorStepProxmoxMonitor.clusterIdentifier || "",
+            clusterIdentifier:
+              monitorStepProxmoxMonitor.clusterIdentifier || "",
             onlineMonitorStatusId: ObjectID.generate(),
             offlineMonitorStatusId: ObjectID.generate(),
             defaultIncidentSeverityId: ObjectID.generate(),
@@ -125,7 +125,8 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
 
   const [initialWay] = React.useState<InfrastructureWatchWay>(() => {
     return getInitialWatchWay({
-      queryCount: monitorStepProxmoxMonitor.metricViewConfig.queryConfigs.length,
+      queryCount:
+        monitorStepProxmoxMonitor.metricViewConfig.queryConfigs.length,
       isTemplatePicked: Boolean(selectedTemplateId),
     });
   });
@@ -147,10 +148,10 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
     useInfrastructureResources<ProxmoxCluster>({
       modelType: ProxmoxCluster,
       select: {
-          _id: true,
-          lastSeenAt: true,
-          name: true,
-        },
+        _id: true,
+        lastSeenAt: true,
+        name: true,
+      },
       toOption: (cluster: ProxmoxCluster): DropdownOption => {
         return {
           label: cluster.name || "Unknown",
@@ -184,7 +185,10 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   }, []);
 
-  const applyTemplate: (template: ProxmoxAlertTemplate, clusterIdentifier: string) => void = (
+  const applyTemplate: (
+    template: ProxmoxAlertTemplate,
+    clusterIdentifier: string,
+  ) => void = (
     template: ProxmoxAlertTemplate,
     clusterIdentifier: string,
   ): void => {
@@ -192,7 +196,6 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
     setSelectedTemplateId(template.id);
     // The template replaces the metric the Custom Metric tab picked.
     setSelectedMetricId(undefined);
-
 
     const onlineMonitorStatusId: ObjectID =
       props.onlineMonitorStatusId || ObjectID.generate();
@@ -237,21 +240,26 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    const template: ProxmoxAlertTemplate | undefined = getProxmoxAlertTemplateById(
-      getProxmoxDefaultAlertTemplateId(),
-    );
+    const template: ProxmoxAlertTemplate | undefined =
+      getProxmoxAlertTemplateById(getProxmoxDefaultAlertTemplateId());
 
     if (template) {
       applyTemplate(template, monitorStepProxmoxMonitor.clusterIdentifier);
     }
   }, []);
 
-  const changeResource: (clusterIdentifier: string) => void = (clusterIdentifier: string): void => {
+  const changeResource: (clusterIdentifier: string) => void = (
+    clusterIdentifier: string,
+  ): void => {
     const template: ProxmoxAlertTemplate | undefined = selectedTemplateId
       ? getProxmoxAlertTemplateById(selectedTemplateId)
       : undefined;
 
-    if (template && templateAppliedWithoutResourceRef.current && clusterIdentifier) {
+    if (
+      template &&
+      templateAppliedWithoutResourceRef.current &&
+      clusterIdentifier
+    ) {
       applyTemplate(template, clusterIdentifier);
       return;
     }
@@ -342,9 +350,7 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
                 onClose={input.onClose}
                 onConnected={(record: BaseModel) => {
                   input.onConnected(
-                    String(
-                      (record as ProxmoxCluster).name || "",
-                    ),
+                    String((record as ProxmoxCluster).name || ""),
                   );
                 }}
               />
@@ -661,7 +667,6 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
       </div>
     );
   };
-
 
   return (
     <InfrastructureMonitorSetup

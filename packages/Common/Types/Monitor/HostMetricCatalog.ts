@@ -100,8 +100,7 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
   {
     id: "system-filesystem-usage",
     friendlyName: "Filesystem Usage",
-    description:
-      "Bytes in use on each filesystem, one series per mount point.",
+    description: "Bytes in use on each filesystem, one series per mount point.",
     metricName: "system.filesystem.usage",
     category: "Disk",
     defaultAggregation: MetricsAggregationType.Max,

@@ -83,7 +83,6 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
   const [startAndEndTime, setStartAndEndTime] =
     React.useState<InBetween<Date> | null>(null);
 
-
   /*
    * The template a saved step was made from shows picked; a new step starts
    * on the type's default alert once drawn.
@@ -133,10 +132,10 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
     useInfrastructureResources<IoTFleet>({
       modelType: IoTFleet,
       select: {
-          _id: true,
-          lastSeenAt: true,
-          name: true,
-        },
+        _id: true,
+        lastSeenAt: true,
+        name: true,
+      },
       toOption: (fleet: IoTFleet): DropdownOption => {
         return {
           label: fleet.name || "Unknown",
@@ -170,15 +169,14 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   }, []);
 
-  const applyTemplate: (template: IoTAlertTemplate, fleetIdentifier: string) => void = (
+  const applyTemplate: (
     template: IoTAlertTemplate,
     fleetIdentifier: string,
-  ): void => {
+  ) => void = (template: IoTAlertTemplate, fleetIdentifier: string): void => {
     templateAppliedWithoutResourceRef.current = !fleetIdentifier;
     setSelectedTemplateId(template.id);
     // The template replaces the metric the Custom Metric tab picked.
     setSelectedMetricId(undefined);
-
 
     const onlineMonitorStatusId: ObjectID =
       props.onlineMonitorStatusId || ObjectID.generate();
@@ -232,12 +230,18 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
     }
   }, []);
 
-  const changeResource: (fleetIdentifier: string) => void = (fleetIdentifier: string): void => {
+  const changeResource: (fleetIdentifier: string) => void = (
+    fleetIdentifier: string,
+  ): void => {
     const template: IoTAlertTemplate | undefined = selectedTemplateId
       ? getIoTAlertTemplateById(selectedTemplateId)
       : undefined;
 
-    if (template && templateAppliedWithoutResourceRef.current && fleetIdentifier) {
+    if (
+      template &&
+      templateAppliedWithoutResourceRef.current &&
+      fleetIdentifier
+    ) {
       applyTemplate(template, fleetIdentifier);
       return;
     }
@@ -320,11 +324,7 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
                 onboarding={IOT_FLEET_ONBOARDING}
                 onClose={input.onClose}
                 onConnected={(record: BaseModel) => {
-                  input.onConnected(
-                    String(
-                      (record as IoTFleet).name || "",
-                    ),
-                  );
+                  input.onConnected(String((record as IoTFleet).name || ""));
                 }}
               />
             );
@@ -587,7 +587,6 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
       </div>
     );
   };
-
 
   return (
     <InfrastructureMonitorSetup

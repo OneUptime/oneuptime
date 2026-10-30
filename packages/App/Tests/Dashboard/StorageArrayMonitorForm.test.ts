@@ -333,19 +333,20 @@ describe("StorageArrayMonitorStepForm array selection", () => {
      * match nothing.
      */
     expect(stepFormSource).toContain(
-      "ModelAPI.getList<StorageArray>({ modelType: StorageArray,",
+      "useInfrastructureResources<StorageArray>({ modelType: StorageArray,",
     );
     expect(stepFormSource).toContain(
       'return { label: storageArray.name || "Unknown", value: storageArray.name || "", };',
     );
+    expect(dense(stepFormSource)).toContain("onChange={changeResource}");
     expect(dense(stepFormSource)).toContain(
-      'constarrayIdentifier:string=(valueasstring)||"";',
+      "constchangeResource:(arrayIdentifier:string)=>void",
     );
   });
 
   test("picking an array records its platform with the step", () => {
     expect(dense(stepFormSource)).toContain(
-      "select:{_id:true,name:true,storageSystem:true,}",
+      "select:{_id:true,lastSeenAt:true,name:true,storageSystem:true,}",
     );
     expect(dense(stepFormSource)).toContain(
       "storageSystem:storageSystemByArray[arrayIdentifier]||undefined,",

@@ -86,7 +86,6 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
   const [startAndEndTime, setStartAndEndTime] =
     React.useState<InBetween<Date> | null>(null);
 
-
   /*
    * The template a saved step was made from shows picked; a new step starts
    * on the type's default alert once drawn.
@@ -99,7 +98,8 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
       getMetricsViewConfig: (template: DockerSwarmAlertTemplate) => {
         return MonitorStep.getMetricsViewConfig(
           template.getMonitorStep({
-            clusterIdentifier: monitorStepDockerSwarmMonitor.clusterIdentifier || "",
+            clusterIdentifier:
+              monitorStepDockerSwarmMonitor.clusterIdentifier || "",
             onlineMonitorStatusId: ObjectID.generate(),
             offlineMonitorStatusId: ObjectID.generate(),
             defaultIncidentSeverityId: ObjectID.generate(),
@@ -114,7 +114,8 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
 
   const [initialWay] = React.useState<InfrastructureWatchWay>(() => {
     return getInitialWatchWay({
-      queryCount: monitorStepDockerSwarmMonitor.metricViewConfig.queryConfigs.length,
+      queryCount:
+        monitorStepDockerSwarmMonitor.metricViewConfig.queryConfigs.length,
       isTemplatePicked: Boolean(selectedTemplateId),
     });
   });
@@ -136,10 +137,10 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
     useInfrastructureResources<DockerSwarmCluster>({
       modelType: DockerSwarmCluster,
       select: {
-          _id: true,
-          lastSeenAt: true,
-          name: true,
-        },
+        _id: true,
+        lastSeenAt: true,
+        name: true,
+      },
       toOption: (cluster: DockerSwarmCluster): DropdownOption => {
         return {
           label: cluster.name || "Unknown",
@@ -173,7 +174,10 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
     );
   }, []);
 
-  const applyTemplate: (template: DockerSwarmAlertTemplate, clusterIdentifier: string) => void = (
+  const applyTemplate: (
+    template: DockerSwarmAlertTemplate,
+    clusterIdentifier: string,
+  ) => void = (
     template: DockerSwarmAlertTemplate,
     clusterIdentifier: string,
   ): void => {
@@ -181,7 +185,6 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
     setSelectedTemplateId(template.id);
     // The template replaces the metric the Custom Metric tab picked.
     setSelectedMetricId(undefined);
-
 
     const onlineMonitorStatusId: ObjectID =
       props.onlineMonitorStatusId || ObjectID.generate();
@@ -214,33 +217,40 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
     }
   };
 
-  const handleTemplateSelection: (template: DockerSwarmAlertTemplate) => void = (
+  const handleTemplateSelection: (
     template: DockerSwarmAlertTemplate,
-  ): void => {
+  ) => void = (template: DockerSwarmAlertTemplate): void => {
     applyTemplate(template, monitorStepDockerSwarmMonitor.clusterIdentifier);
   };
 
   // A new monitor starts on the alert most people want first.
   useEffect(() => {
-    if (monitorStepDockerSwarmMonitor.metricViewConfig.queryConfigs.length > 0) {
+    if (
+      monitorStepDockerSwarmMonitor.metricViewConfig.queryConfigs.length > 0
+    ) {
       return;
     }
 
-    const template: DockerSwarmAlertTemplate | undefined = getDockerSwarmAlertTemplateById(
-      getDockerSwarmDefaultAlertTemplateId(),
-    );
+    const template: DockerSwarmAlertTemplate | undefined =
+      getDockerSwarmAlertTemplateById(getDockerSwarmDefaultAlertTemplateId());
 
     if (template) {
       applyTemplate(template, monitorStepDockerSwarmMonitor.clusterIdentifier);
     }
   }, []);
 
-  const changeResource: (clusterIdentifier: string) => void = (clusterIdentifier: string): void => {
+  const changeResource: (clusterIdentifier: string) => void = (
+    clusterIdentifier: string,
+  ): void => {
     const template: DockerSwarmAlertTemplate | undefined = selectedTemplateId
       ? getDockerSwarmAlertTemplateById(selectedTemplateId)
       : undefined;
 
-    if (template && templateAppliedWithoutResourceRef.current && clusterIdentifier) {
+    if (
+      template &&
+      templateAppliedWithoutResourceRef.current &&
+      clusterIdentifier
+    ) {
       applyTemplate(template, clusterIdentifier);
       return;
     }
@@ -330,9 +340,7 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
                 onClose={input.onClose}
                 onConnected={(record: BaseModel) => {
                   input.onConnected(
-                    String(
-                      (record as DockerSwarmCluster).name || "",
-                    ),
+                    String((record as DockerSwarmCluster).name || ""),
                   );
                 }}
               />
@@ -647,7 +655,6 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
       </div>
     );
   };
-
 
   return (
     <InfrastructureMonitorSetup
