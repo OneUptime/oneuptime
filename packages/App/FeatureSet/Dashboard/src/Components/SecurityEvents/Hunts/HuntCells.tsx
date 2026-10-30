@@ -72,10 +72,12 @@ export const HUNT_SEARCH_ONE_LINE_CLASS_NAME: string =
 /*
  * A search that is the thing read - what Save as Hunt saves, what a changed
  * hunt keeps - wraps, three lines at most: on a phone one line kept
- * "processname:powershell.e…".
+ * "processname:powershell.e…". Its lines read left to right, as a search
+ * is written, and line up as the page reads - from the right on a Persian
+ * page, under the label they belong to, not against the far edge.
  */
 export const HUNT_SEARCH_WRAPPED_CLASS_NAME: string =
-  "min-w-0 line-clamp-3 font-mono text-xs text-gray-700";
+  "min-w-0 line-clamp-3 font-mono text-xs text-gray-700 [text-align:left] rtl:[text-align:right]";
 
 /*
  * Each of its terms kept whole on its line, the search breaking between

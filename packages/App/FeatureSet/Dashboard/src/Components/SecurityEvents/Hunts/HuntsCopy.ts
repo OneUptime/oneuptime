@@ -261,6 +261,7 @@ export const HUNTS_TEST_IDS: {
   showThem: string;
   changed: string;
   savedSearch: string;
+  nothingToSave: string;
   saveChanges: string;
   discardChanges: string;
   edit: string;
@@ -291,6 +292,7 @@ export const HUNTS_TEST_IDS: {
   showThem: "security-hunt-show-them",
   changed: "security-hunt-changed",
   savedSearch: "security-hunt-saved-search",
+  nothingToSave: "security-hunt-nothing-to-save",
   saveChanges: "security-hunt-save-changes",
   discardChanges: "security-hunt-discard-changes",
   edit: "security-hunt-edit",

@@ -85,3 +85,26 @@ review, so a hunt's header shows its two-line fold on a phone.
 Made by the review's own copy of the Security Operations fixture server (the same esbuild config,
 Tailwind runtime, reading-direction plugin and Inter font), one Playwright script, and the email
 rendered by `SecurityHuntFoundTemplate`'s engine.
+
+## Second UI review
+
+The `review2-*-before` images are the branch after the first review, the `review2-*-after` images
+the branch after the second, on the same Security Operations fixture, page, size and clock (2x, cut
+to the part that changed).
+
+- `review2-hunt-changed-*` and `review2-hunt-changed-390-*`: a hunt's page with its search changed
+  on the explorer. Before: Save Changes and Discard Changes joined Edit at the header's top right,
+  away from the change, and on a phone they pushed Edit onto a row of its own under the title.
+  After: the notice right over the search bar says what changed, names the search the hunt keeps
+  and holds both buttons; the header keeps Edit and its menu.
+- `review2-save-as-hunt-390-*`: Save as Hunt on a phone with a long search. Before: cut to one
+  line. After: wrapped, each term whole ("-status:Failure" never broken after its "-").
+- `review2-evidence-390-*`: an event kept on CASE-138, on a phone. Before: "Process A...". After:
+  the whole line, each part whole.
+- `review2-event-panel-added-*`: Add to Case in an event's panel, kept on CASE-141. After: a
+  green check, as a step done reads.
+- `review2-hunts-empty-*`: the empty Hunts list. After: how to make the first one, without saying
+  again what the card's description says over it.
+
+Made by a copy of the first review's fixture server and Playwright script: the before images from
+`git archive` of the branch before this review, served on a port of their own.

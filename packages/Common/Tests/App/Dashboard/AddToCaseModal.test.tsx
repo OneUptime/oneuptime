@@ -15,6 +15,7 @@ import {
   screen,
   within,
 } from "@testing-library/react";
+import type { Mock } from "jest-mock";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 
@@ -142,7 +143,7 @@ describe("Add to a Case", () => {
   });
 
   test("picks the case whose row is clicked, and only once one is picked can it add", async () => {
-    const onPick: jest.Mock<(picked: { id: string; number: string }) => void> =
+    const onPick: Mock<(picked: { id: string; number: string }) => void> =
       jest.fn<(picked: { id: string; number: string }) => void>();
 
     await renderModal(onPick);

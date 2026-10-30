@@ -68,6 +68,12 @@ export interface ComponentProps {
   isChanged: boolean;
   isSaving: boolean;
   saveError?: string | undefined;
+  /*
+   * Why the changed search cannot be saved as it is - nothing searched at
+   * all - said in the notice, which then locks Save Changes. A translation
+   * key.
+   */
+  saveDisabledReason?: string | undefined;
   onSaveChanges: () => void;
   onDiscardChanges: () => void;
   onEdit: () => void;
@@ -152,8 +158,13 @@ const HuntHeader: FunctionComponent<ComponentProps> = (
       title: SAVE_CHANGES,
       icon: IconProp.Check,
       isPrimary: true,
-      isDisabled: !updateGate.isAllowed || props.isSaving,
-      tooltip: updateGate.isAllowed ? undefined : updateGate.disabledReason,
+      isDisabled:
+        !updateGate.isAllowed ||
+        props.isSaving ||
+        Boolean(props.saveDisabledReason),
+      tooltip: updateGate.isAllowed
+        ? props.saveDisabledReason
+        : updateGate.disabledReason,
       dataTestId: HUNTS_TEST_IDS.saveChanges,
       onClick: props.onSaveChanges,
     },
@@ -407,6 +418,21 @@ const HuntHeader: FunctionComponent<ComponentProps> = (
                     isWrapped={true}
                   />
                 </p>
+                {/*
+                 * Nothing searched at all: said here, not left to a refusal
+                 * after Save Changes, which waits until there is a search.
+                 */}
+                {props.saveDisabledReason ? (
+                  <p
+                    className="text-xs text-amber-900"
+                    data-testid={HUNTS_TEST_IDS.nothingToSave}
+                  >
+                    {translator.translateText(props.saveDisabledReason) ||
+                      props.saveDisabledReason}
+                  </p>
+                ) : (
+                  <></>
+                )}
                 {props.saveError ? (
                   <p className="text-sm text-red-700" role="alert">
                     {props.saveError}

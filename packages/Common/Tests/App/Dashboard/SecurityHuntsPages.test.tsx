@@ -183,19 +183,39 @@ jest.mock(
         }, []);
 
         return ReactInMock.createElement(
-          "button",
-          {
-            type: "button",
-            "data-testid": "viewer-change-search",
-            onClick: () => {
-              props.onSearchStateChange?.({
-                search: "processname:pwsh.exe",
-                filters: new Map(),
-                timeRange: { range: "Past 1 Week" },
-              });
+          "div",
+          null,
+          ReactInMock.createElement(
+            "button",
+            {
+              type: "button",
+              "data-testid": "viewer-change-search",
+              onClick: () => {
+                props.onSearchStateChange?.({
+                  search: "processname:pwsh.exe",
+                  filters: new Map(),
+                  timeRange: { range: "Past 1 Week" },
+                });
+              },
             },
-          },
-          `viewer of ${props.hunt?.id.toString() || "events"}`,
+            `viewer of ${props.hunt?.id.toString() || "events"}`,
+          ),
+          // The search bar cleared and every chip taken off.
+          ReactInMock.createElement(
+            "button",
+            {
+              type: "button",
+              "data-testid": "viewer-clear-search",
+              onClick: () => {
+                props.onSearchStateChange?.({
+                  search: "",
+                  filters: new Map(),
+                  timeRange: { range: "Past 1 Week" },
+                });
+              },
+            },
+            "clear",
+          ),
         );
       },
     };
@@ -820,6 +840,45 @@ describe("a hunt's page", () => {
     expect(flat(within(saved).getByTestId(HUNTS_TEST_IDS.searchLine))).toBe(
       "1 filter",
     );
+  });
+
+  test("a search cleared of everything cannot be saved: the notice says why, and Save Changes waits", async () => {
+    const update: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      ModelAPI,
+      "updateById",
+    );
+
+    await renderHunt();
+
+    fireEvent.click(screen.getByTestId("viewer-clear-search"));
+
+    const notice: HTMLElement = await screen.findByTestId(
+      HUNTS_TEST_IDS.changed,
+    );
+
+    expect(
+      within(notice).getByTestId(HUNTS_TEST_IDS.nothingToSave),
+    ).toHaveTextContent(SAVE_AS_HUNT_NOTHING_TO_SAVE);
+
+    const save: HTMLElement = within(notice).getByTestId(
+      HUNTS_TEST_IDS.saveChanges,
+    );
+
+    expect(save).toBeDisabled();
+    fireEvent.click(save);
+    expect(update).not.toHaveBeenCalled();
+    // Discard Changes still takes the hunt's own search back.
+    expect(
+      within(notice).getByTestId(HUNTS_TEST_IDS.discardChanges),
+    ).not.toBeDisabled();
+
+    // A search typed again can be saved.
+    fireEvent.click(screen.getByTestId("viewer-change-search"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId(HUNTS_TEST_IDS.nothingToSave)).toBeNull();
+    });
+    expect(screen.getByTestId(HUNTS_TEST_IDS.saveChanges)).not.toBeDisabled();
   });
 
   test("a save the server refuses says why in the notice, which stays", async () => {

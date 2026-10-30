@@ -7,6 +7,7 @@ import {
   DELETE_HUNT_CONFIRM,
   EDIT_HUNT_TITLE,
   HUNT_NOT_FOUND,
+  SAVE_AS_HUNT_NOTHING_TO_SAVE,
 } from "../../Components/SecurityEvents/Hunts/HuntsCopy";
 import {
   HUNT_FORM_STEPS,
@@ -16,6 +17,7 @@ import {
   HuntSearchState,
   getHuntTimeRange,
   getHuntsRoute,
+  hasHuntSearchToSave,
   isHuntSearchChanged,
 } from "../../Components/SecurityEvents/Hunts/HuntsModel";
 import SecurityEventsViewer from "../../Components/SecurityEvents/SecurityEventsViewer";
@@ -260,6 +262,12 @@ const HuntOnPage: FunctionComponent<{ huntId: ObjectID }> = (props: {
         isChanged={isChanged}
         isSaving={isSaving}
         saveError={saveError}
+        // A search cleared of everything is not one a hunt can keep.
+        saveDisabledReason={
+          searchState && !hasHuntSearchToSave(searchState)
+            ? SAVE_AS_HUNT_NOTHING_TO_SAVE
+            : undefined
+        }
         onSaveChanges={() => {
           void saveChanges();
         }}

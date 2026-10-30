@@ -760,6 +760,53 @@ test.describe("a hunt's page", () => {
       read.save.top > read.discard.top || read.save.left > read.discard.left,
     ).toBe(true);
     await screenshot(page, "hunts-hunt-changed-390");
+
+    /*
+     * On a Persian page the saved search still reads left to right, as it
+     * is written, and lines up from the right, under its label - not
+     * against the notice's far edge.
+     */
+    await open(
+      page,
+      `${HUNT_PATH}?search=${encodeURIComponent("processname:powershell.exe")}`,
+      { width: 390, height: 900, lang: "fa" },
+    );
+
+    const persian: {
+      direction: string;
+      textAlign: string;
+      searchRight: number;
+      labelRight: number;
+    } = await page.getByTestId("security-hunt-saved-search").evaluate(
+      (
+        saved: Element,
+      ): {
+        direction: string;
+        textAlign: string;
+        searchRight: number;
+        labelRight: number;
+      } => {
+        const code: HTMLElement = saved.querySelector("code") as HTMLElement;
+        const style: CSSStyleDeclaration = window.getComputedStyle(code);
+        const firstTerm: DOMRect = (
+          code.querySelector("span") as HTMLElement
+        ).getBoundingClientRect();
+
+        return {
+          direction: style.direction,
+          textAlign: style.textAlign,
+          searchRight: firstTerm.right,
+          labelRight: (
+            saved.firstElementChild as HTMLElement
+          ).getBoundingClientRect().right,
+        };
+      },
+    );
+
+    expect(persian.direction).toBe("ltr");
+    expect(persian.textAlign).toBe("right");
+    expect(Math.abs(persian.searchRight - persian.labelRight)).toBeLessThan(2);
+    expect(await pageOverflow(page)).toBe(0);
   });
 
   test("a hunt whose last run failed says why, and Delete Hunt goes back to the list", async ({
