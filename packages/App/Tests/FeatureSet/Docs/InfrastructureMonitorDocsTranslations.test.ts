@@ -208,6 +208,7 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   ],
   [KUBERNETES]: [
     // Template names.
+    "Cluster Stopped Reporting",
     "etcd No Leader",
     "API Server Request Saturation",
     "Scheduler Backlog",
@@ -228,13 +229,15 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   ],
   [DOCKER]: [
     ...FORM_NAMES,
+    "Host Stopped Reporting",
     "Container Down (Low Uptime)",
     "High Container CPU Usage",
     ...CRITERIA_NAMES,
   ],
-  [HOST]: [...FORM_NAMES, ...CRITERIA_NAMES],
+  [HOST]: [...FORM_NAMES, "Host Stopped Reporting", ...CRITERIA_NAMES],
   [PODMAN]: [
     ...FORM_NAMES,
+    "Host Stopped Reporting",
     "High Container Restart Count",
     "Container Restarted (Low Uptime)",
     "High Container CPU Usage",
@@ -242,6 +245,7 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   ],
   [PROXMOX]: [
     ...FORM_NAMES,
+    "Cluster Stopped Reporting",
     "Guest Down",
     "Cluster Quorum at Risk",
     "High Guest CPU Usage",
@@ -252,7 +256,12 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "HA Resource in Error State",
     ...CRITERIA_NAMES,
   ],
-  [SWARM]: [...FORM_NAMES, "Task Down (Low Uptime)", ...CRITERIA_NAMES],
+  [SWARM]: [
+    ...FORM_NAMES,
+    "Cluster Stopped Reporting",
+    "Task Down (Low Uptime)",
+    ...CRITERIA_NAMES,
+  ],
 };
 
 /*

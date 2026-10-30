@@ -4,7 +4,7 @@ A Podman monitor watches the containers on one Podman host and tells you when a 
 
 :::cards
 - [Create the monitor](#create-a-podman-monitor): Six steps in the dashboard.
-- [Templates](#pre-built-alert-templates): Five ready-made alerts, one incident per container.
+- [Templates](#pre-built-alert-templates): Six ready-made alerts, one incident per container.
 - [Metrics](#collected-metrics): What the agent collects, and what each metric means.
 - [Logs](#collected-logs): Container logs, and the log driver they need.
 :::
@@ -84,12 +84,13 @@ Click **Create Monitor**. OneUptime opens the monitor's page and evaluates it ev
 
 ## Pre-built Alert Templates
 
-**Quick Setup** offers five templates. Each builds a complete monitor: a query grouped by `resource.container.name`, a criteria that fires and one that recovers. Every container is judged on its own and gets its own incident and alert. Thresholds are starting points you can edit.
+**Quick Setup** offers six templates. Each builds a complete monitor: a query, a criteria that fires and one that recovers. Every template but **Host Stopped Reporting** groups its query by `resource.container.name`, so every container is judged on its own and gets its own incident and alert. Thresholds are starting points you can edit.
 
 A criteria fires only when the condition holds for every minute of its window, and recovers 10% past the threshold so a value hovering at the line does not flap.
 
 | Template | Severity | Watches | Fires when | Recovers when |
 | --- | --- | --- | --- | --- |
+| Host Stopped Reporting | Critical | `container.memory.percent`, Count over every container on the host, past 10 minutes | No data for the whole window | Data arrives again |
 | High Container CPU Usage | Warning | `container.cpu.utilization`, Avg per container, past 5 minutes | Above 80 (% of one core) | At or below 72 |
 | High Container Memory Usage | Warning | `container.memory.percent`, Avg per container, past 5 minutes | Above 85% | At or below 76.5% |
 | High Container Restart Count | Critical | `container.restarts`, Max per container, past 5 minutes | Above 5 restarts in total | 4.5 or fewer |
@@ -97,6 +98,8 @@ A criteria fires only when the condition holds for every minute of its window, a
 | Container Restarted (Low Uptime) | Critical | `container.uptime`, Min per container, past 1 minute | Below 120 seconds | At or above 132 seconds |
 
 **Severity** is the label the picker shows. The incident and alert a template creates start on your project's most severe incident and alert severity; change them in the criteria.
+
+**Host Stopped Reporting** fires when nothing arrives from the host for ten minutes: the host is down, or the agent stopped, lost its route to OneUptime or had its token revoked. It resolves when data comes back. When data stops, the other templates have nothing to compare and keep their last status, so this is the one that tells you. A host with no other containers still reports, because the agent runs as a container and reports its own.
 
 The two percentage templates use **Average**: their metrics are already per-container percentages, so the average of a minute is the sustained reading. Restart count and process count use **Maximum**, where one breaching sample is the signal.
 

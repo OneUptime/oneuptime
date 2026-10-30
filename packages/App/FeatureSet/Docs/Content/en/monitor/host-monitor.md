@@ -4,7 +4,7 @@ A Host monitor watches one machine — its CPU, memory, disks, load and processe
 
 :::cards
 - [Create the monitor](#create-a-host-monitor): Six steps in the dashboard.
-- [Templates](#pre-built-alert-templates): Five ready-made alerts for CPU, memory, disk, load and processes.
+- [Templates](#pre-built-alert-templates): Six ready-made alerts for a silent host, CPU, memory, disk, load and processes.
 - [Metrics](#collected-metrics): The host metrics you can alert on, and their units.
 - [Host or Server / VM?](#host-monitor-or-server-vm-monitor): Which of the two machine monitors to use.
 :::
@@ -95,12 +95,13 @@ Click **Create Monitor**. OneUptime opens the monitor's page and evaluates it ev
 
 ## Pre-built Alert Templates
 
-**Quick Setup** offers five templates. Each builds a complete monitor: a query, a criteria that fires and one that recovers. Thresholds are starting points you can edit.
+**Quick Setup** offers six templates. Each builds a complete monitor: a query, a criteria that fires and one that recovers. Thresholds are starting points you can edit.
 
 A criteria fires only when the condition holds for every minute of its window, and recovers 10% past the threshold so a value hovering at the line does not flap.
 
 | Template | Severity | Watches | Fires when | Recovers when |
 | --- | --- | --- | --- | --- |
+| Host Stopped Reporting | Critical | `system.memory.usage`, Count, past 10 minutes | No data for the whole window | Data arrives again |
 | High CPU Utilization | Warning | `system.cpu.utilization` for the `user` and `system` states, added and shown as a percentage, past 5 minutes | Above 80% | At or below 72% |
 | High Memory Utilization | Warning | `system.memory.utilization` for the `used` state, as a percentage, past 5 minutes | Above 85% | At or below 76.5% |
 | High Filesystem Usage | Critical | `system.filesystem.utilization`, Max per `mountpoint` and `device`, as a percentage, past 5 minutes | Above 90% | At or below 81% |
@@ -109,6 +110,7 @@ A criteria fires only when the condition holds for every minute of its window, a
 
 **Severity** is the label the picker shows. The incident and alert a template creates start on your project's most severe incident and alert severity; change them in the criteria.
 
+- **Host Stopped Reporting** fires when nothing arrives from the host for ten minutes: the machine is down or unreachable, or its collector stopped, lost its route to OneUptime or had its token revoked. It resolves when data comes back. When data stops, the other templates have nothing to compare and keep their last status, so this is the one that tells you.
 - **CPU** is busy time (`user` plus `system`), the same figure the host's **Overview** charts. Iowait and steal are left out.
 - **Memory** excludes buffers and page cache, so a host that is mostly cache does not trip it.
 - **Filesystem** opens one incident per mount. Read-only pseudo-filesystems, such as snap `squashfs` mounts or macOS `devfs`, are always 100% full; exclude them in the collector's `filesystem` scraper.

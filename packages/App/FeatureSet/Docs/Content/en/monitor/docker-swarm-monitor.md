@@ -4,7 +4,7 @@ A Docker Swarm monitor watches the containers behind a Swarm cluster's service t
 
 :::cards
 - [Create the monitor](#create-a-docker-swarm-monitor): Six steps in the dashboard.
-- [Templates](#pre-built-alert-templates): Four ready-made alerts, one incident per task.
+- [Templates](#pre-built-alert-templates): Five ready-made alerts, one incident per task.
 - [Metrics](#collected-metrics): The container metrics you can alert on.
 - [Filters](#monitor-settings): Narrow a monitor to a service, a task or an image.
 :::
@@ -92,18 +92,22 @@ Click **Create Monitor**. OneUptime opens the monitor's page and evaluates it ev
 
 ## Pre-built Alert Templates
 
-**Quick Setup** offers four templates. Each builds a complete monitor: a query grouped by `resource.container.name`, a criteria that fires and one that recovers. Every task is judged on its own and gets its own incident and alert, whose root cause lists the affected tasks and their values. Thresholds are starting points you can edit.
+**Quick Setup** offers five templates. Each builds a complete monitor: a query, a criteria that fires and one that recovers. Every template but **Cluster Stopped Reporting** groups its query by `resource.container.name`, so every task is judged on its own and gets its own incident and alert, whose root cause lists the affected tasks and their values. Thresholds are starting points you can edit.
 
 Unless the table says otherwise, a criteria fires only when the condition holds for every minute of its window, and recovers 10% past the threshold so a value hovering at the line does not flap.
 
 | Template | Severity | Watches | Fires when | Recovers when |
 | --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Critical | `container.memory.percent`, Count over every container in the cluster, past 10 minutes | No data for the whole window | Data arrives again |
 | Task Down (Low Uptime) | Critical | `container.uptime`, Min per task, past 1 minute | Any value is below 60 seconds | Every value is at or above 66 seconds |
 | High Task CPU Usage | Warning | `container.cpu.utilization`, Avg per task, past 5 minutes | Above 80 (% of one core) | At or below 72 |
 | High Task Memory Usage | Warning | `container.memory.percent`, Avg per task, past 5 minutes | Above 85% | At or below 76.5% |
 | High Task Process Count | Warning | `container.pids.count`, Max per task, past 5 minutes | Above 500 | At or below 450 |
 
 **Severity** is the label the picker shows. The incident and alert a template creates start on your project's most severe incident and alert severity; change them in the criteria.
+
+> [!NOTE]
+> **Cluster Stopped Reporting** fires when nothing arrives from the cluster for ten minutes: the nodes running the agent are down, or the agent stopped, lost its route to OneUptime or had its token revoked. It resolves when data comes back. When data stops, the other templates have nothing to compare and keep their last status, so this is the one that tells you. A node with no tasks still reports, because the agent runs as a container and reports its own.
 
 > [!NOTE]
 > **Task Down (Low Uptime)** fires on a single young sample because a restart is an event, not a level. Swarm gives a replacement task a new container, and so a new series, which is why the template looks for an uptime under a minute rather than a 0. A deploy or a scale-up trips it too, and it clears once the new tasks pass a minute of uptime. A task that dies and is not replaced sends nothing, so it is not caught.

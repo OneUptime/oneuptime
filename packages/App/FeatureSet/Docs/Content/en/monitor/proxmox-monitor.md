@@ -4,7 +4,7 @@ A Proxmox monitor watches one Proxmox VE cluster — its nodes, VMs and LXC cont
 
 :::cards
 - [Create the monitor](#create-a-proxmox-monitor): Six steps in the dashboard.
-- [Templates](#pre-built-alert-templates): Eleven ready-made alerts, one incident per node, guest or volume.
+- [Templates](#pre-built-alert-templates): Twelve ready-made alerts, one incident per node, guest or volume.
 - [Resource identity](#resource-identity): How to target one node, guest or storage volume.
 - [Metrics](#collected-metrics): Every `pve_*` series the monitor can alert on.
 :::
@@ -109,12 +109,13 @@ Filter on `pve.scope` or `pve.type` for one kind of resource, on `pve.id` or `id
 
 ## Pre-built Alert Templates
 
-**Quick Setup** offers 11 templates. Each builds a complete monitor — queries, attribute filters, a group-by, a criteria that fires and one that recovers. Most group by `id`, so each node, guest, volume or job gets its own incident and alert. Thresholds are starting points you can edit.
+**Quick Setup** offers 12 templates. Each builds a complete monitor — queries, attribute filters, a group-by, a criteria that fires and one that recovers. Most group by `id`, so each node, guest, volume or job gets its own incident and alert. Thresholds are starting points you can edit.
 
 Templates read the past 5 minutes unless the table says otherwise. A criteria fires only when the condition holds for every minute of its window, and a threshold criteria recovers 10% past its threshold so a value hovering at the line does not flap.
 
 | Template | Severity | Watches | Fires when | Recovers when |
 | --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Critical | `pve_up`, Count over the whole cluster, past 10 minutes | No data for the whole window | Data arrives again |
 | Node Offline | Critical | `pve_up` for `pve.scope = node`, Min per `id` | Below 1 | At 1 |
 | Guest Down | Warning | `pve_up` and `pve_onboot_status` for `pve.scope = guest`, Min per `id` | `pve_up` is below 1 while `pve_onboot_status` is 1 | `pve_up` is back at 1, or start on boot is turned off |
 | Cluster Quorum at Risk | Critical | `pve_up` ÷ `pve_node_info` × 100 for `pve.scope = node` (both Sum): the share of nodes online | 50% or less | Above 55% |
@@ -129,6 +130,7 @@ Templates read the past 5 minutes unless the table says otherwise. A criteria fi
 
 **Severity** is the label the picker shows. The incident and alert a template creates start on your project's most severe incident and alert severity; change them in the criteria.
 
+- **Cluster Stopped Reporting** fires when nothing arrives from the cluster for ten minutes: the Proxmox Agent or its pve-exporter stopped, lost its route to OneUptime or had its token revoked, the Proxmox API stopped answering it, or every node of a native push went quiet. It resolves when data comes back. When data stops, the other templates have nothing to compare and keep their last status, so this is the one that tells you.
 - **Down templates use Minimum**, so one down scrape trips them instead of being hidden by scrapes where the resource was up.
 - **Guest Down** only looks at guests set to start on boot, so a guest you stopped on purpose never pages.
 - **Cluster Quorum at Risk** is a proxy: pve-exporter has no corosync metric, so it counts nodes online.

@@ -727,6 +727,7 @@ const AGGREGATION_WORDS: Record<string, MetricsAggregationType> = {
 
 const WINDOW_MINUTES: Partial<Record<RollingTime, number>> = {
   [RollingTime.Past5Minutes]: 5,
+  [RollingTime.Past10Minutes]: 10,
   [RollingTime.Past15Minutes]: 15,
   [RollingTime.Past30Minutes]: 30,
 };
@@ -994,10 +995,37 @@ describe("the VMware templates", () => {
     );
   });
 
+  it("vCenter Stopped Reporting comes first, and fires only when nothing arrives for ten minutes", () => {
+    const template: VMwareAlertTemplate = templates[0] as VMwareAlertTemplate;
+    const criteria: BuiltCriteria = built(template);
+    const row: TemplateRow = rows[0] as TemplateRow;
+
+    expect(template.name).toBe("vCenter Stopped Reporting");
+    expect(row.name).toBe(template.name);
+    // A count is never below 0: only the Trigger no-data policy fires it.
+    expect(criteria.aggregation).toBe(MetricsAggregationType.Count);
+    expect(criteria.fire.filterType).toBe(FilterType.LessThan);
+    expect(Number(criteria.fire.value)).toBe(0);
+    expect(criteria.fire.metricMonitorOptions?.onNoDataPolicy).toBe(
+      NoDataPolicy.Trigger,
+    );
+    expect(criteria.recover.filterType).toBe(FilterType.GreaterThanOrEqualTo);
+    expect(row.fires.startsWith("No data for the whole window")).toBe(true);
+    expect(row.recovers).toBe("Data arrives again");
+    expect(row.watches).toContain("Count");
+    expect(row.watches).toContain(
+      `**past ${WINDOW_MINUTES[criteria.rollingTime]} minutes**`,
+    );
+  });
+
   it.each(
-    templates.map((template: VMwareAlertTemplate) => {
-      return [template.name, template] as [string, VMwareAlertTemplate];
-    }),
+    templates
+      .filter((template: VMwareAlertTemplate): boolean => {
+        return template.name !== "vCenter Stopped Reporting";
+      })
+      .map((template: VMwareAlertTemplate) => {
+        return [template.name, template] as [string, VMwareAlertTemplate];
+      }),
   )(
     "%s: fires above its threshold, recovers where the template recovers, over the window the row gives",
     (_name: string, template: VMwareAlertTemplate) => {

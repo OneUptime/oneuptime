@@ -4,7 +4,7 @@ A Ceph monitor watches one Ceph cluster — its health, health checks, monitor q
 
 :::cards
 - [Create the monitor](#create-a-ceph-monitor): Six steps in the dashboard.
-- [Templates](#pre-built-alert-templates): 23 ready-made alerts for health, OSDs, placement groups and capacity.
+- [Templates](#pre-built-alert-templates): 24 ready-made alerts for a silent cluster, health, OSDs, placement groups and capacity.
 - [Health checks](#health-check-series): Alert on any Ceph health check by name.
 - [Metrics](#collected-metrics): Every `ceph_*` series the monitor can alert on.
 :::
@@ -99,9 +99,17 @@ Pool data series carry only the `pool_id` label: the pool's name exists solely o
 
 ## Pre-built alert templates
 
-**Quick Setup** offers 23 templates covering cluster health, OSDs, placement groups and capacity. Each builds a complete monitor — queries, label filters, a group-by, a criteria that fires and one that recovers. Thresholds are starting points you can edit.
+**Quick Setup** offers 24 templates covering a silent cluster, cluster health, OSDs, placement groups and capacity. Each builds a complete monitor — queries, label filters, a group-by, a criteria that fires and one that recovers. Thresholds are starting points you can edit.
 
 Templates read the past 5 minutes unless the table says otherwise. A criteria fires only when the condition holds for every minute of its window, and a threshold criteria recovers 10% past its threshold so a value hovering at the line does not flap. **Severity** is the label the picker shows; the incident and alert a template creates start on your project's most severe incident and alert severity.
+
+### Availability templates
+
+| Template | Severity | Watches | Fires when | Recovers when |
+| --- | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Critical | `ceph_health_status`, Count, past 10 minutes | No data for the whole window | Data arrives again |
+
+**Cluster Stopped Reporting** fires when nothing arrives from the cluster for ten minutes: the Ceph Agent stopped, lost its route to OneUptime or had its token revoked, or no mgr serves the `prometheus` module. It resolves when data comes back. When data stops, the other templates have nothing to compare and keep their last status, and the health-check templates read a silent cluster as a healthy one, so this is the one that tells you.
 
 ### Cluster health templates
 

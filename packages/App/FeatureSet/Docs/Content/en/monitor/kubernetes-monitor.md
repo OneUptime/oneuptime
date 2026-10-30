@@ -5,7 +5,7 @@ A Kubernetes monitor alerts on the metrics the OneUptime Kubernetes agent sends 
 :::cards
 - [Install the agent](/docs/monitor/kubernetes-agent): One Helm command puts the cluster into OneUptime.
 - [Create the monitor](#create-a-kubernetes-monitor): Pick the cluster, then a template, a metric or a query.
-- [Alert templates](#pre-built-alert-templates): Seventeen ready-made alerts, from CrashLoopBackOff to etcd.
+- [Alert templates](#pre-built-alert-templates): Eighteen ready-made alerts, from a silent cluster to etcd.
 - [Criteria](#monitoring-criteria): Static thresholds and anomaly detection.
 :::
 
@@ -132,6 +132,7 @@ The **Quick Setup** tab lists these templates, grouped by category. Each one fil
 
 | Template | Category | Fires when | Severity |
 | --- | --- | --- | --- |
+| Cluster Stopped Reporting | Availability | No data arrives from the cluster's agent for 10 minutes | Critical |
 | CrashLoopBackOff Detection | Workload | A container has restarted more than 5 times since its pod was created | Critical |
 | Pod Stuck in Pending | Scheduling | Some pod is in the Pending phase in every sample of a 15-minute window | Warning |
 | Node Not Ready | Node | A node reports NotReady | Critical |
@@ -151,6 +152,8 @@ The **Quick Setup** tab lists these templates, grouped by category. Each one fil
 | Pod CPU Saturating Container Limit | Workload | A pod uses more than 90% of its container CPU limit | Warning |
 
 Templates on per-object metrics evaluate each node, pod, deployment, job, DaemonSet or HPA on its own, so a cluster with several unhealthy pods gets an incident per pod rather than one for the whole cluster.
+
+**Cluster Stopped Reporting** fires when nothing arrives from the cluster's agent for ten minutes: the agent was uninstalled or keeps crashing, its API key was revoked, it lost its route to OneUptime, or the cluster's API server stopped answering it. It resolves when data comes back. When data stops, the other templates have nothing to compare and keep their last status, so this is the one that tells you.
 
 > [!NOTE]
 > **CrashLoopBackOff Detection** reads the container's lifetime restart count for its current pod, not a rate. A container that crash-looped and then recovered keeps the alert open until its pod is replaced.
