@@ -22,10 +22,13 @@ Raramente ti servirà tenerla aperta mentre costruisci. Le impostazioni di ogni 
 | Riassumere, classificare o scrivere testo                     | [Generate Text with AI](#generate-text-with-ai)                   |
 | Prendere un percorso o un altro in base a un valore           | [Conditions](#conditions)                                         |
 | Prendere uno di più percorsi in base a un valore              | [Switch / Case](#switch-case)                                     |
+| Proseguire solo quando poche righe di JavaScript lo dicono | [Check With JavaScript](#check-with-javascript) |
 | Trasformare i dati tra due blocchi                            | [JSON](#json) o [Custom Code](#custom-code)                       |
 | Attendere prima del blocco successivo                         | [Sleep](#sleep)                                                   |
 | Avviare un altro workflow                                     | [Execute Workflow](#execute-workflow)                             |
 | Leggere o modificare incidenti, monitor e altri record        | [Componenti dati di OneUptime](#componenti-dati-di-oneuptime)        |
+| Aprire, prendere in carico e risolvere incidenti o avvisi per i problemi di un altro strumento | [Incidenti e avvisi da altri strumenti](#incidenti-e-avvisi-da-altri-strumenti) |
+| Prendere in carico o chiudere un problema di Zabbix | [Zabbix](#zabbix) |
 
 Un blocco dedicato è meglio di uno generico: il blocco Slack conosce i limiti di Slack, e un blocco record conosce i campi del record, così ottieni errori e registri più chiari che con un blocco **API** che fa lo stesso lavoro.
 
@@ -44,7 +47,7 @@ flowchart TB
 - Gli **Outputs** sono i punti sul bordo inferiore. La maggior parte dei blocchi ha **Success** ed **Error**; [Conditions](#conditions) ha **Yes** e **No**, e [Switch / Case](#switch-case) ne ha una per ciascuno dei suoi casi, più **Default**.
 - I **Returns** sono i valori che un blocco passa ai blocchi successivi, come il **Response Body** di un'API. Un blocco successivo ne legge uno con `{{local.components.<block ID>.returnValues.<value ID>}}`; il pulsante **{ }** di un'impostazione lo inserisce per te. Vedi [Variabili](/docs/workflows/variables#output-dei-componenti-i-dati-dei-blocchi-precedenti).
 
-Un blocco che prende **Error** non fa fallire l'esecuzione: l'esecuzione segue il percorso **Error**, o finisce lì se non c'è nulla di collegato. Un'impostazione obbligatoria lasciata vuota, o un'impostazione che non può mai funzionare, ferma invece l'esecuzione con un errore.
+Un blocco che prende **Error** passa l'errore ai blocchi collegati a **Error**, e l'esecuzione prosegue lì. Se a **Error** non è collegato nulla, l'esecuzione fallisce: quello che stava facendo per il resto continua, poi termina con lo stato **Error**, e la voce del blocco nei **Passaggi** dell'esecuzione dice perché. Un'impostazione obbligatoria lasciata vuota, o un'impostazione che non può mai funzionare, ferma invece l'esecuzione con un errore.
 
 ## API
 
@@ -64,6 +67,8 @@ Fai una richiesta HTTP a qualsiasi URL. C'è un blocco per metodo: **API Get (JS
 In entrambi i casi il blocco restituisce **Response Status**, **Response Headers** e **Response Body**, più **Error** con il motivo quando non è riuscito. Leggi un campo di una risposta JSON aggiungendo il suo nome al riferimento, come in `{{local.components.api-get-1.returnValues.response-body.id}}`.
 
 I reindirizzamenti non vengono seguiti, quindi punta il blocco all'indirizzo che risponde. Le richieste partono da OneUptime: un URL che si risolve in un indirizzo di rete privata viene rifiutato a meno che un amministratore self-hosted non lo consenta, e l'esecuzione si ferma con il motivo. Vedi [Accesso alla rete in uscita](/docs/workflows/configuration#accesso-alla-rete-in-uscita).
+
+**API Get By ID (JSON)** legge un elemento tramite un ID arrivato da altrove, come la chiave del ticket inviata da un webhook. Metti `{id}` nel suo **URL** dove va l'ID, come in `https://your-domain.atlassian.net/rest/api/3/issue/{id}`, e l'ID in **ID**. Il blocco inserisce l'ID solo quando è un ID semplice, al massimo 200 lettere, cifre, trattini e trattini bassi, e lo codifica comunque in percentuale: qualsiasi altra cosa, come `x/../users`, prende **Error** prima che parta qualsiasi richiesta, così un testo arrivato da fuori non può indirizzare la richiesta altrove. Per il resto funziona come **API Get (JSON)** e restituisce gli stessi valori.
 
 ## AI
 
@@ -219,10 +224,9 @@ Per chiamare solo quando qualcosa è vero, metti [If / Else](#conditions) davant
 flowchart TB
     trigger["On Create Incident"] -->|"Success"| check["If / Else"]
     check -->|"Yes"| page["Page Whoever Is On Call"]
-    check -->|"No"| log["Log"]
 ```
 
-Quando crei un workflow, i modelli sotto **Reperibilità** hanno questo già pronto, e uno che chiama in base alla gravità con **Switch / Case**. Un modello lascia a te chi chiamare: il workflow si apre nel Costruttore, dove ogni blocco di chiamata dice **Click to set up**.
+Quando crei un workflow, i modelli sotto **Reperibilità** hanno questo già pronto, e uno che chiama in base alla gravità con **Switch / Case**. La finestra **Crea un flusso di lavoro** chiede chi chiama ciascun blocco di chiamata di un modello, così il workflow si apre con queste scelte già fatte. Un blocco di chiamata che aggiungi nel Costruttore dice **Click to set up** finché non scegli chi chiama.
 
 | Impostazione | Cosa fa |
 | ------------ | ------- |
@@ -270,6 +274,27 @@ Un blocco successivo legge il titolo breve come `{{local.components.javascript-1
 Il codice viene eseguito in una sandbox con `args`, `console.log` (scritto nel registro dell'esecuzione), `axios` per le richieste HTTP, `crypto` e `sleep`. Non ha file system né processo, e le sue richieste seguono le stesse regole sugli indirizzi del blocco API. Ha 5 secondi per impostazione predefinita; un'installazione self-hosted lo cambia con `WORKFLOW_SCRIPT_TIMEOUT_IN_MS`.
 
 **Success** scatta con il **Value** restituito, ed **Error** quando il codice lancia un'eccezione o esaurisce il tempo, con il messaggio in **Error**. Per script più pesanti, usa invece un [Runbook](/docs/runbooks/index).
+
+## Check With JavaScript
+
+Esegui qualche riga di JavaScript, poi prendi **Yes** o **No** in base a ciò che restituisce: un blocco [Custom Code](#custom-code) e un [If / Else](#conditions) dopo di esso, in un unico blocco. Usalo quando un solo confronto non basta per decidere, per esempio per leggere ciò che ha inviato un altro strumento e saltare ciò che il workflow deve lasciar stare.
+
+| Impostazione        | Cosa fa |
+| ------------------- | ------- |
+| **JavaScript Code** | Il tuo codice. `return true` prende **Yes**. Per passare anche dei valori, restituisci un oggetto con `proceed: true`, i valori e una `reason`. |
+| **Arguments**       | Un oggetto JSON di valori da passare al codice, che li legge come `args`, come in **Run Custom JavaScript**. |
+
+```javascript title="JavaScript Code"
+if (args.environment !== "production") {
+  return { proceed: false, reason: "Not production, so nothing was sent." };
+}
+
+return { proceed: true, title: args.title.toUpperCase() };
+```
+
+Solo `true`, o un oggetto il cui `proceed` è `true`, prende **Yes**: qualsiasi altra cosa prende **No**, anche un numero o un testo. Il blocco restituisce **Value**, ciò che il codice ha restituito, che un blocco successivo legge come `{{local.components.javascript-check-1.returnValues.returnValue.title}}`, e **Reason**, la `reason` del codice o ciò che ha restituito, in una frase, che la scheda **Passaggi** dell'esecuzione mostra accanto all'uscita presa.
+
+Il codice viene eseguito come lo esegue **Run Custom JavaScript**: nella stessa sandbox, con gli stessi `args`, `console.log` e `axios`, e con lo stesso limite di tempo. Quando lancia un'eccezione o esaurisce il tempo, il blocco prende **Error**.
 
 ## JSON
 
@@ -358,6 +383,50 @@ Avvia un altro workflow dello stesso progetto. Il tuo workflow prosegue senza as
 **Out** scatta non appena l'altro workflow è in coda. **Error** scatta quando non può esserlo: non viene trovato, è disattivato o archiviato, o avviarlo creerebbe un ciclo.
 
 Usalo per condividere logica comune: costruisci una volta un workflow «pubblica nel canale dell'incidente» e avvialo da ogni workflow che ne ha bisogno. Una catena di workflow che si avviano a vicenda non può tornare su sé stessa ed è profonda al massimo 10 livelli. Vedi [Configurazione e sicurezza](/docs/workflows/configuration#limite-alle-chiamate-tra-workflow).
+
+## Incidenti e avvisi da altri strumenti
+
+Tieni un incidente, o un avviso, per ogni problema che un altro strumento ti segnala, abbinato tramite l'ID che quello strumento gli dà. **Incident From Another Tool** e **Alert From Another Tool** sono la base dei modelli per Zabbix, Huntress, Jira e Dynamics 365, e funzionano con qualsiasi strumento che possa chiamare il [trigger Webhook](/docs/workflows/triggers#webhook) di un workflow. Nel pannello **Aggiungi componente** si trovano sotto **From Other Tools**.
+
+Ogni esecuzione passa al blocco un evento: **What Happened**, e **Outside ID**, l'ID del problema nello strumento. Il blocco cerca il record che conserva quell'ID e fa ciò che dice **What Happened**:
+
+| What Happened | Cosa fa il blocco |
+| ------------- | ----------------- |
+| `open`, `problem`, `firing`, `triggered` o `created` | Apre un incidente, o crea un avviso, da **Title**, **Description** e **Severity**, a meno che un record conservi già l'ID. |
+| `acknowledge` o `acknowledged` | Porta il record al tuo primo stato di presa in carico, con **Note** come motivo nella sua cronologia. |
+| `resolve`, `resolved`, `recovery`, `ok` o `closed` | Porta il record al tuo primo stato risolto, con **Note** come motivo nella sua cronologia. |
+| `note`, `update` o `comment` | Aggiunge **Note** al record come nota privata. |
+| Il nome di uno dei tuoi stati | Porta il record a quello stato. Scrivi `state:` prima di un nome che è una di queste parole, come `state: Open`. |
+
+| Uscita | Quando |
+| ------ | ------ |
+| **Opened**, o **Created** sul blocco degli avvisi | Ha aperto un nuovo record. Collega qui un blocco di chiamata, così chiama solo un problema nuovo. |
+| **Updated** | Ha cambiato lo stato del record, o ha aggiunto la nota. |
+| **Unchanged** | Non c'era nulla da fare: nessun record conserva l'ID, il record è già a quello stato o oltre, oppure **What Happened** è vuoto. |
+| **Error** | Non è riuscito a leggere o modificare il record. Se qui non è collegato nulla, l'esecuzione fallisce. |
+
+Un record va sempre e solo avanti, e uno risolto non si muove più, così quando entrambi gli strumenti lo cambiano nessuno dei due annulla ciò che ha fatto l'altro. Conserva l'ID in un campo personalizzato, `externalId` a meno che **Outside ID Field** non ne nomini un altro, e viene scritto solo quel campo, così gli altri campi personalizzati del record mantengono il loro valore. Per un ID che un record conserva non se ne apre mai un altro, anche quando quel record è risolto: usa un ID nuovo per ogni problema, come lo è un ID di evento di Zabbix o un numero di report di Huntress. Per agire invece su un record tramite il suo ID, come fanno i modelli Jira con l'ID portato dalle etichette di un ticket, mettilo in **Incident ID** o **Alert ID**.
+
+**Severity** indica una delle tue gravità per nome o per ID, senza distinguere maiuscole e minuscole, oppure per la posizione che occupa tra di esse: `most severe`, `middle` o `least severe`. È così che i livelli propri di uno strumento vengono distribuiti sulle gravità che hai nominato tu. Lasciata vuota, o se non ne indica nessuna, è la tua più grave, e il registro dell'esecuzione lo dice. Un nuovo incidente viene tenuto fuori dalle tue pagine di stato, e i loro iscritti non vengono avvisati, perché il testo di un altro strumento è scritto per gli utenti di quello strumento: attiva **Show On Status Pages** per mostrarlo.
+
+In **Altri campi**, **Reason** è il motivo nella cronologia del record quando cambia stato, e **Note** viene allora aggiunta accanto come nota privata, per uno strumento che dice qualcosa mentre prende in carico o risolve. **Custom Fields** dà a un nuovo record altri campi personalizzati, come oggetto JSON, **Labels** gli ID delle sue etichette, separati da virgole, e **Risorse interessate** le risorse di cui si occupa, come su **Create One Incident**. **Note Instead Of Resolving** aggiunge la nota e lascia che sia il tuo team a risolvere il record. Il blocco restituisce **Summary**, ciò che ha fatto in una frase, e il record, così un blocco successivo legge il suo ID come `{{local.components.incident-from-another-tool-1.returnValues.record._id}}`.
+
+## Zabbix
+
+Prendi in carico o chiudi un problema in Zabbix, o aggiungigli un messaggio, tramite l'API di Zabbix. Il blocco si chiama **Update Zabbix Problem**, e i [modelli Zabbix](/docs/integrations/zabbix) lo usano per rimandare a Zabbix ciò che succede in OneUptime.
+
+| Impostazione | Cosa fa |
+| ------------ | ------- |
+| **Zabbix URL** | L'indirizzo a cui apri Zabbix, come `https://zabbix.example.com`. Le richieste vanno al suo `api_jsonrpc.php`. |
+| **API Token** | Un token API di un utente Zabbix che può prendere in carico, commentare e chiudere problemi. Tienilo in una variabile segreta. |
+| **Event ID** | L'ID evento del problema, di solito quello che un incidente o un avviso conserva nei suoi campi personalizzati. |
+| **What To Do** | `acknowledge`, `close` o `message`. Lasciato vuoto, Zabbix non viene aggiornato. |
+| **Message** | Ciò che Zabbix conserva sul problema, al massimo 2.048 caratteri: un messaggio più lungo viene tagliato. |
+| **Zabbix 6.0** | In **Altri campi**. Zabbix 6.0 legge il token dal corpo della richiesta, non dalla sua intestazione `Authorization`: attivalo per questa versione, e disattivalo quando aggiorni, perché Zabbix 7.2 e successivi rifiutano un token nel corpo. |
+
+Per prendere in carico o chiudere, il blocco legge prima il problema. Un problema che Zabbix ha già risolto, o già preso in carico quando è tutto ciò che chiedi, resta com'è, e il blocco prende **Unchanged**, come per un problema che Zabbix non ha o che l'utente del token non può vedere. Un problema il cui trigger non consente di chiudere i problemi a mano viene invece preso in carico, e il suo messaggio dice che resta aperto finché Zabbix non lo vede rientrare.
+
+**Updated** scatta quando Zabbix ha accettato l'aggiornamento, ed **Error** quando Zabbix non era raggiungibile o l'ha rifiutato, con il motivo di Zabbix: Zabbix risponde a una richiesta rifiutata con uno stato di successo, quindi il blocco legge ciò che Zabbix ha risposto anziché il suo stato. Restituisce **Summary**, ciò che ha fatto in una frase.
 
 ## Componenti dati di OneUptime
 

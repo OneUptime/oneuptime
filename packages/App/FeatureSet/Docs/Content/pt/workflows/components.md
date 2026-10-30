@@ -22,10 +22,13 @@ Raramente você vai precisar dela aberta enquanto monta. As configurações de c
 | Resumir, classificar ou redigir texto                         | [Generate Text with AI](#generate-text-with-ai)                   |
 | Seguir um caminho ou outro conforme um valor                  | [Conditions](#conditions)                                         |
 | Seguir um de vários caminhos conforme um valor                | [Switch / Case](#switch-case)                                     |
+| Seguir só quando algumas linhas de JavaScript disserem | [Check With JavaScript](#check-with-javascript) |
 | Transformar dados entre dois blocos                           | [JSON](#json) ou [Custom Code](#custom-code)                      |
 | Esperar antes do próximo bloco                                | [Sleep](#sleep)                                                   |
 | Iniciar outro workflow                                        | [Execute Workflow](#execute-workflow)                             |
 | Ler ou alterar incidentes, monitores e outros registros       | [Componentes de dados do OneUptime](#componentes-de-dados-do-oneuptime)   |
+| Abrir, reconhecer e resolver incidentes ou alertas para os problemas de outra ferramenta | [Incidentes e alertas de outras ferramentas](#incidentes-e-alertas-de-outras-ferramentas) |
+| Reconhecer ou fechar um problema do Zabbix | [Zabbix](#zabbix) |
 
 Um bloco dedicado é melhor que um genérico: o bloco do Slack conhece os limites do Slack, e um bloco de registro conhece os campos do registro, então você recebe erros e logs mais claros do que com um bloco **API** fazendo o mesmo trabalho.
 
@@ -44,7 +47,7 @@ flowchart TB
 - Os **Outputs** são os pontos da borda de baixo. A maioria dos blocos tem **Success** e **Error**; [Conditions](#conditions) tem **Yes** e **No**, e [Switch / Case](#switch-case) tem uma para cada um dos seus casos, além de **Default**.
 - Os **Returns** são os valores que um bloco entrega aos blocos seguintes, como o **Response Body** de uma API. Um bloco seguinte lê um deles com `{{local.components.<block ID>.returnValues.<value ID>}}`; o botão **{ }** de uma configuração o insere para você. Veja [Variáveis](/docs/workflows/variables#saídas-de-componentes-dados-de-blocos-anteriores).
 
-Um bloco que toma **Error** não faz a execução falhar: a execução segue o caminho **Error**, ou termina ali se nada estiver ligado a ele. Já uma configuração obrigatória deixada vazia, ou uma configuração que nunca pode funcionar, para a execução com um erro.
+Um bloco que toma **Error** entrega a falha aos blocos ligados a **Error**, e a execução continua ali. Sem nada ligado a **Error**, a execução falha: o que mais ela estava fazendo continua, depois ela termina com o status **Error**, e a entrada do bloco em **Etapas** da execução diz por quê. Já uma configuração obrigatória deixada vazia, ou uma configuração que nunca pode funcionar, para a execução com um erro.
 
 ## API
 
@@ -64,6 +67,8 @@ Faça uma requisição HTTP para qualquer URL. Há um bloco por método: **API G
 Nos dois casos, o bloco devolve **Response Status**, **Response Headers** e **Response Body**, além de **Error** com o motivo quando falhou. Leia um campo de uma resposta JSON acrescentando o nome dele à referência, como em `{{local.components.api-get-1.returnValues.response-body.id}}`.
 
 Redirecionamentos não são seguidos, então aponte o bloco para o endereço que responde. As requisições saem do OneUptime: uma URL que resolve para um endereço de rede privada é recusada, a menos que um administrador self-hosted a permita, e a execução para com o motivo. Veja [Acesso de rede para fora](/docs/workflows/configuration#acesso-de-rede-para-fora).
+
+**API Get By ID (JSON)** lê um item por um ID que veio de outro lugar, como a chave de issue que um webhook enviou. Coloque `{id}` na **URL** dele onde vai o ID, como em `https://your-domain.atlassian.net/rest/api/3/issue/{id}`, e o ID em **ID**. O bloco só coloca o ID quando ele é um ID simples, com no máximo 200 letras, dígitos, hífens e sublinhados, e mesmo assim o codifica com porcentagem: qualquer outra coisa, como `x/../users`, toma **Error** antes de qualquer requisição sair, então um texto de fora não consegue apontar a requisição para outro lugar. De resto, funciona como **API Get (JSON)** e devolve os mesmos valores.
 
 ## AI
 
@@ -219,10 +224,9 @@ Para acionar só quando algo for verdade, coloque [If / Else](#conditions) antes
 flowchart TB
     trigger["On Create Incident"] -->|"Success"| check["If / Else"]
     check -->|"Yes"| page["Page Whoever Is On Call"]
-    check -->|"No"| log["Log"]
 ```
 
-Quando você cria um workflow, os modelos em **Plantão** têm este pronto, e um que aciona conforme a gravidade com **Switch / Case**. Um modelo deixa para você escolher quem acionar: o workflow abre no Construtor, onde cada bloco de acionamento diz **Click to set up**.
+Quando você cria um workflow, os modelos em **Plantão** têm este pronto, e um que aciona conforme a gravidade com **Switch / Case**. A caixa de diálogo **Criar um fluxo de trabalho** pergunta quem cada bloco de acionamento de um modelo aciona, então o workflow abre com isso já escolhido. Um bloco de acionamento que você adiciona no Construtor diz **Click to set up** até você escolher quem ele aciona.
 
 | Configuração | O que faz |
 | ------------ | --------- |
@@ -270,6 +274,27 @@ Um bloco seguinte lê o título curto como `{{local.components.javascript-1.retu
 O código roda em uma sandbox com `args`, `console.log` (gravado no log da execução), `axios` para requisições HTTP, `crypto` e `sleep`. Ele não tem sistema de arquivos nem processo, e as requisições dele seguem as mesmas regras de endereço do bloco API. Ele tem 5 segundos por padrão; uma instalação self-hosted muda isso com `WORKFLOW_SCRIPT_TIMEOUT_IN_MS`.
 
 **Success** dispara com o **Value** devolvido, e **Error** quando o código lança um erro ou estoura o tempo, com a mensagem em **Error**. Para scripts mais pesados, use um [Runbook](/docs/runbooks/index).
+
+## Check With JavaScript
+
+Rode algumas linhas de JavaScript e siga por **Yes** ou **No** conforme o que elas devolvem: um bloco [Custom Code](#custom-code) e um [If / Else](#conditions) depois dele, em um bloco só. Use-o quando uma única comparação não basta para decidir, por exemplo para ler o que outra ferramenta enviou e pular o que o workflow deve deixar de lado.
+
+| Configuração        | O que faz |
+| ------------------- | --------- |
+| **JavaScript Code** | Seu código. `return true` segue por **Yes**. Para passar valores também, devolva um objeto com `proceed: true`, os valores e um `reason`. |
+| **Arguments**       | Um objeto JSON de valores a passar para o código, que os lê como `args`, como em **Run Custom JavaScript**. |
+
+```javascript title="JavaScript Code"
+if (args.environment !== "production") {
+  return { proceed: false, reason: "Not production, so nothing was sent." };
+}
+
+return { proceed: true, title: args.title.toUpperCase() };
+```
+
+Só `true`, ou um objeto cujo `proceed` seja `true`, segue por **Yes**: qualquer outra coisa segue por **No**, até um número ou um texto. O bloco devolve **Value**, o que o código devolveu, que um bloco seguinte lê como `{{local.components.javascript-check-1.returnValues.returnValue.title}}`, e **Reason**, o `reason` do código ou o que ele devolveu, em uma frase, que a aba **Etapas** da execução mostra ao lado da saída tomada.
+
+O código roda como o **Run Custom JavaScript** o roda: no mesmo sandbox, com os mesmos `args`, `console.log` e `axios`, e com o mesmo limite de tempo. Quando ele lança um erro ou estoura o tempo, o bloco toma **Error**.
 
 ## JSON
 
@@ -358,6 +383,50 @@ Inicie outro workflow do mesmo projeto. O seu workflow continua sem esperar o ou
 **Out** dispara assim que o outro workflow entra na fila. **Error** dispara quando isso não é possível: ele não foi encontrado, está desligado ou arquivado, ou iniciá-lo criaria um loop.
 
 Use-o para compartilhar lógica comum: monte uma vez um workflow «publicar no canal do incidente» e inicie-o a partir de cada workflow que precisar. Uma cadeia de workflows que se iniciam uns aos outros não pode voltar a si mesma e tem no máximo 10 níveis. Veja [Configuração e segurança](/docs/workflows/configuration#limite-para-chamar-outros-workflows).
+
+## Incidentes e alertas de outras ferramentas
+
+Mantenha um incidente, ou um alerta, para cada problema que outra ferramenta informa, casado pelo ID que essa ferramenta dá a ele. **Incident From Another Tool** e **Alert From Another Tool** são a base dos modelos do Zabbix, do Huntress, do Jira e do Dynamics 365, e funcionam com qualquer ferramenta que consiga chamar o [gatilho Webhook](/docs/workflows/triggers#webhook) de um workflow. No painel **Adicionar componente**, eles ficam em **From Other Tools**.
+
+Cada execução entrega ao bloco um evento: **What Happened**, e **Outside ID**, o ID do problema na ferramenta. O bloco procura o registro que guarda esse ID e faz o que **What Happened** diz:
+
+| What Happened | O que o bloco faz |
+| ------------- | ----------------- |
+| `open`, `problem`, `firing`, `triggered` ou `created` | Abre um incidente, ou cria um alerta, a partir de **Title**, **Description** e **Severity**, a menos que um registro já guarde o ID. |
+| `acknowledge` ou `acknowledged` | Leva o registro ao seu primeiro estado reconhecido, com **Note** como motivo no histórico dele. |
+| `resolve`, `resolved`, `recovery`, `ok` ou `closed` | Leva o registro ao seu primeiro estado resolvido, com **Note** como motivo no histórico dele. |
+| `note`, `update` ou `comment` | Adiciona **Note** ao registro como nota privada. |
+| O nome de um dos seus estados | Leva o registro a esse estado. Escreva `state:` antes de um nome que seja uma dessas palavras, como `state: Open`. |
+
+| Saída | Quando |
+| ----- | ------ |
+| **Opened**, ou **Created** no bloco de alertas | Abriu um registro novo. Ligue aqui um bloco de acionamento, para que só um problema novo acione alguém. |
+| **Updated** | Mudou o estado do registro, ou adicionou a nota. |
+| **Unchanged** | Não havia nada a fazer: nenhum registro guarda o ID, o registro já está nesse estado ou além dele, ou **What Happened** está vazio. |
+| **Error** | Não conseguiu ler nem alterar o registro. Sem nada ligado aqui, a execução falha. |
+
+Um registro só anda para a frente, e um resolvido não anda mais, então quando as duas ferramentas o mudam, nenhuma desfaz o que a outra fez. Ele guarda o ID em um campo personalizado, `externalId`, a menos que **Outside ID Field** nomeie outro, e só esse campo é escrito, então os outros campos personalizados do registro mantêm o valor. Um ID que um registro guarda nunca é aberto de novo, mesmo depois que esse registro é resolvido: use um ID novo para cada problema, como é um ID de evento do Zabbix ou um número de relatório do Huntress. Para agir sobre um registro pelo ID dele, como os modelos do Jira fazem com o ID que os rótulos de uma issue carregam, coloque-o em **Incident ID** ou **Alert ID**.
+
+**Severity** nomeia uma das suas gravidades pelo nome ou pelo ID, sem diferenciar maiúsculas, ou pela posição entre elas: `most severe`, `middle` ou `least severe`. É assim que os níveis próprios de uma ferramenta se distribuem pelas gravidades que você mesmo nomeou. Deixada vazia, ou sem nomear nenhuma delas, é a sua mais grave, e o registro da execução diz isso. Um incidente novo fica fora das suas páginas de status, e os assinantes delas não são avisados, porque o texto de outra ferramenta é escrito para os usuários dessa ferramenta: ative **Show On Status Pages** para mostrá-lo.
+
+Em **Mais campos**, **Reason** é o motivo no histórico do registro quando ele muda de estado, e **Note** é então adicionada ao lado como nota privada, para uma ferramenta que diz algo ao reconhecer ou resolver. **Custom Fields** dá a um registro novo mais campos personalizados, como um objeto JSON, **Labels** os IDs dos seus rótulos, separados por vírgulas, e **Recursos afetados** os recursos de que ele trata, como em **Create One Incident**. **Note Instead Of Resolving** adiciona a nota e deixa o registro para a sua equipe resolver. O bloco devolve **Summary**, o que ele fez em uma frase, e o registro, então um bloco seguinte lê o ID dele como `{{local.components.incident-from-another-tool-1.returnValues.record._id}}`.
+
+## Zabbix
+
+Reconheça ou feche um problema no Zabbix, ou adicione uma mensagem a ele, pela API do Zabbix. O bloco se chama **Update Zabbix Problem**, e os [modelos do Zabbix](/docs/integrations/zabbix) o usam para mandar de volta ao Zabbix o que acontece no OneUptime.
+
+| Configuração | O que faz |
+| ------------ | --------- |
+| **Zabbix URL** | O endereço em que você abre o Zabbix, como `https://zabbix.example.com`. As requisições vão para o `api_jsonrpc.php` dele. |
+| **API Token** | Um token de API de um usuário do Zabbix que possa reconhecer, comentar e fechar problemas. Guarde-o em uma variável secreta. |
+| **Event ID** | O ID de evento do problema, em geral o que um incidente ou um alerta guarda nos campos personalizados. |
+| **What To Do** | `acknowledge`, `close` ou `message`. Deixado vazio, o Zabbix não é atualizado. |
+| **Message** | O que o Zabbix guarda no problema, no máximo 2.048 caracteres: uma mensagem mais longa é cortada. |
+| **Zabbix 6.0** | Em **Mais campos**. O Zabbix 6.0 lê o token do corpo da requisição, não do cabeçalho `Authorization` dela: ative isto para ele, e desative ao atualizar, porque o Zabbix 7.2 e posteriores recusam um token no corpo. |
+
+Para reconhecer ou fechar, o bloco lê o problema primeiro. Um problema que o Zabbix já resolveu, ou já reconheceu quando é só isso que você pede, fica como está, e o bloco segue por **Unchanged**, como faz com um problema que o Zabbix não tem ou que o usuário do token não consegue ver. Um problema cujo gatilho não permite fechar problemas à mão é reconhecido em vez disso, e a mensagem dele diz que ele fica aberto até o Zabbix ver que se recuperou.
+
+**Updated** dispara quando o Zabbix aceitou a atualização, e **Error** quando não foi possível chegar ao Zabbix ou ele a recusou, com o motivo do Zabbix: o Zabbix responde a uma requisição recusada com um status de sucesso, então o bloco lê o que o Zabbix respondeu em vez do status. Ele devolve **Summary**, o que fez em uma frase.
 
 ## Componentes de dados do OneUptime
 
