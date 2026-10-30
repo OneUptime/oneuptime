@@ -23,6 +23,7 @@ import CloudAccountSettingsPage from "../../App/FeatureSet/Dashboard/src/Pages/C
 import CloudAccountDeletePage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/Accounts/View/Delete";
 import CloudAccountAiAgentPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/Accounts/View/AI/Agent";
 import CloudAccountAiLogsPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/Accounts/View/AI/Logs";
+import CloudAccountFeedPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/Accounts/View/Feed";
 import CloudResourceViewLayout from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Layout";
 import CloudResourceOverviewPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Overview";
 import CloudResourceIncidentsPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Incidents";
@@ -38,6 +39,7 @@ import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import ChangeEvent from "Common/Models/AnalyticsModels/ChangeEvent";
 import CloudAccount from "Common/Models/DatabaseModels/CloudAccount";
+import CloudAccountFeed from "Common/Models/DatabaseModels/CloudAccountFeed";
 import CloudConnection from "Common/Models/DatabaseModels/CloudConnection";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import Incident from "Common/Models/DatabaseModels/Incident";
@@ -1262,6 +1264,55 @@ function aiLogs(resourceId) {
 }
 
 // The commands AI ran on the account through its agent, newest first.
+/*
+ * The account's feed (Activity -> Feed), newest last here: how it came to
+ * OneUptime, its Cloud AI agent connecting, a person letting AI read its
+ * logs, and the agent being reset - as the server writes them.
+ */
+const ACCOUNT_LINK = `[AWS account Production](/dashboard/${PROJECT_ID}/cloud/accounts/${AWS_ACCOUNT_ID})`;
+const ACCOUNT_FEED = [
+  {
+    _id: "91000000-0000-4000-8000-000000000001",
+    cloudAccountId: AWS_ACCOUNT_ID,
+    cloudAccountFeedEventType: "CloudAccountCreated",
+    feedInfoInMarkdown: `☁️ OneUptime found ${ACCOUNT_LINK} when the cloud connection **AWS 123456789012** first read it.`,
+    displayColor: new Color("#3b82f6"),
+    postedAt: new Date(NOW - 9 * 24 * 60 * MINUTE),
+  },
+  {
+    _id: "91000000-0000-4000-8000-000000000002",
+    cloudAccountId: AWS_ACCOUNT_ID,
+    cloudAccountFeedEventType: "CloudAccountUpdated",
+    feedInfoInMarkdown:
+      "The Cloud AI agent connected. What AI may do here follows the agent's configuration: investigation on, fixes Ask for approval. Change it with ONEUPTIME_AI_INVESTIGATION and ONEUPTIME_AI_FIXES where the agent runs; the AWS account's AI agent page shows how.",
+    moreInformationInMarkdown:
+      "**Agent**: Cloud AI agent (b0000000-0000-4000-8000-000000000001)\n\n**Identity**: `123456789012`",
+    displayColor: new Color("#10b981"),
+    postedAt: new Date(NOW - 3 * 24 * 60 * MINUTE),
+  },
+  {
+    _id: "91000000-0000-4000-8000-000000000003",
+    cloudAccountId: AWS_ACCOUNT_ID,
+    cloudAccountFeedEventType: "CloudAccountUpdated",
+    feedInfoInMarkdown: `🤖 **Maya Chen** changed what OneUptime AI may do on ${ACCOUNT_LINK}:\n\n- Reading the account's log lines during investigations turned **on**`,
+    moreInformationInMarkdown:
+      "Investigations may now read this account's recent log lines (CloudWatch Logs, Log Analytics or Cloud Logging) through its read-only connection. Log lines can hold customer data.",
+    displayColor: new Color("#eab308"),
+    user: { name: "Maya Chen", email: "maya@acme.example" },
+    postedAt: new Date(NOW - 2 * 24 * 60 * MINUTE),
+  },
+  {
+    _id: "91000000-0000-4000-8000-000000000004",
+    cloudAccountId: AWS_ACCOUNT_ID,
+    cloudAccountFeedEventType: "CloudAccountUpdated",
+    feedInfoInMarkdown:
+      "🔄 The Cloud AI agent was reset by **Maya Chen**. It reconnects on its own within a few minutes.",
+    displayColor: new Color("#3b82f6"),
+    user: { name: "Maya Chen", email: "maya@acme.example" },
+    postedAt: new Date(NOW - 30 * MINUTE),
+  },
+];
+
 const RUNNER_JOBS = [
   {
     _id: "90000000-0000-4000-8000-000000000002",
@@ -1395,6 +1446,31 @@ ModelAPI.getList = async (args) => {
     const data = (state.ai === "connected" ? RUNNER_JOBS : []).map((row) => {
       return Object.assign(new RunnerJob(), row);
     });
+    return { data: data, count: data.length, skip: 0, limit: args.limit };
+  }
+
+  // The account's feed, newest first unless the reader asked otherwise.
+  if (args.modelType === CloudAccountFeed) {
+    const query = args.query || {};
+    const accountId = String(query.cloudAccountId || "");
+    state.listRequests.push({
+      model: "CloudAccountFeed",
+      cloudAccountId: accountId,
+    });
+    const ascending = Boolean(
+      args.sort && String(args.sort.postedAt || "") === "ASC",
+    );
+    const data = ACCOUNT_FEED.filter((row) => {
+      return row.cloudAccountId === accountId;
+    })
+      .sort((left, right) => {
+        return ascending
+          ? left.postedAt.getTime() - right.postedAt.getTime()
+          : right.postedAt.getTime() - left.postedAt.getTime();
+      })
+      .map((row) => {
+        return Object.assign(new CloudAccountFeed(), row);
+      });
     return { data: data, count: data.length, skip: 0, limit: args.limit };
   }
 
@@ -1706,6 +1782,7 @@ const ACCOUNT_SETTINGS_ROUTE = RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_SETTINGS];
 const ACCOUNT_DELETE_ROUTE = RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_DELETE];
 const ACCOUNT_AI_AGENT_ROUTE = RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_AI_AGENT];
 const ACCOUNT_AI_LOGS_ROUTE = RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_AI_LOGS];
+const ACCOUNT_FEED_ROUTE = RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_FEED];
 const RESOURCE_ROUTE = RouteMap[PageMap.CLOUD_RESOURCE_VIEW];
 const RESOURCE_INCIDENTS_ROUTE =
   RouteMap[PageMap.CLOUD_RESOURCE_VIEW_INCIDENTS];
@@ -1735,6 +1812,10 @@ const FixtureAccountAiAgent = withNavigation(
 const FixtureAccountAiLogs = withNavigation(
   CloudAccountAiLogsPage,
   ACCOUNT_AI_LOGS_ROUTE,
+);
+const FixtureAccountFeed = withNavigation(
+  CloudAccountFeedPage,
+  ACCOUNT_FEED_ROUTE,
 );
 const FixtureResourceLayout = withNavigation(
   CloudResourceViewLayout,
@@ -1827,6 +1908,10 @@ function FixtureApp() {
           <Route
             path={ACCOUNT_AI_LOGS_ROUTE.toString()}
             element={<FixtureAccountAiLogs />}
+          />
+          <Route
+            path={ACCOUNT_FEED_ROUTE.toString()}
+            element={<FixtureAccountFeed />}
           />
         </Route>
         <Route element={<FixtureResourceLayout />}>

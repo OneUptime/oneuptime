@@ -1,6 +1,8 @@
 import ResourceAiAgent from "../../../Models/DatabaseModels/ResourceAiAgent";
 import CephClusterFeedService from "../../../Server/Services/CephClusterFeedService";
 import CloudAccountService from "../../../Server/Services/CloudAccountService";
+import CloudAccountFeedService from "../../../Server/Services/CloudAccountFeedService";
+import { CloudAccountFeedEventType } from "../../../Models/DatabaseModels/CloudAccountFeed";
 import CephClusterService from "../../../Server/Services/CephClusterService";
 import DatabaseServerFeedService from "../../../Server/Services/DatabaseServerFeedService";
 import DatabaseServerService from "../../../Server/Services/DatabaseServerService";
@@ -806,7 +808,7 @@ describe("ResourceAiAgentService.findAgentsForResources", () => {
 
 describe("the per-type resource bindings", () => {
   test("every resource type has one, bound to its own type", () => {
-    // The cloud accounts have one table and no feed: see below.
+    // The cloud accounts share one table and one feed: see below.
     expect(
       TYPE_FIXTURES.map((f: TypeFixture) => {
         return f.resourceType;
@@ -829,7 +831,7 @@ describe("the per-type resource bindings", () => {
   });
 
   test.each(CLOUD_AI_RESOURCE_TYPES)(
-    "%s reads its cloud's account, never creates one, and writes no feed",
+    "%s reads its cloud's account, never creates one, and posts to the account's feed as an update",
     async (type: AiResourceType) => {
       const binding: ResourceAiAgentResourceBinding =
         getResourceAiAgentResourceBinding(type);
@@ -839,16 +841,60 @@ describe("the per-type resource bindings", () => {
       );
       // Resolved by the account its cloud names (resolveCloudAccountId).
       expect(binding.findOrCreateByIdentity).toBeNull();
-      await expect(
-        binding.writeFeedItem({
-          resourceId: RESOURCE_A,
-          projectId: PROJECT_ID,
-          feedInfoInMarkdown: "x",
-          displayColor: undefined as never,
-        }),
-      ).resolves.toBeUndefined();
+
+      /*
+       * What the agent did to the account's standing - connected, reset,
+       * its configuration changing what AI may do - is recorded where a
+       * person reads it, as for every other resource.
+       */
+      const spy: SpyCalls = jest
+        .spyOn(CloudAccountFeedService, "createCloudAccountFeedItem")
+        .mockResolvedValue(undefined as never) as unknown as SpyCalls;
+
+      await binding.writeFeedItem({
+        resourceId: RESOURCE_A,
+        projectId: PROJECT_ID,
+        feedInfoInMarkdown: "connected",
+        moreInformationInMarkdown: "more",
+        displayColor: Blue500,
+        userId: USER_ID,
+      });
+
+      expect(spy.mock.calls).toHaveLength(1);
+      expect(spy.mock.calls[0]![0]).toEqual({
+        cloudAccountId: RESOURCE_A,
+        projectId: PROJECT_ID,
+        cloudAccountFeedEventType:
+          CloudAccountFeedEventType.CloudAccountUpdated,
+        feedInfoInMarkdown: "connected",
+        moreInformationInMarkdown: "more",
+        displayColor: Blue500,
+        userId: USER_ID,
+      });
     },
   );
+
+  test("a cloud account's feed entry never fails what it describes", async () => {
+    /*
+     * The feed service swallows its own errors (a feed entry is a side
+     * effect of a registration or a reset that already happened); the
+     * binding adds nothing that could throw.
+     */
+    jest
+      .spyOn(CloudAccountFeedService, "create")
+      .mockRejectedValue(new Error("database down"));
+
+    await expect(
+      getResourceAiAgentResourceBinding(
+        AiResourceType.AwsAccount,
+      ).writeFeedItem({
+        resourceId: RESOURCE_A,
+        projectId: PROJECT_ID,
+        feedInfoInMarkdown: "reset",
+        displayColor: Blue500,
+      }),
+    ).resolves.toBeUndefined();
+  });
 
   test.each(TYPE_FIXTURES)(
     "$resourceType reads through its own model's service",

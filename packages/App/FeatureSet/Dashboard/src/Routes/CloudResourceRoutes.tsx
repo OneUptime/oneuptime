@@ -36,6 +36,7 @@ import CloudAccountSettings from "../Pages/Cloud/Accounts/View/Settings";
 import CloudAccountDelete from "../Pages/Cloud/Accounts/View/Delete";
 import CloudAccountAiAgent from "../Pages/Cloud/Accounts/View/AI/Agent";
 import CloudAccountAiLogs from "../Pages/Cloud/Accounts/View/AI/Logs";
+import CloudAccountFeed from "../Pages/Cloud/Accounts/View/Feed";
 import CloudAccount from "Common/Models/DatabaseModels/CloudAccount";
 import CloudResourceLabelRule from "Common/Models/DatabaseModels/CloudResourceLabelRule";
 import CloudResourceOwnerRule from "Common/Models/DatabaseModels/CloudResourceOwnerRule";
@@ -181,6 +182,15 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
             <CloudAccountChanges
               {...props}
               pageRoute={RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_CHANGES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.CLOUD_ACCOUNT_VIEW_FEED)}
+          element={
+            <CloudAccountFeed
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_FEED] as Route}
             />
           }
         />

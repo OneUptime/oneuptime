@@ -1807,6 +1807,30 @@ test.describe("a cloud resource's pages", () => {
 
 const AI_AGENT_PATH: string = `${ACCOUNTS_PATH}/${AWS_ACCOUNT}/ai/agent`;
 const AI_LOGS_PATH: string = `${ACCOUNTS_PATH}/${AWS_ACCOUNT}/ai/logs`;
+const FEED_PATH: string = `${ACCOUNTS_PATH}/${AWS_ACCOUNT}/feed`;
+
+// The account feed's entries, top to bottom, as their words read.
+async function feedEntries(page: Page): Promise<Array<string>> {
+  const found: Array<string> = [];
+
+  for (const words of [
+    "OneUptime found",
+    "The Cloud AI agent connected",
+    "changed what OneUptime AI may do on",
+    "The Cloud AI agent was reset",
+  ]) {
+    const box: Box = await boxOf(page.getByText(words).first());
+    found.push(`${Math.round(box.y)}:${words}`);
+  }
+
+  return found
+    .sort((left: string, right: string): number => {
+      return Number(left.split(":")[0]) - Number(right.split(":")[0]);
+    })
+    .map((entry: string): string => {
+      return entry.slice(entry.indexOf(":") + 1);
+    });
+}
 
 function readLocale(language: string): Record<string, string> {
   return JSON.parse(
@@ -2259,6 +2283,100 @@ test.describe("OneUptime AI on a cloud account", () => {
     await expect(askFirst).toContainText(wordIn(PERSIAN, "Ask me first"));
     await expectNoSidewaysScroll(page);
     await shoot(page, "account-ai-setup-fa");
+  });
+
+  test("the account's feed: how it came to OneUptime, its agent, and who changed what AI may do, newest first", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAccounts(page, `${FEED_PATH}?state=connected`);
+
+    await expect(page.getByText("Cloud Account Feed").first()).toBeVisible();
+    await expect(page.getByText("The Cloud AI agent was reset")).toBeVisible();
+    await expect(
+      page.getByText("changed what OneUptime AI may do on").first(),
+    ).toBeVisible();
+    await expect(
+      page.getByText(
+        "Reading the account's log lines during investigations turned",
+      ),
+    ).toBeVisible();
+    await expect(page.getByText("AWS 123456789012")).toBeVisible();
+
+    // Newest first: the reset half an hour ago, the account found nine days ago.
+    expect(await feedEntries(page)).toEqual([
+      "The Cloud AI agent was reset",
+      "changed what OneUptime AI may do on",
+      "The Cloud AI agent connected",
+      "OneUptime found",
+    ]);
+
+    // Read for this account, and nothing else's.
+    const reads: Array<ListRequest> = (await listRequests(page)).filter(
+      (request: ListRequest): boolean => {
+        return request.model === "CloudAccountFeed";
+      },
+    );
+    expect(reads.length).toBeGreaterThan(0);
+    for (const read of reads) {
+      expect(
+        (read as unknown as { cloudAccountId: string }).cloudAccountId,
+      ).toBe(AWS_ACCOUNT);
+    }
+
+    // Activity holds what changed in the cloud, then what happened in OneUptime.
+    if (isDesktop()) {
+      await expect(
+        sideMenu(page).getByRole("link", { name: "Feed", exact: true }),
+      ).toHaveAttribute("aria-current", "page");
+      await expect(
+        sideMenu(page).getByRole("link", { name: "Feed", exact: true }),
+      ).toHaveAttribute("href", FEED_PATH);
+      await expect(
+        sideMenu(page).getByRole("link", { name: "Changes", exact: true }),
+      ).toHaveAttribute("href", `${ACCOUNTS_PATH}/${AWS_ACCOUNT}/changes`);
+    }
+
+    await expectNoSidewaysScroll(page);
+    await shoot(page, "account-feed");
+  });
+
+  test("the account's feed, dark and in German", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAccounts(page, `${FEED_PATH}?state=connected&theme=dark&lang=de`);
+
+    await expect(page.locator("html")).toHaveClass(/dark/);
+    await expect(
+      page.getByText(wordIn(GERMAN, "Cloud Account Feed")).first(),
+    ).toBeVisible();
+    expect(wordIn(GERMAN, "Cloud Account Feed")).not.toBe("Cloud Account Feed");
+    await expect(
+      page.getByText("The Cloud AI agent was reset").first(),
+    ).toBeVisible();
+    await expectNoSidewaysScroll(page);
+    await shoot(page, "account-feed-dark-de");
+  });
+
+  test("the account's feed in Persian, right to left", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAccounts(page, `${FEED_PATH}?state=connected&lang=fa`);
+
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await expect(
+      page.getByText(wordIn(PERSIAN, "Cloud Account Feed")).first(),
+    ).toBeVisible();
+    expect(wordIn(PERSIAN, "Cloud Account Feed")).not.toBe(
+      "Cloud Account Feed",
+    );
+    await expectNoSidewaysScroll(page);
+    await shoot(page, "account-feed-fa");
   });
 
   test("a status read that fails: the card still offers the way in", async ({

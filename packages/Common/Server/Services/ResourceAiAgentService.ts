@@ -29,6 +29,8 @@ import { PodmanHostFeedEventType } from "../../Models/DatabaseModels/PodmanHostF
 import { ProxmoxClusterFeedEventType } from "../../Models/DatabaseModels/ProxmoxClusterFeed";
 import Model from "../../Models/DatabaseModels/ResourceAiAgent";
 import { VMwareVCenterFeedEventType } from "../../Models/DatabaseModels/VMwareVCenterFeed";
+import CloudAccountFeedService from "./CloudAccountFeedService";
+import { CloudAccountFeedEventType } from "../../Models/DatabaseModels/CloudAccountFeed";
 import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
 import logger from "../Utils/Logger";
@@ -627,6 +629,11 @@ export function getResourceAiAgentResourceBinding(
      * (resolveCloudAccount), never created: it is the cloud connection's.
      * It has no feed of its own; AI → Logs shows what AI did in it.
      */
+    /*
+     * A cloud account is never created by its agent (it binds to an account
+     * a connection reads), and what the agent does to its standing goes on
+     * the account's own feed.
+     */
     case AiResourceType.AwsAccount:
     case AiResourceType.AzureSubscription:
     case AiResourceType.GoogleCloudProject:
@@ -636,8 +643,17 @@ export function getResourceAiAgentResourceBinding(
           return asService(CloudAccountService);
         },
         findOrCreateByIdentity: null,
-        writeFeedItem: async (): Promise<void> => {
-          return;
+        writeFeedItem: async (item: ResourceAiAgentFeedItem): Promise<void> => {
+          await CloudAccountFeedService.createCloudAccountFeedItem({
+            cloudAccountId: item.resourceId,
+            projectId: item.projectId,
+            cloudAccountFeedEventType:
+              CloudAccountFeedEventType.CloudAccountUpdated,
+            feedInfoInMarkdown: item.feedInfoInMarkdown,
+            moreInformationInMarkdown: item.moreInformationInMarkdown,
+            displayColor: item.displayColor,
+            userId: item.userId,
+          });
         },
       };
   }

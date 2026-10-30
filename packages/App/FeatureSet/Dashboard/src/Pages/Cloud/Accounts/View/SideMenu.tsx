@@ -18,8 +18,9 @@ export interface ComponentProps {
 /*
  * A cloud account's pages: what it holds first (its Overview, its
  * Resources and how they fit together), then what OneUptime AI may do and
- * did in it, what changed in it, its own settings, its API pages and,
- * last, deleting it.
+ * did in it, what changed in it - in the cloud (Changes) and in OneUptime
+ * (Feed: its Cloud AI agent, and who changed what AI may do) - its own
+ * settings, its API pages and, last, deleting it.
  */
 const CloudAccountSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -96,6 +97,16 @@ const CloudAccountSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Activity}
+        />
+        <SideMenuItem
+          link={{
+            title: "Feed",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_FEED] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.List}
         />
       </SideMenuSection>
 

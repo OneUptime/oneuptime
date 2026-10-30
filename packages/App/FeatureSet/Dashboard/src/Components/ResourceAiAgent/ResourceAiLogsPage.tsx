@@ -534,10 +534,12 @@ const ResourceAiLogsPage: FunctionComponent<ComponentProps> = (
            * The table fetches exactly the column fields plus these, so every
            * field a cell reads must be named here or it is undefined on the
            * row: aiRunId tells an investigation from a connection test,
-           * exitCode and errorMessage say how a command ended.
+           * stepId a fix's dry run from the fix, exitCode and errorMessage
+           * say how a command ended.
            */
           selectMoreFields={{
             aiRunId: true,
+            stepId: true,
             exitCode: true,
             errorMessage: true,
           }}
@@ -609,6 +611,7 @@ const ResourceAiLogsPage: FunctionComponent<ComponentProps> = (
                     {describeResourceCommandJobOrigin({
                       origin: item.origin,
                       aiRunId: item.aiRunId,
+                      stepId: item.stepId,
                     })}
                   </span>
                 );

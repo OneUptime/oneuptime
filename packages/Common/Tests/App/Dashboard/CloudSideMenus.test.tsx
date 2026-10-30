@@ -110,7 +110,7 @@ describe("a cloud resource's menu", () => {
 });
 
 describe("a cloud account's menu", () => {
-  test("its overview, resources and map; its AI agent; its changes; its settings, Developer pages and delete", async () => {
+  test("its overview, resources and map; its AI agent; its changes and its feed; its settings, Developer pages and delete", async () => {
     goTo(ACCOUNT_PATH);
     await renderMenu(
       <CloudAccountSideMenu modelId={new ObjectID(ACCOUNT_ID)} />,
@@ -133,8 +133,14 @@ describe("a cloud account's menu", () => {
       { title: "AI agent", href: `${ACCOUNT_PATH}/ai/agent` },
       { title: "Logs", href: `${ACCOUNT_PATH}/ai/logs` },
     ]);
+    /*
+     * What changed in the cloud (Changes), then what happened to the
+     * account in OneUptime: its Cloud AI agent, and who changed what AI may
+     * do there (Feed).
+     */
     expect(linksIn("Activity")).toEqual([
       { title: "Changes", href: `${ACCOUNT_PATH}/changes` },
+      { title: "Feed", href: `${ACCOUNT_PATH}/feed` },
     ]);
     expect(linksIn("Developer")).toEqual([
       { title: "Terraform", href: `${ACCOUNT_PATH}/developer/terraform` },

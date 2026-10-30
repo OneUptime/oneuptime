@@ -37115,5 +37115,14 @@
   "Changes only resources tagged {{tag}}": "{{tag}} のタグが付いたリソースのみ変更",
   "Set by the {{agent}}'s setup command. Change shows it again with other choices; this page follows.": "{{agent}} のセットアップコマンドで指定されています。「変更」で別の選択肢のコマンドを再表示できます。このページはそれに従います。",
   "The {{agent}} is running in this {{noun}}.": "{{agent}} はこの{{noun}}の中で実行中です。",
-  "Can make changes": "変更を実行可能"
+  "Can make changes": "変更を実行可能",
+  "Cloud Account Feed": "クラウドアカウントのフィード",
+  "Cloud Account Feed Event": "クラウドアカウントのフィードイベント",
+  "Cloud Account Feeds": "クラウドアカウントのフィード",
+  "Log of what happened to this cloud account: its Cloud AI agent connecting or being reset, and every change to what OneUptime AI may do there, with who made it.": "このクラウドアカウントに起きたことの記録です。クラウド AI エージェントの接続やリセット、OneUptime AI がそこで行えることへの変更のすべてを、変更した人とともに記録します。",
+  "Nothing has happened to this account in OneUptime yet.": "このアカウントには OneUptime でまだ何も起きていません。",
+  "What happened to this account in OneUptime: its Cloud AI agent connecting or being reset, and every change to what OneUptime AI may do here.": "OneUptime でこのアカウントに起きたこと。クラウド AI エージェントの接続やリセット、OneUptime AI がここで行えることへの変更のすべてです。",
+  "Cloud Account Updated": "クラウドアカウント更新済み",
+  "Cloud Account Created": "クラウドアカウント作成済み",
+  "Dry run of a fix (read-only)": "修正のドライラン（読み取り専用）"
 }
