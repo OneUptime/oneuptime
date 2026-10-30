@@ -71,8 +71,14 @@ import WorkspacePage, {
   WorkspacePageOutcome,
   WorkspacePagePlace,
 } from "../../../../Server/Utils/Workspace/WorkspacePage";
+import WorkspacePageAbout, {
+  WORKSPACE_PAGE_NEW_ALERT_SUBJECT,
+  WorkspacePageSubject,
+} from "../../../../Server/Utils/Workspace/WorkspacePageAbout";
+import { WorkspaceEventType } from "../../../../Server/Utils/Workspace/WorkspaceMemberActions";
 import DatabaseConfig from "../../../../Server/DatabaseConfig";
 import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
+import Alert from "../../../../Models/DatabaseModels/Alert";
 import OnCallDutyPolicyExecutionLog from "../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import OnCallDutyPolicyScheduleService from "../../../../Server/Services/OnCallDutyPolicyScheduleService";
 import {
@@ -315,9 +321,20 @@ let pages: Array<{
   place: WorkspacePagePlace | undefined;
   props: DatabaseCommonInteractionProps;
   workspaceType: WorkspaceType;
+  about: WorkspacePageSubject | undefined;
 }>;
+/*
+ * What a page in the conversation is about (WorkspacePageAbout.read, its
+ * own suite's): something new, the channel's incident, or a refusal.
+ */
+let channelAbout: WorkspacePageSubject | Error;
+// What a submitted card's value reads as, again as whoever submits it.
+let valueAbout: WorkspacePageSubject | Error;
+let aboutReads: Array<{ kind: string; at: unknown }>;
 let outcome: () => Promise<WorkspacePageOutcome>;
 let mayPage: boolean;
+// Whether the sender may create alerts: what a page about something new is.
+let mayCreateAlert: boolean;
 // The Microsoft Entra ids connected to OneUptime accounts in the project.
 let connected: Record<string, ObjectID>;
 // The project's Microsoft Teams tags that follow on-call schedules.
@@ -516,7 +533,11 @@ beforeEach(() => {
   };
   projectId = ObjectID.generate();
   pages = [];
+  channelAbout = WORKSPACE_PAGE_NEW_ALERT_SUBJECT;
+  valueAbout = WORKSPACE_PAGE_NEW_ALERT_SUBJECT;
+  aboutReads = [];
   mayPage = true;
+  mayCreateAlert = true;
   connected = { [String(NAWAZ_IN_TEAMS["aadObjectId"])]: NAWAZ };
   outcome = async (): Promise<WorkspacePageOutcome> => {
     return {
@@ -582,6 +603,12 @@ beforeEach(() => {
         if (!mayPage && data.modelType === OnCallDutyPolicyExecutionLog) {
           throw new NotAuthorizedException(
             `You do not have permission to ${data.action}. You need one of these permissions: Project Member.`,
+          );
+        }
+
+        if (!mayCreateAlert && data.modelType === Alert) {
+          throw new NotAuthorizedException(
+            `You do not have permission to ${data.action}. You need one of these permissions: Alert Member.`,
           );
         }
       },
@@ -666,10 +693,33 @@ beforeEach(() => {
           place: data.place,
           props: data.props,
           workspaceType: data.workspaceType,
+          about: data.about,
         });
         return await outcome();
       },
     );
+  jest
+    .spyOn(WorkspacePageAbout, "read")
+    .mockImplementation(async (data: { channelId: string | undefined }) => {
+      aboutReads.push({ kind: "channel", at: data.channelId });
+
+      if (channelAbout instanceof Error) {
+        throw channelAbout;
+      }
+
+      return channelAbout;
+    });
+  jest
+    .spyOn(WorkspacePageAbout, "readValue")
+    .mockImplementation(async (data: { value: string | undefined }) => {
+      aboutReads.push({ kind: "value", at: data.value });
+
+      if (valueAbout instanceof Error) {
+        throw valueAbout;
+      }
+
+      return valueAbout;
+    });
 
   jest.spyOn(DatabaseConfig, "getDashboardUrl").mockImplementation(() => {
     return Promise.resolve(URL.fromString(DASHBOARD_URL));
@@ -761,6 +811,8 @@ describe("page @Nawaz <message>: paged at once", () => {
         },
         props: { userId: SIMON, tenantId: projectId },
         workspaceType: WorkspaceType.MicrosoftTeams,
+        // No record's own conversation: a page about something new.
+        about: WORKSPACE_PAGE_NEW_ALERT_SUBJECT,
       },
     ]);
   });
@@ -1078,6 +1130,8 @@ describe("page @<a tag that follows on-call schedules> <message>: paged at once"
         },
         props: { userId: SIMON, tenantId: projectId },
         workspaceType: WorkspaceType.MicrosoftTeams,
+        // No record's own conversation: a page about something new.
+        about: WORKSPACE_PAGE_NEW_ALERT_SUBJECT,
       },
     ]);
   });
@@ -1198,6 +1252,8 @@ describe("the Page someone card, submitted", () => {
         },
         props: { userId: SIMON, tenantId: projectId },
         workspaceType: WorkspaceType.MicrosoftTeams,
+        // No record's own conversation: a page about something new.
+        about: WORKSPACE_PAGE_NEW_ALERT_SUBJECT,
       },
     ]);
 
@@ -1392,5 +1448,250 @@ describe("MicrosoftTeamsPage.getPageTokens: a message, read", () => {
     });
 
     expect(timed.inMs).toBeLessThan(2000);
+  });
+});
+
+/*
+ * THE MAINTAINER'S ASK (block 31), IN MICROSOFT TEAMS: in the channel
+ * OneUptime made for an incident - as WorkspacePageAbout.read says it is -
+ * "page" is about that incident. No alert is made.
+ */
+describe("in an incident's own channel: the page is about the incident", () => {
+  const INCIDENT_ID: ObjectID = new ObjectID(
+    "d4000000-0000-4000-8000-0000000000b2",
+  );
+  const INCIDENT_URL: string = `${DASHBOARD_URL}/incidents/${INCIDENT_ID.toString()}`;
+
+  function incidentAbout(): WorkspacePageSubject {
+    return {
+      record: {
+        type: OnCallPageRecordType.Incident,
+        event: {
+          type: WorkspaceEventType.Incident,
+          id: INCIDENT_ID,
+          projectId: projectId,
+          currentStateId: undefined,
+          number: 42,
+          numberWithPrefix: "INC-42",
+        },
+        name: { label: "Incident INC-42", link: INCIDENT_URL },
+        title: "Checkout is down",
+      },
+    };
+  }
+
+  test("@Nawaz with no message pages at once - the incident says what it is about - read from the channel the message is in", async () => {
+    channelAbout = incidentAbout();
+
+    const delivery: Delivery = await deliver(
+      message("page <at>Nawaz Dhandala</at>", "channel", [NAWAZ_IN_TEAMS]),
+    );
+
+    expect(aboutReads).toEqual([{ kind: "channel", at: CHANNEL_ID }]);
+    // The bot shows it is on it; the incident's channel shows the page.
+    expect(
+      sent(delivery).map((request: ConnectorRequest): string => {
+        return String(request.activity["type"]);
+      }),
+    ).toEqual(["typing"]);
+    expect(pages).toHaveLength(1);
+    expect(pages[0]!.targets).toEqual({ userIds: [NAWAZ] });
+    expect(pages[0]!.message).toBe("");
+    expect(pages[0]!.about).toEqual(incidentAbout());
+  });
+
+  test("a message after @Nawaz is the page's own, passed on as typed", async () => {
+    channelAbout = incidentAbout();
+
+    await deliver(
+      message(
+        "page <at>Nawaz Dhandala</at> Can you check the database?",
+        "channel",
+        [NAWAZ_IN_TEAMS],
+      ),
+    );
+
+    expect(pages).toHaveLength(1);
+    expect(pages[0]!.message).toBe("Can you check the database?");
+    expect(pages[0]!.about).toEqual(incidentAbout());
+  });
+
+  test("page alone: the card names the incident first, its message is optional, and its Page button carries the incident", async () => {
+    channelAbout = incidentAbout();
+
+    const delivery: Delivery = await deliver(message("page", "channel"));
+    const card: JSONObject = cardOf(sent(delivery)[0]);
+    const body: Array<JSONObject> = card["body"] as Array<JSONObject>;
+
+    expect(body[0]!["text"]).toBe("Page someone");
+    expect(body[1]).toEqual({
+      type: "TextBlock",
+      text: `🚨 **[INC-42](${INCIDENT_URL})** Checkout is down`,
+      wrap: true,
+      spacing: "Small",
+    });
+
+    const messageInput: JSONObject = elementOf(card, "pageMessage")!;
+    expect(messageInput["isRequired"]).toBeUndefined();
+    expect(messageInput["errorMessage"]).toBeUndefined();
+    expect(JSON.stringify(body)).toContain(
+      "The people you page see it with Incident INC-42.",
+    );
+
+    const page: JSONObject = (card["actions"] as Array<JSONObject>)[0]!;
+    expect(page["data"]).toMatchObject({
+      action: MicrosoftTeamsPageActionType.SubmitPageSomeone,
+      pageAbout: `incident:${INCIDENT_ID.toString()}`,
+    });
+    expect(pages).toEqual([]);
+  });
+
+  test("the card submitted with no message pages about the incident it carries, read again as whoever submits it", async () => {
+    valueAbout = incidentAbout();
+
+    const delivery: Delivery = await deliver(
+      submission(
+        {
+          pageTargets: `user:${NAWAZ.toString()}`,
+          pageMessage: "",
+          pageAbout: `incident:${INCIDENT_ID.toString()}`,
+        },
+        "channel",
+      ),
+    );
+
+    expect(delivery.httpStatus).toBe(200);
+    expect(aboutReads).toEqual([
+      { kind: "value", at: `incident:${INCIDENT_ID.toString()}` },
+    ]);
+    expect(pages).toHaveLength(1);
+    expect(pages[0]!.about).toEqual(incidentAbout());
+    expect(pages[0]!.message).toBe("");
+    // Paged: the card goes, so nobody pages with it twice.
+    expect(
+      delivery.requests.map((request: ConnectorRequest): string => {
+        return request.method === "DELETE"
+          ? `DELETE ${request.activityId}`
+          : String(request.activity["type"]);
+      }),
+    ).toEqual(["typing", "DELETE form-card-1"]);
+  });
+
+  test("a card whose incident was resolved after it was sent pages nobody, says why, and stays", async () => {
+    valueAbout = {
+      record: null,
+      resolvedRecord: { label: "Incident INC-42", link: INCIDENT_URL },
+    };
+
+    const delivery: Delivery = await deliver(
+      submission(
+        {
+          pageTargets: `user:${NAWAZ.toString()}`,
+          pageAbout: `incident:${INCIDENT_ID.toString()}`,
+        },
+        "channel",
+      ),
+    );
+
+    expect(pages).toEqual([]);
+    expect(answerOf(sent(delivery)[0])).toBe(
+      "Incident INC-42 was resolved after the form opened, so nobody was paged.",
+    );
+    expect(
+      delivery.requests.some((request: ConnectorRequest): boolean => {
+        return request.method === "DELETE";
+      }),
+    ).toBe(false);
+  });
+
+  test("the channel of an incident the sender may not read: told why, and nobody is paged", async () => {
+    channelAbout = new NotAuthorizedException(
+      "You do not have permission to page someone about this incident: this incident is private, so only its owners and the people its private team names can see it.",
+    );
+
+    const delivery: Delivery = await deliver(
+      message("page <at>Nawaz Dhandala</at> db down", "channel", [
+        NAWAZ_IN_TEAMS,
+      ]),
+    );
+
+    expect(pages).toEqual([]);
+    expect(answerOf(sent(delivery)[0])).toBe(
+      "You do not have permission to page someone about this incident: this incident is private, so only its owners and the people its private team names can see it.",
+    );
+  });
+
+  test("a sender who may not create alerts pages about the incident all the same: nothing is created, so no alert is asked for", async () => {
+    mayCreateAlert = false;
+    channelAbout = incidentAbout();
+
+    await deliver(
+      message(
+        "page <at>Nawaz Dhandala</at> Can you check the database?",
+        "channel",
+        [NAWAZ_IN_TEAMS],
+      ),
+    );
+
+    expect(pages).toHaveLength(1);
+    expect(pages[0]!.about).toEqual(incidentAbout());
+  });
+
+  test("and the card they submit pages about the incident it carries", async () => {
+    mayCreateAlert = false;
+    valueAbout = incidentAbout();
+
+    await deliver(
+      submission(
+        {
+          pageTargets: `user:${NAWAZ.toString()}`,
+          pageAbout: `incident:${INCIDENT_ID.toString()}`,
+        },
+        "channel",
+      ),
+    );
+
+    expect(pages).toHaveLength(1);
+    expect(pages[0]!.about).toEqual(incidentAbout());
+  });
+
+  test("in any other channel that sender is told a page needs the alert it creates, and nobody is paged", async () => {
+    mayCreateAlert = false;
+
+    const delivery: Delivery = await deliver(
+      message("page <at>Nawaz Dhandala</at> db down", "channel", [
+        NAWAZ_IN_TEAMS,
+      ]),
+    );
+
+    expect(pages).toEqual([]);
+    expect(answerOf(sent(delivery)[0])).toBe(
+      "You do not have permission to page people here, where a page creates an alert. You need one of these permissions: Alert Member.",
+    );
+  });
+
+  test("a sender who may not start an on-call run is told so first: the channel's incident is never read", async () => {
+    mayPage = false;
+    channelAbout = incidentAbout();
+
+    const delivery: Delivery = await deliver(
+      message("page <at>Nawaz Dhandala</at>", "channel", [NAWAZ_IN_TEAMS]),
+    );
+
+    expect(aboutReads).toEqual([]);
+    expect(pages).toEqual([]);
+    expect(answerOf(sent(delivery)[0])).toBe(
+      "You do not have permission to page people. You need one of these permissions: Project Member.",
+    );
+  });
+
+  test("in a personal chat there is no channel to belong to an incident: something new, with the message asked for", async () => {
+    await deliver(
+      message("page <at>Nawaz Dhandala</at>", "personal", [NAWAZ_IN_TEAMS]),
+    );
+
+    expect(aboutReads).toEqual([{ kind: "channel", at: "" }]);
+    // A new alert needs its title: the card opens instead.
+    expect(pages).toEqual([]);
   });
 });

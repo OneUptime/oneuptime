@@ -204,19 +204,23 @@ export default class MicrosoftTeamsActionAnswer {
 
   /*
    * Answers a press that came too late (WorkspaceActionAnswers
-   * getAlreadyAnswer): who got there first, and when.
+   * getAlreadyAnswer): who got there first, and when - after the page of
+   * the presser's own it answered, when it answered one.
    */
   @CaptureSpan()
   public static async replyAlready(data: {
     turnContext: TurnContext;
     event: WorkspaceEventRecord;
     press: WorkspaceLatePress;
+    // The presser's person's pages a late Acknowledge answered.
+    answeredPageCount?: number | undefined;
   }): Promise<boolean> {
     return await MicrosoftTeamsActionAnswer.reply({
       turnContext: data.turnContext,
       answer: await WorkspaceActionAnswers.getAlreadyAnswer({
         event: data.event,
         press: data.press,
+        answeredPageCount: data.answeredPageCount,
       }),
     });
   }

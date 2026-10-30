@@ -236,6 +236,12 @@ describe("the Remediation card in the dark theme", () => {
       // The links' arrow, glued to their last word (#5273). No colours.
       "AI/ArrowGluedText.tsx",
       "AI/InvestigationStatusBadge.tsx",
+      /*
+       * A cloud change's dry run before approval, under the change: the
+       * note and its words (#5367).
+       */
+      "AutoRemediation/CloudDryRunCopy.ts",
+      "AutoRemediation/CloudDryRunNote.tsx",
       // A fix through MCP servers: its changes, in order.
       "AutoRemediation/McpToolCallList.tsx",
       "AutoRemediation/RemediationDecisionLines.ts",

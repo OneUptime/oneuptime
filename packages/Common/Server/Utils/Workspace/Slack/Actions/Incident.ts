@@ -38,10 +38,12 @@ import Incident from "../../../../../Models/DatabaseModels/Incident";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
 import WorkspaceMemberActions, {
+  WorkspaceEventStanding,
   WorkspaceEventStateOption,
   WorkspaceEventStateOptions,
   WorkspaceEventType,
 } from "../../WorkspaceMemberActions";
+import OnCallPersonPageAnswer from "../../../OnCall/OnCallPersonPageAnswer";
 import SlackActionAnswer, { SlackAnswerPlace } from "./Answer";
 import WorkspaceActionAnswers, {
   WorkspaceLatePress,
@@ -683,12 +685,24 @@ export default class SlackIncidentActions {
       /*
        * Somebody got there first: say who and when, where the press was
        * (only the person who pressed sees it), as news, not as an error.
+       * Paged into it by a person's page, the presser answered that page
+       * by pressing (OnCallPersonPageAnswer): it stops, and is said first.
        */
-      if ((await WorkspaceMemberActions.getStanding(incident)).isAcknowledged) {
+      const standing: WorkspaceEventStanding =
+        await WorkspaceMemberActions.getStanding(incident);
+
+      if (standing.isAcknowledged) {
         await SlackActionAnswer.answerAlready({
           source: slackRequest,
           event: incident,
           press: WorkspaceLatePress.Acknowledge,
+          answeredPageCount: await OnCallPersonPageAnswer.onAcknowledgePressed({
+            kind: "incident",
+            recordId: incident.id,
+            projectId: incident.projectId,
+            pressedByUserId: props.userId,
+            isResolved: standing.isResolved,
+          }),
         });
 
         return;
