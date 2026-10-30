@@ -94,6 +94,8 @@ Klicken Sie auf **Monitor erstellen**. OneUptime öffnet die Seite des Monitors 
 
 Die Liste unter **Worüber benachrichtigt wird** bietet fünf Vorlagen. Jede baut einen vollständigen Monitor: eine Abfrage, ein Kriterium, das auslöst, und eines, das wiederherstellt. Jede Vorlage außer **Cluster Stopped Reporting** gruppiert ihre Abfrage nach `resource.container.name`, sodass jeder Task einzeln beurteilt wird und seinen eigenen Vorfall und seine eigene Warnung erhält, deren Ursache die betroffenen Tasks und ihre Werte auflistet. Die Schwellenwerte sind Ausgangswerte, die Sie anpassen können.
 
+Diese Vorlagen lesen außerdem nur die Tasks von Swarm: Ein Container, der auf einem Knoten auf andere Weise gestartet wurde, darunter der des Agenten selbst, wird nicht mitgezählt. Eine Abfrage per **Custom Metric** oder **Erweitert** liest jeden Container, den der Agent meldet; der Filter **Dienstname** grenzt sie auf die Tasks eines Dienstes ein.
+
 Sofern die Tabelle nichts anderes sagt, löst ein Kriterium nur aus, wenn die Bedingung in jeder Minute seines Zeitfensters gilt, und es wird 10 % jenseits des Schwellenwerts wiederhergestellt, damit ein Wert, der um die Grenze pendelt, nicht hin- und herspringt.
 
 | Vorlage | Schweregrad | Überwacht | Löst aus, wenn | Wiederhergestellt, wenn |

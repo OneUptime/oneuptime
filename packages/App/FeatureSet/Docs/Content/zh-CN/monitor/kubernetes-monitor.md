@@ -153,6 +153,8 @@ flowchart TB
 
 基于单个对象指标的模板会分别评估每个节点、Pod、Deployment、Job、DaemonSet 或 HPA，因此有多个不健康 Pod 的集群会为每个 Pod 创建一个事件，而不是为整个集群只创建一个。
 
+**High Node CPU Request Commitment** 和 **High Node Memory Request Commitment** 与调度器一样，只计算尚未结束的 Pod 的请求（request）。处于 Succeeded 或 Failed 的 Pod（例如已完成的 Job 的 Pod）在被删除之前，集群仍会上报其请求：这些不计入。
+
 **Cluster Stopped Reporting** 会在集群的代理 10 分钟内没有任何数据到达时触发：代理被卸载或不断崩溃、它的 API 密钥被撤销、它失去了通往 OneUptime 的路由，或者集群的 API 服务器不再响应它。数据恢复后即会解决。数据中断时，其他模板没有可比较的数据，会保持最后的状态，因此要靠这个模板告诉你。
 
 > [!NOTE]
