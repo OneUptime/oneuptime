@@ -469,7 +469,7 @@ describe("monitorDockerSwarm: Swarm tasks only", () => {
     expect(taskMatches(attributes, AGENT_ATTRIBUTES)).toBe(false);
   });
 
-  test("so does a grouped one, on its raw read", async () => {
+  test("so does a task-grouped one, on its read and on the breakdown's scan", async () => {
     await monitorDockerSwarm({
       monitorStep: swarmStep({
         resourceFilters: { tasksOnly: true },
@@ -479,9 +479,11 @@ describe("monitorDockerSwarm: Swarm tasks only", () => {
       projectId,
     });
 
-    expect(
-      queriedAttributes(metricFindBy)![SWARM_TASK_SERVICE_ATTRIBUTE],
-    ).toBeInstanceOf(NotNull);
+    for (const mock of [metricAggregateBy, metricFindBy]) {
+      expect(
+        queriedAttributes(mock)![SWARM_TASK_SERVICE_ATTRIBUTE],
+      ).toBeInstanceOf(NotNull);
+    }
   });
 
   test("a Service Name filter keeps its own equality", async () => {

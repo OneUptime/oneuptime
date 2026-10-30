@@ -143,14 +143,55 @@ function phaseReads(): Array<QueryArgs> {
     });
 }
 
+// The per-series reads of a metric, grouped in SQL by the template's keys.
 function readsOf(metricName: string): Array<QueryArgs> {
-  return metricFindBy.mock.calls
+  return metricAggregateBy.mock.calls
     .map((call: Array<unknown>) => {
       return call[0] as QueryArgs;
     })
     .filter((args: QueryArgs) => {
       return args.query.name === metricName;
     });
+}
+
+/*
+ * A grouped read as ClickHouse answers it: the rows the query's attributes
+ * select, summed per group and minute (the request templates aggregate with
+ * Sum).
+ */
+function groupedSum(args: QueryArgs): {
+  data: Array<Record<string, unknown>>;
+} {
+  const keys: Array<string> = args.groupByAttributeKeys || [];
+  const groups: Map<string, Record<string, unknown>> = new Map();
+
+  for (const row of rows) {
+    if (row.name !== args.query.name || !selects(args.query.attributes, row)) {
+      continue;
+    }
+
+    const labels: Record<string, string> = {};
+
+    for (const key of keys) {
+      labels[key] = row.attributes[key] || "";
+    }
+
+    const minute: number = Math.floor(row.time.getTime() / 60_000) * 60_000;
+    const groupKey: string = `${JSON.stringify(labels)}|${minute}`;
+    const group: Record<string, unknown> | undefined = groups.get(groupKey);
+
+    if (group) {
+      group["value"] = (group["value"] as number) + row.value;
+    } else {
+      groups.set(groupKey, {
+        timestamp: new Date(minute),
+        value: row.value,
+        attributes: labels,
+      });
+    }
+  }
+
+  return { data: Array.from(groups.values()) };
 }
 
 // The request commitment the formula computed for node-1.
@@ -194,8 +235,9 @@ beforeEach(() => {
       };
     }
 
-    return { data: [] };
+    return groupedSum(args as QueryArgs);
   });
+  // The breakdown's scan of raw rows.
   metricFindBy.mockReset().mockImplementation(async (args: unknown) => {
     const query: QueryArgs["query"] = (args as QueryArgs).query;
 
@@ -276,8 +318,12 @@ describe("Node request commitment leaves finished pods out", () => {
   });
 
   test("when no pod has finished, or the phases cannot be read, every request counts", async () => {
-    metricAggregateBy.mockImplementation(async () => {
-      throw new Error("ClickHouse is down");
+    metricAggregateBy.mockImplementation(async (args: unknown) => {
+      if ((args as QueryArgs).query.name === "k8s.pod.phase") {
+        throw new Error("ClickHouse is down");
+      }
+
+      return groupedSum(args as QueryArgs);
     });
 
     const response: MetricMonitorResponse = await monitorKubernetes({
