@@ -201,7 +201,7 @@ describe("Monitor web UI", () => {
   ])(
     "sits in the card's header %s, and opens Create Monitor on it",
     (_name: string, monitors: Array<Monitor>) => {
-      const navigate: jest.SpiedFunction<typeof Navigation.navigate> = jest
+      const navigate: ReturnType<typeof jest.spyOn> = jest
         .spyOn(Navigation, "navigate")
         .mockImplementation((): void => {
           return undefined;
@@ -217,7 +217,7 @@ describe("Monitor web UI", () => {
       fireEvent.click(button);
 
       expect(navigate).toHaveBeenCalledTimes(1);
-      expect(navigate.mock.calls[0]![0]!.toString()).toBe(
+      expect(String((navigate.mock.calls[0] as Array<unknown>)[0])).toBe(
         getDeviceWebUiMonitorRoute(DEVICE_ID).toString(),
       );
     },
