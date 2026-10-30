@@ -39,6 +39,8 @@ type CapturedFormField = {
   field: Record<string, boolean>;
   title: string;
   description?: string | undefined;
+  stepId?: string | undefined;
+  collapsibleSection?: { title: string } | undefined;
   showIf?: ((values: Record<string, unknown>) => boolean) | undefined;
   getFooterElement?:
     | ((values: Record<string, unknown>) => React.ReactElement | undefined)
@@ -49,6 +51,7 @@ type CapturedTableProps = {
   columns?: Array<CapturedColumn>;
   formFields?: Array<CapturedFormField>;
   selectMoreFields?: Record<string, boolean>;
+  createInitialValues?: Record<string, unknown>;
 };
 
 let capturedTableProps: CapturedTableProps | null = null;
@@ -495,6 +498,8 @@ describe("the Detection Rules page", () => {
       sigmaRuleYaml: true,
       // Whether each rule is on, for Enable and Disable in bulk to count.
       isEnabled: true,
+      // A real-time rule's Status and Interval say so.
+      isRealTime: true,
     });
 
     const column: CapturedColumn | undefined =
@@ -545,6 +550,82 @@ describe("the Detection Rules page", () => {
     expect(screen.getByTestId("detection-rule-summary")).toHaveTextContent(
       "Fires when Failed sign-in → Successful sign-in happen in this order",
     );
+  });
+
+  test("Run in Real Time waits under More fields on On Match, off on a new rule, offered to a rule that fires on one event", () => {
+    renderRulesPage();
+
+    const realTime: CapturedFormField = fieldTitled("Run in Real Time");
+
+    expect(realTime.field).toEqual({ isRealTime: true });
+    expect(realTime.stepId).toBe("on-match");
+    expect(realTime.collapsibleSection?.title).toBe("More fields");
+    expect(realTime.description).toBe(
+      "Check each event as it arrives, within seconds, instead of every interval. For a rule that fires on one event: a threshold of 1, no distinct count field and no regular expression.",
+    );
+    expect(capturedTableProps?.createInitialValues?.["isRealTime"]).toBe(false);
+
+    // Offered for a single rule; not for a correlation...
+    expect(realTime.showIf!({ sigmaRuleYaml: FAILED })).toBe(true);
+    expect(realTime.showIf!({ sigmaRuleYaml: SEQUENCE })).toBe(false);
+    // ...unless the rule runs in real time already: the switch that must go off stays.
+    expect(
+      realTime.showIf!({ sigmaRuleYaml: SEQUENCE, isRealTime: true }),
+    ).toBe(true);
+    expect(
+      realTime.showIf!({ sigmaRuleYaml: SEQUENCE, isRealTime: "true" }),
+    ).toBe(true);
+  });
+
+  test("a real-time rule runs on no interval: the interval hides, and the list says Real time", () => {
+    renderRulesPage();
+
+    const interval: CapturedFormField = fieldTitled(
+      "Evaluation Interval (Minutes)",
+    );
+
+    expect(interval.showIf!({ sigmaRuleYaml: FAILED })).toBe(true);
+    expect(interval.showIf!({ sigmaRuleYaml: FAILED, isRealTime: true })).toBe(
+      false,
+    );
+
+    const column: CapturedColumn | undefined =
+      capturedTableProps?.columns?.find(
+        (candidate: CapturedColumn): boolean => {
+          return candidate.title === "Interval (Minutes)";
+        },
+      );
+
+    const { unmount } = render(
+      column!.getElement!({ evaluationIntervalInMinutes: 5, isRealTime: true }),
+    );
+    expect(document.body).toHaveTextContent("Real time");
+    unmount();
+
+    render(
+      column!.getElement!({
+        evaluationIntervalInMinutes: 5,
+        isRealTime: false,
+      }),
+    );
+    expect(document.body).toHaveTextContent("5");
+    expect(document.body).not.toHaveTextContent("Real time");
+  });
+
+  test("a real-time rule's Status says so, in green, instead of waiting for a run it never has", () => {
+    renderRulesPage();
+
+    const status: CapturedColumn | undefined =
+      capturedTableProps?.columns?.find(
+        (candidate: CapturedColumn): boolean => {
+          return candidate.title === "Status";
+        },
+      );
+
+    render(status!.getElement!({ isEnabled: true, isRealTime: true }));
+
+    expect(document.body).toHaveTextContent("Real time");
+    expect(document.body).not.toHaveTextContent("Waiting for first run");
   });
 
   test("a correlation counts by its YAML, so the single rule's counting fields are left out", () => {

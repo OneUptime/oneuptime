@@ -1,4 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 import { JSONObject } from "Common/Types/JSON";
 import {
   SECURITY_PLAYBOOK_ACTIONS,
@@ -119,9 +121,10 @@ describe("Run This Step's value", () => {
     }
 
     // As a dropdown hands back its option.
-    expect(
-      decodeRunIf({ value: "after:Found:check", label: "x" }),
-    ).toEqual({ stepId: "check", outcome: SecurityPlaybookStepOutcome.Found });
+    expect(decodeRunIf({ value: "after:Found:check", label: "x" })).toEqual({
+      stepId: "check",
+      outcome: SecurityPlaybookStepOutcome.Found,
+    });
   });
 
   test("a step opens with what it waits on, the legacy switch, or Always", () => {
@@ -219,17 +222,41 @@ describe("Run This Step's choices", () => {
   });
 
   test("reads in the reader's language: German words each result its own way", () => {
+    // The words a German Dashboard ships, read from its locale file.
+    const german: Record<string, unknown> = JSON.parse(
+      fs.readFileSync(
+        path.join(
+          __dirname,
+          "..",
+          "..",
+          "FeatureSet",
+          "Dashboard",
+          "src",
+          "Locales",
+          "de.json",
+        ),
+        "utf8",
+      ),
+    ) as Record<string, unknown>;
+
     const options: Array<RunIfOption> = getRunIfOptions({
       earlierSteps: [CHECK],
-      translator: createTranslator(undefined, "de"),
+      translator: createTranslator((text: string): string | undefined => {
+        const words: unknown = german[text];
+
+        return typeof words === "string" ? words : undefined;
+      }, "de"),
     });
 
-    expect(options).toHaveLength(3);
-
-    for (const option of options) {
-      expect(option.label).not.toContain("Only if");
-      expect(option.label).not.toBe("Always");
-    }
+    expect(
+      options.map((option: RunIfOption): string => {
+        return option.label;
+      }),
+    ).toEqual([
+      "Immer",
+      "Nur wenn Schritt 1 (Entitäten mit Threat Intel abgleichen) eine bekannt bösartige Entität gefunden hat",
+      "Nur wenn Schritt 1 (Entitäten mit Threat Intel abgleichen) nichts bekannt Bösartiges gefunden hat",
+    ]);
   });
 
   test("every result any action can have has its sentence, in the picker and on a card", () => {

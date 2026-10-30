@@ -449,7 +449,8 @@ export function getStepSettingsFields(
     },
     {
       field: { assigneeUserId: true },
-      title: "Hand Them To",
+      // As the case's own Tasks page names who does a task.
+      title: "Assign To",
       description:
         "Who does the tasks. Left empty, they are for whoever works the case.",
       fieldType: FormFieldSchemaType.PeoplePicker,
@@ -659,7 +660,7 @@ export function getStepSettingsFields(
         SecurityPlaybookActionType.EnableEntraIdUser,
       ],
       translationKey(
-        "The Microsoft Entra ID connection to act through. Its app needs the User.EnableDisableAccount.All and User.RevokeSessions.All permissions. Add or test connections under Sources > Connections.",
+        "The Microsoft Entra ID connection to act through. Its app needs the User.Read.All, User.EnableDisableAccount.All and User.RevokeSessions.All permissions. Add or test connections under Sources > Connections.",
       ),
     ),
     connectionField(

@@ -500,12 +500,15 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
              * A rule that fires on one event can check each event as it
              * arrives (Types/SecurityEvent/RealTimeDetection); the server
              * says why when the rule cannot. A correlation reads events
-             * together, so it is never offered.
+             * together, so it is not offered - unless the rule runs in real
+             * time already, so the switch that has to go off can.
              */
             field: {
               isRealTime: true,
             },
-            showIf: countsByFormFields,
+            showIf: (values: FormValues<DetectionRule>): boolean => {
+              return countsByFormFields(values) || runsInRealTime(values);
+            },
             title: "Run in Real Time",
             stepId: "on-match",
             description:
