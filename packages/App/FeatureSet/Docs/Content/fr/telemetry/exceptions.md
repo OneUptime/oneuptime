@@ -139,7 +139,7 @@ La page **Assistance IA** propose trois tâches. Chacune s'exécute comme une t�
 | **Générer un test de régression** | Ajoute un test qui échoue tant que le bug n'est pas corrigé. |
 | **Améliorer la gestion des erreurs** | Pour les erreurs attendues : valide les saisies plus tôt, garde les données utilisateur hors des messages et marque l'erreur comme gérée. |
 
-L'IA a d'abord besoin de trois choses : un fournisseur LLM, un dépôt connecté (sur GitHub, GitLab, Forgejo ou Gitea, ou tout serveur Git), et un agent IA en ligne pour exécuter la tâche. La page vérifie chacune et renvoie vers ce qui manque. Les tâches sont en pause tant que l'exception est résolue ou archivée. Voir [Code](/docs/ai/ai-agent).
+L'IA a d'abord besoin de trois choses : un fournisseur LLM, un dépôt connecté (sur GitHub, GitLab, Forgejo ou Gitea, ou tout serveur Git), et un agent IA en ligne pour exécuter la tâche. La page vérifie chacune et renvoie vers ce qui manque. Les tâches sont en pause tant que l'exception est résolue ou archivée. Voir [Code](/docs/ai/ai-agent). Démarrer une tâche demande l'autorisation de modifier le dépôt où elle travaille : qui ne peut que lire l'exception voit ses tâches, mais ne peut pas en démarrer.
 
 ## Trouver et corriger les exceptions nouvelles ou en hausse avec l'IA
 
