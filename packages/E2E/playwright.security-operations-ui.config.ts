@@ -7,6 +7,8 @@ const port: string = process.env["SECURITY_OPERATIONS_FIXTURE_PORT"] || "4234";
 export default defineConfig({
   testDir: "./SecurityOperations",
   testMatch: "*.spec.ts",
+  // Hunts run as a suite of their own (playwright.security-hunts-ui.config.ts).
+  testIgnore: ["Hunts.spec.ts"],
   fullyParallel: false,
   workers: 1,
   timeout: 120000,

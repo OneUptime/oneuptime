@@ -19,6 +19,8 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import SecurityEventSeverityPill from "./SecurityEventSeverityPill";
 import OpenCaseFromEventButton from "./OpenCaseFromEventButton";
+import AddEventToCaseButton from "./Hunts/AddEventToCaseButton";
+import ObjectID from "Common/Types/ObjectID";
 import { SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX } from "./SecurityEventsFacets";
 import {
   SecurityEventDetailField,
@@ -84,6 +86,18 @@ export interface ComponentProps {
    */
   attributeColumnKeys?: Array<string> | undefined;
   onToggleAttributeColumn?: ((attributeKey: string) => void) | undefined;
+  /*
+   * The hunt the event was found by, when the list is a hunt's: an event
+   * kept on a case, or a case opened about it, names the hunt.
+   */
+  huntId?: ObjectID | undefined;
+  /*
+   * Open Case and Add to Case over the panel's facts. Off for an event a
+   * case keeps already (its Evidence page), which is shown as it was kept.
+   */
+  showCaseActions?: boolean | undefined;
+  // A line over the facts, in place of the case actions: why the event is shown.
+  note?: ReactElement | undefined;
 }
 
 const FilterByButton: FunctionComponent<{
@@ -267,9 +281,18 @@ const SecurityEventDetailPanel: FunctionComponent<ComponentProps> = (
 
   const overview: ReactElement = (
     <div className="space-y-4 p-4">
-      <div className="flex justify-end">
-        <OpenCaseFromEventButton securityEvent={event} />
-      </div>
+      {props.showCaseActions === false ? (
+        <></>
+      ) : (
+        <div className="flex flex-wrap items-start justify-end gap-2">
+          <AddEventToCaseButton securityEvent={event} huntId={props.huntId} />
+          <OpenCaseFromEventButton
+            securityEvent={event}
+            huntId={props.huntId}
+          />
+        </div>
+      )}
+      {props.note ? props.note : <></>}
       <SecurityEventWhatHappenedNext
         facts={requestStory.facts}
         hasTrace={requestStory.hasTrace}

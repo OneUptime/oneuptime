@@ -5,6 +5,7 @@ OneUptime gemmer sikkerhedsbegivenheder ved siden af dine logs, traces og metrik
 :::cards
 - [Send begivenheder](#send-sikkerhedsbegivenheder): En HTTPS-POST, et Fluent Bit-output eller en forbindelse til et sikkerhedsprodukt.
 - [Søg og korrelér](#udforsk-sikkerhedsbegivenheder): Begivenhedsoversigten og korrelationsgrafen.
+- [Hunts](#hunts): Gemte søgninger, der kører efter en tidsplan og giver personer besked, når de finder noget.
 - [Detektionsregler](#detektionsregler): Sigma-regler, der åbner sager og advarsler.
 - [Monitorer](#monitorer-for-sikkerhedsbegivenheder): Optællinger over et glidende vindue, med en status, der retter sig igen.
 :::
@@ -36,6 +37,7 @@ flowchart TB
 | **Lukkede sager** | Sikkerhedssager | De sager, der er lukket med en vurdering, de nyeste først |
 | **Alle sager** | Sikkerhedssager | Hver sag, åben eller lukket |
 | **Begivenheder** | Begivenheder | Søg i og filtrér alle begivenheder, og åbn en for at se alle dens felter |
+| **Hunts** | Begivenheder | Søgninger gemt fra Begivenheder, åbnet igen med ét klik eller kørt efter en tidsplan, der giver personer besked, når de finder noget |
 | **Campaigns** | Begivenheder | Hver adresse, der sendte angrebsforespørgsler, og om nogen af dens forespørgsler kom igennem |
 | **Entitetsrisiko** | Begivenheder | Hver bruger, vært og adresse, scoret efter hvad der er fundet om den i denne uge, de mest risikable først |
 | **Korrelér** | Begivenheder | En graf over de begivenheder, der deler en vært, en bruger eller en IP-adresse |
@@ -252,6 +254,45 @@ En begivenhed læst fra en loglinje, der blev skrevet i en sporet forespørgsel,
 ### Korrelér
 
 **Korrelér** tegner begivenhederne omkring en vært, en bruger eller en IP-adresse: deres begivenhedsklasser omkring det, du søgte efter, markeret med deres værste alvorlighed, og de andre værdier fra de samme begivenheder på den ydre ring. Klik på en klasse for at vise dens begivenheder, eller på en værdi for at korrelere på den næste gang. Hver observable i en begivenheds panel under **Begivenheder** åbner **Korrelér** på den.
+
+## Hunts
+
+En hunt er en søgning i dine sikkerhedsbegivenheder, gemt med et navn: søgefeltets tekst, sidebjælkens filtre og hvor langt tilbage den ser. Åbn den igen med ét klik, kør den efter en tidsplan, der giver personer besked, når den finder noget, og gem de begivenheder, den finder, på en sag.
+
+### Gem en søgning som en hunt
+
+Søg og filtrér under **Begivenheder**, indtil listen viser det, du leder efter, åbn derefter **Hunts** på værktøjslinjen, og vælg **Gem som hunt**. Giv den et navn, vælg, om den kører efter en tidsplan, og dens side åbnes. **Begivenheder → Hunts** viser projektets hunts, hver med sin søgning, hvor ofte den kører, hvem den giver besked, og hvad dens seneste kørsel fandt; **Opret Hunt** tager der søgningen, som du ville skrive den under **Begivenheder**. Et projekt gemmer op til 200 hunts.
+
+En hunts side er dens søgning, åbnet i begivenhedsoversigten. Ændr søgningen eller filtrene der, så tilbyder huntens overskrift **Gem ændringer** og **Kassér ændringer**. **Rediger** ændrer dens navn, dens søgning, hvor langt tilbage den ser, dens tidsplan og hvem den giver besked, og **Slet hunt** findes i dens menu. Fra Security Member og op kan man gemme, ændre og slette hunts, og en Security Viewer kan åbne dem.
+
+### Kør en hunt efter en tidsplan
+
+| Tidsplan | Kører |
+| --- | --- |
+| **Ikke planlagt** | Kun når du åbner den |
+| **Hver time**, **Hver 6. time**, **Hver dag**, **Hver uge** | Af sig selv, så ofte |
+
+En planlagt hunt giver de personer og teams besked, som du vælger under **Underret**: mindst én og højst 50 i alt. Hver kørsel:
+
+- læser de begivenheder, hvis tidspunkt ligger efter kørslen før, op til for to minutter siden, så hver begivenhed gennemsøges én gang. Den første kørsel læser fra det øjeblik, tidsplanen blev sat, eller søgningen sidst blev ændret, og efter et nedbrud indhenter en kørsel højst en dag mere end sit interval.
+- tæller de begivenheder, dens søgning finder der, præcis som **Begivenheder** ville vise dem, og læser kun det, som den person, den kører som, må læse.
+- giver, når den finder begivenheder, de personer besked, som hunten nævner, og medlemmerne af de teams, den nævner, der må læse hunts og sikkerhedsbegivenheder.
+
+En kørsel åbner ingen sag og udløser ingen advarsel: skriv det, der skal åbne sager, som en [detektionsregel](#detektionsregler). En kørsel, hvis søgning tager for lang tid, eller som ikke kan læse begivenhederne, siger hvorfor på hunten og prøves igen inden for en time, fra hvor den stoppede.
+
+En planlagt hunt kører som den person, der sidst satte dens tidsplan, ændrede dens søgning eller gemte den med **Rediger**. En API-nøgle kan ikke sætte en tidsplan. Når den person forlader projektet eller ikke længere må læse sikkerhedsbegivenheder, siger hunten det: åbn **Rediger**, og gem den for at køre den som dig.
+
+### Hvem der får besked
+
+Notifikationen **En hunt fandt sikkerhedsbegivenheder** nævner hunten og dens søgning, hvor mange begivenheder dens kørsel fandt, og hvilket vindue den læste, og linker til huntens side på de begivenheder; ingen af begivenhedernes egne ord står i den. Alle får den på e-mail og push og vælger dens kanaler under **Brugerindstillinger → Notifikationsindstillinger**. Ligesom andre rutinemails kan den holdes tilbage i en [e-mailsamling](/docs/emails/notification-rollup).
+
+### Gem begivenheder på en sag
+
+Vælg begivenheder under **Begivenheder** eller på en hunts side, og vælg **Massehandlinger → Føj til sag**, eller åbn én begivenhed, og vælg **Føj til sag**. Vælg en åben sag efter nummer eller titel. Op til 100 begivenheder ad gangen.
+
+OneUptime læser hver begivenhed igen som dig og gemmer den, som den var, på sagens side **Beviser**, så sagen stadig viser den, når begivenhedens opbevaringstid er udløbet. En begivenhed, du ikke må læse, gemmes ikke, og en, som sagen allerede gemmer, forbliver, som den er. En begivenhed fundet via en hunt nævner hunten, og **Vis begivenhed** åbner den, som den blev gemt.
+
+Hunts har den samme REST API som resten af OneUptime, under `/security-hunt`, og `POST /security-case-evidence/add-events` gemmer begivenheder på en sag. Se [API-reference](/docs/api-reference/api-reference).
 
 ## Detektionsregler
 

@@ -706,6 +706,35 @@ export function evidenceRemovedMarkdown(data: { name: string }): MarkdownText {
 }
 
 /*
+ * What a case's timeline says when security events are kept on it as
+ * evidence (SecurityCaseEvidenceService.addEvents): how many, and the hunt
+ * that found them when one did. Each event is a line under it
+ * (eventEvidenceLineMarkdown).
+ */
+export function eventsAddedMarkdown(data: {
+  count: number;
+  huntName?: string | undefined;
+}): MarkdownText {
+  const events: string =
+    data.count === 1 ? "1 security event" : `${data.count} security events`;
+
+  return data.huntName
+    ? mdText`🔖 Kept ${events} found by the hunt **${data.huntName}** as evidence.`
+    : mdText`🔖 Kept ${events} as evidence.`;
+}
+
+// One kept event, as a line under that entry: when, how severe, and what it was.
+export function eventEvidenceLineMarkdown(data: {
+  time: string;
+  severity: string;
+  name: string;
+}): MarkdownText {
+  return data.severity
+    ? mdText`${data.time} · ${data.severity} · ${data.name}`
+    : mdText`${data.time} · ${data.name}`;
+}
+
+/*
  * What a case's timeline says when it is about to miss a response target,
  * and when it misses it (SecurityCaseTargetCheck). `target` is the verb -
  * "acknowledge", "contain" - and the durations are in words already

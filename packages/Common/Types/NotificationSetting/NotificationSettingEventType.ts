@@ -90,6 +90,12 @@ enum NotificationSettingEventType {
   SEND_SECURITY_CASE_TARGET_NOTIFICATION = "Send notification when a security case is about to miss, or misses, a response target",
   // A task on a security case is handed to the person (SecurityCaseTaskService).
   SEND_SECURITY_CASE_TASK_ASSIGNED_NOTIFICATION = "Send notification when a task on a security case is assigned to me",
+  /*
+   * A scheduled hunt found security events (SecurityHuntNotifications): told
+   * to the people the hunt names and the members of the teams it names, who
+   * can read its project's hunts and security events.
+   */
+  SEND_SECURITY_HUNT_FOUND_NOTIFICATION = "Send notification when a scheduled hunt that names me or my team finds security events",
 
   // On Call Notifications
   SEND_WHEN_USER_IS_ON_CALL_ROSTER = "When user is on-call roster",

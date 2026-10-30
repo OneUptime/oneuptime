@@ -169,6 +169,15 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Types/SecurityEvent/SecurityWatchlist.ts",
     kind: "ui",
   },
+  /*
+   * What is wrong with a hunt, and why a scheduled run could not be made:
+   * the hunt's form shows each problem under its field, and its page and
+   * the Hunts list say the last run's in the reader's language.
+   */
+  {
+    directory: "packages/Common/Types/SecurityEvent/SecurityHunt.ts",
+    kind: "ui",
+  },
 ];
 
 /*

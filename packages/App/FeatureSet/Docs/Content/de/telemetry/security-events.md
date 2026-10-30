@@ -5,6 +5,7 @@ OneUptime bewahrt Sicherheitsereignisse neben Ihren Logs, Traces und Metriken au
 :::cards
 - [Ereignisse senden](#sicherheitsereignisse-senden): Ein HTTPS-POST, eine Fluent-Bit-Ausgabe oder eine Verbindung zu einem Sicherheitsprodukt.
 - [Suchen und korrelieren](#sicherheitsereignisse-erkunden): Der Explorer für Ereignisse und der Korrelationsgraph.
+- [Bedrohungssuchen](#bedrohungssuchen): Gespeicherte Suchen, die nach einem Zeitplan laufen und Personen benachrichtigen, wenn sie etwas finden.
 - [Erkennungsregeln](#erkennungsregeln): Sigma-Regeln, die Fälle und Warnungen öffnen.
 - [Monitore](#monitore-für-sicherheitsereignisse): Zählungen über ein gleitendes Fenster, mit einem Status, der sich erholt.
 :::
@@ -36,6 +37,7 @@ flowchart TB
 | **Geschlossene Fälle** | Sicherheitsfälle | Die mit einem Urteil geschlossenen Fälle, die neuesten zuerst |
 | **Alle Fälle** | Sicherheitsfälle | Jeder Fall, offen oder geschlossen |
 | **Ereignisse** | Ereignisse | Jedes Ereignis suchen und filtern, und eines öffnen, um alle seine Felder zu sehen |
+| **Bedrohungssuchen** | Ereignisse | Unter Ereignisse gespeicherte Suchen, mit einem Klick wieder geöffnet oder nach einem Zeitplan ausgeführt, der Personen benachrichtigt, wenn sie etwas finden |
 | **Campaigns** | Ereignisse | Jede Adresse, die Angriffsanfragen gesendet hat, und ob eine ihrer Anfragen durchkam |
 | **Entitätsrisiko** | Ereignisse | Jeder Benutzer, Host und jede Adresse, bewertet nach dem, was diese Woche dazu gefunden wurde, die riskantesten zuerst |
 | **Korrelieren** | Ereignisse | Ein Graph der Ereignisse, die einen Host, einen Benutzer oder eine IP-Adresse teilen |
@@ -252,6 +254,45 @@ Ein Ereignis aus einer Logzeile, die innerhalb einer getracten Anfrage geschrieb
 ### Korrelieren
 
 **Korrelieren** zeichnet die Ereignisse rund um einen Host, einen Benutzer oder eine IP-Adresse: ihre Ereignisklassen rund um das Gesuchte, markiert nach ihrem schlimmsten Schweregrad, und die anderen Werte aus denselben Ereignissen auf dem äußeren Ring. Klicken Sie auf eine Klasse, um ihre Ereignisse aufzulisten, oder auf einen Wert, um als Nächstes danach zu korrelieren. Jedes Observable im Panel eines Ereignisses unter **Ereignisse** öffnet **Korrelieren** dafür.
+
+## Bedrohungssuchen
+
+Eine Bedrohungssuche ist eine Suche über Ihre Sicherheitsereignisse, unter einem Namen gespeichert: der Text der Suchleiste, die Filter der Seitenleiste und wie weit sie zurückblickt. Öffnen Sie sie mit einem Klick wieder, lassen Sie sie nach einem Zeitplan laufen, der Personen benachrichtigt, wenn sie etwas findet, und bewahren Sie die gefundenen Ereignisse in einem Fall auf.
+
+### Eine Suche als Bedrohungssuche speichern
+
+Suchen und filtern Sie unter **Ereignisse**, bis die Liste zeigt, was Sie suchen, öffnen Sie dann **Bedrohungssuchen** in der Werkzeugleiste und wählen Sie **Als Bedrohungssuche speichern**. Geben Sie ihr einen Namen, wählen Sie, ob sie nach einem Zeitplan läuft, und ihre Seite öffnet sich. **Ereignisse → Bedrohungssuchen** listet die Bedrohungssuchen des Projekts, jede mit ihrer Suche, wie oft sie läuft, wen sie benachrichtigt und was ihr letzter Lauf gefunden hat; **Bedrohungssuche erstellen** nimmt dort die Suche so, wie Sie sie unter **Ereignisse** eingeben würden. Ein Projekt bewahrt bis zu 200 Bedrohungssuchen auf.
+
+Die Seite einer Bedrohungssuche ist ihre Suche, im Explorer für Ereignisse geöffnet. Ändern Sie dort die Suche oder die Filter, dann bietet der Kopf der Bedrohungssuche **Änderungen speichern** und **Änderungen verwerfen** an. **Bearbeiten** ändert ihren Namen, ihre Suche, wie weit sie zurückblickt, ihren Zeitplan und wen sie benachrichtigt, und **Bedrohungssuche löschen** steht in ihrem Menü. Ab Security Member können Bedrohungssuchen gespeichert, geändert und gelöscht werden, und ein Security Viewer kann sie öffnen.
+
+### Eine Bedrohungssuche nach Zeitplan ausführen
+
+| Zeitplan | Läuft |
+| --- | --- |
+| **Nicht geplant** | Nur, wenn Sie sie öffnen |
+| **Jede Stunde**, **Alle 6 Stunden**, **Jeden Tag**, **Jede Woche** | Von selbst, so oft |
+
+Eine geplante Bedrohungssuche benachrichtigt die Personen und Teams, die Sie unter **Benachrichtigen** wählen: mindestens eine Person oder ein Team und höchstens 50 insgesamt. Jeder Lauf:
+
+- liest die Ereignisse, deren Zeitpunkt nach dem vorherigen Lauf liegt, bis vor zwei Minuten, sodass jedes Ereignis einmal durchsucht wird. Der erste Lauf liest ab dem Zeitpunkt, zu dem der Zeitplan festgelegt oder die Suche zuletzt geändert wurde, und nach einem Ausfall holt ein Lauf höchstens einen Tag mehr als sein Intervall nach.
+- zählt die Ereignisse, die seine Suche dort findet, genau so, wie **Ereignisse** sie auflisten würde, und liest nur, was die Person lesen darf, unter der er läuft.
+- benachrichtigt, wenn er Ereignisse findet, die Personen, die die Bedrohungssuche nennt, und die Mitglieder der Teams, die sie nennt, sofern sie Bedrohungssuchen und Sicherheitsereignisse lesen dürfen.
+
+Ein Lauf öffnet keinen Fall und löst keine Warnung aus: Schreiben Sie, was Fälle öffnen soll, als [Erkennungsregel](#erkennungsregeln). Ein Lauf, dessen Suche zu lange dauert oder der die Ereignisse nicht lesen kann, nennt den Grund bei der Bedrohungssuche und wird innerhalb einer Stunde erneut versucht, ab dort, wo er aufgehört hat.
+
+Eine geplante Bedrohungssuche läuft unter der Person, die zuletzt ihren Zeitplan festgelegt, ihre Suche geändert oder sie mit **Bearbeiten** gespeichert hat. Ein API-Schlüssel kann keinen Zeitplan festlegen. Verlässt diese Person das Projekt oder darf sie keine Sicherheitsereignisse mehr lesen, zeigt die Bedrohungssuche das an: Öffnen Sie **Bearbeiten** und speichern Sie sie, damit sie unter Ihnen läuft.
+
+### Wer benachrichtigt wird
+
+Die Benachrichtigung **Bedrohungssuche hat Sicherheitsereignisse gefunden** nennt die Bedrohungssuche und ihre Suche, wie viele Ereignisse ihr Lauf gefunden hat und welches Zeitfenster er gelesen hat, und verlinkt auf die Seite der Bedrohungssuche mit diesen Ereignissen; kein Wortlaut eines Ereignisses steht darin. Alle erhalten sie per E-Mail und Push und wählen ihre Kanäle unter **Benutzereinstellungen → Benachrichtigungseinstellungen**. Wie andere Routine-E-Mails kann sie in einer [E-Mail-Zusammenfassung](/docs/emails/notification-rollup) zurückgehalten werden.
+
+### Ereignisse in einem Fall aufbewahren
+
+Wählen Sie Ereignisse unter **Ereignisse** oder auf der Seite einer Bedrohungssuche aus und wählen Sie **Massenaktionen → Zum Fall hinzufügen**, oder öffnen Sie ein Ereignis und wählen Sie **Zum Fall hinzufügen**. Wählen Sie einen offenen Fall nach Nummer oder Titel. Bis zu 100 Ereignisse gehen auf einmal.
+
+OneUptime liest jedes Ereignis erneut als Sie und bewahrt es so, wie es war, auf der Seite **Belege** des Falls auf, sodass der Fall es auch nach dem Ende der Aufbewahrungsfrist des Ereignisses zeigt. Ein Ereignis, das Sie nicht lesen dürfen, wird nicht aufbewahrt, und eines, das der Fall bereits aufbewahrt, bleibt, wie es ist. Ein über eine Bedrohungssuche gefundenes Ereignis nennt die Bedrohungssuche, und **Ereignis anzeigen** öffnet es so, wie es aufbewahrt wurde.
+
+Bedrohungssuchen haben dieselbe REST-API wie der Rest von OneUptime, unter `/security-hunt`, und `POST /security-case-evidence/add-events` bewahrt Ereignisse in einem Fall auf. Siehe [API-Referenz](/docs/api-reference/api-reference).
 
 ## Erkennungsregeln
 

@@ -76,6 +76,11 @@
  *            and every case the due times they gave it. Left out, a project
  *            from before response targets. (CaseWorkFixture.js lays the
  *            targets, and the spray case's tasks and evidence, out.)
+ *   ?hunts=  empty: the project has saved no hunt yet. Otherwise four hunts
+ *            - one that found events, one that found nothing, one opened
+ *            by hand and one whose last run failed - over the month's
+ *            security events, which the Events page and a hunt's page list
+ *            (HuntsFixture.js lays them out, and keeps events on a case).
  *
  * Every read is recorded on window.__securityOperationsFixture: getItem,
  * list, count and API requests, the writes, and `unhandled` - anything the
@@ -145,6 +150,10 @@ import {
 import { createCaseContextFixture } from "./CaseContextFixture";
 import { TARGET_SCENARIOS, createCaseWorkFixture } from "./CaseWorkFixture";
 import { createWatchlistsFixture } from "./WatchlistsFixture";
+import { HUNT_SCENARIOS, createHuntsFixture } from "./HuntsFixture";
+import SecurityEventsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Index";
+import SecurityHuntsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Hunts";
+import SecurityHuntViewPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/HuntView";
 import SecurityCaseEvidence from "Common/Models/DatabaseModels/SecurityCaseEvidence";
 import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
 import {
@@ -354,6 +363,10 @@ const targetScenario = TARGET_SCENARIOS.includes(params.get("targets"))
 const retrohuntScenario = RETROHUNT_SCENARIOS.includes(params.get("retrohunt"))
   ? params.get("retrohunt")
   : "";
+// ?hunts=: HuntsFixture.js's saved searches.
+const huntsScenario = HUNT_SCENARIOS.includes(params.get("hunts"))
+  ? params.get("hunts")
+  : null;
 /*
  * ?sources=silent: the project's sources sent their last security event
  * three days ago and nothing since - a connection that stopped, as the
@@ -527,6 +540,9 @@ const ID = {
   evidence: (n) => uuid("2e000000", n),
   watchlist: (n) => uuid("2f000000", n),
   watchlistValue: (n) => uuid("3a000000", n),
+  hunt: (n) => uuid("3b000000", n),
+  event: (n) => uuid("3c000000", n),
+  source: (n) => uuid("3d000000", n),
 };
 
 let rowCounter = 9000;
@@ -2160,6 +2176,34 @@ const watchlists = createWatchlistsFixture({
 watchlists.seed();
 
 /*
+ * ---------------------------------------------------------------------------
+ * Hunts: the saved searches, the month's security events they search, and
+ * the PowerShell event the web-03 case keeps (HuntsFixture.js lays them out)
+ * ---------------------------------------------------------------------------
+ */
+const hunts = createHuntsFixture({
+  insert,
+  table,
+  ID,
+  ago,
+  people,
+  socTeam,
+  isEmpty,
+  NOW,
+  MINUTE,
+  HOUR,
+  DAY,
+  huntsScenario,
+  projectObjectId,
+  findCaseByNumber: (number) => {
+    return table(SecurityCase).find((item) => {
+      return item.caseNumber === number;
+    });
+  },
+});
+hunts.seed();
+
+/*
  * The indicators the feeds hold, as the ThreatIntelIndicator table lists
  * them (AnalyticsModelAPI below): newest first.
  */
@@ -2880,6 +2924,9 @@ function withRelations(modelName, record) {
   if (caseWork.isCaseWorkTable(modelName)) {
     return caseWork.withRelations(modelName, record);
   }
+  if (hunts.isHuntTable(modelName)) {
+    return hunts.withRelations(modelName, record);
+  }
   return record;
 }
 
@@ -2972,6 +3019,7 @@ ModelAPI.updateById = async (options) => {
   if (record) {
     Object.assign(record, options.data);
     caseWork.onUpdate(modelName, record, serialize(options.data));
+    hunts.onUpdate(modelName, record, options.data);
   }
   return new HTTPResponse(200, {}, {});
 };
@@ -2995,6 +3043,7 @@ ModelAPI.createOrUpdate = async (options) => {
           record[key] = value;
         }
       }
+      hunts.onUpdate(modelName, record, data);
     }
     return new HTTPResponse(200, {}, {});
   }
@@ -3016,6 +3065,7 @@ ModelAPI.createOrUpdate = async (options) => {
   }
   caseWork.onCreate(modelName, record);
   watchlists.onCreate(modelName, record);
+  hunts.onCreate(modelName, record);
   tables.get(modelName)?.records.push(record);
   watchlists.afterWrite(modelName);
   return new HTTPResponse(
@@ -3061,7 +3111,8 @@ ModelAPI.deleteItem = async (options) => {
   if (
     isEntityRiskTable(options.modelType) ||
     caseWork.isCaseWorkTable(modelName) ||
-    watchlists.isWatchlistTable(modelName)
+    watchlists.isWatchlistTable(modelName) ||
+    hunts.isHuntTable(modelName)
   ) {
     const records = table(options.modelType);
     const index = records.findIndex((item) => {
@@ -3094,6 +3145,10 @@ AnalyticsModelAPI.getList = async (options) => {
     skip,
     limit,
   });
+  // The Events explorer's reads (a hunt's page's too): HuntsFixture.js's events.
+  if (hunts.isEventTable(modelName)) {
+    return hunts.getEvents(options);
+  }
   if (!isIndicatorTable(options.modelType)) {
     fixture.unhandled.push({ kind: "analytics.getList", modelName });
     return { data: [], count: 0, skip, limit };
@@ -3115,6 +3170,9 @@ AnalyticsModelAPI.count = async (modelType, query) => {
     analytics: true,
     query: serialize(query),
   });
+  if (hunts.isEventTable(modelName)) {
+    return hunts.countEvents(query);
+  }
   if (!isIndicatorTable(modelType)) {
     fixture.unhandled.push({ kind: "analytics.count", modelName });
     return 0;
@@ -3169,6 +3227,11 @@ AnalyticsModelAPI.aggregate = async (options) => {
   if (modelName !== new SecurityEvent().tableName) {
     fixture.unhandled.push({ kind: "analytics.aggregate", modelName });
     return { data: [] };
+  }
+  // The Events explorer's chart and facets; the Rule Library's grouped count is below.
+  const eventsAnswer = hunts.aggregateEvents(options.aggregateBy);
+  if (eventsAnswer) {
+    return eventsAnswer;
   }
   if (dataScenario === "fail") {
     throw new HTTPErrorResponse(500, { message: "Server Error" }, {});
@@ -3596,6 +3659,30 @@ async function handleApi(method, options) {
     }
     return new HTTPResponse(200, turnOnRecommended(options.data), {});
   }
+  // The Events search bar's attribute keys and values (HuntsFixture.js's events).
+  if (
+    method === "POST" &&
+    path.endsWith("/telemetry/security-events/get-attributes")
+  ) {
+    return new HTTPResponse(200, { attributes: hunts.attributeKeys() }, {});
+  }
+  if (
+    method === "POST" &&
+    path.endsWith("/telemetry/security-events/get-attribute-values")
+  ) {
+    return new HTTPResponse(
+      200,
+      { values: hunts.attributeValues(options.data?.attributeKey) },
+      {},
+    );
+  }
+  // Events kept on a case as evidence, read from the events as the reader.
+  if (
+    method === "POST" &&
+    path.endsWith("/security-case-evidence/add-events")
+  ) {
+    return new HTTPResponse(200, hunts.addEvents(options.data), {});
+  }
   if (method === "POST" && path.endsWith("/security-case/setup/test")) {
     return new HTTPResponse(200, runSetupTest(), {});
   }
@@ -3761,6 +3848,9 @@ function StubPage(props) {
  */
 const PAGES = [
   [PageMap.SECURITY_EVENTS_OVERVIEW, SecurityOverviewPage],
+  [PageMap.SECURITY_EVENTS, SecurityEventsPage],
+  [PageMap.SECURITY_EVENTS_HUNTS, SecurityHuntsPage],
+  [PageMap.SECURITY_EVENTS_HUNT_VIEW, SecurityHuntViewPage],
   ...SECURITY_CASE_QUEUE_VIEWS.map((view) => {
     return [view.page, SecurityCasesPage, view.key];
   }),
@@ -3791,7 +3881,6 @@ const PAGES = [
   [PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING, SecurityRiskScoringPage],
 ];
 const STUB_PAGES = [
-  [PageMap.SECURITY_EVENTS, "Events"],
   [PageMap.SECURITY_EVENTS_CORRELATE, "Correlate"],
   [PageMap.SECURITY_EVENTS_CONNECTIONS, "Connections"],
   [PageMap.SECURITY_EVENTS_DOCUMENTATION, "Setup Guide"],
