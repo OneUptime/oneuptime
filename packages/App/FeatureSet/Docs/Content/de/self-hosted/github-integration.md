@@ -78,7 +78,7 @@ Legen Sie unter **Permissions & events** diese **Repository permissions** fest:
 | Contents | Read and write | Dateien des Repositorys lesen und die Branches von KI-Fix-Pull-Requests pushen |
 | Pull requests | Read and write | Pull Requests öffnen und aktualisieren und Reviews veröffentlichen |
 | Issues | Read and write | Die Kommentare der App veröffentlichen — **auch in Pull Requests**, deren Unterhaltung GitHub über die Issues-API leitet |
-| Checks | Read-only | Optional. Das CI-Ergebnis von Fix-Pull-Requests lesen. Ohne sie bleibt deren CI-Status unverifiziert |
+| Checks | Read and write | Optional. Das CI-Ergebnis von Fix-Pull-Requests lesen und mit jeder Produktionsprüfung einen Check hinzufügen. Mit Read-only wird das CI-Ergebnis gelesen, aber kein Check hinzugefügt; ohne sie bleibt der CI-Status von Fix-Pull-Requests unverifiziert |
 | Metadata | Read-only | Grundlegende Metadaten des Repositorys (von GitHub vorgeschrieben) |
 
 **Erst Issues: Read and write macht die App interaktiv.** Ohne sie werden Erwähnungen empfangen und scheitern dann still, wenn die App antworten will — GitHub liefert Kommentare in Pull-Request-Unterhaltungen über die Issues-API aus, diese eine Berechtigung entscheidet also über jede Antwort der App. Siehe [Mit OneUptime aus GitHub arbeiten](/docs/ai/github-app).

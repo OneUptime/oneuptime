@@ -150,7 +150,7 @@ GitHub App の **Permissions & events** の設定で、次のイベントをサ�
 | **Pull request review** | 送信されたレビュー本文内のメンション |
 | **Pull request review comment** | 差分へのインラインコメント内のメンション |
 
-**Repository permissions** では、**Issues** を **Read & write** にする必要があります。GitHub はプルリクエストの会話コメントを Issues API 経由で送るため、これによってアプリはプルリクエストにもコメントできます。
+**Repository permissions** では、**Issues** を **Read & write** にする必要があります。GitHub はプルリクエストの会話コメントを Issues API 経由で送るため、これによってアプリはプルリクエストにもコメントできます。 **Checks** を **Read & write** にすると、各本番レビューがプルリクエストの最新のコミットにチェックを追加できます。それがない場合、レビューが投稿するのはコメントだけです。
 
 ## プロンプトインジェクション: 守られるものと守られないもの
 

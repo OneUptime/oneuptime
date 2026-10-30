@@ -6,14 +6,19 @@ import { JSONArray, JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import URL from "../../../../Types/API/URL";
-import PullRequest from "../../../../Types/CodeRepository/PullRequest";
 import AIAgentTaskPullRequestService from "../../../Services/AIAgentTaskPullRequestService";
 import CodeRepositoryService from "../../../Services/CodeRepositoryService";
-import GitHubUtil, {
-  GitHubBranchInfo,
-  GitHubCommitResult,
-  GitHubFileChange,
-} from "../../CodeRepository/GitHub/GitHub";
+import CodeHostWriters, {
+  CodeHostWriter,
+  CodeHostWriterGap,
+  CodeHostWriterResult,
+} from "../../CodeRepository/CodeHost/CodeHostWriter";
+import {
+  CodeHostBranch,
+  CodeHostCommitMade,
+  CodeHostFileWrite,
+  CodeHostOpenedPullRequest,
+} from "../../CodeRepository/CodeHost/CodeHostTypes";
 import OpenPullRequestCap, {
   OpenPullRequestCapDecision,
 } from "../CodeFix/OpenPullRequestCap";
@@ -26,7 +31,10 @@ import {
 import { resolveTargetRepository } from "./CodeTools";
 import PromptText from "../../../../Utils/AI/PromptText";
 import CodeRepositoryType from "../../../../Types/CodeRepository/CodeRepositoryType";
-import { CodeHost } from "../../../../Types/CodeRepository/CodeHost";
+import {
+  CodeHost,
+  CodeHostFacts,
+} from "../../../../Types/CodeRepository/CodeHost";
 
 /*
  * Tools that let the chat agent WRITE code: commit to a branch, and open a
@@ -42,8 +50,13 @@ import { CodeHost } from "../../../../Types/CodeRepository/CodeHost";
  * So the invariant these tools enforce, and which nothing here may relax:
  *   THE DEFAULT BRANCH IS NEVER WRITTEN. Protected branches are never written.
  * Every chat-authored commit lands somewhere a human must still merge from.
- * The default branch is read from GitHub rather than from our stored
+ * The default branch is read from the host rather than from our stored
  * mainBranchName, because that column is a copy made at import time and drifts.
+ *
+ * Chat writes to a repository on GitHub, GitLab, Forgejo or Gitea - through
+ * the GitHub App, or the repository's connection (CodeHostWriter) - and
+ * opens a pull request there: a merge request on GitLab. A Git server has
+ * no pull requests to open, so chat writes nothing to one.
  */
 
 let cachedUpdatePermissions: Array<Permission> | null = null;
@@ -98,7 +111,7 @@ const FileChangesSchema: JSONObject = {
  * Parse and validate the model's file changes. Everything here is untrusted
  * LLM output, so each entry is type-checked and bounded rather than trusted.
  */
-function parseFileChanges(args: JSONObject): Array<GitHubFileChange> {
+function parseFileChanges(args: JSONObject): Array<CodeHostFileWrite> {
   const raw: unknown = args["changes"];
 
   if (!Array.isArray(raw) || raw.length === 0) {
@@ -113,7 +126,7 @@ function parseFileChanges(args: JSONObject): Array<GitHubFileChange> {
     );
   }
 
-  const changes: Array<GitHubFileChange> = [];
+  const changes: Array<CodeHostFileWrite> = [];
   const seen: Set<string> = new Set<string>();
 
   for (const entry of raw as JSONArray) {
@@ -185,7 +198,8 @@ function parseFileChanges(args: JSONObject): Array<GitHubFileChange> {
  * this repository - their labels and their team's blocks - as an update of
  * it is held (findOneUpdatableById). Reading a repository is not enough to
  * write to it. The branch, the commit and the pull request are then made by
- * OneUptime's GitHub app, as every code change OneUptime makes is.
+ * OneUptime itself - its GitHub App, or the repository's connection to
+ * GitLab, Forgejo or Gitea - as every code change OneUptime makes is.
  */
 async function assertMayChangeRepository(data: {
   ctx: ToolContext;
@@ -206,67 +220,109 @@ async function assertMayChangeRepository(data: {
 }
 
 /*
- * Chat writes code through the GitHub App's API: commits made without a
- * clone, and the pull request. A repository on another host (GitLab,
- * Forgejo, Gitea) is changed by asking in Code, where AI works in it on a
- * Runner and opens the pull or merge request - said so, plainly.
+ * Chat writes code through the host's API - the GitHub App's, or a GitLab,
+ * Forgejo or Gitea repository's connection - with commits made without a
+ * clone, and the pull (or merge) request. A Git server has no pull
+ * requests: a change there is asked for in Code, where AI works in the
+ * repository on a Runner and pushes a branch - said so, plainly.
  */
 export function assertChatWritesToRepository(repository: CodeRepository): void {
   const type: CodeRepositoryType = CodeHost.readType(
     repository.repositoryHostedAt,
   );
 
-  if (type !== CodeRepositoryType.GitHub) {
+  if (type === CodeRepositoryType.Git) {
     throw new BadDataException(
-      `Chat commits code and opens pull requests in GitHub repositories only. ${repository.organizationName}/${repository.repositoryName} is on ${CodeHost.getFacts(type).name}: ask for the change in Code instead, where AI works in the repository and opens a ${CodeHost.getFacts(type).pullRequestTerm} for review.`,
+      `${repository.organizationName}/${repository.repositoryName} is on a Git server, which has no pull requests for chat to open. Ask for the change in Code instead, where AI works in the repository and pushes a branch you open a pull request from.`,
     );
   }
 }
 
 /*
+ * The writer of the repository: GitHub's through the installation
+ * findReadableRepositories proved is the project's, any other host's
+ * through its connection, read again as root - or why there is none.
+ */
+async function openWriter(data: {
+  ctx: ToolContext;
+  repository: CodeRepository;
+}): Promise<CodeHostWriter> {
+  const type: CodeRepositoryType = CodeHost.readType(
+    data.repository.repositoryHostedAt,
+  );
+
+  if (type === CodeRepositoryType.GitHub) {
+    return CodeHostWriters.gitHub({
+      installationId: data.repository.gitHubAppInstallationId!,
+      organizationName: data.repository.organizationName!,
+      repositoryName: data.repository.repositoryName!,
+    });
+  }
+
+  const opened: CodeHostWriterResult = await CodeHostWriters.openForRepository({
+    projectId: data.ctx.projectId,
+    repositoryId: data.repository.id!,
+  });
+
+  if (opened.writer) {
+    return opened.writer;
+  }
+
+  const facts: CodeHostFacts = CodeHost.getFacts(type);
+  const name: string = `${data.repository.organizationName}/${data.repository.repositoryName}`;
+
+  throw new BadDataException(
+    opened.gap === CodeHostWriterGap.NoApi
+      ? `${name} is on a Git server, which has no pull requests for chat to open. Ask for the change in Code instead.`
+      : `${name}'s connection to ${facts.name} does not work now, so chat cannot write to it. Replace its access token on the repository's Settings page in Code.`,
+  );
+}
+
+// A pull (or merge) request as its host writes it: GitLab's "!12", "#12".
+function getPullRequestLabel(
+  type: CodeRepositoryType | string | null | undefined,
+  number: number,
+): string {
+  return `${CodeHost.readType(type) === CodeRepositoryType.GitLab ? "!" : "#"}${number}`;
+}
+
+/*
  * THE safety gate. Resolves a branch and refuses it if it is the repository's
  * real default branch or is protected — so a chat-authored commit can only
- * ever land somewhere a human still has to merge from.
+ * ever land somewhere a human still has to merge from. The host's own
+ * answer decides, never the stored copy of the default branch.
  */
 async function assertBranchIsWritable(data: {
   repository: CodeRepository;
+  writer: CodeHostWriter;
   branchName: string;
-}): Promise<GitHubBranchInfo> {
-  const installationId: string = data.repository.gitHubAppInstallationId!;
-  const organizationName: string = data.repository.organizationName!;
-  const repositoryName: string = data.repository.repositoryName!;
+}): Promise<CodeHostBranch> {
+  const name: string = `${data.repository.organizationName}/${data.repository.repositoryName}`;
 
-  const defaultBranchName: string = await GitHubUtil.getDefaultBranchName({
-    installationId,
-    organizationName,
-    repositoryName,
-  });
+  const defaultBranchName: string = await data.writer.getDefaultBranchName();
 
   if (
     defaultBranchName &&
     data.branchName.toLowerCase() === defaultBranchName.toLowerCase()
   ) {
     throw new BadDataException(
-      `"${data.branchName}" is the default branch of ${organizationName}/${repositoryName}, and chat may never commit to it. Use open_code_pull_request instead so a human reviews the change before it lands.`,
+      `"${data.branchName}" is the default branch of ${name}, and chat may never commit to it. Use open_code_pull_request instead so a human reviews the change before it lands.`,
     );
   }
 
-  const branch: GitHubBranchInfo | null = await GitHubUtil.getBranch({
-    installationId,
-    organizationName,
-    repositoryName,
-    branchName: data.branchName,
-  });
+  const branch: CodeHostBranch | null = await data.writer.getBranch(
+    data.branchName,
+  );
 
   if (!branch) {
     throw new BadDataException(
-      `Branch "${data.branchName}" does not exist in ${organizationName}/${repositoryName}. Use open_code_pull_request to create a new branch, or name an existing one.`,
+      `Branch "${data.branchName}" does not exist in ${name}. Use open_code_pull_request to create a new branch, or name an existing one.`,
     );
   }
 
   if (branch.isProtected) {
     throw new BadDataException(
-      `Branch "${data.branchName}" is protected in ${organizationName}/${repositoryName}, so chat may not commit to it. Use open_code_pull_request instead.`,
+      `Branch "${data.branchName}" is protected in ${name}, so chat may not commit to it. Use open_code_pull_request instead.`,
     );
   }
 
@@ -292,9 +348,9 @@ function buildAiBranchName(title: string): string {
   return `${AI_BRANCH_PREFIX}/${slug}-${suffix}`;
 }
 
-function describeChanges(changes: Array<GitHubFileChange>): string {
+function describeChanges(changes: Array<CodeHostFileWrite>): string {
   return changes
-    .map((change: GitHubFileChange) => {
+    .map((change: CodeHostFileWrite) => {
       return `- ${change.filePath}`;
     })
     .join("\n");
@@ -303,7 +359,7 @@ function describeChanges(changes: Array<GitHubFileChange>): string {
 export const CommitCodeToBranchTool: ObservabilityTool = {
   name: "commit_code_to_branch",
   description:
-    "Commit file changes to an EXISTING branch of a connected repository. Never commits to the default or a protected branch — those are refused. Use this only when the user names a branch to commit onto; otherwise prefer open_code_pull_request. Read each file with read_code_file first: content replaces the whole file.",
+    "Commit file changes to an EXISTING branch of a connected repository on GitHub, GitLab, Forgejo or Gitea. Never commits to the default or a protected branch — those are refused. Use this only when the user names a branch to commit onto; otherwise prefer open_code_pull_request. Read each file with read_code_file first: content replaces the whole file.",
   isMutation: true,
   inputSchema: {
     type: "object",
@@ -357,19 +413,19 @@ export const CommitCodeToBranchTool: ObservabilityTool = {
       throw new BadDataException("commitMessage is required.");
     }
 
-    const changes: Array<GitHubFileChange> = parseFileChanges(args);
+    const changes: Array<CodeHostFileWrite> = parseFileChanges(args);
     const repository: CodeRepository = await resolveTargetRepository(ctx, args);
 
     assertChatWritesToRepository(repository);
     await assertMayChangeRepository({ ctx, repository });
-    await assertBranchIsWritable({ repository, branchName });
 
-    const commit: GitHubCommitResult = await GitHubUtil.commitFilesToBranch({
-      installationId: repository.gitHubAppInstallationId!,
-      organizationName: repository.organizationName!,
-      repositoryName: repository.repositoryName!,
+    const writer: CodeHostWriter = await openWriter({ ctx, repository });
+
+    await assertBranchIsWritable({ repository, writer, branchName });
+
+    const commit: CodeHostCommitMade = await writer.commitFiles({
       branchName: branchName,
-      changes: changes,
+      files: changes,
       commitMessage: commitMessage,
     });
 
@@ -392,7 +448,7 @@ export const CommitCodeToBranchTool: ObservabilityTool = {
 export const OpenCodePullRequestTool: ObservabilityTool = {
   name: "open_code_pull_request",
   description:
-    "Propose a code change: creates a new branch off the default branch, commits the changes, and opens a pull request, ready for review, for a human to review and merge. This is the safe, preferred way to change code from chat — it never writes to the default branch and never merges. Read each file with read_code_file first: content replaces the whole file.",
+    "Propose a code change: creates a new branch off the default branch, commits the changes, and opens a pull request (a merge request on GitLab), ready for review, for a human to review and merge. Works in repositories on GitHub, GitLab, Forgejo and Gitea. This is the safe, preferred way to change code from chat — it never writes to the default branch and never merges. Read each file with read_code_file first: content replaces the whole file.",
   isMutation: true,
   inputSchema: {
     type: "object",
@@ -445,7 +501,7 @@ export const OpenCodePullRequestTool: ObservabilityTool = {
       );
     }
 
-    const changes: Array<GitHubFileChange> = parseFileChanges(args);
+    const changes: Array<CodeHostFileWrite> = parseFileChanges(args);
     const repository: CodeRepository = await resolveTargetRepository(ctx, args);
 
     assertChatWritesToRepository(repository);
@@ -472,15 +528,11 @@ export const OpenCodePullRequestTool: ObservabilityTool = {
       );
     }
 
-    const installationId: string = repository.gitHubAppInstallationId!;
     const organizationName: string = repository.organizationName!;
     const repositoryName: string = repository.repositoryName!;
+    const writer: CodeHostWriter = await openWriter({ ctx, repository });
 
-    const baseBranchName: string = await GitHubUtil.getDefaultBranchName({
-      installationId,
-      organizationName,
-      repositoryName,
-    });
+    const baseBranchName: string = await writer.getDefaultBranchName();
 
     if (!baseBranchName) {
       throw new BadDataException(
@@ -490,11 +542,8 @@ export const OpenCodePullRequestTool: ObservabilityTool = {
 
     const headBranchName: string = buildAiBranchName(title);
 
-    const created: boolean = await GitHubUtil.createBranch({
-      installationId,
-      organizationName,
-      repositoryName,
-      newBranchName: headBranchName,
+    const created: boolean = await writer.createBranch({
+      branchName: headBranchName,
       fromBranchName: baseBranchName,
     });
 
@@ -504,26 +553,24 @@ export const OpenCodePullRequestTool: ObservabilityTool = {
       );
     }
 
-    await GitHubUtil.commitFilesToBranch({
-      installationId,
-      organizationName,
-      repositoryName,
+    await writer.commitFiles({
       branchName: headBranchName,
-      changes: changes,
+      files: changes,
       commitMessage: ToolArgs.getString(args, "commitMessage") || title,
     });
 
-    const pullRequest: PullRequest =
-      await GitHubUtil.createPullRequestWithToken({
-        installationId,
-        organizationName,
-        repositoryName,
+    const pullRequest: CodeHostOpenedPullRequest = await writer.openPullRequest(
+      {
         baseBranchName: baseBranchName,
         headBranchName: headBranchName,
         title: title,
         body: `${description}\n\n---\n_Proposed by OneUptime AI from a chat conversation. Review carefully before merging: this change was written by an agent that reads production telemetry._`,
-        isDraft: false,
-      });
+      },
+    );
+    const label: string = getPullRequestLabel(
+      writer.provider,
+      pullRequest.number,
+    );
 
     /*
      * Record the PR so the open-PR cap can see it and the
@@ -547,16 +594,14 @@ export const OpenCodePullRequestTool: ObservabilityTool = {
     record.codeRepositoryId = repository.id!;
     record.title = title;
     record.description = description;
-    record.pullRequestId = pullRequest.pullRequestId;
-    record.pullRequestNumber = pullRequest.pullRequestNumber;
+    record.pullRequestId = pullRequest.id;
+    record.pullRequestNumber = pullRequest.number;
     record.pullRequestState = pullRequest.state;
     record.headRefName = headBranchName;
     record.baseRefName = baseBranchName;
     record.repoOrganizationName = organizationName;
     record.repoName = repositoryName;
-    record.pullRequestUrl = URL.fromString(
-      `https://github.com/${organizationName}/${repositoryName}/pull/${pullRequest.pullRequestNumber}`,
-    );
+    record.pullRequestUrl = URL.fromString(pullRequest.htmlUrl);
 
     if (ctx.props.userId) {
       record.createdByUserId = ctx.props.userId;
@@ -571,14 +616,14 @@ export const OpenCodePullRequestTool: ObservabilityTool = {
 
     return {
       dataForLlm: [
-        `Opened pull request #${pullRequest.pullRequestNumber} on ${organizationName}/${repositoryName}, ready for review.`,
+        `Opened ${writer.pullRequestTerm} ${label} on ${organizationName}/${repositoryName}, ready for review.`,
         `url: ${pullRequestUrl}`,
         `branch: ${headBranchName} → ${baseBranchName}`,
         `files:\n${describeChanges(changes)}`,
         `It is NOT merged. Give the user the link and say it needs their review.`,
       ].join("\n"),
       rowCount: changes.length,
-      citationLabel: `PR #${pullRequest.pullRequestNumber}: ${title}`,
+      citationLabel: `${writer.provider === CodeRepositoryType.GitLab ? "MR" : "PR"} ${label}: ${title}`,
       redactionCount: 0,
       isTruncated: false,
     };

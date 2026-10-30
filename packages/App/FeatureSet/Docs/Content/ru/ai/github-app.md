@@ -150,7 +150,7 @@ OneUptime хранит телеметрию кода, который он про
 | **Pull request review** | упоминания в тексте отправленного ревью |
 | **Pull request review comment** | упоминания во встроенном комментарии к diff |
 
-В **Repository permissions** для **Issues** должно быть **Read & write**: GitHub передаёт комментарии к обсуждению pull request через API issues, поэтому именно это позволяет приложению комментировать и pull request.
+В **Repository permissions** для **Issues** должно быть **Read & write**: GitHub передаёт комментарии к обсуждению pull request через API issues, поэтому именно это позволяет приложению комментировать и pull request. **Checks** со значением **Read & write** позволяет каждой проверке по продакшену добавлять проверку (check) к последнему коммиту pull request; без него проверка публикует только комментарий.
 
 ## Prompt injection: что защищено, а что нет
 

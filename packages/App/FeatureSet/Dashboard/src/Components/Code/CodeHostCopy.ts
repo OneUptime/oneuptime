@@ -16,8 +16,8 @@ import {
  *
  * Four places, in the order Code offers them: GitHub (its App, the most
  * Code can do), GitLab and Forgejo or Gitea (an access token: everything
- * but commands from comments and production reviews), and any Git server
- * (a branch is pushed, and the person opens the pull request).
+ * but commands from comments), and any Git server (a branch is pushed, and
+ * the person opens the pull request).
  */
 
 export interface CodeHostChoiceCopy {
@@ -125,8 +125,12 @@ export const CODE_CONNECT_COPY: {
   tokenHelpGitLab: translationKey(
     "A personal, group or project access token with the api and write_repository scopes, and at least the Developer role.",
   ),
+  /*
+   * Issues too: a production review keeps its comment on a pull request,
+   * and a pull request's comments are its issue's (write:issue).
+   */
   tokenHelpForgejo: translationKey(
-    "An access token with read and write access to repositories, and read access to the user.",
+    "An access token with read and write access to repositories and issues, and read access to the user.",
   ),
   tokenDescription: translationKey(
     "OneUptime keeps the token encrypted and never shows it again. It lists the repositories the token can push to.",
@@ -437,8 +441,8 @@ export const CODE_REPOSITORY_CONNECTION_COPY: {
 /*
  * What a repository on another host lacks, said plainly and briefly under
  * its connection, where the GitHub settings would be: commands from the
- * host's comments and production reviews are GitHub's, for now - and a Git
- * server gets a pushed branch, not a pull request.
+ * host's comments are GitHub's, for now - and a Git server gets a pushed
+ * branch, not a pull request, so no production review either.
  */
 export const CODE_HOST_GITHUB_ONLY_NOTE: Record<
   | CodeRepositoryType.GitLab
@@ -447,12 +451,12 @@ export const CODE_HOST_GITHUB_ONLY_NOTE: Record<
   string
 > = {
   [CodeRepositoryType.GitLab]: translationKey(
-    "Commands from GitLab comments and production reviews work in GitHub repositories only, for now.",
+    "Commands from GitLab comments work in GitHub repositories only, for now.",
   ),
   [CodeRepositoryType.Forgejo]: translationKey(
-    "Commands from comments and production reviews work in GitHub repositories only, for now.",
+    "Commands from comments work in GitHub repositories only, for now.",
   ),
   [CodeRepositoryType.Git]: translationKey(
-    "On a Git server, AI pushes a branch and you open the pull request. Commands from comments and production reviews work in GitHub repositories only.",
+    "On a Git server, AI pushes a branch and you open the pull request, so there is no production review. Commands from comments work in GitHub repositories only.",
   ),
 };

@@ -130,6 +130,16 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Checked again",
     ],
     [INFRASTRUCTURE_AI_AGENTS]: ["⋯", "SafeWrite", "RiskyWrite"],
+    /*
+     * The check a production review adds on GitHub: its name and titles,
+     * written by the server in English (ProductionReviewRunner,
+     * ProductionReviewComposer).
+     */
+    [CODE_PAGE]: [
+      "OneUptime production review",
+      "Something in production is worth a look",
+      "Nothing in production runs through these changes",
+    ],
     // The heading a review writes its production findings under, on GitHub.
     [GITHUB_APP]: ["Production context"],
     [LLM_PROVIDERS]: [
@@ -152,8 +162,11 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
 export const OTHER_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
   [AI_SRE]: ["Summary", "Evidence"],
   [INFRASTRUCTURE_AI_AGENTS]: ["Read", "Denied", "Read-Only"],
+  // The GitHub App's permission a production review's check needs.
+  [CODE_PAGE]: ["Checks", "Read & write"],
   [GITHUB_APP]: [
     "Issues",
+    "Checks",
     "Read & write",
     "Permissions & events",
     "Issue comment",
@@ -362,6 +375,7 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Aggregates only.",
     "Public repositories get a link.",
     "Outside contributors cannot start one.",
+    "The token comments.",
   ],
   [GITHUB_APP]: [
     "it never merges anything, and it never approves a pull request.",

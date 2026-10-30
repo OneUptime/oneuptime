@@ -118,7 +118,7 @@ OneUptime kontrollerar också varje driftsättning på egen hand, oavsett om nå
 
 En pull-förfrågan med en korrigering som OneUptime AI har öppnat kontrolleras på samma sätt: när en registrerad driftsättning innehåller dess commit bevakar OneUptime där det som korrigeringen var till för - undantaget, operationen den gjorde snabbare, monitorn bakom incidenten eller aviseringen, telemetrin den lägger till - och anger om korrigeringen fungerade (se [Automatiska kodkorrigeringar](/docs/ai/ai-sre#automatiska-kodkorrigeringar)). Den driftsatta korrigeringen läses i driftsättningens version bara när tjänstens egen telemetri rapporterar den versionen, och annars från 10 minuter efter driftsättningen, när gamla instanser har stoppats.
 
-I en utredning och i [Fråga AI](/docs/ai/ask-ai) listar `recent_changes` ändringarna i valfritt tidsfönster, och `get_change_details` visar vad en driftsättning levererade: commits sedan tjänstens föregående driftsättning, deras författare, pull requests och filerna de ändrade. Det kräver committen på ändringen och ett repository som är anslutet via [GitHub App](/docs/ai/github-app).
+I en utredning och i [Fråga AI](/docs/ai/ask-ai) listar `recent_changes` ändringarna i valfritt tidsfönster, och `get_change_details` visar vad en driftsättning levererade: commits sedan tjänstens föregående driftsättning, deras författare, pull requests och filerna de ändrade. Det kräver committen på ändringen och att dess repository är anslutet i Kod: via [GitHub App](/docs/ai/github-app) eller en GitLab-, Forgejo- eller Gitea-anslutning (se [Ansluta ett repositorium](/docs/ai/ai-agent#ansluta-ett-repositorium)).
 
 ## Referens
 
