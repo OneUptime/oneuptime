@@ -384,7 +384,9 @@ right to left; and an entity's page. Its screenshots are named `case-connected-s
 ## Hunts
 
 Searches over security events kept with a name, run on a schedule, and the events they find kept
-on a case, with their own spec, `Hunts.spec.ts`:
+on a case, with their own spec, `Hunts.spec.ts`, which runs as a suite of its own on this fixture -
+`npm run test-security-hunts-ui` (`playwright.security-hunts-ui.config.ts`, App Test's group 6);
+`test-security-operations-ui` leaves it out:
 
 | Page   | Route (from `RouteMap`)                                     | Production components                                                           |
 | ------ | ----------------------------------------------------------- | ------------------------------------------------------------------------------- |

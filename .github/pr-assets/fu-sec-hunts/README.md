@@ -48,7 +48,7 @@ page, size and data.
 
 Made by:
 
-- `cd packages/E2E && CI=1 npm run test-security-operations-ui -- SecurityOperations/Hunts.spec.ts`
+- `cd packages/E2E && CI=1 npm run test-security-hunts-ui`
   (the new pages and dialogs: `output/playwright/security-operations-ui/hunts-*-synthetic.png`);
 - the before and after pairs: master's `packages/` (from `git archive origin/master`) and this
   branch's, each serving `SecurityOperations/Fixture/server.js` and
