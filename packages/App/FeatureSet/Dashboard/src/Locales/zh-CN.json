@@ -38717,11 +38717,11 @@
   "The same from products that send Log Event Extended Format, as many do for IBM QRadar.": "来自发送 Log Event Extended Format 的产品的同类内容，许多产品为 IBM QRadar 这样发送。",
   "Threats, blocked connections and sign-ins from firewalls, IDS, WAFs and other security products that send Common Event Format.": "来自发送 Common Event Format 的防火墙、IDS、WAF 和其他安全产品的威胁、被阻止的连接和登录。",
   "Windows events": "Windows 事件",
-  "Bring in alerts and events from the security tools you already use: Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta, Microsoft Entra ID, Google Workspace and Google SecOps.": "从你已在使用的安全工具导入警报和事件：Microsoft Sentinel、Defender XDR、CrowdStrike Falcon、Splunk、Elastic Security、AWS Security Hub、Okta、Microsoft Entra ID、Google Workspace 和 Google SecOps。",
   "Connect Microsoft Entra ID, Google Workspace or Okta, or find Windows account changes in the logs you send.": "连接 Microsoft Entra ID、Google Workspace 或 Okta，或在你发送的日志中查找 Windows 账户变更。",
   "Connect Microsoft Entra ID, Google Workspace, Okta or another source, or find SSH and Windows sign-ins in the logs you send.": "连接 Microsoft Entra ID、Google Workspace、Okta 或其他来源，或在你发送的日志中查找 SSH 和 Windows 登录。",
   "Connect an EDR such as CrowdStrike Falcon or Microsoft Defender XDR, or find the processes Windows and Sysmon start and the commands run with sudo in the logs you send.": "连接 CrowdStrike Falcon 或 Microsoft Defender XDR 等 EDR，或在你发送的日志中查找 Windows 和 Sysmon 启动的进程以及用 sudo 运行的命令。",
   "Showing the first {{count}}.": "仅显示前 {{count}} 个。",
   "Try an example": "试试示例",
-  "Check line": "检查此行"
+  "Check line": "检查此行",
+  "Bring in alerts and events from the SIEM, EDR / XDR, cloud security and identity tools you already use, such as Microsoft Sentinel, CrowdStrike Falcon, AWS Security Hub and Microsoft Entra ID.": "从你已在使用的 SIEM、EDR / XDR、云安全和身份工具导入警报和事件，例如 Microsoft Sentinel、CrowdStrike Falcon、AWS Security Hub 和 Microsoft Entra ID。"
 }

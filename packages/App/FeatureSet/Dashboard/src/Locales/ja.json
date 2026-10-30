@@ -38717,11 +38717,11 @@
   "The same from products that send Log Event Extended Format, as many do for IBM QRadar.": "IBM QRadar 向けに多くの製品が行うように、Log Event Extended Format を送信する製品からの同じ内容。",
   "Threats, blocked connections and sign-ins from firewalls, IDS, WAFs and other security products that send Common Event Format.": "Common Event Format を送信するファイアウォール、IDS、WAF などのセキュリティ製品からの脅威、ブロックされた接続、サインイン。",
   "Windows events": "Windows イベント",
-  "Bring in alerts and events from the security tools you already use: Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta, Microsoft Entra ID, Google Workspace and Google SecOps.": "すでにお使いのセキュリティツールからアラートとイベントを取り込みます: Microsoft Sentinel、Defender XDR、CrowdStrike Falcon、Splunk、Elastic Security、AWS Security Hub、Okta、Microsoft Entra ID、Google Workspace、Google SecOps。",
   "Connect Microsoft Entra ID, Google Workspace or Okta, or find Windows account changes in the logs you send.": "Microsoft Entra ID、Google Workspace、Okta のいずれかを接続するか、送信しているログから Windows のアカウント変更を見つけます。",
   "Connect Microsoft Entra ID, Google Workspace, Okta or another source, or find SSH and Windows sign-ins in the logs you send.": "Microsoft Entra ID、Google Workspace、Okta などのソースを接続するか、送信しているログから SSH と Windows のサインインを見つけます。",
   "Connect an EDR such as CrowdStrike Falcon or Microsoft Defender XDR, or find the processes Windows and Sysmon start and the commands run with sudo in the logs you send.": "CrowdStrike Falcon や Microsoft Defender XDR などの EDR を接続するか、送信しているログから Windows と Sysmon が起動したプロセスと sudo で実行されたコマンドを見つけます。",
   "Showing the first {{count}}.": "最初の {{count}} 件を表示しています。",
   "Try an example": "例を試す",
-  "Check line": "行を確認"
+  "Check line": "行を確認",
+  "Bring in alerts and events from the SIEM, EDR / XDR, cloud security and identity tools you already use, such as Microsoft Sentinel, CrowdStrike Falcon, AWS Security Hub and Microsoft Entra ID.": "Microsoft Sentinel、CrowdStrike Falcon、AWS Security Hub、Microsoft Entra ID など、すでにお使いの SIEM、EDR / XDR、クラウドセキュリティ、ID 管理ツールからアラートとイベントを取り込みます。"
 }

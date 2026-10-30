@@ -52,9 +52,12 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { SecurityConnectorTestReport } from "../../../Types/SecurityEvent/Connectors/ConnectorDiagnostics";
 import { SecurityEventConnectionRunResult } from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectionDiagnostics";
-import SecurityEventConnectorProvider, {
-  AllSecurityEventConnectorProviders,
-} from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
+import {
+  SecurityEventConnectorCatalog,
+  SecurityEventConnectorCategories,
+  SecurityEventConnectorDefinition,
+} from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
+import SecurityEventConnectorProvider from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 import { CardButtonSchema } from "../../../UI/Components/Card/Card";
 import ModelColumn from "../../../UI/Components/ModelTable/Column";
 import { ComponentProps as ModelTableProps } from "../../../UI/Components/ModelTable/ModelTable";
@@ -593,38 +596,44 @@ describe("SecurityEventConnectionsTable", () => {
 
   /*
    * Once a project has a connection the tiles are gone, and the card's
-   * description is what still says which products OneUptime connects to:
-   * it names every one, as a security team calls it. It missed Microsoft
-   * Entra ID and Google Workspace when they joined the catalog, so a
-   * provider the catalog gains fails here until the sentence names it.
+   * description says what OneUptime connects to: every kind of product in
+   * the catalog, with a well-known one of each. Naming every product ran
+   * past the two lines a card's description may take (App's
+   * ShortDescriptionsGuard) once Microsoft Entra ID and Google Workspace
+   * joined, and the next product would again; the kinds change far less
+   * often, and Add connection lists every product. A kind the catalog
+   * gains fails here until the sentence names it.
    */
-  test("the card names every provider in the catalog, Entra ID and Workspace included", (): void => {
+  test("the card names every kind of product in the catalog, with one of each", (): void => {
     renderTable([]);
 
     const props: ModelTableProps<BaseModel> = tableProps();
+    const description: string = props.cardProps?.description || "";
     expect(props.cardProps?.title).toBe("Your security tools");
-    expect(props.cardProps?.description).toBe(
-      "Bring in alerts and events from the security tools you already use: Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta, Microsoft Entra ID, Google Workspace and Google SecOps.",
+    expect(description).toBe(
+      "Bring in alerts and events from the SIEM, EDR / XDR, cloud security and identity tools you already use, such as Microsoft Sentinel, CrowdStrike Falcon, AWS Security Hub and Microsoft Entra ID.",
     );
 
-    const NAMED_AS: Record<SecurityEventConnectorProvider, string> = {
-      [SecurityEventConnectorProvider.MicrosoftSentinel]: "Microsoft Sentinel",
-      [SecurityEventConnectorProvider.MicrosoftDefenderXdr]: "Defender XDR",
-      [SecurityEventConnectorProvider.CrowdStrikeFalcon]: "CrowdStrike Falcon",
-      [SecurityEventConnectorProvider.SplunkEnterpriseSecurity]: "Splunk",
-      [SecurityEventConnectorProvider.ElasticSecurity]: "Elastic Security",
-      [SecurityEventConnectorProvider.AwsSecurityHub]: "AWS Security Hub",
-      [SecurityEventConnectorProvider.OktaSystemLog]: "Okta",
-      [SecurityEventConnectorProvider.MicrosoftEntraId]: "Microsoft Entra ID",
-      [SecurityEventConnectorProvider.GoogleWorkspace]: "Google Workspace",
-      [SecurityEventConnectorProvider.GoogleSecOps]: "Google SecOps",
-    };
-
-    for (const provider of AllSecurityEventConnectorProviders) {
-      expect([provider, props.cardProps?.description]).toEqual([
-        provider,
-        expect.stringContaining(NAMED_AS[provider]),
+    for (const category of SecurityEventConnectorCategories) {
+      expect([category, description.toLowerCase()]).toEqual([
+        category,
+        expect.stringContaining(category.toLowerCase()),
       ]);
+
+      // A product of that kind, by its title in the catalog.
+      const titles: Array<string> = SecurityEventConnectorCatalog.filter(
+        (definition: SecurityEventConnectorDefinition): boolean => {
+          return definition.category === category;
+        },
+      ).map((definition: SecurityEventConnectorDefinition): string => {
+        return definition.title;
+      });
+      expect([
+        category,
+        titles.some((title: string): boolean => {
+          return description.includes(title);
+        }),
+      ]).toEqual([category, true]);
     }
   });
 

@@ -451,9 +451,9 @@ describe("SecurityLogLineCheck", () => {
      * and a voice command could not find.
      */
     expect(trigger).toHaveAccessibleName("Try an example");
-    expect(
-      screen.getByRole("button", { name: "Try an example" }),
-    ).toBe(trigger);
+    expect(screen.getByRole("button", { name: "Try an example" })).toBe(
+      trigger,
+    );
     expect(trigger).toHaveAttribute("aria-haspopup", "menu");
     expect(trigger).toHaveAttribute("aria-expanded", "false");
     // The label and the menu share a row, the label first.

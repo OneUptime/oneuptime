@@ -38717,11 +38717,11 @@
   "The same from products that send Log Event Extended Format, as many do for IBM QRadar.": "Det samme fra produkter som sender Log Event Extended Format, slik mange gjør for IBM QRadar.",
   "Threats, blocked connections and sign-ins from firewalls, IDS, WAFs and other security products that send Common Event Format.": "Trusler, blokkerte tilkoblinger og pålogginger fra brannmurer, IDS, WAF-er og andre sikkerhetsprodukter som sender Common Event Format.",
   "Windows events": "Windows-hendelser",
-  "Bring in alerts and events from the security tools you already use: Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta, Microsoft Entra ID, Google Workspace and Google SecOps.": "Hent varsler og hendelser fra sikkerhetsverktøyene du allerede bruker: Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta, Microsoft Entra ID, Google Workspace og Google SecOps.",
   "Connect Microsoft Entra ID, Google Workspace or Okta, or find Windows account changes in the logs you send.": "Koble til Microsoft Entra ID, Google Workspace eller Okta, eller finn endringer i Windows-kontoer i loggene du sender.",
   "Connect Microsoft Entra ID, Google Workspace, Okta or another source, or find SSH and Windows sign-ins in the logs you send.": "Koble til Microsoft Entra ID, Google Workspace, Okta eller en annen kilde, eller finn SSH- og Windows-pålogginger i loggene du sender.",
   "Connect an EDR such as CrowdStrike Falcon or Microsoft Defender XDR, or find the processes Windows and Sysmon start and the commands run with sudo in the logs you send.": "Koble til en EDR som CrowdStrike Falcon eller Microsoft Defender XDR, eller finn prosessene Windows og Sysmon starter og kommandoene som kjøres med sudo, i loggene du sender.",
   "Showing the first {{count}}.": "Viser de første {{count}}.",
   "Try an example": "Prøv et eksempel",
-  "Check line": "Sjekk linjen"
+  "Check line": "Sjekk linjen",
+  "Bring in alerts and events from the SIEM, EDR / XDR, cloud security and identity tools you already use, such as Microsoft Sentinel, CrowdStrike Falcon, AWS Security Hub and Microsoft Entra ID.": "Hent varsler og hendelser fra SIEM-, EDR/XDR-, skysikkerhets- og identitetsverktøyene du allerede bruker, som Microsoft Sentinel, CrowdStrike Falcon, AWS Security Hub og Microsoft Entra ID."
 }

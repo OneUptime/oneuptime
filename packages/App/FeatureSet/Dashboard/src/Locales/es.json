@@ -38717,11 +38717,11 @@
   "The same from products that send Log Event Extended Format, as many do for IBM QRadar.": "Lo mismo de los productos que envían Log Event Extended Format, como hacen muchos para IBM QRadar.",
   "Threats, blocked connections and sign-ins from firewalls, IDS, WAFs and other security products that send Common Event Format.": "Amenazas, conexiones bloqueadas e inicios de sesión de firewalls, IDS, WAF y otros productos de seguridad que envían Common Event Format.",
   "Windows events": "Eventos de Windows",
-  "Bring in alerts and events from the security tools you already use: Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta, Microsoft Entra ID, Google Workspace and Google SecOps.": "Trae alertas y eventos de las herramientas de seguridad que ya usas: Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta, Microsoft Entra ID, Google Workspace y Google SecOps.",
   "Connect Microsoft Entra ID, Google Workspace or Okta, or find Windows account changes in the logs you send.": "Conecta Microsoft Entra ID, Google Workspace u Okta, o encuentra los cambios de cuentas de Windows en los registros que envías.",
   "Connect Microsoft Entra ID, Google Workspace, Okta or another source, or find SSH and Windows sign-ins in the logs you send.": "Conecta Microsoft Entra ID, Google Workspace, Okta u otra fuente, o encuentra los inicios de sesión SSH y de Windows en los registros que envías.",
   "Connect an EDR such as CrowdStrike Falcon or Microsoft Defender XDR, or find the processes Windows and Sysmon start and the commands run with sudo in the logs you send.": "Conecta un EDR como CrowdStrike Falcon o Microsoft Defender XDR, o encuentra los procesos que inician Windows y Sysmon y los comandos ejecutados con sudo en los registros que envías.",
   "Showing the first {{count}}.": "Se muestran los primeros {{count}}.",
   "Try an example": "Prueba un ejemplo",
-  "Check line": "Comprobar la línea"
+  "Check line": "Comprobar la línea",
+  "Bring in alerts and events from the SIEM, EDR / XDR, cloud security and identity tools you already use, such as Microsoft Sentinel, CrowdStrike Falcon, AWS Security Hub and Microsoft Entra ID.": "Trae alertas y eventos de las herramientas SIEM, EDR / XDR, de seguridad en la nube y de identidad que ya usas, como Microsoft Sentinel, CrowdStrike Falcon, AWS Security Hub y Microsoft Entra ID."
 }

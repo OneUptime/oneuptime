@@ -38717,11 +38717,11 @@
   "The same from products that send Log Event Extended Format, as many do for IBM QRadar.": "많은 제품이 IBM QRadar용으로 하듯 Log Event Extended Format을 보내는 제품의 같은 항목.",
   "Threats, blocked connections and sign-ins from firewalls, IDS, WAFs and other security products that send Common Event Format.": "Common Event Format을 보내는 방화벽, IDS, WAF 및 기타 보안 제품의 위협, 차단된 연결, 로그인.",
   "Windows events": "Windows 이벤트",
-  "Bring in alerts and events from the security tools you already use: Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta, Microsoft Entra ID, Google Workspace and Google SecOps.": "이미 사용 중인 보안 도구에서 경고와 이벤트를 가져옵니다: Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta, Microsoft Entra ID, Google Workspace, Google SecOps.",
   "Connect Microsoft Entra ID, Google Workspace or Okta, or find Windows account changes in the logs you send.": "Microsoft Entra ID, Google Workspace 또는 Okta를 연결하거나, 보내는 로그에서 Windows 계정 변경을 찾으세요.",
   "Connect Microsoft Entra ID, Google Workspace, Okta or another source, or find SSH and Windows sign-ins in the logs you send.": "Microsoft Entra ID, Google Workspace, Okta 또는 다른 소스를 연결하거나, 보내는 로그에서 SSH 및 Windows 로그인을 찾으세요.",
   "Connect an EDR such as CrowdStrike Falcon or Microsoft Defender XDR, or find the processes Windows and Sysmon start and the commands run with sudo in the logs you send.": "CrowdStrike Falcon이나 Microsoft Defender XDR 같은 EDR을 연결하거나, 보내는 로그에서 Windows와 Sysmon이 시작한 프로세스와 sudo로 실행한 명령을 찾으세요.",
   "Showing the first {{count}}.": "처음 {{count}}개를 표시합니다.",
   "Try an example": "예제 사용해 보기",
-  "Check line": "줄 확인"
+  "Check line": "줄 확인",
+  "Bring in alerts and events from the SIEM, EDR / XDR, cloud security and identity tools you already use, such as Microsoft Sentinel, CrowdStrike Falcon, AWS Security Hub and Microsoft Entra ID.": "Microsoft Sentinel, CrowdStrike Falcon, AWS Security Hub, Microsoft Entra ID처럼 이미 사용 중인 SIEM, EDR / XDR, 클라우드 보안 및 ID 도구에서 경고와 이벤트를 가져옵니다."
 }
