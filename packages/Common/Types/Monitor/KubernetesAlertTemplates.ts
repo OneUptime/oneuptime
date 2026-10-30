@@ -522,8 +522,7 @@ const clusterStoppedReportingTemplate: KubernetesAlertTemplate = {
 const crashLoopBackOffTemplate: KubernetesAlertTemplate = {
   id: "k8s-crashloopbackoff",
   name: "CrashLoopBackOff Detection",
-  summary:
-    "A container restarts within 15 minutes and is mostly not ready.",
+  summary: "A container restarts within 15 minutes and is mostly not ready.",
   /*
    * No backticks in here. `template.description` is rendered as raw JSX
    * text on the recommendation card

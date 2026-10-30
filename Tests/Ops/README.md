@@ -557,6 +557,41 @@ the `.env` (it holds the ingestion key) mode 600; and on a node that is not a
 swarm manager it leaves the AI agent out and stops (never `rm -f`s) one it
 installed there before.
 
+### `ContainerAgentInstallers.test.js`
+
+The same three `install.sh`, run the same way, for what they hand the
+collector. `DOCKER_API_VERSION`: none set, none is passed (the images leave it
+empty, so the collector negotiates); one set when running the script reaches
+the collector and the AI agent. Podman's socket and storage: the installer
+mounts what the Podman it runs as reports (`podman info`), the user's own
+socket and `~/.local/share/containers/storage` for rootless Podman (with the
+`XDG_RUNTIME_DIR` / `XDG_DATA_HOME` defaults when Podman does not say), at the
+rootful paths inside the containers where the collector's config looks — it
+used to mount the rootful paths whatever the mode, so a rootless install never
+started — and with the socket off it stops before starting anything, with the
+`systemctl` command for that mode. The Swarm node's name: the installer writes
+the daemon's name (`docker info --format '{{.Name}}'`, the hostname
+`docker node ls` shows) into `.env` as `DOCKER_SWARM_NODE_NAME`, keeps one given
+when running it, and keeps only a hostname's characters (the name goes into an
+OTTL string).
+
+### `ContainerAgentConfigs.test.js`
+
+What the container agents' collector configs send, from the parsed YAML. The
+Docker Swarm agent copies Swarm's `com.docker.swarm.service.name` and
+`com.docker.swarm.node.id` task labels onto each task's metrics as
+`docker.swarm.service.name` and `docker.swarm.node.id` (the receiver puts them
+on the resource, so ingest stores them `resource.`-prefixed), and stamps
+`docker.swarm.node.name` from `DOCKER_SWARM_NODE_NAME`, left off when that is
+empty, on the node's metrics and container logs but not on the cluster's
+inventory; the keys the worker's Service Name and Node Name filters read are
+those keys, `resource.`-prefixed; and it never stamps `host.name` or runs
+`resourcedetection`. Every agent's receivers are all in a pipeline. The Docker
+and Podman agents tail no inventory snapshot: their images, the upstream
+collector with the config copied in, have no shell, so the `entrypoint.sh` and
+inventory poller that sat beside the config never ran, and every script left in
+those folders has to be `install.sh` or one the image copies in.
+
 ### `AgentTroubleshootTokenCheck.test.js`
 
 Runs the ingestion-key check of the Ceph, Proxmox, VMware, Storage Array and
@@ -588,9 +623,12 @@ The `docker_stats` receiver has to name the Docker Engine API version it speaks,
 and a daemon refuses a client _newer_ than its own maximum. With a literal
 `"1.44"` baked into the image there was no way out on Docker Engine 20.10 (max
 API 1.41) short of replacing the config: the receiver fails to start, the
-collector exits with it, and the container restart-loops. The version is now the
-`DOCKER_API_VERSION` environment variable, defaulting to `1.44` in the image
-`ENV` and in each compose file's pass-through.
+collector exits with it, and the container restart-loops. The version is the
+`DOCKER_API_VERSION` environment variable, and it is **empty** by default — in
+the image `ENV`, in each compose file's pass-through (`${DOCKER_API_VERSION:-}`)
+and in the Swarm inventory poller — so the collector negotiates the version with
+the daemon. It used to default to `1.44`, which kept the restart loop for every
+Engine from 20.10 to 24 until someone found the variable.
 
 Everything this suite asserts was **measured** against
 `otel/opentelemetry-collector-contrib:0.161.0` and a real daemon, not assumed —
@@ -608,36 +646,27 @@ not its default. The configs used to say the opposite ("the receiver default is
 dangerous when it is not; a test now fails if that claim comes back.
 
 An empty `api_version` is safe: the receiver falls back to Docker SDK
-**auto-negotiation** — one `HEAD /_ping`, then the daemon's own maximum — which
-works against any daemon. That makes it a real escape hatch for operators who
-cannot easily read their daemon's maximum, so the READMEs and docs pages
-describe it and a test keeps that documentation honest.
+**auto-negotiation** — one `HEAD /_ping`, then the daemon's own maximum (the
+SDK negotiates down to API 1.40) — which works against any daemon the agents
+support. That is why empty is the default, and the READMEs and docs pages say
+so; a test keeps that documentation honest, and another fails if `1.44` comes
+back as a default anywhere the agents ship it.
 
-Because empty is meaningful, every pass-through uses `${VAR-1.44}` and **not**
-`${VAR:-1.44}`. Both Compose and the shell treat `:-` as "substitute when unset
-_or_ empty", which would silently swallow the escape hatch; the colon-less form
-only fills in when the variable is absent entirely. A test pins that distinction
-so it does not get tidied back.
+The config itself keeps a plain `${env:DOCKER_API_VERSION}`: an unset variable
+expands to empty too, which is the same negotiation.
 
-The config itself keeps a plain `${env:DOCKER_API_VERSION}`. Upstream's own
-`envprovider` test table shows that confmap's `:-` applies only when the variable
-is genuinely unset (`{value: "", uri: "env:MY_VAR:-foo", expectedVal: ""}`), so a
-`${env:…:-1.44}` default would not catch an empty value either — and the unset
-case already degrades to auto-negotiation, which is the safer outcome.
-
-The inventory pollers are the other client of that API. Rather than
-pattern-matching their source, the suite **runs** each script's `API_VERSION`
-resolution block under `sh` and asserts the URL it produces: unset →
-`http://localhost/v1.44`, explicitly empty → `http://localhost` (unversioned, the
-curl analogue of negotiating), explicit → that version. It also asserts
+The Swarm inventory poller is the other client of that API. Rather than
+pattern-matching its source, the suite **runs** the script's `API_VERSION`
+resolution block under `sh` and asserts the URL it produces: unset or empty →
+`http://localhost` (unversioned, the curl analogue of negotiating: the daemon
+serves it at its own version), explicit → that version. It also asserts
 `agents/DockerSwarmAgent/docker-compose.yml` passes the variable to the
 `oneuptime-docker-swarm-inventory` sidecar, the container that actually runs the
-script, which the collector service's entry does not reach. `DockerAgent`'s and
-`PodmanAgent`'s scripts are not wired into their images today (`Dockerfile.tpl`
-copies only the collector config, and nothing references `entrypoint.sh`), so for
-them the assertion guards the comment rather than a running path.
+script, which the collector service's entry does not reach. (The Docker and
+Podman agents' pollers were never wired into their images and are gone; see
+`ContainerAgentConfigs.test.js`.)
 
-The remaining blocks are cross-checks: a **lockstep** comparison so a bump
+The remaining blocks are cross-checks: a **lockstep** comparison so a change
 applied to one agent and not the rest fails; a check that the agents baking an
 image are exactly the ones with a `Dockerfile.tpl`; a check that `AGENTS` covers
 **every** `docker_stats` receiver in the repo, so a fourth agent added later with
@@ -652,7 +681,8 @@ The runtime counterpart. The suite above pins the _shape_ of the plumbing by
 reading files; this one pins the _behaviour_ that shape exists to produce, by
 running the pinned collector image against a real daemon: a version above the
 daemon's maximum kills the collector, one below its minimum does too, and an
-empty value starts fine via auto-negotiation.
+empty value — the shipped default — starts fine via auto-negotiation, while the
+old pinned `1.44` is refused by a daemon older than it.
 
 It needs Docker and pulls an image, so it is **off by default** and never runs in
 the normal `npm test` or CI path:

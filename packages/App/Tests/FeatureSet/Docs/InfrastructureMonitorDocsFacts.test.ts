@@ -2209,7 +2209,12 @@ describe("the worker scopes each monitor as its page says", () => {
     );
   });
 
-  it("Docker Swarm: the cluster name, and no runtime or host filter", () => {
+  /*
+   * The regression: Service Name and Node Name filtered on the bare
+   * `docker.swarm.*` keys, which nothing stores, and Container Image matched
+   * exactly an image Swarm pins to a digest.
+   */
+  it("Docker Swarm: the cluster name, no runtime or host filter, and the service, node and image as the agent sends them", () => {
     const swarm: string = functionBody(
       worker,
       "export const monitorDockerSwarm",
@@ -2218,8 +2223,23 @@ describe("the worker scopes each monitor as its page says", () => {
     expect(swarm).toContain('attributes["resource.docker.swarm.cluster.name"]');
     expect(swarm).not.toContain('attributes["resource.container.runtime"]');
     expect(swarm).not.toContain('attributes["resource.host.name"]');
-    expect(swarm).toContain('attributes["docker.swarm.service.name"]');
-    expect(swarm).toContain('attributes["docker.swarm.node.name"]');
+    expect(swarm).toContain('attributes["resource.docker.swarm.service.name"]');
+    expect(swarm).toContain('attributes["resource.docker.swarm.node.name"]');
+    expect(swarm).not.toContain('attributes["docker.swarm.service.name"]');
+    expect(swarm).not.toContain('attributes["docker.swarm.node.name"]');
+    expect(swarm).toContain(
+      "MonitorStepDockerSwarmMonitorUtil.getContainerImageGlobs(",
+    );
+
+    expect(englishPage(SWARM)).toContain(
+      "| **Service Name** | Custom Metric, Advanced | Optional. Exact match on `resource.docker.swarm.service.name`",
+    );
+    expect(englishPage(SWARM)).toContain(
+      "| **Node Name** | Custom Metric, Advanced | Optional. Exact match on `resource.docker.swarm.node.name`",
+    );
+    expect(englishPage(SWARM)).toContain(
+      "| **Container Image** | Custom Metric, Advanced | Optional. Matches `resource.container.image.name` with or without the digest Swarm pins to the image: `nginx:latest` also matches `nginx:latest@sha256:…`",
+    );
   });
 });
 
@@ -2353,7 +2373,7 @@ describe("the agents the pages describe", () => {
     },
   );
 
-  it("Docker Swarm: the collector stamps only the cluster name, and the inventory is read every 5 minutes", () => {
+  it("Docker Swarm: the collector stamps the cluster name and each task's service and node, and the inventory is read every 5 minutes", () => {
     const config: string = source(
       "agents/DockerSwarmAgent/otel-collector-config.yaml",
     );
@@ -2363,8 +2383,10 @@ describe("the agents the pages describe", () => {
 
     expect(config).toContain("collection_interval: 30s");
     expect(config).toContain("- key: docker.swarm.cluster.name");
-    expect(config).not.toContain("docker.swarm.service.name");
-    expect(config).not.toContain("docker.swarm.node.name");
+    expect(config).toContain(
+      "com.docker.swarm.service.name: docker.swarm.service.name",
+    );
+    expect(config).toContain('set(attributes["docker.swarm.node.name"]');
     expect(compose).toContain(
       "DOCKER_INVENTORY_INTERVAL_SECONDS=${DOCKER_INVENTORY_INTERVAL_SECONDS:-300}",
     );
@@ -2372,8 +2394,12 @@ describe("the agents the pages describe", () => {
       "reads the cluster's nodes, services and tasks from the Swarm API every 5 minutes",
     );
     expect(englishPage(SWARM)).toContain(
-      "The shipped agent does not set `docker.swarm.service.name` or `docker.swarm.node.name` yet",
+      "and each task's metrics with its service and node",
     );
+    expect(englishPage(SWARM)).not.toContain("does not set");
+    // The page names the files version that sends them, which the agent reports.
+    expect(englishPage(SWARM)).toContain("version 0.161.2");
+    expect(compose).toContain("APP_VERSION=${APP_VERSION:-0.161.2}");
   });
 
   it("Proxmox: the cluster and node collectors every 30 seconds, and id split into pve.scope, pve.type and pve.id", () => {

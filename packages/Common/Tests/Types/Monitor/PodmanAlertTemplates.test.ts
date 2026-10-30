@@ -407,9 +407,9 @@ describe("PodmanAlertTemplates", () => {
       (monitor.metricViewConfig.formulaConfigs as Array<any>)[0]
         .metricFormulaData.metricFormula,
     ).toBe("container_restarts_max - container_restarts_min");
-    expect(offline.data.filters[0].metricMonitorOptions.metricAggregationType).toBe(
-      EvaluateOverTimeType.Sum,
-    );
+    expect(
+      offline.data.filters[0].metricMonitorOptions.metricAggregationType,
+    ).toBe(EvaluateOverTimeType.Sum);
 
     // A long-lived container with 40 restarts in its history, all old.
     expect(

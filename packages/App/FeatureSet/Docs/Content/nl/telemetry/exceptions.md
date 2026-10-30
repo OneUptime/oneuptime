@@ -58,7 +58,7 @@ Wissel tussen **Niet opgelost**, **Opgelost**, **Gearchiveerd** en **Alle**. De 
 
 ### Zoeken en filteren
 
-Typ een zoekopdracht zoals `type:TypeError env:production`, zie [Zoeksyntaxis](/docs/telemetry/search-syntax#uitzonderingen), of klik op een waarde in de zijbalk **Filters**: een service, een host of andere bron, een **Uitzonderingstype**, een **Omgeving** of een **Error Class**.
+Typ een zoekopdracht zoals `type:TypeError env:production`, zie [Zoeksyntaxis](/docs/telemetry/search-syntax#uitzonderingen), of klik op een waarde in de zijbalk **Filters**: een service, een host of andere bron, een **Uitzonderingstype**, een **Omgeving** of een **Error Class**. **Aan mij toegewezen** toont alleen de uitzonderingen die aan u zijn toegewezen, en het sorteermenu ordent de lijst op **Laatst gezien**, **Voor het eerst gezien** of **Meeste gebeurtenissen**.
 
 ### Een uitzondering openen
 
@@ -71,7 +71,7 @@ Het zijmenu van de pagina groepeert wat u met een uitzondering doet:
 
 | Pagina | Wat die toont |
 | --- | --- |
-| **Overzicht** | Het bericht, de service, hoe vaak ze optrad en wanneer ze voor het eerst en het laatst gezien werd, haar verloop in de tijd, en haar laatste voorval: de release, de omgeving, de span, de trace en de gebruikerssessie. |
+| **Overzicht** | Het bericht, de service, hoe vaak ze optrad en wanneer ze voor het eerst en het laatst gezien werd, haar verloop in de tijd, en haar laatste voorval: de release, de omgeving, de span, de trace en de gebruikerssessie. Bovenaan de uitleg van OneUptime AI over wat er gebeurde, als AI aan staat. |
 | **Stack trace** | De frames van de stack. Voor browsercode de oorspronkelijke bestanden en regels, zodra u [Source maps](/docs/telemetry/source-maps) voor de release uploadt. |
 | **Occurrences** | Elk voorval, met de tijd, het bericht en de trace waarin het optrad. |
 | **Context** | De attributen van het laatste voorval, de sessie-opname als die er is, en de stappen die ertoe leidden. |
@@ -97,6 +97,8 @@ De knoppen bovenaan de pagina van de uitzondering, haar pagina **Instellingen** 
 
 Om er meerdere tegelijk te wijzigen, vinkt u hun rijen in de lijst aan, of het vakje boven de rijen voor alle uitzonderingen op de pagina, en gebruikt u dezelfde acties onder **Bulkacties**. Het resultaat toont welke uitzonderingen zijn gewijzigd, welke zijn gelaten zoals ze waren, en waarom.
 
+**Toewijzen** in de kop van de uitzondering geeft haar aan één persoon of één team, en de keuze weghalen heft de toewijzing op. Elke rij toont van wie ze is, haar menu ⋯ biedt **Aan mij toewijzen**, en **Toewijzen aan…** onder **Bulkacties** wijst er meerdere tegelijk toe.
+
 ## Foutklassen
 
 Elke uitzondering heeft een foutklasse, die zegt wiens probleem het is. OneUptime AI stelt die in wanneer het een inzicht over de uitzondering beoordeelt, zoals een nieuwe of sterk toenemende uitzondering: zie [AI SRE](/docs/ai/ai-sre#inzichten-proactieve-detectie). Een uitzondering die het niet heeft beoordeeld, blijft `unknown`.
@@ -110,6 +112,22 @@ Elke uitzondering heeft een foutklasse, die zegt wiens probleem het is. OneUptim
 | `expected-denial` | Een controle die haar werk doet, zoals een geweigerde aanmelding. | Nee |
 
 Met **Verwachte uitzonderingen archiveren** aan, in de instellingen van AI-inzichten, worden uitzonderingen die de beoordeling als verwachte weigeringen herkent voor u gearchiveerd.
+
+## Uitleggen met AI
+
+Bovenaan het **Overzicht** van een uitzondering vraagt **Uitleggen met OneUptime AI** aan OneUptime AI wat er misging. Het leest de stack trace, de trace en de logboeken van het laatste voorval en de deploys van de service rond het moment waarop de uitzondering begon, en antwoordt in de kaart **Wat er gebeurde**:
+
+| Onderdeel | Wat het zegt |
+| --- | --- |
+| **Wat er gebeurde** | Een zin of twee, hoe zeker OneUptime AI is, en waar de fout zit: de code, een afhankelijkheid, de infrastructuur, ongeldige invoer of de configuratie. |
+| **Waarschijnlijke hoofdoorzaak** | De oorzaak, en het frame, de span, de logregel of de deploy die haar laat zien. |
+| **Voorgestelde oplossing** | Wat er moet veranderen. |
+| **Waar te kijken** | De frames van de stack trace die u eerst opent. |
+| **Volgende stappen** | Hoogstens drie stappen om haar te bevestigen of op te lossen. |
+
+De uitleg wordt bij de uitzondering bewaard, zodat de volgende die haar opent hem meteen leest, en **Opnieuw uitleggen** vraagt een nieuwe. **Een pull request met de oplossing openen** opent de pagina **AI Assistance** van de uitzondering, en **Een vervolgvraag stellen** opent Ask AI over de uitzondering.
+
+ID's, e-mail- en IP-adressen en tokens worden verwijderd uit alles wat wordt verstuurd, en van de attributen van een span worden er maar een paar verstuurd, zoals de route en de statuscode. De uitleg gebruikt de LLM-provider en de AI-tegoeden van het project en wordt niet aangeboden zolang **AI inschakelen** uit staat. Iedereen die de uitzondering mag lezen, kan er een vragen.
 
 ## Verhelpen met AI
 

@@ -7,6 +7,10 @@ import TranslatedSentence from "Common/UI/Components/TranslatedSentence/Translat
 import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import RowActions from "Common/UI/Components/ActionButton/RowActions";
 import ExceptionIssueBadges from "./ExceptionIssueBadges";
+import PeopleAvatar, {
+  PeopleAvatarItem,
+} from "Common/UI/Components/PeoplePicker/PeopleAvatar";
+import { getExceptionAssigneeAvatar } from "../../Utils/ExceptionAssignment";
 
 export interface ExceptionRowProps {
   exception: TelemetryException;
@@ -79,6 +83,8 @@ const ExceptionRow: FunctionComponent<ExceptionRowProps> = (
 
   const isResolved: boolean = Boolean(exception.isResolved);
   const isArchived: boolean = Boolean(exception.isArchived);
+  const assignee: PeopleAvatarItem | null =
+    getExceptionAssigneeAvatar(exception);
 
   /*
    * Where the exception stands. From sm up it sits at the row's top right,
@@ -143,6 +149,19 @@ const ExceptionRow: FunctionComponent<ExceptionRowProps> = (
               </span>
               {/* Regressed or New, and Unhandled: what to look at first. */}
               <ExceptionIssueBadges exception={exception} />
+              {/* Who owns it, when someone does. */}
+              {assignee && (
+                <span
+                  className="inline-flex max-w-[12rem] items-center gap-1 whitespace-nowrap rounded-full border border-gray-200 bg-white py-0.5 pe-1.5 ps-0.5 text-[10px] font-medium text-gray-600"
+                  title={translator.translateTemplate("Assigned to {{name}}", {
+                    name: assignee.name,
+                  })}
+                  data-testid="exception-row-assignee"
+                >
+                  <PeopleAvatar item={assignee} size="mini" />
+                  <span className="truncate">{assignee.name}</span>
+                </span>
+              )}
               <span
                 className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-medium text-gray-600"
                 style={

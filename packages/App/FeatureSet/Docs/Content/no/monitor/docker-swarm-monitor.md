@@ -11,7 +11,7 @@ En Docker Swarm-monitor overvåker containerne bak tjenesteoppgavene i en Swarm-
 
 ## Slik fungerer det
 
-OneUptimes Docker Swarm-agent kjører på en managernode. Innsamleren leser containerstatistikk fra nodens Docker-daemon hvert 30. sekund og stempler hver bunke med klyngens navn, `docker.swarm.cluster.name`. En liten inventarpoller ved siden av leser klyngens noder, tjenester og oppgaver fra Swarm-API-et hvert 5. minutt. De første dataene registrerer klyngen i OneUptime.
+OneUptimes Docker Swarm-agent kjører på en managernode. Innsamleren leser containerstatistikk fra nodens Docker-daemon hvert 30. sekund, stempler hver bunke med klyngens navn, `docker.swarm.cluster.name`, og metrikkene til hver oppgave med oppgavens tjeneste og node. En liten inventarpoller ved siden av leser klyngens noder, tjenester og oppgaver fra Swarm-API-et hvert 5. minutt. De første dataene registrerer klyngen i OneUptime.
 
 Innsamleren ser bare containere på noden den kjører på. For å få metrikker fra hver node kjører du innsamleren på hver node med samme `DOCKER_SWARM_CLUSTER_NAME`.
 
@@ -77,18 +77,18 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 
 | Felt | Fane | Hva det gjør |
 | --- | --- | --- |
-| **Docker Swarm Cluster** | Alle | Påkrevd. Avgrenser hver spørring til `resource.docker.swarm.cluster.name`. Dette er den eneste ressursattributten agenten stempler, så monitoren legger ikke til noe filter på `container.runtime` eller `host.name`. |
-| **Tjenestenavn** | Custom Metric, Avansert | Valgfritt. Nøyaktig samsvar med `docker.swarm.service.name`, for eksempel `web`. |
-| **Nodenavn** | Custom Metric, Avansert | Valgfritt. Nøyaktig samsvar med `docker.swarm.node.name`, for eksempel `swarm-node-1`. |
+| **Docker Swarm Cluster** | Alle | Påkrevd. Avgrenser hver spørring til `resource.docker.swarm.cluster.name`. En oppgaves metrikker har `container.runtime=docker` slik en Docker-verts har, og agenten stempler aldri `host.name`, så monitoren filtrerer på ingen av dem. |
+| **Tjenestenavn** | Custom Metric, Avansert | Valgfritt. Nøyaktig samsvar med `resource.docker.swarm.service.name`, tjenesten slik `docker service ls` navngir den, for eksempel `web` (`<stack>_web` i en stack). |
+| **Nodenavn** | Custom Metric, Avansert | Valgfritt. Nøyaktig samsvar med `resource.docker.swarm.node.name`, nodens vertsnavn slik `docker node ls` viser det, for eksempel `swarm-node-1`. Agenten på den noden stempler det fra `DOCKER_SWARM_NODE_NAME`. |
 | **Containernavn** | Custom Metric, Avansert | Valgfritt. Nøyaktig samsvar med `resource.container.name`. En oppgaves container heter `<service>.<slot>.<taskid>`, for eksempel `web.1.abc123`. |
-| **Container-bilde** | Custom Metric, Avansert | Valgfritt. Nøyaktig samsvar med `resource.container.image.name`, for eksempel `nginx:latest`. |
+| **Container-bilde** | Custom Metric, Avansert | Valgfritt. Samsvarer med `resource.container.image.name` med eller uten digesten Swarm fester til bildet: `nginx:latest` samsvarer også med `nginx:latest@sha256:…`, en digest du skriver inn, utelates, og et navn uten tag betyr `:latest`. |
 | **Docker Swarm Metric** | Custom Metric | Én metrikk fra [katalogen](#innsamlede-metrikker). |
 | **Aggregering** | Custom Metric | Hvordan målinger kombineres: **Gjennomsnitt**, **Maksimum**, **Minimum**, **Sum** eller **Antall**. Starter på metrikkens vanlige aggregering. |
 | **Tidsintervall** | Alle | Det glidende vinduet spørringen leser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter på **Past 1 Minute**; maler angir sitt eget. |
 | **Velg målinger** | Avansert | Spørringsbyggeren: **Metrikk**, **Aggregate by**, **Filter by attributes**, **Grupper etter**, pluss **Legg til metrikk** og **Legg til formel** for å kombinere spørringer. |
 
-> [!WARNING]
-> Den medfølgende agenten angir ennå ikke `docker.swarm.service.name` eller `docker.swarm.node.name`, så en monitor med **Tjenestenavn** eller **Nodenavn** fylt ut finner ingen data. Snevre inn med **Container-bilde** i stedet, eller grupper etter `resource.container.name`.
+> [!NOTE]
+> **Tjenestenavn** og **Nodenavn** krever agentens filer fra versjon 0.161.2 og nyere: eldre filer sender verken tjenesten eller noden. [Oppgrader agenten](/docs/telemetry/docker-swarm#oppgradere-agenten) på hver node den kjører på.
 
 ## Ferdige varslingsmaler
 
@@ -143,7 +143,7 @@ Agentens innsamler bruker OpenTelemetry-mottakeren `docker_stats`, så metrikken
 | `container.pids.count` | antall | Oppgaver i en tasks container: cgroup-pids-kontrolleren teller både tråder og prosesser. En plutselig økning kan bety en fork-bombe eller en trådlekkasje. |
 | `container.uptime` | sekunder | Hvor lenge en oppgaves container har kjørt. En oppgave som planlegges på nytt eller startes på nytt, starter en ny container på 0. |
 
-Hver serie bærer containerens identitet som ressursattributter: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name` og `resource.docker.swarm.cluster.name`.
+Hver serie bærer containerens identitet som ressursattributter: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name`, `resource.docker.swarm.service.name`, `resource.docker.swarm.node.id`, `resource.docker.swarm.node.name` (når agenten kjenner nodens navn) og `resource.docker.swarm.cluster.name`.
 
 ## Overvåkingskriterier
 
@@ -186,7 +186,7 @@ Innsamleren leser Docker-daemonen på noden den kjører på, så den ser bare op
 :::
 
 :::details En monitor filtrert på tjeneste eller node finner ingen data
-**Tjenestenavn** og **Nodenavn** samsvarer med `docker.swarm.service.name` og `docker.swarm.node.name`, som den medfølgende agenten ikke angir. Tøm dem og snevre inn med **Container-bilde**, eller grupper etter `resource.container.name`.
+**Tjenestenavn** og **Nodenavn** samsvarer med `resource.docker.swarm.service.name` og `resource.docker.swarm.node.name`, som agenten sender fra versjon 0.161.2 av filene sine: [oppgrader den](/docs/telemetry/docker-swarm#oppgradere-agenten). Nodens navn kommer fra `DOCKER_SWARM_NODE_NAME` i hver nodes `.env`, som installasjonsskriptet skriver; på en node som er satt opp på en annen måte, legger du det til der.
 :::
 
 :::details Hver oppgave vises som én serie

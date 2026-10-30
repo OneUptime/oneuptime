@@ -58,7 +58,7 @@ Wechseln Sie zwischen **Nicht behoben**, **Behoben**, **Archiviert** und **Alle*
 
 ### Suchen und filtern
 
-Geben Sie eine Abfrage wie `type:TypeError env:production` ein, siehe [Suchsyntax](/docs/telemetry/search-syntax#ausnahmen), oder klicken Sie auf einen Wert in der Seitenleiste **Filter**: einen Dienst, einen Host oder eine andere Ressource, einen **Ausnahmetyp**, eine **Umgebung** oder eine **Fehlerklasse**.
+Geben Sie eine Abfrage wie `type:TypeError env:production` ein, siehe [Suchsyntax](/docs/telemetry/search-syntax#ausnahmen), oder klicken Sie auf einen Wert in der Seitenleiste **Filter**: einen Dienst, einen Host oder eine andere Ressource, einen **Ausnahmetyp**, eine **Umgebung** oder eine **Fehlerklasse**. **Mir zugewiesen** zeigt nur die Ihnen zugewiesenen Ausnahmen, und das Sortiermenü ordnet die Liste nach **Zuletzt gesehen**, **Zuerst gesehen** oder **Meiste Ereignisse**.
 
 ### Eine Ausnahme öffnen
 
@@ -71,7 +71,7 @@ Das Seitenmenü der Seite ordnet, was Sie mit einer Ausnahme tun:
 
 | Seite | Was sie zeigt |
 | --- | --- |
-| **Übersicht** | Die Nachricht, den Dienst, wie oft sie auftrat und wann sie zuerst und zuletzt gesehen wurde, ihren Verlauf über die Zeit und ihr letztes Vorkommen: Release, Umgebung, Span, Trace und Benutzersitzung. |
+| **Übersicht** | Die Nachricht, den Dienst, wie oft sie auftrat und wann sie zuerst und zuletzt gesehen wurde, ihren Verlauf über die Zeit und ihr letztes Vorkommen: Release, Umgebung, Span, Trace und Benutzersitzung. Ganz oben die Erklärung von OneUptime AI, was passiert ist, wenn KI aktiviert ist. |
 | **Stack-Trace** | Die Frames des Stacks. Bei Browser-Code die ursprünglichen Dateien und Zeilen, sobald Sie [Source Maps](/docs/telemetry/source-maps) für das Release hochladen. |
 | **Vorkommen** | Jedes Vorkommen mit seiner Zeit, seiner Nachricht und dem Trace, in dem es auftrat. |
 | **Kontext** | Die Attribute des letzten Vorkommens, seine Sitzungsaufzeichnung, wenn eine aufgenommen wurde, und die Schritte, die dazu führten. |
@@ -97,6 +97,8 @@ Die Schaltflächen oben auf der Seite der Ausnahme, ihre Seite **Einstellungen**
 
 Um mehrere auf einmal zu ändern, haken Sie ihre Zeilen in der Liste an, oder das Kästchen über den Zeilen für alle Ausnahmen auf der Seite, und nutzen Sie dieselben Aktionen unter **Massenaktionen**. Das Ergebnis zeigt, welche Ausnahmen geändert wurden, welche unverändert blieben und warum.
 
+**Zuweisen** im Kopf der Ausnahme gibt sie einer Person oder einem Team, und wer die Auswahl entfernt, hebt die Zuweisung auf. Jede Zeile zeigt, wem sie gehört, ihr Menü ⋯ bietet **Mir zuweisen**, und **Zuweisen an…** unter **Massenaktionen** weist mehrere auf einmal zu.
+
 ## Fehlerklassen
 
 Jede Ausnahme hat eine Fehlerklasse, die sagt, wessen Problem sie ist. OneUptime AI setzt sie, wenn es einen Einblick zur Ausnahme sichtet, etwa zu einer neuen oder sprunghaft zunehmenden Ausnahme: siehe [AI SRE](/docs/ai/ai-sre#einblicke-proaktive-erkennung). Eine Ausnahme, die es nicht gesichtet hat, bleibt `unknown`.
@@ -110,6 +112,22 @@ Jede Ausnahme hat eine Fehlerklasse, die sagt, wessen Problem sie ist. OneUptime
 | `expected-denial` | Eine Prüfung, die ihre Arbeit tut, etwa eine abgelehnte Anmeldung. | Nein |
 
 Ist **Erwartete Ausnahmen archivieren** in den Einstellungen der KI-Einblicke eingeschaltet, werden Ausnahmen, die die Sichtung als erwartete Ablehnungen einstuft, für Sie archiviert.
+
+## Mit KI erklären
+
+Oben auf der **Übersicht** einer Ausnahme fragt **Mit OneUptime AI erklären** OneUptime AI, was schiefgelaufen ist. Es liest den Stack-Trace, den Trace und die Protokolle des letzten Vorkommens sowie die Deployments des Dienstes um die Zeit, zu der die Ausnahme begann, und antwortet in der Karte **Hergang**:
+
+| Teil | Was er sagt |
+| --- | --- |
+| **Hergang** | Ein, zwei Sätze, wie sicher OneUptime AI ist und wo der Fehler liegt: im Code, in einer Abhängigkeit, in der Infrastruktur, in fehlerhafter Eingabe oder in der Konfiguration. |
+| **Wahrscheinliche Grundursache** | Die Ursache und der Frame, Span, die Protokollzeile oder das Deployment, die sie zeigen. |
+| **Vorgeschlagene Korrektur** | Was zu ändern ist. |
+| **Wo nachsehen** | Die Frames des Stack-Traces, die Sie zuerst öffnen sollten. |
+| **Nächste Schritte** | Höchstens drei Schritte, um sie zu bestätigen oder zu beheben. |
+
+Die Erklärung wird an der Ausnahme gespeichert, sodass die nächste Person, die sie öffnet, sie sofort liest, und **Erneut erklären** fordert eine neue an. **Pull Request mit Korrektur öffnen** öffnet die Seite **KI-Unterstützung** der Ausnahme, und **Nachfrage stellen** öffnet Ask AI zu der Ausnahme.
+
+IDs, E-Mail- und IP-Adressen sowie Tokens werden aus allem entfernt, was gesendet wird, und von den Attributen eines Spans werden nur wenige gesendet, etwa seine Route und sein Statuscode. Die Erklärung nutzt den LLM-Anbieter und die KI-Guthaben des Projekts und wird nicht angeboten, solange **KI aktivieren** aus ist. Jeder, der die Ausnahme lesen kann, kann eine anfordern.
 
 ## Mit KI beheben
 

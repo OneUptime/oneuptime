@@ -1475,7 +1475,9 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected-resources breach predic
   });
 
   test("an `= 0` RECOVERY criteria does NOT turn the all-clear into a list of zeroes", async () => {
-    const daemonSetStep: MonitorStep = kubernetesStep("k8s-daemonset-unavailable");
+    const daemonSetStep: MonitorStep = kubernetesStep(
+      "k8s-daemonset-unavailable",
+    );
     const criteria: MonitorCriteriaInstance = recoveryCriteria(daemonSetStep);
 
     // Fixture guard: the real recovery is a non-incident `= 0`.
@@ -1500,7 +1502,9 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected-resources breach predic
   });
 
   test("a `> 0` criteria renders exactly as the hardcoded filter did, on the highest sample", async () => {
-    const daemonSetStep: MonitorStep = kubernetesStep("k8s-daemonset-unavailable");
+    const daemonSetStep: MonitorStep = kubernetesStep(
+      "k8s-daemonset-unavailable",
+    );
 
     const context: string | null = await kubernetesContext({
       metricName: "k8s.daemonset.misscheduled_nodes",
@@ -1520,7 +1524,9 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected-resources breach predic
 
     expect(context).toContain("**Affected Resources** (2 total)");
     expect(context).toContain(
-      ["1. **DaemonSet** `api` — **5**", "2. **DaemonSet** `web` — **3**"].join("\n"),
+      ["1. **DaemonSet** `api` — **5**", "2. **DaemonSet** `web` — **3**"].join(
+        "\n",
+      ),
     );
     expect(context).not.toContain("`ok`");
 
@@ -1529,7 +1535,9 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected-resources breach predic
     const webIndex: number = context!.indexOf("`web`");
     expect(apiIndex).toBeGreaterThan(-1);
     expect(webIndex).toBeGreaterThan(apiIndex);
-    expect(context).toContain("DaemonSet `api` has **5** misscheduled node(s).");
+    expect(context).toContain(
+      "DaemonSet `api` has **5** misscheduled node(s).",
+    );
   });
 
   /*

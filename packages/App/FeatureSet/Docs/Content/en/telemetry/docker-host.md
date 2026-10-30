@@ -4,18 +4,18 @@ The OneUptime Docker agent is one container you run on a Docker host. It reads t
 
 :::cards
 - [Install the agent](#install-the-agent): Two containers, with `docker run` or Docker Compose.
-- [What the agent collects](#what-the-agent-collects): Metrics, logs and an inventory of every container.
+- [What the agent collects](#what-the-agent-collects): The metrics and logs of every container.
 - [Container logs need json-file](#container-logs-need-the-json-file-log-driver): Check and switch a container's log driver.
 - [Troubleshooting](#troubleshooting): Restart loops, missing metrics, missing logs.
 :::
 
 ## How it works
 
-The agent is an OpenTelemetry Collector with OneUptime's configuration built in. Through the Docker socket it reads each container's stats every 30 seconds and lists every container, image, network and volume every 5 minutes. It tails the containers' log files and sends everything to your OneUptime URL over OTLP, with the ingestion key you give it.
+The agent is an OpenTelemetry Collector with OneUptime's configuration built in. Through the Docker socket it reads each container's stats every 30 seconds. It tails the containers' log files and sends everything to your OneUptime URL over OTLP, with the ingestion key you give it.
 
 ```mermaid title="Two containers on your Docker host"
 flowchart TB
-    containers["Your containers"] -->|"stats, log files,<br/>inventory"| agent["Docker agent"]
+    containers["Your containers"] -->|"stats and<br/>log files"| agent["Docker agent"]
     agent -->|"OTLP over HTTPS"| oneuptime["OneUptime"]
     oneuptime -->|"investigates an<br/>incident or alert"| ai["Docker AI agent"]
     ai -->|"read-only<br/>docker commands"| containers
@@ -129,7 +129,7 @@ Everything is ready. Begin running and processing data.
 
 ### Find the host in OneUptime
 
-Open **Products → Infrastructure → Docker → All Hosts**. The host appears under its `DOCKER_HOST_NAME` within a minute or so, with its containers, metrics and logs. The AI agent shows as connected on the host's **AI agent** page, and at the bottom of its **Overview**. The host's **Topology** page draws its Compose projects, containers, images, networks and volumes as one map: see [Topology](/docs/telemetry/topology#open-a-resources-own-map).
+Open **Products → Infrastructure → Docker → All Hosts**. The host appears under its `DOCKER_HOST_NAME` within a minute or so, with its containers, metrics and logs. The AI agent shows as connected on the host's **AI agent** page, and at the bottom of its **Overview**. The host's **Topology** page draws its Compose projects and containers as one map: see [Topology](/docs/telemetry/topology#open-a-resources-own-map).
 :::
 
 ## Environment variables
@@ -139,7 +139,7 @@ Open **Products → Infrastructure → Docker → All Hosts**. The host appears 
 | `ONEUPTIME_URL` | Yes | Your OneUptime URL, such as `https://oneuptime.com` or your self-hosted instance. Use `http://` and its port if the instance is HTTP-only. |
 | `ONEUPTIME_SERVICE_TOKEN` | Yes | The ingestion key from **Project Settings → Telemetry & APM → Ingestion Keys**. |
 | `DOCKER_HOST_NAME` | No | The host's name in OneUptime. Defaults to `docker-host`, so give every host its own. |
-| `DOCKER_API_VERSION` | No | The Docker Engine API version the agent speaks. Defaults to `1.44`. Lower it on an older daemon, or set it to an empty value to negotiate it with the daemon (see [Troubleshooting](#troubleshooting)). |
+| `DOCKER_API_VERSION` | No | The Docker Engine API version the agent speaks. Empty by default: the agent negotiates it with the daemon, so every Docker Engine from 20.10 on works. Set it only to pin a version (see [Troubleshooting](#troubleshooting)). |
 
 To change a value, remove the agent and run its command again (Docker CLI), or edit `docker-compose.yml` and run `docker compose up -d` (Docker Compose).
 
@@ -149,7 +149,6 @@ To change a value, remove the agent and run its command again (Docker CLI), or e
 | --- | --- |
 | Container metrics | CPU (usage, percentage, throttling), memory (usage, limit, percentage), network and block I/O, uptime, restarts and process count, per container, every 30 seconds. |
 | Container logs | The stdout and stderr of every container, from its `json-file` log file. |
-| Inventory | Every container in every state, and every image, network and volume, every 5 minutes. |
 
 Each container's metrics and logs are filed under a service named after the container. Each log line gets a severity from the level it names, such as `[ERROR]`, `level=warn` or `{"level":"info"}`; a line that names none takes its stream's: stderr is `ERROR`, stdout is `INFO`. Lines that start with whitespace or a closing bracket join the line before, so a stack trace arrives as one record. The agent's own logs are left out.
 
@@ -254,19 +253,15 @@ Error response from daemon: client version 1.44 is too new.
 Maximum supported API version is 1.41
 ```
 
-A daemon refuses a client newer than its own maximum, so the receiver never starts and the collector exits with it. Find the daemon's maximum:
+A daemon refuses a client newer than its own maximum, so the receiver never starts and the collector exits with it. The agent negotiates the version with the daemon (one `HEAD /_ping`, then the daemon's own maximum) unless `DOCKER_API_VERSION` names one, and an older agent image pinned `1.44`, which Docker Engine 20.10 to 24 refuse. [Upgrade the agent](#upgrading-the-agent), and start it without `-e DOCKER_API_VERSION` (or take `DOCKER_API_VERSION` out of Compose).
+
+To pin a version anyway, use no more than the daemon's maximum:
 
 ```bash
 docker version --format '{{ .Server.APIVersion }}'
 ```
 
 Then add `-e DOCKER_API_VERSION=1.41` (or the value you got) to `docker run`, or set `DOCKER_API_VERSION` in Compose. Newer daemons still serve older API versions, so the setting stays valid after an upgrade.
-
-Rather not look the number up? Set `DOCKER_API_VERSION` to the empty string. The agent then negotiates the version with the daemon (one `HEAD /_ping`, then the daemon's own maximum), which works against both old and new daemons:
-
-```bash
-docker run -d ... -e DOCKER_API_VERSION= ...
-```
 :::
 
 :::details Docker socket permission denied

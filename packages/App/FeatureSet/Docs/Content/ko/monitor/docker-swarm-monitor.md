@@ -11,7 +11,7 @@ Docker Swarm 모니터는 Swarm 클러스터의 서비스 작업 뒤에 있는 �
 
 ## 작동 방식
 
-OneUptime Docker Swarm 에이전트는 매니저 노드에서 실행됩니다. 그 수집기는 30초마다 해당 노드의 Docker 데몬에서 컨테이너 통계를 읽고, 각 배치에 클러스터 이름 `docker.swarm.cluster.name`을 찍습니다. 옆에서 실행되는 작은 인벤토리 폴러는 5분마다 Swarm API에서 클러스터의 노드, 서비스, 작업을 읽습니다. 첫 데이터가 클러스터를 OneUptime에 등록합니다.
+OneUptime Docker Swarm 에이전트는 매니저 노드에서 실행됩니다. 그 수집기는 30초마다 해당 노드의 Docker 데몬에서 컨테이너 통계를 읽고, 각 배치에 클러스터 이름 `docker.swarm.cluster.name`을 찍으며, 각 작업의 메트릭에는 그 작업의 서비스와 노드를 찍습니다. 옆에서 실행되는 작은 인벤토리 폴러는 5분마다 Swarm API에서 클러스터의 노드, 서비스, 작업을 읽습니다. 첫 데이터가 클러스터를 OneUptime에 등록합니다.
 
 수집기는 자신이 실행되는 노드의 컨테이너만 봅니다. 모든 노드의 메트릭을 받으려면 같은 `DOCKER_SWARM_CLUSTER_NAME`으로 각 노드에서 수집기를 실행하세요.
 
@@ -77,18 +77,18 @@ flowchart TB
 
 | 필드 | 탭 | 하는 일 |
 | --- | --- | --- |
-| **Docker Swarm Cluster** | 모두 | 필수. 모든 쿼리를 `resource.docker.swarm.cluster.name`으로 한정합니다. 에이전트가 찍는 리소스 속성은 이것뿐이므로, 모니터는 `container.runtime`이나 `host.name` 필터를 추가하지 않습니다. |
-| **서비스 이름** | Custom Metric, 고급 | 선택 사항. `docker.swarm.service.name`과 정확히 일치. 예: `web`. |
-| **노드 이름** | Custom Metric, 고급 | 선택 사항. `docker.swarm.node.name`과 정확히 일치. 예: `swarm-node-1`. |
+| **Docker Swarm Cluster** | 모두 | 필수. 모든 쿼리를 `resource.docker.swarm.cluster.name`으로 한정합니다. 작업의 메트릭에는 Docker 호스트의 메트릭처럼 `container.runtime=docker`가 붙고, 에이전트는 `host.name`을 절대 찍지 않으므로, 모니터는 둘 중 어느 것으로도 필터링하지 않습니다. |
+| **서비스 이름** | Custom Metric, 고급 | 선택 사항. `resource.docker.swarm.service.name`과 정확히 일치. `docker service ls`에 표시되는 서비스 이름입니다. 예: `web`(스택에서는 `<stack>_web`). |
+| **노드 이름** | Custom Metric, 고급 | 선택 사항. `resource.docker.swarm.node.name`과 정확히 일치. `docker node ls`에 표시되는 노드의 호스트 이름입니다. 예: `swarm-node-1`. 그 노드의 에이전트가 `DOCKER_SWARM_NODE_NAME`에서 이 값을 찍습니다. |
 | **컨테이너 이름** | Custom Metric, 고급 | 선택 사항. `resource.container.name`과 정확히 일치. 작업의 컨테이너 이름은 `<service>.<slot>.<taskid>`이며, 예는 `web.1.abc123`입니다. |
-| **컨테이너 이미지** | Custom Metric, 고급 | 선택 사항. `resource.container.image.name`과 정확히 일치. 예: `nginx:latest`. |
+| **컨테이너 이미지** | Custom Metric, 고급 | 선택 사항. Swarm이 이미지에 고정하는 다이제스트가 있든 없든 `resource.container.image.name`과 일치합니다. `nginx:latest`는 `nginx:latest@sha256:…`와도 일치하고, 입력한 다이제스트는 빼고 비교하며, 태그가 없는 이름은 `:latest`를 뜻합니다. |
 | **Docker Swarm Metric** | Custom Metric | [카탈로그](#수집되는-메트릭)의 메트릭 하나. |
 | **집계** | Custom Metric | 샘플을 합치는 방식: **평균**, **최대**, **최소**, **합계**, **개수**. 메트릭의 일반적인 집계에서 시작합니다. |
 | **시간 범위** | 모두 | 쿼리가 읽는 이동 기간으로, **Past 1 Minute** 부터 **Past 365 Days** 까지입니다. 새 모니터는 **Past 1 Minute** 에서 시작하고, 템플릿은 자체 값을 설정합니다. |
 | **메트릭 선택** | 고급 | 쿼리 빌더: **메트릭**, **Aggregate by**, **Filter by attributes**, **그룹화 기준**, 그리고 쿼리를 결합하는 **메트릭 추가** 와 **수식 추가**. |
 
-> [!WARNING]
-> 함께 제공되는 에이전트는 아직 `docker.swarm.service.name`이나 `docker.swarm.node.name`을 설정하지 않으므로, **서비스 이름** 이나 **노드 이름** 을 채운 모니터는 데이터를 찾지 못합니다. 대신 **컨테이너 이미지** 로 좁히거나 `resource.container.name`으로 그룹화하세요.
+> [!NOTE]
+> **서비스 이름** 과 **노드 이름** 에는 버전 0.161.2 이상의 에이전트 파일이 필요합니다. 그보다 오래된 파일은 서비스도 노드도 보내지 않습니다. 에이전트가 실행되는 모든 노드에서 [에이전트를 업그레이드하세요](/docs/telemetry/docker-swarm#에이전트-업그레이드).
 
 ## 미리 만들어진 알림 템플릿
 
@@ -143,7 +143,7 @@ flowchart TB
 | `container.pids.count` | 개수 | 작업 컨테이너 안의 태스크 수입니다. cgroup pids 컨트롤러는 프로세스뿐 아니라 스레드도 셉니다. 갑작스러운 증가는 포크 폭탄이나 스레드 누수를 뜻할 수 있습니다. |
 | `container.uptime` | 초 | 작업 컨테이너가 실행된 시간. 다시 예약되거나 다시 시작된 작업은 새 컨테이너를 0부터 시작합니다. |
 
-각 계열은 컨테이너의 신원을 리소스 속성으로 가집니다: `resource.container.name`(`<service>.<slot>.<taskid>`), `resource.container.image.name`, `resource.docker.swarm.cluster.name`.
+각 계열은 컨테이너의 신원을 리소스 속성으로 가집니다: `resource.container.name`(`<service>.<slot>.<taskid>`), `resource.container.image.name`, `resource.docker.swarm.service.name`, `resource.docker.swarm.node.id`, `resource.docker.swarm.node.name`(에이전트가 노드 이름을 알 때), `resource.docker.swarm.cluster.name`.
 
 ## 모니터링 기준
 
@@ -186,7 +186,7 @@ flowchart TB
 :::
 
 :::details 서비스나 노드로 필터링한 모니터가 데이터를 찾지 못함
-**서비스 이름** 과 **노드 이름** 은 `docker.swarm.service.name`과 `docker.swarm.node.name`에 맞추는데, 함께 제공되는 에이전트는 이것들을 설정하지 않습니다. 비우고 **컨테이너 이미지** 로 좁히거나, `resource.container.name`으로 그룹화하세요.
+**서비스 이름** 과 **노드 이름** 은 `resource.docker.swarm.service.name`과 `resource.docker.swarm.node.name`에 맞추는데, 에이전트는 파일 버전 0.161.2부터 이것들을 보냅니다. [에이전트를 업그레이드하세요](/docs/telemetry/docker-swarm#에이전트-업그레이드). 노드 이름은 각 노드의 `.env`에 있는 `DOCKER_SWARM_NODE_NAME`에서 오며, 설치 스크립트가 이 값을 씁니다. 다른 방법으로 설정한 노드라면 거기에 직접 추가하세요.
 :::
 
 :::details 모든 작업이 하나의 계열로 보임

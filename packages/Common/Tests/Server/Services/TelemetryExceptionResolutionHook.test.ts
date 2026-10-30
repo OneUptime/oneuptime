@@ -1,10 +1,18 @@
 import TelemetryExceptionService from "../../../Server/Services/TelemetryExceptionService";
+import ProjectReferencesService from "../../../Server/Services/ProjectReferencesService";
 import TelemetryException from "../../../Models/DatabaseModels/TelemetryException";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import { OnUpdate } from "../../../Server/Types/Database/Hooks";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../Types/ObjectID";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 /*
  * Resolving or reopening an exception through the API - the exception's
@@ -72,6 +80,46 @@ describe("TelemetryExceptionService resolving and reopening", () => {
   test("Archive leaves resolution alone", async () => {
     expect(await hookWrite({ isArchived: true })).toEqual({
       isArchived: true,
+    });
+  });
+});
+
+describe("TelemetryExceptionService assigning", () => {
+  /*
+   * A write that names a person or a team is first checked against the
+   * project by ProjectReferencesService (the person a member, the team the
+   * project's own) - with the database, which these tests do not have. That
+   * check is the platform's and is tested with it; here it lets the write
+   * through, so what is pinned is the rule this service adds after it.
+   */
+  beforeEach(() => {
+    jest
+      .spyOn(
+        ProjectReferencesService.prototype as unknown as {
+          onBeforeUpdate: BeforeUpdate;
+        },
+        "onBeforeUpdate",
+      )
+      .mockImplementation(async (updateBy: UpdateBy<TelemetryException>) => {
+        return { updateBy, carryForward: null };
+      });
+  });
+
+  test("assigning a person clears the team: one assignee", async () => {
+    const userId: ObjectID = ObjectID.generate();
+
+    expect(await hookWrite({ assignToUserId: userId })).toEqual({
+      assignToUserId: userId,
+      assignToTeamId: null,
+    });
+  });
+
+  test("assigning a team clears the person", async () => {
+    const teamId: ObjectID = ObjectID.generate();
+
+    expect(await hookWrite({ assignToTeamId: teamId })).toEqual({
+      assignToUserId: null,
+      assignToTeamId: teamId,
     });
   });
 });

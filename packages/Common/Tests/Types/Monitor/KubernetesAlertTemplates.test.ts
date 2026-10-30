@@ -799,9 +799,10 @@ describe("KubernetesAlertTemplates - metric/criteria agreement", () => {
 
     // No criteria compares the raw lifetime count.
     for (const filter of offline.data.filters as Array<any>) {
-      expect(["container_restarts_max", "container_restarts_min"]).not.toContain(
-        filter.metricMonitorOptions.metricAlias,
-      );
+      expect([
+        "container_restarts_max",
+        "container_restarts_min",
+      ]).not.toContain(filter.metricMonitorOptions.metricAlias);
     }
 
     expect(offline.data.description).not.toContain("cumulative");
@@ -1284,7 +1285,9 @@ describe("KubernetesAlertTemplates - Node Not Ready catches a node that went dow
    */
   test("fires on Unknown (-1), the value a node that went down reports", async () => {
     expect(
-      await evaluate("k8s-node-not-ready", { node_ready: [-1, -1, -1, -1, -1] }),
+      await evaluate("k8s-node-not-ready", {
+        node_ready: [-1, -1, -1, -1, -1],
+      }),
     ).toEqual({ breached: true, healthy: false });
   });
 
@@ -1412,7 +1415,9 @@ describe("KubernetesAlertTemplates - High Node Memory reads the working set", ()
       }),
     ).toEqual(["k8s.node.memory.working_set", "k8s.node.allocatable_memory"]);
     expect(AGENT_EMITTED_METRIC_NAMES).toContain("k8s.node.memory.working_set");
-    expect(getKubernetesMetricByMetricName("k8s.node.memory.working_set")).toBeDefined();
+    expect(
+      getKubernetesMetricByMetricName("k8s.node.memory.working_set"),
+    ).toBeDefined();
   });
 
   test("a node whose memory is mostly reclaimable cache does not fire", async () => {
@@ -1538,14 +1543,16 @@ describe("KubernetesAlertTemplates - HPA Saturated at Max Replicas", () => {
         ];
       }),
     ).toEqual(
-      ["k8s.hpa.current_replicas", "k8s.hpa.max_replicas", "k8s.hpa.min_replicas"].map(
-        (metricName: string) => {
-          return [
-            metricName,
-            ["resource.k8s.namespace.name", "resource.k8s.hpa.name"],
-          ];
-        },
-      ),
+      [
+        "k8s.hpa.current_replicas",
+        "k8s.hpa.max_replicas",
+        "k8s.hpa.min_replicas",
+      ].map((metricName: string) => {
+        return [
+          metricName,
+          ["resource.k8s.namespace.name", "resource.k8s.hpa.name"],
+        ];
+      }),
     );
   });
 });

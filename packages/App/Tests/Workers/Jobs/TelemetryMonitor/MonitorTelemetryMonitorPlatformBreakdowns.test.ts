@@ -734,8 +734,8 @@ describe("VMware and Docker Swarm: single-query templates", () => {
       "resource.docker.swarm.cluster.name": "swarm-prod",
       "resource.container.name": "web.1.abc123",
       "resource.container.image.name": "nginx:1.27",
-      "docker.swarm.node.name": "worker-1",
-      "docker.swarm.service.name": "web",
+      "resource.docker.swarm.node.name": "worker-1",
+      "resource.docker.swarm.service.name": "web",
     };
 
     mockRawRows({
@@ -1126,9 +1126,11 @@ function legacyDockerSwarm(rows: Array<RawRow>): Array<LegacyResource> {
     const containerImage: string | undefined = a[
       "resource.container.image.name"
     ] as string;
-    const nodeName: string | undefined = a["docker.swarm.node.name"] as string;
+    const nodeName: string | undefined = a[
+      "resource.docker.swarm.node.name"
+    ] as string;
     const serviceName: string | undefined = a[
-      "docker.swarm.service.name"
+      "resource.docker.swarm.service.name"
     ] as string;
     return {
       key: [
@@ -1392,21 +1394,25 @@ describe("identity parity with the pre-refactor inline mappings", () => {
       row(60, {
         "resource.container.name": "web.1.abc",
         "resource.container.image.name": "nginx:1.27",
-        "docker.swarm.node.name": "worker-1",
-        "docker.swarm.service.name": "web",
+        "resource.docker.swarm.node.name": "worker-1",
+        "resource.docker.swarm.service.name": "web",
       }),
       row(95, {
         "resource.container.name": "web.1.abc",
         "resource.container.image.name": "nginx:1.27",
-        "docker.swarm.node.name": "worker-1",
-        "docker.swarm.service.name": "web",
+        "resource.docker.swarm.node.name": "worker-1",
+        "resource.docker.swarm.service.name": "web",
       }),
       row(20, {
         "resource.container.name": "api.2.def",
         "resource.container.image.name": "api:3",
       }),
-      // The bare key is NOT the identity; this row is anonymous.
-      row(5, { "container.name": "legacy.1.xyz" }),
+      // The bare keys are NOT the identity; this row is anonymous.
+      row(5, {
+        "container.name": "legacy.1.xyz",
+        "docker.swarm.node.name": "worker-9",
+        "docker.swarm.service.name": "legacy",
+      }),
     ];
 
     const step: MonitorStep = new MonitorStep();

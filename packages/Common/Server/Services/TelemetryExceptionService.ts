@@ -57,7 +57,10 @@ import HeldPermissionsUtil from "../../Types/HeldPermissions";
 import { FindWhereProperty } from "../../Types/BaseDatabase/Query";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Text from "../../Types/Text";
-import { applyManualResolutionChange } from "../../Utils/Exceptions/ExceptionIssueState";
+import {
+  applyAssignmentChange,
+  applyManualResolutionChange,
+} from "../../Utils/Exceptions/ExceptionIssueState";
 
 /*
  * Hard cap on the fingerprint NOT IN list handed to the ClickHouse count
@@ -180,6 +183,9 @@ export class Service extends ProjectReferencesService<Model> {
     applyManualResolutionChange(
       updateBy.data as unknown as Record<string, unknown>,
     );
+
+    // One assignee: a person or a team. See applyAssignmentChange.
+    applyAssignmentChange(updateBy.data as unknown as Record<string, unknown>);
 
     updateBy.query = await this.addExceptionScope(
       updateBy.query,

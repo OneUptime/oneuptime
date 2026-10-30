@@ -2036,6 +2036,136 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     expect(actions).toContain(": EXCEPTION_ALREADY_THERE[id];");
   });
 
+  /*
+   * Explain it with AI: the Overview's What happened card, its parts and
+   * buttons as the card draws them, what OneUptime AI reads to write it, and
+   * what is held back from the model.
+   */
+  it("explains an exception with OneUptime AI on its Overview, from what the page names", () => {
+    const card: string = readDashboardSource(
+      "Components/Exceptions/ExceptionAIExplanation.tsx",
+    );
+    const explorer: string = readDashboardSource(
+      "Components/Exceptions/ExceptionExplorer.tsx",
+    );
+    const explainer: string = readCommonSource(
+      "Server/Utils/AI/TelemetryAi/ExceptionExplanation.ts",
+    );
+    const prompt: string = readCommonSource(
+      "Server/Utils/AI/TelemetryAi/ExceptionExplanationPrompt.ts",
+    );
+    const explain: string = section(page, "## Explain it with AI");
+
+    // At the top of the Overview, and only while AI is offered.
+    expect(
+      between(
+        explorer,
+        "props.section === ExceptionDetailSection.Overview && (",
+        "<ExceptionOccurrenceTrend",
+      ),
+    ).toContain("<ExceptionAIExplanation");
+    expect(card).toContain("const isAiOffered: boolean = useAiOffered();");
+
+    for (const label of [
+      '"Explain with OneUptime AI"',
+      'title="What happened"',
+      '"Likely root cause"',
+      '"Suggested fix"',
+      '"Where to look"',
+      '"Next steps"',
+      '"Explain again"',
+      'title="Open a fix pull request"',
+      'title="Ask a follow-up"',
+    ]) {
+      expect(card).toContain(label);
+    }
+
+    expect(firstColumn(explain)).toEqual([
+      "What happened",
+      "Likely root cause",
+      "Suggested fix",
+      "Where to look",
+      "Next steps",
+    ]);
+    expect(explain).toContain(
+      "At the top of an exception's **Overview**, **Explain with OneUptime AI** asks OneUptime AI what went wrong.",
+    );
+    expect(explain).toContain(
+      "**Open a fix pull request** opens the exception's **AI Assistance** page, and **Ask a follow-up** opens Ask AI on the exception.",
+    );
+
+    // What it reads: the latest occurrence, its trace and logs, the deploys.
+    for (const service of [
+      "ExceptionInstanceService.findBy",
+      "SpanService.findBy",
+      "LogService.findBy",
+      "ChangeEventService.findBy",
+    ]) {
+      expect(explainer).toContain(service);
+    }
+    expect(explain).toContain(
+      "It reads the stack trace, the trace and logs of the latest occurrence, and the deploys of the service around the time the exception started",
+    );
+
+    // What it holds back, and the switch and credits it honours.
+    expect(prompt).toContain('"http.route",');
+    expect(prompt).toContain('"http.status_code",');
+    expect(prompt).toContain("sanitizeExceptionMessage");
+    expect(explainer).toContain("AIService.assertProjectAIEnabled");
+    expect(explainer).toContain("AIService.executeWithLogging");
+    expect(explain).toContain(
+      "IDs, email and IP addresses and tokens are taken out of everything that is sent, and of a span's attributes only a few, such as its route and status code, are sent.",
+    );
+    expect(explain).toContain(
+      "is not offered while **Enable AI** is off. Anyone who can read the exception can ask for one.",
+    );
+
+    // Its Markdown is the model's: shown in safe mode.
+    expect(card).toContain("safeMode={true}");
+  });
+
+  /*
+   * Who owns an exception, and the list's order: the header's Assign, a
+   * row's Assign to me, Bulk Actions' Assign to…, Assigned to me and the
+   * sort menu, with their words as the Dashboard draws them.
+   */
+  it("assigns an exception to a person or a team, filters to your own, and sorts the list", () => {
+    const viewer: string = readDashboardSource(
+      "Components/Exceptions/ExceptionsViewer.tsx",
+    );
+    const actions: string = readDashboardSource(
+      "Components/Exceptions/ExceptionRowActions.ts",
+    );
+    const assignee: string = readDashboardSource(
+      "Components/Exceptions/ExceptionAssignee.tsx",
+    );
+    const assignment: string = readDashboardSource(
+      "Utils/ExceptionAssignment.ts",
+    );
+    const triage: string = section(page, "## Resolve, reopen and archive");
+
+    // The header's picker: one person or one team.
+    expect(assignee).toContain('addButtonText="Assign"');
+    expect(assignee).toContain("isSinglePick={true}");
+    expect(assignee).toContain("PeoplePickerKind.User,");
+    expect(assignee).toContain("PeoplePickerKind.Team,");
+    expect(actions).toContain('translationKey("Assign to me")');
+    expect(actions).toContain('translationKey("Assign to…")');
+    expect(triage).toContain(
+      "**Assign** in the exception's header gives it to one person or one team, and removing them unassigns it. Each row shows who owns it, its ⋯ menu offers **Assign to me**, and **Assign to…** under **Bulk Actions** assigns several at once.",
+    );
+
+    // Assigned to me and the sort menu, beside the lenses.
+    expect(viewer).toContain('{translator.translateText("Assigned to me")}');
+    expect(viewer).toContain("q.assignToUserId = UserUtil.getUserId();");
+    for (const label of ['"Last seen"', '"First seen"', '"Most events"']) {
+      expect(assignment).toContain(label);
+    }
+    expect(page).toContain(
+      "**Assigned to me** shows only the exceptions assigned to you, and the sort menu orders the list by **Last seen**, **First seen** or **Most events**.",
+    );
+  });
+
   it("names the five error classes, which ones Issues keeps, and the class an untriaged exception has", () => {
     const rows: Array<Array<string>> = tableRows(
       section(page, "## Error classes"),

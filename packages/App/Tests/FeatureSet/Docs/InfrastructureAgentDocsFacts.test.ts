@@ -66,6 +66,7 @@ import {
   DOCKER_SWARM_DEFAULT_API_VERSION,
   DOCKER_SWARM_DEFAULT_CLUSTER_NAME,
   DOCKER_SWARM_DEFAULT_INVENTORY_INTERVAL_SECONDS,
+  DOCKER_SWARM_NODE_NAME_COMMAND,
   getDockerSwarmAgentDownloadCommand,
 } from "../../../FeatureSet/Dashboard/src/Pages/DockerSwarm/Utils/DocumentationMarkdown";
 import { STORAGE_ARRAY_AGENT_INSTALL_DIR } from "../../../FeatureSet/Dashboard/src/Pages/StorageArray/Utils/DocumentationMarkdown";
@@ -275,10 +276,14 @@ describe("the Docker agent page, against the setup guide and the agent", () => {
   });
 
   it("states the host name and API version defaults the image sets", () => {
-    const dockerfile: string = repoFile("agents/DockerAgent/Dockerfile.tpl");
+    const dockerfile: Array<string> = repoFile(
+      "agents/DockerAgent/Dockerfile.tpl",
+    ).split("\n");
     expect(dockerfile).toContain(
       `ENV DOCKER_HOST_NAME=${DOCKER_DEFAULT_HOST_NAME}`,
     );
+    // Empty: the agent negotiates the version with the daemon.
+    expect(DOCKER_DEFAULT_API_VERSION).toBe("");
     expect(dockerfile).toContain(
       `ENV DOCKER_API_VERSION=${DOCKER_DEFAULT_API_VERSION}`,
     );
@@ -286,21 +291,25 @@ describe("the Docker agent page, against the setup guide and the agent", () => {
       `Defaults to \`${DOCKER_DEFAULT_HOST_NAME}\``,
     );
     expect(rowOf(DOCKER_PAGE, "`DOCKER_API_VERSION`")[2]).toContain(
-      `Defaults to \`${DOCKER_DEFAULT_API_VERSION}\``,
+      "Empty by default: the agent negotiates it with the daemon",
     );
   });
 
-  it("reads stats every 30 seconds and lists the inventory every 5 minutes, as the agent does", () => {
+  /*
+   * The image is the upstream collector with the config copied in, and has
+   * no shell: the inventory poller that sat beside the config never ran, so
+   * the page promised an inventory every 5 minutes that never arrived.
+   */
+  it("reads stats every 30 seconds, and promises no inventory the agent never sends", () => {
     const config: YamlNode = yamlOf(
       repoFile("agents/DockerAgent/otel-collector-config.yaml"),
     );
     expect(at(config, "receivers.docker_stats.collection_interval")).toBe(
       "30s",
     );
-    expect(repoFile("agents/DockerAgent/inventory-snapshot.sh")).toContain(
-      'INTERVAL="${DOCKER_INVENTORY_INTERVAL_SECONDS:-300}"',
-    );
-    lineWith(DOCKER_PAGE, "stats every 30 seconds", "every 5 minutes");
+    expect(at(config, "receivers.filelog/inventory")).toBeUndefined();
+    lineWith(DOCKER_PAGE, "stats every 30 seconds");
+    expect(english(DOCKER_PAGE)).not.toMatch(/inventory|every 5 minutes/i);
   });
 
   it("tails the files the json-file driver writes, and only those", () => {
@@ -333,10 +342,14 @@ describe("the Podman agent page, against the setup guide and the agent", () => {
   });
 
   it("states the host name and API version defaults the image sets", () => {
-    const dockerfile: string = repoFile("agents/PodmanAgent/Dockerfile.tpl");
+    const dockerfile: Array<string> = repoFile(
+      "agents/PodmanAgent/Dockerfile.tpl",
+    ).split("\n");
     expect(dockerfile).toContain(
       `ENV PODMAN_HOST_NAME=${PODMAN_DEFAULT_HOST_NAME}`,
     );
+    // Empty: the agent negotiates the version with the socket.
+    expect(PODMAN_DEFAULT_API_VERSION).toBe("");
     expect(dockerfile).toContain(
       `ENV DOCKER_API_VERSION=${PODMAN_DEFAULT_API_VERSION}`,
     );
@@ -344,11 +357,11 @@ describe("the Podman agent page, against the setup guide and the agent", () => {
       `Defaults to \`${PODMAN_DEFAULT_HOST_NAME}\``,
     );
     expect(rowOf(PODMAN_PAGE, "`DOCKER_API_VERSION`")[2]).toContain(
-      `Defaults to \`${PODMAN_DEFAULT_API_VERSION}\``,
+      "Empty by default: the agent negotiates it with the socket",
     );
   });
 
-  it("reads the socket the page names, every 30 seconds, and the inventory every 5 minutes", () => {
+  it("reads the socket the page names, every 30 seconds, and promises no inventory the agent never sends", () => {
     const config: YamlNode = yamlOf(
       repoFile("agents/PodmanAgent/otel-collector-config.yaml"),
     );
@@ -358,11 +371,28 @@ describe("the Podman agent page, against the setup guide and the agent", () => {
     expect(at(config, "receivers.docker_stats.collection_interval")).toBe(
       "30s",
     );
-    expect(repoFile("agents/PodmanAgent/inventory-snapshot.sh")).toContain(
-      'INTERVAL="${PODMAN_INVENTORY_INTERVAL_SECONDS:-300}"',
-    );
-    lineWith(PODMAN_PAGE, "stats every 30 seconds", "every 5 minutes");
+    expect(at(config, "receivers.filelog/inventory")).toBeUndefined();
+    lineWith(PODMAN_PAGE, "stats every 30 seconds");
     lineWith(PODMAN_PAGE, `Podman's API socket at \`${PODMAN_SOCKET_PATH}\``);
+    expect(english(PODMAN_PAGE)).not.toMatch(/inventory|every 5 minutes/i);
+  });
+
+  /*
+   * Rootless Podman keeps its socket and storage under the user: the page
+   * says where, and that install.sh mounts them (ContainerAgentInstallers in
+   * Tests/Ops runs it rootless).
+   */
+  it("tells a rootless reader where their socket and storage are, and that install.sh mounts them", () => {
+    const line: string = lineWith(
+      PODMAN_PAGE,
+      "`/run/user/<uid>/podman/podman.sock`",
+    );
+    expect(line).toContain("`~/.local/share/containers/storage`");
+    expect(line).toContain(`\`${PODMAN_SOCKET_PATH}\``);
+    expect(line).toContain("`install.sh`");
+    expect(repoFile("agents/PodmanAgent/install.sh")).toContain(
+      "systemctl --user enable --now podman.socket",
+    );
   });
 
   it("tails the ctr.log files the k8s-file driver writes, and only those", () => {
@@ -1632,12 +1662,62 @@ describe("the Docker Swarm agent page, against the agent and its setup guide", (
       `Defaults to \`${DOCKER_SWARM_DEFAULT_INVENTORY_INTERVAL_SECONDS}\``,
     );
 
-    // "${VAR-default}": an empty value stays empty and negotiates the version.
-    expect(compose).toContain(
-      `DOCKER_API_VERSION=\${DOCKER_API_VERSION-${DOCKER_SWARM_DEFAULT_API_VERSION}}`,
+    // Empty: the collector negotiates the version with the daemon.
+    expect(DOCKER_SWARM_DEFAULT_API_VERSION).toBe("");
+    expect(composeDefault(compose, "DOCKER_API_VERSION")).toBe(
+      DOCKER_SWARM_DEFAULT_API_VERSION,
     );
     expect(rowOf(DOCKER_SWARM_PAGE, "`DOCKER_API_VERSION`")[2]).toContain(
-      `Defaults to \`${DOCKER_SWARM_DEFAULT_API_VERSION}\`; empty negotiates it with the daemon`,
+      "Empty by default: they use the daemon's own",
+    );
+  });
+
+  /*
+   * Swarm labels a task with its node's ID only: the node's name comes from
+   * DOCKER_SWARM_NODE_NAME, which install.sh writes and a Docker Compose
+   * install adds with the setup guide's command.
+   */
+  it("says where the node's name comes from, as the installer, the compose file and the setup guide do", () => {
+    expect(composeDefault(compose, "DOCKER_SWARM_NODE_NAME")).toBe("");
+    expect(repoFile("agents/DockerSwarmAgent/install.sh")).toContain(
+      "DOCKER_SWARM_NODE_NAME=${DOCKER_SWARM_NODE_NAME}",
+    );
+    expect(codesOf(DOCKER_SWARM_PAGE)).toContain(
+      DOCKER_SWARM_NODE_NAME_COMMAND,
+    );
+    expect(rowOf(DOCKER_SWARM_PAGE, "`DOCKER_SWARM_NODE_NAME`")[2]).toContain(
+      "The install script sets it to the node's hostname",
+    );
+    lineWith(
+      DOCKER_SWARM_PAGE,
+      "writes a `.env` file only its owner can read, with the node's hostname as `DOCKER_SWARM_NODE_NAME`",
+    );
+  });
+
+  /*
+   * The receiver stamps container.runtime=docker on a Swarm task's metrics
+   * too: the page used to say the agent stamps only the cluster name.
+   */
+  it("says what each task's metrics carry, as the collector config sends it", () => {
+    const config: string = repoFile(
+      "agents/DockerSwarmAgent/otel-collector-config.yaml",
+    );
+    const line: string = lineWith(
+      DOCKER_SWARM_PAGE,
+      "Each task's metrics carry",
+    );
+    for (const [label, attribute] of [
+      ["com.docker.swarm.service.name", "docker.swarm.service.name"],
+      ["com.docker.swarm.node.id", "docker.swarm.node.id"],
+    ]) {
+      expect(config).toContain(`${label}: ${attribute}`);
+      expect(line).toContain(`\`${attribute}\``);
+    }
+    expect(config).toContain('set(attributes["docker.swarm.node.name"]');
+    expect(line).toContain("`docker.swarm.node.name`");
+    expect(line).toContain("`container.runtime=docker`");
+    expect(english(DOCKER_SWARM_PAGE)).not.toContain(
+      "stamps only `docker.swarm.cluster.name`",
     );
   });
 

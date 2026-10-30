@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 38782,
-    "untranslated": 13459
+    "keys": 38821,
+    "untranslated": 13444
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -207,6 +207,7 @@
     "Tip",
     "Tokens",
     "Tool",
+    "Top",
     "Trace",
     "Trace {{traceId}}",
     "Traces",
