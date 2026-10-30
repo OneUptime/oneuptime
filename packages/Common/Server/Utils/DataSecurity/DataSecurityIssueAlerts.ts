@@ -44,9 +44,6 @@ export interface ClosedDataSecurityIssue {
   why: string;
 }
 
-const SAME_STATE_MESSAGE: string =
-  "Alert state cannot be same as previous state.";
-
 export default class DataSecurityIssueAlerts {
   // Resolves the open alerts of the issues that closed; how many it resolved.
   public static async resolveForClosedIssues(data: {
@@ -134,7 +131,7 @@ export default class DataSecurityIssueAlerts {
            */
           if (
             error instanceof BadDataException &&
-            error.message === SAME_STATE_MESSAGE
+            error.message === "Alert state cannot be same as previous state."
           ) {
             continue;
           }
