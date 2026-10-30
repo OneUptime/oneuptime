@@ -4,6 +4,7 @@ import BasePermission from "./BasePermission";
 import ColumnPermissions from "./ColumnPermission";
 import EditionPermissions from "./EditionPermission";
 import OwnedScopePermission from "./OwnedScopePermission";
+import PrivateRecordPermission from "./PrivateRecordPermission";
 import PublicPermission from "./PublicPermission";
 import ReadPermission from "./ReadPermission";
 import TablePermission from "./TablePermission";
@@ -744,6 +745,23 @@ export default class CreatePermission {
           data.props,
         ))
     ) {
+      /*
+       * A private parent the write's permission does not reach, named by
+       * someone who may not read the parent's kind at all: answered like a
+       * parent they may not read - one that does not exist - telling them
+       * nothing about it.
+       */
+      const unreachableIds: Array<string> =
+        await CreatePermission.getUnreachablePrivateParentIds(data);
+
+      if (unreachableIds.length > 0) {
+        throw CreatePermission.getMissingParentRefusal(
+          data.modelType,
+          data.parent,
+          unreachableIds,
+        );
+      }
+
       return;
     }
 
@@ -791,6 +809,52 @@ export default class CreatePermission {
         refusedIds,
       );
     }
+
+    /*
+     * A PRIVATE PARENT TAKES A PART ONLY THROUGH THE TEAMS THAT OWN IT. The
+     * caller may read every parent named - they own it, or a team of theirs
+     * does - but a note, an owner, a state change or a role goes on a
+     * private incident, alert or episode only with the permission of a team
+     * that owns it, or of a person who does (PrivateRecordPermission): one
+     * of their other teams' permission reaches none of its private records.
+     * Refused in so many words, as the caller sees the parent.
+     */
+    if (
+      (await CreatePermission.getUnreachablePrivateParentIds(data)).length > 0
+    ) {
+      throw new NotAuthorizedException(
+        `You do not have permission to ${data.type} ${
+          new data.modelType().singularName || "this record"
+        }. ${PrivateRecordPermission.getPrivateParentWriteReason(
+          (
+            new data.parent.parentModelType().singularName || "record"
+          ).toLowerCase(),
+        )}`,
+      );
+    }
+  }
+
+  /*
+   * Of the parents a write names, the private ones the caller's permission
+   * for the write does not reach (PrivateRecordPermission
+   * .getUnreachableParentIds), read as OneUptime in the record's project.
+   */
+  private static async getUnreachablePrivateParentIds(data: {
+    modelType: DatabaseBaseModelType;
+    parent: CreateParent;
+    ids: Array<string>;
+    props: DatabaseCommonInteractionProps;
+    type: DatabaseRequestType.Create | DatabaseRequestType.Update;
+    findParentIdsInProject: RecordIdsFinder;
+  }): Promise<Array<string>> {
+    return await PrivateRecordPermission.getUnreachableParentIds({
+      modelType: data.modelType,
+      parentModelType: data.parent.parentModelType,
+      parentIds: data.ids,
+      props: data.props,
+      type: data.type,
+      findIdsInProject: data.findParentIdsInProject,
+    });
   }
 
   // The parent of each model asked about, read from its metadata once.

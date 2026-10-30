@@ -36,6 +36,9 @@ import RelationListPermission, {
 import UpdatePermission from "../Types/Database/Permissions/UpdatePermission";
 import UpdateScopePermission from "../Types/Database/Permissions/UpdateScopePermission";
 import OwnedScopePermission from "../Types/Database/Permissions/OwnedScopePermission";
+import PrivateRecordPermission, {
+  PrivateRecordColumn,
+} from "../Types/Database/Permissions/PrivateRecordPermission";
 import PublicPermission from "../Types/Database/Permissions/PublicPermission";
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import OwnerOnlyColumnPermission from "../Types/Database/Permissions/OwnerOnlyColumnPermission";
@@ -10510,12 +10513,92 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     if (isReadable) {
+      const privateReason: string | null =
+        await this.getPrivateRecordWriteRefusal(data);
+
       return new NotAuthorizedException(
-        `You do not have permission to ${data.type} this ${name.toLowerCase()}.`,
+        `You do not have permission to ${data.type} this ${name.toLowerCase()}.${
+          privateReason ? ` ${privateReason}` : ""
+        }`,
       );
     }
 
     return new NotFoundException(`${name} not found.`);
+  }
+
+  /*
+   * Why a change or a delete of a record the caller may read did not reach
+   * it, when the reason is that the record - or the incident, alert or
+   * episode it is a part of - is private and the caller's permission for
+   * the write is not one of its owners' (PrivateRecordPermission): what
+   * would let them, in the words the API, Slack and Microsoft Teams answer
+   * with. Null for any other reason, which the caller is told as before.
+   */
+  private async getPrivateRecordWriteRefusal(data: {
+    id: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    type: DatabaseRequestType.Update | DatabaseRequestType.Delete;
+  }): Promise<string | null> {
+    if (!PrivateRecordPermission.narrows(this.modelType, data.props, data.type)) {
+      return null;
+    }
+
+    const column: PrivateRecordColumn | null =
+      PrivateRecordPermission.getPrivateRecordColumn(this.modelType);
+
+    if (!column) {
+      return null;
+    }
+
+    let recordId: string | null = data.id.toString();
+
+    // A part of a private record: the record it belongs to, read as OneUptime.
+    if (!column.isRecord) {
+      const part: TBaseModel | null = await this.findOneById({
+        id: data.id,
+        select: { [column.column]: true } as Select<TBaseModel>,
+        props: { isRoot: true },
+      });
+
+      const key: unknown = part?.getValue(column.column);
+      recordId = key ? key.toString() : null;
+    }
+
+    if (!recordId || !ObjectID.isValidUUID(recordId)) {
+      return null;
+    }
+
+    const query: Query<BaseModel> | null =
+      PrivateRecordPermission.getUnreachableRecordsQuery({
+        modelType: this.modelType,
+        recordModelType: column.recordModelType,
+        recordIds: [recordId],
+        props: data.props,
+        type: data.type,
+      });
+
+    if (!query) {
+      return null;
+    }
+
+    const unreachable: Array<string> = await DatabaseService.findIdsInProject({
+      modelType: column.recordModelType,
+      ids: [recordId],
+      query: query,
+      projectId: data.props.tenantId || null,
+    });
+
+    if (unreachable.length === 0) {
+      return null;
+    }
+
+    return column.isRecord
+      ? PrivateRecordPermission.PRIVATE_WRITE_REASON
+      : PrivateRecordPermission.getPrivateParentWriteReason(
+          (
+            new column.recordModelType().singularName || "record"
+          ).toLowerCase(),
+        );
   }
 
   @CaptureSpan()
