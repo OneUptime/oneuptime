@@ -58,8 +58,13 @@ Kortet **Dine logs**, øverst på **Forbindelser**, kræver ingen installation. 
 | --- | --- |
 | SSH-logins | Mislykkede og vellykkede SSH-logins fra en servers auth-log, journal eller syslog |
 | sudo | Kommandoer kørt som en anden bruger, forkerte sudo-adgangskoder og personer, der ikke må bruge sudo |
-| Kubernetes-auditlogs | Ændringer i klyngen, shells åbnet i pods, læste secrets og afviste anmodninger |
+| Windows-hændelser | Logins, nye processer, ændrede konti og grupper, installerede tjenester og ryddede logs fra Windows, Sysmon og Microsoft Defender |
 | AWS CloudTrail | Logins til konsollen, ændringer i dine AWS-konti og kald, som AWS afviste |
+| Google Cloud-auditlogs | Ændringer i dine Google Cloud-projekter, kald, som Google afviste, og logins i Google Workspace, der deles med Google Cloud |
+| Azure-aktivitetslogs og Entra ID-logs | Ændringer i dine Azure-abonnementer, advarsler fra Defender for Cloud samt logins og mappeændringer i Microsoft Entra ID |
+| CEF | Trusler, blokerede forbindelser og logins fra firewalls, IDS, WAF'er og andre sikkerhedsprodukter, der sender Common Event Format |
+| LEEF | Det samme fra produkter, der sender Log Event Extended Format, som mange gør til IBM QRadar |
+| Kubernetes-auditlogs | Ændringer i klyngen, shells åbnet i pods, læste secrets og afviste anmodninger |
 | Webangreb | Anmodninger i en webservers adgangslog, der forsøger SQL-injektion, path traversal eller Log4Shell |
 
 Dine logs forbliver, som de er. Kun de linjer, der betyder noget for sikkerheden, bliver til hændelser: aldrig hver side, en webserver har leveret, eller hver læsning af et API.
@@ -83,7 +88,7 @@ Sagen åbnes som regel, før knappen svarer; når reglen stadig er ved at indhen
 :::
 
 :::details Der kommer ingen sikkerhedshændelse fra mine logs
-Tjek, at **Find sikkerhedshændelser i dine logs** er slået til, og at kortet **Dine logs** viser, hvornår der sidst blev tjekket. Kun de slags linjer, der står i tabellen ovenfor, bliver til hændelser: En server, der ikke sender SSH-, sudo-, audit-, CloudTrail- eller adgangslogs, har intet at finde.
+Tjek, at **Find sikkerhedshændelser i dine logs** er slået til, og at kortet **Dine logs** viser, hvornår der sidst blev tjekket. Kun de slags linjer, der står i tabellen ovenfor, bliver til hændelser: En server, der ikke sender SSH-, sudo-, Windows-, audit-, CEF-, LEEF- eller adgangslogs, har intet at finde. Indsæt en af dens linjer i **Tjek en loglinje** på **Dine logs** for at se, om OneUptime læser den.
 :::
 
 :::details Oversigt siger, at den seneste sikkerhedshændelse kom for dage siden

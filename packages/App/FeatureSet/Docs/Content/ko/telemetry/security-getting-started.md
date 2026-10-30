@@ -58,8 +58,13 @@ flowchart LR
 | --- | --- |
 | SSH 로그인 | 서버의 인증 로그, journal 또는 syslog에 있는 SSH 로그인 실패와 성공 |
 | sudo | 다른 사용자로 실행한 명령, 잘못된 sudo 비밀번호, sudo 사용이 허용되지 않은 사람 |
-| Kubernetes 감사 로그 | 클러스터 변경, Pod에서 열린 셸, 읽힌 시크릿, 거부된 요청 |
+| Windows 이벤트 | Windows, Sysmon, Microsoft Defender의 로그인, 새 프로세스, 변경된 계정과 그룹, 설치된 서비스, 지워진 로그 |
 | AWS CloudTrail | 콘솔 로그인, AWS 계정에서의 변경, AWS가 거부한 호출 |
+| Google Cloud 감사 로그 | Google Cloud 프로젝트에서의 변경, Google이 거부한 호출, Google Cloud와 공유되는 Google Workspace 로그인 |
+| Azure 활동 및 Entra ID 로그 | Azure 구독에서의 변경, Defender for Cloud 알림, Microsoft Entra ID 로그인과 디렉터리 변경 |
+| CEF | Common Event Format을 보내는 방화벽, IDS, WAF 및 기타 보안 제품의 위협, 차단된 연결, 로그인 |
+| LEEF | Log Event Extended Format을 보내는 제품의 같은 내용. 많은 제품이 IBM QRadar용으로 이 형식을 보냅니다 |
+| Kubernetes 감사 로그 | 클러스터 변경, Pod에서 열린 셸, 읽힌 시크릿, 거부된 요청 |
 | 웹 공격 | 웹 서버의 액세스 로그 중 SQL 인젝션, 경로 탐색 또는 Log4Shell을 시도하는 요청 |
 
 로그는 그대로 남습니다. 보안에 중요한 줄만 이벤트가 되며, 웹 서버가 제공한 모든 페이지나 API의 모든 읽기가 이벤트가 되지는 않습니다.
@@ -83,7 +88,7 @@ flowchart LR
 :::
 
 :::details 로그에서 보안 이벤트가 나오지 않음
-**로그에서 보안 이벤트 찾기**가 켜져 있고 **내 로그**에 마지막으로 확인한 시각이 표시되는지 확인하세요. 위 표에 있는 종류의 줄만 이벤트가 됩니다. SSH, sudo, 감사, CloudTrail, 액세스 로그 중 어느 것도 보내지 않는 서버에서는 찾을 것이 없습니다.
+**로그에서 보안 이벤트 찾기**가 켜져 있고 **내 로그**에 마지막으로 확인한 시각이 표시되는지 확인하세요. 위 표에 있는 종류의 줄만 이벤트가 됩니다. SSH, sudo, Windows, 감사, CEF, LEEF, 액세스 로그 중 어느 것도 보내지 않는 서버에서는 찾을 것이 없습니다. 그 서버의 줄 하나를 **내 로그**의 **로그 줄 확인**에 붙여 넣으면 OneUptime이 그 줄을 읽는지 볼 수 있습니다.
 :::
 
 :::details 개요에 마지막 보안 이벤트가 며칠 전에 도착했다고 표시됨
